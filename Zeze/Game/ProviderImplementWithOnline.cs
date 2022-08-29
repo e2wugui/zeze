@@ -7,6 +7,7 @@ using Zeze.Arch;
 using Zeze.Builtin.Provider;
 using Zeze.Net;
 using Zeze.Transaction;
+using Zeze.Util;
 
 namespace Zeze.Game
 {
@@ -23,7 +24,7 @@ namespace Zeze.Game
                 var roleId = long.Parse(p.Argument.Context);
                 await Online.OnLinkBroken(roleId, ProviderService.GetLinkName(p.Sender), p.Argument.LinkSid);
             }
-            return Procedure.Success;
+            return ResultCode.Success;
         }
     }
 }

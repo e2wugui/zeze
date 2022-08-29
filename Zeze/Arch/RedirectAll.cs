@@ -8,6 +8,7 @@ using Zeze.Builtin.ProviderDirect;
 using Zeze.Transaction;
 using Zeze.Net;
 using Zeze.Serialize;
+using Zeze.Util;
 
 namespace Zeze.Arch
 {
@@ -48,7 +49,7 @@ namespace Zeze.Arch
             {
                 foreach (var hash in HashCodes)
                 {
-                    HashErrors.TryAdd(hash, Procedure.Timeout);
+                    HashErrors.TryAdd(hash, ResultCode.Timeout);
                 }
                 HashCodes.Clear();
                 Future.TrySetResult(this);

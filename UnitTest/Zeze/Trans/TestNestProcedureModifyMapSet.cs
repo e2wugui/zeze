@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Zeze.Transaction;
+using Zeze.Util;
 
 namespace UnitTest.Zeze.Trans
 {
@@ -45,7 +46,7 @@ namespace UnitTest.Zeze.Trans
                     value.Map15[1] = 2;
                     Assert.IsTrue(value.Map15.TryGetValue(1, out var mv2));
                     Assert.AreEqual(2, mv2);
-                    return Procedure.LogicError;
+                    return ResultCode.LogicError;
                 }, "ModifyMapPut2").CallAsync();
 
                 Assert.IsTrue(value.Map15.TryGetValue(1, out var mv1));
@@ -74,7 +75,7 @@ namespace UnitTest.Zeze.Trans
                     Assert.IsTrue(value.Set10.Contains(1));
                     value.Set10.Remove(1);
                     Assert.IsFalse(value.Set10.Contains(1));
-                    return Procedure.LogicError;
+                    return ResultCode.LogicError;
                 }, "ModifySetRemove1").CallAsync();
 
                 Assert.IsTrue(value.Set10.Contains(1));

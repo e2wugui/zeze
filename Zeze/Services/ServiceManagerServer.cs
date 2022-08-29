@@ -340,14 +340,14 @@ namespace Zeze.Services
                         default:
                             r.ResultCode = Subscribe.UnknownSubscribeType;
                             r.SendResult();
-                            return Procedure.LogicError;
+                            return ResultCode.LogicError;
                     }
                     r.SendResultCode(Subscribe.Success);
                     foreach (var info in ServiceInfos.Values)
                     {
                         ServiceManager.AddLoadObserver(info.PassiveIp, info.PassivePort, r.Sender);
                     }
-                    return Procedure.Success;
+                    return ResultCode.Success;
                 }
             }
 
@@ -462,7 +462,7 @@ namespace Zeze.Services
             r.SendResultCode(Register.Success);
             state.StartReadyCommitNotify();
             state.NotifySimpleOnRegister(current);
-            return Task.FromResult(Procedure.Success);
+            return Task.FromResult(ResultCode.Success);
         }
 
         private Task<long> ProcessUpdate(Protocol p)
@@ -476,7 +476,7 @@ namespace Zeze.Services
                 return Task.FromResult((long)Update.ServerStateError);
 
             var rc = state.UpdateAndNotify(r.Argument);
-            if (rc != Procedure.Success)
+            if (rc != ResultCode.Success)
                 return Task.FromResult((long)rc);
             r.SendResult();
             return Task.FromResult(0L);
@@ -515,7 +515,7 @@ namespace Zeze.Services
             }
             // 注销不存在也返回成功，否则Agent处理比较麻烦。
             r.SendResultCode(UnRegister.Success);
-            return Task.FromResult(Procedure.Success);
+            return Task.FromResult(ResultCode.Success);
         }
 
         private Task<long> ProcessSubscribe(Protocol p)
@@ -561,7 +561,7 @@ namespace Zeze.Services
                         r.ResultCode = UnSubscribe.Success;
                         r.SendResult();
                         changed.TryCommit();
-                        return Task.FromResult(Procedure.Success);
+                        return Task.FromResult(ResultCode.Success);
                     }
                 }
             }
@@ -571,7 +571,7 @@ namespace Zeze.Services
             //return Procedure.LogicError;
             r.ResultCode = UnRegister.Success;
             r.SendResult();
-            return Task.FromResult(Procedure.Success);
+            return Task.FromResult(ResultCode.Success);
         }
 
         private Task<long> ProcessReadyServiceList(Protocol p)
@@ -580,7 +580,7 @@ namespace Zeze.Services
             var session = r.Sender.UserState as Session;
             var state = ServerStates.GetOrAdd(r.Argument.ServiceName, (name) => new ServerState(this, name));
             state.SetReady(r, session);
-            return Task.FromResult(Procedure.Success);
+            return Task.FromResult(ResultCode.Success);
         }
 
         public void Dispose()
@@ -1152,7 +1152,7 @@ namespace Zeze.Services.ServiceManager
             {
                 state.OnFirstCommit(r.Argument);
             }
-            return Task.FromResult(Procedure.Success);
+            return Task.FromResult(ResultCode.Success);
         }
 
         public async Task UnSubscribeService(string serviceName)
@@ -1218,7 +1218,7 @@ namespace Zeze.Services.ServiceManager
             {
                 Agent.logger.Warn("NotifyServiceList But SubscribeState Not Found.");
             }
-            return Task.FromResult(Procedure.Success);
+            return Task.FromResult(ResultCode.Success);
         }
 
         private Task<long> ProcessCommitServiceList(Protocol p)
@@ -1232,7 +1232,7 @@ namespace Zeze.Services.ServiceManager
             {
                 Agent.logger.Warn("CommitServiceList But SubscribeState Not Found.");
             }
-            return Task.FromResult(Procedure.Success);
+            return Task.FromResult(ResultCode.Success);
         }
 
         private Task<long> ProcessKeepAlive(Protocol p)
@@ -1240,7 +1240,7 @@ namespace Zeze.Services.ServiceManager
             var r = p as KeepAlive;
             OnKeepAlive?.Invoke();
             r.SendResultCode(KeepAlive.Success);
-            return Task.FromResult(Procedure.Success);
+            return Task.FromResult(ResultCode.Success);
         }
 
         public sealed class AutoKey
@@ -1417,7 +1417,7 @@ namespace Zeze.Services.ServiceManager
             var p = _p as SetServerLoad;
             Loads[p.Argument.Name] = p.Argument;
             OnSetServerLoad?.Invoke(p.Argument);
-            return Task.FromResult(Procedure.Success);
+            return Task.FromResult(ResultCode.Success);
         }
 
         public bool SetLoad(ServerLoad load)

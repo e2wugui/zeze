@@ -77,7 +77,7 @@
                 theResult10 = _bb_.ReadLong();
                 future9.TrySetResult(theResult10);
             }
-            return Zeze.Transaction.Procedure.Success;
+            return Zeze.Util.ResultCode.Success;
         });
 
         return await future9.Task;

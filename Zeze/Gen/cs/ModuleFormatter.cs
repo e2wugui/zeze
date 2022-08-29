@@ -220,7 +220,7 @@ namespace Zeze.Gen.cs
                             sw.WriteLine($"        protected override async System.Threading.Tasks.Task<long> Process" + rpc.Name + "Request(Zeze.Net.Protocol _p)");
                             sw.WriteLine("        {");
                             sw.WriteLine($"            var p = _p as {(shortIf ? rpc.ShortNameIf(module) : rpc.FullName)};");
-                            sw.WriteLine("            return Zeze.Transaction.Procedure.NotImplement;");
+                            sw.WriteLine("            return Zeze.Util.ResultCode.NotImplement;");
                             sw.WriteLine("        }");
                             sw.WriteLine();
                         }
@@ -231,7 +231,7 @@ namespace Zeze.Gen.cs
                         sw.WriteLine($"        protected override async System.Threading.Tasks.Task<long> Process" + p.Name + "(Zeze.Net.Protocol _p)");
                         sw.WriteLine("        {");
                         sw.WriteLine($"            var p = _p as {(shortIf ? p.ShortNameIf(module) : p.FullName)};");
-                        sw.WriteLine("            return Zeze.Transaction.Procedure.NotImplement;");
+                        sw.WriteLine("            return Zeze.Util.ResultCode.NotImplement;");
                         sw.WriteLine("        }");
                         sw.WriteLine();
                     }

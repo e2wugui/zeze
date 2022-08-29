@@ -4,6 +4,7 @@ using Zeze.Arch;
 using Zeze.Net;
 using Zeze.Transaction;
 using Zeze.Transaction.Collections;
+using Zeze.Util;
 
 namespace Game.Bag
 {
@@ -102,7 +103,7 @@ namespace Game.Bag
             Bag bag = await GetBag(session.RoleId.Value);
             bag.Sort();
             session.SendResponseWhileCommit(rpc);
-            return Procedure.Success;
+            return ResultCode.Success;
         }
 
         protected override async Task<long> ProcessGetBagRequest(Protocol p)
@@ -114,7 +115,7 @@ namespace Game.Bag
             session.SendResponseWhileCommit(rpc);
             await Game.App.Instance.ProviderImplementWithOnline.Online.AddReliableNotifyMark(
                 session.RoleId.Value, BagChangeListener.Name);
-            return Procedure.Success;
+            return ResultCode.Success;
         }
 
         // for other module
@@ -132,9 +133,9 @@ namespace Game.Bag
             if (null != item && item.Use())
             {
                 if (bag.Remove(protocol.Argument.Position, item.Id, 1))
-                    return Procedure.Success;
+                    return ResultCode.Success;
             }
-            return Procedure.LogicError;
+            return ResultCode.LogicError;
 
         }
     }

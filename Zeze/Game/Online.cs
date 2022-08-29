@@ -11,6 +11,7 @@ using Zeze.Builtin.ProviderDirect;
 using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Transaction;
+using Zeze.Util;
 
 namespace Zeze.Game
 {
@@ -253,7 +254,7 @@ namespace Zeze.Game
                         {
                             await LogoutTrigger(roleId);
                         }
-                        return Procedure.Success;
+                        return ResultCode.Success;
                     }, "Onlines.OnLinkBroken").CallAsync();
                 }, ProviderApp.Zeze.Config.OnlineLogoutDelay);
             });
@@ -328,12 +329,12 @@ namespace Zeze.Game
                     if (null == online)
                     {
                         // 完全离线，忽略可靠消息发送：可靠消息仅仅为在线提供服务，并不提供全局可靠消息。
-                        return Procedure.Success;
+                        return ResultCode.Success;
                     }
                     var version = await _tversion.GetOrAddAsync(roleId);
                     if (false == version.ReliableNotifyMark.Contains(listenerName))
                     {
-                        return Procedure.Success; // 相关数据装载的时候要同步设置这个。
+                        return ResultCode.Success; // 相关数据装载的时候要同步设置这个。
                     }
 
                     // 先保存在再发送，然后客户端还会确认。
@@ -347,7 +348,7 @@ namespace Zeze.Game
                     notify.Argument.Notifies.Add(fullEncodedProtocol);
 
                     await SendEmbed(new List<long> { roleId }, notify.TypeId, new Binary(notify.Encode()));
-                    return Procedure.Success;
+                    return ResultCode.Success;
                 },
                 "SendReliableNotify." + listenerName
                 ));
@@ -451,7 +452,7 @@ namespace Zeze.Game
                 ProviderApp.Zeze.NewProcedure(async () =>
                 {
                     await SendEmbed(new List<long> { roleId }, typeId, fullEncodedProtocol);
-                    return Procedure.Success;
+                    return ResultCode.Success;
                 }, "Onlines.Send"));
         }
 
@@ -465,7 +466,7 @@ namespace Zeze.Game
                     ProviderApp.Zeze.NewProcedure(async () =>
                     {
                         await SendEmbed(roles, typeId, fullEncodedProtocol);
-                        return Procedure.Success;
+                        return ResultCode.Success;
                     }, "Onlines.Send"));
             }
         }
@@ -635,7 +636,7 @@ namespace Zeze.Game
             _ = ProviderApp.Zeze.NewProcedure(async () =>
             {
                 await TransmitInProcedure(sender, actionName, roleIds, binaryParam);
-                return Procedure.Success;
+                return ResultCode.Success;
             }, "Onlines.Transmit").CallAsync();
         }
 
@@ -803,7 +804,7 @@ namespace Zeze.Game
                 rpc.Sender.Send(setUserState); // 直接使用link连接。
             });
             //App.Load.LoginCount.IncrementAndGet();
-            return Procedure.Success;
+            return ResultCode.Success;
         }
 
         protected override async Task<long> ProcessReLoginRequest(Zeze.Net.Protocol p)
@@ -874,7 +875,7 @@ namespace Zeze.Game
                 return ErrorCode((ushort)syncResultCode);
 
             //App.Load.LoginCount.IncrementAndGet();
-            return Procedure.Success;
+            return ResultCode.Success;
         }
 
         protected override async Task<long> ProcessLogoutRequest(Zeze.Net.Protocol p)
@@ -906,7 +907,7 @@ namespace Zeze.Game
             session.SendResponseWhileCommit(rpc);
             // 在 OnLinkBroken 时处理。可以同时处理网络异常的情况。
             // App.Load.LogoutCount.IncrementAndGet();
-            return Procedure.Success;
+            return ResultCode.Success;
         }
 
         private async Task<int> ReliableNotifySync(long roleId, ProviderUserSession session, long index, bool sync = true)
@@ -956,7 +957,7 @@ namespace Zeze.Game
             if (ResultCodeSuccess != syncResultCode)
                 return ErrorCode((ushort)syncResultCode);
 
-            return Procedure.Success;
+            return ResultCode.Success;
         }
 
     }

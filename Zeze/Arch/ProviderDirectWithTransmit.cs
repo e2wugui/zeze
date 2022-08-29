@@ -7,6 +7,7 @@ using Zeze.Arch;
 using Zeze.Builtin.ProviderDirect;
 using Zeze.Net;
 using Zeze.Transaction;
+using Zeze.Util;
 
 namespace Zeze.Arch
 {
@@ -18,7 +19,7 @@ namespace Zeze.Arch
 			var provider = ProviderApp.ProviderImplement as ProviderImplementWithOnline;
 			provider.Online.ProcessTransmit(p.Argument.SenderAccount, p.Argument.SenderClientId,
 				p.Argument.ActionName, p.Argument.TargetAccounts, p.Argument.Parameter);
-			return Task.FromResult(Procedure.Success);
+			return Task.FromResult(ResultCode.Success);
 		}
 	}
 }

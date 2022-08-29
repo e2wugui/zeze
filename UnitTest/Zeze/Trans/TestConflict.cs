@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Zeze.Transaction;
+using Zeze.Util;
 
 namespace UnitTest.Zeze.Trans
 {
@@ -27,7 +28,7 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void TestConflictAdd()
         {
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcRemove, "ProcRemove").CallSynchronously());
+            Assert.IsTrue(ResultCode.Success == demo.App.Instance.Zeze.NewProcedure(ProcRemove, "ProcRemove").CallSynchronously());
             Task[] tasks = new Task[2000];
             for (int i = 0; i < tasks.Length; ++i)
             {
@@ -35,28 +36,28 @@ namespace UnitTest.Zeze.Trans
             }
             Task.WaitAll(tasks);
             sum = tasks.Length;
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcVerify, "ProcVerify").CallSynchronously());
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcRemove, "ProcRemove").CallSynchronously());
+            Assert.IsTrue(ResultCode.Success == demo.App.Instance.Zeze.NewProcedure(ProcVerify, "ProcVerify").CallSynchronously());
+            Assert.IsTrue(ResultCode.Success == demo.App.Instance.Zeze.NewProcedure(ProcRemove, "ProcRemove").CallSynchronously());
         }
 
         async Task<long> ProcRemove()
         {
             await demo.App.Instance.demo_Module1.Table1.RemoveAsync(123123);
-            return Procedure.Success;
+            return ResultCode.Success;
         }
 
         async Task<long> ProcAdd()
         {
             demo.Module1.Value v = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(123123);
             v.Int1 += 1;
-            return Procedure.Success;
+            return ResultCode.Success;
         }
 
         async Task<long> ProcVerify()
         {
             demo.Module1.Value v = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(123123);
             Assert.IsTrue(v.Int1 == sum);
-            return Procedure.Success;
+            return ResultCode.Success;
         }
     }
 }

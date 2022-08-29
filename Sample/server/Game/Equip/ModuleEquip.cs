@@ -5,6 +5,7 @@ using Zeze.Arch;
 using Zeze.Net;
 using Zeze.Transaction;
 using Zeze.Transaction.Collections;
+using Zeze.Util;
 
 namespace Game.Equip
 {
@@ -118,7 +119,7 @@ namespace Game.Equip
                     equips.Items.Add(equipPos, bEquipAdd);
                 }
                 session.SendResponseWhileCommit(rpc);
-                return Procedure.Success;
+                return ResultCode.Success;
             }
             return ErrorCode(ResultCodeItemNotFound);
         }
@@ -137,7 +138,7 @@ namespace Game.Equip
                 if (0 != bag.Add(-1, bItemAdd))
                     return ErrorCode(ResultCodeBagIsFull); // bag is full
                 session.SendResponseWhileCommit(rpc);
-                return Procedure.Success;
+                return ResultCode.Success;
             }
 
             return ErrorCode(ResultCodeEquipNotFound);

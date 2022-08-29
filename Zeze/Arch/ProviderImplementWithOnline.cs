@@ -7,6 +7,7 @@ using Zeze.Arch;
 using Zeze.Builtin.Provider;
 using Zeze.Net;
 using Zeze.Transaction;
+using Zeze.Util;
 
 namespace Zeze.Arch
 {
@@ -22,7 +23,7 @@ namespace Zeze.Arch
             {
                 await Online.OnLinkBroken(p.Argument.Account, p.Argument.Context, p.Argument.LinkSid, ProviderService.GetLinkName(p.Sender));
             }
-            return Procedure.Success;
+            return ResultCode.Success;
         }
     }
 }

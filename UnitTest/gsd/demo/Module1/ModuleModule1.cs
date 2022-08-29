@@ -2,6 +2,7 @@
 using System;
 using System.Threading.Tasks;
 using Zeze.Net;
+using Zeze.Util;
 
 namespace demo.Module1
 {
@@ -23,19 +24,19 @@ namespace demo.Module1
             protocol.Send(protocol.Sender);
             Console.WriteLine(protocol.Argument);
             await new Rpc2().SendAsync(protocol.Sender); // not wait
-            return Zeze.Transaction.Procedure.Success;
+            return ResultCode.Success;
         }
 
         protected override Task<long> ProcessProtocol3(Protocol p)
         {
-            return Task.FromResult(Zeze.Transaction.Procedure.NotImplement);
+            return Task.FromResult(ResultCode.NotImplement);
         }
 
         protected override Task<long> ProcessRpc1Request(Protocol p)
         {
             var rpc = p as Rpc1;
             rpc.SendResult();
-            return Task.FromResult(Zeze.Transaction.Procedure.Success);
+            return Task.FromResult(ResultCode.Success);
         }
 
         protected override Task<long> ProcessProtocolNoProcedure(Protocol p)

@@ -1,4 +1,6 @@
-﻿public class Redirect_Game_Rank : Game.Rank.ModuleRank
+﻿using Zeze.Util;
+
+public class Redirect_Game_Rank : Game.Rank.ModuleRank
 {
     public override async System.Threading.Tasks.Task<Zeze.Arch.RedirectAll<Game.Rank.BRankList>> GetRankAll(Game.Rank.BConcurrentKey keyHint)
     {
@@ -168,7 +170,7 @@
                 await App.Zeze.NewProcedure(async () => { result(tmp31, tmp32); return 0L; }, "ModuleRedirectResponse Procedure").CallAsync();
                 future30.TrySetResult();
             }
-            return Zeze.Transaction.Procedure.Success;
+            return ResultCode.Success;
         });
 
         await future30.Task;
@@ -213,7 +215,7 @@
                 var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(rpc36.Result.Params);
                 future37.TrySetResult();
             }
-            return Zeze.Transaction.Procedure.Success;
+            return ResultCode.Success;
         });
 
     }
@@ -265,7 +267,7 @@
                 theResult46 = _bb_.ReadLong();
                 future43.TrySetResult(theResult46);
             }
-            return Zeze.Transaction.Procedure.Success;
+            return ResultCode.Success;
         });
 
         return await future43.Task;
@@ -315,7 +317,7 @@
                 await App.Zeze.NewProcedure(async () => { result(tmp55, tmp56); return 0L; }, "ModuleRedirectResponse Procedure").CallAsync();
                 future54.TrySetResult();
             }
-            return Zeze.Transaction.Procedure.Success;
+            return ResultCode.Success;
         });
 
         await future54.Task;
@@ -365,7 +367,7 @@
                 await App.Zeze.NewProcedure(async () => { result(tmp64, tmp65); return 0L; }, "ModuleRedirectResponse Procedure").CallAsync();
                 future63.TrySetResult();
             }
-            return Zeze.Transaction.Procedure.Success;
+            return ResultCode.Success;
         });
 
     }
@@ -417,7 +419,7 @@
                 theResult76 = _bb_.ReadLong();
                 future73.TrySetResult(theResult76);
             }
-            return Zeze.Transaction.Procedure.Success;
+            return ResultCode.Success;
         });
 
         return await future73.Task;
@@ -468,7 +470,7 @@
                 theResult84 = _bb_.ReadLong();
                 future83.TrySetResult(theResult84);
             }
-            return Zeze.Transaction.Procedure.Success;
+            return ResultCode.Success;
         });
 
         return await future83.Task;

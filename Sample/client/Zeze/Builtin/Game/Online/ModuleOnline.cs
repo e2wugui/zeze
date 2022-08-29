@@ -1,4 +1,6 @@
 
+using Zeze.Util;
+
 namespace Zeze.Builtin.Game.Online
 {
     public partial class ModuleOnline : AbstractModule
@@ -14,7 +16,7 @@ namespace Zeze.Builtin.Game.Online
         protected override System.Threading.Tasks.Task<long> ProcessSReliableNotify(Zeze.Net.Protocol _p)
         {
             //var p = _p as SReliableNotify;
-            return System.Threading.Tasks.Task.FromResult(Zeze.Transaction.Procedure.NotImplement);
+            return System.Threading.Tasks.Task.FromResult(ResultCode.NotImplement);
         }
 
     }

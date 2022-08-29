@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Zeze.Serialize;
 using Zeze.Transaction;
+using Zeze.Util;
 
 namespace UnitTest.Zeze.Trans
 {
@@ -17,14 +18,14 @@ namespace UnitTest.Zeze.Trans
         {
             bean.I = 123;
             Assert.AreEqual(bean.I, 123);
-            return Task.FromResult(Procedure.Success);
+            return Task.FromResult(ResultCode.Success);
         }
 
         public Task<long> ProcFalse()
         {
             bean.I = 456;
             Assert.AreEqual(bean.I, 456);
-            return Task.FromResult(Procedure.Unknown);
+            return Task.FromResult(ResultCode.Unknown);
         }
 
         public async Task<long> ProcNest()
@@ -34,17 +35,17 @@ namespace UnitTest.Zeze.Trans
             Assert.AreEqual(bean.I, 1);
             {
                 var r = await demo.App.Instance.Zeze.NewProcedure(ProcFalse, "ProcFalse").CallAsync();
-                Assert.IsTrue(r != Procedure.Success);
+                Assert.IsTrue(r != ResultCode.Success);
                 Assert.AreEqual(bean.I, 1);
             }
 
             {
                 var r = await demo.App.Instance.Zeze.NewProcedure(ProcTrue, "ProcFalse").CallAsync();
-                Assert.IsTrue(r == Procedure.Success);
+                Assert.IsTrue(r == ResultCode.Success);
                 Assert.AreEqual(bean.I, 123);
             }
 
-            return Procedure.Success;
+            return ResultCode.Success;
         }
 
         [TestInitialize]
@@ -68,7 +69,7 @@ namespace UnitTest.Zeze.Trans
             var r = new Record<long, TestBegin.MyBean>(table, 1, bean);
             bean.InitRootInfo(r.CreateRootInfoIfNeed(root), null);
             var rc = demo.App.Instance.Zeze.NewProcedure(ProcNest, "ProcNest").CallSynchronously();
-            Assert.IsTrue(rc == Procedure.Success);
+            Assert.IsTrue(rc == ResultCode.Success);
             // 最后一个 Call，事务外，bean 已经没法访问事务支持的属性了。直接访问内部变量。
             Assert.AreEqual(bean._i, 123);
         }

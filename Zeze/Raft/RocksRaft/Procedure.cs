@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Zeze.Util;
 
 namespace Zeze.Raft.RocksRaft
 {
@@ -36,7 +37,7 @@ namespace Zeze.Raft.RocksRaft
         {
             if (null != Func)
                 return await Func();
-            return Zeze.Transaction.Procedure.NotImplement;
+            return ResultCode.NotImplement;
         }
 
         public long CallSynchronously()
@@ -94,8 +95,8 @@ namespace Zeze.Raft.RocksRaft
                 logger.Error(ex);
 
                 return ex is TaskCanceledException
-                    ? Zeze.Transaction.Procedure.CancelException
-                    : Zeze.Transaction.Procedure.Exception;
+                    ? ResultCode.CancelException
+                    : ResultCode.Exception;
             }
             finally
             {

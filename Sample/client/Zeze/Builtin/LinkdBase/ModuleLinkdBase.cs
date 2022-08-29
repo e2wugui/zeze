@@ -1,4 +1,6 @@
 
+using Zeze.Util;
+
 namespace Zeze.Builtin.LinkdBase
 {
     public partial class ModuleLinkdBase : AbstractModule
@@ -14,7 +16,7 @@ namespace Zeze.Builtin.LinkdBase
         protected override System.Threading.Tasks.Task<long> ProcessReportError(Zeze.Net.Protocol _p)
         {
             //var p = _p as ReportError;
-            return System.Threading.Tasks.Task.FromResult(Zeze.Transaction.Procedure.NotImplement);
+            return System.Threading.Tasks.Task.FromResult(ResultCode.NotImplement);
         }
 
     }

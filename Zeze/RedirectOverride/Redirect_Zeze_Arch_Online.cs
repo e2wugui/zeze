@@ -39,7 +39,7 @@
                 var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(rpc16.Result.Params);
                 future17.TrySetResult();
             }
-            return Zeze.Transaction.Procedure.Success;
+            return Zeze.Util.ResultCode.Success;
         });
 
         await future17.Task;

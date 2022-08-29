@@ -7,6 +7,7 @@ using Zeze.Arch;
 using Zeze.Builtin.ProviderDirect;
 using Zeze.Net;
 using Zeze.Transaction;
+using Zeze.Util;
 
 namespace Zeze.Game
 {
@@ -18,7 +19,7 @@ namespace Zeze.Game
 			var provider = ProviderApp.ProviderImplement as ProviderImplementWithOnline;
 			provider.Online.ProcessTransmit(p.Argument.Sender, p.Argument.ActionName,
 				p.Argument.Roles, p.Argument.Parameter);
-			return Task.FromResult(Procedure.Success);
+			return Task.FromResult(ResultCode.Success);
 		}
 	}
 }

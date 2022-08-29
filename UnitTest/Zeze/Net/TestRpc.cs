@@ -7,6 +7,7 @@ using System.Net;
 using Zeze.Transaction;
 using System.Threading;
 using System.Threading.Tasks;
+using Zeze.Util;
 
 namespace UnitTest.Zeze.Net
 {
@@ -51,7 +52,7 @@ namespace UnitTest.Zeze.Net
             rpc.Result.Assign(rpc.Argument);
             rpc.SendResult();
             Console.WriteLine("ProcessFirstRpcRequest result.Int1=" +  rpc.Result.Int1);
-            return Task.FromResult(Procedure.Success);
+            return Task.FromResult(ResultCode.Success);
         }
 
         public class FirstRpc : Rpc<demo.Module1.Value, demo.Module1.Value>

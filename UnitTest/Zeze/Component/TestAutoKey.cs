@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Zeze.Transaction;
+using Zeze.Util;
 
 namespace UnitTest.Zeze.Component
 {
@@ -26,57 +27,57 @@ namespace UnitTest.Zeze.Component
 		[TestMethod]
 		public void Test1_AutoKey()
 		{
-			Assert.AreEqual(Procedure.Success, demo.App.Instance.Zeze.NewProcedure(async () =>
+			Assert.AreEqual(ResultCode.Success, demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
 				var autoKey = demo.App.Instance.Zeze.GetAutoKey("test1");
 				var id = await autoKey.NextIdAsync();
 				Assert.AreEqual(1, id);
-				return Procedure.Success;
+				return ResultCode.Success;
 			}, "test1_AutoKey").CallSynchronously());
-			Assert.AreEqual(Procedure.Success, demo.App.Instance.Zeze.NewProcedure(async () =>
+			Assert.AreEqual(ResultCode.Success, demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
 				var autoKey = demo.App.Instance.Zeze.GetAutoKey("test1");
 				var id = await autoKey.NextIdAsync();
 				Assert.AreEqual(2, id);
-				return Procedure.Success;
+				return ResultCode.Success;
 			}, "test1_AutoKey").CallSynchronously());
 		}
 
 		[TestMethod]
 		public void Test2_AutoKey()
 		{
-			Assert.AreEqual(Procedure.Success, demo.App.Instance.Zeze.NewProcedure(async () =>
+			Assert.AreEqual(ResultCode.Success, demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
 				var autoKey = demo.App.Instance.Zeze.GetAutoKey("test1");
 				var id = await autoKey.NextIdAsync();
 				Assert.AreEqual(1001, id);
-				return Procedure.Success;
+				return ResultCode.Success;
 			}, "test2_AutoKey").CallSynchronously());
-			Assert.AreEqual(Procedure.Success, demo.App.Instance.Zeze.NewProcedure(async () =>
+			Assert.AreEqual(ResultCode.Success, demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
 				var autoKey = demo.App.Instance.Zeze.GetAutoKey("test1");
 				var id = await autoKey.NextIdAsync();
 				Assert.AreEqual(1002, id);
-				return Procedure.Success;
+				return ResultCode.Success;
 			}, "test2_AutoKey").CallSynchronously());
 		}
 
 		[TestMethod]
 		public void Test3_AutoKey()
 		{
-			Assert.AreEqual(Procedure.Success, demo.App.Instance.Zeze.NewProcedure(async () =>
+			Assert.AreEqual(ResultCode.Success, demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
 				var autoKey = demo.App.Instance.Zeze.GetAutoKey("test1");
 				var id = await autoKey.NextIdAsync();
 				Assert.AreEqual(2001, id);
-				return Procedure.Success;
+				return ResultCode.Success;
 			}, "test3_AutoKey").CallSynchronously());
-			Assert.AreEqual(Procedure.Success, demo.App.Instance.Zeze.NewProcedure(async () =>
+			Assert.AreEqual(ResultCode.Success, demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
 				var autoKey = demo.App.Instance.Zeze.GetAutoKey("test1");
 				var id = await autoKey.NextIdAsync();
 				Assert.AreEqual(2002, id);
-				return Procedure.Success;
+				return ResultCode.Success;
 			}, "test3_AutoKey").CallSynchronously());
 		}
 	}

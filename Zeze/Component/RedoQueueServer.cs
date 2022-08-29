@@ -19,16 +19,16 @@ namespace Zeze.Component
 			var last = await _tQueueLastTaskId.GetOrAddAsync(r.Argument.QueueName);
 			r.Result.TaskId = last.TaskId;
 			if (r.Argument.PrevTaskId != last.TaskId)
-				return Procedure.ErrorRequestId;
+				return ResultCode.ErrorRequestId;
 			if (!handles.TryGetValue(r.Argument.QueueName, out var queue))
-				return Procedure.NotImplement;
+				return ResultCode.NotImplement;
 			if (!queue.TryGetValue(r.Argument.TaskType, out var handle))
-				return Procedure.NotImplement;
+				return ResultCode.NotImplement;
 			if (!handle(r.Argument.TaskParam))
-				return Procedure.LogicError;
+				return ResultCode.LogicError;
 			last.TaskId = r.Argument.TaskId;
 			r.Result.TaskId = last.TaskId;
-			return Procedure.Success;
+			return ResultCode.Success;
 		}
 
 		private readonly ConcurrentDictionary<string, ConcurrentDictionary<int, Func<Binary, bool>>> handles = new();

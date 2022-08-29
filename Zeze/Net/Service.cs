@@ -251,12 +251,14 @@ namespace Zeze.Net
             Func<Protocol, Task<long>> responseHandle,
             ProtocolFactoryHandle factoryHandle)
         {
+#if !USE_CONFCS
             if (null != Zeze && TransactionLevel.None != factoryHandle.TransactionLevel)
             {
                 _ = Mission.CallAsync(Zeze.NewProcedure(async () => await responseHandle(rpc),
                     rpc.GetType().FullName + ":Response", factoryHandle.TransactionLevel, rpc.UserState), rpc, null);
             }
             else
+#endif
             {
                 _ = Mission.CallAsync(responseHandle, rpc, null);
             }
@@ -266,6 +268,7 @@ namespace Zeze.Net
         {
             if (null != factoryHandle.Handle)
             {
+#if !USE_CONFCS
                 if (null != Zeze && TransactionLevel.None != factoryHandle.TransactionLevel)
                 {
                     Zeze.TaskOneByOneByKey.Execute(key, Zeze.NewProcedure(
@@ -275,6 +278,7 @@ namespace Zeze.Net
                         );
                 }
                 else
+#endif
                 {
                     Zeze.TaskOneByOneByKey.Execute(key, factoryHandle.Handle, p, (p, code) => p.TrySendResultCode(code));
                 }
@@ -299,11 +303,13 @@ namespace Zeze.Net
                     // handshake protocol call direct in io-thread.
                     await Mission.CallAsync(factoryHandle.Handle, p, null);
                 }
+#if !USE_CONFCS
                 else if (null != Zeze && TransactionLevel.None != factoryHandle.TransactionLevel)
                 {
                     _ = Mission.CallAsync(Zeze.NewProcedure(() => factoryHandle.Handle(p),
                         p.GetType().FullName, factoryHandle.TransactionLevel, p.UserState), p, null);
                 }
+#endif
                 else
                 {
                     _ = Mission.CallAsync(factoryHandle.Handle, p, null);

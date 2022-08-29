@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Transaction;
+using Zeze.Util;
 
 namespace Zeze.Raft
 {
@@ -140,7 +141,7 @@ namespace Zeze.Raft
                 var (expired, state) = await Raft.LogSequence.TryGetRequestState(p);
                 if (expired)
                 {
-                    p.SendResultCode(Procedure.RaftExpired);
+                    p.SendResultCode(ResultCode.RaftExpired);
                     return 0;
                 }
 
@@ -148,10 +149,10 @@ namespace Zeze.Raft
                 {
                     if (state.IsApplied)
                     {
-                        p.SendResultCode(Procedure.RaftApplied, state.RpcResult.Count > 0 ? state.RpcResult : null);
+                        p.SendResultCode(ResultCode.RaftApplied, state.RpcResult.Count > 0 ? state.RpcResult : null);
                         return 0;
                     }
-                    p.SendResultCode(Procedure.DuplicateRequest);
+                    p.SendResultCode(ResultCode.DuplicateRequest);
                     return 0;
                 }
                 return await factoryHandle.Handle(p);
@@ -174,14 +175,14 @@ namespace Zeze.Raft
                 var iraftrpc = p as IRaftRpc;
                 if (iraftrpc.Unique.RequestId <= 0)
                 {
-                    p.SendResultCode(Procedure.ErrorRequestId);
+                    p.SendResultCode(ResultCode.ErrorRequestId);
                     return;
                 }
 
                 //【防止重复的请求】
                 // see Log.cs::LogSequence.TryApply
                 TaskOneByOne.Execute(iraftrpc.Unique, async (p) => await ProcessReqeust(p, factoryHandle),
-                    p, (p, code) => p.TrySendResultCode(code), () => p.TrySendResultCode(Procedure.RaftRetry));
+                    p, (p, code) => p.TrySendResultCode(code), () => p.TrySendResultCode(ResultCode.RaftRetry));
                 return;
             }
 
@@ -505,7 +506,7 @@ namespace Zeze.Raft
                 rpc.ResultCode = net.ResultCode;
                 rpc.UserState = net.UserState;
 
-                if (rpc.ResultCode == Procedure.RaftApplied)
+                if (rpc.ResultCode == ResultCode.RaftApplied)
                 {
                     rpc.IsTimeout = false;
                 }
@@ -519,7 +520,7 @@ namespace Zeze.Raft
         {
             return error switch
             {
-                Procedure.CancelException or Procedure.RaftRetry or Procedure.DuplicateRequest => true,
+                ResultCode.CancelException or ResultCode.RaftRetry or ResultCode.DuplicateRequest => true,
                 _ => false,
             };
         }
@@ -535,7 +536,7 @@ namespace Zeze.Raft
             if (net.IsTimeout || IsRetryError(net.ResultCode))
             {
                 // Pending Will Resend.
-                return Procedure.Success;
+                return ResultCode.Success;
             }
 
             if (Pending.TryRemove(rpc.Unique.RequestId, out _) || UrgentPending.TryRemove(rpc.Unique.RequestId, out _))
@@ -546,14 +547,14 @@ namespace Zeze.Raft
                 rpc.ResultCode = net.ResultCode;
                 rpc.UserState = net.UserState;
 
-                if (rpc.ResultCode == Procedure.RaftApplied)
+                if (rpc.ResultCode == ResultCode.RaftApplied)
                 {
                     rpc.IsTimeout = false;
                 }
                 logger.Debug($"Agent Rpc={rpc.GetType().Name} RequestId={rpc.Unique.RequestId} ResultCode={rpc.ResultCode} Sender={rpc.Sender}");
                 future.SetResult(rpc.Result);
             }
-            return Procedure.Success;
+            return ResultCode.Success;
         }
 
         public async Task
@@ -729,7 +730,7 @@ namespace Zeze.Raft
             }
             //OnLeaderChanged?.Invoke(this);
             r.SendResultCode(0);
-            return Task.FromResult(Procedure.Success);
+            return Task.FromResult(ResultCode.Success);
         }
 
         private void ReSend(bool immediately = false)

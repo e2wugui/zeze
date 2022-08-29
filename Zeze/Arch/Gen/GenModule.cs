@@ -294,7 +294,7 @@ namespace Zeze.Arch.Gen
                 }
                 m.MethodMode.GenFutureDecodeAndSet("                ", sb, futureVarName);
                 sb.AppendLine($"            }}");
-                sb.AppendLine($"            return Zeze.Transaction.Procedure.Success;");
+                sb.AppendLine($"            return Zeze.Util.ResultCode.Success;");
                 sb.AppendLine($"        }});");
                 sb.AppendLine($"");
                 if (m.MethodMode.IsAsync)

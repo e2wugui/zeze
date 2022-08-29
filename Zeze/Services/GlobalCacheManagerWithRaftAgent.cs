@@ -5,6 +5,7 @@ using System;
 using Zeze.Transaction;
 using Zeze.Net;
 using Zeze.Serialize;
+using Zeze.Util;
 
 namespace Zeze.Services
 {
@@ -259,7 +260,7 @@ namespace Zeze.Services
                 var rpc = new KeepAlive();
                 RaftClient.Send(rpc, p =>
                 {
-                    if (false == rpc.IsTimeout && (rpc.ResultCode == 0 || rpc.ResultCode == Procedure.RaftApplied))
+                    if (false == rpc.IsTimeout && (rpc.ResultCode == 0 || rpc.ResultCode == ResultCode.RaftApplied))
                         SetActiveTime(Util.Time.NowUnixMillis);
                     return Task.FromResult(0L);
                 });

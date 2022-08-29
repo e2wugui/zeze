@@ -6,6 +6,7 @@ using static Zeze.Net.Service;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading;
+using Zeze.Util;
 
 namespace Zeze.Arch
 {
@@ -117,7 +118,7 @@ namespace Zeze.Arch
 			{
 				// 全部miss。
 				for (int i = 0; i < req.Argument.HashCodeConcurrentLevel; ++i)
-					AddMiss(miss, i, Zeze.Transaction.Procedure.ProviderNotExist);
+					AddMiss(miss, i, ResultCode.ProviderNotExist);
 			}
 			else
             {
@@ -126,7 +127,7 @@ namespace Zeze.Arch
 					var target = ProviderApp.Distribute.ChoiceDataIndex(providers, i, req.Argument.HashCodeConcurrentLevel);
 					if (null == target)
 					{
-						AddMiss(miss, i, Zeze.Transaction.Procedure.ProviderNotExist);
+						AddMiss(miss, i, ResultCode.ProviderNotExist);
 						continue;
 					}
 
@@ -137,12 +138,12 @@ namespace Zeze.Arch
 					}
 					if (false == providers.LocalStates.TryGetValue(target.ServiceIdentity, out var localState))
 					{
-						AddMiss(miss, i, Zeze.Transaction.Procedure.ProviderNotExist);
+						AddMiss(miss, i, ResultCode.ProviderNotExist);
 						continue; // not ready
 					}
 					if (localState is not ProviderModuleState state)
 					{
-						AddMiss(miss, i, Zeze.Transaction.Procedure.ProviderNotExist);
+						AddMiss(miss, i, ResultCode.ProviderNotExist);
 						continue; // invalid state
 					}
 					AddTransmits(transmits, state.SessionId, i, req);
@@ -175,7 +176,7 @@ namespace Zeze.Arch
 					foreach (var hashIndex in request.Argument.HashCodes) {
                         var tempVar2 = new BModuleRedirectAllHash
                         {
-                            ReturnCode = Zeze.Transaction.Procedure.ProviderNotExist
+                            ReturnCode = ResultCode.ProviderNotExist
                         };
                         miss.Argument.Hashs.Add(hashIndex, tempVar2);
 					}

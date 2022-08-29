@@ -5,6 +5,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Threading.Tasks;
 using Zeze.Transaction;
 using System.Threading;
+using Zeze.Util;
 
 namespace UnitTest.Zeze.Trans
 {
@@ -78,10 +79,10 @@ namespace UnitTest.Zeze.Trans
             try
             {
                 // 只删除一个app里面的记录就够了。
-                Assert.AreEqual(Procedure.Success, app1.Zeze.NewProcedure(async () =>
+                Assert.AreEqual(ResultCode.Success, app1.Zeze.NewProcedure(async () =>
                 {
                     await app1.demo_Module1.Table1.RemoveAsync(6785);
-                    return Procedure.Success;
+                    return ResultCode.Success;
                 }, "RemoveClean").CallSynchronously());
                 
                 Task[] task2 = new Task[2];
@@ -96,10 +97,10 @@ namespace UnitTest.Zeze.Trans
                     int last1 = (await app1.demo_Module1.Table1.GetAsync(6785)).Int1;
                     Assert.AreEqual(countall, last1);
                     //Console.WriteLine("app1 " + last1);
-                    return Procedure.Success;
+                    return ResultCode.Success;
                 }, "CheckResult1").CallSynchronously();
                 logger.Warn("result1=" + result1);
-                Assert.IsTrue(Procedure.Success == result1);
+                Assert.IsTrue(ResultCode.Success == result1);
 
                 var result2 = app2.Zeze.NewProcedure(async () =>
                 {
@@ -107,10 +108,10 @@ namespace UnitTest.Zeze.Trans
                     int last2 = value.Int1;
                     Assert.AreEqual(countall, last2);
                     //Console.WriteLine("app1 " + last2);
-                    return Procedure.Success;
+                    return ResultCode.Success;
                 }, "CheckResult2").CallSynchronously();
                 logger.Warn("result2=" + result2);
-                Assert.IsTrue(Procedure.Success == result2);
+                Assert.IsTrue(ResultCode.Success == result2);
             }
             finally
             {
@@ -130,7 +131,7 @@ namespace UnitTest.Zeze.Trans
                     b.Int1 += 1;
                     PrintLog log = new PrintLog(b, b, appId);
                     Transaction.Current.PutLog(log);
-                    return Procedure.Success;
+                    return ResultCode.Success;
                 }, "ConcurrentAdd" + appId).CallAsync();
             }
             Task.WaitAll(tasks);

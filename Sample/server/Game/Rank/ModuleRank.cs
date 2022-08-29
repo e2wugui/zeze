@@ -7,7 +7,8 @@ using System.Threading.Tasks;
 using Zeze.Net;
 using Zeze.Transaction;
 using Zeze.Arch;
-    
+using Zeze.Util;
+
 namespace Game.Rank
 {
     /// <summary>
@@ -74,7 +75,7 @@ namespace Game.Rank
                     {
                         rank.RankList.RemoveAt(rank.RankList.Count - 1);
                     }
-                    return Procedure.Success;
+                    return ResultCode.Success;
                 }
             }
             // A: 如果排行的Value可能减少，那么当它原来存在，但现在处于队尾时，不要再进榜。
@@ -91,7 +92,7 @@ namespace Game.Rank
                     ValueEx = valueEx 
                 });
             }
-            return Procedure.Success;
+            return ResultCode.Success;
         }
 
         public class Rank
@@ -258,7 +259,7 @@ namespace Game.Rank
             {
                 r.ResultCode = -1;
                 session.SendResponseWhileCommit(r);
-                return Procedure.LogicError;
+                return ResultCode.LogicError;
             }
             // 下面使用RedirectAll的方式查询并合并结果。
             // 目前没有使用本地get-cache，这种机制参考GetRankDirect的实现。
@@ -280,7 +281,7 @@ namespace Game.Rank
             r.Result.RankList.AddRange(current.RankList);
             session.SendResponseWhileCommit(r);
             // */
-            return Procedure.Success;
+            return ResultCode.Success;
         }
 
         public BConcurrentKey NewRankKey(int rankType, int timeType, long customizeId = 0)

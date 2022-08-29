@@ -6,6 +6,7 @@ using Zeze.Net;
 using Zeze.Transaction;
 using Zeze.Services.ServiceManager;
 using System.Collections.Generic;
+using Zeze.Util;
 
 namespace Zeze.Arch
 {
@@ -98,7 +99,7 @@ namespace Zeze.Arch
                 if (null == factoryHandle)
                 {
                     SendKick(p.Sender, p.Argument.LinkSid, BKick.ErrorProtocolUnkown, "unknown protocol");
-                    return Procedure.LogicError;
+                    return ResultCode.LogicError;
                 }
                 var p2 = factoryHandle.Factory();
                 p2.Service = p.Service;
@@ -158,7 +159,7 @@ namespace Zeze.Arch
             var protocol = _p as AnnounceLinkInfo;
             var linkSession = protocol.Sender.UserState as ProviderService.LinkSession;
             */
-            return Task.FromResult(Procedure.Success);
+            return Task.FromResult(ResultCode.Success);
         }
     }
 }

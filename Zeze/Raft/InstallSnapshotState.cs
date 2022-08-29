@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Zeze.Net;
 using Zeze.Transaction;
+using Zeze.Util;
 
 namespace Zeze.Raft
 {
@@ -43,7 +44,7 @@ namespace Zeze.Raft
             }
 
             var timeout = ls.Raft.RaftConfig.AppendEntriesTimeout;
-            Pending.ResultCode = Procedure.ErrorSendFail;
+            Pending.ResultCode = ResultCode.ErrorSendFail;
             if (!Pending.Send(c.TryGetReadySocket(), async (p) => await ProcessResult(ls, c, p), timeout))
             {
                 await ls.EndInstallSnapshot(c);
@@ -71,7 +72,7 @@ namespace Zeze.Raft
 
                 switch (r.ResultCode)
                 {
-                    case Procedure.Success:
+                    case ResultCode.Success:
                     case InstallSnapshot.ResultCodeNewOffset:
                         break;
 

@@ -1,6 +1,7 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Zeze.Game;
 using Zeze.Transaction;
+using Zeze.Util;
 
 namespace UnitTest.Zeze.Game
 {
@@ -82,9 +83,9 @@ namespace UnitTest.Zeze.Game
                 var rst = bag.Move(0, 2, -1);
                 Assert.IsTrue(bag.Bean.Items[0].Id == toId && bag.Bean.Items[0].Number == toNum);
                 Assert.IsTrue(bag.Bean.Items[2].Id == fromId && bag.Bean.Items[2].Number == fromNum);
-                return Procedure.Success;
+                return ResultCode.Success;
             }, "Test1_Add").CallSynchronously();
-            Assert.IsTrue(result == Procedure.Success);
+            Assert.IsTrue(result == ResultCode.Success);
         }
     }
 }

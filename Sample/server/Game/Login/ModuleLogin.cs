@@ -5,6 +5,7 @@ using Zeze.Arch;
 using Zeze.Builtin.Provider;
 using Zeze.Net;
 using Zeze.Transaction;
+using Zeze.Util;
 
 namespace Game.Login
 {
@@ -43,7 +44,7 @@ namespace Game.Login
             (await Game.App.Instance.Game_Bag.GetBag(roleid)).SetCapacity(50);
 
             session.SendResponseWhileCommit(rpc);
-            return Procedure.Success;
+            return ResultCode.Success;
         }
 
         protected override async Task<long> ProcessGetRoleListRequest(Protocol p)
@@ -70,7 +71,7 @@ namespace Game.Login
             }
 
             session.SendResponseWhileCommit(rpc);
-            return Procedure.Success;
+            return ResultCode.Success;
         }
     }
 }

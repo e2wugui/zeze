@@ -2,20 +2,29 @@
 using System.Threading.Tasks;
 using NLog;
 using Zeze.Serialize;
-using Zeze.Transaction;
 using Zeze.Util;
 
 namespace Zeze.Net
 {
+#if USE_CONFCS
     public abstract class Rpc<TArgument, TResult> : Protocol<TArgument>
-        where TArgument: Bean, new()
-        where TResult: Bean, new()
+        where TArgument: Zeze.Util.ConfBean, new()
+        where TResult: Zeze.Util.ConfBean, new()
+#else
+    public abstract class Rpc<TArgument, TResult> : Protocol<TArgument>
+        where TArgument : Zeze.Transaction.Bean, new()
+        where TResult : Zeze.Transaction.Bean, new()
+#endif
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         public TResult Result { get; set; } = new TResult();
-        public override Bean ResultBean => Result;
 
+#if USE_CONFCS
+        public override Zeze.Util.ConfBean ResultBean => Result;
+#else
+        public override Zeze.Transaction.Bean ResultBean => Result;
+#endif
         public Binary ResultEncoded { get; set; } // 如果设置了这个，发送结果的时候，优先使用这个编码过的。
 
         public bool IsTimeout { get; internal set; }
@@ -54,7 +63,7 @@ namespace Zeze.Net
                     return;
 
                 context.IsTimeout = true;
-                context.ResultCode = Procedure.Timeout;
+                context.ResultCode = Zeze.Util.ResultCode.Timeout;
 
                 if (null != context.Future)
                 {

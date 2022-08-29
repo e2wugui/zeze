@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using Zeze.Serialize;
 using Zeze.Services;
 using System.Threading;
+using Zeze.Util;
 
 namespace Zeze.Transaction
 {
@@ -197,7 +198,7 @@ namespace Zeze.Transaction
                     // 默认在锁内重复尝试，除非CheckResult.RedoAndReleaseLock，否则由于CheckResult.Redo保持锁会导致死锁。
                     var checkpoint = procedure.Zeze.Checkpoint;
                     if (checkpoint == null)
-                        return Procedure.Closed;
+                        return ResultCode.Closed;
                     checkpoint.EnterFlushReadLock();
                     try
                     {
@@ -210,18 +211,18 @@ namespace Zeze.Transaction
                                 switch (State)
                                 {
                                     case TransactionState.Running:
-                                        if ((result == Procedure.Success && Savepoints.Count != 1)
-                                            || (result != Procedure.Success && Savepoints.Count != 0))
+                                        if ((result == ResultCode.Success && Savepoints.Count != 1)
+                                            || (result != ResultCode.Success && Savepoints.Count != 0))
                                         {
                                             // 这个错误不应该重做
                                             logger.Fatal("Transaction.Perform:{0}. savepoints.Count != 1.", procedure);
                                             FinalRollback(procedure);
-                                            return Procedure.ErrorSavepoint;
+                                            return ResultCode.ErrorSavepoint;
                                         }
                                         checkResult = await LockAndCheck(procedure.TransactionLevel);
                                         if (checkResult == CheckResult.Success)
                                         {
-                                            if (result == Procedure.Success)
+                                            if (result == ResultCode.Success)
                                             {
                                                 await FinalCommit(procedure);
 #if ENABLE_STATISTICS
@@ -232,7 +233,7 @@ namespace Zeze.Transaction
                                                     ProcedureStatistics.Instance.GetOrAdd("Zeze.Transaction.TryCount").GetOrAdd(tryCount).IncrementAndGet();
                                                 }
 #endif
-                                                return Procedure.Success;
+                                                return ResultCode.Success;
                                             }
                                             FinalRollback(procedure);
                                             return result;
@@ -242,7 +243,7 @@ namespace Zeze.Transaction
                                     case TransactionState.Abort:
                                         logger.Debug("Transaction.Perform: Abort");
                                         FinalRollback(procedure);
-                                        return Procedure.AbortException;
+                                        return ResultCode.AbortException;
 
                                     case TransactionState.Redo:
                                         checkResult = CheckResult.Redo;
@@ -268,7 +269,7 @@ namespace Zeze.Transaction
                                             // 这个错误不应该重做
                                             logger.Fatal(e, "Transaction.Perform:{0}. exception. savepoints.Count != 0.", procedure);
                                             FinalRollback(procedure);
-                                            return Procedure.ErrorSavepoint;
+                                            return ResultCode.ErrorSavepoint;
                                         }
 #if DEBUG
                                         // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
@@ -282,14 +283,14 @@ namespace Zeze.Transaction
                                         if (checkResult == CheckResult.Success)
                                         {
                                             FinalRollback(procedure);
-                                            return Procedure.Exception;
+                                            return ResultCode.Exception;
                                         }
                                         break; // retry
 
                                     case TransactionState.Abort:
                                         logger.Debug("Transaction.Perform: Abort");
                                         FinalRollback(procedure);
-                                        return Procedure.AbortException;
+                                        return ResultCode.AbortException;
 
                                     case TransactionState.Redo:
                                         checkResult = CheckResult.Redo;
@@ -340,7 +341,7 @@ namespace Zeze.Transaction
                 }
                 logger.Error("Transaction.Perform:{0}. too many try.", procedure);
                 FinalRollback(procedure);
-                return Procedure.TooManyTry;
+                return ResultCode.TooManyTry;
             }
             finally
             {
@@ -827,7 +828,7 @@ namespace Zeze.Transaction
                 throw new InvalidOperationException("RedoAndReleaseLock: State Is Not Running.");
             State = TransactionState.RedoAndReleaseLock;
 #if ENABLE_STATISTICS
-            ProcedureStatistics.Instance.GetOrAdd(TopProcedure.ActionName).GetOrAdd(Procedure.RedoAndRelease).IncrementAndGet();
+            ProcedureStatistics.Instance.GetOrAdd(TopProcedure.ActionName).GetOrAdd(ResultCode.RedoAndRelease).IncrementAndGet();
 #endif
             throw new GoBackZezeException(msg, cause);
         }

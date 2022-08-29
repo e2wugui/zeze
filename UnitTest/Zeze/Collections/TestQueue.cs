@@ -28,7 +28,7 @@ namespace UnitTest.Zeze.Collections
 
 		public void Test1_QueueAdd()
 		{
-			Assert.AreEqual(Procedure.Success, demo.App.Instance.Zeze.NewProcedure(async () =>
+			Assert.AreEqual(ResultCode.Success, demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
 				var queueModule = demo.App.Instance.Zeze.Queues;
 				var queue = queueModule.Open<demo.Module1.Value>("test1");
@@ -39,7 +39,7 @@ namespace UnitTest.Zeze.Collections
 				}
 				var bean = await queue.PeekAsync();
 				Assert.AreEqual(0, bean.Int1);
-				return Procedure.Success;
+				return ResultCode.Success;
 			}, "test1_QueueAdd").CallSynchronously());
 		}
 
@@ -62,7 +62,7 @@ namespace UnitTest.Zeze.Collections
 		[TestMethod]
 		public void Test3_QueuePop()
 		{
-			Assert.AreEqual(Procedure.Success, demo.App.Instance.Zeze.NewProcedure(async () =>
+			Assert.AreEqual(ResultCode.Success, demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
 				var queueModule = demo.App.Instance.Zeze.Queues;
 				var queue = queueModule.Open<demo.Module1.Value>("test1");
@@ -72,14 +72,14 @@ namespace UnitTest.Zeze.Collections
 					Assert.IsTrue(bean.Int1 == i);
 				}
 				Assert.IsTrue(await queue.IsEmptyAsync());
-				return Procedure.Success;
+				return ResultCode.Success;
 			}, "test2_QueuePop").CallSynchronously());
 		}
 
 		[TestMethod]
 		public void Test4_QueuePush()
 		{
-			Assert.AreEqual(Procedure.Success, demo.App.Instance.Zeze.NewProcedure(async () =>
+			Assert.AreEqual(ResultCode.Success, demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
 				var queueModule = demo.App.Instance.Zeze.Queues;
 				var queue = queueModule.Open<demo.Module1.Value>("test1");
@@ -91,7 +91,7 @@ namespace UnitTest.Zeze.Collections
 				}
 				var bean = await queue.PeekAsync();
 				Assert.IsTrue(bean.Int1 == 9);
-				return Procedure.Success;
+				return ResultCode.Success;
 			}, "test3_QueuePush").CallSynchronously());
 		}
 
@@ -114,7 +114,7 @@ namespace UnitTest.Zeze.Collections
 		[TestMethod]
 		public void Test6_QueuePop()
 		{
-			Assert.AreEqual(Procedure.Success, demo.App.Instance.Zeze.NewProcedure(async () =>
+			Assert.AreEqual(ResultCode.Success, demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
 				var queueModule = demo.App.Instance.Zeze.Queues;
 				var queue = queueModule.Open<demo.Module1.Value>("test1");
@@ -124,7 +124,7 @@ namespace UnitTest.Zeze.Collections
 					Assert.IsTrue(bean.Int1 == i);
 				}
 				Assert.IsTrue(await queue.IsEmptyAsync());
-				return Procedure.Success;
+				return ResultCode.Success;
 			}, "test4_QueuePop").CallSynchronously());
 		}
 	}

@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Zeze.Builtin.ProviderDirect;
 using Zeze.Net;
 using Zeze.Transaction;
+using Zeze.Util;
 
 namespace Zeze.Arch
 {
@@ -29,7 +30,7 @@ namespace Zeze.Arch
             if (false == ProviderApp.Zeze.Redirect.Handles.TryGetValue(rpc.Argument.MethodFullName, out var handle))
             {
                 rpc.SendResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
-                return Procedure.LogicError;
+                return ResultCode.LogicError;
             }
             Binary Params = Binary.Empty;
             switch (handle.RequestTransactionLevel)
@@ -87,11 +88,11 @@ namespace Zeze.Arch
                 {
                     result.Argument.Hashs.Add(hash, new BModuleRedirectAllHash()
                     {
-                        ReturnCode = Procedure.NotImplement
+                        ReturnCode = ResultCode.NotImplement
                     });
                 }
                 SendProtocol(p.Sender, result);
-                return Procedure.LogicError;
+                return ResultCode.LogicError;
             }
             result.ResultCode = ModuleRedirect.ResultCodeSuccess;
 
@@ -128,7 +129,7 @@ namespace Zeze.Arch
             {
                 SendProtocol(p.Sender, result);
             }
-            return Procedure.Success;
+            return ResultCode.Success;
         }
 
         protected override Task<long> ProcessAnnounceProviderInfoRequest(Zeze.Net.Protocol _p)
@@ -145,7 +146,7 @@ namespace Zeze.Arch
             var protocol = p as ModuleRedirectAllResult;
             await ProviderApp.ProviderDirectService.TryGetManualContext<AbstractRedirectAll>(
                 protocol.Argument.SessionId)?.ProcessResult(ProviderApp.Zeze, protocol);
-            return Procedure.Success;
+            return ResultCode.Success;
         }
 
         protected override Task<long> ProcessTransmit(Protocol p)

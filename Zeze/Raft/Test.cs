@@ -9,6 +9,7 @@ using Zeze.Serialize;
 using Zeze.Transaction;
 using RocksDbSharp;
 using Zeze.Net;
+using Zeze.Util;
 
 namespace Zeze.Raft
 {
@@ -204,7 +205,7 @@ namespace Zeze.Raft
         {
             if (0 == resultCode)
                 return;
-            if (resultCode == Procedure.RaftApplied)
+            if (resultCode == ResultCode.RaftApplied)
                 return;
             if (Errors.ContainsKey(resultCode))
                 Errors[resultCode] = Errors[resultCode] + 1;
@@ -288,7 +289,7 @@ namespace Zeze.Raft
                 logger.Debug("--------- RESPONSE {0} {1}", stepName, request);
                 if (request.IsTimeout)
                 {
-                    ErrorsAdd(Procedure.Timeout);
+                    ErrorsAdd(ResultCode.Timeout);
                 }
                 else
                 {
@@ -920,12 +921,12 @@ namespace Zeze.Raft
             private async Task<long> ProcessAddCount(Zeze.Net.Protocol p)
             {
                 if (false == Raft.IsLeader)
-                    return Procedure.RaftRetry; // fast fail
+                    return ResultCode.RaftRetry; // fast fail
 
                 var r = p as AddCount;
                 await StateMachine.AddCountAndWait(r);
                 r.SendResultCode(0);
-                return Procedure.Success;
+                return ResultCode.Success;
             }
 
             private Task<long> ProcessGetCount(Zeze.Net.Protocol p)
@@ -935,7 +936,7 @@ namespace Zeze.Raft
                 r.Result.Count = StateMachine.Count;
                 r.SendResult();
 
-                return Task.FromResult(Procedure.Success);
+                return Task.FromResult(ResultCode.Success);
             }
         }
 

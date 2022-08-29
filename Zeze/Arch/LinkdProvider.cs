@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Zeze.Builtin.LinkdBase;
 using Zeze.Builtin.Provider;
 using Zeze.Services.ServiceManager;
+using Zeze.Util;
 
 namespace Zeze.Arch
 {
@@ -25,7 +26,7 @@ namespace Zeze.Arch
             var session = protocol.Sender.UserState as LinkdProviderSession;
             session.Info = protocol.Argument;
             ServerServiceNamePrefix = protocol.Argument.ServiceNamePrefix;
-            return Task.FromResult(Zeze.Transaction.Procedure.Success);
+            return Task.FromResult(ResultCode.Success);
         }
 
         public int FirstModuleWithConfigTypeDefault { get; private set; } = 0;
@@ -68,7 +69,7 @@ namespace Zeze.Arch
                 }
             }
             rpc.SendResultCode(BBind.ResultSuccess);
-            return Zeze.Transaction.Procedure.Success;
+            return ResultCode.Success;
         }
 
         protected override Task<long> ProcessBroadcast(Zeze.Net.Protocol p)
@@ -86,7 +87,7 @@ namespace Zeze.Arch
                     )
                     socket.Send(protocol.Argument.ProtocolWholeData);
             });
-            return Task.FromResult(Zeze.Transaction.Procedure.Success);
+            return Task.FromResult(ResultCode.Success);
         }
 
         protected override Task<long> ProcessKick(Zeze.Net.Protocol p)
@@ -95,7 +96,7 @@ namespace Zeze.Arch
             LinkdApp.LinkdService.ReportError(
                 protocol.Argument.Linksid, BReportError.FromProvider,
                 protocol.Argument.Code, protocol.Argument.Desc);
-            return Task.FromResult(Zeze.Transaction.Procedure.Success);
+            return Task.FromResult(ResultCode.Success);
         }
 
         protected override Task<long> ProcessSendRequest(Zeze.Net.Protocol _p)
@@ -115,7 +116,7 @@ namespace Zeze.Arch
                     r.Result.ErrorLinkSids.Add(linkSid);
             }
             r.SendResult();
-            return Task.FromResult(Zeze.Transaction.Procedure.Success);
+            return Task.FromResult(ResultCode.Success);
         }
 
         protected override Task<long> ProcessSetUserState(Zeze.Net.Protocol p)
@@ -124,7 +125,7 @@ namespace Zeze.Arch
             var socket = LinkdApp.LinkdService.GetSocket(protocol.Argument.LinkSid);
             var linkSession = socket?.UserState as LinkdUserSession;
             linkSession?.SetUserState(protocol.Argument.Context, protocol.Argument.Contextx);
-            return Task.FromResult(Zeze.Transaction.Procedure.Success);
+            return Task.FromResult(ResultCode.Success);
         }
 
         protected override async Task<long> ProcessSubscribeRequest(Zeze.Net.Protocol _p)
@@ -187,7 +188,7 @@ namespace Zeze.Arch
                 }
             }
             rpc.SendResultCode(BBind.ResultSuccess);
-            return Task.FromResult(Zeze.Transaction.Procedure.Success);
+            return Task.FromResult(ResultCode.Success);
         }
 
 

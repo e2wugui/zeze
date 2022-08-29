@@ -9,6 +9,7 @@ using Zeze.Serialize;
 using Zeze.Transaction;
 using System.Globalization;
 using RocksDbSharp;
+using Zeze.Util;
 
 namespace Zeze.Raft
 {
@@ -723,7 +724,7 @@ namespace Zeze.Raft
                 }
                 System.Threading.Thread.Yield();
             }
-            return Procedure.CancelException;
+            return ResultCode.CancelException;
         }
 
         private async Task TryApply(RaftLog lastApplyableLog, long count)
@@ -818,7 +819,7 @@ namespace Zeze.Raft
                     {
                         // new term found.
                         await Raft.ConvertStateTo(Raft.RaftState.Follower);
-                        return Procedure.Success;
+                        return ResultCode.Success;
                     }
                     return 0;
                 }
@@ -1059,7 +1060,7 @@ namespace Zeze.Raft
                 if (r.IsTimeout && Raft.IsLeader)
                 {
                     await TrySendAppendEntries(connector, r);  // timeout and resend
-                    return Procedure.Success;
+                    return ResultCode.Success;
                 }
 
                 if (await Raft.LogSequence.TrySetTerm(r.Result.Term) == SetTermResult.Newer)
@@ -1069,13 +1070,13 @@ namespace Zeze.Raft
                     // 发现新的 Term，已经不是Leader，不能继续处理了。
                     // 直接返回。
                     connector.Pending = null;
-                    return Procedure.Success;
+                    return ResultCode.Success;
                 }
 
                 if (false == Raft.IsLeader)
                 {
                     connector.Pending = null;
-                    return Procedure.Success;
+                    return ResultCode.Success;
                 }
 
                 if (r.Result.Success)
@@ -1087,7 +1088,7 @@ namespace Zeze.Raft
                     // see TrySendAppendEntries 内的
                     // “限制一次发送的日志数量”
                     await TrySendAppendEntries(connector, r);
-                    return Procedure.Success;
+                    return ResultCode.Success;
                 }
 
                 // 日志同步失败，调整NextIndex，再次尝试。
@@ -1112,7 +1113,7 @@ namespace Zeze.Raft
                     connector.NextIndex = r.Result.NextIndex;
                 }
                 await TrySendAppendEntries(connector, r);  //resend. use new NextIndex。
-                return Procedure.Success;
+                return ResultCode.Success;
             }
         }
 
@@ -1232,7 +1233,7 @@ namespace Zeze.Raft
                 // 1. Reply false if term < currentTerm (§5.1)
                 r.SendResult();
                 logger.Info($"this={Raft.Name} Leader={r.Argument.LeaderId} PrevLogIndex={r.Argument.PrevLogIndex} term < currentTerm");
-                return Procedure.Success;
+                return ResultCode.Success;
             }
 
             switch (await TrySetTerm(r.Argument.Term))
@@ -1265,7 +1266,7 @@ namespace Zeze.Raft
             {
                 r.Result.Success = true;
                 r.SendResult();
-                return Procedure.Success;
+                return ResultCode.Success;
             }
 
             // check and copy log ...
@@ -1281,7 +1282,7 @@ namespace Zeze.Raft
 
                 r.SendResult();
                 logger.Debug("this={0} Leader={1} Index={2} prevLog mismatch", Raft.Name, r.Argument.LeaderId, r.Argument.PrevLogIndex);
-                return Procedure.Success;
+                return ResultCode.Success;
             }
 
             // NodeReady 严格点，仅在正常复制时才检测。
@@ -1357,7 +1358,7 @@ namespace Zeze.Raft
             logger.Debug("{0}: {1}", Raft.Name, r);
             r.SendResultCode(0);
 
-            return Procedure.Success;
+            return ResultCode.Success;
         }
 
         internal void CheckDump(long prevLogIndex, long lastIndex, List<Binary> entries)

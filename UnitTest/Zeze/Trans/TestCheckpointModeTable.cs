@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Zeze.Transaction;
+using Zeze.Util;
 
 namespace UnitTest.Zeze.Trans
 {
@@ -25,11 +26,11 @@ namespace UnitTest.Zeze.Trans
 
         private async Task Check(int expect)
         {
-            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(
+            Assert.IsTrue(ResultCode.Success == await demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     var value = await demo.App.Instance.demo_Module1.TableImportant.GetOrAddAsync(1);
-                    return value.Int1 == expect ? Procedure.Success : Procedure.LogicError;
+                    return value.Int1 == expect ? ResultCode.Success : ResultCode.LogicError;
                 },
                 "TestCheckpointModeTable.Check").CallAsync());
         }
@@ -37,12 +38,12 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public async Task Test1()
         {
-            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(
+            Assert.IsTrue(ResultCode.Success == await demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     var value = await demo.App.Instance.demo_Module1.TableImportant.GetOrAddAsync(1);
                     value.Int1 = 0;
-                    return Procedure.Success;
+                    return ResultCode.Success;
                 },
                 "TestCheckpointModeTable.Init").CallAsync());
             await Check(0);
@@ -75,7 +76,7 @@ namespace UnitTest.Zeze.Trans
         {
             var value = await demo.App.Instance.demo_Module1.TableImportant.GetOrAddAsync(1);
             value.Int1++;
-            return Procedure.Success;
+            return ResultCode.Success;
         }
 
         private async Task<long> Add2()
@@ -84,7 +85,7 @@ namespace UnitTest.Zeze.Trans
             value.Int1++;
             var value2 = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
             value2.Int1++;
-            return Procedure.Success;
+            return ResultCode.Success;
         }
     }
 }

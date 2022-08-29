@@ -140,10 +140,10 @@ namespace Zeze.Component
 		{
 			var rpc = p as RunTask;
 			if (Pending != rpc)
-				return Procedure.LogicError;
+				return ResultCode.LogicError;
 
 			Pending = null;
-			if (rpc.ResultCode == 0L || rpc.ResultCode == Procedure.ErrorRequestId)
+			if (rpc.ResultCode == 0L || rpc.ResultCode == ResultCode.ErrorRequestId)
 			{
 				LastDoneTaskId = rpc.Result.TaskId;
 				var value = ByteBuffer.Allocate(16);

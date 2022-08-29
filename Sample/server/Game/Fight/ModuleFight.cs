@@ -1,6 +1,7 @@
 ﻿
 using System.Threading.Tasks;
 using Zeze.Transaction;
+using Zeze.Util;
 
 namespace Game.Fight
 {
@@ -32,7 +33,7 @@ namespace Game.Fight
                     break;
             }
             (await _tfighters.GetOrAddAsync(fighterId)).Assign(fighter.Bean);
-            return Procedure.Success;
+            return ResultCode.Success;
         }
 
         public void StartCalculateFighter(long roleId)

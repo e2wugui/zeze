@@ -157,7 +157,7 @@ namespace Infinite
                         success.TryGetValue(r.Key, out var s);
                         Debug.Assert(null != s);
                         // ignore toomanytrys error
-                        var toomanytrys = ProcedureStatistics.Instance.GetOrAdd(tf.Class.FullName).GetOrAdd(Procedure.TooManyTry).Get();
+                        var toomanytrys = ProcedureStatistics.Instance.GetOrAdd(tf.Class.FullName).GetOrAdd(ResultCode.TooManyTry).Get();
                         Debug.Assert(r.Value.Get() == s.Get() + toomanytrys);
                         if (toomanytrys != 0)
                             App.logger.Fatal("TOOMANYTRS=" + toomanytrys + " " + tf.Class.FullName);

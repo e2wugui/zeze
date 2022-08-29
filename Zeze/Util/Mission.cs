@@ -33,7 +33,7 @@ namespace Zeze.Util
                     throw;
                 }
 #endif
-                return Procedure.Exception;
+                return ResultCode.Exception;
             }
         }
 
@@ -106,7 +106,7 @@ namespace Zeze.Util
                     throw;
                 }
 #endif
-                return Procedure.Exception;
+                return ResultCode.Exception;
             }
         }
 
@@ -133,11 +133,11 @@ namespace Zeze.Util
                         break;
                     ex = inner;
                 }
-                var errorCode = Procedure.Exception;
+                var errorCode = ResultCode.Exception;
                 if (ex is TaskCanceledException)
-                    errorCode = Procedure.CancelException;
+                    errorCode = ResultCode.CancelException;
                 else if (ex is Raft.RaftRetryException)
-                    errorCode = Procedure.RaftRetry;
+                    errorCode = ResultCode.RaftRetry;
 
                 if (IsRequestSaved)
                     actionWhenError?.Invoke(p, errorCode);
@@ -178,11 +178,11 @@ namespace Zeze.Util
                     ex = inner;
                 }
 
-                var errorCode = Procedure.Exception;
+                var errorCode = ResultCode.Exception;
                 if (ex is TaskCanceledException)
-                    errorCode = Procedure.CancelException;
+                    errorCode = ResultCode.CancelException;
                 else if (ex is Raft.RaftRetryException)
-                    errorCode = Procedure.RaftRetry;
+                    errorCode = ResultCode.RaftRetry;
 
                 if (IsRequestSaved)
                     actionWhenError?.Invoke(p, errorCode);
@@ -221,9 +221,9 @@ namespace Zeze.Util
                 // Procedure.Call处理了所有错误。除非内部错误或者单元测试异常，不会到这里。
                 if (null != isRequestSaved && isRequestSaved.Value)
                 {
-                    actionWhenError?.Invoke(from, Procedure.Exception);
+                    actionWhenError?.Invoke(from, ResultCode.Exception);
                 }
-                LogAction?.Invoke(NLog.LogLevel.Error, ex, Procedure.Exception, procedure.ActionName);
+                LogAction?.Invoke(NLog.LogLevel.Error, ex, ResultCode.Exception, procedure.ActionName);
 #if DEBUG
                 // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
                 if (ex.GetType().Name == "AssertFailedException")
@@ -231,7 +231,7 @@ namespace Zeze.Util
                     throw;
                 }
 #endif
-                return Procedure.Exception;
+                return ResultCode.Exception;
             }
         }
     }

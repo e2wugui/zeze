@@ -25,7 +25,7 @@ namespace Zeze.Services
             {
                 rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                 // 没有登录重做。登录是Agent自动流程的一部分，应该稍后重试。
-                rpc.SendResultCode(Zeze.Transaction.Procedure.RaftRetry);
+                rpc.SendResultCode(ResultCode.RaftRetry);
                 return 0;
             }
 

@@ -27,7 +27,7 @@ namespace UnitTest.Zeze.Collections
 		[TestMethod]
 		public void Test1_LinkedMapPut()
 		{
-			Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(async () =>
+			Assert.IsTrue(ResultCode.Success == demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
 				var map = demo.App.Instance.LinkedMapModule.Open<demo.Module1.Value>("test1");
 				for (int i = 100; i < 110; i++)
@@ -38,14 +38,14 @@ namespace UnitTest.Zeze.Collections
                     };
                     await map.PutAsync(i, bean);
 				}
-				return Procedure.Success;
+				return ResultCode.Success;
 			}, "test1_LinkedMapPut").CallSynchronously());
 		}
 
 		[TestMethod]
 		public void Test2_LinkedMapGet()
 		{
-			Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(async () =>
+			Assert.IsTrue(ResultCode.Success == demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
 				var map = demo.App.Instance.LinkedMapModule.Open<demo.Module1.Value>("test1");
 				for (int i = 100; i < 110; i++)
@@ -53,7 +53,7 @@ namespace UnitTest.Zeze.Collections
 					var bean = await map.GetAsync(i);
 					Assert.IsTrue(bean.Int1 == i);
 				}
-				return Procedure.Success;
+				return ResultCode.Success;
 			}, "test2_LinkedMapGet").CallSynchronously());
 		}
 
@@ -77,7 +77,7 @@ namespace UnitTest.Zeze.Collections
 		[TestMethod]
 		public void Test4_LinkedMapRemove()
 		{
-			Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(async () =>
+			Assert.IsTrue(ResultCode.Success == demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
 				var map = demo.App.Instance.LinkedMapModule.Open<demo.Module1.Value>("test1");
 				for (int i = 100; i < 110; i++)
@@ -86,7 +86,7 @@ namespace UnitTest.Zeze.Collections
 					Assert.IsTrue(bean.Int1 == i);
 				}
 				Assert.IsTrue(await map.IsEmptyAsync());
-				return Procedure.Success;
+				return ResultCode.Success;
 			}, "test2_LinkedMapRemove").CallSynchronously());
 		}
 	}

@@ -1,4 +1,6 @@
 
+using Zeze.Util;
+
 namespace ClientZezex.Linkd
 {
     public partial class ModuleLinkd : AbstractModule
@@ -14,7 +16,7 @@ namespace ClientZezex.Linkd
         protected override System.Threading.Tasks.Task<long> ProcessKeepAlive(Zeze.Net.Protocol _p)
         {
             //var p = _p as KeepAlive;
-            return System.Threading.Tasks.Task.FromResult(Zeze.Transaction.Procedure.NotImplement);
+            return System.Threading.Tasks.Task.FromResult(ResultCode.NotImplement);
         }
 
     }

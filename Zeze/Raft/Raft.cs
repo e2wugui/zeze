@@ -245,7 +245,7 @@ namespace Zeze.Raft
             {
                 // 肯定是旧的被丢弃的安装，Discard And Ignore。
                 r.SendResultCode(InstallSnapshot.ResultCodeOldInstall);
-                return Procedure.Success;
+                return ResultCode.Success;
             }
 
             r.Result.Offset = -1; // 默认让Leader继续传输，不用重新定位。
@@ -255,7 +255,7 @@ namespace Zeze.Raft
                 // 填写当前长度，让Leader从该位置开始重新传输。
                 r.Result.Offset = outputFileStream.Length;
                 r.SendResultCode(InstallSnapshot.ResultCodeNewOffset);
-                return Procedure.Success;
+                return ResultCode.Success;
             }
             
             if (r.Argument.Offset == outputFileStream.Length)
@@ -299,7 +299,7 @@ namespace Zeze.Raft
                 await LogSequence.EndReceiveInstallSnapshot(outputFileStream, r);
             }
             r.SendResultCode(0);
-            return Procedure.Success;
+            return ResultCode.Success;
         }
 
         public enum RaftState
@@ -548,7 +548,7 @@ namespace Zeze.Raft
                 logger.Info("{0}: VoteFor={1} Rpc={2}", Name, LogSequence.VoteFor, r);
                 r.SendResultCode(0);
 
-                return Procedure.Success;
+                return ResultCode.Success;
             }
         }
 
@@ -561,7 +561,7 @@ namespace Zeze.Raft
             // Raft也会收到，忽略。
             r.SendResultCode(0);
 
-            return Task.FromResult(Procedure.Success);
+            return Task.FromResult(ResultCode.Success);
         }
 
         private async Task<long> ProcessRequestVoteResult(RequestVote rpc)
@@ -582,7 +582,7 @@ namespace Zeze.Raft
                 {
                     // new term found
                     await ConvertStateTo(RaftState.Follower);
-                    return Procedure.Success;
+                    return ResultCode.Success;
                 }
 
                 if (RequestVotes.Contains(rpc) && rpc.Result.VoteGranted)
@@ -606,7 +606,7 @@ namespace Zeze.Raft
                     }
                 }
 
-                return Procedure.Success;
+                return ResultCode.Success;
             }
         }
 

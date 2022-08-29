@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Zeze.Serialize;
 using System.Threading;
+using Zeze.Util;
 
 namespace Zeze.Raft.RocksRaft
 {
@@ -219,20 +220,20 @@ namespace Zeze.Raft.RocksRaft
 			}
             catch (Zeze.Util.ThrowAgainException)
             {
-                procedure.SetAutoResponseResultCode(Zeze.Transaction.Procedure.Exception);
+                procedure.SetAutoResponseResultCode(ResultCode.Exception);
                 FinalRollback(procedure);
                 throw;
             }
             catch (RaftRetryException ex1)
             {
                 logger.Debug(ex1);
-                procedure.SetAutoResponseResultCode(Zeze.Transaction.Procedure.RaftRetry);
+                procedure.SetAutoResponseResultCode(ResultCode.RaftRetry);
                 FinalRollback(procedure);
-                return Zeze.Transaction.Procedure.RaftRetry;
+                return ResultCode.RaftRetry;
             }
             catch (Exception ex)
             {
-                procedure.SetAutoResponseResultCode(Zeze.Transaction.Procedure.Exception);
+                procedure.SetAutoResponseResultCode(ResultCode.Exception);
                 logger.Error(ex);
 
                 if (ex.GetType().Name == "AssertFailedException")
@@ -244,10 +245,10 @@ namespace Zeze.Raft.RocksRaft
                 if (LockAndCheck(Zeze.Transaction.TransactionLevel.Serializable))
                 {
                     FinalRollback(procedure);
-                    return Zeze.Transaction.Procedure.Exception;
+                    return ResultCode.Exception;
                 }
                 FinalRollback(procedure); // 乐观锁，这里应该redo
-                return Zeze.Transaction.Procedure.Exception;
+                return ResultCode.Exception;
             }
             finally
             {

@@ -11,6 +11,7 @@ using Zeze.Builtin.ProviderDirect;
 using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Transaction;
+using Zeze.Util;
 
 namespace Zeze.Arch
 {
@@ -250,7 +251,7 @@ namespace Zeze.Arch
                         {
                             await LogoutTrigger(account, clientId);
                         }
-                        return Procedure.Success;
+                        return ResultCode.Success;
                     }, "Onlines.OnLinkBroken").CallAsync();
                 }, ProviderApp.Zeze.Config.OnlineLogoutDelay);
             });
@@ -330,13 +331,13 @@ namespace Zeze.Arch
                     if (null == online)
                     {
                         // 完全离线，忽略可靠消息发送：可靠消息仅仅为在线提供服务，并不提供全局可靠消息。
-                        return Procedure.Success;
+                        return ResultCode.Success;
                     }
                     var version = await _tversion.GetOrAddAsync(account);
                     if (false == version.Logins.TryGetValue(clientId, out var login)
                         || false == login.ReliableNotifyMark.Contains(listenerName))
                     {
-                        return Procedure.Success; // 相关数据装载的时候要同步设置这个。
+                        return ResultCode.Success; // 相关数据装载的时候要同步设置这个。
                     }
 
                     // 先保存在再发送，然后客户端还会确认。
@@ -350,7 +351,7 @@ namespace Zeze.Arch
                     notify.Argument.Notifies.Add(fullEncodedProtocol);
 
                     await SendEmbed(new List<LoginKey>{new LoginKey(account, clientId) }, notify.TypeId, new Binary(notify.Encode()));
-                    return Procedure.Success;
+                    return ResultCode.Success;
                 },
                 "SendReliableNotify." + listenerName
                 ));
@@ -490,7 +491,7 @@ namespace Zeze.Arch
                 ProviderApp.Zeze.NewProcedure(async () =>
                 {
                     await SendEmbed(new List<LoginKey> { login }, typeId, fullEncodedProtocol);
-                    return Procedure.Success;
+                    return ResultCode.Success;
                 }, "Onlines.Send"));
         }
 
@@ -500,7 +501,7 @@ namespace Zeze.Arch
                 ProviderApp.Zeze.NewProcedure(async () =>
                 {
                     await SendEmbed(logins, typeId, fullEncodedProtocol);
-                    return Procedure.Success;
+                    return ResultCode.Success;
                 }, "Onlines.Send"));
         }
 
@@ -626,7 +627,7 @@ namespace Zeze.Arch
                 ProviderApp.Zeze.NewProcedure(async () =>
                 {
                     await SendAccountsEmbed(new List<string> { account }, typeId, fullEncodedProtocol, sender);
-                    return Procedure.Success;
+                    return ResultCode.Success;
                 }, "Onlines.Send"));
         }
 
@@ -646,7 +647,7 @@ namespace Zeze.Arch
                 ProviderApp.Zeze.NewProcedure(async () =>
                 {
                     await SendAccountsEmbed(accounts, typeId, fullEncodedProtocol, sender);
-                    return Procedure.Success;
+                    return ResultCode.Success;
                 }, "Onlines.Send"));
         }
 
@@ -814,7 +815,7 @@ namespace Zeze.Arch
             _ = ProviderApp.Zeze.NewProcedure(async () =>
             {
                 await TransmitInProcedure(account, clientId, actionName, targets, binaryParam);
-                return Procedure.Success;
+                return ResultCode.Success;
             }, "Onlines.Transmit").CallAsync();
         }
 
@@ -997,7 +998,7 @@ namespace Zeze.Arch
                 rpc.Sender.Send(setUserState); // 直接使用link连接。
             });
             //App.Load.LoginCount.IncrementAndGet();
-            return Procedure.Success;
+            return ResultCode.Success;
         }
 
         protected override async Task<long> ProcessReLoginRequest(Zeze.Net.Protocol p)
@@ -1066,7 +1067,7 @@ namespace Zeze.Arch
                 return ErrorCode((ushort)syncResultCode);
 
             //App.Load.LoginCount.IncrementAndGet();
-            return Procedure.Success;
+            return ResultCode.Success;
         }
 
         protected override async Task<long> ProcessLogoutRequest(Zeze.Net.Protocol p)
@@ -1101,7 +1102,7 @@ namespace Zeze.Arch
             session.SendResponseWhileCommit(rpc);
             // 在 OnLinkBroken 时处理。可以同时处理网络异常的情况。
             // App.Load.LogoutCount.IncrementAndGet();
-            return Procedure.Success;
+            return ResultCode.Success;
         }
 
         private async Task<int> ReliableNotifySync(string account, string clientId,
@@ -1153,7 +1154,7 @@ namespace Zeze.Arch
             if (ResultCodeSuccess != syncResultCode)
                 return ErrorCode((ushort)syncResultCode);
 
-            return Procedure.Success;
+            return ResultCode.Success;
         }
     }
 }
