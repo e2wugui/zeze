@@ -30,6 +30,14 @@ Zege
 	消息加密。
 	管理员管理。
 
+conf+cs With Net
+	精简客户端，拷贝部分源码到自己的目录。
+	1. conf+cs 系列化；使用gen命令输出系列化需要的源文件：gen -c ExportConf -ZezeSrcDir ../zeze 
+	2. Net目录拷贝出去；在项目中定义宏 USE_CONFCS，这样Net模块就不再依赖事务Bean和存储过程。
+	3. 需要建立一个几乎空的 Zeze.Application，用来传递Config和避免修改Gen.exe。
+	4. 拷贝 Zeze.IModule;Zeze.AppBase;Zeze.Config;Zeze.Util.ResultCode;Zeze.Util.Mission;Zeze.Util.Scheduler。
+	   【这几个文件】应该没有其他依赖了，没有全部确认。
+
 ------------------------------------------------------------------------------------------------------------------------------
 tag 1.0.5 Certificate; Netty-Web More; Change Protocol Provider.Send To Rpc And Report Error;
 ------------------------------------------------------------------------------------------------------------------------------
