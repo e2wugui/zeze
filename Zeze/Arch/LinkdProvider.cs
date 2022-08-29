@@ -109,7 +109,10 @@ namespace Zeze.Arch
                 // ProtocolId现在是hash值，显示出来也不好看，以后加配置换成名字。
                 if (null != link && link.Send(r.Argument.ProtocolWholeData))
                     continue;
-                r.Result.ErrorLinkSids.Add(linkSid);
+                if (null != link)
+                    link.Close(null);
+                else
+                    r.Result.ErrorLinkSids.Add(linkSid);
             }
             r.SendResult();
             return Task.FromResult(Zeze.Transaction.Procedure.Success);

@@ -255,7 +255,10 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			// ProtocolId现在是hash值，显示出来也不好看，以后加配置换成名字。
 			if (link != null && link.Send(pdata))
 				continue;
-			r.Result.getErrorLinkSids().add(linkSid);
+			if (link != null)
+				link.close();
+			else
+				r.Result.getErrorLinkSids().add(linkSid);
 		}
 		r.SendResult();
 		return Procedure.Success;

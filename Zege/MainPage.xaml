@@ -9,11 +9,12 @@
             Padding="30,0"
             VerticalOptions="Center">
 
-            <Image
-                Source="dotnet_bot.png"
-                SemanticProperties.Description="Cute dot net bot waving hi to you!"
-                HeightRequest="200"
-                HorizontalOptions="Center" />
+            <WebView
+                Source="https://www.163.com"
+                HeightRequest="400"
+                WidthRequest="800"
+                HorizontalOptions="Center" 
+                />
 
             <Label
                 Text="Hello, World!"
