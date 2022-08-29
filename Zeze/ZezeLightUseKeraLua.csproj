@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <PackageReference Include="KeraLua" Version="1.2.15" />
+    <PackageReference Include="Nito.AsyncEx" Version="5.1.2" />
     <PackageReference Include="NLog" Version="4.7.4" />
     <PackageReference Include="RocksDbNative" Version="6.2.2" />
     <PackageReference Include="RocksDbSharp" Version="6.2.2" />
