@@ -422,6 +422,11 @@ namespace Zeze.Transaction
             return 0;
         }
 
+        public async Task<bool> Contains(K key)
+        {
+            return await GetAsync(key) != null;
+        }
+
         public async Task<V> GetAsync(K key)
         {
             var currentT = Transaction.Current;

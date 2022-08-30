@@ -1,10 +1,9 @@
 package Zege.User;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import Zege.Friend.BFriend;
-import Zege.Friend.BMember;
+import Zege.Friend.BGroupMember;
 import Zeze.Net.Binary;
 import Zeze.Netty.HttpExchange;
 import Zeze.Transaction.Procedure;
@@ -20,7 +19,13 @@ public class ModuleUser extends AbstractModule {
     public void Stop(Zege.App app) {
     }
 
-    public BUser getAccount(String account) {
+    public BUser create(String account) {
+        if (_tUser.contains(account))
+            return null;
+        return _tUser.getOrAdd(account);
+    }
+
+    public BUser get(String account) {
         return _tUser.get(account);
     }
 
@@ -99,7 +104,7 @@ public class ModuleUser extends AbstractModule {
             _tUser.getOrAdd(defaultGroup);
             var group = App.Zege_Friend.getGroup(defaultGroup);
             group.create().setRoot(account);
-            var member = new BMember();
+            var member = new BGroupMember();
             group.getGroupMembers().put(account, member);
             var friend = new BFriend();
             App.Zege_Friend.getFriends(account).put(defaultGroup, friend);

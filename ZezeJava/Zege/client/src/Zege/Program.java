@@ -214,7 +214,7 @@ public class Program {
 				break;
 			case "create":
 				var newId = App.Instance.Zege_Friend.createDepartment(Group, DepartmentId, cmd[1]);
-				addWindow(new DepartmentWindow(Group, newId.getId(), cmd[1]));
+				addWindow(new DepartmentWindow(Group, newId.getDepartmentId(), cmd[1]));
 				Program.this.refresh();
 				break;
 			case "delete":
@@ -320,7 +320,7 @@ public class Program {
 				break;
 			case "create":
 				var newId = App.Instance.Zege_Friend.createDepartment(Group, 0, cmd[1]);
-				addWindow(new DepartmentWindow(Group, newId.getId(), cmd[1]));
+				addWindow(new DepartmentWindow(Group, newId.getDepartmentId(), cmd[1]));
 				Program.this.refresh();
 				break;
 			case "open":

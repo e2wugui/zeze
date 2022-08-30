@@ -15,11 +15,12 @@ Zege
 	项目管理。
 	文档，批注，多人编辑。
 	GMT 时间。
+	好友列表也保存关注对象，可以接收通知。
 
 【2022/9/15】
 
 ------------------------------------------------------------------------------------------------------------------------------
-tag 1.0.6 Zege Encrypt，Message Server Side History;
+tag 1.0.6 Zege More;
 ------------------------------------------------------------------------------------------------------------------------------
 Zege
 	创建账号和登录。
@@ -28,6 +29,9 @@ Zege
 	calculateMessageRange: eGetMessageFromAboutRead, eGetMessageFromAboutLast, eGetMessageToAuto, ...
 	Friend 协议参数和数据库结构分开定义。
 	管理员管理。
+	Linkd hash(group) 改成 hash(group,departmentId)
+	BFriend.Memo。
+	群成员增加所属的部门。
 	消息加密。
 
 conf+cs With Net

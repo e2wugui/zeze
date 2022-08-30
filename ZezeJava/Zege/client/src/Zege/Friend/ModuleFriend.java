@@ -51,7 +51,7 @@ public class ModuleFriend extends AbstractModule {
     public BDepartmentId createDepartment(String group, long parent, String name) {
         var req = new CreateDepartment();
         req.Argument.setGroup(group);
-        req.Argument.setParentDepartment(parent);
+        req.Argument.setDepartmentId(parent);
         req.Argument.setName(name);
         req.SendForWait(App.Connector.TryGetReadySocket()).await();
         if (req.getResultCode() != 0)
@@ -65,7 +65,7 @@ public class ModuleFriend extends AbstractModule {
     public void deleteDepartment(String group, long id) {
         var req = new DeleteDepartment();
         req.Argument.setGroup(group);
-        req.Argument.setId(id);
+        req.Argument.setDepartmentId(id);
         req.SendForWait(App.Connector.TryGetReadySocket()).await();
         if (req.getResultCode() != 0)
             throw new RuntimeException("DeleteDepartment faild. "
@@ -77,7 +77,7 @@ public class ModuleFriend extends AbstractModule {
     public BDepartmentNode getDepartmentNode(String group, long id) {
         var req = new GetDepartmentNode();
         req.Argument.setGroup(group);
-        req.Argument.setId(id);
+        req.Argument.setDepartmentId(id);
         req.SendForWait(App.Connector.TryGetReadySocket()).await();
         return req.getResultCode() == 0 ? req.Result : new BDepartmentNode();
     }
@@ -85,7 +85,7 @@ public class ModuleFriend extends AbstractModule {
     public void moveDepartment(String group, long id, long newParent) {
         var req = new MoveDepartment();
         req.Argument.setGroup(group);
-        req.Argument.setId(id);
+        req.Argument.setDepartmentId(id);
         req.Argument.setNewParent(newParent);
         req.SendForWait(App.Connector.TryGetReadySocket()).await();
         if (req.getResultCode() != 0)

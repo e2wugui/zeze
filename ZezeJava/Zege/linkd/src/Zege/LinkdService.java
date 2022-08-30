@@ -2,7 +2,6 @@ package Zege;
 
 import Zege.Friend.*;
 import Zege.Message.*;
-import Zeze.Arch.AbstractProviderImplement;
 import Zeze.Builtin.LinkdBase.BReportError;
 import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Net.Rpc;
@@ -10,6 +9,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Record;
 import Zeze.Util.OutLong;
+import Zeze.Util.Random;
 import Zeze.Web.AbstractWeb;
 
 public class LinkdService extends LinkdServiceBase {
@@ -29,8 +29,9 @@ public class LinkdService extends LinkdServiceBase {
         return false;
     }
 
-    public static class GroupArgument extends Zeze.Transaction.Bean {
+    public static class GroupDepartmentId extends Zeze.Transaction.Bean {
         public String Group;
+        public long DepartmentId;
 
         @Override
         public void Encode(ByteBuffer bb) {
@@ -43,7 +44,11 @@ public class LinkdService extends LinkdServiceBase {
             int _i_ = bb.ReadTagSize(_t_);
             if (_i_ == 1) {
                 Group = bb.ReadString(_t_);
-                return;
+                _i_ += bb.ReadTagSize(_t_ = bb.ReadByte());
+            }
+            if (_i_ == 2) {
+                DepartmentId = bb.ReadLong(_t_);
+                _i_ += bb.ReadTagSize(_t_ = bb.ReadByte());
             }
             throw new RuntimeException("Group Not Found.");
         }
@@ -58,9 +63,17 @@ public class LinkdService extends LinkdServiceBase {
             throw new UnsupportedOperationException();
         }
 
+        @Override
+        public int hashCode() {
+            final int _prime_ = 31;
+            int _h_ = 0;
+            _h_ = _h_ * _prime_ + Group.hashCode();
+            _h_ = _h_ * _prime_ + Long.hashCode(DepartmentId);
+            return _h_;
+        }
     }
 
-    public static class GroupRpc extends Rpc<GroupArgument, EmptyBean> {
+    public static class RpcGroupDepartmentId extends Rpc<GroupDepartmentId, EmptyBean> {
         @Override
         public int getModuleId() {
             return 0;
@@ -71,21 +84,17 @@ public class LinkdService extends LinkdServiceBase {
             return 0;
         }
 
-        public GroupRpc() {
-            Argument = new GroupArgument();
+        public RpcGroupDepartmentId() {
+            Argument = new GroupDepartmentId();
             Result = new EmptyBean();
         }
     }
 
     // 所有的群相关协议的参数的第一个变量必须都是Group: type==String，variable.id==1，
-    private String DecodeGroup(Zeze.Serialize.ByteBuffer bb) {
-        var rpc = new GroupRpc();
+    private int DecodeGroupDepartmentIdHash(Zeze.Serialize.ByteBuffer bb) {
+        var rpc = new RpcGroupDepartmentId();
         rpc.Decode(bb);
-        return rpc.Argument.Group;
-    }
-
-    private boolean DispatchGroupProtocol(String group, int moduleId, Dispatch dispatch) {
-        return ChoiceHashSend(Hash(group), moduleId, dispatch);
+        return rpc.Argument.hashCode();
     }
 
     private int Hash(String group) {
@@ -108,15 +117,21 @@ public class LinkdService extends LinkdServiceBase {
         switch (moduleId) {
         case ModuleFriend.ModuleId:
             switch (protocolId) {
-            case AddDepartmentMember.ProtocolId_:
+            case CreateGroup.ProtocolId_:
+                // 创建群，随机找一台服务器。
+                if (ChoiceHashSend(Random.getInstance().nextInt(), moduleId, dispatch))
+                    return; // 失败尝试继续走默认流程?
+                break;
+
+            case GetGroupMemberNode.ProtocolId_:
             case CreateDepartment.ProtocolId_:
+            case AddDepartmentMember.ProtocolId_:
             case DeleteDepartment.ProtocolId_:
             case GetDepartmentMemberNode.ProtocolId_:
             case GetDepartmentNode.ProtocolId_:
-            case GetGroupMemberNode.ProtocolId_:
             case GetGroupRoot.ProtocolId_:
             case MoveDepartment.ProtocolId_:
-                if (DispatchGroupProtocol(DecodeGroup(data), moduleId, dispatch))
+                if (ChoiceHashSend(DecodeGroupDepartmentIdHash(data), moduleId, dispatch))
                     return; // 失败尝试继续走默认流程?
                 break;
             }
@@ -125,7 +140,7 @@ public class LinkdService extends LinkdServiceBase {
         case ModuleMessage.ModuleId:
             switch (protocolId) {
             case SendDepartmentMessage.ProtocolId_:
-                if (DispatchGroupProtocol(DecodeGroup(data), moduleId, dispatch))
+                if (ChoiceHashSend(DecodeGroupDepartmentIdHash(data), moduleId, dispatch))
                     return; // 失败尝试继续走默认流程?
                 break;
             }

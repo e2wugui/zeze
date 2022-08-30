@@ -491,6 +491,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return r.StrongRef;
 	}
 
+	public final boolean contains(K key) {
+		return get(key) != null;
+	}
+
 	public final V getOrAdd(K key) {
 		var currentT = Transaction.getCurrent();
 		assert currentT != null;

@@ -1,4 +1,6 @@
 
+using Zeze.Util;
+
 namespace Zege.Message
 {
     public partial class ModuleMessage : AbstractModule
@@ -14,7 +16,7 @@ namespace Zege.Message
         protected override async System.Threading.Tasks.Task<long> ProcessNotifyMessageRequest(Zeze.Net.Protocol _p)
         {
             var p = _p as NotifyMessage;
-            return Zeze.Transaction.Procedure.NotImplement;
+            return ResultCode.NotImplement;
         }
 
     }

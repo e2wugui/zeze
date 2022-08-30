@@ -15,7 +15,7 @@
 			<variable id="1" name="Account"    type="string" />
 			<variable id="2" name="Type"       type="int" />
 			<variable id="3" name="CreateTime" type="long" />
-			<variable id="4" name="NickName"   type="string" /> 不唯一
+			<variable id="4" name="Nick"       type="string" /> 不唯一
 
 			<!-- 证书 -->
 			<variable id="20" name="LastCertIndex"     type="int" default="-1" /> 给客户端分配Index用，递增。客户端对自己需要保存所有证书和Key。
@@ -109,17 +109,19 @@
 		<enum name="eUserNotFound"              value="5"/>
 		<enum name="eManagePermission"          value="6"/>
 		<enum name="eNotGroupMember"            value="7"/>
-		
+		<enum name="eToomanyBelongDepartments"  value="8"/>
+		<enum name="eParameterError"            value="9"/>
+		<enum name="eUserExists"                value="10"/>
 
 		<!-- 好友列表用 Zeze.Collections.LinkedMap 下面时自定义数据结构的定义 -->
 		<bean name="BFriend">
-			<variable id="1" name="Nick" type="string"/>
+			<variable id="1" name="Memo" type="string"/>
 		</bean>
 
 		<!-- 协议：读取好友节点 -->
 		<bean name="BAddFriend">
 			<variable id="1" name="Account" type="string"/>
-			<variable id="2" name="Nick" type="string"/>
+			<variable id="2" name="Memo" type="string"/>
 		</bean>
 
 		<rpc name="AddFriend" argument="BAddFriend" handle="server"/>
@@ -131,8 +133,9 @@
 		<bean name="BGetFriend">
 			<variable id="1" name="Account" type="string"/>
 			<variable id="2" name="Nick" type="string"/>
-			<variable id="3" name="LastCertIndex" type="int"/>
-			<variable id="4" name="Cert" type="binary"/>
+			<variable id="3" name="Memo" type="string"/>
+			<variable id="4" name="LastCertIndex" type="int"/>
+			<variable id="5" name="Cert" type="binary"/>
 		</bean>
 
 		<bean name="BGetFriendNode">
@@ -147,8 +150,9 @@
 		<bean name="BManager">
 		</bean>
 
-		<bean name="BMember">
+		<bean name="BGroupMember">
 			<variable id="1" name="Nick" type="string"/>
+			<variable id="2" name="BelongDepartments" type="set[long]"/>
 		</bean>
 
 		<bean name="BDepartmentMember">
@@ -162,24 +166,34 @@
 		</bean>
 
 		<!-- 协议：群及部门管理 -->
-		<bean name="BDepartment">
-			<variable id="1" name="Group" type="string"/>
-			<variable id="2" name="Name" type="string"/>
-			<variable id="3" name="ParentDepartment" type="long"/>
+		<bean name="BCreateGroup">
+			<variable id="1" name="Members" type="set[string]"/>
 		</bean>
 
-		<rpc name="CreateDepartment" argument="BDepartment" result="BDepartmentId" handle="server"/>
+		<bean name="BCreateGroupResult">
+			<variable id="1" name="Group" type="string"/>
+		</bean>
+
+		<rpc name="CreateGroup" argument="BCreateGroup" result="BCreateGroupResult" handle="server"/>
+
+		<bean name="BCreateDepartment">
+			<variable id="1" name="Group" type="string"/>
+			<variable id="2" name="DepartmentId" type="long"/>
+			<variable id="3" name="Name" type="string"/>
+		</bean>
+
+		<rpc name="CreateDepartment" argument="BCreateDepartment" result="BDepartmentId" handle="server"/>
 
 		<bean name="BDepartmentId">
 			<variable id="1" name="Group" type="string"/>
-			<variable id="2" name="Id" type="long"/>
+			<variable id="2" name="DepartmentId" type="long"/>
 		</bean>
 
 		<rpc name="DeleteDepartment" argument="BDepartmentId" handle="server"/>
 
 		<bean name="BDepartmentMove">
 			<variable id="1" name="Group" type="string"/>
-			<variable id="2" name="Id" type="long"/>
+			<variable id="2" name="DepartmentId" type="long"/>
 			<variable id="3" name="NewParent" type="long"/>
 		</bean>
 		<rpc name="MoveDepartment" argument="BDepartmentMove" handle="server"/>
@@ -199,11 +213,6 @@
 		</bean>
 		<rpc name="GetGroupRoot" argument="BDepartmentId" result="BGroup" handle="server"/>
 
-		<bean name="BGroupNodeId">
-			<variable id="1" name="Group" type="string"/>
-			<variable id="2" name="NodeId" type="long"/>
-		</bean>
-
 		<bean name="BGetMember">
 			<variable id="1" name="Account" type="string"/>
 			<variable id="2" name="Nick" type="string"/>
@@ -217,7 +226,8 @@
 			<variable id="3" name="Members"    type="list[BGetMember]"/>
 		</bean>
 
-		<rpc name="GetGroupMemberNode" argument="BGroupNodeId" result="BGetMemberNode" handle="server"/>
+		<!-- argument.DepartmentId 不需要设置，必须为0 -->
+		<rpc name="GetGroupMemberNode" argument="BDepartmentNodeId" result="BGetMemberNode" handle="server"/>
 
 		<bean name="BGetDepartmentMember">
 			<variable id="1" name="Account" type="string"/>
@@ -246,6 +256,7 @@
 			<variable id="3" name="Account" type="string"/>
 		</bean>
 		<rpc name="AddDepartmentMember" argument="BAddDepartmentMember" handle="server"/>
+		<rpc name="DelDepartmentMember" argument="BAddDepartmentMember" handle="server"/>
 
 		<bean name="BAddManager">
 			<variable id="1" name="Group" type="string"/>
