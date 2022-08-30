@@ -4,7 +4,6 @@ import Zege.User.BUser;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Collections.DepartmentTree;
 import Zeze.Collections.LinkedMap;
-import Zeze.Component.AutoKey;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutLong;
 import Zeze.Util.Random;
@@ -37,7 +36,7 @@ public class ModuleFriend extends AbstractModule {
         var self = getFriends(session.getAccount());
 
         // 参数检查
-        if (!App.Zege_User.contains(r.Argument.getAccount()))
+        if (!App.Zege_User.containsKey(r.Argument.getAccount()))
             return ErrorCode(eUserNotFound);
 
         if (r.Argument.getAccount().endsWith("@group")) {

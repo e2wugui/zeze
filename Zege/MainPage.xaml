@@ -9,9 +9,34 @@
             Padding="30,0"
             VerticalOptions="Center">
 
+            <ListView x:Name ="FriendsListView" HeightRequest="200" WidthRequest="410" >
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <ViewCell>
+                            <Grid Padding="10">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="35" />
+                                    <RowDefinition Height="35" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="70" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="80" />
+                                </Grid.ColumnDefinitions>
+
+                                <Image Grid.RowSpan="2" Source="{Binding Image}" Aspect="AspectFill" HeightRequest="60" WidthRequest="60" />
+                                <Label Grid.Column="1" Text="{Binding Nick}" LineBreakMode="TailTruncation" FontAttributes="Bold" />
+                                <Label Grid.Column="2" Text="{Binding Time}" LineBreakMode="NoWrap" />
+                                <Label Grid.Row="1" Grid.Column="1" Text="{Binding Message}" LineBreakMode="TailTruncation" />
+                            </Grid>
+                        </ViewCell>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+            
             <WebView
                 Source="https://www.163.com"
-                HeightRequest="400"
+                HeightRequest="300"
                 WidthRequest="800"
                 HorizontalOptions="Center" 
                 />
@@ -34,6 +59,33 @@
                 Text="Click me"
                 SemanticProperties.Hint="Counts the number of times you click"
                 Clicked="OnCounterClicked"
+                HorizontalOptions="Center" />
+            <Button
+                x:Name="AddHead"
+                Text="AddHead"
+                SemanticProperties.Hint="Counts the number of times you click"
+                Clicked="OnAddHeadClicked"
+                HorizontalOptions="Center" />
+
+            <Button
+                x:Name="AddTail"
+                Text="AddTail"
+                SemanticProperties.Hint="Counts the number of times you click"
+                Clicked="OnAddTailClicked"
+                HorizontalOptions="Center" />
+
+            <Button
+                x:Name="RemoveHead"
+                Text="RemoveHead"
+                SemanticProperties.Hint="Counts the number of times you click"
+                Clicked="OnRemoveHeadClicked"
+                HorizontalOptions="Center" />
+
+            <Button
+                x:Name="RemoveTail"
+                Text="RemoveTail"
+                SemanticProperties.Hint="Counts the number of times you click"
+                Clicked="OnRemoveTailClicked"
                 HorizontalOptions="Center" />
 
         </VerticalStackLayout>

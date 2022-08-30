@@ -422,7 +422,7 @@ namespace Zeze.Transaction
             return 0;
         }
 
-        public async Task<bool> Contains(K key)
+        public async Task<bool> ContainsKey(K key)
         {
             return await GetAsync(key) != null;
         }

@@ -29,7 +29,7 @@ public class ModuleUser extends AbstractModule {
         return _tUser.get(account);
     }
 
-    public boolean contains(String account) {
+    public boolean containsKey(String account) {
         return _tUser.get(account) != null;
     }
 
