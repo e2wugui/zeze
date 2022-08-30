@@ -43,6 +43,8 @@ namespace Zege
                 CounterBtn.Text = $"Clicked {count} times";
 
             SemanticScreenReader.Announce(CounterBtn.Text);
+            FriendsListView.ItemsSource = null;
+            FriendsListView.ItemsSource = Friends;
         }
 
         private void OnAddHeadClicked(object sender, EventArgs e)
