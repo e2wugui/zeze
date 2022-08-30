@@ -8,7 +8,7 @@
             Spacing="25"
             Padding="30,0"
             VerticalOptions="Center">
-
+            <!-- ItemSource="{Binding Friends}"-->
             <ListView x:Name ="FriendsListView" HeightRequest="200" WidthRequest="410" >
                 <ListView.ItemTemplate>
                     <DataTemplate>
