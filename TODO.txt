@@ -34,7 +34,7 @@ Zege
 	群成员增加所属的部门。
 	消息加密。
 
-conf+cs With Net
+conf+cs +Net +(Ts Or Lua)?
 	精简客户端，拷贝部分源码到自己的目录。
 	1. conf+cs 系列化；使用gen命令输出系列化需要的源文件：gen -c ExportConf -ZezeSrcDir ../zeze 
 	2. 拷贝Net目录；在项目中定义宏 USE_CONFCS，这样Net模块就不再依赖事务Bean和存储过程。
