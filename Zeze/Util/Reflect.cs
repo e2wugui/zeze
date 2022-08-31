@@ -40,6 +40,9 @@ namespace Zeze.Util
 
         public TransactionLevel GetTransactionLevel(string methodName, TransactionLevel def)
         {
+#if USE_CONFCS
+			return TransactionLevel.None;
+#else
             if (Methods.TryGetValue(methodName, out var method))
             {
                 var attr = method.GetCustomAttribute<TransactionLevelAttribute>();
@@ -48,7 +51,8 @@ namespace Zeze.Util
                 // else def
             }
             return def;
-        }
+#endif
+		}
 
 #if USE_CONFCS
 	// TODO 当需要日志系列化支持到客户端时，需要实现一个新的GetStableName。

@@ -22,7 +22,6 @@ xcopy /Y %zeze_src_dir%\Zeze\Util\Scheduler.cs %project_dir%\Zeze\Util\
 xcopy /Y %zeze_src_dir%\Zeze\Util\AtomicLong.cs %project_dir%\Zeze\Util\
 xcopy /Y %zeze_src_dir%\Zeze\Util\FixedHash.cs %project_dir%\Zeze\Util\
 xcopy /Y %zeze_src_dir%\Zeze\Util\Reflect.cs %project_dir%\Zeze\Util\
-xcopy /Y %zeze_src_dir%\Zeze\Util\TransactionLevelAttribute.cs %project_dir%\Zeze\Util\
 xcopy /Y %zeze_src_dir%\Zeze\Util\Time.cs %project_dir%\Zeze\Util\
 
 md %project_dir%\Zeze\Services
