@@ -11,6 +11,7 @@ import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TableWalkHandle;
+import Zeze.Util.OutLong;
 
 public class LinkedMap<V extends Bean> {
 	private static final BeanFactory beanFactory = new BeanFactory();
@@ -73,10 +74,12 @@ public class LinkedMap<V extends Bean> {
 		return module._tLinkedMapNodes.get(new BLinkedMapNodeKey(name, nodeId));
 	}
 
-	public BLinkedMapNode getFristNode() {
+	public BLinkedMapNode getFirstNode(OutLong nodeId) {
 		var root = getRoot();
-		if (null != root)
+		if (null != root) {
+			nodeId.Value = root.getHeadNodeId();
 			return getNode(root.getHeadNodeId());
+		}
 		return null;
 	}
 

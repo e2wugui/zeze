@@ -120,12 +120,16 @@ public class ModuleFriend extends AbstractModule {
     protected long ProcessGetFriendNodeRequest(Zege.Friend.GetFriendNode r) {
         var session = ProviderUserSession.get(r);
         var friends = getFriends(session.getAccount());
-        var friendNode = r.Argument.getNodeId() == 0 ? friends.getFristNode() : friends.getNode(r.Argument.getNodeId());
+        var nodeId = new OutLong(r.Argument.getNodeId());
+        var friendNode = r.Argument.getNodeId() == 0
+                ? friends.getFirstNode(nodeId)
+                : friends.getNode(r.Argument.getNodeId());
         if (null == friendNode)
             return ErrorCode(eFriendNodeNotFound);
 
         r.Result.setNextNodeId(friendNode.getNextNodeId());
         r.Result.setPrevNodeId(friendNode.getPrevNodeId());
+        r.Result.setNodeId(nodeId.Value);
         for (var friend : friendNode.getValues()) {
             var get = new BGetFriend();
 
@@ -199,8 +203,9 @@ public class ModuleFriend extends AbstractModule {
         if (group.getGroupMembers().get(session.getAccount()) == null)
             return ErrorCode(eNotGroupMember);
 
+        var nodeId = new OutLong(r.Argument.getNodeId());
         var node = r.Argument.getNodeId() == 0
-                ? group.getDepartmentMembers(r.Argument.getDepartmentId()).getFristNode()
+                ? group.getDepartmentMembers(r.Argument.getDepartmentId()).getFirstNode(nodeId)
                 : group.getDepartmentMembers(r.Argument.getDepartmentId()).getNode(r.Argument.getNodeId());
 
         if (null == node)
@@ -208,6 +213,7 @@ public class ModuleFriend extends AbstractModule {
 
         r.Result.setNextNodeId(node.getNextNodeId());
         r.Result.setPrevNodeId(node.getPrevNodeId());
+        r.Result.setNodeId(nodeId.Value);
         for (var member : node.getValues()) {
             var get = new BGetDepartmentMember();
             get.setAccount(member.getId());
@@ -233,13 +239,15 @@ public class ModuleFriend extends AbstractModule {
         if (group.getGroupMembers().get(session.getAccount()) == null)
             return ErrorCode(eNotGroupMember);
 
+        var nodeId = new OutLong(r.Argument.getNodeId());
         var node = r.Argument.getNodeId() == 0
-                ? group.getGroupMembers().getFristNode()
+                ? group.getGroupMembers().getFirstNode(nodeId)
                 : group.getGroupMembers().getNode(r.Argument.getNodeId());
         if (null == node)
             return ErrorCode(eMemberNodeNotFound);
         r.Result.setNextNodeId(node.getNextNodeId());
         r.Result.setPrevNodeId(node.getPrevNodeId());
+        r.Result.setNextNodeId(nodeId.Value);
         for (var member : node.getValues()) {
             var get = new BGetMember();
             get.setAccount(member.getId());
