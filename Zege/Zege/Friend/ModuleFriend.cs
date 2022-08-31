@@ -25,9 +25,9 @@ namespace Zege.Friend
         private List<(long, BGetFriendNode)> Nodes { get; } = new();
         private GetFriendNode GetFriendNodePending { get; set; }
 
-        private GetFriendNode TryNewGetFriendNode(bool next)
+        private GetFriendNode TryNewGetFriendNode(bool forward)
         {
-            if (next)
+            if (forward)
             {
                 if (Nodes.Count > 0)
                 {
