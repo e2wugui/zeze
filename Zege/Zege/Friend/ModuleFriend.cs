@@ -25,14 +25,44 @@ namespace Zege.Friend
         private List<(long, BGetFriendNode)> Nodes { get; } = new();
         private GetFriendNode GetFriendNodePending { get; set; }
 
-        private void TryGetNextFriendNode()
+        private GetFriendNode TryNewGetFriendNode(bool next)
+        {
+            if (next)
+            {
+                if (Nodes.Count > 0)
+                {
+                    var last = Nodes[^1];
+                    if (last.Item2.NextNodeId == 0)
+                        return null; // 已经是最后一个节点了。
+                    var rpc = new GetFriendNode();
+                    rpc.Argument.NodeId = last.Item2.NextNodeId;
+                    return rpc;
+                }
+                // else 尝试获取第一个节点，如果用户没有任何好友节点，会一直尝试获取，TODO 处理一下？
+                return new GetFriendNode();
+            }
+
+            if (Nodes.Count > 0)
+            {
+                var last = Nodes[0];
+                if (last.Item2.PrevNodeId == 0)
+                    return null; // 已经是最后一个节点了。
+                var rpc = new GetFriendNode();
+                rpc.Argument.NodeId = last.Item2.PrevNodeId;
+                return rpc;
+            }
+            // else 尝试获取第一个节点，如果用户没有任何好友节点，会一直尝试获取，TODO 处理一下？
+            return new GetFriendNode();
+
+        }
+
+        private void TryGetFriendNode(bool next)
         {
             if (GetFriendNodePending != null)
                 return; // done
 
-            GetFriendNodePending = new GetFriendNode();
-            GetFriendNodePending.Argument.NodeId = Nodes.Count > 0 ? Nodes[^1].Item2.NextNodeId : 0;
-            GetFriendNodePending.Send(App.ClientService.GetSocket(), (p) =>
+            GetFriendNodePending = TryNewGetFriendNode(next);            
+            GetFriendNodePending?.Send(App.ClientService.GetSocket(), (p) =>
             {
                 GetFriendNodePending = null;
                 var r = p as GetFriendNode;
@@ -47,7 +77,9 @@ namespace Zege.Friend
         private void OnScrolled(object sender, ScrolledEventArgs args)
         {
             if (args.ScrollY > ListView.Height - 80)
-                TryGetNextFriendNode();
+                TryGetFriendNode(true);
+            else if (args.ScrollY < 80)
+                TryGetFriendNode(false);
         }
 
         public void Bind(ListView view)
@@ -57,7 +89,7 @@ namespace Zege.Friend
             view.Scrolled += OnScrolled;
 
             if (Nodes.Count == 0)
-                TryGetNextFriendNode();
+                TryGetFriendNode(true);
         }
 
         private int IndexOf(long nodeId)
