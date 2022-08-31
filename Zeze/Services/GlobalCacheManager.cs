@@ -1098,7 +1098,7 @@ namespace Zeze.Services.GlobalCacheManager
 
     public sealed class Acquire : Rpc<GlobalKeyState, GlobalKeyState>
     {
-        public readonly static int ProtocolId_ = Bean.Hash32(typeof(Acquire).FullName);
+        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(Acquire).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -1116,7 +1116,7 @@ namespace Zeze.Services.GlobalCacheManager
 
     public class Reduce : Rpc<GlobalKeyState, GlobalKeyState>
     {
-        public readonly static int ProtocolId_ = Bean.Hash32(typeof(Reduce).FullName);
+        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(Reduce).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -1200,7 +1200,7 @@ namespace Zeze.Services.GlobalCacheManager
 
     public sealed class Login : Rpc<LoginParam, AchillesHeelConfigFromGlobal>
     {
-        public readonly static int ProtocolId_ = Bean.Hash32(typeof(Login).FullName);
+        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(Login).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -1217,7 +1217,7 @@ namespace Zeze.Services.GlobalCacheManager
 
     public sealed class ReLogin : Rpc<LoginParam, EmptyBean>
     {
-        public readonly static int ProtocolId_ = Bean.Hash32(typeof(ReLogin).FullName);
+        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(ReLogin).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -1234,7 +1234,7 @@ namespace Zeze.Services.GlobalCacheManager
 
     public sealed class NormalClose : Rpc<EmptyBean, EmptyBean>
     {
-        public readonly static int ProtocolId_ = Bean.Hash32(typeof(NormalClose).FullName);
+        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(NormalClose).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -1274,7 +1274,7 @@ namespace Zeze.Services.GlobalCacheManager
 
     public sealed class Cleanup : Rpc<AchillesHeel, EmptyBean>
     {
-        public readonly static int ProtocolId_ = Bean.Hash32(typeof(Cleanup).FullName);
+        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(Cleanup).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -1388,7 +1388,7 @@ namespace Zeze.Services.GlobalCacheManager
     /// </summary>
     public sealed class KeepAlive : Rpc<EmptyBean, EmptyBean>
     {
-        public readonly static int ProtocolId_ = Bean.Hash32(typeof(KeepAlive).FullName);
+        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(KeepAlive).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;

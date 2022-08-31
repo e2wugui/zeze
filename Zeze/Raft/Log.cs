@@ -39,7 +39,7 @@ namespace Zeze.Raft
                 Unique = req.Unique;
                 CreateTime = req.CreateTime;
             }
-            _TypeId = (int)Bean.Hash32(GetType().FullName);
+            _TypeId = (int)Util.FixedHash.Hash32(GetType().FullName);
         }
 
         /// <summary>

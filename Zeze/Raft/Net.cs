@@ -955,7 +955,7 @@ namespace Zeze.Raft
 
     public sealed class RequestVote : Rpc<RequestVoteArgument, RequestVoteResult>
     {
-        public readonly static int ProtocolId_ = Bean.Hash32(typeof(RequestVote).FullName);
+        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(RequestVote).FullName);
         public readonly static long TypeId_ = (uint)ProtocolId_;
 
         public override int ModuleId => 0;
@@ -1061,7 +1061,7 @@ namespace Zeze.Raft
 
     public sealed class AppendEntries : Rpc<AppendEntriesArgument, AppendEntriesResult>
     {
-        public readonly static int ProtocolId_ = Bean.Hash32(typeof(AppendEntries).FullName);
+        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(AppendEntries).FullName);
         public readonly static long TypeId_ = (uint)ProtocolId_;
 
         public override int ModuleId => 0;
@@ -1163,7 +1163,7 @@ namespace Zeze.Raft
 
     public sealed class InstallSnapshot : Rpc<InstallSnapshotArgument, InstallSnapshotResult>
     {
-        public readonly static int ProtocolId_ = Bean.Hash32(typeof(InstallSnapshot).FullName);
+        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(InstallSnapshot).FullName);
         public readonly static long TypeId_ = (uint)ProtocolId_;
 
         public override int ModuleId => 0;
@@ -1241,7 +1241,7 @@ namespace Zeze.Raft
     /// </summary>
     public sealed class LeaderIs : Rpc<LeaderIsArgument, EmptyBean>
     {
-        public readonly static int ProtocolId_ = Bean.Hash32(typeof(LeaderIs).FullName);
+        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(LeaderIs).FullName);
         public readonly static long TypeId_ = (uint)ProtocolId_;
 
         public override int ModuleId => 0;

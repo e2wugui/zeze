@@ -706,7 +706,7 @@ namespace Zeze.Raft
 
         public sealed class AddCount : RaftRpc<EmptyBean, CountResult>
         {
-            public readonly static int ProtocolId_ = Bean.Hash32(typeof(AddCount).FullName);
+            public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(AddCount).FullName);
 
             public override int ModuleId => 0;
             public override int ProtocolId => ProtocolId_;
@@ -748,7 +748,7 @@ namespace Zeze.Raft
 
         public sealed class GetCount : RaftRpc<EmptyBean, CountResult>
         {
-            public readonly static int ProtocolId_ = Bean.Hash32(typeof(GetCount).FullName);
+            public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(GetCount).FullName);
 
             public override int ModuleId => 0;
             public override int ProtocolId => ProtocolId_;

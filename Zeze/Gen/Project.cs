@@ -15,7 +15,7 @@ namespace Zeze.Gen
         public string ScriptDir { get; private set; }
         public string GenRelativeDir { get; private set; }
         public string GenCommonRelativeDir { get; private set; }
-        public HashSet<string> GenTables { get; } = new HashSet<string>();
+        public HashSet<string> GenTables { get; set; } = new HashSet<string>();
         public SortedDictionary<string, Service> Services { get; private set; } = new SortedDictionary<string, Service>();
 
         // setup when compile
@@ -298,6 +298,12 @@ namespace Zeze.Gen
                     break;
                 case "conf+cs":
                     new confcs.Maker(this).Make();
+                    break;
+                case "conf+cs+net":
+                    // 警告，confcs.Maker为了简化，没有生成Gen目录，而是直接放到ProjectName下，这样和需要实现的代码混在一起，
+                    // 会导致自己实现代码被删除，这个platform有网络协议以及模块。
+                    // 需要重新写了一份，选择需要生成的内容以及重新定义生成目录。
+                    new cs.Maker(this).MakeConfCsNet();
                     break;
                 default:
                     throw new Exception("Project: unsupport platform: " + Platform);

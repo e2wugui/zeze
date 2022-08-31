@@ -28,13 +28,13 @@ namespace Zeze.Transaction
 
         public Bean()
         { 
-            TypeId_ = Hash64(GetType().FullName);
+            TypeId_ = Util.FixedHash.Hash64(GetType().FullName);
         }
 
         public Bean(int variableId)
         {
             this.VariableId = variableId;
-            TypeId_ = Hash64(GetType().FullName);
+            TypeId_ = Util.FixedHash.Hash64(GetType().FullName);
         }
 
         public virtual LogBean CreateLogBean()
@@ -119,27 +119,6 @@ namespace Zeze.Transaction
         // 这个方法在Gen的时候总是覆盖(override)，提供默认实现是为了方便内部Bean的实现。
         protected long TypeId_;
         public virtual long TypeId => TypeId_;
-
-        // 使用自己的hash算法，因为 TypeId 会持久化，不能因为算法改变导致值变化。
-        // XXX: 这个算法定好之后，就不能变了。
-        public static long Hash64(string name)
-        {
-            // This is a Knuth hash
-            ulong hashedValue = 3074457345618258791ul;
-            for (int i = 0; i < name.Length; i++)
-            {
-                hashedValue += name[i];
-                hashedValue *= 3074457345618258799ul;
-            }
-            return (long)hashedValue;
-        }
-
-        public static int Hash32(string name)
-        {
-            ulong hash64 = (ulong)Hash64(name);
-            uint hash32 = (uint)(hash64 & 0xffffffff) ^ (uint)(hash64 >> 32);
-            return (int)hash32;
-        }
 
         public static bool IsEmptyBean(Bean bean)
         {

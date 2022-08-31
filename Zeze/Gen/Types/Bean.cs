@@ -141,7 +141,7 @@ namespace Zeze.Gen.Types
 			Base = self.GetAttribute("base");
 			if (Base != "" && !Base.Contains('.'))
 				Base = Space.Path(".", Base);
-			TypeId = attr.Length > 0 ? int.Parse(attr) : Zeze.Transaction.Bean.Hash64(space.Path(".", _name));
+			TypeId = attr.Length > 0 ? int.Parse(attr) : Util.FixedHash.Hash64(space.Path(".", _name));
 			if (false == Program.BeanTypeIdDuplicateChecker.Add(TypeId))
 				throw new Exception("duplicate Bean.TypeId, please choice one.");
 

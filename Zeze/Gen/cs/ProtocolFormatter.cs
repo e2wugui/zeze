@@ -11,7 +11,7 @@ namespace Zeze.Gen.cs
             this.p = p;
         }
 
-        public void Make(string baseDir)
+        public void Make(string baseDir, bool isconfcs = false)
         {
             using StreamWriter sw = p.Space.OpenWriter(baseDir, p.Name + ".cs");
 
@@ -22,7 +22,8 @@ namespace Zeze.Gen.cs
             sw.WriteLine("namespace " + p.Space.Path());
             sw.WriteLine("{");
 
-            string argument = p.ArgumentType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(p.ArgumentType);
+            var emptyBeanName = isconfcs ? "Zeze.Util.ConfEmptyBean" : "Zeze.Transaction.EmptyBean";
+            string argument = p.ArgumentType == null ? emptyBeanName : TypeName.GetName(p.ArgumentType);
             sw.WriteLine("    public sealed class " + p.Name + " : Zeze.Net.Protocol<" + argument + ">");
             sw.WriteLine("    {");
             sw.WriteLine("        public const int ModuleId_ = " + p.Space.Id + ";");

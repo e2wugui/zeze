@@ -25,13 +25,13 @@ namespace Zeze.Raft.RocksRaft
 
 		public Bean()
         {
-			TypeId_ = Zeze.Transaction.Bean.Hash64(GetType().FullName);
+			TypeId_ = Util.FixedHash.Hash64(GetType().FullName);
 		}
 
 		public Bean(int varid)
         {
 			VariableId = varid;
-			TypeId_ = Zeze.Transaction.Bean.Hash64(GetType().FullName);
+			TypeId_ = Util.FixedHash.Hash64(GetType().FullName);
 		}
 
 		public void InitRootInfo(Record.RootInfo rootInfo, Bean parent)

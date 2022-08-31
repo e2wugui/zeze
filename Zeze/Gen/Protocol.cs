@@ -35,7 +35,7 @@ namespace Zeze.Gen
             space.Add(this);
 
             string attr = self.GetAttribute("id");
-            Id = attr.Length > 0 ? int.Parse(attr) : Bean.Hash32(FullName);
+            Id = attr.Length > 0 ? int.Parse(attr) : Util.FixedHash.Hash32(FullName);
             space.ProtocolIdRanges.CheckAdd(Id);
 
             Argument = self.GetAttribute("argument");

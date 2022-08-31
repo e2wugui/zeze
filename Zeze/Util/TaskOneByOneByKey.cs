@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Zeze.Transaction;
 
 namespace Zeze.Util
 {
@@ -43,12 +42,12 @@ namespace Zeze.Util
 		public class Barrier
 		{
 			public int Count;
-			public Procedure Procedure;
+			public Transaction.Procedure Procedure;
 			public Action CancelAction;
 			public bool Canceled = false;
 			private Nito.AsyncEx.AsyncMonitor Monitor = new();
 
-			public Barrier(Procedure action, int count, Action cancel)
+			public Barrier(Transaction.Procedure action, int count, Action cancel)
 			{
 				Count = count;
 
@@ -109,7 +108,7 @@ namespace Zeze.Util
 			}
 		}
 
-		public void ExecuteCyclicBarrier<T>(ICollection<T> keys, Procedure procdure, Action cancel = null)
+		public void ExecuteCyclicBarrier<T>(ICollection<T> keys, Transaction.Procedure procdure, Action cancel = null)
 		{
 			if (keys.Count <= 0)
 				throw new Exception("CyclicBarrier keys is empty.");
@@ -179,7 +178,7 @@ namespace Zeze.Util
 			concurrency[index].Execute(new JobProtocol(pHandle, p, actionWhenError, cancel));
 		}
 
-		public void Execute(object key, Procedure procedure,
+		public void Execute(object key, Transaction.Procedure procedure,
 			Net.Protocol from = null, Action<Net.Protocol, long> actionWhenError = null,
 			Action cancel = null)
 		{

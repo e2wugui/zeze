@@ -25,7 +25,7 @@ namespace Zeze.Transaction
 
         public Log()
         {
-            _TypeId = Zeze.Transaction.Bean.Hash32(Util.Reflect.GetStableName(GetType()));
+            _TypeId = Util.FixedHash.Hash32(Util.Reflect.GetStableName(GetType()));
         }
 
         public virtual void Collect(Changes changes, Bean recent, Log vlog)

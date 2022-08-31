@@ -11,7 +11,7 @@ namespace Zeze.Gen.cs
             this.rpc = rpc;
         }
 
-        public void Make(string baseDir)
+        public void Make(string baseDir, bool isconfcs = false)
         {
             using StreamWriter sw = rpc.Space.OpenWriter(baseDir, rpc.Name + ".cs");
 
@@ -22,8 +22,9 @@ namespace Zeze.Gen.cs
             sw.WriteLine("namespace " + rpc.Space.Path());
             sw.WriteLine("{");
 
-            string argument = rpc.ArgumentType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(rpc.ArgumentType);
-            string result = rpc.ResultType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(rpc.ResultType);
+            var emptyBeanName = isconfcs ? "Zeze.Util.ConfEmptyBean" : "Zeze.Transaction.EmptyBean";
+            string argument = rpc.ArgumentType == null ? emptyBeanName : TypeName.GetName(rpc.ArgumentType);
+            string result = rpc.ResultType == null ? emptyBeanName : TypeName.GetName(rpc.ResultType);
             string baseclass = string.IsNullOrEmpty(rpc.Base) ? "Zeze.Net.Rpc" : rpc.Base;
 
             sw.WriteLine($"    public sealed class {rpc.Name} : {baseclass}<{argument}, {result}>");

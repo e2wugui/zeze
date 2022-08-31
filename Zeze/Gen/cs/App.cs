@@ -15,13 +15,13 @@ namespace Zeze.Gen.cs
             this.srcDir = srcDir;
         }
 
-        public void Make()
+        public void Make(bool isconfcs = false)
         {
-            MakePartialGen();
+            MakePartialGen(isconfcs);
             MakePartial();
         }
 
-        public void MakePartialGen()
+        public void MakePartialGen(bool isconfcs)
         {
             using StreamWriter sw = project.Solution.OpenWriter(genDir, "App.cs");
 
@@ -86,7 +86,8 @@ namespace Zeze.Gen.cs
                 sw.WriteLine($"                Modules.Add({fullname}.FullName, {fullname});");
             }
             sw.WriteLine();
-            sw.WriteLine("                Zeze.Schemas = new " + project.Solution.Path(".", "Schemas") + "();");
+            if (!isconfcs)
+                sw.WriteLine("                Zeze.Schemas = new " + project.Solution.Path(".", "Schemas") + "();");
             sw.WriteLine("            }");
             sw.WriteLine("        }");
             sw.WriteLine();

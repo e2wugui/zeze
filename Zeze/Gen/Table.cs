@@ -34,6 +34,7 @@ namespace Zeze.Gen
             Key = self.GetAttribute("key");
             Value = self.GetAttribute("value");
             Gen = self.GetAttribute("gen");
+
             string attr = self.GetAttribute("memory");
             IsMemory = attr.Length > 0 && bool.Parse(attr);
             attr = self.GetAttribute("autokey");
@@ -41,7 +42,7 @@ namespace Zeze.Gen
             Kind = self.GetAttribute("kind");
 
             attr = self.GetAttribute("id");
-            Id = attr.Length > 0 ? int.Parse(attr) : Bean.Hash32(FullName);
+            Id = attr.Length > 0 ? int.Parse(attr) : Util.FixedHash.Hash32(FullName);
         }
 
         public void Compile()

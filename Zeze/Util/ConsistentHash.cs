@@ -40,7 +40,7 @@ namespace Zeze.Util
 				
 				for (int i = 0; i < numberOfReplicas; ++i)
 				{
-					var hash = Zeze.Transaction.Bean.Hash32(nodeKey + "#" + i);
+					var hash = Util.FixedHash.Hash32(nodeKey + "#" + i);
 					if (circle.TryAdd(hash, node))
 						continue;
 
@@ -66,7 +66,7 @@ namespace Zeze.Util
 
 				for (int i = 0; i < numberOfReplicas; ++i)
 				{
-					var hash = Zeze.Transaction.Bean.Hash32(nodeKey + "#" + i);
+					var hash = Util.FixedHash.Hash32(nodeKey + "#" + i);
 					if (circle.TryGetValue(hash, out var current) && current.Equals(node))
 						circle.Remove(hash);
 				}

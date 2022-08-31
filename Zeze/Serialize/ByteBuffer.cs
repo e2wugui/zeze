@@ -6,7 +6,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Runtime.CompilerServices;
 using Zeze.Net;
-using Zeze.Transaction;
 
 namespace Zeze.Serialize
 {
@@ -1330,7 +1329,11 @@ namespace Zeze.Serialize
             return bean;
         }
 
-        public DynamicBean ReadDynamic(DynamicBean dynBean, int type)
+#if USE_CONFCS
+        public Util.ConfDynamicBean ReadDynamic(Util.ConfDynamicBean dynBean, int type)
+#else
+        public Transaction.DynamicBean ReadDynamic(Transaction.DynamicBean dynBean, int type)
+#endif
         {
             type &= TAG_MASK;
             if (type == DYNAMIC)

@@ -32,7 +32,7 @@ namespace Zeze.Raft.RocksRaft
 
 		public Log()
         {
-			_TypeId = Zeze.Transaction.Bean.Hash32(Util.Reflect.GetStableName(GetType()));
+			_TypeId = Util.FixedHash.Hash32(Util.Reflect.GetStableName(GetType()));
         }
 
 		public abstract void Encode(ByteBuffer bb);

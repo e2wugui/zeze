@@ -446,7 +446,7 @@
 		</service>
 	</project>
 
-	<project name="Zege" gendir="../.." platform="cs" BuiltinNG="true">
+	<project name="Zege" gendir="../.." platform="conf+cs+net">
 		<service name="ClientService" handle="client" base="Zeze.Services.HandshakeClient">
 			<module ref="Zeze.Builtin.Online"/>
 			<module ref="Zeze.Builtin.LinkdBase"/>
