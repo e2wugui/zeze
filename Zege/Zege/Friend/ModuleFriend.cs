@@ -14,7 +14,7 @@ namespace Zege.Friend
         }
 
         // 给ListView提供数据，可能是本地CachedNodes中好友的一部分。
-        private ObservableCollection<Friend> ItemsSource { get; set; } = new();
+        private ObservableCollection<FriendItem> ItemsSource { get; set; } = new();
         private ListView ListView { get; set; }
 
         // 置顶好友单独保存。
@@ -70,9 +70,9 @@ namespace Zege.Friend
             return -1;
         }
 
-        private Friend FriendToView(long nodeId, BGetFriend friend)
+        private FriendItem FriendToItem(long nodeId, BGetFriend friend)
         {
-            return new Friend()
+            return new FriendItem()
             {
                 NodeId = nodeId,
                 Account = friend.Account,
@@ -83,7 +83,7 @@ namespace Zege.Friend
             };
         }
 
-        private bool FriendMatch(Friend ii, BGetFriend jj)
+        private bool FriendMatch(FriendItem ii, BGetFriend jj)
         {
             // todo 更多数据变化检查。
             return ii.Nick.Equals(jj.Memo + " " + jj.Nick);
@@ -97,7 +97,7 @@ namespace Zege.Friend
                 Nodes.Add((nodeId, node));
                 foreach (var friend in node.Friends)
                 {
-                    ItemsSource.Add(FriendToView(nodeId, friend));
+                    ItemsSource.Add(FriendToItem(nodeId, friend));
                 }
             }
             else
@@ -140,7 +140,7 @@ namespace Zege.Friend
                         {
                             // 数据发生了变更，使用删除再次加入的方式更新View。
                             ItemsSource.RemoveAt(i);
-                            ItemsSource.Insert(i, FriendToView(nodeId, jj));
+                            ItemsSource.Insert(i, FriendToItem(nodeId, jj));
                         }
                         // 相同的好友，处理完成，都往前推进。
                         --i;
@@ -167,13 +167,13 @@ namespace Zege.Friend
                 ++i; // 到这里时，i为-1，或者指向前面一个节点的最后一个好友。需要在这个后面开始插入剩余的friend。
                 for (; j >= 0; --j)
                 {
-                    ItemsSource.Insert(i, FriendToView(nodeId, node.Friends[j]));
+                    ItemsSource.Insert(i, FriendToItem(nodeId, node.Friends[j]));
                 }
             }
         }
     }
 
-    public class Friend
+    public class FriendItem
     {
         // Basic
         public long NodeId { get; set; }
