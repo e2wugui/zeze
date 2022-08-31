@@ -1,8 +1,5 @@
 
-using Java.Security;
 using System.Collections.ObjectModel;
-using Zeze.Net;
-using static Android.App.LauncherActivity;
 
 namespace Zege.Friend
 {
