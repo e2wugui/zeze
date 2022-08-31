@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NLog.Fluent;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -41,6 +42,10 @@ namespace Zeze.Util
         public ConfBean(int varid)
         {
             VariableId = varid;
+        }
+
+        public virtual void FollowerApply(Zeze.Transaction.Log log)
+        { 
         }
     }
 

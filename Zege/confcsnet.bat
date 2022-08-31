@@ -23,6 +23,7 @@ xcopy /Y %zeze_src_dir%\Zeze\Util\AtomicLong.cs %project_dir%\Zeze\Util\
 xcopy /Y %zeze_src_dir%\Zeze\Util\FixedHash.cs %project_dir%\Zeze\Util\
 xcopy /Y %zeze_src_dir%\Zeze\Util\Reflect.cs %project_dir%\Zeze\Util\
 xcopy /Y %zeze_src_dir%\Zeze\Util\Time.cs %project_dir%\Zeze\Util\
+xcopy /Y %zeze_src_dir%\Zeze\Util\Comparer.cs %project_dir%\Zeze\Util\
 
 md %project_dir%\Zeze\Services
 xcopy /Y %zeze_src_dir%\Zeze\Services\Handshake.cs %project_dir%\Zeze\Services\
@@ -30,3 +31,16 @@ xcopy /Y %zeze_src_dir%\Zeze\Services\ToLuaService.cs %project_dir%\Zeze\Service
 
 md %project_dir%\Zeze\Transaction
 xcopy /Y %zeze_src_dir%\Zeze\Transaction\TransactionLevel.cs %project_dir%\Zeze\Transaction\
+xcopy /Y %zeze_src_dir%\Zeze\Transaction\Log.cs %project_dir%\Zeze\Transaction\
+
+md %project_dir%\Zeze\Transaction\Collections
+xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\LogBean.cs %project_dir%\Zeze\Transaction\Collections\
+xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\LogList.cs %project_dir%\Zeze\Transaction\Collections\
+xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\LogList1.cs %project_dir%\Zeze\Transaction\Collections\
+xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\LogList2.cs %project_dir%\Zeze\Transaction\Collections\
+xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\LogMap.cs %project_dir%\Zeze\Transaction\Collections\
+xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\LogMap1.cs %project_dir%\Zeze\Transaction\Collections\
+xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\LogMap2.cs %project_dir%\Zeze\Transaction\Collections\
+xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\LogSet.cs %project_dir%\Zeze\Transaction\Collections\
+xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\LogSet1.cs %project_dir%\Zeze\Transaction\Collections\
+xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\CollApply.cs %project_dir%\Zeze\Transaction\Collections\

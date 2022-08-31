@@ -55,9 +55,12 @@ namespace Zeze.Util
 		}
 
 #if USE_CONFCS
-	// TODO 当需要日志系列化支持到客户端时，需要实现一个新的GetStableName。
-#else
 		public static string GetStableName(Type type)
+		{
+			return "";
+		}
+#else
+        public static string GetStableName(Type type)
 		{
 			if (type.IsGenericType)
 			{
