@@ -56,12 +56,12 @@ namespace Zege.Friend
 
         }
 
-        private void TryGetFriendNode(bool next)
+        private void TryGetFriendNode(bool forward)
         {
             if (GetFriendNodePending != null)
                 return; // done
 
-            GetFriendNodePending = TryNewGetFriendNode(next);            
+            GetFriendNodePending = TryNewGetFriendNode(forward);            
             GetFriendNodePending?.Send(App.ClientService.GetSocket(), (p) =>
             {
                 GetFriendNodePending = null;
