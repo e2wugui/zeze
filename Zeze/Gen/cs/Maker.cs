@@ -83,7 +83,7 @@ namespace Zeze.Gen.cs
                 new ModuleFormatter(Project, mod, genDir, srcDir).Make();
             foreach (Service ma in Project.Services.Values)
                 new ServiceFormatter(ma, genDir, srcDir).Make();
-            new App(Project, genDir, srcDir).Make(true);
+            new App(Project, genDir, srcDir, true).Make(true);
 
             Project.GenTables = savedGenTables;
         }

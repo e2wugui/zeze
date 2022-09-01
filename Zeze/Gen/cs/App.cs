@@ -7,12 +7,14 @@ namespace Zeze.Gen.cs
         readonly Project project;
         readonly string genDir;
         readonly string srcDir;
+        readonly bool noInstance;
 
-        public App(Project project, string genDir, string srcDir)
+        public App(Project project, string genDir, string srcDir, bool noInstance = false)
         {
             this.project = project;
             this.genDir = genDir;
             this.srcDir = srcDir;
+            this.noInstance = noInstance;
         }
 
         public void Make(bool isconfcs = false)
@@ -33,7 +35,8 @@ namespace Zeze.Gen.cs
             sw.WriteLine("{");
             sw.WriteLine("    public sealed partial class App : Zeze.AppBase");
             sw.WriteLine("    {");
-            sw.WriteLine("        public static App Instance { get; } = new App();");
+            if (!noInstance)
+                sw.WriteLine("        public static App Instance { get; } = new App();");
             sw.WriteLine();
             sw.WriteLine("        public override Zeze.Application Zeze { get; set; }");
             sw.WriteLine();
