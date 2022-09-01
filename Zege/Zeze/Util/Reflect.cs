@@ -54,10 +54,66 @@ namespace Zeze.Util
 #endif
 		}
 
+        // 不想提取公共函数了。下面两个版本实现拷贝出来修改。
 #if USE_CONFCS
 		public static string GetStableName(Type type)
 		{
-			return "";
+			if (type.IsGenericType)
+			{
+				var def = type.GetGenericTypeDefinition();
+
+				// Zeze.Transaction.Logs
+				if (def == typeof(Zeze.Transaction.Log<>))
+					return $"Zeze.Transaction.Log<{GetStableName(type.GenericTypeArguments[0])}>";
+				if (def == typeof(Zeze.Transaction.Collections.LogMap1<,>))
+					return $"Zeze.Transaction.Collections.LogMap1<{GetStableName(type.GenericTypeArguments[0])}, {GetStableName(type.GenericTypeArguments[1])}>";
+				if (def == typeof(Zeze.Transaction.Collections.LogMap2<,>))
+					return $"Zeze.Transaction.Collections.LogMap2<{GetStableName(type.GenericTypeArguments[0])}, {GetStableName(type.GenericTypeArguments[1])}>";
+				if (def == typeof(Zeze.Transaction.Collections.LogSet1<>))
+					return $"Zeze.Transaction.Collections.LogSet1<{GetStableName(type.GenericTypeArguments[0])}>";
+				if (def == typeof(Zeze.Transaction.Collections.LogList1<>))
+					return $"Zeze.Transaction.Collections.LogList1<{GetStableName(type.GenericTypeArguments[0])}>";
+				if (def == typeof(Zeze.Transaction.Collections.LogList2<>))
+					return $"Zeze.Transaction.Collections.LogList2<{GetStableName(type.GenericTypeArguments[0])}>";
+
+				throw new Exception($"Unsupported Generic Type {type.FullName}");
+			}
+
+			// 支持的 Zeze/Gen/Types/ 类型。
+			// 必须是xml中定义Bean.Varialble.Type的名字。
+			if (type == typeof(bool))
+				return "bool";
+			if (type == typeof(byte))
+				return "byte";
+			if (type == typeof(short))
+				return "short";
+			if (type == typeof(int))
+				return "int";
+			if (type == typeof(long))
+				return "long";
+
+			if (type == typeof(float))
+				return "float";
+			if (type == typeof(double))
+				return "double";
+
+			if (type == typeof(Zeze.Net.Binary))
+				return "binary";
+			if (type == typeof(string))
+				return "string";
+
+			if (type.IsAssignableTo(typeof(Zeze.Serialize.Serializable)))
+				return type.FullName;
+
+			// Serializable已经处理了下面这两种情况，不会执行到这里，写在这里，明确一下类型。
+			/*
+			if (type.IsAssignableTo(typeof(Zeze.Transaction.Bean)))
+				return type.FullName;
+			if (type.IsAssignableTo(typeof(Zeze.Raft.RocksRaft.Bean)))
+				return type.FullName;
+			*/
+
+			throw new Exception($"Unsupported type {type.FullName}");
 		}
 #else
         public static string GetStableName(Type type)
@@ -146,11 +202,12 @@ namespace Zeze.Util
 				return type.FullName;
 
 			// Serializable已经处理了下面这两种情况，不会执行到这里，写在这里，明确一下类型。
+			/*
 			if (type.IsAssignableTo(typeof(Zeze.Transaction.Bean)))
 				return type.FullName;
 			if (type.IsAssignableTo(typeof(Zeze.Raft.RocksRaft.Bean)))
 				return type.FullName;
-
+			*/
 			throw new Exception($"Unsupported type {type.FullName}");
 		}
 #endif
