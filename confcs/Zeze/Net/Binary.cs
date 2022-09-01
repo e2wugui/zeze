@@ -16,7 +16,7 @@ namespace Zeze.Net
         public int Offset { get; }
         public int Count { get; }
 
-        public static readonly Binary Empty = new Binary(Array.Empty<byte>());
+        public static readonly Binary Empty = new(Array.Empty<byte>());
 
         /// <summary>
         /// 这里实际上直接wrap传入的bytes，所以必须保证之后不能再修改bytes的值了。
@@ -65,7 +65,14 @@ namespace Zeze.Net
             _s_.Decode(_bb_);
         }
 
-        public byte[] ToBytes()
+        // 直接访问原始的buffer是不安全的，因为这个类本意是不可变的，直接保护原始byte[]会导致修改。
+        // 为了效率，暴露一下吧。这个方法的安全版本是GetBytes();
+        public byte[] GetBytesUnsafe()
+        {
+            return _Bytes;
+        }
+
+        public byte[] GetBytes()
         {
             var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_Bytes, Offset, Count);
             return _bb_.Copy();

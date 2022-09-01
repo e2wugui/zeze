@@ -249,7 +249,7 @@ namespace Zeze.Gen.cs
             if (type is TypeDynamic)
                 return true;
 
-            if (!Project.MakingInstance.Platform.Equals("conf+cs"))
+            if (!Project.MakingInstance.Platform.StartsWith("conf+cs"))
                 return false;
 
             switch (type)
@@ -394,7 +394,7 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeDynamic type)
         {
-            if (Project.MakingInstance.Platform.Equals("conf+cs"))
+            if (Project.MakingInstance.Platform.StartsWith("conf+cs"))
             {
                 var tmpName = id > 0 ? "_x_" : "_y_";
                 sw.WriteLine($"{prefix}if (({typeVarName} & ByteBuffer.TAG_MASK) == ByteBuffer.DYNAMIC)");

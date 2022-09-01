@@ -18,7 +18,7 @@ namespace Zeze.Gen.cs
 
         void DefineNew(Type type)
         {
-            string tName = Project.MakingInstance.Platform.Equals("conf+cs") ? confcs.TypeName.GetName(type) : TypeName.GetName(type);
+            string tName = Project.MakingInstance.Platform.StartsWith("conf+cs") ? confcs.TypeName.GetName(type) : TypeName.GetName(type);
             sw.WriteLine(prefix + "var " + varname + " = new " + tName + "();");
         }
 
@@ -100,7 +100,7 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeDynamic type)
         {
-            if (Project.MakingInstance.Platform.Equals("conf+cs"))
+            if (Project.MakingInstance.Platform.StartsWith("conf+cs"))
             {
                 sw.WriteLine($"{prefix}{confcs.TypeName.GetName(type)} {varname} = null;");
             }

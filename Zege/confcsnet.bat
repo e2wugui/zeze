@@ -1,3 +1,6 @@
+@echo off
+setlocal
+pushd %~dp0
 
 set zeze_src_dir=..
 set project_dir=.
@@ -5,9 +8,9 @@ set gen=..\Gen\bin\Debug\net6.0\Gen.exe
 
 %gen% -c ExportConf -ZezeSrcDir %zeze_src_dir%
 
-md %project_dir%\Zeze
+md %project_dir%\Zeze 2> nul
 
-md %project_dir%\Zeze\Net
+md %project_dir%\Zeze\Net 2> nul
 xcopy /Y %zeze_src_dir%\Zeze\Net %project_dir%\Zeze\Net
 
 xcopy /Y %zeze_src_dir%\Zeze\IModule.cs %project_dir%\Zeze\
@@ -44,3 +47,5 @@ xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\LogMap2.cs %project_dir%\Ze
 xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\LogSet.cs %project_dir%\Zeze\Transaction\Collections\
 xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\LogSet1.cs %project_dir%\Zeze\Transaction\Collections\
 xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\CollApply.cs %project_dir%\Zeze\Transaction\Collections\
+
+pause

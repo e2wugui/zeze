@@ -362,7 +362,7 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeDynamic type)
         {
-            if (Project.MakingInstance.Platform.Equals("conf+cs"))
+            if (Project.MakingInstance.Platform.StartsWith("conf+cs"))
             {
                 if (id > 0)
                 {

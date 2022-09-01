@@ -72,6 +72,7 @@
 				<value bean="Simple"/>
 			</variable>
 			<variable id="28" name="arrayByte" type="array" value="byte"/>
+			<variable id="29" name="dynamic29" type="dynamic"/>
 		</bean>
 		<beankey name="Key">
 			<enum name="Enum1" value="4"/>
