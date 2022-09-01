@@ -17,7 +17,6 @@ Zege
 	GMT 时间。
 	好友列表也保存关注对象，可以接收通知。
 	置顶。
-	消息加密。
 
 【2022/9/15】
 
@@ -31,6 +30,14 @@ Zege c# ModuleFriend 还需要的能力 @项洋呈
 	4. 快速回到列表头可以实现成两种，到置顶，到FirstNode（这个功能可选，考虑一下）。
 	5. 更多的动态更新（需要server实现Listener来通知）。
 
+Zege c#
+	c# create account;auth;login;friends;
+	c# friend encrypt message;
+	c# group department;
+	c# group message (no encrypt);
+	c# group cert-key transfer(p2p);
+	c# group encrypt message;
+
 Zege
 	创建账号和登录。
 	Friend 完善：参数检查，权限相关。
@@ -42,7 +49,7 @@ Zege
 	BFriend.Memo。
 	群成员增加所属的部门。
 
-conf+cs +Net +(Ts Or Lua)?
+conf+cs+net (+ts? +lua?)
 	精简客户端，拷贝部分源码到自己的目录。
 	1. conf+cs 系列化；使用gen命令输出系列化需要的源文件：gen -c ExportConf -ZezeSrcDir ../zeze 
 	2. 拷贝Net目录；在项目中定义宏 USE_CONFCS，这样Net模块就不再依赖事务Bean和存储过程。

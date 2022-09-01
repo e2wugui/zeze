@@ -87,7 +87,10 @@ namespace Zege.Friend
             ListView = view;
             view.ItemsSource = ItemsSource;
             view.Scrolled += OnScrolled;
+        }
 
+        public void StartSyncData()
+        {
             if (Nodes.Count == 0)
                 TryGetFriendNode(true);
         }

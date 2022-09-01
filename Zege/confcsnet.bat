@@ -6,7 +6,15 @@ set zeze_src_dir=..
 set project_dir=.
 set gen=..\Gen\bin\Debug\net6.0\Gen.exe
 
+REM --------------------------------------------------------------
+REM conf+cs 系列化支持代码输出
+REM --------------------------------------------------------------
+
 %gen% -c ExportConf -ZezeSrcDir %zeze_src_dir%
+
+REM ---------------------------------------------------------------
+REM conf+cs+net 网络，模块，App等客户端框架需要的代码输出
+REM --------------------------------------------------------------
 
 md %project_dir%\Zeze 2> nul
 
@@ -47,5 +55,11 @@ xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\LogMap2.cs %project_dir%\Ze
 xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\LogSet.cs %project_dir%\Zeze\Transaction\Collections\
 xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\LogSet1.cs %project_dir%\Zeze\Transaction\Collections\
 xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\CollApply.cs %project_dir%\Zeze\Transaction\Collections\
+
+REM ---------------------------------------------------------------
+REM Zege 需要的代码输出
+REM --------------------------------------------------------------
+
+xcopy /Y %zeze_src_dir%\Zeze\Util\Cert.cs %project_dir%\Zeze\Util\
 
 pause

@@ -19,5 +19,13 @@ namespace Zeze.Builtin.Online
             return ResultCode.NotImplement;
         }
 
+        public async Task LoginAsync(string clientId)
+        {
+            var p = new Login();
+            p.Argument.ClientId = clientId;
+            await p.SendAsync(App.Connector.TryGetReadySocket());
+            if (p.ResultCode != 0)
+                throw new Exception($"Login Error! Module={GetModuleId(p.ResultCode)} Code={GetErrorCode(p.ResultCode)}");
+        }
     }
 }

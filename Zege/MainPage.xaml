@@ -54,39 +54,7 @@
                 FontSize="18"
                 HorizontalOptions="Center" />
 
-            <Button
-                x:Name="CounterBtn"
-                Text="Click me"
-                SemanticProperties.Hint="Counts the number of times you click"
-                Clicked="OnCounterClicked"
-                HorizontalOptions="Center" />
-            <Button
-                x:Name="AddHead"
-                Text="AddHead"
-                SemanticProperties.Hint="Counts the number of times you click"
-                Clicked="OnAddHeadClicked"
-                HorizontalOptions="Center" />
-
-            <Button
-                x:Name="AddTail"
-                Text="AddTail"
-                SemanticProperties.Hint="Counts the number of times you click"
-                Clicked="OnAddTailClicked"
-                HorizontalOptions="Center" />
-
-            <Button
-                x:Name="RemoveHead"
-                Text="RemoveHead"
-                SemanticProperties.Hint="Counts the number of times you click"
-                Clicked="OnRemoveHeadClicked"
-                HorizontalOptions="Center" />
-
-            <Button
-                x:Name="RemoveTail"
-                Text="RemoveTail"
-                SemanticProperties.Hint="Counts the number of times you click"
-                Clicked="OnRemoveTailClicked"
-                HorizontalOptions="Center" />
+            <Button Text="Login" Clicked="OnLoginClicked" HorizontalOptions="Center" />
 
         </VerticalStackLayout>
     </ScrollView>

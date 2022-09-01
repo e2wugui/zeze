@@ -144,7 +144,7 @@ public final class ModuleEquip extends AbstractModule {
 	public Game.Item.Item GetEquipItem(BEquips equips, int position) {
 		var equip = equips.getItems().get(position);
 		if (null != equip) {
-			var extraTypeId = equip.getExtra().getTypeId();
+			var extraTypeId = equip.getExtra().getBean().typeId();
 			if (extraTypeId == BEquipExtra.TYPEID)
 				return new Equip(equip, (BEquipExtra)equip.getExtra().getBean());
 			throw new RuntimeException("unknown extra");
