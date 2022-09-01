@@ -10,6 +10,7 @@ public class HttpHandler {
 	public final HttpBeginStreamHandle BeginStreamHandle; // 上行流处理函数。
 	public final HttpStreamContentHandle StreamContentHandle;
 	public final HttpEndStreamHandle EndStreamHandle; // 也用于普通请求处理函数，不是流处理方式时，如果需要内部会自动把流合并到一个请求里面。
+	public final HttpWebSocketHandle WebSocketHandle;
 
 	public HttpHandler(int maxContentLength, TransactionLevel level, DispatchMode mode,
 					   HttpEndStreamHandle fullHandle) {
@@ -21,6 +22,7 @@ public class HttpHandler {
 		BeginStreamHandle = null;
 		StreamContentHandle = null;
 		EndStreamHandle = fullHandle;
+		WebSocketHandle = null;
 	}
 
 	public HttpHandler(TransactionLevel level, DispatchMode mode, HttpBeginStreamHandle beginStream,
@@ -35,9 +37,26 @@ public class HttpHandler {
 		BeginStreamHandle = beginStream;
 		StreamContentHandle = streamContent;
 		EndStreamHandle = endStream;
+		WebSocketHandle = null;
+	}
+
+	public HttpHandler(TransactionLevel level, DispatchMode mode, HttpWebSocketHandle webSocketHandle) {
+		if (webSocketHandle == null)
+			throw new IllegalArgumentException("webSocketHandle is null");
+		MaxContentLength = Integer.MAX_VALUE;
+		Level = level != null ? level : TransactionLevel.Serializable;
+		Mode = mode != null ? mode : DispatchMode.Normal;
+		BeginStreamHandle = null;
+		StreamContentHandle = null;
+		EndStreamHandle = null;
+		WebSocketHandle = webSocketHandle;
 	}
 
 	public final boolean isStreamMode() {
 		return BeginStreamHandle != null;
+	}
+
+	public final boolean isWebSocketMode() {
+		return WebSocketHandle != null;
 	}
 }

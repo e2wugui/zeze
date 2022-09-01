@@ -29,6 +29,14 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
+import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.WebSocketCloseStatus;
+import io.netty.handler.codec.http.websocketx.WebSocketFrame;
+import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.util.AsciiString;
 import io.netty.util.AttributeMap;
 import io.netty.util.ReferenceCountUtil;
@@ -54,11 +62,15 @@ public class HttpExchange {
 	private int outBufHash; // 用于判断输出buffer是否有变化
 	private short idleTime; // 当前统计的idle时间(秒)
 	private boolean willCloseConnection; // true表示close时会关闭连接
-	private boolean inStreamMode; // 是否在流模式过程中
+	private boolean inStreamMode; // 是否在流/WebSocket模式过程中
 
 	public HttpExchange(HttpServer server, ChannelHandlerContext context) {
 		this.server = server;
 		this.context = context;
+	}
+
+	public boolean isActive() {
+		return server.exchanges.contains(this);
 	}
 
 	// 通常不需要获取context,只给特殊需要时使用netty内部的方法
@@ -94,8 +106,7 @@ public class HttpExchange {
 		return i >= 0 ? uri.substring(i + 1) : null;
 	}
 
-	public String filePath() {
-		var path = path();
+	public static String filePath(String path) {
 		var i = path.lastIndexOf(':'); // 过滤掉盘符,避免访问非法路径
 		if (i < 0)
 			i = 0;
@@ -112,9 +123,18 @@ public class HttpExchange {
 
 		if (msg instanceof HttpRequest) {
 			request = ReferenceCountUtil.retain((HttpRequest)msg);
-			handler = server.handlers.get(path());
+			var path = path();
+			handler = server.handlers.get(path);
 			if (handler == null) {
-				sendFile(filePath());
+				sendFile(filePath(path));
+				return;
+			}
+			if (handler.isWebSocketMode() && context.pipeline().get(WebSocketServerProtocolHandler.class) == null) {
+				context.pipeline().addLast(new WebSocketServerProtocolHandler(path));
+				inStreamMode = true;
+				//noinspection ConstantConditions
+				handler.WebSocketHandle.onOpen(this);
+				context.fireChannelRead(msg);
 				return;
 			}
 			if (handler.isStreamMode()) {
@@ -133,6 +153,9 @@ public class HttpExchange {
 				}
 				return;
 			}
+		} else if (msg instanceof WebSocketFrame) {
+			fireWebSocket((WebSocketFrame)msg);
+			return;
 		} else if (!(msg instanceof HttpContent)) {
 			Netty.logger.error("unknown message type = {} from {}",
 					(msg != null ? msg.getClass() : null), context.channel().remoteAddress());
@@ -169,18 +192,16 @@ public class HttpExchange {
 		}
 	}
 
+	@SuppressWarnings("ConstantConditions")
 	private void fireBeginStream() throws Exception {
 		var r = parseRange(HttpHeaderNames.CONTENT_RANGE);
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
 			Task.run(server.zeze.NewProcedure(() -> {
-				//noinspection ConstantConditions
 				handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]);
 				return Procedure.Success;
 			}, "fireBeginStream"), null, null, handler.Mode);
-		} else {
-			//noinspection ConstantConditions
+		} else
 			handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]);
-		}
 	}
 
 	private void fireStreamContentHandle(HttpContent c) throws Exception {
@@ -201,6 +222,7 @@ public class HttpExchange {
 			handle.onStreamContent(this, c);
 	}
 
+	@SuppressWarnings("ConstantConditions")
 	private void fireEndStreamHandle() throws Exception {
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
 			Task.run(server.zeze.NewProcedure(() -> {
@@ -209,6 +231,44 @@ public class HttpExchange {
 			}, "fireEndStreamHandle"), null, null, handler.Mode);
 		} else
 			handler.EndStreamHandle.onEndStream(this);
+	}
+
+	private void fireWebSocket(WebSocketFrame frame) throws Exception {
+		if (server.zeze != null && handler.Level != TransactionLevel.None) {
+			frame.retain();
+			Task.run(server.zeze.NewProcedure(() -> {
+				try {
+					fireWebSocket0(frame);
+				} finally {
+					frame.release();
+				}
+				return Procedure.Success;
+			}, "fireBeginStream"), null, null, handler.Mode);
+		} else
+			fireWebSocket0(frame);
+	}
+
+	@SuppressWarnings("ConstantConditions")
+	private void fireWebSocket0(WebSocketFrame frame) throws Exception {
+		if (frame instanceof BinaryWebSocketFrame)
+			handler.WebSocketHandle.onBinary(this, frame.content());
+		else if (frame instanceof TextWebSocketFrame)
+			handler.WebSocketHandle.onText(this, ((TextWebSocketFrame)frame).text());
+		else if (frame instanceof CloseWebSocketFrame) {
+			inStreamMode = false;
+			//noinspection PatternVariableCanBeUsed
+			var closeFrame = (CloseWebSocketFrame)frame;
+			handler.WebSocketHandle.onClose(this, closeFrame.statusCode(), closeFrame.reasonText());
+			closeConnectionOnFlush(null);
+		} else if (frame instanceof PingWebSocketFrame)
+			handler.WebSocketHandle.onPing(this, frame.content());
+		else if (frame instanceof PongWebSocketFrame)
+			handler.WebSocketHandle.onPong(this, frame.content());
+		else {
+			Netty.logger.error("unknown websocket message type = {} from {}",
+					frame.getClass(), context.channel().remoteAddress());
+			closeConnectionNow();
+		}
 	}
 
 	// 下载请求/上传回复: range: bytes=[from]-[to] 范围是[from,to)
@@ -282,7 +342,11 @@ public class HttpExchange {
 		if (inStreamMode) {
 			inStreamMode = false;
 			try {
-				fireEndStreamHandle();
+				if (handler.isWebSocketMode()) {
+					//noinspection ConstantConditions
+					handler.WebSocketHandle.onClose(this, WebSocketCloseStatus.ABNORMAL_CLOSURE.code(), "");
+				} else
+					fireEndStreamHandle();
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
@@ -339,7 +403,7 @@ public class HttpExchange {
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// send response
-	public ChannelFuture send(HttpResponseStatus status, String contentType, ByteBuf content) {
+	public ChannelFuture send(HttpResponseStatus status, String contentType, ByteBuf content) { // content所有权会被转移
 		var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, content, false);
 		var headers = Netty.setDate(res.headers())
 				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
@@ -425,6 +489,22 @@ public class HttpExchange {
 		return sendPlainText(HttpResponseStatus.INTERNAL_SERVER_ERROR, text);
 	}
 
+	public ChannelFuture sendWebSocket(WebSocketFrame frame) { // frame所有权会被转移
+		return context.writeAndFlush(frame);
+	}
+
+	public ChannelFuture sendWebSocket(String text) {
+		return context.writeAndFlush(new TextWebSocketFrame(text));
+	}
+
+	public ChannelFuture sendWebSocket(byte[] data) {
+		return context.writeAndFlush(new BinaryWebSocketFrame(Unpooled.wrappedBuffer(data, 0, data.length)));
+	}
+
+	public ChannelFuture sendWebSocket(byte[] data, int offset, int count) {
+		return context.writeAndFlush(new BinaryWebSocketFrame(Unpooled.wrappedBuffer(data, offset, count)));
+	}
+
 	/////////////////////////////////////////////////////////////////////////////////////////////////
 	// 流接口功能最大化，不做任何校验：状态校验，不正确的流起始Response（headers）等。
 	public ChannelFuture beginStream(HttpResponseStatus status, HttpHeaders headers) {
@@ -435,7 +515,7 @@ public class HttpExchange {
 
 	// 发送后data内容在回调前不能修改
 	public ChannelFuture sendStream(byte[] data) {
-		return sendStream(data, 0, data.length);
+		return context.writeAndFlush(new DefaultHttpContent(Unpooled.wrappedBuffer(data, 0, data.length)));
 	}
 
 	// 发送后data内容在回调前不能修改

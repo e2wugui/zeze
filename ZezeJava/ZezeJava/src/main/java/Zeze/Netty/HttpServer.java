@@ -30,6 +30,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	final FewModifyMap<String, HttpHandler> handlers = new FewModifyMap<>();
 	final ConcurrentHashMap<ChannelHandlerContext, HttpExchange> exchanges = new ConcurrentHashMap<>();
 	private Future<?> scheduler;
+	private ChannelFuture channelFuture;
 
 	public HttpServer() {
 		this(null, null, 10 * 60);
@@ -47,7 +48,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		scheduler = netty.getEventLoopGroup().scheduleWithFixedDelay(
 				() -> exchanges.values().forEach(HttpExchange::checkTimeout),
 				HttpExchange.CHECK_IDLE_INTERVAL, HttpExchange.CHECK_IDLE_INTERVAL, TimeUnit.SECONDS);
-		return netty.startServer(this, port);
+		return channelFuture = netty.startServer(this, port);
 	}
 
 	@Override
@@ -59,6 +60,12 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		scheduler = null;
 		exchanges.values().forEach(HttpExchange::closeConnectionNow);
 		exchanges.clear();
+		if (channelFuture != null) {
+			var channel = channelFuture.channel();
+			channelFuture = null;
+			if (channel != null)
+				channel.close();
+		}
 	}
 
 	public void addHandler(String path, int maxContentLength, TransactionLevel level, DispatchMode mode,
@@ -71,6 +78,10 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		addHandler(path, new HttpHandler(level, mode, beginStream, streamContent, endStream));
 	}
 
+	public void addHandler(String path, TransactionLevel level, DispatchMode mode, HttpWebSocketHandle webSocketHandle) {
+		addHandler(path, new HttpHandler(level, mode, webSocketHandle));
+	}
+
 	public void addHandler(String path, HttpHandler handler) {
 		if (handlers.putIfAbsent(path, handler) != null)
 			throw new RuntimeException("add handler: duplicate path=" + path);
@@ -78,13 +89,13 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 
 	@Override
 	protected void initChannel(SocketChannel ch) {
-		if (ch.pipeline().get("encoder") != null)
+		if (ch.pipeline().get(HttpResponseEncoder.class) != null)
 			return;
 		Netty.logger.info("accept {}", ch.remoteAddress());
 		ch.pipeline()
-				.addLast("encoder", new HttpResponseEncoder())
-				.addLast("decoder", new HttpRequestDecoder(4096, 8192, 8192, false))
-				.addLast("handler", this);
+				.addLast(new HttpResponseEncoder())
+				.addLast(new HttpRequestDecoder(4096, 8192, 8192, false))
+				.addLast(this);
 		ch.config().setWriteBufferHighWaterMark(WRITE_PENDING_LIMIT);
 	}
 

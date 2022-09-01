@@ -29,6 +29,7 @@ import org.apache.logging.log4j.Logger;
  * 增加排行被类型。在 solution.xml::beankey::BConcurrentKey中增加类型定义。
  * 然后在数据变化时调用 RunUpdateRank 方法更行排行榜。
  */
+@SuppressWarnings({"MethodMayBeStatic", "RedundantSuppression"})
 public class ModuleRank extends AbstractModule {
 	private static final Logger logger = LogManager.getLogger(ModuleRank.class);
 	public static final long RebuildTime = 5 * 60 * 1000; // 5 min
