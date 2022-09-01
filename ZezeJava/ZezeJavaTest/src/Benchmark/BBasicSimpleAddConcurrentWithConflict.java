@@ -7,6 +7,7 @@ import demo.App;
 import junit.framework.TestCase;
 import org.junit.Assert;
 
+@SuppressWarnings("NewClassNamingConvention")
 public class BBasicSimpleAddConcurrentWithConflict extends TestCase {
 	public static final int AddCount = 1_000_000;
 

@@ -19,7 +19,7 @@ public class TestFewModifySortedMap extends TestCase {
 		print(sortedMap, "/e");
 	}
 
-	private void print(FewModifySortedMap<String, String> sortedMap, String key) {
+	private static void print(FewModifySortedMap<String, String> sortedMap, String key) {
 		System.out.println("key=" + key);
 		var head = sortedMap.headMap(key);
 		System.out.println("head:");

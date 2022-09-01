@@ -48,7 +48,7 @@ public class TestBegin extends TestCase {
 		}
 	}
 
-	private void processNestRollback(MyBean bean) {
+	private static void processNestRollback(MyBean bean) {
 		Assert.assertEquals(bean.getI(), 1);
 		Transaction.getCurrent().Begin();
 		Assert.assertEquals(bean.getI(), 1);
@@ -79,7 +79,7 @@ public class TestBegin extends TestCase {
 		}
 	}
 
-	private void ProcessNestCommit(MyBean bean) {
+	private static void ProcessNestCommit(MyBean bean) {
 		Assert.assertEquals(bean.getI(), 1);
 		Transaction.getCurrent().Begin();
 		Assert.assertEquals(bean.getI(), 1);

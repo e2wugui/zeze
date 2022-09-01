@@ -41,7 +41,7 @@ public class TestDatabaseSqlServer extends TestCase {
 				trans.Commit();
 			}
 		}
-		Assert.assertEquals(0, table.Walk(this::PrintRecord));
+		Assert.assertEquals(0, table.Walk(TestDatabaseSqlServer::PrintRecord));
 		{
 			try (var trans = sqlserver.BeginTransaction()) {
 				{
@@ -77,10 +77,10 @@ public class TestDatabaseSqlServer extends TestCase {
 			Assert.assertEquals(2, value.ReadInt());
 			Assert.assertEquals(value.ReadIndex, value.WriteIndex);
 		}
-		Assert.assertEquals(2, table.Walk(this::PrintRecord));
+		Assert.assertEquals(2, table.Walk(TestDatabaseSqlServer::PrintRecord));
 	}
 
-	public final boolean PrintRecord(byte[] key, byte[] value) {
+	public static boolean PrintRecord(byte[] key, byte[] value) {
 		int ikey = ByteBuffer.Wrap(key).ReadInt();
 		int ivalue = ByteBuffer.Wrap(value).ReadInt();
 		System.out.println(Zeze.Util.Str.format("key={} value={}", ikey, ivalue));

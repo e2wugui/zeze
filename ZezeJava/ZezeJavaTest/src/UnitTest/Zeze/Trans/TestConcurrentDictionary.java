@@ -3,7 +3,6 @@ package UnitTest.Zeze.Trans;
 import junit.framework.TestCase;
 
 public class TestConcurrentDictionary extends TestCase {
-
 	public final void testRemoveInForeach() {
 		java.util.concurrent.ConcurrentHashMap<Integer, Integer> cd = new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -16,11 +15,9 @@ public class TestConcurrentDictionary extends TestCase {
 		int i = 6;
 		for (var e : cd.entrySet()) {
 			if (e.getKey() < 3) {
-				Integer v = null;
 				cd.remove(e.getKey());
 				System.out.println("remove key=" + e.getKey());
-			}
-			else {
+			} else {
 				if (i < 10) {
 					cd.putIfAbsent(i, i);
 					++i;

@@ -71,7 +71,7 @@ public class TestCheckpoint{
 
 	@Test
 	public final void testCp() throws Throwable {
-		Assert.assertEquals(demo.App.getInstance().Zeze.NewProcedure(this::ProcClear, "ProcClear").Call(), Procedure.Success);
+		Assert.assertEquals(demo.App.getInstance().Zeze.NewProcedure(TestCheckpoint::ProcClear, "ProcClear").Call(), Procedure.Success);
 		Assert.assertEquals(demo.App.getInstance().Zeze.NewProcedure(this::ProcChange, "ProcChange").Call(), Procedure.Success);
 		demo.App.getInstance().Zeze.CheckpointRun();
 		demo.Module1.Table1 table = demo.App.getInstance().demo_Module1.getTable1();
@@ -80,7 +80,7 @@ public class TestCheckpoint{
 		Assert.assertEquals(value, bytesInTrans);
 	}
 
-	private long ProcClear() {
+	private static long ProcClear() {
 		demo.App.getInstance().demo_Module1.getTable1().remove(56L);
 		return Procedure.Success;
 	}

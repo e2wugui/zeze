@@ -18,7 +18,7 @@ public class TestRpc extends TestCase {
 		FirstRpc first = new FirstRpc();
 		Factory<Protocol<?>> f = FirstRpc::new;
 		System.out.println(first.getTypeId());
-		server.AddFactoryHandle(first.getTypeId(), new Service.ProtocolFactoryHandle<>(f, this::ProcessFirstRpcRequest));
+		server.AddFactoryHandle(first.getTypeId(), new Service.ProtocolFactoryHandle<>(f, TestRpc::ProcessFirstRpcRequest));
 
 		server.NewServerSocket("127.0.0.1", 5000, null);
 		Client client = new Client(this);
@@ -35,7 +35,7 @@ public class TestRpc extends TestCase {
 		Assert.assertEquals(first.Argument.getInt1(), first.Result.getInt1());
 	}
 
-	public final long ProcessFirstRpcRequest(Protocol<?> p) {
+	public static long ProcessFirstRpcRequest(Protocol<?> p) {
 		FirstRpc rpc = (FirstRpc)p;
 		rpc.Result.Assign(rpc.Argument);
 		rpc.SendResult();

@@ -8,7 +8,7 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 
 public class TestUdp {
-	public static void main(String args[]) throws IOException {
+	public static void main(String[] args) throws IOException {
 		var udp = new DatagramSocket(0, InetAddress.getLoopbackAddress());
 		var port = udp.getLocalPort();
 		System.out.println(port);

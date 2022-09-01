@@ -37,7 +37,7 @@ public class TestDatabaseRocksDB extends TestCase {
 					trans.Commit();
 				}
 			}
-			Assert.assertEquals(0, table.Walk(this::PrintRecord));
+			Assert.assertEquals(0, table.Walk(TestDatabaseRocksDB::PrintRecord));
 			{
 				try (var trans = db.BeginTransaction()) {
 					{
@@ -73,7 +73,7 @@ public class TestDatabaseRocksDB extends TestCase {
 				Assert.assertEquals(2, value.ReadInt());
 				Assert.assertEquals(value.ReadIndex, value.WriteIndex);
 			}
-			Assert.assertEquals(2, table.Walk(this::PrintRecord));
+			Assert.assertEquals(2, table.Walk(TestDatabaseRocksDB::PrintRecord));
 		} finally {
 			db.Close();
 		}
@@ -90,13 +90,13 @@ public class TestDatabaseRocksDB extends TestCase {
 		DatabaseRocksDb db = getDatabaseRocksDb();
 		try {
 			Database.Table table = db.OpenTable("test_1");
-			Assert.assertEquals(2, table.Walk(this::PrintRecord));
+			Assert.assertEquals(2, table.Walk(TestDatabaseRocksDB::PrintRecord));
 		} finally {
 			db.Close();
 		}
 	}
 
-	private DatabaseRocksDb getDatabaseRocksDb() {
+	private static DatabaseRocksDb getDatabaseRocksDb() {
 		String dbHome = "dbhome";
 		DatabaseConf databaseConf = new DatabaseConf();
 		databaseConf.setDatabaseType(DbType.MySql);
@@ -107,7 +107,7 @@ public class TestDatabaseRocksDB extends TestCase {
 		return new DatabaseRocksDb(databaseConf);
 	}
 
-	public final boolean PrintRecord(byte[] key, byte[] value) {
+	public static boolean PrintRecord(byte[] key, byte[] value) {
 		int ikey = ByteBuffer.Wrap(key).ReadInt();
 		int ivalue = ByteBuffer.Wrap(value).ReadInt();
 		System.out.println(Zeze.Util.Str.format("key={} value={}", ikey, ivalue));

@@ -76,7 +76,7 @@ public class TestNettyHttp {
 		}
 	}
 
-	public static void main(String[] args) throws InterruptedException {
+	public static void main(String[] args) {
 		EventLoopGroup loopGroup;
 		Class<? extends ServerChannel> serverChannelClass;
 		var b = new ServerBootstrap();

@@ -29,7 +29,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class TestHttp {
+public class TestNettyHttpServer {
 	private static Netty netty;
 	private static HttpServer server;
 	private static int port;

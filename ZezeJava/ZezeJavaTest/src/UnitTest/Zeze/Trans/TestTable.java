@@ -9,7 +9,6 @@ import org.junit.Test;
 import Zeze.Transaction.Procedure;
 
 public class TestTable {
-
 	@Before
 	public final void testInit() throws Throwable {
 		demo.App.getInstance().Start();
@@ -28,12 +27,12 @@ public class TestTable {
 			return Procedure.Success;
 		}, "RemoveDataFirst").Call();
 
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(this::ProcGetOrAdd, "ProcGetOrAdd").Call());
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(this::ProcGetUpdate, "ProcGetUpdate").Call());
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(this::ProcGetUpdateCheckRemove, "ProcGetUpdateCheckRemove").Call());
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(TestTable::ProcGetOrAdd, "ProcGetOrAdd").Call());
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(TestTable::ProcGetUpdate, "ProcGetUpdate").Call());
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(TestTable::ProcGetUpdateCheckRemove, "ProcGetUpdateCheckRemove").Call());
 	}
 
-	private long ProcGetUpdate() {
+	private static long ProcGetUpdate() {
 		demo.Module1.Value v = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 
 		v.setInt1(11);
@@ -51,7 +50,7 @@ public class TestTable {
 		return Procedure.Success;
 	}
 
-	private long ProcGetUpdateCheckRemove() {
+	private static long ProcGetUpdateCheckRemove() {
 		demo.Module1.Value v = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 
 		Assert.assertEquals(v.getInt1(), 11);
@@ -79,11 +78,11 @@ public class TestTable {
 			return Procedure.Success;
 		}, "RemoveDataFirst").Call();
 
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(this::ProcGetOrAdd, "ProcGetOrAdd").Call());
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(this::ProcGetOrAddCheckAndRemove, "ProcGetOrAddCheckAndRemove").Call());
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(TestTable::ProcGetOrAdd, "ProcGetOrAdd").Call());
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(TestTable::ProcGetOrAddCheckAndRemove, "ProcGetOrAddCheckAndRemove").Call());
 	}
 
-	private long ProcGetOrAdd() {
+	private static long ProcGetOrAdd() {
 		demo.Module1.Value v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd((long)1);
 		v.setInt1(1);
 		v.setLong2(2);
@@ -101,7 +100,7 @@ public class TestTable {
 		return Procedure.Success;
 	}
 
-	private long ProcGetOrAddCheckAndRemove() {
+	private static long ProcGetOrAddCheckAndRemove() {
 		var v = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 		Assert.assertNotNull(v);
 
@@ -132,8 +131,8 @@ public class TestTable {
 			return Procedure.Success;
 		}, "RemoveDataFirst").Call();
 
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(this::ProcGet11, "ProcGet11").Call());
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(this::ProcGet12, "ProcGet12").Call());
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(TestTable::ProcGet11, "ProcGet11").Call());
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(TestTable::ProcGet12, "ProcGet12").Call());
 	}
 
 	@Test
@@ -144,11 +143,11 @@ public class TestTable {
 			return Procedure.Success;
 		}, "RemoveDataFirst").Call();
 
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(this::ProcGet21, "ProcGet21").Call());
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(this::ProcGet22, "ProcGet22").Call());
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(TestTable::ProcGet21, "ProcGet21").Call());
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(TestTable::ProcGet22, "ProcGet22").Call());
 	}
 
-	private long ProcGet21() {
+	private static long ProcGet21() {
 		ProcGet11();
 		demo.Module1.Key key = new demo.Module1.Key((short)1);
 		Assert.assertNull(App.getInstance().demo_Module1.getTable2().get(key));
@@ -171,7 +170,7 @@ public class TestTable {
 		return Procedure.Success;
 	}
 
-	private long ProcGet22() {
+	private static long ProcGet22() {
 		ProcGet12();
 		demo.Module1.Key key = new demo.Module1.Key((short)1);
 		var v = demo.App.getInstance().demo_Module1.getTable2().get(key);
@@ -196,7 +195,7 @@ public class TestTable {
 		return Procedure.Success;
 	}
 
-	private long ProcGet11() {
+	private static long ProcGet11() {
 		Assert.assertNull(App.getInstance().demo_Module1.getTable1().get(1L));
 		demo.Module1.Value v = new demo.Module1.Value();
 		v.setInt1(1);
@@ -217,7 +216,7 @@ public class TestTable {
 		return Procedure.Success;
 	}
 
-	private long ProcGet12() {
+	private static long ProcGet12() {
 		var v = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 		Assert.assertNotNull(v);
 

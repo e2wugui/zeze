@@ -3,7 +3,6 @@ package demo;
 import java.util.HashMap;
 import Zeze.AppBase;
 import Zeze.Application;
-import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.LoadConfig;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderDirectService;

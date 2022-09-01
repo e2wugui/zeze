@@ -34,7 +34,7 @@ public class TestChangeListener {
 		demo.App.getInstance().Stop();
 	}
 
-	private void Prepare() throws Throwable {
+	private static void Prepare() throws Throwable {
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
 			return Procedure.Success;

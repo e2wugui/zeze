@@ -24,7 +24,7 @@ public class TestDatabaseMySql extends TestCase {
 		}
 	}
 
-	private String getPersonalUrl() throws UnknownHostException {
+	private static String getPersonalUrl() throws UnknownHostException {
 		var hostName = InetAddress.getLocalHost().getHostName();
 		System.out.println("hostName=" + hostName);
 		switch (hostName) {
@@ -64,7 +64,7 @@ public class TestDatabaseMySql extends TestCase {
 				trans.Commit();
 			}
 		}
-		Assert.assertEquals(0, table.Walk(this::PrintRecord));
+		Assert.assertEquals(0, table.Walk(TestDatabaseMySql::PrintRecord));
 		{
 			try (var trans = sqlserver.BeginTransaction()) {
 				{
@@ -100,10 +100,10 @@ public class TestDatabaseMySql extends TestCase {
 			Assert.assertEquals(2, value.ReadInt());
 			Assert.assertEquals(value.ReadIndex, value.WriteIndex);
 		}
-		Assert.assertEquals(2, table.Walk(this::PrintRecord));
+		Assert.assertEquals(2, table.Walk(TestDatabaseMySql::PrintRecord));
 	}
 
-	public final boolean PrintRecord(byte[] key, byte[] value) {
+	public static boolean PrintRecord(byte[] key, byte[] value) {
 		int ikey = ByteBuffer.Wrap(key).ReadInt();
 		int ivalue = ByteBuffer.Wrap(value).ReadInt();
 		System.out.println(Zeze.Util.Str.format("key={} value={}", ikey, ivalue));

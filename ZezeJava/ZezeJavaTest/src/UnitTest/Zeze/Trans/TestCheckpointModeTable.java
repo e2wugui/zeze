@@ -20,7 +20,7 @@ public class TestCheckpointModeTable{
 		demo.App.getInstance().Stop();
 	}
 
-	private void Check(int expect) throws Throwable {
+	private static void Check(int expect) throws Throwable {
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
 					var value = demo.App.getInstance().demo_Module1.getTableImportant().getOrAdd(1L);
 					return value.getInt1() == expect ? Procedure.Success : Procedure.LogicError;
@@ -39,7 +39,7 @@ public class TestCheckpointModeTable{
 		int sum = 0; {
 			Future<?>[] tasks = new Future[1000];
 			for (int i = 0; i < tasks.length; ++i) {
-				tasks[i] = Zeze.Util.Task.runUnsafe(demo.App.getInstance().Zeze.NewProcedure(this::Add, "TestCheckpointModeTable.Add"), null, null);
+				tasks[i] = Zeze.Util.Task.runUnsafe(demo.App.getInstance().Zeze.NewProcedure(TestCheckpointModeTable::Add, "TestCheckpointModeTable.Add"), null, null);
 			}
 			for (Future<?> task : tasks) {
 				try {
@@ -55,7 +55,7 @@ public class TestCheckpointModeTable{
 		{
 			Future<?>[] tasks = new Future[1000];
 			for (int i = 0; i < tasks.length; ++i) {
-				tasks[i] = Zeze.Util.Task.runUnsafe(demo.App.getInstance().Zeze.NewProcedure(this::Add2, "TestCheckpointModeTable.Add2"), null, null);
+				tasks[i] = Zeze.Util.Task.runUnsafe(demo.App.getInstance().Zeze.NewProcedure(TestCheckpointModeTable::Add2, "TestCheckpointModeTable.Add2"), null, null);
 			}
 			for (Future<?> task : tasks) {
 				try {
@@ -69,13 +69,13 @@ public class TestCheckpointModeTable{
 		}
 	}
 
-	private long Add() {
+	private static long Add() {
 		var value = demo.App.getInstance().demo_Module1.getTableImportant().getOrAdd(1L);
 		value.setInt1 (value.getInt1() + 1);
 		return Procedure.Success;
 	}
 
-	private long Add2() {
+	private static long Add2() {
 		var value = demo.App.getInstance().demo_Module1.getTableImportant().getOrAdd(1L);
 		value.setInt1(value.getInt1() + 1);
 		var value2 = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);

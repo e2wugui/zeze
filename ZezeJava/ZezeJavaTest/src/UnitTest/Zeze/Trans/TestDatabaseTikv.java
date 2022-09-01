@@ -59,7 +59,7 @@ public final class TestDatabaseTikv extends TestCase {
 	}
 
 	// 返回更新的version, 注意要求对es两次遍历的顺序一致
-	private long txnBatchWrite(TiSession session, Iterable<Map.Entry<byte[], byte[]>> es, long version) throws Exception {
+	private static long txnBatchWrite(TiSession session, Iterable<Map.Entry<byte[], byte[]>> es, long version) throws Exception {
 		var it = es.iterator();
 		if (it.hasNext()) {
 			try (var tpc = new TwoPhaseCommitter(session, version)) {
@@ -133,7 +133,7 @@ public final class TestDatabaseTikv extends TestCase {
 		}
 	}
 
-	public void runTxnPerf(int base) throws Exception {
+	public static void runTxnPerf(int base) throws Exception {
 		try (TiSession session = TiSession.create(TiConfiguration.createDefault(serverAddr));
 			 KVClient kvClient = session.createKVClient()) {
 			var kvs = new HashMap<byte[], byte[]>();
@@ -183,7 +183,7 @@ public final class TestDatabaseTikv extends TestCase {
 		System.out.println(t2 + " end " + (t2 - t) + " ms");
 	}
 
-	public void runRawPerf(int base) throws Exception {
+	public static void runRawPerf(int base) throws Exception {
 		try (TiSession session = TiSession.create(TiConfiguration.createRawDefault(serverAddr));
 			 RawKVClient client = session.createRawClient()) {
 			var kvs = new HashMap<ByteString, ByteString>();

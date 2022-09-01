@@ -115,12 +115,10 @@ public final class Tasks {
 	}
 
 	static final class TaskFactory {
-		final Class<?> Class;
 		final Supplier<Task> Factory;
 		final int Weight;
 
-		TaskFactory(Class<?> cls, Supplier<Task> factory, int weight) {
-			Class = cls;
+		TaskFactory(Supplier<Task> factory, int weight) {
 			Factory = factory;
 			Weight = weight;
 		}
@@ -131,10 +129,10 @@ public final class Tasks {
 
 	static {
 		// 新的操作数据的测试任务在这里注册。weight是权重，see randCreateTask();
-		taskFactorys.add(new TaskFactory(Table1Long2Add1.class, Table1Long2Add1::new, 100));
-		taskFactorys.add(new TaskFactory(Table1List9AddOrRemove.class, Table1List9AddOrRemove::new, 100));
-		taskFactorys.add(new TaskFactory(tflushInt1Trade.class, tflushInt1Trade::new, 100));
-		taskFactorys.add(new TaskFactory(tflushInt1TradeConcurrentVerify.class, tflushInt1TradeConcurrentVerify::new, 100));
+		taskFactorys.add(new TaskFactory(Table1Long2Add1::new, 100));
+		taskFactorys.add(new TaskFactory(Table1List9AddOrRemove::new, 100));
+		taskFactorys.add(new TaskFactory(tflushInt1Trade::new, 100));
+		taskFactorys.add(new TaskFactory(tflushInt1TradeConcurrentVerify::new, 100));
 
 		taskFactorys.sort(Comparator.comparingInt(a -> a.Weight));
 		for (var task : taskFactorys)
@@ -178,7 +176,7 @@ public final class Tasks {
 			}, Table1Long2Add1.class.getName() + ".prepare").Call();
 		}
 
-		static LongAdder commitCount = new LongAdder();
+		static final LongAdder commitCount = new LongAdder();
 
 		@Override
 		long process() {

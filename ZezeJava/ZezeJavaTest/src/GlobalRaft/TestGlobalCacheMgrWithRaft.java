@@ -309,7 +309,7 @@ public class TestGlobalCacheMgrWithRaft {
 		return finalCount1.get() + finalCount2.get();
 	}
 
-	private int TestConcurrency(App app, int count, int appId) {
+	private static int TestConcurrency(App app, int count, int appId) {
 		Future<?>[] tasks = new Future[count];
 		for (int i = 0; i < tasks.length; i++) {
 			tasks[i] = Zeze.Util.Task.runUnsafe(app.Zeze.NewProcedure(() -> {

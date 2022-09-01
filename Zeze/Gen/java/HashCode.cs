@@ -10,16 +10,21 @@ namespace Zeze.Gen.java
 		{
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public int hashCode() {");
-            sw.WriteLine(prefix + "    final int _prime_ = 31;");
-            sw.WriteLine(prefix + "    int _h_ = 0;");
-            foreach (Variable var in bean.Variables)
-			{
-				HashCode e = new HashCode(var.NamePrivate);
-				var.VariableType.Accept(e);
-				sw.WriteLine(prefix + "    _h_ = _h_ * _prime_ + " + e.text + ";");
-			}
-			sw.WriteLine(prefix + "    return _h_;");
-			sw.WriteLine(prefix + "}");
+            if (bean.Variables.Count > 0)
+            {
+                sw.WriteLine(prefix + "    final int _prime_ = 31;");
+                sw.WriteLine(prefix + "    int _h_ = 0;");
+                foreach (Variable var in bean.Variables)
+                {
+                    HashCode e = new HashCode(var.NamePrivate);
+                    var.VariableType.Accept(e);
+                    sw.WriteLine(prefix + "    _h_ = _h_ * _prime_ + " + e.text + ";");
+                }
+                sw.WriteLine(prefix + "    return _h_;");
+            }
+            else
+                sw.WriteLine(prefix + "    return 0;");
+            sw.WriteLine(prefix + "}");
 			sw.WriteLine();
 		}
 

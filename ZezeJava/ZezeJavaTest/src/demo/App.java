@@ -41,7 +41,7 @@ public class App extends Zeze.AppBase {
 		Start(Config.Load("./zeze.xml"));
 	}
 
-	private void adjustTableConf(Config.TableConf conf) {
+	private static void adjustTableConf(Config.TableConf conf) {
 		if (null != conf) {
 			if (conf.getRealCacheCapacity() < ABasicSimpleAddOneThread.AddCount) {
 				conf.setCacheCapacity(ABasicSimpleAddOneThread.AddCount);
