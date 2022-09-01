@@ -10,7 +10,7 @@ namespace Zeze.Transaction.Collections
     // for conf+cs+net
     public class CollApply
     {
-        public static void ApplyList1<E>(ref List<E> _list, Log _log)
+        public static void ApplyList1<E>(List<E> _list, Log _log)
         {
             var log = (LogList1<E>)_log;
             foreach (var opLog in log.OpLogs)
@@ -33,7 +33,7 @@ namespace Zeze.Transaction.Collections
             }
         }
 
-        public static void ApplyList2<E>(ref List<E> _list, Log _log)
+        public static void ApplyList2<E>(List<E> _list, Log _log)
 #if USE_CONFCS
 			where E : Util.ConfBean, new()
 #else
@@ -72,7 +72,7 @@ namespace Zeze.Transaction.Collections
             }
         }
 
-        public static void ApplyMap1<K, V>(ref Dictionary<K, V> _map, Log _log)
+        public static void ApplyMap1<K, V>(Dictionary<K, V> _map, Log _log)
         {
             var log = (LogMap1<K, V>)_log;
             foreach (var pair in log.Replaced)
@@ -81,7 +81,7 @@ namespace Zeze.Transaction.Collections
                 _map.Remove(key);
         }
 
-        public static void ApplyMap2<K, V>(ref Dictionary<K, V> _map, Log _log)
+        public static void ApplyMap2<K, V>(Dictionary<K, V> _map, Log _log)
 #if USE_CONFCS
 			where V : Util.ConfBean, new()
 #else
@@ -105,7 +105,7 @@ namespace Zeze.Transaction.Collections
             }
         }
 
-        public static void ApplySet1<E>(ref HashSet<E> _set, Log _log)
+        public static void ApplySet1<E>(HashSet<E> _set, Log _log)
         {
             var log = (LogSet1<E>)_log;
             _set.Union(log.Added);
