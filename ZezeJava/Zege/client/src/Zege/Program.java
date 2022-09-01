@@ -297,7 +297,7 @@ public class Program {
 		public final String Group;
 		public BGroup Root;
 		public long MemberNodeId;
-		public BGetMemberNode MemberNode;
+		public BGetGroupMemberNode MemberNode;
 
 		public GroupWindow(String group) {
 			this.Group = group;

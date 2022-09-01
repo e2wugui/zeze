@@ -24,12 +24,12 @@ public class ModuleFriend extends AbstractModule {
         return req.getResultCode() == 0 ? req.Result : new BGetFriendNode();
     }
 
-    public BGetMemberNode getGroupMemberNode(String group, long nodeId) {
+    public BGetGroupMemberNode getGroupMemberNode(String group, long nodeId) {
         var req = new GetGroupMemberNode();
         req.Argument.setGroup(group);
         req.Argument.setNodeId(nodeId);
         req.SendForWait(App.Connector.TryGetReadySocket()).await();
-        return req.getResultCode() == 0 ? req.Result : new BGetMemberNode();
+        return req.getResultCode() == 0 ? req.Result : new BGetGroupMemberNode();
     }
 
     public BGetDepartmentMemberNode getDepartmentMemberNode(String group, long departmentId, long nodeId) {
