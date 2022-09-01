@@ -7,11 +7,13 @@ namespace Zeze.Gen.confcs
     {
         readonly Bean bean;
         readonly Project project;
+        readonly bool followerApply;
 
-        public BeanFormatter(Project prj, Bean bean)
+        public BeanFormatter(Project prj, Bean bean, bool followerApply = false)
         {
             this.project = prj;
             this.bean = bean;
+            this.followerApply = followerApply;
         }
 
         public void Make(string baseDir)
@@ -87,6 +89,8 @@ namespace Zeze.Gen.confcs
             }
             if (false == string.IsNullOrEmpty(macro))
                 sw.WriteLine($"#endif // {macro}");
+            if (followerApply)
+                FollowerApply.Make(bean, sw, "        ");
         }
     }
 }

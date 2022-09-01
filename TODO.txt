@@ -49,6 +49,7 @@ conf+cs +Net +(Ts Or Lua)?
 	3. 需要建立一个几乎空的 Zeze.Application，用来传递Config和避免修改Gen.exe。
 	4. 拷贝 Zeze.IModule;Zeze.AppBase;Zeze.Config;Zeze.Util.ResultCode;Zeze.Util.Mission;Zeze.Util.Scheduler。
 	   【这几个文件应该没有依赖其他东西，可以直接拷贝，需要确认。】
+	%. FollowerApply: 实现增量日志
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag 1.0.5 Certificate; Netty-Web More; Change Protocol Provider.Send To Rpc And Report Error;

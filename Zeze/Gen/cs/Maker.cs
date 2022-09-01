@@ -68,7 +68,7 @@ namespace Zeze.Gen.cs
             Project.GenTables = new();
 
             foreach (Types.Bean bean in Project.AllBeans.Values)
-                new confcs.BeanFormatter(Project, bean).Make(genCommonDir);
+                new confcs.BeanFormatter(Project, bean, true).Make(genCommonDir);
             foreach (Types.BeanKey beanKey in Project.AllBeanKeys.Values)
                 new BeanKeyFormatter(beanKey).Make(genCommonDir);
 
