@@ -54,6 +54,17 @@ namespace Zeze.Util
 #endif
 		}
 
+        public DispatchMode GetDispatchMode(string methodName, DispatchMode def)
+        {
+            if (Methods.TryGetValue(methodName, out var method))
+			{
+                var annotation = method.GetCustomAttribute<DispatchModeAttribute>();
+                if (annotation != null)
+					return annotation.Mode;
+            }
+            return def;
+        }
+
         // 不想提取公共函数了。下面两个版本实现拷贝出来修改。
 #if USE_CONFCS
 		public static string GetStableName(Type type)

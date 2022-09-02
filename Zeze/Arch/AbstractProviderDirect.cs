@@ -21,36 +21,42 @@ namespace Zeze.Arch
                 Factory = () => new Zeze.Builtin.ProviderDirect.AnnounceProviderInfo(),
                 Handle = ProcessAnnounceProviderInfoRequest,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessAnnounceProviderInfoRequest", Zeze.Transaction.TransactionLevel.Serializable),
+                Mode = _reflect.GetDispatchMode("ProcessAnnounceProviderInfoRequest", Zeze.Transaction.DispatchMode.Normal),
             });
             service.AddFactoryHandle(47284402955566, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zeze.Builtin.ProviderDirect.ModuleRedirect(),
                 Handle = ProcessModuleRedirectRequest,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessModuleRedirectRequest", Zeze.Transaction.TransactionLevel.Serializable),
+                Mode = _reflect.GetDispatchMode("ProcessModuleRedirectRequest", Zeze.Transaction.DispatchMode.Normal),
             });
             service.AddFactoryHandle(47286816262188, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest(),
                 Handle = ProcessModuleRedirectAllRequest,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessModuleRedirectAllRequestp", Zeze.Transaction.TransactionLevel.Serializable),
+                Mode = _reflect.GetDispatchMode("ProcessModuleRedirectAllRequestRequest", Zeze.Transaction.DispatchMode.Normal),
             });
             service.AddFactoryHandle(47283400371444, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zeze.Builtin.ProviderDirect.ModuleRedirectAllResult(),
                 Handle = ProcessModuleRedirectAllResult,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessModuleRedirectAllResultp", Zeze.Transaction.TransactionLevel.Serializable),
+                Mode = _reflect.GetDispatchMode("ProcessModuleRedirectAllResultRequest", Zeze.Transaction.DispatchMode.Normal),
             });
             service.AddFactoryHandle(47284197108752, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zeze.Builtin.ProviderDirect.Transmit(),
                 Handle = ProcessTransmit,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessTransmitp", Zeze.Transaction.TransactionLevel.None),
+                Mode = _reflect.GetDispatchMode("ProcessTransmitRequest", Zeze.Transaction.DispatchMode.Normal),
             });
             service.AddFactoryHandle(47284247217006, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zeze.Builtin.ProviderDirect.TransmitAccount(),
                 Handle = ProcessTransmitAccount,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessTransmitAccountp", Zeze.Transaction.TransactionLevel.None),
+                Mode = _reflect.GetDispatchMode("ProcessTransmitAccountRequest", Zeze.Transaction.DispatchMode.Normal),
             });
         }
 

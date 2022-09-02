@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Net.NetworkInformation;
 using Zeze.Util;
 using System.Threading.Tasks;
+using Zeze.Transaction;
 
 namespace Zeze.Net
 {
@@ -335,6 +336,7 @@ namespace Zeze.Net
             public Func<Protocol, Task<long>> Handle { get; set; }
             public Transaction.TransactionLevel TransactionLevel { get; set; } = Transaction.TransactionLevel.Serializable;
             public bool NoProcedure => TransactionLevel == Transaction.TransactionLevel.None;
+            public DispatchMode Mode = DispatchMode.Normal;
         }
 
         public ConcurrentDictionary<long, ProtocolFactoryHandle> Factorys { get; }

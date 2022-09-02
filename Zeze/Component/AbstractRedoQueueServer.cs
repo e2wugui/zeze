@@ -20,6 +20,7 @@ namespace Zeze.Component
                 Factory = () => new Zeze.Builtin.RedoQueue.RunTask(),
                 Handle = ProcessRunTaskRequest,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessRunTaskRequest", Zeze.Transaction.TransactionLevel.Serializable),
+                Mode = _reflect.GetDispatchMode("ProcessRunTaskRequest", Zeze.Transaction.DispatchMode.Normal),
             });
         }
 

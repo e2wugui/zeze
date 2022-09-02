@@ -32,24 +32,28 @@ namespace Zeze.Game
                 Factory = () => new Zeze.Builtin.Game.Online.Login(),
                 Handle = ProcessLoginRequest,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessLoginRequest", Zeze.Transaction.TransactionLevel.Serializable),
+                Mode = _reflect.GetDispatchMode("ProcessLoginRequest", Zeze.Transaction.DispatchMode.Normal),
             });
             service.AddFactoryHandle(47304205955457, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zeze.Builtin.Game.Online.Logout(),
                 Handle = ProcessLogoutRequest,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessLogoutRequest", Zeze.Transaction.TransactionLevel.Serializable),
+                Mode = _reflect.GetDispatchMode("ProcessLogoutRequest", Zeze.Transaction.DispatchMode.Normal),
             });
             service.AddFactoryHandle(47304349755660, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zeze.Builtin.Game.Online.ReliableNotifyConfirm(),
                 Handle = ProcessReliableNotifyConfirmRequest,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessReliableNotifyConfirmRequest", Zeze.Transaction.TransactionLevel.Serializable),
+                Mode = _reflect.GetDispatchMode("ProcessReliableNotifyConfirmRequest", Zeze.Transaction.DispatchMode.Normal),
             });
             service.AddFactoryHandle(47304551116333, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zeze.Builtin.Game.Online.ReLogin(),
                 Handle = ProcessReLoginRequest,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessReLoginRequest", Zeze.Transaction.TransactionLevel.Serializable),
+                Mode = _reflect.GetDispatchMode("ProcessReLoginRequest", Zeze.Transaction.DispatchMode.Normal),
             });
         }
 

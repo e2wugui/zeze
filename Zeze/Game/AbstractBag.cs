@@ -26,12 +26,14 @@ namespace Zeze.Game
                 Factory = () => new Zeze.Builtin.Game.Bag.Destroy(),
                 Handle = ProcessDestroyRequest,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessDestroyRequest", Zeze.Transaction.TransactionLevel.Serializable),
+                Mode = _reflect.GetDispatchMode("ProcessDestroyRequest", Zeze.Transaction.DispatchMode.Normal),
             });
             service.AddFactoryHandle(47308274693689, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zeze.Builtin.Game.Bag.Move(),
                 Handle = ProcessMoveRequest,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessMoveRequest", Zeze.Transaction.TransactionLevel.Serializable),
+                Mode = _reflect.GetDispatchMode("ProcessMoveRequest", Zeze.Transaction.DispatchMode.Normal),
             });
         }
 
