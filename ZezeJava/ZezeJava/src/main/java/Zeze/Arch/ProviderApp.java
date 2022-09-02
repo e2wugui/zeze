@@ -3,6 +3,7 @@ package Zeze.Arch;
 import java.util.HashMap;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Builtin.Provider.BModule;
+import Zeze.Services.ServiceManager.SubscribeInfo;
 import Zeze.Util.IntHashMap;
 
 /**
@@ -41,7 +42,7 @@ public class ProviderApp {
 					   ProviderDirectService toOtherProviderService,
 					   String linkdNameOnServiceManager,
 					   LoadConfig loadConfig
-					   ) {
+	) {
 		this.Zeze = zeze;
 		this.Zeze.Redirect = new RedirectBase(this);
 
@@ -102,6 +103,15 @@ public class ProviderApp {
 		binds.BuildDynamicBinds(modules, Zeze.getConfig().getServerId(), DynamicModules);
 		Modules.putAll(StaticBinds);
 		Modules.putAll(DynamicModules);
+		for (var module : modules.values()) {
+			if (!Modules.containsKey(module.getId())) { // 补充其它模块的信息
+				var m = binds.getModules().get(module.getFullName());
+				Modules.put(module.getId(), m != null
+						? new BModule(m.getChoiceType(), m.getConfigType(), m.getSubscribeType())
+						: new BModule(BModule.ChoiceTypeDefault, BModule.ConfigTypeDefault,
+						SubscribeInfo.SubscribeTypeReadyCommit));
+			}
+		}
 		ProviderImplement.RegisterModulesAndSubscribeLinkd();
 	}
 }

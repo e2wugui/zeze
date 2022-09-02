@@ -1,9 +1,7 @@
 package Zeze.Arch;
 
-import java.util.HashMap;
 import Zeze.Builtin.Provider.AnnounceLinkInfo;
 import Zeze.Builtin.Provider.BKick;
-import Zeze.Builtin.Provider.BModule;
 import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Builtin.Provider.Kick;
 import Zeze.Net.AsyncSocket;
@@ -13,7 +11,6 @@ import Zeze.Services.ServiceManager.SubscribeInfo;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
-import Zeze.Util.Str;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -52,26 +49,21 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	 */
 	public void RegisterModulesAndSubscribeLinkd() {
 		var sm = ProviderApp.Zeze.getServiceManagerAgent();
-		var services = new HashMap<String, BModule>();
+		var identity = String.valueOf(ProviderApp.Zeze.getConfig().getServerId());
 		// 注册本provider的静态服务
 		for (var it = ProviderApp.StaticBinds.iterator(); it.moveToNext(); ) {
-			var name = Str.format("{}{}", ProviderApp.ServerServiceNamePrefix, it.key());
-			var identity = String.valueOf(ProviderApp.Zeze.getConfig().getServerId());
-			sm.RegisterService(name, identity, ProviderApp.DirectIp, ProviderApp.DirectPort);
-			services.put(name, it.value());
+			sm.RegisterService(ProviderApp.ServerServiceNamePrefix + it.key(), identity,
+					ProviderApp.DirectIp, ProviderApp.DirectPort);
 		}
 		// 注册本provider的动态服务
 		for (var it = ProviderApp.DynamicModules.iterator(); it.moveToNext(); ) {
-			var name = Str.format("{}{}", ProviderApp.ServerServiceNamePrefix, it.key());
-			var identity = String.valueOf(ProviderApp.Zeze.getConfig().getServerId());
-			sm.RegisterService(name, identity, ProviderApp.DirectIp, ProviderApp.DirectPort);
-			services.put(name, it.value());
+			sm.RegisterService(ProviderApp.ServerServiceNamePrefix + it.key(), identity,
+					ProviderApp.DirectIp, ProviderApp.DirectPort);
 		}
 
 		// 订阅provider直连发现服务
-		for (var e : services.entrySet()) {
-			sm.SubscribeService(e.getKey(), e.getValue().getSubscribeType());
-		}
+		for (var it = ProviderApp.Modules.iterator(); it.moveToNext(); )
+			sm.SubscribeService(ProviderApp.ServerServiceNamePrefix + it.key(), it.value().getSubscribeType());
 
 		// 订阅linkd发现服务。
 		sm.SubscribeService(ProviderApp.LinkdServiceName, SubscribeInfo.SubscribeTypeSimple);

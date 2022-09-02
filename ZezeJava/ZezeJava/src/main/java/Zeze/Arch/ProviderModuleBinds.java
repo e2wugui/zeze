@@ -5,6 +5,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import javax.xml.parsers.DocumentBuilderFactory;
 import Zeze.Builtin.Provider.BModule;
+import Zeze.IModule;
 import Zeze.Services.ServiceManager.SubscribeInfo;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.IntHashSet;
@@ -37,68 +38,36 @@ public class ProviderModuleBinds {
 		return new ProviderModuleBinds();
 	}
 
-	private boolean IsDynamicModule(String name) {
-		var m = Modules.get(name);
-		return m != null && m.Providers.isEmpty();
-	}
-
-	private int GetModuleChoiceType(String name) {
-		var m = Modules.get(name);
-		return m != null ? m.ChoiceType : BModule.ChoiceTypeDefault;
-	}
-
-	public final void BuildDynamicBinds(HashMap<String, Zeze.IModule> AllModules, int serverId, IntHashMap<BModule> out) {
+	// 动态模块必须在绑定配置里 声明ConfigType="Dynamic" 或 缺省的ConfigType并指定空的providers
+	// 动态模块的providers为空则表示所有providers都可以注册该模块, 否则只有指定的providers可以注册
+	public final void BuildDynamicBinds(HashMap<String, IModule> AllModules, int serverId, IntHashMap<BModule> out) {
 		for (var m : AllModules.values()) {
 			var cm = Modules.get(m.getFullName());
-			if (cm == null)
-				continue; // dynamic must exist in config
-			if (cm.getConfigType() != BModule.ConfigTypeDynamic)
-				continue;
-
-			if (!cm.Providers.isEmpty() && !cm.Providers.contains(serverId))
-				continue; // dynamic providers. isEmpty means enable in all server.
-
-			var module = new BModule();
-			module.setChoiceType(cm.getChoiceType());
-			module.setConfigType(BModule.ConfigTypeDynamic);
-			module.setSubscribeType(cm.getSubscribeType());
-			out.put(m.getId(), module);
+			if (cm != null && cm.ConfigType == BModule.ConfigTypeDynamic &&
+					(cm.Providers.isEmpty() || cm.Providers.contains(serverId)))
+				out.put(m.getId(), new BModule(cm.ChoiceType, BModule.ConfigTypeDynamic, cm.SubscribeType));
 		}
 	}
 
-	public final void BuildStaticBinds(HashMap<String, Zeze.IModule> AllModules, int serverId, IntHashMap<BModule> modules) {
-		HashMap<String, Integer> binds = new HashMap<>();
-
-		// special binds
-		for (var m : Modules.values()) {
-			if (m.getConfigType() == BModule.ConfigTypeSpecial && m.Providers.contains(serverId)) {
-				binds.put(m.FullName, BModule.ConfigTypeSpecial);
-			}
-		}
-
-		// default binds
-		if (!ProviderNoDefaultModule.contains(serverId)) {
-			for (var m : AllModules.values()) {
-				if (IsDynamicModule(m.getFullName())) {
-					continue; // 忽略动态注册的模块。
-				}
-				if (Modules.containsKey(m.getFullName())) {
-					continue; // 忽略已经有特别配置的模块
-				}
-				binds.put(m.getFullName(), BModule.ConfigTypeDefault);
-			}
-		}
-
-		// output
-		for (var bind : binds.entrySet()) {
-			var m = AllModules.get(bind.getKey());
-			if (m != null) {
-				var tempVar = new BModule();
-				tempVar.setChoiceType(GetModuleChoiceType(bind.getKey()));
-				tempVar.setConfigType(bind.getValue());
-				tempVar.setSubscribeType(SubscribeInfo.SubscribeTypeSimple);
-				modules.put(m.getId(), tempVar);
-			}
+	// 非动态模块都为静态模块, 其中声明ConfigType="Special"及providers不为空的只有指定providers会注册该模块
+	// 声明ConfigType="Default"且providers为空的所有providers都会注册
+	// 其它未在绑定配置定义的模块只要不在ProviderNoDefaultModule配置里的providers都会注册
+	public final void BuildStaticBinds(HashMap<String, IModule> AllModules, int serverId, IntHashMap<BModule> out) {
+		var noDefaultModule = ProviderNoDefaultModule.contains(serverId);
+		for (var m : AllModules.values()) {
+			var cm = Modules.get(m.getFullName());
+			if (cm == null) {
+				if (noDefaultModule)
+					continue;
+			} else if (cm.ConfigType == BModule.ConfigTypeDynamic)
+				continue;
+			else if (cm.ConfigType == BModule.ConfigTypeSpecial) {
+				if (!cm.Providers.contains(serverId))
+					continue;
+			} else if (!cm.Providers.isEmpty() && !cm.Providers.contains(serverId)) // ConfigTypeDefault
+				continue;
+			out.put(m.getId(), cm != null ? new BModule(cm.ChoiceType, cm.ConfigType, cm.SubscribeType)
+					: new BModule(BModule.ChoiceTypeDefault, BModule.ConfigTypeDefault, SubscribeInfo.SubscribeTypeSimple));
 		}
 	}
 
@@ -160,7 +129,7 @@ public class ProviderModuleBinds {
 			ChoiceType = GetChoiceType(self);
 			SubscribeType = GetSubscribeType(self);
 
-			ProviderModuleBinds.SplitIntoSet(self.getAttribute("providers"), getProviders());
+			ProviderModuleBinds.SplitIntoSet(self.getAttribute("providers"), Providers);
 
 			String attr = self.getAttribute("ConfigType").trim();
 			switch (attr) {
@@ -230,7 +199,7 @@ public class ProviderModuleBinds {
 	}
 
 	private void AddModule(Module module) {
-		getModules().put(module.getFullName(), module);
+		getModules().put(module.FullName, module);
 	}
 
 	private static void SplitIntoSet(String providers, IntHashSet set) {
