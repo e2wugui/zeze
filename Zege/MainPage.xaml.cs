@@ -9,10 +9,11 @@ namespace Zege
         public MainPage()
         {
             InitializeComponent();
+            //SecureStorage.Default.SetAsync("", "");
 
-            AppDomain.CurrentDomain.UnhandledException += async (sender, error) =>
+            AppDomain.CurrentDomain.UnhandledException += async (sender, args) =>
             {
-                await DisplayAlert("UnhandledException", error.ExceptionObject.ToString(), "OK");
+                await DisplayAlert("UnhandledException", args.ExceptionObject.ToString(), "OK");
             };
 
             App = new App();
