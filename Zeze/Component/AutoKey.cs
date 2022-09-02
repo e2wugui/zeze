@@ -32,27 +32,23 @@ namespace Zeze.Component
 			/**
 			 * 这个返回值，可以在自己模块内保存下来，效率高一些。
 			 */
-			public AutoKey GetOrAdd(string name, int allocateCount = DefaultAllocateCount)
+			public AutoKey GetOrAdd(string name)
 			{
-				if (allocateCount <= 0)
-					throw new System.ArgumentOutOfRangeException("allocateCount <= 0");
-				return map.GetOrAdd(name, name2 => new AutoKey(this, name2, allocateCount));
+				return map.GetOrAdd(name, name2 => new AutoKey(this, name2));
 			}
 		}
-
-		private const int DefaultAllocateCount = 1000;
 
 		private readonly Module module;
 		private readonly string name;
 		private volatile Range range;
 		private readonly long logKey;
-		private readonly int allocateCount;
+		private int allocateCount = 64;
+		private long lastAllocateTime = Util.Time.NowUnixMillis;
 
-		private AutoKey(Module module, string name, int allocateCount)
+		private AutoKey(Module module, string name)
 		{
 			this.module = module;
 			this.name = name;
-			this.allocateCount = allocateCount;
 
             logKey = Bean.GetNextObjectId();
 		}
@@ -98,6 +94,18 @@ namespace Zeze.Component
 					return next.Value; // allocate in range success
 			}
 
+            Transaction.Transaction.WhileCommit(() =>
+			{
+				// 不能在重做时重复计算，一次事务重新计算一次，下一次生效。
+				var now = Util.Time.NowUnixMillis;
+                var diff = now - lastAllocateTime;
+                if (diff < 60 * 1000) // 1 minute
+                    allocateCount = allocateCount << 1;
+                else if (diff > 10 * 60 * 1000 && allocateCount >= 128) // 10 minutes
+                    allocateCount = allocateCount >> 1;
+                lastAllocateTime = now;
+            });
+            
 			var seedKey = new BSeedKey(module.Zeze.Config.ServerId, name);
 			var txn = Transaction.Transaction.Current;
 			var log = (RangeLog)txn.GetLog(logKey);
@@ -108,7 +116,7 @@ namespace Zeze.Component
 					// allocate: 多线程，多事务，多服务器（缓存同步）由zeze保证。
 					var key = await module._tAutoKeys.GetOrAddAsync(seedKey);
 					var start = key.NextId;
-					var end = start + DefaultAllocateCount; // AllocateCount == 0 会死循环。
+					var end = start + allocateCount; // AllocateCount == 0 会死循环。
 					key.NextId = end;
 					// create log，本事务可见，
 					log = new RangeLog(this, new Range(start, end));

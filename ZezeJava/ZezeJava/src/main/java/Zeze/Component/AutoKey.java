@@ -31,28 +31,21 @@ public final class AutoKey {
 		 * 这个返回值，可以在自己模块内保存下来，效率高一些。
 		 */
 		public AutoKey getOrAdd(String name) {
-			return getOrAdd(name, DefaultAllocateCount);
-		}
-		public AutoKey getOrAdd(String name, int allocateCount) {
-			if (allocateCount <= 0)
-				throw new IllegalArgumentException("allocateCount <= 0");
-			return map.computeIfAbsent(name, name2 -> new AutoKey(this, name2, allocateCount));
+			return map.computeIfAbsent(name, name2 -> new AutoKey(this, name2));
 		}
 	}
-
-	private static final int DefaultAllocateCount = 500;
 
 	private final Module module;
 	private final String name;
 	private volatile Range range;
 	private final long logKey;
-	private final int allocateCount;
+	private int allocateCount = 64;
+	private long lastAllocateTime = System.currentTimeMillis();
 
 	@SuppressWarnings("deprecation")
-	private AutoKey(Module module, String name, int allocateCount) {
+	private AutoKey(Module module, String name) {
 		this.module = module;
 		this.name = name;
-		this.allocateCount = allocateCount;
 		// 详细参考Bean的Log的用法。这里只有一个variable。
 		logKey = Zeze.Transaction.Bean.nextObjectId();
 	}
@@ -86,6 +79,17 @@ public final class AutoKey {
 			if (next != 0)
 				return next; // allocate in range success
 		}
+
+		Transaction.whileCommit(() -> {
+			// 不能在重做时重复计算，一次事务重新计算一次，下一次生效。
+			var now = System.currentTimeMillis();
+			var diff = now - lastAllocateTime;
+			if (diff < 60 * 1000) // 1 minute
+				allocateCount = allocateCount << 1;
+			else if (diff > 10 * 60 * 1000 && allocateCount >= 128) // 10 minutes
+				allocateCount = allocateCount >> 1;
+			lastAllocateTime = now;
+		});
 
 		var seedKey = new BSeedKey(module.Zeze.getConfig().getServerId(), name);
 		var txn = Transaction.getCurrent();
