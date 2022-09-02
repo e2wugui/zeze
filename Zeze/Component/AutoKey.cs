@@ -99,9 +99,9 @@ namespace Zeze.Component
 				// 不能在重做时重复计算，一次事务重新计算一次，下一次生效。
 				var now = Util.Time.NowUnixMillis;
                 var diff = now - lastAllocateTime;
-                if (diff < 60 * 1000) // 1 minute
+                if (diff < 30 * 1000) // 30 seconds
                     allocateCount = allocateCount << 1;
-                else if (diff > 10 * 60 * 1000 && allocateCount >= 128) // 10 minutes
+                else if (diff > 120 * 1000 && allocateCount >= 128) // 120 seconds
                     allocateCount = allocateCount >> 1;
                 lastAllocateTime = now;
             });
