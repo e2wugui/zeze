@@ -858,6 +858,36 @@ namespace Zeze.Serialize
             return (obj is ByteBuffer other) && Equals(other);
         }
 
+        public static long ToLong(byte[] bytes, int offset)
+        {
+            return (bytes[offset]) +
+                    ((bytes[offset + 1]) << 8) +
+                    ((bytes[offset + 2]) << 16) +
+                    ((long)(bytes[offset + 3]) << 24) +
+                    ((long)(bytes[offset + 4]) << 32) +
+                    ((long)(bytes[offset + 5]) << 40) +
+                    ((long)(bytes[offset + 6]) << 48) +
+                    ((long)bytes[offset + 7] << 56);
+        }
+
+        public static long ToLong(byte[] bytes, int offset, int length)
+        {
+            long v = 0;
+            switch (length)
+            {
+                default: v = ((long)bytes[offset + 7] << 56); goto case 7;
+                case 7: v += ((long)(bytes[offset + 6]) << 48); goto case 6;
+                case 6: v += ((long)(bytes[offset + 5]) << 40); goto case 5;
+                case 5: v += ((long)(bytes[offset + 4]) << 32); goto case 4;
+                case 4: v += ((long)(bytes[offset + 3]) << 24); goto case 3;
+                case 3: v += ((bytes[offset + 2]) << 16); goto case 2;
+                case 2: v += ((bytes[offset + 1]) << 8); goto case 1;
+                case 1: v += (bytes[offset]); goto case 0;
+                case 0: break;
+            }
+            return v;
+        }
+
         public bool Equals(ByteBuffer other)
         {
             if (other == null)

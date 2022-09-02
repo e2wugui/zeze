@@ -61,9 +61,7 @@ namespace Zeze.Component
             var bb = await NextByteBufferAsync();
 			if (bb.Size > 8)
 				throw new Exception("out of range");
-            var value = new byte[8];
-			Buffer.BlockCopy(bb.Bytes, bb.ReadIndex, value, value.Length - bb.Size, bb.Size);
-			return BitConverter.ToInt64(value, 0);
+			return ByteBuffer.ToLong(bb.Bytes, bb.ReadIndex, bb.Size);
 		}
 
 		public async Task<byte[]> NextBytesAsync()

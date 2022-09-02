@@ -60,7 +60,7 @@ public final class AutoKey {
 		var bytes = nextBytes();
 		if (bytes.length > 8)
 			throw new IllegalStateException("out of range");
-		return ByteBuffer.ToLong(bytes, 0);
+		return ByteBuffer.ToLong(bytes, 0, bytes.length);
 	}
 
 	public byte[] nextBytes() {
