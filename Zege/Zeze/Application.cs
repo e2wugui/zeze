@@ -11,11 +11,10 @@ namespace Zeze
         public string Name { get; }
         public Config Config { get; set; }
 
-        public Application(string name, Config config = null)
+        public Application(string name, Config config)
         {
             Name = name;
-            if (null == config)
-                Config = Config.Load();
+            Config = config;
         }
 
         public Task StartAsync()
