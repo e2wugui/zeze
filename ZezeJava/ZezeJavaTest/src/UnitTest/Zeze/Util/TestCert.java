@@ -87,6 +87,10 @@ public class TestCert extends TestCase {
 		cert = loadCertificate(certData);
 		Assert.assertArrayEquals(certData, cert.getEncoded());
 
+		var pkcs1 = exportPublicKeyToPkcs1(keyPair.getPublic());
+		var pubKey = loadPublicKeyByPkcs1(pkcs1);
+		Assert.assertArrayEquals(keyPair.getPublic().getEncoded(), pubKey.getEncoded());
+
 //		saveKeyStore(new FileOutputStream("save.ks"), "123456", "test", keyPair.getPublic(), keyPair.getPrivate(), "test", 365);
 	}
 }

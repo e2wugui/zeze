@@ -27,6 +27,7 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import sun.security.rsa.RSAPublicKeyImpl;
 import sun.security.x509.AlgorithmId;
 import sun.security.x509.CertificateAlgorithmId;
 import sun.security.x509.CertificateIssuerName;
@@ -107,6 +108,52 @@ public final class Cert {
 	// 从二进制编码加载RSA私钥(二进制编码即PrivateKey.getEncoded()的结果)
 	public static PrivateKey loadPrivateKey(byte[] encodedPrivateKey) throws GeneralSecurityException {
 		return KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(encodedPrivateKey));
+	}
+
+	private static int getDerValueSize(int dataSize) {
+		if (dataSize < 0x80)
+			return 1 + 1 + dataSize; // tag+size+data
+		if (dataSize < 0x100)
+			return 1 + 1 + 1 + dataSize; // tag+sizeLen+size+data
+		if (dataSize < 0x1_0000)
+			return 1 + 1 + 2 + dataSize;
+		throw new IllegalArgumentException(); // 暂时不支持更长的
+	}
+
+	private static int encodeDerValueHeader(byte[] encoded, int offset, int tag, int dataSize) {
+		encoded[offset++] = (byte)tag;
+		if (dataSize < 0x80)
+			encoded[offset++] = (byte)dataSize;
+		else if (dataSize < 0x100) {
+			encoded[offset++] = (byte)0x81;
+			encoded[offset++] = (byte)dataSize;
+		} else if (dataSize < 0x1_0000) {
+			encoded[offset++] = (byte)0x82;
+			encoded[offset++] = (byte)(dataSize >> 8);
+			encoded[offset++] = (byte)dataSize;
+		} else
+			throw new IllegalArgumentException(); // 暂时不支持更长的
+		return offset;
+	}
+
+	private static int encodeDerValue(byte[] encoded, int offset, byte[] data) {
+		int dataSize = data.length;
+		offset = encodeDerValueHeader(encoded, offset, 2, dataSize);
+		System.arraycopy(data, 0, encoded, offset, dataSize);
+		return offset + dataSize;
+	}
+
+	public static byte[] exportPublicKeyToPkcs1(PublicKey publicKey) {
+		var rpk = (RSAPublicKeyImpl)publicKey;
+		var mod = rpk.getModulus().toByteArray();
+		var exp = rpk.getPublicExponent().toByteArray();
+		var modExpDerSize = getDerValueSize(mod.length) + getDerValueSize(exp.length);
+		var encoded = new byte[getDerValueSize(modExpDerSize)]; // 2048位的RSA公钥通常编码成269~270字节的PKCS#1二进制数据
+		var offset = encodeDerValueHeader(encoded, 0, 0x30, modExpDerSize);
+		offset = encodeDerValue(encoded, offset, mod);
+		offset = encodeDerValue(encoded, offset, exp);
+		assert offset == encoded.length;
+		return encoded;
 	}
 
 	// 生成RSA密钥对(公钥+私钥)
