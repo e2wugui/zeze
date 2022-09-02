@@ -153,6 +153,25 @@ public final class ByteBuffer {
 				((long)bytes[offset + 7] << 56);
 	}
 
+	@SuppressWarnings("fallthrough")
+	public static long ToLong(byte[] bytes, int offset, int length) {
+		long v = 0;
+		//@formatter:off
+		switch (length) {
+		default: v = ((long)bytes[offset + 7] << 56);
+		case 7:	v += ((long)(bytes[offset + 6] & 0xff) << 48);
+		case 6: v += ((long)(bytes[offset + 5] & 0xff) << 40);
+		case 5: v += ((long)(bytes[offset + 4] & 0xff) << 32);
+		case 4: v += ((long)(bytes[offset + 3] & 0xff) << 24);
+		case 3: v += ((bytes[offset + 2] & 0xff) << 16);
+		case 2: v += ((bytes[offset + 1] & 0xff) << 8);
+		case 1: v += (bytes[offset] & 0xff);
+		case 0:
+		}
+		//@formatter:on
+		return v;
+	}
+
 	public static float ToFloat(byte[] bytes, int offset) {
 		return Float.intBitsToFloat(ToInt(bytes, offset));
 	}
