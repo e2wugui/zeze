@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.security.GeneralSecurityException;
+import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -52,7 +53,7 @@ public final class Cert {
 			var m = Module.class.getDeclaredMethod("implAddOpensToAllUnnamed", String.class);
 			Json.setAccessible(m); // force accessible
 			m.invoke(Certificate.class.getModule(), "sun.security.x509"); // --add-opens java.base/sun.security.x509=ALL-UNNAMED
-			// m.invoke(Certificate.class.getModule(), "sun.security.rsa"); // --add-opens java.base/sun.security.rsa=ALL-UNNAMED
+			m.invoke(Certificate.class.getModule(), "sun.security.rsa"); // --add-opens java.base/sun.security.rsa=ALL-UNNAMED
 		} catch (ReflectiveOperationException e) {
 			throw new RuntimeException(e);
 		}
@@ -97,11 +98,11 @@ public final class Cert {
 		return KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(encodedPublicKey));
 	}
 
-	// 以PKCS#1的二进制编码加载RSA公钥(此二进制编码即PublicKey.getEncoded()的结果)
+	// 以PKCS#1的二进制编码加载RSA公钥
 	// 编译和运行时需要: --add-exports/--add-opens java.base/sun.security.rsa=ALL-UNNAMED
-//	public static PublicKey loadPublicKeyByPkcs1(byte[] encodedPublicKey) throws InvalidKeyException {
-//		return sun.security.rsa.RSAPublicKeyImpl.newKey(sun.security.rsa.RSAUtil.KeyType.RSA, "PKCS#1", encodedPublicKey);
-//	}
+	public static PublicKey loadPublicKeyByPkcs1(byte[] encodedPublicKey) throws InvalidKeyException {
+		return sun.security.rsa.RSAPublicKeyImpl.newKey(sun.security.rsa.RSAUtil.KeyType.RSA, "PKCS#1", encodedPublicKey);
+	}
 
 	// 从二进制编码加载RSA私钥(二进制编码即PrivateKey.getEncoded()的结果)
 	public static PrivateKey loadPrivateKey(byte[] encodedPrivateKey) throws GeneralSecurityException {

@@ -74,6 +74,7 @@
 					<compilerArgs>
 						<arg>--add-exports</arg>
 						<arg>java.base/sun.security.x509=ALL-UNNAMED</arg>
+						<arg>java.base/sun.security.rsa=ALL-UNNAMED</arg>
 					</compilerArgs>
 				</configuration>
 			</plugin>

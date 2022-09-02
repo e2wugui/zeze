@@ -26,7 +26,8 @@ dependencies {
 }
 
 tasks.withType(JavaCompile) {
-    options.compilerArgs += ["--add-exports", "java.base/sun.security.x509=ALL-UNNAMED"]
+    options.compilerArgs += ["--add-exports", "java.base/sun.security.x509=ALL-UNNAMED",
+                             "--add-exports", "java.base/sun.security.rsa=ALL-UNNAMED"]
 }
 
 task startServiceManager(type: JavaExec) {

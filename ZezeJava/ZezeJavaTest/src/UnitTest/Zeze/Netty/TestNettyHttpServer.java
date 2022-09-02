@@ -21,7 +21,10 @@ import Zeze.Netty.Netty;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.Str;
 import io.netty.buffer.CompositeByteBuf;
+import io.netty.handler.codec.http.DefaultHttpHeaders;
+import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.AttributeKey;
 import org.junit.AfterClass;
@@ -36,7 +39,7 @@ public class TestNettyHttpServer {
 
 	@BeforeClass
 	public static void setUp() throws Exception {
-		netty = new Netty();
+		netty = new Netty(1);
 		server = new HttpServer();
 
 		server.addHandler("/testFull", 1024, TransactionLevel.Serializable, DispatchMode.Direct,
@@ -207,5 +210,66 @@ public class TestNettyHttpServer {
 			Thread.sleep(100);
 		}
 		Assert.assertTrue(checked.get());
+	}
+
+	public static void main(String[] args) throws InterruptedException {
+		// ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID);
+
+		// 运行，用浏览器访问 127.0.0.1/hello;127.0.0.1/exp;127.0.0.1/404
+		try (var netty = new Netty(); var http = new HttpServer()) {
+			http.addHandler("/hello", // 显示一个文本结果。
+					8192, TransactionLevel.Serializable, DispatchMode.Direct,
+					(x) -> {
+						var sb = new StringBuilder();
+						sb.append("uri=").append(x.request().uri()).append("\n");
+						sb.append("path=").append(x.path()).append("\n");
+						sb.append("query=").append(x.query()).append("\n");
+						for (var header : x.request().headers())
+							sb.append(header.getKey()).append("=").append(header.getValue()).append("\n");
+						x.sendPlainText(HttpResponseStatus.OK, sb.toString());
+					});
+			http.addHandler("/ex", // 抛异常
+					8192, TransactionLevel.Serializable, DispatchMode.Direct,
+					(x) -> {
+						throw new UnsupportedOperationException();
+					});
+			http.addHandler("/stream",
+					8192, TransactionLevel.Serializable, DispatchMode.Direct,
+					(x) -> {
+						var headers = new DefaultHttpHeaders();
+						headers.add(HttpHeaderNames.CONTENT_TYPE, "text/plain; charset=utf-8");
+						x.beginStream(HttpResponseStatus.OK, headers);
+						trunkCount = 0;
+						sendTrunk(x);
+						/*
+						try {
+							Thread.sleep(2000);
+						} catch (InterruptedException e) {
+							throw new RuntimeException(e);
+						}
+						*/
+					});
+			var future = http.start(netty, 80);
+			future.sync().channel().closeFuture().sync(); // 同步等待直到被停止
+		}
+	}
+
+	private static int trunkCount;
+
+	private static void sendTrunk(HttpExchange x) {
+		trunkCount++;
+		x.sendStream(("content " + trunkCount + "-").getBytes(StandardCharsets.UTF_8)).addListener(future -> {
+			System.out.println("sent: " + trunkCount);
+			if (future.isSuccess()) {
+				if (trunkCount > 3)
+					x.endStream();
+				else
+					sendTrunk(x);
+				return;
+			}
+			System.out.println("error: " + Str.stacktrace(future.cause()));
+			System.out.flush();
+			x.closeConnectionNow();
+		});
 	}
 }

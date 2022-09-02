@@ -1,6 +1,7 @@
 package Zeze.Netty;
 
 import java.io.File;
+import java.net.URLDecoder;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.OpenOption;
@@ -96,10 +97,19 @@ public class HttpExchange {
 		return content;
 	}
 
+	public static String urlDecode(String s) {
+		for (int i = 0, n = s.length(); i < n; i++) {
+			var c = s.charAt(i);
+			if (c == '%' || c == '+')
+				return URLDecoder.decode(s, StandardCharsets.UTF_8);
+		}
+		return s;
+	}
+
 	public String path() {
 		var uri = request.uri();
 		var i = uri.indexOf('?');
-		return i >= 0 ? uri.substring(0, i) : uri;
+		return urlDecode(i >= 0 ? uri.substring(0, i) : uri);
 	}
 
 	public String query() {
