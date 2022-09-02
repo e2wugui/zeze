@@ -1,6 +1,9 @@
 
+using System;
 using System.Collections.Concurrent;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
+using Zeze.Builtin.AutoKey;
 using Zeze.Serialize;
 using Zeze.Transaction;
 
@@ -28,35 +31,70 @@ namespace Zeze.Component
 			/**
 			 * 这个返回值，可以在自己模块内保存下来，效率高一些。
 			 */
-			public AutoKey GetOrAdd(string name)
+			public AutoKey GetOrAdd(string name, int allocateCount = DefaultAllocateCount)
 			{
-				return map.GetOrAdd(name, name2 => new AutoKey(this, name2));
+				if (allocateCount <= 0)
+					throw new System.ArgumentOutOfRangeException("allocateCount <= 0");
+				return map.GetOrAdd(name, name2 => new AutoKey(this, name2, allocateCount));
 			}
 		}
 
-		private const int AllocateCount = 1000;
+		private const int DefaultAllocateCount = 1000;
 
 		private readonly Module module;
 		private readonly string name;
 		private volatile Range range;
 		private readonly long logKey;
+		private readonly int allocateCount;
 
-		private AutoKey(Module module, string name)
+		private AutoKey(Module module, string name, int allocateCount)
 		{
 			this.module = module;
 			this.name = name;
-			logKey = Bean.GetNextObjectId();
+			this.allocateCount = allocateCount;
+
+            logKey = Bean.GetNextObjectId();
 		}
 
 		public async Task<long> NextIdAsync()
 		{
-			if (null != range)
+            var bb = await NextByteBufferAsync();
+			if (bb.Size > 8)
+				throw new Exception("out of range");
+            var value = new byte[8];
+			Buffer.BlockCopy(bb.Bytes, bb.ReadIndex, value, value.Length - bb.Size, bb.Size);
+			return BitConverter.ToInt64(value, 0);
+		}
+
+		public async Task<byte[]> NextBytesAsync()
+		{
+			return (await NextByteBufferAsync()).Copy();
+		}
+
+		public async Task<string> NextStringAsync()
+		{
+			var bb = await NextByteBufferAsync();
+			return Convert.ToBase64String(bb.Bytes, bb.ReadIndex, bb.Size);
+        }
+
+		public async Task<ByteBuffer> NextByteBufferAsync()
+		{
+			var bb = ByteBuffer.Allocate(16);
+			bb.WriteInt(module.Zeze.Config.ServerId);
+			bb.WriteLong(await NextSeedAsync());
+			return bb;
+		}
+
+        private async Task<long> NextSeedAsync()
+        {
+            if (null != range)
 			{
 				var next = range.TryNextId();
 				if (next != null)
 					return next.Value; // allocate in range success
 			}
 
+			var seedKey = new BSeedKey(module.Zeze.Config.ServerId, name);
 			var txn = Transaction.Transaction.Current;
 			var log = (RangeLog)txn.GetLog(logKey);
 			while (true)
@@ -64,9 +102,9 @@ namespace Zeze.Component
 				if (null == log)
 				{
 					// allocate: 多线程，多事务，多服务器（缓存同步）由zeze保证。
-					var key = await module._tAutoKeys.GetOrAddAsync(name);
+					var key = await module._tAutoKeys.GetOrAddAsync(seedKey);
 					var start = key.NextId;
-					var end = start + AllocateCount; // AllocateCount == 0 会死循环。
+					var end = start + DefaultAllocateCount; // AllocateCount == 0 会死循环。
 					key.NextId = end;
 					// create log，本事务可见，
 					log = new RangeLog(this, new Range(start, end));

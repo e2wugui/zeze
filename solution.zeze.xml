@@ -81,10 +81,14 @@
 
 		<!-- 应用内部唯一ID生成器，仅支持long类型。-->
 		<module name="AutoKey" id="11003">
+			<beankey name="BSeedKey">
+				<variable id="1" name="ServerId" type="int"/>
+				<variable id="2" name="KeyName"  type="string"/>
+			</beankey>
 			<bean name="BAutoKey">
 				<variable id="1" name="NextId" type="long"/>
 			</bean>
-			<table name="tAutoKeys" key="string" value="BAutoKey" />
+			<table name="tAutoKeys" key="BSeedKey" value="BAutoKey" />
 		</module>
 
 		<module name="Collections" id="11004">

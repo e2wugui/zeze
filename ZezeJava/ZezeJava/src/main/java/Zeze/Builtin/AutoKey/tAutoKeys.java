@@ -4,7 +4,7 @@ package Zeze.Builtin.AutoKey;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tAutoKeys extends Zeze.Transaction.TableX<String, Zeze.Builtin.AutoKey.BAutoKey> {
+public final class tAutoKeys extends Zeze.Transaction.TableX<Zeze.Builtin.AutoKey.BSeedKey, Zeze.Builtin.AutoKey.BAutoKey> {
     public tAutoKeys() {
         super("Zeze_Builtin_AutoKey_tAutoKeys");
     }
@@ -27,16 +27,16 @@ public final class tAutoKeys extends Zeze.Transaction.TableX<String, Zeze.Builti
     public static final int VAR_NextId = 1;
 
     @Override
-    public String DecodeKey(ByteBuffer _os_) {
-        String _v_;
-        _v_ = _os_.ReadString();
+    public Zeze.Builtin.AutoKey.BSeedKey DecodeKey(ByteBuffer _os_) {
+        Zeze.Builtin.AutoKey.BSeedKey _v_ = new Zeze.Builtin.AutoKey.BSeedKey();
+        _v_.Decode(_os_);
         return _v_;
     }
 
     @Override
-    public ByteBuffer EncodeKey(String _v_) {
+    public ByteBuffer EncodeKey(Zeze.Builtin.AutoKey.BSeedKey _v_) {
         ByteBuffer _os_ = ByteBuffer.Allocate(16);
-        _os_.WriteString(_v_);
+        _v_.Encode(_os_);
         return _os_;
     }
 

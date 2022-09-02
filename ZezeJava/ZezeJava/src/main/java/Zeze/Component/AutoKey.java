@@ -2,13 +2,15 @@ package Zeze.Component;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
+import java.util.Base64;
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Builtin.AutoKey.BSeedKey;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 import Zeze.Transaction.Transaction;
 
-public class AutoKey {
+public final class AutoKey {
 	public static class Module extends AbstractAutoKey {
 		private final ConcurrentHashMap<String, AutoKey> map = new ConcurrentHashMap<>();
 		public final Zeze.Application Zeze;
@@ -28,41 +30,71 @@ public class AutoKey {
 		 * 这个返回值，可以在自己模块内保存下来，效率高一些。
 		 */
 		public AutoKey getOrAdd(String name) {
-			return map.computeIfAbsent(name, name2 -> new AutoKey(this, name2));
+			return getOrAdd(name, DefaultAllocateCount);
+		}
+		public AutoKey getOrAdd(String name, int allocateCount) {
+			if (allocateCount <= 0)
+				throw new IllegalArgumentException("allocateCount <= 0");
+			return map.computeIfAbsent(name, name2 -> new AutoKey(this, name2, allocateCount));
 		}
 	}
 
-	private static final int AllocateCount = 500;
+	private static final int DefaultAllocateCount = 500;
 
 	private final Module module;
 	private final String name;
 	private volatile Range range;
 	private final long logKey;
+	private final int allocateCount;
 
 	@SuppressWarnings("deprecation")
-	private AutoKey(Module module, String name) {
+	private AutoKey(Module module, String name, int allocateCount) {
 		this.module = module;
 		this.name = name;
+		this.allocateCount = allocateCount;
 		// 详细参考Bean的Log的用法。这里只有一个variable。
 		logKey = Zeze.Transaction.Bean.nextObjectId();
 	}
 
 	public long nextId() {
+		var bytes = nextBytes();
+		if (bytes.length > 8)
+			throw new IllegalStateException("out of range");
+		return ByteBuffer.ToLong(bytes, 0);
+	}
+
+	public byte[] nextBytes() {
+		return nextByteBuffer().Copy();
+	}
+
+	public String nextString() {
+		return Base64.getEncoder().encodeToString(nextBytes());
+	}
+
+	public ByteBuffer nextByteBuffer() {
+		var bb = ByteBuffer.Allocate(16);
+		bb.WriteInt(module.Zeze.getConfig().getServerId());
+		bb.WriteLong(nextSeed());
+		return bb;
+	}
+
+	private long nextSeed() {
 		if (null != range) {
 			var next = range.tryNextId();
 			if (next != 0)
 				return next; // allocate in range success
 		}
 
+		var seedKey = new BSeedKey(module.Zeze.getConfig().getServerId(), name);
 		var txn = Transaction.getCurrent();
 		assert txn != null;
 		var log = (RangeLog)txn.GetLog(logKey);
 		while (true) {
 			if (null == log) {
 				// allocate: 多线程，多事务，多服务器（缓存同步）由zeze保证。
-				var key = module._tAutoKeys.getOrAdd(name);
+				var key = module._tAutoKeys.getOrAdd(seedKey);
 				var start = key.getNextId();
-				var end = start + AllocateCount; // AllocateCount == 0 会死循环。
+				var end = start + allocateCount; // AllocateCount == 0 会死循环。
 				key.setNextId(end);
 				// create log，本事务可见，
 				log = new RangeLog(new Range(start, end));
