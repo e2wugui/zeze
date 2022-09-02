@@ -28,6 +28,8 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import sun.security.rsa.RSAPublicKeyImpl;
+import sun.security.rsa.RSAUtil;
+import sun.security.util.DerValue;
 import sun.security.x509.AlgorithmId;
 import sun.security.x509.CertificateAlgorithmId;
 import sun.security.x509.CertificateIssuerName;
@@ -53,8 +55,9 @@ public final class Cert {
 		try {
 			var m = Module.class.getDeclaredMethod("implAddOpensToAllUnnamed", String.class);
 			Json.setAccessible(m); // force accessible
-			m.invoke(Certificate.class.getModule(), "sun.security.x509"); // --add-opens java.base/sun.security.x509=ALL-UNNAMED
 			m.invoke(Certificate.class.getModule(), "sun.security.rsa"); // --add-opens java.base/sun.security.rsa=ALL-UNNAMED
+			m.invoke(Certificate.class.getModule(), "sun.security.util"); // --add-opens java.base/sun.security.util=ALL-UNNAMED
+			m.invoke(Certificate.class.getModule(), "sun.security.x509"); // --add-opens java.base/sun.security.x509=ALL-UNNAMED
 		} catch (ReflectiveOperationException e) {
 			throw new RuntimeException(e);
 		}
@@ -101,8 +104,20 @@ public final class Cert {
 
 	// 以PKCS#1的二进制编码加载RSA公钥
 	// 编译和运行时需要: --add-exports/--add-opens java.base/sun.security.rsa=ALL-UNNAMED
+	// 编译和运行时需要: --add-exports/--add-opens java.base/sun.security.util=ALL-UNNAMED
 	public static PublicKey loadPublicKeyByPkcs1(byte[] encodedPublicKey) throws InvalidKeyException {
-		return sun.security.rsa.RSAPublicKeyImpl.newKey(sun.security.rsa.RSAUtil.KeyType.RSA, "PKCS#1", encodedPublicKey);
+		try {
+			var dv = new DerValue(encodedPublicKey);
+			if (dv.tag != DerValue.tag_Sequence)
+				throw new IOException("Not a SEQUENCE");
+			var n = dv.data.getPositiveBigInteger();
+			var e = dv.data.getPositiveBigInteger();
+			if (dv.data.available() != 0)
+				throw new IOException("Extra data available");
+			return RSAPublicKeyImpl.newKey(RSAUtil.KeyType.RSA, null, n, e);
+		} catch (IOException ex) {
+			throw new InvalidKeyException("Invalid PKCS#1 encoding", ex);
+		}
 	}
 
 	// 从二进制编码加载RSA私钥(二进制编码即PrivateKey.getEncoded()的结果)
