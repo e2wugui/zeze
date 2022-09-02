@@ -1,6 +1,4 @@
 
-using Android.OS;
-using Zeze;
 using Zeze.Net;
 using Zeze.Util;
 
@@ -44,7 +42,7 @@ namespace Zege.User
             var sign = Cert.Sign(rsa, p.Result.RandomData.GetBytesUnsafe());
 
             c.Argument.Account = account;
-            c.Argument.RsaPublicKey = new Binary(rsa.ExportRSAPublicKey);
+            c.Argument.RsaPublicKey = new Binary(rsa.ExportRSAPublicKey());
             c.Argument.Signed = new Binary(sign);
 
             await c.SendAsync(App.Connector.TryGetReadySocket());

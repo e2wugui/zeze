@@ -4,13 +4,17 @@ import Zege.User.BUser;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Collections.DepartmentTree;
 import Zeze.Collections.LinkedMap;
+import Zeze.Component.AutoKey;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutLong;
 import Zeze.Util.Random;
 import org.apache.commons.codec.binary.Base64;
 
 public class ModuleFriend extends AbstractModule {
+    private AutoKey GroupIdAutoKey;
+
     public void Start(Zege.App app) throws Throwable {
+        GroupIdAutoKey = app.getZeze().GetAutoKey("Zege.GroupId");
     }
 
     public void Stop(Zege.App app) throws Throwable {
@@ -351,26 +355,23 @@ public class ModuleFriend extends AbstractModule {
     @Override
     protected long ProcessCreateGroupRequest(Zege.Friend.CreateGroup r) {
         var session = ProviderUserSession.get(r);
-        for (int i = 0; i < 255; ++i) {
-            var randId = new byte[20]; // len same cert.serial
-            Random.getInstance().nextBytes(randId);
-            var groupId = Base64.encodeBase64String(randId) + "@group";
-            var user = App.Zege_User.create(groupId);
-            if (null != user) {
-                user.setCreateTime(System.currentTimeMillis());
-                user.setState(BUser.StateCreated);
-                var group = getGroup(groupId);
-                group.create().setRoot(session.getAccount());
-                var members = group.getGroupMembers();
-                for (var member : r.Argument.getMembers()) {
-                    members.put(member, new BGroupMember());
-                }
-                if (!r.Argument.getMembers().contains(session.getAccount()))// add self
-                    members.put(session.getAccount(), new BGroupMember());
-                session.sendResponseWhileCommit(r);
-                return Procedure.Success;
+        var groupId = GroupIdAutoKey.nextString() + "@group";
+        var user = App.Zege_User.create(groupId);
+        if (null != user) {
+            user.setCreateTime(System.currentTimeMillis());
+            user.setState(BUser.StateCreated);
+            var group = getGroup(groupId);
+            group.create().setRoot(session.getAccount());
+            var members = group.getGroupMembers();
+            for (var member : r.Argument.getMembers()) {
+                members.put(member, new BGroupMember());
             }
+            if (!r.Argument.getMembers().contains(session.getAccount()))// add self
+                members.put(session.getAccount(), new BGroupMember());
+            session.sendResponseWhileCommit(r);
+            return Procedure.Success;
         }
+
         return ErrorCode(eUserExists);
     }
 
