@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using Zeze.Util;
 
 namespace Zege
 {
@@ -19,9 +20,9 @@ namespace Zege
             App = new App();
         }
 
-        private async void OnLoginClicked(object sender, EventArgs e)
+        private void OnLoginClicked(object sender, EventArgs e)
         {
-            try
+            _ = Mission.CallAsync(async () =>
             {
                 App.Start("127.0.0.1", 5100);
                 App.Zege_Friend.Bind(FriendsListView);
@@ -33,11 +34,7 @@ namespace Zege
 
                 var clientId = "PC";
                 await App.Zeze_Builtin_Online.LoginAsync(clientId);
-            }
-            catch (Exception ex)
-            {
-                await DisplayAlert("UnhandledException", ex.ToString(), "OK");
-            }
+            }, "OnLoginClicked");
 
             // fix remove me
             // SemanticScreenReader.Announce(CounterBtn.Text);
