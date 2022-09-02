@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using Zeze.Builtin.AutoKey;
+using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Transaction;
 
@@ -67,6 +68,11 @@ namespace Zeze.Component
 		public async Task<byte[]> NextBytesAsync()
 		{
 			return (await NextByteBufferAsync()).Copy();
+		}
+
+		public async Task<Binary> NextBinaryAsync()
+		{
+			return new Binary(await NextByteBufferAsync());
 		}
 
 		public async Task<string> NextStringAsync()

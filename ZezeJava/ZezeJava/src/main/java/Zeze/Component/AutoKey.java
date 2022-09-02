@@ -5,6 +5,7 @@ import java.lang.invoke.VarHandle;
 import java.util.Base64;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.AutoKey.BSeedKey;
+import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
@@ -66,6 +67,7 @@ public final class AutoKey {
 	public byte[] nextBytes() {
 		return nextByteBuffer().Copy();
 	}
+	public Binary nextBinary() { return new Binary(nextByteBuffer()); }
 
 	public String nextString() {
 		return Base64.getEncoder().encodeToString(nextBytes());
