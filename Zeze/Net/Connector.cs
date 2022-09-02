@@ -113,9 +113,9 @@ namespace Zeze.Net
 
         public AsyncSocket GetReadySocket()
         {
-            var task = GetReadySocketAsync();
-            if (task.Wait(ReadyTimeout))
-                return task.Result;
+            var volatileTmp = FutureSocket;
+            if (volatileTmp.Task.Wait(ReadyTimeout))
+                return volatileTmp.Task.Result;
             throw new Exception("GetReadySocket Timeout.");
         }
 

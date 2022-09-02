@@ -1,4 +1,7 @@
-﻿using System.Collections.ObjectModel;
+﻿using NLog;
+using NLog.Config;
+using NLog.Targets;
+using System.Collections.ObjectModel;
 using Zeze.Util;
 
 namespace Zege
@@ -17,15 +20,29 @@ namespace Zege
                 await DisplayAlert("UnhandledException", args.ExceptionObject.ToString(), "OK");
             };
 
+            LoggingConfiguration();
             App = new App();
+            App.Start("127.0.0.1", 5100);
+            App.Zege_Friend.Bind(FriendsListView);
+        }
+
+        private void LoggingConfiguration()
+        {
+            var config = new LoggingConfiguration();
+            var fileTarget = new FileTarget
+            {
+                FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "zege.log"),
+                Layout = "${longdate} ${level} ${message} ${exception:format=Message,StackTrace}"
+            };
+            config.AddTarget("file", fileTarget);
+            config.LoggingRules.Add(new LoggingRule("*", LogLevel.Trace, fileTarget));
+            LogManager.Configuration = config;
         }
 
         private void OnLoginClicked(object sender, EventArgs e)
         {
             _ = Mission.CallAsync(async () =>
             {
-                App.Start("127.0.0.1", 5100);
-                App.Zege_Friend.Bind(FriendsListView);
                 App.Connector.GetReadySocket(); // wait connection ready; TODO 改成异步。
                 var account = Environment.MachineName.ToString();
                 await App.Zege_User.OpenAsync(account);
