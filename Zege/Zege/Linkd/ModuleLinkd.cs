@@ -33,15 +33,16 @@ namespace Zege.Linkd
         {
             var r = _p as Challenge;
             r.Result.Account = App.Zege_User.Account;
-            var file = App.Zege_User.Account + ".pkcs12";
-            if (!File.Exists(file))
+            var account = App.Zege_User.Account;
+            var fileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), account + ".pkcs12");
+            if (!File.Exists(fileName))
             {
                 r.SendResultCode(1);
                 return Task.FromResult(0L); // done
             }
 
             var passwd = "123";
-            var cert = Cert.CreateFromPkcs12(file, passwd);
+            var cert = Cert.CreateFromPkcs12(fileName, passwd);
             var signed = Cert.Sign(cert, r.Argument.RandomData.GetBytesUnsafe());
             r.Result.Signed = new Binary(signed);
             r.SendResult();

@@ -20,7 +20,7 @@ namespace Zege.User
         {
             Account = account;
 
-            var fileName = account + ".pkcs12";
+            var fileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), account + ".pkcs12");
             if (File.Exists(fileName))
             {
                 App.Zege_Linkd.SendChallengeMe();

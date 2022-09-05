@@ -59,7 +59,7 @@ public class ModuleUser extends AbstractModule {
 
         user.setCreateTime(System.currentTimeMillis());
         user.setAccount(account);
-        var publicKey = Cert.loadPublicKey(r.Argument.getRsaPublicKey().bytesUnsafe());
+        var publicKey = Cert.loadPublicKeyByPkcs1(r.Argument.getRsaPublicKey().bytesUnsafe());
         var passwd = "123";
         if (!Cert.verifySign(publicKey, user.getPrepareRandomData().bytesUnsafe(), r.Argument.getSigned().bytesUnsafe()))
             return ErrorCode(ePrepareNotOwner);
@@ -101,7 +101,7 @@ public class ModuleUser extends AbstractModule {
             // 【准备测试数据】
             // 把用户加入默认群，并且把群加入用户好友列表。
             var defaultGroup = "wanmei@group";
-            _tUser.getOrAdd(defaultGroup);
+            _tUser.getOrAdd(defaultGroup).setNick("完美");
             var group = App.Zege_Friend.getGroup(defaultGroup);
             group.create().setRoot(account);
             var member = new BGroupMember();

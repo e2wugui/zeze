@@ -1,5 +1,8 @@
 
 using System.Collections.ObjectModel;
+using Zeze.Net;
+using Zeze.Transaction;
+using Zeze.Util;
 
 namespace Zege.Friend
 {
@@ -61,17 +64,20 @@ namespace Zege.Friend
             if (GetFriendNodePending != null)
                 return; // done
 
-            GetFriendNodePending = TryNewGetFriendNode(forward);            
-            GetFriendNodePending?.Send(App.ClientService.GetSocket(), (p) =>
+            GetFriendNodePending = TryNewGetFriendNode(forward);
+            GetFriendNodePending?.Send(App.ClientService.GetSocket(), ProcessGetFriendNodeResponse);
+        }
+
+        [DispatchMode(Mode = DispatchMode.UIThread)]
+        private Task<long> ProcessGetFriendNodeResponse(Protocol p)
+        {
+            GetFriendNodePending = null;
+            var r = p as GetFriendNode;
+            if (r.ResultCode == 0)
             {
-                GetFriendNodePending = null;
-                var r = p as GetFriendNode;
-                if (r.ResultCode == 0)
-                {
-                    UpdateItemsSource(r.Result);
-                }
-                return Task.FromResult(0L);
-            });
+                UpdateItemsSource(r.Result);
+            }
+            return Task.FromResult(0L);
         }
 
         private void OnScrolled(object sender, ScrolledEventArgs args)

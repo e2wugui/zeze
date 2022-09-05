@@ -66,7 +66,7 @@ public class ModuleLinkd extends AbstractModule {
         var sign = Cert.sign(rsa.getPrivate(), p.Result.getRandomData().bytesUnsafe());
 
         c.Argument.setAccount(account);
-        c.Argument.setRsaPublicKey(new Binary(rsa.getPublic().getEncoded()));
+        c.Argument.setRsaPublicKey(new Binary(Cert.exportPublicKeyToPkcs1(rsa.getPublic())));
         c.Argument.setSigned(new Binary(sign));
 
         c.SendForWait(App.Connector.TryGetReadySocket()).await();

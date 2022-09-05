@@ -50,7 +50,7 @@ public class LinkdService extends LinkdServiceBase {
                 DepartmentId = bb.ReadLong(_t_);
                 _i_ += bb.ReadTagSize(_t_ = bb.ReadByte());
             }
-            throw new RuntimeException("Group Not Found.");
+            // 由于Group,DepartmentId默认值时，不会Encode任何东西，这里就不做是否存在值的验证了。
         }
 
         @Override

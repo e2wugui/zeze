@@ -334,9 +334,15 @@ namespace Zeze.Net
         {
             public Func<Protocol> Factory { get; set; }
             public Func<Protocol, Task<long>> Handle { get; set; }
-            public Transaction.TransactionLevel TransactionLevel { get; set; } = Transaction.TransactionLevel.Serializable;
-            public bool NoProcedure => TransactionLevel == Transaction.TransactionLevel.None;
+            public Transaction.TransactionLevel TransactionLevel { get; set; } = TransactionLevel.Serializable;
+            public bool NoProcedure => TransactionLevel == TransactionLevel.None;
+
+            // 协议请求的派发（线程）模式。【警告，现在这个参数同时用于服务器和客户端，如果协议收发都需要处理时，无法支持两种派发模式】
             public DispatchMode Mode = DispatchMode.Normal;
+
+            /////////////////////////////////////////////////////////////////////////////////////////////
+            // 由于c#只有一个线程池，所以默认情况下，没有使用线程派发模式，需要的应用重载下面的方法，自行使用Mode配置。
+            // DispatchProtocol,DispatchProtocol2,DispatchRpcResponse
         }
 
         public ConcurrentDictionary<long, ProtocolFactoryHandle> Factorys { get; }

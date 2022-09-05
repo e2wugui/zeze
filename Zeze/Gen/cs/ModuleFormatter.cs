@@ -118,9 +118,16 @@ namespace Zeze.Gen.cs
                         sw.WriteLine("            {");
                         sw.WriteLine($"                Factory = () => new {rpc.Space.Path(".", rpc.Name)}(),");
                         if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
+                        {
                             sw.WriteLine($"                Handle = Process{rpc.Name}Request,");
-                        sw.WriteLine($"                TransactionLevel = _reflect.GetTransactionLevel(\"Process{rpc.Name}Request\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel}),");
-                        sw.WriteLine($"                Mode = _reflect.GetDispatchMode(\"Process{rpc.Name}Request\", Zeze.Transaction.DispatchMode.Normal),");
+                            sw.WriteLine($"                TransactionLevel = _reflect.GetTransactionLevel(\"Process{rpc.Name}Request\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel}),");
+                            sw.WriteLine($"                Mode = _reflect.GetDispatchMode(\"Process{rpc.Name}Request\", Zeze.Transaction.DispatchMode.Normal),");
+                        }
+                        else
+                        {
+                            sw.WriteLine($"                TransactionLevel = _reflect.GetTransactionLevel(\"Process{rpc.Name}Response\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel}),");
+                            sw.WriteLine($"                Mode = _reflect.GetDispatchMode(\"Process{rpc.Name}Response\", Zeze.Transaction.DispatchMode.Normal),");
+                        }
                         sw.WriteLine("            });");
                         continue;
                     }

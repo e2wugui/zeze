@@ -118,7 +118,7 @@ public static class Cert
 
     public static X509Certificate2 CreateFromCertAndPrivateKey(byte[] derCert, RSA rsaForPrivateKey)
     {
-        var pemCert = PemEncoding.Write("PEM CERT", derCert);
+        var pemCert = PemEncoding.Write("CERTIFICATE", derCert);
         return CreateFromCertAndPrivateKey(pemCert, rsaForPrivateKey);
     }
 
@@ -129,7 +129,7 @@ public static class Cert
         //    new PbeParameters(PbeEncryptionAlgorithm.Aes256Cbc, HashAlgorithmName.SHA256, iterationCount: 100_000));
         var pkcs8Bytes = rsaForPrivateKey.ExportPkcs8PrivateKey();
         // TODO Pem没有加密的话。空串给CreateFromEncryptedPem是否能工作？如果必须加密，使用上面的方法导出。
-        var pemPrivateKey = PemEncoding.Write("RSA PRIVATE KEY", pkcs8Bytes);
+        var pemPrivateKey = PemEncoding.Write("ENCRYPTED PRIVATE KEY", pkcs8Bytes);
         return X509Certificate2.CreateFromEncryptedPem(pemCert, pemPrivateKey, passwd);
     }
 
