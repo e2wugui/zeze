@@ -24,39 +24,36 @@ namespace Zege.Linkd
         protected override Task<long> ProcessChallengeOkRequest(Zeze.Net.Protocol _p)
         {
             var p = _p as ChallengeOk;
-            ChallengeFuture.SetResult(true);
+            ChallengeFuture.TrySetResult(p.ResultCode == 0);
             p.SendResult();
             return Task.FromResult(ResultCode.Success);
         }
 
-        protected override Task<long> ProcessChallengeRequest(Zeze.Net.Protocol _p)
+        protected override async Task<long> ProcessChallengeRequest(Zeze.Net.Protocol _p)
         {
             var r = _p as Challenge;
             r.Result.Account = App.Zege_User.Account;
-            var account = App.Zege_User.Account;
-            var fileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), account + ".pkcs12");
-            if (!File.Exists(fileName))
-            {
-                r.SendResultCode(1);
-                return Task.FromResult(0L); // done
-            }
+            var cert = await App.Zege_User.GetCertAsync();
+            if (null == cert)
+                return ErrorCode(eNobody);
 
-            var passwd = "123";
-            var cert = Cert.CreateFromPkcs12(fileName, passwd);
             var signed = Cert.Sign(cert, r.Argument.RandomData.GetBytesUnsafe());
             r.Result.Signed = new Binary(signed);
             r.SendResult();
-
-            return Task.FromResult(ResultCode.Success);
+            return ResultCode.Success;
         }
 
-        public volatile TaskCompletionSource<bool> ChallengeFuture;
+        private TaskCompletionSource<bool> ChallengeFuture = new();
 
-        public void SendChallengeMe()
+        public async Task ChallengeMeAsync()
         {
-            new ChallengeMe().Send(App.Connector.TryGetReadySocket()); // skip rpc result
-            ChallengeFuture?.TrySetException(new Exception("Cancel!"));
-            ChallengeFuture = new();
+            if (ChallengeFuture.Task.IsCompletedSuccessfully)
+                return;
+
+            ChallengeFuture?.TrySetException(new Exception("Cancel"));
+            ChallengeFuture = new(); // 每次挑战重新创建一个Future。
+            new ChallengeMe().Send(App.Connector.TryGetReadySocket());
+            await ChallengeFuture.Task.WaitAsync(TimeSpan.FromSeconds(5));
         }
     }
 }

@@ -95,7 +95,7 @@ namespace Zege.Friend
             view.Scrolled += OnScrolled;
         }
 
-        public void GetFristFriendNode()
+        public void GetFristFriendNodeAsync()
         {
             if (Nodes.Count == 0)
                 TryGetFriendNode(true);

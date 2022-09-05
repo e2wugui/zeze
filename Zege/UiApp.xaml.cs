@@ -1,4 +1,5 @@
-﻿namespace Zege
+﻿
+namespace Zege
 {
     public partial class UiApp : Application
     {

@@ -28,6 +28,9 @@ public class ModuleLinkd extends AbstractModule {
     }
 
     private void verifyChallengeResult(Challenge c) throws Throwable {
+        if (c.getResultCode() != 0)
+            return;
+
         var v = new VerifyChallengeResult();
         v.Argument.setAccount(c.Result.getAccount());
         v.Argument.setRandomData(c.Argument.getRandomData());

@@ -54,7 +54,7 @@ public class ModuleLinkd extends AbstractModule {
         var p = new Prepare();
         p.Argument.setAccount(account);
         p.SendForWait(App.Connector.TryGetReadySocket()).await();
-        if (p.getResultCode() == ModuleUser.RCAccountExist)
+        if (p.getResultCode() == ModuleUser.eAccountHasUsed)
             return; // done
 
         if (p.getResultCode() != 0)
@@ -70,7 +70,7 @@ public class ModuleLinkd extends AbstractModule {
         c.Argument.setSigned(new Binary(sign));
 
         c.SendForWait(App.Connector.TryGetReadySocket()).await();
-        if (c.getResultCode() != 0 && c.getResultCode() != ModuleUser.RCAccountExist)
+        if (c.getResultCode() != 0)
             throw new RuntimeException("Create Error! rc=" + c.getResultCode());
 
         var keyStore = KeyStore.getInstance("pkcs12");

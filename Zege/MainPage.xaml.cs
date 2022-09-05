@@ -1,7 +1,6 @@
 ﻿using NLog;
 using NLog.Config;
 using NLog.Targets;
-using System.Collections.ObjectModel;
 using Zeze.Util;
 
 namespace Zege
@@ -13,12 +12,10 @@ namespace Zege
         public MainPage()
         {
             InitializeComponent();
-            //SecureStorage.Default.SetAsync("", "");
 
-            AppDomain.CurrentDomain.UnhandledException += async (sender, args) =>
-            {
-                await DisplayAlert("UnhandledException", args.ExceptionObject.ToString(), "OK");
-            };
+            //SecureStorage.Default.SetAsync("", "");
+            // fix remove me
+            // SemanticScreenReader.Announce(CounterBtn.Text);
 
             LoggingConfiguration();
             App = new App();
@@ -41,20 +38,22 @@ namespace Zege
 
         private void OnLoginClicked(object sender, EventArgs e)
         {
-            _ = Mission.CallAsync(async () =>
+            Mission.Run(async () =>
             {
                 App.Connector.GetReadySocket(); // wait connection ready; TODO 改成异步。
-                var account = Environment.MachineName.ToString();
-                await App.Zege_User.OpenAsync(account);
-                await App.Zege_Linkd.ChallengeFuture.Task;
-                App.Zege_Friend.GetFristFriendNode();
+                var account = Environment.MachineName.ToString().ToLower();
+                await App.Zege_User.TryCreateAsync(account);
+                await App.Zege_Linkd.ChallengeMeAsync();
+                App.Zege_Friend.GetFristFriendNodeAsync();
 
                 var clientId = "PC";
                 await App.Zeze_Builtin_Online.LoginAsync(clientId);
-            }, "OnLoginClicked");
+            });
+        }
 
-            // fix remove me
-            // SemanticScreenReader.Announce(CounterBtn.Text);
+        private void OnClear(object sender, EventArgs e)
+        {
+            SecureStorage.Default.RemoveAll();
         }
     }
 }

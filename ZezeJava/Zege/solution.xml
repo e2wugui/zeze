@@ -55,9 +55,6 @@
 		<table name="tPhone"        key="string" value="BAccounts" /> key is phone
 
 		<!-- protocol -->
-		<enum name="RCAccountExist" value="1"/>
-		<enum name="RCCertInvalid" value="1"/>
-
 		<bean name="BPrepare">
 			<variable id="1" name="Account"  type="string" />
 		</bean>

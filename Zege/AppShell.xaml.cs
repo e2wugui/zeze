@@ -6,5 +6,10 @@
         {
             InitializeComponent();
         }
+
+        public async Task OnUnhandledException(Exception ex)
+        {
+            await DisplayAlert("Error", ex.Message + "\r\n" + ex.StackTrace, "Ok");
+        }
     }
 }

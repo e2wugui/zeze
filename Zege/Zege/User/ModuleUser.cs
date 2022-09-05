@@ -1,4 +1,5 @@
 
+using System.Security.Cryptography.X509Certificates;
 using Zeze.Net;
 using Zeze.Util;
 
@@ -16,45 +17,45 @@ namespace Zege.User
         {
         }
 
-        public async Task OpenAsync(string account)
+        public async Task<X509Certificate2> GetCertAsync()
+        {
+            var certSaved = await SecureStorage.Default.GetAsync(Account + ".pkcs12");
+            if (null == certSaved)
+                return null;
+            var pkcs12 = Convert.FromBase64String(certSaved);
+            var passwd = await SecureStorage.Default.GetAsync(Account + ".password");
+            if (null == passwd)
+                passwd = "123"; // TODO 显示输入密码窗口。
+            return Cert.CreateFromPkcs12(pkcs12, passwd);
+        }
+
+        public async Task TryCreateAsync(string account)
         {
             Account = account;
 
-            var fileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), account + ".pkcs12");
-            if (File.Exists(fileName))
-            {
-                App.Zege_Linkd.SendChallengeMe();
-                return; // 已经注册。先简单用文件是否存在判断一下。
-            }
+            var certSaved = await SecureStorage.Default.GetAsync(account);
+            if (certSaved != null)
+                return;
 
             var p = new Prepare();
             p.Argument.Account = account;
             await p.SendAsync(App.Connector.TryGetReadySocket());
-            if (GetErrorCode(p.ResultCode) == RCAccountExist)
-                return; // 账号已经创建，结束流程。done
-
-            if (p.ResultCode != 0)
-                throw new Exception($"Prepare Error! Module={GetModuleId(p.ResultCode)} Code={GetErrorCode(p.ResultCode)}");
+            if (Mission.VerifySkipResultCode(p.ResultCode, eAccountHasUsed))
+                return; // TODO 先简单忽略账号已经被使用的错误。完整的流程应该是把创建账号独立出来。
 
             var c = new Create();
-
             var rsa = Cert.GenerateRsa();
             var sign = Cert.Sign(rsa, p.Result.RandomData.GetBytesUnsafe());
-
             c.Argument.Account = account;
             c.Argument.RsaPublicKey = new Binary(rsa.ExportRSAPublicKey());
             c.Argument.Signed = new Binary(sign);
-
             await c.SendAsync(App.Connector.TryGetReadySocket());
-            if (c.ResultCode != 0 && GetErrorCode(c.ResultCode) != RCAccountExist)
-                throw new Exception($"Create Error! Module={GetModuleId(p.ResultCode)} Code={GetErrorCode(p.ResultCode)}");
+            Mission.VerifySkipResultCode(c.ResultCode);
 
             var cert = Cert.CreateFromCertAndPrivateKey(c.Result.Cert.GetBytesUnsafe(), rsa);
-            var passwd = "123";
-            var pkcs12 = cert.Export(System.Security.Cryptography.X509Certificates.X509ContentType.Pkcs12, passwd);
-            File.WriteAllBytes(fileName, pkcs12);
-
-            App.Zege_Linkd.SendChallengeMe();
+            var passwd = "123"; // TODO 显示输入密码窗口。
+            var pkcs12 = cert.Export(X509ContentType.Pkcs12, passwd);
+            await SecureStorage.Default.SetAsync(account + ".pkcs12", Convert.ToBase64String(pkcs12));
         }
     }
 }

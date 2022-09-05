@@ -4,6 +4,8 @@
 	<import file="solution.xml"/>
 
 	<module name="Linkd" id="10000">
+		<enum name="eNobody" value="1"/>
+
 		<bean name="BKeepAlive">
 			<variable id="1" name="timestamp" type="long"/> 客户端发上来，服务器原样放回。
 		</bean>
