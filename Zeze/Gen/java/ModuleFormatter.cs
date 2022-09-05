@@ -280,9 +280,16 @@ namespace Zeze.Gen.java
                         sw.WriteLine($"            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<{fullName}>();");
                         sw.WriteLine($"            factoryHandle.Factory = {fullName}::new;");
                         if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
+                        {
                             sw.WriteLine($"            factoryHandle.Handle = this::Process{rpc.Name}Request;");
-                        sw.WriteLine($"            factoryHandle.Level = _reflect.getTransactionLevel(\"Process{rpc.Name}Request\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel});");
-                        sw.WriteLine($"            factoryHandle.Mode = _reflect.getDispatchMode(\"Process{rpc.Name}Request\", Zeze.Transaction.DispatchMode.Normal);");
+                            sw.WriteLine($"            factoryHandle.Level = _reflect.getTransactionLevel(\"Process{rpc.Name}Request\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel});");
+                            sw.WriteLine($"            factoryHandle.Mode = _reflect.getDispatchMode(\"Process{rpc.Name}Request\", Zeze.Transaction.DispatchMode.Normal);");
+                        }
+                        else
+                        {
+                            sw.WriteLine($"            factoryHandle.Level = _reflect.getTransactionLevel(\"Process{rpc.Name}\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel});");
+                            sw.WriteLine($"            factoryHandle.Mode = _reflect.getDispatchMode(\"Process{rpc.Name}\", Zeze.Transaction.DispatchMode.Normal);");
+                        }
                         sw.WriteLine($"            {serviceVar}.AddFactoryHandle({rpc.TypeId}L, factoryHandle); // {rpc.Space.Id}, {rpc.Id}");
                         sw.WriteLine("        }");
                         continue;

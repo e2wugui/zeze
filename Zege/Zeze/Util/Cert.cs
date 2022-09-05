@@ -111,9 +111,9 @@ public static class Cert
         return cert.GetRSAPrivateKey().Decrypt(data, RSAEncryptionPadding.Pkcs1);
     }
 
-    public static RSA GenerateRsa()
+    public static RSA GenerateRsa(int keySizeInBits = 2048)
     {
-        return RSA.Create(2048);
+        return RSA.Create(keySizeInBits);
     }
 
     public static X509Certificate2 CreateFromCertAndPrivateKey(byte[] derCert, RSA rsaForPrivateKey)
