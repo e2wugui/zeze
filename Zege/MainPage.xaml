@@ -4,24 +4,22 @@
              x:Class="Zege.MainPage">
 
     <ScrollView>
-        <VerticalStackLayout
-            Spacing="25"
-            Padding="30,0"
-            VerticalOptions="Center">
+        <HorizontalStackLayout>
+
             <!-- ItemSource="{Binding Friends}"-->
-            <ListView x:Name ="FriendsListView" HeightRequest="200" WidthRequest="410" >
+            <ListView x:Name ="FriendsListView" HeightRequest="800" WidthRequest="350" >
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <ViewCell>
                             <Grid Padding="10">
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="35" />
-                                    <RowDefinition Height="35" />
+                                    <RowDefinition Height="30" />
+                                    <RowDefinition Height="30" />
                                 </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="70" />
+                                    <ColumnDefinition Width="60" />
                                     <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="80" />
+                                    <ColumnDefinition Width="60" />
                                 </Grid.ColumnDefinitions>
 
                                 <Image Grid.RowSpan="2" Source="{Binding Image}" Aspect="AspectFill" HeightRequest="60" WidthRequest="60" />
@@ -36,15 +34,17 @@
             
             <WebView
                 Source="https://www.163.com"
-                HeightRequest="300"
-                WidthRequest="800"
+                HeightRequest="800"
+                WidthRequest="700"
                 HorizontalOptions="Center" 
                 />
 
-            <Button Text="Login" Clicked="OnLoginClicked" HorizontalOptions="Center" />
-            <Button Text="Clear" Clicked="OnClear" HorizontalOptions="Center" />
+            <VerticalStackLayout>
+                <Button Text="Login" Clicked="OnLoginClicked" HorizontalOptions="Center" />
+                <Button Text="Clear" Clicked="OnClear" HorizontalOptions="Center" />
+            </VerticalStackLayout>
 
-        </VerticalStackLayout>
+        </HorizontalStackLayout>
     </ScrollView>
 
 </ContentPage>

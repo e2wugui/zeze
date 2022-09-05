@@ -28,9 +28,6 @@ public class ModuleLinkd extends AbstractModule {
     }
 
     private void verifyChallengeResult(Challenge c) throws Throwable {
-        if (c.getResultCode() != 0)
-            return;
-
         var v = new VerifyChallengeResult();
         v.Argument.setAccount(c.Result.getAccount());
         v.Argument.setRandomData(c.Argument.getRandomData());
@@ -43,10 +40,10 @@ public class ModuleLinkd extends AbstractModule {
                         var linkSession = (LinkdUserSession)c.getSender().getUserState();
                         linkSession.setAccount(c.Result.getAccount());
                         linkSession.setAuthed();
-                        new ChallengeOk().Send(c.getSender()); // skip result
+                        new ChallengeResult().Send(c.getSender()); // skip result
                     } else {
-                        var cr = new ChallengeOk();
-                        cr.setResultCode(1);
+                        var cr = new ChallengeResult();
+                        cr.setResultCode(v.getResultCode());
                         c.Send(c.getSender()); // skip result
                         App.LinkdService.ReportError(
                                 c.getSender().getSessionId(), BReportError.FromLink,
@@ -65,7 +62,8 @@ public class ModuleLinkd extends AbstractModule {
         c.Send(sender, (c_) -> {
             if (c.isTimeout())
                 return 0; // done; skip error;
-            verifyChallengeResult(c);
+            if (c.getResultCode() == 0)
+                verifyChallengeResult(c);
             return 0;
         });
         // skip Send() result
@@ -73,8 +71,8 @@ public class ModuleLinkd extends AbstractModule {
 
     @Override
     protected long ProcessChallengeMeRequest(Zege.Linkd.ChallengeMe r) {
-        challenge(r.getSender());
         r.SendResult();
+        challenge(r.getSender());
         return Procedure.Success;
     }
 

@@ -105,7 +105,7 @@ public class ModuleLinkd extends AbstractModule {
     }
 
     @Override
-    protected long ProcessChallengeOkRequest(Zege.Linkd.ChallengeOk r) {
+    protected long ProcessChallengeResultRequest(Zege.Linkd.ChallengeResult r) {
         authFuture.SetResult(true);
         r.SendResult();
         return Procedure.Success;

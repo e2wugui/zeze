@@ -21,7 +21,7 @@
 		</bean>
 		<rpc name="Challenge" argument="BChallengeArgument" result="BChallengeResult" handle="client" />
 		<rpc name="ChallengeMe" argument="Zege.User.BAccount" handle="server" />
-		<rpc name="ChallengeOk" handle="client" />
+		<rpc name="ChallengeResult" handle="client" />
 	</module>
 
 	<project name="linkd" gendir="." scriptdir="src" platform="java">

@@ -21,9 +21,9 @@ namespace Zege.Linkd
             return Task.FromResult(ResultCode.Success);
         }
 
-        protected override Task<long> ProcessChallengeOkRequest(Zeze.Net.Protocol _p)
+        protected override Task<long> ProcessChallengeResultRequest(Zeze.Net.Protocol _p)
         {
-            var p = _p as ChallengeOk;
+            var p = _p as ChallengeResult;
             ChallengeFuture.TrySetResult(p.ResultCode == 0);
             p.SendResult();
             return Task.FromResult(ResultCode.Success);
