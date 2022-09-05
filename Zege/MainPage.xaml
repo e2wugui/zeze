@@ -7,7 +7,7 @@
         <HorizontalStackLayout>
 
             <!-- ItemSource="{Binding Friends}"-->
-            <ListView x:Name ="FriendsListView" HeightRequest="800" WidthRequest="350" >
+            <ListView x:Name ="FriendsListView" HeightRequest="600" WidthRequest="350" >
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <ViewCell>
@@ -34,7 +34,7 @@
             
             <WebView
                 Source="https://www.163.com"
-                HeightRequest="800"
+                HeightRequest="600"
                 WidthRequest="700"
                 HorizontalOptions="Center" 
                 />

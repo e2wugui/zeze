@@ -31,7 +31,7 @@ public class ModuleFriend extends AbstractModule {
     }
 
     public LinkedMap<BFriend> getFriends(String owner) {
-        return App.LinkedMaps.open(owner + "@Zege.Friend", BFriend.class);
+        return App.LinkedMaps.open(owner + "@Zege.Friend", BFriend.class, App.ZegeConfig.FriendCountPerNode);
     }
 
     @Override

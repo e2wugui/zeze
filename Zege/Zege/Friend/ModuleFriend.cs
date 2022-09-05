@@ -82,9 +82,9 @@ namespace Zege.Friend
 
         private void OnScrolled(object sender, ScrolledEventArgs args)
         {
-            if (args.ScrollY > ListView.Height - 80)
+            if (args.ScrollY > ListView.Height - 120)
                 TryGetFriendNode(true);
-            else if (args.ScrollY < 80)
+            else if (args.ScrollY < 120)
                 TryGetFriendNode(false);
         }
 

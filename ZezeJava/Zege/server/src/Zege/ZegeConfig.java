@@ -11,6 +11,8 @@ public class ZegeConfig implements Zeze.Config.ICustomize {
 	public int GroupInviteLimit = 10;
 	public int BelongDepartmentLimit = 100;
 
+	public int FriendCountPerNode = 10; // TODO 以后记得改大，比如100。
+
 	@Override
 	public String getName() {
 		return "zege";
@@ -47,5 +49,10 @@ public class ZegeConfig implements Zeze.Config.ICustomize {
 		attr = self.getAttribute("BelongDepartmentLimit");
 		if (!attr.isEmpty())
 			BelongDepartmentLimit = Integer.parseInt(attr);
+
+		attr = self.getAttribute("FriendCountPerNode");
+		if (!attr.isEmpty())
+			FriendCountPerNode = Integer.parseInt(attr);
+
 	}
 }

@@ -32,6 +32,7 @@ Zege c# ModuleFriend 还需要的能力 @项洋呈
 
 Zege c#
 	c# create account;auth;login;friends;
+	c# friends listener;
 	c# friend encrypt message;
 	c# group department;
 	c# group message (no encrypt);

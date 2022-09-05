@@ -265,18 +265,17 @@ public class LinkedMap<V extends Bean> {
 		if (null == root)
 			return count;
 
-		var nodeId = root.getTailNodeId();
+		var nodeId = root.getHeadNodeId();
 		while (nodeId != 0) {
 			var node = module._tLinkedMapNodes.selectDirty(new BLinkedMapNodeKey(name, nodeId));
 			if (null == node)
 				return count; // error
-
 			for (var value : node.getValues()) {
 				++count;
 				if (!func.handle(value.getId(), (V)value.getValue().getBean()))
 					return count;
 			}
-			nodeId = node.getPrevNodeId();
+			nodeId = node.getNextNodeId();
 		}
 		return count;
 	}

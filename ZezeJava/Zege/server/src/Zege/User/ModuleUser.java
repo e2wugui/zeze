@@ -101,13 +101,25 @@ public class ModuleUser extends AbstractModule {
             // 【准备测试数据】
             // 把用户加入默认群，并且把群加入用户好友列表。
             var defaultGroup = "wanmei@group";
-            _tUser.getOrAdd(defaultGroup).setNick("完美");
+            var groupUser = _tUser.get(defaultGroup);
+            if (null == groupUser) {
+                groupUser = _tUser.getOrAdd(defaultGroup);
+                groupUser.setNick("完美");
+                for (int i = 0; i < 48; ++i) {
+                    _tUser.getOrAdd("user" + i).setNick("user nick " + i);
+                }
+            }
+            // add friends
+            for (int i = 0; i < 48; ++i) {
+                App.Zege_Friend.getFriends(account).getOrAdd("user" + i);
+                App.Zege_Friend.getFriends("user" + i).getOrAdd(account);
+            }
+            Zeze.Util.Task.run(() -> App.Zege_Friend.getFriends(account).walk((id, value) -> true), "");
+            // join group
             var group = App.Zege_Friend.getGroup(defaultGroup);
             group.create().setRoot(account);
-            var member = new BGroupMember();
-            group.getGroupMembers().put(account, member);
-            var friend = new BFriend();
-            App.Zege_Friend.getFriends(account).put(defaultGroup, friend);
+            group.getGroupMembers().put(account, new BGroupMember());
+            App.Zege_Friend.getFriends(account).put(defaultGroup, new BFriend());
         }
         return Procedure.Success;
     }
