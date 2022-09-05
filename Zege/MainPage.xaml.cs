@@ -40,9 +40,9 @@ namespace Zege
         {
             Mission.Run(async () =>
             {
-                App.Connector.GetReadySocket(); // wait connection ready; TODO 改成异步。
+                await App.Connector.GetReadySocketAsync();
                 var account = Environment.MachineName.ToString().ToLower();
-                await App.Zege_User.TryCreateAsync(account);
+                await App.Zege_User.TryCreateAsync(account, "123", true);
                 await App.Zege_Linkd.ChallengeMeAsync();
                 App.Zege_Friend.GetFristFriendNodeAsync();
 

@@ -25,9 +25,11 @@ namespace Zege
                 // 注意：Application.Current.MainPage is AppShell
                 // see UiApp.xaml.cs
                 MainThread.BeginInvokeOnMainThread(
-                    async () => await ((AppShell)Application.Current.MainPage).OnUnhandledException(ex));
+                    async () => await AppShell.OnUnhandledException(ex));
             }
         }
+
+        public static AppShell AppShell => (AppShell)Application.Current.MainPage;
 
         /// <summary>
         /// 成功（结果码为零）返回false；
