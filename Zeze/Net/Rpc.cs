@@ -264,7 +264,7 @@ namespace Zeze.Net
 
         public override string ToString()
         {
-            return $"{GetType().FullName} SessionId={SessionId} ResultCode={ResultCode}{Environment.NewLine}\tArgument={Argument}{Environment.NewLine}\tResult={Result}";
+            return $"{GetType().FullName} SessionId={SessionId} ResultCode={ResultCode}{Environment.NewLine}  Argument={Argument}{Environment.NewLine}  Result={Result}";
         }
     }
 }

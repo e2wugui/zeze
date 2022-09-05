@@ -6,6 +6,8 @@ namespace Zeze.Net
 {
     public abstract class Protocol : Serializable
     {
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
         public abstract int ModuleId { get; }
         public abstract int ProtocolId { get; }
 
@@ -81,6 +83,7 @@ namespace Zeze.Net
 				return false;
 			Sender = so;
 			Service = Sender.Service;
+			logger.Info($"Send {this}");
 			return so.Send(Encode());
 		}
 
@@ -231,7 +234,7 @@ namespace Zeze.Net
 
         public override string ToString()
         {
-            return $"{GetType().FullName} ResultCode={ResultCode}{Environment.NewLine}\tArgument={Argument}";
+            return $"{GetType().FullName} ResultCode={ResultCode}{Environment.NewLine}  Argument={Argument}";
         }
     }
 }
