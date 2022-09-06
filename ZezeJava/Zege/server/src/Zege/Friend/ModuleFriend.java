@@ -22,7 +22,7 @@ public class ModuleFriend extends AbstractModule {
         GroupIdAutoKey = app.getZeze().GetAutoKey("Zege.GroupId");
         App.LinkedMaps.NodeListeners.put(FriendsLinkedMapNameEndsWith, (key, r) -> {
             var nodeKey = (BLinkedMapNodeKey)key;
-            var indexOf = nodeKey.getName().indexOf('@');
+            var indexOf = nodeKey.getName().lastIndexOf('@');
             var account = nodeKey.getName().substring(0, indexOf);
             var notify = new FriendNodeLogBeanNotify();
             notify.Argument.setAccount(account);

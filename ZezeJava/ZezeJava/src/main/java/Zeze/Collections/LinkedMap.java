@@ -42,7 +42,7 @@ public class LinkedMap<V extends Bean> {
 
 		private void OnLinkedMapNodeChange(Object key, Changes.Record r) {
 			var nodeKey = (BLinkedMapNodeKey)key;
-			var indexOf = nodeKey.getName().indexOf('@');
+			var indexOf = nodeKey.getName().lastIndexOf('@');
 			if (indexOf >= 0) {
 				var endsWith = nodeKey.getName().substring(indexOf);
 				var listener = NodeListeners.get(endsWith);
