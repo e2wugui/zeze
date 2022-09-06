@@ -287,8 +287,8 @@ namespace Zeze.Gen.java
                         }
                         else
                         {
-                            sw.WriteLine($"            factoryHandle.Level = _reflect.getTransactionLevel(\"Process{rpc.Name}\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel});");
-                            sw.WriteLine($"            factoryHandle.Mode = _reflect.getDispatchMode(\"Process{rpc.Name}\", Zeze.Transaction.DispatchMode.Normal);");
+                            sw.WriteLine($"            factoryHandle.Level = _reflect.getTransactionLevel(\"Process{rpc.Name}Response\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel});");
+                            sw.WriteLine($"            factoryHandle.Mode = _reflect.getDispatchMode(\"Process{rpc.Name}Response\", Zeze.Transaction.DispatchMode.Normal);");
                         }
                         sw.WriteLine($"            {serviceVar}.AddFactoryHandle({rpc.TypeId}L, factoryHandle); // {rpc.Space.Id}, {rpc.Id}");
                         sw.WriteLine("        }");

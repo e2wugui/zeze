@@ -4,6 +4,8 @@ using NLog.Config;
 using NLog.Targets;
 using Zege.Friend;
 using Zege.User;
+using Zeze.Transaction;
+using Zeze.Transaction.Collections;
 
 namespace Zege
 {

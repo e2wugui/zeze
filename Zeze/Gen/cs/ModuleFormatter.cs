@@ -138,7 +138,7 @@ namespace Zeze.Gen.cs
                         sw.WriteLine($"                Factory = () => new {p.Space.Path(".", p.Name)}(),");
                         sw.WriteLine($"                Handle = Process{p.Name},");
                         sw.WriteLine($"                TransactionLevel = _reflect.GetTransactionLevel(\"Process{p.Name}p\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel}),");
-                        sw.WriteLine($"                Mode = _reflect.GetDispatchMode(\"Process{p.Name}Request\", Zeze.Transaction.DispatchMode.Normal),");
+                        sw.WriteLine($"                Mode = _reflect.GetDispatchMode(\"Process{p.Name}\", Zeze.Transaction.DispatchMode.Normal),");
                         sw.WriteLine("            });");
                     }
                 }

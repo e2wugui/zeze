@@ -36,19 +36,23 @@ public class ModuleFriend extends AbstractModule {
                 App.Provider.Online.sendAccount(account, notify, null); // TODO online sender
                 break;
 
-            case Changes.Record.Put:
-                var node = new BGetFriendNode();
-                fillFriendNode(nodeKey.getNodeId(), (BLinkedMapNode)r.getValue(), node);
-                notify.Argument.setChangeLog(new Binary(ByteBuffer.Encode(node)));
-                App.Provider.Online.sendAccount(account, notify, null); // TODO online sender
-                break;
-
             case Changes.Record.Edit:
+                /*
                 var logBean = r.getLogBean();
                 if (null != logBean) {
                     notify.Argument.setChangeLog(new Binary(ByteBuffer.Encode(logBean)));
                     App.Provider.Online.sendAccount(account, notify, null); // TODO online sender
                 }
+                break;
+                */
+                // 由于表结构和传给客户端的结构不一致，无法使用增量日志。先通知整个Bean的修改。
+                notify.Argument.setChangeTag(Changes.Record.Put);
+                // fall down
+            case Changes.Record.Put:
+                var node = new BGetFriendNode();
+                fillFriendNode(nodeKey.getNodeId(), (BLinkedMapNode)r.getValue(), node);
+                notify.Argument.setChangeLog(new Binary(ByteBuffer.Encode(node)));
+                App.Provider.Online.sendAccount(account, notify, null); // TODO online sender
                 break;
             }
         });

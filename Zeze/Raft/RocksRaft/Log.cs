@@ -46,10 +46,15 @@ namespace Zeze.Raft.RocksRaft
 				return factory();
 			throw new Exception($"unknown log typeId={typeId}");
 		}
-	}
 
-	// 简单类型日志辅助。
-	public class Log<T> : Log
+		public static void Register<T>() where T : Log, new()
+		{
+            Factorys.TryAdd(new T().TypeId, () => new T());
+        }
+    }
+
+    // 简单类型日志辅助。
+    public class Log<T> : Log
 	{
 		public T Value { get; set; }
 

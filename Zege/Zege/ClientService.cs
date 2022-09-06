@@ -17,11 +17,11 @@ namespace Zege
             if (factoryHandle.Mode == DispatchMode.UIThread)
             {
                 MainThread.BeginInvokeOnMainThread(
-                    async () => await global::Zeze.Util.Mission.CallAsync(factoryHandle.Handle, p, (Protocol p2, long code) => p2.TrySendResultCode(code)));
+                    async () => await Mission.CallAsync(() => factoryHandle.Handle(p)));
             }
             else
             {
-                _ = global::Zeze.Util.Mission.CallAsync(factoryHandle.Handle, p, (p2, code) => p2.TrySendResultCode(code));
+                _ = Mission.CallAsync(() => factoryHandle.Handle(p));
             }
         }
 
@@ -30,11 +30,11 @@ namespace Zege
             if (factoryHandle.Mode == DispatchMode.UIThread)
             {
                 MainThread.BeginInvokeOnMainThread(
-                    async () => await global::Zeze.Util.Mission.CallAsync(responseHandle, rpc));
+                    async () => await Mission.CallAsync(() => responseHandle(rpc)));
             }
             else
             {
-                base.DispatchRpcResponse(rpc, responseHandle, factoryHandle);
+                _ = Mission.CallAsync(() => responseHandle(rpc));
             }
         }
 
@@ -43,11 +43,11 @@ namespace Zege
             if (factoryHandle.Mode == DispatchMode.UIThread)
             {
                 MainThread.BeginInvokeOnMainThread(
-                    async () => await global::Zeze.Util.Mission.CallAsync(factoryHandle.Handle, p, (Protocol p2, long code) => p2.TrySendResultCode(code)));
+                    async () => await Mission.CallAsync(() => factoryHandle.Handle(p)));
             }
             else
             {
-                _ = global::Zeze.Util.Mission.CallAsync(factoryHandle.Handle, p, (p2, code) => p2.TrySendResultCode(code));
+                _ = Mission.CallAsync(() => factoryHandle.Handle(p));
             }
         }
 

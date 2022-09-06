@@ -213,7 +213,7 @@ namespace Zege.Friend
 
                     if (ii.Account.Equals(jj.Account))
                     {
-                        if (FriendMatch(ii, jj))
+                        if (FriendMatch(ii, jj)) // BUG：false == ；因为下面的RemoveAt第二次失败，先保留错误的代码。
                         {
                             // 数据发生了变更，使用删除再次加入的方式更新View。
                             ItemsSource.RemoveAt(i);

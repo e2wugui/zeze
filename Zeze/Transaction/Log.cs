@@ -50,6 +50,11 @@ namespace Zeze.Transaction
                 return factory();
             throw new Exception($"unknown log typeId={typeId}");
         }
+
+        public static void Register<T>() where T : Log, new()
+        {
+            Factorys.TryAdd(new T().TypeId, () => new T());
+        }
     }
 
     public abstract class Log<T> : Log
