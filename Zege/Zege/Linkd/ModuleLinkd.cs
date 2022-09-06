@@ -42,13 +42,10 @@ namespace Zege.Linkd
             return Task.FromResult(ResultCode.Success);
         }
 
-        private TaskCompletionSource<bool> ChallengeFuture = new();
+        public TaskCompletionSource<bool> ChallengeFuture = new();
 
         public async Task<bool> ChallengeMeAsync(string account, string passwd, bool save)
         {
-            if (ChallengeFuture.Task.IsCompletedSuccessfully)
-                return false;
-
             if (0 != await App.Zege_User.OpenCertAsync(account, passwd, save))
                 return false;
 

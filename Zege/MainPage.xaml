@@ -32,8 +32,11 @@
                 </ListView.ItemTemplate>
             </ListView>
             <VerticalStackLayout>
-                <WebView Source="https://www.163.com" HeightRequest="450" WidthRequest="600"/>
-                <Editor x:Name="EditorMessage" HeightRequest="150" WidthRequest="600"/>
+                <WebView x:Name="MessageWebView" HeightRequest="450" WidthRequest="600"/>
+                <HorizontalStackLayout>
+                    <Editor x:Name="MessageEditor" HeightRequest="150" WidthRequest="45"/>
+                    <Button Text="Send" Clicked="OnSendClicked" Grid.Row="3"/>
+                </HorizontalStackLayout>
             </VerticalStackLayout>
             <VerticalStackLayout>
                 <Grid Padding="10">
@@ -49,11 +52,11 @@
                         <ColumnDefinition Width="100" />
                     </Grid.ColumnDefinitions>
                     <Label Text="Account" VerticalOptions="Center"/>
-                    <Editor x:Name="EditorAccount" Grid.Column="1"/>
+                    <Editor x:Name="AccountEditor" Grid.Column="1"/>
                     <Label Text="Password" Grid.Row="1" VerticalOptions="Center"/>
-                    <Editor x:Name="EditorPassword" Grid.Row="1" Grid.Column="1"/>
+                    <Editor x:Name="PasswordEditor" Grid.Row="1" Grid.Column="1"/>
                     <Label Text="Save" Grid.Row="2" VerticalOptions="Center"/>
-                    <CheckBox x:Name="CheckBoxSavePassword" Grid.Row="2" Grid.Column="1"/>
+                    <CheckBox x:Name="SavePasswordCheckBox" Grid.Row="2" Grid.Column="1"/>
                     <Button Text="Login" Clicked="OnLoginClicked" Grid.Row="3"/>
                     <Button Text="Create" Clicked="OnCreateClicked" Grid.Row="3" Grid.Column="1"/>
                     <Button Text="Clear All Certs" Grid.ColumnSpan="2" Clicked="OnClear" Grid.Row="4"/>

@@ -20,6 +20,9 @@ namespace Zege.User
 
         public async Task<int> OpenCertAsync(string account, string passwd, bool save)
         {
+            if (null == passwd)
+                passwd = string.Empty;
+
             var certSaved = await SecureStorage.Default.GetAsync(account + ".pkcs12");
             if (null == certSaved)
                 return 1;
@@ -32,8 +35,7 @@ namespace Zege.User
             // 证书打开成功以后，才进行密码修改或者删除。
             if (save)
             {
-                if (null != passwd)
-                    await SecureStorage.Default.SetAsync(account + ".password", passwd);
+                await SecureStorage.Default.SetAsync(account + ".password", passwd);
             }
             else
             {
@@ -45,6 +47,9 @@ namespace Zege.User
 
         public async Task<int> CreateAccountAsync(string account, string passwd, bool savedPasswd)
         {
+            if (null == passwd)
+                passwd = string.Empty;
+
             var certSaved = await SecureStorage.Default.GetAsync(account + ".pkcs12");
             if (certSaved != null)
                 return eAccountHasUsed;
@@ -65,7 +70,7 @@ namespace Zege.User
             Mission.VerifySkipResultCode(c.ResultCode);
 
             var cert = Cert.CreateFromCertAndPrivateKey(c.Result.Cert.GetBytesUnsafe(), rsa);
-            if (savedPasswd && null != passwd)
+            if (savedPasswd)
                 await SecureStorage.Default.SetAsync(account + ".password", passwd);
             var pkcs12 = cert.Export(X509ContentType.Pkcs12, passwd);
             await SecureStorage.Default.SetAsync(account + ".pkcs12", Convert.ToBase64String(pkcs12));

@@ -2,6 +2,7 @@
 using NLog;
 using NLog.Config;
 using NLog.Targets;
+using Zege.Friend;
 using Zege.User;
 
 namespace Zege
@@ -41,20 +42,48 @@ namespace Zege
                 App = new App();
                 App.Start("127.0.0.1", 5100);
                 App.Zege_Friend.Bind(FriendsListView);
+                App.Zege_Message.Bind(MessageWebView);
+                FriendsListView.ItemSelected += OnFriendsItemSelected;
             }
         }
 
-        private void OnLoginClicked(object sender, EventArgs e)
+        private void OnFriendsItemSelected(object sender, EventArgs e)
+        {
+            var selected = FriendsListView.SelectedItem as FriendItem;
+            if (null == selected)
+                return;
+
+            App.Zege_Message.ShowHistory(selected.Account);
+        }
+
+        private void OnSendClicked(object sender, EventArgs e)
+        {
+            var message = MessageEditor.Text;
+            if (string.IsNullOrEmpty(message))
+                return;
+
+            App?.Zege_Message.AddMessage(message);
+        }
+
+        private async void OnLoginClicked(object sender, EventArgs e)
         {
             StartApp();
 
-            var account = EditorAccount.Text;
-            var passwrd = EditorPassword.Text;
-            var save = CheckBoxSavePassword.IsChecked;
+            var account = AccountEditor.Text;
+            if (string.IsNullOrEmpty(account))
+            {
+                await DisplayAlert("Account", "Account Is Empty.", "Ok");
+                return;
+            }
+            var passwd = PasswordEditor.Text;
+            var save = SavePasswordCheckBox.IsChecked;
+
+            if (App.Zege_Linkd.ChallengeFuture.Task.IsCompletedSuccessfully)
+                return;
 
             Mission.Run(async () =>
             {
-                if (await App.Zege_Linkd.ChallengeMeAsync(account, passwrd, save))
+                if (await App.Zege_Linkd.ChallengeMeAsync(account, passwd, save))
                 {
                     App.Zege_Friend.GetFristFriendNodeAsync();
                     var clientId = "PC";
@@ -67,18 +96,23 @@ namespace Zege
             });
         }
 
-        private void OnCreateClicked(object sender, EventArgs e)
+        private async void OnCreateClicked(object sender, EventArgs e)
         {
             StartApp();
 
-            var account = EditorAccount.Text;
-            var passwrd = EditorPassword.Text;
-            var save = CheckBoxSavePassword.IsChecked;
+            var account = AccountEditor.Text;
+            if (string.IsNullOrEmpty(account))
+            {
+                await DisplayAlert("Account", "Account Is Empty.", "Ok");
+                return;
+            }
+            var passwd = PasswordEditor.Text;
+            var save = SavePasswordCheckBox.IsChecked;
 
             Mission.Run(async () =>
             {
                 await App.Connector.GetReadySocketAsync();
-                var rc = await App.Zege_User.CreateAccountAsync(account, passwrd, save);
+                var rc = await App.Zege_User.CreateAccountAsync(account, passwd, save);
                 switch (rc)
                 {
                     case 0:
