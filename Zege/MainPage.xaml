@@ -34,7 +34,7 @@
             <VerticalStackLayout>
                 <WebView x:Name="MessageWebView" HeightRequest="450" WidthRequest="600"/>
                 <HorizontalStackLayout>
-                    <Editor x:Name="MessageEditor" HeightRequest="150" WidthRequest="45"/>
+                    <Editor x:Name="MessageEditor" HeightRequest="150" WidthRequest="445"/>
                     <Button Text="Send" Clicked="OnSendClicked" Grid.Row="3"/>
                 </HorizontalStackLayout>
             </VerticalStackLayout>

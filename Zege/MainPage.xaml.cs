@@ -63,6 +63,7 @@ namespace Zege
                 return;
 
             App?.Zege_Message.AddMessage(message);
+            MessageEditor.Text = string.Empty;
         }
 
         private async void OnLoginClicked(object sender, EventArgs e)

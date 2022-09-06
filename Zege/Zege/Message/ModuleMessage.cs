@@ -39,7 +39,10 @@ namespace Zege.Message
 
         public void AddMessage(string message)
         {
-            WebView.Eval($"addMessage({message})");
+            var self = Random.Shared.Next(100) > 50;
+            var className = self ? "class=\"SelfMessage\"" : string.Empty;
+            message = message.Replace("\r", $"<br>");
+            WebView.Eval($"addMessage('<p {className}>{message}</p>')");
         }
 
         public const string MessageHistoryHtml =
@@ -48,6 +51,12 @@ namespace Zege.Message
                 <html>
                 <head>
                 <meta charset="utf-8">
+                <style type = "text/css"> 
+                    .SelfMessage { 
+                        text-align: right;
+                        color: blue;
+                    } 
+                </style>
                 <script>
                     function addMessage(message)
                     {
@@ -59,7 +68,7 @@ namespace Zege.Message
                 </script>
                 </head>
                 <body>
-                    <table id="history">
+                    <table id="history" style="width:100%">
                     </table>
                 </body>
                 </html>
