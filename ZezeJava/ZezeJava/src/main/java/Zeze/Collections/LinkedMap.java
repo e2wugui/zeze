@@ -53,7 +53,7 @@ public class LinkedMap<V extends Bean> {
 
 		private void OnLinkedMapRootChange(Object key, Changes.Record r) {
 			var name = (String)key;
-			var indexOf = name.indexOf('@');
+			var indexOf = name.lastIndexOf('@');
 			if (indexOf >= 0) {
 				var endsWith = name.substring(indexOf);
 				var listener = RootListeners.get(endsWith);
