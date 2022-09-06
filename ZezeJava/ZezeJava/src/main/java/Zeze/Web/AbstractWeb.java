@@ -46,8 +46,8 @@ public abstract class AbstractWeb extends Zeze.IModule {
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Web.ResponseOutputStream>();
             factoryHandle.Factory = Zeze.Builtin.Web.ResponseOutputStream::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessResponseOutputStreamRequest", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessResponseOutputStreamRequest", Zeze.Transaction.DispatchMode.Normal);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessResponseOutputStreamResponse", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessResponseOutputStreamResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47683493379098L, factoryHandle); // 11102, 766458906
         }
     }

@@ -500,16 +500,14 @@ namespace Zeze.Transaction
             var tkey = new TableKey(Id, key);
 
             var cr = currentT.GetRecordAccessed(tkey);
-            if (null != cr)
+            if (cr == null)
             {
-                value.InitRootInfoWithRedo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
-                cr.Put(currentT, value);
-                return;
+                var r = await LoadAsync(key);
+                cr = new Transaction.RecordAccessed(r);
+                currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
             }
-            var r = await LoadAsync(key);
-            cr = new Transaction.RecordAccessed(r);
+            value.InitRootInfoWithRedo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
             cr.Put(currentT, value);
-            currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
         }
 
         // 几乎和Put一样，还是独立开吧。

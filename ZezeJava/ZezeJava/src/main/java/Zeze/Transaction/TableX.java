@@ -549,15 +549,13 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 		var tkey = new TableKey(getId(), key);
 		var cr = currentT.GetRecordAccessed(tkey);
-		if (cr != null) {
-			value.InitRootInfoWithRedo(cr.AtomicTupleRecord.Record.CreateRootInfoIfNeed(tkey), null);
-			cr.Put(currentT, value);
-			return;
+		if (cr == null) {
+			var r = Load(key);
+			cr = new RecordAccessed(r);
+			currentT.AddRecordAccessed(r.Record.CreateRootInfoIfNeed(tkey), cr);
 		}
-		var r = Load(key);
-		cr = new RecordAccessed(r);
+		value.InitRootInfoWithRedo(cr.AtomicTupleRecord.Record.CreateRootInfoIfNeed(tkey), null);
 		cr.Put(currentT, value);
-		currentT.AddRecordAccessed(r.Record.CreateRootInfoIfNeed(tkey), cr);
 	}
 
 	// 几乎和Put一样，还是独立开吧。

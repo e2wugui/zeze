@@ -198,16 +198,14 @@ namespace Zeze.Raft.RocksRaft
             var tkey = new TableKey(Name, key);
 
             var cr = currentT.GetRecordAccessed(tkey);
-            if (null != cr)
+            if (cr == null)
             {
-                value.InitRootInfo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
-                cr.Put(currentT, value);
-                return;
+                var r = await Load(key);
+                cr = new Transaction.RecordAccessed(r);
+                currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
             }
-            Record<K, V> r = await Load(key);
-            cr = new Transaction.RecordAccessed(r);
+            value.InitRootInfo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
             cr.Put(currentT, value);
-            currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
         }
 
         // 几乎和Put一样，还是独立开吧。

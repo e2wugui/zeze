@@ -94,15 +94,15 @@ public abstract class AbstractLinkdProvider extends Zeze.IModule {
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Web.Request>();
             factoryHandle.Factory = Zeze.Builtin.Web.Request::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessRequestRequest", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessRequestRequest", Zeze.Transaction.DispatchMode.Normal);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessRequestResponse", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessRequestResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47686903989781L, factoryHandle); // 11102, -117897707
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Web.RequestInputStream>();
             factoryHandle.Factory = Zeze.Builtin.Web.RequestInputStream::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessRequestInputStreamRequest", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessRequestInputStreamRequest", Zeze.Transaction.DispatchMode.Normal);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessRequestInputStreamResponse", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessRequestInputStreamResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47684633737525L, factoryHandle); // 11102, 1906817333
         }
         {

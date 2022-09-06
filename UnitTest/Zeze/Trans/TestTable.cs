@@ -167,6 +167,7 @@ namespace UnitTest.Zeze.Trans
             v.Byte13 = 13;
 
             await demo.App.Instance.demo_Module1.Table2.PutAsync(key, v);
+            Assert.IsTrue(v.IsManaged);
             Assert.IsTrue(v == await demo.App.Instance.demo_Module1.Table2.GetAsync(key));
             return ResultCode.Success;
         }

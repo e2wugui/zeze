@@ -52,8 +52,8 @@ namespace Zeze.Services
             service.AddFactoryHandle(47250386526035, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zeze.Builtin.GlobalCacheManagerWithRaft.Reduce(),
-                TransactionLevel = _reflect.GetTransactionLevel("ProcessReduceRequest", Zeze.Transaction.TransactionLevel.Serializable),
-                Mode = _reflect.GetDispatchMode("ProcessReduceRequest", Zeze.Transaction.DispatchMode.Normal),
+                TransactionLevel = _reflect.GetTransactionLevel("ProcessReduceResponse", Zeze.Transaction.TransactionLevel.Serializable),
+                Mode = _reflect.GetDispatchMode("ProcessReduceResponse", Zeze.Transaction.DispatchMode.Normal),
             });
             service.AddFactoryHandle(47251807618150, new Zeze.Net.Service.ProtocolFactoryHandle()
             {

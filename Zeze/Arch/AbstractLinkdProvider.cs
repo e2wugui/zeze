@@ -19,7 +19,7 @@ namespace Zeze.Arch
                 Factory = () => new Zeze.Builtin.Provider.AnnounceProviderInfo(),
                 Handle = ProcessAnnounceProviderInfo,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessAnnounceProviderInfop", Zeze.Transaction.TransactionLevel.None),
-                Mode = _reflect.GetDispatchMode("ProcessAnnounceProviderInfoRequest", Zeze.Transaction.DispatchMode.Normal),
+                Mode = _reflect.GetDispatchMode("ProcessAnnounceProviderInfo", Zeze.Transaction.DispatchMode.Normal),
             });
             service.AddFactoryHandle(47279114253990, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
@@ -33,14 +33,14 @@ namespace Zeze.Arch
                 Factory = () => new Zeze.Builtin.Provider.Broadcast(),
                 Handle = ProcessBroadcast,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessBroadcastp", Zeze.Transaction.TransactionLevel.Serializable),
-                Mode = _reflect.GetDispatchMode("ProcessBroadcastRequest", Zeze.Transaction.DispatchMode.Normal),
+                Mode = _reflect.GetDispatchMode("ProcessBroadcast", Zeze.Transaction.DispatchMode.Normal),
             });
             service.AddFactoryHandle(47283221887522, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zeze.Builtin.Provider.Kick(),
                 Handle = ProcessKick,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessKickp", Zeze.Transaction.TransactionLevel.Serializable),
-                Mode = _reflect.GetDispatchMode("ProcessKickRequest", Zeze.Transaction.DispatchMode.Normal),
+                Mode = _reflect.GetDispatchMode("ProcessKick", Zeze.Transaction.DispatchMode.Normal),
             });
             service.AddFactoryHandle(47281226998238, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
@@ -54,7 +54,7 @@ namespace Zeze.Arch
                 Factory = () => new Zeze.Builtin.Provider.SetUserState(),
                 Handle = ProcessSetUserState,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessSetUserStatep", Zeze.Transaction.TransactionLevel.Serializable),
-                Mode = _reflect.GetDispatchMode("ProcessSetUserStateRequest", Zeze.Transaction.DispatchMode.Normal),
+                Mode = _reflect.GetDispatchMode("ProcessSetUserState", Zeze.Transaction.DispatchMode.Normal),
             });
             service.AddFactoryHandle(47280110454586, new Zeze.Net.Service.ProtocolFactoryHandle()
             {

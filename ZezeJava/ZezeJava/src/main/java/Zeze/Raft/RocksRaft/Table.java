@@ -225,15 +225,13 @@ public final class Table<K, V extends Bean> {
 		TableKey tkey = new TableKey(Name, key);
 
 		var cr = currentT.GetRecordAccessed(tkey);
-		if (cr != null) {
-			value.InitRootInfo(cr.getOrigin().CreateRootInfoIfNeed(tkey), null);
-			cr.Put(currentT, value);
-			return;
+		if (cr == null) {
+			var r = GetOrLoad(key);
+			cr = new Transaction.RecordAccessed(r);
+			currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
 		}
-		Record<K> r = GetOrLoad(key);
-		cr = new Transaction.RecordAccessed(r);
+		value.InitRootInfo(cr.getOrigin().CreateRootInfoIfNeed(tkey), null);
 		cr.Put(currentT, value);
-		currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
 	}
 
 	// 几乎和Put一样，还是独立开吧。

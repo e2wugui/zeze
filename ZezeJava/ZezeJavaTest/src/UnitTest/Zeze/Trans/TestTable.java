@@ -166,6 +166,7 @@ public class TestTable {
 		v.setByte13((byte)13);
 
 		demo.App.getInstance().demo_Module1.getTable2().put(key, v);
+		Assert.assertTrue(v.isManaged());
 		Assert.assertEquals(v, demo.App.getInstance().demo_Module1.getTable2().get(key));
 		return Procedure.Success;
 	}

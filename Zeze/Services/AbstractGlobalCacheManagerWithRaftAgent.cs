@@ -17,32 +17,32 @@ namespace Zeze.Services
             service.AddFactoryHandle(47251404755902, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zeze.Builtin.GlobalCacheManagerWithRaft.Acquire(),
-                TransactionLevel = _reflect.GetTransactionLevel("ProcessAcquireRequest", Zeze.Transaction.TransactionLevel.Serializable),
-                Mode = _reflect.GetDispatchMode("ProcessAcquireRequest", Zeze.Transaction.DispatchMode.Normal),
+                TransactionLevel = _reflect.GetTransactionLevel("ProcessAcquireResponse", Zeze.Transaction.TransactionLevel.Serializable),
+                Mode = _reflect.GetDispatchMode("ProcessAcquireResponse", Zeze.Transaction.DispatchMode.Normal),
             });
             service.AddFactoryHandle(47253156226169, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zeze.Builtin.GlobalCacheManagerWithRaft.Cleanup(),
-                TransactionLevel = _reflect.GetTransactionLevel("ProcessCleanupRequest", Zeze.Transaction.TransactionLevel.Serializable),
-                Mode = _reflect.GetDispatchMode("ProcessCleanupRequest", Zeze.Transaction.DispatchMode.Normal),
+                TransactionLevel = _reflect.GetTransactionLevel("ProcessCleanupResponse", Zeze.Transaction.TransactionLevel.Serializable),
+                Mode = _reflect.GetDispatchMode("ProcessCleanupResponse", Zeze.Transaction.DispatchMode.Normal),
             });
             service.AddFactoryHandle(47249886857671, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zeze.Builtin.GlobalCacheManagerWithRaft.KeepAlive(),
-                TransactionLevel = _reflect.GetTransactionLevel("ProcessKeepAliveRequest", Zeze.Transaction.TransactionLevel.Serializable),
-                Mode = _reflect.GetDispatchMode("ProcessKeepAliveRequest", Zeze.Transaction.DispatchMode.Normal),
+                TransactionLevel = _reflect.GetTransactionLevel("ProcessKeepAliveResponse", Zeze.Transaction.TransactionLevel.Serializable),
+                Mode = _reflect.GetDispatchMode("ProcessKeepAliveResponse", Zeze.Transaction.DispatchMode.Normal),
             });
             service.AddFactoryHandle(47251261574418, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zeze.Builtin.GlobalCacheManagerWithRaft.Login(),
-                TransactionLevel = _reflect.GetTransactionLevel("ProcessLoginRequest", Zeze.Transaction.TransactionLevel.Serializable),
-                Mode = _reflect.GetDispatchMode("ProcessLoginRequest", Zeze.Transaction.DispatchMode.Normal),
+                TransactionLevel = _reflect.GetTransactionLevel("ProcessLoginResponse", Zeze.Transaction.TransactionLevel.Serializable),
+                Mode = _reflect.GetDispatchMode("ProcessLoginResponse", Zeze.Transaction.DispatchMode.Normal),
             });
             service.AddFactoryHandle(47249192987366, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zeze.Builtin.GlobalCacheManagerWithRaft.NormalClose(),
-                TransactionLevel = _reflect.GetTransactionLevel("ProcessNormalCloseRequest", Zeze.Transaction.TransactionLevel.Serializable),
-                Mode = _reflect.GetDispatchMode("ProcessNormalCloseRequest", Zeze.Transaction.DispatchMode.Normal),
+                TransactionLevel = _reflect.GetTransactionLevel("ProcessNormalCloseResponse", Zeze.Transaction.TransactionLevel.Serializable),
+                Mode = _reflect.GetDispatchMode("ProcessNormalCloseResponse", Zeze.Transaction.DispatchMode.Normal),
             });
             service.AddFactoryHandle(47250386526035, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
@@ -54,8 +54,8 @@ namespace Zeze.Services
             service.AddFactoryHandle(47251807618150, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zeze.Builtin.GlobalCacheManagerWithRaft.ReLogin(),
-                TransactionLevel = _reflect.GetTransactionLevel("ProcessReLoginRequest", Zeze.Transaction.TransactionLevel.Serializable),
-                Mode = _reflect.GetDispatchMode("ProcessReLoginRequest", Zeze.Transaction.DispatchMode.Normal),
+                TransactionLevel = _reflect.GetTransactionLevel("ProcessReLoginResponse", Zeze.Transaction.TransactionLevel.Serializable),
+                Mode = _reflect.GetDispatchMode("ProcessReLoginResponse", Zeze.Transaction.DispatchMode.Normal),
             });
         }
 
