@@ -29,6 +29,10 @@ public class ModuleUser extends AbstractModule {
         return _tUser.get(account);
     }
 
+    public BUser selectDirty(String account) {
+        return _tUser.selectDirty(account);
+    }
+
     public boolean containsKey(String account) {
         return _tUser.get(account) != null;
     }

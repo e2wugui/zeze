@@ -107,6 +107,11 @@ public class ModuleFriend extends AbstractModule {
                     + " ecode=" + IModule.GetErrorCode(req.getResultCode())
             );
     }
+    @Override
+    protected long ProcessFriendNodeLogBeanNotify(Zege.Friend.FriendNodeLogBeanNotify p) {
+        return Zeze.Transaction.Procedure.NotImplement;
+    }
+
     // ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
     public ModuleFriend(Zege.App app) {
         super(app);

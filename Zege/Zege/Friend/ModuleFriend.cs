@@ -1,7 +1,9 @@
 
 using System.Collections.ObjectModel;
 using Zeze.Net;
+using Zeze.Serialize;
 using Zeze.Transaction;
+using Zeze.Transaction.Collections;
 using Zeze.Util;
 
 namespace Zege.Friend
@@ -16,17 +18,52 @@ namespace Zege.Friend
         {
         }
 
-        // ¸øListViewÌá¹©Êı¾İ£¬¿ÉÄÜÊÇ±¾µØCachedNodesÖĞºÃÓÑµÄÒ»²¿·Ö¡£
+        // ç»™ListViewæä¾›æ•°æ®ï¼Œå¯èƒ½æ˜¯æœ¬åœ°CachedNodesä¸­å¥½å‹çš„ä¸€éƒ¨åˆ†ã€‚
         private ObservableCollection<FriendItem> ItemsSource { get; set; } = new();
         private ListView ListView { get; set; }
 
-        // ÖÃ¶¥ºÃÓÑµ¥¶À±£´æ¡£
+        // ç½®é¡¶å¥½å‹å•ç‹¬ä¿å­˜ã€‚
         // private BTopmostFriend Topmost;
 
-        // ÏÈÊµÏÖ½ö´ÓÎ²²¿Ìí¼ÓºÍÉ¾³ı½ÚµãµÄ·½°¸¡£
-        // Ö§³Ö´ÓÍ·²¿É¾³ıÏÂÒ»²½¿¼ÂÇ¡£
+        // å…ˆå®ç°ä»…ä»å°¾éƒ¨æ·»åŠ å’Œåˆ é™¤èŠ‚ç‚¹çš„æ–¹æ¡ˆã€‚
+        // æ”¯æŒä»å¤´éƒ¨åˆ é™¤ä¸‹ä¸€æ­¥è€ƒè™‘ã€‚
         private List<BGetFriendNode> Nodes { get; } = new();
         private GetFriendNode GetFriendNodePending { get; set; }
+
+        [DispatchMode(Mode = DispatchMode.UIThread)]
+        protected override Task<long> ProcessFriendNodeLogBeanNotify(Protocol _p)
+        {
+            var p = _p as FriendNodeLogBeanNotify;
+            var indexOf = NodesIndexOf(p.Argument.NodeId);
+            if (indexOf >= 0)
+            {
+                switch (p.Argument.ChangeTag)
+                {
+                    case BFriendNodeLogBean.ChangeTagRemove:
+                        // TODO remove 
+                        break;
+
+                    case BFriendNodeLogBean.ChangeTagPut:
+                        {
+                            var node = new BGetFriendNode();
+                            node.Decode(ByteBuffer.Wrap(p.Argument.ChangeLog));
+                            UpdateItemsSource(indexOf, node);
+                        }
+                        break;
+
+                    case BFriendNodeLogBean.ChangeTagEdit:
+                        {
+                            var logBean = new LogBean();
+                            logBean.Decode(ByteBuffer.Wrap(p.Argument.ChangeLog));
+                            var node = Nodes[indexOf];
+                            node.FollowerApply(logBean);
+                            UpdateItemsSource(indexOf, node);
+                        }
+                        break;
+                }
+            }
+            return Task.FromResult(ResultCode.Success);
+        }
 
         private GetFriendNode TryNewGetFriendNode(bool forward)
         {
@@ -36,12 +73,12 @@ namespace Zege.Friend
                 {
                     var last = Nodes[^1];
                     if (last.NextNodeId == 0)
-                        return null; // ÒÑ¾­ÊÇ×îºóÒ»¸ö½ÚµãÁË¡£
+                        return null; // å·²ç»æ˜¯æœ€åä¸€ä¸ªèŠ‚ç‚¹äº†ã€‚
                     var rpc = new GetFriendNode();
                     rpc.Argument.NodeId = last.NextNodeId;
                     return rpc;
                 }
-                // else ³¢ÊÔ»ñÈ¡µÚÒ»¸ö½Úµã£¬Èç¹ûÓÃ»§Ã»ÓĞÈÎºÎºÃÓÑ½Úµã£¬»áÒ»Ö±³¢ÊÔ»ñÈ¡£¬TODO ´¦ÀíÒ»ÏÂ£¿
+                // else å°è¯•è·å–ç¬¬ä¸€ä¸ªèŠ‚ç‚¹ï¼Œå¦‚æœç”¨æˆ·æ²¡æœ‰ä»»ä½•å¥½å‹èŠ‚ç‚¹ï¼Œä¼šä¸€ç›´å°è¯•è·å–ï¼ŒTODO å¤„ç†ä¸€ä¸‹ï¼Ÿ
                 return new GetFriendNode();
             }
 
@@ -49,12 +86,12 @@ namespace Zege.Friend
             {
                 var last = Nodes[0];
                 if (last.PrevNodeId == 0)
-                    return null; // ÒÑ¾­ÊÇ×îºóÒ»¸ö½ÚµãÁË¡£
+                    return null; // å·²ç»æ˜¯æœ€åä¸€ä¸ªèŠ‚ç‚¹äº†ã€‚
                 var rpc = new GetFriendNode();
                 rpc.Argument.NodeId = last.PrevNodeId;
                 return rpc;
             }
-            // else ³¢ÊÔ»ñÈ¡µÚÒ»¸ö½Úµã£¬Èç¹ûÓÃ»§Ã»ÓĞÈÎºÎºÃÓÑ½Úµã£¬»áÒ»Ö±³¢ÊÔ»ñÈ¡£¬TODO ´¦ÀíÒ»ÏÂ£¿
+            // else å°è¯•è·å–ç¬¬ä¸€ä¸ªèŠ‚ç‚¹ï¼Œå¦‚æœç”¨æˆ·æ²¡æœ‰ä»»ä½•å¥½å‹èŠ‚ç‚¹ï¼Œä¼šä¸€ç›´å°è¯•è·å–ï¼ŒTODO å¤„ç†ä¸€ä¸‹ï¼Ÿ
             return new GetFriendNode();
 
         }
@@ -75,7 +112,7 @@ namespace Zege.Friend
             var r = p as GetFriendNode;
             if (r.ResultCode == 0)
             {
-                UpdateItemsSource(r.Result);
+                UpdateItemsSource(NodesIndexOf(r.Result.NodeId), r.Result);
             }
             return Task.FromResult(0L);
         }
@@ -101,7 +138,7 @@ namespace Zege.Friend
                 TryGetFriendNode(true);
         }
 
-        private int IndexOf(long nodeId)
+        private int NodesIndexOf(long nodeId)
         {
             for (int i = 0; i < Nodes.Count; ++i)
             {
@@ -126,13 +163,12 @@ namespace Zege.Friend
 
         private bool FriendMatch(FriendItem ii, BGetFriend jj)
         {
-            // todo ¸ü¶àÊı¾İ±ä»¯¼ì²é¡£
+            // todo æ›´å¤šæ•°æ®å˜åŒ–æ£€æŸ¥ã€‚
             return ii.Nick.Equals(jj.Memo + " " + jj.Nick);
         }
 
-        private void UpdateItemsSource(BGetFriendNode node)
+        private void UpdateItemsSource(int indexOf, BGetFriendNode node)
         {
-            var indexOf = IndexOf(node.NodeId);
             if (-1 == indexOf)
             {
                 Nodes.Add(node);
@@ -145,17 +181,17 @@ namespace Zege.Friend
             {
                 Nodes[indexOf] = node; // replace
 
-                // ¸üĞÂ½ÚµãÖĞµÄºÃÓÑµ½ViewÖĞ¡£
-                // ÓÉÓÚÖ±½ÓĞŞ¸Ä£ºObservableCollection[i].Nick = "New Nick"£»ÕâÖÖĞÎÊ½Ó¦¸ÃÊÇÃ»ÓĞÍ¨ÖªView¸üĞÂµÄ¡£
-                // ËùÒÔÏÂÃæ×Ô¼º±È½Ï£¬¾¡¿ÉÄÜÓÅ»¯ÉÙÈ¥ÒıÆğViewµÄ¸üĞÂ¡£
-                // Ëã·¨·ÖÎö£º
-                // nodeÖĞºÃÓÑÓÉÓÚ»î¶¯£¬¿ÉÄÜ»á±»ÌáÉıµ½¿ªÍ·£¨¿ÉÄÜ²»ÔÙÕâ¸ö½Úµã£¬Ìáµ½ÁË¸üÇ°ÃæµÄ½Úµã£©¡£
-                // ÏÂÃæ´ÓÎ²°Í¿ªÊ¼±È½Ï£¬¿ÉÄÜÔÚÑ­»·ÖĞÉ¾³ı¡£
-                // ±È½ÏÍêÈ«Æ¥Åä£¬²»¸üĞÂItemsSource£»
-                // ±È½Ï²»Æ¥ÅäÊ±£¬´ÓItemsSourceÖĞÉ¾³ıµ±Ç°Ïî£»
+                // æ›´æ–°èŠ‚ç‚¹ä¸­çš„å¥½å‹åˆ°Viewä¸­ã€‚
+                // ç”±äºç›´æ¥ä¿®æ”¹ï¼šObservableCollection[i].Nick = "New Nick"ï¼›è¿™ç§å½¢å¼åº”è¯¥æ˜¯æ²¡æœ‰é€šçŸ¥Viewæ›´æ–°çš„ã€‚
+                // æ‰€ä»¥ä¸‹é¢è‡ªå·±æ¯”è¾ƒï¼Œå°½å¯èƒ½ä¼˜åŒ–å°‘å»å¼•èµ·Viewçš„æ›´æ–°ã€‚
+                // ç®—æ³•åˆ†æï¼š
+                // nodeä¸­å¥½å‹ç”±äºæ´»åŠ¨ï¼Œå¯èƒ½ä¼šè¢«æå‡åˆ°å¼€å¤´ï¼ˆå¯èƒ½ä¸å†è¿™ä¸ªèŠ‚ç‚¹ï¼Œæåˆ°äº†æ›´å‰é¢çš„èŠ‚ç‚¹ï¼‰ã€‚
+                // ä¸‹é¢ä»å°¾å·´å¼€å§‹æ¯”è¾ƒï¼Œå¯èƒ½åœ¨å¾ªç¯ä¸­åˆ é™¤ã€‚
+                // æ¯”è¾ƒå®Œå…¨åŒ¹é…ï¼Œä¸æ›´æ–°ItemsSourceï¼›
+                // æ¯”è¾ƒä¸åŒ¹é…æ—¶ï¼Œä»ItemsSourceä¸­åˆ é™¤å½“å‰é¡¹ï¼›
 
                 // reverse walk. maybe RemoveAt in loop.
-                // ¶¨Î»ItemsSourceÖĞÊÇ±¾½ÚµãºÃÓÑµÄ×îºóÒ»¸ö¡£
+                // å®šä½ItemsSourceä¸­æ˜¯æœ¬èŠ‚ç‚¹å¥½å‹çš„æœ€åä¸€ä¸ªã€‚
                 int i = ItemsSource.Count - 1;
                 for (; i >= 0; --i)
                 {
@@ -165,13 +201,13 @@ namespace Zege.Friend
                 if (-1 == i)
                     return; // impossible.
 
-                // ±È½ÏfriendÊı¾İÊÇ·ñ¸Ä±ä
+                // æ¯”è¾ƒfriendæ•°æ®æ˜¯å¦æ”¹å˜
                 int j = node.Friends.Count - 1;
                 while (i >= 0 && j >= 0)
                 {
                     var ii = ItemsSource[i];
                     if (ii.NodeId != node.NodeId)
-                        break; // view ÖĞÊôÓÚµ±Ç°½ÚµãµÄitemÒÑ¾­½áÊø¡£
+                        break; // view ä¸­å±äºå½“å‰èŠ‚ç‚¹çš„itemå·²ç»ç»“æŸã€‚
 
                     var jj = node.Friends[j];
 
@@ -179,33 +215,33 @@ namespace Zege.Friend
                     {
                         if (FriendMatch(ii, jj))
                         {
-                            // Êı¾İ·¢ÉúÁË±ä¸ü£¬Ê¹ÓÃÉ¾³ıÔÙ´Î¼ÓÈëµÄ·½Ê½¸üĞÂView¡£
+                            // æ•°æ®å‘ç”Ÿäº†å˜æ›´ï¼Œä½¿ç”¨åˆ é™¤å†æ¬¡åŠ å…¥çš„æ–¹å¼æ›´æ–°Viewã€‚
                             ItemsSource.RemoveAt(i);
                             ItemsSource.Insert(i, FriendToItem(node.NodeId, jj));
                         }
-                        // ÏàÍ¬µÄºÃÓÑ£¬´¦ÀíÍê³É£¬¶¼ÍùÇ°ÍÆ½ø¡£
+                        // ç›¸åŒçš„å¥½å‹ï¼Œå¤„ç†å®Œæˆï¼Œéƒ½å¾€å‰æ¨è¿›ã€‚
                         --i;
                         --j;
                     }
                     else
                     {
-                        // ²»Í¬µÄºÃÓÑ£¬É¾³ıView£¬ÍùÇ°ÍÆ½ø£¬NodeÖĞµÄºÃÓÑ±£³Ö²»±ä¡£
+                        // ä¸åŒçš„å¥½å‹ï¼Œåˆ é™¤Viewï¼Œå¾€å‰æ¨è¿›ï¼ŒNodeä¸­çš„å¥½å‹ä¿æŒä¸å˜ã€‚
                         ItemsSource.RemoveAt(i);
                         --i;
                     }
                 }
 
-                // É¾³ıItemsSourceÖĞ¶à³öÀ´µÄitem
+                // åˆ é™¤ItemsSourceä¸­å¤šå‡ºæ¥çš„item
                 for (; i >= 0; --i)
                 {
                     var ii = ItemsSource[i];
                     if (ii.NodeId != node.NodeId)
-                        break; // view ÖĞÊôÓÚµ±Ç°½ÚµãµÄitemÒÑ¾­½áÊø¡£
+                        break; // view ä¸­å±äºå½“å‰èŠ‚ç‚¹çš„itemå·²ç»ç»“æŸã€‚
                     ItemsSource.RemoveAt(i);
                 }
 
-                // Ìí¼ÓNodeÖĞÊ£ÓàµÄfriend
-                ++i; // µ½ÕâÀïÊ±£¬iÎª-1£¬»òÕßÖ¸ÏòÇ°ÃæÒ»¸ö½ÚµãµÄ×îºóÒ»¸öºÃÓÑ¡£ĞèÒªÔÚÕâ¸öºóÃæ¿ªÊ¼²åÈëÊ£ÓàµÄfriend¡£
+                // æ·»åŠ Nodeä¸­å‰©ä½™çš„friend
+                ++i; // åˆ°è¿™é‡Œæ—¶ï¼Œiä¸º-1ï¼Œæˆ–è€…æŒ‡å‘å‰é¢ä¸€ä¸ªèŠ‚ç‚¹çš„æœ€åä¸€ä¸ªå¥½å‹ã€‚éœ€è¦åœ¨è¿™ä¸ªåé¢å¼€å§‹æ’å…¥å‰©ä½™çš„friendã€‚
                 for (; j >= 0; --j)
                 {
                     ItemsSource.Insert(i, FriendToItem(node.NodeId, node.Friends[j]));

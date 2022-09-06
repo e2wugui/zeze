@@ -9,6 +9,8 @@ import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeId;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.ChangeListener;
+import Zeze.Transaction.Changes;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Util.OutLong;
@@ -31,7 +33,35 @@ public class LinkedMap<V extends Bean> {
 		public Module(Zeze.Application zeze) {
 			Zeze = zeze;
 			RegisterZezeTables(zeze);
+
+			// 总是监听，但不直接开放。
+			// 监听回调按LinkedMap.Name的后缀名进行回调，不支持广播。
+			_tLinkedMapNodes.getChangeListenerMap().getListeners().add(this::OnLinkedMapNodeChange);
+			_tLinkedMaps.getChangeListenerMap().getListeners().add(this::OnLinkedMapRootChange);
 		}
+
+		private void OnLinkedMapNodeChange(Object key, Changes.Record r) {
+			var nodeKey = (BLinkedMapNodeKey)key;
+			var indexOf = nodeKey.getName().indexOf('@');
+			if (indexOf >= 0) {
+				var endsWith = nodeKey.getName().substring(indexOf);
+				var listener = NodeListeners.get(endsWith);
+				if (null != listener)
+					listener.OnChanged(key, r);
+			}
+		}
+
+		private void OnLinkedMapRootChange(Object key, Changes.Record r) {
+			var name = (String)key;
+			var indexOf = name.indexOf('@');
+			if (indexOf >= 0) {
+				var endsWith = name.substring(indexOf);
+				var listener = RootListeners.get(endsWith);
+				if (null != listener)
+					listener.OnChanged(key, r);
+			}
+		}
+
 
 		@Override
 		public void UnRegister() {
@@ -47,6 +77,9 @@ public class LinkedMap<V extends Bean> {
 		public <T extends Bean> LinkedMap<T> open(String name, Class<T> valueClass) {
 			return (LinkedMap<T>)LinkedMaps.computeIfAbsent(name, k -> new LinkedMap<>(this, k, valueClass, 100));
 		}
+
+		public ConcurrentHashMap<String, ChangeListener> NodeListeners = new ConcurrentHashMap<>();
+		public ConcurrentHashMap<String, ChangeListener> RootListeners = new ConcurrentHashMap<>();
 	}
 
 	private final Module module;

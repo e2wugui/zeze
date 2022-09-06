@@ -2,22 +2,60 @@ package Zege.Friend;
 
 import Zege.User.BUser;
 import Zeze.Arch.ProviderUserSession;
+import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode;
+import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey;
 import Zeze.Collections.DepartmentTree;
 import Zeze.Collections.LinkedMap;
 import Zeze.Component.AutoKey;
+import Zeze.Net.Binary;
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Changes;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutLong;
-import Zeze.Util.Random;
-import org.apache.commons.codec.binary.Base64;
 
 public class ModuleFriend extends AbstractModule {
     private AutoKey GroupIdAutoKey;
 
+    public static final String FriendsLinkedMapNameEndsWith = "@Zege.Friend";
+
     public void Start(Zege.App app) throws Throwable {
         GroupIdAutoKey = app.getZeze().GetAutoKey("Zege.GroupId");
+        App.LinkedMaps.NodeListeners.put(FriendsLinkedMapNameEndsWith, (key, r) -> {
+            var nodeKey = (BLinkedMapNodeKey)key;
+            var indexOf = nodeKey.getName().indexOf('@');
+            var account = nodeKey.getName().substring(0, indexOf);
+            var notify = new FriendNodeLogBeanNotify();
+            notify.Argument.setAccount(account);
+            notify.Argument.setNodeId(nodeKey.getNodeId());
+
+            // 协议的enum定义在BFriendNodeLogBean中，需要和Changes.Record中的定义一样。
+            notify.Argument.setChangeTag(r.getState());
+            // fill change log
+            switch (r.getState()) {
+            case Changes.Record.Remove:
+                App.Provider.Online.sendAccount(account, notify, null); // TODO online sender
+                break;
+
+            case Changes.Record.Put:
+                var node = new BGetFriendNode();
+                fillFriendNode(nodeKey.getNodeId(), (BLinkedMapNode)r.getValue(), node);
+                notify.Argument.setChangeLog(new Binary(ByteBuffer.Encode(node)));
+                App.Provider.Online.sendAccount(account, notify, null); // TODO online sender
+                break;
+
+            case Changes.Record.Edit:
+                var logBean = r.getLogBean();
+                if (null != logBean) {
+                    notify.Argument.setChangeLog(new Binary(ByteBuffer.Encode(logBean)));
+                    App.Provider.Online.sendAccount(account, notify, null); // TODO online sender
+                }
+                break;
+            }
+        });
     }
 
     public void Stop(Zege.App app) throws Throwable {
+        App.LinkedMaps.NodeListeners.remove(FriendsLinkedMapNameEndsWith);
     }
 
     public DepartmentTree<BManager, BGroupMember, BDepartmentMember, BGroupData, BDepartmentData> getGroup(String group) {
@@ -31,7 +69,7 @@ public class ModuleFriend extends AbstractModule {
     }
 
     public LinkedMap<BFriend> getFriends(String owner) {
-        return App.LinkedMaps.open(owner + "@Zege.Friend", BFriend.class, App.ZegeConfig.FriendCountPerNode);
+        return App.LinkedMaps.open(owner + FriendsLinkedMapNameEndsWith, BFriend.class, App.ZegeConfig.FriendCountPerNode);
     }
 
     @Override
@@ -120,6 +158,30 @@ public class ModuleFriend extends AbstractModule {
         return Procedure.Success;
     }
 
+    private void fillFriendNode(long nodeId, BLinkedMapNode friendNode, BGetFriendNode node) {
+        node.setNextNodeId(friendNode.getNextNodeId());
+        node.setPrevNodeId(friendNode.getPrevNodeId());
+        node.setNodeId(nodeId);
+        for (var friend : friendNode.getValues()) {
+            var get = new BGetFriend();
+
+            // fill from friend list
+            var data = (BFriend)friend.getValue().getBean();
+            get.setAccount(friend.getId());
+            get.setMemo(data.getMemo());
+
+            // fill from account
+            // 为了在Listner里面使用，必须使用selectDirty.
+            var account = App.Zege_User.selectDirty(get.getAccount());
+
+            get.setLastCertIndex(account.getLastCertIndex());
+            get.setCert(account.getCert());
+            get.setNick(account.getNick());
+
+            node.getFriends().add(get);
+        }
+    }
+
     @Override
     protected long ProcessGetFriendNodeRequest(Zege.Friend.GetFriendNode r) {
         var session = ProviderUserSession.get(r);
@@ -131,25 +193,7 @@ public class ModuleFriend extends AbstractModule {
         if (null == friendNode)
             return ErrorCode(eFriendNodeNotFound);
 
-        r.Result.setNextNodeId(friendNode.getNextNodeId());
-        r.Result.setPrevNodeId(friendNode.getPrevNodeId());
-        r.Result.setNodeId(nodeId.Value);
-        for (var friend : friendNode.getValues()) {
-            var get = new BGetFriend();
-
-            // fill from friend list
-            var data = (BFriend)friend.getValue().getBean();
-            get.setAccount(friend.getId());
-            get.setMemo(data.getMemo());
-
-            // fill from account
-            var account = App.Zege_User.get(get.getAccount());
-            get.setLastCertIndex(account.getLastCertIndex());
-            get.setCert(account.getCert());
-            get.setNick(account.getNick());
-
-            r.Result.getFriends().add(get);
-        }
+        fillFriendNode(nodeId.Value, friendNode, r.Result);
         session.sendResponseWhileCommit(r);
         return Procedure.Success;
     }
