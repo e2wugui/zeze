@@ -7,8 +7,6 @@ namespace Zege.User
 {
     public partial class ModuleUser : AbstractModule
     {
-        public string Account { get; private set; }
-
         public void Start(global::Zege.App app)
         {
         }
@@ -17,37 +15,45 @@ namespace Zege.User
         {
         }
 
-        public async Task<X509Certificate2> GetCertAsync()
+        public string Account { get; private set; }
+        public X509Certificate2 Certificate { get; private set; }
+
+        public async Task<int> OpenCertAsync(string account, string passwd, bool save)
         {
-            var certSaved = await SecureStorage.Default.GetAsync(Account + ".pkcs12");
+            var certSaved = await SecureStorage.Default.GetAsync(account + ".pkcs12");
             if (null == certSaved)
-                return null;
+                return 1;
 
             var pkcs12 = Convert.FromBase64String(certSaved);
-            var passwd = await SecureStorage.Default.GetAsync(Account + ".password");
-
             if (null == passwd)
-                passwd = await Mission.AppShell.GetPromptAsync("Seccurity", "Private Key Password");
+                passwd = await SecureStorage.Default.GetAsync(account + ".password");
+            Certificate = Cert.CreateFromPkcs12(pkcs12, passwd);
 
-            if (null == passwd)
-                throw new Exception("Open Private Key Fail.");
-
-            return Cert.CreateFromPkcs12(pkcs12, passwd);
+            // 证书打开成功以后，才进行密码修改或者删除。
+            if (save)
+            {
+                if (null != passwd)
+                    await SecureStorage.Default.SetAsync(account + ".password", passwd);
+            }
+            else
+            {
+                SecureStorage.Default.Remove(account + ".password");
+            }
+            Account = account;
+            return 0;
         }
 
-        public async Task<bool> TryCreateAsync(string account, string passwd, bool savedPasswd)
+        public async Task<int> CreateAccountAsync(string account, string passwd, bool savedPasswd)
         {
-            Account = account;
-
             var certSaved = await SecureStorage.Default.GetAsync(account + ".pkcs12");
             if (certSaved != null)
-                return false;
+                return eAccountHasUsed;
 
             var p = new Prepare();
             p.Argument.Account = account;
             await p.SendAsync(App.Connector.TryGetReadySocket());
             if (Mission.VerifySkipResultCode(p.ResultCode, eAccountHasUsed))
-                return false; // TODO 先简单忽略账号已经被使用的错误。完整的流程应该是把创建账号独立出来。
+                return eAccountHasUsed;
 
             var c = new Create();
             var rsa = Cert.GenerateRsa();
@@ -59,11 +65,11 @@ namespace Zege.User
             Mission.VerifySkipResultCode(c.ResultCode);
 
             var cert = Cert.CreateFromCertAndPrivateKey(c.Result.Cert.GetBytesUnsafe(), rsa);
-            if (savedPasswd)
+            if (savedPasswd && null != passwd)
                 await SecureStorage.Default.SetAsync(account + ".password", passwd);
             var pkcs12 = cert.Export(X509ContentType.Pkcs12, passwd);
             await SecureStorage.Default.SetAsync(account + ".pkcs12", Convert.ToBase64String(pkcs12));
-            return true;
+            return 0;
         }
     }
 }

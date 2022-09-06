@@ -19,5 +19,12 @@
             return await MainThread.InvokeOnMainThreadAsync(async () => await DisplayPromptAsync(title, message));
         }
 
+        public async Task DisplayAlertAsync(string title, string message)
+        {
+            if (MainThread.IsMainThread)
+                await DisplayAlert(title, message, "OK");
+            else
+                await MainThread.InvokeOnMainThreadAsync(async () => await DisplayAlert(title, message, "OK"));
+        }
     }
 }

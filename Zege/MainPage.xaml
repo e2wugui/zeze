@@ -31,17 +31,33 @@
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
-            
-            <WebView
-                Source="https://www.163.com"
-                HeightRequest="600"
-                WidthRequest="700"
-                HorizontalOptions="Center" 
-                />
-
             <VerticalStackLayout>
-                <Button Text="Login" Clicked="OnLoginClicked" HorizontalOptions="Center" />
-                <Button Text="Clear" Clicked="OnClear" HorizontalOptions="Center" />
+                <WebView Source="https://www.163.com" HeightRequest="450" WidthRequest="600"/>
+                <Editor x:Name="EditorMessage" HeightRequest="150" WidthRequest="600"/>
+            </VerticalStackLayout>
+            <VerticalStackLayout>
+                <Grid Padding="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="40" />
+                        <RowDefinition Height="40" />
+                        <RowDefinition Height="40" />
+                        <RowDefinition Height="40" />
+                        <RowDefinition Height="40" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="80" />
+                        <ColumnDefinition Width="100" />
+                    </Grid.ColumnDefinitions>
+                    <Label Text="Account" VerticalOptions="Center"/>
+                    <Editor x:Name="EditorAccount" Grid.Column="1"/>
+                    <Label Text="Password" Grid.Row="1" VerticalOptions="Center"/>
+                    <Editor x:Name="EditorPassword" Grid.Row="1" Grid.Column="1"/>
+                    <Label Text="Save" Grid.Row="2" VerticalOptions="Center"/>
+                    <CheckBox x:Name="CheckBoxSavePassword" Grid.Row="2" Grid.Column="1"/>
+                    <Button Text="Login" Clicked="OnLoginClicked" Grid.Row="3"/>
+                    <Button Text="Create" Clicked="OnCreateClicked" Grid.Row="3" Grid.Column="1"/>
+                    <Button Text="Clear All Certs" Grid.ColumnSpan="2" Clicked="OnClear" Grid.Row="4"/>
+                </Grid>
             </VerticalStackLayout>
 
         </HorizontalStackLayout>
