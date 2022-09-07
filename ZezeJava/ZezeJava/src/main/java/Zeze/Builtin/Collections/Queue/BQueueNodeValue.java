@@ -7,16 +7,13 @@ import Zeze.Serialize.ByteBuffer;
 public final class BQueueNodeValue extends Zeze.Transaction.Bean {
     private long _Timestamp;
     private final Zeze.Transaction.DynamicBean _Value;
-        public static long GetSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean) {
-            var _typeId_ = bean.typeId();
-            if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
-                return Zeze.Transaction.EmptyBean.TYPEID;
-            throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Collections.Queue.BQueueNodeValue:Value");
-        }
+    public static long GetSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean) {
+        return Zeze.Collections.Queue.GetSpecialTypeIdFromBean(bean);
+    }
 
-        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Value(long typeId) {
-            return null;
-        }
+    public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Value(long typeId) {
+        return Zeze.Collections.Queue.CreateBeanFromSpecialTypeId(typeId);
+    }
 
 
     public long getTimestamp() {

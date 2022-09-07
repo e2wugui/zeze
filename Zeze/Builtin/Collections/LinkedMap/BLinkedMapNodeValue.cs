@@ -22,16 +22,12 @@ namespace Zeze.Builtin.Collections.LinkedMap
         readonly Zeze.Transaction.DynamicBean _Value;
         public static long GetSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean)
         {
-            switch (bean.TypeId)
-            {
-                case Zeze.Transaction.EmptyBean.TYPEID: return Zeze.Transaction.EmptyBean.TYPEID;
-            }
-            throw new System.Exception("Unknown Bean! dynamic@Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue:Value");
+            return Zeze.Collections.LinkedMap.GetSpecialTypeIdFromBean(bean);
         }
 
         public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Value(long typeId)
         {
-            return null;
+            return Zeze.Collections.LinkedMap.CreateBeanFromSpecialTypeId(typeId);
         }
 
 

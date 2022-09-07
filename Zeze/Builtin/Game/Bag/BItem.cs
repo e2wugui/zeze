@@ -24,16 +24,12 @@ namespace Zeze.Builtin.Game.Bag
         readonly Zeze.Transaction.DynamicBean _Item;
         public static long GetSpecialTypeIdFromBean_Item(Zeze.Transaction.Bean bean)
         {
-            switch (bean.TypeId)
-            {
-                case Zeze.Transaction.EmptyBean.TYPEID: return Zeze.Transaction.EmptyBean.TYPEID;
-            }
-            throw new System.Exception("Unknown Bean! dynamic@Zeze.Builtin.Game.Bag.BItem:Item");
+            return Zeze.Game.Bag.GetSpecialTypeIdFromBean(bean);
         }
 
         public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Item(long typeId)
         {
-            return null;
+            return Zeze.Game.Bag.CreateBeanFromSpecialTypeId(typeId);
         }
 
 

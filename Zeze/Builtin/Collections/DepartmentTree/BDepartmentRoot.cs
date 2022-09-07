@@ -24,16 +24,12 @@ namespace Zeze.Builtin.Collections.DepartmentTree
         Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Transaction.DynamicBean,Zeze.Transaction.DynamicBean> _ManagersReadOnly;
         public static long GetSpecialTypeIdFromBean_Managers(Zeze.Transaction.Bean bean)
         {
-            switch (bean.TypeId)
-            {
-                case Zeze.Transaction.EmptyBean.TYPEID: return Zeze.Transaction.EmptyBean.TYPEID;
-            }
-            throw new System.Exception("Unknown Bean! dynamic@Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot:Managers");
+            return Zeze.Collections.DepartmentTree.GetSpecialTypeIdFromBean(bean);
         }
 
         public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Managers(long typeId)
         {
-            return null;
+            return Zeze.Collections.DepartmentTree.CreateBeanFromSpecialTypeId(typeId);
         }
 
         long _NextDepartmentId; // 部门Id种子

@@ -9,28 +9,22 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
     private final Zeze.Transaction.Collections.PMap1<String, Long> _Childs; // name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
     private String _Name;
     private final Zeze.Transaction.Collections.PMap1<String, Zeze.Transaction.DynamicBean> _Managers;
-        public static long GetSpecialTypeIdFromBean_Managers(Zeze.Transaction.Bean bean) {
-            var _typeId_ = bean.typeId();
-            if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
-                return Zeze.Transaction.EmptyBean.TYPEID;
-            throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode:Managers");
-        }
+    public static long GetSpecialTypeIdFromBean_Managers(Zeze.Transaction.Bean bean) {
+        return Zeze.Collections.DepartmentTree.GetSpecialTypeIdFromBean(bean);
+    }
 
-        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Managers(long typeId) {
-            return null;
-        }
+    public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Managers(long typeId) {
+        return Zeze.Collections.DepartmentTree.CreateBeanFromSpecialTypeId(typeId);
+    }
 
     private final Zeze.Transaction.DynamicBean _Data;
-        public static long GetSpecialTypeIdFromBean_Data(Zeze.Transaction.Bean bean) {
-            var _typeId_ = bean.typeId();
-            if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
-                return Zeze.Transaction.EmptyBean.TYPEID;
-            throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode:Data");
-        }
+    public static long GetSpecialTypeIdFromBean_Data(Zeze.Transaction.Bean bean) {
+        return Zeze.Collections.DepartmentTree.GetSpecialTypeIdFromBean(bean);
+    }
 
-        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Data(long typeId) {
-            return null;
-        }
+    public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Data(long typeId) {
+        return Zeze.Collections.DepartmentTree.CreateBeanFromSpecialTypeId(typeId);
+    }
 
 
     public long getParentDepartment() {

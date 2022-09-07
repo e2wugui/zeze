@@ -1,5 +1,6 @@
 
 using System.Collections.ObjectModel;
+using Zeze.Builtin.Collections.LinkedMap;
 using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Transaction;
@@ -47,7 +48,7 @@ namespace Zege.Friend
                         {
                             var node = new BGetFriendNode();
                             node.Decode(ByteBuffer.Wrap(p.Argument.ChangeLog));
-                            UpdateItemsSource(indexOf, node);
+                            UpdateItemsSource(p.Argument.NodeId, indexOf, node);
                         }
                         break;
 
@@ -57,7 +58,7 @@ namespace Zege.Friend
                             logBean.Decode(ByteBuffer.Wrap(p.Argument.ChangeLog));
                             var node = Nodes[indexOf];
                             node.FollowerApply(logBean);
-                            UpdateItemsSource(indexOf, node);
+                            UpdateItemsSource(p.Argument.NodeId, indexOf, node);
                         }
                         break;
                 }
@@ -72,10 +73,10 @@ namespace Zege.Friend
                 if (Nodes.Count > 0)
                 {
                     var last = Nodes[^1];
-                    if (last.NextNodeId == 0)
+                    if (last.Node.NextNodeId == 0)
                         return null; // 已经是最后一个节点了。
                     var rpc = new GetFriendNode();
-                    rpc.Argument.NodeId = last.NextNodeId;
+                    rpc.Argument.NodeId = last.Node.NextNodeId;
                     return rpc;
                 }
                 // else 尝试获取第一个节点，如果用户没有任何好友节点，会一直尝试获取，TODO 处理一下？
@@ -85,10 +86,10 @@ namespace Zege.Friend
             if (Nodes.Count > 0)
             {
                 var last = Nodes[0];
-                if (last.PrevNodeId == 0)
+                if (last.Node.PrevNodeId == 0)
                     return null; // 已经是最后一个节点了。
                 var rpc = new GetFriendNode();
-                rpc.Argument.NodeId = last.PrevNodeId;
+                rpc.Argument.NodeId = last.Node.PrevNodeId;
                 return rpc;
             }
             // else 尝试获取第一个节点，如果用户没有任何好友节点，会一直尝试获取，TODO 处理一下？
@@ -112,7 +113,7 @@ namespace Zege.Friend
             var r = p as GetFriendNode;
             if (r.ResultCode == 0)
             {
-                UpdateItemsSource(NodesIndexOf(r.Result.NodeId), r.Result);
+                UpdateItemsSource(r.Result.NodeId, NodesIndexOf(r.Result.NodeId), r.Result);
             }
             return Task.FromResult(0L);
         }
@@ -148,33 +149,34 @@ namespace Zege.Friend
             return -1;
         }
 
-        private FriendItem FriendToItem(long nodeId, BGetFriend friend)
+        private FriendItem FriendToItem(long nodeId, BLinkedMapNodeValue nodeValue)
         {
+            var friend = (BFriend)nodeValue.Value;
             return new FriendItem()
             {
                 NodeId = nodeId,
-                Account = friend.Account,
+                Account = nodeValue.Id,
                 Image = "https://www.google.com/images/hpp/Chrome_Owned_96x96.png",
-                Nick = friend.Memo + " " + friend.Nick,
+                Nick = friend.Memo,
                 Time = "12:30",
                 Message = "",
             };
         }
 
-        private bool FriendMatch(FriendItem ii, BGetFriend jj)
+        private bool FriendMatch(FriendItem ii, BLinkedMapNodeValue jj)
         {
-            // todo 更多数据变化检查。
-            return ii.Nick.Equals(jj.Memo + " " + jj.Nick);
+            // todo 更多数据变化检查。需要结合User.Nick？
+            return ii.Nick.Equals(((BFriend)jj.Value).Memo);
         }
 
-        private void UpdateItemsSource(int indexOf, BGetFriendNode node)
+        private void UpdateItemsSource(long nodeId, int indexOf, BGetFriendNode node)
         {
             if (-1 == indexOf)
             {
                 Nodes.Add(node);
-                foreach (var friend in node.Friends)
+                foreach (var friend in node.Node.Values)
                 {
-                    ItemsSource.Add(FriendToItem(node.NodeId, friend));
+                    ItemsSource.Add(FriendToItem(nodeId, friend));
                 }
             }
             else
@@ -202,16 +204,16 @@ namespace Zege.Friend
                     return; // impossible.
 
                 // 比较friend数据是否改变
-                int j = node.Friends.Count - 1;
+                int j = node.Node.Values.Count - 1;
                 while (i >= 0 && j >= 0)
                 {
                     var ii = ItemsSource[i];
                     if (ii.NodeId != node.NodeId)
                         break; // view 中属于当前节点的item已经结束。
 
-                    var jj = node.Friends[j];
+                    var jj = node.Node.Values[j];
 
-                    if (ii.Account.Equals(jj.Account))
+                    if (ii.Account.Equals(jj.Id))
                     {
                         if (FriendMatch(ii, jj)) // BUG：false == ；因为下面的RemoveAt第二次失败，先保留错误的代码。
                         {
@@ -235,7 +237,7 @@ namespace Zege.Friend
                 for (; i >= 0; --i)
                 {
                     var ii = ItemsSource[i];
-                    if (ii.NodeId != node.NodeId)
+                    if (ii.NodeId != nodeId)
                         break; // view 中属于当前节点的item已经结束。
                     ItemsSource.RemoveAt(i);
                 }
@@ -244,7 +246,7 @@ namespace Zege.Friend
                 ++i; // 到这里时，i为-1，或者指向前面一个节点的最后一个好友。需要在这个后面开始插入剩余的friend。
                 for (; j >= 0; --j)
                 {
-                    ItemsSource.Insert(i, FriendToItem(node.NodeId, node.Friends[j]));
+                    ItemsSource.Insert(i, FriendToItem(nodeId, node.Node.Values[j]));
                 }
             }
         }

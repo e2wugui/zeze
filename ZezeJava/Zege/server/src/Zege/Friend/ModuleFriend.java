@@ -34,26 +34,23 @@ public class ModuleFriend extends AbstractModule {
             switch (r.getState()) {
             case Changes.Record.Remove:
                 App.Provider.Online.sendAccount(account, notify, null); // TODO online sender
-                break;
+                return; // done
 
             case Changes.Record.Edit:
-                /*
                 var logBean = r.getLogBean();
                 if (null != logBean) {
                     notify.Argument.setChangeLog(new Binary(ByteBuffer.Encode(logBean)));
                     App.Provider.Online.sendAccount(account, notify, null); // TODO online sender
                 }
-                break;
-                */
-                // 由于表结构和传给客户端的结构不一致，无法使用增量日志。先通知整个Bean的修改。
-                notify.Argument.setChangeTag(Changes.Record.Put);
-                // fall down
+                return; // done
+
             case Changes.Record.Put:
                 var node = new BGetFriendNode();
-                fillFriendNode(nodeKey.getNodeId(), (BLinkedMapNode)r.getValue(), node);
+                node.setNodeId(nodeKey.getNodeId());
+                node.getNode().Assign((BLinkedMapNode)r.getValue()); // TODO 这里拷贝一次，有点浪费。优化？？？下面还有一处。
                 notify.Argument.setChangeLog(new Binary(ByteBuffer.Encode(node)));
                 App.Provider.Online.sendAccount(account, notify, null); // TODO online sender
-                break;
+                return; // done
             }
         });
     }
@@ -162,30 +159,6 @@ public class ModuleFriend extends AbstractModule {
         return Procedure.Success;
     }
 
-    private void fillFriendNode(long nodeId, BLinkedMapNode friendNode, BGetFriendNode node) {
-        node.setNextNodeId(friendNode.getNextNodeId());
-        node.setPrevNodeId(friendNode.getPrevNodeId());
-        node.setNodeId(nodeId);
-        for (var friend : friendNode.getValues()) {
-            var get = new BGetFriend();
-
-            // fill from friend list
-            var data = (BFriend)friend.getValue().getBean();
-            get.setAccount(friend.getId());
-            get.setMemo(data.getMemo());
-
-            // fill from account
-            // 为了在Listner里面使用，必须使用selectDirty.
-            var account = App.Zege_User.selectDirty(get.getAccount());
-
-            get.setLastCertIndex(account.getLastCertIndex());
-            get.setCert(account.getCert());
-            get.setNick(account.getNick());
-
-            node.getFriends().add(get);
-        }
-    }
-
     @Override
     protected long ProcessGetFriendNodeRequest(Zege.Friend.GetFriendNode r) {
         var session = ProviderUserSession.get(r);
@@ -197,7 +170,9 @@ public class ModuleFriend extends AbstractModule {
         if (null == friendNode)
             return ErrorCode(eFriendNodeNotFound);
 
-        fillFriendNode(nodeId.Value, friendNode, r.Result);
+        r.Result.setNodeId(nodeId.Value);
+        r.Result.getNode().Assign(friendNode); // TODO 这里拷贝一次，有点浪费。优化？？？上面还有一处。
+
         session.sendResponseWhileCommit(r);
         return Procedure.Success;
     }

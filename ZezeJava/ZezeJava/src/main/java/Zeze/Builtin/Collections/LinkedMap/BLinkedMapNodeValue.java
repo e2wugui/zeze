@@ -7,16 +7,13 @@ import Zeze.Serialize.ByteBuffer;
 public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
     private String _Id; // LinkedMap的Key转成字符串类型
     private final Zeze.Transaction.DynamicBean _Value;
-        public static long GetSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean) {
-            var _typeId_ = bean.typeId();
-            if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
-                return Zeze.Transaction.EmptyBean.TYPEID;
-            throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue:Value");
-        }
+    public static long GetSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean) {
+        return Zeze.Collections.LinkedMap.GetSpecialTypeIdFromBean(bean);
+    }
 
-        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Value(long typeId) {
-            return null;
-        }
+    public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Value(long typeId) {
+        return Zeze.Collections.LinkedMap.CreateBeanFromSpecialTypeId(typeId);
+    }
 
 
     public String getId() {

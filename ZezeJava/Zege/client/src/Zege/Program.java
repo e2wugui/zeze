@@ -467,10 +467,10 @@ public class Program {
 		public long NodeId;
 		public BGetFriendNode Node;
 
-		public BGetFriend find(String value) {
-			for (var friend : Node.getFriends()) {
-				if (friend.getAccount().equals(value))
-					return friend;
+		public BFriend find(String value) {
+			for (var friend : Node.getNode().getValues()) {
+				if (friend.getId().equals(value))
+					return (BFriend)friend.getValue().getBean();
 			}
 			return null;
 		}
@@ -499,10 +499,10 @@ public class Program {
 		@Override
 		public void refresh() {
 			Node = App.Instance.Zege_Friend.getFriendNode(NodeId);
-			for (var friend : Node.getFriends()) {
-				System.out.print(friend.getAccount());
+			for (var friend : Node.getNode().getValues()) {
+				System.out.print(friend.getId());
 				// 子部门的消息不统计。
-				var list = ReceivedMessages.get(new MessageTarget(friend.getAccount(), 0));
+				var list = ReceivedMessages.get(new MessageTarget(friend.getId(), 0));
 				System.out.println(null == list ? "" : "(" + list.size() + ")");
 			}
 		}

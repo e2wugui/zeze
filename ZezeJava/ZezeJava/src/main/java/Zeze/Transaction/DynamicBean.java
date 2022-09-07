@@ -144,6 +144,11 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		_Bean.ResetChildrenRootInfo();
 	}
 
+	@Override
+	public void FollowerApply(Log log) {
+		_Bean.FollowerApply(log);
+	}
+
 	private static final class LogV extends Log1<DynamicBean, Bean> {
 		private final long SpecialTypeId;
 

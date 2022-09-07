@@ -121,27 +121,44 @@ namespace Zeze.Gen.confcs
             var baseType = string.IsNullOrEmpty(type.DynamicParams.Base) ? "Zeze.Util.ConfBean" : type.DynamicParams.Base;
             sw.WriteLine($"{prefix}public static long GetSpecialTypeIdFromBean_{var.NameUpper1}({baseType} bean)");
             sw.WriteLine($"{prefix}{{");
-            sw.WriteLine($"{prefix}    switch (bean.TypeId)");
-            sw.WriteLine($"{prefix}    {{");
-            // sw.WriteLine($"{prefix}        case Zeze.Util.ConfEmptyBean.TYPEID: return Zeze.Util.ConfEmptyBean.TYPEID;");
-            foreach (var real in type.RealBeans)
-                sw.WriteLine($"{prefix}        case {real.Value.TypeId}: return {real.Key}; // {real.Value.FullName}");
-            sw.WriteLine($"{prefix}    }}");
-            sw.WriteLine($"{prefix}    throw new System.Exception(\"Unknown Bean! dynamic@{((Bean)var.Bean).FullName}:{var.Name}: \" + bean.GetType());");
+            if (string.IsNullOrEmpty(type.DynamicParams.GetSpecialTypeIdFromBean))
+            {
+                // 根据配置的实际类型生成switch。
+                sw.WriteLine($"{prefix}    switch (bean.TypeId)");
+                sw.WriteLine($"{prefix}    {{");
+                // sw.WriteLine($"{prefix}        case Zeze.Util.ConfEmptyBean.TYPEID: return Zeze.Util.ConfEmptyBean.TYPEID;");
+                foreach (var real in type.RealBeans)
+                    sw.WriteLine($"{prefix}        case {real.Value.TypeId}: return {real.Key}; // {real.Value.FullName}");
+                sw.WriteLine($"{prefix}    }}");
+                sw.WriteLine($"{prefix}    throw new System.Exception(\"Unknown Bean! dynamic@{((Bean)var.Bean).FullName}:{var.Name}: \" + bean.GetType());");
+            }
+            else
+            {
+                // 转发给全局静态（static）函数。
+                sw.WriteLine($"{prefix}    return {type.DynamicParams.GetSpecialTypeIdFromBean.Replace("::", ".")}(bean);");
+            }
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
             sw.WriteLine($"{prefix}public static {baseType} CreateBeanFromSpecialTypeId_{var.NameUpper1}(long typeId)");
             sw.WriteLine($"{prefix}{{");
-            if (type.RealBeans.Count > 0)
+            if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId))
             {
-                sw.WriteLine($"{prefix}    switch (typeId)");
-                sw.WriteLine($"{prefix}    {{");
-                //sw.WriteLine($"{prefix}        case Zeze.Transaction.EmptyBean.TYPEID: return new Zeze.Transaction.EmptyBean();");
-                foreach (var real in type.RealBeans)
-                    sw.WriteLine($"{prefix}        case {real.Key}: return new {real.Value.FullName}();");
-                sw.WriteLine($"{prefix}    }}");
+                if (type.RealBeans.Count > 0)
+                {
+                    sw.WriteLine($"{prefix}    switch (typeId)");
+                    sw.WriteLine($"{prefix}    {{");
+                    //sw.WriteLine($"{prefix}        case Zeze.Transaction.EmptyBean.TYPEID: return new Zeze.Transaction.EmptyBean();");
+                    foreach (var real in type.RealBeans)
+                        sw.WriteLine($"{prefix}        case {real.Key}: return new {real.Value.FullName}();");
+                    sw.WriteLine($"{prefix}    }}");
+                }
+                sw.WriteLine($"{prefix}    throw new System.Exception(\"Unknown TypeId! dynamic@{((Bean)var.Bean).FullName}:{var.Name}: \" + typeId);");
             }
-            sw.WriteLine($"{prefix}    throw new System.Exception(\"Unknown TypeId! dynamic@{((Bean)var.Bean).FullName}:{var.Name}: \" + typeId);");
+            else
+            {
+                // 转发给全局静态（static）函数。
+                sw.WriteLine($"{prefix}    return {type.DynamicParams.CreateBeanFromSpecialTypeId.Replace("::", ".")}(typeId);");
+            }
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
         }

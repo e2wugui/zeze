@@ -159,19 +159,9 @@
 			<variable id="1" name="NodeId" type="long"/>
 		</bean>
 
-		<bean name="BGetFriend">
-			<variable id="1" name="Account" type="string"/>
-			<variable id="2" name="Nick" type="string"/>
-			<variable id="3" name="Memo" type="string"/>
-			<variable id="4" name="LastCertIndex" type="int"/>
-			<variable id="5" name="Cert" type="binary"/>
-		</bean>
-
 		<bean name="BGetFriendNode">
-			<variable id="1" name="NodeId"     type="long"/>
-			<variable id="2" name="PrevNodeId" type="long"/>
-			<variable id="3" name="NextNodeId" type="long"/>
-			<variable id="4" name="Friends"    type="list[BGetFriend]"/>
+			<variable id="1" name="NodeId" type="long"/>
+			<variable id="2" name="Node"   type="Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode"/>
 		</bean>
 
 		<rpc name="GetFriendNode" argument="BNodeId" result="BGetFriendNode" handle="server"/>

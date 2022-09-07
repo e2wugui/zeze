@@ -45,10 +45,10 @@ public class Benchmark extends Thread {
 	}
 
 	private void sendFriend() {
-		if (null == friendNode || friendNode.getFriends().isEmpty())
+		if (null == friendNode || friendNode.getNode().getValues().isEmpty())
 			return;
-		var rand = Zeze.Util.Random.getInstance().nextInt(friendNode.getFriends().size());
-		App.Instance.Zege_Message.send(friendNode.getFriends().get(rand).getAccount(), null, 0).await();
+		var rand = Zeze.Util.Random.getInstance().nextInt(friendNode.getNode().getValues().size());
+		App.Instance.Zege_Message.send(friendNode.getNode().getValues().get(rand).getId(), null, 0).await();
 	}
 
 	private void sendGroup() {

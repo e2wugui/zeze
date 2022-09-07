@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using Zeze.Collections;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
@@ -56,25 +57,43 @@ namespace Zeze.Gen.java
             }
 
             sw.WriteLine($"{prefix}public static long GetSpecialTypeIdFromBean_{var.NameUpper1}(Zeze.Transaction.Bean bean) {{");
-            sw.WriteLine($"{prefix}    var _typeId_ = bean.typeId();");
-            sw.WriteLine($"{prefix}    if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)");
-            sw.WriteLine($"{prefix}        return Zeze.Transaction.EmptyBean.TYPEID;");
-            foreach (var real in type.RealBeans)
+            if (string.IsNullOrEmpty(type.DynamicParams.GetSpecialTypeIdFromBean)) 
             {
-                sw.WriteLine($"{prefix}    if (_typeId_ == {real.Value.TypeId}L)");
-                sw.WriteLine($"{prefix}        return {real.Key}L; // {real.Value.FullName}");
+                // 根据配置的实际类型生成switch。
+                sw.WriteLine($"{prefix}    var _typeId_ = bean.typeId();");
+                sw.WriteLine($"{prefix}    if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)");
+                sw.WriteLine($"{prefix}        return Zeze.Transaction.EmptyBean.TYPEID;");
+                foreach (var real in type.RealBeans)
+                {
+                    sw.WriteLine($"{prefix}    if (_typeId_ == {real.Value.TypeId}L)");
+                    sw.WriteLine($"{prefix}        return {real.Key}L; // {real.Value.FullName}");
+                }
+                sw.WriteLine($"{prefix}    throw new RuntimeException(\"Unknown Bean! dynamic@{((Bean)var.Bean).FullName}:{var.Name}\");");
             }
-            sw.WriteLine($"{prefix}    throw new RuntimeException(\"Unknown Bean! dynamic@{((Bean)var.Bean).FullName}:{var.Name}\");");
+            else
+            {
+                // 转发给全局静态（static）函数。
+                sw.WriteLine($"{prefix}    return {type.DynamicParams.GetSpecialTypeIdFromBean.Replace("::", ".")}(bean);");
+            }
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
             sw.WriteLine($"{prefix}public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_{var.NameUpper1}(long typeId) {{");
             //sw.WriteLine($"{prefix}    case Zeze.Transaction.EmptyBean.TYPEID: return new Zeze.Transaction.EmptyBean();");
-            foreach (var real in type.RealBeans)
+            if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId))
             {
-                sw.WriteLine($"{prefix}    if (typeId == {real.Key}L)");
-                sw.WriteLine($"{prefix}        return new {real.Value.FullName}();");
+                // 根据配置的实际类型生成switch。
+                foreach (var real in type.RealBeans)
+                {
+                    sw.WriteLine($"{prefix}    if (typeId == {real.Key}L)");
+                    sw.WriteLine($"{prefix}        return new {real.Value.FullName}();");
+                }
+                sw.WriteLine($"{prefix}    return null;");
             }
-            sw.WriteLine($"{prefix}    return null;");
+            else
+            {
+                // 转发给全局静态（static）函数。
+                sw.WriteLine($"{prefix}    return {type.DynamicParams.CreateBeanFromSpecialTypeId.Replace("::", ".")}(typeId);");
+            }
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
         }
@@ -121,11 +140,11 @@ namespace Zeze.Gen.java
                 }
                 */
                 if (vt is TypeDynamic dy0)
-                    GenDynamicSpecialMethod(sw, "        ", v, dy0, false);
+                    GenDynamicSpecialMethod(sw, "    ", v, dy0, false);
                 else if (vt is TypeMap map && map.ValueType is TypeDynamic dy1)
-                    GenDynamicSpecialMethod(sw, "        ", v, dy1, true);
+                    GenDynamicSpecialMethod(sw, "    ", v, dy1, true);
                 else if (vt is TypeCollection coll && coll.ValueType is TypeDynamic dy2)
-                    GenDynamicSpecialMethod(sw, "        ", v, dy2, true);
+                    GenDynamicSpecialMethod(sw, "    ", v, dy2, true);
             }
             if (bean.Variables.Count > 0)
                 sw.WriteLine();

@@ -40,8 +40,10 @@ Zege c#
 	c# group cert-key transfer(p2p);
 	c# group encrypt message;
 
+直接暴露Zeze.Builtin.Collections.LinkedMap的数据结构给客户端。
+
 Zege
-	GetPublicUserInfo,GetPublicUserPhoto 实现和linkd拦截处理;
+		GetPublicUserInfo,GetPublicUserPhoto 实现和linkd拦截处理;
 	provider.module.binds.xml，模块默认hash(account); 
 	创建账号和登录。
 	Friend 完善：参数检查，权限相关。

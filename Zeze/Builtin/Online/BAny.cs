@@ -20,16 +20,12 @@ namespace Zeze.Builtin.Online
         readonly Zeze.Transaction.DynamicBean _Any;
         public static long GetSpecialTypeIdFromBean_Any(Zeze.Transaction.Bean bean)
         {
-            switch (bean.TypeId)
-            {
-                case Zeze.Transaction.EmptyBean.TYPEID: return Zeze.Transaction.EmptyBean.TYPEID;
-            }
-            throw new System.Exception("Unknown Bean! dynamic@Zeze.Builtin.Online.BAny:Any");
+            return Zeze.Arch.Online.GetSpecialTypeIdFromBean(bean);
         }
 
         public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Any(long typeId)
         {
-            return null;
+            return Zeze.Arch.Online.CreateBeanFromSpecialTypeId(typeId);
         }
 
 

@@ -8,16 +8,13 @@ public final class BItem extends Zeze.Transaction.Bean {
     private int _Id;
     private int _Number;
     private final Zeze.Transaction.DynamicBean _Item;
-        public static long GetSpecialTypeIdFromBean_Item(Zeze.Transaction.Bean bean) {
-            var _typeId_ = bean.typeId();
-            if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
-                return Zeze.Transaction.EmptyBean.TYPEID;
-            throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Game.Bag.BItem:Item");
-        }
+    public static long GetSpecialTypeIdFromBean_Item(Zeze.Transaction.Bean bean) {
+        return Zeze.Game.Bag.GetSpecialTypeIdFromBean(bean);
+    }
 
-        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Item(long typeId) {
-            return null;
-        }
+    public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Item(long typeId) {
+        return Zeze.Game.Bag.CreateBeanFromSpecialTypeId(typeId);
+    }
 
 
     private transient Object __zeze_map_key__;

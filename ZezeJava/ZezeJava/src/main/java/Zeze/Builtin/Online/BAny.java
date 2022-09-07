@@ -6,16 +6,13 @@ import Zeze.Serialize.ByteBuffer;
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BAny extends Zeze.Transaction.Bean {
     private final Zeze.Transaction.DynamicBean _Any;
-        public static long GetSpecialTypeIdFromBean_Any(Zeze.Transaction.Bean bean) {
-            var _typeId_ = bean.typeId();
-            if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
-                return Zeze.Transaction.EmptyBean.TYPEID;
-            throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Online.BAny:Any");
-        }
+    public static long GetSpecialTypeIdFromBean_Any(Zeze.Transaction.Bean bean) {
+        return Zeze.Arch.Online.GetSpecialTypeIdFromBean(bean);
+    }
 
-        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Any(long typeId) {
-            return null;
-        }
+    public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Any(long typeId) {
+        return Zeze.Arch.Online.CreateBeanFromSpecialTypeId(typeId);
+    }
 
 
     private transient Object __zeze_map_key__;
