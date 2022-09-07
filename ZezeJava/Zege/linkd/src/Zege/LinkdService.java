@@ -2,6 +2,7 @@ package Zege;
 
 import Zege.Friend.*;
 import Zege.Message.*;
+import Zege.User.BAccount;
 import Zeze.Builtin.LinkdBase.BReportError;
 import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Net.Rpc;
@@ -97,8 +98,27 @@ public class LinkdService extends LinkdServiceBase {
         return rpc.Argument.hashCode();
     }
 
-    private int Hash(String group) {
-        return ByteBuffer.calc_hashnr(group);
+    public static class RpcAccount extends Rpc<BAccount, EmptyBean> {
+        @Override
+        public int getModuleId() {
+            return 0;
+        }
+
+        @Override
+        public int getProtocolId() {
+            return 0;
+        }
+
+        public RpcAccount() {
+            Argument = new BAccount();
+            Result = new EmptyBean();
+        }
+    }
+    private int DecodeAccountHash(Zeze.Serialize.ByteBuffer bb) {
+        var rpc = new RpcAccount();
+        rpc.Decode(bb);
+        // 必须和Arch\LinkdProvider.java::ChoiceProviderAndBind中的ChoiceTypeHashAccount方式的hash方式一样。
+        return ByteBuffer.calc_hashnr(rpc.Argument.getAccount());
     }
 
     @Override
@@ -132,6 +152,12 @@ public class LinkdService extends LinkdServiceBase {
             case GetGroupRoot.ProtocolId_:
             case MoveDepartment.ProtocolId_:
                 if (ChoiceHashSend(DecodeGroupDepartmentIdHash(data), moduleId, dispatch))
+                    return; // 失败尝试继续走默认流程?
+                break;
+
+            case GetPublicUserInfo.ProtocolId_:
+            case GetPublicUserPhoto.ProtocolId_:
+                if (ChoiceHashSend(DecodeAccountHash(data), moduleId, dispatch))
                     return; // 失败尝试继续走默认流程?
                 break;
             }

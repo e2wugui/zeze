@@ -14,7 +14,25 @@ namespace Zege
             _ = CallAsync(func);
         }
 
-        public static async Task CallAsync(Func<Task> func)
+        public static async Task CallAsync(Func<Task<long>> func, Action<long> onerror = null)
+        {
+            try
+            {
+                var rc = await func();
+                if (rc != 0)
+                    onerror?.Invoke(rc);
+            }
+            catch (Exception ex)
+            {
+                onerror?.Invoke(ResultCode.Exception);
+                // 注意：Application.Current.MainPage is AppShell
+                // see UiApp.xaml.cs
+                MainThread.BeginInvokeOnMainThread(
+                    async () => await AppShell.OnUnhandledException(ex));
+            }
+        }
+
+        public static async Task CallAsync(Func<Task> func, Action<long> onerror = null)
         {
             try
             {
@@ -22,6 +40,7 @@ namespace Zege
             }
             catch (Exception ex)
             {
+                onerror?.Invoke(ResultCode.Exception);
                 // 注意：Application.Current.MainPage is AppShell
                 // see UiApp.xaml.cs
                 MainThread.BeginInvokeOnMainThread(

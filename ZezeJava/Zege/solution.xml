@@ -50,9 +50,14 @@
 			<variable id="1" name="Accounts"  type="set" value="string" />
 		</bean>
 
+		<bean name="BUserPhoto">
+			<variable id="1" name="Photo" type="binary" />
+		</bean>
+
 		<table name="tUser"         key="string" value="BUser" /> key is account
 		<table name="tIdentiryCard" key="string" value="BAccount" /> key is identirycard
 		<table name="tPhone"        key="string" value="BAccounts" /> key is phone
+		<table name="tUserPhoto"    key="string" value="BUserPhoto"/> key is account
 
 		<!-- protocol -->
 		<bean name="BPrepare">
@@ -116,6 +121,20 @@
 		</bean>
 
 		<!-- 协议：读取好友节点 -->
+		<bean name="BPublicUserInfo">
+			<variable id="1" name="Account"       type="string"/>
+			<variable id="2" name="Nick"          type="string"/>
+			<variable id="3" name="LastCertIndex" type="int"/>
+			<variable id="4" name="Cert"          type="binary"/>
+		</bean>
+		<bean name="BPublicUserPhoto">
+			<variable id="1" name="Account" type="string"/>
+			<variable id="2" name="Photo"   type="binary"/>
+		</bean>
+
+		<rpc name="GetPublicUserInfo"  argument="Zege.User.BAccount" result="BPublicUserInfo" handle="server"/>
+		<rpc name="GetPublicUserPhoto" argument="Zege.User.BAccount" result="BPublicUserPhoto" handle="server"/>
+
 		<bean name="BAddFriend">
 			<variable id="1" name="Account" type="string"/>
 			<variable id="2" name="Memo" type="string"/>

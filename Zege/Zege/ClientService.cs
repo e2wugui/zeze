@@ -17,7 +17,7 @@ namespace Zege
             if (factoryHandle.Mode == DispatchMode.UIThread)
             {
                 MainThread.BeginInvokeOnMainThread(
-                    async () => await Mission.CallAsync(() => factoryHandle.Handle(p)));
+                    async () => await Mission.CallAsync(() => factoryHandle.Handle(p), (code) => p.TrySendResultCode(code)));
             }
             else
             {
@@ -43,7 +43,7 @@ namespace Zege
             if (factoryHandle.Mode == DispatchMode.UIThread)
             {
                 MainThread.BeginInvokeOnMainThread(
-                    async () => await Mission.CallAsync(() => factoryHandle.Handle(p)));
+                    async () => await Mission.CallAsync(() => factoryHandle.Handle(p), (code) => p.TrySendResultCode(code));
             }
             else
             {

@@ -31,6 +31,7 @@ Zege c# ModuleFriend 还需要的能力 @项洋呈
 	5. 更多的动态更新（需要server实现Listener来通知）。
 
 Zege c#
+	Mission.cs 增加错误处理Action;
 	c# create account;auth;login;friends;
 	c# friends listener;
 	c# friend encrypt message;
@@ -40,6 +41,8 @@ Zege c#
 	c# group encrypt message;
 
 Zege
+	GetPublicUserInfo,GetPublicUserPhoto 实现和linkd拦截处理;
+	provider.module.binds.xml，模块默认hash(account); 
 	创建账号和登录。
 	Friend 完善：参数检查，权限相关。
 	消息历史基本完工：保存和读取和设置已读。

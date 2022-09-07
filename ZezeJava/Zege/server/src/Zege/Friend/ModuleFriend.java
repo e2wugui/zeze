@@ -423,6 +423,37 @@ public class ModuleFriend extends AbstractModule {
         return ErrorCode(eUserExists);
     }
 
+    @Override
+    protected long ProcessGetPublicUserInfoRequest(Zege.Friend.GetPublicUserInfo r) {
+        var session = ProviderUserSession.get(r);
+        var account = r.Argument.getAccount();
+        var user = App.Zege_User.get(account);
+        if (null == user)
+            return ErrorCode(eUserNotFound);
+
+        r.Result.setAccount(r.Argument.getAccount());
+        r.Result.setNick(user.getNick());
+        r.Result.setLastCertIndex(user.getLastCertIndex());
+        r.Result.setCert(user.getCert());
+        session.sendResponseWhileCommit(r);
+        return Procedure.Success;
+    }
+
+    @Override
+    protected long ProcessGetPublicUserPhotoRequest(Zege.Friend.GetPublicUserPhoto r) {
+        var session = ProviderUserSession.get(r);
+        var account = r.Argument.getAccount();
+        var userPhoto = App.Zege_User.getUserPhoto(account);
+        if (null == userPhoto)
+            return ErrorCode(eUserNotFound);
+
+        r.Result.setAccount(r.Argument.getAccount());
+        r.Result.setPhoto(userPhoto.getPhoto());
+
+        session.sendResponseWhileCommit(r);
+        return Procedure.Success;
+    }
+
     // ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
     public ModuleFriend(Zege.App app) {
         super(app);

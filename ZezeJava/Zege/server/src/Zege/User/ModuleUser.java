@@ -29,6 +29,10 @@ public class ModuleUser extends AbstractModule {
         return _tUser.get(account);
     }
 
+    public BUserPhoto getUserPhoto(String account) {
+        return _tUserPhoto.get(account);
+    }
+
     public BUser selectDirty(String account) {
         return _tUser.selectDirty(account);
     }

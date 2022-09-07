@@ -4,7 +4,7 @@
 	<!--
 	默认情况下，所有的模块都采用hash(account)方式进行负载分配。
 	1. 群相关协议的负载linkd会特殊处理。采用 hash(group,departmentId)。
-	2. GetUserInfo linkd特殊处理，采用hash(account)。
+	2. GetPublicUserInfo,GetPublicUserPhoto linkd特殊处理，采用hash(account)。
 	   Zege.User模块linkd采用Import并按专门实现，这个协议虽然查询的是用户信息，
 	   但是定义到Zege.Friend模块中。
 	-->
