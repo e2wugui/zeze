@@ -18,11 +18,4 @@ public class Login extends Zeze.Net.Rpc<LoginParam, AchillesHeelConfig> {
 		Argument = new LoginParam();
 		Result = new AchillesHeelConfig();
 	}
-
-	public Login(int id) {
-		Argument = new LoginParam();
-		Result = new AchillesHeelConfig();
-
-		Argument.ServerId = id;
-	}
 }

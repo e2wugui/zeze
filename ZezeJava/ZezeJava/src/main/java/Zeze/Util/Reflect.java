@@ -3,6 +3,7 @@ package Zeze.Util;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.lang.management.ManagementFactory;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import Zeze.Net.Binary;
@@ -17,6 +18,8 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 
 public class Reflect {
+	public static final boolean inDebugMode = ManagementFactory.getRuntimeMXBean().getInputArguments()
+			.toString().indexOf("-agentlib:jdwp") > 0;
 	private static final HashMap<Class<?>, String> stableNameMap = new HashMap<>(32);
 
 	static {

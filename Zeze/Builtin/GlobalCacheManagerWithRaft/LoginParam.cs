@@ -13,12 +13,14 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
 
         public int ServerId { get; }
         public int GlobalCacheManagerHashIndex { get; }
+        public bool DebugMode { get; }
     }
 
     public sealed class LoginParam : Zeze.Transaction.Bean, LoginParamReadOnly
     {
         int _ServerId;
         int _GlobalCacheManagerHashIndex;
+        bool _DebugMode; // 调试模式下不检查Release Timeout,方便单步调试
 
         public int ServerId
         {
@@ -70,20 +72,47 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             }
         }
 
+        public bool DebugMode
+        {
+            get
+            {
+                if (!IsManaged)
+                    return _DebugMode;
+                var txn = Zeze.Transaction.Transaction.Current;
+                if (txn == null) return _DebugMode;
+                txn.VerifyRecordAccessed(this, true);
+                var log = (Log__DebugMode)txn.GetLog(ObjectId + 3);
+                return log != null ? log.Value : _DebugMode;
+            }
+            set
+            {
+                if (!IsManaged)
+                {
+                    _DebugMode = value;
+                    return;
+                }
+                var txn = Zeze.Transaction.Transaction.Current;
+                txn.VerifyRecordAccessed(this);
+                txn.PutLog(new Log__DebugMode() { Belong = this, VariableId = 3, Value = value });
+            }
+        }
+
         public LoginParam()
         {
         }
 
-        public LoginParam(int _ServerId_, int _GlobalCacheManagerHashIndex_)
+        public LoginParam(int _ServerId_, int _GlobalCacheManagerHashIndex_, bool _DebugMode_)
         {
             _ServerId = _ServerId_;
             _GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex_;
+            _DebugMode = _DebugMode_;
         }
 
         public void Assign(LoginParam other)
         {
             ServerId = other.ServerId;
             GlobalCacheManagerHashIndex = other.GlobalCacheManagerHashIndex;
+            DebugMode = other.DebugMode;
         }
 
         public LoginParam CopyIfManaged()
@@ -123,6 +152,11 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             public override void Commit() { ((LoginParam)Belong)._GlobalCacheManagerHashIndex = this.Value; }
         }
 
+        sealed class Log__DebugMode : Zeze.Transaction.Log<bool>
+        {
+            public override void Commit() { ((LoginParam)Belong)._DebugMode = this.Value; }
+        }
+
         public override string ToString()
         {
             var sb = new System.Text.StringBuilder();
@@ -136,7 +170,8 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             sb.Append(Zeze.Util.Str.Indent(level)).Append("Zeze.Builtin.GlobalCacheManagerWithRaft.LoginParam: {").Append(Environment.NewLine);
             level += 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append("ServerId").Append('=').Append(ServerId).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("GlobalCacheManagerHashIndex").Append('=').Append(GlobalCacheManagerHashIndex).Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("GlobalCacheManagerHashIndex").Append('=').Append(GlobalCacheManagerHashIndex).Append(',').Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("DebugMode").Append('=').Append(DebugMode).Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
         }
@@ -160,6 +195,14 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
                     _o_.WriteInt(_x_);
                 }
             }
+            {
+                bool _x_ = DebugMode;
+                if (_x_)
+                {
+                    _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                    _o_.WriteByte(1);
+                }
+            }
             _o_.WriteByte(0);
         }
 
@@ -175,6 +218,11 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             if (_i_ == 2)
             {
                 GlobalCacheManagerHashIndex = _o_.ReadInt(_t_);
+                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+            }
+            if (_i_ == 3)
+            {
+                DebugMode = _o_.ReadBool(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
             while (_t_ != 0)
@@ -208,6 +256,7 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
                 {
                     case 1: _ServerId = ((Zeze.Transaction.Log<int>)vlog).Value; break;
                     case 2: _GlobalCacheManagerHashIndex = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                    case 3: _DebugMode = ((Zeze.Transaction.Log<bool>)vlog).Value; break;
                 }
             }
         }

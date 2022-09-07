@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import Zeze.Application;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.Daemon;
+import Zeze.Util.Reflect;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -322,7 +323,7 @@ public class AchillesHeelDaemon {
 							agent.keepAlive();
 						}
 
-						if (idle > config.ServerDaemonTimeout) {
+						if (idle > config.ServerDaemonTimeout && !Reflect.inDebugMode) {
 							if (rr != GlobalAgentBase.CheckReleaseResult.Releasing) {
 								// 这个判断只能避免正在Releasing时不要启动新的Release。
 								// 如果Global一直恢复不了，那么每ServerDaemonTimeout会再次尝试Release，

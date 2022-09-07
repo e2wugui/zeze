@@ -7,6 +7,7 @@ import Zeze.Serialize.ByteBuffer;
 public final class LoginParam extends Zeze.Transaction.Bean {
     private int _ServerId;
     private int _GlobalCacheManagerHashIndex;
+    private boolean _DebugMode; // 调试模式下不检查Release Timeout,方便单步调试
 
     public int getServerId() {
         if (!isManaged())
@@ -46,17 +47,38 @@ public final class LoginParam extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__GlobalCacheManagerHashIndex(this, 2, value));
     }
 
+    public boolean isDebugMode() {
+        if (!isManaged())
+            return _DebugMode;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _DebugMode;
+        var log = (Log__DebugMode)txn.GetLog(objectId() + 3);
+        return log != null ? log.Value : _DebugMode;
+    }
+
+    public void setDebugMode(boolean value) {
+        if (!isManaged()) {
+            _DebugMode = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.PutLog(new Log__DebugMode(this, 3, value));
+    }
+
     public LoginParam() {
     }
 
-    public LoginParam(int _ServerId_, int _GlobalCacheManagerHashIndex_) {
+    public LoginParam(int _ServerId_, int _GlobalCacheManagerHashIndex_, boolean _DebugMode_) {
         _ServerId = _ServerId_;
         _GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex_;
+        _DebugMode = _DebugMode_;
     }
 
     public void Assign(LoginParam other) {
         setServerId(other.getServerId());
         setGlobalCacheManagerHashIndex(other.getGlobalCacheManagerHashIndex());
+        setDebugMode(other.isDebugMode());
     }
 
     public LoginParam CopyIfManaged() {
@@ -101,6 +123,13 @@ public final class LoginParam extends Zeze.Transaction.Bean {
         public void Commit() { ((LoginParam)getBelong())._GlobalCacheManagerHashIndex = Value; }
     }
 
+    private static final class Log__DebugMode extends Zeze.Transaction.Logs.LogBool {
+        public Log__DebugMode(LoginParam bean, int varId, boolean value) { super(bean, varId, value); }
+
+        @Override
+        public void Commit() { ((LoginParam)getBelong())._DebugMode = Value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -113,7 +142,8 @@ public final class LoginParam extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.LoginParam: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ServerId").append('=').append(getServerId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("GlobalCacheManagerHashIndex").append('=').append(getGlobalCacheManagerHashIndex()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("GlobalCacheManagerHashIndex").append('=').append(getGlobalCacheManagerHashIndex()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("DebugMode").append('=').append(isDebugMode()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -147,6 +177,13 @@ public final class LoginParam extends Zeze.Transaction.Bean {
                 _o_.WriteInt(_x_);
             }
         }
+        {
+            boolean _x_ = isDebugMode();
+            if (_x_) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                _o_.WriteByte(1);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -160,6 +197,10 @@ public final class LoginParam extends Zeze.Transaction.Bean {
         }
         if (_i_ == 2) {
             setGlobalCacheManagerHashIndex(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            setDebugMode(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -196,6 +237,7 @@ public final class LoginParam extends Zeze.Transaction.Bean {
             switch (vlog.getVariableId()) {
                 case 1: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
                 case 2: _GlobalCacheManagerHashIndex = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                case 3: _DebugMode = ((Zeze.Transaction.Logs.LogBool)vlog).Value; break;
             }
         }
     }

@@ -551,6 +551,7 @@ namespace Zeze.Services
                 return 0;
             }
             session.SetActiveTime(Util.Time.NowUnixMillis);
+            session.DebugMode = rpc.Argument.DebugMode;
             // new login, 比如逻辑服务器重启。release old acquired.
             var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
             await SenderAcquired.WalkKeyAsync(async (key) =>
@@ -578,6 +579,7 @@ namespace Zeze.Services
                 return 0;
             }
             session.SetActiveTime(Util.Time.NowUnixMillis);
+            session.DebugMode = rpc.Argument.DebugMode;
             rpc.SendResultCode(0);
             logger.Info($"ReLogin {Rocks.Raft.Name} {rpc.Sender}.");
             return 0;
@@ -744,7 +746,7 @@ namespace Zeze.Services
             {
                 foreach (var session in Sessions.Values)
                 {
-                    if (now - session.GetActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout)
+                    if (now - session.GetActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout && !session.DebugMode)
                     {
                         using (await session.Mutex.LockAsync())
                         {
@@ -784,6 +786,7 @@ namespace Zeze.Services
             public int ServerId { get; internal set; }
             public GlobalCacheManagerWithRaft GlobalInstance { get; set; }
             public Nito.AsyncEx.AsyncLock Mutex { get; } = new();
+            public bool DebugMode { get; set; }
 
             public long GetActiveTime()
             {

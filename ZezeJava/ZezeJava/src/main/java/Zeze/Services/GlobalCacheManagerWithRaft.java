@@ -123,7 +123,7 @@ public class GlobalCacheManagerWithRaft
 		var raft = Rocks.getRaft();
 		if (raft != null && raft.isLeader()) {
 			Sessions.forEach(session -> {
-				if (now - session.getActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout) {
+				if (now - session.getActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout && !session.DebugMode) {
 					logger.info("AchillesHeelDaemon.Release begin {}", session);
 					synchronized (session) {
 						session.kick();
@@ -680,6 +680,7 @@ public class GlobalCacheManagerWithRaft
 			return 0;
 		}
 		session.setActiveTime(System.currentTimeMillis());
+		session.setDebugMode(rpc.Argument.isDebugMode());
 		// new login, 比如逻辑服务器重启。release old acquired.
 		var SenderAcquired = ServerAcquiredTemplate.OpenTable(session.ServerId);
 		SenderAcquired.WalkKey(key -> {
@@ -704,6 +705,7 @@ public class GlobalCacheManagerWithRaft
 			return 0;
 		}
 		session.setActiveTime(System.currentTimeMillis());
+		session.setDebugMode(rpc.Argument.isDebugMode());
 		rpc.SendResultCode(0);
 		logger.info("ReLogin {} {}.", Rocks.getRaft().getName(), rpc.getSender());
 		return 0;
@@ -801,6 +803,7 @@ public class GlobalCacheManagerWithRaft
 		private int GlobalCacheManagerHashIndex;
 		private volatile long ActiveTime = System.currentTimeMillis();
 		private volatile long LastErrorTime;
+		private boolean DebugMode;
 
 		// not under lock
 		void kick() {
@@ -826,6 +829,10 @@ public class GlobalCacheManagerWithRaft
 
 		void setActiveTime(long value) {
 			ActiveTime = value;
+		}
+
+		void setDebugMode(boolean debugMode) {
+			DebugMode = debugMode;
 		}
 
 		synchronized boolean TryBindSocket(AsyncSocket newSocket, int globalCacheManagerHashIndex) {

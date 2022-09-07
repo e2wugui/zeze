@@ -129,7 +129,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		var now = System.currentTimeMillis();
 
 		Sessions.forEach(session -> {
-			if (now - session.getActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout) {
+			if (now - session.getActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout && !session.DebugMode) {
 				//noinspection SynchronizationOnLocalVariableOrMethodParameter
 				synchronized (session) {
 					session.kick();
@@ -212,6 +212,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			return 0;
 		}
 		session.setActiveTime(System.currentTimeMillis());
+		session.setDebugMode(rpc.Argument.DebugMode);
 		// new login, 比如逻辑服务器重启。release old acquired.
 		var allReleaseFuture = new CountDownFuture();
 		for (var k : session.Acquired.keySet()) {
@@ -233,6 +234,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			return 0;
 		}
 		session.setActiveTime(System.currentTimeMillis());
+		session.setDebugMode(rpc.Argument.DebugMode);
 		rpc.SendResultCode(0);
 		return 0;
 	}
@@ -913,6 +915,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		private volatile long ActiveTime = System.currentTimeMillis();
 		private volatile long LastErrorTime;
 		private boolean Logined = false; // 改成State，也能表示已经kick过，下一次不再kick？
+		private boolean DebugMode;
 
 		long getActiveTime() {
 			return ActiveTime;
@@ -920,6 +923,10 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 
 		void setActiveTime(long value) {
 			ActiveTime = value;
+		}
+
+		void setDebugMode(boolean debugMode) {
+			DebugMode = debugMode;
 		}
 
 		// not under lock

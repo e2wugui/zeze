@@ -1,7 +1,5 @@
-
 using System;
 using System.Collections.Concurrent;
-using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using Zeze.Builtin.AutoKey;
 using Zeze.Net;
@@ -10,189 +8,204 @@ using Zeze.Transaction;
 
 namespace Zeze.Component
 {
-	public class AutoKey : AbstractAutoKey
-	{
-		public class Module : AbstractAutoKey
-		{
-			private readonly ConcurrentDictionary<string, AutoKey> map = new();
-			public Application Zeze { get; }
+    public class AutoKey : AbstractAutoKey
+    {
+        public class Module : AbstractAutoKey
+        {
+            private readonly ConcurrentDictionary<string, AutoKey> map = new();
+            public Application Zeze { get; }
 
-			// Õâ¸ö×é¼şZeze.Application»á×Ô¶¯³õÊ¼»¯£¬²»ĞèÒªÓ¦ÓÃ³õÊ¼»¯¡£
-			public Module(Zeze.Application zeze)
-			{
-				Zeze = zeze;
-				RegisterZezeTables(zeze);
-			}
+            // è¿™ä¸ªç»„ä»¶Zeze.Applicationä¼šè‡ªåŠ¨åˆå§‹åŒ–ï¼Œä¸éœ€è¦åº”ç”¨åˆå§‹åŒ–ã€‚
+            public Module(Application zeze)
+            {
+                Zeze = zeze;
+                RegisterZezeTables(zeze);
+            }
 
-			public override void UnRegister()
-			{
-				UnRegisterZezeTables(Zeze);
-			}
+            public override void UnRegister()
+            {
+                UnRegisterZezeTables(Zeze);
+            }
 
-			/**
-			 * Õâ¸ö·µ»ØÖµ£¬¿ÉÒÔÔÚ×Ô¼ºÄ£¿éÄÚ±£´æÏÂÀ´£¬Ğ§ÂÊ¸ßÒ»Ğ©¡£
+            /**
+			 * è¿™ä¸ªè¿”å›å€¼ï¼Œå¯ä»¥åœ¨è‡ªå·±æ¨¡å—å†…ä¿å­˜ä¸‹æ¥ï¼Œæ•ˆç‡é«˜ä¸€äº›ã€‚
 			 */
-			public AutoKey GetOrAdd(string name)
-			{
-				return map.GetOrAdd(name, name2 => new AutoKey(this, name2));
-			}
-		}
-
-		private readonly Module module;
-		private readonly string name;
-		private volatile Range range;
-		private readonly long logKey;
-		private int allocateCount = 64;
-		private long lastAllocateTime = Util.Time.NowUnixMillis;
-
-		private AutoKey(Module module, string name)
-		{
-			this.module = module;
-			this.name = name;
-
-            logKey = Bean.GetNextObjectId();
-		}
-
-		public async Task<long> NextIdAsync()
-		{
-            var bb = await NextByteBufferAsync();
-			if (bb.Size > 8)
-				throw new Exception("out of range");
-			return ByteBuffer.ToLong(bb.Bytes, bb.ReadIndex, bb.Size);
-		}
-
-		public async Task<byte[]> NextBytesAsync()
-		{
-			return (await NextByteBufferAsync()).Copy();
-		}
-
-		public async Task<Binary> NextBinaryAsync()
-		{
-			return new Binary(await NextByteBufferAsync());
-		}
-
-		public async Task<string> NextStringAsync()
-		{
-			var bb = await NextByteBufferAsync();
-			return Convert.ToBase64String(bb.Bytes, bb.ReadIndex, bb.Size);
+            public AutoKey GetOrAdd(string name)
+            {
+                return map.GetOrAdd(name, name2 => new AutoKey(this, name2));
+            }
         }
 
-		public async Task<ByteBuffer> NextByteBufferAsync()
-		{
-			var bb = ByteBuffer.Allocate(16);
-			bb.WriteInt(module.Zeze.Config.ServerId);
-			bb.WriteLong(await NextSeedAsync());
-			return bb;
-		}
+        private const int ALLOCATE_COUNT_MIN = 64;
+        private const int ALLOCATE_COUNT_MAX = 1024 * 1024;
+
+        private readonly Module module;
+        private readonly string name;
+        private readonly long logKey;
+        private volatile Range range;
+        private int allocateCount = ALLOCATE_COUNT_MIN;
+        private long lastAllocateTime = Util.Time.NowUnixMillis;
+
+        private AutoKey(Module module, string name)
+        {
+            this.module = module;
+            this.name = name;
+
+            logKey = Bean.GetNextObjectId();
+        }
+
+        public int GetAllocateCount()
+        {
+            return allocateCount;
+        }
+
+        public async Task<long> NextIdAsync()
+        {
+            var bb = await NextByteBufferAsync();
+            if (bb.Size > 8)
+                throw new Exception("out of range");
+            return ByteBuffer.ToLongBE(bb.Bytes, bb.ReadIndex, bb.Size);
+        }
+
+        public async Task<byte[]> NextBytesAsync()
+        {
+            return (await NextByteBufferAsync()).Copy();
+        }
+
+        public async Task<Binary> NextBinaryAsync()
+        {
+            return new Binary(await NextByteBufferAsync());
+        }
+
+        public async Task<string> NextStringAsync()
+        {
+            var bb = await NextByteBufferAsync();
+            return Convert.ToBase64String(bb.Bytes, bb.ReadIndex, bb.Size);
+        }
+
+        public async Task<ByteBuffer> NextByteBufferAsync()
+        {
+            var serverId = module.Zeze.Config.ServerId;
+            var bb = ByteBuffer.Allocate(8);
+            if (serverId > 0) // å¦‚æœserverId==0,å†™1ä¸ªå­—èŠ‚0ä¸ä¼šå½±å“ToLongBEçš„ç»“æœ,ä½†ä¼šå¤šå 1ä¸ªå­—èŠ‚,æ‰€ä»¥åªåœ¨serverId>0æ—¶å†™ByteBuffer
+                bb.WriteInt(serverId);
+            else if (serverId < 0) // serverIdä¸åº”è¯¥<0,å› ä¸ºä¼šå¯¼è‡´nextIdè¿”å›è´Ÿå€¼
+                throw new Exception("serverId(" + serverId + ") < 0");
+            bb.WriteLong(await NextSeedAsync());
+            return bb;
+        }
 
         private async Task<long> NextSeedAsync()
         {
             if (null != range)
-			{
-				var next = range.TryNextId();
-				if (next != null)
-					return next.Value; // allocate in range success
-			}
+            {
+                var next = range.TryNextId();
+                if (next != null)
+                    return next.Value; // allocate in range success
+            }
 
             Transaction.Transaction.WhileCommit(() =>
-			{
-				// ²»ÄÜÔÚÖØ×öÊ±ÖØ¸´¼ÆËã£¬Ò»´ÎÊÂÎñÖØĞÂ¼ÆËãÒ»´Î£¬ÏÂÒ»´ÎÉúĞ§¡£
-				var now = Util.Time.NowUnixMillis;
+            {
+                // ä¸èƒ½åœ¨é‡åšæ—¶é‡å¤è®¡ç®—ï¼Œä¸€æ¬¡äº‹åŠ¡é‡æ–°è®¡ç®—ä¸€æ¬¡ï¼Œä¸‹ä¸€æ¬¡ç”Ÿæ•ˆã€‚
+                // è¿™é‡Œå¯èƒ½æœ‰å¹¶å‘é—®é¢˜, ä¸è¿‡å½±å“å¯ä»¥å¿½ç•¥
+                var now = Util.Time.NowUnixMillis;
                 var diff = now - lastAllocateTime;
-                if (diff < 30 * 1000) // 30 seconds
-                    allocateCount = allocateCount << 1;
-                else if (diff > 120 * 1000 && allocateCount >= 128) // 120 seconds
-                    allocateCount = allocateCount >> 1;
                 lastAllocateTime = now;
+                long newCount = allocateCount;
+                if (diff < 30 * 1000) // 30 seconds
+                    newCount <<= 1;
+                else if (diff > 120 * 1000) // 120 seconds
+                    newCount >>= 1;
+                else
+                    return;
+                allocateCount = (int)Math.Min(Math.Max(newCount, ALLOCATE_COUNT_MIN), ALLOCATE_COUNT_MAX);
             });
-            
-			var seedKey = new BSeedKey(module.Zeze.Config.ServerId, name);
-			var txn = Transaction.Transaction.Current;
-			var log = (RangeLog)txn.GetLog(logKey);
-			while (true)
-			{
-				if (null == log)
-				{
-					// allocate: ¶àÏß³Ì£¬¶àÊÂÎñ£¬¶à·şÎñÆ÷£¨»º´æÍ¬²½£©ÓÉzeze±£Ö¤¡£
-					var key = await module._tAutoKeys.GetOrAddAsync(seedKey);
-					var start = key.NextId;
-					var end = start + allocateCount; // AllocateCount == 0 »áËÀÑ­»·¡£
-					key.NextId = end;
-					// create log£¬±¾ÊÂÎñ¿É¼û£¬
-					log = new RangeLog(this, new Range(start, end));
-					txn.PutLog(log);
-				}
-				var tryNext = log.range.TryNextId();
-				if (tryNext != null)
-					return tryNext.Value;
 
-				// ÊÂÎñÄÚ·ÖÅäÁË³¬³öRange·¶Î§µÄid£¬ÔÙ´Îallocate¡£
-				// ¸²¸ÇRangeLogÊÇ¿ÉÒÔµÄ¡£¾ÍÏñÊÂÎñÄÚ¶à´Î¸Ä±ä±äÁ¿¡£×îºóÃæµÄLogÀïÃæµÄÊı¾İÊÇ×îĞÂµÄ¡£
-				// ÒÑ·ÖÅäµÄ·¶Î§±£´æÔÚ_AutoKeys±íÄÚ£¬ÊÂÎñÄÚ¿ÉÒÔ¼ÌĞø·ÖÅä¡£
-				log = null;
-			}
-		}
+            var seedKey = new BSeedKey(module.Zeze.Config.ServerId, name);
+            var txn = Transaction.Transaction.Current;
+            var log = (RangeLog)txn.GetLog(logKey);
+            while (true)
+            {
+                if (null == log)
+                {
+                    // allocate: å¤šçº¿ç¨‹ï¼Œå¤šäº‹åŠ¡ï¼Œå¤šæœåŠ¡å™¨ï¼ˆç¼“å­˜åŒæ­¥ï¼‰ç”±zezeä¿è¯ã€‚
+                    var key = await module._tAutoKeys.GetOrAddAsync(seedKey);
+                    var start = key.NextId;
+                    var end = start + allocateCount; // allocateCount == 0 ä¼šæ­»å¾ªç¯ã€‚
+                    key.NextId = end;
+                    // create logï¼Œæœ¬äº‹åŠ¡å¯è§ï¼Œ
+                    log = new RangeLog(this, new Range(start, end));
+                    txn.PutLog(log);
+                }
 
-		private class Range
-		{
-			private readonly Util.AtomicLong atomicNextId;
-			private readonly long max;
+                var tryNext = log.range.TryNextId();
+                if (tryNext != null)
+                    return tryNext.Value;
 
-			public long? TryNextId()
-			{
-				// Ã¿´Î¶¼µİÔö¡£³¬³ö·¶Î§ÒÔºó£¬Ò²²»»Ö¸´¡£
-				var next = atomicNextId.IncrementAndGet();
-				if (next >= max)
-					return null;
-				return next;
-			}
+                // äº‹åŠ¡å†…åˆ†é…äº†è¶…å‡ºRangeèŒƒå›´çš„idï¼Œå†æ¬¡allocateã€‚
+                // è¦†ç›–RangeLogæ˜¯å¯ä»¥çš„ã€‚å°±åƒäº‹åŠ¡å†…å¤šæ¬¡æ”¹å˜å˜é‡ã€‚æœ€åé¢çš„Logé‡Œé¢çš„æ•°æ®æ˜¯æœ€æ–°çš„ã€‚
+                // å·²åˆ†é…çš„èŒƒå›´ä¿å­˜åœ¨_AutoKeysè¡¨å†…ï¼Œäº‹åŠ¡å†…å¯ä»¥ç»§ç»­åˆ†é…ã€‚
+                log = null;
+            }
+        }
 
-			public Range(long start, long end)
-			{
-				atomicNextId = new(start);
-				max = end;
-			}
-		}
+        private class Range : Util.AtomicLong
+        {
+            private readonly long max;
 
-		private class RangeLog : Log
-		{
-			public AutoKey AutoKey;
-			internal Range range;
+            public long? TryNextId()
+            {
+                // æ¯æ¬¡éƒ½é€’å¢ã€‚è¶…å‡ºèŒƒå›´ä»¥åï¼Œä¹Ÿä¸æ¢å¤ã€‚
+                var next = IncrementAndGet(); // å¯èƒ½ä¼šè¶…è¿‡max,ä½†é€šå¸¸ä¸ä¼šè¶…å‡ºå¾ˆå¤š,æ›´ä¸å¯èƒ½æº¢å‡ºlongæœ€å¤§å€¼
+                return next <= max ? next : null;
+            }
 
-			public RangeLog(AutoKey autoKey, Range range)
-			{
-				AutoKey = autoKey;
-				this.range = range;
-			}
+            // åˆ†é…èŒƒå›´: [start+1,end]
+            public Range(long start, long end) : base(start)
+            {
+                max = end;
+            }
+        }
+
+        private class RangeLog : Log
+        {
+            private readonly AutoKey AutoKey;
+            internal readonly Range range;
+
+            public RangeLog(AutoKey autoKey, Range range)
+            {
+                AutoKey = autoKey;
+                this.range = range;
+            }
 
             public override long LogKey => AutoKey.logKey;
 
             public override void Commit()
-			{
-				// ÕâÀïÖ±½ÓĞŞ¸ÄÓµÓĞÕßµÄÒıÓÃ£¬¿ª·Å³öÈ¥£¬ÒÔºóÆäËûÊÂÎñ¾ÍÄÜ¿´µ½ĞÂµÄRangeÁË¡£
-				// ²¢·¢£º¶àÏß³ÌÊµ¼ÊÉÏÓÉ _autokeys ±íµÄËøÀ´´ïµ½»¥³â£¬commitµÄÊ±ºò£¬ÊÇ»¥³âËø¡£
-				AutoKey.range = range;
-			}
+            {
+                // è¿™é‡Œç›´æ¥ä¿®æ”¹æ‹¥æœ‰è€…çš„å¼•ç”¨ï¼Œå¼€æ”¾å‡ºå»ï¼Œä»¥åå…¶ä»–äº‹åŠ¡å°±èƒ½çœ‹åˆ°æ–°çš„Rangeäº†ã€‚
+                // å¹¶å‘ï¼šå¤šçº¿ç¨‹å®é™…ä¸Šç”± _autokeys è¡¨çš„é”æ¥è¾¾åˆ°äº’æ–¥ï¼Œcommitçš„æ—¶å€™ï¼Œæ˜¯äº’æ–¥é”ã€‚
+                AutoKey.range = range;
+            }
 
             public override void Encode(ByteBuffer bb)
             {
-                throw new System.NotImplementedException();
+                throw new NotImplementedException();
             }
 
             public override void Decode(ByteBuffer bb)
             {
-                throw new System.NotImplementedException();
+                throw new NotImplementedException();
             }
 
-            internal override void EndSavepoint(Savepoint currentsp)
+            internal override void EndSavepoint(Savepoint currentSp)
             {
-				currentsp.Logs[LogKey] = this;
-			}
+                currentSp.Logs[LogKey] = this;
+            }
 
             internal override Log BeginSavepoint()
             {
-				return this;
+                return this;
             }
         }
-	}
+    }
 }

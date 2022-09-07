@@ -1,9 +1,8 @@
 package Zeze.Component;
 
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
 import java.util.Base64;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.AutoKey.BSeedKey;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
@@ -35,11 +34,14 @@ public final class AutoKey {
 		}
 	}
 
+	private static final int ALLOCATE_COUNT_MIN = 64;
+	private static final int ALLOCATE_COUNT_MAX = 1024 * 1024;
+
 	private final Module module;
 	private final String name;
-	private volatile Range range;
 	private final long logKey;
-	private int allocateCount = 64;
+	private volatile Range range;
+	private int allocateCount = ALLOCATE_COUNT_MIN;
 	private long lastAllocateTime = System.currentTimeMillis();
 
 	@SuppressWarnings("deprecation")
@@ -50,25 +52,36 @@ public final class AutoKey {
 		logKey = Zeze.Transaction.Bean.nextObjectId();
 	}
 
+	public int getAllocateCount() {
+		return allocateCount;
+	}
+
 	public long nextId() {
-		var bytes = nextBytes();
-		if (bytes.length > 8)
+		var bb = nextByteBuffer();
+		if (bb.Size() > 8)
 			throw new IllegalStateException("out of range");
-		return ByteBuffer.ToLong(bytes, 0, bytes.length);
+		return ByteBuffer.ToLongBE(bb.Bytes, bb.ReadIndex, bb.Size()); // 这里用BE(大端)是为了保证返回值一定为正
 	}
 
 	public byte[] nextBytes() {
 		return nextByteBuffer().Copy();
 	}
-	public Binary nextBinary() { return new Binary(nextByteBuffer()); }
+
+	public Binary nextBinary() {
+		return new Binary(nextByteBuffer());
+	}
 
 	public String nextString() {
 		return Base64.getEncoder().encodeToString(nextBytes());
 	}
 
 	public ByteBuffer nextByteBuffer() {
-		var bb = ByteBuffer.Allocate(16);
-		bb.WriteInt(module.Zeze.getConfig().getServerId());
+		var serverId = module.Zeze.getConfig().getServerId();
+		var bb = ByteBuffer.Allocate(8);
+		if (serverId > 0) // 如果serverId==0,写1个字节0不会影响ToLongBE的结果,但会多占1个字节,所以只在serverId>0时写ByteBuffer
+			bb.WriteInt(serverId);
+		else if (serverId < 0) // serverId不应该<0,因为会导致nextId返回负值
+			throw new IllegalStateException("serverId(" + serverId + ") < 0");
 		bb.WriteLong(nextSeed());
 		return bb;
 	}
@@ -82,13 +95,18 @@ public final class AutoKey {
 
 		Transaction.whileCommit(() -> {
 			// 不能在重做时重复计算，一次事务重新计算一次，下一次生效。
+			// 这里可能有并发问题, 不过影响可以忽略
 			var now = System.currentTimeMillis();
 			var diff = now - lastAllocateTime;
-			if (diff < 30 * 1000) // 30 seconds
-				allocateCount = allocateCount << 1;
-			else if (diff > 120 * 1000 && allocateCount >= 128) // 120 seconds
-				allocateCount = allocateCount >> 1;
 			lastAllocateTime = now;
+			long newCount = allocateCount;
+			if (diff < 30 * 1000) // 30 seconds
+				newCount <<= 1;
+			else if (diff > 120 * 1000) // 120 seconds
+				newCount >>= 1;
+			else
+				return;
+			allocateCount = (int)Math.min(Math.max(newCount, ALLOCATE_COUNT_MIN), ALLOCATE_COUNT_MAX);
 		});
 
 		var seedKey = new BSeedKey(module.Zeze.getConfig().getServerId(), name);
@@ -100,7 +118,7 @@ public final class AutoKey {
 				// allocate: 多线程，多事务，多服务器（缓存同步）由zeze保证。
 				var key = module._tAutoKeys.getOrAdd(seedKey);
 				var start = key.getNextId();
-				var end = start + allocateCount; // AllocateCount == 0 会死循环。
+				var end = start + allocateCount; // allocateCount == 0 会死循环。
 				key.setNextId(end);
 				// create log，本事务可见，
 				log = new RangeLog(new Range(start, end));
@@ -117,28 +135,17 @@ public final class AutoKey {
 		}
 	}
 
-	private static class Range {
-		private static final VarHandle nextIdHandle;
-
-		static {
-			try {
-				nextIdHandle = MethodHandles.lookup().findVarHandle(Range.class, "nextId", long.class);
-			} catch (ReflectiveOperationException e) {
-				throw new ExceptionInInitializerError(e);
-			}
-		}
-
-		@SuppressWarnings("FieldMayBeFinal")
-		private volatile long nextId;
+	private static class Range extends AtomicLong {
 		private final long max;
 
 		public long tryNextId() {
-			long lastId = (long)nextIdHandle.getAndAdd(this, 1L);
-			return lastId < max ? lastId + 1 : 0;
+			var nextId = incrementAndGet(); // 可能会超过max,但通常不会超出很多,更不可能溢出long最大值
+			return nextId <= max ? nextId : 0;
 		}
 
+		// 分配范围: [start+1,end]
 		public Range(long start, long end) {
-			nextId = start;
+			super(start);
 			max = end;
 		}
 	}
@@ -164,8 +171,8 @@ public final class AutoKey {
 		}
 
 		@Override
-		public void EndSavepoint(Savepoint currentsp) {
-			currentsp.PutLog(this);
+		public void EndSavepoint(Savepoint currentSp) {
+			currentSp.PutLog(this);
 		}
 
 		@Override

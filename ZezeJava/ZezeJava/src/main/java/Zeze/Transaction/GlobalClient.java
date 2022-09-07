@@ -5,6 +5,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Services.GlobalCacheManager.Login;
 import Zeze.Services.GlobalCacheManager.ReLogin;
+import Zeze.Util.Reflect;
 import Zeze.Util.Task;
 
 public final class GlobalClient extends Zeze.Net.Service {
@@ -50,6 +51,7 @@ public final class GlobalClient extends Zeze.Net.Service {
 			var login = new Login();
 			login.Argument.ServerId = getZeze().getConfig().getServerId();
 			login.Argument.GlobalCacheManagerHashIndex = agent.getGlobalCacheManagerHashIndex();
+			login.Argument.DebugMode = Reflect.inDebugMode;
 			logger.debug("GlobalClient Send Login: {}", login.Argument);
 			login.Send(so, (ThisRpc) -> {
 				logger.debug("GlobalClient Recv Login. isTimeout={}, resultCode={}",

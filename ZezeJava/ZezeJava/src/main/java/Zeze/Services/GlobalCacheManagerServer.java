@@ -156,7 +156,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		var now = System.currentTimeMillis();
 
 		Sessions.forEach(session -> {
-			if (now - session.getActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout) {
+			if (now - session.getActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout && !session.DebugMode) {
 				//noinspection SynchronizationOnLocalVariableOrMethodParameter
 				synchronized (session) {
 					session.kick();
@@ -245,6 +245,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			Release(session, k, false);
 		}
 		session.setActiveTime(System.currentTimeMillis());
+		session.setDebugMode(rpc.Argument.DebugMode);
 		rpc.Result.MaxNetPing = Config.MaxNetPing;
 		rpc.Result.ServerProcessTime = Config.ServerProcessTime;
 		rpc.Result.ServerReleaseTimeout = Config.ServerReleaseTimeout;
@@ -260,6 +261,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			return 0;
 		}
 		session.setActiveTime(System.currentTimeMillis());
+		session.setDebugMode(rpc.Argument.DebugMode);
 		rpc.SendResultCode(0);
 		return 0;
 	}
@@ -784,6 +786,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		private volatile long ActiveTime = System.currentTimeMillis();
 		private volatile long LastErrorTime;
 		private boolean Logined = false;
+		private boolean DebugMode;
 
 		// not under lock
 		void kick() {
@@ -801,6 +804,10 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 
 		void setActiveTime(long value) {
 			ActiveTime = value;
+		}
+
+		void setDebugMode(boolean debugMode) {
+			DebugMode = debugMode;
 		}
 
 		synchronized boolean TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex, boolean login) {

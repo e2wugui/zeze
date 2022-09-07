@@ -32,6 +32,7 @@
 			<bean name="LoginParam">
 				<variable id="1" name="ServerId" type="int"/>
 				<variable id="2" name="GlobalCacheManagerHashIndex" type="int"/>
+				<variable id="3" name="DebugMode" type="bool"/> 调试模式下不检查Release Timeout,方便单步调试
 			</bean>
 
 			<bean name="AchillesHeel">

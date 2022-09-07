@@ -12,17 +12,20 @@ public class LoginParam extends Bean {
 	// 当然识别还可以根据 ServerService 绑定的ip和port。
 	// 给每个实例加配置不容易维护。
 	public int GlobalCacheManagerHashIndex;
+	public boolean DebugMode; // 调试模式下不检查Release Timeout,方便单步调试
 
 	@Override
 	public void Decode(ByteBuffer bb) {
 		ServerId = bb.ReadInt();
 		GlobalCacheManagerHashIndex = bb.ReadInt();
+		DebugMode = bb.ReadBool();
 	}
 
 	@Override
 	public void Encode(ByteBuffer bb) {
 		bb.WriteInt(ServerId);
 		bb.WriteInt(GlobalCacheManagerHashIndex);
+		bb.WriteBool(DebugMode);
 	}
 
 	@Override
@@ -42,6 +45,7 @@ public class LoginParam extends Bean {
 
 	@Override
 	public String toString() {
-		return "LoginParam{" + "ServerId=" + ServerId + ", GlobalCacheManagerHashIndex=" + GlobalCacheManagerHashIndex + '}';
+		return "LoginParam{" + "ServerId=" + ServerId + ", GlobalCacheManagerHashIndex=" + GlobalCacheManagerHashIndex
+				+ ", DebugMode=" + DebugMode + '}';
 	}
 }

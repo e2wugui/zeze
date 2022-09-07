@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Zeze.Transaction;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Zeze.Serialize;
 using Zeze.Util;
 
 namespace UnitTest.Zeze.Component
@@ -24,6 +19,16 @@ namespace UnitTest.Zeze.Component
 			demo.App.Instance.Stop();
 		}
 
+		private static long MakeId(long index)
+		{
+			var bb = ByteBuffer.Allocate(8);
+			var serverId = demo.App.Instance.Zeze.Config.ServerId;
+			if (serverId > 0)
+				bb.WriteInt(serverId);
+			bb.WriteLong(index);
+			return ByteBuffer.ToLongBE(bb.Bytes, bb.ReadIndex, bb.Size);
+		}
+
 		[TestMethod]
 		public void Test1_AutoKey()
 		{
@@ -31,14 +36,14 @@ namespace UnitTest.Zeze.Component
 			{
 				var autoKey = demo.App.Instance.Zeze.GetAutoKey("test1");
 				var id = await autoKey.NextIdAsync();
-				Assert.AreEqual(1, id);
+				Assert.AreEqual(MakeId(1), id);
 				return ResultCode.Success;
 			}, "test1_AutoKey").CallSynchronously());
 			Assert.AreEqual(ResultCode.Success, demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
 				var autoKey = demo.App.Instance.Zeze.GetAutoKey("test1");
 				var id = await autoKey.NextIdAsync();
-				Assert.AreEqual(2, id);
+				Assert.AreEqual(MakeId(2), id);
 				return ResultCode.Success;
 			}, "test1_AutoKey").CallSynchronously());
 		}
@@ -46,18 +51,19 @@ namespace UnitTest.Zeze.Component
 		[TestMethod]
 		public void Test2_AutoKey()
 		{
+			var allocCount = demo.App.Instance.Zeze.GetAutoKey("test1").GetAllocateCount();
 			Assert.AreEqual(ResultCode.Success, demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
 				var autoKey = demo.App.Instance.Zeze.GetAutoKey("test1");
 				var id = await autoKey.NextIdAsync();
-				Assert.AreEqual(1001, id);
+				Assert.AreEqual(MakeId(allocCount + 1), id);
 				return ResultCode.Success;
 			}, "test2_AutoKey").CallSynchronously());
 			Assert.AreEqual(ResultCode.Success, demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
 				var autoKey = demo.App.Instance.Zeze.GetAutoKey("test1");
 				var id = await autoKey.NextIdAsync();
-				Assert.AreEqual(1002, id);
+				Assert.AreEqual(MakeId(allocCount + 2), id);
 				return ResultCode.Success;
 			}, "test2_AutoKey").CallSynchronously());
 		}
@@ -65,18 +71,19 @@ namespace UnitTest.Zeze.Component
 		[TestMethod]
 		public void Test3_AutoKey()
 		{
+			var allocCount = demo.App.Instance.Zeze.GetAutoKey("test1").GetAllocateCount();
 			Assert.AreEqual(ResultCode.Success, demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
 				var autoKey = demo.App.Instance.Zeze.GetAutoKey("test1");
 				var id = await autoKey.NextIdAsync();
-				Assert.AreEqual(2001, id);
+				Assert.AreEqual(MakeId(allocCount * 2L + 1), id);
 				return ResultCode.Success;
 			}, "test3_AutoKey").CallSynchronously());
 			Assert.AreEqual(ResultCode.Success, demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
 				var autoKey = demo.App.Instance.Zeze.GetAutoKey("test1");
 				var id = await autoKey.NextIdAsync();
-				Assert.AreEqual(2002, id);
+				Assert.AreEqual(MakeId(allocCount * 2L + 2), id);
 				return ResultCode.Success;
 			}, "test3_AutoKey").CallSynchronously());
 		}

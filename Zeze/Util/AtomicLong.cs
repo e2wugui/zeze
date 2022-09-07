@@ -2,7 +2,7 @@
 
 namespace Zeze.Util
 {
-    public sealed class AtomicLong
+    public class AtomicLong
     {
         private long _value;
 

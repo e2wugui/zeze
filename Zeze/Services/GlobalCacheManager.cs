@@ -219,7 +219,7 @@ namespace Zeze.Services
 
             foreach (var session in Sessions.Values)
             { 
-                if (now - session.GetActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout)
+                if (now - session.GetActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout && !session.DebugMode)
                 {
                     using (await session.Mutex.LockAsync())
                     {
@@ -324,6 +324,7 @@ namespace Zeze.Services
                 return 0;
             }
             session.SetActiveTime(Util.Time.NowUnixMillis);
+            session.DebugMode = rpc.Argument.DebugMode;
             // 只会有一个会话成功绑定并继续到达这里。
             // new login, 比如逻辑服务器重启。release old acquired.
             foreach (var e in session.Acquired)
@@ -348,6 +349,7 @@ namespace Zeze.Services
                 return 0;
             }
             session.SetActiveTime(Util.Time.NowUnixMillis);
+            session.DebugMode = rpc.Argument.DebugMode;
             rpc.SendResultCode(0);
             return 0;
         }
@@ -893,6 +895,7 @@ namespace Zeze.Services
             private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
             private long ActiveTime = Time.NowUnixMillis;
             private bool Logined = false;
+            public bool DebugMode { get; set; }
 
             public long SessionId { get; private set; }
 
@@ -1141,17 +1144,20 @@ namespace Zeze.Services.GlobalCacheManager
         // 当然识别还可以根据 ServerService 绑定的ip和port。
         // 给每个实例加配置不容易维护。
         public int GlobalCacheManagerHashIndex { get; set; }
+        public bool DebugMode; // 调试模式下不检查Release Timeout,方便单步调试
 
         public override void Decode(ByteBuffer bb)
         {
             ServerId = bb.ReadInt();
             GlobalCacheManagerHashIndex = bb.ReadInt();
+            DebugMode = bb.ReadBool();
         }
 
         public override void Encode(ByteBuffer bb)
         {
             bb.WriteInt(ServerId);
             bb.WriteInt(GlobalCacheManagerHashIndex);
+            bb.WriteBool(DebugMode);
         }
 
         protected override void InitChildrenRootInfo(Record.RootInfo root)
