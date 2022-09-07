@@ -41,6 +41,8 @@ public class Program {
 	public String Self;
 
 	public void run(String[] args) throws Throwable {
+		Zeze.Collections.LinkedMap.beanFactory.register(BFriend.class);
+
 		var app = App.Instance;
 		var linkIp = "127.0.0.1";
 		var linkPort = 5100;

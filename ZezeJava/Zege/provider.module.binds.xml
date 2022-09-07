@@ -2,11 +2,11 @@
 
 <ProviderModuleBinds>
 	<!--
-	Ä¬ÈÏÇé¿öÏÂ£¬ËùÓÐµÄÄ£¿é¶¼²ÉÓÃhash(account)·½Ê½½øÐÐ¸ºÔØ·ÖÅä¡£
-	1. ÈºÏà¹ØÐ­ÒéµÄ¸ºÔØlinkd»áÌØÊâ´¦Àí¡£²ÉÓÃ hash(group,departmentId)¡£
-	2. GetPublicUserInfo,GetPublicUserPhoto linkdÌØÊâ´¦Àí£¬²ÉÓÃhash(account)¡£
-	   Zege.UserÄ£¿élinkd²ÉÓÃImport²¢°´×¨ÃÅÊµÏÖ£¬Õâ¸öÐ­ÒéËäÈ»²éÑ¯µÄÊÇÓÃ»§ÐÅÏ¢£¬
-	   µ«ÊÇ¶¨Òåµ½Zege.FriendÄ£¿éÖÐ¡£
+	é»˜è®¤æƒ…å†µä¸‹ï¼Œæ‰€æœ‰çš„æ¨¡å—éƒ½é‡‡ç”¨hash(account)æ–¹å¼è¿›è¡Œè´Ÿè½½åˆ†é…ã€‚
+	1. ç¾¤ç›¸å…³åè®®çš„è´Ÿè½½linkdä¼šç‰¹æ®Šå¤„ç†ã€‚é‡‡ç”¨ hash(group,departmentId)ã€‚
+	2. GetPublicUserInfo,GetPublicUserPhoto linkdç‰¹æ®Šå¤„ç†ï¼Œé‡‡ç”¨hash(account)ã€‚
+	   Zege.Useræ¨¡å—linkdé‡‡ç”¨Importå¹¶æŒ‰ä¸“é—¨å®žçŽ°ï¼Œè¿™ä¸ªåè®®è™½ç„¶æŸ¥è¯¢çš„æ˜¯ç”¨æˆ·ä¿¡æ¯ï¼Œ
+	   ä½†æ˜¯å®šä¹‰åˆ°Zege.Friendæ¨¡å—ä¸­ã€‚
 	-->
 	<module name="Zege.User" ChoiceType="ChoiceTypeHashAccount"/>
 	<module name="Zege.Message" ChoiceType="ChoiceTypeHashAccount"/>

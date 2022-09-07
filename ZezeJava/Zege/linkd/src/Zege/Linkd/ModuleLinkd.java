@@ -4,7 +4,9 @@ import Zege.User.VerifyChallengeResult;
 import Zeze.Arch.LinkdUserSession;
 import Zeze.Builtin.LinkdBase.BReportError;
 import Zeze.Net.AsyncSocket;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.OutLong;
 
 public class ModuleLinkd extends AbstractModule {
     public void Start(Zege.App app) throws Throwable {
@@ -33,9 +35,10 @@ public class ModuleLinkd extends AbstractModule {
         v.Argument.setRandomData(c.Argument.getRandomData());
         v.Argument.setSigned(c.Result.getSigned());
 
-        if (!App.LinkdApp.LinkdProvider.ChoiceProvider(
-                c.getSender(), v.getModuleId(),
-                (providerSocket) -> v.Send(providerSocket, (r_) -> {
+        var provider = new OutLong();
+        if (App.LinkdApp.LinkdProvider.ChoiceHashWithoutBind(v.getModuleId(), ByteBuffer.calc_hashnr(v.Argument.getAccount()), provider)) {
+            var providerSocket = App.LinkdApp.LinkdProviderService.GetSocket(provider.Value);
+            if (null != providerSocket && v.Send(providerSocket, (r_) -> {
                     if (!v.isTimeout() && v.getResultCode() == 0) {
                         var linkSession = (LinkdUserSession)c.getSender().getUserState();
                         linkSession.setAccount(c.Result.getAccount());
@@ -50,11 +53,12 @@ public class ModuleLinkd extends AbstractModule {
                                 BReportError.CodeNotAuthed, "no provider.");
                     }
                     return 0;
-                }))) {
-            App.LinkdService.ReportError(
-                    c.getSender().getSessionId(), BReportError.FromLink,
-                    BReportError.CodeNoProvider, "no provider.");
+                }))
+                    return; // dispatch success
         }
+        App.LinkdService.ReportError(
+                c.getSender().getSessionId(), BReportError.FromLink,
+                BReportError.CodeNoProvider, "no provider.");
     }
 
     private void challenge(AsyncSocket sender) {

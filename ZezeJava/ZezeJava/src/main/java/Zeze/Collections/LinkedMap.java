@@ -16,7 +16,7 @@ import Zeze.Transaction.TableWalkHandle;
 import Zeze.Util.OutLong;
 
 public class LinkedMap<V extends Bean> {
-	private static final BeanFactory beanFactory = new BeanFactory();
+	public static final BeanFactory beanFactory = new BeanFactory();
 
 	public static long GetSpecialTypeIdFromBean(Bean bean) {
 		return BeanFactory.GetSpecialTypeIdFromBean(bean);
