@@ -154,7 +154,7 @@ public class ProviderUserSession {
 
 	public static ProviderUserSession get(Protocol<?> context) {
 		if (null == context.getUserState()) {
-			throw new RuntimeException("not auth");
+			throw new IllegalStateException("not auth");
 		}
 		return (ProviderUserSession)context.getUserState();
 	}

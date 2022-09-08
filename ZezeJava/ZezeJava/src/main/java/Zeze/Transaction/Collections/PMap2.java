@@ -42,12 +42,10 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 	@Override
 	public V put(K key, V value) {
-		if (key == null) {
-			throw new NullPointerException();
-		}
-		if (value == null) {
-			throw new NullPointerException();
-		}
+		if (key == null)
+			throw new IllegalArgumentException("null key");
+		if (value == null)
+			throw new IllegalArgumentException("null value");
 
 		value.mapKey(key);
 		if (isManaged()) {
@@ -65,12 +63,10 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	@Override
 	public void putAll(Map<? extends K, ? extends V> m) {
 		for (var p : m.entrySet()) {
-			if (p.getKey() == null) {
-				throw new NullPointerException();
-			}
-			if (p.getValue() == null) {
-				throw new NullPointerException();
-			}
+			if (p.getKey() == null)
+				throw new IllegalArgumentException("null key");
+			if (p.getValue() == null)
+				throw new IllegalArgumentException("null value");
 		}
 
 		if (isManaged()) {

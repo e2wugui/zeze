@@ -186,13 +186,13 @@ public class DepartmentTree<
 
 	public BDepartmentTreeNode getDepartmentTreeNode(long departmentId) {
 		if (departmentId == 0)
-			throw new RuntimeException("root can not access use this method.");
+			throw new IllegalArgumentException("root can not access use this method.");
 		return module._tDepartmentTree.get(new BDepartmentKey(name, departmentId));
 	}
 
 	public LinkedMap<TDepartmentMember> getDepartmentMembers(long departmentId) {
 		if (departmentId == 0)
-			throw new RuntimeException("root members use getMembers.");
+			throw new IllegalArgumentException("root members use getMembers.");
 		return module.LinkedMaps.open("" + departmentId + "#" + name, departmentMemberClass);
 	}
 

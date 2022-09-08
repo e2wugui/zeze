@@ -18,7 +18,7 @@ namespace Zeze.Builtin.Provider
 
     public sealed class BKick : Zeze.Transaction.Bean, BKickReadOnly
     {
-        public const int ErrorProtocolUnkown = 1;
+        public const int ErrorProtocolUnknown = 1;
         public const int ErrorDecode = 2;
         public const int ErrorProtocolException = 3;
         public const int ErrorDuplicateLogin = 4;

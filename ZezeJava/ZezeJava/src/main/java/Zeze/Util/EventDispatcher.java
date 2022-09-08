@@ -113,7 +113,7 @@ public class EventDispatcher {
 				return 0L;
 			}, "EventDispatcher.triggerProcedure").Call();
 			if (result != 0)
-				throw new RuntimeException("Nest Call Fail: " + result);
+				throw new IllegalStateException("Nest Call Fail: " + result);
 		}
 	}
 }

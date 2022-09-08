@@ -110,7 +110,7 @@ public class Rank extends AbstractRank {
 			break;
 
 		default:
-			throw new RuntimeException("Unsupported TimeType=" + timeType);
+			throw new UnsupportedOperationException("Unsupported TimeType=" + timeType);
 		}
 		return new BConcurrentKey(rankType, 0, timeType, year, offset);
 	}

@@ -36,7 +36,7 @@ public class Counters {
 
 	public void start(long period) {
 		if (period <= 0)
-			throw new RuntimeException("period <= 0");
+			throw new IllegalArgumentException("period <= 0");
 
 		if (null != future)
 			future.cancel(false);

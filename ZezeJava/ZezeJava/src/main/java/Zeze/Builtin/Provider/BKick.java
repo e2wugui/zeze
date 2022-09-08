@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BKick extends Zeze.Transaction.Bean {
-    public static final int ErrorProtocolUnkown = 1;
+    public static final int ErrorProtocolUnknown = 1;
     public static final int ErrorDecode = 2;
     public static final int ErrorProtocolException = 3;
     public static final int ErrorDuplicateLogin = 4;

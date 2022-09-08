@@ -118,7 +118,7 @@ public final class Lockey implements Comparable<Lockey> {
 			// logger.debug("ExitLock::ExitReadLock {}", TableKey);
 			rwLock.readLock().unlock();
 		}
-		// else throw new RuntimeException("no lock held.");
+		// else throw new IllegalStateException("no lock held.");
 		// java 没有判断是否拥有读锁，不严格检查了状态了。
 	}
 

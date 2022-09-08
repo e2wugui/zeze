@@ -330,7 +330,7 @@ public class LogSequence {
 			} catch (InterruptedException ignored) {
 			}
 		}
-		throw new RuntimeException("delete '" + path + "' failed");
+		throw new IllegalStateException("delete '" + path + "' failed");
 	}
 
 	public static void deletedDirectoryAndCheck(File path) {

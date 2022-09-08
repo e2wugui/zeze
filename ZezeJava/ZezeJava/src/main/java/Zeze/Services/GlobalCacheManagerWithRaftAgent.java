@@ -178,7 +178,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			agent.setFastFail();
 			Transaction trans = Transaction.getCurrent();
 			if (trans == null)
-				throw new RuntimeException("Acquire Timeout");
+				throw new IllegalStateException("Acquire Timeout");
 			trans.ThrowAbort("Acquire Timeout", null);
 			// never got here
 		}
@@ -312,15 +312,15 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			if (volatileTmp.isDone()) {
 				if (volatileTmp.get())
 					return;
-				throw new RuntimeException("login fail.");
+				throw new IllegalStateException("login fail.");
 			}
 			if (!volatileTmp.await(getConfig().LoginTimeout))
-				throw new RuntimeException("login timeout.");
+				throw new IllegalStateException("login timeout.");
 			// 再次查看结果。
 			if (volatileTmp.isDone() && volatileTmp.get())
 				return;
 			// 只等待一次，不成功则失败。
-			throw new RuntimeException("login timeout.");
+			throw new IllegalStateException("login timeout.");
 		}
 
 		private synchronized TaskCompletionSource<Boolean> StartNewLogin() {

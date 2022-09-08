@@ -69,7 +69,7 @@ public class Online extends AbstractOnline {
 	public void setLocalBean(long roleId, String key, Bean bean) {
 		var bLocal = _tlocal.get(roleId);
 		if (null == bLocal)
-			throw new RuntimeException("roleId not online. " + roleId);
+			throw new IllegalStateException("roleId not online. " + roleId);
 		var bAny = new BAny();
 		bAny.getAny().setBean(bean);
 		bLocal.getDatas().put(key, bAny);
@@ -438,7 +438,7 @@ public class Online extends AbstractOnline {
 	public final void addReliableNotifyMark(long roleId, String listenerName) {
 		var online = _tonline.get(roleId);
 		if (online == null)
-			throw new RuntimeException("Not Online. AddReliableNotifyMark: " + listenerName);
+			throw new IllegalStateException("Not Online. AddReliableNotifyMark: " + listenerName);
 		var version = _tversion.getOrAdd(roleId);
 		version.getReliableNotifyMark().add(listenerName);
 	}
@@ -640,7 +640,7 @@ public class Online extends AbstractOnline {
 
 	public final void transmit(long sender, String actionName, Iterable<Long> roleIds, Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
-			throw new RuntimeException("Unknown Action Name: " + actionName);
+			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 		ByteBuffer bb;
 		if (parameter != null) {
 			int preSize = parameter.preAllocSize();
@@ -663,7 +663,7 @@ public class Online extends AbstractOnline {
 
 	public final void transmitWhileCommit(long sender, String actionName, long roleId, Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
-			throw new RuntimeException("Unknown Action Name: " + actionName);
+			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 		Transaction.whileCommit(() -> transmit(sender, actionName, roleId, parameter));
 	}
 
@@ -673,7 +673,7 @@ public class Online extends AbstractOnline {
 
 	public final void transmitWhileCommit(long sender, String actionName, Iterable<Long> roleIds, Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
-			throw new RuntimeException("Unknown Action Name: " + actionName);
+			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 		Transaction.whileCommit(() -> transmit(sender, actionName, roleIds, parameter));
 	}
 
@@ -683,7 +683,7 @@ public class Online extends AbstractOnline {
 
 	public final void transmitWhileRollback(long sender, String actionName, long roleId, Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
-			throw new RuntimeException("Unknown Action Name: " + actionName);
+			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 		Transaction.whileRollback(() -> transmit(sender, actionName, roleId, parameter));
 	}
 
@@ -693,7 +693,7 @@ public class Online extends AbstractOnline {
 
 	public final void transmitWhileRollback(long sender, String actionName, Iterable<Long> roleIds, Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
-			throw new RuntimeException("Unknown Action Name: " + actionName);
+			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 		Transaction.whileRollback(() -> transmit(sender, actionName, roleIds, parameter));
 	}
 

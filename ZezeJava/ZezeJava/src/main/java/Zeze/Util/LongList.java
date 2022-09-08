@@ -21,7 +21,7 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 
 	public static LongList wrap(long[] data) {
 		if (data == null)
-			throw new NullPointerException();
+			throw new IllegalArgumentException("null data");
 		LongList o = new LongList();
 		o._buffer = data;
 		o._count = data.length;

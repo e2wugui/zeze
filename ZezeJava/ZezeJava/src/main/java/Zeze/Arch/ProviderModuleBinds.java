@@ -151,7 +151,7 @@ public class ProviderModuleBinds {
 				break;
 
 			default:
-				throw new RuntimeException("unknown ConfigType " + attr);
+				throw new UnsupportedOperationException("unknown ConfigType " + attr);
 			}
 		}
 	}
@@ -172,7 +172,7 @@ public class ProviderModuleBinds {
 
 	private ProviderModuleBinds(Element self) {
 		if (!self.getNodeName().equals("ProviderModuleBinds")) {
-			throw new RuntimeException("is it a ProviderModuleBinds config?");
+			throw new IllegalStateException("is it a ProviderModuleBinds config?");
 		}
 
 		NodeList childNodes = self.getChildNodes();
@@ -193,7 +193,7 @@ public class ProviderModuleBinds {
 				break;
 
 			default:
-				throw new RuntimeException("unknown node name: " + e.getNodeName());
+				throw new UnsupportedOperationException("unknown node name: " + e.getNodeName());
 			}
 		}
 	}

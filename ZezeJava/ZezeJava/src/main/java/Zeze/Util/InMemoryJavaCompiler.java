@@ -104,7 +104,7 @@ public class InMemoryJavaCompiler {
 		sourceCodes.clear();
 		String exMsg = addSource(className, sourceCode).compileAll();
 		if (exMsg != null)
-			throw new RuntimeException(exMsg);
+			throw new IllegalStateException(exMsg);
 		return classLoader.findClass(className);
 	}
 

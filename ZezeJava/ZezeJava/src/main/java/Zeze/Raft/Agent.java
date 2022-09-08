@@ -94,9 +94,9 @@ public final class Agent {
 																	ToLongFunction<Protocol<?>> handle,
 																	boolean urgent) {
 		if (handle == null)
-			throw new NullPointerException();
+			throw new IllegalArgumentException("null handle");
 		if (PendingLimit > 0 && Pending.size() > PendingLimit) // UrgentPending不限制。
-			throw new RuntimeException("too many pending");
+			throw new IllegalStateException("too many pending");
 
 		// 由于interface不能把setter弄成保护的，实际上外面可以修改。
 		// 简单检查一下吧。
@@ -187,7 +187,7 @@ public final class Agent {
 	public <TArgument extends Bean, TResult extends Bean> TaskCompletionSource<RaftRpc<TArgument, TResult>> SendForWait(
 			RaftRpc<TArgument, TResult> rpc, boolean urgent) {
 		if (PendingLimit > 0 && Pending.size() > PendingLimit) // UrgentPending不限制。
-			throw new RuntimeException("too many pending");
+			throw new IllegalStateException("too many pending");
 		// 由于interface不能把setter弄成保护的，实际上外面可以修改。
 		// 简单检查一下吧。
 		if (rpc.getUnique().getRequestId() != 0)

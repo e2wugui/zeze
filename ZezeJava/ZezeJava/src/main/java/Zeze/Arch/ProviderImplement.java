@@ -82,7 +82,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		try {
 			var factoryHandle = ProviderApp.ProviderService.FindProtocolFactoryHandle(p.Argument.getProtocolType());
 			if (factoryHandle == null) {
-				SendKick(p.getSender(), p.Argument.getLinkSid(), BKick.ErrorProtocolUnkown, "unknown protocol");
+				SendKick(p.getSender(), p.Argument.getLinkSid(), BKick.ErrorProtocolUnknown, "unknown protocol");
 				return Procedure.LogicError;
 			}
 			var p2 = factoryHandle.Factory.create();

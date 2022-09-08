@@ -94,7 +94,7 @@ public final class Changes extends Zeze.Raft.Log {
 				var names = new StringBuilder();
 				for (String name : changes.rocks.getTableTemplates().keySet())
 					names.append(' ').append(name);
-				throw new NullPointerException("unknown table template: " + templateName + ", available:" + names);
+				throw new IllegalStateException("unknown table template: " + templateName + ", available:" + names);
 			}
 			Table = tableTpl.OpenTable(TableTemplateId);
 		}

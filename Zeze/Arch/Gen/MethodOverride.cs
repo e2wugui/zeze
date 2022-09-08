@@ -120,7 +120,7 @@ namespace Zeze.Arch.Gen
             {
                 OverrideType.RedirectHash => "Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeWithHash",
                 OverrideType.RedirectToServer => "Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeToServer",
-                _ => throw new Exception("unkown OverrideType"),
+                _ => throw new Exception("Unknown OverrideType"),
             };
         }
 

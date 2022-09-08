@@ -101,7 +101,7 @@ public final class TaskOneByOneByKey {
 
 	public <T> void ExecuteCyclicBarrier(Collection<T> keys, Procedure procedure, Action0 cancel, DispatchMode mode) {
 		if (keys.isEmpty())
-			throw new RuntimeException("CyclicBarrier keys is empty.");
+			throw new IllegalArgumentException("CyclicBarrier keys is empty.");
 
 		var barrier = new Barrier(procedure, keys.size(), cancel);
 		for (var key : keys)
@@ -178,7 +178,7 @@ public final class TaskOneByOneByKey {
 
 	public void Execute(int key, Action0 action, String name, Action0 cancel, DispatchMode mode) {
 		if (action == null)
-			throw new NullPointerException();
+			throw new IllegalArgumentException("null action");
 		concurrency[Hash(key) & hashMask].Execute(action, name, cancel, mode);
 	}
 
@@ -200,7 +200,7 @@ public final class TaskOneByOneByKey {
 
 	public void Execute(int key, Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
 		if (func == null)
-			throw new NullPointerException();
+			throw new IllegalArgumentException("null func");
 		concurrency[Hash(key) & hashMask].Execute(func, name, cancel, mode);
 	}
 

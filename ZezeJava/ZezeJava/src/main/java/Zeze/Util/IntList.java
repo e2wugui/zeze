@@ -21,7 +21,7 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 
 	public static IntList wrap(int[] data) {
 		if (data == null)
-			throw new NullPointerException();
+			throw new IllegalArgumentException("null data");
 		IntList o = new IntList();
 		o._buffer = data;
 		o._count = data.length;

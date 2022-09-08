@@ -361,7 +361,7 @@ public class Bag {
 				}
 				return 0L;
 			}, "").Call()) {
-				throw new RuntimeException("Load Item Classes Failed.");
+				throw new IllegalStateException("Load Item Classes Failed.");
 			}
 		}
 

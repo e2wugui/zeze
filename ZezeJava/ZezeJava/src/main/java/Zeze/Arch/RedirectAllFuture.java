@@ -157,7 +157,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 	@Override
 	public RedirectAllFuture<R> onResult(Action1<R> onResult) throws Throwable {
 		if (onResult == null)
-			throw new NullPointerException();
+			throw new IllegalArgumentException("null onResult");
 		this.onResult = onResult;
 		var c = ctx;
 		if (c == null)
@@ -216,7 +216,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 	@Override
 	public RedirectAllFuture<R> onAllDone(Action1<RedirectAllContext<R>> onAllDone) throws Throwable {
 		if (onAllDone == null)
-			throw new NullPointerException();
+			throw new IllegalArgumentException("null onAllDone");
 		var c = ctx;
 		if (c == null || !c.isCompleted()) {
 			this.onAllDone = onAllDone;

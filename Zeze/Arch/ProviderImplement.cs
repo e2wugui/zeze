@@ -98,7 +98,7 @@ namespace Zeze.Arch
                 var factoryHandle = ProviderApp.ProviderService.FindProtocolFactoryHandle(p.Argument.ProtocolType);
                 if (null == factoryHandle)
                 {
-                    SendKick(p.Sender, p.Argument.LinkSid, BKick.ErrorProtocolUnkown, "unknown protocol");
+                    SendKick(p.Sender, p.Argument.LinkSid, BKick.ErrorProtocolUnknown, "unknown protocol");
                     return ResultCode.LogicError;
                 }
                 var p2 = factoryHandle.Factory();

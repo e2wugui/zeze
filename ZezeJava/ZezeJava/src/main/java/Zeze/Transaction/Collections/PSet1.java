@@ -24,9 +24,8 @@ public class PSet1<V> extends PSet<V> {
 
 	@Override
 	public boolean add(V item) {
-		if (item == null) {
-			throw new NullPointerException();
-		}
+		if (item == null)
+			throw new IllegalArgumentException("null item");
 
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")

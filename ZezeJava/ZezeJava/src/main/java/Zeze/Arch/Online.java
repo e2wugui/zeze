@@ -106,12 +106,12 @@ public class Online extends AbstractOnline {
 	public void setLocalBean(String account, String clientId, String key, Bean bean) {
 		var bLocals = _tlocal.get(account);
 		if (null == bLocals)
-			throw new RuntimeException("roleid not online. " + account);
+			throw new IllegalStateException("roleId not online. " + account);
 		var login = bLocals.getLogins().get(clientId);
 		if (null == login) {
 			login = new BLocal();
 			if (null != bLocals.getLogins().put(clientId, login))
-				throw new RuntimeException("duplicate clientId:" + clientId);
+				throw new IllegalStateException("duplicate clientId:" + clientId);
 		}
 		var bAny = new BAny();
 		bAny.getAny().setBean(bean);
@@ -285,7 +285,7 @@ public class Online extends AbstractOnline {
 	public void addReliableNotifyMark(String account, String clientId, String listenerName) throws Throwable {
 		var online = _tonline.get(account);
 		if (null == online)
-			throw new RuntimeException("Not Online. AddReliableNotifyMark: " + listenerName);
+			throw new IllegalStateException("Not Online. AddReliableNotifyMark: " + listenerName);
 		var version = _tversion.getOrAdd(account);
 		version.getLogins().getOrAdd(clientId).getReliableNotifyMark().add(listenerName);
 	}
@@ -742,7 +742,7 @@ public class Online extends AbstractOnline {
 
 	public void transmit(String account, String clientId, String actionName, Collection<String> targets, Serializable parameter) throws Throwable {
 		if (!TransmitActions.containsKey(actionName))
-			throw new RuntimeException("Unkown Action Name: " + actionName);
+			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 
 		var binaryParam = parameter == null ? Binary.Empty : new Binary(ByteBuffer.Encode(parameter));
 		// 发送协议请求在另外的事务中执行。
@@ -754,7 +754,7 @@ public class Online extends AbstractOnline {
 
 	public void transmitWhileCommit(String account, String clientId, String actionName, String target, Serializable parameter) {
 		if (!TransmitActions.containsKey(actionName))
-			throw new RuntimeException("Unkown Action Name: " + actionName);
+			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 		Transaction.whileCommit(() -> {
 			try {
 				transmit(account, clientId, actionName, target, parameter);
@@ -766,7 +766,7 @@ public class Online extends AbstractOnline {
 
 	public void transmitWhileCommit(String account, String clientId, String actionName, Collection<String> targets, Serializable parameter) {
 		if (!TransmitActions.containsKey(actionName))
-			throw new RuntimeException("Unkown Action Name: " + actionName);
+			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 		Transaction.whileCommit(() -> {
 			try {
 				transmit(account, clientId, actionName, targets, parameter);
@@ -778,7 +778,7 @@ public class Online extends AbstractOnline {
 
 	public void transmitWhileRollback(String account, String clientId, String actionName, String target, Serializable parameter) {
 		if (!TransmitActions.containsKey(actionName))
-			throw new RuntimeException("Unkown Action Name: " + actionName);
+			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 		Transaction.whileCommit(() -> {
 			try {
 				transmit(account, clientId, actionName, target, parameter);
@@ -790,7 +790,7 @@ public class Online extends AbstractOnline {
 
 	public void transmitWhileRollback(String account, String clientId, String actionName, Collection<String> targets, Serializable parameter) {
 		if (!TransmitActions.containsKey(actionName))
-			throw new RuntimeException("Unkown Action Name: " + actionName);
+			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 		Transaction.whileCommit(() -> {
 			try {
 				transmit(account, clientId, actionName, targets, parameter);

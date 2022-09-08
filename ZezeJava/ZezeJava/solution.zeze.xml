@@ -278,7 +278,7 @@
 			<rpc name="Subscribe" argument="BSubscribe" handle="client"/> 通知linkd订阅模块的服务列表。
 
 			<bean name="BKick">
-				<enum name="ErrorProtocolUnkown"    value="1"/>
+				<enum name="ErrorProtocolUnknown"   value="1"/>
 				<enum name="ErrorDecode"            value="2"/>
 				<enum name="ErrorProtocolException" value="3"/>
 				<enum name="ErrorDuplicateLogin"    value="4"/>

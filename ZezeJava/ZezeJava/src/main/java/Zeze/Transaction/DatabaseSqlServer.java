@@ -33,19 +33,19 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					case 0:
 						return;
 					case 1:
-						throw new RuntimeException("Unknown Error");
+						throw new IllegalStateException("Unknown Error");
 					case 2:
-						throw new RuntimeException("Instance Exist");
+						throw new IllegalStateException("Instance Exist");
 					case 3:
-						throw new RuntimeException("Insert LocalId Failed");
+						throw new IllegalStateException("Insert LocalId Failed");
 					case 4:
-						throw new RuntimeException("Global Not Equals");
+						throw new IllegalStateException("Global Not Equals");
 					case 5:
-						throw new RuntimeException("Insert Global Failed");
+						throw new IllegalStateException("Insert Global Failed");
 					case 6:
-						throw new RuntimeException("Instance Greater Than One But No Global");
+						throw new IllegalStateException("Instance Greater Than One But No Global");
 					default:
-						throw new RuntimeException("Unknown ReturnValue");
+						throw new IllegalStateException("Unknown ReturnValue");
 					}
 				}
 			} catch (SQLException e) {
@@ -95,7 +95,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		@Override
 		public Zeze.Util.KV<Long, Boolean> SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
 			if (key.Size() == 0) {
-				throw new RuntimeException("key is empty.");
+				throw new IllegalArgumentException("key is empty.");
 			}
 
 			try (var connection = dataSource.getConnection()) {
@@ -113,7 +113,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					case 2:
 						return Zeze.Util.KV.Create(0L, false);
 					default:
-						throw new RuntimeException("Procedure SaveDataWithSameVersion Exec Error.");
+						throw new IllegalStateException("Procedure SaveDataWithSameVersion Exec Error.");
 					}
 				}
 			} catch (SQLException e) {

@@ -84,7 +84,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 
 	public void addHandler(String path, HttpHandler handler) {
 		if (handlers.putIfAbsent(path, handler) != null)
-			throw new RuntimeException("add handler: duplicate path=" + path);
+			throw new IllegalStateException("add handler: duplicate path=" + path);
 	}
 
 	@Override

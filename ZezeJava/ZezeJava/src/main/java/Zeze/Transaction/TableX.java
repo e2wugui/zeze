@@ -291,7 +291,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	private void FlushWhenReduce(Record r) {
 		switch (getZeze().getConfig().getCheckpointMode()) {
 		case Period:
-			throw new RuntimeException("Global Can Not Work With CheckpointMode.Period.");
+			throw new IllegalStateException("Global Can Not Work With CheckpointMode.Period.");
 
 		case Immediately:
 			break;

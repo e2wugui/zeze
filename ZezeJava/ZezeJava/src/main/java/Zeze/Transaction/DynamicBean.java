@@ -32,7 +32,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	@SuppressWarnings("deprecation")
 	public final void setBean(Bean value) {
 		if (value == null)
-			throw new NullPointerException();
+			throw new IllegalArgumentException("null value");
 		if (!isManaged()) {
 			_TypeId = GetSpecialTypeIdFromBean.applyAsLong(value);
 			_Bean = value;

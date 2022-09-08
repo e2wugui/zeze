@@ -60,7 +60,7 @@ public class LogList1<V> extends LogList<V> {
 
 	public final boolean Add(V item) {
 		if (item == null)
-			throw new NullPointerException();
+			throw new IllegalArgumentException("null item");
 		var list = getValue();
 		setValue(list.plus(item));
 		opLogs.add(new OpLog<>(OpLog.OP_ADD, list.size(), item));

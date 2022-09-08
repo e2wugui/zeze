@@ -40,7 +40,7 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 	 */
 	public void register(String queue, int type, Predicate<Binary> task) {
 		if (null != handles.computeIfAbsent(queue, (key) -> new LongConcurrentHashMap<>()).putIfAbsent(type, task))
-			throw new RuntimeException("duplicate task type. " + type);
+			throw new IllegalStateException("duplicate task type. " + type);
 	}
 
 	@Override

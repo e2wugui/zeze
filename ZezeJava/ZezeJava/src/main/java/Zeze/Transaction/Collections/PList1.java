@@ -38,9 +38,8 @@ public class PList1<V> extends PList<V> {
 
 	@Override
 	public boolean add(V item) {
-		if (item == null) {
-			throw new NullPointerException();
-		}
+		if (item == null)
+			throw new IllegalArgumentException("null item");
 
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
@@ -83,9 +82,8 @@ public class PList1<V> extends PList<V> {
 
 	@Override
 	public V set(int index, V item) {
-		if (item == null) {
-			throw new NullPointerException();
-		}
+		if (item == null)
+			throw new IllegalArgumentException("null item");
 
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
@@ -100,9 +98,8 @@ public class PList1<V> extends PList<V> {
 
 	@Override
 	public void add(int index, V item) {
-		if (item == null) {
-			throw new NullPointerException();
-		}
+		if (item == null)
+			throw new IllegalArgumentException("null item");
 
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
@@ -130,9 +127,8 @@ public class PList1<V> extends PList<V> {
 	public boolean addAll(Collection<? extends V> items) {
 		// XXX
 		for (var v : items) {
-			if (null == v) {
-				throw new NullPointerException();
-			}
+			if (v == null)
+				throw new IllegalArgumentException("null in items");
 		}
 
 		if (isManaged()) {

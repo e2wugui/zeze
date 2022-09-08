@@ -27,9 +27,8 @@ public class PList2<V extends Bean> extends PList<V> {
 
 	@Override
 	public boolean add(V item) {
-		if (item == null) {
-			throw new NullPointerException();
-		}
+		if (item == null)
+			throw new IllegalArgumentException("null item");
 
 		if (isManaged()) {
 			item.InitRootInfoWithRedo(RootInfo, this);
@@ -73,9 +72,8 @@ public class PList2<V extends Bean> extends PList<V> {
 
 	@Override
 	public V set(int index, V item) {
-		if (item == null) {
-			throw new NullPointerException();
-		}
+		if (item == null)
+			throw new IllegalArgumentException("null item");
 
 		if (isManaged()) {
 			item.InitRootInfoWithRedo(RootInfo, this);
@@ -91,9 +89,8 @@ public class PList2<V extends Bean> extends PList<V> {
 
 	@Override
 	public void add(int index, V item) {
-		if (item == null) {
-			throw new NullPointerException();
-		}
+		if (item == null)
+			throw new IllegalArgumentException("null item");
 
 		if (isManaged()) {
 			item.InitRootInfoWithRedo(RootInfo, this);

@@ -83,7 +83,7 @@ public class LinkdHttpExchange {
 	public LinkdHttpExchange(HttpService s, HttpExchange x) {
 		exchangeId = s.ExchangeIdPal.next();
 		if (null != s.Exchanges.putIfAbsent(exchangeId, this))
-			throw new RuntimeException("Impossible! duplicate exchangeId.");
+			throw new IllegalStateException("Impossible! duplicate exchangeId.");
 		exchange = x;
 		service = s;
 	}

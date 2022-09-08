@@ -154,7 +154,7 @@ public class Daemon {
 		var p = new DatagramPacket(bb.Bytes, 0, bb.WriteIndex, peer);
 		if (cmd.isRequest()) {
 			if (Pendings.putIfAbsent(cmd.ReliableSerialNo, new PendingPacket(socket, p)) != null)
-				throw new RuntimeException("Duplicate ReliableSerialNo=" + cmd.ReliableSerialNo);
+				throw new IllegalStateException("Duplicate ReliableSerialNo=" + cmd.ReliableSerialNo);
 
 			// auto start Timer
 			if (Timer == null) {
@@ -199,7 +199,7 @@ public class Daemon {
 			cmd = new Release(bb, p.getSocketAddress());
 			break;
 		default:
-			throw new RuntimeException("Unknown Command =" + c);
+			throw new UnsupportedOperationException("Unknown Command =" + c);
 		}
 		if (cmd.ReliableSerialNo != 0)
 			Pendings.remove(cmd.ReliableSerialNo);

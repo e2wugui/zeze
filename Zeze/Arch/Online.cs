@@ -808,7 +808,7 @@ namespace Zeze.Arch
         public void Transmit(string account, string clientId, string actionName, ICollection<string> targets, Serializable parameter = null)
         {
             if (false == TransmitActions.ContainsKey(actionName))
-                throw new Exception("Unkown Action Name: " + actionName);
+                throw new Exception("Unknown Action Name: " + actionName);
 
             var binaryParam = parameter == null ? Binary.Empty : new Binary(ByteBuffer.Encode(parameter));
             // 发送协议请求在另外的事务中执行。
@@ -822,28 +822,28 @@ namespace Zeze.Arch
         public void TransmitWhileCommit(string account, string clientId, string actionName, string target, Serializable parameter = null)
         {
             if (false == TransmitActions.ContainsKey(actionName))
-                throw new Exception("Unkown Action Name: " + actionName);
+                throw new Exception("Unknown Action Name: " + actionName);
             Transaction.Transaction.Current.RunWhileCommit(() => Transmit(account, clientId, actionName, target, parameter));
         }
 
         public void TransmitWhileCommit(string account, string clientId, string actionName, ICollection<string> targets, Serializable parameter = null)
         {
             if (false == TransmitActions.ContainsKey(actionName))
-                throw new Exception("Unkown Action Name: " + actionName);
+                throw new Exception("Unknown Action Name: " + actionName);
             Transaction.Transaction.Current.RunWhileCommit(() => Transmit(account, clientId, actionName, targets, parameter));
         }
 
         public void TransmitWhileRollback(string account, string clientId, string actionName, string target, Serializable parameter = null)
         {
             if (false == TransmitActions.ContainsKey(actionName))
-                throw new Exception("Unkown Action Name: " + actionName);
+                throw new Exception("Unknown Action Name: " + actionName);
             Transaction.Transaction.Current.RunWhileRollback(() => Transmit(account, clientId, actionName, target, parameter));
         }
 
         public void TransmitWhileRollback(string account, string clientId, string actionName, ICollection<string> targets, Serializable parameter = null)
         {
             if (false == TransmitActions.ContainsKey(actionName))
-                throw new Exception("Unkown Action Name: " + actionName);
+                throw new Exception("Unknown Action Name: " + actionName);
             Transaction.Transaction.Current.RunWhileRollback(() => Transmit(account, clientId, actionName, targets, parameter));
         }
 

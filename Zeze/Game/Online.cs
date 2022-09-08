@@ -629,7 +629,7 @@ namespace Zeze.Game
         public void Transmit(long sender, string actionName, ICollection<long> roleIds, Serializable parameter = null)
         {
             if (false == TransmitActions.ContainsKey(actionName))
-                throw new Exception("Unkown Action Name: " + actionName);
+                throw new Exception("Unknown Action Name: " + actionName);
 
             var binaryParam = parameter == null ? Binary.Empty : new Binary(ByteBuffer.Encode(parameter));
             // 发送协议请求在另外的事务中执行。
@@ -643,28 +643,28 @@ namespace Zeze.Game
         public void TransmitWhileCommit(long sender, string actionName, long roleId, Serializable parameter = null)
         {
             if (false == TransmitActions.ContainsKey(actionName))
-                throw new Exception("Unkown Action Name: " + actionName);
+                throw new Exception("Unknown Action Name: " + actionName);
             Transaction.Transaction.Current.RunWhileCommit(() => Transmit(sender, actionName, roleId, parameter));
         }
 
         public void TransmitWhileCommit(long sender, string actionName, ICollection<long> roleIds, Serializable parameter = null)
         {
             if (false == TransmitActions.ContainsKey(actionName))
-                throw new Exception("Unkown Action Name: " + actionName);
+                throw new Exception("Unknown Action Name: " + actionName);
             Transaction.Transaction.Current.RunWhileCommit(() => Transmit(sender, actionName, roleIds, parameter));
         }
 
         public void TransmitWhileRollback(long sender, string actionName, long roleId, Serializable parameter = null)
         {
             if (false == TransmitActions.ContainsKey(actionName))
-                throw new Exception("Unkown Action Name: " + actionName);
+                throw new Exception("Unknown Action Name: " + actionName);
             Transaction.Transaction.Current.RunWhileRollback(() => Transmit(sender, actionName, roleId, parameter));
         }
 
         public void TransmitWhileRollback(long sender, string actionName, ICollection<long> roleIds, Serializable parameter = null)
         {
             if (false == TransmitActions.ContainsKey(actionName))
-                throw new Exception("Unkown Action Name: " + actionName);
+                throw new Exception("Unknown Action Name: " + actionName);
             Transaction.Transaction.Current.RunWhileRollback(() => Transmit(sender, actionName, roleIds, parameter));
         }
 

@@ -334,7 +334,7 @@ public final class RelativeRecordSet {
 
 		public int add(RelativeRecordSet rrs) {
 			if (null != SortedRrs.putIfAbsent(rrs.Id, rrs))
-				throw new RuntimeException("duplicate rrs");
+				throw new IllegalStateException("duplicate rrs");
 			return SortedRrs.size();
 		}
 

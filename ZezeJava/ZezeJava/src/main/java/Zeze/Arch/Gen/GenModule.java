@@ -179,7 +179,7 @@ public final class GenModule {
 			else if (type == RedirectAllFuture.class)
 				returnName = "Zeze.Arch.RedirectAllFuture<" + m.resultTypeName + '>';
 			else {
-				throw new RuntimeException("Redirect return type Must Be void or RedirectFuture or RedirectAllFuture: "
+				throw new UnsupportedOperationException("Redirect return type Must Be void or RedirectFuture or RedirectAllFuture: "
 						+ module.getClass().getName() + '.' + m.method.getName());
 			}
 			String modifier;
@@ -189,7 +189,7 @@ public final class GenModule {
 			else if ((flags & Modifier.PROTECTED) != 0)
 				modifier = "protected ";
 			else {
-				throw new RuntimeException("Redirect method Must Be public or protected: "
+				throw new UnsupportedOperationException("Redirect method Must Be public or protected: "
 						+ module.getClass().getName() + '.' + m.method.getName());
 			}
 
