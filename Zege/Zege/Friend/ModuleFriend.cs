@@ -48,7 +48,7 @@ namespace Zege.Friend
                         {
                             var node = new BGetFriendNode();
                             node.Decode(ByteBuffer.Wrap(p.Argument.ChangeLog));
-                            UpdateItemsSource(p.Argument.NodeId, indexOf, node);
+                            UpdateItemsSource(indexOf, node);
                         }
                         break;
 
@@ -58,7 +58,7 @@ namespace Zege.Friend
                             logBean.Decode(ByteBuffer.Wrap(p.Argument.ChangeLog));
                             var node = Nodes[indexOf];
                             node.FollowerApply(logBean);
-                            UpdateItemsSource(p.Argument.NodeId, indexOf, node);
+                            UpdateItemsSource(indexOf, node);
                         }
                         break;
                 }
@@ -113,7 +113,7 @@ namespace Zege.Friend
             var r = p as GetFriendNode;
             if (r.ResultCode == 0)
             {
-                UpdateItemsSource(r.Result.NodeId, NodesIndexOf(r.Result.NodeId), r.Result);
+                UpdateItemsSource(NodesIndexOf(r.Result.NodeId), r.Result);
             }
             return Task.FromResult(0L);
         }
@@ -169,14 +169,14 @@ namespace Zege.Friend
             return ii.Nick.Equals(((BFriend)jj.Value).Memo);
         }
 
-        private void UpdateItemsSource(long nodeId, int indexOf, BGetFriendNode node)
+        private void UpdateItemsSource(int indexOf, BGetFriendNode node)
         {
             if (-1 == indexOf)
             {
                 Nodes.Add(node);
                 foreach (var friend in node.Node.Values)
                 {
-                    ItemsSource.Add(FriendToItem(nodeId, friend));
+                    ItemsSource.Add(FriendToItem(node.NodeId, friend));
                 }
             }
             else
@@ -237,7 +237,7 @@ namespace Zege.Friend
                 for (; i >= 0; --i)
                 {
                     var ii = ItemsSource[i];
-                    if (ii.NodeId != nodeId)
+                    if (ii.NodeId != node.NodeId)
                         break; // view 中属于当前节点的item已经结束。
                     ItemsSource.RemoveAt(i);
                 }
@@ -246,7 +246,7 @@ namespace Zege.Friend
                 ++i; // 到这里时，i为-1，或者指向前面一个节点的最后一个好友。需要在这个后面开始插入剩余的friend。
                 for (; j >= 0; --j)
                 {
-                    ItemsSource.Insert(i, FriendToItem(nodeId, node.Node.Values[j]));
+                    ItemsSource.Insert(i, FriendToItem(node.NodeId, node.Node.Values[j]));
                 }
             }
         }
