@@ -102,7 +102,7 @@ public class ModuleTimer extends AbstractModule {
 
 	private final LongConcurrentHashMap<Future<?>> TimersLocal = new LongConcurrentHashMap<>();
 
-	private void CancelTimerLocal(int serverId, long nodeId, long timerId, Node node) {
+	private void CancelTimerLocal(int serverId, long nodeId, long timerId, BNode node) {
 
 		var local = TimersLocal.remove(timerId);
 		if (local != null)
@@ -171,7 +171,7 @@ public class ModuleTimer extends AbstractModule {
 
 			if (node.getTimers().size() < TimerCountPerNode) {
 				var timerId = TimerIdGenerator.nextId();
-				var timer = new Timer();
+				var timer = new BTimer();
 				timer.setTimerId(timerId);
 				timer.setName(name);
 				timer.setDelay(delay);
@@ -179,7 +179,7 @@ public class ModuleTimer extends AbstractModule {
 				timer.setRemainTimes(period < 0 ? 1 : times);
 				node.getTimers().put(timerId, timer);
 
-				var index = new Index();
+				var index = new BIndex();
 				index.setServerId(serverId);
 				index.setNodeId(nodeId);
 				_tIndexs.tryAdd(timerId, index);
@@ -234,7 +234,7 @@ public class ModuleTimer extends AbstractModule {
 	@SuppressWarnings("UnusedReturnValue")
 	private long LoadTimerLocal() {
 		var serverId = App.Zeze.getConfig().getServerId();
-		final var out = new OutObject<NodeRoot>();
+		final var out = new OutObject<BNodeRoot>();
 		Task.Call(App.Zeze.NewProcedure(() ->
 		{
 			var root = _tNodeRoot.getOrAdd(serverId);

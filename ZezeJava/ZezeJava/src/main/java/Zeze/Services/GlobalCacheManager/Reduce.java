@@ -2,7 +2,7 @@ package Zeze.Services.GlobalCacheManager;
 
 import Zeze.Net.Binary;
 
-public class Reduce extends Zeze.Net.Rpc<GlobalKeyState, GlobalKeyState> {
+public class Reduce extends Zeze.Net.Rpc<BGlobalKeyState, BGlobalKeyState> {
 	public static final int ProtocolId_ = Zeze.Transaction.Bean.Hash32(Reduce.class.getName()); // -1004125491
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 3290841805
 
@@ -17,13 +17,13 @@ public class Reduce extends Zeze.Net.Rpc<GlobalKeyState, GlobalKeyState> {
 	}
 
 	public Reduce() {
-		Argument = new GlobalKeyState();
-		Result = new GlobalKeyState();
+		Argument = new BGlobalKeyState();
+		Result = new BGlobalKeyState();
 	}
 
 	public Reduce(Binary gkey, int state) {
-		Argument = new GlobalKeyState();
-		Result = new GlobalKeyState();
+		Argument = new BGlobalKeyState();
+		Result = new BGlobalKeyState();
 		Argument.GlobalKey = gkey;
 		Argument.State = state;
 	}

@@ -4,13 +4,9 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
-final class InstallSnapshotResult extends Bean {
+final class BRequestVoteResult extends Bean {
 	private long Term;
-
-	// 非标准Raft协议参数：用来支持续传。
-	// >=0 : 让Leader从该位置继续传输数据。
-	// -1  : 让Leader按自己顺序传输数据。
-	private long Offset = -1;
+	private boolean VoteGranted;
 
 	public long getTerm() {
 		return Term;
@@ -20,24 +16,24 @@ final class InstallSnapshotResult extends Bean {
 		Term = value;
 	}
 
-	public long getOffset() {
-		return Offset;
+	public boolean getVoteGranted() {
+		return VoteGranted;
 	}
 
-	public void setOffset(long value) {
-		Offset = value;
+	public void setVoteGranted(boolean value) {
+		VoteGranted = value;
 	}
 
 	@Override
 	public void Encode(ByteBuffer bb) {
 		bb.WriteLong(Term);
-		bb.WriteLong(Offset);
+		bb.WriteBool(VoteGranted);
 	}
 
 	@Override
 	public void Decode(ByteBuffer bb) {
 		Term = bb.ReadLong();
-		Offset = bb.ReadLong();
+		VoteGranted = bb.ReadBool();
 	}
 
 	@Override
@@ -52,6 +48,6 @@ final class InstallSnapshotResult extends Bean {
 
 	@Override
 	public String toString() {
-		return String.format("(Term=%d Offset=%d)", Term, Offset);
+		return String.format("(Term=%d VoteGranted=%b)", Term, VoteGranted);
 	}
 }

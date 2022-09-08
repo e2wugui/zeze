@@ -18,7 +18,7 @@ import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Acquire;
 import Zeze.Services.GlobalCacheManager.Cleanup;
-import Zeze.Services.GlobalCacheManager.GlobalKeyState;
+import Zeze.Services.GlobalCacheManager.BGlobalKeyState;
 import Zeze.Services.GlobalCacheManager.KeepAlive;
 import Zeze.Services.GlobalCacheManager.Login;
 import Zeze.Services.GlobalCacheManager.NormalClose;
@@ -994,7 +994,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		/**
 		 * 返回null表示发生了网络错误，或者应用服务器已经关闭。
 		 */
-		Reduce ReduceWaitLater(Binary gkey, long fresh, ProtocolHandle<Rpc<GlobalKeyState, GlobalKeyState>> handle) {
+		Reduce ReduceWaitLater(Binary gkey, long fresh, ProtocolHandle<Rpc<BGlobalKeyState, BGlobalKeyState>> handle) {
 			try {
 				if (System.currentTimeMillis() - LastErrorTime < Instance.AchillesHeelConfig.GlobalForbidPeriod)
 					return null;

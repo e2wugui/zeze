@@ -14,17 +14,18 @@ import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.AllocateId;
+import Zeze.Services.ServiceManager.BServerLoad;
+import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Services.ServiceManager.CommitServiceList;
 import Zeze.Services.ServiceManager.KeepAlive;
 import Zeze.Services.ServiceManager.NotifyServiceList;
 import Zeze.Services.ServiceManager.ReadyServiceList;
 import Zeze.Services.ServiceManager.Register;
-import Zeze.Services.ServiceManager.ServiceInfo;
-import Zeze.Services.ServiceManager.ServiceInfos;
+import Zeze.Services.ServiceManager.BServiceInfo;
+import Zeze.Services.ServiceManager.BServiceInfos;
 import Zeze.Services.ServiceManager.SetServerLoad;
 import Zeze.Services.ServiceManager.Subscribe;
 import Zeze.Services.ServiceManager.SubscribeFirstCommit;
-import Zeze.Services.ServiceManager.SubscribeInfo;
 import Zeze.Services.ServiceManager.UnRegister;
 import Zeze.Services.ServiceManager.UnSubscribe;
 import Zeze.Services.ServiceManager.Update;
@@ -111,7 +112,7 @@ public final class ServiceManagerServer implements Closeable {
 
 	public static class LoadObservers {
 		public final ServiceManagerServer ServiceManager;
-		public Zeze.Services.ServiceManager.ServerLoad Load;
+		public BServerLoad Load;
 		public final LongHashSet Observers = new LongHashSet();
 
 		public LoadObservers(ServiceManagerServer m) {
@@ -119,7 +120,7 @@ public final class ServiceManagerServer implements Closeable {
 		}
 
 		// synchronized big?
-		public synchronized void SetLoad(Zeze.Services.ServiceManager.ServerLoad load) {
+		public synchronized void SetLoad(BServerLoad load) {
 			Load = load;
 			var set = new SetServerLoad();
 			set.Argument = load;
@@ -227,7 +228,7 @@ public final class ServiceManagerServer implements Closeable {
 		private final String ServiceName;
 		// identity ->
 		// 记录一下SessionId，方便以后找到服务所在的连接。
-		private final ConcurrentHashMap<String, ServiceInfo> ServiceInfos = new ConcurrentHashMap<>(); // key:serverId
+		private final ConcurrentHashMap<String, BServiceInfo> ServiceInfos = new ConcurrentHashMap<>(); // key:serverId
 		private final LongConcurrentHashMap<SubscribeState> Simple = new LongConcurrentHashMap<>(); // key:sessionId
 		private final LongConcurrentHashMap<SubscribeState> ReadyCommit = new LongConcurrentHashMap<>(); // key:sessionId
 		private Future<?> NotifyTimeoutTask;
@@ -237,7 +238,7 @@ public final class ServiceManagerServer implements Closeable {
 			return ServiceName;
 		}
 
-		public ConcurrentHashMap<String, ServiceInfo> getServiceInfos() {
+		public ConcurrentHashMap<String, BServiceInfo> getServiceInfos() {
 			return ServiceInfos;
 		}
 
@@ -261,7 +262,7 @@ public final class ServiceManagerServer implements Closeable {
 			if (ServiceManager.StartNotifyDelayTask != null)
 				return;
 			var notify = new NotifyServiceList();
-			notify.Argument = new ServiceInfos(ServiceName, this, ++SerialId);
+			notify.Argument = new BServiceInfos(ServiceName, this, ++SerialId);
 			var notifyBytes = notify.Encode();
 			var sb = new StringBuilder();
 			if (notifySimple) {
@@ -303,7 +304,7 @@ public final class ServiceManagerServer implements Closeable {
 			}
 		}
 
-		public synchronized void NotifySimpleOnRegister(ServiceInfo info) {
+		public synchronized void NotifySimpleOnRegister(BServiceInfo info) {
 			var sb = new StringBuilder();
 			for (var it = Simple.keyIterator(); it.hasNext(); ) {
 				var sessionId = it.next();
@@ -320,7 +321,7 @@ public final class ServiceManagerServer implements Closeable {
 			}
 		}
 
-		public synchronized void NotifySimpleOnUnRegister(ServiceInfo info) {
+		public synchronized void NotifySimpleOnUnRegister(BServiceInfo info) {
 			var sb = new StringBuilder();
 			for (var it = Simple.keyIterator(); it.hasNext(); ) {
 				var sessionId = it.next();
@@ -337,7 +338,7 @@ public final class ServiceManagerServer implements Closeable {
 			}
 		}
 
-		public synchronized int UpdateAndNotify(ServiceInfo info) {
+		public synchronized int UpdateAndNotify(BServiceInfo info) {
 			var current = ServiceInfos.get(info.getServiceIdentity());
 			if (current == null)
 				return Update.ServiceIdentityNotExist;
@@ -403,12 +404,12 @@ public final class ServiceManagerServer implements Closeable {
 		public synchronized long SubscribeAndSend(Subscribe r, Session session) {
 			// 外面会话的 TryAdd 加入成功，下面TryAdd肯定也成功。
 			switch (r.Argument.getSubscribeType()) {
-			case SubscribeInfo.SubscribeTypeSimple:
+			case BSubscribeInfo.SubscribeTypeSimple:
 				Simple.computeIfAbsent(session.getSessionId(), SubscribeState::new);
 				if (ServiceManager.StartNotifyDelayTask == null)
-					new SubscribeFirstCommit(new ServiceInfos(ServiceName, this, SerialId)).Send(r.getSender());
+					new SubscribeFirstCommit(new BServiceInfos(ServiceName, this, SerialId)).Send(r.getSender());
 				break;
-			case SubscribeInfo.SubscribeTypeReadyCommit:
+			case BSubscribeInfo.SubscribeTypeReadyCommit:
 				ReadyCommit.computeIfAbsent(session.getSessionId(), SubscribeState::new);
 				StartReadyCommitNotify();
 				break;
@@ -469,9 +470,9 @@ public final class ServiceManagerServer implements Closeable {
 	public static final class Session {
 		private final ServiceManagerServer ServiceManager;
 		private final long SessionId;
-		private final ConcurrentHashSet<ServiceInfo> Registers = new ConcurrentHashSet<>();
+		private final ConcurrentHashSet<BServiceInfo> Registers = new ConcurrentHashSet<>();
 		// key is ServiceName: 会话订阅
-		private final ConcurrentHashMap<String, SubscribeInfo> Subscribes = new ConcurrentHashMap<>();
+		private final ConcurrentHashMap<String, BSubscribeInfo> Subscribes = new ConcurrentHashMap<>();
 		private Future<?> KeepAliveTimerTask;
 
 		public ServiceManagerServer getServiceManager() {
@@ -482,11 +483,11 @@ public final class ServiceManagerServer implements Closeable {
 			return SessionId;
 		}
 
-		public ConcurrentHashSet<ServiceInfo> getRegisters() {
+		public ConcurrentHashSet<BServiceInfo> getRegisters() {
 			return Registers;
 		}
 
-		public ConcurrentHashMap<String, SubscribeInfo> getSubscribes() {
+		public ConcurrentHashMap<String, BSubscribeInfo> getSubscribes() {
 			return Subscribes;
 		}
 
@@ -592,7 +593,7 @@ public final class ServiceManagerServer implements Closeable {
 		return 0;
 	}
 
-	public ServerState UnRegisterNow(long sessionId, ServiceInfo info) {
+	public ServerState UnRegisterNow(long sessionId, BServiceInfo info) {
 		var state = ServerStates.get(info.getServiceName());
 		if (state != null) {
 			var exist = state.ServiceInfos.get(info.getServiceIdentity());
@@ -635,15 +636,15 @@ public final class ServiceManagerServer implements Closeable {
 		return state.SubscribeAndSend(r, session);
 	}
 
-	public ServerState UnSubscribeNow(long sessionId, SubscribeInfo info) {
+	public ServerState UnSubscribeNow(long sessionId, BSubscribeInfo info) {
 		var state = ServerStates.get(info.getServiceName());
 		if (state != null) {
 			switch (info.getSubscribeType()) {
-			case SubscribeInfo.SubscribeTypeSimple:
+			case BSubscribeInfo.SubscribeTypeSimple:
 				if (state.Simple.remove(sessionId) != null)
 					return state;
 				break;
-			case SubscribeInfo.SubscribeTypeReadyCommit:
+			case BSubscribeInfo.SubscribeTypeReadyCommit:
 				if (state.ReadyCommit.remove(sessionId) != null)
 					return state;
 				break;

@@ -6,8 +6,8 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.BitConverter;
 import demo.Bean1;
 import demo.Module1.Key;
-import demo.Module1.Simple;
-import demo.Module1.Value;
+import demo.Module1.BSimple;
+import demo.Module1.BValue;
 import junit.framework.TestCase;
 import org.junit.Assert;
 
@@ -307,19 +307,19 @@ public class TestByteBuffer extends TestCase {
 	}
 
 	public void testBean() {
-		Value v = new Value();
+		BValue v = new BValue();
 		v.setString3("abc");
 		v.setBytes8(new Binary("xyz".getBytes(StandardCharsets.UTF_8)));
 		Bean1 bean1 = new Bean1(123);
 		bean1.getV2().put(12, 34);
 		v.getList9().add(bean1);
-		Simple simple = new Simple();
+		BSimple simple = new BSimple();
 		simple.getRemoved().setInt1(999);
 		v.getMap16().put(new Key((short)11), simple);
 
 		ByteBuffer bb = ByteBuffer.Allocate();
 		v.Encode(bb);
-		Value v2 = new Value();
+		BValue v2 = new BValue();
 		v2.Decode(bb);
 		bb.ReadIndex = 0;
 		ByteBuffer bb2 = ByteBuffer.Allocate();

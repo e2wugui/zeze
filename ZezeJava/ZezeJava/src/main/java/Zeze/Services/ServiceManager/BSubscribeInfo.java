@@ -4,7 +4,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
-public final class SubscribeInfo extends Bean {
+public final class BSubscribeInfo extends Bean {
 	public static final int SubscribeTypeSimple = 0;
 	public static final int SubscribeTypeReadyCommit = 1;
 

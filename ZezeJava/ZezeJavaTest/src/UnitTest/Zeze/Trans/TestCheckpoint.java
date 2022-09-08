@@ -1,6 +1,7 @@
 package UnitTest.Zeze.Trans;
 
 import demo.App;
+import demo.Module1.BValue;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -87,7 +88,7 @@ public class TestCheckpoint{
 
 	private ByteBuffer bytesInTrans;
 	private long ProcChange() {
-		demo.Module1.Value v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(56L);
+		BValue v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(56L);
 		v.setInt1(1);
 		bytesInTrans = ByteBuffer.Allocate();
 		v.Encode(bytesInTrans);

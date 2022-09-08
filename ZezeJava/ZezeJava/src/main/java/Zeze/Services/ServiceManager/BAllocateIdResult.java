@@ -4,8 +4,9 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
-public final class AllocateIdArgument extends Bean {
+public final class BAllocateIdResult extends Bean {
 	private String Name;
+	private long StartId;
 	private int Count;
 
 	public String getName() {
@@ -14,6 +15,14 @@ public final class AllocateIdArgument extends Bean {
 
 	public void setName(String value) {
 		Name = value;
+	}
+
+	public long getStartId() {
+		return StartId;
+	}
+
+	public void setStartId(long value) {
+		StartId = value;
 	}
 
 	public int getCount() {
@@ -27,12 +36,14 @@ public final class AllocateIdArgument extends Bean {
 	@Override
 	public void Decode(ByteBuffer bb) {
 		setName(bb.ReadString());
+		setStartId(bb.ReadLong());
 		setCount(bb.ReadInt());
 	}
 
 	@Override
 	public void Encode(ByteBuffer bb) {
 		bb.WriteString(getName());
+		bb.WriteLong(getStartId());
 		bb.WriteInt(getCount());
 	}
 
@@ -60,6 +71,6 @@ public final class AllocateIdArgument extends Bean {
 
 	@Override
 	public String toString() {
-		return "AllocateIdArgument{" + "Name='" + Name + '\'' + ", Count=" + Count + '}';
+		return "BAllocateIdResult{" + "Name='" + Name + '\'' + ", StartId=" + StartId + ", Count=" + Count + '}';
 	}
 }

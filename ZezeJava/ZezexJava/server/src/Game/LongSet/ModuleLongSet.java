@@ -69,7 +69,7 @@ public class ModuleLongSet extends AbstractModule {
 			}
 
 			if (node.getSet().size() < CountPerNode) {
-				var indexNodeId = new NodeId();
+				var indexNodeId = new BNodeId();
 				indexNodeId.setNodeId(nodeId);
 				return _tIndexs.tryAdd(indexKey, indexNodeId)
 						&& null == node.getSet().putIfAbsent(value, new Timestamp(System.currentTimeMillis()));

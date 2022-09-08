@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.Agent;
-import Zeze.Services.ServiceManager.ServiceInfo;
+import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Util.ConsistentHash;
 import Zeze.Util.OutLong;
 import Zeze.Util.Random;
@@ -23,14 +23,14 @@ public class ProviderDistribute {
 	public Service ProviderService;
 	private final AtomicInteger FeedFullOneByOneIndex = new AtomicInteger();
 
-	public final ConcurrentHashMap<String, ConsistentHash<ServiceInfo>> ConsistentHashes = new ConcurrentHashMap<>();
+	public final ConcurrentHashMap<String, ConsistentHash<BServiceInfo>> ConsistentHashes = new ConcurrentHashMap<>();
 
-	public void AddServer(Agent.SubscribeState state, ServiceInfo s) {
+	public void AddServer(Agent.SubscribeState state, BServiceInfo s) {
 		var consistentHash = ConsistentHashes.computeIfAbsent(s.getServiceName(), key -> new ConsistentHash<>());
 		consistentHash.add(s.getServiceIdentity(), s);
 	}
 
-	public void RemoveServer(Agent.SubscribeState state, ServiceInfo s) {
+	public void RemoveServer(Agent.SubscribeState state, BServiceInfo s) {
 		var consistentHash = ConsistentHashes.get(s.getServiceName());
 		if (null != consistentHash)
 			consistentHash.remove(s.getServiceIdentity(), s);
@@ -39,7 +39,7 @@ public class ProviderDistribute {
 	public void ApplyServers(Agent.SubscribeState ass) {
 		var consistentHash = ConsistentHashes.computeIfAbsent(ass.getServiceName(), key -> new ConsistentHash<>());
 		var nodes = consistentHash.getNodes();
-		var current = new HashSet<ServiceInfo>();
+		var current = new HashSet<BServiceInfo>();
 		for (var node : ass.getServiceInfos().getServiceInfoListSortedByIdentity()) {
 			consistentHash.add(node.getServiceIdentity(), node);
 			current.add(node);
@@ -54,12 +54,12 @@ public class ProviderDistribute {
 		return serviceNamePrefix + moduleId;
 	}
 
-	public ConsistentHash<ServiceInfo> getConsistentHash(String name) {
+	public ConsistentHash<BServiceInfo> getConsistentHash(String name) {
 		return ConsistentHashes.get(name);
 	}
 
 	// ChoiceDataIndex 用于RedirectAll或者那些已知数据分块索引的地方。
-	public static ServiceInfo ChoiceDataIndex(ConsistentHash<ServiceInfo> consistentHash, int dataIndex, int dataConcurrentLevel) {
+	public static BServiceInfo ChoiceDataIndex(ConsistentHash<BServiceInfo> consistentHash, int dataIndex, int dataConcurrentLevel) {
 		if (consistentHash == null)
 			return null;
 //		if (consistentHash.getNodes().size() > dataConcurrentLevel)
@@ -67,7 +67,7 @@ public class ProviderDistribute {
 		return consistentHash.get(ByteBuffer.calc_hashnr(dataIndex));
 	}
 
-	public ServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash, int dataConcurrentLevel) {
+	public BServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash, int dataConcurrentLevel) {
 		var consistentHash = ConsistentHashes.get(providers.getServiceName());
 		if (consistentHash == null)
 			throw new IllegalStateException("ChoiceHash: not found ConsistentHash for serviceName=" + providers.getServiceName());
@@ -77,7 +77,7 @@ public class ProviderDistribute {
 		return ChoiceDataIndex(consistentHash, (int)((hash & 0xffff_ffffL) % dataConcurrentLevel), dataConcurrentLevel);
 	}
 
-	public ServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash) {
+	public BServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash) {
 		return ChoiceHash(providers, hash, 1);
 	}
 

@@ -231,15 +231,15 @@
 	</module>
 
 	<module name="Timer" id="11">
-		<bean name="NodeRoot">
+		<bean name="BNodeRoot">
 			<variable id="1" name="HeadNodeId" type="long"/>
 			<variable id="2" name="TailNodeId" type="long"/>
 			<variable id="3" name="LoadSerialNo" type="long"/>
 		</bean>
 
-		<table name="tNodeRoot" key="int" value="NodeRoot" /> key is serverid 每一台server拥有自己的链表。
+		<table name="tNodeRoot" key="int" value="BNodeRoot" /> key is serverid 每一台server拥有自己的链表。
 
-		<bean name="Timer">
+		<bean name="BTimer">
 			<variable id="1" name="TimerId" type="long"/>
 			<variable id="2" name="Name" type="string"/>
 			<variable id="3" name="Delay" type="long"/>
@@ -247,24 +247,24 @@
 			<variable id="5" name="RemainTimes" type="long"/> -1 表示不限次数。
 		</bean>
 
-		<bean name="Node">
+		<bean name="BNode">
 			<variable id="1" name="PrevNodeId" type="long"/>
 			<variable id="2" name="NextNodeId" type="long"/>
-			<variable id="3" name="Timers" type="map" key="long" value="Timer"/>
+			<variable id="3" name="Timers" type="map" key="long" value="BTimer"/>
 		</bean>
 
-		<table name="tNodes" key="long" value="Node"/>
+		<table name="tNodes" key="long" value="BNode"/>
 
-		<bean name="Index">
+		<bean name="BIndex">
 			<variable id="1" name="ServerId" type="int"/>
 			<variable id="2" name="NodeId" type="long"/>
 		</bean>
 
-		<table name="tIndexs" key="long" value="Index" />
+		<table name="tIndexs" key="long" value="BIndex" />
 	</module>
 
 	<module name="LongSet" id="12">
-		<bean name="NodeRoot">
+		<bean name="BNodeRoot">
 			<variable id="1" name="HeadNodeId" type="long"/>
 			<variable id="2" name="TailNodeId" type="long"/>
 		</bean>
@@ -275,17 +275,17 @@
 		<beankey name="Timestamp">
 			<variable id="1" name="Time" type="long"/>
 		</beankey>
-		<bean name="Node">
+		<bean name="BNode">
 			<variable id="1" name="PrevNodeId" type="long"/>
 			<variable id="2" name="NextNodeId" type="long"/>
 			<variable id="3" name="Set" type="map" key="NameValue" value="Timestamp"/>
 		</bean>
-		<table name="tNodes" key="long" value="Node"/>
-		<table name="tNodeRoot" key="string" value="NodeRoot"/>
-		<bean name="NodeId">
+		<table name="tNodes" key="long" value="BNode"/>
+		<table name="tNodeRoot" key="string" value="BNodeRoot"/>
+		<bean name="BNodeId">
 			<variable id="1" name="NodeId" type="long"/>
 		</bean>
-		<table name="tIndexs" key="string" value="NodeId"/> key is "{name}#{value}"
+		<table name="tIndexs" key="string" value="BNodeId"/> key is "{name}#{value}"
 	</module>
 
 	<!--

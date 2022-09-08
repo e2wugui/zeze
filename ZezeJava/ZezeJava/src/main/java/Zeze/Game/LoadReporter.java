@@ -4,6 +4,7 @@ import java.util.concurrent.Future;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Services.ServiceManager.BServerLoad;
 
 public class LoadReporter {
 	private long LastLoginTime;
@@ -71,7 +72,7 @@ public class LoadReporter {
 		var bb = ByteBuffer.Allocate(256);
 		load.Encode(bb);
 
-		var loadServer = new Zeze.Services.ServiceManager.ServerLoad();
+		var loadServer = new BServerLoad();
 		loadServer.Ip = Online.ProviderApp.DirectIp;
 		loadServer.Port = Online.ProviderApp.DirectPort;
 		loadServer.Param = new Binary(bb);

@@ -4,7 +4,7 @@ package Zeze.Builtin.GlobalCacheManagerWithRaft;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class LoginParam extends Zeze.Transaction.Bean {
+public final class BLoginParam extends Zeze.Transaction.Bean {
     private int _ServerId;
     private int _GlobalCacheManagerHashIndex;
     private boolean _DebugMode; // 调试模式下不检查Release Timeout,方便单步调试
@@ -66,43 +66,43 @@ public final class LoginParam extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__DebugMode(this, 3, value));
     }
 
-    public LoginParam() {
+    public BLoginParam() {
     }
 
-    public LoginParam(int _ServerId_, int _GlobalCacheManagerHashIndex_, boolean _DebugMode_) {
+    public BLoginParam(int _ServerId_, int _GlobalCacheManagerHashIndex_, boolean _DebugMode_) {
         _ServerId = _ServerId_;
         _GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex_;
         _DebugMode = _DebugMode_;
     }
 
-    public void Assign(LoginParam other) {
+    public void Assign(BLoginParam other) {
         setServerId(other.getServerId());
         setGlobalCacheManagerHashIndex(other.getGlobalCacheManagerHashIndex());
         setDebugMode(other.isDebugMode());
     }
 
-    public LoginParam CopyIfManaged() {
+    public BLoginParam CopyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public LoginParam Copy() {
-        var copy = new LoginParam();
+    public BLoginParam Copy() {
+        var copy = new BLoginParam();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(LoginParam a, LoginParam b) {
-        LoginParam save = a.Copy();
+    public static void Swap(BLoginParam a, BLoginParam b) {
+        BLoginParam save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public LoginParam CopyBean() {
+    public BLoginParam CopyBean() {
         return Copy();
     }
 
-    public static final long TYPEID = 8338257265267188489L;
+    public static final long TYPEID = 9076855952725286109L;
 
     @Override
     public long typeId() {
@@ -110,24 +110,24 @@ public final class LoginParam extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__ServerId extends Zeze.Transaction.Logs.LogInt {
-        public Log__ServerId(LoginParam bean, int varId, int value) { super(bean, varId, value); }
+        public Log__ServerId(BLoginParam bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((LoginParam)getBelong())._ServerId = Value; }
+        public void Commit() { ((BLoginParam)getBelong())._ServerId = Value; }
     }
 
     private static final class Log__GlobalCacheManagerHashIndex extends Zeze.Transaction.Logs.LogInt {
-        public Log__GlobalCacheManagerHashIndex(LoginParam bean, int varId, int value) { super(bean, varId, value); }
+        public Log__GlobalCacheManagerHashIndex(BLoginParam bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((LoginParam)getBelong())._GlobalCacheManagerHashIndex = Value; }
+        public void Commit() { ((BLoginParam)getBelong())._GlobalCacheManagerHashIndex = Value; }
     }
 
     private static final class Log__DebugMode extends Zeze.Transaction.Logs.LogBool {
-        public Log__DebugMode(LoginParam bean, int varId, boolean value) { super(bean, varId, value); }
+        public Log__DebugMode(BLoginParam bean, int varId, boolean value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((LoginParam)getBelong())._DebugMode = Value; }
+        public void Commit() { ((BLoginParam)getBelong())._DebugMode = Value; }
     }
 
     @Override
@@ -139,7 +139,7 @@ public final class LoginParam extends Zeze.Transaction.Bean {
 
     @Override
     public void BuildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.LoginParam: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.BLoginParam: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ServerId").append('=').append(getServerId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("GlobalCacheManagerHashIndex").append('=').append(getGlobalCacheManagerHashIndex()).append(',').append(System.lineSeparator());

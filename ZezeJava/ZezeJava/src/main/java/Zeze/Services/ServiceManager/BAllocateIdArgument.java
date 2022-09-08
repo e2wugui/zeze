@@ -1,31 +1,39 @@
 package Zeze.Services.ServiceManager;
 
-import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
-public final class ServerLoad extends Bean {
-	public String Ip;
-	public int Port;
-	public Binary Param = Binary.Empty;
+public final class BAllocateIdArgument extends Bean {
+	private String Name;
+	private int Count;
 
 	public String getName() {
-		return Ip + ":" + Port;
+		return Name;
+	}
+
+	public void setName(String value) {
+		Name = value;
+	}
+
+	public int getCount() {
+		return Count;
+	}
+
+	public void setCount(int value) {
+		Count = value;
 	}
 
 	@Override
 	public void Decode(ByteBuffer bb) {
-		Ip = bb.ReadString();
-		Port = bb.ReadInt();
-		Param = bb.ReadBinary();
+		setName(bb.ReadString());
+		setCount(bb.ReadInt());
 	}
 
 	@Override
 	public void Encode(ByteBuffer bb) {
-		bb.WriteString(Ip);
-		bb.WriteInt(Port);
-		bb.WriteBinary(Param);
+		bb.WriteString(getName());
+		bb.WriteInt(getCount());
 	}
 
 	@Override
@@ -52,6 +60,6 @@ public final class ServerLoad extends Bean {
 
 	@Override
 	public String toString() {
-		return "ServerLoad{" + "Ip='" + Ip + '\'' + ", Port=" + Port + ", Param=" + Param + '}';
+		return "BAllocateIdArgument{" + "Name='" + Name + '\'' + ", Count=" + Count + '}';
 	}
 }

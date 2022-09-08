@@ -4,7 +4,7 @@ package Zeze.Builtin.GlobalCacheManagerWithRaft;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class AchillesHeel extends Zeze.Transaction.Bean {
+public final class BAchillesHeel extends Zeze.Transaction.Bean {
     private int _ServerId;
     private String _SecureKey;
     private int _GlobalCacheManagerHashIndex;
@@ -68,11 +68,11 @@ public final class AchillesHeel extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__GlobalCacheManagerHashIndex(this, 3, value));
     }
 
-    public AchillesHeel() {
+    public BAchillesHeel() {
         _SecureKey = "";
     }
 
-    public AchillesHeel(int _ServerId_, String _SecureKey_, int _GlobalCacheManagerHashIndex_) {
+    public BAchillesHeel(int _ServerId_, String _SecureKey_, int _GlobalCacheManagerHashIndex_) {
         _ServerId = _ServerId_;
         if (_SecureKey_ == null)
             throw new IllegalArgumentException();
@@ -80,34 +80,34 @@ public final class AchillesHeel extends Zeze.Transaction.Bean {
         _GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex_;
     }
 
-    public void Assign(AchillesHeel other) {
+    public void Assign(BAchillesHeel other) {
         setServerId(other.getServerId());
         setSecureKey(other.getSecureKey());
         setGlobalCacheManagerHashIndex(other.getGlobalCacheManagerHashIndex());
     }
 
-    public AchillesHeel CopyIfManaged() {
+    public BAchillesHeel CopyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public AchillesHeel Copy() {
-        var copy = new AchillesHeel();
+    public BAchillesHeel Copy() {
+        var copy = new BAchillesHeel();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(AchillesHeel a, AchillesHeel b) {
-        AchillesHeel save = a.Copy();
+    public static void Swap(BAchillesHeel a, BAchillesHeel b) {
+        BAchillesHeel save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public AchillesHeel CopyBean() {
+    public BAchillesHeel CopyBean() {
         return Copy();
     }
 
-    public static final long TYPEID = -2721594206374974168L;
+    public static final long TYPEID = -1597142225818031748L;
 
     @Override
     public long typeId() {
@@ -115,24 +115,24 @@ public final class AchillesHeel extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__ServerId extends Zeze.Transaction.Logs.LogInt {
-        public Log__ServerId(AchillesHeel bean, int varId, int value) { super(bean, varId, value); }
+        public Log__ServerId(BAchillesHeel bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((AchillesHeel)getBelong())._ServerId = Value; }
+        public void Commit() { ((BAchillesHeel)getBelong())._ServerId = Value; }
     }
 
     private static final class Log__SecureKey extends Zeze.Transaction.Logs.LogString {
-        public Log__SecureKey(AchillesHeel bean, int varId, String value) { super(bean, varId, value); }
+        public Log__SecureKey(BAchillesHeel bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((AchillesHeel)getBelong())._SecureKey = Value; }
+        public void Commit() { ((BAchillesHeel)getBelong())._SecureKey = Value; }
     }
 
     private static final class Log__GlobalCacheManagerHashIndex extends Zeze.Transaction.Logs.LogInt {
-        public Log__GlobalCacheManagerHashIndex(AchillesHeel bean, int varId, int value) { super(bean, varId, value); }
+        public Log__GlobalCacheManagerHashIndex(BAchillesHeel bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((AchillesHeel)getBelong())._GlobalCacheManagerHashIndex = Value; }
+        public void Commit() { ((BAchillesHeel)getBelong())._GlobalCacheManagerHashIndex = Value; }
     }
 
     @Override
@@ -144,7 +144,7 @@ public final class AchillesHeel extends Zeze.Transaction.Bean {
 
     @Override
     public void BuildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.AchillesHeel: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.BAchillesHeel: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ServerId").append('=').append(getServerId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("SecureKey").append('=').append(getSecureKey()).append(',').append(System.lineSeparator());

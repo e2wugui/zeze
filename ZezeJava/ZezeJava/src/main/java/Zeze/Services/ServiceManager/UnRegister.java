@@ -8,7 +8,7 @@ import Zeze.Transaction.EmptyBean;
  * 动态服务关闭时，注销自己，当与本服务器的连接关闭时，默认也会注销。
  * 最好主动注销，方便以后错误处理。
  */
-public final class UnRegister extends Rpc<ServiceInfo, EmptyBean> {
+public final class UnRegister extends Rpc<BServiceInfo, EmptyBean> {
 	public static final int ProtocolId_ = Bean.Hash32(UnRegister.class.getName()); // 1424315418
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 1424315418
 
@@ -26,7 +26,7 @@ public final class UnRegister extends Rpc<ServiceInfo, EmptyBean> {
 	}
 
 	public UnRegister() {
-		Argument = new ServiceInfo();
+		Argument = new BServiceInfo();
 		Result = new EmptyBean();
 	}
 }

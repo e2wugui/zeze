@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
-final class InstallSnapshotArgument extends Bean {
+final class BInstallSnapshotArgument extends Bean {
 	private long Term;
 	private String LeaderId; // Ip:Port
 	private long LastIncludedIndex;

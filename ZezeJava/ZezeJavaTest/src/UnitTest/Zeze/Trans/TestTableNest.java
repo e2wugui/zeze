@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import demo.Module1.BValue;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -30,17 +31,17 @@ public class TestTableNest {
 	}
 
 	private static long ProcTableAdd() throws Throwable {
-		demo.Module1.Value v1 = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(4321L);
+		BValue v1 = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(4321L);
 		Assert.assertNotNull(v1);
 		Assert.assertNotEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(TestTableNest::ProcTablePutNestAndRollback, "ProcTablePutNestAndRollback").Call());
-		demo.Module1.Value v2 = demo.App.getInstance().demo_Module1.getTable1().get(4321L);
+		BValue v2 = demo.App.getInstance().demo_Module1.getTable1().get(4321L);
 		Assert.assertNotNull(v1);
 		Assert.assertEquals(v1, v2);
 		return Procedure.Success;
 	}
 
 	private static long ProcTablePutNestAndRollback() {
-		demo.Module1.Value v = new demo.Module1.Value();
+		BValue v = new BValue();
 		demo.App.getInstance().demo_Module1.getTable1().put(4321L, v);
 		return Procedure.Unknown;
 	}

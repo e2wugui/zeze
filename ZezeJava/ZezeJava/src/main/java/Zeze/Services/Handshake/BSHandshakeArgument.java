@@ -1,23 +1,26 @@
-package Zeze.Services.ServiceManager;
+package Zeze.Services.Handshake;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
-public final class ServiceListVersion extends Bean {
-	public String ServiceName;
-	public long SerialId;
+public final class BSHandshakeArgument extends Bean {
+	public byte[] dh_data;
+	public boolean s2cNeedCompress;
+	public boolean c2sNeedCompress;
 
 	@Override
 	public void Decode(ByteBuffer bb) {
-		ServiceName = bb.ReadString();
-		SerialId = bb.ReadLong();
+		dh_data = bb.ReadBytes();
+		s2cNeedCompress = bb.ReadBool();
+		c2sNeedCompress = bb.ReadBool();
 	}
 
 	@Override
 	public void Encode(ByteBuffer bb) {
-		bb.WriteString(ServiceName);
-		bb.WriteLong(SerialId);
+		bb.WriteBytes(dh_data);
+		bb.WriteBool(s2cNeedCompress);
+		bb.WriteBool(c2sNeedCompress);
 	}
 
 	@Override
@@ -44,6 +47,7 @@ public final class ServiceListVersion extends Bean {
 
 	@Override
 	public String toString() {
-		return "ServiceListVersion{" + "ServiceName='" + ServiceName + '\'' + ", SerialId=" + SerialId + '}';
+		return "BSHandshakeArgument{" + "dh_data=[" + (dh_data != null ? dh_data.length : -1) +
+				"], s2cNeedCompress=" + s2cNeedCompress + ", c2sNeedCompress=" + c2sNeedCompress + '}';
 	}
 }

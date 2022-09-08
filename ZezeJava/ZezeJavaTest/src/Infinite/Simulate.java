@@ -2,6 +2,7 @@ package Infinite;
 
 import java.util.ArrayList;
 import Zeze.Util.Random;
+import demo.Module1.BValue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.After;
@@ -51,8 +52,8 @@ public final class Simulate {
 		for (var app : Apps)
 			app.Start();
 
-		var allTFlush = new ArrayList<Zeze.Transaction.TableX<Long, demo.Module1.Value>>();
-		var allTable1 = new ArrayList<Zeze.Transaction.TableX<Long, demo.Module1.Value>>();
+		var allTFlush = new ArrayList<Zeze.Transaction.TableX<Long, BValue>>();
+		var allTable1 = new ArrayList<Zeze.Transaction.TableX<Long, BValue>>();
 		for (var app : Apps) {
 			allTFlush.add(app.app.demo_Module1.getTflush());
 			allTable1.add(app.app.demo_Module1.getTable1());

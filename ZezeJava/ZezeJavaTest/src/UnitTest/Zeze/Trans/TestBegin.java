@@ -1,6 +1,6 @@
 package UnitTest.Zeze.Trans;
 
-import UnitTest.Zeze.MyBean;
+import UnitTest.Zeze.BMyBean;
 import Zeze.Transaction.Locks;
 import Zeze.Transaction.Transaction;
 import junit.framework.TestCase;
@@ -16,7 +16,7 @@ public class TestBegin extends TestCase {
 			Transaction.getCurrent().Begin();
 
 			// process
-			MyBean bean = new MyBean();
+			BMyBean bean = new BMyBean();
 			Assert.assertEquals(bean.getI(), 0);
 
 			bean.setI(1);
@@ -35,7 +35,7 @@ public class TestBegin extends TestCase {
 			Transaction.getCurrent().Begin();
 
 			// process
-			MyBean bean = new MyBean();
+			BMyBean bean = new BMyBean();
 			Assert.assertEquals(bean.getI(), 0);
 
 			bean.setI(1);
@@ -48,7 +48,7 @@ public class TestBegin extends TestCase {
 		}
 	}
 
-	private static void processNestRollback(MyBean bean) {
+	private static void processNestRollback(BMyBean bean) {
 		Assert.assertEquals(bean.getI(), 1);
 		Transaction.getCurrent().Begin();
 		Assert.assertEquals(bean.getI(), 1);
@@ -64,7 +64,7 @@ public class TestBegin extends TestCase {
 			Transaction.getCurrent().Begin();
 
 			// process
-			MyBean bean = new MyBean();
+			BMyBean bean = new BMyBean();
 			Assert.assertEquals(bean.getI(), 0);
 
 			bean.setI(1);
@@ -79,7 +79,7 @@ public class TestBegin extends TestCase {
 		}
 	}
 
-	private static void ProcessNestCommit(MyBean bean) {
+	private static void ProcessNestCommit(BMyBean bean) {
 		Assert.assertEquals(bean.getI(), 1);
 		Transaction.getCurrent().Begin();
 		Assert.assertEquals(bean.getI(), 1);
@@ -95,7 +95,7 @@ public class TestBegin extends TestCase {
 			Transaction.getCurrent().Begin();
 
 			// process
-			MyBean bean = new MyBean();
+			BMyBean bean = new BMyBean();
 			Assert.assertEquals(bean.getI(), 0);
 
 			bean.setI(1);

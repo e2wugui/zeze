@@ -1,6 +1,6 @@
 package UnitTest.Zeze.Trans;
 
-import UnitTest.Zeze.MyBean;
+import UnitTest.Zeze.BMyBean;
 import Zeze.Serialize.Vector2;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Record1;
@@ -12,7 +12,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TestProcdure {
-	private final MyBean bean = new MyBean();
+	private final BMyBean bean = new BMyBean();
 
 	public final long ProcTrue() {
 		bean.setI(123);

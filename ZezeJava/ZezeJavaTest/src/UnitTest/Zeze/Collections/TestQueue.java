@@ -1,7 +1,7 @@
 package UnitTest.Zeze.Collections;
 
 import java.util.concurrent.atomic.AtomicInteger;
-import UnitTest.Zeze.MyBean;
+import UnitTest.Zeze.BMyBean;
 import Zeze.Transaction.Procedure;
 import org.junit.After;
 import org.junit.Assert;
@@ -27,9 +27,9 @@ public class TestQueue {
 	public final void test1_QueueAdd() throws Throwable {
 		var ret = demo.App.getInstance().Zeze.NewProcedure(() -> {
 			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
-			var queue = queueModule.open("test1", MyBean.class);
+			var queue = queueModule.open("test1", BMyBean.class);
 			for (int i = 0; i < 10; i++) {
-				var bean = new MyBean();
+				var bean = new BMyBean();
 				bean.setI(i);
 				queue.add(bean);
 			}
@@ -43,7 +43,7 @@ public class TestQueue {
 	@Test
 	public final void test2_QueueWalk() {
 		var queueModule = demo.App.getInstance().Zeze.getQueueModule();
-		var queue = queueModule.open("test1", MyBean.class);
+		var queue = queueModule.open("test1", BMyBean.class);
 		var i = new AtomicInteger(0);
 		int[] arr = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 		queue.walk(((key, value) -> {
@@ -58,7 +58,7 @@ public class TestQueue {
 	public final void test3_QueuePop() throws Throwable {
 		var ret = demo.App.getInstance().Zeze.NewProcedure(() -> {
 			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
-			var queue = queueModule.open("test1", MyBean.class);
+			var queue = queueModule.open("test1", BMyBean.class);
 			for (int i = 0; i < 10; i++) {
 				var bean = queue.pop();
 				Assert.assertEquals(bean.getI(), i);
@@ -73,9 +73,9 @@ public class TestQueue {
 	public final void test4_QueuePush() throws Throwable {
 		var ret = demo.App.getInstance().Zeze.NewProcedure(() -> {
 			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
-			var queue = queueModule.open("test1", MyBean.class);
+			var queue = queueModule.open("test1", BMyBean.class);
 			for (int i = 0; i < 10; i++) {
-				var bean = new MyBean();
+				var bean = new BMyBean();
 				bean.setI(i);
 				queue.push(bean);
 			}
@@ -89,7 +89,7 @@ public class TestQueue {
 	@Test
 	public final void test5_QueueWalk() {
 		var queueModule = demo.App.getInstance().Zeze.getQueueModule();
-		var queue = queueModule.open("test1", MyBean.class);
+		var queue = queueModule.open("test1", BMyBean.class);
 		var i = new AtomicInteger(0);
 		int[] arr = {9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
 		queue.walk(((key, value) -> {
@@ -104,7 +104,7 @@ public class TestQueue {
 	public final void test6_QueuePop() throws Throwable {
 		var ret = demo.App.getInstance().Zeze.NewProcedure(() -> {
 			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
-			var queue = queueModule.open("test1", MyBean.class);
+			var queue = queueModule.open("test1", BMyBean.class);
 			for (int i = 9; i >= 0; i--) {
 				var bean = queue.pop();
 				Assert.assertEquals(bean.getI(), i);

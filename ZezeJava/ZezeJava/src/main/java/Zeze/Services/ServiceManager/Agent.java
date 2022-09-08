@@ -29,16 +29,16 @@ public final class Agent implements Closeable {
 	 * 订阅服务状态发生变化时回调。 如果需要处理这个事件，请在订阅前设置回调。
 	 */
 	private Action1<SubscribeState> OnChanged; // Simple Or ReadyCommit
-	private Action2<SubscribeState, ServiceInfo> OnUpdate; // Simple
-	private Action2<SubscribeState, ServiceInfo> OnRemove; // Simple
+	private Action2<SubscribeState, BServiceInfo> OnUpdate; // Simple
+	private Action2<SubscribeState, BServiceInfo> OnRemove; // Simple
 	private Action1<SubscribeState> OnPrepare; // ReadyCommit 的第一步回调。
-	private Action1<ServerLoad> OnSetServerLoad;
+	private Action1<BServerLoad> OnSetServerLoad;
 
 	// 应用可以在这个Action内起一个测试事务并执行一次。也可以实现其他检测。
 	// ServiceManager 定时发送KeepAlive给Agent，并等待结果。超时则认为服务失效。
 	private Runnable OnKeepAlive;
 
-	private final ConcurrentHashMap<ServiceInfo, ServiceInfo> Registers = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<BServiceInfo, BServiceInfo> Registers = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, AutoKey> AutoKeys = new ConcurrentHashMap<>();
 
 	/**
@@ -61,7 +61,7 @@ public final class Agent implements Closeable {
 	}
 	*/
 
-	public final ConcurrentHashMap<String, ServerLoad> Loads = new ConcurrentHashMap<>();
+	public final ConcurrentHashMap<String, BServerLoad> Loads = new ConcurrentHashMap<>();
 
 	public AgentClient getClient() {
 		return Client;
@@ -79,7 +79,7 @@ public final class Agent implements Closeable {
 		OnChanged = value;
 	}
 
-	public void setOnSetServerLoad(Action1<ServerLoad> value) {
+	public void setOnSetServerLoad(Action1<BServerLoad> value) {
 		OnSetServerLoad = value;
 	}
 
@@ -87,19 +87,19 @@ public final class Agent implements Closeable {
 		OnPrepare = value;
 	}
 
-	public Action2<SubscribeState, ServiceInfo> getOnRemoved() {
+	public Action2<SubscribeState, BServiceInfo> getOnRemoved() {
 		return OnRemove;
 	}
 
-	public void setOnRemoved(Action2<SubscribeState, ServiceInfo> value) {
+	public void setOnRemoved(Action2<SubscribeState, BServiceInfo> value) {
 		OnRemove = value;
 	}
 
-	public Action2<SubscribeState, ServiceInfo> getOnUpdate() {
+	public Action2<SubscribeState, BServiceInfo> getOnUpdate() {
 		return OnUpdate;
 	}
 
-	public void setOnUpdate(Action2<SubscribeState, ServiceInfo> value) {
+	public void setOnUpdate(Action2<SubscribeState, BServiceInfo> value) {
 		OnUpdate = value;
 	}
 
@@ -111,7 +111,7 @@ public final class Agent implements Closeable {
 		OnKeepAlive = value;
 	}
 
-	private ConcurrentHashMap<ServiceInfo, ServiceInfo> getRegisters() {
+	private ConcurrentHashMap<BServiceInfo, BServiceInfo> getRegisters() {
 		return Registers;
 	}
 
@@ -120,9 +120,9 @@ public final class Agent implements Closeable {
 	// 维护这些状态数据都是先更新本地再发送远程请求，在失败的时候rollback。
 	// 当同一个Key(比如ServiceName)存在并发时，现在处理所有情况，但不保证都是合理的。
 	public final class SubscribeState {
-		private final SubscribeInfo subscribeInfo;
-		private volatile ServiceInfos ServiceInfos;
-		private volatile ServiceInfos ServiceInfosPending;
+		private final BSubscribeInfo subscribeInfo;
+		private volatile BServiceInfos ServiceInfos;
+		private volatile BServiceInfos ServiceInfosPending;
 
 		@Override
 		public String toString() {
@@ -137,7 +137,7 @@ public final class Agent implements Closeable {
 		// 服务准备好。
 		public final ConcurrentHashMap<String, Object> LocalStates = new ConcurrentHashMap<>();
 
-		public SubscribeInfo getSubscribeInfo() {
+		public BSubscribeInfo getSubscribeInfo() {
 			return subscribeInfo;
 		}
 
@@ -149,15 +149,15 @@ public final class Agent implements Closeable {
 			return getSubscribeInfo().getServiceName();
 		}
 
-		public ServiceInfos getServiceInfos() {
+		public BServiceInfos getServiceInfos() {
 			return ServiceInfos;
 		}
 
-		private void setServiceInfos(ServiceInfos value) {
+		private void setServiceInfos(BServiceInfos value) {
 			ServiceInfos = value;
 		}
 
-		public ServiceInfos getServiceInfosPending() {
+		public BServiceInfos getServiceInfosPending() {
 			return ServiceInfosPending;
 		}
 
@@ -173,9 +173,9 @@ public final class Agent implements Closeable {
 			return Agent.this;
 		}
 
-		public SubscribeState(SubscribeInfo info) {
+		public SubscribeState(BSubscribeInfo info) {
 			subscribeInfo = info;
-			setServiceInfos(new ServiceInfos(info.getServiceName()));
+			setServiceInfos(new BServiceInfos(info.getServiceName()));
 		}
 
 		// NOT UNDER LOCK
@@ -225,7 +225,7 @@ public final class Agent implements Closeable {
 			}
 		}
 
-		synchronized void OnUpdate(ServiceInfo info) {
+		synchronized void OnUpdate(BServiceInfo info) {
 			var exist = ServiceInfos.findServiceInfoByIdentity(info.getServiceIdentity());
 			if (null == exist)
 				return;
@@ -253,7 +253,7 @@ public final class Agent implements Closeable {
 			}
 		}
 
-		synchronized void OnRegister(ServiceInfo info) {
+		synchronized void OnRegister(BServiceInfo info) {
 			var info2 = ServiceInfos.Insert(info);
 			if (Agent.this.OnUpdate != null) {
 				Task.getCriticalThreadPool().execute(() -> {
@@ -274,7 +274,7 @@ public final class Agent implements Closeable {
 			}
 		}
 
-		synchronized void OnUnRegister(ServiceInfo info) {
+		synchronized void OnUnRegister(BServiceInfo info) {
 			var info2 = ServiceInfos.Remove(info);
 			if (null != info2) {
 				if (Agent.this.OnRemove != null) {
@@ -297,15 +297,15 @@ public final class Agent implements Closeable {
 			}
 		}
 
-		public synchronized void OnNotify(ServiceInfos infos) {
+		public synchronized void OnNotify(BServiceInfos infos) {
 			switch (getSubscribeType()) {
-			case SubscribeInfo.SubscribeTypeSimple:
+			case BSubscribeInfo.SubscribeTypeSimple:
 				setServiceInfos(infos);
 				setCommitted(true);
 				PrepareAndTriggerOnChanged();
 				break;
 
-			case SubscribeInfo.SubscribeTypeReadyCommit:
+			case BSubscribeInfo.SubscribeTypeReadyCommit:
 				if (null == getServiceInfosPending()
 						|| infos.getSerialId() > getServiceInfosPending().getSerialId()) {
 					ServiceInfosPending = infos;
@@ -347,11 +347,11 @@ public final class Agent implements Closeable {
 			PrepareAndTriggerOnChanged();
 		}
 
-		public synchronized void OnFirstCommit(ServiceInfos infos) {
+		public synchronized void OnFirstCommit(BServiceInfos infos) {
 			if (getCommitted()) {
 				return;
 			}
-			if (subscribeInfo.getSubscribeType() == SubscribeInfo.SubscribeTypeReadyCommit) {
+			if (subscribeInfo.getSubscribeType() == BSubscribeInfo.SubscribeTypeReadyCommit) {
 				// ReadyCommit 模式不会走到这里。OnNotify(infos);
 				return;
 			}
@@ -362,24 +362,24 @@ public final class Agent implements Closeable {
 		}
 	}
 
-	public ServiceInfo RegisterService(String name, String identity) {
+	public BServiceInfo RegisterService(String name, String identity) {
 		return RegisterService(name, identity, null, 0, null);
 	}
 
-	public ServiceInfo RegisterService(String name, String identity, String ip) {
+	public BServiceInfo RegisterService(String name, String identity, String ip) {
 		return RegisterService(name, identity, ip, 0, null);
 	}
 
-	public ServiceInfo RegisterService(String name, String identity, String ip, int port) {
+	public BServiceInfo RegisterService(String name, String identity, String ip, int port) {
 		return RegisterService(name, identity, ip, port, null);
 	}
 
-	public ServiceInfo RegisterService(String name, String identity, String ip, int port, Binary extraInfo) {
-		return RegisterService(new ServiceInfo(name, identity, ip, port, extraInfo));
+	public BServiceInfo RegisterService(String name, String identity, String ip, int port, Binary extraInfo) {
+		return RegisterService(new BServiceInfo(name, identity, ip, port, extraInfo));
 	}
 
-	public ServiceInfo UpdateService(String name, String identity, String ip, int port, Binary extraInfo) {
-		return UpdateService(new ServiceInfo(name, identity, ip, port, extraInfo));
+	public BServiceInfo UpdateService(String name, String identity, String ip, int port, Binary extraInfo) {
+		return UpdateService(new BServiceInfo(name, identity, ip, port, extraInfo));
 	}
 
 	public void WaitConnectorReady() {
@@ -387,7 +387,7 @@ public final class Agent implements Closeable {
 		Client.getConfig().forEachConnector(Connector::WaitReady);
 	}
 
-	private ServiceInfo UpdateService(ServiceInfo info) {
+	private BServiceInfo UpdateService(BServiceInfo info) {
 		WaitConnectorReady();
 		var reg = Registers.get(info);
 		if (null == reg)
@@ -411,7 +411,7 @@ public final class Agent implements Closeable {
 		}
 	}
 
-	private ServiceInfo RegisterService(ServiceInfo info) {
+	private BServiceInfo RegisterService(BServiceInfo info) {
 		Verify(info.getServiceIdentity());
 		WaitConnectorReady();
 
@@ -437,10 +437,10 @@ public final class Agent implements Closeable {
 	}
 
 	public void UnRegisterService(String name, String identity) {
-		UnRegisterService(new ServiceInfo(name, identity));
+		UnRegisterService(new BServiceInfo(name, identity));
 	}
 
-	private void UnRegisterService(ServiceInfo info) {
+	private void UnRegisterService(BServiceInfo info) {
 		WaitConnectorReady();
 
 		var exist = getRegisters().remove(info);
@@ -461,18 +461,18 @@ public final class Agent implements Closeable {
 	}
 
 	public SubscribeState SubscribeService(String serviceName, int type, Object state) {
-		if (type != SubscribeInfo.SubscribeTypeSimple && type != SubscribeInfo.SubscribeTypeReadyCommit) {
+		if (type != BSubscribeInfo.SubscribeTypeSimple && type != BSubscribeInfo.SubscribeTypeReadyCommit) {
 			throw new UnsupportedOperationException("Unknown SubscribeType: " + type);
 		}
 
-		SubscribeInfo tempVar = new SubscribeInfo();
+		BSubscribeInfo tempVar = new BSubscribeInfo();
 		tempVar.setServiceName(serviceName);
 		tempVar.setSubscribeType(type);
 		tempVar.setLocalState(state);
 		return SubscribeService(tempVar);
 	}
 
-	private SubscribeState SubscribeService(SubscribeInfo info) {
+	private SubscribeState SubscribeService(BSubscribeInfo info) {
 		WaitConnectorReady();
 
 		final var newAdd = new OutObject<Boolean>();
@@ -491,7 +491,7 @@ public final class Agent implements Closeable {
 		return subState;
 	}
 
-	public boolean SetServerLoad(ServerLoad load) {
+	public boolean SetServerLoad(BServerLoad load) {
 		var p = new SetServerLoad();
 		p.Argument = load;
 		return p.Send(Client.getSocket());

@@ -4,7 +4,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
-public class AchillesHeel extends Bean {
+public class BAchillesHeel extends Bean {
 	public int ServerId; // 必须的。
 
 	public String SecureKey; // 安全验证
@@ -48,7 +48,7 @@ public class AchillesHeel extends Bean {
 
 	@Override
 	public String toString() {
-		return "AchillesHeel{" + "ServerId=" + ServerId + ", SecureKey='" + SecureKey + '\'' +
+		return "BAchillesHeel{" + "ServerId=" + ServerId + ", SecureKey='" + SecureKey + '\'' +
 				", GlobalCacheManagerHashIndex=" + GlobalCacheManagerHashIndex + '}';
 	}
 }

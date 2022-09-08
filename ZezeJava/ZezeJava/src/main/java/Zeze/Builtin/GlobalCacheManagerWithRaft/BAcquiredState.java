@@ -4,7 +4,7 @@ package Zeze.Builtin.GlobalCacheManagerWithRaft;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class AcquiredState extends Zeze.Raft.RocksRaft.Bean {
+public final class BAcquiredState extends Zeze.Raft.RocksRaft.Bean {
     private int _State;
 
     public int getState() {
@@ -28,39 +28,39 @@ public final class AcquiredState extends Zeze.Raft.RocksRaft.Bean {
         txn.PutLog(new Zeze.Raft.RocksRaft.Log1.LogInt(this, 1, value));
     }
 
-    public AcquiredState() {
+    public BAcquiredState() {
     }
 
-    public AcquiredState(int _State_) {
+    public BAcquiredState(int _State_) {
         _State = _State_;
     }
 
-    public void Assign(AcquiredState other) {
+    public void Assign(BAcquiredState other) {
         setState(other.getState());
     }
 
-    public AcquiredState CopyIfManaged() {
+    public BAcquiredState CopyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public AcquiredState Copy() {
-        var copy = new AcquiredState();
+    public BAcquiredState Copy() {
+        var copy = new BAcquiredState();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(AcquiredState a, AcquiredState b) {
-        AcquiredState save = a.Copy();
+    public static void Swap(BAcquiredState a, BAcquiredState b) {
+        BAcquiredState save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public AcquiredState CopyBean() {
+    public BAcquiredState CopyBean() {
         return Copy();
     }
 
-    public static final long TYPEID = -449879240583806688L;
+    public static final long TYPEID = -1043402609085397620L;
 
     @Override
     public long typeId() {
@@ -76,7 +76,7 @@ public final class AcquiredState extends Zeze.Raft.RocksRaft.Bean {
 
     @Override
     public void BuildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.AcquiredState: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.BAcquiredState: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("State").append('=').append(getState()).append(System.lineSeparator());
         level -= 4;

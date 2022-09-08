@@ -1,6 +1,7 @@
 package UnitTest.Zeze.Trans;
 
 import java.util.concurrent.Future;
+import demo.Module1.BValue;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -46,14 +47,14 @@ public class TestConflict {
 	}
 
 	private long ProcAdd() {
-		demo.Module1.Value v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(123123L);
+		BValue v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(123123L);
 		v.setInt1(v.getInt1() + 1);
 		sum++;
 		return Procedure.Success;
 	}
 
 	private long ProcVerify() {
-		demo.Module1.Value v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(123123L);
+		BValue v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(123123L);
 		Assert.assertEquals(v.getInt1(), sum);
 		return Procedure.Success;
 	}

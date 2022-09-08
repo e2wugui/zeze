@@ -6,6 +6,7 @@ import Zeze.Net.Rpc;
 import Zeze.Net.Service;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Factory;
+import demo.Module1.BValue;
 import junit.framework.TestCase;
 import org.junit.Assert;
 
@@ -43,10 +44,10 @@ public class TestRpc extends TestCase {
 		return Procedure.Success;
 	}
 
-	public static class FirstRpc extends Rpc<demo.Module1.Value, demo.Module1.Value> {
+	public static class FirstRpc extends Rpc<BValue, BValue> {
 		public FirstRpc() {
-			Argument = new demo.Module1.Value();
-			Result = new demo.Module1.Value();
+			Argument = new BValue();
+			Result = new BValue();
 		}
 
 		@Override

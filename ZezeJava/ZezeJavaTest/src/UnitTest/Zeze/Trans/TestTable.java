@@ -1,6 +1,7 @@
 package UnitTest.Zeze.Trans;
 
 import demo.App;
+import demo.Module1.BValue;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -33,7 +34,7 @@ public class TestTable {
 	}
 
 	private static long ProcGetUpdate() {
-		demo.Module1.Value v = demo.App.getInstance().demo_Module1.getTable1().get(1L);
+		BValue v = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 
 		v.setInt1(11);
 		v.setLong2(22);
@@ -44,14 +45,14 @@ public class TestTable {
 		v.setDouble7(77);
 		v.getList9().add(new demo.Bean1());
 		v.getSet10().add(1010);
-		v.getMap11().put(2L, new demo.Module2.Value());
+		v.getMap11().put(2L, new demo.Module2.BValue());
 		v.getBean12().setInt1(1212);
 		v.setByte13((byte)131);
 		return Procedure.Success;
 	}
 
 	private static long ProcGetUpdateCheckRemove() {
-		demo.Module1.Value v = demo.App.getInstance().demo_Module1.getTable1().get(1L);
+		BValue v = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 
 		Assert.assertEquals(v.getInt1(), 11);
 		Assert.assertEquals(v.getLong2(), 22);
@@ -83,7 +84,7 @@ public class TestTable {
 	}
 
 	private static long ProcGetOrAdd() {
-		demo.Module1.Value v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd((long)1);
+		BValue v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd((long)1);
 		v.setInt1(1);
 		v.setLong2(2);
 		v.setString3("3");
@@ -93,7 +94,7 @@ public class TestTable {
 		v.setDouble7(7);
 		v.getList9().add(new demo.Bean1());
 		v.getSet10().add(10);
-		v.getMap11().put(1L, new demo.Module2.Value());
+		v.getMap11().put(1L, new demo.Module2.BValue());
 		v.getBean12().setInt1(12);
 		v.setByte13((byte)13);
 
@@ -151,7 +152,7 @@ public class TestTable {
 		ProcGet11();
 		demo.Module1.Key key = new demo.Module1.Key((short)1);
 		Assert.assertNull(App.getInstance().demo_Module1.getTable2().get(key));
-		demo.Module1.Value v = new demo.Module1.Value();
+		BValue v = new BValue();
 		v.setInt1(1);
 		v.setLong2(2);
 		v.setString3("3");
@@ -161,7 +162,7 @@ public class TestTable {
 		v.setDouble7(7);
 		v.getList9().add(new demo.Bean1());
 		v.getSet10().add(10);
-		v.getMap11().put(1L, new demo.Module2.Value());
+		v.getMap11().put(1L, new demo.Module2.BValue());
 		v.getBean12().setInt1(12);
 		v.setByte13((byte)13);
 
@@ -198,7 +199,7 @@ public class TestTable {
 
 	private static long ProcGet11() {
 		Assert.assertNull(App.getInstance().demo_Module1.getTable1().get(1L));
-		demo.Module1.Value v = new demo.Module1.Value();
+		BValue v = new BValue();
 		v.setInt1(1);
 		v.setLong2(2);
 		v.setString3("3");
@@ -208,7 +209,7 @@ public class TestTable {
 		v.setDouble7(7);
 		v.getList9().add(new demo.Bean1());
 		v.getSet10().add(10);
-		v.getMap11().put(1L, new demo.Module2.Value());
+		v.getMap11().put(1L, new demo.Module2.BValue());
 		v.getBean12().setInt1(12);
 		v.setByte13((byte)13);
 

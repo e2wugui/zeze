@@ -15,7 +15,7 @@ import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Acquire;
 import Zeze.Services.GlobalCacheManager.Cleanup;
-import Zeze.Services.GlobalCacheManager.GlobalKeyState;
+import Zeze.Services.GlobalCacheManager.BGlobalKeyState;
 import Zeze.Services.GlobalCacheManager.KeepAlive;
 import Zeze.Services.GlobalCacheManager.Login;
 import Zeze.Services.GlobalCacheManager.NormalClose;
@@ -856,7 +856,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			return String.valueOf(SessionId);
 		}
 
-		boolean Reduce(Binary gkey, long fresh, ProtocolHandle<Rpc<GlobalKeyState, GlobalKeyState>> response) {
+		boolean Reduce(Binary gkey, long fresh, ProtocolHandle<Rpc<BGlobalKeyState, BGlobalKeyState>> response) {
 			try {
 				if (System.currentTimeMillis() - LastErrorTime < Instance.AchillesHeelConfig.GlobalForbidPeriod)
 					return false;

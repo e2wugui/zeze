@@ -8,8 +8,8 @@ import Zeze.Builtin.Provider.Bind;
 import Zeze.Builtin.Provider.Subscribe;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
-import Zeze.Services.ServiceManager.ServiceInfo;
-import Zeze.Services.ServiceManager.ServiceInfos;
+import Zeze.Services.ServiceManager.BServiceInfo;
+import Zeze.Services.ServiceManager.BServiceInfos;
 import Zeze.Util.OutObject;
 import Zeze.Util.TaskCompletionSource;
 
@@ -38,7 +38,7 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 		return sender.getConnector().getName();
 	}
 
-	public static String GetLinkName(ServiceInfo serviceInfo) {
+	public static String GetLinkName(BServiceInfo serviceInfo) {
 		return serviceInfo.getPassiveIp() + ":" + serviceInfo.getPassivePort();
 	}
 
@@ -58,7 +58,7 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 		super.Start();
 	}
 
-	public void Apply(ServiceInfos serviceInfos) {
+	public void Apply(BServiceInfos serviceInfos) {
 		HashSet<String> current = new HashSet<>();
 		for (var link : serviceInfos.getServiceInfoListSortedByIdentity()) {
 			var linkName = GetLinkName(link);

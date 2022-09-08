@@ -6,7 +6,7 @@ import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
 import org.junit.Assert;
 
-public class MyBean extends Bean {
+public class BMyBean extends Bean {
 	@Override
 	public void Decode(ByteBuffer bb) {
 		_i = bb.ReadInt();
@@ -28,13 +28,13 @@ public class MyBean extends Bean {
 	public int _i;
 
 	private static class MyLog extends Zeze.Transaction.Logs.LogInt {
-		public MyLog(MyBean bean, int value) {
+		public MyLog(BMyBean bean, int value) {
 			super(bean, 0, value);
 		}
 
 		@Override
 		public void Commit() {
-			((MyBean)getBean())._i = Value;
+			((BMyBean)getBean())._i = Value;
 		}
 	}
 
@@ -42,13 +42,13 @@ public class MyBean extends Bean {
 		var txn = Transaction.getCurrent();
 		if (null == txn)
 			return _i;
-		MyBean.MyLog log = (MyBean.MyLog)txn.GetLog(this.objectId());
+		BMyBean.MyLog log = (BMyBean.MyLog)txn.GetLog(this.objectId());
 		return (null != log) ? log.Value : _i;
 	}
 
 	public final void setI(int value) {
 		var txn = Transaction.getCurrent();
 		Assert.assertNotNull(txn);
-		txn.PutLog(new MyBean.MyLog(this, value));
+		txn.PutLog(new BMyBean.MyLog(this, value));
 	}
 }

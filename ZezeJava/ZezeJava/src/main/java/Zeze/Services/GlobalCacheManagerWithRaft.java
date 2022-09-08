@@ -4,15 +4,15 @@ import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Acquire;
-import Zeze.Builtin.GlobalCacheManagerWithRaft.AcquiredState;
-import Zeze.Builtin.GlobalCacheManagerWithRaft.CacheState;
+import Zeze.Builtin.GlobalCacheManagerWithRaft.BAcquiredState;
+import Zeze.Builtin.GlobalCacheManagerWithRaft.BCacheState;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Cleanup;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.KeepAlive;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Login;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.NormalClose;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.ReLogin;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Reduce;
-import Zeze.Builtin.GlobalCacheManagerWithRaft.ReduceParam;
+import Zeze.Builtin.GlobalCacheManagerWithRaft.BReduceParam;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.ProtocolHandle;
@@ -55,12 +55,12 @@ public class GlobalCacheManagerWithRaft
 	/**
 	 * 全局记录分配状态。
 	 */
-	private final Table<Binary, CacheState> GlobalStates;
+	private final Table<Binary, BCacheState> GlobalStates;
 	/**
 	 * 每个服务器已分配记录。
 	 * 这是个Table模板，使用的时候根据ServerId打开真正的存储表。
 	 */
-	private final TableTemplate<Binary, AcquiredState> ServerAcquiredTemplate;
+	private final TableTemplate<Binary, BAcquiredState> ServerAcquiredTemplate;
 	/*
 	 * 会话。
 	 * key是 LogicServer.Id，现在的实现就是Zeze.Config.ServerId。
@@ -103,7 +103,7 @@ public class GlobalCacheManagerWithRaft
 		RegisterRocksTables(Rocks);
 		RegisterProtocols(Rocks.getRaft().getServer());
 
-		var globalTemplate = Rocks.<Binary, CacheState>GetTableTemplate("Global");
+		var globalTemplate = Rocks.<Binary, BCacheState>GetTableTemplate("Global");
 		globalTemplate.setLruTryRemoveCallback(this::GlobalLruTryRemove);
 		GlobalStates = globalTemplate.OpenTable(0);
 		ServerAcquiredTemplate = Rocks.GetTableTemplate("Session");
@@ -159,8 +159,8 @@ public class GlobalCacheManagerWithRaft
 		return Rocks;
 	}
 
-	private static AcquiredState newAcquiredState(int state) {
-		AcquiredState acquiredState = new AcquiredState();
+	private static BAcquiredState newAcquiredState(int state) {
+		BAcquiredState acquiredState = new BAcquiredState();
 		acquiredState.setState(state);
 		return acquiredState;
 	}
@@ -216,7 +216,7 @@ public class GlobalCacheManagerWithRaft
 			// StateRemoved状态表示记录被删除了，而不是被从Cache中清除。
 			// AcquireStatePending是瞬时数据（不会被持久化）。
 			// 记录从Cache中清除后，可以再次从RocksDb中装载。
-			var cs = (CacheState)r.getValue(); // null when record removed
+			var cs = (BCacheState)r.getValue(); // null when record removed
 			if (cs == null || cs.getAcquireStatePending() == StateInvalid) {
 				GlobalStates.getLruCache().remove(key);
 				return true;
@@ -236,7 +236,7 @@ public class GlobalCacheManagerWithRaft
 		while (true) {
 			var lockey = Transaction.getCurrent().AddPessimismLock(Locks.Get(globalTableKey));
 
-			CacheState cs = GlobalStates.GetOrAdd(globalTableKey);
+			BCacheState cs = GlobalStates.GetOrAdd(globalTableKey);
 			if (cs.getAcquireStatePending() == StateRemoved)
 				continue;
 
@@ -376,7 +376,7 @@ public class GlobalCacheManagerWithRaft
 		while (true) {
 			var lockey = Transaction.getCurrent().AddPessimismLock(Locks.Get(globalTableKey));
 
-			CacheState cs = GlobalStates.GetOrAdd(globalTableKey);
+			BCacheState cs = GlobalStates.GetOrAdd(globalTableKey);
 			if (cs.getAcquireStatePending() == StateRemoved)
 				continue;
 
@@ -625,7 +625,7 @@ public class GlobalCacheManagerWithRaft
 		while (true) {
 			var lockey = Transaction.getCurrent().AddPessimismLock(Locks.Get(gkey));
 
-			CacheState cs = GlobalStates.GetOrAdd(gkey);
+			BCacheState cs = GlobalStates.GetOrAdd(gkey);
 			if (cs.getAcquireStatePending() == StateRemoved)
 				continue; // 这个是不可能的，因为有Release请求进来意味着肯定有拥有者(share or modify)，此时不可能进入StateRemoved。
 
@@ -664,7 +664,7 @@ public class GlobalCacheManagerWithRaft
 		}
 	}
 
-	private static int GetSenderCacheState(CacheState cs, CacheHolder sender) {
+	private static int GetSenderCacheState(BCacheState cs, CacheHolder sender) {
 		if (cs.getModify() == sender.ServerId)
 			return StateModify;
 		if (cs.getShare().Contains(sender.ServerId))
@@ -872,7 +872,7 @@ public class GlobalCacheManagerWithRaft
 		}
 
 		static boolean Reduce(LongConcurrentHashMap<CacheHolder> sessions, int serverId, Binary gkey, long fresh,
-							  ProtocolHandle<Rpc<ReduceParam, ReduceParam>> response) {
+							  ProtocolHandle<Rpc<BReduceParam, BReduceParam>> response) {
 			var session = sessions.get(serverId);
 			if (session == null) {
 				logger.error("Reduce invalid serverId={}", serverId);
@@ -892,7 +892,7 @@ public class GlobalCacheManagerWithRaft
 			return KV.Create(session, reduce);
 		}
 
-		boolean Reduce(Binary gkey, long fresh, ProtocolHandle<Rpc<ReduceParam, ReduceParam>> response) {
+		boolean Reduce(Binary gkey, long fresh, ProtocolHandle<Rpc<BReduceParam, BReduceParam>> response) {
 			Reduce reduce = null;
 			try {
 				if (System.currentTimeMillis() - LastErrorTime < globalRaft.AchillesHeelConfig.GlobalForbidPeriod)

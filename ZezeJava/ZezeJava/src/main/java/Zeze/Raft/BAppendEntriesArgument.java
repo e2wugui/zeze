@@ -6,7 +6,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
-final class AppendEntriesArgument extends Bean {
+final class BAppendEntriesArgument extends Bean {
 	private long Term;
 	private String LeaderId;
 	private long PrevLogIndex;

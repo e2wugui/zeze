@@ -4,7 +4,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
-final class RequestVoteArgument extends Bean {
+final class BRequestVoteArgument extends Bean {
 	private long Term;
 	private String CandidateId;
 	private long LastLogIndex;

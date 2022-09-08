@@ -7,7 +7,7 @@ import Zeze.Builtin.Provider.Kick;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Rpc;
 import Zeze.Services.ServiceManager.Agent;
-import Zeze.Services.ServiceManager.SubscribeInfo;
+import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
@@ -27,7 +27,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			// Provider info
 			// 对于 SubscribeTypeSimple 是不需要 SetReady 的，为了能一致处理，就都设置上了。
 			// 对于 SubscribeTypeReadyCommit 在 ApplyOnPrepare 中处理。
-			if (subState.getSubscribeType() == SubscribeInfo.SubscribeTypeSimple)
+			if (subState.getSubscribeType() == BSubscribeInfo.SubscribeTypeSimple)
 				this.ProviderApp.ProviderDirectService.TryConnectAndSetReady(subState, subState.getServiceInfos());
 		}
 	}
@@ -66,7 +66,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			sm.SubscribeService(ProviderApp.ServerServiceNamePrefix + it.key(), it.value().getSubscribeType());
 
 		// 订阅linkd发现服务。
-		sm.SubscribeService(ProviderApp.LinkdServiceName, SubscribeInfo.SubscribeTypeSimple);
+		sm.SubscribeService(ProviderApp.LinkdServiceName, BSubscribeInfo.SubscribeTypeSimple);
 	}
 
 	public static void SendKick(AsyncSocket sender, long linkSid, int code, String desc) {

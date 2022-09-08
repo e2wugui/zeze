@@ -2,7 +2,7 @@ package Zeze.Services.GlobalCacheManager;
 
 import Zeze.Net.Binary;
 
-public class Acquire extends Zeze.Net.Rpc<GlobalKeyState, GlobalKeyState> {
+public class Acquire extends Zeze.Net.Rpc<BGlobalKeyState, BGlobalKeyState> {
 	public static final int ProtocolId_ = Zeze.Transaction.Bean.Hash32(Acquire.class.getName()); // 1225831619
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 1225831619
 
@@ -17,13 +17,13 @@ public class Acquire extends Zeze.Net.Rpc<GlobalKeyState, GlobalKeyState> {
 	}
 
 	public Acquire() {
-		Argument = new GlobalKeyState();
-		Result = new GlobalKeyState();
+		Argument = new BGlobalKeyState();
+		Result = new BGlobalKeyState();
 	}
 
 	public Acquire(Binary gkey, int state) {
-		Argument = new GlobalKeyState();
-		Result = new GlobalKeyState();
+		Argument = new BGlobalKeyState();
+		Result = new BGlobalKeyState();
 		Argument.GlobalKey = gkey;
 		Argument.State = state;
 	}

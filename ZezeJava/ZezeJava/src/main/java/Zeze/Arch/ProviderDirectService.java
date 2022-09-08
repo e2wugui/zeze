@@ -11,9 +11,9 @@ import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Services.ServiceManager.Agent;
-import Zeze.Services.ServiceManager.ServiceInfo;
-import Zeze.Services.ServiceManager.ServiceInfos;
-import Zeze.Services.ServiceManager.SubscribeInfo;
+import Zeze.Services.ServiceManager.BServiceInfo;
+import Zeze.Services.ServiceManager.BServiceInfos;
+import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
@@ -34,7 +34,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		super(name, zeze);
 	}
 
-	public synchronized void RemoveServer(Agent.SubscribeState ss, ServiceInfo pm) {
+	public synchronized void RemoveServer(Agent.SubscribeState ss, BServiceInfo pm) {
 		var connName = pm.getPassiveIp() + ":" + pm.getPassivePort();
 		var conn = getConfig().FindConnector(connName);
 		if (null != conn) {
@@ -46,7 +46,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		}
 	}
 
-	public synchronized void AddServer(Agent.SubscribeState ss, ServiceInfo pm) {
+	public synchronized void AddServer(Agent.SubscribeState ss, BServiceInfo pm) {
 		var connName = pm.getPassiveIp() + ":" + pm.getPassivePort();
 		var ps = ProviderByLoadName.get(connName);
 		if (null != ps) {
@@ -77,8 +77,8 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		}
 	}
 
-	public void TryConnectAndSetReady(Agent.SubscribeState ss, ServiceInfos infos) throws Throwable {
-		var current = new HashMap<String, ServiceInfo>();
+	public void TryConnectAndSetReady(Agent.SubscribeState ss, BServiceInfos infos) throws Throwable {
+		var current = new HashMap<String, BServiceInfo>();
 		for (var pm : infos.getServiceInfoListSortedByIdentity()) {
 			AddServer(ss, pm);
 			current.put(pm.getPassiveIp() + ":" + pm.getPassivePort(), pm);
@@ -132,7 +132,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
 		for (var ss : getZeze().getServiceManagerAgent().getSubscribeStates().values()) {
 			if (ss.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)) {
-				var infos = ss.getSubscribeType() == SubscribeInfo.SubscribeTypeSimple
+				var infos = ss.getSubscribeType() == BSubscribeInfo.SubscribeTypeSimple
 						? ss.getServiceInfos() : ss.getServiceInfosPending();
 				if (null == infos)
 					continue;
@@ -148,7 +148,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		}
 	}
 
-	private void SetReady(Agent.SubscribeState ss, ServiceInfo server, ProviderSession ps, int mid, BModule m) {
+	private void SetReady(Agent.SubscribeState ss, BServiceInfo server, ProviderSession ps, int mid, BModule m) {
 		var pms = new ProviderModuleState(ps.getSessionId(), mid, m.getChoiceType(), m.getConfigType());
 		ps.GetOrAddServiceReadyState(ss.getServiceName()).put(server.getServiceIdentity(), pms);
 		ss.SetServiceIdentityReadyState(server.getServiceIdentity(), pms);

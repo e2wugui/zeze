@@ -4,7 +4,7 @@ import Zeze.Net.Rpc;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 
-public final class Update extends Rpc<ServiceInfo, EmptyBean> {
+public final class Update extends Rpc<BServiceInfo, EmptyBean> {
 	public static final int ProtocolId_ = Bean.Hash32(Update.class.getName()); // -723792139
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 3571175157
 
@@ -25,7 +25,7 @@ public final class Update extends Rpc<ServiceInfo, EmptyBean> {
 	}
 
 	public Update() {
-		this.Argument = new ServiceInfo();
+		this.Argument = new BServiceInfo();
 		this.Result = new EmptyBean();
 	}
 }

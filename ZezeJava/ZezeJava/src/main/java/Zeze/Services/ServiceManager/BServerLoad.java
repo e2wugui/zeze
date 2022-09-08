@@ -1,24 +1,31 @@
-package Zeze.Services.GlobalCacheManager;
+package Zeze.Services.ServiceManager;
 
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
-public class GlobalKeyState extends Bean {
-	public Binary GlobalKey; // 没有初始化，使用时注意
-	public int State;
+public final class BServerLoad extends Bean {
+	public String Ip;
+	public int Port;
+	public Binary Param = Binary.Empty;
+
+	public String getName() {
+		return Ip + ":" + Port;
+	}
 
 	@Override
 	public void Decode(ByteBuffer bb) {
-		GlobalKey = bb.ReadBinary();
-		State = bb.ReadInt();
+		Ip = bb.ReadString();
+		Port = bb.ReadInt();
+		Param = bb.ReadBinary();
 	}
 
 	@Override
 	public void Encode(ByteBuffer bb) {
-		bb.WriteBinary(GlobalKey);
-		bb.WriteInt(State);
+		bb.WriteString(Ip);
+		bb.WriteInt(Port);
+		bb.WriteBinary(Param);
 	}
 
 	@Override
@@ -31,11 +38,6 @@ public class GlobalKeyState extends Bean {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override
-	public String toString() {
-		return GlobalKey + ":" + State;
-	}
-
 	private static int _PRE_ALLOC_SIZE_ = 16;
 
 	@Override
@@ -46,5 +48,10 @@ public class GlobalKeyState extends Bean {
 	@Override
 	public void preAllocSize(int size) {
 		_PRE_ALLOC_SIZE_ = size;
+	}
+
+	@Override
+	public String toString() {
+		return "BServerLoad{" + "Ip='" + Ip + '\'' + ", Port=" + Port + ", Param=" + Param + '}';
 	}
 }

@@ -4,7 +4,7 @@ package Zeze.Builtin.GlobalCacheManagerWithRaft;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class ReduceParam extends Zeze.Transaction.Bean {
+public final class BReduceParam extends Zeze.Transaction.Bean {
     private Zeze.Net.Binary _GlobalKey;
     private int _State;
 
@@ -48,44 +48,44 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__State(this, 2, value));
     }
 
-    public ReduceParam() {
+    public BReduceParam() {
         _GlobalKey = Zeze.Net.Binary.Empty;
     }
 
-    public ReduceParam(Zeze.Net.Binary _GlobalKey_, int _State_) {
+    public BReduceParam(Zeze.Net.Binary _GlobalKey_, int _State_) {
         if (_GlobalKey_ == null)
             throw new IllegalArgumentException();
         _GlobalKey = _GlobalKey_;
         _State = _State_;
     }
 
-    public void Assign(ReduceParam other) {
+    public void Assign(BReduceParam other) {
         setGlobalKey(other.getGlobalKey());
         setState(other.getState());
     }
 
-    public ReduceParam CopyIfManaged() {
+    public BReduceParam CopyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public ReduceParam Copy() {
-        var copy = new ReduceParam();
+    public BReduceParam Copy() {
+        var copy = new BReduceParam();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(ReduceParam a, ReduceParam b) {
-        ReduceParam save = a.Copy();
+    public static void Swap(BReduceParam a, BReduceParam b) {
+        BReduceParam save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public ReduceParam CopyBean() {
+    public BReduceParam CopyBean() {
         return Copy();
     }
 
-    public static final long TYPEID = -4489915946741208436L;
+    public static final long TYPEID = -7052326232144455304L;
 
     @Override
     public long typeId() {
@@ -93,17 +93,17 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__GlobalKey extends Zeze.Transaction.Logs.LogBinary {
-        public Log__GlobalKey(ReduceParam bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__GlobalKey(BReduceParam bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((ReduceParam)getBelong())._GlobalKey = Value; }
+        public void Commit() { ((BReduceParam)getBelong())._GlobalKey = Value; }
     }
 
     private static final class Log__State extends Zeze.Transaction.Logs.LogInt {
-        public Log__State(ReduceParam bean, int varId, int value) { super(bean, varId, value); }
+        public Log__State(BReduceParam bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((ReduceParam)getBelong())._State = Value; }
+        public void Commit() { ((BReduceParam)getBelong())._State = Value; }
     }
 
     @Override
@@ -115,7 +115,7 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
 
     @Override
     public void BuildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.ReduceParam: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.BReduceParam: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("GlobalKey").append('=').append(getGlobalKey()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("State").append('=').append(getState()).append(System.lineSeparator());

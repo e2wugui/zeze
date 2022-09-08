@@ -4,7 +4,7 @@ package Zeze.Builtin.TestRocks;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class Value extends Zeze.Raft.RocksRaft.Bean {
+public final class BValue extends Zeze.Raft.RocksRaft.Bean {
     private int _Int;
     private boolean _Bool;
     private float _Float;
@@ -14,7 +14,7 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
     private final Zeze.Raft.RocksRaft.CollSet1<Integer> _SetInt;
     private final Zeze.Raft.RocksRaft.CollSet1<Zeze.Builtin.TestRocks.BeanKey> _SetBeankey;
     private final Zeze.Raft.RocksRaft.CollMap1<Integer, Integer> _MapInt;
-    private final Zeze.Raft.RocksRaft.CollMap2<Integer, Zeze.Builtin.TestRocks.Value> _MapBean;
+    private final Zeze.Raft.RocksRaft.CollMap2<Integer, Zeze.Builtin.TestRocks.BValue> _MapBean;
     private Zeze.Builtin.TestRocks.BeanKey _Beankey;
 
     private transient Object __zeze_map_key__;
@@ -171,7 +171,7 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
         return _MapInt;
     }
 
-    public Zeze.Raft.RocksRaft.CollMap2<Integer, Zeze.Builtin.TestRocks.Value> getMapBean() {
+    public Zeze.Raft.RocksRaft.CollMap2<Integer, Zeze.Builtin.TestRocks.BValue> getMapBean() {
         return _MapBean;
     }
 
@@ -199,7 +199,7 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
         txn.PutLog(new Zeze.Raft.RocksRaft.Log1.LogBeanKey<>(Zeze.Builtin.TestRocks.BeanKey.class, this, 11, value));
     }
 
-    public Value() {
+    public BValue() {
         _String = "";
         _Binary = Zeze.Net.Binary.Empty;
         _SetInt = new Zeze.Raft.RocksRaft.CollSet1<>(Integer.class);
@@ -208,12 +208,12 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
         _SetBeankey.VariableId = 8;
         _MapInt = new Zeze.Raft.RocksRaft.CollMap1<>(Integer.class, Integer.class);
         _MapInt.VariableId = 9;
-        _MapBean = new Zeze.Raft.RocksRaft.CollMap2<>(Integer.class, Zeze.Builtin.TestRocks.Value.class);
+        _MapBean = new Zeze.Raft.RocksRaft.CollMap2<>(Integer.class, Zeze.Builtin.TestRocks.BValue.class);
         _MapBean.VariableId = 10;
         _Beankey = new Zeze.Builtin.TestRocks.BeanKey();
     }
 
-    public Value(int _Int_, boolean _Bool_, float _Float_, double _double_, String _String_, Zeze.Net.Binary _Binary_, Zeze.Builtin.TestRocks.BeanKey _Beankey_) {
+    public BValue(int _Int_, boolean _Bool_, float _Float_, double _double_, String _String_, Zeze.Net.Binary _Binary_, Zeze.Builtin.TestRocks.BeanKey _Beankey_) {
         _Int = _Int_;
         _Bool = _Bool_;
         _Float = _Float_;
@@ -230,14 +230,14 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
         _SetBeankey.VariableId = 8;
         _MapInt = new Zeze.Raft.RocksRaft.CollMap1<>(Integer.class, Integer.class);
         _MapInt.VariableId = 9;
-        _MapBean = new Zeze.Raft.RocksRaft.CollMap2<>(Integer.class, Zeze.Builtin.TestRocks.Value.class);
+        _MapBean = new Zeze.Raft.RocksRaft.CollMap2<>(Integer.class, Zeze.Builtin.TestRocks.BValue.class);
         _MapBean.VariableId = 10;
         if (_Beankey_ == null)
             throw new IllegalArgumentException();
         _Beankey = _Beankey_;
     }
 
-    public void Assign(Value other) {
+    public void Assign(BValue other) {
         setInt(other.getInt());
         setBool(other.isBool());
         setFloat(other.getFloat());
@@ -259,28 +259,28 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
         setBeankey(other.getBeankey());
     }
 
-    public Value CopyIfManaged() {
+    public BValue CopyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public Value Copy() {
-        var copy = new Value();
+    public BValue Copy() {
+        var copy = new BValue();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(Value a, Value b) {
-        Value save = a.Copy();
+    public static void Swap(BValue a, BValue b) {
+        BValue save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public Value CopyBean() {
+    public BValue CopyBean() {
         return Copy();
     }
 
-    public static final long TYPEID = 7725276190606291579L;
+    public static final long TYPEID = -7620770686653123067L;
 
     @Override
     public long typeId() {
@@ -296,7 +296,7 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
 
     @Override
     public void BuildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.TestRocks.Value: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.TestRocks.BValue: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Int").append('=').append(getInt()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Bool").append('=').append(isBool()).append(',').append(System.lineSeparator());
@@ -532,7 +532,7 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
                     var _k_ = _o_.ReadInt(_s_);
-                    var _v_ = _o_.ReadBean(new Zeze.Builtin.TestRocks.Value(), _t_);
+                    var _v_ = _o_.ReadBean(new Zeze.Builtin.TestRocks.BValue(), _t_);
                     _x_.put(_k_, _v_);
                 }
             } else

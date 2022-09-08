@@ -573,13 +573,13 @@ public class Test {
 		return Random.Shuffle(Rafts.values().toArray(new TestRaft[Rafts.size()]));
 	}
 
-	public static final class AddCount extends RaftRpc<EmptyBean, CountResult> {
+	public static final class AddCount extends RaftRpc<EmptyBean, BCountResult> {
 		public static final int ProtocolId_ = Bean.Hash32(AddCount.class.getName());
 		public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
 
 		public AddCount() {
 			Argument = new EmptyBean();
-			Result = new CountResult();
+			Result = new BCountResult();
 		}
 
 		@Override
@@ -593,7 +593,7 @@ public class Test {
 		}
 	}
 
-	public static final class CountResult extends Bean {
+	public static final class BCountResult extends Bean {
 		private long Count;
 
 		public long getCount() {
@@ -630,13 +630,13 @@ public class Test {
 		}
 	}
 
-	public static final class GetCount extends RaftRpc<EmptyBean, CountResult> {
+	public static final class GetCount extends RaftRpc<EmptyBean, BCountResult> {
 		public static final int ProtocolId_ = Bean.Hash32(GetCount.class.getName());
 		public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
 
 		public GetCount() {
 			Argument = new EmptyBean();
-			Result = new CountResult();
+			Result = new BCountResult();
 		}
 
 		@Override

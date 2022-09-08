@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.GlobalCacheManagerWithRaft;
 
-public class Acquire extends Zeze.Raft.RaftRpc<Zeze.Builtin.GlobalCacheManagerWithRaft.AcquireParam, Zeze.Builtin.GlobalCacheManagerWithRaft.ReduceParam> {
+public class Acquire extends Zeze.Raft.RaftRpc<Zeze.Builtin.GlobalCacheManagerWithRaft.BAcquireParam, Zeze.Builtin.GlobalCacheManagerWithRaft.BReduceParam> {
     public static final int ModuleId_ = 11001;
     public static final int ProtocolId_ = -1825434690; // 2469532606
     public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_); // 47251404755902
@@ -17,7 +17,7 @@ public class Acquire extends Zeze.Raft.RaftRpc<Zeze.Builtin.GlobalCacheManagerWi
     }
 
     public Acquire() {
-        Argument = new Zeze.Builtin.GlobalCacheManagerWithRaft.AcquireParam();
-        Result = new Zeze.Builtin.GlobalCacheManagerWithRaft.ReduceParam();
+        Argument = new Zeze.Builtin.GlobalCacheManagerWithRaft.BAcquireParam();
+        Result = new Zeze.Builtin.GlobalCacheManagerWithRaft.BReduceParam();
     }
 }

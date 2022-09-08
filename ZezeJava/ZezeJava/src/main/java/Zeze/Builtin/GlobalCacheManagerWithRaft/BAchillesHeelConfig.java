@@ -4,7 +4,7 @@ package Zeze.Builtin.GlobalCacheManagerWithRaft;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class AchillesHeelConfig extends Zeze.Transaction.Bean {
+public final class BAchillesHeelConfig extends Zeze.Transaction.Bean {
     private int _MaxNetPing;
     private int _ServerProcessTime;
     private int _ServerReleaseTimeout;
@@ -66,43 +66,43 @@ public final class AchillesHeelConfig extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__ServerReleaseTimeout(this, 3, value));
     }
 
-    public AchillesHeelConfig() {
+    public BAchillesHeelConfig() {
     }
 
-    public AchillesHeelConfig(int _MaxNetPing_, int _ServerProcessTime_, int _ServerReleaseTimeout_) {
+    public BAchillesHeelConfig(int _MaxNetPing_, int _ServerProcessTime_, int _ServerReleaseTimeout_) {
         _MaxNetPing = _MaxNetPing_;
         _ServerProcessTime = _ServerProcessTime_;
         _ServerReleaseTimeout = _ServerReleaseTimeout_;
     }
 
-    public void Assign(AchillesHeelConfig other) {
+    public void Assign(BAchillesHeelConfig other) {
         setMaxNetPing(other.getMaxNetPing());
         setServerProcessTime(other.getServerProcessTime());
         setServerReleaseTimeout(other.getServerReleaseTimeout());
     }
 
-    public AchillesHeelConfig CopyIfManaged() {
+    public BAchillesHeelConfig CopyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public AchillesHeelConfig Copy() {
-        var copy = new AchillesHeelConfig();
+    public BAchillesHeelConfig Copy() {
+        var copy = new BAchillesHeelConfig();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(AchillesHeelConfig a, AchillesHeelConfig b) {
-        AchillesHeelConfig save = a.Copy();
+    public static void Swap(BAchillesHeelConfig a, BAchillesHeelConfig b) {
+        BAchillesHeelConfig save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public AchillesHeelConfig CopyBean() {
+    public BAchillesHeelConfig CopyBean() {
         return Copy();
     }
 
-    public static final long TYPEID = -5438943650453012602L;
+    public static final long TYPEID = 6351123425648255834L;
 
     @Override
     public long typeId() {
@@ -110,24 +110,24 @@ public final class AchillesHeelConfig extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__MaxNetPing extends Zeze.Transaction.Logs.LogInt {
-        public Log__MaxNetPing(AchillesHeelConfig bean, int varId, int value) { super(bean, varId, value); }
+        public Log__MaxNetPing(BAchillesHeelConfig bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((AchillesHeelConfig)getBelong())._MaxNetPing = Value; }
+        public void Commit() { ((BAchillesHeelConfig)getBelong())._MaxNetPing = Value; }
     }
 
     private static final class Log__ServerProcessTime extends Zeze.Transaction.Logs.LogInt {
-        public Log__ServerProcessTime(AchillesHeelConfig bean, int varId, int value) { super(bean, varId, value); }
+        public Log__ServerProcessTime(BAchillesHeelConfig bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((AchillesHeelConfig)getBelong())._ServerProcessTime = Value; }
+        public void Commit() { ((BAchillesHeelConfig)getBelong())._ServerProcessTime = Value; }
     }
 
     private static final class Log__ServerReleaseTimeout extends Zeze.Transaction.Logs.LogInt {
-        public Log__ServerReleaseTimeout(AchillesHeelConfig bean, int varId, int value) { super(bean, varId, value); }
+        public Log__ServerReleaseTimeout(BAchillesHeelConfig bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((AchillesHeelConfig)getBelong())._ServerReleaseTimeout = Value; }
+        public void Commit() { ((BAchillesHeelConfig)getBelong())._ServerReleaseTimeout = Value; }
     }
 
     @Override
@@ -139,7 +139,7 @@ public final class AchillesHeelConfig extends Zeze.Transaction.Bean {
 
     @Override
     public void BuildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.AchillesHeelConfig: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.BAchillesHeelConfig: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("MaxNetPing").append('=').append(getMaxNetPing()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("ServerProcessTime").append('=').append(getServerProcessTime()).append(',').append(System.lineSeparator());

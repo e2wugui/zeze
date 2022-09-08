@@ -4,7 +4,7 @@ import Zeze.Net.Rpc;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 
-public final class UnSubscribe extends Rpc<SubscribeInfo, EmptyBean> {
+public final class UnSubscribe extends Rpc<BSubscribeInfo, EmptyBean> {
 	public static final int ProtocolId_ = Bean.Hash32(UnSubscribe.class.getName()); // -1962944542
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 2332022754
 
@@ -22,7 +22,7 @@ public final class UnSubscribe extends Rpc<SubscribeInfo, EmptyBean> {
 	}
 
 	public UnSubscribe() {
-		Argument = new SubscribeInfo();
+		Argument = new BSubscribeInfo();
 		Result = new EmptyBean();
 	}
 }

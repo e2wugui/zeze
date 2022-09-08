@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
-public final class ServiceInfo extends Bean implements Comparable<ServiceInfo> {
+public final class BServiceInfo extends Bean implements Comparable<BServiceInfo> {
 	/**
 	 * 服务名，比如"GameServer"
 	 */
@@ -69,22 +69,22 @@ public final class ServiceInfo extends Bean implements Comparable<ServiceInfo> {
 		ExtraInfo = value;
 	}
 
-	public ServiceInfo() {
+	public BServiceInfo() {
 	}
 
-	public ServiceInfo(String name, String identity, String ip, int port) {
+	public BServiceInfo(String name, String identity, String ip, int port) {
 		this(name, identity, ip, port, null);
 	}
 
-	public ServiceInfo(String name, String identity, String ip) {
+	public BServiceInfo(String name, String identity, String ip) {
 		this(name, identity, ip, 0, null);
 	}
 
-	public ServiceInfo(String name, String identity) {
+	public BServiceInfo(String name, String identity) {
 		this(name, identity, null, 0, null);
 	}
 
-	public ServiceInfo(String name, String identity, String ip, int port, Binary extraInfo) {
+	public BServiceInfo(String name, String identity, String ip, int port, Binary extraInfo) {
 		setServiceName(name);
 		setServiceIdentity(identity);
 		if (ip != null) {
@@ -151,8 +151,8 @@ public final class ServiceInfo extends Bean implements Comparable<ServiceInfo> {
 			return true;
 		}
 
-		if (obj instanceof ServiceInfo) {
-			var other = (ServiceInfo)obj;
+		if (obj instanceof BServiceInfo) {
+			var other = (BServiceInfo)obj;
 			return getServiceName().equals(other.getServiceName())
 					&& getServiceIdentity().equals(other.getServiceIdentity());
 		}
@@ -160,7 +160,7 @@ public final class ServiceInfo extends Bean implements Comparable<ServiceInfo> {
 	}
 
 	@Override
-	public int compareTo(ServiceInfo o) {
+	public int compareTo(BServiceInfo o) {
 		int c = ServiceName.compareTo(o.ServiceName);
 		if (c != 0)
 			return c;
@@ -170,7 +170,7 @@ public final class ServiceInfo extends Bean implements Comparable<ServiceInfo> {
 
 	@Override
 	public String toString() {
-		return "ServiceInfo{" + "ServiceName='" + ServiceName + '\'' + ", ServiceIdentity='" + ServiceIdentity + '\'' +
+		return "BServiceInfo{" + "ServiceName='" + ServiceName + '\'' + ", ServiceIdentity='" + ServiceIdentity + '\'' +
 				", PassiveIp='" + PassiveIp + '\'' + ", PassivePort=" + PassivePort + ", ExtraInfo=" + ExtraInfo + '}';
 	}
 }

@@ -4,7 +4,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
-public class SHandshake0Argument extends Bean {
+public class BSHandshake0Argument extends Bean {
 	public boolean EnableEncrypt;
 
 	@Override
@@ -41,6 +41,6 @@ public class SHandshake0Argument extends Bean {
 
 	@Override
 	public String toString() {
-		return "SHandshake0Argument{" + "EnableEncrypt=" + EnableEncrypt + '}';
+		return "BSHandshake0Argument{" + "EnableEncrypt=" + EnableEncrypt + '}';
 	}
 }

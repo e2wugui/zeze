@@ -4,7 +4,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
-public final class CHandshakeArgument extends Bean {
+public final class BCHandshakeArgument extends Bean {
 	public byte dh_group;
 	public byte[] dh_data;
 
@@ -44,7 +44,7 @@ public final class CHandshakeArgument extends Bean {
 
 	@Override
 	public String toString() {
-		return "CHandshakeArgument{dh_group=" + dh_group + ", dh_data=["
+		return "BCHandshakeArgument{dh_group=" + dh_group + ", dh_data=["
 				+ (dh_data != null ? dh_data.length : -1) + "]}";
 	}
 }

@@ -7,7 +7,7 @@ import Zeze.Transaction.Record;
 /**
  * 下面是非标准的Raft-Rpc，辅助Agent用的。
  */
-final class LeaderIsArgument extends Bean {
+final class BLeaderIsArgument extends Bean {
 	private long Term;
 	private String LeaderId;
 	private boolean IsLeader;
@@ -70,9 +70,9 @@ final class LeaderIsArgument extends Bean {
 	public boolean equals(Object obj) {
 		if (obj == this)
 			return true;
-		if (!(obj instanceof LeaderIsArgument))
+		if (!(obj instanceof BLeaderIsArgument))
 			return false;
-		LeaderIsArgument other = (LeaderIsArgument)obj;
+		BLeaderIsArgument other = (BLeaderIsArgument)obj;
 		return Term == other.Term && LeaderId.equals(other.LeaderId);
 	}
 

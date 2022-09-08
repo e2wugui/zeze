@@ -7,8 +7,8 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import Zeze.Builtin.GlobalCacheManagerWithRaft.AcquiredState;
-import Zeze.Builtin.GlobalCacheManagerWithRaft.CacheState;
+import Zeze.Builtin.GlobalCacheManagerWithRaft.BAcquiredState;
+import Zeze.Builtin.GlobalCacheManagerWithRaft.BCacheState;
 import Zeze.Serialize.ByteBuffer;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
@@ -269,11 +269,11 @@ public final class DumpRocksDb {
 				dump(os, "{table:%d:%s, key:%s:'%s', s:%d", tableTId, tableTName, keyName, toStr(keyBytes), state);
 				if (state == 1) { // Put
 					if (tableTName.equals("Global")) {
-						var cs = new CacheState();
+						var cs = new BCacheState();
 						cs.Decode(bb);
 						dump(os, ", modify:%d, share=%s}", cs.getModify(), cs.getShare());
 					} else if (tableTName.equals("Session")) {
-						var as = new AcquiredState();
+						var as = new BAcquiredState();
 						as.Decode(bb);
 						dump(os, ", state:%d}", as.getState());
 					} else

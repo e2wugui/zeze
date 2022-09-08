@@ -4,7 +4,7 @@ package Zeze.Builtin.GlobalCacheManagerWithRaft;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class AcquireParam extends Zeze.Transaction.Bean {
+public final class BAcquireParam extends Zeze.Transaction.Bean {
     private Zeze.Net.Binary _GlobalKey;
     private int _State;
 
@@ -48,44 +48,44 @@ public final class AcquireParam extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__State(this, 2, value));
     }
 
-    public AcquireParam() {
+    public BAcquireParam() {
         _GlobalKey = Zeze.Net.Binary.Empty;
     }
 
-    public AcquireParam(Zeze.Net.Binary _GlobalKey_, int _State_) {
+    public BAcquireParam(Zeze.Net.Binary _GlobalKey_, int _State_) {
         if (_GlobalKey_ == null)
             throw new IllegalArgumentException();
         _GlobalKey = _GlobalKey_;
         _State = _State_;
     }
 
-    public void Assign(AcquireParam other) {
+    public void Assign(BAcquireParam other) {
         setGlobalKey(other.getGlobalKey());
         setState(other.getState());
     }
 
-    public AcquireParam CopyIfManaged() {
+    public BAcquireParam CopyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public AcquireParam Copy() {
-        var copy = new AcquireParam();
+    public BAcquireParam Copy() {
+        var copy = new BAcquireParam();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(AcquireParam a, AcquireParam b) {
-        AcquireParam save = a.Copy();
+    public static void Swap(BAcquireParam a, BAcquireParam b) {
+        BAcquireParam save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public AcquireParam CopyBean() {
+    public BAcquireParam CopyBean() {
         return Copy();
     }
 
-    public static final long TYPEID = 8991661748018394550L;
+    public static final long TYPEID = -8330630345134214646L;
 
     @Override
     public long typeId() {
@@ -93,17 +93,17 @@ public final class AcquireParam extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__GlobalKey extends Zeze.Transaction.Logs.LogBinary {
-        public Log__GlobalKey(AcquireParam bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__GlobalKey(BAcquireParam bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((AcquireParam)getBelong())._GlobalKey = Value; }
+        public void Commit() { ((BAcquireParam)getBelong())._GlobalKey = Value; }
     }
 
     private static final class Log__State extends Zeze.Transaction.Logs.LogInt {
-        public Log__State(AcquireParam bean, int varId, int value) { super(bean, varId, value); }
+        public Log__State(BAcquireParam bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((AcquireParam)getBelong())._State = Value; }
+        public void Commit() { ((BAcquireParam)getBelong())._State = Value; }
     }
 
     @Override
@@ -115,7 +115,7 @@ public final class AcquireParam extends Zeze.Transaction.Bean {
 
     @Override
     public void BuildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.AcquireParam: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.BAcquireParam: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("GlobalKey").append('=').append(getGlobalKey()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("State").append('=').append(getState()).append(System.lineSeparator());

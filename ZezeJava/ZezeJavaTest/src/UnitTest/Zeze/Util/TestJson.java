@@ -15,8 +15,8 @@ import Zeze.Util.Json;
 import Zeze.Util.JsonReader;
 import Zeze.Util.JsonWriter;
 import demo.Module1.Key;
-import demo.Module1.Simple;
-import demo.Module1.Value;
+import demo.Module1.BSimple;
+import demo.Module1.BValue;
 import junit.framework.TestCase;
 
 @SuppressWarnings({"unused", "TextBlockMigration"})
@@ -241,22 +241,22 @@ public final class TestJson extends TestCase {
 	}
 
 	public void testD() throws ReflectiveOperationException {
-		var v = new Value();
-		var db = new DynamicBean(0, Value::GetSpecialTypeIdFromBean_Map26, Value::CreateBeanFromSpecialTypeId_Map26);
-		var s = new Simple();
+		var v = new BValue();
+		var db = new DynamicBean(0, BValue::GetSpecialTypeIdFromBean_Map26, BValue::CreateBeanFromSpecialTypeId_Map26);
+		var s = new BSimple();
 		s.setInt1(456);
 		db.setBean(s);
 		v.getMap26().put(new Key((short)123), db);
 		var j = JsonWriter.local().clear().setPrettyFormat(true).setWriteNull(true).setDepthLimit(9).write(v).toString();
-		var v2 = JsonReader.local().buf(j).parse(new Value());
+		var v2 = JsonReader.local().buf(j).parse(new BValue());
 		assertNotNull(v2);
 		assertEquals(1, v2.getMap26().size());
 		var e = v2.getMap26().iterator().next();
 		assertEquals(Key.class, e.getKey().getClass());
 		assertEquals(123, e.getKey().getS());
-		assertEquals(Simple.TYPEID, e.getValue().typeId());
-		assertEquals(Simple.class, e.getValue().getBean().getClass());
-		assertEquals(456, ((Simple)e.getValue().getBean()).getInt1());
+		assertEquals(BSimple.TYPEID, e.getValue().typeId());
+		assertEquals(BSimple.class, e.getValue().getBean().getClass());
+		assertEquals(456, ((BSimple)e.getValue().getBean()).getInt1());
 	}
 
 	public void testE() throws ReflectiveOperationException {

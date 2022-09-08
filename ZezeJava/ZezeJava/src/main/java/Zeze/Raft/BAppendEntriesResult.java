@@ -4,7 +4,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
-final class AppendEntriesResult extends Bean {
+final class BAppendEntriesResult extends Bean {
 	private long Term;
 	private boolean Success;
 	private long NextIndex; // for fast locate when mismatch

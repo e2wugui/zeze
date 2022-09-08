@@ -3,6 +3,7 @@ package UnitTest.Zeze.Trans;
 import java.util.concurrent.Future;
 import Zeze.Config;
 import Zeze.Transaction.DispatchMode;
+import demo.Module1.BValue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -14,7 +15,7 @@ import junit.framework.TestCase;
 import org.junit.Assert;
 
 public class TestGlobal extends TestCase {
-	public static class PrintLog extends Log1<demo.Module1.Value, demo.Module1.Value> {
+	public static class PrintLog extends Log1<BValue, BValue> {
 		private static final Logger logger = LogManager.getLogger(TestGlobal.class);
 
 		private static volatile int lastInt = -1;
@@ -22,7 +23,7 @@ public class TestGlobal extends TestCase {
 		private final int appId;
 		private final boolean eq;
 
-		public PrintLog(Bean bean, demo.Module1.Value value, int appId) {
+		public PrintLog(Bean bean, BValue value, int appId) {
 			super(bean, 0, value);
 			oldInt = getValue().getInt1();
 			eq = lastInt == oldInt;
@@ -104,7 +105,7 @@ public class TestGlobal extends TestCase {
 		Future<?>[] tasks = new Future[count];
 		for (int i = 0; i < tasks.length; ++i) {
 			tasks[i] = Zeze.Util.Task.runUnsafe(app.Zeze.NewProcedure(() -> {
-				demo.Module1.Value b = app.demo_Module1.getTable1().getOrAdd(6785L);
+				BValue b = app.demo_Module1.getTable1().getOrAdd(6785L);
 				b.setInt1(b.getInt1() + 1);
 				PrintLog log = new PrintLog(b, b, appId);
 				Transaction.getCurrent().PutLog(log);

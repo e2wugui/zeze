@@ -4,7 +4,7 @@ package Zeze.Builtin.GlobalCacheManagerWithRaft;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class CacheState extends Zeze.Raft.RocksRaft.Bean {
+public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
     private int _AcquireStatePending;
     private int _Modify; // ServerId, default MUST BE -1.
     private final Zeze.Raft.RocksRaft.CollSet1<Integer> _Share;
@@ -42,20 +42,20 @@ public final class CacheState extends Zeze.Raft.RocksRaft.Bean {
         return _Share;
     }
 
-    public CacheState() {
+    public BCacheState() {
         _Modify = -1;
         _Share = new Zeze.Raft.RocksRaft.CollSet1<>(Integer.class);
         _Share.VariableId = 3;
     }
 
-    public CacheState(int _AcquireStatePending_, int _Modify_) {
+    public BCacheState(int _AcquireStatePending_, int _Modify_) {
         _AcquireStatePending = _AcquireStatePending_;
         _Modify = _Modify_;
         _Share = new Zeze.Raft.RocksRaft.CollSet1<>(Integer.class);
         _Share.VariableId = 3;
     }
 
-    public void Assign(CacheState other) {
+    public void Assign(BCacheState other) {
         setAcquireStatePending(other.getAcquireStatePending());
         setModify(other.getModify());
         getShare().clear();
@@ -63,28 +63,28 @@ public final class CacheState extends Zeze.Raft.RocksRaft.Bean {
             getShare().add(e);
     }
 
-    public CacheState CopyIfManaged() {
+    public BCacheState CopyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public CacheState Copy() {
-        var copy = new CacheState();
+    public BCacheState Copy() {
+        var copy = new BCacheState();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(CacheState a, CacheState b) {
-        CacheState save = a.Copy();
+    public static void Swap(BCacheState a, BCacheState b) {
+        BCacheState save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public CacheState CopyBean() {
+    public BCacheState CopyBean() {
         return Copy();
     }
 
-    public static final long TYPEID = 1756306680643652334L;
+    public static final long TYPEID = 2494905368101749954L;
 
     @Override
     public long typeId() {
@@ -100,7 +100,7 @@ public final class CacheState extends Zeze.Raft.RocksRaft.Bean {
 
     @Override
     public void BuildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.CacheState: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.BCacheState: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("AcquireStatePending").append('=').append(getAcquireStatePending()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Modify").append('=').append(getModify()).append(',').append(System.lineSeparator());

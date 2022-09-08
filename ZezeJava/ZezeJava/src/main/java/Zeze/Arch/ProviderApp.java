@@ -3,7 +3,7 @@ package Zeze.Arch;
 import java.util.HashMap;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Builtin.Provider.BModule;
-import Zeze.Services.ServiceManager.SubscribeInfo;
+import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Util.IntHashMap;
 
 /**
@@ -109,7 +109,7 @@ public class ProviderApp {
 				Modules.put(module.getId(), m != null
 						? new BModule(m.getChoiceType(), m.getConfigType(), m.getSubscribeType())
 						: new BModule(BModule.ChoiceTypeDefault, BModule.ConfigTypeDefault,
-						SubscribeInfo.SubscribeTypeReadyCommit));
+						BSubscribeInfo.SubscribeTypeSimple));
 			}
 		}
 		ProviderImplement.RegisterModulesAndSubscribeLinkd();

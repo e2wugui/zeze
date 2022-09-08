@@ -574,7 +574,7 @@ public final class Raft {
 		}
 	}
 
-	private boolean IsLastLogUpToDate(RequestVoteArgument candidate) throws RocksDBException {
+	private boolean IsLastLogUpToDate(BRequestVoteArgument candidate) throws RocksDBException {
 		// NodeReady local candidate
 		//           false false       IsLastLogUpToDate
 		//           false true        false
@@ -595,7 +595,7 @@ public final class Raft {
 		return candidate.getNodeReady() && IsLastLogUpToDate(last, candidate);
 	}
 
-	private static boolean IsLastLogUpToDate(RaftLog last, RequestVoteArgument candidate) {
+	private static boolean IsLastLogUpToDate(RaftLog last, BRequestVoteArgument candidate) {
 		if (candidate.getLastLogTerm() > last.getTerm())
 			return true;
 		if (candidate.getLastLogTerm() < last.getTerm())
@@ -688,7 +688,7 @@ public final class Raft {
 		// LogSequence.SetVoteFor(Name); // 先收集结果，达到 RaftConfig.HalfCount 才判断是否给自己投票。
 		_LogSequence.TrySetTerm(_LogSequence.getTerm() + 1);
 
-		var arg = new RequestVoteArgument();
+		var arg = new BRequestVoteArgument();
 		arg.setTerm(_LogSequence.getTerm());
 		arg.setCandidateId(getName());
 		var log = _LogSequence.LastRaftLogTermIndex();

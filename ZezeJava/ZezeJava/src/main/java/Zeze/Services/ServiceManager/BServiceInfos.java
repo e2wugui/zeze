@@ -8,8 +8,8 @@ import Zeze.Services.ServiceManagerServer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
-public final class ServiceInfos extends Bean {
-	private static final Comparator<ServiceInfo> Comparer = (si1, si2) -> {
+public final class BServiceInfos extends Bean {
+	private static final Comparator<BServiceInfo> Comparer = (si1, si2) -> {
 		String id1 = si1.getServiceIdentity();
 		String id2 = si2.getServiceIdentity();
 		int c = Integer.compare(id1.length(), id2.length());
@@ -19,17 +19,17 @@ public final class ServiceInfos extends Bean {
 	// ServiceList maybe empty. need a ServiceName
 	private String ServiceName;
 	// sorted by ServiceIdentity
-	private final ArrayList<ServiceInfo> _ServiceInfoListSortedByIdentity = new ArrayList<>();
+	private final ArrayList<BServiceInfo> _ServiceInfoListSortedByIdentity = new ArrayList<>();
 	private long SerialId;
 
-	public ServiceInfos() {
+	public BServiceInfos() {
 	}
 
-	public ServiceInfos(String serviceName) {
+	public BServiceInfos(String serviceName) {
 		ServiceName = serviceName;
 	}
 
-	public ServiceInfos(String serviceName, ServiceManagerServer.ServerState state, long serialId) {
+	public BServiceInfos(String serviceName, ServiceManagerServer.ServerState state, long serialId) {
 		ServiceName = serviceName;
 		_ServiceInfoListSortedByIdentity.addAll(state.getServiceInfos().values());
 		_ServiceInfoListSortedByIdentity.sort(Comparer);
@@ -40,7 +40,7 @@ public final class ServiceInfos extends Bean {
 		return ServiceName;
 	}
 
-	public ArrayList<ServiceInfo> getServiceInfoListSortedByIdentity() {
+	public ArrayList<BServiceInfo> getServiceInfoListSortedByIdentity() {
 		return _ServiceInfoListSortedByIdentity;
 	}
 
@@ -48,7 +48,7 @@ public final class ServiceInfos extends Bean {
 		return SerialId;
 	}
 
-	public ServiceInfo Insert(ServiceInfo info) {
+	public BServiceInfo Insert(BServiceInfo info) {
 		int index = Collections.binarySearch(_ServiceInfoListSortedByIdentity, info, Comparer);
 		if (index >= 0)
 			_ServiceInfoListSortedByIdentity.set(index, info);
@@ -57,7 +57,7 @@ public final class ServiceInfos extends Bean {
 		return info;
 	}
 
-	public ServiceInfo Remove(ServiceInfo info) {
+	public BServiceInfo Remove(BServiceInfo info) {
 		int index = Collections.binarySearch(_ServiceInfoListSortedByIdentity, info, Comparer);
 		if (index >= 0) {
 			info = _ServiceInfoListSortedByIdentity.get(index);
@@ -67,8 +67,8 @@ public final class ServiceInfos extends Bean {
 		return null;
 	}
 
-	public ServiceInfo get(String identity) {
-		var cur = new ServiceInfo(ServiceName, identity);
+	public BServiceInfo get(String identity) {
+		var cur = new BServiceInfo(ServiceName, identity);
 		int index = Collections.binarySearch(_ServiceInfoListSortedByIdentity, cur, Comparer);
 		if (index >= 0) {
 			return _ServiceInfoListSortedByIdentity.get(index);
@@ -76,11 +76,11 @@ public final class ServiceInfos extends Bean {
 		return null;
 	}
 
-	public ServiceInfo findServiceInfoByIdentity(String identity) {
+	public BServiceInfo findServiceInfoByIdentity(String identity) {
 		return get(identity);
 	}
 
-	public ServiceInfo findServiceInfoByServerId(int serverId) {
+	public BServiceInfo findServiceInfoByServerId(int serverId) {
 		return findServiceInfoByIdentity(String.valueOf(serverId));
 	}
 
@@ -89,7 +89,7 @@ public final class ServiceInfos extends Bean {
 		ServiceName = bb.ReadString();
 		_ServiceInfoListSortedByIdentity.clear();
 		for (int c = bb.ReadInt(); c > 0; --c) {
-			var service = new ServiceInfo();
+			var service = new BServiceInfo();
 			service.Decode(bb);
 			_ServiceInfoListSortedByIdentity.add(service);
 		}

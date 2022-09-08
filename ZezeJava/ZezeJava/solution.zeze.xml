@@ -5,54 +5,54 @@
 		<!-- Global With Raft 模块 -->
 		<module name="GlobalCacheManagerWithRaft" id="11001">
 			<!-- table -->
-			<bean name="CacheState" kind="rocks">
+			<bean name="BCacheState" kind="rocks">
 				<variable id="1" name="AcquireStatePending" type="int" transient="true"/>
 				<variable id="2" name="Modify" type="int" default="-1"/> ServerId, default MUST BE -1.
 				<variable id="3" name="Share" type="set" value="int"/>
 			</bean>
 
-			<bean name="AcquiredState" kind="rocks">
+			<bean name="BAcquiredState" kind="rocks">
 				<variable id="1" name="State" type="int"/>
 			</bean>
 
-			<table name="Global" key="binary" value="CacheState" kind="rocks" />
-			<table name="Session" key="binary" value="AcquiredState" kind="rocks" />
+			<table name="Global" key="binary" value="BCacheState" kind="rocks" />
+			<table name="Session" key="binary" value="BAcquiredState" kind="rocks" />
 
 			<!-- rpc -->
-			<bean name="AcquireParam">
+			<bean name="BAcquireParam">
 				<variable id="1" name="GlobalKey" type="binary"/>
 				<variable id="2" name="State" type="int"/>
 			</bean>
 
-			<bean name="ReduceParam">
+			<bean name="BReduceParam">
 				<variable id="1" name="GlobalKey" type="binary"/>
 				<variable id="2" name="State" type="int"/>
 			</bean>
 
-			<bean name="LoginParam">
+			<bean name="BLoginParam">
 				<variable id="1" name="ServerId" type="int"/>
 				<variable id="2" name="GlobalCacheManagerHashIndex" type="int"/>
 				<variable id="3" name="DebugMode" type="bool"/> 调试模式下不检查Release Timeout,方便单步调试
 			</bean>
 
-			<bean name="AchillesHeel">
+			<bean name="BAchillesHeel">
 				<variable id="1" name="ServerId" type="int"/>
 				<variable id="2" name="SecureKey" type="string"/>
 				<variable id="3" name="GlobalCacheManagerHashIndex" type="int"/>
 			</bean>
 
-			<bean name="AchillesHeelConfig">
+			<bean name="BAchillesHeelConfig">
 				<variable id="1" name="MaxNetPing" type="int"/>
 				<variable id="2" name="ServerProcessTime" type="int"/>
 				<variable id="3" name="ServerReleaseTimeout" type="int"/>
 			</bean>
 
-			<rpc name="Acquire" argument="AcquireParam" result="ReduceParam" base="Zeze.Raft.RaftRpc" handle="server" TransactionLevel="None" />
-			<rpc name="Reduce" argument="ReduceParam" result="ReduceParam" base="Zeze.Raft.RaftRpc" handle="client" />
-			<rpc name="Login" argument="LoginParam" result="AchillesHeelConfig" base="Zeze.Raft.RaftRpc" handle="server" TransactionLevel="None" />
-			<rpc name="ReLogin" argument="LoginParam" base="Zeze.Raft.RaftRpc" handle="server" TransactionLevel="None" />
+			<rpc name="Acquire" argument="BAcquireParam" result="BReduceParam" base="Zeze.Raft.RaftRpc" handle="server" TransactionLevel="None" />
+			<rpc name="Reduce" argument="BReduceParam" result="BReduceParam" base="Zeze.Raft.RaftRpc" handle="client" />
+			<rpc name="Login" argument="BLoginParam" result="BAchillesHeelConfig" base="Zeze.Raft.RaftRpc" handle="server" TransactionLevel="None" />
+			<rpc name="ReLogin" argument="BLoginParam" base="Zeze.Raft.RaftRpc" handle="server" TransactionLevel="None" />
 			<rpc name="NormalClose" handle="server" base="Zeze.Raft.RaftRpc" TransactionLevel="None" />
-			<rpc name="Cleanup" argument="AchillesHeel" base="Zeze.Raft.RaftRpc" handle="server" TransactionLevel="None" />
+			<rpc name="Cleanup" argument="BAchillesHeel" base="Zeze.Raft.RaftRpc" handle="server" TransactionLevel="None" />
 			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" handle="server" TransactionLevel="None" />
 		</module>
 
@@ -63,7 +63,7 @@
 				<variable id="2" name="Name" type="string"/>
 			</beankey>
 
-			<bean name="Value" kind="rocks">
+			<bean name="BValue" kind="rocks">
 				<variable id="1" name="Int" type="int"/>
 				<variable id="2" name="Bool" type="bool"/>
 				<variable id="3" name="Float" type="float"/>
@@ -73,11 +73,11 @@
 				<variable id="7" name="SetInt" type="set" value="int"/>
 				<variable id="8" name="SetBeankey" type="set" value="BeanKey"/>
 				<variable id="9" name="MapInt" type="map" key="int" value="int"/>
-				<variable id="10" name="MapBean" type="map" key="int" value="Value"/>
+				<variable id="10" name="MapBean" type="map" key="int" value="BValue"/>
 				<variable id="11" name="Beankey" type="BeanKey"/>
 			</bean>
 
-			<table name="tRocks" key="int" value="Value" kind="rocks"/>
+			<table name="tRocks" key="int" value="BValue" kind="rocks"/>
 		</module>
 
 		<!-- 应用内部唯一ID生成器，仅支持long类型。-->
@@ -247,7 +247,7 @@
 				<variable name="ConfigType" id="2" type="int"/>
 
 				<!-- SubscribeType
-				定义于： Zeze.Services.ServiceManager.SubscribeInfo.
+				定义于： Zeze.Services.ServiceManager.BSubscribeInfo.
 				静态绑定忽略这个参数，总是使用Zeze.Services.ServiceManager.SubscribeInfo.SubscribeTypeReadyCommit.
 				-->
 				<variable name="SubscribeType" id="3" type="int"/>
@@ -578,7 +578,7 @@
 
 				<bean name="BLocal">
 					<variable id="1" name="LoginVersion" type="long"/>
-					<variable id="2" name="Datas" type="map" key="string" value="BAny"/> 
+					<variable id="2" name="Datas" type="map" key="string" value="BAny"/>
 				</bean>
 
 				<table name="tlocal" key="long" memory="true" value="BLocal"/>
@@ -763,7 +763,7 @@
 			</bean>
 			<bean name="BLocal">
 				<variable id="1" name="LoginVersion" type="long"/>
-				<variable id="2" name="Datas" type="map" key="string" value="BAny"/> 
+				<variable id="2" name="Datas" type="map" key="string" value="BAny"/>
 			</bean>
 			<bean name="BLocals">
 				<variable id="1" name="Logins" type="map" key="string" value="BLocal"/> key is ClientId
@@ -775,7 +775,7 @@
 			<!--
 			多数情况下，Http请求处理一个rpc完成。当需要处理上传大文件或下载大文件时，使用流接口处理。
 			1. 普通请求
-               linkd -> Rpc Request -> server 
+               linkd -> Rpc Request -> server
 			2. 上传文件
 			   linkd -> Rpc Request -> server
 			   linkd -> Rpc RequestInputStream -> server
@@ -799,13 +799,13 @@
 			<enum name="OnDownloadException" value="5"/>
 
 			<bean name="BHeader">
-				<variable id="1" name="Values" type="list[string]"/> 
+				<variable id="1" name="Values" type="list[string]"/>
 			</bean>
 
 			<bean name="BRequest">
-				<variable id="1" name="ExchangeId" type="long"/> 
-				<variable id="2" name="Method" type="string"/> 
-				<variable id="3" name="Path" type="string"/> 
+				<variable id="1" name="ExchangeId" type="long"/>
+				<variable id="2" name="Method" type="string"/>
+				<variable id="3" name="Path" type="string"/>
 				<variable id="4" name="Query" type="string"/>
 				<variable id="5" name="Headers" type="map[string, BHeader]"/>
 				<variable id="6" name="Body" type="binary"/>
@@ -827,13 +827,13 @@
 			</bean>
 
 			<bean name="BStream">
-				<variable id="1" name="ExchangeId" type="long"/> 
+				<variable id="1" name="ExchangeId" type="long"/>
 				<variable id="2" name="Body" type="binary"/>
 				<variable id="3" name="Finish" type="bool"/>
 			</bean>
 
 			<bean name="BCloseExchange">
-				<variable id="1" name="ExchangeId" type="long"/> 
+				<variable id="1" name="ExchangeId" type="long"/>
 			</bean>
 
 			<rpc name="CloseExchange" argument="BCloseExchange" handle="server,client" />

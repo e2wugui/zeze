@@ -5,7 +5,7 @@ import Zeze.Builtin.Provider.*;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Services.ServiceManager.SubscribeInfo;
+import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutLong;
 
@@ -166,7 +166,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 						module.getKey(), module.getValue().getChoiceType(), module.getValue().getConfigType());
 				var serviceName = ProviderDistribute.MakeServiceName(providerSession.getInfo().getServiceNamePrefix(), module.getKey());
 				var subState = Distribute.Zeze.getServiceManagerAgent().SubscribeService(
-						serviceName, SubscribeInfo.SubscribeTypeSimple, providerModuleState);
+						serviceName, BSubscribeInfo.SubscribeTypeSimple, providerModuleState);
 				// 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
 				// 即使 SubscribeTypeSimple 也需要设置 Ready，因为 providerModuleState 需要设置到ServiceInfo中，以后Choice的时候需要用。
 				subState.SetServiceIdentityReadyState(providerSession.getInfo().getServiceIndentity(), providerModuleState);

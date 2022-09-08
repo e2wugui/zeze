@@ -4,7 +4,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
-public class LoginParam extends Bean {
+public class BLoginParam extends Bean {
 	public int ServerId;
 
 	// GlobalCacheManager 本身没有编号。
@@ -45,7 +45,7 @@ public class LoginParam extends Bean {
 
 	@Override
 	public String toString() {
-		return "LoginParam{" + "ServerId=" + ServerId + ", GlobalCacheManagerHashIndex=" + GlobalCacheManagerHashIndex
+		return "BLoginParam{" + "ServerId=" + ServerId + ", GlobalCacheManagerHashIndex=" + GlobalCacheManagerHashIndex
 				+ ", DebugMode=" + DebugMode + '}';
 	}
 }

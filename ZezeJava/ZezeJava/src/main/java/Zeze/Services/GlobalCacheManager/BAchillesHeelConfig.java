@@ -4,7 +4,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
-public class AchillesHeelConfig extends Bean {
+public class BAchillesHeelConfig extends Bean {
 	public int MaxNetPing;
 	public int ServerProcessTime;
 	public int ServerReleaseTimeout;
@@ -27,9 +27,9 @@ public class AchillesHeelConfig extends Bean {
 	protected void InitChildrenRootInfo(Record.RootInfo root) {
 		throw new UnsupportedOperationException();
 	}
+
 	@Override
 	protected void ResetChildrenRootInfo() {
 		throw new UnsupportedOperationException();
 	}
-
 }
