@@ -431,9 +431,7 @@ public final class Agent implements Closeable {
 
 		if (regNew.Value) {
 			try {
-				var r = new Register();
-				r.Argument = info;
-				r.SendAndWaitCheckResultCode(Client.getSocket());
+				new Register(info).SendAndWaitCheckResultCode(Client.getSocket());
 				logger.debug("RegisterService {}", info);
 			} catch (Throwable e) {
 				getRegisters().remove(info, info); // rollback
@@ -484,7 +482,7 @@ public final class Agent implements Closeable {
 
 		final var newAdd = new OutObject<Boolean>();
 		newAdd.Value = false;
-		var subState = getSubscribeStates().computeIfAbsent(info.getServiceName(), (key) -> {
+		var subState = SubscribeStates.computeIfAbsent(info.getServiceName(), (key) -> {
 			newAdd.Value = true;
 			return new SubscribeState(info);
 		});
@@ -514,7 +512,7 @@ public final class Agent implements Closeable {
 	}
 
 	private long ProcessSubscribeFirstCommit(SubscribeFirstCommit r) {
-		var state = getSubscribeStates().get(r.Argument.getServiceName());
+		var state = SubscribeStates.get(r.Argument.getServiceName());
 		if (state != null) {
 			state.OnFirstCommit(r.Argument);
 		}
@@ -524,14 +522,14 @@ public final class Agent implements Closeable {
 	public void UnSubscribeService(String serviceName) {
 		WaitConnectorReady();
 
-		var state = getSubscribeStates().remove(serviceName);
+		var state = SubscribeStates.remove(serviceName);
 		if (state != null) {
 			try {
 				var r = new UnSubscribe();
 				r.Argument = state.subscribeInfo;
 				r.SendAndWaitCheckResultCode(Client.getSocket());
 			} catch (Throwable e) {
-				getSubscribeStates().putIfAbsent(serviceName, state); // rollback
+				SubscribeStates.putIfAbsent(serviceName, state); // rollback
 				throw e;
 			}
 		}
@@ -568,7 +566,7 @@ public final class Agent implements Closeable {
 	}
 
 	private long ProcessNotifyServiceList(NotifyServiceList r) {
-		var state = getSubscribeStates().get(r.Argument.getServiceName());
+		var state = SubscribeStates.get(r.Argument.getServiceName());
 		if (state != null) {
 			state.OnNotify(r.Argument);
 		} else {
@@ -578,7 +576,7 @@ public final class Agent implements Closeable {
 	}
 
 	private long ProcessCommitServiceList(CommitServiceList r) {
-		var state = getSubscribeStates().get(r.Argument.ServiceName);
+		var state = SubscribeStates.get(r.Argument.ServiceName);
 		if (state != null) {
 			state.OnCommit(r);
 		} else {
@@ -639,9 +637,7 @@ public final class Agent implements Closeable {
 	public void OnConnected() {
 		for (var e : Registers.keySet()) {
 			try {
-				var r = new Register();
-				r.Argument = e;
-				r.SendAndWaitCheckResultCode(Client.getSocket());
+				new Register(e).SendAndWaitCheckResultCode(Client.getSocket());
 			} catch (Throwable ex) {
 				logger.debug("OnConnected.Register={}", e, ex);
 			}

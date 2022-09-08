@@ -28,4 +28,9 @@ public class Register extends Rpc<BServiceInfo, EmptyBean> {
 		this.Argument = new BServiceInfo();
 		this.Result = new EmptyBean();
 	}
+
+	public Register(BServiceInfo arg) {
+		Argument = arg;
+		Result = new EmptyBean();
+	}
 }
