@@ -62,15 +62,17 @@ public class ProviderDistribute {
 	public static ServiceInfo ChoiceDataIndex(ConsistentHash<ServiceInfo> consistentHash, int dataIndex, int dataConcurrentLevel) {
 		if (consistentHash == null)
 			return null;
-		if (consistentHash.getNodes().size() > dataConcurrentLevel)
-			throw new IllegalStateException("too many server: " + consistentHash.getNodes().size() + " > " + dataConcurrentLevel);
+//		if (consistentHash.getNodes().size() > dataConcurrentLevel)
+//			throw new IllegalStateException("ChoiceDataIndex: too many servers: " + consistentHash.getNodes().size() + " > " + dataConcurrentLevel);
 		return consistentHash.get(ByteBuffer.calc_hashnr(dataIndex));
 	}
 
 	public ServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash, int dataConcurrentLevel) {
 		var consistentHash = ConsistentHashes.get(providers.getServiceName());
+		if (consistentHash == null)
+			throw new IllegalStateException("ChoiceHash: not found ConsistentHash for serviceName=" + providers.getServiceName());
 		if (dataConcurrentLevel <= 1)
-			return consistentHash != null ? consistentHash.get(hash) : null;
+			return consistentHash.get(hash);
 
 		return ChoiceDataIndex(consistentHash, (int)((hash & 0xffff_ffffL) % dataConcurrentLevel), dataConcurrentLevel);
 	}

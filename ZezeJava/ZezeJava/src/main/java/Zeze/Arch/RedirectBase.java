@@ -40,21 +40,21 @@ public class RedirectBase {
 		if (serverId == ProviderApp.Zeze.getConfig().getServerId())
 			return null; // is Local
 		var ps = ProviderApp.ProviderDirectService.ProviderByServerId.get(serverId);
-		if (null == ps)
-			throw new RuntimeException("Server Session Not Found. ServerId=" + serverId);
+		if (ps == null)
+			throw new IllegalStateException("ChoiceServer: not found session for serverId=" + serverId);
 		var socket = ProviderApp.ProviderDirectService.GetSocket(ps.getSessionId());
-		if (null == socket)
-			throw new RuntimeException("Server Socket Not Found. ServerId=" + serverId);
+		if (socket == null)
+			throw new IllegalStateException("ChoiceServer: not found socket for serverId=" + serverId);
 		return socket;
 		/*
 		var out = new OutLong();
 		if (!ProviderApp.Distribute.ChoiceProviderByServerId(ProviderApp.ServerServiceNamePrefix, module.getId(), serverId, out))
-			throw new RuntimeException("Server Not Found. ServerId=" + serverId);
+			throw new IllegalStateException("ChoiceServer: not found server for serverId=" + serverId);
 		var socket = ProviderApp.ProviderDirectService.GetSocket(out.Value);
-		if (null == socket)
-			throw new RuntimeException("Server Socket Not Found. ServerId=" + serverId);
+		if (socket == null)
+			throw new IllegalStateException("ChoiceServer: not found socket for serverId=" + serverId);
 		return socket;
-		 */
+		*/
 	}
 
 	public AsyncSocket ChoiceHash(IModule module, int hash, int dataConcurrentLevel) {
@@ -63,17 +63,26 @@ public class RedirectBase {
 
 		var servers = subscribes.get(serviceName);
 		if (servers == null)
-			return null;
+			throw new IllegalStateException("ChoiceHash: not found service for serviceName=" + serviceName);
 
 		var serviceInfo = ProviderApp.Distribute.ChoiceHash(servers, hash, dataConcurrentLevel);
-		if (serviceInfo == null || serviceInfo.getServiceIdentity().equals(String.valueOf(ProviderApp.Zeze.getConfig().getServerId())))
+		if (serviceInfo == null)
+			throw new IllegalStateException("ChoiceHash: not found server for serviceName=" + serviceName
+					+ ", hash=" + hash + ", conc=" + dataConcurrentLevel);
+
+		if (serviceInfo.getServiceIdentity().equals(String.valueOf(ProviderApp.Zeze.getConfig().getServerId())))
 			return null;
 
-		var providerModuleState = (ProviderModuleState)servers.LocalStates.get(serviceInfo.getServiceIdentity());
-		if (providerModuleState == null)
-			return null;
+		var ps = (ProviderModuleState)servers.LocalStates.get(serviceInfo.getServiceIdentity());
+		if (ps == null)
+			throw new IllegalStateException("ChoiceHash: not found server for serviceIdentity="
+					+ serviceInfo.getServiceIdentity());
 
-		return ProviderApp.ProviderDirectService.GetSocket(providerModuleState.SessionId);
+		var socket = ProviderApp.ProviderDirectService.GetSocket(ps.SessionId);
+		if (socket == null)
+			throw new IllegalStateException("ChoiceHash: not found socket for serviceIdentity="
+					+ serviceInfo.getServiceIdentity());
+		return socket;
 	}
 
 	private static void AddMiss(ModuleRedirectAllResult miss, int i, @SuppressWarnings("SameParameterValue") long rc) {
@@ -82,7 +91,8 @@ public class RedirectBase {
 		miss.Argument.getHashs().put(i, hashResult);
 	}
 
-	private static void AddTransmits(LongHashMap<ModuleRedirectAllRequest> transmits, long provider, int index, ModuleRedirectAllRequest req) {
+	private static void AddTransmits(LongHashMap<ModuleRedirectAllRequest> transmits, long provider, int index,
+									 ModuleRedirectAllRequest req) {
 		var exist = transmits.get(provider);
 		if (exist == null) {
 			exist = new ModuleRedirectAllRequest();

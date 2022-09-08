@@ -36,6 +36,22 @@ final class MethodOverride {
 		this.method = method;
 		this.annotation = annotation;
 
+		if ((method.getModifiers() & (Modifier.STATIC | Modifier.FINAL)) != 0)
+			throw new IllegalStateException("ModuleRedirect: method can not be static or final: " +
+					method.getDeclaringClass().getName() + '.' + method.getName());
+
+		if ((method.getModifiers() & (Modifier.PUBLIC | Modifier.PROTECTED)) == 0)
+			throw new IllegalStateException("ModuleRedirect: method must be public or protected: " +
+					method.getDeclaringClass().getName() + '.' + method.getName());
+
+		if ((method.getDeclaringClass().getModifiers() & Modifier.FINAL) != 0)
+			throw new IllegalStateException("ModuleRedirect: class can not be final: " +
+					method.getDeclaringClass().getName());
+
+		if ((method.getDeclaringClass().getModifiers() & Modifier.PUBLIC) == 0)
+			throw new IllegalStateException("ModuleRedirect: class must be public: " +
+					method.getDeclaringClass().getName());
+
 		var levelAnn = method.getAnnotation(TransactionLevelAnnotation.class);
 		transactionLevel = levelAnn != null ? levelAnn.Level() : TransactionLevel.Serializable;
 
@@ -43,7 +59,7 @@ final class MethodOverride {
 		inputParameters.addAll(Arrays.asList(allParameters));
 		hashOrServerIdParameter = allParameters[0];
 		if (hashOrServerIdParameter.getType() != int.class) {
-			throw new RuntimeException("ModuleRedirect: type of first parameter must be 'int': "
+			throw new IllegalStateException("ModuleRedirect: type of first parameter must be 'int': "
 					+ method.getDeclaringClass().getName() + "::" + method.getName());
 		}
 		inputParameters.remove(0);
@@ -57,7 +73,7 @@ final class MethodOverride {
 					resultClass = (Class<?>)(resultType instanceof Class ?
 							resultType : ((ParameterizedType)resultType).getRawType());
 					if (!RedirectResult.class.isAssignableFrom(resultClass)) {
-						throw new RuntimeException("RedirectAll Result Type Must Extend RedirectResult: "
+						throw new IllegalStateException("RedirectAll Result Type Must Extend RedirectResult: "
 								+ method.getDeclaringClass().getName() + "::" + method.getName());
 					}
 				} else {
