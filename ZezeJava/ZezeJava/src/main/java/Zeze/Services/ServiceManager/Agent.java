@@ -11,6 +11,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action1;
 import Zeze.Util.Action2;
+import Zeze.Util.Func2;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
@@ -33,6 +34,7 @@ public final class Agent implements Closeable {
 	private Action2<SubscribeState, BServiceInfo> OnRemove; // Simple
 	private Action1<SubscribeState> OnPrepare; // ReadyCommit 的第一步回调。
 	private Action1<BServerLoad> OnSetServerLoad;
+	private Func2<Integer, String, Boolean> OnOfflineNotify;
 
 	// 应用可以在这个Action内起一个测试事务并执行一次。也可以实现其他检测。
 	// ServiceManager 定时发送KeepAlive给Agent，并等待结果。超时则认为服务失效。
@@ -82,7 +84,12 @@ public final class Agent implements Closeable {
 	public void setOnSetServerLoad(Action1<BServerLoad> value) {
 		OnSetServerLoad = value;
 	}
-
+	public void setOnOfflineNotify(Func2<Integer, String, Boolean> value) {
+		OnOfflineNotify = value;
+	}
+	public Func2<Integer, String, Boolean> getOnOfflineNotify() {
+		return OnOfflineNotify;
+	}
 	public void setOnPrepare(Action1<SubscribeState> value) {
 		OnPrepare = value;
 	}
@@ -497,6 +504,15 @@ public final class Agent implements Closeable {
 		return p.Send(Client.getSocket());
 	}
 
+	public void OfflineRegister(int serverId, String notifyId) {
+		WaitConnectorReady();
+
+		var reg = new OfflineRegister();
+		reg.Argument.ServerId = serverId;
+		reg.Argument.NotifyId = notifyId;
+		reg.SendAndWaitCheckResultCode(Client.getSocket());
+	}
+
 	private long ProcessSubscribeFirstCommit(SubscribeFirstCommit r) {
 		var state = getSubscribeStates().get(r.Argument.getServiceName());
 		if (state != null) {
@@ -592,6 +608,23 @@ public final class Agent implements Closeable {
 		return Procedure.Success;
 	}
 
+	private long ProcessOfflineNotify(OfflineNotify r) {
+		if (null == OnOfflineNotify) {
+			r.trySendResultCode(1);
+			return 0;
+		}
+		try {
+			if (OnOfflineNotify.call(r.Argument.ServerId, r.Argument.NotifyId)) {
+				r.SendResult();
+				return 0;
+			}
+			r.trySendResultCode(2);
+		} catch (Throwable ignored) {
+			r.trySendResultCode(3);
+		}
+		return 0;
+	}
+
 	public AutoKey GetAutoKey(String name) {
 		return AutoKeys.computeIfAbsent(name, (k) -> new AutoKey(k, this));
 	}
@@ -663,6 +696,11 @@ public final class Agent implements Closeable {
 				AllocateId::new, null, TransactionLevel.None, DispatchMode.Direct));
 		Client.AddFactoryHandle(SetServerLoad.TypeId_, new ProtocolFactoryHandle<>(
 				SetServerLoad::new, this::ProcessSetServerLoad, TransactionLevel.None, DispatchMode.Direct));
+
+		Client.AddFactoryHandle(OfflineNotify.TypeId_, new ProtocolFactoryHandle<>(
+				OfflineNotify::new, this::ProcessOfflineNotify, TransactionLevel.None, DispatchMode.Critical));
+		Client.AddFactoryHandle(OfflineRegister.TypeId_, new ProtocolFactoryHandle<>(
+				OfflineRegister::new, null, TransactionLevel.None, DispatchMode.Normal));
 	}
 
 	@Override

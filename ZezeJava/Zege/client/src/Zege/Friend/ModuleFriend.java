@@ -79,7 +79,9 @@ public class ModuleFriend extends AbstractModule {
         req.Argument.setGroup(group);
         req.Argument.setDepartmentId(id);
         req.SendForWait(App.Connector.TryGetReadySocket()).await();
-        return req.getResultCode() == 0 ? req.Result : new BDepartmentNode();
+        if (req.getResultCode() != 0)
+            throw new RuntimeException("getDepartmentNode fail code=" + IModule.GetErrorCode(req.getResultCode()));
+        return req.Result;
     }
 
     public void moveDepartment(String group, long id, long newParent) {

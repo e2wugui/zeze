@@ -5,7 +5,9 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
@@ -19,6 +21,8 @@ import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Services.ServiceManager.CommitServiceList;
 import Zeze.Services.ServiceManager.KeepAlive;
 import Zeze.Services.ServiceManager.NotifyServiceList;
+import Zeze.Services.ServiceManager.OfflineNotify;
+import Zeze.Services.ServiceManager.OfflineRegister;
 import Zeze.Services.ServiceManager.ReadyServiceList;
 import Zeze.Services.ServiceManager.Register;
 import Zeze.Services.ServiceManager.BServiceInfo;
@@ -34,6 +38,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentHashSet;
+import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.LongList;
@@ -44,6 +49,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
+import org.jetbrains.annotations.Async;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.w3c.dom.Element;
@@ -491,6 +497,10 @@ public final class ServiceManagerServer implements Closeable {
 			return Subscribes;
 		}
 
+		// 使用的时候加锁保护。
+		public int OfflineRegisterServerId = -1;
+		public final HashSet<String> OfflineRegisterNotifies = new HashSet<>();
+
 		public Session(ServiceManagerServer sm, long ssid) {
 			ServiceManager = sm;
 			SessionId = ssid;
@@ -532,6 +542,50 @@ public final class ServiceManagerServer implements Closeable {
 
 			for (var state : changed.values())
 				state.StartReadyCommitNotify();
+
+			// offline notify，开启一个线程执行，避免互等造成麻烦。
+			// 这个操作不能cancel，即使Server重新起来了，通知也会进行下去。
+			Task.run(() -> {
+				if (this.OfflineRegisterServerId == -1 || this.OfflineRegisterNotifies.isEmpty())
+					return; // 不需要通知。
+
+				for (var notifyId : this.OfflineRegisterNotifies) {
+					var skips = new HashSet<Session>();
+					var notify = new OfflineNotify();
+					notify.Argument.ServerId = this.OfflineRegisterServerId;
+					notify.Argument.NotifyId = notifyId;
+					while (true) {
+						var selected = randomFor(notifyId, skips);
+						if (null == selected)
+							break; // 没有找到可用的通知对象，放弃通知。
+						try {
+							notify.SendForWait(selected.getValue()).await();
+							if (notify.getResultCode() == 0)
+								break; // 成功通知。done
+						} catch (Throwable ignored) {
+
+						}
+						// 保存这一次通知失败session，下一次尝试选择的时候忽略。
+						skips.add(selected.getKey());
+					}
+				}
+			}, "OfflineNotify");
+		}
+
+		// 从注册了这个notifyId的其他session中随机选择一个。
+		private KV<Session, AsyncSocket> randomFor(String notifyId, HashSet<Session> skips) {
+			var sessions = new ArrayList<KV<Session, AsyncSocket>>();
+			ServiceManager.Server.getAllSocks().forEach((socket) -> {
+				var session = (Session)socket.getUserState();
+				if (null != session && session != this
+						&& session.OfflineRegisterNotifies.contains(notifyId)
+						&& !skips.contains(session)) {
+					sessions.add(KV.Create(session, socket));
+				}
+			});
+			if (sessions.isEmpty())
+				return null;
+			return sessions.get(Random.getInstance().nextInt(sessions.size()));
 		}
 	}
 
@@ -691,6 +745,17 @@ public final class ServiceManagerServer implements Closeable {
 		return 0;
 	}
 
+	private static long ProcessOfflineRegister(OfflineRegister r) {
+		var session = (Session)r.getSender().getUserState();
+		// 允许重复注册：简化server注册逻辑。
+		synchronized (session.OfflineRegisterNotifies) {
+			session.OfflineRegisterServerId = r.Argument.ServerId;
+			session.OfflineRegisterNotifies.add(r.Argument.NotifyId);
+		}
+		r.SendResult();
+		return 0;
+	}
+
 	@Override
 	public void close() throws IOException {
 		try {
@@ -731,6 +796,10 @@ public final class ServiceManagerServer implements Closeable {
 				AllocateId::new, this::ProcessAllocateId, TransactionLevel.None, DispatchMode.Critical));
 		Server.AddFactoryHandle(SetServerLoad.TypeId_, new Service.ProtocolFactoryHandle<>(
 				SetServerLoad::new, this::ProcessSetLoad, TransactionLevel.None, DispatchMode.Critical));
+		Server.AddFactoryHandle(OfflineRegister.TypeId_, new Service.ProtocolFactoryHandle<>(
+				OfflineRegister::new, ServiceManagerServer::ProcessOfflineRegister, TransactionLevel.None, DispatchMode.Critical));
+		Server.AddFactoryHandle(OfflineNotify.TypeId_, new Service.ProtocolFactoryHandle<>(
+				OfflineNotify::new, null, TransactionLevel.None, DispatchMode.Direct));
 
 		if (Config.getStartNotifyDelay() > 0)
 			StartNotifyDelayTask = Task.scheduleUnsafe(Config.getStartNotifyDelay(), this::StartNotifyAll);
@@ -842,6 +911,9 @@ public final class ServiceManagerServer implements Closeable {
 			ServiceManager = sm;
 		}
 
+		LongConcurrentHashMap<AsyncSocket> getAllSocks() {
+			return getSocketMap();
+		}
 		@Override
 		public void OnSocketAccept(AsyncSocket so) throws Throwable {
 			logger.info("OnSocketAccept: {} sid={}", so, so.getSessionId());

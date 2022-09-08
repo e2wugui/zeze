@@ -61,7 +61,7 @@ public class ModuleFriend extends AbstractModule {
 
     public DepartmentTree<BManager, BGroupMember, BDepartmentMember, BGroupData, BDepartmentData> getGroup(String group) {
         return App.DepartmentTrees.open(
-                group + "@Zege.DepartmentTree",
+                group + "@Zege.Group",
                 BManager.class,
                 BGroupMember.class,
                 BDepartmentMember.class,

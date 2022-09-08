@@ -192,12 +192,12 @@ public class DepartmentTree<
 
 	public LinkedMap<TDepartmentMember> getDepartmentMembers(long departmentId) {
 		if (departmentId == 0)
-			throw new IllegalArgumentException("root members use getMembers.");
-		return module.LinkedMaps.open("" + departmentId + "#" + name, departmentMemberClass);
+			throw new RuntimeException("root members use getGroupMembers.");
+		return module.LinkedMaps.open(departmentId + "@" + name, departmentMemberClass);
 	}
 
 	public LinkedMap<TMember> getGroupMembers() {
-		return module.LinkedMaps.open("0#" + name, memberClass);
+		return module.LinkedMaps.open("0@" + name, memberClass);
 	}
 
 	public BDepartmentRoot selectRoot() {

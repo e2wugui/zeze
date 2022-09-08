@@ -5,10 +5,11 @@
 	<import file="../ZezeJava/solution.zeze.xml"/>
 
 	<module name="User" id="1">
-		<enum name="eAccountHasUsed" value="1" />
+		<enum name="eAccountHasUsed"     value="1" />
 		<enum name="eAccountHasPrepared" value="2" />
-		<enum name="ePrepareExpired" value="3" />
-		<enum name="ePrepareNotOwner" value="4" />
+		<enum name="ePrepareExpired"     value="3" />
+		<enum name="ePrepareNotOwner"    value="4" />
+		<enum name="eAccountInvalid"     value="5" />
 
 		<bean name="BUser">
 			<!-- 基本信息 -->

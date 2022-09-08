@@ -61,6 +61,9 @@ public class ModuleUser extends AbstractModule {
         var account = r.Argument.getAccount();
         var user = _tUser.getOrAdd(account);
 
+        if (account.indexOf('@') >= 0)
+            return ErrorCode(eAccountInvalid);
+
         var now = System.currentTimeMillis();
         if (now - user.getPrepareTime() > 15 * 60 * 1000)
             return ErrorCode(ePrepareExpired);
