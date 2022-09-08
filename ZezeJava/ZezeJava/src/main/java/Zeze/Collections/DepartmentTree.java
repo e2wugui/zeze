@@ -192,7 +192,7 @@ public class DepartmentTree<
 
 	public LinkedMap<TDepartmentMember> getDepartmentMembers(long departmentId) {
 		if (departmentId == 0)
-			throw new RuntimeException("root members use getGroupMembers.");
+			throw new RuntimeException("root can not access use this method.");
 		return module.LinkedMaps.open(departmentId + "@" + name, departmentMemberClass);
 	}
 
