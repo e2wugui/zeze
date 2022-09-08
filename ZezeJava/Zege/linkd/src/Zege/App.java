@@ -125,10 +125,10 @@ public class App extends Zeze.AppBase {
     }
 
     public synchronized void CreateService() throws Throwable {
+
         LinkdService = new Zege.LinkdService(Zeze);
         ProviderService = new Zege.ProviderService(Zeze);
     }
-
     public synchronized void CreateModules() {
         Zege_Friend = ReplaceModuleInstance(new Zege.Friend.ModuleFriend(this));
         Zege_Friend.Initialize(this);

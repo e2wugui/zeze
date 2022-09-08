@@ -152,10 +152,10 @@ public final class App extends Zeze.AppBase {
     }
 
     public synchronized void CreateService() throws Throwable {
+
         Server = new Game.Server(Zeze);
         ServerDirect = new Game.ServerDirect(Zeze);
     }
-
     public synchronized void CreateModules() {
         Game_Login = ReplaceModuleInstance(new Game.Login.ModuleLogin(this));
         Game_Login.Initialize(this);

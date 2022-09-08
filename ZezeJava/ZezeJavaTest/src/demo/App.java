@@ -115,9 +115,9 @@ public class App extends Zeze.AppBase {
     }
 
     public synchronized void CreateService() throws Throwable {
+
         Server = new demo.Server(Zeze);
     }
-
     public synchronized void CreateModules() {
         demo_Module1 = ReplaceModuleInstance(new demo.Module1.ModuleModule1(this));
         demo_Module1.Initialize(this);
