@@ -2,6 +2,7 @@ package Zeze.Net;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
+import Zeze.Util.Reflect;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
@@ -72,7 +73,11 @@ public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends 
 	}
 
 	private void Schedule(Service service, long sessionId, int millisecondsTimeout) {
-		Task.schedule(millisecondsTimeout, () -> {
+		long timeout = Math.max(millisecondsTimeout, 0);
+		if (Reflect.inDebugMode)
+			timeout += 10 * 60 * 1000; // 调试状态下RPC超时放宽到至少10分钟,方便调试时不容易超时
+
+		Task.schedule(timeout, () -> {
 			Rpc<TArgument, TResult> context = service.RemoveRpcContext(sessionId);
 			if (context == null) // 一般来说，此时结果已经返回。
 				return;

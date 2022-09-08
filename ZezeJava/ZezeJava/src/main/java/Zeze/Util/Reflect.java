@@ -18,8 +18,8 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 
 public class Reflect {
-	public static final boolean inDebugMode = ManagementFactory.getRuntimeMXBean().getInputArguments()
-			.toString().indexOf("-agentlib:jdwp") > 0;
+	public static final boolean inDebugMode = !"true".equals(System.getProperty("noDebugMode")) &&
+			ManagementFactory.getRuntimeMXBean().getInputArguments().toString().indexOf("-agentlib:jdwp") > 0;
 	private static final HashMap<Class<?>, String> stableNameMap = new HashMap<>(32);
 
 	static {
