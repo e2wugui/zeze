@@ -20,4 +20,8 @@ public final class SetServerLoad extends Protocol<BServerLoad> {
 	public SetServerLoad() {
 		this.Argument = new BServerLoad();
 	}
+
+	public SetServerLoad(BServerLoad arg) {
+		this.Argument = arg;
+	}
 }

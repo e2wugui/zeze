@@ -425,6 +425,7 @@ public class Service {
 		private long SessionId;
 		private Object UserState;
 		private boolean IsTimeout;
+		private Service service;
 
 		public final long getSessionId() {
 			return SessionId;
@@ -442,9 +443,6 @@ public class Service {
 			UserState = value;
 		}
 
-		public void OnRemoved() throws Throwable {
-		}
-
 		public boolean isTimeout() {
 			return IsTimeout;
 		}
@@ -453,14 +451,15 @@ public class Service {
 			IsTimeout = value;
 		}
 
-		private Service service;
-
 		public Service getService() {
 			return service;
 		}
 
 		public void setService(Service service) {
 			this.service = service;
+		}
+
+		public void OnRemoved() throws Throwable {
 		}
 	}
 

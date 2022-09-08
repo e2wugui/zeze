@@ -29,4 +29,9 @@ public final class UnRegister extends Rpc<BServiceInfo, EmptyBean> {
 		Argument = new BServiceInfo();
 		Result = new EmptyBean();
 	}
+
+	public UnRegister(BServiceInfo arg) {
+		Argument = arg;
+		Result = new EmptyBean();
+	}
 }

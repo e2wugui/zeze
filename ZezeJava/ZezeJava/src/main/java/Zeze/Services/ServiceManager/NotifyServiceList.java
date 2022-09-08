@@ -11,6 +11,10 @@ public final class NotifyServiceList extends Protocol<BServiceInfos> {
 		Argument = new BServiceInfos();
 	}
 
+	public NotifyServiceList(BServiceInfos arg) {
+		Argument = arg;
+	}
+
 	@Override
 	public int getModuleId() {
 		return 0;

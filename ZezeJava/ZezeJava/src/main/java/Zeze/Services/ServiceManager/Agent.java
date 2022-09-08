@@ -34,7 +34,7 @@ public final class Agent implements Closeable {
 	private Action2<SubscribeState, BServiceInfo> OnRemove; // Simple
 	private Action1<SubscribeState> OnPrepare; // ReadyCommit 的第一步回调。
 	private Action1<BServerLoad> OnSetServerLoad;
-	private Func2<Integer, String, Boolean> OnOfflineNotify;
+	private Func2<Integer, String, Boolean> OnOfflineNotify; // <serverId, notifyId, 是否处理成功且不需要其它notifier继续处理>
 
 	// 应用可以在这个Action内起一个测试事务并执行一次。也可以实现其他检测。
 	// ServiceManager 定时发送KeepAlive给Agent，并等待结果。超时则认为服务失效。
@@ -84,12 +84,15 @@ public final class Agent implements Closeable {
 	public void setOnSetServerLoad(Action1<BServerLoad> value) {
 		OnSetServerLoad = value;
 	}
+
 	public void setOnOfflineNotify(Func2<Integer, String, Boolean> value) {
 		OnOfflineNotify = value;
 	}
+
 	public Func2<Integer, String, Boolean> getOnOfflineNotify() {
 		return OnOfflineNotify;
 	}
+
 	public void setOnPrepare(Action1<SubscribeState> value) {
 		OnPrepare = value;
 	}
@@ -497,9 +500,7 @@ public final class Agent implements Closeable {
 	}
 
 	public boolean SetServerLoad(BServerLoad load) {
-		var p = new SetServerLoad();
-		p.Argument = load;
-		return p.Send(Client.getSocket());
+		return new SetServerLoad(load).Send(Client.getSocket());
 	}
 
 	public void OfflineRegister(int serverId, String notifyId) {
