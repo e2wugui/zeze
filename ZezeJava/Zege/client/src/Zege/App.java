@@ -71,9 +71,9 @@ public class App extends Zeze.AppBase {
     }
 
     public synchronized void CreateService() throws Throwable {
-
         ClientService = new Zege.ClientService(Zeze);
     }
+
     public synchronized void CreateModules() {
         Zeze_Builtin_Online = ReplaceModuleInstance(new Zeze.Builtin.Online.ModuleOnline(this));
         Zeze_Builtin_Online.Initialize(this);

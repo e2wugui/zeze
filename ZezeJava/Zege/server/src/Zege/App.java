@@ -143,10 +143,10 @@ public class App extends Zeze.AppBase {
     }
 
     public synchronized void CreateService() throws Throwable {
-
         Server = new Zege.Server(Zeze);
         ServerDirect = new Zege.ServerDirect(Zeze);
     }
+
     public synchronized void CreateModules() {
         Zege_User = ReplaceModuleInstance(new Zege.User.ModuleUser(this));
         Zege_User.Initialize(this);

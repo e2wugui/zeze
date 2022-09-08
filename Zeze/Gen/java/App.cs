@@ -125,13 +125,12 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             sw.WriteLine($"        Zeze = new Zeze.Application(\"{project.Solution.Name}\", config);");
             sw.WriteLine("    }");
-            sw.WriteLine("");
+            sw.WriteLine();
             sw.WriteLine("    public synchronized void CreateService() throws Throwable {");
-            sw.WriteLine("");
             foreach (Service m in project.Services.Values)
                 sw.WriteLine("        " + m.Name + " = new " + m.FullName + "(Zeze);");
             sw.WriteLine("    }");
-
+            sw.WriteLine();
             sw.WriteLine("    public synchronized void CreateModules() {");
             foreach (Module m in project.AllOrderDefineModules)
             {
