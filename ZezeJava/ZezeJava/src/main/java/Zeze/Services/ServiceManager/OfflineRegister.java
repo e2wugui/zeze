@@ -23,4 +23,9 @@ public class OfflineRegister extends Rpc<BOfflineRegister, EmptyBean> {
 		Argument = new BOfflineRegister();
 		Result = new EmptyBean();
 	}
+
+	public OfflineRegister(BOfflineRegister argument) {
+		Argument = argument;
+		Result = new EmptyBean();
+	}
 }

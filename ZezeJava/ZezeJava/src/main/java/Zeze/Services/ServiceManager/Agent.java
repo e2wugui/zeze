@@ -503,13 +503,9 @@ public final class Agent implements Closeable {
 		return new SetServerLoad(load).Send(Client.getSocket());
 	}
 
-	public void OfflineRegister(int serverId, String notifyId) {
+	public void OfflineRegister(BOfflineRegister argument) {
 		WaitConnectorReady();
-
-		var reg = new OfflineRegister();
-		reg.Argument.ServerId = serverId;
-		reg.Argument.NotifyId = notifyId;
-		reg.SendAndWaitCheckResultCode(Client.getSocket());
+		new OfflineRegister(argument).SendAndWaitCheckResultCode(Client.getSocket());
 	}
 
 	private long ProcessSubscribeFirstCommit(SubscribeFirstCommit r) {
