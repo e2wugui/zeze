@@ -578,7 +578,7 @@ public class Test {
 		public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
 
 		public AddCount() {
-			Argument = new EmptyBean();
+			Argument = EmptyBean.instance;
 			Result = new BCountResult();
 		}
 
@@ -635,7 +635,7 @@ public class Test {
 		public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
 
 		public GetCount() {
-			Argument = new EmptyBean();
+			Argument = EmptyBean.instance;
 			Result = new BCountResult();
 		}
 

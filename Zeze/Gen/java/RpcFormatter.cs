@@ -42,8 +42,14 @@ namespace Zeze.Gen.java
             if (rpc.Enums.Count > 0)
                 sw.WriteLine();
             sw.WriteLine($"    public {rpc.Name}() {{");
-            sw.WriteLine($"        Argument = new {argument}();");
-            sw.WriteLine($"        Result = new {result}();");
+            if (rpc.ArgumentType != null)
+                sw.WriteLine($"        Argument = new {argument}();");
+            else
+                sw.WriteLine($"        Argument = {argument}.instance;");
+            if (rpc.ResultType != null)
+                sw.WriteLine($"        Result = new {result}();");
+            else
+                sw.WriteLine($"        Result = {result}.instance;");
             sw.WriteLine("    }");
             sw.WriteLine("}");
         }

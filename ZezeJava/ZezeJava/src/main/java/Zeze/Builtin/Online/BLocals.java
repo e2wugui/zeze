@@ -11,9 +11,10 @@ public final class BLocals extends Zeze.Transaction.Bean {
         return _Logins;
     }
 
+    @SuppressWarnings("deprecation")
     public BLocals() {
         _Logins = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Online.BLocal.class);
-        _Logins.VariableId = 1;
+        _Logins.variableId(1);
     }
 
     public void Assign(BLocals other) {

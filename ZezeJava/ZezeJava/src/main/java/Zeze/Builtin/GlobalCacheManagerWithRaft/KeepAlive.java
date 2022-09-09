@@ -17,7 +17,7 @@ public class KeepAlive extends Zeze.Raft.RaftRpc<Zeze.Transaction.EmptyBean, Zez
     }
 
     public KeepAlive() {
-        Argument = new Zeze.Transaction.EmptyBean();
-        Result = new Zeze.Transaction.EmptyBean();
+        Argument = Zeze.Transaction.EmptyBean.instance;
+        Result = Zeze.Transaction.EmptyBean.instance;
     }
 }

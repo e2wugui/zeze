@@ -92,12 +92,14 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__ProviderDirectPort(this, 4, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BAnnounceProviderInfo() {
         _ServiceNamePrefix = "";
         _ServiceIndentity = "";
         _ProviderDirectIp = "";
     }
 
+    @SuppressWarnings("deprecation")
     public BAnnounceProviderInfo(String _ServiceNamePrefix_, String _ServiceIndentity_, String _ProviderDirectIp_, int _ProviderDirectPort_) {
         if (_ServiceNamePrefix_ == null)
             throw new IllegalArgumentException();

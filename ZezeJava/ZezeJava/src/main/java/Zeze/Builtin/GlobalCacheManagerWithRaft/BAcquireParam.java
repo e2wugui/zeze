@@ -48,10 +48,12 @@ public final class BAcquireParam extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__State(this, 2, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BAcquireParam() {
         _GlobalKey = Zeze.Net.Binary.Empty;
     }
 
+    @SuppressWarnings("deprecation")
     public BAcquireParam(Zeze.Net.Binary _GlobalKey_, int _State_) {
         if (_GlobalKey_ == null)
             throw new IllegalArgumentException();

@@ -68,10 +68,12 @@ public final class BStream extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__Finish(this, 3, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BStream() {
         _Body = Zeze.Net.Binary.Empty;
     }
 
+    @SuppressWarnings("deprecation")
     public BStream(long _ExchangeId_, Zeze.Net.Binary _Body_, boolean _Finish_) {
         _ExchangeId = _ExchangeId_;
         if (_Body_ == null)

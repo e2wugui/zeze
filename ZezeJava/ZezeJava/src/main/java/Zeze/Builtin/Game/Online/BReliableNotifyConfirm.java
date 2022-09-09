@@ -46,9 +46,11 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__Sync(this, 2, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BReliableNotifyConfirm() {
     }
 
+    @SuppressWarnings("deprecation")
     public BReliableNotifyConfirm(long _ReliableNotifyConfirmIndex_, boolean _Sync_) {
         _ReliableNotifyConfirmIndex = _ReliableNotifyConfirmIndex_;
         _Sync = _Sync_;

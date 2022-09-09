@@ -113,12 +113,14 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean {
         return _Hashs;
     }
 
+    @SuppressWarnings("deprecation")
     public BModuleRedirectAllResult() {
         _MethodFullName = "";
         _Hashs = new Zeze.Transaction.Collections.PMap2<>(Integer.class, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.class);
-        _Hashs.VariableId = 6;
+        _Hashs.variableId(6);
     }
 
+    @SuppressWarnings("deprecation")
     public BModuleRedirectAllResult(int _ModuleId_, int _ServerId_, long _SourceProvider_, String _MethodFullName_, long _SessionId_) {
         _ModuleId = _ModuleId_;
         _ServerId = _ServerId_;
@@ -128,7 +130,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean {
         _MethodFullName = _MethodFullName_;
         _SessionId = _SessionId_;
         _Hashs = new Zeze.Transaction.Collections.PMap2<>(Integer.class, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.class);
-        _Hashs.VariableId = 6;
+        _Hashs.variableId(6);
     }
 
     public void Assign(BModuleRedirectAllResult other) {

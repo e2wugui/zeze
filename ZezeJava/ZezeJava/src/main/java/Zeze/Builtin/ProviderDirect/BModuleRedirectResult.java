@@ -68,10 +68,12 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__Params(this, 3, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BModuleRedirectResult() {
         _Params = Zeze.Net.Binary.Empty;
     }
 
+    @SuppressWarnings("deprecation")
     public BModuleRedirectResult(int _ModuleId_, int _ServerId_, Zeze.Net.Binary _Params_) {
         _ModuleId = _ModuleId_;
         _ServerId = _ServerId_;

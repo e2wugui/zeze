@@ -18,6 +18,6 @@ public class RequestInputStream extends Zeze.Net.Rpc<Zeze.Builtin.Web.BStream, Z
 
     public RequestInputStream() {
         Argument = new Zeze.Builtin.Web.BStream();
-        Result = new Zeze.Transaction.EmptyBean();
+        Result = Zeze.Transaction.EmptyBean.instance;
     }
 }

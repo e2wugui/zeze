@@ -134,6 +134,7 @@ public final class BDispatch extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__contextx(this, 6, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BDispatch() {
         _account = "";
         _protocolData = Zeze.Net.Binary.Empty;
@@ -141,6 +142,7 @@ public final class BDispatch extends Zeze.Transaction.Bean {
         _contextx = Zeze.Net.Binary.Empty;
     }
 
+    @SuppressWarnings("deprecation")
     public BDispatch(long _linkSid_, String _account_, long _protocolType_, Zeze.Net.Binary _protocolData_, String _context_, Zeze.Net.Binary _contextx_) {
         _linkSid = _linkSid_;
         if (_account_ == null)

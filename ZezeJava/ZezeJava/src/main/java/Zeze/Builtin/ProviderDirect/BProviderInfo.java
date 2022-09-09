@@ -68,10 +68,12 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__ServerId(this, 3, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BProviderInfo() {
         _Ip = "";
     }
 
+    @SuppressWarnings("deprecation")
     public BProviderInfo(String _Ip_, int _Port_, int _ServerId_) {
         if (_Ip_ == null)
             throw new IllegalArgumentException();

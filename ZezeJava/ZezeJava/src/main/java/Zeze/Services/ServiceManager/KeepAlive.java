@@ -11,8 +11,8 @@ public final class KeepAlive extends Rpc<EmptyBean, EmptyBean> {
 	public static final int Success = 0;
 
 	public KeepAlive() {
-		Argument = new EmptyBean();
-		Result = new EmptyBean();
+		Argument = EmptyBean.instance;
+		Result = EmptyBean.instance;
 	}
 
 	@Override

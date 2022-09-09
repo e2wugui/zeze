@@ -18,6 +18,6 @@ public class Bind extends Zeze.Net.Rpc<Zeze.Builtin.Provider.BBind, Zeze.Transac
 
     public Bind() {
         Argument = new Zeze.Builtin.Provider.BBind();
-        Result = new Zeze.Transaction.EmptyBean();
+        Result = Zeze.Transaction.EmptyBean.instance;
     }
 }

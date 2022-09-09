@@ -1,5 +1,7 @@
 package Zeze.Services.GlobalCacheManager;
 
+import Zeze.Transaction.EmptyBean;
+
 public class Cleanup extends Zeze.Net.Rpc<BAchillesHeel, Zeze.Transaction.EmptyBean> {
 	public static final int ProtocolId_ = Zeze.Transaction.Bean.Hash32(Cleanup.class.getName()); // -1903349850
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 2391617446
@@ -16,6 +18,6 @@ public class Cleanup extends Zeze.Net.Rpc<BAchillesHeel, Zeze.Transaction.EmptyB
 
 	public Cleanup() {
 		Argument = new BAchillesHeel();
-		Result = new Zeze.Transaction.EmptyBean();
+		Result = EmptyBean.instance;
 	}
 }

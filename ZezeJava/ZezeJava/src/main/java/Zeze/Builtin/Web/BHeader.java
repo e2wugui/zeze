@@ -23,9 +23,10 @@ public final class BHeader extends Zeze.Transaction.Bean {
         return _Values;
     }
 
+    @SuppressWarnings("deprecation")
     public BHeader() {
         _Values = new Zeze.Transaction.Collections.PList1<>(String.class);
-        _Values.VariableId = 1;
+        _Values.variableId(1);
     }
 
     public void Assign(BHeader other) {

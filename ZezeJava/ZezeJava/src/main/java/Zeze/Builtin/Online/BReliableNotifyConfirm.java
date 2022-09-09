@@ -68,10 +68,12 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__Sync(this, 3, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BReliableNotifyConfirm() {
         _ClientId = "";
     }
 
+    @SuppressWarnings("deprecation")
     public BReliableNotifyConfirm(String _ClientId_, long _ReliableNotifyConfirmIndex_, boolean _Sync_) {
         if (_ClientId_ == null)
             throw new IllegalArgumentException();

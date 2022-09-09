@@ -28,10 +28,12 @@ public final class BSession extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__Account(this, 1, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BSession() {
         _Account = "";
     }
 
+    @SuppressWarnings("deprecation")
     public BSession(String _Account_) {
         if (_Account_ == null)
             throw new IllegalArgumentException();

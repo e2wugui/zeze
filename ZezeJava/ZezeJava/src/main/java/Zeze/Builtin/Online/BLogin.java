@@ -28,10 +28,12 @@ public final class BLogin extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__ClientId(this, 1, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BLogin() {
         _ClientId = "";
     }
 
+    @SuppressWarnings("deprecation")
     public BLogin(String _ClientId_) {
         if (_ClientId_ == null)
             throw new IllegalArgumentException();

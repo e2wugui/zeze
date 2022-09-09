@@ -66,9 +66,11 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__ServerReleaseTimeout(this, 3, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BAchillesHeelConfig() {
     }
 
+    @SuppressWarnings("deprecation")
     public BAchillesHeelConfig(int _MaxNetPing_, int _ServerProcessTime_, int _ServerReleaseTimeout_) {
         _MaxNetPing = _MaxNetPing_;
         _ServerProcessTime = _ServerProcessTime_;

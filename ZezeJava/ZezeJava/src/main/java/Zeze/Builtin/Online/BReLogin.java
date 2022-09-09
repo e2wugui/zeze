@@ -48,10 +48,12 @@ public final class BReLogin extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__ReliableNotifyConfirmIndex(this, 2, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BReLogin() {
         _ClientId = "";
     }
 
+    @SuppressWarnings("deprecation")
     public BReLogin(String _ClientId_, long _ReliableNotifyConfirmIndex_) {
         if (_ClientId_ == null)
             throw new IllegalArgumentException();

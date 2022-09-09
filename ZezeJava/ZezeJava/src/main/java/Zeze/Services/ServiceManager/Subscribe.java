@@ -14,7 +14,7 @@ public final class Subscribe extends Rpc<BSubscribeInfo, EmptyBean> {
 
 	public Subscribe() {
 		Argument = new BSubscribeInfo();
-		Result = new EmptyBean();
+		Result = EmptyBean.instance;
 	}
 
 	@Override

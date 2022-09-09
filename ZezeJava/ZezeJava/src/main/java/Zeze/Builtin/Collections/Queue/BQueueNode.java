@@ -31,15 +31,17 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
         return _Values;
     }
 
+    @SuppressWarnings("deprecation")
     public BQueueNode() {
         _Values = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Collections.Queue.BQueueNodeValue.class);
-        _Values.VariableId = 2;
+        _Values.variableId(2);
     }
 
+    @SuppressWarnings("deprecation")
     public BQueueNode(long _NextNodeId_) {
         _NextNodeId = _NextNodeId_;
         _Values = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Collections.Queue.BQueueNodeValue.class);
-        _Values.VariableId = 2;
+        _Values.variableId(2);
     }
 
     public void Assign(BQueueNode other) {

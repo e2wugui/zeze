@@ -5,6 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean {
+    @SuppressWarnings("deprecation")
     public BAnnounceLinkInfo() {
     }
 

@@ -53,15 +53,17 @@ public final class BSend extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__protocolWholeData(this, 3, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BSend() {
         _linkSids = new Zeze.Transaction.Collections.PSet1<>(Long.class);
-        _linkSids.VariableId = 1;
+        _linkSids.variableId(1);
         _protocolWholeData = Zeze.Net.Binary.Empty;
     }
 
+    @SuppressWarnings("deprecation")
     public BSend(long _protocolType_, Zeze.Net.Binary _protocolWholeData_) {
         _linkSids = new Zeze.Transaction.Collections.PSet1<>(Long.class);
-        _linkSids.VariableId = 1;
+        _linkSids.variableId(1);
         _protocolType = _protocolType_;
         if (_protocolWholeData_ == null)
             throw new IllegalArgumentException();

@@ -161,16 +161,18 @@ public final class BRequest extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__AuthedAccount(this, 8, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BRequest() {
         _Method = "";
         _Path = "";
         _Query = "";
         _Headers = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Web.BHeader.class);
-        _Headers.VariableId = 5;
+        _Headers.variableId(5);
         _Body = Zeze.Net.Binary.Empty;
         _AuthedAccount = "";
     }
 
+    @SuppressWarnings("deprecation")
     public BRequest(long _ExchangeId_, String _Method_, String _Path_, String _Query_, Zeze.Net.Binary _Body_, boolean _Finish_, String _AuthedAccount_) {
         _ExchangeId = _ExchangeId_;
         if (_Method_ == null)
@@ -183,7 +185,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
             throw new IllegalArgumentException();
         _Query = _Query_;
         _Headers = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Web.BHeader.class);
-        _Headers.VariableId = 5;
+        _Headers.variableId(5);
         if (_Body_ == null)
             throw new IllegalArgumentException();
         _Body = _Body_;

@@ -51,16 +51,18 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
         return _Values;
     }
 
+    @SuppressWarnings("deprecation")
     public BLinkedMapNode() {
         _Values = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue.class);
-        _Values.VariableId = 3;
+        _Values.variableId(3);
     }
 
+    @SuppressWarnings("deprecation")
     public BLinkedMapNode(long _PrevNodeId_, long _NextNodeId_) {
         _PrevNodeId = _PrevNodeId_;
         _NextNodeId = _NextNodeId_;
         _Values = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue.class);
-        _Values.VariableId = 3;
+        _Values.variableId(3);
     }
 
     public void Assign(BLinkedMapNode other) {

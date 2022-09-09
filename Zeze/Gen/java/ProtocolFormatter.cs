@@ -43,7 +43,10 @@ namespace Zeze.Gen.java
                 sw.WriteLine();
             }
             sw.WriteLine("    public " + p.Name + "() {");
-            sw.WriteLine($"        Argument = new {argument}();");
+            if (p.ArgumentType != null)
+                sw.WriteLine($"        Argument = new {argument}();");
+            else
+                sw.WriteLine($"        Argument = {argument}.instance;");
             sw.WriteLine("    }");
             /* 现在的bean不是所有的变量都可以赋值，还是先不支持吧。
             if (p.ArgumentType != null)

@@ -11,9 +11,10 @@ public final class BItemClasses extends Zeze.Transaction.Bean {
         return _ItemClasses;
     }
 
+    @SuppressWarnings("deprecation")
     public BItemClasses() {
         _ItemClasses = new Zeze.Transaction.Collections.PSet1<>(String.class);
-        _ItemClasses.VariableId = 1;
+        _ItemClasses.variableId(1);
     }
 
     public void Assign(BItemClasses other) {

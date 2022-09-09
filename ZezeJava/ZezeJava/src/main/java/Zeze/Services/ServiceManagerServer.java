@@ -356,40 +356,39 @@ public final class ServiceManagerServer implements Closeable {
 		 * 订阅时候返回的ServiceInfos，必须和Notify流程互斥。
 		 * 原子的得到当前信息并发送，然后加入订阅(simple or readyCommit)。
 		 */
-		public synchronized long SubscribeAndSend(Subscribe r, Session session) {
+		public synchronized long SubscribeAndSend(Subscribe r, long sessionId) {
 			// 外面会话的 TryAdd 加入成功，下面TryAdd肯定也成功。
 			switch (r.Argument.getSubscribeType()) {
 			case BSubscribeInfo.SubscribeTypeSimple:
-				Simple.computeIfAbsent(session.SessionId, __ -> new SubscribeState());
+				Simple.computeIfAbsent(sessionId, __ -> new SubscribeState());
 				if (ServiceManager.StartNotifyDelayTask == null)
 					new SubscribeFirstCommit(new BServiceInfos(ServiceName, this, SerialId)).Send(r.getSender());
 				break;
 			case BSubscribeInfo.SubscribeTypeReadyCommit:
-				ReadyCommit.computeIfAbsent(session.SessionId, __ -> new SubscribeState());
+				ReadyCommit.computeIfAbsent(sessionId, __ -> new SubscribeState());
 				StartReadyCommitNotify();
 				break;
 			default:
 				r.SendResultCode(Subscribe.UnknownSubscribeType);
 				return Procedure.LogicError;
 			}
-			for (var info : ServiceInfos.values()) {
+			for (var info : ServiceInfos.values())
 				ServiceManager.AddLoadObserver(info.getPassiveIp(), info.getPassivePort(), r.getSender());
-			}
 			r.SendResultCode(Subscribe.Success);
 			return Procedure.Success;
 		}
 
-		public synchronized void SetReady(ReadyServiceList p, Session session) {
+		public synchronized void SetReady(ReadyServiceList p, long sessionId) {
 			if (p.Argument.SerialId != SerialId) {
 				logger.debug("Ready Skip: SerialId Not Equal. {} Now={}", p.Argument.SerialId, SerialId);
 				return;
 			}
 			// logger.debug("Ready:{} Now={}", p.Argument.SerialId, SerialId);
-			var subscribeState = ReadyCommit.get(session.SessionId);
-			if (subscribeState == null)
-				return;
-			subscribeState.Ready = true;
-			TryCommit();
+			var subscribeState = ReadyCommit.get(sessionId);
+			if (subscribeState != null) {
+				subscribeState.Ready = true;
+				TryCommit();
+			}
 		}
 	}
 
@@ -439,16 +438,13 @@ public final class ServiceManagerServer implements Closeable {
 			for (var info : Subscribes.values())
 				ServiceManager.UnSubscribeNow(SessionId, info);
 
-			HashMap<String, ServerState> changed = new HashMap<>(Registers.size());
-
+			var changed = new HashMap<String, ServerState>(Registers.size());
 			for (var info : Registers) {
 				var state = ServiceManager.UnRegisterNow(SessionId, info);
 				if (state != null)
 					changed.putIfAbsent(state.ServiceName, state);
 			}
-
-			for (var state : changed.values())
-				state.StartReadyCommitNotify();
+			changed.values().forEach(ServerState::StartReadyCommitNotify);
 
 			// offline notify，开启一个线程执行，避免互等造成麻烦。
 			// 这个操作不能cancel，即使Server重新起来了，通知也会进行下去。
@@ -566,17 +562,11 @@ public final class ServiceManagerServer implements Closeable {
 		if (state != null) {
 			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (state) {
-				var exist = state.ServiceInfos.get(info.getServiceIdentity());
-				if (exist != null) {
-					// 这里存在一个时间窗口，可能使得重复的注销会成功。注销一般比较特殊，忽略这个问题。
-					var existSessionId = exist.SessionId;
-					if (existSessionId == null || sessionId == existSessionId) {
-						// 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
-						if (state.ServiceInfos.remove(info.getServiceIdentity(), exist)) {
-							state.NotifySimpleOnUnRegister(exist);
-							return state;
-						}
-					}
+				var exist = state.ServiceInfos.remove(info.getServiceIdentity());
+				if (exist != null && exist.SessionId == sessionId) {
+					// 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
+					state.NotifySimpleOnUnRegister(exist);
+					return state;
 				}
 			}
 		}
@@ -586,13 +576,8 @@ public final class ServiceManagerServer implements Closeable {
 	private long ProcessUnRegister(UnRegister r) {
 		logger.info("{}: UnRegister {} id={}",
 				r.getSender(), r.Argument.getServiceName(), r.Argument.getServiceIdentity());
-		if (UnRegisterNow(r.getSender().getSessionId(), r.Argument) != null) {
-			// ignore TryRemove failed.
-			var session = (Session)r.getSender().getUserState();
-			session.Registers.remove(r.Argument);
-			//r.SendResultCode(UnRegister.Success);
-			//return Procedure.Success;
-		}
+		if (UnRegisterNow(r.getSender().getSessionId(), r.Argument) != null)
+			((Session)r.getSender().getUserState()).Registers.remove(r.Argument); // ignore TryRemove failed.
 		// 注销不存在也返回成功，否则Agent处理比较麻烦。
 		r.SendResultCode(UnRegister.Success);
 		return Procedure.Success;
@@ -603,8 +588,8 @@ public final class ServiceManagerServer implements Closeable {
 				r.getSender(), r.Argument.getServiceName(), r.Argument.getSubscribeType());
 		var session = (Session)r.getSender().getUserState();
 		session.Subscribes.putIfAbsent(r.Argument.getServiceName(), r.Argument);
-		var state = ServerStates.computeIfAbsent(r.Argument.getServiceName(), name -> new ServerState(this, name));
-		return state.SubscribeAndSend(r, session);
+		return ServerStates.computeIfAbsent(r.Argument.getServiceName(), name -> new ServerState(this, name))
+				.SubscribeAndSend(r, session.SessionId);
 	}
 
 	public ServerState UnSubscribeNow(long sessionId, BSubscribeInfo info) {
@@ -653,9 +638,8 @@ public final class ServiceManagerServer implements Closeable {
 	}
 
 	private long ProcessReadyServiceList(ReadyServiceList r) {
-		var session = (Session)r.getSender().getUserState();
-		var state = ServerStates.computeIfAbsent(r.Argument.ServiceName, name -> new ServerState(this, name));
-		state.SetReady(r, session);
+		ServerStates.computeIfAbsent(r.Argument.ServiceName, name -> new ServerState(this, name))
+				.SetReady(r, ((Session)r.getSender().getUserState()).SessionId);
 		return Procedure.Success;
 	}
 
@@ -729,8 +713,7 @@ public final class ServiceManagerServer implements Closeable {
 			//noinspection NonAtomicOperationOnVolatileField
 			StartNotifyDelayTask = Task.scheduleUnsafe(Config.StartNotifyDelay, () -> {
 				StartNotifyDelayTask = null;
-				for (var v : ServerStates.values())
-					v.StartReadyCommitNotify(true);
+				ServerStates.values().forEach(s -> s.StartReadyCommitNotify(true));
 			});
 		}
 
@@ -739,18 +722,6 @@ public final class ServiceManagerServer implements Closeable {
 		// 允许配置多个acceptor，如果有冲突，通过日志查看。
 		ServerSocket = Server.NewServerSocket(ipaddress, port, null);
 		Server.Start();
-		/*
-		try {
-			Server.NewServerSocket("127.0.0.1", port, null);
-		} catch (Throwable skip) {
-			skip.printStackTrace();
-		}
-		try {
-			Server.NewServerSocket("::1", port, null);
-		} catch (Throwable skip) {
-			skip.printStackTrace();
-		}
-		*/
 	}
 
 	public static final class AutoKey {
@@ -815,9 +786,7 @@ public final class ServiceManagerServer implements Closeable {
 		ServerSocket.close();
 		Server.Stop();
 		Server = null;
-
-		for (var ss : ServerStates.values())
-			ss.Close();
+		ServerStates.values().forEach(ServerState::Close);
 		if (AutoKeysDb != null)
 			AutoKeysDb.close();
 	}

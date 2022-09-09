@@ -11,9 +11,10 @@ public final class BRankList extends Zeze.Transaction.Bean {
         return _RankList;
     }
 
+    @SuppressWarnings("deprecation")
     public BRankList() {
         _RankList = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Game.Rank.BRankValue.class);
-        _RankList.VariableId = 1;
+        _RankList.variableId(1);
     }
 
     public void Assign(BRankList other) {

@@ -87,7 +87,7 @@ public class LinkdService extends LinkdServiceBase {
 
         public RpcGroupDepartmentId() {
             Argument = new GroupDepartmentId();
-            Result = new EmptyBean();
+            Result = EmptyBean.instance;
         }
     }
 
@@ -111,7 +111,7 @@ public class LinkdService extends LinkdServiceBase {
 
         public RpcAccount() {
             Argument = new BAccount();
-            Result = new EmptyBean();
+            Result = EmptyBean.instance;
         }
     }
     private int DecodeAccountHash(Zeze.Serialize.ByteBuffer bb) {

@@ -86,9 +86,11 @@ public final class BQueue extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__LastNodeId(this, 4, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BQueue() {
     }
 
+    @SuppressWarnings("deprecation")
     public BQueue(long _HeadNodeId_, long _TailNodeId_, long _Count_, long _LastNodeId_) {
         _HeadNodeId = _HeadNodeId_;
         _TailNodeId = _TailNodeId_;

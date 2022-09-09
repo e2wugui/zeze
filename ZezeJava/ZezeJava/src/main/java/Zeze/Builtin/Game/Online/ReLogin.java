@@ -18,6 +18,6 @@ public class ReLogin extends Zeze.Net.Rpc<Zeze.Builtin.Game.Online.BReLogin, Zez
 
     public ReLogin() {
         Argument = new Zeze.Builtin.Game.Online.BReLogin();
-        Result = new Zeze.Transaction.EmptyBean();
+        Result = Zeze.Transaction.EmptyBean.instance;
     }
 }

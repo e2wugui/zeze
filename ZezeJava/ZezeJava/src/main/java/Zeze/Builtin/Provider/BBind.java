@@ -19,11 +19,12 @@ public final class BBind extends Zeze.Transaction.Bean {
         return _linkSids;
     }
 
+    @SuppressWarnings("deprecation")
     public BBind() {
         _modules = new Zeze.Transaction.Collections.PMap2<>(Integer.class, Zeze.Builtin.Provider.BModule.class);
-        _modules.VariableId = 1;
+        _modules.variableId(1);
         _linkSids = new Zeze.Transaction.Collections.PSet1<>(Long.class);
-        _linkSids.VariableId = 2;
+        _linkSids.variableId(2);
     }
 
     public void Assign(BBind other) {

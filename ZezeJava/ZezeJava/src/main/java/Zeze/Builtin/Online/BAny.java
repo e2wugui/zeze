@@ -31,6 +31,7 @@ public final class BAny extends Zeze.Transaction.Bean {
         return _Any;
     }
 
+    @SuppressWarnings("deprecation")
     public BAny() {
         _Any = new Zeze.Transaction.DynamicBean(1, Zeze.Arch.Online::GetSpecialTypeIdFromBean, Zeze.Arch.Online::CreateBeanFromSpecialTypeId);
     }

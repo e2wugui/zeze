@@ -48,10 +48,12 @@ public final class BDestroy extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__Position(this, 2, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BDestroy() {
         _BagName = "";
     }
 
+    @SuppressWarnings("deprecation")
     public BDestroy(String _BagName_, int _Position_) {
         if (_BagName_ == null)
             throw new IllegalArgumentException();

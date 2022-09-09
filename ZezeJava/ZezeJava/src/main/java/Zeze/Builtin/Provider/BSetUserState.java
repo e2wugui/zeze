@@ -70,11 +70,13 @@ public final class BSetUserState extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__contextx(this, 3, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BSetUserState() {
         _context = "";
         _contextx = Zeze.Net.Binary.Empty;
     }
 
+    @SuppressWarnings("deprecation")
     public BSetUserState(long _linkSid_, String _context_, Zeze.Net.Binary _contextx_) {
         _linkSid = _linkSid_;
         if (_context_ == null)

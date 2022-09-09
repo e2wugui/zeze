@@ -86,9 +86,11 @@ public final class BModule extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__SubscribeType(this, 3, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BModule() {
     }
 
+    @SuppressWarnings("deprecation")
     public BModule(int _ChoiceType_, int _ConfigType_, int _SubscribeType_) {
         _ChoiceType = _ChoiceType_;
         _ConfigType = _ConfigType_;

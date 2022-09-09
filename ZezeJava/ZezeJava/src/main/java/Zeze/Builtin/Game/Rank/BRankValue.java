@@ -68,10 +68,12 @@ public final class BRankValue extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__ValueEx(this, 3, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BRankValue() {
         _ValueEx = Zeze.Net.Binary.Empty;
     }
 
+    @SuppressWarnings("deprecation")
     public BRankValue(long _RoleId_, long _Value_, Zeze.Net.Binary _ValueEx_) {
         _RoleId = _RoleId_;
         _Value = _Value_;

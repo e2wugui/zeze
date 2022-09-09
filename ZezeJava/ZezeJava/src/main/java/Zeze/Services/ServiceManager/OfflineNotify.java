@@ -20,11 +20,11 @@ public class OfflineNotify extends Rpc<BOfflineNotify, EmptyBean> {
 
 	public OfflineNotify() {
 		Argument = new BOfflineNotify();
-		Result = new EmptyBean();
+		Result = EmptyBean.instance;
 	}
 
 	public OfflineNotify(BOfflineNotify argument) {
 		Argument = argument;
-		Result = new EmptyBean();
+		Result = EmptyBean.instance;
 	}
 }

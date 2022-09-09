@@ -17,7 +17,7 @@ public class Logout extends Zeze.Net.Rpc<Zeze.Transaction.EmptyBean, Zeze.Transa
     }
 
     public Logout() {
-        Argument = new Zeze.Transaction.EmptyBean();
-        Result = new Zeze.Transaction.EmptyBean();
+        Argument = Zeze.Transaction.EmptyBean.instance;
+        Result = Zeze.Transaction.EmptyBean.instance;
     }
 }

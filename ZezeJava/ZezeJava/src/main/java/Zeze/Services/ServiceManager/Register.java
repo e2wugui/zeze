@@ -25,12 +25,12 @@ public class Register extends Rpc<BServiceInfo, EmptyBean> {
 	}
 
 	public Register() {
-		this.Argument = new BServiceInfo();
-		this.Result = new EmptyBean();
+		Argument = new BServiceInfo();
+		Result = EmptyBean.instance;
 	}
 
 	public Register(BServiceInfo arg) {
 		Argument = arg;
-		Result = new EmptyBean();
+		Result = EmptyBean.instance;
 	}
 }

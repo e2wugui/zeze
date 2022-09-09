@@ -18,6 +18,6 @@ public class Destroy extends Zeze.Net.Rpc<Zeze.Builtin.Game.Bag.BDestroy, Zeze.T
 
     public Destroy() {
         Argument = new Zeze.Builtin.Game.Bag.BDestroy();
-        Result = new Zeze.Transaction.EmptyBean();
+        Result = Zeze.Transaction.EmptyBean.instance;
     }
 }

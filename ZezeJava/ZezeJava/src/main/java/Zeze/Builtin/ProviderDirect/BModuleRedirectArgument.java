@@ -132,12 +132,14 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__ServiceNamePrefix(this, 6, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BModuleRedirectArgument() {
         _MethodFullName = "";
         _Params = Zeze.Net.Binary.Empty;
         _ServiceNamePrefix = "";
     }
 
+    @SuppressWarnings("deprecation")
     public BModuleRedirectArgument(int _ModuleId_, int _HashCode_, int _RedirectType_, String _MethodFullName_, Zeze.Net.Binary _Params_, String _ServiceNamePrefix_) {
         _ModuleId = _ModuleId_;
         _HashCode = _HashCode_;

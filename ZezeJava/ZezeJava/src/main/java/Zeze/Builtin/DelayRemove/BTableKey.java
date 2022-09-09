@@ -50,11 +50,13 @@ public final class BTableKey extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__EncodedKey(this, 2, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BTableKey() {
         _TableName = "";
         _EncodedKey = Zeze.Net.Binary.Empty;
     }
 
+    @SuppressWarnings("deprecation")
     public BTableKey(String _TableName_, Zeze.Net.Binary _EncodedKey_) {
         if (_TableName_ == null)
             throw new IllegalArgumentException();

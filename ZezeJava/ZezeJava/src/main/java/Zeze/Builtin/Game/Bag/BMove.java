@@ -88,10 +88,12 @@ public final class BMove extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__number(this, 4, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BMove() {
         _BagName = "";
     }
 
+    @SuppressWarnings("deprecation")
     public BMove(String _BagName_, int _PositionFrom_, int _PositionTo_, int _number_) {
         if (_BagName_ == null)
             throw new IllegalArgumentException();

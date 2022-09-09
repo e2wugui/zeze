@@ -157,19 +157,21 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__ServiceNamePrefix(this, 8, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BModuleRedirectAllRequest() {
         _HashCodes = new Zeze.Transaction.Collections.PSet1<>(Integer.class);
-        _HashCodes.VariableId = 3;
+        _HashCodes.variableId(3);
         _MethodFullName = "";
         _Params = Zeze.Net.Binary.Empty;
         _ServiceNamePrefix = "";
     }
 
+    @SuppressWarnings("deprecation")
     public BModuleRedirectAllRequest(int _ModuleId_, int _HashCodeConcurrentLevel_, long _SourceProvider_, long _SessionId_, String _MethodFullName_, Zeze.Net.Binary _Params_, String _ServiceNamePrefix_) {
         _ModuleId = _ModuleId_;
         _HashCodeConcurrentLevel = _HashCodeConcurrentLevel_;
         _HashCodes = new Zeze.Transaction.Collections.PSet1<>(Integer.class);
-        _HashCodes.VariableId = 3;
+        _HashCodes.variableId(3);
         _SourceProvider = _SourceProvider_;
         _SessionId = _SessionId_;
         if (_MethodFullName_ == null)

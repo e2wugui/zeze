@@ -99,15 +99,17 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__SenderClientId(this, 5, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BTransmitAccount() {
         _ActionName = "";
         _Parameter = Zeze.Net.Binary.Empty;
         _TargetAccounts = new Zeze.Transaction.Collections.PSet1<>(String.class);
-        _TargetAccounts.VariableId = 3;
+        _TargetAccounts.variableId(3);
         _SenderAccount = "";
         _SenderClientId = "";
     }
 
+    @SuppressWarnings("deprecation")
     public BTransmitAccount(String _ActionName_, Zeze.Net.Binary _Parameter_, String _SenderAccount_, String _SenderClientId_) {
         if (_ActionName_ == null)
             throw new IllegalArgumentException();
@@ -116,7 +118,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
             throw new IllegalArgumentException();
         _Parameter = _Parameter_;
         _TargetAccounts = new Zeze.Transaction.Collections.PSet1<>(String.class);
-        _TargetAccounts.VariableId = 3;
+        _TargetAccounts.variableId(3);
         if (_SenderAccount_ == null)
             throw new IllegalArgumentException();
         _SenderAccount = _SenderAccount_;

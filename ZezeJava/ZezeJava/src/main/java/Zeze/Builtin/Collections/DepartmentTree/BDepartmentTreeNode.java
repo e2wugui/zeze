@@ -79,24 +79,26 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
         return _Data;
     }
 
+    @SuppressWarnings("deprecation")
     public BDepartmentTreeNode() {
         _Childs = new Zeze.Transaction.Collections.PMap1<>(String.class, Long.class);
-        _Childs.VariableId = 2;
+        _Childs.variableId(2);
         _Name = "";
         _Managers = new Zeze.Transaction.Collections.PMap1<>(String.class, Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::CreateBeanFromSpecialTypeId);
-        _Managers.VariableId = 4;
+        _Managers.variableId(4);
         _Data = new Zeze.Transaction.DynamicBean(5, Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::CreateBeanFromSpecialTypeId);
     }
 
+    @SuppressWarnings("deprecation")
     public BDepartmentTreeNode(long _ParentDepartment_, String _Name_) {
         _ParentDepartment = _ParentDepartment_;
         _Childs = new Zeze.Transaction.Collections.PMap1<>(String.class, Long.class);
-        _Childs.VariableId = 2;
+        _Childs.variableId(2);
         if (_Name_ == null)
             throw new IllegalArgumentException();
         _Name = _Name_;
         _Managers = new Zeze.Transaction.Collections.PMap1<>(String.class, Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::CreateBeanFromSpecialTypeId);
-        _Managers.VariableId = 4;
+        _Managers.variableId(4);
         _Data = new Zeze.Transaction.DynamicBean(5, Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::CreateBeanFromSpecialTypeId);
     }
 

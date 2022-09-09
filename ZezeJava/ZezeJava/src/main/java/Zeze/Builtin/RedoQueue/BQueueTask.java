@@ -110,11 +110,13 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__PrevTaskId(this, 5, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BQueueTask() {
         _QueueName = "";
         _TaskParam = Zeze.Net.Binary.Empty;
     }
 
+    @SuppressWarnings("deprecation")
     public BQueueTask(String _QueueName_, int _TaskType_, long _TaskId_, Zeze.Net.Binary _TaskParam_, long _PrevTaskId_) {
         if (_QueueName_ == null)
             throw new IllegalArgumentException();

@@ -12,6 +12,7 @@ namespace Zeze.Gen.java
 
 		public static void Make(Bean bean, StreamWriter sw, string prefix)
 		{
+			sw.WriteLine(prefix + "@SuppressWarnings(\"deprecation\")");
 			sw.WriteLine(prefix + "public " + bean.Name + "() {");
             var hasImmutable = false;
             foreach (var var in bean.Variables)
@@ -24,6 +25,7 @@ namespace Zeze.Gen.java
 			sw.WriteLine();
             if (hasImmutable)
             {
+                sw.WriteLine(prefix + "@SuppressWarnings(\"deprecation\")");
                 sw.Write(prefix + "public " + bean.Name + '(');
                 var first = true;
                 foreach (var var in bean.Variables)
@@ -141,7 +143,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}({GetAndCreateDynamicBean(valueType)});");
             else
                 sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}({BoxingName.GetBoxingName(type.ValueType)}.class);");
-            sw.WriteLine(prefix + variable.NamePrivate + $".VariableId = {variable.Id};");
+            sw.WriteLine(prefix + variable.NamePrivate + $".variableId({variable.Id});");
         }
 
         public void Visit(TypeSet type)
@@ -151,7 +153,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}({GetAndCreateDynamicBean(valueType)});");
             else
                 sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}({BoxingName.GetBoxingName(type.ValueType)}.class);");
-            sw.WriteLine(prefix + variable.NamePrivate + $".VariableId = {variable.Id};");
+            sw.WriteLine(prefix + variable.NamePrivate + $".variableId({variable.Id});");
         }
 
         public void Visit(TypeMap type)
@@ -161,7 +163,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}({BoxingName.GetBoxingName(type.KeyType)}.class, {GetAndCreateDynamicBean(valueType)});");
             else
                 sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}({BoxingName.GetBoxingName(type.KeyType)}.class, {BoxingName.GetBoxingName(type.ValueType)}.class);");
-            sw.WriteLine(prefix + variable.NamePrivate + $".VariableId = {variable.Id};");
+            sw.WriteLine(prefix + variable.NamePrivate + $".variableId({variable.Id});");
             /*
             var key = TypeName.GetName(type.KeyType);
             var value = type.ValueType.IsNormalBean
@@ -176,7 +178,7 @@ namespace Zeze.Gen.java
         {
             string typeName = TypeName.GetName(type);
             sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "();");
-            sw.WriteLine(prefix + variable.NamePrivate + $".VariableId = {variable.Id};");
+            sw.WriteLine(prefix + variable.NamePrivate + $".variableId({variable.Id});");
         }
 
         public void Visit(BeanKey type)

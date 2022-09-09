@@ -46,9 +46,11 @@ public final class BReLogin extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__ReliableNotifyConfirmIndex(this, 2, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BReLogin() {
     }
 
+    @SuppressWarnings("deprecation")
     public BReLogin(long _RoleId_, long _ReliableNotifyConfirmIndex_) {
         _RoleId = _RoleId_;
         _ReliableNotifyConfirmIndex = _ReliableNotifyConfirmIndex_;

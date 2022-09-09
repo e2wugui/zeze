@@ -60,10 +60,12 @@ public final class BOnline extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__LinkSid(this, 2, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BOnline() {
         _LinkName = "";
     }
 
+    @SuppressWarnings("deprecation")
     public BOnline(String _LinkName_, long _LinkSid_) {
         if (_LinkName_ == null)
             throw new IllegalArgumentException();

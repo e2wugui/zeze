@@ -25,12 +25,12 @@ public final class Update extends Rpc<BServiceInfo, EmptyBean> {
 	}
 
 	public Update() {
-		this.Argument = new BServiceInfo();
-		this.Result = new EmptyBean();
+		Argument = new BServiceInfo();
+		Result = EmptyBean.instance;
 	}
 
 	public Update(BServiceInfo arg) {
-		this.Argument = arg;
-		this.Result = new EmptyBean();
+		Argument = arg;
+		Result = EmptyBean.instance;
 	}
 }

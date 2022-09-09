@@ -68,10 +68,12 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__time(this, 3, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BBroadcast() {
         _protocolWholeData = Zeze.Net.Binary.Empty;
     }
 
+    @SuppressWarnings("deprecation")
     public BBroadcast(long _protocolType_, Zeze.Net.Binary _protocolWholeData_, int _time_) {
         _protocolType = _protocolType_;
         if (_protocolWholeData_ == null)

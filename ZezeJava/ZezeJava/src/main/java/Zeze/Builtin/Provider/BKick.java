@@ -74,10 +74,12 @@ public final class BKick extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__desc(this, 3, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BKick() {
         _desc = "";
     }
 
+    @SuppressWarnings("deprecation")
     public BKick(long _linksid_, int _code_, String _desc_) {
         _linksid = _linksid_;
         _code = _code_;

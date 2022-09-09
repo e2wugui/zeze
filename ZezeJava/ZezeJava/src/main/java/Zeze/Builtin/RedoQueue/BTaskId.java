@@ -26,9 +26,11 @@ public final class BTaskId extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__TaskId(this, 1, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BTaskId() {
     }
 
+    @SuppressWarnings("deprecation")
     public BTaskId(long _TaskId_) {
         _TaskId = _TaskId_;
     }

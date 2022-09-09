@@ -17,7 +17,7 @@ public final class KeepAlive extends Zeze.Net.Rpc<EmptyBean, EmptyBean> {
 	}
 
 	public KeepAlive() {
-		Argument = new EmptyBean();
-		Result = new EmptyBean();
+		Argument = EmptyBean.instance;
+		Result = EmptyBean.instance;
 	}
 }

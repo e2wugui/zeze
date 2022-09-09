@@ -21,11 +21,11 @@ public class OfflineRegister extends Rpc<BOfflineNotify, EmptyBean> {
 
 	public OfflineRegister() {
 		Argument = new BOfflineNotify();
-		Result = new EmptyBean();
+		Result = EmptyBean.instance;
 	}
 
 	public OfflineRegister(BOfflineNotify argument) {
 		Argument = argument;
-		Result = new EmptyBean();
+		Result = EmptyBean.instance;
 	}
 }

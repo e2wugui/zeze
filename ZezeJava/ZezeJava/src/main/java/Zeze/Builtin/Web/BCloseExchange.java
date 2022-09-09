@@ -26,9 +26,11 @@ public final class BCloseExchange extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__ExchangeId(this, 1, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BCloseExchange() {
     }
 
+    @SuppressWarnings("deprecation")
     public BCloseExchange(long _ExchangeId_) {
         _ExchangeId = _ExchangeId_;
     }

@@ -26,9 +26,11 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__NodeId(this, 1, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BLinkedMapNodeId() {
     }
 
+    @SuppressWarnings("deprecation")
     public BLinkedMapNodeId(long _NodeId_) {
         _NodeId = _NodeId_;
     }

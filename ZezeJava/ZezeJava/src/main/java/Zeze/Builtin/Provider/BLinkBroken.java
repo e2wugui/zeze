@@ -114,12 +114,14 @@ public final class BLinkBroken extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__contextx(this, 6, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BLinkBroken() {
         _account = "";
         _context = "";
         _contextx = Zeze.Net.Binary.Empty;
     }
 
+    @SuppressWarnings("deprecation")
     public BLinkBroken(String _account_, long _linkSid_, int _reason_, String _context_, Zeze.Net.Binary _contextx_) {
         if (_account_ == null)
             throw new IllegalArgumentException();

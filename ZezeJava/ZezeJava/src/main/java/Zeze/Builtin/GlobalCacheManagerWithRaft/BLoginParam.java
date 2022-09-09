@@ -66,9 +66,11 @@ public final class BLoginParam extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__DebugMode(this, 3, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BLoginParam() {
     }
 
+    @SuppressWarnings("deprecation")
     public BLoginParam(int _ServerId_, int _GlobalCacheManagerHashIndex_, boolean _DebugMode_) {
         _ServerId = _ServerId_;
         _GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex_;

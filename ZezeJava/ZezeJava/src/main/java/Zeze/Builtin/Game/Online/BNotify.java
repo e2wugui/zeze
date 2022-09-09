@@ -28,10 +28,12 @@ public final class BNotify extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__FullEncodedProtocol(this, 1, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BNotify() {
         _FullEncodedProtocol = Zeze.Net.Binary.Empty;
     }
 
+    @SuppressWarnings("deprecation")
     public BNotify(Zeze.Net.Binary _FullEncodedProtocol_) {
         if (_FullEncodedProtocol_ == null)
             throw new IllegalArgumentException();

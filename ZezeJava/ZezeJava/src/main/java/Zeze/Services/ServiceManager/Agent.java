@@ -332,18 +332,6 @@ public final class Agent implements Closeable {
 				break;
 			}
 		}
-		/*
-		private boolean SequenceEqual(ArrayList<ServiceInfo> l1, ArrayList<ServiceInfo> l2) {
-			if (l1.size() != l2.size())
-				return false;
-
-			for (int i = 0; i < l1.size(); ++i) {
-				if (!l1.get(i).equals(l2.get(i)))
-					return false;
-			}
-			return true;
-		}
-		*/
 
 		public synchronized void OnCommit(CommitServiceList r) {
 			if (ServiceInfosPending == null)

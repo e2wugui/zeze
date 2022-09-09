@@ -73,18 +73,20 @@ public final class BAccount extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__LastLoginVersion(this, 4, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BAccount() {
         _Name = "";
         _Roles = new Zeze.Transaction.Collections.PList1<>(Long.class);
-        _Roles.VariableId = 2;
+        _Roles.variableId(2);
     }
 
+    @SuppressWarnings("deprecation")
     public BAccount(String _Name_, long _LastLoginRoleId_, long _LastLoginVersion_) {
         if (_Name_ == null)
             throw new IllegalArgumentException();
         _Name = _Name_;
         _Roles = new Zeze.Transaction.Collections.PList1<>(Long.class);
-        _Roles.VariableId = 2;
+        _Roles.variableId(2);
         _LastLoginRoleId = _LastLoginRoleId_;
         _LastLoginVersion = _LastLoginVersion_;
     }

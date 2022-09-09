@@ -16,7 +16,7 @@ final class LeaderIs extends Rpc<BLeaderIsArgument, EmptyBean> {
 
 	public LeaderIs() {
 		Argument = new BLeaderIsArgument();
-		Result = new EmptyBean();
+		Result = EmptyBean.instance;
 	}
 
 	@Override

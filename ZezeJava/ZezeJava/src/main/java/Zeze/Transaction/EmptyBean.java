@@ -3,6 +3,15 @@ package Zeze.Transaction;
 import Zeze.Serialize.ByteBuffer;
 
 public class EmptyBean extends Bean {
+	// 只用于协议/RPC的不可修改的共享单例,不能放入数据库中
+	public static final EmptyBean instance = new EmptyBean() {
+		@Override
+		protected void InitChildrenRootInfo(Record.RootInfo root) {
+			ResetRootInfo();
+			throw new UnsupportedOperationException();
+		}
+	};
+
 	@Override
 	public void Decode(ByteBuffer bb) {
 		bb.SkipUnknownField(ByteBuffer.BEAN);

@@ -103,15 +103,17 @@ public final class BVersion extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__ServerId(this, 5, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BVersion() {
         _ReliableNotifyMark = new Zeze.Transaction.Collections.PSet1<>(String.class);
-        _ReliableNotifyMark.VariableId = 2;
+        _ReliableNotifyMark.variableId(2);
     }
 
+    @SuppressWarnings("deprecation")
     public BVersion(long _LoginVersion_, long _ReliableNotifyIndex_, long _ReliableNotifyConfirmIndex_, int _ServerId_) {
         _LoginVersion = _LoginVersion_;
         _ReliableNotifyMark = new Zeze.Transaction.Collections.PSet1<>(String.class);
-        _ReliableNotifyMark.VariableId = 2;
+        _ReliableNotifyMark.variableId(2);
         _ReliableNotifyIndex = _ReliableNotifyIndex_;
         _ReliableNotifyConfirmIndex = _ReliableNotifyConfirmIndex_;
         _ServerId = _ServerId_;

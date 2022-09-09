@@ -66,9 +66,11 @@ public final class BLoad extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__OnlineNew(this, 3, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BLoad() {
     }
 
+    @SuppressWarnings("deprecation")
     public BLoad(int _Online_, int _ProposeMaxOnline_, int _OnlineNew_) {
         _Online = _Online_;
         _ProposeMaxOnline = _ProposeMaxOnline_;

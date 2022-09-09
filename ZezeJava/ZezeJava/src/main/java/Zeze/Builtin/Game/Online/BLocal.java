@@ -31,15 +31,17 @@ public final class BLocal extends Zeze.Transaction.Bean {
         return _Datas;
     }
 
+    @SuppressWarnings("deprecation")
     public BLocal() {
         _Datas = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Game.Online.BAny.class);
-        _Datas.VariableId = 2;
+        _Datas.variableId(2);
     }
 
+    @SuppressWarnings("deprecation")
     public BLocal(long _LoginVersion_) {
         _LoginVersion = _LoginVersion_;
         _Datas = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Game.Online.BAny.class);
-        _Datas.VariableId = 2;
+        _Datas.variableId(2);
     }
 
     public void Assign(BLocal other) {

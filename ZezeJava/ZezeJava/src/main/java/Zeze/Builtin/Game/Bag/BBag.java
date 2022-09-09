@@ -31,15 +31,17 @@ public final class BBag extends Zeze.Transaction.Bean {
         return _Items;
     }
 
+    @SuppressWarnings("deprecation")
     public BBag() {
         _Items = new Zeze.Transaction.Collections.PMap2<>(Integer.class, Zeze.Builtin.Game.Bag.BItem.class);
-        _Items.VariableId = 2;
+        _Items.variableId(2);
     }
 
+    @SuppressWarnings("deprecation")
     public BBag(int _Capacity_) {
         _Capacity = _Capacity_;
         _Items = new Zeze.Transaction.Collections.PMap2<>(Integer.class, Zeze.Builtin.Game.Bag.BItem.class);
-        _Items.VariableId = 2;
+        _Items.variableId(2);
     }
 
     public void Assign(BBag other) {

@@ -11,9 +11,10 @@ public final class BSubscribe extends Zeze.Transaction.Bean {
         return _modules;
     }
 
+    @SuppressWarnings("deprecation")
     public BSubscribe() {
         _modules = new Zeze.Transaction.Collections.PMap2<>(Integer.class, Zeze.Builtin.Provider.BModule.class);
-        _modules.VariableId = 1;
+        _modules.variableId(1);
     }
 
     public void Assign(BSubscribe other) {

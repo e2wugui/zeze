@@ -19,6 +19,6 @@ public final class CHandshakeDone extends Protocol<EmptyBean> {
 	}
 
 	public CHandshakeDone() {
-		Argument = new EmptyBean();
+		Argument = EmptyBean.instance;
 	}
 }

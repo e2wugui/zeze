@@ -60,10 +60,12 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__Params(this, 2, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BModuleRedirectAllHash() {
         _Params = Zeze.Net.Binary.Empty;
     }
 
+    @SuppressWarnings("deprecation")
     public BModuleRedirectAllHash(long _ReturnCode_, Zeze.Net.Binary _Params_) {
         _ReturnCode = _ReturnCode_;
         if (_Params_ == null)

@@ -68,10 +68,12 @@ public final class BAchillesHeel extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__GlobalCacheManagerHashIndex(this, 3, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BAchillesHeel() {
         _SecureKey = "";
     }
 
+    @SuppressWarnings("deprecation")
     public BAchillesHeel(int _ServerId_, String _SecureKey_, int _GlobalCacheManagerHashIndex_) {
         _ServerId = _ServerId_;
         if (_SecureKey_ == null)

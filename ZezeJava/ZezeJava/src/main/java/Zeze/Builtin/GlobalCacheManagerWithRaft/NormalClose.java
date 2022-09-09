@@ -17,7 +17,7 @@ public class NormalClose extends Zeze.Raft.RaftRpc<Zeze.Transaction.EmptyBean, Z
     }
 
     public NormalClose() {
-        Argument = new Zeze.Transaction.EmptyBean();
-        Result = new Zeze.Transaction.EmptyBean();
+        Argument = Zeze.Transaction.EmptyBean.instance;
+        Result = Zeze.Transaction.EmptyBean.instance;
     }
 }

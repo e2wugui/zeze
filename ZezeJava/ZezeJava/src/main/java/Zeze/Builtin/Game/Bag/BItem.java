@@ -71,10 +71,12 @@ public final class BItem extends Zeze.Transaction.Bean {
         return _Item;
     }
 
+    @SuppressWarnings("deprecation")
     public BItem() {
         _Item = new Zeze.Transaction.DynamicBean(3, Zeze.Game.Bag::GetSpecialTypeIdFromBean, Zeze.Game.Bag::CreateBeanFromSpecialTypeId);
     }
 
+    @SuppressWarnings("deprecation")
     public BItem(int _Id_, int _Number_) {
         _Id = _Id_;
         _Number = _Number_;

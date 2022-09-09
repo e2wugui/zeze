@@ -117,18 +117,20 @@ public final class BResponse extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__Stacktrace(this, 6, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BResponse() {
         _Headers = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Web.BHeader.class);
-        _Headers.VariableId = 2;
+        _Headers.variableId(2);
         _Body = Zeze.Net.Binary.Empty;
         _Message = "";
         _Stacktrace = "";
     }
 
+    @SuppressWarnings("deprecation")
     public BResponse(int _Code_, Zeze.Net.Binary _Body_, boolean _Finish_, String _Message_, String _Stacktrace_) {
         _Code = _Code_;
         _Headers = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Web.BHeader.class);
-        _Headers.VariableId = 2;
+        _Headers.variableId(2);
         if (_Body_ == null)
             throw new IllegalArgumentException();
         _Body = _Body_;

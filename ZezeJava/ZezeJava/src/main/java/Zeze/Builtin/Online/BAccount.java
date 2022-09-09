@@ -26,9 +26,11 @@ public final class BAccount extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__LastLoginVersion(this, 1, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BAccount() {
     }
 
+    @SuppressWarnings("deprecation")
     public BAccount(long _LastLoginVersion_) {
         _LastLoginVersion = _LastLoginVersion_;
     }

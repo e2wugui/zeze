@@ -26,9 +26,11 @@ public final class BAutoKey extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__NextId(this, 1, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BAutoKey() {
     }
 
+    @SuppressWarnings("deprecation")
     public BAutoKey(long _NextId_) {
         _NextId = _NextId_;
     }

@@ -73,10 +73,12 @@ public final class BReportError extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__desc(this, 3, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BReportError() {
         _desc = "";
     }
 
+    @SuppressWarnings("deprecation")
     public BReportError(int _from_, int _code_, String _desc_) {
         _from = _from_;
         _code = _code_;

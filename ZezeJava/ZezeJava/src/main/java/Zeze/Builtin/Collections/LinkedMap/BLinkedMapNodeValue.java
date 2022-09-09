@@ -41,11 +41,13 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
         return _Value;
     }
 
+    @SuppressWarnings("deprecation")
     public BLinkedMapNodeValue() {
         _Id = "";
         _Value = new Zeze.Transaction.DynamicBean(2, Zeze.Collections.LinkedMap::GetSpecialTypeIdFromBean, Zeze.Collections.LinkedMap::CreateBeanFromSpecialTypeId);
     }
 
+    @SuppressWarnings("deprecation")
     public BLinkedMapNodeValue(String _Id_) {
         if (_Id_ == null)
             throw new IllegalArgumentException();

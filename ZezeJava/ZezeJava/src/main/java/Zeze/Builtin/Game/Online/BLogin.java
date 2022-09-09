@@ -26,9 +26,11 @@ public final class BLogin extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__RoleId(this, 1, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BLogin() {
     }
 
+    @SuppressWarnings("deprecation")
     public BLogin(long _RoleId_) {
         _RoleId = _RoleId_;
     }

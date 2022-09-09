@@ -11,9 +11,10 @@ public final class BSendResult extends Zeze.Transaction.Bean {
         return _ErrorLinkSids;
     }
 
+    @SuppressWarnings("deprecation")
     public BSendResult() {
         _ErrorLinkSids = new Zeze.Transaction.Collections.PSet1<>(Long.class);
-        _ErrorLinkSids.VariableId = 1;
+        _ErrorLinkSids.variableId(1);
     }
 
     public void Assign(BSendResult other) {
