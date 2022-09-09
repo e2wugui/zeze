@@ -18,6 +18,9 @@ namespace Zege.User
         public string Account { get; private set; }
         public X509Certificate2 Certificate { get; private set; }
 
+        public int ServerId;
+        public String NotifyId;
+
         public async Task<int> OpenCertAsync(string account, string passwd, bool save)
         {
             if (null == passwd)
@@ -74,6 +77,31 @@ namespace Zege.User
                 await SecureStorage.Default.SetAsync(account + ".password", passwd);
             var pkcs12 = cert.Export(X509ContentType.Pkcs12, passwd);
             await SecureStorage.Default.SetAsync(account + ".pkcs12", Convert.ToBase64String(pkcs12));
+            return 0;
+        }
+
+        public async Task<int> RegisterOffline()
+        {
+            var rpc = new OfflineNotify();
+            rpc.Argument.ServerId = 0; // TODO: correct server id
+            rpc.Argument.NotifyId = "0"; // TODO: correct notify id
+            rpc.Argument.NotifySerialId = 0L; // TODO: correct notify serial id
+            await rpc.SendAsync(App.Connector.TryGetReadySocket());
+            return 0;
+        }
+
+        public async Task<int> LogoutAccount()
+        {
+            if (Account.Length == 0)
+                return eAccountInvalid;
+
+            // TODO: make sure account is signed in 
+
+            var rpc = new OfflineNotify();
+            rpc.Argument.ServerId = ServerId; // TODO: check valid
+            rpc.Argument.NotifyId = NotifyId; // TODO: check valid
+            rpc.Argument.NotifySerialId = 0L; // TODO: correct notify serial id
+            await rpc.SendAsync(App.Connector.TryGetReadySocket());
             return 0;
         }
     }
