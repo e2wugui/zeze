@@ -5,7 +5,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.EmptyBean;
 
-public class OfflineRegister extends Rpc<BOfflineRegister, EmptyBean> {
+public class OfflineRegister extends Rpc<BOfflineNotify, EmptyBean> {
 	public static final int ProtocolId_ = Bean.Hash32(OfflineRegister.class.getName()); // -1713644993
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 2581322303
 
@@ -20,11 +20,11 @@ public class OfflineRegister extends Rpc<BOfflineRegister, EmptyBean> {
 	}
 
 	public OfflineRegister() {
-		Argument = new BOfflineRegister();
+		Argument = new BOfflineNotify();
 		Result = new EmptyBean();
 	}
 
-	public OfflineRegister(BOfflineRegister argument) {
+	public OfflineRegister(BOfflineNotify argument) {
 		Argument = argument;
 		Result = new EmptyBean();
 	}

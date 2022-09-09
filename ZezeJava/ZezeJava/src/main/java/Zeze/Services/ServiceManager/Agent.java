@@ -503,7 +503,7 @@ public final class Agent implements Closeable {
 		return new SetServerLoad(load).Send(Client.getSocket());
 	}
 
-	public void OfflineRegister(BOfflineRegister argument) {
+	public void OfflineRegister(BOfflineNotify argument) {
 		WaitConnectorReady();
 		new OfflineRegister(argument).SendAndWaitCheckResultCode(Client.getSocket());
 	}

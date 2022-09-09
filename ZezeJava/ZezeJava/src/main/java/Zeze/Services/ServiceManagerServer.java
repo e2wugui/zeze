@@ -7,8 +7,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import Zeze.Net.AsyncSocket;
@@ -16,6 +18,7 @@ import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.AllocateId;
+import Zeze.Services.ServiceManager.BOfflineNotify;
 import Zeze.Services.ServiceManager.BServerLoad;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BServiceInfos;
@@ -403,7 +406,7 @@ public final class ServiceManagerServer implements Closeable {
 		private final ConcurrentHashMap<String, BSubscribeInfo> Subscribes = new ConcurrentHashMap<>();
 		private final Future<?> KeepAliveTimerTask;
 		private int OfflineRegisterServerId; // 原样通知,服务端不关心
-		private final HashSet<String> OfflineRegisterNotifies = new HashSet<>(); // 使用的时候加锁保护。value:notifyId
+		private final HashMap<String, BOfflineNotify> OfflineRegisterNotifies = new HashMap<>(); // 使用的时候加锁保护。value:notifyId
 
 		public Session(ServiceManagerServer sm, long sid) {
 			ServiceManager = sm;
@@ -450,22 +453,21 @@ public final class ServiceManagerServer implements Closeable {
 			// offline notify，开启一个线程执行，避免互等造成麻烦。
 			// 这个操作不能cancel，即使Server重新起来了，通知也会进行下去。
 			Task.run(() -> {
-				String[] notifyIds;
+				BOfflineNotify[] notifyIds;
 				synchronized (OfflineRegisterNotifies) {
 					if (OfflineRegisterNotifies.isEmpty())
 						return; // 不需要通知。
-					notifyIds = OfflineRegisterNotifies.toArray(new String[OfflineRegisterNotifies.size()]);
+					Collection<BOfflineNotify> values = OfflineRegisterNotifies.values();
+					notifyIds = values.toArray(new BOfflineNotify[values.size()]);
 				}
 
 				logger.info("OfflineNotify: serverId={} notifyIds={} begin",
 						OfflineRegisterServerId, Arrays.toString(notifyIds));
 				for (var notifyId : notifyIds) {
 					var skips = new HashSet<Session>();
-					var notify = new OfflineNotify();
-					notify.Argument.ServerId = OfflineRegisterServerId;
-					notify.Argument.NotifyId = notifyId;
+					var notify = new OfflineNotify(notifyId);
 					while (true) {
-						var selected = randomFor(notifyId, skips);
+						var selected = randomFor(notifyId.NotifyId, skips);
 						if (selected == null)
 							break; // 没有找到可用的通知对象，放弃通知。
 						try {
@@ -492,7 +494,7 @@ public final class ServiceManagerServer implements Closeable {
 				if (session != null && session != this && !skips.contains(session)) {
 					boolean contain;
 					synchronized (session.OfflineRegisterNotifies) {
-						contain = session.OfflineRegisterNotifies.contains(notifyId);
+						contain = session.OfflineRegisterNotifies.containsKey(notifyId);
 					}
 					if (contain)
 						sessions.add(KV.Create(session, socket));
@@ -670,7 +672,7 @@ public final class ServiceManagerServer implements Closeable {
 		// 允许重复注册：简化server注册逻辑。
 		synchronized (session.OfflineRegisterNotifies) {
 			session.OfflineRegisterServerId = r.Argument.ServerId;
-			session.OfflineRegisterNotifies.add(r.Argument.NotifyId);
+			session.OfflineRegisterNotifies.put(r.Argument.NotifyId, r.Argument);
 		}
 		r.SendResult();
 		return 0;
