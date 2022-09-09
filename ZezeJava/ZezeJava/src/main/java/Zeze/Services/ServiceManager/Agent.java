@@ -11,7 +11,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action1;
 import Zeze.Util.Action2;
-import Zeze.Util.Func2;
+import Zeze.Util.Func1;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
@@ -34,7 +34,7 @@ public final class Agent implements Closeable {
 	private Action2<SubscribeState, BServiceInfo> OnRemove; // Simple
 	private Action1<SubscribeState> OnPrepare; // ReadyCommit 的第一步回调。
 	private Action1<BServerLoad> OnSetServerLoad;
-	private Func2<Integer, String, Boolean> OnOfflineNotify; // <serverId, notifyId, 是否处理成功且不需要其它notifier继续处理>
+	private Func1<BOfflineNotify, Boolean> OnOfflineNotify; // <serverId, notifyId, 是否处理成功且不需要其它notifier继续处理>
 
 	// 应用可以在这个Action内起一个测试事务并执行一次。也可以实现其他检测。
 	// ServiceManager 定时发送KeepAlive给Agent，并等待结果。超时则认为服务失效。
@@ -85,11 +85,11 @@ public final class Agent implements Closeable {
 		OnSetServerLoad = value;
 	}
 
-	public void setOnOfflineNotify(Func2<Integer, String, Boolean> value) {
+	public void setOnOfflineNotify(Func1<BOfflineNotify, Boolean> value) {
 		OnOfflineNotify = value;
 	}
 
-	public Func2<Integer, String, Boolean> getOnOfflineNotify() {
+	public Func1<BOfflineNotify, Boolean> getOnOfflineNotify() {
 		return OnOfflineNotify;
 	}
 
@@ -613,7 +613,7 @@ public final class Agent implements Closeable {
 			return 0;
 		}
 		try {
-			if (OnOfflineNotify.call(r.Argument.ServerId, r.Argument.NotifyId)) {
+			if (OnOfflineNotify.call(r.Argument)) {
 				r.SendResult();
 				return 0;
 			}
