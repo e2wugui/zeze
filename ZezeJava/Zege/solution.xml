@@ -96,6 +96,15 @@
 		</bean>
 		<rpc name="VerifyChallengeResult" argument="BVerifyChallengeResultArgument" handle="server" />
 
+		<bean name="BOfflineNotify">
+			<variable id="1" name="ServerId" type="int" />
+			<variable id="2" name="NotifyId" type="string" />
+            <variable id="3" name="NotifySerialId" type="long" /> context 如果够用就直接用这个，
+            <variable id="4" name="NotifyContext" type="binary" /> context 扩展context。
+		</bean>
+		<rpc name="OfflineNotify" argument="BOfflineNotify" handle="server" />
+		<rpc name="OfflineRegister" argument="BOfflineNotify" handle="server" />
+
 		<servlet name="Prepare"/>
 		<servlet name="Create"/>
 		<servlet name="CreateWithCert"/>
@@ -347,7 +356,7 @@
 			<variable id="6" name="DepartmentId"   type="long" /> 群消息才填写，服务器填写。
 			<variable id="7" name="MessageId"      type="long" /> 服务器填写。简化读取消息时的数据结构定义。
 		</bean>
-		
+
 		<!-- 好友消息历史 -->
 		<beankey name="BFriendMessageKey">
 			<variable id="1" name="Owner"     type="string" />
