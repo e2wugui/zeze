@@ -38,7 +38,8 @@ public class ProviderDistribute {
 
 	public void ApplyServers(Agent.SubscribeState ass) {
 		var consistentHash = ConsistentHashes.computeIfAbsent(ass.getServiceName(), key -> new ConsistentHash<>());
-		var nodes = consistentHash.getNodes();
+		var nodeSet = consistentHash.getNodes();
+		var nodes = nodeSet.toArray(new BServiceInfo[nodeSet.size()]);
 		var current = new HashSet<BServiceInfo>();
 		for (var node : ass.getServiceInfos().getServiceInfoListSortedByIdentity()) {
 			consistentHash.add(node.getServiceIdentity(), node);

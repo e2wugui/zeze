@@ -33,16 +33,8 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 		return ServiceName;
 	}
 
-	private void setServiceName(String value) {
-		ServiceName = value;
-	}
-
 	public String getServiceIdentity() {
 		return ServiceIdentity;
-	}
-
-	private void setServiceIdentity(String value) {
-		ServiceIdentity = value;
 	}
 
 	public String getPassiveIp() {
@@ -85,24 +77,22 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 	}
 
 	public BServiceInfo(String name, String identity, String ip, int port, Binary extraInfo) {
-		setServiceName(name);
-		setServiceIdentity(identity);
-		if (ip != null) {
-			setPassiveIp(ip);
-		}
-		setPassivePort(port);
-		if (extraInfo != null) {
-			setExtraInfo(extraInfo);
-		}
+		ServiceName = name;
+		ServiceIdentity = identity;
+		if (ip != null)
+			PassiveIp = ip;
+		PassivePort = port;
+		if (extraInfo != null)
+			ExtraInfo = extraInfo;
 	}
 
 	@Override
 	public void Decode(ByteBuffer bb) {
-		setServiceName(bb.ReadString());
-		setServiceIdentity(bb.ReadString());
-		setPassiveIp(bb.ReadString());
-		setPassivePort(bb.ReadInt());
-		setExtraInfo(bb.ReadBinary());
+		ServiceName = bb.ReadString();
+		ServiceIdentity = bb.ReadString();
+		PassiveIp = bb.ReadString();
+		PassivePort = bb.ReadInt();
+		ExtraInfo = bb.ReadBinary();
 	}
 
 	@Override

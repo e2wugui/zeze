@@ -2,7 +2,6 @@ package Zeze.Services.ServiceManager;
 
 import Zeze.Net.Rpc;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Changes;
 import Zeze.Transaction.EmptyBean;
 
 public class OfflineRegister extends Rpc<BOfflineNotify, EmptyBean> {

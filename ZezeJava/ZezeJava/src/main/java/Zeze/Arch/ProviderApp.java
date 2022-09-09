@@ -109,7 +109,7 @@ public class ProviderApp {
 				Modules.put(module.getId(), m != null
 						? new BModule(m.getChoiceType(), m.getConfigType(), m.getSubscribeType())
 						: new BModule(BModule.ChoiceTypeDefault, BModule.ConfigTypeDefault,
-						BSubscribeInfo.SubscribeTypeSimple));
+						BSubscribeInfo.SubscribeTypeReadyCommit));
 			}
 		}
 		ProviderImplement.RegisterModulesAndSubscribeLinkd();

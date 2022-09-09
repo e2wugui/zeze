@@ -7,10 +7,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import Zeze.Net.AsyncSocket;
@@ -205,10 +204,6 @@ public final class ServiceManagerServer implements Closeable {
 		private Future<?> NotifyTimeoutTask;
 		private long SerialId;
 
-		public HashMap<String, BServiceInfo> getServiceInfos() {
-			return ServiceInfos;
-		}
-
 		public ServerState(ServiceManagerServer sm, String serviceName) {
 			ServiceManager = sm;
 			ServiceName = serviceName;
@@ -219,6 +214,10 @@ public final class ServiceManagerServer implements Closeable {
 				NotifyTimeoutTask.cancel(false);
 				NotifyTimeoutTask = null;
 			}
+		}
+
+		public synchronized void getServiceInfos(List<BServiceInfo> target) {
+			target.addAll(ServiceInfos.values());
 		}
 
 		public void StartReadyCommitNotify() {
@@ -267,11 +266,14 @@ public final class ServiceManagerServer implements Closeable {
 		}
 
 		public synchronized void NotifySimpleOnRegister(BServiceInfo info) {
+			if (Simple.isEmpty())
+				return;
 			var sb = new StringBuilder();
 			for (var it = Simple.iterator(); it.moveToNext(); ) {
 				var sessionId = it.key();
-				sb.append(sessionId).append(',');
-				if (!new Register(info).Send(ServiceManager.Server.GetSocket(sessionId)))
+				if (new Register(info).Send(ServiceManager.Server.GetSocket(sessionId)))
+					sb.append(sessionId).append(',');
+				else
 					logger.warn("NotifySimpleOnRegister {} failed: serverId({}) => sessionId({})",
 							info.getServiceName(), info.getServiceIdentity(), sessionId);
 			}
@@ -289,8 +291,11 @@ public final class ServiceManagerServer implements Closeable {
 			var sb = new StringBuilder();
 			for (var it = Simple.iterator(); it.moveToNext(); ) {
 				var sessionId = it.key();
-				sb.append(sessionId).append(',');
-				new UnRegister(info).Send(ServiceManager.Server.GetSocket(sessionId));
+				if (new UnRegister(info).Send(ServiceManager.Server.GetSocket(sessionId)))
+					sb.append(sessionId).append(',');
+				else
+					logger.warn("NotifySimpleOnUnRegister {} failed: serverId({}) => sessionId({})",
+							info.getServiceName(), info.getServiceIdentity(), sessionId);
 			}
 			var n = sb.length();
 			if (n > 0) {
@@ -313,8 +318,11 @@ public final class ServiceManagerServer implements Closeable {
 			var sb = new StringBuilder();
 			for (var it = Simple.iterator(); it.moveToNext(); ) {
 				var sessionId = it.key();
-				sb.append(sessionId).append(',');
-				new Update(current).Send(ServiceManager.Server.GetSocket(sessionId));
+				if (new Update(current).Send(ServiceManager.Server.GetSocket(sessionId)))
+					sb.append(sessionId).append(',');
+				else
+					logger.warn("UpdateAndNotify {} failed: serverId({}) => sessionId({})",
+							info.getServiceName(), info.getServiceIdentity(), sessionId);
 			}
 			var n = sb.length();
 			if (n > 0)
@@ -323,8 +331,11 @@ public final class ServiceManagerServer implements Closeable {
 				sb.append(';');
 			for (var it = ReadyCommit.iterator(); it.moveToNext(); ) {
 				var sessionId = it.key();
-				sb.append(sessionId).append(',');
-				new Update(current).Send(ServiceManager.Server.GetSocket(sessionId));
+				if (new Update(current).Send(ServiceManager.Server.GetSocket(sessionId)))
+					sb.append(sessionId).append(',');
+				else
+					logger.warn("UpdateAndNotify {} failed: serverId({}) => sessionId({})",
+							info.getServiceName(), info.getServiceIdentity(), sessionId);
 			}
 			if (sb.length() > 1)
 				logger.info("UpdateAndNotify {} serverId({}) => sessionIds({})",
@@ -453,7 +464,7 @@ public final class ServiceManagerServer implements Closeable {
 				synchronized (OfflineRegisterNotifies) {
 					if (OfflineRegisterNotifies.isEmpty())
 						return; // 不需要通知。
-					Collection<BOfflineNotify> values = OfflineRegisterNotifies.values();
+					var values = OfflineRegisterNotifies.values();
 					notifyIds = values.toArray(new BOfflineNotify[values.size()]);
 				}
 
@@ -512,10 +523,10 @@ public final class ServiceManagerServer implements Closeable {
 
 		// 允许重复登录，断线重连Agent不好原子实现重发。
 		if (session.Registers.add(r.Argument)) {
-			logger.info("{}: Register {} id={} ip={} port={}", r.getSender(), r.Argument.getServiceName(),
+			logger.info("{}: Register {} serverId={} ip={} port={}", r.getSender(), r.Argument.getServiceName(),
 					r.Argument.getServiceIdentity(), r.Argument.getPassiveIp(), r.Argument.getPassivePort());
 		} else {
-			logger.info("{}: already Registered {} id={} ip={} port={}", r.getSender(), r.Argument.getServiceName(),
+			logger.info("{}: Already Registered {} serverId={} ip={} port={}", r.getSender(), r.Argument.getServiceName(),
 					r.Argument.getServiceIdentity(), r.Argument.getPassiveIp(), r.Argument.getPassivePort());
 		}
 		var state = ServerStates.computeIfAbsent(r.Argument.getServiceName(), name -> new ServerState(this, name));
@@ -539,24 +550,6 @@ public final class ServiceManagerServer implements Closeable {
 		return Procedure.Success;
 	}
 
-	private long ProcessUpdate(Update r) {
-		logger.info("{}: Update {} id={} ip={} port={}", r.getSender(), r.Argument.getServiceName(),
-				r.Argument.getServiceIdentity(), r.Argument.getPassiveIp(), r.Argument.getPassivePort());
-		var session = (Session)r.getSender().getUserState();
-		if (!session.Registers.containsKey(r.Argument))
-			return Update.ServiceNotRegister;
-
-		var state = ServerStates.get(r.Argument.getServiceName());
-		if (state == null)
-			return Update.ServerStateError;
-
-		var rc = state.UpdateAndNotify(r.Argument);
-		if (rc != 0)
-			return rc;
-		r.SendResult();
-		return 0;
-	}
-
 	public ServerState UnRegisterNow(long sessionId, BServiceInfo info) {
 		var state = ServerStates.get(info.getServiceName());
 		if (state != null) {
@@ -574,13 +567,31 @@ public final class ServiceManagerServer implements Closeable {
 	}
 
 	private long ProcessUnRegister(UnRegister r) {
-		logger.info("{}: UnRegister {} id={}",
+		logger.info("{}: UnRegister {} serverId={}",
 				r.getSender(), r.Argument.getServiceName(), r.Argument.getServiceIdentity());
-		if (UnRegisterNow(r.getSender().getSessionId(), r.Argument) != null)
-			((Session)r.getSender().getUserState()).Registers.remove(r.Argument); // ignore TryRemove failed.
+		UnRegisterNow(r.getSender().getSessionId(), r.Argument); // ignore UnRegisterNow failed
+		((Session)r.getSender().getUserState()).Registers.remove(r.Argument); // ignore remove failed
 		// 注销不存在也返回成功，否则Agent处理比较麻烦。
 		r.SendResultCode(UnRegister.Success);
 		return Procedure.Success;
+	}
+
+	private long ProcessUpdate(Update r) {
+		logger.info("{}: Update {} serverId={} ip={} port={}", r.getSender(), r.Argument.getServiceName(),
+				r.Argument.getServiceIdentity(), r.Argument.getPassiveIp(), r.Argument.getPassivePort());
+		var session = (Session)r.getSender().getUserState();
+		if (!session.Registers.containsKey(r.Argument))
+			return Update.ServiceNotRegister;
+
+		var state = ServerStates.get(r.Argument.getServiceName());
+		if (state == null)
+			return Update.ServerStateError;
+
+		var rc = state.UpdateAndNotify(r.Argument);
+		if (rc != 0)
+			return rc;
+		r.SendResult();
+		return 0;
 	}
 
 	private long ProcessSubscribe(Subscribe r) {
@@ -595,18 +606,21 @@ public final class ServiceManagerServer implements Closeable {
 	public ServerState UnSubscribeNow(long sessionId, BSubscribeInfo info) {
 		var state = ServerStates.get(info.getServiceName());
 		if (state != null) {
+			LongHashMap<SubscribeState> subState;
+			switch (info.getSubscribeType()) {
+			case BSubscribeInfo.SubscribeTypeSimple:
+				subState = state.Simple;
+				break;
+			case BSubscribeInfo.SubscribeTypeReadyCommit:
+				subState = state.ReadyCommit;
+				break;
+			default:
+				return null;
+			}
 			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (state) {
-				switch (info.getSubscribeType()) {
-				case BSubscribeInfo.SubscribeTypeSimple:
-					if (state.Simple.remove(sessionId) != null)
-						return state;
-					break;
-				case BSubscribeInfo.SubscribeTypeReadyCommit:
-					if (state.ReadyCommit.remove(sessionId) != null)
-						return state;
-					break;
-				}
+				if (subState.remove(sessionId) != null)
+					return state;
 			}
 		}
 		return null;

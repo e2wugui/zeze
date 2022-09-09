@@ -190,7 +190,7 @@ public final class ProviderModuleBinds {
 				continue;
 			out.put(m.getId(), cm != null ? new BModule(cm.ChoiceType, cm.ConfigType, cm.SubscribeType)
 					: new BModule(BModule.ChoiceTypeDefault, BModule.ConfigTypeDefault,
-					BSubscribeInfo.SubscribeTypeSimple));
+					BSubscribeInfo.SubscribeTypeReadyCommit));
 		}
 	}
 

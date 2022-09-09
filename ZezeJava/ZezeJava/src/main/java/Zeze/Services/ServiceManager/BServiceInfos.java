@@ -31,7 +31,7 @@ public final class BServiceInfos extends Bean {
 
 	public BServiceInfos(String serviceName, ServiceManagerServer.ServerState state, long serialId) {
 		ServiceName = serviceName;
-		_ServiceInfoListSortedByIdentity.addAll(state.getServiceInfos().values());
+		state.getServiceInfos(_ServiceInfoListSortedByIdentity);
 		_ServiceInfoListSortedByIdentity.sort(Comparer);
 		SerialId = serialId;
 	}
@@ -48,36 +48,26 @@ public final class BServiceInfos extends Bean {
 		return SerialId;
 	}
 
-	public BServiceInfo Insert(BServiceInfo info) {
+	public void Insert(BServiceInfo info) {
 		int index = Collections.binarySearch(_ServiceInfoListSortedByIdentity, info, Comparer);
 		if (index >= 0)
 			_ServiceInfoListSortedByIdentity.set(index, info);
 		else
 			_ServiceInfoListSortedByIdentity.add(~index, info);
-		return info;
 	}
 
 	public BServiceInfo Remove(BServiceInfo info) {
 		int index = Collections.binarySearch(_ServiceInfoListSortedByIdentity, info, Comparer);
-		if (index >= 0) {
-			info = _ServiceInfoListSortedByIdentity.get(index);
-			_ServiceInfoListSortedByIdentity.remove(index);
-			return info;
-		}
-		return null;
+		return index >= 0 ? _ServiceInfoListSortedByIdentity.remove(index) : null;
 	}
 
-	public BServiceInfo get(String identity) {
-		var cur = new BServiceInfo(ServiceName, identity);
-		int index = Collections.binarySearch(_ServiceInfoListSortedByIdentity, cur, Comparer);
-		if (index >= 0) {
-			return _ServiceInfoListSortedByIdentity.get(index);
-		}
-		return null;
+	public BServiceInfo findServiceInfo(BServiceInfo info) {
+		int index = Collections.binarySearch(_ServiceInfoListSortedByIdentity, info, Comparer);
+		return index >= 0 ? _ServiceInfoListSortedByIdentity.get(index) : null;
 	}
 
 	public BServiceInfo findServiceInfoByIdentity(String identity) {
-		return get(identity);
+		return findServiceInfo(new BServiceInfo(ServiceName, identity));
 	}
 
 	public BServiceInfo findServiceInfoByServerId(int serverId) {

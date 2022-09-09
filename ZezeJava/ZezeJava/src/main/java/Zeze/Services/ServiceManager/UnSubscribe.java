@@ -25,4 +25,9 @@ public final class UnSubscribe extends Rpc<BSubscribeInfo, EmptyBean> {
 		Argument = new BSubscribeInfo();
 		Result = EmptyBean.instance;
 	}
+
+	public UnSubscribe(BSubscribeInfo arg) {
+		Argument = arg;
+		Result = EmptyBean.instance;
+	}
 }

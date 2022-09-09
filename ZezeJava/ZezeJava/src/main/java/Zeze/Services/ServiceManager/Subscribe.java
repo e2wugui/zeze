@@ -17,6 +17,11 @@ public final class Subscribe extends Rpc<BSubscribeInfo, EmptyBean> {
 		Result = EmptyBean.instance;
 	}
 
+	public Subscribe(BSubscribeInfo arg) {
+		Argument = arg;
+		Result = EmptyBean.instance;
+	}
+
 	@Override
 	public int getModuleId() {
 		return 0;
