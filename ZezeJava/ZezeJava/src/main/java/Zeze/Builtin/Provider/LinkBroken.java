@@ -19,4 +19,8 @@ public class LinkBroken extends Zeze.Net.Protocol<Zeze.Builtin.Provider.BLinkBro
     public LinkBroken() {
         Argument = new Zeze.Builtin.Provider.BLinkBroken();
     }
+
+    public LinkBroken(Zeze.Builtin.Provider.BLinkBroken arg) {
+        Argument = arg;
+    }
 }

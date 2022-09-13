@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
@@ -162,11 +163,7 @@ public class Online extends AbstractOnline {
 	private void RemoveLocalAndTrigger(String account, String clientId) throws Throwable {
 		var bLocals = _tlocal.get(account);
 		var localData = bLocals.getLogins().remove(clientId);
-		var arg = new LocalRemoveEventArgument();
-		arg.Account = account;
-		arg.ClientId = clientId;
-		if (null != localData)
-			arg.LocalData = localData.Copy();
+		var arg = new LocalRemoveEventArgument(account, clientId, localData != null ? localData.Copy() : null);
 
 		if (bLocals.getLogins().isEmpty())
 			_tlocal.remove(account); // remove first
@@ -179,12 +176,7 @@ public class Online extends AbstractOnline {
 	private void LogoutTriggerExtra(String account, String clientId) throws Throwable {
 		var bOnline = _tonline.get(account);
 		var onlineData = bOnline.getLogins().get(clientId);
-
-		var arg = new LogoutEventArgument();
-		arg.Account = account;
-		arg.ClientId = clientId;
-		if (null != onlineData)
-			arg.OnlineData = onlineData.Copy();
+		var arg = new LogoutEventArgument(account, clientId, onlineData != null ? onlineData.Copy() : null);
 
 		LogoutEvents.triggerEmbed(this, arg);
 		LogoutEvents.triggerProcedure(ProviderApp.Zeze, this, arg);
@@ -194,12 +186,7 @@ public class Online extends AbstractOnline {
 	private void LogoutTrigger(String account, String clientId) throws Throwable {
 		var bOnline = _tonline.get(account);
 		var onlineData = bOnline.getLogins().remove(clientId);
-
-		var arg = new LogoutEventArgument();
-		arg.Account = account;
-		arg.ClientId = clientId;
-		if (null != onlineData)
-			arg.OnlineData = onlineData.Copy();
+		var arg = new LogoutEventArgument(account, clientId, onlineData != null ? onlineData.Copy() : null);
 
 		if (bOnline.getLogins().isEmpty())
 			_tonline.remove(account); // remove first
@@ -210,10 +197,7 @@ public class Online extends AbstractOnline {
 	}
 
 	private void LoginTrigger(String account, String clientId) throws Throwable {
-		var arg = new LoginArgument();
-		arg.Account = account;
-		arg.ClientId = clientId;
-
+		var arg = new LoginArgument(account, clientId);
 		LoginEvents.triggerEmbed(this, arg);
 		LoginEvents.triggerProcedure(ProviderApp.Zeze, this, arg);
 		Transaction.whileCommit(() -> LoginEvents.triggerThread(this, arg));
@@ -221,10 +205,7 @@ public class Online extends AbstractOnline {
 	}
 
 	private void ReloginTrigger(String account, String clientId) throws Throwable {
-		var arg = new LoginArgument();
-		arg.Account = account;
-		arg.ClientId = clientId;
-
+		var arg = new LoginArgument(account, clientId);
 		ReloginEvents.triggerEmbed(this, arg);
 		ReloginEvents.triggerProcedure(ProviderApp.Zeze, this, arg);
 		Transaction.whileCommit(() -> ReloginEvents.triggerThread(this, arg));
@@ -402,17 +383,17 @@ public class Online extends AbstractOnline {
 		return groups.values();
 	}
 
-	private long triggerLinkBroken(String linkName, Collection<Long> errorSids, HashMap<Long, KV<String, String>> contexts)
+	private long triggerLinkBroken(String linkName, Collection<Long> errorSids, Map<Long, KV<String, String>> contexts)
 			throws Throwable {
 		for (var sid : errorSids) {
 			var ctx = contexts.get(sid);
-			if (null != ctx)
+			if (ctx != null)
 				OnLinkBroken(ctx.getKey(), ctx.getValue(), linkName, sid);
 		}
 		return 0;
 	}
 
-	public void send(AsyncSocket to, HashMap<Long, KV<String, String>> contexts, Send send) {
+	public void send(AsyncSocket to, Map<Long, KV<String, String>> contexts, Send send) {
 		send.Send(to, (rpc) -> triggerLinkBroken(
 				Zeze.Arch.ProviderService.GetLinkName(to),
 				send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(),

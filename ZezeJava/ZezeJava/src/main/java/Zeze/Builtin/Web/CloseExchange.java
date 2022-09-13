@@ -20,4 +20,9 @@ public class CloseExchange extends Zeze.Net.Rpc<Zeze.Builtin.Web.BCloseExchange,
         Argument = new Zeze.Builtin.Web.BCloseExchange();
         Result = Zeze.Transaction.EmptyBean.instance;
     }
+
+    public CloseExchange(Zeze.Builtin.Web.BCloseExchange arg) {
+        Argument = arg;
+        Result = Zeze.Transaction.EmptyBean.instance;
+    }
 }

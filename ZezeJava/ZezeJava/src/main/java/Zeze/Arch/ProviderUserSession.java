@@ -1,7 +1,11 @@
 package Zeze.Arch;
 
-import java.util.HashMap;
+import java.util.Map;
+import java.util.TreeMap;
+import Zeze.Builtin.Provider.BSend;
+import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Builtin.Provider.Send;
+import Zeze.Game.ProviderImplementWithOnline;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
@@ -15,117 +19,107 @@ import Zeze.Util.KV;
  * 记录账号，roleId，LinkName，SessionId等信息。
  */
 public class ProviderUserSession {
-	private final ProviderService service;
-	private final String Account;
-	private final String Context;
-	private final long LinkSid;
-	private String LinkName;
-	private AsyncSocket Link;
+	private final Dispatch dispatch;
 
-	public ProviderUserSession(ProviderService service, String account, String context, AsyncSocket link, long linkSid) {
-		this.service = service;
-		Account = account;
-		Context = context;
-		LinkSid = linkSid;
-		Link = link;
+	public ProviderUserSession(Dispatch dispatch) {
+		this.dispatch = dispatch;
 	}
 
 	public void kick(int code, String desc) {
-		ProviderImplement.SendKick(Link, LinkSid, code, desc);
+		ProviderImplement.SendKick(getLink(), getLinkSid(), code, desc);
 	}
 
 	public final ProviderService getService() {
-		return service;
+		return (ProviderService)dispatch.getSender().getService();
 	}
 
 	public final String getAccount() {
-		return Account;
+		return dispatch.Argument.getAccount();
 	}
 
 	public final String getContext() {
-		return Context;
+		return dispatch.Argument.getContext();
 	}
 
 	public final boolean isLogin() {
-		return null == Context || Context.isEmpty();
+		return getContext().isEmpty();
 	}
 
 	public final Long getRoleId() {
-		return Context.isEmpty() ? null : Long.parseLong(Context);
+		var context = getContext();
+		return context.isEmpty() ? null : Long.parseLong(context);
 	}
 
 	public final long getLinkSid() {
-		return LinkSid;
+		return dispatch.Argument.getLinkSid();
 	}
 
 	public final String getLinkName() {
-		return LinkName != null ? LinkName : (LinkName = ProviderService.GetLinkName(Link));
+		return ProviderService.GetLinkName(getLink());
 	}
 
 	public final AsyncSocket getLink() {
-		return Link;
-	}
-
-	public final void setLink(AsyncSocket value) {
-		Link = value;
+		return dispatch.getSender();
 	}
 
 	public final void sendResponse(Binary fullEncodedProtocol) {
-		sendResponse(ByteBuffer.Wrap(fullEncodedProtocol).ReadInt4(), fullEncodedProtocol);
+		var bytes = fullEncodedProtocol.bytesUnsafe();
+		var offset = fullEncodedProtocol.getOffset();
+		var moduleId = ByteBuffer.ToInt(bytes, offset);
+		var protocolId = ByteBuffer.ToInt(bytes, offset + 4);
+		sendResponse(Protocol.MakeTypeId(moduleId, protocolId), fullEncodedProtocol);
 	}
 
 	private void sendOnline(AsyncSocket link, Send send) {
-		if (service.ProviderApp.ProviderImplement instanceof Zeze.Arch.ProviderWithOnline) {
-			var context = new HashMap<Long, KV<String, String>>();
-			context.put(LinkSid, KV.Create(Account, Context));
-			((ProviderWithOnline)service.ProviderApp.ProviderImplement).Online.send(link, context, send);
-		} else if (service.ProviderApp.ProviderImplement instanceof Zeze.Game.ProviderImplementWithOnline) {
-			var context = new HashMap<Long, Long>();
-			context.put(LinkSid, getRoleId());
-			((Zeze.Game.ProviderImplementWithOnline)service.ProviderApp.ProviderImplement).Online.send(link, context, send);
-		} else {
+		var providerImpl = getService().ProviderApp.ProviderImplement;
+		if (providerImpl instanceof ProviderWithOnline) {
+			((ProviderWithOnline)providerImpl).Online.send(
+					link, Map.of(getLinkSid(), KV.Create(getAccount(), getContext())), send);
+		} else if (providerImpl instanceof ProviderImplementWithOnline) {
+			var contexts = new TreeMap<Long, Long>();
+			contexts.put(getLinkSid(), getRoleId());
+			((ProviderImplementWithOnline)providerImpl).Online.send(link, contexts, send);
+		} else
 			link.Send(send);
-		}
 	}
 
 	public final void sendResponse(long typeId, Binary fullEncodedProtocol) {
-		var send = new Send();
+		var send = new Send(new BSend(typeId, fullEncodedProtocol));
 		send.Argument.getLinkSids().add(getLinkSid());
-		send.Argument.setProtocolType(typeId);
-		send.Argument.setProtocolWholeData(fullEncodedProtocol);
 
-		if (null != getLink() && !getLink().isClosed()) {
-			sendOnline(getLink(), send);
+		var link = getLink();
+		if (link != null && !link.isClosed()) {
+			sendOnline(link, send);
 			return;
 		}
-		// 可能发生了重连，尝试再次查找发送。网络断开以后，已经不可靠了，先这样写着吧。
-		var link = service.getLinks().get(getLinkName());
-		if (null != link) {
-			if (link.isHandshakeDone()) {
-				setLink(link.getSocket());
-				sendOnline(getLink(), send);
-			}
+		// 可能发生了重连，尝试再次查找发送。网络断开以后，linkSid已经不可靠了，先这样写着吧。
+		var connector = getService().getLinks().get(getLinkName());
+		if (connector != null && connector.isHandshakeDone()) {
+			dispatch.setSender(link = connector.getSocket());
+			sendOnline(link, send);
 		}
 	}
 
 	public final void sendResponse(Protocol<?> p) {
 		p.setRequest(false);
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG) {
+			var linkSid = getLinkSid();
+			var className = p.getClass().getSimpleName();
 			if (p.isRequest()) {
 				if (p instanceof Rpc)
-					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RESP[{}] {}({}): {}", LinkSid,
-							p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.Argument);
+					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RESP[{}] {}({}): {}", linkSid,
+							className, ((Rpc<?, ?>)p).getSessionId(), p.Argument);
 				else
-					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RESP[{}] {}: {}", LinkSid,
-							p.getClass().getSimpleName(), p.Argument);
+					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RESP[{}] {}: {}", linkSid,
+							className, p.Argument);
 			} else
-				AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RESP[{}] {}({})> {}", LinkSid,
-						p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.getResultBean());
+				AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RESP[{}] {}({})> {}", linkSid,
+						className, ((Rpc<?, ?>)p).getSessionId(), p.getResultBean());
 		}
 		sendResponse(p.getTypeId(), new Binary(p.Encode()));
 	}
 
-	public final void sendResponseWhileCommit(int typeId, Binary fullEncodedProtocol) {
+	public final void sendResponseWhileCommit(long typeId, Binary fullEncodedProtocol) {
 		Transaction.whileCommit(() -> sendResponse(typeId, fullEncodedProtocol));
 	}
 
@@ -139,7 +133,7 @@ public class ProviderUserSession {
 
 	// 这个方法用来优化广播协议。不能用于Rpc，先隐藏。
 	@SuppressWarnings("unused")
-	private void sendResponseWhileRollback(int typeId, Binary fullEncodedProtocol) {
+	private void sendResponseWhileRollback(long typeId, Binary fullEncodedProtocol) {
 		Transaction.whileCommit(() -> sendResponse(typeId, fullEncodedProtocol));
 	}
 
@@ -153,9 +147,9 @@ public class ProviderUserSession {
 	}
 
 	public static ProviderUserSession get(Protocol<?> context) {
-		if (null == context.getUserState()) {
+		var state = context.getUserState();
+		if (state == null)
 			throw new IllegalStateException("not auth");
-		}
-		return (ProviderUserSession)context.getUserState();
+		return (ProviderUserSession)state;
 	}
 }

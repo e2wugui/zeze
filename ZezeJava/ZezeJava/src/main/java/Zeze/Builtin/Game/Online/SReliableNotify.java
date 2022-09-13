@@ -19,4 +19,8 @@ public class SReliableNotify extends Zeze.Net.Protocol<Zeze.Builtin.Game.Online.
     public SReliableNotify() {
         Argument = new Zeze.Builtin.Game.Online.BReliableNotify();
     }
+
+    public SReliableNotify(Zeze.Builtin.Game.Online.BReliableNotify arg) {
+        Argument = arg;
+    }
 }

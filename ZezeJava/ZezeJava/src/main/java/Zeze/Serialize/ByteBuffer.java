@@ -142,6 +142,13 @@ public final class ByteBuffer {
 				(bytes[offset + 3] << 24);
 	}
 
+	public static int ToIntBE(byte[] bytes, int offset) {
+		return (bytes[offset] << 24) +
+				((bytes[offset + 1] & 0xff) << 16) +
+				((bytes[offset + 2] & 0xff) << 8) +
+				(bytes[offset + 3] & 0xff);
+	}
+
 	public static long ToLong(byte[] bytes, int offset) {
 		return (bytes[offset] & 0xff) +
 				((bytes[offset + 1] & 0xff) << 8) +
@@ -151,6 +158,17 @@ public final class ByteBuffer {
 				((long)(bytes[offset + 5] & 0xff) << 40) +
 				((long)(bytes[offset + 6] & 0xff) << 48) +
 				((long)bytes[offset + 7] << 56);
+	}
+
+	public static long ToLongBE(byte[] bytes, int offset) {
+		return ((long)bytes[offset] << 56) +
+				((long)(bytes[offset + 1] & 0xff) << 48) +
+				((long)(bytes[offset + 2] & 0xff) << 40) +
+				((long)(bytes[offset + 3] & 0xff) << 32) +
+				((long)(bytes[offset + 4] & 0xff) << 24) +
+				((bytes[offset + 5] & 0xff) << 16) +
+				((bytes[offset + 6] & 0xff) << 8) +
+				(bytes[offset + 7] & 0xff);
 	}
 
 	@SuppressWarnings("fallthrough")
@@ -195,8 +213,16 @@ public final class ByteBuffer {
 		return Float.intBitsToFloat(ToInt(bytes, offset));
 	}
 
+	public static float ToFloatBE(byte[] bytes, int offset) {
+		return Float.intBitsToFloat(ToIntBE(bytes, offset));
+	}
+
 	public static double ToDouble(byte[] bytes, int offset) {
 		return Double.longBitsToDouble(ToLong(bytes, offset));
+	}
+
+	public static double ToDoubleBE(byte[] bytes, int offset) {
+		return Double.longBitsToDouble(ToLongBE(bytes, offset));
 	}
 
 	/**

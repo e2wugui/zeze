@@ -20,4 +20,9 @@ public class AnnounceProviderInfo extends Zeze.Net.Rpc<Zeze.Builtin.ProviderDire
         Argument = new Zeze.Builtin.ProviderDirect.BProviderInfo();
         Result = Zeze.Transaction.EmptyBean.instance;
     }
+
+    public AnnounceProviderInfo(Zeze.Builtin.ProviderDirect.BProviderInfo arg) {
+        Argument = arg;
+        Result = Zeze.Transaction.EmptyBean.instance;
+    }
 }

@@ -20,4 +20,9 @@ public class ResponseOutputStream extends Zeze.Net.Rpc<Zeze.Builtin.Web.BStream,
         Argument = new Zeze.Builtin.Web.BStream();
         Result = Zeze.Transaction.EmptyBean.instance;
     }
+
+    public ResponseOutputStream(Zeze.Builtin.Web.BStream arg) {
+        Argument = arg;
+        Result = Zeze.Transaction.EmptyBean.instance;
+    }
 }

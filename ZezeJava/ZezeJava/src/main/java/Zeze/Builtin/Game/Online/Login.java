@@ -20,4 +20,9 @@ public class Login extends Zeze.Net.Rpc<Zeze.Builtin.Game.Online.BLogin, Zeze.Tr
         Argument = new Zeze.Builtin.Game.Online.BLogin();
         Result = Zeze.Transaction.EmptyBean.instance;
     }
+
+    public Login(Zeze.Builtin.Game.Online.BLogin arg) {
+        Argument = arg;
+        Result = Zeze.Transaction.EmptyBean.instance;
+    }
 }

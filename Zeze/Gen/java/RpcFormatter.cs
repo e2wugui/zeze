@@ -51,6 +51,17 @@ namespace Zeze.Gen.java
             else
                 sw.WriteLine($"        Result = {result}.instance;");
             sw.WriteLine("    }");
+            if (rpc.ArgumentType != null)
+            {
+                sw.WriteLine();
+                sw.WriteLine($"    public {rpc.Name}({argument} arg) {{");
+                sw.WriteLine($"        Argument = arg;");
+                if (rpc.ResultType != null)
+                    sw.WriteLine($"        Result = new {result}();");
+                else
+                    sw.WriteLine($"        Result = {result}.instance;");
+                sw.WriteLine("    }");
+            }
             sw.WriteLine("}");
         }
     }

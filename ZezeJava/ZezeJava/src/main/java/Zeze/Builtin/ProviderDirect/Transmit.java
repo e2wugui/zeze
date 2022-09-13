@@ -19,4 +19,8 @@ public class Transmit extends Zeze.Net.Protocol<Zeze.Builtin.ProviderDirect.BTra
     public Transmit() {
         Argument = new Zeze.Builtin.ProviderDirect.BTransmit();
     }
+
+    public Transmit(Zeze.Builtin.ProviderDirect.BTransmit arg) {
+        Argument = arg;
+    }
 }

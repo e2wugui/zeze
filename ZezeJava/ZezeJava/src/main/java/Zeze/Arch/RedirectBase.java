@@ -123,7 +123,7 @@ public class RedirectBase {
 		var localServiceIdentity = String.valueOf(ProviderApp.Zeze.getConfig().getServerId());
 		for (int i = 0; i < req.Argument.getHashCodeConcurrentLevel(); ++i) {
 			var target = ProviderDistribute.ChoiceDataIndex(consistent, i, req.Argument.getHashCodeConcurrentLevel());
-			if (null == target) {
+			if (target == null) {
 				AddMiss(miss, i, Procedure.ProviderNotExist);
 				continue;
 			}

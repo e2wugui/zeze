@@ -26,7 +26,7 @@ import org.apache.logging.log4j.Logger;
 public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	private static final Logger logger = LogManager.getLogger(ProviderDirectService.class);
 
-	public ProviderApp ProviderApp;
+	protected ProviderApp ProviderApp;
 	public final ConcurrentHashMap<String, ProviderSession> ProviderByLoadName = new ConcurrentHashMap<>();
 	public final LongConcurrentHashMap<ProviderSession> ProviderByServerId = new LongConcurrentHashMap<>();
 
@@ -37,7 +37,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	public synchronized void RemoveServer(Agent.SubscribeState ss, BServiceInfo pm) {
 		var connName = pm.getPassiveIp() + ":" + pm.getPassivePort();
 		var conn = getConfig().FindConnector(connName);
-		if (null != conn) {
+		if (conn != null) {
 			conn.Stop();
 			ProviderByLoadName.remove(connName);
 			ProviderByServerId.remove(Long.parseLong(pm.getServiceIdentity()));
@@ -49,7 +49,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	public synchronized void AddServer(Agent.SubscribeState ss, BServiceInfo pm) {
 		var connName = pm.getPassiveIp() + ":" + pm.getPassivePort();
 		var ps = ProviderByLoadName.get(connName);
-		if (null != ps) {
+		if (ps != null) {
 			// connection has ready.
 			var mid = Integer.parseInt(pm.getServiceName().split("#")[1]);
 			var m = ProviderApp.Modules.get(mid);
@@ -125,7 +125,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		ps.ServerLoadIp = ip;
 		ps.ServerLoadPort = port;
 		// 本机的连接可能设置多次。此时使用已经存在的，忽略后面的。
-		if (null != ProviderByLoadName.putIfAbsent(ps.getServerLoadName(), ps))
+		if (ProviderByLoadName.putIfAbsent(ps.getServerLoadName(), ps) != null)
 			return;
 		ProviderByServerId.put(ps.getServerId(), ps);
 
@@ -134,7 +134,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			if (ss.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)) {
 				var infos = ss.getSubscribeType() == BSubscribeInfo.SubscribeTypeSimple
 						? ss.getServiceInfos() : ss.getServiceInfosPending();
-				if (null == infos)
+				if (infos == null)
 					continue;
 				var mid = Integer.parseInt(ss.getServiceName().split("#")[1]);
 				var m = ProviderApp.Modules.get(mid);
@@ -173,7 +173,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	@Override
 	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) {
 		if (p.getTypeId() == ModuleRedirect.TypeId_) {
-			if (null != factoryHandle.Handle) {
+			if (factoryHandle.Handle != null) {
 				var r = (ModuleRedirect)p;
 				// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
 				getZeze().getTaskOneByOneByKey().Execute(r.Argument.getHashCode(), () -> Zeze.Util.Task.Call(
@@ -184,7 +184,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			return;
 		}
 		if (p.getTypeId() == ModuleRedirectAllResult.TypeId_) {
-			if (null != factoryHandle.Handle) {
+			if (factoryHandle.Handle != null) {
 				var r = (ModuleRedirectAllResult)p;
 				// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
 				Zeze.Util.Task.runUnsafe(() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode,

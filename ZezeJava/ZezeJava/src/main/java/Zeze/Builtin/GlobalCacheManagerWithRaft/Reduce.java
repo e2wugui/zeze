@@ -20,4 +20,9 @@ public class Reduce extends Zeze.Raft.RaftRpc<Zeze.Builtin.GlobalCacheManagerWit
         Argument = new Zeze.Builtin.GlobalCacheManagerWithRaft.BReduceParam();
         Result = new Zeze.Builtin.GlobalCacheManagerWithRaft.BReduceParam();
     }
+
+    public Reduce(Zeze.Builtin.GlobalCacheManagerWithRaft.BReduceParam arg) {
+        Argument = arg;
+        Result = new Zeze.Builtin.GlobalCacheManagerWithRaft.BReduceParam();
+    }
 }

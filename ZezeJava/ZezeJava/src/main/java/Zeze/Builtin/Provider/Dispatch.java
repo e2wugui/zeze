@@ -19,4 +19,8 @@ public class Dispatch extends Zeze.Net.Protocol<Zeze.Builtin.Provider.BDispatch>
     public Dispatch() {
         Argument = new Zeze.Builtin.Provider.BDispatch();
     }
+
+    public Dispatch(Zeze.Builtin.Provider.BDispatch arg) {
+        Argument = arg;
+    }
 }

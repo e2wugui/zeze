@@ -19,4 +19,8 @@ public class ReportError extends Zeze.Net.Protocol<Zeze.Builtin.LinkdBase.BRepor
     public ReportError() {
         Argument = new Zeze.Builtin.LinkdBase.BReportError();
     }
+
+    public ReportError(Zeze.Builtin.LinkdBase.BReportError arg) {
+        Argument = arg;
+    }
 }

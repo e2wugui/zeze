@@ -19,4 +19,8 @@ public class AnnounceLinkInfo extends Zeze.Net.Protocol<Zeze.Builtin.Provider.BA
     public AnnounceLinkInfo() {
         Argument = new Zeze.Builtin.Provider.BAnnounceLinkInfo();
     }
+
+    public AnnounceLinkInfo(Zeze.Builtin.Provider.BAnnounceLinkInfo arg) {
+        Argument = arg;
+    }
 }

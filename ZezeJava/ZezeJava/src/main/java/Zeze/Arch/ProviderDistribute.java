@@ -66,18 +66,21 @@ public class ProviderDistribute {
 	}
 
 	// ChoiceDataIndex 用于RedirectAll或者那些已知数据分块索引的地方。
-	public static BServiceInfo ChoiceDataIndex(ConsistentHash<BServiceInfo> consistentHash, int dataIndex, int dataConcurrentLevel) {
+	public static BServiceInfo ChoiceDataIndex(ConsistentHash<BServiceInfo> consistentHash,
+											   int dataIndex, int dataConcurrentLevel) {
 		if (consistentHash == null)
 			return null;
 //		if (consistentHash.getNodes().size() > dataConcurrentLevel)
-//			throw new IllegalStateException("ChoiceDataIndex: too many servers: " + consistentHash.getNodes().size() + " > " + dataConcurrentLevel);
+//			throw new IllegalStateException("ChoiceDataIndex: too many servers: "
+//			+ consistentHash.getNodes().size() + " > " + dataConcurrentLevel);
 		return consistentHash.get(ByteBuffer.calc_hashnr(dataIndex));
 	}
 
 	public BServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash, int dataConcurrentLevel) {
-		var consistentHash = ConsistentHashes.get(providers.getServiceName());
+		var serviceName = providers.getServiceName();
+		var consistentHash = ConsistentHashes.get(serviceName);
 		if (consistentHash == null)
-			throw new IllegalStateException("ChoiceHash: not found ConsistentHash for serviceName=" + providers.getServiceName());
+			throw new IllegalStateException("ChoiceHash: not found ConsistentHash for serviceName=" + serviceName);
 		if (dataConcurrentLevel <= 1)
 			return consistentHash.get(hash);
 

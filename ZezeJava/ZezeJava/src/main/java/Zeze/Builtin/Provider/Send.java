@@ -20,4 +20,9 @@ public class Send extends Zeze.Net.Rpc<Zeze.Builtin.Provider.BSend, Zeze.Builtin
         Argument = new Zeze.Builtin.Provider.BSend();
         Result = new Zeze.Builtin.Provider.BSendResult();
     }
+
+    public Send(Zeze.Builtin.Provider.BSend arg) {
+        Argument = arg;
+        Result = new Zeze.Builtin.Provider.BSendResult();
+    }
 }

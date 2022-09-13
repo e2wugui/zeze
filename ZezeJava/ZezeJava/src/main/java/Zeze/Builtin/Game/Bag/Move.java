@@ -20,4 +20,9 @@ public class Move extends Zeze.Net.Rpc<Zeze.Builtin.Game.Bag.BMove, Zeze.Transac
         Argument = new Zeze.Builtin.Game.Bag.BMove();
         Result = Zeze.Transaction.EmptyBean.instance;
     }
+
+    public Move(Zeze.Builtin.Game.Bag.BMove arg) {
+        Argument = arg;
+        Result = Zeze.Transaction.EmptyBean.instance;
+    }
 }

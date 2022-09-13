@@ -1,7 +1,7 @@
 package Zeze.Arch;
 
-import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Provider.BAnnounceProviderInfo;
+import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashSet;
 
@@ -21,7 +21,7 @@ public class LinkdProviderSession extends ProviderSession {
 	 * 多线程：这里面的数据访问都处于 lock (Zezex.App.Instance.gnet_Provider_Module.StaticBinds) 下
 	 * see Zezex.Provider.ModuleProvider
 	 */
-	private final ConcurrentHashMap<Integer, Integer> StaticBinds = new ConcurrentHashMap<>();
+	private final ConcurrentHashSet<Integer> StaticBinds = new ConcurrentHashSet<>(); // <moduleId>
 
 	public LinkdProviderSession(long ssid) {
 		super.SessionId = ssid;
@@ -39,7 +39,7 @@ public class LinkdProviderSession extends ProviderSession {
 		return LinkSessionIds;
 	}
 
-	public final ConcurrentHashMap<Integer, Integer> getStaticBinds() {
+	public final ConcurrentHashSet<Integer> getStaticBinds() {
 		return StaticBinds;
 	}
 

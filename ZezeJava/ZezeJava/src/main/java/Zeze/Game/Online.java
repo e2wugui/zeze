@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
@@ -22,6 +23,7 @@ import Zeze.Builtin.Game.Online.BOnline;
 import Zeze.Builtin.Game.Online.SReliableNotify;
 import Zeze.Builtin.Game.Online.taccount;
 import Zeze.Builtin.Provider.BKick;
+import Zeze.Builtin.Provider.BSend;
 import Zeze.Builtin.Provider.Broadcast;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Builtin.Provider.SetUserState;
@@ -356,16 +358,17 @@ public class Online extends AbstractOnline {
 		}, "Game.Online.send"), null, null, DispatchMode.Normal);
 	}
 
-	private long triggerLinkBroken(String linkName, Collection<Long> errorSids, HashMap<Long, Long> context) throws Throwable {
+	private long triggerLinkBroken(String linkName, Collection<Long> errorSids, Map<Long, Long> context)
+			throws Throwable {
 		for (var sid : errorSids) {
 			var roleId = context.get(sid);
-			if (null != roleId)
+			if (roleId != null)
 				onLinkBroken(roleId, linkName, sid);
 		}
 		return 0;
 	}
 
-	public void send(AsyncSocket to, HashMap<Long, Long> contexts, Send send) {
+	public void send(AsyncSocket to, Map<Long, Long> contexts, Send send) {
 		send.Send(to, (rpc) -> triggerLinkBroken(
 			Zeze.Arch.ProviderService.GetLinkName(to),
 			send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(),
@@ -380,9 +383,7 @@ public class Online extends AbstractOnline {
 				if (group.linkSocket == null)
 					continue; // skip not online
 
-				var send = new Send();
-				send.Argument.setProtocolType(typeId);
-				send.Argument.setProtocolWholeData(fullEncodedProtocol);
+				var send = new Send(new BSend(typeId, fullEncodedProtocol));
 				send.Argument.getLinkSids().addAll(group.roles.values());
 				send(group.linkSocket, group.contexts, send);
 			}

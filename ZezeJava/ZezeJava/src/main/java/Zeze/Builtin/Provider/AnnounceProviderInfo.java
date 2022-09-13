@@ -19,4 +19,8 @@ public class AnnounceProviderInfo extends Zeze.Net.Protocol<Zeze.Builtin.Provide
     public AnnounceProviderInfo() {
         Argument = new Zeze.Builtin.Provider.BAnnounceProviderInfo();
     }
+
+    public AnnounceProviderInfo(Zeze.Builtin.Provider.BAnnounceProviderInfo arg) {
+        Argument = arg;
+    }
 }

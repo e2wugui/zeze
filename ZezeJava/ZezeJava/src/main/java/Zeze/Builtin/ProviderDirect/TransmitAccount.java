@@ -19,4 +19,8 @@ public class TransmitAccount extends Zeze.Net.Protocol<Zeze.Builtin.ProviderDire
     public TransmitAccount() {
         Argument = new Zeze.Builtin.ProviderDirect.BTransmitAccount();
     }
+
+    public TransmitAccount(Zeze.Builtin.ProviderDirect.BTransmitAccount arg) {
+        Argument = arg;
+    }
 }

@@ -30,4 +30,9 @@ public class ModuleRedirect extends Zeze.Net.Rpc<Zeze.Builtin.ProviderDirect.BMo
         Argument = new Zeze.Builtin.ProviderDirect.BModuleRedirectArgument();
         Result = new Zeze.Builtin.ProviderDirect.BModuleRedirectResult();
     }
+
+    public ModuleRedirect(Zeze.Builtin.ProviderDirect.BModuleRedirectArgument arg) {
+        Argument = arg;
+        Result = new Zeze.Builtin.ProviderDirect.BModuleRedirectResult();
+    }
 }

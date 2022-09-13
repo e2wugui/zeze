@@ -20,4 +20,9 @@ public class Request extends Zeze.Net.Rpc<Zeze.Builtin.Web.BRequest, Zeze.Builti
         Argument = new Zeze.Builtin.Web.BRequest();
         Result = new Zeze.Builtin.Web.BResponse();
     }
+
+    public Request(Zeze.Builtin.Web.BRequest arg) {
+        Argument = arg;
+        Result = new Zeze.Builtin.Web.BResponse();
+    }
 }

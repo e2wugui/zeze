@@ -20,4 +20,9 @@ public class Cleanup extends Zeze.Raft.RaftRpc<Zeze.Builtin.GlobalCacheManagerWi
         Argument = new Zeze.Builtin.GlobalCacheManagerWithRaft.BAchillesHeel();
         Result = Zeze.Transaction.EmptyBean.instance;
     }
+
+    public Cleanup(Zeze.Builtin.GlobalCacheManagerWithRaft.BAchillesHeel arg) {
+        Argument = arg;
+        Result = Zeze.Transaction.EmptyBean.instance;
+    }
 }

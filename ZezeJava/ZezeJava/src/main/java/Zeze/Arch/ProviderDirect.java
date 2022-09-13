@@ -21,7 +21,7 @@ import org.apache.logging.log4j.Logger;
 public class ProviderDirect extends AbstractProviderDirect {
 	private static final Logger logger = LogManager.getLogger(ProviderDirect.class);
 
-	public ProviderApp ProviderApp;
+	protected ProviderApp ProviderApp;
 
 	@Override
 	protected long ProcessModuleRedirectRequest(ModuleRedirect rpc) throws Throwable {

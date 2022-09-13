@@ -20,4 +20,9 @@ public class ReLogin extends Zeze.Raft.RaftRpc<Zeze.Builtin.GlobalCacheManagerWi
         Argument = new Zeze.Builtin.GlobalCacheManagerWithRaft.BLoginParam();
         Result = Zeze.Transaction.EmptyBean.instance;
     }
+
+    public ReLogin(Zeze.Builtin.GlobalCacheManagerWithRaft.BLoginParam arg) {
+        Argument = arg;
+        Result = Zeze.Transaction.EmptyBean.instance;
+    }
 }

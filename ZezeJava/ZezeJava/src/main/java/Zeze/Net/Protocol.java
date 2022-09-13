@@ -161,41 +161,42 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 	public static void Decode(Service service, AsyncSocket so, ByteBuffer bb) throws Throwable {
 		while (bb.Size() >= HEADER_SIZE) { // 只有协议发送被分成很小的包，协议头都不够的时候才会发生这个异常。几乎不可能发生。
 			// 读取协议类型和大小
+			var bytes = bb.Bytes;
 			int beginReadIndex = bb.ReadIndex;
-			int moduleId = bb.ReadInt4();
-			int protocolId = bb.ReadInt4();
-			int size = bb.ReadInt4();
+			int moduleId = ByteBuffer.ToInt(bytes, beginReadIndex);
+			int protocolId = ByteBuffer.ToInt(bytes, beginReadIndex + 4);
+			int size = ByteBuffer.ToInt(bytes, beginReadIndex + 8);
 
 			// 以前写过的实现在数据不够之前会根据type检查size是否太大。
 			// 现在去掉协议的最大大小的配置了.由总的参数 SocketOptions.InputBufferMaxProtocolSize 限制。
 			// 参考 AsyncSocket
 			long longSize = size & 0xffff_ffffL;
-			if (longSize > bb.Size()) {
+			if (HEADER_SIZE + longSize > bb.Size()) {
 				// 数据不够时检查。这个检测不需要严格的。如果数据够，那就优先处理。
 				int maxSize = service.getSocketOptions().getInputBufferMaxProtocolSize();
 				if (longSize > maxSize) {
 					var factoryHandle = service.FindProtocolFactoryHandle(MakeTypeId(moduleId, protocolId));
-					String pName = factoryHandle != null && factoryHandle.Factory != null ?
+					var pName = factoryHandle != null && factoryHandle.Factory != null ?
 							factoryHandle.Factory.create().getClass().getName() : "?";
 					throw new IllegalStateException(
 							String.format("protocol '%s' in '%s' module=%d protocol=%d size=%d>%d too large!",
 									pName, service.getName(), moduleId, protocolId, longSize, maxSize));
 				}
 				// not enough data. try next time.
-				bb.ReadIndex = beginReadIndex;
 				return;
 			}
-			int endReadIndex = beginReadIndex + HEADER_SIZE + size;
+			bb.ReadIndex = beginReadIndex += HEADER_SIZE;
+			int endReadIndex = beginReadIndex + size;
 
 			var factoryHandle = service.FindProtocolFactoryHandle(MakeTypeId(moduleId, protocolId));
 			if (factoryHandle != null && factoryHandle.Factory != null) {
-				Protocol<?> p = factoryHandle.Factory.create();
+				var p = factoryHandle.Factory.create();
 				p.Decode(bb);
 				if (bb.ReadIndex != endReadIndex)
 					throw new IllegalStateException(
 							String.format("protocol '%s' in '%s' module=%d protocol=%d size=%d!=%d decode error!",
 									p.getClass().getName(), service.getName(), moduleId, protocolId,
-									bb.ReadIndex - beginReadIndex - HEADER_SIZE, size));
+									bb.ReadIndex - beginReadIndex, size));
 				p.Sender = so;
 				p.UserState = so.getUserState();
 				if (AsyncSocket.ENABLE_PROTOCOL_LOG) {

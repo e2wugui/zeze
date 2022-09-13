@@ -20,4 +20,9 @@ public class Subscribe extends Zeze.Net.Rpc<Zeze.Builtin.Provider.BSubscribe, Ze
         Argument = new Zeze.Builtin.Provider.BSubscribe();
         Result = Zeze.Transaction.EmptyBean.instance;
     }
+
+    public Subscribe(Zeze.Builtin.Provider.BSubscribe arg) {
+        Argument = arg;
+        Result = Zeze.Transaction.EmptyBean.instance;
+    }
 }

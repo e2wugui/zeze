@@ -19,4 +19,8 @@ public class ModuleRedirectAllRequest extends Zeze.Net.Protocol<Zeze.Builtin.Pro
     public ModuleRedirectAllRequest() {
         Argument = new Zeze.Builtin.ProviderDirect.BModuleRedirectAllRequest();
     }
+
+    public ModuleRedirectAllRequest(Zeze.Builtin.ProviderDirect.BModuleRedirectAllRequest arg) {
+        Argument = arg;
+    }
 }

@@ -20,4 +20,9 @@ public class ReliableNotifyConfirm extends Zeze.Net.Rpc<Zeze.Builtin.Game.Online
         Argument = new Zeze.Builtin.Game.Online.BReliableNotifyConfirm();
         Result = Zeze.Transaction.EmptyBean.instance;
     }
+
+    public ReliableNotifyConfirm(Zeze.Builtin.Game.Online.BReliableNotifyConfirm arg) {
+        Argument = arg;
+        Result = Zeze.Transaction.EmptyBean.instance;
+    }
 }

@@ -20,4 +20,9 @@ public class Acquire extends Zeze.Raft.RaftRpc<Zeze.Builtin.GlobalCacheManagerWi
         Argument = new Zeze.Builtin.GlobalCacheManagerWithRaft.BAcquireParam();
         Result = new Zeze.Builtin.GlobalCacheManagerWithRaft.BReduceParam();
     }
+
+    public Acquire(Zeze.Builtin.GlobalCacheManagerWithRaft.BAcquireParam arg) {
+        Argument = arg;
+        Result = new Zeze.Builtin.GlobalCacheManagerWithRaft.BReduceParam();
+    }
 }

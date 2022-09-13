@@ -31,7 +31,7 @@ public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 	// 重载需要的方法。
 	@Override
 	public <P extends Protocol<?>> void DispatchProtocol(P p, Service.ProtocolFactoryHandle<P> factoryHandle) {
-		if (null != factoryHandle.Handle) {
+		if (factoryHandle.Handle != null) {
 			if (p.getTypeId() == Bind.TypeId_ || p.getTypeId() == Subscribe.TypeId_) {
 				// Bind 的处理需要同步等待ServiceManager的订阅成功，时间比较长，
 				// 不要直接在io-thread里面执行。

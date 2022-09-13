@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Builtin.Provider.AnnounceProviderInfo;
+import Zeze.Builtin.Provider.BAnnounceProviderInfo;
 import Zeze.Builtin.Provider.Bind;
 import Zeze.Builtin.Provider.Subscribe;
 import Zeze.Net.AsyncSocket;
@@ -16,7 +17,7 @@ import Zeze.Util.TaskCompletionSource;
 public class ProviderService extends Zeze.Services.HandshakeClient {
 	// private static final Logger logger = LogManager.getLogger(ProviderService.class);
 
-	public ProviderApp ProviderApp;
+	protected ProviderApp ProviderApp;
 	private final ConcurrentHashMap<String, Connector> Links = new ConcurrentHashMap<>();
 	private volatile Connector[] LinkConnectors = new Connector[0];
 	private final AtomicInteger LinkRandomIndex = new AtomicInteger();
@@ -47,22 +48,22 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 			return;
 
 		var link = Links.get(linkName);
-		if (null != link)
+		if (link != null)
 			ProviderImplement.SendKick(link.TryGetReadySocket(), linkSid, code, desc);
 	}
 
 	@Override
 	public void Start() throws Throwable {
 		// copy Config.Connector to Links
-		getConfig().ForEachConnector((c) -> getLinks().putIfAbsent(c.getName(), c));
+		getConfig().ForEachConnector(c -> Links.putIfAbsent(c.getName(), c));
 		super.Start();
 	}
 
 	public void Apply(BServiceInfos serviceInfos) {
-		HashSet<String> current = new HashSet<>();
+		var current = new HashSet<String>();
 		for (var link : serviceInfos.getServiceInfoListSortedByIdentity()) {
 			var linkName = GetLinkName(link);
-			var connector = getLinks().computeIfAbsent(linkName, (key) -> {
+			var connector = Links.computeIfAbsent(linkName, __ -> {
 				var outC = new OutObject<Connector>();
 				if (getConfig().TryGetOrAddConnector(link.getPassiveIp(), link.getPassivePort(), true, outC)) {
 					try {
@@ -77,12 +78,11 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 				current.add(connector.getName());
 		}
 		// 删除多余的连接器。
-		for (var linkName : getLinks().keySet()) {
-			if (current.contains(linkName)) {
+		for (var linkName : Links.keySet()) {
+			if (current.contains(linkName))
 				continue;
-			}
-			var removed = getLinks().remove(linkName);
-			if (null != removed) {
+			var removed = Links.remove(linkName);
+			if (removed != null) {
 				getConfig().RemoveConnector(removed);
 				removed.Stop();
 			}
@@ -91,18 +91,12 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 	}
 
 	public static class LinkSession {
-		private final String Name;
-		private final long SessionId;
+		public final String Name;
+		public final long SessionId;
 
 		public LinkSession(String name, long sid) {
 			Name = name;
 			SessionId = sid;
-		}
-		public final String getName() {
-			return Name;
-		}
-		public final long getSessionId() {
-			return SessionId;
 		}
 	}
 
@@ -125,26 +119,22 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 	@Override
 	public void OnHandshakeDone(AsyncSocket sender) throws Throwable {
 		super.OnHandshakeDone(sender);
-		var linkName = GetLinkName(sender);
-		sender.setUserState(new LinkSession(linkName, sender.getSessionId()));
+		sender.setUserState(new LinkSession(GetLinkName(sender), sender.getSessionId()));
 
-		var announce = new AnnounceProviderInfo();
-		announce.Argument.setServiceNamePrefix(ProviderApp.ServerServiceNamePrefix);
-		announce.Argument.setServiceIndentity(String.valueOf(getZeze().getConfig().getServerId()));
-		announce.Argument.setProviderDirectIp(ProviderApp.DirectIp);
-		announce.Argument.setProviderDirectPort(ProviderApp.DirectPort);
+		var announce = new AnnounceProviderInfo(new BAnnounceProviderInfo(ProviderApp.ServerServiceNamePrefix,
+				String.valueOf(getZeze().getConfig().getServerId()), ProviderApp.DirectIp, ProviderApp.DirectPort));
 		announce.Send(sender);
 
 		// static binds
-		var rpc = new Bind();
-		ProviderApp.StaticBinds.foreach(rpc.Argument.getModules()::put);
-		rpc.Send(sender, (protocol) -> {
+		var bind = new Bind();
+		ProviderApp.StaticBinds.foreach(bind.Argument.getModules()::put);
+		bind.Send(sender, rpc -> {
 			ProviderStaticBindCompleted.SetResult(true);
 			return 0;
 		});
 		var sub = new Subscribe();
 		ProviderApp.DynamicModules.foreach(sub.Argument.getModules()::put);
-		sub.Send(sender, (protocol) -> {
+		sub.Send(sender, rpc -> {
 			ProviderDynamicSubscribeCompleted.SetResult(true);
 			return 0;
 		});
@@ -158,7 +148,7 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 		report.Argument.setProposeMaxOnline(proposeMaxOnline);
 		report.Argument.setOnlineNew(onlineNew);
 
-		for (var link : getLinks().values()) {
+		for (var link : Links.values()) {
 			if (link.isHandshakeDone()) {
 				link.getSocket().Send(report);
 			}

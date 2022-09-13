@@ -24,10 +24,27 @@ public class LoadConfig {
 		ApproximatelyLinkdCount = value;
 	}
 
-	public final int getReportDelaySeconds() { return ReportDelaySeconds; }
-	public final void setReportDelaySeconds(int value) { ReportDelaySeconds = value; }
-	public final int getProposeMaxOnline() { return ProposeMaxOnline; }
-	public final void setProposeMaxOnline(int value) { ProposeMaxOnline = value; }
-	public final int getDigestionDelayExSeconds() { return DigestionDelayExSeconds; }
-	public final void setDigestionDelayExSeconds(int value) { DigestionDelayExSeconds = value; }
+	public final int getReportDelaySeconds() {
+		return ReportDelaySeconds;
+	}
+
+	public final void setReportDelaySeconds(int value) {
+		ReportDelaySeconds = value;
+	}
+
+	public final int getProposeMaxOnline() {
+		return ProposeMaxOnline;
+	}
+
+	public final void setProposeMaxOnline(int value) {
+		ProposeMaxOnline = value;
+	}
+
+	public final int getDigestionDelayExSeconds() {
+		return DigestionDelayExSeconds;
+	}
+
+	public final void setDigestionDelayExSeconds(int value) {
+		DigestionDelayExSeconds = value;
+	}
 }

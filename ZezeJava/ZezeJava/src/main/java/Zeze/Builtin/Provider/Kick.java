@@ -19,4 +19,8 @@ public class Kick extends Zeze.Net.Protocol<Zeze.Builtin.Provider.BKick> {
     public Kick() {
         Argument = new Zeze.Builtin.Provider.BKick();
     }
+
+    public Kick(Zeze.Builtin.Provider.BKick arg) {
+        Argument = arg;
+    }
 }

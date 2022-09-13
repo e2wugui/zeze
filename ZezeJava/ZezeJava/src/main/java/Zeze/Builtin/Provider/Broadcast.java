@@ -19,4 +19,8 @@ public class Broadcast extends Zeze.Net.Protocol<Zeze.Builtin.Provider.BBroadcas
     public Broadcast() {
         Argument = new Zeze.Builtin.Provider.BBroadcast();
     }
+
+    public Broadcast(Zeze.Builtin.Provider.BBroadcast arg) {
+        Argument = arg;
+    }
 }

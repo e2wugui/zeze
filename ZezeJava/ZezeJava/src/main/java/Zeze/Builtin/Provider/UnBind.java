@@ -20,4 +20,9 @@ public class UnBind extends Zeze.Net.Rpc<Zeze.Builtin.Provider.BBind, Zeze.Trans
         Argument = new Zeze.Builtin.Provider.BBind();
         Result = Zeze.Transaction.EmptyBean.instance;
     }
+
+    public UnBind(Zeze.Builtin.Provider.BBind arg) {
+        Argument = arg;
+        Result = Zeze.Transaction.EmptyBean.instance;
+    }
 }

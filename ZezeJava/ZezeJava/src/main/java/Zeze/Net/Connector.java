@@ -18,6 +18,7 @@ import org.w3c.dom.Element;
 public class Connector {
 	private final String HostNameOrAddress;
 	private final int Port;
+	private final String name;
 	private Service Service;
 	private AsyncSocket Socket;
 	private volatile TaskCompletionSource<AsyncSocket> FutureSocket = new TaskCompletionSource<>();
@@ -50,12 +51,14 @@ public class Connector {
 	public Connector(String host, int port, boolean autoReconnect) {
 		HostNameOrAddress = host;
 		Port = port;
+		name = host + ':' + port;
 		IsAutoReconnect = autoReconnect;
 	}
 
 	public Connector(Element self) {
 		HostNameOrAddress = self.getAttribute("HostNameOrAddress");
 		Port = Integer.parseInt(self.getAttribute("Port"));
+		name = HostNameOrAddress + ':' + Port;
 		String attr = self.getAttribute("IsAutoReconnect");
 		IsAutoReconnect = !attr.isEmpty() && Boolean.parseBoolean(attr);
 		if (!attr.isEmpty())
@@ -79,7 +82,7 @@ public class Connector {
 	}
 
 	public final String getName() {
-		return HostNameOrAddress + ':' + Port;
+		return name;
 	}
 
 	public final Service getService() {

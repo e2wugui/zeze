@@ -5,19 +5,22 @@ import Zeze.Builtin.Provider.BKick;
 import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Builtin.Provider.Kick;
 import Zeze.Net.AsyncSocket;
+import Zeze.Net.Binary;
 import Zeze.Net.Rpc;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public abstract class ProviderImplement extends AbstractProviderImplement {
 	private static final Logger logger = LogManager.getLogger(ProviderImplement.class);
 
-	public ProviderApp ProviderApp;
+	protected ProviderApp ProviderApp;
 
 	void ApplyOnChanged(Agent.SubscribeState subState) throws Throwable {
 		if (subState.getServiceName().equals(ProviderApp.LinkdServiceName)) {
@@ -28,15 +31,14 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			// 对于 SubscribeTypeSimple 是不需要 SetReady 的，为了能一致处理，就都设置上了。
 			// 对于 SubscribeTypeReadyCommit 在 ApplyOnPrepare 中处理。
 			if (subState.getSubscribeType() == BSubscribeInfo.SubscribeTypeSimple)
-				this.ProviderApp.ProviderDirectService.TryConnectAndSetReady(subState, subState.getServiceInfos());
+				ProviderApp.ProviderDirectService.TryConnectAndSetReady(subState, subState.getServiceInfos());
 		}
 	}
 
 	void ApplyOnPrepare(Agent.SubscribeState subState) throws Throwable {
 		var pending = subState.getServiceInfosPending();
-		if (pending != null && pending.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)) {
-			this.ProviderApp.ProviderDirectService.TryConnectAndSetReady(subState, pending);
-		}
+		if (pending != null && pending.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix))
+			ProviderApp.ProviderDirectService.TryConnectAndSetReady(subState, pending);
 	}
 
 	/**
@@ -70,50 +72,51 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	}
 
 	public static void SendKick(AsyncSocket sender, long linkSid, int code, String desc) {
-		var p = new Kick();
-		p.Argument.setLinksid(linkSid);
-		p.Argument.setCode(code);
-		p.Argument.setDesc(desc);
-		p.Send(sender);
+		new Kick(new BKick(linkSid, code, desc)).Send(sender);
 	}
 
 	@Override
 	protected long ProcessDispatch(Dispatch p) {
+		var sender = p.getSender();
+		var linkSid = p.Argument.getLinkSid();
 		try {
 			var factoryHandle = ProviderApp.ProviderService.FindProtocolFactoryHandle(p.Argument.getProtocolType());
 			if (factoryHandle == null) {
-				SendKick(p.getSender(), p.Argument.getLinkSid(), BKick.ErrorProtocolUnknown, "unknown protocol");
+				SendKick(sender, linkSid, BKick.ErrorProtocolUnknown, "unknown protocol");
 				return Procedure.LogicError;
 			}
 			var p2 = factoryHandle.Factory.create();
-			p2.Decode(Zeze.Serialize.ByteBuffer.Wrap(p.Argument.getProtocolData()));
-			p2.setSender(p.getSender());
+			p2.Decode(ByteBuffer.Wrap(p.Argument.getProtocolData()));
+			p2.setSender(sender);
+			// 以下字段不再需要读了,避免ProviderUserSession引用太久,置空
+			p.Argument.setProtocolData(Binary.Empty);
+			p.Argument.setContextx(Binary.Empty);
 
-			var session = new ProviderUserSession(ProviderApp.ProviderService, p.Argument.getAccount(),
-					p.Argument.getContext(), p.getSender(), p.Argument.getLinkSid());
+			var session = new ProviderUserSession(p);
 			p2.setUserState(session);
 
 			if (AsyncSocket.ENABLE_PROTOCOL_LOG) {
 				if (p2.isRequest()) {
 					if (p2 instanceof Rpc)
-						AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "DISP[{}] {}({}): {}", p.Argument.getLinkSid(),
+						AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "DISP[{}] {}({}): {}", linkSid,
 								p2.getClass().getSimpleName(), ((Rpc<?, ?>)p2).getSessionId(), p2.Argument);
 					else
-						AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "DISP[{}] {}: {}", p.Argument.getLinkSid(),
+						AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "DISP[{}] {}: {}", linkSid,
 								p2.getClass().getSimpleName(), p2.Argument);
 				} else
-					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "DISP[{}] {}({})>{} {}", p.Argument.getLinkSid(),
-							p2.getClass().getSimpleName(), ((Rpc<?, ?>)p2).getSessionId(), p2.getResultCode(), p2.getResultBean());
+					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "DISP[{}] {}({})>{} {}", linkSid,
+							p2.getClass().getSimpleName(), ((Rpc<?, ?>)p2).getSessionId(), p2.getResultCode(),
+							p2.getResultBean());
 			}
 
 			Transaction txn = Transaction.getCurrent();
 			if (txn != null) {
 				// 已经在事务中，嵌入执行。此时忽略p2的NoProcedure配置。
 				Procedure proc = txn.getTopProcedure();
-				assert proc != null;
+				//noinspection ConstantConditions
 				proc.setActionName(p2.getClass().getName());
 				proc.setUserState(p2.getUserState());
-				return Zeze.Util.Task.Call(() -> factoryHandle.Handle.handleProtocol(p2), p2, (p3, code) -> {
+				return Task.Call(() -> factoryHandle.Handle.handleProtocol(p2), p2, (p3, code) -> {
 					p3.setResultCode(code);
 					session.sendResponse(p3);
 				});
@@ -121,14 +124,14 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 
 			if (p2.getSender().getService().getZeze() == null || factoryHandle.Level == TransactionLevel.None) {
 				// 应用框架不支持事务或者协议配置了"不需要事务”
-				return Zeze.Util.Task.Call(() -> factoryHandle.Handle.handleProtocol(p2), p2, (p3, code) -> {
+				return Task.Call(() -> factoryHandle.Handle.handleProtocol(p2), p2, (p3, code) -> {
 					p3.setResultCode(code);
 					session.sendResponse(p3);
 				});
 			}
 
 			// 创建存储过程并且在当前线程中调用。
-			return Zeze.Util.Task.Call(
+			return Task.Call(
 					p2.getSender().getService().getZeze().NewProcedure(() -> factoryHandle.Handle.handleProtocol(p2),
 							p2.getClass().getName(), factoryHandle.Level, p2.getUserState()),
 					p2, (p3, code) -> {
@@ -136,7 +139,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 						session.sendResponse(p3);
 					});
 		} catch (Throwable ex) {
-			SendKick(p.getSender(), p.Argument.getLinkSid(), BKick.ErrorProtocolException, ex.toString());
+			SendKick(sender, linkSid, BKick.ErrorProtocolException, ex.toString());
 			logger.error("", ex);
 			return Procedure.Success;
 		}

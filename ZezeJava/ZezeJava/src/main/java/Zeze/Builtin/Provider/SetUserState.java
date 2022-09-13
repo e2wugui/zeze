@@ -19,4 +19,8 @@ public class SetUserState extends Zeze.Net.Protocol<Zeze.Builtin.Provider.BSetUs
     public SetUserState() {
         Argument = new Zeze.Builtin.Provider.BSetUserState();
     }
+
+    public SetUserState(Zeze.Builtin.Provider.BSetUserState arg) {
+        Argument = arg;
+    }
 }

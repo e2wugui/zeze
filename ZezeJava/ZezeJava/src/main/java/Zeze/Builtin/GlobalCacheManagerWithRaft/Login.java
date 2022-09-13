@@ -20,4 +20,9 @@ public class Login extends Zeze.Raft.RaftRpc<Zeze.Builtin.GlobalCacheManagerWith
         Argument = new Zeze.Builtin.GlobalCacheManagerWithRaft.BLoginParam();
         Result = new Zeze.Builtin.GlobalCacheManagerWithRaft.BAchillesHeelConfig();
     }
+
+    public Login(Zeze.Builtin.GlobalCacheManagerWithRaft.BLoginParam arg) {
+        Argument = arg;
+        Result = new Zeze.Builtin.GlobalCacheManagerWithRaft.BAchillesHeelConfig();
+    }
 }
