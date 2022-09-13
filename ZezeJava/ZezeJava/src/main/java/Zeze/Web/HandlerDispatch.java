@@ -45,7 +45,7 @@ public class HandlerDispatch implements HttpHandler {
 			throw new UnsupportedOperationException("not found service name: " + serviceName);
 		var hash = x.exchange.getRemoteAddress().getAddress().hashCode();
 		var provider = new OutLong();
-		if (!linkProvider.Distribute.ChoiceHash(services, hash, provider)) {
+		if (!linkProvider.getDistribute().ChoiceHash(services, hash, provider)) {
 			x.sendErrorResponse("Provider Not Found.");
 			x.close(); // 请求还没有转给server，直接关闭。
 			return;

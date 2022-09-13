@@ -74,10 +74,7 @@ public class ProviderApp {
 			}
 		});
 
-		this.Distribute = new ProviderDistribute();
-		this.Distribute.LoadConfig = loadConfig;
-		this.Distribute.Zeze = Zeze;
-		this.Distribute.ProviderService = ProviderDirectService;
+		this.Distribute = new ProviderDistribute(zeze, loadConfig, toOtherProviderService);
 
 		this.Zeze.getServiceManagerAgent().setOnChanged((ss) -> {
 			ProviderImplement.ApplyOnChanged(ss);

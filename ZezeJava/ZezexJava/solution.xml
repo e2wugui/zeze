@@ -234,7 +234,7 @@
 		<bean name="BNodeRoot">
 			<variable id="1" name="HeadNodeId" type="long"/>
 			<variable id="2" name="TailNodeId" type="long"/>
-			<variable id="3" name="LoadSerialNo" type="long"/>
+			<variable id="3" name="LoadSerialNo" type="long"/> 每次启动加载时都会自增
 		</bean>
 
 		<table name="tNodeRoot" key="int" value="BNodeRoot" /> key is serverid 每一台server拥有自己的链表。
@@ -242,25 +242,25 @@
 		<bean name="BTimer">
 			<variable id="1" name="TimerId" type="long"/>
 			<variable id="2" name="Name" type="string"/>
-			<variable id="3" name="Delay" type="long"/>
-			<variable id="4" name="Period" type="long"/>
+			<variable id="3" name="Delay" type="long"/> 首次延迟时间(毫秒)
+			<variable id="4" name="Period" type="long"/> 周期时间(毫秒), -1表示只有首次延迟
 			<variable id="5" name="RemainTimes" type="long"/> -1 表示不限次数。
 		</bean>
 
 		<bean name="BNode">
 			<variable id="1" name="PrevNodeId" type="long"/>
 			<variable id="2" name="NextNodeId" type="long"/>
-			<variable id="3" name="Timers" type="map" key="long" value="BTimer"/>
+			<variable id="3" name="Timers" type="map" key="long" value="BTimer"/> key is timerId, alloc by AutoKey("Game.Timer.TimerIdGenerator")
 		</bean>
 
-		<table name="tNodes" key="long" value="BNode"/>
+		<table name="tNodes" key="long" value="BNode"/> key is nodeId, alloc by AutoKey("Game.Timer.NodeIdGenerator")
 
 		<bean name="BIndex">
 			<variable id="1" name="ServerId" type="int"/>
 			<variable id="2" name="NodeId" type="long"/>
 		</bean>
 
-		<table name="tIndexs" key="long" value="BIndex" />
+		<table name="tIndexs" key="long" value="BIndex" /> key is timerId
 	</module>
 
 	<module name="LongSet" id="12">

@@ -59,7 +59,8 @@ public final class AutoKey {
 	public long nextId() {
 		var bb = nextByteBuffer();
 		if (bb.Size() > 8)
-			throw new IllegalStateException("out of range");
+			throw new IllegalStateException("out of range: serverId=" + module.Zeze.getConfig().getServerId()
+					+ ", nextId=" + bb);
 		return ByteBuffer.ToLongBE(bb.Bytes, bb.ReadIndex, bb.Size()); // 这里用BE(大端)是为了保证返回值一定为正
 	}
 

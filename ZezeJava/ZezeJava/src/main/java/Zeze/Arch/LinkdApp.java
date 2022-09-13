@@ -4,6 +4,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Web.HttpAuth;
+import Zeze.Web.HttpService;
 
 public class LinkdApp {
 	public final String LinkdServiceName;
@@ -16,12 +17,10 @@ public class LinkdApp {
 	public final int ProviderPort;
 	public final ConcurrentHashMap<String, HttpAuth> WebAuth = new ConcurrentHashMap<>();
 
-	public Zeze.Web.HttpService HttpService; // 可选模块，需要自己初始化。但是内部实现需要这个引用。所以定义在这里了。
+	public HttpService HttpService; // 可选模块，需要自己初始化。但是内部实现需要这个引用。所以定义在这里了。
 
-	public LinkdApp(String linkdServiceName,
-					Zeze.Application zeze, LinkdProvider linkdProvider,
-					LinkdProviderService linkdProviderService, LinkdService linkdService,
-					LoadConfig LoadConfig) {
+	public LinkdApp(String linkdServiceName, Zeze.Application zeze, LinkdProvider linkdProvider,
+					LinkdProviderService linkdProviderService, LinkdService linkdService, LoadConfig loadConfig) {
 		LinkdServiceName = linkdServiceName;
 		Zeze = zeze;
 		LinkdProvider = linkdProvider;
@@ -31,20 +30,16 @@ public class LinkdApp {
 		LinkdService = linkdService;
 		LinkdService.LinkdApp = this;
 
-		LinkdProvider.Distribute = new ProviderDistribute();
-		LinkdProvider.Distribute.ProviderService = LinkdProviderService;
-		LinkdProvider.Distribute.Zeze = Zeze;
-		LinkdProvider.Distribute.LoadConfig = LoadConfig;
-
+		LinkdProvider.Distribute = new ProviderDistribute(zeze, loadConfig, linkdProviderService);
 		LinkdProvider.RegisterProtocols(LinkdProviderService);
 
 		Zeze.getServiceManagerAgent().setOnChanged(LinkdProvider.Distribute::ApplyServers);
 		Zeze.getServiceManagerAgent().setOnUpdate(LinkdProvider.Distribute::AddServer);
 		Zeze.getServiceManagerAgent().setOnRemoved(LinkdProvider.Distribute::RemoveServer);
 
-		Zeze.getServiceManagerAgent().setOnSetServerLoad((serverLoad) -> {
-			var ps = this.LinkdProviderService.ProviderSessions.get(serverLoad.getName());
-			if (null != ps) {
+		Zeze.getServiceManagerAgent().setOnSetServerLoad(serverLoad -> {
+			var ps = LinkdProviderService.ProviderSessions.get(serverLoad.getName());
+			if (ps != null) {
 				var bb = ByteBuffer.Wrap(serverLoad.Param);
 				var load = new BLoad();
 				load.Decode(bb);

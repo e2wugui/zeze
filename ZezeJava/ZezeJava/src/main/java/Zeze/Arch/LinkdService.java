@@ -56,8 +56,8 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		public AsyncSocket AuthedSocket;
 	}
 
-	public LinkdApp LinkdApp;
-	private ConcurrentLruLike<StableLinkSidKey, StableLinkSid> StableLinkSids;
+	protected LinkdApp LinkdApp;
+	protected ConcurrentLruLike<StableLinkSidKey, StableLinkSid> StableLinkSids;
 
 	public LinkdService(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);
@@ -170,12 +170,11 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 	}
 
 	public boolean findSend(LinkdUserSession linkSession, int moduleId, Dispatch dispatch) {
-		var provider = new Zeze.Util.OutLong();
-		if (linkSession.TryGetProvider(moduleId, provider)) {
-			var socket = LinkdApp.LinkdProviderService.GetSocket(provider.Value);
-			if (null != socket) {
+		var providerSessionId = linkSession.TryGetProvider(moduleId);
+		if (providerSessionId != null) {
+			var socket = LinkdApp.LinkdProviderService.GetSocket(providerSessionId);
+			if (socket != null)
 				return socket.Send(dispatch);
-			}
 			// 原来绑定的provider找不到连接，尝试继续从静态绑定里面查找。
 			// 此时应该处于 UnBind 过程中。
 			//linkSession.UnBind(so, moduleId, null);

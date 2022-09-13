@@ -15,8 +15,8 @@ import org.apache.logging.log4j.Logger;
 public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 	private static final Logger logger = LogManager.getLogger(LinkdProviderService.class);
 
-	public LinkdApp LinkdApp;
-	public final ConcurrentHashMap<String, ProviderSession> ProviderSessions = new ConcurrentHashMap<>();
+	protected LinkdApp LinkdApp;
+	protected final ConcurrentHashMap<String, ProviderSession> ProviderSessions = new ConcurrentHashMap<>();
 
 	public LinkdProviderService(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);
