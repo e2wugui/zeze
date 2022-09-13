@@ -63,8 +63,9 @@ vector4.__index = vector4
 message_init.vector4 = vector4
 
 function message_init.init(message)
-    {{- for solution in solutions }}
-    message_init.{{solution.name}} = message.{{solution.name}}
+    {{- _set = [] -}}
+    {{- for solution_name in solutionNames }}
+    message_init.{{solution_name}} = message.{{solution_name}}
     {{- end }}
 end
 

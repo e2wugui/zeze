@@ -168,12 +168,12 @@ namespace Zeze.Gen.luaClient
             }
 
             {
-                var solutions = allRefModulesList.Select(m => m.Solution).ToHashSet();
+                var solutionNames = allRefModulesList.Select(m => m.Solution.Name).ToHashSet();
                 string luaInitTemplateText = GetTemplate("message_init.lua");
                 Template luaInitTemplate = Template.Parse(luaInitTemplateText);
                 string luaRoot = luaInitTemplate.Render(new
                 {
-                    solutions
+                    solutionNames
                 });
 
                 using StreamWriter sw = Program.OpenStreamWriter(Path.Combine(genDir, "message_init.lua"));
