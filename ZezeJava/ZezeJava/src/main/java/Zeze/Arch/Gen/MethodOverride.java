@@ -84,6 +84,13 @@ final class MethodOverride {
 				resultType = rpType.getActualTypeArguments()[0];
 				resultClass = (Class<?>)(resultType instanceof Class ?
 						resultType : ((ParameterizedType)resultType).getRawType());
+				try {
+					if (resultClass != Long.class)
+						resultClass.getConstructor((Class<?>[])null);
+				} catch (NoSuchMethodException e) {
+					throw new IllegalStateException("RedirectFuture<> Result Type Must Be 'Long' or any type contains" +
+							" default constructor: " + method.getDeclaringClass().getName() + "::" + method.getName());
+				}
 			} else {
 				resultType = null;
 				resultClass = null;
