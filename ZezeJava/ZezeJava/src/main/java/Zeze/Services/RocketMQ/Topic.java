@@ -4,7 +4,7 @@ import javax.jms.JMSException;
 
 public class Topic implements javax.jms.Topic {
 
-	private String name;
+	private final String name;
 
 	public Topic(String name) {
 		this.name = name;

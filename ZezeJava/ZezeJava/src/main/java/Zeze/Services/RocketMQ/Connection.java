@@ -15,9 +15,9 @@ import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 
 public class Connection implements javax.jms.Connection {
 	private String clientID;
-	private org.apache.rocketmq.client.ClientConfig clientConfig = new org.apache.rocketmq.client.ClientConfig();
+	private final ClientConfig clientConfig = new ClientConfig();
 	private MQClientInstance clientInstance;
-	private List<Session> sessionList = new ArrayList();
+	private final List<Session> sessionList = new ArrayList<>();
 	private int sendTimeout = 0;
 
 	public Connection(String nameServerAddress, String clientID, String instanceName) {
@@ -125,7 +125,7 @@ public class Connection implements javax.jms.Connection {
 		this.sendTimeout = sendTimeout;
 	}
 
-	public org.apache.rocketmq.client.ClientConfig getClientConfig() {
+	public ClientConfig getClientConfig() {
 		return clientConfig;
 	}
 

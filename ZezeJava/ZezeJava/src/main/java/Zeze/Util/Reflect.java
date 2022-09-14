@@ -20,6 +20,7 @@ import Zeze.Transaction.TransactionLevel;
 public class Reflect {
 	public static final boolean inDebugMode = !"true".equals(System.getProperty("noDebugMode")) &&
 			ManagementFactory.getRuntimeMXBean().getInputArguments().toString().indexOf("-agentlib:jdwp") > 0;
+	public static final StackWalker stackWalker = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
 	private static final HashMap<Class<?>, String> stableNameMap = new HashMap<>(32);
 
 	static {
@@ -102,6 +103,10 @@ public class Reflect {
 
 	public static String GetStableName(Class<?> cls, Class<?> tplCls1, Class<?> tplCls2) {
 		return cls.getName() + '<' + GetStableName(tplCls1) + ", " + GetStableName(tplCls2) + '>';
+	}
+
+	public static Class<?> getCallerClass() {
+		return stackWalker.getCallerClass();
 	}
 
 	@SuppressWarnings("unchecked")

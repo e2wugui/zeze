@@ -43,6 +43,7 @@ import Zeze.Util.IntHashMap;
 import Zeze.Util.OutLong;
 import Zeze.Util.Random;
 import Zeze.Util.RedirectGenMain;
+import Zeze.Util.Reflect;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -138,7 +139,7 @@ public class Online extends AbstractOnline {
 
 	@Deprecated // 仅供内部使用, 正常创建应该调用 Online.create(app)
 	public Online() {
-		if (StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass() != RedirectGenMain.class)
+		if (Reflect.getCallerClass() != RedirectGenMain.class)
 			throw new IllegalCallerException();
 		ProviderApp = null;
 		LoadReporter = null;
@@ -370,9 +371,9 @@ public class Online extends AbstractOnline {
 
 	public void send(AsyncSocket to, Map<Long, Long> contexts, Send send) {
 		send.Send(to, (rpc) -> triggerLinkBroken(
-			Zeze.Arch.ProviderService.GetLinkName(to),
-			send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(),
-			contexts));
+				Zeze.Arch.ProviderService.GetLinkName(to),
+				send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(),
+				contexts));
 	}
 
 	public void sendEmbed(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {

@@ -1,8 +1,7 @@
 package Zeze.Services.RocketMQ;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.client.producer.LocalTransactionState;
+import org.apache.rocketmq.common.message.MessageExt;
 
 public abstract class TransactionListener implements org.apache.rocketmq.client.producer.TransactionListener {
 	public enum State {
@@ -11,11 +10,11 @@ public abstract class TransactionListener implements org.apache.rocketmq.client.
 		UNKNOW,
 	}
 
-	private AtomicInteger transactionIndex = new AtomicInteger(0);
-	private ConcurrentHashMap<String, Integer> localTrans = new ConcurrentHashMap<String, Integer>(); // <TransactionID, Status>
+//	private final AtomicInteger transactionIndex = new AtomicInteger(0);
+//	private final ConcurrentHashMap<String, Integer> localTrans = new ConcurrentHashMap<>(); // <TransactionID, Status>
 
 	@Override
-	public org.apache.rocketmq.client.producer.LocalTransactionState executeLocalTransaction(org.apache.rocketmq.common.message.Message msg, Object arg) {
+	public LocalTransactionState executeLocalTransaction(org.apache.rocketmq.common.message.Message msg, Object arg) {
 		switch (sendHalfMessage(new Message(msg), arg)) {
 		case COMMIT_MESSAGE:
 			return LocalTransactionState.COMMIT_MESSAGE;
@@ -27,7 +26,7 @@ public abstract class TransactionListener implements org.apache.rocketmq.client.
 	}
 
 	@Override
-	public org.apache.rocketmq.client.producer.LocalTransactionState checkLocalTransaction(org.apache.rocketmq.common.message.MessageExt msg) {
+	public LocalTransactionState checkLocalTransaction(MessageExt msg) {
 		switch (checkTransaction(new Message(msg))) {
 		case COMMIT_MESSAGE:
 			return LocalTransactionState.COMMIT_MESSAGE;

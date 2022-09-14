@@ -17,6 +17,7 @@ import Zeze.Builtin.Game.Rank.BRankList;
 import Zeze.Builtin.Game.Rank.BRankValue;
 import Zeze.Net.Binary;
 import Zeze.Util.RedirectGenMain;
+import Zeze.Util.Reflect;
 
 public class Rank extends AbstractRank {
 	private final AppBase app;
@@ -31,7 +32,7 @@ public class Rank extends AbstractRank {
 
 	@Deprecated // 仅供内部使用, 正常创建应该调用 Rank.create(app)
 	public Rank() {
-		if (StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass() != RedirectGenMain.class)
+		if (Reflect.getCallerClass() != RedirectGenMain.class)
 			throw new IllegalCallerException();
 		app = null;
 	}

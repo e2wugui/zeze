@@ -5,10 +5,14 @@ import javax.jms.Destination;
 import javax.jms.IllegalStateException;
 import javax.jms.JMSException;
 import javax.jms.Message;
+import org.apache.rocketmq.client.ClientConfig;
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.client.producer.SendResult;
 
 public class MessageProducer implements javax.jms.MessageProducer {
 
-	org.apache.rocketmq.client.producer.DefaultMQProducer producer;
+	DefaultMQProducer producer;
 	protected Session session;
 	protected Destination destination; // default destination
 	protected int deliveryMode;
@@ -24,13 +28,13 @@ public class MessageProducer implements javax.jms.MessageProducer {
 	}
 
 	public MessageProducer(Session session, int producerId, Destination destination, int sendTimeout) {
-		this.producer = new org.apache.rocketmq.client.producer.DefaultMQProducer("producer" + producerId);
+		this.producer = new DefaultMQProducer("producer" + producerId);
 		this.producerID = producerId;
 		this.session = session;
 		this.destination = destination;
 
 //		this.producer.setSendMsgTimeout(sendTimeout); // Fixme: fix sendTimeout
-		org.apache.rocketmq.client.ClientConfig clientConfig = session.getConnection().getClientConfig();
+		ClientConfig clientConfig = session.getConnection().getClientConfig();
 		this.producer.setNamesrvAddr(clientConfig.getNamesrvAddr());
 	}
 
@@ -73,7 +77,7 @@ public class MessageProducer implements javax.jms.MessageProducer {
 
 			// TODO: deal with message delay time
 //			msg.setDelayTimeLevel(1);
-			org.apache.rocketmq.client.producer.SendResult sendResult = producer.send(msg);
+			SendResult sendResult = producer.send(msg);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -206,7 +210,7 @@ public class MessageProducer implements javax.jms.MessageProducer {
 	public void start() {
 		try {
 			this.producer.start();
-		} catch (org.apache.rocketmq.client.exception.MQClientException e) {
+		} catch (MQClientException e) {
 			// TODO: exception handling
 			System.out.println(e.getErrorMessage());
 		}

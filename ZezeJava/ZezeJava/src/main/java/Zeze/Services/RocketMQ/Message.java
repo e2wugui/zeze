@@ -17,7 +17,7 @@ public class Message implements javax.jms.Message {
 	private String type;
 	private long expiration;
 	private byte priority;
-	private Map<String, Object> properties = new java.util.HashMap<String, Object>();
+	private final Map<String, Object> properties = new java.util.HashMap<>();
 	//	protected transient Callback acknowledgeCallback;// may would be used?
 	private byte[] body;
 	private String transactionId;
@@ -236,7 +236,7 @@ public class Message implements javax.jms.Message {
 
 	@Deprecated
 	@Override
-	public Enumeration getPropertyNames() throws JMSException {
+	public Enumeration<?> getPropertyNames() throws JMSException {
 		// TODO: maybe would be used in the future, but not intended to implement now
 		return null;
 	}

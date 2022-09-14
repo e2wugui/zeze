@@ -6,8 +6,8 @@ import javax.jms.JMSException;
 
 public class ConnectionFactory implements javax.jms.ConnectionFactory {
 
-	private String nameServerAddress;
-	private String clientId;
+	private final String nameServerAddress;
+	private final String clientId;
 
 	public ConnectionFactory(String nameServerAddress) {
 		this.nameServerAddress = nameServerAddress;

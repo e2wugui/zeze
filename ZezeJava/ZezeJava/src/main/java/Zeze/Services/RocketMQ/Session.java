@@ -15,9 +15,9 @@ import javax.jms.TemporaryTopic;
 import javax.jms.TopicSubscriber;
 
 public class Session implements javax.jms.Session {
-	private Connection connection;
-	private int acknowledgeMode;
-	private boolean transacted;
+	private final Connection connection;
+	private final int acknowledgeMode;
+	private final boolean transacted;
 
 	protected boolean closed;
 	private MessageListener messageListener;
@@ -125,7 +125,7 @@ public class Session implements javax.jms.Session {
 
 	@Override
 	public javax.jms.MessageConsumer createConsumer(Destination destination) throws JMSException {
-		return createConsumer(destination, (String)null);
+		return createConsumer(destination, null);
 	}
 
 	@Override

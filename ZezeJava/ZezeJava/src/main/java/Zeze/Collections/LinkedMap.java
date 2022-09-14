@@ -78,8 +78,8 @@ public class LinkedMap<V extends Bean> {
 			return (LinkedMap<T>)LinkedMaps.computeIfAbsent(name, k -> new LinkedMap<>(this, k, valueClass, 100));
 		}
 
-		public ConcurrentHashMap<String, ChangeListener> NodeListeners = new ConcurrentHashMap<>();
-		public ConcurrentHashMap<String, ChangeListener> RootListeners = new ConcurrentHashMap<>();
+		public final ConcurrentHashMap<String, ChangeListener> NodeListeners = new ConcurrentHashMap<>();
+		public final ConcurrentHashMap<String, ChangeListener> RootListeners = new ConcurrentHashMap<>();
 	}
 
 	private final Module module;
