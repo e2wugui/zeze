@@ -128,6 +128,7 @@
 		<!-- 好友列表用 Zeze.Collections.LinkedMap 下面时自定义数据结构的定义 -->
 		<bean name="BFriend">
 			<variable id="1" name="Memo" type="string"/>
+			<variable id="2" name="isTop" type="bool"/>
 		</bean>
 
 		<!-- 协议：读取好友节点 -->
@@ -151,6 +152,19 @@
 		</bean>
 
 		<rpc name="AddFriend" argument="BAddFriend" handle="server"/>
+
+		<bean name="BDeleteFriend">
+			<variable id="1" name="Account" type="string"/>
+			<variable id="2" name="FriendID" type="int"/>
+		</bean>
+		<rpc name="DeleteFriend" argument="BDeleteFriend" handle="server"/>
+
+		<bean name="BMakeFriendTop">
+			<variable id="1" name="Account" type="string"/>
+			<variable id="2" name="FriendID" type="int"/>
+			<variable id="3" name="isTop" type="bool"/>
+		</bean>
+		<rpc name="MakeFriendTop" argument="BMakeFriendTop" handle="server"/>
 
 		<bean name="BFriendNodeLogBean">
 			<enum name="ChangeTagRemove" value="0"/> ChangeLog is empty
@@ -303,6 +317,13 @@
 		</bean>
 		<rpc name="AddManager" argument="BAddManager" handle="server"/>
 		<rpc name="DeleteManager" argument="BDeleteManager" handle="server"/>
+
+		<bean name="BTopmostFriend">
+			<variable id="1" name="NodeId" type="long"/>
+			<variable id="2" name="Node"   type="Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode"/>
+		</bean>
+
+		<rpc name="GetTopmostFriend" result="BTopmostFriend" handle="server"/>
 
 	</module>
 

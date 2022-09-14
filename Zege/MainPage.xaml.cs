@@ -13,6 +13,8 @@ namespace Zege
     {
         public App App { get; private set; }
 
+        public bool IsRefreshing;
+
         public MainPage()
         {
             InitializeComponent();
@@ -54,6 +56,8 @@ namespace Zege
             var selected = FriendsListView.SelectedItem as FriendItem;
             if (null == selected)
                 return;
+
+            // TODO: make selected to top here
 
             App.Zege_Message.ShowHistory(selected.Account);
         }
@@ -141,6 +145,31 @@ namespace Zege
         private void OnClear(object sender, EventArgs e)
         {
             SecureStorage.Default.RemoveAll();
+        }
+
+        private void OnAddTail(object sender, EventArgs e)
+        {
+            App.Zege_Friend.AddNewFriend();
+        }
+
+        private void OnDeleteTail(object sender, EventArgs e)
+        {
+            App.Zege_Friend.DeleteTail();
+        }
+
+        private void OnMakeCurrentFriendTop(object sender, EventArgs e)
+        {
+            App.Zege_Friend.MakeCurrentFriendTop();
+        }
+
+        private void OnReturnTop(object sender, EventArgs e)
+        {
+            App.Zege_Friend.ReturnTop();
+        }
+
+        private void OnTest(object sender, EventArgs e)
+        {
+            App.Zege_Friend.Test();
         }
     }
 }

@@ -13,22 +13,30 @@ namespace Zege.Friend
     {
         public void Start(global::Zege.App app)
         {
+            MaxNodeSize = 200; // TODO: move this to config
+            EmptyFriend = false;
+            TopDirty = true;
         }
 
         public void Stop(global::Zege.App app)
         {
+            EmptyFriend = false;
+            TopDirty = true;
         }
 
         // 给ListView提供数据，可能是本地CachedNodes中好友的一部分。
         private ObservableCollection<FriendItem> ItemsSource { get; set; } = new();
         private ListView ListView { get; set; }
 
-        // 置顶好友单独保存。
-        // private BTopmostFriend Topmost;
 
         // 先实现仅从尾部添加和删除节点的方案。
         // 支持从头部删除下一步考虑。
         private List<BGetFriendNode> Nodes { get; } = new();
+        private int MaxNodeSize { get; set; }
+        private bool EmptyFriend { get;set; }
+        // 置顶好友单独保存。
+        private BTopmostFriend Topmost;
+        private bool TopDirty { get; set; }
         private GetFriendNode GetFriendNodePending { get; set; }
 
         [DispatchMode(Mode = DispatchMode.UIThread)]
@@ -68,6 +76,15 @@ namespace Zege.Friend
 
         private GetFriendNode TryNewGetFriendNode(bool forward)
         {
+            if (EmptyFriend)
+                return null;
+
+            if (TopDirty)
+            {
+                GetTopMost(); // TODO: resolve failure case
+                TopDirty = false;
+            }
+
             if (forward)
             {
                 if (Nodes.Count > 0)
@@ -79,8 +96,12 @@ namespace Zege.Friend
                     rpc.Argument.NodeId = last.Node.NextNodeId;
                     return rpc;
                 }
-                // else 尝试获取第一个节点，如果用户没有任何好友节点，会一直尝试获取，TODO 处理一下？
-                return new GetFriendNode();
+                else
+                {
+                    var rpc = new GetFriendNode();
+                    rpc.Argument.NodeId = 0;
+                    return rpc;
+                }
             }
 
             if (Nodes.Count > 0)
@@ -92,8 +113,12 @@ namespace Zege.Friend
                 rpc.Argument.NodeId = last.Node.PrevNodeId;
                 return rpc;
             }
-            // else 尝试获取第一个节点，如果用户没有任何好友节点，会一直尝试获取，TODO 处理一下？
-            return new GetFriendNode();
+            else
+            {
+                var rpc = new GetFriendNode();
+                rpc.Argument.NodeId = 0;
+                return rpc;
+            }
 
         }
 
@@ -114,6 +139,9 @@ namespace Zege.Friend
             if (r.ResultCode == 0)
             {
                 UpdateItemsSource(NodesIndexOf(r.Result.NodeId), r.Result);
+            }else if (r.ResultCode == ErrorCode(eFriendNodeNotFound))
+            {
+                EmptyFriend = true;
             }
             return Task.FromResult(0L);
         }
@@ -250,6 +278,80 @@ namespace Zege.Friend
                 }
             }
         }
+
+        // Test Field
+        static int NextFriendId = 0;
+
+        private void GetTopMost()
+        {
+            var r = new GetTopmostFriend();
+            r.Send(App.ClientService.GetSocket(), ProcessGetTopMost);
+        }
+
+        [DispatchMode(Mode = DispatchMode.UIThread)]
+        private Task<long> ProcessGetTopMost(Protocol p)
+        {
+            GetFriendNodePending = null;
+            var r = p as GetTopmostFriend;
+            if (r.ResultCode == 0)
+            {
+                Topmost = r.Result;
+            }
+            return Task.FromResult(0L);
+        }
+
+        public void AddNewFriend()
+        {
+            var newFriend = new FriendItem();
+            newFriend.Nick = "Friend " + NextFriendId++;
+            newFriend.NodeId = Nodes.Count;
+            newFriend.Image = "https://www.google.com/images/hpp/Chrome_Owned_96x96.png";
+            newFriend.Time = DateTime.Now.ToString();
+            newFriend.Message = "";
+            ItemsSource.Add(newFriend); // TODO: remove this
+
+            var r = new AddFriend();
+            //r.Argument.Account = 
+            r.Send(App.ClientService.GetSocket(), ProcessAddNewFriend);
+        }
+
+        [DispatchMode(Mode = DispatchMode.UIThread)]
+        private Task<long> ProcessAddNewFriend(Protocol p)
+        {
+            GetFriendNodePending = null;
+            var r = p as AddFriend;
+            if (r.ResultCode == 0)
+            {
+                TryGetFriendNode(false);
+            }
+            return Task.FromResult(0L);
+        }
+
+        public void DeleteTail()
+        {
+            var r = new DeleteFriend();
+            r.Argument.FriendID = -1;
+            r.Send(App.ClientService.GetSocket());
+        }
+
+        public void MakeCurrentFriendTop()
+        {
+            TopDirty = true;
+            var r = new MakeFriendTop();
+            r.Send(App.ClientService.GetSocket());
+        }
+
+        public void ReturnTop()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Test()
+        {
+            var res = TryNewGetFriendNode(true);
+        }
+        // Test Field
+
     }
 
     public class FriendItem

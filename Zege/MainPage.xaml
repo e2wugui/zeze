@@ -61,6 +61,11 @@
                     <Button Text="Create" Clicked="OnCreateClicked" Grid.Row="3" Grid.Column="1"/>
                     <Button Text="Clear All Certs" Grid.ColumnSpan="2" Clicked="OnClear" Grid.Row="4"/>
                 </Grid>
+                <Button Text="Add Tail" Clicked="OnAddTail" Grid.Row="2" Grid.Column="1"/>
+                <Button Text="Delete Tail" Clicked="OnDeleteTail" Grid.Row="2" Grid.Column="1"/>
+                <Button Text="Make Current Friend Top" Clicked="OnMakeCurrentFriendTop" Grid.Row="2" Grid.Column="1"/>
+                <Button Text="Return to Top" Clicked="OnReturnTop" Grid.Row="2" Grid.Column="1"/>
+                <Button Text="Test" Clicked="OnTest" Grid.Row="2" Grid.Column="1"/>
             </VerticalStackLayout>
 
         </HorizontalStackLayout>
