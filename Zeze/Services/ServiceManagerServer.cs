@@ -14,6 +14,8 @@ using Zeze.Transaction;
 using Zeze.Services.ServiceManager;
 using Zeze.Util;
 using System.Threading.Tasks;
+using System.Xml.Linq;
+using System.Collections;
 
 namespace Zeze.Services
 {
@@ -170,6 +172,11 @@ namespace Zeze.Services
             var p = _p as SetServerLoad;
             Loads.GetOrAdd(p.Argument.Name, (key) => new LoadObservers(this)).SetServerLoad(p.Argument);            
             return Task.FromResult(0L);
+        }
+
+        private Task<long> ProcessOfflineRegister(Protocol _p)
+        {
+            return Task.FromResult(ResultCode.Success);
         }
 
         public sealed class ServerState
@@ -388,6 +395,9 @@ namespace Zeze.Services
             public ConcurrentDictionary<string, SubscribeInfo> Subscribes { get; } = new();
             private SchedulerTask KeepAliveTimerTask;
 
+            private int OfflineRegisterServerId; // 原样通知,服务端不关心
+            private Dictionary<string, BOfflineNotify> OfflineRegisterNotifies = new Dictionary<string, BOfflineNotify>();
+
             public Session(ServiceManagerServer sm, long ssid)
             {
                 ServiceManager = sm;
@@ -436,6 +446,82 @@ namespace Zeze.Services
                 {
                     state.StartReadyCommitNotify();
                 }
+
+                Task.Run(async () =>
+                {
+                    BOfflineNotify[] notifyIds;
+
+                    lock (OfflineRegisterNotifies)
+                    {
+                        if(0 == OfflineRegisterNotifies.Count)
+                        {
+                            return;
+                        }
+                        var values = OfflineRegisterNotifies.Values;
+                        notifyIds = values.ToArray();
+                    }
+
+                    logger.Info("OfflineNotify: serverId={} notifyIds={} begin", OfflineRegisterServerId, string.Join(",", notifyIds.Select(x => x.ToString()).ToArray()));
+                
+                    foreach(var notifyid in notifyIds)
+                    {
+                        var skips = new HashSet<Session>();
+                        var notify = new OfflineNotify(notifyid);
+                        while (true)
+                        {
+                            var selected = randomFor(notifyid.NotifyId, skips);
+                            if(selected != null)
+                            {
+                                break;
+                            }
+                            try
+                            {
+                                await notify.SendAsync(selected.Value);
+
+                                logger.Info("OfflineNotify: serverId={} notifyId={} selectSessionId={} resultCode={}", OfflineRegisterServerId, notifyid, selected.Key.SessionId, notify.ResultCode);
+                                
+                                if(0 == notify.ResultCode)
+                                {
+                                    break;
+                                }
+                            }catch(Exception e)
+                            {
+                            }
+
+                            skips.Add(selected.Key);
+
+                        }
+                    }
+
+                    logger.Info("OfflineNotify: serverId={} end", OfflineRegisterServerId);
+                });
+            }
+
+            private KV<Session, AsyncSocket> randomFor(string notifyId, HashSet<Session> skips)
+            {
+                List<KV<Session, AsyncSocket>> sessions = new();
+                foreach (var socket in ServiceManager.Server.SocketMapInternal.Values)
+                {
+                    var session = (Session)socket.UserState;
+                    if (session != null && session != this && !skips.Contains(session))
+                    {
+                        bool contain;
+
+                        lock (session.OfflineRegisterNotifies)
+                        {
+                            contain = session.OfflineRegisterNotifies.ContainsKey(notifyId);   
+                        }
+                        if (contain)
+                        {
+                            sessions.Add(KV.Create(session, socket));
+                        }
+                    }
+                }
+
+                if (0 == sessions.Count)
+                    return null;
+
+                return sessions[(int)Util.Random.Instance.NextInt64(sessions.Count)];
             }
         }
 
@@ -658,6 +744,17 @@ namespace Zeze.Services
                 Handle = ProcessSetServerLoad,
             });
 
+            Server.AddFactoryHandle(new OfflineRegister().TypeId, new Service.ProtocolFactoryHandle()
+            {
+                Factory = () => new OfflineRegister(),
+                Handle = ProcessOfflineRegister,
+            });
+
+            Server.AddFactoryHandle(new OfflineNotify().TypeId, new Service.ProtocolFactoryHandle()
+            {
+                Factory = () => new OfflineNotify(),
+            });
+
             if (Config.StartNotifyDelay > 0)
             {
                 StartNotifyDelayTask = Scheduler.Schedule(StartNotifyAll, Config.StartNotifyDelay);
@@ -722,6 +819,80 @@ namespace Zeze.Services
                     rpc.Result.Count = count;
                 }
             }
+        }
+
+        public class BOfflineNotify : Bean
+        {
+            public int ServerId { get; set; }
+            public string NotifyId { get; set; }
+            public long NotifySerialId { get; set; } // context 如果够用就直接用这个，
+            public byte[] NotifyContext { get; set; } // context 扩展context。
+
+            public BOfflineNotify() {}
+
+            public BOfflineNotify(int serverId, string notifyId) {
+                ServerId = serverId;
+                NotifyId = notifyId;
+                NotifySerialId = (long)Convert.ToDouble(NotifyId);
+                {
+                    var bb = ByteBuffer.Allocate();
+                    bb.WriteString(NotifyId);
+                    NotifyContext = bb.Copy();
+                }
+            }
+            protected override void ResetChildrenRootInfo()
+            {
+                throw new NotImplementedException();
+            }
+
+            protected override void InitChildrenRootInfo(Record.RootInfo root)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override void Decode(ByteBuffer bb)
+            {
+                ServerId = bb.ReadInt();
+                NotifyId = bb.ReadString();
+                NotifySerialId = bb.ReadLong();
+                NotifyContext = bb.ReadBytes();
+            }
+
+            public override void Encode(ByteBuffer bb)
+            {
+                bb.WriteInt(ServerId);
+                bb.WriteString((string)NotifyId);
+                bb.WriteLong(NotifySerialId);
+                bb.WriteBytes(NotifyContext);
+            }
+        }
+
+        public class OfflineNotify : Rpc<BOfflineNotify, EmptyBean>
+        {
+            public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(OfflineNotify).FullName);
+
+            public override int ModuleId => 0;
+            public override int ProtocolId => ProtocolId_;
+
+            public OfflineNotify()
+            {
+                Argument = new BOfflineNotify();
+                Result = EmptyBean.Instance;
+            }
+
+            public OfflineNotify(BOfflineNotify bOfflineNotify)
+            {
+                Argument = bOfflineNotify;
+                Result = EmptyBean.Instance;
+            }
+        }
+
+        public class OfflineRegister : Rpc<BOfflineNotify, EmptyBean>
+        {
+            public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(OfflineRegister).FullName);
+
+            public override int ModuleId => 0;
+            public override int ProtocolId => ProtocolId_;
         }
 
         private Task<long> ProcessAllocateId(Protocol p)
