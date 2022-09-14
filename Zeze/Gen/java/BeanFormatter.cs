@@ -50,12 +50,11 @@ namespace Zeze.Gen.java
             {
                 foreach (var real in type.RealBeans)
                 {
-                    sw.WriteLine($"{prefix}public static final long DynamicTypeId{var.NameUpper1}{real.Value.Space.Path("_", real.Value.Name)} = {real.Key}L;");
+                    sw.WriteLine($"{prefix}public static final long DynamicTypeId_{var.NameUpper1}_{real.Value.Space.Path("_", real.Value.Name)} = {real.Key}L;");
                 }
-                if (type.RealBeans.Count > 0)
-                    sw.WriteLine();
             }
 
+            sw.WriteLine();
             sw.WriteLine($"{prefix}public static long GetSpecialTypeIdFromBean_{var.NameUpper1}(Zeze.Transaction.Bean bean) {{");
             if (string.IsNullOrEmpty(type.DynamicParams.GetSpecialTypeIdFromBean)) 
             {
@@ -112,6 +111,7 @@ namespace Zeze.Gen.java
 
             // declare variables
             bean.Variables.Sort((a, b) => a.Id - b.Id);
+            bool addBlankLine = false;
             foreach (Variable v in bean.Variables)
             {
                 Type vt = v.VariableType;
@@ -139,14 +139,17 @@ namespace Zeze.Gen.java
                     sw.WriteLine($"        private {readonlyTypeName} {v.NamePrivate}ReadOnly;");
                 }
                 */
+                addBlankLine = false;
                 if (vt is TypeDynamic dy0)
                     GenDynamicSpecialMethod(sw, "    ", v, dy0, false);
                 else if (vt is TypeMap map && map.ValueType is TypeDynamic dy1)
                     GenDynamicSpecialMethod(sw, "    ", v, dy1, true);
                 else if (vt is TypeCollection coll && coll.ValueType is TypeDynamic dy2)
                     GenDynamicSpecialMethod(sw, "    ", v, dy2, true);
+                else
+                    addBlankLine = true;
             }
-            if (bean.Variables.Count > 0)
+            if (addBlankLine)
                 sw.WriteLine();
 
             Property.Make(bean, sw, "    ");

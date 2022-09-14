@@ -43,7 +43,7 @@ namespace Zeze.Gen.lua
                 {
                     foreach (var real in d.RealBeans)
                     {
-                        sw.WriteLine($"    [\"DynamicTypeId{v.NameUpper1}{real.Value.Space.Path("_", real.Value.Name)}\"] = {real.Key},");
+                        sw.WriteLine($"    [\"DynamicTypeId_{v.NameUpper1}_{real.Value.Space.Path("_", real.Value.Name)}\"] = {real.Key},");
                     }
                     if (d.RealBeans.Count > 0)
                         sw.WriteLine();

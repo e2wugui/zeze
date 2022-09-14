@@ -88,10 +88,12 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__HappenTimeMills(this, 4, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BCronTimer() {
         _CronExpression = "";
     }
 
+    @SuppressWarnings("deprecation")
     public BCronTimer(String _CronExpression_, long _NextExpectedTimeMills_, long _ExpectedTimeMills_, long _HappenTimeMills_) {
         if (_CronExpression_ == null)
             throw new IllegalArgumentException();

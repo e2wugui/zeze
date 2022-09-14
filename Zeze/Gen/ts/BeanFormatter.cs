@@ -52,7 +52,7 @@ namespace Zeze.Gen.ts
             {
                 foreach (var real in d.RealBeans)
                 {
-                    sw.WriteLine($"    public static readonly DynamicTypeId{v.NameUpper1}{real.Value.Space.Path("_", real.Value.Name)} : bigint = {real.Key}n;");
+                    sw.WriteLine($"    public static readonly DynamicTypeId_{v.NameUpper1}_{real.Value.Space.Path("_", real.Value.Name)} : bigint = {real.Key}n;");
                 }
                 if (d.RealBeans.Count > 0)
                     sw.WriteLine();

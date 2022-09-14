@@ -46,9 +46,11 @@ public final class BIndex extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__NodeId(this, 2, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BIndex() {
     }
 
+    @SuppressWarnings("deprecation")
     public BIndex(int _ServerId_, long _NodeId_) {
         _ServerId = _ServerId_;
         _NodeId = _NodeId_;
