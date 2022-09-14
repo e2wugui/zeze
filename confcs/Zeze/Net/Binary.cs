@@ -113,7 +113,7 @@ namespace Zeze.Net
 
         public override int GetHashCode()
         {
-            return (int)Zeze.Serialize.ByteBuffer.calc_hashnr(_Bytes, Offset, Count);
+            return Zeze.Util.FixedHash.calc_hashnr(_Bytes, Offset, Count);
         }
 
         public int CompareTo(Binary other)

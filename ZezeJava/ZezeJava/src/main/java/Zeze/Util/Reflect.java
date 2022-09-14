@@ -105,10 +105,6 @@ public class Reflect {
 		return cls.getName() + '<' + GetStableName(tplCls1) + ", " + GetStableName(tplCls2) + '>';
 	}
 
-	public static Class<?> getCallerClass() {
-		return stackWalker.getCallerClass();
-	}
-
 	@SuppressWarnings("unchecked")
 	public static <T> T cast(Object obj) {
 		return (T)obj;

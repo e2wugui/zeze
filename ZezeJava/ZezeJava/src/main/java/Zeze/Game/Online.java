@@ -139,8 +139,8 @@ public class Online extends AbstractOnline {
 
 	@Deprecated // 仅供内部使用, 正常创建应该调用 Online.create(app)
 	public Online() {
-		if (Reflect.getCallerClass() != RedirectGenMain.class)
-			throw new IllegalCallerException();
+		if (Reflect.stackWalker.getCallerClass() != RedirectGenMain.class)
+			throw new IllegalCallerException(Reflect.stackWalker.getCallerClass().getName());
 		ProviderApp = null;
 		LoadReporter = null;
 	}

@@ -32,8 +32,8 @@ public class Rank extends AbstractRank {
 
 	@Deprecated // 仅供内部使用, 正常创建应该调用 Rank.create(app)
 	public Rank() {
-		if (Reflect.getCallerClass() != RedirectGenMain.class)
-			throw new IllegalCallerException();
+		if (Reflect.stackWalker.getCallerClass() != RedirectGenMain.class)
+			throw new IllegalCallerException(Reflect.stackWalker.getCallerClass().getName());
 		app = null;
 	}
 
@@ -163,7 +163,7 @@ public class Rank extends AbstractRank {
 	/**
 	 * 根据 value 设置到排行榜中
 	 */
-	@RedirectHash(ConcurrentLevelSource="getConcurrentLevel(keyHint.getRankType())")
+	@RedirectHash(ConcurrentLevelSource = "getConcurrentLevel(keyHint.getRankType())")
 	public RedirectFuture<Long> updateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Binary valueEx) {
 		int concurrentLevel = getConcurrentLevel(keyHint.getRankType());
 		int maxCount = getComputeCount(keyHint.getRankType());
