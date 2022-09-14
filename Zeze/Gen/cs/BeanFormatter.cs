@@ -40,7 +40,7 @@ namespace Zeze.Gen.cs
             if (false == isCollection)
             {
                 foreach (var real in type.RealBeans)
-                    sw.WriteLine($"{prefix}public const long DynamicTypeId{var.NameUpper1}{real.Value.Space.Path("_", real.Value.Name)} = {real.Key};");
+                    sw.WriteLine($"{prefix}public const long DynamicTypeId_{var.NameUpper1}_{real.Value.Space.Path("_", real.Value.Name)} = {real.Key};");
                 if (type.RealBeans.Count > 0)
                     sw.WriteLine();
             }

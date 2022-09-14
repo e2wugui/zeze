@@ -51,16 +51,18 @@ public final class BNode extends Zeze.Transaction.Bean {
         return _Timers;
     }
 
+    @SuppressWarnings("deprecation")
     public BNode() {
         _Timers = new Zeze.Transaction.Collections.PMap2<>(Long.class, Zeze.Builtin.Timer.BTimer.class);
-        _Timers.VariableId = 3;
+        _Timers.variableId(3);
     }
 
+    @SuppressWarnings("deprecation")
     public BNode(long _PrevNodeId_, long _NextNodeId_) {
         _PrevNodeId = _PrevNodeId_;
         _NextNodeId = _NextNodeId_;
         _Timers = new Zeze.Transaction.Collections.PMap2<>(Long.class, Zeze.Builtin.Timer.BTimer.class);
-        _Timers.VariableId = 3;
+        _Timers.variableId(3);
     }
 
     public void Assign(BNode other) {

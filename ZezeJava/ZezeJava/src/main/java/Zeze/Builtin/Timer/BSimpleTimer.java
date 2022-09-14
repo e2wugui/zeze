@@ -186,9 +186,11 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__HappenTimeMills(this, 9, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BSimpleTimer() {
     }
 
+    @SuppressWarnings("deprecation")
     public BSimpleTimer(long _Delay_, long _Period_, long _RemainTimes_, long _HappenTimes_, long _StartTimeInMills_, long _EndTimeInMills_, long _NextExpectedTimeMills_, long _ExpectedTimeMills_, long _HappenTimeMills_) {
         _Delay = _Delay_;
         _Period = _Period_;

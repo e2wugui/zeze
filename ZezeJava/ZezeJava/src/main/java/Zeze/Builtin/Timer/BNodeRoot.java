@@ -66,9 +66,11 @@ public final class BNodeRoot extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__LoadSerialNo(this, 3, value));
     }
 
+    @SuppressWarnings("deprecation")
     public BNodeRoot() {
     }
 
+    @SuppressWarnings("deprecation")
     public BNodeRoot(long _HeadNodeId_, long _TailNodeId_, long _LoadSerialNo_) {
         _HeadNodeId = _HeadNodeId_;
         _TailNodeId = _TailNodeId_;
