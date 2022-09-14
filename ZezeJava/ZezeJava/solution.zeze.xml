@@ -845,17 +845,75 @@
 			<table name="tSessions" key="string" value="BSession"/> key is sessionid in cookie
 		</module>
 
+		<module name="Timer" id="11016">
+			<bean name="BNodeRoot">
+				<variable id="1" name="HeadNodeId" type="long"/>
+				<variable id="2" name="TailNodeId" type="long"/>
+				<variable id="3" name="LoadSerialNo" type="long"/>
+			</bean>
+
+			<table name="tNodeRoot" key="int" value="BNodeRoot" /> key is serverid 每一台server拥有自己的链表。
+
+			<bean name="BTimer">
+				<variable id="1" name="TimerId" type="long"/>
+				<variable id="2" name="Name" type="string"/>
+				<variable id="3" name="Timer" type="dynamic">
+					<value bean="BSimpleTimer"/>
+					<value bean="BCronTimer"/>
+				</variable>
+				<variable id="4" name="CustomData" type="dynamic">
+					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::GetSpecialTypeIdFromBean"/>
+					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::CreateBeanFromSpecialTypeId"/>
+				</variable>
+			</bean>
+
+			<bean name="BSimpleTimer">
+				<variable id="1" name="Delay" type="long"/>
+				<variable id="2" name="Period" type="long"/>
+				<variable id="3" name="RemainTimes" type="long"/> -1 表示不限次数。
+				<variable id="4" name="HappenTimes" type="long"/>
+				<variable id="5" name="StartTimeInMills" type="long"/>
+				<variable id="6" name="EndTimeInMills" type="long"/> -1表示没有结束时间
+				<variable id="7" name="NextExpectedTimeMills" type="long"/>
+				<variable id="8" name="ExpectedTimeMills" type="long"/>
+				<variable id="9" name="HappenTimeMills" type="long"/>
+			</bean>
+
+			<bean name="BCronTimer">
+				<variable id="1" name="CronExpression" type="string"/>
+				<variable id="2" name="NextExpectedTimeMills" type="long"/>
+				<variable id="3" name="ExpectedTimeMills" type="long"/>
+				<variable id="4" name="HappenTimeMills" type="long"/>
+			</bean>
+
+			<bean name="BNode">
+				<variable id="1" name="PrevNodeId" type="long"/>
+				<variable id="2" name="NextNodeId" type="long"/>
+				<variable id="3" name="Timers" type="map" key="long" value="BTimer"/>
+			</bean>
+
+			<table name="tNodes" key="long" value="BNode"/>
+
+			<bean name="BIndex">
+				<variable id="1" name="ServerId" type="int"/>
+				<variable id="2" name="NodeId" type="long"/>
+			</bean>
+
+			<table name="tIndexs" key="long" value="BIndex" />
+		</module>
 		<!--
-		可用id范围 [11016, 11100) [11103, 12000]
-		<module name="" id="11016">
-		</module>
-		<module name="" id="11103">
-		</module>
+		可用id范围 [11017, 11100) [11103, 12000]
 		-->
 
 	</module> Builtin
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+
+	<component name="Timer" gendir="src/main/java" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Timer"/>
+		</service>
+	</component>
 
 	<!-- account online -->
 	<component name="Online" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java">

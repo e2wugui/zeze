@@ -66,6 +66,10 @@ namespace Gen
                 Path.Combine(copyDstDir, "Zeze/Util/ConfBean.cs"),
                 true);
             Zeze.Util.FileSystem.CopyFileOrDirectory(
+                Path.Combine(zezeSrcDir, "Zeze/Util/FixedHash.cs"),
+                Path.Combine(copyDstDir, "Zeze/Util/FixedHash.cs"),
+                true);
+            Zeze.Util.FileSystem.CopyFileOrDirectory(
                 Path.Combine(zezeSrcDir, "Zeze/Net/Binary.cs"),
                 Path.Combine(copyDstDir, "Zeze/Net/Binary.cs"),
                 true);

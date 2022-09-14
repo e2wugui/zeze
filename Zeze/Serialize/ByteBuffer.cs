@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Runtime.CompilerServices;
 using Zeze.Net;
+using Zeze.Util;
 
 namespace Zeze.Serialize
 {
@@ -927,36 +928,10 @@ namespace Zeze.Serialize
             return true;
         }
 
-        public static int calc_hashnr(long value)
-        {
-            return (int)((value * unchecked((long)0x9E3779B97F4A7C15L)) >> 32);
-        }
-
-        public static int calc_hashnr(string str)
-        {
-            int hash = 0;
-            for (int i = 0, n = str.Length; i < n; i++)
-                hash = (hash * 16777619) ^ str[i];
-            return hash;
-        }
-
-        public static int calc_hashnr(byte[] keys)
-        {
-            return calc_hashnr(keys, 0, keys.Length);
-        }
-
-        public static int calc_hashnr(byte[] keys, int offset, int len)
-        {
-            int hash = 0;
-            for (int end = offset + len; offset < end; offset++)
-                hash = (hash * 16777619) ^ keys[offset];
-            return hash;
-        }
-
         [SuppressMessage("ReSharper", "NonReadonlyMemberInGetHashCode")]
         public override int GetHashCode()
         {
-            return calc_hashnr(Bytes, ReadIndex, Size);
+            return FixedHash.calc_hashnr(Bytes, ReadIndex, Size);
         }
 
         // 只能增加新的类型定义，增加时记得同步 SkipUnknownField

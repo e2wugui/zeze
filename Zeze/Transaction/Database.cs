@@ -4,6 +4,7 @@ using System.Text;
 using Zeze.Serialize;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
+using Zeze.Util;
 #if USE_DATABASE
 using System.Data.SqlClient;
 using MySql.Data.MySqlClient;
@@ -1551,7 +1552,7 @@ namespace Zeze.Transaction
 
             public int GetHashCode(byte[] key)
             {
-                return ByteBuffer.calc_hashnr(key, 0, key.Length);
+                return FixedHash.calc_hashnr(key, 0, key.Length);
             }
         }
 

@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Runtime.CompilerServices;
 using Zeze.Net;
+using Zeze.Util;
 
 namespace Zeze.Serialize
 {
@@ -855,36 +856,58 @@ namespace Zeze.Serialize
 
         public override bool Equals(object obj)
         {
-            return (obj is ByteBuffer other) && Equals(other);
+            return obj is ByteBuffer other && Equals(other);
         }
 
         public static long ToLong(byte[] bytes, int offset)
         {
-            return (bytes[offset]) +
-                    ((bytes[offset + 1]) << 8) +
-                    ((bytes[offset + 2]) << 16) +
-                    ((long)(bytes[offset + 3]) << 24) +
-                    ((long)(bytes[offset + 4]) << 32) +
-                    ((long)(bytes[offset + 5]) << 40) +
-                    ((long)(bytes[offset + 6]) << 48) +
+            return bytes[offset] +
+                    (bytes[offset + 1] << 8) +
+                    (bytes[offset + 2] << 16) +
+                    ((long)bytes[offset + 3] << 24) +
+                    ((long)bytes[offset + 4] << 32) +
+                    ((long)bytes[offset + 5] << 40) +
+                    ((long)bytes[offset + 6] << 48) +
                     ((long)bytes[offset + 7] << 56);
         }
 
         public static long ToLong(byte[] bytes, int offset, int length)
         {
             long v = 0;
+            //@formatter:off
             switch (length)
             {
-                default: v = ((long)bytes[offset + 7] << 56); goto case 7;
-                case 7: v += ((long)(bytes[offset + 6]) << 48); goto case 6;
-                case 6: v += ((long)(bytes[offset + 5]) << 40); goto case 5;
-                case 5: v += ((long)(bytes[offset + 4]) << 32); goto case 4;
-                case 4: v += ((long)(bytes[offset + 3]) << 24); goto case 3;
-                case 3: v += ((bytes[offset + 2]) << 16); goto case 2;
-                case 2: v += ((bytes[offset + 1]) << 8); goto case 1;
-                case 1: v += (bytes[offset]); goto case 0;
+                default: v = (long)bytes[offset + 7] << 56; goto case 7;
+                case 7: v += (long)bytes[offset + 6] << 48; goto case 6;
+                case 6: v += (long)bytes[offset + 5] << 40; goto case 5;
+                case 5: v += (long)bytes[offset + 4] << 32; goto case 4;
+                case 4: v += (long)bytes[offset + 3] << 24; goto case 3;
+                case 3: v += bytes[offset + 2] << 16; goto case 2;
+                case 2: v += bytes[offset + 1] << 8; goto case 1;
+                case 1: v += bytes[offset]; goto case 0;
                 case 0: break;
             }
+            //@formatter:on
+            return v;
+        }
+
+        public static long ToLongBE(byte[] bytes, int offset, int length)
+        {
+            long v = 0;
+            //@formatter:off
+            switch (length)
+            {
+                default: v = bytes[offset + 7]; goto case 7;
+                case 7:	v = (v << 8) + bytes[offset + 6]; goto case 6;
+                case 6: v = (v << 8) + bytes[offset + 5]; goto case 5;
+                case 5: v = (v << 8) + bytes[offset + 4]; goto case 4;
+                case 4: v = (v << 8) + bytes[offset + 3]; goto case 3;
+                case 3: v = (v << 8) + bytes[offset + 2]; goto case 2;
+                case 2: v = (v << 8) + bytes[offset + 1]; goto case 1;
+                case 1: v = (v << 8) + bytes[offset]; break;
+                case 0: break;
+            }
+            //@formatter:on
             return v;
         }
 
@@ -905,36 +928,10 @@ namespace Zeze.Serialize
             return true;
         }
 
-        public static int calc_hashnr(long value)
-        {
-            return (int)((value * unchecked((long)0x9E3779B97F4A7C15L)) >> 32);
-        }
-
-        public static int calc_hashnr(string str)
-        {
-            int hash = 0;
-            for (int i = 0, n = str.Length; i < n; i++)
-                hash = (hash * 16777619) ^ str[i];
-            return hash;
-        }
-
-        public static int calc_hashnr(byte[] keys)
-        {
-            return calc_hashnr(keys, 0, keys.Length);
-        }
-
-        public static int calc_hashnr(byte[] keys, int offset, int len)
-        {
-            int hash = 0;
-            for (int end = offset + len; offset < end; offset++)
-                hash = (hash * 16777619) ^ keys[offset];
-            return hash;
-        }
-
         [SuppressMessage("ReSharper", "NonReadonlyMemberInGetHashCode")]
         public override int GetHashCode()
         {
-            return calc_hashnr(Bytes, ReadIndex, Size);
+            return FixedHash.calc_hashnr(Bytes, ReadIndex, Size);
         }
 
         // 只能增加新的类型定义，增加时记得同步 SkipUnknownField

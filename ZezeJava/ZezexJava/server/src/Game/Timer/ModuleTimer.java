@@ -267,7 +267,7 @@ public class ModuleTimer extends AbstractModule {
 				return 0L; // nothing need to do.
 
 			if (src.getLoadSerialNo() != loadSerialNo)
-				return 0L; // 需要接管的机器已经活过来了。
+				return 0L; // 需要接管的机器已经活过来了或者已被别人接管。
 
 			// prepare splice
 			var root = _tNodeRoot.getOrAdd(App.Zeze.getConfig().getServerId());

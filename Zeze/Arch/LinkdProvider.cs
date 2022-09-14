@@ -209,15 +209,13 @@ namespace Zeze.Arch
             switch (providerModuleState.ChoiceType)
             {
                 case BModule.ChoiceTypeHashAccount:
-                    return LinkdApp.LinkdProvider.Distribute.ChoiceHash(providers,
-                        Zeze.Serialize.ByteBuffer.calc_hashnr(linkSession.Account), out provider);
+                    return LinkdApp.LinkdProvider.Distribute.ChoiceHash(providers, FixedHash.calc_hashnr(linkSession.Account), out provider);
 
                 case BModule.ChoiceTypeHashRoleId:
                     var roleId = linkSession.RoleId;
                     if (null != roleId)
                     {
-                        return LinkdApp.LinkdProvider.Distribute.ChoiceHash(providers,
-                            Zeze.Serialize.ByteBuffer.calc_hashnr(roleId.Value), out provider);
+                        return LinkdApp.LinkdProvider.Distribute.ChoiceHash(providers, FixedHash.calc_hashnr(roleId.Value), out provider);
                     }
                     else
                     {

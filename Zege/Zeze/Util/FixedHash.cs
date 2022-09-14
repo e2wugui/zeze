@@ -10,9 +10,9 @@ namespace Zeze.Util
     // XXX: 这个算法定好之后，就不能变了。系统库的Hash算法可能改变。
     public class FixedHash
     {
+        // This is a Knuth hash
         public static long Hash64(string name)
         {
-            // This is a Knuth hash
             ulong hashedValue = 3074457345618258791ul;
             for (int i = 0; i < name.Length; i++)
             {
@@ -28,6 +28,34 @@ namespace Zeze.Util
             uint hash32 = (uint)(hash64 & 0xffffffff) ^ (uint)(hash64 >> 32);
             return (int)hash32;
         }
+
+        // calc_hashnr
+        public static int calc_hashnr(long value)
+        {
+            return (int)((value * unchecked((long)0x9E3779B97F4A7C15L)) >> 32);
+        }
+
+        public static int calc_hashnr(string str)
+        {
+            int hash = 0;
+            for (int i = 0, n = str.Length; i < n; i++)
+                hash = (hash * 16777619) ^ str[i];
+            return hash;
+        }
+
+        public static int calc_hashnr(byte[] keys)
+        {
+            return calc_hashnr(keys, 0, keys.Length);
+        }
+
+        public static int calc_hashnr(byte[] keys, int offset, int len)
+        {
+            int hash = 0;
+            for (int end = offset + len; offset < end; offset++)
+                hash = (hash * 16777619) ^ keys[offset];
+            return hash;
+        }
+
 
     }
 }
