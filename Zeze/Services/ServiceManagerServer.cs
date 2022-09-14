@@ -174,11 +174,6 @@ namespace Zeze.Services
             return Task.FromResult(0L);
         }
 
-        private Task<long> ProcessOfflineRegister(Protocol _p)
-        {
-            return Task.FromResult(ResultCode.Success);
-        }
-
         public sealed class ServerState
         {
             public ServiceManagerServer ServiceManager { get; }
@@ -395,8 +390,8 @@ namespace Zeze.Services
             public ConcurrentDictionary<string, SubscribeInfo> Subscribes { get; } = new();
             private SchedulerTask KeepAliveTimerTask;
 
-            private int OfflineRegisterServerId; // 原样通知,服务端不关心
-            private Dictionary<string, BOfflineNotify> OfflineRegisterNotifies = new Dictionary<string, BOfflineNotify>();
+            public int OfflineRegisterServerId; // 原样通知,服务端不关心
+            public Dictionary<string, BOfflineNotify> OfflineRegisterNotifies = new Dictionary<string, BOfflineNotify>();
 
             public Session(ServiceManagerServer sm, long ssid)
             {
@@ -548,6 +543,21 @@ namespace Zeze.Services
             r.SendResultCode(Register.Success);
             state.StartReadyCommitNotify();
             state.NotifySimpleOnRegister(current);
+            return Task.FromResult(ResultCode.Success);
+        }
+
+        private Task<long> ProcessOfflineRegister(Protocol _p)
+        {
+            var p = _p as OfflineRegister;
+            logger.Info("{}: OfflineRegister serverId={} notifyId={}", p.Sender, p.Argument.ServerId, p.Argument.NotifyId);
+            var session = (Session)p.Sender.UserState;
+
+            lock (session.OfflineRegisterNotifies)
+            {
+                session.OfflineRegisterServerId = p.Argument.ServerId;
+                session.OfflineRegisterNotifies.Add(p.Argument.NotifyId, p.Argument);
+            }
+            p.SendResult();
             return Task.FromResult(ResultCode.Success);
         }
 
@@ -893,6 +903,18 @@ namespace Zeze.Services
 
             public override int ModuleId => 0;
             public override int ProtocolId => ProtocolId_;
+
+            public OfflineRegister()
+            {
+                Argument = new BOfflineNotify();
+                Result = EmptyBean.Instance;
+            }
+
+            public OfflineRegister(BOfflineNotify bOfflineNotify)
+            {
+                Argument = bOfflineNotify;
+                Result = EmptyBean.Instance;
+            }
         }
 
         private Task<long> ProcessAllocateId(Protocol p)
@@ -985,6 +1007,7 @@ namespace Zeze.Services.ServiceManager
         public Action<SubscribeState, ServiceInfo> OnRemove { get; set; }
         public Action<SubscribeState> OnPrepare { get; set; }
         public Action<ServerLoad> OnSetServerLoad { get; set; }
+        public Func<ServiceManagerServer.BOfflineNotify, bool> OnOfflineNotify { get; set; }
 
         // 应用可以在这个Action内起一个测试事务并执行一次。也可以实现其他检测。
         // ServiceManager 定时发送KeepAlive给Agent，并等待结果。超时则认为服务失效。
@@ -1316,6 +1339,12 @@ namespace Zeze.Services.ServiceManager
             return p.Send(Client?.Socket);
         }
 
+        public async Task OfflineRegisterAsync(ServiceManagerServer.BOfflineNotify arg)
+        {
+            await WaitConnectorReadyAsync();
+            _ = new ServiceManagerServer.OfflineRegister(arg).SendAndCheckResultCodeAsync(Client.GetSocket());
+        }
+
         private Task<long> ProcessSubscribeFirstCommit(Protocol p)
         {
             var r = p as SubscribeFirstCommit;
@@ -1579,6 +1608,17 @@ namespace Zeze.Services.ServiceManager
                 Factory = () => new SetServerLoad(),
                 Handle = ProcessSetServerLoad,
             });
+
+            Client.AddFactoryHandle(new ServiceManagerServer.OfflineNotify().TypeId, new Service.ProtocolFactoryHandle()
+            {
+                Factory = () => new ServiceManagerServer.OfflineNotify(),
+                Handle = ProcessOfflineNotify,
+            });
+
+            Client.AddFactoryHandle(new ServiceManagerServer.OfflineRegister().TypeId, new Service.ProtocolFactoryHandle()
+            {
+                Factory = () => new ServiceManagerServer.OfflineRegister(),
+            });
         }
 
         public readonly ConcurrentDictionary<string, ServerLoad> Loads = new();
@@ -1588,6 +1628,30 @@ namespace Zeze.Services.ServiceManager
             var p = _p as SetServerLoad;
             Loads[p.Argument.Name] = p.Argument;
             OnSetServerLoad?.Invoke(p.Argument);
+            return Task.FromResult(ResultCode.Success);
+        }
+
+        private Task<long> ProcessOfflineNotify(Protocol _p)
+        {
+            var p = _p as ServiceManagerServer.OfflineNotify;
+            if (OnOfflineNotify == null)
+            {
+                p.TrySendResultCode(1);
+                return Task.FromResult(ResultCode.Success); // TODO: maybe need to use ResultCode.Exception
+            }
+            try
+            {
+                if (OnOfflineNotify(p.Argument))
+                {
+                    p.SendResult();
+                    return Task.FromResult(ResultCode.Success);
+                }
+                p.TrySendResultCode(2);
+            }
+            catch(Exception e)
+            {
+                p.TrySendResultCode(3);
+            }
             return Task.FromResult(ResultCode.Success);
         }
 
