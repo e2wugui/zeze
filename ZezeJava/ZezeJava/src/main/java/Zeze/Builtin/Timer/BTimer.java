@@ -7,11 +7,11 @@ import Zeze.Serialize.ByteBuffer;
 public final class BTimer extends Zeze.Transaction.Bean {
     private long _TimerId;
     private String _Name;
-    private final Zeze.Transaction.DynamicBean _Timer;
-    public static final long DynamicTypeId_Timer_Zeze_Builtin_Timer_BCronTimer = -6995089347718168392L;
-    public static final long DynamicTypeId_Timer_Zeze_Builtin_Timer_BSimpleTimer = 1832177636612857692L;
+    private final Zeze.Transaction.DynamicBean _TimerObj;
+    public static final long DynamicTypeIdTimerObjZeze_Builtin_Timer_BCronTimer = -6995089347718168392L;
+    public static final long DynamicTypeIdTimerObjZeze_Builtin_Timer_BSimpleTimer = 1832177636612857692L;
 
-    public static long GetSpecialTypeIdFromBean_Timer(Zeze.Transaction.Bean bean) {
+    public static long GetSpecialTypeIdFromBean_TimerObj(Zeze.Transaction.Bean bean) {
         var _typeId_ = bean.typeId();
         if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
             return Zeze.Transaction.EmptyBean.TYPEID;
@@ -19,10 +19,10 @@ public final class BTimer extends Zeze.Transaction.Bean {
             return -6995089347718168392L; // Zeze.Builtin.Timer.BCronTimer
         if (_typeId_ == 1832177636612857692L)
             return 1832177636612857692L; // Zeze.Builtin.Timer.BSimpleTimer
-        throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Timer.BTimer:Timer");
+        throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Timer.BTimer:TimerObj");
     }
 
-    public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Timer(long typeId) {
+    public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_TimerObj(long typeId) {
         if (typeId == -6995089347718168392L)
             return new Zeze.Builtin.Timer.BCronTimer();
         if (typeId == 1832177636612857692L)
@@ -92,24 +92,24 @@ public final class BTimer extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__Name(this, 2, value));
     }
 
-    public Zeze.Transaction.DynamicBean getTimer() {
-        return _Timer;
+    public Zeze.Transaction.DynamicBean getTimerObj() {
+        return _TimerObj;
     }
 
-    public Zeze.Builtin.Timer.BCronTimer getTimer_Zeze_Builtin_Timer_BCronTimer(){
-        return (Zeze.Builtin.Timer.BCronTimer)getTimer().getBean();
+    public Zeze.Builtin.Timer.BCronTimer getTimerObj_Zeze_Builtin_Timer_BCronTimer(){
+        return (Zeze.Builtin.Timer.BCronTimer)getTimerObj().getBean();
     }
 
-    public void setTimer(Zeze.Builtin.Timer.BCronTimer value) {
-        getTimer().setBean(value);
+    public void setTimerObj(Zeze.Builtin.Timer.BCronTimer value) {
+        getTimerObj().setBean(value);
     }
 
-    public Zeze.Builtin.Timer.BSimpleTimer getTimer_Zeze_Builtin_Timer_BSimpleTimer(){
-        return (Zeze.Builtin.Timer.BSimpleTimer)getTimer().getBean();
+    public Zeze.Builtin.Timer.BSimpleTimer getTimerObj_Zeze_Builtin_Timer_BSimpleTimer(){
+        return (Zeze.Builtin.Timer.BSimpleTimer)getTimerObj().getBean();
     }
 
-    public void setTimer(Zeze.Builtin.Timer.BSimpleTimer value) {
-        getTimer().setBean(value);
+    public void setTimerObj(Zeze.Builtin.Timer.BSimpleTimer value) {
+        getTimerObj().setBean(value);
     }
 
     public Zeze.Transaction.DynamicBean getCustomData() {
@@ -119,7 +119,7 @@ public final class BTimer extends Zeze.Transaction.Bean {
     @SuppressWarnings("deprecation")
     public BTimer() {
         _Name = "";
-        _Timer = new Zeze.Transaction.DynamicBean(3, BTimer::GetSpecialTypeIdFromBean_Timer, BTimer::CreateBeanFromSpecialTypeId_Timer);
+        _TimerObj = new Zeze.Transaction.DynamicBean(3, BTimer::GetSpecialTypeIdFromBean_TimerObj, BTimer::CreateBeanFromSpecialTypeId_TimerObj);
         _CustomData = new Zeze.Transaction.DynamicBean(4, Zeze.Component.Timer::GetSpecialTypeIdFromBean, Zeze.Component.Timer::CreateBeanFromSpecialTypeId);
     }
 
@@ -129,14 +129,14 @@ public final class BTimer extends Zeze.Transaction.Bean {
         if (_Name_ == null)
             throw new IllegalArgumentException();
         _Name = _Name_;
-        _Timer = new Zeze.Transaction.DynamicBean(3, BTimer::GetSpecialTypeIdFromBean_Timer, BTimer::CreateBeanFromSpecialTypeId_Timer);
+        _TimerObj = new Zeze.Transaction.DynamicBean(3, BTimer::GetSpecialTypeIdFromBean_TimerObj, BTimer::CreateBeanFromSpecialTypeId_TimerObj);
         _CustomData = new Zeze.Transaction.DynamicBean(4, Zeze.Component.Timer::GetSpecialTypeIdFromBean, Zeze.Component.Timer::CreateBeanFromSpecialTypeId);
     }
 
     public void Assign(BTimer other) {
         setTimerId(other.getTimerId());
         setName(other.getName());
-        getTimer().Assign(other.getTimer());
+        getTimerObj().Assign(other.getTimerObj());
         getCustomData().Assign(other.getCustomData());
     }
 
@@ -195,8 +195,8 @@ public final class BTimer extends Zeze.Transaction.Bean {
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("TimerId").append('=').append(getTimerId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Name").append('=').append(getName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Timer").append('=').append(System.lineSeparator());
-        getTimer().getBean().BuildString(sb, level + 4);
+        sb.append(Zeze.Util.Str.indent(level)).append("TimerObj").append('=').append(System.lineSeparator());
+        getTimerObj().getBean().BuildString(sb, level + 4);
         sb.append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("CustomData").append('=').append(System.lineSeparator());
         getCustomData().getBean().BuildString(sb, level + 4);
@@ -235,7 +235,7 @@ public final class BTimer extends Zeze.Transaction.Bean {
             }
         }
         {
-            var _x_ = getTimer();
+            var _x_ = getTimerObj();
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.DYNAMIC);
                 _x_.Encode(_o_);
@@ -264,7 +264,7 @@ public final class BTimer extends Zeze.Transaction.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            _o_.ReadDynamic(getTimer(), _t_);
+            _o_.ReadDynamic(getTimerObj(), _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 4) {
@@ -279,13 +279,13 @@ public final class BTimer extends Zeze.Transaction.Bean {
 
     @Override
     protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Timer.InitRootInfo(root, this);
+        _TimerObj.InitRootInfo(root, this);
         _CustomData.InitRootInfo(root, this);
     }
 
     @Override
     protected void ResetChildrenRootInfo() {
-        _Timer.ResetRootInfo();
+        _TimerObj.ResetRootInfo();
         _CustomData.ResetRootInfo();
     }
 
@@ -293,7 +293,7 @@ public final class BTimer extends Zeze.Transaction.Bean {
     public boolean NegativeCheck() {
         if (getTimerId() < 0)
             return true;
-        if (getTimer().NegativeCheck())
+        if (getTimerObj().NegativeCheck())
             return true;
         return false;
     }
@@ -309,7 +309,7 @@ public final class BTimer extends Zeze.Transaction.Bean {
             switch (vlog.getVariableId()) {
                 case 1: _TimerId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
                 case 2: _Name = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
-                case 3: _Timer.FollowerApply(vlog); break;
+                case 3: _TimerObj.FollowerApply(vlog); break;
                 case 4: _CustomData.FollowerApply(vlog); break;
             }
         }

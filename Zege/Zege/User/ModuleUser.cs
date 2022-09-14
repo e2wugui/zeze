@@ -82,11 +82,13 @@ namespace Zege.User
 
         public async Task<int> RegisterOffline()
         {
+            /*
             var rpc = new OfflineNotify();
             rpc.Argument.ServerId = 0; // TODO: correct server id
             rpc.Argument.NotifyId = "0"; // TODO: correct notify id
             rpc.Argument.NotifySerialId = 0L; // TODO: correct notify serial id
             await rpc.SendAsync(App.Connector.TryGetReadySocket());
+            */
             return 0;
         }
 
@@ -96,12 +98,13 @@ namespace Zege.User
                 return eAccountInvalid;
 
             // TODO: make sure account is signed in 
-
+            /*
             var rpc = new OfflineNotify();
             rpc.Argument.ServerId = ServerId; // TODO: check valid
             rpc.Argument.NotifyId = NotifyId; // TODO: check valid
             rpc.Argument.NotifySerialId = 0L; // TODO: correct notify serial id
             await rpc.SendAsync(App.Connector.TryGetReadySocket());
+            */
             return 0;
         }
     }

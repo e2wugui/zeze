@@ -857,7 +857,7 @@
 			<bean name="BTimer">
 				<variable id="1" name="TimerId" type="long"/>
 				<variable id="2" name="Name" type="string"/>
-				<variable id="3" name="Timer" type="dynamic">
+				<variable id="3" name="TimerObj" type="dynamic">
 					<value bean="BSimpleTimer"/>
 					<value bean="BCronTimer"/>
 				</variable>
