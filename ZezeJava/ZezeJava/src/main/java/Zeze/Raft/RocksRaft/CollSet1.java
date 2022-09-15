@@ -10,7 +10,7 @@ public class CollSet1<V> extends CollSet<V> {
 
 	public CollSet1(Class<V> valueClass) {
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
-		logTypeId = Zeze.Transaction.Bean.Hash32("Zeze.Raft.RocksRaft.LogSet1<" + Reflect.GetStableName(valueClass) + '>');
+		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.LogSet1<" + Reflect.GetStableName(valueClass) + '>');
 	}
 
 	private CollSet1(int logTypeId, SerializeHelper.CodecFuncs<V> valueCodecFuncs) {

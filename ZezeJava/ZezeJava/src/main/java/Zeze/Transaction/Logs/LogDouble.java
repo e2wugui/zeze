@@ -5,7 +5,7 @@ import Zeze.Transaction.Log;
 import Zeze.Serialize.ByteBuffer;
 
 public abstract class LogDouble extends Log {
-	private static final int TYPE_ID = Zeze.Transaction.Bean.Hash32("Zeze.Raft.RocksRaft.Log<double>");
+	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.Log<double>");
 
 	public double Value;
 

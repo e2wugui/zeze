@@ -34,7 +34,7 @@ public abstract class Log implements Serializable {
 			Unique = req.getUnique();
 			setCreateTime(req.getCreateTime());
 		}
-		_TypeId = Bean.Hash32(getClass().getName());
+		_TypeId = Bean.hash32(getClass().getName());
 	}
 
 	public int getTypeId() {

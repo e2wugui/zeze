@@ -12,7 +12,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 
 	public CollList2(Class<V> valueClass) {
 		valueFactory = Reflect.getDefaultConstructor(valueClass);
-		logTypeId = Zeze.Transaction.Bean.Hash32("Zeze.Raft.RocksRaft.LogList2<" + Reflect.GetStableName(valueClass) + '>');
+		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.LogList2<" + Reflect.GetStableName(valueClass) + '>');
 	}
 
 	private CollList2(int logTypeId, MethodHandle valueFactory) {

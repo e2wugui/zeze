@@ -158,7 +158,7 @@ public abstract class Record {
 
 	public final RootInfo CreateRootInfoIfNeed(TableKey tkey) {
 		var strongRef = getSoftValue();
-		var cur = strongRef != null ? strongRef.RootInfo : null;
+		var cur = strongRef != null ? strongRef.rootInfo : null;
 		return cur != null ? cur : new RootInfo(this, tkey);
 	}
 

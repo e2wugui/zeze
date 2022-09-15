@@ -4,7 +4,7 @@ import Zeze.Net.Rpc;
 import Zeze.Transaction.Bean;
 
 final class InstallSnapshot extends Rpc<BInstallSnapshotArgument, BInstallSnapshotResult> {
-	public static final int ProtocolId_ = Bean.Hash32(InstallSnapshot.class.getName());
+	public static final int ProtocolId_ = Bean.hash32(InstallSnapshot.class.getName());
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
 
 	public InstallSnapshot() {

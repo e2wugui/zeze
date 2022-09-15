@@ -6,7 +6,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Vector2;
 
 public class LogVector2 extends Log {
-	private static final int TYPE_ID = Zeze.Transaction.Bean.Hash32("Zeze.Raft.RocksRaft.Log<vector2>");
+	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.Log<vector2>");
 
 	public Vector2 Value;
 

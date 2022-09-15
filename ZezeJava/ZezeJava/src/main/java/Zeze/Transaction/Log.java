@@ -33,7 +33,7 @@ public abstract class Log implements Serializable {
 	}
 
 	public Log(String typeName) {
-		_TypeId = Zeze.Transaction.Bean.Hash32(typeName);
+		_TypeId = Zeze.Transaction.Bean.hash32(typeName);
 	}
 
 	public int getTypeId() {

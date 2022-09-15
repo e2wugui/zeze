@@ -8,7 +8,7 @@ import Zeze.Transaction.EmptyBean;
  * 动态服务启动时通过这个rpc注册自己。
  */
 public class Register extends Rpc<BServiceInfo, EmptyBean> {
-	public static final int ProtocolId_ = Bean.Hash32(Register.class.getName()); // -1080792024
+	public static final int ProtocolId_ = Bean.hash32(Register.class.getName()); // -1080792024
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 3214175272
 
 	public static final int Success = 0;

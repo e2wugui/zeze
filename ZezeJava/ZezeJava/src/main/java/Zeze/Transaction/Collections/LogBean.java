@@ -8,7 +8,7 @@ import Zeze.Transaction.Savepoint;
 import Zeze.Util.IntHashMap;
 
 public class LogBean extends Log {
-	private static final int TYPE_ID = Zeze.Transaction.Bean.Hash32("Zeze.Transaction.Collections.LogBean");
+	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Transaction.Collections.LogBean");
 
 	private IntHashMap<Log> Variables;
 	private Zeze.Transaction.Bean This;

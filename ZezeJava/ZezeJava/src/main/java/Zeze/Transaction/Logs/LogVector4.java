@@ -6,7 +6,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 
 public abstract class LogVector4 extends Log {
-	private static final int TYPE_ID = Zeze.Transaction.Bean.Hash32("Zeze.Raft.RocksRaft.Log<vector4>");
+	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.Log<vector4>");
 
 	public Vector4 Value;
 

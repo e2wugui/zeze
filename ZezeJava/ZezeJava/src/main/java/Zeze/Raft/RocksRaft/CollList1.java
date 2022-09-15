@@ -11,7 +11,7 @@ public class CollList1<V> extends CollList<V> {
 
 	public CollList1(Class<V> valueClass) {
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
-		logTypeId = Zeze.Transaction.Bean.Hash32("Zeze.Raft.RocksRaft.LogList1<" + Reflect.GetStableName(valueClass) + '>');
+		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.LogList1<" + Reflect.GetStableName(valueClass) + '>');
 	}
 
 	private CollList1(int logTypeId, SerializeHelper.CodecFuncs<V> valueCodecFuncs) {
