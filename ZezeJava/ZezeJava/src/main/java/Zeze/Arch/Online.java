@@ -48,7 +48,7 @@ import org.apache.logging.log4j.Logger;
 public class Online extends AbstractOnline {
 	private static final Logger logger = LogManager.getLogger(Online.class);
 
-	private final ProviderApp ProviderApp;
+	public final ProviderApp ProviderApp;
 	//public final LoadReporter LoadReporter;
 	private final AtomicLong _LoginTimes = new AtomicLong();
 

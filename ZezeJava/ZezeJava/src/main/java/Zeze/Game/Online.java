@@ -52,7 +52,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class Online extends AbstractOnline {
-	private static final Logger logger = LogManager.getLogger(Online.class);
+	public static long GetSpecialTypeIdFromBean(Bean bean) {
+		return bean.typeId();
+	}
 
 	public static Bean CreateBeanFromSpecialTypeId(long typeId) {
 		throw new UnsupportedOperationException("Online Memory Table Dynamic Not Need.");
@@ -61,6 +63,7 @@ public class Online extends AbstractOnline {
 	protected static final Logger logger = LogManager.getLogger(Online.class);
 
 	public final ProviderApp ProviderApp;
+	private LoadReporter LoadReporter;
 
 	public int getLocalCount() {
 		return _tlocal.getCacheSize();
@@ -104,11 +107,6 @@ public class Online extends AbstractOnline {
 
 	private final AtomicLong LoginTimes = new AtomicLong();
 
-	private final EventDispatcher loginEvents = new EventDispatcher("Online.Login");
-	private final EventDispatcher reloginEvents = new EventDispatcher("Online.Relogin");
-	private final EventDispatcher logoutEvents = new EventDispatcher("Online.Logout");
-	private final EventDispatcher localRemoveEvents = new EventDispatcher("Online.Local.Remove");
-
 	public interface TransmitAction {
 		/**
 		 * @param sender 查询发起者，结果发送给他
@@ -123,14 +121,6 @@ public class Online extends AbstractOnline {
 
 	public static Online create(AppBase app) {
 		return GenModule.createRedirectModule(Online.class, app);
-	}
-
-	public static long GetSpecialTypeIdFromBean(Bean bean) {
-		return bean.typeId();
-	}
-
-	public static Bean CreateBeanFromSpecialTypeId(long typeId) {
-		throw new UnsupportedOperationException("Online Memory Table Dynamic Not Need.");
 	}
 
 	@Deprecated // 仅供内部使用, 正常创建应该调用 Online.create(app)
@@ -176,14 +166,6 @@ public class Online extends AbstractOnline {
 		return _taccount;
 	}
 
-	public int getLocalCount() {
-		return _tlocal.getCacheSize();
-	}
-
-	public long walkLocal(TableWalkHandle<Long, BLocal> walker) {
-		return _tlocal.WalkCache(walker);
-	}
-
 	public long getLoginTimes() {
 		return LoginTimes.get();
 	}
@@ -210,26 +192,6 @@ public class Online extends AbstractOnline {
 
 	public final ConcurrentHashMap<String, TransmitAction> getTransmitActions() {
 		return transmitActions;
-	}
-
-	public void setLocalBean(long roleId, String key, Bean bean) {
-		var bLocal = _tlocal.get(roleId);
-		if (null == bLocal)
-			throw new IllegalStateException("roleId not online. " + roleId);
-		var bAny = new BAny();
-		bAny.getAny().setBean(bean);
-		bLocal.getDatas().put(key, bAny);
-	}
-
-	@SuppressWarnings("unchecked")
-	public <T extends Bean> T getLocalBean(long roleId, String key) {
-		var bLocal = _tlocal.get(roleId);
-		if (null == bLocal)
-			return null;
-		var data = bLocal.getDatas().get(key);
-		if (null == data)
-			return null;
-		return (T)data.getAny().getBean();
 	}
 
 	public long addRole(String account, long roleId) {
