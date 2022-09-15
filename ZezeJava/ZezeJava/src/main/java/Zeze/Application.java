@@ -7,6 +7,7 @@ import java.util.concurrent.Future;
 import Zeze.Arch.RedirectBase;
 import Zeze.Collections.Queue;
 import Zeze.Component.AutoKey;
+import Zeze.Component.Timer;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManagerWithRaftAgent;
 import Zeze.Services.ServiceManager.Agent;
@@ -43,6 +44,7 @@ public final class Application {
 	private final Locks Locks = new Locks();
 	private final Agent ServiceManagerAgent;
 	private AutoKey.Module autoKey;
+	private Timer timer;
 	private Zeze.Collections.Queue.Module queueModule;
 	private IGlobalAgent GlobalAgent;
 	private Zeze.Transaction.AchillesHeelDaemon AchillesHeelDaemon;
@@ -180,6 +182,7 @@ public final class Application {
 	public AutoKey GetAutoKey(String name) {
 		return autoKey.getOrAdd(name);
 	}
+	public Timer getTimer() { return timer; }
 
 	public Zeze.Collections.Queue.Module getQueueModule() {
 		return queueModule;
@@ -227,6 +230,7 @@ public final class Application {
 			// 自动初始化的组件。
 			autoKey = new AutoKey.Module(this);
 			queueModule = new Queue.Module(this);
+			timer = new Timer(this);
 
 			// XXX Remove Me
 			Conf.ClearInUseAndIAmSureAppStopped(this, Databases);
@@ -311,6 +315,8 @@ public final class Application {
 			if (null != AchillesHeelDaemon)
 				AchillesHeelDaemon.start();
 			IsStart = true;
+
+			timer.Start();
 		}
 	}
 
@@ -319,6 +325,11 @@ public final class Application {
 			return;
 		IsStart = false;
 		logger.info("Stop ServerId={}", Conf != null ? Conf.getServerId() : -1);
+
+		if (null != timer) {
+			timer.Stop();
+			timer = null;
+		}
 
 		ShutdownHook.remove(this);
 

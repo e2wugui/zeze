@@ -33,7 +33,7 @@ public class Timer extends AbstractTimer {
 	public static final int TimerCountPerNode = 200;
 
 	private static final Logger logger = LogManager.getLogger(Timer.class);
-	private AppBase App;
+	public final Zeze.Application Zeze;
 	private AutoKey NodeIdAutoKey;
 	private AutoKey TimerIdAutoKey;
 	// 保存所有可用的timer处理回调，由于可能需要把timer的触发派发到其他服务器执行，必须静态注册。
@@ -41,12 +41,14 @@ public class Timer extends AbstractTimer {
 	private final ConcurrentHashMap<String, Action1<TimerContext>> TimerHandles = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, Future<?>> TimersLocal = new ConcurrentHashMap<>();
 
+	public Timer(Zeze.Application zeze) {
+		this.Zeze = zeze;
+	}
 	@SuppressWarnings("unchecked")
-	public void Start(AppBase app) throws Throwable {
-		App = app;
-		NodeIdAutoKey = app.getZeze().GetAutoKey("Zeze.Component.Timer.NodeId");
-		TimerIdAutoKey = app.getZeze().GetAutoKey("Zeze.Component.Timer.TimerId");
-		if (0L != App.getZeze().NewProcedure(() -> {
+	public void Start() throws Throwable {
+		NodeIdAutoKey = Zeze.GetAutoKey("Zeze.Component.Timer.NodeId");
+		TimerIdAutoKey = Zeze.GetAutoKey("Zeze.Component.Timer.TimerId");
+		if (0L != Zeze.NewProcedure(() -> {
 			var classes = _tCustomClasses.getOrAdd(1);
 			for (var cls : classes.getCustomClasses()) {
 				beanFactory.register((Class<? extends Bean>)Class.forName(cls));
@@ -55,10 +57,10 @@ public class Timer extends AbstractTimer {
 		}, "").Call()) {
 			throw new IllegalStateException("Load Item Classes Failed.");
 		}
-		Zeze.Util.Task.run(this::LoadTimerLocal, "LoadTimerLocal");
+		Task.run(this::LoadTimerLocal, "LoadTimerLocal");
 	}
 
-	public void Stop(AppBase app) throws Throwable {
+	public void Stop() throws Throwable {
 	}
 
 	public void addHandle(String name, Action1<TimerContext> action) {
@@ -89,7 +91,7 @@ public class Timer extends AbstractTimer {
 		if (delay < 0)
 			throw new IllegalArgumentException();
 
-		var serverId = App.getZeze().getConfig().getServerId();
+		var serverId = Zeze.getConfig().getServerId();
 		var root = _tNodeRoot.getOrAdd(serverId);
 		var nodeId = root.getHeadNodeId();
 		if (nodeId == 0) { // no node
@@ -177,7 +179,7 @@ public class Timer extends AbstractTimer {
 	}
 
 	public long schedule(String cronExpression, String name, Bean customData) throws ParseException {
-		var serverId = App.getZeze().getConfig().getServerId();
+		var serverId = Zeze.getConfig().getServerId();
 		var root = _tNodeRoot.getOrAdd(serverId);
 		var nodeId = root.getHeadNodeId();
 		if (nodeId == 0) { // no node
@@ -207,7 +209,7 @@ public class Timer extends AbstractTimer {
 			}
 
 			if (node.getTimers().size() < TimerCountPerNode) {
-				long curMills = System.currentTimeMillis();
+				//long curMills = System.currentTimeMillis();
 				var timerId = TimerIdAutoKey.nextId();
 				var timer = new BTimer();
 				timer.setTimerId(timerId);
@@ -233,9 +235,7 @@ public class Timer extends AbstractTimer {
 				_tIndexs.tryAdd(timerId, index);
 
 				final var finalNodeId = nodeId;
-				Transaction.whileCommit(() -> {
-					ScheduleCronLocal(serverId, timerId, finalNodeId, cronExpression, name);
-				});
+				Transaction.whileCommit(() -> ScheduleCronLocal(serverId, timerId, finalNodeId, cronExpression, name));
 				return timerId;
 			}
 			nodeId = NodeIdAutoKey.nextId();
@@ -247,7 +247,7 @@ public class Timer extends AbstractTimer {
 		var index = _tIndexs.get(timerId);
 		if (null == index) {
 			// 尽可能的执行取消操作，不做严格判断。
-			CancelTimerLocal(App.getZeze().getConfig().getServerId(), timerId, 0, null);
+			CancelTimerLocal(Zeze.getConfig().getServerId(), timerId, 0, null);
 			return;
 		}
 
@@ -311,10 +311,10 @@ public class Timer extends AbstractTimer {
 
 	private void ScheduleSimpleLocal(int serverId, long timerId, long nodeId, long delay, long period, String name) {
 		if (period > 0) {
-			TimersLocal.put(timerId, Zeze.Util.Task.scheduleUnsafe(delay, period,
+			TimersLocal.put(timerId, Task.scheduleUnsafe(delay, period,
 					() -> TriggerTimerLocal(serverId, timerId, nodeId, name)));
 		} else {
-			TimersLocal.put(timerId, Zeze.Util.Task.scheduleUnsafe(delay,
+			TimersLocal.put(timerId, Task.scheduleUnsafe(delay,
 					() -> TriggerTimerLocal(serverId, timerId, nodeId, name)));
 		}
 	}
@@ -322,7 +322,7 @@ public class Timer extends AbstractTimer {
 	private long TriggerTimerLocal(int serverId, long timerId, long nodeId, String name) {
 		final var handle = TimerHandles.get(name);
 
-		Zeze.Util.Task.Call(App.getZeze().NewProcedure(() -> {
+		Task.Call(Zeze.NewProcedure(() -> {
 			var index = _tIndexs.get(timerId);
 			if (null != index) {
 				var node = _tNodes.get(index.getNodeId());
@@ -351,7 +351,7 @@ public class Timer extends AbstractTimer {
 								}
 
 								/* skip nest procdure result */
-								Task.Call(App.getZeze().NewProcedure(() -> {
+								Task.Call(Zeze.NewProcedure(() -> {
 									var context = new TimerContext(timer, curTimeMills,
 											simpleTimer.getNextExpectedTimeMills(),
 											simpleTimer.getExpectedTimeMills());
@@ -386,7 +386,7 @@ public class Timer extends AbstractTimer {
 	}
 
 	private void ScheduleCronNext(int serverId, long timerId, long nodeId, long delay, String name) {
-		TimersLocal.put(timerId, Zeze.Util.Task.scheduleUnsafe(delay, () -> CronAction(serverId, timerId, nodeId, name)));
+		TimersLocal.put(timerId, Task.scheduleUnsafe(delay, () -> CronAction(serverId, timerId, nodeId, name)));
 	}
 
 	public static Calendar getNextValidTimeAfter(String cron, Calendar calendar) throws ParseException {
@@ -411,7 +411,7 @@ public class Timer extends AbstractTimer {
 
 	private void CronAction(int serverId, long timerId, long nodeId, String name) {
 		final var handle = TimerHandles.get(name);
-		Zeze.Util.Task.Call(App.getZeze().NewProcedure(() -> {
+		Task.Call(Zeze.NewProcedure(() -> {
 			var index = _tIndexs.get(timerId);
 			if (null != index) {
 				var node = _tNodes.get(index.getNodeId());
@@ -434,7 +434,7 @@ public class Timer extends AbstractTimer {
 								cronTimer.getExpectedTimeMills());
 
 						/* skip nest procdure result */
-						Task.Call(App.getZeze().NewProcedure(() -> {
+						Task.Call(Zeze.NewProcedure(() -> {
 							handle.run(context);
 							return Procedure.Success;
 						}, "TriggerLocalHandle"));
@@ -449,9 +449,9 @@ public class Timer extends AbstractTimer {
 	}
 
 	private void LoadTimerLocal() {
-		var serverId = App.getZeze().getConfig().getServerId();
+		var serverId = Zeze.getConfig().getServerId();
 		final var out = new OutObject<BNodeRoot>();
-		if (Procedure.Success == Zeze.Util.Task.Call(App.getZeze().NewProcedure(() ->
+		if (Procedure.Success == Task.Call(Zeze.NewProcedure(() ->
 		{
 			var root = _tNodeRoot.getOrAdd(serverId);
 			// 本地每次load都递增。用来处理和接管的并发。
@@ -467,13 +467,13 @@ public class Timer extends AbstractTimer {
 	// 收到接管通知的服务器调用这个函数进行接管处理。
 	// @serverId 需要接管的服务器Id。
 	private long SpliceAndLoadTimerLocal(int serverId, long loadSerialNo) {
-		if (serverId == App.getZeze().getConfig().getServerId())
+		if (serverId == Zeze.getConfig().getServerId())
 			throw new IllegalArgumentException();
 
 		final var first = new OutObject<Long>();
 		final var last = new OutObject<Long>();
 
-		var result = Zeze.Util.Task.Call(App.getZeze().NewProcedure(() ->
+		var result = Task.Call(Zeze.NewProcedure(() ->
 		{
 			var src = _tNodeRoot.get(serverId);
 			if (null == src || src.getHeadNodeId() == 0 || src.getTailNodeId() == 0)
@@ -483,7 +483,7 @@ public class Timer extends AbstractTimer {
 				return 0L; // 需要接管的机器已经活过来了。
 
 			// prepare splice
-			var root = _tNodeRoot.getOrAdd(App.getZeze().getConfig().getServerId());
+			var root = _tNodeRoot.getOrAdd(Zeze.getConfig().getServerId());
 			var srchead = _tNodes.get(src.getHeadNodeId());
 			var srctail = _tNodes.get(src.getTailNodeId());
 			var head = _tNodes.get(root.getHeadNodeId());
@@ -524,8 +524,8 @@ public class Timer extends AbstractTimer {
 					var cronTimer = (BCronTimer) timer.getTimerObj().getBean();
 					ScheduleCronLocal(serverId, timer.getTimerId(), first, cronTimer.getCronExpression(), timer.getName());
 				}
-				if (serverId != App.getZeze().getConfig().getServerId()) {
-					Zeze.Util.Task.Call(App.getZeze().NewProcedure(() -> {
+				if (serverId != Zeze.getConfig().getServerId()) {
+					Task.Call(Zeze.NewProcedure(() -> {
 						var index = _tIndexs.get(timer.getTimerId());
 						index.setServerId(serverId);
 						return 0L;
