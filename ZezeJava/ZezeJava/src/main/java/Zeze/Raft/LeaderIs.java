@@ -11,7 +11,7 @@ import Zeze.Transaction.EmptyBean;
  * 2. 选举结束时也给Agent广播选举结果。
  */
 final class LeaderIs extends Rpc<BLeaderIsArgument, EmptyBean> {
-	public static final int ProtocolId_ = Bean.Hash32(LeaderIs.class.getName());
+	public static final int ProtocolId_ = Bean.hash32(LeaderIs.class.getName());
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
 
 	public LeaderIs() {

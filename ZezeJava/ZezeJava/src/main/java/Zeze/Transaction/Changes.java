@@ -140,7 +140,7 @@ public final class Changes {
 
 	public void Collect(Bean recent, Log log) {
 		// is table has listener
-		if (null == Listeners.get(recent.RootInfo.getRecord().getTable()))
+		if (null == Listeners.get(recent.rootInfo.getRecord().getTable()))
 			return;
 
 		Bean belong = log.getBelong();
@@ -148,7 +148,7 @@ public final class Changes {
 			// 记录可能存在多个修改日志树。收集的时候全部保留，后面会去掉不需要的。see Transaction._final_commit_
 			var r = Records.get(recent.tableKey());
 			if (r == null) {
-				r = new Record(recent.RootInfo.getRecord().getTable());
+				r = new Record(recent.rootInfo.getRecord().getTable());
 				Records.put(recent.tableKey(), r);
 			}
 			r.getLogBeans().put(recent, (LogBean)log);
@@ -164,7 +164,7 @@ public final class Changes {
 						belong.parent().objectId() + belong.variableId());
 			}
 			if (logBean == null)
-				logBean = belong.CreateLogBean();
+				logBean = belong.createLogBean();
 			Beans.put(belong.objectId(), logBean);
 		}
 		logBean.Collect(this, belong, log);

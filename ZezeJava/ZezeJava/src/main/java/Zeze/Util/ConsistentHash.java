@@ -39,7 +39,7 @@ public class ConsistentHash<TNode> {
 			nodeKey = nodeKey != null ? nodeKey + '#' : "#";
 
 			for (int i = 0; i < numberOfReplicas; ++i) {
-				var hash = Zeze.Transaction.Bean.Hash32(nodeKey + i);
+				var hash = Zeze.Transaction.Bean.hash32(nodeKey + i);
 				var conflict = circle.putIfAbsent(hash, node);
 				if (conflict != null)
 					logger.warn("hash conflict! key={}{} value={} exist={}", nodeKey, i, node, conflict);
@@ -57,7 +57,7 @@ public class ConsistentHash<TNode> {
 			nodeKey = nodeKey != null ? nodeKey + '#' : "#";
 
 			for (int i = 0; i < numberOfReplicas; ++i) {
-				var hash = Zeze.Transaction.Bean.Hash32(nodeKey + i);
+				var hash = Zeze.Transaction.Bean.hash32(nodeKey + i);
 				circle.remove(hash, node);
 			}
 		} finally {

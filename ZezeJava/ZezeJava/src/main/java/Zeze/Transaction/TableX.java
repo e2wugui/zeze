@@ -531,7 +531,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 		var tkey = new TableKey(getId(), key);
 		var cr = currentT.GetRecordAccessed(tkey);
-		value.InitRootInfoWithRedo(cr.AtomicTupleRecord.Record.CreateRootInfoIfNeed(tkey), null);
+		value.initRootInfoWithRedo(cr.AtomicTupleRecord.Record.CreateRootInfoIfNeed(tkey), null);
 		cr.Put(currentT, value);
 		return true;
 	}
@@ -554,7 +554,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			cr = new RecordAccessed(r);
 			currentT.AddRecordAccessed(r.Record.CreateRootInfoIfNeed(tkey), cr);
 		}
-		value.InitRootInfoWithRedo(cr.AtomicTupleRecord.Record.CreateRootInfoIfNeed(tkey), null);
+		value.initRootInfoWithRedo(cr.AtomicTupleRecord.Record.CreateRootInfoIfNeed(tkey), null);
 		cr.Put(currentT, value);
 	}
 

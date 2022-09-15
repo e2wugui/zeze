@@ -6,7 +6,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Quaternion;
 
 public class LogQuaternion extends Log {
-	private static final int TYPE_ID = Zeze.Transaction.Bean.Hash32("Zeze.Raft.RocksRaft.Log<quaternion>");
+	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.Log<quaternion>");
 
 	public Quaternion Value;
 

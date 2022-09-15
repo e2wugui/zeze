@@ -6,14 +6,14 @@ import Zeze.Serialize.Serializable;
 import Zeze.Util.Str;
 
 public abstract class Bean implements Serializable {
-	private static final AtomicLong ObjectIdGenerator = new AtomicLong();
 	public static final int ObjectIdStep = 4096;
 	public static final int MaxVariableId = ObjectIdStep - 1;
+	private static final AtomicLong objectIdGenerator = new AtomicLong();
 
-	private transient final long ObjectId = ObjectIdGenerator.addAndGet(ObjectIdStep);
-	private transient Bean Parent;
+	private transient final long objectId = objectIdGenerator.addAndGet(ObjectIdStep);
+	private transient Bean parent;
 	public transient int VariableId;
-	private transient Record.RootInfo RootInfo;
+	private transient Record.RootInfo rootInfo;
 
 	public Bean() {
 	}
@@ -23,11 +23,11 @@ public abstract class Bean implements Serializable {
 	}
 
 	public final long objectId() {
-		return ObjectId;
+		return objectId;
 	}
 
 	public final Bean parent() {
-		return Parent;
+		return parent;
 	}
 
 	public final int variableId() {
@@ -39,15 +39,15 @@ public abstract class Bean implements Serializable {
 	}
 
 	public final Record.RootInfo rootInfo() {
-		return RootInfo;
+		return rootInfo;
 	}
 
 	public final boolean isManaged() {
-		return RootInfo != null;
+		return rootInfo != null;
 	}
 
 	public final TableKey tableKey() {
-		return RootInfo != null ? RootInfo.getTableKey() : null;
+		return rootInfo != null ? rootInfo.getTableKey() : null;
 	}
 
 	public Object mapKey() {
@@ -61,8 +61,8 @@ public abstract class Bean implements Serializable {
 	public final void InitRootInfo(Record.RootInfo rootInfo, Bean parent) {
 		if (isManaged())
 			throw new Zeze.Transaction.HasManagedException();
-		RootInfo = rootInfo;
-		Parent = parent;
+		this.rootInfo = rootInfo;
+		this.parent = parent;
 		InitChildrenRootInfo(rootInfo);
 	}
 
@@ -79,7 +79,7 @@ public abstract class Bean implements Serializable {
 
 	public LogBean CreateLogBean() {
 		LogBean tempVar = new LogBean();
-		tempVar.setBelong(Parent);
+		tempVar.setBelong(parent);
 		tempVar.setThis(this);
 		tempVar.setVariableId(VariableId);
 		return tempVar;
@@ -90,7 +90,7 @@ public abstract class Bean implements Serializable {
 	public abstract void LeaderApplyNoRecursive(Log log);
 
 	public long typeId() {
-		return Zeze.Transaction.Bean.Hash64(getClass().getName());
+		return Zeze.Transaction.Bean.hash64(getClass().getName());
 	}
 
 	public void BuildString(StringBuilder sb, int level) {

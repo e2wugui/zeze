@@ -38,7 +38,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 			_Bean = value;
 			return;
 		}
-		value.InitRootInfoWithRedo(RootInfo, this);
+		value.initRootInfoWithRedo(rootInfo, this);
 		value.variableId(1); // 只有一个变量
 		var txn = Transaction.getCurrentVerifyWrite(this);
 		txn.PutLog(new LogV(this, value));
@@ -97,7 +97,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 			_Bean = bean;
 			return;
 		}
-		bean.InitRootInfoWithRedo(RootInfo, this);
+		bean.initRootInfoWithRedo(rootInfo, this);
 		bean.variableId(1); // 只有一个变量
 		var txn = Transaction.getCurrentVerifyWrite(this);
 		txn.PutLog(new LogV(specialTypeId, this, bean));

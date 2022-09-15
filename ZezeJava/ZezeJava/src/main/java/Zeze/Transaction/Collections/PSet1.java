@@ -14,7 +14,7 @@ public class PSet1<V> extends PSet<V> {
 
 	public PSet1(Class<V> valueClass) {
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
-		logTypeId = Zeze.Transaction.Bean.Hash32("Zeze.Raft.RocksRaft.LogSet1<" + Reflect.GetStableName(valueClass) + '>');
+		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.LogSet1<" + Reflect.GetStableName(valueClass) + '>');
 	}
 
 	private PSet1(int logTypeId, SerializeHelper.CodecFuncs<V> valueCodecFuncs) {
@@ -30,7 +30,7 @@ public class PSet1<V> extends PSet<V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
-					parent().objectId() + variableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			return setLog.Add(item);
 		}
 		var newSet = _set.plus(item);
@@ -45,7 +45,7 @@ public class PSet1<V> extends PSet<V> {
 	public boolean remove(Object item) {
 		if (isManaged()) {
 			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
-					parent().objectId() + variableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			return setLog.Remove((V)item);
 		}
 		var newSet = _set.minus(item);
@@ -60,7 +60,7 @@ public class PSet1<V> extends PSet<V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
-					parent().objectId() + variableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			return setLog.AddAll(c);
 		}
 		var newSet = _set.plusAll(c);
@@ -75,7 +75,7 @@ public class PSet1<V> extends PSet<V> {
 	public boolean removeAll(Collection<?> c) {
 		if (isManaged()) {
 			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
-					parent().objectId() + variableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			return setLog.RemoveAll((Collection<? extends V>)c);
 		}
 		var newSet = _set.minusAll(c);
@@ -90,14 +90,14 @@ public class PSet1<V> extends PSet<V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
-					parent().objectId() + variableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			setLog.Clear();
 		} else
 			_set = org.pcollections.Empty.set();
 	}
 
 	@Override
-	public LogBean CreateLogBean() {
+	public LogBean createLogBean() {
 		var log = new LogSet1<>(logTypeId, valueCodecFuncs);
 		log.setBelong(parent());
 		log.setThis(this);

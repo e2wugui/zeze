@@ -4,7 +4,7 @@ import Zeze.Net.Rpc;
 import Zeze.Transaction.Bean;
 
 final class AppendEntries extends Rpc<BAppendEntriesArgument, BAppendEntriesResult> {
-	public static final int ProtocolId_ = Bean.Hash32(AppendEntries.class.getName());
+	public static final int ProtocolId_ = Bean.hash32(AppendEntries.class.getName());
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
 
 	public AppendEntries() {

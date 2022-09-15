@@ -434,14 +434,14 @@ public final class Transaction {
 	}
 
 	public void VerifyRecordForWrite(Bean bean) {
-		if (bean.RootInfo.getRecord().getState() == GlobalCacheManagerConst.StateRemoved) {
+		if (bean.rootInfo.getRecord().getState() == GlobalCacheManagerConst.StateRemoved) {
 			ThrowRedo(); // 这个错误需要redo。不是逻辑错误。
 		}
 		var ra = GetRecordAccessed(bean.tableKey());
 		if (ra == null) {
 			throw new IllegalStateException("VerifyRecordAccessed: Record Not Control Under Current Transaction. " + bean.tableKey());
 		}
-		if (bean.RootInfo.getRecord() != ra.AtomicTupleRecord.Record) {
+		if (bean.rootInfo.getRecord() != ra.AtomicTupleRecord.Record) {
 			throw new IllegalStateException("VerifyRecordAccessed: Record Reloaded. " + bean.tableKey());
 		}
 		// 事务结束后可能会触发Listener，此时Commit已经完成，Timestamp已经改变，

@@ -41,7 +41,7 @@ public final class Helper {
 
 	public static BigInteger makeDHRandom() {
 		byte[] r = makeRandValues(17);
-		r[16] = 0;
+		r[0] = 0; // big-endian
 		return new BigInteger(r);
 	}
 

@@ -20,7 +20,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	public PMap2(Class<K> keyClass, Class<V> valueClass) {
 		keyCodecFuncs = SerializeHelper.createCodec(keyClass);
 		valueFactory = Reflect.getDefaultConstructor(valueClass);
-		logTypeId = Zeze.Transaction.Bean.Hash32("Zeze.Raft.RocksRaft.LogMap2<"
+		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.LogMap2<"
 				+ Reflect.GetStableName(keyClass) + ", " + Reflect.GetStableName(valueClass) + '>');
 	}
 
@@ -49,10 +49,10 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 		value.mapKey(key);
 		if (isManaged()) {
-			value.InitRootInfoWithRedo(RootInfo, this);
+			value.initRootInfoWithRedo(rootInfo, this);
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
-					parent().objectId() + variableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			return mapLog.Put(key, value);
 		}
 		var oldV = _map.get(key);
@@ -71,11 +71,11 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 		if (isManaged()) {
 			for (var v : m.values()) {
-				v.InitRootInfoWithRedo(RootInfo, this);
+				v.initRootInfoWithRedo(rootInfo, this);
 			}
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
-					parent().objectId() + variableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.PutAll(m);
 		}
 		else {
@@ -88,7 +88,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	public V remove(Object key) {
 		if (isManaged()) {
 			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
-					parent().objectId() + variableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			return mapLog.Remove((K)key);
 		}
 		//noinspection SuspiciousMethodCalls
@@ -102,7 +102,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
-					parent().objectId() + variableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			return mapLog.Remove(item.getKey(), item.getValue());
 		}
 		var old = _map;
@@ -119,7 +119,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
-					parent().objectId() + variableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.Clear();
 		} else
 			_map = org.pcollections.Empty.map();
@@ -133,7 +133,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		var log = (LogMap2<K, V>)_log;
 		var tmp = _map;
 		for (var put : log.getReplaced().values())
-			put.InitRootInfo(RootInfo, this);
+			put.InitRootInfo(rootInfo, this);
 		tmp = tmp.plusAll(log.getReplaced()).minusAll(log.getRemoved());
 
 		// apply changed
@@ -148,7 +148,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	}
 
 	@Override
-	public LogBean CreateLogBean() {
+	public LogBean createLogBean() {
 		var log = new LogMap2<K, V>(logTypeId, keyCodecFuncs, valueFactory);
 		log.setBelong(parent());
 		log.setThis(this);

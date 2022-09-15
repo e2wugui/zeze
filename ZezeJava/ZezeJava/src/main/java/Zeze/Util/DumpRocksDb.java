@@ -20,7 +20,7 @@ import org.rocksdb.Options;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.SstFileMetaData;
-import static Zeze.Transaction.Bean.Hash32;
+import static Zeze.Transaction.Bean.hash32;
 import static Zeze.Util.BitConverter.num2Hex;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -445,22 +445,22 @@ public final class DumpRocksDb {
 		}
 	}
 
-	private static final int logTypeChanges = Hash32("Zeze.Raft.RocksRaft.Changes");
-	private static final int logTypeHeartbeat = Hash32("Zeze.Raft.HeartbeatLog");
+	private static final int logTypeChanges = hash32("Zeze.Raft.RocksRaft.Changes");
+	private static final int logTypeHeartbeat = hash32("Zeze.Raft.HeartbeatLog");
 	private static final IntHashMap<Action2<OutputStream, ByteBuffer>> logDecoders = new IntHashMap<>();
 	private static final Action2<OutputStream, ByteBuffer> logBeanDecoder;
 
 	static {
-		logDecoders.put(Hash32("Zeze.Raft.RocksRaft.Log<bool>"), (os, bb) -> dump(os, "b:%b", bb.ReadBool()));
-		logDecoders.put(Hash32("Zeze.Raft.RocksRaft.Log<byte>"), (os, bb) -> dump(os, "B:%d", bb.ReadLong()));
-		logDecoders.put(Hash32("Zeze.Raft.RocksRaft.Log<short>"), (os, bb) -> dump(os, "S:%d", bb.ReadLong()));
-		logDecoders.put(Hash32("Zeze.Raft.RocksRaft.Log<int>"), (os, bb) -> dump(os, "I:%d", bb.ReadLong()));
-		logDecoders.put(Hash32("Zeze.Raft.RocksRaft.Log<long>"), (os, bb) -> dump(os, "L:%d", bb.ReadLong()));
-		logDecoders.put(Hash32("Zeze.Raft.RocksRaft.Log<float>"), (os, bb) -> dump(os, "F:%f", bb.ReadFloat()));
-		logDecoders.put(Hash32("Zeze.Raft.RocksRaft.Log<double>"), (os, bb) -> dump(os, "D:%f", bb.ReadDouble()));
-		logDecoders.put(Hash32("Zeze.Raft.RocksRaft.Log<string>"), (os, bb) -> dump(os, "'%s'", bb.ReadString()));
-		logDecoders.put(Hash32("Zeze.Raft.RocksRaft.Log<binary>"), (os, bb) -> dump(os, "'%s'", toStr(bb.ReadBytes())));
-		logDecoders.put(Hash32("Zeze.Raft.RocksRaft.LogBean"), logBeanDecoder = (os, bb) -> {
+		logDecoders.put(hash32("Zeze.Raft.RocksRaft.Log<bool>"), (os, bb) -> dump(os, "b:%b", bb.ReadBool()));
+		logDecoders.put(hash32("Zeze.Raft.RocksRaft.Log<byte>"), (os, bb) -> dump(os, "B:%d", bb.ReadLong()));
+		logDecoders.put(hash32("Zeze.Raft.RocksRaft.Log<short>"), (os, bb) -> dump(os, "S:%d", bb.ReadLong()));
+		logDecoders.put(hash32("Zeze.Raft.RocksRaft.Log<int>"), (os, bb) -> dump(os, "I:%d", bb.ReadLong()));
+		logDecoders.put(hash32("Zeze.Raft.RocksRaft.Log<long>"), (os, bb) -> dump(os, "L:%d", bb.ReadLong()));
+		logDecoders.put(hash32("Zeze.Raft.RocksRaft.Log<float>"), (os, bb) -> dump(os, "F:%f", bb.ReadFloat()));
+		logDecoders.put(hash32("Zeze.Raft.RocksRaft.Log<double>"), (os, bb) -> dump(os, "D:%f", bb.ReadDouble()));
+		logDecoders.put(hash32("Zeze.Raft.RocksRaft.Log<string>"), (os, bb) -> dump(os, "'%s'", bb.ReadString()));
+		logDecoders.put(hash32("Zeze.Raft.RocksRaft.Log<binary>"), (os, bb) -> dump(os, "'%s'", toStr(bb.ReadBytes())));
+		logDecoders.put(hash32("Zeze.Raft.RocksRaft.LogBean"), logBeanDecoder = (os, bb) -> {
 			os.write('{');
 			for (int i = 0, varCount = bb.ReadUInt(); i < varCount; i++) {
 				var logTypeId = bb.ReadInt4();
@@ -473,7 +473,7 @@ public final class DumpRocksDb {
 			}
 			os.write('}');
 		});
-		logDecoders.put(Hash32("Zeze.Raft.RocksRaft.LogSet1<int>"), (os, bb) -> {
+		logDecoders.put(hash32("Zeze.Raft.RocksRaft.LogSet1<int>"), (os, bb) -> {
 			os.write('{');
 			for (int i = 0, n = bb.ReadUInt(); i < n; i++)
 				dump(os, i == 0 ? "+:%d" : ",%d", bb.ReadLong());

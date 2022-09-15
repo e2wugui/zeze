@@ -70,6 +70,7 @@
 			<variable id="26" name="map26" type="map[Key,dynamic:BSimple]"/>
 			<variable id="27" name="dynamic27" type="dynamic:BSimple"/>
 			<variable id="28" name="key28" type="Key"/>
+			<variable id="29" name="array29" type="array[float]"/>
 		</bean>
 		<beankey name="Key">
 			<enum name="Enum1" value="4"/>
