@@ -43,6 +43,7 @@ public class Timer extends AbstractTimer {
 
 	public Timer(Zeze.Application zeze) {
 		this.Zeze = zeze;
+		RegisterZezeTables(zeze);
 	}
 	@SuppressWarnings("unchecked")
 	public void Start() throws Throwable {
@@ -376,7 +377,7 @@ public class Timer extends AbstractTimer {
 									simpleTimer.setNextExpectedTimeMills(simpleTimer.getExpectedTimeMills() + simpleTimer.getPeriod());
 								}
 
-								/* skip nest procdure result */
+								/* skip nest procedure result */
 								Task.Call(Zeze.NewProcedure(() -> {
 									var context = new TimerContext(timer, curTimeMills,
 											simpleTimer.getNextExpectedTimeMills(),
