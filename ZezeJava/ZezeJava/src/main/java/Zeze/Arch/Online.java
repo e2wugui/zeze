@@ -170,6 +170,16 @@ public class Online extends AbstractOnline {
 		login.getDatas().put(key, bAny);
 	}
 
+	public void removeLocalBean(String account, String clientId, String key) {
+		var bLocals = _tlocal.get(account);
+		if (null == bLocals)
+			return;
+		var login = bLocals.getLogins().get(clientId);
+		if (null == login)
+			return;
+		login.getDatas().remove(key);
+	}
+
 	@SuppressWarnings("unchecked")
 	public <T extends Bean> T getLocalBean(String account, String clientId, String key) {
 		var bLocals = _tlocal.get(account);
@@ -358,6 +368,24 @@ public class Online extends AbstractOnline {
 			sendEmbed(List.of(new LoginKey(account, clientId)), notify.getTypeId(), new Binary(notify.Encode()));
 			return Procedure.Success;
 		});
+	}
+
+	public boolean isLogin(String account, String clientId) {
+		var online = _tonline.get(account);
+		if (null == online)
+			return false;
+		return online.getLogins().containsKey(clientId);
+	}
+
+	public boolean isAccountLogin(String account) {
+		return getAccountLoginCount(account) > 0;
+	}
+
+	public int getAccountLoginCount(String account) {
+		var online = _tonline.get(account);
+		if (null == online)
+			return 0;
+		return online.getLogins().size();
 	}
 
 	public Collection<LoginOnLink> groupByLink(Collection<LoginKey> logins) throws Throwable {

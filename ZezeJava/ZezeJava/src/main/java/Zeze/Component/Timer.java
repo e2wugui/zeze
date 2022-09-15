@@ -5,7 +5,6 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
-import Zeze.AppBase;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
@@ -30,26 +29,27 @@ public class Timer extends AbstractTimer {
 		return beanFactory.CreateBeanFromSpecialTypeId(typeId);
 	}
 
-	public static final int TimerCountPerNode = 200;
+	public static final int CountPerNode = 200;
 
-	private static final Logger logger = LogManager.getLogger(Timer.class);
-	public final Zeze.Application Zeze;
-	private AutoKey NodeIdAutoKey;
-	private AutoKey TimerIdAutoKey;
+	static final Logger logger = LogManager.getLogger(Timer.class);
+	public final Zeze.Application zeze;
+	private AutoKey nodeIdAutoKey;
+	AutoKey timerIdAutoKey;
 	// 保存所有可用的timer处理回调，由于可能需要把timer的触发派发到其他服务器执行，必须静态注册。
 	// 一般在Module.Initialize中注册即可。
-	private final ConcurrentHashMap<String, Action1<TimerContext>> TimerHandles = new ConcurrentHashMap<>();
-	private final ConcurrentHashMap<Long, Future<?>> TimersLocal = new ConcurrentHashMap<>();
+	final ConcurrentHashMap<String, Action1<TimerContext>> timerHandles = new ConcurrentHashMap<>();
+	// 在这台服务器进程内调度的所有Timer。key是timerId，value是ThreadPool.schedule的返回值。
+	final ConcurrentHashMap<Long, Future<?>> timersFuture = new ConcurrentHashMap<>();
 
 	public Timer(Zeze.Application zeze) {
-		this.Zeze = zeze;
+		this.zeze = zeze;
 		RegisterZezeTables(zeze);
 	}
 	@SuppressWarnings("unchecked")
 	public void Start() throws Throwable {
-		NodeIdAutoKey = Zeze.GetAutoKey("Zeze.Component.Timer.NodeId");
-		TimerIdAutoKey = Zeze.GetAutoKey("Zeze.Component.Timer.TimerId");
-		if (0L != Zeze.NewProcedure(() -> {
+		nodeIdAutoKey = zeze.GetAutoKey("Zeze.Component.Timer.NodeId");
+		timerIdAutoKey = zeze.GetAutoKey("Zeze.Component.Timer.TimerId");
+		if (0L != zeze.NewProcedure(() -> {
 			var classes = _tCustomClasses.getOrAdd(1);
 			for (var cls : classes.getCustomClasses()) {
 				beanFactory.register((Class<? extends Bean>)Class.forName(cls));
@@ -58,7 +58,7 @@ public class Timer extends AbstractTimer {
 		}, "").Call()) {
 			throw new IllegalStateException("Load Item Classes Failed.");
 		}
-		Task.run(this::LoadTimerLocal, "LoadTimerLocal");
+		Task.run(this::loadTimer, "LoadTimerLocal");
 	}
 
 	public void Stop() throws Throwable {
@@ -66,12 +66,12 @@ public class Timer extends AbstractTimer {
 	}
 
 	public void addHandle(String name, Action1<TimerContext> action) {
-		if (null != TimerHandles.putIfAbsent(name, action))
+		if (null != timerHandles.putIfAbsent(name, action))
 			throw new RuntimeException("duplicate timer handle name of: " + name);
 	}
 
 	public void removeHandle(String name) {
-		TimerHandles.remove(name);
+		timerHandles.remove(name);
 	}
 
 	/////////////////////////////////////////////////////////////////////////
@@ -93,11 +93,11 @@ public class Timer extends AbstractTimer {
 		if (delay < 0)
 			throw new IllegalArgumentException();
 
-		var serverId = Zeze.getConfig().getServerId();
+		var serverId = zeze.getConfig().getServerId();
 		var root = _tNodeRoot.getOrAdd(serverId);
 		var nodeId = root.getHeadNodeId();
 		if (nodeId == 0) { // no node
-			nodeId = NodeIdAutoKey.nextId();
+			nodeId = nodeIdAutoKey.nextId();
 		}
 		while (true) {
 			var node = _tNodes.getOrAdd(nodeId);
@@ -122,18 +122,15 @@ public class Timer extends AbstractTimer {
 				}
 			}
 
-			if (node.getTimers().size() < TimerCountPerNode) {
+			if (node.getTimers().size() < CountPerNode) {
 				long curMills = System.currentTimeMillis();
-				var timerId = TimerIdAutoKey.nextId();
+				var timerId = timerIdAutoKey.nextId();
 				var timer = new BTimer();
 				timer.setTimerId(timerId);
 				timer.setName(name);
 
 				var simpleTimer = new BSimpleTimer();
-				//timer.setDelay(delay);
-				simpleTimer.setPeriod(period);
-				//times == -1, this means Infinite number of times ----lwj
-				simpleTimer.setRemainTimes(times);
+				initSimpleTimer(simpleTimer, delay, period, times);
 				timer.setTimerObj(simpleTimer);
 				node.getTimers().put(timerId, timer);
 
@@ -143,20 +140,18 @@ public class Timer extends AbstractTimer {
 					timer.getCustomData().setBean(customData);
 				}
 
-				long expectedTimeMills = curMills + delay;
-				simpleTimer.setNextExpectedTimeMills(expectedTimeMills);
-				simpleTimer.setStartTimeInMills(expectedTimeMills);
-
 				var index = new BIndex();
 				index.setServerId(serverId);
 				index.setNodeId(nodeId);
 				_tIndexs.tryAdd(timerId, index);
 
-				final var finalNodeId = nodeId;
-				Transaction.whileCommit(() -> ScheduleSimpleLocal(serverId, timerId, finalNodeId, expectedTimeMills - System.currentTimeMillis(), period, name));
+				Transaction.whileCommit(
+						() -> scheduleSimpleLocal(serverId, timerId,
+						simpleTimer.getExpectedTimeMills() - System.currentTimeMillis(),
+						period, name));
 				return timerId;
 			}
-			nodeId = NodeIdAutoKey.nextId();
+			nodeId = nodeIdAutoKey.nextId();
 		}
 	}
 
@@ -181,11 +176,11 @@ public class Timer extends AbstractTimer {
 	}
 
 	public long schedule(String cronExpression, String name, Bean customData) throws ParseException {
-		var serverId = Zeze.getConfig().getServerId();
+		var serverId = zeze.getConfig().getServerId();
 		var root = _tNodeRoot.getOrAdd(serverId);
 		var nodeId = root.getHeadNodeId();
 		if (nodeId == 0) { // no node
-			nodeId = NodeIdAutoKey.nextId();
+			nodeId = nodeIdAutoKey.nextId();
 		}
 		while (true) {
 			var node = _tNodes.getOrAdd(nodeId);
@@ -210,9 +205,9 @@ public class Timer extends AbstractTimer {
 				}
 			}
 
-			if (node.getTimers().size() < TimerCountPerNode) {
+			if (node.getTimers().size() < CountPerNode) {
 				//long curMills = System.currentTimeMillis();
-				var timerId = TimerIdAutoKey.nextId();
+				var timerId = timerIdAutoKey.nextId();
 				var timer = new BTimer();
 				timer.setTimerId(timerId);
 				timer.setName(name);
@@ -236,11 +231,10 @@ public class Timer extends AbstractTimer {
 				index.setNodeId(nodeId);
 				_tIndexs.tryAdd(timerId, index);
 
-				final var finalNodeId = nodeId;
-				Transaction.whileCommit(() -> ScheduleCronLocal(serverId, timerId, finalNodeId, cronExpression, name));
+				Transaction.whileCommit(() -> scheduleCronLocal(serverId, timerId, cronExpression, name));
 				return timerId;
 			}
-			nodeId = NodeIdAutoKey.nextId();
+			nodeId = nodeIdAutoKey.nextId();
 		}
 	}
 
@@ -277,30 +271,42 @@ public class Timer extends AbstractTimer {
 
 	// 取消一个具体的Timer实例。
 	public void cancel(long timerId) {
+		// try cancel online timer
+		if (null != timerArchOnline && timerArchOnline.cancel(timerId))
+			return;
+
 		var index = _tIndexs.get(timerId);
 		if (null == index) {
 			// 尽可能的执行取消操作，不做严格判断。
-			CancelTimerLocal(Zeze.getConfig().getServerId(), timerId, null, null);
+			cancelTimerLocal(zeze.getConfig().getServerId(), timerId, null, null);
 			return;
 		}
 
 		redirectCancel(index.getServerId(), timerId);
 	}
 
+	private TimerArchOnline timerArchOnline;
+
+	public TimerArchOnline getArchOnlineTimer() {
+		return timerArchOnline;
+	}
+
+	/////////////////////////////////////////////////////////////
+	// 内部实现
 	@RedirectToServer
 	protected void redirectCancel(int serverId, long timerId) {
 		// 尽可能的执行取消操作，不做严格判断。
 		var index = _tIndexs.get(timerId);
 		if (null == index) {
-			CancelTimerLocal(serverId, timerId, null, null);
+			cancelTimerLocal(serverId, timerId, null, null);
 			return;
 		}
-		CancelTimerLocal(serverId, timerId, index, _tNodes.get(index.getNodeId()));
+		cancelTimerLocal(serverId, timerId, index, _tNodes.get(index.getNodeId()));
 	}
 
-	private void CancelTimerLocal(int serverId, long timerId, BIndex index, BNode node) {
+	private void cancelTimerLocal(int serverId, long timerId, BIndex index, BNode node) {
 
-		var local = TimersLocal.remove(timerId);
+		var local = timersFuture.remove(timerId);
 		if (null != local)
 			local.cancel(false);
 
@@ -337,26 +343,51 @@ public class Timer extends AbstractTimer {
 		}
 	}
 
-	private void ScheduleSimpleLocal(int serverId, long timerId, long nodeId, long delay, long period, String name) {
+	private void scheduleSimpleLocal(int serverId, long timerId, long delay, long period, String name) {
 		if (period > 0) {
-			TimersLocal.put(timerId, Task.scheduleUnsafe(delay, period,
-					() -> TriggerTimerLocal(serverId, timerId, nodeId, name)));
+			timersFuture.put(timerId, Task.scheduleUnsafe(delay, period,
+					() -> fireSimpleLocal(serverId, timerId, name)));
 		} else {
-			TimersLocal.put(timerId, Task.scheduleUnsafe(delay,
-					() -> TriggerTimerLocal(serverId, timerId, nodeId, name)));
+			timersFuture.put(timerId, Task.scheduleUnsafe(delay,
+					() -> fireSimpleLocal(serverId, timerId, name)));
 		}
 	}
 
-	private long TriggerTimerLocal(int serverId, long timerId, long nodeId, String name) {
-		final var handle = TimerHandles.get(name);
+	public static void initSimpleTimer(BSimpleTimer simpleTimer, long delay, long period, long times) {
+		var curMills = System.currentTimeMillis();
+		//timer.setDelay(delay);
+		simpleTimer.setPeriod(period);
+		//times == -1, this means Infinite number of times ----lwj
+		simpleTimer.setRemainTimes(times);
+		long expectedTimeMills = curMills + delay;
+		simpleTimer.setNextExpectedTimeMills(expectedTimeMills);
+		simpleTimer.setStartTimeInMills(expectedTimeMills);
+	}
 
-		Task.Call(Zeze.NewProcedure(() -> {
+	public static void nextSimpleTimer(BSimpleTimer simpleTimer) {
+		simpleTimer.setHappenTimes(simpleTimer.getHappenTimes() + 1);
+		long curTimeMills = System.currentTimeMillis();
+		simpleTimer.setHappenTimeMills(curTimeMills);
+		if (simpleTimer.getPeriod() <= 0) {
+			simpleTimer.setExpectedTimeMills(simpleTimer.getStartTimeInMills());
+			simpleTimer.setNextExpectedTimeMills(0);
+		} else {
+			long delta = curTimeMills - simpleTimer.getStartTimeInMills();
+			simpleTimer.setExpectedTimeMills(delta / simpleTimer.getPeriod() * simpleTimer.getPeriod());
+			simpleTimer.setNextExpectedTimeMills(simpleTimer.getExpectedTimeMills() + simpleTimer.getPeriod());
+		}
+	}
+
+	private long fireSimpleLocal(int serverId, long timerId, String name) {
+		final var handle = timerHandles.get(name);
+
+		Task.Call(zeze.NewProcedure(() -> {
 			var index = _tIndexs.get(timerId);
 			if (null != index) {
 				var node = _tNodes.get(index.getNodeId());
 				if (null != node) {
 					if (handle == null) {
-						CancelTimerLocal(serverId, timerId, index, node);
+						cancelTimerLocal(serverId, timerId, index, node);
 					} else {
 						var timer = node.getTimers().get(timerId);
 
@@ -364,34 +395,22 @@ public class Timer extends AbstractTimer {
 						if (timer != null) {
 							if (timer.getTimerObj().getBean().typeId() == BSimpleTimer.TYPEID) {
 								var simpleTimer = (BSimpleTimer) timer.getTimerObj().getBean();
-								simpleTimer.setHappenTimes(simpleTimer.getHappenTimes() + 1);
-								long curTimeMills = System.currentTimeMillis();
-								// curTimeMills += 500; // 往后推迟500ms, 保证时间发生在期望的准点之后
-								simpleTimer.setHappenTimeMills(curTimeMills);
-
-								if (simpleTimer.getPeriod() <= 0) {
-									simpleTimer.setExpectedTimeMills(simpleTimer.getStartTimeInMills());
-									simpleTimer.setNextExpectedTimeMills(0);
-								} else {
-									long delta = curTimeMills - simpleTimer.getStartTimeInMills();
-									simpleTimer.setExpectedTimeMills(delta / simpleTimer.getPeriod() * simpleTimer.getPeriod());
-									simpleTimer.setNextExpectedTimeMills(simpleTimer.getExpectedTimeMills() + simpleTimer.getPeriod());
-								}
-
+								nextSimpleTimer(simpleTimer);
 								/* skip nest procedure result */
-								Task.Call(Zeze.NewProcedure(() -> {
-									var context = new TimerContext(timer, curTimeMills,
+								Task.Call(zeze.NewProcedure(() -> {
+									var context = new TimerContext(timer,
+											simpleTimer.getHappenTimes(),
 											simpleTimer.getNextExpectedTimeMills(),
 											simpleTimer.getExpectedTimeMills());
 									handle.run(context);
 									return Procedure.Success;
-								}, "TriggerLocalHandle"));
+								}, "fireLocalHandle"));
 
 								// 不管任何结果都递减次数。
 								if (simpleTimer.getRemainTimes() > 0) {
 									simpleTimer.setRemainTimes(simpleTimer.getRemainTimes() - 1);
 									if (simpleTimer.getRemainTimes() == 0) {
-										CancelTimerLocal(serverId, timerId, index, node);
+										cancelTimerLocal(serverId, timerId, index, node);
 									}
 								}
 							}
@@ -400,21 +419,21 @@ public class Timer extends AbstractTimer {
 				}
 			}
 			return 0L;
-		}, "AfterTriggerTimerLocal"));
+		}, "TriggerSimpleTimerLocal"));
 		return 0L;
 	}
 
-	private void ScheduleCronLocal(int serverId, long timerId, long nodeId, String cronExpression, String name) {
+	private void scheduleCronLocal(int serverId, long timerId, String cronExpression, String name) {
 		try {
 			long delay = getNextValidTimeAfter(cronExpression, Calendar.getInstance()).getTimeInMillis() - System.currentTimeMillis();
-			ScheduleCronNext(serverId, timerId, nodeId, delay, name);
+			scheduleCronNext(serverId, timerId, delay, name);
 		} catch (Exception ex) {
 			logger.error("", ex);
 		}
 	}
 
-	private void ScheduleCronNext(int serverId, long timerId, long nodeId, long delay, String name) {
-		TimersLocal.put(timerId, Task.scheduleUnsafe(delay, () -> CronAction(serverId, timerId, nodeId, name)));
+	private void scheduleCronNext(int serverId, long timerId, long delay, String name) {
+		timersFuture.put(timerId, Task.scheduleUnsafe(delay, () -> fireCronLocal(serverId, timerId, name)));
 	}
 
 	public static Calendar getNextValidTimeAfter(String cron, Calendar calendar) throws ParseException {
@@ -437,49 +456,51 @@ public class Timer extends AbstractTimer {
 		return nextCalender;
 	}
 
-	private void CronAction(int serverId, long timerId, long nodeId, String name) {
-		final var handle = TimerHandles.get(name);
-		Task.Call(Zeze.NewProcedure(() -> {
+	public static void nextCronTimer(BCronTimer cronTimer) throws ParseException {
+		cronTimer.setExpectedTimeMills(cronTimer.getNextExpectedTimeMills());
+		long tempMills = cronTimer.getExpectedTimeMills();
+		var nextTimeMills = getNextValidTimeAfter(cronTimer.getCronExpression(), tempMills).getTimeInMillis();
+		cronTimer.setNextExpectedTimeMills(nextTimeMills);
+		long curTimeMills = System.currentTimeMillis();
+		cronTimer.setHappenTimeMills(curTimeMills);
+	}
+
+	private void fireCronLocal(int serverId, long timerId, String name) {
+		final var handle = timerHandles.get(name);
+		Task.Call(zeze.NewProcedure(() -> {
 			var index = _tIndexs.get(timerId);
 			if (null != index) {
 				var node = _tNodes.get(index.getNodeId());
 				if (null != node) {
 					if (handle == null) {
-						CancelTimerLocal(serverId, timerId, index, node);
+						cancelTimerLocal(serverId, timerId, index, node);
 					} else {
 						var timer = node.getTimers().get(timerId);
 						var cronTimer = timer.getTimerObj_Zeze_Builtin_Timer_BCronTimer();
-						cronTimer.setExpectedTimeMills(cronTimer.getNextExpectedTimeMills());
-						long tempMills = cronTimer.getExpectedTimeMills();
-						var nextTimeMills = getNextValidTimeAfter(cronTimer.getCronExpression(), tempMills).getTimeInMillis();
-						cronTimer.setNextExpectedTimeMills(nextTimeMills);
-						long curTimeMills = System.currentTimeMillis();
-						// curTimeMills += 500;
-						cronTimer.setHappenTimeMills(curTimeMills);
-
-						final var context = new TimerContext(timer, curTimeMills,
+						nextCronTimer(cronTimer);
+						final var context = new TimerContext(timer,
+								cronTimer.getHappenTimeMills(),
 								cronTimer.getNextExpectedTimeMills(),
 								cronTimer.getExpectedTimeMills());
-
 						/* skip nest procdure result */
-						Task.Call(Zeze.NewProcedure(() -> {
+						Task.Call(zeze.NewProcedure(() -> {
 							handle.run(context);
 							return Procedure.Success;
-						}, "TriggerLocalHandle"));
+						}, "fireLocalHandle"));
 
 						long delay = context.nextExpectedTimeMills - System.currentTimeMillis();
-						ScheduleCronNext(serverId, timerId, nodeId, delay, name);
+						scheduleCronNext(serverId, timerId, delay, name);
 					}
 				}
 			}
 			return 0L;
-		}, "AfterTriggerTimerLocal"));
+		}, "fireCronLocal"));
 	}
 
-	private void LoadTimerLocal() {
-		var serverId = Zeze.getConfig().getServerId();
+	private void loadTimer() {
+		var serverId = zeze.getConfig().getServerId();
 		final var out = new OutObject<BNodeRoot>();
-		if (Procedure.Success == Task.Call(Zeze.NewProcedure(() ->
+		if (Procedure.Success == Task.Call(zeze.NewProcedure(() ->
 		{
 			var root = _tNodeRoot.getOrAdd(serverId);
 			// 本地每次load都递增。用来处理和接管的并发。
@@ -488,20 +509,20 @@ public class Timer extends AbstractTimer {
 			return 0L;
 		}, "LoadTimerLocal"))) {
 			var root = out.Value;
-			LoadTimerLocal(root.getHeadNodeId(), root.getHeadNodeId(), serverId);
+			loadTimer(root.getHeadNodeId(), root.getHeadNodeId(), serverId);
 		}
 	}
 
 	// 收到接管通知的服务器调用这个函数进行接管处理。
 	// @serverId 需要接管的服务器Id。
-	private long SpliceAndLoadTimerLocal(int serverId, long loadSerialNo) {
-		if (serverId == Zeze.getConfig().getServerId())
+	private long spliceLoadTimer(int serverId, long loadSerialNo) {
+		if (serverId == zeze.getConfig().getServerId())
 			throw new IllegalArgumentException();
 
 		final var first = new OutObject<Long>();
 		final var last = new OutObject<Long>();
 
-		var result = Task.Call(Zeze.NewProcedure(() ->
+		var result = Task.Call(zeze.NewProcedure(() ->
 		{
 			var src = _tNodeRoot.get(serverId);
 			if (null == src || src.getHeadNodeId() == 0 || src.getTailNodeId() == 0)
@@ -511,7 +532,7 @@ public class Timer extends AbstractTimer {
 				return 0L; // 需要接管的机器已经活过来了。
 
 			// prepare splice
-			var root = _tNodeRoot.getOrAdd(Zeze.getConfig().getServerId());
+			var root = _tNodeRoot.getOrAdd(zeze.getConfig().getServerId());
 			var srchead = _tNodes.get(src.getHeadNodeId());
 			var srctail = _tNodes.get(src.getTailNodeId());
 			var head = _tNodes.get(root.getHeadNodeId());
@@ -532,13 +553,13 @@ public class Timer extends AbstractTimer {
 		}, "SpliceAndLoadTimerLocal"));
 
 		if (0L == result) {
-			return LoadTimerLocal(first.Value, last.Value, serverId);
+			return loadTimer(first.Value, last.Value, serverId);
 		}
 		return result;
 	}
 
 	// 如果存在node，至少执行一次循环。
-	private long LoadTimerLocal(long first, long last, int serverId) {
+	private long loadTimer(long first, long last, int serverId) {
 		while (true) {
 			var node = _tNodes.selectDirty(first);
 			if (null == node)
@@ -547,13 +568,13 @@ public class Timer extends AbstractTimer {
 			for (var timer : node.getTimers().values()) {
 				if (timer.getTimerObj().getBean().typeId() == BSimpleTimer.TYPEID) {
 					var simpleTimer = (BSimpleTimer) timer.getTimerObj().getBean();
-					ScheduleSimpleLocal(serverId, timer.getTimerId(), first, simpleTimer.getNextExpectedTimeMills() - System.currentTimeMillis(), simpleTimer.getPeriod(), timer.getName());
+					scheduleSimpleLocal(serverId, timer.getTimerId(), simpleTimer.getNextExpectedTimeMills() - System.currentTimeMillis(), simpleTimer.getPeriod(), timer.getName());
 				} else {
 					var cronTimer = (BCronTimer) timer.getTimerObj().getBean();
-					ScheduleCronLocal(serverId, timer.getTimerId(), first, cronTimer.getCronExpression(), timer.getName());
+					scheduleCronLocal(serverId, timer.getTimerId(), cronTimer.getCronExpression(), timer.getName());
 				}
-				if (serverId != Zeze.getConfig().getServerId()) {
-					Task.Call(Zeze.NewProcedure(() -> {
+				if (serverId != zeze.getConfig().getServerId()) {
+					Task.Call(zeze.NewProcedure(() -> {
 						var index = _tIndexs.get(timer.getTimerId());
 						index.setServerId(serverId);
 						return 0L;

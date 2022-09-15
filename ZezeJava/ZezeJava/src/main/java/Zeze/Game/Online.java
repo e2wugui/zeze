@@ -54,8 +54,54 @@ import org.apache.logging.log4j.Logger;
 public class Online extends AbstractOnline {
 	private static final Logger logger = LogManager.getLogger(Online.class);
 
-	final ProviderApp ProviderApp;
-	public final LoadReporter LoadReporter;
+	public static Bean CreateBeanFromSpecialTypeId(long typeId) {
+		throw new UnsupportedOperationException("Online Memory Table Dynamic Not Need.");
+	}
+
+	protected static final Logger logger = LogManager.getLogger(Online.class);
+
+	public final ProviderApp ProviderApp;
+
+	public int getLocalCount() {
+		return _tlocal.getCacheSize();
+	}
+
+	public long walkLocal(TableWalkHandle<Long, BLocal> walker) {
+		return _tlocal.WalkCache(walker);
+	}
+
+	public void setLocalBean(long roleId, String key, Bean bean) {
+		var bLocal = _tlocal.get(roleId);
+		if (null == bLocal)
+			throw new IllegalStateException("roleId not online. " + roleId);
+		var bAny = new BAny();
+		bAny.getAny().setBean(bean);
+		bLocal.getDatas().put(key, bAny);
+	}
+
+	public void removeLocalBean(long roleId, String key) {
+		var bLocal = _tlocal.get(roleId);
+		if (null == bLocal)
+			return;
+		bLocal.getDatas().remove(key);
+	}
+
+	@SuppressWarnings("unchecked")
+	public <T extends Bean> T getLocalBean(long roleId, String key) {
+		var bLocal = _tlocal.get(roleId);
+		if (null == bLocal)
+			return null;
+		var data = bLocal.getDatas().get(key);
+		if (null == data)
+			return null;
+		return (T)data.getAny().getBean();
+	}
+
+	private final Zeze.Util.EventDispatcher loginEvents = new EventDispatcher("Online.Login");
+	private final Zeze.Util.EventDispatcher reloginEvents = new EventDispatcher("Online.Relogin");
+	private final Zeze.Util.EventDispatcher logoutEvents = new EventDispatcher("Online.Logout");
+	private final Zeze.Util.EventDispatcher localRemoveEvents = new EventDispatcher("Online.Local.Remove");
+
 	private final AtomicLong LoginTimes = new AtomicLong();
 
 	private final EventDispatcher loginEvents = new EventDispatcher("Online.Login");
