@@ -28,7 +28,7 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public void Encode(ByteBuffer _o_) {");
+            sw.WriteLine(prefix + "public void encode(ByteBuffer _o_) {");
             sw.WriteLine(prefix + "    int _i_ = 0;");
 
             foreach (Variable v in bean.Variables)
@@ -48,7 +48,7 @@ namespace Zeze.Gen.rrjava
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public void Encode(ByteBuffer _o_) {");
+            sw.WriteLine(prefix + "public void encode(ByteBuffer _o_) {");
             sw.WriteLine(prefix + "    int _i_ = 0;");
 
             foreach (Variable v in bean.Variables)
@@ -228,7 +228,7 @@ namespace Zeze.Gen.rrjava
                 case Bean:
                 case BeanKey:
                 case TypeDynamic:
-                    sw.WriteLine(prefix + varName + ".Encode(" + bufname + ");");
+                    sw.WriteLine(prefix + varName + ".encode(" + bufname + ");");
                     break;
                 default:
                     throw new Exception("invalid collection element type: " + type);
@@ -285,14 +285,14 @@ namespace Zeze.Gen.rrjava
                 sw.WriteLine(prefix + "int _a_ = " + bufname + ".WriteIndex;");
                 sw.WriteLine(prefix + "int _j_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "int _b_ = " + bufname + ".WriteIndex;");
-                sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
+                sw.WriteLine(prefix + varname + ".encode(" + bufname + ");");
                 sw.WriteLine(prefix + "if (_b_ + 1 == " + bufname + ".WriteIndex)");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteIndex = _a_;");
                 sw.WriteLine(prefix + "else");
                 sw.WriteLine(prefix + "    _i_ = _j_;");
             }
             else
-                sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
+                sw.WriteLine(prefix + varname + ".encode(" + bufname + ");");
         }
 
         public void Visit(BeanKey type)
@@ -302,14 +302,14 @@ namespace Zeze.Gen.rrjava
                 sw.WriteLine(prefix + "int _a_ = " + bufname + ".WriteIndex;");
                 sw.WriteLine(prefix + "int _j_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "int _b_ = " + bufname + ".WriteIndex;");
-                sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
+                sw.WriteLine(prefix + varname + ".encode(" + bufname + ");");
                 sw.WriteLine(prefix + "if (_b_ + 1 == " + bufname + ".WriteIndex)");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteIndex = _a_;");
                 sw.WriteLine(prefix + "else");
                 sw.WriteLine(prefix + "    _i_ = _j_;");
             }
             else
-                sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
+                sw.WriteLine(prefix + varname + ".encode(" + bufname + ");");
         }
 
         public void Visit(TypeDynamic type)
@@ -319,7 +319,7 @@ namespace Zeze.Gen.rrjava
                 sw.WriteLine(prefix + "var _x_ = " + varname + ';');
                 sw.WriteLine(prefix + "if (!_x_.isEmpty()) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
-                sw.WriteLine(prefix + "    _x_.Encode(" + bufname + ");");
+                sw.WriteLine(prefix + "    _x_.encode(" + bufname + ");");
                 sw.WriteLine(prefix + "}");
             }
             else
@@ -337,7 +337,7 @@ namespace Zeze.Gen.rrjava
                 sw.WriteLine(prefix + "}");
             }
             else
-                sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
+                sw.WriteLine(prefix + varname + ".encode(" + bufname + ");");
         }
 
         public void Visit(TypeQuaternion type)

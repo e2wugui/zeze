@@ -13,29 +13,29 @@ import org.apache.logging.log4j.Logger;
 public final class Changes {
 	private static final Logger logger = LogManager.getLogger(Changes.class);
 
-	private final LongHashMap<LogBean> Beans = new LongHashMap<>(); // 收集日志时,记录所有Bean修改. key is Bean.ObjectId
-	private final HashMap<TableKey, Record> Records = new HashMap<>(); // 收集记录的修改,以后需要序列化传输.
-	public final IdentityHashMap<Table, HashSet<ChangeListener>> Listeners = new IdentityHashMap<>();
+	private final LongHashMap<LogBean> beans = new LongHashMap<>(); // 收集日志时,记录所有Bean修改. key is Bean.ObjectId
+	private final HashMap<TableKey, Record> records = new HashMap<>(); // 收集记录的修改,以后需要序列化传输.
+	private final IdentityHashMap<Table, HashSet<ChangeListener>> listeners = new IdentityHashMap<>();
 	// private Transaction transaction;
 
 	public Changes(Transaction t) {
 		// transaction = t;
 		// 建立脏记录的表的监听者的快照，以后收集日志和通知监听者都使用这个快照，避免由于监听者发生变化造成收集和通知不一致。
 		for (var ar : t.getAccessedRecords().values()) {
-			if (ar.Dirty) {
-				var listeners = ar.AtomicTupleRecord.Record.getTable().getChangeListenerMap().getListeners();
+			if (ar.dirty) {
+				var listeners = ar.atomicTupleRecord.record.getTable().getChangeListenerMap().getListeners();
 				if (!listeners.isEmpty())
-					Listeners.putIfAbsent(ar.AtomicTupleRecord.Record.getTable(), listeners);
+					this.listeners.putIfAbsent(ar.atomicTupleRecord.record.getTable(), listeners);
 			}
 		}
 	}
 
 	public LongHashMap<LogBean> getBeans() {
-		return Beans;
+		return beans;
 	}
 
 	public HashMap<TableKey, Record> getRecords() {
-		return Records;
+		return records;
 	}
 
 	public static final class Record {
@@ -43,15 +43,19 @@ public final class Changes {
 		public static final int Put = 1;
 		public static final int Edit = 2;
 
-		private int State;
-		private Bean Value;
-		private final HashSet<LogBean> LogBean = new HashSet<>();
+		private final Table table;
+		private final HashSet<LogBean> logBean = new HashSet<>();
 		// 所有的日志修改树，key is Record.Value。不会被序列化。
-		private final IdentityHashMap<Bean, LogBean> LogBeans = new IdentityHashMap<>();
-		public final Table Table;
+		private final IdentityHashMap<Bean, LogBean> logBeans = new IdentityHashMap<>();
+		private Bean value;
+		private int state;
+
+		public Record(Table table) {
+			this.table = table;
+		}
 
 		public LogBean getLogBean() {
-			var it = LogBean.iterator();
+			var it = logBean.iterator();
 			return it.hasNext() ? it.next() : null;
 		}
 
@@ -60,68 +64,64 @@ public final class Changes {
 			return logBean != null ? logBean.getVariables().get(variableId) : null;
 		}
 
-		public int getState() {
-			return State;
+		public IdentityHashMap<Bean, LogBean> getLogBeans() {
+			return logBeans;
 		}
 
 		public Bean getValue() {
-			return Value;
+			return value;
 		}
 
-		public IdentityHashMap<Bean, LogBean> getLogBeans() {
-			return LogBeans;
+		public int getState() {
+			return state;
 		}
 
-		public Record(Table table) {
-			Table = table;
-		}
-
-		public void Collect(RecordAccessed ar) {
-			if (ar.CommittedPutLog != null) { // put or remove
-				var put = ar.CommittedPutLog.getValue();
+		public void collect(RecordAccessed ar) {
+			if (ar.committedPutLog != null) { // put or remove
+				var put = ar.committedPutLog.getValue();
 				if (null != put) {
-					Value = put; // put
-					State = Put;
+					value = put; // put
+					state = Put;
 				} else {
-					Value = ar.AtomicTupleRecord.StrongRef; // old
-					State = Remove;
+					value = ar.atomicTupleRecord.strongRef; // old
+					state = Remove;
 				}
 				return;
 			}
 
-			State = Edit;
-			var logBean = LogBeans.get(ar.AtomicTupleRecord.StrongRef);
+			state = Edit;
+			var logBean = logBeans.get(ar.atomicTupleRecord.strongRef);
 			if (logBean != null) {
-				Value = ar.AtomicTupleRecord.StrongRef; // old
-				LogBean.add(logBean); // edit
+				value = ar.atomicTupleRecord.strongRef; // old
+				this.logBean.add(logBean); // edit
 			}
 		}
 
-		public void Encode(ByteBuffer bb) {
-			bb.WriteInt(State);
-			switch (State) {
+		public void encode(ByteBuffer bb) {
+			bb.WriteInt(state);
+			switch (state) {
 			case Remove:
 				break;
 			case Put:
-				Value.Encode(bb);
+				value.encode(bb);
 				break;
 			case Edit:
-				bb.Encode(LogBean);
+				bb.encode(logBean);
 				break;
 			}
 		}
 
-		public void Decode(ByteBuffer bb) {
-			State = bb.ReadInt();
-			switch (State) {
+		public void decode(ByteBuffer bb) {
+			state = bb.ReadInt();
+			switch (state) {
 			case Remove:
 				break;
 			case Put:
-				Value = Table.NewValue();
-				Value.Decode(bb);
+				value = table.newValue();
+				value.decode(bb);
 				break;
 			case Edit:
-				bb.Decode(LogBean, LogBean::new);
+				bb.decode(logBean, LogBean::new);
 				break;
 			}
 		}
@@ -129,33 +129,33 @@ public final class Changes {
 		@Override
 		public String toString() {
 			var sb = new StringBuilder();
-			sb.append("State=").append(State).append(" PutValue=").append(Value);
+			sb.append("State=").append(state).append(" PutValue=").append(value);
 			sb.append("\nLog=");
-			ByteBuffer.BuildSortedString(sb, LogBean);
+			ByteBuffer.BuildSortedString(sb, logBean);
 			sb.append("\nAllLog=");
-			ByteBuffer.BuildSortedString(sb, LogBeans.values());
+			ByteBuffer.BuildSortedString(sb, logBeans.values());
 			return sb.toString();
 		}
 	}
 
-	public void Collect(Bean recent, Log log) {
+	public void collect(Bean recent, Log log) {
 		// is table has listener
-		if (null == Listeners.get(recent.rootInfo.getRecord().getTable()))
+		if (null == listeners.get(recent.rootInfo.getRecord().getTable()))
 			return;
 
 		Bean belong = log.getBelong();
 		if (belong == null) {
 			// 记录可能存在多个修改日志树。收集的时候全部保留，后面会去掉不需要的。see Transaction._final_commit_
-			var r = Records.get(recent.tableKey());
+			var r = records.get(recent.tableKey());
 			if (r == null) {
 				r = new Record(recent.rootInfo.getRecord().getTable());
-				Records.put(recent.tableKey(), r);
+				records.put(recent.tableKey(), r);
 			}
-			r.getLogBeans().put(recent, (LogBean)log);
+			r.logBeans.put(recent, (LogBean)log);
 			return; // root
 		}
 
-		var logBean = Beans.get(belong.objectId());
+		var logBean = beans.get(belong.objectId());
 		if (logBean == null) {
 			if (belong instanceof Collection) {
 				// 容器使用共享的日志。需要先去查询，没有的话才创建。
@@ -165,38 +165,38 @@ public final class Changes {
 			}
 			if (logBean == null)
 				logBean = belong.createLogBean();
-			Beans.put(belong.objectId(), logBean);
+			beans.put(belong.objectId(), logBean);
 		}
-		logBean.Collect(this, belong, log);
+		logBean.collect(this, belong, log);
 	}
 
-	public void CollectRecord(RecordAccessed ar) {
+	public void collectRecord(RecordAccessed ar) {
 		// is table has listener
-		if (null == Listeners.get(ar.AtomicTupleRecord.Record.getTable()))
+		if (null == listeners.get(ar.atomicTupleRecord.record.getTable()))
 			return;
 
 		var tkey = ar.tableKey();
-		var r = Records.get(tkey);
+		var r = records.get(tkey);
 		if (r == null) {
 			// put record only
-			r = new Record(ar.AtomicTupleRecord.Record.getTable());
-			Records.put(tkey, r);
+			r = new Record(ar.atomicTupleRecord.record.getTable());
+			records.put(tkey, r);
 		}
 
-		r.Collect(ar);
+		r.collect(ar);
 	}
 
 	@Override
 	public String toString() {
 		var sb = new StringBuilder();
-		ByteBuffer.BuildString(sb, Records);
+		ByteBuffer.BuildString(sb, records);
 		return sb.toString();
 	}
 
-	public void NotifyListener() {
-		for (var e : Records.entrySet()) {
+	public void notifyListener() {
+		for (var e : records.entrySet()) {
 			var v = e.getValue();
-			var listeners = Listeners.get(v.Table);
+			var listeners = this.listeners.get(v.table);
 			if (listeners != null) {
 				var k = e.getKey();
 				for (var l : listeners) {

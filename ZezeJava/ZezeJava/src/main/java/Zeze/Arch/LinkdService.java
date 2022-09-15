@@ -149,13 +149,13 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		if (typeId == Zeze.Builtin.Game.Online.Login.TypeId_) {
 			var login = new Zeze.Builtin.Game.Online.Login();
 			var beginIndex = data.ReadIndex;
-			login.Decode(data);
+			login.decode(data);
 			data.ReadIndex = beginIndex;
 			SetStableLinkSid(linkSession.getAccount(), String.valueOf(login.Argument.getRoleId()), so);
 		} else if (typeId == Zeze.Builtin.Online.Login.TypeId_) {
 			var login = new Zeze.Builtin.Online.Login();
 			var beginIndex = data.ReadIndex;
-			login.Decode(data);
+			login.decode(data);
 			data.ReadIndex = beginIndex;
 			SetStableLinkSid(linkSession.getAccount(), login.Argument.getClientId(), so);
 		}
@@ -196,7 +196,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 	}
 
 	@Override
-	public void DispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId, ByteBuffer data) {
+	public void dispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId, ByteBuffer data) {
 		if (moduleId == AbstractWeb.ModuleId) {
 			ReportError(so.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider,
 					"not a public provider: " + moduleId);

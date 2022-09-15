@@ -12,7 +12,7 @@ public class BOfflineNotify extends Bean {
 	public Binary NotifyContext; // context 扩展context。
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteInt(ServerId);
 		bb.WriteString(NotifyId);
 		bb.WriteLong(NotifySerialId);
@@ -20,7 +20,7 @@ public class BOfflineNotify extends Bean {
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		ServerId = bb.ReadInt();
 		NotifyId = bb.ReadString();
 		NotifySerialId = bb.ReadLong();
@@ -28,12 +28,12 @@ public class BOfflineNotify extends Bean {
 	}
 
 	@Override
-	protected void ResetChildrenRootInfo() {
+	protected void resetChildrenRootInfo() {
 
 	}
 
 	@Override
-	protected void InitChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.RootInfo root) {
 
 	}
 }

@@ -78,7 +78,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 	private void SendResult(AsyncSocket sender, Zeze.Net.Protocol<?> p) throws Throwable {
 		if (sender == null) {
 			var service = ProviderApp.ProviderDirectService;
-			p.Dispatch(service, service.FindProtocolFactoryHandle(p.getTypeId()));
+			p.dispatch(service, service.findProtocolFactoryHandle(p.getTypeId()));
 		}
 		p.Send(sender);
 	}
@@ -182,7 +182,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 	@Override
 	protected long ProcessModuleRedirectAllResult(ModuleRedirectAllResult protocol) throws Throwable {
 		var ctx = ProviderApp.ProviderDirectService.
-				<RedirectAllContext<?>>TryGetManualContext(protocol.Argument.getSessionId());
+				<RedirectAllContext<?>>tryGetManualContext(protocol.Argument.getSessionId());
 		if (ctx != null)
 			ctx.ProcessResult(ProviderApp.Zeze, protocol);
 		return Procedure.Success;

@@ -80,13 +80,13 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		var sender = p.getSender();
 		var linkSid = p.Argument.getLinkSid();
 		try {
-			var factoryHandle = ProviderApp.ProviderService.FindProtocolFactoryHandle(p.Argument.getProtocolType());
+			var factoryHandle = ProviderApp.ProviderService.findProtocolFactoryHandle(p.Argument.getProtocolType());
 			if (factoryHandle == null) {
 				SendKick(sender, linkSid, BKick.ErrorProtocolUnknown, "unknown protocol");
 				return Procedure.LogicError;
 			}
 			var p2 = factoryHandle.Factory.create();
-			p2.Decode(ByteBuffer.Wrap(p.Argument.getProtocolData()));
+			p2.decode(ByteBuffer.Wrap(p.Argument.getProtocolData()));
 			p2.setSender(sender);
 			// 以下字段不再需要读了,避免ProviderUserSession引用太久,置空
 			p.Argument.setProtocolData(Binary.Empty);

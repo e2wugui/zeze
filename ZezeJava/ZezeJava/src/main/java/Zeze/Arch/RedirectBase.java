@@ -111,7 +111,7 @@ public class RedirectBase {
 																	   RedirectAllContext<T> ctx) {
 		var future = ctx.getFuture();
 		if (req.Argument.getHashCodeConcurrentLevel() <= 0) {
-			ProviderApp.ProviderDirectService.TryRemoveManualContext(req.Argument.getSessionId());
+			ProviderApp.ProviderDirectService.tryRemoveManualContext(req.Argument.getSessionId());
 			return future;
 		}
 
@@ -148,7 +148,7 @@ public class RedirectBase {
 				if (sessionId == 0) { // loop-back. sessionId=0应该不可能是有效的socket session,代表自己
 					try {
 						var service = ProviderApp.ProviderDirectService;
-						request.Dispatch(service, service.FindProtocolFactoryHandle(request.getTypeId()));
+						request.dispatch(service, service.findProtocolFactoryHandle(request.getTypeId()));
 					} catch (Throwable e) {
 						logger.error("", e);
 					}
@@ -172,7 +172,7 @@ public class RedirectBase {
 			miss.setResultCode(ModuleRedirect.ResultCodeLinkdNoProvider);
 			try {
 				var service = ProviderApp.ProviderDirectService;
-				miss.Dispatch(service, service.FindProtocolFactoryHandle(miss.getTypeId()));
+				miss.dispatch(service, service.findProtocolFactoryHandle(miss.getTypeId()));
 			} catch (Throwable e) {
 				logger.error("", e);
 			}

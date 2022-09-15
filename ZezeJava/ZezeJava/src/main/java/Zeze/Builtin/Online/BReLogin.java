@@ -61,29 +61,39 @@ public final class BReLogin extends Zeze.Transaction.Bean {
         _ReliableNotifyConfirmIndex = _ReliableNotifyConfirmIndex_;
     }
 
-    public void Assign(BReLogin other) {
+    public void assign(BReLogin other) {
         setClientId(other.getClientId());
         setReliableNotifyConfirmIndex(other.getReliableNotifyConfirmIndex());
     }
 
-    public BReLogin CopyIfManaged() {
+    @Deprecated
+    public void Assign(BReLogin other) {
+        assign(other);
+    }
+
+    public BReLogin copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BReLogin Copy() {
+    public BReLogin copy() {
         var copy = new BReLogin();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BReLogin a, BReLogin b) {
+    @Deprecated
+    public BReLogin Copy() {
+        return copy();
+    }
+
+    public static void swap(BReLogin a, BReLogin b) {
         BReLogin save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BReLogin CopyBean() {
+    public BReLogin copyBean() {
         return Copy();
     }
 
@@ -98,25 +108,25 @@ public final class BReLogin extends Zeze.Transaction.Bean {
         public Log__ClientId(BReLogin bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BReLogin)getBelong())._ClientId = Value; }
+        public void commit() { ((BReLogin)getBelong())._ClientId = Value; }
     }
 
     private static final class Log__ReliableNotifyConfirmIndex extends Zeze.Transaction.Logs.LogLong {
         public Log__ReliableNotifyConfirmIndex(BReLogin bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BReLogin)getBelong())._ReliableNotifyConfirmIndex = Value; }
+        public void commit() { ((BReLogin)getBelong())._ReliableNotifyConfirmIndex = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Online.BReLogin: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ClientId").append('=').append(getClientId()).append(',').append(System.lineSeparator());
@@ -138,7 +148,7 @@ public final class BReLogin extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             String _x_ = getClientId();
@@ -158,7 +168,7 @@ public final class BReLogin extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -176,15 +186,15 @@ public final class BReLogin extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
+    protected void resetChildrenRootInfo() {
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         if (getReliableNotifyConfirmIndex() < 0)
             return true;
         return false;
@@ -192,7 +202,7 @@ public final class BReLogin extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;

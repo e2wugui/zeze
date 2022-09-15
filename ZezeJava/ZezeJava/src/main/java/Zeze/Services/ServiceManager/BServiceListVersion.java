@@ -9,24 +9,24 @@ public final class BServiceListVersion extends Bean {
 	public long SerialId;
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		ServiceName = bb.ReadString();
 		SerialId = bb.ReadLong();
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteString(ServiceName);
 		bb.WriteLong(SerialId);
 	}
 
 	@Override
-	protected void InitChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.RootInfo root) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	protected void ResetChildrenRootInfo() {
+	protected void resetChildrenRootInfo() {
 		throw new UnsupportedOperationException();
 	}
 

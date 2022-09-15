@@ -242,7 +242,7 @@ public final class TestJson extends TestCase {
 
 	public void testD() throws ReflectiveOperationException {
 		var v = new BValue();
-		var db = new DynamicBean(0, BValue::GetSpecialTypeIdFromBean_Map26, BValue::CreateBeanFromSpecialTypeId_Map26);
+		var db = new DynamicBean(0, BValue::getSpecialTypeIdFromBean_Map26, BValue::createBeanFromSpecialTypeId_Map26);
 		var s = new BSimple();
 		s.setInt1(456);
 		db.setBean(s);

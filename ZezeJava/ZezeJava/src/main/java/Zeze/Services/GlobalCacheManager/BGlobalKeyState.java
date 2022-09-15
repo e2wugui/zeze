@@ -10,24 +10,24 @@ public class BGlobalKeyState extends Bean {
 	public int State;
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		GlobalKey = bb.ReadBinary();
 		State = bb.ReadInt();
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteBinary(GlobalKey);
 		bb.WriteInt(State);
 	}
 
 	@Override
-	protected void InitChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.RootInfo root) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	protected void ResetChildrenRootInfo() {
+	protected void resetChildrenRootInfo() {
 		throw new UnsupportedOperationException();
 	}
 

@@ -5,7 +5,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import Zeze.Util.Macro;
 
 public final class Lockey implements Comparable<Lockey> {
-	private final TableKey TableKey;
+	private final TableKey tableKey;
 	private ReentrantReadWriteLock rwLock;
 
 	/**
@@ -15,53 +15,53 @@ public final class Lockey implements Comparable<Lockey> {
 	 * @param key table key
 	 */
 	public Lockey(TableKey key) {
-		TableKey = key;
+		tableKey = key;
 	}
 
 	public TableKey getTableKey() {
-		return TableKey;
+		return tableKey;
 	}
 
 	/**
 	 * 创建真正的锁对象。
 	 */
-	Lockey Alloc() {
+	Lockey alloc() {
 		rwLock = new ReentrantReadWriteLock();
 		return this;
 	}
 
-	public void EnterReadLock() {
+	public void enterReadLock() {
 		// if (!rwLock.IsReadLockHeld) // 第一次才计数. java 没有这个，那么每次访问都统计。
 		if (Macro.EnableStatistics) {
-			TableStatistics.getInstance().GetOrAdd(TableKey.getId()).getReadLockTimes().increment();
+			TableStatistics.getInstance().getOrAdd(tableKey.getId()).getReadLockTimes().increment();
 		}
 		// logger.debug("EnterReadLock {}", TableKey);
 		rwLock.readLock().lock();
 	}
 
-	public void ExitReadLock() {
+	public void exitReadLock() {
 		// logger.debug("ExitReadLock {}", TableKey);
 		rwLock.readLock().unlock();
 	}
 
-	public void EnterWriteLock() {
+	public void enterWriteLock() {
 		if (Macro.EnableStatistics) {
 			if (!rwLock.isWriteLockedByCurrentThread()) // 第一次才计数
-				TableStatistics.getInstance().GetOrAdd(TableKey.getId()).getWriteLockTimes().increment();
+				TableStatistics.getInstance().getOrAdd(tableKey.getId()).getWriteLockTimes().increment();
 		}
 		// logger.debug("EnterWriteLock {}", TableKey);
 		rwLock.writeLock().lock();
 	}
 
-	public void ExitWriteLock() {
+	public void exitWriteLock() {
 		// logger.debug("ExitWriteLock {}", TableKey);
 		rwLock.writeLock().unlock();
 	}
 
-	public boolean TryEnterReadLock(int millisecondsTimeout) {
+	public boolean tryEnterReadLock(int millisecondsTimeout) {
 		// if (!rwLock.IsReadLockHeld) // 第一次才计数，即时失败了也计数，根据观察情况再决定采用那种方案。
 		if (Macro.EnableStatistics) {
-			TableStatistics.getInstance().GetOrAdd(TableKey.getId()).getTryReadLockTimes().increment();
+			TableStatistics.getInstance().getOrAdd(tableKey.getId()).getTryReadLockTimes().increment();
 		}
 		try {
 			return rwLock.readLock().tryLock(millisecondsTimeout, TimeUnit.MILLISECONDS);
@@ -70,10 +70,10 @@ public final class Lockey implements Comparable<Lockey> {
 		}
 	}
 
-	public boolean TryEnterWriteLock(int millisecondsTimeout) {
+	public boolean tryEnterWriteLock(int millisecondsTimeout) {
 		if (Macro.EnableStatistics) {
 			if (!rwLock.isWriteLockedByCurrentThread()) // 第一次才计数，即时失败了也计数，根据观察情况再决定采用那种方案。
-				TableStatistics.getInstance().GetOrAdd(TableKey.getId()).getTryWriteLockTimes().increment();
+				TableStatistics.getInstance().getOrAdd(tableKey.getId()).getTryWriteLockTimes().increment();
 		}
 		try {
 			return rwLock.writeLock().tryLock(millisecondsTimeout, TimeUnit.MILLISECONDS);
@@ -93,7 +93,7 @@ public final class Lockey implements Comparable<Lockey> {
 	 *
 	 * @param isWrite Write Lock Need.
 	 */
-	public void EnterLock(boolean isWrite) {
+	public void enterLock(boolean isWrite) {
 		if (isWrite) {
 			/*
 			// 需要试试：拥有 readLock 时，再次去锁 writeLock 会死锁，但java没有提供手段检测。
@@ -103,14 +103,14 @@ public final class Lockey implements Comparable<Lockey> {
 			}
 			*/
 			// logger.debug("EnterLock::EnterWriteLock {}", TableKey);
-			EnterWriteLock();
+			enterWriteLock();
 		} else {
 			// logger.debug("EnterLock::EnterReadLock {}", TableKey);
-			EnterReadLock();
+			enterReadLock();
 		}
 	}
 
-	public void ExitLock() {
+	public void exitLock() {
 		if (rwLock.isWriteLockedByCurrentThread()) {
 			// logger.debug("ExitLock::ExitWriteLock {}", TableKey);
 			rwLock.writeLock().unlock();
@@ -126,18 +126,18 @@ public final class Lockey implements Comparable<Lockey> {
 	public int compareTo(Lockey other) {
 		if (other == null)
 			return 1; // null always small
-		return TableKey.compareTo(other.TableKey);
+		return tableKey.compareTo(other.tableKey);
 	}
 
 	@Override
 	public int hashCode() {
-		return TableKey.hashCode();
+		return tableKey.hashCode();
 	}
 
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
-		return obj instanceof Lockey && TableKey.equals(((Lockey)obj).TableKey);
+		return obj instanceof Lockey && tableKey.equals(((Lockey)obj).tableKey);
 	}
 }

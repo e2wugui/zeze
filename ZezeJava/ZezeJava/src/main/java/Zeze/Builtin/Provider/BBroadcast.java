@@ -82,30 +82,40 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
         _time = _time_;
     }
 
-    public void Assign(BBroadcast other) {
+    public void assign(BBroadcast other) {
         setProtocolType(other.getProtocolType());
         setProtocolWholeData(other.getProtocolWholeData());
         setTime(other.getTime());
     }
 
-    public BBroadcast CopyIfManaged() {
+    @Deprecated
+    public void Assign(BBroadcast other) {
+        assign(other);
+    }
+
+    public BBroadcast copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BBroadcast Copy() {
+    public BBroadcast copy() {
         var copy = new BBroadcast();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BBroadcast a, BBroadcast b) {
+    @Deprecated
+    public BBroadcast Copy() {
+        return copy();
+    }
+
+    public static void swap(BBroadcast a, BBroadcast b) {
         BBroadcast save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BBroadcast CopyBean() {
+    public BBroadcast copyBean() {
         return Copy();
     }
 
@@ -120,32 +130,32 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
         public Log__protocolType(BBroadcast bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BBroadcast)getBelong())._protocolType = Value; }
+        public void commit() { ((BBroadcast)getBelong())._protocolType = Value; }
     }
 
     private static final class Log__protocolWholeData extends Zeze.Transaction.Logs.LogBinary {
         public Log__protocolWholeData(BBroadcast bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BBroadcast)getBelong())._protocolWholeData = Value; }
+        public void commit() { ((BBroadcast)getBelong())._protocolWholeData = Value; }
     }
 
     private static final class Log__time extends Zeze.Transaction.Logs.LogInt {
         public Log__time(BBroadcast bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BBroadcast)getBelong())._time = Value; }
+        public void commit() { ((BBroadcast)getBelong())._time = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BBroadcast: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("protocolType").append('=').append(getProtocolType()).append(',').append(System.lineSeparator());
@@ -168,7 +178,7 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             long _x_ = getProtocolType();
@@ -195,7 +205,7 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -217,15 +227,15 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
+    protected void resetChildrenRootInfo() {
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         if (getProtocolType() < 0)
             return true;
         if (getTime() < 0)
@@ -235,7 +245,7 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;

@@ -35,10 +35,10 @@ public class SimpleApp extends AppBase {
 					 String globalServerIp, int globalServerPort, int cacheSize) throws Throwable {
 		var config = new Config();
 		var serviceConf = new ServiceConf();
-		serviceConf.AddConnector(new Connector(serviceManagerIp, serviceManagerPort)); // 连接本地ServiceManager
+		serviceConf.addConnector(new Connector(serviceManagerIp, serviceManagerPort)); // 连接本地ServiceManager
 		config.getServiceConfMap().put("Zeze.Services.ServiceManager.Agent", serviceConf);
 		serviceConf = new ServiceConf();
-		serviceConf.AddAcceptor(new Acceptor(providerPort, null));
+		serviceConf.addAcceptor(new Acceptor(providerPort, null));
 		config.getServiceConfMap().put("ServerDirect", serviceConf); // 提供Provider之间直连服务
 		config.setGlobalCacheManagerHostNameOrAddress(globalServerIp); // 连接本地GlobalServer
 		config.setGlobalCacheManagerPort(globalServerPort);

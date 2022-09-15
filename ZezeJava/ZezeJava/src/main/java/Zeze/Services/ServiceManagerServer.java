@@ -228,7 +228,7 @@ public final class ServiceManagerServer implements Closeable {
 			if (ServiceManager.StartNotifyDelayTask != null)
 				return;
 			var notify = new NotifyServiceList(new BServiceInfos(ServiceName, this, ++SerialId));
-			var notifyBytes = notify.Encode();
+			var notifyBytes = notify.encode();
 			var sb = new StringBuilder();
 			if (notifySimple) {
 				for (var it = Simple.iterator(); it.moveToNext(); ) {
@@ -734,7 +734,7 @@ public final class ServiceManagerServer implements Closeable {
 		AutoKeysDb = RocksDB.open(DatabaseRocksDb.getCommonOptions(), Paths.get(Config.DbHome, "autokeys").toString());
 
 		// 允许配置多个acceptor，如果有冲突，通过日志查看。
-		ServerSocket = Server.NewServerSocket(ipaddress, port, null);
+		ServerSocket = Server.newServerSocket(ipaddress, port, null);
 		Server.Start();
 	}
 
@@ -815,7 +815,7 @@ public final class ServiceManagerServer implements Closeable {
 		}
 
 		LongConcurrentHashMap<AsyncSocket> getAllSocks() {
-			return SocketMap;
+			return getSocketMap();
 		}
 
 		@Override

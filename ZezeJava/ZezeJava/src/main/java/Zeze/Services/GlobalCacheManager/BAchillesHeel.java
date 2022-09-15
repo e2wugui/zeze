@@ -11,26 +11,26 @@ public class BAchillesHeel extends Bean {
 	public int GlobalCacheManagerHashIndex; // 安全验证
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		ServerId = bb.ReadInt();
 		SecureKey = bb.ReadString();
 		GlobalCacheManagerHashIndex = bb.ReadInt();
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteInt(ServerId);
 		bb.WriteString(SecureKey);
 		bb.WriteInt(GlobalCacheManagerHashIndex);
 	}
 
 	@Override
-	protected void InitChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.RootInfo root) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	protected void ResetChildrenRootInfo() {
+	protected void resetChildrenRootInfo() {
 		throw new UnsupportedOperationException();
 	}
 

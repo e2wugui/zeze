@@ -127,7 +127,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
         _SenderClientId = _SenderClientId_;
     }
 
-    public void Assign(BTransmitAccount other) {
+    public void assign(BTransmitAccount other) {
         setActionName(other.getActionName());
         setParameter(other.getParameter());
         getTargetAccounts().clear();
@@ -137,24 +137,34 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
         setSenderClientId(other.getSenderClientId());
     }
 
-    public BTransmitAccount CopyIfManaged() {
+    @Deprecated
+    public void Assign(BTransmitAccount other) {
+        assign(other);
+    }
+
+    public BTransmitAccount copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BTransmitAccount Copy() {
+    public BTransmitAccount copy() {
         var copy = new BTransmitAccount();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BTransmitAccount a, BTransmitAccount b) {
+    @Deprecated
+    public BTransmitAccount Copy() {
+        return copy();
+    }
+
+    public static void swap(BTransmitAccount a, BTransmitAccount b) {
         BTransmitAccount save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BTransmitAccount CopyBean() {
+    public BTransmitAccount copyBean() {
         return Copy();
     }
 
@@ -169,39 +179,39 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
         public Log__ActionName(BTransmitAccount bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BTransmitAccount)getBelong())._ActionName = Value; }
+        public void commit() { ((BTransmitAccount)getBelong())._ActionName = Value; }
     }
 
     private static final class Log__Parameter extends Zeze.Transaction.Logs.LogBinary {
         public Log__Parameter(BTransmitAccount bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BTransmitAccount)getBelong())._Parameter = Value; }
+        public void commit() { ((BTransmitAccount)getBelong())._Parameter = Value; }
     }
 
     private static final class Log__SenderAccount extends Zeze.Transaction.Logs.LogString {
         public Log__SenderAccount(BTransmitAccount bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BTransmitAccount)getBelong())._SenderAccount = Value; }
+        public void commit() { ((BTransmitAccount)getBelong())._SenderAccount = Value; }
     }
 
     private static final class Log__SenderClientId extends Zeze.Transaction.Logs.LogString {
         public Log__SenderClientId(BTransmitAccount bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BTransmitAccount)getBelong())._SenderClientId = Value; }
+        public void commit() { ((BTransmitAccount)getBelong())._SenderClientId = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ProviderDirect.BTransmitAccount: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ActionName").append('=').append(getActionName()).append(',').append(System.lineSeparator());
@@ -232,7 +242,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             String _x_ = getActionName();
@@ -276,7 +286,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -312,23 +322,23 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _TargetAccounts.InitRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+        _TargetAccounts.initRootInfo(root, this);
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
-        _TargetAccounts.ResetRootInfo();
+    protected void resetChildrenRootInfo() {
+        _TargetAccounts.resetRootInfo();
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         return false;
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;
@@ -337,7 +347,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
             switch (vlog.getVariableId()) {
                 case 1: _ActionName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
                 case 2: _Parameter = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
-                case 3: _TargetAccounts.FollowerApply(vlog); break;
+                case 3: _TargetAccounts.followerApply(vlog); break;
                 case 4: _SenderAccount = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
                 case 5: _SenderClientId = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
             }

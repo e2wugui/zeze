@@ -41,7 +41,7 @@ public class TestAsyncSocket extends TestCase {
 
 	public final void testConnect() {
 		ServiceClient client = new ServiceClient();
-		try (AsyncSocket ignored = client.NewClientSocket("www.163.com", 80, null, null)) {
+		try (AsyncSocket ignored = client.newClientSocket("www.163.com", 80, null, null)) {
 			client.Future.await();
 		}
 	}

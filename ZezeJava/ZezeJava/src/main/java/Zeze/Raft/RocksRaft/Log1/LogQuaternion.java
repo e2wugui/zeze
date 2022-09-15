@@ -22,12 +22,12 @@ public class LogQuaternion extends Log {
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteQuaternion(Value);
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		Value = bb.ReadQuaternion();
 	}
 

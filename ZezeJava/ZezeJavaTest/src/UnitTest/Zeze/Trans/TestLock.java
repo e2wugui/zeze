@@ -73,15 +73,15 @@ public class TestLock extends TestCase {
 
 		Assert.assertEquals(lock1, lock2);
 
-		Lockey lock1ref = locks.Get(lock1);
+		Lockey lock1ref = locks.get(lock1);
 		Assert.assertEquals(lock1ref, lock1); // first Get. self
 
-		Lockey lock2ref = locks.Get(lock2);
+		Lockey lock2ref = locks.get(lock2);
 		Assert.assertEquals(lock2ref, lock1); // second Get. the exist
 
 		TableKey tk3 = new TableKey(1, 2);
 		Lockey lock3 = new Lockey(tk3);
-		Lockey lock3ref = locks.Get(lock3);
+		Lockey lock3ref = locks.get(lock3);
 		Assert.assertEquals(lock3ref, lock3);
 		Assert.assertNotEquals(lock3ref, lock1);
 	}

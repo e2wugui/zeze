@@ -148,16 +148,16 @@ public final class Application {
 	}
 
 	public void AddTable(String dbName, Table table) {
-		TableKey.Tables.put(table.getId(), table.getName());
+		TableKey.tables.put(table.getId(), table.getName());
 		var db = GetDatabase(dbName);
 		if (Tables.putIfAbsent(table.getId(), table) != null)
 			throw new IllegalStateException("duplicate table name=" + table.getName());
-		db.AddTable(table);
+		db.addTable(table);
 	}
 
 	public void RemoveTable(String dbName, Table table) {
 		Tables.remove(table.getId());
-		GetDatabase(dbName).RemoveTable(table);
+		GetDatabase(dbName).removeTable(table);
 	}
 
 	public Table GetTable(int id) {
@@ -237,7 +237,7 @@ public final class Application {
 
 			// Set Database InUse
 			for (var db : Databases.values())
-				db.getDirectOperates().SetInUse(serverId, Conf.getGlobalCacheManagerHostNameOrAddress());
+				db.getDirectOperates().setInUse(serverId, Conf.getGlobalCacheManagerHostNameOrAddress());
 
 			// Open RocksCache
 			var dbConf = new Config.DatabaseConf();
@@ -246,7 +246,7 @@ public final class Application {
 			deleteDirectory(new File(dbConf.getDatabaseUrl()));
 			dbConf.setDatabaseType(Config.DbType.RocksDb);
 			LocalRocksCacheDb = new DatabaseRocksDb(dbConf);
-			LocalRocksCacheDb.Open(this);
+			LocalRocksCacheDb.open(this);
 		}
 
 		// Start ServiceManager
@@ -259,7 +259,7 @@ public final class Application {
 		if (serverId >= 0) {
 			// Open Databases
 			for (var db : Databases.values())
-				db.Open(this);
+				db.open(this);
 
 			// Open Global
 			var hosts = Str.trim(Conf.getGlobalCacheManagerHostNameOrAddress().split(";"));
@@ -268,8 +268,8 @@ public final class Application {
 				if (!isRaft) {
 					var impl = new GlobalAgent(this, hosts, Conf.getGlobalCacheManagerPort());
 					GlobalAgent = impl;
-					AchillesHeelDaemon = new AchillesHeelDaemon(this, impl.Agents);
-					impl.Start();
+					AchillesHeelDaemon = new AchillesHeelDaemon(this, impl.agents);
+					impl.start();
 				} else {
 					var impl = new GlobalCacheManagerWithRaftAgent(this, hosts);
 					GlobalAgent = impl;
@@ -280,7 +280,7 @@ public final class Application {
 
 			// Checkpoint
 			_checkpoint = new Checkpoint(this, Conf.getCheckpointMode(), Databases.values(), serverId);
-			_checkpoint.Start(Conf.getCheckpointPeriod()); // 定时模式可以和其他模式混用。
+			_checkpoint.start(Conf.getCheckpointPeriod()); // 定时模式可以和其他模式混用。
 
 			/////////////////////////////////////////////////////
 			// Schemas
@@ -290,23 +290,23 @@ public final class Application {
 				var keyOfSchemas = ByteBuffer.Allocate(24);
 				keyOfSchemas.WriteString("zeze.Schemas." + serverId);
 				while (true) {
-					var dataVersion = defaultDb.getDirectOperates().GetDataWithVersion(keyOfSchemas);
+					var dataVersion = defaultDb.getDirectOperates().getDataWithVersion(keyOfSchemas);
 					long version = 0;
-					if (dataVersion != null && dataVersion.Data != null) {
+					if (dataVersion != null && dataVersion.data != null) {
 						var SchemasPrevious = new Schemas();
 						try {
-							SchemasPrevious.Decode(dataVersion.Data);
+							SchemasPrevious.decode(dataVersion.data);
 							SchemasPrevious.Compile();
 						} catch (Throwable ex) {
 							SchemasPrevious = null;
 							logger.error("Schemas Implement Changed?", ex);
 						}
 						ResetDB.checkAndRemoveTable(SchemasPrevious, this);
-						version = dataVersion.Version;
+						version = dataVersion.version;
 					}
 					var newData = ByteBuffer.Allocate(1024);
-					Schemas.Encode(newData);
-					var versionRc = defaultDb.getDirectOperates().SaveDataWithSameVersion(keyOfSchemas, newData, version);
+					Schemas.encode(newData);
+					var versionRc = defaultDb.getDirectOperates().saveDataWithSameVersion(keyOfSchemas, newData, version);
 					if (versionRc.getValue())
 						break;
 				}
@@ -347,14 +347,14 @@ public final class Application {
 		}
 
 		if (_checkpoint != null) {
-			_checkpoint.StopAndJoin();
+			_checkpoint.stopAndJoin();
 			_checkpoint = null;
 		}
 		for (var db : Databases.values())
-			db.Close();
+			db.close();
 		if (LocalRocksCacheDb != null) {
 			var dir = LocalRocksCacheDb.getDatabaseUrl();
-			LocalRocksCacheDb.Close();
+			LocalRocksCacheDb.close();
 			deleteDirectory(new File(dir));
 			LocalRocksCacheDb = null;
 		}
@@ -373,7 +373,7 @@ public final class Application {
 	}
 
 	public void CheckpointRun() {
-		_checkpoint.RunOnce();
+		_checkpoint.runOnce();
 	}
 
 	public TaskOneByOneByKey getTaskOneByOneByKey() {

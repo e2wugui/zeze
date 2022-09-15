@@ -118,7 +118,7 @@ public final class Record<K> {
 		if (Value != null) {
 			int preAllocSize = Value.preAllocSize();
 			ByteBuffer valueBB = ByteBuffer.Allocate(Math.min(preAllocSize, 65536));
-			Value.Encode(valueBB);
+			Value.encode(valueBB);
 			int size = valueBB.WriteIndex;
 			if (size > preAllocSize)
 				Value.preAllocSize(size);

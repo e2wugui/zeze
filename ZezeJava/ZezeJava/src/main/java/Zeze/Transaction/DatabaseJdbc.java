@@ -40,8 +40,8 @@ public abstract class DatabaseJdbc extends Database {
 	}
 
 	@Override
-	public void Close() {
-		super.Close();
+	public void close() {
+		super.close();
 		try {
 			dataSource.close();
 		} catch (SQLException skip) {
@@ -50,7 +50,7 @@ public abstract class DatabaseJdbc extends Database {
 	}
 
 	@Override
-	public Transaction BeginTransaction() {
+	public Transaction beginTransaction() {
 		return new JdbcTrans();
 	}
 
@@ -76,7 +76,7 @@ public abstract class DatabaseJdbc extends Database {
 		}
 
 		@Override
-		public void Commit() {
+		public void commit() {
 			try {
 				Connection.commit();
 			} catch (SQLException e) {
@@ -85,7 +85,7 @@ public abstract class DatabaseJdbc extends Database {
 		}
 
 		@Override
-		public void Rollback() {
+		public void rollback() {
 			try {
 				Connection.rollback();
 			} catch (SQLException e) {

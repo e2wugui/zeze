@@ -31,21 +31,21 @@ public final class tDepartmentTree extends Zeze.Transaction.TableX<Zeze.Builtin.
     public static final int VAR_Data = 5;
 
     @Override
-    public Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey DecodeKey(ByteBuffer _os_) {
+    public Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey decodeKey(ByteBuffer _os_) {
         Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey _v_ = new Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey();
-        _v_.Decode(_os_);
+        _v_.decode(_os_);
         return _v_;
     }
 
     @Override
-    public ByteBuffer EncodeKey(Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey _v_) {
+    public ByteBuffer encodeKey(Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey _v_) {
         ByteBuffer _os_ = ByteBuffer.Allocate(16);
-        _v_.Encode(_os_);
+        _v_.encode(_os_);
         return _os_;
     }
 
     @Override
-    public Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode NewValue() {
+    public Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode newValue() {
         return new Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode();
     }
 }

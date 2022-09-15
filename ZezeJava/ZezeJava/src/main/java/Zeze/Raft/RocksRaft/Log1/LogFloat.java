@@ -21,12 +21,12 @@ public class LogFloat extends Log {
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteFloat(Value);
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		Value = bb.ReadFloat();
 	}
 

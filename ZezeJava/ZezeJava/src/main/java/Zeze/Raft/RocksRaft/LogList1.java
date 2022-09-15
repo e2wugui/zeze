@@ -115,7 +115,7 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var encoder = valueCodecFuncs.encoder;
 		bb.WriteUInt(opLogs.size());
 		for (var opLog : opLogs) {
@@ -129,7 +129,7 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		var decoder = valueCodecFuncs.decoder;
 		opLogs.clear();
 		for (var logSize = bb.ReadUInt(); --logSize >= 0; ) {

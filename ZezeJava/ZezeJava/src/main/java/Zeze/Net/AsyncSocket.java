@@ -442,7 +442,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				logger.log(LEVEL_PROTOCOL_LOG, "SEND[{}] {}({})> {}", SessionId, protocol.getClass().getSimpleName(),
 						((Rpc<?, ?>)protocol).getSessionId(), protocol.getResultBean());
 		}
-		return Send(protocol.Encode());
+		return Send(protocol.encode());
 	}
 
 	public boolean Send(ByteBuffer bb) { // 返回true则bb不能再修改了

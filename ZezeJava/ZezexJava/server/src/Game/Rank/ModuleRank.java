@@ -227,7 +227,7 @@ public class ModuleRank extends AbstractModule {
 		var ctx = new RedirectAllContext(concurrentLevel,
 				Str.format("{}:{}", getFullName(), "RunGetRank"));
 		ctx.setOnHashEnd(onHashEnd);
-		long sessionId = App.Server.AddManualContextWithTimeout(ctx, 10000); // 处理hash分组结果需要一个上下文保存收集的结果。
+		long sessionId = App.Server.addManualContextWithTimeout(ctx, 10000); // 处理hash分组结果需要一个上下文保存收集的结果。
 		for (int i = 0; i < concurrentLevel; ++i) {
 			GetRank(sessionId, i, keyHint, onHashResult);
 		}

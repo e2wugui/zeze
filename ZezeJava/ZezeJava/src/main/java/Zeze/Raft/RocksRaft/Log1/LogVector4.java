@@ -22,12 +22,12 @@ public class LogVector4 extends Log {
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteVector4(Value);
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		Value = bb.ReadVector4();
 	}
 

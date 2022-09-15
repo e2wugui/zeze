@@ -25,19 +25,19 @@ public class LogBeanKey<T extends Serializable> extends Log {
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
-		Value.Encode(bb);
+	public void encode(ByteBuffer bb) {
+		Value.encode(bb);
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		try {
 			Value = (T)valueFactory.invoke();
 		} catch (Throwable e) {
 			throw new RuntimeException(e);
 		}
-		Value.Decode(bb);
+		Value.decode(bb);
 	}
 
 	@Override

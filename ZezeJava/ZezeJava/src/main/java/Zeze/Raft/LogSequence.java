@@ -112,7 +112,7 @@ public class LogSequence {
 	// 所以下面方法不会返回空。
 	// 除非什么例外发生。那就抛空指针异常吧。
 	public RaftLog LastAppliedLogTermIndex() throws RocksDBException {
-		return RaftLog.DecodeTermIndex(ReadLogBytes(LastApplied));
+		return RaftLog.decodeTermIndex(ReadLogBytes(LastApplied));
 	}
 
 	private void SaveFirstIndex(long newFirstIndex) throws RocksDBException {
@@ -234,7 +234,7 @@ public class LogSequence {
 		private void Put(RaftLog log, boolean isApply) throws IOException, RocksDBException {
 			var db = OpenDb();
 			var key = ByteBuffer.Allocate(32);
-			log.getLog().getUnique().Encode(key);
+			log.getLog().getUnique().encode(key);
 
 			// 先读取并检查状态，减少写操作。
 			var existBytes = db.get(DatabaseRocksDb.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex);
@@ -243,13 +243,13 @@ public class LogSequence {
 
 			if (existBytes != null) {
 				var existState = new UniqueRequestState();
-				existState.Decode(ByteBuffer.Wrap(existBytes));
+				existState.decode(ByteBuffer.Wrap(existBytes));
 				if (existState.isApplied())
 					return;
 			}
 
 			var value = ByteBuffer.Allocate(32);
-			new UniqueRequestState(log, isApply).Encode(value);
+			new UniqueRequestState(log, isApply).encode(value);
 			db.put(LogSequence.WriteOptions, key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
 		}
 
@@ -263,19 +263,19 @@ public class LogSequence {
 
 		public void Remove(RaftLog log) throws IOException, RocksDBException {
 			var key = ByteBuffer.Allocate(32);
-			log.getLog().getUnique().Encode(key);
+			log.getLog().getUnique().encode(key);
 			OpenDb().delete(LogSequence.WriteOptions, key.Bytes, 0, key.WriteIndex);
 		}
 
 		public UniqueRequestState GetRequestState(IRaftRpc raftRpc) throws IOException, RocksDBException {
 			var key = ByteBuffer.Allocate(32);
-			raftRpc.getUnique().Encode(key);
+			raftRpc.getUnique().encode(key);
 			var val = OpenDb().get(DatabaseRocksDb.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex);
 			if (val == null)
 				return null;
 			var bb = ByteBuffer.Wrap(val);
 			var state = new UniqueRequestState();
-			state.Decode(bb);
+			state.decode(bb);
 			return state;
 		}
 
@@ -441,7 +441,7 @@ public class LogSequence {
 			try (var itLast = Logs.newIterator(DatabaseRocksDb.getDefaultReadOptions())) {
 				itLast.seekToLast();
 				if (itLast.isValid())
-					LastIndex = RaftLog.DecodeTermIndex(itLast.value()).getIndex();
+					LastIndex = RaftLog.decodeTermIndex(itLast.value()).getIndex();
 				else {
 					// empty. add one for prev.
 					SaveLog(new RaftLog(Term, 0, new HeartbeatLog()));
@@ -455,7 +455,7 @@ public class LogSequence {
 					try (var itFirst = Logs.newIterator(DatabaseRocksDb.getDefaultReadOptions())) {
 						itFirst.seekToFirst();
 						if (itFirst.isValid()) {
-							FirstIndex = RaftLog.Decode(new Binary(itFirst.value()),
+							FirstIndex = RaftLog.decode(new Binary(itFirst.value()),
 									Raft.getStateMachine()::LogFactory).getIndex();
 						}
 					}
@@ -511,7 +511,7 @@ public class LogSequence {
 	private void SaveLog(RaftLog log) throws RocksDBException {
 		var key = ByteBuffer.Allocate(9);
 		key.WriteLong(log.getIndex());
-		var value = log.Encode();
+		var value = log.encode();
 		Logs.put(WriteOptions, key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
 
 		if (isDebugEnabled)
@@ -539,7 +539,7 @@ public class LogSequence {
 
 	private RaftLog ReadLog(long index) throws RocksDBException {
 		var value = ReadLogBytes(index);
-		return value != null ? RaftLog.Decode(new Binary(value), Raft.getStateMachine()::LogFactory) : null;
+		return value != null ? RaftLog.decode(new Binary(value), Raft.getStateMachine()::LogFactory) : null;
 	}
 
 	public enum SetTermResult {
@@ -847,7 +847,7 @@ public class LogSequence {
 				var logsDir = Paths.get(Raft.getRaftConfig().getDbHome(), "logs").toString();
 				deletedDirectoryAndCheck(new File(logsDir), 10000);
 				Logs = OpenDb(DatabaseRocksDb.getCommonOptions(), logsDir);
-				var lastIncludedLog = RaftLog.Decode(r.Argument.getLastIncludedLog(),
+				var lastIncludedLog = RaftLog.decode(r.Argument.getLastIncludedLog(),
 						Raft.getStateMachine()::LogFactory);
 				SaveLog(lastIncludedLog);
 				CommitSnapshot(path, lastIncludedLog.getIndex());
@@ -1067,7 +1067,7 @@ public class LogSequence {
 			 maxCount > 0 && copyLog != null && copyLog.getIndex() <= LastIndex;
 			 copyLog = ReadLog(copyLog.getIndex() + 1), --maxCount) {
 			lastCopyLog = copyLog;
-			connector.getPending().Argument.getEntries().add(new Binary(copyLog.Encode()));
+			connector.getPending().Argument.getEntries().add(new Binary(copyLog.encode()));
 		}
 		connector.getPending().Argument.setLastEntryIndex(lastCopyLog.getIndex());
 		if (!connector.getPending().Send(socket, (p) ->
@@ -1078,7 +1078,7 @@ public class LogSequence {
 	}
 
 	public RaftLog LastRaftLogTermIndex() throws RocksDBException {
-		return RaftLog.DecodeTermIndex(ReadLogBytes(LastIndex));
+		return RaftLog.decodeTermIndex(ReadLogBytes(LastIndex));
 	}
 
 	private void RemoveLogAndCancelStart(long startIndex, long endIndex) throws IOException, RocksDBException {
@@ -1182,7 +1182,7 @@ public class LogSequence {
 		int entryIndex = 0;
 		var copyLogIndex = prevLog.getIndex() + 1;
 		for (; entryIndex < r.Argument.getEntries().size(); ++entryIndex, ++copyLogIndex) {
-			var copyLog = RaftLog.Decode(r.Argument.getEntries().get(entryIndex), Raft.getStateMachine()::LogFactory);
+			var copyLog = RaftLog.decode(r.Argument.getEntries().get(entryIndex), Raft.getStateMachine()::LogFactory);
 			if (copyLog.getIndex() != copyLogIndex) {
 				logger.fatal("copyLog.Index({}) != copyLogIndex({}) Leader={} this={}",
 						copyLog.getIndex(), copyLogIndex, r.Argument.getLeaderId(), Raft.getName(), new Exception());
@@ -1244,7 +1244,7 @@ public class LogSequence {
 			logs.append(ReadLog(index)).append('\n');
 		var copies = new StringBuilder();
 		for (var entry : entries)
-			copies.append(RaftLog.Decode(entry, Raft.getStateMachine()::LogFactory)).append('\n');
+			copies.append(RaftLog.decode(entry, Raft.getStateMachine()::LogFactory)).append('\n');
 
 		if (logs.toString().equals(copies.toString()))
 			return;

@@ -9,7 +9,7 @@ import Zeze.Transaction.Collections.LogMap2;
 
 public class ModuleBuf extends AbstractModule {
 	public final void Start(App app) {
-		_tbufs.getChangeListenerMap().AddListener(new BufChangeListener("Game.Buf.Bufs"));
+		_tbufs.getChangeListenerMap().addListener(new BufChangeListener("Game.Buf.Bufs"));
 	}
 
 	public final void Stop(App app) {

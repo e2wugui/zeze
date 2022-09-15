@@ -22,12 +22,12 @@ public class LogBinary extends Log {
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteBinary(Value);
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		Value = bb.ReadBinary();
 	}
 

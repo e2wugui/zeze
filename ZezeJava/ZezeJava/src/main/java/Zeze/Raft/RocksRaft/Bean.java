@@ -6,20 +6,20 @@ import Zeze.Serialize.Serializable;
 import Zeze.Util.Str;
 
 public abstract class Bean implements Serializable {
-	public static final int ObjectIdStep = 4096;
-	public static final int MaxVariableId = ObjectIdStep - 1;
-	private static final AtomicLong objectIdGenerator = new AtomicLong();
+	public static final int OBJECT_ID_STEP = 4096;
+	public static final int MAX_VARIABLE_ID = OBJECT_ID_STEP - 1;
+	private static final AtomicLong objectIdGen = new AtomicLong();
 
-	private transient final long objectId = objectIdGenerator.addAndGet(ObjectIdStep);
-	private transient Bean parent;
-	public transient int VariableId;
+	private transient final long objectId = objectIdGen.addAndGet(OBJECT_ID_STEP);
 	private transient Record.RootInfo rootInfo;
+	private transient Bean parent;
+	private transient int variableId;
 
 	public Bean() {
 	}
 
 	public Bean(int varId) {
-		VariableId = varId;
+		variableId = varId;
 	}
 
 	public final long objectId() {
@@ -31,11 +31,11 @@ public abstract class Bean implements Serializable {
 	}
 
 	public final int variableId() {
-		return VariableId;
+		return variableId;
 	}
 
 	public final void variableId(int value) {
-		VariableId = value;
+		variableId = value;
 	}
 
 	public final Record.RootInfo rootInfo() {
@@ -58,42 +58,42 @@ public abstract class Bean implements Serializable {
 		throw new UnsupportedOperationException();
 	}
 
-	public final void InitRootInfo(Record.RootInfo rootInfo, Bean parent) {
+	public final void initRootInfo(Record.RootInfo rootInfo, Bean parent) {
 		if (isManaged())
 			throw new Zeze.Transaction.HasManagedException();
 		this.rootInfo = rootInfo;
 		this.parent = parent;
-		InitChildrenRootInfo(rootInfo);
+		initChildrenRootInfo(rootInfo);
 	}
 
 	// 用在第一次加载Bean时，需要初始化它的root
-	protected abstract void InitChildrenRootInfo(Record.RootInfo root);
+	protected abstract void initChildrenRootInfo(Record.RootInfo root);
 
 	@Override
-	public abstract void Encode(ByteBuffer bb);
+	public abstract void encode(ByteBuffer bb);
 
 	@Override
-	public abstract void Decode(ByteBuffer bb);
+	public abstract void decode(ByteBuffer bb);
 
-	public abstract Bean CopyBean();
+	public abstract Bean copyBean();
 
-	public LogBean CreateLogBean() {
+	public LogBean createLogBean() {
 		LogBean tempVar = new LogBean();
 		tempVar.setBelong(parent);
 		tempVar.setThis(this);
-		tempVar.setVariableId(VariableId);
+		tempVar.setVariableId(variableId);
 		return tempVar;
 	}
 
-	public abstract void FollowerApply(Log log);
+	public abstract void followerApply(Log log);
 
-	public abstract void LeaderApplyNoRecursive(Log log);
+	public abstract void leaderApplyNoRecursive(Log log);
 
 	public long typeId() {
 		return Zeze.Transaction.Bean.hash64(getClass().getName());
 	}
 
-	public void BuildString(StringBuilder sb, int level) {
+	public void buildString(StringBuilder sb, int level) {
 		sb.append(Str.indent(level)).append("{}").append(System.lineSeparator());
 	}
 }

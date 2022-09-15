@@ -35,83 +35,83 @@ public class Procedure {
 	}
 
 	private static final Logger logger = LogManager.getLogger(Procedure.class);
-	public static ILogAction LogAction = Procedure::DefaultLogAction;
+	public static ILogAction logAction = Procedure::DefaultLogAction;
 
 	public static void DefaultLogAction(Throwable ex, long result, Procedure p, String message) {
 		org.apache.logging.log4j.Level level;
 		if (ex != null)
 			level = org.apache.logging.log4j.Level.ERROR;
 		else if (result != 0)
-			level = p.Zeze.getConfig().getProcessReturnErrorLogLevel();
+			level = p.zeze.getConfig().getProcessReturnErrorLogLevel();
 		else if (logger.isTraceEnabled())
 			level = org.apache.logging.log4j.Level.TRACE;
 		else
 			return;
 
 		String module = result > 0 ? "@" + IModule.GetModuleId(result) + ":" + IModule.GetErrorCode(result) : "";
-		logger.log(level, "Procedure={} Return={}{}{} UserState={}", p, result, module, message, p.UserState, ex);
+		logger.log(level, "Procedure={} Return={}{}{} UserState={}", p, result, module, message, p.userState, ex);
 	}
 
-	private final Application Zeze;
-	private final TransactionLevel Level;
-	private FuncLong Action;
-	private String ActionName;
-	private Object UserState;
-//	public Runnable RunWhileCommit;
+	private final Application zeze;
+	private final TransactionLevel level;
+	private FuncLong action;
+	private String actionName;
+	private Object userState;
+//	public Runnable runWhileCommit;
 
 	// 用于继承方式实现 Procedure。
 	public Procedure(Application app) {
-		Zeze = app;
-		Level = null;
+		zeze = app;
+		level = null;
 	}
 
 	public Procedure(Application app, FuncLong action, String actionName, TransactionLevel level, Object userState) {
-		Zeze = app;
-		Level = level;
-		Action = action;
-		ActionName = actionName;
+		zeze = app;
+		this.level = level;
+		this.action = action;
+		this.actionName = actionName;
 		if (userState != null)
-			UserState = userState;
+			this.userState = userState;
 		else { // 没指定，就从当前存储过程继承。嵌套时发生。
 			Transaction currentT = Transaction.getCurrent();
 			if (currentT != null) {
 				Procedure proc = currentT.getTopProcedure();
 				if (proc != null)
-					UserState = proc.UserState;
+					this.userState = proc.userState;
 			}
 		}
 	}
 
 	public final Application getZeze() {
-		return Zeze;
+		return zeze;
 	}
 
 	public final TransactionLevel getTransactionLevel() {
-		return Level;
+		return level;
 	}
 
 	public final FuncLong getAction() {
-		return Action;
+		return action;
 	}
 
 	public final void setAction(FuncLong value) {
-		Action = value;
+		action = value;
 	}
 
 	public final String getActionName() {
-		return ActionName;
+		return actionName;
 	}
 
 	public final void setActionName(String value) {
-		ActionName = value;
+		actionName = value;
 	}
 
 	public final Object getUserState() {
-		return UserState;
+		return userState;
 	}
 
 	public final void setUserState(Object value) {
-		UserState = value;
+		userState = value;
 	}
 
 	/**
@@ -125,7 +125,7 @@ public class Procedure {
 		if (currentT == null) {
 			try {
 				// 有点奇怪，Perform 里面又会回调这个方法。这是为了把主要流程都写到 Transaction 中。
-				return Transaction.Create(Zeze.getLocks()).Perform(this);
+				return Transaction.Create(zeze.getLocks()).Perform(this);
 			} finally {
 				Transaction.Destroy();
 			}
@@ -134,27 +134,27 @@ public class Procedure {
 		currentT.Begin();
 		currentT.getProcedureStack().add(this);
 		try {
-//			var runWhileCommit = RunWhileCommit;
-//			if (runWhileCommit != null) {
-//				RunWhileCommit = null;
-//				currentT.runWhileCommit(runWhileCommit);
+//			var r = runWhileCommit;
+//			if (r != null) {
+//				runWhileCommit = null;
+//				currentT.runWhileCommit(r);
 //			}
-			long result = Process();
+			long result = process();
 			currentT.VerifyRunning(); // 防止应用抓住了异常，通过return方式返回。
 
 			if (result == Success) {
 				currentT.Commit();
 				if (Macro.EnableStatistics) {
-					ProcedureStatistics.getInstance().GetOrAdd(ActionName).GetOrAdd(result).increment();
+					ProcedureStatistics.getInstance().getOrAdd(actionName).getOrAdd(result).increment();
 				}
 				return Success;
 			}
 			currentT.Rollback();
-			var tmpLogAction = LogAction;
+			var tmpLogAction = logAction;
 			if (tmpLogAction != null)
 				tmpLogAction.run(null, result, this, "");
 			if (Macro.EnableStatistics) {
-				ProcedureStatistics.getInstance().GetOrAdd(ActionName).GetOrAdd(result).increment();
+				ProcedureStatistics.getInstance().getOrAdd(actionName).getOrAdd(result).increment();
 			}
 			return result;
 		} catch (GoBackZeze gobackzeze) {
@@ -165,11 +165,11 @@ public class Procedure {
 			throw gobackzeze;
 		} catch (Throwable e) {
 			currentT.Rollback();
-			var tmpLogAction = LogAction;
+			var tmpLogAction = logAction;
 			if (tmpLogAction != null)
 				tmpLogAction.run(e, Exception, this, "");
 			if (Macro.EnableStatistics) {
-				ProcedureStatistics.getInstance().GetOrAdd(ActionName).GetOrAdd(Exception).increment();
+				ProcedureStatistics.getInstance().getOrAdd(actionName).getOrAdd(Exception).increment();
 			}
 			// 验证状态：Running状态将吃掉所有异常。
 			currentT.VerifyRunning();
@@ -183,13 +183,13 @@ public class Procedure {
 		}
 	}
 
-	protected long Process() throws Throwable {
-		return Action != null ? Action.call() : NotImplement;
+	protected long process() throws Throwable {
+		return action != null ? action.call() : NotImplement;
 	}
 
 	@Override
 	public String toString() {
 		// getClass().getName() 仅在用继承的方式实现 Procedure 才有意义。
-		return Action != null ? ActionName : getClass().getName();
+		return action != null ? actionName : getClass().getName();
 	}
 }

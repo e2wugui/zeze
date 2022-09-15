@@ -9,11 +9,11 @@ public final class BItem extends Zeze.Transaction.Bean {
     private int _Number;
     private final Zeze.Transaction.DynamicBean _Item;
 
-    public static long GetSpecialTypeIdFromBean_Item(Zeze.Transaction.Bean bean) {
+    public static long getSpecialTypeIdFromBean_Item(Zeze.Transaction.Bean bean) {
         return Zeze.Game.Bag.GetSpecialTypeIdFromBean(bean);
     }
 
-    public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Item(long typeId) {
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_Item(long typeId) {
         return Zeze.Game.Bag.CreateBeanFromSpecialTypeId(typeId);
     }
 
@@ -83,30 +83,40 @@ public final class BItem extends Zeze.Transaction.Bean {
         _Item = new Zeze.Transaction.DynamicBean(3, Zeze.Game.Bag::GetSpecialTypeIdFromBean, Zeze.Game.Bag::CreateBeanFromSpecialTypeId);
     }
 
-    public void Assign(BItem other) {
+    public void assign(BItem other) {
         setId(other.getId());
         setNumber(other.getNumber());
         getItem().Assign(other.getItem());
     }
 
-    public BItem CopyIfManaged() {
+    @Deprecated
+    public void Assign(BItem other) {
+        assign(other);
+    }
+
+    public BItem copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BItem Copy() {
+    public BItem copy() {
         var copy = new BItem();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BItem a, BItem b) {
+    @Deprecated
+    public BItem Copy() {
+        return copy();
+    }
+
+    public static void swap(BItem a, BItem b) {
         BItem save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BItem CopyBean() {
+    public BItem copyBean() {
         return Copy();
     }
 
@@ -121,31 +131,31 @@ public final class BItem extends Zeze.Transaction.Bean {
         public Log__Id(BItem bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BItem)getBelong())._Id = Value; }
+        public void commit() { ((BItem)getBelong())._Id = Value; }
     }
 
     private static final class Log__Number extends Zeze.Transaction.Logs.LogInt {
         public Log__Number(BItem bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BItem)getBelong())._Number = Value; }
+        public void commit() { ((BItem)getBelong())._Number = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Bag.BItem: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Id").append('=').append(getId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Number").append('=').append(getNumber()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(System.lineSeparator());
-        getItem().getBean().BuildString(sb, level + 4);
+        getItem().getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -164,7 +174,7 @@ public final class BItem extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             int _x_ = getId();
@@ -184,14 +194,14 @@ public final class BItem extends Zeze.Transaction.Bean {
             var _x_ = getItem();
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.DYNAMIC);
-                _x_.Encode(_o_);
+                _x_.encode(_o_);
             }
         }
         _o_.WriteByte(0);
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -213,17 +223,17 @@ public final class BItem extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Item.InitRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+        _Item.initRootInfo(root, this);
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
-        _Item.ResetRootInfo();
+    protected void resetChildrenRootInfo() {
+        _Item.resetRootInfo();
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         if (getId() < 0)
             return true;
         if (getNumber() < 0)
@@ -233,7 +243,7 @@ public final class BItem extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;
@@ -242,7 +252,7 @@ public final class BItem extends Zeze.Transaction.Bean {
             switch (vlog.getVariableId()) {
                 case 1: _Id = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
                 case 2: _Number = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
-                case 3: _Item.FollowerApply(vlog); break;
+                case 3: _Item.followerApply(vlog); break;
             }
         }
     }

@@ -23,7 +23,7 @@ namespace Zeze.Gen.java
             }
             sw.WriteLine(prefix + "@SuppressWarnings(\"unchecked\")");
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public void FollowerApply(Zeze.Transaction.Log log) {");
+            sw.WriteLine(prefix + "public void followerApply(Zeze.Transaction.Log log) {");
             if (needApplyVars)
             {
                 sw.WriteLine(prefix + "    var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();");
@@ -92,22 +92,22 @@ namespace Zeze.Gen.java
 
         public void Visit(Types.TypeList type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.FollowerApply(vlog); break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.followerApply(vlog); break;");
         }
 
         public void Visit(Types.TypeSet type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.FollowerApply(vlog); break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.followerApply(vlog); break;");
         }
 
         public void Visit(Types.TypeMap type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.FollowerApply(vlog); break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.followerApply(vlog); break;");
         }
 
         public void Visit(Types.Bean type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.FollowerApply(vlog); break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.followerApply(vlog); break;");
         }
 
         public void Visit(Types.BeanKey type)
@@ -117,7 +117,7 @@ namespace Zeze.Gen.java
 
         public void Visit(Types.TypeDynamic type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.FollowerApply(vlog); break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.followerApply(vlog); break;");
         }
 
         public void Visit(Types.TypeQuaternion type)

@@ -35,28 +35,38 @@ public final class BTimerId extends Zeze.Transaction.Bean {
         _TimerId = _TimerId_;
     }
 
-    public void Assign(BTimerId other) {
+    public void assign(BTimerId other) {
         setTimerId(other.getTimerId());
     }
 
-    public BTimerId CopyIfManaged() {
+    @Deprecated
+    public void Assign(BTimerId other) {
+        assign(other);
+    }
+
+    public BTimerId copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BTimerId Copy() {
+    public BTimerId copy() {
         var copy = new BTimerId();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BTimerId a, BTimerId b) {
+    @Deprecated
+    public BTimerId Copy() {
+        return copy();
+    }
+
+    public static void swap(BTimerId a, BTimerId b) {
         BTimerId save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BTimerId CopyBean() {
+    public BTimerId copyBean() {
         return Copy();
     }
 
@@ -71,18 +81,18 @@ public final class BTimerId extends Zeze.Transaction.Bean {
         public Log__TimerId(BTimerId bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BTimerId)getBelong())._TimerId = Value; }
+        public void commit() { ((BTimerId)getBelong())._TimerId = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Timer.BTimerId: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("TimerId").append('=').append(getTimerId()).append(System.lineSeparator());
@@ -103,7 +113,7 @@ public final class BTimerId extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             long _x_ = getTimerId();
@@ -116,7 +126,7 @@ public final class BTimerId extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -130,15 +140,15 @@ public final class BTimerId extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
+    protected void resetChildrenRootInfo() {
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         if (getTimerId() < 0)
             return true;
         return false;
@@ -146,7 +156,7 @@ public final class BTimerId extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;

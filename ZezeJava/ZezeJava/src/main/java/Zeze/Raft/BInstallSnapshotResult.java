@@ -29,24 +29,24 @@ final class BInstallSnapshotResult extends Bean {
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteLong(Term);
 		bb.WriteLong(Offset);
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		Term = bb.ReadLong();
 		Offset = bb.ReadLong();
 	}
 
 	@Override
-	protected void InitChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.RootInfo root) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	protected void ResetChildrenRootInfo() {
+	protected void resetChildrenRootInfo() {
 		throw new UnsupportedOperationException();
 	}
 

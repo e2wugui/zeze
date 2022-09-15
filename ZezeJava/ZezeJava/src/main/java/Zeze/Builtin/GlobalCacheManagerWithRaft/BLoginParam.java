@@ -77,30 +77,40 @@ public final class BLoginParam extends Zeze.Transaction.Bean {
         _DebugMode = _DebugMode_;
     }
 
-    public void Assign(BLoginParam other) {
+    public void assign(BLoginParam other) {
         setServerId(other.getServerId());
         setGlobalCacheManagerHashIndex(other.getGlobalCacheManagerHashIndex());
         setDebugMode(other.isDebugMode());
     }
 
-    public BLoginParam CopyIfManaged() {
+    @Deprecated
+    public void Assign(BLoginParam other) {
+        assign(other);
+    }
+
+    public BLoginParam copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BLoginParam Copy() {
+    public BLoginParam copy() {
         var copy = new BLoginParam();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BLoginParam a, BLoginParam b) {
+    @Deprecated
+    public BLoginParam Copy() {
+        return copy();
+    }
+
+    public static void swap(BLoginParam a, BLoginParam b) {
         BLoginParam save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BLoginParam CopyBean() {
+    public BLoginParam copyBean() {
         return Copy();
     }
 
@@ -115,32 +125,32 @@ public final class BLoginParam extends Zeze.Transaction.Bean {
         public Log__ServerId(BLoginParam bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BLoginParam)getBelong())._ServerId = Value; }
+        public void commit() { ((BLoginParam)getBelong())._ServerId = Value; }
     }
 
     private static final class Log__GlobalCacheManagerHashIndex extends Zeze.Transaction.Logs.LogInt {
         public Log__GlobalCacheManagerHashIndex(BLoginParam bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BLoginParam)getBelong())._GlobalCacheManagerHashIndex = Value; }
+        public void commit() { ((BLoginParam)getBelong())._GlobalCacheManagerHashIndex = Value; }
     }
 
     private static final class Log__DebugMode extends Zeze.Transaction.Logs.LogBool {
         public Log__DebugMode(BLoginParam bean, int varId, boolean value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BLoginParam)getBelong())._DebugMode = Value; }
+        public void commit() { ((BLoginParam)getBelong())._DebugMode = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.BLoginParam: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ServerId").append('=').append(getServerId()).append(',').append(System.lineSeparator());
@@ -163,7 +173,7 @@ public final class BLoginParam extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             int _x_ = getServerId();
@@ -190,7 +200,7 @@ public final class BLoginParam extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -212,15 +222,15 @@ public final class BLoginParam extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
+    protected void resetChildrenRootInfo() {
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         if (getServerId() < 0)
             return true;
         if (getGlobalCacheManagerHashIndex() < 0)
@@ -230,7 +240,7 @@ public final class BLoginParam extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;

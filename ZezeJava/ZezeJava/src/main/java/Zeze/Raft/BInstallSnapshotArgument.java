@@ -82,7 +82,7 @@ final class BInstallSnapshotArgument extends Bean {
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteLong(Term);
 		bb.WriteString(LeaderId);
 		bb.WriteLong(LastIncludedIndex);
@@ -96,7 +96,7 @@ final class BInstallSnapshotArgument extends Bean {
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		Term = bb.ReadLong();
 		LeaderId = bb.ReadString();
 		LastIncludedIndex = bb.ReadLong();
@@ -110,12 +110,12 @@ final class BInstallSnapshotArgument extends Bean {
 	}
 
 	@Override
-	protected void InitChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.RootInfo root) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	protected void ResetChildrenRootInfo() {
+	protected void resetChildrenRootInfo() {
 		throw new UnsupportedOperationException();
 	}
 

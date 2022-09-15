@@ -21,13 +21,13 @@ public class HandshakeClient extends HandshakeBase {
 
 	public final void Connect(String hostNameOrAddress, int port, boolean autoReconnect) {
 		var c = new Zeze.Util.OutObject<Connector>();
-		getConfig().TryGetOrAddConnector(hostNameOrAddress, port, autoReconnect, c);
+		getConfig().tryGetOrAddConnector(hostNameOrAddress, port, autoReconnect, c);
 		c.Value.Start();
 	}
 
 	@Override
 	public void OnSocketConnected(AsyncSocket so) {
 		// 重载这个方法，推迟OnHandshakeDone调用
-		SocketMap.putIfAbsent(so.getSessionId(), so);
+		getSocketMap().putIfAbsent(so.getSessionId(), so);
 	}
 }

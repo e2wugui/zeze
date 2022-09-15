@@ -18,7 +18,7 @@ public class Encrypt implements Codec {
 		this.sink = sink;
 		iv = new byte[16];
 		in = new byte[16];
-		System.arraycopy(Digest.Md5(key), 0, iv, 0, 16);
+		System.arraycopy(Digest.md5(key), 0, iv, 0, 16);
 		ivr = ByteBuffer.wrap(iv);
 		ivw = ByteBuffer.wrap(iv);
 		try {

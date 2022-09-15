@@ -16,7 +16,7 @@ namespace Zeze.Gen.rrjava
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public void Decode(ByteBuffer _o_) {");
+            sw.WriteLine(prefix + "public void decode(ByteBuffer _o_) {");
             sw.WriteLine(prefix + "    int _t_ = _o_.ReadByte();");
             sw.WriteLine(prefix + "    int _i_ = _o_.ReadTagSize(_t_);");
 
@@ -59,7 +59,7 @@ namespace Zeze.Gen.rrjava
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public void Decode(ByteBuffer _o_) {");
+            sw.WriteLine(prefix + "public void decode(ByteBuffer _o_) {");
             sw.WriteLine(prefix + "    int _t_ = _o_.ReadByte();");
             sw.WriteLine(prefix + "    int _i_ = _o_.ReadTagSize(_t_);");
 
@@ -271,7 +271,7 @@ namespace Zeze.Gen.rrjava
             if (id > 0)
                 sw.WriteLine(prefix + bufname + ".ReadBean(" + GetVarName() + ", _t_);");
             else
-                sw.WriteLine(prefix + GetVarName() + ".Decode(" + bufname + ");");
+                sw.WriteLine(prefix + GetVarName() + ".decode(" + bufname + ");");
         }
 
         public void Visit(BeanKey type)
@@ -279,7 +279,7 @@ namespace Zeze.Gen.rrjava
             if (id > 0)
                 sw.WriteLine(prefix + bufname + ".ReadBean(" + GetVarName() + ", _t_);");
             else
-                sw.WriteLine(prefix + GetVarName() + ".Decode(" + bufname + ");");
+                sw.WriteLine(prefix + GetVarName() + ".decode(" + bufname + ");");
         }
 
         public void Visit(TypeDynamic type)

@@ -6,28 +6,28 @@ import Zeze.Serialize.ByteBuffer;
  * 用来接收 Codec 结果。
  */
 public final class BufferCodec implements Codec {
-	private final ByteBuffer Buffer;
+	private final ByteBuffer buffer;
 
 	public BufferCodec() {
-		Buffer = ByteBuffer.Allocate(1024);
+		buffer = ByteBuffer.Allocate(1024);
 	}
 
 	public BufferCodec(ByteBuffer buffer) {
-		Buffer = buffer;
+		this.buffer = buffer;
 	}
 
 	public ByteBuffer getBuffer() {
-		return Buffer;
+		return buffer;
 	}
 
 	@Override
 	public void update(byte c) {
-		Buffer.Append(c);
+		buffer.Append(c);
 	}
 
 	@Override
 	public void update(byte[] data, int off, int len) {
-		Buffer.Append(data, off, len);
+		buffer.Append(data, off, len);
 	}
 
 	@Override

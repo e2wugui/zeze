@@ -13,8 +13,8 @@ namespace Zeze.Gen.java
         {
             sw.WriteLine($"{prefix}public long typeId();");
             sw.WriteLine($"{prefix}public void Encode(Zeze.Serialize.ByteBuffer _os_);");
-            sw.WriteLine($"{prefix}public boolean NegativeCheck();");
-            sw.WriteLine($"{prefix}public Zeze.Transaction.Bean CopyBean();");
+            sw.WriteLine($"{prefix}public boolean negativeCheck();");
+            sw.WriteLine($"{prefix}public Zeze.Transaction.Bean copyBean();");
             sw.WriteLine();
             foreach (Variable var in bean.Variables)
                 var.VariableType.Accept(new PropertyReadOnly(sw, var, prefix));

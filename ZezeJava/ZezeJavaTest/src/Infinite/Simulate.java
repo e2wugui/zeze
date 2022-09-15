@@ -59,8 +59,8 @@ public final class Simulate {
 			allTable1.add(app.app.demo_Module1.getTable1());
 		}
 		for (var app : Apps) {
-			app.app.demo_Module1.getTflush().GetSimulateTables = () -> allTFlush;
-			app.app.demo_Module1.getTable1().GetSimulateTables = () -> allTable1;
+			app.app.demo_Module1.getTflush().getSimulateTables = () -> allTFlush;
+			app.app.demo_Module1.getTable1().getSimulateTables = () -> allTable1;
 		}
 	}
 
@@ -68,8 +68,8 @@ public final class Simulate {
 	public void After() throws Throwable {
 		logger.fatal("After");
 		for (var app : Apps) {
-			app.app.demo_Module1.getTflush().GetSimulateTables = null;
-			app.app.demo_Module1.getTable1().GetSimulateTables = null;
+			app.app.demo_Module1.getTflush().getSimulateTables = null;
+			app.app.demo_Module1.getTable1().getSimulateTables = null;
 		}
 		for (var app : Apps)
 			app.Stop();

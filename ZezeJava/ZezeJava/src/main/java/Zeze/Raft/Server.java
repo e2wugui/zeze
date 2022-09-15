@@ -138,7 +138,7 @@ public final class Server extends HandshakeBoth {
 		for (var node : raftConf.getNodes().values()) {
 			if (raftConf.getName().equals(node.getName()))
 				continue; // skip self.
-			service.getConfig().AddConnector(new ConnectorEx(node.getHost(), node.getPort()));
+			service.getConfig().addConnector(new ConnectorEx(node.getHost(), node.getPort()));
 		}
 	}
 
@@ -146,11 +146,11 @@ public final class Server extends HandshakeBoth {
 		var node = raftConf.getNodes().get(raftConf.getName());
 		if (node == null)
 			throw new IllegalStateException("Raft.Name=" + raftConf.getName() + " Not In Node");
-		service.getConfig().AddAcceptor(new Acceptor(node.getPort(), node.getHost()));
+		service.getConfig().addAcceptor(new Acceptor(node.getPort(), node.getHost()));
 	}
 
 	private boolean IsImportantProtocol(long typeId) {
-		return IsHandshakeProtocol(typeId) // 【注意】下面这些模块的Id总是为0。
+		return isHandshakeProtocol(typeId) // 【注意】下面这些模块的Id总是为0。
 				|| typeId == RequestVote.TypeId_
 				|| typeId == AppendEntries.TypeId_
 				|| typeId == InstallSnapshot.TypeId_

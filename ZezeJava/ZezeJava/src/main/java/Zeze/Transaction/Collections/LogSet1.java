@@ -36,7 +36,7 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	@Override
-	public void Collect(Changes changes, Zeze.Transaction.Bean recent, Log vlog) {
+	public void collect(Changes changes, Zeze.Transaction.Bean recent, Log vlog) {
 		throw new UnsupportedOperationException("Collect Not Implement.");
 	}
 
@@ -95,7 +95,7 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var encoder = valueCodecFuncs.encoder;
 
 		bb.WriteUInt(Added.size());
@@ -108,7 +108,7 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		var decoder = valueCodecFuncs.decoder;
 
 		Added.clear();
@@ -121,15 +121,15 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	@Override
-	public void EndSavepoint(Savepoint currentSp) {
-		var log = currentSp.GetLog(getLogKey());
+	public void endSavepoint(Savepoint currentSp) {
+		var log = currentSp.getLog(getLogKey());
 		if (log != null) {
 			@SuppressWarnings("unchecked")
 			var currentLog = (LogSet1<V>)log;
 			currentLog.setValue(getValue());
 			currentLog.Merge(this);
 		} else
-			currentSp.PutLog(this);
+			currentSp.putLog(this);
 	}
 
 	public final void Merge(LogSet1<V> from) {
@@ -142,7 +142,7 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	@Override
-	public Log BeginSavepoint() {
+	public Log beginSavepoint() {
 		var dup = new LogSet1<>(getTypeId(), valueCodecFuncs);
 		dup.setBelong(getBelong());
 		dup.setVariableId(getVariableId());

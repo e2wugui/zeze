@@ -44,31 +44,41 @@ public final class BLocal extends Zeze.Transaction.Bean {
         _Datas.variableId(2);
     }
 
-    public void Assign(BLocal other) {
+    public void assign(BLocal other) {
         setLoginVersion(other.getLoginVersion());
         getDatas().clear();
         for (var e : other.getDatas().entrySet())
             getDatas().put(e.getKey(), e.getValue().Copy());
     }
 
-    public BLocal CopyIfManaged() {
+    @Deprecated
+    public void Assign(BLocal other) {
+        assign(other);
+    }
+
+    public BLocal copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BLocal Copy() {
+    public BLocal copy() {
         var copy = new BLocal();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BLocal a, BLocal b) {
+    @Deprecated
+    public BLocal Copy() {
+        return copy();
+    }
+
+    public static void swap(BLocal a, BLocal b) {
         BLocal save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BLocal CopyBean() {
+    public BLocal copyBean() {
         return Copy();
     }
 
@@ -83,18 +93,18 @@ public final class BLocal extends Zeze.Transaction.Bean {
         public Log__LoginVersion(BLocal bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BLocal)getBelong())._LoginVersion = Value; }
+        public void commit() { ((BLocal)getBelong())._LoginVersion = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Online.BLocal: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("LoginVersion").append('=').append(getLoginVersion()).append(',').append(System.lineSeparator());
@@ -104,7 +114,7 @@ public final class BLocal extends Zeze.Transaction.Bean {
             sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(_kv_.getKey()).append(',').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
-            _kv_.getValue().BuildString(sb, level + 4);
+            _kv_.getValue().buildString(sb, level + 4);
             sb.append(',').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append(')').append(System.lineSeparator());
         }
@@ -127,7 +137,7 @@ public final class BLocal extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             long _x_ = getLoginVersion();
@@ -144,7 +154,7 @@ public final class BLocal extends Zeze.Transaction.Bean {
                 _o_.WriteMapType(_n_, ByteBuffer.BYTES, ByteBuffer.BEAN);
                 for (var _e_ : _x_.entrySet()) {
                     _o_.WriteString(_e_.getKey());
-                    _e_.getValue().Encode(_o_);
+                    _e_.getValue().encode(_o_);
                 }
             }
         }
@@ -152,7 +162,7 @@ public final class BLocal extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -180,17 +190,17 @@ public final class BLocal extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Datas.InitRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+        _Datas.initRootInfo(root, this);
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
-        _Datas.ResetRootInfo();
+    protected void resetChildrenRootInfo() {
+        _Datas.resetRootInfo();
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         if (getLoginVersion() < 0)
             return true;
         return false;
@@ -198,7 +208,7 @@ public final class BLocal extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;
@@ -206,7 +216,7 @@ public final class BLocal extends Zeze.Transaction.Bean {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                case 2: _Datas.FollowerApply(vlog); break;
+                case 2: _Datas.followerApply(vlog); break;
             }
         }
     }

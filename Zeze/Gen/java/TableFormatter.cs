@@ -59,21 +59,21 @@ namespace Zeze.Gen.java
                 sw.WriteLine();
             }
             sw.WriteLine("    @Override");
-            sw.WriteLine("    public " + keyboxing + " DecodeKey(ByteBuffer _os_) {");
+            sw.WriteLine("    public " + keyboxing + " decodeKey(ByteBuffer _os_) {");
             table.KeyType.Accept(new Define("_v_", sw, "        "));
             table.KeyType.Accept(new Decode("_v_", -1, "_os_", sw, "        "));
             sw.WriteLine("        return _v_;");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    @Override");
-            sw.WriteLine("    public ByteBuffer EncodeKey(" + keyboxing + " _v_) {");
+            sw.WriteLine("    public ByteBuffer encodeKey(" + keyboxing + " _v_) {");
             sw.WriteLine("        ByteBuffer _os_ = ByteBuffer.Allocate(16);");
             table.KeyType.Accept(new Encode("_v_", -1, "_os_", sw, "        "));
             sw.WriteLine("        return _os_;");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    @Override");
-            sw.WriteLine($"    public {value} NewValue() {{");
+            sw.WriteLine($"    public {value} newValue() {{");
             sw.WriteLine($"        return new {value}();");
             sw.WriteLine("    }");
             //sw.WriteLine();

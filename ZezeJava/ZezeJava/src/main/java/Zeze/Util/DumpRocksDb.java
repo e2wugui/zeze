@@ -270,11 +270,11 @@ public final class DumpRocksDb {
 				if (state == 1) { // Put
 					if (tableTName.equals("Global")) {
 						var cs = new BCacheState();
-						cs.Decode(bb);
+						cs.decode(bb);
 						dump(os, ", modify:%d, share=%s}", cs.getModify(), cs.getShare());
 					} else if (tableTName.equals("Session")) {
 						var as = new BAcquiredState();
-						as.Decode(bb);
+						as.decode(bb);
 						dump(os, ", state:%d}", as.getState());
 					} else
 						throw new UnsupportedOperationException("unknown table template name: " + tableTName);

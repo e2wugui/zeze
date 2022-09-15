@@ -23,7 +23,7 @@ public class CollSet1<V> extends CollSet<V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var setLog = (LogSet1<V>)Transaction.getCurrent().LogGetOrAdd(
-					parent().objectId() + variableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			return setLog.Add(item);
 		}
 		var newSet = _set.plus(item);
@@ -38,7 +38,7 @@ public class CollSet1<V> extends CollSet<V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var setLog = (LogSet1<V>)Transaction.getCurrent().LogGetOrAdd(
-					parent().objectId() + variableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			return setLog.Remove(item);
 		}
 		var newSet = _set.minus(item);
@@ -53,14 +53,14 @@ public class CollSet1<V> extends CollSet<V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var setLog = (LogSet1<V>)Transaction.getCurrent().LogGetOrAdd(
-					parent().objectId() + variableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			setLog.Clear();
 		} else
 			_set = org.pcollections.Empty.set();
 	}
 
 	@Override
-	public LogBean CreateLogBean() {
+	public LogBean createLogBean() {
 		var log = new LogSet1<>(logTypeId, valueCodecFuncs);
 		log.setBelong(parent());
 		log.setThis(this);
@@ -70,7 +70,7 @@ public class CollSet1<V> extends CollSet<V> {
 	}
 
 	@Override
-	public void FollowerApply(Log _log) {
+	public void followerApply(Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogSet1<V>)_log;
 		_set = _set.plusAll(log.getAdded()).minusAll(log.getRemoved());
@@ -78,23 +78,23 @@ public class CollSet1<V> extends CollSet<V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void LeaderApplyNoRecursive(Log _log) {
+	public void leaderApplyNoRecursive(Log _log) {
 		_set = ((LogSet1<V>)_log).getValue();
 	}
 
 	@Override
-	protected void InitChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.RootInfo root) {
 	}
 
 	@Override
-	public Bean CopyBean() {
+	public Bean copyBean() {
 		var copy = new CollSet1<>(logTypeId, valueCodecFuncs);
 		copy._set = _set;
 		return copy;
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var tmp = getSet();
 		bb.WriteUInt(tmp.size());
 		var encoder = valueCodecFuncs.encoder;
@@ -103,7 +103,7 @@ public class CollSet1<V> extends CollSet<V> {
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		clear();
 		var decoder = valueCodecFuncs.decoder;
 		for (int i = bb.ReadUInt(); i > 0; i--)

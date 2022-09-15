@@ -13,7 +13,7 @@ import Zeze.Util.Reflect;
 
 public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	private final Set<LogBean> Changed = new HashSet<>(); // changed V logs. using in collect.
-	private final HashMap<K, LogBean> ChangedWithKey = new HashMap<>(); // changed with key. using in encode/decode FollowerApply
+	private final HashMap<K, LogBean> ChangedWithKey = new HashMap<>(); // changed with key. using in encode/decode followerApply
 	private final MethodHandle valueFactory;
 
 	public LogMap2(Class<K> keyClass, Class<V> valueClass) {
@@ -36,7 +36,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	}
 
 	@Override
-	public Log BeginSavepoint() {
+	public Log beginSavepoint() {
 		var dup = new LogMap2<K, V>(getTypeId(), keyCodecFuncs, valueFactory);
 		dup.setBelong(getBelong());
 		dup.setVariableId(getVariableId());
@@ -70,21 +70,21 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		BuildChangedWithKey();
 
 		bb.WriteUInt(ChangedWithKey.size());
 		var keyEncoder = keyCodecFuncs.encoder;
 		for (var e : ChangedWithKey.entrySet()) {
 			keyEncoder.accept(bb, e.getKey());
-			e.getValue().Encode(bb);
+			e.getValue().encode(bb);
 		}
 
-		// super.Encode(bb);
+		// super.encode(bb);
 		bb.WriteUInt(getReplaced().size());
 		for (var p : getReplaced().entrySet()) {
 			keyEncoder.accept(bb, p.getKey());
-			p.getValue().Encode(bb);
+			p.getValue().encode(bb);
 		}
 		bb.WriteUInt(getRemoved().size());
 		for (var r : getRemoved())
@@ -93,17 +93,17 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		ChangedWithKey.clear();
 		var keyDecoder = keyCodecFuncs.decoder;
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var key = keyDecoder.apply(bb);
 			var value = new LogBean();
-			value.Decode(bb);
+			value.decode(bb);
 			ChangedWithKey.put(key, value);
 		}
 
-		// super.Decode(bb);
+		// super.decode(bb);
 		getReplaced().clear();
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var key = keyDecoder.apply(bb);
@@ -113,7 +113,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 			} catch (Throwable e) {
 				throw new RuntimeException(e);
 			}
-			value.Decode(bb);
+			value.decode(bb);
 			getReplaced().put(key, value);
 		}
 		getRemoved().clear();
@@ -122,9 +122,9 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	}
 
 	@Override
-	public void Collect(Changes changes, Bean recent, Log vlog) {
+	public void collect(Changes changes, Bean recent, Log vlog) {
 		if (Changed.add((LogBean)vlog))
-			changes.Collect(recent, this);
+			changes.collect(recent, this);
 	}
 
 	@Override

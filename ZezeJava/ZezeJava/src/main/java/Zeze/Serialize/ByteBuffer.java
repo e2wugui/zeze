@@ -255,7 +255,7 @@ public final class ByteBuffer {
 		WriteIndex = 0;
 	}
 
-	private static int ToPower2(int needSize) {
+	private static int toPower2(int needSize) {
 		int size = 16;
 		while (size < needSize)
 			size <<= 1;
@@ -265,17 +265,16 @@ public final class ByteBuffer {
 	public void EnsureWrite(int size) {
 		int newSize = WriteIndex + size;
 		if (newSize > Capacity()) {
-			byte[] newBytes = new byte[ToPower2(newSize)];
+			byte[] newBytes = new byte[toPower2(newSize)];
 			System.arraycopy(Bytes, ReadIndex, newBytes, 0, WriteIndex -= ReadIndex);
 			ReadIndex = 0;
 			Bytes = newBytes;
 		}
 	}
 
-	private void EnsureRead(int size) {
-		if (ReadIndex + size > WriteIndex) {
+	private void ensureRead(int size) {
+		if (ReadIndex + size > WriteIndex)
 			throw new IllegalStateException("EnsureRead " + ReadIndex + '+' + size + " > " + WriteIndex);
-		}
 	}
 
 	public void WriteBool(boolean b) {
@@ -284,7 +283,7 @@ public final class ByteBuffer {
 	}
 
 	public boolean ReadBool() {
-		EnsureRead(1);
+		ensureRead(1);
 		int b = Bytes[ReadIndex];
 		if ((b & ~1) == 0) { // fast-path
 			ReadIndex++;
@@ -304,7 +303,7 @@ public final class ByteBuffer {
 	}
 
 	public byte ReadByte() {
-		EnsureRead(1);
+		ensureRead(1);
 		return Bytes[ReadIndex++];
 	}
 
@@ -320,7 +319,7 @@ public final class ByteBuffer {
 	}
 
 	public int ReadInt4() {
-		EnsureRead(4);
+		ensureRead(4);
 		int v = ToInt(Bytes, ReadIndex);
 		ReadIndex += 4;
 		return v;
@@ -342,7 +341,7 @@ public final class ByteBuffer {
 	}
 
 	public long ReadLong8() {
-		EnsureRead(8);
+		ensureRead(8);
 		long v = ToLong(Bytes, ReadIndex);
 		ReadIndex += 8;
 		return v;
@@ -402,32 +401,32 @@ public final class ByteBuffer {
 	}
 
 	public int ReadUInt() {
-		EnsureRead(1);
+		ensureRead(1);
 		byte[] bytes = Bytes;
 		int readIndex = ReadIndex;
 		int v = bytes[readIndex] & 0xff;
 		if (v < 0x80) {
 			ReadIndex = readIndex + 1;
 		} else if (v < 0xc0) {
-			EnsureRead(2);
+			ensureRead(2);
 			v = ((v & 0x3f) << 8)
 					+ (bytes[readIndex + 1] & 0xff);
 			ReadIndex = readIndex + 2;
 		} else if (v < 0xe0) {
-			EnsureRead(3);
+			ensureRead(3);
 			v = ((v & 0x1f) << 16)
 					+ ((bytes[readIndex + 1] & 0xff) << 8)
 					+ (bytes[readIndex + 2] & 0xff);
 			ReadIndex = readIndex + 3;
 		} else if (v < 0xf0) {
-			EnsureRead(4);
+			ensureRead(4);
 			v = ((v & 0xf) << 24)
 					+ ((bytes[readIndex + 1] & 0xff) << 16)
 					+ ((bytes[readIndex + 2] & 0xff) << 8)
 					+ (bytes[readIndex + 3] & 0xff);
 			ReadIndex = readIndex + 4;
 		} else {
-			EnsureRead(5);
+			ensureRead(5);
 			v = (bytes[readIndex + 1] << 24)
 					+ ((bytes[readIndex + 2] & 0xff) << 16)
 					+ ((bytes[readIndex + 3] & 0xff) << 8)
@@ -726,12 +725,12 @@ public final class ByteBuffer {
 	}
 
 	public long ReadLong1() {
-		EnsureRead(1);
+		ensureRead(1);
 		return Bytes[ReadIndex++] & 0xff;
 	}
 
 	public long ReadLong2BE() {
-		EnsureRead(2);
+		ensureRead(2);
 		byte[] bytes = Bytes;
 		int readIndex = ReadIndex;
 		ReadIndex = readIndex + 2;
@@ -740,7 +739,7 @@ public final class ByteBuffer {
 	}
 
 	public long ReadLong3BE() {
-		EnsureRead(3);
+		ensureRead(3);
 		byte[] bytes = Bytes;
 		int readIndex = ReadIndex;
 		ReadIndex = readIndex + 3;
@@ -750,7 +749,7 @@ public final class ByteBuffer {
 	}
 
 	public long ReadLong4BE() {
-		EnsureRead(4);
+		ensureRead(4);
 		byte[] bytes = Bytes;
 		int readIndex = ReadIndex;
 		ReadIndex = readIndex + 4;
@@ -761,7 +760,7 @@ public final class ByteBuffer {
 	}
 
 	public long ReadLong5BE() {
-		EnsureRead(5);
+		ensureRead(5);
 		byte[] bytes = Bytes;
 		int readIndex = ReadIndex;
 		ReadIndex = readIndex + 5;
@@ -773,7 +772,7 @@ public final class ByteBuffer {
 	}
 
 	public long ReadLong6BE() {
-		EnsureRead(6);
+		ensureRead(6);
 		byte[] bytes = Bytes;
 		int readIndex = ReadIndex;
 		ReadIndex = readIndex + 6;
@@ -786,7 +785,7 @@ public final class ByteBuffer {
 	}
 
 	public long ReadLong7BE() {
-		EnsureRead(7);
+		ensureRead(7);
 		byte[] bytes = Bytes;
 		int readIndex = ReadIndex;
 		ReadIndex = readIndex + 7;
@@ -800,7 +799,7 @@ public final class ByteBuffer {
 	}
 
 	public long ReadLong() {
-		EnsureRead(1);
+		ensureRead(1);
 		int b = Bytes[ReadIndex++];
 		switch ((b >> 3) & 0x1f) {
 		//@formatter:off
@@ -845,7 +844,7 @@ public final class ByteBuffer {
 	}
 
 	public float ReadFloat() {
-		EnsureRead(4);
+		ensureRead(4);
 		float v = ToFloat(Bytes, ReadIndex);
 		ReadIndex += 4;
 		return v;
@@ -856,7 +855,7 @@ public final class ByteBuffer {
 	}
 
 	public double ReadDouble() {
-		EnsureRead(8);
+		ensureRead(8);
 		double v = ToDouble(Bytes, ReadIndex);
 		ReadIndex += 8;
 		return v;
@@ -920,7 +919,7 @@ public final class ByteBuffer {
 
 	public String ReadString() {
 		int n = ReadUInt();
-		EnsureRead(n);
+		ensureRead(n);
 		String v = new String(Bytes, ReadIndex, n, StandardCharsets.UTF_8);
 		ReadIndex += n;
 		return v;
@@ -938,7 +937,7 @@ public final class ByteBuffer {
 	}
 
 	public void WriteBinary(Binary binary) {
-		binary.Encode(this);
+		binary.encode(this);
 	}
 
 	public Binary ReadBinary() {
@@ -947,7 +946,7 @@ public final class ByteBuffer {
 
 	public byte[] ReadBytes() {
 		int n = ReadUInt();
-		EnsureRead(n);
+		ensureRead(n);
 		byte[] v = new byte[n];
 		System.arraycopy(Bytes, ReadIndex, v, 0, n);
 		ReadIndex += n;
@@ -956,13 +955,13 @@ public final class ByteBuffer {
 
 	public void SkipBytes() {
 		int n = ReadUInt();
-		EnsureRead(n);
+		ensureRead(n);
 		ReadIndex += n;
 	}
 
 	public void SkipBytes4() {
 		int n = ReadInt4();
-		EnsureRead(n);
+		ensureRead(n);
 		ReadIndex += n;
 	}
 
@@ -971,7 +970,7 @@ public final class ByteBuffer {
 	 */
 	public ByteBuffer ReadByteBuffer() {
 		int n = ReadUInt();
-		EnsureRead(n);
+		ensureRead(n);
 		int cur = ReadIndex;
 		ReadIndex += n;
 		return Wrap(Bytes, cur, n);
@@ -1071,25 +1070,25 @@ public final class ByteBuffer {
 			throw new IllegalArgumentException(String.format("%d,%d,%d", bytesLen, offset, length));
 	}
 
-	public static ByteBuffer Encode(Serializable sa) {
+	public static ByteBuffer encode(Serializable sa) {
 		int preAllocSize = sa.preAllocSize();
 		ByteBuffer bb = Allocate(Math.min(preAllocSize, 65536));
-		sa.Encode(bb);
+		sa.encode(bb);
 		if (preAllocSize < bb.WriteIndex)
 			sa.preAllocSize(bb.WriteIndex);
 		return bb;
 	}
 
-	public void Encode(Collection<? extends Serializable> c) {
+	public void encode(Collection<? extends Serializable> c) {
 		WriteUInt(c.size());
 		for (var s : c)
-			s.Encode(this);
+			s.encode(this);
 	}
 
-	public <T extends Serializable> void Decode(Collection<T> c, Supplier<T> factory) {
+	public <T extends Serializable> void decode(Collection<T> c, Supplier<T> factory) {
 		for (int n = ReadUInt(); n > 0; n--) {
 			T v = factory.get();
-			v.Decode(this);
+			v.decode(this);
 			c.add(v);
 		}
 	}
@@ -1252,7 +1251,7 @@ public final class ByteBuffer {
 	}
 
 	public Vector2 ReadVector2() {
-		EnsureRead(8);
+		ensureRead(8);
 		int i = ReadIndex;
 		float x = ToFloat(Bytes, i);
 		float y = ToFloat(Bytes, i + 4);
@@ -1261,7 +1260,7 @@ public final class ByteBuffer {
 	}
 
 	public Vector3 ReadVector3() {
-		EnsureRead(12);
+		ensureRead(12);
 		int i = ReadIndex;
 		float x = ToFloat(Bytes, i);
 		float y = ToFloat(Bytes, i + 4);
@@ -1271,7 +1270,7 @@ public final class ByteBuffer {
 	}
 
 	public Vector4 ReadVector4() {
-		EnsureRead(16);
+		ensureRead(16);
 		int i = ReadIndex;
 		float x = ToFloat(Bytes, i);
 		float y = ToFloat(Bytes, i + 4);
@@ -1282,7 +1281,7 @@ public final class ByteBuffer {
 	}
 
 	public Quaternion ReadQuaternion() {
-		EnsureRead(16);
+		ensureRead(16);
 		int i = ReadIndex;
 		float x = ToFloat(Bytes, i);
 		float y = ToFloat(Bytes, i + 4);
@@ -1422,10 +1421,10 @@ public final class ByteBuffer {
 	public <T extends Serializable> T ReadBean(T bean, int type) {
 		type &= TAG_MASK;
 		if (type == BEAN)
-			bean.Decode(this);
+			bean.decode(this);
 		else if (type == DYNAMIC) {
 			ReadLong();
-			bean.Decode(this);
+			bean.decode(this);
 		} else if (IGNORE_INCOMPATIBLE_FIELD)
 			SkipUnknownField(type);
 		else
@@ -1436,13 +1435,13 @@ public final class ByteBuffer {
 	public DynamicBean ReadDynamic(DynamicBean dynBean, int type) {
 		type &= TAG_MASK;
 		if (type == DYNAMIC) {
-			dynBean.Decode(this);
+			dynBean.decode(this);
 			return dynBean;
 		}
 		if (type == BEAN) {
 			Bean bean = dynBean.getCreateBeanFromSpecialTypeId().apply(0);
 			if (bean != null) {
-				bean.Decode(this);
+				bean.decode(this);
 				return dynBean;
 			}
 		}
@@ -1482,12 +1481,12 @@ public final class ByteBuffer {
 		case FLOAT:
 			if (type == 1) // FLOAT == 1
 				return;
-			EnsureRead(4);
+			ensureRead(4);
 			ReadIndex += 4;
 			return;
 		case DOUBLE:
 		case VECTOR2:
-			EnsureRead(8);
+			ensureRead(8);
 			ReadIndex += 8;
 			return;
 		case VECTOR2INT:
@@ -1495,7 +1494,7 @@ public final class ByteBuffer {
 			ReadLong();
 			return;
 		case VECTOR3:
-			EnsureRead(12);
+			ensureRead(12);
 			ReadIndex += 12;
 			return;
 		case VECTOR3INT:
@@ -1504,7 +1503,7 @@ public final class ByteBuffer {
 			ReadLong();
 			return;
 		case VECTOR4:
-			EnsureRead(16);
+			ensureRead(16);
 			ReadIndex += 16;
 			return;
 		case BYTES:

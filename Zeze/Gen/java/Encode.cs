@@ -28,7 +28,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public void Encode(ByteBuffer _o_) {");
+            sw.WriteLine(prefix + "public void encode(ByteBuffer _o_) {");
             if (bean.Variables.Count > 0)
                 sw.WriteLine(prefix + "    int _i_ = 0;");
 
@@ -45,7 +45,7 @@ namespace Zeze.Gen.java
             if (bean.Base != "")
             {
                 sw.WriteLine(prefix + "    _o_.WriteByte(1);");
-                sw.WriteLine(prefix + "    super.Encode(_o_);");
+                sw.WriteLine(prefix + "    super.encode(_o_);");
             }
             else
                 sw.WriteLine(prefix + "    _o_.WriteByte(0);");
@@ -68,7 +68,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public void Encode(ByteBuffer _o_) {");
+            sw.WriteLine(prefix + "public void encode(ByteBuffer _o_) {");
             if (bean.Variables.Count > 0)
                 sw.WriteLine(prefix + "    int _i_ = 0;");
 
@@ -250,7 +250,7 @@ namespace Zeze.Gen.java
                 case Bean:
                 case BeanKey:
                 case TypeDynamic:
-                    sw.WriteLine(prefix + varName + ".Encode(" + bufname + ");");
+                    sw.WriteLine(prefix + varName + ".encode(" + bufname + ");");
                     break;
                 case TypeVector2:
                     sw.WriteLine(prefix + bufname + ".WriteVector2(" + varName + ");");
@@ -348,14 +348,14 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "int _a_ = " + bufname + ".WriteIndex;");
                 sw.WriteLine(prefix + "int _j_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "int _b_ = " + bufname + ".WriteIndex;");
-                sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
+                sw.WriteLine(prefix + varname + ".encode(" + bufname + ");");
                 sw.WriteLine(prefix + "if (_b_ + 1 == " + bufname + ".WriteIndex)");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteIndex = _a_;");
                 sw.WriteLine(prefix + "else");
                 sw.WriteLine(prefix + "    _i_ = _j_;");
             }
             else
-                sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
+                sw.WriteLine(prefix + varname + ".encode(" + bufname + ");");
         }
 
         public void Visit(BeanKey type)
@@ -365,14 +365,14 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "int _a_ = " + bufname + ".WriteIndex;");
                 sw.WriteLine(prefix + "int _j_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "int _b_ = " + bufname + ".WriteIndex;");
-                sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
+                sw.WriteLine(prefix + varname + ".encode(" + bufname + ");");
                 sw.WriteLine(prefix + "if (_b_ + 1 == " + bufname + ".WriteIndex)");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteIndex = _a_;");
                 sw.WriteLine(prefix + "else");
                 sw.WriteLine(prefix + "    _i_ = _j_;");
             }
             else
-                sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
+                sw.WriteLine(prefix + varname + ".encode(" + bufname + ");");
         }
 
         public void Visit(TypeDynamic type)
@@ -382,12 +382,12 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "var _x_ = " + varname + ';');
                 sw.WriteLine(prefix + "if (!_x_.isEmpty()) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
-                sw.WriteLine(prefix + "    _x_.Encode(" + bufname + ");");
+                sw.WriteLine(prefix + "    _x_.encode(" + bufname + ");");
                 sw.WriteLine(prefix + "}");
             }
             else
             {
-                sw.WriteLine(prefix + "_x_.Encode(" + bufname + ");");
+                sw.WriteLine(prefix + "_x_.encode(" + bufname + ");");
             }
         }
 
@@ -402,7 +402,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "}");
             }
             else
-                sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
+                sw.WriteLine(prefix + varname + ".encode(" + bufname + ");");
         }
 
         public void Visit(TypeQuaternion type)

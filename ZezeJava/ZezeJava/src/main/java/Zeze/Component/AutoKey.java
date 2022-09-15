@@ -160,7 +160,7 @@ public final class AutoKey {
 		}
 
 		@Override
-		public void Commit() {
+		public void commit() {
 			// 这里直接修改拥有者的引用，开放出去，以后其他事务就能看到新的Range了。
 			// 并发：多线程实际上由 _autokeys 表的锁来达到互斥，commit的时候，是互斥锁。
 			AutoKey.this.range = range;
@@ -172,22 +172,22 @@ public final class AutoKey {
 		}
 
 		@Override
-		public void EndSavepoint(Savepoint currentSp) {
-			currentSp.PutLog(this);
+		public void endSavepoint(Savepoint currentSp) {
+			currentSp.putLog(this);
 		}
 
 		@Override
-		public Log BeginSavepoint() {
+		public Log beginSavepoint() {
 			return this;
 		}
 
 		@Override
-		public void Encode(ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public void Decode(ByteBuffer bb) {
+		public void decode(ByteBuffer bb) {
 			throw new UnsupportedOperationException();
 		}
 	}

@@ -136,7 +136,7 @@ final class MethodOverride {
 			if (!first)
 				sb.append(", ");
 			first = false;
-			sb.append(Gen.Instance.GetTypeName(p.getParameterizedType())).append(' ').append(p.getName());
+			sb.append(Gen.instance.getTypeName(p.getParameterizedType())).append(' ').append(p.getName());
 		}
 		return sb.toString();
 	}

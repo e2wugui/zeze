@@ -24,7 +24,7 @@ namespace Zeze.Gen.rrjava
                 }
             }
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + $"public void LeaderApplyNoRecursive(Zeze.Raft.RocksRaft.Log vlog) {{");
+            sw.WriteLine(prefix + $"public void leaderApplyNoRecursive(Zeze.Raft.RocksRaft.Log vlog) {{");
             sw.WriteLine(prefix + "    switch (vlog.getVariableId()) {");
             foreach (var v in bean.Variables)
             {
@@ -84,17 +84,17 @@ namespace Zeze.Gen.rrjava
 
         public void Visit(Types.TypeList type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.LeaderApplyNoRecursive(vlog); break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.leaderApplyNoRecursive(vlog); break;");
         }
 
         public void Visit(Types.TypeSet type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.LeaderApplyNoRecursive(vlog); break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.leaderApplyNoRecursive(vlog); break;");
         }
 
         public void Visit(Types.TypeMap type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.LeaderApplyNoRecursive(vlog); break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.leaderApplyNoRecursive(vlog); break;");
         }
 
         public void Visit(Types.Bean type)

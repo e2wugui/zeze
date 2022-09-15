@@ -16,40 +16,40 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 public final class ServiceConf {
-	private Service Service;
-	private final String Name;
-	private SocketOptions SocketOptions = new SocketOptions();
-	private HandshakeOptions HandshakeOptions = new HandshakeOptions();
-	private final ConcurrentHashMap<String, Acceptor> Acceptors = new ConcurrentHashMap<>();
-	private final ConcurrentHashMap<String, Connector> Connectors = new ConcurrentHashMap<>();
+	private Service service;
+	private final String name;
+	private SocketOptions socketOptions = new SocketOptions();
+	private HandshakeOptions handshakeOptions = new HandshakeOptions();
+	private final ConcurrentHashMap<String, Acceptor> acceptors = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, Connector> connectors = new ConcurrentHashMap<>();
 
 	public Service getService() {
-		return Service;
+		return service;
 	}
 
 	private void setService(Service value) {
-		Service = value;
+		service = value;
 	}
 
 	public String getName() {
-		return Name;
+		return name;
 	}
 
 	public SocketOptions getSocketOptions() {
-		return SocketOptions;
+		return socketOptions;
 	}
 
 	public void setSocketOptions(SocketOptions value) {
 		if (value != null)
-			SocketOptions = value;
+			socketOptions = value;
 	}
 
 	public HandshakeOptions getHandshakeOptions() {
-		return HandshakeOptions;
+		return handshakeOptions;
 	}
 
 	public void setHandshakeOptions(HandshakeOptions value) {
-		HandshakeOptions = value;
+		handshakeOptions = value;
 	}
 
 	public synchronized void SetService(Service service) throws Throwable {
@@ -61,19 +61,19 @@ public final class ServiceConf {
 		ForEachConnector((c) -> c.SetService(service));
 	}
 
-	public void AddConnector(Connector connector) {
-		if (null != Connectors.putIfAbsent(connector.getName(), connector)) {
+	public void addConnector(Connector connector) {
+		if (null != connectors.putIfAbsent(connector.getName(), connector)) {
 			throw new IllegalStateException("Duplicate Connector=" + connector.getName());
 		}
 		connector.SetService(getService());
 	}
 
-	public Connector FindConnector(String name) {
-		return Connectors.get(name);
+	public Connector findConnector(String name) {
+		return connectors.get(name);
 	}
 
-	public Connector FindConnector(String host, int port) {
-		return FindConnector(host + ":" + port);
+	public Connector findConnector(String host, int port) {
+		return findConnector(host + ":" + port);
 	}
 
 	/**
@@ -85,10 +85,10 @@ public final class ServiceConf {
 	 * @param getOrAdd      out. connector returned.
 	 * @return true if addNew
 	 */
-	public boolean TryGetOrAddConnector(String host, int port, boolean autoReconnect, OutObject<Connector> getOrAdd) {
+	public boolean tryGetOrAddConnector(String host, int port, boolean autoReconnect, OutObject<Connector> getOrAdd) {
 		var name = host + ":" + port;
 		final var addNew = new OutObject<Connector>();
-		var c = Connectors.computeIfAbsent(name,
+		var c = connectors.computeIfAbsent(name,
 				(key) -> {
 					Connector add = new Connector(host, port, autoReconnect);
 					add.SetService(getService());
@@ -100,27 +100,27 @@ public final class ServiceConf {
 		return addNew.Value != null;
 	}
 
-	public void RemoveConnector(Connector c) {
-		Connectors.remove(c.getName(), c);
+	public void removeConnector(Connector c) {
+		connectors.remove(c.getName(), c);
 	}
 
 	public void ForEachConnector(Action1<Connector> action) throws Throwable {
-		for (var c : Connectors.values()) {
+		for (var c : connectors.values()) {
 			action.run(c);
 		}
 	}
 
 	public void forEachConnector(Consumer<Connector> action) {
-		for (var a : Connectors.values())
+		for (var a : connectors.values())
 			action.accept(a);
 	}
 
-	public int ConnectorCount() {
-		return Connectors.size();
+	public int connectorCount() {
+		return connectors.size();
 	}
 
 	public boolean forEachConnector2(Predicate<Connector> func) {
-		for (var c : Connectors.values()) {
+		for (var c : connectors.values()) {
 			if (!func.test(c)) {
 				return false;
 			}
@@ -128,47 +128,46 @@ public final class ServiceConf {
 		return true;
 	}
 
-	public void AddAcceptor(Acceptor a) {
-		if (null != Acceptors.putIfAbsent(a.getName(), a)) {
+	public void addAcceptor(Acceptor a) {
+		if (null != acceptors.putIfAbsent(a.getName(), a)) {
 			throw new IllegalStateException("Duplicate Acceptor=" + a.getName());
 		}
 		a.SetService(getService());
 	}
 
-	public void RemoveAcceptor(Acceptor a) {
-		Acceptors.remove(a.getName(), a);
+	public void removeAcceptor(Acceptor a) {
+		acceptors.remove(a.getName(), a);
 	}
 
 	public void ForEachAcceptor(Action1<Acceptor> action) throws Throwable {
-		for (var a : Acceptors.values()) {
+		for (var a : acceptors.values()) {
 			action.run(a);
 		}
 	}
 
 	public void forEachAcceptor(Consumer<Acceptor> action) {
-		for (var a : Acceptors.values())
+		for (var a : acceptors.values())
 			action.accept(a);
 	}
 
-	public boolean ForEachAcceptor2(Function<Acceptor, Boolean> func) {
-		for (var a : Acceptors.values()) {
-			if (!func.apply(a)) {
+	public boolean forEachAcceptor2(Function<Acceptor, Boolean> func) {
+		for (var a : acceptors.values()) {
+			if (!func.apply(a))
 				return false;
-			}
 		}
 		return true;
 	}
 
-	public int AcceptorCount() {
-		return Acceptors.size();
+	public int acceptorCount() {
+		return acceptors.size();
 	}
 
 	public ServiceConf() {
-		Name = "";
+		name = "";
 	}
 
 	public ServiceConf(Config conf, Element self) {
-		Name = self.getAttribute("Name");
+		name = self.getAttribute("Name");
 
 		String attr;
 
@@ -261,10 +260,10 @@ public final class ServiceConf {
 			Element e = (Element)node;
 			switch (e.getNodeName()) {
 			case "Acceptor":
-				AddAcceptor(new Acceptor(e));
+				addAcceptor(new Acceptor(e));
 				break;
 			case "Connector":
-				AddConnector(Connector.Create(e));
+				addConnector(Connector.Create(e));
 				break;
 			default:
 				throw new IllegalStateException("unknown node name: " + e.getNodeName());
@@ -272,17 +271,17 @@ public final class ServiceConf {
 		}
 	}
 
-	public void Start() {
+	public void start() {
 		forEachAcceptor(Acceptor::Start);
 		forEachConnector(Connector::Start);
 	}
 
-	public void Stop() {
+	public void stop() {
 		forEachAcceptor(Acceptor::Stop);
 		forEachConnector(Connector::Stop);
 	}
 
-	public void StopListen() {
+	public void stopListen() {
 		forEachAcceptor(Acceptor::Stop);
 	}
 }

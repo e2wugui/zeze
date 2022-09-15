@@ -15,13 +15,13 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 	}
 
 	@Override
-	public Database.Table OpenTable(String name) {
+	public Database.Table openTable(String name) {
 		return new TableSqlServer(name);
 	}
 
 	private final class OperatesSqlServer implements Operates {
 		@Override
-		public void SetInUse(int localId, String global) {
+		public void setInUse(int localId, String global) {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 				try (var cmd = connection.prepareCall("{CALL _ZezeSetInUse_(?, ?, ?)}")) {
@@ -54,7 +54,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		@Override
-		public int ClearInUse(int localId, String global) {
+		public int clearInUse(int localId, String global) {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 				try (var cmd = connection.prepareCall("{CALL _ZezeClearInUse_(?, ?, ?)}")) {
@@ -71,7 +71,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		@Override
-		public DataWithVersion GetDataWithVersion(ByteBuffer key) {
+		public DataWithVersion getDataWithVersion(ByteBuffer key) {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 				String sql = "SELECT data,version FROM _ZezeDataWithVersion_ WHERE id=?";
@@ -80,8 +80,8 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					try (var reader = cmd.executeQuery()) {
 						if (reader.next()) {
 							var result = new DataWithVersion();
-							result.Data = ByteBuffer.Wrap(reader.getBytes(1));
-							result.Version = reader.getLong(2);
+							result.data = ByteBuffer.Wrap(reader.getBytes(1));
+							result.version = reader.getLong(2);
 							return result;
 						}
 						return null;
@@ -93,7 +93,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		@Override
-		public Zeze.Util.KV<Long, Boolean> SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
+		public Zeze.Util.KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
 			if (key.Size() == 0) {
 				throw new IllegalArgumentException("key is empty.");
 			}
@@ -295,7 +295,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 	}
 
 	private final class TableSqlServer implements Database.Table {
-		private final String Name;
+		private final String name;
 		private final boolean isNew;
 
 		@Override
@@ -304,7 +304,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		public String getName() {
-			return Name;
+			return name;
 		}
 
 		@Override
@@ -313,12 +313,12 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		public TableSqlServer(String name) {
-			Name = name;
+			this.name = name;
 
 			// isNew 仅用来在Schemas比较的时候可选的忽略被删除的表，这里没有跟Create原子化。
 			try (var connection = dataSource.getConnection()) {
 				DatabaseMetaData meta = connection.getMetaData();
-				ResultSet resultSet = meta.getTables(null, null, Name, new String[]{"TABLE"});
+				ResultSet resultSet = meta.getTables(null, null, this.name, new String[]{"TABLE"});
 				isNew = resultSet.next();
 			} catch (SQLException e) {
 				throw new RuntimeException(e);
@@ -338,11 +338,11 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		@Override
-		public void Close() {
+		public void close() {
 		}
 
 		@Override
-		public ByteBuffer Find(ByteBuffer key) {
+		public ByteBuffer find(ByteBuffer key) {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
@@ -364,7 +364,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		@Override
-		public void Remove(Transaction t, ByteBuffer key) {
+		public void remove(Transaction t, ByteBuffer key) {
 			var my = (JdbcTrans)t;
 			String sql = "DELETE FROM " + getName() + " WHERE id=?";
 			try (var cmd = my.Connection.prepareStatement(sql)) {
@@ -376,7 +376,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		@Override
-		public void Replace(Transaction t, ByteBuffer key, ByteBuffer value) {
+		public void replace(Transaction t, ByteBuffer key, ByteBuffer value) {
 			var my = (JdbcTrans)t;
 			//noinspection SpellCheckingInspection
 			String sql = "update " + getName() + " set value=? where id=?" + " if @@rowcount = 0 and @@error = 0 insert into " + getName() + " values(?,?)";
@@ -394,7 +394,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		@Override
-		public long Walk(TableWalkHandleRaw callback) {
+		public long walk(TableWalkHandleRaw callback) {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
@@ -419,7 +419,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		@Override
-		public long WalkKey(TableWalkKeyRaw callback) {
+		public long walkKey(TableWalkKeyRaw callback) {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 

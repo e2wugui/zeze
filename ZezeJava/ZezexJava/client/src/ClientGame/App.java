@@ -16,7 +16,7 @@ public class App extends Zeze.AppBase {
         CreateZeze(config);
         CreateService();
         var c = new OutObject<Connector>();
-        ClientService.getConfig().TryGetOrAddConnector(ip, port, true, c);
+        ClientService.getConfig().tryGetOrAddConnector(ip, port, true, c);
         Connector = c.Value;
         CreateModules();
         Zeze.Start(); // 启动数据库

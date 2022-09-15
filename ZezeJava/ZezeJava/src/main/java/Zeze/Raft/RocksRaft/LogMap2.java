@@ -10,7 +10,7 @@ import Zeze.Util.Reflect;
 
 public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	private final Set<LogBean> Changed = new HashSet<>(); // changed V logs. using in collect.
-	private final HashMap<K, LogBean> ChangedWithKey = new HashMap<>(); // changed with key. using in encode/decode FollowerApply
+	private final HashMap<K, LogBean> ChangedWithKey = new HashMap<>(); // changed with key. using in encode/decode followerApply
 	private final MethodHandle valueFactory;
 
 	public LogMap2(Class<K> keyClass, Class<V> valueClass) {
@@ -43,7 +43,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		if (getValue() != null) {
 			for (var c : Changed) {
 				Object pkey = c.getThis().mapKey();
@@ -56,14 +56,14 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 		var keyEncoder = keyCodecFuncs.encoder;
 		for (var e : ChangedWithKey.entrySet()) {
 			keyEncoder.accept(bb, e.getKey());
-			e.getValue().Encode(bb);
+			e.getValue().encode(bb);
 		}
 
-		// super.Encode(bb);
+		// super.encode(bb);
 		bb.WriteUInt(getPutted().size());
 		for (var p : getPutted().entrySet()) {
 			keyEncoder.accept(bb, p.getKey());
-			p.getValue().Encode(bb);
+			p.getValue().encode(bb);
 		}
 		bb.WriteUInt(getRemoved().size());
 		for (var r : getRemoved())
@@ -72,17 +72,17 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		ChangedWithKey.clear();
 		var keyDecoder = keyCodecFuncs.decoder;
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var key = keyDecoder.apply(bb);
 			var value = new LogBean();
-			value.Decode(bb);
+			value.decode(bb);
 			ChangedWithKey.put(key, value);
 		}
 
-		// super.Decode(bb);
+		// super.decode(bb);
 		getPutted().clear();
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var key = keyDecoder.apply(bb);
@@ -92,7 +92,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 			} catch (Throwable e) {
 				throw new RuntimeException(e);
 			}
-			value.Decode(bb);
+			value.decode(bb);
 			getPutted().put(key, value);
 		}
 		getRemoved().clear();

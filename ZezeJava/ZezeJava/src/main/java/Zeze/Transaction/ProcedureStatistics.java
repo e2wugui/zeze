@@ -14,23 +14,23 @@ import org.apache.logging.log4j.Logger;
  */
 public final class ProcedureStatistics {
 	private static final Logger logger = LogManager.getLogger(ProcedureStatistics.class);
-	private static final ProcedureStatistics Instance = new ProcedureStatistics();
+	private static final ProcedureStatistics instance = new ProcedureStatistics();
 
 	public static ProcedureStatistics getInstance() {
-		return Instance;
+		return instance;
 	}
 
-	private final ConcurrentHashMap<String, Statistics> Procedures = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, Statistics> procedures = new ConcurrentHashMap<>();
 
 	private ProcedureStatistics() {
 	}
 
 	public ConcurrentHashMap<String, Statistics> getProcedures() {
-		return Procedures;
+		return procedures;
 	}
 
-	public Statistics GetOrAdd(String procedureName) {
-		return Procedures.computeIfAbsent(procedureName, __ -> new Statistics());
+	public Statistics getOrAdd(String procedureName) {
+		return procedures.computeIfAbsent(procedureName, __ -> new Statistics());
 	}
 
 	public static final class Statistics {
@@ -40,52 +40,50 @@ public final class ProcedureStatistics {
 			return Results;
 		}
 
-		public LongAdder GetOrAdd(long result) {
+		public LongAdder getOrAdd(long result) {
 			return Results.computeIfAbsent(result, __ -> new LongAdder());
 		}
 
-
 		public void buildString(String prefix, StringBuilder sb, String end) {
-			for (var it = Results.entryIterator(); it.moveToNext(); ) {
+			for (var it = Results.entryIterator(); it.moveToNext(); )
 				sb.append(prefix).append(it.key()).append("=").append(it.value().sum()).append(end);
-			}
 		}
 
-		public long GetTotalCount() {
+		public long getTotalCount() {
 			long total = 0;
 			for (var v : Results)
 				total += v.sum();
 			return total;
 		}
 
-		public void Watch(long reachPerSecond, Runnable handle) {
+		public void watch(long reachPerSecond, Runnable handle) {
 			var watcher = new Watcher(reachPerSecond, handle);
-			Task.schedule(Watcher.CheckPeriod * 1000, Watcher.CheckPeriod * 1000, watcher::Check);
+			Task.schedule(Watcher.CheckPeriod * 1000, Watcher.CheckPeriod * 1000, watcher::check);
 		}
 
 		public final class Watcher {
 			public static final int CheckPeriod = 30; // 秒
 
-			public long Last;
-			public final long Reach;
-			public final Runnable ReachHandle;
+			public long last;
+			public final long reach;
+			public final Runnable reachHandle;
 
 			public Watcher(long reachPerSecond, Runnable handle) {
-				Last = GetTotalCount();
-				Reach = reachPerSecond;
-				ReachHandle = handle;
+				last = getTotalCount();
+				reach = reachPerSecond;
+				reachHandle = handle;
 			}
 
-			public void Check() {
-				long total = GetTotalCount();
-				if ((total - Last) / CheckPeriod >= Reach) {
+			public void check() {
+				long total = getTotalCount();
+				if ((total - last) / CheckPeriod >= reach) {
 					try {
-						ReachHandle.run();
+						reachHandle.run();
 					} catch (Throwable e) {
 						logger.error("ProcedureStatistics.Watcher", e);
 					}
 				}
-				Last = total;
+				last = total;
 			}
 		}
 	}

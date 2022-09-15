@@ -250,10 +250,10 @@ public final class Rocks extends StateMachine implements Closeable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public void FollowerApply(Changes changes) {
+	public void followerApply(Changes changes) {
 		var rs = new ArrayList<Record<?>>();
 		for (var e : changes.getRecords().entrySet())
-			rs.add(e.getValue().Table.FollowerApply(e.getKey().Key, e.getValue()));
+			rs.add(e.getValue().table.followerApply(e.getKey().Key, e.getValue()));
 		Flush(rs, changes, true);
 	}
 
@@ -261,7 +261,7 @@ public final class Rocks extends StateMachine implements Closeable {
 		Flush(rs, changes, false);
 	}
 
-	public void Flush(Iterable<Record<?>> rs, Changes changes, boolean FollowerApply) {
+	public void Flush(Iterable<Record<?>> rs, Changes changes, boolean followerApply) {
 		try (WriteBatch batch = new WriteBatch()) {
 			for (var r : rs)
 				r.Flush(batch);
@@ -271,7 +271,7 @@ public final class Rocks extends StateMachine implements Closeable {
 				key.WriteInt(it.key());
 				value.WriteLong(it.value());
 				batch.put(AtomicLongsColumnFamily, key.Copy(), value.Copy());
-				if (FollowerApply)
+				if (followerApply)
 					AtomicLongSet(it.key(), it.value());
 			}
 			if (batch.count() > 0)

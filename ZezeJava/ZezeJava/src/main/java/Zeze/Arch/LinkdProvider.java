@@ -231,7 +231,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		var pdata = r.Argument.getProtocolWholeData();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG) {
 			AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "SENT[{}]: {}:{} [{}]", r.Argument.getLinkSids(),
-					Protocol.GetModuleId(ptype), Protocol.GetProtocolId(ptype), pdata.size());
+					Protocol.getModuleId(ptype), Protocol.getProtocolId(ptype), pdata.size());
 		}
 		for (var linkSid : r.Argument.getLinkSids()) {
 			var link = LinkdApp.LinkdService.GetSocket(linkSid);
@@ -252,10 +252,10 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		var pdata = protocol.Argument.getProtocolWholeData();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG) {
 			AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "BROC[{}]: {}:{} [{}]",
-					LinkdApp.LinkdService.getSocketCount(), Protocol.GetModuleId(ptype), Protocol.GetProtocolId(ptype),
+					LinkdApp.LinkdService.getSocketCount(), Protocol.getModuleId(ptype), Protocol.getProtocolId(ptype),
 					pdata.size());
 		}
-		LinkdApp.LinkdService.Foreach((socket) -> {
+		LinkdApp.LinkdService.foreach((socket) -> {
 			// auth 通过就允许发送广播。
 			// 如果要实现 role.login 才允许，Provider 增加 SetLogin 协议给内部server调用。
 			// 这些广播一般是重要通告，只要登录客户端就允许收到，然后进入世界的时候才显示。这样处理就不用这个状态了。

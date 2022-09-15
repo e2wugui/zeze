@@ -165,7 +165,7 @@ public class PList1<V> extends PList<V> {
 	}
 
 	@Override
-	public void FollowerApply(Log _log) {
+	public void followerApply(Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogList1<V>)_log;
 		for (var opLog : log.getOpLogs()) {
@@ -187,22 +187,22 @@ public class PList1<V> extends PList<V> {
 	}
 
 	@Override
-	protected void InitChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.RootInfo root) {
 	}
 
 	@Override
-	protected void ResetChildrenRootInfo() {
+	protected void resetChildrenRootInfo() {
 	}
 
 	@Override
-	public PList1<V> CopyBean() {
+	public PList1<V> copyBean() {
 		var copy = new PList1<>(logTypeId, valueCodecFuncs);
 		copy._list = _list;
 		return copy;
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var tmp = getList();
 		bb.WriteUInt(tmp.size());
 		var encoder = valueCodecFuncs.encoder;
@@ -211,7 +211,7 @@ public class PList1<V> extends PList<V> {
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		clear();
 		var decoder = valueCodecFuncs.decoder;
 		for (int i = bb.ReadUInt(); i > 0; i--)

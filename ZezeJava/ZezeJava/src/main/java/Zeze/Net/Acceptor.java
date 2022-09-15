@@ -53,8 +53,8 @@ public class Acceptor {
 	public final synchronized void Start() {
 		if (Socket == null)
 			Socket = Ip.isEmpty()
-					? Service.NewServerSocket(new InetSocketAddress(Port), this)
-					: Service.NewServerSocket(Ip, Port, this);
+					? Service.newServerSocket(new InetSocketAddress(Port), this)
+					: Service.newServerSocket(Ip, Port, this);
 	}
 
 	public final synchronized void Stop() {

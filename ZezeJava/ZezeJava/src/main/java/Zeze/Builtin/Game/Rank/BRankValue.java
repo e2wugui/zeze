@@ -82,30 +82,40 @@ public final class BRankValue extends Zeze.Transaction.Bean {
         _ValueEx = _ValueEx_;
     }
 
-    public void Assign(BRankValue other) {
+    public void assign(BRankValue other) {
         setRoleId(other.getRoleId());
         setValue(other.getValue());
         setValueEx(other.getValueEx());
     }
 
-    public BRankValue CopyIfManaged() {
+    @Deprecated
+    public void Assign(BRankValue other) {
+        assign(other);
+    }
+
+    public BRankValue copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BRankValue Copy() {
+    public BRankValue copy() {
         var copy = new BRankValue();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BRankValue a, BRankValue b) {
+    @Deprecated
+    public BRankValue Copy() {
+        return copy();
+    }
+
+    public static void swap(BRankValue a, BRankValue b) {
         BRankValue save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BRankValue CopyBean() {
+    public BRankValue copyBean() {
         return Copy();
     }
 
@@ -120,32 +130,32 @@ public final class BRankValue extends Zeze.Transaction.Bean {
         public Log__RoleId(BRankValue bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BRankValue)getBelong())._RoleId = Value; }
+        public void commit() { ((BRankValue)getBelong())._RoleId = Value; }
     }
 
     private static final class Log__Value extends Zeze.Transaction.Logs.LogLong {
         public Log__Value(BRankValue bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BRankValue)getBelong())._Value = Value; }
+        public void commit() { ((BRankValue)getBelong())._Value = Value; }
     }
 
     private static final class Log__ValueEx extends Zeze.Transaction.Logs.LogBinary {
         public Log__ValueEx(BRankValue bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BRankValue)getBelong())._ValueEx = Value; }
+        public void commit() { ((BRankValue)getBelong())._ValueEx = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Rank.BRankValue: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("RoleId").append('=').append(getRoleId()).append(',').append(System.lineSeparator());
@@ -168,7 +178,7 @@ public final class BRankValue extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             long _x_ = getRoleId();
@@ -195,7 +205,7 @@ public final class BRankValue extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -217,15 +227,15 @@ public final class BRankValue extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
+    protected void resetChildrenRootInfo() {
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         if (getRoleId() < 0)
             return true;
         if (getValue() < 0)
@@ -235,7 +245,7 @@ public final class BRankValue extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;

@@ -32,10 +32,10 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 	public void put(K key, V value) {
 		value.mapKey(key);
 		if (isManaged()) {
-			value.InitRootInfo(rootInfo(), this);
+			value.initRootInfo(rootInfo(), this);
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap2<K, V>)Transaction.getCurrent().LogGetOrAdd(
-					parent().objectId() + variableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.Put(key, value);
 		} else
 			_map = _map.plus(key, value);
@@ -46,7 +46,7 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap2<K, V>)Transaction.getCurrent().LogGetOrAdd(
-					parent().objectId() + variableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.Remove(key);
 		} else
 			_map = _map.minus(key);
@@ -57,26 +57,26 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap2<K, V>)Transaction.getCurrent().LogGetOrAdd(
-					parent().objectId() + variableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.Clear();
 		} else
 			_map = org.pcollections.Empty.map();
 	}
 
 	@Override
-	public void FollowerApply(Log _log) {
+	public void followerApply(Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogMap2<K, V>)_log;
 		var tmp = _map;
 		for (var put : log.getPutted().values())
-			put.InitRootInfo(rootInfo(), this);
+			put.initRootInfo(rootInfo(), this);
 		tmp = tmp.plusAll(log.getPutted()).minusAll(log.getRemoved());
 
 		// apply changed
 		for (var e : log.getChangedWithKey().entrySet()) {
 			Bean value = tmp.get(e.getKey());
 			if (value != null)
-				value.FollowerApply(e.getValue());
+				value.followerApply(e.getValue());
 			else
 				Rocks.logger.error("Not Exist! Key={} Value={}", e.getKey(), e.getValue());
 		}
@@ -85,12 +85,12 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void LeaderApplyNoRecursive(Log _log) {
+	public void leaderApplyNoRecursive(Log _log) {
 		_map = ((LogMap2<K, V>)_log).getValue();
 	}
 
 	@Override
-	public LogBean CreateLogBean() {
+	public LogBean createLogBean() {
 		var log = new LogMap2<K, V>(logTypeId, keyCodecFuncs, valueFactory);
 		log.setBelong(parent());
 		log.setThis(this);
@@ -100,32 +100,32 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 	}
 
 	@Override
-	protected void InitChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.RootInfo root) {
 		for (var v : _map.values())
-			v.InitRootInfo(root, this);
+			v.initRootInfo(root, this);
 	}
 
 	@Override
-	public Bean CopyBean() {
+	public Bean copyBean() {
 		var copy = new CollMap2<K, V>(logTypeId, keyCodecFuncs, valueFactory);
 		copy._map = _map;
 		return copy;
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var tmp = getMap();
 		bb.WriteUInt(tmp.size());
 		var encoder = keyCodecFuncs.encoder;
 		for (var e : tmp.entrySet()) {
 			encoder.accept(bb, e.getKey());
-			e.getValue().Encode(bb);
+			e.getValue().encode(bb);
 		}
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		clear();
 		var decoder = keyCodecFuncs.decoder;
 		for (int i = bb.ReadUInt(); i > 0; i--) {
@@ -136,7 +136,7 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 			} catch (Throwable e) {
 				throw new RuntimeException(e);
 			}
-			value.Decode(bb);
+			value.decode(bb);
 			put(key, value);
 		}
 	}

@@ -271,13 +271,13 @@ public final class Agent {
 		RaftConfig = raftConf;
 		Client = client;
 
-		if (Client.getConfig().AcceptorCount() != 0)
+		if (Client.getConfig().acceptorCount() != 0)
 			throw new IllegalStateException("Acceptor Found!");
-		if (Client.getConfig().ConnectorCount() != 0)
+		if (Client.getConfig().connectorCount() != 0)
 			throw new IllegalStateException("Connector Found!");
 
 		for (var node : RaftConfig.getNodes().values())
-			Client.getConfig().AddConnector(new ConnectorEx(node.getHost(), node.getPort()));
+			Client.getConfig().addConnector(new ConnectorEx(node.getHost(), node.getPort()));
 
 		Client.AddFactoryHandle(LeaderIs.TypeId_, new Service.ProtocolFactoryHandle<>(
 				LeaderIs::new, this::ProcessLeaderIs, TransactionLevel.Serializable, DispatchMode.Normal));
@@ -287,7 +287,7 @@ public final class Agent {
 	}
 
 	private Connector GetRandomConnector(Connector except) throws Throwable {
-		var notMe = new ArrayList<Connector>(Client.getConfig().ConnectorCount());
+		var notMe = new ArrayList<Connector>(Client.getConfig().connectorCount());
 		Client.getConfig().ForEachConnector(c -> {
 			if (c != except)
 				notMe.add(c);
@@ -300,7 +300,7 @@ public final class Agent {
 		logger.info("=============== LEADERIS Old={} New={} From={}",
 				leader != null ? leader.getName() : null, r.Argument.getLeaderId(), r.getSender());
 
-		var node = Client.getConfig().FindConnector(r.Argument.getLeaderId());
+		var node = Client.getConfig().findConnector(r.Argument.getLeaderId());
 		if (node == null) {
 			// 当前 Agent 没有 Leader 的配置，创建一个。
 			// 由于 Agent 在新增 node 时也会得到新配置广播，
@@ -310,7 +310,7 @@ public final class Agent {
 				return 0;
 
 			OutObject<Connector> outNode = new OutObject<>();
-			if (Client.getConfig().TryGetOrAddConnector(address[0], Integer.parseInt(address[1]), true, outNode))
+			if (Client.getConfig().tryGetOrAddConnector(address[0], Integer.parseInt(address[1]), true, outNode))
 				outNode.Value.Start();
 		} else if (!r.Argument.isLeader() && r.Argument.getLeaderId().equals(r.getSender().getConnector().getName())) {
 			// 【错误处理】用来观察。

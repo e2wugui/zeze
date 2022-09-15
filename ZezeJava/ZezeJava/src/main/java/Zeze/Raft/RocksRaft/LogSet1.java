@@ -65,7 +65,7 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var encoder = valueCodecFuncs.encoder;
 
 		bb.WriteUInt(Added.size());
@@ -78,7 +78,7 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		var decoder = valueCodecFuncs.decoder;
 
 		Added.clear();

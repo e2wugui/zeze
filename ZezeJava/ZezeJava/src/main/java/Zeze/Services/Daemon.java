@@ -150,7 +150,7 @@ public class Daemon {
 	public static void sendCommand(DatagramSocket socket, SocketAddress peer, Command cmd) throws IOException {
 		var bb = ByteBuffer.Allocate(5);
 		bb.WriteInt(cmd.command());
-		cmd.Encode(bb);
+		cmd.encode(bb);
 		var p = new DatagramPacket(bb.Bytes, 0, bb.WriteIndex, peer);
 		if (cmd.isRequest()) {
 			if (Pendings.putIfAbsent(cmd.ReliableSerialNo, new PendingPacket(socket, p)) != null)
@@ -323,12 +323,12 @@ public class Daemon {
 		}
 
 		@Override
-		public void Encode(ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteLong(ReliableSerialNo);
 		}
 
 		@Override
-		public void Decode(ByteBuffer bb) {
+		public void decode(ByteBuffer bb) {
 			ReliableSerialNo = bb.ReadLong();
 		}
 	}
@@ -339,13 +339,13 @@ public class Daemon {
 		public int ServerReleaseTimeout;
 
 		@Override
-		public void Encode(ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteInt(ServerDaemonTimeout);
 			bb.WriteInt(ServerReleaseTimeout);
 		}
 
 		@Override
-		public void Decode(ByteBuffer bb) {
+		public void decode(ByteBuffer bb) {
 			ServerDaemonTimeout = bb.ReadInt();
 			ServerReleaseTimeout = bb.ReadInt();
 		}
@@ -366,7 +366,7 @@ public class Daemon {
 		}
 
 		public Register(ByteBuffer bb, SocketAddress peer) {
-			Decode(bb);
+			this.decode(bb);
 			Peer = peer;
 		}
 
@@ -376,16 +376,16 @@ public class Daemon {
 		}
 
 		@Override
-		public void Encode(ByteBuffer bb) {
-			super.Encode(bb);
+		public void encode(ByteBuffer bb) {
+			super.encode(bb);
 			bb.WriteInt(ServerId);
 			bb.WriteInt(GlobalCount);
 			bb.WriteString(MMapFileName);
 		}
 
 		@Override
-		public void Decode(ByteBuffer bb) {
-			super.Decode(bb);
+		public void decode(ByteBuffer bb) {
+			super.decode(bb);
 			ServerId = bb.ReadInt();
 			GlobalCount = bb.ReadInt();
 			MMapFileName = bb.ReadString();
@@ -408,7 +408,7 @@ public class Daemon {
 		}
 
 		public GlobalOn(ByteBuffer bb, SocketAddress peer) {
-			Decode(bb);
+			this.decode(bb);
 			Peer = peer;
 		}
 
@@ -418,19 +418,19 @@ public class Daemon {
 		}
 
 		@Override
-		public void Encode(ByteBuffer bb) {
-			super.Encode(bb);
+		public void encode(ByteBuffer bb) {
+			super.encode(bb);
 			bb.WriteInt(ServerId);
 			bb.WriteInt(GlobalIndex);
-			GlobalConfig.Encode(bb);
+			GlobalConfig.encode(bb);
 		}
 
 		@Override
-		public void Decode(ByteBuffer bb) {
-			super.Decode(bb);
+		public void decode(ByteBuffer bb) {
+			super.decode(bb);
 			ServerId = bb.ReadInt();
 			GlobalIndex = bb.ReadInt();
-			GlobalConfig.Decode(bb);
+			GlobalConfig.decode(bb);
 		}
 	}
 
@@ -445,7 +445,7 @@ public class Daemon {
 		}
 
 		public CommonResult(ByteBuffer bb, SocketAddress peer) {
-			Decode(bb);
+			this.decode(bb);
 			Peer = peer;
 		}
 
@@ -455,14 +455,14 @@ public class Daemon {
 		}
 
 		@Override
-		public void Encode(ByteBuffer bb) {
-			super.Encode(bb);
+		public void encode(ByteBuffer bb) {
+			super.encode(bb);
 			bb.WriteInt(Code);
 		}
 
 		@Override
-		public void Decode(ByteBuffer bb) {
-			super.Decode(bb);
+		public void decode(ByteBuffer bb) {
+			super.decode(bb);
 			Code = bb.ReadInt();
 		}
 	}
@@ -477,7 +477,7 @@ public class Daemon {
 		}
 
 		public Release(ByteBuffer bb, SocketAddress peer) {
-			Decode(bb);
+			this.decode(bb);
 			Peer = peer;
 		}
 
@@ -487,12 +487,12 @@ public class Daemon {
 		}
 
 		@Override
-		public void Encode(ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteInt(GlobalIndex);
 		}
 
 		@Override
-		public void Decode(ByteBuffer bb) {
+		public void decode(ByteBuffer bb) {
 			GlobalIndex = bb.ReadInt();
 		}
 	}

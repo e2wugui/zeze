@@ -17,7 +17,7 @@ public class DelayRemove extends AbstractDelayRemove {
 		var delay = delays.computeIfAbsent(serverId, (_key_) -> new DelayRemove(zz));
 		var value = new BTableKey();
 		value.setTableName(table.getName());
-		value.setEncodedKey(new Binary(table.EncodeKey(key)));
+		value.setEncodedKey(new Binary(table.encodeKey(key)));
 		delay.queue.add(value);
 	}
 

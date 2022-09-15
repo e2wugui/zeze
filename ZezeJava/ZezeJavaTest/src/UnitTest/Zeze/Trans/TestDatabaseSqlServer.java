@@ -25,46 +25,46 @@ public class TestDatabaseSqlServer extends TestCase {
 		databaseConf.setDbcpConf(new Config.DbcpConf());
 
 		DatabaseSqlServer sqlserver = new DatabaseSqlServer(databaseConf);
-		Database.Table table = sqlserver.OpenTable("test1");
+		Database.Table table = sqlserver.openTable("test1");
 		{
-			try (var trans = sqlserver.BeginTransaction()) {
+			try (var trans = sqlserver.beginTransaction()) {
 				{
 					ByteBuffer key = ByteBuffer.Allocate();
 					key.WriteInt(1);
-					table.Remove(trans, key);
+					table.remove(trans, key);
 				}
 				{
 					ByteBuffer key = ByteBuffer.Allocate();
 					key.WriteInt(2);
-					table.Remove(trans, key);
+					table.remove(trans, key);
 				}
-				trans.Commit();
+				trans.commit();
 			}
 		}
-		Assert.assertEquals(0, table.Walk(TestDatabaseSqlServer::PrintRecord));
+		Assert.assertEquals(0, table.walk(TestDatabaseSqlServer::PrintRecord));
 		{
-			try (var trans = sqlserver.BeginTransaction()) {
+			try (var trans = sqlserver.beginTransaction()) {
 				{
 					ByteBuffer key = ByteBuffer.Allocate();
 					key.WriteInt(1);
 					ByteBuffer value = ByteBuffer.Allocate();
 					value.WriteInt(1);
-					table.Replace(trans, key, value);
+					table.replace(trans, key, value);
 				}
 				{
 					ByteBuffer key = ByteBuffer.Allocate();
 					key.WriteInt(2);
 					ByteBuffer value = ByteBuffer.Allocate();
 					value.WriteInt(2);
-					table.Replace(trans, key, value);
+					table.replace(trans, key, value);
 				}
-				trans.Commit();
+				trans.commit();
 			}
 		}
 		{
 			ByteBuffer key = ByteBuffer.Allocate();
 			key.WriteInt(1);
-			ByteBuffer value = table.Find(key);
+			ByteBuffer value = table.find(key);
 			Assert.assertNotNull(value);
 			Assert.assertEquals(1, value.ReadInt());
 			Assert.assertEquals(value.ReadIndex, value.WriteIndex);
@@ -72,12 +72,12 @@ public class TestDatabaseSqlServer extends TestCase {
 		{
 			ByteBuffer key = ByteBuffer.Allocate();
 			key.WriteInt(2);
-			ByteBuffer value = table.Find(key);
+			ByteBuffer value = table.find(key);
 			Assert.assertNotNull(value);
 			Assert.assertEquals(2, value.ReadInt());
 			Assert.assertEquals(value.ReadIndex, value.WriteIndex);
 		}
-		Assert.assertEquals(2, table.Walk(TestDatabaseSqlServer::PrintRecord));
+		Assert.assertEquals(2, table.walk(TestDatabaseSqlServer::PrintRecord));
 	}
 
 	public static boolean PrintRecord(byte[] key, byte[] value) {

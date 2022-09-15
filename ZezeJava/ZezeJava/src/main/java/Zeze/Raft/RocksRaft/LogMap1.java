@@ -66,7 +66,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteUInt(Putted.size());
 		var keyEncoder = keyCodecFuncs.encoder;
 		var valueEncoder = valueCodecFuncs.encoder;
@@ -81,7 +81,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		Putted.clear();
 		var keyDecoder = keyCodecFuncs.decoder;
 		var valueDecoder = valueCodecFuncs.decoder;

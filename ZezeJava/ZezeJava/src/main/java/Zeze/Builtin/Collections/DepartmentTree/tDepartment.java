@@ -31,21 +31,21 @@ public final class tDepartment extends Zeze.Transaction.TableX<String, Zeze.Buil
     public static final int VAR_Data = 5;
 
     @Override
-    public String DecodeKey(ByteBuffer _os_) {
+    public String decodeKey(ByteBuffer _os_) {
         String _v_;
         _v_ = _os_.ReadString();
         return _v_;
     }
 
     @Override
-    public ByteBuffer EncodeKey(String _v_) {
+    public ByteBuffer encodeKey(String _v_) {
         ByteBuffer _os_ = ByteBuffer.Allocate(16);
         _os_.WriteString(_v_);
         return _os_;
     }
 
     @Override
-    public Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot NewValue() {
+    public Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot newValue() {
         return new Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot();
     }
 }

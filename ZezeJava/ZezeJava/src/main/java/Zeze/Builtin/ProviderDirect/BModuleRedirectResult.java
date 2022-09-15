@@ -82,30 +82,40 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean {
         _Params = _Params_;
     }
 
-    public void Assign(BModuleRedirectResult other) {
+    public void assign(BModuleRedirectResult other) {
         setModuleId(other.getModuleId());
         setServerId(other.getServerId());
         setParams(other.getParams());
     }
 
-    public BModuleRedirectResult CopyIfManaged() {
+    @Deprecated
+    public void Assign(BModuleRedirectResult other) {
+        assign(other);
+    }
+
+    public BModuleRedirectResult copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BModuleRedirectResult Copy() {
+    public BModuleRedirectResult copy() {
         var copy = new BModuleRedirectResult();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BModuleRedirectResult a, BModuleRedirectResult b) {
+    @Deprecated
+    public BModuleRedirectResult Copy() {
+        return copy();
+    }
+
+    public static void swap(BModuleRedirectResult a, BModuleRedirectResult b) {
         BModuleRedirectResult save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BModuleRedirectResult CopyBean() {
+    public BModuleRedirectResult copyBean() {
         return Copy();
     }
 
@@ -120,32 +130,32 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean {
         public Log__ModuleId(BModuleRedirectResult bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BModuleRedirectResult)getBelong())._ModuleId = Value; }
+        public void commit() { ((BModuleRedirectResult)getBelong())._ModuleId = Value; }
     }
 
     private static final class Log__ServerId extends Zeze.Transaction.Logs.LogInt {
         public Log__ServerId(BModuleRedirectResult bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BModuleRedirectResult)getBelong())._ServerId = Value; }
+        public void commit() { ((BModuleRedirectResult)getBelong())._ServerId = Value; }
     }
 
     private static final class Log__Params extends Zeze.Transaction.Logs.LogBinary {
         public Log__Params(BModuleRedirectResult bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BModuleRedirectResult)getBelong())._Params = Value; }
+        public void commit() { ((BModuleRedirectResult)getBelong())._Params = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ProviderDirect.BModuleRedirectResult: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ModuleId").append('=').append(getModuleId()).append(',').append(System.lineSeparator());
@@ -168,7 +178,7 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             int _x_ = getModuleId();
@@ -195,7 +205,7 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -217,15 +227,15 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
+    protected void resetChildrenRootInfo() {
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         if (getModuleId() < 0)
             return true;
         if (getServerId() < 0)
@@ -235,7 +245,7 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;

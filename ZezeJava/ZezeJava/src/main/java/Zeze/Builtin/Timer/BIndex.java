@@ -82,30 +82,40 @@ public final class BIndex extends Zeze.Transaction.Bean {
         _NamedName = _NamedName_;
     }
 
-    public void Assign(BIndex other) {
+    public void assign(BIndex other) {
         setServerId(other.getServerId());
         setNodeId(other.getNodeId());
         setNamedName(other.getNamedName());
     }
 
-    public BIndex CopyIfManaged() {
+    @Deprecated
+    public void Assign(BIndex other) {
+        assign(other);
+    }
+
+    public BIndex copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BIndex Copy() {
+    public BIndex copy() {
         var copy = new BIndex();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BIndex a, BIndex b) {
+    @Deprecated
+    public BIndex Copy() {
+        return copy();
+    }
+
+    public static void swap(BIndex a, BIndex b) {
         BIndex save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BIndex CopyBean() {
+    public BIndex copyBean() {
         return Copy();
     }
 
@@ -120,32 +130,32 @@ public final class BIndex extends Zeze.Transaction.Bean {
         public Log__ServerId(BIndex bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BIndex)getBelong())._ServerId = Value; }
+        public void commit() { ((BIndex)getBelong())._ServerId = Value; }
     }
 
     private static final class Log__NodeId extends Zeze.Transaction.Logs.LogLong {
         public Log__NodeId(BIndex bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BIndex)getBelong())._NodeId = Value; }
+        public void commit() { ((BIndex)getBelong())._NodeId = Value; }
     }
 
     private static final class Log__NamedName extends Zeze.Transaction.Logs.LogString {
         public Log__NamedName(BIndex bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BIndex)getBelong())._NamedName = Value; }
+        public void commit() { ((BIndex)getBelong())._NamedName = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Timer.BIndex: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ServerId").append('=').append(getServerId()).append(',').append(System.lineSeparator());
@@ -168,7 +178,7 @@ public final class BIndex extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             int _x_ = getServerId();
@@ -195,7 +205,7 @@ public final class BIndex extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -217,15 +227,15 @@ public final class BIndex extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
+    protected void resetChildrenRootInfo() {
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         if (getServerId() < 0)
             return true;
         if (getNodeId() < 0)
@@ -235,7 +245,7 @@ public final class BIndex extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;

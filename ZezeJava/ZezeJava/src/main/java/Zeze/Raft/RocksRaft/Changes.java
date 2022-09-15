@@ -50,45 +50,45 @@ public final class Changes extends Zeze.Raft.Log {
 		public static final int Put = 1;
 		public static final int Edit = 2;
 
-		private int TableTemplateId;
-		private String TableTemplateName;
-		private int State;
-		private Bean PutValue;
-		private final Set<LogBean> LogBean = new HashSet<>();
+		private int tableTemplateId;
+		private String tableTemplateName;
+		private int state;
+		private Bean putValue;
+		private final Set<LogBean> logBean = new HashSet<>();
 		// 所有的日志修改树，key is Record.Value。不会被序列化。
-		private final IdentityHashMap<Bean, LogBean> LogBeans = new IdentityHashMap<>();
+		private final IdentityHashMap<Bean, LogBean> logBeans = new IdentityHashMap<>();
 		@SuppressWarnings("rawtypes")
-		public Table Table;
+		public Table table;
 
 		public void setTableTemplateId(int value) {
-			TableTemplateId = value;
+			tableTemplateId = value;
 		}
 
 		public String getTableTemplateName() {
-			return TableTemplateName;
+			return tableTemplateName;
 		}
 
 		public void setTableTemplateName(String value) {
-			TableTemplateName = value;
+			tableTemplateName = value;
 		}
 
 		public int getState() {
-			return State;
+			return state;
 		}
 
 		public Bean getPutValue() {
-			return PutValue;
+			return putValue;
 		}
 
 		public Set<LogBean> getLogBean() {
-			return LogBean;
+			return logBean;
 		}
 
 		public IdentityHashMap<Bean, LogBean> getLogBeans() {
-			return LogBeans;
+			return logBeans;
 		}
 
-		public void SetTableByName(Changes changes, String templateName) {
+		public void setTableByName(Changes changes, String templateName) {
 			var tableTpl = changes.rocks.GetTableTemplate(templateName);
 			if (tableTpl == null) {
 				var names = new StringBuilder();
@@ -96,47 +96,47 @@ public final class Changes extends Zeze.Raft.Log {
 					names.append(' ').append(name);
 				throw new IllegalStateException("unknown table template: " + templateName + ", available:" + names);
 			}
-			Table = tableTpl.OpenTable(TableTemplateId);
+			table = tableTpl.OpenTable(tableTemplateId);
 		}
 
-		public void Collect(Transaction.RecordAccessed ar) {
+		public void collect(Transaction.RecordAccessed ar) {
 			if (ar.getPutLog() != null) { // put or remove
-				PutValue = ar.getPutLog().Value;
-				State = PutValue == null ? Remove : Put;
+				putValue = ar.getPutLog().Value;
+				state = putValue == null ? Remove : Put;
 				return;
 			}
 
-			State = Edit;
-			var logBean = LogBeans.get(ar.getOrigin().getValue());
+			state = Edit;
+			var logBean = logBeans.get(ar.getOrigin().getValue());
 			if (logBean != null)
-				LogBean.add(logBean); // edit
+				this.logBean.add(logBean); // edit
 		}
 
-		public void Encode(ByteBuffer bb) {
-			bb.WriteInt(State);
-			switch (State) {
+		public void encode(ByteBuffer bb) {
+			bb.WriteInt(state);
+			switch (state) {
 			case Remove:
 				break;
 			case Put:
-				PutValue.Encode(bb);
+				putValue.encode(bb);
 				break;
 			case Edit:
-				bb.Encode(LogBean);
+				bb.encode(logBean);
 				break;
 			}
 		}
 
-		public void Decode(ByteBuffer bb) {
-			State = bb.ReadInt();
-			switch (State) {
+		public void decode(ByteBuffer bb) {
+			state = bb.ReadInt();
+			switch (state) {
 			case Remove:
 				break;
 			case Put:
-				PutValue = Table.NewValue();
-				PutValue.Decode(bb);
+				putValue = table.newValue();
+				putValue.decode(bb);
 				break;
 			case Edit:
-				bb.Decode(LogBean, LogBean::new);
+				bb.decode(logBean, LogBean::new);
 				break;
 			}
 		}
@@ -144,11 +144,11 @@ public final class Changes extends Zeze.Raft.Log {
 		@Override
 		public String toString() {
 			var sb = new StringBuilder();
-			sb.append("State=").append(State).append(" PutValue=").append(PutValue);
+			sb.append("State=").append(state).append(" PutValue=").append(putValue);
 			sb.append("\nLog=");
-			ByteBuffer.BuildSortedString(sb, LogBean);
+			ByteBuffer.BuildSortedString(sb, logBean);
 			sb.append("\nAllLog=");
-			ByteBuffer.BuildSortedString(sb, LogBeans.values());
+			ByteBuffer.BuildSortedString(sb, logBeans.values());
 			return sb.toString();
 		}
 	}
@@ -177,7 +177,7 @@ public final class Changes extends Zeze.Raft.Log {
 						belong.parent().objectId() + belong.variableId());
 			}
 			if (logBean == null)
-				logBean = belong.CreateLogBean();
+				logBean = belong.createLogBean();
 			Beans.put(belong.objectId(), logBean);
 		}
 		logBean.Collect(this, belong, log);
@@ -195,7 +195,7 @@ public final class Changes extends Zeze.Raft.Log {
 			Records.put(tkey, r);
 		}
 
-		r.Collect(ar);
+		r.collect(ar);
 	}
 
 	@Override
@@ -205,27 +205,27 @@ public final class Changes extends Zeze.Raft.Log {
 				Rocks.logger.debug("{} LeaderApply", rocks.getRaft().getName());
 			transaction.LeaderApply(this);
 		} else {
-			// Rocks.logger.debug("{} FollowerApply", rocks.getRaft().getName());
-			rocks.FollowerApply(this);
+			// Rocks.logger.debug("{} followerApply", rocks.getRaft().getName());
+			rocks.followerApply(this);
 		}
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteUInt(Records.size());
 		for (var r : Records.entrySet()) {
 			// encode TableTemplate
-			bb.WriteUInt(r.getValue().TableTemplateId);
-			bb.WriteString(r.getValue().TableTemplateName);
+			bb.WriteUInt(r.getValue().tableTemplateId);
+			bb.WriteString(r.getValue().tableTemplateName);
 
 			// encode TableKey
-			r.getValue().SetTableByName(this, r.getValue().TableTemplateName);
+			r.getValue().setTableByName(this, r.getValue().tableTemplateName);
 			bb.WriteString(r.getKey().Name);
-			r.getValue().Table.EncodeKey(bb, r.getKey().Key);
+			r.getValue().table.encodeKey(bb, r.getKey().Key);
 
 			// encode record
-			r.getValue().Encode(bb);
+			r.getValue().encode(bb);
 		}
 		bb.WriteUInt(AtomicLongs.size());
 		for (var it = AtomicLongs.iterator(); it.moveToNext(); ) {
@@ -235,7 +235,7 @@ public final class Changes extends Zeze.Raft.Log {
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var tkey = new TableKey();
 			var r = new Record();
@@ -244,10 +244,10 @@ public final class Changes extends Zeze.Raft.Log {
 			r.setTableTemplateName(bb.ReadString());
 
 			tkey.Name = bb.ReadString();
-			r.SetTableByName(this, r.getTableTemplateName());
-			tkey.Key = r.Table.DecodeKey(bb);
+			r.setTableByName(this, r.getTableTemplateName());
+			tkey.Key = r.table.decodeKey(bb);
 
-			r.Decode(bb);
+			r.decode(bb);
 
 			Records.put(tkey, r);
 		}

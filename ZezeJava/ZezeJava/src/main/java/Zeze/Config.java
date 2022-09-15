@@ -264,7 +264,7 @@ public final class Config {
 			CreateDatabase(zeze, databases);
 		}
 		for (var db : databases.values())
-			db.getDirectOperates().ClearInUse(getServerId(), getGlobalCacheManagerHostNameOrAddress());
+			db.getDirectOperates().clearInUse(getServerId(), getGlobalCacheManagerHostNameOrAddress());
 	}
 
 	public ConcurrentHashMap<String, ServiceConf> getServiceConfMap() {

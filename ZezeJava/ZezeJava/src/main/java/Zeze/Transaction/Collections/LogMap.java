@@ -23,13 +23,13 @@ public abstract class LogMap<K, V> extends LogBean {
 	}
 
 	@Override
-	public void Collect(Changes changes, Zeze.Transaction.Bean recent, Log vlog) {
+	public void collect(Changes changes, Zeze.Transaction.Bean recent, Log vlog) {
 		throw new UnsupportedOperationException("Collect Not Implement.");
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void Commit() {
+	public void commit() {
 		((PMap<K, V>)getThis())._map = Value;
 	}
 }

@@ -35,11 +35,11 @@ public final class BeanFactory {
 		return beanCtor;
 	}
 
-	public static long GetSpecialTypeIdFromBean(Bean bean) {
+	public static long getSpecialTypeIdFromBean(Bean bean) {
 		return bean.typeId();
 	}
 
-	public Bean CreateBeanFromSpecialTypeId(long typeId) {
+	public Bean createBeanFromSpecialTypeId(long typeId) {
 		try {
 			LongHashMap<MethodHandle> factory = readingFactory;
 			if (factory == null) {

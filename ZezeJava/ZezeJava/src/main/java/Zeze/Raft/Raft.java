@@ -197,7 +197,7 @@ public final class Raft {
 
 	public void AppendLog(Log log, Bean result) {
 		if (result != null)
-			log.setRpcResult(new Binary(ByteBuffer.Encode(result)));
+			log.setRpcResult(new Binary(ByteBuffer.encode(result)));
 		try {
 			_LogSequence.AppendLog(log, true);
 		} catch (RaftRetryException | TaskCanceledException er) {
@@ -298,9 +298,9 @@ public final class Raft {
 			config = Zeze.Config.Load();
 
 		Server = new Server(this, name, config);
-		if (Server.getConfig().AcceptorCount() != 0)
+		if (Server.getConfig().acceptorCount() != 0)
 			throw new IllegalStateException("Acceptor Found!");
-		if (Server.getConfig().ConnectorCount() != 0)
+		if (Server.getConfig().connectorCount() != 0)
 			throw new IllegalStateException("Connector Found!");
 		if (RaftConfig.getNodes().size() < 3)
 			throw new IllegalStateException("Startup Nodes.Count Must >= 3.");
@@ -557,7 +557,7 @@ public final class Raft {
 			LeaderReadyFuture.SetResult(true);
 			signalAll(); // has under lock(this)
 
-			Server.Foreach(allSocket -> {
+			Server.foreach(allSocket -> {
 				// 本来这个通告发给Agent(client)即可，
 				// 但是现在没有区分是来自Raft的连接还是来自Agent，
 				// 全部发送。

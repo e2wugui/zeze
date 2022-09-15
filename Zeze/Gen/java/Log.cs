@@ -39,7 +39,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + $"    public Log_{var.NamePrivate}({bean.Name} bean, int varId, {valueName} value) {{ super(bean, varId, value); }}");
             sw.WriteLine();
             sw.WriteLine(prefix + "    @Override");
-            sw.WriteLine(prefix + $"    public void Commit() {{ (({bean.Name})getBelong()).{var.NamePrivate} = Value; }}");
+            sw.WriteLine(prefix + $"    public void commit() {{ (({bean.Name})getBelong()).{var.NamePrivate} = Value; }}");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }
@@ -115,7 +115,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    public long getLogKey() { return getBean().objectId() + " + var.Id + "; }");
             sw.WriteLine(prefix + "    public " + bean.Name + " getBeanTyped() { return (" + bean.Name + ")getBean(); }");
             sw.WriteLine(prefix + "    @Override");
-            sw.WriteLine(prefix + "    public void Commit() { Commit(getBeanTyped()." + var.NamePrivate + "); }");
+            sw.WriteLine(prefix + "    public void commit() { Commit(getBeanTyped()." + var.NamePrivate + "); }");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
             */
@@ -144,7 +144,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + $"    public Log_{var.NamePrivate}({bean.Name} bean, int varId, {valueName} value) {{ super({valueName}.class, bean, varId, value); }}");
             sw.WriteLine();
             sw.WriteLine(prefix + "    @Override");
-            sw.WriteLine(prefix + $"    public void Commit() {{ (({bean.Name})getBelong()).{var.NamePrivate} = Value; }}");
+            sw.WriteLine(prefix + $"    public void commit() {{ (({bean.Name})getBelong()).{var.NamePrivate} = Value; }}");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }

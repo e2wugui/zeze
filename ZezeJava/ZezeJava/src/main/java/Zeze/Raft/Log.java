@@ -10,7 +10,7 @@ import Zeze.Transaction.Bean;
  */
 public abstract class Log implements Serializable {
 	/**
-	 * 用于序列化，外部使用，实现类不用 Decode、Encode 这个变量。
+	 * 用于序列化，外部使用，实现类不用 decode、encode 这个变量。
 	 * 只读，常量即可。
 	 * 在一个StateMachine实现中唯一。
 	 * 不冲突的时候使用默认实现即可。
@@ -67,15 +67,15 @@ public abstract class Log implements Serializable {
 	public abstract void Apply(RaftLog holder, StateMachine stateMachine) throws Throwable;
 
 	@Override
-	public void Encode(ByteBuffer bb) {
-		Unique.Encode(bb);
+	public void encode(ByteBuffer bb) {
+		Unique.encode(bb);
 		bb.WriteLong(CreateTime);
 		bb.WriteBinary(RpcResult);
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
-		Unique.Decode(bb);
+	public void decode(ByteBuffer bb) {
+		Unique.decode(bb);
 		CreateTime = bb.ReadLong();
 		RpcResult = bb.ReadBinary();
 	}

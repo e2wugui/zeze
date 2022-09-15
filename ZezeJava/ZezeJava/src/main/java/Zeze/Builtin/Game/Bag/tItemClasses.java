@@ -27,21 +27,21 @@ public final class tItemClasses extends Zeze.Transaction.TableX<Integer, Zeze.Bu
     public static final int VAR_ItemClasses = 1;
 
     @Override
-    public Integer DecodeKey(ByteBuffer _os_) {
+    public Integer decodeKey(ByteBuffer _os_) {
         int _v_;
         _v_ = _os_.ReadInt();
         return _v_;
     }
 
     @Override
-    public ByteBuffer EncodeKey(Integer _v_) {
+    public ByteBuffer encodeKey(Integer _v_) {
         ByteBuffer _os_ = ByteBuffer.Allocate(16);
         _os_.WriteInt(_v_);
         return _os_;
     }
 
     @Override
-    public Zeze.Builtin.Game.Bag.BItemClasses NewValue() {
+    public Zeze.Builtin.Game.Bag.BItemClasses newValue() {
         return new Zeze.Builtin.Game.Bag.BItemClasses();
     }
 }

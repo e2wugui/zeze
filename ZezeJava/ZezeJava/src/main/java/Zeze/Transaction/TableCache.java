@@ -23,45 +23,45 @@ import static Zeze.Services.GlobalCacheManagerConst.StateRemoved;
  * 通用类的写法需要在V外面包装一层。这里直接使用Record来达到这个目的。
  * 这样，这个类就不通用了。通用类需要包装，多创建一个对象，还需要包装接口。
  */
-public class TableCache<K extends Comparable<K>, V extends Bean> {
+class TableCache<K extends Comparable<K>, V extends Bean> {
 	private static final Logger logger = LogManager.getLogger(TableCache.class);
 	private static final int MAX_NODE_COUNT = 8640; // 最大的LRU节点数量,超过时会触发shrink
 	private static final int SHRINK_NODE_COUNT = 8000; // shrink的目标节点数量
 
-	private final TableX<K, V> Table;
-	private final ConcurrentHashMap<K, Record1<K, V>> DataMap;
-	private final ConcurrentLinkedQueue<ConcurrentHashMap<K, Record1<K, V>>> LruQueue = new ConcurrentLinkedQueue<>();
-	private volatile ConcurrentHashMap<K, Record1<K, V>> LruHot;
-	private Future<?> TimerNewHot;
-	private Future<?> TimerClean;
+	private final TableX<K, V> table;
+	private final ConcurrentHashMap<K, Record1<K, V>> dataMap;
+	private final ConcurrentLinkedQueue<ConcurrentHashMap<K, Record1<K, V>>> lruQueue = new ConcurrentLinkedQueue<>();
+	private volatile ConcurrentHashMap<K, Record1<K, V>> lruHot;
+	private Future<?> timerNewHot;
+	private Future<?> timerClean;
 
-	public TableCache(Application ignoredApp, TableX<K, V> table) {
-		Table = table;
-		DataMap = new ConcurrentHashMap<>(GetCacheInitialCapacity());
-		NewLruHot();
+	TableCache(Application ignoredApp, TableX<K, V> table) {
+		this.table = table;
+		dataMap = new ConcurrentHashMap<>(getCacheInitialCapacity());
+		newLruHot();
 		var newLruHotPeriod = table.getTableConf().getCacheNewLruHotPeriod();
-		TimerNewHot = Task.scheduleUnsafe(newLruHotPeriod, newLruHotPeriod, () -> {
+		timerNewHot = Task.scheduleUnsafe(newLruHotPeriod, newLruHotPeriod, () -> {
 			// 访问很少的时候不创建新的热点。这个选项没什么意思。
-			if (LruHot.size() > table.getTableConf().getCacheNewAccessHotThreshold())
-				NewLruHot();
+			if (lruHot.size() > table.getTableConf().getCacheNewAccessHotThreshold())
+				newLruHot();
 		});
-		var cleanPeriod = Table.getTableConf().getCacheCleanPeriod();
-		TimerClean = Task.scheduleUnsafe(cleanPeriod, cleanPeriod, this::CleanNow);
+		var cleanPeriod = this.table.getTableConf().getCacheCleanPeriod();
+		timerClean = Task.scheduleUnsafe(cleanPeriod, cleanPeriod, this::cleanNow);
 	}
 
-	public final ConcurrentHashMap<K, Record1<K, V>> getDataMap() {
-		return DataMap;
+	final ConcurrentHashMap<K, Record1<K, V>> getDataMap() {
+		return dataMap;
 	}
 
-	private int GetCacheInitialCapacity() {
+	private int getCacheInitialCapacity() {
 		// 31 from c# document
 		// 这样写，当配置修改，可以使用的时候马上生效。
-		return Math.max(Table.getTableConf().getCacheInitialCapacity(), 31);
+		return Math.max(table.getTableConf().getCacheInitialCapacity(), 31);
 	}
 
-	public long WalkKey(TableWalkKey<K> callback) {
+	long walkKey(TableWalkKey<K> callback) {
 		long cw = 0;
-		for (var k : DataMap.keySet()) {
+		for (var k : dataMap.keySet()) {
 			if (!callback.handle(k))
 				return cw;
 			++cw;
@@ -69,22 +69,22 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		return cw;
 	}
 
-	private int GetLruInitialCapacity() {
-		int c = (int)(GetCacheInitialCapacity() * 0.2);
-		return Math.min(c, Table.getTableConf().getCacheMaxLruInitialCapacity());
+	private int getLruInitialCapacity() {
+		int c = (int)(getCacheInitialCapacity() * 0.2);
+		return Math.min(c, table.getTableConf().getCacheMaxLruInitialCapacity());
 	}
 
-	private void NewLruHot() {
-		var newLru = new ConcurrentHashMap<K, Record1<K, V>>(GetLruInitialCapacity());
-		LruHot = newLru;
-		LruQueue.add(newLru);
+	private void newLruHot() {
+		var newLru = new ConcurrentHashMap<K, Record1<K, V>>(getLruInitialCapacity());
+		lruHot = newLru;
+		lruQueue.add(newLru);
 	}
 
-	public final Record1<K, V> GetOrAdd(K key, Zeze.Util.Factory<Record1<K, V>> valueFactory) {
-		var lruHot = LruHot;
-		var result = DataMap.get(key);
+	final Record1<K, V> getOrAdd(K key, Zeze.Util.Factory<Record1<K, V>> valueFactory) {
+		var lruHot = this.lruHot;
+		var result = dataMap.get(key);
 		if (result == null) { // slow-path
-			result = DataMap.computeIfAbsent(key, k -> {
+			result = dataMap.computeIfAbsent(key, k -> {
 				var r = valueFactory.create();
 				lruHot.put(key, r); // replace: add or update see this.Remove
 				r.setLruNode(lruHot);
@@ -108,8 +108,8 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	/**
 	 * 内部特殊使用，不调整 Lru。
 	 */
-	public final Record1<K, V> Get(K key) {
-		return DataMap.get(key);
+	final Record1<K, V> get(K key) {
+		return dataMap.get(key);
 	}
 
 	// 不再提供删除，由 Cleaner 集中清理。
@@ -121,16 +121,16 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	}
 	*/
 
-	private void TryPollLruQueue() {
-		if (LruQueue.size() <= MAX_NODE_COUNT)
+	private void tryPollLruQueue() {
+		if (lruQueue.size() <= MAX_NODE_COUNT)
 			return;
 
 		var timeBegin = System.nanoTime();
 		int recordCount = 0, nodeCount = 0;
-		var polls = new ArrayList<ConcurrentHashMap<K, Record1<K, V>>>(LruQueue.size() - SHRINK_NODE_COUNT);
-		while (LruQueue.size() > SHRINK_NODE_COUNT) {
+		var polls = new ArrayList<ConcurrentHashMap<K, Record1<K, V>>>(lruQueue.size() - SHRINK_NODE_COUNT);
+		while (lruQueue.size() > SHRINK_NODE_COUNT) {
 			// 大概，删除超过一天的节点。
-			var node = LruQueue.poll();
+			var node = lruQueue.poll();
 			if (null == node)
 				break;
 			polls.add(node);
@@ -138,7 +138,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		}
 
 		// 把被删除掉的node里面的记录迁移到当前最老(head)的node里面。
-		var head = LruQueue.peek();
+		var head = lruQueue.peek();
 		assert head != null;
 		for (var poll : polls) {
 			for (var e : poll.entrySet()) {
@@ -151,60 +151,60 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 			}
 		}
 		logger.info("({}){}: shrank {} nodes, moved {} records, {} ms, result: {}/{}",
-				Table.getZeze().getConfig().getServerId(), Table.getName(), nodeCount, recordCount,
-				(System.nanoTime() - timeBegin) / 1_000_000, LruQueue.size(), MAX_NODE_COUNT);
+				table.getZeze().getConfig().getServerId(), table.getName(), nodeCount, recordCount,
+				(System.nanoTime() - timeBegin) / 1_000_000, lruQueue.size(), MAX_NODE_COUNT);
 	}
 
-	private void CleanNow() throws Throwable {
+	private void cleanNow() throws Throwable {
 		// 这个任务的执行时间可能很长，
 		// 不直接使用 Scheduler 的定时任务，
 		// 每次执行完重新调度。
-		var capacity = Table.getTableConf().getRealCacheCapacity();
+		var capacity = table.getTableConf().getRealCacheCapacity();
 		if (capacity > 0) {
 			var timeBegin = System.nanoTime();
 			int recordCount = 0, nodeCount = 0;
-			while (DataMap.size() > capacity && Table.getZeze().isStart()) { // 超出容量，循环尝试
-				var node = LruQueue.peek();
-				if (null == node || node == LruHot) { // 热点。不回收。
+			while (dataMap.size() > capacity && table.getZeze().isStart()) { // 超出容量，循环尝试
+				var node = lruQueue.peek();
+				if (null == node || node == lruHot) { // 热点。不回收。
 					break;
 				}
 
 				for (var e : node.entrySet()) {
-					if (TryRemoveRecord(e))
+					if (tryRemoveRecord(e))
 						recordCount++;
 				}
 				if (node.isEmpty()) {
-					LruQueue.poll();
+					lruQueue.poll();
 					nodeCount++;
 				} else {
 					logger.info("remain {} records when clean oldest lruNode", node.size());
 					// 出现回收不了，一般是批量修改数据，此时启动一次Checkpoint。
-					Table.getZeze().getCheckpoint().RunOnce();
+					table.getZeze().getCheckpoint().runOnce();
 					//noinspection BusyWait
-					Thread.sleep(Table.getTableConf().getCacheCleanPeriodWhenExceedCapacity());
+					Thread.sleep(table.getTableConf().getCacheCleanPeriodWhenExceedCapacity());
 				}
 			}
 			if (recordCount > 0 || nodeCount > 0) {
 				logger.info("({}){}: cleaned {} records, {} nodes, {} ms, result: {}/{}",
-						Table.getZeze().getConfig().getServerId(), Table.getName(), recordCount, nodeCount,
-						(System.nanoTime() - timeBegin) / 1_000_000, DataMap.size(), capacity);
+						table.getZeze().getConfig().getServerId(), table.getName(), recordCount, nodeCount,
+						(System.nanoTime() - timeBegin) / 1_000_000, dataMap.size(), capacity);
 			}
 		}
-		TryPollLruQueue();
+		tryPollLruQueue();
 	}
 
-	public void close() {
-		if (null != TimerClean)
-			TimerClean.cancel(true);
-		TimerClean = null;
-		if (null != TimerNewHot)
-			TimerNewHot.cancel(true);
-		TimerNewHot = null;
+	void close() {
+		if (null != timerClean)
+			timerClean.cancel(true);
+		timerClean = null;
+		if (null != timerNewHot)
+			timerNewHot.cancel(true);
+		timerNewHot = null;
 	}
 
 	// under lockey.writeLock and record.fairLock
-	private void Remove(Map.Entry<K, Record1<K, V>> p) {
-		if (DataMap.remove(p.getKey(), p.getValue())) {
+	private void remove(Map.Entry<K, Record1<K, V>> p) {
+		if (dataMap.remove(p.getKey(), p.getValue())) {
 			// 这里有个时间窗口：先删除DataMap再去掉Lru引用，
 			// 当对Key再次GetOrAdd时，LruNode里面可能已经存在旧的record。
 			// see GetOrAdd
@@ -213,18 +213,18 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 			var oldNode = p.getValue().getLruNode();
 			if (oldNode != null)
 				oldNode.remove(p.getKey(), p.getValue());
-			Table.RocksCacheRemove(p.getKey());
+			table.rocksCacheRemove(p.getKey());
 		} else
 			p.getValue().setState(StateRemoved); // 也确保已删除状态
 	}
 
-	private boolean TryRemoveRecordUnderLock(Map.Entry<K, Record1<K, V>> p) {
-		if (Table.GetStorage() == null) {
+	private boolean tryRemoveRecordUnderLock(Map.Entry<K, Record1<K, V>> p) {
+		if (table.getStorage() == null) {
 			/* 不支持内存表cache同步。
 			if (p.Value.Acquire(GlobalCacheManager.StateInvalid) != GlobalCacheManager.StateInvalid)
 				return false;
 			*/
-			Remove(p);
+			remove(p);
 			return true;
 		}
 		// 这个变量的修改操作在不同 CheckpointMode 下并发模式不同。
@@ -247,34 +247,34 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		if (record.getState() != StateInvalid) {
 			record.setState(StateInvalid); // 先本地改成Invalid,避免TableX.VerifyGlobalRecordState验证失败
 			try {
-				record.Acquire(StateInvalid, false, true);
+				record.acquire(StateInvalid, false, true);
 			} catch (Throwable e) {
 				logger.error("Acquire({}:{}) exception:", record.getTable().getName(), record.getObjectKey(), e);
 				// 此时GlobalServer可能已经改成StateInvalid了, 无论如何还是当成已经Invalid保证安全
 			}
 		}
 
-		Remove(p);
+		remove(p);
 		return true;
 	}
 
-	private boolean TryRemoveRecord(Map.Entry<K, Record1<K, V>> p) {
+	private boolean tryRemoveRecord(Map.Entry<K, Record1<K, V>> p) {
 		// lockey 第一优先，和事务并发。
-		final TableKey tkey = new TableKey(Table.getId(), p.getKey());
-		final Locks locks = Table.getZeze().getLocks();
+		final TableKey tkey = new TableKey(table.getId(), p.getKey());
+		final Locks locks = table.getZeze().getLocks();
 		if (locks == null) // 可能是已经执行Application.Stop导致的
-			return TryRemoveRecordUnderLock(p); // 临时修正
-		final Lockey lockey = locks.Get(tkey);
-		if (!lockey.TryEnterWriteLock(0))
+			return tryRemoveRecordUnderLock(p); // 临时修正
+		final Lockey lockey = locks.get(tkey);
+		if (!lockey.tryEnterWriteLock(0))
 			return false;
 		try {
 			// record.lock 和事务并发。
-			if (!p.getValue().TryEnterFairLockWhenIdle())
+			if (!p.getValue().tryEnterFairLockWhenIdle())
 				return false;
 			try {
 				// rrs.lock
 				var rrs = p.getValue().getRelativeRecordSet();
-				if (!rrs.TryLockWhenIdle())
+				if (!rrs.tryLockWhenIdle())
 					return false;
 				try {
 					if (rrs.getMergeTo() != null)
@@ -283,15 +283,15 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 					if (rrs.getRecordSet() != null && rrs.getRecordSet().size() > 1)
 						return false; // 只包含自己的时候才可以删除，多个记录关联起来时不删除。
 
-					return TryRemoveRecordUnderLock(p);
+					return tryRemoveRecordUnderLock(p);
 				} finally {
-					rrs.UnLock();
+					rrs.unLock();
 				}
 			} finally {
-				p.getValue().ExitFairLock();
+				p.getValue().exitFairLock();
 			}
 		} finally {
-			lockey.ExitWriteLock();
+			lockey.exitWriteLock();
 		}
 	}
 }

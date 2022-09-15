@@ -27,7 +27,7 @@ public final class BBind extends Zeze.Transaction.Bean {
         _linkSids.variableId(2);
     }
 
-    public void Assign(BBind other) {
+    public void assign(BBind other) {
         getModules().clear();
         for (var e : other.getModules().entrySet())
             getModules().put(e.getKey(), e.getValue().Copy());
@@ -36,24 +36,34 @@ public final class BBind extends Zeze.Transaction.Bean {
             getLinkSids().add(e);
     }
 
-    public BBind CopyIfManaged() {
+    @Deprecated
+    public void Assign(BBind other) {
+        assign(other);
+    }
+
+    public BBind copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BBind Copy() {
+    public BBind copy() {
         var copy = new BBind();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BBind a, BBind b) {
+    @Deprecated
+    public BBind Copy() {
+        return copy();
+    }
+
+    public static void swap(BBind a, BBind b) {
         BBind save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BBind CopyBean() {
+    public BBind copyBean() {
         return Copy();
     }
 
@@ -67,12 +77,12 @@ public final class BBind extends Zeze.Transaction.Bean {
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BBind: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("modules").append("=[").append(System.lineSeparator());
@@ -81,7 +91,7 @@ public final class BBind extends Zeze.Transaction.Bean {
             sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(_kv_.getKey()).append(',').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
-            _kv_.getValue().BuildString(sb, level + 4);
+            _kv_.getValue().buildString(sb, level + 4);
             sb.append(',').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append(')').append(System.lineSeparator());
         }
@@ -111,7 +121,7 @@ public final class BBind extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             var _x_ = getModules();
@@ -121,7 +131,7 @@ public final class BBind extends Zeze.Transaction.Bean {
                 _o_.WriteMapType(_n_, ByteBuffer.INTEGER, ByteBuffer.BEAN);
                 for (var _e_ : _x_.entrySet()) {
                     _o_.WriteLong(_e_.getKey());
-                    _e_.getValue().Encode(_o_);
+                    _e_.getValue().encode(_o_);
                 }
             }
         }
@@ -139,7 +149,7 @@ public final class BBind extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -173,21 +183,21 @@ public final class BBind extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _modules.InitRootInfo(root, this);
-        _linkSids.InitRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+        _modules.initRootInfo(root, this);
+        _linkSids.initRootInfo(root, this);
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
-        _modules.ResetRootInfo();
-        _linkSids.ResetRootInfo();
+    protected void resetChildrenRootInfo() {
+        _modules.resetRootInfo();
+        _linkSids.resetRootInfo();
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         for (var _v_ : getModules().values()) {
-            if (_v_.NegativeCheck())
+            if (_v_.negativeCheck())
                 return true;
         }
         for (var _v_ : getLinkSids()) {
@@ -199,15 +209,15 @@ public final class BBind extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _modules.FollowerApply(vlog); break;
-                case 2: _linkSids.FollowerApply(vlog); break;
+                case 1: _modules.followerApply(vlog); break;
+                case 2: _linkSids.followerApply(vlog); break;
             }
         }
     }

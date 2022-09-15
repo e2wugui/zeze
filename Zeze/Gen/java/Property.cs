@@ -211,8 +211,8 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "            " + var.NamePrivate + " = value;");
             sw.WriteLine(prefix + "            return;");
             sw.WriteLine(prefix + "        }");
-            sw.WriteLine(prefix + "        value.InitRootInfo(RootInfo, this);");
-            sw.WriteLine(prefix + "        value.VariableId = " + var.Id + ";");
+            sw.WriteLine(prefix + "        value.initRootInfo(RootInfo, this);");
+            sw.WriteLine(prefix + "        value.variableId(" + var.Id + ");");
             sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);");
             sw.WriteLine(prefix + "        txn.PutLog(new Log_" + var.NamePrivate + "(this, value));"); //
             sw.WriteLine(prefix + "    }");

@@ -17,7 +17,7 @@ public class App extends Zeze.AppBase {
         CreateService();
         if (null != ip && !ip.isEmpty() && port != 0) {
             var c = new OutObject<Connector>();
-            ClientService.getConfig().TryGetOrAddConnector(ip, port, false, c);
+            ClientService.getConfig().tryGetOrAddConnector(ip, port, false, c);
             Connector = c.Value;
         } else {
             ClientService.getConfig().forEachConnector2((c) -> { Connector = c; return false; });

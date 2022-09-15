@@ -118,7 +118,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		Server.AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
 				KeepAlive::new, GlobalCacheManagerAsyncServer::ProcessKeepAliveRequest, TransactionLevel.None, DispatchMode.Direct));
 
-		ServerSocket = Server.NewServerSocket(ipaddress, port, null);
+		ServerSocket = Server.newServerSocket(ipaddress, port, null);
 
 		// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
 		AchillesHeelConfig = new AchillesHeelConfig(Config.MaxNetPing, Config.ServerProcessTime, Config.ServerReleaseTimeout);

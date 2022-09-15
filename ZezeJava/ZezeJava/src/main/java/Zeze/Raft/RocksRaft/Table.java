@@ -88,16 +88,16 @@ public final class Table<K, V extends Bean> {
 		LruTryRemoveCallback = value;
 	}
 
-	public void EncodeKey(ByteBuffer bb, K key) {
+	public void encodeKey(ByteBuffer bb, K key) {
 		keyEncodeFunc.accept(bb, key);
 	}
 
-	public K DecodeKey(ByteBuffer bb) {
+	public K decodeKey(ByteBuffer bb) {
 		return keyDecodeFunc.apply(bb);
 	}
 
 	@SuppressWarnings("unchecked")
-	public V NewValue() {
+	public V newValue() {
 		try {
 			return (V)valueFactory.invoke();
 		} catch (Throwable e) {
@@ -106,7 +106,7 @@ public final class Table<K, V extends Bean> {
 	}
 
 	@SuppressWarnings("unchecked")
-	public V Get(K key) {
+	public V get(K key) {
 		Transaction currentT = Transaction.getCurrent();
 		TableKey tkey = new TableKey(Name, key);
 
@@ -114,13 +114,13 @@ public final class Table<K, V extends Bean> {
 		if (cr != null)
 			return (V)cr.NewestValue();
 
-		Record<K> r = GetOrLoad(key);
+		Record<K> r = getOrLoad(key);
 		currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), new Transaction.RecordAccessed(r));
 		return (V)r.getValue();
 	}
 
 	@SuppressWarnings("unchecked")
-	public V GetOrAdd(K key) {
+	public V getOrAdd(K key) {
 		Transaction currentT = Transaction.getCurrent();
 		TableKey tkey = new TableKey(Name, key);
 
@@ -131,7 +131,7 @@ public final class Table<K, V extends Bean> {
 				return crv;
 			// add
 		} else {
-			Record<K> r = GetOrLoad(key);
+			Record<K> r = getOrLoad(key);
 			cr = new Transaction.RecordAccessed(r);
 			currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
 			if (r.getValue() != null)
@@ -139,17 +139,17 @@ public final class Table<K, V extends Bean> {
 			// add
 		}
 
-		V add = NewValue();
-		add.InitRootInfo(cr.getOrigin().CreateRootInfoIfNeed(tkey), null);
+		V add = newValue();
+		add.initRootInfo(cr.getOrigin().CreateRootInfoIfNeed(tkey), null);
 		cr.Put(currentT, add);
 		return add;
 	}
 
-	private Record<K> GetOrLoad(K key) {
-		return GetOrLoad(key, null);
+	private Record<K> getOrLoad(K key) {
+		return getOrLoad(key, null);
 	}
 
-	private Record<K> GetOrLoad(K key, Bean putValue) {
+	private Record<K> getOrLoad(K key, Bean putValue) {
 		TableKey tkey = new TableKey(Name, key);
 		while (true) {
 			var r = LruCache.getOrAdd(key, () -> {
@@ -164,16 +164,16 @@ public final class Table<K, V extends Bean> {
 					continue;
 
 				if (putValue != null) {
-					// from FollowerApply
+					// from followerApply
 					r.setValue(putValue);
-					r.getValue().InitRootInfo(r.CreateRootInfoIfNeed(tkey), null);
+					r.getValue().initRootInfo(r.CreateRootInfoIfNeed(tkey), null);
 					r.setTimestamp(Record.getNextTimestamp());
 					r.setState(Record.StateLoad);
 				} else if (r.getState() == Record.StateNew) {
 					// fresh record
-					r.setValue(StorageLoad(key));
+					r.setValue(storageLoad(key));
 					if (r.getValue() != null)
-						r.getValue().InitRootInfo(r.CreateRootInfoIfNeed(tkey), null);
+						r.getValue().initRootInfo(r.CreateRootInfoIfNeed(tkey), null);
 					r.setTimestamp(Record.getNextTimestamp());
 					r.setState(Record.StateLoad);
 				}
@@ -185,7 +185,7 @@ public final class Table<K, V extends Bean> {
 		}
 	}
 
-	private V StorageLoad(K key) {
+	private V storageLoad(K key) {
 		var keyBB = ByteBuffer.Allocate();
 		keyEncodeFunc.accept(keyBB, key);
 		byte[] valueBytes;
@@ -198,44 +198,44 @@ public final class Table<K, V extends Bean> {
 		if (valueBytes == null)
 			return null;
 		var valueBB = ByteBuffer.Wrap(valueBytes);
-		var value = NewValue();
-		value.Decode(valueBB);
+		var value = newValue();
+		value.decode(valueBB);
 		return value;
 	}
 
-	public boolean TryAdd(K key, V value) {
-		if (Get(key) != null)
+	public boolean tryAdd(K key, V value) {
+		if (get(key) != null)
 			return false;
 
 		Transaction currentT = Transaction.getCurrent();
 		TableKey tkey = new TableKey(Name, key);
 		var cr = currentT.GetRecordAccessed(tkey);
-		value.InitRootInfo(cr.getOrigin().CreateRootInfoIfNeed(tkey), null);
+		value.initRootInfo(cr.getOrigin().CreateRootInfoIfNeed(tkey), null);
 		cr.Put(currentT, value);
 		return true;
 	}
 
-	public void Insert(K key, V value) {
-		if (!TryAdd(key, value))
+	public void insert(K key, V value) {
+		if (!tryAdd(key, value))
 			throw new IllegalArgumentException(String.format("table:%s insert key:%s exists", getClass().getName(), key));
 	}
 
-	public void Put(K key, V value) {
+	public void put(K key, V value) {
 		Transaction currentT = Transaction.getCurrent();
 		TableKey tkey = new TableKey(Name, key);
 
 		var cr = currentT.GetRecordAccessed(tkey);
 		if (cr == null) {
-			var r = GetOrLoad(key);
+			var r = getOrLoad(key);
 			cr = new Transaction.RecordAccessed(r);
 			currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
 		}
-		value.InitRootInfo(cr.getOrigin().CreateRootInfoIfNeed(tkey), null);
+		value.initRootInfo(cr.getOrigin().CreateRootInfoIfNeed(tkey), null);
 		cr.Put(currentT, value);
 	}
 
 	// 几乎和Put一样，还是独立开吧。
-	public void Remove(K key) {
+	public void remove(K key) {
 		Transaction currentT = Transaction.getCurrent();
 		TableKey tkey = new TableKey(Name, key);
 
@@ -245,18 +245,18 @@ public final class Table<K, V extends Bean> {
 			return;
 		}
 
-		Record<K> r = GetOrLoad(key);
+		Record<K> r = getOrLoad(key);
 		cr = new Transaction.RecordAccessed(r);
 		cr.Put(currentT, null);
 		currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
 	}
 
-	public boolean Walk(Func2<K, V, Boolean> callback) throws Throwable {
+	public boolean walk(Func2<K, V, Boolean> callback) throws Throwable {
 		try (var it = Rocks.getStorage().newIterator(ColumnFamily, DatabaseRocksDb.getDefaultReadOptions())) {
 			for (it.seekToFirst(); it.isValid(); it.next()) {
 				var key = keyDecodeFunc.apply(ByteBuffer.Wrap(it.key()));
-				var value = NewValue();
-				value.Decode(ByteBuffer.Wrap(it.value()));
+				var value = newValue();
+				value.decode(ByteBuffer.Wrap(it.value()));
 				if (!callback.call(key, value))
 					return false;
 			}
@@ -264,7 +264,7 @@ public final class Table<K, V extends Bean> {
 		}
 	}
 
-	public boolean WalkKey(Func1<K, Boolean> callback) throws Throwable {
+	public boolean walkKey(Func1<K, Boolean> callback) throws Throwable {
 		try (var it = Rocks.getStorage().newIterator(ColumnFamily, DatabaseRocksDb.getDefaultReadOptions())) {
 			for (it.seekToFirst(); it.isValid(); it.next()) {
 				var key = keyDecodeFunc.apply(ByteBuffer.Wrap(it.key()));
@@ -275,28 +275,28 @@ public final class Table<K, V extends Bean> {
 		}
 	}
 
-	public Record<K> FollowerApply(K key, Changes.Record rLog) {
+	public Record<K> followerApply(K key, Changes.Record rLog) {
 		Record<K> r;
 		switch (rLog.getState()) {
 		case Changes.Record.Remove:
-			r = GetOrLoad(key);
+			r = getOrLoad(key);
 			r.setValue(null);
 			r.setTimestamp(Record.getNextTimestamp());
 			break;
 
 		case Changes.Record.Put:
-			r = GetOrLoad(key, rLog.getPutValue());
+			r = getOrLoad(key, rLog.getPutValue());
 			break;
 
 		case Changes.Record.Edit:
-			r = GetOrLoad(key);
+			r = getOrLoad(key);
 			if (r.getValue() == null) {
 				logger.fatal("editing bug record not exist. table={} key={} state={}",
 						Name, key, r.getState(), new Exception());
 				Rocks.getRaft().FatalKill();
 			}
 			for (var log : rLog.getLogBean())
-				r.getValue().FollowerApply(log); // 最多一个。
+				r.getValue().followerApply(log); // 最多一个。
 			break;
 
 		default:

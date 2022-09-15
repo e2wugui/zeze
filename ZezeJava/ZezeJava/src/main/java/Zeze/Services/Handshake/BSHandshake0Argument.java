@@ -8,12 +8,12 @@ public class BSHandshake0Argument extends Bean {
 	public boolean EnableEncrypt;
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteBool(EnableEncrypt);
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		EnableEncrypt = bb.ReadBool();
 	}
 
@@ -30,12 +30,12 @@ public class BSHandshake0Argument extends Bean {
 	}
 
 	@Override
-	protected void InitChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.RootInfo root) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	protected void ResetChildrenRootInfo() {
+	protected void resetChildrenRootInfo() {
 		throw new UnsupportedOperationException();
 	}
 

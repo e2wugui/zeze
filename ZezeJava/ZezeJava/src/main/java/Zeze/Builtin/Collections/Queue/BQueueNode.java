@@ -44,31 +44,41 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
         _Values.variableId(2);
     }
 
-    public void Assign(BQueueNode other) {
+    public void assign(BQueueNode other) {
         setNextNodeId(other.getNextNodeId());
         getValues().clear();
         for (var e : other.getValues())
             getValues().add(e.Copy());
     }
 
-    public BQueueNode CopyIfManaged() {
+    @Deprecated
+    public void Assign(BQueueNode other) {
+        assign(other);
+    }
+
+    public BQueueNode copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BQueueNode Copy() {
+    public BQueueNode copy() {
         var copy = new BQueueNode();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BQueueNode a, BQueueNode b) {
+    @Deprecated
+    public BQueueNode Copy() {
+        return copy();
+    }
+
+    public static void swap(BQueueNode a, BQueueNode b) {
         BQueueNode save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BQueueNode CopyBean() {
+    public BQueueNode copyBean() {
         return Copy();
     }
 
@@ -83,18 +93,18 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
         public Log__NextNodeId(BQueueNode bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BQueueNode)getBelong())._NextNodeId = Value; }
+        public void commit() { ((BQueueNode)getBelong())._NextNodeId = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Collections.Queue.BQueueNode: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("NextNodeId").append('=').append(getNextNodeId()).append(',').append(System.lineSeparator());
@@ -102,7 +112,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
         level += 4;
         for (var _item_ : getValues()) {
             sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(System.lineSeparator());
-            _item_.BuildString(sb, level + 4);
+            _item_.buildString(sb, level + 4);
             sb.append(',').append(System.lineSeparator());
         }
         level -= 4;
@@ -124,7 +134,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             long _x_ = getNextNodeId();
@@ -140,14 +150,14 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.LIST);
                 _o_.WriteListType(_n_, ByteBuffer.BEAN);
                 for (var _v_ : _x_)
-                    _v_.Encode(_o_);
+                    _v_.encode(_o_);
             }
         }
         _o_.WriteByte(0);
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -171,21 +181,21 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Values.InitRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+        _Values.initRootInfo(root, this);
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
-        _Values.ResetRootInfo();
+    protected void resetChildrenRootInfo() {
+        _Values.resetRootInfo();
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         if (getNextNodeId() < 0)
             return true;
         for (var _v_ : getValues()) {
-            if (_v_.NegativeCheck())
+            if (_v_.negativeCheck())
                 return true;
         }
         return false;
@@ -193,7 +203,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;
@@ -201,7 +211,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _NextNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                case 2: _Values.FollowerApply(vlog); break;
+                case 2: _Values.followerApply(vlog); break;
             }
         }
     }

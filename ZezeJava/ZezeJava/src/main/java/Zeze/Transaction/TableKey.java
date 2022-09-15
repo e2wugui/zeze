@@ -4,30 +4,30 @@ import Zeze.Util.LongConcurrentHashMap;
 
 public final class TableKey implements Comparable<TableKey> {
 	// 用来做名字转换，不检查Table.Id唯一性。
-	public static final LongConcurrentHashMap<String> Tables = new LongConcurrentHashMap<>();
+	public static final LongConcurrentHashMap<String> tables = new LongConcurrentHashMap<>();
 
-	private final int Id;
-	private final Object Key;
+	private final int id;
+	private final Object key;
 
 	public TableKey(int id, Object key) {
-		Id = id;
-		Key = key;
+		this.id = id;
+		this.key = key;
 	}
 
 	public int getId() {
-		return Id;
+		return id;
 	}
 
 	public Object getKey() {
-		return Key;
+		return key;
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 17;
-		result = prime * result + Id;
-		result = prime * result + Key.hashCode();
+		result = prime * result + id;
+		result = prime * result + key.hashCode();
 		return result;
 	}
 
@@ -39,7 +39,7 @@ public final class TableKey implements Comparable<TableKey> {
 
 		if (obj instanceof TableKey) {
 			TableKey another = (TableKey)obj;
-			return Id == another.Id && Key.equals(another.Key);
+			return id == another.id && key.equals(another.key);
 		}
 		return false;
 	}
@@ -47,12 +47,12 @@ public final class TableKey implements Comparable<TableKey> {
 	@SuppressWarnings({"unchecked", "rawtypes"})
 	@Override
 	public int compareTo(TableKey other) {
-		int c = Integer.compare(Id, other.Id);
-		return c != 0 ? c : ((Comparable)Key).compareTo(other.Key);
+		int c = Integer.compare(id, other.id);
+		return c != 0 ? c : ((Comparable)key).compareTo(other.key);
 	}
 
 	@Override
 	public String toString() {
-		return String.format("tkey(%s:%s)", Tables.get(Id), Key);
+		return String.format("tkey(%s:%s)", tables.get(id), key);
 	}
 }

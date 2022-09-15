@@ -16,7 +16,7 @@ public class ClientService extends ClientServiceBase {
     }
 
     @Override
-    public final <P extends Protocol<?>> void DispatchProtocol2(Object key, P p, ProtocolFactoryHandle<P> factoryHandle) {
+    public final <P extends Protocol<?>> void dispatchProtocol2(Object key, P p, ProtocolFactoryHandle<P> factoryHandle) {
         getZeze().getTaskOneByOneByKey().Execute(key,
                 () -> Task.Call(() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode),
                 factoryHandle.Mode);

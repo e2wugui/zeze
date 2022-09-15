@@ -28,7 +28,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	}
 
 	@Override
-	public Log BeginSavepoint() {
+	public Log beginSavepoint() {
 		var dup = new LogList2<V>(getTypeId(), valueFactory);
 		dup.setBelong(getBelong());
 		dup.setVariableId(getVariableId());
@@ -37,7 +37,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var curList = getValue();
 		if (curList != null) {
 			for (var it = Changed.entrySet().iterator(); it.hasNext(); ) {
@@ -53,34 +53,34 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 		}
 		bb.WriteUInt(Changed.size());
 		for (var e : Changed.entrySet()) {
-			e.getKey().Encode(bb);
+			e.getKey().encode(bb);
 			bb.WriteUInt(e.getValue().Value);
 		}
 
-		// super.Encode(bb);
+		// super.encode(bb);
 		bb.WriteUInt(opLogs.size());
 		for (var opLog : opLogs) {
 			bb.WriteUInt(opLog.op);
 			if (opLog.op < OpLog.OP_CLEAR) {
 				bb.WriteUInt(opLog.index);
 				if (opLog.op < OpLog.OP_REMOVE)
-					opLog.value.Encode(bb);
+					opLog.value.encode(bb);
 			}
 		}
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		Changed.clear();
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var value = new LogBean();
-			value.Decode(bb);
+			value.decode(bb);
 			var index = bb.ReadUInt();
 			Changed.put(value, new OutInt(index));
 		}
 
-		// super.Decode(bb);
+		// super.decode(bb);
 		opLogs.clear();
 		for (var logSize = bb.ReadUInt(); --logSize >= 0; ) {
 			int op = bb.ReadUInt();
@@ -92,16 +92,16 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 				} catch (Throwable e) {
 					throw new RuntimeException(e);
 				}
-				value.Decode(bb);
+				value.decode(bb);
 			}
 			opLogs.add(new OpLog<>(op, index, value));
 		}
 	}
 
 	@Override
-	public void Collect(Changes changes, Bean recent, Log vlog) {
+	public void collect(Changes changes, Bean recent, Log vlog) {
 		if (Changed.put((LogBean)vlog, new OutInt()) == null)
-			changes.Collect(recent, this);
+			changes.collect(recent, this);
 	}
 
 	@Override

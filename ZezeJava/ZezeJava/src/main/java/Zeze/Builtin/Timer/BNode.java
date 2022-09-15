@@ -65,7 +65,7 @@ public final class BNode extends Zeze.Transaction.Bean {
         _Timers.variableId(3);
     }
 
-    public void Assign(BNode other) {
+    public void assign(BNode other) {
         setPrevNodeId(other.getPrevNodeId());
         setNextNodeId(other.getNextNodeId());
         getTimers().clear();
@@ -73,24 +73,34 @@ public final class BNode extends Zeze.Transaction.Bean {
             getTimers().put(e.getKey(), e.getValue().Copy());
     }
 
-    public BNode CopyIfManaged() {
+    @Deprecated
+    public void Assign(BNode other) {
+        assign(other);
+    }
+
+    public BNode copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BNode Copy() {
+    public BNode copy() {
         var copy = new BNode();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BNode a, BNode b) {
+    @Deprecated
+    public BNode Copy() {
+        return copy();
+    }
+
+    public static void swap(BNode a, BNode b) {
         BNode save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BNode CopyBean() {
+    public BNode copyBean() {
         return Copy();
     }
 
@@ -105,25 +115,25 @@ public final class BNode extends Zeze.Transaction.Bean {
         public Log__PrevNodeId(BNode bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BNode)getBelong())._PrevNodeId = Value; }
+        public void commit() { ((BNode)getBelong())._PrevNodeId = Value; }
     }
 
     private static final class Log__NextNodeId extends Zeze.Transaction.Logs.LogLong {
         public Log__NextNodeId(BNode bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BNode)getBelong())._NextNodeId = Value; }
+        public void commit() { ((BNode)getBelong())._NextNodeId = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Timer.BNode: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("PrevNodeId").append('=').append(getPrevNodeId()).append(',').append(System.lineSeparator());
@@ -134,7 +144,7 @@ public final class BNode extends Zeze.Transaction.Bean {
             sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(_kv_.getKey()).append(',').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
-            _kv_.getValue().BuildString(sb, level + 4);
+            _kv_.getValue().buildString(sb, level + 4);
             sb.append(',').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append(')').append(System.lineSeparator());
         }
@@ -157,7 +167,7 @@ public final class BNode extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             long _x_ = getPrevNodeId();
@@ -181,7 +191,7 @@ public final class BNode extends Zeze.Transaction.Bean {
                 _o_.WriteMapType(_n_, ByteBuffer.INTEGER, ByteBuffer.BEAN);
                 for (var _e_ : _x_.entrySet()) {
                     _o_.WriteLong(_e_.getKey());
-                    _e_.getValue().Encode(_o_);
+                    _e_.getValue().encode(_o_);
                 }
             }
         }
@@ -189,7 +199,7 @@ public final class BNode extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -221,23 +231,23 @@ public final class BNode extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Timers.InitRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+        _Timers.initRootInfo(root, this);
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
-        _Timers.ResetRootInfo();
+    protected void resetChildrenRootInfo() {
+        _Timers.resetRootInfo();
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         if (getPrevNodeId() < 0)
             return true;
         if (getNextNodeId() < 0)
             return true;
         for (var _v_ : getTimers().values()) {
-            if (_v_.NegativeCheck())
+            if (_v_.negativeCheck())
                 return true;
         }
         return false;
@@ -245,7 +255,7 @@ public final class BNode extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;
@@ -254,7 +264,7 @@ public final class BNode extends Zeze.Transaction.Bean {
             switch (vlog.getVariableId()) {
                 case 1: _PrevNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
                 case 2: _NextNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                case 3: _Timers.FollowerApply(vlog); break;
+                case 3: _Timers.followerApply(vlog); break;
             }
         }
     }

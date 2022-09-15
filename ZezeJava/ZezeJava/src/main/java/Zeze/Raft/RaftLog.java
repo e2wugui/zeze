@@ -49,34 +49,34 @@ public final class RaftLog implements Serializable {
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteLong(Term);
 		bb.WriteLong(Index);
 		bb.WriteInt4(Log.getTypeId());
-		Log.Encode(bb);
+		Log.encode(bb);
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		Term = bb.ReadLong();
 		Index = bb.ReadLong();
 		Log = LogFactory.apply(bb.ReadInt4());
-		Log.Decode(bb);
+		Log.decode(bb);
 	}
 
-	public ByteBuffer Encode() {
+	public ByteBuffer encode() {
 		ByteBuffer bb = ByteBuffer.Allocate(64);
-		Encode(bb);
+		this.encode(bb);
 		return bb;
 	}
 
-	public static RaftLog Decode(Binary data, IntFunction<Log> logFactory) {
+	public static RaftLog decode(Binary data, IntFunction<Log> logFactory) {
 		RaftLog raftLog = new RaftLog(logFactory);
-		data.Decode(raftLog);
+		data.decode(raftLog);
 		return raftLog;
 	}
 
-	public static RaftLog DecodeTermIndex(byte[] bytes) {
+	public static RaftLog decodeTermIndex(byte[] bytes) {
 		var bb = ByteBuffer.Wrap(bytes);
 		var term = bb.ReadLong(); // term
 		var index = bb.ReadLong(); // index

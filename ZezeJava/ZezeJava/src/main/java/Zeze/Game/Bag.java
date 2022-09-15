@@ -25,11 +25,11 @@ public class Bag {
 	private final static BeanFactory beanFactory = new BeanFactory();
 
 	public static long GetSpecialTypeIdFromBean(Bean bean) {
-		return BeanFactory.GetSpecialTypeIdFromBean(bean);
+		return BeanFactory.getSpecialTypeIdFromBean(bean);
 	}
 
 	public static Bean CreateBeanFromSpecialTypeId(long typeId) {
-		return beanFactory.CreateBeanFromSpecialTypeId(typeId);
+		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
 	private final Module module;
@@ -250,7 +250,7 @@ public class Bag {
 				}
 
 				// 交换
-				BItem.Swap(itemFrom, itemTo);
+				BItem.swap(itemFrom, itemTo);
 				return 0;
 			}
 			// 叠加（或拆分）

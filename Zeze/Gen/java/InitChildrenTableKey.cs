@@ -8,13 +8,13 @@ namespace Zeze.Gen.java
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {");
+            sw.WriteLine(prefix + "protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {");
             foreach (Variable v in bean.Variables)
             {
                 if (v.VariableType.IsNormalBean || v.VariableType.IsCollection)
-                    sw.WriteLine(prefix + "    " + v.NamePrivate + ".InitRootInfo(root, this);");
+                    sw.WriteLine(prefix + "    " + v.NamePrivate + ".initRootInfo(root, this);");
                 else if (v.VariableType is TypeDynamic)
-                    sw.WriteLine(prefix + "    " + v.NamePrivate + ".InitRootInfo(root, this);");
+                    sw.WriteLine(prefix + "    " + v.NamePrivate + ".initRootInfo(root, this);");
             }
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
@@ -23,13 +23,13 @@ namespace Zeze.Gen.java
         public static void MakeReset(Bean bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "protected void ResetChildrenRootInfo() {");
+            sw.WriteLine(prefix + "protected void resetChildrenRootInfo() {");
             foreach (Variable v in bean.Variables)
             {
                 if (v.VariableType.IsNormalBean || v.VariableType.IsCollection)
-                    sw.WriteLine(prefix + "    " + v.NamePrivate + ".ResetRootInfo();");
+                    sw.WriteLine(prefix + "    " + v.NamePrivate + ".resetRootInfo();");
                 else if (v.VariableType is TypeDynamic)
-                    sw.WriteLine(prefix + "    " + v.NamePrivate + ".ResetRootInfo();");
+                    sw.WriteLine(prefix + "    " + v.NamePrivate + ".resetRootInfo();");
             }
             sw.WriteLine(prefix + "}");
             sw.WriteLine();

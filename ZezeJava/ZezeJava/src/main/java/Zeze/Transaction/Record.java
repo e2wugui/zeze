@@ -7,32 +7,32 @@ import Zeze.Services.GlobalCacheManagerConst;
 
 public abstract class Record {
 	public static final class RootInfo {
-		private final Record Record;
-		private final TableKey TableKey;
+		private final Record record;
+		private final TableKey tableKey;
 
 		public RootInfo(Record record, TableKey tableKey) {
-			Record = record;
-			TableKey = tableKey;
+			this.record = record;
+			this.tableKey = tableKey;
 		}
 
 		public Record getRecord() {
-			return Record;
+			return record;
 		}
 
 		public TableKey getTableKey() {
-			return TableKey;
+			return tableKey;
 		}
 	}
 
 	// 时戳生成器，运行时状态，需要持久化时，再考虑保存到数据库。
 	// 0 保留给不存在记录的的时戳。
-	private static final AtomicLong _TimestampGen = new AtomicLong(1);
+	private static final AtomicLong timestampGen = new AtomicLong(1);
 
 	public static long getNextTimestamp() {
-		return _TimestampGen.getAndIncrement();
+		return timestampGen.getAndIncrement();
 	}
 
-	private final ReentrantLock FairLock = new ReentrantLock(true);
+	private final ReentrantLock fairLock = new ReentrantLock(true);
 	/**
 	 * Record.Dirty 的问题
 	 * 对于新的CheckpointMode，需要实现新的Dirty。
@@ -43,84 +43,84 @@ public abstract class Record {
 	 * CheckpointMode.Table
 	 * Flush(rrs): foreach (r in rrs) r.ClearDirty 不需要锁。
 	 */
-	private boolean Dirty;
-	protected volatile Bean StrongDirtyValue;
+	private boolean dirty;
+	protected volatile Bean strongDirtyValue;
 
-	private volatile long Timestamp;
-	private volatile SoftReference<Bean> SoftValue;
-	private volatile RelativeRecordSet RelativeRecordSet = new RelativeRecordSet();
-	private volatile int State;
+	private volatile long timestamp;
+	private volatile SoftReference<Bean> softValue;
+	private volatile RelativeRecordSet relativeRecordSet = new RelativeRecordSet();
+	private volatile int state;
 
 	// too many try
 	private boolean fresh;
 	private long acquireTime;
 
-	private Database.Transaction DatabaseTransactionTmp;
-	private Database.Transaction DatabaseTransactionOldTmp;
+	private Database.Transaction databaseTransactionTmp;
+	private Database.Transaction databaseTransactionOldTmp;
 
 	public Record(Bean value) {
-		State = GlobalCacheManagerConst.StateInvalid;
-		SoftValue = new SoftReference<>(value);
+		state = GlobalCacheManagerConst.StateInvalid;
+		softValue = new SoftReference<>(value);
 		// Timestamp = NextTimestamp; // Table.FindInCacheOrStorage 可能发生数据变化，这里初始化一次不够。
 	}
 
-	final void EnterFairLock() {
-		FairLock.lock();
+	final void enterFairLock() {
+		fairLock.lock();
 	}
 
-	final boolean TryEnterFairLock() {
-		return FairLock.tryLock();
+	final boolean tryEnterFairLock() {
+		return fairLock.tryLock();
 	}
 
-	final boolean TryEnterFairLockWhenIdle() {
-		if (FairLock.hasQueuedThreads())
+	final boolean tryEnterFairLockWhenIdle() {
+		if (fairLock.hasQueuedThreads())
 			return false;
-		return FairLock.tryLock();
+		return fairLock.tryLock();
 	}
 
-	final void ExitFairLock() {
-		FairLock.unlock();
+	final void exitFairLock() {
+		fairLock.unlock();
 	}
 
 	final boolean getDirty() {
-		return Dirty;
+		return dirty;
 	}
 
 	final void setDirty(boolean value) {
-		Dirty = value;
-		StrongDirtyValue = value ? SoftValue.get() : null; // 脏数据在记录内保持一份强引用。
+		dirty = value;
+		strongDirtyValue = value ? softValue.get() : null; // 脏数据在记录内保持一份强引用。
 	}
 
 	final long getTimestamp() {
-		return Timestamp;
+		return timestamp;
 	}
 
 	final void setTimestamp(long value) {
-		Timestamp = value;
+		timestamp = value;
 	}
 
 	final Bean getSoftValue() {
-		return SoftValue.get();
+		return softValue.get();
 	}
 
 	final void setSoftValue(Bean value) {
-		SoftValue = new SoftReference<>(value);
+		softValue = new SoftReference<>(value);
 	}
 
 	final RelativeRecordSet getRelativeRecordSet() {
-		return RelativeRecordSet;
+		return relativeRecordSet;
 	}
 
 	final void setRelativeRecordSet(RelativeRecordSet value) {
-		RelativeRecordSet = value;
+		relativeRecordSet = value;
 	}
 
 	final int getState() {
-		return State;
+		return state;
 	}
 
 	final void setState(int value) {
-		State = value;
+		state = value;
 	}
 
 	final boolean isFresh() {
@@ -141,22 +141,22 @@ public abstract class Record {
 	}
 
 	final Database.Transaction getDatabaseTransactionTmp() {
-		return DatabaseTransactionTmp;
+		return databaseTransactionTmp;
 	}
 
 	final Database.Transaction getDatabaseTransactionOldTmp() {
-		return DatabaseTransactionOldTmp;
+		return databaseTransactionOldTmp;
 	}
 
 	final void setDatabaseTransactionTmp(Database.Transaction value) {
-		DatabaseTransactionTmp = value;
+		databaseTransactionTmp = value;
 	}
 
 	final void setDatabaseTransactionOldTmp(Database.Transaction value) {
-		DatabaseTransactionOldTmp = value;
+		databaseTransactionOldTmp = value;
 	}
 
-	public final RootInfo CreateRootInfoIfNeed(TableKey tkey) {
+	public final RootInfo createRootInfoIfNeed(TableKey tkey) {
 		var strongRef = getSoftValue();
 		var cur = strongRef != null ? strongRef.rootInfo : null;
 		return cur != null ? cur : new RootInfo(this, tkey);
@@ -166,15 +166,15 @@ public abstract class Record {
 
 	public abstract Object getObjectKey();
 
-	public abstract void SetDirty();
+	public abstract void setDirty();
 
-	public abstract IGlobalAgent.AcquireResult Acquire(int state, boolean fresh, boolean noWait);
+	public abstract IGlobalAgent.AcquireResult acquire(int state, boolean fresh, boolean noWait);
 
-	public abstract void Encode0();
+	public abstract void encode0();
 
-	public abstract void Flush(Database.Transaction t, Database.Transaction lct);
+	public abstract void flush(Database.Transaction t, Database.Transaction lct);
 
-	public abstract void Commit(RecordAccessed accessed);
+	public abstract void commit(RecordAccessed accessed);
 
-	public abstract void Cleanup();
+	public abstract void cleanup();
 }

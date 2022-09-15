@@ -49,17 +49,17 @@ public class DatabaseTikv extends Database {
 	}
 
 	@Override
-	public TikvTable OpenTable(String name) {
+	public TikvTable openTable(String name) {
 		return new TikvTable(name);
 	}
 
 	@Override
-	public Transaction BeginTransaction() {
+	public Transaction beginTransaction() {
 		return distTxn ? new TikvDistTrans() : new TikvTrans();
 	}
 
 	@Override
-	public void Close() {
+	public void close() {
 		try {
 			if (distTxn)
 				txnClient.close();
@@ -73,29 +73,29 @@ public class DatabaseTikv extends Database {
 		} catch (Exception e) {
 			logger.error("", e);
 		}
-		super.Close();
+		super.close();
 	}
 
 	private final class OperatesTikv implements Operates {
 		private final Table table;
 
 		public OperatesTikv() {
-			table = OpenTable("zeze.OperatesTikv.Schemas");
+			table = openTable("zeze.OperatesTikv.Schemas");
 		}
 
 		@Override
-		public synchronized KV<Long, Boolean> SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
-			var value = table.Find(key);
+		public synchronized KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
+			var value = table.find(key);
 			var dv = new DVTikv();
 			if (value != null)
-				dv.Decode(value);
-			if (dv.Version != version)
+				dv.decode(value);
+			if (dv.version != version)
 				return KV.Create(version, false);
 
-			dv.Version = ++version;
-			dv.Data = data;
-			try (var txn = BeginTransaction()) {
-				table.Replace(txn, key, ByteBuffer.Wrap(dv.Encode()));
+			dv.version = ++version;
+			dv.data = data;
+			try (var txn = beginTransaction()) {
+				table.replace(txn, key, ByteBuffer.Wrap(dv.encode()));
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
@@ -103,42 +103,42 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public synchronized DataWithVersion GetDataWithVersion(ByteBuffer key) {
+		public synchronized DataWithVersion getDataWithVersion(ByteBuffer key) {
 			var dv = new DVTikv();
-			var value = table.Find(key);
+			var value = table.find(key);
 			if (value != null)
-				dv.Decode(value);
+				dv.decode(value);
 			return dv;
 		}
 
 		@Override
-		public void SetInUse(int localId, String global) {
+		public void setInUse(int localId, String global) {
 		}
 
 		@Override
-		public int ClearInUse(int localId, String global) {
+		public int clearInUse(int localId, String global) {
 			return 0;
 		}
 	}
 
 	private static final class DVTikv extends DataWithVersion implements Zeze.Serialize.Serializable {
-		public byte[] Encode() {
-			int dataSize = Data.Size();
-			var bb = ByteBuffer.Allocate(ByteBuffer.writeUIntSize(dataSize) + dataSize + ByteBuffer.writeLongSize(Version));
-			Encode(bb);
+		public byte[] encode() {
+			int dataSize = data.Size();
+			var bb = ByteBuffer.Allocate(ByteBuffer.writeUIntSize(dataSize) + dataSize + ByteBuffer.writeLongSize(version));
+			encode(bb);
 			return bb.Bytes;
 		}
 
 		@Override
-		public void Encode(ByteBuffer bb) {
-			bb.WriteByteBuffer(Data);
-			bb.WriteLong(Version);
+		public void encode(ByteBuffer bb) {
+			bb.WriteByteBuffer(data);
+			bb.WriteLong(version);
 		}
 
 		@Override
-		public void Decode(ByteBuffer bb) {
-			Data = ByteBuffer.Wrap(bb.ReadBytes());
-			Version = bb.ReadLong();
+		public void decode(ByteBuffer bb) {
+			data = ByteBuffer.Wrap(bb.ReadBytes());
+			version = bb.ReadLong();
 		}
 	}
 
@@ -164,11 +164,11 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public void Close() {
+		public void close() {
 		}
 
 		@Override
-		public ByteBuffer Find(ByteBuffer key) {
+		public ByteBuffer find(ByteBuffer key) {
 			ByteString value;
 			if (distTxn) {
 				value = txnClient.get(addKeyPrefixBS(key), version);
@@ -184,7 +184,7 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public void Remove(Transaction t, ByteBuffer key) {
+		public void remove(Transaction t, ByteBuffer key) {
 			if (distTxn)
 				((TikvDistTrans)t).delete(addKeyPrefixBB(key));
 			else
@@ -192,7 +192,7 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public void Replace(Transaction t, ByteBuffer key, ByteBuffer value) {
+		public void replace(Transaction t, ByteBuffer key, ByteBuffer value) {
 			if (distTxn)
 				((TikvDistTrans)t).put(addKeyPrefixBB(key), value);
 			else
@@ -200,7 +200,7 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public long Walk(TableWalkHandleRaw callback) {
+		public long walk(TableWalkHandleRaw callback) {
 			long countWalked = 0;
 			int keyPrefixSize = keyPrefix.length;
 			var startKey = ByteString.copyFrom(keyPrefix);
@@ -223,7 +223,7 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public long WalkKey(TableWalkKeyRaw callback) {
+		public long walkKey(TableWalkKeyRaw callback) {
 			long countWalked = 0;
 			int keyPrefixSize = keyPrefix.length;
 			var startKey = ByteString.copyFrom(keyPrefix);
@@ -291,7 +291,7 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public void Commit() {
+		public void commit() {
 			if (datas != null && !datas.isEmpty()) {
 				//noinspection ConstantConditions
 				client.batchPut(datas);
@@ -305,7 +305,7 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public void Rollback() {
+		public void rollback() {
 			if (datas != null)
 				datas.clear();
 			if (deleteKeys != null)
@@ -336,7 +336,7 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public void Commit() {
+		public void commit() {
 			var es = datas.entrySet(); // 注意要求对es两次遍历的顺序一致
 			var it = es.iterator();
 			if (!it.hasNext())
@@ -385,7 +385,7 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public void Rollback() {
+		public void rollback() {
 			if (datas != null)
 				datas.clear();
 		}

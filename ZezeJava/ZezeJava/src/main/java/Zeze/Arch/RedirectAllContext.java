@@ -60,6 +60,6 @@ public final class RedirectAllContext<R extends RedirectResult> extends Service.
 				hashResults.put(hash, null);
 		}
 		if (hashResults.size() >= concurrentLevel)
-			getService().TryRemoveManualContext(getSessionId());
+			getService().tryRemoveManualContext(getSessionId());
 	}
 }

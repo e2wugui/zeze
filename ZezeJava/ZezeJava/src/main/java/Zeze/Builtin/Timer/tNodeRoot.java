@@ -29,21 +29,21 @@ public final class tNodeRoot extends Zeze.Transaction.TableX<Integer, Zeze.Built
     public static final int VAR_LoadSerialNo = 3;
 
     @Override
-    public Integer DecodeKey(ByteBuffer _os_) {
+    public Integer decodeKey(ByteBuffer _os_) {
         int _v_;
         _v_ = _os_.ReadInt();
         return _v_;
     }
 
     @Override
-    public ByteBuffer EncodeKey(Integer _v_) {
+    public ByteBuffer encodeKey(Integer _v_) {
         ByteBuffer _os_ = ByteBuffer.Allocate(16);
         _os_.WriteInt(_v_);
         return _os_;
     }
 
     @Override
-    public Zeze.Builtin.Timer.BNodeRoot NewValue() {
+    public Zeze.Builtin.Timer.BNodeRoot newValue() {
         return new Zeze.Builtin.Timer.BNodeRoot();
     }
 }

@@ -6,14 +6,14 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Reduce;
 
 public abstract class Table {
-	private final String Name;
-	private final ChangeListenerMap ChangeListenerMap = new ChangeListenerMap();
-	private Application Zeze;
-	private Config.TableConf TableConf;
-	private Database _Database;
+	private final String name;
+	private final ChangeListenerMap changeListenerMap = new ChangeListenerMap();
+	private Application zeze;
+	private Config.TableConf tableConf;
+	private Database database;
 
 	public Table(String name) {
-		Name = name;
+		this.name = name;
 
 		// 新增属性Id，为了影响最小，采用virtual方式定义。
 		// AddTable不能在这里调用。
@@ -22,47 +22,48 @@ public abstract class Table {
 	}
 
 	public final String getName() {
-		return Name;
+		return name;
 	}
 
 	public final ChangeListenerMap getChangeListenerMap() {
-		return ChangeListenerMap;
+		return changeListenerMap;
 	}
 
 	public final Application getZeze() {
-		return Zeze;
+		return zeze;
 	}
 
 	final void setZeze(Application value) {
-		Zeze = value;
+		zeze = value;
 	}
 
 	public final Config.TableConf getTableConf() {
-		return TableConf;
+		return tableConf;
 	}
 
 	final void setTableConf(Config.TableConf value) {
-		TableConf = value;
+		tableConf = value;
 	}
 
 	public final Database getDatabase() {
-		return _Database;
+		return database;
 	}
 
 	final void setDatabase(Database db) {
-		_Database = db;
+		database = db;
 	}
 
-	abstract Storage<?, ?> Open(Application app, Database database);
+	abstract Storage<?, ?> open(Application app, Database database);
 
-	abstract void Close();
+	abstract void close();
 
-	abstract Storage<?, ?> GetStorage();
+	abstract Storage<?, ?> getStorage();
+
 	abstract Database.Table getOldTable();
 
 	public abstract boolean isNew();
 
-	public abstract Bean NewValue();
+	public abstract Bean newValue();
 
 	public boolean isMemory() {
 		return true;
@@ -76,9 +77,9 @@ public abstract class Table {
 		return 0; // 新增属性。为了增加顺利，提供默认实现。子类必须提供新的实现。
 	}
 
-	public abstract int ReduceShare(Reduce rpc, ByteBuffer bbKey);
+	public abstract int reduceShare(Reduce rpc, ByteBuffer bbKey);
 
-	public abstract int ReduceInvalid(Reduce rpc, ByteBuffer bbKey);
+	public abstract int reduceInvalid(Reduce rpc, ByteBuffer bbKey);
 
-	abstract void ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex);
+	abstract void reduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex);
 }

@@ -185,7 +185,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
         _ServiceNamePrefix = _ServiceNamePrefix_;
     }
 
-    public void Assign(BModuleRedirectAllRequest other) {
+    public void assign(BModuleRedirectAllRequest other) {
         setModuleId(other.getModuleId());
         setHashCodeConcurrentLevel(other.getHashCodeConcurrentLevel());
         getHashCodes().clear();
@@ -198,24 +198,34 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
         setServiceNamePrefix(other.getServiceNamePrefix());
     }
 
-    public BModuleRedirectAllRequest CopyIfManaged() {
+    @Deprecated
+    public void Assign(BModuleRedirectAllRequest other) {
+        assign(other);
+    }
+
+    public BModuleRedirectAllRequest copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BModuleRedirectAllRequest Copy() {
+    public BModuleRedirectAllRequest copy() {
         var copy = new BModuleRedirectAllRequest();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BModuleRedirectAllRequest a, BModuleRedirectAllRequest b) {
+    @Deprecated
+    public BModuleRedirectAllRequest Copy() {
+        return copy();
+    }
+
+    public static void swap(BModuleRedirectAllRequest a, BModuleRedirectAllRequest b) {
         BModuleRedirectAllRequest save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BModuleRedirectAllRequest CopyBean() {
+    public BModuleRedirectAllRequest copyBean() {
         return Copy();
     }
 
@@ -230,60 +240,60 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
         public Log__ModuleId(BModuleRedirectAllRequest bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BModuleRedirectAllRequest)getBelong())._ModuleId = Value; }
+        public void commit() { ((BModuleRedirectAllRequest)getBelong())._ModuleId = Value; }
     }
 
     private static final class Log__HashCodeConcurrentLevel extends Zeze.Transaction.Logs.LogInt {
         public Log__HashCodeConcurrentLevel(BModuleRedirectAllRequest bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BModuleRedirectAllRequest)getBelong())._HashCodeConcurrentLevel = Value; }
+        public void commit() { ((BModuleRedirectAllRequest)getBelong())._HashCodeConcurrentLevel = Value; }
     }
 
     private static final class Log__SourceProvider extends Zeze.Transaction.Logs.LogLong {
         public Log__SourceProvider(BModuleRedirectAllRequest bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BModuleRedirectAllRequest)getBelong())._SourceProvider = Value; }
+        public void commit() { ((BModuleRedirectAllRequest)getBelong())._SourceProvider = Value; }
     }
 
     private static final class Log__SessionId extends Zeze.Transaction.Logs.LogLong {
         public Log__SessionId(BModuleRedirectAllRequest bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BModuleRedirectAllRequest)getBelong())._SessionId = Value; }
+        public void commit() { ((BModuleRedirectAllRequest)getBelong())._SessionId = Value; }
     }
 
     private static final class Log__MethodFullName extends Zeze.Transaction.Logs.LogString {
         public Log__MethodFullName(BModuleRedirectAllRequest bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BModuleRedirectAllRequest)getBelong())._MethodFullName = Value; }
+        public void commit() { ((BModuleRedirectAllRequest)getBelong())._MethodFullName = Value; }
     }
 
     private static final class Log__Params extends Zeze.Transaction.Logs.LogBinary {
         public Log__Params(BModuleRedirectAllRequest bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BModuleRedirectAllRequest)getBelong())._Params = Value; }
+        public void commit() { ((BModuleRedirectAllRequest)getBelong())._Params = Value; }
     }
 
     private static final class Log__ServiceNamePrefix extends Zeze.Transaction.Logs.LogString {
         public Log__ServiceNamePrefix(BModuleRedirectAllRequest bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BModuleRedirectAllRequest)getBelong())._ServiceNamePrefix = Value; }
+        public void commit() { ((BModuleRedirectAllRequest)getBelong())._ServiceNamePrefix = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ProviderDirect.BModuleRedirectAllRequest: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ModuleId").append('=').append(getModuleId()).append(',').append(System.lineSeparator());
@@ -317,7 +327,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             int _x_ = getModuleId();
@@ -382,7 +392,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -430,17 +440,17 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _HashCodes.InitRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+        _HashCodes.initRootInfo(root, this);
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
-        _HashCodes.ResetRootInfo();
+    protected void resetChildrenRootInfo() {
+        _HashCodes.resetRootInfo();
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         if (getModuleId() < 0)
             return true;
         if (getHashCodeConcurrentLevel() < 0)
@@ -458,7 +468,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;
@@ -467,7 +477,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
             switch (vlog.getVariableId()) {
                 case 1: _ModuleId = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
                 case 2: _HashCodeConcurrentLevel = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
-                case 3: _HashCodes.FollowerApply(vlog); break;
+                case 3: _HashCodes.followerApply(vlog); break;
                 case 4: _SourceProvider = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
                 case 5: _SessionId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
                 case 6: _MethodFullName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;

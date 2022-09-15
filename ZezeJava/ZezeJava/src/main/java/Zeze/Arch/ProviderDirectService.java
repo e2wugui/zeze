@@ -36,13 +36,13 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 
 	public synchronized void RemoveServer(Agent.SubscribeState ss, BServiceInfo pm) {
 		var connName = pm.getPassiveIp() + ":" + pm.getPassivePort();
-		var conn = getConfig().FindConnector(connName);
+		var conn = getConfig().findConnector(connName);
 		if (conn != null) {
 			conn.Stop();
 			ProviderByLoadName.remove(connName);
 			ProviderByServerId.remove(Long.parseLong(pm.getServiceIdentity()));
 			ss.SetServiceIdentityReadyState(pm.getServiceIdentity(), null);
-			getConfig().RemoveConnector(conn);
+			getConfig().removeConnector(conn);
 		}
 	}
 
@@ -68,11 +68,11 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			return;
 		}
 		var out = new OutObject<Connector>();
-		if (getConfig().TryGetOrAddConnector(pm.getPassiveIp(), pm.getPassivePort(), true, out)) {
+		if (getConfig().tryGetOrAddConnector(pm.getPassiveIp(), pm.getPassivePort(), true, out)) {
 			// 新建的Connector。开始连接。
 			var peerPs = new ProviderSession();
 			peerPs.ServerId = serverId;
-			out.Value.UserState = peerPs;
+			out.Value.userState = peerPs;
 			out.Value.Start();
 		}
 	}

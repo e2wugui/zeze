@@ -77,30 +77,40 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean {
         _ServerReleaseTimeout = _ServerReleaseTimeout_;
     }
 
-    public void Assign(BAchillesHeelConfig other) {
+    public void assign(BAchillesHeelConfig other) {
         setMaxNetPing(other.getMaxNetPing());
         setServerProcessTime(other.getServerProcessTime());
         setServerReleaseTimeout(other.getServerReleaseTimeout());
     }
 
-    public BAchillesHeelConfig CopyIfManaged() {
+    @Deprecated
+    public void Assign(BAchillesHeelConfig other) {
+        assign(other);
+    }
+
+    public BAchillesHeelConfig copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BAchillesHeelConfig Copy() {
+    public BAchillesHeelConfig copy() {
         var copy = new BAchillesHeelConfig();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BAchillesHeelConfig a, BAchillesHeelConfig b) {
+    @Deprecated
+    public BAchillesHeelConfig Copy() {
+        return copy();
+    }
+
+    public static void swap(BAchillesHeelConfig a, BAchillesHeelConfig b) {
         BAchillesHeelConfig save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BAchillesHeelConfig CopyBean() {
+    public BAchillesHeelConfig copyBean() {
         return Copy();
     }
 
@@ -115,32 +125,32 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean {
         public Log__MaxNetPing(BAchillesHeelConfig bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BAchillesHeelConfig)getBelong())._MaxNetPing = Value; }
+        public void commit() { ((BAchillesHeelConfig)getBelong())._MaxNetPing = Value; }
     }
 
     private static final class Log__ServerProcessTime extends Zeze.Transaction.Logs.LogInt {
         public Log__ServerProcessTime(BAchillesHeelConfig bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BAchillesHeelConfig)getBelong())._ServerProcessTime = Value; }
+        public void commit() { ((BAchillesHeelConfig)getBelong())._ServerProcessTime = Value; }
     }
 
     private static final class Log__ServerReleaseTimeout extends Zeze.Transaction.Logs.LogInt {
         public Log__ServerReleaseTimeout(BAchillesHeelConfig bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BAchillesHeelConfig)getBelong())._ServerReleaseTimeout = Value; }
+        public void commit() { ((BAchillesHeelConfig)getBelong())._ServerReleaseTimeout = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.BAchillesHeelConfig: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("MaxNetPing").append('=').append(getMaxNetPing()).append(',').append(System.lineSeparator());
@@ -163,7 +173,7 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             int _x_ = getMaxNetPing();
@@ -190,7 +200,7 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -212,15 +222,15 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
+    protected void resetChildrenRootInfo() {
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         if (getMaxNetPing() < 0)
             return true;
         if (getServerProcessTime() < 0)
@@ -232,7 +242,7 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;

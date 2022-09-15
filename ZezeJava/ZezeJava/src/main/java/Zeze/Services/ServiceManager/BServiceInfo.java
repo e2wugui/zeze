@@ -87,7 +87,7 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		ServiceName = bb.ReadString();
 		ServiceIdentity = bb.ReadString();
 		PassiveIp = bb.ReadString();
@@ -96,7 +96,7 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteString(getServiceName());
 		bb.WriteString(getServiceIdentity());
 		bb.WriteString(getPassiveIp());
@@ -117,12 +117,12 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 	}
 
 	@Override
-	protected void InitChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.RootInfo root) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	protected void ResetChildrenRootInfo() {
+	protected void resetChildrenRootInfo() {
 		throw new UnsupportedOperationException();
 	}
 

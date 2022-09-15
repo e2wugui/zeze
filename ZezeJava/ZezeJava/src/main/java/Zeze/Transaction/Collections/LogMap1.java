@@ -97,7 +97,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteUInt(Replaced.size());
 		var keyEncoder = keyCodecFuncs.encoder;
 		var valueEncoder = valueCodecFuncs.encoder;
@@ -112,7 +112,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		Replaced.clear();
 		var keyDecoder = keyCodecFuncs.decoder;
 		var valueDecoder = valueCodecFuncs.decoder;
@@ -128,15 +128,15 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	}
 
 	@Override
-	public void EndSavepoint(Savepoint currentSp) {
-		var log = currentSp.GetLog(getLogKey());
+	public void endSavepoint(Savepoint currentSp) {
+		var log = currentSp.getLog(getLogKey());
 		if (log != null) {
 			@SuppressWarnings("unchecked")
 			var currentLog = (LogMap1<K, V>)log;
 			currentLog.setValue(getValue());
 			currentLog.MergeChangeNote(this);
 		} else
-			currentSp.PutLog(this);
+			currentSp.putLog(this);
 	}
 
 	private void MergeChangeNote(LogMap1<K, V> another) {
@@ -155,7 +155,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	}
 
 	@Override
-	public Log BeginSavepoint() {
+	public Log beginSavepoint() {
 		var dup = new LogMap1<>(getTypeId(), keyCodecFuncs, valueCodecFuncs);
 		dup.setBelong(getBelong());
 		dup.setVariableId(getVariableId());

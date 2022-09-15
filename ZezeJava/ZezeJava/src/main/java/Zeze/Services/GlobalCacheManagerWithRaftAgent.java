@@ -107,7 +107,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 				rpc.SendResultCode(0);
 				return 0;
 			}
-			return table.ReduceInvalid(new ReduceBridge(rpc), bb);
+			return table.reduceInvalid(new ReduceBridge(rpc), bb);
 		}
 
 		case GlobalCacheManagerConst.StateShare: {
@@ -123,7 +123,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 				rpc.SendResultCode(0);
 				return 0;
 			}
-			return table.ReduceShare(new ReduceBridge(rpc), bb);
+			return table.reduceShare(new ReduceBridge(rpc), bb);
 		}
 
 		default:
@@ -134,13 +134,13 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	}
 
 	@Override
-	public final int GetGlobalCacheManagerHashIndex(Binary gkey) {
+	public final int getGlobalCacheManagerHashIndex(Binary gkey) {
 		return gkey.hashCode() % Agents.length;
 	}
 
 	@Override
-	public AcquireResult Acquire(Binary gkey, int state, boolean fresh, boolean noWait) {
-		var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
+	public AcquireResult acquire(Binary gkey, int state, boolean fresh, boolean noWait) {
+		var agent = Agents[getGlobalCacheManagerHashIndex(gkey)]; // hash
 		if (agent.isReleasing()) {
 			agent.setFastFail();
 			var trans = Transaction.getCurrent();
@@ -268,7 +268,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 						 int _GlobalCacheManagerHashIndex, Zeze.Raft.RaftConfig raftConf) throws Throwable {
 			super(zeze);
 			GlobalCacheManagerWithRaftAgent = global;
-			super.GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
+			super.globalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
 			RaftClient = new Zeze.Raft.Agent("global.raft", zeze, raftConf);
 			RaftClient.setOnSetLeader(this::RaftOnSetLeader);
 			RaftClient.DispatchProtocolToInternalThreadPool = true;
@@ -280,7 +280,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		}
 
 		public final int getGlobalCacheManagerHashIndex() {
-			return GlobalCacheManagerHashIndex;
+			return globalCacheManagerHashIndex;
 		}
 
 		public final Zeze.Raft.Agent getRaftClient() {
@@ -344,7 +344,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			if (LoginTimes.get() == 0) {
 				var login = new Login();
 				login.Argument.setServerId(config.getServerId());
-				login.Argument.setGlobalCacheManagerHashIndex(GlobalCacheManagerHashIndex);
+				login.Argument.setGlobalCacheManagerHashIndex(globalCacheManagerHashIndex);
 
 				agent.Send(login, p -> {
 					var rpc = (Login)p;
@@ -362,7 +362,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			} else {
 				var relogin = new ReLogin();
 				relogin.Argument.setServerId(config.getServerId());
-				relogin.Argument.setGlobalCacheManagerHashIndex(GlobalCacheManagerHashIndex);
+				relogin.Argument.setGlobalCacheManagerHashIndex(globalCacheManagerHashIndex);
 				agent.Send(relogin, p -> {
 					var rpc = (ReLogin)p;
 					if (rpc.isTimeout() || rpc.getResultCode() != 0) {

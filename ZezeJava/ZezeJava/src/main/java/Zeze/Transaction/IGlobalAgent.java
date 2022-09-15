@@ -16,16 +16,16 @@ public interface IGlobalAgent extends Closeable {
 			return successResults[state];
 		}
 
-		public final long ResultCode;
-		public final int ResultState;
+		public final long resultCode;
+		public final int resultState;
 
 		public AcquireResult(long code, int state) {
-			ResultCode = code;
-			ResultState = state;
+			resultCode = code;
+			resultState = state;
 		}
 	}
 
-	AcquireResult Acquire(Binary gkey, int state, boolean fresh, boolean noWait);
+	AcquireResult acquire(Binary gkey, int state, boolean fresh, boolean noWait);
 
-	int GetGlobalCacheManagerHashIndex(Binary gkey);
+	int getGlobalCacheManagerHashIndex(Binary gkey);
 }

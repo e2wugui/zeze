@@ -82,30 +82,40 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
         _ServerId = _ServerId_;
     }
 
-    public void Assign(BProviderInfo other) {
+    public void assign(BProviderInfo other) {
         setIp(other.getIp());
         setPort(other.getPort());
         setServerId(other.getServerId());
     }
 
-    public BProviderInfo CopyIfManaged() {
+    @Deprecated
+    public void Assign(BProviderInfo other) {
+        assign(other);
+    }
+
+    public BProviderInfo copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BProviderInfo Copy() {
+    public BProviderInfo copy() {
         var copy = new BProviderInfo();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BProviderInfo a, BProviderInfo b) {
+    @Deprecated
+    public BProviderInfo Copy() {
+        return copy();
+    }
+
+    public static void swap(BProviderInfo a, BProviderInfo b) {
         BProviderInfo save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BProviderInfo CopyBean() {
+    public BProviderInfo copyBean() {
         return Copy();
     }
 
@@ -120,32 +130,32 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
         public Log__Ip(BProviderInfo bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BProviderInfo)getBelong())._Ip = Value; }
+        public void commit() { ((BProviderInfo)getBelong())._Ip = Value; }
     }
 
     private static final class Log__Port extends Zeze.Transaction.Logs.LogInt {
         public Log__Port(BProviderInfo bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BProviderInfo)getBelong())._Port = Value; }
+        public void commit() { ((BProviderInfo)getBelong())._Port = Value; }
     }
 
     private static final class Log__ServerId extends Zeze.Transaction.Logs.LogInt {
         public Log__ServerId(BProviderInfo bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BProviderInfo)getBelong())._ServerId = Value; }
+        public void commit() { ((BProviderInfo)getBelong())._ServerId = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ProviderDirect.BProviderInfo: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Ip").append('=').append(getIp()).append(',').append(System.lineSeparator());
@@ -168,7 +178,7 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             String _x_ = getIp();
@@ -195,7 +205,7 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -217,15 +227,15 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
+    protected void resetChildrenRootInfo() {
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         if (getPort() < 0)
             return true;
         if (getServerId() < 0)
@@ -235,7 +245,7 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;

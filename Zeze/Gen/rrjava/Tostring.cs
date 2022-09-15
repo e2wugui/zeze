@@ -18,12 +18,12 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public String toString() {");
             sw.WriteLine(prefix + "    var sb = new StringBuilder();");
-            sw.WriteLine(prefix + "    BuildString(sb, 0);");
+            sw.WriteLine(prefix + "    buildString(sb, 0);");
             sw.WriteLine(prefix + "    return sb.append(System.lineSeparator()).toString();");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public void BuildString(StringBuilder sb, int level) {");
+            sw.WriteLine(prefix + "public void buildString(StringBuilder sb, int level) {");
             sw.WriteLine($"{prefix}    sb.append(Zeze.Util.Str.indent(level)).append(\"{bean.FullName}: {{\").append(System.lineSeparator());");
             sw.WriteLine(prefix + "    level += " + INDENT_SIZE + ';');
             for (int i = 0; i < bean.Variables.Count; ++i)
@@ -43,12 +43,12 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public String toString() {");
             sw.WriteLine(prefix + "    var sb = new StringBuilder();");
-            sw.WriteLine(prefix + "    BuildString(sb, 0);");
+            sw.WriteLine(prefix + "    buildString(sb, 0);");
             sw.WriteLine(prefix + "    sb.append(System.lineSeparator());");
             sw.WriteLine(prefix + "    return sb.toString();");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
-            sw.WriteLine(prefix + "public void BuildString(StringBuilder sb, int level) {");
+            sw.WriteLine(prefix + "public void buildString(StringBuilder sb, int level) {");
             sw.WriteLine($"{prefix}    sb.append(Zeze.Util.Str.indent(level)).append(\"{bean.FullName}: {{\").append(System.lineSeparator());");
             sw.WriteLine(prefix + "    level += " + INDENT_SIZE + ';');
             for (int i = 0; i < bean.Variables.Count; ++i)
@@ -75,7 +75,7 @@ namespace Zeze.Gen.rrjava
         public void Visit(Bean type)
         {
             sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(\"{varname}\").append('=').append(System.lineSeparator());");
-            sw.WriteLine(prefix + getter + ".BuildString(sb, level + " + INDENT_SIZE + ");");
+            sw.WriteLine(prefix + getter + ".buildString(sb, level + " + INDENT_SIZE + ");");
             sw.Write(prefix + "sb");
             if (sep != 0)
                 sw.Write($".append('{sep}')");
@@ -85,7 +85,7 @@ namespace Zeze.Gen.rrjava
         public void Visit(BeanKey type)
         {
             sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(\"{varname}\").append('=').append(System.lineSeparator());");
-            sw.WriteLine(prefix + getter + ".BuildString(sb, level + " + INDENT_SIZE + ");");
+            sw.WriteLine(prefix + getter + ".buildString(sb, level + " + INDENT_SIZE + ");");
             sw.Write(prefix + "sb");
             if (sep != 0)
                 sw.Write($".append('{sep}')");
@@ -193,7 +193,7 @@ namespace Zeze.Gen.rrjava
         public void Visit(TypeDynamic type)
         {
             sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(\"{varname}\").append('=').append(System.lineSeparator());");
-            sw.WriteLine(prefix + getter + ".getBean().BuildString(sb, level + " + INDENT_SIZE + ");");
+            sw.WriteLine(prefix + getter + ".getBean().buildString(sb, level + " + INDENT_SIZE + ");");
             sw.Write(prefix + "sb");
             if (sep != 0)
                 sw.Write($".append('{sep}')");

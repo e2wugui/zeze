@@ -77,30 +77,40 @@ public final class BLoad extends Zeze.Transaction.Bean {
         _OnlineNew = _OnlineNew_;
     }
 
-    public void Assign(BLoad other) {
+    public void assign(BLoad other) {
         setOnline(other.getOnline());
         setProposeMaxOnline(other.getProposeMaxOnline());
         setOnlineNew(other.getOnlineNew());
     }
 
-    public BLoad CopyIfManaged() {
+    @Deprecated
+    public void Assign(BLoad other) {
+        assign(other);
+    }
+
+    public BLoad copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BLoad Copy() {
+    public BLoad copy() {
         var copy = new BLoad();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BLoad a, BLoad b) {
+    @Deprecated
+    public BLoad Copy() {
+        return copy();
+    }
+
+    public static void swap(BLoad a, BLoad b) {
         BLoad save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BLoad CopyBean() {
+    public BLoad copyBean() {
         return Copy();
     }
 
@@ -115,32 +125,32 @@ public final class BLoad extends Zeze.Transaction.Bean {
         public Log__Online(BLoad bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BLoad)getBelong())._Online = Value; }
+        public void commit() { ((BLoad)getBelong())._Online = Value; }
     }
 
     private static final class Log__ProposeMaxOnline extends Zeze.Transaction.Logs.LogInt {
         public Log__ProposeMaxOnline(BLoad bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BLoad)getBelong())._ProposeMaxOnline = Value; }
+        public void commit() { ((BLoad)getBelong())._ProposeMaxOnline = Value; }
     }
 
     private static final class Log__OnlineNew extends Zeze.Transaction.Logs.LogInt {
         public Log__OnlineNew(BLoad bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BLoad)getBelong())._OnlineNew = Value; }
+        public void commit() { ((BLoad)getBelong())._OnlineNew = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BLoad: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Online").append('=').append(getOnline()).append(',').append(System.lineSeparator());
@@ -163,7 +173,7 @@ public final class BLoad extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             int _x_ = getOnline();
@@ -190,7 +200,7 @@ public final class BLoad extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -212,15 +222,15 @@ public final class BLoad extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
+    protected void resetChildrenRootInfo() {
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         if (getOnline() < 0)
             return true;
         if (getProposeMaxOnline() < 0)
@@ -232,7 +242,7 @@ public final class BLoad extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;

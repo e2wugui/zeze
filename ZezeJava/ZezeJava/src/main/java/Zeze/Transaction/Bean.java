@@ -8,15 +8,14 @@ import Zeze.Util.KV;
 import Zeze.Util.Str;
 
 public abstract class Bean implements Serializable {
-	public static final int ObjectIdStep = 4096; // 自增长步长。低位保留给Variable.Id。也就是，Variable.Id 最大只能是4095.
-	public static final int MaxVariableId = ObjectIdStep - 1;
-
+	public static final int OBJECT_ID_STEP = 4096; // 自增长步长。低位保留给Variable.Id。也就是，Variable.Id 最大只能是4095.
+	public static final int MAX_VARIABLE_ID = OBJECT_ID_STEP - 1;
 	private static final AtomicLong objectIdGen = new AtomicLong();
 
 	// 这个方法应该仅用于内部。
 	@Deprecated
 	public static long nextObjectId() {
-		return objectIdGen.addAndGet(ObjectIdStep);
+		return objectIdGen.addAndGet(OBJECT_ID_STEP);
 	}
 
 	private transient final long objectId = nextObjectId();
@@ -76,38 +75,38 @@ public abstract class Bean implements Serializable {
 	}
 
 	public final void initRootInfoWithRedo(Record.RootInfo rootInfo, Bean parent) {
-		InitRootInfo(rootInfo, parent);
-		Transaction.whileRedo(this::ResetRootInfo);
+		initRootInfo(rootInfo, parent);
+		Transaction.whileRedo(this::resetRootInfo);
 	}
 
-	public final void InitRootInfo(Record.RootInfo rootInfo, Bean parent) {
+	public final void initRootInfo(Record.RootInfo rootInfo, Bean parent) {
 		if (isManaged())
 			throw new HasManagedException();
 		this.rootInfo = rootInfo;
 		this.parent = parent;
-		InitChildrenRootInfo(rootInfo);
+		initChildrenRootInfo(rootInfo);
 	}
 
-	public void ResetRootInfo() {
+	public void resetRootInfo() {
 		rootInfo = null;
 		parent = null;
-		ResetChildrenRootInfo();
+		resetChildrenRootInfo();
 	}
 
-	protected abstract void ResetChildrenRootInfo();
+	protected abstract void resetChildrenRootInfo();
 
 	// 用在第一次加载Bean时，需要初始化它的root
-	protected abstract void InitChildrenRootInfo(Record.RootInfo root);
+	protected abstract void initChildrenRootInfo(Record.RootInfo root);
 
-	public boolean NegativeCheck() {
+	public boolean negativeCheck() {
 		return false;
 	}
 
-	public Bean CopyBean() {
+	public Bean copyBean() {
 		throw new UnsupportedOperationException();
 	}
 
-	public void BuildString(StringBuilder sb, int level) {
+	public void buildString(StringBuilder sb, int level) {
 		sb.append(Str.indent(level)).append('{').append(this).append('}');
 	}
 
@@ -145,7 +144,7 @@ public abstract class Bean implements Serializable {
 		throw new UnsupportedOperationException();
 	}
 
-	public void FollowerApply(Log log) {
+	public void followerApply(Log log) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -155,5 +154,9 @@ public abstract class Bean implements Serializable {
 		log.setThis(this);
 		log.setVariableId(variableId);
 		return log;
+	}
+
+	void Assign(Bean b) {
+
 	}
 }

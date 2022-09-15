@@ -24,7 +24,7 @@ namespace Zeze.Gen.rrjava
                 }
             }
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public void FollowerApply(Zeze.Raft.RocksRaft.Log log) {");
+            sw.WriteLine(prefix + "public void followerApply(Zeze.Raft.RocksRaft.Log log) {");
             sw.WriteLine(prefix + "    var vars = ((Zeze.Raft.RocksRaft.LogBean)log).getVariables();");
             sw.WriteLine(prefix + "    if (vars == null)");
             sw.WriteLine(prefix + "        return;");
@@ -89,22 +89,22 @@ namespace Zeze.Gen.rrjava
 
         public void Visit(Types.TypeList type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.FollowerApply(vlog); break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.followerApply(vlog); break;");
         }
 
         public void Visit(Types.TypeSet type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.FollowerApply(vlog); break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.followerApply(vlog); break;");
         }
 
         public void Visit(Types.TypeMap type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.FollowerApply(vlog); break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.followerApply(vlog); break;");
         }
 
         public void Visit(Types.Bean type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.FollowerApply(vlog); break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.followerApply(vlog); break;");
         }
 
         public void Visit(Types.BeanKey type)

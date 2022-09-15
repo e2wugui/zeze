@@ -314,7 +314,7 @@ public final class Task {
 			}
 		}
 		if (Macro.EnableStatistics) {
-			ProcedureStatistics.getInstance().GetOrAdd(actionName).GetOrAdd(result).increment();
+			ProcedureStatistics.getInstance().getOrAdd(actionName).getOrAdd(result).increment();
 		}
 	}
 

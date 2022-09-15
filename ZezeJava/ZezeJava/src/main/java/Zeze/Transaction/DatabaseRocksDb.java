@@ -64,7 +64,7 @@ public class DatabaseRocksDb extends Database {
 		return syncWriteOptions;
 	}
 
-	public static RocksDB Open(DBOptions options, String path, List<ColumnFamilyDescriptor> columnFamilyDescriptors,
+	public static RocksDB open(DBOptions options, String path, List<ColumnFamilyDescriptor> columnFamilyDescriptors,
 							   List<ColumnFamilyHandle> columnFamilyHandles) throws RocksDBException {
 		for (int i = 0; ; ) {
 			try {
@@ -97,7 +97,7 @@ public class DatabaseRocksDb extends Database {
 
 			// DirectOperates 依赖 Db，所以只能在这里打开。要不然，放在Open里面更加合理。
 			var outHandles = new ArrayList<ColumnFamilyHandle>();
-			rocksDb = Open(commonDbOptions, dbHome, columnFamilies, outHandles);
+			rocksDb = open(commonDbOptions, dbHome, columnFamilies, outHandles);
 
 			for (int i = 0; i < columnFamilies.size(); i++) {
 				var name = new String(columnFamilies.get(i).getName(), StandardCharsets.UTF_8);
@@ -110,7 +110,7 @@ public class DatabaseRocksDb extends Database {
 	}
 
 	@Override
-	public void Close() {
+	public void close() {
 		logger.info("Close: {}", getDatabaseUrl());
 		if (rocksDb.isOwningHandle()) {
 			try {
@@ -119,11 +119,11 @@ public class DatabaseRocksDb extends Database {
 			}
 		}
 		rocksDb.close();
-		super.Close();
+		super.close();
 	}
 
 	@Override
-	public Transaction BeginTransaction() {
+	public Transaction beginTransaction() {
 		return new RocksDbTrans();
 	}
 
@@ -137,7 +137,7 @@ public class DatabaseRocksDb extends Database {
 			return wb;
 		}
 
-		void Put(byte[] key, byte[] value, ColumnFamilyHandle family) {
+		void put(byte[] key, byte[] value, ColumnFamilyHandle family) {
 			try {
 				getBatch().put(family, key, value);
 			} catch (RocksDBException e) {
@@ -145,7 +145,7 @@ public class DatabaseRocksDb extends Database {
 			}
 		}
 
-		void Remove(byte[] key, ColumnFamilyHandle family) {
+		void remove(byte[] key, ColumnFamilyHandle family) {
 			try {
 				getBatch().delete(family, key);
 			} catch (RocksDBException e) {
@@ -154,7 +154,7 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
-		public void Commit() {
+		public void commit() {
 			if (batch == null)
 				return;
 			try {
@@ -165,7 +165,7 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
-		public void Rollback() {
+		public void rollback() {
 		}
 
 		@Override
@@ -194,7 +194,7 @@ public class DatabaseRocksDb extends Database {
 	}
 
 	@Override
-	public Table OpenTable(String name) {
+	public Table openTable(String name) {
 		var isNew = new OutObject<Boolean>();
 		var cfh = getOrAddFamily(name, isNew);
 		return new TableRocksDb(cfh, isNew.Value);
@@ -220,11 +220,11 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
-		public void Close() {
+		public void close() {
 		}
 
 		@Override
-		public ByteBuffer Find(ByteBuffer key) {
+		public ByteBuffer find(ByteBuffer key) {
 			try {
 				var value = rocksDb.get(columnFamily, defaultReadOptions, key.Bytes, key.ReadIndex, key.Size());
 				return value != null ? ByteBuffer.Wrap(value) : null;
@@ -234,17 +234,17 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
-		public void Remove(Transaction txn, ByteBuffer key) {
-			((RocksDbTrans)txn).Remove(key.Copy(), columnFamily);
+		public void remove(Transaction txn, ByteBuffer key) {
+			((RocksDbTrans)txn).remove(key.Copy(), columnFamily);
 		}
 
 		@Override
-		public void Replace(Transaction txn, ByteBuffer key, ByteBuffer value) {
-			((RocksDbTrans)txn).Put(key.Copy(), value.Copy(), columnFamily);
+		public void replace(Transaction txn, ByteBuffer key, ByteBuffer value) {
+			((RocksDbTrans)txn).put(key.Copy(), value.Copy(), columnFamily);
 		}
 
 		@Override
-		public long Walk(TableWalkHandleRaw callback) {
+		public long walk(TableWalkHandleRaw callback) {
 			try (var it = rocksDb.newIterator(columnFamily, defaultReadOptions)) {
 				long countWalked = 0;
 				for (it.seekToFirst(); it.isValid(); it.next()) {
@@ -257,7 +257,7 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
-		public long WalkKey(TableWalkKeyRaw callback) {
+		public long walkKey(TableWalkKeyRaw callback) {
 			try (var it = rocksDb.newIterator(columnFamily, defaultReadOptions)) {
 				long countWalked = 0;
 				for (it.seekToFirst(); it.isValid(); it.next()) {
@@ -272,28 +272,28 @@ public class DatabaseRocksDb extends Database {
 
 	private static final class DVRocks extends DataWithVersion implements Zeze.Serialize.Serializable {
 		@Override
-		public void Encode(ByteBuffer bb) {
-			bb.WriteByteBuffer(Data);
-			bb.WriteLong(Version);
+		public void encode(ByteBuffer bb) {
+			bb.WriteByteBuffer(data);
+			bb.WriteLong(version);
 		}
 
 		@Override
-		public void Decode(ByteBuffer bb) {
-			Data = ByteBuffer.Wrap(bb.ReadBytes());
-			Version = bb.ReadLong();
+		public void decode(ByteBuffer bb) {
+			data = ByteBuffer.Wrap(bb.ReadBytes());
+			version = bb.ReadLong();
 		}
 
-		byte[] Encode() {
-			int size = Data.Size();
-			var bb = ByteBuffer.Allocate(ByteBuffer.writeUIntSize(size) + size + ByteBuffer.writeLongSize(Version));
-			Encode(bb);
+		byte[] encode() {
+			int size = data.Size();
+			var bb = ByteBuffer.Allocate(ByteBuffer.writeUIntSize(size) + size + ByteBuffer.writeLongSize(version));
+			encode(bb);
 			return bb.Bytes;
 		}
 
-		static DVRocks Decode(byte[] bytes) {
+		static DVRocks decode(byte[] bytes) {
 			var dv = new DVRocks();
 			if (bytes != null)
-				dv.Decode(ByteBuffer.Wrap(bytes));
+				dv.decode(ByteBuffer.Wrap(bytes));
 			return dv;
 		}
 	}
@@ -302,24 +302,24 @@ public class DatabaseRocksDb extends Database {
 		private final ColumnFamilyHandle columnFamily = getOrAddFamily("zeze.OperatesRocksDb.Schemas", null);
 
 		@Override
-		public synchronized DataWithVersion GetDataWithVersion(ByteBuffer key) {
+		public synchronized DataWithVersion getDataWithVersion(ByteBuffer key) {
 			try {
-				return DVRocks.Decode(rocksDb.get(columnFamily, defaultReadOptions, key.Bytes, key.ReadIndex, key.Size()));
+				return DVRocks.decode(rocksDb.get(columnFamily, defaultReadOptions, key.Bytes, key.ReadIndex, key.Size()));
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
 			}
 		}
 
 		@Override
-		public synchronized KV<Long, Boolean> SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
+		public synchronized KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
 			try {
-				var dv = DVRocks.Decode(rocksDb.get(columnFamily, defaultReadOptions, key.Bytes, key.ReadIndex, key.Size()));
-				if (dv.Version != version)
+				var dv = DVRocks.decode(rocksDb.get(columnFamily, defaultReadOptions, key.Bytes, key.ReadIndex, key.Size()));
+				if (dv.version != version)
 					return KV.Create(version, false);
 
-				dv.Version = ++version;
-				dv.Data = data;
-				var value = dv.Encode();
+				dv.version = ++version;
+				dv.data = data;
+				var value = dv.encode();
 				rocksDb.put(columnFamily, defaultWriteOptions, key.Bytes, key.ReadIndex, key.Size(), value, 0, value.length);
 				return KV.Create(version, true);
 			} catch (RocksDBException e) {
@@ -328,12 +328,12 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
-		public void SetInUse(int localId, String global) {
+		public void setInUse(int localId, String global) {
 			// rocksdb 独占由它自己打开的时候保证。
 		}
 
 		@Override
-		public int ClearInUse(int localId, String global) {
+		public int clearInUse(int localId, String global) {
 			// rocksdb 独占由它自己打开的时候保证。
 			return 0;
 		}

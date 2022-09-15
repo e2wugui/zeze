@@ -21,46 +21,46 @@ public class TestDatabaseRocksDB extends TestCase {
 
 		DatabaseRocksDb db = getDatabaseRocksDb();
 		try {
-			Database.Table table = db.OpenTable("test_1");
+			Database.Table table = db.openTable("test_1");
 			{
-				try (var trans = db.BeginTransaction()) {
+				try (var trans = db.beginTransaction()) {
 					{
 						ByteBuffer key = ByteBuffer.Allocate();
 						key.WriteInt(1);
-						table.Remove(trans, key);
+						table.remove(trans, key);
 					}
 					{
 						ByteBuffer key = ByteBuffer.Allocate();
 						key.WriteInt(2);
-						table.Remove(trans, key);
+						table.remove(trans, key);
 					}
-					trans.Commit();
+					trans.commit();
 				}
 			}
-			Assert.assertEquals(0, table.Walk(TestDatabaseRocksDB::PrintRecord));
+			Assert.assertEquals(0, table.walk(TestDatabaseRocksDB::PrintRecord));
 			{
-				try (var trans = db.BeginTransaction()) {
+				try (var trans = db.beginTransaction()) {
 					{
 						ByteBuffer key = ByteBuffer.Allocate();
 						key.WriteInt(1);
 						ByteBuffer value = ByteBuffer.Allocate();
 						value.WriteInt(1);
-						table.Replace(trans, key, value);
+						table.replace(trans, key, value);
 					}
 					{
 						ByteBuffer key = ByteBuffer.Allocate();
 						key.WriteInt(2);
 						ByteBuffer value = ByteBuffer.Allocate();
 						value.WriteInt(2);
-						table.Replace(trans, key, value);
+						table.replace(trans, key, value);
 					}
-					trans.Commit();
+					trans.commit();
 				}
 			}
 			{
 				ByteBuffer key = ByteBuffer.Allocate();
 				key.WriteInt(1);
-				ByteBuffer value = table.Find(key);
+				ByteBuffer value = table.find(key);
 				Assert.assertNotNull(value);
 				Assert.assertEquals(1, value.ReadInt());
 				Assert.assertEquals(value.ReadIndex, value.WriteIndex);
@@ -68,14 +68,14 @@ public class TestDatabaseRocksDB extends TestCase {
 			{
 				ByteBuffer key = ByteBuffer.Allocate();
 				key.WriteInt(2);
-				ByteBuffer value = table.Find(key);
+				ByteBuffer value = table.find(key);
 				Assert.assertNotNull(value);
 				Assert.assertEquals(2, value.ReadInt());
 				Assert.assertEquals(value.ReadIndex, value.WriteIndex);
 			}
-			Assert.assertEquals(2, table.Walk(TestDatabaseRocksDB::PrintRecord));
+			Assert.assertEquals(2, table.walk(TestDatabaseRocksDB::PrintRecord));
 		} finally {
-			db.Close();
+			db.close();
 		}
 	}
 
@@ -89,10 +89,10 @@ public class TestDatabaseRocksDB extends TestCase {
 
 		DatabaseRocksDb db = getDatabaseRocksDb();
 		try {
-			Database.Table table = db.OpenTable("test_1");
-			Assert.assertEquals(2, table.Walk(TestDatabaseRocksDB::PrintRecord));
+			Database.Table table = db.openTable("test_1");
+			Assert.assertEquals(2, table.walk(TestDatabaseRocksDB::PrintRecord));
 		} finally {
-			db.Close();
+			db.close();
 		}
 	}
 

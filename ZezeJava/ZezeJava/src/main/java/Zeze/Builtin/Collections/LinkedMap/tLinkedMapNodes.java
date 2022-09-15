@@ -29,21 +29,21 @@ public final class tLinkedMapNodes extends Zeze.Transaction.TableX<Zeze.Builtin.
     public static final int VAR_Values = 3;
 
     @Override
-    public Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey DecodeKey(ByteBuffer _os_) {
+    public Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey decodeKey(ByteBuffer _os_) {
         Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey _v_ = new Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey();
-        _v_.Decode(_os_);
+        _v_.decode(_os_);
         return _v_;
     }
 
     @Override
-    public ByteBuffer EncodeKey(Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey _v_) {
+    public ByteBuffer encodeKey(Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey _v_) {
         ByteBuffer _os_ = ByteBuffer.Allocate(16);
-        _v_.Encode(_os_);
+        _v_.encode(_os_);
         return _os_;
     }
 
     @Override
-    public Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode NewValue() {
+    public Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode newValue() {
         return new Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode();
     }
 }

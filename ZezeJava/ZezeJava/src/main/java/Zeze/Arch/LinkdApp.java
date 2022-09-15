@@ -42,12 +42,12 @@ public class LinkdApp {
 			if (ps != null) {
 				var bb = ByteBuffer.Wrap(serverLoad.Param);
 				var load = new BLoad();
-				load.Decode(bb);
+				load.decode(bb);
 				ps.Load = load;
 			}
 		});
 
-		var kv = LinkdProviderService.GetOnePassiveAddress();
+		var kv = LinkdProviderService.getOnePassiveAddress();
 		ProviderIp = kv.getKey();
 		ProviderPort = kv.getValue();
 	}

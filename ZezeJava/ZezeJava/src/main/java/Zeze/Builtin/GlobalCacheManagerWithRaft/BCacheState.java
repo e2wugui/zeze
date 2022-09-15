@@ -45,17 +45,17 @@ public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
     public BCacheState() {
         _Modify = -1;
         _Share = new Zeze.Raft.RocksRaft.CollSet1<>(Integer.class);
-        _Share.VariableId = 3;
+        _Share.variableId(3);
     }
 
     public BCacheState(int _AcquireStatePending_, int _Modify_) {
         _AcquireStatePending = _AcquireStatePending_;
         _Modify = _Modify_;
         _Share = new Zeze.Raft.RocksRaft.CollSet1<>(Integer.class);
-        _Share.VariableId = 3;
+        _Share.variableId(3);
     }
 
-    public void Assign(BCacheState other) {
+    public void assign(BCacheState other) {
         setAcquireStatePending(other.getAcquireStatePending());
         setModify(other.getModify());
         getShare().clear();
@@ -63,24 +63,34 @@ public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
             getShare().add(e);
     }
 
-    public BCacheState CopyIfManaged() {
+    @Deprecated
+    public void Assign(BCacheState other) {
+        assign(other);
+    }
+
+    public BCacheState copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BCacheState Copy() {
+    public BCacheState copy() {
         var copy = new BCacheState();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BCacheState a, BCacheState b) {
+    @Deprecated
+    public BCacheState Copy() {
+        return copy();
+    }
+
+    public static void swap(BCacheState a, BCacheState b) {
         BCacheState save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BCacheState CopyBean() {
+    public BCacheState copyBean() {
         return Copy();
     }
 
@@ -94,12 +104,12 @@ public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.BCacheState: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("AcquireStatePending").append('=').append(getAcquireStatePending()).append(',').append(System.lineSeparator());
@@ -128,7 +138,7 @@ public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             int _x_ = getModify();
@@ -151,7 +161,7 @@ public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         while (_t_ != 0 && _i_ < 2) {
@@ -179,20 +189,20 @@ public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Raft.RocksRaft.Record.RootInfo root) {
-        _Share.InitRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Raft.RocksRaft.Record.RootInfo root) {
+        _Share.initRootInfo(root, this);
     }
 
     @Override
-    public void LeaderApplyNoRecursive(Zeze.Raft.RocksRaft.Log vlog) {
+    public void leaderApplyNoRecursive(Zeze.Raft.RocksRaft.Log vlog) {
         switch (vlog.getVariableId()) {
             case 2: _Modify = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).Value; break;
-            case 3: _Share.LeaderApplyNoRecursive(vlog); break;
+            case 3: _Share.leaderApplyNoRecursive(vlog); break;
         }
     }
 
     @Override
-    public void FollowerApply(Zeze.Raft.RocksRaft.Log log) {
+    public void followerApply(Zeze.Raft.RocksRaft.Log log) {
         var vars = ((Zeze.Raft.RocksRaft.LogBean)log).getVariables();
         if (vars == null)
             return;
@@ -200,7 +210,7 @@ public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 2: _Modify = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).Value; break;
-                case 3: _Share.FollowerApply(vlog); break;
+                case 3: _Share.followerApply(vlog); break;
             }
         }
     }

@@ -7,37 +7,37 @@ import Zeze.Transaction.Bean;
 public abstract class Protocol<TArgument extends Bean> implements Serializable {
 	private static final int HEADER_SIZE = 12; // moduleId[4] + protocolId[4] + size[4]
 
-	private AsyncSocket Sender;
-	private Object UserState;
-	private long ResultCode;
+	private AsyncSocket sender;
+	private Object userState;
+	private long resultCode;
 	public TArgument Argument;
 
 	public AsyncSocket getSender() {
-		return Sender;
+		return sender;
 	}
 
 	public void setSender(AsyncSocket sender) {
-		Sender = sender;
+		this.sender = sender;
 	}
 
 	public Service getService() {
-		return Sender != null ? Sender.getService() : null;
+		return sender != null ? sender.getService() : null;
 	}
 
 	public Object getUserState() {
-		return UserState;
+		return userState;
 	}
 
 	public void setUserState(Object userState) {
-		UserState = userState;
+		this.userState = userState;
 	}
 
 	public final long getResultCode() {
-		return ResultCode;
+		return resultCode;
 	}
 
 	public final void setResultCode(long value) {
-		ResultCode = value;
+		resultCode = value;
 	}
 
 	public boolean isRequest() {
@@ -67,24 +67,24 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 		return (long)moduleId << 32 | (protocolId & 0xffff_ffffL);
 	}
 
-	public static int GetModuleId(long typeId) {
+	public static int getModuleId(long typeId) {
 		return (int)(typeId >> 32);
 	}
 
-	public static int GetProtocolId(long typeId) {
+	public static int getProtocolId(long typeId) {
 		return (int)typeId;
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteLong(getResultCode());
-		Argument.Encode(bb);
+		Argument.encode(bb);
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		setResultCode(bb.ReadLong());
-		Argument.Decode(bb);
+		Argument.decode(bb);
 	}
 
 	@Override
@@ -97,14 +97,14 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 		Argument.preAllocSize(size - 1);
 	}
 
-	public final ByteBuffer Encode() {
+	public final ByteBuffer encode() {
 		int preAllocSize = preAllocSize();
 
 		ByteBuffer bb = ByteBuffer.Allocate(Math.min(HEADER_SIZE + preAllocSize, 65536));
 		bb.WriteInt4(getModuleId());
 		bb.WriteInt4(getProtocolId());
 		int saveSize = bb.BeginWriteWithSize4();
-		Encode(bb);
+		this.encode(bb);
 		bb.EndWriteWithSize4(saveSize);
 
 		int size = bb.Size() - saveSize - 4;
@@ -116,7 +116,7 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 	public boolean Send(AsyncSocket so) {
 		if (so == null)
 			return false;
-		Sender = so;
+		sender = so;
 		return so.Send(this);
 	}
 
@@ -150,7 +150,7 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <P extends Protocol<?>> void Dispatch(Service service, Service.ProtocolFactoryHandle<P> factoryHandle)
+	public <P extends Protocol<?>> void dispatch(Service service, Service.ProtocolFactoryHandle<P> factoryHandle)
 			throws Throwable {
 		service.DispatchProtocol((P)this, factoryHandle);
 	}
@@ -158,7 +158,7 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 	/**
 	 * moduleId[4] + protocolId[4] + size[4] + protocol.bytes[size]
 	 */
-	public static void Decode(Service service, AsyncSocket so, ByteBuffer bb) throws Throwable {
+	public static void decode(Service service, AsyncSocket so, ByteBuffer bb) throws Throwable {
 		while (bb.Size() >= HEADER_SIZE) { // 只有协议发送被分成很小的包，协议头都不够的时候才会发生这个异常。几乎不可能发生。
 			// 读取协议类型和大小
 			var bytes = bb.Bytes;
@@ -175,7 +175,7 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 				// 数据不够时检查。这个检测不需要严格的。如果数据够，那就优先处理。
 				int maxSize = service.getSocketOptions().getInputBufferMaxProtocolSize();
 				if (longSize > maxSize) {
-					var factoryHandle = service.FindProtocolFactoryHandle(MakeTypeId(moduleId, protocolId));
+					var factoryHandle = service.findProtocolFactoryHandle(MakeTypeId(moduleId, protocolId));
 					var pName = factoryHandle != null && factoryHandle.Factory != null ?
 							factoryHandle.Factory.create().getClass().getName() : "?";
 					throw new IllegalStateException(
@@ -188,17 +188,17 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 			bb.ReadIndex = beginReadIndex += HEADER_SIZE;
 			int endReadIndex = beginReadIndex + size;
 
-			var factoryHandle = service.FindProtocolFactoryHandle(MakeTypeId(moduleId, protocolId));
+			var factoryHandle = service.findProtocolFactoryHandle(MakeTypeId(moduleId, protocolId));
 			if (factoryHandle != null && factoryHandle.Factory != null) {
 				var p = factoryHandle.Factory.create();
-				p.Decode(bb);
+				p.decode(bb);
 				if (bb.ReadIndex != endReadIndex)
 					throw new IllegalStateException(
 							String.format("protocol '%s' in '%s' module=%d protocol=%d size=%d!=%d decode error!",
 									p.getClass().getName(), service.getName(), moduleId, protocolId,
 									bb.ReadIndex - beginReadIndex, size));
-				p.Sender = so;
-				p.UserState = so.getUserState();
+				p.sender = so;
+				p.userState = so.getUserState();
 				if (AsyncSocket.ENABLE_PROTOCOL_LOG) {
 					if (p.isRequest()) {
 						if (p instanceof Rpc)
@@ -209,9 +209,9 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 									p.getClass().getSimpleName(), p.Argument);
 					} else
 						AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RECV[{}] {}({})>{} {}", so.getSessionId(),
-								p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.ResultCode, p.getResultBean());
+								p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.resultCode, p.getResultBean());
 				}
-				p.Dispatch(service, factoryHandle);
+				p.dispatch(service, factoryHandle);
 			} else {
 				if (AsyncSocket.ENABLE_PROTOCOL_LOG) {
 					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RECV[{}] {}:{} [{}]",
@@ -219,7 +219,7 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 				}
 				int savedWriteIndex = bb.WriteIndex;
 				bb.WriteIndex = endReadIndex;
-				service.DispatchUnknownProtocol(so, moduleId, protocolId, bb); // 这里只能临时读bb,不能持有Bytes引用
+				service.dispatchUnknownProtocol(so, moduleId, protocolId, bb); // 这里只能临时读bb,不能持有Bytes引用
 				bb.ReadIndex = endReadIndex;
 				bb.WriteIndex = savedWriteIndex;
 			}

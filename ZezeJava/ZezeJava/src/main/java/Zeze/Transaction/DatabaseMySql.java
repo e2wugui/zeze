@@ -15,13 +15,13 @@ public final class DatabaseMySql extends DatabaseJdbc {
 	}
 
 	@Override
-	public Database.Table OpenTable(String name) {
+	public Database.Table openTable(String name) {
 		return new TableMysql(name);
 	}
 
 	private final class OperatesMySql implements Operates {
 		@Override
-		public void SetInUse(int localId, String global) {
+		public void setInUse(int localId, String global) {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 				try (var cmd = connection.prepareCall("{CALL _ZezeSetInUse_(?, ?, ?)}")) {
@@ -54,7 +54,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 
 		@Override
-		public int ClearInUse(int localId, String global) {
+		public int clearInUse(int localId, String global) {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 				try (var cmd = connection.prepareCall("{CALL _ZezeClearInUse_(?, ?, ?)}")) {
@@ -71,7 +71,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 
 		@Override
-		public DataWithVersion GetDataWithVersion(ByteBuffer key) {
+		public DataWithVersion getDataWithVersion(ByteBuffer key) {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 				try (var cmd = connection.prepareStatement("SELECT data,version FROM _ZezeDataWithVersion_ WHERE id=?")) {
@@ -81,8 +81,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 							byte[] value = rs.getBytes(1);
 							long version = rs.getLong(2);
 							var result = new DataWithVersion();
-							result.Data = ByteBuffer.Wrap(value);
-							result.Version = version;
+							result.data = ByteBuffer.Wrap(value);
+							result.version = version;
 							return result;
 						}
 						return null;
@@ -94,7 +94,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 
 		@Override
-		public Zeze.Util.KV<Long, Boolean> SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
+		public Zeze.Util.KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
 			if (key.Size() == 0) {
 				throw new IllegalArgumentException("key is empty.");
 			}
@@ -301,7 +301,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 	}
 
 	private final class TableMysql implements Database.Table {
-		private final String Name;
+		private final String name;
 		private final boolean isNew;
 
 		@Override
@@ -310,7 +310,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 
 		public String getName() {
-			return Name;
+			return name;
 		}
 
 		@Override
@@ -319,12 +319,12 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 
 		public TableMysql(String name) {
-			Name = name;
+			this.name = name;
 
 			// isNew 仅用来在Schemas比较的时候可选的忽略被删除的表，这里没有跟Create原子化。
 			try (var connection = dataSource.getConnection()) {
 				DatabaseMetaData meta = connection.getMetaData();
-				ResultSet resultSet = meta.getTables(null, null, Name, new String[]{"TABLE"});
+				ResultSet resultSet = meta.getTables(null, null, this.name, new String[]{"TABLE"});
 				isNew = resultSet.next();
 			} catch (SQLException e) {
 				throw new RuntimeException(e);
@@ -342,11 +342,11 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 
 		@Override
-		public void Close() {
+		public void close() {
 		}
 
 		@Override
-		public ByteBuffer Find(ByteBuffer key) {
+		public ByteBuffer find(ByteBuffer key) {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
@@ -368,7 +368,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 
 		@Override
-		public void Remove(Transaction t, ByteBuffer key) {
+		public void remove(Transaction t, ByteBuffer key) {
 			var my = (JdbcTrans)t;
 			String sql = "DELETE FROM " + getName() + " WHERE id=?";
 			try (var cmd = my.Connection.prepareStatement(sql)) {
@@ -380,7 +380,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 
 		@Override
-		public void Replace(Transaction t, ByteBuffer key, ByteBuffer value) {
+		public void replace(Transaction t, ByteBuffer key, ByteBuffer value) {
 			var my = (JdbcTrans)t;
 			String sql = "REPLACE INTO " + getName() + " values(?, ?)";
 			try (var cmd = my.Connection.prepareStatement(sql)) {
@@ -393,7 +393,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 
 		@Override
-		public long Walk(TableWalkHandleRaw callback) {
+		public long walk(TableWalkHandleRaw callback) {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
@@ -418,7 +418,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 
 		@Override
-		public long WalkKey(TableWalkKeyRaw callback) {
+		public long walkKey(TableWalkKeyRaw callback) {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 

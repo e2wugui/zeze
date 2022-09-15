@@ -57,7 +57,7 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	@Override
-	public void Collect(Changes changes, Zeze.Transaction.Bean recent, Log vlog) {
+	public void collect(Changes changes, Zeze.Transaction.Bean recent, Log vlog) {
 		throw new UnsupportedOperationException("Collect Not Implement.");
 	}
 
@@ -127,7 +127,7 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var encoder = valueCodecFuncs.encoder;
 		bb.WriteUInt(opLogs.size());
 		for (var opLog : opLogs) {
@@ -141,7 +141,7 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		var decoder = valueCodecFuncs.decoder;
 		opLogs.clear();
 		for (var logSize = bb.ReadUInt(); --logSize >= 0; ) {
@@ -152,15 +152,15 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	@Override
-	public void EndSavepoint(Savepoint currentSp) {
-		var log = currentSp.GetLog(getLogKey());
+	public void endSavepoint(Savepoint currentSp) {
+		var log = currentSp.getLog(getLogKey());
 		if (log != null) {
 			@SuppressWarnings("unchecked")
 			var currentLog = (LogList1<V>)log;
 			currentLog.setValue(getValue());
 			currentLog.Merge(this);
 		} else
-			currentSp.PutLog(this);
+			currentSp.putLog(this);
 	}
 
 	public final void Merge(LogList1<V> from) {
@@ -172,7 +172,7 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	@Override
-	public Log BeginSavepoint() {
+	public Log beginSavepoint() {
 		var dup = new LogList1<>(getTypeId(), valueCodecFuncs);
 		dup.setBelong(getBelong());
 		dup.setVariableId(getVariableId());

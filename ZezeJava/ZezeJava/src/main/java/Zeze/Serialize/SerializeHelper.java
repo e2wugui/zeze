@@ -63,7 +63,7 @@ public final class SerializeHelper {
 			return codec.encoder;
 		if (!Serializable.class.isAssignableFrom(cls))
 			throw new UnsupportedOperationException("unsupported encoder type: " + cls.getName());
-		return (bb, obj) -> ((Serializable)obj).Encode(bb);
+		return (bb, obj) -> ((Serializable)obj).encode(bb);
 	}
 
 	public static <T> Function<ByteBuffer, T> createDecodeFunc(Class<T> cls) {
@@ -80,7 +80,7 @@ public final class SerializeHelper {
 			} catch (ReflectiveOperationException e) {
 				throw new RuntimeException(e);
 			}
-			((Serializable)obj).Decode(bb);
+			((Serializable)obj).decode(bb);
 			return obj;
 		};
 	}
@@ -92,7 +92,7 @@ public final class SerializeHelper {
 			return codec;
 		if (!Serializable.class.isAssignableFrom(cls))
 			throw new UnsupportedOperationException("unsupported codec type: " + cls.getName());
-		return new CodecFuncs<>((bb, obj) -> ((Serializable)obj).Encode(bb),
+		return new CodecFuncs<>((bb, obj) -> ((Serializable)obj).encode(bb),
 				bb -> {
 					T obj;
 					try {
@@ -100,16 +100,16 @@ public final class SerializeHelper {
 					} catch (ReflectiveOperationException e) {
 						throw new RuntimeException(e);
 					}
-					((Serializable)obj).Decode(bb);
+					((Serializable)obj).decode(bb);
 					return obj;
 				});
 	}
 
 	public static CodecFuncs<DynamicBean> createCodec(ToLongFunction<Bean> get, LongFunction<Bean> create) {
-		return new CodecFuncs<>((bb, obj) -> obj.Encode(bb), bb -> {
+		return new CodecFuncs<>((bb, obj) -> obj.encode(bb), bb -> {
 			var bean = new DynamicBean(0, get, create);
 			if (bb != null) // for creating DynamicBean by json decoder
-				bean.Decode(bb);
+				bean.decode(bb);
 			return bean;
 		});
 	}

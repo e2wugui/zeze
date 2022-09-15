@@ -475,7 +475,7 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		int count = _count;
 		if (count <= 0)
 			return;
@@ -486,7 +486,7 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		int count = bb.ReadUInt();
 		reserveSpace(count);
 		int[] buf = _buffer;

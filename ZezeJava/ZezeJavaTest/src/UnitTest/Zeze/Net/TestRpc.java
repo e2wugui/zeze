@@ -21,11 +21,11 @@ public class TestRpc extends TestCase {
 		System.out.println(first.getTypeId());
 		server.AddFactoryHandle(first.getTypeId(), new Service.ProtocolFactoryHandle<>(f, TestRpc::ProcessFirstRpcRequest));
 
-		server.NewServerSocket("127.0.0.1", 5000, null);
+		server.newServerSocket("127.0.0.1", 5000, null);
 		Client client = new Client(this);
 		client.AddFactoryHandle(first.getTypeId(), new Service.ProtocolFactoryHandle<>(FirstRpc::new));
 
-		AsyncSocket clientSocket = client.NewClientSocket("127.0.0.1", 5000, null, null);
+		AsyncSocket clientSocket = client.newClientSocket("127.0.0.1", 5000, null, null);
 		connected.get();
 
 		first = new FirstRpc();

@@ -32,12 +32,12 @@ public final class BeanKey implements Serializable, Comparable<BeanKey> {
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         sb.append(System.lineSeparator());
         return sb.toString();
     }
 
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.TestRocks.BeanKey: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Id").append('=').append(getId()).append(',').append(System.lineSeparator());
@@ -59,7 +59,7 @@ public final class BeanKey implements Serializable, Comparable<BeanKey> {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             int _x_ = getId();
@@ -79,7 +79,7 @@ public final class BeanKey implements Serializable, Comparable<BeanKey> {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -137,7 +137,7 @@ public final class BeanKey implements Serializable, Comparable<BeanKey> {
         throw new NullPointerException("compareTo: another object is null");
     }
 
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         if (getId() < 0)
             return true;
         return false;

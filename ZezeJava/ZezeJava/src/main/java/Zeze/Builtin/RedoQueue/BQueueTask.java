@@ -129,7 +129,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
         _PrevTaskId = _PrevTaskId_;
     }
 
-    public void Assign(BQueueTask other) {
+    public void assign(BQueueTask other) {
         setQueueName(other.getQueueName());
         setTaskType(other.getTaskType());
         setTaskId(other.getTaskId());
@@ -137,24 +137,34 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
         setPrevTaskId(other.getPrevTaskId());
     }
 
-    public BQueueTask CopyIfManaged() {
+    @Deprecated
+    public void Assign(BQueueTask other) {
+        assign(other);
+    }
+
+    public BQueueTask copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BQueueTask Copy() {
+    public BQueueTask copy() {
         var copy = new BQueueTask();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BQueueTask a, BQueueTask b) {
+    @Deprecated
+    public BQueueTask Copy() {
+        return copy();
+    }
+
+    public static void swap(BQueueTask a, BQueueTask b) {
         BQueueTask save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BQueueTask CopyBean() {
+    public BQueueTask copyBean() {
         return Copy();
     }
 
@@ -169,46 +179,46 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
         public Log__QueueName(BQueueTask bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BQueueTask)getBelong())._QueueName = Value; }
+        public void commit() { ((BQueueTask)getBelong())._QueueName = Value; }
     }
 
     private static final class Log__TaskType extends Zeze.Transaction.Logs.LogInt {
         public Log__TaskType(BQueueTask bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BQueueTask)getBelong())._TaskType = Value; }
+        public void commit() { ((BQueueTask)getBelong())._TaskType = Value; }
     }
 
     private static final class Log__TaskId extends Zeze.Transaction.Logs.LogLong {
         public Log__TaskId(BQueueTask bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BQueueTask)getBelong())._TaskId = Value; }
+        public void commit() { ((BQueueTask)getBelong())._TaskId = Value; }
     }
 
     private static final class Log__TaskParam extends Zeze.Transaction.Logs.LogBinary {
         public Log__TaskParam(BQueueTask bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BQueueTask)getBelong())._TaskParam = Value; }
+        public void commit() { ((BQueueTask)getBelong())._TaskParam = Value; }
     }
 
     private static final class Log__PrevTaskId extends Zeze.Transaction.Logs.LogLong {
         public Log__PrevTaskId(BQueueTask bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BQueueTask)getBelong())._PrevTaskId = Value; }
+        public void commit() { ((BQueueTask)getBelong())._PrevTaskId = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.RedoQueue.BQueueTask: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("QueueName").append('=').append(getQueueName()).append(',').append(System.lineSeparator());
@@ -233,7 +243,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             String _x_ = getQueueName();
@@ -274,7 +284,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -304,15 +314,15 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
+    protected void resetChildrenRootInfo() {
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         if (getTaskType() < 0)
             return true;
         if (getTaskId() < 0)
@@ -324,7 +334,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;

@@ -52,13 +52,13 @@ public class ResetDB {
 				continue;
 			}
 			if (!table.IsCompatible(otherTable, context)) {
-				var rmTable = defaultDb.GetTable(otherTable.Name);
+				var rmTable = defaultDb.getTable(otherTable.Name);
 				if (rmTable == null) {
 					continue;
 				}
-				Database.Table databaseTable = rmTable.GetStorage().getDatabaseTable();
+				Database.Table databaseTable = rmTable.getStorage().getDatabaseTable();
 				AtomicBoolean empty = new AtomicBoolean(true);
-				databaseTable.Walk((key, value) -> {
+				databaseTable.walk((key, value) -> {
 					empty.set(false);
 					return false;
 				});
@@ -84,20 +84,20 @@ public class ResetDB {
 
 	private static void removeTable(Database db, List<String> removeList) {
 		for (var rmTable : removeList) {
-			Table table = db.GetTable(rmTable);
+			Table table = db.getTable(rmTable);
 			if (table == null) {
 				continue;
 			}
-			Database.Transaction transaction = db.BeginTransaction();
-			Database.Table databaseTable = table.GetStorage().getDatabaseTable();
+			Database.Transaction transaction = db.beginTransaction();
+			Database.Table databaseTable = table.getStorage().getDatabaseTable();
 			AtomicInteger count = new AtomicInteger();
-			databaseTable.Walk((key, value) -> {
-				databaseTable.Remove(transaction, ByteBuffer.Wrap(key));
+			databaseTable.walk((key, value) -> {
+				databaseTable.remove(transaction, ByteBuffer.Wrap(key));
 				count.incrementAndGet();
 				return true;
 			});
 			logger.warn("remove table :{} count:{}", rmTable, count.get());
-			transaction.Commit();
+			transaction.commit();
 		}
 	}
 }

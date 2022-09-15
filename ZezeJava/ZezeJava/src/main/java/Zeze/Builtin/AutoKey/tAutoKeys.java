@@ -27,21 +27,21 @@ public final class tAutoKeys extends Zeze.Transaction.TableX<Zeze.Builtin.AutoKe
     public static final int VAR_NextId = 1;
 
     @Override
-    public Zeze.Builtin.AutoKey.BSeedKey DecodeKey(ByteBuffer _os_) {
+    public Zeze.Builtin.AutoKey.BSeedKey decodeKey(ByteBuffer _os_) {
         Zeze.Builtin.AutoKey.BSeedKey _v_ = new Zeze.Builtin.AutoKey.BSeedKey();
-        _v_.Decode(_os_);
+        _v_.decode(_os_);
         return _v_;
     }
 
     @Override
-    public ByteBuffer EncodeKey(Zeze.Builtin.AutoKey.BSeedKey _v_) {
+    public ByteBuffer encodeKey(Zeze.Builtin.AutoKey.BSeedKey _v_) {
         ByteBuffer _os_ = ByteBuffer.Allocate(16);
-        _v_.Encode(_os_);
+        _v_.encode(_os_);
         return _os_;
     }
 
     @Override
-    public Zeze.Builtin.AutoKey.BAutoKey NewValue() {
+    public Zeze.Builtin.AutoKey.BAutoKey newValue() {
         return new Zeze.Builtin.AutoKey.BAutoKey();
     }
 }

@@ -212,7 +212,7 @@ public final class GenModule {
 			sb.AppendLine("        _a_.setServiceNamePrefix(_redirect_.ProviderApp.ServerServiceNamePrefix);");
 			if (m.inputParameters.size() > 0) {
 				sb.AppendLine("        var _b_ = Zeze.Serialize.ByteBuffer.Allocate();");
-				Gen.Instance.GenEncode(sb, "        ", "_b_", m.inputParameters);
+				Gen.instance.genEncode(sb, "        ", "_b_", m.inputParameters);
 				sb.AppendLine("        _a_.setParams(new Zeze.Net.Binary(_b_));");
 			}
 			sb.AppendLine();
@@ -234,7 +234,7 @@ public final class GenModule {
 					if (Serializable.class.isAssignableFrom(m.resultClass)) {
 						sb.AppendLine("            var _param_ = _rpc_.Result.getParams();");
 						sb.AppendLine("            if (_param_.size() > 0)");
-						sb.AppendLine("                _r_.Decode(_param_.Wrap());");
+						sb.AppendLine("                _r_.decode(_param_.Wrap());");
 						if (m.returnTypeHasResultCode)
 							sb.AppendLine("            _r_.setResultCode(_rpc_.isTimeout() ? Zeze.Transaction.Procedure.Timeout : _rpc_.getResultCode());");
 					} else {
@@ -243,7 +243,7 @@ public final class GenModule {
 							sb.AppendLine("            if (_param_.size() > 0) {");
 							sb.AppendLine("                var _bb_ = _param_.Wrap();");
 							for (var field : m.resultFields)
-								Gen.Instance.GenDecode(sb, "                ", "_bb_", field.getType(), field.getGenericType(), "_r_." + field.getName());
+								Gen.instance.genDecode(sb, "                ", "_bb_", field.getType(), field.getGenericType(), "_r_." + field.getName());
 							sb.AppendLine("            }");
 						}
 						if (m.returnTypeHasResultCode)
@@ -264,12 +264,12 @@ public final class GenModule {
 			boolean genLocal = false;
 			for (int i = 0; i < m.inputParameters.size(); ++i) {
 				var p = m.inputParameters.get(i);
-				Gen.Instance.GenLocalVariable(sbHandles, "                ", p);
+				Gen.instance.genLocalVariable(sbHandles, "                ", p);
 				genLocal = true;
 			}
 			if (genLocal)
 				sbHandles.AppendLine("                var _b_ = _params_.Wrap();");
-			Gen.Instance.GenDecode(sbHandles, "                ", "_b_", m.inputParameters);
+			Gen.instance.genDecode(sbHandles, "                ", "_b_", m.inputParameters);
 			var normalCall = m.GetNormalCallString();
 			var sep = normalCall.isEmpty() ? "" : ", ";
 			if (returnName.equals("void")) {
@@ -286,7 +286,7 @@ public final class GenModule {
 				sbHandles.AppendLine("                var _r_ = ({})_result_;", m.resultTypeName);
 				sbHandles.AppendLine("                int _s_ = _r_.preAllocSize();");
 				sbHandles.AppendLine("                var _b_ = Zeze.Serialize.ByteBuffer.Allocate(Math.min(_s_, 65536));");
-				sbHandles.AppendLine("                _r_.Encode(_b_);");
+				sbHandles.AppendLine("                _r_.encode(_b_);");
 				sbHandles.AppendLine("                int _t_ = _b_.WriteIndex;");
 				sbHandles.AppendLine("                if (_t_ > _s_)");
 				sbHandles.AppendLine("                    _r_.preAllocSize(_t_);");
@@ -297,7 +297,7 @@ public final class GenModule {
 				sbHandles.AppendLine("                var _r_ = ({})_result_;", m.resultTypeName);
 				sbHandles.AppendLine("                var _b_ = Zeze.Serialize.ByteBuffer.Allocate();");
 				for (var field : m.resultFields)
-					Gen.Instance.GenEncode(sbHandles, "                ", "_b_", field.getType(), "_r_." + field.getName());
+					Gen.instance.genEncode(sbHandles, "                ", "_b_", field.getType(), "_r_." + field.getName());
 				sbHandles.AppendLine("                return new Zeze.Net.Binary(_b_);");
 				sbHandles.Append("            }");
 			} else
@@ -352,7 +352,7 @@ public final class GenModule {
 			sb.AppendLine("            if (_params_ != null) {");
 			sb.AppendLine("                var _b_ = _params_.Wrap();");
 			for (var field : m.resultFields)
-				Gen.Instance.GenDecode(sb, "                ", "_b_", field.getType(), field.getGenericType(), "_r_." + field.getName());
+				Gen.instance.genDecode(sb, "                ", "_b_", field.getType(), field.getGenericType(), "_r_." + field.getName());
 			sb.AppendLine("            }");
 			sb.AppendLine("            return _r_;");
 			sb.AppendLine("        });");
@@ -364,10 +364,10 @@ public final class GenModule {
 		sb.AppendLine("        _a_.setHashCodeConcurrentLevel({});", m.hashOrServerIdParameter.getName());
 		sb.AppendLine("        _a_.setMethodFullName(\"{}:{}\");", module.getFullName(), m.method.getName());
 		sb.AppendLine("        _a_.setServiceNamePrefix(_redirect_.ProviderApp.ServerServiceNamePrefix);");
-		sb.AppendLine("        _a_.setSessionId(_redirect_.ProviderApp.ProviderDirectService.AddManualContextWithTimeout(_c_));");
+		sb.AppendLine("        _a_.setSessionId(_redirect_.ProviderApp.ProviderDirectService.addManualContextWithTimeout(_c_));");
 		if (m.inputParameters.size() > 0) {
 			sb.AppendLine("        var _b_ = Zeze.Serialize.ByteBuffer.Allocate();");
-			Gen.Instance.GenEncode(sb, "        ", "_b_", m.inputParameters);
+			Gen.instance.genEncode(sb, "        ", "_b_", m.inputParameters);
 			sb.AppendLine("        _a_.setParams(new Zeze.Net.Binary(_b_));");
 		}
 		if (m.resultType != null)
@@ -384,9 +384,9 @@ public final class GenModule {
 			sbHandles.AppendLine("                var _b_ = _params_.Wrap();");
 			for (int i = 0; i < m.inputParameters.size(); ++i) {
 				var p = m.inputParameters.get(i);
-				Gen.Instance.GenLocalVariable(sbHandles, "                ", p);
+				Gen.instance.genLocalVariable(sbHandles, "                ", p);
 			}
-			Gen.Instance.GenDecode(sbHandles, "                ", "_b_", m.inputParameters);
+			Gen.instance.genDecode(sbHandles, "                ", "_b_", m.inputParameters);
 		}
 
 		var normalCall = m.GetNormalCallString();
@@ -402,7 +402,7 @@ public final class GenModule {
 			sbHandles.AppendLine("                var _r_ = ({})_result_;", m.resultTypeName);
 			sbHandles.AppendLine("                var _b_ = Zeze.Serialize.ByteBuffer.Allocate();");
 			for (var field : m.resultFields)
-				Gen.Instance.GenEncode(sbHandles, "                ", "_b_", field.getType(), "_r_." + field.getName());
+				Gen.instance.genEncode(sbHandles, "                ", "_b_", field.getType(), "_r_." + field.getName());
 			sbHandles.AppendLine("                return new Zeze.Net.Binary(_b_);");
 			sbHandles.Append("            }");
 		} else

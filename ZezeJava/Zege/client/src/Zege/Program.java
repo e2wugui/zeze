@@ -269,7 +269,7 @@ public class Program {
 			if (notify.getGroup().equals(Group) && notify.getDepartmentId() == DepartmentId) {
 				var bb = ByteBuffer.Wrap(notify.getSecureMessage());
 				var bMsg = new BTextMessage();
-				bMsg.Decode(bb);
+				bMsg.decode(bb);
 				System.out.println(bMsg.getMessage());
 				return true;
 			}
@@ -369,7 +369,7 @@ public class Program {
 			if (notify.getGroup().equals(Group) && notify.getDepartmentId() == 0) {
 				var bb = ByteBuffer.Wrap(notify.getSecureMessage());
 				var bMsg = new BTextMessage();
-				bMsg.Decode(bb);
+				bMsg.decode(bb);
 				System.out.println(bMsg.getMessage());
 				return true;
 			}
@@ -418,7 +418,7 @@ public class Program {
 			if (notify.getGroup().isEmpty() && notify.getFrom().equals(Target)) {
 				var bb = ByteBuffer.Wrap(notify.getSecureMessage());
 				var bMsg = new BTextMessage();
-				bMsg.Decode(bb);
+				bMsg.decode(bb);
 				System.out.println(bMsg.getMessage());
 				return true;
 			}

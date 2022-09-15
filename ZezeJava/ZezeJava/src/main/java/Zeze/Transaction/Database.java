@@ -26,141 +26,134 @@ public abstract class Database {
 
 	private final ConcurrentHashMap<String, Zeze.Transaction.Table> tables = new ConcurrentHashMap<>();
 	private final ArrayList<Storage<?, ?>> storages = new ArrayList<>();
-	private final DatabaseConf Conf;
-	private final String DatabaseUrl;
-	private Operates DirectOperates;
+	private final DatabaseConf conf;
+	private final String databaseUrl;
+	private Operates directOperates;
 
 	public Database(DatabaseConf conf) {
-		Conf = conf;
-		DatabaseUrl = conf.getDatabaseUrl();
+		this.conf = conf;
+		databaseUrl = conf.getDatabaseUrl();
 	}
 
 	public final Collection<Zeze.Transaction.Table> getTables() {
 		return tables.values();
 	}
 
-	public final Zeze.Transaction.Table GetTable(String name) {
+	public final Zeze.Transaction.Table getTable(String name) {
 		return tables.get(name);
 	}
 
-	public final void AddTable(Zeze.Transaction.Table table) {
+	public final void addTable(Zeze.Transaction.Table table) {
 		if (null != tables.putIfAbsent(table.getName(), table))
 			throw new IllegalStateException("duplicate table=" + table.getName());
 	}
 
-	public final void RemoveTable(Zeze.Transaction.Table table) {
-		table.Close();
+	public final void removeTable(Zeze.Transaction.Table table) {
+		table.close();
 		tables.remove(table.getName());
 	}
 
-	public final DatabaseConf GetConf() {
-		return Conf;
+	public final DatabaseConf getConf() {
+		return conf;
 	}
 
 	public final String getDatabaseUrl() {
-		return DatabaseUrl;
+		return databaseUrl;
 	}
 
 	public final Operates getDirectOperates() {
-		return DirectOperates;
+		return directOperates;
 	}
 
 	protected final void setDirectOperates(Operates value) {
-		DirectOperates = value;
+		directOperates = value;
 	}
 
-	public final void Open(Application app) {
+	public final void open(Application app) {
 		for (Zeze.Transaction.Table table : tables.values()) {
-			var storage = table.Open(app, this);
-			if (null != storage) {
+			var storage = table.open(app, this);
+			if (storage != null)
 				storages.add(storage);
-			}
 		}
 	}
 
-	public void Close() {
-		for (Zeze.Transaction.Table table : tables.values()) {
-			table.Close();
-		}
+	public void close() {
+		for (Zeze.Transaction.Table table : tables.values())
+			table.close();
 		tables.clear();
 		storages.clear();
 	}
 
-	public final void EncodeN() {
-		// try Encode. 可以多趟。
+	public final void encodeN() {
+		// try encode. 可以多趟。
 		for (int i = 1; i <= 1; ++i) {
 			int countEncodeN = 0;
-			for (var storage : storages) {
-				countEncodeN += storage.EncodeN();
-			}
+			for (var storage : storages)
+				countEncodeN += storage.encodeN();
 			if (isDebugEnabled)
 				logger.debug("Checkpoint EncodeN {}@{}", i, countEncodeN);
 		}
 	}
 
-	public final void Snapshot() {
+	public final void snapshot() {
 		int countEncode0 = 0;
 		int countSnapshot = 0;
-		for (var storage : storages) {
-			countEncode0 += storage.Encode0();
-		}
-		for (var storage : storages) {
-			countSnapshot += storage.Snapshot();
-		}
+		for (var storage : storages)
+			countEncode0 += storage.encode0();
+		for (var storage : storages)
+			countSnapshot += storage.snapshot();
 
 		logger.info("Checkpoint Encode0 And Snapshot countEncode0={} countSnapshot={}", countEncode0, countSnapshot);
 	}
 
-	public final void Flush(Database.Transaction t, HashMap<Database, Transaction> tss, Database.Transaction lct) {
+	public final void flush(Database.Transaction t, HashMap<Database, Transaction> tss, Database.Transaction lct) {
 		int countFlush = 0;
-		for (var storage : storages) {
-			countFlush += storage.Flush(t, tss, lct);
-		}
+		for (var storage : storages)
+			countFlush += storage.flush(t, tss, lct);
 		logger.info("Checkpoint Flush count={}", countFlush);
 	}
 
-	public final void Cleanup() {
-		for (var storage : storages) {
-			storage.Cleanup();
-		}
+	public final void cleanup() {
+		for (var storage : storages)
+			storage.cleanup();
 	}
 
-	public abstract Table OpenTable(String name);
+	public abstract Table openTable(String name);
 
 	public interface Table {
 		boolean isNew();
 
 		Database getDatabase();
 
-		ByteBuffer Find(ByteBuffer key);
+		ByteBuffer find(ByteBuffer key);
 
-		void Replace(Transaction t, ByteBuffer key, ByteBuffer value);
+		void replace(Transaction t, ByteBuffer key, ByteBuffer value);
 
-		void Remove(Transaction t, ByteBuffer key);
+		void remove(Transaction t, ByteBuffer key);
 
 		/**
 		 * 每一条记录回调。回调返回true继续遍历，false中断遍历。
 		 *
 		 * @return 返回已经遍历的数量
 		 */
-		long Walk(TableWalkHandleRaw callback);
+		long walk(TableWalkHandleRaw callback);
 
-		long WalkKey(TableWalkKeyRaw callback);
+		long walkKey(TableWalkKeyRaw callback);
 
-		void Close();
+		void close();
 	}
 
-	public abstract Transaction BeginTransaction();
+	public abstract Transaction beginTransaction();
 
 	public interface Transaction extends AutoCloseable {
-		void Commit();
+		void commit();
 
-		void Rollback();
+		void rollback();
 	}
 
 	public static class DataWithVersion {
-		public ByteBuffer Data;
-		public long Version;
+		public ByteBuffer data;
+		public long version;
 	}
 
 	/**
@@ -192,9 +185,9 @@ public abstract class Database {
 		    commit;
 		    return true;
 		*/
-		void SetInUse(int localId, String global);
+		void setInUse(int localId, String global);
 
-		int ClearInUse(int localId, String global);
+		int clearInUse(int localId, String global);
 
 		/*
 		  if (Exist(key)) {
@@ -206,8 +199,8 @@ public abstract class Database {
 		  InsertData(data);
 		  return (CurrentVersion = version, true);
 		*/
-		KV<Long, Boolean> SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version);
+		KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version);
 
-		DataWithVersion GetDataWithVersion(ByteBuffer key);
+		DataWithVersion getDataWithVersion(ByteBuffer key);
 	}
 }

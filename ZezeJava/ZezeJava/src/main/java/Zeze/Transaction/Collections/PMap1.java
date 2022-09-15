@@ -122,7 +122,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 	}
 
 	@Override
-	public void FollowerApply(Log _log) {
+	public void followerApply(Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogMap1<K, V>)_log;
 		_map = _map.plusAll(log.getReplaced()).minusAll(log.getRemoved());
@@ -139,22 +139,22 @@ public class PMap1<K, V> extends PMap<K, V> {
 	}
 
 	@Override
-	protected void InitChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.RootInfo root) {
 	}
 
 	@Override
-	protected void ResetChildrenRootInfo() {
+	protected void resetChildrenRootInfo() {
 	}
 
 	@Override
-	public PMap1<K, V> CopyBean() {
+	public PMap1<K, V> copyBean() {
 		var copy = new PMap1<>(logTypeId, keyCodecFuncs, valueCodecFuncs);
 		copy._map = _map;
 		return copy;
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var tmp = getMap();
 		bb.WriteUInt(tmp.size());
 		var keyEncoder = keyCodecFuncs.encoder;
@@ -166,7 +166,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		clear();
 		var keyDecoder = keyCodecFuncs.decoder;
 		var valueDecoder = valueCodecFuncs.decoder;

@@ -24,7 +24,7 @@ public class CollList1<V> extends CollList<V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList1<V>)Transaction.getCurrent().LogGetOrAdd(
-					parent().objectId() + variableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.Add(item);
 		}
 		var newList = _list.plus(item);
@@ -39,7 +39,7 @@ public class CollList1<V> extends CollList<V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList1<V>)Transaction.getCurrent().LogGetOrAdd(
-					parent().objectId() + variableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.Remove(item);
 		}
 		var newList = _list.minus(item);
@@ -54,7 +54,7 @@ public class CollList1<V> extends CollList<V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList1<V>)Transaction.getCurrent().LogGetOrAdd(
-					parent().objectId() + variableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			listLog.Clear();
 		} else
 			_list = org.pcollections.Empty.vector();
@@ -65,7 +65,7 @@ public class CollList1<V> extends CollList<V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList1<V>)Transaction.getCurrent().LogGetOrAdd(
-					parent().objectId() + variableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.Set(index, item);
 		}
 		var old = _list.get(index);
@@ -78,7 +78,7 @@ public class CollList1<V> extends CollList<V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList1<V>)Transaction.getCurrent().LogGetOrAdd(
-					parent().objectId() + variableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			listLog.Add(index, item);
 		} else
 			_list = _list.plus(index, item);
@@ -89,7 +89,7 @@ public class CollList1<V> extends CollList<V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList1<V>)Transaction.getCurrent().LogGetOrAdd(
-					parent().objectId() + variableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.Remove(index);
 		}
 		var old = _list.get(index);
@@ -98,7 +98,7 @@ public class CollList1<V> extends CollList<V> {
 	}
 
 	@Override
-	public LogBean CreateLogBean() {
+	public LogBean createLogBean() {
 		var log = new LogList1<>(logTypeId, valueCodecFuncs);
 		log.setBelong(parent());
 		log.setThis(this);
@@ -108,7 +108,7 @@ public class CollList1<V> extends CollList<V> {
 	}
 
 	@Override
-	public void FollowerApply(Log _log) {
+	public void followerApply(Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogList1<V>)_log;
 		for (var opLog : log.getOpLogs()) {
@@ -131,23 +131,23 @@ public class CollList1<V> extends CollList<V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void LeaderApplyNoRecursive(Log _log) {
+	public void leaderApplyNoRecursive(Log _log) {
 		_list = ((LogList1<V>)_log).getValue();
 	}
 
 	@Override
-	protected void InitChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.RootInfo root) {
 	}
 
 	@Override
-	public Bean CopyBean() {
+	public Bean copyBean() {
 		var copy = new CollList1<>(logTypeId, valueCodecFuncs);
 		copy._list = _list;
 		return copy;
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var tmp = getList();
 		bb.WriteUInt(tmp.size());
 		var encoder = valueCodecFuncs.encoder;
@@ -156,7 +156,7 @@ public class CollList1<V> extends CollList<V> {
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		clear();
 		var decoder = valueCodecFuncs.decoder;
 		for (int i = bb.ReadUInt(); i > 0; i--)

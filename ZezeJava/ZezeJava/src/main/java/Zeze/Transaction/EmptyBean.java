@@ -6,32 +6,32 @@ public class EmptyBean extends Bean {
 	// 只用于协议/RPC的不可修改的共享单例,不能放入数据库中
 	public static final EmptyBean instance = new EmptyBean() {
 		@Override
-		protected void InitChildrenRootInfo(Record.RootInfo root) {
-			ResetRootInfo();
+		protected void initChildrenRootInfo(Record.RootInfo root) {
+			resetRootInfo();
 			throw new UnsupportedOperationException();
 		}
 	};
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		bb.SkipUnknownField(ByteBuffer.BEAN);
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteByte(0);
 	}
 
 	@Override
-	protected void InitChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.RootInfo root) {
 	}
 
 	@Override
-	protected void ResetChildrenRootInfo() {
+	protected void resetChildrenRootInfo() {
 	}
 
 	@Override
-	public EmptyBean CopyBean() {
+	public EmptyBean copyBean() {
 		return new EmptyBean();
 	}
 

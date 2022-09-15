@@ -107,7 +107,7 @@ public final class BVersion extends Zeze.Transaction.Bean {
         _ServerId = _ServerId_;
     }
 
-    public void Assign(BVersion other) {
+    public void assign(BVersion other) {
         setLoginVersion(other.getLoginVersion());
         getReliableNotifyMark().clear();
         for (var e : other.getReliableNotifyMark())
@@ -117,24 +117,34 @@ public final class BVersion extends Zeze.Transaction.Bean {
         setServerId(other.getServerId());
     }
 
-    public BVersion CopyIfManaged() {
+    @Deprecated
+    public void Assign(BVersion other) {
+        assign(other);
+    }
+
+    public BVersion copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BVersion Copy() {
+    public BVersion copy() {
         var copy = new BVersion();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BVersion a, BVersion b) {
+    @Deprecated
+    public BVersion Copy() {
+        return copy();
+    }
+
+    public static void swap(BVersion a, BVersion b) {
         BVersion save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BVersion CopyBean() {
+    public BVersion copyBean() {
         return Copy();
     }
 
@@ -149,39 +159,39 @@ public final class BVersion extends Zeze.Transaction.Bean {
         public Log__LoginVersion(BVersion bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BVersion)getBelong())._LoginVersion = Value; }
+        public void commit() { ((BVersion)getBelong())._LoginVersion = Value; }
     }
 
     private static final class Log__ReliableNotifyConfirmIndex extends Zeze.Transaction.Logs.LogLong {
         public Log__ReliableNotifyConfirmIndex(BVersion bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BVersion)getBelong())._ReliableNotifyConfirmIndex = Value; }
+        public void commit() { ((BVersion)getBelong())._ReliableNotifyConfirmIndex = Value; }
     }
 
     private static final class Log__ReliableNotifyIndex extends Zeze.Transaction.Logs.LogLong {
         public Log__ReliableNotifyIndex(BVersion bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BVersion)getBelong())._ReliableNotifyIndex = Value; }
+        public void commit() { ((BVersion)getBelong())._ReliableNotifyIndex = Value; }
     }
 
     private static final class Log__ServerId extends Zeze.Transaction.Logs.LogInt {
         public Log__ServerId(BVersion bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BVersion)getBelong())._ServerId = Value; }
+        public void commit() { ((BVersion)getBelong())._ServerId = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Online.BVersion: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("LoginVersion").append('=').append(getLoginVersion()).append(',').append(System.lineSeparator());
@@ -212,7 +222,7 @@ public final class BVersion extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             long _x_ = getLoginVersion();
@@ -256,7 +266,7 @@ public final class BVersion extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -292,17 +302,17 @@ public final class BVersion extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _ReliableNotifyMark.InitRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+        _ReliableNotifyMark.initRootInfo(root, this);
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
-        _ReliableNotifyMark.ResetRootInfo();
+    protected void resetChildrenRootInfo() {
+        _ReliableNotifyMark.resetRootInfo();
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         if (getLoginVersion() < 0)
             return true;
         if (getReliableNotifyConfirmIndex() < 0)
@@ -316,7 +326,7 @@ public final class BVersion extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;
@@ -324,7 +334,7 @@ public final class BVersion extends Zeze.Transaction.Bean {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                case 2: _ReliableNotifyMark.FollowerApply(vlog); break;
+                case 2: _ReliableNotifyMark.followerApply(vlog); break;
                 case 3: _ReliableNotifyConfirmIndex = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
                 case 4: _ReliableNotifyIndex = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
                 case 5: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;

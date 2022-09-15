@@ -160,7 +160,7 @@ public final class BDispatch extends Zeze.Transaction.Bean {
         _contextx = _contextx_;
     }
 
-    public void Assign(BDispatch other) {
+    public void assign(BDispatch other) {
         setLinkSid(other.getLinkSid());
         setAccount(other.getAccount());
         setProtocolType(other.getProtocolType());
@@ -169,24 +169,34 @@ public final class BDispatch extends Zeze.Transaction.Bean {
         setContextx(other.getContextx());
     }
 
-    public BDispatch CopyIfManaged() {
+    @Deprecated
+    public void Assign(BDispatch other) {
+        assign(other);
+    }
+
+    public BDispatch copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BDispatch Copy() {
+    public BDispatch copy() {
         var copy = new BDispatch();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BDispatch a, BDispatch b) {
+    @Deprecated
+    public BDispatch Copy() {
+        return copy();
+    }
+
+    public static void swap(BDispatch a, BDispatch b) {
         BDispatch save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BDispatch CopyBean() {
+    public BDispatch copyBean() {
         return Copy();
     }
 
@@ -201,53 +211,53 @@ public final class BDispatch extends Zeze.Transaction.Bean {
         public Log__linkSid(BDispatch bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BDispatch)getBelong())._linkSid = Value; }
+        public void commit() { ((BDispatch)getBelong())._linkSid = Value; }
     }
 
     private static final class Log__account extends Zeze.Transaction.Logs.LogString {
         public Log__account(BDispatch bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BDispatch)getBelong())._account = Value; }
+        public void commit() { ((BDispatch)getBelong())._account = Value; }
     }
 
     private static final class Log__protocolType extends Zeze.Transaction.Logs.LogLong {
         public Log__protocolType(BDispatch bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BDispatch)getBelong())._protocolType = Value; }
+        public void commit() { ((BDispatch)getBelong())._protocolType = Value; }
     }
 
     private static final class Log__protocolData extends Zeze.Transaction.Logs.LogBinary {
         public Log__protocolData(BDispatch bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BDispatch)getBelong())._protocolData = Value; }
+        public void commit() { ((BDispatch)getBelong())._protocolData = Value; }
     }
 
     private static final class Log__context extends Zeze.Transaction.Logs.LogString {
         public Log__context(BDispatch bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BDispatch)getBelong())._context = Value; }
+        public void commit() { ((BDispatch)getBelong())._context = Value; }
     }
 
     private static final class Log__contextx extends Zeze.Transaction.Logs.LogBinary {
         public Log__contextx(BDispatch bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BDispatch)getBelong())._contextx = Value; }
+        public void commit() { ((BDispatch)getBelong())._contextx = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BDispatch: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("linkSid").append('=').append(getLinkSid()).append(',').append(System.lineSeparator());
@@ -273,7 +283,7 @@ public final class BDispatch extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             long _x_ = getLinkSid();
@@ -321,7 +331,7 @@ public final class BDispatch extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -355,15 +365,15 @@ public final class BDispatch extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
+    protected void resetChildrenRootInfo() {
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         if (getLinkSid() < 0)
             return true;
         if (getProtocolType() < 0)
@@ -373,7 +383,7 @@ public final class BDispatch extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;

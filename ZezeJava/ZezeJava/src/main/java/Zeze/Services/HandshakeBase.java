@@ -46,7 +46,7 @@ public class HandshakeBase extends Service {
 	}
 
 	@Override
-	public boolean IsHandshakeProtocol(long typeId) {
+	public boolean isHandshakeProtocol(long typeId) {
 		return HandshakeProtocols.contains(typeId);
 	}
 
@@ -83,7 +83,7 @@ public class HandshakeBase extends Service {
 			logger.debug("{} localIp={}", p.getSender().getSessionId(), Arrays.toString(key));
 			int half = material.length / 2;
 
-			byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
+			byte[] hmacMd5 = Digest.hmacMd5(key, material, 0, half);
 			p.getSender().SetInputSecurityCodec(hmacMd5, getConfig().getHandshakeOptions().getC2sNeedCompress());
 
 			byte[] response = Helper.generateDHResponse(group, rand).toByteArray();
@@ -91,7 +91,7 @@ public class HandshakeBase extends Service {
 			(new Zeze.Services.Handshake.SHandshake(response,
 					getConfig().getHandshakeOptions().getS2cNeedCompress(),
 					getConfig().getHandshakeOptions().getC2sNeedCompress())).Send(p.getSender());
-			hmacMd5 = Digest.HmacMd5(key, material, half, material.length - half);
+			hmacMd5 = Digest.hmacMd5(key, material, half, material.length - half);
 			p.getSender().SetOutputSecurityCodec(hmacMd5, getConfig().getHandshakeOptions().getS2cNeedCompress());
 
 			// 为了防止服务器在Handshake以后马上发送数据，
@@ -144,9 +144,9 @@ public class HandshakeBase extends Service {
 
 				int half = material.length / 2;
 
-				byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
+				byte[] hmacMd5 = Digest.hmacMd5(key, material, 0, half);
 				p.getSender().SetOutputSecurityCodec(hmacMd5, p.Argument.c2sNeedCompress);
-				hmacMd5 = Digest.HmacMd5(key, material, half, material.length - half);
+				hmacMd5 = Digest.hmacMd5(key, material, half, material.length - half);
 
 				p.getSender().SetInputSecurityCodec(hmacMd5, p.Argument.s2cNeedCompress);
 				(new Zeze.Services.Handshake.CHandshakeDone()).Send(p.getSender());

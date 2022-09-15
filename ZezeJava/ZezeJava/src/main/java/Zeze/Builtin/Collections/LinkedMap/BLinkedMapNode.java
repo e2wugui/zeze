@@ -65,7 +65,7 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
         _Values.variableId(3);
     }
 
-    public void Assign(BLinkedMapNode other) {
+    public void assign(BLinkedMapNode other) {
         setPrevNodeId(other.getPrevNodeId());
         setNextNodeId(other.getNextNodeId());
         getValues().clear();
@@ -73,24 +73,34 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
             getValues().add(e.Copy());
     }
 
-    public BLinkedMapNode CopyIfManaged() {
+    @Deprecated
+    public void Assign(BLinkedMapNode other) {
+        assign(other);
+    }
+
+    public BLinkedMapNode copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BLinkedMapNode Copy() {
+    public BLinkedMapNode copy() {
         var copy = new BLinkedMapNode();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BLinkedMapNode a, BLinkedMapNode b) {
+    @Deprecated
+    public BLinkedMapNode Copy() {
+        return copy();
+    }
+
+    public static void swap(BLinkedMapNode a, BLinkedMapNode b) {
         BLinkedMapNode save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BLinkedMapNode CopyBean() {
+    public BLinkedMapNode copyBean() {
         return Copy();
     }
 
@@ -105,25 +115,25 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
         public Log__PrevNodeId(BLinkedMapNode bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BLinkedMapNode)getBelong())._PrevNodeId = Value; }
+        public void commit() { ((BLinkedMapNode)getBelong())._PrevNodeId = Value; }
     }
 
     private static final class Log__NextNodeId extends Zeze.Transaction.Logs.LogLong {
         public Log__NextNodeId(BLinkedMapNode bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BLinkedMapNode)getBelong())._NextNodeId = Value; }
+        public void commit() { ((BLinkedMapNode)getBelong())._NextNodeId = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("PrevNodeId").append('=').append(getPrevNodeId()).append(',').append(System.lineSeparator());
@@ -132,7 +142,7 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
         level += 4;
         for (var _item_ : getValues()) {
             sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(System.lineSeparator());
-            _item_.BuildString(sb, level + 4);
+            _item_.buildString(sb, level + 4);
             sb.append(',').append(System.lineSeparator());
         }
         level -= 4;
@@ -154,7 +164,7 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             long _x_ = getPrevNodeId();
@@ -177,14 +187,14 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.LIST);
                 _o_.WriteListType(_n_, ByteBuffer.BEAN);
                 for (var _v_ : _x_)
-                    _v_.Encode(_o_);
+                    _v_.encode(_o_);
             }
         }
         _o_.WriteByte(0);
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -212,17 +222,17 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Values.InitRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+        _Values.initRootInfo(root, this);
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
-        _Values.ResetRootInfo();
+    protected void resetChildrenRootInfo() {
+        _Values.resetRootInfo();
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         if (getPrevNodeId() < 0)
             return true;
         if (getNextNodeId() < 0)
@@ -232,7 +242,7 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;
@@ -241,7 +251,7 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
             switch (vlog.getVariableId()) {
                 case 1: _PrevNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
                 case 2: _NextNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                case 3: _Values.FollowerApply(vlog); break;
+                case 3: _Values.followerApply(vlog); break;
             }
         }
     }

@@ -8,21 +8,21 @@ import org.junit.Assert;
 
 public class BMyBean extends Bean {
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		_i = bb.ReadInt();
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteInt(_i);
 	}
 
 	@Override
-	protected void InitChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.RootInfo root) {
 	}
 
 	@Override
-	protected void ResetChildrenRootInfo() {
+	protected void resetChildrenRootInfo() {
 	}
 
 	public int _i;
@@ -33,7 +33,7 @@ public class BMyBean extends Bean {
 		}
 
 		@Override
-		public void Commit() {
+		public void commit() {
 			((BMyBean)getBean())._i = Value;
 		}
 	}

@@ -70,7 +70,7 @@ public final class BSend extends Zeze.Transaction.Bean {
         _protocolWholeData = _protocolWholeData_;
     }
 
-    public void Assign(BSend other) {
+    public void assign(BSend other) {
         getLinkSids().clear();
         for (var e : other.getLinkSids())
             getLinkSids().add(e);
@@ -78,24 +78,34 @@ public final class BSend extends Zeze.Transaction.Bean {
         setProtocolWholeData(other.getProtocolWholeData());
     }
 
-    public BSend CopyIfManaged() {
+    @Deprecated
+    public void Assign(BSend other) {
+        assign(other);
+    }
+
+    public BSend copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BSend Copy() {
+    public BSend copy() {
         var copy = new BSend();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BSend a, BSend b) {
+    @Deprecated
+    public BSend Copy() {
+        return copy();
+    }
+
+    public static void swap(BSend a, BSend b) {
         BSend save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BSend CopyBean() {
+    public BSend copyBean() {
         return Copy();
     }
 
@@ -110,25 +120,25 @@ public final class BSend extends Zeze.Transaction.Bean {
         public Log__protocolType(BSend bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BSend)getBelong())._protocolType = Value; }
+        public void commit() { ((BSend)getBelong())._protocolType = Value; }
     }
 
     private static final class Log__protocolWholeData extends Zeze.Transaction.Logs.LogBinary {
         public Log__protocolWholeData(BSend bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BSend)getBelong())._protocolWholeData = Value; }
+        public void commit() { ((BSend)getBelong())._protocolWholeData = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BSend: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("linkSids").append("=[").append(System.lineSeparator());
@@ -157,7 +167,7 @@ public final class BSend extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             var _x_ = getLinkSids();
@@ -187,7 +197,7 @@ public final class BSend extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -215,17 +225,17 @@ public final class BSend extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _linkSids.InitRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+        _linkSids.initRootInfo(root, this);
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
-        _linkSids.ResetRootInfo();
+    protected void resetChildrenRootInfo() {
+        _linkSids.resetRootInfo();
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         for (var _v_ : getLinkSids()) {
             if (_v_ < 0)
                 return true;
@@ -237,14 +247,14 @@ public final class BSend extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _linkSids.FollowerApply(vlog); break;
+                case 1: _linkSids.followerApply(vlog); break;
                 case 2: _protocolType = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
                 case 3: _protocolWholeData = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
             }

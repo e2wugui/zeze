@@ -111,44 +111,44 @@ import org.apache.logging.log4j.Logger;
 public class AchillesHeelDaemon {
 	private static final Logger logger = LogManager.getLogger(AchillesHeelDaemon.class);
 
-	private final Application Zeze;
-	private final GlobalAgentBase[] Agents;
-	private final ThreadDaemon TD;
-	private final ProcessDaemon PD;
+	private final Application zeze;
+	private final GlobalAgentBase[] agents;
+	private final ThreadDaemon td;
+	private final ProcessDaemon pd;
 
 	public AchillesHeelDaemon(Application zeze, GlobalAgentBase[] agents) throws Exception {
-		Zeze = zeze;
-		Agents = agents.clone();
+		this.zeze = zeze;
+		this.agents = agents.clone();
 		var peerPort = System.getProperty(Daemon.PropertyNamePort);
 		if (peerPort != null) {
-			PD = new ProcessDaemon(Integer.parseInt(peerPort));
-			TD = null;
+			pd = new ProcessDaemon(Integer.parseInt(peerPort));
+			td = null;
 		} else {
-			PD = null;
-			TD = new ThreadDaemon();
+			pd = null;
+			td = new ThreadDaemon();
 		}
 	}
 
 	public void start() {
-		if (TD != null)
-			TD.start();
-		if (PD != null)
-			PD.start();
+		if (td != null)
+			td.start();
+		if (pd != null)
+			pd.start();
 	}
 
 	public void stopAndJoin() {
-		if (TD != null)
-			TD.stopAndJoin();
-		if (PD != null)
-			PD.stopAndJoin();
+		if (td != null)
+			td.stopAndJoin();
+		if (pd != null)
+			pd.stopAndJoin();
 	}
 
 	public void onInitialize(GlobalAgentBase agent) {
-		if (PD != null) {
+		if (pd != null) {
 			try {
 				var config = agent.getConfig();
-				Daemon.sendCommand(PD.UdpSocket, PD.DaemonSocketAddress,
-						new Daemon.GlobalOn(Zeze.getConfig().getServerId(), agent.GlobalCacheManagerHashIndex,
+				Daemon.sendCommand(pd.udpSocket, pd.daemonSocketAddress,
+						new Daemon.GlobalOn(zeze.getConfig().getServerId(), agent.globalCacheManagerHashIndex,
 								config.ServerDaemonTimeout, config.ServerReleaseTimeout));
 			} catch (IOException e) {
 				logger.error("", e);
@@ -157,49 +157,49 @@ public class AchillesHeelDaemon {
 	}
 
 	public void setProcessDaemonActiveTime(GlobalAgentBase agent, long value) {
-		if (PD != null)
-			PD.setActiveTime(agent, value);
+		if (pd != null)
+			pd.setActiveTime(agent, value);
 	}
 
 	private final class ProcessDaemon extends Thread {
-		private final DatagramSocket UdpSocket = new DatagramSocket(0, InetAddress.getLoopbackAddress());
-		private final SocketAddress DaemonSocketAddress;
-		private final String FileName;
+		private final DatagramSocket udpSocket = new DatagramSocket(0, InetAddress.getLoopbackAddress());
+		private final SocketAddress daemonSocketAddress;
+		private final String fileName;
 		private final RandomAccessFile raf;
-		private final FileChannel Channel;
-		private final MappedByteBuffer MMap;
-		private final long[] LastReportTime = new long[Agents.length];
-		private volatile boolean Running = true;
+		private final FileChannel channel;
+		private final MappedByteBuffer mmap;
+		private final long[] lastReportTime = new long[agents.length];
+		private volatile boolean running = true;
 
 		public ProcessDaemon(int peer) throws Exception {
-			DaemonSocketAddress = new InetSocketAddress("127.0.0.1", peer);
+			daemonSocketAddress = new InetSocketAddress("127.0.0.1", peer);
 			var file = Files.createTempFile("zeze", ".mmap").toFile();
 			file.deleteOnExit();
-			FileName = file.getAbsolutePath();
-			raf = new RandomAccessFile(FileName, "rw");
-			raf.setLength(8L * Agents.length);
-			Channel = raf.getChannel();
-			MMap = Channel.map(FileChannel.MapMode.READ_WRITE, 0, Channel.size());
-			UdpSocket.setSoTimeout(200);
-			Daemon.sendCommand(UdpSocket, DaemonSocketAddress,
-					new Daemon.Register(Zeze.getConfig().getServerId(), Agents.length, FileName));
+			fileName = file.getAbsolutePath();
+			raf = new RandomAccessFile(fileName, "rw");
+			raf.setLength(8L * agents.length);
+			channel = raf.getChannel();
+			mmap = channel.map(FileChannel.MapMode.READ_WRITE, 0, channel.size());
+			udpSocket.setSoTimeout(200);
+			Daemon.sendCommand(udpSocket, daemonSocketAddress,
+					new Daemon.Register(zeze.getConfig().getServerId(), agents.length, fileName));
 		}
 
 		public void setActiveTime(GlobalAgentBase agent, long value) {
 			// 优化！活动时间设置很频繁，降低报告频率。
-			var reportDiff = agent.getActiveTime() - LastReportTime[agent.GlobalCacheManagerHashIndex];
+			var reportDiff = agent.getActiveTime() - lastReportTime[agent.globalCacheManagerHashIndex];
 			if (reportDiff < 1000)
 				return;
-			LastReportTime[agent.GlobalCacheManagerHashIndex] = agent.getActiveTime();
+			lastReportTime[agent.globalCacheManagerHashIndex] = agent.getActiveTime();
 
 			var bb = ByteBuffer.Allocate(8);
 			bb.WriteLong8(value);
 
 			// TODO 不同的GlobalAgent能并发起来。由于上面的低频率报告优化，这个不是很必要了。
-			synchronized (Channel) {
-				try (var ignored = Channel.lock()) {
-					MMap.position(agent.GlobalCacheManagerHashIndex * 8);
-					MMap.put(bb.Bytes, 0, 8);
+			synchronized (channel) {
+				try (var ignored = channel.lock()) {
+					mmap.position(agent.globalCacheManagerHashIndex * 8);
+					mmap.put(bb.Bytes, 0, 8);
 				} catch (Throwable ex) {
 					logger.error("setActiveTime", ex);
 				}
@@ -209,15 +209,15 @@ public class AchillesHeelDaemon {
 		@Override
 		public void run() {
 			try {
-				while (Running) {
+				while (running) {
 					try {
-						var cmd = Daemon.receiveCommand(UdpSocket);
+						var cmd = Daemon.receiveCommand(udpSocket);
 						//noinspection SwitchStatementWithTooFewBranches
 						switch (cmd.command()) {
 						case Daemon.Release.Command:
 							var r = (Daemon.Release)cmd;
 							logger.info("receiveCommand {}", r.GlobalIndex);
-							var agent = Agents[r.GlobalIndex];
+							var agent = agents[r.GlobalIndex];
 							var config = agent.getConfig();
 							var rr = agent.checkReleaseTimeout(System.currentTimeMillis(), config.ServerReleaseTimeout);
 							if (rr == GlobalAgentBase.CheckReleaseResult.Timeout) {
@@ -232,7 +232,7 @@ public class AchillesHeelDaemon {
 								// 这里没法快速手段判断本Server是否存在从该Global获取的记录锁。
 								// 在Agent中增加获得的计数是个方案，但挺烦的。
 								logger.warn("ProcessDaemon.startRelease ServerDaemonTimeout={}", config.ServerDaemonTimeout);
-								agent.startRelease(Zeze, null);
+								agent.startRelease(zeze, null);
 							}
 							break;
 						}
@@ -241,7 +241,7 @@ public class AchillesHeelDaemon {
 					}
 					// 执行KeepAlive
 					var now = System.currentTimeMillis();
-					for (GlobalAgentBase agent : Agents) {
+					for (GlobalAgentBase agent : agents) {
 						var config = agent.getConfig();
 						if (config == null)
 							continue; // skip agent not login
@@ -262,14 +262,14 @@ public class AchillesHeelDaemon {
 		}
 
 		public void stopAndJoin() {
-			Running = false;
+			running = false;
 			try {
 				join();
 			} catch (Exception e) {
 				logger.error("ProcessDaemon.join", e);
 			}
 			try {
-				Channel.close();
+				channel.close();
 			} catch (Exception e) {
 				logger.error("Channel.close", e);
 			}
@@ -279,20 +279,20 @@ public class AchillesHeelDaemon {
 				logger.error("File.close", e);
 			}
 			try {
-				UdpSocket.close();
+				udpSocket.close();
 			} catch (Exception e) {
 				logger.error("UdpSocket.close", e);
 			}
 			try {
 				//noinspection ResultOfMethodCallIgnored
-				new File(FileName).delete(); // try delete
+				new File(fileName).delete(); // try delete
 			} catch (Exception ignored) {
 			}
 		}
 	}
 
 	private final class ThreadDaemon extends Thread {
-		private volatile boolean Running = true;
+		private volatile boolean running = true;
 
 		public ThreadDaemon() {
 			super("AchillesHeelDaemon");
@@ -302,10 +302,10 @@ public class AchillesHeelDaemon {
 		@Override
 		public void run() {
 			try {
-				while (Running) {
+				while (running) {
 					var now = System.currentTimeMillis();
-					for (int i = 0; i < Agents.length; i++) {
-						var agent = Agents[i];
+					for (int i = 0; i < agents.length; i++) {
+						var agent = agents[i];
 						var config = agent.getConfig();
 						if (config == null)
 							continue; // skip agent not login
@@ -330,7 +330,7 @@ public class AchillesHeelDaemon {
 								// 这里没法快速手段判断本Server是否存在从该Global获取的记录锁。
 								// 在Agent中增加获得的计数是个方案，但挺烦的。
 								logger.warn("startRelease ServerDaemonTimeout={}", config.ServerDaemonTimeout);
-								agent.startRelease(Zeze, null);
+								agent.startRelease(zeze, null);
 							}
 						}
 					}
@@ -350,7 +350,7 @@ public class AchillesHeelDaemon {
 		}
 
 		public void stopAndJoin() {
-			Running = false;
+			running = false;
 			try {
 				join();
 			} catch (InterruptedException e) {

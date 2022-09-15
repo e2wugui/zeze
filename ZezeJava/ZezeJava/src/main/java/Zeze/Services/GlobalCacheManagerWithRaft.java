@@ -129,7 +129,7 @@ public class GlobalCacheManagerWithRaft
 						session.kick();
 						var Acquired = ServerAcquiredTemplate.OpenTable(session.ServerId);
 						try {
-							Acquired.WalkKey(key -> {
+							Acquired.walkKey(key -> {
 								// 在循环中删除。这样虽然效率低些，但是能处理更多情况。
 								if (Rocks.getRaft().isLeader()) {
 //									logger.info("AchillesHeelDaemon.Release table={} key={} session={}",
@@ -236,7 +236,7 @@ public class GlobalCacheManagerWithRaft
 		while (true) {
 			var lockey = Transaction.getCurrent().AddPessimismLock(Locks.Get(globalTableKey));
 
-			BCacheState cs = GlobalStates.GetOrAdd(globalTableKey);
+			BCacheState cs = GlobalStates.getOrAdd(globalTableKey);
 			if (cs.getAcquireStatePending() == StateRemoved)
 				continue;
 
@@ -285,7 +285,7 @@ public class GlobalCacheManagerWithRaft
 				if (cs.getModify() == sender.ServerId) {
 					// 已经是Modify又申请，可能是sender异常关闭，
 					// 又重启连上。更新一下。应该是不需要的。
-					SenderAcquired.Put(globalTableKey, newAcquiredState(StateModify));
+					SenderAcquired.put(globalTableKey, newAcquiredState(StateModify));
 					cs.setAcquireStatePending(StateInvalid);
 					if (isDebugEnabled)
 						logger.debug("4 {} {} {}", sender, StateShare, cs);
@@ -315,13 +315,13 @@ public class GlobalCacheManagerWithRaft
 				var ModifyAcquired = ServerAcquiredTemplate.OpenTable(cs.getModify());
 				switch (reduceResultState.Value) {
 				case StateShare:
-					ModifyAcquired.Put(globalTableKey, newAcquiredState(StateShare));
+					ModifyAcquired.put(globalTableKey, newAcquiredState(StateShare));
 					cs.getShare().add(cs.getModify()); // 降级成功。
 					break;
 
 				case StateInvalid:
 					// 降到了 Invalid，此时就不需要加入 Share 了。
-					ModifyAcquired.Remove(globalTableKey);
+					ModifyAcquired.remove(globalTableKey);
 					break;
 
 				case StateReduceErrorFreshAcquire:
@@ -347,7 +347,7 @@ public class GlobalCacheManagerWithRaft
 					return AcquireShareFailed; // 事务数据没有改变，回滚
 				}
 
-				SenderAcquired.Put(globalTableKey, newAcquiredState(StateShare));
+				SenderAcquired.put(globalTableKey, newAcquiredState(StateShare));
 				cs.setModify(-1);
 				cs.getShare().add(sender.ServerId);
 				cs.setAcquireStatePending(StateInvalid);
@@ -357,7 +357,7 @@ public class GlobalCacheManagerWithRaft
 				return 0; // 成功也会自动发送结果.
 			}
 
-			SenderAcquired.Put(globalTableKey, newAcquiredState(StateShare));
+			SenderAcquired.put(globalTableKey, newAcquiredState(StateShare));
 			cs.getShare().add(sender.ServerId);
 			cs.setAcquireStatePending(StateInvalid);
 			if (isDebugEnabled)
@@ -376,7 +376,7 @@ public class GlobalCacheManagerWithRaft
 		while (true) {
 			var lockey = Transaction.getCurrent().AddPessimismLock(Locks.Get(globalTableKey));
 
-			BCacheState cs = GlobalStates.GetOrAdd(globalTableKey);
+			BCacheState cs = GlobalStates.getOrAdd(globalTableKey);
 			if (cs.getAcquireStatePending() == StateRemoved)
 				continue;
 
@@ -425,7 +425,7 @@ public class GlobalCacheManagerWithRaft
 				if (cs.getModify() == sender.ServerId) {
 					// 已经是Modify又申请，可能是sender异常关闭，又重启连上。
 					// 更新一下。应该是不需要的。
-					SenderAcquired.Put(globalTableKey, newAcquiredState(StateModify));
+					SenderAcquired.put(globalTableKey, newAcquiredState(StateModify));
 					cs.setAcquireStatePending(StateInvalid);
 					if (isDebugEnabled)
 						logger.debug("4 {} {} {}", sender, StateModify, cs);
@@ -455,7 +455,7 @@ public class GlobalCacheManagerWithRaft
 				var ModifyAcquired = ServerAcquiredTemplate.OpenTable(cs.getModify());
 				switch (reduceResultState.Value) {
 				case StateInvalid:
-					ModifyAcquired.Remove(globalTableKey);
+					ModifyAcquired.remove(globalTableKey);
 					break; // reduce success
 
 				case StateReduceErrorFreshAcquire:
@@ -482,7 +482,7 @@ public class GlobalCacheManagerWithRaft
 
 				cs.setModify(sender.ServerId);
 				cs.getShare().remove(sender.ServerId);
-				SenderAcquired.Put(globalTableKey, newAcquiredState(StateModify));
+				SenderAcquired.put(globalTableKey, newAcquiredState(StateModify));
 				cs.setAcquireStatePending(StateInvalid);
 				lockey.PulseAll();
 
@@ -580,7 +580,7 @@ public class GlobalCacheManagerWithRaft
 					// 1. 如果申请成功，后面会更新到Modify状态。
 					// 2. 如果申请不成功，恢复 cs.Share，保持 Acquired 不变。
 					var KeyAcquired = ServerAcquiredTemplate.OpenTable(succeed.ServerId);
-					KeyAcquired.Remove(globalTableKey);
+					KeyAcquired.remove(globalTableKey);
 				}
 				cs.getShare().remove(succeed.ServerId);
 			}
@@ -604,7 +604,7 @@ public class GlobalCacheManagerWithRaft
 				return 0; // 可能存在部分reduce成功，需要提交事务。
 			}
 
-			SenderAcquired.Put(globalTableKey, newAcquiredState(StateModify));
+			SenderAcquired.put(globalTableKey, newAcquiredState(StateModify));
 			cs.setModify(sender.ServerId);
 			cs.setAcquireStatePending(StateInvalid);
 			if (isDebugEnabled)
@@ -625,7 +625,7 @@ public class GlobalCacheManagerWithRaft
 		while (true) {
 			var lockey = Transaction.getCurrent().AddPessimismLock(Locks.Get(gkey));
 
-			BCacheState cs = GlobalStates.GetOrAdd(gkey);
+			BCacheState cs = GlobalStates.getOrAdd(gkey);
 			if (cs.getAcquireStatePending() == StateRemoved)
 				continue; // 这个是不可能的，因为有Release请求进来意味着肯定有拥有者(share or modify)，此时不可能进入StateRemoved。
 
@@ -651,12 +651,12 @@ public class GlobalCacheManagerWithRaft
 			if (cs.getModify() == sender.ServerId)
 				cs.setModify(-1);
 			cs.getShare().remove(sender.ServerId); // always try remove
-			ServerAcquiredTemplate.OpenTable(sender.ServerId).Remove(gkey);
+			ServerAcquiredTemplate.OpenTable(sender.ServerId).remove(gkey);
 
 			if (cs.getModify() == -1 && cs.getShare().size() == 0) {
 				// 1. 安全的从global中删除，没有并发问题。
 				cs.setAcquireStatePending(StateRemoved);
-				GlobalStates.Remove(gkey);
+				GlobalStates.remove(gkey);
 			} else
 				cs.setAcquireStatePending(StateInvalid);
 			lockey.PulseAll();
@@ -683,7 +683,7 @@ public class GlobalCacheManagerWithRaft
 		session.setDebugMode(rpc.Argument.isDebugMode());
 		// new login, 比如逻辑服务器重启。release old acquired.
 		var SenderAcquired = ServerAcquiredTemplate.OpenTable(session.ServerId);
-		SenderAcquired.WalkKey(key -> {
+		SenderAcquired.walkKey(key -> {
 			Release(session, key);
 			return true; // continue walk
 		});
@@ -725,7 +725,7 @@ public class GlobalCacheManagerWithRaft
 		}
 		// TODO 确认Walk中删除记录是否有问题。
 		var SenderAcquired = ServerAcquiredTemplate.OpenTable(session.ServerId);
-		SenderAcquired.WalkKey(key -> {
+		SenderAcquired.walkKey(key -> {
 			Release(session, key);
 			return true; // continue walk
 		});
@@ -763,7 +763,7 @@ public class GlobalCacheManagerWithRaft
 		// XXX verify danger
 		Task.schedule(5 * 60 * 1000, () -> { // delay 5 mins
 			var SenderAcquired = ServerAcquiredTemplate.OpenTable(session.ServerId);
-			SenderAcquired.WalkKey(key -> {
+			SenderAcquired.walkKey(key -> {
 				Release(session, key);
 				return true; // continue release;
 			});

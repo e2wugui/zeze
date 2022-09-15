@@ -12,7 +12,7 @@ import Zeze.Transaction.Collections.LogMap2;
 
 public final class ModuleEquip extends AbstractModule {
 	public void Start(App app) {
-		_tequip.getChangeListenerMap().AddListener(new ItemsChangeListener());
+		_tequip.getChangeListenerMap().addListener(new ItemsChangeListener());
 	}
 
 	public void Stop(App app) {

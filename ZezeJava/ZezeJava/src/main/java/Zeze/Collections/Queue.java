@@ -11,11 +11,11 @@ public class Queue<V extends Bean> {
 	private static final BeanFactory beanFactory = new BeanFactory();
 
 	public static long GetSpecialTypeIdFromBean(Bean bean) {
-		return BeanFactory.GetSpecialTypeIdFromBean(bean);
+		return BeanFactory.getSpecialTypeIdFromBean(bean);
 	}
 
 	public static Bean CreateBeanFromSpecialTypeId(long typeId) {
-		return beanFactory.CreateBeanFromSpecialTypeId(typeId);
+		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
 	public static class Module extends AbstractQueue {

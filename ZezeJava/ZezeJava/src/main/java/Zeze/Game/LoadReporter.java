@@ -70,7 +70,7 @@ public class LoadReporter {
 		load.setProposeMaxOnline(Online.ProviderApp.Distribute.LoadConfig.getProposeMaxOnline());
 		load.setOnlineNew(onlineNew);
 		var bb = ByteBuffer.Allocate(256);
-		load.Encode(bb);
+		load.encode(bb);
 
 		var loadServer = new BServerLoad();
 		loadServer.Ip = Online.ProviderApp.DirectIp;

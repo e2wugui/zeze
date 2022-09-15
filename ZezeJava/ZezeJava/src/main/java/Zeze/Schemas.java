@@ -17,7 +17,7 @@ import org.apache.logging.log4j.Logger;
  * 但是允许"反悔"，也就是说可以重新使用已经删除的Variable.Id时，只要Type和原来一样，就允许。
  * 这是为了处理多人使用同一个数据库进行开发时的冲突（具体不解释了）。
  * c) beankey 被应用于map.Key或set.Value或table.Key以后就不能再删除变量了。
- * 当作key以后，如果删除变量，beankey.Encode() 就可能不再唯一。
+ * 当作key以后，如果删除变量，beankey.encode() 就可能不再唯一。
  * <p>
  * 2 通过查询类型信息，从数据转换到具体实例。合服可能需要。
  * 如果是通用合并的insert，应该在二进制接口上操作（目前还没有）。
@@ -241,14 +241,14 @@ public class Schemas implements Serializable {
 		}
 
 		@Override
-		public void Decode(ByteBuffer bb) {
+		public void decode(ByteBuffer bb) {
 			Name = bb.ReadString();
 			KeyName = bb.ReadString();
 			ValueName = bb.ReadString();
 		}
 
 		@Override
-		public void Encode(ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteString(Name);
 			bb.WriteString(KeyName);
 			bb.WriteString(ValueName);
@@ -304,7 +304,7 @@ public class Schemas implements Serializable {
 		}
 
 		@Override
-		public void Decode(ByteBuffer bb) {
+		public void decode(ByteBuffer bb) {
 			Id = bb.ReadInt();
 			Name = bb.ReadString();
 			TypeName = bb.ReadString();
@@ -314,7 +314,7 @@ public class Schemas implements Serializable {
 		}
 
 		@Override
-		public void Encode(ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteInt(Id);
 			bb.WriteString(Name);
 			bb.WriteString(TypeName);
@@ -555,26 +555,26 @@ public class Schemas implements Serializable {
 		}
 
 		@Override
-		public void Decode(ByteBuffer bb) {
+		public void decode(ByteBuffer bb) {
 			Name = bb.ReadString();
 			IsBeanKey = bb.ReadBool();
 			Deleted = bb.ReadBool();
 			RealName = bb.ReadString();
 			for (int count = bb.ReadInt(); count > 0; --count) {
 				var v = new Variable();
-				v.Decode(bb);
+				v.decode(bb);
 				getVariables().put(v.Id, v);
 			}
 		}
 
 		@Override
-		public void Encode(ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteString(Name);
 			bb.WriteBool(IsBeanKey);
 			bb.WriteBool(Deleted);
 			bb.WriteString(RealName);
 			bb.WriteInt(getVariables().size());
-			getVariables().foreachValue(v -> v.Encode(bb));
+			getVariables().foreachValue(v -> v.encode(bb));
 		}
 
 		@Override
@@ -605,14 +605,14 @@ public class Schemas implements Serializable {
 		}
 
 		@Override
-		public void Decode(ByteBuffer bb) {
+		public void decode(ByteBuffer bb) {
 			Name = bb.ReadString();
 			KeyName = bb.ReadString();
 			ValueName = bb.ReadString();
 		}
 
 		@Override
-		public void Encode(ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteString(Name);
 			bb.WriteString(KeyName);
 			bb.WriteString(ValueName);
@@ -675,30 +675,30 @@ public class Schemas implements Serializable {
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		for (int count = bb.ReadInt(); count > 0; --count) {
 			var table = new Table();
-			table.Decode(bb);
+			table.decode(bb);
 			if (null != Tables.put(table.Name, table))
 				throw new IllegalStateException("duplicate table=" + table.Name);
 		}
 		for (int count = bb.ReadInt(); count > 0; --count) {
 			var bean = new Bean();
-			bean.Decode(bb);
+			bean.decode(bb);
 			if (null != Beans.put(bean.Name, bean))
 				throw new IllegalStateException("duplicate bean=" + bean.Name);
 		}
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteInt(Tables.size());
 		for (var table : Tables.values()) {
-			table.Encode(bb);
+			table.encode(bb);
 		}
 		bb.WriteInt(Beans.size());
 		for (var bean : Beans.values()) {
-			bean.Encode(bb);
+			bean.encode(bb);
 		}
 	}
 

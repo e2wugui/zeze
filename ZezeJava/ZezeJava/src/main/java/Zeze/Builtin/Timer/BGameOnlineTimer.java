@@ -10,7 +10,7 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean {
     public static final long DynamicTypeId_TimerObj_Zeze_Builtin_Timer_BCronTimer = -6995089347718168392L;
     public static final long DynamicTypeId_TimerObj_Zeze_Builtin_Timer_BSimpleTimer = 1832177636612857692L;
 
-    public static long GetSpecialTypeIdFromBean_TimerObj(Zeze.Transaction.Bean bean) {
+    public static long getSpecialTypeIdFromBean_TimerObj(Zeze.Transaction.Bean bean) {
         var _typeId_ = bean.typeId();
         if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
             return Zeze.Transaction.EmptyBean.TYPEID;
@@ -21,7 +21,7 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean {
         throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Timer.BGameOnlineTimer:TimerObj");
     }
 
-    public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_TimerObj(long typeId) {
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_TimerObj(long typeId) {
         if (typeId == -6995089347718168392L)
             return new Zeze.Builtin.Timer.BCronTimer();
         if (typeId == 1832177636612857692L)
@@ -70,38 +70,48 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("deprecation")
     public BGameOnlineTimer() {
-        _TimerObj = new Zeze.Transaction.DynamicBean(2, BGameOnlineTimer::GetSpecialTypeIdFromBean_TimerObj, BGameOnlineTimer::CreateBeanFromSpecialTypeId_TimerObj);
+        _TimerObj = new Zeze.Transaction.DynamicBean(2, BGameOnlineTimer::getSpecialTypeIdFromBean_TimerObj, BGameOnlineTimer::createBeanFromSpecialTypeId_TimerObj);
     }
 
     @SuppressWarnings("deprecation")
     public BGameOnlineTimer(long _RoleId_) {
         _RoleId = _RoleId_;
-        _TimerObj = new Zeze.Transaction.DynamicBean(2, BGameOnlineTimer::GetSpecialTypeIdFromBean_TimerObj, BGameOnlineTimer::CreateBeanFromSpecialTypeId_TimerObj);
+        _TimerObj = new Zeze.Transaction.DynamicBean(2, BGameOnlineTimer::getSpecialTypeIdFromBean_TimerObj, BGameOnlineTimer::createBeanFromSpecialTypeId_TimerObj);
     }
 
-    public void Assign(BGameOnlineTimer other) {
+    public void assign(BGameOnlineTimer other) {
         setRoleId(other.getRoleId());
         getTimerObj().Assign(other.getTimerObj());
     }
 
-    public BGameOnlineTimer CopyIfManaged() {
+    @Deprecated
+    public void Assign(BGameOnlineTimer other) {
+        assign(other);
+    }
+
+    public BGameOnlineTimer copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BGameOnlineTimer Copy() {
+    public BGameOnlineTimer copy() {
         var copy = new BGameOnlineTimer();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BGameOnlineTimer a, BGameOnlineTimer b) {
+    @Deprecated
+    public BGameOnlineTimer Copy() {
+        return copy();
+    }
+
+    public static void swap(BGameOnlineTimer a, BGameOnlineTimer b) {
         BGameOnlineTimer save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BGameOnlineTimer CopyBean() {
+    public BGameOnlineTimer copyBean() {
         return Copy();
     }
 
@@ -116,23 +126,23 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean {
         public Log__RoleId(BGameOnlineTimer bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BGameOnlineTimer)getBelong())._RoleId = Value; }
+        public void commit() { ((BGameOnlineTimer)getBelong())._RoleId = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Timer.BGameOnlineTimer: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("RoleId").append('=').append(getRoleId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("TimerObj").append('=').append(System.lineSeparator());
-        getTimerObj().getBean().BuildString(sb, level + 4);
+        getTimerObj().getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -151,7 +161,7 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             long _x_ = getRoleId();
@@ -164,14 +174,14 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean {
             var _x_ = getTimerObj();
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.DYNAMIC);
-                _x_.Encode(_o_);
+                _x_.encode(_o_);
             }
         }
         _o_.WriteByte(0);
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -189,27 +199,27 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _TimerObj.InitRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+        _TimerObj.initRootInfo(root, this);
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
-        _TimerObj.ResetRootInfo();
+    protected void resetChildrenRootInfo() {
+        _TimerObj.resetRootInfo();
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         if (getRoleId() < 0)
             return true;
-        if (getTimerObj().NegativeCheck())
+        if (getTimerObj().negativeCheck())
             return true;
         return false;
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;
@@ -217,7 +227,7 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _RoleId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                case 2: _TimerObj.FollowerApply(vlog); break;
+                case 2: _TimerObj.followerApply(vlog); break;
             }
         }
     }

@@ -128,19 +128,19 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	private static final Logger logger = LogManager.getLogger(PMap2.class);
 
 	@Override
-	public void FollowerApply(Log _log) {
+	public void followerApply(Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogMap2<K, V>)_log;
 		var tmp = _map;
 		for (var put : log.getReplaced().values())
-			put.InitRootInfo(rootInfo, this);
+			put.initRootInfo(rootInfo, this);
 		tmp = tmp.plusAll(log.getReplaced()).minusAll(log.getRemoved());
 
 		// apply changed
 		for (var e : log.getChangedWithKey().entrySet()) {
 			Bean value = tmp.get(e.getKey());
 			if (value != null)
-				value.FollowerApply(e.getValue());
+				value.followerApply(e.getValue());
 			else
 				logger.error("Not Exist! Key={} Value={}", e.getKey(), e.getValue());
 		}
@@ -158,38 +158,38 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	}
 
 	@Override
-	protected void InitChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.RootInfo root) {
 		for (var v : _map.values())
-			v.InitRootInfo(root, this);
+			v.initRootInfo(root, this);
 	}
 
 	@Override
-	protected void ResetChildrenRootInfo() {
+	protected void resetChildrenRootInfo() {
 		for (var v : _map.values())
-			v.ResetRootInfo();
+			v.resetRootInfo();
 	}
 
 	@Override
-	public PMap2<K, V> CopyBean() {
+	public PMap2<K, V> copyBean() {
 		var copy = new PMap2<K, V>(logTypeId, keyCodecFuncs, valueFactory);
 		copy._map = _map;
 		return copy;
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var tmp = getMap();
 		bb.WriteUInt(tmp.size());
 		var encoder = keyCodecFuncs.encoder;
 		for (var e : tmp.entrySet()) {
 			encoder.accept(bb, e.getKey());
-			e.getValue().Encode(bb);
+			e.getValue().encode(bb);
 		}
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		clear();
 		var decoder = keyCodecFuncs.decoder;
 		for (int i = bb.ReadUInt(); i > 0; i--) {
@@ -200,7 +200,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 			} catch (Throwable e) {
 				throw new RuntimeException(e);
 			}
-			value.Decode(bb);
+			value.decode(bb);
 			put(key, value);
 		}
 	}

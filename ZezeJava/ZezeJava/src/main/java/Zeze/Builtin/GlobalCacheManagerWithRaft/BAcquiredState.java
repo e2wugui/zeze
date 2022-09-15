@@ -35,28 +35,38 @@ public final class BAcquiredState extends Zeze.Raft.RocksRaft.Bean {
         _State = _State_;
     }
 
-    public void Assign(BAcquiredState other) {
+    public void assign(BAcquiredState other) {
         setState(other.getState());
     }
 
-    public BAcquiredState CopyIfManaged() {
+    @Deprecated
+    public void Assign(BAcquiredState other) {
+        assign(other);
+    }
+
+    public BAcquiredState copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BAcquiredState Copy() {
+    public BAcquiredState copy() {
         var copy = new BAcquiredState();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BAcquiredState a, BAcquiredState b) {
+    @Deprecated
+    public BAcquiredState Copy() {
+        return copy();
+    }
+
+    public static void swap(BAcquiredState a, BAcquiredState b) {
         BAcquiredState save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BAcquiredState CopyBean() {
+    public BAcquiredState copyBean() {
         return Copy();
     }
 
@@ -70,12 +80,12 @@ public final class BAcquiredState extends Zeze.Raft.RocksRaft.Bean {
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.BAcquiredState: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("State").append('=').append(getState()).append(System.lineSeparator());
@@ -96,7 +106,7 @@ public final class BAcquiredState extends Zeze.Raft.RocksRaft.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             int _x_ = getState();
@@ -109,7 +119,7 @@ public final class BAcquiredState extends Zeze.Raft.RocksRaft.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -123,18 +133,18 @@ public final class BAcquiredState extends Zeze.Raft.RocksRaft.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Raft.RocksRaft.Record.RootInfo root) {
+    protected void initChildrenRootInfo(Zeze.Raft.RocksRaft.Record.RootInfo root) {
     }
 
     @Override
-    public void LeaderApplyNoRecursive(Zeze.Raft.RocksRaft.Log vlog) {
+    public void leaderApplyNoRecursive(Zeze.Raft.RocksRaft.Log vlog) {
         switch (vlog.getVariableId()) {
             case 1: _State = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).Value; break;
         }
     }
 
     @Override
-    public void FollowerApply(Zeze.Raft.RocksRaft.Log log) {
+    public void followerApply(Zeze.Raft.RocksRaft.Log log) {
         var vars = ((Zeze.Raft.RocksRaft.LogBean)log).getVariables();
         if (vars == null)
             return;

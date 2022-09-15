@@ -107,29 +107,29 @@ public class PSet1<V> extends PSet<V> {
 	}
 
 	@Override
-	public void FollowerApply(Log _log) {
+	public void followerApply(Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogSet1<V>)_log;
 		_set = _set.plusAll(log.getAdded()).minusAll(log.getRemoved());
 	}
 
 	@Override
-	protected void InitChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.RootInfo root) {
 	}
 
 	@Override
-	protected void ResetChildrenRootInfo() {
+	protected void resetChildrenRootInfo() {
 	}
 
 	@Override
-	public PSet1<V> CopyBean() {
+	public PSet1<V> copyBean() {
 		var copy = new PSet1<>(logTypeId, valueCodecFuncs);
 		copy._set = _set;
 		return copy;
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var tmp = getSet();
 		bb.WriteUInt(tmp.size());
 		var encoder = valueCodecFuncs.encoder;
@@ -138,7 +138,7 @@ public class PSet1<V> extends PSet<V> {
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		clear();
 		var decoder = valueCodecFuncs.decoder;
 		for (int i = bb.ReadUInt(); i > 0; i--)

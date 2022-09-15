@@ -55,7 +55,7 @@ namespace Zeze.Gen.java
             }
 
             sw.WriteLine();
-            sw.WriteLine($"{prefix}public static long GetSpecialTypeIdFromBean_{var.NameUpper1}(Zeze.Transaction.Bean bean) {{");
+            sw.WriteLine($"{prefix}public static long getSpecialTypeIdFromBean_{var.NameUpper1}(Zeze.Transaction.Bean bean) {{");
             if (string.IsNullOrEmpty(type.DynamicParams.GetSpecialTypeIdFromBean)) 
             {
                 // 根据配置的实际类型生成switch。
@@ -76,7 +76,7 @@ namespace Zeze.Gen.java
             }
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
-            sw.WriteLine($"{prefix}public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_{var.NameUpper1}(long typeId) {{");
+            sw.WriteLine($"{prefix}public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_{var.NameUpper1}(long typeId) {{");
             //sw.WriteLine($"{prefix}    case Zeze.Transaction.EmptyBean.TYPEID: return new Zeze.Transaction.EmptyBean();");
             if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId))
             {
@@ -156,24 +156,29 @@ namespace Zeze.Gen.java
             Construct.Make(bean, sw, "    ");
             Assign.Make(bean, sw, "    ");
             // Copy
-            sw.WriteLine("    public " + bean.Name + " CopyIfManaged() {");
+            sw.WriteLine("    public " + bean.Name + " copyIfManaged() {");
             sw.WriteLine("        return isManaged() ? Copy() : this;");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public " + bean.Name + " Copy() {");
+            sw.WriteLine("    public " + bean.Name + " copy() {");
             sw.WriteLine("        var copy = new " + bean.Name + "();");
             sw.WriteLine("        copy.Assign(this);");
             sw.WriteLine("        return copy;");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine($"    public static void Swap({bean.Name} a, {bean.Name} b) {{");
+            sw.WriteLine("    @Deprecated");
+            sw.WriteLine("    public " + bean.Name + " Copy() {");
+            sw.WriteLine("        return copy();");
+            sw.WriteLine("    }");
+            sw.WriteLine();
+            sw.WriteLine($"    public static void swap({bean.Name} a, {bean.Name} b) {{");
             sw.WriteLine($"        {bean.Name} save = a.Copy();");
             sw.WriteLine("        a.Assign(b);");
             sw.WriteLine("        b.Assign(save);");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    @Override");
-            sw.WriteLine("    public " + bean.Name + " CopyBean() {");
+            sw.WriteLine("    public " + bean.Name + " copyBean() {");
             sw.WriteLine("        return Copy();");
             sw.WriteLine("    }");
             sw.WriteLine();

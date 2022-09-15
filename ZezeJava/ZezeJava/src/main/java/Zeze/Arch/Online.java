@@ -86,6 +86,7 @@ public class Online extends AbstractOnline {
 		if (Reflect.stackWalker.getCallerClass() != RedirectGenMain.class)
 			throw new IllegalCallerException(Reflect.stackWalker.getCallerClass().getName());
 		ProviderApp = null;
+		//LoadReporter = null;
 	}
 
 	public Online(AppBase app) {
@@ -329,7 +330,7 @@ public class Online extends AbstractOnline {
 	}
 
 	public void sendReliableNotify(String account, String clientId, String listenerName, Protocol<?> p) {
-		sendReliableNotify(account, clientId, listenerName, p.getTypeId(), new Binary(p.Encode()));
+		sendReliableNotify(account, clientId, listenerName, p.getTypeId(), new Binary(p.encode()));
 	}
 
 	private Zeze.Collections.Queue<BNotify> OpenQueue(String account, String clientId) {
@@ -365,7 +366,7 @@ public class Online extends AbstractOnline {
 			login.setReliableNotifyIndex(login.getReliableNotifyIndex() + 1); // after set notify.Argument
 			notify.Argument.getNotifies().add(fullEncodedProtocol);
 
-			sendEmbed(List.of(new LoginKey(account, clientId)), notify.getTypeId(), new Binary(notify.Encode()));
+			sendEmbed(List.of(new LoginKey(account, clientId)), notify.getTypeId(), new Binary(notify.encode()));
 			return Procedure.Success;
 		});
 	}
@@ -513,11 +514,11 @@ public class Online extends AbstractOnline {
 	}
 
 	public void send(String account, String clientId, Protocol<?> p) {
-		send(account, clientId, p.getTypeId(), new Binary(p.Encode()));
+		send(account, clientId, p.getTypeId(), new Binary(p.encode()));
 	}
 
 	public void send(Collection<LoginKey> logins, Protocol<?> p) {
-		send(logins, p.getTypeId(), new Binary(p.Encode()));
+		send(logins, p.getTypeId(), new Binary(p.encode()));
 	}
 
 	public void sendWhileCommit(String account, String clientId, Protocol<?> p) {
@@ -614,14 +615,14 @@ public class Online extends AbstractOnline {
 	 * 给账号所有的登录终端发送消息。
 	 */
 	public void sendAccount(String account, Protocol<?> p, OnlineSend sender) {
-		sendAccount(account, p.getTypeId(), new Binary(p.Encode()), sender);
+		sendAccount(account, p.getTypeId(), new Binary(p.encode()), sender);
 	}
 
 	/**
 	 * 给账号所有的登录终端发送消息。
 	 */
 	public void sendAccounts(Collection<String> accounts, Protocol<?> p, OnlineSend sender) {
-		sendAccounts(accounts, p.getTypeId(), new Binary(p.Encode()), sender);
+		sendAccounts(accounts, p.getTypeId(), new Binary(p.encode()), sender);
 	}
 
 	public void sendAccountWhileCommit(String account, Protocol<?> p, OnlineSend sender) {
@@ -761,7 +762,7 @@ public class Online extends AbstractOnline {
 		if (!TransmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 
-		var binaryParam = parameter == null ? Binary.Empty : new Binary(ByteBuffer.Encode(parameter));
+		var binaryParam = parameter == null ? Binary.Empty : new Binary(ByteBuffer.encode(parameter));
 		// 发送协议请求在另外的事务中执行。
 		ProviderApp.Zeze.NewProcedure(() -> {
 			transmitInProcedure(account, clientId, actionName, targets, binaryParam);
@@ -830,7 +831,7 @@ public class Online extends AbstractOnline {
 	}
 
 	public void broadcast(Protocol<?> p, int time) {
-		broadcast(p.getTypeId(), new Binary(p.Encode()), time);
+		broadcast(p.getTypeId(), new Binary(p.encode()), time);
 	}
 
 	private void verifyLocal() {

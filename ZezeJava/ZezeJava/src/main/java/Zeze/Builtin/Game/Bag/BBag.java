@@ -44,31 +44,41 @@ public final class BBag extends Zeze.Transaction.Bean {
         _Items.variableId(2);
     }
 
-    public void Assign(BBag other) {
+    public void assign(BBag other) {
         setCapacity(other.getCapacity());
         getItems().clear();
         for (var e : other.getItems().entrySet())
             getItems().put(e.getKey(), e.getValue().Copy());
     }
 
-    public BBag CopyIfManaged() {
+    @Deprecated
+    public void Assign(BBag other) {
+        assign(other);
+    }
+
+    public BBag copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BBag Copy() {
+    public BBag copy() {
         var copy = new BBag();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BBag a, BBag b) {
+    @Deprecated
+    public BBag Copy() {
+        return copy();
+    }
+
+    public static void swap(BBag a, BBag b) {
         BBag save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BBag CopyBean() {
+    public BBag copyBean() {
         return Copy();
     }
 
@@ -83,18 +93,18 @@ public final class BBag extends Zeze.Transaction.Bean {
         public Log__Capacity(BBag bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BBag)getBelong())._Capacity = Value; }
+        public void commit() { ((BBag)getBelong())._Capacity = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Bag.BBag: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Capacity").append('=').append(getCapacity()).append(',').append(System.lineSeparator());
@@ -104,7 +114,7 @@ public final class BBag extends Zeze.Transaction.Bean {
             sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(_kv_.getKey()).append(',').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
-            _kv_.getValue().BuildString(sb, level + 4);
+            _kv_.getValue().buildString(sb, level + 4);
             sb.append(',').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append(')').append(System.lineSeparator());
         }
@@ -127,7 +137,7 @@ public final class BBag extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             int _x_ = getCapacity();
@@ -144,7 +154,7 @@ public final class BBag extends Zeze.Transaction.Bean {
                 _o_.WriteMapType(_n_, ByteBuffer.INTEGER, ByteBuffer.BEAN);
                 for (var _e_ : _x_.entrySet()) {
                     _o_.WriteLong(_e_.getKey());
-                    _e_.getValue().Encode(_o_);
+                    _e_.getValue().encode(_o_);
                 }
             }
         }
@@ -152,7 +162,7 @@ public final class BBag extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -180,21 +190,21 @@ public final class BBag extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Items.InitRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+        _Items.initRootInfo(root, this);
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
-        _Items.ResetRootInfo();
+    protected void resetChildrenRootInfo() {
+        _Items.resetRootInfo();
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         if (getCapacity() < 0)
             return true;
         for (var _v_ : getItems().values()) {
-            if (_v_.NegativeCheck())
+            if (_v_.negativeCheck())
                 return true;
         }
         return false;
@@ -202,7 +212,7 @@ public final class BBag extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;
@@ -210,7 +220,7 @@ public final class BBag extends Zeze.Transaction.Bean {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _Capacity = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
-                case 2: _Items.FollowerApply(vlog); break;
+                case 2: _Items.followerApply(vlog); break;
             }
         }
     }

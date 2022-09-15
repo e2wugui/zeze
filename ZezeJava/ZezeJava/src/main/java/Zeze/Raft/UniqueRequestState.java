@@ -29,14 +29,14 @@ class UniqueRequestState implements Serializable {
 	}
 
 	@Override
-	public final void Encode(ByteBuffer bb) {
+	public final void encode(ByteBuffer bb) {
 		bb.WriteLong(LogIndex);
 		bb.WriteBool(IsApplied);
 		bb.WriteBinary(RpcResult);
 	}
 
 	@Override
-	public final void Decode(ByteBuffer bb) {
+	public final void decode(ByteBuffer bb) {
 		LogIndex = bb.ReadLong();
 		IsApplied = bb.ReadBool();
 		RpcResult = bb.ReadBinary();

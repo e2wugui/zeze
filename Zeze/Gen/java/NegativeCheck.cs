@@ -12,7 +12,7 @@ namespace Zeze.Gen.java
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public boolean NegativeCheck() {");
+            sw.WriteLine(prefix + "public boolean negativeCheck() {");
             foreach (Variable var in bean.Variables)
             {
                 if (var.AllowNegative)
@@ -26,7 +26,7 @@ namespace Zeze.Gen.java
 
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "public boolean NegativeCheck() {");
+            sw.WriteLine(prefix + "public boolean negativeCheck() {");
             foreach (Variable var in bean.Variables)
             {
                 if (var.AllowNegative)
@@ -121,7 +121,7 @@ namespace Zeze.Gen.java
         {
             if (type.IsNeedNegativeCheck)
             {
-                sw.WriteLine(prefix + "if (" + varname + ".NegativeCheck())");
+                sw.WriteLine(prefix + "if (" + varname + ".negativeCheck())");
                 sw.WriteLine(prefix + "    return true;");
             }
         }
@@ -130,7 +130,7 @@ namespace Zeze.Gen.java
         {
             if (type.IsNeedNegativeCheck)
             {
-                sw.WriteLine(prefix + "if (" + varname + ".NegativeCheck())");
+                sw.WriteLine(prefix + "if (" + varname + ".negativeCheck())");
                 sw.WriteLine(prefix + "    return true;");
             }
         }
@@ -139,7 +139,7 @@ namespace Zeze.Gen.java
         {
             if (type.IsNeedNegativeCheck)
             {
-                sw.WriteLine(prefix + "if (" + varname + ".NegativeCheck())");
+                sw.WriteLine(prefix + "if (" + varname + ".negativeCheck())");
                 sw.WriteLine(prefix + "    return true;");
             }
         }

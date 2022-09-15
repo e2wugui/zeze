@@ -17,78 +17,78 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 
 	static {
 		try {
-			LRU_NODE_HANDLE = MethodHandles.lookup().findVarHandle(Record1.class, "LruNode", ConcurrentHashMap.class);
+			LRU_NODE_HANDLE = MethodHandles.lookup().findVarHandle(Record1.class, "lruNode", ConcurrentHashMap.class);
 		} catch (ReflectiveOperationException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	private final TableX<K, V> TTable;
-	private final K Key;
+	private final TableX<K, V> table;
+	private final K key;
 	private ByteBuffer snapshotKey;
 	private ByteBuffer snapshotValue;
-	private long SavedTimestampForCheckpointPeriod;
-	private boolean ExistInBackDatabase;
-	private boolean ExistInBackDatabaseSavedForFlushRemove;
-	private volatile ConcurrentHashMap<K, Record1<K, V>> LruNode;
+	private long savedTimestampForCheckpointPeriod;
+	private boolean existInBackDatabase;
+	private boolean existInBackDatabaseSavedForFlushRemove;
+	private volatile ConcurrentHashMap<K, Record1<K, V>> lruNode;
 
 	public Record1(TableX<K, V> table, K key, V value) {
 		super(value);
-		TTable = table;
-		Key = key;
+		this.table = table;
+		this.key = key;
 	}
 
 	@Override
 	public Table getTable() {
-		return TTable;
+		return table;
 	}
 
 	@Override
 	public K getObjectKey() {
-		return Key;
+		return key;
 	}
 
 	void setSavedTimestampForCheckpointPeriod(long value) {
-		SavedTimestampForCheckpointPeriod = value;
+		savedTimestampForCheckpointPeriod = value;
 	}
 
 	void setExistInBackDatabase(boolean value) {
-		ExistInBackDatabase = value;
+		existInBackDatabase = value;
 	}
 
 	ConcurrentHashMap<K, Record1<K, V>> getLruNode() {
-		return LruNode;
+		return lruNode;
 	}
 
 	void setLruNode(ConcurrentHashMap<K, Record1<K, V>> value) {
-		LruNode = value;
+		lruNode = value;
 	}
 
 	@SuppressWarnings("unchecked")
-	public ConcurrentHashMap<K, Record1<K, V>> getAndSetLruNodeNull() {
+	ConcurrentHashMap<K, Record1<K, V>> getAndSetLruNodeNull() {
 		return (ConcurrentHashMap<K, Record1<K, V>>)LRU_NODE_HANDLE.getAndSet(this, null);
 	}
 
-	public boolean compareAndSetLruNodeNull(ConcurrentHashMap<K, Record1<K, V>> c) {
+	boolean compareAndSetLruNodeNull(ConcurrentHashMap<K, Record1<K, V>> c) {
 		return LRU_NODE_HANDLE.compareAndSet(this, c, null);
 	}
 
 	@Override
 	public String toString() {
-		return String.format("T=%s K=%s S=%d T=%d", TTable.getName(), Key, getState(), getTimestamp()); // V {Value}";
+		return String.format("T=%s K=%s S=%d T=%d", table.getName(), key, getState(), getTimestamp()); // V {Value}";
 		// 记录的log可能在Transaction.AddRecordAccessed之前进行，不能再访问了。
 	}
 
 	@Override
-	public IGlobalAgent.AcquireResult Acquire(int state, boolean fresh, boolean noWait) {
+	public IGlobalAgent.AcquireResult acquire(int state, boolean fresh, boolean noWait) {
 		IGlobalAgent agent;
-		if (TTable.GetStorage() == null || (agent = TTable.getZeze().getGlobalAgent()) == null) // 不支持内存表cache同步。
+		if (table.getStorage() == null || (agent = table.getZeze().getGlobalAgent()) == null) // 不支持内存表cache同步。
 			return IGlobalAgent.AcquireResult.getSuccessResult(state);
 
 		if (isDebugEnabled)
 			logger.debug("Acquire NewState={} {}", state, this);
 		if (Macro.EnableStatistics) {
-			var stat = TableStatistics.getInstance().GetOrAdd(TTable.getId());
+			var stat = TableStatistics.getInstance().getOrAdd(table.getId());
 			switch (state) {
 			case GlobalCacheManagerConst.StateInvalid:
 				stat.getGlobalAcquireInvalid().increment();
@@ -103,26 +103,26 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 				break;
 			}
 		}
-		return agent.Acquire(TTable.EncodeGlobalKey(Key), state, fresh, noWait);
+		return agent.acquire(table.encodeGlobalKey(key), state, fresh, noWait);
 	}
 
 	@Override
-	public void Commit(Zeze.Transaction.RecordAccessed accessed) {
-		if (null != accessed.CommittedPutLog) {
-			setSoftValue(accessed.CommittedPutLog.getValue());
+	public void commit(Zeze.Transaction.RecordAccessed accessed) {
+		if (null != accessed.committedPutLog) {
+			setSoftValue(accessed.committedPutLog.getValue());
 		}
 		setTimestamp(getNextTimestamp()); // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
-		SetDirty();
+		setDirty();
 		//System.out.println("commit: " + this + " put=" + accessed.CommittedPutLog + " atr=" + accessed.AtomicTupleRecord);
 	}
 
 	@Override
-	public void SetDirty() {
-		switch (TTable.getZeze().getConfig().getCheckpointMode()) {
+	public void setDirty() {
+		switch (table.getZeze().getConfig().getCheckpointMode()) {
 		case Period:
 			setDirty(true);
-			if (TTable.GetStorage() != null) {
-				TTable.GetStorage().OnRecordChanged(this);
+			if (table.getStorage() != null) {
+				table.getStorage().onRecordChanged(this);
 			}
 			break;
 		case Table:
@@ -136,34 +136,34 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		}
 	}
 
-	public boolean TryEncodeN(ConcurrentHashMap<K, Record1<K, V>> changed, ConcurrentHashMap<K, Record1<K, V>> encoded) {
-		Lockey lockey = TTable.getZeze().getLocks().Get(new TableKey(TTable.getId(), Key));
-		if (!lockey.TryEnterReadLock(0)) {
+	boolean tryEncodeN(ConcurrentHashMap<K, Record1<K, V>> changed, ConcurrentHashMap<K, Record1<K, V>> encoded) {
+		Lockey lockey = table.getZeze().getLocks().get(new TableKey(table.getId(), key));
+		if (!lockey.tryEnterReadLock(0)) {
 			return false;
 		}
 		try {
-			Encode0();
-			encoded.put(Key, this);
-			changed.remove(Key);
+			encode0();
+			encoded.put(key, this);
+			changed.remove(key);
 			return true;
 		} finally {
-			lockey.ExitReadLock();
+			lockey.exitReadLock();
 		}
 	}
 
 	@Override
-	public void Encode0() {
+	public void encode0() {
 		if (!getDirty())
 			return;
 		// Under Lock：this.TryEncodeN & Storage.Snapshot
 
 		// 【注意】可能保存多次：TryEncodeN 记录读锁；Snapshot FlushWriteLock;
 		// 从 Storage.Snapshot 里面修改移到这里，避免Snapshot遍历，减少FlushWriteLock时间。
-		SavedTimestampForCheckpointPeriod = getTimestamp();
+		savedTimestampForCheckpointPeriod = getTimestamp();
 
 		// 可能编码多次：TryEncodeN 记录读锁；Snapshot FlushWriteLock;
-		snapshotKey = TTable.EncodeKey(Key);
-		snapshotValue = StrongDirtyValue != null ? ByteBuffer.Encode(StrongDirtyValue) : null;
+		snapshotKey = table.encodeKey(key);
+		snapshotValue = strongDirtyValue != null ? ByteBuffer.encode(strongDirtyValue) : null;
 
 		// 【注意】
 		// 这个标志本来应该在真正写到Database之后修改才是最合适的；
@@ -185,68 +185,68 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		//【ExistInBackDatabaseSavedForFlushRemove】
 		//    由于这里提前修改，所以需要保存一个副本后面写Database时用。
 		//    see this.Flush
-		ExistInBackDatabaseSavedForFlushRemove = ExistInBackDatabase;
-		ExistInBackDatabase = null != snapshotValue;
+		existInBackDatabaseSavedForFlushRemove = existInBackDatabase;
+		existInBackDatabase = null != snapshotValue;
 	}
 
-	public void Flush(Database.Transaction t, HashMap<Database, Database.Transaction> tss, Database.Transaction lct) {
-		if (null != TTable.getOldTable()) {
+	void flush(Database.Transaction t, HashMap<Database, Database.Transaction> tss, Database.Transaction lct) {
+		if (null != table.getOldTable()) {
 			// will clear in Cleanup.
-			setDatabaseTransactionOldTmp(tss.get(TTable.getOldTable().getDatabase()));
+			setDatabaseTransactionOldTmp(tss.get(table.getOldTable().getDatabase()));
 		}
-		Flush(t, lct);
+		flush(t, lct);
 	}
 
 	@Override
-	public void Flush(Database.Transaction t, Database.Transaction lct) {
+	public void flush(Database.Transaction t, Database.Transaction lct) {
 		if (!getDirty())
 			return;
 
 		if (null != snapshotValue) {
 			// changed
-			if (TTable.GetStorage() != null) {
-				TTable.GetStorage().getDatabaseTable().Replace(t, snapshotKey, snapshotValue);
+			if (table.getStorage() != null) {
+				table.getStorage().getDatabaseTable().replace(t, snapshotKey, snapshotValue);
 			}
 			if (null != lct) {
-				TTable.getLocalRocksCacheTable().Replace(lct, snapshotKey, snapshotValue);
+				table.getLocalRocksCacheTable().replace(lct, snapshotKey, snapshotValue);
 			}
 		} else {
 			// removed
-			if (ExistInBackDatabaseSavedForFlushRemove) { // 优化，仅在后台db存在时才去删除。
-				if (TTable.GetStorage() != null) {
-					TTable.GetStorage().getDatabaseTable().Remove(t, snapshotKey);
+			if (existInBackDatabaseSavedForFlushRemove) { // 优化，仅在后台db存在时才去删除。
+				if (table.getStorage() != null) {
+					table.getStorage().getDatabaseTable().remove(t, snapshotKey);
 				}
 				if (null != lct) {
-					TTable.getLocalRocksCacheTable().Remove(lct, snapshotKey);
+					table.getLocalRocksCacheTable().remove(lct, snapshotKey);
 				}
 			}
 
 			// 需要同步删除OldTable，否则下一次查找又会找到。
 			// 这个违背了OldTable不修改的原则，但没办法了。
 			if (null != getDatabaseTransactionOldTmp()) {
-				TTable.getOldTable().Remove(getDatabaseTransactionOldTmp(), snapshotKey);
+				table.getOldTable().remove(getDatabaseTransactionOldTmp(), snapshotKey);
 			}
 		}
 	}
 
 	@Override
-	public void Cleanup() {
+	public void cleanup() {
 		setDatabaseTransactionTmp(null);
 		setDatabaseTransactionOldTmp(null);
 
-		if (TTable.getZeze().getConfig().getCheckpointMode() == CheckpointMode.Period) {
-			TableKey tkey = new TableKey(TTable.getId(), Key);
-			Lockey lockey = TTable.getZeze().getLocks().Get(tkey);
-			lockey.EnterWriteLock();
+		if (table.getZeze().getConfig().getCheckpointMode() == CheckpointMode.Period) {
+			TableKey tkey = new TableKey(table.getId(), key);
+			Lockey lockey = table.getZeze().getLocks().get(tkey);
+			lockey.enterWriteLock();
 			try {
-				if (SavedTimestampForCheckpointPeriod == getTimestamp()) {
+				if (savedTimestampForCheckpointPeriod == getTimestamp()) {
 					setDirty(false);
 				}
 				snapshotKey = null;
 				snapshotValue = null;
 				return;
 			} finally {
-				lockey.ExitWriteLock();
+				lockey.exitWriteLock();
 			}
 		}
 		// CheckpointMode.Table

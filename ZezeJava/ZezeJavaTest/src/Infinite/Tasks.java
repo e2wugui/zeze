@@ -82,9 +82,9 @@ public final class Tasks {
 			var name = getClass().getName();
 			var runCount = getRunCounter(name).sum();
 			var successCount = getSuccessCounter(name).sum();
-			var stats = ProcedureStatistics.getInstance().GetOrAdd(name);
-			var abortCount = stats.GetOrAdd(Procedure.AbortException).sum();
-			var tooManyTry = stats.GetOrAdd(Procedure.TooManyTry).sum();
+			var stats = ProcedureStatistics.getInstance().getOrAdd(name);
+			var abortCount = stats.getOrAdd(Procedure.AbortException).sum();
+			var tooManyTry = stats.getOrAdd(Procedure.TooManyTry).sum();
 			Simulate.logger.info("  totalCount({})={}", name, runCount);
 			Simulate.logger.info("successCount({})={}", name, successCount);
 			if (abortCount != 0)
@@ -368,7 +368,7 @@ public final class Tasks {
 					if (keys == null) {
 						var ks = new HashSet<ByteBuffer>();
 						for (int key = 0; key < tflushInt1Trade.KeyBoundTrade; key++)
-							ks.add(table1.EncodeKey((long)key));
+							ks.add(table1.encodeKey((long)key));
 						keys = ks;
 					}
 				}
@@ -376,10 +376,10 @@ public final class Tasks {
 			var db = table1.getDatabase();
 			if (db instanceof DatabaseMemory) {
 				long sum = 0;
-				var all = ((DatabaseMemory)db).Finds(table1.getName(), keys);
+				var all = ((DatabaseMemory)db).finds(table1.getName(), keys);
 				for (var valueBytes : all.values()) {
 					if (valueBytes != null)
-						sum += table1.DecodeValue(valueBytes).getInt1();
+						sum += table1.decodeValue(valueBytes).getInt1();
 				}
 				if (debugTradeSum && sum != 0) {
 					for (var e : all.entrySet()) {
@@ -387,8 +387,8 @@ public final class Tasks {
 						if (valueBytes != null) {
 							valueBytes.ReadIndex = 0;
 							e.getKey().ReadIndex = 0;
-							// var k = table1.DecodeKey(e.getKey());
-							// var v = table1.DecodeValue(valueBytes).getInt1();
+							// var k = table1.decodeKey(e.getKey());
+							// var v = table1.decodeValue(valueBytes).getInt1();
 							// Simulate.logger.info("=== {}:{}", k, v);
 						}
 					}

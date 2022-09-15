@@ -8,11 +8,11 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
     private String _Id; // LinkedMap的Key转成字符串类型
     private final Zeze.Transaction.DynamicBean _Value;
 
-    public static long GetSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean) {
+    public static long getSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean) {
         return Zeze.Collections.LinkedMap.GetSpecialTypeIdFromBean(bean);
     }
 
-    public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Value(long typeId) {
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_Value(long typeId) {
         return Zeze.Collections.LinkedMap.CreateBeanFromSpecialTypeId(typeId);
     }
 
@@ -55,29 +55,39 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
         _Value = new Zeze.Transaction.DynamicBean(2, Zeze.Collections.LinkedMap::GetSpecialTypeIdFromBean, Zeze.Collections.LinkedMap::CreateBeanFromSpecialTypeId);
     }
 
-    public void Assign(BLinkedMapNodeValue other) {
+    public void assign(BLinkedMapNodeValue other) {
         setId(other.getId());
         getValue().Assign(other.getValue());
     }
 
-    public BLinkedMapNodeValue CopyIfManaged() {
+    @Deprecated
+    public void Assign(BLinkedMapNodeValue other) {
+        assign(other);
+    }
+
+    public BLinkedMapNodeValue copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BLinkedMapNodeValue Copy() {
+    public BLinkedMapNodeValue copy() {
         var copy = new BLinkedMapNodeValue();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BLinkedMapNodeValue a, BLinkedMapNodeValue b) {
+    @Deprecated
+    public BLinkedMapNodeValue Copy() {
+        return copy();
+    }
+
+    public static void swap(BLinkedMapNodeValue a, BLinkedMapNodeValue b) {
         BLinkedMapNodeValue save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BLinkedMapNodeValue CopyBean() {
+    public BLinkedMapNodeValue copyBean() {
         return Copy();
     }
 
@@ -92,23 +102,23 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
         public Log__Id(BLinkedMapNodeValue bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BLinkedMapNodeValue)getBelong())._Id = Value; }
+        public void commit() { ((BLinkedMapNodeValue)getBelong())._Id = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Id").append('=').append(getId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
-        getValue().getBean().BuildString(sb, level + 4);
+        getValue().getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -127,7 +137,7 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             String _x_ = getId();
@@ -140,14 +150,14 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
             var _x_ = getValue();
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.DYNAMIC);
-                _x_.Encode(_o_);
+                _x_.encode(_o_);
             }
         }
         _o_.WriteByte(0);
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -165,23 +175,23 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Value.InitRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+        _Value.initRootInfo(root, this);
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
-        _Value.ResetRootInfo();
+    protected void resetChildrenRootInfo() {
+        _Value.resetRootInfo();
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         return false;
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;
@@ -189,7 +199,7 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _Id = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
-                case 2: _Value.FollowerApply(vlog); break;
+                case 2: _Value.followerApply(vlog); break;
             }
         }
     }

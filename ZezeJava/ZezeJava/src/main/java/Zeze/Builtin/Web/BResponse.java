@@ -143,7 +143,7 @@ public final class BResponse extends Zeze.Transaction.Bean {
         _Stacktrace = _Stacktrace_;
     }
 
-    public void Assign(BResponse other) {
+    public void assign(BResponse other) {
         setCode(other.getCode());
         getHeaders().clear();
         for (var e : other.getHeaders().entrySet())
@@ -154,24 +154,34 @@ public final class BResponse extends Zeze.Transaction.Bean {
         setStacktrace(other.getStacktrace());
     }
 
-    public BResponse CopyIfManaged() {
+    @Deprecated
+    public void Assign(BResponse other) {
+        assign(other);
+    }
+
+    public BResponse copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BResponse Copy() {
+    public BResponse copy() {
         var copy = new BResponse();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BResponse a, BResponse b) {
+    @Deprecated
+    public BResponse Copy() {
+        return copy();
+    }
+
+    public static void swap(BResponse a, BResponse b) {
         BResponse save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BResponse CopyBean() {
+    public BResponse copyBean() {
         return Copy();
     }
 
@@ -186,46 +196,46 @@ public final class BResponse extends Zeze.Transaction.Bean {
         public Log__Code(BResponse bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BResponse)getBelong())._Code = Value; }
+        public void commit() { ((BResponse)getBelong())._Code = Value; }
     }
 
     private static final class Log__Body extends Zeze.Transaction.Logs.LogBinary {
         public Log__Body(BResponse bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BResponse)getBelong())._Body = Value; }
+        public void commit() { ((BResponse)getBelong())._Body = Value; }
     }
 
     private static final class Log__Finish extends Zeze.Transaction.Logs.LogBool {
         public Log__Finish(BResponse bean, int varId, boolean value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BResponse)getBelong())._Finish = Value; }
+        public void commit() { ((BResponse)getBelong())._Finish = Value; }
     }
 
     private static final class Log__Message extends Zeze.Transaction.Logs.LogString {
         public Log__Message(BResponse bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BResponse)getBelong())._Message = Value; }
+        public void commit() { ((BResponse)getBelong())._Message = Value; }
     }
 
     private static final class Log__Stacktrace extends Zeze.Transaction.Logs.LogString {
         public Log__Stacktrace(BResponse bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BResponse)getBelong())._Stacktrace = Value; }
+        public void commit() { ((BResponse)getBelong())._Stacktrace = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Web.BResponse: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Code").append('=').append(getCode()).append(',').append(System.lineSeparator());
@@ -235,7 +245,7 @@ public final class BResponse extends Zeze.Transaction.Bean {
             sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(_kv_.getKey()).append(',').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
-            _kv_.getValue().BuildString(sb, level + 4);
+            _kv_.getValue().buildString(sb, level + 4);
             sb.append(',').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append(')').append(System.lineSeparator());
         }
@@ -262,7 +272,7 @@ public final class BResponse extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             int _x_ = getCode();
@@ -279,7 +289,7 @@ public final class BResponse extends Zeze.Transaction.Bean {
                 _o_.WriteMapType(_n_, ByteBuffer.BYTES, ByteBuffer.BEAN);
                 for (var _e_ : _x_.entrySet()) {
                     _o_.WriteString(_e_.getKey());
-                    _e_.getValue().Encode(_o_);
+                    _e_.getValue().encode(_o_);
                 }
             }
         }
@@ -315,7 +325,7 @@ public final class BResponse extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -359,17 +369,17 @@ public final class BResponse extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Headers.InitRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+        _Headers.initRootInfo(root, this);
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
-        _Headers.ResetRootInfo();
+    protected void resetChildrenRootInfo() {
+        _Headers.resetRootInfo();
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         if (getCode() < 0)
             return true;
         return false;
@@ -377,7 +387,7 @@ public final class BResponse extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;
@@ -385,7 +395,7 @@ public final class BResponse extends Zeze.Transaction.Bean {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _Code = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
-                case 2: _Headers.FollowerApply(vlog); break;
+                case 2: _Headers.followerApply(vlog); break;
                 case 3: _Body = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
                 case 4: _Finish = ((Zeze.Transaction.Logs.LogBool)vlog).Value; break;
                 case 5: _Message = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;

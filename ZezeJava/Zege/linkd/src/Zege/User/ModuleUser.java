@@ -16,7 +16,7 @@ public class ModuleUser extends AbstractModule {
 
     private  <A extends Bean, R extends Bean> long proxy(int hash, Rpc<A, R> r) throws Throwable {
         var originSender = r.getSender();
-        var originSessionId = r.SessionId;
+        var originSessionId = r.getSessionId();
         var provider = new OutLong();
         if (App.LinkdApp.LinkdProvider.ChoiceHashWithoutBind(r.getModuleId(), hash, provider)) {
             var providerSocket = App.LinkdApp.LinkdProviderService.GetSocket(provider.Value);

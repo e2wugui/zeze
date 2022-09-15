@@ -51,7 +51,7 @@ public final class Test {
 		}
 
 		@Override
-		public Bean CopyBean() {
+		public Bean copyBean() {
 			throw new UnsupportedOperationException();
 		}
 
@@ -87,7 +87,7 @@ public final class Test {
 		}
 
 		@Override
-		public void FollowerApply(Log log) {
+		public void followerApply(Log log) {
 			var vars = ((LogBean)log).getVariables();
 			if (vars == null)
 				return;
@@ -101,20 +101,20 @@ public final class Test {
 					_l = ((LogLong)vlog).Value;
 					break;
 				case 3:
-					_map1.FollowerApply(vlog);
+					_map1.followerApply(vlog);
 					break;
 				case 4:
-					_bean2.FollowerApply(vlog);
+					_bean2.followerApply(vlog);
 					break;
 				case 5:
-					_map2.FollowerApply(vlog);
+					_map2.followerApply(vlog);
 					break;
 				}
 			}
 		}
 
 		@Override
-		public void LeaderApplyNoRecursive(Log vlog) {
+		public void leaderApplyNoRecursive(Log vlog) {
 			switch (vlog.getVariableId()) {
 			case 1:
 				_i = ((LogInt)vlog).Value;
@@ -123,10 +123,10 @@ public final class Test {
 				_l = ((LogLong)vlog).Value;
 				break;
 			case 3:
-				_map1.LeaderApplyNoRecursive(vlog);
+				_map1.leaderApplyNoRecursive(vlog);
 				break;
 			case 5:
-				_map2.LeaderApplyNoRecursive(vlog);
+				_map2.leaderApplyNoRecursive(vlog);
 				break;
 			}
 		}
@@ -141,32 +141,32 @@ public final class Test {
 		}
 
 		@Override
-		public void Decode(ByteBuffer bb) {
+		public void decode(ByteBuffer bb) {
 			_Int32MapKey_ = bb.ReadInt();
 
 			setI(bb.ReadInt());
 			setL(bb.ReadLong());
-			getMap1().Decode(bb);
-			getBean2().Decode(bb);
-			getMap2().Decode(bb);
+			getMap1().decode(bb);
+			getBean2().decode(bb);
+			getMap2().decode(bb);
 		}
 
 		@Override
-		public void Encode(ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteInt(_Int32MapKey_ != null ? (Integer)_Int32MapKey_ : 0);
 
 			bb.WriteInt(getI());
 			bb.WriteLong(getL());
-			getMap1().Encode(bb);
-			getBean2().Encode(bb);
-			getMap2().Encode(bb);
+			getMap1().encode(bb);
+			getBean2().encode(bb);
+			getMap2().encode(bb);
 		}
 
 		@Override
-		protected void InitChildrenRootInfo(Record.RootInfo root) {
-			_map1.InitRootInfo(root, this);
-			_bean2.InitRootInfo(root, this);
-			_map2.InitRootInfo(root, this);
+		protected void initChildrenRootInfo(Record.RootInfo root) {
+			_map1.initRootInfo(root, this);
+			_bean2.initRootInfo(root, this);
+			_map2.initRootInfo(root, this);
 		}
 
 		@Override
@@ -180,7 +180,7 @@ public final class Test {
 		private int _i;
 
 		@Override
-		public Bean CopyBean() {
+		public Bean copyBean() {
 			throw new UnsupportedOperationException();
 		}
 
@@ -204,17 +204,17 @@ public final class Test {
 		}
 
 		@Override
-		public void Decode(ByteBuffer bb) {
+		public void decode(ByteBuffer bb) {
 			setI(bb.ReadInt());
 		}
 
 		@Override
-		public void Encode(ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteInt(getI());
 		}
 
 		@Override
-		protected void InitChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(Record.RootInfo root) {
 		}
 
 		@Override
@@ -223,7 +223,7 @@ public final class Test {
 		}
 
 		@Override
-		public void FollowerApply(Log log) {
+		public void followerApply(Log log) {
 			var vars = ((LogBean)log).getVariables();
 			if (vars == null)
 				return;
@@ -239,7 +239,7 @@ public final class Test {
 		}
 
 		@Override
-		public void LeaderApplyNoRecursive(Log vlog) {
+		public void leaderApplyNoRecursive(Log vlog) {
 			//noinspection SwitchStatementWithTooFewBranches
 			switch (vlog.getVariableId()) {
 			case 1:
@@ -251,7 +251,7 @@ public final class Test {
 
 	private static void Remove1(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
 		rocks.NewProcedure(() -> {
-			table.Remove(1);
+			table.remove(1);
 
 			Transaction.getCurrent().RunWhileCommit(() ->
 			{
@@ -271,7 +271,7 @@ public final class Test {
 	}
 
 	private static void Update(Table<Integer, Bean1> table, int num) {
-		var value = table.GetOrAdd(1);
+		var value = table.getOrAdd(1);
 
 		// 本层Bean变量修改日志
 		value.setI(1 + num);
@@ -304,7 +304,7 @@ public final class Test {
 
 	private static void VerifyData(Rocks rocks, Table<Integer, Bean1> table, String expected) throws Throwable {
 		rocks.NewProcedure(() -> {
-			var value = table.GetOrAdd(1);
+			var value = table.getOrAdd(1);
 			var current = value.toString();
 			if (expected == null)
 				System.out.println(current);
@@ -339,7 +339,7 @@ public final class Test {
 			Update(table, 20);
 			// 重新put，将会让上面的修改树作废。但所有的日志树都可以从All中看到。
 			var bean1put = new Bean1();
-			table.Put(1, bean1put);
+			table.put(1, bean1put);
 			VerifyChanges("{(tRocksRaft#0,1):State=1 PutValue=Bean1(0 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})\n" +
 					"Log=[]\n" +
 					"AllLog=[{0:Value=Bean1(0 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})},{1:Value=21,3: Putted:{23:23} Removed:[],4:{1:Value=22},5: Putted:{24:Bean1(24 I=25 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=25}]}]}");
@@ -349,7 +349,7 @@ public final class Test {
 
 	private static void EditInContainer(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
 		rocks.NewProcedure(() -> {
-			var value = table.GetOrAdd(1);
+			var value = table.getOrAdd(1);
 			var edit = value.getMap2().get(14);
 			edit.getBean2().setI(2222);
 			VerifyChanges("{(tRocksRaft#0,1):State=2 PutValue=null\n" +
@@ -361,12 +361,12 @@ public final class Test {
 
 	private static void NestProcedure(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
 		rocks.NewProcedure(() -> {
-			var value = table.Get(1);
+			var value = table.get(1);
 			value.getBean2().setI(3333);
 
 			rocks.NewProcedure(() ->
 			{
-				var value2 = table.Get(1);
+				var value2 = table.get(1);
 				value2.getBean2().setI(4444);
 				SimpleAssert.AreEqual(4444, value2.getBean2().getI());
 				return -1L;
@@ -382,7 +382,7 @@ public final class Test {
 	private static void NestProcedureContainer(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
 		rocks.NewProcedure(() -> {
 			rocks.NewProcedure(() -> {
-				var value = table.Get(1);
+				var value = table.get(1);
 				value.getMap2().put(4444, new Bean1());
 				value.getMap1().put(4444, 4444);
 				value.getMap1().remove(3);

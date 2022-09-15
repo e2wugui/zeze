@@ -35,12 +35,12 @@ public class LinkdService extends LinkdServiceBase {
         public long DepartmentId;
 
         @Override
-        public void Encode(ByteBuffer bb) {
+        public void encode(ByteBuffer bb) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public void Decode(ByteBuffer bb) {
+        public void decode(ByteBuffer bb) {
             int _t_ = bb.ReadByte();
             int _i_ = bb.ReadTagSize(_t_);
             if (_i_ == 1) {
@@ -55,12 +55,12 @@ public class LinkdService extends LinkdServiceBase {
         }
 
         @Override
-        protected void InitChildrenRootInfo(Record.RootInfo root) {
+        protected void initChildrenRootInfo(Record.RootInfo root) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        protected void ResetChildrenRootInfo() {
+        protected void resetChildrenRootInfo() {
             throw new UnsupportedOperationException();
         }
 
@@ -94,7 +94,7 @@ public class LinkdService extends LinkdServiceBase {
     // 所有的群相关协议的参数的第一个变量必须都是Group: type==String，variable.id==1，
     private int DecodeGroupDepartmentIdHash(Zeze.Serialize.ByteBuffer bb) {
         var rpc = new RpcGroupDepartmentId();
-        rpc.Decode(bb);
+        rpc.decode(bb);
         return rpc.Argument.hashCode();
     }
 
@@ -116,13 +116,13 @@ public class LinkdService extends LinkdServiceBase {
     }
     private int DecodeAccountHash(Zeze.Serialize.ByteBuffer bb) {
         var rpc = new RpcAccount();
-        rpc.Decode(bb);
+        rpc.decode(bb);
         // 必须和Arch\LinkdProvider.java::ChoiceProviderAndBind中的ChoiceTypeHashAccount方式的hash方式一样。
         return ByteBuffer.calc_hashnr(rpc.Argument.getAccount());
     }
 
     @Override
-    public void DispatchUnknownProtocol(Zeze.Net.AsyncSocket so, int moduleId, int protocolId, Zeze.Serialize.ByteBuffer data) {
+    public void dispatchUnknownProtocol(Zeze.Net.AsyncSocket so, int moduleId, int protocolId, Zeze.Serialize.ByteBuffer data) {
         if (moduleId == AbstractWeb.ModuleId) {
             ReportError(so.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider, "not a public provider.");
             return;

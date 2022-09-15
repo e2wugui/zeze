@@ -5,31 +5,31 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Serialize.ByteBuffer;
 
 public final class Storage<K extends Comparable<K>, V extends Bean> {
-	private final Table Table;
-	private final Database.Table DatabaseTable;
+	private final Table table;
+	private final Database.Table databaseTable;
 	private final ConcurrentHashMap<K, Record1<K, V>> changed = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<K, Record1<K, V>> encoded = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<K, Record1<K, V>> snapshot = new ConcurrentHashMap<>();
 
 	public Storage(TableX<K, V> table, Database database, String tableName) {
-		Table = table;
-		DatabaseTable = database.OpenTable(tableName);
+		this.table = table;
+		databaseTable = database.openTable(tableName);
 	}
 
 	public Table getTable() {
-		return Table;
+		return table;
 	}
 
 	public Database.Table getDatabaseTable() {
-		return DatabaseTable;
+		return databaseTable;
 	}
 
-	public V Find(K key, TableX<K, V> table) {
-		ByteBuffer value = DatabaseTable.Find(table.EncodeKey(key));
-		return value != null ? table.DecodeValue(value) : null;
+	public V find(K key, TableX<K, V> table) {
+		ByteBuffer value = databaseTable.find(table.encodeKey(key));
+		return value != null ? table.decodeValue(value) : null;
 	}
 
-	public void OnRecordChanged(Record1<K, V> r) {
+	public void onRecordChanged(Record1<K, V> r) {
 		changed.put(r.getObjectKey(), r);
 	}
 
@@ -51,12 +51,11 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 	 *
 	 * @return encoded record count
 	 */
-	public int EncodeN() {
+	public int encodeN() {
 		int c = 0;
 		for (var v : changed.values()) {
-			if (v.TryEncodeN(changed, encoded)) {
-				++c;
-			}
+			if (v.tryEncodeN(changed, encoded))
+				c++;
 		}
 		return c;
 	}
@@ -66,9 +65,9 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 	 *
 	 * @return encoded record count
 	 */
-	public int Encode0() {
+	public int encode0() {
 		for (var e : changed.entrySet()) {
-			e.getValue().Encode0();
+			e.getValue().encode0();
 			encoded.put(e.getKey(), e.getValue());
 		}
 		int cc = changed.size();
@@ -81,13 +80,12 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 	 *
 	 * @return snapshot record count
 	 */
-	public int Snapshot() {
+	public int snapshot() {
 		snapshot.putAll(encoded);
 		encoded.clear();
 		int cc = snapshot.size();
-		for (var v : snapshot.values()) {
+		for (var v : snapshot.values())
 			v.setSavedTimestampForCheckpointPeriod(v.getTimestamp());
-		}
 		return cc;
 	}
 
@@ -97,10 +95,9 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 	 *
 	 * @return flush record count
 	 */
-	public int Flush(Database.Transaction t, HashMap<Database, Database.Transaction> tss, Database.Transaction lct) {
-		for (var v : snapshot.values()) {
-			v.Flush(t, tss, lct);
-		}
+	public int flush(Database.Transaction t, HashMap<Database, Database.Transaction> tss, Database.Transaction lct) {
+		for (var v : snapshot.values())
+			v.flush(t, tss, lct);
 		return snapshot.size();
 	}
 
@@ -108,14 +105,13 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 	 * 仅在 Checkpoint 中调用。
 	 * 没有拥有任何锁。
 	 */
-	public void Cleanup() {
-		for (var v : snapshot.values()) {
-			v.Cleanup();
-		}
+	public void cleanup() {
+		for (var v : snapshot.values())
+			v.cleanup();
 		snapshot.clear();
 	}
 
-	public void Close() {
-		DatabaseTable.Close();
+	public void close() {
+		databaseTable.close();
 	}
 }

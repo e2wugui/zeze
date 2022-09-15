@@ -4,80 +4,80 @@ import org.apache.logging.log4j.Level;
 
 public final class SocketOptions {
 	// 系统选项
-	private Boolean NoDelay; // 不指定的话由系统提供默认值
-	private Integer SendBuffer; // 不指定的话由系统提供默认值
-	private Integer ReceiveBuffer; // 不指定的话由系统提供默认值
-	private int Backlog = 128; // 只有 ServerSocket 使用
+	private Boolean noDelay; // 不指定的话由系统提供默认值
+	private Integer sendBuffer; // 不指定的话由系统提供默认值
+	private Integer receiveBuffer; // 不指定的话由系统提供默认值
+	private int backlog = 128; // 只有 ServerSocket 使用
 
 	// 应用选项
-	private int InputBufferSize = 8192; // 网络层接收数据 buffer 大小，大流量网络应用需要加大。
-	private int InputBufferMaxProtocolSize = 2 * 1024 * 1024; // 最大协议包的大小。协议需要完整收到才解析和处理，所以需要缓存。这是个安全选项。防止出现攻击占用大量内存。
-	private int OutputBufferMaxSize = 2 * 1024 * 1024;
+	private int inputBufferSize = 8192; // 网络层接收数据 buffer 大小，大流量网络应用需要加大。
+	private int inputBufferMaxProtocolSize = 2 * 1024 * 1024; // 最大协议包的大小。协议需要完整收到才解析和处理，所以需要缓存。这是个安全选项。防止出现攻击占用大量内存。
+	private int outputBufferMaxSize = 2 * 1024 * 1024;
 
 	// 其他杂项
-	private Level SocketLogLevel = Level.TRACE;
+	private Level socketLogLevel = Level.TRACE;
 
 	public Boolean getNoDelay() {
-		return NoDelay;
+		return noDelay;
 	}
 
 	public void setNoDelay(Boolean value) {
-		NoDelay = value;
+		noDelay = value;
 	}
 
 	public Integer getSendBuffer() {
-		return SendBuffer;
+		return sendBuffer;
 	}
 
 	public void setSendBuffer(Integer value) {
-		SendBuffer = value;
+		sendBuffer = value;
 	}
 
 	public Integer getReceiveBuffer() {
-		return ReceiveBuffer;
+		return receiveBuffer;
 	}
 
 	public void setReceiveBuffer(Integer value) {
-		ReceiveBuffer = value;
+		receiveBuffer = value;
 	}
 
 	public int getBacklog() {
-		return Backlog;
+		return backlog;
 	}
 
 	public void setBacklog(int value) {
-		Backlog = value;
+		backlog = value;
 	}
 
 	public int getInputBufferSize() {
-		return InputBufferSize;
+		return inputBufferSize;
 	}
 
 	public void setInputBufferSize(int value) {
-		InputBufferSize = value;
+		inputBufferSize = value;
 	}
 
 	public int getInputBufferMaxProtocolSize() {
-		return InputBufferMaxProtocolSize;
+		return inputBufferMaxProtocolSize;
 	}
 
 	public void setInputBufferMaxProtocolSize(int value) {
-		InputBufferMaxProtocolSize = value;
+		inputBufferMaxProtocolSize = value;
 	}
 
 	public int getOutputBufferMaxSize() {
-		return OutputBufferMaxSize;
+		return outputBufferMaxSize;
 	}
 
 	public void setOutputBufferMaxSize(int value) {
-		OutputBufferMaxSize = value;
+		outputBufferMaxSize = value;
 	}
 
 	public Level getSocketLogLevel() {
-		return SocketLogLevel;
+		return socketLogLevel;
 	}
 
 	public void setSocketLogLevel(Level value) {
-		SocketLogLevel = value;
+		socketLogLevel = value;
 	}
 }

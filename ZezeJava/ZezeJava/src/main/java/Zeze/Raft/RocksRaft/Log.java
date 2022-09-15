@@ -20,7 +20,7 @@ public abstract class Log implements Serializable {
 	}
 
 	// 事务运行时属性，不会被序列化。
-	// 当 Decode，Bean为null。
+	// 当 decode，Bean为null。
 	// Apply通过参数得到日志应用需要的Bean。
 	private Bean Belong;
 	private final int _TypeId; // 会被序列化，实际上由LogBean管理。
@@ -71,8 +71,8 @@ public abstract class Log implements Serializable {
 	}
 
 	@Override
-	public abstract void Encode(ByteBuffer bb);
+	public abstract void encode(ByteBuffer bb);
 
 	@Override
-	public abstract void Decode(ByteBuffer bb);
+	public abstract void decode(ByteBuffer bb);
 }

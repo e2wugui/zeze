@@ -24,13 +24,13 @@ public abstract class LogList<V> extends LogBean {
 	}
 
 	@Override
-	public void Collect(Changes changes, Zeze.Transaction.Bean recent, Log vlog) {
+	public void collect(Changes changes, Zeze.Transaction.Bean recent, Log vlog) {
 		throw new UnsupportedOperationException("Collect Not Implement.");
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void Commit() {
+	public void commit() {
 		((PList<V>)getThis())._list = Value;
 	}
 }

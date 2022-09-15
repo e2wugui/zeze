@@ -35,28 +35,38 @@ public final class BAutoKey extends Zeze.Transaction.Bean {
         _NextId = _NextId_;
     }
 
-    public void Assign(BAutoKey other) {
+    public void assign(BAutoKey other) {
         setNextId(other.getNextId());
     }
 
-    public BAutoKey CopyIfManaged() {
+    @Deprecated
+    public void Assign(BAutoKey other) {
+        assign(other);
+    }
+
+    public BAutoKey copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BAutoKey Copy() {
+    public BAutoKey copy() {
         var copy = new BAutoKey();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BAutoKey a, BAutoKey b) {
+    @Deprecated
+    public BAutoKey Copy() {
+        return copy();
+    }
+
+    public static void swap(BAutoKey a, BAutoKey b) {
         BAutoKey save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BAutoKey CopyBean() {
+    public BAutoKey copyBean() {
         return Copy();
     }
 
@@ -71,18 +81,18 @@ public final class BAutoKey extends Zeze.Transaction.Bean {
         public Log__NextId(BAutoKey bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BAutoKey)getBelong())._NextId = Value; }
+        public void commit() { ((BAutoKey)getBelong())._NextId = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.AutoKey.BAutoKey: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("NextId").append('=').append(getNextId()).append(System.lineSeparator());
@@ -103,7 +113,7 @@ public final class BAutoKey extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             long _x_ = getNextId();
@@ -116,7 +126,7 @@ public final class BAutoKey extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -130,15 +140,15 @@ public final class BAutoKey extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
+    protected void resetChildrenRootInfo() {
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         if (getNextId() < 0)
             return true;
         return false;
@@ -146,7 +156,7 @@ public final class BAutoKey extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;

@@ -23,17 +23,17 @@ public final class GlobalAgent implements IGlobalAgent {
 
 	public static final class Agent extends GlobalAgentBase {
 		private final Connector connector;
-		private final AtomicLong LoginTimes = new AtomicLong();
-		private boolean ActiveClose;
-		private volatile long LastErrorTime;
+		private final AtomicLong loginTimes = new AtomicLong();
+		private boolean activeClose;
+		private volatile long lastErrorTime;
 
 		public Agent(Zeze.Application zeze, GlobalClient client, String host, int port, int _GlobalCacheManagerHashIndex) {
 			super(zeze);
 			connector = new Zeze.Net.Connector(host, port, true);
-			connector.UserState = this;
-			super.GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
+			connector.userState = this;
+			super.globalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
 			connector.setMaxReconnectDelay(AchillesHeelConfig.ReconnectTimer);
-			client.getConfig().AddConnector(connector);
+			client.getConfig().addConnector(connector);
 		}
 
 		@Override
@@ -54,14 +54,14 @@ public final class GlobalAgent implements IGlobalAgent {
 		}
 
 		public AtomicLong getLoginTimes() {
-			return LoginTimes;
+			return loginTimes;
 		}
 
 		public int getGlobalCacheManagerHashIndex() {
-			return GlobalCacheManagerHashIndex;
+			return globalCacheManagerHashIndex;
 		}
 
-		private static void ThrowException(String msg, Throwable cause) {
+		private static void throwException(String msg, Throwable cause) {
 			var txn = Transaction.getCurrent();
 			if (txn != null)
 				txn.ThrowAbort(msg, cause);
@@ -69,18 +69,18 @@ public final class GlobalAgent implements IGlobalAgent {
 		}
 
 		void verifyFastFail() {
-			if (System.currentTimeMillis() - LastErrorTime < getConfig().ServerFastErrorPeriod)
-				ThrowException("GlobalAgent In FastErrorPeriod", null); // abort
+			if (System.currentTimeMillis() - lastErrorTime < getConfig().ServerFastErrorPeriod)
+				throwException("GlobalAgent In FastErrorPeriod", null); // abort
 			// else continue
 		}
 
 		void setFastFail() {
 			var now = System.currentTimeMillis();
-			if (now - LastErrorTime > getConfig().ServerFastErrorPeriod)
-				LastErrorTime = now;
+			if (now - lastErrorTime > getConfig().ServerFastErrorPeriod)
+				lastErrorTime = now;
 		}
 
-		public AsyncSocket Connect() {
+		public AsyncSocket connect() {
 			try {
 				var so = connector.TryGetReadySocket();
 				if (so != null)
@@ -89,18 +89,18 @@ public final class GlobalAgent implements IGlobalAgent {
 				return connector.WaitReady();
 			} catch (Throwable abort) {
 				setFastFail();
-				ThrowException("GlobalAgent Login Failed", abort);
+				throwException("GlobalAgent Login Failed", abort);
 			}
 			return null; // never got here.
 		}
 
-		public void Close() {
+		public void close() {
 			try {
 				synchronized (this) {
 					// 简单保护一下重复主动调用 Close
-					if (ActiveClose)
+					if (activeClose)
 						return;
-					ActiveClose = true;
+					activeClose = true;
 				}
 				var ready = connector.TryGetReadySocket();
 				if (ready != null)
@@ -111,60 +111,60 @@ public final class GlobalAgent implements IGlobalAgent {
 		}
 	}
 
-	private final Application Zeze;
-	private final GlobalClient Client;
-	public Agent[] Agents;
+	private final Application zeze;
+	private final GlobalClient client;
+	public Agent[] agents;
 
 	public GlobalAgent(Application app, String[] hostNameOrAddress, int port) throws Throwable {
-		Zeze = app;
+		zeze = app;
 
-		Client = new GlobalClient(this, Zeze);
+		client = new GlobalClient(this, zeze);
 
-		Client.AddFactoryHandle(Reduce.TypeId_, new Service.ProtocolFactoryHandle<>(
-				Reduce::new, this::ProcessReduceRequest, TransactionLevel.None, DispatchMode.Critical));
-		Client.AddFactoryHandle(Acquire.TypeId_, new Service.ProtocolFactoryHandle<>(
+		client.AddFactoryHandle(Reduce.TypeId_, new Service.ProtocolFactoryHandle<>(
+				Reduce::new, this::processReduceRequest, TransactionLevel.None, DispatchMode.Critical));
+		client.AddFactoryHandle(Acquire.TypeId_, new Service.ProtocolFactoryHandle<>(
 				Acquire::new, null, TransactionLevel.None, DispatchMode.Direct));
-		Client.AddFactoryHandle(Login.TypeId_, new Service.ProtocolFactoryHandle<>(
+		client.AddFactoryHandle(Login.TypeId_, new Service.ProtocolFactoryHandle<>(
 				Login::new, null, TransactionLevel.None, DispatchMode.Critical));
-		Client.AddFactoryHandle(ReLogin.TypeId_, new Service.ProtocolFactoryHandle<>(
+		client.AddFactoryHandle(ReLogin.TypeId_, new Service.ProtocolFactoryHandle<>(
 				ReLogin::new, null, TransactionLevel.None, DispatchMode.Critical));
-		Client.AddFactoryHandle(NormalClose.TypeId_, new Service.ProtocolFactoryHandle<>(
+		client.AddFactoryHandle(NormalClose.TypeId_, new Service.ProtocolFactoryHandle<>(
 				NormalClose::new, null, TransactionLevel.None, DispatchMode.Direct));
-		Client.AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
+		client.AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
 				KeepAlive::new, null, TransactionLevel.None, DispatchMode.Direct));
 
-		Agents = new Agent[hostNameOrAddress.length];
+		agents = new Agent[hostNameOrAddress.length];
 		for (int i = 0; i < hostNameOrAddress.length; i++) {
 			var hp = hostNameOrAddress[i].split(":", -1);
-			Agents[i] = new Agent(Zeze, Client, hp[0], hp.length > 1 ? Integer.parseInt(hp[1]) : port, i);
+			agents[i] = new Agent(zeze, client, hp[0], hp.length > 1 ? Integer.parseInt(hp[1]) : port, i);
 		}
 	}
 
 	public Application getZeze() {
-		return Zeze;
+		return zeze;
 	}
 
 	public GlobalClient getClient() {
-		return Client;
+		return client;
 	}
 
 	@Override
-	public int GetGlobalCacheManagerHashIndex(Binary gkey) {
-		return gkey.hashCode() % Agents.length;
+	public int getGlobalCacheManagerHashIndex(Binary gkey) {
+		return gkey.hashCode() % agents.length;
 	}
 
 	@Override
 	public void close() {
 		try {
-			Stop();
+			stop();
 		} catch (Throwable e) {
 			throw new RuntimeException(e);
 		}
 	}
 
 	@Override
-	public AcquireResult Acquire(Binary gkey, int state, boolean fresh, boolean noWait) {
-		var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
+	public AcquireResult acquire(Binary gkey, int state, boolean fresh, boolean noWait) {
+		var agent = agents[getGlobalCacheManagerHashIndex(gkey)]; // hash
 		if (agent.isReleasing()) {
 			agent.setFastFail();
 			var trans = Transaction.getCurrent();
@@ -173,7 +173,7 @@ public final class GlobalAgent implements IGlobalAgent {
 			trans.ThrowAbort("Acquire In Releasing", null);
 		}
 		agent.verifyFastFail();
-		var socket = agent.Connect();
+		var socket = agent.connect();
 		// 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了），打断外面的事务。
 		// 一个请求异常不关闭连接，尝试继续工作。
 		var rpc = new Acquire(gkey, state);
@@ -214,37 +214,37 @@ public final class GlobalAgent implements IGlobalAgent {
 		return rc == 0 ? AcquireResult.getSuccessResult(state) : new AcquireResult(rc, state);
 	}
 
-	public int ProcessReduceRequest(Reduce rpc) {
+	public int processReduceRequest(Reduce rpc) {
 		switch (rpc.Argument.State) {
 		case GlobalCacheManagerConst.StateInvalid: {
 			var bb = ByteBuffer.Wrap(rpc.Argument.GlobalKey);
 			var tableId = bb.ReadInt4();
-			var table1 = Zeze.GetTable(tableId);
+			var table1 = zeze.GetTable(tableId);
 			if (null == table1) {
 				logger.warn("ReduceInvalid Table Not Found={},ServerId={}",
-						tableId, Zeze.getConfig().getServerId());
+						tableId, zeze.getConfig().getServerId());
 				// 本地没有找到表格看作成功。
 				rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
 				rpc.Result.State = GlobalCacheManagerConst.StateInvalid;
 				rpc.SendResultCode(0);
 				return 0;
 			}
-			return table1.ReduceInvalid(rpc, bb);
+			return table1.reduceInvalid(rpc, bb);
 		}
 		case GlobalCacheManagerConst.StateShare: {
 			var bb = ByteBuffer.Wrap(rpc.Argument.GlobalKey);
 			var tableId = bb.ReadInt4();
-			var table = Zeze.GetTable(tableId);
+			var table = zeze.GetTable(tableId);
 			if (table == null) {
 				logger.warn("ReduceShare Table Not Found={},ServerId={}",
-						tableId, Zeze.getConfig().getServerId());
+						tableId, zeze.getConfig().getServerId());
 				// 本地没有找到表格看作成功。
 				rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
 				rpc.Result.State = GlobalCacheManagerConst.StateInvalid;
 				rpc.SendResultCode(0);
 				return 0;
 			}
-			return table.ReduceShare(rpc, bb);
+			return table.reduceShare(rpc, bb);
 		}
 		default:
 			rpc.Result = rpc.Argument;
@@ -253,12 +253,12 @@ public final class GlobalAgent implements IGlobalAgent {
 		}
 	}
 
-	public synchronized void Start() throws Throwable {
-		Client.Start();
+	public synchronized void start() throws Throwable {
+		client.Start();
 
-		for (var agent : Agents) {
+		for (var agent : agents) {
 			try {
-				agent.Connect();
+				agent.connect();
 			} catch (Throwable ex) {
 				// 允许部分GlobalCacheManager连接错误时，继续启动程序，虽然后续相关事务都会失败。
 				logger.error("GlobalAgent.Connect", ex);
@@ -266,9 +266,9 @@ public final class GlobalAgent implements IGlobalAgent {
 		}
 	}
 
-	public synchronized void Stop() throws Throwable {
-		for (var agent : Agents)
-			agent.Close();
-		Client.Stop();
+	public synchronized void stop() throws Throwable {
+		for (var agent : agents)
+			agent.close();
+		client.Stop();
 	}
 }

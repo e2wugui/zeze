@@ -203,13 +203,13 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
         _String = "";
         _Binary = Zeze.Net.Binary.Empty;
         _SetInt = new Zeze.Raft.RocksRaft.CollSet1<>(Integer.class);
-        _SetInt.VariableId = 7;
+        _SetInt.variableId(7);
         _SetBeankey = new Zeze.Raft.RocksRaft.CollSet1<>(Zeze.Builtin.TestRocks.BeanKey.class);
-        _SetBeankey.VariableId = 8;
+        _SetBeankey.variableId(8);
         _MapInt = new Zeze.Raft.RocksRaft.CollMap1<>(Integer.class, Integer.class);
-        _MapInt.VariableId = 9;
+        _MapInt.variableId(9);
         _MapBean = new Zeze.Raft.RocksRaft.CollMap2<>(Integer.class, Zeze.Builtin.TestRocks.BValue.class);
-        _MapBean.VariableId = 10;
+        _MapBean.variableId(10);
         _Beankey = new Zeze.Builtin.TestRocks.BeanKey();
     }
 
@@ -225,19 +225,19 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
             throw new IllegalArgumentException();
         _Binary = _Binary_;
         _SetInt = new Zeze.Raft.RocksRaft.CollSet1<>(Integer.class);
-        _SetInt.VariableId = 7;
+        _SetInt.variableId(7);
         _SetBeankey = new Zeze.Raft.RocksRaft.CollSet1<>(Zeze.Builtin.TestRocks.BeanKey.class);
-        _SetBeankey.VariableId = 8;
+        _SetBeankey.variableId(8);
         _MapInt = new Zeze.Raft.RocksRaft.CollMap1<>(Integer.class, Integer.class);
-        _MapInt.VariableId = 9;
+        _MapInt.variableId(9);
         _MapBean = new Zeze.Raft.RocksRaft.CollMap2<>(Integer.class, Zeze.Builtin.TestRocks.BValue.class);
-        _MapBean.VariableId = 10;
+        _MapBean.variableId(10);
         if (_Beankey_ == null)
             throw new IllegalArgumentException();
         _Beankey = _Beankey_;
     }
 
-    public void Assign(BValue other) {
+    public void assign(BValue other) {
         setInt(other.getInt());
         setBool(other.isBool());
         setFloat(other.getFloat());
@@ -259,24 +259,34 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
         setBeankey(other.getBeankey());
     }
 
-    public BValue CopyIfManaged() {
+    @Deprecated
+    public void Assign(BValue other) {
+        assign(other);
+    }
+
+    public BValue copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BValue Copy() {
+    public BValue copy() {
         var copy = new BValue();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BValue a, BValue b) {
+    @Deprecated
+    public BValue Copy() {
+        return copy();
+    }
+
+    public static void swap(BValue a, BValue b) {
         BValue save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BValue CopyBean() {
+    public BValue copyBean() {
         return Copy();
     }
 
@@ -290,12 +300,12 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.TestRocks.BValue: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Int").append('=').append(getInt()).append(',').append(System.lineSeparator());
@@ -315,7 +325,7 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
         level += 4;
         for (var _item_ : getSetBeankey()) {
             sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(System.lineSeparator());
-            _item_.BuildString(sb, level + 4);
+            _item_.buildString(sb, level + 4);
             sb.append(',').append(System.lineSeparator());
         }
         level -= 4;
@@ -336,14 +346,14 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
             sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(_kv_.getKey()).append(',').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
-            _kv_.getValue().BuildString(sb, level + 4);
+            _kv_.getValue().buildString(sb, level + 4);
             sb.append(',').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append(')').append(System.lineSeparator());
         }
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append(']').append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Beankey").append('=').append(System.lineSeparator());
-        getBeankey().BuildString(sb, level + 4);
+        getBeankey().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -362,7 +372,7 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             int _x_ = getInt();
@@ -423,7 +433,7 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
                 _i_ = _o_.WriteTag(_i_, 8, ByteBuffer.LIST);
                 _o_.WriteListType(_n_, ByteBuffer.BEAN);
                 for (var _v_ : _x_)
-                    _v_.Encode(_o_);
+                    _v_.encode(_o_);
             }
         }
         {
@@ -446,7 +456,7 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
                 _o_.WriteMapType(_n_, ByteBuffer.INTEGER, ByteBuffer.BEAN);
                 for (var _e_ : _x_.entrySet()) {
                     _o_.WriteLong(_e_.getKey());
-                    _e_.getValue().Encode(_o_);
+                    _e_.getValue().encode(_o_);
                 }
             }
         }
@@ -454,7 +464,7 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
             int _a_ = _o_.WriteIndex;
             int _j_ = _o_.WriteTag(_i_, 11, ByteBuffer.BEAN);
             int _b_ = _o_.WriteIndex;
-            getBeankey().Encode(_o_);
+            getBeankey().encode(_o_);
             if (_b_ + 1 == _o_.WriteIndex)
                 _o_.WriteIndex = _a_;
             else
@@ -464,7 +474,7 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -550,16 +560,16 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Raft.RocksRaft.Record.RootInfo root) {
-        _SetInt.InitRootInfo(root, this);
-        _SetBeankey.InitRootInfo(root, this);
-        _MapInt.InitRootInfo(root, this);
-        _MapBean.InitRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Raft.RocksRaft.Record.RootInfo root) {
+        _SetInt.initRootInfo(root, this);
+        _SetBeankey.initRootInfo(root, this);
+        _MapInt.initRootInfo(root, this);
+        _MapBean.initRootInfo(root, this);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public void LeaderApplyNoRecursive(Zeze.Raft.RocksRaft.Log vlog) {
+    public void leaderApplyNoRecursive(Zeze.Raft.RocksRaft.Log vlog) {
         switch (vlog.getVariableId()) {
             case 1: _Int = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).Value; break;
             case 2: _Bool = ((Zeze.Raft.RocksRaft.Log1.LogBool)vlog).Value; break;
@@ -567,17 +577,17 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
             case 4: _double = ((Zeze.Raft.RocksRaft.Log1.LogDouble)vlog).Value; break;
             case 5: _String = ((Zeze.Raft.RocksRaft.Log1.LogString)vlog).Value; break;
             case 6: _Binary = ((Zeze.Raft.RocksRaft.Log1.LogBinary)vlog).Value; break;
-            case 7: _SetInt.LeaderApplyNoRecursive(vlog); break;
-            case 8: _SetBeankey.LeaderApplyNoRecursive(vlog); break;
-            case 9: _MapInt.LeaderApplyNoRecursive(vlog); break;
-            case 10: _MapBean.LeaderApplyNoRecursive(vlog); break;
+            case 7: _SetInt.leaderApplyNoRecursive(vlog); break;
+            case 8: _SetBeankey.leaderApplyNoRecursive(vlog); break;
+            case 9: _MapInt.leaderApplyNoRecursive(vlog); break;
+            case 10: _MapBean.leaderApplyNoRecursive(vlog); break;
             case 11: _Beankey = ((Zeze.Raft.RocksRaft.Log1.LogBeanKey<Zeze.Builtin.TestRocks.BeanKey>)vlog).Value; break;
         }
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Raft.RocksRaft.Log log) {
+    public void followerApply(Zeze.Raft.RocksRaft.Log log) {
         var vars = ((Zeze.Raft.RocksRaft.LogBean)log).getVariables();
         if (vars == null)
             return;
@@ -590,10 +600,10 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
                 case 4: _double = ((Zeze.Raft.RocksRaft.Log1.LogDouble)vlog).Value; break;
                 case 5: _String = ((Zeze.Raft.RocksRaft.Log1.LogString)vlog).Value; break;
                 case 6: _Binary = ((Zeze.Raft.RocksRaft.Log1.LogBinary)vlog).Value; break;
-                case 7: _SetInt.FollowerApply(vlog); break;
-                case 8: _SetBeankey.FollowerApply(vlog); break;
-                case 9: _MapInt.FollowerApply(vlog); break;
-                case 10: _MapBean.FollowerApply(vlog); break;
+                case 7: _SetInt.followerApply(vlog); break;
+                case 8: _SetBeankey.followerApply(vlog); break;
+                case 9: _MapInt.followerApply(vlog); break;
+                case 10: _MapBean.followerApply(vlog); break;
                 case 11: _Beankey = ((Zeze.Raft.RocksRaft.Log1.LogBeanKey<Zeze.Builtin.TestRocks.BeanKey>)vlog).Value; break;
             }
         }

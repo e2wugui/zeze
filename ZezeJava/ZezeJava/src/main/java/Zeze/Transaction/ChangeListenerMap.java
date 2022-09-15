@@ -9,12 +9,12 @@ public final class ChangeListenerMap {
 	private final HashSet<ChangeListener> set = new HashSet<>();
 	public volatile HashSet<ChangeListener> setCopy;
 
-	public synchronized void AddListener(ChangeListener listener) {
+	public synchronized void addListener(ChangeListener listener) {
 		if (set.add(listener))
 			setCopy = null;
 	}
 
-	public synchronized void RemoveListener(ChangeListener listener) {
+	public synchronized void removeListener(ChangeListener listener) {
 		if (set.remove(listener))
 			setCopy = null;
 	}
@@ -31,7 +31,7 @@ public final class ChangeListenerMap {
 		return tmp;
 	}
 
-	public boolean HasListener() {
+	public boolean hasListener() {
 		return !getListeners().isEmpty();
 	}
 }

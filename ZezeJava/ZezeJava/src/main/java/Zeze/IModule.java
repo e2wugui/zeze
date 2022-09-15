@@ -32,10 +32,10 @@ public abstract class IModule {
 	}
 
 	public static int GetModuleId(long result) {
-		return Zeze.Net.Protocol.GetModuleId(result);
+		return Zeze.Net.Protocol.getModuleId(result);
 	}
 
 	public static int GetErrorCode(long result) {
-		return Zeze.Net.Protocol.GetProtocolId(result);
+		return Zeze.Net.Protocol.getProtocolId(result);
 	}
 }

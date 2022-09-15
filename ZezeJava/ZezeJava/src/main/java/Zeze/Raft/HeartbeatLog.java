@@ -33,15 +33,15 @@ final class HeartbeatLog extends Log {
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
-		super.Encode(bb);
+	public void encode(ByteBuffer bb) {
+		super.encode(bb);
 		bb.WriteInt(Operate);
 		bb.WriteString(Info);
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
-		super.Decode(bb);
+	public void decode(ByteBuffer bb) {
+		super.decode(bb);
 		Operate = bb.ReadInt();
 		Info = bb.ReadString();
 	}

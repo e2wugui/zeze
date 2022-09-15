@@ -65,7 +65,7 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 			var linkName = GetLinkName(link);
 			var connector = Links.computeIfAbsent(linkName, __ -> {
 				var outC = new OutObject<Connector>();
-				if (getConfig().TryGetOrAddConnector(link.getPassiveIp(), link.getPassivePort(), true, outC)) {
+				if (getConfig().tryGetOrAddConnector(link.getPassiveIp(), link.getPassivePort(), true, outC)) {
 					try {
 						outC.Value.Start();
 					} catch (Throwable e) {
@@ -83,7 +83,7 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 				continue;
 			var removed = Links.remove(linkName);
 			if (removed != null) {
-				getConfig().RemoveConnector(removed);
+				getConfig().removeConnector(removed);
 				removed.Stop();
 			}
 		}

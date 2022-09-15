@@ -257,7 +257,7 @@ public class TestChangeListener {
 		ls.Vars.put(demo.Module1.Table1.VAR_dynamic14, _ClDynamic14);
 		ls.Vars.put(demo.Module1.Table1.VAR_map15, _CLMap15);
 
-		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(ls);
+		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().addListener(ls);
 	}
 
 	private final CLInt1 _CLInt1 = new CLInt1();
@@ -371,7 +371,7 @@ public class TestChangeListener {
 		private Bean newValue;
 
 		public final void Init(demo.Module1.BValue current) {
-			newValue = current == null ? null : current.getDynamic14().CopyBean();
+			newValue = current == null ? null : current.getDynamic14().copyBean();
 		}
 
 		public final void Verify(demo.Module1.BValue current) {

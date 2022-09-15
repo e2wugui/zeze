@@ -40,28 +40,38 @@ public final class BNotify extends Zeze.Transaction.Bean {
         _FullEncodedProtocol = _FullEncodedProtocol_;
     }
 
-    public void Assign(BNotify other) {
+    public void assign(BNotify other) {
         setFullEncodedProtocol(other.getFullEncodedProtocol());
     }
 
-    public BNotify CopyIfManaged() {
+    @Deprecated
+    public void Assign(BNotify other) {
+        assign(other);
+    }
+
+    public BNotify copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BNotify Copy() {
+    public BNotify copy() {
         var copy = new BNotify();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BNotify a, BNotify b) {
+    @Deprecated
+    public BNotify Copy() {
+        return copy();
+    }
+
+    public static void swap(BNotify a, BNotify b) {
         BNotify save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BNotify CopyBean() {
+    public BNotify copyBean() {
         return Copy();
     }
 
@@ -76,18 +86,18 @@ public final class BNotify extends Zeze.Transaction.Bean {
         public Log__FullEncodedProtocol(BNotify bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BNotify)getBelong())._FullEncodedProtocol = Value; }
+        public void commit() { ((BNotify)getBelong())._FullEncodedProtocol = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Online.BNotify: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("FullEncodedProtocol").append('=').append(getFullEncodedProtocol()).append(System.lineSeparator());
@@ -108,7 +118,7 @@ public final class BNotify extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             var _x_ = getFullEncodedProtocol();
@@ -121,7 +131,7 @@ public final class BNotify extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -135,21 +145,21 @@ public final class BNotify extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
+    protected void resetChildrenRootInfo() {
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         return false;
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;

@@ -27,21 +27,21 @@ public final class tCustomClasses extends Zeze.Transaction.TableX<Integer, Zeze.
     public static final int VAR_CustomClasses = 1;
 
     @Override
-    public Integer DecodeKey(ByteBuffer _os_) {
+    public Integer decodeKey(ByteBuffer _os_) {
         int _v_;
         _v_ = _os_.ReadInt();
         return _v_;
     }
 
     @Override
-    public ByteBuffer EncodeKey(Integer _v_) {
+    public ByteBuffer encodeKey(Integer _v_) {
         ByteBuffer _os_ = ByteBuffer.Allocate(16);
         _os_.WriteInt(_v_);
         return _os_;
     }
 
     @Override
-    public Zeze.Builtin.Timer.BCustomClasses NewValue() {
+    public Zeze.Builtin.Timer.BCustomClasses newValue() {
         return new Zeze.Builtin.Timer.BCustomClasses();
     }
 }

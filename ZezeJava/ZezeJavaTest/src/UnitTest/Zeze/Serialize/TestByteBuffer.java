@@ -318,12 +318,12 @@ public class TestByteBuffer extends TestCase {
 		v.getMap16().put(new Key((short)11), simple);
 
 		ByteBuffer bb = ByteBuffer.Allocate();
-		v.Encode(bb);
+		v.encode(bb);
 		BValue v2 = new BValue();
-		v2.Decode(bb);
+		v2.decode(bb);
 		bb.ReadIndex = 0;
 		ByteBuffer bb2 = ByteBuffer.Allocate();
-		v2.Encode(bb2);
+		v2.encode(bb2);
 
 //		System.out.println(v);
 //		System.out.println(v2);

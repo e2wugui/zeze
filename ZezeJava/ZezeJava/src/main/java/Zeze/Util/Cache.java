@@ -62,7 +62,7 @@ public class Cache {
 
 		var bb = ByteBuffer.Wrap(bytes);
 		value = factory.apply(bb.ReadInt());
-		value.Decode(bb);
+		value.decode(bb);
 
 		// 当出现并发get重复从db读取时，这里的getOrAdd会忽略后面读到的value，返回已经存在的。
 		var tmpLambda = value;
@@ -73,7 +73,7 @@ public class Cache {
 		lru.getOrAdd(id, () -> value);
 		var bb = ByteBuffer.Allocate();
 		bb.WriteInt(value.cacheId());
-		value.Encode(bb);
+		value.encode(bb);
 		var key = ByteBuffer.Allocate(9);
 		key.WriteLong(id);
 		db.put(DatabaseRocksDb.getDefaultWriteOptions(), key.Bytes, 0, key.WriteIndex, bb.Bytes, 0, bb.WriteIndex);

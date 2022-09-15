@@ -10,26 +10,26 @@ public final class BSHandshakeArgument extends Bean {
 	public boolean c2sNeedCompress;
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		dh_data = bb.ReadBytes();
 		s2cNeedCompress = bb.ReadBool();
 		c2sNeedCompress = bb.ReadBool();
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteBytes(dh_data);
 		bb.WriteBool(s2cNeedCompress);
 		bb.WriteBool(c2sNeedCompress);
 	}
 
 	@Override
-	protected void InitChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.RootInfo root) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	protected void ResetChildrenRootInfo() {
+	protected void resetChildrenRootInfo() {
 		throw new UnsupportedOperationException();
 	}
 

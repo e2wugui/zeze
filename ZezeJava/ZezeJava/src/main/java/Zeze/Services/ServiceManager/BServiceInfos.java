@@ -75,23 +75,23 @@ public final class BServiceInfos extends Bean {
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		ServiceName = bb.ReadString();
 		_ServiceInfoListSortedByIdentity.clear();
 		for (int c = bb.ReadInt(); c > 0; --c) {
 			var service = new BServiceInfo();
-			service.Decode(bb);
+			service.decode(bb);
 			_ServiceInfoListSortedByIdentity.add(service);
 		}
 		SerialId = bb.ReadLong();
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteString(ServiceName);
 		bb.WriteInt(_ServiceInfoListSortedByIdentity.size());
 		for (var service : _ServiceInfoListSortedByIdentity) {
-			service.Encode(bb);
+			service.encode(bb);
 		}
 		bb.WriteLong(SerialId);
 	}
@@ -109,12 +109,12 @@ public final class BServiceInfos extends Bean {
 	}
 
 	@Override
-	protected void InitChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.RootInfo root) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	protected void ResetChildrenRootInfo() {
+	protected void resetChildrenRootInfo() {
 		throw new UnsupportedOperationException();
 	}
 

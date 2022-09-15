@@ -27,21 +27,21 @@ public final class taccount extends Zeze.Transaction.TableX<String, Zeze.Builtin
     public static final int VAR_LastLoginVersion = 1;
 
     @Override
-    public String DecodeKey(ByteBuffer _os_) {
+    public String decodeKey(ByteBuffer _os_) {
         String _v_;
         _v_ = _os_.ReadString();
         return _v_;
     }
 
     @Override
-    public ByteBuffer EncodeKey(String _v_) {
+    public ByteBuffer encodeKey(String _v_) {
         ByteBuffer _os_ = ByteBuffer.Allocate(16);
         _os_.WriteString(_v_);
         return _os_;
     }
 
     @Override
-    public Zeze.Builtin.Online.BAccount NewValue() {
+    public Zeze.Builtin.Online.BAccount newValue() {
         return new Zeze.Builtin.Online.BAccount();
     }
 }

@@ -30,93 +30,93 @@ public class Service {
 	protected static final Logger logger = LogManager.getLogger(Service.class);
 	private static final AtomicLong StaticSessionIdAtomicLong = new AtomicLong(1);
 
-	private final String Name;
-	private final Application Zeze;
-	private SocketOptions SocketOptions; // 同一个 Service 下的所有连接都是用相同配置。
-	private ServiceConf Config;
-	private LongSupplier SessionIdGenerator;
-	protected final LongConcurrentHashMap<AsyncSocket> SocketMap = new LongConcurrentHashMap<>();
-	private final LongConcurrentHashMap<ProtocolFactoryHandle<? extends Protocol<?>>> Factorys = new LongConcurrentHashMap<>();
-	private final LongConcurrentHashMap<Protocol<?>> _RpcContexts = new LongConcurrentHashMap<>();
-	private final LongConcurrentHashMap<ManualContext> ManualContexts = new LongConcurrentHashMap<>();
+	private final String name;
+	private final Application zeze;
+	private SocketOptions socketOptions; // 同一个 Service 下的所有连接都是用相同配置。
+	private ServiceConf config;
+	private LongSupplier sessionIdGenerator;
+	private final LongConcurrentHashMap<AsyncSocket> socketMap = new LongConcurrentHashMap<>();
+	private final LongConcurrentHashMap<ProtocolFactoryHandle<? extends Protocol<?>>> factorys = new LongConcurrentHashMap<>();
+	private final LongConcurrentHashMap<Protocol<?>> rpcContexts = new LongConcurrentHashMap<>();
+	private final LongConcurrentHashMap<ManualContext> manualContexts = new LongConcurrentHashMap<>();
 
 	public Service(String name) {
-		Name = name;
-		Zeze = null;
-		SocketOptions = new SocketOptions();
+		this.name = name;
+		zeze = null;
+		socketOptions = new SocketOptions();
 	}
 
 	public Service(String name, Config config) throws Throwable {
-		Name = name;
-		Zeze = null;
-		InitConfig(config);
+		this.name = name;
+		zeze = null;
+		initConfig(config);
 	}
 
 	public Service(String name, Application app) throws Throwable {
-		Name = name;
-		Zeze = app;
-		InitConfig(app != null ? app.getConfig() : null);
+		this.name = name;
+		zeze = app;
+		initConfig(app != null ? app.getConfig() : null);
 	}
 
-	private void InitConfig(Config config) throws Throwable {
-		Config = config != null ? config.GetServiceConf(Name) : null;
-		if (Config == null) {
+	private void initConfig(Config config) throws Throwable {
+		this.config = config != null ? config.GetServiceConf(name) : null;
+		if (this.config == null) {
 			// setup program default
-			Config = new ServiceConf();
+			this.config = new ServiceConf();
 			if (config != null) {
 				// reference to config default
-				Config.setSocketOptions(config.getDefaultServiceConf().getSocketOptions());
-				Config.setHandshakeOptions(config.getDefaultServiceConf().getHandshakeOptions());
+				this.config.setSocketOptions(config.getDefaultServiceConf().getSocketOptions());
+				this.config.setHandshakeOptions(config.getDefaultServiceConf().getHandshakeOptions());
 			}
 		}
-		Config.SetService(this);
-		SocketOptions = Config.getSocketOptions();
+		this.config.SetService(this);
+		socketOptions = this.config.getSocketOptions();
 	}
 
 	public final String getName() {
-		return Name;
+		return name;
 	}
 
 	public final Application getZeze() {
-		return Zeze;
+		return zeze;
 	}
 
 	public SocketOptions getSocketOptions() {
-		return SocketOptions;
+		return socketOptions;
 	}
 
 	public void setSocketOptions(SocketOptions ops) {
 		if (ops != null)
-			SocketOptions = ops;
+			socketOptions = ops;
 	}
 
 	public ServiceConf getConfig() {
-		return Config;
+		return config;
 	}
 
 	public void setConfig(ServiceConf conf) {
-		Config = conf;
+		config = conf;
 	}
 
 	public final LongSupplier getSessionIdGenerator() {
-		return SessionIdGenerator;
+		return sessionIdGenerator;
 	}
 
 	public final void setSessionIdGenerator(LongSupplier value) {
-		SessionIdGenerator = value;
+		sessionIdGenerator = value;
 	}
 
-	public final long NextSessionId() {
-		LongSupplier gen = SessionIdGenerator;
+	public final long nextSessionId() {
+		LongSupplier gen = sessionIdGenerator;
 		return gen != null ? gen.getAsLong() : StaticSessionIdAtomicLong.getAndIncrement();
 	}
 
 	public final int getSocketCount() {
-		return SocketMap.size();
+		return socketMap.size();
 	}
 
 	protected final LongConcurrentHashMap<AsyncSocket> getSocketMap() {
-		return SocketMap;
+		return socketMap;
 	}
 
 	/**
@@ -126,24 +126,24 @@ public class Service {
 	 * @return Socket Instance.
 	 */
 	public AsyncSocket GetSocket(long sessionId) {
-		return SocketMap.get(sessionId);
+		return socketMap.get(sessionId);
 	}
 
 	public AsyncSocket GetSocket() {
-		Iterator<AsyncSocket> sockets = SocketMap.iterator();
+		Iterator<AsyncSocket> sockets = socketMap.iterator();
 		return sockets.hasNext() ? sockets.next() : null;
 	}
 
 	public void Start() throws Throwable {
-		if (Config != null)
-			Config.Start();
+		if (config != null)
+			config.start();
 	}
 
 	public void Stop() throws Throwable {
-		if (Config != null)
-			Config.Stop();
+		if (config != null)
+			config.stop();
 
-		for (AsyncSocket as : SocketMap)
+		for (AsyncSocket as : socketMap)
 			as.close(); // remove in callback OnSocketClose
 
 		// 先不清除，让Rpc的TimerTask仍然在超时以后触发回调。
@@ -152,23 +152,23 @@ public class Service {
 		// _RpcContexts.Clear();
 	}
 
-	public final AsyncSocket NewServerSocket(String ipaddress, int port, Acceptor acceptor) {
+	public final AsyncSocket newServerSocket(String ipaddress, int port, Acceptor acceptor) {
 		try {
-			return NewServerSocket(InetAddress.getByName(ipaddress), port, acceptor);
+			return newServerSocket(InetAddress.getByName(ipaddress), port, acceptor);
 		} catch (UnknownHostException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	public final AsyncSocket NewServerSocket(InetAddress ipaddress, int port, Acceptor acceptor) {
-		return NewServerSocket(new InetSocketAddress(ipaddress, port), acceptor);
+	public final AsyncSocket newServerSocket(InetAddress ipaddress, int port, Acceptor acceptor) {
+		return newServerSocket(new InetSocketAddress(ipaddress, port), acceptor);
 	}
 
-	public final AsyncSocket NewServerSocket(InetSocketAddress localEP, Acceptor acceptor) {
+	public final AsyncSocket newServerSocket(InetSocketAddress localEP, Acceptor acceptor) {
 		return new AsyncSocket(this, localEP, acceptor);
 	}
 
-	public final AsyncSocket NewClientSocket(String hostNameOrAddress, int port, Object userState, Connector connector) {
+	public final AsyncSocket newClientSocket(String hostNameOrAddress, int port, Object userState, Connector connector) {
 		return new AsyncSocket(this, hostNameOrAddress, port, userState, connector);
 	}
 
@@ -179,7 +179,7 @@ public class Service {
 	 * @param e  caught exception, null for none.
 	 */
 	public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
-		SocketMap.remove(so.getSessionId(), so);
+		socketMap.remove(so.getSessionId(), so);
 	}
 
 	/**
@@ -204,10 +204,10 @@ public class Service {
 		*/
 	}
 
-	public final Collection<Protocol<?>> RemoveRpcContexts(Collection<Long> sids) {
+	public final Collection<Protocol<?>> removeRpcContexts(Collection<Long> sids) {
 		var result = new ArrayList<Protocol<?>>(sids.size());
 		for (var sid : sids) {
-			var ctx = RemoveRpcContext(sid);
+			var ctx = removeRpcContext(sid);
 			if (ctx != null)
 				result.add(ctx);
 		}
@@ -220,7 +220,7 @@ public class Service {
 	 * @param so new socket accepted.
 	 */
 	public void OnSocketAccept(AsyncSocket so) throws Throwable {
-		SocketMap.putIfAbsent(so.getSessionId(), so);
+		socketMap.putIfAbsent(so.getSessionId(), so);
 		OnHandshakeDone(so);
 	}
 
@@ -249,7 +249,7 @@ public class Service {
 	 */
 	@SuppressWarnings("RedundantThrows")
 	public void OnSocketConnectError(AsyncSocket so, Throwable e) throws Throwable {
-		SocketMap.remove(so.getSessionId(), so);
+		socketMap.remove(so.getSessionId(), so);
 	}
 
 	/**
@@ -258,7 +258,7 @@ public class Service {
 	 * @param so connect succeed
 	 */
 	public void OnSocketConnected(AsyncSocket so) throws Throwable {
-		SocketMap.putIfAbsent(so.getSessionId(), so);
+		socketMap.putIfAbsent(so.getSessionId(), so);
 		OnHandshakeDone(so);
 	}
 
@@ -271,30 +271,30 @@ public class Service {
 	 *              处理了多少要体现在input.ReadIndex上,剩下的等下次收到数据后会继续在此处理.
 	 */
 	public void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input) throws Throwable {
-		Protocol.Decode(this, so, input);
+		Protocol.decode(this, so, input);
 	}
 
 	// 用来派发异步rpc回调。
 	@SuppressWarnings("RedundantThrows")
 	public <P extends Protocol<?>> void DispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
 															ProtocolFactoryHandle<?> factoryHandle) throws Throwable {
-		if (Zeze != null && factoryHandle.Level != TransactionLevel.None) {
-			Task.runRpcResponseUnsafe(Zeze.NewProcedure(
+		if (zeze != null && factoryHandle.Level != TransactionLevel.None) {
+			Task.runRpcResponseUnsafe(zeze.NewProcedure(
 					() -> responseHandle.handle(rpc), rpc.getClass().getName() + ":Response",
 					factoryHandle.Level, rpc.getUserState()), factoryHandle.Mode);
 		} else
 			Task.runRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
 	}
 
-	public <P extends Protocol<?>> void DispatchProtocol2(Object key, P p, ProtocolFactoryHandle<P> factoryHandle) {
+	public <P extends Protocol<?>> void dispatchProtocol2(Object key, P p, ProtocolFactoryHandle<P> factoryHandle) {
 		if (factoryHandle.Handle != null) {
 			if (factoryHandle.Level != TransactionLevel.None) {
-				Zeze.getTaskOneByOneByKey().Execute(key, () ->
-								Task.Call(Zeze.NewProcedure(() -> factoryHandle.Handle.handle(p), p.getClass().getName(),
+				zeze.getTaskOneByOneByKey().Execute(key, () ->
+								Task.Call(zeze.NewProcedure(() -> factoryHandle.Handle.handle(p), p.getClass().getName(),
 										factoryHandle.Level, p.getUserState()), p, Protocol::trySendResultCode),
 						factoryHandle.Mode);
 			} else {
-				Zeze.getTaskOneByOneByKey().Execute(key,
+				zeze.getTaskOneByOneByKey().Execute(key,
 						() -> Task.Call(() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode),
 						factoryHandle.Mode);
 			}
@@ -302,20 +302,20 @@ public class Service {
 			logger.warn("DispatchProtocol2: Protocol Handle Not Found: {}", p);
 	}
 
-	public boolean IsHandshakeProtocol(long typeId) {
+	public boolean isHandshakeProtocol(long typeId) {
 		return false;
 	}
 
 	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) throws Throwable {
 		ProtocolHandle<P> handle = factoryHandle.Handle;
 		if (handle != null) {
-			if (IsHandshakeProtocol(p.getTypeId())) {
+			if (isHandshakeProtocol(p.getTypeId())) {
 				// handshake protocol call direct in io-thread.
 				Task.Call(() -> handle.handle(p), p, Protocol::trySendResultCode);
 				return;
 			}
 			TransactionLevel level = factoryHandle.Level;
-			Application zeze = Zeze;
+			Application zeze = this.zeze;
 			// 为了避免redirect时死锁,这里一律不在whileCommit时执行
 			if (zeze != null && level != TransactionLevel.None)
 				Task.runUnsafe(zeze.NewProcedure(() -> handle.handle(p),
@@ -332,7 +332,7 @@ public class Service {
 	 * @param data 方法外绝对不能持有data.Bytes的引用! 也就是只能在方法内读data, 只能处理data.ReadIndex到data.WriteIndex范围内
 	 */
 	@SuppressWarnings("RedundantThrows")
-	public void DispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId, ByteBuffer data) throws Throwable {
+	public void dispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId, ByteBuffer data) throws Throwable {
 		throw new UnsupportedOperationException("Unknown Protocol (" + moduleId + ", " + protocolId + ") size=" + data.Size());
 	}
 
@@ -374,47 +374,47 @@ public class Service {
 	}
 
 	public final LongConcurrentHashMap<ProtocolFactoryHandle<? extends Protocol<?>>> getFactorys() {
-		return Factorys;
+		return factorys;
 	}
 
 	public final void AddFactoryHandle(long type, ProtocolFactoryHandle<? extends Protocol<?>> factory) {
-		if (Factorys.putIfAbsent(type, factory) != null)
+		if (factorys.putIfAbsent(type, factory) != null)
 			throw new IllegalStateException(String.format("duplicate factory type=%d moduleId=%d id=%d",
 					type, type >>> 32, type & 0xffff_ffffL));
 	}
 
-	public final ProtocolFactoryHandle<? extends Protocol<?>> FindProtocolFactoryHandle(long type) {
-		return Factorys.get(type);
+	public final ProtocolFactoryHandle<? extends Protocol<?>> findProtocolFactoryHandle(long type) {
+		return factorys.get(type);
 	}
 
 	/**
 	 * Rpc Context. 模板不好放进去，使用基类 Protocol
 	 */
-	public final long AddRpcContext(Protocol<?> p) {
+	public final long addRpcContext(Protocol<?> p) {
 		while (true) {
-			long sessionId = NextSessionId();
-			if (_RpcContexts.putIfAbsent(sessionId, p) == null)
+			long sessionId = nextSessionId();
+			if (rpcContexts.putIfAbsent(sessionId, p) == null)
 				return sessionId;
 		}
 	}
 
 	@SuppressWarnings("unchecked")
-	public final <T extends Protocol<?>> T RemoveRpcContext(long sid) {
-		return (T)_RpcContexts.remove(sid);
+	public final <T extends Protocol<?>> T removeRpcContext(long sid) {
+		return (T)rpcContexts.remove(sid);
 	}
 
-	public final <T extends Protocol<?>> boolean RemoveRpcContext(long sid, T ctx) {
-		return _RpcContexts.remove(sid, ctx);
+	public final <T extends Protocol<?>> boolean removeRpcContext(long sid, T ctx) {
+		return rpcContexts.remove(sid, ctx);
 	}
 
 	// Not Need Now
-	public final LongHashMap<Protocol<?>> GetRpcContextsToSender(AsyncSocket sender) {
-		return GetRpcContexts(p -> p.getSender() == sender);
+	public final LongHashMap<Protocol<?>> getRpcContextsToSender(AsyncSocket sender) {
+		return getRpcContexts(p -> p.getSender() == sender);
 	}
 
-	public final LongHashMap<Protocol<?>> GetRpcContexts(Predicate<Protocol<?>> filter) {
-		var result = new LongHashMap<Protocol<?>>(Math.max(_RpcContexts.size(), 1024)); // 初始容量先别定太大,可能只过滤出一小部分
-		for (var it = _RpcContexts.entryIterator(); it.moveToNext(); ) {
+	public final LongHashMap<Protocol<?>> getRpcContexts(Predicate<Protocol<?>> filter) {
+		var result = new LongHashMap<Protocol<?>>(Math.max(rpcContexts.size(), 1024)); // 初始容量先别定太大,可能只过滤出一小部分
+		for (var it = rpcContexts.entryIterator(); it.moveToNext(); ) {
 			if (filter.test(it.value()))
 				result.put(it.key(), it.value());
 		}
@@ -463,34 +463,34 @@ public class Service {
 		}
 	}
 
-	public final long AddManualContextWithTimeout(ManualContext context) {
-		return AddManualContextWithTimeout(context, 10 * 1000);
+	public final long addManualContextWithTimeout(ManualContext context) {
+		return addManualContextWithTimeout(context, 10 * 1000);
 	}
 
-	public final long AddManualContextWithTimeout(ManualContext context, long timeout) { // 毫秒
+	public final long addManualContextWithTimeout(ManualContext context, long timeout) { // 毫秒
 		while (true) {
-			long sessionId = NextSessionId();
-			if (ManualContexts.putIfAbsent(sessionId, context) == null) {
+			long sessionId = nextSessionId();
+			if (manualContexts.putIfAbsent(sessionId, context) == null) {
 				context.setSessionId(sessionId);
 				context.setService(this);
-				Task.schedule(timeout, () -> TryRemoveManualContext(sessionId, true));
+				Task.schedule(timeout, () -> tryRemoveManualContext(sessionId, true));
 				return sessionId;
 			}
 		}
 	}
 
 	@SuppressWarnings("unchecked")
-	public final <T extends ManualContext> T TryGetManualContext(long sessionId) {
-		return (T)ManualContexts.get(sessionId);
+	public final <T extends ManualContext> T tryGetManualContext(long sessionId) {
+		return (T)manualContexts.get(sessionId);
 	}
 
-	public final <T extends ManualContext> T TryRemoveManualContext(long sessionId) {
-		return TryRemoveManualContext(sessionId, false);
+	public final <T extends ManualContext> T tryRemoveManualContext(long sessionId) {
+		return tryRemoveManualContext(sessionId, false);
 	}
 
-	private <T extends ManualContext> T TryRemoveManualContext(long sessionId, boolean isTimeout) {
+	private <T extends ManualContext> T tryRemoveManualContext(long sessionId, boolean isTimeout) {
 		@SuppressWarnings("unchecked")
-		var r = (T)ManualContexts.remove(sessionId);
+		var r = (T)manualContexts.remove(sessionId);
 		if (r != null) {
 			try {
 				r.setIsTimeout(isTimeout);
@@ -504,12 +504,12 @@ public class Service {
 
 	// 还是不直接暴露内部的容器。提供这个方法给外面用。以后如果有问题，可以改这里。
 
-	public final void Foreach(Action1<AsyncSocket> action) throws Throwable {
-		for (AsyncSocket socket : SocketMap)
+	public final void foreach(Action1<AsyncSocket> action) throws Throwable {
+		for (AsyncSocket socket : socketMap)
 			action.run(socket);
 	}
 
-	public static String GetOneNetworkInterfaceIpAddress() {
+	public static String getOneNetworkInterfaceIpAddress() {
 		try {
 			Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
 			while (interfaces.hasMoreElements()) {
@@ -523,10 +523,10 @@ public class Service {
 		}
 	}
 
-	public KV<String, Integer> GetOneAcceptorAddress() {
+	public KV<String, Integer> getOneAcceptorAddress() {
 		var ipPort = KV.Create("", 0);
 
-		Config.ForEachAcceptor2(a -> {
+		config.forEachAcceptor2(a -> {
 			if (!a.getIp().isEmpty() && a.getPort() != 0) {
 				// 找到ip，port都配置成明确地址的。
 				ipPort.setKey(a.getIp());
@@ -541,14 +541,14 @@ public class Service {
 		return ipPort;
 	}
 
-	public KV<String, Integer> GetOnePassiveAddress() {
-		var ipPort = GetOneAcceptorAddress();
+	public KV<String, Integer> getOnePassiveAddress() {
+		var ipPort = getOneAcceptorAddress();
 		if (ipPort.getValue() == 0)
 			throw new IllegalStateException("Acceptor: No Config.");
 
 		if (ipPort.getKey().isEmpty()) {
 			// 可能绑定在任意地址上。尝试获得网卡的地址。
-			ipPort.setKey(GetOneNetworkInterfaceIpAddress());
+			ipPort.setKey(getOneNetworkInterfaceIpAddress());
 			if (ipPort.getKey().isEmpty()) {
 				// 实在找不到ip地址，就设置成loopback。
 				logger.warn("PassiveAddress No Config. set ip to 127.0.0.1");

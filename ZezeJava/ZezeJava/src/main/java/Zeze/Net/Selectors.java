@@ -5,13 +5,13 @@ import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class Selectors {
-	private static final Selectors Instance = new Selectors();
+	private static final Selectors instance = new Selectors();
 
 	public static Selectors getInstance() {
-		return Instance;
+		return instance;
 	}
 
-	private volatile Selector[] SelectorList;
+	private volatile Selector[] selectorList;
 	private final AtomicLong choiceCount = new AtomicLong();
 
 	private Selectors() {
@@ -19,25 +19,25 @@ public class Selectors {
 	}
 
 	public int getCount() {
-		return SelectorList.length;
+		return selectorList.length;
 	}
 
 	public synchronized void add(int count) {
 		try {
-			Selector[] tmp = SelectorList;
+			Selector[] tmp = selectorList;
 			tmp = tmp == null ? new Selector[count] : Arrays.copyOf(tmp, tmp.length + count);
 			for (int i = tmp.length - count; i < tmp.length; i++) {
 				tmp[i] = new Selector("Selector-" + i);
 				tmp[i].start();
 			}
-			SelectorList = tmp;
+			selectorList = tmp;
 		} catch (IOException ex) {
 			throw new RuntimeException(ex);
 		}
 	}
 
 	public Selector choice() {
-		Selector[] tmp = SelectorList; // thread safe
+		Selector[] tmp = selectorList; // thread safe
 		if (tmp == null)
 			return null;
 
@@ -47,9 +47,9 @@ public class Selectors {
 	}
 
 	public synchronized void close() {
-		Selector[] tmp = SelectorList;
+		Selector[] tmp = selectorList;
 		if (tmp != null) {
-			SelectorList = null;
+			selectorList = null;
 			for (Selector s : tmp)
 				s.close();
 		}

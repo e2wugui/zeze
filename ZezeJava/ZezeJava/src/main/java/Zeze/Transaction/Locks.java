@@ -78,7 +78,7 @@ public final class Locks {
 		private final WeakHashSet<Lockey> locks = new WeakHashSet<>();
 		private final ReentrantLock lock = new ReentrantLock();
 
-		public boolean Contains(Lockey key) {
+		public boolean contains(Lockey key) {
 			lock.lock();
 			try {
 				// 需要lock，get不是线程安全的
@@ -88,33 +88,33 @@ public final class Locks {
 			}
 		}
 
-		public Lockey Get(Lockey key) {
+		public Lockey get(Lockey key) {
 			lock.lock();
 			try {
 				Lockey exist = locks.get(key);
 				if (exist != null)
 					return exist;
 				locks.add(key);
-				return key.Alloc();
+				return key.alloc();
 			} finally {
 				lock.unlock();
 			}
 		}
 	}
 
-	public boolean Contains(Lockey lockey) {
-		return segmentFor(lockey).Contains(lockey);
+	public boolean contains(Lockey lockey) {
+		return segmentFor(lockey).contains(lockey);
 	}
 
-	public Lockey Get(Lockey lockey) {
-		return segmentFor(lockey).Get(lockey);
+	public Lockey get(Lockey lockey) {
+		return segmentFor(lockey).get(lockey);
 	}
 
-	public Lockey Get(TableKey tkey) {
-		return Get(new Lockey(tkey));
+	public Lockey get(TableKey tkey) {
+		return get(new Lockey(tkey));
 	}
 
-	public boolean Contains(TableKey tkey) {
-		return Contains(new Lockey(tkey));
+	public boolean contains(TableKey tkey) {
+		return contains(new Lockey(tkey));
 	}
 }

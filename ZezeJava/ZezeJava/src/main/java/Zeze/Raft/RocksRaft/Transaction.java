@@ -72,7 +72,7 @@ public final class Transaction {
 		}
 
 		@Override
-		public Bean CopyBean() {
+		public Bean copyBean() {
 			throw new UnsupportedOperationException();
 		}
 
@@ -85,26 +85,26 @@ public final class Transaction {
 		}
 
 		@Override
-		protected void InitChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(Record.RootInfo root) {
 		}
 
 		@Override
-		public void Encode(ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public void Decode(ByteBuffer bb) {
+		public void decode(ByteBuffer bb) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public void FollowerApply(Log log) {
+		public void followerApply(Log log) {
 			throw new UnsupportedOperationException(); // Follower 不会到达这里。
 		}
 
 		@Override
-		public void LeaderApplyNoRecursive(Log log) {
+		public void leaderApplyNoRecursive(Log log) {
 			// 在处理完 Log 以后，专门处理 PutLog 。see _final_commit_ & Record.LeaderApply
 		}
 	}
@@ -142,7 +142,7 @@ public final class Transaction {
 	}
 
 	public void AddRecordAccessed(Record.RootInfo root, RecordAccessed r) {
-		r.InitRootInfo(root, null);
+		r.initRootInfo(root, null);
 		AccessedRecords.put(root.getTableKey(), r);
 	}
 
@@ -222,7 +222,7 @@ public final class Transaction {
 			while (it.moveToNext()) {
 				var log = it.value();
 				if (log.getBelong() != null)
-					log.getBelong().LeaderApplyNoRecursive(log);
+					log.getBelong().leaderApplyNoRecursive(log);
 			}
 		}
 		var rs = new ArrayList<Record<?>>();

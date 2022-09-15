@@ -97,30 +97,40 @@ public final class BModule extends Zeze.Transaction.Bean {
         _SubscribeType = _SubscribeType_;
     }
 
-    public void Assign(BModule other) {
+    public void assign(BModule other) {
         setChoiceType(other.getChoiceType());
         setConfigType(other.getConfigType());
         setSubscribeType(other.getSubscribeType());
     }
 
-    public BModule CopyIfManaged() {
+    @Deprecated
+    public void Assign(BModule other) {
+        assign(other);
+    }
+
+    public BModule copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BModule Copy() {
+    public BModule copy() {
         var copy = new BModule();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BModule a, BModule b) {
+    @Deprecated
+    public BModule Copy() {
+        return copy();
+    }
+
+    public static void swap(BModule a, BModule b) {
         BModule save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BModule CopyBean() {
+    public BModule copyBean() {
         return Copy();
     }
 
@@ -135,32 +145,32 @@ public final class BModule extends Zeze.Transaction.Bean {
         public Log__ChoiceType(BModule bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BModule)getBelong())._ChoiceType = Value; }
+        public void commit() { ((BModule)getBelong())._ChoiceType = Value; }
     }
 
     private static final class Log__ConfigType extends Zeze.Transaction.Logs.LogInt {
         public Log__ConfigType(BModule bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BModule)getBelong())._ConfigType = Value; }
+        public void commit() { ((BModule)getBelong())._ConfigType = Value; }
     }
 
     private static final class Log__SubscribeType extends Zeze.Transaction.Logs.LogInt {
         public Log__SubscribeType(BModule bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BModule)getBelong())._SubscribeType = Value; }
+        public void commit() { ((BModule)getBelong())._SubscribeType = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BModule: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ChoiceType").append('=').append(getChoiceType()).append(',').append(System.lineSeparator());
@@ -183,7 +193,7 @@ public final class BModule extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             int _x_ = getChoiceType();
@@ -210,7 +220,7 @@ public final class BModule extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -232,15 +242,15 @@ public final class BModule extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
+    protected void resetChildrenRootInfo() {
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         if (getChoiceType() < 0)
             return true;
         if (getConfigType() < 0)
@@ -252,7 +262,7 @@ public final class BModule extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;

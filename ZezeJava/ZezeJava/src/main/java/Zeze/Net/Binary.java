@@ -15,17 +15,17 @@ import Zeze.Util.BitConverter;
 public final class Binary implements Comparable<Binary> {
 	public static final Binary Empty = new Binary(ByteBuffer.Empty);
 
-	private final byte[] _Bytes;
-	private final int Offset;
-	private final int Count;
+	private final byte[] bytes;
+	private final int offset;
+	private final int count;
 
 	/**
 	 * 这里实际上直接wrap传入的bytes，所以必须保证之后不能再修改bytes的值了。
 	 */
 	public Binary(byte[] bytes, int offset, int count) {
-		_Bytes = bytes;
-		Offset = offset;
-		Count = count;
+		this.bytes = bytes;
+		this.offset = offset;
+		this.count = count;
 	}
 
 	/**
@@ -48,55 +48,55 @@ public final class Binary implements Comparable<Binary> {
 	 * 使用这个方法的地方一般是应用。这个数据可能被存储到表中。
 	 */
 	public Binary(Serializable _s_) {
-		this(ByteBuffer.Encode(_s_).Copy());
+		this(ByteBuffer.encode(_s_).Copy());
 	}
 
 	public byte[] bytesUnsafe() {
-		return _Bytes;
+		return bytes;
 	}
 
 	public byte[] toBytes() {
-		return Arrays.copyOfRange(_Bytes, Offset, Offset + Count);
+		return Arrays.copyOfRange(bytes, offset, offset + count);
 	}
 
 	public void writeToFile(RandomAccessFile file) throws IOException {
-		file.write(_Bytes, Offset, Count);
+		file.write(bytes, offset, count);
 	}
 
 	public ByteBuffer Wrap() {
-		return ByteBuffer.Wrap(_Bytes, Offset, Count);
+		return ByteBuffer.Wrap(bytes, offset, count);
 	}
 
 	public byte get(int index) {
-		return _Bytes[index];
+		return bytes[index];
 	}
 
 	public int getOffset() {
-		return Offset;
+		return offset;
 	}
 
 	public int size() {
-		return Count;
+		return count;
 	}
 
-	public void Encode(ByteBuffer bb) {
-		bb.WriteBytes(_Bytes, Offset, Count);
+	public void encode(ByteBuffer bb) {
+		bb.WriteBytes(bytes, offset, count);
 	}
 
-	public void Decode(Serializable _s_) {
-		_s_.Decode(ByteBuffer.Wrap(_Bytes, Offset, Count));
+	public void decode(Serializable _s_) {
+		_s_.decode(ByteBuffer.Wrap(bytes, offset, count));
 	}
 
 	@Override
 	public int compareTo(Binary other) {
-		int n = Count;
-		int c = n - other.Count;
-		return c != 0 ? c : Arrays.compare(_Bytes, Offset, Offset + n, other._Bytes, other.Offset, n);
+		int n = count;
+		int c = n - other.count;
+		return c != 0 ? c : Arrays.compare(bytes, offset, offset + n, other.bytes, other.offset, n);
 	}
 
 	public boolean equals(Binary other) {
-		return this == other || other != null && Count == other.Count &&
-				Arrays.equals(_Bytes, Offset, Offset + Count, other._Bytes, other.Offset, other.Offset + Count);
+		return this == other || other != null && count == other.count &&
+				Arrays.equals(bytes, offset, offset + count, other.bytes, other.offset, other.offset + count);
 	}
 
 	@Override
@@ -106,11 +106,11 @@ public final class Binary implements Comparable<Binary> {
 
 	@Override
 	public int hashCode() {
-		return ByteBuffer.calc_hashnr(_Bytes, Offset, Count);
+		return ByteBuffer.calc_hashnr(bytes, offset, count);
 	}
 
 	@Override
 	public String toString() {
-		return BitConverter.toStringWithLimit(_Bytes, Offset, Count, 16);
+		return BitConverter.toStringWithLimit(bytes, offset, count, 16);
 	}
 }

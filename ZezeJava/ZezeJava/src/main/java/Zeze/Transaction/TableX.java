@@ -23,10 +23,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	private static final boolean isDebugEnabled = logger.isDebugEnabled();
 
 	private AutoKey autoKey;
-	private TableCache<K, V> Cache;
-	private Storage<K, V> TStorage;
-	private Database.Table OldTable;
-	private DatabaseRocksDb.Table LocalRocksCacheTable;
+	private TableCache<K, V> cache;
+	private Storage<K, V> storage;
+	private Database.Table oldTable;
+	private DatabaseRocksDb.Table localRocksCacheTable;
 
 	public TableX(String name) {
 		super(name);
@@ -36,60 +36,60 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return autoKey;
 	}
 
-	public final Storage<K, V> InternalGetStorageForTestOnly(String IAmSure) {
+	public final Storage<K, V> internalGetStorageForTestOnly(String IAmSure) {
 		if (!IAmSure.equals("IKnownWhatIAmDoing"))
 			throw new IllegalArgumentException();
-		return TStorage;
+		return storage;
 	}
 
 	@Override
-	final Storage<K, V> GetStorage() {
-		return TStorage;
+	final Storage<K, V> getStorage() {
+		return storage;
 	}
 
 	@Override
 	final Database.Table getOldTable() {
-		return OldTable;
+		return oldTable;
 	}
 
 	final DatabaseRocksDb.Table getLocalRocksCacheTable() {
-		return LocalRocksCacheTable;
+		return localRocksCacheTable;
 	}
 
 	public final int getCacheSize() {
-		return Cache != null ? Cache.getDataMap().size() : 0;
+		return cache != null ? cache.getDataMap().size() : 0;
 	}
 
-	final void RocksCachePut(K key, V value) {
-		try (var t = getZeze().getLocalRocksCacheDb().BeginTransaction()) {
-			LocalRocksCacheTable.Replace(t, EncodeKey(key), ByteBuffer.Encode(value));
-			t.Commit();
+	final void rocksCachePut(K key, V value) {
+		try (var t = getZeze().getLocalRocksCacheDb().beginTransaction()) {
+			localRocksCacheTable.replace(t, encodeKey(key), ByteBuffer.encode(value));
+			t.commit();
 		} catch (Exception e) {
 			logger.error("RocksCachePut exception:", e);
 		}
 	}
 
-	final void RocksCacheRemove(K key) {
-		try (var t = getZeze().getLocalRocksCacheDb().BeginTransaction()) {
-			LocalRocksCacheTable.Remove(t, EncodeKey(key));
-			t.Commit();
+	final void rocksCacheRemove(K key) {
+		try (var t = getZeze().getLocalRocksCacheDb().beginTransaction()) {
+			localRocksCacheTable.remove(t, encodeKey(key));
+			t.commit();
 		} catch (Exception e) {
 			logger.error("RocksCacheRemove exception:", e);
 		}
 	}
 
-	public Supplier<ArrayList<TableX<K, V>>> GetSimulateTables; // only for temp debug
+	public Supplier<ArrayList<TableX<K, V>>> getSimulateTables; // only for temp debug
 
-	private void VerifyGlobalRecordState(K key, boolean isModify) { // only for temp debug
-		var getSimulateTables = GetSimulateTables;
+	private void verifyGlobalRecordState(K key, boolean isModify) { // only for temp debug
+		var getSimulateTables = this.getSimulateTables;
 		if (getSimulateTables == null)
 			return;
 
 		var checkState = isModify ? StateInvalid : StateShare;
 		for (var table : getSimulateTables.get()) {
-			if (table == this || table.Cache == null)
+			if (table == this || table.cache == null)
 				continue; // skip self
-			var r = table.Cache.Get(key);
+			var r = table.cache.get(key);
 			int rs;
 			if (r != null && (rs = r.getState()) > checkState && rs != StateRemoved) {
 				logger.error("VerifyGlobalRecordState failed: serverId={}/{}, table={}, key={}, state={}, isModify={}",
@@ -102,11 +102,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@SuppressWarnings("unchecked")
-	private AtomicTupleRecord<K, V> Load(K key) {
+	private AtomicTupleRecord<K, V> load(K key) {
 		var tkey = new TableKey(getId(), key);
 		while (true) {
-			var r = Cache.GetOrAdd(key, () -> new Record1<>(this, key, null));
-			r.EnterFairLock(); // 对同一个记录，不允许重入。
+			var r = cache.getOrAdd(key, () -> new Record1<>(this, key, null));
+			r.enterFairLock(); // 对同一个记录，不允许重入。
 			V strongRef = null;
 			try {
 				if (r.getState() == StateRemoved)
@@ -117,39 +117,39 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					var beforeTimestamp = r.getTimestamp(); // read timestamp before read value。see Record1.Commit
 					strongRef = (V)r.getSoftValue();
 					if (strongRef == null && !r.getDirty()) {
-						var find = LocalRocksCacheTable.Find(EncodeKey(key));
+						var find = localRocksCacheTable.find(encodeKey(key));
 						if (find != null) {
-							strongRef = DecodeValue(find);
-							strongRef.InitRootInfo(r.CreateRootInfoIfNeed(tkey), null);
+							strongRef = decodeValue(find);
+							strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
 							r.setSoftValue(strongRef);
 						}
 					}
 					return new AtomicTupleRecord<>(r, strongRef, beforeTimestamp);
 				}
 
-				var acquire = r.Acquire(StateShare, false, false);
-				r.setState(acquire.ResultState);
+				var acquire = r.acquire(StateShare, false, false);
+				r.setState(acquire.resultState);
 				if (r.getState() == StateInvalid) {
 					var txn = Transaction.getCurrent();
 					if (txn == null)
 						throw new IllegalStateException("Acquire Failed");
 					txn.ThrowRedoAndReleaseLock(tkey + ":" + r, null);
 				}
-				VerifyGlobalRecordState(key, r.getState() == StateModify);
+				verifyGlobalRecordState(key, r.getState() == StateModify);
 
 				r.setTimestamp(Record.getNextTimestamp());
 				r.setFreshAcquire();
 				var beforeTimestamp = r.getTimestamp();
 
-				if (TStorage != null) {
+				if (storage != null) {
 					if (Macro.EnableStatistics) {
-						TableStatistics.getInstance().GetOrAdd(getId()).getStorageFindCount().increment();
+						TableStatistics.getInstance().getOrAdd(getId()).getStorageFindCount().increment();
 					}
-					strongRef = TStorage.Find(key, this);
+					strongRef = storage.find(key, this);
 					if (strongRef != null) {
-						RocksCachePut(key, strongRef);
+						rocksCachePut(key, strongRef);
 					} else {
-						RocksCacheRemove(key);
+						rocksCacheRemove(key);
 					}
 					r.setSoftValue(strongRef); // r.Value still maybe null
 					// 【注意】这个变量不管 OldTable 中是否存在的情况。
@@ -157,27 +157,27 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 					// 当记录删除时需要同步删除 OldTable，否则下一次又会从 OldTable 中找到。
 					// see Record1.Flush
-					if (strongRef == null && null != OldTable) {
-						var ekey = EncodeKey(key);
-						var old = OldTable.Find(ekey);
+					if (strongRef == null && null != oldTable) {
+						var ekey = encodeKey(key);
+						var old = oldTable.find(ekey);
 						if (old != null) {
-							strongRef = DecodeValue(old);
+							strongRef = decodeValue(old);
 							r.setSoftValue(strongRef);
 							// 从旧表装载时，马上设为脏，使得可以写入新表。
 							// 否则直到被修改前，都不会被保存到当前数据库中。
-							r.SetDirty();
+							r.setDirty();
 							// Immediately 需要特别在此单独处理。
 							if (getZeze().getConfig().getCheckpointMode() == CheckpointMode.Immediately) {
-								var lct = getZeze().getLocalRocksCacheDb().BeginTransaction();
-								var t = getOldTable().getDatabase().BeginTransaction();
+								var lct = getZeze().getLocalRocksCacheDb().beginTransaction();
+								var t = getOldTable().getDatabase().beginTransaction();
 								try {
-									OldTable.Replace(t, ekey, old);
-									LocalRocksCacheTable.Replace(lct, ekey, old);
-									lct.Commit();
-									t.Commit();
+									oldTable.replace(t, ekey, old);
+									localRocksCacheTable.replace(lct, ekey, old);
+									lct.commit();
+									t.commit();
 								} catch (Throwable ex) {
-									lct.Rollback();
-									t.Rollback();
+									lct.rollback();
+									t.rollback();
 								} finally {
 									try {
 										lct.close();
@@ -194,19 +194,19 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						}
 					}
 					if (strongRef != null)
-						strongRef.InitRootInfo(r.CreateRootInfoIfNeed(tkey), null);
+						strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
 				}
 				if (isDebugEnabled)
 					logger.debug("Load {}", r);
 				return new AtomicTupleRecord<>(r, strongRef, beforeTimestamp);
 			} finally {
-				r.ExitFairLock();
+				r.exitFairLock();
 			}
 		}
 	}
 
 	@Override
-	public final int ReduceShare(Reduce rpc, ByteBuffer bbKey) {
+	public final int reduceShare(Reduce rpc, ByteBuffer bbKey) {
 		var fresh = rpc.getResultCode();
 		rpc.setResultCode(0);
 		rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
@@ -214,11 +214,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		if (isDebugEnabled)
 			logger.debug("Reduce NewState={}", rpc);
 
-		K key = DecodeKey(bbKey);
-		var lockey = getZeze().getLocks().Get(new TableKey(getId(), key));
-		lockey.EnterWriteLock();
+		K key = decodeKey(bbKey);
+		var lockey = getZeze().getLocks().get(new TableKey(getId(), key));
+		lockey.enterWriteLock();
 		try {
-			var r = Cache.Get(key);
+			var r = cache.get(key);
 			if (isDebugEnabled)
 				logger.debug("Reduce NewState={} {}", rpc.Argument.State, r);
 			if (r == null) {
@@ -228,7 +228,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				rpc.SendResultCode(GlobalCacheManagerConst.ReduceShareAlreadyIsInvalid);
 				return 0;
 			}
-			r.EnterFairLock();
+			r.enterFairLock();
 			try {
 				if (fresh != GlobalCacheManagerConst.AcquireFreshSource && r.isFreshAcquire()) {
 					if (isDebugEnabled)
@@ -273,22 +273,22 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				}
 				// if (isDebugEnabled)
 				// logger.warn("ReduceShare checkpoint begin. id={} {}", r, tkey);
-				FlushWhenReduce(r);
+				flushWhenReduce(r);
 				if (isDebugEnabled)
 					logger.debug("Reduce SendResult 4 {}", r);
 				rpc.SendResult();
 				// if (isDebugEnabled)
 				// logger.warn("ReduceShare checkpoint end. id={} {}", r, tkey);
 			} finally {
-				r.ExitFairLock();
+				r.exitFairLock();
 			}
 		} finally {
-			lockey.ExitWriteLock();
+			lockey.exitWriteLock();
 		}
 		return 0;
 	}
 
-	private void FlushWhenReduce(Record r) {
+	private void flushWhenReduce(Record r) {
 		switch (getZeze().getConfig().getCheckpointMode()) {
 		case Period:
 			throw new IllegalStateException("Global Can Not Work With CheckpointMode.Period.");
@@ -297,23 +297,23 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			break;
 
 		case Table:
-			RelativeRecordSet.FlushWhenReduce(r, getZeze().getCheckpoint());
+			RelativeRecordSet.flushWhenReduce(r, getZeze().getCheckpoint());
 			break;
 		}
 	}
 
 	@Override
-	public final int ReduceInvalid(Reduce rpc, ByteBuffer bbKey) {
+	public final int reduceInvalid(Reduce rpc, ByteBuffer bbKey) {
 		var fresh = rpc.getResultCode();
 		rpc.setResultCode(0);
 		rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
 		rpc.Result.State = rpc.Argument.State;
 
-		K key = DecodeKey(bbKey);
-		var lockey = getZeze().getLocks().Get(new TableKey(getId(), key));
-		lockey.EnterWriteLock();
+		K key = decodeKey(bbKey);
+		var lockey = getZeze().getLocks().get(new TableKey(getId(), key));
+		lockey.enterWriteLock();
 		try {
-			var r = Cache.Get(key);
+			var r = cache.get(key);
 			if (isDebugEnabled)
 				logger.debug("Reduce NewState={} {}", rpc.Argument.State, r);
 			if (r == null) {
@@ -323,7 +323,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				rpc.SendResultCode(GlobalCacheManagerConst.ReduceInvalidAlreadyIsInvalid);
 				return 0;
 			}
-			r.EnterFairLock();
+			r.enterFairLock();
 			try {
 				if (fresh != GlobalCacheManagerConst.AcquireFreshSource && r.isFreshAcquire()) {
 					if (isDebugEnabled)
@@ -367,60 +367,60 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				// if (isDebugEnabled)
 				// logger.warn("ReduceInvalid checkpoint begin. id={} {}", r, tkey);
 				rpc.Result.State = StateInvalid;
-				FlushWhenReduce(r);
+				flushWhenReduce(r);
 				if (isDebugEnabled)
 					logger.debug("Reduce SendResult 4 {}", r);
 				rpc.SendResult();
 				// if (isDebugEnabled)
 				// logger.warn("ReduceInvalid checkpoint end. id={} {}", r, tkey);
 			} finally {
-				r.ExitFairLock();
+				r.exitFairLock();
 			}
 		} finally {
-			lockey.ExitWriteLock();
+			lockey.exitWriteLock();
 		}
 		return 0;
 	}
 
-	public final Binary EncodeGlobalKey(K key) {
+	public final Binary encodeGlobalKey(K key) {
 		var bb = ByteBuffer.Allocate();
 		bb.WriteInt4(getId());
-		var bbKey = EncodeKey(key);
+		var bbKey = encodeKey(key);
 		bb.Append(bbKey.Bytes, bbKey.ReadIndex, bbKey.Size());
 		return new Binary(bb);
 	}
 
 	@Override
-	final void ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex) {
+	final void reduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex) {
 		var globalAgent = getZeze().getGlobalAgent();
 		var locks = getZeze().getLocks();
-		var remain = new ArrayList<KV<Lockey, Record1<K, V>>>(Cache.getDataMap().size());
-		logger.info("ReduceInvalidAllLocalOnly CacheSize=" + Cache.getDataMap().size());
-		for (var e : Cache.getDataMap().entrySet()) {
+		var remain = new ArrayList<KV<Lockey, Record1<K, V>>>(cache.getDataMap().size());
+		logger.info("ReduceInvalidAllLocalOnly CacheSize=" + cache.getDataMap().size());
+		for (var e : cache.getDataMap().entrySet()) {
 			var k = e.getKey();
-			if (globalAgent.GetGlobalCacheManagerHashIndex(EncodeGlobalKey(k)) != GlobalCacheManagerHashIndex)
+			if (globalAgent.getGlobalCacheManagerHashIndex(encodeGlobalKey(k)) != GlobalCacheManagerHashIndex)
 				continue;
 
 			var v = e.getValue();
-			var lockey = locks.Get(new TableKey(getId(), k));
-			if (!lockey.TryEnterWriteLock(0)) {
+			var lockey = locks.get(new TableKey(getId(), k));
+			if (!lockey.tryEnterWriteLock(0)) {
 				remain.add(KV.Create(lockey, v));
 				continue;
 			}
 			try {
-				if (!v.TryEnterFairLock()) {
+				if (!v.tryEnterFairLock()) {
 					remain.add(KV.Create(lockey, v));
 					continue;
 				}
 				try {
 					// 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
 					v.setState(StateInvalid);
-					FlushWhenReduce(v);
+					flushWhenReduce(v);
 				} finally {
-					v.ExitFairLock();
+					v.exitFairLock();
 				}
 			} finally {
-				lockey.ExitWriteLock();
+				lockey.exitWriteLock();
 			}
 		}
 
@@ -428,18 +428,18 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			logger.info("ReduceInvalidAllLocalOnly Remain=" + remain.size());
 			for (var e : remain) {
 				var k = e.getKey();
-				k.EnterWriteLock();
+				k.enterWriteLock();
 				try {
 					var v = e.getValue();
-					v.EnterFairLock();
+					v.enterFairLock();
 					try {
 						v.setState(StateInvalid);
-						FlushWhenReduce(v);
+						flushWhenReduce(v);
 					} finally {
-						v.ExitFairLock();
+						v.exitFairLock();
 					}
 				} finally {
-					k.ExitWriteLock();
+					k.exitWriteLock();
 				}
 			}
 		}
@@ -482,13 +482,13 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var cr = currentT.GetRecordAccessed(tkey);
 		if (cr != null) {
 			@SuppressWarnings("unchecked")
-			var r = (V)cr.NewestValue();
+			var r = (V)cr.newestValue();
 			return r;
 		}
 
-		var r = Load(key);
-		currentT.AddRecordAccessed(r.Record.CreateRootInfoIfNeed(tkey), new RecordAccessed(r));
-		return r.StrongRef;
+		var r = load(key);
+		currentT.AddRecordAccessed(r.record.createRootInfoIfNeed(tkey), new RecordAccessed(r));
+		return r.strongRef;
 	}
 
 	public final boolean contains(K key) {
@@ -503,22 +503,22 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var cr = currentT.GetRecordAccessed(tkey);
 		if (cr != null) {
 			@SuppressWarnings("unchecked")
-			V crv = (V)cr.NewestValue();
+			V crv = (V)cr.newestValue();
 			if (crv != null)
 				return crv;
 			// add
 		} else {
-			var r = Load(key);
+			var r = load(key);
 			cr = new RecordAccessed(r);
-			currentT.AddRecordAccessed(r.Record.CreateRootInfoIfNeed(tkey), cr);
-			if (r.StrongRef != null)
-				return r.StrongRef;
+			currentT.AddRecordAccessed(r.record.createRootInfoIfNeed(tkey), cr);
+			if (r.strongRef != null)
+				return r.strongRef;
 			// add
 		}
 
-		V add = NewValue();
-		add.InitRootInfo(cr.AtomicTupleRecord.Record.CreateRootInfoIfNeed(tkey), null);
-		cr.Put(currentT, add);
+		V add = newValue();
+		add.initRootInfo(cr.atomicTupleRecord.record.createRootInfoIfNeed(tkey), null);
+		cr.put(currentT, add);
 		return add;
 	}
 
@@ -531,8 +531,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 		var tkey = new TableKey(getId(), key);
 		var cr = currentT.GetRecordAccessed(tkey);
-		value.initRootInfoWithRedo(cr.AtomicTupleRecord.Record.CreateRootInfoIfNeed(tkey), null);
-		cr.Put(currentT, value);
+		value.initRootInfoWithRedo(cr.atomicTupleRecord.record.createRootInfoIfNeed(tkey), null);
+		cr.put(currentT, value);
 		return true;
 	}
 
@@ -550,12 +550,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var tkey = new TableKey(getId(), key);
 		var cr = currentT.GetRecordAccessed(tkey);
 		if (cr == null) {
-			var r = Load(key);
+			var r = load(key);
 			cr = new RecordAccessed(r);
-			currentT.AddRecordAccessed(r.Record.CreateRootInfoIfNeed(tkey), cr);
+			currentT.AddRecordAccessed(r.record.createRootInfoIfNeed(tkey), cr);
 		}
-		value.initRootInfoWithRedo(cr.AtomicTupleRecord.Record.CreateRootInfoIfNeed(tkey), null);
-		cr.Put(currentT, value);
+		value.initRootInfoWithRedo(cr.atomicTupleRecord.record.createRootInfoIfNeed(tkey), null);
+		cr.put(currentT, value);
 	}
 
 	// 几乎和Put一样，还是独立开吧。
@@ -566,19 +566,19 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var tkey = new TableKey(getId(), key);
 		var cr = currentT.GetRecordAccessed(tkey);
 		if (cr != null) {
-			cr.Put(currentT, null);
+			cr.put(currentT, null);
 			return;
 		}
 
-		var r = Load(key);
+		var r = load(key);
 		cr = new RecordAccessed(r);
-		cr.Put(currentT, null);
-		currentT.AddRecordAccessed(r.Record.CreateRootInfoIfNeed(tkey), cr);
+		cr.put(currentT, null);
+		currentT.AddRecordAccessed(r.record.createRootInfoIfNeed(tkey), cr);
 	}
 
 	@Override
-	final Storage<?, ?> Open(Application app, Database database) {
-		if (TStorage != null)
+	final Storage<?, ?> open(Application app, Database database) {
+		if (storage != null)
 			throw new IllegalStateException("table has opened: " + getName());
 
 		setZeze(app);
@@ -588,37 +588,37 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			autoKey = app.getServiceManagerAgent().GetAutoKey(getName());
 
 		setTableConf(app.getConfig().GetTableConf(getName()));
-		Cache = new TableCache<>(app, this);
-		TStorage = isMemory() ? null : new Storage<>(this, database, getName());
-		OldTable = getTableConf().getDatabaseOldMode() == 1
-				? app.GetDatabase(getTableConf().getDatabaseOldName()).OpenTable(getName()) : null;
-		LocalRocksCacheTable = app.getLocalRocksCacheDb().OpenTable(getName());
-		return TStorage;
+		cache = new TableCache<>(app, this);
+		storage = isMemory() ? null : new Storage<>(this, database, getName());
+		oldTable = getTableConf().getDatabaseOldMode() == 1
+				? app.GetDatabase(getTableConf().getDatabaseOldName()).openTable(getName()) : null;
+		localRocksCacheTable = app.getLocalRocksCacheDb().openTable(getName());
+		return storage;
 	}
 
 	@Override
-	final void Close() {
-		if (TStorage != null) {
-			TStorage.Close();
-			TStorage = null;
+	final void close() {
+		if (storage != null) {
+			storage.close();
+			storage = null;
 		}
-		if (Cache != null) {
-			Cache.close();
-			Cache = null;
+		if (cache != null) {
+			cache.close();
+			cache = null;
 		}
 	}
 
 	// Key 都是简单变量，系列化方法都不一样，需要生成。
-	public abstract ByteBuffer EncodeKey(K key);
+	public abstract ByteBuffer encodeKey(K key);
 
-	public abstract K DecodeKey(ByteBuffer bb);
+	public abstract K decodeKey(ByteBuffer bb);
 
 	public final void delayRemove(K key) {
 		DelayRemove.remove(this, key);
 	}
 
 	@Override
-	public abstract V NewValue();
+	public abstract V newValue();
 
 	/**
 	 * 解码系列化的数据到对象。
@@ -626,9 +626,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @param bb bean encoded data
 	 * @return Value
 	 */
-	public final V DecodeValue(ByteBuffer bb) {
-		V value = NewValue();
-		value.Decode(bb);
+	public final V decodeValue(ByteBuffer bb) {
+		V value = newValue();
+		value.decode(bb);
 		return value;
 	}
 
@@ -646,11 +646,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	private boolean invokeCallback(byte[] key, byte[] value, TableWalkHandle<K, V> callback) {
-		K k = DecodeKey(ByteBuffer.Wrap(key));
-		var lockey = getZeze().getLocks().Get(new TableKey(getId(), k));
-		lockey.EnterReadLock();
+		K k = decodeKey(ByteBuffer.Wrap(key));
+		var lockey = getZeze().getLocks().get(new TableKey(getId(), k));
+		lockey.enterReadLock();
 		try {
-			var r = Cache.Get(k);
+			var r = cache.get(k);
 			if (r != null && r.getState() != StateRemoved) {
 				if (r.getState() == StateShare
 						|| r.getState() == StateModify) {
@@ -665,17 +665,17 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				// 继续后面的处理：使用数据库中的数据。
 			}
 		} finally {
-			lockey.ExitReadLock();
+			lockey.exitReadLock();
 		}
 		// 缓存中不存在或者正在被删除，使用数据库中的数据。
-		return callback.handle(k, DecodeValue(ByteBuffer.Wrap(value)));
+		return callback.handle(k, decodeValue(ByteBuffer.Wrap(value)));
 	}
 
 	public final long Walk(TableWalkHandle<K, V> callback, Runnable afterLock) {
 		if (Transaction.getCurrent() != null)
 			throw new IllegalStateException("must be called without transaction");
 
-		return TStorage.getDatabaseTable().Walk((key, value) -> {
+		return storage.getDatabaseTable().walk((key, value) -> {
 			if (invokeCallback(key, value, callback)) {
 				if (afterLock != null)
 					afterLock.run();
@@ -686,11 +686,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final long WalkCacheKey(TableWalkKey<K> callback) {
-		return Cache.WalkKey(callback);
+		return cache.walkKey(callback);
 	}
 
 	public final long WalkDatabaseKey(TableWalkKey<K> callback) {
-		return TStorage.getDatabaseTable().WalkKey(key -> callback.handle(DecodeKey(ByteBuffer.Wrap(key))));
+		return storage.getDatabaseTable().walkKey(key -> callback.handle(decodeKey(ByteBuffer.Wrap(key))));
 	}
 
 	/**
@@ -701,7 +701,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @return count
 	 */
 	public final long WalkDatabase(TableWalkHandleRaw callback) {
-		return TStorage.getDatabaseTable().Walk(callback);
+		return storage.getDatabaseTable().walk(callback);
 	}
 
 	/**
@@ -712,9 +712,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @return count
 	 */
 	public final long WalkDatabase(TableWalkHandle<K, V> callback) {
-		return TStorage.getDatabaseTable().Walk((key, value) -> {
-			K k = DecodeKey(ByteBuffer.Wrap(key));
-			V v = DecodeValue(ByteBuffer.Wrap(value));
+		return storage.getDatabaseTable().walk((key, value) -> {
+			K k = decodeKey(ByteBuffer.Wrap(key));
+			V v = decodeValue(ByteBuffer.Wrap(value));
 			return callback.handle(k, v);
 		});
 	}
@@ -734,10 +734,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			throw new IllegalStateException("must be called without transaction");
 
 		int count = 0;
-		for (var entry : Cache.getDataMap().entrySet()) {
+		for (var entry : cache.getDataMap().entrySet()) {
 			var r = entry.getValue();
-			var lockey = getZeze().getLocks().Get(new TableKey(getId(), entry.getKey()));
-			lockey.EnterReadLock();
+			var lockey = getZeze().getLocks().get(new TableKey(getId(), entry.getKey()));
+			lockey.enterReadLock();
 			try {
 				if (r.getState() == StateShare
 						|| r.getState() == StateModify) {
@@ -750,7 +750,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						break;
 				}
 			} finally {
-				lockey.ExitLock();
+				lockey.exitLock();
 			}
 			if (afterLock != null)
 				afterLock.run();
@@ -776,19 +776,19 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		if (currentT != null) {
 			var cr = currentT.GetRecordAccessed(tkey);
 			if (cr != null) {
-				var v = cr.NewestValue();
-				return v != null ? (V)v.CopyBean() : null;
+				var v = cr.newestValue();
+				return v != null ? (V)v.copyBean() : null;
 			}
 			currentT.SetAlwaysReleaseLockWhenRedo();
 		}
 
-		var lockey = getZeze().getLocks().Get(tkey);
-		lockey.EnterReadLock();
+		var lockey = getZeze().getLocks().get(tkey);
+		lockey.enterReadLock();
 		try {
-			var v = Load(key).StrongRef;
-			return v != null ? (V)v.CopyBean() : null;
+			var v = load(key).strongRef;
+			return v != null ? (V)v.copyBean() : null;
 		} finally {
-			lockey.ExitReadLock();
+			lockey.exitReadLock();
 		}
 	}
 
@@ -798,14 +798,14 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		if (currentT != null) {
 			var cr = currentT.GetRecordAccessed(new TableKey(getId(), key));
 			if (cr != null)
-				return (V)cr.NewestValue();
+				return (V)cr.newestValue();
 		}
-		return Load(key).StrongRef;
+		return load(key).strongRef;
 	}
 
 	@Override
 	public final boolean isNew() {
-		return TStorage == null // memory table always return true
-				|| TStorage.getDatabaseTable().isNew();
+		return storage == null // memory table always return true
+				|| storage.getDatabaseTable().isNew();
 	}
 }

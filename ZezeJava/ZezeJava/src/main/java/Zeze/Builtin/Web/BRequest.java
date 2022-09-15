@@ -195,7 +195,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
         _AuthedAccount = _AuthedAccount_;
     }
 
-    public void Assign(BRequest other) {
+    public void assign(BRequest other) {
         setExchangeId(other.getExchangeId());
         setMethod(other.getMethod());
         setPath(other.getPath());
@@ -208,24 +208,34 @@ public final class BRequest extends Zeze.Transaction.Bean {
         setAuthedAccount(other.getAuthedAccount());
     }
 
-    public BRequest CopyIfManaged() {
+    @Deprecated
+    public void Assign(BRequest other) {
+        assign(other);
+    }
+
+    public BRequest copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BRequest Copy() {
+    public BRequest copy() {
         var copy = new BRequest();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BRequest a, BRequest b) {
+    @Deprecated
+    public BRequest Copy() {
+        return copy();
+    }
+
+    public static void swap(BRequest a, BRequest b) {
         BRequest save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BRequest CopyBean() {
+    public BRequest copyBean() {
         return Copy();
     }
 
@@ -240,60 +250,60 @@ public final class BRequest extends Zeze.Transaction.Bean {
         public Log__ExchangeId(BRequest bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BRequest)getBelong())._ExchangeId = Value; }
+        public void commit() { ((BRequest)getBelong())._ExchangeId = Value; }
     }
 
     private static final class Log__Method extends Zeze.Transaction.Logs.LogString {
         public Log__Method(BRequest bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BRequest)getBelong())._Method = Value; }
+        public void commit() { ((BRequest)getBelong())._Method = Value; }
     }
 
     private static final class Log__Path extends Zeze.Transaction.Logs.LogString {
         public Log__Path(BRequest bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BRequest)getBelong())._Path = Value; }
+        public void commit() { ((BRequest)getBelong())._Path = Value; }
     }
 
     private static final class Log__Query extends Zeze.Transaction.Logs.LogString {
         public Log__Query(BRequest bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BRequest)getBelong())._Query = Value; }
+        public void commit() { ((BRequest)getBelong())._Query = Value; }
     }
 
     private static final class Log__Body extends Zeze.Transaction.Logs.LogBinary {
         public Log__Body(BRequest bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BRequest)getBelong())._Body = Value; }
+        public void commit() { ((BRequest)getBelong())._Body = Value; }
     }
 
     private static final class Log__Finish extends Zeze.Transaction.Logs.LogBool {
         public Log__Finish(BRequest bean, int varId, boolean value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BRequest)getBelong())._Finish = Value; }
+        public void commit() { ((BRequest)getBelong())._Finish = Value; }
     }
 
     private static final class Log__AuthedAccount extends Zeze.Transaction.Logs.LogString {
         public Log__AuthedAccount(BRequest bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BRequest)getBelong())._AuthedAccount = Value; }
+        public void commit() { ((BRequest)getBelong())._AuthedAccount = Value; }
     }
 
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Web.BRequest: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ExchangeId").append('=').append(getExchangeId()).append(',').append(System.lineSeparator());
@@ -306,7 +316,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
             sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(_kv_.getKey()).append(',').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
-            _kv_.getValue().BuildString(sb, level + 4);
+            _kv_.getValue().buildString(sb, level + 4);
             sb.append(',').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append(')').append(System.lineSeparator());
         }
@@ -332,7 +342,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             long _x_ = getExchangeId();
@@ -370,7 +380,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
                 _o_.WriteMapType(_n_, ByteBuffer.BYTES, ByteBuffer.BEAN);
                 for (var _e_ : _x_.entrySet()) {
                     _o_.WriteString(_e_.getKey());
-                    _e_.getValue().Encode(_o_);
+                    _e_.getValue().encode(_o_);
                 }
             }
         }
@@ -399,7 +409,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -451,17 +461,17 @@ public final class BRequest extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Headers.InitRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+        _Headers.initRootInfo(root, this);
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
-        _Headers.ResetRootInfo();
+    protected void resetChildrenRootInfo() {
+        _Headers.resetRootInfo();
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         if (getExchangeId() < 0)
             return true;
         return false;
@@ -469,7 +479,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;
@@ -480,7 +490,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
                 case 2: _Method = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
                 case 3: _Path = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
                 case 4: _Query = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
-                case 5: _Headers.FollowerApply(vlog); break;
+                case 5: _Headers.followerApply(vlog); break;
                 case 6: _Body = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
                 case 7: _Finish = ((Zeze.Transaction.Logs.LogBool)vlog).Value; break;
                 case 8: _AuthedAccount = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;

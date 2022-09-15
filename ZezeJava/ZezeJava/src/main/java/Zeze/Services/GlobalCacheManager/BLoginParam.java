@@ -15,26 +15,26 @@ public class BLoginParam extends Bean {
 	public boolean DebugMode; // 调试模式下不检查Release Timeout,方便单步调试
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		ServerId = bb.ReadInt();
 		GlobalCacheManagerHashIndex = bb.ReadInt();
 		DebugMode = bb.ReadBool();
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteInt(ServerId);
 		bb.WriteInt(GlobalCacheManagerHashIndex);
 		bb.WriteBool(DebugMode);
 	}
 
 	@Override
-	protected void InitChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.RootInfo root) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	protected void ResetChildrenRootInfo() {
+	protected void resetChildrenRootInfo() {
 		throw new UnsupportedOperationException();
 	}
 

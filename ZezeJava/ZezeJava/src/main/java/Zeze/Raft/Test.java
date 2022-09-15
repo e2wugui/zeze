@@ -58,7 +58,7 @@ public class Test {
 				try (var dumpFile = new FileOutputStream(db + ".txt")) {
 					dumpFile.write(String.format("SnapshotCount = %d\n", StateMachine.getCount()).getBytes(StandardCharsets.UTF_8));
 					for (it1.seekToFirst(); it1.isValid(); it1.next()) {
-						var l1 = RaftLog.Decode(new Binary(it1.value()), StateMachine::LogFactory);
+						var l1 = RaftLog.decode(new Binary(it1.value()), StateMachine::LogFactory);
 						dumpFile.write(l1.toString().getBytes(StandardCharsets.UTF_8));
 						dumpFile.write('\n');
 					}
@@ -605,22 +605,22 @@ public class Test {
 		}
 
 		@Override
-		public void Encode(ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteLong(Count);
 		}
 
 		@Override
-		public void Decode(ByteBuffer bb) {
+		public void decode(ByteBuffer bb) {
 			Count = bb.ReadLong();
 		}
 
 		@Override
-		protected void InitChildrenRootInfo(Record.RootInfo root) {
+		protected void initChildrenRootInfo(Record.RootInfo root) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		protected void ResetChildrenRootInfo() {
+		protected void resetChildrenRootInfo() {
 			throw new UnsupportedOperationException();
 		}
 
@@ -683,13 +683,13 @@ public class Test {
 			}
 
 			@Override
-			public void Encode(ByteBuffer bb) {
-				super.Encode(bb);
+			public void encode(ByteBuffer bb) {
+				super.encode(bb);
 			}
 
 			@Override
-			public void Decode(ByteBuffer bb) {
-				super.Decode(bb);
+			public void decode(ByteBuffer bb) {
+				super.decode(bb);
 			}
 		}
 

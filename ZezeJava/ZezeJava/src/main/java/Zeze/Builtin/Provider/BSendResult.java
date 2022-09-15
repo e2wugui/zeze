@@ -17,30 +17,40 @@ public final class BSendResult extends Zeze.Transaction.Bean {
         _ErrorLinkSids.variableId(1);
     }
 
-    public void Assign(BSendResult other) {
+    public void assign(BSendResult other) {
         getErrorLinkSids().clear();
         for (var e : other.getErrorLinkSids())
             getErrorLinkSids().add(e);
     }
 
-    public BSendResult CopyIfManaged() {
+    @Deprecated
+    public void Assign(BSendResult other) {
+        assign(other);
+    }
+
+    public BSendResult copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BSendResult Copy() {
+    public BSendResult copy() {
         var copy = new BSendResult();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BSendResult a, BSendResult b) {
+    @Deprecated
+    public BSendResult Copy() {
+        return copy();
+    }
+
+    public static void swap(BSendResult a, BSendResult b) {
         BSendResult save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BSendResult CopyBean() {
+    public BSendResult copyBean() {
         return Copy();
     }
 
@@ -54,12 +64,12 @@ public final class BSendResult extends Zeze.Transaction.Bean {
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BSendResult: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ErrorLinkSids").append("=[").append(System.lineSeparator());
@@ -86,7 +96,7 @@ public final class BSendResult extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             var _x_ = getErrorLinkSids();
@@ -102,7 +112,7 @@ public final class BSendResult extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -122,17 +132,17 @@ public final class BSendResult extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _ErrorLinkSids.InitRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+        _ErrorLinkSids.initRootInfo(root, this);
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
-        _ErrorLinkSids.ResetRootInfo();
+    protected void resetChildrenRootInfo() {
+        _ErrorLinkSids.resetRootInfo();
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         for (var _v_ : getErrorLinkSids()) {
             if (_v_ < 0)
                 return true;
@@ -142,14 +152,14 @@ public final class BSendResult extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ErrorLinkSids.FollowerApply(vlog); break;
+                case 1: _ErrorLinkSids.followerApply(vlog); break;
             }
         }
     }

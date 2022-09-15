@@ -8,7 +8,7 @@ public final class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
             var _r_ = new Zeze.Game.Rank.RRankList();
             if (_params_ != null) {
                 var _b_ = _params_.Wrap();
-                _r_.rankList.Decode(_b_);
+                _r_.rankList.decode(_b_);
             }
             return _r_;
         });
@@ -18,9 +18,9 @@ public final class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
         _a_.setHashCodeConcurrentLevel(hash);
         _a_.setMethodFullName("Zeze.Game.Rank:getRankAll");
         _a_.setServiceNamePrefix(_redirect_.ProviderApp.ServerServiceNamePrefix);
-        _a_.setSessionId(_redirect_.ProviderApp.ProviderDirectService.AddManualContextWithTimeout(_c_));
+        _a_.setSessionId(_redirect_.ProviderApp.ProviderDirectService.addManualContextWithTimeout(_c_));
         var _b_ = Zeze.Serialize.ByteBuffer.Allocate();
-        keyHint.Encode(_b_);
+        keyHint.encode(_b_);
         _a_.setParams(new Zeze.Net.Binary(_b_));
         return _redirect_.RedirectAll(this, _p_, _c_);
     }
@@ -41,7 +41,7 @@ public final class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
         _a_.setMethodFullName("Zeze.Game.Rank:updateRank");
         _a_.setServiceNamePrefix(_redirect_.ProviderApp.ServerServiceNamePrefix);
         var _b_ = Zeze.Serialize.ByteBuffer.Allocate();
-        keyHint.Encode(_b_);
+        keyHint.encode(_b_);
         _b_.WriteLong(roleId);
         _b_.WriteLong(value);
         _b_.WriteBinary(valueEx);
@@ -64,12 +64,12 @@ public final class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
             Zeze.Transaction.TransactionLevel.Serializable, (_hash_, _params_) -> {
                 var _b_ = _params_.Wrap();
                 var keyHint = new Zeze.Builtin.Game.Rank.BConcurrentKey();
-                keyHint.Decode(_b_);
+                keyHint.decode(_b_);
                 return super.getRankAll(_hash_, keyHint);
             }, _result_ -> {
                 var _r_ = (Zeze.Game.Rank.RRankList)_result_;
                 var _b_ = Zeze.Serialize.ByteBuffer.Allocate();
-                _r_.rankList.Encode(_b_);
+                _r_.rankList.encode(_b_);
                 return new Zeze.Net.Binary(_b_);
             }));
         _app_.getZeze().Redirect.Handles.put("Zeze.Game.Rank:updateRank", new Zeze.Arch.RedirectHandle(
@@ -79,7 +79,7 @@ public final class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
                 long value;
                 Zeze.Net.Binary valueEx;
                 var _b_ = _params_.Wrap();
-                keyHint.Decode(_b_);
+                keyHint.decode(_b_);
                 roleId = _b_.ReadLong();
                 value = _b_.ReadLong();
                 valueEx = _b_.ReadBinary();

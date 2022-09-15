@@ -64,10 +64,10 @@ public class TestCheckpoint{
 		//System.out.println(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
 
 		var table = demo.App.getInstance().demo_Module1.getTable1();
-		var dbtable = table.InternalGetStorageForTestOnly("IKnownWhatIAmDoing").getDatabaseTable();
-		Assert.assertNotNull(dbtable.Find(table.EncodeKey(2L)));
-		Assert.assertNotNull(dbtable.Find(table.EncodeKey(4L)));
-		Assert.assertNotNull(dbtable.Find(table.EncodeKey(3L)));
+		var dbtable = table.internalGetStorageForTestOnly("IKnownWhatIAmDoing").getDatabaseTable();
+		Assert.assertNotNull(dbtable.find(table.encodeKey(2L)));
+		Assert.assertNotNull(dbtable.find(table.encodeKey(4L)));
+		Assert.assertNotNull(dbtable.find(table.encodeKey(3L)));
 	}
 
 	@Test
@@ -76,7 +76,7 @@ public class TestCheckpoint{
 		Assert.assertEquals(demo.App.getInstance().Zeze.NewProcedure(this::ProcChange, "ProcChange").Call(), Procedure.Success);
 		demo.App.getInstance().Zeze.CheckpointRun();
 		demo.Module1.Table1 table = demo.App.getInstance().demo_Module1.getTable1();
-		ByteBuffer value = table.InternalGetStorageForTestOnly("IKnownWhatIAmDoing").getDatabaseTable().Find(table.EncodeKey(56L));
+		ByteBuffer value = table.internalGetStorageForTestOnly("IKnownWhatIAmDoing").getDatabaseTable().find(table.encodeKey(56L));
 		Assert.assertNotNull(value);
 		Assert.assertEquals(value, bytesInTrans);
 	}
@@ -91,7 +91,7 @@ public class TestCheckpoint{
 		BValue v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(56L);
 		v.setInt1(1);
 		bytesInTrans = ByteBuffer.Allocate();
-		v.Encode(bytesInTrans);
+		v.encode(bytesInTrans);
 		return Procedure.Success;
 	}
 }

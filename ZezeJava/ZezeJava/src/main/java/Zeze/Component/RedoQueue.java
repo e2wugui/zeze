@@ -107,7 +107,7 @@ public class RedoQueue extends Zeze.Services.HandshakeClient {
 			task.setTaskId(LastTaskId);
 			task.setTaskType(taskType);
 			var value = ByteBuffer.Allocate(1024 + 16);
-			task.Encode(value);
+			task.encode(value);
 
 			// 保存完整的rpc请求，重新发送的时候不用再次打包。
 			Db.put(FamilyTaskQueue, DatabaseRocksDb.getDefaultWriteOptions(), key.Bytes, 0, key.WriteIndex,
@@ -135,7 +135,7 @@ public class RedoQueue extends Zeze.Services.HandshakeClient {
 						key.Bytes, 0, key.WriteIndex);
 				if (null == value)
 					return; // error
-				rpc.Argument.Decode(ByteBuffer.Wrap(value));
+				rpc.Argument.decode(ByteBuffer.Wrap(value));
 			}
 			if (null == Socket) {
 				Socket = socket;

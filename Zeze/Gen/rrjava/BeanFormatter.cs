@@ -71,24 +71,29 @@ namespace Zeze.Gen.rrjava
             Assign.Make(bean, sw, "    ");
 
             // Copy
-            sw.WriteLine("    public " + bean.Name + " CopyIfManaged() {");
+            sw.WriteLine("    public " + bean.Name + " copyIfManaged() {");
             sw.WriteLine("        return isManaged() ? Copy() : this;");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public " + bean.Name + " Copy() {");
+            sw.WriteLine("    public " + bean.Name + " copy() {");
             sw.WriteLine("        var copy = new " + bean.Name + "();");
             sw.WriteLine("        copy.Assign(this);");
             sw.WriteLine("        return copy;");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine($"    public static void Swap({bean.Name} a, {bean.Name} b) {{");
+            sw.WriteLine("    @Deprecated");
+            sw.WriteLine("    public " + bean.Name + " Copy() {");
+            sw.WriteLine("        return copy();");
+            sw.WriteLine("    }");
+            sw.WriteLine();
+            sw.WriteLine($"    public static void swap({bean.Name} a, {bean.Name} b) {{");
             sw.WriteLine($"        {bean.Name} save = a.Copy();");
             sw.WriteLine("        a.Assign(b);");
             sw.WriteLine("        b.Assign(save);");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    @Override");
-            sw.WriteLine("    public " + bean.Name + " CopyBean() {");
+            sw.WriteLine("    public " + bean.Name + " copyBean() {");
             sw.WriteLine("        return Copy();");
             sw.WriteLine("    }");
             sw.WriteLine();

@@ -27,21 +27,21 @@ public final class trank extends Zeze.Transaction.TableX<Zeze.Builtin.Game.Rank.
     public static final int VAR_RankList = 1;
 
     @Override
-    public Zeze.Builtin.Game.Rank.BConcurrentKey DecodeKey(ByteBuffer _os_) {
+    public Zeze.Builtin.Game.Rank.BConcurrentKey decodeKey(ByteBuffer _os_) {
         Zeze.Builtin.Game.Rank.BConcurrentKey _v_ = new Zeze.Builtin.Game.Rank.BConcurrentKey();
-        _v_.Decode(_os_);
+        _v_.decode(_os_);
         return _v_;
     }
 
     @Override
-    public ByteBuffer EncodeKey(Zeze.Builtin.Game.Rank.BConcurrentKey _v_) {
+    public ByteBuffer encodeKey(Zeze.Builtin.Game.Rank.BConcurrentKey _v_) {
         ByteBuffer _os_ = ByteBuffer.Allocate(16);
-        _v_.Encode(_os_);
+        _v_.encode(_os_);
         return _os_;
     }
 
     @Override
-    public Zeze.Builtin.Game.Rank.BRankList NewValue() {
+    public Zeze.Builtin.Game.Rank.BRankList newValue() {
         return new Zeze.Builtin.Game.Rank.BRankList();
     }
 }

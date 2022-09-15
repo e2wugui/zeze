@@ -14,47 +14,47 @@ public final class RecordAccessed extends Bean {
 		}
 
 		@Override
-		public void Commit() {
-			((RecordAccessed)getBean()).CommittedPutLog = this; // 肯定最多只有一个 PutLog。由 LogKey 保证。
+		public void commit() {
+			((RecordAccessed)getBean()).committedPutLog = this; // 肯定最多只有一个 PutLog。由 LogKey 保证。
 		}
 	}
 
-	final AtomicTupleRecord<?, ?> AtomicTupleRecord;
-	boolean Dirty;
-	PutLog CommittedPutLog; // Record 修改日志先提交到这里(Savepoint.Commit里面调用）。处理完Savepoint后再处理 Dirty 记录。
+	final AtomicTupleRecord<?, ?> atomicTupleRecord;
+	boolean dirty;
+	PutLog committedPutLog; // Record 修改日志先提交到这里(Savepoint.Commit里面调用）。处理完Savepoint后再处理 Dirty 记录。
 
 	public RecordAccessed(AtomicTupleRecord<?, ?> a) {
-		AtomicTupleRecord = a;
+		atomicTupleRecord = a;
 	}
 
-	public Bean NewestValue() {
+	public Bean newestValue() {
 		//noinspection ConstantConditions
 		var log = Transaction.getCurrent().GetLog(objectId());
-		return log instanceof PutLog ? ((PutLog)log).getValue() : AtomicTupleRecord.StrongRef;
+		return log instanceof PutLog ? ((PutLog)log).getValue() : atomicTupleRecord.strongRef;
 	}
 
-	public void Put(Transaction current, Bean putValue) {
+	public void put(Transaction current, Bean putValue) {
 		current.PutLog(new PutLog(this, putValue));
 	}
 
-	public void Remove(Transaction current) {
-		Put(current, null);
+	public void remove(Transaction current) {
+		put(current, null);
 	}
 
 	@Override
-	protected void InitChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.RootInfo root) {
 	}
 
 	@Override
-	protected void ResetChildrenRootInfo() {
+	protected void resetChildrenRootInfo() {
 
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 	}
 }

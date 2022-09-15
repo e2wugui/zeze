@@ -9,27 +9,37 @@ public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean {
     public BAnnounceLinkInfo() {
     }
 
-    public void Assign(BAnnounceLinkInfo other) {
+    public void assign(BAnnounceLinkInfo other) {
     }
 
-    public BAnnounceLinkInfo CopyIfManaged() {
+    @Deprecated
+    public void Assign(BAnnounceLinkInfo other) {
+        assign(other);
+    }
+
+    public BAnnounceLinkInfo copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BAnnounceLinkInfo Copy() {
+    public BAnnounceLinkInfo copy() {
         var copy = new BAnnounceLinkInfo();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BAnnounceLinkInfo a, BAnnounceLinkInfo b) {
+    @Deprecated
+    public BAnnounceLinkInfo Copy() {
+        return copy();
+    }
+
+    public static void swap(BAnnounceLinkInfo a, BAnnounceLinkInfo b) {
         BAnnounceLinkInfo save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BAnnounceLinkInfo CopyBean() {
+    public BAnnounceLinkInfo copyBean() {
         return Copy();
     }
 
@@ -43,12 +53,12 @@ public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean {
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BAnnounceLinkInfo: {").append(System.lineSeparator());
         level += 4;
         level -= 4;
@@ -68,12 +78,12 @@ public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         _o_.WriteByte(0);
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         _o_.ReadTagSize(_t_);
         while (_t_ != 0) {
@@ -83,20 +93,20 @@ public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
+    protected void resetChildrenRootInfo() {
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         return false;
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
     }
 }

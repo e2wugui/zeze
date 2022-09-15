@@ -475,7 +475,7 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		int count = _count;
 		if (count <= 0)
 			return;
@@ -486,7 +486,7 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 	}
 
 	@Override
-	public void Decode(ByteBuffer s) {
+	public void decode(ByteBuffer s) {
 		int count = s.ReadUInt();
 		reserveSpace(count);
 		long[] buf = _buffer;

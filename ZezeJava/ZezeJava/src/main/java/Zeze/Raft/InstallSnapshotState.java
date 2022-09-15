@@ -59,7 +59,7 @@ class InstallSnapshotState {
 			Pending.Argument.setDone(rc < buffer.length);
 			Offset += rc;
 			if (Pending.Argument.getDone())
-				Pending.Argument.setLastIncludedLog(new Binary(FirstLog.Encode()));
+				Pending.Argument.setLastIncludedLog(new Binary(FirstLog.encode()));
 
 			int timeout = ls.getRaft().getRaftConfig().getAppendEntriesTimeout();
 			Pending.setResultCode(Procedure.ErrorSendFail);

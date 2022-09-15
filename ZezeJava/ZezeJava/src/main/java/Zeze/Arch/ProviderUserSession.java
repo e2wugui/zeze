@@ -116,7 +116,7 @@ public class ProviderUserSession {
 				AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RESP[{}] {}({})> {}", linkSid,
 						className, ((Rpc<?, ?>)p).getSessionId(), p.getResultBean());
 		}
-		sendResponse(p.getTypeId(), new Binary(p.Encode()));
+		sendResponse(p.getTypeId(), new Binary(p.encode()));
 	}
 
 	public final void sendResponseWhileCommit(long typeId, Binary fullEncodedProtocol) {

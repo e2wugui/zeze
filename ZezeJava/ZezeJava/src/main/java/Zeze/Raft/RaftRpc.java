@@ -66,31 +66,31 @@ public abstract class RaftRpc<TArgument extends Bean, TResult extends Bean> exte
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		bb.WriteBool(isRequest());
-		bb.WriteLong(SessionId);
+		bb.WriteLong(getSessionId());
 		bb.WriteLong(getResultCode());
-		Unique.Encode(bb);
+		Unique.encode(bb);
 		bb.WriteLong(CreateTime);
 
 		if (isRequest())
-			Argument.Encode(bb);
+			Argument.encode(bb);
 		else
-			Result.Encode(bb);
+			Result.encode(bb);
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		setRequest(bb.ReadBool());
-		SessionId = bb.ReadLong();
+		setSessionId(bb.ReadLong());
 		setResultCode(bb.ReadLong());
-		Unique.Decode(bb);
+		Unique.decode(bb);
 		CreateTime = bb.ReadLong();
 
 		if (isRequest())
-			Argument.Decode(bb);
+			Argument.decode(bb);
 		else
-			Result.Decode(bb);
+			Result.decode(bb);
 	}
 
 	@Override

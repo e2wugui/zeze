@@ -12,59 +12,59 @@ public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends 
 	private static final Logger logger = LogManager.getLogger(Rpc.class);
 
 	public TResult Result;
-	private Binary ResultEncoded; // 如果设置了这个，发送结果的时候，优先使用这个编码过的。
-	public long SessionId;
-	private ProtocolHandle<Rpc<TArgument, TResult>> ResponseHandle;
-	private TaskCompletionSource<TResult> Future;
-	private int Timeout = 5000;
-	private boolean IsTimeout;
-	private boolean IsRequest = true;
-	private boolean SendResultDone; // XXX ugly
+	private Binary resultEncoded; // 如果设置了这个，发送结果的时候，优先使用这个编码过的。
+	private long sessionId;
+	private ProtocolHandle<Rpc<TArgument, TResult>> responseHandle;
+	private TaskCompletionSource<TResult> future;
+	private int timeout = 5000;
+	private boolean isTimeout;
+	private boolean isRequest = true;
+	private boolean sendResultDone; // XXX ugly
 
 	public long getSessionId() {
-		return SessionId;
+		return sessionId;
 	}
 
 	public void setSessionId(long sessionId) {
-		SessionId = sessionId;
+		this.sessionId = sessionId;
 	}
 
 	public ProtocolHandle<Rpc<TArgument, TResult>> getResponseHandle() {
-		return ResponseHandle;
+		return responseHandle;
 	}
 
 	public void setResponseHandle(ProtocolHandle<Rpc<TArgument, TResult>> handle) {
-		ResponseHandle = handle;
+		responseHandle = handle;
 	}
 
 	public TaskCompletionSource<TResult> getFuture() {
-		return Future;
+		return future;
 	}
 
 	public int getTimeout() {
-		return Timeout;
+		return timeout;
 	}
 
 	public void setTimeout(int timeout) {
-		Timeout = timeout;
+		this.timeout = timeout;
 	}
 
 	public boolean isTimeout() {
-		return IsTimeout;
+		return isTimeout;
 	}
 
 	public void setIsTimeout(boolean isTimeout) {
-		IsTimeout = isTimeout;
+		this.isTimeout = isTimeout;
 	}
 
 	@Override
 	public final boolean isRequest() {
-		return IsRequest;
+		return isRequest;
 	}
 
 	@Override
 	public final void setRequest(boolean request) {
-		IsRequest = request;
+		isRequest = request;
 	}
 
 	@Override
@@ -72,28 +72,28 @@ public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends 
 		return Result;
 	}
 
-	private void Schedule(Service service, long sessionId, int millisecondsTimeout) {
+	private void schedule(Service service, long sessionId, int millisecondsTimeout) {
 		long timeout = Math.max(millisecondsTimeout, 0);
 		if (Reflect.inDebugMode)
 			timeout += 10 * 60 * 1000; // 调试状态下RPC超时放宽到至少10分钟,方便调试时不容易超时
 
 		Task.schedule(timeout, () -> {
-			Rpc<TArgument, TResult> context = service.RemoveRpcContext(sessionId);
+			Rpc<TArgument, TResult> context = service.removeRpcContext(sessionId);
 			if (context == null) // 一般来说，此时结果已经返回。
 				return;
 
-			context.IsTimeout = true;
+			context.isTimeout = true;
 			context.setResultCode(Zeze.Transaction.Procedure.Timeout);
 
-			if (context.Future != null)
-				context.Future.TrySetException(RpcTimeoutException.getInstance());
-			else if (context.ResponseHandle != null) {
+			if (context.future != null)
+				context.future.TrySetException(RpcTimeoutException.getInstance());
+			else if (context.responseHandle != null) {
 				// 本来Schedule已经在Task中执行了，这里又派发一次。
 				// 主要是为了让应用能拦截修改Response的处理方式。
 				// Timeout 应该是少的，先这样了。
-				var factoryHandle = service.FindProtocolFactoryHandle(context.getTypeId());
+				var factoryHandle = service.findProtocolFactoryHandle(context.getTypeId());
 				if (factoryHandle != null)
-					service.DispatchRpcResponse(context, context.ResponseHandle, factoryHandle);
+					service.DispatchRpcResponse(context, context.responseHandle, factoryHandle);
 			}
 		});
 	}
@@ -110,7 +110,7 @@ public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends 
 	 */
 	@Override
 	public boolean Send(AsyncSocket so) {
-		return Send(so, ResponseHandle, Timeout);
+		return Send(so, responseHandle, timeout);
 	}
 
 	/**
@@ -123,7 +123,7 @@ public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends 
 	 * @return true: success
 	 */
 	public final boolean Send(AsyncSocket so, ProtocolHandle<Rpc<TArgument, TResult>> responseHandle) {
-		return Send(so, responseHandle, Timeout);
+		return Send(so, responseHandle, timeout);
 	}
 
 	public final boolean Send(AsyncSocket so, ProtocolHandle<Rpc<TArgument, TResult>> responseHandle,
@@ -135,22 +135,22 @@ public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends 
 			return false;
 
 		// try remove. 只维护一个上下文。
-		service.RemoveRpcContext(SessionId, this);
-		SessionId = service.AddRpcContext(this);
-		ResponseHandle = responseHandle;
-		Timeout = millisecondsTimeout;
-		IsTimeout = false;
-		IsRequest = true;
+		service.removeRpcContext(sessionId, this);
+		sessionId = service.addRpcContext(this);
+		this.responseHandle = responseHandle;
+		timeout = millisecondsTimeout;
+		isTimeout = false;
+		isRequest = true;
 
 		if (super.Send(so)) {
-			Schedule(service, SessionId, millisecondsTimeout);
+			schedule(service, sessionId, millisecondsTimeout);
 			return true;
 		}
 
 		// 发送失败，一般是连接失效，此时删除上下文。
 		// 其中rpc-trigger-result的原子性由RemoveRpcContext保证。
 		// 恢复最初的语义吧：如果ctx已经被并发的Remove，也就是被处理了，这里返回true。
-		return !service.RemoveRpcContext(SessionId, this);
+		return !service.removeRpcContext(sessionId, this);
 	}
 
 	/**
@@ -167,13 +167,13 @@ public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends 
 		if (so != null && so.getService() != service)
 			throw new IllegalStateException("so.Service != service");
 
-		ResponseHandle = responseHandle;
-		Timeout = millisecondsTimeout;
-		IsTimeout = false;
-		IsRequest = true;
-		SessionId = service.AddRpcContext(this);
+		this.responseHandle = responseHandle;
+		timeout = millisecondsTimeout;
+		isTimeout = false;
+		isRequest = true;
+		sessionId = service.addRpcContext(this);
 		super.Send(so);
-		Schedule(service, SessionId, millisecondsTimeout);
+		schedule(service, sessionId, millisecondsTimeout);
 	}
 
 	public final TaskCompletionSource<TResult> SendForWait(AsyncSocket so) {
@@ -181,10 +181,10 @@ public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends 
 	}
 
 	public final TaskCompletionSource<TResult> SendForWait(AsyncSocket so, int millisecondsTimeout) {
-		Future = new TaskCompletionSource<>();
+		future = new TaskCompletionSource<>();
 		if (!Send(so, null, millisecondsTimeout))
-			Future.TrySetException(new IllegalStateException("Send Failed."));
-		return Future;
+			future.TrySetException(new IllegalStateException("Send Failed."));
+		return future;
 	}
 
 	// 使用异步方式实现的同步等待版本
@@ -201,20 +201,20 @@ public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends 
 
 	@Override
 	public void SendResult(Binary result) {
-		if (SendResultDone) {
+		if (sendResultDone) {
 			logger.error("Rpc.SendResult Already Done: {} {}", getSender(), this, new Exception());
 			return;
 		}
-		SendResultDone = true;
-		ResultEncoded = result;
-		IsRequest = false;
+		sendResultDone = true;
+		resultEncoded = result;
+		isRequest = false;
 		if (!super.Send(getSender()))
 			logger.warn("Rpc.SendResult Failed: {} {}", getSender(), this);
 	}
 
 	@Override
 	public boolean trySendResultCode(long code) {
-		if (SendResultDone)
+		if (sendResultDone)
 			return false;
 		setResultCode(code);
 		SendResult(null);
@@ -222,16 +222,16 @@ public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends 
 	}
 
 	@Override
-	public <P extends Protocol<?>> void Dispatch(Service service, Service.ProtocolFactoryHandle<P> factoryHandle)
+	public <P extends Protocol<?>> void dispatch(Service service, Service.ProtocolFactoryHandle<P> factoryHandle)
 			throws Throwable {
-		if (IsRequest) {
+		if (isRequest) {
 			@SuppressWarnings("unchecked") P proto = (P)this;
 			service.DispatchProtocol(proto, factoryHandle);
 			return;
 		}
 
 		// response, 从上下文中查找原来发送的rpc对象，并派发该对象。
-		Rpc<TArgument, TResult> context = service.RemoveRpcContext(SessionId);
+		Rpc<TArgument, TResult> context = service.removeRpcContext(sessionId);
 		if (context == null) {
 			logger.warn("rpc response: lost context, maybe timeout. {}", this);
 			return;
@@ -241,51 +241,51 @@ public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends 
 		context.setUserState(getUserState());
 		context.setResultCode(getResultCode());
 		context.Result = Result;
-		context.IsTimeout = false; // not need
-		context.IsRequest = false;
+		context.isTimeout = false; // not need
+		context.isRequest = false;
 
-		if (context.Future != null)
-			context.Future.SetResult(context.Result); // SendForWait，设置结果唤醒等待者。
-		else if (context.ResponseHandle != null)
-			service.DispatchRpcResponse(context, context.ResponseHandle, factoryHandle);
+		if (context.future != null)
+			context.future.SetResult(context.Result); // SendForWait，设置结果唤醒等待者。
+		else if (context.responseHandle != null)
+			service.DispatchRpcResponse(context, context.responseHandle, factoryHandle);
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
-		bb.WriteBool(IsRequest);
-		bb.WriteLong(SessionId);
+	public void encode(ByteBuffer bb) {
+		bb.WriteBool(isRequest);
+		bb.WriteLong(sessionId);
 		bb.WriteLong(getResultCode());
 
-		if (IsRequest)
-			Argument.Encode(bb);
-		else if (ResultEncoded != null)
-			bb.Append(ResultEncoded.bytesUnsafe(), ResultEncoded.getOffset(), ResultEncoded.size());
+		if (isRequest)
+			Argument.encode(bb);
+		else if (resultEncoded != null)
+			bb.Append(resultEncoded.bytesUnsafe(), resultEncoded.getOffset(), resultEncoded.size());
 		else
-			Result.Encode(bb);
+			Result.encode(bb);
 	}
 
 	@Override
-	public void Decode(ByteBuffer bb) {
-		IsRequest = bb.ReadBool();
-		SessionId = bb.ReadLong();
+	public void decode(ByteBuffer bb) {
+		isRequest = bb.ReadBool();
+		sessionId = bb.ReadLong();
 		setResultCode(bb.ReadLong());
 
-		(IsRequest ? Argument : Result).Decode(bb);
+		(isRequest ? Argument : Result).decode(bb);
 	}
 
 	@Override
 	public int preAllocSize() {
-		return 1 + 9 + 9 + (IsRequest ? Argument.preAllocSize() : Result.preAllocSize());
+		return 1 + 9 + 9 + (isRequest ? Argument.preAllocSize() : Result.preAllocSize());
 	}
 
 	@Override
 	public void preAllocSize(int size) {
-		(IsRequest ? Argument : Result).preAllocSize(size - 1 - 1 - 1);
+		(isRequest ? Argument : Result).preAllocSize(size - 1 - 1 - 1);
 	}
 
 	@Override
 	public String toString() {
 		return String.format("%s IsRequest=%b SessionId=%d ResultCode=%d%n\tArgument=%s%n\tResult=%s",
-				getClass().getName(), IsRequest, SessionId, getResultCode(), Argument, Result);
+				getClass().getName(), isRequest, sessionId, getResultCode(), Argument, Result);
 	}
 }

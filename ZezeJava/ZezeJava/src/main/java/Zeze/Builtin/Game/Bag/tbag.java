@@ -28,21 +28,21 @@ public final class tbag extends Zeze.Transaction.TableX<String, Zeze.Builtin.Gam
     public static final int VAR_Items = 2;
 
     @Override
-    public String DecodeKey(ByteBuffer _os_) {
+    public String decodeKey(ByteBuffer _os_) {
         String _v_;
         _v_ = _os_.ReadString();
         return _v_;
     }
 
     @Override
-    public ByteBuffer EncodeKey(String _v_) {
+    public ByteBuffer encodeKey(String _v_) {
         ByteBuffer _os_ = ByteBuffer.Allocate(16);
         _os_.WriteString(_v_);
         return _os_;
     }
 
     @Override
-    public Zeze.Builtin.Game.Bag.BBag NewValue() {
+    public Zeze.Builtin.Game.Bag.BBag newValue() {
         return new Zeze.Builtin.Game.Bag.BBag();
     }
 }

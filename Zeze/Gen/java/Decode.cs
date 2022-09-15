@@ -17,7 +17,7 @@ namespace Zeze.Gen.java
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public void Decode(ByteBuffer _o_) {");
+            sw.WriteLine(prefix + "public void decode(ByteBuffer _o_) {");
             sw.WriteLine(prefix + "    int _t_ = _o_.ReadByte();");
             if (bean.Variables.Count > 0)
                 sw.WriteLine(prefix + "    int _i_ = _o_.ReadTagSize(_t_);");
@@ -55,9 +55,8 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    while (_t_ != 0) {");
             if (bean.Base != "")
             {
-                sw.WriteLine(prefix + "        if (_t_ == 1)");
-                sw.WriteLine(prefix + "        {");
-                sw.WriteLine(prefix + "            base.Decode(_o_);");
+                sw.WriteLine(prefix + "        if (_t_ == 1) {");
+                sw.WriteLine(prefix + "            base.decode(_o_);");
                 sw.WriteLine(prefix + "            return;");
                 sw.WriteLine(prefix + "        }");
             }
@@ -71,7 +70,7 @@ namespace Zeze.Gen.java
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public void Decode(ByteBuffer _o_) {");
+            sw.WriteLine(prefix + "public void decode(ByteBuffer _o_) {");
             sw.WriteLine(prefix + "    int _t_ = _o_.ReadByte();");
             if (bean.Variables.Count > 0)
                 sw.WriteLine(prefix + "    int _i_ = _o_.ReadTagSize(_t_);");
@@ -352,7 +351,7 @@ namespace Zeze.Gen.java
             if (id > 0)
                 sw.WriteLine(prefix + bufname + ".ReadBean(" + GetVarName() + ", _t_);");
             else
-                sw.WriteLine(prefix + GetVarName() + ".Decode(" + bufname + ");");
+                sw.WriteLine(prefix + GetVarName() + ".decode(" + bufname + ");");
         }
 
         public void Visit(BeanKey type)
@@ -360,7 +359,7 @@ namespace Zeze.Gen.java
             if (id > 0)
                 sw.WriteLine(prefix + bufname + ".ReadBean(" + GetVarName() + ", _t_);");
             else
-                sw.WriteLine(prefix + GetVarName() + ".Decode(" + bufname + ");");
+                sw.WriteLine(prefix + GetVarName() + ".decode(" + bufname + ");");
         }
 
         public void Visit(TypeDynamic type)

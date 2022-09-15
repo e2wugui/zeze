@@ -57,7 +57,7 @@ public class ProviderApp {
 		this.ProviderDirectService = toOtherProviderService;
 		this.ProviderDirectService.ProviderApp = this;
 
-		var kv = ProviderDirectService.GetOnePassiveAddress();
+		var kv = ProviderDirectService.getOnePassiveAddress();
 		this.DirectIp = kv.getKey();
 		this.DirectPort = kv.getValue();
 
@@ -69,7 +69,7 @@ public class ProviderApp {
 			var ps = ProviderDirectService.ProviderByLoadName.get(serverLoad.getName());
 			if (ps != null) {
 				var load = new BLoad();
-				load.Decode(serverLoad.Param.Wrap());
+				load.decode(serverLoad.Param.Wrap());
 				ps.Load = load;
 			}
 		});

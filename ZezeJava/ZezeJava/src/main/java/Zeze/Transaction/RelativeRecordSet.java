@@ -14,87 +14,87 @@ import Zeze.Services.GlobalCacheManagerConst;
  * 一个事务内访问的记录的集合。如果事务没有没提交，需要合并集合。
  */
 public final class RelativeRecordSet {
-	private static final AtomicLong IdGenerator = new AtomicLong(1);
-	private static final RelativeRecordSet Deleted = new RelativeRecordSet();
+	private static final AtomicLong idGenerator = new AtomicLong(1);
+	private static final RelativeRecordSet deleted = new RelativeRecordSet();
 
 	private final ReentrantLock mutex = new ReentrantLock(true);
-	private final long Id = IdGenerator.getAndIncrement();
+	private final long id = idGenerator.getAndIncrement();
 	// 采用链表，可以O(1)处理Merge，但是由于Merge的时候需要更新Record所属的关联集合，
 	// 所以避免不了遍历，那就使用HashSet，遍历吧。
 	// 可做的小优化：把Count小的关联集合Merge到大的里面。
-	private HashSet<Record> RecordSet;
-	private volatile RelativeRecordSet MergeTo; // 不为null表示发生了变化，其中 == Deleted 表示被删除（已经Flush了）。
+	private HashSet<Record> recordSet;
+	private volatile RelativeRecordSet mergeTo; // 不为null表示发生了变化，其中 == Deleted 表示被删除（已经Flush了）。
 
-	public HashSet<Record> getRecordSet() {
-		return RecordSet;
+	HashSet<Record> getRecordSet() {
+		return recordSet;
 	}
 
-	public RelativeRecordSet getMergeTo() {
-		return MergeTo;
+	RelativeRecordSet getMergeTo() {
+		return mergeTo;
 	}
 
-	private void Merge(Record r) {
+	private void merge(Record r) {
 		//if (r.getRelativeRecordSet().RecordSet != null)
 		//    return; // 这里仅合并孤立记录。外面检查。
 
-		if (RecordSet == null) {
-			RecordSet = new HashSet<>();
+		if (recordSet == null) {
+			recordSet = new HashSet<>();
 		}
-		RecordSet.add(r);
+		recordSet.add(r);
 		if (r.getRelativeRecordSet() != this) { // 自己：不需要更新MergeTo和引用。
-			r.getRelativeRecordSet().MergeTo = this;
+			r.getRelativeRecordSet().mergeTo = this;
 			r.setRelativeRecordSet(this);
 		}
 	}
 
-	private void Merge(RelativeRecordSet rrs) {
+	private void merge(RelativeRecordSet rrs) {
 		if (rrs == this) // 这个方法仅用于合并其他rrs
 			throw new IllegalStateException("Merge Self! " + rrs);
 
-		if (rrs.RecordSet == null) {
+		if (rrs.recordSet == null) {
 			return; // 孤立记录，后面单独合并。
 		}
 
-		if (RecordSet == null) {
-			RecordSet = new HashSet<>();
+		if (recordSet == null) {
+			recordSet = new HashSet<>();
 		}
 
-		for (var r : rrs.RecordSet) {
-			RecordSet.add(r);
+		for (var r : rrs.recordSet) {
+			recordSet.add(r);
 			r.setRelativeRecordSet(this);
 		}
 
-		rrs.MergeTo = this;
+		rrs.mergeTo = this;
 	}
 
-	public void Delete() {
-		if (RecordSet != null) { // 孤立记录不需要更新。
+	private void delete() {
+		if (recordSet != null) { // 孤立记录不需要更新。
 			// Flush完成以后，清除关联集合，
-			RecordSet.forEach(r -> r.setRelativeRecordSet(new RelativeRecordSet()));
-			MergeTo = Deleted;
+			recordSet.forEach(r -> r.setRelativeRecordSet(new RelativeRecordSet()));
+			mergeTo = deleted;
 		}
 	}
 
-	public void Lock() {
+	private void lock() {
 		mutex.lock();
 	}
 
-	public boolean TryLockWhenIdle() {
+	boolean tryLockWhenIdle() {
 		if (mutex.hasQueuedThreads())
 			return false;
 		return mutex.tryLock();
 	}
 
 	// 必须且仅调用一次。
-	public void UnLock() {
+	void unLock() {
 		mutex.unlock();
 	}
 
-	public static void TryUpdateAndCheckpoint(Transaction trans, Procedure procedure, Runnable commit) {
+	static void tryUpdateAndCheckpoint(Transaction trans, Procedure procedure, Runnable commit) {
 		switch (procedure.getZeze().getConfig().getCheckpointMode()) {
 		case Immediately:
 			commit.run();
-			procedure.getZeze().getCheckpoint().Flush(trans);
+			procedure.getZeze().getCheckpoint().flush(trans);
 			// 这种模式下 RelativeRecordSet 都是空的。
 			return;
 
@@ -115,13 +115,13 @@ public final class RelativeRecordSet {
 		var transAccessRecords = new HashSet<Record>();
 		boolean allRead = true;
 		for (var ar : trans.getAccessedRecords().values()) {
-			if (ar.Dirty)
+			if (ar.dirty)
 				allRead = false;
 
-			var record = ar.AtomicTupleRecord.Record;
+			var record = ar.atomicTupleRecord.record;
 			if (record.getTable().getTableConf().getCheckpointWhenCommit()) {
 				// 修改了需要马上提交的记录。
-				if (ar.Dirty) {
+				if (ar.dirty) {
 					needFlushNow = true;
 				}
 			} else {
@@ -130,7 +130,7 @@ public final class RelativeRecordSet {
 			// 读写都需要收集。
 			transAccessRecords.add(record);
 			var volatileRrs = record.getRelativeRecordSet();
-			RelativeRecordSets.put(volatileRrs.Id, volatileRrs);
+			RelativeRecordSets.put(volatileRrs.id, volatileRrs);
 		}
 
 		if (allCheckpointWhenCommit) {
@@ -138,7 +138,7 @@ public final class RelativeRecordSet {
 			// CheckpointMode.Period上面已经处理了，此时不会是它。
 			// 【优化】，事务内访问的所有记录都是Immediately的，马上提交，不需要更新关联记录集合。
 			commit.run();
-			procedure.getZeze().getCheckpoint().Flush(trans);
+			procedure.getZeze().getCheckpoint().flush(trans);
 			// 这种情况下 RelativeRecordSet 都是空的。
 			//logger.Debug($"allCheckpointWhenCommit AccessedCount={trans.AccessedRecords.Count}");
 			return;
@@ -182,19 +182,19 @@ public final class RelativeRecordSet {
 				var mergedSet = _merge_(LockedRelativeRecordSets, trans, allRead);
 				commit.run(); // 必须在锁获得并且合并完集合以后才提交修改。
 				if (needFlushNow) {
-					procedure.getZeze().getCheckpoint().Flush(mergedSet);
-					mergedSet.Delete();
+					procedure.getZeze().getCheckpoint().flush(mergedSet);
+					mergedSet.delete();
 					//logger.Debug($"needFlushNow AccessedCount={trans.AccessedRecords.Count}");
-				} else if (mergedSet.RecordSet != null) {
+				} else if (mergedSet.recordSet != null) {
 					// mergedSet 合并结果是孤立的，不需要Flush。
 					// 本次事务没有包含任何需要马上提交的记录，留给 Period 提交。
-					procedure.getZeze().getCheckpoint().RelativeRecordSetMap.add(mergedSet);
+					procedure.getZeze().getCheckpoint().relativeRecordSetMap.add(mergedSet);
 				}
 			}
 			// else
 			// 本次事务没有访问任何数据。
 		} finally {
-			LockedRelativeRecordSets.forEach(RelativeRecordSet::UnLock);
+			LockedRelativeRecordSets.forEach(RelativeRecordSet::unLock);
 		}
 	}
 
@@ -204,8 +204,8 @@ public final class RelativeRecordSet {
 		var largest = LockedRelativeRecordSets.get(0);
 		for (int index = 1; index < LockedRelativeRecordSets.size(); ++index) {
 			var r = LockedRelativeRecordSets.get(index);
-			var cur = largest.RecordSet == null ? 1 : largest.RecordSet.size();
-			if (r.RecordSet != null && r.RecordSet.size() > cur) {
+			var cur = largest.recordSet == null ? 1 : largest.recordSet.size();
+			if (r.recordSet != null && r.recordSet.size() > cur) {
 				largest = r;
 			}
 		}
@@ -213,17 +213,17 @@ public final class RelativeRecordSet {
 		// merge all other set to largest
 		for (var r : LockedRelativeRecordSets) {
 			if (r != largest) // skip self
-				largest.Merge(r);
+				largest.merge(r);
 		}
 
 		// 所有的记录都是读，并且所有的记录都是孤立的，此时不需要关联起来。
-		if (largest.RecordSet != null || !allRead) {
+		if (largest.recordSet != null || !allRead) {
 			// merge 孤立记录。
 			for (var ar : trans.getAccessedRecords().values()) {
-				var record = ar.AtomicTupleRecord.Record;
+				var record = ar.atomicTupleRecord.record;
 				var rrs = record.getRelativeRecordSet();
-				if (rrs.RecordSet == null || rrs == largest /* is self. ugly */)
-					largest.Merge(record); // 合并孤立记录。这里包含largest是孤立记录的情况。
+				if (rrs.recordSet == null || rrs == largest /* is self. ugly */)
+					largest.merge(record); // 合并孤立记录。这里包含largest是孤立记录的情况。
 			}
 		}
 
@@ -249,7 +249,7 @@ public final class RelativeRecordSet {
 					break;
 				}
 				var curSet = LockedRelativeRecordSets.get(index);
-				int c = Long.compare(curSet.Id, rrs.Id);
+				int c = Long.compare(curSet.id, rrs.id);
 				if (c == 0) {
 					++index;
 					rrs = itRrs.hasNext() ? itRrs.next() : null;
@@ -258,9 +258,9 @@ public final class RelativeRecordSet {
 				if (c < 0) {
 					// 释放掉不需要的锁（已经被Delete了，Has Flush）。
 					int unlockEndIndex = index;
-					for (; unlockEndIndex < n && LockedRelativeRecordSets.get(unlockEndIndex).Id < rrs.Id;
+					for (; unlockEndIndex < n && LockedRelativeRecordSets.get(unlockEndIndex).id < rrs.id;
 						 ++unlockEndIndex) {
-						LockedRelativeRecordSets.get(unlockEndIndex).UnLock();
+						LockedRelativeRecordSets.get(unlockEndIndex).unLock();
 					}
 					LockedRelativeRecordSets.subList(index, unlockEndIndex).clear();
 					n = LockedRelativeRecordSets.size();
@@ -270,7 +270,7 @@ public final class RelativeRecordSet {
 				// RelativeRecordSets发生了变化，并且出现排在当前已经锁住对象前面的集合。
 				// 从当前位置释放锁，再次尝试。
 				for (int i = index; i < n; ++i) {
-					LockedRelativeRecordSets.get(i).UnLock();
+					LockedRelativeRecordSets.get(i).unLock();
 				}
 				LockedRelativeRecordSets.subList(index, n).clear();
 				n = LockedRelativeRecordSets.size();
@@ -285,24 +285,24 @@ public final class RelativeRecordSet {
 											TreeMap<Long, RelativeRecordSet> all,
 											RelativeRecordSet rrs,
 											HashSet<Record> transAccessRecords) {
-		rrs.Lock();
-		var mergeTo = rrs.MergeTo;
+		rrs.lock();
+		var mergeTo = rrs.mergeTo;
 		if (mergeTo != null) {
-			rrs.UnLock();
-			all.remove(rrs.Id); // remove merged or deleted rrs
-			if (mergeTo == Deleted) {
+			rrs.unLock();
+			all.remove(rrs.id); // remove merged or deleted rrs
+			if (mergeTo == deleted) {
 				// flush 后进入这个状态。此时表示旧的关联集合的checkpoint点已经完成。
 				// 但仍然需要重新获得当前事务中访问的记录的rrs。
-				for (var r : rrs.RecordSet) {
+				for (var r : rrs.recordSet) {
 					// Deleted 的 rrs 不会再发生变化，在锁外处理 RecordSet。
 					if (transAccessRecords.contains(r)) {
 						var volatileTmp = r.getRelativeRecordSet();
-						all.put(volatileTmp.Id, volatileTmp);
+						all.put(volatileTmp.id, volatileTmp);
 					}
 				}
 				return false;
 			}
-			all.put(mergeTo.Id, mergeTo);
+			all.put(mergeTo.id, mergeTo);
 			return false;
 		}
 		locked.add(rrs);
@@ -324,28 +324,28 @@ public final class RelativeRecordSet {
 	}
 	*/
 
-	static class FlushSet implements Iterable<Record> {
-		private final Checkpoint Checkpoint;
-		private final TreeMap<Long, RelativeRecordSet> SortedRrs = new TreeMap<>();
+	private static class FlushSet implements Iterable<Record> {
+		private final Checkpoint checkpoint;
+		private final TreeMap<Long, RelativeRecordSet> sortedRrs = new TreeMap<>();
 
-		public FlushSet(Checkpoint cp) {
-			Checkpoint = cp;
+		private FlushSet(Checkpoint cp) {
+			checkpoint = cp;
 		}
 
-		public int add(RelativeRecordSet rrs) {
-			if (null != SortedRrs.putIfAbsent(rrs.Id, rrs))
+		private int add(RelativeRecordSet rrs) {
+			if (null != sortedRrs.putIfAbsent(rrs.id, rrs))
 				throw new IllegalStateException("duplicate rrs");
-			return SortedRrs.size();
+			return sortedRrs.size();
 		}
 
-		public int size() {
-			return SortedRrs.size();
+		private int size() {
+			return sortedRrs.size();
 		}
 
 		@Override
 		public Iterator<Record> iterator() {
 			return new Iterator<>() {
-				final Iterator<RelativeRecordSet> it = SortedRrs.values().iterator();
+				final Iterator<RelativeRecordSet> it = sortedRrs.values().iterator();
 				Iterator<Record> rrs;
 
 				@Override
@@ -354,7 +354,7 @@ public final class RelativeRecordSet {
 						return true;
 					while (it.hasNext()) {
 						var n = it.next();
-						if (n.MergeTo == null) {
+						if (n.mergeTo == null) {
 							// normal rrs
 							rrs = n.getRecordSet().iterator();
 							if (rrs.hasNext())
@@ -374,32 +374,32 @@ public final class RelativeRecordSet {
 			};
 		}
 
-		public void flush() {
-			var locks = new ArrayList<RelativeRecordSet>(SortedRrs.size());
+		private void flush() {
+			var locks = new ArrayList<RelativeRecordSet>(sortedRrs.size());
 			try {
-				for (var rrs : SortedRrs.values()) {
-					rrs.Lock();
+				for (var rrs : sortedRrs.values()) {
+					rrs.lock();
 					locks.add(rrs);
 				}
 
-				Checkpoint.Flush(this);
-				for (var rrs : SortedRrs.values()) {
-					if (rrs.MergeTo == null)
-						rrs.Delete(); // normal rrs: not merged and not deleted.
-					Checkpoint.RelativeRecordSetMap.remove(rrs);
+				checkpoint.flush(this);
+				for (var rrs : sortedRrs.values()) {
+					if (rrs.mergeTo == null)
+						rrs.delete(); // normal rrs: not merged and not deleted.
+					checkpoint.relativeRecordSetMap.remove(rrs);
 				}
-				SortedRrs.clear();
+				sortedRrs.clear();
 			} finally {
-				locks.forEach(RelativeRecordSet::UnLock);
+				locks.forEach(RelativeRecordSet::unLock);
 			}
 		}
 	}
 
-	public static void FlushWhenCheckpoint(Checkpoint checkpoint, ExecutorService pool) {
+	static void flushWhenCheckpoint(Checkpoint checkpoint, ExecutorService pool) {
 		var flushSet = new FlushSet(checkpoint);
 		var flushLimit = checkpoint.getZeze().getConfig().getCheckpointModeTableFlushSetCount();
 		if (pool == null) {
-			for (var rrs : checkpoint.RelativeRecordSetMap) {
+			for (var rrs : checkpoint.relativeRecordSetMap) {
 				if (flushSet.add(rrs) >= flushLimit)
 					flushSet.flush();
 			}
@@ -407,7 +407,7 @@ public final class RelativeRecordSet {
 				flushSet.flush();
 		} else {
 			// concurrent flush
-			for (var rrs : checkpoint.RelativeRecordSetMap) {
+			for (var rrs : checkpoint.relativeRecordSetMap) {
 				if (flushSet.add(rrs) >= flushLimit) {
 					pool.execute(flushSet::flush);
 					flushSet = new FlushSet(checkpoint);
@@ -419,29 +419,29 @@ public final class RelativeRecordSet {
 		}
 	}
 
-	public static void FlushWhenReduce(Record r, Checkpoint checkpoint) {
+	static void flushWhenReduce(Record r, Checkpoint checkpoint) {
 		var rrs = r.getRelativeRecordSet();
 		while (rrs != null) {
-			r.EnterFairLock(); // 用来保护State的查看。
+			r.enterFairLock(); // 用来保护State的查看。
 			try {
 				if (r.getState() == GlobalCacheManagerConst.StateRemoved) {
 					return;
 				}
 			} finally {
-				r.ExitFairLock();
+				r.exitFairLock();
 			}
 
-			rrs = _FlushWhenReduce(rrs, checkpoint);
+			rrs = flushWhenReduce(rrs, checkpoint);
 		}
 	}
 
-	private static RelativeRecordSet _FlushWhenReduce(RelativeRecordSet rrs, Checkpoint checkpoint) {
-		rrs.Lock();
+	private static RelativeRecordSet flushWhenReduce(RelativeRecordSet rrs, Checkpoint checkpoint) {
+		rrs.lock();
 		try {
-			if (rrs.MergeTo == null) {
-				if (rrs.RecordSet != null) { // 孤立记录不用保存，肯定没有修改。
-					checkpoint.Flush(rrs);
-					rrs.Delete();
+			if (rrs.mergeTo == null) {
+				if (rrs.recordSet != null) { // 孤立记录不用保存，肯定没有修改。
+					checkpoint.flush(rrs);
+					rrs.delete();
 				}
 				return null;
 			}
@@ -451,35 +451,35 @@ public final class RelativeRecordSet {
 			// 或者被 Checkpoint Flush。
 			// 此时可以认为直接成功了吧？
 			// 或者不判断这个，总是由上面的步骤中处理。
-			if (rrs.MergeTo == RelativeRecordSet.Deleted) {
+			if (rrs.mergeTo == RelativeRecordSet.deleted) {
 				// has flush
 				return null;
 			}
 
-			return rrs.MergeTo; // 返回这个能更快得到新集合的引用。
+			return rrs.mergeTo; // 返回这个能更快得到新集合的引用。
 		} finally {
-			rrs.UnLock();
+			rrs.unLock();
 		}
 	}
 
 	@Override
 	public String toString() {
-		Lock();
+		lock();
 		try {
-			if (MergeTo != null) {
-				return "[MergeTo-" + MergeTo.Id + "]";
+			if (mergeTo != null) {
+				return "[MergeTo-" + mergeTo.id + "]";
 			}
 
-			if (RecordSet == null) {
-				return Id + "-[Isolated]";
+			if (recordSet == null) {
+				return id + "-[Isolated]";
 			}
-			return Id + "-" + RecordSet;
+			return id + "-" + recordSet;
 		} finally {
-			UnLock();
+			unLock();
 		}
 	}
 
-	public static String RelativeRecordSetMapToString(Checkpoint checkpoint) {
-		return checkpoint.RelativeRecordSetMap.toString();
+	public static String relativeRecordSetMapToString(Checkpoint checkpoint) {
+		return checkpoint.relativeRecordSetMap.toString();
 	}
 }

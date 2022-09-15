@@ -7,11 +7,11 @@ import Zeze.Serialize.ByteBuffer;
 public final class BAny extends Zeze.Transaction.Bean {
     private final Zeze.Transaction.DynamicBean _Any;
 
-    public static long GetSpecialTypeIdFromBean_Any(Zeze.Transaction.Bean bean) {
+    public static long getSpecialTypeIdFromBean_Any(Zeze.Transaction.Bean bean) {
         return Zeze.Arch.Online.GetSpecialTypeIdFromBean(bean);
     }
 
-    public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Any(long typeId) {
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_Any(long typeId) {
         return Zeze.Arch.Online.CreateBeanFromSpecialTypeId(typeId);
     }
 
@@ -36,28 +36,38 @@ public final class BAny extends Zeze.Transaction.Bean {
         _Any = new Zeze.Transaction.DynamicBean(1, Zeze.Arch.Online::GetSpecialTypeIdFromBean, Zeze.Arch.Online::CreateBeanFromSpecialTypeId);
     }
 
-    public void Assign(BAny other) {
+    public void assign(BAny other) {
         getAny().Assign(other.getAny());
     }
 
-    public BAny CopyIfManaged() {
+    @Deprecated
+    public void Assign(BAny other) {
+        assign(other);
+    }
+
+    public BAny copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BAny Copy() {
+    public BAny copy() {
         var copy = new BAny();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BAny a, BAny b) {
+    @Deprecated
+    public BAny Copy() {
+        return copy();
+    }
+
+    public static void swap(BAny a, BAny b) {
         BAny save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-    public BAny CopyBean() {
+    public BAny copyBean() {
         return Copy();
     }
 
@@ -71,16 +81,16 @@ public final class BAny extends Zeze.Transaction.Bean {
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        BuildString(sb, 0);
+        buildString(sb, 0);
         return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void BuildString(StringBuilder sb, int level) {
+    public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Online.BAny: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Any").append('=').append(System.lineSeparator());
-        getAny().getBean().BuildString(sb, level + 4);
+        getAny().getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -99,20 +109,20 @@ public final class BAny extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public void Encode(ByteBuffer _o_) {
+    public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
             var _x_ = getAny();
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.DYNAMIC);
-                _x_.Encode(_o_);
+                _x_.encode(_o_);
             }
         }
         _o_.WriteByte(0);
     }
 
     @Override
-    public void Decode(ByteBuffer _o_) {
+    public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
@@ -126,30 +136,30 @@ public final class BAny extends Zeze.Transaction.Bean {
     }
 
     @Override
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Any.InitRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+        _Any.initRootInfo(root, this);
     }
 
     @Override
-    protected void ResetChildrenRootInfo() {
-        _Any.ResetRootInfo();
+    protected void resetChildrenRootInfo() {
+        _Any.resetRootInfo();
     }
 
     @Override
-    public boolean NegativeCheck() {
+    public boolean negativeCheck() {
         return false;
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public void FollowerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
         if (vars == null)
             return;
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Any.FollowerApply(vlog); break;
+                case 1: _Any.followerApply(vlog); break;
             }
         }
     }

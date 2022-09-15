@@ -24,13 +24,13 @@ public class UniqueRequestId implements Serializable {
 	}
 
 	@Override
-	public final void Encode(ByteBuffer bb) {
+	public final void encode(ByteBuffer bb) {
 		bb.WriteString(ClientId);
 		bb.WriteLong(RequestId);
 	}
 
 	@Override
-	public final void Decode(ByteBuffer bb) {
+	public final void decode(ByteBuffer bb) {
 		ClientId = bb.ReadString();
 		RequestId = bb.ReadLong();
 	}

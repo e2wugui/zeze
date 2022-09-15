@@ -29,20 +29,22 @@ import org.apache.logging.log4j.Logger;
 public class ReliableUdp implements SelectorHandle, Closeable {
 	private static final Logger logger = LogManager.getLogger(AsyncSocket.class);
 
+	public static final int TypePacket = 0;
+	public static final int TypeControl = 1;
+
 	private final DatagramChannel datagramChannel;
 	private SelectionKey selectionKey;
 	private final Selector selector;
 	private final InetSocketAddress local;
-	private final ConcurrentHashMap<SocketAddress, Session> Sessions = new ConcurrentHashMap<>();
-	private final ReliableUdpHandle DefaultHandle;
+	private final ConcurrentHashMap<SocketAddress, Session> sessions = new ConcurrentHashMap<>();
+	private final ReliableUdpHandle defaultHandle;
+	private int MaxPacketLength = 2048;
 
 	// 应用应该需要这个，特别是Server端，免得外面又需要建立一个Map来管理。
 	// 【注意】应用直接删除这个Map时需要注意是否会出现问题。
 	public ConcurrentHashMap<SocketAddress, Session> getSessions() {
-		return Sessions;
+		return sessions;
 	}
-
-	private int MaxPacketLength = 2048;
 
 	public int getMaxPacketLength() {
 		return MaxPacketLength;
@@ -63,7 +65,7 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 	// bind to (address, port)
 	public ReliableUdp(String address, int port, ReliableUdpHandle defaultHandle) {
 		try {
-			DefaultHandle = defaultHandle;
+			this.defaultHandle = defaultHandle;
 			local = new InetSocketAddress(InetAddress.getByName(address), port);
 			datagramChannel = DatagramChannel.open();
 			datagramChannel.configureBlocking(false);
@@ -85,43 +87,39 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 		}
 	}
 
-	public final static int TypePacket = 0;
-	public final static int TypeControl = 1;
-
 	public static class Packet implements Serializable {
-		public long SerialId;
-		public byte[] Bytes;
-		public int Offset;
-		public int Length;
+		public long serialId;
+		public byte[] bytes;
+		public int offset;
+		public int length;
 
 		// 发送端用来记录这个包的重发 TimerTask。TODO 每个包一个Timer很浪费，先这样。
-		public Future<?> ResendTimerTask;
+		public Future<?> resendTimerTask;
 
 		public Packet() {
-
 		}
 
 		public Packet(long serialId, byte[] bytes, int offset, int length) {
-			SerialId = serialId;
-			Bytes = bytes;
-			Offset = offset;
-			Length = length;
+			this.serialId = serialId;
+			this.bytes = bytes;
+			this.offset = offset;
+			this.length = length;
 		}
 
 		@Override
-		public void Decode(ByteBuffer bb) {
+		public void decode(ByteBuffer bb) {
 			// TypePacket 外面解析。
-			SerialId = bb.ReadLong();
-			Bytes = bb.ReadBytes();
-			Offset = 0;
-			Length = Bytes.length;
+			serialId = bb.ReadLong();
+			bytes = bb.ReadBytes();
+			offset = 0;
+			length = bytes.length;
 		}
 
 		@Override
-		public void Encode(ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteInt(TypePacket);
-			bb.WriteLong(SerialId);
-			bb.WriteBytes(Bytes, Offset, Length);
+			bb.WriteLong(serialId);
+			bb.WriteBytes(bytes, offset, length);
 		}
 	}
 
@@ -130,54 +128,54 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 		public final static int Resend = 2;
 		public final static int NoSession = 3;
 
-		public int Command;
-		public final LongHashSet SerialIds = new LongHashSet();
+		public int command;
+		public final LongHashSet serialIds = new LongHashSet();
 
 		@Override
-		public void Decode(ByteBuffer bb) {
+		public void decode(ByteBuffer bb) {
 			// TypePacket 外面解析。
-			Command = bb.ReadInt();
+			command = bb.ReadInt();
 			for (int count = bb.ReadInt(); count > 0; --count) {
-				SerialIds.add(bb.ReadLong());
+				serialIds.add(bb.ReadLong());
 			}
 		}
 
 		@Override
-		public void Encode(ByteBuffer bb) {
+		public void encode(ByteBuffer bb) {
 			bb.WriteInt(TypeControl);
-			bb.WriteInt(Command);
-			bb.WriteInt(SerialIds.size());
-			SerialIds.foreach(bb::WriteLong);
+			bb.WriteInt(command);
+			bb.WriteInt(serialIds.size());
+			serialIds.foreach(bb::WriteLong);
 		}
 	}
 
 	public class Session {
-		private final ReliableUdpHandle Handle;
-		private final SocketAddress Peer;
-		private final LongConcurrentHashMap<Packet> SendWindow = new LongConcurrentHashMap<>();
-		private final AtomicLong SerialIdGenerator = new AtomicLong(1);
-		private final LongConcurrentHashMap<Packet> RecvWindow = new LongConcurrentHashMap<>();
+		private final ReliableUdpHandle handle;
+		private final SocketAddress peer;
+		private final LongConcurrentHashMap<Packet> sendWindow = new LongConcurrentHashMap<>();
+		private final AtomicLong serialIdGenerator = new AtomicLong(1);
+		private final LongConcurrentHashMap<Packet> recvWindow = new LongConcurrentHashMap<>();
 
-		private long LastDispatchedSerialId;
-		private long MaxRecvPacketSerialId;
+		private long lastDispatchedSerialId;
+		private long maxRecvPacketSerialId;
 
 		public Session(SocketAddress peer, ReliableUdpHandle handle) {
-			Handle = handle;
-			Peer = peer;
-			Sessions.put(peer, this);
+			this.handle = handle;
+			this.peer = peer;
+			sessions.put(peer, this);
 		}
 
 		public boolean send(byte[] bytes, int offset, int length) {
 			if (length > MaxPacketLength)
 				throw new IllegalArgumentException("length > MaxPacketLength: " + MaxPacketLength);
 
-			var serialId = SerialIdGenerator.getAndIncrement();
+			var serialId = serialIdGenerator.getAndIncrement();
 			var packet = new Packet(serialId, bytes, offset, length);
-			SendWindow.put(packet.SerialId, packet);
+			sendWindow.put(packet.serialId, packet);
 
 			// start auto resend timer.
-			packet.ResendTimerTask = Zeze.Util.Task.scheduleUnsafe(3000, 3000, () -> sendTo(Peer, packet));
-			sendTo(Peer, packet);
+			packet.resendTimerTask = Zeze.Util.Task.scheduleUnsafe(3000, 3000, () -> sendTo(peer, packet));
+			sendTo(peer, packet);
 			return true;
 		}
 	}
@@ -185,7 +183,7 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 	private void sendTo(SocketAddress peer, Serializable p) {
 		try {
 			var bb = ByteBuffer.Allocate(512);
-			p.Encode(bb);
+			p.encode(bb);
 			datagramChannel.send(java.nio.ByteBuffer.wrap(bb.Bytes, bb.ReadIndex, bb.WriteIndex), peer);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
@@ -195,58 +193,58 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 	// 重载这个决定是否动态创建Session。
 	// 一般Server模式需要接收任何地方来的包，此时需要动态创建。
 	// 一般Client模式仅接收来自一个地方的包，此时可以限制一下，重载这个方法并且返回null即可。
-	public Session DynamicCreateSession(SocketAddress source) {
-		return new Session(source, DefaultHandle);
+	public Session dynamicCreateSession(SocketAddress source) {
+		return new Session(source, defaultHandle);
 	}
 
 	// 派发收到的包，决定执行方式。默认多线程执行。
 	// 如果执行的操作没有阻塞，可以直接在网络线程中执行。
 	// 重载当然也可以实现其他模式，加到自己的队列什么的。
-	public void Dispatch(Session session, Packet packet) {
-		Zeze.Util.Task.runUnsafe(() -> session.Handle.handle(session, packet), "ReliableUdp.DefaultDispatch", DispatchMode.Normal);
+	public void dispatch(Session session, Packet packet) {
+		Zeze.Util.Task.runUnsafe(() -> session.handle.handle(session, packet), "ReliableUdp.DefaultDispatch", DispatchMode.Normal);
 		// session.Handle.handle(session, packet); // 直接在网络线程中执行。
 	}
 
 	private void tryDispatchRecvWindow(Session session) {
-		for (long serialId = session.LastDispatchedSerialId + 1;
-			 serialId <= session.MaxRecvPacketSerialId;
+		for (long serialId = session.lastDispatchedSerialId + 1;
+			 serialId <= session.maxRecvPacketSerialId;
 			 ++serialId) {
-			var p = session.RecvWindow.get(serialId);
-			if (null == p)
+			var p = session.recvWindow.get(serialId);
+			if (p == null)
 				break; // 仍然有乱序的包没有到达，等待。
-			Dispatch(session, p);
-			session.LastDispatchedSerialId = serialId;
-			session.RecvWindow.remove(serialId);
+			dispatch(session, p);
+			session.lastDispatchedSerialId = serialId;
+			session.recvWindow.remove(serialId);
 		}
 	}
 
-	private void ProcessPacket(SocketAddress source, ByteBuffer bb) {
+	private void processPacket(SocketAddress source, ByteBuffer bb) {
 		var packet = new Packet();
-		packet.Decode(bb);
+		packet.decode(bb);
 
 		// 只要收到包就发送ack，不需要判断其他条件，这样让发送者能更好的的清除SendWindow。
 		var ack = new Control();
-		ack.Command = Control.Ack;
-		ack.SerialIds.add(packet.SerialId);
+		ack.command = Control.Ack;
+		ack.serialIds.add(packet.serialId);
 		sendTo(source, ack);
 
-		var session = Sessions.get(source);
-		if (null == session)
-			session = DynamicCreateSession(source);
+		var session = sessions.get(source);
+		if (session == null)
+			session = dynamicCreateSession(source);
 
-		if (null != session) {
-			if (packet.SerialId <= session.LastDispatchedSerialId) {
+		if (session != null) {
+			if (packet.serialId <= session.lastDispatchedSerialId) {
 				return; // skip duplicate packet.
 			}
 
-			if (packet.SerialId > session.MaxRecvPacketSerialId)
-				session.MaxRecvPacketSerialId = packet.SerialId;
+			if (packet.serialId > session.maxRecvPacketSerialId)
+				session.maxRecvPacketSerialId = packet.serialId;
 
-			if (packet.SerialId == session.LastDispatchedSerialId + 1) {
+			if (packet.serialId == session.lastDispatchedSerialId + 1) {
 				// 顺序到达，马上派发。
-				Dispatch(session, packet);
-				session.LastDispatchedSerialId = packet.SerialId;
-				session.RecvWindow.remove(packet.SerialId);
+				dispatch(session, packet);
+				session.lastDispatchedSerialId = packet.serialId;
+				session.recvWindow.remove(packet.serialId);
 
 				// 派发可能收到的原来乱序的包。
 				tryDispatchRecvWindow(session);
@@ -256,14 +254,14 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 			// 发现乱序。
 
 			// 记住当前包。
-			session.RecvWindow.put(packet.SerialId, packet);
+			session.recvWindow.put(packet.serialId, packet);
 
 			// 请求重发。
 			// TODO 这里应该需要延迟一下，因为即使发生了乱序，可能在短时间内，包会继续到达。
 			var resend = new Control();
-			resend.Command = Control.Resend;
-			for (var serialId = session.LastDispatchedSerialId + 1; serialId < session.MaxRecvPacketSerialId; ++serialId) {
-				resend.SerialIds.add(serialId);
+			resend.command = Control.Resend;
+			for (var serialId = session.lastDispatchedSerialId + 1; serialId < session.maxRecvPacketSerialId; ++serialId) {
+				resend.serialIds.add(serialId);
 			}
 			sendTo(source, resend);
 			return;
@@ -271,37 +269,37 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 
 		// report error to source;
 		var noss = new Control();
-		noss.Command = Control.NoSession;
+		noss.command = Control.NoSession;
 		sendTo(source, noss);
 	}
 
-	private void ProcessPacketControl(SocketAddress source, ByteBuffer bb) {
+	private void processPacketControl(SocketAddress source, ByteBuffer bb) {
 		var control = new Control();
-		control.Decode(bb);
+		control.decode(bb);
 
-		var session = Sessions.get(source);
+		var session = sessions.get(source);
 
 		// TODO 需要确定控制协议是否需要动态创建Session。
-		if (null == session)
-			session = DynamicCreateSession(source);
+		if (session == null)
+			session = dynamicCreateSession(source);
 
 		// 没有会话，此时忽略Control。控制协议不允许再次报告错误，避免形成两端互相发送错误的死循环。
-		if (null == session)
+		if (session == null)
 			return;
 
-		switch (control.Command) {
+		switch (control.command) {
 		case Control.Ack:
-			for (var it = control.SerialIds.iterator(); it.moveToNext(); ) {
-				var p = session.SendWindow.remove(it.value());
-				p.ResendTimerTask.cancel(false);
+			for (var it = control.serialIds.iterator(); it.moveToNext(); ) {
+				var p = session.sendWindow.remove(it.value());
+				p.resendTimerTask.cancel(false);
 			}
 			break;
 
 		case Control.Resend:
-			for (var it = control.SerialIds.iterator(); it.moveToNext(); ) {
-				var packet = session.SendWindow.get(it.value());
+			for (var it = control.serialIds.iterator(); it.moveToNext(); ) {
+				var packet = session.sendWindow.get(it.value());
 				if (null != packet)
-					sendTo(session.Peer, packet);
+					sendTo(session.peer, packet);
 				// else skip 重发请求的包已经不在Window中，此时可能是重复的Resend请求。
 			}
 			break;
@@ -316,15 +314,15 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 		if (key.isReadable()) {
 			var buffer = java.nio.ByteBuffer.allocate(MaxPacketLength);
 			var source = datagramChannel.receive(buffer);
-			if (null != source) {
+			if (source != null) {
 				var bb = ByteBuffer.Wrap(buffer.array(), buffer.position(), buffer.limit());
 				var type = bb.ReadInt();
 				switch (type) {
 				case TypePacket:
-					ProcessPacket(source, bb);
+					processPacket(source, bb);
 					break;
 				case TypeControl:
-					ProcessPacketControl(source, bb);
+					processPacketControl(source, bb);
 					break;
 				}
 			}

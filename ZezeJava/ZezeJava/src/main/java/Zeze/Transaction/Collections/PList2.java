@@ -154,7 +154,7 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
-	public void FollowerApply(Log _log) {
+	public void followerApply(Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogList2<V>)_log;
 		var tmp = _list;
@@ -162,12 +162,12 @@ public class PList2<V extends Bean> extends PList<V> {
 		for (var opLog : log.getOpLogs()) {
 			switch (opLog.op) {
 			case LogList1.OpLog.OP_MODIFY:
-				opLog.value.InitRootInfo(rootInfo, this);
+				opLog.value.initRootInfo(rootInfo, this);
 				tmp = tmp.with(opLog.index, opLog.value);
 				newest.add(opLog.index);
 				break;
 			case LogList1.OpLog.OP_ADD:
-				opLog.value.InitRootInfo(rootInfo, this);
+				opLog.value.initRootInfo(rootInfo, this);
 				tmp = tmp.plus(opLog.index, opLog.value);
 				newest.add(opLog.index);
 				break;
@@ -184,40 +184,40 @@ public class PList2<V extends Bean> extends PList<V> {
 		for (var e : log.getChanged().entrySet()) {
 			if (newest.contains(e.getValue().Value))
 				continue;
-			_list.get(e.getValue().Value).FollowerApply(e.getKey());
+			_list.get(e.getValue().Value).followerApply(e.getKey());
 		}
 	}
 
 	@Override
-	protected void InitChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(Record.RootInfo root) {
 		for (var v : _list)
-			v.InitRootInfo(root, this);
+			v.initRootInfo(root, this);
 	}
 
 	@Override
-	protected void ResetChildrenRootInfo() {
+	protected void resetChildrenRootInfo() {
 		for (var v : _list)
-			v.ResetRootInfo();
+			v.resetRootInfo();
 	}
 
 	@Override
-	public PList2<V> CopyBean() {
+	public PList2<V> copyBean() {
 		var copy = new PList2<V>(logTypeId, valueFactory);
 		copy._list = _list;
 		return copy;
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
+	public void encode(ByteBuffer bb) {
 		var tmp = getList();
 		bb.WriteUInt(tmp.size());
 		for (var e : tmp)
-			e.Encode(bb);
+			e.encode(bb);
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void Decode(ByteBuffer bb) {
+	public void decode(ByteBuffer bb) {
 		clear();
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			V value;
@@ -226,7 +226,7 @@ public class PList2<V extends Bean> extends PList<V> {
 			} catch (Throwable e) {
 				throw new RuntimeException(e);
 			}
-			value.Decode(bb);
+			value.decode(bb);
 			add(value);
 		}
 	}
