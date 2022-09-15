@@ -902,19 +902,21 @@
 
 			<table name="tIndexs" key="long" value="BIndex" />
 
-			<bean name="BOnlineTimer">
+			<bean name="BArchOnlineCustom">
 				<variable id="1" name="Account" type="string"/>
 				<variable id="2" name="ClientId" type="string"/>
-				<variable id="3" name="TimerObj" type="dynamic">
-					<value bean="BSimpleTimer"/>
-					<value bean="BCronTimer"/>
+				<variable id="3" name="HandleName" type="string"/>
+				<variable id="4" name="CustomData" type="dynamic">
+					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::GetSpecialTypeIdFromBean"/>
+					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::CreateBeanFromSpecialTypeId"/>
 				</variable>
 			</bean>
-			<bean name="BGameOnlineTimer">
+			<bean name="BGameOnlineCustom">
 				<variable id="1" name="RoleId" type="long"/>
-				<variable id="2" name="TimerObj" type="dynamic">
-					<value bean="BSimpleTimer"/>
-					<value bean="BCronTimer"/>
+				<variable id="2" name="HandleName" type="string"/>
+				<variable id="3" name="CustomData" type="dynamic">
+					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::GetSpecialTypeIdFromBean"/>
+					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::CreateBeanFromSpecialTypeId"/>
 				</variable>
 			</bean>
 

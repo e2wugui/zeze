@@ -12,6 +12,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Action1;
 import Zeze.Builtin.Timer.*;
+import Zeze.Util.Action2;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
@@ -34,17 +35,24 @@ public class Timer extends AbstractTimer {
 	static final Logger logger = LogManager.getLogger(Timer.class);
 	public final Zeze.Application zeze;
 	private AutoKey nodeIdAutoKey;
-	AutoKey timerIdAutoKey;
+	private AutoKey timerIdAutoKey;
 	// 保存所有可用的timer处理回调，由于可能需要把timer的触发派发到其他服务器执行，必须静态注册。
 	// 一般在Module.Initialize中注册即可。
 	final ConcurrentHashMap<String, Action1<TimerContext>> timerHandles = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, Action2<BIndex, BTimer>> timerCancelHandles = new ConcurrentHashMap<>();
 	// 在这台服务器进程内调度的所有Timer。key是timerId，value是ThreadPool.schedule的返回值。
-	final ConcurrentHashMap<Long, Future<?>> timersFuture = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Long, Future<?>> timersFuture = new ConcurrentHashMap<>();
 
 	public Timer(Zeze.Application zeze) {
 		this.zeze = zeze;
 		RegisterZezeTables(zeze);
 	}
+
+	void register(Class<? extends Bean> cls) {
+		beanFactory.register(cls);
+		_tCustomClasses.getOrAdd(1).getCustomClasses().add(cls.getName());
+	}
+
 	@SuppressWarnings("unchecked")
 	public void Start() throws Throwable {
 		nodeIdAutoKey = zeze.GetAutoKey("Zeze.Component.Timer.NodeId");
@@ -66,8 +74,14 @@ public class Timer extends AbstractTimer {
 	}
 
 	public void addHandle(String name, Action1<TimerContext> action) {
+		addHandle(name, action, null);
+	}
+
+	public void addHandle(String name, Action1<TimerContext> action, Action2<BIndex, BTimer> cancel) {
 		if (null != timerHandles.putIfAbsent(name, action))
 			throw new RuntimeException("duplicate timer handle name of: " + name);
+		if (null != cancel && null != timerCancelHandles.putIfAbsent(name, cancel))
+			throw new RuntimeException("duplicate timer cancel handle name of: " + name);
 	}
 
 	public void removeHandle(String name) {
@@ -123,7 +137,6 @@ public class Timer extends AbstractTimer {
 			}
 
 			if (node.getTimers().size() < CountPerNode) {
-				long curMills = System.currentTimeMillis();
 				var timerId = timerIdAutoKey.nextId();
 				var timer = new BTimer();
 				timer.setTimerId(timerId);
@@ -135,8 +148,7 @@ public class Timer extends AbstractTimer {
 				node.getTimers().put(timerId, timer);
 
 				if (customData != null) {
-					beanFactory.register(customData.getClass());
-					_tCustomClasses.getOrAdd(1).getCustomClasses().add(customData.getClass().getName());
+					register(customData.getClass());
 					timer.getCustomData().setBean(customData);
 				}
 
@@ -217,8 +229,7 @@ public class Timer extends AbstractTimer {
 
 				node.getTimers().put(timerId, timer);
 				if (null != customData) {
-					beanFactory.register(customData.getClass());
-					_tCustomClasses.getOrAdd(1).getCustomClasses().add(customData.getClass().getName());
+					register(customData.getClass());
 					timer.getCustomData().setBean(customData);
 				}
 
@@ -271,14 +282,10 @@ public class Timer extends AbstractTimer {
 
 	// 取消一个具体的Timer实例。
 	public void cancel(long timerId) {
-		// try cancel online timer
-		if (null != timerArchOnline && timerArchOnline.cancel(timerId))
-			return;
-
 		var index = _tIndexs.get(timerId);
 		if (null == index) {
 			// 尽可能的执行取消操作，不做严格判断。
-			cancelTimerLocal(zeze.getConfig().getServerId(), timerId, null, null);
+			cancel(zeze.getConfig().getServerId(), timerId, null, null);
 			return;
 		}
 
@@ -286,9 +293,14 @@ public class Timer extends AbstractTimer {
 	}
 
 	private TimerArchOnline timerArchOnline;
+	private TimerGameOnline timerGameOnline;
 
 	public TimerArchOnline getArchOnlineTimer() {
 		return timerArchOnline;
+	}
+
+	public TimerGameOnline getGameOnlineTimer() {
+		return timerGameOnline;
 	}
 
 	/////////////////////////////////////////////////////////////
@@ -298,18 +310,20 @@ public class Timer extends AbstractTimer {
 		// 尽可能的执行取消操作，不做严格判断。
 		var index = _tIndexs.get(timerId);
 		if (null == index) {
-			cancelTimerLocal(serverId, timerId, null, null);
+			cancel(serverId, timerId, null, null);
 			return;
 		}
-		cancelTimerLocal(serverId, timerId, index, _tNodes.get(index.getNodeId()));
+		cancel(serverId, timerId, index, _tNodes.get(index.getNodeId()));
 	}
 
-	private void cancelTimerLocal(int serverId, long timerId, BIndex index, BNode node) {
-
+	private void cancelFuture(long timerId) {
 		var local = timersFuture.remove(timerId);
 		if (null != local)
 			local.cancel(false);
+	}
 
+	private void cancel(int serverId, long timerId, BIndex index, BNode node) {
+		cancelFuture(timerId);
 		if (null == node || null == index)
 			return;
 
@@ -317,7 +331,16 @@ public class Timer extends AbstractTimer {
 			_tNamed.remove(index.getNamedName());
 
 		var timers = node.getTimers();
-		timers.remove(timerId);
+		var timer = timers.remove(timerId);
+		var cancelHandle = timerCancelHandles.get(timer.getName());
+		if (null != cancelHandle) {
+			try {
+				cancelHandle.run(index, timer);
+			} catch (Throwable e) {
+				// log cancel error only.
+				logger.error("", e);
+			}
+		}
 
 		if (timers.isEmpty()) {
 			var prev = _tNodes.get(node.getPrevNodeId());
@@ -380,46 +403,41 @@ public class Timer extends AbstractTimer {
 
 	private long fireSimpleLocal(int serverId, long timerId, String name) {
 		final var handle = timerHandles.get(name);
-
-		Task.Call(zeze.NewProcedure(() -> {
+		if (0 != Task.Call(zeze.NewProcedure(() -> {
 			var index = _tIndexs.get(timerId);
-			if (null != index) {
+			// ServerId: 自己是拥有者才执行。
+			if (null != index && index.getServerId() == zeze.getConfig().getServerId()) {
 				var node = _tNodes.get(index.getNodeId());
-				if (null != node) {
-					if (handle == null) {
-						cancelTimerLocal(serverId, timerId, index, node);
-					} else {
-						var timer = node.getTimers().get(timerId);
+				if (null == node || handle == null) {
+					cancel(serverId, timerId, index, node);
+					return 0; // procedure done
+				}
+				var timer = node.getTimers().get(timerId);
+				// todo concurrent fire 通过执行次数。
+				var simpleTimer = timer.getTimerObj_Zeze_Builtin_Timer_BSimpleTimer();
+				nextSimpleTimer(simpleTimer);
+				var fire = Task.Call(zeze.NewProcedure(
+						() -> {
+							var context = new TimerContext(timer,
+									simpleTimer.getHappenTimes(),
+									simpleTimer.getNextExpectedTimeMills(),
+									simpleTimer.getExpectedTimeMills());
+							handle.run(context);
+							return Procedure.Success;
+						}, "fireLocalHandle"));
+				if (0 != fire)
+					return fire; // 最外层处理错误。
 
-						//timer cancel will delay, so here need to judge
-						if (timer != null) {
-							if (timer.getTimerObj().getBean().typeId() == BSimpleTimer.TYPEID) {
-								var simpleTimer = (BSimpleTimer) timer.getTimerObj().getBean();
-								nextSimpleTimer(simpleTimer);
-								/* skip nest procedure result */
-								Task.Call(zeze.NewProcedure(() -> {
-									var context = new TimerContext(timer,
-											simpleTimer.getHappenTimes(),
-											simpleTimer.getNextExpectedTimeMills(),
-											simpleTimer.getExpectedTimeMills());
-									handle.run(context);
-									return Procedure.Success;
-								}, "fireLocalHandle"));
-
-								// 不管任何结果都递减次数。
-								if (simpleTimer.getRemainTimes() > 0) {
-									simpleTimer.setRemainTimes(simpleTimer.getRemainTimes() - 1);
-									if (simpleTimer.getRemainTimes() == 0) {
-										cancelTimerLocal(serverId, timerId, index, node);
-									}
-								}
-							}
-						}
+				if (simpleTimer.getRemainTimes() > 0) {
+					simpleTimer.setRemainTimes(simpleTimer.getRemainTimes() - 1);
+					if (simpleTimer.getRemainTimes() == 0) {
+						cancel(serverId, timerId, index, node);
 					}
 				}
 			}
 			return 0L;
-		}, "TriggerSimpleTimerLocal"));
+		}, "FireSimpleTimer")))
+			cancel(timerId);
 		return 0L;
 	}
 
@@ -467,34 +485,37 @@ public class Timer extends AbstractTimer {
 
 	private void fireCronLocal(int serverId, long timerId, String name) {
 		final var handle = timerHandles.get(name);
-		Task.Call(zeze.NewProcedure(() -> {
+		if (0 != Task.Call(zeze.NewProcedure(() -> {
 			var index = _tIndexs.get(timerId);
-			if (null != index) {
+			// ServerId: 自己是拥有者才执行。
+			if (null != index && index.getServerId() == zeze.getConfig().getServerId()) {
 				var node = _tNodes.get(index.getNodeId());
-				if (null != node) {
-					if (handle == null) {
-						cancelTimerLocal(serverId, timerId, index, node);
-					} else {
-						var timer = node.getTimers().get(timerId);
-						var cronTimer = timer.getTimerObj_Zeze_Builtin_Timer_BCronTimer();
-						nextCronTimer(cronTimer);
-						final var context = new TimerContext(timer,
-								cronTimer.getHappenTimeMills(),
-								cronTimer.getNextExpectedTimeMills(),
-								cronTimer.getExpectedTimeMills());
-						/* skip nest procdure result */
-						Task.Call(zeze.NewProcedure(() -> {
-							handle.run(context);
-							return Procedure.Success;
-						}, "fireLocalHandle"));
-
-						long delay = context.nextExpectedTimeMills - System.currentTimeMillis();
-						scheduleCronNext(serverId, timerId, delay, name);
-					}
+				if (null == node || handle == null) {
+					// maybe concurrent cancel
+					cancel(serverId, timerId, index, node);
+					return 0; // procedure done
 				}
+				// todo concurrent fire 通过执行次数。
+				var timer = node.getTimers().get(timerId);
+				var cronTimer = timer.getTimerObj_Zeze_Builtin_Timer_BCronTimer();
+				nextCronTimer(cronTimer);
+
+				final var context = new TimerContext(timer,
+						cronTimer.getHappenTimeMills(),
+						cronTimer.getNextExpectedTimeMills(),
+						cronTimer.getExpectedTimeMills());
+				var fire = Task.Call(zeze.NewProcedure(
+						() -> { handle.run(context); return Procedure.Success;},
+						"fireLocalHandle"));
+				if (0 != fire)
+					return fire; // 最外层处理错误。
+
+				long delay = context.nextExpectedTimeMills - System.currentTimeMillis();
+				scheduleCronNext(serverId, timerId, delay, name);
 			}
-			return 0L;
-		}, "fireCronLocal"));
+			return 0L; // procedure done
+		}, "fireCronLocal")))
+			cancel(timerId);
 	}
 
 	private void loadTimer() {
@@ -533,8 +554,8 @@ public class Timer extends AbstractTimer {
 
 			// prepare splice
 			var root = _tNodeRoot.getOrAdd(zeze.getConfig().getServerId());
-			var srchead = _tNodes.get(src.getHeadNodeId());
-			var srctail = _tNodes.get(src.getTailNodeId());
+			var srcHead = _tNodes.get(src.getHeadNodeId());
+			var srcTail = _tNodes.get(src.getTailNodeId());
 			var head = _tNodes.get(root.getHeadNodeId());
 			//var tail = _tNodes.get(root.getTailNodeId());
 
@@ -542,10 +563,10 @@ public class Timer extends AbstractTimer {
 			first.Value = src.getHeadNodeId();
 			last.Value = root.getHeadNodeId();
 			// splice
-			srctail.setNextNodeId(root.getHeadNodeId());
+			srcTail.setNextNodeId(root.getHeadNodeId());
 			root.setHeadNodeId(src.getHeadNodeId());
 			head.setPrevNodeId(src.getTailNodeId());
-			srchead.setPrevNodeId(root.getTailNodeId());
+			srcHead.setPrevNodeId(root.getTailNodeId());
 			// clear src
 			src.setHeadNodeId(0L);
 			src.setTailNodeId(0L);

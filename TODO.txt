@@ -22,6 +22,7 @@ ServiceManager::OfflineNotify 选择目标遍历优化。
 OfflineNotify.NormalClose
 	正常关闭不发送server-down通知。
 Table.DelayRemove 删除的实现。
+Timer
 
 ModuleOnline.Logout() 主动Logout函数需要提供。
 
@@ -45,9 +46,14 @@ Zege c#
 【2022/9/15】
 
 ------------------------------------------------------------------------------------------------------------------------------
-tag 1.0.6 Zege 0.1.0
+tag 1.0.6 Timer
 ------------------------------------------------------------------------------------------------------------------------------
-Component.Timer
+Component.Timer 安全加强：
+	1. fire是检查Index.ServerId确认自己是否拥有者。错误时cancel future，注意不是cancel timer。
+	2. fire并发去重。
+	3. Online Timer 记录版本号。并在fire时检查。
+
+Component.Timer TimerArchOnline TimerGameOnline
 直接暴露Zeze.Builtin.Collections.LinkedMap的数据结构给客户端。
 ServiceManager::OfflineNotify
 
