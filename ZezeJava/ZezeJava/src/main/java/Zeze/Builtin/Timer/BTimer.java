@@ -8,8 +8,8 @@ public final class BTimer extends Zeze.Transaction.Bean {
     private long _TimerId;
     private String _Name;
     private final Zeze.Transaction.DynamicBean _TimerObj;
-    public static final long DynamicTypeIdTimerObjZeze_Builtin_Timer_BCronTimer = -6995089347718168392L;
-    public static final long DynamicTypeIdTimerObjZeze_Builtin_Timer_BSimpleTimer = 1832177636612857692L;
+    public static final long DynamicTypeId_TimerObj_Zeze_Builtin_Timer_BCronTimer = -6995089347718168392L;
+    public static final long DynamicTypeId_TimerObj_Zeze_Builtin_Timer_BSimpleTimer = 1832177636612857692L;
 
     public static long GetSpecialTypeIdFromBean_TimerObj(Zeze.Transaction.Bean bean) {
         var _typeId_ = bean.typeId();
@@ -31,6 +31,7 @@ public final class BTimer extends Zeze.Transaction.Bean {
     }
 
     private final Zeze.Transaction.DynamicBean _CustomData;
+
     public static long GetSpecialTypeIdFromBean_CustomData(Zeze.Transaction.Bean bean) {
         return Zeze.Component.Timer.GetSpecialTypeIdFromBean(bean);
     }
@@ -38,7 +39,6 @@ public final class BTimer extends Zeze.Transaction.Bean {
     public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_CustomData(long typeId) {
         return Zeze.Component.Timer.CreateBeanFromSpecialTypeId(typeId);
     }
-
 
     private transient Object __zeze_map_key__;
 

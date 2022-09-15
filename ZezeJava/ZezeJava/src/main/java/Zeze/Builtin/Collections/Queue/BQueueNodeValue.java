@@ -7,6 +7,7 @@ import Zeze.Serialize.ByteBuffer;
 public final class BQueueNodeValue extends Zeze.Transaction.Bean {
     private long _Timestamp;
     private final Zeze.Transaction.DynamicBean _Value;
+
     public static long GetSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean) {
         return Zeze.Collections.Queue.GetSpecialTypeIdFromBean(bean);
     }
@@ -14,7 +15,6 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean {
     public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Value(long typeId) {
         return Zeze.Collections.Queue.CreateBeanFromSpecialTypeId(typeId);
     }
-
 
     public long getTimestamp() {
         if (!isManaged())

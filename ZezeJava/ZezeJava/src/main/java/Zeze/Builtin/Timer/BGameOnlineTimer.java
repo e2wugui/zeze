@@ -7,8 +7,8 @@ import Zeze.Serialize.ByteBuffer;
 public final class BGameOnlineTimer extends Zeze.Transaction.Bean {
     private long _RoleId;
     private final Zeze.Transaction.DynamicBean _TimerObj;
-    public static final long DynamicTypeIdTimerObjZeze_Builtin_Timer_BCronTimer = -6995089347718168392L;
-    public static final long DynamicTypeIdTimerObjZeze_Builtin_Timer_BSimpleTimer = 1832177636612857692L;
+    public static final long DynamicTypeId_TimerObj_Zeze_Builtin_Timer_BCronTimer = -6995089347718168392L;
+    public static final long DynamicTypeId_TimerObj_Zeze_Builtin_Timer_BSimpleTimer = 1832177636612857692L;
 
     public static long GetSpecialTypeIdFromBean_TimerObj(Zeze.Transaction.Bean bean) {
         var _typeId_ = bean.typeId();
@@ -28,7 +28,6 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean {
             return new Zeze.Builtin.Timer.BSimpleTimer();
         return null;
     }
-
 
     public long getRoleId() {
         if (!isManaged())

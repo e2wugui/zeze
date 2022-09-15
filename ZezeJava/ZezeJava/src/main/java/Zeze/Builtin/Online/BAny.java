@@ -6,6 +6,7 @@ import Zeze.Serialize.ByteBuffer;
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BAny extends Zeze.Transaction.Bean {
     private final Zeze.Transaction.DynamicBean _Any;
+
     public static long GetSpecialTypeIdFromBean_Any(Zeze.Transaction.Bean bean) {
         return Zeze.Arch.Online.GetSpecialTypeIdFromBean(bean);
     }
@@ -13,7 +14,6 @@ public final class BAny extends Zeze.Transaction.Bean {
     public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Any(long typeId) {
         return Zeze.Arch.Online.CreateBeanFromSpecialTypeId(typeId);
     }
-
 
     private transient Object __zeze_map_key__;
 
