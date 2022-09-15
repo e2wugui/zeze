@@ -242,12 +242,43 @@ public class Timer extends AbstractTimer {
 		}
 	}
 
+	/////////////////////////////////////////////////////////////////
+	// Named Timer
+	// 有名字的Timer，每个名字只能全局调度唯一一个真正的Timer。
+	// 对这种Timer，不暴露TimerId，只能通过名字访问。
+	// 当真正的Timer被迁移到不同的Server时，名字到TimerId的映射不需要改变。
+	public boolean scheduleNamed(String timerName, long delay, long period, String handleName, Bean customData) {
+		var timerId = _tNamed.get(timerName);
+		if (null != timerId)
+			return false;
+		timerId = new BTimerId(schedule(delay, period, handleName, customData));
+		_tNamed.insert(timerName, timerId);
+		_tIndexs.get(timerId.getTimerId()).setNamedName(timerName);
+		return true;
+	}
+
+	public boolean scheduleNamed(String timerName, String cron, String handleName, Bean customData) throws ParseException {
+		var timerId = _tNamed.get(timerName);
+		if (null != timerId)
+			return false;
+		timerId = new BTimerId(schedule(cron, handleName, customData));
+		_tNamed.insert(timerName, timerId);
+		_tIndexs.get(timerId.getTimerId()).setNamedName(timerName);
+		return true;
+	}
+
+	public void cancelNamed(String timerName) {
+		var timerId = _tNamed.get(timerName);
+		cancel(timerId.getTimerId());
+		_tNamed.remove(timerName);
+	}
+
 	// 取消一个具体的Timer实例。
 	public void cancel(long timerId) {
 		var index = _tIndexs.get(timerId);
 		if (null == index) {
 			// 尽可能的执行取消操作，不做严格判断。
-			CancelTimerLocal(Zeze.getConfig().getServerId(), timerId, 0, null);
+			CancelTimerLocal(Zeze.getConfig().getServerId(), timerId, null, null);
 			return;
 		}
 
@@ -259,29 +290,24 @@ public class Timer extends AbstractTimer {
 		// 尽可能的执行取消操作，不做严格判断。
 		var index = _tIndexs.get(timerId);
 		if (null == index) {
-			CancelTimerLocal(serverId, timerId, 0, null);
+			CancelTimerLocal(serverId, timerId, null, null);
 			return;
 		}
-		CancelTimerLocal(serverId, timerId, index.getNodeId(), _tNodes.get(index.getNodeId()));
+		CancelTimerLocal(serverId, timerId, index, _tNodes.get(index.getNodeId()));
 	}
 
-	private void CancelTimerLocal(int serverId, long timerId, long nodeId, BNode node) {
+	private void CancelTimerLocal(int serverId, long timerId, BIndex index, BNode node) {
 
 		var local = TimersLocal.remove(timerId);
 		if (null != local)
 			local.cancel(false);
 
-		if (null == node)
+		if (null == node || null == index)
 			return;
 
-		/* todo
-		if(_tSystemLogicIds.get(timerId)!=null)
-		{
-			String logicId = _tSystemLogicIds.get(timerId).getLogicId();
-			_tSystemTimerIds.remove(logicId);
-			_tSystemLogicIds.remove(timerId);
-		}
-		*/
+		if (!index.getNamedName().isEmpty())
+			_tNamed.remove(index.getNamedName());
+
 		var timers = node.getTimers();
 		timers.remove(timerId);
 
@@ -294,9 +320,9 @@ public class Timer extends AbstractTimer {
 				root.setHeadNodeId(0L);
 				root.setTailNodeId(0L);
 			} else {
-				if (root.getHeadNodeId() == nodeId)
+				if (root.getHeadNodeId() == index.getNodeId())
 					root.setHeadNodeId(node.getNextNodeId());
-				if (root.getTailNodeId() == nodeId)
+				if (root.getTailNodeId() == index.getNodeId())
 					root.setTailNodeId(node.getPrevNodeId());
 			}
 			prev.setNextNodeId(node.getNextNodeId());
@@ -305,7 +331,7 @@ public class Timer extends AbstractTimer {
 			// 把当前空的Node加入垃圾回收。
 			// 由于Nodes并发访问的原因，不能马上删除。延迟一定时间就安全了。
 			// 不删除的话就会在数据库留下垃圾。
-			_tNodes.delayRemove(nodeId);
+			_tNodes.delayRemove(index.getNodeId());
 		}
 	}
 
@@ -328,7 +354,7 @@ public class Timer extends AbstractTimer {
 				var node = _tNodes.get(index.getNodeId());
 				if (null != node) {
 					if (handle == null) {
-						CancelTimerLocal(serverId, timerId, nodeId, node);
+						CancelTimerLocal(serverId, timerId, index, node);
 					} else {
 						var timer = node.getTimers().get(timerId);
 
@@ -363,7 +389,7 @@ public class Timer extends AbstractTimer {
 								if (simpleTimer.getRemainTimes() > 0) {
 									simpleTimer.setRemainTimes(simpleTimer.getRemainTimes() - 1);
 									if (simpleTimer.getRemainTimes() == 0) {
-										CancelTimerLocal(serverId, timerId, nodeId, node);
+										CancelTimerLocal(serverId, timerId, index, node);
 									}
 								}
 							}
@@ -417,7 +443,7 @@ public class Timer extends AbstractTimer {
 				var node = _tNodes.get(index.getNodeId());
 				if (null != node) {
 					if (handle == null) {
-						CancelTimerLocal(serverId, timerId, nodeId, node);
+						CancelTimerLocal(serverId, timerId, index, node);
 					} else {
 						var timer = node.getTimers().get(timerId);
 						var cronTimer = timer.getTimerObj_Zeze_Builtin_Timer_BCronTimer();

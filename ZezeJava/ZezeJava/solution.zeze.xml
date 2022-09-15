@@ -897,6 +897,7 @@
 			<bean name="BIndex">
 				<variable id="1" name="ServerId" type="int"/>
 				<variable id="2" name="NodeId" type="long"/>
+				<variable id="3" name="NamedName" type="string"/>
 			</bean>
 
 			<table name="tIndexs" key="long" value="BIndex" />
@@ -906,6 +907,12 @@
 			</bean>
 
 			<table name="tCustomClasses" key="int" value="BCustomClasses"/> key is 1, only one record
+
+			<bean name="BTimerId">
+				<variable id="1" name="TimerId" type="long"/>
+			</bean>
+
+			<table name="tNamed" key="string" value="BTimerId"/> key is name
 		</module>
 		<!--
 		可用id范围 [11017, 11100) [11103, 12000]

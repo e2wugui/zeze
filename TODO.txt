@@ -21,6 +21,7 @@ Zege
 ServiceManager::OfflineNotify 选择目标遍历优化。
 OfflineNotify.NormalClose
 	正常关闭不发送server-down通知。
+Table.DelayRemove 删除的实现。
 
 ModuleOnline.Logout() 主动Logout函数需要提供。
 

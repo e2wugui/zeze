@@ -26,6 +26,7 @@ public final class tIndexs extends Zeze.Transaction.TableX<Long, Zeze.Builtin.Ti
 
     public static final int VAR_ServerId = 1;
     public static final int VAR_NodeId = 2;
+    public static final int VAR_NamedName = 3;
 
     @Override
     public Long DecodeKey(ByteBuffer _os_) {
