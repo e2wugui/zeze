@@ -62,6 +62,7 @@ public class Timer extends AbstractTimer {
 	}
 
 	public void Stop() throws Throwable {
+		UnRegisterZezeTables(this.Zeze);
 	}
 
 	public void addHandle(String name, Action1<TimerContext> action) {
