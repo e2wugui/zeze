@@ -70,6 +70,8 @@ public class Timer extends AbstractTimer {
 		TimerHandles.remove(name);
 	}
 
+	/////////////////////////////////////////////////////////////////////////
+	// Simple Timer
 	// 调度一个Timer实例。
 	// name为静态注册到这个模块的处理名字。
 	// 相同的name可以调度多个timer实例。
@@ -148,6 +150,92 @@ public class Timer extends AbstractTimer {
 
 				final var finalNodeId = nodeId;
 				Transaction.whileCommit(() -> ScheduleSimpleLocal(serverId, timerId, finalNodeId, expectedTimeMills - System.currentTimeMillis(), period, name));
+				return timerId;
+			}
+			nodeId = NodeIdAutoKey.nextId();
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////
+	// Cron Timer
+	// 每月第N(monthDay)天的某个时刻(hour,minute,second)。
+	public long scheduleMonth(int monthDay, int hour, int minute, int second, String name, Bean customData) throws ParseException {
+		var cron = second + " " + minute + " " + hour + " " + monthDay + " * ?";
+		return schedule(cron, name, customData);
+	}
+
+	// 每周第N(weekDay)天的某个时刻(hour, minute, second)。
+	public long scheduleWeek(int weekDay, int hour, int minute, int second, String name, Bean customData) throws ParseException {
+		var cron = second + " " + minute + " " + hour + " * * " + weekDay;
+		return schedule(cron, name, customData);
+	}
+
+	// 每天的某个时刻(hour, minute, second)。
+	public long scheduleDay(int hour, int minute, int second, String name, Bean customData) throws ParseException {
+		var cron = second + " " + minute + " " + hour + " * * ?";
+		return schedule(cron, name, customData);
+	}
+
+	public long schedule(String cronExpression, String name, Bean customData) throws ParseException {
+		var serverId = App.getZeze().getConfig().getServerId();
+		var root = _tNodeRoot.getOrAdd(serverId);
+		var nodeId = root.getHeadNodeId();
+		if (nodeId == 0) { // no node
+			nodeId = NodeIdAutoKey.nextId();
+		}
+		while (true) {
+			var node = _tNodes.getOrAdd(nodeId);
+			// 如果节点是新创建的，这里根据node的变量来判断。
+			if (node.getNextNodeId() == 0 || node.getPrevNodeId() == 0) {
+
+				if (root.getHeadNodeId() == 0 || root.getTailNodeId() == 0) {
+					// root is empty
+					node.setPrevNodeId(nodeId);
+					node.setNextNodeId(nodeId);
+					root.setHeadNodeId(nodeId);
+					root.setTailNodeId(nodeId);
+				} else {
+					// link to root head
+					var head = _tNodes.get(root.getHeadNodeId());
+					head.setPrevNodeId(nodeId);
+					node.setNextNodeId(root.getHeadNodeId());
+					node.setPrevNodeId(root.getTailNodeId());
+					root.setHeadNodeId(nodeId);
+					var tailNode = _tNodes.get(root.getTailNodeId());
+					tailNode.setNextNodeId(root.getHeadNodeId());
+				}
+			}
+
+			if (node.getTimers().size() < TimerCountPerNode) {
+				long curMills = System.currentTimeMillis();
+				var timerId = TimerIdAutoKey.nextId();
+				var timer = new BTimer();
+				timer.setTimerId(timerId);
+				timer.setName(name);
+
+				var cronTimer = new BCronTimer();
+				cronTimer.setCronExpression(cronExpression);
+
+				node.getTimers().put(timerId, timer);
+				if (null != customData) {
+					beanFactory.register(customData.getClass());
+					_tCustomClasses.getOrAdd(1).getCustomClasses().add(customData.getClass().getName());
+					timer.getCustomData().setBean(customData);
+				}
+
+				long expectedTimeMills = getNextValidTimeAfter(cronExpression, Calendar.getInstance()).getTimeInMillis();
+				cronTimer.setNextExpectedTimeMills(expectedTimeMills);
+				timer.setTimerObj(cronTimer);
+
+				var index = new BIndex();
+				index.setServerId(serverId);
+				index.setNodeId(nodeId);
+				_tIndexs.tryAdd(timerId, index);
+
+				final var finalNodeId = nodeId;
+				Transaction.whileCommit(() -> {
+					ScheduleCronLocal(serverId, timerId, finalNodeId, cronExpression, name);
+				});
 				return timerId;
 			}
 			nodeId = NodeIdAutoKey.nextId();
