@@ -900,6 +900,12 @@
 			</bean>
 
 			<table name="tIndexs" key="long" value="BIndex" />
+
+			<bean name="BCustomClasses">
+				<variable id="1" name="CustomClasses" type="set" value="string"/>
+			</bean>
+
+			<table name="tCustomClasses" key="int" value="BCustomClasses"/> key is 1, only one record
 		</module>
 		<!--
 		可用id范围 [11017, 11100) [11103, 12000]

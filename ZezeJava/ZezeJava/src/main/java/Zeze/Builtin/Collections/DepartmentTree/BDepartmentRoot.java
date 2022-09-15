@@ -7,7 +7,6 @@ import Zeze.Serialize.ByteBuffer;
 public final class BDepartmentRoot extends Zeze.Transaction.Bean {
     private String _Root; // 群主
     private final Zeze.Transaction.Collections.PMap1<String, Zeze.Transaction.DynamicBean> _Managers;
-
     public static long GetSpecialTypeIdFromBean_Managers(Zeze.Transaction.Bean bean) {
         return Zeze.Collections.DepartmentTree.GetSpecialTypeIdFromBean(bean);
     }
@@ -19,7 +18,6 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
     private long _NextDepartmentId; // 部门Id种子
     private final Zeze.Transaction.Collections.PMap1<String, Long> _Childs; // name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
     private final Zeze.Transaction.DynamicBean _Data;
-
     public static long GetSpecialTypeIdFromBean_Data(Zeze.Transaction.Bean bean) {
         return Zeze.Collections.DepartmentTree.GetSpecialTypeIdFromBean(bean);
     }
@@ -27,6 +25,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
     public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Data(long typeId) {
         return Zeze.Collections.DepartmentTree.CreateBeanFromSpecialTypeId(typeId);
     }
+
 
     public String getRoot() {
         if (!isManaged())

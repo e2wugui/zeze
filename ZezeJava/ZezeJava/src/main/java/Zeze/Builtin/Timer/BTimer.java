@@ -31,7 +31,6 @@ public final class BTimer extends Zeze.Transaction.Bean {
     }
 
     private final Zeze.Transaction.DynamicBean _CustomData;
-
     public static long GetSpecialTypeIdFromBean_CustomData(Zeze.Transaction.Bean bean) {
         return Zeze.Component.Timer.GetSpecialTypeIdFromBean(bean);
     }
@@ -39,6 +38,7 @@ public final class BTimer extends Zeze.Transaction.Bean {
     public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_CustomData(long typeId) {
         return Zeze.Component.Timer.CreateBeanFromSpecialTypeId(typeId);
     }
+
 
     private transient Object __zeze_map_key__;
 

@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import Zeze.AppBase;
 import Zeze.Arch.RedirectToServer;
+import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
@@ -19,12 +20,14 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.util.CronExpression;
 
 public class Timer extends AbstractTimer {
+	private static final BeanFactory beanFactory = new BeanFactory();
+
 	public static long GetSpecialTypeIdFromBean(Bean bean) {
-		throw new UnsupportedOperationException();
+		return BeanFactory.GetSpecialTypeIdFromBean(bean);
 	}
 
 	public static Bean CreateBeanFromSpecialTypeId(long typeId) {
-		throw new UnsupportedOperationException();
+		return beanFactory.CreateBeanFromSpecialTypeId(typeId);
 	}
 
 	public static final int TimerCountPerNode = 200;
@@ -35,13 +38,23 @@ public class Timer extends AbstractTimer {
 	private AutoKey TimerIdAutoKey;
 	// 保存所有可用的timer处理回调，由于可能需要把timer的触发派发到其他服务器执行，必须静态注册。
 	// 一般在Module.Initialize中注册即可。
-	private ConcurrentHashMap<String, Action1<TimerContext>> TimerHandles = new ConcurrentHashMap<>();
-	private ConcurrentHashMap<Long, Future<?>> TimersLocal = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, Action1<TimerContext>> TimerHandles = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Long, Future<?>> TimersLocal = new ConcurrentHashMap<>();
 
+	@SuppressWarnings("unchecked")
 	public void Start(AppBase app) throws Throwable {
 		App = app;
 		NodeIdAutoKey = app.getZeze().GetAutoKey("Zeze.Component.Timer.NodeId");
 		TimerIdAutoKey = app.getZeze().GetAutoKey("Zeze.Component.Timer.TimerId");
+		if (0L != App.getZeze().NewProcedure(() -> {
+			var classes = _tCustomClasses.getOrAdd(1);
+			for (var cls : classes.getCustomClasses()) {
+				beanFactory.register((Class<? extends Bean>)Class.forName(cls));
+			}
+			return 0L;
+		}, "").Call()) {
+			throw new IllegalStateException("Load Item Classes Failed.");
+		}
 		Zeze.Util.Task.run(this::LoadTimerLocal, "LoadTimerLocal");
 	}
 
@@ -119,6 +132,8 @@ public class Timer extends AbstractTimer {
 				node.getTimers().put(timerId, timer);
 
 				if (customData != null) {
+					beanFactory.register(customData.getClass());
+					_tCustomClasses.getOrAdd(1).getCustomClasses().add(customData.getClass().getName());
 					timer.getCustomData().setBean(customData);
 				}
 

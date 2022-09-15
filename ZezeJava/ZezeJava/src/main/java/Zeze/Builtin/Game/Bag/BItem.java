@@ -8,7 +8,6 @@ public final class BItem extends Zeze.Transaction.Bean {
     private int _Id;
     private int _Number;
     private final Zeze.Transaction.DynamicBean _Item;
-
     public static long GetSpecialTypeIdFromBean_Item(Zeze.Transaction.Bean bean) {
         return Zeze.Game.Bag.GetSpecialTypeIdFromBean(bean);
     }
@@ -16,6 +15,7 @@ public final class BItem extends Zeze.Transaction.Bean {
     public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Item(long typeId) {
         return Zeze.Game.Bag.CreateBeanFromSpecialTypeId(typeId);
     }
+
 
     private transient Object __zeze_map_key__;
 
