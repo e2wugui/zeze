@@ -920,6 +920,10 @@
 				</variable>
 			</bean>
 
+			<bean name="BOnlineTimers">
+				<variable id="1" name="TimerIds" type="set[long]"/>
+			</bean>
+
 			<bean name="BCustomClasses">
 				<variable id="1" name="CustomClasses" type="set" value="string"/>
 			</bean>

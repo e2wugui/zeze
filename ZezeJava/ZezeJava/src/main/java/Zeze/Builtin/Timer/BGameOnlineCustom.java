@@ -9,32 +9,12 @@ public final class BGameOnlineCustom extends Zeze.Transaction.Bean {
     private String _HandleName;
     private final Zeze.Transaction.DynamicBean _CustomData;
 
-<<<<<<< HEAD:ZezeJava/ZezeJava/src/main/java/Zeze/Builtin/Timer/BGameOnlineTimer.java
-    public static long getSpecialTypeIdFromBean_TimerObj(Zeze.Transaction.Bean bean) {
-        var _typeId_ = bean.typeId();
-        if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
-            return Zeze.Transaction.EmptyBean.TYPEID;
-        if (_typeId_ == -6995089347718168392L)
-            return -6995089347718168392L; // Zeze.Builtin.Timer.BCronTimer
-        if (_typeId_ == 1832177636612857692L)
-            return 1832177636612857692L; // Zeze.Builtin.Timer.BSimpleTimer
-        throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Timer.BGameOnlineTimer:TimerObj");
-    }
-
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_TimerObj(long typeId) {
-        if (typeId == -6995089347718168392L)
-            return new Zeze.Builtin.Timer.BCronTimer();
-        if (typeId == 1832177636612857692L)
-            return new Zeze.Builtin.Timer.BSimpleTimer();
-        return null;
-=======
-    public static long GetSpecialTypeIdFromBean_CustomData(Zeze.Transaction.Bean bean) {
+    public static long getSpecialTypeIdFromBean_CustomData(Zeze.Transaction.Bean bean) {
         return Zeze.Component.Timer.GetSpecialTypeIdFromBean(bean);
     }
 
-    public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_CustomData(long typeId) {
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_CustomData(long typeId) {
         return Zeze.Component.Timer.CreateBeanFromSpecialTypeId(typeId);
->>>>>>> 59e80f2f (Timer Online 改成基于 Timer.Basic.):ZezeJava/ZezeJava/src/main/java/Zeze/Builtin/Timer/BGameOnlineCustom.java
     }
 
     public long getRoleId() {
@@ -82,84 +62,54 @@ public final class BGameOnlineCustom extends Zeze.Transaction.Bean {
     }
 
     @SuppressWarnings("deprecation")
-<<<<<<< HEAD:ZezeJava/ZezeJava/src/main/java/Zeze/Builtin/Timer/BGameOnlineTimer.java
-    public BGameOnlineTimer() {
-        _TimerObj = new Zeze.Transaction.DynamicBean(2, BGameOnlineTimer::getSpecialTypeIdFromBean_TimerObj, BGameOnlineTimer::createBeanFromSpecialTypeId_TimerObj);
-=======
     public BGameOnlineCustom() {
         _HandleName = "";
         _CustomData = new Zeze.Transaction.DynamicBean(3, Zeze.Component.Timer::GetSpecialTypeIdFromBean, Zeze.Component.Timer::CreateBeanFromSpecialTypeId);
->>>>>>> 59e80f2f (Timer Online 改成基于 Timer.Basic.):ZezeJava/ZezeJava/src/main/java/Zeze/Builtin/Timer/BGameOnlineCustom.java
     }
 
     @SuppressWarnings("deprecation")
     public BGameOnlineCustom(long _RoleId_, String _HandleName_) {
         _RoleId = _RoleId_;
-<<<<<<< HEAD:ZezeJava/ZezeJava/src/main/java/Zeze/Builtin/Timer/BGameOnlineTimer.java
-        _TimerObj = new Zeze.Transaction.DynamicBean(2, BGameOnlineTimer::getSpecialTypeIdFromBean_TimerObj, BGameOnlineTimer::createBeanFromSpecialTypeId_TimerObj);
-    }
-
-    public void assign(BGameOnlineTimer other) {
-=======
         if (_HandleName_ == null)
             throw new IllegalArgumentException();
         _HandleName = _HandleName_;
         _CustomData = new Zeze.Transaction.DynamicBean(3, Zeze.Component.Timer::GetSpecialTypeIdFromBean, Zeze.Component.Timer::CreateBeanFromSpecialTypeId);
     }
 
-    public void Assign(BGameOnlineCustom other) {
->>>>>>> 59e80f2f (Timer Online 改成基于 Timer.Basic.):ZezeJava/ZezeJava/src/main/java/Zeze/Builtin/Timer/BGameOnlineCustom.java
+    public void assign(BGameOnlineCustom other) {
         setRoleId(other.getRoleId());
         setHandleName(other.getHandleName());
         getCustomData().Assign(other.getCustomData());
     }
 
-<<<<<<< HEAD:ZezeJava/ZezeJava/src/main/java/Zeze/Builtin/Timer/BGameOnlineTimer.java
     @Deprecated
-    public void Assign(BGameOnlineTimer other) {
+    public void Assign(BGameOnlineCustom other) {
         assign(other);
     }
 
-    public BGameOnlineTimer copyIfManaged() {
+    public BGameOnlineCustom copyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BGameOnlineTimer copy() {
-        var copy = new BGameOnlineTimer();
-=======
-    public BGameOnlineCustom CopyIfManaged() {
-        return isManaged() ? Copy() : this;
-    }
-
-    public BGameOnlineCustom Copy() {
+    public BGameOnlineCustom copy() {
         var copy = new BGameOnlineCustom();
->>>>>>> 59e80f2f (Timer Online 改成基于 Timer.Basic.):ZezeJava/ZezeJava/src/main/java/Zeze/Builtin/Timer/BGameOnlineCustom.java
         copy.Assign(this);
         return copy;
     }
 
-<<<<<<< HEAD:ZezeJava/ZezeJava/src/main/java/Zeze/Builtin/Timer/BGameOnlineTimer.java
     @Deprecated
-    public BGameOnlineTimer Copy() {
+    public BGameOnlineCustom Copy() {
         return copy();
     }
 
-    public static void swap(BGameOnlineTimer a, BGameOnlineTimer b) {
-        BGameOnlineTimer save = a.Copy();
-=======
-    public static void Swap(BGameOnlineCustom a, BGameOnlineCustom b) {
+    public static void swap(BGameOnlineCustom a, BGameOnlineCustom b) {
         BGameOnlineCustom save = a.Copy();
->>>>>>> 59e80f2f (Timer Online 改成基于 Timer.Basic.):ZezeJava/ZezeJava/src/main/java/Zeze/Builtin/Timer/BGameOnlineCustom.java
         a.Assign(b);
         b.Assign(save);
     }
 
     @Override
-<<<<<<< HEAD:ZezeJava/ZezeJava/src/main/java/Zeze/Builtin/Timer/BGameOnlineTimer.java
-    public BGameOnlineTimer copyBean() {
-=======
-    public BGameOnlineCustom CopyBean() {
->>>>>>> 59e80f2f (Timer Online 改成基于 Timer.Basic.):ZezeJava/ZezeJava/src/main/java/Zeze/Builtin/Timer/BGameOnlineCustom.java
+    public BGameOnlineCustom copyBean() {
         return Copy();
     }
 
@@ -174,18 +124,14 @@ public final class BGameOnlineCustom extends Zeze.Transaction.Bean {
         public Log__RoleId(BGameOnlineCustom bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-<<<<<<< HEAD:ZezeJava/ZezeJava/src/main/java/Zeze/Builtin/Timer/BGameOnlineTimer.java
-        public void commit() { ((BGameOnlineTimer)getBelong())._RoleId = Value; }
-=======
-        public void Commit() { ((BGameOnlineCustom)getBelong())._RoleId = Value; }
+        public void commit() { ((BGameOnlineCustom)getBelong())._RoleId = Value; }
     }
 
     private static final class Log__HandleName extends Zeze.Transaction.Logs.LogString {
         public Log__HandleName(BGameOnlineCustom bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BGameOnlineCustom)getBelong())._HandleName = Value; }
->>>>>>> 59e80f2f (Timer Online 改成基于 Timer.Basic.):ZezeJava/ZezeJava/src/main/java/Zeze/Builtin/Timer/BGameOnlineCustom.java
+        public void commit() { ((BGameOnlineCustom)getBelong())._HandleName = Value; }
     }
 
     @Override
@@ -196,22 +142,13 @@ public final class BGameOnlineCustom extends Zeze.Transaction.Bean {
     }
 
     @Override
-<<<<<<< HEAD:ZezeJava/ZezeJava/src/main/java/Zeze/Builtin/Timer/BGameOnlineTimer.java
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Timer.BGameOnlineTimer: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("RoleId").append('=').append(getRoleId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("TimerObj").append('=').append(System.lineSeparator());
-        getTimerObj().getBean().buildString(sb, level + 4);
-=======
-    public void BuildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Timer.BGameOnlineCustom: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("RoleId").append('=').append(getRoleId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("HandleName").append('=').append(getHandleName()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("CustomData").append('=').append(System.lineSeparator());
-        getCustomData().getBean().BuildString(sb, level + 4);
->>>>>>> 59e80f2f (Timer Online 改成基于 Timer.Basic.):ZezeJava/ZezeJava/src/main/java/Zeze/Builtin/Timer/BGameOnlineCustom.java
+        getCustomData().getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -242,10 +179,6 @@ public final class BGameOnlineCustom extends Zeze.Transaction.Bean {
         {
             String _x_ = getHandleName();
             if (!_x_.isEmpty()) {
-<<<<<<< HEAD:ZezeJava/ZezeJava/src/main/java/Zeze/Builtin/Timer/BGameOnlineTimer.java
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.DYNAMIC);
-                _x_.encode(_o_);
-=======
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
@@ -254,8 +187,7 @@ public final class BGameOnlineCustom extends Zeze.Transaction.Bean {
             var _x_ = getCustomData();
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.DYNAMIC);
-                _x_.Encode(_o_);
->>>>>>> 59e80f2f (Timer Online 改成基于 Timer.Basic.):ZezeJava/ZezeJava/src/main/java/Zeze/Builtin/Timer/BGameOnlineCustom.java
+                _x_.encode(_o_);
             }
         }
         _o_.WriteByte(0);
@@ -284,34 +216,19 @@ public final class BGameOnlineCustom extends Zeze.Transaction.Bean {
     }
 
     @Override
-<<<<<<< HEAD:ZezeJava/ZezeJava/src/main/java/Zeze/Builtin/Timer/BGameOnlineTimer.java
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _TimerObj.initRootInfo(root, this);
+        _CustomData.initRootInfo(root, this);
     }
 
     @Override
     protected void resetChildrenRootInfo() {
-        _TimerObj.resetRootInfo();
-=======
-    protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _CustomData.InitRootInfo(root, this);
-    }
-
-    @Override
-    protected void ResetChildrenRootInfo() {
-        _CustomData.ResetRootInfo();
->>>>>>> 59e80f2f (Timer Online 改成基于 Timer.Basic.):ZezeJava/ZezeJava/src/main/java/Zeze/Builtin/Timer/BGameOnlineCustom.java
+        _CustomData.resetRootInfo();
     }
 
     @Override
     public boolean negativeCheck() {
         if (getRoleId() < 0)
             return true;
-<<<<<<< HEAD:ZezeJava/ZezeJava/src/main/java/Zeze/Builtin/Timer/BGameOnlineTimer.java
-        if (getTimerObj().negativeCheck())
-            return true;
-=======
->>>>>>> 59e80f2f (Timer Online 改成基于 Timer.Basic.):ZezeJava/ZezeJava/src/main/java/Zeze/Builtin/Timer/BGameOnlineCustom.java
         return false;
     }
 
@@ -325,12 +242,8 @@ public final class BGameOnlineCustom extends Zeze.Transaction.Bean {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _RoleId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-<<<<<<< HEAD:ZezeJava/ZezeJava/src/main/java/Zeze/Builtin/Timer/BGameOnlineTimer.java
-                case 2: _TimerObj.followerApply(vlog); break;
-=======
                 case 2: _HandleName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
-                case 3: _CustomData.FollowerApply(vlog); break;
->>>>>>> 59e80f2f (Timer Online 改成基于 Timer.Basic.):ZezeJava/ZezeJava/src/main/java/Zeze/Builtin/Timer/BGameOnlineCustom.java
+                case 3: _CustomData.followerApply(vlog); break;
             }
         }
     }

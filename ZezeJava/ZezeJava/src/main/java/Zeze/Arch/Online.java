@@ -195,6 +195,16 @@ public class Online extends AbstractOnline {
 		return (T)data.getAny().getBean();
 	}
 
+	public <T extends Bean> T getOrAddLocalBean(String account, String clientId, String key, T defaultHint) throws Throwable {
+		var bLocals = _tlocal.getOrAdd(account);
+		var login = bLocals.getLogins().getOrAdd(clientId);
+		var bAny = login.getDatas().getOrAdd(key);
+		if (bAny.getAny().getBean().typeId() == defaultHint.typeId())
+			return (T)bAny.getAny().getBean();
+		bAny.getAny().setBean(defaultHint);
+		return defaultHint;
+	}
+
 	private void RemoveLocalAndTrigger(String account, String clientId) throws Throwable {
 		var bLocals = _tlocal.get(account);
 		var localData = bLocals.getLogins().remove(clientId);

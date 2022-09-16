@@ -193,6 +193,15 @@ public class Online extends AbstractOnline {
 		return (T)data.getAny().getBean();
 	}
 
+	public <T extends Bean> T getOrAddLocalBean(long roleId, String key, T defaultHint) throws Throwable {
+		var bLocal = _tlocal.getOrAdd(roleId);
+		var data = bLocal.getDatas().getOrAdd(key);
+		if (data.getAny().getBean().typeId() == defaultHint.typeId())
+			return (T)data.getAny().getBean();
+		data.getAny().setBean(defaultHint);
+		return defaultHint;
+	}
+
 	public long addRole(String account, long roleId) {
 		BAccount bAccount = _taccount.getOrAdd(account);
 		if (bAccount.getName().isEmpty())
