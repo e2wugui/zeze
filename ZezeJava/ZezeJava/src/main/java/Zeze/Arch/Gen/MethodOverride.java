@@ -15,6 +15,7 @@ import Zeze.Arch.RedirectFuture;
 import Zeze.Arch.RedirectHash;
 import Zeze.Arch.RedirectResult;
 import Zeze.Arch.RedirectToServer;
+import Zeze.Net.Binary;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.TransactionLevelAnnotation;
@@ -85,11 +86,12 @@ final class MethodOverride {
 				resultClass = (Class<?>)(resultType instanceof Class ?
 						resultType : ((ParameterizedType)resultType).getRawType());
 				try {
-					if (resultClass != Long.class)
+					if (resultClass != Long.class && resultClass != Binary.class)
 						resultClass.getConstructor((Class<?>[])null);
 				} catch (NoSuchMethodException e) {
-					throw new IllegalStateException("RedirectFuture<> Result Type Must Be 'Long' or any type contains" +
-							" default constructor: " + method.getDeclaringClass().getName() + "::" + method.getName());
+					throw new IllegalStateException("RedirectFuture<> Result Type Must Be 'Long','Binary','String'"
+							+ " or any type contains default constructor: "
+							+ method.getDeclaringClass().getName() + "::" + method.getName());
 				}
 			} else {
 				resultType = null;

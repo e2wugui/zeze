@@ -166,7 +166,7 @@ public class ModuleRank extends AbstractModule {
 				break;
 
 			case 1:
-				Rank.TableValue = datas.get(0).Copy();
+				Rank.TableValue = datas.get(0).copy();
 				break;
 
 			default:
@@ -184,7 +184,7 @@ public class ModuleRank extends AbstractModule {
 						//current.getRankList().RemoveRange(countNeed, current.getRankList().Count - countNeed);
 					}
 				}
-				Rank.TableValue = current.Copy(); // current 可能还直接引用第一个，虽然逻辑上不大可能。先Copy。
+				Rank.TableValue = current.copy(); // current 可能还直接引用第一个，虽然逻辑上不大可能。先Copy。
 				break;
 			}
 			Rank.BuildTime = now;
@@ -544,6 +544,16 @@ public class ModuleRank extends AbstractModule {
 	@RedirectHash
 	public RedirectFuture<Long> TestHashLongResult(int hash) { // 可以没有自定义输入参数,但必须至少有hash参数
 		return RedirectFuture.finish(Procedure.Success);
+	}
+
+	@RedirectToServer
+	public RedirectFuture<String> TestToServerStringResult(int serverId) {
+		return RedirectFuture.finish("ok");
+	}
+
+	@RedirectToServer
+	public RedirectFuture<Binary> TestToServerBinaryResult(int serverId) {
+		return RedirectFuture.finish(new Binary("ok"));
 	}
 
 	@RedirectToServer // 返回结果可以是Bean类型,其中如果有setResultCode(long)方法则会自动设置成resultCode

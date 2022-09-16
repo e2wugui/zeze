@@ -230,7 +230,12 @@ public final class GenModule {
 						sb.appendLine("                return Zeze.Transaction.Procedure.Success;");
 						sb.appendLine("            }");
 					}
-					sb.appendLine("            var _r_ = new {}();", m.resultTypeName);
+					if ("String".equals(m.resultTypeName))
+						sb.appendLine("            var _r_ = Zeze.Util.Str.fromBinary(_rpc_.Result.getParams());");
+					else if ("Zeze.Net.Binary".equals(m.resultTypeName))
+						sb.appendLine("            var _r_ = _rpc_.Result.getParams();");
+					else
+						sb.appendLine("            var _r_ = new {}();", m.resultTypeName);
 					if (Serializable.class.isAssignableFrom(m.resultClass)) {
 						sb.appendLine("            var _param_ = _rpc_.Result.getParams();");
 						sb.appendLine("            if (_param_.size() > 0)");
@@ -390,9 +395,11 @@ public final class GenModule {
 		}
 
 		var normalCall = m.getNormalCallString();
-		if (m.resultType != null)
+		if (m.resultType != null) {
+			if (normalCall.isEmpty())
+				sbHandles.appendLine("                //noinspection CodeBlock2Expr");
 			sbHandles.appendLine("                return super.{}(_hash_{}{});", m.method.getName(), normalCall.isEmpty() ? "" : ", ", normalCall);
-		else {
+		} else {
 			sbHandles.appendLine("                super.{}(_hash_{}{});", m.method.getName(), normalCall.isEmpty() ? "" : ", ", normalCall);
 			sbHandles.appendLine("                return null;");
 		}

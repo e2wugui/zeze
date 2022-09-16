@@ -2,6 +2,7 @@ package Zeze.Net;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
@@ -47,8 +48,12 @@ public final class Binary implements Comparable<Binary> {
 	 * 这里调用Copy是因为ByteBuffer可能分配的保留内存较大。Copy返回实际大小的数据。
 	 * 使用这个方法的地方一般是应用。这个数据可能被存储到表中。
 	 */
-	public Binary(Serializable _s_) {
-		this(ByteBuffer.encode(_s_).Copy());
+	public Binary(Serializable s) {
+		this(ByteBuffer.encode(s).Copy());
+	}
+
+	public Binary(String s) {
+		this(s.getBytes(StandardCharsets.UTF_8));
 	}
 
 	public byte[] bytesUnsafe() {

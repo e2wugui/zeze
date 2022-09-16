@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import Zeze.Net.Binary;
 import org.apache.logging.log4j.message.ParameterizedMessageFactory;
 
 public final class Str {
@@ -58,5 +59,9 @@ public final class Str {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	public static String fromBinary(Binary b) {
+		return new String(b.bytesUnsafe(), b.getOffset(), b.size(), StandardCharsets.UTF_8);
 	}
 }

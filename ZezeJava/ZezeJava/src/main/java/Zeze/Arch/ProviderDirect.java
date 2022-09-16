@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import java.nio.charset.StandardCharsets;
 import Zeze.Builtin.ProviderDirect.AnnounceProviderInfo;
 import Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash;
 import Zeze.Builtin.ProviderDirect.ModuleRedirect;
@@ -8,6 +9,7 @@ import Zeze.Builtin.ProviderDirect.ModuleRedirectAllResult;
 import Zeze.Builtin.ProviderDirect.Transmit;
 import Zeze.Builtin.ProviderDirect.TransmitAccount;
 import Zeze.Net.AsyncSocket;
+import Zeze.Net.Binary;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutObject;
 import org.apache.logging.log4j.LogManager;
@@ -64,7 +66,13 @@ public class ProviderDirect extends AbstractProviderDirect {
 			((RedirectFuture<?>)result).then(r -> {
 				if (r instanceof Long)
 					rpc.SendResultCode((Long)r);
-				else {
+				else if (r instanceof Binary) {
+					rpc.Result.setParams((Binary)r);
+					rpc.SendResultCode(Procedure.Success);
+				} else if (r instanceof String) {
+					rpc.Result.setParams(new Binary((String)r));
+					rpc.SendResultCode(Procedure.Success);
+				} else {
 					rpc.Result.setParams(handle.ResultEncoder.apply(r));
 					// rpc 成功了，具体handle结果还需要看ReturnCode。
 					rpc.SendResultCode(Procedure.Success);
