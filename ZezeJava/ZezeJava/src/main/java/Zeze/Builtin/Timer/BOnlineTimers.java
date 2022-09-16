@@ -29,7 +29,7 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean {
     }
 
     public BOnlineTimers copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BOnlineTimers copy() {
@@ -51,7 +51,7 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean {
 
     @Override
     public BOnlineTimers copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 5020093653412966560L;

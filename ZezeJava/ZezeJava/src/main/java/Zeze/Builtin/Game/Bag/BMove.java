@@ -116,7 +116,7 @@ public final class BMove extends Zeze.Transaction.Bean {
     }
 
     public BMove copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BMove copy() {
@@ -138,7 +138,7 @@ public final class BMove extends Zeze.Transaction.Bean {
 
     @Override
     public BMove copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = -7346236832819011963L;

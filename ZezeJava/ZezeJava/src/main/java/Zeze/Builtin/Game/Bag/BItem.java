@@ -95,7 +95,7 @@ public final class BItem extends Zeze.Transaction.Bean {
     }
 
     public BItem copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BItem copy() {
@@ -117,7 +117,7 @@ public final class BItem extends Zeze.Transaction.Bean {
 
     @Override
     public BItem copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 8937000213993683283L;

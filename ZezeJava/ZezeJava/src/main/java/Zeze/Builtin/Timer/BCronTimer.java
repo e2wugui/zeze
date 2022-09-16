@@ -116,7 +116,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
     }
 
     public BCronTimer copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BCronTimer copy() {
@@ -138,7 +138,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
 
     @Override
     public BCronTimer copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = -6995089347718168392L;

@@ -34,7 +34,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		super(name, zeze);
 	}
 
-	public synchronized void RemoveServer(Agent.subscribeState ss, BServiceInfo pm) {
+	public synchronized void RemoveServer(Agent.SubscribeState ss, BServiceInfo pm) {
 		var connName = pm.getPassiveIp() + ":" + pm.getPassivePort();
 		var conn = getConfig().findConnector(connName);
 		if (conn != null) {
@@ -46,7 +46,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		}
 	}
 
-	public synchronized void AddServer(Agent.subscribeState ss, BServiceInfo pm) {
+	public synchronized void AddServer(Agent.SubscribeState ss, BServiceInfo pm) {
 		var connName = pm.getPassiveIp() + ":" + pm.getPassivePort();
 		var ps = ProviderByLoadName.get(connName);
 		if (ps != null) {
@@ -77,7 +77,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		}
 	}
 
-	public void TryConnectAndSetReady(Agent.subscribeState ss, BServiceInfos infos) throws Throwable {
+	public void TryConnectAndSetReady(Agent.SubscribeState ss, BServiceInfos infos) throws Throwable {
 		var current = new HashMap<String, BServiceInfo>();
 		for (var pm : infos.getServiceInfoListSortedByIdentity()) {
 			AddServer(ss, pm);
@@ -148,7 +148,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		}
 	}
 
-	private void SetReady(Agent.subscribeState ss, BServiceInfo server, ProviderSession ps, int mid, BModule m) {
+	private void SetReady(Agent.SubscribeState ss, BServiceInfo server, ProviderSession ps, int mid, BModule m) {
 		var pms = new ProviderModuleState(ps.getSessionId(), mid, m.getChoiceType(), m.getConfigType());
 		ps.GetOrAddServiceReadyState(ss.getServiceName()).put(server.getServiceIdentity(), pms);
 		ss.setServiceIdentityReadyState(server.getServiceIdentity(), pms);

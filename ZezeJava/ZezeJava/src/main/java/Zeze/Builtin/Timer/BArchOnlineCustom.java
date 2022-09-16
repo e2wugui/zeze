@@ -120,7 +120,7 @@ public final class BArchOnlineCustom extends Zeze.Transaction.Bean {
     }
 
     public BArchOnlineCustom copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BArchOnlineCustom copy() {
@@ -142,7 +142,7 @@ public final class BArchOnlineCustom extends Zeze.Transaction.Bean {
 
     @Override
     public BArchOnlineCustom copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 5751212207563675607L;

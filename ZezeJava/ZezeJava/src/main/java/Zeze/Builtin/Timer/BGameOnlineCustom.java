@@ -88,7 +88,7 @@ public final class BGameOnlineCustom extends Zeze.Transaction.Bean {
     }
 
     public BGameOnlineCustom copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BGameOnlineCustom copy() {
@@ -110,7 +110,7 @@ public final class BGameOnlineCustom extends Zeze.Transaction.Bean {
 
     @Override
     public BGameOnlineCustom copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = -8444232083929347301L;

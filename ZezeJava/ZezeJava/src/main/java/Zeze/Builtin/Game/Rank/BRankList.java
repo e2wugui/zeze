@@ -29,7 +29,7 @@ public final class BRankList extends Zeze.Transaction.Bean {
     }
 
     public BRankList copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BRankList copy() {
@@ -51,7 +51,7 @@ public final class BRankList extends Zeze.Transaction.Bean {
 
     @Override
     public BRankList copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = -1625874326687776700L;

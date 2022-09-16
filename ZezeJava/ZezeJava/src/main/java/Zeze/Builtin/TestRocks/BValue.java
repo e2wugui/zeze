@@ -265,7 +265,7 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
     }
 
     public BValue copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BValue copy() {
@@ -287,7 +287,7 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
 
     @Override
     public BValue copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = -7620770686653123067L;

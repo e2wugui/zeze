@@ -121,7 +121,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
     }
 
     public BDepartmentRoot copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BDepartmentRoot copy() {
@@ -143,7 +143,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
 
     @Override
     public BDepartmentRoot copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 50884757418508709L;

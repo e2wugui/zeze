@@ -45,7 +45,7 @@ public final class BCloseExchange extends Zeze.Transaction.Bean {
     }
 
     public BCloseExchange copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BCloseExchange copy() {
@@ -67,7 +67,7 @@ public final class BCloseExchange extends Zeze.Transaction.Bean {
 
     @Override
     public BCloseExchange copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 2158529094627834211L;

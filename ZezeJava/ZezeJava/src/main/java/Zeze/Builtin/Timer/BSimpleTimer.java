@@ -221,7 +221,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
     }
 
     public BSimpleTimer copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BSimpleTimer copy() {
@@ -243,7 +243,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
 
     @Override
     public BSimpleTimer copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 1832177636612857692L;

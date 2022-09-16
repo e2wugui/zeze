@@ -57,7 +57,7 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
     }
 
     public BReliableNotify copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BReliableNotify copy() {
@@ -79,7 +79,7 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
 
     @Override
     public BReliableNotify copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = -8784206618120085556L;

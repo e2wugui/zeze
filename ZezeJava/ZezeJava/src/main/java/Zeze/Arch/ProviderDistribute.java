@@ -31,18 +31,18 @@ public class ProviderDistribute {
 		ProviderService = providerService;
 	}
 
-	public void AddServer(Agent.subscribeState state, BServiceInfo s) {
+	public void AddServer(Agent.SubscribeState state, BServiceInfo s) {
 		ConsistentHashes.computeIfAbsent(s.getServiceName(), key -> new ConsistentHash<>())
 				.add(s.getServiceIdentity(), s);
 	}
 
-	public void RemoveServer(Agent.subscribeState state, BServiceInfo s) {
+	public void RemoveServer(Agent.SubscribeState state, BServiceInfo s) {
 		var consistentHash = ConsistentHashes.get(s.getServiceName());
 		if (consistentHash != null)
 			consistentHash.remove(s.getServiceIdentity(), s);
 	}
 
-	public void ApplyServers(Agent.subscribeState ass) {
+	public void ApplyServers(Agent.SubscribeState ass) {
 		var consistentHash = ConsistentHashes.computeIfAbsent(ass.getServiceName(), key -> new ConsistentHash<>());
 		var nodeSet = consistentHash.getNodes();
 		var nodes = nodeSet.toArray(new BServiceInfo[nodeSet.size()]);
@@ -76,7 +76,7 @@ public class ProviderDistribute {
 		return consistentHash.get(ByteBuffer.calc_hashnr(dataIndex));
 	}
 
-	public BServiceInfo ChoiceHash(Agent.subscribeState providers, int hash, int dataConcurrentLevel) {
+	public BServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash, int dataConcurrentLevel) {
 		var serviceName = providers.getServiceName();
 		var consistentHash = ConsistentHashes.get(serviceName);
 		if (consistentHash == null)
@@ -87,11 +87,11 @@ public class ProviderDistribute {
 		return ChoiceDataIndex(consistentHash, (int)((hash & 0xffff_ffffL) % dataConcurrentLevel), dataConcurrentLevel);
 	}
 
-	public BServiceInfo ChoiceHash(Agent.subscribeState providers, int hash) {
+	public BServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash) {
 		return ChoiceHash(providers, hash, 1);
 	}
 
-	public boolean ChoiceHash(Agent.subscribeState providers, int hash, OutLong provider) {
+	public boolean ChoiceHash(Agent.SubscribeState providers, int hash, OutLong provider) {
 		provider.value = 0L;
 		var serviceInfo = ChoiceHash(providers, hash);
 		if (serviceInfo == null)
@@ -105,7 +105,7 @@ public class ProviderDistribute {
 		return true;
 	}
 
-	public boolean ChoiceLoad(Agent.subscribeState providers, OutLong provider) {
+	public boolean ChoiceLoad(Agent.SubscribeState providers, OutLong provider) {
 		provider.value = 0L;
 
 		var list = providers.getServiceInfos().getServiceInfoListSortedByIdentity();
@@ -158,7 +158,7 @@ public class ProviderDistribute {
 	}
 
 	// 查找时增加索引，和喂饱时增加索引，需要原子化。提高并发以后慢慢想，这里应该足够快了。
-	public synchronized boolean ChoiceFeedFullOneByOne(Agent.subscribeState providers, OutLong provider) {
+	public synchronized boolean ChoiceFeedFullOneByOne(Agent.SubscribeState providers, OutLong provider) {
 		provider.value = 0L;
 
 		var list = providers.getServiceInfos().getServiceInfoListSortedByIdentity();

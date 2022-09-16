@@ -32,7 +32,7 @@ public class RedirectBase {
 		ProviderApp = app;
 	}
 
-	public static <T extends IModule> T ReplaceModuleInstance(Zeze.AppBase userApp, T module) {
+	public static <T extends IModule> T replaceModuleInstance(Zeze.AppBase userApp, T module) {
 		return GenModule.instance.replaceModuleInstance(userApp, module);
 	}
 

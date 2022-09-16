@@ -57,7 +57,7 @@ public class SimpleApp extends AppBase {
 
 	@Override
 	public <T extends IModule> T replaceModuleInstance(T in) {
-		return RedirectBase.ReplaceModuleInstance(this, in);
+		return RedirectBase.replaceModuleInstance(this, in);
 	}
 
 	public void start() throws Throwable {

@@ -286,7 +286,7 @@ public class Rank extends AbstractRank {
 		if (0 == size)
 			return new BRankList();
 		if (1 == size)
-			return datas.iterator().next().Copy(); // only one item
+			return datas.iterator().next().copy(); // only one item
 
 		// 合并过程中，结果是新的 BRankList，List中的 BRankValue 引用到表中。
 		// 最后 Copy 一次。

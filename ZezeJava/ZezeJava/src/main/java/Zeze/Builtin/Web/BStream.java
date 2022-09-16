@@ -94,7 +94,7 @@ public final class BStream extends Zeze.Transaction.Bean {
     }
 
     public BStream copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BStream copy() {
@@ -116,7 +116,7 @@ public final class BStream extends Zeze.Transaction.Bean {
 
     @Override
     public BStream copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 6767831806810414082L;

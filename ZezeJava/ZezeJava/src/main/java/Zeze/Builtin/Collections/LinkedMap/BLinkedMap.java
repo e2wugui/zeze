@@ -111,7 +111,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
     }
 
     public BLinkedMap copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BLinkedMap copy() {
@@ -133,7 +133,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
 
     @Override
     public BLinkedMap copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = -8443895985300072767L;

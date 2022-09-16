@@ -72,7 +72,7 @@ public final class BReduceParam extends Zeze.Transaction.Bean {
     }
 
     public BReduceParam copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BReduceParam copy() {
@@ -94,7 +94,7 @@ public final class BReduceParam extends Zeze.Transaction.Bean {
 
     @Override
     public BReduceParam copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = -7052326232144455304L;

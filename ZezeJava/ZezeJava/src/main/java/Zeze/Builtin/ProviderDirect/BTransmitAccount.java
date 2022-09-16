@@ -143,7 +143,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
     }
 
     public BTransmitAccount copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BTransmitAccount copy() {
@@ -165,7 +165,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
 
     @Override
     public BTransmitAccount copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 2637210793748287339L;

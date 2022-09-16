@@ -45,7 +45,7 @@ public final class BAcquiredState extends Zeze.Raft.RocksRaft.Bean {
     }
 
     public BAcquiredState copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BAcquiredState copy() {
@@ -67,7 +67,7 @@ public final class BAcquiredState extends Zeze.Raft.RocksRaft.Bean {
 
     @Override
     public BAcquiredState copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = -1043402609085397620L;

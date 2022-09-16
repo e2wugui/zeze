@@ -50,7 +50,7 @@ public final class BSession extends Zeze.Transaction.Bean {
     }
 
     public BSession copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BSession copy() {
@@ -72,7 +72,7 @@ public final class BSession extends Zeze.Transaction.Bean {
 
     @Override
     public BSession copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = -9018388719477863848L;

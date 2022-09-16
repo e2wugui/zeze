@@ -157,7 +157,7 @@ namespace Zeze.Gen.java
             Assign.Make(bean, sw, "    ");
             // Copy
             sw.WriteLine("    public " + bean.Name + " copyIfManaged() {");
-            sw.WriteLine("        return isManaged() ? Copy() : this;");
+            sw.WriteLine("        return isManaged() ? copy() : this;");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    public " + bean.Name + " copy() {");
@@ -179,7 +179,7 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             sw.WriteLine("    @Override");
             sw.WriteLine("    public " + bean.Name + " copyBean() {");
-            sw.WriteLine("        return Copy();");
+            sw.WriteLine("        return copy();");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    public static final long TYPEID = " + bean.TypeId + "L;");

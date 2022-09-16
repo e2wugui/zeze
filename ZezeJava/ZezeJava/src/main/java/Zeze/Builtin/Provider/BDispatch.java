@@ -175,7 +175,7 @@ public final class BDispatch extends Zeze.Transaction.Bean {
     }
 
     public BDispatch copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BDispatch copy() {
@@ -197,7 +197,7 @@ public final class BDispatch extends Zeze.Transaction.Bean {
 
     @Override
     public BDispatch copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = -496680173908943081L;

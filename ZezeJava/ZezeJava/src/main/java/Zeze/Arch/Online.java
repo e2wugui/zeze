@@ -208,7 +208,7 @@ public class Online extends AbstractOnline {
 	private void RemoveLocalAndTrigger(String account, String clientId) throws Throwable {
 		var bLocals = _tlocal.get(account);
 		var localData = bLocals.getLogins().remove(clientId);
-		var arg = new LocalRemoveEventArgument(account, clientId, localData != null ? localData.Copy() : null);
+		var arg = new LocalRemoveEventArgument(account, clientId, localData != null ? localData.copy() : null);
 
 		if (bLocals.getLogins().isEmpty())
 			_tlocal.remove(account); // remove first
@@ -221,7 +221,7 @@ public class Online extends AbstractOnline {
 	private void LogoutTriggerExtra(String account, String clientId) throws Throwable {
 		var bOnline = _tonline.get(account);
 		var onlineData = bOnline.getLogins().get(clientId);
-		var arg = new LogoutEventArgument(account, clientId, onlineData != null ? onlineData.Copy() : null);
+		var arg = new LogoutEventArgument(account, clientId, onlineData != null ? onlineData.copy() : null);
 
 		LogoutEvents.triggerEmbed(this, arg);
 		LogoutEvents.triggerProcedure(ProviderApp.Zeze, this, arg);
@@ -231,7 +231,7 @@ public class Online extends AbstractOnline {
 	private void LogoutTrigger(String account, String clientId) throws Throwable {
 		var bOnline = _tonline.get(account);
 		var onlineData = bOnline.getLogins().remove(clientId);
-		var arg = new LogoutEventArgument(account, clientId, onlineData != null ? onlineData.Copy() : null);
+		var arg = new LogoutEventArgument(account, clientId, onlineData != null ? onlineData.copy() : null);
 
 		if (bOnline.getLogins().isEmpty())
 			_tonline.remove(account); // remove first

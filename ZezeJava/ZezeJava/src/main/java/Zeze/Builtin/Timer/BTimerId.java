@@ -45,7 +45,7 @@ public final class BTimerId extends Zeze.Transaction.Bean {
     }
 
     public BTimerId copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BTimerId copy() {
@@ -67,7 +67,7 @@ public final class BTimerId extends Zeze.Transaction.Bean {
 
     @Override
     public BTimerId copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = -2165522827061909041L;

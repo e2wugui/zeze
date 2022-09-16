@@ -150,7 +150,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean {
     }
 
     public BLinkBroken copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BLinkBroken copy() {
@@ -172,7 +172,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean {
 
     @Override
     public BLinkBroken copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 1424702393060691138L;

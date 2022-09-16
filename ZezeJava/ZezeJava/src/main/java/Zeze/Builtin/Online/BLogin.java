@@ -50,7 +50,7 @@ public final class BLogin extends Zeze.Transaction.Bean {
     }
 
     public BLogin copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BLogin copy() {
@@ -72,7 +72,7 @@ public final class BLogin extends Zeze.Transaction.Bean {
 
     @Override
     public BLogin copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = -2914025305442353160L;

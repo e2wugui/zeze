@@ -28,17 +28,17 @@ public final class Agent implements Closeable {
 
 	// key is ServiceName。对于一个Agent，一个服务只能有一个订阅。
 	// ServiceName ->
-	private final ConcurrentHashMap<String, subscribeState> subscribeStates = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, SubscribeState> subscribeStates = new ConcurrentHashMap<>();
 	private AgentClient client;
 	private final Zeze.Application zeze;
 
 	/**
 	 * 订阅服务状态发生变化时回调。 如果需要处理这个事件，请在订阅前设置回调。
 	 */
-	private Action1<subscribeState> onChanged; // Simple (如果没有定义OnUpdate和OnRemove) Or ReadyCommit (Notify, Commit)
-	private Action2<subscribeState, BServiceInfo> onUpdate; // Simple (Register, Update)
-	private Action2<subscribeState, BServiceInfo> onRemove; // Simple (UnRegister)
-	private Action1<subscribeState> onPrepare; // ReadyCommit 的第一步回调。
+	private Action1<SubscribeState> onChanged; // Simple (如果没有定义OnUpdate和OnRemove) Or ReadyCommit (Notify, Commit)
+	private Action2<SubscribeState, BServiceInfo> onUpdate; // Simple (Register, Update)
+	private Action2<SubscribeState, BServiceInfo> onRemove; // Simple (UnRegister)
+	private Action1<SubscribeState> onPrepare; // ReadyCommit 的第一步回调。
 	private Action1<BServerLoad> onSetServerLoad;
 	private Func1<BOfflineNotify, Boolean> onOfflineNotify; // 返回是否处理成功且不需要其它notifier继续处理
 
@@ -51,7 +51,7 @@ public final class Agent implements Closeable {
 
 	public final ConcurrentHashMap<String, BServerLoad> loads = new ConcurrentHashMap<>();
 
-	public ConcurrentHashMap<String, subscribeState> getSubscribeStates() {
+	public ConcurrentHashMap<String, SubscribeState> getSubscribeStates() {
 		return subscribeStates;
 	}
 
@@ -73,11 +73,11 @@ public final class Agent implements Closeable {
 		return zeze;
 	}
 
-	public Action1<subscribeState> getOnChanged() {
+	public Action1<SubscribeState> getOnChanged() {
 		return onChanged;
 	}
 
-	public void setOnChanged(Action1<subscribeState> value) {
+	public void setOnChanged(Action1<SubscribeState> value) {
 		onChanged = value;
 	}
 
@@ -93,23 +93,23 @@ public final class Agent implements Closeable {
 		return onOfflineNotify;
 	}
 
-	public void setOnPrepare(Action1<subscribeState> value) {
+	public void setOnPrepare(Action1<SubscribeState> value) {
 		onPrepare = value;
 	}
 
-	public Action2<subscribeState, BServiceInfo> getOnRemoved() {
+	public Action2<SubscribeState, BServiceInfo> getOnRemoved() {
 		return onRemove;
 	}
 
-	public void setOnRemoved(Action2<subscribeState, BServiceInfo> value) {
+	public void setOnRemoved(Action2<SubscribeState, BServiceInfo> value) {
 		onRemove = value;
 	}
 
-	public Action2<subscribeState, BServiceInfo> getOnUpdate() {
+	public Action2<SubscribeState, BServiceInfo> getOnUpdate() {
 		return onUpdate;
 	}
 
-	public void setOnUpdate(Action2<subscribeState, BServiceInfo> value) {
+	public void setOnUpdate(Action2<SubscribeState, BServiceInfo> value) {
 		onUpdate = value;
 	}
 
@@ -125,7 +125,7 @@ public final class Agent implements Closeable {
 	// 记住当前已经注册和订阅信息，当ServiceManager连接发生重连时，重新发送请求。
 	// 维护这些状态数据都是先更新本地再发送远程请求，在失败的时候rollback。
 	// 当同一个Key(比如ServiceName)存在并发时，现在处理所有情况，但不保证都是合理的。
-	public final class subscribeState {
+	public final class SubscribeState {
 		private final BSubscribeInfo subscribeInfo;
 		private volatile BServiceInfos serviceInfos;
 		private volatile BServiceInfos serviceInfosPending;
@@ -163,7 +163,7 @@ public final class Agent implements Closeable {
 			return serviceInfosPending;
 		}
 
-		public subscribeState(BSubscribeInfo info) {
+		public SubscribeState(BSubscribeInfo info) {
 			subscribeInfo = info;
 			serviceInfos = new BServiceInfos(info.getServiceName());
 		}
@@ -420,11 +420,11 @@ public final class Agent implements Closeable {
 		}
 	}
 
-	public subscribeState subscribeService(String serviceName, int type) {
+	public SubscribeState subscribeService(String serviceName, int type) {
 		return subscribeService(serviceName, type, null);
 	}
 
-	public subscribeState subscribeService(String serviceName, int type, Object state) {
+	public SubscribeState subscribeService(String serviceName, int type, Object state) {
 		if (type != BSubscribeInfo.SubscribeTypeSimple && type != BSubscribeInfo.SubscribeTypeReadyCommit)
 			throw new UnsupportedOperationException("Unknown SubscribeType: " + type);
 
@@ -435,14 +435,14 @@ public final class Agent implements Closeable {
 		return subscribeService(info);
 	}
 
-	private subscribeState subscribeService(BSubscribeInfo info) {
+	private SubscribeState subscribeService(BSubscribeInfo info) {
 		waitConnectorReady();
 
 		final var newAdd = new OutObject<Boolean>();
 		newAdd.value = false;
 		var subState = subscribeStates.computeIfAbsent(info.getServiceName(), __ -> {
 			newAdd.value = true;
-			return new subscribeState(info);
+			return new SubscribeState(info);
 		});
 
 		if (newAdd.value) {

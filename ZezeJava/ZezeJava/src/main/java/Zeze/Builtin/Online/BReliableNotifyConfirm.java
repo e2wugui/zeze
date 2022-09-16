@@ -94,7 +94,7 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
     }
 
     public BReliableNotifyConfirm copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BReliableNotifyConfirm copy() {
@@ -116,7 +116,7 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
 
     @Override
     public BReliableNotifyConfirm copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 7657736965823286884L;

@@ -57,7 +57,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
     }
 
     public BQueueNode copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BQueueNode copy() {
@@ -79,7 +79,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
 
     @Override
     public BQueueNode copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 400956918018571167L;

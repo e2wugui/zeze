@@ -29,7 +29,7 @@ public final class BOnlines extends Zeze.Transaction.Bean {
     }
 
     public BOnlines copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BOnlines copy() {
@@ -51,7 +51,7 @@ public final class BOnlines extends Zeze.Transaction.Bean {
 
     @Override
     public BOnlines copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = -725348871039859823L;

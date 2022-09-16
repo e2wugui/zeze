@@ -29,7 +29,7 @@ public final class BSubscribe extends Zeze.Transaction.Bean {
     }
 
     public BSubscribe copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BSubscribe copy() {
@@ -51,7 +51,7 @@ public final class BSubscribe extends Zeze.Transaction.Bean {
 
     @Override
     public BSubscribe copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 1112180088628051173L;

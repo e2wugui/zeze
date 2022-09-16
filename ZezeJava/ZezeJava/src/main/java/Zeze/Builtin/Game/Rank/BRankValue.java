@@ -94,7 +94,7 @@ public final class BRankValue extends Zeze.Transaction.Bean {
     }
 
     public BRankValue copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BRankValue copy() {
@@ -116,7 +116,7 @@ public final class BRankValue extends Zeze.Transaction.Bean {
 
     @Override
     public BRankValue copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 2276228832088785165L;

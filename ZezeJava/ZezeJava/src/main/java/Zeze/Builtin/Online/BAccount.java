@@ -45,7 +45,7 @@ public final class BAccount extends Zeze.Transaction.Bean {
     }
 
     public BAccount copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BAccount copy() {
@@ -67,7 +67,7 @@ public final class BAccount extends Zeze.Transaction.Bean {
 
     @Override
     public BAccount copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 3220082739597459764L;

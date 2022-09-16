@@ -46,7 +46,7 @@ public final class BAny extends Zeze.Transaction.Bean {
     }
 
     public BAny copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BAny copy() {
@@ -68,7 +68,7 @@ public final class BAny extends Zeze.Transaction.Bean {
 
     @Override
     public BAny copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 5253251427600819301L;

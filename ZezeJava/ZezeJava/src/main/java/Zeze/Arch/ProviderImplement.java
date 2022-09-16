@@ -22,7 +22,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 
 	protected ProviderApp ProviderApp;
 
-	void ApplyOnChanged(Agent.subscribeState subState) throws Throwable {
+	void ApplyOnChanged(Agent.SubscribeState subState) throws Throwable {
 		if (subState.getServiceName().equals(ProviderApp.LinkdServiceName)) {
 			// Linkd info
 			ProviderApp.ProviderService.Apply(subState.getServiceInfos());
@@ -35,7 +35,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		}
 	}
 
-	void ApplyOnPrepare(Agent.subscribeState subState) throws Throwable {
+	void ApplyOnPrepare(Agent.SubscribeState subState) throws Throwable {
 		var pending = subState.getServiceInfosPending();
 		if (pending != null && pending.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix))
 			ProviderApp.ProviderDirectService.TryConnectAndSetReady(subState, pending);

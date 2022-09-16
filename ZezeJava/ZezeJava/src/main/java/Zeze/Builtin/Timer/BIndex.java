@@ -94,7 +94,7 @@ public final class BIndex extends Zeze.Transaction.Bean {
     }
 
     public BIndex copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BIndex copy() {
@@ -116,7 +116,7 @@ public final class BIndex extends Zeze.Transaction.Bean {
 
     @Override
     public BIndex copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 8921847554177605341L;

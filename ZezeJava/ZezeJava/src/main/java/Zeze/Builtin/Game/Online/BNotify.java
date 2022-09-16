@@ -50,7 +50,7 @@ public final class BNotify extends Zeze.Transaction.Bean {
     }
 
     public BNotify copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BNotify copy() {
@@ -72,7 +72,7 @@ public final class BNotify extends Zeze.Transaction.Bean {
 
     @Override
     public BNotify copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 663625160021568926L;

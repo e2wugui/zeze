@@ -99,7 +99,7 @@ public final class BReportError extends Zeze.Transaction.Bean {
     }
 
     public BReportError copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BReportError copy() {
@@ -121,7 +121,7 @@ public final class BReportError extends Zeze.Transaction.Bean {
 
     @Override
     public BReportError copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = -947669033141460287L;

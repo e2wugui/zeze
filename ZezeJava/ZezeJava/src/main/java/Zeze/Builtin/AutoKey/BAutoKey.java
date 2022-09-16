@@ -45,7 +45,7 @@ public final class BAutoKey extends Zeze.Transaction.Bean {
     }
 
     public BAutoKey copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BAutoKey copy() {
@@ -67,7 +67,7 @@ public final class BAutoKey extends Zeze.Transaction.Bean {
 
     @Override
     public BAutoKey copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 3694349315876280858L;

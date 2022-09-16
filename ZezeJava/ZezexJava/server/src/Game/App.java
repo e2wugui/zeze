@@ -28,7 +28,7 @@ public final class App extends Zeze.AppBase {
 
 	@Override
 	public <T extends Zeze.IModule> T replaceModuleInstance(T module) {
-		return RedirectBase.ReplaceModuleInstance(this, module);
+		return RedirectBase.replaceModuleInstance(this, module);
 	}
 
 	public ProviderImplementWithOnline getProvider() {

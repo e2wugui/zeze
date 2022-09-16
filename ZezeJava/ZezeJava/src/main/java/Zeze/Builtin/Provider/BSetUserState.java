@@ -99,7 +99,7 @@ public final class BSetUserState extends Zeze.Transaction.Bean {
     }
 
     public BSetUserState copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BSetUserState copy() {
@@ -121,7 +121,7 @@ public final class BSetUserState extends Zeze.Transaction.Bean {
 
     @Override
     public BSetUserState copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = -4860388989628287875L;

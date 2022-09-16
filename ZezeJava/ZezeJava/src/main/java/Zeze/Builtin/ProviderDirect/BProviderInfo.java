@@ -94,7 +94,7 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
     }
 
     public BProviderInfo copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BProviderInfo copy() {
@@ -116,7 +116,7 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
 
     @Override
     public BProviderInfo copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 858135112612157161L;

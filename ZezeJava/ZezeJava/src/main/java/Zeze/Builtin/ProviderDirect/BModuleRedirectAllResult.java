@@ -150,7 +150,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean {
     }
 
     public BModuleRedirectAllResult copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BModuleRedirectAllResult copy() {
@@ -172,7 +172,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean {
 
     @Override
     public BModuleRedirectAllResult copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = -6979067915808179070L;

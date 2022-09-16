@@ -89,7 +89,7 @@ public final class BLoad extends Zeze.Transaction.Bean {
     }
 
     public BLoad copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BLoad copy() {
@@ -111,7 +111,7 @@ public final class BLoad extends Zeze.Transaction.Bean {
 
     @Override
     public BLoad copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 8972064501607813483L;

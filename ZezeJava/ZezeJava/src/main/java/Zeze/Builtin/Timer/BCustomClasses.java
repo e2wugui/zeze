@@ -29,7 +29,7 @@ public final class BCustomClasses extends Zeze.Transaction.Bean {
     }
 
     public BCustomClasses copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BCustomClasses copy() {
@@ -51,7 +51,7 @@ public final class BCustomClasses extends Zeze.Transaction.Bean {
 
     @Override
     public BCustomClasses copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = -6120785275253681446L;

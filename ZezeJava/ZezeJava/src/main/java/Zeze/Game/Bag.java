@@ -162,7 +162,7 @@ public class Bag {
 
 				int remain = itemAdd.getNumber() - pileMax;
 				itemAdd.setNumber(pileMax);
-				itemAdd = itemAdd.Copy(); // current itemAdd has in managed.
+				itemAdd = itemAdd.copy(); // current itemAdd has in managed.
 				itemAdd.setNumber(remain);
 				// ready to continue add
 			}
@@ -186,7 +186,7 @@ public class Bag {
 				return itemAdd.getNumber();
 			}
 
-			BItem itemNew = itemAdd.Copy();
+			BItem itemNew = itemAdd.copy();
 			itemNew.setNumber(pileMax);
 			itemAdd.setNumber(itemAdd.getNumber() - pileMax);
 			bean.getItems().put(pos, itemNew);
@@ -269,7 +269,7 @@ public class Bag {
 			return 0;
 		}
 		// 移动（或拆分）
-		BItem itemNew = itemFrom.Copy(); // 先复制一份再设置成目标数量。
+		BItem itemNew = itemFrom.copy(); // 先复制一份再设置成目标数量。
 		itemNew.setNumber(number);
 		if (itemFrom.getNumber() == number) {
 			// 移动
@@ -296,7 +296,7 @@ public class Bag {
 		var sort = (Map.Entry<Integer, BItem>[])bean.getItems().entrySet().toArray(new Map.Entry[bean.getItems().size()]);
 		Arrays.sort(sort, comparison);
 		for (int i = 0; i < sort.length; ++i) {
-			BItem copy = sort[i].getValue().Copy();
+			BItem copy = sort[i].getValue().copy();
 			sort[i] = Map.entry(i, copy); // old item IsManaged. need Copy a new one.
 		}
 		bean.getItems().clear();

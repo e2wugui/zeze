@@ -156,7 +156,7 @@ public class LinkedMap<V extends Bean> {
 				values.remove(i);
 				if (values.isEmpty())
 					removeNodeUnsafe(nodeId.getNodeId(), node);
-				return ahead ? addHeadUnsafe(e.Copy()) : addTailUnsafe(e.Copy());
+				return ahead ? addHeadUnsafe(e.copy()) : addTailUnsafe(e.copy());
 			}
 		}
 		throw new IllegalStateException("Node Exist But Value Not Found.");

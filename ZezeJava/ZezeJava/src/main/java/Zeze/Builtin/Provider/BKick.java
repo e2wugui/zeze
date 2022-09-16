@@ -100,7 +100,7 @@ public final class BKick extends Zeze.Transaction.Bean {
     }
 
     public BKick copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BKick copy() {
@@ -122,7 +122,7 @@ public final class BKick extends Zeze.Transaction.Bean {
 
     @Override
     public BKick copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = -6855697390328479333L;

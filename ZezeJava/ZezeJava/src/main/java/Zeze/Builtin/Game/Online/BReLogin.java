@@ -67,7 +67,7 @@ public final class BReLogin extends Zeze.Transaction.Bean {
     }
 
     public BReLogin copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BReLogin copy() {
@@ -89,7 +89,7 @@ public final class BReLogin extends Zeze.Transaction.Bean {
 
     @Override
     public BReLogin copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 8551355014943125267L;

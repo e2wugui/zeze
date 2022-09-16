@@ -72,7 +72,7 @@ public final class BAcquireParam extends Zeze.Transaction.Bean {
     }
 
     public BAcquireParam copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BAcquireParam copy() {
@@ -94,7 +94,7 @@ public final class BAcquireParam extends Zeze.Transaction.Bean {
 
     @Override
     public BAcquireParam copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = -8330630345134214646L;

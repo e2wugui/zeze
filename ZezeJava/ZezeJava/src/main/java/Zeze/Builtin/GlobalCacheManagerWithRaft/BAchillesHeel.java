@@ -94,7 +94,7 @@ public final class BAchillesHeel extends Zeze.Transaction.Bean {
     }
 
     public BAchillesHeel copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BAchillesHeel copy() {
@@ -116,7 +116,7 @@ public final class BAchillesHeel extends Zeze.Transaction.Bean {
 
     @Override
     public BAchillesHeel copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = -1597142225818031748L;

@@ -89,7 +89,7 @@ public final class BLoginParam extends Zeze.Transaction.Bean {
     }
 
     public BLoginParam copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BLoginParam copy() {
@@ -111,7 +111,7 @@ public final class BLoginParam extends Zeze.Transaction.Bean {
 
     @Override
     public BLoginParam copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 9076855952725286109L;

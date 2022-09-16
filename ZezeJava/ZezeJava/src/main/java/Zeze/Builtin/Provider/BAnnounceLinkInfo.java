@@ -18,7 +18,7 @@ public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean {
     }
 
     public BAnnounceLinkInfo copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BAnnounceLinkInfo copy() {
@@ -40,7 +40,7 @@ public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean {
 
     @Override
     public BAnnounceLinkInfo copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 6291432069805514560L;

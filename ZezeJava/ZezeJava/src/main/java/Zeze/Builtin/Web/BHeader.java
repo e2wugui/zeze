@@ -41,7 +41,7 @@ public final class BHeader extends Zeze.Transaction.Bean {
     }
 
     public BHeader copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BHeader copy() {
@@ -63,7 +63,7 @@ public final class BHeader extends Zeze.Transaction.Bean {
 
     @Override
     public BHeader copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = -1798266087121028059L;

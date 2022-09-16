@@ -29,7 +29,7 @@ public final class BVersions extends Zeze.Transaction.Bean {
     }
 
     public BVersions copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BVersions copy() {
@@ -51,7 +51,7 @@ public final class BVersions extends Zeze.Transaction.Bean {
 
     @Override
     public BVersions copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 3480529937760660740L;

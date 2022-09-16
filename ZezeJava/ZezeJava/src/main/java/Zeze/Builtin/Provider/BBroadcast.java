@@ -94,7 +94,7 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
     }
 
     public BBroadcast copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BBroadcast copy() {
@@ -116,7 +116,7 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
 
     @Override
     public BBroadcast copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = -6926497733546172658L;

@@ -84,7 +84,7 @@ public final class BSend extends Zeze.Transaction.Bean {
     }
 
     public BSend copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BSend copy() {
@@ -106,7 +106,7 @@ public final class BSend extends Zeze.Transaction.Bean {
 
     @Override
     public BSend copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 545774009128015305L;

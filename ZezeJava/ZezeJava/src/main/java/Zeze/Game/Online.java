@@ -233,7 +233,7 @@ public class Online extends AbstractOnline {
 	private void removeLocalAndTrigger(long roleId) throws Throwable {
 		var arg = new LocalRemoveEventArgument();
 		arg.RoleId = roleId;
-		arg.LocalData = _tlocal.get(roleId).Copy();
+		arg.LocalData = _tlocal.get(roleId).copy();
 
 		_tlocal.remove(roleId); // remove first
 
@@ -245,7 +245,7 @@ public class Online extends AbstractOnline {
 	private void logoutTriggerExtra(long roleId) throws Throwable {
 		var arg = new LogoutEventArgument();
 		arg.RoleId = roleId;
-		arg.OnlineData = _tonline.get(roleId).Copy();
+		arg.OnlineData = _tonline.get(roleId).copy();
 
 		logoutEvents.triggerEmbed(this, arg);
 		logoutEvents.triggerProcedure(ProviderApp.Zeze, this, arg);
@@ -255,7 +255,7 @@ public class Online extends AbstractOnline {
 	private void logoutTrigger(long roleId) throws Throwable {
 		var arg = new LogoutEventArgument();
 		arg.RoleId = roleId;
-		arg.OnlineData = _tonline.get(roleId).Copy();
+		arg.OnlineData = _tonline.get(roleId).copy();
 
 		_tonline.remove(roleId); // remove first
 

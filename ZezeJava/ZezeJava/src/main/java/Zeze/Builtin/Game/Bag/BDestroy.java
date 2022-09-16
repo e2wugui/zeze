@@ -72,7 +72,7 @@ public final class BDestroy extends Zeze.Transaction.Bean {
     }
 
     public BDestroy copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BDestroy copy() {
@@ -94,7 +94,7 @@ public final class BDestroy extends Zeze.Transaction.Bean {
 
     @Override
     public BDestroy copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = -3139270057603893776L;

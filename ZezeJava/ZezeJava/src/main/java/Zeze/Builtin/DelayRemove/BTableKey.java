@@ -77,7 +77,7 @@ public final class BTableKey extends Zeze.Transaction.Bean {
     }
 
     public BTableKey copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BTableKey copy() {
@@ -99,7 +99,7 @@ public final class BTableKey extends Zeze.Transaction.Bean {
 
     @Override
     public BTableKey copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 6060766480176216446L;

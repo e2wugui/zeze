@@ -121,7 +121,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
     }
 
     public BDepartmentTreeNode copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BDepartmentTreeNode copy() {
@@ -143,7 +143,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
 
     @Override
     public BDepartmentTreeNode copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 2712461973987809351L;

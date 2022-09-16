@@ -214,7 +214,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
     }
 
     public BRequest copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BRequest copy() {
@@ -236,7 +236,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
 
     @Override
     public BRequest copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = -8704897348167290545L;

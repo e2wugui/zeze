@@ -160,7 +160,7 @@ public final class BResponse extends Zeze.Transaction.Bean {
     }
 
     public BResponse copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BResponse copy() {
@@ -182,7 +182,7 @@ public final class BResponse extends Zeze.Transaction.Bean {
 
     @Override
     public BResponse copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = -5862638463049880127L;
