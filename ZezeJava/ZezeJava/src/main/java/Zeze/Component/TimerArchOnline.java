@@ -116,7 +116,7 @@ public class TimerArchOnline {
 		onlineTimers.getTimerIds().remove(timerId);
 
 		// cancel future task
-		var future = online.ProviderApp.Zeze.getTimer().timersFuture.remove(timerId);
+		var future = online.providerApp.zeze.getTimer().timersFuture.remove(timerId);
 		if (null == future)
 			return false;
 		future.cancel(true);
@@ -135,14 +135,14 @@ public class TimerArchOnline {
 
 	// 再次调度 cron 定时器，真正安装到ThreadPool中。
 	private void scheduleCronNext(long timerId, long delay, String name) {
-		var timer = online.ProviderApp.Zeze.getTimer();
+		var timer = online.providerApp.zeze.getTimer();
 		timer.timersFuture.put(timerId, Task.scheduleUnsafe(delay, () -> fireCronLocal(timerId, name)));
 	}
 
 	private void fireCronLocal(long timerId, String name) throws Throwable {
-		var timer = online.ProviderApp.Zeze.getTimer();
+		var timer = online.providerApp.zeze.getTimer();
 		final var handle = timer.timerHandles.get(name);
-		var ret = Task.call(online.ProviderApp.Zeze.newProcedure(() -> {
+		var ret = Task.call(online.providerApp.zeze.newProcedure(() -> {
 			if (null == handle) {
 				cancel(timerId);
 				return 0; // done
@@ -166,7 +166,7 @@ public class TimerArchOnline {
 					cronTimer.getHappenTimeMills(),
 					cronTimer.getNextExpectedTimeMills(),
 					cronTimer.getExpectedTimeMills());
-			var retNest = Task.call(online.ProviderApp.Zeze.newProcedure(() -> {
+			var retNest = Task.call(online.providerApp.zeze.newProcedure(() -> {
 				handle.run(context);
 				return Procedure.Success;
 			}, "fireOnlineLocalHandle"));
@@ -184,7 +184,7 @@ public class TimerArchOnline {
 
 	// 调度 Simple 定时器到ThreadPool中。
 	private void scheduleSimpleLocal(long timerId, long delay, long period, String name) {
-		var timer = online.ProviderApp.Zeze.getTimer();
+		var timer = online.providerApp.zeze.getTimer();
 		if (period > 0)
 			timer.timersFuture.put(timerId, Task.scheduleUnsafe(delay, period,
 					() -> fireOnlineSimpleTimer(timerId, name)));
@@ -195,9 +195,9 @@ public class TimerArchOnline {
 
 	// Timer发生，执行回调。
 	private void fireOnlineSimpleTimer(long timerId, String name) throws Throwable {
-		var timer = online.ProviderApp.Zeze.getTimer();
+		var timer = online.providerApp.zeze.getTimer();
 		final var handle = timer.timerHandles.get(name);
-		var ret = Task.call(online.ProviderApp.Zeze.newProcedure(() -> {
+		var ret = Task.call(online.providerApp.zeze.newProcedure(() -> {
 			if (null == handle) {
 				cancel(timerId);
 				return 0; // done
@@ -214,7 +214,7 @@ public class TimerArchOnline {
 
 			var simpleTimer = bTimer.getTimerObj_Zeze_Builtin_Timer_BSimpleTimer();
 			Timer.nextSimpleTimer(simpleTimer);
-			var retNest = Task.call(online.ProviderApp.Zeze.newProcedure(() -> {
+			var retNest = Task.call(online.providerApp.zeze.newProcedure(() -> {
 				var onlineTimers = online.<BOnlineTimers>getLocalBean(
 						bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers);
 				var customData = onlineTimers.getTimerIds().get(timerId).getCustomData().getBean();

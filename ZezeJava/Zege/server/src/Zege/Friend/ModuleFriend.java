@@ -47,7 +47,7 @@ public class ModuleFriend extends AbstractModule {
 			case Changes.Record.Put:
 				var node = new BGetFriendNode();
 				node.setNodeId(nodeKey.getNodeId());
-				node.getNode().Assign((BLinkedMapNode)r.getValue()); // TODO 这里拷贝一次，有点浪费。优化？？？下面还有一处。
+				node.getNode().assign((BLinkedMapNode)r.getValue()); // TODO 这里拷贝一次，有点浪费。优化？？？下面还有一处。
 				notify.Argument.setChangeLog(new Binary(ByteBuffer.encode(node)));
 				App.Provider.online.sendAccount(account, notify, null); // TODO online sender
 				return; // done
@@ -171,7 +171,7 @@ public class ModuleFriend extends AbstractModule {
 			return errorCode(eFriendNodeNotFound);
 
 		r.Result.setNodeId(nodeId.value);
-		r.Result.getNode().Assign(friendNode); // TODO 这里拷贝一次，有点浪费。优化？？？上面还有一处。
+		r.Result.getNode().assign(friendNode); // TODO 这里拷贝一次，有点浪费。优化？？？上面还有一处。
 
 		session.sendResponseWhileCommit(r);
 		return Procedure.Success;
@@ -355,7 +355,7 @@ public class ModuleFriend extends AbstractModule {
 		if (r.getResultCode() != 0)
 			return r.getResultCode();
 
-		group.getOrAddManager(r.Argument.getDepartmentId(), r.Argument.getAccount()).Assign(r.Argument.getManager());
+		group.getOrAddManager(r.Argument.getDepartmentId(), r.Argument.getAccount()).assign(r.Argument.getManager());
 		session.sendResponseWhileCommit(r);
 		return Procedure.Success;
 	}
