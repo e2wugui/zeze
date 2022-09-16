@@ -73,10 +73,10 @@ public class LoadReporter {
 		load.encode(bb);
 
 		var loadServer = new BServerLoad();
-		loadServer.Ip = Online.ProviderApp.DirectIp;
-		loadServer.Port = Online.ProviderApp.DirectPort;
-		loadServer.Param = new Binary(bb);
+		loadServer.ip = Online.ProviderApp.DirectIp;
+		loadServer.port = Online.ProviderApp.DirectPort;
+		loadServer.param = new Binary(bb);
 
-		Online.ProviderApp.Zeze.getServiceManagerAgent().SetServerLoad(loadServer);
+		Online.ProviderApp.Zeze.getServiceManagerAgent().setServerLoad(loadServer);
 	}
 }

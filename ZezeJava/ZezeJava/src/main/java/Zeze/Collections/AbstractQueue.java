@@ -18,13 +18,13 @@ public abstract class AbstractQueue extends Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
-        zeze.AddTable(zeze.getConfig().GetTableConf(_tQueueNodes.getName()).getDatabaseName(), _tQueueNodes);
-        zeze.AddTable(zeze.getConfig().GetTableConf(_tQueues.getName()).getDatabaseName(), _tQueues);
+        zeze.addTable(zeze.getConfig().getTableConf(_tQueueNodes.getName()).getDatabaseName(), _tQueueNodes);
+        zeze.addTable(zeze.getConfig().getTableConf(_tQueues.getName()).getDatabaseName(), _tQueues);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
-        zeze.RemoveTable(zeze.getConfig().GetTableConf(_tQueueNodes.getName()).getDatabaseName(), _tQueueNodes);
-        zeze.RemoveTable(zeze.getConfig().GetTableConf(_tQueues.getName()).getDatabaseName(), _tQueues);
+        zeze.removeTable(zeze.getConfig().getTableConf(_tQueueNodes.getName()).getDatabaseName(), _tQueueNodes);
+        zeze.removeTable(zeze.getConfig().getTableConf(_tQueues.getName()).getDatabaseName(), _tQueues);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

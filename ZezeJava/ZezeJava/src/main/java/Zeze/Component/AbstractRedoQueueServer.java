@@ -27,11 +27,11 @@ public abstract class AbstractRedoQueueServer extends Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
-        zeze.AddTable(zeze.getConfig().GetTableConf(_tQueueLastTaskId.getName()).getDatabaseName(), _tQueueLastTaskId);
+        zeze.addTable(zeze.getConfig().getTableConf(_tQueueLastTaskId.getName()).getDatabaseName(), _tQueueLastTaskId);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
-        zeze.RemoveTable(zeze.getConfig().GetTableConf(_tQueueLastTaskId.getName()).getDatabaseName(), _tQueueLastTaskId);
+        zeze.removeTable(zeze.getConfig().getTableConf(_tQueueLastTaskId.getName()).getDatabaseName(), _tQueueLastTaskId);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

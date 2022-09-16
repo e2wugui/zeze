@@ -11,7 +11,7 @@ public class Program {
 		for (int i = 0; i < args.length; ++i) {
 			switch (args[i]) {
 			case "-perf":
-				Counters.Enable = true;
+				Counters.enable = true;
 				break;
 			case "-zezeconf":
 				conf = args[++i];
@@ -20,7 +20,7 @@ public class Program {
 		}
 
 		Zege.App.Instance.Start(conf);
-		if (Counters.Enable)
+		if (Counters.enable)
 			counters.start();
 		try {
 			Program.class.wait();

@@ -14,12 +14,12 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	protected final SerializeHelper.CodecFuncs<K> keyCodecFuncs;
 	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
 
-	private final HashMap<K, V> Replaced = new HashMap<>();
-	private final Set<K> Removed = new HashSet<>();
+	private final HashMap<K, V> replaced = new HashMap<>();
+	private final Set<K> removed = new HashSet<>();
 
 	public LogMap1(Class<K> keyClass, Class<V> valueClass) {
-		this("Zeze.Raft.RocksRaft.LogMap1<" + Reflect.GetStableName(keyClass) + ", "
-				+ Reflect.GetStableName(valueClass) + '>', keyClass, valueClass);
+		this("Zeze.Raft.RocksRaft.LogMap1<" + Reflect.getStableName(keyClass) + ", "
+				+ Reflect.getStableName(valueClass) + '>', keyClass, valueClass);
 	}
 
 	LogMap1(String typeName, Class<K> keyClass, Class<V> valueClass) {
@@ -35,96 +35,96 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	}
 
 	public final HashMap<K, V> getReplaced() {
-		return Replaced;
+		return replaced;
 	}
 
 	public final Set<K> getRemoved() {
-		return Removed;
+		return removed;
 	}
 
-	public final V Get(K key) {
+	public final V get(K key) {
 		return getValue().get(key);
 	}
 
-	public final void Add(K key, V value) {
-		Put(key, value);
+	public final void add(K key, V value) {
+		put(key, value);
 	}
 
-	public final V Put(K key, V value) {
+	public final V put(K key, V value) {
 		var exist = getValue().get(key);
 		setValue(getValue().plus(key, value));
-		Replaced.put(key, value);
-		Removed.remove(key);
+		replaced.put(key, value);
+		removed.remove(key);
 		return exist;
 	}
 
-	public final void PutAll(Map<? extends K, ? extends V> m) {
+	public final void putAll(Map<? extends K, ? extends V> m) {
 		var newmap = getValue().plusAll(m);
 		if (newmap != getValue()) {
 			setValue(newmap);
 			for (var e : m.entrySet()) {
-				Replaced.put(e.getKey(), e.getValue());
-				Removed.remove(e.getKey());
+				replaced.put(e.getKey(), e.getValue());
+				removed.remove(e.getKey());
 			}
 		}
 	}
 
-	public final V Remove(K key) {
+	public final V remove(K key) {
 		var old = getValue().get(key);
 		if (null != old) {
 			setValue(getValue().minus(key));
-			Replaced.remove(key);
-			Removed.add(key);
+			replaced.remove(key);
+			removed.add(key);
 		}
 		return old;
 	}
 
-	public final boolean Remove(K key, V value) {
+	public final boolean remove(K key, V value) {
 		var old = getValue().get(key);
 		if (null != old && old.equals((value))) {
 			setValue(getValue().minus(key));
-			Replaced.remove(key);
-			Removed.add(key);
+			replaced.remove(key);
+			removed.add(key);
 			return true;
 		}
 		return false;
 	}
 
-	public final void Clear() {
+	public final void clear() {
 		for (var key : getValue().keySet())
-			Remove(key);
+			remove(key);
 		setValue(org.pcollections.Empty.map());
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteUInt(Replaced.size());
+		bb.WriteUInt(replaced.size());
 		var keyEncoder = keyCodecFuncs.encoder;
 		var valueEncoder = valueCodecFuncs.encoder;
-		for (var p : Replaced.entrySet()) {
+		for (var p : replaced.entrySet()) {
 			keyEncoder.accept(bb, p.getKey());
 			valueEncoder.accept(bb, p.getValue());
 		}
 
-		bb.WriteUInt(Removed.size());
-		for (var r : Removed)
+		bb.WriteUInt(removed.size());
+		for (var r : removed)
 			keyEncoder.accept(bb, r);
 	}
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		Replaced.clear();
+		replaced.clear();
 		var keyDecoder = keyCodecFuncs.decoder;
 		var valueDecoder = valueCodecFuncs.decoder;
 		for (int i = bb.ReadUInt(); i > 0; --i) {
 			var key = keyDecoder.apply(bb);
 			var value = valueDecoder.apply(bb);
-			Replaced.put(key, value);
+			replaced.put(key, value);
 		}
 
-		Removed.clear();
+		removed.clear();
 		for (int i = bb.ReadUInt(); i > 0; --i)
-			Removed.add(keyDecoder.apply(bb));
+			removed.add(keyDecoder.apply(bb));
 	}
 
 	@Override
@@ -134,23 +134,23 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 			@SuppressWarnings("unchecked")
 			var currentLog = (LogMap1<K, V>)log;
 			currentLog.setValue(getValue());
-			currentLog.MergeChangeNote(this);
+			currentLog.mergeChangeNote(this);
 		} else
 			currentSp.putLog(this);
 	}
 
-	private void MergeChangeNote(LogMap1<K, V> another) {
+	private void mergeChangeNote(LogMap1<K, V> another) {
 		// Put,Remove 需要确认有没有顺序问题
 		// this: replace 1,3 remove 2,4 nest: replace 2 remove 1
-		for (var e : another.Replaced.entrySet()) {
+		for (var e : another.replaced.entrySet()) {
 			// replace 1,2,3 remove 4
-			Replaced.put(e.getKey(), e.getValue());
-			Removed.remove(e.getKey());
+			replaced.put(e.getKey(), e.getValue());
+			removed.remove(e.getKey());
 		}
-		for (var e : another.Removed) {
+		for (var e : another.removed) {
 			// replace 2,3 remove 1,4
-			Replaced.remove(e);
-			Removed.add(e);
+			replaced.remove(e);
+			removed.add(e);
 		}
 	}
 
@@ -167,9 +167,9 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	public String toString() {
 		var sb = new StringBuilder();
 		sb.append(" Putted:");
-		ByteBuffer.BuildSortedString(sb, Replaced);
+		ByteBuffer.BuildSortedString(sb, replaced);
 		sb.append(" Removed:");
-		ByteBuffer.BuildSortedString(sb, Removed);
+		ByteBuffer.BuildSortedString(sb, removed);
 		return sb.toString();
 	}
 }

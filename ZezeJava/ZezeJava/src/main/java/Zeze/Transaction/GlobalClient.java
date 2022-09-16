@@ -20,8 +20,8 @@ public final class GlobalClient extends Zeze.Net.Service {
 		var agent = (GlobalAgent.Agent)so.getUserState();
 		if (agent.getLoginTimes().get() > 0) {
 			var reLogin = new ReLogin();
-			reLogin.Argument.ServerId = getZeze().getConfig().getServerId();
-			reLogin.Argument.GlobalCacheManagerHashIndex = agent.getGlobalCacheManagerHashIndex();
+			reLogin.Argument.serverId = getZeze().getConfig().getServerId();
+			reLogin.Argument.globalCacheManagerHashIndex = agent.getGlobalCacheManagerHashIndex();
 			logger.debug("GlobalClient Send ReLogin: {}", reLogin.Argument);
 			reLogin.Send(so, (ThisRpc) -> {
 				logger.debug("GlobalClient Recv Login. isTimeout={}, resultCode={}",
@@ -49,9 +49,9 @@ public final class GlobalClient extends Zeze.Net.Service {
 			});
 		} else {
 			var login = new Login();
-			login.Argument.ServerId = getZeze().getConfig().getServerId();
-			login.Argument.GlobalCacheManagerHashIndex = agent.getGlobalCacheManagerHashIndex();
-			login.Argument.DebugMode = Reflect.inDebugMode;
+			login.Argument.serverId = getZeze().getConfig().getServerId();
+			login.Argument.globalCacheManagerHashIndex = agent.getGlobalCacheManagerHashIndex();
+			login.Argument.debugMode = Reflect.inDebugMode;
 			logger.debug("GlobalClient Send Login: {}", login.Argument);
 			login.Send(so, (ThisRpc) -> {
 				logger.debug("GlobalClient Recv Login. isTimeout={}, resultCode={}",
@@ -61,7 +61,7 @@ public final class GlobalClient extends Zeze.Net.Service {
 				} else {
 					agent.setActiveTime(System.currentTimeMillis());
 					agent.getLoginTimes().getAndIncrement();
-					agent.initialize(login.Result.MaxNetPing, login.Result.ServerProcessTime, login.Result.ServerReleaseTimeout);
+					agent.initialize(login.Result.maxNetPing, login.Result.serverProcessTime, login.Result.serverReleaseTimeout);
 					super.OnHandshakeDone(so);
 				}
 				return 0;
@@ -73,7 +73,7 @@ public final class GlobalClient extends Zeze.Net.Service {
 	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) {
 		// Reduce 很重要。必须得到执行，不能使用默认线程池(Task.Run),防止饥饿。
 		if (null != factoryHandle.Handle) {
-			Task.getCriticalThreadPool().execute(() -> Zeze.Util.Task.Call(() -> factoryHandle.Handle.handle(p), p));
+			Task.getCriticalThreadPool().execute(() -> Zeze.Util.Task.call(() -> factoryHandle.Handle.handle(p), p));
 		}
 	}
 }

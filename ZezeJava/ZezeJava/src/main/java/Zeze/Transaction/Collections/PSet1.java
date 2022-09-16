@@ -14,7 +14,7 @@ public class PSet1<V> extends PSet<V> {
 
 	public PSet1(Class<V> valueClass) {
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
-		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.LogSet1<" + Reflect.GetStableName(valueClass) + '>');
+		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.LogSet1<" + Reflect.getStableName(valueClass) + '>');
 	}
 
 	private PSet1(int logTypeId, SerializeHelper.CodecFuncs<V> valueCodecFuncs) {
@@ -29,14 +29,14 @@ public class PSet1<V> extends PSet<V> {
 
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
+			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			return setLog.Add(item);
 		}
-		var newSet = _set.plus(item);
-		if (newSet == _set)
+		var newSet = set.plus(item);
+		if (newSet == set)
 			return false;
-		_set = newSet;
+		set = newSet;
 		return true;
 	}
 
@@ -44,14 +44,14 @@ public class PSet1<V> extends PSet<V> {
 	@Override
 	public boolean remove(Object item) {
 		if (isManaged()) {
-			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
+			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			return setLog.Remove((V)item);
+			return setLog.remove((V)item);
 		}
-		var newSet = _set.minus(item);
-		if (newSet == _set)
+		var newSet = set.minus(item);
+		if (newSet == set)
 			return false;
-		_set = newSet;
+		set = newSet;
 		return true;
 	}
 
@@ -59,14 +59,14 @@ public class PSet1<V> extends PSet<V> {
 	public boolean addAll(Collection<? extends V> c) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
+			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			return setLog.AddAll(c);
+			return setLog.addAll(c);
 		}
-		var newSet = _set.plusAll(c);
-		if (newSet == _set)
+		var newSet = set.plusAll(c);
+		if (newSet == set)
 			return false;
-		_set = newSet;
+		set = newSet;
 		return true;
 	}
 
@@ -74,14 +74,14 @@ public class PSet1<V> extends PSet<V> {
 	@Override
 	public boolean removeAll(Collection<?> c) {
 		if (isManaged()) {
-			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
+			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			return setLog.RemoveAll((Collection<? extends V>)c);
+			return setLog.removeAll((Collection<? extends V>)c);
 		}
-		var newSet = _set.minusAll(c);
-		if (newSet == _set)
+		var newSet = set.minusAll(c);
+		if (newSet == set)
 			return false;
-		_set = newSet;
+		set = newSet;
 		return true;
 	}
 
@@ -89,11 +89,11 @@ public class PSet1<V> extends PSet<V> {
 	public void clear() {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
+			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			setLog.Clear();
+			setLog.clear();
 		} else
-			_set = org.pcollections.Empty.set();
+			set = org.pcollections.Empty.set();
 	}
 
 	@Override
@@ -102,7 +102,7 @@ public class PSet1<V> extends PSet<V> {
 		log.setBelong(parent());
 		log.setThis(this);
 		log.setVariableId(variableId());
-		log.setValue(_set);
+		log.setValue(set);
 		return log;
 	}
 
@@ -110,7 +110,7 @@ public class PSet1<V> extends PSet<V> {
 	public void followerApply(Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogSet1<V>)_log;
-		_set = _set.plusAll(log.getAdded()).minusAll(log.getRemoved());
+		set = set.plusAll(log.getAdded()).minusAll(log.getRemoved());
 	}
 
 	@Override
@@ -124,7 +124,7 @@ public class PSet1<V> extends PSet<V> {
 	@Override
 	public PSet1<V> copyBean() {
 		var copy = new PSet1<>(logTypeId, valueCodecFuncs);
-		copy._set = _set;
+		copy.set = set;
 		return copy;
 	}
 

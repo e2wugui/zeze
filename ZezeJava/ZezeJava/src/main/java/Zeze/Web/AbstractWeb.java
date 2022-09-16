@@ -60,11 +60,11 @@ public abstract class AbstractWeb extends Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
-        zeze.AddTable(zeze.getConfig().GetTableConf(_tSessions.getName()).getDatabaseName(), _tSessions);
+        zeze.addTable(zeze.getConfig().getTableConf(_tSessions.getName()).getDatabaseName(), _tSessions);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
-        zeze.RemoveTable(zeze.getConfig().GetTableConf(_tSessions.getName()).getDatabaseName(), _tSessions);
+        zeze.removeTable(zeze.getConfig().getTableConf(_tSessions.getName()).getDatabaseName(), _tSessions);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

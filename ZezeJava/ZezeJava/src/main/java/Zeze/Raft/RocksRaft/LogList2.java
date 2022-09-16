@@ -7,11 +7,11 @@ import Zeze.Util.OutInt;
 import Zeze.Util.Reflect;
 
 public class LogList2<V extends Bean> extends LogList1<V> {
-	private final HashMap<LogBean, OutInt> Changed = new HashMap<>(); // changed V logs. using in collect.
+	private final HashMap<LogBean, OutInt> changed = new HashMap<>(); // changed V logs. using in collect.
 	private final MethodHandle valueFactory;
 
 	public LogList2(Class<V> valueClass) {
-		super("Zeze.Raft.RocksRaft.LogList2<" + Reflect.GetStableName(valueClass) + '>', valueClass);
+		super("Zeze.Raft.RocksRaft.LogList2<" + Reflect.getStableName(valueClass) + '>', valueClass);
 		valueFactory = Reflect.getDefaultConstructor(valueClass);
 	}
 
@@ -21,11 +21,11 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	}
 
 	public final HashMap<LogBean, OutInt> getChanged() {
-		return Changed;
+		return changed;
 	}
 
 	@Override
-	public Log BeginSavepoint() {
+	public Log beginSavepoint() {
 		var dup = new LogList2<V>(getTypeId(), valueFactory);
 		dup.setBelong(getBelong());
 		dup.setVariableId(getVariableId());
@@ -37,7 +37,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	public void encode(ByteBuffer bb) {
 		var curList = getValue();
 		if (curList != null) {
-			for (var it = Changed.entrySet().iterator(); it.hasNext(); ) {
+			for (var it = changed.entrySet().iterator(); it.hasNext(); ) {
 				var e = it.next();
 				var logBean = e.getKey();
 				//noinspection SuspiciousMethodCalls
@@ -45,13 +45,13 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 				if (idxExist < 0)
 					it.remove();
 				else
-					e.getValue().Value = idxExist;
+					e.getValue().value = idxExist;
 			}
 		}
-		bb.WriteUInt(Changed.size());
-		for (var e : Changed.entrySet()) {
+		bb.WriteUInt(changed.size());
+		for (var e : changed.entrySet()) {
 			e.getKey().encode(bb);
-			bb.WriteUInt(e.getValue().Value);
+			bb.WriteUInt(e.getValue().value);
 		}
 
 		// super.encode(bb);
@@ -69,12 +69,12 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void decode(ByteBuffer bb) {
-		Changed.clear();
+		changed.clear();
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var value = new LogBean();
 			value.decode(bb);
 			var index = bb.ReadUInt();
-			Changed.put(value, new OutInt(index));
+			changed.put(value, new OutInt(index));
 		}
 
 		// super.decode(bb);
@@ -96,9 +96,9 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	}
 
 	@Override
-	public void Collect(Changes changes, Bean recent, Log vlog) {
-		if (Changed.put((LogBean)vlog, new OutInt()) == null)
-			changes.Collect(recent, this);
+	public void collect(Changes changes, Bean recent, Log vlog) {
+		if (changed.put((LogBean)vlog, new OutInt()) == null)
+			changes.collect(recent, this);
 	}
 
 	@Override
@@ -107,7 +107,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 		sb.append(" opLogs:");
 		ByteBuffer.BuildSortedString(sb, getOpLogs());
 		sb.append(" Changed:");
-		ByteBuffer.BuildSortedString(sb, Changed);
+		ByteBuffer.BuildSortedString(sb, changed);
 		return sb.toString();
 	}
 }

@@ -11,11 +11,11 @@ public final class BArchOnlineCustom extends Zeze.Transaction.Bean {
     private final Zeze.Transaction.DynamicBean _CustomData;
 
     public static long getSpecialTypeIdFromBean_CustomData(Zeze.Transaction.Bean bean) {
-        return Zeze.Component.Timer.GetSpecialTypeIdFromBean(bean);
+        return Zeze.Component.Timer.getSpecialTypeIdFromBean(bean);
     }
 
     public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_CustomData(long typeId) {
-        return Zeze.Component.Timer.CreateBeanFromSpecialTypeId(typeId);
+        return Zeze.Component.Timer.createBeanFromSpecialTypeId(typeId);
     }
 
     public String getAccount() {
@@ -24,8 +24,8 @@ public final class BArchOnlineCustom extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Account;
-        var log = (Log__Account)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _Account;
+        var log = (Log__Account)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _Account;
     }
 
     public void setAccount(String value) {
@@ -36,7 +36,7 @@ public final class BArchOnlineCustom extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Account(this, 1, value));
+        txn.putLog(new Log__Account(this, 1, value));
     }
 
     public String getClientId() {
@@ -45,8 +45,8 @@ public final class BArchOnlineCustom extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ClientId;
-        var log = (Log__ClientId)txn.GetLog(objectId() + 2);
-        return log != null ? log.Value : _ClientId;
+        var log = (Log__ClientId)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _ClientId;
     }
 
     public void setClientId(String value) {
@@ -57,7 +57,7 @@ public final class BArchOnlineCustom extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__ClientId(this, 2, value));
+        txn.putLog(new Log__ClientId(this, 2, value));
     }
 
     public String getHandleName() {
@@ -66,8 +66,8 @@ public final class BArchOnlineCustom extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _HandleName;
-        var log = (Log__HandleName)txn.GetLog(objectId() + 3);
-        return log != null ? log.Value : _HandleName;
+        var log = (Log__HandleName)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _HandleName;
     }
 
     public void setHandleName(String value) {
@@ -78,7 +78,7 @@ public final class BArchOnlineCustom extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__HandleName(this, 3, value));
+        txn.putLog(new Log__HandleName(this, 3, value));
     }
 
     public Zeze.Transaction.DynamicBean getCustomData() {
@@ -90,7 +90,7 @@ public final class BArchOnlineCustom extends Zeze.Transaction.Bean {
         _Account = "";
         _ClientId = "";
         _HandleName = "";
-        _CustomData = new Zeze.Transaction.DynamicBean(4, Zeze.Component.Timer::GetSpecialTypeIdFromBean, Zeze.Component.Timer::CreateBeanFromSpecialTypeId);
+        _CustomData = new Zeze.Transaction.DynamicBean(4, Zeze.Component.Timer::getSpecialTypeIdFromBean, Zeze.Component.Timer::createBeanFromSpecialTypeId);
     }
 
     @SuppressWarnings("deprecation")
@@ -104,14 +104,14 @@ public final class BArchOnlineCustom extends Zeze.Transaction.Bean {
         if (_HandleName_ == null)
             throw new IllegalArgumentException();
         _HandleName = _HandleName_;
-        _CustomData = new Zeze.Transaction.DynamicBean(4, Zeze.Component.Timer::GetSpecialTypeIdFromBean, Zeze.Component.Timer::CreateBeanFromSpecialTypeId);
+        _CustomData = new Zeze.Transaction.DynamicBean(4, Zeze.Component.Timer::getSpecialTypeIdFromBean, Zeze.Component.Timer::createBeanFromSpecialTypeId);
     }
 
     public void assign(BArchOnlineCustom other) {
         setAccount(other.getAccount());
         setClientId(other.getClientId());
         setHandleName(other.getHandleName());
-        getCustomData().Assign(other.getCustomData());
+        getCustomData().assign(other.getCustomData());
     }
 
     @Deprecated
@@ -125,7 +125,7 @@ public final class BArchOnlineCustom extends Zeze.Transaction.Bean {
 
     public BArchOnlineCustom copy() {
         var copy = new BArchOnlineCustom();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -135,9 +135,9 @@ public final class BArchOnlineCustom extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BArchOnlineCustom a, BArchOnlineCustom b) {
-        BArchOnlineCustom save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BArchOnlineCustom save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -156,21 +156,21 @@ public final class BArchOnlineCustom extends Zeze.Transaction.Bean {
         public Log__Account(BArchOnlineCustom bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BArchOnlineCustom)getBelong())._Account = Value; }
+        public void commit() { ((BArchOnlineCustom)getBelong())._Account = value; }
     }
 
     private static final class Log__ClientId extends Zeze.Transaction.Logs.LogString {
         public Log__ClientId(BArchOnlineCustom bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BArchOnlineCustom)getBelong())._ClientId = Value; }
+        public void commit() { ((BArchOnlineCustom)getBelong())._ClientId = value; }
     }
 
     private static final class Log__HandleName extends Zeze.Transaction.Logs.LogString {
         public Log__HandleName(BArchOnlineCustom bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BArchOnlineCustom)getBelong())._HandleName = Value; }
+        public void commit() { ((BArchOnlineCustom)getBelong())._HandleName = value; }
     }
 
     @Override
@@ -290,9 +290,9 @@ public final class BArchOnlineCustom extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Account = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
-                case 2: _ClientId = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
-                case 3: _HandleName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                case 1: _Account = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 2: _ClientId = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 3: _HandleName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 4: _CustomData.followerApply(vlog); break;
             }
         }

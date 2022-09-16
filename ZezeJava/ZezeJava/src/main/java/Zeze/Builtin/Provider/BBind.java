@@ -30,7 +30,7 @@ public final class BBind extends Zeze.Transaction.Bean {
     public void assign(BBind other) {
         getModules().clear();
         for (var e : other.getModules().entrySet())
-            getModules().put(e.getKey(), e.getValue().Copy());
+            getModules().put(e.getKey(), e.getValue().copy());
         getLinkSids().clear();
         for (var e : other.getLinkSids())
             getLinkSids().add(e);
@@ -47,7 +47,7 @@ public final class BBind extends Zeze.Transaction.Bean {
 
     public BBind copy() {
         var copy = new BBind();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -57,9 +57,9 @@ public final class BBind extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BBind a, BBind b) {
-        BBind save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BBind save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override

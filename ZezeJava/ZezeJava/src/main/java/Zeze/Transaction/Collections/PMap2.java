@@ -21,7 +21,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		keyCodecFuncs = SerializeHelper.createCodec(keyClass);
 		valueFactory = Reflect.getDefaultConstructor(valueClass);
 		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.LogMap2<"
-				+ Reflect.GetStableName(keyClass) + ", " + Reflect.GetStableName(valueClass) + '>');
+				+ Reflect.getStableName(keyClass) + ", " + Reflect.getStableName(valueClass) + '>');
 	}
 
 	private PMap2(int logTypeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs, MethodHandle valueFactory) {
@@ -51,12 +51,12 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		if (isManaged()) {
 			value.initRootInfoWithRedo(rootInfo, this);
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
+			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			return mapLog.Put(key, value);
+			return mapLog.put(key, value);
 		}
-		var oldV = _map.get(key);
-		_map = _map.plus(key, value);
+		var oldV = map.get(key);
+		map = map.plus(key, value);
 		return oldV;
 	}
 
@@ -74,12 +74,12 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 				v.initRootInfoWithRedo(rootInfo, this);
 			}
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
+			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			mapLog.PutAll(m);
+			mapLog.putAll(m);
 		}
 		else {
-			_map = _map.plusAll(m);
+			map = map.plusAll(m);
 		}
 	}
 
@@ -87,13 +87,13 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	@Override
 	public V remove(Object key) {
 		if (isManaged()) {
-			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
+			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			return mapLog.Remove((K)key);
+			return mapLog.remove((K)key);
 		}
 		//noinspection SuspiciousMethodCalls
-		var exist = _map.get(key);
-		_map = _map.minus(key);
+		var exist = map.get(key);
+		map = map.minus(key);
 		return exist;
 	}
 
@@ -101,14 +101,14 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	public boolean remove(Entry<K, V> item) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
+			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			return mapLog.Remove(item.getKey(), item.getValue());
+			return mapLog.remove(item.getKey(), item.getValue());
 		}
-		var old = _map;
+		var old = map;
 		var exist = old.get(item.getKey());
 		if (null != exist && exist.equals(item.getValue())) {
-			_map = _map.minus(item.getKey());
+			map = map.minus(item.getKey());
 			return true;
 		}
 		return false;
@@ -118,11 +118,11 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	public void clear() {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
+			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			mapLog.Clear();
+			mapLog.clear();
 		} else
-			_map = org.pcollections.Empty.map();
+			map = org.pcollections.Empty.map();
 	}
 
 	private static final Logger logger = LogManager.getLogger(PMap2.class);
@@ -131,7 +131,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	public void followerApply(Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogMap2<K, V>)_log;
-		var tmp = _map;
+		var tmp = map;
 		for (var put : log.getReplaced().values())
 			put.initRootInfo(rootInfo, this);
 		tmp = tmp.plusAll(log.getReplaced()).minusAll(log.getRemoved());
@@ -144,7 +144,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 			else
 				logger.error("Not Exist! Key={} Value={}", e.getKey(), e.getValue());
 		}
-		_map = tmp;
+		map = tmp;
 	}
 
 	@Override
@@ -153,26 +153,26 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		log.setBelong(parent());
 		log.setThis(this);
 		log.setVariableId(variableId());
-		log.setValue(_map);
+		log.setValue(map);
 		return log;
 	}
 
 	@Override
 	protected void initChildrenRootInfo(Record.RootInfo root) {
-		for (var v : _map.values())
+		for (var v : map.values())
 			v.initRootInfo(root, this);
 	}
 
 	@Override
 	protected void resetChildrenRootInfo() {
-		for (var v : _map.values())
+		for (var v : map.values())
 			v.resetRootInfo();
 	}
 
 	@Override
 	public PMap2<K, V> copyBean() {
 		var copy = new PMap2<K, V>(logTypeId, keyCodecFuncs, valueFactory);
-		copy._map = _map;
+		copy.map = map;
 		return copy;
 	}
 

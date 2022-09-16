@@ -4,7 +4,7 @@ import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
 
 public abstract class LogMap<K, V> extends LogBean {
-	private org.pcollections.PMap<K, V> Value;
+	private org.pcollections.PMap<K, V> value;
 
 	public LogMap(int typeId) {
 		super(typeId);
@@ -15,11 +15,11 @@ public abstract class LogMap<K, V> extends LogBean {
 	}
 
 	public final org.pcollections.PMap<K, V> getValue() {
-		return Value;
+		return value;
 	}
 
 	public final void setValue(org.pcollections.PMap<K, V> value) {
-		Value = value;
+		this.value = value;
 	}
 
 	@Override
@@ -30,6 +30,6 @@ public abstract class LogMap<K, V> extends LogBean {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void commit() {
-		((PMap<K, V>)getThis())._map = Value;
+		((PMap<K, V>)getThis()).map = value;
 	}
 }

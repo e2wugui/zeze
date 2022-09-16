@@ -10,36 +10,36 @@ import Zeze.Transaction.TableWalkHandle;
 public class Queue<V extends Bean> {
 	private static final BeanFactory beanFactory = new BeanFactory();
 
-	public static long GetSpecialTypeIdFromBean(Bean bean) {
+	public static long getSpecialTypeIdFromBean(Bean bean) {
 		return BeanFactory.getSpecialTypeIdFromBean(bean);
 	}
 
-	public static Bean CreateBeanFromSpecialTypeId(long typeId) {
+	public static Bean createBeanFromSpecialTypeId(long typeId) {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
 	public static class Module extends AbstractQueue {
-		private final ConcurrentHashMap<String, Queue<?>> Queues = new ConcurrentHashMap<>();
-		public final Zeze.Application Zeze;
+		private final ConcurrentHashMap<String, Queue<?>> queues = new ConcurrentHashMap<>();
+		public final Zeze.Application zeze;
 
 		public Module(Zeze.Application zeze) {
-			Zeze = zeze;
+			this.zeze = zeze;
 			RegisterZezeTables(zeze);
 		}
 
 		@Override
 		public void UnRegister() {
-			UnRegisterZezeTables(Zeze);
+			UnRegisterZezeTables(zeze);
 		}
 
 		@SuppressWarnings("unchecked")
 		public <T extends Bean> Queue<T> open(String name, Class<T> valueClass) {
-			return (Queue<T>)Queues.computeIfAbsent(name, key -> new Queue<>(this, key, valueClass, 100));
+			return (Queue<T>)queues.computeIfAbsent(name, key -> new Queue<>(this, key, valueClass, 100));
 		}
 
 		@SuppressWarnings("unchecked")
 		public <T extends Bean> Queue<T> open(String name, Class<T> valueClass, int nodeSize) {
-			return (Queue<T>)Queues.computeIfAbsent(name, key -> new Queue<>(this, key, valueClass, nodeSize));
+			return (Queue<T>)queues.computeIfAbsent(name, key -> new Queue<>(this, key, valueClass, nodeSize));
 		}
 	}
 

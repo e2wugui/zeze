@@ -15,8 +15,8 @@ public final class BStream extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ExchangeId;
-        var log = (Log__ExchangeId)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _ExchangeId;
+        var log = (Log__ExchangeId)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _ExchangeId;
     }
 
     public void setExchangeId(long value) {
@@ -25,7 +25,7 @@ public final class BStream extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__ExchangeId(this, 1, value));
+        txn.putLog(new Log__ExchangeId(this, 1, value));
     }
 
     public Zeze.Net.Binary getBody() {
@@ -34,8 +34,8 @@ public final class BStream extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Body;
-        var log = (Log__Body)txn.GetLog(objectId() + 2);
-        return log != null ? log.Value : _Body;
+        var log = (Log__Body)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _Body;
     }
 
     public void setBody(Zeze.Net.Binary value) {
@@ -46,7 +46,7 @@ public final class BStream extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Body(this, 2, value));
+        txn.putLog(new Log__Body(this, 2, value));
     }
 
     public boolean isFinish() {
@@ -55,8 +55,8 @@ public final class BStream extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Finish;
-        var log = (Log__Finish)txn.GetLog(objectId() + 3);
-        return log != null ? log.Value : _Finish;
+        var log = (Log__Finish)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _Finish;
     }
 
     public void setFinish(boolean value) {
@@ -65,7 +65,7 @@ public final class BStream extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Finish(this, 3, value));
+        txn.putLog(new Log__Finish(this, 3, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -99,7 +99,7 @@ public final class BStream extends Zeze.Transaction.Bean {
 
     public BStream copy() {
         var copy = new BStream();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -109,9 +109,9 @@ public final class BStream extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BStream a, BStream b) {
-        BStream save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BStream save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -130,21 +130,21 @@ public final class BStream extends Zeze.Transaction.Bean {
         public Log__ExchangeId(BStream bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BStream)getBelong())._ExchangeId = Value; }
+        public void commit() { ((BStream)getBelong())._ExchangeId = value; }
     }
 
     private static final class Log__Body extends Zeze.Transaction.Logs.LogBinary {
         public Log__Body(BStream bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BStream)getBelong())._Body = Value; }
+        public void commit() { ((BStream)getBelong())._Body = value; }
     }
 
     private static final class Log__Finish extends Zeze.Transaction.Logs.LogBool {
         public Log__Finish(BStream bean, int varId, boolean value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BStream)getBelong())._Finish = Value; }
+        public void commit() { ((BStream)getBelong())._Finish = value; }
     }
 
     @Override
@@ -250,9 +250,9 @@ public final class BStream extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ExchangeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                case 2: _Body = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
-                case 3: _Finish = ((Zeze.Transaction.Logs.LogBool)vlog).Value; break;
+                case 1: _ExchangeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 2: _Body = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 3: _Finish = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
             }
         }
     }

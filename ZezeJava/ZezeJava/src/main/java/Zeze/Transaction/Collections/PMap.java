@@ -9,7 +9,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Transaction;
 
 public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterable<Map.Entry<K, V>> {
-	public org.pcollections.PMap<K, V> _map = org.pcollections.Empty.map();
+	public org.pcollections.PMap<K, V> map = org.pcollections.Empty.map();
 
 	@Override
 	public final V get(Object key) {
@@ -40,15 +40,15 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 		if (isManaged()) {
 			var txn = Transaction.getCurrentVerifyRead(this);
 			if (txn == null)
-				return _map;
-			var log = txn.GetLog(parent().objectId() + variableId());
+				return map;
+			var log = txn.getLog(parent().objectId() + variableId());
 			if (log == null)
-				return _map;
+				return map;
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap1<K, V>)log;
 			return mapLog.getValue();
 		}
-		return _map;
+		return map;
 	}
 
 	@Override

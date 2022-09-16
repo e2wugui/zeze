@@ -36,7 +36,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 		return result;
 	}
 
-	private boolean setResult(Object r) {
+	private boolean setRawResult(Object r) {
 		if (r == null)
 			r = NULL_RESULT;
 		if (RESULT.compareAndSet(this, null, r)) {
@@ -51,16 +51,21 @@ public class TaskCompletionSource<R> implements Future<R> {
 		return false;
 	}
 
+	public boolean setResult(R r) {
+		return setRawResult(r);
+	}
+
+	@Deprecated
 	public boolean SetResult(R r) {
-		return setResult(r);
+		return setRawResult(r);
 	}
 
-	public boolean TrySetException(Throwable e) {
-		return setResult(new ExecutionException(e));
+	public boolean trySetException(Throwable e) {
+		return setRawResult(new ExecutionException(e));
 	}
 
-	public boolean SetException(Throwable e) {
-		return setResult(new ExecutionException(e));
+	public boolean setException(Throwable e) {
+		return setRawResult(new ExecutionException(e));
 	}
 
 	public boolean isCompletedExceptionally() {
@@ -70,7 +75,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 
 	@Override
 	public boolean cancel(boolean mayInterruptIfRunning) {
-		return setResult(new CancellationException());
+		return setRawResult(new CancellationException());
 	}
 
 	@Override

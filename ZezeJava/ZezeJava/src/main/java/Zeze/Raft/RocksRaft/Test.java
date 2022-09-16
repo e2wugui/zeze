@@ -35,17 +35,17 @@ public final class Test {
 			if (isManaged()) {
 				if (Transaction.getCurrent() == null)
 					return _i;
-				var log = Transaction.getCurrent().GetLog(objectId() + 1);
+				var log = Transaction.getCurrent().getLog(objectId() + 1);
 				if (log == null)
 					return _i;
-				return ((LogInt)log).Value;
+				return ((LogInt)log).value;
 			}
 			return _i;
 		}
 
 		public void setI(int value) {
 			if (isManaged())
-				Transaction.getCurrent().PutLog(new LogInt(this, 1, value));
+				Transaction.getCurrent().putLog(new LogInt(this, 1, value));
 			else
 				_i = value;
 		}
@@ -59,17 +59,17 @@ public final class Test {
 			if (isManaged()) {
 				if (Transaction.getCurrent() == null)
 					return _l;
-				var log = Transaction.getCurrent().GetLog(objectId() + 2);
+				var log = Transaction.getCurrent().getLog(objectId() + 2);
 				if (log == null)
 					return _l;
-				return ((LogLong)log).Value;
+				return ((LogLong)log).value;
 			}
 			return _l;
 		}
 
 		public void setL(long value) {
 			if (isManaged())
-				Transaction.getCurrent().PutLog(new LogLong(this, 2, value));
+				Transaction.getCurrent().putLog(new LogLong(this, 2, value));
 			else
 				_l = value;
 		}
@@ -95,10 +95,10 @@ public final class Test {
 				var vlog = it.value();
 				switch (vlog.getVariableId()) {
 				case 1:
-					_i = ((LogInt)vlog).Value;
+					_i = ((LogInt)vlog).value;
 					break;
 				case 2:
-					_l = ((LogLong)vlog).Value;
+					_l = ((LogLong)vlog).value;
 					break;
 				case 3:
 					_map1.followerApply(vlog);
@@ -117,10 +117,10 @@ public final class Test {
 		public void leaderApplyNoRecursive(Log vlog) {
 			switch (vlog.getVariableId()) {
 			case 1:
-				_i = ((LogInt)vlog).Value;
+				_i = ((LogInt)vlog).value;
 				break;
 			case 2:
-				_l = ((LogLong)vlog).Value;
+				_l = ((LogLong)vlog).value;
 				break;
 			case 3:
 				_map1.leaderApplyNoRecursive(vlog);
@@ -188,17 +188,17 @@ public final class Test {
 			if (isManaged()) {
 				if (Transaction.getCurrent() == null)
 					return _i;
-				var log = Transaction.getCurrent().GetLog(objectId() + 1);
+				var log = Transaction.getCurrent().getLog(objectId() + 1);
 				if (log == null)
 					return _i;
-				return ((LogInt)log).Value;
+				return ((LogInt)log).value;
 			}
 			return _i;
 		}
 
 		public void setI(int value) {
 			if (isManaged())
-				Transaction.getCurrent().PutLog(new LogInt(this, 1, value));
+				Transaction.getCurrent().putLog(new LogInt(this, 1, value));
 			else
 				_i = value;
 		}
@@ -232,7 +232,7 @@ public final class Test {
 				//noinspection SwitchStatementWithTooFewBranches
 				switch (vlog.getVariableId()) {
 				case 1:
-					_i = ((LogInt)vlog).Value;
+					_i = ((LogInt)vlog).value;
 					break;
 				}
 			}
@@ -243,34 +243,34 @@ public final class Test {
 			//noinspection SwitchStatementWithTooFewBranches
 			switch (vlog.getVariableId()) {
 			case 1:
-				_i = ((LogInt)vlog).Value;
+				_i = ((LogInt)vlog).value;
 				break;
 			}
 		}
 	}
 
-	private static void Remove1(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
-		rocks.NewProcedure(() -> {
+	private static void remove1(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
+		rocks.newProcedure(() -> {
 			table.remove(1);
 
-			Transaction.getCurrent().RunWhileCommit(() ->
+			Transaction.getCurrent().runWhileCommit(() ->
 			{
 				var c = Transaction.getCurrent().getChanges();
-				SimpleAssert.IsTrue(c.getBeans().size() == 1);
-				SimpleAssert.IsTrue(c.getRecords().size() == 1);
+				SimpleAssert.isTrue(c.getBeans().size() == 1);
+				SimpleAssert.isTrue(c.getRecords().size() == 1);
 
 				var r = c.getRecords().get(new TableKey(table.getName(), 1));
-				SimpleAssert.IsTrue(null != r);
-				SimpleAssert.IsNull(r.getPutValue());
-				SimpleAssert.AreEqual(Changes.Record.Remove, r.getState());
-				SimpleAssert.IsTrue(r.getLogBeans().size() == 1);
-				SimpleAssert.IsTrue(r.getLogBean().size() == 0);
+				SimpleAssert.isTrue(null != r);
+				SimpleAssert.isNull(r.getPutValue());
+				SimpleAssert.areEqual(Changes.Record.Remove, r.getState());
+				SimpleAssert.isTrue(r.getLogBeans().size() == 1);
+				SimpleAssert.isTrue(r.getLogBean().size() == 0);
 			});
 			return 0L;
-		}).Call();
+		}).call();
 	}
 
-	private static void Update(Table<Integer, Bean1> table, int num) {
+	private static void update(Table<Integer, Bean1> table, int num) {
 		var value = table.getOrAdd(1);
 
 		// 本层Bean变量修改日志
@@ -290,114 +290,114 @@ public final class Test {
 		bean1.setI(5 + num);
 	}
 
-	private static void VerifyChanges(String expected) {
-		Transaction.getCurrent().RunWhileCommit(() -> {
+	private static void verifyChanges(String expected) {
+		Transaction.getCurrent().runWhileCommit(() -> {
 			var Changes = Transaction.getCurrent().getChanges();
 			var sb = new StringBuilder();
 			ByteBuffer.BuildString(sb, Changes.getRecords());
 			if (expected == null || expected.isEmpty())
 				System.out.println(sb);
 			else
-				SimpleAssert.AreEqual(expected.replace("\r", ""), sb.toString());
+				SimpleAssert.areEqual(expected.replace("\r", ""), sb.toString());
 		});
 	}
 
-	private static void VerifyData(Rocks rocks, Table<Integer, Bean1> table, String expected) throws Throwable {
-		rocks.NewProcedure(() -> {
+	private static void verifyData(Rocks rocks, Table<Integer, Bean1> table, String expected) throws Throwable {
+		rocks.newProcedure(() -> {
 			var value = table.getOrAdd(1);
 			var current = value.toString();
 			if (expected == null)
 				System.out.println(current);
 			else
-				SimpleAssert.AreEqual(expected, current);
+				SimpleAssert.areEqual(expected, current);
 			return 0L;
-		}).Call();
+		}).call();
 	}
 
-	private static void PutAndEdit(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
-		rocks.NewProcedure(() -> {
-			Update(table, 0);
-			VerifyChanges("{(tRocksRaft#0,1):State=1 PutValue=Bean1(0 I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})\n" +
+	private static void putAndEdit(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
+		rocks.newProcedure(() -> {
+			update(table, 0);
+			verifyChanges("{(tRocksRaft#0,1):State=1 PutValue=Bean1(0 I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})\n" +
 					"Log=[]\n" +
 					"AllLog=[{0:Value=Bean1(0 I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})},{1:Value=1,3: Putted:{3:3} Removed:[],4:{1:Value=2},5: Putted:{4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=5}]}]}");
 			return 0L;
-		}).Call();
+		}).call();
 	}
 
-	private static void Edit(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
-		rocks.NewProcedure(() -> {
-			Update(table, 10);
-			VerifyChanges("{(tRocksRaft#0,1):State=2 PutValue=null\n" +
+	private static void edit(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
+		rocks.newProcedure(() -> {
+			update(table, 10);
+			verifyChanges("{(tRocksRaft#0,1):State=2 PutValue=null\n" +
 					"Log=[{1:Value=11,3: Putted:{13:13} Removed:[],4:{1:Value=12},5: Putted:{14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=15}]}]\n" +
 					"AllLog=[{1:Value=11,3: Putted:{13:13} Removed:[],4:{1:Value=12},5: Putted:{14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=15}]}]}");
 			return 0L;
-		}).Call();
+		}).call();
 	}
 
-	private static void EditAndPut(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
-		rocks.NewProcedure(() -> {
-			Update(table, 20);
+	private static void editAndPut(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
+		rocks.newProcedure(() -> {
+			update(table, 20);
 			// 重新put，将会让上面的修改树作废。但所有的日志树都可以从All中看到。
 			var bean1put = new Bean1();
 			table.put(1, bean1put);
-			VerifyChanges("{(tRocksRaft#0,1):State=1 PutValue=Bean1(0 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})\n" +
+			verifyChanges("{(tRocksRaft#0,1):State=1 PutValue=Bean1(0 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})\n" +
 					"Log=[]\n" +
 					"AllLog=[{0:Value=Bean1(0 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})},{1:Value=21,3: Putted:{23:23} Removed:[],4:{1:Value=22},5: Putted:{24:Bean1(24 I=25 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=25}]}]}");
 			return 0L;
-		}).Call();
+		}).call();
 	}
 
-	private static void EditInContainer(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
-		rocks.NewProcedure(() -> {
+	private static void editInContainer(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
+		rocks.newProcedure(() -> {
 			var value = table.getOrAdd(1);
 			var edit = value.getMap2().get(14);
 			edit.getBean2().setI(2222);
-			VerifyChanges("{(tRocksRaft#0,1):State=2 PutValue=null\n" +
+			verifyChanges("{(tRocksRaft#0,1):State=2 PutValue=null\n" +
 					"Log=[{5: Putted:{} Removed:[] Changed:[{4:{1:Value=2222}}]}]\n" +
 					"AllLog=[{5: Putted:{} Removed:[] Changed:[{4:{1:Value=2222}}]}]}");
 			return 0L;
-		}).Call();
+		}).call();
 	}
 
-	private static void NestProcedure(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
-		rocks.NewProcedure(() -> {
+	private static void nestProcedure(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
+		rocks.newProcedure(() -> {
 			var value = table.get(1);
 			value.getBean2().setI(3333);
 
-			rocks.NewProcedure(() ->
+			rocks.newProcedure(() ->
 			{
 				var value2 = table.get(1);
 				value2.getBean2().setI(4444);
-				SimpleAssert.AreEqual(4444, value2.getBean2().getI());
+				SimpleAssert.areEqual(4444, value2.getBean2().getI());
 				return -1L;
-			}).Call();
+			}).call();
 
-			VerifyChanges("{(tRocksRaft#0,1):State=2 PutValue=null\n" +
+			verifyChanges("{(tRocksRaft#0,1):State=2 PutValue=null\n" +
 					"Log=[{4:{1:Value=3333}}]\n" +
 					"AllLog=[{4:{1:Value=3333}}]}");
 			return 0L;
-		}).Call();
+		}).call();
 	}
 
-	private static void NestProcedureContainer(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
-		rocks.NewProcedure(() -> {
-			rocks.NewProcedure(() -> {
+	private static void nestProcedureContainer(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
+		rocks.newProcedure(() -> {
+			rocks.newProcedure(() -> {
 				var value = table.get(1);
 				value.getMap2().put(4444, new Bean1());
 				value.getMap1().put(4444, 4444);
 				value.getMap1().remove(3);
 				value.getMap2().remove(4);
 				return 0L;
-			}).Call();
+			}).call();
 
-			VerifyChanges("{(tRocksRaft#0,1):State=2 PutValue=null\n" +
+			verifyChanges("{(tRocksRaft#0,1):State=2 PutValue=null\n" +
 					"Log=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(4444 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[4] Changed:[]}]\n" +
 					"AllLog=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(4444 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[4] Changed:[]}]}");
 			return 0L;
-		}).Call();
+		}).call();
 	}
 
-	private static Rocks GetLeader(List<Rocks> rocks, Rocks skip) throws InterruptedException {
+	private static Rocks getLeader(List<Rocks> rocks, Rocks skip) throws InterruptedException {
 		while (true) {
 			for (var rock : rocks) {
 				if (rock != skip && rock.isLeader())
@@ -408,57 +408,57 @@ public final class Test {
 		}
 	}
 
-	public static void Test_1() throws Throwable {
+	public static void test_1() throws Throwable {
 		LogSequence.deletedDirectoryAndCheck(new File("127.0.0.1_6000"));
 		LogSequence.deletedDirectoryAndCheck(new File("127.0.0.1_6001"));
 		LogSequence.deletedDirectoryAndCheck(new File("127.0.0.1_6002"));
 
-		Rocks.RegisterLog(() -> new LogMap1<>(Integer.class, Integer.class));
-		Rocks.RegisterLog(() -> new LogMap2<>(Integer.class, Bean1.class));
+		Rocks.registerLog(() -> new LogMap1<>(Integer.class, Integer.class));
+		Rocks.registerLog(() -> new LogMap2<>(Integer.class, Bean1.class));
 
 		try (var rocks1 = new Rocks("127.0.0.1:6000");
 			 var rocks2 = new Rocks("127.0.0.1:6001");
 			 var rocks3 = new Rocks("127.0.0.1:6002")) {
 			var rocksList = List.of(rocks1, rocks2, rocks3);
 			for (var rr : rocksList)
-				rr.RegisterTableTemplate("tRocksRaft", Integer.class, Bean1.class);
+				rr.registerTableTemplate("tRocksRaft", Integer.class, Bean1.class);
 
 			rocks1.getRaft().getServer().Start();
 			rocks2.getRaft().getServer().Start();
 			rocks3.getRaft().getServer().Start();
 
-			var leader = GetLeader(rocksList, null);
-			RunLeader(leader);
+			var leader = getLeader(rocksList, null);
+			runLeader(leader);
 			leader.getRaft().getServer().Stop();
 
 			// 只简单验证一下最新的数据。
-			var newLeader = GetLeader(rocksList, leader);
-			VerifyData(newLeader, newLeader.<Integer, Bean1>GetTableTemplate("tRocksRaft")
-					.OpenTable(0), "Bean1(0 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");
+			var newLeader = getLeader(rocksList, leader);
+			verifyData(newLeader, newLeader.<Integer, Bean1>getTableTemplate("tRocksRaft")
+					.openTable(0), "Bean1(0 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");
 		}
 	}
 
-	private static void RunLeader(Rocks rocks) throws Throwable {
-		var table = rocks.<Integer, Bean1>GetTableTemplate("tRocksRaft").OpenTable(0);
-		Remove1(rocks, table);
+	private static void runLeader(Rocks rocks) throws Throwable {
+		var table = rocks.<Integer, Bean1>getTableTemplate("tRocksRaft").openTable(0);
+		remove1(rocks, table);
 
-		PutAndEdit(rocks, table);
-		VerifyData(rocks, table, "Bean1(0 I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
+		putAndEdit(rocks, table);
+		verifyData(rocks, table, "Bean1(0 I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
 
-		Edit(rocks, table);
-		VerifyData(rocks, table, "Bean1(0 I=11 L=0 Map1={3:3,13:13} Bean2=Bean2(I=12) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={}),14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
+		edit(rocks, table);
+		verifyData(rocks, table, "Bean1(0 I=11 L=0 Map1={3:3,13:13} Bean2=Bean2(I=12) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={}),14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
 
-		EditInContainer(rocks, table);
-		VerifyData(rocks, table, "Bean1(0 I=11 L=0 Map1={3:3,13:13} Bean2=Bean2(I=12) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={}),14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=2222) Map2={})})");
+		editInContainer(rocks, table);
+		verifyData(rocks, table, "Bean1(0 I=11 L=0 Map1={3:3,13:13} Bean2=Bean2(I=12) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={}),14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=2222) Map2={})})");
 
-		NestProcedure(rocks, table);
-		VerifyData(rocks, table, "Bean1(0 I=11 L=0 Map1={3:3,13:13} Bean2=Bean2(I=3333) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={}),14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=2222) Map2={})})");
+		nestProcedure(rocks, table);
+		verifyData(rocks, table, "Bean1(0 I=11 L=0 Map1={3:3,13:13} Bean2=Bean2(I=3333) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={}),14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=2222) Map2={})})");
 
-		NestProcedureContainer(rocks, table);
-		VerifyData(rocks, table, "Bean1(0 I=11 L=0 Map1={13:13,4444:4444} Bean2=Bean2(I=3333) Map2={14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=2222) Map2={}),4444:Bean1(4444 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
+		nestProcedureContainer(rocks, table);
+		verifyData(rocks, table, "Bean1(0 I=11 L=0 Map1={13:13,4444:4444} Bean2=Bean2(I=3333) Map2={14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=2222) Map2={}),4444:Bean1(4444 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
 
-		EditAndPut(rocks, table);
-		VerifyData(rocks, table, "Bean1(0 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");
+		editAndPut(rocks, table);
+		verifyData(rocks, table, "Bean1(0 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");
 
 		// 再次运行本测试，才会执行到 LoadSnapshot。
 		// rocks.getRaft().getLogSequence().Snapshot(true);
@@ -467,7 +467,7 @@ public final class Test {
 	public static void main(String[] args) throws Throwable {
 		Task.initThreadPool(Task.newFixedThreadPool(5, "test"),
 				Executors.newScheduledThreadPool(3, new ThreadFactoryWithName("test-sch")));
-		Test_1();
+		test_1();
 		System.out.println("main end!");
 	}
 }

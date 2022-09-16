@@ -1,12 +1,12 @@
 package Zeze.Util;
 
 public class OutInt {
-	public int Value;
+	public int value;
 
 	public OutInt() {
 	}
 
 	public OutInt(int value) {
-		Value = value;
+		this.value = value;
 	}
 }

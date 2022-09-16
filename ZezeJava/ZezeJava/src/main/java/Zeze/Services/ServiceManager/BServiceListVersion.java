@@ -5,19 +5,19 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
 public final class BServiceListVersion extends Bean {
-	public String ServiceName;
-	public long SerialId;
+	public String serviceName;
+	public long serialId;
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		ServiceName = bb.ReadString();
-		SerialId = bb.ReadLong();
+		serviceName = bb.ReadString();
+		serialId = bb.ReadLong();
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteString(ServiceName);
-		bb.WriteLong(SerialId);
+		bb.WriteString(serviceName);
+		bb.WriteLong(serialId);
 	}
 
 	@Override
@@ -44,6 +44,6 @@ public final class BServiceListVersion extends Bean {
 
 	@Override
 	public String toString() {
-		return "BServiceListVersion{" + "ServiceName='" + ServiceName + '\'' + ", SerialId=" + SerialId + '}';
+		return "BServiceListVersion{" + "ServiceName='" + serviceName + '\'' + ", SerialId=" + serialId + '}';
 	}
 }

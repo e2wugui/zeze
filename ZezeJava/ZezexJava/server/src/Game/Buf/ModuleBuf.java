@@ -43,7 +43,7 @@ public class ModuleBuf extends AbstractModule {
 				@SuppressWarnings("unchecked")
 				var notemap2 = (LogMap2<Integer, BBuf>)c.getVariableLog(tbufs.VAR_Bufs);
 				if (null != notemap2) {
-					notemap2.MergeChangedToReplaced();
+					notemap2.mergeChangedToReplaced();
 					SChanged changed2 = new SChanged();
 					changed2.Argument.setChangeTag(BBufChanged.ChangeTagNormalChanged);
 					changed2.Argument.getReplace().putAll(notemap2.getReplaced());

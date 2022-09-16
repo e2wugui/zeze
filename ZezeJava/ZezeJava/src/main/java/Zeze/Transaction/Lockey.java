@@ -32,7 +32,7 @@ public final class Lockey implements Comparable<Lockey> {
 
 	public void enterReadLock() {
 		// if (!rwLock.IsReadLockHeld) // 第一次才计数. java 没有这个，那么每次访问都统计。
-		if (Macro.EnableStatistics) {
+		if (Macro.enableStatistics) {
 			TableStatistics.getInstance().getOrAdd(tableKey.getId()).getReadLockTimes().increment();
 		}
 		// logger.debug("EnterReadLock {}", TableKey);
@@ -45,7 +45,7 @@ public final class Lockey implements Comparable<Lockey> {
 	}
 
 	public void enterWriteLock() {
-		if (Macro.EnableStatistics) {
+		if (Macro.enableStatistics) {
 			if (!rwLock.isWriteLockedByCurrentThread()) // 第一次才计数
 				TableStatistics.getInstance().getOrAdd(tableKey.getId()).getWriteLockTimes().increment();
 		}
@@ -60,7 +60,7 @@ public final class Lockey implements Comparable<Lockey> {
 
 	public boolean tryEnterReadLock(int millisecondsTimeout) {
 		// if (!rwLock.IsReadLockHeld) // 第一次才计数，即时失败了也计数，根据观察情况再决定采用那种方案。
-		if (Macro.EnableStatistics) {
+		if (Macro.enableStatistics) {
 			TableStatistics.getInstance().getOrAdd(tableKey.getId()).getTryReadLockTimes().increment();
 		}
 		try {
@@ -71,7 +71,7 @@ public final class Lockey implements Comparable<Lockey> {
 	}
 
 	public boolean tryEnterWriteLock(int millisecondsTimeout) {
-		if (Macro.EnableStatistics) {
+		if (Macro.enableStatistics) {
 			if (!rwLock.isWriteLockedByCurrentThread()) // 第一次才计数，即时失败了也计数，根据观察情况再决定采用那种方案。
 				TableStatistics.getInstance().getOrAdd(tableKey.getId()).getTryWriteLockTimes().increment();
 		}

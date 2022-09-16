@@ -94,7 +94,7 @@ public class EventDispatcher {
 	public void triggerProcedureIgnoreError(Application app, Object sender, EventArgument arg) {
 		for (EventHandle handle : runProcedureEvents) {
 			try {
-				app.NewProcedure(() -> {
+				app.newProcedure(() -> {
 					handle.invoke(sender, arg);
 					return 0L;
 				}, "EventDispatcher.triggerProcedureIgnoreError").Call();
@@ -108,7 +108,7 @@ public class EventDispatcher {
 	// 在当前线程中，创建新的存储过程并执行，所有错误都报告出去，如果需要对错误进行特别处理，需要自己遍历Handles手动触发。
 	public void triggerProcedure(Application app, Object sender, EventArgument arg) throws Throwable {
 		for (EventHandle handle : runProcedureEvents) {
-			var result = app.NewProcedure(() -> {
+			var result = app.newProcedure(() -> {
 				handle.invoke(sender, arg);
 				return 0L;
 			}, "EventDispatcher.triggerProcedure").Call();

@@ -25,7 +25,7 @@ public class TestQueue {
 
 	@Test
 	public final void test1_QueueAdd() throws Throwable {
-		var ret = demo.App.getInstance().Zeze.NewProcedure(() -> {
+		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
 			var queue = queueModule.open("test1", BMyBean.class);
 			for (int i = 0; i < 10; i++) {
@@ -56,7 +56,7 @@ public class TestQueue {
 
 	@Test
 	public final void test3_QueuePop() throws Throwable {
-		var ret = demo.App.getInstance().Zeze.NewProcedure(() -> {
+		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
 			var queue = queueModule.open("test1", BMyBean.class);
 			for (int i = 0; i < 10; i++) {
@@ -71,7 +71,7 @@ public class TestQueue {
 
 	@Test
 	public final void test4_QueuePush() throws Throwable {
-		var ret = demo.App.getInstance().Zeze.NewProcedure(() -> {
+		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
 			var queue = queueModule.open("test1", BMyBean.class);
 			for (int i = 0; i < 10; i++) {
@@ -102,7 +102,7 @@ public class TestQueue {
 
 	@Test
 	public final void test6_QueuePop() throws Throwable {
-		var ret = demo.App.getInstance().Zeze.NewProcedure(() -> {
+		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
 			var queue = queueModule.open("test1", BMyBean.class);
 			for (int i = 9; i >= 0; i--) {

@@ -4,7 +4,7 @@ package Zeze.Builtin.GlobalCacheManagerWithRaft;
 public class Login extends Zeze.Raft.RaftRpc<Zeze.Builtin.GlobalCacheManagerWithRaft.BLoginParam, Zeze.Builtin.GlobalCacheManagerWithRaft.BAchillesHeelConfig> {
     public static final int ModuleId_ = 11001;
     public static final int ProtocolId_ = -1968616174; // 2326351122
-    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_); // 47251261574418
+    public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47251261574418
 
     @Override
     public int getModuleId() {

@@ -4,7 +4,7 @@ package Zeze.Builtin.ProviderDirect;
 public class ModuleRedirect extends Zeze.Net.Rpc<Zeze.Builtin.ProviderDirect.BModuleRedirectArgument, Zeze.Builtin.ProviderDirect.BModuleRedirectResult> {
     public static final int ModuleId_ = 11009;
     public static final int ProtocolId_ = 1107993902;
-    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_); // 47284402955566
+    public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47284402955566
 
     @Override
     public int getModuleId() {

@@ -18,71 +18,71 @@ public abstract class Log implements Serializable {
 	 * 如果实现类的FullName发生了改变，需要更新所有的Raft-Node。
 	 * 如果不想跟名字相关，重载并提供一个编号。
 	 */
-	private final int _TypeId;
+	private final int typeId;
 
 	// 当前这个Log是哪个应用的Rpc请求引起的。
 	// 【Raft用来检测重复的请求】。
 	// RaftConfig里面配置AutoKeyLocalStep开启这个功能。
 	// 启用这个功能要求应用的RpcSessionId持久化，并且全局唯一，对每个AutoKeyLocalStep递增。
 	// 【注意】应用生成的Id必须大于0；0保留给内部；小于0未使用。
-	private UniqueRequestId Unique = new UniqueRequestId();
-	private long CreateTime;
-	private Binary RpcResult = Binary.Empty;
+	private UniqueRequestId unique = new UniqueRequestId();
+	private long createTime;
+	private Binary rpcResult = Binary.Empty;
 
 	public Log(IRaftRpc req) {
 		if (req != null) {
-			Unique = req.getUnique();
+			unique = req.getUnique();
 			setCreateTime(req.getCreateTime());
 		}
-		_TypeId = Bean.hash32(getClass().getName());
+		typeId = Bean.hash32(getClass().getName());
 	}
 
 	public int getTypeId() {
-		return _TypeId;
+		return typeId;
 	}
 
 	public UniqueRequestId getUnique() {
-		return Unique;
+		return unique;
 	}
 
 	public long getCreateTime() {
-		return CreateTime;
+		return createTime;
 	}
 
 	public void setCreateTime(long value) {
-		CreateTime = value;
+		createTime = value;
 	}
 
 	public Binary getRpcResult() {
-		return RpcResult;
+		return rpcResult;
 	}
 
 	public void setRpcResult(Binary value) {
-		RpcResult = value;
+		rpcResult = value;
 	}
 
 	/**
 	 * 最主要的实现接口。
 	 */
-	public abstract void Apply(RaftLog holder, StateMachine stateMachine) throws Throwable;
+	public abstract void apply(RaftLog holder, StateMachine stateMachine) throws Throwable;
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		Unique.encode(bb);
-		bb.WriteLong(CreateTime);
-		bb.WriteBinary(RpcResult);
+		unique.encode(bb);
+		bb.WriteLong(createTime);
+		bb.WriteBinary(rpcResult);
 	}
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		Unique.decode(bb);
-		CreateTime = bb.ReadLong();
-		RpcResult = bb.ReadBinary();
+		unique.decode(bb);
+		createTime = bb.ReadLong();
+		rpcResult = bb.ReadBinary();
 	}
 
 	@Override
 	public String toString() {
 		return String.format("(%s RequestId=%d Create=%d)",
-				getClass().getSimpleName(), Unique.getRequestId(), CreateTime);
+				getClass().getSimpleName(), unique.getRequestId(), createTime);
 	}
 }

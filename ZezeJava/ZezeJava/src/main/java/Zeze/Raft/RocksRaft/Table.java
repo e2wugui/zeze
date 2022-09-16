@@ -19,73 +19,73 @@ import org.rocksdb.RocksDBException;
 public final class Table<K, V extends Bean> {
 	private static final Logger logger = LogManager.getLogger(Table.class);
 
-	private final Rocks Rocks;
-	private final String TemplateName;
-	private final int TemplateId;
-	private final String Name;
+	private final Rocks rocks;
+	private final String templateName;
+	private final int templateId;
+	private final String name;
 	private final BiConsumer<ByteBuffer, K> keyEncodeFunc;
 	private final Function<ByteBuffer, K> keyDecodeFunc;
 	private final MethodHandle valueFactory;
-	private int CacheCapacity = 10000;
-	private ColumnFamilyHandle ColumnFamily;
-	private ConcurrentLruLike<K, Record<K>> LruCache;
-	private BiPredicate<K, Record<K>> LruTryRemoveCallback;
+	private int cacheCapacity = 10000;
+	private ColumnFamilyHandle columnFamily;
+	private ConcurrentLruLike<K, Record<K>> lruCache;
+	private BiPredicate<K, Record<K>> lruTryRemoveCallback;
 
 	public ConcurrentLruLike<K, Record<K>> getLruCache() {
-		return LruCache;
+		return lruCache;
 	}
 
 	public Table(Rocks rocks, String templateName, int templateId, Class<K> keyClass, Class<V> valueClass, BiPredicate<K, Record<K>> callback) {
-		Rocks = rocks;
-		TemplateName = templateName;
-		TemplateId = templateId;
-		Name = String.format("%s#%d", TemplateName, TemplateId);
+		this.rocks = rocks;
+		this.templateName = templateName;
+		this.templateId = templateId;
+		name = String.format("%s#%d", this.templateName, this.templateId);
 		keyEncodeFunc = SerializeHelper.createEncodeFunc(keyClass);
 		keyDecodeFunc = SerializeHelper.createDecodeFunc(keyClass);
 		valueFactory = Reflect.getDefaultConstructor(valueClass);
-		LruTryRemoveCallback = callback;
-		Open();
+		lruTryRemoveCallback = callback;
+		open();
 	}
 
-	public void Open() {
-		ColumnFamily = Rocks.OpenFamily(Name);
-		LruCache = new ConcurrentLruLike<>(Name, CacheCapacity, LruTryRemoveCallback, 200, 2000, 1024);
+	public void open() {
+		columnFamily = rocks.openFamily(name);
+		lruCache = new ConcurrentLruLike<>(name, cacheCapacity, lruTryRemoveCallback, 200, 2000, 1024);
 	}
 
 	public Rocks getRocks() {
-		return Rocks;
+		return rocks;
 	}
 
 	public String getTemplateName() {
-		return TemplateName;
+		return templateName;
 	}
 
 	public int getTemplateId() {
-		return TemplateId;
+		return templateId;
 	}
 
 	public String getName() {
-		return Name;
+		return name;
 	}
 
 	public int getCacheCapacity() {
-		return CacheCapacity;
+		return cacheCapacity;
 	}
 
 	public void setCacheCapacity(int value) {
-		CacheCapacity = value;
+		cacheCapacity = value;
 	}
 
 	public ColumnFamilyHandle getColumnFamily() {
-		return ColumnFamily;
+		return columnFamily;
 	}
 
 	public BiPredicate<K, Record<K>> getLruTryRemoveCallback() {
-		return LruTryRemoveCallback;
+		return lruTryRemoveCallback;
 	}
 
 	public void setLruTryRemoveCallback(BiPredicate<K, Record<K>> value) {
-		LruTryRemoveCallback = value;
+		lruTryRemoveCallback = value;
 	}
 
 	public void encodeKey(ByteBuffer bb, K key) {
@@ -108,40 +108,40 @@ public final class Table<K, V extends Bean> {
 	@SuppressWarnings("unchecked")
 	public V get(K key) {
 		Transaction currentT = Transaction.getCurrent();
-		TableKey tkey = new TableKey(Name, key);
+		TableKey tkey = new TableKey(name, key);
 
-		var cr = currentT.GetRecordAccessed(tkey);
+		var cr = currentT.getRecordAccessed(tkey);
 		if (cr != null)
-			return (V)cr.NewestValue();
+			return (V)cr.newestValue();
 
 		Record<K> r = getOrLoad(key);
-		currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), new Transaction.RecordAccessed(r));
+		currentT.addRecordAccessed(r.createRootInfoIfNeed(tkey), new Transaction.RecordAccessed(r));
 		return (V)r.getValue();
 	}
 
 	@SuppressWarnings("unchecked")
 	public V getOrAdd(K key) {
 		Transaction currentT = Transaction.getCurrent();
-		TableKey tkey = new TableKey(Name, key);
+		TableKey tkey = new TableKey(name, key);
 
-		var cr = currentT.GetRecordAccessed(tkey);
+		var cr = currentT.getRecordAccessed(tkey);
 		if (cr != null) {
-			V crv = (V)cr.NewestValue();
+			V crv = (V)cr.newestValue();
 			if (crv != null)
 				return crv;
 			// add
 		} else {
 			Record<K> r = getOrLoad(key);
 			cr = new Transaction.RecordAccessed(r);
-			currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
+			currentT.addRecordAccessed(r.createRootInfoIfNeed(tkey), cr);
 			if (r.getValue() != null)
 				return (V)r.getValue();
 			// add
 		}
 
 		V add = newValue();
-		add.initRootInfo(cr.getOrigin().CreateRootInfoIfNeed(tkey), null);
-		cr.Put(currentT, add);
+		add.initRootInfo(cr.getOrigin().createRootInfoIfNeed(tkey), null);
+		cr.put(currentT, add);
 		return add;
 	}
 
@@ -150,9 +150,9 @@ public final class Table<K, V extends Bean> {
 	}
 
 	private Record<K> getOrLoad(K key, Bean putValue) {
-		TableKey tkey = new TableKey(Name, key);
+		TableKey tkey = new TableKey(name, key);
 		while (true) {
-			var r = LruCache.getOrAdd(key, () -> {
+			var r = lruCache.getOrAdd(key, () -> {
 				var newR = new Record<>(keyEncodeFunc);
 				newR.setTable(this);
 				newR.setKey(key);
@@ -166,14 +166,14 @@ public final class Table<K, V extends Bean> {
 				if (putValue != null) {
 					// from followerApply
 					r.setValue(putValue);
-					r.getValue().initRootInfo(r.CreateRootInfoIfNeed(tkey), null);
+					r.getValue().initRootInfo(r.createRootInfoIfNeed(tkey), null);
 					r.setTimestamp(Record.getNextTimestamp());
 					r.setState(Record.StateLoad);
 				} else if (r.getState() == Record.StateNew) {
 					// fresh record
 					r.setValue(storageLoad(key));
 					if (r.getValue() != null)
-						r.getValue().initRootInfo(r.CreateRootInfoIfNeed(tkey), null);
+						r.getValue().initRootInfo(r.createRootInfoIfNeed(tkey), null);
 					r.setTimestamp(Record.getNextTimestamp());
 					r.setState(Record.StateLoad);
 				}
@@ -190,7 +190,7 @@ public final class Table<K, V extends Bean> {
 		keyEncodeFunc.accept(keyBB, key);
 		byte[] valueBytes;
 		try {
-			valueBytes = Rocks.getStorage().get(ColumnFamily, DatabaseRocksDb.getDefaultReadOptions(),
+			valueBytes = rocks.getStorage().get(columnFamily, DatabaseRocksDb.getDefaultReadOptions(),
 					keyBB.Bytes, 0, keyBB.WriteIndex);
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
@@ -208,10 +208,10 @@ public final class Table<K, V extends Bean> {
 			return false;
 
 		Transaction currentT = Transaction.getCurrent();
-		TableKey tkey = new TableKey(Name, key);
-		var cr = currentT.GetRecordAccessed(tkey);
-		value.initRootInfo(cr.getOrigin().CreateRootInfoIfNeed(tkey), null);
-		cr.Put(currentT, value);
+		TableKey tkey = new TableKey(name, key);
+		var cr = currentT.getRecordAccessed(tkey);
+		value.initRootInfo(cr.getOrigin().createRootInfoIfNeed(tkey), null);
+		cr.put(currentT, value);
 		return true;
 	}
 
@@ -222,37 +222,37 @@ public final class Table<K, V extends Bean> {
 
 	public void put(K key, V value) {
 		Transaction currentT = Transaction.getCurrent();
-		TableKey tkey = new TableKey(Name, key);
+		TableKey tkey = new TableKey(name, key);
 
-		var cr = currentT.GetRecordAccessed(tkey);
+		var cr = currentT.getRecordAccessed(tkey);
 		if (cr == null) {
 			var r = getOrLoad(key);
 			cr = new Transaction.RecordAccessed(r);
-			currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
+			currentT.addRecordAccessed(r.createRootInfoIfNeed(tkey), cr);
 		}
-		value.initRootInfo(cr.getOrigin().CreateRootInfoIfNeed(tkey), null);
-		cr.Put(currentT, value);
+		value.initRootInfo(cr.getOrigin().createRootInfoIfNeed(tkey), null);
+		cr.put(currentT, value);
 	}
 
 	// 几乎和Put一样，还是独立开吧。
 	public void remove(K key) {
 		Transaction currentT = Transaction.getCurrent();
-		TableKey tkey = new TableKey(Name, key);
+		TableKey tkey = new TableKey(name, key);
 
-		var cr = currentT.GetRecordAccessed(tkey);
+		var cr = currentT.getRecordAccessed(tkey);
 		if (cr != null) {
-			cr.Put(currentT, null);
+			cr.put(currentT, null);
 			return;
 		}
 
 		Record<K> r = getOrLoad(key);
 		cr = new Transaction.RecordAccessed(r);
-		cr.Put(currentT, null);
-		currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
+		cr.put(currentT, null);
+		currentT.addRecordAccessed(r.createRootInfoIfNeed(tkey), cr);
 	}
 
 	public boolean walk(Func2<K, V, Boolean> callback) throws Throwable {
-		try (var it = Rocks.getStorage().newIterator(ColumnFamily, DatabaseRocksDb.getDefaultReadOptions())) {
+		try (var it = rocks.getStorage().newIterator(columnFamily, DatabaseRocksDb.getDefaultReadOptions())) {
 			for (it.seekToFirst(); it.isValid(); it.next()) {
 				var key = keyDecodeFunc.apply(ByteBuffer.Wrap(it.key()));
 				var value = newValue();
@@ -265,7 +265,7 @@ public final class Table<K, V extends Bean> {
 	}
 
 	public boolean walkKey(Func1<K, Boolean> callback) throws Throwable {
-		try (var it = Rocks.getStorage().newIterator(ColumnFamily, DatabaseRocksDb.getDefaultReadOptions())) {
+		try (var it = rocks.getStorage().newIterator(columnFamily, DatabaseRocksDb.getDefaultReadOptions())) {
 			for (it.seekToFirst(); it.isValid(); it.next()) {
 				var key = keyDecodeFunc.apply(ByteBuffer.Wrap(it.key()));
 				if (!callback.call(key))
@@ -292,8 +292,8 @@ public final class Table<K, V extends Bean> {
 			r = getOrLoad(key);
 			if (r.getValue() == null) {
 				logger.fatal("editing bug record not exist. table={} key={} state={}",
-						Name, key, r.getState(), new Exception());
-				Rocks.getRaft().FatalKill();
+						name, key, r.getState(), new Exception());
+				rocks.getRaft().fatalKill();
 			}
 			for (var log : rLog.getLogBean())
 				r.getValue().followerApply(log); // 最多一个。
@@ -301,8 +301,8 @@ public final class Table<K, V extends Bean> {
 
 		default:
 			logger.fatal("unknown Changes.Record.State. table={} key={} state={}",
-					Name, key, rLog.getState(), new Exception());
-			Rocks.getRaft().FatalKill();
+					name, key, rLog.getState(), new Exception());
+			rocks.getRaft().fatalKill();
 			return null;
 		}
 		return r;

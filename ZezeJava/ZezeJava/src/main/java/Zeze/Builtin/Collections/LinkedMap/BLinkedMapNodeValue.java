@@ -9,11 +9,11 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
     private final Zeze.Transaction.DynamicBean _Value;
 
     public static long getSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean) {
-        return Zeze.Collections.LinkedMap.GetSpecialTypeIdFromBean(bean);
+        return Zeze.Collections.LinkedMap.getSpecialTypeIdFromBean(bean);
     }
 
     public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_Value(long typeId) {
-        return Zeze.Collections.LinkedMap.CreateBeanFromSpecialTypeId(typeId);
+        return Zeze.Collections.LinkedMap.createBeanFromSpecialTypeId(typeId);
     }
 
     public String getId() {
@@ -22,8 +22,8 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Id;
-        var log = (Log__Id)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _Id;
+        var log = (Log__Id)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _Id;
     }
 
     public void setId(String value) {
@@ -34,7 +34,7 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Id(this, 1, value));
+        txn.putLog(new Log__Id(this, 1, value));
     }
 
     public Zeze.Transaction.DynamicBean getValue() {
@@ -44,7 +44,7 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
     @SuppressWarnings("deprecation")
     public BLinkedMapNodeValue() {
         _Id = "";
-        _Value = new Zeze.Transaction.DynamicBean(2, Zeze.Collections.LinkedMap::GetSpecialTypeIdFromBean, Zeze.Collections.LinkedMap::CreateBeanFromSpecialTypeId);
+        _Value = new Zeze.Transaction.DynamicBean(2, Zeze.Collections.LinkedMap::getSpecialTypeIdFromBean, Zeze.Collections.LinkedMap::createBeanFromSpecialTypeId);
     }
 
     @SuppressWarnings("deprecation")
@@ -52,12 +52,12 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
         if (_Id_ == null)
             throw new IllegalArgumentException();
         _Id = _Id_;
-        _Value = new Zeze.Transaction.DynamicBean(2, Zeze.Collections.LinkedMap::GetSpecialTypeIdFromBean, Zeze.Collections.LinkedMap::CreateBeanFromSpecialTypeId);
+        _Value = new Zeze.Transaction.DynamicBean(2, Zeze.Collections.LinkedMap::getSpecialTypeIdFromBean, Zeze.Collections.LinkedMap::createBeanFromSpecialTypeId);
     }
 
     public void assign(BLinkedMapNodeValue other) {
         setId(other.getId());
-        getValue().Assign(other.getValue());
+        getValue().assign(other.getValue());
     }
 
     @Deprecated
@@ -71,7 +71,7 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
 
     public BLinkedMapNodeValue copy() {
         var copy = new BLinkedMapNodeValue();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -81,9 +81,9 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BLinkedMapNodeValue a, BLinkedMapNodeValue b) {
-        BLinkedMapNodeValue save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BLinkedMapNodeValue save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -102,7 +102,7 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
         public Log__Id(BLinkedMapNodeValue bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BLinkedMapNodeValue)getBelong())._Id = Value; }
+        public void commit() { ((BLinkedMapNodeValue)getBelong())._Id = value; }
     }
 
     @Override
@@ -198,7 +198,7 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Id = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                case 1: _Id = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 2: _Value.followerApply(vlog); break;
             }
         }

@@ -18,7 +18,7 @@ public class PList1<V> extends PList<V> {
 
 	public PList1(Class<V> valueClass) {
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
-		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Transaction.LogList1<" + Reflect.GetStableName(valueClass) + '>');
+		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Transaction.LogList1<" + Reflect.getStableName(valueClass) + '>');
 	}
 
 	@SuppressWarnings("unchecked")
@@ -43,14 +43,14 @@ public class PList1<V> extends PList<V> {
 
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
+			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			return listLog.Add(item);
+			return listLog.add(item);
 		}
-		var newList = _list.plus(item);
-		if (newList == _list)
+		var newList = list.plus(item);
+		if (newList == list)
 			return false;
-		_list = newList;
+		list = newList;
 		return true;
 	}
 
@@ -58,14 +58,14 @@ public class PList1<V> extends PList<V> {
 	@Override
 	public boolean remove(Object item) {
 		if (isManaged()) {
-			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
+			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			return listLog.Remove((V)item);
+			return listLog.remove((V)item);
 		}
-		var newList = _list.minus(item);
-		if (newList == _list)
+		var newList = list.minus(item);
+		if (newList == list)
 			return false;
-		_list = newList;
+		list = newList;
 		return true;
 	}
 
@@ -73,11 +73,11 @@ public class PList1<V> extends PList<V> {
 	public void clear() {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
+			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			listLog.Clear();
+			listLog.clear();
 		} else
-			_list = org.pcollections.Empty.vector();
+			list = org.pcollections.Empty.vector();
 	}
 
 	@Override
@@ -87,12 +87,12 @@ public class PList1<V> extends PList<V> {
 
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
+			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			return listLog.Set(index, item);
+			return listLog.set(index, item);
 		}
-		var old = _list.get(index);
-		_list = _list.with(index, item);
+		var old = list.get(index);
+		list = list.with(index, item);
 		return old;
 	}
 
@@ -103,23 +103,23 @@ public class PList1<V> extends PList<V> {
 
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
+			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			listLog.Add(index, item);
+			listLog.add(index, item);
 		} else
-			_list = _list.plus(index, item);
+			list = list.plus(index, item);
 	}
 
 	@Override
 	public V remove(int index) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
+			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			return listLog.Remove(index);
+			return listLog.remove(index);
 		}
-		var old = _list.get(index);
-		_list = _list.minus(index);
+		var old = list.get(index);
+		list = list.minus(index);
 		return old;
 	}
 
@@ -133,11 +133,11 @@ public class PList1<V> extends PList<V> {
 
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
+			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			return listLog.AddAll(items);
+			return listLog.addAll(items);
 		}
-		_list = _list.plusAll(items);
+		list = list.plusAll(items);
 		return true;
 	}
 
@@ -145,13 +145,13 @@ public class PList1<V> extends PList<V> {
 	@Override
 	public boolean removeAll(Collection<?> c) {
 		if (isManaged()) {
-			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
+			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			return listLog.RemoveAll((Collection<V>)c);
+			return listLog.removeAll((Collection<V>)c);
 		}
-		var oldList = _list;
-		_list = _list.minusAll(c);
-		return oldList != _list;
+		var oldList = list;
+		list = list.minusAll(c);
+		return oldList != list;
 	}
 
 	@Override
@@ -160,7 +160,7 @@ public class PList1<V> extends PList<V> {
 		log.setBelong(parent());
 		log.setThis(this);
 		log.setVariableId(variableId());
-		log.setValue(_list);
+		log.setValue(list);
 		return log;
 	}
 
@@ -171,16 +171,16 @@ public class PList1<V> extends PList<V> {
 		for (var opLog : log.getOpLogs()) {
 			switch (opLog.op) {
 			case LogList1.OpLog.OP_MODIFY:
-				_list = _list.with(opLog.index, opLog.value);
+				list = list.with(opLog.index, opLog.value);
 				break;
 			case LogList1.OpLog.OP_ADD:
-				_list = _list.plus(opLog.index, opLog.value);
+				list = list.plus(opLog.index, opLog.value);
 				break;
 			case LogList1.OpLog.OP_REMOVE:
-				_list = _list.minus(opLog.index);
+				list = list.minus(opLog.index);
 				break;
 			case LogList1.OpLog.OP_CLEAR:
-				_list = Empty.vector();
+				list = Empty.vector();
 				break;
 			}
 		}
@@ -197,7 +197,7 @@ public class PList1<V> extends PList<V> {
 	@Override
 	public PList1<V> copyBean() {
 		var copy = new PList1<>(logTypeId, valueCodecFuncs);
-		copy._list = _list;
+		copy.list = list;
 		return copy;
 	}
 

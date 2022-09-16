@@ -10,11 +10,11 @@ public final class BGameOnlineCustom extends Zeze.Transaction.Bean {
     private final Zeze.Transaction.DynamicBean _CustomData;
 
     public static long getSpecialTypeIdFromBean_CustomData(Zeze.Transaction.Bean bean) {
-        return Zeze.Component.Timer.GetSpecialTypeIdFromBean(bean);
+        return Zeze.Component.Timer.getSpecialTypeIdFromBean(bean);
     }
 
     public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_CustomData(long typeId) {
-        return Zeze.Component.Timer.CreateBeanFromSpecialTypeId(typeId);
+        return Zeze.Component.Timer.createBeanFromSpecialTypeId(typeId);
     }
 
     public long getRoleId() {
@@ -23,8 +23,8 @@ public final class BGameOnlineCustom extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _RoleId;
-        var log = (Log__RoleId)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _RoleId;
+        var log = (Log__RoleId)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _RoleId;
     }
 
     public void setRoleId(long value) {
@@ -33,7 +33,7 @@ public final class BGameOnlineCustom extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__RoleId(this, 1, value));
+        txn.putLog(new Log__RoleId(this, 1, value));
     }
 
     public String getHandleName() {
@@ -42,8 +42,8 @@ public final class BGameOnlineCustom extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _HandleName;
-        var log = (Log__HandleName)txn.GetLog(objectId() + 2);
-        return log != null ? log.Value : _HandleName;
+        var log = (Log__HandleName)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _HandleName;
     }
 
     public void setHandleName(String value) {
@@ -54,7 +54,7 @@ public final class BGameOnlineCustom extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__HandleName(this, 2, value));
+        txn.putLog(new Log__HandleName(this, 2, value));
     }
 
     public Zeze.Transaction.DynamicBean getCustomData() {
@@ -64,7 +64,7 @@ public final class BGameOnlineCustom extends Zeze.Transaction.Bean {
     @SuppressWarnings("deprecation")
     public BGameOnlineCustom() {
         _HandleName = "";
-        _CustomData = new Zeze.Transaction.DynamicBean(3, Zeze.Component.Timer::GetSpecialTypeIdFromBean, Zeze.Component.Timer::CreateBeanFromSpecialTypeId);
+        _CustomData = new Zeze.Transaction.DynamicBean(3, Zeze.Component.Timer::getSpecialTypeIdFromBean, Zeze.Component.Timer::createBeanFromSpecialTypeId);
     }
 
     @SuppressWarnings("deprecation")
@@ -73,13 +73,13 @@ public final class BGameOnlineCustom extends Zeze.Transaction.Bean {
         if (_HandleName_ == null)
             throw new IllegalArgumentException();
         _HandleName = _HandleName_;
-        _CustomData = new Zeze.Transaction.DynamicBean(3, Zeze.Component.Timer::GetSpecialTypeIdFromBean, Zeze.Component.Timer::CreateBeanFromSpecialTypeId);
+        _CustomData = new Zeze.Transaction.DynamicBean(3, Zeze.Component.Timer::getSpecialTypeIdFromBean, Zeze.Component.Timer::createBeanFromSpecialTypeId);
     }
 
     public void assign(BGameOnlineCustom other) {
         setRoleId(other.getRoleId());
         setHandleName(other.getHandleName());
-        getCustomData().Assign(other.getCustomData());
+        getCustomData().assign(other.getCustomData());
     }
 
     @Deprecated
@@ -93,7 +93,7 @@ public final class BGameOnlineCustom extends Zeze.Transaction.Bean {
 
     public BGameOnlineCustom copy() {
         var copy = new BGameOnlineCustom();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -103,9 +103,9 @@ public final class BGameOnlineCustom extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BGameOnlineCustom a, BGameOnlineCustom b) {
-        BGameOnlineCustom save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BGameOnlineCustom save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -124,14 +124,14 @@ public final class BGameOnlineCustom extends Zeze.Transaction.Bean {
         public Log__RoleId(BGameOnlineCustom bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BGameOnlineCustom)getBelong())._RoleId = Value; }
+        public void commit() { ((BGameOnlineCustom)getBelong())._RoleId = value; }
     }
 
     private static final class Log__HandleName extends Zeze.Transaction.Logs.LogString {
         public Log__HandleName(BGameOnlineCustom bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BGameOnlineCustom)getBelong())._HandleName = Value; }
+        public void commit() { ((BGameOnlineCustom)getBelong())._HandleName = value; }
     }
 
     @Override
@@ -241,8 +241,8 @@ public final class BGameOnlineCustom extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _RoleId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                case 2: _HandleName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                case 1: _RoleId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 2: _HandleName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 3: _CustomData.followerApply(vlog); break;
             }
         }

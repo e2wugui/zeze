@@ -2,7 +2,7 @@ package Zeze.Util;
 
 import java.nio.charset.StandardCharsets;
 
-public class BitConverter {
+public final class BitConverter {
 	public static int num2Hex(int n) {
 		return n + '0' + (((9 - n) >> 31) & ('A' - '9' - 1)); // 无分支,比查表快
 	}
@@ -73,5 +73,8 @@ public class BitConverter {
 		byte[] b = new byte[n >> 1];
 		toBytes(hex, b, 0);
 		return b;
+	}
+
+	private BitConverter() {
 	}
 }

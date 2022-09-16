@@ -129,7 +129,7 @@ final class MethodOverride {
 		return typeName.startsWith("java.lang.") && typeName.indexOf('.', 10) < 0 ? typeName.substring(10) : typeName;
 	}
 
-	String GetDefineString() {
+	String getDefineString() {
 		var sb = new StringBuilder();
 		var first = true;
 		for (var p : allParameters) {
@@ -141,7 +141,7 @@ final class MethodOverride {
 		return sb.toString();
 	}
 
-	String GetNormalCallString() {
+	String getNormalCallString() {
 		var sb = new StringBuilder();
 		var first = true;
 		for (var p : inputParameters) {
@@ -153,10 +153,10 @@ final class MethodOverride {
 		return sb.toString();
 	}
 
-	String GetBaseCallString() {
+	String getBaseCallString() {
 		return inputParameters.isEmpty()
 				? hashOrServerIdParameter.getName() // 除了serverId或hash,没有其他参数
-				: hashOrServerIdParameter.getName() + ", " + GetNormalCallString();
+				: hashOrServerIdParameter.getName() + ", " + getNormalCallString();
 	}
 
 	String getRedirectType() {

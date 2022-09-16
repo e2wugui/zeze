@@ -9,7 +9,7 @@ public final class ModuleLogin extends AbstractModule {
 	private Zeze.Component.AutoKey autoKey;
 
 	public void Start(App app) {
-		autoKey = app.Zeze.GetAutoKey("roleId");
+		autoKey = app.Zeze.getAutoKey("roleId");
 	}
 
 	public void Stop(App app) {
@@ -31,7 +31,7 @@ public final class ModuleLogin extends AbstractModule {
 		BRoleId tempVar2 = new BRoleId();
 		tempVar2.setId(roleId);
 		if (!_trolename.tryAdd(rpc.Argument.getName(), tempVar2)) {
-			return ErrorCode(ResultCodeCreateRoleDuplicateRoleName);
+			return errorCode(ResultCodeCreateRoleDuplicateRoleName);
 		}
 
 		var account = App.getProvider().Online.getTableAccount().getOrAdd(session.getAccount());

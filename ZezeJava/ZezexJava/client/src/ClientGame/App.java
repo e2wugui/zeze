@@ -12,31 +12,31 @@ public class App extends Zeze.AppBase {
     public Connector Connector;
 
     public void Start(String ip, int port) throws Throwable {
-        var config = Config.Load("client.xml");
-        CreateZeze(config);
-        CreateService();
+        var config = Config.load("client.xml");
+        createZeze(config);
+        createService();
         var c = new OutObject<Connector>();
         ClientService.getConfig().tryGetOrAddConnector(ip, port, true, c);
-        Connector = c.Value;
-        CreateModules();
-        Zeze.Start(); // 启动数据库
-        StartModules(); // 启动模块，装载配置什么的。
-        StartService(); // 启动网络
+        Connector = c.value;
+        createModules();
+        Zeze.start(); // 启动数据库
+        startModules(); // 启动模块，装载配置什么的。
+        startService(); // 启动网络
     }
 
     public void Stop() throws Throwable {
-        StopService(); // 关闭网络
-        StopModules(); // 关闭模块，卸载配置什么的。
+        stopService(); // 关闭网络
+        stopModules(); // 关闭模块，卸载配置什么的。
         if (Zeze != null)
-            Zeze.Stop(); // 关闭数据库
-        DestroyModules();
-        DestroyServices();
-        DestroyZeze();
+            Zeze.stop(); // 关闭数据库
+        destroyModules();
+        destroyServices();
+        destroyZeze();
     }
 
     // ZEZE_FILE_CHUNK {{{ GEN APP @formatter:off
     public Zeze.Application Zeze;
-    public final java.util.HashMap<String, Zeze.IModule> Modules = new java.util.HashMap<>();
+    public final java.util.HashMap<String, Zeze.IModule> modules = new java.util.HashMap<>();
 
     public ClientGame.ClientService ClientService;
 
@@ -51,68 +51,68 @@ public class App extends Zeze.AppBase {
         return Zeze;
     }
 
-    public void CreateZeze() throws Throwable {
-        CreateZeze(null);
+    public void createZeze() throws Throwable {
+        createZeze(null);
     }
 
-    public synchronized void CreateZeze(Zeze.Config config) throws Throwable {
+    public synchronized void createZeze(Zeze.Config config) throws Throwable {
         if (Zeze != null)
             throw new RuntimeException("Zeze Has Created!");
 
         Zeze = new Zeze.Application("ClientGame", config);
     }
 
-    public synchronized void CreateService() throws Throwable {
+    public synchronized void createService() throws Throwable {
         ClientService = new ClientGame.ClientService(Zeze);
     }
 
-    public synchronized void CreateModules() {
-        Zeze_Builtin_Game_Online = ReplaceModuleInstance(new Zeze.Builtin.Game.Online.ModuleOnline(this));
+    public synchronized void createModules() {
+        Zeze_Builtin_Game_Online = replaceModuleInstance(new Zeze.Builtin.Game.Online.ModuleOnline(this));
         Zeze_Builtin_Game_Online.Initialize(this);
-        if (Modules.put(Zeze_Builtin_Game_Online.getFullName(), Zeze_Builtin_Game_Online) != null)
+        if (modules.put(Zeze_Builtin_Game_Online.getFullName(), Zeze_Builtin_Game_Online) != null)
             throw new RuntimeException("duplicate module name: Zeze_Builtin_Game_Online");
 
-        Zeze_Builtin_Game_Bag = ReplaceModuleInstance(new Zeze.Builtin.Game.Bag.ModuleBag(this));
+        Zeze_Builtin_Game_Bag = replaceModuleInstance(new Zeze.Builtin.Game.Bag.ModuleBag(this));
         Zeze_Builtin_Game_Bag.Initialize(this);
-        if (Modules.put(Zeze_Builtin_Game_Bag.getFullName(), Zeze_Builtin_Game_Bag) != null)
+        if (modules.put(Zeze_Builtin_Game_Bag.getFullName(), Zeze_Builtin_Game_Bag) != null)
             throw new RuntimeException("duplicate module name: Zeze_Builtin_Game_Bag");
 
-        Zeze_Builtin_LinkdBase = ReplaceModuleInstance(new Zeze.Builtin.LinkdBase.ModuleLinkdBase(this));
+        Zeze_Builtin_LinkdBase = replaceModuleInstance(new Zeze.Builtin.LinkdBase.ModuleLinkdBase(this));
         Zeze_Builtin_LinkdBase.Initialize(this);
-        if (Modules.put(Zeze_Builtin_LinkdBase.getFullName(), Zeze_Builtin_LinkdBase) != null)
+        if (modules.put(Zeze_Builtin_LinkdBase.getFullName(), Zeze_Builtin_LinkdBase) != null)
             throw new RuntimeException("duplicate module name: Zeze_Builtin_LinkdBase");
 
-        ClientZezex_Linkd = ReplaceModuleInstance(new ClientZezex.Linkd.ModuleLinkd(this));
+        ClientZezex_Linkd = replaceModuleInstance(new ClientZezex.Linkd.ModuleLinkd(this));
         ClientZezex_Linkd.Initialize(this);
-        if (Modules.put(ClientZezex_Linkd.getFullName(), ClientZezex_Linkd) != null)
+        if (modules.put(ClientZezex_Linkd.getFullName(), ClientZezex_Linkd) != null)
             throw new RuntimeException("duplicate module name: ClientZezex_Linkd");
 
-        ClientGame_Login = ReplaceModuleInstance(new ClientGame.Login.ModuleLogin(this));
+        ClientGame_Login = replaceModuleInstance(new ClientGame.Login.ModuleLogin(this));
         ClientGame_Login.Initialize(this);
-        if (Modules.put(ClientGame_Login.getFullName(), ClientGame_Login) != null)
+        if (modules.put(ClientGame_Login.getFullName(), ClientGame_Login) != null)
             throw new RuntimeException("duplicate module name: ClientGame_Login");
 
         Zeze.setSchemas(new ClientGame.Schemas());
     }
 
-    public synchronized void DestroyModules() {
+    public synchronized void destroyModules() {
         ClientGame_Login = null;
         ClientZezex_Linkd = null;
         Zeze_Builtin_LinkdBase = null;
         Zeze_Builtin_Game_Bag = null;
         Zeze_Builtin_Game_Online = null;
-        Modules.clear();
+        modules.clear();
     }
 
-    public synchronized void DestroyServices() {
+    public synchronized void destroyServices() {
         ClientService = null;
     }
 
-    public synchronized void DestroyZeze() {
+    public synchronized void destroyZeze() {
         Zeze = null;
     }
 
-    public synchronized void StartModules() throws Throwable {
+    public synchronized void startModules() throws Throwable {
         Zeze_Builtin_Game_Online.Start(this);
         Zeze_Builtin_Game_Bag.Start(this);
         Zeze_Builtin_LinkdBase.Start(this);
@@ -120,7 +120,7 @@ public class App extends Zeze.AppBase {
         ClientGame_Login.Start(this);
     }
 
-    public synchronized void StopModules() throws Throwable {
+    public synchronized void stopModules() throws Throwable {
         if (ClientGame_Login != null)
             ClientGame_Login.Stop(this);
         if (ClientZezex_Linkd != null)
@@ -133,11 +133,11 @@ public class App extends Zeze.AppBase {
             Zeze_Builtin_Game_Online.Stop(this);
     }
 
-    public synchronized void StartService() throws Throwable {
+    public synchronized void startService() throws Throwable {
         ClientService.Start();
     }
 
-    public synchronized void StopService() throws Throwable {
+    public synchronized void stopService() throws Throwable {
         if (ClientService != null)
             ClientService.Stop();
     }

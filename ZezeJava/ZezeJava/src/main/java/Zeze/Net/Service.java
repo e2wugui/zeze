@@ -59,7 +59,7 @@ public class Service {
 	}
 
 	private void initConfig(Config config) throws Throwable {
-		this.config = config != null ? config.GetServiceConf(name) : null;
+		this.config = config != null ? config.getServiceConf(name) : null;
 		if (this.config == null) {
 			// setup program default
 			this.config = new ServiceConf();
@@ -279,7 +279,7 @@ public class Service {
 	public <P extends Protocol<?>> void DispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
 															ProtocolFactoryHandle<?> factoryHandle) throws Throwable {
 		if (zeze != null && factoryHandle.Level != TransactionLevel.None) {
-			Task.runRpcResponseUnsafe(zeze.NewProcedure(
+			Task.runRpcResponseUnsafe(zeze.newProcedure(
 					() -> responseHandle.handle(rpc), rpc.getClass().getName() + ":Response",
 					factoryHandle.Level, rpc.getUserState()), factoryHandle.Mode);
 		} else
@@ -290,12 +290,12 @@ public class Service {
 		if (factoryHandle.Handle != null) {
 			if (factoryHandle.Level != TransactionLevel.None) {
 				zeze.getTaskOneByOneByKey().Execute(key, () ->
-								Task.Call(zeze.NewProcedure(() -> factoryHandle.Handle.handle(p), p.getClass().getName(),
+								Task.call(zeze.newProcedure(() -> factoryHandle.Handle.handle(p), p.getClass().getName(),
 										factoryHandle.Level, p.getUserState()), p, Protocol::trySendResultCode),
 						factoryHandle.Mode);
 			} else {
 				zeze.getTaskOneByOneByKey().Execute(key,
-						() -> Task.Call(() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode),
+						() -> Task.call(() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode),
 						factoryHandle.Mode);
 			}
 		} else
@@ -311,14 +311,14 @@ public class Service {
 		if (handle != null) {
 			if (isHandshakeProtocol(p.getTypeId())) {
 				// handshake protocol call direct in io-thread.
-				Task.Call(() -> handle.handle(p), p, Protocol::trySendResultCode);
+				Task.call(() -> handle.handle(p), p, Protocol::trySendResultCode);
 				return;
 			}
 			TransactionLevel level = factoryHandle.Level;
 			Application zeze = this.zeze;
 			// 为了避免redirect时死锁,这里一律不在whileCommit时执行
 			if (zeze != null && level != TransactionLevel.None)
-				Task.runUnsafe(zeze.NewProcedure(() -> handle.handle(p),
+				Task.runUnsafe(zeze.newProcedure(() -> handle.handle(p),
 								p.getClass().getName(), level, p.getUserState()), p,
 						Protocol::trySendResultCode, factoryHandle.Mode);
 			else
@@ -524,7 +524,7 @@ public class Service {
 	}
 
 	public KV<String, Integer> getOneAcceptorAddress() {
-		var ipPort = KV.Create("", 0);
+		var ipPort = KV.create("", 0);
 
 		config.forEachAcceptor2(a -> {
 			if (!a.getIp().isEmpty() && a.getPort() != 0) {

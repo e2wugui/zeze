@@ -15,8 +15,8 @@ public final class BLoginParam extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ServerId;
-        var log = (Log__ServerId)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _ServerId;
+        var log = (Log__ServerId)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _ServerId;
     }
 
     public void setServerId(int value) {
@@ -25,7 +25,7 @@ public final class BLoginParam extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__ServerId(this, 1, value));
+        txn.putLog(new Log__ServerId(this, 1, value));
     }
 
     public int getGlobalCacheManagerHashIndex() {
@@ -34,8 +34,8 @@ public final class BLoginParam extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _GlobalCacheManagerHashIndex;
-        var log = (Log__GlobalCacheManagerHashIndex)txn.GetLog(objectId() + 2);
-        return log != null ? log.Value : _GlobalCacheManagerHashIndex;
+        var log = (Log__GlobalCacheManagerHashIndex)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _GlobalCacheManagerHashIndex;
     }
 
     public void setGlobalCacheManagerHashIndex(int value) {
@@ -44,7 +44,7 @@ public final class BLoginParam extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__GlobalCacheManagerHashIndex(this, 2, value));
+        txn.putLog(new Log__GlobalCacheManagerHashIndex(this, 2, value));
     }
 
     public boolean isDebugMode() {
@@ -53,8 +53,8 @@ public final class BLoginParam extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _DebugMode;
-        var log = (Log__DebugMode)txn.GetLog(objectId() + 3);
-        return log != null ? log.Value : _DebugMode;
+        var log = (Log__DebugMode)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _DebugMode;
     }
 
     public void setDebugMode(boolean value) {
@@ -63,7 +63,7 @@ public final class BLoginParam extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__DebugMode(this, 3, value));
+        txn.putLog(new Log__DebugMode(this, 3, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -94,7 +94,7 @@ public final class BLoginParam extends Zeze.Transaction.Bean {
 
     public BLoginParam copy() {
         var copy = new BLoginParam();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -104,9 +104,9 @@ public final class BLoginParam extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BLoginParam a, BLoginParam b) {
-        BLoginParam save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BLoginParam save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -125,21 +125,21 @@ public final class BLoginParam extends Zeze.Transaction.Bean {
         public Log__ServerId(BLoginParam bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BLoginParam)getBelong())._ServerId = Value; }
+        public void commit() { ((BLoginParam)getBelong())._ServerId = value; }
     }
 
     private static final class Log__GlobalCacheManagerHashIndex extends Zeze.Transaction.Logs.LogInt {
         public Log__GlobalCacheManagerHashIndex(BLoginParam bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BLoginParam)getBelong())._GlobalCacheManagerHashIndex = Value; }
+        public void commit() { ((BLoginParam)getBelong())._GlobalCacheManagerHashIndex = value; }
     }
 
     private static final class Log__DebugMode extends Zeze.Transaction.Logs.LogBool {
         public Log__DebugMode(BLoginParam bean, int varId, boolean value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BLoginParam)getBelong())._DebugMode = Value; }
+        public void commit() { ((BLoginParam)getBelong())._DebugMode = value; }
     }
 
     @Override
@@ -247,9 +247,9 @@ public final class BLoginParam extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
-                case 2: _GlobalCacheManagerHashIndex = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
-                case 3: _DebugMode = ((Zeze.Transaction.Logs.LogBool)vlog).Value; break;
+                case 1: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 2: _GlobalCacheManagerHashIndex = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 3: _DebugMode = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
             }
         }
     }

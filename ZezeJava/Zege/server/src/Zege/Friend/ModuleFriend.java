@@ -19,7 +19,7 @@ public class ModuleFriend extends AbstractModule {
 	public static final String FriendsLinkedMapNameEndsWith = "@Zege.Friend";
 
 	public void Start(Zege.App app) throws Throwable {
-		GroupIdAutoKey = app.getZeze().GetAutoKey("Zege.GroupId");
+		GroupIdAutoKey = app.getZeze().getAutoKey("Zege.GroupId");
 		App.LinkedMaps.NodeListeners.put(FriendsLinkedMapNameEndsWith, (key, r) -> {
 			var nodeKey = (BLinkedMapNodeKey)key;
 			var indexOf = nodeKey.getName().lastIndexOf('@');
@@ -80,7 +80,7 @@ public class ModuleFriend extends AbstractModule {
 
 		// 参数检查
 		if (!App.Zege_User.containsKey(r.Argument.getAccount()))
-			return ErrorCode(eUserNotFound);
+			return errorCode(eUserNotFound);
 
 		if (r.Argument.getAccount().endsWith("@group")) {
 			// 添加群，todo，如果目标需要群主批准，需要走审批流程
@@ -112,7 +112,7 @@ public class ModuleFriend extends AbstractModule {
 		var out = new OutLong();
 		r.setResultCode(group.createDepartment(r.Argument.getDepartmentId(), r.Argument.getName(),
 				App.ZegeConfig.DepartmentChildrenLimit, out));
-		r.Result.setDepartmentId(out.Value);
+		r.Result.setDepartmentId(out.value);
 
 		session.sendResponseWhileCommit(r);
 		// todo 创建部门客户端自己根据rpc结果更新数据？这样的话需要在Result里带上新创建的部门的数据。
@@ -143,11 +143,11 @@ public class ModuleFriend extends AbstractModule {
 		var group = getGroup(r.Argument.getGroup());
 		var department = group.getDepartmentTreeNode(r.Argument.getDepartmentId());
 		if (null == department)
-			return ErrorCode(eDepartmentNotFound);
+			return errorCode(eDepartmentNotFound);
 
 		// 读取组织架构，只验证是否群成员。
 		if (group.getGroupMembers().get(session.getAccount()) == null)
-			return ErrorCode(eNotGroupMember);
+			return errorCode(eNotGroupMember);
 
 		r.Result.setParentDepartment(department.getParentDepartment());
 		r.Result.setName(department.getName());
@@ -168,9 +168,9 @@ public class ModuleFriend extends AbstractModule {
 				? friends.getFirstNode(nodeId)
 				: friends.getNode(r.Argument.getNodeId());
 		if (null == friendNode)
-			return ErrorCode(eFriendNodeNotFound);
+			return errorCode(eFriendNodeNotFound);
 
-		r.Result.setNodeId(nodeId.Value);
+		r.Result.setNodeId(nodeId.value);
 		r.Result.getNode().Assign(friendNode); // TODO 这里拷贝一次，有点浪费。优化？？？上面还有一处。
 
 		session.sendResponseWhileCommit(r);
@@ -206,11 +206,11 @@ public class ModuleFriend extends AbstractModule {
 		var root = group.getRoot();
 
 		if (r.Argument.getDepartmentId() != 0)
-			return ErrorCode(eParameterError);
+			return errorCode(eParameterError);
 
 		// 读取组织架构，只验证是否群成员。
 		if (group.getGroupMembers().get(session.getAccount()) == null)
-			return ErrorCode(eNotGroupMember);
+			return errorCode(eNotGroupMember);
 
 		r.Result.setRoot(root.getRoot());
 		r.Result.getChilds().putAll(root.getChilds());
@@ -228,7 +228,7 @@ public class ModuleFriend extends AbstractModule {
 		// 读取组织架构，只验证是否群成员。
 		// todo 需求：秘密部门增加验证部门成员
 		if (group.getGroupMembers().get(session.getAccount()) == null)
-			return ErrorCode(eNotGroupMember);
+			return errorCode(eNotGroupMember);
 
 		var nodeId = new OutLong(r.Argument.getNodeId());
 		var node = r.Argument.getNodeId() == 0
@@ -236,11 +236,11 @@ public class ModuleFriend extends AbstractModule {
 				: group.getDepartmentMembers(r.Argument.getDepartmentId()).getNode(r.Argument.getNodeId());
 
 		if (null == node)
-			return ErrorCode(eMemberNodeNotFound);
+			return errorCode(eMemberNodeNotFound);
 
 		r.Result.setNextNodeId(node.getNextNodeId());
 		r.Result.setPrevNodeId(node.getPrevNodeId());
-		r.Result.setNodeId(nodeId.Value);
+		r.Result.setNodeId(nodeId.value);
 		for (var member : node.getValues()) {
 			var get = new BGetDepartmentMember();
 			get.setAccount(member.getId());
@@ -264,17 +264,17 @@ public class ModuleFriend extends AbstractModule {
 		var group = getGroup(r.Argument.getGroup());
 		// 读取组织架构，只验证是否群成员。
 		if (group.getGroupMembers().get(session.getAccount()) == null)
-			return ErrorCode(eNotGroupMember);
+			return errorCode(eNotGroupMember);
 
 		var nodeId = new OutLong(r.Argument.getNodeId());
 		var node = r.Argument.getNodeId() == 0
 				? group.getGroupMembers().getFirstNode(nodeId)
 				: group.getGroupMembers().getNode(r.Argument.getNodeId());
 		if (null == node)
-			return ErrorCode(eMemberNodeNotFound);
+			return errorCode(eMemberNodeNotFound);
 		r.Result.setNextNodeId(node.getNextNodeId());
 		r.Result.setPrevNodeId(node.getPrevNodeId());
-		r.Result.setNextNodeId(nodeId.Value);
+		r.Result.setNextNodeId(nodeId.value);
 		for (var member : node.getValues()) {
 			var get = new BGetMember();
 			get.setAccount(member.getId());
@@ -311,9 +311,9 @@ public class ModuleFriend extends AbstractModule {
 			}
 		} else {
 			if (null == groupMember)
-				return ErrorCode(eDeparmentMemberNotInGroup);
+				return errorCode(eDeparmentMemberNotInGroup);
 			if (groupMember.getBelongDepartments().size() > App.ZegeConfig.BelongDepartmentLimit)
-				return ErrorCode(eToomanyBelongDepartments);
+				return errorCode(eToomanyBelongDepartments);
 			groupMember.getBelongDepartments().add(r.Argument.getDepartmentId());
 			group.getDepartmentMembers(r.Argument.getDepartmentId()).getOrAdd(r.Argument.getAccount());
 		}
@@ -395,7 +395,7 @@ public class ModuleFriend extends AbstractModule {
 			return Procedure.Success;
 		}
 
-		return ErrorCode(eUserExists);
+		return errorCode(eUserExists);
 	}
 
 	@Override
@@ -404,7 +404,7 @@ public class ModuleFriend extends AbstractModule {
 		var account = r.Argument.getAccount();
 		var user = App.Zege_User.get(account);
 		if (null == user)
-			return ErrorCode(eUserNotFound);
+			return errorCode(eUserNotFound);
 
 		r.Result.setAccount(r.Argument.getAccount());
 		r.Result.setNick(user.getNick());
@@ -420,7 +420,7 @@ public class ModuleFriend extends AbstractModule {
 		var account = r.Argument.getAccount();
 		var userPhoto = App.Zege_User.getUserPhoto(account);
 		if (null == userPhoto)
-			return ErrorCode(eUserNotFound);
+			return errorCode(eUserNotFound);
 
 		r.Result.setAccount(r.Argument.getAccount());
 		r.Result.setPhoto(userPhoto.getPhoto());
@@ -436,7 +436,7 @@ public class ModuleFriend extends AbstractModule {
 
 		// 参数检查
 		if (!App.Zege_User.containsKey(r.Argument.getAccount()))
-			return ErrorCode(eUserNotFound);
+			return errorCode(eUserNotFound);
 
 		if (r.Argument.getAccount().endsWith("@group")) {
 			// TODO: to support deleting group top later.
@@ -455,7 +455,7 @@ public class ModuleFriend extends AbstractModule {
 
 		// 参数检查
 		if (!App.Zege_User.containsKey(r.Argument.getAccount()))
-			return ErrorCode(eUserNotFound);
+			return errorCode(eUserNotFound);
 
 		if (r.Argument.getAccount().endsWith("@group")) {
 			// TODO: to support making group top later.
@@ -476,10 +476,10 @@ public class ModuleFriend extends AbstractModule {
 		var friendNode = friends.getFirstNode(nodeId);
 		var v = friendNode.getValues();
 
-		var x = v._list; // TODO
+		var x = v.list; // TODO
 
 		if (topmost.getNode().getValues().size() == 0)
-			return ErrorCode(eFriendNodeNotFound);
+			return errorCode(eFriendNodeNotFound);
 
 		r.Result.setNodeId(topmost.getNodeId());
 		r.Result.getNode().Assign(topmost.getNode()); // TODO 这里拷贝一次，有点浪费。优化？？？上面还有一处。

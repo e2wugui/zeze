@@ -62,18 +62,18 @@ public class ModuleUser extends AbstractModule {
         var user = _tUser.getOrAdd(account);
 
         if (account.indexOf('@') >= 0)
-            return ErrorCode(eAccountInvalid);
+            return errorCode(eAccountInvalid);
 
         var now = System.currentTimeMillis();
         if (now - user.getPrepareTime() > 15 * 60 * 1000)
-            return ErrorCode(ePrepareExpired);
+            return errorCode(ePrepareExpired);
 
         user.setCreateTime(System.currentTimeMillis());
         user.setAccount(account);
         var publicKey = Cert.loadPublicKeyByPkcs1(r.Argument.getRsaPublicKey().bytesUnsafe());
         var passwd = "123";
         if (!Cert.verifySign(publicKey, user.getPrepareRandomData().bytesUnsafe(), r.Argument.getSigned().bytesUnsafe()))
-            return ErrorCode(ePrepareNotOwner);
+            return errorCode(ePrepareNotOwner);
 
         user.setState(BUser.StateCreated);
         user.setPrepareRandomData(Binary.Empty);
@@ -154,11 +154,11 @@ public class ModuleUser extends AbstractModule {
         var account = r.Argument.getAccount();
         var user = _tUser.getOrAdd(account);
         if (user.getState() == BUser.StateCreated)
-            return ErrorCode(eAccountHasUsed);
+            return errorCode(eAccountHasUsed);
 
         var now = System.currentTimeMillis();
         if (now - user.getPrepareTime() < 15 * 60 * 1000)
-            return ErrorCode(eAccountHasPrepared);
+            return errorCode(eAccountHasPrepared);
 
         user.setState(BUser.StatePrepare);
         user.setPrepareTime(now);

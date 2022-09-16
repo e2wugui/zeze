@@ -20,7 +20,7 @@ public final class BOnlines extends Zeze.Transaction.Bean {
     public void assign(BOnlines other) {
         getLogins().clear();
         for (var e : other.getLogins().entrySet())
-            getLogins().put(e.getKey(), e.getValue().Copy());
+            getLogins().put(e.getKey(), e.getValue().copy());
     }
 
     @Deprecated
@@ -34,7 +34,7 @@ public final class BOnlines extends Zeze.Transaction.Bean {
 
     public BOnlines copy() {
         var copy = new BOnlines();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -44,9 +44,9 @@ public final class BOnlines extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BOnlines a, BOnlines b) {
-        BOnlines save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BOnlines save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override

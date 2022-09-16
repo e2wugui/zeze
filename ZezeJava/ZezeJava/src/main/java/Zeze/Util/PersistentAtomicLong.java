@@ -11,9 +11,9 @@ public class PersistentAtomicLong {
 	private final AtomicLong currentId = new AtomicLong();
 	private volatile long allocated;
 
-	private final String Name;
-	private final String FileName;
-	private final int AllocateSize;
+	private final String name;
+	private final String fileName;
+	private final int allocateSize;
 
 	private final static ConcurrentHashMap<String, PersistentAtomicLong> pals = new ConcurrentHashMap<>();
 
@@ -39,12 +39,12 @@ public class PersistentAtomicLong {
 		if (allocateSize <= 0)
 			throw new IllegalArgumentException();
 
-		Name = ProgramInstanceName;
-		FileName = ProgramInstanceName + ".zeze.pal";
-		AllocateSize = allocateSize;
+		name = ProgramInstanceName;
+		fileName = ProgramInstanceName + ".zeze.pal";
+		this.allocateSize = allocateSize;
 
 		try {
-			var fs = open(FileName);
+			var fs = open(fileName);
 			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (fs) {
 				var lock = fs.getChannel().lock();
@@ -65,7 +65,7 @@ public class PersistentAtomicLong {
 	}
 
 	public String getName() {
-		return Name;
+		return name;
 	}
 
 	public long next() {
@@ -80,10 +80,10 @@ public class PersistentAtomicLong {
 		}
 	}
 
-	private static final ConcurrentHashMap<String, RandomAccessFile> AllocFiles = new ConcurrentHashMap<>();
+	private static final ConcurrentHashMap<String, RandomAccessFile> allocFiles = new ConcurrentHashMap<>();
 
 	private static RandomAccessFile open(String fileName) {
-		return AllocFiles.computeIfAbsent(fileName, (k) -> {
+		return allocFiles.computeIfAbsent(fileName, (k) -> {
 			try {
 				return new RandomAccessFile(k, "rw");
 			} catch (FileNotFoundException e) {
@@ -95,7 +95,7 @@ public class PersistentAtomicLong {
 	private void allocate() {
 		try {
 			// 应该尽量减少allocate的次数，所以这里文件就不保持打开了。
-			var fs = open(FileName);
+			var fs = open(fileName);
 			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (fs) {
 				var lock = fs.getChannel().lock();
@@ -105,10 +105,10 @@ public class PersistentAtomicLong {
 					fs.seek(0);
 					var line = fs.readLine();
 					var last = (null == line || line.isEmpty()) ? 0L : Long.parseLong(line);
-					var newLast = last + AllocateSize;
+					var newLast = last + allocateSize;
 					var reset = newLast < 0;
 					if (reset)
-						newLast = AllocateSize;
+						newLast = allocateSize;
 					fs.setLength(0);
 					fs.write(String.valueOf(newLast).getBytes(StandardCharsets.UTF_8));
 					allocated = newLast; // first

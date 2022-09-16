@@ -8,9 +8,9 @@ public final class Random {
 		return ThreadLocalRandom.current();
 	}
 
-	public static <T> List<T> Shuffle(List<T> list) {
-		java.util.Random random = getInstance();
-		for (int i = 1; i < list.size(); i++) {
+	public static <T> List<T> shuffle(List<T> list) {
+		var random = getInstance();
+		for (int i = 1, n = list.size(); i < n; i++) {
 			int pos = random.nextInt(i + 1);
 			var x = list.get(i);
 			list.set(i, list.get(pos));
@@ -19,18 +19,14 @@ public final class Random {
 		return list;
 	}
 
-	public static <T> T[] Shuffle(T[] list) {
-		java.util.Random random = getInstance();
-		for (int i = 1; i < list.length; i++) {
+	public static <T> T[] shuffle(T[] list) {
+		var random = getInstance();
+		for (int i = 1, n = list.length; i < n; i++) {
 			int pos = random.nextInt(i + 1);
 			var x = list[i];
 			list[i] = list[pos];
 			list[pos] = x;
 		}
 		return list;
-	}
-
-	public static void main(String[] args) {
-		System.out.println(getInstance().nextLong());
 	}
 }

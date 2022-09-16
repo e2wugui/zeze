@@ -161,7 +161,7 @@ public class Simulate {
 
 		var app = new SimpleApp(serverId, 20000 + serverId,
 				serviceManagerIp, serviceManagerPort, globalServerIp, globalServerPort, 20000);
-		app.getZeze().AddTable("", table5 = new Table5());
+		app.getZeze().addTable("", table5 = new Table5());
 		app.start();
 
 		var totalCount = new AtomicLong();
@@ -182,7 +182,7 @@ public class Simulate {
 							}
 						}
 						var proc0 = proc;
-						app.getZeze().NewProcedure(() -> (long)proc0.mh.invoke(), proc.name).Call();
+						app.getZeze().newProcedure(() -> (long)proc0.mh.invoke(), proc.name).Call();
 
 						var tc = totalCount.incrementAndGet();
 						if (tc % procsEveryWindowMove == 0) {

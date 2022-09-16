@@ -29,7 +29,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 		var rpcArg = rpc.Argument;
 		rpc.Result.setModuleId(rpcArg.getModuleId());
 		rpc.Result.setServerId(zeze.getConfig().getServerId());
-		var handle = zeze.Redirect.Handles.get(rpcArg.getMethodFullName());
+		var handle = zeze.redirect.Handles.get(rpcArg.getMethodFullName());
 		if (handle == null) {
 			rpc.SendResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
 			return Procedure.LogicError;
@@ -40,15 +40,15 @@ public class ProviderDirect extends AbstractProviderDirect {
 		case Serializable:
 		case AllowDirtyWhenAllRead:
 			var out = new OutObject<>();
-			var rc = zeze.NewProcedure(() -> {
-				out.Value = handle.RequestHandle.call(rpcArg.getHashCode(), rpcArg.getParams());
+			var rc = zeze.newProcedure(() -> {
+				out.value = handle.RequestHandle.call(rpcArg.getHashCode(), rpcArg.getParams());
 				return Procedure.Success;
 			}, "ProcessModuleRedirectRequest").Call();
 			if (rc != Procedure.Success) {
 				rpc.SendResultCode(rc);
 				return rc;
 			}
-			result = out.Value;
+			result = out.value;
 			break;
 		default:
 			try {
@@ -123,7 +123,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 		resArg.setSessionId(pa.getSessionId());
 		resArg.setMethodFullName(pa.getMethodFullName());
 
-		var handle = ProviderApp.Zeze.Redirect.Handles.get(pa.getMethodFullName());
+		var handle = ProviderApp.Zeze.redirect.Handles.get(pa.getMethodFullName());
 		if (handle == null) {
 			res.setResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
 			// 失败了，需要把hash返回。此时是没有处理结果的。
@@ -145,11 +145,11 @@ public class ProviderDirect extends AbstractProviderDirect {
 			case Serializable:
 			case AllowDirtyWhenAllRead:
 				var out = new OutObject<>();
-				hashResult.setReturnCode(ProviderApp.Zeze.NewProcedure(() -> {
-					out.Value = handle.RequestHandle.call(hash, pa.getParams());
+				hashResult.setReturnCode(ProviderApp.Zeze.newProcedure(() -> {
+					out.value = handle.RequestHandle.call(hash, pa.getParams());
 					return Procedure.Success;
 				}, "ProcessModuleRedirectAllRequest").Call());
-				future = (RedirectAllFuture<?>)out.Value;
+				future = (RedirectAllFuture<?>)out.value;
 				break;
 			default:
 				try {

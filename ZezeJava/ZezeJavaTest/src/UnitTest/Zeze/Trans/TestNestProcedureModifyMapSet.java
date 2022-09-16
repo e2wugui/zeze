@@ -19,16 +19,16 @@ public class TestNestProcedureModifyMapSet {
 
 	@Test
 	public void testNestModifyMap() throws Throwable {
-		Assert.assertEquals(Procedure.Success, demo.App.Instance.Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.Instance.Zeze.newProcedure(() -> {
 			demo.App.Instance.demo_Module1.getTable1().remove(1L);
 			return 0L;
 		}, "ModifyMapRemove").Call());
 
-		Assert.assertEquals(Procedure.Success, demo.App.Instance.Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.Instance.Zeze.newProcedure(() -> {
 			var value = demo.App.Instance.demo_Module1.getTable1().getOrAdd(1L);
 			value.getMap15().put(1L, 1L);
 
-			Assert.assertNotEquals(Procedure.Success, demo.App.Instance.Zeze.NewProcedure(() -> {
+			Assert.assertNotEquals(Procedure.Success, demo.App.Instance.Zeze.newProcedure(() -> {
 				Assert.assertNotNull(value.getMap15().get(1L));
 				Assert.assertEquals(1, (long)value.getMap15().get(1L));
 				value.getMap15().put(1L, 2L);
@@ -43,16 +43,16 @@ public class TestNestProcedureModifyMapSet {
 
 	@Test
 	public void TestNestModifySet() throws Throwable {
-		Assert.assertEquals(Procedure.Success, demo.App.Instance.Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.Instance.Zeze.newProcedure(() -> {
 			demo.App.Instance.demo_Module1.getTable1().remove(1L);
 			return 0L;
 		}, "ModifyMapRemove").Call());
 
-		Assert.assertEquals(Procedure.Success, demo.App.Instance.Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.Instance.Zeze.newProcedure(() -> {
 			var value = demo.App.Instance.demo_Module1.getTable1().getOrAdd(1L);
 			value.getSet10().add(1);
 
-			Assert.assertNotEquals(Procedure.Success, demo.App.Instance.Zeze.NewProcedure(() -> {
+			Assert.assertNotEquals(Procedure.Success, demo.App.Instance.Zeze.newProcedure(() -> {
 				Assert.assertTrue(value.getSet10().contains(1));
 				value.getSet10().remove(1);
 				Assert.assertFalse(value.getSet10().contains(1));

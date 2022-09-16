@@ -1,12 +1,12 @@
 package Zeze.Util;
 
 public class OutObject<T> {
-	public T Value;
+	public T value;
 
 	public OutObject() {
 	}
 
 	public OutObject(T value) {
-		Value = value;
+		this.value = value;
 	}
 }

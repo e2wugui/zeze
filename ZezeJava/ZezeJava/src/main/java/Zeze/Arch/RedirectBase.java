@@ -33,7 +33,7 @@ public class RedirectBase {
 	}
 
 	public static <T extends IModule> T ReplaceModuleInstance(Zeze.AppBase userApp, T module) {
-		return GenModule.Instance.ReplaceModuleInstance(userApp, module);
+		return GenModule.instance.replaceModuleInstance(userApp, module);
 	}
 
 	public AsyncSocket ChoiceServer(IModule module, int serverId) {
@@ -73,7 +73,7 @@ public class RedirectBase {
 		if (serviceInfo.getServiceIdentity().equals(String.valueOf(ProviderApp.Zeze.getConfig().getServerId())))
 			return null;
 
-		var ps = (ProviderModuleState)servers.LocalStates.get(serviceInfo.getServiceIdentity());
+		var ps = (ProviderModuleState)servers.localStates.get(serviceInfo.getServiceIdentity());
 		if (ps == null)
 			throw new IllegalStateException("ChoiceHash: not found server for serviceIdentity="
 					+ serviceInfo.getServiceIdentity());
@@ -131,7 +131,7 @@ public class RedirectBase {
 				AddTransmits(transmits, 0, i, req);
 				continue; // loop-back
 			}
-			var localState = providers.LocalStates.get(target.getServiceIdentity());
+			var localState = providers.localStates.get(target.getServiceIdentity());
 			if (localState == null) {
 				AddMiss(miss, i, Procedure.ProviderNotExist);
 				continue; // not ready
@@ -187,15 +187,15 @@ public class RedirectBase {
 				return func.call();
 			} catch (Throwable e) {
 				var f = new RedirectFuture<T>();
-				f.SetException(e);
+				f.setException(e);
 				return f;
 			}
 		}
 
 		var future = new RedirectFuture<T>();
 		// 由于返回的future暴露出来,很可能await同步等待,所以这里不能whileCommit时执行,否则会死锁等待
-		Task.runUnsafe(ProviderApp.Zeze.NewProcedure(() -> {
-			func.call().then(future::SetResult);
+		Task.runUnsafe(ProviderApp.Zeze.newProcedure(() -> {
+			func.call().then(future::setResult);
 			return Procedure.Success;
 		}, "Redirect Loop Back", level, null), null, null, DispatchMode.Normal);
 		return future;
@@ -213,7 +213,7 @@ public class RedirectBase {
 		}
 
 		// 由于此方法用于loop-back的redirect,所以这里不能whileCommit时执行,否则会死锁等待
-		Task.runUnsafe(ProviderApp.Zeze.NewProcedure(() -> {
+		Task.runUnsafe(ProviderApp.Zeze.newProcedure(() -> {
 			action.run();
 			return Procedure.Success;
 		}, "Redirect Loop Back", level, null), null, null, DispatchMode.Normal);

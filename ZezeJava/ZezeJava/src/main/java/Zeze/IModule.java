@@ -21,21 +21,26 @@ public abstract class IModule {
 	public void UnRegister() { // 为了重新装载 Module 的补丁。注册在构造函数里面进行。
 	}
 
+	@Deprecated
 	public final long ErrorCode(int code) {
-		return ErrorCode(getId(), code);
+		return errorCode(code);
 	}
 
-	public static long ErrorCode(int moduleId, int code) {
+	public final long errorCode(int code) {
+		return errorCode(getId(), code);
+	}
+
+	public static long errorCode(int moduleId, int code) {
 		if (code < 0)
 			throw new IllegalArgumentException("code must greater than 0.");
-		return Zeze.Net.Protocol.MakeTypeId(moduleId, code);
+		return Zeze.Net.Protocol.makeTypeId(moduleId, code);
 	}
 
-	public static int GetModuleId(long result) {
+	public static int getModuleId(long result) {
 		return Zeze.Net.Protocol.getModuleId(result);
 	}
 
-	public static int GetErrorCode(long result) {
+	public static int getErrorCode(long result) {
 		return Zeze.Net.Protocol.getProtocolId(result);
 	}
 }

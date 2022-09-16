@@ -52,8 +52,8 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);");
             sw.WriteLine(prefix + "    if (txn == null)");
             sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "    var log = (Log_" + var.NamePrivate + ")txn.GetLog(objectId() + " + var.Id + ");");
-            sw.WriteLine(prefix + "    return log != null ? log.Value : " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + "    var log = (Log_" + var.NamePrivate + ")txn.getLog(objectId() + " + var.Id + ");");
+            sw.WriteLine(prefix + "    return log != null ? log.value : " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
             sw.WriteLine(prefix + "public void " + var.Setter($"{typeName} value") + " {");
@@ -68,7 +68,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "        return;");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);");
-            sw.WriteLine(prefix + "    txn.PutLog(new Log_" + var.NamePrivate + $"(this, {var.Id}, value));"); //
+            sw.WriteLine(prefix + "    txn.putLog(new Log_" + var.NamePrivate + $"(this, {var.Id}, value));"); //
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }
@@ -199,8 +199,8 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "            return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);");
             sw.WriteLine(prefix + "        if (txn == null) return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "        var log = (Log_" + var.NamePrivate + ")txn.GetLog(objectId() + " + var.Id + ");");
-            sw.WriteLine(prefix + "        return log != null ? log.Value : " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + "        var log = (Log_" + var.NamePrivate + ")txn.getLog(objectId() + " + var.Id + ");");
+            sw.WriteLine(prefix + "        return log != null ? log.value : " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    private set");
             sw.WriteLine(prefix + "    {");
@@ -214,7 +214,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "        value.initRootInfo(RootInfo, this);");
             sw.WriteLine(prefix + "        value.variableId(" + var.Id + ");");
             sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);");
-            sw.WriteLine(prefix + "        txn.PutLog(new Log_" + var.NamePrivate + "(this, value));"); //
+            sw.WriteLine(prefix + "        txn.putLog(new Log_" + var.NamePrivate + "(this, value));"); //
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
             */

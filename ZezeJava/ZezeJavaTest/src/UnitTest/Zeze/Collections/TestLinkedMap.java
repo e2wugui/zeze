@@ -26,7 +26,7 @@ public class TestLinkedMap {
 
 	@Test
 	public final void test1_LinkedMapPut() throws Throwable {
-		var ret = demo.App.getInstance().Zeze.NewProcedure(() -> {
+		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var map = demo.App.getInstance().LinkedMapModule.open("test1", BMyBean.class);
 			for (int i = 100; i < 110; i++) {
 				var bean = new BMyBean();
@@ -40,7 +40,7 @@ public class TestLinkedMap {
 
 	@Test
 	public final void test2_LinkedMapGet() throws Throwable {
-		var ret = demo.App.getInstance().Zeze.NewProcedure(() -> {
+		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var map = demo.App.getInstance().LinkedMapModule.open("test1", BMyBean.class);
 			for (int i = 100; i < 110; i++) {
 				var bean = map.get(i);
@@ -67,7 +67,7 @@ public class TestLinkedMap {
 
 	@Test
 	public final void test4_LinkedMapRemove() throws Throwable {
-		var ret = demo.App.getInstance().Zeze.NewProcedure(() -> {
+		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var map = demo.App.getInstance().LinkedMapModule.open("test1", BMyBean.class);
 			for (int i = 100; i < 110; i++) {
 				var bean = map.remove(i);

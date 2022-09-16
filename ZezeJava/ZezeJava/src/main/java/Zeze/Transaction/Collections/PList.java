@@ -10,7 +10,7 @@ import Zeze.Transaction.Transaction;
 import org.pcollections.PVector;
 
 public abstract class PList<V> extends Collection implements List<V> {
-	public PVector<V> _list = org.pcollections.Empty.vector();
+	public PVector<V> list = org.pcollections.Empty.vector();
 
 	@Override
 	public abstract boolean add(V item);
@@ -45,18 +45,18 @@ public abstract class PList<V> extends Collection implements List<V> {
 		if (isManaged()) {
 			var txn = Transaction.getCurrentVerifyRead(this);
 			if (txn == null)
-				return _list;
-			Log log = txn.GetLog(parent().objectId() + variableId());
+				return list;
+			Log log = txn.getLog(parent().objectId() + variableId());
 			if (log == null)
-				return _list;
+				return list;
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList<V>)log;
 			return listLog.getValue();
 		}
-		return _list;
+		return list;
 	}
 
-	public final void CopyTo(V[] array, int arrayIndex) {
+	public final void copyTo(V[] array, int arrayIndex) {
 		var data = getList();
 		for (var e : data)
 			array[arrayIndex++] = e;

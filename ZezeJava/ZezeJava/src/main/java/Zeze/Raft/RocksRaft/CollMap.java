@@ -6,7 +6,7 @@ import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 
 public abstract class CollMap<K, V> extends Collection implements Iterable<Map.Entry<K, V>> {
-	public org.pcollections.PMap<K, V> _map = org.pcollections.Empty.map();
+	public org.pcollections.PMap<K, V> map = org.pcollections.Empty.map();
 
 	public final V get(K key) {
 		return getMap().get(key);
@@ -28,15 +28,15 @@ public abstract class CollMap<K, V> extends Collection implements Iterable<Map.E
 		if (isManaged()) {
 			var t = Transaction.getCurrent();
 			if (t == null)
-				return _map;
-			var log = t.GetLog(parent().objectId() + variableId());
+				return map;
+			var log = t.getLog(parent().objectId() + variableId());
 			if (log == null)
-				return _map;
+				return map;
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap1<K, V>)log;
 			return mapLog.getValue();
 		}
-		return _map;
+		return map;
 	}
 
 	public final int size() {

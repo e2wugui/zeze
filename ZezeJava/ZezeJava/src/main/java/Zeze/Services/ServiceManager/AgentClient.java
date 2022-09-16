@@ -10,10 +10,10 @@ public final class AgentClient extends Zeze.Services.HandshakeClient {
 	/**
 	 * 和注册服务器之间只保持一个连接。并且不处理任何协议状态。
 	 */
-	private AsyncSocket Socket;
+	private AsyncSocket socket;
 
 	public AgentClient(Agent agent, Zeze.Config config) throws Throwable {
-		super(Agent.DefaultServiceName, config);
+		super(Agent.defaultServiceName, config);
 		this.agent = agent;
 	}
 
@@ -27,15 +27,15 @@ public final class AgentClient extends Zeze.Services.HandshakeClient {
 	}
 
 	public AsyncSocket getSocket() {
-		return Socket;
+		return socket;
 	}
 
 	@Override
 	public void OnHandshakeDone(AsyncSocket sender) throws Throwable {
 		super.OnHandshakeDone(sender);
-		if (Socket == null) {
-			Socket = sender;
-			Task.runUnsafe(agent::OnConnected, "ServiceManager.Agent.OnConnected", DispatchMode.Normal);
+		if (socket == null) {
+			socket = sender;
+			Task.runUnsafe(agent::onConnected, "ServiceManager.Agent.OnConnected", DispatchMode.Normal);
 		} else {
 			Agent.logger.error("Has Connected.");
 		}
@@ -43,14 +43,14 @@ public final class AgentClient extends Zeze.Services.HandshakeClient {
 
 	@Override
 	public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
-		if (Socket == so) {
-			Socket = null;
+		if (socket == so) {
+			socket = null;
 		}
 		super.OnSocketClose(so, e);
 	}
 
 	@Override
 	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) {
-		Task.Call(() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode);
+		Task.call(() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode);
 	}
 }

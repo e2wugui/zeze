@@ -67,14 +67,14 @@ public class ProviderUserSession {
 		var offset = fullEncodedProtocol.getOffset();
 		var moduleId = ByteBuffer.ToInt(bytes, offset);
 		var protocolId = ByteBuffer.ToInt(bytes, offset + 4);
-		sendResponse(Protocol.MakeTypeId(moduleId, protocolId), fullEncodedProtocol);
+		sendResponse(Protocol.makeTypeId(moduleId, protocolId), fullEncodedProtocol);
 	}
 
 	private void sendOnline(AsyncSocket link, Send send) {
 		var providerImpl = getService().ProviderApp.ProviderImplement;
 		if (providerImpl instanceof ProviderWithOnline) {
 			((ProviderWithOnline)providerImpl).Online.send(
-					link, Map.of(getLinkSid(), KV.Create(getAccount(), getContext())), send);
+					link, Map.of(getLinkSid(), KV.create(getAccount(), getContext())), send);
 		} else if (providerImpl instanceof ProviderImplementWithOnline) {
 			var contexts = new TreeMap<Long, Long>();
 			contexts.put(getLinkSid(), getRoleId());

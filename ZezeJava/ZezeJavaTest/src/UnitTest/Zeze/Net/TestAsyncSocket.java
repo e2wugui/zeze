@@ -35,7 +35,7 @@ public class TestAsyncSocket extends TestCase {
 			System.out.println("input size=" + input.Size());
 			System.out.println(input.ReadString());
 			input.ReadIndex = input.WriteIndex;
-			Future.SetResult(true);
+			Future.setResult(true);
 		}
 	}
 

@@ -24,11 +24,11 @@ public class Bag {
 	// Module.Start的时候自动装载注册的ClassName。
 	private final static BeanFactory beanFactory = new BeanFactory();
 
-	public static long GetSpecialTypeIdFromBean(Bean bean) {
+	public static long getSpecialTypeIdFromBean(Bean bean) {
 		return BeanFactory.getSpecialTypeIdFromBean(bean);
 	}
 
-	public static Bean CreateBeanFromSpecialTypeId(long typeId) {
+	public static Bean createBeanFromSpecialTypeId(long typeId) {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
@@ -354,7 +354,7 @@ public class Bag {
 		@SuppressWarnings("unchecked")
 		public void Start(Zeze.Application zeze) throws Throwable {
 			ProviderApp.BuiltinModules.put(this.getFullName(), this);
-			if (0L != zeze.NewProcedure(() -> {
+			if (0L != zeze.newProcedure(() -> {
 				var classes = _tItemClasses.getOrAdd(1);
 				for (var cls : classes.getItemClasses()) {
 					beanFactory.register((Class<? extends Bean>)Class.forName(cls));
@@ -373,7 +373,7 @@ public class Bag {
 			var session = ProviderUserSession.get(r);
 			var moduleCode = open(r.Argument.getBagName()).destroy(r.Argument.getPosition());
 			if (0 != moduleCode) {
-				return ErrorCode(moduleCode);
+				return errorCode(moduleCode);
 			}
 			session.sendResponseWhileCommit(r);
 			return 0;
@@ -386,7 +386,7 @@ public class Bag {
 			var moduleCode = open(r.Argument.getBagName()).move(
 					r.Argument.getPositionFrom(), r.Argument.getPositionTo(), r.Argument.getNumber());
 			if (moduleCode != 0) {
-				return ErrorCode(moduleCode);
+				return errorCode(moduleCode);
 			}
 			session.sendResponseWhileCommit(r);
 			return 0;

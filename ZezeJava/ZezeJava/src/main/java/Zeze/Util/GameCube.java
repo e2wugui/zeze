@@ -4,16 +4,16 @@ import org.pcollections.Empty;
 import org.pcollections.PSet;
 
 public class GameCube extends Cube<GameObjectId> {
-	private PSet<GameObjectId> ObjectIds = Empty.set();
+	private PSet<GameObjectId> objectIds = Empty.set();
 
 	public final PSet<GameObjectId> getObjectIds() {
-		return ObjectIds;
+		return objectIds;
 	}
 
 	@Override
-	public void Add(CubeIndex index, GameObjectId obj) {
+	public void add(CubeIndex index, GameObjectId obj) {
 		// under lock(cube)
-		ObjectIds = ObjectIds.plus(obj);
+		objectIds = objectIds.plus(obj);
 	}
 
 	/**
@@ -23,9 +23,9 @@ public class GameCube extends Cube<GameObjectId> {
 	 * @param obj   game object id
 	 */
 	@Override
-	public boolean Remove(CubeIndex index, GameObjectId obj) {
+	public boolean remove(CubeIndex index, GameObjectId obj) {
 		// under lock(cube)
-		ObjectIds = ObjectIds.minus(obj);
-		return ObjectIds.isEmpty();
+		objectIds = objectIds.minus(obj);
+		return objectIds.isEmpty();
 	}
 }

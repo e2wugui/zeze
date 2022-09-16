@@ -11,10 +11,13 @@ import Zeze.Game.Rank;
  * 3. 该模块创建的时候提供方法，直接创建生成的重载类。不需要用户生成代码。
  * 4. 这个类创建原始内建模块实例，并执行ReplaceModuleInstance生成代码。
  */
-public class RedirectGenMain {
+public final class RedirectGenMain {
+	private RedirectGenMain() {
+	}
+
 	@SuppressWarnings("deprecation")
 	public static void main(String[] args) {
-		if (GenModule.Instance.GenFileSrcRoot == null) {
+		if (GenModule.instance.genFileSrcRoot == null) {
 			System.out.println("usage: java -DGenFileSrcRoot=... -cp ... " + RedirectGenMain.class.getName());
 			return;
 		}
@@ -26,9 +29,9 @@ public class RedirectGenMain {
 			}
 		};
 
-		GenModule.Instance.ReplaceModuleInstance(app, new Zeze.Arch.Online());
-		GenModule.Instance.ReplaceModuleInstance(app, new Zeze.Game.Online());
-		GenModule.Instance.ReplaceModuleInstance(app, new Rank());
+		GenModule.instance.replaceModuleInstance(app, new Zeze.Arch.Online());
+		GenModule.instance.replaceModuleInstance(app, new Zeze.Game.Online());
+		GenModule.instance.replaceModuleInstance(app, new Rank());
 
 		System.out.println("==================");
 		System.out.println("Gen Redirect Done!");

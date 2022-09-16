@@ -113,7 +113,7 @@ public final class AutoKey {
 		var seedKey = new BSeedKey(module.Zeze.getConfig().getServerId(), name);
 		var txn = Transaction.getCurrent();
 		assert txn != null;
-		var log = (RangeLog)txn.GetLog(logKey);
+		var log = (RangeLog)txn.getLog(logKey);
 		while (true) {
 			if (null == log) {
 				// allocate: 多线程，多事务，多服务器（缓存同步）由zeze保证。
@@ -123,7 +123,7 @@ public final class AutoKey {
 				key.setNextId(end);
 				// create log，本事务可见，
 				log = new RangeLog(new Range(start, end));
-				txn.PutLog(log);
+				txn.putLog(log);
 			}
 			var tryNext = log.range.tryNextId();
 			if (tryNext != 0)

@@ -11,38 +11,38 @@ import org.rocksdb.WriteBatch;
 
 public final class Record<K> {
 	public static final class RootInfo {
-		private final Record<?> Record;
-		private final TableKey TableKey;
+		private final Record<?> record;
+		private final TableKey tableKey;
 
 		public RootInfo(Record<?> record, TableKey tableKey) {
-			Record = record;
-			TableKey = tableKey;
+			this.record = record;
+			this.tableKey = tableKey;
 		}
 
 		public Record<?> getRecord() {
-			return Record;
+			return record;
 		}
 
 		public TableKey getTableKey() {
-			return TableKey;
+			return tableKey;
 		}
 	}
 
 	public static final int StateNew = 0;
 	public static final int StateLoad = 1;
-	private static final AtomicLong _TimestampGen = new AtomicLong(1);
+	private static final AtomicLong timestampGen = new AtomicLong(1);
 
 	public static long getNextTimestamp() {
-		return _TimestampGen.getAndIncrement();
+		return timestampGen.getAndIncrement();
 	}
 
 	private final BiConsumer<ByteBuffer, K> keyEncodeFunc;
-	private int State = StateNew;
-	private long Timestamp;
-	private boolean Removed;
-	private Table<K, ?> Table;
-	private K Key;
-	private Bean Value;
+	private int state = StateNew;
+	private long timestamp;
+	private boolean removed;
+	private Table<K, ?> table;
+	private K key;
+	private Bean value;
 	final Lock mutex = new ReentrantLock();
 
 	public Record(Class<K> keyClass) {
@@ -54,76 +54,76 @@ public final class Record<K> {
 	}
 
 	public int getState() {
-		return State;
+		return state;
 	}
 
 	public void setState(int value) {
-		State = value;
+		state = value;
 	}
 
 	public long getTimestamp() {
-		return Timestamp;
+		return timestamp;
 	}
 
 	public void setTimestamp(long value) {
-		Timestamp = value;
+		timestamp = value;
 	}
 
 	public boolean getRemoved() {
-		return Removed;
+		return removed;
 	}
 
 	public void setRemoved(boolean value) {
-		Removed = value;
+		removed = value;
 	}
 
 	public Table<K, ?> getTable() {
-		return Table;
+		return table;
 	}
 
 	public void setTable(Table<K, ?> value) {
-		Table = value;
+		table = value;
 	}
 
 	public K getKey() {
-		return Key;
+		return key;
 	}
 
 	public void setKey(K value) {
-		Key = value;
+		key = value;
 	}
 
 	public Bean getValue() {
-		return Value;
+		return value;
 	}
 
 	public void setValue(Bean value) {
-		Value = value;
+		this.value = value;
 	}
 
-	public RootInfo CreateRootInfoIfNeed(TableKey tkey) {
-		var cur = Value != null ? Value.rootInfo() : null;
+	public RootInfo createRootInfoIfNeed(TableKey tkey) {
+		var cur = value != null ? value.rootInfo() : null;
 		return cur != null ? cur : new RootInfo(this, tkey);
 	}
 
-	public void LeaderApply(Transaction.RecordAccessed accessed) {
+	public void leaderApply(Transaction.RecordAccessed accessed) {
 		if (accessed.getPutLog() != null)
-			setValue(accessed.getPutLog().Value);
-		Timestamp = getNextTimestamp(); // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
+			setValue(accessed.getPutLog().value);
+		timestamp = getNextTimestamp(); // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
 	}
 
-	public void Flush(WriteBatch batch) throws RocksDBException {
+	public void flush(WriteBatch batch) throws RocksDBException {
 		var keyBB = ByteBuffer.Allocate();
-		keyEncodeFunc.accept(keyBB, Key);
-		if (Value != null) {
-			int preAllocSize = Value.preAllocSize();
+		keyEncodeFunc.accept(keyBB, key);
+		if (value != null) {
+			int preAllocSize = value.preAllocSize();
 			ByteBuffer valueBB = ByteBuffer.Allocate(Math.min(preAllocSize, 65536));
-			Value.encode(valueBB);
+			value.encode(valueBB);
 			int size = valueBB.WriteIndex;
 			if (size > preAllocSize)
-				Value.preAllocSize(size);
-			batch.put(Table.getColumnFamily(), keyBB.Copy(), valueBB.Copy());
+				value.preAllocSize(size);
+			batch.put(table.getColumnFamily(), keyBB.Copy(), valueBB.Copy());
 		} else
-			batch.delete(Table.getColumnFamily(), keyBB.Copy());
+			batch.delete(table.getColumnFamily(), keyBB.Copy());
 	}
 }

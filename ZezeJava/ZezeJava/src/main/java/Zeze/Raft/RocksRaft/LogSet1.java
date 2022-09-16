@@ -10,11 +10,11 @@ import org.pcollections.Empty;
 public class LogSet1<V> extends LogSet<V> {
 	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
 
-	private final Set<V> Added = new HashSet<>();
-	private final Set<V> Removed = new HashSet<>();
+	private final Set<V> added = new HashSet<>();
+	private final Set<V> removed = new HashSet<>();
 
 	public LogSet1(Class<V> valueClass) {
-		super("Zeze.Raft.RocksRaft.LogSet1<" + Reflect.GetStableName(valueClass) + '>');
+		super("Zeze.Raft.RocksRaft.LogSet1<" + Reflect.getStableName(valueClass) + '>');
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
 	}
 
@@ -24,43 +24,43 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	public final Set<V> getAdded() {
-		return Added;
+		return added;
 	}
 
 	public final Set<V> getRemoved() {
-		return Removed;
+		return removed;
 	}
 
 	@Override
-	public void Collect(Changes changes, Bean recent, Log vlog) {
+	public void collect(Changes changes, Bean recent, Log vlog) {
 		throw new UnsupportedOperationException("Collect Not Implement.");
 	}
 
-	public final boolean Add(V item) {
+	public final boolean add(V item) {
 		var newSet = getValue().plus(item);
 		if (newSet != getValue()) {
-			Added.add(item);
-			Removed.remove(item);
+			added.add(item);
+			removed.remove(item);
 			setValue(newSet);
 			return true;
 		}
 		return false;
 	}
 
-	public final boolean Remove(V item) {
+	public final boolean remove(V item) {
 		var newSet = getValue().minus(item);
 		if (newSet != getValue()) {
-			Removed.add(item);
-			Added.remove(item);
+			removed.add(item);
+			added.remove(item);
 			setValue(newSet);
 			return true;
 		}
 		return false;
 	}
 
-	public final void Clear() {
+	public final void clear() {
 		for (var e : getValue())
-			Remove(e);
+			remove(e);
 		setValue(Empty.set());
 	}
 
@@ -68,12 +68,12 @@ public class LogSet1<V> extends LogSet<V> {
 	public void encode(ByteBuffer bb) {
 		var encoder = valueCodecFuncs.encoder;
 
-		bb.WriteUInt(Added.size());
-		for (var e : Added)
+		bb.WriteUInt(added.size());
+		for (var e : added)
 			encoder.accept(bb, e);
 
-		bb.WriteUInt(Removed.size());
-		for (var e : Removed)
+		bb.WriteUInt(removed.size());
+		for (var e : removed)
 			encoder.accept(bb, e);
 	}
 
@@ -81,38 +81,38 @@ public class LogSet1<V> extends LogSet<V> {
 	public void decode(ByteBuffer bb) {
 		var decoder = valueCodecFuncs.decoder;
 
-		Added.clear();
+		added.clear();
 		for (int i = bb.ReadUInt(); i > 0; i--)
-			Added.add(decoder.apply(bb));
+			added.add(decoder.apply(bb));
 
-		Removed.clear();
+		removed.clear();
 		for (int i = bb.ReadUInt(); i > 0; i--)
-			Removed.add(decoder.apply(bb));
+			removed.add(decoder.apply(bb));
 	}
 
 	@Override
-	public void EndSavepoint(Savepoint currentSp) {
-		var log = currentSp.GetLog(getLogKey());
+	public void endSavepoint(Savepoint currentSp) {
+		var log = currentSp.getLog(getLogKey());
 		if (log != null) {
 			@SuppressWarnings("unchecked")
 			var currentLog = (LogSet1<V>)log;
 			currentLog.setValue(this.getValue());
-			currentLog.Merge(this);
+			currentLog.merge(this);
 		} else
-			currentSp.PutLog(this);
+			currentSp.putLog(this);
 	}
 
-	public final void Merge(LogSet1<V> from) {
+	public final void merge(LogSet1<V> from) {
 		// Put,Remove 需要确认有没有顺序问题
 		// this: add 1,3 remove 2,4 nest: add 2 remove 1
-		for (var e : from.Added)
-			Add(e); // replace 1,2,3 remove 4
-		for (var e : from.Removed)
-			Remove(e); // replace 2,3 remove 1,4
+		for (var e : from.added)
+			add(e); // replace 1,2,3 remove 4
+		for (var e : from.removed)
+			remove(e); // replace 2,3 remove 1,4
 	}
 
 	@Override
-	public Log BeginSavepoint() {
+	public Log beginSavepoint() {
 		var dup = new LogSet1<>(getTypeId(), valueCodecFuncs);
 		dup.setBelong(getBelong());
 		dup.setVariableId(getVariableId());
@@ -124,9 +124,9 @@ public class LogSet1<V> extends LogSet<V> {
 	public String toString() {
 		var sb = new StringBuilder();
 		sb.append(" Added:");
-		ByteBuffer.BuildSortedString(sb, Added);
+		ByteBuffer.BuildSortedString(sb, added);
 		sb.append(" Removed:");
-		ByteBuffer.BuildSortedString(sb, Removed);
+		ByteBuffer.BuildSortedString(sb, removed);
 		return sb.toString();
 	}
 }

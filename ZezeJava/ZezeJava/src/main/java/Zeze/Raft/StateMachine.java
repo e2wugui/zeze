@@ -8,33 +8,33 @@ import org.apache.logging.log4j.Logger;
 public abstract class StateMachine {
 	private static final Logger logger = LogManager.getLogger(StateMachine.class);
 
-	private Raft Raft;
-	private final LongConcurrentHashMap<Supplier<Log>> LogFactorys = new LongConcurrentHashMap<>();
+	private Raft raft;
+	private final LongConcurrentHashMap<Supplier<Log>> logFactorys = new LongConcurrentHashMap<>();
 
 	public StateMachine() {
-		AddFactory(new HeartbeatLog().getTypeId(), HeartbeatLog::new);
+		addFactory(new HeartbeatLog().getTypeId(), HeartbeatLog::new);
 	}
 
 	public Raft getRaft() {
-		return Raft;
+		return raft;
 	}
 
 	protected void setRaft(Raft value) {
-		Raft = value;
+		raft = value;
 	}
 
 	// 建议在继承类的构造里面注册LogFactory。
-	protected void AddFactory(int logTypeId, Supplier<Log> factory) {
-		if (LogFactorys.putIfAbsent(logTypeId, factory) != null)
+	protected void addFactory(int logTypeId, Supplier<Log> factory) {
+		if (logFactorys.putIfAbsent(logTypeId, factory) != null)
 			throw new IllegalStateException("Duplicate Log Id");
 	}
 
-	public Log LogFactory(int logTypeId) {
-		Supplier<Log> factory = LogFactorys.get(logTypeId);
+	public Log logFactory(int logTypeId) {
+		Supplier<Log> factory = logFactorys.get(logTypeId);
 		if (factory != null)
 			return factory.get();
 		logger.fatal("Unknown Log: " + logTypeId, new Exception());
-		Raft.FatalKill();
+		raft.fatalKill();
 		return null;
 	}
 
@@ -72,12 +72,12 @@ public abstract class StateMachine {
 	// return true;
 	//
 	// 这样在保存数据到文件的过程中，服务可以继续进行。
-	public abstract SnapshotResult Snapshot(String path) throws Throwable;
+	public abstract SnapshotResult snapshot(String path) throws Throwable;
 
 	public static final class SnapshotResult {
 		public boolean success;
-		public long LastIncludedIndex;
-		public long LastIncludedTerm;
+		public long lastIncludedIndex;
+		public long lastIncludedTerm;
 		public long checkPointNanoTime;
 		public long backupNanoTime;
 		public long zipNanoTime;
@@ -89,5 +89,5 @@ public abstract class StateMachine {
 	 * Raft 处理 InstallSnapshot 到达最后一个数据时，调用这个方法。
 	 * 然后 Raft 会从 LastIncludedIndex 后面开始复制日志。进入正常的模式。
 	 */
-	public abstract void LoadSnapshot(String path) throws Throwable;
+	public abstract void loadSnapshot(String path) throws Throwable;
 }

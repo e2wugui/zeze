@@ -20,7 +20,7 @@ public final class BVersions extends Zeze.Transaction.Bean {
     public void assign(BVersions other) {
         getLogins().clear();
         for (var e : other.getLogins().entrySet())
-            getLogins().put(e.getKey(), e.getValue().Copy());
+            getLogins().put(e.getKey(), e.getValue().copy());
     }
 
     @Deprecated
@@ -34,7 +34,7 @@ public final class BVersions extends Zeze.Transaction.Bean {
 
     public BVersions copy() {
         var copy = new BVersions();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -44,9 +44,9 @@ public final class BVersions extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BVersions a, BVersions b) {
-        BVersions save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BVersions save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override

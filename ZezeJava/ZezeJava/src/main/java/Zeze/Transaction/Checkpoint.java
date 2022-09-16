@@ -45,7 +45,7 @@ public final class Checkpoint {
 		this.mode = mode;
 		if (dbs != null)
 			add(dbs);
-		checkpointThread = new Thread(() -> Task.Call(this::run, "Checkpoint.Run"), "Checkpoint-" + serverId);
+		checkpointThread = new Thread(() -> Task.call(this::run, "Checkpoint.Run"), "Checkpoint-" + serverId);
 		checkpointThread.setDaemon(true);
 		checkpointThread.setPriority(Thread.NORM_PRIORITY + 2);
 		checkpointThread.setUncaughtExceptionHandler((__, e) -> logger.error("fatal exception", e));
@@ -117,7 +117,7 @@ public final class Checkpoint {
 
 		case Period:
 			final TaskCompletionSource<Integer> source = new TaskCompletionSource<>();
-			addActionAndPulse(() -> source.SetResult(0));
+			addActionAndPulse(() -> source.setResult(0));
 			source.await();
 			break;
 

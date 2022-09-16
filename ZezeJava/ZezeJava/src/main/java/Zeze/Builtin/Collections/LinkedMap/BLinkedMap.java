@@ -16,8 +16,8 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _HeadNodeId;
-        var log = (Log__HeadNodeId)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _HeadNodeId;
+        var log = (Log__HeadNodeId)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _HeadNodeId;
     }
 
     public void setHeadNodeId(long value) {
@@ -26,7 +26,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__HeadNodeId(this, 1, value));
+        txn.putLog(new Log__HeadNodeId(this, 1, value));
     }
 
     public long getTailNodeId() {
@@ -35,8 +35,8 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _TailNodeId;
-        var log = (Log__TailNodeId)txn.GetLog(objectId() + 2);
-        return log != null ? log.Value : _TailNodeId;
+        var log = (Log__TailNodeId)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _TailNodeId;
     }
 
     public void setTailNodeId(long value) {
@@ -45,7 +45,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__TailNodeId(this, 2, value));
+        txn.putLog(new Log__TailNodeId(this, 2, value));
     }
 
     public long getCount() {
@@ -54,8 +54,8 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Count;
-        var log = (Log__Count)txn.GetLog(objectId() + 3);
-        return log != null ? log.Value : _Count;
+        var log = (Log__Count)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _Count;
     }
 
     public void setCount(long value) {
@@ -64,7 +64,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Count(this, 3, value));
+        txn.putLog(new Log__Count(this, 3, value));
     }
 
     public long getLastNodeId() {
@@ -73,8 +73,8 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _LastNodeId;
-        var log = (Log__LastNodeId)txn.GetLog(objectId() + 4);
-        return log != null ? log.Value : _LastNodeId;
+        var log = (Log__LastNodeId)txn.getLog(objectId() + 4);
+        return log != null ? log.value : _LastNodeId;
     }
 
     public void setLastNodeId(long value) {
@@ -83,7 +83,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__LastNodeId(this, 4, value));
+        txn.putLog(new Log__LastNodeId(this, 4, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -116,7 +116,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
 
     public BLinkedMap copy() {
         var copy = new BLinkedMap();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -126,9 +126,9 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BLinkedMap a, BLinkedMap b) {
-        BLinkedMap save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BLinkedMap save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -147,28 +147,28 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
         public Log__HeadNodeId(BLinkedMap bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BLinkedMap)getBelong())._HeadNodeId = Value; }
+        public void commit() { ((BLinkedMap)getBelong())._HeadNodeId = value; }
     }
 
     private static final class Log__TailNodeId extends Zeze.Transaction.Logs.LogLong {
         public Log__TailNodeId(BLinkedMap bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BLinkedMap)getBelong())._TailNodeId = Value; }
+        public void commit() { ((BLinkedMap)getBelong())._TailNodeId = value; }
     }
 
     private static final class Log__Count extends Zeze.Transaction.Logs.LogLong {
         public Log__Count(BLinkedMap bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BLinkedMap)getBelong())._Count = Value; }
+        public void commit() { ((BLinkedMap)getBelong())._Count = value; }
     }
 
     private static final class Log__LastNodeId extends Zeze.Transaction.Logs.LogLong {
         public Log__LastNodeId(BLinkedMap bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BLinkedMap)getBelong())._LastNodeId = Value; }
+        public void commit() { ((BLinkedMap)getBelong())._LastNodeId = value; }
     }
 
     @Override
@@ -292,10 +292,10 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _HeadNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                case 2: _TailNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                case 3: _Count = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                case 4: _LastNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 1: _HeadNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 2: _TailNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 3: _Count = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 4: _LastNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }

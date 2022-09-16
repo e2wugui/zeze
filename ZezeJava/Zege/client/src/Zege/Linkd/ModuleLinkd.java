@@ -1,19 +1,13 @@
 package Zege.Linkd;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
 import Zege.User.Create;
 import Zege.User.ModuleUser;
 import Zege.User.Prepare;
@@ -106,7 +100,7 @@ public class ModuleLinkd extends AbstractModule {
 
     @Override
     protected long ProcessChallengeResultRequest(Zege.Linkd.ChallengeResult r) {
-        authFuture.SetResult(true);
+        authFuture.setResult(true);
         r.SendResult();
         return Procedure.Success;
     }

@@ -14,8 +14,8 @@ public final class BAcquireParam extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _GlobalKey;
-        var log = (Log__GlobalKey)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _GlobalKey;
+        var log = (Log__GlobalKey)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _GlobalKey;
     }
 
     public void setGlobalKey(Zeze.Net.Binary value) {
@@ -26,7 +26,7 @@ public final class BAcquireParam extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__GlobalKey(this, 1, value));
+        txn.putLog(new Log__GlobalKey(this, 1, value));
     }
 
     public int getState() {
@@ -35,8 +35,8 @@ public final class BAcquireParam extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _State;
-        var log = (Log__State)txn.GetLog(objectId() + 2);
-        return log != null ? log.Value : _State;
+        var log = (Log__State)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _State;
     }
 
     public void setState(int value) {
@@ -45,7 +45,7 @@ public final class BAcquireParam extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__State(this, 2, value));
+        txn.putLog(new Log__State(this, 2, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -77,7 +77,7 @@ public final class BAcquireParam extends Zeze.Transaction.Bean {
 
     public BAcquireParam copy() {
         var copy = new BAcquireParam();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -87,9 +87,9 @@ public final class BAcquireParam extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BAcquireParam a, BAcquireParam b) {
-        BAcquireParam save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BAcquireParam save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -108,14 +108,14 @@ public final class BAcquireParam extends Zeze.Transaction.Bean {
         public Log__GlobalKey(BAcquireParam bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BAcquireParam)getBelong())._GlobalKey = Value; }
+        public void commit() { ((BAcquireParam)getBelong())._GlobalKey = value; }
     }
 
     private static final class Log__State extends Zeze.Transaction.Logs.LogInt {
         public Log__State(BAcquireParam bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BAcquireParam)getBelong())._State = Value; }
+        public void commit() { ((BAcquireParam)getBelong())._State = value; }
     }
 
     @Override
@@ -209,8 +209,8 @@ public final class BAcquireParam extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _GlobalKey = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
-                case 2: _State = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                case 1: _GlobalKey = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 2: _State = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
             }
         }
     }

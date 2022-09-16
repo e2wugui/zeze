@@ -115,8 +115,8 @@
 				<bean name="BLinkedMapNodeValue">
 					<variable id="1" name="Id" type="string" /> LinkedMap的Key转成字符串类型
 					<variable id="2" name="Value" type="dynamic">
-						<GetSpecialTypeIdFromBean value="Zeze.Collections.LinkedMap::GetSpecialTypeIdFromBean"/>
-						<CreateBeanFromSpecialTypeId value="Zeze.Collections.LinkedMap::CreateBeanFromSpecialTypeId"/>
+						<GetSpecialTypeIdFromBean value="Zeze.Collections.LinkedMap::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Collections.LinkedMap::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
 				<beankey name="BLinkedMapNodeKey">
@@ -149,8 +149,8 @@
 				<bean name="BQueueNodeValue">
 					<variable id="1" name="Timestamp" type="long" />
 					<variable id="2" name="Value" type="dynamic">
-						<GetSpecialTypeIdFromBean value="Zeze.Collections.Queue::GetSpecialTypeIdFromBean"/>
-						<CreateBeanFromSpecialTypeId value="Zeze.Collections.Queue::CreateBeanFromSpecialTypeId"/>
+						<GetSpecialTypeIdFromBean value="Zeze.Collections.Queue::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Collections.Queue::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
 				<beankey name="BQueueNodeKey">
@@ -179,14 +179,14 @@
 				<bean name="BDepartmentRoot">
 					<variable id="1" name="Root" type="string" /> 群主
 					<variable id="2" name="Managers" type="map[string,dynamic]"> 管理员
-						<GetSpecialTypeIdFromBean value="Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean"/>
-						<CreateBeanFromSpecialTypeId value="Zeze.Collections.DepartmentTree::CreateBeanFromSpecialTypeId"/>
+						<GetSpecialTypeIdFromBean value="Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId"/>
 					</variable>
 					<variable id="3" name="NextDepartmentId" type="long" /> 部门Id种子
 					<variable id="4" name="Childs" type="map" key="string" value="long" /> name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
 					<variable id="5" name="Data" type="dynamic">
-						<GetSpecialTypeIdFromBean value="Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean"/>
-						<CreateBeanFromSpecialTypeId value="Zeze.Collections.DepartmentTree::CreateBeanFromSpecialTypeId"/>
+						<GetSpecialTypeIdFromBean value="Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
 
@@ -197,12 +197,12 @@
 					<variable id="2" name="Childs" type="map" key="string" value="long" /> name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
 					<variable id="3" name="Name" type="string" />
 					<variable id="4" name="Managers" type="map[string,dynamic]">
-						<GetSpecialTypeIdFromBean value="Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean"/>
-						<CreateBeanFromSpecialTypeId value="Zeze.Collections.DepartmentTree::CreateBeanFromSpecialTypeId"/>
+						<GetSpecialTypeIdFromBean value="Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId"/>
 					</variable>
 					<variable id="5" name="Data" type="dynamic">
-						<GetSpecialTypeIdFromBean value="Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean"/>
-						<CreateBeanFromSpecialTypeId value="Zeze.Collections.DepartmentTree::CreateBeanFromSpecialTypeId"/>
+						<GetSpecialTypeIdFromBean value="Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
 
@@ -571,8 +571,8 @@
 
 				<bean name="BAny">
 					<variable id="1" name="Any" type="dynamic">
-						<GetSpecialTypeIdFromBean value="Zeze.Game.Online::GetSpecialTypeIdFromBean"/>
-						<CreateBeanFromSpecialTypeId value="Zeze.Game.Online::CreateBeanFromSpecialTypeId"/>
+						<GetSpecialTypeIdFromBean value="Zeze.Game.Online::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.Online::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
 
@@ -643,8 +643,8 @@
 					<variable id="1" name="Id" type="int"/>
 					<variable id="2" name="Number" type="int"/>
 					<variable id="3" name="Item" type="dynamic">
-						<GetSpecialTypeIdFromBean value="Zeze.Game.Bag::GetSpecialTypeIdFromBean"/>
-						<CreateBeanFromSpecialTypeId value="Zeze.Game.Bag::CreateBeanFromSpecialTypeId"/>
+						<GetSpecialTypeIdFromBean value="Zeze.Game.Bag::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.Bag::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
 
@@ -757,8 +757,8 @@
 
 			<bean name="BAny">
 				<variable id="1" name="Any" type="dynamic">
-					<GetSpecialTypeIdFromBean value="Zeze.Arch.Online::GetSpecialTypeIdFromBean"/>
-					<CreateBeanFromSpecialTypeId value="Zeze.Arch.Online::CreateBeanFromSpecialTypeId"/>
+					<GetSpecialTypeIdFromBean value="Zeze.Arch.Online::getSpecialTypeIdFromBean"/>
+					<CreateBeanFromSpecialTypeId value="Zeze.Arch.Online::createBeanFromSpecialTypeId"/>
 				</variable>
 			</bean>
 			<bean name="BLocal">
@@ -862,8 +862,8 @@
 					<value bean="BCronTimer"/>
 				</variable>
 				<variable id="4" name="CustomData" type="dynamic">
-					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::GetSpecialTypeIdFromBean"/>
-					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::CreateBeanFromSpecialTypeId"/>
+					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::getSpecialTypeIdFromBean"/>
+					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::createBeanFromSpecialTypeId"/>
 				</variable>
 				<variable id="5" name="ConcurrentFireSerialNo" type="long"/>
 			</bean>
@@ -908,16 +908,16 @@
 				<variable id="2" name="ClientId" type="string"/>
 				<variable id="3" name="HandleName" type="string"/>
 				<variable id="4" name="CustomData" type="dynamic">
-					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::GetSpecialTypeIdFromBean"/>
-					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::CreateBeanFromSpecialTypeId"/>
+					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::getSpecialTypeIdFromBean"/>
+					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::createBeanFromSpecialTypeId"/>
 				</variable>
 			</bean>
 			<bean name="BGameOnlineCustom">
 				<variable id="1" name="RoleId" type="long"/>
 				<variable id="2" name="HandleName" type="string"/>
 				<variable id="3" name="CustomData" type="dynamic">
-					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::GetSpecialTypeIdFromBean"/>
-					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::CreateBeanFromSpecialTypeId"/>
+					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::getSpecialTypeIdFromBean"/>
+					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::createBeanFromSpecialTypeId"/>
 				</variable>
 			</bean>
 

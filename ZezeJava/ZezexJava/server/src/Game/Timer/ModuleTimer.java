@@ -28,8 +28,8 @@ public class ModuleTimer extends AbstractModule {
 	private AutoKey TimerIdGenerator;
 
 	public void Start(Game.App app) throws Throwable {
-		NodeIdGenerator = app.Zeze.GetAutoKey("Game.Timer.NodeIdGenerator");
-		TimerIdGenerator = app.Zeze.GetAutoKey("Game.Timer.TimerIdGenerator");
+		NodeIdGenerator = app.Zeze.getAutoKey("Game.Timer.NodeIdGenerator");
+		TimerIdGenerator = app.Zeze.getAutoKey("Game.Timer.TimerIdGenerator");
 		Task.run(this::LoadTimerLocal, "LoadTimerLocal", DispatchMode.Normal);
 	}
 
@@ -203,12 +203,12 @@ public class ModuleTimer extends AbstractModule {
 	private long TriggerTimerLocal(int serverId, long timerId, long nodeId, String name) {
 		var handle = TimerHandles.get(name);
 		if (handle != null) {
-			Task.Call(App.Zeze.NewProcedure(() -> {
+			Task.call(App.Zeze.newProcedure(() -> {
 				handle.run(timerId, name);
 				return 0L;
 			}, "TriggerTimerLocal"));
 		}
-		Task.Call(App.Zeze.NewProcedure(() -> {
+		Task.call(App.Zeze.newProcedure(() -> {
 			var index = _tIndexs.get(timerId);
 			if (index != null) {
 				var node = _tNodes.get(index.getNodeId());
@@ -235,15 +235,15 @@ public class ModuleTimer extends AbstractModule {
 	private long LoadTimerLocal() {
 		var serverId = App.Zeze.getConfig().getServerId();
 		final var out = new OutObject<BNodeRoot>();
-		Task.Call(App.Zeze.NewProcedure(() ->
+		Task.call(App.Zeze.newProcedure(() ->
 		{
 			var root = _tNodeRoot.getOrAdd(serverId);
 			// 本地每次load都递增。用来处理和接管的并发。
 			root.setLoadSerialNo(root.getLoadSerialNo() + 1);
-			out.Value = root.Copy();
+			out.value = root.Copy();
 			return 0L;
 		}, "LoadTimerLocal"));
-		var root = out.Value;
+		var root = out.value;
 
 		return LoadTimerLocal(root.getHeadNodeId(), root.getHeadNodeId(), serverId);
 	}
@@ -260,7 +260,7 @@ public class ModuleTimer extends AbstractModule {
 		final var first = new OutLong();
 		final var last = new OutLong();
 
-		var result = Task.Call(App.Zeze.NewProcedure(() ->
+		var result = Task.call(App.Zeze.newProcedure(() ->
 		{
 			var src = _tNodeRoot.get(serverId);
 			if (src == null || src.getHeadNodeId() == 0 || src.getTailNodeId() == 0)
@@ -277,8 +277,8 @@ public class ModuleTimer extends AbstractModule {
 			//var tail = _tNodes.get(root.getTailNodeId());
 
 			// 先保存存储过程退出以后需要装载的timer范围。
-			first.Value = src.getHeadNodeId();
-			last.Value = root.getHeadNodeId();
+			first.value = src.getHeadNodeId();
+			last.value = root.getHeadNodeId();
 			// splice
 			srcTail.setNextNodeId(root.getHeadNodeId());
 			root.setHeadNodeId(src.getHeadNodeId());
@@ -291,7 +291,7 @@ public class ModuleTimer extends AbstractModule {
 		}, "SpliceAndLoadTimerLocal"));
 
 		if (result == 0L) {
-			return LoadTimerLocal(first.Value, last.Value, serverId);
+			return LoadTimerLocal(first.value, last.value, serverId);
 		}
 		return result;
 	}
@@ -306,7 +306,7 @@ public class ModuleTimer extends AbstractModule {
 			for (var timer : node.getTimers().values()) {
 				ScheduleLocal(serverId, timer.getTimerId(), first, timer.getDelay(), timer.getPeriod(), timer.getName());
 				if (serverId != App.Zeze.getConfig().getServerId()) {
-					Task.Call(App.Zeze.NewProcedure(() -> {
+					Task.call(App.Zeze.newProcedure(() -> {
 						var index = _tIndexs.get(timer.getTimerId());
 						index.setServerId(serverId);
 						return 0L;

@@ -4,41 +4,41 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 
 public class UniqueRequestId implements Serializable {
-	private String ClientId = "";
-	private long RequestId;
+	private String clientId = "";
+	private long requestId;
 
 	public String getClientId() {
-		return ClientId;
+		return clientId;
 	}
 
 	public void setClientId(String value) {
-		ClientId = value;
+		clientId = value;
 	}
 
 	public long getRequestId() {
-		return RequestId;
+		return requestId;
 	}
 
 	public void setRequestId(long value) {
-		RequestId = value;
+		requestId = value;
 	}
 
 	@Override
 	public final void encode(ByteBuffer bb) {
-		bb.WriteString(ClientId);
-		bb.WriteLong(RequestId);
+		bb.WriteString(clientId);
+		bb.WriteLong(requestId);
 	}
 
 	@Override
 	public final void decode(ByteBuffer bb) {
-		ClientId = bb.ReadString();
-		RequestId = bb.ReadLong();
+		clientId = bb.ReadString();
+		requestId = bb.ReadLong();
 	}
 
 	@Override
 	public int hashCode() {
 		final int _prime_ = 31;
-		return ClientId.hashCode() * _prime_ + Long.hashCode(RequestId);
+		return clientId.hashCode() * _prime_ + Long.hashCode(requestId);
 	}
 
 	@Override
@@ -48,11 +48,11 @@ public class UniqueRequestId implements Serializable {
 		if (!(obj instanceof UniqueRequestId))
 			return false;
 		UniqueRequestId other = (UniqueRequestId)obj;
-		return ClientId.equals(other.ClientId) && RequestId == other.RequestId;
+		return clientId.equals(other.clientId) && requestId == other.requestId;
 	}
 
 	@Override
 	public String toString() {
-		return String.format("(ClientId=%s RequestId=%d)", ClientId, RequestId);
+		return String.format("(ClientId=%s RequestId=%d)", clientId, requestId);
 	}
 }

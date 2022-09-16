@@ -21,8 +21,8 @@ public final class BKick extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _linksid;
-        var log = (Log__linksid)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _linksid;
+        var log = (Log__linksid)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _linksid;
     }
 
     public void setLinksid(long value) {
@@ -31,7 +31,7 @@ public final class BKick extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__linksid(this, 1, value));
+        txn.putLog(new Log__linksid(this, 1, value));
     }
 
     public int getCode() {
@@ -40,8 +40,8 @@ public final class BKick extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _code;
-        var log = (Log__code)txn.GetLog(objectId() + 2);
-        return log != null ? log.Value : _code;
+        var log = (Log__code)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _code;
     }
 
     public void setCode(int value) {
@@ -50,7 +50,7 @@ public final class BKick extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__code(this, 2, value));
+        txn.putLog(new Log__code(this, 2, value));
     }
 
     public String getDesc() {
@@ -59,8 +59,8 @@ public final class BKick extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _desc;
-        var log = (Log__desc)txn.GetLog(objectId() + 3);
-        return log != null ? log.Value : _desc;
+        var log = (Log__desc)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _desc;
     }
 
     public void setDesc(String value) {
@@ -71,7 +71,7 @@ public final class BKick extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__desc(this, 3, value));
+        txn.putLog(new Log__desc(this, 3, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -105,7 +105,7 @@ public final class BKick extends Zeze.Transaction.Bean {
 
     public BKick copy() {
         var copy = new BKick();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -115,9 +115,9 @@ public final class BKick extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BKick a, BKick b) {
-        BKick save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BKick save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -136,21 +136,21 @@ public final class BKick extends Zeze.Transaction.Bean {
         public Log__linksid(BKick bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BKick)getBelong())._linksid = Value; }
+        public void commit() { ((BKick)getBelong())._linksid = value; }
     }
 
     private static final class Log__code extends Zeze.Transaction.Logs.LogInt {
         public Log__code(BKick bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BKick)getBelong())._code = Value; }
+        public void commit() { ((BKick)getBelong())._code = value; }
     }
 
     private static final class Log__desc extends Zeze.Transaction.Logs.LogString {
         public Log__desc(BKick bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BKick)getBelong())._desc = Value; }
+        public void commit() { ((BKick)getBelong())._desc = value; }
     }
 
     @Override
@@ -258,9 +258,9 @@ public final class BKick extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _linksid = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                case 2: _code = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
-                case 3: _desc = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                case 1: _linksid = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 2: _code = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 3: _desc = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
             }
         }
     }

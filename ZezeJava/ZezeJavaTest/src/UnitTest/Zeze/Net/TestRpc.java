@@ -72,7 +72,7 @@ public class TestRpc extends TestCase {
 		@Override
 		public void OnSocketConnected(AsyncSocket so) throws Throwable {
 			super.OnSocketConnected(so);
-			test.connected.SetResult(so);
+			test.connected.setResult(so);
 		}
 	}
 }

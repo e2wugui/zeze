@@ -7,7 +7,7 @@ import Zeze.Serialize.ByteBuffer;
 public class LogFloat extends Log {
 	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.Log<float>");
 
-	public float Value;
+	public float value;
 
 	public LogFloat() {
 		super(TYPE_ID);
@@ -17,21 +17,21 @@ public class LogFloat extends Log {
 		this();
 		setBelong(belong);
 		setVariableId(varId);
-		Value = value;
+		this.value = value;
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteFloat(Value);
+		bb.WriteFloat(value);
 	}
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		Value = bb.ReadFloat();
+		value = bb.ReadFloat();
 	}
 
 	@Override
 	public String toString() {
-		return "Value=" + Value;
+		return "Value=" + value;
 	}
 }

@@ -1,12 +1,12 @@
 package Zeze.Util;
 
 public class OutLong {
-	public long Value;
+	public long value;
 
 	public OutLong() {
 	}
 
 	public OutLong(long value) {
-		Value = value;
+		this.value = value;
 	}
 }

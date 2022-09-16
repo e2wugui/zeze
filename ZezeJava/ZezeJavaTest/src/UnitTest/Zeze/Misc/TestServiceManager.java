@@ -7,9 +7,9 @@ import junit.framework.TestCase;
 public class TestServiceManager extends TestCase {
 	public void testServiceInfos() {
 		var infos = new BServiceInfos("TestBase");
-		infos.Insert(new BServiceInfo("TestBase", "1"));
-		infos.Insert(new BServiceInfo("TestBase", "3"));
-		infos.Insert(new BServiceInfo("TestBase", "2"));
+		infos.insert(new BServiceInfo("TestBase", "1"));
+		infos.insert(new BServiceInfo("TestBase", "3"));
+		infos.insert(new BServiceInfo("TestBase", "2"));
 		assertEquals("TestBase Version=0[1,2,3,]", infos.toString());
 	}
 }

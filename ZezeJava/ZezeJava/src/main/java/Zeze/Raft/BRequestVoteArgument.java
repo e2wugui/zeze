@@ -5,68 +5,68 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
 final class BRequestVoteArgument extends Bean {
-	private long Term;
-	private String CandidateId;
-	private long LastLogIndex;
-	private long LastLogTerm;
-	private boolean NodeReady;
+	private long term;
+	private String candidateId;
+	private long lastLogIndex;
+	private long lastLogTerm;
+	private boolean nodeReady;
 
 	public long getTerm() {
-		return Term;
+		return term;
 	}
 
 	public void setTerm(long value) {
-		Term = value;
+		term = value;
 	}
 
 	public String getCandidateId() {
-		return CandidateId;
+		return candidateId;
 	}
 
 	public void setCandidateId(String value) {
-		CandidateId = value;
+		candidateId = value;
 	}
 
 	public long getLastLogIndex() {
-		return LastLogIndex;
+		return lastLogIndex;
 	}
 
 	public void setLastLogIndex(long value) {
-		LastLogIndex = value;
+		lastLogIndex = value;
 	}
 
 	public long getLastLogTerm() {
-		return LastLogTerm;
+		return lastLogTerm;
 	}
 
 	public void setLastLogTerm(long value) {
-		LastLogTerm = value;
+		lastLogTerm = value;
 	}
 
 	public boolean getNodeReady() {
-		return NodeReady;
+		return nodeReady;
 	}
 
 	public void setNodeReady(boolean value) {
-		NodeReady = value;
+		nodeReady = value;
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteLong(Term);
-		bb.WriteString(CandidateId);
-		bb.WriteLong(LastLogIndex);
-		bb.WriteLong(LastLogTerm);
-		bb.WriteBool(NodeReady);
+		bb.WriteLong(term);
+		bb.WriteString(candidateId);
+		bb.WriteLong(lastLogIndex);
+		bb.WriteLong(lastLogTerm);
+		bb.WriteBool(nodeReady);
 	}
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		Term = bb.ReadLong();
-		CandidateId = bb.ReadString();
-		LastLogIndex = bb.ReadLong();
-		LastLogTerm = bb.ReadLong();
-		NodeReady = bb.ReadBool();
+		term = bb.ReadLong();
+		candidateId = bb.ReadString();
+		lastLogIndex = bb.ReadLong();
+		lastLogTerm = bb.ReadLong();
+		nodeReady = bb.ReadBool();
 	}
 
 	@Override
@@ -82,6 +82,6 @@ final class BRequestVoteArgument extends Bean {
 	@Override
 	public String toString() {
 		return String.format("(Term=%d CandidateId=%s LastLogIndex=%d LastLogTerm=%d NodeReady=%b)",
-				Term, CandidateId, LastLogIndex, LastLogTerm, NodeReady);
+				term, candidateId, lastLogIndex, lastLogTerm, nodeReady);
 	}
 }

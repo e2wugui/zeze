@@ -8,11 +8,11 @@ public final class BAny extends Zeze.Transaction.Bean {
     private final Zeze.Transaction.DynamicBean _Any;
 
     public static long getSpecialTypeIdFromBean_Any(Zeze.Transaction.Bean bean) {
-        return Zeze.Game.Online.GetSpecialTypeIdFromBean(bean);
+        return Zeze.Game.Online.getSpecialTypeIdFromBean(bean);
     }
 
     public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_Any(long typeId) {
-        return Zeze.Game.Online.CreateBeanFromSpecialTypeId(typeId);
+        return Zeze.Game.Online.createBeanFromSpecialTypeId(typeId);
     }
 
     private transient Object __zeze_map_key__;
@@ -33,11 +33,11 @@ public final class BAny extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("deprecation")
     public BAny() {
-        _Any = new Zeze.Transaction.DynamicBean(1, Zeze.Game.Online::GetSpecialTypeIdFromBean, Zeze.Game.Online::CreateBeanFromSpecialTypeId);
+        _Any = new Zeze.Transaction.DynamicBean(1, Zeze.Game.Online::getSpecialTypeIdFromBean, Zeze.Game.Online::createBeanFromSpecialTypeId);
     }
 
     public void assign(BAny other) {
-        getAny().Assign(other.getAny());
+        getAny().assign(other.getAny());
     }
 
     @Deprecated
@@ -51,7 +51,7 @@ public final class BAny extends Zeze.Transaction.Bean {
 
     public BAny copy() {
         var copy = new BAny();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -61,9 +61,9 @@ public final class BAny extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BAny a, BAny b) {
-        BAny save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BAny save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override

@@ -18,8 +18,8 @@ public final class BResponse extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Code;
-        var log = (Log__Code)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _Code;
+        var log = (Log__Code)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _Code;
     }
 
     public void setCode(int value) {
@@ -28,7 +28,7 @@ public final class BResponse extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Code(this, 1, value));
+        txn.putLog(new Log__Code(this, 1, value));
     }
 
     public Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Web.BHeader> getHeaders() {
@@ -41,8 +41,8 @@ public final class BResponse extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Body;
-        var log = (Log__Body)txn.GetLog(objectId() + 3);
-        return log != null ? log.Value : _Body;
+        var log = (Log__Body)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _Body;
     }
 
     public void setBody(Zeze.Net.Binary value) {
@@ -53,7 +53,7 @@ public final class BResponse extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Body(this, 3, value));
+        txn.putLog(new Log__Body(this, 3, value));
     }
 
     public boolean isFinish() {
@@ -62,8 +62,8 @@ public final class BResponse extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Finish;
-        var log = (Log__Finish)txn.GetLog(objectId() + 4);
-        return log != null ? log.Value : _Finish;
+        var log = (Log__Finish)txn.getLog(objectId() + 4);
+        return log != null ? log.value : _Finish;
     }
 
     public void setFinish(boolean value) {
@@ -72,7 +72,7 @@ public final class BResponse extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Finish(this, 4, value));
+        txn.putLog(new Log__Finish(this, 4, value));
     }
 
     public String getMessage() {
@@ -81,8 +81,8 @@ public final class BResponse extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Message;
-        var log = (Log__Message)txn.GetLog(objectId() + 5);
-        return log != null ? log.Value : _Message;
+        var log = (Log__Message)txn.getLog(objectId() + 5);
+        return log != null ? log.value : _Message;
     }
 
     public void setMessage(String value) {
@@ -93,7 +93,7 @@ public final class BResponse extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Message(this, 5, value));
+        txn.putLog(new Log__Message(this, 5, value));
     }
 
     public String getStacktrace() {
@@ -102,8 +102,8 @@ public final class BResponse extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Stacktrace;
-        var log = (Log__Stacktrace)txn.GetLog(objectId() + 6);
-        return log != null ? log.Value : _Stacktrace;
+        var log = (Log__Stacktrace)txn.getLog(objectId() + 6);
+        return log != null ? log.value : _Stacktrace;
     }
 
     public void setStacktrace(String value) {
@@ -114,7 +114,7 @@ public final class BResponse extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Stacktrace(this, 6, value));
+        txn.putLog(new Log__Stacktrace(this, 6, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -147,7 +147,7 @@ public final class BResponse extends Zeze.Transaction.Bean {
         setCode(other.getCode());
         getHeaders().clear();
         for (var e : other.getHeaders().entrySet())
-            getHeaders().put(e.getKey(), e.getValue().Copy());
+            getHeaders().put(e.getKey(), e.getValue().copy());
         setBody(other.getBody());
         setFinish(other.isFinish());
         setMessage(other.getMessage());
@@ -165,7 +165,7 @@ public final class BResponse extends Zeze.Transaction.Bean {
 
     public BResponse copy() {
         var copy = new BResponse();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -175,9 +175,9 @@ public final class BResponse extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BResponse a, BResponse b) {
-        BResponse save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BResponse save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -196,35 +196,35 @@ public final class BResponse extends Zeze.Transaction.Bean {
         public Log__Code(BResponse bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BResponse)getBelong())._Code = Value; }
+        public void commit() { ((BResponse)getBelong())._Code = value; }
     }
 
     private static final class Log__Body extends Zeze.Transaction.Logs.LogBinary {
         public Log__Body(BResponse bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BResponse)getBelong())._Body = Value; }
+        public void commit() { ((BResponse)getBelong())._Body = value; }
     }
 
     private static final class Log__Finish extends Zeze.Transaction.Logs.LogBool {
         public Log__Finish(BResponse bean, int varId, boolean value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BResponse)getBelong())._Finish = Value; }
+        public void commit() { ((BResponse)getBelong())._Finish = value; }
     }
 
     private static final class Log__Message extends Zeze.Transaction.Logs.LogString {
         public Log__Message(BResponse bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BResponse)getBelong())._Message = Value; }
+        public void commit() { ((BResponse)getBelong())._Message = value; }
     }
 
     private static final class Log__Stacktrace extends Zeze.Transaction.Logs.LogString {
         public Log__Stacktrace(BResponse bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BResponse)getBelong())._Stacktrace = Value; }
+        public void commit() { ((BResponse)getBelong())._Stacktrace = value; }
     }
 
     @Override
@@ -394,12 +394,12 @@ public final class BResponse extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Code = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                case 1: _Code = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
                 case 2: _Headers.followerApply(vlog); break;
-                case 3: _Body = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
-                case 4: _Finish = ((Zeze.Transaction.Logs.LogBool)vlog).Value; break;
-                case 5: _Message = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
-                case 6: _Stacktrace = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                case 3: _Body = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 4: _Finish = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
+                case 5: _Message = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 6: _Stacktrace = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
             }
         }
     }

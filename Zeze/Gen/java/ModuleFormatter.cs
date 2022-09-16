@@ -321,7 +321,7 @@ namespace Zeze.Gen.java
             foreach (Table table in module.Tables.Values)
             {
                 if (project.GenTables.Contains(table.Gen) && table.IsRocks == false)
-                    sw.WriteLine($"        {zezeVar}.AddTable({zezeVar}.getConfig().GetTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
+                    sw.WriteLine($"        {zezeVar}.addTable({zezeVar}.getConfig().getTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
             }
         }
 
@@ -354,7 +354,7 @@ namespace Zeze.Gen.java
             foreach (Table table in module.Tables.Values)
             {
                 if (project.GenTables.Contains(table.Gen) && table.IsRocks == false)
-                    sw.WriteLine($"        {zezeVar}.RemoveTable({zezeVar}.getConfig().GetTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
+                    sw.WriteLine($"        {zezeVar}.removeTable({zezeVar}.getConfig().getTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
             }
         }
 
@@ -391,7 +391,7 @@ namespace Zeze.Gen.java
                     var key = TypeName.GetName(table.KeyType);
                     var value = TypeName.GetName(table.ValueType);
                     table.ValueType.Depends(depends);
-                    sw.WriteLine($"        rocks.RegisterTableTemplate(\"{table.Name}\", {key}.class, {value}.class);");
+                    sw.WriteLine($"        rocks.registerTableTemplate(\"{table.Name}\", {key}.class, {value}.class);");
                 }
             }
             var logfactorys = new HashSet<string>();
@@ -412,7 +412,7 @@ namespace Zeze.Gen.java
             }
             foreach (var fac in logfactorys)
             {
-                sw.WriteLine($"        Zeze.Raft.RocksRaft.Rocks.RegisterLog({fac});");
+                sw.WriteLine($"        Zeze.Raft.RocksRaft.Rocks.registerLog({fac});");
             }
         }
 

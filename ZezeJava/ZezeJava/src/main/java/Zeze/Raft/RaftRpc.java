@@ -9,58 +9,58 @@ import Zeze.Transaction.Bean;
 import Zeze.Util.TaskCompletionSource;
 
 public abstract class RaftRpc<TArgument extends Bean, TResult extends Bean> extends Rpc<TArgument, TResult> implements IRaftRpc {
-	private long CreateTime;
-	private UniqueRequestId Unique = new UniqueRequestId();
-	private long SendTime;
-	private boolean Urgent;
+	private long createTime;
+	private UniqueRequestId unique = new UniqueRequestId();
+	private long sendTime;
+	private boolean urgent;
 
-	TaskCompletionSource<RaftRpc<TArgument, TResult>> Future;
-	ToLongFunction<Protocol<?>> Handle;
+	TaskCompletionSource<RaftRpc<TArgument, TResult>> future;
+	ToLongFunction<Protocol<?>> handle;
 
 	@Override
 	public long getCreateTime() {
-		return CreateTime;
+		return createTime;
 	}
 
 	@Override
 	public void setCreateTime(long value) {
-		CreateTime = value;
+		createTime = value;
 	}
 
 	@Override
 	public UniqueRequestId getUnique() {
-		return Unique;
+		return unique;
 	}
 
 	@Override
 	public void setUnique(UniqueRequestId value) {
-		Unique = value;
+		unique = value;
 	}
 
 	@Override
 	public long getSendTime() {
-		return SendTime;
+		return sendTime;
 	}
 
 	@Override
 	public void setSendTime(long value) {
-		SendTime = value;
+		sendTime = value;
 	}
 
 	public boolean isUrgent() {
-		return Urgent;
+		return urgent;
 	}
 
 	public void setUrgent(boolean urgent) {
-		Urgent = urgent;
+		this.urgent = urgent;
 	}
 
 	@Override
 	public boolean Send(AsyncSocket socket) {
 		var bridge = new RaftRpcBridge<>(this);
 		bridge.Argument = Argument;
-		bridge.setCreateTime(CreateTime);
-		bridge.setUnique(Unique);
+		bridge.setCreateTime(createTime);
+		bridge.setUnique(unique);
 		bridge.setResultCode(this.getResultCode());
 		return bridge.Send(socket, getResponseHandle(), getTimeout());
 	}
@@ -70,8 +70,8 @@ public abstract class RaftRpc<TArgument extends Bean, TResult extends Bean> exte
 		bb.WriteBool(isRequest());
 		bb.WriteLong(getSessionId());
 		bb.WriteLong(getResultCode());
-		Unique.encode(bb);
-		bb.WriteLong(CreateTime);
+		unique.encode(bb);
+		bb.WriteLong(createTime);
 
 		if (isRequest())
 			Argument.encode(bb);
@@ -84,8 +84,8 @@ public abstract class RaftRpc<TArgument extends Bean, TResult extends Bean> exte
 		setRequest(bb.ReadBool());
 		setSessionId(bb.ReadLong());
 		setResultCode(bb.ReadLong());
-		Unique.decode(bb);
-		CreateTime = bb.ReadLong();
+		unique.decode(bb);
+		createTime = bb.ReadLong();
 
 		if (isRequest())
 			Argument.decode(bb);
@@ -97,6 +97,6 @@ public abstract class RaftRpc<TArgument extends Bean, TResult extends Bean> exte
 	public String toString() {
 		AsyncSocket sender = getSender();
 		return String.format("(Client=%s Unique=%s %s)",
-				sender != null ? sender.getRemoteAddress() : null, Unique, super.toString());
+				sender != null ? sender.getRemoteAddress() : null, unique, super.toString());
 	}
 }

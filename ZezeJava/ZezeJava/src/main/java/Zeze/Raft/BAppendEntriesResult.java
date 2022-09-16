@@ -5,46 +5,46 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
 final class BAppendEntriesResult extends Bean {
-	private long Term;
-	private boolean Success;
-	private long NextIndex; // for fast locate when mismatch
+	private long term;
+	private boolean success;
+	private long nextIndex; // for fast locate when mismatch
 
 	public long getTerm() {
-		return Term;
+		return term;
 	}
 
 	public void setTerm(long value) {
-		Term = value;
+		term = value;
 	}
 
 	public boolean getSuccess() {
-		return Success;
+		return success;
 	}
 
 	public void setSuccess(boolean value) {
-		Success = value;
+		success = value;
 	}
 
 	public long getNextIndex() {
-		return NextIndex;
+		return nextIndex;
 	}
 
 	public void setNextIndex(long value) {
-		NextIndex = value;
+		nextIndex = value;
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteLong(Term);
-		bb.WriteBool(Success);
-		bb.WriteLong(NextIndex);
+		bb.WriteLong(term);
+		bb.WriteBool(success);
+		bb.WriteLong(nextIndex);
 	}
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		Term = bb.ReadLong();
-		Success = bb.ReadBool();
-		NextIndex = bb.ReadLong();
+		term = bb.ReadLong();
+		success = bb.ReadBool();
+		nextIndex = bb.ReadLong();
 	}
 
 	@Override
@@ -59,6 +59,6 @@ final class BAppendEntriesResult extends Bean {
 
 	@Override
 	public String toString() {
-		return String.format("(Term=%d Success=%b NextIndex=%d)", Term, Success, NextIndex);
+		return String.format("(Term=%d Success=%b NextIndex=%d)", term, success, nextIndex);
 	}
 }

@@ -12,17 +12,17 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 public class HandlerDispatch implements HttpHandler {
-	protected final HttpService Service;
+	protected final HttpService service;
 
 	public HandlerDispatch(HttpService httpService) {
-		Service = httpService;
+		service = httpService;
 	}
 
 	@Override
 	public void handle(HttpExchange exchange) throws IOException {
 		LinkdHttpExchange xout = null;
 		try {
-			var x = xout = new LinkdHttpExchange(Service, exchange);
+			var x = xout = new LinkdHttpExchange(service, exchange);
 			// dispatch request to server
 			var req = new Request();
 			x.fillRequest(req.Argument);
@@ -37,7 +37,7 @@ public class HandlerDispatch implements HttpHandler {
 
 	protected <A extends Bean, R extends Bean> void choiceProviderAndDispatch(
 			LinkdHttpExchange x, Rpc<A, R> req, ProtocolHandle<Rpc<A, R>> resultHandle) throws IOException {
-		var linkApp = Service.LinkdApp;
+		var linkApp = service.linkdApp;
 		var linkProvider = linkApp.LinkdProvider;
 		var serviceName = linkProvider.MakeServiceName(Web.ModuleId);
 		var services = linkApp.Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
@@ -50,15 +50,15 @@ public class HandlerDispatch implements HttpHandler {
 			x.close(); // 请求还没有转给server，直接关闭。
 			return;
 		}
-		x.provider = provider.Value; // 保存选中的server，重新派发或者报错时再次使用。
-		if (!req.Send(linkApp.LinkdProviderService.GetSocket(provider.Value), resultHandle)) {
+		x.provider = provider.value; // 保存选中的server，重新派发或者报错时再次使用。
+		if (!req.Send(linkApp.LinkdProviderService.GetSocket(provider.value), resultHandle)) {
 			x.sendErrorResponse("Distribute error.");
 			x.close(); // 请求还没有转给server，直接关闭。
 		}
 	}
 
 	private static int internalErrorToHttpCode(long error) {
-		int code = IModule.GetErrorCode(error);
+		int code = IModule.getErrorCode(error);
 		switch (code) {
 		case 0:
 			return 200;
@@ -90,7 +90,7 @@ public class HandlerDispatch implements HttpHandler {
 		if (!x.isRequestBodyClosed()) {
 			var input = new RequestInputStream();
 			x.fillInput(input.Argument);
-			x.ReDispatch(input, (p) -> processRequestInputResult(x, input));
+			x.redispatch(input, (p) -> processRequestInputResult(x, input));
 		}
 		return 0;
 	}
@@ -110,7 +110,7 @@ public class HandlerDispatch implements HttpHandler {
 		if (!x.isRequestBodyClosed()) {
 			var input2 = new RequestInputStream();
 			x.fillInput(input2.Argument);
-			x.ReDispatch(input2, (p) -> processRequestInputResult(x, input2));
+			x.redispatch(input2, (p) -> processRequestInputResult(x, input2));
 		}
 		return 0;
 	}

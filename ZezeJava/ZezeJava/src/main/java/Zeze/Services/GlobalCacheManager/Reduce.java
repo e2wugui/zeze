@@ -24,7 +24,7 @@ public class Reduce extends Zeze.Net.Rpc<BGlobalKeyState, BGlobalKeyState> {
 	public Reduce(Binary gkey, int state) {
 		Argument = new BGlobalKeyState();
 		Result = new BGlobalKeyState();
-		Argument.GlobalKey = gkey;
-		Argument.State = state;
+		Argument.globalKey = gkey;
+		Argument.state = state;
 	}
 }

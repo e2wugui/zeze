@@ -21,19 +21,19 @@ public abstract class AbstractTimer extends Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
-        zeze.AddTable(zeze.getConfig().GetTableConf(_tCustomClasses.getName()).getDatabaseName(), _tCustomClasses);
-        zeze.AddTable(zeze.getConfig().GetTableConf(_tIndexs.getName()).getDatabaseName(), _tIndexs);
-        zeze.AddTable(zeze.getConfig().GetTableConf(_tNamed.getName()).getDatabaseName(), _tNamed);
-        zeze.AddTable(zeze.getConfig().GetTableConf(_tNodeRoot.getName()).getDatabaseName(), _tNodeRoot);
-        zeze.AddTable(zeze.getConfig().GetTableConf(_tNodes.getName()).getDatabaseName(), _tNodes);
+        zeze.addTable(zeze.getConfig().getTableConf(_tCustomClasses.getName()).getDatabaseName(), _tCustomClasses);
+        zeze.addTable(zeze.getConfig().getTableConf(_tIndexs.getName()).getDatabaseName(), _tIndexs);
+        zeze.addTable(zeze.getConfig().getTableConf(_tNamed.getName()).getDatabaseName(), _tNamed);
+        zeze.addTable(zeze.getConfig().getTableConf(_tNodeRoot.getName()).getDatabaseName(), _tNodeRoot);
+        zeze.addTable(zeze.getConfig().getTableConf(_tNodes.getName()).getDatabaseName(), _tNodes);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
-        zeze.RemoveTable(zeze.getConfig().GetTableConf(_tCustomClasses.getName()).getDatabaseName(), _tCustomClasses);
-        zeze.RemoveTable(zeze.getConfig().GetTableConf(_tIndexs.getName()).getDatabaseName(), _tIndexs);
-        zeze.RemoveTable(zeze.getConfig().GetTableConf(_tNamed.getName()).getDatabaseName(), _tNamed);
-        zeze.RemoveTable(zeze.getConfig().GetTableConf(_tNodeRoot.getName()).getDatabaseName(), _tNodeRoot);
-        zeze.RemoveTable(zeze.getConfig().GetTableConf(_tNodes.getName()).getDatabaseName(), _tNodes);
+        zeze.removeTable(zeze.getConfig().getTableConf(_tCustomClasses.getName()).getDatabaseName(), _tCustomClasses);
+        zeze.removeTable(zeze.getConfig().getTableConf(_tIndexs.getName()).getDatabaseName(), _tIndexs);
+        zeze.removeTable(zeze.getConfig().getTableConf(_tNamed.getName()).getDatabaseName(), _tNamed);
+        zeze.removeTable(zeze.getConfig().getTableConf(_tNodeRoot.getName()).getDatabaseName(), _tNodeRoot);
+        zeze.removeTable(zeze.getConfig().getTableConf(_tNodes.getName()).getDatabaseName(), _tNodes);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

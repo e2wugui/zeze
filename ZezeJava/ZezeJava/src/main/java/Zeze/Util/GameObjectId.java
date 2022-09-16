@@ -4,32 +4,32 @@ package Zeze.Util;
  * Game Helper
  */
 public class GameObjectId implements Comparable<GameObjectId> {
-	private int Type;
-	private int ConfigId;
-	private long InstanceId;
+	private int type;
+	private int configId;
+	private long instanceId;
 
 	public final int getType() {
-		return Type;
+		return type;
 	}
 
 	public final void setType(int value) {
-		Type = value;
+		type = value;
 	}
 
 	public final int getConfigId() {
-		return ConfigId;
+		return configId;
 	}
 
 	public final void setConfigId(int value) {
-		ConfigId = value;
+		configId = value;
 	}
 
 	public final long getInstanceId() {
-		return InstanceId;
+		return instanceId;
 	}
 
 	public final void setInstanceId(long value) {
-		InstanceId = value;
+		instanceId = value;
 	}
 
 	@Override
@@ -44,9 +44,8 @@ public class GameObjectId implements Comparable<GameObjectId> {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (obj == this) {
+		if (obj == this)
 			return true;
-		}
 
 		if (obj instanceof GameObjectId) {
 			GameObjectId o = (GameObjectId)obj;
@@ -58,13 +57,11 @@ public class GameObjectId implements Comparable<GameObjectId> {
 	@Override
 	public final int compareTo(GameObjectId x) {
 		int c = Integer.compare(getType(), x.getType());
-		if (c != 0) {
+		if (c != 0)
 			return c;
-		}
 		c = Integer.compare(getConfigId(), x.getConfigId());
-		if (c != 0) {
+		if (c != 0)
 			return c;
-		}
 		return Long.compare(getInstanceId(), x.getInstanceId());
 	}
 }

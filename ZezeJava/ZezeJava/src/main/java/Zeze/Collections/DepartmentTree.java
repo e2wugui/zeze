@@ -15,11 +15,11 @@ public class DepartmentTree<
 		TDepartmentData extends Bean> {
 	private static final BeanFactory beanFactory = new BeanFactory();
 
-	public static long GetSpecialTypeIdFromBean(Bean bean) {
+	public static long getSpecialTypeIdFromBean(Bean bean) {
 		return BeanFactory.getSpecialTypeIdFromBean(bean);
 	}
 
-	public static Bean CreateBeanFromSpecialTypeId(long typeId) {
+	public static Bean createBeanFromSpecialTypeId(long typeId) {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
@@ -138,11 +138,11 @@ public class DepartmentTree<
 			var root = getRoot();
 			if (root.getRoot().equals(account))
 				return 0; // parent, 对于根节点定义成root，grant
-			return module.ErrorCode(Module.ErrorManagePermission);
+			return module.errorCode(Module.ErrorManagePermission);
 		}
 		var department = getDepartmentTreeNode(departmentId);
 		if (department == null)
-			return module.ErrorCode(Module.ErrorDepartmentNotExist);
+			return module.errorCode(Module.ErrorDepartmentNotExist);
 
 		// 开始检查parent
 		return checkManagePermission(account, department.getParentDepartment());
@@ -163,12 +163,12 @@ public class DepartmentTree<
 			var root = getRoot();
 			if (root.getManagers().containsKey(account) || root.getRoot().equals(account))
 				return 0; // grant
-			return module.ErrorCode(Module.ErrorManagePermission);
+			return module.errorCode(Module.ErrorManagePermission);
 		}
 
 		var department = getDepartmentTreeNode(departmentId);
 		if (department == null)
-			return module.ErrorCode(Module.ErrorDepartmentNotExist);
+			return module.errorCode(Module.ErrorDepartmentNotExist);
 
 		if (department.getManagers().isEmpty()) // 当前部门没有管理员，使用父部门的设置(递归)。
 			return checkManagePermission(account, department.getParentDepartment());
@@ -177,7 +177,7 @@ public class DepartmentTree<
 			return 0; // grant
 
 		// 当设置了管理员，不再递归。遵守权限不越级规则。
-		return module.ErrorCode(Module.ErrorManagePermission);
+		return module.errorCode(Module.ErrorManagePermission);
 	}
 
 	public BDepartmentRoot getRoot() {
@@ -217,7 +217,7 @@ public class DepartmentTree<
 	public long changeRoot(String oldRoot, String newRoot) {
 		var dRoot = module._tDepartment.getOrAdd(name);
 		if (!dRoot.getRoot().equals(oldRoot))
-			return module.ErrorCode(Module.ErrorChangeRootNotOwner);
+			return module.errorCode(Module.ErrorChangeRootNotOwner);
 		dRoot.setRoot(newRoot);
 		return 0;
 	}
@@ -226,7 +226,7 @@ public class DepartmentTree<
 	private TManager getOrAddRootManager() {
 		var dRoot = module._tDepartment.getOrAdd(name);
 		return (TManager)dRoot.getManagers().computeIfAbsent(name, key -> {
-			var value = new DynamicBean(0, DepartmentTree::GetSpecialTypeIdFromBean, DepartmentTree::CreateBeanFromSpecialTypeId);
+			var value = new DynamicBean(0, DepartmentTree::getSpecialTypeIdFromBean, DepartmentTree::createBeanFromSpecialTypeId);
 			value.setBean(BeanFactory.invoke(managerConstructor));
 			return value;
 		}).getBean();
@@ -239,7 +239,7 @@ public class DepartmentTree<
 
 		var d = getDepartmentTreeNode(departmentId);
 		return (TManager)d.getManagers().computeIfAbsent(name, key -> {
-			var value = new DynamicBean(0, DepartmentTree::GetSpecialTypeIdFromBean, DepartmentTree::CreateBeanFromSpecialTypeId);
+			var value = new DynamicBean(0, DepartmentTree::getSpecialTypeIdFromBean, DepartmentTree::createBeanFromSpecialTypeId);
 			value.setBean(BeanFactory.invoke(managerConstructor));
 			return value;
 		}).getBean();
@@ -270,15 +270,15 @@ public class DepartmentTree<
 
 		if (departmentParent == 0) {
 			if (dRoot.getChilds().size() > childrenLimit)
-				return module.ErrorCode(Module.ErrorTooManyChildren);
+				return module.errorCode(Module.ErrorTooManyChildren);
 			if (null != dRoot.getChilds().putIfAbsent(dName, dId))
-				return module.ErrorCode(Module.ErrorDepartmentDuplicate);
+				return module.errorCode(Module.ErrorDepartmentDuplicate);
 		} else {
 			var parent = getDepartmentTreeNode(departmentParent);
 			if (parent.getChilds().size() > childrenLimit)
-				return module.ErrorCode(Module.ErrorTooManyChildren);
+				return module.errorCode(Module.ErrorTooManyChildren);
 			if (null != parent.getChilds().putIfAbsent(dName, dId))
-				return module.ErrorCode(Module.ErrorDepartmentDuplicate);
+				return module.errorCode(Module.ErrorDepartmentDuplicate);
 		}
 		var child = new BDepartmentTreeNode();
 		child.getData().setBean(BeanFactory.invoke(departmentDataClassConstructor));
@@ -287,16 +287,16 @@ public class DepartmentTree<
 		module._tDepartmentTree.insert(new BDepartmentKey(name, dId), child);
 		dRoot.setNextDepartmentId(dId);
 		if (null != outDepartmentId)
-			outDepartmentId.Value = dId;
+			outDepartmentId.value = dId;
 		return 0;
 	}
 
 	public long deleteDepartment(long departmentId, boolean recursive) {
 		var department = module._tDepartmentTree.get(new BDepartmentKey(name, departmentId));
 		if (null == department)
-			return module.ErrorCode(Module.ErrorDepartmentNotExist);
+			return module.errorCode(Module.ErrorDepartmentNotExist);
 		if (!recursive && department.getChilds().size() > 0)
-			return module.ErrorCode(Module.ErrorDeleteDepartmentRemainChilds);
+			return module.errorCode(Module.ErrorDeleteDepartmentRemainChilds);
 		for (var child : department.getChilds().values()) {
 			deleteDepartment(child, true);
 		}
@@ -330,13 +330,13 @@ public class DepartmentTree<
 		var department = module._tDepartmentTree.get(new BDepartmentKey(name, departmentId));
 		var newParent = module._tDepartment.get(name);
 		if (null == department || null == newParent)
-			return module.ErrorCode(Module.ErrorDepartmentNotExist);
+			return module.errorCode(Module.ErrorDepartmentNotExist);
 		if (department.getParentDepartment() == 0)
-			return module.ErrorCode(Module.ErrorDepartmentSameParent);
+			return module.errorCode(Module.ErrorDepartmentSameParent);
 		var oldParent = getDepartmentTreeNode(department.getParentDepartment());
 		oldParent.getChilds().remove(department.getName());
 		if (null != newParent.getChilds().putIfAbsent(department.getName(), departmentId))
-			return module.ErrorCode(Module.ErrorDepartmentDuplicate);
+			return module.errorCode(Module.ErrorDepartmentDuplicate);
 		department.setParentDepartment(0);
 		return 0;
 	}
@@ -346,19 +346,19 @@ public class DepartmentTree<
 			return moveDepartment(departmentId);
 
 		if (isRecursiveChild(departmentId, parent))
-			return module.ErrorCode(Module.ErrorCanNotMoveToChilds);
+			return module.errorCode(Module.ErrorCanNotMoveToChilds);
 		var department = module._tDepartmentTree.get(new BDepartmentKey(name, departmentId));
 		if (null == department)
-			return module.ErrorCode(Module.ErrorDepartmentNotExist);
+			return module.errorCode(Module.ErrorDepartmentNotExist);
 		if (department.getParentDepartment() == parent)
-			return module.ErrorCode(Module.ErrorDepartmentSameParent);
+			return module.errorCode(Module.ErrorDepartmentSameParent);
 		var newParent = getDepartmentTreeNode(parent);
 		if (null == newParent)
-			return module.ErrorCode(Module.ErrorDepartmentParentNotExist);
+			return module.errorCode(Module.ErrorDepartmentParentNotExist);
 		var oldParent = getDepartmentTreeNode(department.getParentDepartment());
 		oldParent.getChilds().remove(department.getName());
 		if (null != newParent.getChilds().putIfAbsent(department.getName(), departmentId))
-			return module.ErrorCode(Module.ErrorDepartmentDuplicate);
+			return module.errorCode(Module.ErrorDepartmentDuplicate);
 		department.setParentDepartment(parent);
 		return 0;
 	}

@@ -43,32 +43,32 @@ public final class TaskOneByOneByKey {
 	}
 
 	public static class Barrier {
-		private final Procedure Procedure;
-		private final Action0 CancelAction;
+		private final Procedure procedure;
+		private final Action0 cancelAction;
 		private final ReentrantLock lock = new ReentrantLock();
 		private final Condition cond = lock.newCondition();
-		private int Count;
-		private boolean Canceled;
+		private int count;
+		private boolean canceled;
 
 		public Barrier(Procedure action, int count, Action0 cancel) {
-			Procedure = action;
-			CancelAction = cancel;
-			Count = count;
+			procedure = action;
+			cancelAction = cancel;
+			this.count = count;
 		}
 
-		public void Reach() throws InterruptedException {
+		public void reach() throws InterruptedException {
 			lock.lock();
 			try {
-				if (Canceled)
+				if (canceled)
 					return;
 
-				if (--Count > 0)
+				if (--count > 0)
 					cond.await();
 				else {
 					try {
-						Procedure.Call();
+						procedure.Call();
 					} catch (Throwable ex) {
-						logger.error("{} Run", Procedure.getActionName(), ex);
+						logger.error("{} Run", procedure.getActionName(), ex);
 					} finally {
 						cond.signalAll();
 					}
@@ -78,18 +78,18 @@ public final class TaskOneByOneByKey {
 			}
 		}
 
-		public void Cancel() {
+		public void cancel() {
 			lock.lock();
 			try {
-				if (Canceled)
+				if (canceled)
 					return;
 
-				Canceled = true;
+				canceled = true;
 				try {
-					if (null != CancelAction)
-						CancelAction.run();
+					if (null != cancelAction)
+						cancelAction.run();
 				} catch (Throwable ex) {
-					logger.error("{} Canceled", Procedure.getActionName(), ex);
+					logger.error("{} Canceled", procedure.getActionName(), ex);
 				} finally {
 					cond.signalAll();
 				}
@@ -99,13 +99,13 @@ public final class TaskOneByOneByKey {
 		}
 	}
 
-	public <T> void ExecuteCyclicBarrier(Collection<T> keys, Procedure procedure, Action0 cancel, DispatchMode mode) {
+	public <T> void executeCyclicBarrier(Collection<T> keys, Procedure procedure, Action0 cancel, DispatchMode mode) {
 		if (keys.isEmpty())
 			throw new IllegalArgumentException("CyclicBarrier keys is empty.");
 
 		var barrier = new Barrier(procedure, keys.size(), cancel);
 		for (var key : keys)
-			Execute(key, barrier::Reach, barrier.Procedure.getActionName(), barrier::Cancel, mode);
+			Execute(key, barrier::reach, barrier.procedure.getActionName(), barrier::cancel, mode);
 	}
 
 	public void Execute(Object key, Action0 action) {
@@ -179,7 +179,7 @@ public final class TaskOneByOneByKey {
 	public void Execute(int key, Action0 action, String name, Action0 cancel, DispatchMode mode) {
 		if (action == null)
 			throw new IllegalArgumentException("null action");
-		concurrency[Hash(key) & hashMask].Execute(action, name, cancel, mode);
+		concurrency[hash(key) & hashMask].execute(action, name, cancel, mode);
 	}
 
 	public void Execute(int key, Func0<?> func) {
@@ -201,7 +201,7 @@ public final class TaskOneByOneByKey {
 	public void Execute(int key, Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
 		if (func == null)
 			throw new IllegalArgumentException("null func");
-		concurrency[Hash(key) & hashMask].Execute(func, name, cancel, mode);
+		concurrency[hash(key) & hashMask].execute(func, name, cancel, mode);
 	}
 
 	public void Execute(int key, Procedure procedure) {
@@ -213,7 +213,7 @@ public final class TaskOneByOneByKey {
 	}
 
 	public void Execute(int key, Procedure procedure, Action0 cancel, DispatchMode mode) {
-		concurrency[Hash(key) & hashMask].Execute(procedure::Call, procedure.getActionName(), cancel, mode);
+		concurrency[hash(key) & hashMask].execute(procedure::Call, procedure.getActionName(), cancel, mode);
 	}
 
 	public void Execute(long key, Action0 action) {
@@ -268,16 +268,16 @@ public final class TaskOneByOneByKey {
 		Execute(Long.hashCode(key), procedure, cancel, mode);
 	}
 
-	public void Shutdown() {
-		Shutdown(true);
+	public void shutdown() {
+		shutdown(true);
 	}
 
-	public void Shutdown(boolean cancel) {
+	public void shutdown(boolean cancel) {
 		for (var ts : concurrency)
-			ts.Shutdown(cancel);
+			ts.shutdown(cancel);
 		try {
 			for (var ts : concurrency)
-				ts.WaitComplete();
+				ts.waitComplete();
 		} catch (InterruptedException e) {
 			logger.error("Shutdown interrupted", e);
 		}
@@ -292,7 +292,7 @@ public final class TaskOneByOneByKey {
 	 *
 	 * @see java.util.HashMap
 	 */
-	private static int Hash(int _h) {
+	private static int hash(int _h) {
 		int h = _h;
 		h ^= (h >>> 20) ^ (h >>> 12);
 		return (h ^ (h >>> 7) ^ (h >>> 4));
@@ -326,7 +326,7 @@ public final class TaskOneByOneByKey {
 				} catch (Throwable e) {
 					logger.error("TaskOneByOne: {}", name, e);
 				} finally {
-					RunNext();
+					runNext();
 				}
 			}
 		}
@@ -346,7 +346,7 @@ public final class TaskOneByOneByKey {
 				} catch (Throwable e) {
 					logger.error("TaskOneByOne: {}", name, e);
 				} finally {
-					RunNext();
+					runNext();
 				}
 			}
 		}
@@ -354,21 +354,21 @@ public final class TaskOneByOneByKey {
 		private final ReentrantLock lock = new ReentrantLock();
 		private final Condition cond = lock.newCondition();
 		private ArrayDeque<Task> queue = new ArrayDeque<>();
-		private boolean IsShutdown;
+		private boolean isShutdown;
 
-		void Execute(Action0 action, String name, Action0 cancel, DispatchMode mode) {
-			Execute(new TaskAction(action, name, cancel, mode));
+		void execute(Action0 action, String name, Action0 cancel, DispatchMode mode) {
+			execute(new TaskAction(action, name, cancel, mode));
 		}
 
-		void Execute(Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
-			Execute(new TaskFunc(func, name, cancel, mode));
+		void execute(Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
+			execute(new TaskFunc(func, name, cancel, mode));
 		}
 
-		private void Execute(Task task) {
+		private void execute(Task task) {
 			boolean submit = false;
 			lock.lock();
 			try {
-				if (!IsShutdown) {
+				if (!isShutdown) {
 					queue.addLast(task);
 					if (queue.size() != 1)
 						return;
@@ -391,13 +391,13 @@ public final class TaskOneByOneByKey {
 			}
 		}
 
-		private void RunNext() {
+		private void runNext() {
 			Task task;
 			lock.lock();
 			try {
 				queue.removeFirst();
 				if (queue.isEmpty()) {
-					if (IsShutdown)
+					if (isShutdown)
 						cond.signalAll();
 					return;
 				}
@@ -411,13 +411,13 @@ public final class TaskOneByOneByKey {
 			threadPool.submit(task);
 		}
 
-		void Shutdown(boolean cancel) {
+		void shutdown(boolean cancel) {
 			ArrayDeque<Task> oldQueue;
 			lock.lock();
 			try {
-				if (IsShutdown)
+				if (isShutdown)
 					return;
-				IsShutdown = true;
+				isShutdown = true;
 				oldQueue = queue;
 				if (!cancel || oldQueue.isEmpty())
 					return;
@@ -437,7 +437,7 @@ public final class TaskOneByOneByKey {
 			}
 		}
 
-		void WaitComplete() throws InterruptedException {
+		void waitComplete() throws InterruptedException {
 			lock.lock();
 			try {
 				while (!queue.isEmpty())

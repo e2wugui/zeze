@@ -32,7 +32,7 @@ public final class GlobalAgent implements IGlobalAgent {
 			connector = new Zeze.Net.Connector(host, port, true);
 			connector.userState = this;
 			super.globalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
-			connector.setMaxReconnectDelay(AchillesHeelConfig.ReconnectTimer);
+			connector.setMaxReconnectDelay(AchillesHeelConfig.reconnectTimer);
 			client.getConfig().addConnector(connector);
 		}
 
@@ -50,7 +50,7 @@ public final class GlobalAgent implements IGlobalAgent {
 				if (!rpc.isTimeout() && rpc.getResultCode() == 0)
 					setActiveTime(System.currentTimeMillis()); // KeepAlive.Response
 				return 0;
-			}, getConfig().KeepAliveTimeout);
+			}, getConfig().keepAliveTimeout);
 		}
 
 		public AtomicLong getLoginTimes() {
@@ -64,19 +64,19 @@ public final class GlobalAgent implements IGlobalAgent {
 		private static void throwException(String msg, Throwable cause) {
 			var txn = Transaction.getCurrent();
 			if (txn != null)
-				txn.ThrowAbort(msg, cause);
+				txn.throwAbort(msg, cause);
 			throw new RuntimeException(msg, cause);
 		}
 
 		void verifyFastFail() {
-			if (System.currentTimeMillis() - lastErrorTime < getConfig().ServerFastErrorPeriod)
+			if (System.currentTimeMillis() - lastErrorTime < getConfig().serverFastErrorPeriod)
 				throwException("GlobalAgent In FastErrorPeriod", null); // abort
 			// else continue
 		}
 
 		void setFastFail() {
 			var now = System.currentTimeMillis();
-			if (now - lastErrorTime > getConfig().ServerFastErrorPeriod)
+			if (now - lastErrorTime > getConfig().serverFastErrorPeriod)
 				lastErrorTime = now;
 		}
 
@@ -170,7 +170,7 @@ public final class GlobalAgent implements IGlobalAgent {
 			var trans = Transaction.getCurrent();
 			if (trans == null)
 				throw new GoBackZeze("Acquire In Releasing");
-			trans.ThrowAbort("Acquire In Releasing", null);
+			trans.throwAbort("Acquire In Releasing", null);
 		}
 		agent.verifyFastFail();
 		var socket = agent.connect();
@@ -184,13 +184,13 @@ public final class GlobalAgent implements IGlobalAgent {
 				rpc.Send(socket);
 				return null;
 			}
-			rpc.SendForWait(socket, agent.getConfig().AcquireTimeout).get();
+			rpc.SendForWait(socket, agent.getConfig().acquireTimeout).get();
 		} catch (Throwable e) {
 			agent.setFastFail(); // 一般是超时失败，此时必须进入快速失败模式。
 			var trans = Transaction.getCurrent();
 			if (trans == null)
 				throw new GoBackZeze("Acquire", e);
-			trans.ThrowAbort("Acquire", e);
+			trans.throwAbort("Acquire", e);
 			// never got here
 		}
 			/*
@@ -206,41 +206,41 @@ public final class GlobalAgent implements IGlobalAgent {
 			var trans = Transaction.getCurrent();
 			if (trans == null)
 				throw new GoBackZeze("GlobalAgent.Acquire Failed");
-			trans.ThrowAbort("GlobalAgent.Acquire Failed", null);
+			trans.throwAbort("GlobalAgent.Acquire Failed", null);
 			// never got here
 		}
 		var rc = rpc.getResultCode();
-		state = rpc.Result.State;
+		state = rpc.Result.state;
 		return rc == 0 ? AcquireResult.getSuccessResult(state) : new AcquireResult(rc, state);
 	}
 
 	public int processReduceRequest(Reduce rpc) {
-		switch (rpc.Argument.State) {
+		switch (rpc.Argument.state) {
 		case GlobalCacheManagerConst.StateInvalid: {
-			var bb = ByteBuffer.Wrap(rpc.Argument.GlobalKey);
+			var bb = ByteBuffer.Wrap(rpc.Argument.globalKey);
 			var tableId = bb.ReadInt4();
-			var table1 = zeze.GetTable(tableId);
+			var table1 = zeze.getTable(tableId);
 			if (null == table1) {
 				logger.warn("ReduceInvalid Table Not Found={},ServerId={}",
 						tableId, zeze.getConfig().getServerId());
 				// 本地没有找到表格看作成功。
-				rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
-				rpc.Result.State = GlobalCacheManagerConst.StateInvalid;
+				rpc.Result.globalKey = rpc.Argument.globalKey;
+				rpc.Result.state = GlobalCacheManagerConst.StateInvalid;
 				rpc.SendResultCode(0);
 				return 0;
 			}
 			return table1.reduceInvalid(rpc, bb);
 		}
 		case GlobalCacheManagerConst.StateShare: {
-			var bb = ByteBuffer.Wrap(rpc.Argument.GlobalKey);
+			var bb = ByteBuffer.Wrap(rpc.Argument.globalKey);
 			var tableId = bb.ReadInt4();
-			var table = zeze.GetTable(tableId);
+			var table = zeze.getTable(tableId);
 			if (table == null) {
 				logger.warn("ReduceShare Table Not Found={},ServerId={}",
 						tableId, zeze.getConfig().getServerId());
 				// 本地没有找到表格看作成功。
-				rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
-				rpc.Result.State = GlobalCacheManagerConst.StateInvalid;
+				rpc.Result.globalKey = rpc.Argument.globalKey;
+				rpc.Result.state = GlobalCacheManagerConst.StateInvalid;
 				rpc.SendResultCode(0);
 				return 0;
 			}

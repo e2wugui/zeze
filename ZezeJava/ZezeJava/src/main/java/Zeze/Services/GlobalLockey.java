@@ -7,7 +7,7 @@ import Zeze.Net.Binary;
 import Zeze.Raft.RocksRaft.PessimismLock;
 
 public final class GlobalLockey implements Comparable<GlobalLockey>, PessimismLock {
-	private final Binary GlobalKey;
+	private final Binary globalKey;
 	private Lock lock;
 	private Condition cond;
 
@@ -16,16 +16,16 @@ public final class GlobalLockey implements Comparable<GlobalLockey>, PessimismLo
 	 * 不要自己构造这个对象。开放出去仅仅为了测试。
 	 */
 	public GlobalLockey(Binary key) {
-		GlobalKey = key;
+		globalKey = key;
 	}
 
 	public Binary getGlobalKey() {
-		return GlobalKey;
+		return globalKey;
 	}
 
 	@Override
 	public void lock() {
-		Enter();
+		enter();
 	}
 
 	public boolean tryLock() {
@@ -34,30 +34,30 @@ public final class GlobalLockey implements Comparable<GlobalLockey>, PessimismLo
 
 	@Override
 	public void unlock() {
-		Exit();
+		exit();
 	}
 
-	public void Enter() {
+	public void enter() {
 		lock.lock();
 	}
 
-	public void Wait() throws InterruptedException {
+	public void await() throws InterruptedException {
 		cond.await();
 	}
 
-	public void Pulse() {
+	public void pulse() {
 		cond.signal();
 	}
 
-	public void PulseAll() {
+	public void pulseAll() {
 		cond.signalAll();
 	}
 
-	public void Exit() {
+	public void exit() {
 		lock.unlock();
 	}
 
-	GlobalLockey Alloc() {
+	GlobalLockey alloc() {
 		lock = new ReentrantLock();
 		cond = lock.newCondition();
 		return this;
@@ -68,12 +68,12 @@ public final class GlobalLockey implements Comparable<GlobalLockey>, PessimismLo
 		if (other == null)
 			return 1; // null always small
 
-		return GlobalKey.compareTo(other.GlobalKey);
+		return globalKey.compareTo(other.globalKey);
 	}
 
 	@Override
 	public int hashCode() {
-		return GlobalKey.hashCode();
+		return globalKey.hashCode();
 	}
 
 	@Override
@@ -82,7 +82,7 @@ public final class GlobalLockey implements Comparable<GlobalLockey>, PessimismLo
 			return true;
 
 		if (obj instanceof GlobalLockey)
-			return GlobalKey.equals(((GlobalLockey)obj).GlobalKey);
+			return globalKey.equals(((GlobalLockey)obj).globalKey);
 
 		return false;
 	}

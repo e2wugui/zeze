@@ -41,8 +41,8 @@ import org.apache.logging.log4j.Logger;
 
 public class HttpExchange {
 	static final Logger logger = LogManager.getLogger(HttpExchange.class);
-	private static final byte Requesting = 0;
-	private static final byte ResponseHeadersSent = 1;
+	private static final byte REQUESTING = 0;
+	private static final byte RESPONSE_HEADERS_SENT = 1;
 
 	private final Web web;
 	private final Request request;
@@ -88,14 +88,14 @@ public class HttpExchange {
 	}
 
 	long close(long error, String msg, Throwable ex, boolean notifyLinkd) {
-		if (null == web.Exchanges(request).remove(request.Argument.getExchangeId()))
+		if (null == web.exchanges(request).remove(request.Argument.getExchangeId()))
 			return error;
 
 		logger.debug("close: " + error + " " + msg + request.Argument.getPath(), ex);
 		if (error != 0 || null != ex)
 			logger.error(msg, ex);
 
-		if (state == Requesting) {
+		if (state == REQUESTING) {
 			// 请求处理过程中的错误通过Rpc.Result报告。
 			if (null != msg)
 				request.Result.setMessage(msg);
@@ -158,7 +158,7 @@ public class HttpExchange {
 	 * @param body maybe null
 	 */
 	public void sendResponseHeaders(int code, byte[] body, boolean finish) {
-		if (state != Requesting)
+		if (state != REQUESTING)
 			throw new IllegalStateException("Not In State.Requesting.");
 
 		request.Result.setCode(code);
@@ -166,13 +166,13 @@ public class HttpExchange {
 			request.Result.setBody(new Binary(body));
 		request.Result.setFinish(finish);
 		request.SendResult();
-		state = ResponseHeadersSent;
+		state = RESPONSE_HEADERS_SENT;
 		if (finish)
 			closeResponseBody();
 	}
 
 	public void sendResponseBody(byte[] body, boolean finish) {
-		if (state != ResponseHeadersSent)
+		if (state != RESPONSE_HEADERS_SENT)
 			throw new IllegalStateException("Not In State.ResponseHeadersSent.");
 
 		final var stream = new ResponseOutputStream();
@@ -191,7 +191,7 @@ public class HttpExchange {
 	}
 
 	public void sendResponseBodyAsync(byte[] body, boolean finish, ISendDone sendDone) {
-		if (state != ResponseHeadersSent)
+		if (state != RESPONSE_HEADERS_SENT)
 			throw new IllegalStateException("Not In State.ResponseHeadersSent.");
 
 		final var stream = new ResponseOutputStream();

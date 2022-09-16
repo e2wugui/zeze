@@ -9,6 +9,7 @@ import org.pcollections.Empty;
 
 public class LogList1<V> extends LogList<V> {
 	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
+	protected final ArrayList<OpLog<V>> opLogs = new ArrayList<>();
 
 	static final class OpLog<V> {
 		static final int OP_MODIFY = 0;
@@ -32,10 +33,8 @@ public class LogList1<V> extends LogList<V> {
 		}
 	}
 
-	protected final ArrayList<OpLog<V>> opLogs = new ArrayList<>();
-
 	public LogList1(Class<V> valueClass) {
-		super("Zeze.Raft.RocksRaft.LogList1<" + Reflect.GetStableName(valueClass) + '>');
+		super("Zeze.Raft.RocksRaft.LogList1<" + Reflect.getStableName(valueClass) + '>');
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
 	}
 
@@ -54,11 +53,11 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	@Override
-	public void Collect(Changes changes, Bean recent, Log vlog) {
+	public void collect(Changes changes, Bean recent, Log vlog) {
 		throw new UnsupportedOperationException("Collect Not Implement.");
 	}
 
-	public final boolean Add(V item) {
+	public final boolean add(V item) {
 		if (item == null)
 			throw new IllegalArgumentException("null item");
 		var list = getValue();
@@ -67,7 +66,7 @@ public class LogList1<V> extends LogList<V> {
 		return true;
 	}
 
-	public final boolean AddAll(Collection<? extends V> items) {
+	public final boolean addAll(Collection<? extends V> items) {
 		var addindex = getValue().size();
 		var list = getValue().plusAll(items);
 		if (list == getValue())
@@ -79,21 +78,21 @@ public class LogList1<V> extends LogList<V> {
 		return true;
 	}
 
-	public final boolean Remove(V item) {
+	public final boolean remove(V item) {
 		var index = getValue().indexOf(item);
 		if (index < 0)
 			return false;
-		Remove(index);
+		remove(index);
 		return true;
 	}
 
-	public final void Clear() {
+	public final void clear() {
 		setValue(Empty.vector());
 		opLogs.clear();
 		opLogs.add(new OpLog<>(OpLog.OP_CLEAR, 0, null));
 	}
 
-	public final void Add(int index, V item) {
+	public final void add(int index, V item) {
 		setValue(getValue().plus(index, item));
 		opLogs.add(new OpLog<>(OpLog.OP_ADD, index, item));
 	}
@@ -106,7 +105,7 @@ public class LogList1<V> extends LogList<V> {
 		return old;
 	}
 
-	public final V Remove(int index) {
+	public final V remove(int index) {
 		var list = getValue();
 		var old = list.get(index);
 		setValue(list.minus(index));
@@ -140,18 +139,18 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	@Override
-	public void EndSavepoint(Savepoint currentSp) {
-		var log = currentSp.GetLog(getLogKey());
+	public void endSavepoint(Savepoint currentSp) {
+		var log = currentSp.getLog(getLogKey());
 		if (log != null) {
 			@SuppressWarnings("unchecked")
 			var currentLog = (LogList1<V>)log;
 			currentLog.setValue(this.getValue());
-			currentLog.Merge(this);
+			currentLog.merge(this);
 		} else
-			currentSp.PutLog(this);
+			currentSp.putLog(this);
 	}
 
-	public final void Merge(LogList1<V> from) {
+	public final void merge(LogList1<V> from) {
 		if (from.opLogs.size() > 0) {
 			if (from.opLogs.get(0).op == OpLog.OP_CLEAR)
 				opLogs.clear();
@@ -160,7 +159,7 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	@Override
-	public Log BeginSavepoint() {
+	public Log beginSavepoint() {
 		var dup = new LogList1<>(getTypeId(), valueCodecFuncs);
 		dup.setBelong(getBelong());
 		dup.setVariableId(getVariableId());

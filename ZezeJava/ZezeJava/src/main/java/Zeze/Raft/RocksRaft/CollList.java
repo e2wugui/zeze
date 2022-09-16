@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import org.pcollections.PVector;
 
 public abstract class CollList<V> extends Collection implements Iterable<V> {
-	public PVector<V> _list = org.pcollections.Empty.vector();
+	public PVector<V> list = org.pcollections.Empty.vector();
 
 	public abstract boolean add(V item);
 
@@ -23,15 +23,15 @@ public abstract class CollList<V> extends Collection implements Iterable<V> {
 		if (isManaged()) {
 			var t = Transaction.getCurrent();
 			if (t == null)
-				return _list;
-			Log log = t.GetLog(parent().objectId() + variableId());
+				return list;
+			Log log = t.getLog(parent().objectId() + variableId());
 			if (log == null)
-				return _list;
+				return list;
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList<V>)log;
 			return listLog.getValue();
 		}
-		return _list;
+		return list;
 	}
 
 	public final boolean isEmpty() {

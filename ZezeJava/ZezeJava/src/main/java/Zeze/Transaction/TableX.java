@@ -133,7 +133,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					var txn = Transaction.getCurrent();
 					if (txn == null)
 						throw new IllegalStateException("Acquire Failed");
-					txn.ThrowRedoAndReleaseLock(tkey + ":" + r, null);
+					txn.throwRedoAndReleaseLock(tkey + ":" + r, null);
 				}
 				verifyGlobalRecordState(key, r.getState() == StateModify);
 
@@ -142,7 +142,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				var beforeTimestamp = r.getTimestamp();
 
 				if (storage != null) {
-					if (Macro.EnableStatistics) {
+					if (Macro.enableStatistics) {
 						TableStatistics.getInstance().getOrAdd(getId()).getStorageFindCount().increment();
 					}
 					strongRef = storage.find(key, this);
@@ -209,8 +209,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	public final int reduceShare(Reduce rpc, ByteBuffer bbKey) {
 		var fresh = rpc.getResultCode();
 		rpc.setResultCode(0);
-		rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
-		rpc.Result.State = rpc.Argument.State;
+		rpc.Result.globalKey = rpc.Argument.globalKey;
+		rpc.Result.state = rpc.Argument.state;
 		if (isDebugEnabled)
 			logger.debug("Reduce NewState={}", rpc);
 
@@ -220,9 +220,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		try {
 			var r = cache.get(key);
 			if (isDebugEnabled)
-				logger.debug("Reduce NewState={} {}", rpc.Argument.State, r);
+				logger.debug("Reduce NewState={} {}", rpc.Argument.state, r);
 			if (r == null) {
-				rpc.Result.State = StateInvalid;
+				rpc.Result.state = StateInvalid;
 				if (isDebugEnabled)
 					logger.debug("Reduce SendResult 1 r=null");
 				rpc.SendResultCode(GlobalCacheManagerConst.ReduceShareAlreadyIsInvalid);
@@ -233,7 +233,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				if (fresh != GlobalCacheManagerConst.AcquireFreshSource && r.isFreshAcquire()) {
 					if (isDebugEnabled)
 						logger.debug("Reduce SendResult fresh {}", r);
-					rpc.Result.State = GlobalCacheManagerConst.StateReduceErrorFreshAcquire;
+					rpc.Result.state = GlobalCacheManagerConst.StateReduceErrorFreshAcquire;
 					rpc.SendResult();
 					return 0;
 				}
@@ -241,7 +241,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				switch (r.getState()) {
 				case StateRemoved: // impossible! safe only.
 				case StateInvalid:
-					rpc.Result.State = StateInvalid;
+					rpc.Result.state = StateInvalid;
 					rpc.setResultCode(GlobalCacheManagerConst.ReduceShareAlreadyIsInvalid);
 
 					if (r.getDirty())
@@ -252,7 +252,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					return 0;
 
 				case StateShare:
-					rpc.Result.State = StateShare;
+					rpc.Result.state = StateShare;
 					rpc.setResultCode(GlobalCacheManagerConst.ReduceShareAlreadyIsShare);
 					if (r.getDirty())
 						break;
@@ -263,7 +263,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 				case StateModify:
 					r.setState(StateShare); // 马上修改状态。事务如果要写会再次请求提升(Acquire)。
-					rpc.Result.State = StateShare;
+					rpc.Result.state = StateShare;
 					if (r.getDirty())
 						break;
 					if (isDebugEnabled)
@@ -306,8 +306,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	public final int reduceInvalid(Reduce rpc, ByteBuffer bbKey) {
 		var fresh = rpc.getResultCode();
 		rpc.setResultCode(0);
-		rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
-		rpc.Result.State = rpc.Argument.State;
+		rpc.Result.globalKey = rpc.Argument.globalKey;
+		rpc.Result.state = rpc.Argument.state;
 
 		K key = decodeKey(bbKey);
 		var lockey = getZeze().getLocks().get(new TableKey(getId(), key));
@@ -315,9 +315,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		try {
 			var r = cache.get(key);
 			if (isDebugEnabled)
-				logger.debug("Reduce NewState={} {}", rpc.Argument.State, r);
+				logger.debug("Reduce NewState={} {}", rpc.Argument.state, r);
 			if (r == null) {
-				rpc.Result.State = StateInvalid;
+				rpc.Result.state = StateInvalid;
 				if (isDebugEnabled)
 					logger.debug("Reduce SendResult 1 r=null");
 				rpc.SendResultCode(GlobalCacheManagerConst.ReduceInvalidAlreadyIsInvalid);
@@ -328,7 +328,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				if (fresh != GlobalCacheManagerConst.AcquireFreshSource && r.isFreshAcquire()) {
 					if (isDebugEnabled)
 						logger.debug("Reduce SendResult fresh {}", r);
-					rpc.Result.State = GlobalCacheManagerConst.StateReduceErrorFreshAcquire;
+					rpc.Result.state = GlobalCacheManagerConst.StateReduceErrorFreshAcquire;
 					rpc.SendResult();
 					return 0;
 				}
@@ -336,7 +336,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				switch (r.getState()) {
 				case StateRemoved: // impossible! safe only.
 				case StateInvalid:
-					rpc.Result.State = StateInvalid;
+					rpc.Result.state = StateInvalid;
 					rpc.setResultCode(GlobalCacheManagerConst.ReduceInvalidAlreadyIsInvalid);
 					if (r.getDirty())
 						break;
@@ -366,7 +366,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				}
 				// if (isDebugEnabled)
 				// logger.warn("ReduceInvalid checkpoint begin. id={} {}", r, tkey);
-				rpc.Result.State = StateInvalid;
+				rpc.Result.state = StateInvalid;
 				flushWhenReduce(r);
 				if (isDebugEnabled)
 					logger.debug("Reduce SendResult 4 {}", r);
@@ -404,12 +404,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			var v = e.getValue();
 			var lockey = locks.get(new TableKey(getId(), k));
 			if (!lockey.tryEnterWriteLock(0)) {
-				remain.add(KV.Create(lockey, v));
+				remain.add(KV.create(lockey, v));
 				continue;
 			}
 			try {
 				if (!v.tryEnterFairLock()) {
-					remain.add(KV.Create(lockey, v));
+					remain.add(KV.create(lockey, v));
 					continue;
 				}
 				try {
@@ -479,7 +479,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		assert currentT != null;
 
 		var tkey = new TableKey(getId(), key);
-		var cr = currentT.GetRecordAccessed(tkey);
+		var cr = currentT.getRecordAccessed(tkey);
 		if (cr != null) {
 			@SuppressWarnings("unchecked")
 			var r = (V)cr.newestValue();
@@ -487,7 +487,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 
 		var r = load(key);
-		currentT.AddRecordAccessed(r.record.createRootInfoIfNeed(tkey), new RecordAccessed(r));
+		currentT.addRecordAccessed(r.record.createRootInfoIfNeed(tkey), new RecordAccessed(r));
 		return r.strongRef;
 	}
 
@@ -500,7 +500,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		assert currentT != null;
 
 		var tkey = new TableKey(getId(), key);
-		var cr = currentT.GetRecordAccessed(tkey);
+		var cr = currentT.getRecordAccessed(tkey);
 		if (cr != null) {
 			@SuppressWarnings("unchecked")
 			V crv = (V)cr.newestValue();
@@ -510,7 +510,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		} else {
 			var r = load(key);
 			cr = new RecordAccessed(r);
-			currentT.AddRecordAccessed(r.record.createRootInfoIfNeed(tkey), cr);
+			currentT.addRecordAccessed(r.record.createRootInfoIfNeed(tkey), cr);
 			if (r.strongRef != null)
 				return r.strongRef;
 			// add
@@ -530,7 +530,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		assert currentT != null;
 
 		var tkey = new TableKey(getId(), key);
-		var cr = currentT.GetRecordAccessed(tkey);
+		var cr = currentT.getRecordAccessed(tkey);
 		value.initRootInfoWithRedo(cr.atomicTupleRecord.record.createRootInfoIfNeed(tkey), null);
 		cr.put(currentT, value);
 		return true;
@@ -548,11 +548,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		assert currentT != null;
 
 		var tkey = new TableKey(getId(), key);
-		var cr = currentT.GetRecordAccessed(tkey);
+		var cr = currentT.getRecordAccessed(tkey);
 		if (cr == null) {
 			var r = load(key);
 			cr = new RecordAccessed(r);
-			currentT.AddRecordAccessed(r.record.createRootInfoIfNeed(tkey), cr);
+			currentT.addRecordAccessed(r.record.createRootInfoIfNeed(tkey), cr);
 		}
 		value.initRootInfoWithRedo(cr.atomicTupleRecord.record.createRootInfoIfNeed(tkey), null);
 		cr.put(currentT, value);
@@ -564,7 +564,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		assert currentT != null;
 
 		var tkey = new TableKey(getId(), key);
-		var cr = currentT.GetRecordAccessed(tkey);
+		var cr = currentT.getRecordAccessed(tkey);
 		if (cr != null) {
 			cr.put(currentT, null);
 			return;
@@ -573,7 +573,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var r = load(key);
 		cr = new RecordAccessed(r);
 		cr.put(currentT, null);
-		currentT.AddRecordAccessed(r.record.createRootInfoIfNeed(tkey), cr);
+		currentT.addRecordAccessed(r.record.createRootInfoIfNeed(tkey), cr);
 	}
 
 	@Override
@@ -585,13 +585,13 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		setDatabase(database);
 
 		if (isAutoKey())
-			autoKey = app.getServiceManagerAgent().GetAutoKey(getName());
+			autoKey = app.getServiceManagerAgent().getAutoKey(getName());
 
-		setTableConf(app.getConfig().GetTableConf(getName()));
+		setTableConf(app.getConfig().getTableConf(getName()));
 		cache = new TableCache<>(app, this);
 		storage = isMemory() ? null : new Storage<>(this, database, getName());
 		oldTable = getTableConf().getDatabaseOldMode() == 1
-				? app.GetDatabase(getTableConf().getDatabaseOldName()).openTable(getName()) : null;
+				? app.getDatabase(getTableConf().getDatabaseOldName()).openTable(getName()) : null;
 		localRocksCacheTable = app.getLocalRocksCacheDb().openTable(getName());
 		return storage;
 	}
@@ -774,12 +774,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var tkey = new TableKey(getId(), key);
 		var currentT = Transaction.getCurrent();
 		if (currentT != null) {
-			var cr = currentT.GetRecordAccessed(tkey);
+			var cr = currentT.getRecordAccessed(tkey);
 			if (cr != null) {
 				var v = cr.newestValue();
 				return v != null ? (V)v.copyBean() : null;
 			}
-			currentT.SetAlwaysReleaseLockWhenRedo();
+			currentT.setAlwaysReleaseLockWhenRedo();
 		}
 
 		var lockey = getZeze().getLocks().get(tkey);
@@ -796,7 +796,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	public final V selectDirty(K key) {
 		var currentT = Transaction.getCurrent();
 		if (currentT != null) {
-			var cr = currentT.GetRecordAccessed(new TableKey(getId(), key));
+			var cr = currentT.getRecordAccessed(new TableKey(getId(), key));
 			if (cr != null)
 				return (V)cr.newestValue();
 		}

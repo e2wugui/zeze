@@ -6,26 +6,26 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
 public final class BServerLoad extends Bean {
-	public String Ip;
-	public int Port;
-	public Binary Param = Binary.Empty;
+	public String ip;
+	public int port;
+	public Binary param = Binary.Empty;
 
 	public String getName() {
-		return Ip + ":" + Port;
+		return ip + ":" + port;
 	}
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		Ip = bb.ReadString();
-		Port = bb.ReadInt();
-		Param = bb.ReadBinary();
+		ip = bb.ReadString();
+		port = bb.ReadInt();
+		param = bb.ReadBinary();
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteString(Ip);
-		bb.WriteInt(Port);
-		bb.WriteBinary(Param);
+		bb.WriteString(ip);
+		bb.WriteInt(port);
+		bb.WriteBinary(param);
 	}
 
 	@Override
@@ -52,6 +52,6 @@ public final class BServerLoad extends Bean {
 
 	@Override
 	public String toString() {
-		return "BServerLoad{" + "Ip='" + Ip + '\'' + ", Port=" + Port + ", Param=" + Param + '}';
+		return "BServerLoad{" + "Ip='" + ip + '\'' + ", Port=" + port + ", Param=" + param + '}';
 	}
 }

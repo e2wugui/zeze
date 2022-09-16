@@ -95,10 +95,10 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + "    var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();");
             sw.WriteLine(prefix + "    if (txn == null)");
             sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "    var log = txn.GetLog(objectId() + " + var.Id + ");");
+            sw.WriteLine(prefix + "    var log = txn.getLog(objectId() + " + var.Id + ");");
             sw.WriteLine(prefix + "    if (log == null)");
             sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + $"    return (({GetLogName(type)})log).Value;");
+            sw.WriteLine(prefix + $"    return (({GetLogName(type)})log).value;");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
             sw.WriteLine(prefix + "public void " + var.Setter($"{typeName} value") + " {");
@@ -112,7 +112,7 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + "        return;");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();");
-            sw.WriteLine(prefix + $"    txn.PutLog(new {GetLogName(type)}(this, {var.Id}, value));"); //
+            sw.WriteLine(prefix + $"    txn.putLog(new {GetLogName(type)}(this, {var.Id}, value));"); //
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }
@@ -127,10 +127,10 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + "    var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();");
             sw.WriteLine(prefix + "    if (txn == null)");
             sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "    var log = txn.GetLog(objectId() + " + var.Id + ");");
+            sw.WriteLine(prefix + "    var log = txn.getLog(objectId() + " + var.Id + ");");
             sw.WriteLine(prefix + "    if (null == log)");
             sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + $"    return (({GetLogName(type)})log).Value;");
+            sw.WriteLine(prefix + $"    return (({GetLogName(type)})log).value;");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
             sw.WriteLine(prefix + "public void " + var.Setter($"{typeName} value") + " {");
@@ -141,7 +141,7 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + "        return;");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();");
-            sw.WriteLine(prefix + $"    txn.PutLog(new {GetSimpleLogName(type)}({typeName}.class, this, {var.Id}, value));"); //
+            sw.WriteLine(prefix + $"    txn.putLog(new {GetSimpleLogName(type)}({typeName}.class, this, {var.Id}, value));"); //
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }

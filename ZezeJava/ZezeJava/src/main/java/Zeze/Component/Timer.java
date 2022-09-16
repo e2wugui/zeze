@@ -22,11 +22,11 @@ import org.apache.logging.log4j.core.util.CronExpression;
 public class Timer extends AbstractTimer {
 	private static final BeanFactory beanFactory = new BeanFactory();
 
-	public static long GetSpecialTypeIdFromBean(Bean bean) {
+	public static long getSpecialTypeIdFromBean(Bean bean) {
 		return BeanFactory.getSpecialTypeIdFromBean(bean);
 	}
 
-	public static Bean CreateBeanFromSpecialTypeId(long typeId) {
+	public static Bean createBeanFromSpecialTypeId(long typeId) {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
@@ -55,9 +55,9 @@ public class Timer extends AbstractTimer {
 
 	@SuppressWarnings("unchecked")
 	public void Start() throws Throwable {
-		nodeIdAutoKey = zeze.GetAutoKey("Zeze.Component.Timer.NodeId");
-		timerIdAutoKey = zeze.GetAutoKey("Zeze.Component.Timer.TimerId");
-		if (0L != zeze.NewProcedure(() -> {
+		nodeIdAutoKey = zeze.getAutoKey("Zeze.Component.Timer.NodeId");
+		timerIdAutoKey = zeze.getAutoKey("Zeze.Component.Timer.TimerId");
+		if (0L != zeze.newProcedure(() -> {
 			var classes = _tCustomClasses.getOrAdd(1);
 			for (var cls : classes.getCustomClasses()) {
 				beanFactory.register((Class<? extends Bean>)Class.forName(cls));
@@ -397,7 +397,7 @@ public class Timer extends AbstractTimer {
 
 	private long fireSimple(int serverId, long timerId, String name, long concurrentSerialNo) {
 		final var handle = timerHandles.get(name);
-		if (0 != Task.Call(zeze.NewProcedure(() -> {
+		if (0 != Task.call(zeze.newProcedure(() -> {
 			var index = _tIndexs.get(timerId);
 			if (null == index || index.getServerId() != zeze.getConfig().getServerId()) {
 				cancelFuture(timerId);
@@ -420,7 +420,7 @@ public class Timer extends AbstractTimer {
 				// 当调度发生了错误或者由于异步时序没有原子保证，导致同时（或某个瞬间）在多个Server进程调度时，
 				// 这个系列号保证触发用户回调只会发生一次。这个并发问题不取消定时器，继续尝试调度（去争抢执行权）。
 				// 定时器的调度生命期由其他地方保证最终一致。如果保证发生了错误，将一致并发争抢执行权。
-				var ret = Task.Call(zeze.NewProcedure(() -> { handle.run(context); return 0; }, "fireSimpleUser"));
+				var ret = Task.call(zeze.newProcedure(() -> { handle.run(context); return 0; }, "fireSimpleUser"));
 				if (ret == Procedure.Exception) {
 					// 用户处理不允许异常，其他错误记录忽略，日志已经记录。
 					cancel(serverId, timerId, index, node);
@@ -493,7 +493,7 @@ public class Timer extends AbstractTimer {
 
 	private void fireCron(int serverId, long timerId, String name, long concurrentSerialNo) {
 		final var handle = timerHandles.get(name);
-		if (0 != Task.Call(zeze.NewProcedure(() -> {
+		if (0 != Task.call(zeze.newProcedure(() -> {
 			var index = _tIndexs.get(timerId);
 			if (null == index || index.getServerId() != zeze.getConfig().getServerId()) {
 				cancelFuture(timerId);
@@ -516,7 +516,7 @@ public class Timer extends AbstractTimer {
 				// 当调度发生了错误或者由于异步时序没有原子保证，导致同时（或某个瞬间）在多个Server进程调度时，
 				// 这个系列号保证触发用户回调只会发生一次。这个并发问题不取消定时器，继续尝试调度（去争抢执行权）。
 				// 定时器的调度生命期由其他地方保证最终一致。如果保证发生了错误，将一致并发争抢执行权。
-				var ret = Task.Call(zeze.NewProcedure(() -> { handle.run(context); return 0; }, "fireCronUser"));
+				var ret = Task.call(zeze.newProcedure(() -> { handle.run(context); return 0; }, "fireCronUser"));
 				if (ret == Procedure.Exception) {
 					// 用户处理不允许异常，其他错误记录忽略，日志已经记录。
 					cancel(serverId, timerId, index, node);
@@ -536,15 +536,15 @@ public class Timer extends AbstractTimer {
 	private void loadTimer() {
 		var serverId = zeze.getConfig().getServerId();
 		final var out = new OutObject<BNodeRoot>();
-		if (Procedure.Success == Task.Call(zeze.NewProcedure(() ->
+		if (Procedure.Success == Task.call(zeze.newProcedure(() ->
 		{
 			var root = _tNodeRoot.getOrAdd(serverId);
 			// 本地每次load都递增。用来处理和接管的并发。
 			root.setLoadSerialNo(root.getLoadSerialNo() + 1);
-			out.Value = root.Copy(); // TODO zyao runwhileSucc
+			out.value = root.copy(); // TODO zyao runwhileSucc
 			return 0L;
 		}, "LoadTimerLocal"))) {
-			var root = out.Value;
+			var root = out.value;
 			loadTimer(root.getHeadNodeId(), root.getHeadNodeId(), serverId);
 		}
 	}
@@ -558,7 +558,7 @@ public class Timer extends AbstractTimer {
 		final var first = new OutObject<Long>();
 		final var last = new OutObject<Long>();
 
-		var result = Task.Call(zeze.NewProcedure(() ->
+		var result = Task.call(zeze.newProcedure(() ->
 		{
 			var src = _tNodeRoot.get(serverId);
 			if (null == src || src.getHeadNodeId() == 0 || src.getTailNodeId() == 0)
@@ -575,8 +575,8 @@ public class Timer extends AbstractTimer {
 			//var tail = _tNodes.get(root.getTailNodeId());
 
 			// 先保存存储过程退出以后需要装载的timer范围。
-			first.Value = src.getHeadNodeId();
-			last.Value = root.getHeadNodeId();
+			first.value = src.getHeadNodeId();
+			last.value = root.getHeadNodeId();
 			// splice
 			srcTail.setNextNodeId(root.getHeadNodeId());
 			root.setHeadNodeId(src.getHeadNodeId());
@@ -589,7 +589,7 @@ public class Timer extends AbstractTimer {
 		}, "SpliceAndLoadTimerLocal"));
 
 		if (0L == result) {
-			return loadTimer(first.Value, last.Value, serverId);
+			return loadTimer(first.value, last.value, serverId);
 		}
 		return result;
 	}
@@ -613,7 +613,7 @@ public class Timer extends AbstractTimer {
 							timer.getName(), timer.getConcurrentFireSerialNo());
 				}
 				if (serverId != zeze.getConfig().getServerId()) {
-					Task.Call(zeze.NewProcedure(() -> {
+					Task.call(zeze.newProcedure(() -> {
 						var index = _tIndexs.get(timer.getTimerId());
 						index.setServerId(serverId);
 						return 0L;

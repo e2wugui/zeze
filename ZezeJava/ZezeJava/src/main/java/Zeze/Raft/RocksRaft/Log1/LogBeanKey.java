@@ -8,11 +8,11 @@ import Zeze.Serialize.Serializable;
 import Zeze.Util.Reflect;
 
 public class LogBeanKey<T extends Serializable> extends Log {
-	public T Value;
+	public T value;
 	private final MethodHandle valueFactory;
 
 	public LogBeanKey(Class<T> valueClass) {
-		super("Zeze.Raft.RocksRaft.Log<" + Reflect.GetStableName(valueClass) + '>');
+		super("Zeze.Raft.RocksRaft.Log<" + Reflect.getStableName(valueClass) + '>');
 		valueFactory = Reflect.getDefaultConstructor(valueClass);
 	}
 
@@ -21,27 +21,27 @@ public class LogBeanKey<T extends Serializable> extends Log {
 		this(cls);
 		setBelong(belong);
 		setVariableId(varId);
-		Value = value;
+		this.value = value;
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		Value.encode(bb);
+		value.encode(bb);
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
 	public void decode(ByteBuffer bb) {
 		try {
-			Value = (T)valueFactory.invoke();
+			value = (T)valueFactory.invoke();
 		} catch (Throwable e) {
 			throw new RuntimeException(e);
 		}
-		Value.decode(bb);
+		value.decode(bb);
 	}
 
 	@Override
 	public String toString() {
-		return "Value=" + Value;
+		return "Value=" + value;
 	}
 }

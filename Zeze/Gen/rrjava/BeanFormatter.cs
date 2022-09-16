@@ -77,7 +77,7 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine();
             sw.WriteLine("    public " + bean.Name + " copy() {");
             sw.WriteLine("        var copy = new " + bean.Name + "();");
-            sw.WriteLine("        copy.Assign(this);");
+            sw.WriteLine("        copy.assign(this);");
             sw.WriteLine("        return copy;");
             sw.WriteLine("    }");
             sw.WriteLine();
@@ -87,9 +87,9 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine($"    public static void swap({bean.Name} a, {bean.Name} b) {{");
-            sw.WriteLine($"        {bean.Name} save = a.Copy();");
-            sw.WriteLine("        a.Assign(b);");
-            sw.WriteLine("        b.Assign(save);");
+            sw.WriteLine($"        {bean.Name} save = a.copy();");
+            sw.WriteLine("        a.assign(b);");
+            sw.WriteLine("        b.assign(save);");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    @Override");

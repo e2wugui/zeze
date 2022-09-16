@@ -13,9 +13,9 @@ import Zeze.Util.LongHashMap;
 
 public final class Changes extends Zeze.Raft.Log {
 	private final Rocks rocks;
-	private final LongHashMap<LogBean> Beans = new LongHashMap<>(); // 收集日志时,记录所有Bean修改. key is Bean.ObjectId
-	private final HashMap<TableKey, Record> Records = new HashMap<>(); // 收集记录的修改,以后需要序列化传输.
-	private final IntHashMap<Long> AtomicLongs = new IntHashMap<>();
+	private final LongHashMap<LogBean> beans = new LongHashMap<>(); // 收集日志时,记录所有Bean修改. key is Bean.ObjectId
+	private final HashMap<TableKey, Record> records = new HashMap<>(); // 收集记录的修改,以后需要序列化传输.
+	private final IntHashMap<Long> atomicLongs = new IntHashMap<>();
 	private Transaction transaction;
 
 	public Changes(Rocks r) {
@@ -34,15 +34,15 @@ public final class Changes extends Zeze.Raft.Log {
 	}
 
 	public LongHashMap<LogBean> getBeans() {
-		return Beans;
+		return beans;
 	}
 
 	public HashMap<TableKey, Record> getRecords() {
-		return Records;
+		return records;
 	}
 
 	public IntHashMap<Long> getAtomicLongs() {
-		return AtomicLongs;
+		return atomicLongs;
 	}
 
 	public static final class Record {
@@ -89,19 +89,19 @@ public final class Changes extends Zeze.Raft.Log {
 		}
 
 		public void setTableByName(Changes changes, String templateName) {
-			var tableTpl = changes.rocks.GetTableTemplate(templateName);
+			var tableTpl = changes.rocks.getTableTemplate(templateName);
 			if (tableTpl == null) {
 				var names = new StringBuilder();
 				for (String name : changes.rocks.getTableTemplates().keySet())
 					names.append(' ').append(name);
 				throw new IllegalStateException("unknown table template: " + templateName + ", available:" + names);
 			}
-			table = tableTpl.OpenTable(tableTemplateId);
+			table = tableTpl.openTable(tableTemplateId);
 		}
 
 		public void collect(Transaction.RecordAccessed ar) {
 			if (ar.getPutLog() != null) { // put or remove
-				putValue = ar.getPutLog().Value;
+				putValue = ar.getPutLog().value;
 				state = putValue == null ? Remove : Put;
 				return;
 			}
@@ -153,57 +153,57 @@ public final class Changes extends Zeze.Raft.Log {
 		}
 	}
 
-	public void Collect(Bean recent, Log log) {
+	public void collect(Bean recent, Log log) {
 		Bean belong = log.getBelong();
 		if (belong == null) {
 			// 记录可能存在多个修改日志树。收集的时候全部保留，后面会去掉不需要的。see Transaction._final_commit_
-			var r = Records.get(recent.tableKey());
+			var r = records.get(recent.tableKey());
 			if (r == null) {
 				r = new Record();
 				var table = recent.rootInfo().getRecord().getTable();
 				r.setTableTemplateId(table.getTemplateId());
 				r.setTableTemplateName(table.getTemplateName());
-				Records.put(recent.tableKey(), r);
+				records.put(recent.tableKey(), r);
 			}
 			r.getLogBeans().put(recent, (LogBean)log);
 			return; // root
 		}
 
-		var logBean = Beans.get(belong.objectId());
+		var logBean = beans.get(belong.objectId());
 		if (logBean == null) {
 			if (belong instanceof Collection) {
 				// 容器使用共享的日志。需要先去查询，没有的话才创建。
-				logBean = (LogBean)Transaction.getCurrent().GetLog(
+				logBean = (LogBean)Transaction.getCurrent().getLog(
 						belong.parent().objectId() + belong.variableId());
 			}
 			if (logBean == null)
 				logBean = belong.createLogBean();
-			Beans.put(belong.objectId(), logBean);
+			beans.put(belong.objectId(), logBean);
 		}
-		logBean.Collect(this, belong, log);
+		logBean.collect(this, belong, log);
 	}
 
-	public void CollectRecord(Transaction.RecordAccessed ar) {
+	public void collectRecord(Transaction.RecordAccessed ar) {
 		var tkey = ar.tableKey();
-		var r = Records.get(tkey);
+		var r = records.get(tkey);
 		if (r == null) {
 			// put record only
 			r = new Record();
 			var table = ar.getOrigin().getTable();
 			r.setTableTemplateId(table.getTemplateId());
 			r.setTableTemplateName(table.getTemplateName());
-			Records.put(tkey, r);
+			records.put(tkey, r);
 		}
 
 		r.collect(ar);
 	}
 
 	@Override
-	public void Apply(RaftLog holder, StateMachine stateMachine) {
+	public void apply(RaftLog holder, StateMachine stateMachine) {
 		if (holder.getLeaderFuture() != null) {
 			if (Rocks.isDebugEnabled)
 				Rocks.logger.debug("{} LeaderApply", rocks.getRaft().getName());
-			transaction.LeaderApply(this);
+			transaction.leaderApply(this);
 		} else {
 			// Rocks.logger.debug("{} followerApply", rocks.getRaft().getName());
 			rocks.followerApply(this);
@@ -213,22 +213,22 @@ public final class Changes extends Zeze.Raft.Log {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteUInt(Records.size());
-		for (var r : Records.entrySet()) {
+		bb.WriteUInt(records.size());
+		for (var r : records.entrySet()) {
 			// encode TableTemplate
 			bb.WriteUInt(r.getValue().tableTemplateId);
 			bb.WriteString(r.getValue().tableTemplateName);
 
 			// encode TableKey
 			r.getValue().setTableByName(this, r.getValue().tableTemplateName);
-			bb.WriteString(r.getKey().Name);
-			r.getValue().table.encodeKey(bb, r.getKey().Key);
+			bb.WriteString(r.getKey().name);
+			r.getValue().table.encodeKey(bb, r.getKey().key);
 
 			// encode record
 			r.getValue().encode(bb);
 		}
-		bb.WriteUInt(AtomicLongs.size());
-		for (var it = AtomicLongs.iterator(); it.moveToNext(); ) {
+		bb.WriteUInt(atomicLongs.size());
+		for (var it = atomicLongs.iterator(); it.moveToNext(); ) {
 			bb.WriteUInt(it.key());
 			bb.WriteLong(it.value());
 		}
@@ -243,26 +243,26 @@ public final class Changes extends Zeze.Raft.Log {
 			r.setTableTemplateId(bb.ReadUInt());
 			r.setTableTemplateName(bb.ReadString());
 
-			tkey.Name = bb.ReadString();
+			tkey.name = bb.ReadString();
 			r.setTableByName(this, r.getTableTemplateName());
-			tkey.Key = r.table.decodeKey(bb);
+			tkey.key = r.table.decodeKey(bb);
 
 			r.decode(bb);
 
-			Records.put(tkey, r);
+			records.put(tkey, r);
 		}
 
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var index = bb.ReadUInt();
 			var value = bb.ReadLong();
-			AtomicLongs.put(index, value);
+			atomicLongs.put(index, value);
 		}
 	}
 
 	@Override
 	public String toString() {
 		var sb = new StringBuilder();
-		ByteBuffer.BuildString(sb, Records);
+		ByteBuffer.BuildString(sb, records);
 		return sb.toString();
 	}
 }

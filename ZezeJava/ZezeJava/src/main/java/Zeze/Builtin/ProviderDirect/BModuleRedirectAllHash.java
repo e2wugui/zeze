@@ -26,8 +26,8 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ReturnCode;
-        var log = (Log__ReturnCode)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _ReturnCode;
+        var log = (Log__ReturnCode)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _ReturnCode;
     }
 
     public void setReturnCode(long value) {
@@ -36,7 +36,7 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__ReturnCode(this, 1, value));
+        txn.putLog(new Log__ReturnCode(this, 1, value));
     }
 
     public Zeze.Net.Binary getParams() {
@@ -45,8 +45,8 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Params;
-        var log = (Log__Params)txn.GetLog(objectId() + 2);
-        return log != null ? log.Value : _Params;
+        var log = (Log__Params)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _Params;
     }
 
     public void setParams(Zeze.Net.Binary value) {
@@ -57,7 +57,7 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Params(this, 2, value));
+        txn.putLog(new Log__Params(this, 2, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -89,7 +89,7 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
 
     public BModuleRedirectAllHash copy() {
         var copy = new BModuleRedirectAllHash();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -99,9 +99,9 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BModuleRedirectAllHash a, BModuleRedirectAllHash b) {
-        BModuleRedirectAllHash save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BModuleRedirectAllHash save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -120,14 +120,14 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
         public Log__ReturnCode(BModuleRedirectAllHash bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BModuleRedirectAllHash)getBelong())._ReturnCode = Value; }
+        public void commit() { ((BModuleRedirectAllHash)getBelong())._ReturnCode = value; }
     }
 
     private static final class Log__Params extends Zeze.Transaction.Logs.LogBinary {
         public Log__Params(BModuleRedirectAllHash bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BModuleRedirectAllHash)getBelong())._Params = Value; }
+        public void commit() { ((BModuleRedirectAllHash)getBelong())._Params = value; }
     }
 
     @Override
@@ -221,8 +221,8 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ReturnCode = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                case 2: _Params = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
+                case 1: _ReturnCode = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 2: _Params = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
             }
         }
     }

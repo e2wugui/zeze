@@ -13,8 +13,8 @@ public final class BTimerId extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _TimerId;
-        var log = (Log__TimerId)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _TimerId;
+        var log = (Log__TimerId)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _TimerId;
     }
 
     public void setTimerId(long value) {
@@ -23,7 +23,7 @@ public final class BTimerId extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__TimerId(this, 1, value));
+        txn.putLog(new Log__TimerId(this, 1, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -50,7 +50,7 @@ public final class BTimerId extends Zeze.Transaction.Bean {
 
     public BTimerId copy() {
         var copy = new BTimerId();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -60,9 +60,9 @@ public final class BTimerId extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BTimerId a, BTimerId b) {
-        BTimerId save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BTimerId save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -81,7 +81,7 @@ public final class BTimerId extends Zeze.Transaction.Bean {
         public Log__TimerId(BTimerId bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BTimerId)getBelong())._TimerId = Value; }
+        public void commit() { ((BTimerId)getBelong())._TimerId = value; }
     }
 
     @Override
@@ -163,7 +163,7 @@ public final class BTimerId extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _TimerId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 1: _TimerId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }

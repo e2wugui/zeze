@@ -34,19 +34,19 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		super(name, zeze);
 	}
 
-	public synchronized void RemoveServer(Agent.SubscribeState ss, BServiceInfo pm) {
+	public synchronized void RemoveServer(Agent.subscribeState ss, BServiceInfo pm) {
 		var connName = pm.getPassiveIp() + ":" + pm.getPassivePort();
 		var conn = getConfig().findConnector(connName);
 		if (conn != null) {
 			conn.Stop();
 			ProviderByLoadName.remove(connName);
 			ProviderByServerId.remove(Long.parseLong(pm.getServiceIdentity()));
-			ss.SetServiceIdentityReadyState(pm.getServiceIdentity(), null);
+			ss.setServiceIdentityReadyState(pm.getServiceIdentity(), null);
 			getConfig().removeConnector(conn);
 		}
 	}
 
-	public synchronized void AddServer(Agent.SubscribeState ss, BServiceInfo pm) {
+	public synchronized void AddServer(Agent.subscribeState ss, BServiceInfo pm) {
 		var connName = pm.getPassiveIp() + ":" + pm.getPassivePort();
 		var ps = ProviderByLoadName.get(connName);
 		if (ps != null) {
@@ -72,12 +72,12 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			// 新建的Connector。开始连接。
 			var peerPs = new ProviderSession();
 			peerPs.ServerId = serverId;
-			out.Value.userState = peerPs;
-			out.Value.Start();
+			out.value.userState = peerPs;
+			out.value.Start();
 		}
 	}
 
-	public void TryConnectAndSetReady(Agent.SubscribeState ss, BServiceInfos infos) throws Throwable {
+	public void TryConnectAndSetReady(Agent.subscribeState ss, BServiceInfos infos) throws Throwable {
 		var current = new HashMap<String, BServiceInfo>();
 		for (var pm : infos.getServiceInfoListSortedByIdentity()) {
 			AddServer(ss, pm);
@@ -148,10 +148,10 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		}
 	}
 
-	private void SetReady(Agent.SubscribeState ss, BServiceInfo server, ProviderSession ps, int mid, BModule m) {
+	private void SetReady(Agent.subscribeState ss, BServiceInfo server, ProviderSession ps, int mid, BModule m) {
 		var pms = new ProviderModuleState(ps.getSessionId(), mid, m.getChoiceType(), m.getConfigType());
 		ps.GetOrAddServiceReadyState(ss.getServiceName()).put(server.getServiceIdentity(), pms);
-		ss.SetServiceIdentityReadyState(server.getServiceIdentity(), pms);
+		ss.setServiceIdentityReadyState(server.getServiceIdentity(), pms);
 	}
 
 	@Override
@@ -161,7 +161,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			for (var service : ps.ServiceReadyStates.entrySet()) {
 				var subs = getZeze().getServiceManagerAgent().getSubscribeStates().get(service.getKey());
 				for (var identity : service.getValue().keySet()) {
-					subs.SetServiceIdentityReadyState(identity, null);
+					subs.setServiceIdentityReadyState(identity, null);
 				}
 			}
 			ProviderByLoadName.remove(ps.getServerLoadName());
@@ -176,7 +176,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			if (factoryHandle.Handle != null) {
 				var r = (ModuleRedirect)p;
 				// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
-				getZeze().getTaskOneByOneByKey().Execute(r.Argument.getHashCode(), () -> Zeze.Util.Task.Call(
+				getZeze().getTaskOneByOneByKey().Execute(r.Argument.getHashCode(), () -> Zeze.Util.Task.call(
 						() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode, r.Argument.getMethodFullName()),
 						factoryHandle.Mode);
 			} else
@@ -206,12 +206,12 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			var redirect = (ModuleRedirect)rpc;
 			// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
 			getZeze().getTaskOneByOneByKey().Execute(redirect.Argument.getHashCode(),
-					() -> Zeze.Util.Task.Call(() -> responseHandle.handle(rpc), rpc), factoryHandle.Mode);
+					() -> Zeze.Util.Task.call(() -> responseHandle.handle(rpc), rpc), factoryHandle.Mode);
 			return;
 		}
 
 		// no procedure.
-		Task.runUnsafe(() -> Task.Call(() -> responseHandle.handle(rpc), rpc),
+		Task.runUnsafe(() -> Task.call(() -> responseHandle.handle(rpc), rpc),
 				"ProviderDirectService.DispatchRpcResponse", factoryHandle.Mode);
 		//super.DispatchRpcResponse(rpc, responseHandle, factoryHandle);
 	}

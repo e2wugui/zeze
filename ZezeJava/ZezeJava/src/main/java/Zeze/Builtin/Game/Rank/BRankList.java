@@ -20,7 +20,7 @@ public final class BRankList extends Zeze.Transaction.Bean {
     public void assign(BRankList other) {
         getRankList().clear();
         for (var e : other.getRankList())
-            getRankList().add(e.Copy());
+            getRankList().add(e.copy());
     }
 
     @Deprecated
@@ -34,7 +34,7 @@ public final class BRankList extends Zeze.Transaction.Bean {
 
     public BRankList copy() {
         var copy = new BRankList();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -44,9 +44,9 @@ public final class BRankList extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BRankList a, BRankList b) {
-        BRankList save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BRankList save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override

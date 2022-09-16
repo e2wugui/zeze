@@ -12,71 +12,71 @@ import org.apache.logging.log4j.Logger;
 public class Procedure {
 	private static final Logger logger = LogManager.getLogger(Table.class);
 
-	private Rocks Rocks;
-	private FuncLong Func;
+	private Rocks rocks;
+	private FuncLong func;
 
-	public RaftRpc<?, ?> UniqueRequest;
-	public Protocol<?> AutoResponse;
+	public RaftRpc<?, ?> uniqueRequest;
+	public Protocol<?> autoResponse;
 
 	public final void setAutoResponseResultCode(long code) {
-		if (null != AutoResponse)
-			AutoResponse.setResultCode(code);
+		if (null != autoResponse)
+			autoResponse.setResultCode(code);
 	}
 
 	public Procedure() {
 	}
 
 	public Procedure(Rocks rocks, FuncLong func) {
-		Rocks = rocks;
-		Func = func;
+		this.rocks = rocks;
+		this.func = func;
 	}
 
 	public final Rocks getRocks() {
-		return Rocks;
+		return rocks;
 	}
 
 	public final void setRocks(Rocks value) {
-		Rocks = value;
+		rocks = value;
 	}
 
 	public final FuncLong getFunc() {
-		return Func;
+		return func;
 	}
 
 	public final void setFunc(FuncLong value) {
-		Func = value;
+		func = value;
 	}
 
-	protected long Process() throws Throwable {
-		var func = Func;
+	protected long process() throws Throwable {
+		var func = this.func;
 		if (func != null)
 			return func.call();
 		return Zeze.Transaction.Procedure.NotImplement;
 	}
 
-	public final long Call() throws Throwable {
+	public final long call() throws Throwable {
 		var currentT = Transaction.getCurrent();
 		if (currentT == null) {
 			try {
-				return Transaction.Create().Perform(this);
+				return Transaction.create().perform(this);
 			} finally {
-				Transaction.Destroy();
+				Transaction.destroy();
 			}
 		}
-		currentT.Begin();
+		currentT.begin();
 		try {
-			var result = Process();
+			var result = process();
 			if (result == 0) {
-				currentT.Commit();
+				currentT.commit();
 				return 0;
 			}
-			currentT.Rollback();
+			currentT.rollback();
 			return result;
 		} catch (ThrowAgainException | RaftRetryException e) {
-			currentT.Rollback();
+			currentT.rollback();
 			throw e;
 		} catch (Throwable e) {
-			currentT.Rollback();
+			currentT.rollback();
 			if (e instanceof AssertionError)
 				throw e;
 			logger.error("RocksRaft Process Exception", e);

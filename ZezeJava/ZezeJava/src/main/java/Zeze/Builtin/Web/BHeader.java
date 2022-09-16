@@ -46,7 +46,7 @@ public final class BHeader extends Zeze.Transaction.Bean {
 
     public BHeader copy() {
         var copy = new BHeader();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -56,9 +56,9 @@ public final class BHeader extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BHeader a, BHeader b) {
-        BHeader save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BHeader save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override

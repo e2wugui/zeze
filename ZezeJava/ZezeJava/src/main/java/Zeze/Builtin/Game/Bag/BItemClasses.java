@@ -34,7 +34,7 @@ public final class BItemClasses extends Zeze.Transaction.Bean {
 
     public BItemClasses copy() {
         var copy = new BItemClasses();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -44,9 +44,9 @@ public final class BItemClasses extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BItemClasses a, BItemClasses b) {
-        BItemClasses save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BItemClasses save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override

@@ -38,28 +38,28 @@ public class TestCheckpoint{
 		System.out.println("2");
 		System.out.println(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
 		*/
-		Assert.assertEquals(Procedure.Success, App.Instance.Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, App.Instance.Zeze.newProcedure(() -> {
 			App.Instance.demo_Module1.getTable1().get(1L);
 			App.Instance.demo_Module1.getTable1().getOrAdd(2L).setInt1(222);
 			return 0L;
 		}, "12").Call());
 		//System.out.println("3");
 		//System.out.println(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
-		Assert.assertEquals(Procedure.Success, App.Instance.Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, App.Instance.Zeze.newProcedure(() -> {
 			App.Instance.demo_Module1.getTable1().get(3L);
 			App.Instance.demo_Module1.getTable1().getOrAdd(4L).setInt1(444);
 			return 0L;
 		}, "34").Call());
 		//System.out.println("4");
 		//System.out.println(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
-		Assert.assertEquals(Procedure.Success, App.Instance.Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, App.Instance.Zeze.newProcedure(() -> {
 			App.Instance.demo_Module1.getTable1().get(2L);
 			App.Instance.demo_Module1.getTable1().getOrAdd(3L).setInt1(333);
 			return 0L;
 		}, "23").Call());
 		//System.out.println("5");
 		//System.out.println(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
-		App.Instance.Zeze.CheckpointRun();
+		App.Instance.Zeze.checkpointRun();
 		//System.out.println("6");
 		//System.out.println(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
 
@@ -72,9 +72,9 @@ public class TestCheckpoint{
 
 	@Test
 	public final void testCp() throws Throwable {
-		Assert.assertEquals(demo.App.getInstance().Zeze.NewProcedure(TestCheckpoint::ProcClear, "ProcClear").Call(), Procedure.Success);
-		Assert.assertEquals(demo.App.getInstance().Zeze.NewProcedure(this::ProcChange, "ProcChange").Call(), Procedure.Success);
-		demo.App.getInstance().Zeze.CheckpointRun();
+		Assert.assertEquals(demo.App.getInstance().Zeze.newProcedure(TestCheckpoint::ProcClear, "ProcClear").Call(), Procedure.Success);
+		Assert.assertEquals(demo.App.getInstance().Zeze.newProcedure(this::ProcChange, "ProcChange").Call(), Procedure.Success);
+		demo.App.getInstance().Zeze.checkpointRun();
 		demo.Module1.Table1 table = demo.App.getInstance().demo_Module1.getTable1();
 		ByteBuffer value = table.internalGetStorageForTestOnly("IKnownWhatIAmDoing").getDatabaseTable().find(table.encodeKey(56L));
 		Assert.assertNotNull(value);

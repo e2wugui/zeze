@@ -13,8 +13,8 @@ public final class BTaskId extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _TaskId;
-        var log = (Log__TaskId)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _TaskId;
+        var log = (Log__TaskId)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _TaskId;
     }
 
     public void setTaskId(long value) {
@@ -23,7 +23,7 @@ public final class BTaskId extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__TaskId(this, 1, value));
+        txn.putLog(new Log__TaskId(this, 1, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -50,7 +50,7 @@ public final class BTaskId extends Zeze.Transaction.Bean {
 
     public BTaskId copy() {
         var copy = new BTaskId();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -60,9 +60,9 @@ public final class BTaskId extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BTaskId a, BTaskId b) {
-        BTaskId save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BTaskId save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -81,7 +81,7 @@ public final class BTaskId extends Zeze.Transaction.Bean {
         public Log__TaskId(BTaskId bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BTaskId)getBelong())._TaskId = Value; }
+        public void commit() { ((BTaskId)getBelong())._TaskId = value; }
     }
 
     @Override
@@ -163,7 +163,7 @@ public final class BTaskId extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _TaskId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 1: _TaskId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }

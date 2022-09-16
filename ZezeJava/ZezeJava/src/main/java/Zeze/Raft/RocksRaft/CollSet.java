@@ -4,7 +4,7 @@ import java.util.Iterator;
 import Zeze.Serialize.ByteBuffer;
 
 public abstract class CollSet<V> extends Collection implements Iterable<V> {
-	public org.pcollections.PSet<V> _set = org.pcollections.Empty.set();
+	public org.pcollections.PSet<V> set = org.pcollections.Empty.set();
 
 	public abstract boolean add(V item);
 
@@ -16,15 +16,15 @@ public abstract class CollSet<V> extends Collection implements Iterable<V> {
 		if (isManaged()) {
 			var t = Transaction.getCurrent();
 			if (t == null)
-				return _set;
-			Log log = t.GetLog(parent().objectId() + variableId());
+				return set;
+			Log log = t.getLog(parent().objectId() + variableId());
 			if (log == null)
-				return _set;
+				return set;
 			@SuppressWarnings("unchecked")
 			var setLog = (LogSet1<V>)log;
 			return setLog.getValue();
 		}
-		return _set;
+		return set;
 	}
 
 	public final int size() {

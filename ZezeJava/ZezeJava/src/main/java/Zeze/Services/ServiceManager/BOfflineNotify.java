@@ -6,25 +6,25 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
 public class BOfflineNotify extends Bean {
-	public int ServerId;
-	public String NotifyId;
-	public long   NotifySerialId; // context 如果够用就直接用这个，
-	public Binary NotifyContext; // context 扩展context。
+	public int serverId;
+	public String notifyId;
+	public long notifySerialId; // context 如果够用就直接用这个，
+	public Binary notifyContext; // context 扩展context。
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteInt(ServerId);
-		bb.WriteString(NotifyId);
-		bb.WriteLong(NotifySerialId);
-		bb.WriteBinary(NotifyContext);
+		bb.WriteInt(serverId);
+		bb.WriteString(notifyId);
+		bb.WriteLong(notifySerialId);
+		bb.WriteBinary(notifyContext);
 	}
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		ServerId = bb.ReadInt();
-		NotifyId = bb.ReadString();
-		NotifySerialId = bb.ReadLong();
-		NotifyContext = bb.ReadBinary();
+		serverId = bb.ReadInt();
+		notifyId = bb.ReadString();
+		notifySerialId = bb.ReadLong();
+		notifyContext = bb.ReadBinary();
 	}
 
 	@Override

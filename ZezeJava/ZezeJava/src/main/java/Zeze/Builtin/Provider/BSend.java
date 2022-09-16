@@ -19,8 +19,8 @@ public final class BSend extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _protocolType;
-        var log = (Log__protocolType)txn.GetLog(objectId() + 2);
-        return log != null ? log.Value : _protocolType;
+        var log = (Log__protocolType)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _protocolType;
     }
 
     public void setProtocolType(long value) {
@@ -29,7 +29,7 @@ public final class BSend extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__protocolType(this, 2, value));
+        txn.putLog(new Log__protocolType(this, 2, value));
     }
 
     public Zeze.Net.Binary getProtocolWholeData() {
@@ -38,8 +38,8 @@ public final class BSend extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _protocolWholeData;
-        var log = (Log__protocolWholeData)txn.GetLog(objectId() + 3);
-        return log != null ? log.Value : _protocolWholeData;
+        var log = (Log__protocolWholeData)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _protocolWholeData;
     }
 
     public void setProtocolWholeData(Zeze.Net.Binary value) {
@@ -50,7 +50,7 @@ public final class BSend extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__protocolWholeData(this, 3, value));
+        txn.putLog(new Log__protocolWholeData(this, 3, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -89,7 +89,7 @@ public final class BSend extends Zeze.Transaction.Bean {
 
     public BSend copy() {
         var copy = new BSend();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -99,9 +99,9 @@ public final class BSend extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BSend a, BSend b) {
-        BSend save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BSend save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -120,14 +120,14 @@ public final class BSend extends Zeze.Transaction.Bean {
         public Log__protocolType(BSend bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BSend)getBelong())._protocolType = Value; }
+        public void commit() { ((BSend)getBelong())._protocolType = value; }
     }
 
     private static final class Log__protocolWholeData extends Zeze.Transaction.Logs.LogBinary {
         public Log__protocolWholeData(BSend bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BSend)getBelong())._protocolWholeData = Value; }
+        public void commit() { ((BSend)getBelong())._protocolWholeData = value; }
     }
 
     @Override
@@ -255,8 +255,8 @@ public final class BSend extends Zeze.Transaction.Bean {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _linkSids.followerApply(vlog); break;
-                case 2: _protocolType = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                case 3: _protocolWholeData = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
+                case 2: _protocolType = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 3: _protocolWholeData = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
             }
         }
     }

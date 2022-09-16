@@ -13,8 +13,8 @@ public final class BSession extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Account;
-        var log = (Log__Account)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _Account;
+        var log = (Log__Account)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _Account;
     }
 
     public void setAccount(String value) {
@@ -25,7 +25,7 @@ public final class BSession extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Account(this, 1, value));
+        txn.putLog(new Log__Account(this, 1, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -55,7 +55,7 @@ public final class BSession extends Zeze.Transaction.Bean {
 
     public BSession copy() {
         var copy = new BSession();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -65,9 +65,9 @@ public final class BSession extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BSession a, BSession b) {
-        BSession save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BSession save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -86,7 +86,7 @@ public final class BSession extends Zeze.Transaction.Bean {
         public Log__Account(BSession bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BSession)getBelong())._Account = Value; }
+        public void commit() { ((BSession)getBelong())._Account = value; }
     }
 
     @Override
@@ -166,7 +166,7 @@ public final class BSession extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Account = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                case 1: _Account = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
             }
         }
     }

@@ -210,7 +210,7 @@ public class HttpExchange {
 	private void fireBeginStream() throws Exception {
 		var r = parseRange(HttpHeaderNames.CONTENT_RANGE);
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
-			Task.run(server.zeze.NewProcedure(() -> {
+			Task.run(server.zeze.newProcedure(() -> {
 				handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]);
 				return Procedure.Success;
 			}, "fireBeginStream"), null, null, handler.Mode);
@@ -224,7 +224,7 @@ public class HttpExchange {
 			return;
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
 			c.retain();
-			Task.run(server.zeze.NewProcedure(() -> {
+			Task.run(server.zeze.newProcedure(() -> {
 				try {
 					handle.onStreamContent(this, c);
 				} finally {
@@ -239,7 +239,7 @@ public class HttpExchange {
 	@SuppressWarnings("ConstantConditions")
 	private void fireEndStreamHandle() throws Exception {
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
-			Task.run(server.zeze.NewProcedure(() -> {
+			Task.run(server.zeze.newProcedure(() -> {
 				handler.EndStreamHandle.onEndStream(this);
 				return Procedure.Success;
 			}, "fireEndStreamHandle"), null, null, handler.Mode);
@@ -250,7 +250,7 @@ public class HttpExchange {
 	private void fireWebSocket(WebSocketFrame frame) throws Exception {
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
 			frame.retain();
-			Task.run(server.zeze.NewProcedure(() -> {
+			Task.run(server.zeze.newProcedure(() -> {
 				try {
 					fireWebSocket0(frame);
 				} finally {

@@ -1,7 +1,7 @@
 package Zeze.Raft.RocksRaft;
 
 public abstract class LogSet<V> extends LogBean {
-	private org.pcollections.PSet<V> Value;
+	private org.pcollections.PSet<V> value;
 
 	public LogSet(int typeId) {
 		super(typeId);
@@ -12,15 +12,15 @@ public abstract class LogSet<V> extends LogBean {
 	}
 
 	public final org.pcollections.PSet<V> getValue() {
-		return Value;
+		return value;
 	}
 
 	public final void setValue(org.pcollections.PSet<V> value) {
-		Value = value;
+		this.value = value;
 	}
 
 	@Override
-	public void Collect(Changes changes, Bean recent, Log vlog) {
+	public void collect(Changes changes, Bean recent, Log vlog) {
 		throw new UnsupportedOperationException("Collect Not Implement.");
 	}
 }

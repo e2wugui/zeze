@@ -13,8 +13,8 @@ public final class BCloseExchange extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ExchangeId;
-        var log = (Log__ExchangeId)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _ExchangeId;
+        var log = (Log__ExchangeId)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _ExchangeId;
     }
 
     public void setExchangeId(long value) {
@@ -23,7 +23,7 @@ public final class BCloseExchange extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__ExchangeId(this, 1, value));
+        txn.putLog(new Log__ExchangeId(this, 1, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -50,7 +50,7 @@ public final class BCloseExchange extends Zeze.Transaction.Bean {
 
     public BCloseExchange copy() {
         var copy = new BCloseExchange();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -60,9 +60,9 @@ public final class BCloseExchange extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BCloseExchange a, BCloseExchange b) {
-        BCloseExchange save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BCloseExchange save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -81,7 +81,7 @@ public final class BCloseExchange extends Zeze.Transaction.Bean {
         public Log__ExchangeId(BCloseExchange bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BCloseExchange)getBelong())._ExchangeId = Value; }
+        public void commit() { ((BCloseExchange)getBelong())._ExchangeId = value; }
     }
 
     @Override
@@ -163,7 +163,7 @@ public final class BCloseExchange extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ExchangeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 1: _ExchangeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }

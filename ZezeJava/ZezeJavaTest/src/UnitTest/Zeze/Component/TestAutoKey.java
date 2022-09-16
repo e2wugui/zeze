@@ -36,14 +36,14 @@ public class TestAutoKey {
 	@Test
 	public final void test1_AutoKey() throws Throwable {
 		System.out.println("testAutoKey1");
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
-			var autoKey = demo.App.getInstance().Zeze.GetAutoKey("test1");
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
+			var autoKey = demo.App.getInstance().Zeze.getAutoKey("test1");
 			var id = autoKey.nextId();
 			Assert.assertEquals(makeId(1), id);
 			return Procedure.Success;
 		}, "test1_AutoKey").Call());
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
-			var autoKey = demo.App.getInstance().Zeze.GetAutoKey("test1");
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
+			var autoKey = demo.App.getInstance().Zeze.getAutoKey("test1");
 			var id = autoKey.nextId();
 			Assert.assertEquals(makeId(2), id);
 			return Procedure.Success;
@@ -53,15 +53,15 @@ public class TestAutoKey {
 	@Test
 	public final void test2_AutoKey() throws Throwable {
 		System.out.println("testAutoKey2");
-		var allocCount = demo.App.getInstance().Zeze.GetAutoKey("test1").getAllocateCount();
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
-			var autoKey = demo.App.getInstance().Zeze.GetAutoKey("test1");
+		var allocCount = demo.App.getInstance().Zeze.getAutoKey("test1").getAllocateCount();
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
+			var autoKey = demo.App.getInstance().Zeze.getAutoKey("test1");
 			var id = autoKey.nextId();
 			Assert.assertEquals(makeId(allocCount + 1), id);
 			return Procedure.Success;
 		}, "test2_AutoKey").Call());
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
-			var autoKey = demo.App.getInstance().Zeze.GetAutoKey("test1");
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
+			var autoKey = demo.App.getInstance().Zeze.getAutoKey("test1");
 			var id = autoKey.nextId();
 			Assert.assertEquals(makeId(allocCount + 2), id);
 			return Procedure.Success;
@@ -71,15 +71,15 @@ public class TestAutoKey {
 	@Test
 	public final void test3_AutoKey() throws Throwable {
 		System.out.println("testAutoKey2");
-		var allocCount = demo.App.getInstance().Zeze.GetAutoKey("test1").getAllocateCount();
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
-			var autoKey = demo.App.getInstance().Zeze.GetAutoKey("test1");
+		var allocCount = demo.App.getInstance().Zeze.getAutoKey("test1").getAllocateCount();
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
+			var autoKey = demo.App.getInstance().Zeze.getAutoKey("test1");
 			var id = autoKey.nextId();
 			Assert.assertEquals(makeId(allocCount * 2L + 1), id);
 			return Procedure.Success;
 		}, "test3_AutoKey").Call());
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
-			var autoKey = demo.App.getInstance().Zeze.GetAutoKey("test1");
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
+			var autoKey = demo.App.getInstance().Zeze.getAutoKey("test1");
 			var id = autoKey.nextId();
 			Assert.assertEquals(makeId(allocCount * 2L + 2), id);
 			return Procedure.Success;

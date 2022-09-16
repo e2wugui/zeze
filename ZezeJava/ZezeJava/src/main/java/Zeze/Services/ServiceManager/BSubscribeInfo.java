@@ -8,32 +8,32 @@ public final class BSubscribeInfo extends Bean {
 	public static final int SubscribeTypeSimple = 0;
 	public static final int SubscribeTypeReadyCommit = 1;
 
-	private String ServiceName;
-	private int SubscribeType;
-	private Object LocalState;
+	private String serviceName;
+	private int subscribeType;
+	private Object localState;
 
 	public String getServiceName() {
-		return ServiceName;
+		return serviceName;
 	}
 
 	public void setServiceName(String value) {
-		ServiceName = value;
+		serviceName = value;
 	}
 
 	public int getSubscribeType() {
-		return SubscribeType;
+		return subscribeType;
 	}
 
 	public void setSubscribeType(int value) {
-		SubscribeType = value;
+		subscribeType = value;
 	}
 
 	public Object getLocalState() {
-		return LocalState;
+		return localState;
 	}
 
 	public void setLocalState(Object value) {
-		LocalState = value;
+		localState = value;
 	}
 
 	@Override

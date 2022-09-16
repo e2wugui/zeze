@@ -16,7 +16,7 @@ public abstract class HttpAuth extends HandlerDispatch {
 	public void handle(HttpExchange exchange) throws IOException {
 		LinkdHttpExchange xout = null;
 		try {
-			var x = xout = new LinkdHttpExchange(Service, exchange);
+			var x = xout = new LinkdHttpExchange(service, exchange);
 			var query = parseQuery(x);
 			if (null != query) {
 				var account = auth(query);

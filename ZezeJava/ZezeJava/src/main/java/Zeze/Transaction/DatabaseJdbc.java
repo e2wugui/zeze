@@ -17,26 +17,26 @@ public abstract class DatabaseJdbc extends Database {
 
 		// must present
 		pool.setUrl(conf.getDatabaseUrl());
-		pool.setDriverClassName(dbcpConf.DriverClassName); // setup in Zeze.Config.DatabaseConf
+		pool.setDriverClassName(dbcpConf.driverClassName); // setup in Zeze.Config.DatabaseConf
 
 		// always on
 		pool.setPoolPreparedStatements(true);
 
 		// options
-		if (dbcpConf.UserName != null)
-			pool.setUsername(dbcpConf.UserName);
-		if (dbcpConf.Password != null)
-			pool.setPassword(dbcpConf.Password);
-		if (dbcpConf.InitialSize != null)
-			pool.setInitialSize(dbcpConf.InitialSize); // 初始的连接数；
-		if (dbcpConf.MaxTotal != null)
-			pool.setMaxTotal(dbcpConf.MaxTotal);
-		if (dbcpConf.MaxIdle != null)
-			pool.setMaxIdle(dbcpConf.MaxIdle);
-		if (dbcpConf.MinIdle != null)
-			pool.setMinIdle(dbcpConf.MinIdle);
-		if (dbcpConf.MaxWaitMillis != null)
-			pool.setMaxWaitMillis(dbcpConf.MaxWaitMillis);
+		if (dbcpConf.userName != null)
+			pool.setUsername(dbcpConf.userName);
+		if (dbcpConf.password != null)
+			pool.setPassword(dbcpConf.password);
+		if (dbcpConf.initialSize != null)
+			pool.setInitialSize(dbcpConf.initialSize); // 初始的连接数；
+		if (dbcpConf.maxTotal != null)
+			pool.setMaxTotal(dbcpConf.maxTotal);
+		if (dbcpConf.maxIdle != null)
+			pool.setMaxIdle(dbcpConf.maxIdle);
+		if (dbcpConf.minIdle != null)
+			pool.setMinIdle(dbcpConf.minIdle);
+		if (dbcpConf.maxWaitMillis != null)
+			pool.setMaxWaitMillis(dbcpConf.maxWaitMillis);
 	}
 
 	@Override

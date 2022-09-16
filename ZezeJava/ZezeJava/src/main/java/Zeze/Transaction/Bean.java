@@ -67,7 +67,7 @@ public abstract class Bean implements Serializable {
 	 */
 	public final void buildChangeListenerPath(ArrayList<KV<Bean, Integer>> path) {
 		for (Bean parent = this.parent; parent != null; parent = parent.parent)
-			path.add(KV.Create(parent, variableId));
+			path.add(KV.create(parent, variableId));
 	}
 
 	public final boolean isManaged() {
@@ -154,9 +154,5 @@ public abstract class Bean implements Serializable {
 		log.setThis(this);
 		log.setVariableId(variableId);
 		return log;
-	}
-
-	void Assign(Bean b) {
-
 	}
 }

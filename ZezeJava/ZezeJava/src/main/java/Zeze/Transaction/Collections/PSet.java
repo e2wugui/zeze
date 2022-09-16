@@ -7,7 +7,7 @@ import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
 
 public abstract class PSet<V> extends Collection implements Set<V> {
-	public org.pcollections.PSet<V> _set = org.pcollections.Empty.set();
+	public org.pcollections.PSet<V> set = org.pcollections.Empty.set();
 
 	@Override
 	public abstract boolean add(V item);
@@ -22,15 +22,15 @@ public abstract class PSet<V> extends Collection implements Set<V> {
 		if (isManaged()) {
 			var txn = Transaction.getCurrentVerifyRead(this);
 			if (txn == null)
-				return _set;
-			Log log = txn.GetLog(parent().objectId() + variableId());
+				return set;
+			Log log = txn.getLog(parent().objectId() + variableId());
 			if (log == null)
-				return _set;
+				return set;
 			@SuppressWarnings("unchecked")
 			var setLog = (LogSet1<V>)log;
 			return setLog.getValue();
 		}
-		return _set;
+		return set;
 	}
 
 	@Override
@@ -58,7 +58,7 @@ public abstract class PSet<V> extends Collection implements Set<V> {
 		throw new UnsupportedOperationException();
 	}
 
-	public final void CopyTo(V[] array, int arrayIndex) {
+	public final void copyTo(V[] array, int arrayIndex) {
 		int index = arrayIndex;
 		for (var e : getSet()) {
 			array[index++] = e;

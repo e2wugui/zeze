@@ -38,27 +38,27 @@ import org.rocksdb.RocksDBException;
 public class Test {
 	private static final Logger logger = LogManager.getLogger(Test.class);
 
-	private String RaftConfigFileName = "raft.xml";
-	private final ConcurrentHashMap<String, TestRaft> Rafts = new ConcurrentHashMap<>();
-	private Agent Agent;
-	private final AtomicLong ExpectCount = new AtomicLong();
-	private final LongHashMap<Long> Errors = new LongHashMap<>();
-	private Future<?> SnapshotTimer;
-	private final ArrayList<FailAction> FailActions = new ArrayList<>();
-	private boolean Running = true;
+	private String raftConfigFileName = "raft.xml";
+	private final ConcurrentHashMap<String, TestRaft> rafts = new ConcurrentHashMap<>();
+	private Agent agent;
+	private final AtomicLong expectCount = new AtomicLong();
+	private final LongHashMap<Long> errors = new LongHashMap<>();
+	private Future<?> snapshotTimer;
+	private final ArrayList<FailAction> failActions = new ArrayList<>();
+	private boolean running = true;
 
-	private static void LogDump(String db) throws IOException, RocksDBException {
+	private static void logDump(String db) throws IOException, RocksDBException {
 		RocksDB.loadLibrary();
 		try (var r1 = RocksDB.openReadOnly(DatabaseRocksDb.getCommonOptions(), Paths.get(db, "logs").toString())) {
 			try (var it1 = r1.newIterator(DatabaseRocksDb.getDefaultReadOptions())) {
 				var StateMachine = new TestStateMachine();
-				var snapshot = Paths.get(db, LogSequence.SnapshotFileName).toString();
+				var snapshot = Paths.get(db, LogSequence.snapshotFileName).toString();
 				if (new File(snapshot).isFile())
-					StateMachine._LoadSnapshot(snapshot);
+					StateMachine._loadSnapshot(snapshot);
 				try (var dumpFile = new FileOutputStream(db + ".txt")) {
 					dumpFile.write(String.format("SnapshotCount = %d\n", StateMachine.getCount()).getBytes(StandardCharsets.UTF_8));
 					for (it1.seekToFirst(); it1.isValid(); it1.next()) {
-						var l1 = RaftLog.decode(new Binary(it1.value()), StateMachine::LogFactory);
+						var l1 = RaftLog.decode(new Binary(it1.value()), StateMachine::logFactory);
 						dumpFile.write(l1.toString().getBytes(StandardCharsets.UTF_8));
 						dumpFile.write('\n');
 					}
@@ -67,10 +67,10 @@ public class Test {
 		}
 	}
 
-	public void Run(String command, String[] args) throws InterruptedException {
+	public void run(String command, String[] args) throws InterruptedException {
 		System.out.println(command);
 		try {
-			_Run(command, args);
+			_run(command, args);
 		} catch (Throwable ex) {
 			logger.error("Run", ex);
 		}
@@ -86,10 +86,10 @@ public class Test {
 		}
 	}
 
-	private void _Run(String command, String[] args) throws Throwable {
+	private void _run(String command, String[] args) throws Throwable {
 		for (int i = 0; i < args.length; i++) {
 			if (args[i].equals("-Config"))
-				RaftConfigFileName = args[++i];
+				raftConfigFileName = args[++i];
 		}
 
 		logger.debug("Start.");
@@ -106,11 +106,11 @@ public class Test {
 
 		Task.initThreadPool(Task.newFixedThreadPool(10, "test"),
 				Executors.newScheduledThreadPool(3, new ThreadFactoryWithName("test-sch")));
-		var raftConfigStart = RaftConfig.Load(RaftConfigFileName);
+		var raftConfigStart = RaftConfig.load(raftConfigFileName);
 
 		if (command.equals("RaftDump")) {
 			for (var node : raftConfigStart.getNodes().values())
-				LogDump(String.format("%s_%d", node.getHost(), node.getPort()));
+				logDump(String.format("%s_%d", node.getHost(), node.getPort()));
 			return;
 		}
 
@@ -118,14 +118,14 @@ public class Test {
 			// every node need a private config-file.
 			var confPath = Files.createTempFile("", ".xml");
 			Files.copy(Paths.get(raftConfigStart.getXmlFileName()), confPath, StandardCopyOption.REPLACE_EXISTING);
-			Rafts.computeIfAbsent(node.getName(), nodeName -> new TestRaft(nodeName, confPath.toString()));
+			rafts.computeIfAbsent(node.getName(), nodeName -> new TestRaft(nodeName, confPath.toString()));
 		}
 
-		for (var raft : Rafts.values())
-			raft.Raft.getServer().Start();
+		for (var raft : rafts.values())
+			raft.raft.getServer().Start();
 
-		Agent = new Agent("Zeze.Raft.Agent.Test", raftConfigStart);
-		Zeze.Raft.Agent.NetClient client = Agent.getClient();
+		agent = new Agent("Zeze.Raft.Agent.Test", raftConfigStart);
+		Zeze.Raft.Agent.NetClient client = agent.getClient();
 		client.AddFactoryHandle(AddCount.TypeId_, new Service.ProtocolFactoryHandle<>(AddCount::new));
 		client.AddFactoryHandle(GetCount.TypeId_, new Service.ProtocolFactoryHandle<>(GetCount::new));
 		client.Start();
@@ -139,16 +139,16 @@ public class Test {
 					var sb = new StringBuilder();
 					sb.append(String.format("----------------------------------%s-----------------------------------\n",
 							raftConfigStart.getXmlFileName()));
-					for (var r : Rafts.values()) {
-						var l = r.Raft != null ? r.Raft.getLogSequence() : null;
-						sb.append(String.format("%s CommitIndex=%s LastApplied=%s LastIndex=%s Count=%s", r.RaftName,
+					for (var r : rafts.values()) {
+						var l = r.raft != null ? r.raft.getLogSequence() : null;
+						sb.append(String.format("%s CommitIndex=%s LastApplied=%s LastIndex=%s Count=%s", r.raftName,
 								l != null ? l.getCommitIndex() : null,
 								l != null ? l.getLastApplied() : null,
 								l != null ? l.getLastIndex() : null,
-								r.StateMachine != null ? r.StateMachine.Count : null)).append("\n");
+								r.stateMachine != null ? r.stateMachine.count : null)).append("\n");
 					}
-					for (var f : FailActions)
-						sb.append(String.format("%s TestCount=%s", f.Name, f.Count)).append("\n");
+					for (var f : failActions)
+						sb.append(String.format("%s TestCount=%s", f.name, f.count)).append("\n");
 					sb.append(String.format("----------------------------------%s-----------------------------------\n",
 							raftConfigStart.getXmlFileName()));
 					System.out.println(sb);
@@ -158,86 +158,86 @@ public class Test {
 			}
 		}, "DumpWorker", DispatchMode.Normal);
 		try {
-			RunTrace();
+			runTrace();
 		} finally {
 			client.Stop();
-			if (SnapshotTimer != null)
-				SnapshotTimer.cancel(false);
-			for (var raft : Rafts.values())
-				raft.StopRaft();
+			if (snapshotTimer != null)
+				snapshotTimer.cancel(false);
+			for (var raft : rafts.values())
+				raft.stopRaft();
 		}
 	}
 
-	private long GetCurrentCount() {
+	private long getCurrentCount() {
 		while (true) {
 			try {
 				var r = new GetCount();
-				Agent.SendForWait(r).await();
+				agent.sendForWait(r).await();
 				if (!r.isTimeout() && r.getResultCode() == 0)
-					return r.Result.Count;
+					return r.Result.count;
 			} catch (Exception ignored) {
 			}
 		}
 	}
 
-	private void ErrorsAdd(long resultCode) {
+	private void errorsAdd(long resultCode) {
 		if (resultCode == 0)
 			return;
 		if (resultCode == Procedure.RaftApplied)
 			return;
-		if (Errors.containsKey(resultCode))
-			Errors.put(resultCode, Errors.get(resultCode) + 1);
+		if (errors.containsKey(resultCode))
+			errors.put(resultCode, errors.get(resultCode) + 1);
 		else
-			Errors.put(resultCode, 1L);
+			errors.put(resultCode, 1L);
 	}
 
-	private long ErrorsSum() {
+	private long errorsSum() {
 		long sum = 0;
-		for (var it = Errors.iterator(); it.moveToNext(); )
+		for (var it = errors.iterator(); it.moveToNext(); )
 			sum += it.value();
 		return sum;
 	}
 
-	private String GetErrorsString() {
+	private String getErrorsString() {
 		var sb = new StringBuilder();
-		ByteBuffer.BuildString(sb, Errors);
+		ByteBuffer.BuildString(sb, errors);
 		return sb.toString();
 	}
 
 	@SuppressWarnings("UnusedReturnValue")
-	private boolean CheckCurrentCount(String stepName) {
-		return CheckCurrentCount(stepName, true);
+	private boolean checkCurrentCount(String stepName) {
+		return checkCurrentCount(stepName, true);
 	}
 
-	private boolean CheckCurrentCount(String stepName, boolean resetExpectCount) {
-		var CurrentCount = GetCurrentCount();
-		var expectCount = ExpectCount.get();
+	private boolean checkCurrentCount(String stepName, boolean resetExpectCount) {
+		var CurrentCount = getCurrentCount();
+		var expectCount = this.expectCount.get();
 		if (CurrentCount != expectCount) {
 			var report = new StringBuilder();
-			var level = expectCount != CurrentCount + ErrorsSum() ? Level.FATAL : Level.INFO;
+			var level = expectCount != CurrentCount + errorsSum() ? Level.FATAL : Level.INFO;
 			report.append(String.format("%n-------------------------------------------"));
 			report.append(String.format("%n%s,Expect=%d,Now=%d,Errors=%s",
-					stepName, expectCount, CurrentCount, GetErrorsString()));
+					stepName, expectCount, CurrentCount, getErrorsString()));
 			report.append(String.format("%n-------------------------------------------"));
 			logger.log(level, "{}", report.toString());
 
 			if (resetExpectCount) {
-				ExpectCount.getAndSet(CurrentCount); // 下一个测试重新开始。
-				Errors.clear();
+				this.expectCount.getAndSet(CurrentCount); // 下一个测试重新开始。
+				errors.clear();
 			}
 			return level == Level.INFO;
 		}
 		return true;
 	}
 
-	private int ConcurrentAddCount(String stepName, int concurrent) {
+	private int concurrentAddCount(String stepName, int concurrent) {
 		var requests = new ArrayList<AddCount>();
 		var tasks = new ArrayList<TaskCompletionSource<?>>();
 		for (int i = 0; i < concurrent; ++i) {
 			try {
 				var req = new AddCount();
 				req.setTimeout(3600_000);
-				tasks.add(Agent.SendForWait(req));
+				tasks.add(agent.sendForWait(req));
 				// logger.debug("+++++++ {} new AddCount {}", i, req.getUnique().getRequestId());
 				requests.add(req);
 			} catch (RuntimeException e) {
@@ -254,15 +254,15 @@ public class Test {
 		for (var request : requests) {
 			logger.debug("--------- RESPONSE {} {}", stepName, request);
 			if (request.isTimeout())
-				ErrorsAdd(Procedure.Timeout);
+				errorsAdd(Procedure.Timeout);
 			else
-				ErrorsAdd(request.getResultCode());
+				errorsAdd(request.getResultCode());
 		}
 		return tasks.size();
 	}
 
 	@SuppressWarnings("EmptyMethod")
-	private void SetLogLevel(@SuppressWarnings("unused") Level level) {
+	private void setLogLevel(@SuppressWarnings("unused") Level level) {
 		// LogManager.GlobalThreshold = level;
 		/*
 		foreach (var rule in NLog.LogManager.Configuration.LoggingRules)
@@ -275,100 +275,100 @@ public class Test {
 		*/
 	}
 
-	private void TestConcurrent(String testName, int count) {
-		ExpectCount.addAndGet(ConcurrentAddCount(testName, count));
-		CheckCurrentCount(testName);
+	private void testConcurrent(String testName, int count) {
+		expectCount.addAndGet(concurrentAddCount(testName, count));
+		checkCurrentCount(testName);
 	}
 
-	private void RandomSnapshotTimer() throws Throwable {
-		var randIndex = Random.getInstance().nextInt(Rafts.size());
+	private void randomSnapshotTimer() throws Throwable {
+		var randIndex = Random.getInstance().nextInt(rafts.size());
 		var index = 0;
-		for (var test : Rafts.values()) {
+		for (var test : rafts.values()) {
 			if (index++ == randIndex) {
-				if (test.Raft != null)
-					test.Raft.getLogSequence().Snapshot();
+				if (test.raft != null)
+					test.raft.getLogSequence().snapshot();
 				return;
 			}
 		}
 	}
 
-	public void RunTrace() throws Throwable {
+	public void runTrace() throws Throwable {
 		// 基本测试
 		logger.debug("基本测试");
-		Agent.SendForWait(new AddCount()).await();
-		ExpectCount.incrementAndGet();
-		CheckCurrentCount("TestAddCount");
+		agent.sendForWait(new AddCount()).await();
+		expectCount.incrementAndGet();
+		checkCurrentCount("TestAddCount");
 
 		// 基本并发请求
 		logger.debug("基本并发请求");
-		SetLogLevel(Level.INFO);
-		TestConcurrent("TestConcurrent", 200);
-		SetLogLevel(Level.TRACE);
+		setLogLevel(Level.INFO);
+		testConcurrent("TestConcurrent", 200);
+		setLogLevel(Level.TRACE);
 
 		// 普通节点重启网络一。
 		logger.debug("普通节点重启网络一");
-		var NotLeaders = GetNodeNotLeaders();
+		var NotLeaders = getNodeNotLeaders();
 		if (!NotLeaders.isEmpty())
-			NotLeaders.get(0).RestartNet();
-		TestConcurrent("TestNormalNodeRestartNet1", 1);
+			NotLeaders.get(0).restartNet();
+		testConcurrent("TestNormalNodeRestartNet1", 1);
 
 		// 普通节点重启网络二。
 		logger.debug("普通节点重启网络二");
 		if (NotLeaders.size() > 1) {
-			NotLeaders.get(0).RestartNet();
-			NotLeaders.get(1).RestartNet();
+			NotLeaders.get(0).restartNet();
+			NotLeaders.get(1).restartNet();
 		}
-		TestConcurrent("TestNormalNodeRestartNet2", 1);
+		testConcurrent("TestNormalNodeRestartNet2", 1);
 
 		// Leader节点重启网络。
 		logger.debug("Leader节点重启网络");
-		GetLeader().RestartNet();
-		TestConcurrent("TestLeaderNodeRestartNet", 1);
+		getLeader().restartNet();
+		testConcurrent("TestLeaderNodeRestartNet", 1);
 
 		// Leader节点重启网络，【选举】。
 		logger.debug("Leader节点重启网络，【选举】");
 		{
-			var leader = GetLeader();
-			leader.Raft.getServer().Stop();
-			Task.schedule(leader.Raft.getRaftConfig().getElectionTimeoutMax(), leader.Raft.getServer()::Start);
+			var leader = getLeader();
+			leader.raft.getServer().Stop();
+			Task.schedule(leader.raft.getRaftConfig().getElectionTimeoutMax(), leader.raft.getServer()::Start);
 		}
-		TestConcurrent("TestLeaderNodeRestartNet_NewVote", 1);
+		testConcurrent("TestLeaderNodeRestartNet_NewVote", 1);
 
 		// 普通节点重启一。
 		logger.debug("普通节点重启一");
-		NotLeaders = GetNodeNotLeaders();
+		NotLeaders = getNodeNotLeaders();
 		if (!NotLeaders.isEmpty()) {
-			NotLeaders.get(0).StopRaft();
-			NotLeaders.get(0).StartRaft();
+			NotLeaders.get(0).stopRaft();
+			NotLeaders.get(0).startRaft();
 		}
-		TestConcurrent("TestNormalNodeRestartRaft1", 1);
+		testConcurrent("TestNormalNodeRestartRaft1", 1);
 
 		// 普通节点重启二。
 		logger.debug("普通节点重启二");
 		if (NotLeaders.size() > 1) {
-			NotLeaders.get(0).StopRaft();
-			NotLeaders.get(1).StopRaft();
-			NotLeaders.get(0).StartRaft();
-			NotLeaders.get(1).StartRaft();
+			NotLeaders.get(0).stopRaft();
+			NotLeaders.get(1).stopRaft();
+			NotLeaders.get(0).startRaft();
+			NotLeaders.get(1).startRaft();
 		}
-		TestConcurrent("TestNormalNodeRestartRaft2", 1);
+		testConcurrent("TestNormalNodeRestartRaft2", 1);
 
 		// Leader节点重启。
 		logger.debug("Leader节点重启");
 		{
-			var leader = GetLeader();
-			var StartDelay = leader.Raft.getRaftConfig().getElectionTimeoutMax();
-			leader.StopRaft();
-			Task.schedule(StartDelay, leader::StartRaft);
+			var leader = getLeader();
+			var StartDelay = leader.raft.getRaftConfig().getElectionTimeoutMax();
+			leader.stopRaft();
+			Task.schedule(StartDelay, leader::startRaft);
 		}
-		TestConcurrent("TestLeaderNodeRestartRaft", 1);
+		testConcurrent("TestLeaderNodeRestartRaft", 1);
 
 		// Snapshot & Load
 		{
-			var leader = GetLeader();
-			leader.Raft.getLogSequence().Snapshot();
-			leader.StopRaft();
-			leader.StartRaft();
+			var leader = getLeader();
+			leader.raft.getLogSequence().snapshot();
+			leader.stopRaft();
+			leader.startRaft();
 		}
 
 		// InstallSnapshot;
@@ -377,101 +377,101 @@ public class Test {
 		logger.fatal(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 		logger.fatal(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 
-		SnapshotTimer = Task.scheduleUnsafe(60 * 1000, 60 * 1000, this::RandomSnapshotTimer);
+		snapshotTimer = Task.scheduleUnsafe(60 * 1000, 60 * 1000, this::randomSnapshotTimer);
 
-		SetLogLevel(Level.INFO);
+		setLogLevel(Level.INFO);
 
-		FailActions.add(new FailAction("RestartNet1", () ->
+		failActions.add(new FailAction("RestartNet1", () ->
 		{
-			var rafts = ShuffleRafts();
-			rafts[0].RestartNet();
+			var rafts = shuffleRafts();
+			rafts[0].restartNet();
 		}));
-		FailActions.add(new FailAction("RestartNet2", () ->
+		failActions.add(new FailAction("RestartNet2", () ->
 		{
-			var rafts = ShuffleRafts();
-			rafts[0].RestartNet();
-			rafts[1].RestartNet();
+			var rafts = shuffleRafts();
+			rafts[0].restartNet();
+			rafts[1].restartNet();
 		}));
-		FailActions.add(new FailAction("RestartNet3", () ->
+		failActions.add(new FailAction("RestartNet3", () ->
 		{
-			var rafts = ShuffleRafts();
-			rafts[0].RestartNet();
-			rafts[1].RestartNet();
-			rafts[2].RestartNet();
+			var rafts = shuffleRafts();
+			rafts[0].restartNet();
+			rafts[1].restartNet();
+			rafts[2].restartNet();
 		}));
-		FailActions.add(new FailAction("RestartLeaderNetForVote", () ->
+		failActions.add(new FailAction("RestartLeaderNetForVote", () ->
 		{
-			var leader = GetLeader();
-			leader.Raft.getServer().Stop();
+			var leader = getLeader();
+			leader.raft.getServer().Stop();
 			// delay for vote
-			Thread.sleep(leader.Raft.getRaftConfig().getElectionTimeoutMax());
-			leader.Raft.getServer().Start();
+			Thread.sleep(leader.raft.getRaftConfig().getElectionTimeoutMax());
+			leader.raft.getServer().Start();
 		}));
-		FailActions.add(new FailAction("RestartRaft1", () ->
+		failActions.add(new FailAction("RestartRaft1", () ->
 		{
-			var rafts = ShuffleRafts();
-			rafts[0].StopRaft();
-			rafts[0].StartRaft();
+			var rafts = shuffleRafts();
+			rafts[0].stopRaft();
+			rafts[0].startRaft();
 		}));
-		FailActions.add(new FailAction("RestartRaft2", () ->
+		failActions.add(new FailAction("RestartRaft2", () ->
 		{
-			var rafts = ShuffleRafts();
-			rafts[0].StopRaft();
-			rafts[1].StopRaft();
-			rafts[0].StartRaft();
-			rafts[1].StartRaft();
+			var rafts = shuffleRafts();
+			rafts[0].stopRaft();
+			rafts[1].stopRaft();
+			rafts[0].startRaft();
+			rafts[1].startRaft();
 		}));
-		FailActions.add(new FailAction("RestartRaft3", () ->
+		failActions.add(new FailAction("RestartRaft3", () ->
 		{
-			var rafts = ShuffleRafts();
-			rafts[0].StopRaft();
-			rafts[1].StopRaft();
-			rafts[2].StopRaft();
-			rafts[0].StartRaft();
-			rafts[1].StartRaft();
-			rafts[2].StartRaft();
+			var rafts = shuffleRafts();
+			rafts[0].stopRaft();
+			rafts[1].stopRaft();
+			rafts[2].stopRaft();
+			rafts[0].startRaft();
+			rafts[1].startRaft();
+			rafts[2].startRaft();
 		}));
-		FailActions.add(new FailAction("RestartLeaderRaftForVote", () ->
+		failActions.add(new FailAction("RestartLeaderRaftForVote", () ->
 		{
-			var leader = GetLeader();
-			var startVoteDelay = leader.Raft.getRaftConfig().getElectionTimeoutMax();
-			leader.StopRaft();
+			var leader = getLeader();
+			var startVoteDelay = leader.raft.getRaftConfig().getElectionTimeoutMax();
+			leader.stopRaft();
 			// delay for vote
 			Thread.sleep(startVoteDelay);
-			leader.StartRaft();
+			leader.startRaft();
 		}));
-		var InstallSnapshotCleanNode = Rafts.values().iterator().next(); // 记住，否则Release版本，每次返回值可能会变。
-		FailActions.add(new FailAction("InstallSnapshot Clean One Node Data", () ->
+		var InstallSnapshotCleanNode = rafts.values().iterator().next(); // 记住，否则Release版本，每次返回值可能会变。
+		failActions.add(new FailAction("InstallSnapshot Clean One Node Data", () ->
 		{
-			for (var test : Rafts.values()) {
-				test.StopRaft(); // 先停止，这样才能强制启动安装。
-				test.StartRaft(test == InstallSnapshotCleanNode);
+			for (var test : rafts.values()) {
+				test.stopRaft(); // 先停止，这样才能强制启动安装。
+				test.startRaft(test == InstallSnapshotCleanNode);
 			}
 		}));
 		// Start Background FailActions
-		Task.run(this::RandomTriggerFailActions, "RandomTriggerFailActions", DispatchMode.Normal);
+		Task.run(this::randomTriggerFailActions, "RandomTriggerFailActions", DispatchMode.Normal);
 		var testName = "RealConcurrentDoRequest";
-		var lastExpectCount = ExpectCount.get();
+		var lastExpectCount = expectCount.get();
 		while (true) {
-			ExpectCount.addAndGet(ConcurrentAddCount(testName, 20));
-			if (ExpectCount.get() - lastExpectCount > 20 * 5) {
-				lastExpectCount = ExpectCount.get();
-				if (!Check(testName))
+			expectCount.addAndGet(concurrentAddCount(testName, 20));
+			if (expectCount.get() - lastExpectCount > 20 * 5) {
+				lastExpectCount = expectCount.get();
+				if (!check(testName))
 					break;
 			}
 		}
-		Running = false;
-		SetLogLevel(Level.DEBUG);
-		CheckCurrentCount("Final Check!!!");
+		running = false;
+		setLogLevel(Level.DEBUG);
+		checkCurrentCount("Final Check!!!");
 	}
 
-	private boolean Check(String testName) throws InterruptedException {
+	private boolean check(String testName) throws InterruptedException {
 		int tryCount = 2;
 		for (int i = 0; i < tryCount; ++i) {
-			var check = CheckCurrentCount(testName, false);
+			var check = checkCurrentCount(testName, false);
 			logger.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
 			logger.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-			logger.info("Check={} Step={} ExpectCount={} Errors={}", check, i, ExpectCount.get(), GetErrorsString());
+			logger.info("Check={} Step={} ExpectCount={} Errors={}", check, i, expectCount.get(), getErrorsString());
 			logger.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
 			logger.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
 			if (check)
@@ -483,43 +483,43 @@ public class Test {
 	}
 
 	private static class FailAction {
-		final String Name;
-		final Action0 Action;
-		long Count;
+		final String name;
+		final Action0 action;
+		long count;
 
 		FailAction(String name, Action0 action) {
-			Name = name;
-			Action = action;
+			this.name = name;
+			this.action = action;
 		}
 
 		@Override
 		public String toString() {
-			return Name + "=" + Count;
+			return name + "=" + count;
 		}
 	}
 
-	private void WaitExpectCountGrow(@SuppressWarnings("SameParameterValue") long growing) throws InterruptedException {
-		long oldTaskCount = ExpectCount.get();
+	private void waitExpectCountGrow(@SuppressWarnings("SameParameterValue") long growing) throws InterruptedException {
+		long oldTaskCount = expectCount.get();
 		//noinspection ConditionalBreakInInfiniteLoop
 		while (true) {
 			//noinspection BusyWait
 			Thread.sleep(10);
-			if (ExpectCount.get() - oldTaskCount > growing)
+			if (expectCount.get() - oldTaskCount > growing)
 				break;
 		}
 	}
 
-	private void RandomTriggerFailActions() throws InterruptedException {
-		while (Running) {
-			var fa = FailActions.get(Random.getInstance().nextInt(FailActions.size()));
+	private void randomTriggerFailActions() throws InterruptedException {
+		while (running) {
+			var fa = failActions.get(Random.getInstance().nextInt(failActions.size()));
 			// for (var fa : FailActions)
 			{
-				logger.fatal("___________________________ {} _____________________________", fa.Name);
+				logger.fatal("___________________________ {} _____________________________", fa.name);
 				try {
-					fa.Action.run();
-					fa.Count++;
+					fa.action.run();
+					fa.count++;
 				} catch (Throwable ex) {
-					logger.error("FailAction {}", fa.Name, ex);
+					logger.error("FailAction {}", fa.name, ex);
 					System.out.println("___________________________________________");
 					System.out.println("___________________________________________");
 					System.out.println("___________________________________________");
@@ -527,10 +527,10 @@ public class Test {
 					System.out.println("___________________________________________");
 					System.out.println("___________________________________________");
 					System.out.println("___________________________________________");
-					for (var raft : Rafts.values()) {
-						if (raft.Raft != null && raft.Raft.getLogSequence() != null) {
-							raft.Raft.IsShutdown = true;
-							raft.Raft.getLogSequence().Close();
+					for (var raft : rafts.values()) {
+						if (raft.raft != null && raft.raft.getLogSequence() != null) {
+							raft.raft.isShutdown = true;
+							raft.raft.getLogSequence().close();
 						}
 					}
 					System.exit(-1);
@@ -541,18 +541,18 @@ public class Test {
 				}
 				// 等待失败的节点恢复正常并且服务了一些请求。
 				// 由于一个follower失败时，请求处理是能持续进行的，这个等待可能不够。
-				WaitExpectCountGrow(110);
+				waitExpectCountGrow(110);
 			}
 		}
 		var sb = new StringBuilder();
-		ByteBuffer.BuildString(sb, FailActions);
+		ByteBuffer.BuildString(sb, failActions);
 		logger.fatal("{}", sb.toString());
 	}
 
-	private TestRaft GetLeader() throws InterruptedException {
+	private TestRaft getLeader() throws InterruptedException {
 		while (true) {
-			for (var raft : Rafts.values()) {
-				if (raft.Raft != null && raft.Raft.isLeader())
+			for (var raft : rafts.values()) {
+				if (raft.raft != null && raft.raft.isLeader())
 					return raft;
 			}
 			//noinspection BusyWait
@@ -560,17 +560,17 @@ public class Test {
 		}
 	}
 
-	private ArrayList<TestRaft> GetNodeNotLeaders() {
+	private ArrayList<TestRaft> getNodeNotLeaders() {
 		var NotLeader = new ArrayList<TestRaft>();
-		for (var raft : Rafts.values()) {
-			if (!raft.Raft.isLeader())
+		for (var raft : rafts.values()) {
+			if (!raft.raft.isLeader())
 				NotLeader.add(raft);
 		}
 		return NotLeader;
 	}
 
-	private TestRaft[] ShuffleRafts() {
-		return Random.Shuffle(Rafts.values().toArray(new TestRaft[Rafts.size()]));
+	private TestRaft[] shuffleRafts() {
+		return Random.shuffle(rafts.values().toArray(new TestRaft[rafts.size()]));
 	}
 
 	public static final class AddCount extends RaftRpc<EmptyBean, BCountResult> {
@@ -594,24 +594,24 @@ public class Test {
 	}
 
 	public static final class BCountResult extends Bean {
-		private long Count;
+		private long count;
 
 		public long getCount() {
-			return Count;
+			return count;
 		}
 
 		public void setCount(long value) {
-			Count = value;
+			count = value;
 		}
 
 		@Override
 		public void encode(ByteBuffer bb) {
-			bb.WriteLong(Count);
+			bb.WriteLong(count);
 		}
 
 		@Override
 		public void decode(ByteBuffer bb) {
-			Count = bb.ReadLong();
+			count = bb.ReadLong();
 		}
 
 		@Override
@@ -626,7 +626,7 @@ public class Test {
 
 		@Override
 		public String toString() {
-			return "Count=" + Count;
+			return "Count=" + count;
 		}
 	}
 
@@ -651,23 +651,23 @@ public class Test {
 	}
 
 	public static class TestStateMachine extends StateMachine {
-		private long Count;
+		private long count;
 
 		public TestStateMachine() {
-			AddFactory(new AddCount(null).getTypeId(), () -> new AddCount(null));
+			addFactory(new AddCount(null).getTypeId(), () -> new AddCount(null));
 		}
 
 		public long getCount() {
-			return Count;
+			return count;
 		}
 
 		public void setCount(long value) {
-			Count = value;
+			count = value;
 		}
 
-		public void AddCountAndWait(Test.AddCount req) {
-			req.Result.Count = Count;
-			getRaft().AppendLog(new AddCount(req), req.Result);
+		public void addCountAndWait(Test.AddCount req) {
+			req.Result.count = count;
+			getRaft().appendLog(new AddCount(req), req.Result);
 		}
 
 		public static final class AddCount extends Log {
@@ -676,7 +676,7 @@ public class Test {
 			}
 
 			@Override
-			public void Apply(RaftLog holder, StateMachine stateMachine) {
+			public void apply(RaftLog holder, StateMachine stateMachine) {
 				TestStateMachine tsm = (TestStateMachine)stateMachine;
 				tsm.setCount(tsm.getCount() + 1);
 				// logger.info("--- Apply {}:{} to {}", stateMachine.getRaft().getName(), getUnique().getRequestId(), tsm.getCount());
@@ -693,38 +693,38 @@ public class Test {
 			}
 		}
 
-		public void _LoadSnapshot(String path) throws IOException {
+		public void _loadSnapshot(String path) throws IOException {
 			try (var file = new FileInputStream(path)) {
 				var bytes = new byte[1024];
 				int rc = file.read(bytes);
-				Count = ByteBuffer.Wrap(bytes, 0, rc).ReadLong();
+				count = ByteBuffer.Wrap(bytes, 0, rc).ReadLong();
 			}
 		}
 
 		@Override
-		public void LoadSnapshot(String path) throws IOException {
-			_LoadSnapshot(path);
-			logger.info("{} LoadSnapshot Count={}", getRaft().getName(), Count);
+		public void loadSnapshot(String path) throws IOException {
+			_loadSnapshot(path);
+			logger.info("{} LoadSnapshot Count={}", getRaft().getName(), count);
 		}
 
 		// 这里没有处理重入，调用者需要保证。
 		@Override
-		public SnapshotResult Snapshot(String path) throws IOException, RocksDBException {
+		public SnapshotResult snapshot(String path) throws IOException, RocksDBException {
 			SnapshotResult result = new SnapshotResult();
 			getRaft().lock();
 			try {
 				if (getRaft().getLogSequence() != null) {
-					var lastAppliedLog = getRaft().getLogSequence().LastAppliedLogTermIndex();
+					var lastAppliedLog = getRaft().getLogSequence().lastAppliedLogTermIndex();
 					if (lastAppliedLog != null) {
-						result.LastIncludedIndex = lastAppliedLog.getIndex();
-						result.LastIncludedTerm = lastAppliedLog.getTerm();
+						result.lastIncludedIndex = lastAppliedLog.getIndex();
+						result.lastIncludedTerm = lastAppliedLog.getTerm();
 						var bb = ByteBuffer.Allocate();
-						logger.info("{} Snapshot Count={}", getRaft().getName(), Count);
-						bb.WriteLong(Count);
+						logger.info("{} Snapshot Count={}", getRaft().getName(), count);
+						bb.WriteLong(count);
 						try (var file = new FileOutputStream(path)) {
 							file.write(bb.Bytes, bb.ReadIndex, bb.Size());
 						}
-						getRaft().getLogSequence().CommitSnapshot(path, result.LastIncludedIndex);
+						getRaft().getLogSequence().commitSnapshot(path, result.lastIncludedIndex);
 						result.success = true;
 					}
 				}
@@ -736,46 +736,46 @@ public class Test {
 	}
 
 	public static class TestRaft {
-		private Raft Raft;
-		private TestStateMachine StateMachine;
-		private final String RaftConfigFileName;
-		private final String RaftName;
+		private Raft raft;
+		private TestStateMachine stateMachine;
+		private final String raftConfigFileName;
+		private final String raftName;
 
 		public TestRaft(String raftName, String raftConfigFileName) {
-			RaftName = raftName;
-			RaftConfigFileName = raftConfigFileName;
+			this.raftName = raftName;
+			this.raftConfigFileName = raftConfigFileName;
 			try {
-				StartRaft(true);
+				startRaft(true);
 			} catch (Throwable e) {
 				logger.error("TestRaft.TestRaft", e);
 			}
 		}
 
 		public Raft getRaft() {
-			return Raft;
+			return raft;
 		}
 
 		public TestStateMachine getStateMachine() {
-			return StateMachine;
+			return stateMachine;
 		}
 
 		public String getRaftConfigFileName() {
-			return RaftConfigFileName;
+			return raftConfigFileName;
 		}
 
 		public String getRaftName() {
-			return RaftName;
+			return raftName;
 		}
 
-		public void RestartNet() throws Throwable {
-			logger.debug("Raft.Net {} Restart ...", RaftName);
+		public void restartNet() throws Throwable {
+			logger.debug("Raft.Net {} Restart ...", raftName);
 			try {
-				if (Raft != null)
-					Raft.getServer().Stop();
-				if (Raft != null) {
+				if (raft != null)
+					raft.getServer().Stop();
+				if (raft != null) {
 					for (int i = 0; ; ) {
 						try {
-							Raft.getServer().Start();
+							raft.getServer().Start();
 							break;
 						} catch (BindException | RuntimeException be) {
 							if (!(be instanceof BindException) && !(be.getCause() instanceof BindException) || ++i > 30)
@@ -791,31 +791,31 @@ public class Test {
 			}
 		}
 
-		public synchronized void StopRaft() throws Throwable {
-			logger.debug("Raft {} Stop ...", RaftName);
+		public synchronized void stopRaft() throws Throwable {
+			logger.debug("Raft {} Stop ...", raftName);
 			// 在同一个进程中，没法模拟进程退出，
 			// 此时RocksDb应该需要关闭，否则重启会失败吧。
-			if (Raft != null) {
-				Raft.Shutdown();
-				Raft = null;
+			if (raft != null) {
+				raft.shutdown();
+				raft = null;
 			}
 		}
 
-		public void StartRaft() throws Throwable {
-			StartRaft(false);
+		public void startRaft() throws Throwable {
+			startRaft(false);
 		}
 
-		public synchronized void StartRaft(boolean resetLog) throws Throwable {
-			if (Raft != null) {
-				Raft.getServer().Start();
+		public synchronized void startRaft(boolean resetLog) throws Throwable {
+			if (raft != null) {
+				raft.getServer().Start();
 				return;
 			}
-			logger.debug("Raft {} Start ...", RaftName);
-			StateMachine = new TestStateMachine();
+			logger.debug("Raft {} Start ...", raftName);
+			stateMachine = new TestStateMachine();
 
-			var raftConfig = RaftConfig.Load(RaftConfigFileName);
+			var raftConfig = RaftConfig.load(raftConfigFileName);
 			raftConfig.setUniqueRequestExpiredDays(1);
-			raftConfig.setDbHome(Paths.get(RaftName.replace(':', '_')).toString());
+			raftConfig.setDbHome(Paths.get(raftName.replace(':', '_')).toString());
 			if (resetLog) {
 				logger.warn("------------------------------------------------");
 				logger.warn("- Reset Log {} -", raftConfig.getDbHome());
@@ -827,33 +827,33 @@ public class Test {
 			}
 			Files.createDirectories(Paths.get(raftConfig.getDbHome()));
 
-			Raft = new Raft(StateMachine, RaftName, raftConfig);
-			Raft.getLogSequence().setWriteOptions(DatabaseRocksDb.getDefaultWriteOptions());
-			Raft.getServer().AddFactoryHandle(AddCount.TypeId_,
-					new Service.ProtocolFactoryHandle<>(AddCount::new, this::ProcessAddCount));
-			Raft.getServer().AddFactoryHandle(GetCount.TypeId_,
-					new Service.ProtocolFactoryHandle<>(GetCount::new, this::ProcessGetCount));
-			Raft.getServer().Start();
+			raft = new Raft(stateMachine, raftName, raftConfig);
+			raft.getLogSequence().setWriteOptions(DatabaseRocksDb.getDefaultWriteOptions());
+			raft.getServer().AddFactoryHandle(AddCount.TypeId_,
+					new Service.ProtocolFactoryHandle<>(AddCount::new, this::processAddCount));
+			raft.getServer().AddFactoryHandle(GetCount.TypeId_,
+					new Service.ProtocolFactoryHandle<>(GetCount::new, this::processGetCount));
+			raft.getServer().Start();
 		}
 
-		private long ProcessAddCount(AddCount r) {
-			if (!Raft.isLeader())
+		private long processAddCount(AddCount r) {
+			if (!raft.isLeader())
 				return Procedure.RaftRetry; // fast fail
 
-			TestStateMachine sm = StateMachine;
+			TestStateMachine sm = stateMachine;
 			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (sm) {
-				sm.AddCountAndWait(r);
+				sm.addCountAndWait(r);
 				r.SendResultCode(0);
 			}
 			return Procedure.Success;
 		}
 
 		@SuppressWarnings("SameReturnValue")
-		private long ProcessGetCount(GetCount r) {
+		private long processGetCount(GetCount r) {
 			//noinspection SynchronizeOnNonFinalField
-			synchronized (StateMachine) {
-				r.Result.Count = StateMachine.Count;
+			synchronized (stateMachine) {
+				r.Result.count = stateMachine.count;
 				r.SendResult();
 			}
 			return Procedure.Success;
@@ -869,7 +869,7 @@ public class Test {
 		switch (command) {
 		case "RaftTest":
 		case "RaftDump":
-			new Test().Run(command, args);
+			new Test().run(command, args);
 			break;
 		default:
 			System.out.println("java Zeze.Raft.Test -c RaftTest -Config raft.xml");

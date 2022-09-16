@@ -35,10 +35,10 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
         if (txn == null)
             return _Int;
-        var log = txn.GetLog(objectId() + 1);
+        var log = txn.getLog(objectId() + 1);
         if (log == null)
             return _Int;
-        return ((Zeze.Raft.RocksRaft.Log1.LogInt)log).Value;
+        return ((Zeze.Raft.RocksRaft.Log1.LogInt)log).value;
     }
 
     public void setInt(int value) {
@@ -47,7 +47,7 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
             return;
         }
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
-        txn.PutLog(new Zeze.Raft.RocksRaft.Log1.LogInt(this, 1, value));
+        txn.putLog(new Zeze.Raft.RocksRaft.Log1.LogInt(this, 1, value));
     }
 
     public boolean isBool() {
@@ -56,10 +56,10 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
         if (txn == null)
             return _Bool;
-        var log = txn.GetLog(objectId() + 2);
+        var log = txn.getLog(objectId() + 2);
         if (log == null)
             return _Bool;
-        return ((Zeze.Raft.RocksRaft.Log1.LogBool)log).Value;
+        return ((Zeze.Raft.RocksRaft.Log1.LogBool)log).value;
     }
 
     public void setBool(boolean value) {
@@ -68,7 +68,7 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
             return;
         }
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
-        txn.PutLog(new Zeze.Raft.RocksRaft.Log1.LogBool(this, 2, value));
+        txn.putLog(new Zeze.Raft.RocksRaft.Log1.LogBool(this, 2, value));
     }
 
     public float getFloat() {
@@ -77,10 +77,10 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
         if (txn == null)
             return _Float;
-        var log = txn.GetLog(objectId() + 3);
+        var log = txn.getLog(objectId() + 3);
         if (log == null)
             return _Float;
-        return ((Zeze.Raft.RocksRaft.Log1.LogFloat)log).Value;
+        return ((Zeze.Raft.RocksRaft.Log1.LogFloat)log).value;
     }
 
     public void setFloat(float value) {
@@ -89,7 +89,7 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
             return;
         }
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
-        txn.PutLog(new Zeze.Raft.RocksRaft.Log1.LogFloat(this, 3, value));
+        txn.putLog(new Zeze.Raft.RocksRaft.Log1.LogFloat(this, 3, value));
     }
 
     public double getDouble() {
@@ -98,10 +98,10 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
         if (txn == null)
             return _double;
-        var log = txn.GetLog(objectId() + 4);
+        var log = txn.getLog(objectId() + 4);
         if (log == null)
             return _double;
-        return ((Zeze.Raft.RocksRaft.Log1.LogDouble)log).Value;
+        return ((Zeze.Raft.RocksRaft.Log1.LogDouble)log).value;
     }
 
     public void setDouble(double value) {
@@ -110,7 +110,7 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
             return;
         }
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
-        txn.PutLog(new Zeze.Raft.RocksRaft.Log1.LogDouble(this, 4, value));
+        txn.putLog(new Zeze.Raft.RocksRaft.Log1.LogDouble(this, 4, value));
     }
 
     public String getString() {
@@ -119,10 +119,10 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
         if (txn == null)
             return _String;
-        var log = txn.GetLog(objectId() + 5);
+        var log = txn.getLog(objectId() + 5);
         if (log == null)
             return _String;
-        return ((Zeze.Raft.RocksRaft.Log1.LogString)log).Value;
+        return ((Zeze.Raft.RocksRaft.Log1.LogString)log).value;
     }
 
     public void setString(String value) {
@@ -133,7 +133,7 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
             return;
         }
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
-        txn.PutLog(new Zeze.Raft.RocksRaft.Log1.LogString(this, 5, value));
+        txn.putLog(new Zeze.Raft.RocksRaft.Log1.LogString(this, 5, value));
     }
 
     public Zeze.Net.Binary getBinary() {
@@ -142,10 +142,10 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
         if (txn == null)
             return _Binary;
-        var log = txn.GetLog(objectId() + 6);
+        var log = txn.getLog(objectId() + 6);
         if (log == null)
             return _Binary;
-        return ((Zeze.Raft.RocksRaft.Log1.LogBinary)log).Value;
+        return ((Zeze.Raft.RocksRaft.Log1.LogBinary)log).value;
     }
 
     public void setBinary(Zeze.Net.Binary value) {
@@ -156,7 +156,7 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
             return;
         }
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
-        txn.PutLog(new Zeze.Raft.RocksRaft.Log1.LogBinary(this, 6, value));
+        txn.putLog(new Zeze.Raft.RocksRaft.Log1.LogBinary(this, 6, value));
     }
 
     public Zeze.Raft.RocksRaft.CollSet1<Integer> getSetInt() {
@@ -182,10 +182,10 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
         if (txn == null)
             return _Beankey;
-        var log = txn.GetLog(objectId() + 11);
+        var log = txn.getLog(objectId() + 11);
         if (null == log)
             return _Beankey;
-        return ((Zeze.Raft.RocksRaft.Log1.LogBeanKey<Zeze.Builtin.TestRocks.BeanKey>)log).Value;
+        return ((Zeze.Raft.RocksRaft.Log1.LogBeanKey<Zeze.Builtin.TestRocks.BeanKey>)log).value;
     }
 
     public void setBeankey(Zeze.Builtin.TestRocks.BeanKey value) {
@@ -196,7 +196,7 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
             return;
         }
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
-        txn.PutLog(new Zeze.Raft.RocksRaft.Log1.LogBeanKey<>(Zeze.Builtin.TestRocks.BeanKey.class, this, 11, value));
+        txn.putLog(new Zeze.Raft.RocksRaft.Log1.LogBeanKey<>(Zeze.Builtin.TestRocks.BeanKey.class, this, 11, value));
     }
 
     public BValue() {
@@ -270,7 +270,7 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
 
     public BValue copy() {
         var copy = new BValue();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -280,9 +280,9 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
     }
 
     public static void swap(BValue a, BValue b) {
-        BValue save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BValue save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -571,17 +571,17 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
     @Override
     public void leaderApplyNoRecursive(Zeze.Raft.RocksRaft.Log vlog) {
         switch (vlog.getVariableId()) {
-            case 1: _Int = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).Value; break;
-            case 2: _Bool = ((Zeze.Raft.RocksRaft.Log1.LogBool)vlog).Value; break;
-            case 3: _Float = ((Zeze.Raft.RocksRaft.Log1.LogFloat)vlog).Value; break;
-            case 4: _double = ((Zeze.Raft.RocksRaft.Log1.LogDouble)vlog).Value; break;
-            case 5: _String = ((Zeze.Raft.RocksRaft.Log1.LogString)vlog).Value; break;
-            case 6: _Binary = ((Zeze.Raft.RocksRaft.Log1.LogBinary)vlog).Value; break;
+            case 1: _Int = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).value; break;
+            case 2: _Bool = ((Zeze.Raft.RocksRaft.Log1.LogBool)vlog).value; break;
+            case 3: _Float = ((Zeze.Raft.RocksRaft.Log1.LogFloat)vlog).value; break;
+            case 4: _double = ((Zeze.Raft.RocksRaft.Log1.LogDouble)vlog).value; break;
+            case 5: _String = ((Zeze.Raft.RocksRaft.Log1.LogString)vlog).value; break;
+            case 6: _Binary = ((Zeze.Raft.RocksRaft.Log1.LogBinary)vlog).value; break;
             case 7: _SetInt.leaderApplyNoRecursive(vlog); break;
             case 8: _SetBeankey.leaderApplyNoRecursive(vlog); break;
             case 9: _MapInt.leaderApplyNoRecursive(vlog); break;
             case 10: _MapBean.leaderApplyNoRecursive(vlog); break;
-            case 11: _Beankey = ((Zeze.Raft.RocksRaft.Log1.LogBeanKey<Zeze.Builtin.TestRocks.BeanKey>)vlog).Value; break;
+            case 11: _Beankey = ((Zeze.Raft.RocksRaft.Log1.LogBeanKey<Zeze.Builtin.TestRocks.BeanKey>)vlog).value; break;
         }
     }
 
@@ -594,17 +594,17 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Int = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).Value; break;
-                case 2: _Bool = ((Zeze.Raft.RocksRaft.Log1.LogBool)vlog).Value; break;
-                case 3: _Float = ((Zeze.Raft.RocksRaft.Log1.LogFloat)vlog).Value; break;
-                case 4: _double = ((Zeze.Raft.RocksRaft.Log1.LogDouble)vlog).Value; break;
-                case 5: _String = ((Zeze.Raft.RocksRaft.Log1.LogString)vlog).Value; break;
-                case 6: _Binary = ((Zeze.Raft.RocksRaft.Log1.LogBinary)vlog).Value; break;
+                case 1: _Int = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).value; break;
+                case 2: _Bool = ((Zeze.Raft.RocksRaft.Log1.LogBool)vlog).value; break;
+                case 3: _Float = ((Zeze.Raft.RocksRaft.Log1.LogFloat)vlog).value; break;
+                case 4: _double = ((Zeze.Raft.RocksRaft.Log1.LogDouble)vlog).value; break;
+                case 5: _String = ((Zeze.Raft.RocksRaft.Log1.LogString)vlog).value; break;
+                case 6: _Binary = ((Zeze.Raft.RocksRaft.Log1.LogBinary)vlog).value; break;
                 case 7: _SetInt.followerApply(vlog); break;
                 case 8: _SetBeankey.followerApply(vlog); break;
                 case 9: _MapInt.followerApply(vlog); break;
                 case 10: _MapBean.followerApply(vlog); break;
-                case 11: _Beankey = ((Zeze.Raft.RocksRaft.Log1.LogBeanKey<Zeze.Builtin.TestRocks.BeanKey>)vlog).Value; break;
+                case 11: _Beankey = ((Zeze.Raft.RocksRaft.Log1.LogBeanKey<Zeze.Builtin.TestRocks.BeanKey>)vlog).value; break;
             }
         }
     }

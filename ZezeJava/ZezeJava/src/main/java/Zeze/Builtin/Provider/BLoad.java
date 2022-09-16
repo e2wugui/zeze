@@ -15,8 +15,8 @@ public final class BLoad extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Online;
-        var log = (Log__Online)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _Online;
+        var log = (Log__Online)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _Online;
     }
 
     public void setOnline(int value) {
@@ -25,7 +25,7 @@ public final class BLoad extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Online(this, 1, value));
+        txn.putLog(new Log__Online(this, 1, value));
     }
 
     public int getProposeMaxOnline() {
@@ -34,8 +34,8 @@ public final class BLoad extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ProposeMaxOnline;
-        var log = (Log__ProposeMaxOnline)txn.GetLog(objectId() + 2);
-        return log != null ? log.Value : _ProposeMaxOnline;
+        var log = (Log__ProposeMaxOnline)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _ProposeMaxOnline;
     }
 
     public void setProposeMaxOnline(int value) {
@@ -44,7 +44,7 @@ public final class BLoad extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__ProposeMaxOnline(this, 2, value));
+        txn.putLog(new Log__ProposeMaxOnline(this, 2, value));
     }
 
     public int getOnlineNew() {
@@ -53,8 +53,8 @@ public final class BLoad extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _OnlineNew;
-        var log = (Log__OnlineNew)txn.GetLog(objectId() + 3);
-        return log != null ? log.Value : _OnlineNew;
+        var log = (Log__OnlineNew)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _OnlineNew;
     }
 
     public void setOnlineNew(int value) {
@@ -63,7 +63,7 @@ public final class BLoad extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__OnlineNew(this, 3, value));
+        txn.putLog(new Log__OnlineNew(this, 3, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -94,7 +94,7 @@ public final class BLoad extends Zeze.Transaction.Bean {
 
     public BLoad copy() {
         var copy = new BLoad();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -104,9 +104,9 @@ public final class BLoad extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BLoad a, BLoad b) {
-        BLoad save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BLoad save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -125,21 +125,21 @@ public final class BLoad extends Zeze.Transaction.Bean {
         public Log__Online(BLoad bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BLoad)getBelong())._Online = Value; }
+        public void commit() { ((BLoad)getBelong())._Online = value; }
     }
 
     private static final class Log__ProposeMaxOnline extends Zeze.Transaction.Logs.LogInt {
         public Log__ProposeMaxOnline(BLoad bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BLoad)getBelong())._ProposeMaxOnline = Value; }
+        public void commit() { ((BLoad)getBelong())._ProposeMaxOnline = value; }
     }
 
     private static final class Log__OnlineNew extends Zeze.Transaction.Logs.LogInt {
         public Log__OnlineNew(BLoad bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BLoad)getBelong())._OnlineNew = Value; }
+        public void commit() { ((BLoad)getBelong())._OnlineNew = value; }
     }
 
     @Override
@@ -249,9 +249,9 @@ public final class BLoad extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Online = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
-                case 2: _ProposeMaxOnline = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
-                case 3: _OnlineNew = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                case 1: _Online = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 2: _ProposeMaxOnline = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 3: _OnlineNew = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
             }
         }
     }

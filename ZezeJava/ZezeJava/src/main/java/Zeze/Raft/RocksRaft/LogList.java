@@ -3,7 +3,7 @@ package Zeze.Raft.RocksRaft;
 import org.pcollections.PVector;
 
 public abstract class LogList<V> extends LogBean {
-	private PVector<V> Value;
+	private PVector<V> value;
 
 	public LogList(int typeId) {
 		super(typeId);
@@ -14,15 +14,15 @@ public abstract class LogList<V> extends LogBean {
 	}
 
 	final PVector<V> getValue() {
-		return Value;
+		return value;
 	}
 
 	final void setValue(PVector<V> value) {
-		Value = value;
+		this.value = value;
 	}
 
 	@Override
-	public void Collect(Changes changes, Bean recent, Log vlog) {
+	public void collect(Changes changes, Bean recent, Log vlog) {
 		throw new UnsupportedOperationException("Collect Not Implement.");
 	}
 }

@@ -34,7 +34,7 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean {
 
     public BOnlineTimers copy() {
         var copy = new BOnlineTimers();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -44,9 +44,9 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BOnlineTimers a, BOnlineTimers b) {
-        BOnlineTimers save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BOnlineTimers save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override

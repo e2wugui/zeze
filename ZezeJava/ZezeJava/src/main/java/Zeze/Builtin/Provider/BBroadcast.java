@@ -15,8 +15,8 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _protocolType;
-        var log = (Log__protocolType)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _protocolType;
+        var log = (Log__protocolType)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _protocolType;
     }
 
     public void setProtocolType(long value) {
@@ -25,7 +25,7 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__protocolType(this, 1, value));
+        txn.putLog(new Log__protocolType(this, 1, value));
     }
 
     public Zeze.Net.Binary getProtocolWholeData() {
@@ -34,8 +34,8 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _protocolWholeData;
-        var log = (Log__protocolWholeData)txn.GetLog(objectId() + 2);
-        return log != null ? log.Value : _protocolWholeData;
+        var log = (Log__protocolWholeData)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _protocolWholeData;
     }
 
     public void setProtocolWholeData(Zeze.Net.Binary value) {
@@ -46,7 +46,7 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__protocolWholeData(this, 2, value));
+        txn.putLog(new Log__protocolWholeData(this, 2, value));
     }
 
     public int getTime() {
@@ -55,8 +55,8 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _time;
-        var log = (Log__time)txn.GetLog(objectId() + 3);
-        return log != null ? log.Value : _time;
+        var log = (Log__time)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _time;
     }
 
     public void setTime(int value) {
@@ -65,7 +65,7 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__time(this, 3, value));
+        txn.putLog(new Log__time(this, 3, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -99,7 +99,7 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
 
     public BBroadcast copy() {
         var copy = new BBroadcast();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -109,9 +109,9 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BBroadcast a, BBroadcast b) {
-        BBroadcast save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BBroadcast save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -130,21 +130,21 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
         public Log__protocolType(BBroadcast bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BBroadcast)getBelong())._protocolType = Value; }
+        public void commit() { ((BBroadcast)getBelong())._protocolType = value; }
     }
 
     private static final class Log__protocolWholeData extends Zeze.Transaction.Logs.LogBinary {
         public Log__protocolWholeData(BBroadcast bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BBroadcast)getBelong())._protocolWholeData = Value; }
+        public void commit() { ((BBroadcast)getBelong())._protocolWholeData = value; }
     }
 
     private static final class Log__time extends Zeze.Transaction.Logs.LogInt {
         public Log__time(BBroadcast bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BBroadcast)getBelong())._time = Value; }
+        public void commit() { ((BBroadcast)getBelong())._time = value; }
     }
 
     @Override
@@ -252,9 +252,9 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _protocolType = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                case 2: _protocolWholeData = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
-                case 3: _time = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                case 1: _protocolType = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 2: _protocolWholeData = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 3: _time = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
             }
         }
     }

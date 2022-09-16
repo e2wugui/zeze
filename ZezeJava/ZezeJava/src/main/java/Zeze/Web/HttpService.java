@@ -19,31 +19,31 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
 public class HttpService {
-	private static final int RequestBodyMaxSize = 1024 * 1024;
+	private static final int REQUEST_BODY_MAX_SIZE = 1024 * 1024;
 
-	public final LinkdApp LinkdApp;
-	final LongConcurrentHashMap<LinkdHttpExchange> Exchanges = new LongConcurrentHashMap<>();
-	final PersistentAtomicLong ExchangeIdPal;
+	public final LinkdApp linkdApp;
+	final LongConcurrentHashMap<LinkdHttpExchange> exchanges = new LongConcurrentHashMap<>();
+	final PersistentAtomicLong exchangeIdPal;
 	private final HttpServer httpServer;
-	private Future<?> Timer;
+	private Future<?> timer;
 
-	public long InternalCloseExchange(CloseExchange r) {
-		Exchanges.remove(r.Argument.getExchangeId());
+	public long internalCloseExchange(CloseExchange r) {
+		exchanges.remove(r.Argument.getExchangeId());
 		r.SendResult();
 		return 0;
 	}
 
-	public long InternalResponseOutputStream(ResponseOutputStream r) {
-		var x = Exchanges.get(r.Argument.getExchangeId());
+	public long internalResponseOutputStream(ResponseOutputStream r) {
+		var x = exchanges.get(r.Argument.getExchangeId());
 		if (null == x) {
-			r.SendResultCode(IModule.ErrorCode(Web.ModuleId, Web.ExchangeIdNotFound));
+			r.SendResultCode(IModule.errorCode(Web.ModuleId, Web.ExchangeIdNotFound));
 			return 0;
 		}
 		try {
 			x.sendResponse(r.Argument);
 			r.SendResult();
 		} catch (Throwable ex) {
-			r.SendResultCode(IModule.ErrorCode(Web.ModuleId, Web.OnDownloadException));
+			r.SendResultCode(IModule.errorCode(Web.ModuleId, Web.OnDownloadException));
 		}
 		return 0;
 	}
@@ -69,17 +69,17 @@ public class HttpService {
 
 	public static String readRequestBody(HttpExchange exchange) throws IOException {
 		try (var body = exchange.getRequestBody()) {
-			return new String(body.readNBytes(RequestBodyMaxSize), StandardCharsets.UTF_8);
+			return new String(body.readNBytes(REQUEST_BODY_MAX_SIZE), StandardCharsets.UTF_8);
 		}
 	}
 
 	public HttpService(LinkdApp app, int port, Executor executor) throws IOException {
-		LinkdApp = app;
+		linkdApp = app;
 		var addr = new InetSocketAddress(port);
 		httpServer = HttpServer.create(addr, 100);
 		httpServer.setExecutor(executor);
 		httpServer.createContext("/", new HandlerDispatch(this));
-		ExchangeIdPal = PersistentAtomicLong.getOrAdd(app.GetName() + ".http");
+		exchangeIdPal = PersistentAtomicLong.getOrAdd(app.GetName() + ".http");
 	}
 
 	public void interceptAuthContext(String path, HttpAuth auth) {
@@ -88,17 +88,17 @@ public class HttpService {
 
 	public void start() {
 		httpServer.start();
-		Timer = Task.scheduleUnsafe(2000, 2000, this::timer);
+		timer = Task.scheduleUnsafe(2000, 2000, this::timer);
 	}
 
 	public void stop() {
-		Timer.cancel(true);
+		timer.cancel(true);
 		httpServer.stop(10);
 	}
 
 	private void timer() {
 		var now = System.currentTimeMillis();
-		for (var x : Exchanges)
+		for (var x : exchanges)
 			x.tryCloseIfTimeout(now);
 	}
 }

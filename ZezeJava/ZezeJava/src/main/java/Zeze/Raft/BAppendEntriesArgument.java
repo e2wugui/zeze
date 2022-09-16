@@ -7,95 +7,95 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
 final class BAppendEntriesArgument extends Bean {
-	private long Term;
-	private String LeaderId;
-	private long PrevLogIndex;
-	private long PrevLogTerm;
-	private final ArrayList<Binary> Entries = new ArrayList<>();
-	private long LeaderCommit;
+	private long term;
+	private String leaderId;
+	private long prevLogIndex;
+	private long prevLogTerm;
+	private final ArrayList<Binary> entries = new ArrayList<>();
+	private long leaderCommit;
 
 	// Leader发送AppendEntries时，从这里快速得到Entries的最后一个日志的Index
 	// 不会序列化。
-	private long LastEntryIndex;
+	private long lastEntryIndex;
 
 	public long getTerm() {
-		return Term;
+		return term;
 	}
 
 	public void setTerm(long value) {
-		Term = value;
+		term = value;
 	}
 
 	public String getLeaderId() {
-		return LeaderId;
+		return leaderId;
 	}
 
 	public void setLeaderId(String value) {
-		LeaderId = value;
+		leaderId = value;
 	}
 
 	public long getPrevLogIndex() {
-		return PrevLogIndex;
+		return prevLogIndex;
 	}
 
 	public void setPrevLogIndex(long value) {
-		PrevLogIndex = value;
+		prevLogIndex = value;
 	}
 
 	public long getPrevLogTerm() {
-		return PrevLogTerm;
+		return prevLogTerm;
 	}
 
 	public void setPrevLogTerm(long value) {
-		PrevLogTerm = value;
+		prevLogTerm = value;
 	}
 
 	public ArrayList<Binary> getEntries() {
-		return Entries;
+		return entries;
 	}
 
 	public long getLeaderCommit() {
-		return LeaderCommit;
+		return leaderCommit;
 	}
 
 	public void setLeaderCommit(long value) {
-		LeaderCommit = value;
+		leaderCommit = value;
 	}
 
 	public long getLastEntryIndex() {
-		return LastEntryIndex;
+		return lastEntryIndex;
 	}
 
 	public void setLastEntryIndex(long value) {
-		LastEntryIndex = value;
+		lastEntryIndex = value;
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteLong(Term);
-		bb.WriteString(LeaderId);
-		bb.WriteLong(PrevLogIndex);
-		bb.WriteLong(PrevLogTerm);
+		bb.WriteLong(term);
+		bb.WriteString(leaderId);
+		bb.WriteLong(prevLogIndex);
+		bb.WriteLong(prevLogTerm);
 
-		bb.WriteUInt(Entries.size());
-		for (Binary e : Entries)
+		bb.WriteUInt(entries.size());
+		for (Binary e : entries)
 			bb.WriteBinary(e);
 
-		bb.WriteLong(LeaderCommit);
+		bb.WriteLong(leaderCommit);
 	}
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		Term = bb.ReadLong();
-		LeaderId = bb.ReadString();
-		PrevLogIndex = bb.ReadLong();
-		PrevLogTerm = bb.ReadLong();
+		term = bb.ReadLong();
+		leaderId = bb.ReadString();
+		prevLogIndex = bb.ReadLong();
+		prevLogTerm = bb.ReadLong();
 
-		Entries.clear();
+		entries.clear();
 		for (int c = bb.ReadUInt(); c > 0; c--)
-			Entries.add(bb.ReadBinary());
+			entries.add(bb.ReadBinary());
 
-		LeaderCommit = bb.ReadLong();
+		leaderCommit = bb.ReadLong();
 	}
 
 	@Override
@@ -111,6 +111,6 @@ final class BAppendEntriesArgument extends Bean {
 	@Override
 	public String toString() {
 		return String.format("(Term=%d LeaderId=%s PrevLogIndex=%d PrevLogTerm=%d LeaderCommit=%d)",
-				Term, LeaderId, PrevLogIndex, PrevLogTerm, LeaderCommit);
+				term, leaderId, prevLogIndex, prevLogTerm, leaderCommit);
 	}
 }

@@ -1,7 +1,6 @@
 package Zeze.Util;
 
 public class GameMap extends CubeIndexMap<GameCube, GameObjectId> {
-
 	public GameMap(Factory<GameCube> factory, int cubeSizeX, int cubeSizeY) {
 		this(factory, cubeSizeX, cubeSizeY, 256);
 	}

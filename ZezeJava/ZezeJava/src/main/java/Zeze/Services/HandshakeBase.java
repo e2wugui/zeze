@@ -23,7 +23,7 @@ import org.apache.logging.log4j.Logger;
 public class HandshakeBase extends Service {
 	private static final Logger logger = LogManager.getLogger(HandshakeBase.class);
 
-	private final LongHashSet HandshakeProtocols = new LongHashSet();
+	private final LongHashSet handshakeProtocols = new LongHashSet();
 
 	static class Context {
 		final BigInteger dhRandom;
@@ -35,7 +35,7 @@ public class HandshakeBase extends Service {
 	}
 
 	// For Client Only
-	private final LongConcurrentHashMap<Context> DHContext = new LongConcurrentHashMap<>();
+	private final LongConcurrentHashMap<Context> dhContext = new LongConcurrentHashMap<>();
 
 	public HandshakeBase(String name, Zeze.Config config) throws Throwable {
 		super(name, config);
@@ -47,25 +47,25 @@ public class HandshakeBase extends Service {
 
 	@Override
 	public boolean isHandshakeProtocol(long typeId) {
-		return HandshakeProtocols.contains(typeId);
+		return handshakeProtocols.contains(typeId);
 	}
 
-	protected final void AddHandshakeServerFactoryHandle() {
-		HandshakeProtocols.add(CHandshake.TypeId_);
+	protected final void addHandshakeServerFactoryHandle() {
+		handshakeProtocols.add(CHandshake.TypeId_);
 		AddFactoryHandle(CHandshake.TypeId_, new Service.ProtocolFactoryHandle<>(
-				CHandshake::new, this::ProcessCHandshake, TransactionLevel.None, DispatchMode.Normal));
-		HandshakeProtocols.add(CHandshakeDone.TypeId_);
+				CHandshake::new, this::processCHandshake, TransactionLevel.None, DispatchMode.Normal));
+		handshakeProtocols.add(CHandshakeDone.TypeId_);
 		AddFactoryHandle(CHandshakeDone.TypeId_, new Service.ProtocolFactoryHandle<>(
-				CHandshakeDone::new, this::ProcessCHandshakeDone, TransactionLevel.None, DispatchMode.Normal));
+				CHandshakeDone::new, this::processCHandshakeDone, TransactionLevel.None, DispatchMode.Normal));
 	}
 
-	private long ProcessCHandshakeDone(CHandshakeDone p) throws Throwable {
+	private long processCHandshakeDone(CHandshakeDone p) throws Throwable {
 		p.getSender().VerifySecurity();
 		OnHandshakeDone(p.getSender());
 		return 0L;
 	}
 
-	private long ProcessCHandshake(CHandshake p) {
+	private long processCHandshake(CHandshake p) {
 		try {
 			int group = p.Argument.dh_group;
 			if (!getConfig().getHandshakeOptions().getDhGroups().contains(group)) {
@@ -107,19 +107,19 @@ public class HandshakeBase extends Service {
 		}
 	}
 
-	protected final void AddHandshakeClientFactoryHandle() {
-		HandshakeProtocols.add(SHandshake.TypeId_);
+	protected final void addHandshakeClientFactoryHandle() {
+		handshakeProtocols.add(SHandshake.TypeId_);
 		AddFactoryHandle(SHandshake.TypeId_, new Service.ProtocolFactoryHandle<>(
-				SHandshake::new, this::ProcessSHandshake, TransactionLevel.None, DispatchMode.Normal));
-		HandshakeProtocols.add(SHandshake0.TypeId_);
+				SHandshake::new, this::processSHandshake, TransactionLevel.None, DispatchMode.Normal));
+		handshakeProtocols.add(SHandshake0.TypeId_);
 		AddFactoryHandle(SHandshake0.TypeId_, new Service.ProtocolFactoryHandle<>(
-				SHandshake0::new, this::ProcessSHandshake0, TransactionLevel.None, DispatchMode.Normal));
+				SHandshake0::new, this::processSHandshake0, TransactionLevel.None, DispatchMode.Normal));
 	}
 
-	private long ProcessSHandshake0(SHandshake0 p) {
+	private long processSHandshake0(SHandshake0 p) {
 		try {
-			if (p.Argument.EnableEncrypt) {
-				StartHandshake(p.getSender());
+			if (p.Argument.enableEncrypt) {
+				startHandshake(p.getSender());
 			} else {
 				new CHandshakeDone().Send(p.getSender());
 				OnHandshakeDone(p.getSender());
@@ -130,10 +130,10 @@ public class HandshakeBase extends Service {
 		return 0L;
 	}
 
-	private long ProcessSHandshake(SHandshake p) {
+	private long processSHandshake(SHandshake p) {
 		Context ctx = null;
 		try {
-			ctx = DHContext.remove(p.getSender().getSessionId());
+			ctx = dhContext.remove(p.getSender().getSessionId());
 			if (ctx != null) {
 				byte[] material = Helper.computeDHKey(getConfig().getHandshakeOptions().getDhGroup(),
 						new BigInteger(p.Argument.dh_data), ctx.dhRandom).toByteArray();
@@ -163,17 +163,17 @@ public class HandshakeBase extends Service {
 		return 0;
 	}
 
-	protected final void StartHandshake(AsyncSocket so) {
+	protected final void startHandshake(AsyncSocket so) {
 		try {
 			var ctx = new Context(Helper.makeDHRandom());
-			if (null != DHContext.putIfAbsent(so.getSessionId(), ctx)) {
+			if (null != dhContext.putIfAbsent(so.getSessionId(), ctx)) {
 				throw new IllegalStateException("handshake duplicate context for same session.");
 			}
 
 			byte[] response = Helper.generateDHResponse(getConfig().getHandshakeOptions().getDhGroup(), ctx.dhRandom).toByteArray();
 			(new Zeze.Services.Handshake.CHandshake(getConfig().getHandshakeOptions().getDhGroup(), response)).Send(so);
 			ctx.timeoutTask = Zeze.Util.Task.scheduleUnsafe(5000, () -> {
-				if (null != DHContext.remove(so.getSessionId())) {
+				if (null != dhContext.remove(so.getSessionId())) {
 					so.close(new Exception("Handshake Timeout"));
 				}
 			});

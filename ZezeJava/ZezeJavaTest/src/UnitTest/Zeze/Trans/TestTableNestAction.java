@@ -24,38 +24,38 @@ public class TestTableNestAction {
 	public final void testNestProcedure() throws Throwable {
 		var value1 = new OutInt();
 		var value2 = new OutInt();
-		demo.App.getInstance().Zeze.NewProcedure(() -> {
+		demo.App.getInstance().Zeze.newProcedure(() -> {
 			Transaction.getCurrent().runWhileCommit(() -> {
-				value1.Value++; //1
-				System.out.println("value1:" + value1.Value);
+				value1.value++; //1
+				System.out.println("value1:" + value1.value);
 			});
 
-			demo.App.getInstance().Zeze.NewProcedure(() -> {
-				Transaction.getCurrent().runWhileCommit(() -> value1.Value++);
+			demo.App.getInstance().Zeze.newProcedure(() -> {
+				Transaction.getCurrent().runWhileCommit(() -> value1.value++);
 
 				Transaction.getCurrent().runWhileRollback(() -> {
-					Assert.assertEquals(value1.Value, value2.Value + 1);
-					value2.Value++; // 1
-					System.out.println(value1.Value);
-					System.out.println(value2.Value);
+					Assert.assertEquals(value1.value, value2.value + 1);
+					value2.value++; // 1
+					System.out.println(value1.value);
+					System.out.println(value2.value);
 				});
 				return Procedure.Exception;
 			}, "nest procedure1").Call();
 
-			demo.App.getInstance().Zeze.NewProcedure(() -> {
+			demo.App.getInstance().Zeze.newProcedure(() -> {
 				Transaction.getCurrent().runWhileCommit(() -> {
-					Assert.assertEquals(value1.Value, value2.Value);
-					value1.Value++; // 2
+					Assert.assertEquals(value1.value, value2.value);
+					value1.value++; // 2
 				});
 
-				demo.App.getInstance().Zeze.NewProcedure(() -> {
-					Transaction.getCurrent().runWhileCommit(() -> value1.Value++);
+				demo.App.getInstance().Zeze.newProcedure(() -> {
+					Transaction.getCurrent().runWhileCommit(() -> value1.value++);
 
 					Transaction.getCurrent().runWhileRollback(() -> {
-						Assert.assertEquals(value1.Value, value2.Value + 1);
-						value2.Value++; // 2
-						System.out.println(value1.Value);
-						System.out.println(value2.Value);
+						Assert.assertEquals(value1.value, value2.value + 1);
+						value2.value++; // 2
+						System.out.println(value1.value);
+						System.out.println(value2.value);
 					});
 					return Procedure.Exception;
 				}, "nest procedure1").Call();
@@ -64,14 +64,14 @@ public class TestTableNestAction {
 			}, "nest procedure2").Call();
 
 			Transaction.getCurrent().runWhileCommit(() -> {
-				Assert.assertEquals(value1.Value, value2.Value);
-				value1.Value++; // 3
+				Assert.assertEquals(value1.value, value2.value);
+				value1.value++; // 3
 			});
 			return Procedure.Success;
 		}, "out").Call();
 
-		Assert.assertEquals(value1.Value, 3);
-		Assert.assertEquals(value2.Value, 2);
+		Assert.assertEquals(value1.value, 3);
+		Assert.assertEquals(value2.value, 2);
 	}
 
 	@Test
@@ -79,21 +79,21 @@ public class TestTableNestAction {
 		var zeze = demo.App.getInstance().Zeze;
 		var sb = new StringBuilder();
 
-		zeze.NewProcedure(() -> {
+		zeze.newProcedure(() -> {
 			Transaction.whileCommit(() -> sb.append('0')); // do
 			Transaction.whileRollback(() -> sb.append('1'));
 
-			zeze.NewProcedure(() -> {
+			zeze.newProcedure(() -> {
 				Transaction.whileCommit(() -> sb.append('2')); // do
 				Transaction.whileRollback(() -> sb.append('3'));
 
-				zeze.NewProcedure(() -> {
+				zeze.newProcedure(() -> {
 					Transaction.whileCommit(() -> sb.append('4')); // do
 					Transaction.whileRollback(() -> sb.append('5'));
 					return Procedure.Success;
 				}, "nest procedure11").Call();
 
-				zeze.NewProcedure(() -> {
+				zeze.newProcedure(() -> {
 					Transaction.whileCommit(() -> sb.append('6'));
 					Transaction.whileRollback(() -> sb.append('7')); // do
 					return Procedure.Exception;
@@ -104,15 +104,15 @@ public class TestTableNestAction {
 				return Procedure.Success;
 			}, "nest procedure1").Call();
 
-			zeze.NewProcedure(() -> {
+			zeze.newProcedure(() -> {
 				Transaction.whileCommit(() -> sb.append('A'));
 				Transaction.whileRollback(() -> sb.append('B')); // do
 
-				zeze.NewProcedure(() -> {
+				zeze.newProcedure(() -> {
 					Transaction.whileCommit(() -> sb.append('C'));
 					Transaction.whileRollback(() -> sb.append('D')); // do
 
-					zeze.NewProcedure(() -> {
+					zeze.newProcedure(() -> {
 						Transaction.whileCommit(() -> sb.append('E'));
 						Transaction.whileRollback(() -> sb.append('F')); // do
 						return Procedure.Success;
@@ -123,11 +123,11 @@ public class TestTableNestAction {
 					return Procedure.Exception;
 				}, "nest procedure21").Call();
 
-				zeze.NewProcedure(() -> {
+				zeze.newProcedure(() -> {
 					Transaction.whileCommit(() -> sb.append('I'));
 					Transaction.whileRollback(() -> sb.append('J')); // do
 
-					zeze.NewProcedure(() -> {
+					zeze.newProcedure(() -> {
 						Transaction.whileCommit(() -> sb.append('K'));
 						Transaction.whileRollback(() -> sb.append('L')); // do
 						return Procedure.Exception;
@@ -148,17 +148,17 @@ public class TestTableNestAction {
 			return Procedure.Success;
 		}, "nest procedure").Call();
 
-		zeze.NewProcedure(() -> {
+		zeze.newProcedure(() -> {
 			Transaction.whileCommit(() -> sb.append('S'));
 			Transaction.whileRollback(() -> sb.append('T')); // do
 
-			zeze.NewProcedure(() -> {
+			zeze.newProcedure(() -> {
 				Transaction.whileCommit(() -> sb.append('U'));
 				Transaction.whileRollback(() -> sb.append('V')); // do
 				return Procedure.Exception;
 			}, "nest procedure1").Call();
 
-			zeze.NewProcedure(() -> {
+			zeze.newProcedure(() -> {
 				Transaction.whileCommit(() -> sb.append('W'));
 				Transaction.whileRollback(() -> sb.append('X')); // do
 				return Procedure.Success;

@@ -23,7 +23,7 @@ public final class Redirect_Zeze_Game_Online extends Zeze.Game.Online {
 
         var _f_ = new Zeze.Arch.RedirectFuture<Long>();
         _p_.Send(_t_, _rpc_ -> {
-            _f_.SetResult(_rpc_.isTimeout() ? Zeze.Transaction.Procedure.Timeout : _rpc_.getResultCode());
+            _f_.setResult(_rpc_.isTimeout() ? Zeze.Transaction.Procedure.Timeout : _rpc_.getResultCode());
             return Zeze.Transaction.Procedure.Success;
         });
         return _f_;
@@ -32,9 +32,9 @@ public final class Redirect_Zeze_Game_Online extends Zeze.Game.Online {
     @SuppressWarnings({"unchecked", "RedundantSuppression"})
     public Redirect_Zeze_Game_Online(Zeze.AppBase _app_) {
         super(_app_);
-        _redirect_ = _app_.getZeze().Redirect;
+        _redirect_ = _app_.getZeze().redirect;
 
-        _app_.getZeze().Redirect.Handles.put("Zeze.Game.Online:redirectNotify", new Zeze.Arch.RedirectHandle(
+        _app_.getZeze().redirect.Handles.put("Zeze.Game.Online:redirectNotify", new Zeze.Arch.RedirectHandle(
             Zeze.Transaction.TransactionLevel.Serializable, (_hash_, _params_) -> {
                 long roleId;
                 var _b_ = _params_.Wrap();

@@ -22,7 +22,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 
 	protected ProviderApp ProviderApp;
 
-	void ApplyOnChanged(Agent.SubscribeState subState) throws Throwable {
+	void ApplyOnChanged(Agent.subscribeState subState) throws Throwable {
 		if (subState.getServiceName().equals(ProviderApp.LinkdServiceName)) {
 			// Linkd info
 			ProviderApp.ProviderService.Apply(subState.getServiceInfos());
@@ -35,7 +35,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		}
 	}
 
-	void ApplyOnPrepare(Agent.SubscribeState subState) throws Throwable {
+	void ApplyOnPrepare(Agent.subscribeState subState) throws Throwable {
 		var pending = subState.getServiceInfosPending();
 		if (pending != null && pending.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix))
 			ProviderApp.ProviderDirectService.TryConnectAndSetReady(subState, pending);
@@ -54,21 +54,21 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		var identity = String.valueOf(ProviderApp.Zeze.getConfig().getServerId());
 		// 注册本provider的静态服务
 		for (var it = ProviderApp.StaticBinds.iterator(); it.moveToNext(); ) {
-			sm.RegisterService(ProviderApp.ServerServiceNamePrefix + it.key(), identity,
+			sm.registerService(ProviderApp.ServerServiceNamePrefix + it.key(), identity,
 					ProviderApp.DirectIp, ProviderApp.DirectPort);
 		}
 		// 注册本provider的动态服务
 		for (var it = ProviderApp.DynamicModules.iterator(); it.moveToNext(); ) {
-			sm.RegisterService(ProviderApp.ServerServiceNamePrefix + it.key(), identity,
+			sm.registerService(ProviderApp.ServerServiceNamePrefix + it.key(), identity,
 					ProviderApp.DirectIp, ProviderApp.DirectPort);
 		}
 
 		// 订阅provider直连发现服务
 		for (var it = ProviderApp.Modules.iterator(); it.moveToNext(); )
-			sm.SubscribeService(ProviderApp.ServerServiceNamePrefix + it.key(), it.value().getSubscribeType());
+			sm.subscribeService(ProviderApp.ServerServiceNamePrefix + it.key(), it.value().getSubscribeType());
 
 		// 订阅linkd发现服务。
-		sm.SubscribeService(ProviderApp.LinkdServiceName, BSubscribeInfo.SubscribeTypeSimple);
+		sm.subscribeService(ProviderApp.LinkdServiceName, BSubscribeInfo.SubscribeTypeSimple);
 	}
 
 	public static void SendKick(AsyncSocket sender, long linkSid, int code, String desc) {
@@ -116,7 +116,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				//noinspection ConstantConditions
 				proc.setActionName(p2.getClass().getName());
 				proc.setUserState(p2.getUserState());
-				return Task.Call(() -> factoryHandle.Handle.handleProtocol(p2), p2, (p3, code) -> {
+				return Task.call(() -> factoryHandle.Handle.handleProtocol(p2), p2, (p3, code) -> {
 					p3.setResultCode(code);
 					session.sendResponse(p3);
 				});
@@ -124,15 +124,15 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 
 			if (p2.getSender().getService().getZeze() == null || factoryHandle.Level == TransactionLevel.None) {
 				// 应用框架不支持事务或者协议配置了"不需要事务”
-				return Task.Call(() -> factoryHandle.Handle.handleProtocol(p2), p2, (p3, code) -> {
+				return Task.call(() -> factoryHandle.Handle.handleProtocol(p2), p2, (p3, code) -> {
 					p3.setResultCode(code);
 					session.sendResponse(p3);
 				});
 			}
 
 			// 创建存储过程并且在当前线程中调用。
-			return Task.Call(
-					p2.getSender().getService().getZeze().NewProcedure(() -> factoryHandle.Handle.handleProtocol(p2),
+			return Task.call(
+					p2.getSender().getService().getZeze().newProcedure(() -> factoryHandle.Handle.handleProtocol(p2),
 							p2.getClass().getName(), factoryHandle.Level, p2.getUserState()),
 					p2, (p3, code) -> {
 						p3.setResultCode(code);

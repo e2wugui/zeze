@@ -6,19 +6,19 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
 public class BGlobalKeyState extends Bean {
-	public Binary GlobalKey; // 没有初始化，使用时注意
-	public int State;
+	public Binary globalKey; // 没有初始化，使用时注意
+	public int state;
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		GlobalKey = bb.ReadBinary();
-		State = bb.ReadInt();
+		globalKey = bb.ReadBinary();
+		state = bb.ReadInt();
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteBinary(GlobalKey);
-		bb.WriteInt(State);
+		bb.WriteBinary(globalKey);
+		bb.WriteInt(state);
 	}
 
 	@Override
@@ -33,7 +33,7 @@ public class BGlobalKeyState extends Bean {
 
 	@Override
 	public String toString() {
-		return GlobalKey + ":" + State;
+		return globalKey + ":" + state;
 	}
 
 	private static int _PRE_ALLOC_SIZE_ = 16;

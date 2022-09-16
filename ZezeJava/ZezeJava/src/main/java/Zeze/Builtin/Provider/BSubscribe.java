@@ -20,7 +20,7 @@ public final class BSubscribe extends Zeze.Transaction.Bean {
     public void assign(BSubscribe other) {
         getModules().clear();
         for (var e : other.getModules().entrySet())
-            getModules().put(e.getKey(), e.getValue().Copy());
+            getModules().put(e.getKey(), e.getValue().copy());
     }
 
     @Deprecated
@@ -34,7 +34,7 @@ public final class BSubscribe extends Zeze.Transaction.Bean {
 
     public BSubscribe copy() {
         var copy = new BSubscribe();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -44,9 +44,9 @@ public final class BSubscribe extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BSubscribe a, BSubscribe b) {
-        BSubscribe save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BSubscribe save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override

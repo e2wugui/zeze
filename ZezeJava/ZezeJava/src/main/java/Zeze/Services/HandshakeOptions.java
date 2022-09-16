@@ -10,72 +10,72 @@ import Zeze.Util.IntHashSet;
  * 服务器客户端定义在一起
  */
 public class HandshakeOptions {
-	private IntHashSet DhGroups = new IntHashSet(); // for HandshakeServer
-	private byte[] SecureIp;
-	private boolean S2cNeedCompress = true;
-	private boolean C2sNeedCompress = true;
-	private byte DhGroup = 1; // for HandshakeClient
-	private boolean EnableEncrypt = false;
+	private IntHashSet dhGroups = new IntHashSet(); // for HandshakeServer
+	private byte[] secureIp;
+	private boolean s2cNeedCompress = true;
+	private boolean c2sNeedCompress = true;
+	private byte dhGroup = 1; // for HandshakeClient
+	private boolean enableEncrypt = false;
 
 	public HandshakeOptions() {
-		AddDhGroup(1);
-		AddDhGroup(2);
-		AddDhGroup(5);
+		addDhGroup(1);
+		addDhGroup(2);
+		addDhGroup(5);
 	}
 
 	public final IntHashSet getDhGroups() {
-		return DhGroups;
+		return dhGroups;
 	}
 
 	public final void setDhGroups(IntHashSet value) {
 		if (value != null)
-			DhGroups = value;
+			dhGroups = value;
 		else
-			DhGroups.clear();
+			dhGroups.clear();
 	}
 
 	public final boolean getEnableEncrypt() {
-		return EnableEncrypt;
+		return enableEncrypt;
 	}
 
 	public final void setEnableEncrypt(boolean value) {
-		EnableEncrypt = value;
+		enableEncrypt = value;
 	}
 
 	public final byte[] getSecureIp() {
-		return SecureIp;
+		return secureIp;
 	}
 
 	public final void setSecureIp(byte[] value) {
-		SecureIp = value;
+		secureIp = value;
 	}
 
 	public final boolean getS2cNeedCompress() {
-		return S2cNeedCompress;
+		return s2cNeedCompress;
 	}
 
 	public final void setS2cNeedCompress(boolean value) {
-		S2cNeedCompress = value;
+		s2cNeedCompress = value;
 	}
 
 	public final boolean getC2sNeedCompress() {
-		return C2sNeedCompress;
+		return c2sNeedCompress;
 	}
 
 	public final void setC2sNeedCompress(boolean value) {
-		C2sNeedCompress = value;
+		c2sNeedCompress = value;
 	}
 
 	public final byte getDhGroup() {
-		return DhGroup;
+		return dhGroup;
 	}
 
 	public final void setDhGroup(byte value) {
-		DhGroup = value;
+		dhGroup = value;
 	}
 
-	public final void AddDhGroup(int group) {
+	public final void addDhGroup(int group) {
 		if (Helper.isDHGroupSupported(group))
-			DhGroups.add(group);
+			dhGroups.add(group);
 	}
 }

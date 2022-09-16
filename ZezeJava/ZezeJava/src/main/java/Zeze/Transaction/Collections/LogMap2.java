@@ -12,13 +12,14 @@ import Zeze.Transaction.Log;
 import Zeze.Util.Reflect;
 
 public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
-	private final Set<LogBean> Changed = new HashSet<>(); // changed V logs. using in collect.
-	private final HashMap<K, LogBean> ChangedWithKey = new HashMap<>(); // changed with key. using in encode/decode followerApply
+	private final Set<LogBean> changed = new HashSet<>(); // changed V logs. using in collect.
+	private final HashMap<K, LogBean> changedWithKey = new HashMap<>(); // changed with key. using in encode/decode followerApply
 	private final MethodHandle valueFactory;
+	private boolean built = false;
 
 	public LogMap2(Class<K> keyClass, Class<V> valueClass) {
-		super("Zeze.Raft.RocksRaft.LogMap2<" + Reflect.GetStableName(keyClass) + ", "
-				+ Reflect.GetStableName(valueClass) + '>', keyClass, valueClass);
+		super("Zeze.Raft.RocksRaft.LogMap2<" + Reflect.getStableName(keyClass) + ", "
+				+ Reflect.getStableName(valueClass) + '>', keyClass, valueClass);
 		valueFactory = Reflect.getDefaultConstructor(valueClass);
 	}
 
@@ -28,11 +29,11 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	}
 
 	public final Set<LogBean> getChanged() {
-		return Changed;
+		return changed;
 	}
 
 	public final HashMap<K, LogBean> getChangedWithKey() {
-		return ChangedWithKey;
+		return changedWithKey;
 	}
 
 	@Override
@@ -44,16 +45,14 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 		return dup;
 	}
 
-	private boolean built = false;
-
-	public boolean BuildChangedWithKey() {
+	public boolean buildChangedWithKey() {
 		if (!built && getValue() != null) {
 			built = true;
-			for (var c : Changed) {
+			for (var c : changed) {
 				@SuppressWarnings("unchecked")
 				K pkey = (K)c.getThis().mapKey();
 				if (!getReplaced().containsKey(pkey) && !getRemoved().contains(pkey))
-					ChangedWithKey.put(pkey, c);
+					changedWithKey.put(pkey, c);
 			}
 			return true;
 		}
@@ -61,9 +60,9 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	}
 
 	@SuppressWarnings("unchecked")
-	public void MergeChangedToReplaced() {
-		if (BuildChangedWithKey()) {
-			for (var e : ChangedWithKey.entrySet()) {
+	public void mergeChangedToReplaced() {
+		if (buildChangedWithKey()) {
+			for (var e : changedWithKey.entrySet()) {
 				getReplaced().put(e.getKey(), (V)e.getValue().getThis());
 			}
 		}
@@ -71,11 +70,11 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		BuildChangedWithKey();
+		buildChangedWithKey();
 
-		bb.WriteUInt(ChangedWithKey.size());
+		bb.WriteUInt(changedWithKey.size());
 		var keyEncoder = keyCodecFuncs.encoder;
-		for (var e : ChangedWithKey.entrySet()) {
+		for (var e : changedWithKey.entrySet()) {
 			keyEncoder.accept(bb, e.getKey());
 			e.getValue().encode(bb);
 		}
@@ -94,13 +93,13 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void decode(ByteBuffer bb) {
-		ChangedWithKey.clear();
+		changedWithKey.clear();
 		var keyDecoder = keyCodecFuncs.decoder;
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var key = keyDecoder.apply(bb);
 			var value = new LogBean();
 			value.decode(bb);
-			ChangedWithKey.put(key, value);
+			changedWithKey.put(key, value);
 		}
 
 		// super.decode(bb);
@@ -123,7 +122,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 
 	@Override
 	public void collect(Changes changes, Bean recent, Log vlog) {
-		if (Changed.add((LogBean)vlog))
+		if (changed.add((LogBean)vlog))
 			changes.collect(recent, this);
 	}
 
@@ -135,7 +134,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 		sb.append(" Removed:");
 		ByteBuffer.BuildSortedString(sb, getRemoved());
 		sb.append(" Changed:");
-		ByteBuffer.BuildSortedString(sb, Changed);
+		ByteBuffer.BuildSortedString(sb, changed);
 		return sb.toString();
 	}
 }

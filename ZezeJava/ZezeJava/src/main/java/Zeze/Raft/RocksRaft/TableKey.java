@@ -1,23 +1,23 @@
 package Zeze.Raft.RocksRaft;
 
 public final class TableKey implements Comparable<TableKey> {
-	public String Name;
-	public Object Key;
+	public String name;
+	public Object key;
 
 	public TableKey() {
 	}
 
 	public TableKey(String name, Object key) {
-		Name = name;
-		Key = key;
+		this.name = name;
+		this.key = key;
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 17;
-		result = prime * result + Name.hashCode();
-		result = prime * result + Key.hashCode();
+		result = prime * result + name.hashCode();
+		result = prime * result + key.hashCode();
 		return result;
 	}
 
@@ -28,7 +28,7 @@ public final class TableKey implements Comparable<TableKey> {
 
 		if (obj instanceof TableKey) {
 			var another = (TableKey)obj;
-			return Name.equals(another.Name) && Key.equals(another.Key);
+			return name.equals(another.name) && key.equals(another.key);
 		}
 		return false;
 	}
@@ -36,14 +36,14 @@ public final class TableKey implements Comparable<TableKey> {
 	@SuppressWarnings({"unchecked", "rawtypes"})
 	@Override
 	public int compareTo(TableKey other) {
-		int c = Name.compareTo(other.Name);
+		int c = name.compareTo(other.name);
 		if (c != 0)
 			return c;
-		return ((Comparable)Key).compareTo(other.Key);
+		return ((Comparable)key).compareTo(other.key);
 	}
 
 	@Override
 	public String toString() {
-		return String.format("(%s,%s)", Name, Key);
+		return String.format("(%s,%s)", name, key);
 	}
 }

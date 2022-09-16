@@ -16,8 +16,8 @@ public final class BTransmit extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ActionName;
-        var log = (Log__ActionName)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _ActionName;
+        var log = (Log__ActionName)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _ActionName;
     }
 
     public void setActionName(String value) {
@@ -28,7 +28,7 @@ public final class BTransmit extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__ActionName(this, 1, value));
+        txn.putLog(new Log__ActionName(this, 1, value));
     }
 
     public Zeze.Transaction.Collections.PSet1<Long> getRoles() {
@@ -41,8 +41,8 @@ public final class BTransmit extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Sender;
-        var log = (Log__Sender)txn.GetLog(objectId() + 3);
-        return log != null ? log.Value : _Sender;
+        var log = (Log__Sender)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _Sender;
     }
 
     public void setSender(long value) {
@@ -51,7 +51,7 @@ public final class BTransmit extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Sender(this, 3, value));
+        txn.putLog(new Log__Sender(this, 3, value));
     }
 
     public Zeze.Net.Binary getParameter() {
@@ -60,8 +60,8 @@ public final class BTransmit extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Parameter;
-        var log = (Log__Parameter)txn.GetLog(objectId() + 4);
-        return log != null ? log.Value : _Parameter;
+        var log = (Log__Parameter)txn.getLog(objectId() + 4);
+        return log != null ? log.value : _Parameter;
     }
 
     public void setParameter(Zeze.Net.Binary value) {
@@ -72,7 +72,7 @@ public final class BTransmit extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Parameter(this, 4, value));
+        txn.putLog(new Log__Parameter(this, 4, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -116,7 +116,7 @@ public final class BTransmit extends Zeze.Transaction.Bean {
 
     public BTransmit copy() {
         var copy = new BTransmit();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -126,9 +126,9 @@ public final class BTransmit extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BTransmit a, BTransmit b) {
-        BTransmit save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BTransmit save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -147,21 +147,21 @@ public final class BTransmit extends Zeze.Transaction.Bean {
         public Log__ActionName(BTransmit bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BTransmit)getBelong())._ActionName = Value; }
+        public void commit() { ((BTransmit)getBelong())._ActionName = value; }
     }
 
     private static final class Log__Sender extends Zeze.Transaction.Logs.LogLong {
         public Log__Sender(BTransmit bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BTransmit)getBelong())._Sender = Value; }
+        public void commit() { ((BTransmit)getBelong())._Sender = value; }
     }
 
     private static final class Log__Parameter extends Zeze.Transaction.Logs.LogBinary {
         public Log__Parameter(BTransmit bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BTransmit)getBelong())._Parameter = Value; }
+        public void commit() { ((BTransmit)getBelong())._Parameter = value; }
     }
 
     @Override
@@ -300,10 +300,10 @@ public final class BTransmit extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ActionName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                case 1: _ActionName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 2: _Roles.followerApply(vlog); break;
-                case 3: _Sender = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                case 4: _Parameter = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
+                case 3: _Sender = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 4: _Parameter = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
             }
         }
     }

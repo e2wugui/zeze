@@ -145,7 +145,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 
 	public void setStableLinkSid(LinkdUserSession linkSession, AsyncSocket so,
 								 int moduleId, int protocolId, ByteBuffer data) {
-		var typeId = Protocol.MakeTypeId(moduleId, protocolId);
+		var typeId = Protocol.makeTypeId(moduleId, protocolId);
 		if (typeId == Zeze.Builtin.Game.Online.Login.TypeId_) {
 			var login = new Zeze.Builtin.Game.Online.Login();
 			var beginIndex = data.ReadIndex;
@@ -165,7 +165,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 	public static Dispatch createDispatch(LinkdUserSession linkSession, AsyncSocket so,
 										  int moduleId, int protocolId, ByteBuffer data) {
 		return new Dispatch(new BDispatch(so.getSessionId(), linkSession.getAccount(),
-				Protocol.MakeTypeId(moduleId, protocolId), new Binary(data),
+				Protocol.makeTypeId(moduleId, protocolId), new Binary(data),
 				linkSession.getContext(), linkSession.getContextx()));
 	}
 
@@ -185,7 +185,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 	public boolean choiceBindSend(AsyncSocket so, int moduleId, Dispatch dispatch) {
 		var provider = new OutLong();
 		if (LinkdApp.LinkdProvider.ChoiceProviderAndBind(moduleId, so, provider)) {
-			var providerSocket = LinkdApp.LinkdProviderService.GetSocket(provider.Value);
+			var providerSocket = LinkdApp.LinkdProviderService.GetSocket(provider.value);
 			if (providerSocket != null) {
 				// ChoiceProviderAndBind 内部已经处理了绑定。这里只需要发送。
 				return providerSocket.Send(dispatch);
@@ -219,7 +219,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 			try {
 				var isRequestSaved = p.isRequest();
 				var result = factoryHandle.Handle.handle(p); // 不启用新的Task，直接在io-thread里面执行。
-				Task.LogAndStatistics(null, result, p, isRequestSaved);
+				Task.logAndStatistics(null, result, p, isRequestSaved);
 			} catch (Throwable ex) {
 				p.getSender().close(ex); // link 在异常时关闭连接。
 			}

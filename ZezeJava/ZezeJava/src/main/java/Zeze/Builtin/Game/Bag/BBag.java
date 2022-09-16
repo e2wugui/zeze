@@ -14,8 +14,8 @@ public final class BBag extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Capacity;
-        var log = (Log__Capacity)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _Capacity;
+        var log = (Log__Capacity)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _Capacity;
     }
 
     public void setCapacity(int value) {
@@ -24,7 +24,7 @@ public final class BBag extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Capacity(this, 1, value));
+        txn.putLog(new Log__Capacity(this, 1, value));
     }
 
     public Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Game.Bag.BItem> getItems() {
@@ -48,7 +48,7 @@ public final class BBag extends Zeze.Transaction.Bean {
         setCapacity(other.getCapacity());
         getItems().clear();
         for (var e : other.getItems().entrySet())
-            getItems().put(e.getKey(), e.getValue().Copy());
+            getItems().put(e.getKey(), e.getValue().copy());
     }
 
     @Deprecated
@@ -62,7 +62,7 @@ public final class BBag extends Zeze.Transaction.Bean {
 
     public BBag copy() {
         var copy = new BBag();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -72,9 +72,9 @@ public final class BBag extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BBag a, BBag b) {
-        BBag save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BBag save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -93,7 +93,7 @@ public final class BBag extends Zeze.Transaction.Bean {
         public Log__Capacity(BBag bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BBag)getBelong())._Capacity = Value; }
+        public void commit() { ((BBag)getBelong())._Capacity = value; }
     }
 
     @Override
@@ -219,7 +219,7 @@ public final class BBag extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Capacity = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                case 1: _Capacity = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
                 case 2: _Items.followerApply(vlog); break;
             }
         }

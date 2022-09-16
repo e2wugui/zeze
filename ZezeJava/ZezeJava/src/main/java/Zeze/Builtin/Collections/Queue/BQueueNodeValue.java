@@ -9,11 +9,11 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean {
     private final Zeze.Transaction.DynamicBean _Value;
 
     public static long getSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean) {
-        return Zeze.Collections.Queue.GetSpecialTypeIdFromBean(bean);
+        return Zeze.Collections.Queue.getSpecialTypeIdFromBean(bean);
     }
 
     public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_Value(long typeId) {
-        return Zeze.Collections.Queue.CreateBeanFromSpecialTypeId(typeId);
+        return Zeze.Collections.Queue.createBeanFromSpecialTypeId(typeId);
     }
 
     public long getTimestamp() {
@@ -22,8 +22,8 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Timestamp;
-        var log = (Log__Timestamp)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _Timestamp;
+        var log = (Log__Timestamp)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _Timestamp;
     }
 
     public void setTimestamp(long value) {
@@ -32,7 +32,7 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Timestamp(this, 1, value));
+        txn.putLog(new Log__Timestamp(this, 1, value));
     }
 
     public Zeze.Transaction.DynamicBean getValue() {
@@ -41,18 +41,18 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("deprecation")
     public BQueueNodeValue() {
-        _Value = new Zeze.Transaction.DynamicBean(2, Zeze.Collections.Queue::GetSpecialTypeIdFromBean, Zeze.Collections.Queue::CreateBeanFromSpecialTypeId);
+        _Value = new Zeze.Transaction.DynamicBean(2, Zeze.Collections.Queue::getSpecialTypeIdFromBean, Zeze.Collections.Queue::createBeanFromSpecialTypeId);
     }
 
     @SuppressWarnings("deprecation")
     public BQueueNodeValue(long _Timestamp_) {
         _Timestamp = _Timestamp_;
-        _Value = new Zeze.Transaction.DynamicBean(2, Zeze.Collections.Queue::GetSpecialTypeIdFromBean, Zeze.Collections.Queue::CreateBeanFromSpecialTypeId);
+        _Value = new Zeze.Transaction.DynamicBean(2, Zeze.Collections.Queue::getSpecialTypeIdFromBean, Zeze.Collections.Queue::createBeanFromSpecialTypeId);
     }
 
     public void assign(BQueueNodeValue other) {
         setTimestamp(other.getTimestamp());
-        getValue().Assign(other.getValue());
+        getValue().assign(other.getValue());
     }
 
     @Deprecated
@@ -66,7 +66,7 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean {
 
     public BQueueNodeValue copy() {
         var copy = new BQueueNodeValue();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -76,9 +76,9 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BQueueNodeValue a, BQueueNodeValue b) {
-        BQueueNodeValue save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BQueueNodeValue save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -97,7 +97,7 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean {
         public Log__Timestamp(BQueueNodeValue bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BQueueNodeValue)getBelong())._Timestamp = Value; }
+        public void commit() { ((BQueueNodeValue)getBelong())._Timestamp = value; }
     }
 
     @Override
@@ -195,7 +195,7 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Timestamp = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 1: _Timestamp = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 2: _Value.followerApply(vlog); break;
             }
         }

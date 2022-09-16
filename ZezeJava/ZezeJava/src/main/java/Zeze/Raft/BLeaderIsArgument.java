@@ -8,46 +8,46 @@ import Zeze.Transaction.Record;
  * 下面是非标准的Raft-Rpc，辅助Agent用的。
  */
 final class BLeaderIsArgument extends Bean {
-	private long Term;
-	private String LeaderId;
-	private boolean IsLeader;
+	private long term;
+	private String leaderId;
+	private boolean isLeader;
 
 	public long getTerm() {
-		return Term;
+		return term;
 	}
 
 	public void setTerm(long value) {
-		Term = value;
+		term = value;
 	}
 
 	public String getLeaderId() {
-		return LeaderId;
+		return leaderId;
 	}
 
 	public void setLeaderId(String value) {
-		LeaderId = value;
+		leaderId = value;
 	}
 
 	public boolean isLeader() {
-		return IsLeader;
+		return isLeader;
 	}
 
 	public void setLeader(boolean value) {
-		IsLeader = value;
+		isLeader = value;
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteLong(Term);
-		bb.WriteString(LeaderId);
-		bb.WriteBool(IsLeader);
+		bb.WriteLong(term);
+		bb.WriteString(leaderId);
+		bb.WriteBool(isLeader);
 	}
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		Term = bb.ReadLong();
-		LeaderId = bb.ReadString();
-		IsLeader = bb.ReadBool();
+		term = bb.ReadLong();
+		leaderId = bb.ReadString();
+		isLeader = bb.ReadBool();
 	}
 
 	@Override
@@ -63,7 +63,7 @@ final class BLeaderIsArgument extends Bean {
 	@Override
 	public int hashCode() {
 		final int _prime_ = 31;
-		return Long.hashCode(Term) * _prime_ + LeaderId.hashCode();
+		return Long.hashCode(term) * _prime_ + leaderId.hashCode();
 	}
 
 	@Override
@@ -73,11 +73,11 @@ final class BLeaderIsArgument extends Bean {
 		if (!(obj instanceof BLeaderIsArgument))
 			return false;
 		BLeaderIsArgument other = (BLeaderIsArgument)obj;
-		return Term == other.Term && LeaderId.equals(other.LeaderId);
+		return term == other.term && leaderId.equals(other.leaderId);
 	}
 
 	@Override
 	public String toString() {
-		return String.format("(Term=%d LeaderId=%s IsLeader=%b)", Term, LeaderId, IsLeader);
+		return String.format("(Term=%d LeaderId=%s IsLeader=%b)", term, leaderId, isLeader);
 	}
 }

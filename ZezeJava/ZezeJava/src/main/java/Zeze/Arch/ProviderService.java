@@ -67,12 +67,12 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 				var outC = new OutObject<Connector>();
 				if (getConfig().tryGetOrAddConnector(link.getPassiveIp(), link.getPassivePort(), true, outC)) {
 					try {
-						outC.Value.Start();
+						outC.value.Start();
 					} catch (Throwable e) {
 						throw new RuntimeException(e);
 					}
 				}
-				return outC.Value;
+				return outC.value;
 			});
 			if (connector != null)
 				current.add(connector.getName());
@@ -129,13 +129,13 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 		var bind = new Bind();
 		ProviderApp.StaticBinds.foreach(bind.Argument.getModules()::put);
 		bind.Send(sender, rpc -> {
-			ProviderStaticBindCompleted.SetResult(true);
+			ProviderStaticBindCompleted.setResult(true);
 			return 0;
 		});
 		var sub = new Subscribe();
 		ProviderApp.DynamicModules.foreach(sub.Argument.getModules()::put);
 		sub.Send(sender, rpc -> {
-			ProviderDynamicSubscribeCompleted.SetResult(true);
+			ProviderDynamicSubscribeCompleted.setResult(true);
 			return 0;
 		});
 	}

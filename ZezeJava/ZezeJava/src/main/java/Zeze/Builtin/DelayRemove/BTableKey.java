@@ -14,8 +14,8 @@ public final class BTableKey extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _TableName;
-        var log = (Log__TableName)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _TableName;
+        var log = (Log__TableName)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _TableName;
     }
 
     public void setTableName(String value) {
@@ -26,7 +26,7 @@ public final class BTableKey extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__TableName(this, 1, value));
+        txn.putLog(new Log__TableName(this, 1, value));
     }
 
     public Zeze.Net.Binary getEncodedKey() {
@@ -35,8 +35,8 @@ public final class BTableKey extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _EncodedKey;
-        var log = (Log__EncodedKey)txn.GetLog(objectId() + 2);
-        return log != null ? log.Value : _EncodedKey;
+        var log = (Log__EncodedKey)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _EncodedKey;
     }
 
     public void setEncodedKey(Zeze.Net.Binary value) {
@@ -47,7 +47,7 @@ public final class BTableKey extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__EncodedKey(this, 2, value));
+        txn.putLog(new Log__EncodedKey(this, 2, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -82,7 +82,7 @@ public final class BTableKey extends Zeze.Transaction.Bean {
 
     public BTableKey copy() {
         var copy = new BTableKey();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -92,9 +92,9 @@ public final class BTableKey extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BTableKey a, BTableKey b) {
-        BTableKey save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BTableKey save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -113,14 +113,14 @@ public final class BTableKey extends Zeze.Transaction.Bean {
         public Log__TableName(BTableKey bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BTableKey)getBelong())._TableName = Value; }
+        public void commit() { ((BTableKey)getBelong())._TableName = value; }
     }
 
     private static final class Log__EncodedKey extends Zeze.Transaction.Logs.LogBinary {
         public Log__EncodedKey(BTableKey bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BTableKey)getBelong())._EncodedKey = Value; }
+        public void commit() { ((BTableKey)getBelong())._EncodedKey = value; }
     }
 
     @Override
@@ -212,8 +212,8 @@ public final class BTableKey extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _TableName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
-                case 2: _EncodedKey = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
+                case 1: _TableName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 2: _EncodedKey = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
             }
         }
     }

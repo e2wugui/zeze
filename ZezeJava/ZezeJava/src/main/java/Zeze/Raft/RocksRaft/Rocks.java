@@ -55,34 +55,35 @@ public final class Rocks extends StateMachine implements Closeable {
 	static final Logger logger = LogManager.getLogger(Rocks.class);
 	static final boolean isDebugEnabled = logger.isDebugEnabled();
 
-	public static void RegisterLog(Supplier<Log> s) {
-		Log.Register(s);
+	public static void registerLog(Supplier<Log> s) {
+		Log.register(s);
 	}
 
 	static {
-		Log.Register(LogBool::new);
-		Log.Register(LogByte::new);
-		Log.Register(LogShort::new);
-		Log.Register(LogInt::new);
-		Log.Register(LogLong::new);
-		Log.Register(LogFloat::new);
-		Log.Register(LogDouble::new);
-		Log.Register(LogString::new);
-		Log.Register(LogBinary::new);
-		Log.Register(LogBean::new);
+		Log.register(LogBool::new);
+		Log.register(LogByte::new);
+		Log.register(LogShort::new);
+		Log.register(LogInt::new);
+		Log.register(LogLong::new);
+		Log.register(LogFloat::new);
+		Log.register(LogDouble::new);
+		Log.register(LogString::new);
+		Log.register(LogBinary::new);
+		Log.register(LogBean::new);
 		// Log1.LogBeanKey 在生成代码里面注册。
 		// LogSet1<V> LogMap1<K,V> LogMap2<K,V> 在生成代码里面注册。
 	}
 
-	private final ConcurrentHashMap<String, TableTemplate<?, ? extends Bean>> TableTemplates = new ConcurrentHashMap<>();
-	private final ConcurrentHashMap<String, Table<?, ? extends Bean>> Tables = new ConcurrentHashMap<>();
-	private final LongConcurrentHashMap<AtomicLong> AtomicLongs = new LongConcurrentHashMap<>();
-	private final IntHashMap<Long> LastUpdated = new IntHashMap<>();
-	private final ConcurrentHashMap<String, ColumnFamilyHandle> Columns = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, TableTemplate<?, ? extends Bean>> tableTemplates = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, Table<?, ? extends Bean>> tables = new ConcurrentHashMap<>();
+	private final LongConcurrentHashMap<AtomicLong> atomicLongs = new LongConcurrentHashMap<>();
+	private final IntHashMap<Long> lastUpdated = new IntHashMap<>();
+	private final ConcurrentHashMap<String, ColumnFamilyHandle> columns = new ConcurrentHashMap<>();
 	private final WriteOptions writeOptions;
 	private final RocksMode rocksMode;
-	private RocksDB Storage;
-	private ColumnFamilyHandle AtomicLongsColumnFamily;
+	private RocksDB storage;
+	private ColumnFamilyHandle atomicLongsColumnFamily;
+	private final Lock mutex = new ReentrantLock();
 
 	public Rocks() throws Throwable {
 		this(null, RocksMode.Pessimism, null, null, false);
@@ -104,7 +105,7 @@ public final class Rocks extends StateMachine implements Closeable {
 				 boolean RocksDbWriteOptionSync) throws Throwable {
 		rocksMode = mode;
 
-		AddFactory(new Changes(this).getTypeId(), () -> new Changes(this));
+		addFactory(new Changes(this).getTypeId(), () -> new Changes(this));
 
 		writeOptions = RocksDbWriteOptionSync
 				? DatabaseRocksDb.getSyncWriteOptions()
@@ -112,15 +113,15 @@ public final class Rocks extends StateMachine implements Closeable {
 		// 这个赋值是不必要的，new Raft(...)内部会赋值。有点奇怪。
 		setRaft(new Raft(this, raftName, raftConfig, config));
 		getRaft().addAtFatalKill(() -> {
-			if (Storage != null)
-				Storage.close();
+			if (storage != null)
+				storage.close();
 		});
 		getRaft().getLogSequence().setWriteOptions(writeOptions);
 
 		// Raft 在有快照的时候，会调用LoadSnapshot-Restore-OpenDb。
 		// 如果Storage没有创建，需要主动打开。
-		if (Storage == null)
-			OpenDb();
+		if (storage == null)
+			openDb();
 
 		ShutdownHook.add(this, () -> {
 			logger.info("Rocks {} ShutdownHook begin", raftName);
@@ -129,24 +130,24 @@ public final class Rocks extends StateMachine implements Closeable {
 		});
 	}
 
-	private void OpenDb() throws RocksDBException {
+	private void openDb() throws RocksDBException {
 		var dbName = Paths.get(getDbHome(), "statemachine").toString();
 
 		// DirectOperates 依赖 Db，所以只能在这里打开。要不然，放在Open里面更加合理。
 		var columnFamilies = getColumnFamilies(dbName);
 		var outHandles = new ArrayList<ColumnFamilyHandle>();
-		Storage = RocksDB.open(DatabaseRocksDb.getCommonDbOptions(), dbName, columnFamilies, outHandles);
+		storage = RocksDB.open(DatabaseRocksDb.getCommonDbOptions(), dbName, columnFamilies, outHandles);
 
-		Columns.clear();
+		columns.clear();
 		for (int i = 0; i < columnFamilies.size(); i++) {
 			ColumnFamilyDescriptor col = columnFamilies.get(i);
-			Columns.put(new String(col.getName(), StandardCharsets.UTF_8), outHandles.get(i));
+			columns.put(new String(col.getName(), StandardCharsets.UTF_8), outHandles.get(i));
 		}
 
-		AtomicLongsColumnFamily = OpenFamily("Zeze.Raft.RocksRaft.AtomicLongs");
+		atomicLongsColumnFamily = openFamily("Zeze.Raft.RocksRaft.AtomicLongs");
 
-		for (var table : Tables.values())
-			table.Open();
+		for (var table : tables.values())
+			table.open();
 	}
 
 	private static ArrayList<ColumnFamilyDescriptor> getColumnFamilies(String dir) throws RocksDBException {
@@ -161,10 +162,10 @@ public final class Rocks extends StateMachine implements Closeable {
 		return columnFamilies;
 	}
 
-	public ColumnFamilyHandle OpenFamily(String name) {
-		return Columns.computeIfAbsent(name, k -> {
+	public ColumnFamilyHandle openFamily(String name) {
+		return columns.computeIfAbsent(name, k -> {
 			try {
-				return Storage.createColumnFamily(new ColumnFamilyDescriptor(
+				return storage.createColumnFamily(new ColumnFamilyDescriptor(
 						k.getBytes(StandardCharsets.UTF_8), DatabaseRocksDb.getDefaultCfOptions()));
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
@@ -173,11 +174,11 @@ public final class Rocks extends StateMachine implements Closeable {
 	}
 
 	public ConcurrentHashMap<String, TableTemplate<?, ? extends Bean>> getTableTemplates() {
-		return TableTemplates;
+		return tableTemplates;
 	}
 
 	public ConcurrentHashMap<String, Table<?, ? extends Bean>> getTables() {
-		return Tables;
+		return tables;
 	}
 
 	public RocksMode getRocksMode() {
@@ -185,7 +186,7 @@ public final class Rocks extends StateMachine implements Closeable {
 	}
 
 	public RocksDB getStorage() {
-		return Storage;
+		return storage;
 	}
 
 	public String getDbHome() {
@@ -197,13 +198,13 @@ public final class Rocks extends StateMachine implements Closeable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <K, V extends Bean> TableTemplate<K, V> GetTableTemplate(String tableTemplateName) {
-		return (TableTemplate<K, V>)TableTemplates.get(tableTemplateName);
+	public <K, V extends Bean> TableTemplate<K, V> getTableTemplate(String tableTemplateName) {
+		return (TableTemplate<K, V>)tableTemplates.get(tableTemplateName);
 	}
 
-	public <K, V extends Bean> void RegisterTableTemplate(String tableTemplateName,
+	public <K, V extends Bean> void registerTableTemplate(String tableTemplateName,
 														  Class<K> keyClass, Class<V> valueClass) {
-		TableTemplates.computeIfAbsent(tableTemplateName, key -> new TableTemplate<>(this, key, keyClass, valueClass));
+		tableTemplates.computeIfAbsent(tableTemplateName, key -> new TableTemplate<>(this, key, keyClass, valueClass));
 	}
 
 /*
@@ -221,22 +222,22 @@ public final class Rocks extends StateMachine implements Closeable {
 */
 
 	// 应用只能递增，这个方法仅 Follower 用来更新计数器。
-	private void AtomicLongSet(int index, long value) {
-		AtomicLongs.computeIfAbsent(index, __ -> new AtomicLong()).set(value);
+	private void atomicLongSet(int index, long value) {
+		atomicLongs.computeIfAbsent(index, __ -> new AtomicLong()).set(value);
 	}
 
-	public void UpdateAtomicLongs(IntHashMap<Long> to) {
+	public void updateAtomicLongs(IntHashMap<Long> to) {
 		getRaft().lock();
 		try {
-			for (var it = AtomicLongs.entryIterator(); it.moveToNext(); ) {
+			for (var it = atomicLongs.entryIterator(); it.moveToNext(); ) {
 				int index = (int)it.key();
-				var last = LastUpdated.get(index);
+				var last = lastUpdated.get(index);
 				if (last == null)
 					last = 0L;
 
 				long newest = it.value().get();
 				if (newest > last) {
-					LastUpdated.put(index, newest);
+					lastUpdated.put(index, newest);
 					to.put(index, newest);
 				}
 			}
@@ -245,7 +246,7 @@ public final class Rocks extends StateMachine implements Closeable {
 		}
 	}
 
-	public Procedure NewProcedure(FuncLong func) {
+	public Procedure newProcedure(FuncLong func) {
 		return new Procedure(this, func);
 	}
 
@@ -253,46 +254,46 @@ public final class Rocks extends StateMachine implements Closeable {
 	public void followerApply(Changes changes) {
 		var rs = new ArrayList<Record<?>>();
 		for (var e : changes.getRecords().entrySet())
-			rs.add(e.getValue().table.followerApply(e.getKey().Key, e.getValue()));
-		Flush(rs, changes, true);
+			rs.add(e.getValue().table.followerApply(e.getKey().key, e.getValue()));
+		flush(rs, changes, true);
 	}
 
-	public void Flush(Iterable<Record<?>> rs, Changes changes) {
-		Flush(rs, changes, false);
+	public void flush(Iterable<Record<?>> rs, Changes changes) {
+		flush(rs, changes, false);
 	}
 
-	public void Flush(Iterable<Record<?>> rs, Changes changes, boolean followerApply) {
+	public void flush(Iterable<Record<?>> rs, Changes changes, boolean followerApply) {
 		try (WriteBatch batch = new WriteBatch()) {
 			for (var r : rs)
-				r.Flush(batch);
+				r.flush(batch);
 			for (var it = changes.getAtomicLongs().iterator(); it.moveToNext(); ) {
 				var key = ByteBuffer.Allocate();
 				var value = ByteBuffer.Allocate();
 				key.WriteInt(it.key());
 				value.WriteLong(it.value());
-				batch.put(AtomicLongsColumnFamily, key.Copy(), value.Copy());
+				batch.put(atomicLongsColumnFamily, key.Copy(), value.Copy());
 				if (followerApply)
-					AtomicLongSet(it.key(), it.value());
+					atomicLongSet(it.key(), it.value());
 			}
 			if (batch.count() > 0)
-				Storage.write(writeOptions, batch);
+				storage.write(writeOptions, batch);
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	public String Checkpoint(SnapshotResult result) throws RocksDBException {
+	public String checkpoint(SnapshotResult result) throws RocksDBException {
 		var checkpointDir = Paths.get(getDbHome(), "checkpoint_" + System.currentTimeMillis()).toString();
 
 		// fast checkpoint, will stop application apply.
 		Raft raft = getRaft();
 		raft.lock();
 		try {
-			var lastAppliedLog = raft.getLogSequence().LastAppliedLogTermIndex();
-			result.LastIncludedIndex = lastAppliedLog.getIndex();
-			result.LastIncludedTerm = lastAppliedLog.getTerm();
+			var lastAppliedLog = raft.getLogSequence().lastAppliedLogTermIndex();
+			result.lastIncludedIndex = lastAppliedLog.getIndex();
+			result.lastIncludedTerm = lastAppliedLog.getTerm();
 
-			try (var cp = Checkpoint.create(Storage)) {
+			try (var cp = Checkpoint.create(storage)) {
 				cp.createCheckpoint(checkpointDir);
 			}
 		} finally {
@@ -301,7 +302,7 @@ public final class Rocks extends StateMachine implements Closeable {
 		return checkpointDir;
 	}
 
-	public static void Backup(String checkpointDir, String backupDir) throws RocksDBException {
+	public static void backup(String checkpointDir, String backupDir) throws RocksDBException {
 		var outHandles = new ArrayList<ColumnFamilyHandle>();
 		try (var src = RocksDB.open(DatabaseRocksDb.getCommonDbOptions(), checkpointDir,
 				getColumnFamilies(checkpointDir), outHandles);
@@ -311,12 +312,12 @@ public final class Rocks extends StateMachine implements Closeable {
 		}
 	}
 
-	public void Restore(String backupDir) throws RocksDBException {
+	public void restore(String backupDir) throws RocksDBException {
 		getRaft().lock();
 		try {
-			if (Storage != null) {
-				Storage.close(); // close current
-				Storage = null;
+			if (storage != null) {
+				storage.close(); // close current
+				storage = null;
 			}
 
 			var dbName = Paths.get(getDbHome(), "statemachine").toString();
@@ -326,7 +327,7 @@ public final class Rocks extends StateMachine implements Closeable {
 				backup.restoreDbFromLatestBackup(dbName, dbName, restoreOptions);
 			}
 
-			OpenDb(); // reopen
+			openDb(); // reopen
 		} finally {
 			getRaft().unlock();
 		}
@@ -370,24 +371,24 @@ public final class Rocks extends StateMachine implements Closeable {
 	}
 
 	@Override
-	public SnapshotResult Snapshot(String path) throws RocksDBException, IOException {
+	public SnapshotResult snapshot(String path) throws RocksDBException, IOException {
 		long t0 = System.nanoTime();
 		SnapshotResult result = new SnapshotResult();
-		var cpHome = Checkpoint(result);
+		var cpHome = checkpoint(result);
 
 		long t1 = System.nanoTime();
 		var backupDir = Paths.get(getDbHome(), "backup").toString();
 		var backupFile = new File(backupDir);
 		if (!backupFile.isDirectory() && !backupFile.mkdirs())
 			logger.error("create backup directory failed: {}", backupDir);
-		Backup(cpHome, backupDir);
+		backup(cpHome, backupDir);
 
 		long t2 = System.nanoTime();
 		LogSequence.deleteDirectory(new File(cpHome));
 		createZipFromDirectory(backupDir, path);
 
 		long t3 = System.nanoTime();
-		getRaft().getLogSequence().CommitSnapshot(path, result.LastIncludedIndex);
+		getRaft().getLogSequence().commitSnapshot(path, result.lastIncludedIndex);
 
 		result.success = true;
 		result.checkPointNanoTime = t1 - t0;
@@ -398,17 +399,15 @@ public final class Rocks extends StateMachine implements Closeable {
 	}
 
 	@Override
-	public void LoadSnapshot(String path) throws RocksDBException, IOException {
+	public void loadSnapshot(String path) throws RocksDBException, IOException {
 		var backupDir = Paths.get(getDbHome(), "backup").toString();
 		var backupFile = new File(backupDir);
 		if (!backupFile.isDirectory() || new File(path).lastModified() > backupFile.lastModified()) {
 			LogSequence.deletedDirectoryAndCheck(backupFile, 100);
 			extractZipToDirectory(path, backupDir);
 		}
-		Restore(backupDir);
+		restore(backupDir);
 	}
-
-	private final Lock mutex = new ReentrantLock();
 
 	@Override
 	public void close() { // 简单保护一下。
@@ -418,14 +417,14 @@ public final class Rocks extends StateMachine implements Closeable {
 			try {
 				Raft raft = getRaft();
 				if (raft != null)
-					raft.Shutdown();
+					raft.shutdown();
 			} catch (Throwable e) {
 				throw new RuntimeException(e);
 			} finally {
 				setRaft(null);
-				if (Storage != null) {
-					Storage.close();
-					Storage = null;
+				if (storage != null) {
+					storage.close();
+					storage = null;
 				}
 			}
 		} finally {

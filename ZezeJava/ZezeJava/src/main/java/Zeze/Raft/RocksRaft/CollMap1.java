@@ -13,7 +13,7 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 		keyCodecFuncs = SerializeHelper.createCodec(keyClass);
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
 		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.LogMap1<"
-				+ Reflect.GetStableName(keyClass) + ", " + Reflect.GetStableName(valueClass) + '>');
+				+ Reflect.getStableName(keyClass) + ", " + Reflect.getStableName(valueClass) + '>');
 	}
 
 	private CollMap1(int logTypeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs,
@@ -27,57 +27,57 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 	public void add(K key, V value) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().LogGetOrAdd(
+			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			mapLog.Add(key, value);
+			mapLog.add(key, value);
 		} else
-			_map = _map.plus(key, value);
+			map = map.plus(key, value);
 	}
 
 	@Override
 	public void put(K key, V value) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().LogGetOrAdd(
+			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			mapLog.Put(key, value);
+			mapLog.put(key, value);
 		} else
-			_map = _map.plus(key, value);
+			map = map.plus(key, value);
 	}
 
 	@Override
 	public void remove(K key) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().LogGetOrAdd(
+			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			mapLog.Remove(key);
+			mapLog.remove(key);
 		} else
-			_map = _map.minus(key);
+			map = map.minus(key);
 	}
 
 	@Override
 	public void clear() {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().LogGetOrAdd(
+			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			mapLog.Clear();
+			mapLog.clear();
 		} else
-			_map = org.pcollections.Empty.map();
+			map = org.pcollections.Empty.map();
 	}
 
 	@Override
 	public void followerApply(Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogMap1<K, V>)_log;
-		_map = _map.plusAll(log.getPutted()).minusAll(log.getRemoved());
+		map = map.plusAll(log.getPutted()).minusAll(log.getRemoved());
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
 	public void leaderApplyNoRecursive(Log _log) {
-		_map = ((LogMap1<K, V>)_log).getValue();
+		map = ((LogMap1<K, V>)_log).getValue();
 	}
 
 	@Override
@@ -86,7 +86,7 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 		log.setBelong(parent());
 		log.setThis(this);
 		log.setVariableId(variableId());
-		log.setValue(_map);
+		log.setValue(map);
 		return log;
 	}
 
@@ -97,7 +97,7 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 	@Override
 	public Bean copyBean() {
 		var copy = new CollMap1<>(logTypeId, keyCodecFuncs, valueCodecFuncs);
-		copy._map = _map;
+		copy.map = map;
 		return copy;
 	}
 

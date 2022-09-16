@@ -8,7 +8,7 @@ import Zeze.Transaction.Log;
 public abstract class LogQuaternion extends Log {
 	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.Log<quaternion>");
 
-	public Quaternion Value;
+	public Quaternion value;
 
 	public LogQuaternion() {
 		super(TYPE_ID);
@@ -18,21 +18,21 @@ public abstract class LogQuaternion extends Log {
 		super(TYPE_ID);
 		setBelong(belong);
 		setVariableId(varId);
-		Value = value;
+		this.value = value;
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteQuaternion(Value);
+		bb.WriteQuaternion(value);
 	}
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		Value = bb.ReadQuaternion();
+		value = bb.ReadQuaternion();
 	}
 
 	@Override
 	public String toString() {
-		return String.valueOf(Value);
+		return String.valueOf(value);
 	}
 }

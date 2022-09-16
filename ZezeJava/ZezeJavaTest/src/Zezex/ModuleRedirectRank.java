@@ -127,7 +127,7 @@ public class ModuleRedirectRank extends TestCase {
 				assertEquals(Procedure.Success, allResults.get(4).getResultCode()); // local async
 				assertEquals(Procedure.Success, allResults.get(4).getResultCode()); // remote async
 			} finally {
-				future1.SetResult(true);
+				future1.setResult(true);
 			}
 		});
 		assertTrue(future1.get());

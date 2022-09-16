@@ -25,77 +25,77 @@ import org.apache.logging.log4j.Logger;
 public final class Server extends HandshakeBoth {
 	private static final Logger logger = LogManager.getLogger(Server.class);
 
-	private final Raft Raft;
+	private final Raft raft;
+	private final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();
 
 	public Raft getRaft() {
-		return Raft;
+		return raft;
 	}
 
 	// 多个Raft实例才需要自定义配置名字，否则使用默认名字就可以了。
 	public Server(Raft raft, String name, Zeze.Config config) throws Throwable {
 		super(name, config);
-		Raft = raft;
+		this.raft = raft;
 	}
 
 	public static class ConnectorEx extends Connector {
+		// Volatile state on leaders: (Reinitialized after election)
+		// for each server, index of the next log entry to send to that server(initialized to leader last log index + 1)
+		private long nextIndex;
+
+		// for each server, index of highest log entry known to be replicated on server (initialized to 0, increases monotonically)
+		private long matchIndex;
+
+		// 每个连接只允许存在一个AppendEntries。
+		private AppendEntries pending;
+
+		private InstallSnapshotState installSnapshotState;
+
+		private long appendLogActiveTime = System.currentTimeMillis();
+
 		public ConnectorEx(String host, int port) {
 			super(host, port);
 			setMaxReconnectDelay(1000);
 		}
 
-		////////////////////////////////////////////////
-		// Volatile state on leaders: (Reinitialized after election)
-		// for each server, index of the next log entry to send to that server(initialized to leader last log index + 1)
-		private long NextIndex;
-
-		// for each server, index of highest log entry known to be replicated on server (initialized to 0, increases monotonically)
-		private long MatchIndex;
-
-		// 每个连接只允许存在一个AppendEntries。
-		private AppendEntries Pending;
-
-		private InstallSnapshotState InstallSnapshotState;
-
-		private long AppendLogActiveTime = System.currentTimeMillis();
-
 		long getNextIndex() {
-			return NextIndex;
+			return nextIndex;
 		}
 
 		void setNextIndex(long value) {
-			NextIndex = value;
+			nextIndex = value;
 		}
 
 		long getMatchIndex() {
-			return MatchIndex;
+			return matchIndex;
 		}
 
 		void setMatchIndex(long value) {
-			MatchIndex = value;
+			matchIndex = value;
 		}
 
 		AppendEntries getPending() {
-			return Pending;
+			return pending;
 		}
 
 		void setPending(AppendEntries value) {
-			Pending = value;
+			pending = value;
 		}
 
 		InstallSnapshotState getInstallSnapshotState() {
-			return InstallSnapshotState;
+			return installSnapshotState;
 		}
 
 		void setInstallSnapshotState(InstallSnapshotState value) {
-			InstallSnapshotState = value;
+			installSnapshotState = value;
 		}
 
 		long getAppendLogActiveTime() {
-			return AppendLogActiveTime;
+			return appendLogActiveTime;
 		}
 
 		void setAppendLogActiveTime(long value) {
-			AppendLogActiveTime = value;
+			appendLogActiveTime = value;
 		}
 
 		@Override
@@ -107,7 +107,7 @@ public final class Server extends HandshakeBoth {
 				try {
 					if (getSocket() == closed) { // check is owner
 						try {
-							raft.getLogSequence().EndInstallSnapshot(this);
+							raft.getLogSequence().endInstallSnapshot(this);
 						} catch (Throwable ex) {
 							logger.error("Server.ConnectorEx.OnSocketClose", ex);
 						}
@@ -123,10 +123,10 @@ public final class Server extends HandshakeBoth {
 		public void OnSocketHandshakeDone(AsyncSocket so) {
 			super.OnSocketHandshakeDone(so);
 			Raft raft = ((Server)getService()).getRaft();
-			raft.getImportantThreadPool().execute(() -> Task.Call(() -> {
+			raft.getImportantThreadPool().execute(() -> Task.call(() -> {
 				raft.lock();
 				try {
-					raft.getLogSequence().TrySendAppendEntries(this, null);
+					raft.getLogSequence().trySendAppendEntries(this, null);
 				} finally {
 					raft.unlock();
 				}
@@ -134,7 +134,7 @@ public final class Server extends HandshakeBoth {
 		}
 	}
 
-	public static void CreateConnector(Service service, RaftConfig raftConf) {
+	public static void createConnector(Service service, RaftConfig raftConf) {
 		for (var node : raftConf.getNodes().values()) {
 			if (raftConf.getName().equals(node.getName()))
 				continue; // skip self.
@@ -142,14 +142,14 @@ public final class Server extends HandshakeBoth {
 		}
 	}
 
-	public static void CreateAcceptor(Service service, RaftConfig raftConf) {
+	public static void createAcceptor(Service service, RaftConfig raftConf) {
 		var node = raftConf.getNodes().get(raftConf.getName());
 		if (node == null)
 			throw new IllegalStateException("Raft.Name=" + raftConf.getName() + " Not In Node");
 		service.getConfig().addAcceptor(new Acceptor(node.getPort(), node.getHost()));
 	}
 
-	private boolean IsImportantProtocol(long typeId) {
+	private boolean isImportantProtocol(long typeId) {
 		return isHandshakeProtocol(typeId) // 【注意】下面这些模块的Id总是为0。
 				|| typeId == RequestVote.TypeId_
 				|| typeId == AppendEntries.TypeId_
@@ -159,11 +159,11 @@ public final class Server extends HandshakeBoth {
 
 	@Override
 	public <P extends Protocol<?>> void DispatchRpcResponse(P p, ProtocolHandle<P> responseHandle,
-														 ProtocolFactoryHandle<?> factoryHandle) throws Throwable {
-		if (IsImportantProtocol(p.getTypeId())) {
+															ProtocolFactoryHandle<?> factoryHandle) throws Throwable {
+		if (isImportantProtocol(p.getTypeId())) {
 			// 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
 			try {
-				Raft.getImportantThreadPool().execute(() -> Task.Call(() -> responseHandle.handle(p), p));
+				raft.getImportantThreadPool().execute(() -> Task.call(() -> responseHandle.handle(p), p));
 			} catch (RejectedExecutionException e) {
 				logger.debug("RejectedExecutionException for {}", p);
 			}
@@ -172,13 +172,11 @@ public final class Server extends HandshakeBoth {
 		super.DispatchRpcResponse(p, responseHandle, factoryHandle);
 	}
 
-	private final TaskOneByOneByKey TaskOneByOne = new TaskOneByOneByKey();
-
 	@SuppressWarnings("UnusedReturnValue")
-	private <P extends Protocol<?>> long ProcessRequest(P p, ProtocolFactoryHandle<P> factoryHandle) {
-		return Task.Call(() -> {
-			if (Raft.WaitLeaderReady()) {
-				UniqueRequestState state = Raft.getLogSequence().TryGetRequestState(p);
+	private <P extends Protocol<?>> long processRequest(P p, ProtocolFactoryHandle<P> factoryHandle) {
+		return Task.call(() -> {
+			if (raft.waitLeaderReady()) {
+				UniqueRequestState state = raft.getLogSequence().tryGetRequestState(p);
 				if (state != null) {
 					if (state != UniqueRequestState.NOT_FOUND) {
 						if (state.isApplied()) {
@@ -194,22 +192,22 @@ public final class Server extends HandshakeBoth {
 				p.SendResultCode(Procedure.RaftExpired);
 				return 0L;
 			}
-			TrySendLeaderIs(p.getSender());
+			trySendLeaderIs(p.getSender());
 			return 0L;
 		}, p, Protocol::trySendResultCode);
 	}
 
 	@Override
 	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) {
-		if (IsImportantProtocol(p.getTypeId())) {
+		if (isImportantProtocol(p.getTypeId())) {
 			// 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
 			// 内部协议总是使用明确返回值或者超时，不使用框架的错误时自动发送结果。
-			Raft.getImportantThreadPool().execute(() ->
-					Task.Call(() -> factoryHandle.Handle.handle(p), p, null));
+			raft.getImportantThreadPool().execute(() ->
+					Task.call(() -> factoryHandle.Handle.handle(p), p, null));
 			return;
 		}
 		// User Request
-		if (Raft.isWorkingLeader()) {
+		if (raft.isWorkingLeader()) {
 			var raftRpc = (IRaftRpc)p;
 			if (raftRpc.getUnique().getRequestId() <= 0) {
 				p.SendResultCode(Procedure.ErrorRequestId);
@@ -217,28 +215,28 @@ public final class Server extends HandshakeBoth {
 			}
 			//【防止重复的请求】
 			// see Log.java::LogSequence.TryApply
-			TaskOneByOne.Execute(raftRpc.getUnique(), () -> ProcessRequest(p, factoryHandle),
+			taskOneByOne.Execute(raftRpc.getUnique(), () -> processRequest(p, factoryHandle),
 					p.getClass().getName(), () -> p.SendResultCode(Procedure.RaftRetry), factoryHandle.Mode);
 			return;
 		}
 
-		TrySendLeaderIs(p.getSender());
+		trySendLeaderIs(p.getSender());
 
 		// 选举中
 		// DO NOT process application request.
 	}
 
-	private void TrySendLeaderIs(AsyncSocket sender) {
-		String leaderId = Raft.getLeaderId();
+	private void trySendLeaderIs(AsyncSocket sender) {
+		String leaderId = raft.getLeaderId();
 		if (leaderId == null || leaderId.isEmpty())
 			return;
-		if (Raft.getName().equals(leaderId) && !Raft.isLeader())
+		if (raft.getName().equals(leaderId) && !raft.isLeader())
 			return;
 		// redirect
 		var redirect = new LeaderIs();
-		redirect.Argument.setTerm(Raft.getLogSequence().getTerm());
+		redirect.Argument.setTerm(raft.getLogSequence().getTerm());
 		redirect.Argument.setLeaderId(leaderId); // maybe empty
-		redirect.Argument.setLeader(Raft.isLeader());
+		redirect.Argument.setLeader(raft.isLeader());
 		redirect.Send(sender); // ignore response
 	}
 
@@ -248,17 +246,17 @@ public final class Server extends HandshakeBoth {
 
 		// 没有判断是否和其他Raft-Node的连接。
 		Task.runUnsafe(() -> {
-			Raft.lock();
+			raft.lock();
 			try {
-				if (Raft.isReadyLeader()) {
+				if (raft.isReadyLeader()) {
 					var r = new LeaderIs();
-					r.Argument.setTerm(Raft.getLogSequence().getTerm());
-					r.Argument.setLeaderId(Raft.getLeaderId());
-					r.Argument.setLeader(Raft.isLeader());
+					r.Argument.setTerm(raft.getLogSequence().getTerm());
+					r.Argument.setLeaderId(raft.getLeaderId());
+					r.Argument.setLeader(raft.isLeader());
 					r.Send(so); // skip result
 				}
 			} finally {
-				Raft.unlock();
+				raft.unlock();
 			}
 		}, "Raft.LeaderIs.Me", DispatchMode.Normal);
 	}

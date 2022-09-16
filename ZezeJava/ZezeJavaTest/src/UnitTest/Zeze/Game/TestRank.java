@@ -36,7 +36,7 @@ public class TestRank extends TestCase {
 				System.out.format("End Thread.sleep app%d:%n", SERVER_ID_BEGIN + i);
 				apps[i].getZeze().getServiceManagerAgent().getSubscribeStates().forEach((name, state) -> {
 					System.out.format("  '%s':%n", name);
-					state.LocalStates.forEach((k, v) -> System.out.format("    { %s, %s }%n", k, v));
+					state.localStates.forEach((k, v) -> System.out.format("    { %s, %s }%n", k, v));
 				});
 			}
 		} catch (Throwable e) {
@@ -71,7 +71,7 @@ public class TestRank extends TestCase {
 			for (int hash = 0; hash < concLevel; hash++) {
 				int h = hash;
 				long roleId = ROLE_ID_BEGIN + h;
-				app.getZeze().NewProcedure(() -> {
+				app.getZeze().newProcedure(() -> {
 					app.rank.updateRank(h, rankKey, roleId, roleId2Value.applyAsLong(roleId), Binary.Empty).await().then(r -> {
 						assertNotNull(r);
 						assertEquals(Procedure.Success, r.longValue());
@@ -80,7 +80,7 @@ public class TestRank extends TestCase {
 				}, "updateRank").Call();
 			}
 
-			app.getZeze().NewProcedure(() -> {
+			app.getZeze().newProcedure(() -> {
 				// 直接从数据库读取并合并
 				var result = app.rank.getRankDirect(rankKey);
 //				System.out.format("--- getRankDirect: concurrent=%d, rankList=[%d]:%s%n",
@@ -95,7 +95,7 @@ public class TestRank extends TestCase {
 
 			var hashSet1 = new ConcurrentHashSet<Integer>();
 			var hashSet2 = new ConcurrentHashSet<Integer>();
-			app.getZeze().NewProcedure(() -> {
+			app.getZeze().newProcedure(() -> {
 				app.rank.getRankAll(rankKey).onResult(r -> {
 					assertNotNull(r);
 //					System.out.format("--- getRankAll onResult: hash=%d, resultCode=%d, rankList=%s%n",

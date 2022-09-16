@@ -23,7 +23,7 @@ public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean {
 
     public BAnnounceLinkInfo copy() {
         var copy = new BAnnounceLinkInfo();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -33,9 +33,9 @@ public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BAnnounceLinkInfo a, BAnnounceLinkInfo b) {
-        BAnnounceLinkInfo save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BAnnounceLinkInfo save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override

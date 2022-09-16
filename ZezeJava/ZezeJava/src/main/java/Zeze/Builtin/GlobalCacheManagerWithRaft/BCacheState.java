@@ -23,10 +23,10 @@ public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
         if (txn == null)
             return _Modify;
-        var log = txn.GetLog(objectId() + 2);
+        var log = txn.getLog(objectId() + 2);
         if (log == null)
             return _Modify;
-        return ((Zeze.Raft.RocksRaft.Log1.LogInt)log).Value;
+        return ((Zeze.Raft.RocksRaft.Log1.LogInt)log).value;
     }
 
     public void setModify(int value) {
@@ -35,7 +35,7 @@ public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
             return;
         }
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
-        txn.PutLog(new Zeze.Raft.RocksRaft.Log1.LogInt(this, 2, value));
+        txn.putLog(new Zeze.Raft.RocksRaft.Log1.LogInt(this, 2, value));
     }
 
     public Zeze.Raft.RocksRaft.CollSet1<Integer> getShare() {
@@ -74,7 +74,7 @@ public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
 
     public BCacheState copy() {
         var copy = new BCacheState();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -84,9 +84,9 @@ public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
     }
 
     public static void swap(BCacheState a, BCacheState b) {
-        BCacheState save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BCacheState save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -196,7 +196,7 @@ public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
     @Override
     public void leaderApplyNoRecursive(Zeze.Raft.RocksRaft.Log vlog) {
         switch (vlog.getVariableId()) {
-            case 2: _Modify = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).Value; break;
+            case 2: _Modify = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).value; break;
             case 3: _Share.leaderApplyNoRecursive(vlog); break;
         }
     }
@@ -209,7 +209,7 @@ public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 2: _Modify = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).Value; break;
+                case 2: _Modify = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).value; break;
                 case 3: _Share.followerApply(vlog); break;
             }
         }

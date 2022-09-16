@@ -15,8 +15,8 @@ public final class BIndex extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ServerId;
-        var log = (Log__ServerId)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _ServerId;
+        var log = (Log__ServerId)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _ServerId;
     }
 
     public void setServerId(int value) {
@@ -25,7 +25,7 @@ public final class BIndex extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__ServerId(this, 1, value));
+        txn.putLog(new Log__ServerId(this, 1, value));
     }
 
     public long getNodeId() {
@@ -34,8 +34,8 @@ public final class BIndex extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _NodeId;
-        var log = (Log__NodeId)txn.GetLog(objectId() + 2);
-        return log != null ? log.Value : _NodeId;
+        var log = (Log__NodeId)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _NodeId;
     }
 
     public void setNodeId(long value) {
@@ -44,7 +44,7 @@ public final class BIndex extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__NodeId(this, 2, value));
+        txn.putLog(new Log__NodeId(this, 2, value));
     }
 
     public String getNamedName() {
@@ -53,8 +53,8 @@ public final class BIndex extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _NamedName;
-        var log = (Log__NamedName)txn.GetLog(objectId() + 3);
-        return log != null ? log.Value : _NamedName;
+        var log = (Log__NamedName)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _NamedName;
     }
 
     public void setNamedName(String value) {
@@ -65,7 +65,7 @@ public final class BIndex extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__NamedName(this, 3, value));
+        txn.putLog(new Log__NamedName(this, 3, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -99,7 +99,7 @@ public final class BIndex extends Zeze.Transaction.Bean {
 
     public BIndex copy() {
         var copy = new BIndex();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -109,9 +109,9 @@ public final class BIndex extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BIndex a, BIndex b) {
-        BIndex save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BIndex save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -130,21 +130,21 @@ public final class BIndex extends Zeze.Transaction.Bean {
         public Log__ServerId(BIndex bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BIndex)getBelong())._ServerId = Value; }
+        public void commit() { ((BIndex)getBelong())._ServerId = value; }
     }
 
     private static final class Log__NodeId extends Zeze.Transaction.Logs.LogLong {
         public Log__NodeId(BIndex bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BIndex)getBelong())._NodeId = Value; }
+        public void commit() { ((BIndex)getBelong())._NodeId = value; }
     }
 
     private static final class Log__NamedName extends Zeze.Transaction.Logs.LogString {
         public Log__NamedName(BIndex bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BIndex)getBelong())._NamedName = Value; }
+        public void commit() { ((BIndex)getBelong())._NamedName = value; }
     }
 
     @Override
@@ -252,9 +252,9 @@ public final class BIndex extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
-                case 2: _NodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                case 3: _NamedName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                case 1: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 2: _NodeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 3: _NamedName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
             }
         }
     }

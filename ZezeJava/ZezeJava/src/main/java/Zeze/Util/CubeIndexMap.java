@@ -9,25 +9,25 @@ import java.util.concurrent.ConcurrentHashMap;
  * 用来快速找到某个坐标周围的玩家或物体。
  */
 public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
-	private final ConcurrentHashMap<CubeIndex, TCube> Cubes = new ConcurrentHashMap<>();
-	private final int CubeSizeX;
-	private final int CubeSizeY;
-	private final int CubeSizeZ;
-	private final Factory<TCube> Factory;
+	private final ConcurrentHashMap<CubeIndex, TCube> cubes = new ConcurrentHashMap<>();
+	private final int cubeSizeX;
+	private final int cubeSizeY;
+	private final int cubeSizeZ;
+	private final Factory<TCube> factory;
 
 	public final int getCubeSizeX() {
-		return CubeSizeX;
+		return cubeSizeX;
 	}
 
 	public final int getCubeSizeY() {
-		return CubeSizeY;
+		return cubeSizeY;
 	}
 
 	public final int getCubeSizeZ() {
-		return CubeSizeZ;
+		return cubeSizeZ;
 	}
 
-	public final CubeIndex ToIndex(double x, double y, double z) {
+	public final CubeIndex toIndex(double x, double y, double z) {
 		CubeIndex tempVar = new CubeIndex();
 		tempVar.setX((long)(x / getCubeSizeX()));
 		tempVar.setY((long)(y / getCubeSizeY()));
@@ -35,7 +35,7 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 		return tempVar;
 	}
 
-	public final CubeIndex ToIndex(float x, float y, float z) {
+	public final CubeIndex toIndex(float x, float y, float z) {
 		CubeIndex tempVar = new CubeIndex();
 		tempVar.setX((long)(x / getCubeSizeX()));
 		tempVar.setY((long)(y / getCubeSizeY()));
@@ -43,7 +43,7 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 		return tempVar;
 	}
 
-	public final CubeIndex ToIndex(long x, long y, long z) {
+	public final CubeIndex toIndex(long x, long y, long z) {
 		CubeIndex tempVar = new CubeIndex();
 		tempVar.setX(x / getCubeSizeX());
 		tempVar.setY(y / getCubeSizeY());
@@ -52,21 +52,17 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 	}
 
 	public CubeIndexMap(Factory<TCube> factory, int cubeSizeX, int cubeSizeY, int cubeSizeZ) {
-		Factory = factory;
-
-		if (cubeSizeX <= 0) {
+		if (cubeSizeX <= 0)
 			throw new IllegalArgumentException("cubeSizeX <= 0");
-		}
-		if (cubeSizeY <= 0) {
+		if (cubeSizeY <= 0)
 			throw new IllegalArgumentException("cubeSizeY <= 0");
-		}
-		if (cubeSizeZ <= 0) {
+		if (cubeSizeZ <= 0)
 			throw new IllegalArgumentException("cubeSizeZ <= 0");
-		}
 
-		CubeSizeX = cubeSizeX;
-		CubeSizeY = cubeSizeY;
-		CubeSizeZ = cubeSizeZ;
+		this.factory = factory;
+		this.cubeSizeX = cubeSizeX;
+		this.cubeSizeY = cubeSizeY;
+		this.cubeSizeZ = cubeSizeZ;
 	}
 
 	public interface CubeHandle<TCube> {
@@ -77,14 +73,13 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 	 * perform action if cube exist.
 	 * under lock (cube)
 	 */
-	public final void TryPerform(CubeIndex index, CubeHandle<TCube> action) {
-		TCube cube = Cubes.get(index);
-		if (null != cube) {
+	public final void tryPerform(CubeIndex index, CubeHandle<TCube> action) {
+		var cube = cubes.get(index);
+		if (cube != null) {
 			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (cube) {
-				if (cube.getState() != Cube.StateRemoved) {
+				if (cube.getState() != Cube.StateRemoved)
 					action.handle(index, cube);
-				}
 			}
 		}
 	}
@@ -93,14 +88,13 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 	 * perform action for Cubes.GetOrAdd.
 	 * under lock (cube)
 	 */
-	public final void Perform(CubeIndex index, CubeHandle<TCube> action) {
+	public final void perform(CubeIndex index, CubeHandle<TCube> action) {
 		while (true) {
-			TCube cube = Cubes.computeIfAbsent(index, (key) -> Factory.create());
+			var cube = cubes.computeIfAbsent(index, (key) -> factory.create());
 			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (cube) {
-				if (cube.getState() == Cube.StateRemoved) {
+				if (cube.getState() == Cube.StateRemoved)
 					continue;
-				}
 				action.handle(index, cube);
 				break;
 			}
@@ -110,36 +104,35 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 	/**
 	 * 角色进入地图时
 	 */
-	public final void OnEnter(TObject obj, double x, double y, double z) {
-		Perform(ToIndex(x, y, z), (index, cube) -> cube.Add(index, obj));
+	public final void onEnter(TObject obj, double x, double y, double z) {
+		perform(toIndex(x, y, z), (index, cube) -> cube.add(index, obj));
 	}
 
-	public final void OnEnter(TObject obj, float x, float y, float z) {
-		Perform(ToIndex(x, y, z), (index, cube) -> cube.Add(index, obj));
+	public final void onEnter(TObject obj, float x, float y, float z) {
+		perform(toIndex(x, y, z), (index, cube) -> cube.add(index, obj));
 	}
 
-	public final void OnEnter(TObject obj, long x, long y, long z) {
-		Perform(ToIndex(x, y, z), (index, cube) -> cube.Add(index, obj));
+	public final void onEnter(TObject obj, long x, long y, long z) {
+		perform(toIndex(x, y, z), (index, cube) -> cube.add(index, obj));
 	}
 
-	public final void OnEnter(TObject obj, CubeIndex index) {
-		Perform(index, (index2, cube) -> cube.Add(index2, obj));
+	public final void onEnter(TObject obj, CubeIndex index) {
+		perform(index, (index2, cube) -> cube.add(index2, obj));
 	}
 
-	private void RemoveObject(CubeIndex index, TCube cube, TObject obj) {
-		if (cube.Remove(index, obj)) {
+	private void removeObject(CubeIndex index, TCube cube, TObject obj) {
+		if (cube.remove(index, obj)) {
 			cube.setState(Cube.StateRemoved);
-			Cubes.remove(index, cube);
+			cubes.remove(index, cube);
 		}
 	}
 
-	private boolean OnMove(CubeIndex oIndex, CubeIndex nIndex, TObject obj) {
-		if (oIndex.equals(nIndex)) {
+	private boolean onMove(CubeIndex oIndex, CubeIndex nIndex, TObject obj) {
+		if (oIndex.equals(nIndex))
 			return false;
-		}
 
-		TryPerform(oIndex, (index, cube) -> RemoveObject(index, cube, obj));
-		Perform(nIndex, (index, cube) -> cube.Add(index, obj));
+		tryPerform(oIndex, (index, cube) -> removeObject(index, cube, obj));
+		perform(nIndex, (index, cube) -> cube.add(index, obj));
 		return true;
 	}
 
@@ -148,43 +141,43 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 	 * return true 如果cube发生了变化。
 	 * return false 还在原来的cube中。
 	 */
-	public final boolean OnMove(TObject obj, double oldX, double oldY, double oldZ, double newX, double newY, double newZ) {
-		return OnMove(ToIndex(oldX, oldY, oldZ), ToIndex(newX, newY, newZ), obj);
+	public final boolean onMove(TObject obj, double oldX, double oldY, double oldZ, double newX, double newY, double newZ) {
+		return onMove(toIndex(oldX, oldY, oldZ), toIndex(newX, newY, newZ), obj);
 	}
 
-	public final boolean OnMove(TObject obj, float oldX, float oldY, float oldZ, float newX, float newY, float newZ) {
-		return OnMove(ToIndex(oldX, oldY, oldZ), ToIndex(newX, newY, newZ), obj);
+	public final boolean onMove(TObject obj, float oldX, float oldY, float oldZ, float newX, float newY, float newZ) {
+		return onMove(toIndex(oldX, oldY, oldZ), toIndex(newX, newY, newZ), obj);
 	}
 
-	public final boolean OnMove(TObject obj, long oldX, long oldY, long oldZ, long newX, long newY, long newZ) {
-		return OnMove(ToIndex(oldX, oldY, oldZ), ToIndex(newX, newY, newZ), obj);
+	public final boolean onMove(TObject obj, long oldX, long oldY, long oldZ, long newX, long newY, long newZ) {
+		return onMove(toIndex(oldX, oldY, oldZ), toIndex(newX, newY, newZ), obj);
 	}
 
-	public final boolean OnMove(TObject obj, CubeIndex oldIndex, CubeIndex newIndex) {
-		return OnMove(oldIndex, newIndex, obj);
+	public final boolean onMove(TObject obj, CubeIndex oldIndex, CubeIndex newIndex) {
+		return onMove(oldIndex, newIndex, obj);
 	}
 
 	/**
 	 * 角色离开地图时
 	 */
-	public final void OnLeave(TObject obj, double x, double y, double z) {
-		TryPerform(ToIndex(x, y, z), (index, cube) -> RemoveObject(index, cube, obj));
+	public final void onLeave(TObject obj, double x, double y, double z) {
+		tryPerform(toIndex(x, y, z), (index, cube) -> removeObject(index, cube, obj));
 	}
 
-	public final void OnLeave(TObject obj, float x, float y, float z) {
-		TryPerform(ToIndex(x, y, z), (index, cube) -> RemoveObject(index, cube, obj));
+	public final void onLeave(TObject obj, float x, float y, float z) {
+		tryPerform(toIndex(x, y, z), (index, cube) -> removeObject(index, cube, obj));
 	}
 
-	public final void OnLeave(TObject obj, long x, long y, long z) {
-		TryPerform(ToIndex(x, y, z), (index, cube) -> RemoveObject(index, cube, obj));
+	public final void onLeave(TObject obj, long x, long y, long z) {
+		tryPerform(toIndex(x, y, z), (index, cube) -> removeObject(index, cube, obj));
 	}
 
-	public final void OnLeave(TObject obj, CubeIndex index) {
-		TryPerform(index, (index2, cube) -> RemoveObject(index2, cube, obj));
+	public final void onLeave(TObject obj, CubeIndex index) {
+		tryPerform(index, (index2, cube) -> removeObject(index2, cube, obj));
 	}
 
-	public final ArrayList<TCube> GetCubes(CubeIndex center, int rangeX, int rangeY, int rangeZ) {
-		ArrayList<TCube> result = new ArrayList<>();
+	public final ArrayList<TCube> getCubes(CubeIndex center, int rangeX, int rangeY, int rangeZ) {
+		var result = new ArrayList<TCube>();
 		for (long i = center.getX() - rangeX; i <= center.getX() + rangeX; ++i) {
 			for (long j = center.getY() - rangeY; j <= center.getY() + rangeY; ++j) {
 				for (long k = center.getZ() - rangeZ; k <= center.getZ() + rangeZ; ++k) {
@@ -192,8 +185,8 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 					index.setX(i);
 					index.setY(j);
 					index.setZ(k);
-					TCube cube = Cubes.get(index);
-					if (null != cube)
+					var cube = cubes.get(index);
+					if (cube != null)
 						result.add(cube);
 				}
 			}
@@ -206,51 +199,51 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 	 * 可以遍历返回的Cube的所有角色，进一步进行精确的距离判断。
 	 */
 
-	public final java.util.ArrayList<TCube> GetCubes(double centerX, double centerY, double centerZ, int rangeX, int rangeY) {
-		return GetCubes(centerX, centerY, centerZ, rangeX, rangeY, 4);
+	public final java.util.ArrayList<TCube> getCubes(double centerX, double centerY, double centerZ, int rangeX, int rangeY) {
+		return getCubes(centerX, centerY, centerZ, rangeX, rangeY, 4);
 	}
 
-	public final java.util.ArrayList<TCube> GetCubes(double centerX, double centerY, double centerZ, int rangeX) {
-		return GetCubes(centerX, centerY, centerZ, rangeX, 4, 4);
+	public final java.util.ArrayList<TCube> getCubes(double centerX, double centerY, double centerZ, int rangeX) {
+		return getCubes(centerX, centerY, centerZ, rangeX, 4, 4);
 	}
 
-	public final java.util.ArrayList<TCube> GetCubes(double centerX, double centerY, double centerZ) {
-		return GetCubes(centerX, centerY, centerZ, 4, 4, 4);
+	public final java.util.ArrayList<TCube> getCubes(double centerX, double centerY, double centerZ) {
+		return getCubes(centerX, centerY, centerZ, 4, 4, 4);
 	}
 
-	public final ArrayList<TCube> GetCubes(double centerX, double centerY, double centerZ, int rangeX, int rangeY, int rangeZ) {
-		return GetCubes(ToIndex(centerX, centerY, centerZ), rangeX, rangeY, rangeZ);
+	public final ArrayList<TCube> getCubes(double centerX, double centerY, double centerZ, int rangeX, int rangeY, int rangeZ) {
+		return getCubes(toIndex(centerX, centerY, centerZ), rangeX, rangeY, rangeZ);
 	}
 
-	public final java.util.ArrayList<TCube> GetCubes(float centerX, float centerY, float centerZ, int rangeX, int rangeY) {
-		return GetCubes(centerX, centerY, centerZ, rangeX, rangeY, 4);
+	public final java.util.ArrayList<TCube> getCubes(float centerX, float centerY, float centerZ, int rangeX, int rangeY) {
+		return getCubes(centerX, centerY, centerZ, rangeX, rangeY, 4);
 	}
 
-	public final java.util.ArrayList<TCube> GetCubes(float centerX, float centerY, float centerZ, int rangeX) {
-		return GetCubes(centerX, centerY, centerZ, rangeX, 4, 4);
+	public final java.util.ArrayList<TCube> getCubes(float centerX, float centerY, float centerZ, int rangeX) {
+		return getCubes(centerX, centerY, centerZ, rangeX, 4, 4);
 	}
 
-	public final java.util.ArrayList<TCube> GetCubes(float centerX, float centerY, float centerZ) {
-		return GetCubes(centerX, centerY, centerZ, 4, 4, 4);
+	public final java.util.ArrayList<TCube> getCubes(float centerX, float centerY, float centerZ) {
+		return getCubes(centerX, centerY, centerZ, 4, 4, 4);
 	}
 
-	public final ArrayList<TCube> GetCubes(float centerX, float centerY, float centerZ, int rangeX, int rangeY, int rangeZ) {
-		return GetCubes(ToIndex(centerX, centerY, centerZ), rangeX, rangeY, rangeZ);
+	public final ArrayList<TCube> getCubes(float centerX, float centerY, float centerZ, int rangeX, int rangeY, int rangeZ) {
+		return getCubes(toIndex(centerX, centerY, centerZ), rangeX, rangeY, rangeZ);
 	}
 
-	public final java.util.ArrayList<TCube> GetCubes(long centerX, long centerY, long centerZ, int rangeX, int rangeY) {
-		return GetCubes(centerX, centerY, centerZ, rangeX, rangeY, 4);
+	public final java.util.ArrayList<TCube> getCubes(long centerX, long centerY, long centerZ, int rangeX, int rangeY) {
+		return getCubes(centerX, centerY, centerZ, rangeX, rangeY, 4);
 	}
 
-	public final java.util.ArrayList<TCube> GetCubes(long centerX, long centerY, long centerZ, int rangeX) {
-		return GetCubes(centerX, centerY, centerZ, rangeX, 4, 4);
+	public final java.util.ArrayList<TCube> getCubes(long centerX, long centerY, long centerZ, int rangeX) {
+		return getCubes(centerX, centerY, centerZ, rangeX, 4, 4);
 	}
 
-	public final java.util.ArrayList<TCube> GetCubes(long centerX, long centerY, long centerZ) {
-		return GetCubes(centerX, centerY, centerZ, 4, 4, 4);
+	public final java.util.ArrayList<TCube> getCubes(long centerX, long centerY, long centerZ) {
+		return getCubes(centerX, centerY, centerZ, 4, 4, 4);
 	}
 
-	public final ArrayList<TCube> GetCubes(long centerX, long centerY, long centerZ, int rangeX, int rangeY, int rangeZ) {
-		return GetCubes(ToIndex(centerX, centerY, centerZ), rangeX, rangeY, rangeZ);
+	public final ArrayList<TCube> getCubes(long centerX, long centerY, long centerZ, int rangeX, int rangeY, int rangeZ) {
+		return getCubes(toIndex(centerX, centerY, centerZ), rangeX, rangeY, rangeZ);
 	}
 }

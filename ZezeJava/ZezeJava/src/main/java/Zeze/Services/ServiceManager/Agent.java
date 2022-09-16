@@ -24,35 +24,35 @@ public final class Agent implements Closeable {
 	 * 使用Config配置连接信息，可以配置是否支持重连。
 	 * 用于测试：Agent.Client.NewClientSocket(...)，不会自动重连，不要和Config混用。
 	 */
-	public static final String DefaultServiceName = "Zeze.Services.ServiceManager.Agent";
+	public static final String defaultServiceName = "Zeze.Services.ServiceManager.Agent";
 
 	// key is ServiceName。对于一个Agent，一个服务只能有一个订阅。
 	// ServiceName ->
-	private final ConcurrentHashMap<String, SubscribeState> SubscribeStates = new ConcurrentHashMap<>();
-	private AgentClient Client;
+	private final ConcurrentHashMap<String, subscribeState> subscribeStates = new ConcurrentHashMap<>();
+	private AgentClient client;
 	private final Zeze.Application zeze;
 
 	/**
 	 * 订阅服务状态发生变化时回调。 如果需要处理这个事件，请在订阅前设置回调。
 	 */
-	private Action1<SubscribeState> OnChanged; // Simple (如果没有定义OnUpdate和OnRemove) Or ReadyCommit (Notify, Commit)
-	private Action2<SubscribeState, BServiceInfo> OnUpdate; // Simple (Register, Update)
-	private Action2<SubscribeState, BServiceInfo> OnRemove; // Simple (UnRegister)
-	private Action1<SubscribeState> OnPrepare; // ReadyCommit 的第一步回调。
-	private Action1<BServerLoad> OnSetServerLoad;
-	private Func1<BOfflineNotify, Boolean> OnOfflineNotify; // 返回是否处理成功且不需要其它notifier继续处理
+	private Action1<subscribeState> onChanged; // Simple (如果没有定义OnUpdate和OnRemove) Or ReadyCommit (Notify, Commit)
+	private Action2<subscribeState, BServiceInfo> onUpdate; // Simple (Register, Update)
+	private Action2<subscribeState, BServiceInfo> onRemove; // Simple (UnRegister)
+	private Action1<subscribeState> onPrepare; // ReadyCommit 的第一步回调。
+	private Action1<BServerLoad> onSetServerLoad;
+	private Func1<BOfflineNotify, Boolean> onOfflineNotify; // 返回是否处理成功且不需要其它notifier继续处理
 
 	// 应用可以在这个Action内起一个测试事务并执行一次。也可以实现其他检测。
 	// ServiceManager 定时发送KeepAlive给Agent，并等待结果。超时则认为服务失效。
-	private Runnable OnKeepAlive;
+	private Runnable onKeepAlive;
 
-	private final ConcurrentHashMap<BServiceInfo, BServiceInfo> Registers = new ConcurrentHashMap<>();
-	private final ConcurrentHashMap<String, AutoKey> AutoKeys = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<BServiceInfo, BServiceInfo> registers = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, AutoKey> autoKeys = new ConcurrentHashMap<>();
 
-	public final ConcurrentHashMap<String, BServerLoad> Loads = new ConcurrentHashMap<>();
+	public final ConcurrentHashMap<String, BServerLoad> loads = new ConcurrentHashMap<>();
 
-	public ConcurrentHashMap<String, SubscribeState> getSubscribeStates() {
-		return SubscribeStates;
+	public ConcurrentHashMap<String, subscribeState> getSubscribeStates() {
+		return subscribeStates;
 	}
 
 	/*
@@ -66,81 +66,81 @@ public final class Agent implements Closeable {
 	*/
 
 	public AgentClient getClient() {
-		return Client;
+		return client;
 	}
 
 	public Zeze.Application getZeze() {
 		return zeze;
 	}
 
-	public Action1<SubscribeState> getOnChanged() {
-		return OnChanged;
+	public Action1<subscribeState> getOnChanged() {
+		return onChanged;
 	}
 
-	public void setOnChanged(Action1<SubscribeState> value) {
-		OnChanged = value;
+	public void setOnChanged(Action1<subscribeState> value) {
+		onChanged = value;
 	}
 
 	public void setOnSetServerLoad(Action1<BServerLoad> value) {
-		OnSetServerLoad = value;
+		onSetServerLoad = value;
 	}
 
 	public void setOnOfflineNotify(Func1<BOfflineNotify, Boolean> value) {
-		OnOfflineNotify = value;
+		onOfflineNotify = value;
 	}
 
 	public Func1<BOfflineNotify, Boolean> getOnOfflineNotify() {
-		return OnOfflineNotify;
+		return onOfflineNotify;
 	}
 
-	public void setOnPrepare(Action1<SubscribeState> value) {
-		OnPrepare = value;
+	public void setOnPrepare(Action1<subscribeState> value) {
+		onPrepare = value;
 	}
 
-	public Action2<SubscribeState, BServiceInfo> getOnRemoved() {
-		return OnRemove;
+	public Action2<subscribeState, BServiceInfo> getOnRemoved() {
+		return onRemove;
 	}
 
-	public void setOnRemoved(Action2<SubscribeState, BServiceInfo> value) {
-		OnRemove = value;
+	public void setOnRemoved(Action2<subscribeState, BServiceInfo> value) {
+		onRemove = value;
 	}
 
-	public Action2<SubscribeState, BServiceInfo> getOnUpdate() {
-		return OnUpdate;
+	public Action2<subscribeState, BServiceInfo> getOnUpdate() {
+		return onUpdate;
 	}
 
-	public void setOnUpdate(Action2<SubscribeState, BServiceInfo> value) {
-		OnUpdate = value;
+	public void setOnUpdate(Action2<subscribeState, BServiceInfo> value) {
+		onUpdate = value;
 	}
 
 	public Runnable getOnKeepAlive() {
-		return OnKeepAlive;
+		return onKeepAlive;
 	}
 
 	public void setOnKeepAlive(Runnable value) {
-		OnKeepAlive = value;
+		onKeepAlive = value;
 	}
 
 	// 【警告】
 	// 记住当前已经注册和订阅信息，当ServiceManager连接发生重连时，重新发送请求。
 	// 维护这些状态数据都是先更新本地再发送远程请求，在失败的时候rollback。
 	// 当同一个Key(比如ServiceName)存在并发时，现在处理所有情况，但不保证都是合理的。
-	public final class SubscribeState {
+	public final class subscribeState {
 		private final BSubscribeInfo subscribeInfo;
-		private volatile BServiceInfos ServiceInfos;
-		private volatile BServiceInfos ServiceInfosPending;
+		private volatile BServiceInfos serviceInfos;
+		private volatile BServiceInfos serviceInfosPending;
 
 		/**
 		 * 刚初始化时为false，任何修改ServiceInfos都会设置成true。 用来处理Subscribe返回的第一份数据和Commit可能乱序的问题。
 		 * 目前的实现不会发生乱序。
 		 */
-		private boolean Committed = false;
+		private boolean committed = false;
 		// 服务准备好。
-		public final ConcurrentHashMap<String, Object> LocalStates = new ConcurrentHashMap<>();
+		public final ConcurrentHashMap<String, Object> localStates = new ConcurrentHashMap<>();
 
 		@Override
 		public String toString() {
-			return getSubscribeType() + " " + ServiceInfos;
+			return getSubscribeType() + " " + serviceInfos;
 		}
 
 		public BSubscribeInfo getSubscribeInfo() {
@@ -156,56 +156,56 @@ public final class Agent implements Closeable {
 		}
 
 		public BServiceInfos getServiceInfos() {
-			return ServiceInfos;
+			return serviceInfos;
 		}
 
 		public BServiceInfos getServiceInfosPending() {
-			return ServiceInfosPending;
+			return serviceInfosPending;
 		}
 
-		public SubscribeState(BSubscribeInfo info) {
+		public subscribeState(BSubscribeInfo info) {
 			subscribeInfo = info;
-			ServiceInfos = new BServiceInfos(info.getServiceName());
+			serviceInfos = new BServiceInfos(info.getServiceName());
 		}
 
 		// NOT UNDER LOCK
 		@SuppressWarnings("UnusedReturnValue")
-		private boolean TrySendReadyServiceList() {
-			var pending = ServiceInfosPending;
+		private boolean trySendReadyServiceList() {
+			var pending = serviceInfosPending;
 			if (pending == null)
 				return false;
 
 			for (var p : pending.getServiceInfoListSortedByIdentity()) {
-				if (!LocalStates.containsKey(p.getServiceIdentity()))
+				if (!localStates.containsKey(p.getServiceIdentity()))
 					return false;
 			}
-			var s = Client.getSocket();
+			var s = client.getSocket();
 			if (s != null) {
 				var r = new ReadyServiceList();
-				r.Argument.ServiceName = pending.getServiceName();
-				r.Argument.SerialId = pending.getSerialId();
+				r.Argument.serviceName = pending.getServiceName();
+				r.Argument.serialId = pending.getSerialId();
 				s.Send(r);
 			}
 			return true;
 		}
 
-		public void SetServiceIdentityReadyState(String identity, Object state) {
+		public void setServiceIdentityReadyState(String identity, Object state) {
 			if (state == null)
-				LocalStates.remove(identity);
+				localStates.remove(identity);
 			else
-				LocalStates.put(identity, state);
+				localStates.put(identity, state);
 
 			synchronized (this) {
 				// 尝试发送Ready，如果有pending.
-				TrySendReadyServiceList();
+				trySendReadyServiceList();
 			}
 		}
 
-		private void PrepareAndTriggerOnChanged() {
-			if (OnChanged != null) {
+		private void prepareAndTriggerOnChanged() {
+			if (onChanged != null) {
 				Task.getCriticalThreadPool().execute(() -> {
 					try {
-						OnChanged.run(this);
+						onChanged.run(this);
 					} catch (Throwable e) {
 						logger.error("", e);
 					}
@@ -213,20 +213,20 @@ public final class Agent implements Closeable {
 			}
 		}
 
-		synchronized void OnRegister(BServiceInfo info) {
-			ServiceInfos.Insert(info);
-			if (OnUpdate != null) {
+		synchronized void onRegister(BServiceInfo info) {
+			serviceInfos.insert(info);
+			if (onUpdate != null) {
 				Task.getCriticalThreadPool().execute(() -> {
 					try {
-						OnUpdate.run(this, info);
+						onUpdate.run(this, info);
 					} catch (Throwable e) {
 						logger.error("", e);
 					}
 				});
-			} else if (OnChanged != null) {
+			} else if (onChanged != null) {
 				Task.getCriticalThreadPool().execute(() -> {
 					try {
-						OnChanged.run(this);
+						onChanged.run(this);
 					} catch (Throwable e) {
 						logger.error("", e);
 					}
@@ -234,22 +234,22 @@ public final class Agent implements Closeable {
 			}
 		}
 
-		synchronized void OnUnRegister(BServiceInfo info) {
-			var removed = ServiceInfos.Remove(info);
+		synchronized void onUnRegister(BServiceInfo info) {
+			var removed = serviceInfos.remove(info);
 			if (removed == null)
 				return;
-			if (OnRemove != null) {
+			if (onRemove != null) {
 				Task.getCriticalThreadPool().execute(() -> {
 					try {
-						OnRemove.run(this, removed);
+						onRemove.run(this, removed);
 					} catch (Throwable e) {
 						logger.error("", e);
 					}
 				});
-			} else if (OnChanged != null) {
+			} else if (onChanged != null) {
 				Task.getCriticalThreadPool().execute(() -> {
 					try {
-						OnChanged.run(this);
+						onChanged.run(this);
 					} catch (Throwable e) {
 						logger.error("", e);
 					}
@@ -257,26 +257,26 @@ public final class Agent implements Closeable {
 			}
 		}
 
-		synchronized void OnUpdate(BServiceInfo info) {
-			var exist = ServiceInfos.findServiceInfo(info);
+		synchronized void onUpdate(BServiceInfo info) {
+			var exist = serviceInfos.findServiceInfo(info);
 			if (exist == null)
 				return;
 			exist.setPassiveIp(info.getPassiveIp());
 			exist.setPassivePort(info.getPassivePort());
 			exist.setExtraInfo(info.getExtraInfo());
 
-			if (OnUpdate != null) {
+			if (onUpdate != null) {
 				Task.getCriticalThreadPool().execute(() -> {
 					try {
-						OnUpdate.run(this, exist);
+						onUpdate.run(this, exist);
 					} catch (Throwable e) {
 						logger.error("", e);
 					}
 				});
-			} else if (OnChanged != null) {
+			} else if (onChanged != null) {
 				Task.getCriticalThreadPool().execute(() -> {
 					try {
-						OnChanged.run(this);
+						onChanged.run(this);
 					} catch (Throwable e) {
 						logger.error("", e);
 					}
@@ -284,87 +284,87 @@ public final class Agent implements Closeable {
 			}
 		}
 
-		public synchronized void OnNotify(BServiceInfos infos) {
+		public synchronized void onNotify(BServiceInfos infos) {
 			switch (getSubscribeType()) {
 			case BSubscribeInfo.SubscribeTypeSimple:
-				ServiceInfos = infos;
-				Committed = true;
-				PrepareAndTriggerOnChanged();
+				serviceInfos = infos;
+				committed = true;
+				prepareAndTriggerOnChanged();
 				break;
 
 			case BSubscribeInfo.SubscribeTypeReadyCommit:
-				if (ServiceInfosPending == null || infos.getSerialId() > ServiceInfosPending.getSerialId()) {
-					ServiceInfosPending = infos;
-					if (OnPrepare != null) {
+				if (serviceInfosPending == null || infos.getSerialId() > serviceInfosPending.getSerialId()) {
+					serviceInfosPending = infos;
+					if (onPrepare != null) {
 						Task.getCriticalThreadPool().execute(() -> {
 							try {
-								OnPrepare.run(this);
+								onPrepare.run(this);
 							} catch (Throwable e) {
 								logger.error("", e);
 							}
 						});
 					}
-					TrySendReadyServiceList();
+					trySendReadyServiceList();
 				}
 				break;
 			}
 		}
 
-		public synchronized void OnFirstCommit(BServiceInfos infos) {
-			if (Committed)
+		public synchronized void onFirstCommit(BServiceInfos infos) {
+			if (committed)
 				return;
 			if (getSubscribeType() == BSubscribeInfo.SubscribeTypeReadyCommit)
 				return; // ReadyCommit 模式不会走到这里。OnNotify(infos);
-			Committed = true;
-			ServiceInfos = infos;
-			ServiceInfosPending = null;
-			PrepareAndTriggerOnChanged();
+			committed = true;
+			serviceInfos = infos;
+			serviceInfosPending = null;
+			prepareAndTriggerOnChanged();
 		}
 
-		public synchronized void OnCommit(BServiceListVersion version) {
-			if (ServiceInfosPending == null)
+		public synchronized void onCommit(BServiceListVersion version) {
+			if (serviceInfosPending == null)
 				return; // 并发过来的Commit，只需要处理一个。
-			if (version.SerialId != ServiceInfosPending.getSerialId())
-				logger.warn("OnCommit {} {} != {}", getServiceName(), version.SerialId, ServiceInfosPending.getSerialId());
-			ServiceInfos = ServiceInfosPending;
-			ServiceInfosPending = null;
-			Committed = true;
-			PrepareAndTriggerOnChanged();
+			if (version.serialId != serviceInfosPending.getSerialId())
+				logger.warn("OnCommit {} {} != {}", getServiceName(), version.serialId, serviceInfosPending.getSerialId());
+			serviceInfos = serviceInfosPending;
+			serviceInfosPending = null;
+			committed = true;
+			prepareAndTriggerOnChanged();
 		}
 	}
 
-	public BServiceInfo RegisterService(String name, String identity) {
-		return RegisterService(name, identity, null, 0, null);
+	public BServiceInfo registerService(String name, String identity) {
+		return registerService(name, identity, null, 0, null);
 	}
 
-	public BServiceInfo RegisterService(String name, String identity, String ip) {
-		return RegisterService(name, identity, ip, 0, null);
+	public BServiceInfo registerService(String name, String identity, String ip) {
+		return registerService(name, identity, ip, 0, null);
 	}
 
-	public BServiceInfo RegisterService(String name, String identity, String ip, int port) {
-		return RegisterService(name, identity, ip, port, null);
+	public BServiceInfo registerService(String name, String identity, String ip, int port) {
+		return registerService(name, identity, ip, port, null);
 	}
 
-	public BServiceInfo RegisterService(String name, String identity, String ip, int port, Binary extraInfo) {
-		return RegisterService(new BServiceInfo(name, identity, ip, port, extraInfo));
+	public BServiceInfo registerService(String name, String identity, String ip, int port, Binary extraInfo) {
+		return registerService(new BServiceInfo(name, identity, ip, port, extraInfo));
 	}
 
-	public BServiceInfo UpdateService(String name, String identity, String ip, int port, Binary extraInfo) {
-		return UpdateService(new BServiceInfo(name, identity, ip, port, extraInfo));
+	public BServiceInfo updateService(String name, String identity, String ip, int port, Binary extraInfo) {
+		return updateService(new BServiceInfo(name, identity, ip, port, extraInfo));
 	}
 
-	public void WaitConnectorReady() {
+	public void waitConnectorReady() {
 		// 实际上只有一个连接，这样就不用查找了。
-		Client.getConfig().forEachConnector(Connector::WaitReady);
+		client.getConfig().forEachConnector(Connector::WaitReady);
 	}
 
-	private BServiceInfo UpdateService(BServiceInfo info) {
-		WaitConnectorReady();
-		var reg = Registers.get(info);
+	private BServiceInfo updateService(BServiceInfo info) {
+		waitConnectorReady();
+		var reg = registers.get(info);
 		if (reg == null)
 			return null;
 
-		new Update(info).SendAndWaitCheckResultCode(Client.getSocket());
+		new Update(info).SendAndWaitCheckResultCode(client.getSocket());
 
 		reg.setPassiveIp(info.getPassiveIp());
 		reg.setPassivePort(info.getPassivePort());
@@ -372,59 +372,59 @@ public final class Agent implements Closeable {
 		return reg;
 	}
 
-	private static void Verify(String identity) {
+	private static void verify(String identity) {
 		if (!identity.startsWith("@")) {
 			//noinspection ResultOfMethodCallIgnored
 			Integer.parseInt(identity);
 		}
 	}
 
-	private BServiceInfo RegisterService(BServiceInfo info) {
-		Verify(info.getServiceIdentity());
-		WaitConnectorReady();
+	private BServiceInfo registerService(BServiceInfo info) {
+		verify(info.getServiceIdentity());
+		waitConnectorReady();
 
 		var regNew = new OutObject<Boolean>();
-		regNew.Value = false;
-		var regServInfo = Registers.computeIfAbsent(info, key -> {
-			regNew.Value = true;
+		regNew.value = false;
+		var regServInfo = registers.computeIfAbsent(info, key -> {
+			regNew.value = true;
 			return key;
 		});
 
-		if (regNew.Value) {
+		if (regNew.value) {
 			try {
-				new Register(info).SendAndWaitCheckResultCode(Client.getSocket());
+				new Register(info).SendAndWaitCheckResultCode(client.getSocket());
 				logger.debug("RegisterService {}", info);
 			} catch (Throwable e) {
-				Registers.remove(info, info); // rollback
+				registers.remove(info, info); // rollback
 				throw e;
 			}
 		}
 		return regServInfo;
 	}
 
-	public void UnRegisterService(String name, String identity) {
-		UnRegisterService(new BServiceInfo(name, identity));
+	public void unRegisterService(String name, String identity) {
+		unRegisterService(new BServiceInfo(name, identity));
 	}
 
-	private void UnRegisterService(BServiceInfo info) {
-		WaitConnectorReady();
+	private void unRegisterService(BServiceInfo info) {
+		waitConnectorReady();
 
-		var exist = Registers.remove(info);
+		var exist = registers.remove(info);
 		if (exist != null) {
 			try {
-				new UnRegister(info).SendAndWaitCheckResultCode(Client.getSocket());
+				new UnRegister(info).SendAndWaitCheckResultCode(client.getSocket());
 			} catch (Throwable e) {
-				Registers.putIfAbsent(exist, exist); // rollback
+				registers.putIfAbsent(exist, exist); // rollback
 				throw e;
 			}
 		}
 	}
 
-	public SubscribeState SubscribeService(String serviceName, int type) {
-		return SubscribeService(serviceName, type, null);
+	public subscribeState subscribeService(String serviceName, int type) {
+		return subscribeService(serviceName, type, null);
 	}
 
-	public SubscribeState SubscribeService(String serviceName, int type, Object state) {
+	public subscribeState subscribeService(String serviceName, int type, Object state) {
 		if (type != BSubscribeInfo.SubscribeTypeSimple && type != BSubscribeInfo.SubscribeTypeReadyCommit)
 			throw new UnsupportedOperationException("Unknown SubscribeType: " + type);
 
@@ -432,141 +432,141 @@ public final class Agent implements Closeable {
 		info.setServiceName(serviceName);
 		info.setSubscribeType(type);
 		info.setLocalState(state);
-		return SubscribeService(info);
+		return subscribeService(info);
 	}
 
-	private SubscribeState SubscribeService(BSubscribeInfo info) {
-		WaitConnectorReady();
+	private subscribeState subscribeService(BSubscribeInfo info) {
+		waitConnectorReady();
 
 		final var newAdd = new OutObject<Boolean>();
-		newAdd.Value = false;
-		var subState = SubscribeStates.computeIfAbsent(info.getServiceName(), __ -> {
-			newAdd.Value = true;
-			return new SubscribeState(info);
+		newAdd.value = false;
+		var subState = subscribeStates.computeIfAbsent(info.getServiceName(), __ -> {
+			newAdd.value = true;
+			return new subscribeState(info);
 		});
 
-		if (newAdd.Value) {
+		if (newAdd.value) {
 			var r = new Subscribe(info);
-			r.SendAndWaitCheckResultCode(Client.getSocket());
+			r.SendAndWaitCheckResultCode(client.getSocket());
 			logger.debug("SubscribeService {}", info);
 		}
 		return subState;
 	}
 
-	public void UnSubscribeService(String serviceName) {
-		WaitConnectorReady();
+	public void unSubscribeService(String serviceName) {
+		waitConnectorReady();
 
-		var state = SubscribeStates.remove(serviceName);
+		var state = subscribeStates.remove(serviceName);
 		if (state != null) {
 			try {
 				var r = new UnSubscribe(state.subscribeInfo);
-				r.SendAndWaitCheckResultCode(Client.getSocket());
+				r.SendAndWaitCheckResultCode(client.getSocket());
 				logger.debug("UnSubscribeService {}", state.subscribeInfo);
 			} catch (Throwable e) {
-				SubscribeStates.putIfAbsent(serviceName, state); // rollback
+				subscribeStates.putIfAbsent(serviceName, state); // rollback
 				throw e;
 			}
 		}
 	}
 
-	public AutoKey GetAutoKey(String name) {
-		return AutoKeys.computeIfAbsent(name, k -> new AutoKey(k, this));
+	public AutoKey getAutoKey(String name) {
+		return autoKeys.computeIfAbsent(name, k -> new AutoKey(k, this));
 	}
 
-	public boolean SetServerLoad(BServerLoad load) {
-		return new SetServerLoad(load).Send(Client.getSocket());
+	public boolean setServerLoad(BServerLoad load) {
+		return new SetServerLoad(load).Send(client.getSocket());
 	}
 
-	public void OfflineRegister(BOfflineNotify argument) {
-		WaitConnectorReady();
-		new OfflineRegister(argument).SendAndWaitCheckResultCode(Client.getSocket());
+	public void offlineRegister(BOfflineNotify argument) {
+		waitConnectorReady();
+		new OfflineRegister(argument).SendAndWaitCheckResultCode(client.getSocket());
 	}
 
-	public void OnConnected() {
-		for (var e : Registers.keySet()) {
+	public void onConnected() {
+		for (var e : registers.keySet()) {
 			try {
-				new Register(e).SendAndWaitCheckResultCode(Client.getSocket());
+				new Register(e).SendAndWaitCheckResultCode(client.getSocket());
 			} catch (Throwable ex) {
 				logger.debug("OnConnected.Register={}", e, ex);
 			}
 		}
-		for (var e : SubscribeStates.values()) {
+		for (var e : subscribeStates.values()) {
 			try {
-				e.Committed = false;
+				e.committed = false;
 				var r = new Subscribe();
 				r.Argument = e.subscribeInfo;
-				r.SendAndWaitCheckResultCode(Client.getSocket());
+				r.SendAndWaitCheckResultCode(client.getSocket());
 			} catch (Throwable ex) {
 				logger.debug("OnConnected.Subscribe={}", e.subscribeInfo, ex);
 			}
 		}
 	}
 
-	private long ProcessRegister(Register r) {
-		var state = SubscribeStates.get(r.Argument.getServiceName());
+	private long processRegister(Register r) {
+		var state = subscribeStates.get(r.Argument.getServiceName());
 		if (state == null)
 			return Update.ServiceNotSubscribe;
-		state.OnRegister(r.Argument);
+		state.onRegister(r.Argument);
 		r.SendResult();
 		return 0;
 	}
 
-	private long ProcessUnRegister(UnRegister r) {
-		var state = SubscribeStates.get(r.Argument.getServiceName());
+	private long processUnRegister(UnRegister r) {
+		var state = subscribeStates.get(r.Argument.getServiceName());
 		if (state == null)
 			return Update.ServiceNotSubscribe;
-		state.OnUnRegister(r.Argument);
+		state.onUnRegister(r.Argument);
 		r.SendResult();
 		return 0;
 	}
 
-	private long ProcessUpdate(Update r) {
-		var state = SubscribeStates.get(r.Argument.getServiceName());
+	private long processUpdate(Update r) {
+		var state = subscribeStates.get(r.Argument.getServiceName());
 		if (state == null)
 			return Update.ServiceNotSubscribe;
-		state.OnUpdate(r.Argument);
+		state.onUpdate(r.Argument);
 		r.SendResult();
 		return 0;
 	}
 
-	private long ProcessNotifyServiceList(NotifyServiceList r) {
-		var state = SubscribeStates.get(r.Argument.getServiceName());
+	private long processNotifyServiceList(NotifyServiceList r) {
+		var state = subscribeStates.get(r.Argument.getServiceName());
 		if (state != null)
-			state.OnNotify(r.Argument);
+			state.onNotify(r.Argument);
 		else
 			logger.warn("NotifyServiceList But SubscribeState Not Found.");
 		return Procedure.Success;
 	}
 
-	private long ProcessSubscribeFirstCommit(SubscribeFirstCommit r) {
-		var state = SubscribeStates.get(r.Argument.getServiceName());
+	private long processSubscribeFirstCommit(SubscribeFirstCommit r) {
+		var state = subscribeStates.get(r.Argument.getServiceName());
 		if (state != null)
-			state.OnFirstCommit(r.Argument);
+			state.onFirstCommit(r.Argument);
 		return Procedure.Success;
 	}
 
-	private long ProcessCommitServiceList(CommitServiceList r) {
-		var state = SubscribeStates.get(r.Argument.ServiceName);
+	private long processCommitServiceList(CommitServiceList r) {
+		var state = subscribeStates.get(r.Argument.serviceName);
 		if (state != null)
-			state.OnCommit(r.Argument);
+			state.onCommit(r.Argument);
 		else
 			logger.warn("CommitServiceList But SubscribeState Not Found.");
 		return Procedure.Success;
 	}
 
-	private long ProcessKeepAlive(KeepAlive r) {
-		if (OnKeepAlive != null)
-			Task.getCriticalThreadPool().execute(OnKeepAlive);
+	private long processKeepAlive(KeepAlive r) {
+		if (onKeepAlive != null)
+			Task.getCriticalThreadPool().execute(onKeepAlive);
 		r.SendResultCode(KeepAlive.Success);
 		return Procedure.Success;
 	}
 
-	private long ProcessSetServerLoad(SetServerLoad setServerLoad) {
-		Loads.put(setServerLoad.Argument.getName(), setServerLoad.Argument);
-		if (OnSetServerLoad != null) {
+	private long processSetServerLoad(SetServerLoad setServerLoad) {
+		loads.put(setServerLoad.Argument.getName(), setServerLoad.Argument);
+		if (onSetServerLoad != null) {
 			Task.getCriticalThreadPool().execute(() -> {
 				try {
-					OnSetServerLoad.run(setServerLoad.Argument);
+					onSetServerLoad.run(setServerLoad.Argument);
 				} catch (Throwable e) {
 					logger.error("", e);
 				}
@@ -575,13 +575,13 @@ public final class Agent implements Closeable {
 		return Procedure.Success;
 	}
 
-	private long ProcessOfflineNotify(OfflineNotify r) {
-		if (OnOfflineNotify == null) {
+	private long processOfflineNotify(OfflineNotify r) {
+		if (onOfflineNotify == null) {
 			r.trySendResultCode(1);
 			return 0;
 		}
 		try {
-			if (OnOfflineNotify.call(r.Argument)) {
+			if (onOfflineNotify.call(r.Argument)) {
 				r.SendResult();
 				return 0;
 			}
@@ -604,50 +604,50 @@ public final class Agent implements Closeable {
 			throw new IllegalStateException("Config is null");
 		}
 
-		Client = (null == netServiceName || netServiceName.isEmpty())
+		client = (null == netServiceName || netServiceName.isEmpty())
 				? new AgentClient(this, config)
 				: new AgentClient(this, config, netServiceName);
 
-		Client.AddFactoryHandle(Register.TypeId_, new ProtocolFactoryHandle<>(
-				Register::new, this::ProcessRegister, TransactionLevel.None, DispatchMode.Direct));
-		Client.AddFactoryHandle(UnRegister.TypeId_, new ProtocolFactoryHandle<>(
-				UnRegister::new, this::ProcessUnRegister, TransactionLevel.None, DispatchMode.Direct));
-		Client.AddFactoryHandle(Update.TypeId_, new ProtocolFactoryHandle<>(
-				Update::new, this::ProcessUpdate, TransactionLevel.None, DispatchMode.Direct));
-		Client.AddFactoryHandle(Subscribe.TypeId_, new ProtocolFactoryHandle<>(
+		client.AddFactoryHandle(Register.TypeId_, new ProtocolFactoryHandle<>(
+				Register::new, this::processRegister, TransactionLevel.None, DispatchMode.Direct));
+		client.AddFactoryHandle(UnRegister.TypeId_, new ProtocolFactoryHandle<>(
+				UnRegister::new, this::processUnRegister, TransactionLevel.None, DispatchMode.Direct));
+		client.AddFactoryHandle(Update.TypeId_, new ProtocolFactoryHandle<>(
+				Update::new, this::processUpdate, TransactionLevel.None, DispatchMode.Direct));
+		client.AddFactoryHandle(Subscribe.TypeId_, new ProtocolFactoryHandle<>(
 				Subscribe::new, null, TransactionLevel.None, DispatchMode.Direct));
-		Client.AddFactoryHandle(UnSubscribe.TypeId_, new ProtocolFactoryHandle<>(
+		client.AddFactoryHandle(UnSubscribe.TypeId_, new ProtocolFactoryHandle<>(
 				UnSubscribe::new, null, TransactionLevel.None, DispatchMode.Direct));
-		Client.AddFactoryHandle(NotifyServiceList.TypeId_, new ProtocolFactoryHandle<>(
-				NotifyServiceList::new, this::ProcessNotifyServiceList, TransactionLevel.None, DispatchMode.Direct));
-		Client.AddFactoryHandle(SubscribeFirstCommit.TypeId_, new ProtocolFactoryHandle<>(
-				SubscribeFirstCommit::new, this::ProcessSubscribeFirstCommit, TransactionLevel.None, DispatchMode.Direct));
-		Client.AddFactoryHandle(CommitServiceList.TypeId_, new ProtocolFactoryHandle<>(
-				CommitServiceList::new, this::ProcessCommitServiceList, TransactionLevel.None, DispatchMode.Direct));
-		Client.AddFactoryHandle(KeepAlive.TypeId_, new ProtocolFactoryHandle<>(
-				KeepAlive::new, this::ProcessKeepAlive, TransactionLevel.None, DispatchMode.Direct));
-		Client.AddFactoryHandle(AllocateId.TypeId_, new ProtocolFactoryHandle<>(
+		client.AddFactoryHandle(NotifyServiceList.TypeId_, new ProtocolFactoryHandle<>(
+				NotifyServiceList::new, this::processNotifyServiceList, TransactionLevel.None, DispatchMode.Direct));
+		client.AddFactoryHandle(SubscribeFirstCommit.TypeId_, new ProtocolFactoryHandle<>(
+				SubscribeFirstCommit::new, this::processSubscribeFirstCommit, TransactionLevel.None, DispatchMode.Direct));
+		client.AddFactoryHandle(CommitServiceList.TypeId_, new ProtocolFactoryHandle<>(
+				CommitServiceList::new, this::processCommitServiceList, TransactionLevel.None, DispatchMode.Direct));
+		client.AddFactoryHandle(KeepAlive.TypeId_, new ProtocolFactoryHandle<>(
+				KeepAlive::new, this::processKeepAlive, TransactionLevel.None, DispatchMode.Direct));
+		client.AddFactoryHandle(AllocateId.TypeId_, new ProtocolFactoryHandle<>(
 				AllocateId::new, null, TransactionLevel.None, DispatchMode.Direct));
-		Client.AddFactoryHandle(SetServerLoad.TypeId_, new ProtocolFactoryHandle<>(
-				SetServerLoad::new, this::ProcessSetServerLoad, TransactionLevel.None, DispatchMode.Direct));
+		client.AddFactoryHandle(SetServerLoad.TypeId_, new ProtocolFactoryHandle<>(
+				SetServerLoad::new, this::processSetServerLoad, TransactionLevel.None, DispatchMode.Direct));
 
-		Client.AddFactoryHandle(OfflineNotify.TypeId_, new ProtocolFactoryHandle<>(
-				OfflineNotify::new, this::ProcessOfflineNotify, TransactionLevel.None, DispatchMode.Critical));
-		Client.AddFactoryHandle(OfflineRegister.TypeId_, new ProtocolFactoryHandle<>(
+		client.AddFactoryHandle(OfflineNotify.TypeId_, new ProtocolFactoryHandle<>(
+				OfflineNotify::new, this::processOfflineNotify, TransactionLevel.None, DispatchMode.Critical));
+		client.AddFactoryHandle(OfflineRegister.TypeId_, new ProtocolFactoryHandle<>(
 				OfflineRegister::new, null, TransactionLevel.None, DispatchMode.Normal));
 	}
 
-	public synchronized void Stop() throws Throwable {
-		if (Client != null) {
-			Client.Stop();
-			Client = null;
+	public synchronized void stop() throws Throwable {
+		if (client != null) {
+			client.Stop();
+			client = null;
 		}
 	}
 
 	@Override
 	public void close() throws IOException {
 		try {
-			Stop();
+			stop();
 		} catch (Throwable e) {
 			throw new IOException(e);
 		}

@@ -13,7 +13,7 @@ public class App {
 	private final Config config;
 
 	public App(int serverId) {
-		config = Config.Load("zeze.xml");
+		config = Config.load("zeze.xml");
 		config.setServerId(serverId);
 		config.setFastRedoWhenConflict(false);
 		config.setCheckpointPeriod(1000);
@@ -65,7 +65,7 @@ public class App {
 		}
 		Tasks.getRunCounter(name).increment();
 		RunningTasks.add(task.IsProcedure()
-				? Task.runUnsafe(app.Zeze.NewProcedure(task, name), null, null, DispatchMode.Normal)
+				? Task.runUnsafe(app.Zeze.newProcedure(task, name), null, null, DispatchMode.Normal)
 				: Task.runUnsafe(task::call, name, DispatchMode.Normal));
 	}
 

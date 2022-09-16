@@ -87,7 +87,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 
 		if (isDebugEnabled)
 			logger.debug("Acquire NewState={} {}", state, this);
-		if (Macro.EnableStatistics) {
+		if (Macro.enableStatistics) {
 			var stat = TableStatistics.getInstance().getOrAdd(table.getId());
 			switch (state) {
 			case GlobalCacheManagerConst.StateInvalid:

@@ -69,7 +69,7 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 
 		@Override
 		public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) {
-			Task.run(getZeze().NewProcedure(
+			Task.run(getZeze().newProcedure(
 					() -> {
 						Transaction.whileCommit(() -> p.SendResultCode(p.getResultCode()));
 						return factoryHandle.Handle.handle(p);},

@@ -172,7 +172,7 @@ public class Connector {
 		synchronized (this) {
 			if (socket == so) {
 				// java 没有TrySetResult，所以如果上面的检查不充分，仍然会有问题。
-				futureSocket.SetResult(so);
+				futureSocket.setResult(so);
 				return;
 			}
 		}
@@ -203,7 +203,7 @@ public class Connector {
 			}
 			if (socket == null)
 				return; // not start or has stopped.
-			futureSocket.SetException(e != null ? e : new Exception("Connector Stopped: " + getName())); // try set
+			futureSocket.setException(e != null ? e : new Exception("Connector Stopped: " + getName())); // try set
 			futureSocket = new TaskCompletionSource<>(); // prepare future to next connect.
 			isConnected = false;
 			as = socket;

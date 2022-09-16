@@ -25,7 +25,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		var txn = Transaction.getCurrentVerifyRead(this);
 		if (txn == null)
 			return bean;
-		var log = (LogV)txn.GetLog(objectId() + 1);
+		var log = (LogV)txn.getLog(objectId() + 1);
 		return log != null ? log.getValue() : bean;
 	}
 
@@ -41,7 +41,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		value.initRootInfoWithRedo(rootInfo, this);
 		value.variableId(1); // 只有一个变量
 		var txn = Transaction.getCurrentVerifyWrite(this);
-		txn.PutLog(new LogV(this, value));
+		txn.putLog(new LogV(this, value));
 	}
 
 	@Override
@@ -52,7 +52,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		if (txn == null)
 			return typeId;
 		// 不能独立设置，总是设置Bean时一起Commit，所以这里访问Bean的Log。
-		var log = (LogV)txn.GetLog(objectId() + 1);
+		var log = (LogV)txn.getLog(objectId() + 1);
 		return log != null ? log.specialTypeId : typeId;
 	}
 
@@ -69,7 +69,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		return createBeanFromSpecialTypeId;
 	}
 
-	public final void Assign(DynamicBean other) {
+	public final void assign(DynamicBean other) {
 		setBean(other.getBean().copyBean());
 	}
 
@@ -100,7 +100,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		bean.initRootInfoWithRedo(rootInfo, this);
 		bean.variableId(1); // 只有一个变量
 		var txn = Transaction.getCurrentVerifyWrite(this);
-		txn.PutLog(new LogV(specialTypeId, this, bean));
+		txn.putLog(new LogV(specialTypeId, this, bean));
 	}
 
 	@Override

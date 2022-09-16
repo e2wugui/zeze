@@ -44,21 +44,21 @@ namespace Zeze.Gen.java
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    public void Start() throws Throwable {");
-            sw.WriteLine("        CreateZeze();");
-            sw.WriteLine("        CreateService();");
-            sw.WriteLine("        CreateModules();");
-            sw.WriteLine("        Zeze.Start(); // 启动数据库");
-            sw.WriteLine("        StartModules(); // 启动模块，装载配置什么的。");
-            sw.WriteLine("        StartService(); // 启动网络");
+            sw.WriteLine("        createZeze();");
+            sw.WriteLine("        createService();");
+            sw.WriteLine("        createModules();");
+            sw.WriteLine("        Zeze.start(); // 启动数据库");
+            sw.WriteLine("        startModules(); // 启动模块，装载配置什么的。");
+            sw.WriteLine("        startService(); // 启动网络");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    public void Stop() throws Throwable {");
-            sw.WriteLine("        StopService(); // 关闭网络");
-            sw.WriteLine("        StopModules(); // 关闭模块，卸载配置什么的。");
-            sw.WriteLine("        Zeze.Stop(); // 关闭数据库");
-            sw.WriteLine("        DestroyModules();");
-            sw.WriteLine("        DestroyServices();");
-            sw.WriteLine("        DestroyZeze();");
+            sw.WriteLine("        stopService(); // 关闭网络");
+            sw.WriteLine("        stopModules(); // 关闭模块，卸载配置什么的。");
+            sw.WriteLine("        Zeze.stop(); // 关闭数据库");
+            sw.WriteLine("        destroyModules();");
+            sw.WriteLine("        destroyServices();");
+            sw.WriteLine("        destroyZeze();");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    " + fcg.ChunkStartTag + " " + ChunkNameAppGen + " @formatter:off");
@@ -93,7 +93,7 @@ namespace Zeze.Gen.java
         void AppGen(StreamWriter sw)
         {
             sw.WriteLine("    public Zeze.Application Zeze;");
-            sw.WriteLine("    public final java.util.HashMap<String, Zeze.IModule> Modules = new java.util.HashMap<>();");
+            sw.WriteLine("    public final java.util.HashMap<String, Zeze.IModule> modules = new java.util.HashMap<>();");
             sw.WriteLine();
 
             foreach (Service m in project.Services.Values)
@@ -115,56 +115,56 @@ namespace Zeze.Gen.java
             sw.WriteLine("        return Zeze;");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public void CreateZeze() throws Throwable {");
-            sw.WriteLine("        CreateZeze(null);");
+            sw.WriteLine("    public void createZeze() throws Throwable {");
+            sw.WriteLine("        createZeze(null);");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void CreateZeze(Zeze.Config config) throws Throwable {");
+            sw.WriteLine("    public synchronized void createZeze(Zeze.Config config) throws Throwable {");
             sw.WriteLine("        if (Zeze != null)");
             sw.WriteLine("            throw new RuntimeException(\"Zeze Has Created!\");");
             sw.WriteLine();
             sw.WriteLine($"        Zeze = new Zeze.Application(\"{project.Solution.Name}\", config);");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void CreateService() throws Throwable {");
+            sw.WriteLine("    public synchronized void createService() throws Throwable {");
             foreach (Service m in project.Services.Values)
                 sw.WriteLine("        " + m.Name + " = new " + m.FullName + "(Zeze);");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void CreateModules() {");
+            sw.WriteLine("    public synchronized void createModules() {");
             foreach (Module m in project.AllOrderDefineModules)
             {
                 string moduleName = string.Concat(m.Name[..1].ToUpper(), m.Name.AsSpan(1));
                 var fullname = m.Path("_");
-                sw.WriteLine("        " + fullname + " = ReplaceModuleInstance(new " + m.Path(".", $"Module{moduleName}") + "(this));");
+                sw.WriteLine("        " + fullname + " = replaceModuleInstance(new " + m.Path(".", $"Module{moduleName}") + "(this));");
                 sw.WriteLine($"        {fullname}.Initialize(this);");
-                sw.WriteLine($"        if (Modules.put({fullname}.getFullName(), {fullname}) != null)");
+                sw.WriteLine($"        if (modules.put({fullname}.getFullName(), {fullname}) != null)");
                 sw.WriteLine($"            throw new RuntimeException(\"duplicate module name: {fullname}\");");
                 sw.WriteLine();
             }
             sw.WriteLine("        Zeze.setSchemas(new " + project.Solution.Path(".", "Schemas") + "());");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void DestroyModules() {");
+            sw.WriteLine("    public synchronized void destroyModules() {");
             for (int i = project.AllOrderDefineModules.Count - 1; i >= 0; --i)
             {
                 var m = project.AllOrderDefineModules[i];
                 var fullname = m.Path("_");
                 sw.WriteLine("        " + fullname + " = null;");
             }
-            sw.WriteLine("        Modules.clear();");
+            sw.WriteLine("        modules.clear();");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void DestroyServices() {");
+            sw.WriteLine("    public synchronized void destroyServices() {");
             foreach (Service m in project.Services.Values)
                 sw.WriteLine("        " + m.Name + " = null;");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void DestroyZeze() {");
+            sw.WriteLine("    public synchronized void destroyZeze() {");
             sw.WriteLine("        Zeze = null;");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void StartModules() throws Throwable {");
+            sw.WriteLine("    public synchronized void startModules() throws Throwable {");
             foreach (var m in project.ModuleStartOrder)
                 sw.WriteLine("        " + m.Path("_") + ".Start(this);");
             foreach (Module m in project.AllOrderDefineModules)
@@ -174,7 +174,7 @@ namespace Zeze.Gen.java
             }
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void StopModules() throws Throwable {");
+            sw.WriteLine("    public synchronized void stopModules() throws Throwable {");
             for (int i = project.AllOrderDefineModules.Count - 1; i >= 0; --i)
             {
                 var m = project.AllOrderDefineModules[i];
@@ -193,12 +193,12 @@ namespace Zeze.Gen.java
             }
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void StartService() throws Throwable {");
+            sw.WriteLine("    public synchronized void startService() throws Throwable {");
             foreach (Service m in project.Services.Values)
                 sw.WriteLine("        " + m.Name + ".Start();");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void StopService() throws Throwable {");
+            sw.WriteLine("    public synchronized void stopService() throws Throwable {");
             foreach (Service m in project.Services.Values)
             {
                 sw.WriteLine("        if (" + m.Name + " != null)");

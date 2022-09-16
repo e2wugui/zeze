@@ -59,15 +59,15 @@ public class TestGlobal extends TestCase {
 	public final void test2App() throws Throwable {
 		demo.App app1 = demo.App.getInstance();
 		demo.App app2 = new demo.App();
-		var config1 = Config.Load("zeze.xml");
-		var config2 = Config.Load("zeze.xml");
+		var config1 = Config.load("zeze.xml");
+		var config2 = Config.load("zeze.xml");
 		config2.setServerId(config1.getServerId() + 1);
 
 		app1.Start(config1);
 		app2.Start(config2);
 		try {
 			// 只删除一个app里面的记录就够了。
-			Assert.assertEquals(Procedure.Success, app1.Zeze.NewProcedure(() -> {
+			Assert.assertEquals(Procedure.Success, app1.Zeze.newProcedure(() -> {
 				app1.demo_Module1.getTable1().remove(6785L);
 				return Procedure.Success;
 			}, "RemoveClean").Call());
@@ -83,13 +83,13 @@ public class TestGlobal extends TestCase {
 				e.printStackTrace();
 			}
 			int countall = count * 2;
-			Assert.assertEquals(Procedure.Success, app1.Zeze.NewProcedure(() -> {
+			Assert.assertEquals(Procedure.Success, app1.Zeze.newProcedure(() -> {
 				int last1 = app1.demo_Module1.getTable1().get(6785L).getInt1();
 				System.out.println("app1 " + last1);
 				Assert.assertEquals(countall, last1);
 				return Procedure.Success;
 			}, "CheckResult1").Call());
-			Assert.assertEquals(Procedure.Success, app2.Zeze.NewProcedure(() -> {
+			Assert.assertEquals(Procedure.Success, app2.Zeze.newProcedure(() -> {
 				int last2 = app2.demo_Module1.getTable1().get(6785L).getInt1();
 				System.out.println("app2 " + last2);
 				Assert.assertEquals(countall, last2);
@@ -104,11 +104,11 @@ public class TestGlobal extends TestCase {
 	private static void ConcurrentAdd(demo.App app, int count, int appId) {
 		Future<?>[] tasks = new Future[count];
 		for (int i = 0; i < tasks.length; ++i) {
-			tasks[i] = Zeze.Util.Task.runUnsafe(app.Zeze.NewProcedure(() -> {
+			tasks[i] = Zeze.Util.Task.runUnsafe(app.Zeze.newProcedure(() -> {
 				BValue b = app.demo_Module1.getTable1().getOrAdd(6785L);
 				b.setInt1(b.getInt1() + 1);
 				PrintLog log = new PrintLog(b, b, appId);
-				Transaction.getCurrent().PutLog(log);
+				Transaction.getCurrent().putLog(log);
 				return Procedure.Success;
 			}, "ConcurrentAdd" + appId), null, null);
 		}

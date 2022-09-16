@@ -90,7 +90,7 @@ public class DatabaseTikv extends Database {
 			if (value != null)
 				dv.decode(value);
 			if (dv.version != version)
-				return KV.Create(version, false);
+				return KV.create(version, false);
 
 			dv.version = ++version;
 			dv.data = data;
@@ -99,7 +99,7 @@ public class DatabaseTikv extends Database {
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
-			return KV.Create(version, true);
+			return KV.create(version, true);
 		}
 
 		@Override

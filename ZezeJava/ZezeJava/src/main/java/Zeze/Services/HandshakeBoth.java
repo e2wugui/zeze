@@ -7,14 +7,14 @@ import Zeze.Services.Handshake.SHandshake0;
 public class HandshakeBoth extends HandshakeBase {
 	public HandshakeBoth(String name, Zeze.Config config) throws Throwable {
 		super(name, config);
-		AddHandshakeClientFactoryHandle();
-		AddHandshakeServerFactoryHandle();
+		addHandshakeClientFactoryHandle();
+		addHandshakeServerFactoryHandle();
 	}
 
 	public HandshakeBoth(String name, Application app) throws Throwable {
 		super(name, app);
-		AddHandshakeClientFactoryHandle();
-		AddHandshakeServerFactoryHandle();
+		addHandshakeClientFactoryHandle();
+		addHandshakeServerFactoryHandle();
 	}
 
 	@Override
@@ -23,7 +23,7 @@ public class HandshakeBoth extends HandshakeBase {
 		getSocketMap().putIfAbsent(so.getSessionId(), so);
 
 		var hand0 = new SHandshake0();
-		hand0.Argument.EnableEncrypt = getConfig().getHandshakeOptions().getEnableEncrypt();
+		hand0.Argument.enableEncrypt = getConfig().getHandshakeOptions().getEnableEncrypt();
 		hand0.Send(so);
 	}
 

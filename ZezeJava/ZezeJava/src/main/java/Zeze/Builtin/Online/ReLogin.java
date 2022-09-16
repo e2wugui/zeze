@@ -4,7 +4,7 @@ package Zeze.Builtin.Online;
 public class ReLogin extends Zeze.Net.Rpc<Zeze.Builtin.Online.BReLogin, Zeze.Transaction.EmptyBean> {
     public static final int ModuleId_ = 11100;
     public static final int ProtocolId_ = 927898915;
-    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_); // 47675064884515
+    public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47675064884515
 
     @Override
     public int getModuleId() {

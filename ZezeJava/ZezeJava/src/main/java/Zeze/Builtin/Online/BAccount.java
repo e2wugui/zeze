@@ -13,8 +13,8 @@ public final class BAccount extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _LastLoginVersion;
-        var log = (Log__LastLoginVersion)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _LastLoginVersion;
+        var log = (Log__LastLoginVersion)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _LastLoginVersion;
     }
 
     public void setLastLoginVersion(long value) {
@@ -23,7 +23,7 @@ public final class BAccount extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__LastLoginVersion(this, 1, value));
+        txn.putLog(new Log__LastLoginVersion(this, 1, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -50,7 +50,7 @@ public final class BAccount extends Zeze.Transaction.Bean {
 
     public BAccount copy() {
         var copy = new BAccount();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -60,9 +60,9 @@ public final class BAccount extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BAccount a, BAccount b) {
-        BAccount save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BAccount save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -81,7 +81,7 @@ public final class BAccount extends Zeze.Transaction.Bean {
         public Log__LastLoginVersion(BAccount bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BAccount)getBelong())._LastLoginVersion = Value; }
+        public void commit() { ((BAccount)getBelong())._LastLoginVersion = value; }
     }
 
     @Override
@@ -163,7 +163,7 @@ public final class BAccount extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _LastLoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 1: _LastLoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }

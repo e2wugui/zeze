@@ -45,10 +45,10 @@ public class LinkdHttpExchange {
 		return responseBodyClosed;
 	}
 
-	protected <A extends Bean, R extends Bean> void ReDispatch(
+	protected <A extends Bean, R extends Bean> void redispatch(
 			Rpc<A, R> req, ProtocolHandle<Rpc<A, R>> resultHandle) {
 
-		if (!req.Send(service.LinkdApp.LinkdProviderService.GetSocket(provider), resultHandle)) {
+		if (!req.Send(service.linkdApp.LinkdProviderService.GetSocket(provider), resultHandle)) {
 			close(true); // 重新派发错误时，尝试通知server。
 		}
 	}
@@ -81,8 +81,8 @@ public class LinkdHttpExchange {
 	}
 
 	public LinkdHttpExchange(HttpService s, HttpExchange x) {
-		exchangeId = s.ExchangeIdPal.next();
-		if (null != s.Exchanges.putIfAbsent(exchangeId, this))
+		exchangeId = s.exchangeIdPal.next();
+		if (null != s.exchanges.putIfAbsent(exchangeId, this))
 			throw new IllegalStateException("Impossible! duplicate exchangeId.");
 		exchange = x;
 		service = s;
@@ -93,12 +93,12 @@ public class LinkdHttpExchange {
 	}
 
 	public void close(boolean closeServer) {
-		if (null != service.Exchanges.remove(exchangeId)) {
+		if (null != service.exchanges.remove(exchangeId)) {
 			exchange.close();
 			if (closeServer) {
 				var ce = new CloseExchange();
 				ce.Argument.setExchangeId(exchangeId);
-				ce.Send(service.LinkdApp.LinkdProviderService.GetSocket(provider)); // no wait; no check error.
+				ce.Send(service.linkdApp.LinkdProviderService.GetSocket(provider)); // no wait; no check error.
 			}
 		}
 	}

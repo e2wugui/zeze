@@ -14,8 +14,8 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _NextNodeId;
-        var log = (Log__NextNodeId)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _NextNodeId;
+        var log = (Log__NextNodeId)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _NextNodeId;
     }
 
     public void setNextNodeId(long value) {
@@ -24,7 +24,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__NextNodeId(this, 1, value));
+        txn.putLog(new Log__NextNodeId(this, 1, value));
     }
 
     public Zeze.Transaction.Collections.PList2<Zeze.Builtin.Collections.Queue.BQueueNodeValue> getValues() {
@@ -48,7 +48,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
         setNextNodeId(other.getNextNodeId());
         getValues().clear();
         for (var e : other.getValues())
-            getValues().add(e.Copy());
+            getValues().add(e.copy());
     }
 
     @Deprecated
@@ -62,7 +62,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
 
     public BQueueNode copy() {
         var copy = new BQueueNode();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -72,9 +72,9 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BQueueNode a, BQueueNode b) {
-        BQueueNode save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BQueueNode save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -93,7 +93,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
         public Log__NextNodeId(BQueueNode bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BQueueNode)getBelong())._NextNodeId = Value; }
+        public void commit() { ((BQueueNode)getBelong())._NextNodeId = value; }
     }
 
     @Override
@@ -210,7 +210,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _NextNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 1: _NextNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 2: _Values.followerApply(vlog); break;
             }
         }

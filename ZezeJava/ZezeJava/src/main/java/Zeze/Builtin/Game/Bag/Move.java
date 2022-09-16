@@ -4,7 +4,7 @@ package Zeze.Builtin.Game.Bag;
 public class Move extends Zeze.Net.Rpc<Zeze.Builtin.Game.Bag.BMove, Zeze.Transaction.EmptyBean> {
     public static final int ModuleId_ = 11014;
     public static final int ProtocolId_ = -790071751; // 3504895545
-    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_); // 47308274693689
+    public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47308274693689
 
     @Override
     public int getModuleId() {

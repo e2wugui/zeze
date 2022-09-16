@@ -5,23 +5,23 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
 public final class BAllocateIdArgument extends Bean {
-	private String Name;
-	private int Count;
+	private String name;
+	private int count;
 
 	public String getName() {
-		return Name;
+		return name;
 	}
 
 	public void setName(String value) {
-		Name = value;
+		name = value;
 	}
 
 	public int getCount() {
-		return Count;
+		return count;
 	}
 
 	public void setCount(int value) {
-		Count = value;
+		count = value;
 	}
 
 	@Override
@@ -60,6 +60,6 @@ public final class BAllocateIdArgument extends Bean {
 
 	@Override
 	public String toString() {
-		return "BAllocateIdArgument{" + "Name='" + Name + '\'' + ", Count=" + Count + '}';
+		return "BAllocateIdArgument{" + "Name='" + name + '\'' + ", Count=" + count + '}';
 	}
 }

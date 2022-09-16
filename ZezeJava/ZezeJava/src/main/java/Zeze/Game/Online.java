@@ -79,11 +79,11 @@ public class Online extends AbstractOnline {
 		return GenModule.createRedirectModule(Online.class, app);
 	}
 
-	public static long GetSpecialTypeIdFromBean(Bean bean) {
+	public static long getSpecialTypeIdFromBean(Bean bean) {
 		return bean.typeId();
 	}
 
-	public static Bean CreateBeanFromSpecialTypeId(long typeId) {
+	public static Bean createBeanFromSpecialTypeId(long typeId) {
 		throw new UnsupportedOperationException("Online Memory Table Dynamic Not Need.");
 	}
 
@@ -97,7 +97,7 @@ public class Online extends AbstractOnline {
 
 	protected Online(AppBase app) {
 		if (app != null) {
-			this.ProviderApp = app.getZeze().Redirect.ProviderApp;
+			this.ProviderApp = app.getZeze().redirect.ProviderApp;
 			RegisterProtocols(ProviderApp.ProviderService);
 			RegisterZezeTables(ProviderApp.Zeze);
 		} else // for RedirectGenMain
@@ -303,7 +303,7 @@ public class Online extends AbstractOnline {
 		Transaction.whileCommit(() -> {
 			// delay for real logout
 			Task.schedule(ProviderApp.Zeze.getConfig().getOnlineLogoutDelay(), () ->
-					ProviderApp.Zeze.NewProcedure(() -> {
+					ProviderApp.Zeze.newProcedure(() -> {
 						// local online 独立判断version分别尝试删除。
 						var local = _tlocal.get(roleId);
 						if (null != local && local.getLoginVersion() == currentLoginVersion) {
@@ -352,7 +352,7 @@ public class Online extends AbstractOnline {
 
 	public void send(long roleId, long typeId, Binary fullEncodedProtocol) {
 		// 发送协议请求在另外的事务中执行。
-		ProviderApp.Zeze.getTaskOneByOneByKey().Execute(roleId, () -> Task.Call(ProviderApp.Zeze.NewProcedure(() -> {
+		ProviderApp.Zeze.getTaskOneByOneByKey().Execute(roleId, () -> Task.call(ProviderApp.Zeze.newProcedure(() -> {
 			sendEmbed(List.of(roleId), typeId, fullEncodedProtocol);
 			return Procedure.Success;
 		}, "Game.Online.send"), null, null), DispatchMode.Normal);
@@ -361,7 +361,7 @@ public class Online extends AbstractOnline {
 	@SuppressWarnings("unused")
 	public void send(Collection<Long> roles, long typeId, Binary fullEncodedProtocol) {
 		if (roles.size() > 0) {
-			ProviderApp.Zeze.getTaskOneByOneByKey().ExecuteCyclicBarrier(roles, ProviderApp.Zeze.NewProcedure(() -> {
+			ProviderApp.Zeze.getTaskOneByOneByKey().executeCyclicBarrier(roles, ProviderApp.Zeze.newProcedure(() -> {
 				sendEmbed(roles, typeId, fullEncodedProtocol);
 				return Procedure.Success;
 			}, "Game.Online.send"), null, DispatchMode.Normal);
@@ -370,7 +370,7 @@ public class Online extends AbstractOnline {
 
 	public void send(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
 		// 发送协议请求在另外的事务中执行。
-		Task.run(ProviderApp.Zeze.NewProcedure(() -> {
+		Task.run(ProviderApp.Zeze.newProcedure(() -> {
 			sendEmbed(roleIds, typeId, fullEncodedProtocol);
 			return Procedure.Success;
 		}, "Game.Online.send"), null, null, DispatchMode.Normal);
@@ -544,7 +544,7 @@ public class Online extends AbstractOnline {
 		var handle = transmitActions.get(actionName);
 		if (handle != null) {
 			for (var target : roleIds) {
-				Task.Call(ProviderApp.Zeze.NewProcedure(() -> handle.call(sender, target, parameter),
+				Task.call(ProviderApp.Zeze.newProcedure(() -> handle.call(sender, target, parameter),
 						"Game.Online.transmit: " + actionName), null, null);
 			}
 		}
@@ -645,7 +645,7 @@ public class Online extends AbstractOnline {
 		} else
 			bb = null;
 		// 发送协议请求在另外的事务中执行。
-		Task.run(ProviderApp.Zeze.NewProcedure(() -> {
+		Task.run(ProviderApp.Zeze.newProcedure(() -> {
 			transmitInProcedure(sender, actionName, roleIds, bb != null ? new Binary(bb) : null);
 			return Procedure.Success;
 		}, "Game.Online.transmit"), null, null, DispatchMode.Normal);
@@ -717,15 +717,15 @@ public class Online extends AbstractOnline {
 		var roleId = new OutLong();
 		_tlocal.WalkCache((k, v) -> {
 			// 先得到roleId
-			roleId.Value = k;
+			roleId.value = k;
 			return true;
 		}, () -> {
 			// 锁外执行事务
 			try {
-				ProviderApp.Zeze.NewProcedure(() -> {
-					tryRemoveLocal(roleId.Value);
+				ProviderApp.Zeze.newProcedure(() -> {
+					tryRemoveLocal(roleId.value);
 					return 0L;
-				}, "VerifyLocal:" + roleId.Value).Call();
+				}, "VerifyLocal:" + roleId.value).Call();
 			} catch (Throwable e) {
 				logger.error("", e);
 			}
@@ -760,7 +760,7 @@ public class Online extends AbstractOnline {
 
 		var account = _taccount.getOrAdd(session.getAccount());
 		if (!account.getRoles().contains(rpc.Argument.getRoleId()))
-			return ErrorCode(ResultCodeRoleNotExist);
+			return errorCode(ResultCodeRoleNotExist);
 		account.setLastLoginRoleId(rpc.Argument.getRoleId());
 
 		var online = _tonline.getOrAdd(rpc.Argument.getRoleId());
@@ -817,13 +817,13 @@ public class Online extends AbstractOnline {
 
 		BAccount account = _taccount.get(session.getAccount());
 		if (account == null)
-			return ErrorCode(ResultCodeAccountNotExist);
+			return errorCode(ResultCodeAccountNotExist);
 		if (account.getLastLoginRoleId() != rpc.Argument.getRoleId())
-			return ErrorCode(ResultCodeNotLastLoginRoleId);
+			return errorCode(ResultCodeNotLastLoginRoleId);
 
 		BOnline online = _tonline.get(rpc.Argument.getRoleId());
 		if (online == null)
-			return ErrorCode(ResultCodeOnlineDataNotFound);
+			return errorCode(ResultCodeOnlineDataNotFound);
 
 		var local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
 		var version = _tversion.getOrAdd(rpc.Argument.getRoleId());
@@ -866,7 +866,7 @@ public class Online extends AbstractOnline {
 		var syncResultCode = reliableNotifySync(rpc.Argument.getRoleId(), session,
 				rpc.Argument.getReliableNotifyConfirmIndex());
 		if (syncResultCode != ResultCodeSuccess)
-			return ErrorCode(syncResultCode);
+			return errorCode(syncResultCode);
 
 		return Procedure.Success;
 	}
@@ -875,7 +875,7 @@ public class Online extends AbstractOnline {
 	protected long ProcessLogoutRequest(Zeze.Builtin.Game.Online.Logout rpc) throws Throwable {
 		var session = ProviderUserSession.get(rpc);
 		if (session.getRoleId() == null)
-			return ErrorCode(ResultCodeNotLogin);
+			return errorCode(ResultCodeNotLogin);
 
 		var local = _tlocal.get(session.getRoleId());
 		var online = _tonline.get(session.getRoleId());
@@ -936,7 +936,7 @@ public class Online extends AbstractOnline {
 
 		var online = _tonline.get(session.getRoleId());
 		if (online == null)
-			return ErrorCode(ResultCodeOnlineDataNotFound);
+			return errorCode(ResultCodeOnlineDataNotFound);
 
 		session.sendResponseWhileCommit(rpc); // 同步前提交。
 
@@ -944,7 +944,7 @@ public class Online extends AbstractOnline {
 		var syncResultCode = reliableNotifySync(session.getRoleId(), session,
 				rpc.Argument.getReliableNotifyConfirmIndex(), rpc.Argument.isSync());
 		if (syncResultCode != ResultCodeSuccess)
-			return ErrorCode(syncResultCode);
+			return errorCode(syncResultCode);
 
 		return Procedure.Success;
 	}

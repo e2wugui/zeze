@@ -17,72 +17,72 @@ public final class RaftConfig {
 	public static final int DefaultAppendEntriesTimeout = 2000;
 	public static final int DefaultLeaderHeartbeatTimer = DefaultAppendEntriesTimeout + 200;
 
-	private final Document XmlDocument;
-	private final String XmlFileName;
-	private final Element Self;
-	private final ConcurrentHashMap<String, Node> Nodes = new ConcurrentHashMap<>();
-	private String Name; // 【这个参数不保存】可以在启动的时候从参数读取并设置
-	private String DbHome;
-	private int AppendEntriesTimeout = DefaultAppendEntriesTimeout; // 复制日志超时，以及发送失败重试超时
-	private int LeaderHeartbeatTimer = DefaultLeaderHeartbeatTimer; // 不精确 Heartbeat Idle 算法
-	private int ElectionRandomMax = 300;
-	private int MaxAppendEntriesCount = 500; // 限制每次复制日志时打包的最大数量
+	private final Document xmlDocument;
+	private final String xmlFileName;
+	private final Element self;
+	private final ConcurrentHashMap<String, Node> nodes = new ConcurrentHashMap<>();
+	private String name; // 【这个参数不保存】可以在启动的时候从参数读取并设置
+	private String dbHome;
+	private int appendEntriesTimeout = DefaultAppendEntriesTimeout; // 复制日志超时，以及发送失败重试超时
+	private int leaderHeartbeatTimer = DefaultLeaderHeartbeatTimer; // 不精确 Heartbeat Idle 算法
+	private int electionRandomMax = 300;
+	private int maxAppendEntriesCount = 500; // 限制每次复制日志时打包的最大数量
 
-	private int SnapshotLogCount = 100_0000; // -1 disable snapshot
-	private int BackgroundApplyCount = 500; // 需要的时间应小于LeaderHeartbeatTimer
-	private int UniqueRequestExpiredDays = 7;
+	private int snapshotLogCount = 100_0000; // -1 disable snapshot
+	private int backgroundApplyCount = 500; // 需要的时间应小于LeaderHeartbeatTimer
+	private int uniqueRequestExpiredDays = 7;
 
 	public String getXmlFileName() {
-		return XmlFileName;
+		return xmlFileName;
 	}
 
 	ConcurrentHashMap<String, Node> getNodes() {
-		return Nodes;
+		return nodes;
 	}
 
 	public String getName() {
-		return Name;
+		return name;
 	}
 
 	void setName(String value) {
-		Name = value;
+		name = value;
 	}
 
 	// 多数确认时：大于等于这个即可，因为还有自己(Leader)。
 	public int getHalfCount() {
-		return Nodes.size() / 2;
+		return nodes.size() / 2;
 	}
 
 	public String getDbHome() {
-		return DbHome;
+		return dbHome;
 	}
 
 	public void setDbHome(String value) {
-		DbHome = value;
+		dbHome = value;
 	}
 
 	public int getAppendEntriesTimeout() {
-		return AppendEntriesTimeout;
+		return appendEntriesTimeout;
 	}
 
 	public void setAppendEntriesTimeout(int value) {
-		AppendEntriesTimeout = value;
+		appendEntriesTimeout = value;
 	}
 
 	public int getLeaderHeartbeatTimer() {
-		return LeaderHeartbeatTimer;
+		return leaderHeartbeatTimer;
 	}
 
 	public void setLeaderHeartbeatTimer(int value) {
-		LeaderHeartbeatTimer = value;
+		leaderHeartbeatTimer = value;
 	}
 
 	public int getElectionRandomMax() {
-		return ElectionRandomMax;
+		return electionRandomMax;
 	}
 
 	public void setElectionRandomMax(int value) {
-		ElectionRandomMax = value;
+		electionRandomMax = value;
 	}
 
 	public int getElectionTimeout() {
@@ -94,70 +94,70 @@ public final class RaftConfig {
 	}
 
 	public int getMaxAppendEntriesCount() {
-		return MaxAppendEntriesCount;
+		return maxAppendEntriesCount;
 	}
 
 	public void setMaxAppendEntriesCount(int value) {
-		MaxAppendEntriesCount = value;
+		maxAppendEntriesCount = value;
 	}
 
 	public int getSnapshotLogCount() {
-		return SnapshotLogCount;
+		return snapshotLogCount;
 	}
 
 	public void setSnapshotLogCount(int value) {
-		SnapshotLogCount = value;
+		snapshotLogCount = value;
 	}
 
 	public int getBackgroundApplyCount() {
-		return BackgroundApplyCount;
+		return backgroundApplyCount;
 	}
 
 	public void setBackgroundApplyCount(int value) {
-		BackgroundApplyCount = value;
+		backgroundApplyCount = value;
 	}
 
 	public int getUniqueRequestExpiredDays() {
-		return UniqueRequestExpiredDays;
+		return uniqueRequestExpiredDays;
 	}
 
 	public void setUniqueRequestExpiredDays(int value) {
-		UniqueRequestExpiredDays = value;
+		uniqueRequestExpiredDays = value;
 	}
 
 	private RaftConfig(Document xml, String filename, Element self) {
-		XmlDocument = xml;
-		XmlFileName = filename;
-		Self = self;
-		Name = self.getAttribute("Name");
+		xmlDocument = xml;
+		xmlFileName = filename;
+		this.self = self;
+		name = self.getAttribute("Name");
 
 		var attr = self.getAttribute("DbHome");
 		if (!attr.isEmpty())
-			DbHome = attr;
-		if (DbHome == null)
-			DbHome = Name.replace(':', '_');
+			dbHome = attr;
+		if (dbHome == null)
+			dbHome = name.replace(':', '_');
 
 		attr = self.getAttribute("AppendEntriesTimeout");
 		if (!attr.isEmpty())
-			AppendEntriesTimeout = Integer.parseInt(attr);
+			appendEntriesTimeout = Integer.parseInt(attr);
 		attr = self.getAttribute("LeaderHeartbeatTimer");
 		if (!attr.isEmpty())
-			LeaderHeartbeatTimer = Integer.parseInt(attr);
+			leaderHeartbeatTimer = Integer.parseInt(attr);
 		attr = self.getAttribute("MaxAppendEntriesCount");
 		if (!attr.isEmpty())
-			MaxAppendEntriesCount = Integer.parseInt(attr);
+			maxAppendEntriesCount = Integer.parseInt(attr);
 		attr = self.getAttribute("SnapshotLogCount");
 		if (!attr.isEmpty())
-			SnapshotLogCount = Integer.parseInt(attr);
+			snapshotLogCount = Integer.parseInt(attr);
 		attr = self.getAttribute("ElectionRandomMax");
 		if (!attr.isEmpty())
-			ElectionRandomMax = Integer.parseInt(attr);
+			electionRandomMax = Integer.parseInt(attr);
 		attr = self.getAttribute("BackgroundApplyCount");
 		if (!attr.isEmpty())
-			BackgroundApplyCount = Integer.parseInt(attr);
+			backgroundApplyCount = Integer.parseInt(attr);
 		attr = self.getAttribute("UniqueRequestExpiredDays");
 		if (!attr.isEmpty())
-			UniqueRequestExpiredDays = Integer.parseInt(attr);
+			uniqueRequestExpiredDays = Integer.parseInt(attr);
 
 		NodeList childNodes = self.getChildNodes();
 		for (int i = 0, n = childNodes.getLength(); i < n; i++) {
@@ -166,48 +166,48 @@ public final class RaftConfig {
 				continue;
 			Element e = (Element)node;
 			if ("node".equals(e.getTagName()))
-				AddNode(new Node(e));
+				addNode(new Node(e));
 		}
 	}
 
-	public void Verify() {
-		if (AppendEntriesTimeout < 1000)
+	public void verify() {
+		if (appendEntriesTimeout < 1000)
 			throw new IllegalStateException("AppendEntriesTimeout < 1000");
-		if (LeaderHeartbeatTimer < AppendEntriesTimeout + 200)
+		if (leaderHeartbeatTimer < appendEntriesTimeout + 200)
 			throw new IllegalStateException("LeaderHeartbeatTimer < AppendEntriesTimeout + 200");
-		if (MaxAppendEntriesCount < 100)
-			MaxAppendEntriesCount = 100;
+		if (maxAppendEntriesCount < 100)
+			maxAppendEntriesCount = 100;
 	}
 
-	public void Save() throws TransformerException {
+	public void save() throws TransformerException {
 		// skip default
-		if (AppendEntriesTimeout != DefaultAppendEntriesTimeout)
-			Self.setAttribute("AppendEntriesTimeout", String.valueOf(AppendEntriesTimeout));
-		if (LeaderHeartbeatTimer != DefaultLeaderHeartbeatTimer)
-			Self.setAttribute("LeaderHeartbeatTimer", String.valueOf(LeaderHeartbeatTimer));
-		if (ElectionRandomMax != 300)
-			Self.setAttribute("ElectionRandomMax", String.valueOf(ElectionRandomMax));
-		if (MaxAppendEntriesCount != 500)
-			Self.setAttribute("MaxAppendEntriesCount", String.valueOf(MaxAppendEntriesCount));
-		if (SnapshotLogCount != 100_0000)
-			Self.setAttribute("SnapshotLogCount", String.valueOf(SnapshotLogCount));
-		if (BackgroundApplyCount != 500)
-			Self.setAttribute("BackgroundApplyCount", String.valueOf(BackgroundApplyCount));
-		if (UniqueRequestExpiredDays != 7)
-			Self.setAttribute("UniqueRequestExpiredDays", String.valueOf(UniqueRequestExpiredDays));
+		if (appendEntriesTimeout != DefaultAppendEntriesTimeout)
+			self.setAttribute("AppendEntriesTimeout", String.valueOf(appendEntriesTimeout));
+		if (leaderHeartbeatTimer != DefaultLeaderHeartbeatTimer)
+			self.setAttribute("LeaderHeartbeatTimer", String.valueOf(leaderHeartbeatTimer));
+		if (electionRandomMax != 300)
+			self.setAttribute("ElectionRandomMax", String.valueOf(electionRandomMax));
+		if (maxAppendEntriesCount != 500)
+			self.setAttribute("MaxAppendEntriesCount", String.valueOf(maxAppendEntriesCount));
+		if (snapshotLogCount != 100_0000)
+			self.setAttribute("SnapshotLogCount", String.valueOf(snapshotLogCount));
+		if (backgroundApplyCount != 500)
+			self.setAttribute("BackgroundApplyCount", String.valueOf(backgroundApplyCount));
+		if (uniqueRequestExpiredDays != 7)
+			self.setAttribute("UniqueRequestExpiredDays", String.valueOf(uniqueRequestExpiredDays));
 
-		for (var node : Nodes.values())
-			node.Save(XmlDocument, Self);
+		for (var node : nodes.values())
+			node.save(xmlDocument, self);
 
 		TransformerFactory.newInstance().newTransformer().transform(
-				new DOMSource(XmlDocument), new StreamResult(new File(XmlFileName)));
+				new DOMSource(xmlDocument), new StreamResult(new File(xmlFileName)));
 	}
 
-	public static RaftConfig Load() throws Exception {
-		return Load("raft.xml");
+	public static RaftConfig load() throws Exception {
+		return load("raft.xml");
 	}
 
-	public static RaftConfig Load(String xmlFile) throws Exception {
+	public static RaftConfig load(String xmlFile) throws Exception {
 		if (new File(xmlFile).isFile()) {
 			Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new File(xmlFile));
 			return new RaftConfig(doc, xmlFile, doc.getDocumentElement());
@@ -216,41 +216,41 @@ public final class RaftConfig {
 		throw new FileNotFoundException(String.format("Raft.Config: '%s' not exists.", xmlFile));
 	}
 
-	private void AddNode(Node node) {
-		if (Nodes.putIfAbsent(node.getName(), node) != null)
+	private void addNode(Node node) {
+		if (nodes.putIfAbsent(node.getName(), node) != null)
 			throw new IllegalStateException(String.format("duplicate node '%s'", node.getName()));
 	}
 
 	static final class Node {
-		private final String Host;
-		private final int Port;
-		private Element Self;
+		private final String host;
+		private final int port;
+		private Element self;
 
 		Node(Element self) {
-			Self = self;
-			Host = self.getAttribute("Host");
-			Port = Integer.parseInt(self.getAttribute("Port"));
+			this.self = self;
+			host = self.getAttribute("Host");
+			port = Integer.parseInt(self.getAttribute("Port"));
 		}
 
 		String getHost() {
-			return Host;
+			return host;
 		}
 
 		int getPort() {
-			return Port;
+			return port;
 		}
 
 		String getName() {
-			return Host + ':' + Port;
+			return host + ':' + port;
 		}
 
-		void Save(Document doc, Element parent) {
-			if (Self == null) {
-				Self = doc.createElement("node");
-				parent.appendChild(Self);
+		void save(Document doc, Element parent) {
+			if (self == null) {
+				self = doc.createElement("node");
+				parent.appendChild(self);
 			}
-			Self.setAttribute("HostNameOrAddress", Host);
-			Self.setAttribute("Port", String.valueOf(Port));
+			self.setAttribute("HostNameOrAddress", host);
+			self.setAttribute("Port", String.valueOf(port));
 		}
 	}
 }

@@ -13,8 +13,8 @@ public final class BAutoKey extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _NextId;
-        var log = (Log__NextId)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _NextId;
+        var log = (Log__NextId)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _NextId;
     }
 
     public void setNextId(long value) {
@@ -23,7 +23,7 @@ public final class BAutoKey extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__NextId(this, 1, value));
+        txn.putLog(new Log__NextId(this, 1, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -50,7 +50,7 @@ public final class BAutoKey extends Zeze.Transaction.Bean {
 
     public BAutoKey copy() {
         var copy = new BAutoKey();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -60,9 +60,9 @@ public final class BAutoKey extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BAutoKey a, BAutoKey b) {
-        BAutoKey save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BAutoKey save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -81,7 +81,7 @@ public final class BAutoKey extends Zeze.Transaction.Bean {
         public Log__NextId(BAutoKey bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BAutoKey)getBelong())._NextId = Value; }
+        public void commit() { ((BAutoKey)getBelong())._NextId = value; }
     }
 
     @Override
@@ -163,7 +163,7 @@ public final class BAutoKey extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _NextId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 1: _NextId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }

@@ -20,8 +20,8 @@ public final class BRequest extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ExchangeId;
-        var log = (Log__ExchangeId)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _ExchangeId;
+        var log = (Log__ExchangeId)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _ExchangeId;
     }
 
     public void setExchangeId(long value) {
@@ -30,7 +30,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__ExchangeId(this, 1, value));
+        txn.putLog(new Log__ExchangeId(this, 1, value));
     }
 
     public String getMethod() {
@@ -39,8 +39,8 @@ public final class BRequest extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Method;
-        var log = (Log__Method)txn.GetLog(objectId() + 2);
-        return log != null ? log.Value : _Method;
+        var log = (Log__Method)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _Method;
     }
 
     public void setMethod(String value) {
@@ -51,7 +51,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Method(this, 2, value));
+        txn.putLog(new Log__Method(this, 2, value));
     }
 
     public String getPath() {
@@ -60,8 +60,8 @@ public final class BRequest extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Path;
-        var log = (Log__Path)txn.GetLog(objectId() + 3);
-        return log != null ? log.Value : _Path;
+        var log = (Log__Path)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _Path;
     }
 
     public void setPath(String value) {
@@ -72,7 +72,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Path(this, 3, value));
+        txn.putLog(new Log__Path(this, 3, value));
     }
 
     public String getQuery() {
@@ -81,8 +81,8 @@ public final class BRequest extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Query;
-        var log = (Log__Query)txn.GetLog(objectId() + 4);
-        return log != null ? log.Value : _Query;
+        var log = (Log__Query)txn.getLog(objectId() + 4);
+        return log != null ? log.value : _Query;
     }
 
     public void setQuery(String value) {
@@ -93,7 +93,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Query(this, 4, value));
+        txn.putLog(new Log__Query(this, 4, value));
     }
 
     public Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Web.BHeader> getHeaders() {
@@ -106,8 +106,8 @@ public final class BRequest extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Body;
-        var log = (Log__Body)txn.GetLog(objectId() + 6);
-        return log != null ? log.Value : _Body;
+        var log = (Log__Body)txn.getLog(objectId() + 6);
+        return log != null ? log.value : _Body;
     }
 
     public void setBody(Zeze.Net.Binary value) {
@@ -118,7 +118,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Body(this, 6, value));
+        txn.putLog(new Log__Body(this, 6, value));
     }
 
     public boolean isFinish() {
@@ -127,8 +127,8 @@ public final class BRequest extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Finish;
-        var log = (Log__Finish)txn.GetLog(objectId() + 7);
-        return log != null ? log.Value : _Finish;
+        var log = (Log__Finish)txn.getLog(objectId() + 7);
+        return log != null ? log.value : _Finish;
     }
 
     public void setFinish(boolean value) {
@@ -137,7 +137,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Finish(this, 7, value));
+        txn.putLog(new Log__Finish(this, 7, value));
     }
 
     public String getAuthedAccount() {
@@ -146,8 +146,8 @@ public final class BRequest extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _AuthedAccount;
-        var log = (Log__AuthedAccount)txn.GetLog(objectId() + 8);
-        return log != null ? log.Value : _AuthedAccount;
+        var log = (Log__AuthedAccount)txn.getLog(objectId() + 8);
+        return log != null ? log.value : _AuthedAccount;
     }
 
     public void setAuthedAccount(String value) {
@@ -158,7 +158,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__AuthedAccount(this, 8, value));
+        txn.putLog(new Log__AuthedAccount(this, 8, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -202,7 +202,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
         setQuery(other.getQuery());
         getHeaders().clear();
         for (var e : other.getHeaders().entrySet())
-            getHeaders().put(e.getKey(), e.getValue().Copy());
+            getHeaders().put(e.getKey(), e.getValue().copy());
         setBody(other.getBody());
         setFinish(other.isFinish());
         setAuthedAccount(other.getAuthedAccount());
@@ -219,7 +219,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
 
     public BRequest copy() {
         var copy = new BRequest();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -229,9 +229,9 @@ public final class BRequest extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BRequest a, BRequest b) {
-        BRequest save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BRequest save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -250,49 +250,49 @@ public final class BRequest extends Zeze.Transaction.Bean {
         public Log__ExchangeId(BRequest bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BRequest)getBelong())._ExchangeId = Value; }
+        public void commit() { ((BRequest)getBelong())._ExchangeId = value; }
     }
 
     private static final class Log__Method extends Zeze.Transaction.Logs.LogString {
         public Log__Method(BRequest bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BRequest)getBelong())._Method = Value; }
+        public void commit() { ((BRequest)getBelong())._Method = value; }
     }
 
     private static final class Log__Path extends Zeze.Transaction.Logs.LogString {
         public Log__Path(BRequest bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BRequest)getBelong())._Path = Value; }
+        public void commit() { ((BRequest)getBelong())._Path = value; }
     }
 
     private static final class Log__Query extends Zeze.Transaction.Logs.LogString {
         public Log__Query(BRequest bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BRequest)getBelong())._Query = Value; }
+        public void commit() { ((BRequest)getBelong())._Query = value; }
     }
 
     private static final class Log__Body extends Zeze.Transaction.Logs.LogBinary {
         public Log__Body(BRequest bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BRequest)getBelong())._Body = Value; }
+        public void commit() { ((BRequest)getBelong())._Body = value; }
     }
 
     private static final class Log__Finish extends Zeze.Transaction.Logs.LogBool {
         public Log__Finish(BRequest bean, int varId, boolean value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BRequest)getBelong())._Finish = Value; }
+        public void commit() { ((BRequest)getBelong())._Finish = value; }
     }
 
     private static final class Log__AuthedAccount extends Zeze.Transaction.Logs.LogString {
         public Log__AuthedAccount(BRequest bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BRequest)getBelong())._AuthedAccount = Value; }
+        public void commit() { ((BRequest)getBelong())._AuthedAccount = value; }
     }
 
     @Override
@@ -486,14 +486,14 @@ public final class BRequest extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ExchangeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                case 2: _Method = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
-                case 3: _Path = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
-                case 4: _Query = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                case 1: _ExchangeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 2: _Method = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 3: _Path = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 4: _Query = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 5: _Headers.followerApply(vlog); break;
-                case 6: _Body = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
-                case 7: _Finish = ((Zeze.Transaction.Logs.LogBool)vlog).Value; break;
-                case 8: _AuthedAccount = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                case 6: _Body = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 7: _Finish = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
+                case 8: _AuthedAccount = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
             }
         }
     }

@@ -13,8 +13,8 @@ public final class BLogin extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _RoleId;
-        var log = (Log__RoleId)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _RoleId;
+        var log = (Log__RoleId)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _RoleId;
     }
 
     public void setRoleId(long value) {
@@ -23,7 +23,7 @@ public final class BLogin extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__RoleId(this, 1, value));
+        txn.putLog(new Log__RoleId(this, 1, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -50,7 +50,7 @@ public final class BLogin extends Zeze.Transaction.Bean {
 
     public BLogin copy() {
         var copy = new BLogin();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -60,9 +60,9 @@ public final class BLogin extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BLogin a, BLogin b) {
-        BLogin save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BLogin save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -81,7 +81,7 @@ public final class BLogin extends Zeze.Transaction.Bean {
         public Log__RoleId(BLogin bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BLogin)getBelong())._RoleId = Value; }
+        public void commit() { ((BLogin)getBelong())._RoleId = value; }
     }
 
     @Override
@@ -163,7 +163,7 @@ public final class BLogin extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _RoleId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 1: _RoleId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }

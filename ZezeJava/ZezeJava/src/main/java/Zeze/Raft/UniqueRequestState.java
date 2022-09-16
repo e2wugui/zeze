@@ -7,38 +7,38 @@ import Zeze.Serialize.Serializable;
 class UniqueRequestState implements Serializable {
 	public static final UniqueRequestState NOT_FOUND = new UniqueRequestState();
 
-	private long LogIndex;
-	private boolean IsApplied;
-	private Binary RpcResult;
+	private long logIndex;
+	private boolean isApplied;
+	private Binary rpcResult;
 
 	public UniqueRequestState() {
 	}
 
 	public UniqueRequestState(RaftLog raftLog, boolean isApplied) {
-		LogIndex = raftLog.getIndex();
-		IsApplied = isApplied;
-		RpcResult = raftLog.getLog().getRpcResult();
+		logIndex = raftLog.getIndex();
+		this.isApplied = isApplied;
+		rpcResult = raftLog.getLog().getRpcResult();
 	}
 
 	public boolean isApplied() {
-		return IsApplied;
+		return isApplied;
 	}
 
 	public Binary getRpcResult() {
-		return RpcResult;
+		return rpcResult;
 	}
 
 	@Override
 	public final void encode(ByteBuffer bb) {
-		bb.WriteLong(LogIndex);
-		bb.WriteBool(IsApplied);
-		bb.WriteBinary(RpcResult);
+		bb.WriteLong(logIndex);
+		bb.WriteBool(isApplied);
+		bb.WriteBinary(rpcResult);
 	}
 
 	@Override
 	public final void decode(ByteBuffer bb) {
-		LogIndex = bb.ReadLong();
-		IsApplied = bb.ReadBool();
-		RpcResult = bb.ReadBinary();
+		logIndex = bb.ReadLong();
+		isApplied = bb.ReadBool();
+		rpcResult = bb.ReadBinary();
 	}
 }

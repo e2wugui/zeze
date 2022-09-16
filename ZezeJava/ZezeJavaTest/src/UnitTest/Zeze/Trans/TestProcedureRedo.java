@@ -30,7 +30,7 @@ public class TestProcedureRedo {
     private static int counter = 0;
     @Test
     public final void testProcedureRedo() throws Throwable{
-        App.getInstance().Zeze.NewProcedure(()  -> {
+        App.getInstance().Zeze.newProcedure(()  -> {
 
             var v =  App.getInstance().demo_Module1.getTable1().getOrAdd(6785L);
 
@@ -41,7 +41,7 @@ public class TestProcedureRedo {
         }, "TestProcedureRedoFirst").Call();
 
         var outLong2 = new OutLong();
-        var ftask1 = Task.runUnsafe(App.getInstance().Zeze.NewProcedure(()  -> {
+        var ftask1 = Task.runUnsafe(App.getInstance().Zeze.newProcedure(()  -> {
 
             counter += 1;
             System.out.println("task1 counter " + counter);
@@ -49,17 +49,17 @@ public class TestProcedureRedo {
             long vLong = v.getLong2();
 
             Thread.sleep(1000);
-            outLong2.Value = v.getMap15().get(vLong);
+            outLong2.value = v.getMap15().get(vLong);
 
             Transaction.whileCommit(() -> {
-                System.out.println("value=" + outLong2.Value);
+                System.out.println("value=" + outLong2.value);
                 System.out.println("task1 suss");
             });
             return Procedure.Success;
 
         }, "TestProcedureRedoTask1"), null, null, DispatchMode.Normal);
 
-        var ftask2 = Task.runUnsafe(App.getInstance().Zeze.NewProcedure(()  -> {
+        var ftask2 = Task.runUnsafe(App.getInstance().Zeze.newProcedure(()  -> {
 
             Thread.sleep(100);
             var v = App.getInstance().demo_Module1.getTable1().getOrAdd(6785L);
@@ -77,6 +77,6 @@ public class TestProcedureRedo {
 
         ftask2.get();
         ftask1.get();
-        Assert.assertEquals(outLong2.Value, 200);
+        Assert.assertEquals(outLong2.value, 200);
     }
 }

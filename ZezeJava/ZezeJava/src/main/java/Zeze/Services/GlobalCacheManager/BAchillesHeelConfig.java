@@ -5,22 +5,22 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
 public class BAchillesHeelConfig extends Bean {
-	public int MaxNetPing;
-	public int ServerProcessTime;
-	public int ServerReleaseTimeout;
+	public int maxNetPing;
+	public int serverProcessTime;
+	public int serverReleaseTimeout;
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteInt(MaxNetPing);
-		bb.WriteInt(ServerProcessTime);
-		bb.WriteInt(ServerReleaseTimeout);
+		bb.WriteInt(maxNetPing);
+		bb.WriteInt(serverProcessTime);
+		bb.WriteInt(serverReleaseTimeout);
 	}
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		MaxNetPing = bb.ReadInt();
-		ServerProcessTime = bb.ReadInt();
-		ServerReleaseTimeout = bb.ReadInt();
+		maxNetPing = bb.ReadInt();
+		serverProcessTime = bb.ReadInt();
+		serverReleaseTimeout = bb.ReadInt();
 	}
 
 	@Override

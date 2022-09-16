@@ -92,12 +92,12 @@ public final class ServiceConf {
 				(key) -> {
 					Connector add = new Connector(host, port, autoReconnect);
 					add.SetService(getService());
-					addNew.Value = add;
+					addNew.value = add;
 					return add;
 				});
 		if (null != getOrAdd)
-			getOrAdd.Value = c;
-		return addNew.Value != null;
+			getOrAdd.value = c;
+		return addNew.value != null;
 	}
 
 	public void removeConnector(Connector c) {
@@ -213,7 +213,7 @@ public final class ServiceConf {
 				if (dgTmp.length() == 0) {
 					continue;
 				}
-				getHandshakeOptions().AddDhGroup(Integer.parseInt(dgTmp));
+				getHandshakeOptions().addDhGroup(Integer.parseInt(dgTmp));
 			}
 		}
 		attr = self.getAttribute("SecureIp");

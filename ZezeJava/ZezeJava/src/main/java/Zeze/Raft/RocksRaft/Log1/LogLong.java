@@ -7,7 +7,7 @@ import Zeze.Serialize.ByteBuffer;
 public class LogLong extends Log {
 	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.Log<long>");
 
-	public long Value;
+	public long value;
 
 	public LogLong() {
 		super(TYPE_ID);
@@ -17,21 +17,21 @@ public class LogLong extends Log {
 		this();
 		setBelong(belong);
 		setVariableId(varId);
-		Value = value;
+		this.value = value;
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteLong(Value);
+		bb.WriteLong(value);
 	}
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		Value = bb.ReadLong();
+		value = bb.ReadLong();
 	}
 
 	@Override
 	public String toString() {
-		return "Value=" + Value;
+		return "Value=" + value;
 	}
 }

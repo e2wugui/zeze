@@ -14,8 +14,8 @@ public final class BDestroy extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _BagName;
-        var log = (Log__BagName)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _BagName;
+        var log = (Log__BagName)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _BagName;
     }
 
     public void setBagName(String value) {
@@ -26,7 +26,7 @@ public final class BDestroy extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__BagName(this, 1, value));
+        txn.putLog(new Log__BagName(this, 1, value));
     }
 
     public int getPosition() {
@@ -35,8 +35,8 @@ public final class BDestroy extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Position;
-        var log = (Log__Position)txn.GetLog(objectId() + 2);
-        return log != null ? log.Value : _Position;
+        var log = (Log__Position)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _Position;
     }
 
     public void setPosition(int value) {
@@ -45,7 +45,7 @@ public final class BDestroy extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Position(this, 2, value));
+        txn.putLog(new Log__Position(this, 2, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -77,7 +77,7 @@ public final class BDestroy extends Zeze.Transaction.Bean {
 
     public BDestroy copy() {
         var copy = new BDestroy();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -87,9 +87,9 @@ public final class BDestroy extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BDestroy a, BDestroy b) {
-        BDestroy save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BDestroy save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -108,14 +108,14 @@ public final class BDestroy extends Zeze.Transaction.Bean {
         public Log__BagName(BDestroy bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BDestroy)getBelong())._BagName = Value; }
+        public void commit() { ((BDestroy)getBelong())._BagName = value; }
     }
 
     private static final class Log__Position extends Zeze.Transaction.Logs.LogInt {
         public Log__Position(BDestroy bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BDestroy)getBelong())._Position = Value; }
+        public void commit() { ((BDestroy)getBelong())._Position = value; }
     }
 
     @Override
@@ -209,8 +209,8 @@ public final class BDestroy extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _BagName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
-                case 2: _Position = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                case 1: _BagName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 2: _Position = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
             }
         }
     }

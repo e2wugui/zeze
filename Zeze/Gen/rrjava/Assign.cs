@@ -32,7 +32,7 @@ namespace Zeze.Gen.rrjava
 
         public void Visit(Bean type)
         {
-            sw.WriteLine(prefix + var.NameUpper1 + ".Assign(other." + var.NameUpper1 + ");");
+            sw.WriteLine(prefix + var.NameUpper1 + ".assign(other." + var.NameUpper1 + ");");
         }
 
         public void Visit(BeanKey type)
@@ -78,7 +78,7 @@ namespace Zeze.Gen.rrjava
         public void Visit(TypeList type)
         {
             sw.WriteLine(prefix + var.Getter + ".clear();");
-            string copyif = type.ValueType.IsNormalBean ? "e.Copy()" : "e";
+            string copyif = type.ValueType.IsNormalBean ? "e.copy()" : "e";
 
             sw.WriteLine(prefix + "for (var e : other." + var.Getter + ")");
             sw.WriteLine(prefix + "    " + var.Getter + ".add(" + copyif + ");");
@@ -87,7 +87,7 @@ namespace Zeze.Gen.rrjava
         public void Visit(TypeSet type)
         {
             sw.WriteLine(prefix + var.Getter + ".clear();");
-            string copyif = type.ValueType.IsNormalBean ? "e.Copy()" : "e"; // set 里面现在不让放 bean，先这样写吧。
+            string copyif = type.ValueType.IsNormalBean ? "e.copy()" : "e"; // set 里面现在不让放 bean，先这样写吧。
 
             sw.WriteLine(prefix + "for (var e : other." + var.Getter + ")");
             sw.WriteLine(prefix + "    " + var.Getter + ".add(" + copyif + ");");
@@ -96,7 +96,7 @@ namespace Zeze.Gen.rrjava
         public void Visit(TypeMap type)
         {
             sw.WriteLine(prefix + var.Getter + ".clear();");
-            string copyif = type.ValueType.IsNormalBean ? "e.getValue().Copy()" : "e.getValue()";
+            string copyif = type.ValueType.IsNormalBean ? "e.getValue().copy()" : "e.getValue()";
 
             sw.WriteLine(prefix + "for (var e : other." + var.Getter + ".entrySet())");
             sw.WriteLine(prefix + "    " + var.Getter + ".put(e.getKey(), " + copyif + ");");
@@ -114,7 +114,7 @@ namespace Zeze.Gen.rrjava
 
         public void Visit(TypeDynamic type)
         {
-            sw.WriteLine(prefix + var.Getter + ".Assign(other." + var.Getter + ");");
+            sw.WriteLine(prefix + var.Getter + ".assign(other." + var.Getter + ");");
         }
 
         public void Visit(TypeQuaternion type)

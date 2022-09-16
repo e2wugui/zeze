@@ -36,12 +36,12 @@ public class TestChangeListener {
 	}
 
 	private static void Prepare() throws Throwable {
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
 			return Procedure.Success;
 		}, "TestChangeListener.Remove").Call());
 
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			value.setInt1(123);
 			value.setLong2(123);
@@ -78,7 +78,7 @@ public class TestChangeListener {
 		AddListener();
 
 		Init();
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			value.setInt1(124);
 			value.setLong2(124);
@@ -111,7 +111,7 @@ public class TestChangeListener {
 		Verify();
 
 		Init();
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			value.getSet10().add(127);
 			value.getSet10().remove(124);
@@ -128,7 +128,7 @@ public class TestChangeListener {
 		Verify();
 
 		Init();
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			ArrayList<Integer> except = new ArrayList<>(Arrays.asList(1, 2));
 			value.getSet10().removeAll(except);
@@ -137,7 +137,7 @@ public class TestChangeListener {
 		Verify();
 
 		Init();
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			ArrayList<Integer> intersect = new ArrayList<>(Arrays.asList(123, 126));
 			//value.getSet10().IntersectWith(intersect);
@@ -155,7 +155,7 @@ public class TestChangeListener {
 		Verify();
 
 		Init();
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			ArrayList<Integer> SymmetricExcept = new ArrayList<>(Arrays.asList(123, 140));
 			value.getSet10().removeAll(SymmetricExcept);
@@ -164,7 +164,7 @@ public class TestChangeListener {
 		Verify();
 
 		Init();
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			ArrayList<Integer> Union = new ArrayList<>(Arrays.asList(123, 140));
 			//value.getSet10().UnionWith(Union);
@@ -174,14 +174,14 @@ public class TestChangeListener {
 		Verify();
 
 		Init();
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().put(1L, new demo.Module1.BValue());
 			return Procedure.Success;
 		}, "TestChangeListener.PutRecord").Call());
 		Verify();
 
 		Init();
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
 			return Procedure.Success;
 		}, "TestChangeListener.RemoveRecord").Call());
@@ -191,7 +191,7 @@ public class TestChangeListener {
 	private demo.Module1.BValue localValue;
 
 	private void Init() throws Throwable {
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 			localValue = value == null ? null : value.Copy();
 			return Procedure.Success;
@@ -215,7 +215,7 @@ public class TestChangeListener {
 	}
 
 	private void Verify() throws Throwable {
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 			localValue = value == null ? null : value.Copy();
 			return Procedure.Success;
@@ -515,7 +515,7 @@ public class TestChangeListener {
 		public final void OnChanged(Object key, Log note) {
 			@SuppressWarnings("unchecked")
 			var notemap2 = (LogMap2<Long, BValue>)note;
-			notemap2.MergeChangedToReplaced();
+			notemap2.mergeChangedToReplaced();
 
 			for (var a : notemap2.getReplaced().entrySet()) {
 				newValue.put(a.getKey(), a.getValue());

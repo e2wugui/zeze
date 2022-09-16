@@ -33,11 +33,11 @@ public final class BTimer extends Zeze.Transaction.Bean {
     private final Zeze.Transaction.DynamicBean _CustomData;
 
     public static long getSpecialTypeIdFromBean_CustomData(Zeze.Transaction.Bean bean) {
-        return Zeze.Component.Timer.GetSpecialTypeIdFromBean(bean);
+        return Zeze.Component.Timer.getSpecialTypeIdFromBean(bean);
     }
 
     public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_CustomData(long typeId) {
-        return Zeze.Component.Timer.CreateBeanFromSpecialTypeId(typeId);
+        return Zeze.Component.Timer.createBeanFromSpecialTypeId(typeId);
     }
 
     private long _ConcurrentFireSerialNo;
@@ -60,8 +60,8 @@ public final class BTimer extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _TimerId;
-        var log = (Log__TimerId)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _TimerId;
+        var log = (Log__TimerId)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _TimerId;
     }
 
     public void setTimerId(long value) {
@@ -70,7 +70,7 @@ public final class BTimer extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__TimerId(this, 1, value));
+        txn.putLog(new Log__TimerId(this, 1, value));
     }
 
     public String getName() {
@@ -79,8 +79,8 @@ public final class BTimer extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Name;
-        var log = (Log__Name)txn.GetLog(objectId() + 2);
-        return log != null ? log.Value : _Name;
+        var log = (Log__Name)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _Name;
     }
 
     public void setName(String value) {
@@ -91,7 +91,7 @@ public final class BTimer extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Name(this, 2, value));
+        txn.putLog(new Log__Name(this, 2, value));
     }
 
     public Zeze.Transaction.DynamicBean getTimerObj() {
@@ -124,8 +124,8 @@ public final class BTimer extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ConcurrentFireSerialNo;
-        var log = (Log__ConcurrentFireSerialNo)txn.GetLog(objectId() + 5);
-        return log != null ? log.Value : _ConcurrentFireSerialNo;
+        var log = (Log__ConcurrentFireSerialNo)txn.getLog(objectId() + 5);
+        return log != null ? log.value : _ConcurrentFireSerialNo;
     }
 
     public void setConcurrentFireSerialNo(long value) {
@@ -134,14 +134,14 @@ public final class BTimer extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__ConcurrentFireSerialNo(this, 5, value));
+        txn.putLog(new Log__ConcurrentFireSerialNo(this, 5, value));
     }
 
     @SuppressWarnings("deprecation")
     public BTimer() {
         _Name = "";
         _TimerObj = new Zeze.Transaction.DynamicBean(3, BTimer::getSpecialTypeIdFromBean_TimerObj, BTimer::createBeanFromSpecialTypeId_TimerObj);
-        _CustomData = new Zeze.Transaction.DynamicBean(4, Zeze.Component.Timer::GetSpecialTypeIdFromBean, Zeze.Component.Timer::CreateBeanFromSpecialTypeId);
+        _CustomData = new Zeze.Transaction.DynamicBean(4, Zeze.Component.Timer::getSpecialTypeIdFromBean, Zeze.Component.Timer::createBeanFromSpecialTypeId);
     }
 
     @SuppressWarnings("deprecation")
@@ -151,15 +151,15 @@ public final class BTimer extends Zeze.Transaction.Bean {
             throw new IllegalArgumentException();
         _Name = _Name_;
         _TimerObj = new Zeze.Transaction.DynamicBean(3, BTimer::getSpecialTypeIdFromBean_TimerObj, BTimer::createBeanFromSpecialTypeId_TimerObj);
-        _CustomData = new Zeze.Transaction.DynamicBean(4, Zeze.Component.Timer::GetSpecialTypeIdFromBean, Zeze.Component.Timer::CreateBeanFromSpecialTypeId);
+        _CustomData = new Zeze.Transaction.DynamicBean(4, Zeze.Component.Timer::getSpecialTypeIdFromBean, Zeze.Component.Timer::createBeanFromSpecialTypeId);
         _ConcurrentFireSerialNo = _ConcurrentFireSerialNo_;
     }
 
     public void assign(BTimer other) {
         setTimerId(other.getTimerId());
         setName(other.getName());
-        getTimerObj().Assign(other.getTimerObj());
-        getCustomData().Assign(other.getCustomData());
+        getTimerObj().assign(other.getTimerObj());
+        getCustomData().assign(other.getCustomData());
         setConcurrentFireSerialNo(other.getConcurrentFireSerialNo());
     }
 
@@ -174,7 +174,7 @@ public final class BTimer extends Zeze.Transaction.Bean {
 
     public BTimer copy() {
         var copy = new BTimer();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -184,9 +184,9 @@ public final class BTimer extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BTimer a, BTimer b) {
-        BTimer save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BTimer save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -205,21 +205,21 @@ public final class BTimer extends Zeze.Transaction.Bean {
         public Log__TimerId(BTimer bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BTimer)getBelong())._TimerId = Value; }
+        public void commit() { ((BTimer)getBelong())._TimerId = value; }
     }
 
     private static final class Log__Name extends Zeze.Transaction.Logs.LogString {
         public Log__Name(BTimer bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BTimer)getBelong())._Name = Value; }
+        public void commit() { ((BTimer)getBelong())._Name = value; }
     }
 
     private static final class Log__ConcurrentFireSerialNo extends Zeze.Transaction.Logs.LogLong {
         public Log__ConcurrentFireSerialNo(BTimer bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BTimer)getBelong())._ConcurrentFireSerialNo = Value; }
+        public void commit() { ((BTimer)getBelong())._ConcurrentFireSerialNo = value; }
     }
 
     @Override
@@ -361,11 +361,11 @@ public final class BTimer extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _TimerId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                case 2: _Name = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                case 1: _TimerId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 2: _Name = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 3: _TimerObj.followerApply(vlog); break;
                 case 4: _CustomData.followerApply(vlog); break;
-                case 5: _ConcurrentFireSerialNo = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 5: _ConcurrentFireSerialNo = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }

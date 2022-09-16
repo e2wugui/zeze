@@ -73,11 +73,11 @@ public class Online extends AbstractOnline {
 		return GenModule.createRedirectModule(Online.class, app);
 	}
 
-	public static long GetSpecialTypeIdFromBean(Bean bean) {
+	public static long getSpecialTypeIdFromBean(Bean bean) {
 		return bean.typeId();
 	}
 
-	public static Bean CreateBeanFromSpecialTypeId(long typeId) {
+	public static Bean createBeanFromSpecialTypeId(long typeId) {
 		throw new UnsupportedOperationException("Online Memory Table Dynamic Only.");
 	}
 
@@ -91,7 +91,7 @@ public class Online extends AbstractOnline {
 
 	public Online(AppBase app) {
 		if (app != null) {
-			this.ProviderApp = app.getZeze().Redirect.ProviderApp;
+			this.ProviderApp = app.getZeze().redirect.ProviderApp;
 			RegisterProtocols(ProviderApp.ProviderService);
 			RegisterZezeTables(ProviderApp.Zeze);
 		} else // for RedirectGenMain
@@ -284,7 +284,7 @@ public class Online extends AbstractOnline {
 		}
 		Transaction.whileCommit(() -> Task.schedule(ProviderApp.Zeze.getConfig().getOnlineLogoutDelay(), () -> {
 			// TryRemove
-			ProviderApp.Zeze.NewProcedure(() -> {
+			ProviderApp.Zeze.newProcedure(() -> {
 				// local online 独立判断version分别尝试删除。
 				var local = _tlocal.get(account);
 				if (local != null) {
@@ -517,7 +517,7 @@ public class Online extends AbstractOnline {
 	}
 
 	public void send(Collection<LoginKey> logins, long typeId, Binary fullEncodedProtocol) {
-		ProviderApp.Zeze.getTaskOneByOneByKey().ExecuteCyclicBarrier(logins, ProviderApp.Zeze.NewProcedure(() -> {
+		ProviderApp.Zeze.getTaskOneByOneByKey().executeCyclicBarrier(logins, ProviderApp.Zeze.newProcedure(() -> {
 			sendEmbed(logins, typeId, fullEncodedProtocol);
 			return Procedure.Success;
 		}, "Online.send"), null, DispatchMode.Normal);
@@ -580,7 +580,7 @@ public class Online extends AbstractOnline {
 					groups.putIfAbsent(group.LinkName, group);
 				}
 				group.Logins.putIfAbsent(login, e.getValue().getLinkSid());
-				group.Contexts.putIfAbsent(e.getValue().getLinkSid(), KV.Create(login.Account, login.ClientId));
+				group.Contexts.putIfAbsent(e.getValue().getLinkSid(), KV.create(login.Account, login.ClientId));
 			}
 		}
 		return groups.values();
@@ -615,7 +615,7 @@ public class Online extends AbstractOnline {
 	}
 
 	public void sendAccounts(Collection<String> accounts, long typeId, Binary fullEncodedProtocol, OnlineSend sender) {
-		ProviderApp.Zeze.getTaskOneByOneByKey().ExecuteCyclicBarrier(accounts, ProviderApp.Zeze.NewProcedure(() -> {
+		ProviderApp.Zeze.getTaskOneByOneByKey().executeCyclicBarrier(accounts, ProviderApp.Zeze.newProcedure(() -> {
 			sendAccountsEmbed(accounts, typeId, fullEncodedProtocol, sender);
 			return Procedure.Success;
 		}, "Online.sendAccounts"), null, DispatchMode.Normal);
@@ -668,7 +668,7 @@ public class Online extends AbstractOnline {
 		var handle = TransmitActions.get(actionName);
 		if (handle != null) {
 			for (var target : accounts) {
-				ProviderApp.Zeze.NewProcedure(() -> handle.call(account, clientId, target, parameter),
+				ProviderApp.Zeze.newProcedure(() -> handle.call(account, clientId, target, parameter),
 						"Arch.Online.Transmit:" + actionName).Call();
 			}
 		}
@@ -774,7 +774,7 @@ public class Online extends AbstractOnline {
 
 		var binaryParam = parameter == null ? Binary.Empty : new Binary(ByteBuffer.encode(parameter));
 		// 发送协议请求在另外的事务中执行。
-		ProviderApp.Zeze.NewProcedure(() -> {
+		ProviderApp.Zeze.newProcedure(() -> {
 			transmitInProcedure(account, clientId, actionName, targets, binaryParam);
 			return Procedure.Success;
 		}, "Onlines.Transmit").Call();
@@ -848,13 +848,13 @@ public class Online extends AbstractOnline {
 		var account = new OutObject<String>();
 		_tlocal.WalkCache((k, v) -> {
 			// 先得到roleId
-			account.Value = k;
+			account.value = k;
 			return true;
 		}, () -> {
 			// 锁外执行事务
 			try {
-				ProviderApp.Zeze.NewProcedure(() -> {
-					tryRemoveLocal(account.Value);
+				ProviderApp.Zeze.newProcedure(() -> {
+					tryRemoveLocal(account.value);
 					return 0L;
 				}, "VerifyLocal:" + account).Call();
 			} catch (Throwable e) {
@@ -965,11 +965,11 @@ public class Online extends AbstractOnline {
 
 		var account = _taccount.get(session.getAccount());
 		if (account == null)
-			return ErrorCode(ResultCodeAccountNotExist);
+			return errorCode(ResultCodeAccountNotExist);
 
 		var online = _tonline.get(session.getAccount());
 		if (online == null)
-			return ErrorCode(ResultCodeOnlineDataNotFound);
+			return errorCode(ResultCodeOnlineDataNotFound);
 
 		var local = _tlocal.getOrAdd(session.getAccount());
 		var version = _tversion.getOrAdd(session.getAccount());
@@ -1018,7 +1018,7 @@ public class Online extends AbstractOnline {
 				session, rpc.Argument.getReliableNotifyConfirmIndex(), true);
 
 		if (syncResultCode != ResultCodeSuccess)
-			return ErrorCode((short)syncResultCode);
+			return errorCode((short)syncResultCode);
 
 		//App.Load.LoginCount.IncrementAndGet();
 		return Procedure.Success;
@@ -1029,7 +1029,7 @@ public class Online extends AbstractOnline {
 		var session = ProviderUserSession.get(rpc);
 
 		if (!session.isLogin())
-			return ErrorCode(ResultCodeNotLogin);
+			return errorCode(ResultCodeNotLogin);
 
 		var local = _tlocal.get(session.getAccount());
 		var online = _tonline.get(session.getAccount());
@@ -1091,14 +1091,14 @@ public class Online extends AbstractOnline {
 		var clientId = session.getContext();
 		var online = _tonline.get(session.getAccount());
 		if (online == null)
-			return ErrorCode(ResultCodeOnlineDataNotFound);
+			return errorCode(ResultCodeOnlineDataNotFound);
 
 		var syncResultCode = reliableNotifySync(session.getAccount(), clientId,
 				session, rpc.Argument.getReliableNotifyConfirmIndex(), rpc.Argument.isSync());
 		session.sendResponseWhileCommit(rpc); // 同步前提交。
 
 		if (ResultCodeSuccess != syncResultCode)
-			return ErrorCode((short)syncResultCode);
+			return errorCode((short)syncResultCode);
 
 		return Procedure.Success;
 	}

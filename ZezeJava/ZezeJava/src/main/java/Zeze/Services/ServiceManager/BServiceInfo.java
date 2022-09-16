@@ -9,56 +9,56 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 	/**
 	 * 服务名，比如"GameServer"
 	 */
-	private String ServiceName;
+	private String serviceName;
 
 	/**
 	 * 服务id，对于 Zeze.Application，一般就是 Config.ServerId.
 	 * 这里使用类型 string 是为了更好的支持扩展。
 	 */
-	private String ServiceIdentity;
+	private String serviceIdentity;
 
 	/**
 	 * 服务ip-port，如果没有，保持空和0.
 	 */
-	private String PassiveIp = "";
-	private int PassivePort = 0;
+	private String passiveIp = "";
+	private int passivePort = 0;
 
 	// 服务扩展信息，可选。
-	private Binary ExtraInfo = Binary.Empty;
+	private Binary extraInfo = Binary.Empty;
 
 	// ServiceManager用来存储服务器的SessionId。算是一个优化吧。
-	public Long SessionId;
+	public Long sessionId;
 
 	public String getServiceName() {
-		return ServiceName;
+		return serviceName;
 	}
 
 	public String getServiceIdentity() {
-		return ServiceIdentity;
+		return serviceIdentity;
 	}
 
 	public String getPassiveIp() {
-		return PassiveIp;
+		return passiveIp;
 	}
 
 	public void setPassiveIp(String value) {
-		PassiveIp = value;
+		passiveIp = value;
 	}
 
 	public int getPassivePort() {
-		return PassivePort;
+		return passivePort;
 	}
 
 	public void setPassivePort(int value) {
-		PassivePort = value;
+		passivePort = value;
 	}
 
 	public Binary getExtraInfo() {
-		return ExtraInfo;
+		return extraInfo;
 	}
 
 	public void setExtraInfo(Binary value) {
-		ExtraInfo = value;
+		extraInfo = value;
 	}
 
 	public BServiceInfo() {
@@ -77,22 +77,22 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 	}
 
 	public BServiceInfo(String name, String identity, String ip, int port, Binary extraInfo) {
-		ServiceName = name;
-		ServiceIdentity = identity;
+		serviceName = name;
+		serviceIdentity = identity;
 		if (ip != null)
-			PassiveIp = ip;
-		PassivePort = port;
+			passiveIp = ip;
+		passivePort = port;
 		if (extraInfo != null)
-			ExtraInfo = extraInfo;
+			this.extraInfo = extraInfo;
 	}
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		ServiceName = bb.ReadString();
-		ServiceIdentity = bb.ReadString();
-		PassiveIp = bb.ReadString();
-		PassivePort = bb.ReadInt();
-		ExtraInfo = bb.ReadBinary();
+		serviceName = bb.ReadString();
+		serviceIdentity = bb.ReadString();
+		passiveIp = bb.ReadString();
+		passivePort = bb.ReadInt();
+		extraInfo = bb.ReadBinary();
 	}
 
 	@Override
@@ -151,16 +151,16 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 
 	@Override
 	public int compareTo(BServiceInfo o) {
-		int c = ServiceName.compareTo(o.ServiceName);
+		int c = serviceName.compareTo(o.serviceName);
 		if (c != 0)
 			return c;
 
-		return ServiceIdentity.compareTo(o.ServiceIdentity);
+		return serviceIdentity.compareTo(o.serviceIdentity);
 	}
 
 	@Override
 	public String toString() {
-		return "BServiceInfo{" + "ServiceName='" + ServiceName + '\'' + ", ServiceIdentity='" + ServiceIdentity + '\'' +
-				", PassiveIp='" + PassiveIp + '\'' + ", PassivePort=" + PassivePort + ", ExtraInfo=" + ExtraInfo + '}';
+		return "BServiceInfo{" + "ServiceName='" + serviceName + '\'' + ", ServiceIdentity='" + serviceIdentity + '\'' +
+				", PassiveIp='" + passiveIp + '\'' + ", PassivePort=" + passivePort + ", ExtraInfo=" + extraInfo + '}';
 	}
 }

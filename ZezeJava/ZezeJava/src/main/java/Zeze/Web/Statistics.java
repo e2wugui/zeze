@@ -10,7 +10,7 @@ import Zeze.Transaction.TableStatistics;
 
 public class Statistics {
 	public Statistics(Web web) {
-		web.Servlets.put("/zeze/auth", new HttpServlet() {
+		web.servlets.put("/zeze/auth", new HttpServlet() {
 			// 只实现query参数模式。
 			@Override
 			public void onRequest(HttpExchange r) {
@@ -24,7 +24,7 @@ public class Statistics {
 			}
 		});
 
-		web.Servlets.put("/zeze/stats", new HttpServlet() {
+		web.servlets.put("/zeze/stats", new HttpServlet() {
 			// 只实现query参数模式。
 			@Override
 			public void onRequest(HttpExchange r) {
@@ -46,7 +46,7 @@ public class Statistics {
 			}
 		});
 
-		web.Servlets.put("/zeze/echo", new HttpServlet() {
+		web.servlets.put("/zeze/echo", new HttpServlet() {
 			// 由于HttpClient发送完Request前不会读取Response，所以这里没法实现成边读边写的模式。
 			// 现在上传数据保存在HttpServlet中，所以这个请求不能并发。
 			final List<Binary> uploadData = new ArrayList<>();

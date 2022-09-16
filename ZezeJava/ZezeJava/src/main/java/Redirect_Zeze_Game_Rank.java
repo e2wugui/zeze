@@ -49,7 +49,7 @@ public final class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
 
         var _f_ = new Zeze.Arch.RedirectFuture<Long>();
         _p_.Send(_t_, _rpc_ -> {
-            _f_.SetResult(_rpc_.isTimeout() ? Zeze.Transaction.Procedure.Timeout : _rpc_.getResultCode());
+            _f_.setResult(_rpc_.isTimeout() ? Zeze.Transaction.Procedure.Timeout : _rpc_.getResultCode());
             return Zeze.Transaction.Procedure.Success;
         });
         return _f_;
@@ -58,9 +58,9 @@ public final class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
     @SuppressWarnings({"unchecked", "RedundantSuppression"})
     public Redirect_Zeze_Game_Rank(Zeze.AppBase _app_) {
         super(_app_);
-        _redirect_ = _app_.getZeze().Redirect;
+        _redirect_ = _app_.getZeze().redirect;
 
-        _app_.getZeze().Redirect.Handles.put("Zeze.Game.Rank:getRankAll", new Zeze.Arch.RedirectHandle(
+        _app_.getZeze().redirect.Handles.put("Zeze.Game.Rank:getRankAll", new Zeze.Arch.RedirectHandle(
             Zeze.Transaction.TransactionLevel.Serializable, (_hash_, _params_) -> {
                 var _b_ = _params_.Wrap();
                 var keyHint = new Zeze.Builtin.Game.Rank.BConcurrentKey();
@@ -72,7 +72,7 @@ public final class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
                 _r_.rankList.encode(_b_);
                 return new Zeze.Net.Binary(_b_);
             }));
-        _app_.getZeze().Redirect.Handles.put("Zeze.Game.Rank:updateRank", new Zeze.Arch.RedirectHandle(
+        _app_.getZeze().redirect.Handles.put("Zeze.Game.Rank:updateRank", new Zeze.Arch.RedirectHandle(
             Zeze.Transaction.TransactionLevel.Serializable, (_hash_, _params_) -> {
                 var keyHint = new Zeze.Builtin.Game.Rank.BConcurrentKey();
                 long roleId;

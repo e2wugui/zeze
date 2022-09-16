@@ -33,7 +33,7 @@ public class TestBag {
 
 	@Test
 	public final void test1_Add() throws Throwable {
-		var ret = demo.App.getInstance().Zeze.NewProcedure(() -> {
+		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var bag = App.getInstance().BagModule.open("test1");
 			bag.setCapacity(MAX_BAG_CAPACITY);
 			for (int i = MIN_ITEM_ID; i < MIN_ITEM_ID + ADD_PILE_NUM; i++) {
@@ -51,7 +51,7 @@ public class TestBag {
 
 	@Test
 	public final void test2_Move() throws Throwable {
-		var ret = demo.App.getInstance().Zeze.NewProcedure(() -> {
+		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var bag = demo.App.getInstance().BagModule.open("test1");
 			Assert.assertEquals(bag.getBean().getItems().size(), ADD_PILE_NUM * 2);
 			int moveNum = MAX_GRID_CAPACITY - (ADD_NUM / 2);
@@ -68,7 +68,7 @@ public class TestBag {
 
 	@Test
 	public final void test3_Remove() throws Throwable {
-		var ret = demo.App.getInstance().Zeze.NewProcedure(() -> {
+		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var bag = demo.App.getInstance().BagModule.open("test1");
 			Assert.assertEquals(bag.getBean().getItems().size(), ADD_PILE_NUM * 2);
 			for (int i = MIN_ITEM_ID; i < MIN_ITEM_ID + ADD_PILE_NUM; i++) {
@@ -90,7 +90,7 @@ public class TestBag {
 
 	@Test
 	public final void test4_Move() throws Throwable {
-		var ret = demo.App.getInstance().Zeze.NewProcedure(() -> {
+		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var bag = demo.App.getInstance().BagModule.open("test1");
 			Assert.assertEquals(bag.getBean().getItems().size(), ADD_PILE_NUM);
 			// 移动物品到空格子

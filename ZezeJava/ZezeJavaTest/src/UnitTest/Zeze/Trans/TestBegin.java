@@ -11,9 +11,9 @@ public class TestBegin extends TestCase {
 	private final Zeze.Transaction.Locks Locks = new Locks();
 
 	public final void testRollback() {
-		Transaction.Create(Locks);
+		Transaction.create(Locks);
 		try {
-			Transaction.getCurrent().Begin();
+			Transaction.getCurrent().begin();
 
 			// process
 			BMyBean bean = new BMyBean();
@@ -22,17 +22,17 @@ public class TestBegin extends TestCase {
 			bean.setI(1);
 			Assert.assertEquals(bean.getI(), 1);
 
-			Transaction.getCurrent().Rollback();
+			Transaction.getCurrent().rollback();
 			Assert.assertEquals(bean.getI(), 0);
 		} finally {
-			Transaction.Destroy();
+			Transaction.destroy();
 		}
 	}
 
 	public final void testCommit() {
-		Transaction.Create(Locks);
+		Transaction.create(Locks);
 		try {
-			Transaction.getCurrent().Begin();
+			Transaction.getCurrent().begin();
 
 			// process
 			BMyBean bean = new BMyBean();
@@ -41,27 +41,27 @@ public class TestBegin extends TestCase {
 			bean.setI(1);
 			Assert.assertEquals(bean.getI(), 1);
 
-			Transaction.getCurrent().Commit();
+			Transaction.getCurrent().commit();
 			Assert.assertEquals(bean.getI(), 1);
 		} finally {
-			Transaction.Destroy();
+			Transaction.destroy();
 		}
 	}
 
 	private static void processNestRollback(BMyBean bean) {
 		Assert.assertEquals(bean.getI(), 1);
-		Transaction.getCurrent().Begin();
+		Transaction.getCurrent().begin();
 		Assert.assertEquals(bean.getI(), 1);
 		bean.setI(2);
 		Assert.assertEquals(bean.getI(), 2);
-		Transaction.getCurrent().Rollback();
+		Transaction.getCurrent().rollback();
 		Assert.assertEquals(bean.getI(), 1);
 	}
 
 	public final void testNestRollback() {
-		Transaction.Create(Locks);
+		Transaction.create(Locks);
 		try {
-			Transaction.getCurrent().Begin();
+			Transaction.getCurrent().begin();
 
 			// process
 			BMyBean bean = new BMyBean();
@@ -72,27 +72,27 @@ public class TestBegin extends TestCase {
 			processNestRollback(bean);
 			Assert.assertEquals(bean.getI(), 1);
 
-			Transaction.getCurrent().Commit();
+			Transaction.getCurrent().commit();
 			Assert.assertEquals(bean.getI(), 1);
 		} finally {
-			Transaction.Destroy();
+			Transaction.destroy();
 		}
 	}
 
 	private static void ProcessNestCommit(BMyBean bean) {
 		Assert.assertEquals(bean.getI(), 1);
-		Transaction.getCurrent().Begin();
+		Transaction.getCurrent().begin();
 		Assert.assertEquals(bean.getI(), 1);
 		bean.setI(2);
 		Assert.assertEquals(bean.getI(), 2);
-		Transaction.getCurrent().Commit();
+		Transaction.getCurrent().commit();
 		Assert.assertEquals(bean.getI(), 2);
 	}
 
 	public final void testNestCommit() {
-		Transaction.Create(Locks);
+		Transaction.create(Locks);
 		try {
-			Transaction.getCurrent().Begin();
+			Transaction.getCurrent().begin();
 
 			// process
 			BMyBean bean = new BMyBean();
@@ -103,10 +103,10 @@ public class TestBegin extends TestCase {
 			ProcessNestCommit(bean);
 			Assert.assertEquals(bean.getI(), 2);
 
-			Transaction.getCurrent().Commit();
+			Transaction.getCurrent().commit();
 			Assert.assertEquals(bean.getI(), 2);
 		} finally {
-			Transaction.Destroy();
+			Transaction.destroy();
 		}
 	}
 }

@@ -5,7 +5,7 @@ import Zeze.Transaction.Log;
 import org.pcollections.PVector;
 
 public abstract class LogList<V> extends LogBean {
-	private PVector<V> Value;
+	private PVector<V> value;
 
 	public LogList(int typeId) {
 		super(typeId);
@@ -16,11 +16,11 @@ public abstract class LogList<V> extends LogBean {
 	}
 
 	final PVector<V> getValue() {
-		return Value;
+		return value;
 	}
 
 	final void setValue(PVector<V> value) {
-		Value = value;
+		this.value = value;
 	}
 
 	@Override
@@ -31,6 +31,6 @@ public abstract class LogList<V> extends LogBean {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void commit() {
-		((PList<V>)getThis())._list = Value;
+		((PList<V>)getThis()).list = value;
 	}
 }

@@ -20,18 +20,18 @@ public class ConcurrentLruLike<K, V> {
 
 		static {
 			try {
-				LRU_NODE_HANDLE = MethodHandles.lookup().findVarHandle(LruItem.class, "LruNode", ConcurrentHashMap.class);
+				LRU_NODE_HANDLE = MethodHandles.lookup().findVarHandle(LruItem.class, "lruNode", ConcurrentHashMap.class);
 			} catch (ReflectiveOperationException e) {
 				throw new RuntimeException(e);
 			}
 		}
 
-		final V Value;
-		volatile ConcurrentHashMap<K, LruItem<K, V>> LruNode;
+		final V value;
+		volatile ConcurrentHashMap<K, LruItem<K, V>> lruNode;
 
 		LruItem(V value, ConcurrentHashMap<K, LruItem<K, V>> lruNode) {
-			Value = value;
-			LruNode = lruNode;
+			this.value = value;
+			this.lruNode = lruNode;
 		}
 
 		@SuppressWarnings("unchecked")
@@ -45,62 +45,62 @@ public class ConcurrentLruLike<K, V> {
 	}
 
 	private final String name;
-	private final ConcurrentHashMap<K, LruItem<K, V>> DataMap;
-	private final ConcurrentLinkedQueue<ConcurrentHashMap<K, LruItem<K, V>>> LruQueue = new ConcurrentLinkedQueue<>();
-	private volatile ConcurrentHashMap<K, LruItem<K, V>> LruHot;
-	private int Capacity;
-	private int LruInitialCapacity;
-	private int CleanPeriod;
-	private BiPredicate<K, V> TryRemoveCallback;
-	private int CleanPeriodWhenExceedCapacity = 1000;
-	private boolean ContinueWhenTryRemoveCallbackFail = true;
+	private final ConcurrentHashMap<K, LruItem<K, V>> dataMap;
+	private final ConcurrentLinkedQueue<ConcurrentHashMap<K, LruItem<K, V>>> lruQueue = new ConcurrentLinkedQueue<>();
+	private volatile ConcurrentHashMap<K, LruItem<K, V>> lruHot;
+	private int capacity;
+	private int lruInitialCapacity;
+	private int cleanPeriod;
+	private BiPredicate<K, V> tryRemoveCallback;
+	private int cleanPeriodWhenExceedCapacity = 1000;
+	private boolean continueWhenTryRemoveCallbackFail = true;
 
 	public final int getCapacity() {
-		return Capacity;
+		return capacity;
 	}
 
 	public final void setCapacity(int value) {
-		Capacity = value;
+		capacity = value;
 	}
 
 	public final int getLruInitialCapacity() {
-		return LruInitialCapacity;
+		return lruInitialCapacity;
 	}
 
 	public final void setLruInitialCapacity(int value) {
-		LruInitialCapacity = value;
+		lruInitialCapacity = value;
 	}
 
 	public final int getCleanPeriod() {
-		return CleanPeriod;
+		return cleanPeriod;
 	}
 
 	public final void setCleanPeriod(int value) {
-		CleanPeriod = value;
+		cleanPeriod = value;
 	}
 
 	public final BiPredicate<K, V> getTryRemoveCallback() {
-		return TryRemoveCallback;
+		return tryRemoveCallback;
 	}
 
 	public final void setTryRemoveCallback(BiPredicate<K, V> value) {
-		TryRemoveCallback = value;
+		tryRemoveCallback = value;
 	}
 
 	public final int getCleanPeriodWhenExceedCapacity() {
-		return CleanPeriodWhenExceedCapacity;
+		return cleanPeriodWhenExceedCapacity;
 	}
 
 	public final void setCleanPeriodWhenExceedCapacity(int value) {
-		CleanPeriodWhenExceedCapacity = value;
+		cleanPeriodWhenExceedCapacity = value;
 	}
 
 	public final boolean getContinueWhenTryRemoveCallbackFail() {
-		return ContinueWhenTryRemoveCallbackFail;
+		return continueWhenTryRemoveCallbackFail;
 	}
 
 	public final void setContinueWhenTryRemoveCallbackFail(boolean value) {
-		ContinueWhenTryRemoveCallbackFail = value;
+		continueWhenTryRemoveCallbackFail = value;
 	}
 
 	public ConcurrentLruLike(String name, int capacity) {
@@ -123,24 +123,24 @@ public class ConcurrentLruLike<K, V> {
 	public ConcurrentLruLike(String name, int capacity, BiPredicate<K, V> tryRemove, int newLruHotPeriod,
 							 int cleanPeriod, int initialCapacity) {
 		this.name = name;
-		DataMap = new ConcurrentHashMap<>(initialCapacity);
-		Capacity = capacity;
-		LruInitialCapacity = Math.min(initialCapacity / 5, 100000);
-		CleanPeriod = cleanPeriod;
-		TryRemoveCallback = tryRemove;
+		dataMap = new ConcurrentHashMap<>(initialCapacity);
+		this.capacity = capacity;
+		lruInitialCapacity = Math.min(initialCapacity / 5, 100000);
+		this.cleanPeriod = cleanPeriod;
+		tryRemoveCallback = tryRemove;
 		newLruHot();
 
 		Task.schedule(newLruHotPeriod, newLruHotPeriod, () -> {
-			if (LruHot.size() > LruInitialCapacity / 2) // 访问很少的时候不创建新的热点
+			if (lruHot.size() > lruInitialCapacity / 2) // 访问很少的时候不创建新的热点
 				newLruHot();
 		});
 		// 下面这个任务的执行时间可能很长，不直接使用带period的schedule的定时任务，每次执行完重新调度。
-		Task.schedule(CleanPeriod, CleanPeriod, this::CleanNow);
+		Task.schedule(this.cleanPeriod, this.cleanPeriod, this::cleanNow);
 	}
 
-	public long WalkKey(TableWalkKey<K> callback) {
+	public long walkKey(TableWalkKey<K> callback) {
 		long cw = 0;
-		for (var k : DataMap.keySet()) {
+		for (var k : dataMap.keySet()) {
 			if (!callback.handle(k))
 				return cw;
 			++cw;
@@ -149,9 +149,9 @@ public class ConcurrentLruLike<K, V> {
 	}
 
 	private void newLruHot() {
-		var newLru = new ConcurrentHashMap<K, LruItem<K, V>>(LruInitialCapacity);
-		LruHot = newLru;
-		LruQueue.add(newLru);
+		var newLru = new ConcurrentHashMap<K, LruItem<K, V>>(lruInitialCapacity);
+		lruHot = newLru;
+		lruQueue.add(newLru);
 	}
 
 	private void adjustLru(K key, LruItem<K, V> lruItem, ConcurrentHashMap<K, LruItem<K, V>> curLruHot) {
@@ -159,23 +159,23 @@ public class ConcurrentLruLike<K, V> {
 		if (oldNode != null) {
 			oldNode.remove(key);
 			if (curLruHot.putIfAbsent(key, lruItem) == null)
-				lruItem.LruNode = curLruHot;
+				lruItem.lruNode = curLruHot;
 		}
 	}
 
 	public final V getOrAdd(K key, Factory<V> factory) {
-		var lruHot = LruHot;
-		var lruItem = DataMap.get(key);
+		var lruHot = this.lruHot;
+		var lruItem = dataMap.get(key);
 		if (lruItem == null) { // slow-path
-			lruItem = DataMap.computeIfAbsent(key, k -> {
+			lruItem = dataMap.computeIfAbsent(key, k -> {
 				var item = new LruItem<>(factory.create(), lruHot);
 				lruHot.put(key, item); // MUST replace
 				return item;
 			});
 		}
-		if (lruItem.LruNode != lruHot)
+		if (lruItem.lruNode != lruHot)
 			adjustLru(key, lruItem, lruHot);
-		return lruItem.Value;
+		return lruItem.value;
 	}
 
 	public final V get(K key) {
@@ -183,42 +183,42 @@ public class ConcurrentLruLike<K, V> {
 	}
 
 	public final V get(K key, boolean adjustLru) {
-		var lruItem = DataMap.get(key);
+		var lruItem = dataMap.get(key);
 		if (lruItem == null)
 			return null;
 		if (adjustLru) {
-			var lruHot = LruHot;
-			if (lruItem.LruNode != lruHot)
+			var lruHot = this.lruHot;
+			if (lruItem.lruNode != lruHot)
 				adjustLru(key, lruItem, lruHot);
 		}
-		return lruItem.Value;
+		return lruItem.value;
 	}
 
 	// 自定义TryRemoveCallback时，需要调用这个方法真正删除。
 	public final V remove(K key) {
-		var lruItemRemoved = DataMap.remove(key);
+		var lruItemRemoved = dataMap.remove(key);
 		if (lruItemRemoved == null)
 			return null;
 		// 这里有个时间窗口：先删除DataMap再去掉Lru引用，
 		// 当对Key再次GetOrAdd时，LruNode里面可能已经存在旧的record。
 		// 1. GetOrAdd 需要 replace 更新
 		// 2. 必须使用 Pair，有可能 LurNode 里面已经有新建的记录了。
-		var node = lruItemRemoved.LruNode;
+		var node = lruItemRemoved.lruNode;
 		if (node != null)
 			node.remove(key, lruItemRemoved);
-		return lruItemRemoved.Value;
+		return lruItemRemoved.value;
 	}
 
-	private void TryPollLruQueue() {
-		if (LruQueue.size() <= MAX_NODE_COUNT)
+	private void tryPollLruQueue() {
+		if (lruQueue.size() <= MAX_NODE_COUNT)
 			return;
 
 		var timeBegin = System.nanoTime();
 		int recordCount = 0, nodeCount = 0;
-		var polls = new ArrayList<ConcurrentHashMap<K, LruItem<K, V>>>(LruQueue.size() - SHRINK_NODE_COUNT);
-		while (LruQueue.size() > SHRINK_NODE_COUNT) {
+		var polls = new ArrayList<ConcurrentHashMap<K, LruItem<K, V>>>(lruQueue.size() - SHRINK_NODE_COUNT);
+		while (lruQueue.size() > SHRINK_NODE_COUNT) {
 			// 大概，删除超过一天的节点。
-			var node = LruQueue.poll();
+			var node = lruQueue.poll();
 			if (null == node)
 				break;
 			polls.add(node);
@@ -226,37 +226,37 @@ public class ConcurrentLruLike<K, V> {
 		}
 
 		// 把被删除掉的node里面的记录迁移到当前最老(head)的node里面。
-		var head = LruQueue.peek();
+		var head = lruQueue.peek();
 		assert head != null;
 		for (var poll : polls) {
 			for (var e : poll.entrySet()) {
 				// concurrent see adjustLru
 				var r = e.getValue();
 				if (r.compareAndSetLruNodeNull(poll) && head.putIfAbsent(e.getKey(), r) == null) { // 并发访问导致这个记录已经被迁移走。
-					r.LruNode = head;
+					r.lruNode = head;
 					recordCount++;
 				}
 			}
 		}
 		logger.info("{}: shrank {} nodes, moved {} records, {} ms, result: {}/{}", name,
-				nodeCount, recordCount, (System.nanoTime() - timeBegin) / 1_000_000, LruQueue.size(), MAX_NODE_COUNT);
+				nodeCount, recordCount, (System.nanoTime() - timeBegin) / 1_000_000, lruQueue.size(), MAX_NODE_COUNT);
 	}
 
-	private void CleanNow() {
-		int capacity = Capacity;
+	private void cleanNow() {
+		int capacity = this.capacity;
 		if (capacity > 0) {
 			var timeBegin = System.nanoTime();
 			int recordCount = 0, nodeCount = 0;
-			while (DataMap.size() > capacity) { // 超出容量，循环尝试
-				var node = LruQueue.peek();
-				if (node == LruHot || node == null) // 热点不回收
+			while (dataMap.size() > capacity) { // 超出容量，循环尝试
+				var node = lruQueue.peek();
+				if (node == lruHot || node == null) // 热点不回收
 					break;
 
-				var tryRemoveCallback = TryRemoveCallback;
+				var tryRemoveCallback = this.tryRemoveCallback;
 				if (tryRemoveCallback != null) {
 					for (var e : node.entrySet()) {
-						if (!tryRemoveCallback.test(e.getKey(), e.getValue().Value)
-								&& !ContinueWhenTryRemoveCallbackFail)
+						if (!tryRemoveCallback.test(e.getKey(), e.getValue().value)
+								&& !continueWhenTryRemoveCallbackFail)
 							break;
 						recordCount++;
 					}
@@ -267,13 +267,13 @@ public class ConcurrentLruLike<K, V> {
 				}
 
 				if (node.isEmpty()) {
-					LruQueue.poll();
+					lruQueue.poll();
 					nodeCount++;
 				} else {
 					logger.warn("remain record when clean oldest lruNode.");
 					try {
 						//noinspection BusyWait
-						Thread.sleep(CleanPeriodWhenExceedCapacity);
+						Thread.sleep(cleanPeriodWhenExceedCapacity);
 					} catch (InterruptedException e) {
 						logger.error("CleanNow Interrupted", e);
 					}
@@ -281,9 +281,9 @@ public class ConcurrentLruLike<K, V> {
 			}
 			if (recordCount > 0 || nodeCount > 0) {
 				logger.info("{}: cleaned {} records, {} nodes, {} ms, result: {}/{}", name, recordCount, nodeCount,
-						(System.nanoTime() - timeBegin) / 1_000_000, DataMap.size(), capacity);
+						(System.nanoTime() - timeBegin) / 1_000_000, dataMap.size(), capacity);
 			}
 		}
-		TryPollLruQueue();
+		tryPollLruQueue();
 	}
 }

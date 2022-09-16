@@ -13,10 +13,10 @@ public final class BAcquiredState extends Zeze.Raft.RocksRaft.Bean {
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
         if (txn == null)
             return _State;
-        var log = txn.GetLog(objectId() + 1);
+        var log = txn.getLog(objectId() + 1);
         if (log == null)
             return _State;
-        return ((Zeze.Raft.RocksRaft.Log1.LogInt)log).Value;
+        return ((Zeze.Raft.RocksRaft.Log1.LogInt)log).value;
     }
 
     public void setState(int value) {
@@ -25,7 +25,7 @@ public final class BAcquiredState extends Zeze.Raft.RocksRaft.Bean {
             return;
         }
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
-        txn.PutLog(new Zeze.Raft.RocksRaft.Log1.LogInt(this, 1, value));
+        txn.putLog(new Zeze.Raft.RocksRaft.Log1.LogInt(this, 1, value));
     }
 
     public BAcquiredState() {
@@ -50,7 +50,7 @@ public final class BAcquiredState extends Zeze.Raft.RocksRaft.Bean {
 
     public BAcquiredState copy() {
         var copy = new BAcquiredState();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -60,9 +60,9 @@ public final class BAcquiredState extends Zeze.Raft.RocksRaft.Bean {
     }
 
     public static void swap(BAcquiredState a, BAcquiredState b) {
-        BAcquiredState save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BAcquiredState save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -139,7 +139,7 @@ public final class BAcquiredState extends Zeze.Raft.RocksRaft.Bean {
     @Override
     public void leaderApplyNoRecursive(Zeze.Raft.RocksRaft.Log vlog) {
         switch (vlog.getVariableId()) {
-            case 1: _State = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).Value; break;
+            case 1: _State = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).value; break;
         }
     }
 
@@ -151,7 +151,7 @@ public final class BAcquiredState extends Zeze.Raft.RocksRaft.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _State = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).Value; break;
+                case 1: _State = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).value; break;
             }
         }
     }

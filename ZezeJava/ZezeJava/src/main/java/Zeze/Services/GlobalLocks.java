@@ -76,7 +76,7 @@ public final class GlobalLocks {
 		private final WeakHashSet<GlobalLockey> locks = new WeakHashSet<>();
 		private final ReentrantLock lock = new ReentrantLock();
 
-		public boolean Contains(GlobalLockey key) {
+		public boolean contains(GlobalLockey key) {
 			lock.lock();
 			try {
 				// 需要lock，get不是线程安全的
@@ -86,33 +86,33 @@ public final class GlobalLocks {
 			}
 		}
 
-		public GlobalLockey Get(GlobalLockey key) {
+		public GlobalLockey get(GlobalLockey key) {
 			lock.lock();
 			try {
 				GlobalLockey exist = locks.get(key);
 				if (exist != null)
 					return exist;
 				locks.add(key);
-				return key.Alloc();
+				return key.alloc();
 			} finally {
 				lock.unlock();
 			}
 		}
 	}
 
-	public boolean Contains(GlobalLockey lockey) {
-		return segmentFor(lockey).Contains(lockey);
+	public boolean contains(GlobalLockey lockey) {
+		return segmentFor(lockey).contains(lockey);
 	}
 
-	public GlobalLockey Get(GlobalLockey lockey) {
-		return segmentFor(lockey).Get(lockey);
+	public GlobalLockey get(GlobalLockey lockey) {
+		return segmentFor(lockey).get(lockey);
 	}
 
-	public GlobalLockey Get(Binary tkey) {
-		return Get(new GlobalLockey(tkey));
+	public GlobalLockey get(Binary tkey) {
+		return get(new GlobalLockey(tkey));
 	}
 
-	public boolean Contains(Binary tkey) {
-		return Contains(new GlobalLockey(tkey));
+	public boolean contains(Binary tkey) {
+		return contains(new GlobalLockey(tkey));
 	}
 }

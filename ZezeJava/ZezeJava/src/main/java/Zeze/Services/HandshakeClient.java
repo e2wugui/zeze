@@ -7,22 +7,22 @@ import Zeze.Net.Connector;
 public class HandshakeClient extends HandshakeBase {
 	public HandshakeClient(String name, Zeze.Config config) throws Throwable {
 		super(name, config);
-		AddHandshakeClientFactoryHandle();
+		addHandshakeClientFactoryHandle();
 	}
 
 	public HandshakeClient(String name, Application app) throws Throwable {
 		super(name, app);
-		AddHandshakeClientFactoryHandle();
+		addHandshakeClientFactoryHandle();
 	}
 
-	public final void Connect(String hostNameOrAddress, int port) {
-		Connect(hostNameOrAddress, port, true);
+	public final void connect(String hostNameOrAddress, int port) {
+		connect(hostNameOrAddress, port, true);
 	}
 
-	public final void Connect(String hostNameOrAddress, int port, boolean autoReconnect) {
+	public final void connect(String hostNameOrAddress, int port, boolean autoReconnect) {
 		var c = new Zeze.Util.OutObject<Connector>();
 		getConfig().tryGetOrAddConnector(hostNameOrAddress, port, autoReconnect, c);
-		c.Value.Start();
+		c.value.Start();
 	}
 
 	@Override

@@ -19,7 +19,7 @@ public class ZegeConfig implements Zeze.Config.ICustomize {
 	}
 
 	@Override
-	public void Parse(Element self) {
+	public void parse(Element self) {
 		String attr;
 
 		attr = self.getAttribute("AboutHasRead");

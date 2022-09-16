@@ -20,12 +20,12 @@ public class ResetDB {
 			return;
 
 		if (!app.getConfig().autoResetTable()){
-			app.getSchemas().CheckCompatible(other,app);
+			app.getSchemas().checkCompatible(other,app);
 			return;
 		}
 
 		String databaseName = app.getConfig().getDefaultTableConf().getDatabaseName();
-		Database defaultDb = app.GetDatabase(databaseName);
+		Database defaultDb = app.getDatabase(databaseName);
 
 		List<String> removeList = getRemoveList(other, app);
 		if (removeList.isEmpty()) {
@@ -38,7 +38,7 @@ public class ResetDB {
 
 	private static List<String> getRemoveList(Schemas other, Application app) {
 		String dbName = app.getConfig().getDefaultTableConf().getDatabaseName();
-		Database defaultDb = app.GetDatabase(dbName);
+		Database defaultDb = app.getDatabase(dbName);
 
 		var context = new Schemas.Context();
 		context.setCurrent(app.getSchemas());
@@ -46,13 +46,13 @@ public class ResetDB {
 		context.setConfig(app.getConfig());
 
 		HashMap<String, Integer> removeModules = new HashMap<>();
-		for (var table : app.getSchemas().Tables.values()) {
-			Schemas.Table otherTable = other.Tables.get(table.Name);
+		for (var table : app.getSchemas().tables.values()) {
+			Schemas.Table otherTable = other.tables.get(table.name);
 			if (null == otherTable) {
 				continue;
 			}
-			if (!table.IsCompatible(otherTable, context)) {
-				var rmTable = defaultDb.getTable(otherTable.Name);
+			if (!table.isCompatible(otherTable, context)) {
+				var rmTable = defaultDb.getTable(otherTable.name);
 				if (rmTable == null) {
 					continue;
 				}
@@ -65,18 +65,18 @@ public class ResetDB {
 				if (empty.get()) {
 					continue;
 				}
-				String[] strs = otherTable.Name.split("_", 3);
+				String[] strs = otherTable.name.split("_", 3);
 				String moduleName = "_" + strs[1] + "_";
 				removeModules.putIfAbsent(moduleName, 1);
 			}
 		}
 		List<String> removeList = new LinkedList<>();
-		for (var table : app.getSchemas().Tables.values()) {
-			String[] strs = table.Name.split("_", 3);
+		for (var table : app.getSchemas().tables.values()) {
+			String[] strs = table.name.split("_", 3);
 			String key = "_" + strs[1] + "_";
 			if (removeModules.get(key) != null) {
-				removeList.add(table.Name);
-				logger.debug("add remove table list : {}.", table.Name);
+				removeList.add(table.name);
+				logger.debug("add remove table list : {}.", table.name);
 			}
 		}
 		return removeList;

@@ -27,7 +27,7 @@ public final class App extends Zeze.AppBase {
 	public ProviderDirectWithTransmit ProviderDirect;
 
 	@Override
-	public <T extends Zeze.IModule> T ReplaceModuleInstance(T module) {
+	public <T extends Zeze.IModule> T replaceModuleInstance(T module) {
 		return RedirectBase.ReplaceModuleInstance(this, module);
 	}
 
@@ -35,7 +35,7 @@ public final class App extends Zeze.AppBase {
 		return Provider;
 	}
 
-	private LoadConfig LoadConfig() {
+	private static LoadConfig LoadConfig() {
 		try {
 			byte[] bytes = Files.readAllBytes(Paths.get("linkd.json"));
 			return new JsonReader().buf(bytes).parse(LoadConfig.class);
@@ -55,7 +55,7 @@ public final class App extends Zeze.AppBase {
 				serverId = Integer.parseInt(args[++i]);
 				break;
 			case "-GenFileSrcRoot":
-				GenModule.Instance.GenFileSrcRoot = args[++i];
+				GenModule.instance.genFileSrcRoot = args[++i];
 				break;
 			case "-ProviderDirectPort":
 				providerDirectPort = Integer.parseInt(args[++i]);
@@ -67,7 +67,7 @@ public final class App extends Zeze.AppBase {
 
 	public void Start(int serverId, int providerDirectPort) throws Throwable {
 
-		var config = Config.Load("server.xml");
+		var config = Config.load("server.xml");
 		if (serverId != -1) {
 			config.setServerId(serverId); // replace from args
 		}
@@ -76,8 +76,8 @@ public final class App extends Zeze.AppBase {
 			config.getServiceConfMap().get("ServerDirect").ForEachAcceptor((a) -> a.setPort(port));
 		}
 		// create
-		CreateZeze(config);
-		CreateService();
+		createZeze(config);
+		createService();
 		Provider = new ProviderImplementWithOnline();
 		ProviderDirect = new ProviderDirectWithTransmit();
 		ProviderApp = new ProviderApp(Zeze, Provider, Server,
@@ -86,40 +86,40 @@ public final class App extends Zeze.AppBase {
 		Provider.Online = Online.create(this);
 		Provider.Online.Initialize(this);
 
-		CreateModules();
-		if (GenModule.Instance.GenFileSrcRoot != null) {
+		createModules();
+		if (GenModule.instance.genFileSrcRoot != null) {
 			System.out.println("---------------");
 			System.out.println("New Source File Has Generate. Re-Compile Need.");
 			System.exit(0);
 		}
 
 		// start
-		Zeze.Start(); // 启动数据库
-		StartModules(); // 启动模块，装载配置什么的。
+		Zeze.start(); // 启动数据库
+		startModules(); // 启动模块，装载配置什么的。
 		Provider.Online.Start();
 
 		PersistentAtomicLong socketSessionIdGen = PersistentAtomicLong.getOrAdd("Game.Server." + config.getServerId());
 		AsyncSocket.setSessionIdGenFunc(socketSessionIdGen::next);
-		StartService(); // 启动网络
+		startService(); // 启动网络
 		// 服务准备好以后才注册和订阅。
-		ProviderApp.StartLast(ProviderModuleBinds.Load(), Modules);
+		ProviderApp.StartLast(ProviderModuleBinds.Load(), modules);
 	}
 
 	public void Stop() throws Throwable {
 		if (Provider != null && Provider.Online != null)
 			Provider.Online.Stop();
-		StopService(); // 关闭网络
-		StopModules(); // 关闭模块，卸载配置什么的。
+		stopService(); // 关闭网络
+		stopModules(); // 关闭模块，卸载配置什么的。
 		if (Zeze != null)
-			Zeze.Stop(); // 关闭数据库
-		DestroyModules();
-		DestroyServices();
-		DestroyZeze();
+			Zeze.stop(); // 关闭数据库
+		destroyModules();
+		destroyServices();
+		destroyZeze();
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN APP @formatter:off
     public Zeze.Application Zeze;
-    public final java.util.HashMap<String, Zeze.IModule> Modules = new java.util.HashMap<>();
+    public final java.util.HashMap<String, Zeze.IModule> modules = new java.util.HashMap<>();
 
     public Game.Server Server;
     public Game.ServerDirect ServerDirect;
@@ -140,77 +140,77 @@ public final class App extends Zeze.AppBase {
         return Zeze;
     }
 
-    public void CreateZeze() throws Throwable {
-        CreateZeze(null);
+    public void createZeze() throws Throwable {
+        createZeze(null);
     }
 
-    public synchronized void CreateZeze(Zeze.Config config) throws Throwable {
+    public synchronized void createZeze(Zeze.Config config) throws Throwable {
         if (Zeze != null)
             throw new RuntimeException("Zeze Has Created!");
 
         Zeze = new Zeze.Application("Game", config);
     }
 
-    public synchronized void CreateService() throws Throwable {
+    public synchronized void createService() throws Throwable {
         Server = new Game.Server(Zeze);
         ServerDirect = new Game.ServerDirect(Zeze);
     }
 
-    public synchronized void CreateModules() {
-        Game_Login = ReplaceModuleInstance(new Game.Login.ModuleLogin(this));
+    public synchronized void createModules() {
+        Game_Login = replaceModuleInstance(new Game.Login.ModuleLogin(this));
         Game_Login.Initialize(this);
-        if (Modules.put(Game_Login.getFullName(), Game_Login) != null)
+        if (modules.put(Game_Login.getFullName(), Game_Login) != null)
             throw new RuntimeException("duplicate module name: Game_Login");
 
-        Game_Item = ReplaceModuleInstance(new Game.Item.ModuleItem(this));
+        Game_Item = replaceModuleInstance(new Game.Item.ModuleItem(this));
         Game_Item.Initialize(this);
-        if (Modules.put(Game_Item.getFullName(), Game_Item) != null)
+        if (modules.put(Game_Item.getFullName(), Game_Item) != null)
             throw new RuntimeException("duplicate module name: Game_Item");
 
-        Game_Fight = ReplaceModuleInstance(new Game.Fight.ModuleFight(this));
+        Game_Fight = replaceModuleInstance(new Game.Fight.ModuleFight(this));
         Game_Fight.Initialize(this);
-        if (Modules.put(Game_Fight.getFullName(), Game_Fight) != null)
+        if (modules.put(Game_Fight.getFullName(), Game_Fight) != null)
             throw new RuntimeException("duplicate module name: Game_Fight");
 
-        Game_Skill = ReplaceModuleInstance(new Game.Skill.ModuleSkill(this));
+        Game_Skill = replaceModuleInstance(new Game.Skill.ModuleSkill(this));
         Game_Skill.Initialize(this);
-        if (Modules.put(Game_Skill.getFullName(), Game_Skill) != null)
+        if (modules.put(Game_Skill.getFullName(), Game_Skill) != null)
             throw new RuntimeException("duplicate module name: Game_Skill");
 
-        Game_Buf = ReplaceModuleInstance(new Game.Buf.ModuleBuf(this));
+        Game_Buf = replaceModuleInstance(new Game.Buf.ModuleBuf(this));
         Game_Buf.Initialize(this);
-        if (Modules.put(Game_Buf.getFullName(), Game_Buf) != null)
+        if (modules.put(Game_Buf.getFullName(), Game_Buf) != null)
             throw new RuntimeException("duplicate module name: Game_Buf");
 
-        Game_Equip = ReplaceModuleInstance(new Game.Equip.ModuleEquip(this));
+        Game_Equip = replaceModuleInstance(new Game.Equip.ModuleEquip(this));
         Game_Equip.Initialize(this);
-        if (Modules.put(Game_Equip.getFullName(), Game_Equip) != null)
+        if (modules.put(Game_Equip.getFullName(), Game_Equip) != null)
             throw new RuntimeException("duplicate module name: Game_Equip");
 
-        Game_Map = ReplaceModuleInstance(new Game.Map.ModuleMap(this));
+        Game_Map = replaceModuleInstance(new Game.Map.ModuleMap(this));
         Game_Map.Initialize(this);
-        if (Modules.put(Game_Map.getFullName(), Game_Map) != null)
+        if (modules.put(Game_Map.getFullName(), Game_Map) != null)
             throw new RuntimeException("duplicate module name: Game_Map");
 
-        Game_Rank = ReplaceModuleInstance(new Game.Rank.ModuleRank(this));
+        Game_Rank = replaceModuleInstance(new Game.Rank.ModuleRank(this));
         Game_Rank.Initialize(this);
-        if (Modules.put(Game_Rank.getFullName(), Game_Rank) != null)
+        if (modules.put(Game_Rank.getFullName(), Game_Rank) != null)
             throw new RuntimeException("duplicate module name: Game_Rank");
 
-        Game_Timer = ReplaceModuleInstance(new Game.Timer.ModuleTimer(this));
+        Game_Timer = replaceModuleInstance(new Game.Timer.ModuleTimer(this));
         Game_Timer.Initialize(this);
-        if (Modules.put(Game_Timer.getFullName(), Game_Timer) != null)
+        if (modules.put(Game_Timer.getFullName(), Game_Timer) != null)
             throw new RuntimeException("duplicate module name: Game_Timer");
 
-        Game_LongSet = ReplaceModuleInstance(new Game.LongSet.ModuleLongSet(this));
+        Game_LongSet = replaceModuleInstance(new Game.LongSet.ModuleLongSet(this));
         Game_LongSet.Initialize(this);
-        if (Modules.put(Game_LongSet.getFullName(), Game_LongSet) != null)
+        if (modules.put(Game_LongSet.getFullName(), Game_LongSet) != null)
             throw new RuntimeException("duplicate module name: Game_LongSet");
 
         Zeze.setSchemas(new Game.Schemas());
     }
 
-    public synchronized void DestroyModules() {
+    public synchronized void destroyModules() {
         Game_LongSet = null;
         Game_Timer = null;
         Game_Rank = null;
@@ -221,19 +221,19 @@ public final class App extends Zeze.AppBase {
         Game_Fight = null;
         Game_Item = null;
         Game_Login = null;
-        Modules.clear();
+        modules.clear();
     }
 
-    public synchronized void DestroyServices() {
+    public synchronized void destroyServices() {
         Server = null;
         ServerDirect = null;
     }
 
-    public synchronized void DestroyZeze() {
+    public synchronized void destroyZeze() {
         Zeze = null;
     }
 
-    public synchronized void StartModules() throws Throwable {
+    public synchronized void startModules() throws Throwable {
         Game_Login.Start(this);
         Game_Item.Start(this);
         Game_Fight.Start(this);
@@ -246,7 +246,7 @@ public final class App extends Zeze.AppBase {
         Game_LongSet.Start(this);
     }
 
-    public synchronized void StopModules() throws Throwable {
+    public synchronized void stopModules() throws Throwable {
         if (Game_LongSet != null)
             Game_LongSet.Stop(this);
         if (Game_Timer != null)
@@ -269,12 +269,12 @@ public final class App extends Zeze.AppBase {
             Game_Login.Stop(this);
     }
 
-    public synchronized void StartService() throws Throwable {
+    public synchronized void startService() throws Throwable {
         Server.Start();
         ServerDirect.Start();
     }
 
-    public synchronized void StopService() throws Throwable {
+    public synchronized void stopService() throws Throwable {
         if (Server != null)
             Server.Stop();
         if (ServerDirect != null)

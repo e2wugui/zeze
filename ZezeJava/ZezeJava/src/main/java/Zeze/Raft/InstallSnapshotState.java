@@ -6,103 +6,103 @@ import Zeze.Net.Protocol;
 import Zeze.Transaction.Procedure;
 
 class InstallSnapshotState {
-	private final InstallSnapshot Pending = new InstallSnapshot(); // 【注意】重用这个Rpc
-	private RaftLog FirstLog;
-	private RandomAccessFile File;
-	private long Offset;
+	private final InstallSnapshot pending = new InstallSnapshot(); // 【注意】重用这个Rpc
+	private RaftLog firstLog;
+	private RandomAccessFile file;
+	private long offset;
 
 	public InstallSnapshot getPending() {
-		return Pending;
+		return pending;
 	}
 
 	public RaftLog getFirstLog() {
-		return FirstLog;
+		return firstLog;
 	}
 
 	public void setFirstLog(RaftLog value) {
-		FirstLog = value;
+		firstLog = value;
 	}
 
 	public RandomAccessFile getFile() {
-		return File;
+		return file;
 	}
 
 	public void setFile(RandomAccessFile value) {
-		File = value;
+		file = value;
 	}
 
 	public long getOffset() {
-		return Offset;
+		return offset;
 	}
 
 	public void setOffset(long value) {
-		Offset = value;
+		offset = value;
 	}
 
-	public void TrySend(LogSequence ls, Server.ConnectorEx c) throws Throwable {
+	public void trySend(LogSequence ls, Server.ConnectorEx c) throws Throwable {
 		ls.getRaft().lock();
 		try {
 			if (!ls.getInstallSnapshotting().containsKey(c.getName()))
 				return; // 安装取消了。
 
-			if (Pending.Argument.getDone() || ls.getRaft().IsShutdown || !ls.getRaft().isLeader()) {
-				ls.EndInstallSnapshot(c);
+			if (pending.Argument.getDone() || ls.getRaft().isShutdown || !ls.getRaft().isLeader()) {
+				ls.endInstallSnapshot(c);
 				return; // install done
 			}
 
 			c.setAppendLogActiveTime(System.currentTimeMillis());
 
 			var buffer = new byte[32 * 1024];
-			int rc = File.read(buffer);
-			Pending.Argument.setOffset(Offset);
-			Pending.Argument.setData(new Binary(buffer, 0, rc));
-			Pending.Argument.setDone(rc < buffer.length);
-			Offset += rc;
-			if (Pending.Argument.getDone())
-				Pending.Argument.setLastIncludedLog(new Binary(FirstLog.encode()));
+			int rc = file.read(buffer);
+			pending.Argument.setOffset(offset);
+			pending.Argument.setData(new Binary(buffer, 0, rc));
+			pending.Argument.setDone(rc < buffer.length);
+			offset += rc;
+			if (pending.Argument.getDone())
+				pending.Argument.setLastIncludedLog(new Binary(firstLog.encode()));
 
 			int timeout = ls.getRaft().getRaftConfig().getAppendEntriesTimeout();
-			Pending.setResultCode(Procedure.ErrorSendFail);
-			if (!Pending.Send(c.TryGetReadySocket(), p -> ProcessResult(ls, c, p), timeout))
-				ls.EndInstallSnapshot(c);
+			pending.setResultCode(Procedure.ErrorSendFail);
+			if (!pending.Send(c.TryGetReadySocket(), p -> processResult(ls, c, p), timeout))
+				ls.endInstallSnapshot(c);
 		} finally {
 			ls.getRaft().unlock();
 		}
 	}
 
 	@SuppressWarnings("SameReturnValue")
-	private long ProcessResult(LogSequence ls, Server.ConnectorEx c, Protocol<?> p) throws Throwable {
+	private long processResult(LogSequence ls, Server.ConnectorEx c, Protocol<?> p) throws Throwable {
 		var r = (InstallSnapshot)p;
 
 		ls.getRaft().lock();
 		try {
 			if (r.isTimeout()) {
-				ls.EndInstallSnapshot(c);
+				ls.endInstallSnapshot(c);
 				return Procedure.Success;
 			}
 
-			if (ls.TrySetTerm(r.Result.getTerm()) == LogSequence.SetTermResult.Newer) {
-				ls.EndInstallSnapshot(c);
+			if (ls.trySetTerm(r.Result.getTerm()) == LogSequence.SetTermResult.Newer) {
+				ls.endInstallSnapshot(c);
 				// new term found.
-				ls.getRaft().ConvertStateTo(Raft.RaftState.Follower);
+				ls.getRaft().convertStateTo(Raft.RaftState.Follower);
 				return Procedure.Success; // break install
 			}
 
 			if (r.getResultCode() != Procedure.Success && r.getResultCode() != InstallSnapshot.ResultCodeNewOffset) {
-				ls.EndInstallSnapshot(c);
+				ls.endInstallSnapshot(c);
 				return Procedure.Success; // break install
 			}
 
 			if (!r.Argument.getDone() && r.Result.getOffset() >= 0) {
-				if (r.Result.getOffset() > File.length()) {
+				if (r.Result.getOffset() > file.length()) {
 					LogSequence.logger.error("InstallSnapshot.Result.Offset Too Big. {}/{}",
-							r.Result.getOffset(), File.length());
-					ls.EndInstallSnapshot(c);
+							r.Result.getOffset(), file.length());
+					ls.endInstallSnapshot(c);
 					return Procedure.Success; // 中断安装。
 				}
-				File.seek(Offset = r.Result.getOffset());
+				file.seek(offset = r.Result.getOffset());
 			}
-			TrySend(ls, c);
+			trySend(ls, c);
 		} finally {
 			ls.getRaft().unlock();
 		}

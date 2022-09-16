@@ -18,15 +18,15 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 
 	public static <R> RedirectFuture<R> finish(R r) {
 		var f = new RedirectFuture<R>();
-		f.SetResult(r);
+		f.setResult(r);
 		return f;
 	}
 
 	private volatile Action1<R> onResult;
 
 	@Override
-	public boolean SetResult(R r) {
-		if (!super.SetResult(r))
+	public boolean setResult(R r) {
+		if (!super.setResult(r))
 			return false;
 		try {
 			tryOnResult(r);

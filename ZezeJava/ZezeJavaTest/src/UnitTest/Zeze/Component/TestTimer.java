@@ -1,12 +1,6 @@
 package UnitTest.Zeze.Component;
 
-import Zeze.Component.Timer;
-import Zeze.Component.TimerContext;
-import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
-import Zeze.Transaction.Record;
-import Zeze.Util.Action1;
 import demo.App;
 import org.junit.After;
 import org.junit.Assert;
@@ -40,7 +34,7 @@ public class TestTimer {
 			System.out.println(">> Name: " + timerContext.timerName + " ID: " + timerContext.timerId + " Now: " + timerContext.curTimeMills + " Expected: " + timerContext.expectedTimeMills + " Next: " + timerContext.nextExpectedTimeMills);
 		});
 
-		Assert.assertEquals(Procedure.Success, App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(() -> {
 			timer.schedule(1, 200, 10, "print1", null);
 			return Procedure.Success;
 		}, "test_CommonSchedule").Call());
@@ -61,7 +55,7 @@ public class TestTimer {
 			System.out.println(">> Name: " + timerContext.timerName + " ID: " + timerContext.timerId + " Now: " + timerContext.curTimeMills + " Expected: " + timerContext.expectedTimeMills + " Next: " + timerContext.nextExpectedTimeMills + " Bean Value: " + bean.getTestValue());
 		});
 
-		Assert.assertEquals(Procedure.Success, App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(() -> {
 			timer.schedule(1, 200, 10, "addTestBean", testBean1);
 			return Procedure.Success;
 		}, "test_ScheduleWithCustomBean").Call());
@@ -86,7 +80,7 @@ public class TestTimer {
 				System.out.println(">> Schedule Canceled");
 			}
 		});
-		Assert.assertEquals(Procedure.Success, App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(() -> {
 			timer.schedule(1, 200, 10, "cancelSchedule", testBean2);
 			return Procedure.Success;
 		}, "test_CancelSchedule").Call());

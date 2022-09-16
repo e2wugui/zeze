@@ -19,14 +19,14 @@ public final class Transaction {
 	private static final Logger logger = LogManager.getLogger(Transaction.class);
 	private static final ThreadLocal<Transaction> threadLocal = new ThreadLocal<>();
 
-	public static Transaction Create() {
+	public static Transaction create() {
 		var t = threadLocal.get();
 		if (t == null)
 			threadLocal.set(t = new Transaction());
 		return t;
 	}
 
-	public static void Destroy() {
+	public static void destroy() {
 		threadLocal.set(null);
 	}
 
@@ -35,40 +35,40 @@ public final class Transaction {
 	}
 
 	public static final class RecordAccessed extends Bean {
-		private final Record<?> Origin;
-		private final long Timestamp;
-		private boolean Dirty;
-		private LogBeanKey<Bean> PutLog;
+		private final Record<?> origin;
+		private final long timestamp;
+		private boolean dirty;
+		private LogBeanKey<Bean> putLog;
 
 		public RecordAccessed(Record<?> origin) {
-			Origin = origin;
-			Timestamp = origin.getTimestamp();
+			this.origin = origin;
+			timestamp = origin.getTimestamp();
 		}
 
 		public Record<?> getOrigin() {
-			return Origin;
+			return origin;
 		}
 
 		public long getTimestamp() {
-			return Timestamp;
+			return timestamp;
 		}
 
 		public boolean getDirty() {
-			return Dirty;
+			return dirty;
 		}
 
 		public void setDirty(boolean value) {
-			Dirty = value;
+			dirty = value;
 		}
 
 		public LogBeanKey<Bean> getPutLog() {
-			return PutLog;
+			return putLog;
 		}
 
-		public Bean NewestValue() {
-			if (PutLog != null)
-				return PutLog.Value;
-			return Origin.getValue();
+		public Bean newestValue() {
+			if (putLog != null)
+				return putLog.value;
+			return origin.getValue();
 		}
 
 		@Override
@@ -76,12 +76,12 @@ public final class Transaction {
 			throw new UnsupportedOperationException();
 		}
 
-		public void Put(Transaction current, Bean value) {
-			current.PutLog(PutLog = new LogBeanKey<>(Bean.class, this, 0, value));
+		public void put(Transaction current, Bean value) {
+			current.putLog(putLog = new LogBeanKey<>(Bean.class, this, 0, value));
 		}
 
-		public void Remove(Transaction current) {
-			Put(current, null);
+		public void remove(Transaction current) {
+			put(current, null);
 		}
 
 		@Override
@@ -109,72 +109,72 @@ public final class Transaction {
 		}
 	}
 
-	private final TreeMap<TableKey, RecordAccessed> AccessedRecords = new TreeMap<>();
-	private final ArrayList<Savepoint> Savepoints = new ArrayList<>();
-	private final HashSet<PessimismLock> PessimismLocks = new HashSet<>();
-	private Changes Changes;
-	private List<Action0> LastRollbackActions;
+	private final TreeMap<TableKey, RecordAccessed> accessedRecords = new TreeMap<>();
+	private final ArrayList<Savepoint> savepoints = new ArrayList<>();
+	private final HashSet<PessimismLock> pessimismLocks = new HashSet<>();
+	private Changes changes;
+	private List<Action0> lastRollbackActions;
 
 	public Changes getChanges() {
-		return Changes;
+		return changes;
 	}
 
-	public <T extends PessimismLock> T AddPessimismLock(T pLock) {
-		if (PessimismLocks.add(pLock))
+	public <T extends PessimismLock> T addPessimismLock(T pLock) {
+		if (pessimismLocks.add(pLock))
 			pLock.lock();
 		return pLock;
 	}
 
-	public Log GetLog(long logKey) {
-		var saveSize = Savepoints.size();
-		return saveSize > 0 ? Savepoints.get(saveSize - 1).GetLog(logKey) : null;
+	public Log getLog(long logKey) {
+		var saveSize = savepoints.size();
+		return saveSize > 0 ? savepoints.get(saveSize - 1).getLog(logKey) : null;
 	}
 
-	public void PutLog(Log log) {
-		Savepoints.get(Savepoints.size() - 1).PutLog(log);
+	public void putLog(Log log) {
+		savepoints.get(savepoints.size() - 1).putLog(log);
 	}
 
-	public Log LogGetOrAdd(long logKey, Supplier<Log> logFactory) {
-		var log = GetLog(logKey);
+	public Log logGetOrAdd(long logKey, Supplier<Log> logFactory) {
+		var log = getLog(logKey);
 		if (log == null)
-			PutLog(log = logFactory.get());
+			putLog(log = logFactory.get());
 		return log;
 	}
 
-	public void AddRecordAccessed(Record.RootInfo root, RecordAccessed r) {
+	public void addRecordAccessed(Record.RootInfo root, RecordAccessed r) {
 		r.initRootInfo(root, null);
-		AccessedRecords.put(root.getTableKey(), r);
+		accessedRecords.put(root.getTableKey(), r);
 	}
 
-	public RecordAccessed GetRecordAccessed(TableKey key) {
-		return AccessedRecords.get(key);
+	public RecordAccessed getRecordAccessed(TableKey key) {
+		return accessedRecords.get(key);
 	}
 
-	public void Begin() {
-		var saveSize = Savepoints.size();
-		Savepoints.add(saveSize > 0 ? Savepoints.get(saveSize - 1).BeginSavepoint() : new Savepoint());
+	public void begin() {
+		var saveSize = savepoints.size();
+		savepoints.add(saveSize > 0 ? savepoints.get(saveSize - 1).beginSavepoint() : new Savepoint());
 	}
 
-	public void Commit() {
-		int saveSize = Savepoints.size();
+	public void commit() {
+		int saveSize = savepoints.size();
 		if (saveSize > 1)
-			Savepoints.get(saveSize - 2).MergeCommitFrom(Savepoints.remove(saveSize - 1)); // 嵌套事务，把日志合并到上一层。
+			savepoints.get(saveSize - 2).mergeCommitFrom(savepoints.remove(saveSize - 1)); // 嵌套事务，把日志合并到上一层。
 		// else // 最外层存储过程提交在 Perform 中处理
 	}
 
-	public void Rollback() {
-		int lastIndex = Savepoints.size() - 1;
-		Savepoint last = Savepoints.remove(lastIndex);
-		last.Rollback();
+	public void rollback() {
+		int lastIndex = savepoints.size() - 1;
+		Savepoint last = savepoints.remove(lastIndex);
+		last.rollback();
 		if (lastIndex > 0)
-			Savepoints.get(lastIndex - 1).MergeRollbackFrom(last); // 嵌套事务，把日志合并到上一层。
+			savepoints.get(lastIndex - 1).mergeRollbackFrom(last); // 嵌套事务，把日志合并到上一层。
 		else
-			LastRollbackActions = last.getRollbackActions(); // 最后一个Savepoint Rollback的时候需要保存一下，用来触发回调。ugly。
+			lastRollbackActions = last.getRollbackActions(); // 最后一个Savepoint Rollback的时候需要保存一下，用来触发回调。ugly。
 	}
 
-	public long Perform(Procedure procedure) throws Throwable {
+	public long perform(Procedure procedure) throws Throwable {
 		try {
-			var rc = procedure.Call();
+			var rc = procedure.call();
 			if (_lock_and_check_(TransactionLevel.Serializable)) {
 				if (rc == 0) {
 					_final_commit_(procedure);
@@ -210,14 +210,14 @@ public final class Transaction {
 			_final_rollback_(procedure); // 乐观锁，这里应该redo
 			return Zeze.Transaction.Procedure.Exception;
 		} finally {
-			for (var pLock : PessimismLocks)
+			for (var pLock : pessimismLocks)
 				pLock.unlock();
-			PessimismLocks.clear();
+			pessimismLocks.clear();
 		}
 	}
 
-	public void LeaderApply(Changes changes) {
-		var it = Savepoints.get(Savepoints.size() - 1).logIterator();
+	public void leaderApply(Changes changes) {
+		var it = savepoints.get(savepoints.size() - 1).logIterator();
 		if (it != null) {
 			while (it.moveToNext()) {
 				var log = it.value();
@@ -226,28 +226,28 @@ public final class Transaction {
 			}
 		}
 		var rs = new ArrayList<Record<?>>();
-		for (var ar : AccessedRecords.values()) {
-			if (ar.Dirty) {
-				ar.Origin.LeaderApply(ar);
-				rs.add(ar.Origin);
+		for (var ar : accessedRecords.values()) {
+			if (ar.dirty) {
+				ar.origin.leaderApply(ar);
+				rs.add(ar.origin);
 			}
 		}
-		changes.getRocks().Flush(rs, changes);
+		changes.getRocks().flush(rs, changes);
 	}
 
-	public void RunWhileCommit(Action0 action) {
-		Savepoints.get(Savepoints.size() - 1).addCommitAction(action);
+	public void runWhileCommit(Action0 action) {
+		savepoints.get(savepoints.size() - 1).addCommitAction(action);
 	}
 
-	public void RunWhileRollback(Action0 action) {
-		Savepoints.get(Savepoints.size() - 1).addRollbackAction(action);
+	public void runWhileRollback(Action0 action) {
+		savepoints.get(savepoints.size() - 1).addRollbackAction(action);
 	}
 
 	private boolean _lock_and_check_(@SuppressWarnings("SameParameterValue") TransactionLevel level) {
 		boolean allRead = true;
-		var saveSize = Savepoints.size();
+		var saveSize = savepoints.size();
 		if (saveSize > 0) {
-			var it = Savepoints.get(saveSize - 1).logIterator();
+			var it = savepoints.get(saveSize - 1).logIterator();
 			if (it != null) {
 				while (it.moveToNext()) {
 					var log = it.value();
@@ -257,7 +257,7 @@ public final class Transaction {
 						continue;
 
 					TableKey tkey = log.getBelong().tableKey();
-					var record = AccessedRecords.get(tkey);
+					var record = accessedRecords.get(tkey);
 					if (record != null) {
 						record.setDirty(true);
 						allRead = false;
@@ -274,8 +274,8 @@ public final class Transaction {
 
 	private void _final_commit_(Procedure procedure) {
 		// Collect Changes
-		Savepoint sp = Savepoints.get(Savepoints.size() - 1);
-		Changes = new Changes(procedure.getRocks(), this, procedure.UniqueRequest);
+		Savepoint sp = savepoints.get(savepoints.size() - 1);
+		changes = new Changes(procedure.getRocks(), this, procedure.uniqueRequest);
 		var it = sp.logIterator();
 		if (it != null) {
 			while (it.moveToNext()) {
@@ -286,24 +286,24 @@ public final class Transaction {
 
 				// 当changes.Collect在日志往上一级传递时调用，
 				// 第一个参数Owner为null，表示bean属于record，到达root了。
-				Changes.Collect(log.getBelong(), log);
+				changes.collect(log.getBelong(), log);
 			}
 		}
 
-		for (var ar : AccessedRecords.values()) {
-			if (ar.Dirty)
-				Changes.CollectRecord(ar);
+		for (var ar : accessedRecords.values()) {
+			if (ar.dirty)
+				changes.collectRecord(ar);
 		}
 
-		if (!Changes.getRecords().isEmpty()) { // has changes
-			procedure.getRocks().UpdateAtomicLongs(Changes.getAtomicLongs());
-			var resultBean = null != procedure.UniqueRequest ? procedure.UniqueRequest.getResultBean() : null;
-			procedure.getRocks().getRaft().AppendLog(Changes, resultBean);
+		if (!changes.getRecords().isEmpty()) { // has changes
+			procedure.getRocks().updateAtomicLongs(changes.getAtomicLongs());
+			var resultBean = null != procedure.uniqueRequest ? procedure.uniqueRequest.getResultBean() : null;
+			procedure.getRocks().getRaft().appendLog(changes, resultBean);
 		}
 
 		_trigger_commit_actions_(procedure, sp);
 
-		Protocol<?> autoResponse = procedure.AutoResponse;
+		Protocol<?> autoResponse = procedure.autoResponse;
 		if (autoResponse != null)
 			autoResponse.SendResult();
 	}
@@ -323,7 +323,7 @@ public final class Transaction {
 	}
 
 	private void _final_rollback_(Procedure procedure) {
-		var rollbackActions = LastRollbackActions;
+		var rollbackActions = lastRollbackActions;
 		if (rollbackActions != null) {
 			for (var action : rollbackActions) {
 				try {
@@ -332,9 +332,9 @@ public final class Transaction {
 					logger.error("Commit Procedure {} Action {}", procedure, action.getClass().getName(), ex);
 				}
 			}
-			LastRollbackActions = null;
+			lastRollbackActions = null;
 		}
-		Protocol<?> autoResponse = procedure.AutoResponse;
+		Protocol<?> autoResponse = procedure.autoResponse;
 		if (autoResponse != null)
 			autoResponse.SendResult();
 	}

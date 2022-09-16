@@ -36,26 +36,26 @@ import org.apache.logging.log4j.Logger;
 public final class Application {
 	static final Logger logger = LogManager.getLogger(Application.class);
 
-	private final String SolutionName;
-	private final Config Conf;
-	private final HashMap<String, Database> Databases = new HashMap<>();
-	private final LongConcurrentHashMap<Table> Tables = new LongConcurrentHashMap<>();
-	private final TaskOneByOneByKey TaskOneByOneByKey = new TaskOneByOneByKey();
-	private final Locks Locks = new Locks();
-	private final Agent ServiceManagerAgent;
+	private final String solutionName;
+	private final Config conf;
+	private final HashMap<String, Database> databases = new HashMap<>();
+	private final LongConcurrentHashMap<Table> tables = new LongConcurrentHashMap<>();
+	private final TaskOneByOneByKey taskOneByOneByKey = new TaskOneByOneByKey();
+	private final Locks locks = new Locks();
+	private final Agent serviceManagerAgent;
 	private AutoKey.Module autoKey;
 	private Timer timer;
 	private Zeze.Collections.Queue.Module queueModule;
-	private IGlobalAgent GlobalAgent;
-	private Zeze.Transaction.AchillesHeelDaemon AchillesHeelDaemon;
-	private Checkpoint _checkpoint;
-	private Future<?> FlushWhenReduceTimerTask;
-	private Schemas Schemas;
-	private boolean IsStart;
-	public RedirectBase Redirect;
+	private IGlobalAgent globalAgent;
+	private Zeze.Transaction.AchillesHeelDaemon achillesHeelDaemon;
+	private Checkpoint checkpoint;
+	private Future<?> flushWhenReduceTimerTask;
+	private Schemas schemas;
+	private boolean isStart;
+	public RedirectBase redirect;
 
 	public Zeze.Transaction.AchillesHeelDaemon getAchillesHeelDaemon() {
-		return AchillesHeelDaemon;
+		return achillesHeelDaemon;
 	}
 
 	/**
@@ -75,50 +75,50 @@ public final class Application {
 	}
 
 	public Application(String solutionName, Config config) throws Throwable {
-		SolutionName = solutionName;
-		Conf = config != null ? config : Config.Load();
-		Conf.CreateDatabase(this, Databases);
-		ServiceManagerAgent = new Agent(this);
+		this.solutionName = solutionName;
+		conf = config != null ? config : Config.load();
+		conf.createDatabase(this, databases);
+		serviceManagerAgent = new Agent(this);
 		ShutdownHook.add(this, () -> {
-			logger.info("zeze({}) ShutdownHook begin", SolutionName);
-			Stop();
-			logger.info("zeze({}) ShutdownHook end", SolutionName);
+			logger.info("zeze({}) ShutdownHook begin", this.solutionName);
+			stop();
+			logger.info("zeze({}) ShutdownHook end", this.solutionName);
 		});
 	}
 
 	public Application() {
-		SolutionName = "";
-		Conf = null;
-		ServiceManagerAgent = null;
+		solutionName = "";
+		conf = null;
+		serviceManagerAgent = null;
 		ShutdownHook.add(this, () -> {
 			logger.info("zeze ShutdownHook begin");
-			Stop();
+			stop();
 			logger.info("zeze ShutdownHook end");
 		});
 	}
 
 	public HashMap<String, Database> getDatabases() {
-		return Databases;
+		return databases;
 	}
 
 	public Config getConfig() {
-		return Conf;
+		return conf;
 	}
 
 	public boolean isStart() {
-		return IsStart;
+		return isStart;
 	}
 
 	public Agent getServiceManagerAgent() {
-		return ServiceManagerAgent;
+		return serviceManagerAgent;
 	}
 
 	public IGlobalAgent getGlobalAgent() {
-		return GlobalAgent;
+		return globalAgent;
 	}
 
 	public Checkpoint getCheckpoint() {
-		return _checkpoint;
+		return checkpoint;
 	}
 
 	/*
@@ -132,68 +132,76 @@ public final class Application {
 	*/
 
 	public Locks getLocks() {
-		return Locks;
+		return locks;
 	}
 
 	public Schemas getSchemas() {
-		return Schemas;
+		return schemas;
 	}
 
 	public void setSchemas(Schemas value) {
-		Schemas = value;
+		schemas = value;
 	}
 
 	public String getSolutionName() {
-		return SolutionName;
+		return solutionName;
 	}
 
-	public void AddTable(String dbName, Table table) {
+	public void addTable(String dbName, Table table) {
 		TableKey.tables.put(table.getId(), table.getName());
-		var db = GetDatabase(dbName);
-		if (Tables.putIfAbsent(table.getId(), table) != null)
+		var db = getDatabase(dbName);
+		if (tables.putIfAbsent(table.getId(), table) != null)
 			throw new IllegalStateException("duplicate table name=" + table.getName());
 		db.addTable(table);
 	}
 
-	public void RemoveTable(String dbName, Table table) {
-		Tables.remove(table.getId());
-		GetDatabase(dbName).removeTable(table);
+	public void removeTable(String dbName, Table table) {
+		tables.remove(table.getId());
+		getDatabase(dbName).removeTable(table);
 	}
 
-	public Table GetTable(int id) {
-		return Tables.get(id);
+	public Table getTable(int id) {
+		return tables.get(id);
 	}
 
-	public Table GetTableSlow(String name) {
-		for (var table : Tables) {
+	public Table getTableSlow(String name) {
+		for (var table : tables) {
 			if (table.getName().equals(name))
 				return table;
 		}
 		return null;
 	}
 
-	public Database GetDatabase(String name) {
-		var db = Databases.get(name);
+	public Database getDatabase(String name) {
+		var db = databases.get(name);
 		if (db == null)
 			throw new IllegalStateException("database not exist name=" + name);
 		return db;
 	}
 
-	public AutoKey GetAutoKey(String name) {
+	public AutoKey getAutoKey(String name) {
 		return autoKey.getOrAdd(name);
 	}
-	public Timer getTimer() { return timer; }
+
+	public Timer getTimer() {
+		return timer;
+	}
 
 	public Zeze.Collections.Queue.Module getQueueModule() {
 		return queueModule;
 	}
 
+	@Deprecated
 	public Procedure NewProcedure(FuncLong action, String actionName) {
-		return NewProcedure(action, actionName, TransactionLevel.Serializable, null);
+		return newProcedure(action, actionName);
 	}
 
-	public Procedure NewProcedure(FuncLong action, String actionName, TransactionLevel level, Object userState) {
-		if (!IsStart)
+	public Procedure newProcedure(FuncLong action, String actionName) {
+		return newProcedure(action, actionName, TransactionLevel.Serializable, null);
+	}
+
+	public Procedure newProcedure(FuncLong action, String actionName, TransactionLevel level, Object userState) {
+		if (!isStart)
 			throw new IllegalStateException("App Not Start");
 		return new Procedure(this, action, actionName, level, userState);
 	}
@@ -217,10 +225,10 @@ public final class Application {
 		}
 	}
 
-	public synchronized void Start() throws Throwable {
-		if (IsStart)
+	public synchronized void start() throws Throwable {
+		if (isStart)
 			return;
-		var serverId = Conf != null ? Conf.getServerId() : -1;
+		var serverId = conf != null ? conf.getServerId() : -1;
 		logger.info("Start ServerId={}", serverId);
 
 		// Start Thread Pool
@@ -233,11 +241,11 @@ public final class Application {
 			timer = new Timer(this);
 
 			// XXX Remove Me
-			Conf.ClearInUseAndIAmSureAppStopped(this, Databases);
+			conf.clearInUseAndIAmSureAppStopped(this, databases);
 
 			// Set Database InUse
-			for (var db : Databases.values())
-				db.getDirectOperates().setInUse(serverId, Conf.getGlobalCacheManagerHostNameOrAddress());
+			for (var db : databases.values())
+				db.getDirectOperates().setInUse(serverId, conf.getGlobalCacheManagerHostNameOrAddress());
 
 			// Open RocksCache
 			var dbConf = new Config.DatabaseConf();
@@ -250,43 +258,43 @@ public final class Application {
 		}
 
 		// Start ServiceManager
-		var serviceManagerConf = Conf != null ? Conf.GetServiceConf(Agent.DefaultServiceName) : null;
-		if (serviceManagerConf != null && ServiceManagerAgent != null) {
-			ServiceManagerAgent.getClient().Start();
-			ServiceManagerAgent.WaitConnectorReady();
+		var serviceManagerConf = conf != null ? conf.getServiceConf(Agent.defaultServiceName) : null;
+		if (serviceManagerConf != null && serviceManagerAgent != null) {
+			serviceManagerAgent.getClient().Start();
+			serviceManagerAgent.waitConnectorReady();
 		}
 
 		if (serverId >= 0) {
 			// Open Databases
-			for (var db : Databases.values())
+			for (var db : databases.values())
 				db.open(this);
 
 			// Open Global
-			var hosts = Str.trim(Conf.getGlobalCacheManagerHostNameOrAddress().split(";"));
+			var hosts = Str.trim(conf.getGlobalCacheManagerHostNameOrAddress().split(";"));
 			if (hosts.length > 0) {
 				var isRaft = hosts[0].endsWith(".xml");
 				if (!isRaft) {
-					var impl = new GlobalAgent(this, hosts, Conf.getGlobalCacheManagerPort());
-					GlobalAgent = impl;
-					AchillesHeelDaemon = new AchillesHeelDaemon(this, impl.agents);
+					var impl = new GlobalAgent(this, hosts, conf.getGlobalCacheManagerPort());
+					globalAgent = impl;
+					achillesHeelDaemon = new AchillesHeelDaemon(this, impl.agents);
 					impl.start();
 				} else {
 					var impl = new GlobalCacheManagerWithRaftAgent(this, hosts);
-					GlobalAgent = impl;
-					AchillesHeelDaemon = new AchillesHeelDaemon(this, impl.Agents);
-					impl.Start();
+					globalAgent = impl;
+					achillesHeelDaemon = new AchillesHeelDaemon(this, impl.agents);
+					impl.start();
 				}
 			}
 
 			// Checkpoint
-			_checkpoint = new Checkpoint(this, Conf.getCheckpointMode(), Databases.values(), serverId);
-			_checkpoint.start(Conf.getCheckpointPeriod()); // 定时模式可以和其他模式混用。
+			checkpoint = new Checkpoint(this, conf.getCheckpointMode(), databases.values(), serverId);
+			checkpoint.start(conf.getCheckpointPeriod()); // 定时模式可以和其他模式混用。
 
 			/////////////////////////////////////////////////////
 			// Schemas
-			var defaultDb = GetDatabase(Conf.getDefaultTableConf().getDatabaseName());
-			if (Schemas != null) {
-				Schemas.Compile();
+			var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
+			if (schemas != null) {
+				schemas.compile();
 				var keyOfSchemas = ByteBuffer.Allocate(24);
 				keyOfSchemas.WriteString("zeze.Schemas." + serverId);
 				while (true) {
@@ -296,7 +304,7 @@ public final class Application {
 						var SchemasPrevious = new Schemas();
 						try {
 							SchemasPrevious.decode(dataVersion.data);
-							SchemasPrevious.Compile();
+							SchemasPrevious.compile();
 						} catch (Throwable ex) {
 							SchemasPrevious = null;
 							logger.error("Schemas Implement Changed?", ex);
@@ -305,26 +313,26 @@ public final class Application {
 						version = dataVersion.version;
 					}
 					var newData = ByteBuffer.Allocate(1024);
-					Schemas.encode(newData);
+					schemas.encode(newData);
 					var versionRc = defaultDb.getDirectOperates().saveDataWithSameVersion(keyOfSchemas, newData, version);
 					if (versionRc.getValue())
 						break;
 				}
 			}
 			// start last
-			if (null != AchillesHeelDaemon)
-				AchillesHeelDaemon.start();
-			IsStart = true;
+			if (null != achillesHeelDaemon)
+				achillesHeelDaemon.start();
+			isStart = true;
 
 			timer.Start();
 		}
 	}
 
-	public synchronized void Stop() throws Throwable {
-		if (!IsStart)
+	public synchronized void stop() throws Throwable {
+		if (!isStart)
 			return;
-		IsStart = false;
-		logger.info("Stop ServerId={}", Conf != null ? Conf.getServerId() : -1);
+		isStart = false;
+		logger.info("Stop ServerId={}", conf != null ? conf.getServerId() : -1);
 
 		if (null != timer) {
 			timer.Stop();
@@ -333,24 +341,24 @@ public final class Application {
 
 		ShutdownHook.remove(this);
 
-		if (null != AchillesHeelDaemon) {
-			AchillesHeelDaemon.stopAndJoin();
+		if (null != achillesHeelDaemon) {
+			achillesHeelDaemon.stopAndJoin();
 		}
 
-		if (GlobalAgent != null) {
-			GlobalAgent.close();
-			GlobalAgent = null;
+		if (globalAgent != null) {
+			globalAgent.close();
+			globalAgent = null;
 		}
-		if (FlushWhenReduceTimerTask != null) {
-			FlushWhenReduceTimerTask.cancel(false);
-			FlushWhenReduceTimerTask = null;
+		if (flushWhenReduceTimerTask != null) {
+			flushWhenReduceTimerTask.cancel(false);
+			flushWhenReduceTimerTask = null;
 		}
 
-		if (_checkpoint != null) {
-			_checkpoint.stopAndJoin();
-			_checkpoint = null;
+		if (checkpoint != null) {
+			checkpoint.stopAndJoin();
+			checkpoint = null;
 		}
-		for (var db : Databases.values())
+		for (var db : databases.values())
 			db.close();
 		if (LocalRocksCacheDb != null) {
 			var dir = LocalRocksCacheDb.getDatabaseUrl();
@@ -358,8 +366,8 @@ public final class Application {
 			deleteDirectory(new File(dir));
 			LocalRocksCacheDb = null;
 		}
-		if (ServiceManagerAgent != null)
-			ServiceManagerAgent.Stop();
+		if (serviceManagerAgent != null)
+			serviceManagerAgent.stop();
 		if (queueModule != null) {
 			queueModule.UnRegisterZezeTables(this);
 			queueModule = null;
@@ -368,27 +376,27 @@ public final class Application {
 			autoKey.UnRegisterZezeTables(this);
 			autoKey = null;
 		}
-		if (Conf != null)
-			Conf.ClearInUseAndIAmSureAppStopped(this, Databases);
+		if (conf != null)
+			conf.clearInUseAndIAmSureAppStopped(this, databases);
 	}
 
-	public void CheckpointRun() {
-		_checkpoint.runOnce();
+	public void checkpointRun() {
+		checkpoint.runOnce();
 	}
 
 	public TaskOneByOneByKey getTaskOneByOneByKey() {
-		return TaskOneByOneByKey;
+		return taskOneByOneByKey;
 	}
 
 	public void runTaskOneByOneByKey(Object oneByOneKey, String actionName, FuncLong func) {
-		TaskOneByOneByKey.Execute(oneByOneKey, NewProcedure(func, actionName), DispatchMode.Normal);
+		taskOneByOneByKey.Execute(oneByOneKey, newProcedure(func, actionName), DispatchMode.Normal);
 	}
 
 	public void runTaskOneByOneByKey(int oneByOneKey, String actionName, FuncLong func) {
-		TaskOneByOneByKey.Execute(oneByOneKey, NewProcedure(func, actionName), DispatchMode.Normal);
+		taskOneByOneByKey.Execute(oneByOneKey, newProcedure(func, actionName), DispatchMode.Normal);
 	}
 
 	public void runTaskOneByOneByKey(long oneByOneKey, String actionName, FuncLong func) {
-		TaskOneByOneByKey.Execute(oneByOneKey, NewProcedure(func, actionName), DispatchMode.Normal);
+		taskOneByOneByKey.Execute(oneByOneKey, newProcedure(func, actionName), DispatchMode.Normal);
 	}
 }

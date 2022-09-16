@@ -15,8 +15,8 @@ public final class BNodeRoot extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _HeadNodeId;
-        var log = (Log__HeadNodeId)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _HeadNodeId;
+        var log = (Log__HeadNodeId)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _HeadNodeId;
     }
 
     public void setHeadNodeId(long value) {
@@ -25,7 +25,7 @@ public final class BNodeRoot extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__HeadNodeId(this, 1, value));
+        txn.putLog(new Log__HeadNodeId(this, 1, value));
     }
 
     public long getTailNodeId() {
@@ -34,8 +34,8 @@ public final class BNodeRoot extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _TailNodeId;
-        var log = (Log__TailNodeId)txn.GetLog(objectId() + 2);
-        return log != null ? log.Value : _TailNodeId;
+        var log = (Log__TailNodeId)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _TailNodeId;
     }
 
     public void setTailNodeId(long value) {
@@ -44,7 +44,7 @@ public final class BNodeRoot extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__TailNodeId(this, 2, value));
+        txn.putLog(new Log__TailNodeId(this, 2, value));
     }
 
     public long getLoadSerialNo() {
@@ -53,8 +53,8 @@ public final class BNodeRoot extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _LoadSerialNo;
-        var log = (Log__LoadSerialNo)txn.GetLog(objectId() + 3);
-        return log != null ? log.Value : _LoadSerialNo;
+        var log = (Log__LoadSerialNo)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _LoadSerialNo;
     }
 
     public void setLoadSerialNo(long value) {
@@ -63,7 +63,7 @@ public final class BNodeRoot extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__LoadSerialNo(this, 3, value));
+        txn.putLog(new Log__LoadSerialNo(this, 3, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -94,7 +94,7 @@ public final class BNodeRoot extends Zeze.Transaction.Bean {
 
     public BNodeRoot copy() {
         var copy = new BNodeRoot();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -104,9 +104,9 @@ public final class BNodeRoot extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BNodeRoot a, BNodeRoot b) {
-        BNodeRoot save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BNodeRoot save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -125,21 +125,21 @@ public final class BNodeRoot extends Zeze.Transaction.Bean {
         public Log__HeadNodeId(BNodeRoot bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BNodeRoot)getBelong())._HeadNodeId = Value; }
+        public void commit() { ((BNodeRoot)getBelong())._HeadNodeId = value; }
     }
 
     private static final class Log__TailNodeId extends Zeze.Transaction.Logs.LogLong {
         public Log__TailNodeId(BNodeRoot bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BNodeRoot)getBelong())._TailNodeId = Value; }
+        public void commit() { ((BNodeRoot)getBelong())._TailNodeId = value; }
     }
 
     private static final class Log__LoadSerialNo extends Zeze.Transaction.Logs.LogLong {
         public Log__LoadSerialNo(BNodeRoot bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BNodeRoot)getBelong())._LoadSerialNo = Value; }
+        public void commit() { ((BNodeRoot)getBelong())._LoadSerialNo = value; }
     }
 
     @Override
@@ -249,9 +249,9 @@ public final class BNodeRoot extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _HeadNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                case 2: _TailNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                case 3: _LoadSerialNo = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 1: _HeadNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 2: _TailNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 3: _LoadSerialNo = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }

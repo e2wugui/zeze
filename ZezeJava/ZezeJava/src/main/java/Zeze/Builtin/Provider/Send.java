@@ -4,7 +4,7 @@ package Zeze.Builtin.Provider;
 public class Send extends Zeze.Net.Rpc<Zeze.Builtin.Provider.BSend, Zeze.Builtin.Provider.BSendResult> {
     public static final int ModuleId_ = 11008;
     public static final int ProtocolId_ = -2067963426; // 2227003870
-    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_); // 47281226998238
+    public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47281226998238
 
     @Override
     public int getModuleId() {

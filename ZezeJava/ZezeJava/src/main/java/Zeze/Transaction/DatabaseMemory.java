@@ -56,15 +56,15 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		var exist = dataWithVersions.get(key);
 		if (exist != null) {
 			if (exist.version != version)
-				return KV.Create(exist.version, false);
+				return KV.create(exist.version, false);
 			exist.data = ByteBuffer.Wrap(data.Copy());
-			return KV.Create(++exist.version, true);
+			return KV.create(++exist.version, true);
 		}
 		DataWithVersion tempVar = new DataWithVersion();
 		tempVar.data = ByteBuffer.Wrap(data.Copy());
 		tempVar.version = version;
 		dataWithVersions.put(ByteBuffer.Wrap(key.Copy()), tempVar);
-		return KV.Create(version, true);
+		return KV.create(version, true);
 	}
 
 	public final class MemTrans implements Transaction {

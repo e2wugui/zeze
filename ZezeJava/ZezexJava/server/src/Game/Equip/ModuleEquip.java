@@ -42,7 +42,7 @@ public final class ModuleEquip extends AbstractModule {
 					@SuppressWarnings("unchecked")
 					var notemap2 = (LogMap2<Integer, BItem>)c.getVariableLog(tequip.VAR_Items);
 					if (null != notemap2) {
-						notemap2.MergeChangedToReplaced();
+						notemap2.mergeChangedToReplaced();
 						SEquipement changed2 = new SEquipement();
 						changed2.Argument.setChangeTag(BChangedResult.ChangeTagNormalChanged);
 						changed2.Argument.getItemsReplace().putAll(notemap2.getReplaced());
@@ -110,7 +110,7 @@ public final class ModuleEquip extends AbstractModule {
 			return Procedure.Success;
 		}
 		*/
-		return ErrorCode(ResultCodeItemNotFound);
+		return errorCode(ResultCodeItemNotFound);
 	}
 
 	@Override
@@ -133,7 +133,7 @@ public final class ModuleEquip extends AbstractModule {
 			return Procedure.Success;
 		}
 		*/
-		return ErrorCode(ResultCodeEquipNotFound);
+		return errorCode(ResultCodeEquipNotFound);
 	}
 
 	public Game.Item.Item GetEquipItem(long roleId, int position) {

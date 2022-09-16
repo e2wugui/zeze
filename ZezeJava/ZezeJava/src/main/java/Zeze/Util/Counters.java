@@ -9,15 +9,13 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 
 public class Counters {
-	public static volatile boolean Enable = false;
+	public static volatile boolean enable = false;
 
 	private final String name;
 	private final ConcurrentSkipListMap<String, LongAdder> counters = new ConcurrentSkipListMap<>();
-
-	public void increment(String name) {
-		if (Enable)
-			counters.computeIfAbsent(name, key -> new LongAdder()).increment();
-	}
+	private long period;
+	private Future<?> future;
+	private final HashMap<String, AtomicLong> reports = new HashMap<>(); // atomic 在这里仅为了能修改，不是为了线程安全。
 
 	public Counters() {
 		this("");
@@ -31,9 +29,6 @@ public class Counters {
 		start(2000);
 	}
 
-	private long period;
-	private Future<?> future;
-
 	public void start(long period) {
 		if (period <= 0)
 			throw new IllegalArgumentException("period <= 0");
@@ -44,7 +39,10 @@ public class Counters {
 		future = Task.scheduleUnsafe(period, period, this::report);
 	}
 
-	private final HashMap<String, AtomicLong> reports = new HashMap<>(); // atomic 在这里仅为了能修改，不是为了线程安全。
+	public void increment(String name) {
+		if (enable)
+			counters.computeIfAbsent(name, key -> new LongAdder()).increment();
+	}
 
 	private synchronized void report() {
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");

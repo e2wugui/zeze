@@ -56,7 +56,7 @@ public class SimpleApp extends AppBase {
 	}
 
 	@Override
-	public <T extends IModule> T ReplaceModuleInstance(T in) {
+	public <T extends IModule> T replaceModuleInstance(T in) {
 		return RedirectBase.ReplaceModuleInstance(this, in);
 	}
 
@@ -84,7 +84,7 @@ public class SimpleApp extends AppBase {
 //			System.exit(0);
 //		}
 
-		zeze.Start();
+		zeze.start();
 		((ProviderImplementWithOnline)providerApp.ProviderImplement).Online.Start();
 		providerApp.ProviderService.Start();
 		providerApp.ProviderDirectService.Start();
@@ -111,7 +111,7 @@ public class SimpleApp extends AppBase {
 //			bag = null;
 //		}
 		if (zeze != null) {
-			zeze.Stop();
+			zeze.stop();
 			zeze = null;
 		}
 	}

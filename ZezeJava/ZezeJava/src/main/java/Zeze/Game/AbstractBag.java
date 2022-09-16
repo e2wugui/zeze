@@ -42,13 +42,13 @@ public abstract class AbstractBag extends Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
-        zeze.AddTable(zeze.getConfig().GetTableConf(_tbag.getName()).getDatabaseName(), _tbag);
-        zeze.AddTable(zeze.getConfig().GetTableConf(_tItemClasses.getName()).getDatabaseName(), _tItemClasses);
+        zeze.addTable(zeze.getConfig().getTableConf(_tbag.getName()).getDatabaseName(), _tbag);
+        zeze.addTable(zeze.getConfig().getTableConf(_tItemClasses.getName()).getDatabaseName(), _tItemClasses);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
-        zeze.RemoveTable(zeze.getConfig().GetTableConf(_tbag.getName()).getDatabaseName(), _tbag);
-        zeze.RemoveTable(zeze.getConfig().GetTableConf(_tItemClasses.getName()).getDatabaseName(), _tItemClasses);
+        zeze.removeTable(zeze.getConfig().getTableConf(_tbag.getName()).getDatabaseName(), _tbag);
+        zeze.removeTable(zeze.getConfig().getTableConf(_tItemClasses.getName()).getDatabaseName(), _tItemClasses);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

@@ -8,7 +8,7 @@ import Zeze.Serialize.Vector2;
 public class LogVector2 extends Log {
 	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.Log<vector2>");
 
-	public Vector2 Value;
+	public Vector2 value;
 
 	public LogVector2() {
 		super(TYPE_ID);
@@ -18,21 +18,21 @@ public class LogVector2 extends Log {
 		this();
 		setBelong(belong);
 		setVariableId(varId);
-		Value = value;
+		this.value = value;
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteVector2(Value);
+		bb.WriteVector2(value);
 	}
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		Value = bb.ReadVector2();
+		value = bb.ReadVector2();
 	}
 
 	@Override
 	public String toString() {
-		return "Value=" + Value;
+		return "Value=" + value;
 	}
 }

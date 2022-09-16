@@ -9,11 +9,11 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
     private final Zeze.Transaction.Collections.PMap1<String, Zeze.Transaction.DynamicBean> _Managers;
 
     public static long getSpecialTypeIdFromBean_Managers(Zeze.Transaction.Bean bean) {
-        return Zeze.Collections.DepartmentTree.GetSpecialTypeIdFromBean(bean);
+        return Zeze.Collections.DepartmentTree.getSpecialTypeIdFromBean(bean);
     }
 
     public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_Managers(long typeId) {
-        return Zeze.Collections.DepartmentTree.CreateBeanFromSpecialTypeId(typeId);
+        return Zeze.Collections.DepartmentTree.createBeanFromSpecialTypeId(typeId);
     }
 
     private long _NextDepartmentId; // 部门Id种子
@@ -21,11 +21,11 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
     private final Zeze.Transaction.DynamicBean _Data;
 
     public static long getSpecialTypeIdFromBean_Data(Zeze.Transaction.Bean bean) {
-        return Zeze.Collections.DepartmentTree.GetSpecialTypeIdFromBean(bean);
+        return Zeze.Collections.DepartmentTree.getSpecialTypeIdFromBean(bean);
     }
 
     public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_Data(long typeId) {
-        return Zeze.Collections.DepartmentTree.CreateBeanFromSpecialTypeId(typeId);
+        return Zeze.Collections.DepartmentTree.createBeanFromSpecialTypeId(typeId);
     }
 
     public String getRoot() {
@@ -34,8 +34,8 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Root;
-        var log = (Log__Root)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _Root;
+        var log = (Log__Root)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _Root;
     }
 
     public void setRoot(String value) {
@@ -46,7 +46,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Root(this, 1, value));
+        txn.putLog(new Log__Root(this, 1, value));
     }
 
     public Zeze.Transaction.Collections.PMap1<String, Zeze.Transaction.DynamicBean> getManagers() {
@@ -59,8 +59,8 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _NextDepartmentId;
-        var log = (Log__NextDepartmentId)txn.GetLog(objectId() + 3);
-        return log != null ? log.Value : _NextDepartmentId;
+        var log = (Log__NextDepartmentId)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _NextDepartmentId;
     }
 
     public void setNextDepartmentId(long value) {
@@ -69,7 +69,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__NextDepartmentId(this, 3, value));
+        txn.putLog(new Log__NextDepartmentId(this, 3, value));
     }
 
     public Zeze.Transaction.Collections.PMap1<String, Long> getChilds() {
@@ -83,11 +83,11 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
     @SuppressWarnings("deprecation")
     public BDepartmentRoot() {
         _Root = "";
-        _Managers = new Zeze.Transaction.Collections.PMap1<>(String.class, Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::CreateBeanFromSpecialTypeId);
+        _Managers = new Zeze.Transaction.Collections.PMap1<>(String.class, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
         _Managers.variableId(2);
         _Childs = new Zeze.Transaction.Collections.PMap1<>(String.class, Long.class);
         _Childs.variableId(4);
-        _Data = new Zeze.Transaction.DynamicBean(5, Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::CreateBeanFromSpecialTypeId);
+        _Data = new Zeze.Transaction.DynamicBean(5, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
     }
 
     @SuppressWarnings("deprecation")
@@ -95,12 +95,12 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
         if (_Root_ == null)
             throw new IllegalArgumentException();
         _Root = _Root_;
-        _Managers = new Zeze.Transaction.Collections.PMap1<>(String.class, Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::CreateBeanFromSpecialTypeId);
+        _Managers = new Zeze.Transaction.Collections.PMap1<>(String.class, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
         _Managers.variableId(2);
         _NextDepartmentId = _NextDepartmentId_;
         _Childs = new Zeze.Transaction.Collections.PMap1<>(String.class, Long.class);
         _Childs.variableId(4);
-        _Data = new Zeze.Transaction.DynamicBean(5, Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::CreateBeanFromSpecialTypeId);
+        _Data = new Zeze.Transaction.DynamicBean(5, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
     }
 
     public void assign(BDepartmentRoot other) {
@@ -112,7 +112,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
         getChilds().clear();
         for (var e : other.getChilds().entrySet())
             getChilds().put(e.getKey(), e.getValue());
-        getData().Assign(other.getData());
+        getData().assign(other.getData());
     }
 
     @Deprecated
@@ -126,7 +126,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
 
     public BDepartmentRoot copy() {
         var copy = new BDepartmentRoot();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -136,9 +136,9 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BDepartmentRoot a, BDepartmentRoot b) {
-        BDepartmentRoot save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BDepartmentRoot save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -157,14 +157,14 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
         public Log__Root(BDepartmentRoot bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BDepartmentRoot)getBelong())._Root = Value; }
+        public void commit() { ((BDepartmentRoot)getBelong())._Root = value; }
     }
 
     private static final class Log__NextDepartmentId extends Zeze.Transaction.Logs.LogLong {
         public Log__NextDepartmentId(BDepartmentRoot bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BDepartmentRoot)getBelong())._NextDepartmentId = Value; }
+        public void commit() { ((BDepartmentRoot)getBelong())._NextDepartmentId = value; }
     }
 
     @Override
@@ -287,7 +287,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
                     var _k_ = _o_.ReadString(_s_);
-                    Zeze.Transaction.DynamicBean _v_ = new Zeze.Transaction.DynamicBean(0, Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::CreateBeanFromSpecialTypeId);
+                    Zeze.Transaction.DynamicBean _v_ = new Zeze.Transaction.DynamicBean(0, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
                     _o_.ReadDynamic(_v_, _t_);
                     _x_.put(_k_, _v_);
                 }
@@ -357,9 +357,9 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Root = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                case 1: _Root = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 2: _Managers.followerApply(vlog); break;
-                case 3: _NextDepartmentId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 3: _NextDepartmentId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 4: _Childs.followerApply(vlog); break;
                 case 5: _Data.followerApply(vlog); break;
             }

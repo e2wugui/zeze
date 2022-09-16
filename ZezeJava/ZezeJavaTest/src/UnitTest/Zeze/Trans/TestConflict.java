@@ -24,10 +24,10 @@ public class TestConflict {
 
 	@Test
 	public final void testConflictAdd() throws Throwable {
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(TestConflict::ProcRemove, "ProcRemove").Call());
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestConflict::ProcRemove, "ProcRemove").Call());
 		Future<?>[] tasks = new Future[2000];
 		for (int i = 0; i < 2000; ++i) {
-			tasks[i]=Zeze.Util.Task.runUnsafe(demo.App.getInstance().Zeze.NewProcedure(this::ProcAdd, "ProcAdd"), null, null);
+			tasks[i]=Zeze.Util.Task.runUnsafe(demo.App.getInstance().Zeze.newProcedure(this::ProcAdd, "ProcAdd"), null, null);
 		}
 		for (Future<?> task : tasks) {
 			try {
@@ -37,8 +37,8 @@ public class TestConflict {
 			}
 		}
 		sum = tasks.length;
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(this::ProcVerify, "ProcVerify").Call());
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(TestConflict::ProcRemove, "ProcRemove").Call());
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(this::ProcVerify, "ProcVerify").Call());
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestConflict::ProcRemove, "ProcRemove").Call());
 	}
 
 	private static long ProcRemove() {

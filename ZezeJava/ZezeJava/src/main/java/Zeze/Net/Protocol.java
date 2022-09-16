@@ -60,10 +60,10 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 	public abstract int getProtocolId();
 
 	public final long getTypeId() {
-		return MakeTypeId(getModuleId(), getProtocolId());
+		return makeTypeId(getModuleId(), getProtocolId());
 	}
 
-	public static long MakeTypeId(int moduleId, int protocolId) {
+	public static long makeTypeId(int moduleId, int protocolId) {
 		return (long)moduleId << 32 | (protocolId & 0xffff_ffffL);
 	}
 
@@ -175,7 +175,7 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 				// 数据不够时检查。这个检测不需要严格的。如果数据够，那就优先处理。
 				int maxSize = service.getSocketOptions().getInputBufferMaxProtocolSize();
 				if (longSize > maxSize) {
-					var factoryHandle = service.findProtocolFactoryHandle(MakeTypeId(moduleId, protocolId));
+					var factoryHandle = service.findProtocolFactoryHandle(makeTypeId(moduleId, protocolId));
 					var pName = factoryHandle != null && factoryHandle.Factory != null ?
 							factoryHandle.Factory.create().getClass().getName() : "?";
 					throw new IllegalStateException(
@@ -188,7 +188,7 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 			bb.ReadIndex = beginReadIndex += HEADER_SIZE;
 			int endReadIndex = beginReadIndex + size;
 
-			var factoryHandle = service.findProtocolFactoryHandle(MakeTypeId(moduleId, protocolId));
+			var factoryHandle = service.findProtocolFactoryHandle(makeTypeId(moduleId, protocolId));
 			if (factoryHandle != null && factoryHandle.Factory != null) {
 				var p = factoryHandle.Factory.create();
 				p.decode(bb);

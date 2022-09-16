@@ -15,8 +15,8 @@ public final class BNode extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _PrevNodeId;
-        var log = (Log__PrevNodeId)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _PrevNodeId;
+        var log = (Log__PrevNodeId)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _PrevNodeId;
     }
 
     public void setPrevNodeId(long value) {
@@ -25,7 +25,7 @@ public final class BNode extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__PrevNodeId(this, 1, value));
+        txn.putLog(new Log__PrevNodeId(this, 1, value));
     }
 
     public long getNextNodeId() {
@@ -34,8 +34,8 @@ public final class BNode extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _NextNodeId;
-        var log = (Log__NextNodeId)txn.GetLog(objectId() + 2);
-        return log != null ? log.Value : _NextNodeId;
+        var log = (Log__NextNodeId)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _NextNodeId;
     }
 
     public void setNextNodeId(long value) {
@@ -44,7 +44,7 @@ public final class BNode extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__NextNodeId(this, 2, value));
+        txn.putLog(new Log__NextNodeId(this, 2, value));
     }
 
     public Zeze.Transaction.Collections.PMap2<Long, Zeze.Builtin.Timer.BTimer> getTimers() {
@@ -70,7 +70,7 @@ public final class BNode extends Zeze.Transaction.Bean {
         setNextNodeId(other.getNextNodeId());
         getTimers().clear();
         for (var e : other.getTimers().entrySet())
-            getTimers().put(e.getKey(), e.getValue().Copy());
+            getTimers().put(e.getKey(), e.getValue().copy());
     }
 
     @Deprecated
@@ -84,7 +84,7 @@ public final class BNode extends Zeze.Transaction.Bean {
 
     public BNode copy() {
         var copy = new BNode();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -94,9 +94,9 @@ public final class BNode extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BNode a, BNode b) {
-        BNode save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BNode save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -115,14 +115,14 @@ public final class BNode extends Zeze.Transaction.Bean {
         public Log__PrevNodeId(BNode bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BNode)getBelong())._PrevNodeId = Value; }
+        public void commit() { ((BNode)getBelong())._PrevNodeId = value; }
     }
 
     private static final class Log__NextNodeId extends Zeze.Transaction.Logs.LogLong {
         public Log__NextNodeId(BNode bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BNode)getBelong())._NextNodeId = Value; }
+        public void commit() { ((BNode)getBelong())._NextNodeId = value; }
     }
 
     @Override
@@ -262,8 +262,8 @@ public final class BNode extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _PrevNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                case 2: _NextNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 1: _PrevNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 2: _NextNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 3: _Timers.followerApply(vlog); break;
             }
         }

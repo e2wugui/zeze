@@ -18,11 +18,11 @@ import Zeze.Util.OutLong;
 public class LinkedMap<V extends Bean> {
 	public static final BeanFactory beanFactory = new BeanFactory();
 
-	public static long GetSpecialTypeIdFromBean(Bean bean) {
+	public static long getSpecialTypeIdFromBean(Bean bean) {
 		return BeanFactory.getSpecialTypeIdFromBean(bean);
 	}
 
-	public static Bean CreateBeanFromSpecialTypeId(long typeId) {
+	public static Bean createBeanFromSpecialTypeId(long typeId) {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
@@ -110,7 +110,7 @@ public class LinkedMap<V extends Bean> {
 	public BLinkedMapNode getFirstNode(OutLong nodeId) {
 		var root = getRoot();
 		if (null != root) {
-			nodeId.Value = root.getHeadNodeId();
+			nodeId.value = root.getHeadNodeId();
 			return getNode(root.getHeadNodeId());
 		}
 		return null;
@@ -278,13 +278,13 @@ public class LinkedMap<V extends Bean> {
 			while (nodeId != 0) {
 				var node = module._tLinkedMapNodes.selectDirty(new BLinkedMapNodeKey(name, nodeId));
 				final var finalNodeId = nodeId;
-				module.Zeze.NewProcedure(() -> {
+				module.Zeze.newProcedure(() -> {
 					removeNode(finalNodeId);
 					return 0;
 				}, name + ".clear.node").Call();
 				nodeId = node.getPrevNodeId();
 			}
-			module.Zeze.NewProcedure(() -> {
+			module.Zeze.newProcedure(() -> {
 				module._tLinkedMaps.remove(name);
 				return 0;
 			}, name + ".clear.root").Call();

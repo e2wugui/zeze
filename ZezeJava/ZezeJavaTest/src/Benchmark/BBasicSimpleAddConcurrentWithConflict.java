@@ -14,20 +14,20 @@ public class BBasicSimpleAddConcurrentWithConflict extends TestCase {
 	public void testBenchmark() throws Throwable {
 		App.Instance.Start();
 		try {
-			App.Instance.Zeze.NewProcedure(BBasicSimpleAddConcurrentWithConflict::Remove, "remove").Call();
+			App.Instance.Zeze.newProcedure(BBasicSimpleAddConcurrentWithConflict::Remove, "remove").Call();
 			ArrayList<Future<Long>> tasks = new ArrayList<>(AddCount);
 			System.out.println("benchmark start...");
 			var b = new Zeze.Util.Benchmark();
 			for (int i = 0; i < AddCount; ++i) {
-				tasks.add(Task.runUnsafe(App.Instance.Zeze.NewProcedure(BBasicSimpleAddConcurrentWithConflict::Add, "Add")));
+				tasks.add(Task.runUnsafe(App.Instance.Zeze.newProcedure(BBasicSimpleAddConcurrentWithConflict::Add, "Add")));
 			}
 			//b.Report(this.getClass().getName(), AddCount);
 			for (var task : tasks) {
 				task.get();
 			}
-			b.Report(this.getClass().getName(), AddCount);
-			App.Instance.Zeze.NewProcedure(BBasicSimpleAddConcurrentWithConflict::Check, "check").Call();
-			App.Instance.Zeze.NewProcedure(BBasicSimpleAddConcurrentWithConflict::Remove, "remove").Call();
+			b.report(this.getClass().getName(), AddCount);
+			App.Instance.Zeze.newProcedure(BBasicSimpleAddConcurrentWithConflict::Check, "check").Call();
+			App.Instance.Zeze.newProcedure(BBasicSimpleAddConcurrentWithConflict::Remove, "remove").Call();
 		} finally {
 			App.Instance.Stop();
 		}

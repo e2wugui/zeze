@@ -66,17 +66,17 @@ public abstract class AbstractOnline extends Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
-        zeze.AddTable(zeze.getConfig().GetTableConf(_taccount.getName()).getDatabaseName(), _taccount);
-        zeze.AddTable(zeze.getConfig().GetTableConf(_tlocal.getName()).getDatabaseName(), _tlocal);
-        zeze.AddTable(zeze.getConfig().GetTableConf(_tonline.getName()).getDatabaseName(), _tonline);
-        zeze.AddTable(zeze.getConfig().GetTableConf(_tversion.getName()).getDatabaseName(), _tversion);
+        zeze.addTable(zeze.getConfig().getTableConf(_taccount.getName()).getDatabaseName(), _taccount);
+        zeze.addTable(zeze.getConfig().getTableConf(_tlocal.getName()).getDatabaseName(), _tlocal);
+        zeze.addTable(zeze.getConfig().getTableConf(_tonline.getName()).getDatabaseName(), _tonline);
+        zeze.addTable(zeze.getConfig().getTableConf(_tversion.getName()).getDatabaseName(), _tversion);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
-        zeze.RemoveTable(zeze.getConfig().GetTableConf(_taccount.getName()).getDatabaseName(), _taccount);
-        zeze.RemoveTable(zeze.getConfig().GetTableConf(_tlocal.getName()).getDatabaseName(), _tlocal);
-        zeze.RemoveTable(zeze.getConfig().GetTableConf(_tonline.getName()).getDatabaseName(), _tonline);
-        zeze.RemoveTable(zeze.getConfig().GetTableConf(_tversion.getName()).getDatabaseName(), _tversion);
+        zeze.removeTable(zeze.getConfig().getTableConf(_taccount.getName()).getDatabaseName(), _taccount);
+        zeze.removeTable(zeze.getConfig().getTableConf(_tlocal.getName()).getDatabaseName(), _tlocal);
+        zeze.removeTable(zeze.getConfig().getTableConf(_tonline.getName()).getDatabaseName(), _tonline);
+        zeze.removeTable(zeze.getConfig().getTableConf(_tversion.getName()).getDatabaseName(), _tversion);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

@@ -110,9 +110,9 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					cmd.executeUpdate();
 					switch (cmd.getInt(4)) {
 					case 0:
-						return Zeze.Util.KV.Create(cmd.getLong(3), true);
+						return Zeze.Util.KV.create(cmd.getLong(3), true);
 					case 2:
-						return Zeze.Util.KV.Create(0L, false);
+						return Zeze.Util.KV.create(0L, false);
 					default:
 						throw new IllegalStateException("Procedure SaveDataWithSameVersion Exec Error.");
 					}

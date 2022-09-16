@@ -36,111 +36,111 @@ final class Gen {
 
 	private Gen() {
 		serializer.put(Boolean.class, new KnownSerializer(
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteBool({});", prefix, bbName, varName),
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = {}.ReadBool();", prefix, varName, bbName),
-				(sb, prefix, varName) -> sb.AppendLine("{}boolean {};", prefix, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteBool({});", prefix, bbName, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = {}.ReadBool();", prefix, varName, bbName),
+				(sb, prefix, varName) -> sb.appendLine("{}boolean {};", prefix, varName),
 				() -> "Boolean")
 		);
 		serializer.put(boolean.class, new KnownSerializer(
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteBool({});", prefix, bbName, varName),
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = {}.ReadBool();", prefix, varName, bbName),
-				(sb, prefix, varName) -> sb.AppendLine("{}boolean {};", prefix, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteBool({});", prefix, bbName, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = {}.ReadBool();", prefix, varName, bbName),
+				(sb, prefix, varName) -> sb.appendLine("{}boolean {};", prefix, varName),
 				() -> "boolean")
 		);
 		serializer.put(Byte.class, new KnownSerializer(
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteLong({});", prefix, bbName, varName),
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = (byte){}.ReadLong();", prefix, varName, bbName),
-				(sb, prefix, varName) -> sb.AppendLine("{}byte {1};", prefix, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteLong({});", prefix, bbName, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = (byte){}.ReadLong();", prefix, varName, bbName),
+				(sb, prefix, varName) -> sb.appendLine("{}byte {1};", prefix, varName),
 				() -> "Byte")
 		);
 		serializer.put(byte.class, new KnownSerializer(
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteLong({});", prefix, bbName, varName),
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = (byte){}.ReadLong();", prefix, varName, bbName),
-				(sb, prefix, varName) -> sb.AppendLine("{}byte {};", prefix, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteLong({});", prefix, bbName, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = (byte){}.ReadLong();", prefix, varName, bbName),
+				(sb, prefix, varName) -> sb.appendLine("{}byte {};", prefix, varName),
 				() -> "byte")
 		);
 		serializer.put(Short.class, new KnownSerializer(
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteLong({});", prefix, bbName, varName),
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = (short){}.ReadLong();", prefix, varName, bbName),
-				(sb, prefix, varName) -> sb.AppendLine("{}short {};", prefix, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteLong({});", prefix, bbName, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = (short){}.ReadLong();", prefix, varName, bbName),
+				(sb, prefix, varName) -> sb.appendLine("{}short {};", prefix, varName),
 				() -> "Short")
 		);
 		serializer.put(short.class, new KnownSerializer(
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteLong({});", prefix, bbName, varName),
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = (short){}.ReadLong();", prefix, varName, bbName),
-				(sb, prefix, varName) -> sb.AppendLine("{}short {};", prefix, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteLong({});", prefix, bbName, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = (short){}.ReadLong();", prefix, varName, bbName),
+				(sb, prefix, varName) -> sb.appendLine("{}short {};", prefix, varName),
 				() -> "short")
 		);
 		serializer.put(Integer.class, new KnownSerializer(
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteLong({});", prefix, bbName, varName),
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = (int){}.ReadLong();", prefix, varName, bbName),
-				(sb, prefix, varName) -> sb.AppendLine("{}int {};", prefix, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteLong({});", prefix, bbName, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = (int){}.ReadLong();", prefix, varName, bbName),
+				(sb, prefix, varName) -> sb.appendLine("{}int {};", prefix, varName),
 				() -> "Integer")
 		);
 		serializer.put(int.class, new KnownSerializer(
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteLong({});", prefix, bbName, varName),
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = (int){}.ReadLong();", prefix, varName, bbName),
-				(sb, prefix, varName) -> sb.AppendLine("{}int {};", prefix, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteLong({});", prefix, bbName, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = (int){}.ReadLong();", prefix, varName, bbName),
+				(sb, prefix, varName) -> sb.appendLine("{}int {};", prefix, varName),
 				() -> "int")
 		);
 		serializer.put(Long.class, new KnownSerializer(
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteLong({});", prefix, bbName, varName),
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = {}.ReadLong();", prefix, varName, bbName),
-				(sb, prefix, varName) -> sb.AppendLine("{}long {};", prefix, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteLong({});", prefix, bbName, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = {}.ReadLong();", prefix, varName, bbName),
+				(sb, prefix, varName) -> sb.appendLine("{}long {};", prefix, varName),
 				() -> "Long")
 		);
 		serializer.put(long.class, new KnownSerializer(
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteLong({});", prefix, bbName, varName),
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = {}.ReadLong();", prefix, varName, bbName),
-				(sb, prefix, varName) -> sb.AppendLine("{}long {};", prefix, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteLong({});", prefix, bbName, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = {}.ReadLong();", prefix, varName, bbName),
+				(sb, prefix, varName) -> sb.appendLine("{}long {};", prefix, varName),
 				() -> "long")
 		);
 		serializer.put(Float.class, new KnownSerializer(
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteFloat({});", prefix, bbName, varName),
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = {}.ReadFloat();", prefix, varName, bbName),
-				(sb, prefix, varName) -> sb.AppendLine("{}float {};", prefix, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteFloat({});", prefix, bbName, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = {}.ReadFloat();", prefix, varName, bbName),
+				(sb, prefix, varName) -> sb.appendLine("{}float {};", prefix, varName),
 				() -> "Float")
 		);
 		serializer.put(float.class, new KnownSerializer(
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteFloat({});", prefix, bbName, varName),
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = {}.ReadFloat();", prefix, varName, bbName),
-				(sb, prefix, varName) -> sb.AppendLine("{}float {};", prefix, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteFloat({});", prefix, bbName, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = {}.ReadFloat();", prefix, varName, bbName),
+				(sb, prefix, varName) -> sb.appendLine("{}float {};", prefix, varName),
 				() -> "float")
 		);
 		serializer.put(Double.class, new KnownSerializer(
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteDouble({});", prefix, bbName, varName),
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = {}.ReadDouble();", prefix, varName, bbName),
-				(sb, prefix, varName) -> sb.AppendLine("{}double {};", prefix, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteDouble({});", prefix, bbName, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = {}.ReadDouble();", prefix, varName, bbName),
+				(sb, prefix, varName) -> sb.appendLine("{}double {};", prefix, varName),
 				() -> "Double")
 		);
 		serializer.put(double.class, new KnownSerializer(
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteDouble({});", prefix, bbName, varName),
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = {}.ReadDouble();", prefix, varName, bbName),
-				(sb, prefix, varName) -> sb.AppendLine("{}double {};", prefix, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteDouble({});", prefix, bbName, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = {}.ReadDouble();", prefix, varName, bbName),
+				(sb, prefix, varName) -> sb.appendLine("{}double {};", prefix, varName),
 				() -> "double")
 		);
 		serializer.put(String.class, new KnownSerializer(
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteString({});", prefix, bbName, varName),
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = {}.ReadString();", prefix, varName, bbName),
-				(sb, prefix, varName) -> sb.AppendLine("{}String {};", prefix, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteString({});", prefix, bbName, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = {}.ReadString();", prefix, varName, bbName),
+				(sb, prefix, varName) -> sb.appendLine("{}String {};", prefix, varName),
 				() -> "String")
 		);
 		serializer.put(byte[].class, new KnownSerializer(
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteBytes({});", prefix, bbName, varName),
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = {}.ReadBytes();", prefix, varName, bbName),
-				(sb, prefix, varName) -> sb.AppendLine("{}byte[] {};", prefix, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteBytes({});", prefix, bbName, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = {}.ReadBytes();", prefix, varName, bbName),
+				(sb, prefix, varName) -> sb.appendLine("{}byte[] {};", prefix, varName),
 				() -> "byte[]")
 		);
 		serializer.put(Binary.class, new KnownSerializer(
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteBinary({});", prefix, bbName, varName),
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = {}.ReadBinary();", prefix, varName, bbName),
-				(sb, prefix, varName) -> sb.AppendLine("{}Zeze.Net.Binary {};", prefix, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteBinary({});", prefix, bbName, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = {}.ReadBinary();", prefix, varName, bbName),
+				(sb, prefix, varName) -> sb.appendLine("{}Zeze.Net.Binary {};", prefix, varName),
 				() -> "Zeze.Net.Binary")
 		);
 		serializer.put(ByteBuffer.class, new KnownSerializer(
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteByteBuffer({});", prefix, bbName, varName),
-				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = Zeze.Serialize.ByteBuffer.Wrap({}.ReadBytes());", prefix, varName, bbName),
-				(sb, prefix, varName) -> sb.AppendLine("{}Zeze.Serialize.ByteBuffer {};", prefix, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{}.WriteByteBuffer({});", prefix, bbName, varName),
+				(sb, prefix, varName, bbName) -> sb.appendLine("{}{} = Zeze.Serialize.ByteBuffer.Wrap({}.ReadBytes());", prefix, varName, bbName),
+				(sb, prefix, varName) -> sb.appendLine("{}Zeze.Serialize.ByteBuffer {};", prefix, varName),
 				() -> "Zeze.Serialize.ByteBuffer")
 		);
 	}
@@ -161,9 +161,9 @@ final class Gen {
 		if (kn != null)
 			kn.define.run(sb, prefix, name);
 		else if (Serializable.class.isAssignableFrom(type))
-			sb.AppendLine("{}var {} = new {}();", prefix, name, type.getTypeName());
+			sb.appendLine("{}var {} = new {}();", prefix, name, type.getTypeName());
 		else
-			sb.AppendLine("{}{} {};", prefix, getTypeName(param.getParameterizedType()), name);
+			sb.appendLine("{}{} {};", prefix, getTypeName(param.getParameterizedType()), name);
 	}
 
 	void genEncode(StringBuilderCs sb, String prefix, String bbName, Class<?> type, String varName) throws Throwable {
@@ -171,15 +171,15 @@ final class Gen {
 		if (kn != null)
 			kn.encoder.run(sb, prefix, varName, bbName);
 		else if (Serializable.class.isAssignableFrom(type))
-			sb.AppendLine("{}{}.encode({});", prefix, varName, bbName);
+			sb.appendLine("{}{}.encode({});", prefix, varName, bbName);
 		else {
-			sb.AppendLine("{}try (var _bs_ = new java.io.ByteArrayOutputStream();", prefix);
-			sb.AppendLine("{}     var _os_ = new java.io.ObjectOutputStream(_bs_)) {", prefix);
-			sb.AppendLine("{}    _os_.writeObject({});", prefix, varName);
-			sb.AppendLine("{}    {}.WriteBytes(_bs_.toByteArray());", prefix, bbName);
-			sb.AppendLine("{}} catch (java.io.IOException _e_) {", prefix);
-			sb.AppendLine("{}    throw new RuntimeException(_e_);", prefix);
-			sb.AppendLine("{}}", prefix);
+			sb.appendLine("{}try (var _bs_ = new java.io.ByteArrayOutputStream();", prefix);
+			sb.appendLine("{}     var _os_ = new java.io.ObjectOutputStream(_bs_)) {", prefix);
+			sb.appendLine("{}    _os_.writeObject({});", prefix, varName);
+			sb.appendLine("{}    {}.WriteBytes(_bs_.toByteArray());", prefix, bbName);
+			sb.appendLine("{}} catch (java.io.IOException _e_) {", prefix);
+			sb.appendLine("{}    throw new RuntimeException(_e_);", prefix);
+			sb.appendLine("{}}", prefix);
 		}
 	}
 
@@ -188,20 +188,20 @@ final class Gen {
 		if (kn != null)
 			kn.decoder.run(sb, prefix, varName, bbName);
 		else if (Serializable.class.isAssignableFrom(type))
-			sb.AppendLine("{}{}.decode({});", prefix, varName, bbName);
+			sb.appendLine("{}{}.decode({});", prefix, varName, bbName);
 		else {
-			sb.AppendLine("{}{", prefix);
-			sb.AppendLine("{}    var _bo_ = {}.ReadByteBuffer();", prefix, bbName);
-			sb.AppendLine("{}    try (var _bs_ = new java.io.ByteArrayInputStream(_bo_.Bytes, _bo_.ReadIndex, _bo_.Size());", prefix);
-			sb.AppendLine("{}         var _os_ = new java.io.ObjectInputStream(_bs_)) {", prefix);
+			sb.appendLine("{}{", prefix);
+			sb.appendLine("{}    var _bo_ = {}.ReadByteBuffer();", prefix, bbName);
+			sb.appendLine("{}    try (var _bs_ = new java.io.ByteArrayInputStream(_bo_.Bytes, _bo_.ReadIndex, _bo_.Size());", prefix);
+			sb.appendLine("{}         var _os_ = new java.io.ObjectInputStream(_bs_)) {", prefix);
 			if (type == Object.class)
-				sb.AppendLine("{}        {} = Zeze.Util.Reflect.cast(_os_.readObject());", prefix, varName);
+				sb.appendLine("{}        {} = Zeze.Util.Reflect.cast(_os_.readObject());", prefix, varName);
 			else
-				sb.AppendLine("{}        {} = ({})_os_.readObject();", prefix, varName, getTypeName(paramType));
-			sb.AppendLine("{}    } catch (java.io.IOException _e_) {", prefix);
-			sb.AppendLine("{}        throw new RuntimeException(_e_);", prefix);
-			sb.AppendLine("{}    }", prefix);
-			sb.AppendLine("{}}", prefix);
+				sb.appendLine("{}        {} = ({})_os_.readObject();", prefix, varName, getTypeName(paramType));
+			sb.appendLine("{}    } catch (java.io.IOException _e_) {", prefix);
+			sb.appendLine("{}        throw new RuntimeException(_e_);", prefix);
+			sb.appendLine("{}    }", prefix);
+			sb.appendLine("{}}", prefix);
 		}
 	}
 

@@ -56,8 +56,8 @@ public class ModuleFriend extends AbstractModule {
         req.SendForWait(App.Connector.TryGetReadySocket()).await();
         if (req.getResultCode() != 0)
             throw new RuntimeException("createDepartment faild. "
-                    + " module=" + IModule.GetModuleId(req.getResultCode())
-                    + " ecode=" + IModule.GetErrorCode(req.getResultCode())
+                    + " module=" + IModule.getModuleId(req.getResultCode())
+                    + " ecode=" + IModule.getErrorCode(req.getResultCode())
             );
         return req.Result;
     }
@@ -69,8 +69,8 @@ public class ModuleFriend extends AbstractModule {
         req.SendForWait(App.Connector.TryGetReadySocket()).await();
         if (req.getResultCode() != 0)
             throw new RuntimeException("DeleteDepartment faild. "
-                    + " module=" + IModule.GetModuleId(req.getResultCode())
-                    + " ecode=" + IModule.GetErrorCode(req.getResultCode())
+                    + " module=" + IModule.getModuleId(req.getResultCode())
+                    + " ecode=" + IModule.getErrorCode(req.getResultCode())
             );
     }
 
@@ -80,7 +80,7 @@ public class ModuleFriend extends AbstractModule {
         req.Argument.setDepartmentId(id);
         req.SendForWait(App.Connector.TryGetReadySocket()).await();
         if (req.getResultCode() != 0)
-            throw new RuntimeException("getDepartmentNode fail code=" + IModule.GetErrorCode(req.getResultCode()));
+            throw new RuntimeException("getDepartmentNode fail code=" + IModule.getErrorCode(req.getResultCode()));
         return req.Result;
     }
 
@@ -92,8 +92,8 @@ public class ModuleFriend extends AbstractModule {
         req.SendForWait(App.Connector.TryGetReadySocket()).await();
         if (req.getResultCode() != 0)
             throw new RuntimeException("MoveDepartment faild. "
-                    + " module=" + IModule.GetModuleId(req.getResultCode())
-                    + " ecode=" + IModule.GetErrorCode(req.getResultCode())
+                    + " module=" + IModule.getModuleId(req.getResultCode())
+                    + " ecode=" + IModule.getErrorCode(req.getResultCode())
             );
     }
 
@@ -105,8 +105,8 @@ public class ModuleFriend extends AbstractModule {
         req.SendForWait(App.Connector.TryGetReadySocket()).await();
         if (req.getResultCode() != 0)
             throw new RuntimeException("AddDepartmentMember faild. "
-                    + " module=" + IModule.GetModuleId(req.getResultCode())
-                    + " ecode=" + IModule.GetErrorCode(req.getResultCode())
+                    + " module=" + IModule.getModuleId(req.getResultCode())
+                    + " ecode=" + IModule.getErrorCode(req.getResultCode())
             );
     }
     @Override

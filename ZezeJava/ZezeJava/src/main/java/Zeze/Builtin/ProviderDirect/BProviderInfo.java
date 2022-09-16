@@ -15,8 +15,8 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Ip;
-        var log = (Log__Ip)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _Ip;
+        var log = (Log__Ip)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _Ip;
     }
 
     public void setIp(String value) {
@@ -27,7 +27,7 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Ip(this, 1, value));
+        txn.putLog(new Log__Ip(this, 1, value));
     }
 
     public int getPort() {
@@ -36,8 +36,8 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Port;
-        var log = (Log__Port)txn.GetLog(objectId() + 2);
-        return log != null ? log.Value : _Port;
+        var log = (Log__Port)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _Port;
     }
 
     public void setPort(int value) {
@@ -46,7 +46,7 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__Port(this, 2, value));
+        txn.putLog(new Log__Port(this, 2, value));
     }
 
     public int getServerId() {
@@ -55,8 +55,8 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ServerId;
-        var log = (Log__ServerId)txn.GetLog(objectId() + 3);
-        return log != null ? log.Value : _ServerId;
+        var log = (Log__ServerId)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _ServerId;
     }
 
     public void setServerId(int value) {
@@ -65,7 +65,7 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__ServerId(this, 3, value));
+        txn.putLog(new Log__ServerId(this, 3, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -99,7 +99,7 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
 
     public BProviderInfo copy() {
         var copy = new BProviderInfo();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -109,9 +109,9 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BProviderInfo a, BProviderInfo b) {
-        BProviderInfo save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BProviderInfo save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -130,21 +130,21 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
         public Log__Ip(BProviderInfo bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BProviderInfo)getBelong())._Ip = Value; }
+        public void commit() { ((BProviderInfo)getBelong())._Ip = value; }
     }
 
     private static final class Log__Port extends Zeze.Transaction.Logs.LogInt {
         public Log__Port(BProviderInfo bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BProviderInfo)getBelong())._Port = Value; }
+        public void commit() { ((BProviderInfo)getBelong())._Port = value; }
     }
 
     private static final class Log__ServerId extends Zeze.Transaction.Logs.LogInt {
         public Log__ServerId(BProviderInfo bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BProviderInfo)getBelong())._ServerId = Value; }
+        public void commit() { ((BProviderInfo)getBelong())._ServerId = value; }
     }
 
     @Override
@@ -252,9 +252,9 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Ip = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
-                case 2: _Port = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
-                case 3: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                case 1: _Ip = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 2: _Port = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 3: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
             }
         }
     }

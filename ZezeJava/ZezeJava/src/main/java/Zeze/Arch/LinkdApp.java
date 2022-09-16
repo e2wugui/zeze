@@ -40,7 +40,7 @@ public class LinkdApp {
 		Zeze.getServiceManagerAgent().setOnSetServerLoad(serverLoad -> {
 			var ps = LinkdProviderService.ProviderSessions.get(serverLoad.getName());
 			if (ps != null) {
-				var bb = ByteBuffer.Wrap(serverLoad.Param);
+				var bb = ByteBuffer.Wrap(serverLoad.param);
 				var load = new BLoad();
 				load.decode(bb);
 				ps.Load = load;
@@ -58,7 +58,7 @@ public class LinkdApp {
 
 	public void RegisterService(Zeze.Net.Binary extra) {
 		var identity = "@" + ProviderIp + ":" + ProviderPort;
-		Zeze.getServiceManagerAgent().RegisterService(LinkdServiceName, identity,
+		Zeze.getServiceManagerAgent().registerService(LinkdServiceName, identity,
 				ProviderIp, ProviderPort, extra);
 	}
 }

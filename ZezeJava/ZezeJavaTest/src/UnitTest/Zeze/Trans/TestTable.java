@@ -22,15 +22,15 @@ public class TestTable {
 
 	@Test
 	public final void TestUpdate() throws Throwable {
-		demo.App.getInstance().Zeze.NewProcedure(() -> {
+		demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
 			demo.App.getInstance().demo_Module1.getTable2().remove(new demo.Module1.Key((short)1));
 			return Procedure.Success;
 		}, "RemoveDataFirst").Call();
 
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(TestTable::ProcGetOrAdd, "ProcGetOrAdd").Call());
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(TestTable::ProcGetUpdate, "ProcGetUpdate").Call());
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(TestTable::ProcGetUpdateCheckRemove, "ProcGetUpdateCheckRemove").Call());
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGetOrAdd, "ProcGetOrAdd").Call());
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGetUpdate, "ProcGetUpdate").Call());
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGetUpdateCheckRemove, "ProcGetUpdateCheckRemove").Call());
 	}
 
 	private static long ProcGetUpdate() {
@@ -73,14 +73,14 @@ public class TestTable {
 
 	@Test
 	public final void testGetOrAdd() throws Throwable {
-		demo.App.getInstance().Zeze.NewProcedure(() -> {
+		demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
 			demo.App.getInstance().demo_Module1.getTable2().remove(new demo.Module1.Key((short)1));
 			return Procedure.Success;
 		}, "RemoveDataFirst").Call();
 
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(TestTable::ProcGetOrAdd, "ProcGetOrAdd").Call());
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(TestTable::ProcGetOrAddCheckAndRemove, "ProcGetOrAddCheckAndRemove").Call());
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGetOrAdd, "ProcGetOrAdd").Call());
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGetOrAddCheckAndRemove, "ProcGetOrAddCheckAndRemove").Call());
 	}
 
 	private static long ProcGetOrAdd() {
@@ -126,26 +126,26 @@ public class TestTable {
 
 	@Test
 	public final void test1TableGetPut() throws Throwable {
-		demo.App.getInstance().Zeze.NewProcedure(() -> {
+		demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
 			demo.App.getInstance().demo_Module1.getTable2().remove(new demo.Module1.Key((short)1));
 			return Procedure.Success;
 		}, "RemoveDataFirst").Call();
 
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(TestTable::ProcGet11, "ProcGet11").Call());
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(TestTable::ProcGet12, "ProcGet12").Call());
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGet11, "ProcGet11").Call());
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGet12, "ProcGet12").Call());
 	}
 
 	@Test
 	public final void test2TableGetPut() throws Throwable {
-		demo.App.getInstance().Zeze.NewProcedure(() -> {
+		demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
 			demo.App.getInstance().demo_Module1.getTable2().remove(new demo.Module1.Key((short)1));
 			return Procedure.Success;
 		}, "RemoveDataFirst").Call();
 
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(TestTable::ProcGet21, "ProcGet21").Call());
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(TestTable::ProcGet22, "ProcGet22").Call());
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGet21, "ProcGet21").Call());
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGet22, "ProcGet22").Call());
 	}
 
 	private static long ProcGet21() {

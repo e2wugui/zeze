@@ -9,13 +9,13 @@ import Zeze.Serialize.SerializeHelper;
 import Zeze.Util.Reflect;
 
 public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
-	private final Set<LogBean> Changed = new HashSet<>(); // changed V logs. using in collect.
-	private final HashMap<K, LogBean> ChangedWithKey = new HashMap<>(); // changed with key. using in encode/decode followerApply
+	private final Set<LogBean> changed = new HashSet<>(); // changed V logs. using in collect.
+	private final HashMap<K, LogBean> changedWithKey = new HashMap<>(); // changed with key. using in encode/decode followerApply
 	private final MethodHandle valueFactory;
 
 	public LogMap2(Class<K> keyClass, Class<V> valueClass) {
-		super("Zeze.Raft.RocksRaft.LogMap2<" + Reflect.GetStableName(keyClass) + ", "
-				+ Reflect.GetStableName(valueClass) + '>', keyClass, valueClass);
+		super("Zeze.Raft.RocksRaft.LogMap2<" + Reflect.getStableName(keyClass) + ", "
+				+ Reflect.getStableName(valueClass) + '>', keyClass, valueClass);
 		valueFactory = Reflect.getDefaultConstructor(valueClass);
 	}
 
@@ -25,15 +25,15 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	}
 
 	public final Set<LogBean> getChanged() {
-		return Changed;
+		return changed;
 	}
 
 	public final HashMap<K, LogBean> getChangedWithKey() {
-		return ChangedWithKey;
+		return changedWithKey;
 	}
 
 	@Override
-	public Log BeginSavepoint() {
+	public Log beginSavepoint() {
 		var dup = new LogMap2<K, V>(getTypeId(), keyCodecFuncs, valueFactory);
 		dup.setBelong(getBelong());
 		dup.setVariableId(getVariableId());
@@ -45,16 +45,16 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	@Override
 	public void encode(ByteBuffer bb) {
 		if (getValue() != null) {
-			for (var c : Changed) {
+			for (var c : changed) {
 				Object pkey = c.getThis().mapKey();
 				//noinspection SuspiciousMethodCalls
 				if (!getPutted().containsKey(pkey) && !getRemoved().contains(pkey))
-					ChangedWithKey.put((K)pkey, c);
+					changedWithKey.put((K)pkey, c);
 			}
 		}
-		bb.WriteUInt(ChangedWithKey.size());
+		bb.WriteUInt(changedWithKey.size());
 		var keyEncoder = keyCodecFuncs.encoder;
-		for (var e : ChangedWithKey.entrySet()) {
+		for (var e : changedWithKey.entrySet()) {
 			keyEncoder.accept(bb, e.getKey());
 			e.getValue().encode(bb);
 		}
@@ -73,13 +73,13 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void decode(ByteBuffer bb) {
-		ChangedWithKey.clear();
+		changedWithKey.clear();
 		var keyDecoder = keyCodecFuncs.decoder;
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var key = keyDecoder.apply(bb);
 			var value = new LogBean();
 			value.decode(bb);
-			ChangedWithKey.put(key, value);
+			changedWithKey.put(key, value);
 		}
 
 		// super.decode(bb);
@@ -101,9 +101,9 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	}
 
 	@Override
-	public void Collect(Changes changes, Bean recent, Log vlog) {
-		if (Changed.add((LogBean)vlog))
-			changes.Collect(recent, this);
+	public void collect(Changes changes, Bean recent, Log vlog) {
+		if (changed.add((LogBean)vlog))
+			changes.collect(recent, this);
 	}
 
 	@Override
@@ -114,7 +114,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 		sb.append(" Removed:");
 		ByteBuffer.BuildSortedString(sb, getRemoved());
 		sb.append(" Changed:");
-		ByteBuffer.BuildSortedString(sb, Changed);
+		ByteBuffer.BuildSortedString(sb, changed);
 		return sb.toString();
 	}
 }

@@ -5,35 +5,35 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
 final class BRequestVoteResult extends Bean {
-	private long Term;
-	private boolean VoteGranted;
+	private long term;
+	private boolean voteGranted;
 
 	public long getTerm() {
-		return Term;
+		return term;
 	}
 
 	public void setTerm(long value) {
-		Term = value;
+		term = value;
 	}
 
 	public boolean getVoteGranted() {
-		return VoteGranted;
+		return voteGranted;
 	}
 
 	public void setVoteGranted(boolean value) {
-		VoteGranted = value;
+		voteGranted = value;
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteLong(Term);
-		bb.WriteBool(VoteGranted);
+		bb.WriteLong(term);
+		bb.WriteBool(voteGranted);
 	}
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		Term = bb.ReadLong();
-		VoteGranted = bb.ReadBool();
+		term = bb.ReadLong();
+		voteGranted = bb.ReadBool();
 	}
 
 	@Override
@@ -48,6 +48,6 @@ final class BRequestVoteResult extends Bean {
 
 	@Override
 	public String toString() {
-		return String.format("(Term=%d VoteGranted=%b)", Term, VoteGranted);
+		return String.format("(Term=%d VoteGranted=%b)", term, voteGranted);
 	}
 }

@@ -50,12 +50,12 @@ public class Reflect {
 		stableNameMap.put(Vector3Int.class, "vector3int");
 	}
 
-	private final HashMap<String, Method> Methods = new HashMap<>();
+	private final HashMap<String, Method> methods = new HashMap<>();
 
 	public Reflect(Class<?> cls) {
 		for (var method : cls.getDeclaredMethods()) {
 			if (method.getName().startsWith("Process")) { // 只有协议处理函数能配置TransactionLevel
-				if (null != Methods.putIfAbsent(method.getName(), method))
+				if (null != methods.putIfAbsent(method.getName(), method))
 					throw new IllegalStateException("Duplicate Method Name Of Protocol Handle: " + method.getName());
 			}
 		}
@@ -70,7 +70,7 @@ public class Reflect {
 	}
 
 	public TransactionLevel getTransactionLevel(String methodName, TransactionLevel def) {
-		var method = Methods.get(methodName);
+		var method = methods.get(methodName);
 		if (null == method)
 			return def;
 
@@ -79,15 +79,15 @@ public class Reflect {
 	}
 
 	public DispatchMode getDispatchMode(String methodName, DispatchMode def) {
-		var method = Methods.get(methodName);
+		var method = methods.get(methodName);
 		if (null == method)
 			return def;
 
 		var annotation = method.getAnnotation(DispatchModeAnnotation.class);
-		return annotation != null ? annotation.Mode() : def;
+		return annotation != null ? annotation.mode() : def;
 	}
 
-	public static String GetStableName(Class<?> cls) {
+	public static String getStableName(Class<?> cls) {
 		// 支持的 Zeze/Gen/Types/ 类型。
 		var name = stableNameMap.get(cls);
 		if (name != null)
@@ -97,12 +97,12 @@ public class Reflect {
 		throw new UnsupportedOperationException("Unsupported type: " + cls.getName());
 	}
 
-	public static String GetStableName(Class<?> cls, Class<?> tplCls) {
-		return cls.getName() + '<' + GetStableName(tplCls) + '>';
+	public static String getStableName(Class<?> cls, Class<?> tplCls) {
+		return cls.getName() + '<' + getStableName(tplCls) + '>';
 	}
 
-	public static String GetStableName(Class<?> cls, Class<?> tplCls1, Class<?> tplCls2) {
-		return cls.getName() + '<' + GetStableName(tplCls1) + ", " + GetStableName(tplCls2) + '>';
+	public static String getStableName(Class<?> cls, Class<?> tplCls1, Class<?> tplCls2) {
+		return cls.getName() + '<' + getStableName(tplCls1) + ", " + getStableName(tplCls2) + '>';
 	}
 
 	@SuppressWarnings("unchecked")

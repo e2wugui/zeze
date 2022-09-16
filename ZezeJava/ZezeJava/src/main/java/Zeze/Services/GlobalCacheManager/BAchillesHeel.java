@@ -5,23 +5,22 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
 public class BAchillesHeel extends Bean {
-	public int ServerId; // 必须的。
-
-	public String SecureKey; // 安全验证
-	public int GlobalCacheManagerHashIndex; // 安全验证
+	public int serverId; // 必须的。
+	public String secureKey; // 安全验证
+	public int globalCacheManagerHashIndex; // 安全验证
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		ServerId = bb.ReadInt();
-		SecureKey = bb.ReadString();
-		GlobalCacheManagerHashIndex = bb.ReadInt();
+		serverId = bb.ReadInt();
+		secureKey = bb.ReadString();
+		globalCacheManagerHashIndex = bb.ReadInt();
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteInt(ServerId);
-		bb.WriteString(SecureKey);
-		bb.WriteInt(GlobalCacheManagerHashIndex);
+		bb.WriteInt(serverId);
+		bb.WriteString(secureKey);
+		bb.WriteInt(globalCacheManagerHashIndex);
 	}
 
 	@Override
@@ -48,7 +47,7 @@ public class BAchillesHeel extends Bean {
 
 	@Override
 	public String toString() {
-		return "BAchillesHeel{" + "ServerId=" + ServerId + ", SecureKey='" + SecureKey + '\'' +
-				", GlobalCacheManagerHashIndex=" + GlobalCacheManagerHashIndex + '}';
+		return "BAchillesHeel{" + "ServerId=" + serverId + ", SecureKey='" + secureKey + '\'' +
+				", GlobalCacheManagerHashIndex=" + globalCacheManagerHashIndex + '}';
 	}
 }

@@ -28,7 +28,7 @@ public class Program {
 		for (int i = 0; i < args.length; ++i) {
 			switch (args[i]) {
 			case "-perf":
-				Counters.Enable = true;
+				Counters.enable = true;
 				break;
 			}
 		}
@@ -71,7 +71,7 @@ public class Program {
 			var address = links.get(Zeze.Util.Random.getInstance().nextInt(links.size()));
 			app.Start(address[0], Integer.parseInt(address[1]));
 		}
-		if (Counters.Enable)
+		if (Counters.enable)
 			counters.start();
 		try {
 			app.Connector.WaitReady();

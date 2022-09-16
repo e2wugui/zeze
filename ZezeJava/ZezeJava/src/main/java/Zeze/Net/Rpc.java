@@ -86,7 +86,7 @@ public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends 
 			context.setResultCode(Zeze.Transaction.Procedure.Timeout);
 
 			if (context.future != null)
-				context.future.TrySetException(RpcTimeoutException.getInstance());
+				context.future.trySetException(RpcTimeoutException.getInstance());
 			else if (context.responseHandle != null) {
 				// 本来Schedule已经在Task中执行了，这里又派发一次。
 				// 主要是为了让应用能拦截修改Response的处理方式。
@@ -183,7 +183,7 @@ public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends 
 	public final TaskCompletionSource<TResult> SendForWait(AsyncSocket so, int millisecondsTimeout) {
 		future = new TaskCompletionSource<>();
 		if (!Send(so, null, millisecondsTimeout))
-			future.TrySetException(new IllegalStateException("Send Failed."));
+			future.trySetException(new IllegalStateException("Send Failed."));
 		return future;
 	}
 
@@ -245,7 +245,7 @@ public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends 
 		context.isRequest = false;
 
 		if (context.future != null)
-			context.future.SetResult(context.Result); // SendForWait，设置结果唤醒等待者。
+			context.future.setResult(context.Result); // SendForWait，设置结果唤醒等待者。
 		else if (context.responseHandle != null)
 			service.DispatchRpcResponse(context, context.responseHandle, factoryHandle);
 	}

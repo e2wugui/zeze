@@ -26,8 +26,8 @@ public final class BOnline extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _LinkName;
-        var log = (Log__LinkName)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _LinkName;
+        var log = (Log__LinkName)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _LinkName;
     }
 
     public void setLinkName(String value) {
@@ -38,7 +38,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__LinkName(this, 1, value));
+        txn.putLog(new Log__LinkName(this, 1, value));
     }
 
     public long getLinkSid() {
@@ -47,8 +47,8 @@ public final class BOnline extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _LinkSid;
-        var log = (Log__LinkSid)txn.GetLog(objectId() + 2);
-        return log != null ? log.Value : _LinkSid;
+        var log = (Log__LinkSid)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _LinkSid;
     }
 
     public void setLinkSid(long value) {
@@ -57,7 +57,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__LinkSid(this, 2, value));
+        txn.putLog(new Log__LinkSid(this, 2, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -89,7 +89,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
 
     public BOnline copy() {
         var copy = new BOnline();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -99,9 +99,9 @@ public final class BOnline extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BOnline a, BOnline b) {
-        BOnline save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BOnline save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -120,14 +120,14 @@ public final class BOnline extends Zeze.Transaction.Bean {
         public Log__LinkName(BOnline bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BOnline)getBelong())._LinkName = Value; }
+        public void commit() { ((BOnline)getBelong())._LinkName = value; }
     }
 
     private static final class Log__LinkSid extends Zeze.Transaction.Logs.LogLong {
         public Log__LinkSid(BOnline bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BOnline)getBelong())._LinkSid = Value; }
+        public void commit() { ((BOnline)getBelong())._LinkSid = value; }
     }
 
     @Override
@@ -221,8 +221,8 @@ public final class BOnline extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _LinkName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
-                case 2: _LinkSid = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 1: _LinkName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 2: _LinkSid = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }

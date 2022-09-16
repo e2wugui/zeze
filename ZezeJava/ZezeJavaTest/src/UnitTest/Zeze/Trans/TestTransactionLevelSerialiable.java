@@ -24,12 +24,12 @@ public class TestTransactionLevelSerialiable {
 
 	@Test
 	public final void Test2() throws Throwable {
-		App.Instance.Zeze.NewProcedure(TestTransactionLevelSerialiable::init, "test_init").Call();
+		App.Instance.Zeze.newProcedure(TestTransactionLevelSerialiable::init, "test_init").Call();
 		Zeze.Util.Task.run(this::verify_task, "verify_task", DispatchMode.Normal);
 		try {
 			Future<?>[] tasks = new Future[200000];
 			for (int i = 0; i < tasks.length; ++i) {
-				tasks[i] = Zeze.Util.Task.runUnsafe(App.Instance.Zeze.NewProcedure(TestTransactionLevelSerialiable::trade, "test_trade"), null, null);
+				tasks[i] = Zeze.Util.Task.runUnsafe(App.Instance.Zeze.newProcedure(TestTransactionLevelSerialiable::trade, "test_trade"), null, null);
 			}
 			Zeze.Util.Task.waitAll(tasks);
 		} finally {
@@ -39,7 +39,7 @@ public class TestTransactionLevelSerialiable {
 
 	private void verify_task() throws Throwable {
 		while (InTest) {
-			App.Instance.Zeze.NewProcedure(TestTransactionLevelSerialiable::verify, "test_verify").Call();
+			App.Instance.Zeze.newProcedure(TestTransactionLevelSerialiable::verify, "test_verify").Call();
 		}
 	}
 

@@ -85,7 +85,7 @@ public class TestGlobalCacheMgrWithRaft {
 		//noinspection ConstantConditions
 		InetAddress address = (ip != null && !ip.isBlank()) ? InetAddress.getByName(ip) : null;
 
-		var config = new Zeze.Config().AddCustomize(new ServiceManagerServer.Conf()).LoadAndParse();
+		var config = new Zeze.Config().addCustomize(new ServiceManagerServer.Conf()).loadAndParse();
 		//noinspection ConstantConditions
 		new ServiceManagerServer(address, port, config);
 
@@ -99,8 +99,8 @@ public class TestGlobalCacheMgrWithRaft {
 
 		System.out.println("Started GlobalCacheManagerWithRaft");
 
-		var conf1 = Config.Load("zeze.xml");
-		var conf2 = Config.Load("zeze.xml");
+		var conf1 = Config.load("zeze.xml");
+		var conf2 = Config.load("zeze.xml");
 		conf2.setServerId(conf1.getServerId() + 1);
 
 		App1.Start(conf1);
@@ -285,12 +285,12 @@ public class TestGlobalCacheMgrWithRaft {
 		AtomicInteger finalCount1 = new AtomicInteger();
 		AtomicInteger finalCount2 = new AtomicInteger();
 
-		task2[0] = Zeze.Util.Task.runUnsafe(App1.Zeze.NewProcedure(() -> {
+		task2[0] = Zeze.Util.Task.runUnsafe(App1.Zeze.newProcedure(() -> {
 					finalCount1.set(TestConcurrency(App1, count, 1));
 					return Procedure.Success;
 				}, testName), null, null);
 
-		task2[1] = Zeze.Util.Task.runUnsafe(App2.Zeze.NewProcedure(() -> {
+		task2[1] = Zeze.Util.Task.runUnsafe(App2.Zeze.newProcedure(() -> {
 				finalCount2.set(TestConcurrency(App2, count, 2));
 				return Procedure.Success;
 			}, testName), null, null);
@@ -312,7 +312,7 @@ public class TestGlobalCacheMgrWithRaft {
 	private static int TestConcurrency(App app, int count, int appId) {
 		Future<?>[] tasks = new Future[count];
 		for (int i = 0; i < tasks.length; i++) {
-			tasks[i] = Zeze.Util.Task.runUnsafe(app.Zeze.NewProcedure(() -> {
+			tasks[i] = Zeze.Util.Task.runUnsafe(app.Zeze.newProcedure(() -> {
 				var v = app.demo_Module1.getTable1().getOrAdd(99L);
 				v.setInt1(v.getInt1() + 1);
 
@@ -350,7 +350,7 @@ public class TestGlobalCacheMgrWithRaft {
 		AtomicLong count = new AtomicLong();
 		int tryCount = 30;
 		for (int i = 0; i < tryCount; i++) {
-			var result = App1.Zeze.NewProcedure(() -> {
+			var result = App1.Zeze.newProcedure(() -> {
 				if (0 == App1.demo_Module1.getTable1().getOrAdd(99L).getInt1() && 0 != this.ExpectCount.get())
 					return Procedure.LogicError;
 				count.set(App1.demo_Module1.getTable1().getOrAdd(99L).getInt1());
@@ -364,7 +364,7 @@ public class TestGlobalCacheMgrWithRaft {
 
 	private void ClearCurrentCount() {
 		try {
-			App1.Zeze.NewProcedure(() -> {
+			App1.Zeze.newProcedure(() -> {
 				var val = App1.demo_Module1.getTable1().get(99L);
 				if (val != null) {
 					App1.demo_Module1.getTable1().remove(99L);
@@ -402,7 +402,7 @@ public class TestGlobalCacheMgrWithRaft {
 	}
 
 	private TestGlobalRaft[] ShuffleGlobalRaft() {
-		return Random.Shuffle(GlobalRafts.values().toArray(new TestGlobalRaft[GlobalRafts.size()]));
+		return Random.shuffle(GlobalRafts.values().toArray(new TestGlobalRaft[GlobalRafts.size()]));
 	}
 
 	private void RandomTriggerFailActions() throws InterruptedException {
@@ -456,7 +456,7 @@ public class TestGlobalCacheMgrWithRaft {
 		public void Start() throws Throwable {
 			synchronized (this) {
 				logger.debug("GlobalCacheManagerWithRaft {} Start ...", RaftName);
-				var GlobalRaftConfig = Zeze.Raft.RaftConfig.Load(GlobalRaftConfigFileName);
+				var GlobalRaftConfig = Zeze.Raft.RaftConfig.load(GlobalRaftConfigFileName);
 				GlobalCacheManagerWithRaft = new GlobalCacheManagerWithRaft(RaftName, GlobalRaftConfig);
 			}
 		}
@@ -500,12 +500,12 @@ public class TestGlobalCacheMgrWithRaft {
 		}
 
 		@Override
-		public SnapshotResult Snapshot(String path) {
+		public SnapshotResult snapshot(String path) {
 			return null;
 		}
 
 		@Override
-		public void LoadSnapshot(String path) {
+		public void loadSnapshot(String path) {
 			System.out.println("1111111111111111111111");
 		}
 	}

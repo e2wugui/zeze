@@ -33,7 +33,7 @@ public final class ModuleFight extends AbstractModule {
 
 	public void StartCalculateFighter(long roleId) {
 		BFighterId fighterId = new BFighterId(BFighterId.TypeRole, roleId);
-		Zeze.Util.Task.run(Game.App.getInstance().Zeze.NewProcedure(() -> CalculateFighter(fighterId),
+		Zeze.Util.Task.run(Game.App.getInstance().Zeze.newProcedure(() -> CalculateFighter(fighterId),
 				"CalculateFighter"), null, null, DispatchMode.Normal);
 	}
 

@@ -18,8 +18,8 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ReliableNotifyIndex;
-        var log = (Log__ReliableNotifyIndex)txn.GetLog(objectId() + 2);
-        return log != null ? log.Value : _ReliableNotifyIndex;
+        var log = (Log__ReliableNotifyIndex)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _ReliableNotifyIndex;
     }
 
     public void setReliableNotifyIndex(long value) {
@@ -28,7 +28,7 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__ReliableNotifyIndex(this, 2, value));
+        txn.putLog(new Log__ReliableNotifyIndex(this, 2, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -62,7 +62,7 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
 
     public BReliableNotify copy() {
         var copy = new BReliableNotify();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -72,9 +72,9 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BReliableNotify a, BReliableNotify b) {
-        BReliableNotify save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BReliableNotify save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -93,7 +93,7 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
         public Log__ReliableNotifyIndex(BReliableNotify bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BReliableNotify)getBelong())._ReliableNotifyIndex = Value; }
+        public void commit() { ((BReliableNotify)getBelong())._ReliableNotifyIndex = value; }
     }
 
     @Override
@@ -205,7 +205,7 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _Notifies.followerApply(vlog); break;
-                case 2: _ReliableNotifyIndex = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 2: _ReliableNotifyIndex = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }

@@ -28,13 +28,13 @@ public abstract class AbstractDepartmentTree extends Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
-        zeze.AddTable(zeze.getConfig().GetTableConf(_tDepartment.getName()).getDatabaseName(), _tDepartment);
-        zeze.AddTable(zeze.getConfig().GetTableConf(_tDepartmentTree.getName()).getDatabaseName(), _tDepartmentTree);
+        zeze.addTable(zeze.getConfig().getTableConf(_tDepartment.getName()).getDatabaseName(), _tDepartment);
+        zeze.addTable(zeze.getConfig().getTableConf(_tDepartmentTree.getName()).getDatabaseName(), _tDepartmentTree);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
-        zeze.RemoveTable(zeze.getConfig().GetTableConf(_tDepartment.getName()).getDatabaseName(), _tDepartment);
-        zeze.RemoveTable(zeze.getConfig().GetTableConf(_tDepartmentTree.getName()).getDatabaseName(), _tDepartmentTree);
+        zeze.removeTable(zeze.getConfig().getTableConf(_tDepartment.getName()).getDatabaseName(), _tDepartment);
+        zeze.removeTable(zeze.getConfig().getTableConf(_tDepartmentTree.getName()).getDatabaseName(), _tDepartmentTree);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

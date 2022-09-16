@@ -5,16 +5,16 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
 public class BSHandshake0Argument extends Bean {
-	public boolean EnableEncrypt;
+	public boolean enableEncrypt;
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteBool(EnableEncrypt);
+		bb.WriteBool(enableEncrypt);
 	}
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		EnableEncrypt = bb.ReadBool();
+		enableEncrypt = bb.ReadBool();
 	}
 
 	private static int _PRE_ALLOC_SIZE_ = 16;
@@ -41,6 +41,6 @@ public class BSHandshake0Argument extends Bean {
 
 	@Override
 	public String toString() {
-		return "BSHandshake0Argument{" + "EnableEncrypt=" + EnableEncrypt + '}';
+		return "BSHandshake0Argument{" + "EnableEncrypt=" + enableEncrypt + '}';
 	}
 }

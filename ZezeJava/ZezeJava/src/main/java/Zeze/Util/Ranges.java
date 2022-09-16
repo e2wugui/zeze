@@ -22,7 +22,7 @@ public final class Ranges {
 			this.last = last;
 		}
 
-		public boolean HasIntersection(Range r) {
+		public boolean hasIntersection(Range r) {
 			return !(r.last <= first || r.first >= last);
 		}
 
@@ -34,7 +34,7 @@ public final class Ranges {
 			return first + "-" + last;
 		}
 
-		public boolean Include(Range r) {
+		public boolean include(Range r) {
 			return r.first >= first && r.last <= last;
 		}
 	}
@@ -45,70 +45,62 @@ public final class Ranges {
 	}
 
 	public Ranges(String str) {
-		for (String s : str.split("[,]", -1)) {
-			if (s.length() == 0) {
+		for (String s : str.split(",", -1)) {
+			if (s.length() == 0)
 				continue;
-			}
-			String[] pair = s.split("[-]", -1);
-			if (pair.length == 0) {
+			String[] pair = s.split("-", -1);
+			if (pair.length == 0)
 				continue;
-			}
-			if (pair.length > 2) {
+			if (pair.length > 2)
 				throw new IllegalArgumentException("error format: '" + str + "'");
-			}
 			ranges.add(new Range(pair));
 		}
 	}
 
-	public void CheckAdd(Ranges rs) {
-		for (Range r : rs.ranges) {
-			CheckAdd(r);
-		}
+	public void checkAdd(Ranges rs) {
+		for (Range r : rs.ranges)
+			checkAdd(r);
 	}
 
-	public void CheckAdd(Range r) {
+	public void checkAdd(Range r) {
 		for (Range _r : ranges) {
-			if (_r.HasIntersection(r)) {
+			if (_r.hasIntersection(r))
 				throw new IllegalStateException(ranges + " checkAdd " + r);
-			}
 		}
 		ranges.add(r);
 	}
 
-	public void CheckAdd(int type) {
-		CheckAdd(new Range(type, type + 1));
+	public void checkAdd(int type) {
+		checkAdd(new Range(type, type + 1));
 	}
 
-	public boolean Include(Ranges rs) {
+	public boolean include(Ranges rs) {
 		for (Range r : rs.ranges) {
-			if (Include(r)) {
+			if (include(r))
 				return true;
-			}
 		}
 		return false;
 	}
 
-	public boolean Include(Range r) {
+	public boolean include(Range r) {
 		for (Range _r : ranges) {
-			if (_r.Include(r)) {
+			if (_r.include(r))
 				return true;
-			}
 		}
 		return false;
 	}
 
-	public void AssertInclude(Range r) {
-		if (!Include(r))
+	public void assertInclude(Range r) {
+		if (!include(r))
 			throw new AssertionError(ranges + " NOT Include " + r);
 	}
 
-	public void AssertInclude(Ranges rs) {
-		for (Range r : rs.ranges) {
-			AssertInclude(r);
-		}
+	public void assertInclude(Ranges rs) {
+		for (Range r : rs.ranges)
+			assertInclude(r);
 	}
 
-	public void AssertInclude(int type) {
-		AssertInclude(new Range(type, type + 1));
+	public void assertInclude(int type) {
+		assertInclude(new Range(type, type + 1));
 	}
 }

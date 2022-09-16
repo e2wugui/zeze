@@ -10,8 +10,8 @@ import Zeze.Util.IntHashMap;
 public class LogBean extends Log {
 	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Transaction.Collections.LogBean");
 
-	private IntHashMap<Log> Variables;
-	private Zeze.Transaction.Bean This;
+	private IntHashMap<Log> variables;
+	private Zeze.Transaction.Bean self;
 
 	public LogBean() {
 		super(TYPE_ID);
@@ -31,22 +31,22 @@ public class LogBean extends Log {
 	}
 
 	public final IntHashMap<Log> getVariables() {
-		return Variables;
+		return variables;
 	}
 
 	public final IntHashMap<Log> getVariablesOrNew() {
-		var variables = Variables;
+		var variables = this.variables;
 		if (variables == null)
-			Variables = variables = new IntHashMap<>();
+			this.variables = variables = new IntHashMap<>();
 		return variables;
 	}
 
 	public final Bean getThis() {
-		return This;
+		return self;
 	}
 
 	public final void setThis(Bean value) {
-		This = value;
+		self = value;
 	}
 
 	// LogBean仅在_final_commit的Collect过程中创建，不会参与Savepoint。
@@ -62,7 +62,7 @@ public class LogBean extends Log {
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		var vars = Variables;
+		var vars = variables;
 		if (vars != null) {
 			bb.WriteUInt(vars.size());
 			for (var it = vars.iterator(); it.moveToNext(); ) {
@@ -91,8 +91,8 @@ public class LogBean extends Log {
 
 				variables.put(varId, log);
 			}
-		} else if (Variables != null)
-			Variables.clear();
+		} else if (variables != null)
+			variables.clear();
 	}
 
 	// 仅发生在事务执行期间。decode-Apply不会执行到这里。
@@ -105,7 +105,7 @@ public class LogBean extends Log {
 	@Override
 	public String toString() {
 		var sb = new StringBuilder();
-		ByteBuffer.BuildSortedString(sb, Variables);
+		ByteBuffer.BuildSortedString(sb, variables);
 		return sb.toString();
 	}
 }

@@ -169,7 +169,7 @@ public final class Tasks {
 		void prepare() throws Throwable {
 			// 所有使用 Table1 的测试都可以依赖这个 prepare，不需要单独写了。
 			var app = Simulate.getInstance().randApp().app;
-			app.Zeze.NewProcedure(() -> {
+			app.Zeze.newProcedure(() -> {
 				for (long key = 0; key < Simulate.AccessKeyBound; key++)
 					app.demo_Module1.getTable1().remove(key);
 				return 0L;
@@ -234,11 +234,11 @@ public final class Tasks {
 			if (success != sum) {
 				var a = new OutLong();
 				app.demo_Module1.getTable1().Walk((k, v) -> {
-					a.Value += v.getLong2();
+					a.value += v.getLong2();
 					return true;
 				});
 				Simulate.logger.error("Table1Long2Add1 verify failed: {} != {} (walk:{}, commitCount:{})",
-						success, sum, a.Value, commitCount.sum());
+						success, sum, a.value, commitCount.sum());
 			}
 			Assert.assertEquals(success, sum);
 			Simulate.logger.debug("{}.verify OK!", name);

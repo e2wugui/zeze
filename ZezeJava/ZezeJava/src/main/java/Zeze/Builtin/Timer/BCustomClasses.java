@@ -34,7 +34,7 @@ public final class BCustomClasses extends Zeze.Transaction.Bean {
 
     public BCustomClasses copy() {
         var copy = new BCustomClasses();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -44,9 +44,9 @@ public final class BCustomClasses extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BCustomClasses a, BCustomClasses b) {
-        BCustomClasses save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BCustomClasses save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override

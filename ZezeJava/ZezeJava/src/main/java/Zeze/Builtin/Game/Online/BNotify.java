@@ -13,8 +13,8 @@ public final class BNotify extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _FullEncodedProtocol;
-        var log = (Log__FullEncodedProtocol)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _FullEncodedProtocol;
+        var log = (Log__FullEncodedProtocol)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _FullEncodedProtocol;
     }
 
     public void setFullEncodedProtocol(Zeze.Net.Binary value) {
@@ -25,7 +25,7 @@ public final class BNotify extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__FullEncodedProtocol(this, 1, value));
+        txn.putLog(new Log__FullEncodedProtocol(this, 1, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -55,7 +55,7 @@ public final class BNotify extends Zeze.Transaction.Bean {
 
     public BNotify copy() {
         var copy = new BNotify();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -65,9 +65,9 @@ public final class BNotify extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BNotify a, BNotify b) {
-        BNotify save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BNotify save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -86,7 +86,7 @@ public final class BNotify extends Zeze.Transaction.Bean {
         public Log__FullEncodedProtocol(BNotify bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BNotify)getBelong())._FullEncodedProtocol = Value; }
+        public void commit() { ((BNotify)getBelong())._FullEncodedProtocol = value; }
     }
 
     @Override
@@ -166,7 +166,7 @@ public final class BNotify extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _FullEncodedProtocol = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
+                case 1: _FullEncodedProtocol = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
             }
         }
     }

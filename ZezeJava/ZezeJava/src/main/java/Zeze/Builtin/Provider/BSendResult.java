@@ -34,7 +34,7 @@ public final class BSendResult extends Zeze.Transaction.Bean {
 
     public BSendResult copy() {
         var copy = new BSendResult();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -44,9 +44,9 @@ public final class BSendResult extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BSendResult a, BSendResult b) {
-        BSendResult save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BSendResult save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override

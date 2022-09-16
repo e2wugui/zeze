@@ -160,7 +160,7 @@ public final class Changes {
 			if (belong instanceof Collection) {
 				// 容器使用共享的日志。需要先去查询，没有的话才创建。
 				//noinspection ConstantConditions
-				logBean = (LogBean)Transaction.getCurrent().GetLog(
+				logBean = (LogBean)Transaction.getCurrent().getLog(
 						belong.parent().objectId() + belong.variableId());
 			}
 			if (logBean == null)

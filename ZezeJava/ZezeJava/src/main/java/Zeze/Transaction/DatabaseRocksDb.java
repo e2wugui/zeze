@@ -179,12 +179,12 @@ public class DatabaseRocksDb extends Database {
 
 	private ColumnFamilyHandle getOrAddFamily(String name, OutObject<Boolean> isNew) {
 		if (isNew != null)
-			isNew.Value = false;
+			isNew.value = false;
 
 		return columnFamilies.computeIfAbsent(name, key -> {
 			try {
 				if (isNew != null)
-					isNew.Value = true;
+					isNew.value = true;
 				return rocksDb.createColumnFamily(
 						new ColumnFamilyDescriptor(key.getBytes(StandardCharsets.UTF_8), defaultCfOptions));
 			} catch (RocksDBException e) {
@@ -197,7 +197,7 @@ public class DatabaseRocksDb extends Database {
 	public Table openTable(String name) {
 		var isNew = new OutObject<Boolean>();
 		var cfh = getOrAddFamily(name, isNew);
-		return new TableRocksDb(cfh, isNew.Value);
+		return new TableRocksDb(cfh, isNew.value);
 	}
 
 	private final class TableRocksDb implements Database.Table {
@@ -315,13 +315,13 @@ public class DatabaseRocksDb extends Database {
 			try {
 				var dv = DVRocks.decode(rocksDb.get(columnFamily, defaultReadOptions, key.Bytes, key.ReadIndex, key.Size()));
 				if (dv.version != version)
-					return KV.Create(version, false);
+					return KV.create(version, false);
 
 				dv.version = ++version;
 				dv.data = data;
 				var value = dv.encode();
 				rocksDb.put(columnFamily, defaultWriteOptions, key.Bytes, key.ReadIndex, key.Size(), value, 0, value.length);
-				return KV.Create(version, true);
+				return KV.create(version, true);
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
 			}

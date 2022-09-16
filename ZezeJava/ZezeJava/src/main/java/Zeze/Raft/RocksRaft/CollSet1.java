@@ -10,7 +10,7 @@ public class CollSet1<V> extends CollSet<V> {
 
 	public CollSet1(Class<V> valueClass) {
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
-		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.LogSet1<" + Reflect.GetStableName(valueClass) + '>');
+		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.LogSet1<" + Reflect.getStableName(valueClass) + '>');
 	}
 
 	private CollSet1(int logTypeId, SerializeHelper.CodecFuncs<V> valueCodecFuncs) {
@@ -22,14 +22,14 @@ public class CollSet1<V> extends CollSet<V> {
 	public boolean add(V item) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var setLog = (LogSet1<V>)Transaction.getCurrent().LogGetOrAdd(
+			var setLog = (LogSet1<V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			return setLog.Add(item);
+			return setLog.add(item);
 		}
-		var newSet = _set.plus(item);
-		if (newSet == _set)
+		var newSet = set.plus(item);
+		if (newSet == set)
 			return false;
-		_set = newSet;
+		set = newSet;
 		return true;
 	}
 
@@ -37,14 +37,14 @@ public class CollSet1<V> extends CollSet<V> {
 	public boolean remove(V item) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var setLog = (LogSet1<V>)Transaction.getCurrent().LogGetOrAdd(
+			var setLog = (LogSet1<V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			return setLog.Remove(item);
+			return setLog.remove(item);
 		}
-		var newSet = _set.minus(item);
-		if (newSet == _set)
+		var newSet = set.minus(item);
+		if (newSet == set)
 			return false;
-		_set = newSet;
+		set = newSet;
 		return true;
 	}
 
@@ -52,11 +52,11 @@ public class CollSet1<V> extends CollSet<V> {
 	public void clear() {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var setLog = (LogSet1<V>)Transaction.getCurrent().LogGetOrAdd(
+			var setLog = (LogSet1<V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			setLog.Clear();
+			setLog.clear();
 		} else
-			_set = org.pcollections.Empty.set();
+			set = org.pcollections.Empty.set();
 	}
 
 	@Override
@@ -65,7 +65,7 @@ public class CollSet1<V> extends CollSet<V> {
 		log.setBelong(parent());
 		log.setThis(this);
 		log.setVariableId(variableId());
-		log.setValue(_set);
+		log.setValue(set);
 		return log;
 	}
 
@@ -73,13 +73,13 @@ public class CollSet1<V> extends CollSet<V> {
 	public void followerApply(Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogSet1<V>)_log;
-		_set = _set.plusAll(log.getAdded()).minusAll(log.getRemoved());
+		set = set.plusAll(log.getAdded()).minusAll(log.getRemoved());
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
 	public void leaderApplyNoRecursive(Log _log) {
-		_set = ((LogSet1<V>)_log).getValue();
+		set = ((LogSet1<V>)_log).getValue();
 	}
 
 	@Override
@@ -89,7 +89,7 @@ public class CollSet1<V> extends CollSet<V> {
 	@Override
 	public Bean copyBean() {
 		var copy = new CollSet1<>(logTypeId, valueCodecFuncs);
-		copy._set = _set;
+		copy.set = set;
 		return copy;
 	}
 

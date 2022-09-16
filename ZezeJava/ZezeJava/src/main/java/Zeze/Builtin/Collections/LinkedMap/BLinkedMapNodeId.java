@@ -13,8 +13,8 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _NodeId;
-        var log = (Log__NodeId)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _NodeId;
+        var log = (Log__NodeId)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _NodeId;
     }
 
     public void setNodeId(long value) {
@@ -23,7 +23,7 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__NodeId(this, 1, value));
+        txn.putLog(new Log__NodeId(this, 1, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -50,7 +50,7 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean {
 
     public BLinkedMapNodeId copy() {
         var copy = new BLinkedMapNodeId();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -60,9 +60,9 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BLinkedMapNodeId a, BLinkedMapNodeId b) {
-        BLinkedMapNodeId save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BLinkedMapNodeId save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -81,7 +81,7 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean {
         public Log__NodeId(BLinkedMapNodeId bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BLinkedMapNodeId)getBelong())._NodeId = Value; }
+        public void commit() { ((BLinkedMapNodeId)getBelong())._NodeId = value; }
     }
 
     @Override
@@ -163,7 +163,7 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _NodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 1: _NodeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }

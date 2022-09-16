@@ -48,7 +48,7 @@ public class Procedure {
 		else
 			return;
 
-		String module = result > 0 ? "@" + IModule.GetModuleId(result) + ":" + IModule.GetErrorCode(result) : "";
+		String module = result > 0 ? "@" + IModule.getModuleId(result) + ":" + IModule.getErrorCode(result) : "";
 		logger.log(level, "Procedure={} Return={}{}{} UserState={}", p, result, module, message, p.userState, ex);
 	}
 
@@ -125,13 +125,13 @@ public class Procedure {
 		if (currentT == null) {
 			try {
 				// 有点奇怪，Perform 里面又会回调这个方法。这是为了把主要流程都写到 Transaction 中。
-				return Transaction.Create(zeze.getLocks()).Perform(this);
+				return Transaction.create(zeze.getLocks()).perform(this);
 			} finally {
-				Transaction.Destroy();
+				Transaction.destroy();
 			}
 		}
 
-		currentT.Begin();
+		currentT.begin();
 		currentT.getProcedureStack().add(this);
 		try {
 //			var r = runWhileCommit;
@@ -140,39 +140,39 @@ public class Procedure {
 //				currentT.runWhileCommit(r);
 //			}
 			long result = process();
-			currentT.VerifyRunning(); // 防止应用抓住了异常，通过return方式返回。
+			currentT.verifyRunning(); // 防止应用抓住了异常，通过return方式返回。
 
 			if (result == Success) {
-				currentT.Commit();
-				if (Macro.EnableStatistics) {
+				currentT.commit();
+				if (Macro.enableStatistics) {
 					ProcedureStatistics.getInstance().getOrAdd(actionName).getOrAdd(result).increment();
 				}
 				return Success;
 			}
-			currentT.Rollback();
+			currentT.rollback();
 			var tmpLogAction = logAction;
 			if (tmpLogAction != null)
 				tmpLogAction.run(null, result, this, "");
-			if (Macro.EnableStatistics) {
+			if (Macro.enableStatistics) {
 				ProcedureStatistics.getInstance().getOrAdd(actionName).getOrAdd(result).increment();
 			}
 			return result;
 		} catch (GoBackZeze gobackzeze) {
 			// 单独抓住这个异常，是为了能原样抛出，并且使用不同的级别记录日志。
 			// 对状态正确性没有影响。
-			currentT.Rollback();
+			currentT.rollback();
 			logger.debug("", gobackzeze);
 			throw gobackzeze;
 		} catch (Throwable e) {
-			currentT.Rollback();
+			currentT.rollback();
 			var tmpLogAction = logAction;
 			if (tmpLogAction != null)
 				tmpLogAction.run(e, Exception, this, "");
-			if (Macro.EnableStatistics) {
+			if (Macro.enableStatistics) {
 				ProcedureStatistics.getInstance().getOrAdd(actionName).getOrAdd(Exception).increment();
 			}
 			// 验证状态：Running状态将吃掉所有异常。
-			currentT.VerifyRunning();
+			currentT.verifyRunning();
 			// 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
 			if (e instanceof AssertionError)
 				throw e;

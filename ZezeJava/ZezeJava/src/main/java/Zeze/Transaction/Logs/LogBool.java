@@ -7,7 +7,7 @@ import Zeze.Serialize.ByteBuffer;
 public abstract class LogBool extends Log {
 	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.Log<bool>");
 
-	public boolean Value;
+	public boolean value;
 
 	public LogBool() {
 		super(TYPE_ID);
@@ -17,21 +17,21 @@ public abstract class LogBool extends Log {
 		this();
 		setBelong(belong);
 		setVariableId(varId);
-		Value = value;
+		this.value = value;
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteBool(Value);
+		bb.WriteBool(value);
 	}
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		Value = bb.ReadBool();
+		value = bb.ReadBool();
 	}
 
 	@Override
 	public String toString() {
-		return String.valueOf(Value);
+		return String.valueOf(value);
 	}
 }

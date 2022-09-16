@@ -29,12 +29,12 @@ public final class RecordAccessed extends Bean {
 
 	public Bean newestValue() {
 		//noinspection ConstantConditions
-		var log = Transaction.getCurrent().GetLog(objectId());
+		var log = Transaction.getCurrent().getLog(objectId());
 		return log instanceof PutLog ? ((PutLog)log).getValue() : atomicTupleRecord.strongRef;
 	}
 
 	public void put(Transaction current, Bean putValue) {
-		current.PutLog(new PutLog(this, putValue));
+		current.putLog(new PutLog(this, putValue));
 	}
 
 	public void remove(Transaction current) {

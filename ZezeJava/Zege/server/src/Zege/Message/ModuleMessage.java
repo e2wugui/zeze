@@ -27,15 +27,15 @@ public class ModuleMessage extends AbstractModule {
         var group = App.Zege_Friend.getGroup(r.Argument.getGroup());
         var groupRoot = group.getRoot();
         if (null == groupRoot)
-            return ErrorCode(eGroupNotExist);
+            return errorCode(eGroupNotExist);
         if (r.Argument.getDepartmentId() > 0 && null == group.getDepartmentTreeNode(r.Argument.getDepartmentId()))
-            return ErrorCode(eDepartmentNotExist);
+            return errorCode(eDepartmentNotExist);
         if (0 == r.Argument.getDepartmentId()) {
             if (group.getGroupMembers().size() > App.ZegeConfig.GroupChatLimit)
-                return ErrorCode(eTooManyMembers);
+                return errorCode(eTooManyMembers);
         } else {
             if (group.getDepartmentMembers(r.Argument.getDepartmentId()).size() > App.ZegeConfig.GroupChatLimit)
-                return ErrorCode(eTooManyMembers);
+                return errorCode(eTooManyMembers);
         }
 
         // 填充服务器保证的参数
@@ -97,7 +97,7 @@ public class ModuleMessage extends AbstractModule {
         var friends = App.Zege_Friend.getFriends(session.getAccount());
         var friend = friends.get(r.Argument.getFriend());
         if (null == friend)
-            return ErrorCode(eNotYourFriend);
+            return errorCode(eNotYourFriend);
 
         // 填充服务器保证的参数
         r.Argument.getMessage().setFrom(session.getAccount());
@@ -127,19 +127,19 @@ public class ModuleMessage extends AbstractModule {
         var friends = App.Zege_Friend.getFriends(session.getAccount());
         var friend = friends.get(r.Argument.getFriend());
         if (null == friend)
-            return ErrorCode(eNotYourFriend);
+            return errorCode(eNotYourFriend);
 
         // 准备消息范围
         var messageRoot = _tFriendMessage.getOrAdd(new BFriendKey(session.getAccount(), r.Argument.getFriend()));
         var from = new OutLong(r.Argument.getMessageIdFrom());
         var to = new OutLong(r.Argument.getMessageIdTo());
         if (!calculateMessageRange(from, to, messageRoot))
-            return ErrorCode(eMessageRange);
+            return errorCode(eMessageRange);
 
         // 提取消息历史
         r.Result.setMessageIdHashRead(messageRoot.getMessageIdHashRead());
-        for (; from.Value <= to.Value; ++from.Value) {
-            var message = _tFriendMessages.get(new BFriendMessageKey(session.getAccount(), r.Argument.getFriend(), from.Value));
+        for (; from.value <= to.value; ++from.value) {
+            var message = _tFriendMessages.get(new BFriendMessageKey(session.getAccount(), r.Argument.getFriend(), from.value));
             if (null != message)
                 r.Result.getMessages().add(message);
             else
@@ -150,19 +150,19 @@ public class ModuleMessage extends AbstractModule {
     }
 
     private boolean calculateMessageRange(OutLong from, OutLong to, BMessageRoot messageRoot) {
-        if (from.Value == eGetMessageFromAboutRead)
-            from.Value = Math.max(from.Value, messageRoot.getMessageIdHashRead() - App.ZegeConfig.AboutHasRead);
-        else if (from.Value == eGetMessageFromAboutLast)
-            from.Value = Math.max(from.Value, messageRoot.getLastMessageId() - App.ZegeConfig.AboutLast);
+        if (from.value == eGetMessageFromAboutRead)
+            from.value = Math.max(from.value, messageRoot.getMessageIdHashRead() - App.ZegeConfig.AboutHasRead);
+        else if (from.value == eGetMessageFromAboutLast)
+            from.value = Math.max(from.value, messageRoot.getLastMessageId() - App.ZegeConfig.AboutLast);
         else
-            from.Value = Math.max(from.Value, messageRoot.getFirstMessageId());
+            from.value = Math.max(from.value, messageRoot.getFirstMessageId());
 
-        if (to.Value == eGetMessageToAuto || to.Value > messageRoot.getLastMessageId())
-            to.Value = messageRoot.getLastMessageId();
-        if (to.Value < from.Value)
+        if (to.value == eGetMessageToAuto || to.value > messageRoot.getLastMessageId())
+            to.value = messageRoot.getLastMessageId();
+        if (to.value < from.value)
             return false;
-        if (to.Value - from.Value > App.ZegeConfig.MessageLimit)
-            to.Value = from.Value + App.ZegeConfig.MessageLimit;
+        if (to.value - from.value > App.ZegeConfig.MessageLimit)
+            to.value = from.value + App.ZegeConfig.MessageLimit;
         return true;
     }
 
@@ -175,22 +175,22 @@ public class ModuleMessage extends AbstractModule {
         var group = App.Zege_Friend.getGroup(departmentKey.getGroup());
         var groupRoot = group.getRoot();
         if (null == groupRoot)
-            return ErrorCode(eGroupNotExist);
+            return errorCode(eGroupNotExist);
         if (r.Argument.getGroupDepartment().getDepartmentId() > 0
                 && null == group.getDepartmentTreeNode(r.Argument.getGroupDepartment().getDepartmentId()))
-            return ErrorCode(eDepartmentNotExist);
+            return errorCode(eDepartmentNotExist);
 
         // 准备消息范围
         var messageRoot = _tDepartementMessage.getOrAdd(departmentKey);
         var from = new OutLong(r.Argument.getMessageIdFrom());
         var to = new OutLong(r.Argument.getMessageIdTo());
         if (!calculateMessageRange(from, to, messageRoot))
-            return ErrorCode(eMessageRange);
+            return errorCode(eMessageRange);
 
         // 提取消息历史
         r.Result.setMessageIdHashRead(messageRoot.getMessageIdHashRead());
-        for (; from.Value <= to.Value; ++from.Value) {
-            var message = _tDepartementMessages.get(new BDepartmentMessageKey(departmentKey, from.Value));
+        for (; from.value <= to.value; ++from.value) {
+            var message = _tDepartementMessages.get(new BDepartmentMessageKey(departmentKey, from.value));
             if (null != message)
                 r.Result.getMessages().add(message);
             else
@@ -209,13 +209,13 @@ public class ModuleMessage extends AbstractModule {
         var friends = App.Zege_Friend.getFriends(session.getAccount());
         var friend = friends.get(r.Argument.getFriend());
         if (null == friend)
-            return ErrorCode(eNotYourFriend);
+            return errorCode(eNotYourFriend);
 
         // 检查消息范围
         var messageRoot = _tFriendMessage.getOrAdd(new BFriendKey(session.getAccount(), r.Argument.getFriend()));
         if (r.Argument.getMessageIdHashRead() < messageRoot.getMessageIdHashRead()
                 || r.Argument.getMessageIdHashRead() > messageRoot.getLastMessageId())
-            return ErrorCode(eMessageRange); // 已读消息只能推进
+            return errorCode(eMessageRange); // 已读消息只能推进
 
         messageRoot.setMessageIdHashRead(r.Argument.getMessageIdHashRead());
 
@@ -233,16 +233,16 @@ public class ModuleMessage extends AbstractModule {
         var group = App.Zege_Friend.getGroup(departmentKey.getGroup());
         var groupRoot = group.getRoot();
         if (null == groupRoot)
-            return ErrorCode(eGroupNotExist);
+            return errorCode(eGroupNotExist);
         if (r.Argument.getGroupDepartment().getDepartmentId() > 0
                 && null == group.getDepartmentTreeNode(r.Argument.getGroupDepartment().getDepartmentId()))
-            return ErrorCode(eDepartmentNotExist);
+            return errorCode(eDepartmentNotExist);
 
         // 检查消息范围
         var messageRoot = _tDepartementMessage.getOrAdd(departmentKey);
         if (r.Argument.getMessageIdHashRead() < messageRoot.getMessageIdHashRead()
                 || r.Argument.getMessageIdHashRead() > messageRoot.getLastMessageId())
-            return ErrorCode(eMessageRange); // 已读消息只能推进
+            return errorCode(eMessageRange); // 已读消息只能推进
 
         messageRoot.setMessageIdHashRead(r.Argument.getMessageIdHashRead());
 

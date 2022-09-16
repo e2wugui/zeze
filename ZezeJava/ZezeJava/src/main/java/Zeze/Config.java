@@ -24,7 +24,7 @@ public final class Config {
 	public interface ICustomize {
 		String getName();
 
-		void Parse(Element self);
+		void parse(Element self);
 	}
 
 	public enum DbType {
@@ -36,33 +36,33 @@ public final class Config {
 	}
 
 	private String name = "";
-	private int ScheduledThreads;
-	private int WorkerThreads;
-	private int CompletionPortThreads;
-	private int CheckpointPeriod = 60000;
-	private int CheckpointModeTableFlushConcurrent = 2;
-	private int CheckpointModeTableFlushSetCount = 100;
+	private int scheduledThreads;
+	private int workerThreads;
+	private int completionPortThreads;
+	private int checkpointPeriod = 60000;
+	private int checkpointModeTableFlushConcurrent = 2;
+	private int checkpointModeTableFlushSetCount = 100;
 	private CheckpointMode checkpointMode = CheckpointMode.Table;
-	private Level ProcessReturnErrorLogLevel = Level.INFO;
-	private int ServerId;
-	private String GlobalCacheManagerHostNameOrAddress = "";
+	private Level processReturnErrorLogLevel = Level.INFO;
+	private int serverId;
+	private String globalCacheManagerHostNameOrAddress = "";
 	// 分成多行配置，支持多HostNameOrAddress或者多raft.xml。
 	// 多行的时候，所有服务器的顺序必须保持一致。
 	// 为了保持原来接口不变，多行会被编码成一个string保存到GlobalCacheManagerHostNameOrAddress中。
-	public GlobalCacheManagersConf GlobalCacheManagers;
-	private int GlobalCacheManagerPort;
-	private final ConcurrentHashMap<String, TableConf> TableConfMap = new ConcurrentHashMap<>();
-	private TableConf DefaultTableConf;
-	private boolean AllowReadWhenRecordNotAccessed = true;
-	private boolean AllowSchemasReuseVariableIdWithSameType = true;
-	private boolean FastRedoWhenConflict = false;
-	private final ConcurrentHashMap<String, ICustomize> Customize = new ConcurrentHashMap<>();
-	private boolean AutoResetTable = false;
-	private final ConcurrentHashMap<String, DatabaseConf> DatabaseConfMap = new ConcurrentHashMap<>();
-	private final ConcurrentHashMap<String, ServiceConf> ServiceConfMap = new ConcurrentHashMap<>();
-	private ServiceConf DefaultServiceConf = new ServiceConf();
+	public GlobalCacheManagersConf globalCacheManagers;
+	private int globalCacheManagerPort;
+	private final ConcurrentHashMap<String, TableConf> tableConfMap = new ConcurrentHashMap<>();
+	private TableConf defaultTableConf;
+	private boolean allowReadWhenRecordNotAccessed = true;
+	private boolean allowSchemasReuseVariableIdWithSameType = true;
+	private boolean fastRedoWhenConflict = false;
+	private final ConcurrentHashMap<String, ICustomize> customize = new ConcurrentHashMap<>();
+	private boolean autoResetTable = false;
+	private final ConcurrentHashMap<String, DatabaseConf> databaseConfMap = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, ServiceConf> serviceConfMap = new ConcurrentHashMap<>();
+	private ServiceConf defaultServiceConf = new ServiceConf();
 
-	private int OnlineLogoutDelay = 60 * 10 * 1000; // 10 minutes
+	private int onlineLogoutDelay = 60 * 10 * 1000; // 10 minutes
 
 	public Config() {
 	}
@@ -72,48 +72,56 @@ public final class Config {
 	}
 
 	public int getOnlineLogoutDelay() {
-		return OnlineLogoutDelay;
+		return onlineLogoutDelay;
 	}
 
 	public void setOnlineLogoutDelay(int delay) {
-		OnlineLogoutDelay = delay;
+		onlineLogoutDelay = delay;
 	}
 
 	public int getScheduledThreads() {
-		return ScheduledThreads;
+		return scheduledThreads;
 	}
 
 	public int getWorkerThreads() {
-		return WorkerThreads;
+		return workerThreads;
 	}
 
 	public void setWorkerThreads(int value) {
-		WorkerThreads = value;
+		workerThreads = value;
 	}
 
 	public int getCompletionPortThreads() {
-		return CompletionPortThreads;
+		return completionPortThreads;
 	}
 
 	public void setCompletionPortThreads(int value) {
-		CompletionPortThreads = value;
+		completionPortThreads = value;
 	}
 
 	public int getCheckpointPeriod() {
-		return CheckpointPeriod;
+		return checkpointPeriod;
 	}
 
 	public void setCheckpointPeriod(int value) {
-		CheckpointPeriod = value;
+		checkpointPeriod = value;
 	}
 
-	public int getCheckpointModeTableFlushConcurrent() { return CheckpointModeTableFlushConcurrent; }
+	public int getCheckpointModeTableFlushConcurrent() {
+		return checkpointModeTableFlushConcurrent;
+	}
 
-	public void setCheckpointModeTableFlushConcurrent(int value) { CheckpointModeTableFlushConcurrent = value; }
+	public void setCheckpointModeTableFlushConcurrent(int value) {
+		checkpointModeTableFlushConcurrent = value;
+	}
 
-	public int getCheckpointModeTableFlushSetCount() { return CheckpointModeTableFlushSetCount; }
+	public int getCheckpointModeTableFlushSetCount() {
+		return checkpointModeTableFlushSetCount;
+	}
 
-	public void setCheckpointModeTableFlushSetCount(int value) { CheckpointModeTableFlushSetCount = value; }
+	public void setCheckpointModeTableFlushSetCount(int value) {
+		checkpointModeTableFlushSetCount = value;
+	}
 
 	public CheckpointMode getCheckpointMode() {
 		return checkpointMode;
@@ -124,83 +132,83 @@ public final class Config {
 	}
 
 	public Level getProcessReturnErrorLogLevel() {
-		return ProcessReturnErrorLogLevel;
+		return processReturnErrorLogLevel;
 	}
 
 	public void setProcessReturnErrorLogLevel(Level value) {
-		ProcessReturnErrorLogLevel = value;
+		processReturnErrorLogLevel = value;
 	}
 
 	public int getServerId() {
-		return ServerId;
+		return serverId;
 	}
 
 	public void setServerId(int value) {
-		ServerId = value;
+		serverId = value;
 	}
 
 	public String getGlobalCacheManagerHostNameOrAddress() {
-		return GlobalCacheManagerHostNameOrAddress;
+		return globalCacheManagerHostNameOrAddress;
 	}
 
 	public void setGlobalCacheManagerHostNameOrAddress(String value) {
-		GlobalCacheManagerHostNameOrAddress = value;
+		globalCacheManagerHostNameOrAddress = value;
 	}
 
 	public GlobalCacheManagersConf getGlobalCacheManagers() {
-		return GlobalCacheManagers;
+		return globalCacheManagers;
 	}
 
 	public int getGlobalCacheManagerPort() {
-		return GlobalCacheManagerPort;
+		return globalCacheManagerPort;
 	}
 
 	public void setGlobalCacheManagerPort(int value) {
-		GlobalCacheManagerPort = value;
+		globalCacheManagerPort = value;
 	}
 
 	public ConcurrentHashMap<String, TableConf> getTableConfMap() {
-		return TableConfMap;
+		return tableConfMap;
 	}
 
 	public TableConf getDefaultTableConf() {
-		return DefaultTableConf;
+		return defaultTableConf;
 	}
 
 	public void setDefaultTableConf(TableConf value) {
-		DefaultTableConf = value;
+		defaultTableConf = value;
 	}
 
 	public boolean getAllowReadWhenRecordNotAccessed() {
-		return AllowReadWhenRecordNotAccessed;
+		return allowReadWhenRecordNotAccessed;
 	}
 
 	public void setAllowReadWhenRecordNotAccessed(boolean value) {
-		AllowReadWhenRecordNotAccessed = value;
+		allowReadWhenRecordNotAccessed = value;
 	}
 
 	public boolean getAllowSchemasReuseVariableIdWithSameType() {
-		return AllowSchemasReuseVariableIdWithSameType;
+		return allowSchemasReuseVariableIdWithSameType;
 	}
 
 	public void setAllowSchemasReuseVariableIdWithSameType(boolean value) {
-		AllowSchemasReuseVariableIdWithSameType = value;
+		allowSchemasReuseVariableIdWithSameType = value;
 	}
 
 	public boolean getFastRedoWhenConflict() {
-		return FastRedoWhenConflict;
+		return fastRedoWhenConflict;
 	}
 
 	public void setFastRedoWhenConflict(boolean value) {
-		FastRedoWhenConflict = value;
+		fastRedoWhenConflict = value;
 	}
 
 	public ConcurrentHashMap<String, ICustomize> getCustomize() {
-		return Customize;
+		return customize;
 	}
 
 	public boolean autoResetTable() {
-		return AutoResetTable;
+		return autoResetTable;
 	}
 
 	/**
@@ -211,30 +219,30 @@ public final class Config {
 	 * <typeparam name="T"></typeparam>
 	 */
 	@SuppressWarnings("unchecked")
-	public <T extends ICustomize> T GetCustomize(T customize) {
+	public <T extends ICustomize> T getCustomize(T customize) {
 		var exist = getCustomize().get(customize.getName());
 		if (null == exist)
 			return customize;
 		return (T)exist;
 	}
 
-	public Config AddCustomize(ICustomize c) {
+	public Config addCustomize(ICustomize c) {
 		if (getCustomize().putIfAbsent(c.getName(), c) != null)
 			throw new IllegalStateException("Duplicate Customize Config '" + c.getName() + "'");
 		return this;
 	}
 
-	public TableConf GetTableConf(String name) {
+	public TableConf getTableConf(String name) {
 		var tableConf = getTableConfMap().get(name);
 		return tableConf != null ? tableConf : getDefaultTableConf();
 	}
 
 	public ConcurrentHashMap<String, DatabaseConf> getDatabaseConfMap() {
-		return DatabaseConfMap;
+		return databaseConfMap;
 	}
 
-	private static Database CreateDatabase(Application zeze, DatabaseConf conf) {
-		switch (conf.DatabaseType) {
+	private static Database createDatabase(Application zeze, DatabaseConf conf) {
+		switch (conf.databaseType) {
 		case Memory:
 			return new DatabaseMemory(conf);
 		case MySql:
@@ -252,34 +260,34 @@ public final class Config {
 		}
 	}
 
-	public void CreateDatabase(Application zeze, HashMap<String, Database> map) {
+	public void createDatabase(Application zeze, HashMap<String, Database> map) {
 		// add other database
 		for (var db : getDatabaseConfMap().values())
-			map.put(db.Name, CreateDatabase(zeze, db));
+			map.put(db.name, createDatabase(zeze, db));
 	}
 
-	public void ClearInUseAndIAmSureAppStopped(Application zeze, HashMap<String, Database> databases) {
+	public void clearInUseAndIAmSureAppStopped(Application zeze, HashMap<String, Database> databases) {
 		if (databases == null) {
 			databases = new HashMap<>();
-			CreateDatabase(zeze, databases);
+			createDatabase(zeze, databases);
 		}
 		for (var db : databases.values())
 			db.getDirectOperates().clearInUse(getServerId(), getGlobalCacheManagerHostNameOrAddress());
 	}
 
 	public ConcurrentHashMap<String, ServiceConf> getServiceConfMap() {
-		return ServiceConfMap;
+		return serviceConfMap;
 	}
 
 	public ServiceConf getDefaultServiceConf() {
-		return DefaultServiceConf;
+		return defaultServiceConf;
 	}
 
 	public void setDefaultServiceConf(ServiceConf value) {
-		DefaultServiceConf = value;
+		defaultServiceConf = value;
 	}
 
-	public ServiceConf GetServiceConf(String name) {
+	public ServiceConf getServiceConf(String name) {
 		return getServiceConfMap().get(name);
 	}
 
@@ -291,26 +299,26 @@ public final class Config {
 	 * c.LoadAndParse();
 	 */
 
-	public static Config Load() {
-		return Load("zeze.xml");
+	public static Config load() {
+		return load("zeze.xml");
 	}
 
-	public static Config Load(String xmlFile) {
-		return new Config().LoadAndParse(xmlFile);
+	public static Config load(String xmlFile) {
+		return new Config().loadAndParse(xmlFile);
 	}
 
-	public Config LoadAndParse() {
-		return LoadAndParse("zeze.xml");
+	public Config loadAndParse() {
+		return loadAndParse("zeze.xml");
 	}
 
-	public Config LoadAndParse(String xmlFile) {
+	public Config loadAndParse(String xmlFile) {
 		if (new File(xmlFile).isFile()) {
 			DocumentBuilderFactory db = DocumentBuilderFactory.newInstance();
 			db.setXIncludeAware(true);
 			db.setNamespaceAware(true);
 			try {
 				Document doc = db.newDocumentBuilder().parse(xmlFile);
-				Parse(doc.getDocumentElement());
+				parse(doc.getDocumentElement());
 			} catch (Throwable ex) {
 				throw new RuntimeException(ex);
 			}
@@ -324,7 +332,7 @@ public final class Config {
 		return this;
 	}
 
-	public void Parse(Element self) {
+	public void parse(Element self) {
 		if (!self.getNodeName().equals("zeze"))
 			throw new IllegalStateException("is it a zeze config?");
 		String name = self.getAttribute("name");
@@ -340,15 +348,15 @@ public final class Config {
 
 		attr = self.getAttribute("OnlineLogoutDelay");
 		if (!attr.isEmpty())
-			OnlineLogoutDelay = Integer.parseInt(attr);
+			onlineLogoutDelay = Integer.parseInt(attr);
 
 		attr = self.getAttribute("CheckpointModeTableFlushConcurrent");
 		if (!attr.isEmpty())
-			CheckpointModeTableFlushConcurrent = Integer.parseInt(attr);
+			checkpointModeTableFlushConcurrent = Integer.parseInt(attr);
 
 		attr = self.getAttribute("CheckpointModeTableFlushSetCount");
 		if (!attr.isEmpty())
-			CheckpointModeTableFlushSetCount = Integer.parseInt(attr);
+			checkpointModeTableFlushSetCount = Integer.parseInt(attr);
 
 		attr = self.getAttribute("ProcessReturnErrorLogLevel");
 		if (!attr.isEmpty())
@@ -358,7 +366,7 @@ public final class Config {
 		setWorkerThreads(attr.length() > 0 ? Integer.parseInt(attr) : -1);
 
 		attr = self.getAttribute("ScheduledThreads");
-		ScheduledThreads = attr.length() > 0 ? Integer.parseInt(attr) : -1;
+		scheduledThreads = attr.length() > 0 ? Integer.parseInt(attr) : -1;
 
 		attr = self.getAttribute("CompletionPortThreads");
 		setCompletionPortThreads(attr.length() > 0 ? Integer.parseInt(attr) : -1);
@@ -374,7 +382,7 @@ public final class Config {
 		attr = self.getAttribute("CheckpointMode");
 		if (!attr.isEmpty())
 			setCheckpointMode(CheckpointMode.valueOf(attr));
-		if (checkpointMode == CheckpointMode.Period && !GlobalCacheManagerHostNameOrAddress.isEmpty()) {
+		if (checkpointMode == CheckpointMode.Period && !globalCacheManagerHostNameOrAddress.isEmpty()) {
 			Application.logger.warn("CheckpointMode.Period Cannot Work With Global. Change To CheckpointMode.Table Now.");
 			checkpointMode = CheckpointMode.Table;
 		}
@@ -383,7 +391,7 @@ public final class Config {
 
 		attr = self.getAttribute("AutoResetTable");
 		if (!attr.isEmpty())
-			AutoResetTable = Boolean.parseBoolean(attr);
+			autoResetTable = Boolean.parseBoolean(attr);
 
 		NodeList childNodes = self.getChildNodes();
 		for (int i = 0; i < childNodes.getLength(); i++) {
@@ -415,19 +423,19 @@ public final class Config {
 				if (null == customizeConf)
 					throw new UnsupportedOperationException("Unknown CustomizeConf Name='" + cname + "'");
 
-				customizeConf.Parse(e);
+				customizeConf.parse(e);
 				break;
 
 			default:
 				throw new UnsupportedOperationException("unknown node name: " + e.getNodeName());
 			}
 		}
-		if (GlobalCacheManagerHostNameOrAddress.equals("GlobalCacheManagersConf"))
-			GlobalCacheManagerHostNameOrAddress = GlobalCacheManagers.toString();
+		if (globalCacheManagerHostNameOrAddress.equals("GlobalCacheManagersConf"))
+			globalCacheManagerHostNameOrAddress = globalCacheManagers.toString();
 	}
 
 	public static final class GlobalCacheManagersConf {
-		private final List<String> Hosts = new ArrayList<>();
+		private final List<String> hosts = new ArrayList<>();
 
 		public GlobalCacheManagersConf(Config conf, Element self) {
 			NodeList childNodes = self.getChildNodes();
@@ -441,22 +449,22 @@ public final class Config {
 				switch (e.getNodeName()) {
 				case "host":
 					var attr = e.getAttribute("name").trim();
-					Hosts.add(attr);
+					hosts.add(attr);
 					break;
 				default:
 					throw new UnsupportedOperationException("unknown node name: " + e.getNodeName());
 				}
 			}
-			if (conf.GlobalCacheManagers != null)
+			if (conf.globalCacheManagers != null)
 				throw new IllegalStateException("too many GlobalCacheManagersConf.");
-			conf.GlobalCacheManagers = this;
+			conf.globalCacheManagers = this;
 		}
 
 		@Override
 		public String toString() {
 			var sb = new StringBuilder();
 			boolean first = true;
-			for (var host : Hosts) {
+			for (var host : hosts) {
 				if (first)
 					first = false;
 				else
@@ -468,15 +476,15 @@ public final class Config {
 	}
 
 	public static final class DbcpConf {
-		public String DriverClassName;
-		public Integer InitialSize;
-		public Integer MaxTotal;
-		public Integer MaxIdle;
-		public Integer MinIdle;
-		public Long MaxWaitMillis;
+		public String driverClassName;
+		public Integer initialSize;
+		public Integer maxTotal;
+		public Integer maxIdle;
+		public Integer minIdle;
+		public Long maxWaitMillis;
 
-		public String UserName;
-		public String Password;
+		public String userName;
+		public String password;
 
 		private static String EmptyToNullString(String attr) {
 			var trim = attr.trim();
@@ -497,55 +505,55 @@ public final class Config {
 		}
 
 		public DbcpConf(Element self) {
-			DriverClassName = EmptyToNullString(self.getAttribute("DriverClassName"));
-			InitialSize = EmptyToNullInteger(self.getAttribute("InitialSize"));
-			MaxTotal = EmptyToNullInteger(self.getAttribute("MaxTotal"));
-			MaxIdle = EmptyToNullInteger(self.getAttribute("MaxIdle"));
-			MinIdle = EmptyToNullInteger(self.getAttribute("MinIdle"));
-			MaxWaitMillis = EmptyToNullLong(self.getAttribute("MaxWaitMillis"));
+			driverClassName = EmptyToNullString(self.getAttribute("DriverClassName"));
+			initialSize = EmptyToNullInteger(self.getAttribute("InitialSize"));
+			maxTotal = EmptyToNullInteger(self.getAttribute("MaxTotal"));
+			maxIdle = EmptyToNullInteger(self.getAttribute("MaxIdle"));
+			minIdle = EmptyToNullInteger(self.getAttribute("MinIdle"));
+			maxWaitMillis = EmptyToNullLong(self.getAttribute("MaxWaitMillis"));
 
-			UserName = EmptyToNullString(self.getAttribute("UserName"));
-			Password = EmptyToNullString(self.getAttribute("Password"));
+			userName = EmptyToNullString(self.getAttribute("UserName"));
+			password = EmptyToNullString(self.getAttribute("Password"));
 		}
 	}
 
 	public static final class DatabaseConf {
-		private String Name = "";
-		private DbType DatabaseType = DbType.Memory;
-		private String DatabaseUrl = "";
-		private DbcpConf DbcpConf; // only valid when jdbc: mysql, sqlserver,
+		private String name = "";
+		private DbType databaseType = DbType.Memory;
+		private String databaseUrl = "";
+		private DbcpConf dbcpConf; // only valid when jdbc: mysql, sqlserver,
 		private boolean distTxn; // 是否启用分布式事务(目前仅TiKV支持)
 
 		public String getName() {
-			return Name;
+			return name;
 		}
 
 		public DbType getDatabaseType() {
-			return DatabaseType;
+			return databaseType;
 		}
 
 		public String getDatabaseUrl() {
-			return DatabaseUrl;
+			return databaseUrl;
 		}
 
 		public void setName(String name) {
-			Name = name;
+			this.name = name;
 		}
 
 		public void setDatabaseType(DbType databaseType) {
-			DatabaseType = databaseType;
+			this.databaseType = databaseType;
 		}
 
 		public void setDatabaseUrl(String databaseUrl) {
-			DatabaseUrl = databaseUrl;
+			this.databaseUrl = databaseUrl;
 		}
 
 		public DbcpConf getDbcpConf() {
-			return DbcpConf;
+			return dbcpConf;
 		}
 
 		public void setDbcpConf(DbcpConf conf) {
-			DbcpConf = conf;
+			dbcpConf = conf;
 		}
 
 		public boolean isDistTxn() {
@@ -560,33 +568,33 @@ public final class Config {
 		}
 
 		public DatabaseConf(Config conf, Element self) {
-			Name = self.getAttribute("Name");
+			name = self.getAttribute("Name");
 			switch (self.getAttribute("DatabaseType")) {
 			case "Memory":
 				// DatabaseType = DbType.Memory;
 				break;
 			case "MySql":
-				DatabaseType = DbType.MySql;
-				DbcpConf = new DbcpConf(self);
-				if (null == DbcpConf.DriverClassName)
-					DbcpConf.DriverClassName = "com.mysql.cj.jdbc.Driver";
+				databaseType = DbType.MySql;
+				dbcpConf = new DbcpConf(self);
+				if (null == dbcpConf.driverClassName)
+					dbcpConf.driverClassName = "com.mysql.cj.jdbc.Driver";
 				break;
 			case "SqlServer":
-				DatabaseType = DbType.SqlServer;
-				DbcpConf = new DbcpConf(self);
-				if (null == DbcpConf.DriverClassName)
-					DbcpConf.DriverClassName = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
+				databaseType = DbType.SqlServer;
+				dbcpConf = new DbcpConf(self);
+				if (null == dbcpConf.driverClassName)
+					dbcpConf.driverClassName = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
 				break;
 			case "Tikv":
-				DatabaseType = DbType.Tikv;
+				databaseType = DbType.Tikv;
 				break;
 			case "RocksDB":
-				DatabaseType = DbType.RocksDb;
+				databaseType = DbType.RocksDb;
 				break;
 			default:
 				throw new UnsupportedOperationException("unknown database type.");
 			}
-			DatabaseUrl = self.getAttribute("DatabaseUrl");
+			databaseUrl = self.getAttribute("DatabaseUrl");
 			distTxn = "true".equalsIgnoreCase(self.getAttribute("distTxn"));
 
 			if (conf.getDatabaseConfMap().putIfAbsent(getName(), this) != null)
@@ -595,130 +603,130 @@ public final class Config {
 	}
 
 	public static final class TableConf {
-		private String Name;
-		private int CacheCapacity = 20000;
-		private int CacheConcurrencyLevel;
-		private int CacheInitialCapacity;
-		private int CacheNewAccessHotThreshold;
-		private float CacheFactor = 5.0f;
+		private String name;
+		private int cacheCapacity = 20000;
+		private int cacheConcurrencyLevel;
+		private int cacheInitialCapacity;
+		private int cacheNewAccessHotThreshold;
+		private float cacheFactor = 5.0f;
 
-		public String getName() {
-			return Name;
-		}
-
-		public int getRealCacheCapacity() {
-			return (int)(CacheCapacity * CacheFactor);
-		}
-
-		public int getCacheCapacity() {
-			return CacheCapacity;
-		}
-
-		public void setCacheCapacity(int value) {
-			CacheCapacity = value;
-		}
-
-		public float getCacheFactor() {
-			return CacheFactor;
-		}
-
-		public void setCacheFactor(float factor) {
-			CacheFactor = factor;
-		}
-
-		public int getCacheConcurrencyLevel() {
-			return CacheConcurrencyLevel;
-		}
-
-		public void setCacheConcurrencyLevel(int value) {
-			CacheConcurrencyLevel = value;
-		}
-
-		public int getCacheInitialCapacity() {
-			return CacheInitialCapacity;
-		}
-
-		public void setCacheInitialCapacity(int value) {
-			CacheInitialCapacity = value;
-		}
-
-		public int getCacheNewAccessHotThreshold() {
-			return CacheNewAccessHotThreshold;
-		}
-
-		public void setCacheNewAccessHotThreshold(int value) {
-			CacheNewAccessHotThreshold = value;
-		}
-
-		private int CacheCleanPeriod = 10000;
-		private int CacheNewLruHotPeriod = 10000;
-		private int CacheMaxLruInitialCapacity = 100000;
-		private int CacheCleanPeriodWhenExceedCapacity = 1000;
-		private boolean CheckpointWhenCommit = false;
+		private int cacheCleanPeriod = 10000;
+		private int cacheNewLruHotPeriod = 10000;
+		private int cacheMaxLruInitialCapacity = 100000;
+		private int cacheCleanPeriodWhenExceedCapacity = 1000;
+		private boolean checkpointWhenCommit;
 		// 自动倒库，当新库(DatabaseName)没有找到记录时，从旧库(DatabaseOldName)中读取，
 		// Open 的时候找到旧库并打开Database.Table用来读取。
 		// 内存表不支持倒库。
-		private String DatabaseName = "";
-		private String DatabaseOldName = "";
-		private int DatabaseOldMode = 0;
+		private String databaseName = "";
+		private String databaseOldName = "";
+		private int databaseOldMode;
+
+		public String getName() {
+			return name;
+		}
+
+		public int getRealCacheCapacity() {
+			return (int)(cacheCapacity * cacheFactor);
+		}
+
+		public int getCacheCapacity() {
+			return cacheCapacity;
+		}
+
+		public void setCacheCapacity(int value) {
+			cacheCapacity = value;
+		}
+
+		public float getCacheFactor() {
+			return cacheFactor;
+		}
+
+		public void setCacheFactor(float factor) {
+			cacheFactor = factor;
+		}
+
+		public int getCacheConcurrencyLevel() {
+			return cacheConcurrencyLevel;
+		}
+
+		public void setCacheConcurrencyLevel(int value) {
+			cacheConcurrencyLevel = value;
+		}
+
+		public int getCacheInitialCapacity() {
+			return cacheInitialCapacity;
+		}
+
+		public void setCacheInitialCapacity(int value) {
+			cacheInitialCapacity = value;
+		}
+
+		public int getCacheNewAccessHotThreshold() {
+			return cacheNewAccessHotThreshold;
+		}
+
+		public void setCacheNewAccessHotThreshold(int value) {
+			cacheNewAccessHotThreshold = value;
+		}
 
 		public int getCacheCleanPeriod() {
-			return CacheCleanPeriod;
+			return cacheCleanPeriod;
 		}
 
 		public void setCacheCleanPeriod(int value) {
-			CacheCleanPeriod = value;
+			cacheCleanPeriod = value;
 		}
 
 		public int getCacheNewLruHotPeriod() {
-			return CacheNewLruHotPeriod;
+			return cacheNewLruHotPeriod;
 		}
 
 		public void setCacheNewLruHotPeriod(int value) {
-			CacheNewLruHotPeriod = value;
+			cacheNewLruHotPeriod = value;
 		}
 
 		public int getCacheMaxLruInitialCapacity() {
-			return CacheMaxLruInitialCapacity;
+			return cacheMaxLruInitialCapacity;
 		}
 
 		public void setCacheMaxLruInitialCapacity(int value) {
-			CacheMaxLruInitialCapacity = value;
+			cacheMaxLruInitialCapacity = value;
 		}
 
 		public int getCacheCleanPeriodWhenExceedCapacity() {
-			return CacheCleanPeriodWhenExceedCapacity;
+			return cacheCleanPeriodWhenExceedCapacity;
 		}
 
 		public void setCacheCleanPeriodWhenExceedCapacity(int value) {
-			CacheCleanPeriodWhenExceedCapacity = value;
+			cacheCleanPeriodWhenExceedCapacity = value;
 		}
 
 		public boolean getCheckpointWhenCommit() {
-			return CheckpointWhenCommit;
+			return checkpointWhenCommit;
 		}
 
 		public void setCheckpointWhenCommit(boolean value) {
-			CheckpointWhenCommit = value;
+			checkpointWhenCommit = value;
 		}
 
 		public String getDatabaseName() {
-			return DatabaseName;
+			return databaseName;
 		}
 
 		public String getDatabaseOldName() {
-			return DatabaseOldName;
+			return databaseOldName;
 		}
 
 		public int getDatabaseOldMode() {
-			return DatabaseOldMode;
+			return databaseOldMode;
 		}
 
 		public TableConf() {
 		}
 
 		public TableConf(Config conf, Element self) {
-			Name = self.getAttribute("Name");
+			name = self.getAttribute("Name");
 
 			String attr = self.getAttribute("CacheCapacity");
 			if (!attr.isEmpty())
@@ -730,10 +738,10 @@ public final class Config {
 			if (!attr.isEmpty())
 				setCacheFactor(Float.parseFloat(attr));
 
-			DatabaseName = self.getAttribute("DatabaseName");
-			DatabaseOldName = self.getAttribute("DatabaseOldName");
+			databaseName = self.getAttribute("DatabaseName");
+			databaseOldName = self.getAttribute("DatabaseOldName");
 			attr = self.getAttribute("DatabaseOldMode");
-			DatabaseOldMode = attr.length() > 0 ? Integer.parseInt(attr) : 0;
+			databaseOldMode = attr.length() > 0 ? Integer.parseInt(attr) : 0;
 
 			attr = self.getAttribute("CheckpointWhenCommit");
 			if (!attr.isEmpty())

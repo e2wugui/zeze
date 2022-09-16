@@ -28,9 +28,9 @@ public final class Redirect_Zeze_Arch_Online extends Zeze.Arch.Online {
     @SuppressWarnings({"unchecked", "RedundantSuppression"})
     public Redirect_Zeze_Arch_Online(Zeze.AppBase _app_) {
         super(_app_);
-        _redirect_ = _app_.getZeze().Redirect;
+        _redirect_ = _app_.getZeze().redirect;
 
-        _app_.getZeze().Redirect.Handles.put("Zeze.Arch.Online:redirectNotify", new Zeze.Arch.RedirectHandle(
+        _app_.getZeze().redirect.Handles.put("Zeze.Arch.Online:redirectNotify", new Zeze.Arch.RedirectHandle(
             Zeze.Transaction.TransactionLevel.Serializable, (_hash_, _params_) -> {
                 String account;
                 var _b_ = _params_.Wrap();

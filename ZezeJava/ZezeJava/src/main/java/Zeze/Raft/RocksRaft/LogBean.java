@@ -6,8 +6,8 @@ import Zeze.Util.IntHashMap;
 public class LogBean extends Log {
 	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.LogBean");
 
-	private IntHashMap<Log> Variables;
-	private Bean This;
+	private IntHashMap<Log> variables;
+	private Bean self;
 
 	public LogBean() {
 		super(TYPE_ID);
@@ -22,38 +22,38 @@ public class LogBean extends Log {
 	}
 
 	public final IntHashMap<Log> getVariables() {
-		return Variables;
+		return variables;
 	}
 
 	public final IntHashMap<Log> getVariablesOrNew() {
-		var variables = Variables;
+		var variables = this.variables;
 		if (variables == null)
-			Variables = variables = new IntHashMap<>();
+			this.variables = variables = new IntHashMap<>();
 		return variables;
 	}
 
 	public final Bean getThis() {
-		return This;
+		return self;
 	}
 
 	public final void setThis(Bean value) {
-		This = value;
+		self = value;
 	}
 
 	// LogBean仅在_final_commit的Collect过程中创建，不会参与Savepoint。
 	@Override
-	public Log BeginSavepoint() {
+	public Log beginSavepoint() {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public void EndSavepoint(Savepoint currentSp) {
+	public void endSavepoint(Savepoint currentSp) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		var vars = Variables;
+		var vars = variables;
 		if (vars != null) {
 			bb.WriteUInt(vars.size());
 			for (var it = vars.iterator(); it.moveToNext(); ) {
@@ -74,7 +74,7 @@ public class LogBean extends Log {
 			variables.clear();
 			for (; n > 0; --n) {
 				var typeId = bb.ReadInt4();
-				var log = Create(typeId);
+				var log = create(typeId);
 
 				var varId = bb.ReadUInt();
 				log.setVariableId(varId);
@@ -82,21 +82,21 @@ public class LogBean extends Log {
 
 				variables.put(varId, log);
 			}
-		} else if (Variables != null)
-			Variables.clear();
+		} else if (variables != null)
+			variables.clear();
 	}
 
 	// 仅发生在事务执行期间。decode-Apply不会执行到这里。
 	@Override
-	public void Collect(Changes changes, Bean recent, Log vlog) {
+	public void collect(Changes changes, Bean recent, Log vlog) {
 		if (getVariablesOrNew().put(vlog.getVariableId(), vlog) == null)
-			changes.Collect(recent, this); // 向上传递
+			changes.collect(recent, this); // 向上传递
 	}
 
 	@Override
 	public String toString() {
 		var sb = new StringBuilder();
-		ByteBuffer.BuildSortedString(sb, Variables);
+		ByteBuffer.BuildSortedString(sb, variables);
 		return sb.toString();
 	}
 }

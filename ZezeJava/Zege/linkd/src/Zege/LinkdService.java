@@ -21,7 +21,7 @@ public class LinkdService extends LinkdServiceBase {
     private boolean ChoiceHashSend(int hash, int moduleId, Dispatch dispatch) {
         var provider = new OutLong();
         if (LinkdApp.LinkdProvider.ChoiceHashWithoutBind(moduleId, hash, provider)) {
-            var providerSocket = LinkdApp.LinkdProviderService.GetSocket(provider.Value);
+            var providerSocket = LinkdApp.LinkdProviderService.GetSocket(provider.value);
             if (null != providerSocket) {
                 // ChoiceProviderAndBind 内部已经处理了绑定。这里只需要发送。
                 return providerSocket.Send(dispatch);

@@ -44,7 +44,7 @@ public class ProviderApp {
 					   LoadConfig loadConfig
 	) {
 		this.Zeze = zeze;
-		this.Zeze.Redirect = new RedirectBase(this);
+		this.Zeze.redirect = new RedirectBase(this);
 
 		this.ProviderImplement = server;
 		this.ProviderImplement.ProviderApp = this;
@@ -69,7 +69,7 @@ public class ProviderApp {
 			var ps = ProviderDirectService.ProviderByLoadName.get(serverLoad.getName());
 			if (ps != null) {
 				var load = new BLoad();
-				load.decode(serverLoad.Param.Wrap());
+				load.decode(serverLoad.param.Wrap());
 				ps.Load = load;
 			}
 		});

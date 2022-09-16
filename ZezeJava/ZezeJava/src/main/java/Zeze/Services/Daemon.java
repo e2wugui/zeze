@@ -25,27 +25,27 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class Daemon {
-	public static final String PropertyNamePort = "Zeze.ProcessDaemon.Port";
+	public static final String propertyNamePort = "Zeze.ProcessDaemon.Port";
 	private static final Logger logger = LogManager.getLogger(Daemon.class);
 
 	// Key Is ServerId。每个Server对应一个Monitor。
 	// 正常使用是一个Daemon对应一个Server。
 	// 写成支持多个Server是为了跑Simulate测试。
-	private static final LongConcurrentHashMap<Monitor> Monitors = new LongConcurrentHashMap<>();
-	private static DatagramSocket UdpSocket;
-	private static Process Subprocess;
+	private static final LongConcurrentHashMap<Monitor> monitors = new LongConcurrentHashMap<>();
+	private static DatagramSocket udpSocket;
+	private static Process subprocess;
 
-	private static final LongConcurrentHashMap<PendingPacket> Pendings = new LongConcurrentHashMap<>();
-	private static volatile Future<?> Timer;
+	private static final LongConcurrentHashMap<PendingPacket> pendings = new LongConcurrentHashMap<>();
+	private static volatile Future<?> timer;
 
 	public static void main(String[] args) throws Exception {
 		// udp for subprocess register
-		UdpSocket = new DatagramSocket(0, InetAddress.getLoopbackAddress());
-		UdpSocket.setSoTimeout(200);
+		udpSocket = new DatagramSocket(0, InetAddress.getLoopbackAddress());
+		udpSocket.setSoTimeout(200);
 
 		var command = new ArrayList<String>();
 		command.add("java");
-		command.add("-D" + PropertyNamePort + "=" + UdpSocket.getLocalPort());
+		command.add("-D" + propertyNamePort + "=" + udpSocket.getLocalPort());
 		Collections.addAll(command, args);
 
 		var pb = new ProcessBuilder(command);
@@ -53,7 +53,7 @@ public class Daemon {
 
 		try {
 			while (true) {
-				Subprocess = pb.start();
+				subprocess = pb.start();
 				var exitCode = mainRun();
 				if (exitCode == 0)
 					break;
@@ -64,8 +64,8 @@ public class Daemon {
 			logger.error("Daemon.main", ex);
 		} finally {
 			// 退出的时候，确保销毁服务进程。
-			if (Subprocess != null)
-				Subprocess.destroy();
+			if (subprocess != null)
+				subprocess.destroy();
 		}
 	}
 
@@ -74,43 +74,43 @@ public class Daemon {
 			try {
 				// 轮询：等待Global配置以及等待子进程退出。
 				try {
-					var cmd = receiveCommand(UdpSocket);
+					var cmd = receiveCommand(udpSocket);
 					switch (cmd.command()) {
 					case Register.Command:
 						var reg = (Register)cmd;
 						var code = 0;
-						if (Monitors.containsKey(reg.ServerId))
+						if (monitors.containsKey(reg.serverId))
 							code = 1;
 						else {
 							var monitor = new Monitor(reg);
-							Monitors.put(reg.ServerId, monitor);
+							monitors.put(reg.serverId, monitor);
 							monitor.start();
 						}
-						sendCommand(UdpSocket, cmd.Peer, new CommonResult(reg.ReliableSerialNo, code));
-						logger.info("Register! Server={} code={}", reg.ServerId, code);
+						sendCommand(udpSocket, cmd.peer, new CommonResult(reg.reliableSerialNo, code));
+						logger.info("Register! Server={} code={}", reg.serverId, code);
 						break;
 
 					case GlobalOn.Command:
 						var on = (GlobalOn)cmd;
 						code = 0;
-						var monitor = Monitors.get(on.ServerId);
+						var monitor = monitors.get(on.serverId);
 						if (monitor != null) {
-							monitor.setConfig(on.GlobalIndex, on.GlobalConfig);
+							monitor.setConfig(on.globalIndex, on.globalConfig);
 							logger.info("GlobalOn! Server={} ServerDaemonTimeout={} ServerReleaseTimeout={}",
-									on.ServerId, on.GlobalConfig.ServerDaemonTimeout, on.GlobalConfig.ServerReleaseTimeout);
+									on.serverId, on.globalConfig.serverDaemonTimeout, on.globalConfig.serverReleaseTimeout);
 						} else {
 							logger.warn("GlobalOn! not found serverId={} ServerDaemonTimeout={} ServerReleaseTimeout={}",
-									on.ServerId, on.GlobalConfig.ServerDaemonTimeout, on.GlobalConfig.ServerReleaseTimeout);
+									on.serverId, on.globalConfig.serverDaemonTimeout, on.globalConfig.serverReleaseTimeout);
 							code = 1;
 						}
-						sendCommand(UdpSocket, cmd.Peer, new CommonResult(on.ReliableSerialNo, code));
+						sendCommand(udpSocket, cmd.peer, new CommonResult(on.reliableSerialNo, code));
 						break;
 					}
 				} catch (SocketTimeoutException ex) {
 					// skip
 				}
-				if (Subprocess.waitFor(0, TimeUnit.MILLISECONDS))
-					return Subprocess.exitValue();
+				if (subprocess.waitFor(0, TimeUnit.MILLISECONDS))
+					return subprocess.exitValue();
 			} catch (Throwable ex) {
 				logger.fatal("Daemon.mainRun", ex);
 				fatalExit();
@@ -120,30 +120,30 @@ public class Daemon {
 	}
 
 	private static void fatalExit() {
-		Subprocess.destroy();
+		subprocess.destroy();
 		LogManager.shutdown();
 		Runtime.getRuntime().halt(-1);
 	}
 
 	private static void joinMonitors() throws InterruptedException {
-		for (var monitor : Monitors)
+		for (var monitor : monitors)
 			monitor.stopAndJoin();
-		Monitors.clear();
+		monitors.clear();
 	}
 
 	private static void destroySubprocess() throws InterruptedException {
-		Subprocess.destroy();
+		subprocess.destroy();
 		joinMonitors();
 	}
 
 	private static final class PendingPacket {
-		public final DatagramSocket Socket;
-		public final DatagramPacket Packet;
-		public long SendTime = System.currentTimeMillis();
+		public final DatagramSocket socket;
+		public final DatagramPacket packet;
+		public long sendTime = System.currentTimeMillis();
 
 		public PendingPacket(DatagramSocket socket, DatagramPacket packet) {
-			Socket = socket;
-			Packet = packet;
+			this.socket = socket;
+			this.packet = packet;
 		}
 	}
 
@@ -153,23 +153,23 @@ public class Daemon {
 		cmd.encode(bb);
 		var p = new DatagramPacket(bb.Bytes, 0, bb.WriteIndex, peer);
 		if (cmd.isRequest()) {
-			if (Pendings.putIfAbsent(cmd.ReliableSerialNo, new PendingPacket(socket, p)) != null)
-				throw new IllegalStateException("Duplicate ReliableSerialNo=" + cmd.ReliableSerialNo);
+			if (pendings.putIfAbsent(cmd.reliableSerialNo, new PendingPacket(socket, p)) != null)
+				throw new IllegalStateException("Duplicate ReliableSerialNo=" + cmd.reliableSerialNo);
 
 			// auto start Timer
-			if (Timer == null) {
-				synchronized (Pendings) {
-					if (Timer == null) {
-						Timer = Task.scheduleUnsafe(1000, 1000, () -> {
+			if (timer == null) {
+				synchronized (pendings) {
+					if (timer == null) {
+						timer = Task.scheduleUnsafe(1000, 1000, () -> {
 							var now = System.currentTimeMillis();
-							for (var pending : Pendings) {
-								if (now - pending.SendTime > 1000) {
-									pending.SendTime = now;
-									pending.Socket.send(pending.Packet);
+							for (var pending : pendings) {
+								if (now - pending.sendTime > 1000) {
+									pending.sendTime = now;
+									pending.socket.send(pending.packet);
 								}
 							}
 						});
-						ShutdownHook.add(() -> Timer.cancel(false));
+						ShutdownHook.add(() -> timer.cancel(false));
 					}
 				}
 			}
@@ -201,45 +201,45 @@ public class Daemon {
 		default:
 			throw new UnsupportedOperationException("Unknown Command =" + c);
 		}
-		if (cmd.ReliableSerialNo != 0)
-			Pendings.remove(cmd.ReliableSerialNo);
+		if (cmd.reliableSerialNo != 0)
+			pendings.remove(cmd.reliableSerialNo);
 		return cmd;
 	}
 
 	private static class Monitor extends Thread {
-		private final SocketAddress PeerSocketAddress;
-		private final AtomicReferenceArray<AchillesHeelConfig> GlobalConfigs;
+		private final SocketAddress peerSocketAddress;
+		private final AtomicReferenceArray<AchillesHeelConfig> globalConfigs;
 		private final String fileName;
 		private final RandomAccessFile raf;
-		private final FileChannel Channel;
-		private final MappedByteBuffer MMap;
-		private volatile boolean Running = true;
+		private final FileChannel channel;
+		private final MappedByteBuffer mmap;
+		private volatile boolean running = true;
 
 		public Monitor(Register reg) throws Exception {
-			PeerSocketAddress = reg.Peer;
-			GlobalConfigs = new AtomicReferenceArray<>(reg.GlobalCount);
-			fileName = reg.MMapFileName;
+			peerSocketAddress = reg.peer;
+			globalConfigs = new AtomicReferenceArray<>(reg.globalCount);
+			fileName = reg.mmapFileName;
 			raf = new RandomAccessFile(new File(fileName), "rw");
-			Channel = raf.getChannel();
-			MMap = Channel.map(FileChannel.MapMode.READ_WRITE, 0, Channel.size());
+			channel = raf.getChannel();
+			mmap = channel.map(FileChannel.MapMode.READ_WRITE, 0, channel.size());
 		}
 
 		public AchillesHeelConfig getConfig(int index) {
-			return GlobalConfigs.get(index);
+			return globalConfigs.get(index);
 		}
 
 		public void setConfig(int index, AchillesHeelConfig config) {
-			GlobalConfigs.set(index, config);
+			globalConfigs.set(index, config);
 		}
 
 		private ByteBuffer copyMMap() throws IOException {
-			synchronized (Channel) {
+			synchronized (channel) {
 				// Channel.lock 对同一个进程不能并发。
-				var lock = Channel.lock();
+				var lock = channel.lock();
 				try {
-					var copy = new byte[GlobalConfigs.length() * 8];
-					MMap.position(0);
-					MMap.get(copy, 0, copy.length);
+					var copy = new byte[globalConfigs.length() * 8];
+					mmap.position(0);
+					mmap.get(copy, 0, copy.length);
 					return ByteBuffer.Wrap(copy);
 				} finally {
 					lock.release();
@@ -250,26 +250,26 @@ public class Daemon {
 		@Override
 		public void run() {
 			try {
-				while (Running) {
+				while (running) {
 					var bb = copyMMap();
 					var now = System.currentTimeMillis();
-					for (int i = 0; i < GlobalConfigs.length(); ++i) {
+					for (int i = 0; i < globalConfigs.length(); ++i) {
 						var activeTime = bb.ReadLong8();
 						var config = getConfig(i);
 						if (config == null)
 							continue; // skip not ready global
 
 						var idle = now - activeTime;
-						if (idle > config.ServerReleaseTimeout) {
-							logger.info("destroySubprocess {} - {} > {}", now, activeTime, config.ServerReleaseTimeout);
+						if (idle > config.serverReleaseTimeout) {
+							logger.info("destroySubprocess {} - {} > {}", now, activeTime, config.serverReleaseTimeout);
 							destroySubprocess();
 							// daemon main will restart subprocess!
-						} else if (idle > config.ServerDaemonTimeout) {
-							logger.info("sendCommand Release-{} {} - {} > {}", i, now, activeTime, config.ServerDaemonTimeout);
+						} else if (idle > config.serverDaemonTimeout) {
+							logger.info("sendCommand Release-{} {} - {} > {}", i, now, activeTime, config.serverDaemonTimeout);
 							// 在Server执行Release期间，命令可能重复发送。
 							// 重复命令的处理由Server完成，
 							// 这里重发也是需要的，刚好解决Udp不可靠性。
-							sendCommand(UdpSocket, PeerSocketAddress, new Release(i));
+							sendCommand(udpSocket, peerSocketAddress, new Release(i));
 						}
 						//noinspection BusyWait
 						Thread.sleep(1000);
@@ -282,10 +282,10 @@ public class Daemon {
 		}
 
 		public void stopAndJoin() throws InterruptedException {
-			Running = false;
+			running = false;
 			join();
 			try {
-				Channel.close();
+				channel.close();
 			} catch (Exception e) {
 				logger.error("Channel.close", e);
 			}
@@ -303,10 +303,10 @@ public class Daemon {
 	}
 
 	public static abstract class Command implements Serializable {
-		private static final AtomicLong Seed = new AtomicLong();
+		private static final AtomicLong seed = new AtomicLong();
 
-		public SocketAddress Peer;
-		public long ReliableSerialNo;
+		public SocketAddress peer;
+		public long reliableSerialNo;
 		private boolean isRequest;
 
 		public abstract int command();
@@ -317,57 +317,57 @@ public class Daemon {
 
 		public void setReliableSerialNo() {
 			do
-				ReliableSerialNo = Seed.incrementAndGet();
-			while (ReliableSerialNo == 0);
+				reliableSerialNo = seed.incrementAndGet();
+			while (reliableSerialNo == 0);
 			isRequest = true;
 		}
 
 		@Override
 		public void encode(ByteBuffer bb) {
-			bb.WriteLong(ReliableSerialNo);
+			bb.WriteLong(reliableSerialNo);
 		}
 
 		@Override
 		public void decode(ByteBuffer bb) {
-			ReliableSerialNo = bb.ReadLong();
+			reliableSerialNo = bb.ReadLong();
 		}
 	}
 
 	// 精简版本配置。仅传递Daemon需要的参数过来。
 	public static class AchillesHeelConfig implements Serializable {
-		public int ServerDaemonTimeout;
-		public int ServerReleaseTimeout;
+		public int serverDaemonTimeout;
+		public int serverReleaseTimeout;
 
 		@Override
 		public void encode(ByteBuffer bb) {
-			bb.WriteInt(ServerDaemonTimeout);
-			bb.WriteInt(ServerReleaseTimeout);
+			bb.WriteInt(serverDaemonTimeout);
+			bb.WriteInt(serverReleaseTimeout);
 		}
 
 		@Override
 		public void decode(ByteBuffer bb) {
-			ServerDaemonTimeout = bb.ReadInt();
-			ServerReleaseTimeout = bb.ReadInt();
+			serverDaemonTimeout = bb.ReadInt();
+			serverReleaseTimeout = bb.ReadInt();
 		}
 	}
 
 	public static class Register extends Command {
 		public static final int Command = 0;
 
-		public int ServerId;
-		public int GlobalCount;
-		public String MMapFileName;
+		public int serverId;
+		public int globalCount;
+		public String mmapFileName;
 
 		public Register(int serverId, int c, String name) {
-			ServerId = serverId;
-			GlobalCount = c;
-			MMapFileName = name;
+			this.serverId = serverId;
+			globalCount = c;
+			mmapFileName = name;
 			setReliableSerialNo(); // enable reliable
 		}
 
 		public Register(ByteBuffer bb, SocketAddress peer) {
 			this.decode(bb);
-			Peer = peer;
+			this.peer = peer;
 		}
 
 		@Override
@@ -378,38 +378,38 @@ public class Daemon {
 		@Override
 		public void encode(ByteBuffer bb) {
 			super.encode(bb);
-			bb.WriteInt(ServerId);
-			bb.WriteInt(GlobalCount);
-			bb.WriteString(MMapFileName);
+			bb.WriteInt(serverId);
+			bb.WriteInt(globalCount);
+			bb.WriteString(mmapFileName);
 		}
 
 		@Override
 		public void decode(ByteBuffer bb) {
 			super.decode(bb);
-			ServerId = bb.ReadInt();
-			GlobalCount = bb.ReadInt();
-			MMapFileName = bb.ReadString();
+			serverId = bb.ReadInt();
+			globalCount = bb.ReadInt();
+			mmapFileName = bb.ReadString();
 		}
 	}
 
 	public static class GlobalOn extends Command {
 		public static final int Command = 1;
 
-		public int ServerId;
-		public int GlobalIndex;
-		public final AchillesHeelConfig GlobalConfig = new AchillesHeelConfig();
+		public int serverId;
+		public int globalIndex;
+		public final AchillesHeelConfig globalConfig = new AchillesHeelConfig();
 
 		public GlobalOn(int serverId, int index, int server, int release) {
-			ServerId = serverId;
-			GlobalIndex = index;
-			GlobalConfig.ServerDaemonTimeout = server;
-			GlobalConfig.ServerReleaseTimeout = release;
+			this.serverId = serverId;
+			globalIndex = index;
+			globalConfig.serverDaemonTimeout = server;
+			globalConfig.serverReleaseTimeout = release;
 			setReliableSerialNo(); // enable reliable
 		}
 
 		public GlobalOn(ByteBuffer bb, SocketAddress peer) {
 			this.decode(bb);
-			Peer = peer;
+			this.peer = peer;
 		}
 
 		@Override
@@ -420,33 +420,33 @@ public class Daemon {
 		@Override
 		public void encode(ByteBuffer bb) {
 			super.encode(bb);
-			bb.WriteInt(ServerId);
-			bb.WriteInt(GlobalIndex);
-			GlobalConfig.encode(bb);
+			bb.WriteInt(serverId);
+			bb.WriteInt(globalIndex);
+			globalConfig.encode(bb);
 		}
 
 		@Override
 		public void decode(ByteBuffer bb) {
 			super.decode(bb);
-			ServerId = bb.ReadInt();
-			GlobalIndex = bb.ReadInt();
-			GlobalConfig.decode(bb);
+			serverId = bb.ReadInt();
+			globalIndex = bb.ReadInt();
+			globalConfig.decode(bb);
 		}
 	}
 
 	public static class CommonResult extends Command {
 		public static final int Command = 2;
 
-		public int Code;
+		public int code;
 
 		public CommonResult(long serial, int code) {
-			ReliableSerialNo = serial;
-			Code = code;
+			reliableSerialNo = serial;
+			this.code = code;
 		}
 
 		public CommonResult(ByteBuffer bb, SocketAddress peer) {
 			this.decode(bb);
-			Peer = peer;
+			this.peer = peer;
 		}
 
 		@Override
@@ -457,28 +457,28 @@ public class Daemon {
 		@Override
 		public void encode(ByteBuffer bb) {
 			super.encode(bb);
-			bb.WriteInt(Code);
+			bb.WriteInt(code);
 		}
 
 		@Override
 		public void decode(ByteBuffer bb) {
 			super.decode(bb);
-			Code = bb.ReadInt();
+			code = bb.ReadInt();
 		}
 	}
 
 	public static class Release extends Command {
 		public static final int Command = 3;
 
-		public int GlobalIndex;
+		public int globalIndex;
 
 		public Release(int index) {
-			GlobalIndex = index;
+			globalIndex = index;
 		}
 
 		public Release(ByteBuffer bb, SocketAddress peer) {
 			this.decode(bb);
-			Peer = peer;
+			this.peer = peer;
 		}
 
 		@Override
@@ -488,12 +488,12 @@ public class Daemon {
 
 		@Override
 		public void encode(ByteBuffer bb) {
-			bb.WriteInt(GlobalIndex);
+			bb.WriteInt(globalIndex);
 		}
 
 		@Override
 		public void decode(ByteBuffer bb) {
-			GlobalIndex = bb.ReadInt();
+			globalIndex = bb.ReadInt();
 		}
 	}
 }

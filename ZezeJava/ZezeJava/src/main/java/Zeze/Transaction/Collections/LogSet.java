@@ -4,7 +4,7 @@ import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
 
 public abstract class LogSet<V> extends LogBean {
-	private org.pcollections.PSet<V> Value;
+	private org.pcollections.PSet<V> value;
 
 	public LogSet(int typeId) {
 		super(typeId);
@@ -15,11 +15,11 @@ public abstract class LogSet<V> extends LogBean {
 	}
 
 	public final org.pcollections.PSet<V> getValue() {
-		return Value;
+		return value;
 	}
 
 	public final void setValue(org.pcollections.PSet<V> value) {
-		Value = value;
+		this.value = value;
 	}
 
 	@Override
@@ -30,6 +30,6 @@ public abstract class LogSet<V> extends LogBean {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void commit() {
-		((PSet<V>)getThis())._set = Value;
+		((PSet<V>)getThis()).set = value;
 	}
 }

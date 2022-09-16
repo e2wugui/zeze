@@ -5,32 +5,32 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
 public final class BAllocateIdResult extends Bean {
-	private String Name;
-	private long StartId;
-	private int Count;
+	private String name;
+	private long startId;
+	private int count;
 
 	public String getName() {
-		return Name;
+		return name;
 	}
 
 	public void setName(String value) {
-		Name = value;
+		name = value;
 	}
 
 	public long getStartId() {
-		return StartId;
+		return startId;
 	}
 
 	public void setStartId(long value) {
-		StartId = value;
+		startId = value;
 	}
 
 	public int getCount() {
-		return Count;
+		return count;
 	}
 
 	public void setCount(int value) {
-		Count = value;
+		count = value;
 	}
 
 	@Override
@@ -71,6 +71,6 @@ public final class BAllocateIdResult extends Bean {
 
 	@Override
 	public String toString() {
-		return "BAllocateIdResult{" + "Name='" + Name + '\'' + ", StartId=" + StartId + ", Count=" + Count + '}';
+		return "BAllocateIdResult{" + "Name='" + name + '\'' + ", StartId=" + startId + ", Count=" + count + '}';
 	}
 }

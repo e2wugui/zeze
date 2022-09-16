@@ -9,5 +9,5 @@ import Zeze.Transaction.DispatchMode;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface DispatchModeAnnotation {
-	DispatchMode Mode() default DispatchMode.Normal;
+	DispatchMode mode() default DispatchMode.Normal;
 }

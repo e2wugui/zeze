@@ -8,7 +8,7 @@ import Zeze.Serialize.ByteBuffer;
 public abstract class LogBinary extends Log {
 	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.Log<binary>");
 
-	public Binary Value;
+	public Binary value;
 
 	public LogBinary() {
 		super(TYPE_ID);
@@ -18,21 +18,21 @@ public abstract class LogBinary extends Log {
 		this();
 		setBelong(belong);
 		setVariableId(varId);
-		Value = value;
+		this.value = value;
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteBinary(Value);
+		bb.WriteBinary(value);
 	}
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		Value = bb.ReadBinary();
+		value = bb.ReadBinary();
 	}
 
 	@Override
 	public String toString() {
-		return Value.toString();
+		return value.toString();
 	}
 }

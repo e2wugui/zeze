@@ -487,12 +487,12 @@ public class ModuleRank extends AbstractModule {
 	@RedirectHash // 单发给某个hash值指定的server执行,可能是本服,找不到hash节点也会在本服执行. 返回类型同ToServer
 	public RedirectFuture<TestHashResult> TestHash(int hash, int in) { // 首个参数hash是固定必要的特殊参数,后面是自定义输入参数
 		var f = new RedirectFuture<TestHashResult>();
-		Task.run(App.Zeze.NewProcedure(() -> {
+		Task.run(App.Zeze.newProcedure(() -> {
 			TestHashResult result = new TestHashResult();
 			result.hash = hash;
 			result.out = in;
 			result.serverId = App.Zeze.getConfig().getServerId();
-			f.SetResult(result); // 异步完成
+			f.setResult(result); // 异步完成
 			return Procedure.Success;
 		}, "TestHashAsync"), null, null, DispatchMode.Normal);
 		return f;
@@ -527,7 +527,7 @@ public class ModuleRank extends AbstractModule {
 		case 4: // local async
 		case 5: // remote async
 			var future = RedirectAllFuture.<TestToAllResult>async(); // 启用异步方式,之后在future.asyncResult()时回复结果
-			Task.run(App.Zeze.NewProcedure(() -> {
+			Task.run(App.Zeze.newProcedure(() -> {
 				future.asyncResult(new TestToAllResult(in));
 				return Procedure.Success;
 			}, "TestToAllAsync"), null, null, DispatchMode.Normal);

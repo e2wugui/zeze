@@ -39,50 +39,50 @@ public final class Raft {
 	private static final Logger logger = LogManager.getLogger(Raft.class);
 	private static final AtomicLong threadPoolCounter = new AtomicLong();
 
-	private String LeaderId;
-	private final RaftConfig RaftConfig;
-	private final LogSequence _LogSequence;
-	private final Server Server;
-	private final ExecutorService ImportantThreadPool;
-	private final StateMachine StateMachine;
-	public volatile boolean IsShutdown = false;
-	private final Lock ReceiveSnapshottingLock = new ReentrantLock();
-	private final HashMap<Long, RandomAccessFile> ReceiveSnapshotting = new HashMap<>();
-	private volatile RaftState _State = RaftState.Follower;
-	private Future<?> TimerTask;
-	private long LowPrecisionTimer;
-	private final Lock AtFatalKillsLock = new ReentrantLock();
-	private final ArrayList<Action0> AtFatalKills = new ArrayList<>();
+	private String leaderId;
+	private final RaftConfig raftConfig;
+	private final LogSequence logSequence;
+	private final Server server;
+	private final ExecutorService importantThreadPool;
+	private final StateMachine stateMachine;
+	public volatile boolean isShutdown = false;
+	private final Lock receiveSnapshottingLock = new ReentrantLock();
+	private final HashMap<Long, RandomAccessFile> receiveSnapshotting = new HashMap<>();
+	private volatile RaftState state = RaftState.Follower;
+	private Future<?> timerTask;
+	private long lowPrecisionTimer;
+	private final Lock atFatalKillsLock = new ReentrantLock();
+	private final ArrayList<Action0> atFatalKills = new ArrayList<>();
 
 	// Candidate
-	private final ConcurrentHashSet<RequestVote> RequestVotes = new ConcurrentHashSet<>();
-	private long NextVoteTime; // 等待当前轮选举结果超时；用来启动下一次选举。
+	private final ConcurrentHashSet<RequestVote> requestVotes = new ConcurrentHashSet<>();
+	private long nextVoteTime; // 等待当前轮选举结果超时；用来启动下一次选举。
 
 	// Leader
-	private long LeaderWaitReadyTerm;
-	private long LeaderWaitReadyIndex;
-	private volatile TaskCompletionSource<Boolean> LeaderReadyFuture = new TaskCompletionSource<>();
+	private long leaderWaitReadyTerm;
+	private long leaderWaitReadyIndex;
+	private volatile TaskCompletionSource<Boolean> leaderReadyFuture = new TaskCompletionSource<>();
 
 	// Follower
-	private long LeaderLostTimeout;
+	private long leaderLostTimeout;
 
 	private final Lock mutex = new ReentrantLock();
 	private final Condition condition = mutex.newCondition();
 
 	public String getName() {
-		return RaftConfig.getName();
+		return raftConfig.getName();
 	}
 
 	public String getLeaderId() {
-		return LeaderId;
+		return leaderId;
 	}
 
 	void setLeaderId(String value) {
-		LeaderId = value;
+		leaderId = value;
 	}
 
 	public RaftConfig getRaftConfig() {
-		return RaftConfig;
+		return raftConfig;
 	}
 
 //	private long lockTime = System.currentTimeMillis();
@@ -139,44 +139,44 @@ public final class Raft {
 	}
 
 	public LogSequence getLogSequence() {
-		return _LogSequence;
+		return logSequence;
 	}
 
 	public boolean isLeader() {
-		return _State == RaftState.Leader;
+		return state == RaftState.Leader;
 	}
 
 	public Server getServer() {
-		return Server;
+		return server;
 	}
 
 	// 不能加锁
 	public boolean isWorkingLeader() {
-		return isLeader() && !IsShutdown;
+		return isLeader() && !isShutdown;
 	}
 
 	public ExecutorService getImportantThreadPool() {
-		return ImportantThreadPool;
+		return importantThreadPool;
 	}
 
 	public StateMachine getStateMachine() {
-		return StateMachine;
+		return stateMachine;
 	}
 
 	public void addAtFatalKill(Action0 action) {
-		AtFatalKillsLock.lock();
+		atFatalKillsLock.lock();
 		try {
-			AtFatalKills.add(action);
+			atFatalKills.add(action);
 		} finally {
-			AtFatalKillsLock.unlock();
+			atFatalKillsLock.unlock();
 		}
 	}
 
-	public void FatalKill() {
-		IsShutdown = true;
-		AtFatalKillsLock.lock();
+	public void fatalKill() {
+		isShutdown = true;
+		atFatalKillsLock.lock();
 		try {
-			for (Action0 action : AtFatalKills) {
+			for (Action0 action : atFatalKills) {
 				try {
 					action.run();
 				} catch (Throwable e) {
@@ -184,22 +184,22 @@ public final class Raft {
 				}
 			}
 		} finally {
-			AtFatalKillsLock.unlock();
+			atFatalKillsLock.unlock();
 		}
-		_LogSequence.Close();
+		logSequence.close();
 		LogManager.shutdown();
 		Runtime.getRuntime().halt(-1);
 	}
 
-	public void AppendLog(Log log) {
-		AppendLog(log, null);
+	public void appendLog(Log log) {
+		appendLog(log, null);
 	}
 
-	public void AppendLog(Log log, Bean result) {
+	public void appendLog(Log log, Bean result) {
 		if (result != null)
 			log.setRpcResult(new Binary(ByteBuffer.encode(result)));
 		try {
-			_LogSequence.AppendLog(log, true);
+			logSequence.appendLog(log, true);
 		} catch (RaftRetryException | TaskCanceledException er) {
 			throw er;
 		} catch (Throwable ex) {
@@ -207,57 +207,57 @@ public final class Raft {
 		}
 	}
 
-	private void CancelAllReceiveSnapshotting() {
-		ReceiveSnapshottingLock.lock();
+	private void cancelAllReceiveSnapshotting() {
+		receiveSnapshottingLock.lock();
 		try {
-			ReceiveSnapshotting.values().forEach(file -> {
+			receiveSnapshotting.values().forEach(file -> {
 				try {
 					file.close();
 				} catch (IOException e) {
 					logger.warn("CancelAllReceiveSnapshotting close Exception", e); // 文件关闭异常还是不向上抛了
 				}
 			});
-			ReceiveSnapshotting.clear();
+			receiveSnapshotting.clear();
 		} finally {
-			ReceiveSnapshottingLock.unlock();
+			receiveSnapshottingLock.unlock();
 		}
 	}
 
-	public void Shutdown() throws Throwable {
+	public void shutdown() throws Throwable {
 		lock();
 		try {
 			// shutdown 只做一次。
-			if (IsShutdown)
+			if (isShutdown)
 				return;
-			IsShutdown = true;
+			isShutdown = true;
 		} finally {
 			unlock();
 		}
 		ShutdownHook.remove(this);
-		Server.Stop();
+		server.Stop();
 
-		var removeLogBeforeFuture = _LogSequence.RemoveLogBeforeFuture;
+		var removeLogBeforeFuture = logSequence.removeLogBeforeFuture;
 		if (removeLogBeforeFuture != null)
 			removeLogBeforeFuture.await();
-		var applyFuture = _LogSequence.ApplyFuture;
+		var applyFuture = logSequence.applyFuture;
 		if (applyFuture != null)
 			applyFuture.await();
 
 		lock();
 		try {
-			_LogSequence.CancelAllInstallSnapshot();
-			CancelAllReceiveSnapshotting();
+			logSequence.cancelAllInstallSnapshot();
+			cancelAllReceiveSnapshotting();
 
-			if (TimerTask != null) {
-				TimerTask.cancel(false);
-				TimerTask = null;
+			if (timerTask != null) {
+				timerTask.cancel(false);
+				timerTask = null;
 			}
-			ConvertStateTo(RaftState.Follower);
-			_LogSequence.Close();
+			convertStateTo(RaftState.Follower);
+			logSequence.close();
 		} finally {
 			unlock();
 		}
-		ImportantThreadPool.shutdown(); // 需要停止线程。
+		importantThreadPool.shutdown(); // 需要停止线程。
 	}
 
 	public Raft(StateMachine sm) throws Throwable {
@@ -279,12 +279,12 @@ public final class Raft {
 	public Raft(StateMachine sm, String RaftName, RaftConfig raftConf, Zeze.Config config, String name)
 			throws Throwable {
 		if (raftConf == null)
-			raftConf = Zeze.Raft.RaftConfig.Load();
-		raftConf.Verify();
+			raftConf = Zeze.Raft.RaftConfig.load();
+		raftConf.verify();
 
-		RaftConfig = raftConf;
+		raftConfig = raftConf;
 		sm.setRaft(this);
-		StateMachine = sm;
+		stateMachine = sm;
 
 		if (RaftName != null && !RaftName.isEmpty()) {
 			// 如果 DbHome 和 Name 相关，一般表示没有特别配置。
@@ -295,68 +295,68 @@ public final class Raft {
 		}
 
 		if (config == null)
-			config = Zeze.Config.Load();
+			config = Zeze.Config.load();
 
-		Server = new Server(this, name, config);
-		if (Server.getConfig().acceptorCount() != 0)
+		server = new Server(this, name, config);
+		if (server.getConfig().acceptorCount() != 0)
 			throw new IllegalStateException("Acceptor Found!");
-		if (Server.getConfig().connectorCount() != 0)
+		if (server.getConfig().connectorCount() != 0)
 			throw new IllegalStateException("Connector Found!");
-		if (RaftConfig.getNodes().size() < 3)
+		if (raftConfig.getNodes().size() < 3)
 			throw new IllegalStateException("Startup Nodes.Count Must >= 3.");
 
-		ImportantThreadPool = Task.newCriticalThreadPool("Raft-" + threadPoolCounter.incrementAndGet());
-		Zeze.Raft.Server.CreateAcceptor(Server, raftConf);
-		Zeze.Raft.Server.CreateConnector(Server, raftConf);
+		importantThreadPool = Task.newCriticalThreadPool("Raft-" + threadPoolCounter.incrementAndGet());
+		Zeze.Raft.Server.createAcceptor(server, raftConf);
+		Zeze.Raft.Server.createConnector(server, raftConf);
 
-		Files.createDirectories(Paths.get(RaftConfig.getDbHome()));
+		Files.createDirectories(Paths.get(raftConfig.getDbHome()));
 
-		_LogSequence = new LogSequence(this);
+		logSequence = new LogSequence(this);
 
-		RegisterInternalRpc();
+		registerInternalRpc();
 
-		var snapshot = _LogSequence.getSnapshotFullName();
+		var snapshot = logSequence.getSnapshotFullName();
 		if (new File(snapshot).isFile()) {
 			long t = System.nanoTime();
-			sm.LoadSnapshot(snapshot);
+			sm.loadSnapshot(snapshot);
 			logger.info("Raft {} LoadSnapshot time={}ms", getName(), (System.nanoTime() - t) / 1_000_000);
 		}
 
 		ShutdownHook.add(this, () -> {
 			logger.info("Raft {} ShutdownHook begin", getName());
-			Shutdown();
+			shutdown();
 			logger.info("Raft {} ShutdownHook end", getName());
 		});
 
-		TimerTask = Task.scheduleUnsafe(10, this::OnTimer);
+		timerTask = Task.scheduleUnsafe(10, this::onTimer);
 	}
 
-	private long ProcessAppendEntries(AppendEntries r) throws Throwable {
+	private long processAppendEntries(AppendEntries r) throws Throwable {
 		lock();
 		try {
-			return _LogSequence.FollowerOnAppendEntries(r);
+			return logSequence.followerOnAppendEntries(r);
 		} finally {
 			unlock();
 		}
 	}
 
-	private long ProcessInstallSnapshot(InstallSnapshot r) throws Throwable {
+	private long processInstallSnapshot(InstallSnapshot r) throws Throwable {
 		lock();
 		try {
-			r.Result.setTerm(_LogSequence.getTerm());
-			if (r.Argument.getTerm() < _LogSequence.getTerm()) {
+			r.Result.setTerm(logSequence.getTerm());
+			if (r.Argument.getTerm() < logSequence.getTerm()) {
 				// 1. Reply immediately if term < currentTerm
 				r.SendResultCode(InstallSnapshot.ResultCodeTermError);
 				return 0;
 			}
 
-			if (_LogSequence.TrySetTerm(r.Argument.getTerm()) == LogSequence.SetTermResult.Newer) {
-				r.Result.setTerm(_LogSequence.getTerm());
+			if (logSequence.trySetTerm(r.Argument.getTerm()) == LogSequence.SetTermResult.Newer) {
+				r.Result.setTerm(logSequence.getTerm());
 				// new term found.
-				ConvertStateTo(RaftState.Follower);
+				convertStateTo(RaftState.Follower);
 			}
-			LeaderId = r.Argument.getLeaderId();
-			_LogSequence.setLeaderActiveTime(System.currentTimeMillis());
+			leaderId = r.Argument.getLeaderId();
+			logSequence.setLeaderActiveTime(System.currentTimeMillis());
 		} finally {
 			unlock();
 		}
@@ -364,19 +364,19 @@ public final class Raft {
 		// 2. Create new snapshot file if first chunk(offset is 0)
 		// 把 LastIncludedIndex 放到文件名中，
 		// 新的InstallSnapshot不覆盖原来进行中或中断的。
-		String path = Paths.get(RaftConfig.getDbHome(),
-				LogSequence.SnapshotFileName + ".installing." + r.Argument.getLastIncludedIndex()).toString();
+		String path = Paths.get(raftConfig.getDbHome(),
+				LogSequence.snapshotFileName + ".installing." + r.Argument.getLastIncludedIndex()).toString();
 
-		ReceiveSnapshottingLock.lock();
+		receiveSnapshottingLock.lock();
 		try {
-			RandomAccessFile outputFileStream = ReceiveSnapshotting.get(r.Argument.getLastIncludedIndex());
+			RandomAccessFile outputFileStream = receiveSnapshotting.get(r.Argument.getLastIncludedIndex());
 			if (outputFileStream == null) {
 				if (r.Argument.getOffset() != 0) {
 					// 肯定是旧的被丢弃的安装，Discard And Ignore。
 					r.SendResultCode(InstallSnapshot.ResultCodeOldInstall);
 					return Procedure.Success;
 				}
-				ReceiveSnapshotting.put(r.Argument.getLastIncludedIndex(),
+				receiveSnapshotting.put(r.Argument.getLastIncludedIndex(),
 						outputFileStream = new RandomAccessFile(path, "rw"));
 			}
 			if (r.Argument.getOffset() == 0)
@@ -410,13 +410,13 @@ public final class Raft {
 			// 4. Reply and wait for more data chunks if done is false
 			if (r.Argument.getDone()) {
 				// 5. Save snapshot file, discard any existing or partial snapshot with a smaller index
-				ReceiveSnapshotting.remove(r.Argument.getLastIncludedIndex());
+				receiveSnapshotting.remove(r.Argument.getLastIncludedIndex());
 				try {
 					outputFileStream.close();
 				} catch (IOException e) {
 					logger.warn("ProcessInstallSnapshot close(1) Exception", e); // 文件关闭异常还是不向上抛了
 				}
-				for (var it = ReceiveSnapshotting.entrySet().iterator(); it.hasNext(); ) {
+				for (var it = receiveSnapshotting.entrySet().iterator(); it.hasNext(); ) {
 					var e = it.next();
 					if (e.getKey() < r.Argument.getLastIncludedIndex()) {
 						it.remove();
@@ -425,19 +425,19 @@ public final class Raft {
 						} catch (IOException ex) {
 							logger.warn("ProcessInstallSnapshot close(2) Exception", ex); // 文件关闭异常还是不向上抛了
 						}
-						var pathDelete = Paths.get(RaftConfig.getDbHome(),
-								LogSequence.SnapshotFileName + ".installing." + e.getKey()).toString();
+						var pathDelete = Paths.get(raftConfig.getDbHome(),
+								LogSequence.snapshotFileName + ".installing." + e.getKey()).toString();
 						//noinspection ResultOfMethodCallIgnored
 						new File(pathDelete).delete();
 					}
 				}
 			}
 		} finally {
-			ReceiveSnapshottingLock.unlock();
+			receiveSnapshottingLock.unlock();
 		}
 		if (r.Argument.getDone()) {
 			// 剩下的处理流程在下面的函数里面。
-			_LogSequence.EndReceiveInstallSnapshot(path, r);
+			logSequence.endReceiveInstallSnapshot(path, r);
 		}
 		r.SendResultCode(0);
 		return Procedure.Success;
@@ -450,69 +450,69 @@ public final class Raft {
 	}
 
 	public RaftState getState() {
-		return _State;
+		return state;
 	}
 
 	// 重置 OnTimer 需要的所有时间。
-	private void ResetTimerTime() throws Throwable {
+	private void resetTimerTime() throws Throwable {
 		var now = System.currentTimeMillis();
-		_LogSequence.setLeaderActiveTime(now);
-		Server.getConfig().ForEachConnector(c -> ((Server.ConnectorEx)c).setAppendLogActiveTime(now));
+		logSequence.setLeaderActiveTime(now);
+		server.getConfig().ForEachConnector(c -> ((Server.ConnectorEx)c).setAppendLogActiveTime(now));
 	}
 
 	/**
 	 * 每个Raft使用一个固定Timer，根据不同的状态执行相应操作。
 	 * 【简化】不同状态下不管维护管理不同的Timer了。
 	 */
-	private void OnTimer() throws Throwable {
+	private void onTimer() throws Throwable {
 		lock();
 		try {
-			if (IsShutdown)
+			if (isShutdown)
 				return;
 			long now = System.currentTimeMillis();
 			switch (getState()) {
 			case Follower:
-				if (now - _LogSequence.getLeaderActiveTime() > LeaderLostTimeout) {
-					logger.warn("LeaderLostTimeout: {} > {}", now - _LogSequence.getLeaderActiveTime(), LeaderLostTimeout);
-					ConvertStateTo(RaftState.Candidate);
+				if (now - logSequence.getLeaderActiveTime() > leaderLostTimeout) {
+					logger.warn("LeaderLostTimeout: {} > {}", now - logSequence.getLeaderActiveTime(), leaderLostTimeout);
+					convertStateTo(RaftState.Candidate);
 				}
 				break;
 			case Candidate:
-				if (now > NextVoteTime)
-					ConvertStateTo(RaftState.Candidate); // vote timeout. restart
+				if (now > nextVoteTime)
+					convertStateTo(RaftState.Candidate); // vote timeout. restart
 				break;
 			case Leader:
-				Server.getConfig().ForEachConnector(c -> {
+				server.getConfig().ForEachConnector(c -> {
 					var cex = (Server.ConnectorEx)c;
-					if (now - cex.getAppendLogActiveTime() > RaftConfig.getLeaderHeartbeatTimer()) {
-						_LogSequence.SendHeartbeatTo(cex);
+					if (now - cex.getAppendLogActiveTime() > raftConfig.getLeaderHeartbeatTimer()) {
+						logSequence.sendHeartbeatTo(cex);
 					}
 				});
 				break;
 			}
-			if (++LowPrecisionTimer > 1000) { // 10s
-				LowPrecisionTimer = 0;
-				OnLowPrecisionTimer();
+			if (++lowPrecisionTimer > 1000) { // 10s
+				lowPrecisionTimer = 0;
+				onLowPrecisionTimer();
 			}
 		} finally {
 			unlock();
-			TimerTask = Task.scheduleUnsafe(10, this::OnTimer);
+			timerTask = Task.scheduleUnsafe(10, this::onTimer);
 		}
 	}
 
-	private void OnLowPrecisionTimer() throws Throwable {
-		Server.getConfig().ForEachConnector(Connector::Start); // Connector Reconnect Bug?
-		_LogSequence.RemoveExpiredUniqueRequestSet();
+	private void onLowPrecisionTimer() throws Throwable {
+		server.getConfig().ForEachConnector(Connector::Start); // Connector Reconnect Bug?
+		logSequence.removeExpiredUniqueRequestSet();
 	}
 
 	/**
 	 * true，IsLeader && LeaderReady;
 	 * false, !IsLeader
 	 */
-	boolean WaitLeaderReady() throws Exception {
+	boolean waitLeaderReady() throws Exception {
 		lock();
 		try {
-			var volatileTmp = LeaderReadyFuture; // 每次只等待一轮的选举，不考虑中间Leader发生变化。
+			var volatileTmp = leaderReadyFuture; // 每次只等待一轮的选举，不考虑中间Leader发生变化。
 			while (isLeader()) {
 				if (volatileTmp.isDone())
 					return volatileTmp.get();
@@ -527,37 +527,37 @@ public final class Raft {
 	public boolean isReadyLeader() throws Exception {
 		lock();
 		try {
-			var volatileTmp = LeaderReadyFuture; // 每次只等待一轮的选举，不考虑中间Leader发生变化。
+			var volatileTmp = leaderReadyFuture; // 每次只等待一轮的选举，不考虑中间Leader发生变化。
 			return isLeader() && volatileTmp.isDone() && volatileTmp.get();
 		} finally {
 			unlock();
 		}
 	}
 
-	void ResetLeaderReadyAfterChangeState() {
-		LeaderReadyFuture.SetResult(false);
-		LeaderReadyFuture = new TaskCompletionSource<>(); // prepare for next leader
+	void resetLeaderReadyAfterChangeState() {
+		leaderReadyFuture.setResult(false);
+		leaderReadyFuture = new TaskCompletionSource<>(); // prepare for next leader
 		signalAll(); // has under lock(this)
 	}
 
-	void SetLeaderReady(RaftLog heart) throws Throwable {
+	void setLeaderReady(RaftLog heart) throws Throwable {
 		if (isLeader()) {
 			// 是否过期First-Heartbeat。
 			// 使用 LeaderReadyFuture 可以更加精确的识别。
 			// 但是，由于RaftLog不是常驻内存的，保存不了进程级别的变量。
-			if (heart.getTerm() != LeaderWaitReadyTerm || heart.getIndex() != LeaderWaitReadyIndex)
+			if (heart.getTerm() != leaderWaitReadyTerm || heart.getIndex() != leaderWaitReadyIndex)
 				return;
 
-			LeaderWaitReadyIndex = 0;
-			LeaderWaitReadyTerm = 0;
+			leaderWaitReadyIndex = 0;
+			leaderWaitReadyTerm = 0;
 
-			logger.info("{} {} LastIndex={} Count={}", getName(), RaftConfig.getDbHome(),
-					_LogSequence.getLastIndex(), _LogSequence.GetTestStateMachineCount());
+			logger.info("{} {} LastIndex={} Count={}", getName(), raftConfig.getDbHome(),
+					logSequence.getLastIndex(), logSequence.getTestStateMachineCount());
 
-			LeaderReadyFuture.SetResult(true);
+			leaderReadyFuture.setResult(true);
 			signalAll(); // has under lock(this)
 
-			Server.foreach(allSocket -> {
+			server.foreach(allSocket -> {
 				// 本来这个通告发给Agent(client)即可，
 				// 但是现在没有区分是来自Raft的连接还是来自Agent，
 				// 全部发送。
@@ -565,8 +565,8 @@ public final class Raft {
 				// 由于Raft数量不多，不会造成大的浪费，不做处理了。
 				if (allSocket.isHandshakeDone()) {
 					var r = new LeaderIs();
-					r.Argument.setTerm(_LogSequence.getTerm());
-					r.Argument.setLeaderId(LeaderId);
+					r.Argument.setTerm(logSequence.getTerm());
+					r.Argument.setLeaderId(leaderId);
 					r.Argument.setLeader(isLeader());
 					r.Send(allSocket); // skip response.
 				}
@@ -574,28 +574,28 @@ public final class Raft {
 		}
 	}
 
-	private boolean IsLastLogUpToDate(BRequestVoteArgument candidate) throws RocksDBException {
+	private boolean isLastLogUpToDate(BRequestVoteArgument candidate) throws RocksDBException {
 		// NodeReady local candidate
 		//           false false       IsLastLogUpToDate
 		//           false true        false
 		//           true  false       false
 		//           true  true        IsLastLogUpToDate
-		var last = _LogSequence.LastRaftLogTermIndex();
-		if (!_LogSequence.getNodeReady()) {
+		var last = logSequence.lastRaftLogTermIndex();
+		if (!logSequence.getNodeReady()) {
 			if (!candidate.getNodeReady()) {
 				// 整个Raft集群第一次启动时，允许给初始节点投票。此时所有的初始节点形成多数派。任何一个当选都是可以的。
 				// 以后由于机器更换再次启动而处于初始状态的节点肯定是少数派，即使它们之间互相投票，也不能成功。
 				// 如果违背了这点，意味着违背了Raft的可用原则，已经不在Raft的处理范围内了。
-				return IsLastLogUpToDate(last, candidate);
+				return isLastLogUpToDate(last, candidate);
 			}
 
 			// 拒绝投票直到发现达成多数派。
 			return false;
 		}
-		return candidate.getNodeReady() && IsLastLogUpToDate(last, candidate);
+		return candidate.getNodeReady() && isLastLogUpToDate(last, candidate);
 	}
 
-	private static boolean IsLastLogUpToDate(RaftLog last, BRequestVoteArgument candidate) {
+	private static boolean isLastLogUpToDate(RaftLog last, BRequestVoteArgument candidate) {
 		if (candidate.getLastLogTerm() > last.getTerm())
 			return true;
 		if (candidate.getLastLogTerm() < last.getTerm())
@@ -604,14 +604,14 @@ public final class Raft {
 	}
 
 	@SuppressWarnings("SameReturnValue")
-	private long ProcessRequestVote(RequestVote r) throws Throwable {
+	private long processRequestVote(RequestVote r) throws Throwable {
 		lock();
 		try {
 			// 不管任何状态重置下一次时间，使得每个node从大概一个时刻开始。
-			NextVoteTime = System.currentTimeMillis() + RaftConfig.getElectionTimeout();
+			nextVoteTime = System.currentTimeMillis() + raftConfig.getElectionTimeout();
 
-			if (_LogSequence.TrySetTerm(r.Argument.getTerm()) == LogSequence.SetTermResult.Newer)
-				ConvertStateTo(RaftState.Follower); // new term found.
+			if (logSequence.trySetTerm(r.Argument.getTerm()) == LogSequence.SetTermResult.Newer)
+				convertStateTo(RaftState.Follower); // new term found.
 			// else continue process
 
 			// RequestVote RPC
@@ -620,13 +620,13 @@ public final class Raft {
 			// 2.If votedFor is null or candidateId, and candidate's log is at
 			// least as up - to - date as receiver's log, grant vote(§5.2, §5.4)
 
-			r.Result.setTerm(_LogSequence.getTerm());
-			r.Result.setVoteGranted(r.Argument.getTerm() == _LogSequence.getTerm() &&
-					_LogSequence.CanVoteFor(r.Argument.getCandidateId()) && IsLastLogUpToDate(r.Argument));
+			r.Result.setTerm(logSequence.getTerm());
+			r.Result.setVoteGranted(r.Argument.getTerm() == logSequence.getTerm() &&
+					logSequence.canVoteFor(r.Argument.getCandidateId()) && isLastLogUpToDate(r.Argument));
 
 			if (r.Result.getVoteGranted())
-				_LogSequence.SetVoteFor(r.Argument.getCandidateId());
-			logger.info("{}: VoteFor={} Rpc={}", getName(), _LogSequence.getVoteFor(), r);
+				logSequence.setVoteFor(r.Argument.getCandidateId());
+			logger.info("{}: VoteFor={} Rpc={}", getName(), logSequence.getVoteFor(), r);
 			r.SendResultCode(0);
 
 			return Procedure.Success;
@@ -636,7 +636,7 @@ public final class Raft {
 	}
 
 	@SuppressWarnings("SameReturnValue")
-	private static long ProcessLeaderIs(LeaderIs r) {
+	private static long processLeaderIs(LeaderIs r) {
 		// 这个协议是发送给Agent(Client)的，
 		// 为了简单，不做区分。
 		// Raft也会收到，忽略。
@@ -644,37 +644,37 @@ public final class Raft {
 		return Procedure.Success;
 	}
 
-	private long ProcessRequestVoteResult(RequestVote rpc, @SuppressWarnings("unused") Connector c) throws Throwable {
+	private long processRequestVoteResult(RequestVote rpc, @SuppressWarnings("unused") Connector c) throws Throwable {
 		if (rpc.isTimeout() || rpc.getResultCode() != 0)
 			return 0; // skip error. re-vote later.
 
 		lock();
 		try {
-			if (_LogSequence.getTerm() != rpc.Argument.getTerm() || getState() != RaftState.Candidate) {
+			if (logSequence.getTerm() != rpc.Argument.getTerm() || getState() != RaftState.Candidate) {
 				// 结果回来时，上下文已经发生变化，忽略这个结果。
 				logger.info("{} NotOwner={} NotCandidate={}", getName(),
-						_LogSequence.getTerm() != rpc.Argument.getTerm(), getState() != RaftState.Candidate);
+						logSequence.getTerm() != rpc.Argument.getTerm(), getState() != RaftState.Candidate);
 				return 0;
 			}
 
-			if (_LogSequence.TrySetTerm(rpc.Result.getTerm()) == LogSequence.SetTermResult.Newer) {
+			if (logSequence.trySetTerm(rpc.Result.getTerm()) == LogSequence.SetTermResult.Newer) {
 				// new term found
-				ConvertStateTo(RaftState.Follower);
+				convertStateTo(RaftState.Follower);
 				return Procedure.Success;
 			}
 
-			if (RequestVotes.contains(rpc) && rpc.Result.getVoteGranted()) {
+			if (requestVotes.contains(rpc) && rpc.Result.getVoteGranted()) {
 				int granteds = 0;
-				for (var vote : RequestVotes) {
+				for (var vote : requestVotes) {
 					if (vote.Result.getVoteGranted())
 						++granteds;
 				}
 
 				if (getState() == RaftState.Candidate // 确保当前状态是选举中。没有判断这个，后面 ConvertStateTo 也会忽略不正确的状态转换。
-						&& granteds >= RaftConfig.getHalfCount() // 加上自己就是多数派了。
-						&& _LogSequence.CanVoteFor(getName())) {
-					_LogSequence.SetVoteFor(getName());
-					ConvertStateTo(RaftState.Leader);
+						&& granteds >= raftConfig.getHalfCount() // 加上自己就是多数派了。
+						&& logSequence.canVoteFor(getName())) {
+					logSequence.setVoteFor(getName());
+					convertStateTo(RaftState.Leader);
 				}
 			}
 		} finally {
@@ -683,40 +683,40 @@ public final class Raft {
 		return Procedure.Success;
 	}
 
-	private void SendRequestVote() throws Throwable {
-		RequestVotes.clear(); // 每次选举开始清除。
+	private void sendRequestVote() throws Throwable {
+		requestVotes.clear(); // 每次选举开始清除。
 		// LogSequence.SetVoteFor(Name); // 先收集结果，达到 RaftConfig.HalfCount 才判断是否给自己投票。
-		_LogSequence.TrySetTerm(_LogSequence.getTerm() + 1);
+		logSequence.trySetTerm(logSequence.getTerm() + 1);
 
 		var arg = new BRequestVoteArgument();
-		arg.setTerm(_LogSequence.getTerm());
+		arg.setTerm(logSequence.getTerm());
 		arg.setCandidateId(getName());
-		var log = _LogSequence.LastRaftLogTermIndex();
+		var log = logSequence.lastRaftLogTermIndex();
 		arg.setLastLogIndex(log.getIndex());
 		arg.setLastLogTerm(log.getTerm());
-		arg.setNodeReady(_LogSequence.getNodeReady());
+		arg.setNodeReady(logSequence.getNodeReady());
 
-		NextVoteTime = System.currentTimeMillis() + RaftConfig.getElectionTimeout();
-		Server.getConfig().ForEachConnector(c -> {
+		nextVoteTime = System.currentTimeMillis() + raftConfig.getElectionTimeout();
+		server.getConfig().ForEachConnector(c -> {
 			var rpc = new RequestVote();
 			rpc.Argument = arg;
-			RequestVotes.add(rpc);
+			requestVotes.add(rpc);
 			var sendResult = rpc.Send(c.TryGetReadySocket(),
-					p -> ProcessRequestVoteResult(rpc, c), RaftConfig.getAppendEntriesTimeout() - 100);
+					p -> processRequestVoteResult(rpc, c), raftConfig.getAppendEntriesTimeout() - 100);
 			logger.info("{}:{}: SendRequestVote {}", getName(), sendResult, rpc);
 		});
 	}
 
-	private void ConvertStateFromFollowerTo(RaftState newState) throws Throwable {
+	private void convertStateFromFollowerTo(RaftState newState) throws Throwable {
 		switch (newState) {
 		case Follower:
 			logger.info("RaftState {}: Follower->Follower", getName());
-			LeaderLostTimeout = RaftConfig.getElectionTimeout();
+			leaderLostTimeout = raftConfig.getElectionTimeout();
 			return;
 		case Candidate:
 			logger.info("RaftState {}: Follower->Candidate", getName());
-			_State = RaftState.Candidate;
-			SendRequestVote();
+			state = RaftState.Candidate;
+			sendRequestVote();
 			return;
 		case Leader:
 			// 并发的RequestVote的结果如果没有判断当前状态，可能会到达这里。
@@ -725,30 +725,30 @@ public final class Raft {
 		}
 	}
 
-	private void ConvertStateFromCandidateTo(RaftState newState) throws Throwable {
+	private void convertStateFromCandidateTo(RaftState newState) throws Throwable {
 		switch (newState) {
 		case Follower:
 			logger.info("RaftState {}: Candidate->Follower", getName());
-			LeaderLostTimeout = RaftConfig.getElectionTimeout();
-			_State = RaftState.Follower;
-			RequestVotes.clear();
+			leaderLostTimeout = raftConfig.getElectionTimeout();
+			state = RaftState.Follower;
+			requestVotes.clear();
 			return;
 		case Candidate:
 			logger.info("RaftState {}: Candidate->Candidate", getName());
-			SendRequestVote();
+			sendRequestVote();
 			return;
 		case Leader:
-			RequestVotes.clear();
-			CancelAllReceiveSnapshotting();
+			requestVotes.clear();
+			cancelAllReceiveSnapshotting();
 
 			logger.info("RaftState {}: Candidate->Leader", getName());
-			_State = RaftState.Leader;
-			LeaderId = getName(); // set to self
+			state = RaftState.Leader;
+			leaderId = getName(); // set to self
 
 			// (Reinitialized after election)
-			var nextIndex = _LogSequence.getLastIndex() + 1;
+			var nextIndex = logSequence.getLastIndex() + 1;
 
-			Server.getConfig().ForEachConnector(c -> {
+			server.getConfig().ForEachConnector(c -> {
 				var cex = (Server.ConnectorEx)c;
 				cex.Start(); // 马上尝试连接。
 				cex.setNextIndex(nextIndex);
@@ -760,23 +760,23 @@ public final class Raft {
 			// (heartbeat)to each server; repeat during
 			// idle periods to prevent election timeouts(§5.2)
 			LogSequence.AppendLogResult result = new LogSequence.AppendLogResult();
-			_LogSequence.AppendLog(new HeartbeatLog(HeartbeatLog.SetLeaderReadyEvent, getName()), false, result);
-			LeaderWaitReadyIndex = result.index;
-			LeaderWaitReadyTerm = result.term;
+			logSequence.appendLog(new HeartbeatLog(HeartbeatLog.SetLeaderReadyEvent, getName()), false, result);
+			leaderWaitReadyIndex = result.index;
+			leaderWaitReadyTerm = result.term;
 		}
 	}
 
-	private void ConvertStateFromLeaderTo(RaftState newState) throws Throwable {
+	private void convertStateFromLeaderTo(RaftState newState) throws Throwable {
 		// 本来 Leader -> Follower 需要，为了健壮性，全部改变都重置。
-		ResetLeaderReadyAfterChangeState();
-		_LogSequence.CancelAllInstallSnapshot();
-		_LogSequence.CancelPendingAppendLogFutures();
+		resetLeaderReadyAfterChangeState();
+		logSequence.cancelAllInstallSnapshot();
+		logSequence.cancelPendingAppendLogFutures();
 
 		switch (newState) {
 		case Follower:
 			logger.info("RaftState {}: Leader->Follower", getName());
-			_State = RaftState.Follower;
-			LeaderLostTimeout = RaftConfig.getElectionTimeout();
+			state = RaftState.Follower;
+			leaderLostTimeout = raftConfig.getElectionTimeout();
 			return;
 		case Candidate:
 			logger.error("RaftState {} Impossible! Leader->Candidate", getName());
@@ -786,29 +786,29 @@ public final class Raft {
 		}
 	}
 
-	public void ConvertStateTo(RaftState newState) throws Throwable {
-		ResetTimerTime();
+	public void convertStateTo(RaftState newState) throws Throwable {
+		resetTimerTime();
 		// 按真值表处理所有情况。
 		switch (getState()) {
 		case Follower:
-			ConvertStateFromFollowerTo(newState);
+			convertStateFromFollowerTo(newState);
 			return;
 		case Candidate:
-			ConvertStateFromCandidateTo(newState);
+			convertStateFromCandidateTo(newState);
 			return;
 		case Leader:
-			ConvertStateFromLeaderTo(newState);
+			convertStateFromLeaderTo(newState);
 		}
 	}
 
-	private void RegisterInternalRpc() {
-		Server.AddFactoryHandle(RequestVote.TypeId_, new Service.ProtocolFactoryHandle<>(
-				RequestVote::new, this::ProcessRequestVote, TransactionLevel.Serializable, DispatchMode.Normal));
-		Server.AddFactoryHandle(AppendEntries.TypeId_, new Service.ProtocolFactoryHandle<>(
-				AppendEntries::new, this::ProcessAppendEntries, TransactionLevel.Serializable, DispatchMode.Normal));
-		Server.AddFactoryHandle(InstallSnapshot.TypeId_, new Service.ProtocolFactoryHandle<>(
-				InstallSnapshot::new, this::ProcessInstallSnapshot, TransactionLevel.Serializable, DispatchMode.Normal));
-		Server.AddFactoryHandle(LeaderIs.TypeId_, new Service.ProtocolFactoryHandle<>(
-				LeaderIs::new, Raft::ProcessLeaderIs, TransactionLevel.Serializable, DispatchMode.Normal));
+	private void registerInternalRpc() {
+		server.AddFactoryHandle(RequestVote.TypeId_, new Service.ProtocolFactoryHandle<>(
+				RequestVote::new, this::processRequestVote, TransactionLevel.Serializable, DispatchMode.Normal));
+		server.AddFactoryHandle(AppendEntries.TypeId_, new Service.ProtocolFactoryHandle<>(
+				AppendEntries::new, this::processAppendEntries, TransactionLevel.Serializable, DispatchMode.Normal));
+		server.AddFactoryHandle(InstallSnapshot.TypeId_, new Service.ProtocolFactoryHandle<>(
+				InstallSnapshot::new, this::processInstallSnapshot, TransactionLevel.Serializable, DispatchMode.Normal));
+		server.AddFactoryHandle(LeaderIs.TypeId_, new Service.ProtocolFactoryHandle<>(
+				LeaderIs::new, Raft::processLeaderIs, TransactionLevel.Serializable, DispatchMode.Normal));
 	}
 }

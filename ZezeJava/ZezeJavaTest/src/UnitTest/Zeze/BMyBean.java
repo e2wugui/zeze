@@ -34,7 +34,7 @@ public class BMyBean extends Bean {
 
 		@Override
 		public void commit() {
-			((BMyBean)getBean())._i = Value;
+			((BMyBean)getBean())._i = value;
 		}
 	}
 
@@ -42,13 +42,13 @@ public class BMyBean extends Bean {
 		var txn = Transaction.getCurrent();
 		if (null == txn)
 			return _i;
-		BMyBean.MyLog log = (BMyBean.MyLog)txn.GetLog(this.objectId());
-		return (null != log) ? log.Value : _i;
+		BMyBean.MyLog log = (BMyBean.MyLog)txn.getLog(this.objectId());
+		return (null != log) ? log.value : _i;
 	}
 
 	public final void setI(int value) {
 		var txn = Transaction.getCurrent();
 		Assert.assertNotNull(txn);
-		txn.PutLog(new BMyBean.MyLog(this, value));
+		txn.putLog(new BMyBean.MyLog(this, value));
 	}
 }

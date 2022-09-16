@@ -6,107 +6,107 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
 final class BInstallSnapshotArgument extends Bean {
-	private long Term;
-	private String LeaderId; // Ip:Port
-	private long LastIncludedIndex;
-	private long LastIncludedTerm;
-	private long Offset;
-	private Binary Data;
-	private boolean Done;
+	private long term;
+	private String leaderId; // Ip:Port
+	private long lastIncludedIndex;
+	private long lastIncludedTerm;
+	private long offset;
+	private Binary data;
+	private boolean done;
 
 	// 当Done为true时，把LastIncludedLog放到这里，Follower需要至少一个日志。
-	private Binary LastIncludedLog = Binary.Empty;
+	private Binary lastIncludedLog = Binary.Empty;
 
 	public long getTerm() {
-		return Term;
+		return term;
 	}
 
 	public void setTerm(long value) {
-		Term = value;
+		term = value;
 	}
 
 	public String getLeaderId() {
-		return LeaderId;
+		return leaderId;
 	}
 
 	public void setLeaderId(String value) {
-		LeaderId = value;
+		leaderId = value;
 	}
 
 	public long getLastIncludedIndex() {
-		return LastIncludedIndex;
+		return lastIncludedIndex;
 	}
 
 	public void setLastIncludedIndex(long value) {
-		LastIncludedIndex = value;
+		lastIncludedIndex = value;
 	}
 
 	public long getLastIncludedTerm() {
-		return LastIncludedTerm;
+		return lastIncludedTerm;
 	}
 
 	public void setLastIncludedTerm(long value) {
-		LastIncludedTerm = value;
+		lastIncludedTerm = value;
 	}
 
 	public long getOffset() {
-		return Offset;
+		return offset;
 	}
 
 	public void setOffset(long value) {
-		Offset = value;
+		offset = value;
 	}
 
 	public Binary getData() {
-		return Data;
+		return data;
 	}
 
 	public void setData(Binary value) {
-		Data = value;
+		data = value;
 	}
 
 	public boolean getDone() {
-		return Done;
+		return done;
 	}
 
 	public void setDone(boolean value) {
-		Done = value;
+		done = value;
 	}
 
 	public Binary getLastIncludedLog() {
-		return LastIncludedLog;
+		return lastIncludedLog;
 	}
 
 	public void setLastIncludedLog(Binary value) {
-		LastIncludedLog = value;
+		lastIncludedLog = value;
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteLong(Term);
-		bb.WriteString(LeaderId);
-		bb.WriteLong(LastIncludedIndex);
-		bb.WriteLong(LastIncludedTerm);
+		bb.WriteLong(term);
+		bb.WriteString(leaderId);
+		bb.WriteLong(lastIncludedIndex);
+		bb.WriteLong(lastIncludedTerm);
 
-		bb.WriteLong(Offset);
-		bb.WriteBinary(Data);
-		bb.WriteBool(Done);
+		bb.WriteLong(offset);
+		bb.WriteBinary(data);
+		bb.WriteBool(done);
 
-		bb.WriteBinary(LastIncludedLog);
+		bb.WriteBinary(lastIncludedLog);
 	}
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		Term = bb.ReadLong();
-		LeaderId = bb.ReadString();
-		LastIncludedIndex = bb.ReadLong();
-		LastIncludedTerm = bb.ReadLong();
+		term = bb.ReadLong();
+		leaderId = bb.ReadString();
+		lastIncludedIndex = bb.ReadLong();
+		lastIncludedTerm = bb.ReadLong();
 
-		Offset = bb.ReadLong();
-		Data = bb.ReadBinary();
-		Done = bb.ReadBool();
+		offset = bb.ReadLong();
+		data = bb.ReadBinary();
+		done = bb.ReadBool();
 
-		LastIncludedLog = bb.ReadBinary();
+		lastIncludedLog = bb.ReadBinary();
 	}
 
 	@Override
@@ -122,6 +122,6 @@ final class BInstallSnapshotArgument extends Bean {
 	@Override
 	public String toString() {
 		return String.format("(Term=%d LeaderId=%s LastIncludedIndex=%d LastIncludedTerm=%d Offset=%d Done=%b)",
-				Term, LeaderId, LastIncludedIndex, LastIncludedTerm, Offset, Done);
+				term, leaderId, lastIncludedIndex, lastIncludedTerm, offset, done);
 	}
 }

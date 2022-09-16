@@ -12,38 +12,38 @@ public class App extends Zeze.AppBase {
     public Zeze.Net.Connector Connector;
 
     public void Start(String ip, int port) throws Throwable {
-        var config = Config.Load("client.xml");
-        CreateZeze(config);
-        CreateService();
+        var config = Config.load("client.xml");
+        createZeze(config);
+        createService();
         if (null != ip && !ip.isEmpty() && port != 0) {
             var c = new OutObject<Connector>();
             ClientService.getConfig().tryGetOrAddConnector(ip, port, false, c);
-            Connector = c.Value;
+            Connector = c.value;
         } else {
             ClientService.getConfig().forEachConnector2((c) -> { Connector = c; return false; });
         }
         if (null == Connector)
             throw new RuntimeException("miss Connector!");
 
-        CreateModules();
-        Zeze.Start(); // 启动数据库
-        StartModules(); // 启动模块，装载配置什么的。
-        StartService(); // 启动网络
+        createModules();
+        Zeze.start(); // 启动数据库
+        startModules(); // 启动模块，装载配置什么的。
+        startService(); // 启动网络
     }
 
     public void Stop() throws Throwable {
-        StopService(); // 关闭网络
-        StopModules(); // 关闭模块，卸载配置什么的。
+        stopService(); // 关闭网络
+        stopModules(); // 关闭模块，卸载配置什么的。
         if (Zeze != null)
-            Zeze.Stop(); // 关闭数据库
-        DestroyModules();
-        DestroyServices();
-        DestroyZeze();
+            Zeze.stop(); // 关闭数据库
+        destroyModules();
+        destroyServices();
+        destroyZeze();
     }
 
     // ZEZE_FILE_CHUNK {{{ GEN APP @formatter:off
     public Zeze.Application Zeze;
-    public final java.util.HashMap<String, Zeze.IModule> Modules = new java.util.HashMap<>();
+    public final java.util.HashMap<String, Zeze.IModule> modules = new java.util.HashMap<>();
 
     public Zege.ClientService ClientService;
 
@@ -59,74 +59,74 @@ public class App extends Zeze.AppBase {
         return Zeze;
     }
 
-    public void CreateZeze() throws Throwable {
-        CreateZeze(null);
+    public void createZeze() throws Throwable {
+        createZeze(null);
     }
 
-    public synchronized void CreateZeze(Zeze.Config config) throws Throwable {
+    public synchronized void createZeze(Zeze.Config config) throws Throwable {
         if (Zeze != null)
             throw new RuntimeException("Zeze Has Created!");
 
         Zeze = new Zeze.Application("Zege", config);
     }
 
-    public synchronized void CreateService() throws Throwable {
+    public synchronized void createService() throws Throwable {
         ClientService = new Zege.ClientService(Zeze);
     }
 
-    public synchronized void CreateModules() {
-        Zeze_Builtin_Online = ReplaceModuleInstance(new Zeze.Builtin.Online.ModuleOnline(this));
+    public synchronized void createModules() {
+        Zeze_Builtin_Online = replaceModuleInstance(new Zeze.Builtin.Online.ModuleOnline(this));
         Zeze_Builtin_Online.Initialize(this);
-        if (Modules.put(Zeze_Builtin_Online.getFullName(), Zeze_Builtin_Online) != null)
+        if (modules.put(Zeze_Builtin_Online.getFullName(), Zeze_Builtin_Online) != null)
             throw new RuntimeException("duplicate module name: Zeze_Builtin_Online");
 
-        Zeze_Builtin_LinkdBase = ReplaceModuleInstance(new Zeze.Builtin.LinkdBase.ModuleLinkdBase(this));
+        Zeze_Builtin_LinkdBase = replaceModuleInstance(new Zeze.Builtin.LinkdBase.ModuleLinkdBase(this));
         Zeze_Builtin_LinkdBase.Initialize(this);
-        if (Modules.put(Zeze_Builtin_LinkdBase.getFullName(), Zeze_Builtin_LinkdBase) != null)
+        if (modules.put(Zeze_Builtin_LinkdBase.getFullName(), Zeze_Builtin_LinkdBase) != null)
             throw new RuntimeException("duplicate module name: Zeze_Builtin_LinkdBase");
 
-        Zege_Linkd = ReplaceModuleInstance(new Zege.Linkd.ModuleLinkd(this));
+        Zege_Linkd = replaceModuleInstance(new Zege.Linkd.ModuleLinkd(this));
         Zege_Linkd.Initialize(this);
-        if (Modules.put(Zege_Linkd.getFullName(), Zege_Linkd) != null)
+        if (modules.put(Zege_Linkd.getFullName(), Zege_Linkd) != null)
             throw new RuntimeException("duplicate module name: Zege_Linkd");
 
-        Zege_Friend = ReplaceModuleInstance(new Zege.Friend.ModuleFriend(this));
+        Zege_Friend = replaceModuleInstance(new Zege.Friend.ModuleFriend(this));
         Zege_Friend.Initialize(this);
-        if (Modules.put(Zege_Friend.getFullName(), Zege_Friend) != null)
+        if (modules.put(Zege_Friend.getFullName(), Zege_Friend) != null)
             throw new RuntimeException("duplicate module name: Zege_Friend");
 
-        Zege_Message = ReplaceModuleInstance(new Zege.Message.ModuleMessage(this));
+        Zege_Message = replaceModuleInstance(new Zege.Message.ModuleMessage(this));
         Zege_Message.Initialize(this);
-        if (Modules.put(Zege_Message.getFullName(), Zege_Message) != null)
+        if (modules.put(Zege_Message.getFullName(), Zege_Message) != null)
             throw new RuntimeException("duplicate module name: Zege_Message");
 
-        Zege_User = ReplaceModuleInstance(new Zege.User.ModuleUser(this));
+        Zege_User = replaceModuleInstance(new Zege.User.ModuleUser(this));
         Zege_User.Initialize(this);
-        if (Modules.put(Zege_User.getFullName(), Zege_User) != null)
+        if (modules.put(Zege_User.getFullName(), Zege_User) != null)
             throw new RuntimeException("duplicate module name: Zege_User");
 
         Zeze.setSchemas(new Zege.Schemas());
     }
 
-    public synchronized void DestroyModules() {
+    public synchronized void destroyModules() {
         Zege_User = null;
         Zege_Message = null;
         Zege_Friend = null;
         Zege_Linkd = null;
         Zeze_Builtin_LinkdBase = null;
         Zeze_Builtin_Online = null;
-        Modules.clear();
+        modules.clear();
     }
 
-    public synchronized void DestroyServices() {
+    public synchronized void destroyServices() {
         ClientService = null;
     }
 
-    public synchronized void DestroyZeze() {
+    public synchronized void destroyZeze() {
         Zeze = null;
     }
 
-    public synchronized void StartModules() throws Throwable {
+    public synchronized void startModules() throws Throwable {
         Zeze_Builtin_Online.Start(this);
         Zeze_Builtin_LinkdBase.Start(this);
         Zege_Linkd.Start(this);
@@ -135,7 +135,7 @@ public class App extends Zeze.AppBase {
         Zege_User.Start(this);
     }
 
-    public synchronized void StopModules() throws Throwable {
+    public synchronized void stopModules() throws Throwable {
         if (Zege_User != null)
             Zege_User.Stop(this);
         if (Zege_Message != null)
@@ -150,11 +150,11 @@ public class App extends Zeze.AppBase {
             Zeze_Builtin_Online.Stop(this);
     }
 
-    public synchronized void StartService() throws Throwable {
+    public synchronized void startService() throws Throwable {
         ClientService.Start();
     }
 
-    public synchronized void StopService() throws Throwable {
+    public synchronized void stopService() throws Throwable {
         if (ClientService != null)
             ClientService.Stop();
     }

@@ -14,7 +14,7 @@ public class ModuleLongSet extends AbstractModule {
 	private AutoKey NodeIdGenerator;
 
 	public void Start(Game.App app) throws Throwable {
-		NodeIdGenerator = app.Zeze.GetAutoKey("Game.LongSet.NodeIdGenerator");
+		NodeIdGenerator = app.Zeze.getAutoKey("Game.LongSet.NodeIdGenerator");
 	}
 
 	public void Stop(Game.App app) throws Throwable {
@@ -141,15 +141,15 @@ public class ModuleLongSet extends AbstractModule {
 
 			for (var e : node.getSet().entrySet()) {
 				final var breakNow = new Zeze.Util.OutObject<Boolean>();
-				breakNow.Value = false;
+				breakNow.value = false;
 
-				if (0L != Zeze.Util.Task.Call(App.Zeze.NewProcedure(() -> {
-					breakNow.Value = func1.test(e);
+				if (0L != Zeze.Util.Task.call(App.Zeze.newProcedure(() -> {
+					breakNow.value = func1.test(e);
 					return 0L;
 				}, "_foreach.callback")))
 					break;
 
-				if (breakNow.Value)
+				if (breakNow.value)
 					break;
 			}
 

@@ -119,7 +119,7 @@ public class AchillesHeelDaemon {
 	public AchillesHeelDaemon(Application zeze, GlobalAgentBase[] agents) throws Exception {
 		this.zeze = zeze;
 		this.agents = agents.clone();
-		var peerPort = System.getProperty(Daemon.PropertyNamePort);
+		var peerPort = System.getProperty(Daemon.propertyNamePort);
 		if (peerPort != null) {
 			pd = new ProcessDaemon(Integer.parseInt(peerPort));
 			td = null;
@@ -149,7 +149,7 @@ public class AchillesHeelDaemon {
 				var config = agent.getConfig();
 				Daemon.sendCommand(pd.udpSocket, pd.daemonSocketAddress,
 						new Daemon.GlobalOn(zeze.getConfig().getServerId(), agent.globalCacheManagerHashIndex,
-								config.ServerDaemonTimeout, config.ServerReleaseTimeout));
+								config.serverDaemonTimeout, config.serverReleaseTimeout));
 			} catch (IOException e) {
 				logger.error("", e);
 			}
@@ -216,13 +216,13 @@ public class AchillesHeelDaemon {
 						switch (cmd.command()) {
 						case Daemon.Release.Command:
 							var r = (Daemon.Release)cmd;
-							logger.info("receiveCommand {}", r.GlobalIndex);
-							var agent = agents[r.GlobalIndex];
+							logger.info("receiveCommand {}", r.globalIndex);
+							var agent = agents[r.globalIndex];
 							var config = agent.getConfig();
-							var rr = agent.checkReleaseTimeout(System.currentTimeMillis(), config.ServerReleaseTimeout);
+							var rr = agent.checkReleaseTimeout(System.currentTimeMillis(), config.serverReleaseTimeout);
 							if (rr == GlobalAgentBase.CheckReleaseResult.Timeout) {
 								// 本地发现超时，先自杀，不用等进程守护来杀。
-								logger.fatal("ProcessDaemon.AchillesHeelDaemon global release timeout. index={}", r.GlobalIndex);
+								logger.fatal("ProcessDaemon.AchillesHeelDaemon global release timeout. index={}", r.globalIndex);
 								LogManager.shutdown();
 								Runtime.getRuntime().halt(123123);
 							}
@@ -231,7 +231,7 @@ public class AchillesHeelDaemon {
 								// 如果Global一直恢复不了，那么每ServerDaemonTimeout会再次尝试Release，
 								// 这里没法快速手段判断本Server是否存在从该Global获取的记录锁。
 								// 在Agent中增加获得的计数是个方案，但挺烦的。
-								logger.warn("ProcessDaemon.startRelease ServerDaemonTimeout={}", config.ServerDaemonTimeout);
+								logger.warn("ProcessDaemon.startRelease ServerDaemonTimeout={}", config.serverDaemonTimeout);
 								agent.startRelease(zeze, null);
 							}
 							break;
@@ -247,7 +247,7 @@ public class AchillesHeelDaemon {
 							continue; // skip agent not login
 
 						var idle = now - agent.getActiveTime();
-						if (idle > config.ServerKeepAliveIdleTimeout) {
+						if (idle > config.serverKeepAliveIdleTimeout) {
 							//logger.debug("KeepAlive ServerKeepAliveIdleTimeout={}", config.ServerKeepAliveIdleTimeout);
 							agent.keepAlive();
 						}
@@ -310,7 +310,7 @@ public class AchillesHeelDaemon {
 						if (config == null)
 							continue; // skip agent not login
 
-						var rr = agent.checkReleaseTimeout(now, config.ServerReleaseTimeout);
+						var rr = agent.checkReleaseTimeout(now, config.serverReleaseTimeout);
 						if (rr == GlobalAgentBase.CheckReleaseResult.Timeout) {
 							logger.fatal("AchillesHeelDaemon global release timeout. index={}", i);
 							LogManager.shutdown();
@@ -318,18 +318,18 @@ public class AchillesHeelDaemon {
 						}
 
 						var idle = now - agent.getActiveTime();
-						if (idle > config.ServerKeepAliveIdleTimeout) {
+						if (idle > config.serverKeepAliveIdleTimeout) {
 							//logger.debug("KeepAlive ServerKeepAliveIdleTimeout={}", config.ServerKeepAliveIdleTimeout);
 							agent.keepAlive();
 						}
 
-						if (idle > config.ServerDaemonTimeout && !Reflect.inDebugMode) {
+						if (idle > config.serverDaemonTimeout && !Reflect.inDebugMode) {
 							if (rr != GlobalAgentBase.CheckReleaseResult.Releasing) {
 								// 这个判断只能避免正在Releasing时不要启动新的Release。
 								// 如果Global一直恢复不了，那么每ServerDaemonTimeout会再次尝试Release，
 								// 这里没法快速手段判断本Server是否存在从该Global获取的记录锁。
 								// 在Agent中增加获得的计数是个方案，但挺烦的。
-								logger.warn("startRelease ServerDaemonTimeout={}", config.ServerDaemonTimeout);
+								logger.warn("startRelease ServerDaemonTimeout={}", config.serverDaemonTimeout);
 								agent.startRelease(zeze, null);
 							}
 						}

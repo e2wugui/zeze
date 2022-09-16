@@ -14,8 +14,8 @@ public final class BLocal extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _LoginVersion;
-        var log = (Log__LoginVersion)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _LoginVersion;
+        var log = (Log__LoginVersion)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _LoginVersion;
     }
 
     public void setLoginVersion(long value) {
@@ -24,7 +24,7 @@ public final class BLocal extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__LoginVersion(this, 1, value));
+        txn.putLog(new Log__LoginVersion(this, 1, value));
     }
 
     public Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Game.Online.BAny> getDatas() {
@@ -48,7 +48,7 @@ public final class BLocal extends Zeze.Transaction.Bean {
         setLoginVersion(other.getLoginVersion());
         getDatas().clear();
         for (var e : other.getDatas().entrySet())
-            getDatas().put(e.getKey(), e.getValue().Copy());
+            getDatas().put(e.getKey(), e.getValue().copy());
     }
 
     @Deprecated
@@ -62,7 +62,7 @@ public final class BLocal extends Zeze.Transaction.Bean {
 
     public BLocal copy() {
         var copy = new BLocal();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -72,9 +72,9 @@ public final class BLocal extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BLocal a, BLocal b) {
-        BLocal save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BLocal save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -93,7 +93,7 @@ public final class BLocal extends Zeze.Transaction.Bean {
         public Log__LoginVersion(BLocal bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BLocal)getBelong())._LoginVersion = Value; }
+        public void commit() { ((BLocal)getBelong())._LoginVersion = value; }
     }
 
     @Override
@@ -215,7 +215,7 @@ public final class BLocal extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 1: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 2: _Datas.followerApply(vlog); break;
             }
         }

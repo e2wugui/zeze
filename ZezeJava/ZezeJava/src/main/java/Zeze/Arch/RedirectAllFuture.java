@@ -148,7 +148,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 			if (!hashes.add(result.getHash())) // 跟onResult并发时有可能失败,谁加成功谁执行回调
 				return;
 		}
-		ctx.getService().getZeze().NewProcedure(() -> {
+		ctx.getService().getZeze().newProcedure(() -> {
 			onResult.run(result);
 			return Procedure.Success;
 		}, "RedirectAllFutureImpl.result").Call();
@@ -175,7 +175,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 			}
 		}
 		for (R result : readyResults) {
-			c.getService().getZeze().NewProcedure(() -> {
+			c.getService().getZeze().newProcedure(() -> {
 				onResult.run(result);
 				return Procedure.Success;
 			}, "RedirectAllFutureImpl.onResult").Call();
@@ -200,7 +200,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 		@SuppressWarnings("unchecked")
 		var onA = (Action1<RedirectAllContext<R>>)ON_ALL_DONE.getAndSet(this, null);
 		if (onA != null) {
-			ctx.getService().getZeze().NewProcedure(() -> {
+			ctx.getService().getZeze().newProcedure(() -> {
 				onA.run(ctx);
 				return Procedure.Success;
 			}, "RedirectAllFutureImpl.allDone").Call();
@@ -224,7 +224,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 				return this;
 		}
 		var c1 = c;
-		c.getService().getZeze().NewProcedure(() -> {
+		c.getService().getZeze().newProcedure(() -> {
 			onAllDone.run(c1);
 			return Procedure.Success;
 		}, "RedirectAllFutureImpl.onAllDone").Call();

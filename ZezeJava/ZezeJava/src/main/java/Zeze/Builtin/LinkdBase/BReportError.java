@@ -20,8 +20,8 @@ public final class BReportError extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _from;
-        var log = (Log__from)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _from;
+        var log = (Log__from)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _from;
     }
 
     public void setFrom(int value) {
@@ -30,7 +30,7 @@ public final class BReportError extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__from(this, 1, value));
+        txn.putLog(new Log__from(this, 1, value));
     }
 
     public int getCode() {
@@ -39,8 +39,8 @@ public final class BReportError extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _code;
-        var log = (Log__code)txn.GetLog(objectId() + 2);
-        return log != null ? log.Value : _code;
+        var log = (Log__code)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _code;
     }
 
     public void setCode(int value) {
@@ -49,7 +49,7 @@ public final class BReportError extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__code(this, 2, value));
+        txn.putLog(new Log__code(this, 2, value));
     }
 
     public String getDesc() {
@@ -58,8 +58,8 @@ public final class BReportError extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _desc;
-        var log = (Log__desc)txn.GetLog(objectId() + 3);
-        return log != null ? log.Value : _desc;
+        var log = (Log__desc)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _desc;
     }
 
     public void setDesc(String value) {
@@ -70,7 +70,7 @@ public final class BReportError extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__desc(this, 3, value));
+        txn.putLog(new Log__desc(this, 3, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -104,7 +104,7 @@ public final class BReportError extends Zeze.Transaction.Bean {
 
     public BReportError copy() {
         var copy = new BReportError();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -114,9 +114,9 @@ public final class BReportError extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BReportError a, BReportError b) {
-        BReportError save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BReportError save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -135,21 +135,21 @@ public final class BReportError extends Zeze.Transaction.Bean {
         public Log__from(BReportError bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BReportError)getBelong())._from = Value; }
+        public void commit() { ((BReportError)getBelong())._from = value; }
     }
 
     private static final class Log__code extends Zeze.Transaction.Logs.LogInt {
         public Log__code(BReportError bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BReportError)getBelong())._code = Value; }
+        public void commit() { ((BReportError)getBelong())._code = value; }
     }
 
     private static final class Log__desc extends Zeze.Transaction.Logs.LogString {
         public Log__desc(BReportError bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BReportError)getBelong())._desc = Value; }
+        public void commit() { ((BReportError)getBelong())._desc = value; }
     }
 
     @Override
@@ -257,9 +257,9 @@ public final class BReportError extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _from = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
-                case 2: _code = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
-                case 3: _desc = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                case 1: _from = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 2: _code = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 3: _desc = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
             }
         }
     }

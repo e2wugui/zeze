@@ -17,57 +17,57 @@ public final class BServiceInfos extends Bean {
 	};
 
 	// ServiceList maybe empty. need a ServiceName
-	private String ServiceName;
+	private String serviceName;
 	// sorted by ServiceIdentity
-	private final ArrayList<BServiceInfo> _ServiceInfoListSortedByIdentity = new ArrayList<>();
-	private long SerialId;
+	private final ArrayList<BServiceInfo> serviceInfoListSortedByIdentity = new ArrayList<>();
+	private long serialId;
 
 	public BServiceInfos() {
 	}
 
 	public BServiceInfos(String serviceName) {
-		ServiceName = serviceName;
+		this.serviceName = serviceName;
 	}
 
 	public BServiceInfos(String serviceName, ServiceManagerServer.ServerState state, long serialId) {
-		ServiceName = serviceName;
-		state.getServiceInfos(_ServiceInfoListSortedByIdentity);
-		_ServiceInfoListSortedByIdentity.sort(Comparer);
-		SerialId = serialId;
+		this.serviceName = serviceName;
+		state.getServiceInfos(serviceInfoListSortedByIdentity);
+		serviceInfoListSortedByIdentity.sort(Comparer);
+		this.serialId = serialId;
 	}
 
 	public String getServiceName() {
-		return ServiceName;
+		return serviceName;
 	}
 
 	public ArrayList<BServiceInfo> getServiceInfoListSortedByIdentity() {
-		return _ServiceInfoListSortedByIdentity;
+		return serviceInfoListSortedByIdentity;
 	}
 
 	public long getSerialId() {
-		return SerialId;
+		return serialId;
 	}
 
-	public void Insert(BServiceInfo info) {
-		int index = Collections.binarySearch(_ServiceInfoListSortedByIdentity, info, Comparer);
+	public void insert(BServiceInfo info) {
+		int index = Collections.binarySearch(serviceInfoListSortedByIdentity, info, Comparer);
 		if (index >= 0)
-			_ServiceInfoListSortedByIdentity.set(index, info);
+			serviceInfoListSortedByIdentity.set(index, info);
 		else
-			_ServiceInfoListSortedByIdentity.add(~index, info);
+			serviceInfoListSortedByIdentity.add(~index, info);
 	}
 
-	public BServiceInfo Remove(BServiceInfo info) {
-		int index = Collections.binarySearch(_ServiceInfoListSortedByIdentity, info, Comparer);
-		return index >= 0 ? _ServiceInfoListSortedByIdentity.remove(index) : null;
+	public BServiceInfo remove(BServiceInfo info) {
+		int index = Collections.binarySearch(serviceInfoListSortedByIdentity, info, Comparer);
+		return index >= 0 ? serviceInfoListSortedByIdentity.remove(index) : null;
 	}
 
 	public BServiceInfo findServiceInfo(BServiceInfo info) {
-		int index = Collections.binarySearch(_ServiceInfoListSortedByIdentity, info, Comparer);
-		return index >= 0 ? _ServiceInfoListSortedByIdentity.get(index) : null;
+		int index = Collections.binarySearch(serviceInfoListSortedByIdentity, info, Comparer);
+		return index >= 0 ? serviceInfoListSortedByIdentity.get(index) : null;
 	}
 
 	public BServiceInfo findServiceInfoByIdentity(String identity) {
-		return findServiceInfo(new BServiceInfo(ServiceName, identity));
+		return findServiceInfo(new BServiceInfo(serviceName, identity));
 	}
 
 	public BServiceInfo findServiceInfoByServerId(int serverId) {
@@ -76,24 +76,24 @@ public final class BServiceInfos extends Bean {
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		ServiceName = bb.ReadString();
-		_ServiceInfoListSortedByIdentity.clear();
+		serviceName = bb.ReadString();
+		serviceInfoListSortedByIdentity.clear();
 		for (int c = bb.ReadInt(); c > 0; --c) {
 			var service = new BServiceInfo();
 			service.decode(bb);
-			_ServiceInfoListSortedByIdentity.add(service);
+			serviceInfoListSortedByIdentity.add(service);
 		}
-		SerialId = bb.ReadLong();
+		serialId = bb.ReadLong();
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteString(ServiceName);
-		bb.WriteInt(_ServiceInfoListSortedByIdentity.size());
-		for (var service : _ServiceInfoListSortedByIdentity) {
+		bb.WriteString(serviceName);
+		bb.WriteInt(serviceInfoListSortedByIdentity.size());
+		for (var service : serviceInfoListSortedByIdentity) {
 			service.encode(bb);
 		}
-		bb.WriteLong(SerialId);
+		bb.WriteLong(serialId);
 	}
 
 	private static int _PRE_ALLOC_SIZE_ = 16;
@@ -121,9 +121,9 @@ public final class BServiceInfos extends Bean {
 	@Override
 	public String toString() {
 		var sb = new StringBuilder();
-		sb.append(ServiceName).append(" Version=").append(SerialId);
+		sb.append(serviceName).append(" Version=").append(serialId);
 		sb.append("[");
-		for (var e : _ServiceInfoListSortedByIdentity) {
+		for (var e : serviceInfoListSortedByIdentity) {
 			sb.append(e.getServiceIdentity());
 			sb.append(",");
 		}

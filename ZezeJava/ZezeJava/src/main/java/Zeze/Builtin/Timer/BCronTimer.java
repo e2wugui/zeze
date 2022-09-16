@@ -16,8 +16,8 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _CronExpression;
-        var log = (Log__CronExpression)txn.GetLog(objectId() + 1);
-        return log != null ? log.Value : _CronExpression;
+        var log = (Log__CronExpression)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _CronExpression;
     }
 
     public void setCronExpression(String value) {
@@ -28,7 +28,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__CronExpression(this, 1, value));
+        txn.putLog(new Log__CronExpression(this, 1, value));
     }
 
     public long getNextExpectedTimeMills() {
@@ -37,8 +37,8 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _NextExpectedTimeMills;
-        var log = (Log__NextExpectedTimeMills)txn.GetLog(objectId() + 2);
-        return log != null ? log.Value : _NextExpectedTimeMills;
+        var log = (Log__NextExpectedTimeMills)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _NextExpectedTimeMills;
     }
 
     public void setNextExpectedTimeMills(long value) {
@@ -47,7 +47,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__NextExpectedTimeMills(this, 2, value));
+        txn.putLog(new Log__NextExpectedTimeMills(this, 2, value));
     }
 
     public long getExpectedTimeMills() {
@@ -56,8 +56,8 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ExpectedTimeMills;
-        var log = (Log__ExpectedTimeMills)txn.GetLog(objectId() + 3);
-        return log != null ? log.Value : _ExpectedTimeMills;
+        var log = (Log__ExpectedTimeMills)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _ExpectedTimeMills;
     }
 
     public void setExpectedTimeMills(long value) {
@@ -66,7 +66,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__ExpectedTimeMills(this, 3, value));
+        txn.putLog(new Log__ExpectedTimeMills(this, 3, value));
     }
 
     public long getHappenTimeMills() {
@@ -75,8 +75,8 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _HappenTimeMills;
-        var log = (Log__HappenTimeMills)txn.GetLog(objectId() + 4);
-        return log != null ? log.Value : _HappenTimeMills;
+        var log = (Log__HappenTimeMills)txn.getLog(objectId() + 4);
+        return log != null ? log.value : _HappenTimeMills;
     }
 
     public void setHappenTimeMills(long value) {
@@ -85,7 +85,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.PutLog(new Log__HappenTimeMills(this, 4, value));
+        txn.putLog(new Log__HappenTimeMills(this, 4, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -121,7 +121,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
 
     public BCronTimer copy() {
         var copy = new BCronTimer();
-        copy.Assign(this);
+        copy.assign(this);
         return copy;
     }
 
@@ -131,9 +131,9 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
     }
 
     public static void swap(BCronTimer a, BCronTimer b) {
-        BCronTimer save = a.Copy();
-        a.Assign(b);
-        b.Assign(save);
+        BCronTimer save = a.copy();
+        a.assign(b);
+        b.assign(save);
     }
 
     @Override
@@ -152,28 +152,28 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
         public Log__CronExpression(BCronTimer bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BCronTimer)getBelong())._CronExpression = Value; }
+        public void commit() { ((BCronTimer)getBelong())._CronExpression = value; }
     }
 
     private static final class Log__NextExpectedTimeMills extends Zeze.Transaction.Logs.LogLong {
         public Log__NextExpectedTimeMills(BCronTimer bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BCronTimer)getBelong())._NextExpectedTimeMills = Value; }
+        public void commit() { ((BCronTimer)getBelong())._NextExpectedTimeMills = value; }
     }
 
     private static final class Log__ExpectedTimeMills extends Zeze.Transaction.Logs.LogLong {
         public Log__ExpectedTimeMills(BCronTimer bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BCronTimer)getBelong())._ExpectedTimeMills = Value; }
+        public void commit() { ((BCronTimer)getBelong())._ExpectedTimeMills = value; }
     }
 
     private static final class Log__HappenTimeMills extends Zeze.Transaction.Logs.LogLong {
         public Log__HappenTimeMills(BCronTimer bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BCronTimer)getBelong())._HappenTimeMills = Value; }
+        public void commit() { ((BCronTimer)getBelong())._HappenTimeMills = value; }
     }
 
     @Override
@@ -295,10 +295,10 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _CronExpression = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
-                case 2: _NextExpectedTimeMills = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                case 3: _ExpectedTimeMills = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                case 4: _HappenTimeMills = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 1: _CronExpression = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 2: _NextExpectedTimeMills = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 3: _ExpectedTimeMills = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 4: _HappenTimeMills = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }
