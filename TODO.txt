@@ -19,12 +19,7 @@ Zege
 	置顶。
 
 ServiceManager::OfflineNotify 选择目标遍历优化。
-OfflineNotify.NormalClose
-	正常关闭不发送server-down通知。
 Table.DelayRemove 删除的实现。
-Timer
-
-ModuleOnline.Logout() 主动Logout函数需要提供。
 
 Zege c# ModuleFriend 还需要的能力 @项洋呈
 	1. Nodes 限制大小，当往后面翻超过n(如10个）节点时，删除开头的节点。
@@ -52,8 +47,31 @@ Component.Timer 安全加强：
 	1. fire是检查Index.ServerId确认自己是否拥有者。错误时cancel future，注意不是cancel timer。
 	2. fire并发去重。
 	3. Online Timer 记录版本号。并在fire时检查。
-
+1. 调度使用的何种java底层机制
+   基于Zeze.Table嵌入用户事务
+2. 调度在分布式之间如何保证不会重复调度
+   基于系列号
+3. 调度丢失怎么处理的
+   a) 基于事务，事务成功，Timer调度肯定也成功。
+   b) ThreadPool.schedule，这个目前相信LoadTimer没有出错。
+      或者下一次LoadTimer会恢复。要完全可靠的话就定时LoadTimer，
+      当然需要自动忽略重复的TimerId。
+4. 调度失败如何处理的
+   这个调度是什么？
+   a) 用户回调触发按刚才说的，除了异常，忽略其他错误。
+   b) 或者这个和“调度丢失”一样的问题？
+5. 调度超期(比如服务器down机重启)调度是如何进行的 -- simpleTimer cronTimer是否有不同
+   a) 服务器宕机，其他服务器接管。
+   b) 服务器正常重启，不接管（未实现）。
+   c) simple,cron一样的。*现在simple已经改成每次ThreadPool.schedule(delay)，不使用它的period能力了。
+6. 调度的创建和清理是如何做的, 清理如果失败了, 如果保证后续调度的非法性
+   Timer.basic是持久的。
+   a) 只有一个cancel接口，也是基于事务的。
+   b) 如果ThreadPool.future没有清理，将发生上面的第2点。去重已经实现。
 Component.Timer TimerArchOnline TimerGameOnline
+ServiceManager.OfflineNotify.NormalClose
+	正常关闭不发送server-down通知。
+	【采用延迟发送通知的方案】额外规则：全系统停止时需要先停止ServiceManager.
 直接暴露Zeze.Builtin.Collections.LinkedMap的数据结构给客户端。
 ServiceManager::OfflineNotify
 

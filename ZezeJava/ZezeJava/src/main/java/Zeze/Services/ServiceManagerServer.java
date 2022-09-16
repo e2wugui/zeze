@@ -407,16 +407,22 @@ public final class ServiceManagerServer implements Closeable {
 		private boolean ready;
 	}
 
+	private final ConcurrentHashMap<Integer, Future<?>> OfflineNotifyFutures = new ConcurrentHashMap<>();
+
 	// 每个server连接的状态
 	public static final class Session {
 		private final ServiceManagerServer serviceManager;
 		private final long sessionId;
 		private final ConcurrentHashSet<BServiceInfo> registers = new ConcurrentHashSet<>();
 		// key is ServiceName: 会话订阅
-		private final ConcurrentHashMap<String, BSubscribeInfo> subscribes = new ConcurrentHashMap<>();
-		private final Future<?> keepAliveTimerTask;
-		private int offlineRegisterServerId; // 原样通知,服务端不关心
-		private final HashMap<String, BOfflineNotify> offlineRegisterNotifies = new HashMap<>(); // 使用的时候加锁保护。value:notifyId
+		private final ConcurrentHashMap<String, BSubscribeInfo> Subscribes = new ConcurrentHashMap<>();
+		private final Future<?> KeepAliveTimerTask;
+		private int OfflineRegisterServerId; // 原样通知,服务端不关心!!!
+		// 目前SM的客户端没有Id，只能使用这个区分来自哪里，所以对于Server来说，这个值必须填写。
+		// 如果是负数，将不会进行延迟通知，即这种情况下，通知马上发出。
+
+		private final HashMap<String, BOfflineNotify> OfflineRegisterNotifies = new HashMap<>(); // 使用的时候加锁保护。value:notifyId
+		public static final long eOfflineNotifyDelay = 60 * 1000;
 
 		public Session(ServiceManagerServer sm, long sid) {
 			serviceManager = sm;
@@ -459,38 +465,53 @@ public final class ServiceManagerServer implements Closeable {
 
 			// offline notify，开启一个线程执行，避免互等造成麻烦。
 			// 这个操作不能cancel，即使Server重新起来了，通知也会进行下去。
-			Task.run(() -> {
-				BOfflineNotify[] notifyIds;
-				synchronized (offlineRegisterNotifies) {
-					if (offlineRegisterNotifies.isEmpty())
-						return; // 不需要通知。
-					var values = offlineRegisterNotifies.values();
-					notifyIds = values.toArray(new BOfflineNotify[values.size()]);
+			if (OfflineRegisterServerId >= 0) {
+				synchronized (ServiceManager) {
+					// 对于java，这里可以使用computeIfAbsent去掉这个synchronized，
+					// 为了理解简单，还是使用同步吧。
+					if (!ServiceManager.OfflineNotifyFutures.containsKey(OfflineRegisterServerId))
+						ServiceManager.OfflineNotifyFutures.put(OfflineRegisterServerId,
+								Task.scheduleUnsafe(eOfflineNotifyDelay, this::offlineNotify));
 				}
+			} else {
+				Task.run(this::offlineNotify, "offlineNotifyImmediately");
+			}
+		}
 
-				logger.info("OfflineNotify: serverId={} notifyIds={} begin",
-						offlineRegisterServerId, Arrays.toString(notifyIds));
-				for (var notifyId : notifyIds) {
-					var skips = new HashSet<Session>();
-					var notify = new OfflineNotify(notifyId);
-					while (true) {
-						var selected = randomFor(notifyId.notifyId, skips);
-						if (selected == null)
-							break; // 没有找到可用的通知对象，放弃通知。
-						try {
-							notify.SendForWait(selected.getValue()).await();
-							logger.info("OfflineNotify: serverId={} notifyId={} selectSessionId={} resultCode={}",
-									offlineRegisterServerId, notifyId, selected.getKey().sessionId, notify.getResultCode());
-							if (notify.getResultCode() == 0)
-								break; // 成功通知。done
-						} catch (Throwable ignored) {
-						}
-						// 保存这一次通知失败session，下一次尝试选择的时候忽略。
-						skips.add(selected.getKey());
+		private void offlineNotify() {
+			if (null == ServiceManager.OfflineNotifyFutures.remove(OfflineRegisterServerId))
+				return; // 此serverId的新连接已经连上或者通知已经执行。
+
+			BOfflineNotify[] notifyIds;
+			synchronized (OfflineRegisterNotifies) {
+				if (OfflineRegisterNotifies.isEmpty())
+					return; // 不需要通知。
+				var values = OfflineRegisterNotifies.values();
+				notifyIds = values.toArray(new BOfflineNotify[values.size()]);
+			}
+
+			logger.info("OfflineNotify: serverId={} notifyIds={} begin",
+					OfflineRegisterServerId, Arrays.toString(notifyIds));
+			for (var notifyId : notifyIds) {
+				var skips = new HashSet<Session>();
+				var notify = new OfflineNotify(notifyId);
+				while (true) {
+					var selected = randomFor(notifyId.NotifyId, skips);
+					if (selected == null)
+						break; // 没有找到可用的通知对象，放弃通知。
+					try {
+						notify.SendForWait(selected.getValue()).await();
+						logger.info("OfflineNotify: serverId={} notifyId={} selectSessionId={} resultCode={}",
+								OfflineRegisterServerId, notifyId, selected.getKey().SessionId, notify.getResultCode());
+						if (notify.getResultCode() == 0)
+							break; // 成功通知。done
+					} catch (Throwable ignored) {
 					}
+					// 保存这一次通知失败session，下一次尝试选择的时候忽略。
+					skips.add(selected.getKey());
 				}
-				logger.info("OfflineNotify: serverId={} end", offlineRegisterServerId);
-			}, "OfflineNotify");
+			}
+			logger.info("OfflineNotify: serverId={} end", OfflineRegisterServerId);
 		}
 
 		// 从注册了这个notifyId的其他session中随机选择一个。
@@ -663,7 +684,7 @@ public final class ServiceManagerServer implements Closeable {
 		return 0;
 	}
 
-	private static long processOfflineRegister(OfflineRegister r) {
+	private long ProcessOfflineRegister(OfflineRegister r) {
 		logger.info("{}: OfflineRegister serverId={} notifyId={}",
 				r.getSender(), r.Argument.serverId, r.Argument.notifyId);
 		var session = (Session)r.getSender().getUserState();
@@ -671,6 +692,9 @@ public final class ServiceManagerServer implements Closeable {
 		synchronized (session.offlineRegisterNotifies) {
 			session.offlineRegisterServerId = r.Argument.serverId;
 			session.offlineRegisterNotifies.put(r.Argument.notifyId, r.Argument);
+			var future = OfflineNotifyFutures.remove(session.OfflineRegisterServerId);
+			if (null != future)
+				future.cancel(true);
 		}
 		r.SendResult();
 		return 0;

@@ -381,6 +381,8 @@ namespace Zeze.Services
             }
         }
 
+        internal readonly ConcurrentDictionary<int, SchedulerTask> OfflineNotifyFutures = new();
+
         public sealed class Session
         {
             public ServiceManagerServer ServiceManager { get; }
@@ -390,8 +392,11 @@ namespace Zeze.Services
             public ConcurrentDictionary<string, SubscribeInfo> Subscribes { get; } = new();
             private SchedulerTask KeepAliveTimerTask;
 
-            public int OfflineRegisterServerId; // 原样通知,服务端不关心
+            public int OfflineRegisterServerId; // 原样通知,服务端不关心!!!
+                                                // 目前SM的客户端没有Id，只能使用这个区分来自哪里，所以对于Server来说，这个值必须填写。
+                                                // 如果是负数，将不会进行延迟通知，即这种情况下，通知马上发出。
             public Dictionary<string, BOfflineNotify> OfflineRegisterNotifies = new Dictionary<string, BOfflineNotify>();
+            public const long eOfflineNotifyDelay = 60 * 1000;
 
             public Session(ServiceManagerServer sm, long ssid)
             {
@@ -442,54 +447,74 @@ namespace Zeze.Services
                     state.StartReadyCommitNotify();
                 }
 
-                Task.Run(async () =>
+                if (OfflineRegisterServerId >= 0)
                 {
-                    BOfflineNotify[] notifyIds;
-
-                    lock (OfflineRegisterNotifies)
+                    lock (ServiceManager)
                     {
-                        if(0 == OfflineRegisterNotifies.Count)
+                        if (!ServiceManager.OfflineNotifyFutures.ContainsKey(OfflineRegisterServerId))
                         {
-                            return;
+                            ServiceManager.OfflineNotifyFutures.TryAdd(OfflineRegisterServerId,
+                                Scheduler.Schedule(OfflineNotify, eOfflineNotifyDelay));
                         }
-                        var values = OfflineRegisterNotifies.Values;
-                        notifyIds = values.ToArray();
                     }
+                }
+                else
+                {
+                    Task.Run(async () => await OfflineNotify(null));
+                }
+            }
 
-                    logger.Info("OfflineNotify: serverId={} notifyIds={} begin", OfflineRegisterServerId, string.Join(",", notifyIds.Select(x => x.ToString()).ToArray()));
-                
-                    foreach(var notifyid in notifyIds)
+            private async Task OfflineNotify(SchedulerTask ThisTask)
+            {
+                if (!ServiceManager.OfflineNotifyFutures.TryRemove(OfflineRegisterServerId, out var future))
+                    return; // 此serverId的新连接已经连上或者通知已经执行。
+
+                BOfflineNotify[] notifyIds;
+
+                lock (OfflineRegisterNotifies)
+                {
+                    if (0 == OfflineRegisterNotifies.Count)
                     {
-                        var skips = new HashSet<Session>();
-                        var notify = new OfflineNotify(notifyid);
-                        while (true)
+                        return;
+                    }
+                    var values = OfflineRegisterNotifies.Values;
+                    notifyIds = values.ToArray();
+                }
+
+                logger.Info("OfflineNotify: serverId={} notifyIds={} begin", OfflineRegisterServerId, string.Join(",", notifyIds.Select(x => x.ToString()).ToArray()));
+
+                foreach (var notifyid in notifyIds)
+                {
+                    var skips = new HashSet<Session>();
+                    var notify = new OfflineNotify(notifyid);
+                    while (true)
+                    {
+                        var selected = randomFor(notifyid.NotifyId, skips);
+                        if (selected != null)
                         {
-                            var selected = randomFor(notifyid.NotifyId, skips);
-                            if(selected != null)
+                            break;
+                        }
+                        try
+                        {
+                            await notify.SendAsync(selected.Value);
+
+                            logger.Info("OfflineNotify: serverId={} notifyId={} selectSessionId={} resultCode={}", OfflineRegisterServerId, notifyid, selected.Key.SessionId, notify.ResultCode);
+
+                            if (0 == notify.ResultCode)
                             {
                                 break;
                             }
-                            try
-                            {
-                                await notify.SendAsync(selected.Value);
-
-                                logger.Info("OfflineNotify: serverId={} notifyId={} selectSessionId={} resultCode={}", OfflineRegisterServerId, notifyid, selected.Key.SessionId, notify.ResultCode);
-                                
-                                if(0 == notify.ResultCode)
-                                {
-                                    break;
-                                }
-                            }catch(Exception e)
-                            {
-                            }
-
-                            skips.Add(selected.Key);
-
                         }
-                    }
+                        catch (Exception e)
+                        {
+                        }
 
-                    logger.Info("OfflineNotify: serverId={} end", OfflineRegisterServerId);
-                });
+                        skips.Add(selected.Key);
+
+                    }
+                }
+
+                logger.Info("OfflineNotify: serverId={} end", OfflineRegisterServerId);
             }
 
             private KV<Session, AsyncSocket> randomFor(string notifyId, HashSet<Session> skips)
@@ -556,6 +581,8 @@ namespace Zeze.Services
             {
                 session.OfflineRegisterServerId = p.Argument.ServerId;
                 session.OfflineRegisterNotifies.Add(p.Argument.NotifyId, p.Argument);
+                if (OfflineNotifyFutures.TryRemove(session.OfflineRegisterServerId, out var future))
+                    future.Cancel();
             }
             p.SendResult();
             return Task.FromResult(ResultCode.Success);
