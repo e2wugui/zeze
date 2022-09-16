@@ -20,8 +20,8 @@ public class LinkdService extends LinkdServiceBase {
 
     private boolean ChoiceHashSend(int hash, int moduleId, Dispatch dispatch) {
         var provider = new OutLong();
-        if (LinkdApp.LinkdProvider.ChoiceHashWithoutBind(moduleId, hash, provider)) {
-            var providerSocket = LinkdApp.LinkdProviderService.GetSocket(provider.value);
+        if (linkdApp.linkdProvider.choiceHashWithoutBind(moduleId, hash, provider)) {
+            var providerSocket = linkdApp.linkdProviderService.GetSocket(provider.value);
             if (null != providerSocket) {
                 // ChoiceProviderAndBind 内部已经处理了绑定。这里只需要发送。
                 return providerSocket.Send(dispatch);
@@ -124,7 +124,7 @@ public class LinkdService extends LinkdServiceBase {
     @Override
     public void dispatchUnknownProtocol(Zeze.Net.AsyncSocket so, int moduleId, int protocolId, Zeze.Serialize.ByteBuffer data) {
         if (moduleId == AbstractWeb.ModuleId) {
-            ReportError(so.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider, "not a public provider.");
+            reportError(so.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider, "not a public provider.");
             return;
         }
 
@@ -177,6 +177,6 @@ public class LinkdService extends LinkdServiceBase {
             return;
         if (choiceBindSend(so, moduleId, dispatch))
             return;
-        ReportError(so.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider, "no provider.");
+        reportError(so.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider, "no provider.");
     }
 }

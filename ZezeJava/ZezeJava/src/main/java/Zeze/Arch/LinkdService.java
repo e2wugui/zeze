@@ -23,20 +23,20 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 	private static final class StableLinkSidKey {
 		// 同一个账号同一个ClientId只允许一个登录。
 		// ClientId 可能的分配方式：每个手机Client分配一个，所有电脑Client分配一个。
-		public final String Account;
-		public final String ClientId;
+		public final String account;
+		public final String clientId;
 
 		public StableLinkSidKey(String account, String clientId) {
-			Account = account;
-			ClientId = clientId;
+			this.account = account;
+			this.clientId = clientId;
 		}
 
 		@Override
 		public int hashCode() {
 			final int _prime_ = 31;
 			int _h_ = 0;
-			_h_ = _h_ * _prime_ + Account.hashCode();
-			_h_ = _h_ * _prime_ + ClientId.hashCode();
+			_h_ = _h_ * _prime_ + account.hashCode();
+			_h_ = _h_ * _prime_ + clientId.hashCode();
 			return _h_;
 		}
 
@@ -46,20 +46,20 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 				return true;
 			if (obj instanceof StableLinkSidKey) {
 				var other = (StableLinkSidKey)obj;
-				return Account.equals(other.Account) && ClientId.equals(other.ClientId);
+				return account.equals(other.account) && clientId.equals(other.clientId);
 			}
 			return false;
 		}
 	}
 
 	private static final class StableLinkSid {
-		public boolean Removed;
-		public long LinkSid;
-		public AsyncSocket AuthedSocket;
+		public boolean removed;
+		public long linkSid;
+		public AsyncSocket authedSocket;
 	}
 
-	protected LinkdApp LinkdApp;
-	protected ConcurrentLruLike<StableLinkSidKey, StableLinkSid> StableLinkSids;
+	protected LinkdApp linkdApp;
+	protected ConcurrentLruLike<StableLinkSidKey, StableLinkSid> stableLinkSids;
 
 	public LinkdService(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);
@@ -67,11 +67,11 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 
 	@Override
 	public void Start() throws Throwable {
-		StableLinkSids = new ConcurrentLruLike<>(getName(), 1_000_000, this::TryLruRemove);
+		stableLinkSids = new ConcurrentLruLike<>(getName(), 1_000_000, this::tryLruRemove);
 		super.Start();
 	}
 
-	public void ReportError(long linkSid, int from, int code, String desc) {
+	public void reportError(long linkSid, int from, int code, String desc) {
 		var link = GetSocket(linkSid);
 		if (link != null) {
 			new ReportError(new BReportError(from, code, desc)).Send(link);
@@ -99,36 +99,36 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		}
 	}
 
-	private boolean TryLruRemove(StableLinkSidKey key, StableLinkSid value) {
-		var exist = StableLinkSids.remove(key);
+	private boolean tryLruRemove(StableLinkSidKey key, StableLinkSid value) {
+		var exist = stableLinkSids.remove(key);
 		if (exist != null)
-			exist.Removed = true;
+			exist.removed = true;
 		return true;
 	}
 
-	private void SetStableLinkSid(String account, String clientId, AsyncSocket client) {
+	private void setStableLinkSid(String account, String clientId, AsyncSocket client) {
 		var key = new StableLinkSidKey(account, clientId);
 		while (true) {
-			var stable = StableLinkSids.getOrAdd(key, StableLinkSid::new);
+			var stable = stableLinkSids.getOrAdd(key, StableLinkSid::new);
 			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (stable) {
-				if (stable.Removed)
+				if (stable.removed)
 					continue;
 
-				if (stable.AuthedSocket == client) // same client
+				if (stable.authedSocket == client) // same client
 					return;
 
 				// Must Close Before Reuse LinkSid
-				if (stable.AuthedSocket != null)
-					stable.AuthedSocket.close();
-				if (stable.LinkSid != 0) {
+				if (stable.authedSocket != null)
+					stable.authedSocket.close();
+				if (stable.linkSid != 0) {
 					// Reuse Old LinkSid
-					client.setSessionId(stable.LinkSid);
+					client.setSessionId(stable.linkSid);
 				} else {
 					// first client
-					stable.LinkSid = client.getSessionId();
+					stable.linkSid = client.getSessionId();
 				}
-				stable.AuthedSocket = client;
+				stable.authedSocket = client;
 				//(client.UserState as LinkSession).StableLinkSid = stable;
 			}
 		}
@@ -137,7 +137,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 	public LinkdUserSession getAuthedSession(AsyncSocket socket) {
 		var linkSession = (LinkdUserSession)socket.getUserState();
 		if (linkSession == null || !linkSession.isAuthed()) {
-			ReportError(socket.getSessionId(), BReportError.FromLink, BReportError.CodeNotAuthed, "not authed.");
+			reportError(socket.getSessionId(), BReportError.FromLink, BReportError.CodeNotAuthed, "not authed.");
 			return null;
 		}
 		return linkSession;
@@ -151,13 +151,13 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 			var beginIndex = data.ReadIndex;
 			login.decode(data);
 			data.ReadIndex = beginIndex;
-			SetStableLinkSid(linkSession.getAccount(), String.valueOf(login.Argument.getRoleId()), so);
+			setStableLinkSid(linkSession.getAccount(), String.valueOf(login.Argument.getRoleId()), so);
 		} else if (typeId == Zeze.Builtin.Online.Login.TypeId_) {
 			var login = new Zeze.Builtin.Online.Login();
 			var beginIndex = data.ReadIndex;
 			login.decode(data);
 			data.ReadIndex = beginIndex;
-			SetStableLinkSid(linkSession.getAccount(), login.Argument.getClientId(), so);
+			setStableLinkSid(linkSession.getAccount(), login.Argument.getClientId(), so);
 		}
 	}
 
@@ -170,9 +170,9 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 	}
 
 	public boolean findSend(LinkdUserSession linkSession, int moduleId, Dispatch dispatch) {
-		var providerSessionId = linkSession.TryGetProvider(moduleId);
+		var providerSessionId = linkSession.tryGetProvider(moduleId);
 		if (providerSessionId != null) {
-			var socket = LinkdApp.LinkdProviderService.GetSocket(providerSessionId);
+			var socket = linkdApp.linkdProviderService.GetSocket(providerSessionId);
 			if (socket != null)
 				return socket.Send(dispatch);
 			// 原来绑定的provider找不到连接，尝试继续从静态绑定里面查找。
@@ -184,8 +184,8 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 
 	public boolean choiceBindSend(AsyncSocket so, int moduleId, Dispatch dispatch) {
 		var provider = new OutLong();
-		if (LinkdApp.LinkdProvider.ChoiceProviderAndBind(moduleId, so, provider)) {
-			var providerSocket = LinkdApp.LinkdProviderService.GetSocket(provider.value);
+		if (linkdApp.linkdProvider.choiceProviderAndBind(moduleId, so, provider)) {
+			var providerSocket = linkdApp.linkdProviderService.GetSocket(provider.value);
 			if (providerSocket != null) {
 				// ChoiceProviderAndBind 内部已经处理了绑定。这里只需要发送。
 				return providerSocket.Send(dispatch);
@@ -198,7 +198,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 	@Override
 	public void dispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId, ByteBuffer data) {
 		if (moduleId == AbstractWeb.ModuleId) {
-			ReportError(so.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider,
+			reportError(so.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider,
 					"not a public provider: " + moduleId);
 			return;
 		}
@@ -209,7 +209,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 			return;
 		if (choiceBindSend(so, moduleId, dispatch))
 			return;
-		ReportError(so.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider,
+		reportError(so.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider,
 				"no provider: " + moduleId + ", " + protocolId);
 	}
 
@@ -245,6 +245,6 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 	public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
 		super.OnSocketClose(so, e);
 		if (so.getUserState() != null)
-			((LinkdUserSession)so.getUserState()).OnClose(LinkdApp.LinkdProviderService);
+			((LinkdUserSession)so.getUserState()).onClose(linkdApp.linkdProviderService);
 	}
 }

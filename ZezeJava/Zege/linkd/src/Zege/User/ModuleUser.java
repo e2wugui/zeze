@@ -18,8 +18,8 @@ public class ModuleUser extends AbstractModule {
         var originSender = r.getSender();
         var originSessionId = r.getSessionId();
         var provider = new OutLong();
-        if (App.LinkdApp.LinkdProvider.ChoiceHashWithoutBind(r.getModuleId(), hash, provider)) {
-            var providerSocket = App.LinkdApp.LinkdProviderService.GetSocket(provider.value);
+        if (App.LinkdApp.linkdProvider.choiceHashWithoutBind(r.getModuleId(), hash, provider)) {
+            var providerSocket = App.LinkdApp.linkdProviderService.GetSocket(provider.value);
             if (null != providerSocket && r.Send(providerSocket, (r_) -> {
                 // 这里重用了rpc，直接向server再次发送，当结果返回的时候，sender和sessionId发生了变化。
                 // 在发送结果给真正的客户端前，需要恢复原来的sender和sessionId。
@@ -33,7 +33,7 @@ public class ModuleUser extends AbstractModule {
             }))
                 return 0; // dispatch success
         }
-        App.LinkdService.ReportError(r.getSender().getSessionId(), BReportError.FromLink,
+        App.LinkdService.reportError(r.getSender().getSessionId(), BReportError.FromLink,
                 BReportError.CodeNoProvider, "no provider.");
         return 0;
     }

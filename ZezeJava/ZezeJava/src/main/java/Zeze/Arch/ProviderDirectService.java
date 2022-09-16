@@ -26,34 +26,34 @@ import org.apache.logging.log4j.Logger;
 public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	private static final Logger logger = LogManager.getLogger(ProviderDirectService.class);
 
-	protected ProviderApp ProviderApp;
-	public final ConcurrentHashMap<String, ProviderSession> ProviderByLoadName = new ConcurrentHashMap<>();
-	public final LongConcurrentHashMap<ProviderSession> ProviderByServerId = new LongConcurrentHashMap<>();
+	protected ProviderApp providerApp;
+	public final ConcurrentHashMap<String, ProviderSession> providerByLoadName = new ConcurrentHashMap<>();
+	public final LongConcurrentHashMap<ProviderSession> providerByServerId = new LongConcurrentHashMap<>();
 
 	public ProviderDirectService(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);
 	}
 
-	public synchronized void RemoveServer(Agent.SubscribeState ss, BServiceInfo pm) {
+	public synchronized void removeServer(Agent.SubscribeState ss, BServiceInfo pm) {
 		var connName = pm.getPassiveIp() + ":" + pm.getPassivePort();
 		var conn = getConfig().findConnector(connName);
 		if (conn != null) {
 			conn.Stop();
-			ProviderByLoadName.remove(connName);
-			ProviderByServerId.remove(Long.parseLong(pm.getServiceIdentity()));
+			providerByLoadName.remove(connName);
+			providerByServerId.remove(Long.parseLong(pm.getServiceIdentity()));
 			ss.setServiceIdentityReadyState(pm.getServiceIdentity(), null);
 			getConfig().removeConnector(conn);
 		}
 	}
 
-	public synchronized void AddServer(Agent.SubscribeState ss, BServiceInfo pm) {
+	public synchronized void addServer(Agent.SubscribeState ss, BServiceInfo pm) {
 		var connName = pm.getPassiveIp() + ":" + pm.getPassivePort();
-		var ps = ProviderByLoadName.get(connName);
+		var ps = providerByLoadName.get(connName);
 		if (ps != null) {
 			// connection has ready.
 			var mid = Integer.parseInt(pm.getServiceName().split("#")[1]);
-			var m = ProviderApp.Modules.get(mid);
-			SetReady(ss, pm, ps, mid, m);
+			var m = providerApp.modules.get(mid);
+			setReady(ss, pm, ps, mid, m);
 			return;
 		}
 		if (pm.getServiceIdentity().startsWith("@")) // from linkd
@@ -63,29 +63,29 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			return;
 		if (serverId == getZeze().getConfig().getServerId()) {
 			var localPs = new ProviderSession();
-			localPs.ServerId = serverId;
-			SetRelativeServiceReady(localPs, ProviderApp.DirectIp, ProviderApp.DirectPort);
+			localPs.serverId = serverId;
+			setRelativeServiceReady(localPs, providerApp.directIp, providerApp.directPort);
 			return;
 		}
 		var out = new OutObject<Connector>();
 		if (getConfig().tryGetOrAddConnector(pm.getPassiveIp(), pm.getPassivePort(), true, out)) {
 			// 新建的Connector。开始连接。
 			var peerPs = new ProviderSession();
-			peerPs.ServerId = serverId;
+			peerPs.serverId = serverId;
 			out.value.userState = peerPs;
 			out.value.Start();
 		}
 	}
 
-	public void TryConnectAndSetReady(Agent.SubscribeState ss, BServiceInfos infos) throws Throwable {
+	public void tryConnectAndSetReady(Agent.SubscribeState ss, BServiceInfos infos) throws Throwable {
 		var current = new HashMap<String, BServiceInfo>();
 		for (var pm : infos.getServiceInfoListSortedByIdentity()) {
-			AddServer(ss, pm);
+			addServer(ss, pm);
 			current.put(pm.getPassiveIp() + ":" + pm.getPassivePort(), pm);
 		}
 		getConfig().ForEachConnector((c) -> current.remove(c.getName()));
 		for (var pm : current.values()) {
-			RemoveServer(ss, pm);
+			removeServer(ss, pm);
 		}
 	}
 
@@ -95,7 +95,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			// 被动连接等待对方报告信息时再处理。
 			// passive connection continue process in ProviderDirect.ProcessAnnounceProviderInfoRequest.
 			var ps = new ProviderSession();
-			ps.SessionId = sender.getSessionId();
+			ps.sessionId = sender.getSessionId();
 			sender.setUserState(ps); // acceptor
 		}
 		super.OnSocketAccept(sender);
@@ -110,47 +110,47 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		if (c != null) {
 			// 主动连接。
 			var ps = (ProviderSession)socket.getUserState();
-			ps.SessionId = socket.getSessionId();
-			SetRelativeServiceReady(ps, c.getHostNameOrAddress(), c.getPort());
+			ps.sessionId = socket.getSessionId();
+			setRelativeServiceReady(ps, c.getHostNameOrAddress(), c.getPort());
 
 			var r = new AnnounceProviderInfo();
-			r.Argument.setIp(ProviderApp.DirectIp);
-			r.Argument.setPort(ProviderApp.DirectPort);
-			r.Argument.setServerId(ProviderApp.Zeze.getConfig().getServerId());
+			r.Argument.setIp(providerApp.directIp);
+			r.Argument.setPort(providerApp.directPort);
+			r.Argument.setServerId(providerApp.zeze.getConfig().getServerId());
 			r.Send(socket, (_r) -> 0L); // skip result
 		}
 	}
 
-	synchronized void SetRelativeServiceReady(ProviderSession ps, String ip, int port) {
-		ps.ServerLoadIp = ip;
-		ps.ServerLoadPort = port;
+	synchronized void setRelativeServiceReady(ProviderSession ps, String ip, int port) {
+		ps.serverLoadIp = ip;
+		ps.serverLoadPort = port;
 		// 本机的连接可能设置多次。此时使用已经存在的，忽略后面的。
-		if (ProviderByLoadName.putIfAbsent(ps.getServerLoadName(), ps) != null)
+		if (providerByLoadName.putIfAbsent(ps.getServerLoadName(), ps) != null)
 			return;
-		ProviderByServerId.put(ps.getServerId(), ps);
+		providerByServerId.put(ps.getServerId(), ps);
 
 		// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
 		for (var ss : getZeze().getServiceManagerAgent().getSubscribeStates().values()) {
-			if (ss.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)) {
+			if (ss.getServiceName().startsWith(providerApp.serverServiceNamePrefix)) {
 				var infos = ss.getSubscribeType() == BSubscribeInfo.SubscribeTypeSimple
 						? ss.getServiceInfos() : ss.getServiceInfosPending();
 				if (infos == null)
 					continue;
 				var mid = Integer.parseInt(ss.getServiceName().split("#")[1]);
-				var m = ProviderApp.Modules.get(mid);
+				var m = providerApp.modules.get(mid);
 				for (var server : infos.getServiceInfoListSortedByIdentity()) {
 					// 符合当前连接目标。每个Identity标识的服务的(ip,port)必须不一样。
 					if (server.getPassiveIp().equals(ip) && server.getPassivePort() == port) {
-						SetReady(ss, server, ps, mid, m);
+						setReady(ss, server, ps, mid, m);
 					}
 				}
 			}
 		}
 	}
 
-	private void SetReady(Agent.SubscribeState ss, BServiceInfo server, ProviderSession ps, int mid, BModule m) {
+	private void setReady(Agent.SubscribeState ss, BServiceInfo server, ProviderSession ps, int mid, BModule m) {
 		var pms = new ProviderModuleState(ps.getSessionId(), mid, m.getChoiceType(), m.getConfigType());
-		ps.GetOrAddServiceReadyState(ss.getServiceName()).put(server.getServiceIdentity(), pms);
+		ps.getOrAddServiceReadyState(ss.getServiceName()).put(server.getServiceIdentity(), pms);
 		ss.setServiceIdentityReadyState(server.getServiceIdentity(), pms);
 	}
 
@@ -164,8 +164,8 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 					subs.setServiceIdentityReadyState(identity, null);
 				}
 			}
-			ProviderByLoadName.remove(ps.getServerLoadName());
-			ProviderByServerId.remove(ps.getServerId());
+			providerByLoadName.remove(ps.getServerLoadName());
+			providerByServerId.remove(ps.getServerId());
 		}
 		super.OnSocketClose(socket, ex);
 	}
@@ -176,8 +176,9 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			if (factoryHandle.Handle != null) {
 				var r = (ModuleRedirect)p;
 				// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
-				getZeze().getTaskOneByOneByKey().Execute(r.Argument.getHashCode(), () -> Zeze.Util.Task.call(
-						() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode, r.Argument.getMethodFullName()),
+				getZeze().getTaskOneByOneByKey().Execute(r.Argument.getHashCode(),
+						() -> Task.call(() -> factoryHandle.Handle.handle(p), p,
+								Protocol::trySendResultCode, r.Argument.getMethodFullName()),
 						factoryHandle.Mode);
 			} else
 				logger.warn("Protocol Handle Not Found: {}", p);
@@ -187,14 +188,14 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			if (factoryHandle.Handle != null) {
 				var r = (ModuleRedirectAllResult)p;
 				// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
-				Zeze.Util.Task.runUnsafe(() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode,
+				Task.runUnsafe(() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode,
 						r.Argument.getMethodFullName(), factoryHandle.Mode);
 			} else
 				logger.warn("Protocol Handle Not Found: {}", p);
 			return;
 		}
 		// 所有的Direct都不启用存储过程。
-		Zeze.Util.Task.runUnsafe(() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode, null, factoryHandle.Mode);
+		Task.runUnsafe(() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode, null, factoryHandle.Mode);
 		//super.DispatchProtocol(p, factoryHandle);
 	}
 
@@ -206,7 +207,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			var redirect = (ModuleRedirect)rpc;
 			// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
 			getZeze().getTaskOneByOneByKey().Execute(redirect.Argument.getHashCode(),
-					() -> Zeze.Util.Task.call(() -> responseHandle.handle(rpc), rpc), factoryHandle.Mode);
+					() -> Task.call(() -> responseHandle.handle(rpc), rpc), factoryHandle.Mode);
 			return;
 		}
 

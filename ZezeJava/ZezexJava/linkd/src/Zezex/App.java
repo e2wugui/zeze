@@ -65,9 +65,9 @@ public final class App extends Zeze.AppBase {
 		// Start
 		Zeze.start(); // 启动数据库
 		startModules(); // 启动模块，装载配置什么的。
-		AsyncSocket.setSessionIdGenFunc(PersistentAtomicLong.getOrAdd(LinkdApp.GetName())::next);
+		AsyncSocket.setSessionIdGenFunc(PersistentAtomicLong.getOrAdd(LinkdApp.getName())::next);
 		startService(); // 启动网络. after setSessionIdGenFunc
-		LinkdApp.RegisterService(null);
+		LinkdApp.registerService(null);
 	}
 
 	public void Stop() throws Throwable {

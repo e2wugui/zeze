@@ -44,7 +44,7 @@ public class LoadReporter {
 
 		int onlineNewPerSecond = onlineNew / TimeoutDelaySeconds;
 		//noinspection ConstantConditions
-		var config = Online.ProviderApp.Distribute.LoadConfig;
+		var config = Online.providerApp.distribute.loadConfig;
 		if (onlineNewPerSecond > config.getMaxOnlineNew()) {
 			// 最近上线太多，马上报告负载。linkd不会再分配用户过来。
 			Report(online, onlineNew);
@@ -67,16 +67,16 @@ public class LoadReporter {
 		var load = new BLoad();
 		load.setOnline(online);
 		//noinspection ConstantConditions
-		load.setProposeMaxOnline(Online.ProviderApp.Distribute.LoadConfig.getProposeMaxOnline());
+		load.setProposeMaxOnline(Online.providerApp.distribute.loadConfig.getProposeMaxOnline());
 		load.setOnlineNew(onlineNew);
 		var bb = ByteBuffer.Allocate(256);
 		load.encode(bb);
 
 		var loadServer = new BServerLoad();
-		loadServer.ip = Online.ProviderApp.DirectIp;
-		loadServer.port = Online.ProviderApp.DirectPort;
+		loadServer.ip = Online.providerApp.directIp;
+		loadServer.port = Online.providerApp.directPort;
 		loadServer.param = new Binary(bb);
 
-		Online.ProviderApp.Zeze.getServiceManagerAgent().setServerLoad(loadServer);
+		Online.providerApp.zeze.getServiceManagerAgent().setServerLoad(loadServer);
 	}
 }

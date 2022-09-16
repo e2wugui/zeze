@@ -1,50 +1,50 @@
 package Zeze.Arch;
 
 public class LoadConfig {
-	private int MaxOnlineNew = 30;
-	private int ApproximatelyLinkdCount = 4; // 大致的Linkd数量。在Provider报告期间，用来估算负载均衡。
+	private int maxOnlineNew = 30;
+	private int approximatelyLinkdCount = 4; // 大致的Linkd数量。在Provider报告期间，用来估算负载均衡。
 
-	private int ReportDelaySeconds = 10;
-	private int ProposeMaxOnline = 15000;
-	private int DigestionDelayExSeconds = 2;
+	private int reportDelaySeconds = 10;
+	private int proposeMaxOnline = 15000;
+	private int digestionDelayExSeconds = 2;
 
 	public final int getMaxOnlineNew() {
-		return MaxOnlineNew;
+		return maxOnlineNew;
 	}
 
 	public final void setMaxOnlineNew(int value) {
-		MaxOnlineNew = value;
+		maxOnlineNew = value;
 	}
 
 	public final int getApproximatelyLinkdCount() {
-		return ApproximatelyLinkdCount;
+		return approximatelyLinkdCount;
 	}
 
 	public final void setApproximatelyLinkdCount(int value) {
-		ApproximatelyLinkdCount = value;
+		approximatelyLinkdCount = value;
 	}
 
 	public final int getReportDelaySeconds() {
-		return ReportDelaySeconds;
+		return reportDelaySeconds;
 	}
 
 	public final void setReportDelaySeconds(int value) {
-		ReportDelaySeconds = value;
+		reportDelaySeconds = value;
 	}
 
 	public final int getProposeMaxOnline() {
-		return ProposeMaxOnline;
+		return proposeMaxOnline;
 	}
 
 	public final void setProposeMaxOnline(int value) {
-		ProposeMaxOnline = value;
+		proposeMaxOnline = value;
 	}
 
 	public final int getDigestionDelayExSeconds() {
-		return DigestionDelayExSeconds;
+		return digestionDelayExSeconds;
 	}
 
 	public final void setDigestionDelayExSeconds(int value) {
-		DigestionDelayExSeconds = value;
+		digestionDelayExSeconds = value;
 	}
 }

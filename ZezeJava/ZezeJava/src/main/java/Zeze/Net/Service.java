@@ -459,7 +459,7 @@ public class Service {
 			this.service = service;
 		}
 
-		public void OnRemoved() throws Throwable {
+		public void onRemoved() throws Throwable {
 		}
 	}
 
@@ -494,7 +494,7 @@ public class Service {
 		if (r != null) {
 			try {
 				r.setIsTimeout(isTimeout);
-				r.OnRemoved();
+				r.onRemoved();
 			} catch (Throwable skip) {
 				logger.error("ManualContext.OnRemoved", skip);
 			}

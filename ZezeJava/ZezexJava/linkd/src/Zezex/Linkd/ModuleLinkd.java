@@ -43,7 +43,7 @@ public final class ModuleLinkd extends AbstractModule {
 			protocol.getSender().close();
 			return Zeze.Transaction.Procedure.LogicError;
 		}
-		linkSession.KeepAlive(App.LinkdService);
+		linkSession.keepAlive(App.LinkdService);
 		protocol.getSender().Send(protocol); // send back;
 		return Zeze.Transaction.Procedure.Success;
 	}

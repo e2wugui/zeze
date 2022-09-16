@@ -54,9 +54,9 @@ import org.apache.logging.log4j.Logger;
 public class Online extends AbstractOnline {
 	protected static final Logger logger = LogManager.getLogger(Online.class);
 
-	public final ProviderApp ProviderApp;
-	private final LoadReporter LoadReporter;
-	private final AtomicLong LoginTimes = new AtomicLong();
+	public final ProviderApp providerApp;
+	private final LoadReporter loadReporter;
+	private final AtomicLong loginTimes = new AtomicLong();
 
 	private final EventDispatcher loginEvents = new EventDispatcher("Online.Login");
 	private final EventDispatcher reloginEvents = new EventDispatcher("Online.Relogin");
@@ -73,7 +73,7 @@ public class Online extends AbstractOnline {
 	}
 
 	private final ConcurrentHashMap<String, TransmitAction> transmitActions = new ConcurrentHashMap<>();
-	private Future<?> VerifyLocalTimer;
+	private Future<?> verifyLocalTimer;
 
 	public static Online create(AppBase app) {
 		return GenModule.createRedirectModule(Online.class, app);
@@ -91,38 +91,38 @@ public class Online extends AbstractOnline {
 	public Online() {
 		if (Reflect.stackWalker.getCallerClass() != RedirectGenMain.class)
 			throw new IllegalCallerException(Reflect.stackWalker.getCallerClass().getName());
-		ProviderApp = null;
-		LoadReporter = null;
+		providerApp = null;
+		loadReporter = null;
 	}
 
 	protected Online(AppBase app) {
 		if (app != null) {
-			this.ProviderApp = app.getZeze().redirect.ProviderApp;
-			RegisterProtocols(ProviderApp.ProviderService);
-			RegisterZezeTables(ProviderApp.Zeze);
+			this.providerApp = app.getZeze().redirect.providerApp;
+			RegisterProtocols(providerApp.providerService);
+			RegisterZezeTables(providerApp.zeze);
 		} else // for RedirectGenMain
-			this.ProviderApp = null;
+			this.providerApp = null;
 
-		LoadReporter = new LoadReporter(this);
+		loadReporter = new LoadReporter(this);
 	}
 
-	public void Start() {
-		LoadReporter.Start();
-		VerifyLocalTimer = Task.scheduleAtUnsafe(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
-		ProviderApp.BuiltinModules.put(this.getFullName(), this);
+	public void start() {
+		loadReporter.Start();
+		verifyLocalTimer = Task.scheduleAtUnsafe(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
+		providerApp.builtinModules.put(this.getFullName(), this);
 	}
 
-	public void Stop() {
-		LoadReporter.Stop();
-		if (null != VerifyLocalTimer)
-			VerifyLocalTimer.cancel(false);
+	public void stop() {
+		loadReporter.Stop();
+		if (null != verifyLocalTimer)
+			verifyLocalTimer.cancel(false);
 	}
 
 	@Override
 	public void UnRegister() {
-		if (null != ProviderApp) {
-			UnRegisterProtocols(ProviderApp.ProviderService);
-			UnRegisterZezeTables(ProviderApp.Zeze);
+		if (null != providerApp) {
+			UnRegisterProtocols(providerApp.providerService);
+			UnRegisterZezeTables(providerApp.zeze);
 		}
 	}
 
@@ -139,7 +139,7 @@ public class Online extends AbstractOnline {
 	}
 
 	public long getLoginTimes() {
-		return LoginTimes.get();
+		return loginTimes.get();
 	}
 
 	// 登录事件
@@ -193,6 +193,7 @@ public class Online extends AbstractOnline {
 		return (T)data.getAny().getBean();
 	}
 
+	@SuppressWarnings("unchecked")
 	public <T extends Bean> T getOrAddLocalBean(long roleId, String key, T defaultHint) throws Throwable {
 		var bLocal = _tlocal.getOrAdd(roleId);
 		var data = bLocal.getDatas().getOrAdd(key);
@@ -238,7 +239,7 @@ public class Online extends AbstractOnline {
 		_tlocal.remove(roleId); // remove first
 
 		localRemoveEvents.triggerEmbed(this, arg);
-		localRemoveEvents.triggerProcedure(ProviderApp.Zeze, this, arg);
+		localRemoveEvents.triggerProcedure(providerApp.zeze, this, arg);
 		Transaction.whileCommit(() -> localRemoveEvents.triggerThread(this, arg));
 	}
 
@@ -248,7 +249,7 @@ public class Online extends AbstractOnline {
 		arg.OnlineData = _tonline.get(roleId).copy();
 
 		logoutEvents.triggerEmbed(this, arg);
-		logoutEvents.triggerProcedure(ProviderApp.Zeze, this, arg);
+		logoutEvents.triggerProcedure(providerApp.zeze, this, arg);
 		Transaction.whileCommit(() -> logoutEvents.triggerThread(this, arg));
 	}
 
@@ -260,7 +261,7 @@ public class Online extends AbstractOnline {
 		_tonline.remove(roleId); // remove first
 
 		logoutEvents.triggerEmbed(this, arg);
-		logoutEvents.triggerProcedure(ProviderApp.Zeze, this, arg);
+		logoutEvents.triggerProcedure(providerApp.zeze, this, arg);
 		Transaction.whileCommit(() -> logoutEvents.triggerThread(this, arg));
 	}
 
@@ -268,9 +269,9 @@ public class Online extends AbstractOnline {
 		var arg = new LoginArgument();
 		arg.RoleId = roleId;
 
-		LoginTimes.incrementAndGet();
+		loginTimes.incrementAndGet();
 		loginEvents.triggerEmbed(this, arg);
-		loginEvents.triggerProcedure(ProviderApp.Zeze, this, arg);
+		loginEvents.triggerProcedure(providerApp.zeze, this, arg);
 		Transaction.whileCommit(() -> loginEvents.triggerThread(this, arg));
 	}
 
@@ -278,9 +279,9 @@ public class Online extends AbstractOnline {
 		var arg = new LoginArgument();
 		arg.RoleId = roleId;
 
-		LoginTimes.incrementAndGet();
+		loginTimes.incrementAndGet();
 		reloginEvents.triggerEmbed(this, arg);
-		reloginEvents.triggerProcedure(ProviderApp.Zeze, this, arg);
+		reloginEvents.triggerProcedure(providerApp.zeze, this, arg);
 		Transaction.whileCommit(() -> reloginEvents.triggerThread(this, arg));
 	}
 
@@ -302,8 +303,8 @@ public class Online extends AbstractOnline {
 		}
 		Transaction.whileCommit(() -> {
 			// delay for real logout
-			Task.schedule(ProviderApp.Zeze.getConfig().getOnlineLogoutDelay(), () ->
-					ProviderApp.Zeze.newProcedure(() -> {
+			Task.schedule(providerApp.zeze.getConfig().getOnlineLogoutDelay(), () ->
+					providerApp.zeze.newProcedure(() -> {
 						// local online 独立判断version分别尝试删除。
 						var local = _tlocal.get(roleId);
 						if (null != local && local.getLoginVersion() == currentLoginVersion) {
@@ -352,7 +353,7 @@ public class Online extends AbstractOnline {
 
 	public void send(long roleId, long typeId, Binary fullEncodedProtocol) {
 		// 发送协议请求在另外的事务中执行。
-		ProviderApp.Zeze.getTaskOneByOneByKey().Execute(roleId, () -> Task.call(ProviderApp.Zeze.newProcedure(() -> {
+		providerApp.zeze.getTaskOneByOneByKey().Execute(roleId, () -> Task.call(providerApp.zeze.newProcedure(() -> {
 			sendEmbed(List.of(roleId), typeId, fullEncodedProtocol);
 			return Procedure.Success;
 		}, "Game.Online.send"), null, null), DispatchMode.Normal);
@@ -361,7 +362,7 @@ public class Online extends AbstractOnline {
 	@SuppressWarnings("unused")
 	public void send(Collection<Long> roles, long typeId, Binary fullEncodedProtocol) {
 		if (roles.size() > 0) {
-			ProviderApp.Zeze.getTaskOneByOneByKey().executeCyclicBarrier(roles, ProviderApp.Zeze.newProcedure(() -> {
+			providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(roles, providerApp.zeze.newProcedure(() -> {
 				sendEmbed(roles, typeId, fullEncodedProtocol);
 				return Procedure.Success;
 			}, "Game.Online.send"), null, DispatchMode.Normal);
@@ -370,7 +371,7 @@ public class Online extends AbstractOnline {
 
 	public void send(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
 		// 发送协议请求在另外的事务中执行。
-		Task.run(ProviderApp.Zeze.newProcedure(() -> {
+		Task.run(providerApp.zeze.newProcedure(() -> {
 			sendEmbed(roleIds, typeId, fullEncodedProtocol);
 			return Procedure.Success;
 		}, "Game.Online.send"), null, null, DispatchMode.Normal);
@@ -387,7 +388,7 @@ public class Online extends AbstractOnline {
 	}
 
 	public void send(AsyncSocket to, Map<Long, Long> contexts, Send send) {
-		send.Send(to, rpc -> triggerLinkBroken(ProviderService.GetLinkName(to),
+		send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
 				send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
 	}
 
@@ -410,7 +411,7 @@ public class Online extends AbstractOnline {
 		String linkName = "";
 		AsyncSocket linkSocket;
 		int serverId = -1;
-		//		long providerSessionId;
+		// long providerSessionId;
 		final HashMap<Long, Long> roles = new HashMap<>(); // roleid -> linksid
 		final HashMap<Long, Long> contexts = new HashMap<>(); // linksid -> roleid
 	}
@@ -427,7 +428,7 @@ public class Online extends AbstractOnline {
 				continue;
 			}
 
-			var connector = ProviderApp.ProviderService.getLinks().get(online.getLinkName());
+			var connector = providerApp.providerService.getLinks().get(online.getLinkName());
 			if (connector == null) {
 				groupNotOnline.roles.putIfAbsent(roleId, null);
 				continue;
@@ -489,7 +490,7 @@ public class Online extends AbstractOnline {
 	}
 
 	private Zeze.Collections.Queue<BNotify> openQueue(long roleId) {
-		return ProviderApp.Zeze.getQueueModule().open("Zeze.Game.Online.ReliableNotifyQueue:" + roleId, BNotify.class);
+		return providerApp.zeze.getQueueModule().open("Zeze.Game.Online.ReliableNotifyQueue:" + roleId, BNotify.class);
 	}
 
 	/**
@@ -498,7 +499,7 @@ public class Online extends AbstractOnline {
 	 * @param fullEncodedProtocol 协议必须先编码，因为会跨事务。
 	 */
 	public final void sendReliableNotify(long roleId, String listenerName, long typeId, Binary fullEncodedProtocol) {
-		ProviderApp.Zeze.runTaskOneByOneByKey(listenerName, "Game.Online.sendReliableNotify." + listenerName, () -> {
+		providerApp.zeze.runTaskOneByOneByKey(listenerName, "Game.Online.sendReliableNotify." + listenerName, () -> {
 			BOnline online = _tonline.get(roleId);
 			if (online == null) {
 				return Procedure.Success;
@@ -544,14 +545,14 @@ public class Online extends AbstractOnline {
 		var handle = transmitActions.get(actionName);
 		if (handle != null) {
 			for (var target : roleIds) {
-				Task.call(ProviderApp.Zeze.newProcedure(() -> handle.call(sender, target, parameter),
+				Task.call(providerApp.zeze.newProcedure(() -> handle.call(sender, target, parameter),
 						"Game.Online.transmit: " + actionName), null, null);
 			}
 		}
 	}
 
 	public static final class RoleOnServer {
-		int ServerId = -1; // ProviderId
+		int serverId = -1; // providerId
 		final HashSet<Long> roles = new HashSet<>();
 	}
 
@@ -572,8 +573,8 @@ public class Online extends AbstractOnline {
 			var group = groups.get(version.getServerId());
 			if (group == null) {
 				group = new RoleOnServer();
-				group.ServerId = version.getServerId();
-				groups.put(group.ServerId, group);
+				group.serverId = version.getServerId();
+				groups.put(group.serverId, group);
 			}
 			group.roles.add(roleId);
 		}
@@ -588,7 +589,7 @@ public class Online extends AbstractOnline {
 	}
 
 	private void transmitInProcedure(long sender, String actionName, Iterable<Long> roleIds, Binary parameter) {
-		if (ProviderApp.Zeze.getConfig().getGlobalCacheManagerHostNameOrAddress().isEmpty()) {
+		if (providerApp.zeze.getConfig().getGlobalCacheManagerHostNameOrAddress().isEmpty()) {
 			// 没有启用cache-sync，马上触发本地任务。
 			processTransmit(sender, actionName, roleIds, parameter);
 			return;
@@ -598,7 +599,7 @@ public class Online extends AbstractOnline {
 		RoleOnServer groupLocal = null;
 		for (var it = groups.iterator(); it.moveToNext(); ) {
 			var group = it.value();
-			if (group.ServerId == -1 || group.ServerId == ProviderApp.Zeze.getConfig().getServerId()) {
+			if (group.serverId == -1 || group.serverId == providerApp.zeze.getConfig().getServerId()) {
 				// loopback 就是当前gs.
 				groupLocal = merge(groupLocal, group);
 				continue;
@@ -610,13 +611,13 @@ public class Online extends AbstractOnline {
 			if (parameter != null) {
 				transmit.Argument.setParameter(parameter);
 			}
-			var ps = ProviderApp.ProviderDirectService.ProviderByServerId.get(group.ServerId);
+			var ps = providerApp.providerDirectService.providerByServerId.get(group.serverId);
 			if (null == ps) {
 				assert groupLocal != null;
 				groupLocal.roles.addAll(group.roles);
 				continue;
 			}
-			var socket = ProviderApp.ProviderDirectService.GetSocket(ps.getSessionId());
+			var socket = providerApp.providerDirectService.GetSocket(ps.getSessionId());
 			if (null == socket) {
 				assert groupLocal != null;
 				groupLocal.roles.addAll(group.roles);
@@ -645,7 +646,7 @@ public class Online extends AbstractOnline {
 		} else
 			bb = null;
 		// 发送协议请求在另外的事务中执行。
-		Task.run(ProviderApp.Zeze.newProcedure(() -> {
+		Task.run(providerApp.zeze.newProcedure(() -> {
 			transmitInProcedure(sender, actionName, roleIds, bb != null ? new Binary(bb) : null);
 			return Procedure.Success;
 		}, "Game.Online.transmit"), null, null, DispatchMode.Normal);
@@ -696,7 +697,7 @@ public class Online extends AbstractOnline {
 	private void broadcast(long typeId, Binary fullEncodedProtocol, int time) {
 //		TaskCompletionSource<Long> future = null;
 		var broadcast = new Broadcast(new BBroadcast(typeId, fullEncodedProtocol, time));
-		for (var link : ProviderApp.ProviderService.getLinks().values()) {
+		for (var link : providerApp.providerService.getLinks().values()) {
 			if (link.getSocket() != null)
 				link.getSocket().Send(broadcast);
 		}
@@ -722,7 +723,7 @@ public class Online extends AbstractOnline {
 		}, () -> {
 			// 锁外执行事务
 			try {
-				ProviderApp.Zeze.newProcedure(() -> {
+				providerApp.zeze.newProcedure(() -> {
 					tryRemoveLocal(roleId.value);
 					return 0L;
 				}, "VerifyLocal:" + roleId.value).Call();
@@ -731,7 +732,7 @@ public class Online extends AbstractOnline {
 			}
 		});
 		// 随机开始时间，避免验证操作过于集中。3:10 - 5:10
-		VerifyLocalTimer = Task.scheduleAtUnsafe(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
+		verifyLocalTimer = Task.scheduleAtUnsafe(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
 	}
 
 	private void tryRemoveLocal(long roleId) throws Throwable {
@@ -781,7 +782,7 @@ public class Online extends AbstractOnline {
 		local.setLoginVersion(loginVersion);
 
 		if (!online.getLinkName().equals(session.getLinkName()) || online.getLinkSid() != session.getLinkSid()) {
-			ProviderApp.ProviderService.kick(online.getLinkName(), online.getLinkSid(),
+			providerApp.providerService.kick(online.getLinkName(), online.getLinkSid(),
 					BKick.ErrorDuplicateLogin, "duplicate role login");
 		}
 		if (!online.getLinkName().equals(session.getLinkName()))
@@ -795,7 +796,7 @@ public class Online extends AbstractOnline {
 		version.setReliableNotifyIndex(0);
 
 		// var linkSession = (ProviderService.LinkSession)session.getLink().getUserState();
-		version.setServerId(ProviderApp.Zeze.getConfig().getServerId());
+		version.setServerId(providerApp.zeze.getConfig().getServerId());
 
 		loginTrigger(rpc.Argument.getRoleId());
 
@@ -843,7 +844,7 @@ public class Online extends AbstractOnline {
 		local.setLoginVersion(loginVersion);
 
 		if (!online.getLinkName().equals(session.getLinkName()) || online.getLinkSid() != session.getLinkSid()) {
-			ProviderApp.ProviderService.kick(online.getLinkName(), online.getLinkSid(),
+			providerApp.providerService.kick(online.getLinkName(), online.getLinkSid(),
 					BKick.ErrorDuplicateLogin, "duplicate role login");
 		}
 		if (!online.getLinkName().equals(session.getLinkName()))

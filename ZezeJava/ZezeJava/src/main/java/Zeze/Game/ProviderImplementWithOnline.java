@@ -13,7 +13,7 @@ public class ProviderImplementWithOnline extends ProviderImplement {
 		// 目前仅需设置online状态。
 		if (!p.Argument.getContext().isEmpty()) {
 			var roleId = Long.parseLong(p.Argument.getContext());
-			Online.onLinkBroken(roleId, ProviderService.GetLinkName(p.getSender()), p.Argument.getLinkSid());
+			Online.onLinkBroken(roleId, ProviderService.getLinkName(p.getSender()), p.Argument.getLinkSid());
 		}
 		return Procedure.Success;
 	}

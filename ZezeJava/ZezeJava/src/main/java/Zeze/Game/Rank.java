@@ -48,19 +48,19 @@ public class Rank extends AbstractRank {
 		if (app != this.app)
 			throw new IllegalArgumentException();
 		RegisterZezeTables(app.getZeze());
-		RegisterProtocols(app.getZeze().redirect.ProviderApp.ProviderService);
+		RegisterProtocols(app.getZeze().redirect.providerApp.providerService);
 	}
 
 	@Override
 	public void UnRegister() {
 		if (app != null) {
-			UnRegisterProtocols(app.getZeze().redirect.ProviderApp.ProviderService);
+			UnRegisterProtocols(app.getZeze().redirect.providerApp.providerService);
 			UnRegisterZezeTables(app.getZeze());
 		}
 	}
 
 	public void Start(String serviceNamePrefix, String providerDirectIp, int providerDirectPort) {
-		var name = ProviderDistribute.MakeServiceName(serviceNamePrefix, getId());
+		var name = ProviderDistribute.makeServiceName(serviceNamePrefix, getId());
 		var identity = String.valueOf(app.getZeze().getConfig().getServerId());
 		app.getZeze().getServiceManagerAgent().registerService(name, identity, providerDirectIp, providerDirectPort);
 	}

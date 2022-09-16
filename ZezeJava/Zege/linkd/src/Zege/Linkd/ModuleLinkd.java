@@ -24,7 +24,7 @@ public class ModuleLinkd extends AbstractModule {
             p.getSender().close();
             return Zeze.Transaction.Procedure.LogicError;
         }
-        linkSession.KeepAlive(App.LinkdService);
+        linkSession.keepAlive(App.LinkdService);
         p.getSender().Send(p); // send back;
         return Zeze.Transaction.Procedure.Success;
     }
@@ -36,8 +36,8 @@ public class ModuleLinkd extends AbstractModule {
         v.Argument.setSigned(c.Result.getSigned());
 
         var provider = new OutLong();
-        if (App.LinkdApp.LinkdProvider.ChoiceHashWithoutBind(v.getModuleId(), ByteBuffer.calc_hashnr(v.Argument.getAccount()), provider)) {
-            var providerSocket = App.LinkdApp.LinkdProviderService.GetSocket(provider.value);
+        if (App.LinkdApp.linkdProvider.choiceHashWithoutBind(v.getModuleId(), ByteBuffer.calc_hashnr(v.Argument.getAccount()), provider)) {
+            var providerSocket = App.LinkdApp.linkdProviderService.GetSocket(provider.value);
             if (null != providerSocket && v.Send(providerSocket, (r_) -> {
                     if (!v.isTimeout() && v.getResultCode() == 0) {
                         var linkSession = (LinkdUserSession)c.getSender().getUserState();
@@ -48,7 +48,7 @@ public class ModuleLinkd extends AbstractModule {
                         var cr = new ChallengeResult();
                         cr.setResultCode(v.getResultCode());
                         c.Send(c.getSender()); // skip result
-                        App.LinkdService.ReportError(
+                        App.LinkdService.reportError(
                                 c.getSender().getSessionId(), BReportError.FromLink,
                                 BReportError.CodeNotAuthed, "no provider.");
                     }
@@ -56,7 +56,7 @@ public class ModuleLinkd extends AbstractModule {
                 }))
                     return; // dispatch success
         }
-        App.LinkdService.ReportError(
+        App.LinkdService.reportError(
                 c.getSender().getSessionId(), BReportError.FromLink,
                 BReportError.CodeNoProvider, "no provider.");
     }

@@ -15,11 +15,11 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 public final class ProviderModuleBinds {
-	public static ProviderModuleBinds Load() {
-		return Load(null);
+	public static ProviderModuleBinds load() {
+		return load(null);
 	}
 
-	public static ProviderModuleBinds Load(String xmlFile) {
+	public static ProviderModuleBinds load(String xmlFile) {
 		if (xmlFile == null)
 			xmlFile = "provider.module.binds.xml";
 
@@ -38,33 +38,33 @@ public final class ProviderModuleBinds {
 	}
 
 	public static class Module {
-		private final String FullName;
-		private final int ChoiceType;
-		private final int SubscribeType;
-		private final int ConfigType; // 为了兼容，没有配置的话，从其他条件推导出来。
-		private final IntHashSet Providers = new IntHashSet();
+		private final String fullName;
+		private final int choiceType;
+		private final int subscribeType;
+		private final int configType; // 为了兼容，没有配置的话，从其他条件推导出来。
+		private final IntHashSet providers = new IntHashSet();
 
 		public final String getFullName() {
-			return FullName;
+			return fullName;
 		}
 
 		public final int getChoiceType() {
-			return ChoiceType;
+			return choiceType;
 		}
 
 		public final int getSubscribeType() {
-			return SubscribeType;
+			return subscribeType;
 		}
 
 		public final int getConfigType() {
-			return ConfigType;
+			return configType;
 		}
 
 		public final IntHashSet getProviders() {
-			return Providers;
+			return providers;
 		}
 
-		private static int GetChoiceType(Element self) {
+		private static int getChoiceType(Element self) {
 			switch (self.getAttribute("ChoiceType")) {
 			case "ChoiceTypeHashAccount":
 				return BModule.ChoiceTypeHashAccount;
@@ -78,7 +78,7 @@ public final class ProviderModuleBinds {
 		}
 
 		// 这个订阅类型目前用于动态绑定的模块，所以默认为SubscribeTypeSimple。
-		private static int GetSubscribeType(Element self) {
+		private static int getSubscribeType(Element self) {
 			//noinspection SwitchStatementWithTooFewBranches
 			switch (self.getAttribute("SubscribeType")) {
 			case "SubscribeTypeReadyCommit":
@@ -91,29 +91,29 @@ public final class ProviderModuleBinds {
 		}
 
 		public Module(Element self) {
-			FullName = self.getAttribute("name");
-			ChoiceType = GetChoiceType(self);
-			SubscribeType = GetSubscribeType(self);
+			fullName = self.getAttribute("name");
+			choiceType = getChoiceType(self);
+			subscribeType = getSubscribeType(self);
 
-			ProviderModuleBinds.SplitIntoSet(self.getAttribute("providers"), Providers);
+			ProviderModuleBinds.splitIntoSet(self.getAttribute("providers"), providers);
 
 			String attr = self.getAttribute("ConfigType").trim();
 			switch (attr) {
 			case "":
 				// 兼容，如果没有配置
-				ConfigType = Providers.isEmpty() ? BModule.ConfigTypeDynamic : BModule.ConfigTypeSpecial;
+				configType = providers.isEmpty() ? BModule.ConfigTypeDynamic : BModule.ConfigTypeSpecial;
 				break;
 
 			case "Special":
-				ConfigType = BModule.ConfigTypeSpecial;
+				configType = BModule.ConfigTypeSpecial;
 				break;
 
 			case "Dynamic":
-				ConfigType = BModule.ConfigTypeDynamic;
+				configType = BModule.ConfigTypeDynamic;
 				break;
 
 			case "Default":
-				ConfigType = BModule.ConfigTypeDefault;
+				configType = BModule.ConfigTypeDefault;
 				break;
 
 			default:
@@ -122,8 +122,8 @@ public final class ProviderModuleBinds {
 		}
 	}
 
-	private final HashMap<String, Module> Modules = new HashMap<>();
-	private final IntHashSet ProviderNoDefaultModule = new IntHashSet();
+	private final HashMap<String, Module> modules = new HashMap<>();
+	private final IntHashSet providerNoDefaultModule = new IntHashSet();
 
 	private ProviderModuleBinds() {
 	}
@@ -142,11 +142,11 @@ public final class ProviderModuleBinds {
 			switch (e.getNodeName()) {
 			case "module":
 				var module = new Module(e);
-				Modules.put(module.FullName, module);
+				modules.put(module.fullName, module);
 				break;
 
 			case "ProviderNoDefaultModule":
-				SplitIntoSet(e.getAttribute("providers"), ProviderNoDefaultModule);
+				splitIntoSet(e.getAttribute("providers"), providerNoDefaultModule);
 				break;
 
 			default:
@@ -155,7 +155,7 @@ public final class ProviderModuleBinds {
 		}
 	}
 
-	private static void SplitIntoSet(String providers, IntHashSet set) {
+	private static void splitIntoSet(String providers, IntHashSet set) {
 		for (var provider : providers.split(",", -1)) {
 			var p = provider.trim();
 			if (!p.isEmpty())
@@ -164,31 +164,31 @@ public final class ProviderModuleBinds {
 	}
 
 	public HashMap<String, Module> getModules() {
-		return Modules;
+		return modules;
 	}
 
 	public IntHashSet getProviderNoDefaultModule() {
-		return ProviderNoDefaultModule;
+		return providerNoDefaultModule;
 	}
 
 	// 非动态模块都为静态模块, 其中声明ConfigType="Special"及providers不为空的只有指定providers会注册该模块
 	// 声明ConfigType="Default"且providers为空的所有providers都会注册
 	// 其它未在绑定配置定义的模块只要不在ProviderNoDefaultModule配置里的providers都会注册
-	public void BuildStaticBinds(HashMap<String, IModule> AllModules, int serverId, IntHashMap<BModule> out) {
-		var noDefaultModule = ProviderNoDefaultModule.contains(serverId);
+	public void buildStaticBinds(HashMap<String, IModule> AllModules, int serverId, IntHashMap<BModule> out) {
+		var noDefaultModule = providerNoDefaultModule.contains(serverId);
 		for (var m : AllModules.values()) {
-			var cm = Modules.get(m.getFullName());
+			var cm = modules.get(m.getFullName());
 			if (cm == null) {
 				if (noDefaultModule)
 					continue;
-			} else if (cm.ConfigType == BModule.ConfigTypeDynamic)
+			} else if (cm.configType == BModule.ConfigTypeDynamic)
 				continue;
-			else if (cm.ConfigType == BModule.ConfigTypeSpecial) {
-				if (!cm.Providers.contains(serverId))
+			else if (cm.configType == BModule.ConfigTypeSpecial) {
+				if (!cm.providers.contains(serverId))
 					continue;
-			} else if (!cm.Providers.isEmpty() && !cm.Providers.contains(serverId)) // ConfigTypeDefault
+			} else if (!cm.providers.isEmpty() && !cm.providers.contains(serverId)) // ConfigTypeDefault
 				continue;
-			out.put(m.getId(), cm != null ? new BModule(cm.ChoiceType, cm.ConfigType, cm.SubscribeType)
+			out.put(m.getId(), cm != null ? new BModule(cm.choiceType, cm.configType, cm.subscribeType)
 					: new BModule(BModule.ChoiceTypeDefault, BModule.ConfigTypeDefault,
 					BSubscribeInfo.SubscribeTypeReadyCommit));
 		}
@@ -196,12 +196,12 @@ public final class ProviderModuleBinds {
 
 	// 动态模块必须在绑定配置里 声明ConfigType="Dynamic" 或 缺省的ConfigType并指定空的providers
 	// 动态模块的providers为空则表示所有providers都可以注册该模块, 否则只有指定的providers可以注册
-	public void BuildDynamicBinds(HashMap<String, IModule> AllModules, int serverId, IntHashMap<BModule> out) {
+	public void buildDynamicBinds(HashMap<String, IModule> AllModules, int serverId, IntHashMap<BModule> out) {
 		for (var m : AllModules.values()) {
-			var cm = Modules.get(m.getFullName());
-			if (cm != null && cm.ConfigType == BModule.ConfigTypeDynamic &&
-					(cm.Providers.isEmpty() || cm.Providers.contains(serverId)))
-				out.put(m.getId(), new BModule(cm.ChoiceType, BModule.ConfigTypeDynamic, cm.SubscribeType));
+			var cm = modules.get(m.getFullName());
+			if (cm != null && cm.configType == BModule.ConfigTypeDynamic &&
+					(cm.providers.isEmpty() || cm.providers.contains(serverId)))
+				out.put(m.getId(), new BModule(cm.choiceType, BModule.ConfigTypeDynamic, cm.subscribeType));
 		}
 	}
 }

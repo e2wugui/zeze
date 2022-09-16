@@ -85,21 +85,21 @@ public class SimpleApp extends AppBase {
 //		}
 
 		zeze.start();
-		((ProviderImplementWithOnline)providerApp.ProviderImplement).Online.Start();
-		providerApp.ProviderService.Start();
-		providerApp.ProviderDirectService.Start();
-		providerApp.StartLast(ProviderModuleBinds.Load(""), modules);
+		((ProviderImplementWithOnline)providerApp.providerImplement).Online.start();
+		providerApp.providerService.Start();
+		providerApp.providerDirectService.Start();
+		providerApp.startLast(ProviderModuleBinds.load(""), modules);
 	}
 
 	public void stop() throws Throwable {
 		if (providerApp != null) {
-			if (providerApp.ProviderImplement != null) {
-				var online = ((ProviderImplementWithOnline)providerApp.ProviderImplement).Online;
+			if (providerApp.providerImplement != null) {
+				var online = ((ProviderImplementWithOnline)providerApp.providerImplement).Online;
 				if (online != null)
-					online.Stop();
+					online.stop();
 			}
-			providerApp.ProviderDirectService.Stop();
-			providerApp.ProviderService.Stop();
+			providerApp.providerDirectService.Stop();
+			providerApp.providerService.Stop();
 			providerApp = null;
 		}
 		if (rank != null) {

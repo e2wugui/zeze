@@ -26,7 +26,7 @@ public class ProviderUserSession {
 	}
 
 	public void kick(int code, String desc) {
-		ProviderImplement.SendKick(getLink(), getLinkSid(), code, desc);
+		ProviderImplement.sendKick(getLink(), getLinkSid(), code, desc);
 	}
 
 	public final ProviderService getService() {
@@ -55,7 +55,7 @@ public class ProviderUserSession {
 	}
 
 	public final String getLinkName() {
-		return ProviderService.GetLinkName(getLink());
+		return ProviderService.getLinkName(getLink());
 	}
 
 	public final AsyncSocket getLink() {
@@ -71,9 +71,9 @@ public class ProviderUserSession {
 	}
 
 	private void sendOnline(AsyncSocket link, Send send) {
-		var providerImpl = getService().ProviderApp.ProviderImplement;
+		var providerImpl = getService().providerApp.providerImplement;
 		if (providerImpl instanceof ProviderWithOnline) {
-			((ProviderWithOnline)providerImpl).Online.send(
+			((ProviderWithOnline)providerImpl).online.send(
 					link, Map.of(getLinkSid(), KV.create(getAccount(), getContext())), send);
 		} else if (providerImpl instanceof ProviderImplementWithOnline) {
 			var contexts = new TreeMap<Long, Long>();

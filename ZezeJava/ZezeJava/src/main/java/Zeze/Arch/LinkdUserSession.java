@@ -17,55 +17,55 @@ import org.apache.logging.log4j.Logger;
 public class LinkdUserSession {
 	private static final Logger logger = LogManager.getLogger(LinkdUserSession.class);
 
-	private String Account;
-	private String Context = "";
-	private Binary Contextx = Binary.Empty;
-	private final ReentrantReadWriteLock BindsLock = new ReentrantReadWriteLock();
-	private IntHashMap<Long> Binds = new IntHashMap<>(); // 动态绑定(也会混合静态绑定) <moduleId,providerSessionId>
-	private final long SessionId; // Linkd.SessionId
-	private Future<?> KeepAliveTask; // 仅在网络线程中回调，并且一个时候，只会有一个回调，不线程保护了。
+	private String account;
+	private String context = "";
+	private Binary contextx = Binary.Empty;
+	private final ReentrantReadWriteLock bindsLock = new ReentrantReadWriteLock();
+	private IntHashMap<Long> binds = new IntHashMap<>(); // 动态绑定(也会混合静态绑定) <moduleId,providerSessionId>
+	private final long sessionId; // Linkd.SessionId
+	private Future<?> keepAliveTask; // 仅在网络线程中回调，并且一个时候，只会有一个回调，不线程保护了。
 	private volatile boolean authed;
 
 	public LinkdUserSession(long sessionId) {
-		SessionId = sessionId;
+		this.sessionId = sessionId;
 	}
 
 	public final String getAccount() {
-		return Account;
+		return account;
 	}
 
 	public final void setAccount(String value) {
-		Account = value;
+		account = value;
 	}
 
-	public final boolean TrySetAccount(String newAccount) {
-		if (Account == null || Account.isEmpty()) {
-			Account = newAccount;
+	public final boolean trySetAccount(String newAccount) {
+		if (account == null || account.isEmpty()) {
+			account = newAccount;
 			return true;
 		}
 
-		return Account.equals(newAccount);
+		return account.equals(newAccount);
 	}
 
 	public final String getContext() {
-		return Context;
+		return context;
 	}
 
 	public final Binary getContextx() {
-		return Contextx;
+		return contextx;
 	}
 
-	public final void SetUserState(String context, Binary contextx) {
-		Context = context != null ? context : "";
-		Contextx = contextx != null ? contextx : Binary.Empty;
+	public final void setUserState(String context, Binary contextx) {
+		this.context = context != null ? context : "";
+		this.contextx = contextx != null ? contextx : Binary.Empty;
 	}
 
 	public final Long getRoleId() {
-		return Context.isEmpty() ? null : Long.parseLong(Context);
+		return context.isEmpty() ? null : Long.parseLong(context);
 	}
 
 	public final long getSessionId() {
-		return SessionId;
+		return sessionId;
 	}
 
 	public final boolean isAuthed() {
@@ -76,67 +76,67 @@ public class LinkdUserSession {
 		authed = true;
 	}
 
-	public final Long TryGetProvider(int moduleId) {
-		var readLock = BindsLock.readLock();
+	public final Long tryGetProvider(int moduleId) {
+		var readLock = bindsLock.readLock();
 		readLock.lock();
 		try {
-			return Binds.get(moduleId);
+			return binds.get(moduleId);
 		} finally {
 			readLock.unlock();
 		}
 	}
 
-	public final void Bind(LinkdProviderService linkdProviderService, AsyncSocket link,
+	public final void bind(LinkdProviderService linkdProviderService, AsyncSocket link,
 						   Iterable<Integer> moduleIds, AsyncSocket provider) {
 		var providerSessionId = Long.valueOf(provider.getSessionId());
-		var writeLock = BindsLock.writeLock();
+		var writeLock = bindsLock.writeLock();
 		writeLock.lock();
 		try {
 			for (var moduleId : moduleIds) {
-				var exist = Binds.get(moduleId);
+				var exist = binds.get(moduleId);
 				if (exist != null && exist.longValue() != providerSessionId.longValue()) {
 					logger.warn("LinkSession.Bind replace provider {} {} {}", moduleId,
 							linkdProviderService.GetSocket(exist).getRemoteAddress(), provider.getRemoteAddress());
 				}
-				Binds.put(moduleId, providerSessionId);
+				binds.put(moduleId, providerSessionId);
 				var ps = (LinkdProviderSession)provider.getUserState();
 				if (ps != null)
-					ps.AddLinkSession(moduleId, link.getSessionId());
+					ps.addLinkSession(moduleId, link.getSessionId());
 			}
 		} finally {
 			writeLock.unlock();
 		}
 	}
 
-	public final void UnBind(LinkdProviderService linkdProviderService, AsyncSocket link,
+	public final void unbind(LinkdProviderService linkdProviderService, AsyncSocket link,
 							 int moduleId, AsyncSocket provider) {
-		UnBind(linkdProviderService, link, moduleId, provider, false);
+		unbind(linkdProviderService, link, moduleId, provider, false);
 	}
 
-	public final void UnBind(LinkdProviderService linkdProviderService, AsyncSocket link,
+	public final void unbind(LinkdProviderService linkdProviderService, AsyncSocket link,
 							 int moduleId, AsyncSocket provider, boolean isOnProviderClose) {
-		UnBind(linkdProviderService, link, List.of(moduleId), provider, isOnProviderClose);
+		unbind(linkdProviderService, link, List.of(moduleId), provider, isOnProviderClose);
 	}
 
-	public final void UnBind(LinkdProviderService linkdProviderService, AsyncSocket link,
+	public final void unbind(LinkdProviderService linkdProviderService, AsyncSocket link,
 							 Iterable<Integer> moduleIds, AsyncSocket provider) {
-		UnBind(linkdProviderService, link, moduleIds, provider, false);
+		unbind(linkdProviderService, link, moduleIds, provider, false);
 	}
 
-	public final void UnBind(LinkdProviderService linkdProviderService, AsyncSocket link,
+	public final void unbind(LinkdProviderService linkdProviderService, AsyncSocket link,
 							 Iterable<Integer> moduleIds, AsyncSocket provider, boolean isOnProviderClose) {
-		var writeLock = BindsLock.writeLock();
+		var writeLock = bindsLock.writeLock();
 		writeLock.lock();
 		try {
 			for (var moduleId : moduleIds) {
-				var exist = Binds.get(moduleId);
+				var exist = binds.get(moduleId);
 				if (exist != null) {
 					if (exist == provider.getSessionId()) { // check owner? 也许不做这个检测更好？
-						Binds.remove(moduleId);
+						binds.remove(moduleId);
 						if (!isOnProviderClose) {
 							var ps = (LinkdProviderSession)provider.getUserState();
 							if (ps != null)
-								ps.RemoveLinkSession(moduleId, link.getSessionId());
+								ps.removeLinkSession(moduleId, link.getSessionId());
 						}
 					} else {
 						logger.warn("LinkSession.UnBind not owner {} {} {}", moduleId,
@@ -149,29 +149,29 @@ public class LinkdUserSession {
 		}
 	}
 
-	public final void KeepAlive(Service linkdService) {
-		if (KeepAliveTask != null)
-			KeepAliveTask.cancel(false);
-		KeepAliveTask = Task.scheduleUnsafe(3000_000, () -> {
-			var link = linkdService.GetSocket(SessionId);
+	public final void keepAlive(Service linkdService) {
+		if (keepAliveTask != null)
+			keepAliveTask.cancel(false);
+		keepAliveTask = Task.scheduleUnsafe(3000_000, () -> {
+			var link = linkdService.GetSocket(sessionId);
 			if (link != null)
 				link.close();
 		});
 	}
 
-	public final void OnClose(LinkdProviderService linkdProviderService) {
-		if (KeepAliveTask != null)
-			KeepAliveTask.cancel(false);
+	public final void onClose(LinkdProviderService linkdProviderService) {
+		if (keepAliveTask != null)
+			keepAliveTask.cancel(false);
 
 		if (!isAuthed())
 			return; // 未验证通过的不通告。此时Binds肯定是空的。
 
 		IntHashMap<Long> bindsSwap;
-		var writeLock = BindsLock.writeLock();
+		var writeLock = bindsLock.writeLock();
 		writeLock.lock();
 		try {
-			bindsSwap = Binds;
-			Binds = new IntHashMap<>();
+			bindsSwap = binds;
+			binds = new IntHashMap<>();
 		} finally {
 			writeLock.unlock();
 		}
@@ -185,12 +185,12 @@ public class LinkdUserSession {
 			var providerSession = (LinkdProviderSession)provider.getUserState();
 			if (providerSession == null)
 				continue;
-			providerSession.RemoveLinkSession(it.key(), SessionId);
+			providerSession.removeLinkSession(it.key(), sessionId);
 			bindProviders.add(provider); // 先收集， 去重。
 		}
 		if (!bindProviders.isEmpty()) {
-			var linkBroken = new LinkBroken(new BLinkBroken(Account, SessionId, BLinkBroken.REASON_PEERCLOSE, // 这个reason保留吧。现在没什么用。
-					Context, Contextx));
+			var linkBroken = new LinkBroken(new BLinkBroken(account, sessionId, BLinkBroken.REASON_PEERCLOSE, // 这个reason保留吧。现在没什么用。
+					context, contextx));
 			for (var provider : bindProviders)
 				provider.Send(linkBroken);
 		}

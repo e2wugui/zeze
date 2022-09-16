@@ -33,7 +33,7 @@ public class ProviderDirectWithTransmit extends ProviderDirect {
 
 	@Override
 	protected long ProcessTransmit(Transmit p) {
-		((ProviderImplementWithOnline)ProviderApp.ProviderImplement).Online.processTransmit(
+		((ProviderImplementWithOnline)providerApp.providerImplement).Online.processTransmit(
 				p.Argument.getSender(), p.Argument.getActionName(),
 				p.Argument.getRoles(), p.Argument.getParameter());
 		return Procedure.Success;

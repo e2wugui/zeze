@@ -20,25 +20,25 @@ import org.apache.logging.log4j.Logger;
 public abstract class ProviderImplement extends AbstractProviderImplement {
 	private static final Logger logger = LogManager.getLogger(ProviderImplement.class);
 
-	protected ProviderApp ProviderApp;
+	protected ProviderApp providerApp;
 
-	void ApplyOnChanged(Agent.SubscribeState subState) throws Throwable {
-		if (subState.getServiceName().equals(ProviderApp.LinkdServiceName)) {
+	void applyOnChanged(Agent.SubscribeState subState) throws Throwable {
+		if (subState.getServiceName().equals(providerApp.linkdServiceName)) {
 			// Linkd info
-			ProviderApp.ProviderService.Apply(subState.getServiceInfos());
-		} else if (subState.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)) {
+			providerApp.providerService.apply(subState.getServiceInfos());
+		} else if (subState.getServiceName().startsWith(providerApp.serverServiceNamePrefix)) {
 			// Provider info
 			// 对于 SubscribeTypeSimple 是不需要 SetReady 的，为了能一致处理，就都设置上了。
 			// 对于 SubscribeTypeReadyCommit 在 ApplyOnPrepare 中处理。
 			if (subState.getSubscribeType() == BSubscribeInfo.SubscribeTypeSimple)
-				ProviderApp.ProviderDirectService.TryConnectAndSetReady(subState, subState.getServiceInfos());
+				providerApp.providerDirectService.tryConnectAndSetReady(subState, subState.getServiceInfos());
 		}
 	}
 
-	void ApplyOnPrepare(Agent.SubscribeState subState) throws Throwable {
+	void applyOnPrepare(Agent.SubscribeState subState) throws Throwable {
 		var pending = subState.getServiceInfosPending();
-		if (pending != null && pending.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix))
-			ProviderApp.ProviderDirectService.TryConnectAndSetReady(subState, pending);
+		if (pending != null && pending.getServiceName().startsWith(providerApp.serverServiceNamePrefix))
+			providerApp.providerDirectService.tryConnectAndSetReady(subState, pending);
 	}
 
 	/**
@@ -49,29 +49,29 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	 * 订阅Linkd服务。
 	 * Provider主动连接Linkd。
 	 */
-	public void RegisterModulesAndSubscribeLinkd() {
-		var sm = ProviderApp.Zeze.getServiceManagerAgent();
-		var identity = String.valueOf(ProviderApp.Zeze.getConfig().getServerId());
+	public void registerModulesAndSubscribeLinkd() {
+		var sm = providerApp.zeze.getServiceManagerAgent();
+		var identity = String.valueOf(providerApp.zeze.getConfig().getServerId());
 		// 注册本provider的静态服务
-		for (var it = ProviderApp.StaticBinds.iterator(); it.moveToNext(); ) {
-			sm.registerService(ProviderApp.ServerServiceNamePrefix + it.key(), identity,
-					ProviderApp.DirectIp, ProviderApp.DirectPort);
+		for (var it = providerApp.staticBinds.iterator(); it.moveToNext(); ) {
+			sm.registerService(providerApp.serverServiceNamePrefix + it.key(), identity,
+					providerApp.directIp, providerApp.directPort);
 		}
 		// 注册本provider的动态服务
-		for (var it = ProviderApp.DynamicModules.iterator(); it.moveToNext(); ) {
-			sm.registerService(ProviderApp.ServerServiceNamePrefix + it.key(), identity,
-					ProviderApp.DirectIp, ProviderApp.DirectPort);
+		for (var it = providerApp.dynamicModules.iterator(); it.moveToNext(); ) {
+			sm.registerService(providerApp.serverServiceNamePrefix + it.key(), identity,
+					providerApp.directIp, providerApp.directPort);
 		}
 
 		// 订阅provider直连发现服务
-		for (var it = ProviderApp.Modules.iterator(); it.moveToNext(); )
-			sm.subscribeService(ProviderApp.ServerServiceNamePrefix + it.key(), it.value().getSubscribeType());
+		for (var it = providerApp.modules.iterator(); it.moveToNext(); )
+			sm.subscribeService(providerApp.serverServiceNamePrefix + it.key(), it.value().getSubscribeType());
 
 		// 订阅linkd发现服务。
-		sm.subscribeService(ProviderApp.LinkdServiceName, BSubscribeInfo.SubscribeTypeSimple);
+		sm.subscribeService(providerApp.linkdServiceName, BSubscribeInfo.SubscribeTypeSimple);
 	}
 
-	public static void SendKick(AsyncSocket sender, long linkSid, int code, String desc) {
+	public static void sendKick(AsyncSocket sender, long linkSid, int code, String desc) {
 		new Kick(new BKick(linkSid, code, desc)).Send(sender);
 	}
 
@@ -80,9 +80,9 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		var sender = p.getSender();
 		var linkSid = p.Argument.getLinkSid();
 		try {
-			var factoryHandle = ProviderApp.ProviderService.findProtocolFactoryHandle(p.Argument.getProtocolType());
+			var factoryHandle = providerApp.providerService.findProtocolFactoryHandle(p.Argument.getProtocolType());
 			if (factoryHandle == null) {
-				SendKick(sender, linkSid, BKick.ErrorProtocolUnknown, "unknown protocol");
+				sendKick(sender, linkSid, BKick.ErrorProtocolUnknown, "unknown protocol");
 				return Procedure.LogicError;
 			}
 			var p2 = factoryHandle.Factory.create();
@@ -139,7 +139,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 						session.sendResponse(p3);
 					});
 		} catch (Throwable ex) {
-			SendKick(sender, linkSid, BKick.ErrorProtocolException, ex.toString());
+			sendKick(sender, linkSid, BKick.ErrorProtocolException, ex.toString());
 			logger.error("", ex);
 			return Procedure.Success;
 		}

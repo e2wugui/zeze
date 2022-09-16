@@ -14,15 +14,15 @@ public class RedirectHandle {
 		Object call(int hash, Binary encodedParams) throws Throwable;
 	}
 
-	public final TransactionLevel RequestTransactionLevel;
-	public final IRequestHandle RequestHandle;
-	public final Function<Object, Binary> ResultEncoder;
+	public final TransactionLevel requestTransactionLevel;
+	public final IRequestHandle requestHandle;
+	public final Function<Object, Binary> resultEncoder;
 
 	public RedirectHandle(TransactionLevel requestTransactionLevel,
 						  IRequestHandle requestHandle,
 						  Function<Object, Binary> resultEncoder) {
-		RequestTransactionLevel = requestTransactionLevel;
-		RequestHandle = requestHandle;
-		ResultEncoder = resultEncoder;
+		this.requestTransactionLevel = requestTransactionLevel;
+		this.requestHandle = requestHandle;
+		this.resultEncoder = resultEncoder;
 	}
 }

@@ -12,27 +12,27 @@ import Zeze.Util.IntHashMap;
  * 初始化。
  */
 public class ProviderApp {
-	public final Zeze.Application Zeze;
+	public final Zeze.Application zeze;
 
-	public final ProviderImplement ProviderImplement;
-	public final ProviderService ProviderService;
-	public final String ServerServiceNamePrefix;
+	public final ProviderImplement providerImplement;
+	public final ProviderService providerService;
+	public final String serverServiceNamePrefix;
 
-	public final ProviderDirect ProviderDirect;
-	public final ProviderDirectService ProviderDirectService;
+	public final ProviderDirect providerDirect;
+	public final ProviderDirectService providerDirectService;
 
-	public final String LinkdServiceName;
+	public final String linkdServiceName;
 
 	// 现在内部可以自动设置两个参数，但有点不够可靠，生产环境最好手动设置。
-	public final String DirectIp;
-	public final int DirectPort;
+	public final String directIp;
+	public final int directPort;
 
-	public final ProviderDistribute Distribute;
+	public final ProviderDistribute distribute;
 
-	public final IntHashMap<BModule> StaticBinds = new IntHashMap<>();
-	public final IntHashMap<BModule> DynamicModules = new IntHashMap<>();
-	public final IntHashMap<BModule> Modules = new IntHashMap<>();
-	public final HashMap<String, Zeze.IModule> BuiltinModules = new HashMap<>();
+	public final IntHashMap<BModule> staticBinds = new IntHashMap<>();
+	public final IntHashMap<BModule> dynamicModules = new IntHashMap<>();
+	public final IntHashMap<BModule> modules = new IntHashMap<>();
+	public final HashMap<String, Zeze.IModule> builtinModules = new HashMap<>();
 
 	public ProviderApp(Zeze.Application zeze,
 					   ProviderImplement server,
@@ -43,72 +43,72 @@ public class ProviderApp {
 					   String linkdNameOnServiceManager,
 					   LoadConfig loadConfig
 	) {
-		this.Zeze = zeze;
-		this.Zeze.redirect = new RedirectBase(this);
+		this.zeze = zeze;
+		this.zeze.redirect = new RedirectBase(this);
 
-		this.ProviderImplement = server;
-		this.ProviderImplement.ProviderApp = this;
-		this.ProviderService = toLinkdService;
-		this.ProviderService.ProviderApp = this;
-		this.ServerServiceNamePrefix = providerModulePrefixNameOnServiceManager;
+		this.providerImplement = server;
+		this.providerImplement.providerApp = this;
+		this.providerService = toLinkdService;
+		this.providerService.providerApp = this;
+		this.serverServiceNamePrefix = providerModulePrefixNameOnServiceManager;
 
-		this.ProviderDirect = direct;
-		this.ProviderDirect.ProviderApp = this;
-		this.ProviderDirectService = toOtherProviderService;
-		this.ProviderDirectService.ProviderApp = this;
+		this.providerDirect = direct;
+		this.providerDirect.providerApp = this;
+		this.providerDirectService = toOtherProviderService;
+		this.providerDirectService.providerApp = this;
 
-		var kv = ProviderDirectService.getOnePassiveAddress();
-		this.DirectIp = kv.getKey();
-		this.DirectPort = kv.getValue();
+		var kv = providerDirectService.getOnePassiveAddress();
+		this.directIp = kv.getKey();
+		this.directPort = kv.getValue();
 
-		this.LinkdServiceName = linkdNameOnServiceManager;
+		this.linkdServiceName = linkdNameOnServiceManager;
 
-		this.ProviderImplement.RegisterProtocols(ProviderService);
+		this.providerImplement.RegisterProtocols(providerService);
 
-		Zeze.getServiceManagerAgent().setOnSetServerLoad((serverLoad) -> {
-			var ps = ProviderDirectService.ProviderByLoadName.get(serverLoad.getName());
+		this.zeze.getServiceManagerAgent().setOnSetServerLoad((serverLoad) -> {
+			var ps = providerDirectService.providerByLoadName.get(serverLoad.getName());
 			if (ps != null) {
 				var load = new BLoad();
 				load.decode(serverLoad.param.Wrap());
-				ps.Load = load;
+				ps.load = load;
 			}
 		});
 
-		this.Distribute = new ProviderDistribute(zeze, loadConfig, toOtherProviderService);
+		this.distribute = new ProviderDistribute(zeze, loadConfig, toOtherProviderService);
 
-		this.Zeze.getServiceManagerAgent().setOnChanged((ss) -> {
-			ProviderImplement.ApplyOnChanged(ss);
-			Distribute.ApplyServers(ss);
+		this.zeze.getServiceManagerAgent().setOnChanged((ss) -> {
+			providerImplement.applyOnChanged(ss);
+			distribute.applyServers(ss);
 		});
-		this.Zeze.getServiceManagerAgent().setOnPrepare(ProviderImplement::ApplyOnPrepare);
-		this.Zeze.getServiceManagerAgent().setOnUpdate((ss, si) -> {
-			Distribute.AddServer(ss, si);
-			ProviderDirectService.AddServer(ss, si);
+		this.zeze.getServiceManagerAgent().setOnPrepare(providerImplement::applyOnPrepare);
+		this.zeze.getServiceManagerAgent().setOnUpdate((ss, si) -> {
+			distribute.addServer(ss, si);
+			providerDirectService.addServer(ss, si);
 		});
-		this.Zeze.getServiceManagerAgent().setOnRemoved((ss, si) -> {
-			Distribute.RemoveServer(ss, si);
-			ProviderDirectService.RemoveServer(ss, si);
+		this.zeze.getServiceManagerAgent().setOnRemoved((ss, si) -> {
+			distribute.removeServer(ss, si);
+			providerDirectService.removeServer(ss, si);
 		});
 
-		this.ProviderDirect.RegisterProtocols(ProviderDirectService);
+		this.providerDirect.RegisterProtocols(providerDirectService);
 	}
 
-	public void StartLast(ProviderModuleBinds binds, HashMap<String, Zeze.IModule> modules) {
-		for (var builtin : BuiltinModules.values())
+	public void startLast(ProviderModuleBinds binds, HashMap<String, Zeze.IModule> modules) {
+		for (var builtin : builtinModules.values())
 			modules.put(builtin.getFullName(), builtin);
-		binds.BuildStaticBinds(modules, Zeze.getConfig().getServerId(), StaticBinds);
-		binds.BuildDynamicBinds(modules, Zeze.getConfig().getServerId(), DynamicModules);
-		Modules.putAll(StaticBinds);
-		Modules.putAll(DynamicModules);
+		binds.buildStaticBinds(modules, zeze.getConfig().getServerId(), staticBinds);
+		binds.buildDynamicBinds(modules, zeze.getConfig().getServerId(), dynamicModules);
+		this.modules.putAll(staticBinds);
+		this.modules.putAll(dynamicModules);
 		for (var module : modules.values()) {
-			if (!Modules.containsKey(module.getId())) { // 补充其它模块的信息
+			if (!this.modules.containsKey(module.getId())) { // 补充其它模块的信息
 				var m = binds.getModules().get(module.getFullName());
-				Modules.put(module.getId(), m != null
+				this.modules.put(module.getId(), m != null
 						? new BModule(m.getChoiceType(), m.getConfigType(), m.getSubscribeType())
 						: new BModule(BModule.ChoiceTypeDefault, BModule.ConfigTypeDefault,
 						BSubscribeInfo.SubscribeTypeReadyCommit));
 			}
 		}
-		ProviderImplement.RegisterModulesAndSubscribeLinkd();
+		providerImplement.registerModulesAndSubscribeLinkd();
 	}
 }

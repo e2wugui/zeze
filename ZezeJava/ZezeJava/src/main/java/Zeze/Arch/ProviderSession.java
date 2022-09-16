@@ -4,11 +4,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Provider.BLoad;
 
 public class ProviderSession {
-	volatile BLoad Load = new BLoad();
-	int ServerId;
-	long SessionId;
-	String ServerLoadIp = "";
-	int ServerLoadPort;
+	volatile BLoad load = new BLoad();
+	int serverId;
+	long sessionId;
+	String serverLoadIp = "";
+	int serverLoadPort;
 
 	/**
 	 * 下面维护和本Session相关的订阅Ready状态。在Session关闭时需要取消Ready状态。
@@ -17,23 +17,23 @@ public class ProviderSession {
 	final ConcurrentHashMap<String, ConcurrentHashMap<String, ProviderModuleState>> ServiceReadyStates = new ConcurrentHashMap<>();
 
 	public String getServerLoadName() {
-		return ServerLoadIp + ":" + ServerLoadPort;
+		return serverLoadIp + ":" + serverLoadPort;
 	}
 
 	@Override
 	public String toString() {
-		return ServerLoadIp + ":" + ServerLoadPort + "@" + SessionId;
+		return serverLoadIp + ":" + serverLoadPort + "@" + sessionId;
 	}
 
 	public final long getSessionId() {
-		return SessionId;
+		return sessionId;
 	}
 
 	public final int getServerId() {
-		return ServerId;
+		return serverId;
 	}
 
-	public ConcurrentHashMap<String, ProviderModuleState> GetOrAddServiceReadyState(String serviceName) {
+	public ConcurrentHashMap<String, ProviderModuleState> getOrAddServiceReadyState(String serviceName) {
 		return ServiceReadyStates.computeIfAbsent(serviceName, __ -> new ConcurrentHashMap<>());
 	}
 }

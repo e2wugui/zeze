@@ -33,14 +33,14 @@ public class ModuleFriend extends AbstractModule {
 			// fill change log
 			switch (r.getState()) {
 			case Changes.Record.Remove:
-				App.Provider.Online.sendAccount(account, notify, null); // TODO online sender
+				App.Provider.online.sendAccount(account, notify, null); // TODO online sender
 				return; // done
 
 			case Changes.Record.Edit:
 				var logBean = r.getLogBean();
 				if (null != logBean) {
 					notify.Argument.setChangeLog(new Binary(ByteBuffer.encode(logBean)));
-					App.Provider.Online.sendAccount(account, notify, null); // TODO online sender
+					App.Provider.online.sendAccount(account, notify, null); // TODO online sender
 				}
 				return; // done
 
@@ -49,7 +49,7 @@ public class ModuleFriend extends AbstractModule {
 				node.setNodeId(nodeKey.getNodeId());
 				node.getNode().Assign((BLinkedMapNode)r.getValue()); // TODO 这里拷贝一次，有点浪费。优化？？？下面还有一处。
 				notify.Argument.setChangeLog(new Binary(ByteBuffer.encode(node)));
-				App.Provider.Online.sendAccount(account, notify, null); // TODO online sender
+				App.Provider.online.sendAccount(account, notify, null); // TODO online sender
 				return; // done
 			}
 		});

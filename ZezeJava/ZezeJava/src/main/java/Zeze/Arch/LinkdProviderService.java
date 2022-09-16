@@ -15,8 +15,8 @@ import org.apache.logging.log4j.Logger;
 public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 	private static final Logger logger = LogManager.getLogger(LinkdProviderService.class);
 
-	protected LinkdApp LinkdApp;
-	protected final ConcurrentHashMap<String, ProviderSession> ProviderSessions = new ConcurrentHashMap<>();
+	protected LinkdApp linkdApp;
+	protected final ConcurrentHashMap<String, ProviderSession> providerSessions = new ConcurrentHashMap<>();
 
 	public LinkdProviderService(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);
@@ -68,7 +68,7 @@ public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 	@Override
 	public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
 		// 先unbind。这样避免有时间窗口。
-		LinkdApp.LinkdProvider.OnProviderClose(so);
+		linkdApp.linkdProvider.onProviderClose(so);
 		super.OnSocketClose(so, e);
 	}
 }

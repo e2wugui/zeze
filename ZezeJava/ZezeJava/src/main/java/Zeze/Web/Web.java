@@ -22,25 +22,25 @@ public class Web extends AbstractWeb {
 		providerApp = app;
 		// 这里注册了所有的协议，向浏览器开放。
 		// 这些协议仅用于Linkd转发Http请求，基于协议的客户端不能直接访问。需要保护。
-		RegisterProtocols(providerApp.ProviderService);
-		RegisterZezeTables(providerApp.Zeze);
+		RegisterProtocols(providerApp.providerService);
+		RegisterZezeTables(providerApp.zeze);
 	}
 
 	@Override
 	public void UnRegister() {
-		UnRegisterZezeTables(providerApp.Zeze);
-		UnRegisterProtocols(providerApp.ProviderService);
+		UnRegisterZezeTables(providerApp.zeze);
+		UnRegisterProtocols(providerApp.providerService);
 	}
 
 	public void start() {
 		// 加入内建模块，最终将向ServiceManager注册这个模块；
 		// 这样，Linkd负载选择的时候才能找到这个模块。
-		providerApp.BuiltinModules.put(getFullName(), this);
-		autoKey = providerApp.Zeze.getAutoKey("Zeze.Web.Session");
+		providerApp.builtinModules.put(getFullName(), this);
+		autoKey = providerApp.zeze.getAutoKey("Zeze.Web.Session");
 	}
 
 	final LongConcurrentHashMap<HttpExchange> exchanges(Protocol<?> context) {
-		var linkName = ProviderService.GetLinkName(context.getSender());
+		var linkName = ProviderService.getLinkName(context.getSender());
 		return linkExchanges.computeIfAbsent(linkName, (k) -> new LongConcurrentHashMap<>());
 	}
 

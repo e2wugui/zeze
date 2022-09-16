@@ -19,31 +19,31 @@ import Zeze.Util.Random;
  * 目前LoadConfig仅用于Linkd。Provider可以传null，并不使用相关算法(ChoiceLoad)。
  */
 public class ProviderDistribute {
-	public final Application Zeze;
-	public final LoadConfig LoadConfig;
-	private final Service ProviderService;
-	private final AtomicInteger FeedFullOneByOneIndex = new AtomicInteger();
-	private final ConcurrentHashMap<String, ConsistentHash<BServiceInfo>> ConsistentHashes = new ConcurrentHashMap<>();
+	public final Application zeze;
+	public final LoadConfig loadConfig;
+	private final Service providerService;
+	private final AtomicInteger feedFullOneByOneIndex = new AtomicInteger();
+	private final ConcurrentHashMap<String, ConsistentHash<BServiceInfo>> consistentHashes = new ConcurrentHashMap<>();
 
 	public ProviderDistribute(Application zeze, LoadConfig loadConfig, Service providerService) {
-		Zeze = zeze;
-		LoadConfig = loadConfig;
-		ProviderService = providerService;
+		this.zeze = zeze;
+		this.loadConfig = loadConfig;
+		this.providerService = providerService;
 	}
 
-	public void AddServer(Agent.SubscribeState state, BServiceInfo s) {
-		ConsistentHashes.computeIfAbsent(s.getServiceName(), key -> new ConsistentHash<>())
+	public void addServer(Agent.SubscribeState state, BServiceInfo s) {
+		consistentHashes.computeIfAbsent(s.getServiceName(), key -> new ConsistentHash<>())
 				.add(s.getServiceIdentity(), s);
 	}
 
-	public void RemoveServer(Agent.SubscribeState state, BServiceInfo s) {
-		var consistentHash = ConsistentHashes.get(s.getServiceName());
+	public void removeServer(Agent.SubscribeState state, BServiceInfo s) {
+		var consistentHash = consistentHashes.get(s.getServiceName());
 		if (consistentHash != null)
 			consistentHash.remove(s.getServiceIdentity(), s);
 	}
 
-	public void ApplyServers(Agent.SubscribeState ass) {
-		var consistentHash = ConsistentHashes.computeIfAbsent(ass.getServiceName(), key -> new ConsistentHash<>());
+	public void applyServers(Agent.SubscribeState ass) {
+		var consistentHash = consistentHashes.computeIfAbsent(ass.getServiceName(), key -> new ConsistentHash<>());
 		var nodeSet = consistentHash.getNodes();
 		var nodes = nodeSet.toArray(new BServiceInfo[nodeSet.size()]);
 		var current = new HashSet<BServiceInfo>();
@@ -57,16 +57,16 @@ public class ProviderDistribute {
 		}
 	}
 
-	public static String MakeServiceName(String serviceNamePrefix, int moduleId) {
+	public static String makeServiceName(String serviceNamePrefix, int moduleId) {
 		return serviceNamePrefix + moduleId;
 	}
 
 	public ConsistentHash<BServiceInfo> getConsistentHash(String name) {
-		return ConsistentHashes.get(name);
+		return consistentHashes.get(name);
 	}
 
 	// ChoiceDataIndex 用于RedirectAll或者那些已知数据分块索引的地方。
-	public static BServiceInfo ChoiceDataIndex(ConsistentHash<BServiceInfo> consistentHash,
+	public static BServiceInfo choiceDataIndex(ConsistentHash<BServiceInfo> consistentHash,
 											   int dataIndex, int dataConcurrentLevel) {
 		if (consistentHash == null)
 			return null;
@@ -76,24 +76,24 @@ public class ProviderDistribute {
 		return consistentHash.get(ByteBuffer.calc_hashnr(dataIndex));
 	}
 
-	public BServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash, int dataConcurrentLevel) {
+	public BServiceInfo choiceHash(Agent.SubscribeState providers, int hash, int dataConcurrentLevel) {
 		var serviceName = providers.getServiceName();
-		var consistentHash = ConsistentHashes.get(serviceName);
+		var consistentHash = consistentHashes.get(serviceName);
 		if (consistentHash == null)
 			throw new IllegalStateException("ChoiceHash: not found ConsistentHash for serviceName=" + serviceName);
 		if (dataConcurrentLevel <= 1)
 			return consistentHash.get(hash);
 
-		return ChoiceDataIndex(consistentHash, (int)((hash & 0xffff_ffffL) % dataConcurrentLevel), dataConcurrentLevel);
+		return choiceDataIndex(consistentHash, (int)((hash & 0xffff_ffffL) % dataConcurrentLevel), dataConcurrentLevel);
 	}
 
-	public BServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash) {
-		return ChoiceHash(providers, hash, 1);
+	public BServiceInfo choiceHash(Agent.SubscribeState providers, int hash) {
+		return choiceHash(providers, hash, 1);
 	}
 
-	public boolean ChoiceHash(Agent.SubscribeState providers, int hash, OutLong provider) {
+	public boolean choiceHash(Agent.SubscribeState providers, int hash, OutLong provider) {
 		provider.value = 0L;
-		var serviceInfo = ChoiceHash(providers, hash);
+		var serviceInfo = choiceHash(providers, hash);
 		if (serviceInfo == null)
 			return false;
 
@@ -101,11 +101,11 @@ public class ProviderDistribute {
 		if (providerModuleState == null)
 			return false;
 
-		provider.value = providerModuleState.SessionId;
+		provider.value = providerModuleState.sessionId;
 		return true;
 	}
 
-	public boolean ChoiceLoad(Agent.SubscribeState providers, OutLong provider) {
+	public boolean choiceLoad(Agent.SubscribeState providers, OutLong provider) {
 		provider.value = 0L;
 
 		var list = providers.getServiceInfos().getServiceInfoListSortedByIdentity();
@@ -121,16 +121,16 @@ public class ProviderDistribute {
 				continue;
 			}
 			// Object tempVar2 = App.ProviderService.GetSocket(providerModuleState.getSessionId()).getUserState();
-			var ps = (ProviderSession)ProviderService.GetSocket(providerModuleState.SessionId).getUserState();
+			var ps = (ProviderSession)providerService.GetSocket(providerModuleState.sessionId).getUserState();
 			if (ps == null) {
 				continue; // 这里发现关闭的服务，仅仅忽略.
 			}
 			all.add(ps);
 
-			if (ps.Load.getOnlineNew() > LoadConfig.getMaxOnlineNew()) {
+			if (ps.load.getOnlineNew() > loadConfig.getMaxOnlineNew()) {
 				continue;
 			}
-			int weight = ps.Load.getProposeMaxOnline() - ps.Load.getOnline();
+			int weight = ps.load.getProposeMaxOnline() - ps.load.getOnline();
 			if (weight <= 0) {
 				continue;
 			}
@@ -140,7 +140,7 @@ public class ProviderDistribute {
 		if (TotalWeight > 0) {
 			int randWeight = Random.getInstance().nextInt(TotalWeight);
 			for (var ps : frees) {
-				int weight = ps.Load.getProposeMaxOnline() - ps.Load.getOnline();
+				int weight = ps.load.getProposeMaxOnline() - ps.load.getOnline();
 				if (randWeight < weight) {
 					provider.value = ps.getSessionId();
 					return true;
@@ -158,18 +158,18 @@ public class ProviderDistribute {
 	}
 
 	// 查找时增加索引，和喂饱时增加索引，需要原子化。提高并发以后慢慢想，这里应该足够快了。
-	public synchronized boolean ChoiceFeedFullOneByOne(Agent.SubscribeState providers, OutLong provider) {
+	public synchronized boolean choiceFeedFullOneByOne(Agent.SubscribeState providers, OutLong provider) {
 		provider.value = 0L;
 
 		var list = providers.getServiceInfos().getServiceInfoListSortedByIdentity();
 		// 最多遍历一次。循环里面 continue 时，需要递增索引。
-		for (int i = 0; i < list.size(); ++i, FeedFullOneByOneIndex.incrementAndGet()) {
-			var index = Integer.remainderUnsigned(FeedFullOneByOneIndex.get(), list.size()); // current
+		for (int i = 0; i < list.size(); ++i, feedFullOneByOneIndex.incrementAndGet()) {
+			var index = Integer.remainderUnsigned(feedFullOneByOneIndex.get(), list.size()); // current
 			var serviceInfo = list.get(index);
 			var providerModuleState = (ProviderModuleState)providers.localStates.get(serviceInfo.getServiceIdentity());
 			if (providerModuleState == null)
 				continue;
-			var providerSocket = ProviderService.GetSocket(providerModuleState.SessionId);
+			var providerSocket = providerService.GetSocket(providerModuleState.sessionId);
 			if (providerSocket == null)
 				continue;
 			var ps = (LinkdProviderSession)providerSocket.getUserState();
@@ -178,24 +178,24 @@ public class ProviderDistribute {
 				continue;
 
 			// 这个和一个一个喂饱冲突，但是一下子给一个服务分配太多用户，可能超载。如果不想让这个生效，把MaxOnlineNew设置的很大。
-			if (ps.Load.getOnlineNew() > LoadConfig.getMaxOnlineNew())
+			if (ps.load.getOnlineNew() > loadConfig.getMaxOnlineNew())
 				continue;
 
 			provider.value = ps.getSessionId();
-			if (ps.Load.getOnline() >= ps.Load.getProposeMaxOnline())
-				FeedFullOneByOneIndex.incrementAndGet(); // 已经喂饱了一个，下一个。
+			if (ps.load.getOnline() >= ps.load.getProposeMaxOnline())
+				feedFullOneByOneIndex.incrementAndGet(); // 已经喂饱了一个，下一个。
 			return true;
 		}
 		return false;
 	}
 
-	public boolean ChoiceProviderByServerId(String serviceNamePrefix, int moduleId, int serverId, OutLong provider) {
-		var serviceName = MakeServiceName(serviceNamePrefix, moduleId);
-		var providers = Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
+	public boolean choiceProviderByServerId(String serviceNamePrefix, int moduleId, int serverId, OutLong provider) {
+		var serviceName = makeServiceName(serviceNamePrefix, moduleId);
+		var providers = zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
 		if (providers != null) {
 			var si = providers.getServiceInfos().findServiceInfoByServerId(serverId);
 			if (si != null) {
-				provider.value = ((ProviderModuleState)providers.localStates.get(si.getServiceIdentity())).SessionId;
+				provider.value = ((ProviderModuleState)providers.localStates.get(si.getServiceIdentity())).sessionId;
 				return true;
 			}
 		}

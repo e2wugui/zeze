@@ -72,9 +72,9 @@ public class App extends Zeze.AppBase {
             factoryHandle.Level = TransactionLevel.None;
             ProviderService.AddFactoryHandle(VerifyChallengeResult.TypeId_, factoryHandle);
         }
-        AsyncSocket.setSessionIdGenFunc(PersistentAtomicLong.getOrAdd(LinkdApp.GetName())::next);
+        AsyncSocket.setSessionIdGenFunc(PersistentAtomicLong.getOrAdd(LinkdApp.getName())::next);
         startService(); // 启动网络
-        LinkdApp.RegisterService(null);
+        LinkdApp.registerService(null);
 
         // 基于linkd转发的Web服务，考虑移除，需要在Server实现Web请使用基于Netty-Http的Web。
         /*
@@ -86,7 +86,7 @@ public class App extends Zeze.AppBase {
     }
 
     public void Stop() throws Throwable {
-        LinkdApp.HttpService.stop();
+        LinkdApp.httpService.stop();
         stopService(); // 关闭网络
         stopModules(); // 关闭模块，卸载配置什么的。
         if (Zeze != null)

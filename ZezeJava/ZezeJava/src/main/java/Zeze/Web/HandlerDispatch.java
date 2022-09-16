@@ -38,20 +38,20 @@ public class HandlerDispatch implements HttpHandler {
 	protected <A extends Bean, R extends Bean> void choiceProviderAndDispatch(
 			LinkdHttpExchange x, Rpc<A, R> req, ProtocolHandle<Rpc<A, R>> resultHandle) throws IOException {
 		var linkApp = service.linkdApp;
-		var linkProvider = linkApp.LinkdProvider;
-		var serviceName = linkProvider.MakeServiceName(Web.ModuleId);
-		var services = linkApp.Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
+		var linkProvider = linkApp.linkdProvider;
+		var serviceName = linkProvider.makeServiceName(Web.ModuleId);
+		var services = linkApp.zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
 		if (services == null)
 			throw new UnsupportedOperationException("not found service name: " + serviceName);
 		var hash = x.exchange.getRemoteAddress().getAddress().hashCode();
 		var provider = new OutLong();
-		if (!linkProvider.getDistribute().ChoiceHash(services, hash, provider)) {
+		if (!linkProvider.getDistribute().choiceHash(services, hash, provider)) {
 			x.sendErrorResponse("Provider Not Found.");
 			x.close(); // 请求还没有转给server，直接关闭。
 			return;
 		}
 		x.provider = provider.value; // 保存选中的server，重新派发或者报错时再次使用。
-		if (!req.Send(linkApp.LinkdProviderService.GetSocket(provider.value), resultHandle)) {
+		if (!req.Send(linkApp.linkdProviderService.GetSocket(provider.value), resultHandle)) {
 			x.sendErrorResponse("Distribute error.");
 			x.close(); // 请求还没有转给server，直接关闭。
 		}

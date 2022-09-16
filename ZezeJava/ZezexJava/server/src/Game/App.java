@@ -96,18 +96,18 @@ public final class App extends Zeze.AppBase {
 		// start
 		Zeze.start(); // 启动数据库
 		startModules(); // 启动模块，装载配置什么的。
-		Provider.Online.Start();
+		Provider.Online.start();
 
 		PersistentAtomicLong socketSessionIdGen = PersistentAtomicLong.getOrAdd("Game.Server." + config.getServerId());
 		AsyncSocket.setSessionIdGenFunc(socketSessionIdGen::next);
 		startService(); // 启动网络
 		// 服务准备好以后才注册和订阅。
-		ProviderApp.StartLast(ProviderModuleBinds.Load(), modules);
+		ProviderApp.startLast(ProviderModuleBinds.load(), modules);
 	}
 
 	public void Stop() throws Throwable {
 		if (Provider != null && Provider.Online != null)
-			Provider.Online.Stop();
+			Provider.Online.stop();
 		stopService(); // 关闭网络
 		stopModules(); // 关闭模块，卸载配置什么的。
 		if (Zeze != null)

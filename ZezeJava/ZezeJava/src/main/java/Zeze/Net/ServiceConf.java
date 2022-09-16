@@ -208,7 +208,7 @@ public final class ServiceConf {
 		attr = self.getAttribute("DhGroups");
 		if (attr.length() > 0) {
 			getHandshakeOptions().setDhGroups(new IntHashSet());
-			for (String dg : attr.split("[,]", -1)) {
+			for (String dg : attr.split(",", -1)) {
 				String dgTmp = dg.strip();
 				if (dgTmp.length() == 0) {
 					continue;

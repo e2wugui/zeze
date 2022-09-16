@@ -48,7 +48,7 @@ public class LinkdHttpExchange {
 	protected <A extends Bean, R extends Bean> void redispatch(
 			Rpc<A, R> req, ProtocolHandle<Rpc<A, R>> resultHandle) {
 
-		if (!req.Send(service.linkdApp.LinkdProviderService.GetSocket(provider), resultHandle)) {
+		if (!req.Send(service.linkdApp.linkdProviderService.GetSocket(provider), resultHandle)) {
 			close(true); // 重新派发错误时，尝试通知server。
 		}
 	}
@@ -98,7 +98,7 @@ public class LinkdHttpExchange {
 			if (closeServer) {
 				var ce = new CloseExchange();
 				ce.Argument.setExchangeId(exchangeId);
-				ce.Send(service.linkdApp.LinkdProviderService.GetSocket(provider)); // no wait; no check error.
+				ce.Send(service.linkdApp.linkdProviderService.GetSocket(provider)); // no wait; no check error.
 			}
 		}
 	}

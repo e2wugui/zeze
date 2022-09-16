@@ -79,7 +79,7 @@ public class HttpService {
 		httpServer = HttpServer.create(addr, 100);
 		httpServer.setExecutor(executor);
 		httpServer.createContext("/", new HandlerDispatch(this));
-		exchangeIdPal = PersistentAtomicLong.getOrAdd(app.GetName() + ".http");
+		exchangeIdPal = PersistentAtomicLong.getOrAdd(app.getName() + ".http");
 	}
 
 	public void interceptAuthContext(String path, HttpAuth auth) {

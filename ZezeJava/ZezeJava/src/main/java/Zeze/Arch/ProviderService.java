@@ -17,14 +17,14 @@ import Zeze.Util.TaskCompletionSource;
 public class ProviderService extends Zeze.Services.HandshakeClient {
 	// private static final Logger logger = LogManager.getLogger(ProviderService.class);
 
-	protected ProviderApp ProviderApp;
-	private final ConcurrentHashMap<String, Connector> Links = new ConcurrentHashMap<>();
-	private volatile Connector[] LinkConnectors = new Connector[0];
-	private final AtomicInteger LinkRandomIndex = new AtomicInteger();
+	protected ProviderApp providerApp;
+	private final ConcurrentHashMap<String, Connector> links = new ConcurrentHashMap<>();
+	private volatile Connector[] linkConnectors = new Connector[0];
+	private final AtomicInteger linkRandomIndex = new AtomicInteger();
 
 	// 用来同步等待Provider的静态绑定完成。
-	public final TaskCompletionSource<Boolean> ProviderStaticBindCompleted = new TaskCompletionSource<>();
-	public final TaskCompletionSource<Boolean> ProviderDynamicSubscribeCompleted = new TaskCompletionSource<>();
+	public final TaskCompletionSource<Boolean> providerStaticBindCompleted = new TaskCompletionSource<>();
+	public final TaskCompletionSource<Boolean> providerDynamicSubscribeCompleted = new TaskCompletionSource<>();
 
 	public ProviderService(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);
@@ -35,11 +35,11 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 	 * 这里要求 linkName 在所有 provider 中都一样。
 	 * 使用 Connector 配置得到名字，只要保证配置一样。
 	 */
-	public static String GetLinkName(AsyncSocket sender) {
+	public static String getLinkName(AsyncSocket sender) {
 		return sender.getConnector().getName();
 	}
 
-	public static String GetLinkName(BServiceInfo serviceInfo) {
+	public static String getLinkName(BServiceInfo serviceInfo) {
 		return serviceInfo.getPassiveIp() + ":" + serviceInfo.getPassivePort();
 	}
 
@@ -47,23 +47,23 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 		if (linkSid == 0)
 			return;
 
-		var link = Links.get(linkName);
+		var link = links.get(linkName);
 		if (link != null)
-			ProviderImplement.SendKick(link.TryGetReadySocket(), linkSid, code, desc);
+			ProviderImplement.sendKick(link.TryGetReadySocket(), linkSid, code, desc);
 	}
 
 	@Override
 	public void Start() throws Throwable {
 		// copy Config.Connector to Links
-		getConfig().ForEachConnector(c -> Links.putIfAbsent(c.getName(), c));
+		getConfig().ForEachConnector(c -> links.putIfAbsent(c.getName(), c));
 		super.Start();
 	}
 
-	public void Apply(BServiceInfos serviceInfos) {
+	public void apply(BServiceInfos serviceInfos) {
 		var current = new HashSet<String>();
 		for (var link : serviceInfos.getServiceInfoListSortedByIdentity()) {
-			var linkName = GetLinkName(link);
-			var connector = Links.computeIfAbsent(linkName, __ -> {
+			var linkName = getLinkName(link);
+			var connector = links.computeIfAbsent(linkName, __ -> {
 				var outC = new OutObject<Connector>();
 				if (getConfig().tryGetOrAddConnector(link.getPassiveIp(), link.getPassivePort(), true, outC)) {
 					try {
@@ -78,38 +78,38 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 				current.add(connector.getName());
 		}
 		// 删除多余的连接器。
-		for (var linkName : Links.keySet()) {
+		for (var linkName : links.keySet()) {
 			if (current.contains(linkName))
 				continue;
-			var removed = Links.remove(linkName);
+			var removed = links.remove(linkName);
 			if (removed != null) {
 				getConfig().removeConnector(removed);
 				removed.Stop();
 			}
 		}
-		LinkConnectors = Links.values().toArray(new Connector[Links.size()]);
+		linkConnectors = links.values().toArray(new Connector[links.size()]);
 	}
 
 	public static class LinkSession {
-		public final String Name;
-		public final long SessionId;
+		public final String name;
+		public final long sessionId;
 
 		public LinkSession(String name, long sid) {
-			Name = name;
-			SessionId = sid;
+			this.name = name;
+			sessionId = sid;
 		}
 	}
 
 	public ConcurrentHashMap<String, Connector> getLinks() {
-		return Links;
+		return links;
 	}
 
-	public AsyncSocket RandomLink() {
-		var volatileTmp = LinkConnectors;
+	public AsyncSocket randomLink() {
+		var volatileTmp = linkConnectors;
 		if (volatileTmp.length == 0)
 			return null;
 
-		var index = LinkRandomIndex.getAndIncrement();
+		var index = linkRandomIndex.getAndIncrement();
 		var connector = volatileTmp[Integer.remainderUnsigned(index, volatileTmp.length)];
 		// 如果只选择已经连上的Link，当所有的连接都没准备好时，仍然需要GetReadySocket，
 		// 所以简单处理成总是等待连接完成。
@@ -119,29 +119,29 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 	@Override
 	public void OnHandshakeDone(AsyncSocket sender) throws Throwable {
 		super.OnHandshakeDone(sender);
-		sender.setUserState(new LinkSession(GetLinkName(sender), sender.getSessionId()));
+		sender.setUserState(new LinkSession(getLinkName(sender), sender.getSessionId()));
 
-		var announce = new AnnounceProviderInfo(new BAnnounceProviderInfo(ProviderApp.ServerServiceNamePrefix,
-				String.valueOf(getZeze().getConfig().getServerId()), ProviderApp.DirectIp, ProviderApp.DirectPort));
+		var announce = new AnnounceProviderInfo(new BAnnounceProviderInfo(providerApp.serverServiceNamePrefix,
+				String.valueOf(getZeze().getConfig().getServerId()), providerApp.directIp, providerApp.directPort));
 		announce.Send(sender);
 
 		// static binds
 		var bind = new Bind();
-		ProviderApp.StaticBinds.foreach(bind.Argument.getModules()::put);
+		providerApp.staticBinds.foreach(bind.Argument.getModules()::put);
 		bind.Send(sender, rpc -> {
-			ProviderStaticBindCompleted.setResult(true);
+			providerStaticBindCompleted.setResult(true);
 			return 0;
 		});
 		var sub = new Subscribe();
-		ProviderApp.DynamicModules.foreach(sub.Argument.getModules()::put);
+		providerApp.dynamicModules.foreach(sub.Argument.getModules()::put);
 		sub.Send(sender, rpc -> {
-			ProviderDynamicSubscribeCompleted.setResult(true);
+			providerDynamicSubscribeCompleted.setResult(true);
 			return 0;
 		});
 	}
 
 	/*
-	public void ReportLoad(int online, int proposeMaxOnline, int onlineNew) {
+	public void reportLoad(int online, int proposeMaxOnline, int onlineNew) {
 		var report = new ReportLoad();
 
 		report.Argument.setOnline(online);

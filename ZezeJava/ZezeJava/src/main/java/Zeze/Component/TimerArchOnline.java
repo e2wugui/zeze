@@ -1,6 +1,5 @@
 package Zeze.Component;
 
-import java.text.ParseException;
 import Zeze.Arch.LocalRemoveEventArgument;
 import Zeze.Arch.Online;
 import Zeze.Builtin.Timer.BArchOnlineCustom;
@@ -24,7 +23,7 @@ public class TimerArchOnline {
 
 		// online timer 生命期和 Online.Local 一致。
 		online.getLocalRemoveEvents().getRunEmbedEvents().offer(this::onLocalRemoveEvent);
-		var timer = online.ProviderApp.Zeze.getTimer();
+		var timer = online.providerApp.zeze.getTimer();
 		timer.addHandle(eTimerHandleName, this::fireOnlineTimer, this::cancelOnlineTimer);
 	}
 
@@ -33,7 +32,7 @@ public class TimerArchOnline {
 		//if (!online.isLogin(account, clientId))
 		//	throw new IllegalStateException("not login. account=" + account + " clientId=" + clientId);
 
-		var timer = online.ProviderApp.Zeze.getTimer();
+		var timer = online.providerApp.zeze.getTimer();
 		var customOnline = new BArchOnlineCustom(account, clientId, name);
 		if (null != customData) {
 			timer.register(customData.getClass());
@@ -50,7 +49,7 @@ public class TimerArchOnline {
 		//if (!online.isLogin(account, clientId))
 		//	throw new IllegalStateException("not login. account=" + account + " clientId=" + clientId);
 
-		var timer = online.ProviderApp.Zeze.getTimer();
+		var timer = online.providerApp.zeze.getTimer();
 		var customOnline = new BArchOnlineCustom(account, clientId, name);
 		if (null != customData) {
 			timer.register(customData.getClass());
@@ -68,9 +67,9 @@ public class TimerArchOnline {
 	// Online.Local 删除事件，取消这个用户所有的在线定时器。
 	private long onLocalRemoveEvent(Object sender, EventDispatcher.EventArgument arg) throws Throwable {
 		var local = (LocalRemoveEventArgument)arg;
-		var timer = online.ProviderApp.Zeze.getTimer();
-		if (null != local.LocalData) {
-			var bAny = local.LocalData.getDatas().get(eOnlineTimers);
+		var timer = online.providerApp.zeze.getTimer();
+		if (null != local.localData) {
+			var bAny = local.localData.getDatas().get(eOnlineTimers);
 			if (null != bAny) {
 				var timerIds = (BOnlineTimers)bAny.getAny().getBean();
 				for (var timerId : timerIds.getTimerIds())
@@ -81,7 +80,7 @@ public class TimerArchOnline {
 	}
 
 	private void fireOnlineTimer(TimerContext context) throws Throwable {
-		var timer = online.ProviderApp.Zeze.getTimer();
+		var timer = online.providerApp.zeze.getTimer();
 		var customOnline = (BArchOnlineCustom)context.customData;
 		var handle = timer.timerHandles.get(customOnline.getHandleName());
 		if (null == handle)
