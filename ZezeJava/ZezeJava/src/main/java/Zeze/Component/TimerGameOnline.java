@@ -10,10 +10,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Util.EventDispatcher;
 
 /**
- * 基于使用 Timer.schedule。
- * 直接使用 Timer.timerIdAutoKey，使得返回的timerId共享一个名字空间。
- * 直接使用 Timer.timersFuture，从 ThreadPool 返回的future保存在这里。
- * cancel 入口从 Timer.cancel 调用。
+ * 基于 Timer.schedule。
  */
 public class TimerGameOnline {
 	final Online online;
