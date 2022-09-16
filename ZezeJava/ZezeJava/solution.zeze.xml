@@ -865,6 +865,7 @@
 					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::GetSpecialTypeIdFromBean"/>
 					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::CreateBeanFromSpecialTypeId"/>
 				</variable>
+				<variable id="5" name="ConcurrentFireSerialNo" type="long"/>
 			</bean>
 
 			<bean name="BSimpleTimer">
