@@ -243,6 +243,10 @@ public class Online extends AbstractOnline {
 		Transaction.whileCommit(() -> localRemoveEvents.triggerThread(this, arg));
 	}
 
+	public boolean isLogin(long roleId) {
+		return null != _tonline.get(roleId);
+	}
+
 	private void logoutTriggerExtra(long roleId) throws Throwable {
 		var arg = new LogoutEventArgument();
 		arg.RoleId = roleId;

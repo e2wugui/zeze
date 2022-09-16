@@ -35,13 +35,13 @@ public class Timer extends AbstractTimer {
 	static final Logger logger = LogManager.getLogger(Timer.class);
 	public final Zeze.Application zeze;
 	private AutoKey nodeIdAutoKey;
-	private AutoKey timerIdAutoKey;
+	AutoKey timerIdAutoKey;
 	// 保存所有可用的timer处理回调，由于可能需要把timer的触发派发到其他服务器执行，必须静态注册。
 	// 一般在Module.Initialize中注册即可。
 	final ConcurrentHashMap<String, Action1<TimerContext>> timerHandles = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, Action2<BIndex, BTimer>> timerCancelHandles = new ConcurrentHashMap<>();
 	// 在这台服务器进程内调度的所有Timer。key是timerId，value是ThreadPool.schedule的返回值。
-	private final ConcurrentHashMap<Long, Future<?>> timersFuture = new ConcurrentHashMap<>();
+	final ConcurrentHashMap<Long, Future<?>> timersFuture = new ConcurrentHashMap<>();
 
 	public Timer(Zeze.Application zeze) {
 		this.zeze = zeze;

@@ -4,18 +4,30 @@ package Zeze.Builtin.Timer;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BArchOnlineCustom extends Zeze.Transaction.Bean {
+public final class BArchOnlineTimer extends Zeze.Transaction.Bean {
     private String _Account;
     private String _ClientId;
-    private String _HandleName;
-    private final Zeze.Transaction.DynamicBean _CustomData;
+    private final Zeze.Transaction.DynamicBean _TimerObj;
+    public static final long DynamicTypeId_TimerObj_Zeze_Builtin_Timer_BCronTimer = -6995089347718168392L;
+    public static final long DynamicTypeId_TimerObj_Zeze_Builtin_Timer_BSimpleTimer = 1832177636612857692L;
 
-    public static long getSpecialTypeIdFromBean_CustomData(Zeze.Transaction.Bean bean) {
-        return Zeze.Component.Timer.getSpecialTypeIdFromBean(bean);
+    public static long getSpecialTypeIdFromBean_TimerObj(Zeze.Transaction.Bean bean) {
+        var _typeId_ = bean.typeId();
+        if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
+            return Zeze.Transaction.EmptyBean.TYPEID;
+        if (_typeId_ == -6995089347718168392L)
+            return -6995089347718168392L; // Zeze.Builtin.Timer.BCronTimer
+        if (_typeId_ == 1832177636612857692L)
+            return 1832177636612857692L; // Zeze.Builtin.Timer.BSimpleTimer
+        throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Timer.BArchOnlineTimer:TimerObj");
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_CustomData(long typeId) {
-        return Zeze.Component.Timer.createBeanFromSpecialTypeId(typeId);
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_TimerObj(long typeId) {
+        if (typeId == -6995089347718168392L)
+            return new Zeze.Builtin.Timer.BCronTimer();
+        if (typeId == 1832177636612857692L)
+            return new Zeze.Builtin.Timer.BSimpleTimer();
+        return null;
     }
 
     public String getAccount() {
@@ -60,92 +72,82 @@ public final class BArchOnlineCustom extends Zeze.Transaction.Bean {
         txn.putLog(new Log__ClientId(this, 2, value));
     }
 
-    public String getHandleName() {
-        if (!isManaged())
-            return _HandleName;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
-            return _HandleName;
-        var log = (Log__HandleName)txn.getLog(objectId() + 3);
-        return log != null ? log.value : _HandleName;
+    public Zeze.Transaction.DynamicBean getTimerObj() {
+        return _TimerObj;
     }
 
-    public void setHandleName(String value) {
-        if (value == null)
-            throw new IllegalArgumentException();
-        if (!isManaged()) {
-            _HandleName = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__HandleName(this, 3, value));
+    public Zeze.Builtin.Timer.BCronTimer getTimerObj_Zeze_Builtin_Timer_BCronTimer(){
+        return (Zeze.Builtin.Timer.BCronTimer)getTimerObj().getBean();
     }
 
-    public Zeze.Transaction.DynamicBean getCustomData() {
-        return _CustomData;
+    public void setTimerObj(Zeze.Builtin.Timer.BCronTimer value) {
+        getTimerObj().setBean(value);
+    }
+
+    public Zeze.Builtin.Timer.BSimpleTimer getTimerObj_Zeze_Builtin_Timer_BSimpleTimer(){
+        return (Zeze.Builtin.Timer.BSimpleTimer)getTimerObj().getBean();
+    }
+
+    public void setTimerObj(Zeze.Builtin.Timer.BSimpleTimer value) {
+        getTimerObj().setBean(value);
     }
 
     @SuppressWarnings("deprecation")
-    public BArchOnlineCustom() {
+    public BArchOnlineTimer() {
         _Account = "";
         _ClientId = "";
-        _HandleName = "";
-        _CustomData = new Zeze.Transaction.DynamicBean(4, Zeze.Component.Timer::getSpecialTypeIdFromBean, Zeze.Component.Timer::createBeanFromSpecialTypeId);
+        _TimerObj = new Zeze.Transaction.DynamicBean(3, BArchOnlineTimer::getSpecialTypeIdFromBean_TimerObj, BArchOnlineTimer::createBeanFromSpecialTypeId_TimerObj);
     }
 
     @SuppressWarnings("deprecation")
-    public BArchOnlineCustom(String _Account_, String _ClientId_, String _HandleName_) {
+    public BArchOnlineTimer(String _Account_, String _ClientId_) {
         if (_Account_ == null)
             throw new IllegalArgumentException();
         _Account = _Account_;
         if (_ClientId_ == null)
             throw new IllegalArgumentException();
         _ClientId = _ClientId_;
-        if (_HandleName_ == null)
-            throw new IllegalArgumentException();
-        _HandleName = _HandleName_;
-        _CustomData = new Zeze.Transaction.DynamicBean(4, Zeze.Component.Timer::getSpecialTypeIdFromBean, Zeze.Component.Timer::createBeanFromSpecialTypeId);
+        _TimerObj = new Zeze.Transaction.DynamicBean(3, BArchOnlineTimer::getSpecialTypeIdFromBean_TimerObj, BArchOnlineTimer::createBeanFromSpecialTypeId_TimerObj);
     }
 
-    public void assign(BArchOnlineCustom other) {
+    public void assign(BArchOnlineTimer other) {
         setAccount(other.getAccount());
         setClientId(other.getClientId());
-        setHandleName(other.getHandleName());
-        getCustomData().assign(other.getCustomData());
+        getTimerObj().assign(other.getTimerObj());
     }
 
     @Deprecated
-    public void Assign(BArchOnlineCustom other) {
+    public void Assign(BArchOnlineTimer other) {
         assign(other);
     }
 
-    public BArchOnlineCustom copyIfManaged() {
+    public BArchOnlineTimer copyIfManaged() {
         return isManaged() ? copy() : this;
     }
 
-    public BArchOnlineCustom copy() {
-        var copy = new BArchOnlineCustom();
+    public BArchOnlineTimer copy() {
+        var copy = new BArchOnlineTimer();
         copy.assign(this);
         return copy;
     }
 
     @Deprecated
-    public BArchOnlineCustom Copy() {
+    public BArchOnlineTimer Copy() {
         return copy();
     }
 
-    public static void swap(BArchOnlineCustom a, BArchOnlineCustom b) {
-        BArchOnlineCustom save = a.copy();
+    public static void swap(BArchOnlineTimer a, BArchOnlineTimer b) {
+        BArchOnlineTimer save = a.copy();
         a.assign(b);
         b.assign(save);
     }
 
     @Override
-    public BArchOnlineCustom copyBean() {
+    public BArchOnlineTimer copyBean() {
         return copy();
     }
 
-    public static final long TYPEID = 5751212207563675607L;
+    public static final long TYPEID = -1410268970794351805L;
 
     @Override
     public long typeId() {
@@ -153,24 +155,17 @@ public final class BArchOnlineCustom extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__Account extends Zeze.Transaction.Logs.LogString {
-        public Log__Account(BArchOnlineCustom bean, int varId, String value) { super(bean, varId, value); }
+        public Log__Account(BArchOnlineTimer bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BArchOnlineCustom)getBelong())._Account = value; }
+        public void commit() { ((BArchOnlineTimer)getBelong())._Account = value; }
     }
 
     private static final class Log__ClientId extends Zeze.Transaction.Logs.LogString {
-        public Log__ClientId(BArchOnlineCustom bean, int varId, String value) { super(bean, varId, value); }
+        public Log__ClientId(BArchOnlineTimer bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BArchOnlineCustom)getBelong())._ClientId = value; }
-    }
-
-    private static final class Log__HandleName extends Zeze.Transaction.Logs.LogString {
-        public Log__HandleName(BArchOnlineCustom bean, int varId, String value) { super(bean, varId, value); }
-
-        @Override
-        public void commit() { ((BArchOnlineCustom)getBelong())._HandleName = value; }
+        public void commit() { ((BArchOnlineTimer)getBelong())._ClientId = value; }
     }
 
     @Override
@@ -182,13 +177,12 @@ public final class BArchOnlineCustom extends Zeze.Transaction.Bean {
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Timer.BArchOnlineCustom: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Timer.BArchOnlineTimer: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Account").append('=').append(getAccount()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("ClientId").append('=').append(getClientId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("HandleName").append('=').append(getHandleName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("CustomData").append('=').append(System.lineSeparator());
-        getCustomData().getBean().buildString(sb, level + 4);
+        sb.append(Zeze.Util.Str.indent(level)).append("TimerObj").append('=').append(System.lineSeparator());
+        getTimerObj().getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -224,16 +218,9 @@ public final class BArchOnlineCustom extends Zeze.Transaction.Bean {
             }
         }
         {
-            String _x_ = getHandleName();
+            var _x_ = getTimerObj();
             if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
-                _o_.WriteString(_x_);
-            }
-        }
-        {
-            var _x_ = getCustomData();
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.DYNAMIC);
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.DYNAMIC);
                 _x_.encode(_o_);
             }
         }
@@ -253,11 +240,7 @@ public final class BArchOnlineCustom extends Zeze.Transaction.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            setHandleName(_o_.ReadString(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 4) {
-            _o_.ReadDynamic(getCustomData(), _t_);
+            _o_.ReadDynamic(getTimerObj(), _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -268,16 +251,18 @@ public final class BArchOnlineCustom extends Zeze.Transaction.Bean {
 
     @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _CustomData.initRootInfo(root, this);
+        _TimerObj.initRootInfo(root, this);
     }
 
     @Override
     protected void resetChildrenRootInfo() {
-        _CustomData.resetRootInfo();
+        _TimerObj.resetRootInfo();
     }
 
     @Override
     public boolean negativeCheck() {
+        if (getTimerObj().negativeCheck())
+            return true;
         return false;
     }
 
@@ -292,8 +277,7 @@ public final class BArchOnlineCustom extends Zeze.Transaction.Bean {
             switch (vlog.getVariableId()) {
                 case 1: _Account = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 2: _ClientId = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 3: _HandleName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 4: _CustomData.followerApply(vlog); break;
+                case 3: _TimerObj.followerApply(vlog); break;
             }
         }
     }
