@@ -35,6 +35,7 @@ public class Procedure {
 	}
 
 	private static final Logger logger = LogManager.getLogger(Procedure.class);
+	@SuppressWarnings("CanBeFinal")
 	public static ILogAction logAction = Procedure::DefaultLogAction;
 
 	public static void DefaultLogAction(Throwable ex, long result, Procedure p, String message) {

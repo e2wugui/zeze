@@ -24,6 +24,7 @@ public class Rank extends AbstractRank {
 
 	public volatile IntUnaryOperator funcRankSize;
 	public volatile IntUnaryOperator funcConcurrentLevel;
+	@SuppressWarnings("CanBeFinal")
 	public volatile float computeFactor = 2.5f;
 
 	public static Rank create(AppBase app) {

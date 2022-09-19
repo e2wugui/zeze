@@ -853,7 +853,7 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 	private static final class CounterCell {
 		@SuppressWarnings("unused")
 		private volatile long p0, p1, p2, p3, p4, p5, p6;
-		@SuppressWarnings("FieldMayBeFinal")
+		@SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
 		private volatile long value;
 		@SuppressWarnings("unused")
 		private volatile long q0, q1, q2, q3, q4, q5, q6;

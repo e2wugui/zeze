@@ -33,6 +33,7 @@ public final class Task {
 	private static ExecutorService threadPoolCritical; // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
 	// private static final ThreadPoolExecutor rpcResponseThreadPool
 	//			= (ThreadPoolExecutor)Executors.newCachedThreadPool(new ThreadFactoryWithName("ZezeRespPool"));
+	@SuppressWarnings("CanBeFinal")
 	public static ILogAction logAction = Task::DefaultLogAction;
 
 	static {
