@@ -6,21 +6,31 @@ import Zeze.Serialize.ByteBuffer;
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BOnlineTimers extends Zeze.Transaction.Bean {
     private final Zeze.Transaction.Collections.PMap2<Long, Zeze.Builtin.Timer.BOnlineCustom> _TimerIds;
+    private final Zeze.Transaction.Collections.PSet1<String> _NamedNames;
 
     public Zeze.Transaction.Collections.PMap2<Long, Zeze.Builtin.Timer.BOnlineCustom> getTimerIds() {
         return _TimerIds;
+    }
+
+    public Zeze.Transaction.Collections.PSet1<String> getNamedNames() {
+        return _NamedNames;
     }
 
     @SuppressWarnings("deprecation")
     public BOnlineTimers() {
         _TimerIds = new Zeze.Transaction.Collections.PMap2<>(Long.class, Zeze.Builtin.Timer.BOnlineCustom.class);
         _TimerIds.variableId(1);
+        _NamedNames = new Zeze.Transaction.Collections.PSet1<>(String.class);
+        _NamedNames.variableId(2);
     }
 
     public void assign(BOnlineTimers other) {
         getTimerIds().clear();
         for (var e : other.getTimerIds().entrySet())
             getTimerIds().put(e.getKey(), e.getValue().copy());
+        getNamedNames().clear();
+        for (var e : other.getNamedNames())
+            getNamedNames().add(e);
     }
 
     @Deprecated
@@ -83,6 +93,13 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean {
             sb.append(Zeze.Util.Str.indent(level)).append(')').append(System.lineSeparator());
         }
         level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append(']').append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("NamedNames").append("=[").append(System.lineSeparator());
+        level += 4;
+        for (var _item_ : getNamedNames()) {
+            sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(_item_).append(',').append(System.lineSeparator());
+        }
+        level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append(']').append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -115,6 +132,16 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean {
                 }
             }
         }
+        {
+            var _x_ = getNamedNames();
+            int _n_ = _x_.size();
+            if (_n_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.LIST);
+                _o_.WriteListType(_n_, ByteBuffer.BYTES);
+                for (var _v_ : _x_)
+                    _o_.WriteString(_v_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -136,6 +163,16 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean {
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 2) {
+            var _x_ = getNamedNames();
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadString(_t_));
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -145,11 +182,13 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean {
     @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _TimerIds.initRootInfo(root, this);
+        _NamedNames.initRootInfo(root, this);
     }
 
     @Override
     protected void resetChildrenRootInfo() {
         _TimerIds.resetRootInfo();
+        _NamedNames.resetRootInfo();
     }
 
     @Override
@@ -167,6 +206,7 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _TimerIds.followerApply(vlog); break;
+                case 2: _NamedNames.followerApply(vlog); break;
             }
         }
     }

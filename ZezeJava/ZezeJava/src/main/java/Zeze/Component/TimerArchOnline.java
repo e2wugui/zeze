@@ -27,7 +27,6 @@ public class TimerArchOnline {
 
 	//public final static String eTimerHandleName = "Zeze.Component.TimerArchOnline.Handle";
 	public final static String eOnlineTimers = "Zeze.Component.TimerArchOnline";
-	private final ConcurrentHashMap<Long, BArchOnlineTimer> timers = new ConcurrentHashMap<>();
 
 	public TimerArchOnline(Online online) {
 		this.online = online;
@@ -50,8 +49,7 @@ public class TimerArchOnline {
 		var timerId = timer.timerIdAutoKey.nextId();
 
 		var onlineTimer = new BArchOnlineTimer(account, clientId);
-		if (null != timers.putIfAbsent(timerId, onlineTimer))
-			throw new IllegalStateException("duplicate timerId @" + account + ":" + clientId + " handle=" + name);
+		timer.tArchOlineTimer().put(timerId, onlineTimer);
 		var simpleTimer = new BSimpleTimer();
 		Timer.initSimpleTimer(simpleTimer, delay, period, times);
 		onlineTimer.getTimerObj().setBean(simpleTimer);
@@ -72,10 +70,9 @@ public class TimerArchOnline {
 		var timerId = timer.timerIdAutoKey.nextId();
 
 		var onlineTimer = new BArchOnlineTimer(account, clientId);
+		timer.tArchOlineTimer().put(timerId, onlineTimer);
 		var cronTimer = new BCronTimer();
 		onlineTimer.getTimerObj().setBean(cronTimer);
-		if (null != timers.putIfAbsent(timerId, onlineTimer))
-			throw new IllegalStateException("duplicate timerId @" + account + ":" + clientId + " handle=" + name);
 
 		var timerIds = online.getOrAddLocalBean(account, clientId, eOnlineTimers, new BOnlineTimers());
 		timerIds.getTimerIds().getOrAdd(timerId).getCustomData().setBean(customData);
@@ -97,7 +94,7 @@ public class TimerArchOnline {
 				var timers = (BOnlineTimers)bAny.getAny().getBean();
 				for (var timerId : timers.getTimerIds().keySet())
 					cancel(timerId);
-				for (var name : timers.getNamedNames().keySet())
+				for (var name : timers.getNamedNames())
 					timer.cancelNamed(name);
 			}
 		}
@@ -106,14 +103,16 @@ public class TimerArchOnline {
 
 	// 不公开，统一通过Timer.cancel调用。
 	boolean cancel(long timerId) throws Throwable {
+		var timer = online.providerApp.zeze.getTimer();
 		// remove online timer
-		var bTimer = timers.remove(timerId);
+		var bTimer = timer.tArchOlineTimer().get(timerId);
 		if (null == bTimer)
 			return false;
 
 		// remove online local
 		var onlineTimers = online.getOrAddLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers, new BOnlineTimers());
 		onlineTimers.getTimerIds().remove(timerId);
+		timer.tArchOlineTimer().remove(timerId);
 
 		// cancel future task
 		var future = online.providerApp.zeze.getTimer().timersFuture.remove(timerId);
@@ -148,7 +147,7 @@ public class TimerArchOnline {
 				return 0; // done
 			}
 
-			var bTimer = timers.get(timerId);
+			var bTimer = timer.tArchOlineTimer().get(timerId);
 			if (null == bTimer) {
 				// try cancel future
 				var future = timer.timersFuture.remove(timerId);
@@ -203,7 +202,7 @@ public class TimerArchOnline {
 				return 0; // done
 			}
 
-			var bTimer = timers.get(timerId);
+			var bTimer = timer.tArchOlineTimer().get(timerId);
 			if (null == bTimer) {
 				// try cancel future
 				var future = timer.timersFuture.remove(timerId);

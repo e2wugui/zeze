@@ -27,7 +27,6 @@ public class TimerGameOnline {
 
 	//public final static String eTimerHandleName = "Zeze.Component.TimerGameOnline.Handle";
 	public final static String eOnlineTimers = "Zeze.Component.TimerGameOnline";
-	private final ConcurrentHashMap<Long, BGameOnlineTimer> timers = new ConcurrentHashMap<>();
 
 	public TimerGameOnline(Online online) {
 		this.online = online;
@@ -50,8 +49,7 @@ public class TimerGameOnline {
 		var timerId = timer.timerIdAutoKey.nextId();
 
 		var onlineTimer = new BGameOnlineTimer(roleId);
-		if (null != timers.putIfAbsent(timerId, onlineTimer))
-			throw new IllegalStateException("duplicate timerId @" + roleId + " handle=" + name);
+		timer.tGameOlineTimer().put(timerId, onlineTimer);
 		var simpleTimer = new BSimpleTimer();
 		Timer.initSimpleTimer(simpleTimer, delay, period, times);
 		onlineTimer.getTimerObj().setBean(simpleTimer);
@@ -74,8 +72,7 @@ public class TimerGameOnline {
 		var onlineTimer = new BGameOnlineTimer(roleId);
 		var cronTimer = new BCronTimer();
 		onlineTimer.getTimerObj().setBean(cronTimer);
-		if (null != timers.putIfAbsent(timerId, onlineTimer))
-			throw new IllegalStateException("duplicate timerId @" + roleId + " handle=" + name);
+		timer.tGameOlineTimer().put(timerId, onlineTimer);
 
 		var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
 		timerIds.getTimerIds().getOrAdd(timerId).getCustomData().setBean(customData);
@@ -97,7 +94,7 @@ public class TimerGameOnline {
 				var timers = (BOnlineTimers)bAny.getAny().getBean();
 				for (var timerId : timers.getTimerIds().keySet())
 					cancel(timerId);
-				for (var name : timers.getNamedNames().keySet())
+				for (var name : timers.getNamedNames())
 					timer.cancelNamed(name);
 			}
 		}
@@ -106,14 +103,17 @@ public class TimerGameOnline {
 
 	// 不公开，统一通过Timer.cancel调用。
 	boolean cancel(long timerId) throws Throwable {
+		var timer = online.providerApp.zeze.getTimer();
+
 		// remove online timer
-		var bTimer = timers.remove(timerId);
+		var bTimer = timer.tGameOlineTimer().get(timerId);
 		if (null == bTimer)
 			return false;
 
 		// remove online local
 		var onlineTimers = online.getOrAddLocalBean(bTimer.getRoleId(), eOnlineTimers, new BOnlineTimers());
 		onlineTimers.getTimerIds().remove(timerId);
+		timer.tArchOlineTimer().remove(timerId);
 
 		// cancel future task
 		var future = online.providerApp.zeze.getTimer().timersFuture.remove(timerId);
@@ -148,7 +148,7 @@ public class TimerGameOnline {
 				return 0; // done
 			}
 
-			var bTimer = timers.get(timerId);
+			var bTimer = timer.tGameOlineTimer().get(timerId);
 			if (null == bTimer) {
 				// try cancel future
 				var future = timer.timersFuture.remove(timerId);
@@ -203,7 +203,7 @@ public class TimerGameOnline {
 				return 0; // done
 			}
 
-			var bTimer = timers.get(timerId);
+			var bTimer = timer.tGameOlineTimer().get(timerId);
 			if (null == bTimer) {
 				// try cancel future
 				var future = timer.timersFuture.remove(timerId);

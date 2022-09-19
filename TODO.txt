@@ -22,6 +22,7 @@ ServiceManager::OfflineNotify 选择目标遍历优化。
 Table.DelayRemove 删除的实现。
 dynamic is bean?
 
+
 Zege c# ModuleFriend 还需要的能力 @项洋呈
 	1. Nodes 限制大小，当往后面翻超过n(如10个）节点时，删除开头的节点。
 	2. 删除开头的节点时，保存FirstNode，用来快速回到列表开头。

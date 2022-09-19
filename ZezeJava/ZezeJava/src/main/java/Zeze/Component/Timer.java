@@ -292,6 +292,16 @@ public class Timer extends AbstractTimer {
 		redirectCancel(index.getServerId(), timerId);
 	}
 
+	///////////////////////////////////////////////////////////////////////////////
+	// Online Timer
+	tArchOlineTimer tArchOlineTimer() {
+		return _tArchOlineTimer;
+	}
+
+	tGameOlineTimer tGameOlineTimer() {
+		return _tGameOlineTimer;
+	}
+
 	private TimerArchOnline timerArchOnline;
 	private TimerGameOnline timerGameOnline;
 

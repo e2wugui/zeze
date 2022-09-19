@@ -941,6 +941,7 @@
 					<value bean="BCronTimer"/>
 				</variable>
 			</bean>
+
 			<bean name="BGameOnlineTimer"> 保存在内存Map中
 				<variable id="1" name="RoleId" type="long"/>
 				<variable id="2" name="TimerObj" type="dynamic">
@@ -949,11 +950,15 @@
 				</variable>
 			</bean>
 
+			<table name="tArchOlineTimer" key="long" value="BArchOnlineTimer" memory="true"/>
+			<table name="tGameOlineTimer" key="long" value="BGameOnlineTimer" memory="true"/>
+
 			<bean name="BOnlineCustom"> 保存真正的用户自定义数据
 				<variable id="1" name="CustomData" type="dynamic"/>
 			</bean>
 			<bean name="BOnlineTimers"> 这个Bean作为Online.Local.Any存储
 				<variable id="1" name="TimerIds" type="map[long, BOnlineCustom]"/>
+				<variable id="2" name="NamedNames" type="set[string]"/>
 			</bean>
 		</module>
 		<!--
