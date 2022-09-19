@@ -29,6 +29,9 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean {
         return null;
     }
 
+    private long _LoginVersion;
+    private String _NamedName;
+
     public long getRoleId() {
         if (!isManaged())
             return _RoleId;
@@ -68,20 +71,67 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean {
         getTimerObj().setBean(value);
     }
 
-    @SuppressWarnings("deprecation")
-    public BGameOnlineTimer() {
-        _TimerObj = new Zeze.Transaction.DynamicBean(2, BGameOnlineTimer::getSpecialTypeIdFromBean_TimerObj, BGameOnlineTimer::createBeanFromSpecialTypeId_TimerObj);
+    public long getLoginVersion() {
+        if (!isManaged())
+            return _LoginVersion;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _LoginVersion;
+        var log = (Log__LoginVersion)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _LoginVersion;
+    }
+
+    public void setLoginVersion(long value) {
+        if (!isManaged()) {
+            _LoginVersion = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__LoginVersion(this, 3, value));
+    }
+
+    public String getNamedName() {
+        if (!isManaged())
+            return _NamedName;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _NamedName;
+        var log = (Log__NamedName)txn.getLog(objectId() + 4);
+        return log != null ? log.value : _NamedName;
+    }
+
+    public void setNamedName(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _NamedName = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__NamedName(this, 4, value));
     }
 
     @SuppressWarnings("deprecation")
-    public BGameOnlineTimer(long _RoleId_) {
+    public BGameOnlineTimer() {
+        _TimerObj = new Zeze.Transaction.DynamicBean(2, BGameOnlineTimer::getSpecialTypeIdFromBean_TimerObj, BGameOnlineTimer::createBeanFromSpecialTypeId_TimerObj);
+        _NamedName = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public BGameOnlineTimer(long _RoleId_, long _LoginVersion_, String _NamedName_) {
         _RoleId = _RoleId_;
         _TimerObj = new Zeze.Transaction.DynamicBean(2, BGameOnlineTimer::getSpecialTypeIdFromBean_TimerObj, BGameOnlineTimer::createBeanFromSpecialTypeId_TimerObj);
+        _LoginVersion = _LoginVersion_;
+        if (_NamedName_ == null)
+            throw new IllegalArgumentException();
+        _NamedName = _NamedName_;
     }
 
     public void assign(BGameOnlineTimer other) {
         setRoleId(other.getRoleId());
         getTimerObj().assign(other.getTimerObj());
+        setLoginVersion(other.getLoginVersion());
+        setNamedName(other.getNamedName());
     }
 
     @Deprecated
@@ -129,6 +179,20 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean {
         public void commit() { ((BGameOnlineTimer)getBelong())._RoleId = value; }
     }
 
+    private static final class Log__LoginVersion extends Zeze.Transaction.Logs.LogLong {
+        public Log__LoginVersion(BGameOnlineTimer bean, int varId, long value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BGameOnlineTimer)getBelong())._LoginVersion = value; }
+    }
+
+    private static final class Log__NamedName extends Zeze.Transaction.Logs.LogString {
+        public Log__NamedName(BGameOnlineTimer bean, int varId, String value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BGameOnlineTimer)getBelong())._NamedName = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -143,7 +207,9 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("RoleId").append('=').append(getRoleId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("TimerObj").append('=').append(System.lineSeparator());
         getTimerObj().getBean().buildString(sb, level + 4);
-        sb.append(System.lineSeparator());
+        sb.append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("LoginVersion").append('=').append(getLoginVersion()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("NamedName").append('=').append(getNamedName()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -177,6 +243,20 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean {
                 _x_.encode(_o_);
             }
         }
+        {
+            long _x_ = getLoginVersion();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
+        {
+            String _x_ = getNamedName();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -190,6 +270,14 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean {
         }
         if (_i_ == 2) {
             _o_.ReadDynamic(getTimerObj(), _t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            setLoginVersion(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            setNamedName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -214,6 +302,8 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean {
             return true;
         if (getTimerObj().negativeCheck())
             return true;
+        if (getLoginVersion() < 0)
+            return true;
         return false;
     }
 
@@ -228,6 +318,8 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean {
             switch (vlog.getVariableId()) {
                 case 1: _RoleId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 2: _TimerObj.followerApply(vlog); break;
+                case 3: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 4: _NamedName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
             }
         }
     }

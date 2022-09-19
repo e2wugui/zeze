@@ -26,6 +26,8 @@ public final class tGameOlineTimer extends Zeze.Transaction.TableX<Long, Zeze.Bu
 
     public static final int VAR_RoleId = 1;
     public static final int VAR_TimerObj = 2;
+    public static final int VAR_LoginVersion = 3;
+    public static final int VAR_NamedName = 4;
 
     @Override
     public Long decodeKey(ByteBuffer _os_) {

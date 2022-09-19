@@ -27,6 +27,8 @@ public final class tArchOlineTimer extends Zeze.Transaction.TableX<Long, Zeze.Bu
     public static final int VAR_Account = 1;
     public static final int VAR_ClientId = 2;
     public static final int VAR_TimerObj = 3;
+    public static final int VAR_LoginVersion = 4;
+    public static final int VAR_NamedName = 5;
 
     @Override
     public Long decodeKey(ByteBuffer _os_) {

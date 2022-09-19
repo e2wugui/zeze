@@ -1,8 +1,9 @@
 package Zeze.Component;
 
 import java.util.Calendar;
-import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Builtin.Timer.BTimerId;
 import Zeze.Game.LocalRemoveEventArgument;
+import Zeze.Game.LoginArgument;
 import Zeze.Game.Online;
 import Zeze.Builtin.Timer.BCronTimer;
 import Zeze.Builtin.Timer.BGameOnlineTimer;
@@ -15,12 +16,11 @@ import Zeze.Util.EventDispatcher;
 import Zeze.Util.Task;
 
 /**
- * 1. scheduleNamed 基于 Timer.scheduleNamed。
- * 2. schedule 完全重新实现一套基于内存表和内存的。
- * 3. 不直接使用 Timer.schedule。但有如下关联。
+ * 1. schedule，scheduleNamed 完全重新实现一套基于内存表和内存的。
+ * 2. 不直接使用 Timer.schedule。但有如下关联。
  *    直接使用 Timer.timerIdAutoKey，使得返回的timerId共享一个名字空间。
  *    直接使用 Timer.timersFuture，从 ThreadPool 返回的future保存在这里。
- * 4. cancel 用户入口从 Timer.calcel 调用。
+ * 3. cancel 用户入口从 Timer.calcel 调用。
  */
 public class TimerGameOnline {
 	final Online online;
@@ -28,27 +28,58 @@ public class TimerGameOnline {
 	//public final static String eTimerHandleName = "Zeze.Component.TimerGameOnline.Handle";
 	public final static String eOnlineTimers = "Zeze.Component.TimerGameOnline";
 
-	public TimerGameOnline(Online online) {
+	TimerGameOnline(Online online) {
 		this.online = online;
 
 		// online timer 生命期和 Online.Local 一致。
 		online.getLocalRemoveEvents().getRunEmbedEvents().offer(this::onLocalRemoveEvent);
+		online.getReloginEvents().getRunEmbedEvents().offer(this::onReloginEvent);
 	}
 
-	// todo
-	public long scheduleNamed() {
-		return -1;
+	// 本进程内的有名字定时器，名字仅在本进程内唯一。
+	public boolean scheduleNamed(long roleId, String timerName,
+								 long delay, long period, long times,
+								 String handleName, Bean customData) throws Throwable {
+		var timer = online.providerApp.zeze.getTimer();
+		var timerId = timer.tOnlineNamed().get(timerName);
+		if (null != timerId)
+			return false;
+		timerId = new BTimerId(schedule(roleId, delay, period, times, handleName, customData));
+		timer.tOnlineNamed().insert(timerName, timerId);
+		timer.tGameOlineTimer().get(timerId.getTimerId()).setNamedName(timerName);
+		return true;
+	}
+
+	// 本进程内的有名字定时器，名字仅在本进程内唯一。
+	public boolean scheduleNamed(long roleId, String timerName,
+								 String cron, String handleName, Bean customData) throws Throwable {
+		var timer = online.providerApp.zeze.getTimer();
+		var timerId = timer.tOnlineNamed().get(timerName);
+		if (null != timerId)
+			return false;
+		timerId = new BTimerId(schedule(roleId, cron, handleName, customData));
+		timer.tOnlineNamed().insert(timerName, timerId);
+		timer.tGameOlineTimer().get(timerId.getTimerId()).setNamedName(timerName);
+		return true;
+	}
+
+	public void cancelNamed(String timerName) throws Throwable {
+		var timer = online.providerApp.zeze.getTimer();
+		var timerId = timer.tOnlineNamed().get(timerName);
+		cancel(timerId.getTimerId());
+		timer.tOnlineNamed().remove(timerName);
 	}
 
 	public long schedule(long roleId, long delay, long period, long times, String name, Bean customData) throws Throwable {
 		// 去掉下面两行，不允许在非登录状态注册timer。现在允许。
-		if (!online.isLogin(roleId))
+		var loginVersion = online.getLocalLoginVersion(roleId);
+		if (null == loginVersion)
 			throw new IllegalStateException("not login. roleId=" + roleId);
 
 		var timer = online.providerApp.zeze.getTimer();
 		var timerId = timer.timerIdAutoKey.nextId();
 
-		var onlineTimer = new BGameOnlineTimer(roleId);
+		var onlineTimer = new BGameOnlineTimer(roleId, loginVersion, "");
 		timer.tGameOlineTimer().put(timerId, onlineTimer);
 		var simpleTimer = new BSimpleTimer();
 		Timer.initSimpleTimer(simpleTimer, delay, period, times);
@@ -57,19 +88,19 @@ public class TimerGameOnline {
 		var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
 		timerIds.getTimerIds().getOrAdd(timerId).getCustomData().setBean(customData);
 
-		Transaction.whileCommit(() -> scheduleSimpleLocal(timerId, delay, period, name));
+		Transaction.whileCommit(() -> scheduleSimple(timerId, delay, name));
 		return timerId;
 	}
 
 	public long schedule(long roleId, String cron, String name, Bean customData) throws Throwable {
-		// 去掉下面两行，不允许在非登录状态注册timer。现在允许。
-		if (!online.isLogin(roleId))
+		var loginVersion = online.getLocalLoginVersion(roleId);
+		if (null == loginVersion)
 			throw new IllegalStateException("not login. roleId=" + roleId);
 
 		var timer = online.providerApp.zeze.getTimer();
 		var timerId = timer.timerIdAutoKey.nextId();
 
-		var onlineTimer = new BGameOnlineTimer(roleId);
+		var onlineTimer = new BGameOnlineTimer(roleId, loginVersion, "");
 		var cronTimer = new BCronTimer();
 		onlineTimer.getTimerObj().setBean(cronTimer);
 		timer.tGameOlineTimer().put(timerId, onlineTimer);
@@ -79,6 +110,29 @@ public class TimerGameOnline {
 
 		Transaction.whileCommit(() -> scheduleCronLocal(timerId, cron, name));
 		return timerId;
+	}
+
+	public boolean cancel(long timerId) throws Throwable {
+		var timer = online.providerApp.zeze.getTimer();
+
+		// remove online timer
+		var bTimer = timer.tGameOlineTimer().get(timerId);
+		if (null == bTimer)
+			return false;
+
+		// remove online local
+		var onlineTimers = online.getOrAddLocalBean(bTimer.getRoleId(), eOnlineTimers, new BOnlineTimers());
+		onlineTimers.getTimerIds().remove(timerId);
+		timer.tArchOlineTimer().remove(timerId);
+		if (!bTimer.getNamedName().isEmpty())
+			timer.tOnlineNamed().remove(bTimer.getNamedName());
+
+		// cancel future task
+		var future = online.providerApp.zeze.getTimer().timersFuture.remove(timerId);
+		if (null == future)
+			return false;
+		future.cancel(true);
+		return true;
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////
@@ -101,26 +155,22 @@ public class TimerGameOnline {
 		return 0;
 	}
 
-	// 不公开，统一通过Timer.cancel调用。
-	boolean cancel(long timerId) throws Throwable {
+	// relogin 时需要更新已经注册的定时器的版本号。
+	private long onReloginEvent(Object sender, EventDispatcher.EventArgument arg) throws Throwable {
+		var user = (LoginArgument)arg;
 		var timer = online.providerApp.zeze.getTimer();
 
-		// remove online timer
-		var bTimer = timer.tGameOlineTimer().get(timerId);
-		if (null == bTimer)
-			return false;
-
-		// remove online local
-		var onlineTimers = online.getOrAddLocalBean(bTimer.getRoleId(), eOnlineTimers, new BOnlineTimers());
-		onlineTimers.getTimerIds().remove(timerId);
-		timer.tArchOlineTimer().remove(timerId);
-
-		// cancel future task
-		var future = online.providerApp.zeze.getTimer().timersFuture.remove(timerId);
-		if (null == future)
-			return false;
-		future.cancel(true);
-		return true;
+		var loginVersion = online.getGlobalLoginVersion(user.roleId);
+		var timers = online.<BOnlineTimers>getLocalBean(user.roleId, eOnlineTimers);
+		// XXX
+		// 这里有个问题，如果在线定时器很多，这个嵌到relogin-procedure中的事务需要更新很多记录。
+		// 如果启动新的事务执行更新，又会破坏原子性。
+		// 先整体在一个事务内更新，这样更安全。
+		// 由于Online Timer是本进程的，用户也不会修改，所以整体更新目前看来还可接受。
+		for (var tid : timers.getTimerIds().keySet()) {
+			timer.tArchOlineTimer().get(tid).setLoginVersion(loginVersion);
+		}
+		return 0;
 	}
 
 	// 调度 cron 定时器
@@ -150,10 +200,13 @@ public class TimerGameOnline {
 
 			var bTimer = timer.tGameOlineTimer().get(timerId);
 			if (null == bTimer) {
-				// try cancel future
-				var future = timer.timersFuture.remove(timerId);
-				if (null != future)
-					future.cancel(true);
+				timer.cancelFuture(timerId);
+				return 0; // done
+			}
+			var globalLoginVersion = online.getGlobalLoginVersion(bTimer.getRoleId());
+			if (null == globalLoginVersion || bTimer.getLoginVersion() != globalLoginVersion) {
+				// 已经不是注册定时器时候的登录了。
+				timer.cancelFuture(timerId);
 				return 0; // done
 			}
 
@@ -174,7 +227,7 @@ public class TimerGameOnline {
 				return retNest;
 			// skip other error
 
-			long delay = context.nextExpectedTimeMills - System.currentTimeMillis();
+			long delay = cronTimer.getNextExpectedTimeMills() - System.currentTimeMillis();
 			scheduleCronNext(timerId, delay, name);
 			return 0;
 		}, "fireOnlineSimpleTimer"));
@@ -183,14 +236,9 @@ public class TimerGameOnline {
 	}
 
 	// 调度 Simple 定时器到ThreadPool中。
-	private void scheduleSimpleLocal(long timerId, long delay, long period, String name) {
+	private void scheduleSimple(long timerId, long delay, String name) {
 		var timer = online.providerApp.zeze.getTimer();
-		if (period > 0)
-			timer.timersFuture.put(timerId, Task.scheduleUnsafe(delay, period,
-					() -> fireOnlineSimpleTimer(timerId, name)));
-		else
-			timer.timersFuture.put(timerId, Task.scheduleUnsafe(delay,
-					() -> fireOnlineSimpleTimer(timerId, name)));
+		timer.timersFuture.put(timerId, Task.scheduleUnsafe(delay, () -> fireOnlineSimpleTimer(timerId, name)));
 	}
 
 	// Timer发生，执行回调。
@@ -205,10 +253,13 @@ public class TimerGameOnline {
 
 			var bTimer = timer.tGameOlineTimer().get(timerId);
 			if (null == bTimer) {
-				// try cancel future
-				var future = timer.timersFuture.remove(timerId);
-				if (null != future)
-					future.cancel(true);
+				timer.cancelFuture(timerId);
+				return 0; // done
+			}
+			var globalLoginVersion = online.getGlobalLoginVersion(bTimer.getRoleId());
+			if (null == globalLoginVersion || bTimer.getLoginVersion() != globalLoginVersion) {
+				// 已经不是注册定时器时候的登录了。
+				timer.cancelFuture(timerId);
 				return 0; // done
 			}
 
@@ -234,6 +285,11 @@ public class TimerGameOnline {
 				if (simpleTimer.getRemainTimes() == 0) {
 					cancel(timerId);
 				}
+			}
+
+			if (simpleTimer.getPeriod() > 0) {
+				var delay = simpleTimer.getNextExpectedTimeMills() - System.currentTimeMillis();
+				scheduleSimple(timerId, delay, name);
 			}
 			return 0;
 		}, "fireOnlineSimpleTimer"));

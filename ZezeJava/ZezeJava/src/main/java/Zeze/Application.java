@@ -324,7 +324,7 @@ public final class Application {
 				achillesHeelDaemon.start();
 			isStart = true;
 
-			timer.Start();
+			timer.start();
 		}
 	}
 
@@ -335,7 +335,7 @@ public final class Application {
 		logger.info("Stop ServerId={}", conf != null ? conf.getServerId() : -1);
 
 		if (null != timer) {
-			timer.Stop();
+			timer.stop();
 			timer = null;
 		}
 

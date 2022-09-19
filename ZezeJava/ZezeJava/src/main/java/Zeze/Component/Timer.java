@@ -5,6 +5,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import Zeze.Arch.ProviderApp;
+import Zeze.Arch.ProviderWithOnline;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
@@ -55,7 +57,7 @@ public class Timer extends AbstractTimer {
 	}
 
 	@SuppressWarnings("unchecked")
-	public void Start() throws Throwable {
+	public void start() throws Throwable {
 		nodeIdAutoKey = zeze.getAutoKey("Zeze.Component.Timer.NodeId");
 		timerIdAutoKey = zeze.getAutoKey("Zeze.Component.Timer.TimerId");
 		if (0L != zeze.newProcedure(() -> {
@@ -70,7 +72,16 @@ public class Timer extends AbstractTimer {
 		Task.run(this::loadTimer, "LoadTimerLocal");
 	}
 
-	public void Stop() throws Throwable {
+	public void initializeOnlineTimer(ProviderApp providerApp) {
+		if (null != providerApp && null != providerApp.providerImplement) {
+			if (providerApp.providerImplement instanceof ProviderWithOnline arch)
+				archOnline = new TimerArchOnline(arch.online);
+			else if (providerApp.providerImplement instanceof Zeze.Game.ProviderImplementWithOnline game)
+				gameOnline = new TimerGameOnline(game.online);
+		}
+	}
+
+	public void stop() throws Throwable {
 		UnRegisterZezeTables(this.zeze);
 	}
 
@@ -282,6 +293,19 @@ public class Timer extends AbstractTimer {
 
 	// 取消一个具体的Timer实例。
 	public void cancel(long timerId) {
+		try {
+			// XXX 统一通过这里取消定时器，可能会浪费一次内存表查询。
+			if (null != gameOnline && gameOnline.cancel(timerId))
+				return; // done
+
+			if (null != archOnline && archOnline.cancel(timerId))
+				return; // done
+
+		} catch (Throwable ex) {
+			logger.error("ignore cancel error.", ex);
+			return; // done;
+		}
+
 		var index = _tIndexs.get(timerId);
 		if (null == index) {
 			// 尽可能的执行取消操作，不做严格判断。
@@ -302,15 +326,19 @@ public class Timer extends AbstractTimer {
 		return _tGameOlineTimer;
 	}
 
-	private TimerArchOnline timerArchOnline;
-	private TimerGameOnline timerGameOnline;
+	tOnlineNamed tOnlineNamed() {
+		return _tOnlineNamed;
+	}
+
+	private TimerArchOnline archOnline;
+	private TimerGameOnline gameOnline;
 
 	public TimerArchOnline getArchOnlineTimer() {
-		return timerArchOnline;
+		return archOnline;
 	}
 
 	public TimerGameOnline getGameOnlineTimer() {
-		return timerGameOnline;
+		return gameOnline;
 	}
 
 	/////////////////////////////////////////////////////////////
@@ -326,7 +354,7 @@ public class Timer extends AbstractTimer {
 		cancel(serverId, timerId, index, _tNodes.get(index.getNodeId()));
 	}
 
-	private void cancelFuture(long timerId) {
+	void cancelFuture(long timerId) {
 		var local = timersFuture.remove(timerId);
 		if (null != local)
 			local.cancel(false);
@@ -537,7 +565,7 @@ public class Timer extends AbstractTimer {
 				}
 				timer.setConcurrentFireSerialNo(concurrentSerialNo + 1);
 			}
-			// else 发生了并发执行争抢，也需要再次进行本地调度。此时直接使用simpleTimer中的值，不需要再次进行计算。
+			// else 发生了并发执行争抢，也需要再次进行本地调度。此时直接使用cronTimer中的值，不需要再次进行计算。
 			long delay = cronTimer.getNextExpectedTimeMills() - System.currentTimeMillis();
 			scheduleCronNext(serverId, timerId, delay, name, concurrentSerialNo + 1);
 			return 0L; // procedure done

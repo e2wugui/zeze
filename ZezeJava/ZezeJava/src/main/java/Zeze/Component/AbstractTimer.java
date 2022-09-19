@@ -15,6 +15,7 @@ public abstract class AbstractTimer extends Zeze.IModule {
     protected final Zeze.Builtin.Timer.tNamed _tNamed = new Zeze.Builtin.Timer.tNamed();
     protected final Zeze.Builtin.Timer.tNodeRoot _tNodeRoot = new Zeze.Builtin.Timer.tNodeRoot();
     protected final Zeze.Builtin.Timer.tNodes _tNodes = new Zeze.Builtin.Timer.tNodes();
+    protected final Zeze.Builtin.Timer.tOnlineNamed _tOnlineNamed = new Zeze.Builtin.Timer.tOnlineNamed();
 
     public void RegisterProtocols(Zeze.Net.Service service) {
     }
@@ -30,6 +31,7 @@ public abstract class AbstractTimer extends Zeze.IModule {
         zeze.addTable(zeze.getConfig().getTableConf(_tNamed.getName()).getDatabaseName(), _tNamed);
         zeze.addTable(zeze.getConfig().getTableConf(_tNodeRoot.getName()).getDatabaseName(), _tNodeRoot);
         zeze.addTable(zeze.getConfig().getTableConf(_tNodes.getName()).getDatabaseName(), _tNodes);
+        zeze.addTable(zeze.getConfig().getTableConf(_tOnlineNamed.getName()).getDatabaseName(), _tOnlineNamed);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
@@ -40,6 +42,7 @@ public abstract class AbstractTimer extends Zeze.IModule {
         zeze.removeTable(zeze.getConfig().getTableConf(_tNamed.getName()).getDatabaseName(), _tNamed);
         zeze.removeTable(zeze.getConfig().getTableConf(_tNodeRoot.getName()).getDatabaseName(), _tNodeRoot);
         zeze.removeTable(zeze.getConfig().getTableConf(_tNodes.getName()).getDatabaseName(), _tNodes);
+        zeze.removeTable(zeze.getConfig().getTableConf(_tOnlineNamed.getName()).getDatabaseName(), _tOnlineNamed);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

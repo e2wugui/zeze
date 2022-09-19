@@ -915,23 +915,6 @@
 
 			<table name="tNamed" key="string" value="BTimerId"/> key is name
 
-			<!-- Online Named Timer -->
-			<bean name="BOnlineNamedArchCustom"> 保存到BTimer.CustomData
-				<variable id="1" name="Account" type="string"/>
-				<variable id="2" name="ClientId" type="string"/>
-				<variable id="3" name="CustomData" type="dynamic"> 真正的用户自定义数据
-					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::getSpecialTypeIdFromBean"/>
-					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::createBeanFromSpecialTypeId"/>
-				</variable>
-			</bean>
-			<bean name="BOnlineNamedGameCustom"> 保存到BTimer.CustomData
-				<variable id="1" name="RoleId" type="long"/>
-				<variable id="2" name="CustomData" type="dynamic"> 真正的用户自定义数据
-					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::getSpecialTypeIdFromBean"/>
-					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::createBeanFromSpecialTypeId"/>
-				</variable>
-			</bean>
-
 			<!-- Online Timer -->
 			<bean name="BArchOnlineTimer"> 保存在内存Map中
 				<variable id="1" name="Account" type="string"/>
@@ -940,6 +923,8 @@
 					<value bean="BSimpleTimer"/>
 					<value bean="BCronTimer"/>
 				</variable>
+				<variable id="4" name="LoginVersion" type="long"/>
+				<variable id="5" name="NamedName" type="string"/>
 			</bean>
 
 			<bean name="BGameOnlineTimer"> 保存在内存Map中
@@ -948,10 +933,13 @@
 					<value bean="BSimpleTimer"/>
 					<value bean="BCronTimer"/>
 				</variable>
+				<variable id="3" name="LoginVersion" type="long"/>
+				<variable id="4" name="NamedName" type="string"/>
 			</bean>
 
 			<table name="tArchOlineTimer" key="long" value="BArchOnlineTimer" memory="true"/>
 			<table name="tGameOlineTimer" key="long" value="BGameOnlineTimer" memory="true"/>
+			<table name="tOnlineNamed" key="string" value="BTimerId"/> key is name
 
 			<bean name="BOnlineCustom"> 保存真正的用户自定义数据
 				<variable id="1" name="CustomData" type="dynamic"/>
