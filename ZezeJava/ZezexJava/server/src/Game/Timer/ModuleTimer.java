@@ -240,7 +240,7 @@ public class ModuleTimer extends AbstractModule {
 			var root = _tNodeRoot.getOrAdd(serverId);
 			// 本地每次load都递增。用来处理和接管的并发。
 			root.setLoadSerialNo(root.getLoadSerialNo() + 1);
-			out.value = root.Copy();
+			out.value = root.copy();
 			return 0L;
 		}, "LoadTimerLocal"));
 		var root = out.value;

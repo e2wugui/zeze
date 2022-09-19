@@ -65,8 +65,8 @@ public class SimpleApp extends AppBase {
 		providerApp = new ProviderApp(zeze, provider,
 				new ProviderService("Server", zeze), "SimpleApp#", new ProviderDirectWithTransmit(),
 				new ProviderDirectService("ServerDirect", zeze), "SimpleLinkd", new LoadConfig());
-		provider.Online = Online.create(this);
-		provider.Online.Initialize(this);
+		provider.online = Online.create(this);
+		provider.online.Initialize(this);
 
 		var modules = new HashMap<String, IModule>();
 
@@ -85,7 +85,7 @@ public class SimpleApp extends AppBase {
 //		}
 
 		zeze.start();
-		((ProviderImplementWithOnline)providerApp.providerImplement).Online.start();
+		((ProviderImplementWithOnline)providerApp.providerImplement).online.start();
 		providerApp.providerService.Start();
 		providerApp.providerDirectService.Start();
 		providerApp.startLast(ProviderModuleBinds.load(""), modules);
@@ -94,7 +94,7 @@ public class SimpleApp extends AppBase {
 	public void stop() throws Throwable {
 		if (providerApp != null) {
 			if (providerApp.providerImplement != null) {
-				var online = ((ProviderImplementWithOnline)providerApp.providerImplement).Online;
+				var online = ((ProviderImplementWithOnline)providerApp.providerImplement).online;
 				if (online != null)
 					online.stop();
 			}

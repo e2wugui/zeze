@@ -193,7 +193,7 @@ public class TestChangeListener {
 	private void Init() throws Throwable {
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().get(1L);
-			localValue = value == null ? null : value.Copy();
+			localValue = value == null ? null : value.copy();
 			return Procedure.Success;
 		}, "TestChangeListener.CopyLocal").Call());
 
@@ -217,7 +217,7 @@ public class TestChangeListener {
 	private void Verify() throws Throwable {
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().get(1L);
-			localValue = value == null ? null : value.Copy();
+			localValue = value == null ? null : value.copy();
 			return Procedure.Success;
 		}, "TestChangeListener.CopyLocal").Call());
 
@@ -442,7 +442,7 @@ public class TestChangeListener {
 
 		public final void Init(demo.Module1.BValue current) {
 			if (null != current) {
-				newValue = current.getBean12().Copy();
+				newValue = current.getBean12().copy();
 			} else {
 				newValue = null;
 			}
@@ -458,12 +458,12 @@ public class TestChangeListener {
 
 		@Override
 		public final void OnChanged(Object key, Bean value) {
-			newValue = ((demo.Module1.BValue)value).getBean12().Copy();
+			newValue = ((demo.Module1.BValue)value).getBean12().copy();
 		}
 
 		@Override
 		public final void OnChanged(Object key, Log note) {
-			newValue = ((demo.Module1.BValue)note.getBelong()).getBean12().Copy();
+			newValue = ((demo.Module1.BValue)note.getBelong()).getBean12().copy();
 		}
 
 		@Override
@@ -479,7 +479,7 @@ public class TestChangeListener {
 			if (null != current) {
 				newValue = new HashMap<>();
 				for (var e : current.getMap11().entrySet()) {
-					newValue.put(e.getKey(), e.getValue().Copy());
+					newValue.put(e.getKey(), e.getValue().copy());
 				}
 			} else {
 				newValue = null;
@@ -493,7 +493,7 @@ public class TestChangeListener {
 			}
 			HashMap<Long, BValue> newValueCopy = new HashMap<>();
 			for (var e : current.getMap11().entrySet()) {
-				newValueCopy.put(e.getKey(), e.getValue().Copy());
+				newValueCopy.put(e.getKey(), e.getValue().copy());
 			}
 			Assert.assertEquals(newValue.size(), newValueCopy.size());
 			for (var e : newValue.entrySet()) {
@@ -507,7 +507,7 @@ public class TestChangeListener {
 		public final void OnChanged(Object key, Bean value) {
 			newValue = new HashMap<>();
 			for (var e : ((demo.Module1.BValue)value).getMap11().entrySet()) {
-				newValue.put(e.getKey(), e.getValue().Copy());
+				newValue.put(e.getKey(), e.getValue().copy());
 			}
 		}
 

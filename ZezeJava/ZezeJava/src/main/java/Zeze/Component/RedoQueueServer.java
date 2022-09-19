@@ -27,11 +27,11 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 		UnRegisterZezeTables(server.getZeze());
 	}
 
-	public void Start() throws Throwable {
+	public void start() throws Throwable {
 		server.Start();
 	}
 
-	public void Stop() throws Throwable {
+	public void stop() throws Throwable {
 		server.Stop();
 	}
 
@@ -50,10 +50,10 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 		if (r.Argument.getPrevTaskId() != last.getTaskId())
 			return Procedure.ErrorRequestId;
 		var queue = handles.get(r.Argument.getQueueName());
-		if (null == queue)
+		if (queue == null)
 			return Procedure.NotImplement;
 		var handle = queue.get(r.Argument.getTaskType());
-		if (null == handle)
+		if (handle == null)
 			return Procedure.NotImplement;
 		if (!handle.test(r.Argument.getTaskParam()))
 			return Procedure.LogicError;
@@ -69,11 +69,10 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 
 		@Override
 		public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) {
-			Task.run(getZeze().newProcedure(
-					() -> {
+			Task.run(getZeze().newProcedure(() -> {
 						Transaction.whileCommit(() -> p.SendResultCode(p.getResultCode()));
-						return factoryHandle.Handle.handle(p);},
-					p.getClass().getName(), TransactionLevel.Serializable, p.getUserState()), p,
+						return factoryHandle.Handle.handle(p);
+					}, p.getClass().getName(), TransactionLevel.Serializable, p.getUserState()), p,
 					Protocol::trySendResultCode, DispatchMode.Normal);
 		}
 	}

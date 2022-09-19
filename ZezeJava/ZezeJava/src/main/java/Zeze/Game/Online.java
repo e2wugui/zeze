@@ -107,13 +107,13 @@ public class Online extends AbstractOnline {
 	}
 
 	public void start() {
-		loadReporter.Start();
+		loadReporter.start();
 		verifyLocalTimer = Task.scheduleAtUnsafe(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
 		providerApp.builtinModules.put(this.getFullName(), this);
 	}
 
 	public void stop() {
-		loadReporter.Stop();
+		loadReporter.stop();
 		if (null != verifyLocalTimer)
 			verifyLocalTimer.cancel(false);
 	}
@@ -233,8 +233,8 @@ public class Online extends AbstractOnline {
 
 	private void removeLocalAndTrigger(long roleId) throws Throwable {
 		var arg = new LocalRemoveEventArgument();
-		arg.RoleId = roleId;
-		arg.LocalData = _tlocal.get(roleId).copy();
+		arg.roleId = roleId;
+		arg.localData = _tlocal.get(roleId).copy();
 
 		_tlocal.remove(roleId); // remove first
 
@@ -249,8 +249,8 @@ public class Online extends AbstractOnline {
 
 	private void logoutTriggerExtra(long roleId) throws Throwable {
 		var arg = new LogoutEventArgument();
-		arg.RoleId = roleId;
-		arg.OnlineData = _tonline.get(roleId).copy();
+		arg.roleId = roleId;
+		arg.onlineData = _tonline.get(roleId).copy();
 
 		logoutEvents.triggerEmbed(this, arg);
 		logoutEvents.triggerProcedure(providerApp.zeze, this, arg);
@@ -259,8 +259,8 @@ public class Online extends AbstractOnline {
 
 	private void logoutTrigger(long roleId) throws Throwable {
 		var arg = new LogoutEventArgument();
-		arg.RoleId = roleId;
-		arg.OnlineData = _tonline.get(roleId).copy();
+		arg.roleId = roleId;
+		arg.onlineData = _tonline.get(roleId).copy();
 
 		_tonline.remove(roleId); // remove first
 
@@ -271,7 +271,7 @@ public class Online extends AbstractOnline {
 
 	private void loginTrigger(long roleId) throws Throwable {
 		var arg = new LoginArgument();
-		arg.RoleId = roleId;
+		arg.roleId = roleId;
 
 		loginTimes.incrementAndGet();
 		loginEvents.triggerEmbed(this, arg);
@@ -281,7 +281,7 @@ public class Online extends AbstractOnline {
 
 	private void reloginTrigger(long roleId) throws Throwable {
 		var arg = new LoginArgument();
-		arg.RoleId = roleId;
+		arg.roleId = roleId;
 
 		loginTimes.incrementAndGet();
 		reloginEvents.triggerEmbed(this, arg);

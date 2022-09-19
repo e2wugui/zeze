@@ -83,8 +83,8 @@ public final class App extends Zeze.AppBase {
 		ProviderApp = new ProviderApp(Zeze, Provider, Server,
 				"Game.Server.Module#",
 				ProviderDirect, ServerDirect, "Game.Linkd", LoadConfig());
-		Provider.Online = Online.create(this);
-		Provider.Online.Initialize(this);
+		Provider.online = Online.create(this);
+		Provider.online.Initialize(this);
 
 		createModules();
 		if (GenModule.instance.genFileSrcRoot != null) {
@@ -96,7 +96,7 @@ public final class App extends Zeze.AppBase {
 		// start
 		Zeze.start(); // 启动数据库
 		startModules(); // 启动模块，装载配置什么的。
-		Provider.Online.start();
+		Provider.online.start();
 
 		PersistentAtomicLong socketSessionIdGen = PersistentAtomicLong.getOrAdd("Game.Server." + config.getServerId());
 		AsyncSocket.setSessionIdGenFunc(socketSessionIdGen::next);
@@ -106,8 +106,8 @@ public final class App extends Zeze.AppBase {
 	}
 
 	public void Stop() throws Throwable {
-		if (Provider != null && Provider.Online != null)
-			Provider.Online.stop();
+		if (Provider != null && Provider.online != null)
+			Provider.online.stop();
 		stopService(); // 关闭网络
 		stopModules(); // 关闭模块，卸载配置什么的。
 		if (Zeze != null)

@@ -13,17 +13,17 @@ import Zeze.Transaction.Transaction;
 public final class AutoKey {
 	public static class Module extends AbstractAutoKey {
 		private final ConcurrentHashMap<String, AutoKey> map = new ConcurrentHashMap<>();
-		public final Zeze.Application Zeze;
+		public final Zeze.Application zeze;
 
 		// 这个组件Zeze.Application会自动初始化，不需要应用初始化。
 		public Module(Zeze.Application zeze) {
-			Zeze = zeze;
+			this.zeze = zeze;
 			RegisterZezeTables(zeze);
 		}
 
 		@Override
 		public void UnRegister() {
-			UnRegisterZezeTables(Zeze);
+			UnRegisterZezeTables(zeze);
 		}
 
 		/**
@@ -59,7 +59,7 @@ public final class AutoKey {
 	public long nextId() {
 		var bb = nextByteBuffer();
 		if (bb.Size() > 8)
-			throw new IllegalStateException("out of range: serverId=" + module.Zeze.getConfig().getServerId()
+			throw new IllegalStateException("out of range: serverId=" + module.zeze.getConfig().getServerId()
 					+ ", nextId=" + bb);
 		return ByteBuffer.ToLongBE(bb.Bytes, bb.ReadIndex, bb.Size()); // 这里用BE(大端)是为了保证返回值一定为正
 	}
@@ -77,7 +77,7 @@ public final class AutoKey {
 	}
 
 	public ByteBuffer nextByteBuffer() {
-		var serverId = module.Zeze.getConfig().getServerId();
+		var serverId = module.zeze.getConfig().getServerId();
 		var bb = ByteBuffer.Allocate(8);
 		if (serverId > 0) // 如果serverId==0,写1个字节0不会影响ToLongBE的结果,但会多占1个字节,所以只在serverId>0时写ByteBuffer
 			bb.WriteInt(serverId);
@@ -110,7 +110,7 @@ public final class AutoKey {
 			allocateCount = (int)Math.min(Math.max(newCount, ALLOCATE_COUNT_MIN), ALLOCATE_COUNT_MAX);
 		});
 
-		var seedKey = new BSeedKey(module.Zeze.getConfig().getServerId(), name);
+		var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
 		var txn = Transaction.getCurrent();
 		assert txn != null;
 		var log = (RangeLog)txn.getLog(logKey);

@@ -36,7 +36,7 @@ public class ModuleBuf extends AbstractModule {
 				changed1.Argument.setChangeTag(BBufChanged.ChangeTagRecordChanged);
 				changed1.Argument.getReplace().putAll(record.getBufs());
 
-				Game.App.Instance.getProvider().Online.sendReliableNotify((Long)key, getName(), changed1);
+				Game.App.Instance.getProvider().online.sendReliableNotify((Long)key, getName(), changed1);
 				break;
 			case Changes.Record.Edit:
 				// 增量变化，通知变更。
@@ -50,13 +50,13 @@ public class ModuleBuf extends AbstractModule {
 					for (var p : notemap2.getRemoved()) {
 						changed2.Argument.getRemove().add(p);
 					}
-					Game.App.getInstance().getProvider().Online.sendReliableNotify((Long)key, getName(), changed2);
+					Game.App.getInstance().getProvider().online.sendReliableNotify((Long)key, getName(), changed2);
 				}
 				break;
 			case Changes.Record.Remove:
 				SChanged changed3 = new SChanged();
 				changed3.Argument.setChangeTag(BBufChanged.ChangeTagRecordIsRemoved);
-				Game.App.getInstance().getProvider().Online.sendReliableNotify((Long)key, getName(), changed3);
+				Game.App.getInstance().getProvider().online.sendReliableNotify((Long)key, getName(), changed3);
 				break;
 			}
 		}

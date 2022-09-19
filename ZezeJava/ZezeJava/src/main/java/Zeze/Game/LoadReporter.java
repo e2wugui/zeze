@@ -7,76 +7,76 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.BServerLoad;
 
 public class LoadReporter {
-	private long LastLoginTime;
-	private int ReportDelaySeconds;
-	private int TimeoutDelaySeconds;
-	private Future<?> TimerTask;
+	private long lastLoginTime;
+	private int reportDelaySeconds;
+	private int timeoutDelaySeconds;
+	private Future<?> timerTask;
 
-	public final Online Online;
+	public final Online online;
 
 	public LoadReporter(Online online) {
-		this.Online = online;
+		this.online = online;
 	}
 
-	public final void Start() {
-		Start(1);
+	public final void start() {
+		start(1);
 	}
 
-	public final void Start(int delaySeconds) {
-		TimeoutDelaySeconds = delaySeconds;
-		if (null != TimerTask)
-			TimerTask.cancel(false);
-		TimerTask = Zeze.Util.Task.scheduleUnsafe(TimeoutDelaySeconds * 1000L, this::OnTimerTask);
+	public final void start(int delaySeconds) {
+		timeoutDelaySeconds = delaySeconds;
+		if (null != timerTask)
+			timerTask.cancel(false);
+		timerTask = Zeze.Util.Task.scheduleUnsafe(timeoutDelaySeconds * 1000L, this::onTimerTask);
 	}
 
-	public final void Stop() {
-		if (null != TimerTask) {
-			TimerTask.cancel(true);
-			TimerTask = null;
+	public final void stop() {
+		if (null != timerTask) {
+			timerTask.cancel(true);
+			timerTask = null;
 		}
 	}
 
-	private void OnTimerTask() {
-		int online = Online.getLocalCount();
-		long loginTimes = Online.getLoginTimes();
-		int onlineNew = (int)(loginTimes - LastLoginTime);
-		LastLoginTime = loginTimes;
+	private void onTimerTask() {
+		int online = this.online.getLocalCount();
+		long loginTimes = this.online.getLoginTimes();
+		int onlineNew = (int)(loginTimes - lastLoginTime);
+		lastLoginTime = loginTimes;
 
-		int onlineNewPerSecond = onlineNew / TimeoutDelaySeconds;
+		int onlineNewPerSecond = onlineNew / timeoutDelaySeconds;
 		//noinspection ConstantConditions
-		var config = Online.providerApp.distribute.loadConfig;
+		var config = this.online.providerApp.distribute.loadConfig;
 		if (onlineNewPerSecond > config.getMaxOnlineNew()) {
 			// 最近上线太多，马上报告负载。linkd不会再分配用户过来。
-			Report(online, onlineNew);
+			report(online, onlineNew);
 			// new delay for digestion
-			Start(onlineNewPerSecond / config.getMaxOnlineNew() + config.getDigestionDelayExSeconds());
+			start(onlineNewPerSecond / config.getMaxOnlineNew() + config.getDigestionDelayExSeconds());
 			// 消化完后，下一次强迫报告Load。
-			ReportDelaySeconds = config.getReportDelaySeconds();
+			reportDelaySeconds = config.getReportDelaySeconds();
 			return;
 		}
 		// slow report
-		ReportDelaySeconds += TimeoutDelaySeconds;
-		if (ReportDelaySeconds >= config.getReportDelaySeconds()) {
-			ReportDelaySeconds = 0;
-			Report(online, onlineNew);
+		reportDelaySeconds += timeoutDelaySeconds;
+		if (reportDelaySeconds >= config.getReportDelaySeconds()) {
+			reportDelaySeconds = 0;
+			report(online, onlineNew);
 		}
-		Start();
+		start();
 	}
 
-	public void Report(int online, int onlineNew) {
+	public void report(int online, int onlineNew) {
 		var load = new BLoad();
 		load.setOnline(online);
 		//noinspection ConstantConditions
-		load.setProposeMaxOnline(Online.providerApp.distribute.loadConfig.getProposeMaxOnline());
+		load.setProposeMaxOnline(this.online.providerApp.distribute.loadConfig.getProposeMaxOnline());
 		load.setOnlineNew(onlineNew);
 		var bb = ByteBuffer.Allocate(256);
 		load.encode(bb);
 
 		var loadServer = new BServerLoad();
-		loadServer.ip = Online.providerApp.directIp;
-		loadServer.port = Online.providerApp.directPort;
+		loadServer.ip = this.online.providerApp.directIp;
+		loadServer.port = this.online.providerApp.directPort;
 		loadServer.param = new Binary(bb);
 
-		Online.providerApp.zeze.getServiceManagerAgent().setServerLoad(loadServer);
+		this.online.providerApp.zeze.getServiceManagerAgent().setServerLoad(loadServer);
 	}
 }

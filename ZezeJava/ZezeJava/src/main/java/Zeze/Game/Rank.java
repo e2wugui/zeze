@@ -24,7 +24,7 @@ public class Rank extends AbstractRank {
 
 	public volatile IntUnaryOperator funcRankSize;
 	public volatile IntUnaryOperator funcConcurrentLevel;
-	public volatile float ComputeFactor = 2.5f;
+	public volatile float computeFactor = 2.5f;
 
 	public static Rank create(AppBase app) {
 		return GenModule.createRedirectModule(Rank.class, app);
@@ -154,7 +154,7 @@ public class Rank extends AbstractRank {
 	 * 排行榜中间数据的数量。【有默认值】
 	 */
 	public final int getComputeCount(int rankType) {
-		var factor = ComputeFactor;
+		var factor = computeFactor;
 		if (factor < 2)
 			factor = 2;
 		return (int)(getConcurrentLevel(rankType) * factor);
@@ -302,7 +302,7 @@ public class Rank extends AbstractRank {
 					current.getRankList().remove(ir);
 			}
 		}
-		// current = current.Copy(); // current 可能还直接引用第一个，虽然逻辑上不大可能。先Copy。
+		// current = current.copy(); // current 可能还直接引用第一个，虽然逻辑上不大可能。先copy。
 		if (current.getRankList().size() > countNeed) { // 再次删除多余的结果。
 			//noinspection ListRemoveInLoop
 			for (int ir = current.getRankList().size() - 1; ir >= countNeed; --ir)

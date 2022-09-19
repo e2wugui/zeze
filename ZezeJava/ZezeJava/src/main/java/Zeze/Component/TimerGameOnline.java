@@ -91,8 +91,8 @@ public class TimerGameOnline {
 	private long onLocalRemoveEvent(Object sender, EventDispatcher.EventArgument arg) throws Throwable {
 		var local = (LocalRemoveEventArgument)arg;
 		var timer = online.providerApp.zeze.getTimer();
-		if (null != local.LocalData) {
-			var bAny = local.LocalData.getDatas().get(eOnlineTimers);
+		if (null != local.localData) {
+			var bAny = local.localData.getDatas().get(eOnlineTimers);
 			if (null != bAny) {
 				var timers = (BOnlineTimers)bAny.getAny().getBean();
 				for (var timerId : timers.getTimerIds().keySet())

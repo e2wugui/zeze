@@ -35,7 +35,7 @@ public final class ModuleEquip extends AbstractModule {
 					changed.Argument.setChangeTag(BChangedResult.ChangeTagRecordChanged);
 					changed.Argument.getItemsReplace().putAll(bequips.getItems());
 
-					Game.App.Instance.getProvider().Online.sendReliableNotify((Long)key, getName(), changed);
+					Game.App.Instance.getProvider().online.sendReliableNotify((Long)key, getName(), changed);
 					break;
 				case Changes.Record.Edit:
 					// 增量变化，通知变更。
@@ -49,13 +49,13 @@ public final class ModuleEquip extends AbstractModule {
 						for (var p : notemap2.getRemoved()) {
 							changed2.Argument.getItemsRemove().add(p);
 						}
-						Game.App.Instance.getProvider().Online.sendReliableNotify((Long)key, getName(), changed2);
+						Game.App.Instance.getProvider().online.sendReliableNotify((Long)key, getName(), changed2);
 					}
 					break;
 				case Changes.Record.Remove:
 					SEquipement changed3 = new SEquipement();
 					changed3.Argument.setChangeTag(BChangedResult.ChangeTagRecordIsRemoved);
-					Game.App.Instance.getProvider().Online.sendReliableNotify((Long)key, getName(), changed3);
+					Game.App.Instance.getProvider().online.sendReliableNotify((Long)key, getName(), changed3);
 					break;
 			}
 		}

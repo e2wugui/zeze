@@ -78,7 +78,7 @@ public class ProviderUserSession {
 		} else if (providerImpl instanceof ProviderImplementWithOnline) {
 			var contexts = new TreeMap<Long, Long>();
 			contexts.put(getLinkSid(), getRoleId());
-			((ProviderImplementWithOnline)providerImpl).Online.send(link, contexts, send);
+			((ProviderImplementWithOnline)providerImpl).online.send(link, contexts, send);
 		} else
 			link.Send(send);
 	}

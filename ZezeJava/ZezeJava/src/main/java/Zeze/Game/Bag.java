@@ -137,7 +137,7 @@ public class Bag {
 		// 自动注册加入的BItem.Item的class。
 		module.register(itemAdd.getItem().getBean().getClass());
 
-		int pileMax = GetItemPileMax(itemAdd.getId());
+		int pileMax = getItemPileMax(itemAdd.getId());
 
 		// 优先加到提示格子
 		if (positionHint >= 0 && positionHint < bean.getCapacity()) {
@@ -181,7 +181,7 @@ public class Bag {
 			}
 		}
 		while (itemAdd.getNumber() > pileMax) {
-			int pos = GetEmptyPosition();
+			int pos = getEmptyPosition();
 			if (pos == -1) {
 				return itemAdd.getNumber();
 			}
@@ -192,7 +192,7 @@ public class Bag {
 			bean.getItems().put(pos, itemNew);
 		}
 		if (itemAdd.getNumber() > 0) {
-			int pos = GetEmptyPosition();
+			int pos = getEmptyPosition();
 			if (pos == -1) {
 				return itemAdd.getNumber();
 			}
@@ -201,7 +201,7 @@ public class Bag {
 		return 0;
 	}
 
-	private int GetEmptyPosition() {
+	private int getEmptyPosition() {
 		for (int pos = 0; pos < bean.getCapacity(); ++pos) {
 			var exist = bean.getItems().get(pos);
 			if (null == exist)
@@ -210,7 +210,7 @@ public class Bag {
 		return -1;
 	}
 
-	private static int GetItemPileMax(int itemId) {
+	private static int getItemPileMax(int itemId) {
 		var tmp = funcItemPileMax;
 		if (null == tmp)
 			return 1;
@@ -240,7 +240,7 @@ public class Bag {
 			number = itemFrom.getNumber(); // move all
 		}
 
-		int pileMax = GetItemPileMax(itemFrom.getId());
+		int pileMax = getItemPileMax(itemFrom.getId());
 		var itemTo = bean.getItems().get(to);
 		if (null != itemTo) {
 			if (itemFrom.getId() != itemTo.getId()) {
@@ -307,32 +307,32 @@ public class Bag {
 	}
 
 	public static class Module extends AbstractBag {
-		private final ConcurrentHashMap<String, Bag> Bags = new ConcurrentHashMap<>();
-		public Zeze.Arch.ProviderApp ProviderApp;
-		public final Application Zeze;
+		private final ConcurrentHashMap<String, Bag> bags = new ConcurrentHashMap<>();
+		public Zeze.Arch.ProviderApp providerApp;
+		public final Application zeze;
 
 		// 用于UserApp服务，可以处理客户端发送的协议。
 		public Module(ProviderApp pa) {
-			ProviderApp = pa;
-			Zeze = ProviderApp.zeze;
-			RegisterProtocols(ProviderApp.providerService);
-			RegisterZezeTables(Zeze);
-			ProviderApp.builtinModules.put(this.getFullName(), this);
+			providerApp = pa;
+			zeze = providerApp.zeze;
+			RegisterProtocols(providerApp.providerService);
+			RegisterZezeTables(zeze);
+			providerApp.builtinModules.put(this.getFullName(), this);
 		}
 
 		@Override
 		public void UnRegister() {
-			if (null != ProviderApp) {
-				UnRegisterProtocols(ProviderApp.providerService);
+			if (null != providerApp) {
+				UnRegisterProtocols(providerApp.providerService);
 			}
-			if (null != Zeze) {
-				UnRegisterZezeTables(Zeze);
+			if (null != zeze) {
+				UnRegisterZezeTables(zeze);
 			}
 		}
 
 		// 用于数据测试，测试不支持协议。
 		public Module(Zeze.Application zeze) {
-			Zeze = zeze;
+			this.zeze = zeze;
 			RegisterZezeTables(zeze);
 		}
 
@@ -343,7 +343,7 @@ public class Bag {
 		// 需要在事务内使用。
 		// 使用完不要保存。
 		public Bag open(String bagName) {
-			return Bags.computeIfAbsent(bagName, key -> new Bag(this, bagName));
+			return bags.computeIfAbsent(bagName, key -> new Bag(this, bagName));
 		}
 
 		public void register(Class<? extends Bean> cls) {
@@ -352,8 +352,8 @@ public class Bag {
 		}
 
 		@SuppressWarnings("unchecked")
-		public void Start(Zeze.Application zeze) throws Throwable {
-			ProviderApp.builtinModules.put(this.getFullName(), this);
+		public void start(Zeze.Application zeze) throws Throwable {
+			providerApp.builtinModules.put(this.getFullName(), this);
 			if (0L != zeze.newProcedure(() -> {
 				var classes = _tItemClasses.getOrAdd(1);
 				for (var cls : classes.getItemClasses()) {
@@ -365,7 +365,7 @@ public class Bag {
 			}
 		}
 
-		public void Stop() {
+		public void stop() {
 		}
 
 		@Override
