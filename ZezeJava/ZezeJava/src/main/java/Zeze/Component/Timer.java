@@ -412,11 +412,12 @@ public class Timer extends AbstractTimer {
 
 			var timer = node.getTimers().get(timerId);
 			var simpleTimer = timer.getTimerObj_Zeze_Builtin_Timer_BSimpleTimer();
-			nextSimpleTimer(simpleTimer);
-			final var context = new TimerContext(timer, simpleTimer.getHappenTimes(),
-					simpleTimer.getNextExpectedTimeMills(), simpleTimer.getExpectedTimeMills());
-
 			if (concurrentSerialNo == timer.getConcurrentFireSerialNo()) {
+
+				nextSimpleTimer(simpleTimer);
+				final var context = new TimerContext(timer, simpleTimer.getHappenTimes(),
+						simpleTimer.getNextExpectedTimeMills(), simpleTimer.getExpectedTimeMills());
+
 				// 当调度发生了错误或者由于异步时序没有原子保证，导致同时（或某个瞬间）在多个Server进程调度时，
 				// 这个系列号保证触发用户回调只会发生一次。这个并发问题不取消定时器，继续尝试调度（去争抢执行权）。
 				// 定时器的调度生命期由其他地方保证最终一致。如果保证发生了错误，将一致并发争抢执行权。
@@ -427,17 +428,18 @@ public class Timer extends AbstractTimer {
 					return 0; // procedure done
 				}
 				timer.setConcurrentFireSerialNo(concurrentSerialNo + 1);
-			}
 
-			if (simpleTimer.getRemainTimes() > 0) {
-				simpleTimer.setRemainTimes(simpleTimer.getRemainTimes() - 1);
-				if (simpleTimer.getRemainTimes() == 0) {
-					cancel(serverId, timerId, index, node);
-					return 0; // procedure done
+				if (simpleTimer.getRemainTimes() > 0) {
+					simpleTimer.setRemainTimes(simpleTimer.getRemainTimes() - 1);
+					if (simpleTimer.getRemainTimes() == 0) {
+						cancel(serverId, timerId, index, node);
+						return 0; // procedure done
+					}
 				}
 			}
+			// else 发生了并发执行争抢，也需要再次进行本地调度。此时直接使用simpleTimer中的值，不需要再次进行计算。
 			if (simpleTimer.getPeriod() > 0) {
-				long delay = context.nextExpectedTimeMills - System.currentTimeMillis();
+				long delay = simpleTimer.getNextExpectedTimeMills() - System.currentTimeMillis();
 				scheduleSimple(serverId, timerId, delay, name, concurrentSerialNo + 1);
 			}
 
@@ -508,11 +510,11 @@ public class Timer extends AbstractTimer {
 			}
 			var timer = node.getTimers().get(timerId);
 			var cronTimer = timer.getTimerObj_Zeze_Builtin_Timer_BCronTimer();
-			nextCronTimer(cronTimer);
-			final var context = new TimerContext(timer, cronTimer.getHappenTimeMills(),
-					cronTimer.getNextExpectedTimeMills(), cronTimer.getExpectedTimeMills());
-
 			if (concurrentSerialNo == timer.getConcurrentFireSerialNo()) {
+				nextCronTimer(cronTimer);
+				final var context = new TimerContext(timer, cronTimer.getHappenTimeMills(),
+						cronTimer.getNextExpectedTimeMills(), cronTimer.getExpectedTimeMills());
+
 				// 当调度发生了错误或者由于异步时序没有原子保证，导致同时（或某个瞬间）在多个Server进程调度时，
 				// 这个系列号保证触发用户回调只会发生一次。这个并发问题不取消定时器，继续尝试调度（去争抢执行权）。
 				// 定时器的调度生命期由其他地方保证最终一致。如果保证发生了错误，将一致并发争抢执行权。
@@ -524,8 +526,8 @@ public class Timer extends AbstractTimer {
 				}
 				timer.setConcurrentFireSerialNo(concurrentSerialNo + 1);
 			}
-
-			long delay = context.nextExpectedTimeMills - System.currentTimeMillis();
+			// else 发生了并发执行争抢，也需要再次进行本地调度。此时直接使用simpleTimer中的值，不需要再次进行计算。
+			long delay = cronTimer.getNextExpectedTimeMills() - System.currentTimeMillis();
 			scheduleCronNext(serverId, timerId, delay, name, concurrentSerialNo + 1);
 			return 0L; // procedure done
 		}, "fireCron"))) {
