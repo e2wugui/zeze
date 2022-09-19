@@ -156,7 +156,7 @@ public class TimerGameOnline {
 	}
 
 	// relogin 时需要更新已经注册的定时器的版本号。
-	private long onReloginEvent(Object sender, EventDispatcher.EventArgument arg) throws Throwable {
+	private long onReloginEvent(Object sender, EventDispatcher.EventArgument arg) {
 		var user = (LoginArgument)arg;
 		var timer = online.providerApp.zeze.getTimer();
 
