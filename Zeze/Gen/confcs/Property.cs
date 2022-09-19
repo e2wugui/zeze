@@ -157,7 +157,7 @@ namespace Zeze.Gen.confcs
             else
             {
                 // 转发给全局静态（static）函数。
-                sw.WriteLine($"{prefix}    return {type.DynamicParams.CreateBeanFromSpecialTypeId.Replace("::", ".")}(typeId);");
+                sw.WriteLine($"{prefix}    return {type.DynamicParams.CreateBeanFromSpecialTypeId_Csharp}(typeId);");
             }
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();

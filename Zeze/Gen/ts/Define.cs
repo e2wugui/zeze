@@ -114,7 +114,7 @@ namespace Zeze.Gen.ts
             else
             {
                 sw.WriteLine($"{prefix}var {varname} = new Zeze.DynamicBean"
-                    + $"(0, {type.DynamicParams.GetSpecialTypeIdFromBean}, {type.DynamicParams.CreateBeanFromSpecialTypeId});");
+                    + $"(0, {type.DynamicParams.GetSpecialTypeIdFromBean_Csharp}, {type.DynamicParams.CreateBeanFromSpecialTypeId_Csharp});");
             }
         }
 

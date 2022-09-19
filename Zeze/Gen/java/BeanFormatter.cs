@@ -91,7 +91,7 @@ namespace Zeze.Gen.java
             else
             {
                 // 转发给全局静态（static）函数。
-                sw.WriteLine($"{prefix}    return {type.DynamicParams.CreateBeanFromSpecialTypeId.Replace("::", ".")}(typeId);");
+                sw.WriteLine($"{prefix}    return {type.DynamicParams.CreateBeanFromSpecialTypeId}(typeId);");
             }
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
