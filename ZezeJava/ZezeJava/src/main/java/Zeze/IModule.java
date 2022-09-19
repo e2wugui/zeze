@@ -21,7 +21,7 @@ public abstract class IModule {
 	public void UnRegister() { // 为了重新装载 Module 的补丁。注册在构造函数里面进行。
 	}
 
-	@Deprecated
+	@Deprecated //use errorCode
 	public final long ErrorCode(int code) {
 		return errorCode(code);
 	}

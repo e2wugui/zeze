@@ -13,6 +13,7 @@ import Zeze.Transaction.Transaction;
 import Zeze.Util.Action1;
 import Zeze.Builtin.Timer.*;
 import Zeze.Util.Action2;
+import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
@@ -41,7 +42,7 @@ public class Timer extends AbstractTimer {
 	final ConcurrentHashMap<String, Action1<TimerContext>> timerHandles = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, Action2<BIndex, BTimer>> timerCancelHandles = new ConcurrentHashMap<>();
 	// 在这台服务器进程内调度的所有Timer。key是timerId，value是ThreadPool.schedule的返回值。
-	final ConcurrentHashMap<Long, Future<?>> timersFuture = new ConcurrentHashMap<>();
+	final LongConcurrentHashMap<Future<?>> timersFuture = new LongConcurrentHashMap<>();
 
 	public Timer(Zeze.Application zeze) {
 		this.zeze = zeze;

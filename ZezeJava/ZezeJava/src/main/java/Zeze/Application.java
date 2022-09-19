@@ -191,7 +191,7 @@ public final class Application {
 		return queueModule;
 	}
 
-	@Deprecated
+	@Deprecated //use newProcedure
 	public Procedure NewProcedure(FuncLong action, String actionName) {
 		return newProcedure(action, actionName);
 	}

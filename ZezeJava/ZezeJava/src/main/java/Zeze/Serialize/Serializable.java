@@ -5,12 +5,12 @@ public interface Serializable {
 
 	void decode(ByteBuffer bb);
 
-	@Deprecated // 暂时兼容
+	@Deprecated //use encode 暂时兼容
 	default void Encode(ByteBuffer bb) {
 		encode(bb);
 	}
 
-	@Deprecated // 暂时兼容
+	@Deprecated //use decode 暂时兼容
 	default void Decode(ByteBuffer bb) {
 		decode(bb);
 	}

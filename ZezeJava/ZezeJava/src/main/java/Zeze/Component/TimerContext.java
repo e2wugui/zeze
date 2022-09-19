@@ -4,12 +4,12 @@ import Zeze.Builtin.Timer.*;
 import Zeze.Transaction.Bean;
 
 public class TimerContext {
-	public long timerId;
-	public String timerName;
-	public Bean customData;
-	public long curTimeMills;
-	public long nextExpectedTimeMills;
-	public long expectedTimeMills;
+	public final long timerId;
+	public final String timerName;
+	public final Bean customData;
+	public final long curTimeMills;
+	public final long nextExpectedTimeMills;
+	public final long expectedTimeMills;
 
 	// 从数据库结构构建上下文。
 	TimerContext(BTimer timer, long cur, long next, long expected) {

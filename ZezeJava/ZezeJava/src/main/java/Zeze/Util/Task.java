@@ -424,7 +424,7 @@ public final class Task {
 		return pool.submit(() -> call(func, p, actionWhenError, specialName));
 	}
 
-	@Deprecated
+	@Deprecated //use call
 	public static long Call(Procedure procedure) {
 		return call(procedure);
 	}
