@@ -19,7 +19,7 @@ namespace Zeze.Gen.java
             this.module = module;
             this.genDir = genDir;
             this.srcDir = srcDir;
-            moduleName = string.Concat(module.Name[..1].ToUpper(), module.Name.AsSpan(1));
+            moduleName = Program.Upper1(module.Name);
         }
 
         FileChunkGen FileChunkGen;

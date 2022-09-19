@@ -112,7 +112,7 @@ namespace Zeze.Gen.cs
             else
             {
                 sw.WriteLine($"{prefix}var {varname} = new Zeze.Transaction.DynamicBean"
-                    + $"(0, {type.DynamicParams.GetSpecialTypeIdFromBean}, {type.DynamicParams.CreateBeanFromSpecialTypeId});");
+                    + $"(0, {type.DynamicParams.GetSpecialTypeIdFromBean_Csharp}, {type.DynamicParams.CreateBeanFromSpecialTypeId_Csharp});");
             }
         }
 

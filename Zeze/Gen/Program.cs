@@ -24,6 +24,22 @@ namespace Zeze.Gen
             return "_v_" + IdGen.IncrementAndGet() + "_";
         }
 
+        // 第一个字母转换成大写。
+        public static string Upper1(string name)
+        {
+            return string.Concat(name[..1].ToUpper(), name.AsSpan(1));
+        }
+
+        // 把 '.' 分隔的全路径名，最后一个名字的首字母转换成大写。
+        public static string Upper1LastName(string fullName)
+        {
+            var lastIndex = fullName.LastIndexOf('.');
+            if (lastIndex >= 0)
+                return fullName.Substring(0, lastIndex + 1) + Upper1(fullName.Substring(lastIndex + 1));
+            return fullName;
+
+        }
+
         public static global::Zeze.Util.Ranges GlobalModuleIdChecker { get; private set; } = new global::Zeze.Util.Ranges();
 
         public static bool Debug { get; private set; } = false;
@@ -344,7 +360,7 @@ namespace Zeze.Gen
                 string py = NPinyin.Pinyin.GetPinyin(c);
                 if (py.Length > 0)
                 {
-                    sb.Append(py.Substring(0, 1).ToUpper() + py.Substring(1));
+                    sb.Append(Upper1(py));
                 }
             }
             return sb.ToString();

@@ -8,11 +8,14 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean {
     private final Zeze.Transaction.DynamicBean _CustomData;
 
     public static long getSpecialTypeIdFromBean_CustomData(Zeze.Transaction.Bean bean) {
-        return Zeze.Component.Timer.getSpecialTypeIdFromBean(bean);
+        var _typeId_ = bean.typeId();
+        if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
+            return Zeze.Transaction.EmptyBean.TYPEID;
+        throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Timer.BOnlineCustom:CustomData");
     }
 
     public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_CustomData(long typeId) {
-        return Zeze.Component.Timer.createBeanFromSpecialTypeId(typeId);
+        return null;
     }
 
     private transient Object __zeze_map_key__;
@@ -33,7 +36,7 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("deprecation")
     public BOnlineCustom() {
-        _CustomData = new Zeze.Transaction.DynamicBean(1, Zeze.Component.Timer::getSpecialTypeIdFromBean, Zeze.Component.Timer::createBeanFromSpecialTypeId);
+        _CustomData = new Zeze.Transaction.DynamicBean(1, BOnlineCustom::getSpecialTypeIdFromBean_CustomData, BOnlineCustom::createBeanFromSpecialTypeId_CustomData);
     }
 
     public void assign(BOnlineCustom other) {
@@ -46,7 +49,7 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean {
     }
 
     public BOnlineCustom copyIfManaged() {
-        return isManaged() ? Copy() : this;
+        return isManaged() ? copy() : this;
     }
 
     public BOnlineCustom copy() {
@@ -68,7 +71,7 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean {
 
     @Override
     public BOnlineCustom copyBean() {
-        return Copy();
+        return copy();
     }
 
     public static final long TYPEID = 4804037996721232525L;

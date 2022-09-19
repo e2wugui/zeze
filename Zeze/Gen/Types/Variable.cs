@@ -12,7 +12,7 @@ namespace Zeze.Gen.Types
 		public string Name { get; private set; }
 		public string NamePinyin => Program.ToPinyin(Name);
 		public string NamePrivate => "_" + Name;
-		public string NameUpper1 => Name.Substring(0, 1).ToUpper() + Name.Substring(1);
+		public string NameUpper1 => Program.Upper1(Name);
 		public string NameGetter => Type.Equals("bool") ? $"is{NameUpper1}" : $"get{NameUpper1}";
 		public string NameSetter => $"set{NameUpper1}";
 		public string Getter => $"{NameGetter}()";

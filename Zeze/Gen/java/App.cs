@@ -103,7 +103,7 @@ namespace Zeze.Gen.java
 
             foreach (Module m in project.AllOrderDefineModules)
             {
-                string moduleName = string.Concat(m.Name[..1].ToUpper(), m.Name.AsSpan(1));
+                string moduleName = Program.Upper1(m.Name);
                 var fullname = m.Path("_");
                 sw.WriteLine($"    public {m.Path(".", $"Module{moduleName}")} {fullname};");
             }
@@ -134,7 +134,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("    public synchronized void createModules() {");
             foreach (Module m in project.AllOrderDefineModules)
             {
-                string moduleName = string.Concat(m.Name[..1].ToUpper(), m.Name.AsSpan(1));
+                string moduleName = Program.Upper1(m.Name);
                 var fullname = m.Path("_");
                 sw.WriteLine("        " + fullname + " = replaceModuleInstance(new " + m.Path(".", $"Module{moduleName}") + "(this));");
                 sw.WriteLine($"        {fullname}.Initialize(this);");

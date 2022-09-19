@@ -30,8 +30,8 @@ namespace Zeze.Gen.luaClient
             if (str == null)
                 return null;
 
-            if (str.Length > 1)
-                return char.ToUpper(str[0]) + str.Substring(1);
+            if (str.Length >= 1)
+                return Program.Upper1(str);
 
             return str.ToUpper();
         }

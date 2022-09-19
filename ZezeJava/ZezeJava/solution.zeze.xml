@@ -915,8 +915,25 @@
 
 			<table name="tNamed" key="string" value="BTimerId"/> key is name
 
+			<!-- Online Named Timer -->
+			<bean name="BOnlineNamedArchCustom"> 保存到BTimer.CustomData
+				<variable id="1" name="Account" type="string"/>
+				<variable id="2" name="ClientId" type="string"/>
+				<variable id="3" name="CustomData" type="dynamic"> 真正的用户自定义数据
+					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::getSpecialTypeIdFromBean"/>
+					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::createBeanFromSpecialTypeId"/>
+				</variable>
+			</bean>
+			<bean name="BOnlineNamedGameCustom"> 保存到BTimer.CustomData
+				<variable id="1" name="RoleId" type="long"/>
+				<variable id="2" name="CustomData" type="dynamic"> 真正的用户自定义数据
+					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::getSpecialTypeIdFromBean"/>
+					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::createBeanFromSpecialTypeId"/>
+				</variable>
+			</bean>
+
 			<!-- Online Timer -->
-			<bean name="BArchOnlineTimer">
+			<bean name="BArchOnlineTimer"> 保存在内存Map中
 				<variable id="1" name="Account" type="string"/>
 				<variable id="2" name="ClientId" type="string"/>
 				<variable id="3" name="TimerObj" type="dynamic">
@@ -924,7 +941,7 @@
 					<value bean="BCronTimer"/>
 				</variable>
 			</bean>
-			<bean name="BGameOnlineTimer">
+			<bean name="BGameOnlineTimer"> 保存在内存Map中
 				<variable id="1" name="RoleId" type="long"/>
 				<variable id="2" name="TimerObj" type="dynamic">
 					<value bean="BSimpleTimer"/>
@@ -932,15 +949,11 @@
 				</variable>
 			</bean>
 
-			<bean name="BOnlineCustom">
-				<variable id="1" name="CustomData" type="dynamic">
-					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::getSpecialTypeIdFromBean"/>
-					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::createBeanFromSpecialTypeId"/>
-				</variable>
+			<bean name="BOnlineCustom"> 保存真正的用户自定义数据
+				<variable id="1" name="CustomData" type="dynamic"/>
 			</bean>
-			<bean name="BOnlineTimers">
+			<bean name="BOnlineTimers"> 这个Bean作为Online.Local.Any存储
 				<variable id="1" name="TimerIds" type="map[long, BOnlineCustom]"/>
-				<variable id="2" name="NamedNames" type="map[string, BOnlineCustom]"/>
 			</bean>
 		</module>
 		<!--
