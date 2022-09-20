@@ -81,7 +81,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean {
         return _TimerObj;
     }
 
-    public Zeze.Builtin.Timer.BCronTimer getTimerObj_Zeze_Builtin_Timer_BCronTimer(){
+    public Zeze.Builtin.Timer.BCronTimer getTimerObj_Zeze_Builtin_Timer_BCronTimer() {
         return (Zeze.Builtin.Timer.BCronTimer)getTimerObj().getBean();
     }
 
@@ -89,7 +89,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean {
         getTimerObj().setBean(value);
     }
 
-    public Zeze.Builtin.Timer.BSimpleTimer getTimerObj_Zeze_Builtin_Timer_BSimpleTimer(){
+    public Zeze.Builtin.Timer.BSimpleTimer getTimerObj_Zeze_Builtin_Timer_BSimpleTimer() {
         return (Zeze.Builtin.Timer.BSimpleTimer)getTimerObj().getBean();
     }
 

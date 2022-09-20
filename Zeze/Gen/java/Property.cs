@@ -171,7 +171,7 @@ namespace Zeze.Gen.java
             var typeName = TypeName.GetName(type);
             //var typeNameReadOnly = typeName + "ReadOnly";
             //var beanNameReadOnly = TypeName.GetName(var.Bean) + "ReadOnly";
-            sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + "{");
+            sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + " {");
             sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
@@ -223,7 +223,7 @@ namespace Zeze.Gen.java
             {
                 string rname = TypeName.GetName(real);
                 string pname = "get" + var.NameUpper1 + "_" + real.Space.Path("_", real.Name) + "()";
-                sw.WriteLine(prefix + "public " + rname + " " + pname + "{");
+                sw.WriteLine(prefix + "public " + rname + " " + pname + " {");
                 sw.WriteLine(prefix + "    return (" + rname + ")" + var.Getter + ".getBean();");
                 sw.WriteLine(prefix + "}");
                 sw.WriteLine();
