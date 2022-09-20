@@ -230,7 +230,7 @@ namespace Zeze.Gen.rrjava
             {
                 string rname = TypeName.GetName(real);
                 string pname = "get" + var.NameUpper1 + "_" + real.Space.Path("_", real.Name) + "()";
-                sw.WriteLine(prefix + "public " + rname + " " + pname + "{");
+                sw.WriteLine(prefix + "public " + rname + " " + pname + " {");
                 sw.WriteLine(prefix + "    return (" + rname + ")" + var.Getter + ".getBean();");
                 sw.WriteLine(prefix + "}");
                 sw.WriteLine(prefix + $"public void {var.Setter($"{rname} value")} {{");
