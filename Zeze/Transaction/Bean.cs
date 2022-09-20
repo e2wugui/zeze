@@ -102,7 +102,7 @@ namespace Zeze.Transaction
             return false;
         }
 
-        public virtual Bean CopyBean()
+        public virtual Bean Copy()
         {
             throw new NotImplementedException();
         }
@@ -146,7 +146,7 @@ namespace Zeze.Transaction
         {
         }
 
-        public override Bean CopyBean()
+        public override EmptyBean Copy()
         {
             return new EmptyBean();
         }
@@ -246,7 +246,7 @@ namespace Zeze.Transaction
 
         public void Assign(DynamicBean other)
         {
-            Bean = other.Bean.CopyBean();
+            Bean = other.Bean.Copy();
         }
 
         public override bool NegativeCheck()
@@ -256,10 +256,10 @@ namespace Zeze.Transaction
 
         public override int CapacityHintOfByteBuffer => Bean.CapacityHintOfByteBuffer;
 
-        public override Bean CopyBean()
+        public override DynamicBean Copy()
         {
             var copy = new DynamicBean(VariableId, GetSpecialTypeIdFromBean, CreateBeanFromSpecialTypeId);
-            copy.Bean_ = Bean.CopyBean();
+            copy.Bean_ = Bean.Copy();
             copy.TypeId_ = TypeId;
             return copy;
         }

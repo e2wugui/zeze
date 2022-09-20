@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 4964769950995033065L;
+
     private String _ServiceNamePrefix;
     private String _ServiceIndentity;
     private String _ProviderDirectIp;
@@ -129,6 +131,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BAnnounceProviderInfo copy() {
         var copy = new BAnnounceProviderInfo();
         copy.assign(this);
@@ -145,13 +148,6 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BAnnounceProviderInfo copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 4964769950995033065L;
 
     @Override
     public long typeId() {

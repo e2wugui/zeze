@@ -9,7 +9,7 @@ namespace Zeze.Builtin.LinkdBase
         public long TypeId { get; }
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
-        public Zeze.Transaction.Bean CopyBean();
+        public BReportError Copy();
 
         public int From { get; }
         public int Code { get; }
@@ -127,7 +127,7 @@ namespace Zeze.Builtin.LinkdBase
             return IsManaged ? Copy() : this;
         }
 
-        public BReportError Copy()
+        public override BReportError Copy()
         {
             var copy = new BReportError();
             copy.Assign(this);
@@ -139,11 +139,6 @@ namespace Zeze.Builtin.LinkdBase
             BReportError save = a.Copy();
             a.Assign(b);
             b.Assign(save);
-        }
-
-        public override Zeze.Transaction.Bean CopyBean()
-        {
-            return Copy();
         }
 
         public const long TYPEID = -947669033141460287;

@@ -9,7 +9,7 @@ namespace Zeze.Builtin.Collections.DepartmentTree
         public long TypeId { get; }
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
-        public Zeze.Transaction.Bean CopyBean();
+        public BDepartmentTreeNode Copy();
 
         public long ParentDepartment { get; }
         public System.Collections.Generic.IReadOnlyDictionary<string,long> Childs { get; }
@@ -129,7 +129,7 @@ namespace Zeze.Builtin.Collections.DepartmentTree
             return IsManaged ? Copy() : this;
         }
 
-        public BDepartmentTreeNode Copy()
+        public override BDepartmentTreeNode Copy()
         {
             var copy = new BDepartmentTreeNode();
             copy.Assign(this);
@@ -141,11 +141,6 @@ namespace Zeze.Builtin.Collections.DepartmentTree
             BDepartmentTreeNode save = a.Copy();
             a.Assign(b);
             b.Assign(save);
-        }
-
-        public override Zeze.Transaction.Bean CopyBean()
-        {
-            return Copy();
         }
 
         public const long TYPEID = 2712461973987809351;

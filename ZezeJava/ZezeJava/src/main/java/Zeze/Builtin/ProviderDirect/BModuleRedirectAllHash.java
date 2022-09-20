@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 5611412794338295457L;
+
     private long _ReturnCode;
     private Zeze.Net.Binary _Params;
 
@@ -87,6 +89,7 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BModuleRedirectAllHash copy() {
         var copy = new BModuleRedirectAllHash();
         copy.assign(this);
@@ -103,13 +106,6 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BModuleRedirectAllHash copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 5611412794338295457L;
 
     @Override
     public long typeId() {

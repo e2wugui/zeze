@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BRequest extends Zeze.Transaction.Bean {
+    public static final long TYPEID = -8704897348167290545L;
+
     private long _ExchangeId;
     private String _Method;
     private String _Path;
@@ -217,6 +219,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BRequest copy() {
         var copy = new BRequest();
         copy.assign(this);
@@ -233,13 +236,6 @@ public final class BRequest extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BRequest copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = -8704897348167290545L;
 
     @Override
     public long typeId() {

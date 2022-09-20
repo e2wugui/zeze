@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BAccount extends Zeze.Transaction.Bean {
+    public static final long TYPEID = -6071732171172452068L;
+
     private String _Name;
     private final Zeze.Transaction.Collections.PList1<Long> _Roles; // roleid list
     private long _LastLoginRoleId;
@@ -109,6 +111,7 @@ public final class BAccount extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BAccount copy() {
         var copy = new BAccount();
         copy.assign(this);
@@ -125,13 +128,6 @@ public final class BAccount extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BAccount copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = -6071732171172452068L;
 
     @Override
     public long typeId() {

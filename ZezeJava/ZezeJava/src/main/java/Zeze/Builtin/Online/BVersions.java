@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BVersions extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 3480529937760660740L;
+
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Online.BVersion> _Logins; // key is ClientId
 
     public Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Online.BVersion> getLogins() {
@@ -32,6 +34,7 @@ public final class BVersions extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BVersions copy() {
         var copy = new BVersions();
         copy.assign(this);
@@ -48,13 +51,6 @@ public final class BVersions extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BVersions copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 3480529937760660740L;
 
     @Override
     public long typeId() {

@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BRankList extends Zeze.Transaction.Bean {
+    public static final long TYPEID = -1625874326687776700L;
+
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.Rank.BRankValue> _RankList;
 
     public Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.Rank.BRankValue> getRankList() {
@@ -32,6 +34,7 @@ public final class BRankList extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BRankList copy() {
         var copy = new BRankList();
         copy.assign(this);
@@ -48,13 +51,6 @@ public final class BRankList extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BRankList copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = -1625874326687776700L;
 
     @Override
     public long typeId() {

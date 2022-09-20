@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BAcquiredState extends Zeze.Raft.RocksRaft.Bean {
+    public static final long TYPEID = -1043402609085397620L;
+
     private int _State;
 
     public int getState() {
@@ -48,6 +50,7 @@ public final class BAcquiredState extends Zeze.Raft.RocksRaft.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BAcquiredState copy() {
         var copy = new BAcquiredState();
         copy.assign(this);
@@ -64,13 +67,6 @@ public final class BAcquiredState extends Zeze.Raft.RocksRaft.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BAcquiredState copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = -1043402609085397620L;
 
     @Override
     public long typeId() {

@@ -50,7 +50,7 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             return IsManaged ? Copy() : this;
         }
 
-        public AcquiredState Copy()
+        public override AcquiredState Copy()
         {
             var copy = new AcquiredState();
             copy.Assign(this);
@@ -62,11 +62,6 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             AcquiredState save = a.Copy();
             a.Assign(b);
             b.Assign(save);
-        }
-
-        public override Zeze.Raft.RocksRaft.Bean CopyBean()
-        {
-            return Copy();
         }
 
         public const long TYPEID = -449879240583806688;

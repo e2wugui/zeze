@@ -90,7 +90,7 @@ namespace Zeze.Raft.RocksRaft
 		{ 
 		}
 
-		public override Bean CopyBean()
+		public override CollMap1<K, V> Copy()
 		{
 			var copy = new CollMap1<K, V>();
 			copy._map = _map;

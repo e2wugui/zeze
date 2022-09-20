@@ -95,7 +95,7 @@ namespace Zeze.Transaction.Collections
         {
         }
 
-        public override Bean CopyBean()
+        public override CollSet1<V> Copy()
 		{
             var copy = new CollSet1<V>
             {

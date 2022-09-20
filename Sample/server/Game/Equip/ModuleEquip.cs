@@ -134,7 +134,7 @@ namespace Game.Equip
             {
                 equips.Items.Remove(rpc.Argument.EquipPos);
                 var bag = await App.Instance.Game_Bag.GetBag(session.RoleId.Value);
-                var bItemAdd = new Bag.BItem() { Id = eItem.Id, Number = 1, Extra_Game_Equip_BEquipExtra = (BEquipExtra)eItem.Extra.CopyBean() };
+                var bItemAdd = new Bag.BItem() { Id = eItem.Id, Number = 1, Extra_Game_Equip_BEquipExtra = (BEquipExtra)eItem.Extra.Bean.Copy() };
                 if (0 != bag.Add(-1, bItemAdd))
                     return ErrorCode(ResultCodeBagIsFull); // bag is full
                 session.SendResponseWhileCommit(rpc);

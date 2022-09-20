@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BQueueNode extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 400956918018571167L;
+
     private long _NextNodeId; // 后一个节点ID. 0表示已到达结尾。
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.Collections.Queue.BQueueNodeValue> _Values;
 
@@ -60,6 +62,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BQueueNode copy() {
         var copy = new BQueueNode();
         copy.assign(this);
@@ -76,13 +79,6 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BQueueNode copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 400956918018571167L;
 
     @Override
     public long typeId() {

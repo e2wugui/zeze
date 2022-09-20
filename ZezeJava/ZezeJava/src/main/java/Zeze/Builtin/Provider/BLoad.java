@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BLoad extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 8972064501607813483L;
+
     private int _Online; // 用户数量
     private int _ProposeMaxOnline; // 建议最大用户数量
     private int _OnlineNew; // 最近上线用户数量，一般是一秒内的。用来防止短时间内给同一个gs分配太多用户。
@@ -92,6 +94,7 @@ public final class BLoad extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BLoad copy() {
         var copy = new BLoad();
         copy.assign(this);
@@ -108,13 +111,6 @@ public final class BLoad extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BLoad copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 8972064501607813483L;
 
     @Override
     public long typeId() {

@@ -195,7 +195,7 @@ public class PList1<V> extends PList<V> {
 	}
 
 	@Override
-	public PList1<V> copyBean() {
+	public PList1<V> copy() {
 		var copy = new PList1<>(logTypeId, valueCodecFuncs);
 		copy.list = list;
 		return copy;

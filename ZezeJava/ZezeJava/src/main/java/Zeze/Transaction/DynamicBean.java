@@ -70,7 +70,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	public final void assign(DynamicBean other) {
-		setBean(other.getBean().copyBean());
+		setBean(other.getBean().copy());
 	}
 
 	public final boolean isEmpty() {
@@ -83,9 +83,9 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	@Override
-	public DynamicBean copyBean() {
+	public DynamicBean copy() {
 		var copy = new DynamicBean(variableId(), getSpecialTypeIdFromBean, createBeanFromSpecialTypeId);
-		copy.bean = getBean().copyBean();
+		copy.bean = getBean().copy();
 		copy.typeId = getTypeId();
 		return copy;
 	}

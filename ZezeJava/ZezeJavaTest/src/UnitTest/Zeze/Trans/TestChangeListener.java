@@ -371,7 +371,7 @@ public class TestChangeListener {
 		private Bean newValue;
 
 		public final void Init(demo.Module1.BValue current) {
-			newValue = current == null ? null : current.getDynamic14().copyBean();
+			newValue = current == null ? null : current.getDynamic14().copy();
 		}
 
 		public final void Verify(demo.Module1.BValue current) {

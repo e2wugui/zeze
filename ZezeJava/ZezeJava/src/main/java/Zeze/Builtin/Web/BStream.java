@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BStream extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 6767831806810414082L;
+
     private long _ExchangeId;
     private Zeze.Net.Binary _Body;
     private boolean _Finish;
@@ -97,6 +99,7 @@ public final class BStream extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BStream copy() {
         var copy = new BStream();
         copy.assign(this);
@@ -113,13 +116,6 @@ public final class BStream extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BStream copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 6767831806810414082L;
 
     @Override
     public long typeId() {

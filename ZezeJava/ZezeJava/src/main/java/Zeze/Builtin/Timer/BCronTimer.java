@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BCronTimer extends Zeze.Transaction.Bean {
+    public static final long TYPEID = -6995089347718168392L;
+
     private String _CronExpression;
     private long _NextExpectedTimeMills;
     private long _ExpectedTimeMills;
@@ -119,6 +121,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BCronTimer copy() {
         var copy = new BCronTimer();
         copy.assign(this);
@@ -135,13 +138,6 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BCronTimer copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = -6995089347718168392L;
 
     @Override
     public long typeId() {

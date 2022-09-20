@@ -72,7 +72,7 @@ public final class Transaction {
 		}
 
 		@Override
-		public Bean copyBean() {
+		public Bean copy() {
 			throw new UnsupportedOperationException();
 		}
 

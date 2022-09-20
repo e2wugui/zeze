@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 2712461973987809351L;
+
     private long _ParentDepartment; // 0表示第一级部门
     private final Zeze.Transaction.Collections.PMap1<String, Long> _Childs; // name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
     private String _Name;
@@ -124,6 +126,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BDepartmentTreeNode copy() {
         var copy = new BDepartmentTreeNode();
         copy.assign(this);
@@ -140,13 +143,6 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BDepartmentTreeNode copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 2712461973987809351L;
 
     @Override
     public long typeId() {

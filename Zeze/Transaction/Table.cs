@@ -791,7 +791,7 @@ namespace Zeze.Transaction
                 Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
                 if (null != cr)
                 {
-                    return (V)cr.NewestValue()?.CopyBean();
+                    return (V)cr.NewestValue()?.Copy();
                 }
                 currentT.SetAlwaysReleaseLockWhenRedo();
             }
@@ -800,7 +800,7 @@ namespace Zeze.Transaction
             try
             {
                 var r = await LoadAsync(key);
-                return (V)r.Value.CopyBean();
+                return (V)r.Value.Copy();
             }
             finally
             {

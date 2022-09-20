@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BCloseExchange extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 2158529094627834211L;
+
     private long _ExchangeId;
 
     public long getExchangeId() {
@@ -48,6 +50,7 @@ public final class BCloseExchange extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BCloseExchange copy() {
         var copy = new BCloseExchange();
         copy.assign(this);
@@ -64,13 +67,6 @@ public final class BCloseExchange extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BCloseExchange copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 2158529094627834211L;
 
     @Override
     public long typeId() {

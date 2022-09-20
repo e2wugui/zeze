@@ -223,7 +223,7 @@ namespace Zeze.Transaction.Collections
 			}
 		}
 
-		public override Bean CopyBean()
+		public override CollList2<E> Copy()
 		{
             var copy = new CollList2<E>
             {

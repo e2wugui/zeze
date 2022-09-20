@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BLinkBroken extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 1424702393060691138L;
+
     public static final int REASON_PEERCLOSE = 0;
 
     private String _account;
@@ -153,6 +155,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BLinkBroken copy() {
         var copy = new BLinkBroken();
         copy.assign(this);
@@ -169,13 +172,6 @@ public final class BLinkBroken extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BLinkBroken copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 1424702393060691138L;
 
     @Override
     public long typeId() {

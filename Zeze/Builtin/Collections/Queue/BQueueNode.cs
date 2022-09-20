@@ -9,7 +9,7 @@ namespace Zeze.Builtin.Collections.Queue
         public long TypeId { get; }
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
-        public Zeze.Transaction.Bean CopyBean();
+        public BQueueNode Copy();
 
         public long NextNodeId { get; }
         public System.Collections.Generic.IReadOnlyList<Zeze.Builtin.Collections.Queue.BQueueNodeValueReadOnly>Values { get; }
@@ -72,7 +72,7 @@ namespace Zeze.Builtin.Collections.Queue
             return IsManaged ? Copy() : this;
         }
 
-        public BQueueNode Copy()
+        public override BQueueNode Copy()
         {
             var copy = new BQueueNode();
             copy.Assign(this);
@@ -84,11 +84,6 @@ namespace Zeze.Builtin.Collections.Queue
             BQueueNode save = a.Copy();
             a.Assign(b);
             b.Assign(save);
-        }
-
-        public override Zeze.Transaction.Bean CopyBean()
-        {
-            return Copy();
         }
 
         public const long TYPEID = 400956918018571167;

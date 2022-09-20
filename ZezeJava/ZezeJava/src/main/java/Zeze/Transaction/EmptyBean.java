@@ -31,7 +31,7 @@ public class EmptyBean extends Bean {
 	}
 
 	@Override
-	public EmptyBean copyBean() {
+	public EmptyBean copy() {
 		return new EmptyBean();
 	}
 

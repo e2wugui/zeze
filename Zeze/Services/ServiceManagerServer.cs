@@ -505,7 +505,7 @@ namespace Zeze.Services
                                 break;
                             }
                         }
-                        catch (Exception e)
+                        catch (Exception)
                         {
                         }
 
@@ -1675,7 +1675,7 @@ namespace Zeze.Services.ServiceManager
                 }
                 p.TrySendResultCode(2);
             }
-            catch(Exception e)
+            catch(Exception)
             {
                 p.TrySendResultCode(3);
             }

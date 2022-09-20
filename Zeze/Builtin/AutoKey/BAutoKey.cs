@@ -9,7 +9,7 @@ namespace Zeze.Builtin.AutoKey
         public long TypeId { get; }
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
-        public Zeze.Transaction.Bean CopyBean();
+        public BAutoKey Copy();
 
         public long NextId { get; }
     }
@@ -62,7 +62,7 @@ namespace Zeze.Builtin.AutoKey
             return IsManaged ? Copy() : this;
         }
 
-        public BAutoKey Copy()
+        public override BAutoKey Copy()
         {
             var copy = new BAutoKey();
             copy.Assign(this);
@@ -74,11 +74,6 @@ namespace Zeze.Builtin.AutoKey
             BAutoKey save = a.Copy();
             a.Assign(b);
             b.Assign(save);
-        }
-
-        public override Zeze.Transaction.Bean CopyBean()
-        {
-            return Copy();
         }
 
         public const long TYPEID = 3694349315876280858;

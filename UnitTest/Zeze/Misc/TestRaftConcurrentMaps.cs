@@ -42,7 +42,7 @@ namespace UnitTest.Zeze.Misc
                 throw new NotImplementedException();
             }
 
-            public override Bean CopyBean()
+            public override Bean Copy()
             {
                 throw new NotImplementedException();
             }

@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
+    public static final long TYPEID = -6588057877320371892L;
+
     private long _ReliableNotifyConfirmIndex;
     private boolean _Sync;
 
@@ -70,6 +72,7 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BReliableNotifyConfirm copy() {
         var copy = new BReliableNotifyConfirm();
         copy.assign(this);
@@ -86,13 +89,6 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BReliableNotifyConfirm copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = -6588057877320371892L;
 
     @Override
     public long typeId() {

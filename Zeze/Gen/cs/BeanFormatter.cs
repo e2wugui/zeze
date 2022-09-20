@@ -136,7 +136,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("            return IsManaged ? Copy() : this;");
             sw.WriteLine("        }");
             sw.WriteLine();
-            sw.WriteLine("        public " + bean.Name + " Copy()");
+            sw.WriteLine("        public override " + bean.Name + " Copy()");
             sw.WriteLine("        {");
             sw.WriteLine("            var copy = new " + bean.Name + "();");
             sw.WriteLine("            copy.Assign(this);");
@@ -148,11 +148,6 @@ namespace Zeze.Gen.cs
             sw.WriteLine($"            {bean.Name} save = a.Copy();");
             sw.WriteLine("            a.Assign(b);");
             sw.WriteLine("            b.Assign(save);");
-            sw.WriteLine("        }");
-            sw.WriteLine();
-            sw.WriteLine("        public override Zeze.Transaction.Bean CopyBean()");
-            sw.WriteLine("        {");
-            sw.WriteLine("            return Copy();");
             sw.WriteLine("        }");
             sw.WriteLine();
             sw.WriteLine("        public const long TYPEID = " + bean.TypeId + ";");

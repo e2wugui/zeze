@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
+    public static final long TYPEID = -6110801358414370128L;
+
     private String _Id; // LinkedMap的Key转成字符串类型
     private final Zeze.Transaction.DynamicBean _Value;
 
@@ -69,6 +71,7 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BLinkedMapNodeValue copy() {
         var copy = new BLinkedMapNodeValue();
         copy.assign(this);
@@ -85,13 +88,6 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BLinkedMapNodeValue copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = -6110801358414370128L;
 
     @Override
     public long typeId() {

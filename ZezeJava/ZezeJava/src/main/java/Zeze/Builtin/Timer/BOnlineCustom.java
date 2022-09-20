@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BOnlineCustom extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 4804037996721232525L;
+
     private final Zeze.Transaction.DynamicBean _CustomData;
 
     public static long getSpecialTypeIdFromBean_CustomData(Zeze.Transaction.Bean bean) {
@@ -52,6 +54,7 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BOnlineCustom copy() {
         var copy = new BOnlineCustom();
         copy.assign(this);
@@ -68,13 +71,6 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BOnlineCustom copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 4804037996721232525L;
 
     @Override
     public long typeId() {

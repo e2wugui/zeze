@@ -9,7 +9,7 @@ namespace Zeze.Builtin.Online
         public long TypeId { get; }
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
-        public Zeze.Transaction.Bean CopyBean();
+        public BAccount Copy();
 
         public long LastLoginVersion { get; }
     }
@@ -62,7 +62,7 @@ namespace Zeze.Builtin.Online
             return IsManaged ? Copy() : this;
         }
 
-        public BAccount Copy()
+        public override BAccount Copy()
         {
             var copy = new BAccount();
             copy.Assign(this);
@@ -74,11 +74,6 @@ namespace Zeze.Builtin.Online
             BAccount save = a.Copy();
             a.Assign(b);
             b.Assign(save);
-        }
-
-        public override Zeze.Transaction.Bean CopyBean()
-        {
-            return Copy();
         }
 
         public const long TYPEID = 3220082739597459764;

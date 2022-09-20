@@ -9,7 +9,7 @@ namespace Zeze.Builtin.Game.Online
         public long TypeId { get; }
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
-        public Zeze.Transaction.Bean CopyBean();
+        public BReliableNotify Copy();
 
         public System.Collections.Generic.IReadOnlyList<Zeze.Net.Binary>Notifies { get; }
         public long ReliableNotifyIndex { get; }
@@ -72,7 +72,7 @@ namespace Zeze.Builtin.Game.Online
             return IsManaged ? Copy() : this;
         }
 
-        public BReliableNotify Copy()
+        public override BReliableNotify Copy()
         {
             var copy = new BReliableNotify();
             copy.Assign(this);
@@ -84,11 +84,6 @@ namespace Zeze.Builtin.Game.Online
             BReliableNotify save = a.Copy();
             a.Assign(b);
             b.Assign(save);
-        }
-
-        public override Zeze.Transaction.Bean CopyBean()
-        {
-            return Copy();
         }
 
         public const long TYPEID = -6166834646872658332;

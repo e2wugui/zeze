@@ -75,7 +75,7 @@ public abstract class Bean implements Serializable {
 	@Override
 	public abstract void decode(ByteBuffer bb);
 
-	public abstract Bean copyBean();
+	public abstract Bean copy();
 
 	public LogBean createLogBean() {
 		LogBean tempVar = new LogBean();

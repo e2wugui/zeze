@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BBroadcast extends Zeze.Transaction.Bean {
+    public static final long TYPEID = -6926497733546172658L;
+
     private long _protocolType;
     private Zeze.Net.Binary _protocolWholeData; // 完整的协议打包，包括了 type, size
     private int _time;
@@ -97,6 +99,7 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BBroadcast copy() {
         var copy = new BBroadcast();
         copy.assign(this);
@@ -113,13 +116,6 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BBroadcast copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = -6926497733546172658L;
 
     @Override
     public long typeId() {

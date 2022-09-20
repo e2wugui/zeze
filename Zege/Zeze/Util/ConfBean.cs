@@ -15,7 +15,7 @@ namespace Zeze.Util
         }
         public abstract void Decode(ByteBuffer bb);
 
-        public virtual ConfBean CopyBean()
+        public virtual ConfBean Copy()
         {
             throw new NotImplementedException();
         }
@@ -60,7 +60,7 @@ namespace Zeze.Util
         public const long TYPEID = 0; // 用0，而不是Bean.Hash("")，可能0更好吧。
 
         public override long TypeId => TYPEID;
-        public override ConfBean CopyBean()
+        public override ConfBean Copy()
         {
             return ConfEmptyBean.Instance;
         }
@@ -115,7 +115,7 @@ namespace Zeze.Util
 
         public void Assign(ConfDynamicBean other)
         {
-            Bean = other.Bean.CopyBean();
+            Bean = other.Bean.Copy();
         }
 
         public override bool NegativeCheck()
@@ -123,10 +123,10 @@ namespace Zeze.Util
             return Bean.NegativeCheck();
         }
 
-        public override ConfBean CopyBean()
+        public override ConfBean Copy()
         {
             var copy = new ConfDynamicBean(VariableId, GetSpecialTypeIdFromBean, CreateBeanFromSpecialTypeId);
-            copy._Bean = Bean.CopyBean();
+            copy._Bean = Bean.Copy();
             copy._TypeId = TypeId;
             return copy;
         }

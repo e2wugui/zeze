@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BReliableNotify extends Zeze.Transaction.Bean {
+    public static final long TYPEID = -6166834646872658332L;
+
     private final Zeze.Transaction.Collections.PList1<Zeze.Net.Binary> _Notifies; // full encoded protocol list
     private long _ReliableNotifyIndex; // Notify的计数开始。客户端收到的总计数为：start + Notifies.Count
 
@@ -60,6 +62,7 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BReliableNotify copy() {
         var copy = new BReliableNotify();
         copy.assign(this);
@@ -76,13 +79,6 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BReliableNotify copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = -6166834646872658332L;
 
     @Override
     public long typeId() {

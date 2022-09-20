@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BModule extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 5883923521926593765L;
+
     public static final int ChoiceTypeDefault = 0; // choice by load
     public static final int ChoiceTypeHashAccount = 1;
     public static final int ChoiceTypeHashRoleId = 2;
@@ -112,6 +114,7 @@ public final class BModule extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BModule copy() {
         var copy = new BModule();
         copy.assign(this);
@@ -128,13 +131,6 @@ public final class BModule extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BModule copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 5883923521926593765L;
 
     @Override
     public long typeId() {

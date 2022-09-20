@@ -9,7 +9,7 @@ namespace Zeze.Builtin.Provider
         public long TypeId { get; }
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
-        public Zeze.Transaction.Bean CopyBean();
+        public BAnnounceLinkInfo Copy();
 
     }
 
@@ -29,7 +29,7 @@ namespace Zeze.Builtin.Provider
             return IsManaged ? Copy() : this;
         }
 
-        public BAnnounceLinkInfo Copy()
+        public override BAnnounceLinkInfo Copy()
         {
             var copy = new BAnnounceLinkInfo();
             copy.Assign(this);
@@ -41,11 +41,6 @@ namespace Zeze.Builtin.Provider
             BAnnounceLinkInfo save = a.Copy();
             a.Assign(b);
             b.Assign(save);
-        }
-
-        public override Zeze.Transaction.Bean CopyBean()
-        {
-            return Copy();
         }
 
         public const long TYPEID = 6291432069805514560;

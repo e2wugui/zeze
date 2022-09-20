@@ -125,7 +125,7 @@ public final class ModuleEquip extends AbstractModule {
 			var bItemAdd = new Game.Bag.BItem();
 			bItemAdd.setId(eItem.getId());
 			bItemAdd.setNumber(1);
-			bItemAdd.setExtra((BEquipExtra)eItem.getExtra().CopyBean());
+			bItemAdd.setExtra((BEquipExtra)eItem.getExtra().getBean().copy());
 			if (0 != bag.Add(-1, bItemAdd)) {
 				return ErrorCode(ResultCodeBagIsFull); // bag is full
 			}

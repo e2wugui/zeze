@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BSubscribe extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 1112180088628051173L;
+
     private final Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Provider.BModule> _modules; // moduleId -> BModule
 
     public Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Provider.BModule> getModules() {
@@ -32,6 +34,7 @@ public final class BSubscribe extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BSubscribe copy() {
         var copy = new BSubscribe();
         copy.assign(this);
@@ -48,13 +51,6 @@ public final class BSubscribe extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BSubscribe copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 1112180088628051173L;
 
     @Override
     public long typeId() {

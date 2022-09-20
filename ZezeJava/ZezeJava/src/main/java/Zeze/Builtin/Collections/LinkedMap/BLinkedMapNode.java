@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BLinkedMapNode extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 3432187612551867839L;
+
     private long _PrevNodeId; // 前一个节点ID. 0表示已到达开头。
     private long _NextNodeId; // 后一个节点ID. 0表示已到达结尾。
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue> _Values; // 多个KeyValue对,容量由LinkedMap构造时的nodeSize决定
@@ -82,6 +84,7 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BLinkedMapNode copy() {
         var copy = new BLinkedMapNode();
         copy.assign(this);
@@ -98,13 +101,6 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BLinkedMapNode copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 3432187612551867839L;
 
     @Override
     public long typeId() {

@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BQueueNodeValue extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 486912310764000976L;
+
     private long _Timestamp;
     private final Zeze.Transaction.DynamicBean _Value;
 
@@ -64,6 +66,7 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BQueueNodeValue copy() {
         var copy = new BQueueNodeValue();
         copy.assign(this);
@@ -80,13 +83,6 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BQueueNodeValue copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 486912310764000976L;
 
     @Override
     public long typeId() {

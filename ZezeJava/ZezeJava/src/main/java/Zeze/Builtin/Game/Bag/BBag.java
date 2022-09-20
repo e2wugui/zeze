@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BBag extends Zeze.Transaction.Bean {
+    public static final long TYPEID = -5051317137860806350L;
+
     private int _Capacity;
     private final Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Game.Bag.BItem> _Items; // key is bag position
 
@@ -60,6 +62,7 @@ public final class BBag extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BBag copy() {
         var copy = new BBag();
         copy.assign(this);
@@ -76,13 +79,6 @@ public final class BBag extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BBag copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = -5051317137860806350L;
 
     @Override
     public long typeId() {

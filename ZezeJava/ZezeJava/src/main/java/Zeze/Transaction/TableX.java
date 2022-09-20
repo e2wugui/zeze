@@ -777,7 +777,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			var cr = currentT.getRecordAccessed(tkey);
 			if (cr != null) {
 				var v = cr.newestValue();
-				return v != null ? (V)v.copyBean() : null;
+				return v != null ? (V)v.copy() : null;
 			}
 			currentT.setAlwaysReleaseLockWhenRedo();
 		}
@@ -786,7 +786,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		lockey.enterReadLock();
 		try {
 			var v = load(key).strongRef;
-			return v != null ? (V)v.copyBean() : null;
+			return v != null ? (V)v.copy() : null;
 		} finally {
 			lockey.exitReadLock();
 		}

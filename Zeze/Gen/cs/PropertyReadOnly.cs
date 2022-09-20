@@ -14,7 +14,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine($"{prefix}public long TypeId {{ get; }}");
             sw.WriteLine($"{prefix}public void Encode(ByteBuffer _os_);");
             sw.WriteLine($"{prefix}public bool NegativeCheck();");
-            sw.WriteLine($"{prefix}public Zeze.Transaction.Bean CopyBean();");
+            sw.WriteLine($"{prefix}public {bean.Name} Copy();");
             sw.WriteLine();
             foreach (Variable var in bean.Variables)
                 var.VariableType.Accept(new PropertyReadOnly(sw, var, prefix));

@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BAcquireParam extends Zeze.Transaction.Bean {
+    public static final long TYPEID = -8330630345134214646L;
+
     private Zeze.Net.Binary _GlobalKey;
     private int _State;
 
@@ -75,6 +77,7 @@ public final class BAcquireParam extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BAcquireParam copy() {
         var copy = new BAcquireParam();
         copy.assign(this);
@@ -91,13 +94,6 @@ public final class BAcquireParam extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BAcquireParam copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = -8330630345134214646L;
 
     @Override
     public long typeId() {

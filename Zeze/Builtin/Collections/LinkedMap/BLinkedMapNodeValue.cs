@@ -9,7 +9,7 @@ namespace Zeze.Builtin.Collections.LinkedMap
         public long TypeId { get; }
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
-        public Zeze.Transaction.Bean CopyBean();
+        public BLinkedMapNodeValue Copy();
 
         public string Id { get; }
         public Zeze.Transaction.DynamicBeanReadOnly Value { get; }
@@ -83,7 +83,7 @@ namespace Zeze.Builtin.Collections.LinkedMap
             return IsManaged ? Copy() : this;
         }
 
-        public BLinkedMapNodeValue Copy()
+        public override BLinkedMapNodeValue Copy()
         {
             var copy = new BLinkedMapNodeValue();
             copy.Assign(this);
@@ -95,11 +95,6 @@ namespace Zeze.Builtin.Collections.LinkedMap
             BLinkedMapNodeValue save = a.Copy();
             a.Assign(b);
             b.Assign(save);
-        }
-
-        public override Zeze.Transaction.Bean CopyBean()
-        {
-            return Copy();
         }
 
         public const long TYPEID = -6110801358414370128;

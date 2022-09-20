@@ -9,7 +9,7 @@ namespace Zeze.Builtin.Online
         public long TypeId { get; }
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
-        public Zeze.Transaction.Bean CopyBean();
+        public BLocals Copy();
 
         public System.Collections.Generic.IReadOnlyDictionary<string,Zeze.Builtin.Online.BLocalReadOnly> Logins { get; }
     }
@@ -40,7 +40,7 @@ namespace Zeze.Builtin.Online
             return IsManaged ? Copy() : this;
         }
 
-        public BLocals Copy()
+        public override BLocals Copy()
         {
             var copy = new BLocals();
             copy.Assign(this);
@@ -52,11 +52,6 @@ namespace Zeze.Builtin.Online
             BLocals save = a.Copy();
             a.Assign(b);
             b.Assign(save);
-        }
-
-        public override Zeze.Transaction.Bean CopyBean()
-        {
-            return Copy();
         }
 
         public const long TYPEID = -3801167864121993305;

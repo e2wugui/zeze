@@ -189,7 +189,7 @@ namespace Zeze.Transaction.Collections
 		{
 		}
 
-		public override Bean CopyBean()
+		public override CollList1<E> Copy()
 		{
             var copy = new CollList1<E>
             {

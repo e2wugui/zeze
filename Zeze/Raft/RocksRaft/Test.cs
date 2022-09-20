@@ -68,7 +68,7 @@ namespace Zeze.Raft.RocksRaft
 				return $"BList(List1={List1} List2={List2})";
 			}
 
-            public override Bean CopyBean()
+            public override Bean Copy()
             {
                 throw new NotImplementedException();
             }
@@ -111,7 +111,7 @@ namespace Zeze.Raft.RocksRaft
 				}
 			}
 
-            public override Bean CopyBean()
+            public override Bean Copy()
             {
                 throw new NotImplementedException();
             }
@@ -219,7 +219,7 @@ namespace Zeze.Raft.RocksRaft
 		{
 			private int _i;
 
-            public override Bean CopyBean()
+            public override Bean Copy()
             {
                 throw new NotImplementedException();
             }

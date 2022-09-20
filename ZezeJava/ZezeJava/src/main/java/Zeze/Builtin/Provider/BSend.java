@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BSend extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 545774009128015305L;
+
     private final Zeze.Transaction.Collections.PSet1<Long> _linkSids;
     private long _protocolType;
     private Zeze.Net.Binary _protocolWholeData; // 完整的协议打包，包括了 type, size
@@ -87,6 +89,7 @@ public final class BSend extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BSend copy() {
         var copy = new BSend();
         copy.assign(this);
@@ -103,13 +106,6 @@ public final class BSend extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BSend copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 545774009128015305L;
 
     @Override
     public long typeId() {

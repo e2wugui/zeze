@@ -106,7 +106,7 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 	}
 
 	@Override
-	public Bean copyBean() {
+	public CollMap2<K, V> copy() {
 		var copy = new CollMap2<K, V>(logTypeId, keyCodecFuncs, valueFactory);
 		copy.map = map;
 		return copy;
