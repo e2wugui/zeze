@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BModuleRedirectResult extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 6325051164605397555L;
+
     private int _ModuleId;
     private int _ServerId; // 目标server的id。
     private Zeze.Net.Binary _Params;
@@ -97,6 +99,7 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BModuleRedirectResult copy() {
         var copy = new BModuleRedirectResult();
         copy.assign(this);
@@ -113,13 +116,6 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BModuleRedirectResult copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 6325051164605397555L;
 
     @Override
     public long typeId() {

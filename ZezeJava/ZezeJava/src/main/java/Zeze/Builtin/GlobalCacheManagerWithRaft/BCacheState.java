@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
+    public static final long TYPEID = 2494905368101749954L;
+
     private int _AcquireStatePending;
     private int _Modify; // ServerId, default MUST BE -1.
     private final Zeze.Raft.RocksRaft.CollSet1<Integer> _Share;
@@ -72,6 +74,7 @@ public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BCacheState copy() {
         var copy = new BCacheState();
         copy.assign(this);
@@ -88,13 +91,6 @@ public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BCacheState copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 2494905368101749954L;
 
     @Override
     public long typeId() {

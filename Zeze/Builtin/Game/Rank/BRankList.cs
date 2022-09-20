@@ -9,7 +9,7 @@ namespace Zeze.Builtin.Game.Rank
         public long TypeId { get; }
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
-        public Zeze.Transaction.Bean CopyBean();
+        public BRankList Copy();
 
         public System.Collections.Generic.IReadOnlyList<Zeze.Builtin.Game.Rank.BRankValueReadOnly>RankList { get; }
     }
@@ -38,7 +38,7 @@ namespace Zeze.Builtin.Game.Rank
             return IsManaged ? Copy() : this;
         }
 
-        public BRankList Copy()
+        public override BRankList Copy()
         {
             var copy = new BRankList();
             copy.Assign(this);
@@ -50,11 +50,6 @@ namespace Zeze.Builtin.Game.Rank
             BRankList save = a.Copy();
             a.Assign(b);
             b.Assign(save);
-        }
-
-        public override Zeze.Transaction.Bean CopyBean()
-        {
-            return Copy();
         }
 
         public const long TYPEID = -1625874326687776700;

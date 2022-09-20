@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BItemClasses extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 1779211758793833239L;
+
     private final Zeze.Transaction.Collections.PSet1<String> _ItemClasses;
 
     public Zeze.Transaction.Collections.PSet1<String> getItemClasses() {
@@ -32,6 +34,7 @@ public final class BItemClasses extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BItemClasses copy() {
         var copy = new BItemClasses();
         copy.assign(this);
@@ -48,13 +51,6 @@ public final class BItemClasses extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BItemClasses copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 1779211758793833239L;
 
     @Override
     public long typeId() {

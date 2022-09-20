@@ -147,7 +147,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 	}
 
 	@Override
-	public PMap1<K, V> copyBean() {
+	public PMap1<K, V> copy() {
 		var copy = new PMap1<>(logTypeId, keyCodecFuncs, valueCodecFuncs);
 		copy.map = map;
 		return copy;

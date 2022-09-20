@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BAutoKey extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 3694349315876280858L;
+
     private long _NextId;
 
     public long getNextId() {
@@ -48,6 +50,7 @@ public final class BAutoKey extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BAutoKey copy() {
         var copy = new BAutoKey();
         copy.assign(this);
@@ -64,13 +67,6 @@ public final class BAutoKey extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BAutoKey copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 3694349315876280858L;
 
     @Override
     public long typeId() {

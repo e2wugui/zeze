@@ -9,7 +9,7 @@ namespace Zeze.Builtin.Game.Bag
         public long TypeId { get; }
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
-        public Zeze.Transaction.Bean CopyBean();
+        public BItemClasses Copy();
 
         public System.Collections.Generic.IReadOnlySet<string> ItemClasses { get; }
     }
@@ -38,7 +38,7 @@ namespace Zeze.Builtin.Game.Bag
             return IsManaged ? Copy() : this;
         }
 
-        public BItemClasses Copy()
+        public override BItemClasses Copy()
         {
             var copy = new BItemClasses();
             copy.Assign(this);
@@ -50,11 +50,6 @@ namespace Zeze.Builtin.Game.Bag
             BItemClasses save = a.Copy();
             a.Assign(b);
             b.Assign(save);
-        }
-
-        public override Zeze.Transaction.Bean CopyBean()
-        {
-            return Copy();
         }
 
         public const long TYPEID = 1779211758793833239;

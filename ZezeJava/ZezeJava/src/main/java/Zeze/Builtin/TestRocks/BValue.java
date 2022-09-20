@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BValue extends Zeze.Raft.RocksRaft.Bean {
+    public static final long TYPEID = -7620770686653123067L;
+
     private int _Int;
     private boolean _Bool;
     private float _Float;
@@ -268,6 +270,7 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BValue copy() {
         var copy = new BValue();
         copy.assign(this);
@@ -284,13 +287,6 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BValue copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = -7620770686653123067L;
 
     @Override
     public long typeId() {

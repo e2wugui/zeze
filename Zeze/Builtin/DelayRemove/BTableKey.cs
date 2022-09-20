@@ -9,7 +9,7 @@ namespace Zeze.Builtin.DelayRemove
         public long TypeId { get; }
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
-        public Zeze.Transaction.Bean CopyBean();
+        public BTableKey Copy();
 
         public string TableName { get; }
         public Zeze.Net.Binary EncodedKey { get; }
@@ -95,7 +95,7 @@ namespace Zeze.Builtin.DelayRemove
             return IsManaged ? Copy() : this;
         }
 
-        public BTableKey Copy()
+        public override BTableKey Copy()
         {
             var copy = new BTableKey();
             copy.Assign(this);
@@ -107,11 +107,6 @@ namespace Zeze.Builtin.DelayRemove
             BTableKey save = a.Copy();
             a.Assign(b);
             b.Assign(save);
-        }
-
-        public override Zeze.Transaction.Bean CopyBean()
-        {
-            return Copy();
         }
 
         public const long TYPEID = 6060766480176216446;

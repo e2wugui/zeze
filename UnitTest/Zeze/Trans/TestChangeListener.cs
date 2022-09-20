@@ -393,7 +393,7 @@ namespace UnitTest.Zeze.Trans
 
             public void Init(demo.Module1.Value current)
             {
-                newValue = current?.Dynamic14.CopyBean();
+                newValue = current?.Dynamic14.Copy();
             }
 
             public void Verify(demo.Module1.Value current)

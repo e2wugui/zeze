@@ -9,7 +9,7 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
         public long TypeId { get; }
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
-        public Zeze.Transaction.Bean CopyBean();
+        public AcquireParam Copy();
 
         public Zeze.Net.Binary GlobalKey { get; }
         public int State { get; }
@@ -93,7 +93,7 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             return IsManaged ? Copy() : this;
         }
 
-        public AcquireParam Copy()
+        public override AcquireParam Copy()
         {
             var copy = new AcquireParam();
             copy.Assign(this);
@@ -105,11 +105,6 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             AcquireParam save = a.Copy();
             a.Assign(b);
             b.Assign(save);
-        }
-
-        public override Zeze.Transaction.Bean CopyBean()
-        {
-            return Copy();
         }
 
         public const long TYPEID = 8991661748018394550;

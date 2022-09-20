@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BAccount extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 3220082739597459764L;
+
     private long _LastLoginVersion; // 用来生成 role 登录版本号。每次递增。
 
     public long getLastLoginVersion() {
@@ -48,6 +50,7 @@ public final class BAccount extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BAccount copy() {
         var copy = new BAccount();
         copy.assign(this);
@@ -64,13 +67,6 @@ public final class BAccount extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BAccount copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 3220082739597459764L;
 
     @Override
     public long typeId() {

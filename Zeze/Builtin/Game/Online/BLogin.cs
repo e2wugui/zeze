@@ -9,7 +9,7 @@ namespace Zeze.Builtin.Game.Online
         public long TypeId { get; }
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
-        public Zeze.Transaction.Bean CopyBean();
+        public BLogin Copy();
 
         public long RoleId { get; }
     }
@@ -62,7 +62,7 @@ namespace Zeze.Builtin.Game.Online
             return IsManaged ? Copy() : this;
         }
 
-        public BLogin Copy()
+        public override BLogin Copy()
         {
             var copy = new BLogin();
             copy.Assign(this);
@@ -74,11 +74,6 @@ namespace Zeze.Builtin.Game.Online
             BLogin save = a.Copy();
             a.Assign(b);
             b.Assign(save);
-        }
-
-        public override Zeze.Transaction.Bean CopyBean()
-        {
-            return Copy();
         }
 
         public const long TYPEID = 4454573042979027680;

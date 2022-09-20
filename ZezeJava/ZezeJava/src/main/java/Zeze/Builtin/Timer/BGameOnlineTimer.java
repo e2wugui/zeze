@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BGameOnlineTimer extends Zeze.Transaction.Bean {
+    public static final long TYPEID = -3455653027701280193L;
+
     private long _RoleId;
     private final Zeze.Transaction.DynamicBean _TimerObj;
     public static final long DynamicTypeId_TimerObj_Zeze_Builtin_Timer_BCronTimer = -6995089347718168392L;
@@ -143,6 +145,7 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BGameOnlineTimer copy() {
         var copy = new BGameOnlineTimer();
         copy.assign(this);
@@ -159,13 +162,6 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BGameOnlineTimer copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = -3455653027701280193L;
 
     @Override
     public long typeId() {

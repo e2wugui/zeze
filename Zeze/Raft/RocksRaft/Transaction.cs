@@ -67,7 +67,7 @@ namespace Zeze.Raft.RocksRaft
                 return Origin.Value;
             }
 
-            public override Bean CopyBean()
+            public override Bean Copy()
             {
                 throw new NotImplementedException();
             }

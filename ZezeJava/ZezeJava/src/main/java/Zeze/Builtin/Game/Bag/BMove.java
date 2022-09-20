@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BMove extends Zeze.Transaction.Bean {
+    public static final long TYPEID = -7346236832819011963L;
+
     private String _BagName;
     private int _PositionFrom;
     private int _PositionTo;
@@ -119,6 +121,7 @@ public final class BMove extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BMove copy() {
         var copy = new BMove();
         copy.assign(this);
@@ -135,13 +138,6 @@ public final class BMove extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BMove copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = -7346236832819011963L;
 
     @Override
     public long typeId() {

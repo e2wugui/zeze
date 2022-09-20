@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BArchOnlineTimer extends Zeze.Transaction.Bean {
+    public static final long TYPEID = -1410268970794351805L;
+
     private String _Account;
     private String _ClientId;
     private final Zeze.Transaction.DynamicBean _TimerObj;
@@ -175,6 +177,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BArchOnlineTimer copy() {
         var copy = new BArchOnlineTimer();
         copy.assign(this);
@@ -191,13 +194,6 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BArchOnlineTimer copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = -1410268970794351805L;
 
     @Override
     public long typeId() {

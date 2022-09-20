@@ -9,7 +9,7 @@ namespace Zeze.Builtin.RedoQueue
         public long TypeId { get; }
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
-        public Zeze.Transaction.Bean CopyBean();
+        public BQueueTask Copy();
 
         public string QueueName { get; }
         public int TaskType { get; }
@@ -182,7 +182,7 @@ namespace Zeze.Builtin.RedoQueue
             return IsManaged ? Copy() : this;
         }
 
-        public BQueueTask Copy()
+        public override BQueueTask Copy()
         {
             var copy = new BQueueTask();
             copy.Assign(this);
@@ -194,11 +194,6 @@ namespace Zeze.Builtin.RedoQueue
             BQueueTask save = a.Copy();
             a.Assign(b);
             b.Assign(save);
-        }
-
-        public override Zeze.Transaction.Bean CopyBean()
-        {
-            return Copy();
         }
 
         public const long TYPEID = 3220291684741669511;

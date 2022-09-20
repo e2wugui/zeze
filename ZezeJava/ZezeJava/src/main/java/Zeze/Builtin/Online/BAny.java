@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BAny extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 5253251427600819301L;
+
     private final Zeze.Transaction.DynamicBean _Any;
 
     public static long getSpecialTypeIdFromBean_Any(Zeze.Transaction.Bean bean) {
@@ -49,6 +51,7 @@ public final class BAny extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BAny copy() {
         var copy = new BAny();
         copy.assign(this);
@@ -65,13 +68,6 @@ public final class BAny extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BAny copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 5253251427600819301L;
 
     @Override
     public long typeId() {

@@ -9,7 +9,7 @@ namespace Zeze.Builtin.Provider
         public long TypeId { get; }
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
-        public Zeze.Transaction.Bean CopyBean();
+        public BBroadcast Copy();
 
         public long ProtocolType { get; }
         public Zeze.Net.Binary ProtocolWholeData { get; }
@@ -122,7 +122,7 @@ namespace Zeze.Builtin.Provider
             return IsManaged ? Copy() : this;
         }
 
-        public BBroadcast Copy()
+        public override BBroadcast Copy()
         {
             var copy = new BBroadcast();
             copy.Assign(this);
@@ -134,11 +134,6 @@ namespace Zeze.Builtin.Provider
             BBroadcast save = a.Copy();
             a.Assign(b);
             b.Assign(save);
-        }
-
-        public override Zeze.Transaction.Bean CopyBean()
-        {
-            return Copy();
         }
 
         public const long TYPEID = -6926497733546172658;

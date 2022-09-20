@@ -9,7 +9,7 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
         public long TypeId { get; }
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
-        public Zeze.Transaction.Bean CopyBean();
+        public AchillesHeel Copy();
 
         public int ServerId { get; }
         public string SecureKey { get; }
@@ -122,7 +122,7 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             return IsManaged ? Copy() : this;
         }
 
-        public AchillesHeel Copy()
+        public override AchillesHeel Copy()
         {
             var copy = new AchillesHeel();
             copy.Assign(this);
@@ -134,11 +134,6 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             AchillesHeel save = a.Copy();
             a.Assign(b);
             b.Assign(save);
-        }
-
-        public override Zeze.Transaction.Bean CopyBean()
-        {
-            return Copy();
         }
 
         public const long TYPEID = -2721594206374974168;

@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BDepartmentRoot extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 50884757418508709L;
+
     private String _Root; // 群主
     private final Zeze.Transaction.Collections.PMap1<String, Zeze.Transaction.DynamicBean> _Managers;
 
@@ -124,6 +126,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BDepartmentRoot copy() {
         var copy = new BDepartmentRoot();
         copy.assign(this);
@@ -140,13 +143,6 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BDepartmentRoot copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 50884757418508709L;
 
     @Override
     public long typeId() {

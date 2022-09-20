@@ -9,7 +9,7 @@ namespace Zeze.Builtin.Online
         public long TypeId { get; }
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
-        public Zeze.Transaction.Bean CopyBean();
+        public BReLogin Copy();
 
         public string ClientId { get; }
         public long ReliableNotifyConfirmIndex { get; }
@@ -93,7 +93,7 @@ namespace Zeze.Builtin.Online
             return IsManaged ? Copy() : this;
         }
 
-        public BReLogin Copy()
+        public override BReLogin Copy()
         {
             var copy = new BReLogin();
             copy.Assign(this);
@@ -105,11 +105,6 @@ namespace Zeze.Builtin.Online
             BReLogin save = a.Copy();
             a.Assign(b);
             b.Assign(save);
-        }
-
-        public override Zeze.Transaction.Bean CopyBean()
-        {
-            return Copy();
         }
 
         public const long TYPEID = -603574147996514517;

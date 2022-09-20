@@ -9,7 +9,7 @@ namespace Zeze.Builtin.Provider
         public long TypeId { get; }
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
-        public Zeze.Transaction.Bean CopyBean();
+        public BLinkBroken Copy();
 
         public string Account { get; }
         public long LinkSid { get; }
@@ -186,7 +186,7 @@ namespace Zeze.Builtin.Provider
             return IsManaged ? Copy() : this;
         }
 
-        public BLinkBroken Copy()
+        public override BLinkBroken Copy()
         {
             var copy = new BLinkBroken();
             copy.Assign(this);
@@ -198,11 +198,6 @@ namespace Zeze.Builtin.Provider
             BLinkBroken save = a.Copy();
             a.Assign(b);
             b.Assign(save);
-        }
-
-        public override Zeze.Transaction.Bean CopyBean()
-        {
-            return Copy();
         }
 
         public const long TYPEID = 1424702393060691138;

@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BTransmit extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 7395081565293443928L;
+
     private String _ActionName;
     private final Zeze.Transaction.Collections.PSet1<Long> _Roles; // 查询目标角色。
     private long _Sender; // 结果发送给Sender。
@@ -114,6 +116,7 @@ public final class BTransmit extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BTransmit copy() {
         var copy = new BTransmit();
         copy.assign(this);
@@ -130,13 +133,6 @@ public final class BTransmit extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BTransmit copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 7395081565293443928L;
 
     @Override
     public long typeId() {

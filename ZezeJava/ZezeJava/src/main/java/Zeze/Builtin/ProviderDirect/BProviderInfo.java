@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BProviderInfo extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 858135112612157161L;
+
     private String _Ip;
     private int _Port;
     private int _ServerId;
@@ -97,6 +99,7 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BProviderInfo copy() {
         var copy = new BProviderInfo();
         copy.assign(this);
@@ -113,13 +116,6 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BProviderInfo copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 858135112612157161L;
 
     @Override
     public long typeId() {

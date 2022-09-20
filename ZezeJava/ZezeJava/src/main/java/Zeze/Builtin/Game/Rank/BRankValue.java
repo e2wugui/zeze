@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BRankValue extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 2276228832088785165L;
+
     private long _RoleId;
     private long _Value; // 含义由 BConcurrentKey.RankType 决定
     private Zeze.Net.Binary _ValueEx; // 自定义数据。
@@ -97,6 +99,7 @@ public final class BRankValue extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BRankValue copy() {
         var copy = new BRankValue();
         copy.assign(this);
@@ -113,13 +116,6 @@ public final class BRankValue extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BRankValue copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 2276228832088785165L;
 
     @Override
     public long typeId() {

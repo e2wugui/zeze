@@ -140,7 +140,7 @@ public class CollList1<V> extends CollList<V> {
 	}
 
 	@Override
-	public Bean copyBean() {
+	public CollList1<V> copy() {
 		var copy = new CollList1<>(logTypeId, valueCodecFuncs);
 		copy.list = list;
 		return copy;

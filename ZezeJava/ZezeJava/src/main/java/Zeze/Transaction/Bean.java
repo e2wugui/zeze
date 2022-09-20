@@ -102,7 +102,7 @@ public abstract class Bean implements Serializable {
 		return false;
 	}
 
-	public Bean copyBean() {
+	public Bean copy() {
 		throw new UnsupportedOperationException();
 	}
 

@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
+    public static final long TYPEID = -1938324199607833342L;
+
     private int _ModuleId;
     private int _HashCodeConcurrentLevel; // 总的并发分组数量
     private final Zeze.Transaction.Collections.PSet1<Integer> _HashCodes; // 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
@@ -207,6 +209,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BModuleRedirectAllRequest copy() {
         var copy = new BModuleRedirectAllRequest();
         copy.assign(this);
@@ -223,13 +226,6 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BModuleRedirectAllRequest copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = -1938324199607833342L;
 
     @Override
     public long typeId() {

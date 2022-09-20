@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BResponse extends Zeze.Transaction.Bean {
+    public static final long TYPEID = -5862638463049880127L;
+
     private int _Code;
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Web.BHeader> _Headers;
     private Zeze.Net.Binary _Body;
@@ -163,6 +165,7 @@ public final class BResponse extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BResponse copy() {
         var copy = new BResponse();
         copy.assign(this);
@@ -179,13 +182,6 @@ public final class BResponse extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BResponse copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = -5862638463049880127L;
 
     @Override
     public long typeId() {

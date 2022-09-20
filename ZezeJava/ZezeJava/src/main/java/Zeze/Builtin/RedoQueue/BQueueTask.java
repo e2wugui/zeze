@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BQueueTask extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 3220291684741669511L;
+
     private String _QueueName; // 队列名称。
     private int _TaskType; // 任务类型。
     private long _TaskId; // 任务编号，必须递增。
@@ -146,6 +148,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BQueueTask copy() {
         var copy = new BQueueTask();
         copy.assign(this);
@@ -162,13 +165,6 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BQueueTask copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 3220291684741669511L;
 
     @Override
     public long typeId() {

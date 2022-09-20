@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BTransmitAccount extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 2637210793748287339L;
+
     private String _ActionName;
     private Zeze.Net.Binary _Parameter; // encoded bean
     private final Zeze.Transaction.Collections.PSet1<String> _TargetAccounts; // 查询目标角色。
@@ -146,6 +148,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BTransmitAccount copy() {
         var copy = new BTransmitAccount();
         copy.assign(this);
@@ -162,13 +165,6 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BTransmitAccount copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 2637210793748287339L;
 
     @Override
     public long typeId() {

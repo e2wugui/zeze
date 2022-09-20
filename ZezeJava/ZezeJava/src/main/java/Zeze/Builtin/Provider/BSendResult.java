@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BSendResult extends Zeze.Transaction.Bean {
+    public static final long TYPEID = -7186434891670297524L;
+
     private final Zeze.Transaction.Collections.PSet1<Long> _ErrorLinkSids;
 
     public Zeze.Transaction.Collections.PSet1<Long> getErrorLinkSids() {
@@ -32,6 +34,7 @@ public final class BSendResult extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BSendResult copy() {
         var copy = new BSendResult();
         copy.assign(this);
@@ -48,13 +51,6 @@ public final class BSendResult extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BSendResult copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = -7186434891670297524L;
 
     @Override
     public long typeId() {

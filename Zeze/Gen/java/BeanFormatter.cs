@@ -99,6 +99,8 @@ namespace Zeze.Gen.java
 
         public void WriteDefine(StreamWriter sw)
         {
+            sw.WriteLine("    public static final long TYPEID = " + bean.TypeId + "L;");
+            sw.WriteLine();
             // declare enums
             foreach (Enum e in bean.Enums)
             {
@@ -160,6 +162,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("        return isManaged() ? copy() : this;");
             sw.WriteLine("    }");
             sw.WriteLine();
+            sw.WriteLine("    @Override");
             sw.WriteLine("    public " + bean.Name + " copy() {");
             sw.WriteLine("        var copy = new " + bean.Name + "();");
             sw.WriteLine("        copy.assign(this);");
@@ -176,13 +179,6 @@ namespace Zeze.Gen.java
             sw.WriteLine("        a.assign(b);");
             sw.WriteLine("        b.assign(save);");
             sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    @Override");
-            sw.WriteLine("    public " + bean.Name + " copyBean() {");
-            sw.WriteLine("        return copy();");
-            sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    public static final long TYPEID = " + bean.TypeId + "L;");
             sw.WriteLine();
             sw.WriteLine("    @Override");
             sw.WriteLine("    public long typeId() {");

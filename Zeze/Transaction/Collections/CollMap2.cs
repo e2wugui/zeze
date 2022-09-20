@@ -176,7 +176,7 @@ namespace Zeze.Transaction.Collections
 			}
 		}
 
-		public override Bean CopyBean()
+		public override CollMap2<K, V> Copy()
 		{
 			var copy = new CollMap2<K, V>();
 			copy._map = _map;

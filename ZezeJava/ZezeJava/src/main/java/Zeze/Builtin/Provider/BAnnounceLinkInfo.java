@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 6291432069805514560L;
+
     @SuppressWarnings("deprecation")
     public BAnnounceLinkInfo() {
     }
@@ -21,6 +23,7 @@ public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BAnnounceLinkInfo copy() {
         var copy = new BAnnounceLinkInfo();
         copy.assign(this);
@@ -37,13 +40,6 @@ public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BAnnounceLinkInfo copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 6291432069805514560L;
 
     @Override
     public long typeId() {

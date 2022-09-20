@@ -87,7 +87,7 @@ public class CollSet1<V> extends CollSet<V> {
 	}
 
 	@Override
-	public Bean copyBean() {
+	public CollSet1<V> copy() {
 		var copy = new CollSet1<>(logTypeId, valueCodecFuncs);
 		copy.set = set;
 		return copy;

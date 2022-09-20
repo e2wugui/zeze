@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BSimpleTimer extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 1832177636612857692L;
+
     private long _Delay;
     private long _Period;
     private long _RemainTimes; // -1 表示不限次数。
@@ -224,6 +226,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BSimpleTimer copy() {
         var copy = new BSimpleTimer();
         copy.assign(this);
@@ -240,13 +243,6 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BSimpleTimer copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 1832177636612857692L;
 
     @Override
     public long typeId() {

@@ -247,7 +247,7 @@ namespace Zeze.Builtin.TestRocks
             return IsManaged ? Copy() : this;
         }
 
-        public Value Copy()
+        public override Value Copy()
         {
             var copy = new Value();
             copy.Assign(this);
@@ -259,11 +259,6 @@ namespace Zeze.Builtin.TestRocks
             Value save = a.Copy();
             a.Assign(b);
             b.Assign(save);
-        }
-
-        public override Zeze.Raft.RocksRaft.Bean CopyBean()
-        {
-            return Copy();
         }
 
         public const long TYPEID = 7725276190606291579;

@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BAchillesHeelConfig extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 6351123425648255834L;
+
     private int _MaxNetPing;
     private int _ServerProcessTime;
     private int _ServerReleaseTimeout;
@@ -92,6 +94,7 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BAchillesHeelConfig copy() {
         var copy = new BAchillesHeelConfig();
         copy.assign(this);
@@ -108,13 +111,6 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BAchillesHeelConfig copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 6351123425648255834L;
 
     @Override
     public long typeId() {

@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BSession extends Zeze.Transaction.Bean {
+    public static final long TYPEID = -9018388719477863848L;
+
     private String _Account;
 
     public String getAccount() {
@@ -53,6 +55,7 @@ public final class BSession extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BSession copy() {
         var copy = new BSession();
         copy.assign(this);
@@ -69,13 +72,6 @@ public final class BSession extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BSession copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = -9018388719477863848L;
 
     @Override
     public long typeId() {

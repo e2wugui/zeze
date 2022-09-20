@@ -9,7 +9,7 @@ namespace Zeze.Builtin.ProviderDirect
         public long TypeId { get; }
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
-        public Zeze.Transaction.Bean CopyBean();
+        public BTransmit Copy();
 
         public string ActionName { get; }
         public System.Collections.Generic.IReadOnlySet<long> Roles { get; }
@@ -134,7 +134,7 @@ namespace Zeze.Builtin.ProviderDirect
             return IsManaged ? Copy() : this;
         }
 
-        public BTransmit Copy()
+        public override BTransmit Copy()
         {
             var copy = new BTransmit();
             copy.Assign(this);
@@ -146,11 +146,6 @@ namespace Zeze.Builtin.ProviderDirect
             BTransmit save = a.Copy();
             a.Assign(b);
             b.Assign(save);
-        }
-
-        public override Zeze.Transaction.Bean CopyBean()
-        {
-            return Copy();
         }
 
         public const long TYPEID = 7395081565293443928;

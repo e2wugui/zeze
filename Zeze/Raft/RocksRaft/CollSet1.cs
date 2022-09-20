@@ -88,7 +88,7 @@ namespace Zeze.Raft.RocksRaft
         {
         }
 
-		public override Bean CopyBean()
+		public override CollSet1<V> Copy()
 		{
             var copy = new CollSet1<V>
             {

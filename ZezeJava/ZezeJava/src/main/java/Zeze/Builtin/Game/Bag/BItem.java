@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BItem extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 8937000213993683283L;
+
     private int _Id;
     private int _Number;
     private final Zeze.Transaction.DynamicBean _Item;
@@ -98,6 +100,7 @@ public final class BItem extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BItem copy() {
         var copy = new BItem();
         copy.assign(this);
@@ -114,13 +117,6 @@ public final class BItem extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BItem copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 8937000213993683283L;
 
     @Override
     public long typeId() {

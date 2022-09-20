@@ -9,7 +9,7 @@ namespace Zeze.Builtin.Game.Rank
         public long TypeId { get; }
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
-        public Zeze.Transaction.Bean CopyBean();
+        public BRankValue Copy();
 
         public long RoleId { get; }
         public long Value { get; }
@@ -122,7 +122,7 @@ namespace Zeze.Builtin.Game.Rank
             return IsManaged ? Copy() : this;
         }
 
-        public BRankValue Copy()
+        public override BRankValue Copy()
         {
             var copy = new BRankValue();
             copy.Assign(this);
@@ -134,11 +134,6 @@ namespace Zeze.Builtin.Game.Rank
             BRankValue save = a.Copy();
             a.Assign(b);
             b.Assign(save);
-        }
-
-        public override Zeze.Transaction.Bean CopyBean()
-        {
-            return Copy();
         }
 
         public const long TYPEID = 2276228832088785165;

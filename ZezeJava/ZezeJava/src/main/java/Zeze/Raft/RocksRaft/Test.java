@@ -51,7 +51,7 @@ public final class Test {
 		}
 
 		@Override
-		public Bean copyBean() {
+		public Bean copy() {
 			throw new UnsupportedOperationException();
 		}
 
@@ -180,7 +180,7 @@ public final class Test {
 		private int _i;
 
 		@Override
-		public Bean copyBean() {
+		public Bean copy() {
 			throw new UnsupportedOperationException();
 		}
 

@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BLoginParam extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 9076855952725286109L;
+
     private int _ServerId;
     private int _GlobalCacheManagerHashIndex;
     private boolean _DebugMode; // 调试模式下不检查Release Timeout,方便单步调试
@@ -92,6 +94,7 @@ public final class BLoginParam extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BLoginParam copy() {
         var copy = new BLoginParam();
         copy.assign(this);
@@ -108,13 +111,6 @@ public final class BLoginParam extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BLoginParam copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 9076855952725286109L;
 
     @Override
     public long typeId() {

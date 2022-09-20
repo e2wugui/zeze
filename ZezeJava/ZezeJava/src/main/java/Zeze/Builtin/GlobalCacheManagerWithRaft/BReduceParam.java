@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BReduceParam extends Zeze.Transaction.Bean {
+    public static final long TYPEID = -7052326232144455304L;
+
     private Zeze.Net.Binary _GlobalKey;
     private int _State;
 
@@ -75,6 +77,7 @@ public final class BReduceParam extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BReduceParam copy() {
         var copy = new BReduceParam();
         copy.assign(this);
@@ -91,13 +94,6 @@ public final class BReduceParam extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BReduceParam copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = -7052326232144455304L;
 
     @Override
     public long typeId() {

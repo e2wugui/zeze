@@ -122,7 +122,7 @@ public class PSet1<V> extends PSet<V> {
 	}
 
 	@Override
-	public PSet1<V> copyBean() {
+	public PSet1<V> copy() {
 		var copy = new PSet1<>(logTypeId, valueCodecFuncs);
 		copy.set = set;
 		return copy;

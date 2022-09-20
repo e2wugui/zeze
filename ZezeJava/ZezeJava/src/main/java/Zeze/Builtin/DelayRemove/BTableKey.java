@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BTableKey extends Zeze.Transaction.Bean {
+    public static final long TYPEID = 6060766480176216446L;
+
     private String _TableName;
     private Zeze.Net.Binary _EncodedKey;
 
@@ -80,6 +82,7 @@ public final class BTableKey extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BTableKey copy() {
         var copy = new BTableKey();
         copy.assign(this);
@@ -96,13 +99,6 @@ public final class BTableKey extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BTableKey copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = 6060766480176216446L;
 
     @Override
     public long typeId() {

@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BLinkedMap extends Zeze.Transaction.Bean {
+    public static final long TYPEID = -8443895985300072767L;
+
     private long _HeadNodeId;
     private long _TailNodeId;
     private long _Count;
@@ -114,6 +116,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BLinkedMap copy() {
         var copy = new BLinkedMap();
         copy.assign(this);
@@ -130,13 +133,6 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BLinkedMap copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = -8443895985300072767L;
 
     @Override
     public long typeId() {

@@ -63,7 +63,7 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             return IsManaged ? Copy() : this;
         }
 
-        public CacheState Copy()
+        public override CacheState Copy()
         {
             var copy = new CacheState();
             copy.Assign(this);
@@ -75,11 +75,6 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             CacheState save = a.Copy();
             a.Assign(b);
             b.Assign(save);
-        }
-
-        public override Zeze.Raft.RocksRaft.Bean CopyBean()
-        {
-            return Copy();
         }
 
         public const long TYPEID = 1756306680643652334;

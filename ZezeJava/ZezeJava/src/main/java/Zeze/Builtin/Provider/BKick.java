@@ -5,6 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BKick extends Zeze.Transaction.Bean {
+    public static final long TYPEID = -6855697390328479333L;
+
     public static final int ErrorProtocolUnknown = 1;
     public static final int ErrorDecode = 2;
     public static final int ErrorProtocolException = 3;
@@ -103,6 +105,7 @@ public final class BKick extends Zeze.Transaction.Bean {
         return isManaged() ? copy() : this;
     }
 
+    @Override
     public BKick copy() {
         var copy = new BKick();
         copy.assign(this);
@@ -119,13 +122,6 @@ public final class BKick extends Zeze.Transaction.Bean {
         a.assign(b);
         b.assign(save);
     }
-
-    @Override
-    public BKick copyBean() {
-        return copy();
-    }
-
-    public static final long TYPEID = -6855697390328479333L;
 
     @Override
     public long typeId() {

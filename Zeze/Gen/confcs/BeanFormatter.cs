@@ -56,7 +56,7 @@ namespace Zeze.Gen.confcs
             // cs.Assign.Make(bean, sw, "        ");
             // Copy
             // sw.WriteLine();
-            // sw.WriteLine("        public " + bean.Name + " Copy()");
+            // sw.WriteLine("        public override " + bean.Name + " Copy()");
             // sw.WriteLine("        {");
             // sw.WriteLine("            var copy = new " + bean.Name + "();");
             // sw.WriteLine("            copy.Assign(this);");
@@ -68,11 +68,6 @@ namespace Zeze.Gen.confcs
             // sw.WriteLine($"            {bean.Name} save = a.Copy();");
             // sw.WriteLine("            a.Assign(b);");
             // sw.WriteLine("            b.Assign(save);");
-            // sw.WriteLine("        }");
-            // sw.WriteLine();
-            // sw.WriteLine("        public override Zeze.Util.ConfBean CopyBean()");
-            // sw.WriteLine("        {");
-            // sw.WriteLine("            return Copy();");
             // sw.WriteLine("        }");
             // sw.WriteLine();
             sw.WriteLine("        public const long TYPEID = " + bean.TypeId + ";");
