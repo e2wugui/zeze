@@ -418,6 +418,7 @@ public class Timer extends AbstractTimer {
 		//times == -1, this means Infinite number of times ----lwj
 		simpleTimer.setRemainTimes(times);
 		long expectedTimeMills = curMills + delay;
+		simpleTimer.setExpectedTimeMills(expectedTimeMills);
 		simpleTimer.setNextExpectedTimeMills(expectedTimeMills);
 		simpleTimer.setStartTimeInMills(expectedTimeMills);
 	}
@@ -430,8 +431,9 @@ public class Timer extends AbstractTimer {
 			simpleTimer.setExpectedTimeMills(simpleTimer.getStartTimeInMills());
 			simpleTimer.setNextExpectedTimeMills(0);
 		} else {
-			long delta = curTimeMills - simpleTimer.getStartTimeInMills();
-			simpleTimer.setExpectedTimeMills(delta / simpleTimer.getPeriod() * simpleTimer.getPeriod());
+//			long delta = curTimeMills - simpleTimer.getStartTimeInMills();
+//			simpleTimer.setExpectedTimeMills(curTimeMills + (delta / simpleTimer.getPeriod() * simpleTimer.getPeriod())); // X：有点不明白之前为什么要这样写，改成下面这样暂时结果是对的
+			simpleTimer.setExpectedTimeMills(simpleTimer.getExpectedTimeMills() + simpleTimer.getPeriod());
 			simpleTimer.setNextExpectedTimeMills(simpleTimer.getExpectedTimeMills() + simpleTimer.getPeriod());
 		}
 	}
@@ -456,7 +458,7 @@ public class Timer extends AbstractTimer {
 			if (concurrentSerialNo == timer.getConcurrentFireSerialNo()) {
 
 				nextSimpleTimer(simpleTimer);
-				final var context = new TimerContext(timer, simpleTimer.getHappenTimes(),
+				final var context = new TimerContext(timer, simpleTimer.getHappenTimeMills(),
 						simpleTimer.getNextExpectedTimeMills(), simpleTimer.getExpectedTimeMills());
 
 				// 当调度发生了错误或者由于异步时序没有原子保证，导致同时（或某个瞬间）在多个Server进程调度时，
