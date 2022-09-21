@@ -1,6 +1,6 @@
 {{-
     func toname(name)
-        ret 'msg.' + name
+        ret message_namespace + '.' + name
     end
 -}}
 {{- func beantype(type)
@@ -28,7 +28,7 @@
         table<{{ typestr type.key_type }}, {{ typestr type.value_type}}>
     {{- when "list","set" }}table<{{typestr type.value_type}}>
     {{- when "dynamic" }}
-        {{- for real_bean_kv in variable.variable_type.real_beans}}{{if !for.first}}|{{end}}msg.{{real_bean_kv.value.full_name}}
+        {{- for real_bean_kv in variable.variable_type.real_beans}}{{if !for.first}}|{{end}}{{toname(real_bean_kv.value.full_name)}}
         {{- end}}
     {{- else
         ret toname(type.full_name?? type)
@@ -76,14 +76,14 @@ end}}
 
 {{- l = array.add_range beankeys beans }}
 local message_core = require 'common.message_core'
-local message_init = require 'msg.message_init'
+local message_init = require '{{message_namespace}}.message_init'
 
 local {{module.name}} = {}
 {{ for bean in l }}
 {{- for e in  bean.enums}}
 local {{e.name}} = {{e.value}}
 {{- end }}
----@class {{toname bean.full_name}} : msg.Bean
+---@class {{toname bean.full_name}} : {{message_namespace}}.Bean
 {{- for e in  bean.enums}}
 ---@field {{e.name}} integer
 {{- end }}
@@ -120,7 +120,7 @@ end -}}
 {{end }}
 
 {{- for protocol in protocols }}
----@class {{toname protocol.full_name}} : msg.Protocol
+---@class {{toname protocol.full_name}} : {{message_namespace}}.Protocol
 ---@field argument {{toname beantype(protocol.argument_type)}}
 {{- if protocol.result}}
 ---@field result {{toname beantype(protocol.result_type)}}

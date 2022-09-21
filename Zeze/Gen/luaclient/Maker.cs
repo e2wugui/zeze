@@ -30,7 +30,7 @@ namespace Zeze.Gen.luaClient
             if (str == null)
                 return null;
 
-            if (str.Length >= 1)
+            if (str.Length > 1)
                 return Program.Upper1(str);
 
             return str.ToUpper();
@@ -73,8 +73,23 @@ namespace Zeze.Gen.luaClient
 
             string projectBasedir = Project.GenDir;
             string projectDir = Path.Combine(projectBasedir, Project.Name);
-            string metaDir = Path.Combine(projectDir, "msgmeta");
-            string genDir = Path.Combine(projectDir, "msg");
+
+            string rootNameSpace;
+            if (Project.ScriptDir.Length > 0)
+            {
+                var scriptDir = Path.GetRelativePath(projectDir, Path.Combine(projectDir, Project.ScriptDir));
+                rootNameSpace = scriptDir.Replace('/', '.').Replace('\\', '.');
+            }
+            else
+            {
+                rootNameSpace = "";
+            }
+            
+           
+            var schemaNamespace = rootNameSpace.Length > 0 ? $"{rootNameSpace}.__msgmeta__" : "__msgmeta__";
+            var messageNamespace = rootNameSpace.Length > 0 ? $"{rootNameSpace}.msg" : "msg";
+            string metaDir = Path.Combine(projectDir, Project.ScriptDir, "msg", "__msgmeta__");
+            string genDir = Path.Combine(projectDir, Project.ScriptDir, "msg");
             string srcDir = Path.Combine(projectDir, "module");
             Program.AddGenDir(genDir);
             {
@@ -85,7 +100,9 @@ namespace Zeze.Gen.luaClient
                     modules = allRefModulesList,
                     beans = Project.AllBeans.Values,
                     beankeys = Project.AllBeanKeys.Values,
-                    protocols = Project.AllProtocols.Values
+                    protocols = Project.AllProtocols.Values,
+                    messageNamespace = messageNamespace,
+                    schemaNamespace = schemaNamespace
                 });
 
                 string metaFileName = Path.Combine(genDir, "ZezeMeta.lua");
@@ -115,7 +132,9 @@ namespace Zeze.Gen.luaClient
                         module,
                         beans,
                         beankeys = beanKeys,
-                        protocols
+                        protocols,
+                        messageNamespace = messageNamespace,
+                        schemaNamespace = schemaNamespace
                     });
                     if (fullDir != null) FileSystem.CreateDirectory(fullDir);
                     using var sw = Program.OpenStreamWriter(fullFileName);
@@ -144,7 +163,9 @@ namespace Zeze.Gen.luaClient
                         module,
                         beans,
                         beankeys = beanKeys,
-                        protocols
+                        protocols,
+                        messageNamespace = messageNamespace,
+                        schemaNamespace = schemaNamespace
                     });
                     if (fullDir != null) FileSystem.CreateDirectory(fullDir);
                     using var sw = Program.OpenStreamWriter(fullFileName);
@@ -159,7 +180,9 @@ namespace Zeze.Gen.luaClient
                 string luaRoot = rootTemplate.Render(new
                 {
                     modules = allRefModulesList,
-                    solution = Project.Solution
+                    solution = Project.Solution,
+                    messageNamespace = messageNamespace,
+                    schemaNamespace = schemaNamespace
                 });
 
                 using StreamWriter sw = Program.OpenStreamWriter(Path.Combine(genDir, "message.lua"));
@@ -173,7 +196,9 @@ namespace Zeze.Gen.luaClient
                 Template luaInitTemplate = Template.Parse(luaInitTemplateText);
                 string luaRoot = luaInitTemplate.Render(new
                 {
-                    solutionNames
+                    solutionNames,
+                    messageNamespace = messageNamespace,
+                    schemaNamespace = schemaNamespace
                 });
 
                 using StreamWriter sw = Program.OpenStreamWriter(Path.Combine(genDir, "message_init.lua"));
@@ -202,7 +227,9 @@ namespace Zeze.Gen.luaClient
                     {
                         string luaModule = moduleTemplate.Render(new
                         {
-                            module, protocols
+                            module, protocols,
+                            messageNamespace = messageNamespace,
+                            schemaNamespace = schemaNamespace
                         });
                         FileSystem.CreateDirectory(fullDir);
                         using var sw = Program.OpenStreamWriter(fullFileName);
@@ -235,7 +262,7 @@ namespace Zeze.Gen.luaClient
                             foreach (var protocol in protocols)
                             {
                                 writer.WriteLine(
-                                    $"    msg.{protocol.FullName}.Handle = {module.Name}.OnMsg_{protocol.Name}");
+                                    $"    {messageNamespace}.{protocol.FullName}.Handle = {module.Name}.OnMsg_{protocol.Name}");
                             }
 
                             writer.WriteLine("end");
@@ -246,7 +273,7 @@ namespace Zeze.Gen.luaClient
                                 if (generatedHandlers.Contains(protocol.Name))
                                     continue;
                                 writer.WriteLine();
-                                writer.WriteLine($"---@param p msg.{protocol.FullName}");
+                                writer.WriteLine($"---@param p {messageNamespace}.{protocol.FullName}");
                                 writer.WriteLine($"function {module.Name}.OnMsg_{protocol.Name}(p)");
                                 writer.WriteLine("end");
                             }

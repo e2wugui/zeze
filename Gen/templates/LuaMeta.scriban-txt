@@ -1,6 +1,6 @@
 {{-
     func toname(name)
-        ret 'msgmeta.' + name + 'Meta'
+        ret schema_namespace +'.' + name + 'Meta'
     end
 -}}
 {{- 
@@ -18,7 +18,7 @@ for protocol in protocols
     end
 end
 -}}
-local message = require '{{'msg.message'}}'
+local message = require '{{message_namespace}}.message'
 local meta = { beans = {}, protocols = {}, structs = {} }
 
 {{- if use_empty}}

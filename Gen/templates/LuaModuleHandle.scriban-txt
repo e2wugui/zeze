@@ -1,6 +1,6 @@
 {{-
     func toname(name)
-        ret 'msg.' + name
+        ret message_namespace + '.' + name
     end
 -}}
 local msg = require('{{toname "message"}}')

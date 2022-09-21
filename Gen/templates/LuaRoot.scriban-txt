@@ -1,9 +1,9 @@
 {{-
     func toname(name)
-        ret 'msg.' + name
+        ret message_namespace + '.' + name
     end
 -}}
-local message_init = require('msg.message_init')
+local message_init = require('{{message_namespace}}.message_init')
 local message = {}
 
 message.EmptyBean = message_init.EmptyBean
