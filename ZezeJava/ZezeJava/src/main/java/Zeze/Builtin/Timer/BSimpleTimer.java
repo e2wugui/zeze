@@ -11,11 +11,11 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
     private long _Period;
     private long _RemainTimes; // -1 表示不限次数。
     private long _HappenTimes;
-    private long _StartTimeInMills;
-    private long _EndTimeInMills; // -1表示没有结束时间
-    private long _NextExpectedTimeMills;
-    private long _ExpectedTimeMills;
-    private long _HappenTimeMills;
+    private long _StartTime;
+    private long _EndTime; // -1表示没有结束时间
+    private long _NextExpectedTime;
+    private long _ExpectedTime;
+    private long _HappenTime;
 
     public long getDelay() {
         if (!isManaged())
@@ -93,99 +93,99 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
         txn.putLog(new Log__HappenTimes(this, 4, value));
     }
 
-    public long getStartTimeInMills() {
+    public long getStartTime() {
         if (!isManaged())
-            return _StartTimeInMills;
+            return _StartTime;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _StartTimeInMills;
-        var log = (Log__StartTimeInMills)txn.getLog(objectId() + 5);
-        return log != null ? log.value : _StartTimeInMills;
+            return _StartTime;
+        var log = (Log__StartTime)txn.getLog(objectId() + 5);
+        return log != null ? log.value : _StartTime;
     }
 
-    public void setStartTimeInMills(long value) {
+    public void setStartTime(long value) {
         if (!isManaged()) {
-            _StartTimeInMills = value;
+            _StartTime = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__StartTimeInMills(this, 5, value));
+        txn.putLog(new Log__StartTime(this, 5, value));
     }
 
-    public long getEndTimeInMills() {
+    public long getEndTime() {
         if (!isManaged())
-            return _EndTimeInMills;
+            return _EndTime;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _EndTimeInMills;
-        var log = (Log__EndTimeInMills)txn.getLog(objectId() + 6);
-        return log != null ? log.value : _EndTimeInMills;
+            return _EndTime;
+        var log = (Log__EndTime)txn.getLog(objectId() + 6);
+        return log != null ? log.value : _EndTime;
     }
 
-    public void setEndTimeInMills(long value) {
+    public void setEndTime(long value) {
         if (!isManaged()) {
-            _EndTimeInMills = value;
+            _EndTime = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__EndTimeInMills(this, 6, value));
+        txn.putLog(new Log__EndTime(this, 6, value));
     }
 
-    public long getNextExpectedTimeMills() {
+    public long getNextExpectedTime() {
         if (!isManaged())
-            return _NextExpectedTimeMills;
+            return _NextExpectedTime;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _NextExpectedTimeMills;
-        var log = (Log__NextExpectedTimeMills)txn.getLog(objectId() + 7);
-        return log != null ? log.value : _NextExpectedTimeMills;
+            return _NextExpectedTime;
+        var log = (Log__NextExpectedTime)txn.getLog(objectId() + 7);
+        return log != null ? log.value : _NextExpectedTime;
     }
 
-    public void setNextExpectedTimeMills(long value) {
+    public void setNextExpectedTime(long value) {
         if (!isManaged()) {
-            _NextExpectedTimeMills = value;
+            _NextExpectedTime = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__NextExpectedTimeMills(this, 7, value));
+        txn.putLog(new Log__NextExpectedTime(this, 7, value));
     }
 
-    public long getExpectedTimeMills() {
+    public long getExpectedTime() {
         if (!isManaged())
-            return _ExpectedTimeMills;
+            return _ExpectedTime;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _ExpectedTimeMills;
-        var log = (Log__ExpectedTimeMills)txn.getLog(objectId() + 8);
-        return log != null ? log.value : _ExpectedTimeMills;
+            return _ExpectedTime;
+        var log = (Log__ExpectedTime)txn.getLog(objectId() + 8);
+        return log != null ? log.value : _ExpectedTime;
     }
 
-    public void setExpectedTimeMills(long value) {
+    public void setExpectedTime(long value) {
         if (!isManaged()) {
-            _ExpectedTimeMills = value;
+            _ExpectedTime = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ExpectedTimeMills(this, 8, value));
+        txn.putLog(new Log__ExpectedTime(this, 8, value));
     }
 
-    public long getHappenTimeMills() {
+    public long getHappenTime() {
         if (!isManaged())
-            return _HappenTimeMills;
+            return _HappenTime;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _HappenTimeMills;
-        var log = (Log__HappenTimeMills)txn.getLog(objectId() + 9);
-        return log != null ? log.value : _HappenTimeMills;
+            return _HappenTime;
+        var log = (Log__HappenTime)txn.getLog(objectId() + 9);
+        return log != null ? log.value : _HappenTime;
     }
 
-    public void setHappenTimeMills(long value) {
+    public void setHappenTime(long value) {
         if (!isManaged()) {
-            _HappenTimeMills = value;
+            _HappenTime = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__HappenTimeMills(this, 9, value));
+        txn.putLog(new Log__HappenTime(this, 9, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -193,16 +193,16 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
     }
 
     @SuppressWarnings("deprecation")
-    public BSimpleTimer(long _Delay_, long _Period_, long _RemainTimes_, long _HappenTimes_, long _StartTimeInMills_, long _EndTimeInMills_, long _NextExpectedTimeMills_, long _ExpectedTimeMills_, long _HappenTimeMills_) {
+    public BSimpleTimer(long _Delay_, long _Period_, long _RemainTimes_, long _HappenTimes_, long _StartTime_, long _EndTime_, long _NextExpectedTime_, long _ExpectedTime_, long _HappenTime_) {
         _Delay = _Delay_;
         _Period = _Period_;
         _RemainTimes = _RemainTimes_;
         _HappenTimes = _HappenTimes_;
-        _StartTimeInMills = _StartTimeInMills_;
-        _EndTimeInMills = _EndTimeInMills_;
-        _NextExpectedTimeMills = _NextExpectedTimeMills_;
-        _ExpectedTimeMills = _ExpectedTimeMills_;
-        _HappenTimeMills = _HappenTimeMills_;
+        _StartTime = _StartTime_;
+        _EndTime = _EndTime_;
+        _NextExpectedTime = _NextExpectedTime_;
+        _ExpectedTime = _ExpectedTime_;
+        _HappenTime = _HappenTime_;
     }
 
     public void assign(BSimpleTimer other) {
@@ -210,11 +210,11 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
         setPeriod(other.getPeriod());
         setRemainTimes(other.getRemainTimes());
         setHappenTimes(other.getHappenTimes());
-        setStartTimeInMills(other.getStartTimeInMills());
-        setEndTimeInMills(other.getEndTimeInMills());
-        setNextExpectedTimeMills(other.getNextExpectedTimeMills());
-        setExpectedTimeMills(other.getExpectedTimeMills());
-        setHappenTimeMills(other.getHappenTimeMills());
+        setStartTime(other.getStartTime());
+        setEndTime(other.getEndTime());
+        setNextExpectedTime(other.getNextExpectedTime());
+        setExpectedTime(other.getExpectedTime());
+        setHappenTime(other.getHappenTime());
     }
 
     @Deprecated
@@ -277,39 +277,39 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
         public void commit() { ((BSimpleTimer)getBelong())._HappenTimes = value; }
     }
 
-    private static final class Log__StartTimeInMills extends Zeze.Transaction.Logs.LogLong {
-        public Log__StartTimeInMills(BSimpleTimer bean, int varId, long value) { super(bean, varId, value); }
+    private static final class Log__StartTime extends Zeze.Transaction.Logs.LogLong {
+        public Log__StartTime(BSimpleTimer bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BSimpleTimer)getBelong())._StartTimeInMills = value; }
+        public void commit() { ((BSimpleTimer)getBelong())._StartTime = value; }
     }
 
-    private static final class Log__EndTimeInMills extends Zeze.Transaction.Logs.LogLong {
-        public Log__EndTimeInMills(BSimpleTimer bean, int varId, long value) { super(bean, varId, value); }
+    private static final class Log__EndTime extends Zeze.Transaction.Logs.LogLong {
+        public Log__EndTime(BSimpleTimer bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BSimpleTimer)getBelong())._EndTimeInMills = value; }
+        public void commit() { ((BSimpleTimer)getBelong())._EndTime = value; }
     }
 
-    private static final class Log__NextExpectedTimeMills extends Zeze.Transaction.Logs.LogLong {
-        public Log__NextExpectedTimeMills(BSimpleTimer bean, int varId, long value) { super(bean, varId, value); }
+    private static final class Log__NextExpectedTime extends Zeze.Transaction.Logs.LogLong {
+        public Log__NextExpectedTime(BSimpleTimer bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BSimpleTimer)getBelong())._NextExpectedTimeMills = value; }
+        public void commit() { ((BSimpleTimer)getBelong())._NextExpectedTime = value; }
     }
 
-    private static final class Log__ExpectedTimeMills extends Zeze.Transaction.Logs.LogLong {
-        public Log__ExpectedTimeMills(BSimpleTimer bean, int varId, long value) { super(bean, varId, value); }
+    private static final class Log__ExpectedTime extends Zeze.Transaction.Logs.LogLong {
+        public Log__ExpectedTime(BSimpleTimer bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BSimpleTimer)getBelong())._ExpectedTimeMills = value; }
+        public void commit() { ((BSimpleTimer)getBelong())._ExpectedTime = value; }
     }
 
-    private static final class Log__HappenTimeMills extends Zeze.Transaction.Logs.LogLong {
-        public Log__HappenTimeMills(BSimpleTimer bean, int varId, long value) { super(bean, varId, value); }
+    private static final class Log__HappenTime extends Zeze.Transaction.Logs.LogLong {
+        public Log__HappenTime(BSimpleTimer bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BSimpleTimer)getBelong())._HappenTimeMills = value; }
+        public void commit() { ((BSimpleTimer)getBelong())._HappenTime = value; }
     }
 
     @Override
@@ -327,11 +327,11 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("Period").append('=').append(getPeriod()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("RemainTimes").append('=').append(getRemainTimes()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("HappenTimes").append('=').append(getHappenTimes()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("StartTimeInMills").append('=').append(getStartTimeInMills()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("EndTimeInMills").append('=').append(getEndTimeInMills()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("NextExpectedTimeMills").append('=').append(getNextExpectedTimeMills()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ExpectedTimeMills").append('=').append(getExpectedTimeMills()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("HappenTimeMills").append('=').append(getHappenTimeMills()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("StartTime").append('=').append(getStartTime()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("EndTime").append('=').append(getEndTime()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("NextExpectedTime").append('=').append(getNextExpectedTime()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ExpectedTime").append('=').append(getExpectedTime()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("HappenTime").append('=').append(getHappenTime()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -380,35 +380,35 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
             }
         }
         {
-            long _x_ = getStartTimeInMills();
+            long _x_ = getStartTime();
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
             }
         }
         {
-            long _x_ = getEndTimeInMills();
+            long _x_ = getEndTime();
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
             }
         }
         {
-            long _x_ = getNextExpectedTimeMills();
+            long _x_ = getNextExpectedTime();
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 7, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
             }
         }
         {
-            long _x_ = getExpectedTimeMills();
+            long _x_ = getExpectedTime();
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 8, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
             }
         }
         {
-            long _x_ = getHappenTimeMills();
+            long _x_ = getHappenTime();
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 9, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
@@ -438,23 +438,23 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 5) {
-            setStartTimeInMills(_o_.ReadLong(_t_));
+            setStartTime(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 6) {
-            setEndTimeInMills(_o_.ReadLong(_t_));
+            setEndTime(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 7) {
-            setNextExpectedTimeMills(_o_.ReadLong(_t_));
+            setNextExpectedTime(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 8) {
-            setExpectedTimeMills(_o_.ReadLong(_t_));
+            setExpectedTime(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 9) {
-            setHappenTimeMills(_o_.ReadLong(_t_));
+            setHappenTime(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -481,15 +481,15 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
             return true;
         if (getHappenTimes() < 0)
             return true;
-        if (getStartTimeInMills() < 0)
+        if (getStartTime() < 0)
             return true;
-        if (getEndTimeInMills() < 0)
+        if (getEndTime() < 0)
             return true;
-        if (getNextExpectedTimeMills() < 0)
+        if (getNextExpectedTime() < 0)
             return true;
-        if (getExpectedTimeMills() < 0)
+        if (getExpectedTime() < 0)
             return true;
-        if (getHappenTimeMills() < 0)
+        if (getHappenTime() < 0)
             return true;
         return false;
     }
@@ -507,11 +507,11 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
                 case 2: _Period = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 3: _RemainTimes = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 4: _HappenTimes = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 5: _StartTimeInMills = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 6: _EndTimeInMills = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 7: _NextExpectedTimeMills = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 8: _ExpectedTimeMills = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 9: _HappenTimeMills = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 5: _StartTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 6: _EndTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 7: _NextExpectedTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 8: _ExpectedTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 9: _HappenTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }

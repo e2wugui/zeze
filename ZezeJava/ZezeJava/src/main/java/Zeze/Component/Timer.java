@@ -74,12 +74,11 @@ public class Timer extends AbstractTimer {
 	}
 
 	public void initializeOnlineTimer(ProviderApp providerApp) {
-		ProviderImplement impl;
-		if (null != providerApp && null != (impl = providerApp.providerImplement)) {
-			if (impl instanceof ProviderWithOnline)
-				archOnline = new TimerArchOnline(((ProviderWithOnline)impl).online);
-			else if (impl instanceof Zeze.Game.ProviderImplementWithOnline)
-				gameOnline = new TimerGameOnline(((Zeze.Game.ProviderImplementWithOnline)impl).online);
+		if (null != providerApp && null != providerApp.providerImplement) {
+			if (providerApp.providerImplement instanceof ProviderWithOnline arch)
+				timerAccount = new TimerAccount(arch.online);
+			else if (providerApp.providerImplement instanceof Zeze.Game.ProviderImplementWithOnline game)
+				timerRole = new TimerRole(game.online);
 		}
 	}
 
@@ -118,6 +117,10 @@ public class Timer extends AbstractTimer {
 	}
 
 	public long schedule(long delay, long period, long times, String name, Bean customData) {
+		return schedule(delay, period, times, -1, name, customData);
+	}
+
+	public long schedule(long delay, long period, long times, long endTime, String name, Bean customData) {
 		if (delay < 0)
 			throw new IllegalArgumentException();
 
@@ -157,7 +160,7 @@ public class Timer extends AbstractTimer {
 				timer.setName(name);
 
 				var simpleTimer = new BSimpleTimer();
-				initSimpleTimer(simpleTimer, delay, period, times);
+				initSimpleTimer(simpleTimer, delay, period, times, endTime);
 				timer.setTimerObj(simpleTimer);
 				node.getTimers().put(timerId, timer);
 
@@ -172,7 +175,7 @@ public class Timer extends AbstractTimer {
 				_tIndexs.tryAdd(timerId, index);
 
 				Transaction.whileCommit(() -> scheduleSimple(serverId, timerId,
-						simpleTimer.getExpectedTimeMills() - System.currentTimeMillis(),
+						simpleTimer.getExpectedTime() - System.currentTimeMillis(),
 						name, timer.getConcurrentFireSerialNo()));
 				return timerId;
 			}
@@ -201,6 +204,9 @@ public class Timer extends AbstractTimer {
 	}
 
 	public long schedule(String cronExpression, String name, Bean customData) throws ParseException {
+		return schedule(cronExpression, -1, name, customData);
+	}
+	public long schedule(String cronExpression, long times, String name, Bean customData) throws ParseException {
 		var serverId = zeze.getConfig().getServerId();
 		var root = _tNodeRoot.getOrAdd(serverId);
 		var nodeId = root.getHeadNodeId();
@@ -246,8 +252,9 @@ public class Timer extends AbstractTimer {
 					timer.getCustomData().setBean(customData);
 				}
 
-				long expectedTimeMills = getNextValidTimeAfter(cronExpression, Calendar.getInstance()).getTimeInMillis();
-				cronTimer.setNextExpectedTimeMills(expectedTimeMills);
+				long expectedTime = getNextValidTimeAfter(cronExpression, Calendar.getInstance()).getTimeInMillis();
+				cronTimer.setNextExpectedTime(expectedTime);
+				cronTimer.setRemainTimes(times);
 				timer.setTimerObj(cronTimer);
 
 				var index = new BIndex();
@@ -267,21 +274,33 @@ public class Timer extends AbstractTimer {
 	// 有名字的Timer，每个名字只能全局调度唯一一个真正的Timer。
 	// 对这种Timer，不暴露TimerId，只能通过名字访问。
 	// 当真正的Timer被迁移到不同的Server时，名字到TimerId的映射不需要改变。
+	public boolean scheduleNamed(String timerName, long delay, String handleName, Bean customData) {
+		return scheduleNamed(timerName, delay, -1, -1, handleName, customData);
+	}
+
 	public boolean scheduleNamed(String timerName, long delay, long period, String handleName, Bean customData) {
+		return scheduleNamed(timerName, delay, period, -1, handleName, customData);
+	}
+
+	public boolean scheduleNamed(String timerName, long delay, long period, long times, String handleName, Bean customData) {
 		var timerId = _tNamed.get(timerName);
 		if (null != timerId)
 			return false;
-		timerId = new BTimerId(schedule(delay, period, handleName, customData));
+		timerId = new BTimerId(schedule(delay, period, times, handleName, customData));
 		_tNamed.insert(timerName, timerId);
 		_tIndexs.get(timerId.getTimerId()).setNamedName(timerName);
 		return true;
 	}
 
 	public boolean scheduleNamed(String timerName, String cron, String handleName, Bean customData) throws ParseException {
+		return scheduleNamed(timerName, cron, -1, handleName, customData);
+	}
+
+	public boolean scheduleNamed(String timerName, String cron, long times, String handleName, Bean customData) throws ParseException {
 		var timerId = _tNamed.get(timerName);
 		if (null != timerId)
 			return false;
-		timerId = new BTimerId(schedule(cron, handleName, customData));
+		timerId = new BTimerId(schedule(cron, times, handleName, customData));
 		_tNamed.insert(timerName, timerId);
 		_tIndexs.get(timerId.getTimerId()).setNamedName(timerName);
 		return true;
@@ -297,10 +316,10 @@ public class Timer extends AbstractTimer {
 	public void cancel(long timerId) {
 		try {
 			// XXX 统一通过这里取消定时器，可能会浪费一次内存表查询。
-			if (null != gameOnline && gameOnline.cancel(timerId))
+			if (null != timerRole && timerRole.cancel(timerId))
 				return; // done
 
-			if (null != archOnline && archOnline.cancel(timerId))
+			if (null != timerAccount && timerAccount.cancel(timerId))
 				return; // done
 
 		} catch (Throwable ex) {
@@ -332,15 +351,15 @@ public class Timer extends AbstractTimer {
 		return _tOnlineNamed;
 	}
 
-	private TimerArchOnline archOnline;
-	private TimerGameOnline gameOnline;
+	private TimerAccount timerAccount;
+	private TimerRole timerRole;
 
-	public TimerArchOnline getArchOnlineTimer() {
-		return archOnline;
+	public TimerAccount getAccountTimer() {
+		return timerAccount;
 	}
 
-	public TimerGameOnline getGameOnlineTimer() {
-		return gameOnline;
+	public TimerRole getRoleTimer() {
+		return timerRole;
 	}
 
 	/////////////////////////////////////////////////////////////
@@ -411,24 +430,24 @@ public class Timer extends AbstractTimer {
 				() -> fireSimple(serverId, timerId, name, concurrentSerialNo)));
 	}
 
-	public static void initSimpleTimer(BSimpleTimer simpleTimer, long delay, long period, long times) {
-		var curMills = System.currentTimeMillis();
+	public static void initSimpleTimer(BSimpleTimer simpleTimer, long delay, long period, long times, long endTime) {
+		var now = System.currentTimeMillis();
 		//timer.setDelay(delay);
 		simpleTimer.setPeriod(period);
 		//times == -1, this means Infinite number of times ----lwj
 		simpleTimer.setRemainTimes(times);
-		long expectedTimeMills = curMills + delay;
-		simpleTimer.setExpectedTimeMills(expectedTimeMills);
-		simpleTimer.setNextExpectedTimeMills(expectedTimeMills);
-		simpleTimer.setStartTimeInMills(expectedTimeMills);
+		simpleTimer.setEndTime(endTime);
+		long expectedTime = now + delay;
+		simpleTimer.setNextExpectedTime(expectedTime);
+		simpleTimer.setStartTime(expectedTime);
 	}
 
 	public static void nextSimpleTimer(BSimpleTimer simpleTimer) {
 		simpleTimer.setHappenTimes(simpleTimer.getHappenTimes() + 1);
 		long curTimeMills = System.currentTimeMillis();
-		simpleTimer.setHappenTimeMills(curTimeMills);
+		simpleTimer.setHappenTime(curTimeMills);
 		if (simpleTimer.getPeriod() <= 0) {
-			simpleTimer.setExpectedTimeMills(simpleTimer.getStartTimeInMills());
+			simpleTimer.setExpectedTime(simpleTimer.getStartTimeIn());
 			simpleTimer.setNextExpectedTimeMills(0);
 		} else {
 //			long delta = curTimeMills - simpleTimer.getStartTimeInMills();
@@ -484,7 +503,8 @@ public class Timer extends AbstractTimer {
 				}
 			}
 			// else 发生了并发执行争抢，也需要再次进行本地调度。此时直接使用simpleTimer中的值，不需要再次进行计算。
-			if (simpleTimer.getPeriod() > 0) {
+			if (simpleTimer.getPeriod() > 0
+					&& (simpleTimer.getEndTime() <= 0 || simpleTimer.getNextExpectedTimeMills() < simpleTimer.getEndTime())) {
 				long delay = simpleTimer.getNextExpectedTimeMills() - System.currentTimeMillis();
 				scheduleSimple(serverId, timerId, delay, name, concurrentSerialNo + 1);
 			}
@@ -574,6 +594,14 @@ public class Timer extends AbstractTimer {
 					return 0; // procedure done
 				}
 				timer.setConcurrentFireSerialNo(concurrentSerialNo + 1);
+
+				if (cronTimer.getRemainTimes() > 0) {
+					cronTimer.setRemainTimes(cronTimer.getRemainTimes() - 1);
+					if (cronTimer.getRemainTimes() == 0) {
+						cancel(serverId, timerId, index, node);
+						return 0; // procedure done
+					}
+				}
 			}
 			// else 发生了并发执行争抢，也需要再次进行本地调度。此时直接使用cronTimer中的值，不需要再次进行计算。
 			long delay = cronTimer.getNextExpectedTimeMills() - System.currentTimeMillis();
