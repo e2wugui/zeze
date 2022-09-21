@@ -38,7 +38,7 @@ public class TestRpc extends TestCase {
 
 	public static long ProcessFirstRpcRequest(Protocol<?> p) {
 		FirstRpc rpc = (FirstRpc)p;
-		rpc.Result.Assign(rpc.Argument);
+		rpc.Result.assign(rpc.Argument);
 		rpc.SendResult();
 		System.out.println("ProcessFirstRpcRequest result.Int1=" + rpc.Result.getInt1());
 		return Procedure.Success;

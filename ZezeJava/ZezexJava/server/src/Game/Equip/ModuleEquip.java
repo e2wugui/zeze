@@ -79,7 +79,7 @@ public final class ModuleEquip extends AbstractModule {
 		if (null != bItem) {
 			int equipPos = GetEquipPosition(bItem.getId());
 			if (equipPos < 0) {
-				return ErrorCode(ResultCodeCannotEquip);
+				return errorCode(ResultCodeCannotEquip);
 			}
 
 			BEquips equips = _tequip.getOrAdd(session.getRoleId().longValue());
@@ -127,7 +127,7 @@ public final class ModuleEquip extends AbstractModule {
 			bItemAdd.setNumber(1);
 			bItemAdd.setExtra((BEquipExtra)eItem.getExtra().getBean().copy());
 			if (0 != bag.Add(-1, bItemAdd)) {
-				return ErrorCode(ResultCodeBagIsFull); // bag is full
+				return errorCode(ResultCodeBagIsFull); // bag is full
 			}
 			session.sendResponseWhileCommit(rpc);
 			return Procedure.Success;

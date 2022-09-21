@@ -27,7 +27,7 @@ public final class ModuleFight extends AbstractModule {
 				Game.App.getInstance().Game_Equip.CalculateFighter(fighter);
 				break;
 		}
-		_tfighters.getOrAdd(fighterId).Assign(fighter.getBean());
+		_tfighters.getOrAdd(fighterId).assign(fighter.getBean());
 		return Procedure.Success;
 	}
 

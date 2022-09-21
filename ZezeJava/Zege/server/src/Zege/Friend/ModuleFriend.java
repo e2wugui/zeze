@@ -482,7 +482,7 @@ public class ModuleFriend extends AbstractModule {
 			return errorCode(eFriendNodeNotFound);
 
 		r.Result.setNodeId(topmost.getNodeId());
-		r.Result.getNode().Assign(topmost.getNode()); // TODO 这里拷贝一次，有点浪费。优化？？？上面还有一处。
+		r.Result.getNode().assign(topmost.getNode()); // TODO 这里拷贝一次，有点浪费。优化？？？上面还有一处。
 
 		session.sendResponseWhileCommit(r);
 		return Procedure.Success;

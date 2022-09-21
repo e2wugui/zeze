@@ -593,7 +593,7 @@ public class TestChangeListener {
 			if (null != current) {
 				newValue = new ArrayList<>();
 				for (var e : current.getList9()) {
-					newValue.add(e.Copy());
+					newValue.add(e.copy());
 				}
 			} else {
 				newValue = null;
@@ -615,7 +615,7 @@ public class TestChangeListener {
 		public final void OnChanged(Object key, Bean value) {
 			newValue = new ArrayList<>();
 			for (var e : ((demo.Module1.BValue)value).getList9()) {
-				newValue.add(e.Copy());
+				newValue.add(e.copy());
 			}
 		}
 
@@ -623,7 +623,7 @@ public class TestChangeListener {
 		public final void OnChanged(Object key, Log note) {
 			newValue = new ArrayList<>();
 			for (var e : ((demo.Module1.BValue)note.getBelong()).getList9()) {
-				newValue.add(e.Copy());
+				newValue.add(e.copy());
 			}
 		}
 
