@@ -86,7 +86,7 @@ namespace Zeze.Gen.luaClient
             }
             
            
-            var schemaNamespace = rootNameSpace.Length > 0 ? $"{rootNameSpace}.__msgmeta__" : "__msgmeta__";
+            var schemaNamespace = rootNameSpace.Length > 0 ? $"{rootNameSpace}.msg.__msgmeta__" : "msg.__msgmeta__";
             var messageNamespace = rootNameSpace.Length > 0 ? $"{rootNameSpace}.msg" : "msg";
             string metaDir = Path.Combine(projectDir, Project.ScriptDir, "msg", "__msgmeta__");
             string genDir = Path.Combine(projectDir, Project.ScriptDir, "msg");
