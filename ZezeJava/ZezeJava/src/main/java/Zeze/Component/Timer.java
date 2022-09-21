@@ -1,12 +1,10 @@
 package Zeze.Component;
 
 import java.text.ParseException;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import Zeze.Arch.ProviderApp;
-import Zeze.Arch.ProviderImplement;
 import Zeze.Arch.ProviderWithOnline;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Builtin.Timer.*;
@@ -204,9 +202,9 @@ public class Timer extends AbstractTimer {
 	}
 
 	public long schedule(String cronExpression, String name, Bean customData) throws ParseException {
-		return schedule(cronExpression, -1, name, customData);
+		return schedule(cronExpression, -1, -1, name, customData);
 	}
-	public long schedule(String cronExpression, long times, String name, Bean customData) throws ParseException {
+	public long schedule(String cronExpression, long times, long endTime, String name, Bean customData) throws ParseException {
 		var serverId = zeze.getConfig().getServerId();
 		var root = _tNodeRoot.getOrAdd(serverId);
 		var nodeId = root.getHeadNodeId();
@@ -237,24 +235,18 @@ public class Timer extends AbstractTimer {
 			}
 
 			if (node.getTimers().size() < CountPerNode) {
-				//long curMills = System.currentTimeMillis();
 				var timerId = timerIdAutoKey.nextId();
 				var timer = new BTimer();
 				timer.setTimerId(timerId);
 				timer.setName(name);
-
-				var cronTimer = new BCronTimer();
-				cronTimer.setCronExpression(cronExpression);
 
 				node.getTimers().put(timerId, timer);
 				if (null != customData) {
 					register(customData.getClass());
 					timer.getCustomData().setBean(customData);
 				}
-
-				long expectedTime = getNextValidTimeAfter(cronExpression, Calendar.getInstance()).getTimeInMillis();
-				cronTimer.setNextExpectedTime(expectedTime);
-				cronTimer.setRemainTimes(times);
+				var cronTimer = new BCronTimer();
+				initCronTimer(cronTimer, cronExpression, times, endTime);
 				timer.setTimerObj(cronTimer);
 
 				var index = new BIndex();
@@ -262,7 +254,7 @@ public class Timer extends AbstractTimer {
 				index.setNodeId(nodeId);
 				_tIndexs.tryAdd(timerId, index);
 
-				Transaction.whileCommit(() -> scheduleCron(serverId, timerId, cronExpression, name, timer.getConcurrentFireSerialNo()));
+				Transaction.whileCommit(() -> scheduleCron(serverId, timerId, cronTimer, name, timer.getConcurrentFireSerialNo()));
 				return timerId;
 			}
 			nodeId = nodeIdAutoKey.nextId();
@@ -293,14 +285,14 @@ public class Timer extends AbstractTimer {
 	}
 
 	public boolean scheduleNamed(String timerName, String cron, String handleName, Bean customData) throws ParseException {
-		return scheduleNamed(timerName, cron, -1, handleName, customData);
+		return scheduleNamed(timerName, cron, -1, -1, handleName, customData);
 	}
 
-	public boolean scheduleNamed(String timerName, String cron, long times, String handleName, Bean customData) throws ParseException {
+	public boolean scheduleNamed(String timerName, String cron, long times, long endTime, String handleName, Bean customData) throws ParseException {
 		var timerId = _tNamed.get(timerName);
 		if (null != timerId)
 			return false;
-		timerId = new BTimerId(schedule(cron, times, handleName, customData));
+		timerId = new BTimerId(schedule(cron, times, endTime, handleName, customData));
 		_tNamed.insert(timerName, timerId);
 		_tIndexs.get(timerId.getTimerId()).setNamedName(timerName);
 		return true;
@@ -442,19 +434,30 @@ public class Timer extends AbstractTimer {
 		simpleTimer.setStartTime(expectedTime);
 	}
 
-	public static void nextSimpleTimer(BSimpleTimer simpleTimer) {
-		simpleTimer.setHappenTimes(simpleTimer.getHappenTimes() + 1);
-		long curTimeMills = System.currentTimeMillis();
-		simpleTimer.setHappenTime(curTimeMills);
-		if (simpleTimer.getPeriod() <= 0) {
-			simpleTimer.setExpectedTime(simpleTimer.getStartTimeIn());
-			simpleTimer.setNextExpectedTimeMills(0);
-		} else {
-//			long delta = curTimeMills - simpleTimer.getStartTimeInMills();
-//			simpleTimer.setExpectedTimeMills(curTimeMills + (delta / simpleTimer.getPeriod() * simpleTimer.getPeriod())); // X：有点不明白之前为什么要这样写，改成下面这样暂时结果是对的
-			simpleTimer.setExpectedTimeMills(simpleTimer.getExpectedTimeMills() + simpleTimer.getPeriod());
-			simpleTimer.setNextExpectedTimeMills(simpleTimer.getExpectedTimeMills() + simpleTimer.getPeriod());
+	public static boolean nextSimpleTimer(BSimpleTimer simpleTimer) {
+		// check period
+		if (simpleTimer.getPeriod() <= 0)
+			return false;
+
+		// check remain times
+		if (simpleTimer.getRemainTimes() > 0) {
+			simpleTimer.setRemainTimes(simpleTimer.getRemainTimes() - 1);
+			if (simpleTimer.getRemainTimes() == 0)
+				return false;
 		}
+
+		simpleTimer.setHappenTimes(simpleTimer.getHappenTimes() + 1);
+		long now = System.currentTimeMillis();
+		simpleTimer.setHappenTime(now);
+//		long delta = now - simpleTimer.getStartTime();
+//		simpleTimer.setExpectedTime(now + (delta / simpleTimer.getPeriod() * simpleTimer.getPeriod())); // X：有点不明白之前为什么要这样写，改成下面这样暂时结果是对的
+		simpleTimer.setExpectedTime(simpleTimer.getExpectedTime() + simpleTimer.getPeriod());
+		simpleTimer.setNextExpectedTime(simpleTimer.getExpectedTime() + simpleTimer.getPeriod());
+
+		// check endTime
+		if (simpleTimer.getEndTime() > 0 && simpleTimer.getNextExpectedTime() > simpleTimer.getEndTime())
+			return false;
+		return true;
 	}
 
 	private long fireSimple(int serverId, long timerId, String name, long concurrentSerialNo) {
@@ -476,9 +479,8 @@ public class Timer extends AbstractTimer {
 			var simpleTimer = timer.getTimerObj_Zeze_Builtin_Timer_BSimpleTimer();
 			if (concurrentSerialNo == timer.getConcurrentFireSerialNo()) {
 
-				nextSimpleTimer(simpleTimer);
-				final var context = new TimerContext(timer, simpleTimer.getHappenTimeMills(),
-						simpleTimer.getNextExpectedTimeMills(), simpleTimer.getExpectedTimeMills());
+				final var context = new TimerContext(timer, simpleTimer.getHappenTime(),
+						simpleTimer.getNextExpectedTime(), simpleTimer.getExpectedTime());
 
 				// 当调度发生了错误或者由于异步时序没有原子保证，导致同时（或某个瞬间）在多个Server进程调度时，
 				// 这个系列号保证触发用户回调只会发生一次。这个并发问题不取消定时器，继续尝试调度（去争抢执行权）。
@@ -493,21 +495,19 @@ public class Timer extends AbstractTimer {
 					return 0; // procedure done
 				}
 				timer.setConcurrentFireSerialNo(concurrentSerialNo + 1);
+				// 其他错误忽略
 
-				if (simpleTimer.getRemainTimes() > 0) {
-					simpleTimer.setRemainTimes(simpleTimer.getRemainTimes() - 1);
-					if (simpleTimer.getRemainTimes() == 0) {
-						cancel(serverId, timerId, index, node);
-						return 0; // procedure done
-					}
+				// 准备下一个间隔
+				if (!nextSimpleTimer(simpleTimer)) {
+					cancel(serverId, timerId, index, node);
+					return 0;
 				}
 			}
 			// else 发生了并发执行争抢，也需要再次进行本地调度。此时直接使用simpleTimer中的值，不需要再次进行计算。
-			if (simpleTimer.getPeriod() > 0
-					&& (simpleTimer.getEndTime() <= 0 || simpleTimer.getNextExpectedTimeMills() < simpleTimer.getEndTime())) {
-				long delay = simpleTimer.getNextExpectedTimeMills() - System.currentTimeMillis();
-				scheduleSimple(serverId, timerId, delay, name, concurrentSerialNo + 1);
-			}
+
+			// continue period
+			long delay = simpleTimer.getNextExpectedTime() - System.currentTimeMillis();
+			scheduleSimple(serverId, timerId, delay, name, concurrentSerialNo + 1);
 
 			return 0L;
 		}, "fireSimple"))) {
@@ -516,9 +516,9 @@ public class Timer extends AbstractTimer {
 		return 0L;
 	}
 
-	private void scheduleCron(int serverId, long timerId, String cronExpression, String name, long concurrentSerialNo) {
+	private void scheduleCron(int serverId, long timerId, BCronTimer cron, String name, long concurrentSerialNo) {
 		try {
-			long delay = getNextValidTimeAfter(cronExpression, Calendar.getInstance()).getTimeInMillis() - System.currentTimeMillis();
+			long delay = cron.getNextExpectedTime() - System.currentTimeMillis();
 			scheduleCronNext(serverId, timerId, delay, name, concurrentSerialNo);
 		} catch (Exception ex) {
 			// 这个错误是在不好处理。先只记录日志吧。
@@ -530,33 +530,36 @@ public class Timer extends AbstractTimer {
 		timersFuture.put(timerId, Task.scheduleUnsafe(delay, () -> fireCron(serverId, timerId, name, concurrentSerialNo)));
 	}
 
-	public static Calendar getNextValidTimeAfter(String cron, Calendar calendar) throws ParseException {
+	public static long cronNextTime(String cron, long time) throws ParseException {
 		var cronExpression = new CronExpression(cron);
-		var nextCalender = Calendar.getInstance();
-		var nextDate = cronExpression.getNextValidTimeAfter(calendar.getTime());
-		nextCalender.setTime(nextDate);
-		return nextCalender;
+		return cronExpression.getNextValidTimeAfter(new Date(time)).getTime();
 	}
 
-	public static Calendar getNextValidTimeAfter(String cron, long timeMills) throws ParseException {
-		var cronExpression = new CronExpression(cron);
-		var nextCalender = Calendar.getInstance();
-		var date = new Date();
-		date.setTime(timeMills);
-		var calendar = Calendar.getInstance();
-		calendar.setTime(date);
-		var nextDate = cronExpression.getNextValidTimeAfter(calendar.getTime());
-		nextCalender.setTime(nextDate);
-		return nextCalender;
+	public static void initCronTimer(BCronTimer cronTimer, String cron, long times, long endTime) throws ParseException {
+		cronTimer.setCronExpression(cron);
+		long expectedTime = cronNextTime(cron, System.currentTimeMillis());
+		cronTimer.setNextExpectedTime(expectedTime);
+		cronTimer.setRemainTimes(times);
+		cronTimer.setEndTime(endTime);
 	}
 
-	public static void nextCronTimer(BCronTimer cronTimer) throws ParseException {
-		cronTimer.setExpectedTimeMills(cronTimer.getNextExpectedTimeMills());
-		long tempMills = cronTimer.getExpectedTimeMills();
-		var nextTimeMills = getNextValidTimeAfter(cronTimer.getCronExpression(), tempMills).getTimeInMillis();
-		cronTimer.setNextExpectedTimeMills(nextTimeMills);
-		long curTimeMills = System.currentTimeMillis();
-		cronTimer.setHappenTimeMills(curTimeMills);
+	public static boolean nextCronTimer(BCronTimer cronTimer) throws ParseException {
+		// check remain times
+		if (cronTimer.getRemainTimes() > 0) {
+			cronTimer.setRemainTimes(cronTimer.getRemainTimes() - 1);
+			if (cronTimer.getRemainTimes() == 0)
+				return false;
+		}
+
+		cronTimer.setExpectedTime(cronTimer.getNextExpectedTime());
+		cronTimer.setNextExpectedTime(cronNextTime(cronTimer.getCronExpression(), cronTimer.getExpectedTime()));
+		cronTimer.setHappenTime(System.currentTimeMillis());
+
+		// check endTime
+		if (cronTimer.getEndTime() > 0 && cronTimer.getNextExpectedTime() > cronTimer.getEndTime())
+			return false;
+
+		return true;
 	}
 
 	private void fireCron(int serverId, long timerId, String name, long concurrentSerialNo) {
@@ -577,9 +580,8 @@ public class Timer extends AbstractTimer {
 			var timer = node.getTimers().get(timerId);
 			var cronTimer = timer.getTimerObj_Zeze_Builtin_Timer_BCronTimer();
 			if (concurrentSerialNo == timer.getConcurrentFireSerialNo()) {
-				nextCronTimer(cronTimer);
-				final var context = new TimerContext(timer, cronTimer.getHappenTimeMills(),
-						cronTimer.getNextExpectedTimeMills(), cronTimer.getExpectedTimeMills());
+				final var context = new TimerContext(timer, cronTimer.getHappenTime(),
+						cronTimer.getNextExpectedTime(), cronTimer.getExpectedTime());
 
 				// 当调度发生了错误或者由于异步时序没有原子保证，导致同时（或某个瞬间）在多个Server进程调度时，
 				// 这个系列号保证触发用户回调只会发生一次。这个并发问题不取消定时器，继续尝试调度（去争抢执行权）。
@@ -595,16 +597,15 @@ public class Timer extends AbstractTimer {
 				}
 				timer.setConcurrentFireSerialNo(concurrentSerialNo + 1);
 
-				if (cronTimer.getRemainTimes() > 0) {
-					cronTimer.setRemainTimes(cronTimer.getRemainTimes() - 1);
-					if (cronTimer.getRemainTimes() == 0) {
-						cancel(serverId, timerId, index, node);
-						return 0; // procedure done
-					}
+				if (!Timer.nextCronTimer(cronTimer)) {
+					cancel(serverId, timerId, index, node);
+					return 0; // procedure done
 				}
 			}
 			// else 发生了并发执行争抢，也需要再次进行本地调度。此时直接使用cronTimer中的值，不需要再次进行计算。
-			long delay = cronTimer.getNextExpectedTimeMills() - System.currentTimeMillis();
+
+			// continue period
+			long delay = cronTimer.getNextExpectedTime() - System.currentTimeMillis();
 			scheduleCronNext(serverId, timerId, delay, name, concurrentSerialNo + 1);
 			return 0L; // procedure done
 		}, "fireCron"))) {
@@ -682,11 +683,11 @@ public class Timer extends AbstractTimer {
 				if (timer.getTimerObj().getBean().typeId() == BSimpleTimer.TYPEID) {
 					var simpleTimer = (BSimpleTimer)timer.getTimerObj().getBean();
 					scheduleSimple(serverId, timer.getTimerId(),
-							simpleTimer.getNextExpectedTimeMills() - System.currentTimeMillis(),
+							simpleTimer.getNextExpectedTime() - System.currentTimeMillis(),
 							timer.getName(), timer.getConcurrentFireSerialNo());
 				} else {
 					var cronTimer = (BCronTimer)timer.getTimerObj().getBean();
-					scheduleCron(serverId, timer.getTimerId(), cronTimer.getCronExpression(),
+					scheduleCron(serverId, timer.getTimerId(), cronTimer,
 							timer.getName(), timer.getConcurrentFireSerialNo());
 				}
 				if (serverId != zeze.getConfig().getServerId()) {

@@ -38,13 +38,13 @@ public class TimerAccount {
 
 	// 本进程内的有名字定时器，名字仅在本进程内唯一。
 	public boolean scheduleOnlineNamed(String account, String clientId, String timerName,
-									   long delay, long period, long times,
+									   long delay, long period, long times, long endTime,
 									   String handleName, Bean customData) throws Throwable {
 		var timer = online.providerApp.zeze.getTimer();
 		var timerId = timer.tOnlineNamed().get(timerName);
 		if (null != timerId)
 			return false;
-		timerId = new BTimerId(scheduleOnline(account, clientId, delay, period, times, handleName, customData));
+		timerId = new BTimerId(scheduleOnline(account, clientId, delay, period, times, endTime, handleName, customData));
 		timer.tOnlineNamed().insert(timerName, timerId);
 		timer.tArchOlineTimer().get(timerId.getTimerId()).setNamedName(timerName);
 		return true;
@@ -52,12 +52,12 @@ public class TimerAccount {
 
 	// 本进程内的有名字定时器，名字仅在本进程内唯一。
 	public boolean scheduleOnlineNamed(String account, String clientId, String timerName,
-									   String cron, long times, String handleName, Bean customData) throws Throwable {
+									   String cron, long times, long endTime, String handleName, Bean customData) throws Throwable {
 		var timer = online.providerApp.zeze.getTimer();
 		var timerId = timer.tOnlineNamed().get(timerName);
 		if (null != timerId)
 			return false;
-		timerId = new BTimerId(scheduleOnline(account, clientId, cron, times, handleName, customData));
+		timerId = new BTimerId(scheduleOnline(account, clientId, cron, times, endTime, handleName, customData));
 		timer.tOnlineNamed().insert(timerName, timerId);
 		timer.tArchOlineTimer().get(timerId.getTimerId()).setNamedName(timerName);
 		return true;
@@ -70,7 +70,7 @@ public class TimerAccount {
 		timer.tOnlineNamed().remove(timerName);
 	}
 
-	public long scheduleOnline(String account, String clientId, long delay, long period, long times, String name, Bean customData) throws Throwable {
+	public long scheduleOnline(String account, String clientId, long delay, long period, long times, long endTime, String name, Bean customData) throws Throwable {
 		var loginVersion = online.getLocalLoginVersion(account, clientId);
 		if (null == loginVersion)
 			throw new IllegalStateException("not login. account=" + account + " clientId=" + clientId);
@@ -81,7 +81,7 @@ public class TimerAccount {
 		var onlineTimer = new BArchOnlineTimer(account, clientId, loginVersion, "");
 		timer.tArchOlineTimer().put(timerId, onlineTimer);
 		var simpleTimer = new BSimpleTimer();
-		Timer.initSimpleTimer(simpleTimer, delay, period, times);
+		Timer.initSimpleTimer(simpleTimer, delay, period, times, endTime);
 		onlineTimer.getTimerObj().setBean(simpleTimer);
 
 		var timerIds = online.getOrAddLocalBean(account, clientId, eOnlineTimers, new BOnlineTimers());
@@ -91,7 +91,7 @@ public class TimerAccount {
 		return timerId;
 	}
 
-	public long scheduleOnline(String account, String clientId, String cron, long times, String name, Bean customData) throws Throwable {
+	public long scheduleOnline(String account, String clientId, String cron, long times, long endTime, String name, Bean customData) throws Throwable {
 		var loginVersion = online.getLocalLoginVersion(account, clientId);
 		if (null == loginVersion)
 			throw new IllegalStateException("not login. account=" + account + " clientId=" + clientId);
@@ -102,13 +102,13 @@ public class TimerAccount {
 		var onlineTimer = new BArchOnlineTimer(account, clientId, loginVersion, "");
 		timer.tArchOlineTimer().put(timerId, onlineTimer);
 		var cronTimer = new BCronTimer();
-		cronTimer.setRemainTimes(times);
+		Timer.initCronTimer(cronTimer, cron, times, endTime);
 		onlineTimer.getTimerObj().setBean(cronTimer);
 
 		var timerIds = online.getOrAddLocalBean(account, clientId, eOnlineTimers, new BOnlineTimers());
 		timerIds.getTimerIds().getOrAdd(timerId).getCustomData().setBean(customData);
 
-		Transaction.whileCommit(() -> scheduleCron(timerId, cron, name));
+		Transaction.whileCommit(() -> scheduleCron(timerId, cronTimer, name));
 		return timerId;
 	}
 
@@ -173,9 +173,9 @@ public class TimerAccount {
 	}
 
 	// 调度 cron 定时器
-	private void scheduleCron(long timerId, String cronExpression, String name) {
+	private void scheduleCron(long timerId, BCronTimer cron, String name) {
 		try {
-			long delay = Timer.getNextValidTimeAfter(cronExpression, Calendar.getInstance()).getTimeInMillis() - System.currentTimeMillis();
+			long delay = cron.getNextExpectedTime() - System.currentTimeMillis();
 			scheduleCronNext( timerId, delay, name);
 		} catch (Exception ex) {
 			Timer.logger.error("", ex);
@@ -210,14 +210,10 @@ public class TimerAccount {
 			}
 
 			var cronTimer = bTimer.getTimerObj_Zeze_Builtin_Timer_BCronTimer();
-			Timer.nextCronTimer(cronTimer);
 			var onlineTimers = online.<BOnlineTimers>getLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers);
 			var customData = onlineTimers.getTimerIds().get(timerId).getCustomData().getBean();
-			var context = new TimerContext(
-					timerId, name, customData,
-					cronTimer.getHappenTimeMills(),
-					cronTimer.getNextExpectedTimeMills(),
-					cronTimer.getExpectedTimeMills());
+			var context = new TimerContext(timerId, name, customData,
+					cronTimer.getHappenTime(), cronTimer.getNextExpectedTime(), cronTimer.getExpectedTime());
 			var retNest = Task.call(online.providerApp.zeze.newProcedure(() -> {
 				handle.run(context);
 				return Procedure.Success;
@@ -226,15 +222,13 @@ public class TimerAccount {
 				return retNest;
 			// skip other error
 
-			if (cronTimer.getRemainTimes() > 0) {
-				cronTimer.setRemainTimes(cronTimer.getRemainTimes() - 1);
-				if (cronTimer.getRemainTimes() == 0) {
-					cancel(timerId);
-					return 0; // procedure done
-				}
+			if (!Timer.nextCronTimer(cronTimer)) {
+				cancel(timerId);
+				return 0; // procedure done
 			}
 
-			long delay = cronTimer.getNextExpectedTimeMills() - System.currentTimeMillis();
+			// continue period
+			long delay = cronTimer.getNextExpectedTime() - System.currentTimeMillis();
 			scheduleCronNext(timerId, delay, name);
 			return 0;
 		}, "fireOnlineSimpleTimer"));
@@ -271,35 +265,30 @@ public class TimerAccount {
 			}
 
 			var simpleTimer = bTimer.getTimerObj_Zeze_Builtin_Timer_BSimpleTimer();
-			Timer.nextSimpleTimer(simpleTimer);
 			var retNest = Task.call(online.providerApp.zeze.newProcedure(() -> {
 				var onlineTimers = online.<BOnlineTimers>getLocalBean(
 						bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers);
 				var customData = onlineTimers.getTimerIds().get(timerId).getCustomData().getBean();
-				var context = new TimerContext(
-						timerId, name, customData,
-						simpleTimer.getHappenTimes(),
-						simpleTimer.getNextExpectedTimeMills(),
-						simpleTimer.getExpectedTimeMills());
+				var context = new TimerContext(timerId, name, customData,
+						simpleTimer.getHappenTimes(), simpleTimer.getNextExpectedTime(),
+						simpleTimer.getExpectedTime());
 				handle.run(context);
 				return Procedure.Success;
 			}, "fireOnlineLocalHandle"));
 			if (retNest == Procedure.Exception)
 				return retNest;
+			// 其他错误忽略
 
-			// 不管任何结果都递减次数。
-			if (simpleTimer.getRemainTimes() > 0) {
-				simpleTimer.setRemainTimes(simpleTimer.getRemainTimes() - 1);
-				if (simpleTimer.getRemainTimes() == 0) {
-					cancel(timerId);
-				}
+			// 准备下一个间隔
+			if (!Timer.nextSimpleTimer(simpleTimer)) {
+				cancel(timerId);
+				return 0; // procedure done
 			}
 
-			if (simpleTimer.getPeriod() > 0) {
-				var delay = simpleTimer.getNextExpectedTimeMills() - System.currentTimeMillis();
-				scheduleSimple(timerId, delay, name);
-			}
-			return 0;
+			// continue period
+			var delay = simpleTimer.getNextExpectedTime() - System.currentTimeMillis();
+			scheduleSimple(timerId, delay, name);
+			return 0; // last procedure done
 		}, "fireOnlineSimpleTimer"));
 		if (ret != 0)
 			cancel(timerId);
