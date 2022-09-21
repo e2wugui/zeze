@@ -222,7 +222,7 @@ public class TimerAccount {
 				return retNest;
 			// skip other error
 
-			if (!Timer.nextCronTimer(cronTimer)) {
+			if (!Timer.nextCronTimer(cronTimer, false)) {
 				cancel(timerId);
 				return 0; // procedure done
 			}
@@ -280,7 +280,7 @@ public class TimerAccount {
 			// 其他错误忽略
 
 			// 准备下一个间隔
-			if (!Timer.nextSimpleTimer(simpleTimer)) {
+			if (!Timer.nextSimpleTimer(simpleTimer, false)) {
 				cancel(timerId);
 				return 0; // procedure done
 			}

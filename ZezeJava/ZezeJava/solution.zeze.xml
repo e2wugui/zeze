@@ -846,6 +846,10 @@
 		</module>
 
 		<module name="Timer" id="11016">
+			<enum name="eMissfirePolicyNothing" value="0"/> quartz 兼容
+			<enum name="eMissfirePolicyRunOnce" value="1"/> quartz 兼容
+			<enum name="eMissfirePolicyRunOnceOldNext" value="2"/> 新策略，马上补一次调用，但保持下一次调度时间不变。比如用于，每天定点开启活动。
+
 			<bean name="BNodeRoot">
 				<variable id="1" name="HeadNodeId" type="long"/>
 				<variable id="2" name="TailNodeId" type="long"/>
@@ -878,6 +882,7 @@
 				<variable id="7" name="NextExpectedTime" type="long"/>
 				<variable id="8" name="ExpectedTime" type="long"/>
 				<variable id="9" name="HappenTime" type="long"/>
+				<variable id="10" name="MissfirePolicy" type="int"/>
 			</bean>
 
 			<bean name="BCronTimer">
@@ -887,6 +892,7 @@
 				<variable id="4" name="HappenTime" type="long"/>
 				<variable id="5" name="RemainTimes" type="long"/> -1 表示不限次数。
 				<variable id="6" name="EndTime" type="long"/> 结束时间 -1 表示永不结束
+				<variable id="7" name="MissfirePolicy" type="int"/>
 			</bean>
 
 			<bean name="BNode">
@@ -951,14 +957,37 @@
 				<variable id="2" name="NamedNames" type="set[string]"/>
 			</bean>
 
+			<bean name="BOfflineAccountCustom">
+				<variable id="1" name="Account" type="string"/>
+				<variable id="2" name="ClientId" type="string"/>
+				<variable id="3" name="CustomData" type="dynamic"> 保存真正的用户自定义数据
+					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::getSpecialTypeIdFromBean"/>
+					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::createBeanFromSpecialTypeId"/>
+				</variable>
+			</bean>
+			<bean name="BOfflineRoleCustom">
+				<variable id="1" name="RoleId" type="long"/>
+				<variable id="2" name="CustomData" type="dynamic"> 保存真正的用户自定义数据
+					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::getSpecialTypeIdFromBean"/>
+					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::createBeanFromSpecialTypeId"/>
+				</variable>
+			</bean>
 			<bean name="BOfflineTimer">
 				<variable id="1" name="TimerId" type="long"/>
 			</bean>
 			<bean name="BOfflineTimers">
-				<variable id="1" name="ServerId" type="int"/>  下线之后第一个来注册Timer的服务器Id，一般是下线服务器Id。
-				<variable id="2" name="LoginVersion" type="long"/>
+				<variable id="1" name="ServerId" type="int" default="-1"/>  下线之后第一个来注册Timer的服务器Id，一般是下线服务器Id。
+				<variable id="2" name="LoginVersion" type="long" default="-1"/>
 				<variable id="3" name="OfflineTimers" type="map[long, BOfflineTimer]"/>
 			</bean>
+			<table name="tRoleOfflineTimers" key="long" value="BOfflineTimers"/>
+
+			<beankey name="BAccountClientId">
+				<variable id="1" name="Account" type="string"/>
+				<variable id="2" name="ClientId" type="string"/>
+			</beankey>
+			<table name="tAccountOfflineTimers" key="BAccountClientId" value="BOfflineTimers"/>
+
 		</module>
 		<!--
 		可用id范围 [11017, 11100) [11103, 12000]

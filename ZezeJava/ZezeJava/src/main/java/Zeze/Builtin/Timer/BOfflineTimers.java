@@ -55,6 +55,8 @@ public final class BOfflineTimers extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("deprecation")
     public BOfflineTimers() {
+        _ServerId = -1;
+        _LoginVersion = -1;
         _OfflineTimers = new Zeze.Transaction.Collections.PMap2<>(Long.class, Zeze.Builtin.Timer.BOfflineTimer.class);
         _OfflineTimers.variableId(3);
     }

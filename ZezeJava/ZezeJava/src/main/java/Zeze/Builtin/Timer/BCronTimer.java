@@ -13,6 +13,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
     private long _HappenTime;
     private long _RemainTimes; // -1 表示不限次数。
     private long _EndTime; // 结束时间 -1 表示永不结束
+    private int _MissfirePolicy;
 
     public String getCronExpression() {
         if (!isManaged())
@@ -130,13 +131,32 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
         txn.putLog(new Log__EndTime(this, 6, value));
     }
 
+    public int getMissfirePolicy() {
+        if (!isManaged())
+            return _MissfirePolicy;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _MissfirePolicy;
+        var log = (Log__MissfirePolicy)txn.getLog(objectId() + 7);
+        return log != null ? log.value : _MissfirePolicy;
+    }
+
+    public void setMissfirePolicy(int value) {
+        if (!isManaged()) {
+            _MissfirePolicy = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__MissfirePolicy(this, 7, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BCronTimer() {
         _CronExpression = "";
     }
 
     @SuppressWarnings("deprecation")
-    public BCronTimer(String _CronExpression_, long _NextExpectedTime_, long _ExpectedTime_, long _HappenTime_, long _RemainTimes_, long _EndTime_) {
+    public BCronTimer(String _CronExpression_, long _NextExpectedTime_, long _ExpectedTime_, long _HappenTime_, long _RemainTimes_, long _EndTime_, int _MissfirePolicy_) {
         if (_CronExpression_ == null)
             throw new IllegalArgumentException();
         _CronExpression = _CronExpression_;
@@ -145,6 +165,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
         _HappenTime = _HappenTime_;
         _RemainTimes = _RemainTimes_;
         _EndTime = _EndTime_;
+        _MissfirePolicy = _MissfirePolicy_;
     }
 
     public void assign(BCronTimer other) {
@@ -154,6 +175,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
         setHappenTime(other.getHappenTime());
         setRemainTimes(other.getRemainTimes());
         setEndTime(other.getEndTime());
+        setMissfirePolicy(other.getMissfirePolicy());
     }
 
     @Deprecated
@@ -230,6 +252,13 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
         public void commit() { ((BCronTimer)getBelong())._EndTime = value; }
     }
 
+    private static final class Log__MissfirePolicy extends Zeze.Transaction.Logs.LogInt {
+        public Log__MissfirePolicy(BCronTimer bean, int varId, int value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BCronTimer)getBelong())._MissfirePolicy = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -246,7 +275,8 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("ExpectedTime").append('=').append(getExpectedTime()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("HappenTime").append('=').append(getHappenTime()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("RemainTimes").append('=').append(getRemainTimes()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("EndTime").append('=').append(getEndTime()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("EndTime").append('=').append(getEndTime()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("MissfirePolicy").append('=').append(getMissfirePolicy()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -308,6 +338,13 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            int _x_ = getMissfirePolicy();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 7, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -339,6 +376,10 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
             setEndTime(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 7) {
+            setMissfirePolicy(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -365,6 +406,8 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
             return true;
         if (getEndTime() < 0)
             return true;
+        if (getMissfirePolicy() < 0)
+            return true;
         return false;
     }
 
@@ -383,6 +426,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
                 case 4: _HappenTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 5: _RemainTimes = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 6: _EndTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 7: _MissfirePolicy = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
             }
         }
     }

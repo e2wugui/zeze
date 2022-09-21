@@ -16,6 +16,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
     private long _NextExpectedTime;
     private long _ExpectedTime;
     private long _HappenTime;
+    private int _MissfirePolicy;
 
     public long getDelay() {
         if (!isManaged())
@@ -188,12 +189,31 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
         txn.putLog(new Log__HappenTime(this, 9, value));
     }
 
+    public int getMissfirePolicy() {
+        if (!isManaged())
+            return _MissfirePolicy;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _MissfirePolicy;
+        var log = (Log__MissfirePolicy)txn.getLog(objectId() + 10);
+        return log != null ? log.value : _MissfirePolicy;
+    }
+
+    public void setMissfirePolicy(int value) {
+        if (!isManaged()) {
+            _MissfirePolicy = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__MissfirePolicy(this, 10, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BSimpleTimer() {
     }
 
     @SuppressWarnings("deprecation")
-    public BSimpleTimer(long _Delay_, long _Period_, long _RemainTimes_, long _HappenTimes_, long _StartTime_, long _EndTime_, long _NextExpectedTime_, long _ExpectedTime_, long _HappenTime_) {
+    public BSimpleTimer(long _Delay_, long _Period_, long _RemainTimes_, long _HappenTimes_, long _StartTime_, long _EndTime_, long _NextExpectedTime_, long _ExpectedTime_, long _HappenTime_, int _MissfirePolicy_) {
         _Delay = _Delay_;
         _Period = _Period_;
         _RemainTimes = _RemainTimes_;
@@ -203,6 +223,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
         _NextExpectedTime = _NextExpectedTime_;
         _ExpectedTime = _ExpectedTime_;
         _HappenTime = _HappenTime_;
+        _MissfirePolicy = _MissfirePolicy_;
     }
 
     public void assign(BSimpleTimer other) {
@@ -215,6 +236,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
         setNextExpectedTime(other.getNextExpectedTime());
         setExpectedTime(other.getExpectedTime());
         setHappenTime(other.getHappenTime());
+        setMissfirePolicy(other.getMissfirePolicy());
     }
 
     @Deprecated
@@ -312,6 +334,13 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
         public void commit() { ((BSimpleTimer)getBelong())._HappenTime = value; }
     }
 
+    private static final class Log__MissfirePolicy extends Zeze.Transaction.Logs.LogInt {
+        public Log__MissfirePolicy(BSimpleTimer bean, int varId, int value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BSimpleTimer)getBelong())._MissfirePolicy = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -331,7 +360,8 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("EndTime").append('=').append(getEndTime()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("NextExpectedTime").append('=').append(getNextExpectedTime()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("ExpectedTime").append('=').append(getExpectedTime()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("HappenTime").append('=').append(getHappenTime()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("HappenTime").append('=').append(getHappenTime()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("MissfirePolicy").append('=').append(getMissfirePolicy()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -414,6 +444,13 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            int _x_ = getMissfirePolicy();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 10, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -457,6 +494,10 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
             setHappenTime(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 10) {
+            setMissfirePolicy(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -491,6 +532,8 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
             return true;
         if (getHappenTime() < 0)
             return true;
+        if (getMissfirePolicy() < 0)
+            return true;
         return false;
     }
 
@@ -512,6 +555,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
                 case 7: _NextExpectedTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 8: _ExpectedTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 9: _HappenTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 10: _MissfirePolicy = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
             }
         }
     }
