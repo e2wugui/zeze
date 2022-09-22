@@ -33,7 +33,6 @@ namespace Zeze.Component
 
 		private Zeze.Collections.Queue<BTableKey> queue;
         public Zeze.Application Zeze { get; }
-        public const string eTimerNamePrefix = "Zeze.Component.DelayRemove.";
 
 		private DelayRemove(Zeze.Application zz)
 		{
@@ -41,11 +40,7 @@ namespace Zeze.Component
 			var serverId = zz.Config.ServerId;
 			queue = zz.Queues.Open<BTableKey>("__GCTableQueue#" + serverId);
 
-            // TODO start timer to gc. work on queue.pollNode? peekNode? poll? peek?
-            var name = eTimerNamePrefix + serverId;
-
-            //zz.Timer.AddHandle(name, (context) => OnTimer(serverId));
-
+            // start timer to gc. work on queue.pollNode? peekNode? poll? peek?
             // 根据配置的Timer的时间范围，按分钟精度随机出每天的开始时间，最后计算延迟，然后按24小时间隔执行。
             var now = new DateTime();
             var at = new DateTime(now.Year, now.Month, now.Day, Zeze.Config.DelayRemoveHourStart, 0, 0);
@@ -58,7 +53,7 @@ namespace Zeze.Component
                 at = at.AddDays(1);
             var delay = Util.Time.DateTimeToUnixMillis(at) - Util.Time.DateTimeToUnixMillis(now);
             var period = 24 * 3600 * 1000; // 24 hours
-            //zz.Timer.ScheduleNamed(name, delay, period, name, null);
+            Util.Scheduler.Schedule((ThisTask) => OnTimer(serverId), delay, period);
         }
 
         private void OnTimer(int serverId)

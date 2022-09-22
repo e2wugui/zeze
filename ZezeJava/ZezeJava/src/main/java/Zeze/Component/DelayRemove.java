@@ -27,7 +27,7 @@ public class DelayRemove extends AbstractDelayRemove {
 
 	private final Zeze.Collections.Queue<BTableKey> queue;
 	private Zeze.Application zeze;
-	public static final String eTimerNamePrefix = "Zeze.Component.DelayRemove.";
+
 	private DelayRemove(Zeze.Application zz) {
 		this.zeze = zz;
 
@@ -35,10 +35,6 @@ public class DelayRemove extends AbstractDelayRemove {
 		queue = zz.getQueueModule().open("__GCTableQueue#" + serverId, BTableKey.class);
 
 		// start timer to gc. work on queue.pollNode? peekNode? poll? peek?
-		var name = eTimerNamePrefix + serverId;
-
-		zz.getTimer().addHandle(name, (context) -> onTimer(serverId));
-
 		// 根据配置的Timer的时间范围，按分钟精度随机出每天的开始时间，最后计算延迟，然后按24小时间隔执行。
 		var firstTime = Calendar.getInstance();
 		firstTime.set(Calendar.HOUR_OF_DAY, zz.getConfig().getDelayRemoveHourStart());
@@ -46,6 +42,7 @@ public class DelayRemove extends AbstractDelayRemove {
 		firstTime.set(Calendar.SECOND, 0);
 		firstTime.set(Calendar.MILLISECOND, 0);
 
+		// rand to end
 		var minutes = 60 * (zz.getConfig().getDelayRemoveHourEnd() - zz.getConfig().getDelayRemoveHourStart());
 		if (minutes <= 0)
 			minutes = 60;
@@ -54,9 +51,10 @@ public class DelayRemove extends AbstractDelayRemove {
 
 		if (firstTime.before(Calendar.getInstance())) // 如果第一次的时间比当前时间早，推到明天。
 			firstTime.add(Calendar.DAY_OF_MONTH, 1); // tomorrow!
+
 		var delay = firstTime.getTime().getTime() - System.currentTimeMillis();
 		var period = 24 * 3600 * 1000; // 24 hours
-		zz.getTimer().scheduleNamed(name, delay, period, name, null);
+		Task.scheduleUnsafe(delay, period, () -> onTimer(serverId));
 	}
 
 	private void onTimer(int serverId) {
