@@ -47,9 +47,8 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
     }
 
     public void assign(BReliableNotify other) {
-        getNotifies().clear();
-        for (var e : other.getNotifies())
-            getNotifies().add(e);
+        _Notifies.clear();
+        _Notifies.addAll(other._Notifies);
         setReliableNotifyIndex(other.getReliableNotifyIndex());
     }
 
@@ -105,7 +104,7 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Notifies").append("=[").append(System.lineSeparator());
         level += 4;
-        for (var _item_ : getNotifies()) {
+        for (var _item_ : _Notifies) {
             sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(_item_).append(',').append(System.lineSeparator());
         }
         level -= 4;
@@ -131,7 +130,7 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            var _x_ = getNotifies();
+            var _x_ = _Notifies;
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.LIST);
@@ -155,7 +154,7 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            var _x_ = getNotifies();
+            var _x_ = _Notifies;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)

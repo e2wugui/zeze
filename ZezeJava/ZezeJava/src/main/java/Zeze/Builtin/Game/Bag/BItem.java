@@ -11,6 +11,10 @@ public final class BItem extends Zeze.Transaction.Bean {
     private int _Number;
     private final Zeze.Transaction.DynamicBean _Item;
 
+    public static Zeze.Transaction.DynamicBean newDynamicBean_Item() {
+        return new Zeze.Transaction.DynamicBean(3, Zeze.Game.Bag::getSpecialTypeIdFromBean, Zeze.Game.Bag::createBeanFromSpecialTypeId);
+    }
+
     public static long getSpecialTypeIdFromBean_Item(Zeze.Transaction.Bean bean) {
         return Zeze.Game.Bag.getSpecialTypeIdFromBean(bean);
     }
@@ -75,20 +79,20 @@ public final class BItem extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("deprecation")
     public BItem() {
-        _Item = new Zeze.Transaction.DynamicBean(3, Zeze.Game.Bag::getSpecialTypeIdFromBean, Zeze.Game.Bag::createBeanFromSpecialTypeId);
+        _Item = newDynamicBean_Item();
     }
 
     @SuppressWarnings("deprecation")
     public BItem(int _Id_, int _Number_) {
         _Id = _Id_;
         _Number = _Number_;
-        _Item = new Zeze.Transaction.DynamicBean(3, Zeze.Game.Bag::getSpecialTypeIdFromBean, Zeze.Game.Bag::createBeanFromSpecialTypeId);
+        _Item = newDynamicBean_Item();
     }
 
     public void assign(BItem other) {
         setId(other.getId());
         setNumber(other.getNumber());
-        getItem().assign(other.getItem());
+        _Item.assign(other._Item);
     }
 
     @Deprecated
@@ -151,7 +155,7 @@ public final class BItem extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("Id").append('=').append(getId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Number").append('=').append(getNumber()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(System.lineSeparator());
-        getItem().getBean().buildString(sb, level + 4);
+        _Item.getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -187,7 +191,7 @@ public final class BItem extends Zeze.Transaction.Bean {
             }
         }
         {
-            var _x_ = getItem();
+            var _x_ = _Item;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.DYNAMIC);
                 _x_.encode(_o_);
@@ -209,7 +213,7 @@ public final class BItem extends Zeze.Transaction.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            _o_.ReadDynamic(getItem(), _t_);
+            _o_.ReadDynamic(_Item, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

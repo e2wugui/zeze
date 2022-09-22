@@ -10,6 +10,10 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean {
     private long _Timestamp;
     private final Zeze.Transaction.DynamicBean _Value;
 
+    public static Zeze.Transaction.DynamicBean newDynamicBean_Value() {
+        return new Zeze.Transaction.DynamicBean(2, Zeze.Collections.Queue::getSpecialTypeIdFromBean, Zeze.Collections.Queue::createBeanFromSpecialTypeId);
+    }
+
     public static long getSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean) {
         return Zeze.Collections.Queue.getSpecialTypeIdFromBean(bean);
     }
@@ -43,18 +47,18 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("deprecation")
     public BQueueNodeValue() {
-        _Value = new Zeze.Transaction.DynamicBean(2, Zeze.Collections.Queue::getSpecialTypeIdFromBean, Zeze.Collections.Queue::createBeanFromSpecialTypeId);
+        _Value = newDynamicBean_Value();
     }
 
     @SuppressWarnings("deprecation")
     public BQueueNodeValue(long _Timestamp_) {
         _Timestamp = _Timestamp_;
-        _Value = new Zeze.Transaction.DynamicBean(2, Zeze.Collections.Queue::getSpecialTypeIdFromBean, Zeze.Collections.Queue::createBeanFromSpecialTypeId);
+        _Value = newDynamicBean_Value();
     }
 
     public void assign(BQueueNodeValue other) {
         setTimestamp(other.getTimestamp());
-        getValue().assign(other.getValue());
+        _Value.assign(other._Value);
     }
 
     @Deprecated
@@ -109,7 +113,7 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean {
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Timestamp").append('=').append(getTimestamp()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
-        getValue().getBean().buildString(sb, level + 4);
+        _Value.getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -138,7 +142,7 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean {
             }
         }
         {
-            var _x_ = getValue();
+            var _x_ = _Value;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.DYNAMIC);
                 _x_.encode(_o_);
@@ -156,7 +160,7 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            _o_.ReadDynamic(getValue(), _t_);
+            _o_.ReadDynamic(_Value, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

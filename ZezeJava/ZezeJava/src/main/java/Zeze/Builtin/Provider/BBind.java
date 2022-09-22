@@ -30,12 +30,11 @@ public final class BBind extends Zeze.Transaction.Bean {
     }
 
     public void assign(BBind other) {
-        getModules().clear();
-        for (var e : other.getModules().entrySet())
-            getModules().put(e.getKey(), e.getValue().copy());
-        getLinkSids().clear();
-        for (var e : other.getLinkSids())
-            getLinkSids().add(e);
+        _modules.clear();
+        for (var e : other._modules.entrySet())
+            _modules.put(e.getKey(), e.getValue().copy());
+        _linkSids.clear();
+        _linkSids.addAll(other._linkSids);
     }
 
     @Deprecated
@@ -83,7 +82,7 @@ public final class BBind extends Zeze.Transaction.Bean {
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("modules").append("=[").append(System.lineSeparator());
         level += 4;
-        for (var _kv_ : getModules().entrySet()) {
+        for (var _kv_ : _modules.entrySet()) {
             sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(_kv_.getKey()).append(',').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
@@ -95,7 +94,7 @@ public final class BBind extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append(']').append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("linkSids").append("=[").append(System.lineSeparator());
         level += 4;
-        for (var _item_ : getLinkSids()) {
+        for (var _item_ : _linkSids) {
             sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(_item_).append(',').append(System.lineSeparator());
         }
         level -= 4;
@@ -120,7 +119,7 @@ public final class BBind extends Zeze.Transaction.Bean {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            var _x_ = getModules();
+            var _x_ = _modules;
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.MAP);
@@ -132,7 +131,7 @@ public final class BBind extends Zeze.Transaction.Bean {
             }
         }
         {
-            var _x_ = getLinkSids();
+            var _x_ = _linkSids;
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.LIST);
@@ -149,7 +148,7 @@ public final class BBind extends Zeze.Transaction.Bean {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            var _x_ = getModules();
+            var _x_ = _modules;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
@@ -163,7 +162,7 @@ public final class BBind extends Zeze.Transaction.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            var _x_ = getLinkSids();
+            var _x_ = _linkSids;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
@@ -192,11 +191,11 @@ public final class BBind extends Zeze.Transaction.Bean {
 
     @Override
     public boolean negativeCheck() {
-        for (var _v_ : getModules().values()) {
+        for (var _v_ : _modules.values()) {
             if (_v_.negativeCheck())
                 return true;
         }
-        for (var _v_ : getLinkSids()) {
+        for (var _v_ : _linkSids) {
             if (_v_ < 0)
                 return true;
         }

@@ -147,9 +147,9 @@ public final class BResponse extends Zeze.Transaction.Bean {
 
     public void assign(BResponse other) {
         setCode(other.getCode());
-        getHeaders().clear();
-        for (var e : other.getHeaders().entrySet())
-            getHeaders().put(e.getKey(), e.getValue().copy());
+        _Headers.clear();
+        for (var e : other._Headers.entrySet())
+            _Headers.put(e.getKey(), e.getValue().copy());
         setBody(other.getBody());
         setFinish(other.isFinish());
         setMessage(other.getMessage());
@@ -237,7 +237,7 @@ public final class BResponse extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("Code").append('=').append(getCode()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Headers").append("=[").append(System.lineSeparator());
         level += 4;
-        for (var _kv_ : getHeaders().entrySet()) {
+        for (var _kv_ : _Headers.entrySet()) {
             sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(_kv_.getKey()).append(',').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
@@ -278,7 +278,7 @@ public final class BResponse extends Zeze.Transaction.Bean {
             }
         }
         {
-            var _x_ = getHeaders();
+            var _x_ = _Headers;
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.MAP);
@@ -329,7 +329,7 @@ public final class BResponse extends Zeze.Transaction.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            var _x_ = getHeaders();
+            var _x_ = _Headers;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;

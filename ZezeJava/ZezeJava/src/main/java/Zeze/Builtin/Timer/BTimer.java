@@ -13,6 +13,10 @@ public final class BTimer extends Zeze.Transaction.Bean {
     public static final long DynamicTypeId_TimerObj_Zeze_Builtin_Timer_BCronTimer = -6995089347718168392L;
     public static final long DynamicTypeId_TimerObj_Zeze_Builtin_Timer_BSimpleTimer = 1832177636612857692L;
 
+    public static Zeze.Transaction.DynamicBean newDynamicBean_TimerObj() {
+        return new Zeze.Transaction.DynamicBean(3, BTimer::getSpecialTypeIdFromBean_TimerObj, BTimer::createBeanFromSpecialTypeId_TimerObj);
+    }
+
     public static long getSpecialTypeIdFromBean_TimerObj(Zeze.Transaction.Bean bean) {
         var _typeId_ = bean.typeId();
         if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
@@ -33,6 +37,10 @@ public final class BTimer extends Zeze.Transaction.Bean {
     }
 
     private final Zeze.Transaction.DynamicBean _CustomData;
+
+    public static Zeze.Transaction.DynamicBean newDynamicBean_CustomData() {
+        return new Zeze.Transaction.DynamicBean(4, Zeze.Component.Timer::getSpecialTypeIdFromBean, Zeze.Component.Timer::createBeanFromSpecialTypeId);
+    }
 
     public static long getSpecialTypeIdFromBean_CustomData(Zeze.Transaction.Bean bean) {
         return Zeze.Component.Timer.getSpecialTypeIdFromBean(bean);
@@ -103,19 +111,19 @@ public final class BTimer extends Zeze.Transaction.Bean {
     }
 
     public Zeze.Builtin.Timer.BCronTimer getTimerObj_Zeze_Builtin_Timer_BCronTimer() {
-        return (Zeze.Builtin.Timer.BCronTimer)getTimerObj().getBean();
+        return (Zeze.Builtin.Timer.BCronTimer)_TimerObj.getBean();
     }
 
     public void setTimerObj(Zeze.Builtin.Timer.BCronTimer value) {
-        getTimerObj().setBean(value);
+        _TimerObj.setBean(value);
     }
 
     public Zeze.Builtin.Timer.BSimpleTimer getTimerObj_Zeze_Builtin_Timer_BSimpleTimer() {
-        return (Zeze.Builtin.Timer.BSimpleTimer)getTimerObj().getBean();
+        return (Zeze.Builtin.Timer.BSimpleTimer)_TimerObj.getBean();
     }
 
     public void setTimerObj(Zeze.Builtin.Timer.BSimpleTimer value) {
-        getTimerObj().setBean(value);
+        _TimerObj.setBean(value);
     }
 
     public Zeze.Transaction.DynamicBean getCustomData() {
@@ -145,8 +153,8 @@ public final class BTimer extends Zeze.Transaction.Bean {
     public BTimer() {
         _TimerName = "";
         _HandleName = "";
-        _TimerObj = new Zeze.Transaction.DynamicBean(3, BTimer::getSpecialTypeIdFromBean_TimerObj, BTimer::createBeanFromSpecialTypeId_TimerObj);
-        _CustomData = new Zeze.Transaction.DynamicBean(4, Zeze.Component.Timer::getSpecialTypeIdFromBean, Zeze.Component.Timer::createBeanFromSpecialTypeId);
+        _TimerObj = newDynamicBean_TimerObj();
+        _CustomData = newDynamicBean_CustomData();
     }
 
     @SuppressWarnings("deprecation")
@@ -157,16 +165,16 @@ public final class BTimer extends Zeze.Transaction.Bean {
         if (_HandleName_ == null)
             throw new IllegalArgumentException();
         _HandleName = _HandleName_;
-        _TimerObj = new Zeze.Transaction.DynamicBean(3, BTimer::getSpecialTypeIdFromBean_TimerObj, BTimer::createBeanFromSpecialTypeId_TimerObj);
-        _CustomData = new Zeze.Transaction.DynamicBean(4, Zeze.Component.Timer::getSpecialTypeIdFromBean, Zeze.Component.Timer::createBeanFromSpecialTypeId);
+        _TimerObj = newDynamicBean_TimerObj();
+        _CustomData = newDynamicBean_CustomData();
         _ConcurrentFireSerialNo = _ConcurrentFireSerialNo_;
     }
 
     public void assign(BTimer other) {
         setTimerName(other.getTimerName());
         setHandleName(other.getHandleName());
-        getTimerObj().assign(other.getTimerObj());
-        getCustomData().assign(other.getCustomData());
+        _TimerObj.assign(other._TimerObj);
+        _CustomData.assign(other._CustomData);
         setConcurrentFireSerialNo(other.getConcurrentFireSerialNo());
     }
 
@@ -237,10 +245,10 @@ public final class BTimer extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("TimerName").append('=').append(getTimerName()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("HandleName").append('=').append(getHandleName()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("TimerObj").append('=').append(System.lineSeparator());
-        getTimerObj().getBean().buildString(sb, level + 4);
+        _TimerObj.getBean().buildString(sb, level + 4);
         sb.append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("CustomData").append('=').append(System.lineSeparator());
-        getCustomData().getBean().buildString(sb, level + 4);
+        _CustomData.getBean().buildString(sb, level + 4);
         sb.append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("ConcurrentFireSerialNo").append('=').append(getConcurrentFireSerialNo()).append(System.lineSeparator());
         level -= 4;
@@ -277,14 +285,14 @@ public final class BTimer extends Zeze.Transaction.Bean {
             }
         }
         {
-            var _x_ = getTimerObj();
+            var _x_ = _TimerObj;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.DYNAMIC);
                 _x_.encode(_o_);
             }
         }
         {
-            var _x_ = getCustomData();
+            var _x_ = _CustomData;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.DYNAMIC);
                 _x_.encode(_o_);
@@ -313,11 +321,11 @@ public final class BTimer extends Zeze.Transaction.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            _o_.ReadDynamic(getTimerObj(), _t_);
+            _o_.ReadDynamic(_TimerObj, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 4) {
-            _o_.ReadDynamic(getCustomData(), _t_);
+            _o_.ReadDynamic(_CustomData, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 5) {
@@ -344,7 +352,7 @@ public final class BTimer extends Zeze.Transaction.Bean {
 
     @Override
     public boolean negativeCheck() {
-        if (getTimerObj().negativeCheck())
+        if (_TimerObj.negativeCheck())
             return true;
         if (getConcurrentFireSerialNo() < 0)
             return true;

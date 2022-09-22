@@ -52,13 +52,11 @@ namespace Zeze.Gen.java
                 {
                     sw.WriteLine($"{prefix}public static final long DynamicTypeId_{var.NameUpper1}_{real.Value.Space.Path("_", real.Value.Name)} = {real.Key}L;");
                 }
-                if (type.RealBeans.Count > 0)
-                    sw.WriteLine();
             }
-            sw.WriteLine($"{prefix}public static Zeze.Transaction.DynamicBean NewDynamicBean{var.NameUpper1}()");
-            sw.WriteLine($"{prefix}{{");
+            sw.WriteLine();
+            sw.WriteLine($"{prefix}public static Zeze.Transaction.DynamicBean newDynamicBean_{var.NameUpper1}() {{");
             if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
-                sw.WriteLine($"{prefix}    return new Zeze.Transaction.DynamicBean({var.Id}, GetSpecialTypeIdFromBean_{var.NameUpper1}, CreateBeanFromSpecialTypeId_{var.NameUpper1});");
+                sw.WriteLine($"{prefix}    return new Zeze.Transaction.DynamicBean({var.Id}, {bean.Name}::getSpecialTypeIdFromBean_{var.NameUpper1}, {bean.Name}::createBeanFromSpecialTypeId_{var.NameUpper1});");
             else
                 sw.WriteLine($"{prefix}    return new Zeze.Transaction.DynamicBean({var.Id}, {type.DynamicParams.GetSpecialTypeIdFromBean}, {type.DynamicParams.CreateBeanFromSpecialTypeId});");
             sw.WriteLine($"{prefix}}}");

@@ -48,9 +48,9 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
 
     public void assign(BQueueNode other) {
         setNextNodeId(other.getNextNodeId());
-        getValues().clear();
-        for (var e : other.getValues())
-            getValues().add(e.copy());
+        _Values.clear();
+        for (var e : other._Values)
+            _Values.add(e.copy());
     }
 
     @Deprecated
@@ -106,7 +106,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("NextNodeId").append('=').append(getNextNodeId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Values").append("=[").append(System.lineSeparator());
         level += 4;
-        for (var _item_ : getValues()) {
+        for (var _item_ : _Values) {
             sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(System.lineSeparator());
             _item_.buildString(sb, level + 4);
             sb.append(',').append(System.lineSeparator());
@@ -140,7 +140,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
             }
         }
         {
-            var _x_ = getValues();
+            var _x_ = _Values;
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.LIST);
@@ -161,7 +161,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            var _x_ = getValues();
+            var _x_ = _Values;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
@@ -190,7 +190,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
     public boolean negativeCheck() {
         if (getNextNodeId() < 0)
             return true;
-        for (var _v_ : getValues()) {
+        for (var _v_ : _Values) {
             if (_v_.negativeCheck())
                 return true;
         }

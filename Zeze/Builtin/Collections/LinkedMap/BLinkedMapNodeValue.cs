@@ -20,6 +20,11 @@ namespace Zeze.Builtin.Collections.LinkedMap
     {
         string _Id; // LinkedMap的Key转成字符串类型
         readonly Zeze.Transaction.DynamicBean _Value;
+        public static Zeze.Transaction.DynamicBean NewDynamicBeanValue()
+        {
+            return new Zeze.Transaction.DynamicBean(2, Zeze.Collections.LinkedMap.GetSpecialTypeIdFromBean, Zeze.Collections.LinkedMap.CreateBeanFromSpecialTypeId);
+        }
+
         public static long GetSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean)
         {
             return Zeze.Collections.LinkedMap.GetSpecialTypeIdFromBean(bean);

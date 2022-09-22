@@ -235,11 +235,11 @@ namespace Zeze.Gen.ts
             sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
             sw.WriteLine(prefix + "    " + bufname + ".WriteListType(_n_, " + TypeTagName.GetName(vt) + ");");
             sw.WriteLine(prefix + "    for (var _v_ in _x" + id + "_) {");
-            if (Decode.IsOldStypeEncodeDecodeType(vt))
-            {
-                vt.Accept(new Encode("_v_", 0, bufname, sw, prefix + "        "));
-            }
-            else
+            // if (Decode.IsOldStypeEncodeDecodeType(vt))
+            // {
+            //     vt.Accept(new Encode("_v_", 0, bufname, sw, prefix + "        "));
+            // }
+            // else
             {
                 EncodeElement(vt, prefix + "        ", varname + "[_v_]");
             }
@@ -348,7 +348,7 @@ namespace Zeze.Gen.ts
             }
             else
             {
-                sw.WriteLine(prefix + "_x_.Encode(" + bufname + ");");
+                sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
             }
         }
 

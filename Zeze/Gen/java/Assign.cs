@@ -77,34 +77,43 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeList type)
         {
-            sw.WriteLine(prefix + var.Getter + ".clear();");
-            string copyif = type.ValueType.IsNormalBean ? "e.copy()" : "e";
-
-            sw.WriteLine(prefix + "for (var e : other." + var.Getter +")");
-            sw.WriteLine(prefix + "    " + var.Getter + ".add(" + copyif + ");");
+            sw.WriteLine(prefix + var.NamePrivate + ".clear();");
+            if (type.ValueType.IsNormalBean)
+            {
+                sw.WriteLine(prefix + "for (var e : other." + var.NamePrivate + ")");
+                sw.WriteLine(prefix + "    " + var.NamePrivate + ".add(e.copy());");
+            }
+            else
+                sw.WriteLine(prefix + var.NamePrivate + ".addAll(other." + var.NamePrivate + ");");
         }
 
         public void Visit(TypeSet type)
         {
-            sw.WriteLine(prefix + var.Getter + ".clear();");
-            string copyif = type.ValueType.IsNormalBean ? "e.copy()" : "e"; // set 里面现在不让放 bean，先这样写吧。
-
-            sw.WriteLine(prefix + "for (var e : other." + var.Getter + ")");
-            sw.WriteLine(prefix + "    " + var.Getter + ".add(" + copyif + ");");
+            sw.WriteLine(prefix + var.NamePrivate + ".clear();");
+            if (type.ValueType.IsNormalBean)
+            {
+                sw.WriteLine(prefix + "for (var e : other." + var.NamePrivate + ")");
+                sw.WriteLine(prefix + "    " + var.NamePrivate + ".add(e.copy());"); // set 里面现在不让放 bean，先这样写吧。
+            }
+            else
+                sw.WriteLine(prefix + var.NamePrivate + ".addAll(other." + var.NamePrivate + ");");
         }
 
         public void Visit(TypeMap type)
         {
-            sw.WriteLine(prefix + var.Getter + ".clear();");
-            string copyif = type.ValueType.IsNormalBean ? "e.getValue().copy()" : "e.getValue()";
-
-            sw.WriteLine(prefix + "for (var e : other." + var.Getter + ".entrySet())");
-            sw.WriteLine(prefix + "    " + var.Getter + ".put(e.getKey(), " + copyif + ");");
+            sw.WriteLine(prefix + var.NamePrivate + ".clear();");
+            if (type.ValueType.IsNormalBean)
+            {
+                sw.WriteLine(prefix + "for (var e : other." + var.NamePrivate + ".entrySet())");
+                sw.WriteLine(prefix + "    " + var.NamePrivate + ".put(e.getKey(), e.getValue().copy());");
+            }
+            else
+                sw.WriteLine(prefix + var.NamePrivate + ".putAll(other." + var.NamePrivate + ");");
         }
 
         public void Visit(Bean type)
         {
-            sw.WriteLine(prefix + var.Getter + ".assign(other." + var.Getter + ");");
+            sw.WriteLine(prefix + var.NamePrivate + ".assign(other." + var.NamePrivate + ");");
         }
 
         public void Visit(BeanKey type)
@@ -114,7 +123,7 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeDynamic type)
         {
-            sw.WriteLine(prefix + var.Getter + ".assign(other." + var.Getter + ");");
+            sw.WriteLine(prefix + var.NamePrivate + ".assign(other." + var.NamePrivate + ");");
         }
 
         public void Visit(TypeQuaternion type)

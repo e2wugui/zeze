@@ -20,9 +20,9 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean {
     }
 
     public void assign(BOnlineTimers other) {
-        getTimerIds().clear();
-        for (var e : other.getTimerIds().entrySet())
-            getTimerIds().put(e.getKey(), e.getValue().copy());
+        _TimerIds.clear();
+        for (var e : other._TimerIds.entrySet())
+            _TimerIds.put(e.getKey(), e.getValue().copy());
     }
 
     @Deprecated
@@ -70,7 +70,7 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean {
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("TimerIds").append("=[").append(System.lineSeparator());
         level += 4;
-        for (var _kv_ : getTimerIds().entrySet()) {
+        for (var _kv_ : _TimerIds.entrySet()) {
             sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(_kv_.getKey()).append(',').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
@@ -100,7 +100,7 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            var _x_ = getTimerIds();
+            var _x_ = _TimerIds;
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.MAP);
@@ -119,7 +119,7 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            var _x_ = getTimerIds();
+            var _x_ = _TimerIds;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;

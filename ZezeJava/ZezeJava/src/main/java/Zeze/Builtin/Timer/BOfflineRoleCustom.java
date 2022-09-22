@@ -10,6 +10,10 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean {
     private long _RoleId;
     private final Zeze.Transaction.DynamicBean _CustomData;
 
+    public static Zeze.Transaction.DynamicBean newDynamicBean_CustomData() {
+        return new Zeze.Transaction.DynamicBean(2, Zeze.Component.Timer::getSpecialTypeIdFromBean, Zeze.Component.Timer::createBeanFromSpecialTypeId);
+    }
+
     public static long getSpecialTypeIdFromBean_CustomData(Zeze.Transaction.Bean bean) {
         return Zeze.Component.Timer.getSpecialTypeIdFromBean(bean);
     }
@@ -43,18 +47,18 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("deprecation")
     public BOfflineRoleCustom() {
-        _CustomData = new Zeze.Transaction.DynamicBean(2, Zeze.Component.Timer::getSpecialTypeIdFromBean, Zeze.Component.Timer::createBeanFromSpecialTypeId);
+        _CustomData = newDynamicBean_CustomData();
     }
 
     @SuppressWarnings("deprecation")
     public BOfflineRoleCustom(long _RoleId_) {
         _RoleId = _RoleId_;
-        _CustomData = new Zeze.Transaction.DynamicBean(2, Zeze.Component.Timer::getSpecialTypeIdFromBean, Zeze.Component.Timer::createBeanFromSpecialTypeId);
+        _CustomData = newDynamicBean_CustomData();
     }
 
     public void assign(BOfflineRoleCustom other) {
         setRoleId(other.getRoleId());
-        getCustomData().assign(other.getCustomData());
+        _CustomData.assign(other._CustomData);
     }
 
     @Deprecated
@@ -109,7 +113,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean {
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("RoleId").append('=').append(getRoleId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("CustomData").append('=').append(System.lineSeparator());
-        getCustomData().getBean().buildString(sb, level + 4);
+        _CustomData.getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -138,7 +142,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean {
             }
         }
         {
-            var _x_ = getCustomData();
+            var _x_ = _CustomData;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.DYNAMIC);
                 _x_.encode(_o_);
@@ -156,7 +160,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            _o_.ReadDynamic(getCustomData(), _t_);
+            _o_.ReadDynamic(_CustomData, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

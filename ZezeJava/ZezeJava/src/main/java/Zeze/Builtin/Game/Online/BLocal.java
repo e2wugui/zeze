@@ -48,9 +48,9 @@ public final class BLocal extends Zeze.Transaction.Bean {
 
     public void assign(BLocal other) {
         setLoginVersion(other.getLoginVersion());
-        getDatas().clear();
-        for (var e : other.getDatas().entrySet())
-            getDatas().put(e.getKey(), e.getValue().copy());
+        _Datas.clear();
+        for (var e : other._Datas.entrySet())
+            _Datas.put(e.getKey(), e.getValue().copy());
     }
 
     @Deprecated
@@ -106,7 +106,7 @@ public final class BLocal extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("LoginVersion").append('=').append(getLoginVersion()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Datas").append("=[").append(System.lineSeparator());
         level += 4;
-        for (var _kv_ : getDatas().entrySet()) {
+        for (var _kv_ : _Datas.entrySet()) {
             sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(_kv_.getKey()).append(',').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
@@ -143,7 +143,7 @@ public final class BLocal extends Zeze.Transaction.Bean {
             }
         }
         {
-            var _x_ = getDatas();
+            var _x_ = _Datas;
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.MAP);
@@ -166,7 +166,7 @@ public final class BLocal extends Zeze.Transaction.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            var _x_ = getDatas();
+            var _x_ = _Datas;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;

@@ -145,6 +145,11 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	@Override
+	public void mapKey(Object mapKey) {
+		bean.mapKey(mapKey);
+	}
+
+	@Override
 	public void followerApply(Log log) {
 		bean.followerApply(log);
 	}

@@ -73,9 +73,8 @@ public final class BSend extends Zeze.Transaction.Bean {
     }
 
     public void assign(BSend other) {
-        getLinkSids().clear();
-        for (var e : other.getLinkSids())
-            getLinkSids().add(e);
+        _linkSids.clear();
+        _linkSids.addAll(other._linkSids);
         setProtocolType(other.getProtocolType());
         setProtocolWholeData(other.getProtocolWholeData());
     }
@@ -139,7 +138,7 @@ public final class BSend extends Zeze.Transaction.Bean {
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("linkSids").append("=[").append(System.lineSeparator());
         level += 4;
-        for (var _item_ : getLinkSids()) {
+        for (var _item_ : _linkSids) {
             sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(_item_).append(',').append(System.lineSeparator());
         }
         level -= 4;
@@ -166,7 +165,7 @@ public final class BSend extends Zeze.Transaction.Bean {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            var _x_ = getLinkSids();
+            var _x_ = _linkSids;
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.LIST);
@@ -197,7 +196,7 @@ public final class BSend extends Zeze.Transaction.Bean {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            var _x_ = getLinkSids();
+            var _x_ = _linkSids;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
@@ -232,7 +231,7 @@ public final class BSend extends Zeze.Transaction.Bean {
 
     @Override
     public boolean negativeCheck() {
-        for (var _v_ : getLinkSids()) {
+        for (var _v_ : _linkSids) {
             if (_v_ < 0)
                 return true;
         }

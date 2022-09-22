@@ -7,11 +7,15 @@ namespace Zeze.Gen.java
 {
     public class Encode : Visitor
     {
+        readonly Variable var;
         readonly string varname;
         readonly int id;
         readonly string bufname;
         readonly StreamWriter sw;
         readonly string prefix;
+
+        string Getter => var != null ? var.Getter : varname;
+        string NamePrivate => var != null ? var.NamePrivate : varname;
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
@@ -38,7 +42,7 @@ namespace Zeze.Gen.java
                     continue;
 
                 sw.WriteLine(prefix + "    {");
-                v.VariableType.Accept(new Encode(v.Getter, v.Id, "_o_", sw, prefix + "        "));
+                v.VariableType.Accept(new Encode(v, null, v.Id, "_o_", sw, prefix + "        "));
                 sw.WriteLine(prefix + "    }");
             }
 
@@ -78,7 +82,7 @@ namespace Zeze.Gen.java
                     continue;
 
                 sw.WriteLine(prefix + "    {");
-                v.VariableType.Accept(new Encode(v.Getter, v.Id, "_o_", sw, prefix + "        "));
+                v.VariableType.Accept(new Encode(v, null, v.Id, "_o_", sw, prefix + "        "));
                 sw.WriteLine(prefix + "    }");
             }
 
@@ -87,8 +91,9 @@ namespace Zeze.Gen.java
             sw.WriteLine();
         }
 
-        public Encode(string varname, int id, string bufname, StreamWriter sw, string prefix)
+        public Encode(Variable var, string varname, int id, string bufname, StreamWriter sw, string prefix)
         {
+            this.var = var;
             this.varname = varname;
             this.id = id;
             this.bufname = bufname;
@@ -100,126 +105,126 @@ namespace Zeze.Gen.java
         {
             if (id > 0)
             {
-                sw.WriteLine(prefix + "boolean _x_ = " + varname + ';');
+                sw.WriteLine(prefix + "boolean _x_ = " + Getter + ';');
                 sw.WriteLine(prefix + "if (_x_) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteByte(1);");
                 sw.WriteLine(prefix + "}");
             }
             else
-                sw.WriteLine(prefix + bufname + ".WriteBool(" + varname + ");");
+                sw.WriteLine(prefix + bufname + ".WriteBool(" + Getter + ");");
         }
 
         public void Visit(TypeByte type)
         {
             if (id > 0)
             {
-                sw.WriteLine(prefix + "int _x_ = " + varname + ';');
+                sw.WriteLine(prefix + "int _x_ = " + Getter + ';');
                 sw.WriteLine(prefix + "if (_x_ != 0) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteInt(_x_);");
                 sw.WriteLine(prefix + "}");
             }
             else
-                sw.WriteLine(prefix + bufname + ".WriteInt(" + varname + ");");
+                sw.WriteLine(prefix + bufname + ".WriteInt(" + Getter + ");");
         }
 
         public void Visit(TypeShort type)
         {
             if (id > 0)
             {
-                sw.WriteLine(prefix + "int _x_ = " + varname + ';');
+                sw.WriteLine(prefix + "int _x_ = " + Getter + ';');
                 sw.WriteLine(prefix + "if (_x_ != 0) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteInt(_x_);");
                 sw.WriteLine(prefix + "}");
             }
             else
-                sw.WriteLine(prefix + bufname + ".WriteInt(" + varname + ");");
+                sw.WriteLine(prefix + bufname + ".WriteInt(" + Getter + ");");
         }
 
         public void Visit(TypeInt type)
         {
             if (id > 0)
             {
-                sw.WriteLine(prefix + "int _x_ = " + varname + ';');
+                sw.WriteLine(prefix + "int _x_ = " + Getter + ';');
                 sw.WriteLine(prefix + "if (_x_ != 0) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteInt(_x_);");
                 sw.WriteLine(prefix + "}");
             }
             else
-                sw.WriteLine(prefix + bufname + ".WriteInt(" + varname + ");");
+                sw.WriteLine(prefix + bufname + ".WriteInt(" + Getter + ");");
         }
 
         public void Visit(TypeLong type)
         {
             if (id > 0)
             {
-                sw.WriteLine(prefix + "long _x_ = " + varname + ';');
+                sw.WriteLine(prefix + "long _x_ = " + Getter + ';');
                 sw.WriteLine(prefix + "if (_x_ != 0) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteLong(_x_);");
                 sw.WriteLine(prefix + "}");
             }
             else
-                sw.WriteLine(prefix + bufname + ".WriteLong(" + varname + ");");
+                sw.WriteLine(prefix + bufname + ".WriteLong(" + Getter + ");");
         }
 
         public void Visit(TypeFloat type)
         {
             if (id > 0)
             {
-                sw.WriteLine(prefix + "float _x_ = " + varname + ';');
+                sw.WriteLine(prefix + "float _x_ = " + Getter + ';');
                 sw.WriteLine(prefix + "if (_x_ != 0) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteFloat(_x_);");
                 sw.WriteLine(prefix + "}");
             }
             else
-                sw.WriteLine(prefix + bufname + ".WriteFloat(" + varname + ");");
+                sw.WriteLine(prefix + bufname + ".WriteFloat(" + Getter + ");");
         }
 
         public void Visit(TypeDouble type)
         {
             if (id > 0)
             {
-                sw.WriteLine(prefix + "double _x_ = " + varname + ';');
+                sw.WriteLine(prefix + "double _x_ = " + Getter + ';');
                 sw.WriteLine(prefix + "if (_x_ != 0) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteDouble(_x_);");
                 sw.WriteLine(prefix + "}");
             }
             else
-                sw.WriteLine(prefix + bufname + ".WriteDouble(" + varname + ");");
+                sw.WriteLine(prefix + bufname + ".WriteDouble(" + Getter + ");");
         }
 
         public void Visit(TypeBinary type)
         {
             if (id > 0)
             {
-                sw.WriteLine(prefix + "var _x_ = " + varname + ';');
+                sw.WriteLine(prefix + "var _x_ = " + Getter + ';');
                 sw.WriteLine(prefix + "if (_x_.size() != 0) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteBinary(_x_);");
                 sw.WriteLine(prefix + "}");
             }
             else
-                sw.WriteLine(prefix + bufname + ".WriteBinary(" + varname + ");");
+                sw.WriteLine(prefix + bufname + ".WriteBinary(" + Getter + ");");
         }
 
         public void Visit(TypeString type)
         {
             if (id > 0)
             {
-                sw.WriteLine(prefix + "String _x_ = " + varname + ';');
+                sw.WriteLine(prefix + "String _x_ = " + Getter + ';');
                 sw.WriteLine(prefix + "if (!_x_.isEmpty()) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteString(_x_);");
                 sw.WriteLine(prefix + "}");
             }
             else
-                sw.WriteLine(prefix + bufname + ".WriteString(" + varname + ");");
+                sw.WriteLine(prefix + bufname + ".WriteString(" + Getter + ");");
         }
 
         void EncodeElement(Type type, string prefix, string varName)
@@ -280,7 +285,7 @@ namespace Zeze.Gen.java
             if (id <= 0)
                 throw new Exception("invalid variable.id");
             Type vt = type.ValueType;
-            sw.WriteLine(prefix + "var _x_ = " + varname + ';');
+            sw.WriteLine(prefix + "var _x_ = " + NamePrivate + ';');
             sw.WriteLine(prefix + "int _n_ = _x_.size();");
             sw.WriteLine(prefix + "if (_n_ != 0) {");
             sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
@@ -288,7 +293,7 @@ namespace Zeze.Gen.java
             if (Decode.IsOldStypeEncodeDecodeType(vt))
             {
                 sw.WriteLine(prefix + "    for (var _v_ : _x_) {");
-                vt.Accept(new Encode("_v_", 0, bufname, sw, prefix + "        "));
+                vt.Accept(new Encode(null, "_v_", 0, bufname, sw, prefix + "        "));
                 sw.WriteLine(prefix + "    }");
             }
             else
@@ -315,7 +320,7 @@ namespace Zeze.Gen.java
                 throw new Exception("invalid variable.id");
             Type kt = type.KeyType;
             Type vt = type.ValueType;
-            sw.WriteLine(prefix + "var _x_ = " + varname + ';');
+            sw.WriteLine(prefix + "var _x_ = " + NamePrivate + ';');
             sw.WriteLine(prefix + "int _n_ = _x_.size();");
             sw.WriteLine(prefix + "if (_n_ != 0) {");
             sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
@@ -323,7 +328,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    for (var _e_ : _x_.entrySet()) {");
             if (Decode.IsOldStypeEncodeDecodeType(kt))
             {
-                vt.Accept(new Encode("_e_.getKey()", 0, bufname, sw, prefix + "        "));
+                vt.Accept(new Encode(null, "_e_.getKey()", 0, bufname, sw, prefix + "        "));
             }
             else
             {
@@ -331,7 +336,7 @@ namespace Zeze.Gen.java
             }
             if (Decode.IsOldStypeEncodeDecodeType(vt))
             {
-                vt.Accept(new Encode("_e_.getValue()", 0, bufname, sw, prefix + "        "));
+                vt.Accept(new Encode(null, "_e_.getValue()", 0, bufname, sw, prefix + "        "));
             }
             else
             {
@@ -348,14 +353,14 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "int _a_ = " + bufname + ".WriteIndex;");
                 sw.WriteLine(prefix + "int _j_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "int _b_ = " + bufname + ".WriteIndex;");
-                sw.WriteLine(prefix + varname + ".encode(" + bufname + ");");
+                sw.WriteLine(prefix + NamePrivate + ".encode(" + bufname + ");");
                 sw.WriteLine(prefix + "if (_b_ + 1 == " + bufname + ".WriteIndex)");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteIndex = _a_;");
                 sw.WriteLine(prefix + "else");
                 sw.WriteLine(prefix + "    _i_ = _j_;");
             }
             else
-                sw.WriteLine(prefix + varname + ".encode(" + bufname + ");");
+                sw.WriteLine(prefix + NamePrivate + ".encode(" + bufname + ");");
         }
 
         public void Visit(BeanKey type)
@@ -365,21 +370,21 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "int _a_ = " + bufname + ".WriteIndex;");
                 sw.WriteLine(prefix + "int _j_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "int _b_ = " + bufname + ".WriteIndex;");
-                sw.WriteLine(prefix + varname + ".encode(" + bufname + ");");
+                sw.WriteLine(prefix + Getter + ".encode(" + bufname + ");");
                 sw.WriteLine(prefix + "if (_b_ + 1 == " + bufname + ".WriteIndex)");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteIndex = _a_;");
                 sw.WriteLine(prefix + "else");
                 sw.WriteLine(prefix + "    _i_ = _j_;");
             }
             else
-                sw.WriteLine(prefix + varname + ".encode(" + bufname + ");");
+                sw.WriteLine(prefix + Getter + ".encode(" + bufname + ");");
         }
 
         public void Visit(TypeDynamic type)
         {
             if (id > 0)
             {
-                sw.WriteLine(prefix + "var _x_ = " + varname + ';');
+                sw.WriteLine(prefix + "var _x_ = " + NamePrivate + ';');
                 sw.WriteLine(prefix + "if (!_x_.isEmpty()) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    _x_.encode(" + bufname + ");");
@@ -387,7 +392,7 @@ namespace Zeze.Gen.java
             }
             else
             {
-                sw.WriteLine(prefix + "_x_.encode(" + bufname + ");");
+                sw.WriteLine(prefix + NamePrivate + ".encode(" + bufname + ");");
             }
         }
 
@@ -395,14 +400,14 @@ namespace Zeze.Gen.java
         {
             if (id > 0)
             {
-                sw.WriteLine(prefix + "var _x_ = " + varname + ';');
+                sw.WriteLine(prefix + "var _x_ = " + Getter + ';');
                 sw.WriteLine(prefix + "if (_x_ != null && !_x_.isZero()) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".Write" + typeName + "(_x_);");
                 sw.WriteLine(prefix + "}");
             }
             else
-                sw.WriteLine(prefix + varname + ".encode(" + bufname + ");");
+                sw.WriteLine(prefix + Getter + ".encode(" + bufname + ");");
         }
 
         public void Visit(TypeQuaternion type)

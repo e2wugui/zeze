@@ -43,7 +43,7 @@ namespace Zeze.Gen.Types
         // 如果指定特别的TypeId，必须全部都指定。虽然部分指定也可以处理，感觉这样不大好。
         private TypeDynamic(ModuleSpace space, Variable var)
         {
-            Kind = "bean";
+            Kind = "dynamic";
             Variable = var;
             if (DynamicParams.Beans.Count == 0)
             {

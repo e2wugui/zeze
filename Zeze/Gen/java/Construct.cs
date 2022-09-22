@@ -200,8 +200,7 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeDynamic type)
         {
-            sw.WriteLine(prefix + variable.NamePrivate + " = new Zeze.Transaction.DynamicBean" +
-                    $"({variable.Id}, {GetAndCreateDynamicBean(type)});");
+            sw.WriteLine(prefix + variable.NamePrivate + " = newDynamicBean_" + variable.NameUpper1 + "();");
         }
 
         public void Visit(TypeQuaternion type)

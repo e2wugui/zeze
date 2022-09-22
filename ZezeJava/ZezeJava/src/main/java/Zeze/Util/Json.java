@@ -10,8 +10,8 @@ import java.util.function.BiFunction;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Collections.PList1;
-import Zeze.Transaction.Collections.PMap1;
+import Zeze.Transaction.Collections.PList2;
+import Zeze.Transaction.Collections.PMap2;
 import Zeze.Transaction.DynamicBean;
 import Zeze.Transaction.EmptyBean;
 import org.jetbrains.annotations.NotNull;
@@ -503,10 +503,10 @@ public final class Json {
 
 		Json.getClassMeta(DynamicBean.class).setParser((reader, classMeta, obj, parent) -> {
 			if (obj == null) {
-				if (parent instanceof PList1)
-					obj = (DynamicBean)((PList1<?>)parent).getValueCodecFuncs().decoder.apply(null);
-				else if (parent instanceof PMap1)
-					obj = (DynamicBean)((PMap1<?, ?>)parent).getValueCodecFuncs().decoder.apply(null);
+				if (parent instanceof PList2)
+					obj = (DynamicBean)((PList2<?>)parent).createValue();
+				else if (parent instanceof PMap2)
+					obj = (DynamicBean)((PMap2<?, ?>)parent).createValue();
 			}
 			if (obj != null) {
 				int p = reader.pos();

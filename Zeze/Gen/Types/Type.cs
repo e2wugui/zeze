@@ -18,7 +18,7 @@ namespace Zeze.Gen.Types
 		public bool IsBean => Kind.Equals("bean") || Kind.Equals("beankey");
 		public virtual bool IsKeyable => IsImmutable; // most for table.key, cbean.
 		public bool IsRocks => Kind.Equals("rocks");
-		public bool IsNormalBean => Kind.Equals("bean"); // 普通的bean，不是beankey
+		public bool IsNormalBean => Kind.Equals("bean") || Kind.Equals("dynamic"); // 普通的bean，不是beankey
 		public bool IsNormalBeanOrRocks => IsRocks || IsNormalBean;
 
 		public virtual bool IsCollection => false;

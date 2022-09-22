@@ -132,9 +132,8 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
     public void assign(BTransmitAccount other) {
         setActionName(other.getActionName());
         setParameter(other.getParameter());
-        getTargetAccounts().clear();
-        for (var e : other.getTargetAccounts())
-            getTargetAccounts().add(e);
+        _TargetAccounts.clear();
+        _TargetAccounts.addAll(other._TargetAccounts);
         setSenderAccount(other.getSenderAccount());
         setSenderClientId(other.getSenderClientId());
     }
@@ -214,7 +213,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("Parameter").append('=').append(getParameter()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("TargetAccounts").append("=[").append(System.lineSeparator());
         level += 4;
-        for (var _item_ : getTargetAccounts()) {
+        for (var _item_ : _TargetAccounts) {
             sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(_item_).append(',').append(System.lineSeparator());
         }
         level -= 4;
@@ -255,7 +254,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
             }
         }
         {
-            var _x_ = getTargetAccounts();
+            var _x_ = _TargetAccounts;
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.LIST);
@@ -294,7 +293,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            var _x_ = getTargetAccounts();
+            var _x_ = _TargetAccounts;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)

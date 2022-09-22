@@ -190,9 +190,8 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
     public void assign(BModuleRedirectAllRequest other) {
         setModuleId(other.getModuleId());
         setHashCodeConcurrentLevel(other.getHashCodeConcurrentLevel());
-        getHashCodes().clear();
-        for (var e : other.getHashCodes())
-            getHashCodes().add(e);
+        _HashCodes.clear();
+        _HashCodes.addAll(other._HashCodes);
         setSourceProvider(other.getSourceProvider());
         setSessionId(other.getSessionId());
         setMethodFullName(other.getMethodFullName());
@@ -296,7 +295,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("HashCodeConcurrentLevel").append('=').append(getHashCodeConcurrentLevel()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("HashCodes").append("=[").append(System.lineSeparator());
         level += 4;
-        for (var _item_ : getHashCodes()) {
+        for (var _item_ : _HashCodes) {
             sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(_item_).append(',').append(System.lineSeparator());
         }
         level -= 4;
@@ -340,7 +339,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
             }
         }
         {
-            var _x_ = getHashCodes();
+            var _x_ = _HashCodes;
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.LIST);
@@ -400,7 +399,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            var _x_ = getHashCodes();
+            var _x_ = _HashCodes;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
@@ -451,7 +450,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
             return true;
         if (getHashCodeConcurrentLevel() < 0)
             return true;
-        for (var _v_ : getHashCodes()) {
+        for (var _v_ : _HashCodes) {
             if (_v_ < 0)
                 return true;
         }

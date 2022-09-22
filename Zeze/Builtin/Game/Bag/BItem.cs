@@ -22,6 +22,11 @@ namespace Zeze.Builtin.Game.Bag
         int _Id;
         int _Number;
         readonly Zeze.Transaction.DynamicBean _Item;
+        public static Zeze.Transaction.DynamicBean NewDynamicBeanItem()
+        {
+            return new Zeze.Transaction.DynamicBean(3, Zeze.Game.Bag.GetSpecialTypeIdFromBean, Zeze.Game.Bag.CreateBeanFromSpecialTypeId);
+        }
+
         public static long GetSpecialTypeIdFromBean_Item(Zeze.Transaction.Bean bean)
         {
             return Zeze.Game.Bag.GetSpecialTypeIdFromBean(bean);

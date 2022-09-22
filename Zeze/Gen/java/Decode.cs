@@ -14,6 +14,9 @@ namespace Zeze.Gen.java
         readonly string prefix;
         readonly string typeVarName;
 
+        string Getter => var != null ? var.Getter : tmpvarname;
+        string NamePrivate => var != null ? var.NamePrivate : tmpvarname;
+
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "@Override");
@@ -133,13 +136,6 @@ namespace Zeze.Gen.java
             this.sw = sw;
             this.prefix = prefix;
             this.typeVarName = typeVarName ?? "_t_";
-        }
-
-        string GetVarName()
-        {
-            if (var != null)
-                return var.Bean.IsNormalBean ? var.Getter : var.NamePrivate;
-            return tmpvarname;
         }
 
         string AssignText(string value)
@@ -280,7 +276,7 @@ namespace Zeze.Gen.java
             if (id <= 0)
                 throw new Exception("invalid variable.id");
             Types.Type vt = type.ValueType;
-            sw.WriteLine(prefix + "var _x_ = " + var.Getter + ';');
+            sw.WriteLine(prefix + "var _x_ = " + var.NamePrivate + ';');
             sw.WriteLine(prefix + "_x_.clear();");
             sw.WriteLine(prefix + "if ((_t_ & ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
             sw.Write(prefix + "    for (int _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--)");
@@ -317,7 +313,7 @@ namespace Zeze.Gen.java
                 throw new Exception("invalid variable.id");
             Types.Type kt = type.KeyType;
             Types.Type vt = type.ValueType;
-            sw.WriteLine(prefix + "var _x_ = " + var.Getter + ';');
+            sw.WriteLine(prefix + "var _x_ = " + var.NamePrivate + ';');
             sw.WriteLine(prefix + "_x_.clear();");
             sw.WriteLine(prefix + "if ((_t_ & ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
             sw.WriteLine(prefix + "    int _s_ = (_t_ = " + bufname + ".ReadByte()) >> ByteBuffer.TAG_SHIFT;");
@@ -349,22 +345,22 @@ namespace Zeze.Gen.java
         public void Visit(Bean type)
         {
             if (id > 0)
-                sw.WriteLine(prefix + bufname + ".ReadBean(" + GetVarName() + ", _t_);");
+                sw.WriteLine(prefix + bufname + ".ReadBean(" + NamePrivate + ", _t_);");
             else
-                sw.WriteLine(prefix + GetVarName() + ".decode(" + bufname + ");");
+                sw.WriteLine(prefix + NamePrivate + ".decode(" + bufname + ");");
         }
 
         public void Visit(BeanKey type)
         {
             if (id > 0)
-                sw.WriteLine(prefix + bufname + ".ReadBean(" + GetVarName() + ", _t_);");
+                sw.WriteLine(prefix + bufname + ".ReadBean(" + Getter + ", _t_);");
             else
-                sw.WriteLine(prefix + GetVarName() + ".decode(" + bufname + ");");
+                sw.WriteLine(prefix + Getter + ".decode(" + bufname + ");");
         }
 
         public void Visit(TypeDynamic type)
         {
-            sw.WriteLine(prefix + bufname + ".ReadDynamic(" + GetVarName() + ", " + typeVarName + ");");
+            sw.WriteLine(prefix + bufname + ".ReadDynamic(" + NamePrivate + ", " + typeVarName + ");");
         }
 
         public void Visit(TypeQuaternion type)

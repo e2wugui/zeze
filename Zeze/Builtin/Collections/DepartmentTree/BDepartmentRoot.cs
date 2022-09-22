@@ -12,7 +12,7 @@ namespace Zeze.Builtin.Collections.DepartmentTree
         public BDepartmentRoot Copy();
 
         public string Root { get; }
-        public System.Collections.Generic.IReadOnlyDictionary<string,Zeze.Transaction.DynamicBean> Managers { get; }
+        public System.Collections.Generic.IReadOnlyDictionary<string,Zeze.Transaction.DynamicBeanReadOnly> Managers { get; }
         public long NextDepartmentId { get; }
         public System.Collections.Generic.IReadOnlyDictionary<string,long> Childs { get; }
     }
@@ -20,8 +20,13 @@ namespace Zeze.Builtin.Collections.DepartmentTree
     public sealed class BDepartmentRoot : Zeze.Transaction.Bean, BDepartmentRootReadOnly
     {
         string _Root; // 群主
-        readonly Zeze.Transaction.Collections.CollMap1<string, Zeze.Transaction.DynamicBean> _Managers;
-        Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Transaction.DynamicBean,Zeze.Transaction.DynamicBean> _ManagersReadOnly;
+        readonly Zeze.Transaction.Collections.CollMap2<string, Zeze.Transaction.DynamicBean> _Managers;
+        Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Transaction.DynamicBeanReadOnly,Zeze.Transaction.DynamicBean> _ManagersReadOnly;
+        public static Zeze.Transaction.DynamicBean NewDynamicBeanManagers()
+        {
+            return new Zeze.Transaction.DynamicBean(2, Zeze.Collections.DepartmentTree.GetSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree.CreateBeanFromSpecialTypeId);
+        }
+
         public static long GetSpecialTypeIdFromBean_Managers(Zeze.Transaction.Bean bean)
         {
             return Zeze.Collections.DepartmentTree.GetSpecialTypeIdFromBean(bean);
@@ -62,8 +67,8 @@ namespace Zeze.Builtin.Collections.DepartmentTree
             }
         }
 
-        public Zeze.Transaction.Collections.CollMap1<string, Zeze.Transaction.DynamicBean> Managers => _Managers;
-        System.Collections.Generic.IReadOnlyDictionary<string,Zeze.Transaction.DynamicBean> Zeze.Builtin.Collections.DepartmentTree.BDepartmentRootReadOnly.Managers => _ManagersReadOnly;
+        public Zeze.Transaction.Collections.CollMap2<string, Zeze.Transaction.DynamicBean> Managers => _Managers;
+        System.Collections.Generic.IReadOnlyDictionary<string,Zeze.Transaction.DynamicBeanReadOnly> Zeze.Builtin.Collections.DepartmentTree.BDepartmentRootReadOnly.Managers => _ManagersReadOnly;
 
         public long NextDepartmentId
         {
@@ -96,8 +101,8 @@ namespace Zeze.Builtin.Collections.DepartmentTree
         public BDepartmentRoot()
         {
             _Root = "";
-            _Managers = new Zeze.Transaction.Collections.CollMap1<string, Zeze.Transaction.DynamicBean>() { VariableId = 2 };
-            _ManagersReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Transaction.DynamicBean,Zeze.Transaction.DynamicBean>(_Managers);
+            _Managers = new Zeze.Transaction.Collections.CollMap2<string, Zeze.Transaction.DynamicBean>() { VariableId = 2 };
+            _ManagersReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Transaction.DynamicBeanReadOnly,Zeze.Transaction.DynamicBean>(_Managers);
             _Childs = new Zeze.Transaction.Collections.CollMap1<string, long>() { VariableId = 4 };
             _ChildsReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<string,long,long>(_Childs);
         }
@@ -105,8 +110,8 @@ namespace Zeze.Builtin.Collections.DepartmentTree
         public BDepartmentRoot(string _Root_, long _NextDepartmentId_)
         {
             _Root = _Root_;
-            _Managers = new Zeze.Transaction.Collections.CollMap1<string, Zeze.Transaction.DynamicBean>() { VariableId = 2 };
-            _ManagersReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Transaction.DynamicBean,Zeze.Transaction.DynamicBean>(_Managers);
+            _Managers = new Zeze.Transaction.Collections.CollMap2<string, Zeze.Transaction.DynamicBean>() { VariableId = 2 };
+            _ManagersReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Transaction.DynamicBeanReadOnly,Zeze.Transaction.DynamicBean>(_Managers);
             _NextDepartmentId = _NextDepartmentId_;
             _Childs = new Zeze.Transaction.Collections.CollMap1<string, long>() { VariableId = 4 };
             _ChildsReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<string,long,long>(_Childs);
@@ -117,7 +122,7 @@ namespace Zeze.Builtin.Collections.DepartmentTree
             Root = other.Root;
             Managers.Clear();
             foreach (var e in other.Managers)
-                Managers.Add(e.Key, e.Value);
+                Managers.Add(e.Key, e.Value.Copy());
             NextDepartmentId = other.NextDepartmentId;
             Childs.Clear();
             foreach (var e in other.Childs)

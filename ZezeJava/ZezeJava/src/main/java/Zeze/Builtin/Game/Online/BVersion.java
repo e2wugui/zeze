@@ -111,9 +111,8 @@ public final class BVersion extends Zeze.Transaction.Bean {
 
     public void assign(BVersion other) {
         setLoginVersion(other.getLoginVersion());
-        getReliableNotifyMark().clear();
-        for (var e : other.getReliableNotifyMark())
-            getReliableNotifyMark().add(e);
+        _ReliableNotifyMark.clear();
+        _ReliableNotifyMark.addAll(other._ReliableNotifyMark);
         setReliableNotifyConfirmIndex(other.getReliableNotifyConfirmIndex());
         setReliableNotifyIndex(other.getReliableNotifyIndex());
         setServerId(other.getServerId());
@@ -193,7 +192,7 @@ public final class BVersion extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("LoginVersion").append('=').append(getLoginVersion()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("ReliableNotifyMark").append("=[").append(System.lineSeparator());
         level += 4;
-        for (var _item_ : getReliableNotifyMark()) {
+        for (var _item_ : _ReliableNotifyMark) {
             sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(_item_).append(',').append(System.lineSeparator());
         }
         level -= 4;
@@ -228,7 +227,7 @@ public final class BVersion extends Zeze.Transaction.Bean {
             }
         }
         {
-            var _x_ = getReliableNotifyMark();
+            var _x_ = _ReliableNotifyMark;
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.LIST);
@@ -270,7 +269,7 @@ public final class BVersion extends Zeze.Transaction.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            var _x_ = getReliableNotifyMark();
+            var _x_ = _ReliableNotifyMark;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)

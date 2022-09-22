@@ -72,9 +72,9 @@ public final class BOfflineTimers extends Zeze.Transaction.Bean {
     public void assign(BOfflineTimers other) {
         setServerId(other.getServerId());
         setLoginVersion(other.getLoginVersion());
-        getOfflineTimers().clear();
-        for (var e : other.getOfflineTimers().entrySet())
-            getOfflineTimers().put(e.getKey(), e.getValue().copy());
+        _OfflineTimers.clear();
+        for (var e : other._OfflineTimers.entrySet())
+            _OfflineTimers.put(e.getKey(), e.getValue().copy());
     }
 
     @Deprecated
@@ -138,7 +138,7 @@ public final class BOfflineTimers extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("LoginVersion").append('=').append(getLoginVersion()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("OfflineTimers").append("=[").append(System.lineSeparator());
         level += 4;
-        for (var _kv_ : getOfflineTimers().entrySet()) {
+        for (var _kv_ : _OfflineTimers.entrySet()) {
             sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(_kv_.getKey()).append(',').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
@@ -182,7 +182,7 @@ public final class BOfflineTimers extends Zeze.Transaction.Bean {
             }
         }
         {
-            var _x_ = getOfflineTimers();
+            var _x_ = _OfflineTimers;
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.MAP);
@@ -209,7 +209,7 @@ public final class BOfflineTimers extends Zeze.Transaction.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            var _x_ = getOfflineTimers();
+            var _x_ = _OfflineTimers;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
@@ -244,7 +244,7 @@ public final class BOfflineTimers extends Zeze.Transaction.Bean {
             return true;
         if (getLoginVersion() < 0)
             return true;
-        for (var _v_ : getOfflineTimers().values()) {
+        for (var _v_ : _OfflineTimers.values()) {
             if (_v_.negativeCheck())
                 return true;
         }

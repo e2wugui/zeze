@@ -6,6 +6,7 @@ import java.lang.invoke.MethodType;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.function.Supplier;
 import Zeze.Net.Binary;
 import Zeze.Serialize.Quaternion;
 import Zeze.Serialize.Serializable;
@@ -21,9 +22,16 @@ public class Reflect {
 	public static final boolean inDebugMode = !"true".equals(System.getProperty("noDebugMode")) &&
 			ManagementFactory.getRuntimeMXBean().getInputArguments().toString().indexOf("-agentlib:jdwp") > 0;
 	public static final StackWalker stackWalker = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
+	public static final MethodHandle supplierMH;
 	private static final HashMap<Class<?>, String> stableNameMap = new HashMap<>(32);
 
 	static {
+		try {
+			supplierMH = MethodHandles.lookup().findVirtual(Supplier.class, "get", MethodType.methodType(Object.class));
+		} catch (ReflectiveOperationException e) {
+			throw new RuntimeException(e);
+		}
+
 		stableNameMap.put(boolean.class, "bool");
 		stableNameMap.put(Boolean.class, "bool");
 		stableNameMap.put(byte.class, "byte");

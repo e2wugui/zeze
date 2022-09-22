@@ -20,9 +20,8 @@ public final class BCustomClasses extends Zeze.Transaction.Bean {
     }
 
     public void assign(BCustomClasses other) {
-        getCustomClasses().clear();
-        for (var e : other.getCustomClasses())
-            getCustomClasses().add(e);
+        _CustomClasses.clear();
+        _CustomClasses.addAll(other._CustomClasses);
     }
 
     @Deprecated
@@ -70,7 +69,7 @@ public final class BCustomClasses extends Zeze.Transaction.Bean {
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("CustomClasses").append("=[").append(System.lineSeparator());
         level += 4;
-        for (var _item_ : getCustomClasses()) {
+        for (var _item_ : _CustomClasses) {
             sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(_item_).append(',').append(System.lineSeparator());
         }
         level -= 4;
@@ -95,7 +94,7 @@ public final class BCustomClasses extends Zeze.Transaction.Bean {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            var _x_ = getCustomClasses();
+            var _x_ = _CustomClasses;
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.LIST);
@@ -112,7 +111,7 @@ public final class BCustomClasses extends Zeze.Transaction.Bean {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            var _x_ = getCustomClasses();
+            var _x_ = _CustomClasses;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)

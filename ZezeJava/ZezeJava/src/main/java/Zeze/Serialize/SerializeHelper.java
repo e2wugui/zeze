@@ -1,13 +1,16 @@
 package Zeze.Serialize;
 
+import java.lang.invoke.MethodHandle;
 import java.util.HashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.LongFunction;
+import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DynamicBean;
+import Zeze.Util.Reflect;
 
 public final class SerializeHelper {
 	@SuppressWarnings("ClassCanBeRecord")
@@ -92,26 +95,20 @@ public final class SerializeHelper {
 			return codec;
 		if (!Serializable.class.isAssignableFrom(cls))
 			throw new UnsupportedOperationException("unsupported codec type: " + cls.getName());
-		return new CodecFuncs<>((bb, obj) -> ((Serializable)obj).encode(bb),
-				bb -> {
-					T obj;
-					try {
-						obj = cls.getConstructor((Class<?>[])null).newInstance((Object[])null);
-					} catch (ReflectiveOperationException e) {
-						throw new RuntimeException(e);
-					}
-					((Serializable)obj).decode(bb);
-					return obj;
-				});
+		return new CodecFuncs<>((bb, obj) -> ((Serializable)obj).encode(bb), bb -> {
+			T obj;
+			try {
+				obj = cls.getConstructor((Class<?>[])null).newInstance((Object[])null);
+			} catch (ReflectiveOperationException e) {
+				throw new RuntimeException(e);
+			}
+			((Serializable)obj).decode(bb);
+			return obj;
+		});
 	}
 
-	public static CodecFuncs<DynamicBean> createCodec(ToLongFunction<Bean> get, LongFunction<Bean> create) {
-		return new CodecFuncs<>((bb, obj) -> obj.encode(bb), bb -> {
-			var bean = new DynamicBean(0, get, create);
-			if (bb != null) // for creating DynamicBean by json decoder
-				bean.decode(bb);
-			return bean;
-		});
+	public static MethodHandle createDynamicFactory(ToLongFunction<Bean> get, LongFunction<Bean> create) {
+		return Reflect.supplierMH.bindTo((Supplier<?>)() -> new DynamicBean(0, get, create));
 	}
 
 	private SerializeHelper() {

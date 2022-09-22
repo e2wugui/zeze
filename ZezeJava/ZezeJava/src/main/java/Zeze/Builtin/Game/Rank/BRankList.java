@@ -20,9 +20,9 @@ public final class BRankList extends Zeze.Transaction.Bean {
     }
 
     public void assign(BRankList other) {
-        getRankList().clear();
-        for (var e : other.getRankList())
-            getRankList().add(e.copy());
+        _RankList.clear();
+        for (var e : other._RankList)
+            _RankList.add(e.copy());
     }
 
     @Deprecated
@@ -70,7 +70,7 @@ public final class BRankList extends Zeze.Transaction.Bean {
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("RankList").append("=[").append(System.lineSeparator());
         level += 4;
-        for (var _item_ : getRankList()) {
+        for (var _item_ : _RankList) {
             sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(System.lineSeparator());
             _item_.buildString(sb, level + 4);
             sb.append(',').append(System.lineSeparator());
@@ -97,7 +97,7 @@ public final class BRankList extends Zeze.Transaction.Bean {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            var _x_ = getRankList();
+            var _x_ = _RankList;
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.LIST);
@@ -114,7 +114,7 @@ public final class BRankList extends Zeze.Transaction.Bean {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            var _x_ = getRankList();
+            var _x_ = _RankList;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
@@ -141,7 +141,7 @@ public final class BRankList extends Zeze.Transaction.Bean {
 
     @Override
     public boolean negativeCheck() {
-        for (var _v_ : getRankList()) {
+        for (var _v_ : _RankList) {
             if (_v_.negativeCheck())
                 return true;
         }

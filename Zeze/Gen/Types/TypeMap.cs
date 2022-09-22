@@ -49,7 +49,6 @@ namespace Zeze.Gen.Types
 			//else if (ValueType is TypeDynamic d)
 			//	d.MapKeyTypes.Add(KeyType);
 
-
 			//if (ValueType is TypeBinary)
 			//	throw new Exception(Name + " Error : value type is binary.");
 		}

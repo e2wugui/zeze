@@ -2,7 +2,10 @@ package Zeze.Transaction.Collections;
 
 import java.lang.invoke.MethodHandle;
 import java.util.Collection;
+import java.util.function.LongFunction;
+import java.util.function.ToLongFunction;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Record;
@@ -20,9 +23,23 @@ public class PList2<V extends Bean> extends PList<V> {
 		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.LogList2<" + Reflect.getStableName(valueClass) + '>');
 	}
 
+	public PList2(ToLongFunction<Bean> get, LongFunction<Bean> create) { // only for DynamicBean value
+		valueFactory = SerializeHelper.createDynamicFactory(get, create);
+		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Transaction.LogList2<Zeze.Transaction.DynamicBean>");
+	}
+
 	private PList2(int logTypeId, MethodHandle valueFactory) {
 		this.valueFactory = valueFactory;
 		this.logTypeId = logTypeId;
+	}
+
+	@SuppressWarnings("unchecked")
+	public V createValue() {
+		try {
+			return (V)valueFactory.invoke();
+		} catch (Throwable e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override
@@ -219,15 +236,14 @@ public class PList2<V extends Bean> extends PList<V> {
 	@Override
 	public void decode(ByteBuffer bb) {
 		clear();
-		for (int i = bb.ReadUInt(); i > 0; i--) {
-			V value;
-			try {
-				value = (V)valueFactory.invoke();
-			} catch (Throwable e) {
-				throw new RuntimeException(e);
+		try {
+			for (int i = bb.ReadUInt(); i > 0; i--) {
+				V value = (V)valueFactory.invoke();
+				value.decode(bb);
+				add(value);
 			}
-			value.decode(bb);
-			add(value);
+		} catch (Throwable e) {
+			throw new RuntimeException(e);
 		}
 	}
 }

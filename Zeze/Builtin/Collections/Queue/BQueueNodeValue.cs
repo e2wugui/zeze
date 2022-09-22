@@ -20,6 +20,11 @@ namespace Zeze.Builtin.Collections.Queue
     {
         long _Timestamp;
         readonly Zeze.Transaction.DynamicBean _Value;
+        public static Zeze.Transaction.DynamicBean NewDynamicBeanValue()
+        {
+            return new Zeze.Transaction.DynamicBean(2, Zeze.Collections.Queue.GetSpecialTypeIdFromBean, Zeze.Collections.Queue.CreateBeanFromSpecialTypeId);
+        }
+
         public static long GetSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean)
         {
             return Zeze.Collections.Queue.GetSpecialTypeIdFromBean(bean);

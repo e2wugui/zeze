@@ -9,6 +9,10 @@ public final class BAny extends Zeze.Transaction.Bean {
 
     private final Zeze.Transaction.DynamicBean _Any;
 
+    public static Zeze.Transaction.DynamicBean newDynamicBean_Any() {
+        return new Zeze.Transaction.DynamicBean(1, Zeze.Game.Online::getSpecialTypeIdFromBean, Zeze.Game.Online::createBeanFromSpecialTypeId);
+    }
+
     public static long getSpecialTypeIdFromBean_Any(Zeze.Transaction.Bean bean) {
         return Zeze.Game.Online.getSpecialTypeIdFromBean(bean);
     }
@@ -35,11 +39,11 @@ public final class BAny extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("deprecation")
     public BAny() {
-        _Any = new Zeze.Transaction.DynamicBean(1, Zeze.Game.Online::getSpecialTypeIdFromBean, Zeze.Game.Online::createBeanFromSpecialTypeId);
+        _Any = newDynamicBean_Any();
     }
 
     public void assign(BAny other) {
-        getAny().assign(other.getAny());
+        _Any.assign(other._Any);
     }
 
     @Deprecated
@@ -86,7 +90,7 @@ public final class BAny extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Online.BAny: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Any").append('=').append(System.lineSeparator());
-        getAny().getBean().buildString(sb, level + 4);
+        _Any.getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -108,7 +112,7 @@ public final class BAny extends Zeze.Transaction.Bean {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            var _x_ = getAny();
+            var _x_ = _Any;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.DYNAMIC);
                 _x_.encode(_o_);
@@ -122,7 +126,7 @@ public final class BAny extends Zeze.Transaction.Bean {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _o_.ReadDynamic(getAny(), _t_);
+            _o_.ReadDynamic(_Any, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

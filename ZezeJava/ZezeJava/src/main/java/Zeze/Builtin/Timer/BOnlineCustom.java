@@ -9,6 +9,10 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean {
 
     private final Zeze.Transaction.DynamicBean _CustomData;
 
+    public static Zeze.Transaction.DynamicBean newDynamicBean_CustomData() {
+        return new Zeze.Transaction.DynamicBean(1, BOnlineCustom::getSpecialTypeIdFromBean_CustomData, BOnlineCustom::createBeanFromSpecialTypeId_CustomData);
+    }
+
     public static long getSpecialTypeIdFromBean_CustomData(Zeze.Transaction.Bean bean) {
         var _typeId_ = bean.typeId();
         if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
@@ -38,11 +42,11 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("deprecation")
     public BOnlineCustom() {
-        _CustomData = new Zeze.Transaction.DynamicBean(1, BOnlineCustom::getSpecialTypeIdFromBean_CustomData, BOnlineCustom::createBeanFromSpecialTypeId_CustomData);
+        _CustomData = newDynamicBean_CustomData();
     }
 
     public void assign(BOnlineCustom other) {
-        getCustomData().assign(other.getCustomData());
+        _CustomData.assign(other._CustomData);
     }
 
     @Deprecated
@@ -89,7 +93,7 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Timer.BOnlineCustom: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("CustomData").append('=').append(System.lineSeparator());
-        getCustomData().getBean().buildString(sb, level + 4);
+        _CustomData.getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -111,7 +115,7 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            var _x_ = getCustomData();
+            var _x_ = _CustomData;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.DYNAMIC);
                 _x_.encode(_o_);
@@ -125,7 +129,7 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _o_.ReadDynamic(getCustomData(), _t_);
+            _o_.ReadDynamic(_CustomData, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

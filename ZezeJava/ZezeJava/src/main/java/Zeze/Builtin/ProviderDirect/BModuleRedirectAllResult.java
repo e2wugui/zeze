@@ -141,9 +141,9 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean {
         setSourceProvider(other.getSourceProvider());
         setMethodFullName(other.getMethodFullName());
         setSessionId(other.getSessionId());
-        getHashs().clear();
-        for (var e : other.getHashs().entrySet())
-            getHashs().put(e.getKey(), e.getValue().copy());
+        _Hashs.clear();
+        for (var e : other._Hashs.entrySet())
+            _Hashs.put(e.getKey(), e.getValue().copy());
     }
 
     @Deprecated
@@ -231,7 +231,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("SessionId").append('=').append(getSessionId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Hashs").append("=[").append(System.lineSeparator());
         level += 4;
-        for (var _kv_ : getHashs().entrySet()) {
+        for (var _kv_ : _Hashs.entrySet()) {
             sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(_kv_.getKey()).append(',').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
@@ -296,7 +296,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean {
             }
         }
         {
-            var _x_ = getHashs();
+            var _x_ = _Hashs;
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.MAP);
@@ -335,7 +335,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 6) {
-            var _x_ = getHashs();
+            var _x_ = _Hashs;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
@@ -374,7 +374,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean {
             return true;
         if (getSessionId() < 0)
             return true;
-        for (var _v_ : getHashs().values()) {
+        for (var _v_ : _Hashs.values()) {
             if (_v_.negativeCheck())
                 return true;
         }

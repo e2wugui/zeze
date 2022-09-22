@@ -6,8 +6,12 @@ namespace Zeze.Gen.java
     class NegativeCheck : Visitor
     {
         readonly StreamWriter sw;
+        readonly Variable var;
         readonly string varname;
         readonly string prefix;
+
+        string Getter => var != null ? var.Getter : varname;
+        string NamePrivate => var != null ? var.NamePrivate : varname;
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
@@ -17,7 +21,7 @@ namespace Zeze.Gen.java
             {
                 if (var.AllowNegative)
                     continue;
-                var.VariableType.Accept(new NegativeCheck(sw, var.Getter, prefix + "    "));
+                var.VariableType.Accept(new NegativeCheck(sw, var, null, prefix + "    "));
             }
             sw.WriteLine(prefix + "    return false;");
             sw.WriteLine(prefix + "}");
@@ -31,15 +35,16 @@ namespace Zeze.Gen.java
             {
                 if (var.AllowNegative)
                     continue;
-                var.VariableType.Accept(new NegativeCheck(sw, var.Getter, prefix + "    "));
+                var.VariableType.Accept(new NegativeCheck(sw, var, null, prefix + "    "));
             }
             sw.WriteLine(prefix + "    return false;");
             sw.WriteLine(prefix + "}");
         }
 
-        NegativeCheck(StreamWriter sw, string varname, string prefix)
+        NegativeCheck(StreamWriter sw, Variable var, string varname, string prefix)
         {
             this.sw = sw;
+            this.var = var;
             this.varname = varname;
             this.prefix = prefix;
         }
@@ -54,19 +59,19 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeShort type)
         {
-            sw.WriteLine(prefix + "if (" + varname + " < 0)");
+            sw.WriteLine(prefix + "if (" + Getter + " < 0)");
             sw.WriteLine(prefix + "    return true;");
         }
 
         public void Visit(TypeInt type)
         {
-            sw.WriteLine(prefix + "if (" + varname + " < 0)");
+            sw.WriteLine(prefix + "if (" + Getter + " < 0)");
             sw.WriteLine(prefix + "    return true;");
         }
 
         public void Visit(TypeLong type)
         {
-            sw.WriteLine(prefix + "if (" + varname + " < 0)");
+            sw.WriteLine(prefix + "if (" + Getter + " < 0)");
             sw.WriteLine(prefix + "    return true;");
         }
 
@@ -91,8 +96,8 @@ namespace Zeze.Gen.java
         {
             if (type.IsNeedNegativeCheck)
             {
-                sw.WriteLine(prefix + "for (var _v_ : " + varname + ") {");
-                type.ValueType.Accept(new NegativeCheck(sw, "_v_", prefix + "    "));
+                sw.WriteLine(prefix + "for (var _v_ : " + NamePrivate + ") {");
+                type.ValueType.Accept(new NegativeCheck(sw, null, "_v_", prefix + "    "));
                 sw.WriteLine(prefix + "}");
             }
         }
@@ -101,8 +106,8 @@ namespace Zeze.Gen.java
         {
             if (type.IsNeedNegativeCheck)
             {
-                sw.WriteLine(prefix + "for (var _v_ : " + varname + ") {");
-                type.ValueType.Accept(new NegativeCheck(sw, "_v_", prefix + "    "));
+                sw.WriteLine(prefix + "for (var _v_ : " + NamePrivate + ") {");
+                type.ValueType.Accept(new NegativeCheck(sw, null, "_v_", prefix + "    "));
                 sw.WriteLine(prefix + "}");
             }
         }
@@ -111,8 +116,8 @@ namespace Zeze.Gen.java
         {
             if (type.IsNeedNegativeCheck)
             {
-                sw.WriteLine(prefix + "for (var _v_ : " + varname + ".values()) {");
-                type.ValueType.Accept(new NegativeCheck(sw, "_v_", prefix + "    "));
+                sw.WriteLine(prefix + "for (var _v_ : " + NamePrivate + ".values()) {");
+                type.ValueType.Accept(new NegativeCheck(sw, null, "_v_", prefix + "    "));
                 sw.WriteLine(prefix + "}");
             }
         }
@@ -121,7 +126,7 @@ namespace Zeze.Gen.java
         {
             if (type.IsNeedNegativeCheck)
             {
-                sw.WriteLine(prefix + "if (" + varname + ".negativeCheck())");
+                sw.WriteLine(prefix + "if (" + NamePrivate + ".negativeCheck())");
                 sw.WriteLine(prefix + "    return true;");
             }
         }
@@ -130,7 +135,7 @@ namespace Zeze.Gen.java
         {
             if (type.IsNeedNegativeCheck)
             {
-                sw.WriteLine(prefix + "if (" + varname + ".negativeCheck())");
+                sw.WriteLine(prefix + "if (" + Getter + ".negativeCheck())");
                 sw.WriteLine(prefix + "    return true;");
             }
         }
@@ -139,7 +144,7 @@ namespace Zeze.Gen.java
         {
             if (type.IsNeedNegativeCheck)
             {
-                sw.WriteLine(prefix + "if (" + varname + ".negativeCheck())");
+                sw.WriteLine(prefix + "if (" + NamePrivate + ".negativeCheck())");
                 sw.WriteLine(prefix + "    return true;");
             }
         }

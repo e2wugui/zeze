@@ -20,9 +20,9 @@ public final class BLocals extends Zeze.Transaction.Bean {
     }
 
     public void assign(BLocals other) {
-        getLogins().clear();
-        for (var e : other.getLogins().entrySet())
-            getLogins().put(e.getKey(), e.getValue().copy());
+        _Logins.clear();
+        for (var e : other._Logins.entrySet())
+            _Logins.put(e.getKey(), e.getValue().copy());
     }
 
     @Deprecated
@@ -70,7 +70,7 @@ public final class BLocals extends Zeze.Transaction.Bean {
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Logins").append("=[").append(System.lineSeparator());
         level += 4;
-        for (var _kv_ : getLogins().entrySet()) {
+        for (var _kv_ : _Logins.entrySet()) {
             sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(_kv_.getKey()).append(',').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
@@ -100,7 +100,7 @@ public final class BLocals extends Zeze.Transaction.Bean {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            var _x_ = getLogins();
+            var _x_ = _Logins;
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.MAP);
@@ -119,7 +119,7 @@ public final class BLocals extends Zeze.Transaction.Bean {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            var _x_ = getLogins();
+            var _x_ = _Logins;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
@@ -150,7 +150,7 @@ public final class BLocals extends Zeze.Transaction.Bean {
 
     @Override
     public boolean negativeCheck() {
-        for (var _v_ : getLogins().values()) {
+        for (var _v_ : _Logins.values()) {
             if (_v_.negativeCheck())
                 return true;
         }

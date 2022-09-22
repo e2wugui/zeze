@@ -2,6 +2,8 @@ package Zeze.Transaction.Collections;
 
 import java.lang.invoke.MethodHandle;
 import java.util.Map;
+import java.util.function.LongFunction;
+import java.util.function.ToLongFunction;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Bean;
@@ -24,10 +26,26 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 				+ Reflect.getStableName(keyClass) + ", " + Reflect.getStableName(valueClass) + '>');
 	}
 
+	public PMap2(Class<K> keyClass, ToLongFunction<Bean> get, LongFunction<Bean> create) { // only for DynamicBean value
+		keyCodecFuncs = SerializeHelper.createCodec(keyClass);
+		valueFactory = SerializeHelper.createDynamicFactory(get, create);
+		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Transaction.Collections.LogMap2<"
+				+ Reflect.getStableName(keyClass) + ", Zeze.Transaction.DynamicBean>");
+	}
+
 	private PMap2(int logTypeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs, MethodHandle valueFactory) {
 		this.keyCodecFuncs = keyCodecFuncs;
 		this.valueFactory = valueFactory;
 		this.logTypeId = logTypeId;
+	}
+
+	@SuppressWarnings("unchecked")
+	public V createValue() {
+		try {
+			return (V)valueFactory.invoke();
+		} catch (Throwable e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -77,10 +95,8 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.putAll(m);
-		}
-		else {
+		} else
 			map = map.plusAll(m);
-		}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -192,16 +208,15 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	public void decode(ByteBuffer bb) {
 		clear();
 		var decoder = keyCodecFuncs.decoder;
-		for (int i = bb.ReadUInt(); i > 0; i--) {
-			var key = decoder.apply(bb);
-			V value;
-			try {
-				value = (V)valueFactory.invoke();
-			} catch (Throwable e) {
-				throw new RuntimeException(e);
+		try {
+			for (int i = bb.ReadUInt(); i > 0; i--) {
+				var key = decoder.apply(bb);
+				V value = (V)valueFactory.invoke();
+				value.decode(bb);
+				put(key, value);
 			}
-			value.decode(bb);
-			put(key, value);
+		} catch (Throwable e) {
+			throw new RuntimeException(e);
 		}
 	}
 }

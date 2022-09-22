@@ -100,9 +100,8 @@ public final class BTransmit extends Zeze.Transaction.Bean {
 
     public void assign(BTransmit other) {
         setActionName(other.getActionName());
-        getRoles().clear();
-        for (var e : other.getRoles())
-            getRoles().add(e);
+        _Roles.clear();
+        _Roles.addAll(other._Roles);
         setSender(other.getSender());
         setParameter(other.getParameter());
     }
@@ -174,7 +173,7 @@ public final class BTransmit extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("ActionName").append('=').append(getActionName()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Roles").append("=[").append(System.lineSeparator());
         level += 4;
-        for (var _item_ : getRoles()) {
+        for (var _item_ : _Roles) {
             sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(_item_).append(',').append(System.lineSeparator());
         }
         level -= 4;
@@ -208,7 +207,7 @@ public final class BTransmit extends Zeze.Transaction.Bean {
             }
         }
         {
-            var _x_ = getRoles();
+            var _x_ = _Roles;
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.LIST);
@@ -243,7 +242,7 @@ public final class BTransmit extends Zeze.Transaction.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            var _x_ = getRoles();
+            var _x_ = _Roles;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
@@ -278,7 +277,7 @@ public final class BTransmit extends Zeze.Transaction.Bean {
 
     @Override
     public boolean negativeCheck() {
-        for (var _v_ : getRoles()) {
+        for (var _v_ : _Roles) {
             if (_v_ < 0)
                 return true;
         }

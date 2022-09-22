@@ -10,6 +10,10 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
     private String _Id; // LinkedMap的Key转成字符串类型
     private final Zeze.Transaction.DynamicBean _Value;
 
+    public static Zeze.Transaction.DynamicBean newDynamicBean_Value() {
+        return new Zeze.Transaction.DynamicBean(2, Zeze.Collections.LinkedMap::getSpecialTypeIdFromBean, Zeze.Collections.LinkedMap::createBeanFromSpecialTypeId);
+    }
+
     public static long getSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean) {
         return Zeze.Collections.LinkedMap.getSpecialTypeIdFromBean(bean);
     }
@@ -46,7 +50,7 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
     @SuppressWarnings("deprecation")
     public BLinkedMapNodeValue() {
         _Id = "";
-        _Value = new Zeze.Transaction.DynamicBean(2, Zeze.Collections.LinkedMap::getSpecialTypeIdFromBean, Zeze.Collections.LinkedMap::createBeanFromSpecialTypeId);
+        _Value = newDynamicBean_Value();
     }
 
     @SuppressWarnings("deprecation")
@@ -54,12 +58,12 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
         if (_Id_ == null)
             throw new IllegalArgumentException();
         _Id = _Id_;
-        _Value = new Zeze.Transaction.DynamicBean(2, Zeze.Collections.LinkedMap::getSpecialTypeIdFromBean, Zeze.Collections.LinkedMap::createBeanFromSpecialTypeId);
+        _Value = newDynamicBean_Value();
     }
 
     public void assign(BLinkedMapNodeValue other) {
         setId(other.getId());
-        getValue().assign(other.getValue());
+        _Value.assign(other._Value);
     }
 
     @Deprecated
@@ -114,7 +118,7 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Id").append('=').append(getId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
-        getValue().getBean().buildString(sb, level + 4);
+        _Value.getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -143,7 +147,7 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
             }
         }
         {
-            var _x_ = getValue();
+            var _x_ = _Value;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.DYNAMIC);
                 _x_.encode(_o_);
@@ -161,7 +165,7 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            _o_.ReadDynamic(getValue(), _t_);
+            _o_.ReadDynamic(_Value, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

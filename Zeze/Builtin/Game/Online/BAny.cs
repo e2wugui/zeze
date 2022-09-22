@@ -18,6 +18,11 @@ namespace Zeze.Builtin.Game.Online
     public sealed class BAny : Zeze.Transaction.Bean, BAnyReadOnly
     {
         readonly Zeze.Transaction.DynamicBean _Any;
+        public static Zeze.Transaction.DynamicBean NewDynamicBeanAny()
+        {
+            return new Zeze.Transaction.DynamicBean(1, Zeze.Game.Online.GetSpecialTypeIdFromBean, Zeze.Game.Online.CreateBeanFromSpecialTypeId);
+        }
+
         public static long GetSpecialTypeIdFromBean_Any(Zeze.Transaction.Bean bean)
         {
             return Zeze.Game.Online.GetSpecialTypeIdFromBean(bean);
