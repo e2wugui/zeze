@@ -456,6 +456,7 @@ public class Timer extends AbstractTimer {
 		simpleTimer.setRemainTimes(times);
 		simpleTimer.setEndTime(endTime);
 		long expectedTime = now + delay;
+		simpleTimer.setExpectedTime(expectedTime);
 		simpleTimer.setNextExpectedTime(expectedTime);
 		simpleTimer.setStartTime(expectedTime);
 	}
@@ -490,6 +491,9 @@ public class Timer extends AbstractTimer {
 				simpleTimer.setNextExpectedTime(simpleTimer.getExpectedTime() + simpleTimer.getPeriod());
 				break;
 			}
+		}else {
+			simpleTimer.setExpectedTime(simpleTimer.getExpectedTime() + simpleTimer.getPeriod());
+			simpleTimer.setNextExpectedTime(simpleTimer.getExpectedTime() + simpleTimer.getPeriod());
 		}
 
 		// check endTime
