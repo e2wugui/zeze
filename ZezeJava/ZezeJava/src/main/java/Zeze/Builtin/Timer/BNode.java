@@ -9,7 +9,7 @@ public final class BNode extends Zeze.Transaction.Bean {
 
     private long _PrevNodeId;
     private long _NextNodeId;
-    private final Zeze.Transaction.Collections.PMap2<Long, Zeze.Builtin.Timer.BTimer> _Timers;
+    private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Timer.BTimer> _Timers;
 
     public long getPrevNodeId() {
         if (!isManaged())
@@ -49,13 +49,13 @@ public final class BNode extends Zeze.Transaction.Bean {
         txn.putLog(new Log__NextNodeId(this, 2, value));
     }
 
-    public Zeze.Transaction.Collections.PMap2<Long, Zeze.Builtin.Timer.BTimer> getTimers() {
+    public Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Timer.BTimer> getTimers() {
         return _Timers;
     }
 
     @SuppressWarnings("deprecation")
     public BNode() {
-        _Timers = new Zeze.Transaction.Collections.PMap2<>(Long.class, Zeze.Builtin.Timer.BTimer.class);
+        _Timers = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Timer.BTimer.class);
         _Timers.variableId(3);
     }
 
@@ -63,7 +63,7 @@ public final class BNode extends Zeze.Transaction.Bean {
     public BNode(long _PrevNodeId_, long _NextNodeId_) {
         _PrevNodeId = _PrevNodeId_;
         _NextNodeId = _NextNodeId_;
-        _Timers = new Zeze.Transaction.Collections.PMap2<>(Long.class, Zeze.Builtin.Timer.BTimer.class);
+        _Timers = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Timer.BTimer.class);
         _Timers.variableId(3);
     }
 
@@ -184,9 +184,9 @@ public final class BNode extends Zeze.Transaction.Bean {
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.MAP);
-                _o_.WriteMapType(_n_, ByteBuffer.INTEGER, ByteBuffer.BEAN);
+                _o_.WriteMapType(_n_, ByteBuffer.BYTES, ByteBuffer.BEAN);
                 for (var _e_ : _x_.entrySet()) {
-                    _o_.WriteLong(_e_.getKey());
+                    _o_.WriteString(_e_.getKey());
                     _e_.getValue().encode(_o_);
                 }
             }
@@ -212,7 +212,7 @@ public final class BNode extends Zeze.Transaction.Bean {
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
-                    var _k_ = _o_.ReadLong(_s_);
+                    var _k_ = _o_.ReadString(_s_);
                     var _v_ = _o_.ReadBean(new Zeze.Builtin.Timer.BTimer(), _t_);
                     _x_.put(_k_, _v_);
                 }

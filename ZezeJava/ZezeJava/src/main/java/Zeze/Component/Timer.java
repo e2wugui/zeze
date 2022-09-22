@@ -7,7 +7,6 @@ import java.util.concurrent.Future;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderWithOnline;
 import Zeze.Arch.RedirectToServer;
-import Zeze.Builtin.Game.Rank.BConcurrentKey;
 import Zeze.Builtin.Timer.*;
 import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
@@ -15,7 +14,6 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Action1;
 import Zeze.Util.Action2;
-import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
@@ -44,7 +42,7 @@ public class Timer extends AbstractTimer {
 	final ConcurrentHashMap<String, Action1<TimerContext>> timerHandles = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, Action2<BIndex, BTimer>> timerCancelHandles = new ConcurrentHashMap<>();
 	// 在这台服务器进程内调度的所有Timer。key是timerId，value是ThreadPool.schedule的返回值。
-	final LongConcurrentHashMap<Future<?>> timersFuture = new LongConcurrentHashMap<>();
+	final ConcurrentHashMap<String, Future<?>> timersFuture = new ConcurrentHashMap<>();
 
 	public Timer(Zeze.Application zeze) {
 		this.zeze = zeze;
@@ -106,28 +104,37 @@ public class Timer extends AbstractTimer {
 	// name为静态注册到这个模块的处理名字。
 	// 相同的name可以调度多个timer实例。
 	// @return 返回 TimerId。
-	public long schedule(long delay, long period, String name, Bean customData) {
+	public String schedule(long delay, long period, String name, Bean customData) {
 		return schedule(delay, period, -1, name, customData);
 	}
 
 	// 调度一个Timeout，即仅执行一次的Timer。
-	public long schedule(long delay, String name, Bean customData) {
+	public String schedule(long delay, String name, Bean customData) {
 		return schedule(delay, -1, 1, name, customData);
 	}
 
-	public long schedule(long delay, long period, long times, String name, Bean customData) {
+	public String schedule(long delay, long period, long times, String name, Bean customData) {
 		return schedule(delay, period, times, -1, name, customData);
 	}
 
-	public long schedule(long delay, long period, long times, long endTime, String name, Bean customData) {
-		if (delay < 0)
-			throw new IllegalArgumentException();
+	public String schedule(long delay, long period, long times, long endTime, String name, Bean customData) {
+		return schedule(delay, period, times, endTime, eMissfirePolicyNothing, name, customData);
+	}
+
+	public String schedule(long delay, long period, long times, long endTime, int missfirePolicy, String name, Bean customData) {
 		var simpleTimer = new BSimpleTimer();
 		initSimpleTimer(simpleTimer, delay, period, times, endTime);
+		simpleTimer.setMissfirePolicy(missfirePolicy);
 		return schedule(simpleTimer, name, customData);
 	}
 
-	public long schedule(BSimpleTimer simpleTimer, String name, Bean customData) {
+	// 直接传递BSimpleTimer，需要自己调用它Timer.initSimpleTimer初始化。所以暂时不开放了。
+	private String schedule(BSimpleTimer simpleTimer, String name, Bean customData) {
+		// auto name
+		return schedule("@" + timerIdAutoKey.nextString(), simpleTimer, name, customData);
+	}
+
+	private String schedule(String timerId, BSimpleTimer simpleTimer, String name, Bean customData) {
 		var serverId = zeze.getConfig().getServerId();
 		var root = _tNodeRoot.getOrAdd(serverId);
 		var nodeId = root.getHeadNodeId();
@@ -158,10 +165,14 @@ public class Timer extends AbstractTimer {
 			}
 
 			if (node.getTimers().size() < CountPerNode) {
-				var timerId = timerIdAutoKey.nextId();
+				var index = new BIndex();
+				index.setServerId(serverId);
+				index.setNodeId(nodeId);
+				_tIndexs.tryAdd(timerId, index);
+
 				var timer = new BTimer();
-				timer.setTimerId(timerId);
-				timer.setName(name);
+				timer.setTimerName(timerId);
+				timer.setHandleName(name);
 				timer.setTimerObj(simpleTimer);
 				node.getTimers().put(timerId, timer);
 
@@ -169,11 +180,6 @@ public class Timer extends AbstractTimer {
 					register(customData.getClass());
 					timer.getCustomData().setBean(customData);
 				}
-
-				var index = new BIndex();
-				index.setServerId(serverId);
-				index.setNodeId(nodeId);
-				_tIndexs.tryAdd(timerId, index);
 
 				Transaction.whileCommit(() -> scheduleSimple(serverId, timerId,
 						simpleTimer.getExpectedTime() - System.currentTimeMillis(),
@@ -187,34 +193,44 @@ public class Timer extends AbstractTimer {
 	//////////////////////////////////////////////////////////////////////////////////
 	// Cron Timer
 	// 每月第N(monthDay)天的某个时刻(hour,minute,second)。
-	public long scheduleMonth(int monthDay, int hour, int minute, int second, String name, Bean customData) throws ParseException {
+	public String scheduleMonth(int monthDay, int hour, int minute, int second, String name, Bean customData) throws ParseException {
 		var cron = second + " " + minute + " " + hour + " " + monthDay + " * ?";
 		return schedule(cron, name, customData);
 	}
 
 	// 每周第N(weekDay)天的某个时刻(hour, minute, second)。
-	public long scheduleWeek(int weekDay, int hour, int minute, int second, String name, Bean customData) throws ParseException {
+	public String scheduleWeek(int weekDay, int hour, int minute, int second, String name, Bean customData) throws ParseException {
 		var cron = second + " " + minute + " " + hour + " * * " + weekDay;
 		return schedule(cron, name, customData);
 	}
 
 	// 每天的某个时刻(hour, minute, second)。
-	public long scheduleDay(int hour, int minute, int second, String name, Bean customData) throws ParseException {
+	public String scheduleDay(int hour, int minute, int second, String name, Bean customData) throws ParseException {
 		var cron = second + " " + minute + " " + hour + " * * ?";
 		return schedule(cron, name, customData);
 	}
 
-	public long schedule(String cronExpression, String name, Bean customData) throws ParseException {
+	public String schedule(String cronExpression, String name, Bean customData) throws ParseException {
 		return schedule(cronExpression, -1, -1, name, customData);
 	}
 
-	public long schedule(String cronExpression, long times, long endTime, String name, Bean customData) throws ParseException {
+	public String schedule(String cronExpression, long times, long endTime, String name, Bean customData) throws ParseException {
+		return schedule(cronExpression, times, endTime, eMissfirePolicyNothing, name, customData);
+	}
+
+	public String schedule(String cronExpression, long times, long endTime, int missfirePolicy, String name, Bean customData) throws ParseException {
 		var cronTimer = new BCronTimer();
 		initCronTimer(cronTimer, cronExpression, times, endTime);
+		cronTimer.setMissfirePolicy(missfirePolicy);
 		return schedule(cronTimer, name, customData);
 	}
 
-	public long schedule(BCronTimer cronTimer, String name, Bean customData) throws ParseException {
+	// 直接传递BCronTimer需要自动调用Timer.initCronTimer初始化。先不开放了。
+	private String schedule(BCronTimer cronTimer, String name, Bean customData) {
+		return schedule("@" + timerIdAutoKey.nextString(), cronTimer, name, customData);
+	}
+
+	private String schedule(String timerId, BCronTimer cronTimer, String name, Bean customData) {
 		var serverId = zeze.getConfig().getServerId();
 		var root = _tNodeRoot.getOrAdd(serverId);
 		var nodeId = root.getHeadNodeId();
@@ -245,17 +261,21 @@ public class Timer extends AbstractTimer {
 			}
 
 			if (node.getTimers().size() < CountPerNode) {
-				var timerId = timerIdAutoKey.nextId();
-				var timer = new BTimer();
-				timer.setTimerId(timerId);
-				timer.setName(name);
-				timer.setTimerObj(cronTimer);
-				node.getTimers().put(timerId, timer);
-
 				var index = new BIndex();
 				index.setServerId(serverId);
 				index.setNodeId(nodeId);
-				_tIndexs.tryAdd(timerId, index);
+				_tIndexs.insert(timerId, index);
+
+				var timer = new BTimer();
+				timer.setTimerName(timerId);
+				timer.setHandleName(name);
+				timer.setTimerObj(cronTimer);
+				node.getTimers().put(timerId, timer);
+
+				if (customData != null) {
+					register(customData.getClass());
+					timer.getCustomData().setBean(customData);
+				}
 
 				Transaction.whileCommit(() -> scheduleCron(serverId, timerId, cronTimer, name, timer.getConcurrentFireSerialNo()));
 				return timerId;
@@ -269,46 +289,54 @@ public class Timer extends AbstractTimer {
 	// 有名字的Timer，每个名字只能全局调度唯一一个真正的Timer。
 	// 对这种Timer，不暴露TimerId，只能通过名字访问。
 	// 当真正的Timer被迁移到不同的Server时，名字到TimerId的映射不需要改变。
-	public boolean scheduleNamed(String timerName, long delay, String handleName, Bean customData) {
-		return scheduleNamed(timerName, delay, -1, -1, handleName, customData);
+	public boolean scheduleNamed(String timerId, long delay, String handleName, Bean customData) {
+		return scheduleNamed(timerId, delay, -1, -1, -1, eMissfirePolicyNothing, handleName, customData);
 	}
 
-	public boolean scheduleNamed(String timerName, long delay, long period, String handleName, Bean customData) {
-		return scheduleNamed(timerName, delay, period, -1, handleName, customData);
+	public boolean scheduleNamed(String timerId, long delay, long period, String handleName, Bean customData) {
+		return scheduleNamed(timerId, delay, period, -1, -1, eMissfirePolicyNothing, handleName, customData);
 	}
 
-	public boolean scheduleNamed(String timerName, long delay, long period, long times, String handleName, Bean customData) {
-		var timerId = _tNamed.get(timerName);
-		if (null != timerId)
+	public boolean scheduleNamed(String timerId, long delay, long period, long times, String handleName, Bean customData) {
+		return scheduleNamed(timerId, delay, period, times, -1, eMissfirePolicyNothing, handleName, customData);
+	}
+
+	public boolean scheduleNamed(String timerId, long delay, long period, long times, long endTime, int missfirePolicy, String handleName, Bean customData) {
+		if (timerId.startsWith("@"))
+			throw new IllegalArgumentException("invalid timer name. startsWith '@' is reserved.");
+
+		var index = _tIndexs.get(timerId);
+		if (null != index)
 			return false;
-		timerId = new BTimerId(schedule(delay, period, times, handleName, customData));
-		_tNamed.insert(timerName, timerId);
-		_tIndexs.get(timerId.getTimerId()).setNamedName(timerName);
+
+		var simpleTimer = new BSimpleTimer();
+		initSimpleTimer(simpleTimer, delay, period, times, endTime);
+		simpleTimer.setMissfirePolicy(missfirePolicy);
+		schedule(timerId, simpleTimer, handleName, customData);
 		return true;
 	}
 
 	public boolean scheduleNamed(String timerName, String cron, String handleName, Bean customData) throws ParseException {
-		return scheduleNamed(timerName, cron, -1, -1, handleName, customData);
+		return scheduleNamed(timerName, cron, -1, -1, eMissfirePolicyNothing, handleName, customData);
 	}
 
 	public boolean scheduleNamed(String timerName, String cron, long times, long endTime, String handleName, Bean customData) throws ParseException {
-		var timerId = _tNamed.get(timerName);
+		return scheduleNamed(timerName, cron, times, endTime, eMissfirePolicyNothing, handleName, customData);
+	}
+
+	public boolean scheduleNamed(String timerName, String cron, long times, long endTime, int missfirePolicy, String handleName, Bean customData) throws ParseException {
+		var timerId = _tIndexs.get(timerName);
 		if (null != timerId)
 			return false;
-		timerId = new BTimerId(schedule(cron, times, endTime, handleName, customData));
-		_tNamed.insert(timerName, timerId);
-		_tIndexs.get(timerId.getTimerId()).setNamedName(timerName);
+		var cronTimer = new BCronTimer();
+		initCronTimer(cronTimer, cron, times, endTime);
+		cronTimer.setMissfirePolicy(missfirePolicy);
+		schedule(timerName, cronTimer, handleName, customData);
 		return true;
 	}
 
-	public void cancelNamed(String timerName) {
-		var timerId = _tNamed.get(timerName);
-		cancel(timerId.getTimerId());
-		_tNamed.remove(timerName);
-	}
-
 	// 取消一个具体的Timer实例。
-	public void cancel(long timerId) {
+	public void cancel(String timerId) {
 		try {
 			// XXX 统一通过这里取消定时器，可能会浪费一次内存表查询。
 			if (null != timerRole && timerRole.cancel(timerId))
@@ -342,10 +370,6 @@ public class Timer extends AbstractTimer {
 		return _tGameOlineTimer;
 	}
 
-	tOnlineNamed tOnlineNamed() {
-		return _tOnlineNamed;
-	}
-
 	private TimerAccount timerAccount;
 	private TimerRole timerRole;
 
@@ -360,7 +384,7 @@ public class Timer extends AbstractTimer {
 	/////////////////////////////////////////////////////////////
 	// 内部实现
 	@RedirectToServer
-	protected void redirectCancel(int serverId, long timerId) {
+	protected void redirectCancel(int serverId, String timerId) {
 		// 尽可能的执行取消操作，不做严格判断。
 		var index = _tIndexs.get(timerId);
 		if (null == index) {
@@ -370,23 +394,20 @@ public class Timer extends AbstractTimer {
 		cancel(serverId, timerId, index, _tNodes.get(index.getNodeId()));
 	}
 
-	void cancelFuture(long timerId) {
-		var local = timersFuture.remove(timerId);
+	void cancelFuture(String timerName) {
+		var local = timersFuture.remove(timerName);
 		if (null != local)
 			local.cancel(false);
 	}
 
-	private void cancel(int serverId, long timerId, BIndex index, BNode node) {
-		cancelFuture(timerId);
+	private void cancel(int serverId, String timerName, BIndex index, BNode node) {
+		cancelFuture(timerName);
 		if (null == node || null == index)
 			return;
 
-		if (!index.getNamedName().isEmpty())
-			_tNamed.remove(index.getNamedName());
-
 		var timers = node.getTimers();
-		var timer = timers.remove(timerId);
-		var cancelHandle = timerCancelHandles.get(timer.getName());
+		var timer = timers.remove(timerName);
+		var cancelHandle = timerCancelHandles.get(timer.getHandleName());
 		if (null != cancelHandle) {
 			try {
 				cancelHandle.run(index, timer);
@@ -420,12 +441,14 @@ public class Timer extends AbstractTimer {
 		}
 	}
 
-	private void scheduleSimple(int serverId, long timerId, long delay, String name, long concurrentSerialNo) {
+	private void scheduleSimple(int serverId, String timerId, long delay, String name, long concurrentSerialNo) {
 		timersFuture.put(timerId, Task.scheduleUnsafe(delay,
 				() -> fireSimple(serverId, timerId, name, concurrentSerialNo, false)));
 	}
 
 	public static void initSimpleTimer(BSimpleTimer simpleTimer, long delay, long period, long times, long endTime) {
+		if (delay < 0)
+			throw new IllegalArgumentException();
 		var now = System.currentTimeMillis();
 		//timer.setDelay(delay);
 		simpleTimer.setPeriod(period);
@@ -475,7 +498,7 @@ public class Timer extends AbstractTimer {
 		return true;
 	}
 
-	private long fireSimple(int serverId, long timerId, String name, long concurrentSerialNo, boolean missfire) {
+	private long fireSimple(int serverId, String timerId, String name, long concurrentSerialNo, boolean missfire) {
 		final var handle = timerHandles.get(name);
 		if (0 != Task.call(zeze.newProcedure(() -> {
 			var index = _tIndexs.get(timerId);
@@ -531,18 +554,18 @@ public class Timer extends AbstractTimer {
 		return 0L;
 	}
 
-	private void scheduleCron(int serverId, long timerId, BCronTimer cron, String name, long concurrentSerialNo) {
+	private void scheduleCron(int serverId, String timerName, BCronTimer cron, String name, long concurrentSerialNo) {
 		try {
 			long delay = cron.getNextExpectedTime() - System.currentTimeMillis();
-			scheduleCronNext(serverId, timerId, delay, name, concurrentSerialNo);
+			scheduleCronNext(serverId, timerName, delay, name, concurrentSerialNo);
 		} catch (Exception ex) {
 			// 这个错误是在不好处理。先只记录日志吧。
 			logger.error("", ex);
 		}
 	}
 
-	private void scheduleCronNext(int serverId, long timerId, long delay, String name, long concurrentSerialNo) {
-		timersFuture.put(timerId, Task.scheduleUnsafe(delay, () -> fireCron(serverId, timerId, name, concurrentSerialNo, false)));
+	private void scheduleCronNext(int serverId, String timerName, long delay, String name, long concurrentSerialNo) {
+		timersFuture.put(timerName, Task.scheduleUnsafe(delay, () -> fireCron(serverId, timerName, name, concurrentSerialNo, false)));
 	}
 
 	public static long cronNextTime(String cron, long time) throws ParseException {
@@ -591,7 +614,7 @@ public class Timer extends AbstractTimer {
 		return true;
 	}
 
-	private void fireCron(int serverId, long timerId, String name, long concurrentSerialNo, boolean missfire) {
+	private void fireCron(int serverId, String timerId, String name, long concurrentSerialNo, boolean missfire) {
 		final var handle = timerHandles.get(name);
 		if (0 != Task.call(zeze.newProcedure(() -> {
 			var index = _tIndexs.get(timerId);
@@ -716,7 +739,7 @@ public class Timer extends AbstractTimer {
 						switch (simpleTimer.getMissfirePolicy()) {
 						case eMissfirePolicyRunOnce:
 						case eMissfirePolicyRunOnceOldNext:
-							Task.run(() -> fireSimple(serverId, timer.getTimerId(), timer.getName(),
+							Task.run(() -> fireSimple(serverId, timer.getTimerName(), timer.getHandleName(),
 									timer.getConcurrentFireSerialNo(), true), "missfireSimple");
 							continue; // loop done, continue
 
@@ -726,16 +749,16 @@ public class Timer extends AbstractTimer {
 
 						}
 					}
-					scheduleSimple(serverId, timer.getTimerId(),
+					scheduleSimple(serverId, timer.getTimerName(),
 							simpleTimer.getNextExpectedTime() - System.currentTimeMillis(),
-							timer.getName(), timer.getConcurrentFireSerialNo());
+							timer.getHandleName(), timer.getConcurrentFireSerialNo());
 				} else {
 					var cronTimer = (BCronTimer)timer.getTimerObj().getBean();
 					if (cronTimer.getNextExpectedTime() < now) {
 						switch (cronTimer.getMissfirePolicy()) {
 						case eMissfirePolicyRunOnce:
 						case eMissfirePolicyRunOnceOldNext:
-							Task.run(() -> fireCron(serverId, timer.getTimerId(), timer.getName(),
+							Task.run(() -> fireCron(serverId, timer.getTimerName(), timer.getHandleName(),
 									timer.getConcurrentFireSerialNo(), true), "missfireCron");
 							continue; // loop done, continue
 
@@ -743,12 +766,12 @@ public class Timer extends AbstractTimer {
 							break;
 						}
 					}
-					scheduleCron(serverId, timer.getTimerId(), cronTimer,
-							timer.getName(), timer.getConcurrentFireSerialNo());
+					scheduleCron(serverId, timer.getTimerName(), cronTimer,
+							timer.getHandleName(), timer.getConcurrentFireSerialNo());
 				}
 				if (serverId != zeze.getConfig().getServerId()) {
 					Task.call(zeze.newProcedure(() -> {
-						var index = _tIndexs.get(timer.getTimerId());
+						var index = _tIndexs.get(timer.getTimerName());
 						index.setServerId(serverId);
 						return 0L;
 					}, "SetTimerServerIdWhenLoadTimerLocal"));

@@ -4,7 +4,7 @@ package Zeze.Builtin.Timer;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tIndexs extends Zeze.Transaction.TableX<Long, Zeze.Builtin.Timer.BIndex> {
+public final class tIndexs extends Zeze.Transaction.TableX<String, Zeze.Builtin.Timer.BIndex> {
     public tIndexs() {
         super("Zeze_Builtin_Timer_tIndexs");
     }
@@ -26,19 +26,18 @@ public final class tIndexs extends Zeze.Transaction.TableX<Long, Zeze.Builtin.Ti
 
     public static final int VAR_ServerId = 1;
     public static final int VAR_NodeId = 2;
-    public static final int VAR_NamedName = 3;
 
     @Override
-    public Long decodeKey(ByteBuffer _os_) {
-        long _v_;
-        _v_ = _os_.ReadLong();
+    public String decodeKey(ByteBuffer _os_) {
+        String _v_;
+        _v_ = _os_.ReadString();
         return _v_;
     }
 
     @Override
-    public ByteBuffer encodeKey(Long _v_) {
+    public ByteBuffer encodeKey(String _v_) {
         ByteBuffer _os_ = ByteBuffer.Allocate(16);
-        _os_.WriteLong(_v_);
+        _os_.WriteString(_v_);
         return _os_;
     }
 

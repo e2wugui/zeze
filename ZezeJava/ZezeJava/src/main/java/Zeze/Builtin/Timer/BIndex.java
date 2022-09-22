@@ -9,7 +9,6 @@ public final class BIndex extends Zeze.Transaction.Bean {
 
     private int _ServerId;
     private long _NodeId;
-    private String _NamedName;
 
     public int getServerId() {
         if (!isManaged())
@@ -49,45 +48,19 @@ public final class BIndex extends Zeze.Transaction.Bean {
         txn.putLog(new Log__NodeId(this, 2, value));
     }
 
-    public String getNamedName() {
-        if (!isManaged())
-            return _NamedName;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
-            return _NamedName;
-        var log = (Log__NamedName)txn.getLog(objectId() + 3);
-        return log != null ? log.value : _NamedName;
-    }
-
-    public void setNamedName(String value) {
-        if (value == null)
-            throw new IllegalArgumentException();
-        if (!isManaged()) {
-            _NamedName = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__NamedName(this, 3, value));
-    }
-
     @SuppressWarnings("deprecation")
     public BIndex() {
-        _NamedName = "";
     }
 
     @SuppressWarnings("deprecation")
-    public BIndex(int _ServerId_, long _NodeId_, String _NamedName_) {
+    public BIndex(int _ServerId_, long _NodeId_) {
         _ServerId = _ServerId_;
         _NodeId = _NodeId_;
-        if (_NamedName_ == null)
-            throw new IllegalArgumentException();
-        _NamedName = _NamedName_;
     }
 
     public void assign(BIndex other) {
         setServerId(other.getServerId());
         setNodeId(other.getNodeId());
-        setNamedName(other.getNamedName());
     }
 
     @Deprecated
@@ -136,13 +109,6 @@ public final class BIndex extends Zeze.Transaction.Bean {
         public void commit() { ((BIndex)getBelong())._NodeId = value; }
     }
 
-    private static final class Log__NamedName extends Zeze.Transaction.Logs.LogString {
-        public Log__NamedName(BIndex bean, int varId, String value) { super(bean, varId, value); }
-
-        @Override
-        public void commit() { ((BIndex)getBelong())._NamedName = value; }
-    }
-
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -155,8 +121,7 @@ public final class BIndex extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Timer.BIndex: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ServerId").append('=').append(getServerId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("NodeId").append('=').append(getNodeId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("NamedName").append('=').append(getNamedName()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("NodeId").append('=').append(getNodeId()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -190,13 +155,6 @@ public final class BIndex extends Zeze.Transaction.Bean {
                 _o_.WriteLong(_x_);
             }
         }
-        {
-            String _x_ = getNamedName();
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
-                _o_.WriteString(_x_);
-            }
-        }
         _o_.WriteByte(0);
     }
 
@@ -210,10 +168,6 @@ public final class BIndex extends Zeze.Transaction.Bean {
         }
         if (_i_ == 2) {
             setNodeId(_o_.ReadLong(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 3) {
-            setNamedName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -250,7 +204,6 @@ public final class BIndex extends Zeze.Transaction.Bean {
             switch (vlog.getVariableId()) {
                 case 1: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
                 case 2: _NodeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 3: _NamedName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
             }
         }
     }

@@ -859,8 +859,8 @@
 			<table name="tNodeRoot" key="int" value="BNodeRoot" /> key is serverid 每一台server拥有自己的链表。
 
 			<bean name="BTimer">
-				<variable id="1" name="TimerId" type="long"/>
-				<variable id="2" name="Name" type="string"/>
+				<variable id="1" name="TimerName" type="string"/>
+				<variable id="2" name="HandleName" type="string"/>
 				<variable id="3" name="TimerObj" type="dynamic">
 					<value bean="BSimpleTimer"/>
 					<value bean="BCronTimer"/>
@@ -898,7 +898,7 @@
 			<bean name="BNode">
 				<variable id="1" name="PrevNodeId" type="long"/>
 				<variable id="2" name="NextNodeId" type="long"/>
-				<variable id="3" name="Timers" type="map" key="long" value="BTimer"/>
+				<variable id="3" name="Timers" type="map[string, BTimer]"/>
 			</bean>
 
 			<table name="tNodes" key="long" value="BNode"/>
@@ -906,22 +906,15 @@
 			<bean name="BIndex">
 				<variable id="1" name="ServerId" type="int"/>
 				<variable id="2" name="NodeId" type="long"/>
-				<variable id="3" name="NamedName" type="string"/>
 			</bean>
 
-			<table name="tIndexs" key="long" value="BIndex" />
+			<table name="tIndexs" key="string" value="BIndex" />
 
 			<bean name="BCustomClasses">
 				<variable id="1" name="CustomClasses" type="set" value="string"/>
 			</bean>
 
 			<table name="tCustomClasses" key="int" value="BCustomClasses"/> key is 1, only one record
-
-			<bean name="BTimerId">
-				<variable id="1" name="TimerId" type="long"/>
-			</bean>
-
-			<table name="tNamed" key="string" value="BTimerId"/> key is name
 
 			<!-- Online Timer -->
 			<bean name="BArchOnlineTimer"> 保存在内存Map中
@@ -932,7 +925,6 @@
 					<value bean="BCronTimer"/>
 				</variable>
 				<variable id="4" name="LoginVersion" type="long"/>
-				<variable id="5" name="NamedName" type="string"/>
 			</bean>
 
 			<bean name="BGameOnlineTimer"> 保存在内存Map中
@@ -942,21 +934,19 @@
 					<value bean="BCronTimer"/>
 				</variable>
 				<variable id="3" name="LoginVersion" type="long"/>
-				<variable id="4" name="NamedName" type="string"/>
 			</bean>
 
-			<table name="tArchOlineTimer" key="long" value="BArchOnlineTimer" memory="true"/>
-			<table name="tGameOlineTimer" key="long" value="BGameOnlineTimer" memory="true"/>
-			<table name="tOnlineNamed" key="string" value="BTimerId"/> key is name
+			<table name="tArchOlineTimer" key="string" value="BArchOnlineTimer" memory="true"/>
+			<table name="tGameOlineTimer" key="string" value="BGameOnlineTimer" memory="true"/>
 
 			<bean name="BOnlineCustom"> 保存真正的用户自定义数据
 				<variable id="1" name="CustomData" type="dynamic"/>
 			</bean>
 			<bean name="BOnlineTimers"> 这个Bean作为Online.Local.Any存储
-				<variable id="1" name="TimerIds" type="map[long, BOnlineCustom]"/>
-				<variable id="2" name="NamedNames" type="set[string]"/>
+				<variable id="1" name="TimerIds" type="map[string, BOnlineCustom]"/>
 			</bean>
 
+			<!-- Offline Timer -->
 			<bean name="BOfflineAccountCustom">
 				<variable id="1" name="Account" type="string"/>
 				<variable id="2" name="ClientId" type="string"/>

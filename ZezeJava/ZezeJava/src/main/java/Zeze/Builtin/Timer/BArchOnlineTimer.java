@@ -33,7 +33,6 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean {
     }
 
     private long _LoginVersion;
-    private String _NamedName;
 
     public String getAccount() {
         if (!isManaged())
@@ -116,37 +115,15 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean {
         txn.putLog(new Log__LoginVersion(this, 4, value));
     }
 
-    public String getNamedName() {
-        if (!isManaged())
-            return _NamedName;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
-            return _NamedName;
-        var log = (Log__NamedName)txn.getLog(objectId() + 5);
-        return log != null ? log.value : _NamedName;
-    }
-
-    public void setNamedName(String value) {
-        if (value == null)
-            throw new IllegalArgumentException();
-        if (!isManaged()) {
-            _NamedName = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__NamedName(this, 5, value));
-    }
-
     @SuppressWarnings("deprecation")
     public BArchOnlineTimer() {
         _Account = "";
         _ClientId = "";
         _TimerObj = new Zeze.Transaction.DynamicBean(3, BArchOnlineTimer::getSpecialTypeIdFromBean_TimerObj, BArchOnlineTimer::createBeanFromSpecialTypeId_TimerObj);
-        _NamedName = "";
     }
 
     @SuppressWarnings("deprecation")
-    public BArchOnlineTimer(String _Account_, String _ClientId_, long _LoginVersion_, String _NamedName_) {
+    public BArchOnlineTimer(String _Account_, String _ClientId_, long _LoginVersion_) {
         if (_Account_ == null)
             throw new IllegalArgumentException();
         _Account = _Account_;
@@ -155,9 +132,6 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean {
         _ClientId = _ClientId_;
         _TimerObj = new Zeze.Transaction.DynamicBean(3, BArchOnlineTimer::getSpecialTypeIdFromBean_TimerObj, BArchOnlineTimer::createBeanFromSpecialTypeId_TimerObj);
         _LoginVersion = _LoginVersion_;
-        if (_NamedName_ == null)
-            throw new IllegalArgumentException();
-        _NamedName = _NamedName_;
     }
 
     public void assign(BArchOnlineTimer other) {
@@ -165,7 +139,6 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean {
         setClientId(other.getClientId());
         getTimerObj().assign(other.getTimerObj());
         setLoginVersion(other.getLoginVersion());
-        setNamedName(other.getNamedName());
     }
 
     @Deprecated
@@ -221,13 +194,6 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean {
         public void commit() { ((BArchOnlineTimer)getBelong())._LoginVersion = value; }
     }
 
-    private static final class Log__NamedName extends Zeze.Transaction.Logs.LogString {
-        public Log__NamedName(BArchOnlineTimer bean, int varId, String value) { super(bean, varId, value); }
-
-        @Override
-        public void commit() { ((BArchOnlineTimer)getBelong())._NamedName = value; }
-    }
-
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -244,8 +210,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("TimerObj").append('=').append(System.lineSeparator());
         getTimerObj().getBean().buildString(sb, level + 4);
         sb.append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("LoginVersion").append('=').append(getLoginVersion()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("NamedName").append('=').append(getNamedName()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("LoginVersion").append('=').append(getLoginVersion()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -293,13 +258,6 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean {
                 _o_.WriteLong(_x_);
             }
         }
-        {
-            String _x_ = getNamedName();
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.BYTES);
-                _o_.WriteString(_x_);
-            }
-        }
         _o_.WriteByte(0);
     }
 
@@ -321,10 +279,6 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean {
         }
         if (_i_ == 4) {
             setLoginVersion(_o_.ReadLong(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 5) {
-            setNamedName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -365,7 +319,6 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean {
                 case 2: _ClientId = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 3: _TimerObj.followerApply(vlog); break;
                 case 4: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 5: _NamedName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
             }
         }
     }

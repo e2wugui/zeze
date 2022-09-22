@@ -1,6 +1,5 @@
 package Zeze.Component;
 
-import Zeze.Builtin.Timer.BTimerId;
 import Zeze.Game.LocalRemoveEventArgument;
 import Zeze.Game.LoginArgument;
 import Zeze.Game.Online;
@@ -40,12 +39,12 @@ public class TimerRole {
 									   long delay, long period, long times, long endTime,
 									   String handleName, Bean customData) throws Throwable {
 		var timer = online.providerApp.zeze.getTimer();
-		var timerId = timer.tOnlineNamed().get(timerName);
+		var timerId = timer.tGameOlineTimer().get(timerName);
 		if (null != timerId)
 			return false;
-		timerId = new BTimerId(scheduleOnline(roleId, delay, period, times, endTime, handleName, customData));
-		timer.tOnlineNamed().insert(timerName, timerId);
-		timer.tGameOlineTimer().get(timerId.getTimerId()).setNamedName(timerName);
+		var simpleTimer = new BSimpleTimer();
+		Timer.initSimpleTimer(simpleTimer, delay, period, times, endTime);
+		scheduleOnline(roleId, timerName, simpleTimer, handleName, customData);
 		return true;
 	}
 
@@ -54,57 +53,56 @@ public class TimerRole {
 									   String cron, long times, long endTime,
 									   String handleName, Bean customData) throws Throwable {
 		var timer = online.providerApp.zeze.getTimer();
-		var timerId = timer.tOnlineNamed().get(timerName);
+		var timerId = timer.tGameOlineTimer().get(timerName);
 		if (null != timerId)
 			return false;
-		timerId = new BTimerId(scheduleOnline(roleId, cron, times, endTime, handleName, customData));
-		timer.tOnlineNamed().insert(timerName, timerId);
-		timer.tGameOlineTimer().get(timerId.getTimerId()).setNamedName(timerName);
+		var cronTimer = new BCronTimer();
+		Timer.initCronTimer(cronTimer, cron, times, endTime);
+		scheduleOnline(roleId, timerName, cronTimer, handleName, customData);
 		return true;
 	}
 
-	public void cancelNamed(String timerName) throws Throwable {
+	public String scheduleOnline(long roleId, long delay, long period, long times, long endTime, String name, Bean customData) throws Throwable {
+		var simpleTimer = new BSimpleTimer();
+		Timer.initSimpleTimer(simpleTimer, delay, period, times, endTime);
 		var timer = online.providerApp.zeze.getTimer();
-		var timerId = timer.tOnlineNamed().get(timerName);
-		cancel(timerId.getTimerId());
-		timer.tOnlineNamed().remove(timerName);
+		return scheduleOnline(roleId, "@" + timer.timerIdAutoKey.nextString(), simpleTimer, name, customData);
 	}
 
-	public long scheduleOnline(long roleId, long delay, long period, long times, long endTime, String name, Bean customData) throws Throwable {
+	private String scheduleOnline(long roleId, String timerId, BSimpleTimer simpleTimer, String name, Bean customData) throws Throwable {
 		// 去掉下面两行，不允许在非登录状态注册timer。现在允许。
 		var loginVersion = online.getLocalLoginVersion(roleId);
 		if (null == loginVersion)
 			throw new IllegalStateException("not login. roleId=" + roleId);
 
 		var timer = online.providerApp.zeze.getTimer();
-		var timerId = timer.timerIdAutoKey.nextId();
-
-		var onlineTimer = new BGameOnlineTimer(roleId, loginVersion, "");
+		var onlineTimer = new BGameOnlineTimer(roleId, loginVersion);
 		timer.tGameOlineTimer().put(timerId, onlineTimer);
-		var simpleTimer = new BSimpleTimer();
-		Timer.initSimpleTimer(simpleTimer, delay, period, times, endTime);
 		onlineTimer.getTimerObj().setBean(simpleTimer);
 
 		var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
 		timerIds.getTimerIds().getOrAdd(timerId).getCustomData().setBean(customData);
 
-		Transaction.whileCommit(() -> scheduleSimple(timerId, delay, name));
+		Transaction.whileCommit(() -> scheduleSimple(timerId, simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), name));
 		return timerId;
 	}
 
-	public long scheduleOnline(long roleId, String cron, long times, long endTime, String name, Bean customData) throws Throwable {
+	public String scheduleOnline(long roleId, String cron, long times, long endTime, String name, Bean customData) throws Throwable {
+		var cronTimer = new BCronTimer();
+		Timer.initCronTimer(cronTimer, cron, times, endTime);
+		var timer = online.providerApp.zeze.getTimer();
+		return scheduleOnline(roleId, "@" + timer.timerIdAutoKey.nextString(), cronTimer, name, customData);
+	}
+
+	private String scheduleOnline(long roleId, String timerId, BCronTimer cronTimer, String name, Bean customData) throws Throwable {
 		var loginVersion = online.getLocalLoginVersion(roleId);
 		if (null == loginVersion)
 			throw new IllegalStateException("not login. roleId=" + roleId);
 
 		var timer = online.providerApp.zeze.getTimer();
-		var timerId = timer.timerIdAutoKey.nextId();
-
-		var onlineTimer = new BGameOnlineTimer(roleId, loginVersion, "");
-		var cronTimer = new BCronTimer();
-		Timer.initCronTimer(cronTimer, cron, times, endTime);
+		var onlineTimer = new BGameOnlineTimer(roleId, loginVersion);
 		onlineTimer.getTimerObj().setBean(cronTimer);
-		timer.tGameOlineTimer().put(timerId, onlineTimer);
+		timer.tGameOlineTimer().insert(timerId, onlineTimer);
 
 		var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
 		timerIds.getTimerIds().getOrAdd(timerId).getCustomData().setBean(customData);
@@ -113,7 +111,7 @@ public class TimerRole {
 		return timerId;
 	}
 
-	public boolean cancel(long timerId) throws Throwable {
+	public boolean cancel(String timerId) throws Throwable {
 		var timer = online.providerApp.zeze.getTimer();
 
 		// remove online timer
@@ -125,14 +123,9 @@ public class TimerRole {
 		var onlineTimers = online.getOrAddLocalBean(bTimer.getRoleId(), eOnlineTimers, new BOnlineTimers());
 		onlineTimers.getTimerIds().remove(timerId);
 		timer.tArchOlineTimer().remove(timerId);
-		if (!bTimer.getNamedName().isEmpty())
-			timer.tOnlineNamed().remove(bTimer.getNamedName());
 
 		// cancel future task
-		var future = online.providerApp.zeze.getTimer().timersFuture.remove(timerId);
-		if (null == future)
-			return false;
-		future.cancel(true);
+		timer.cancelFuture(timerId);
 		return true;
 	}
 
@@ -146,15 +139,12 @@ public class TimerRole {
 	// Online.Local 删除事件，取消这个用户所有的在线定时器。
 	private long onLocalRemoveEvent(Object sender, EventDispatcher.EventArgument arg) throws Throwable {
 		var local = (LocalRemoveEventArgument)arg;
-		var timer = online.providerApp.zeze.getTimer();
 		if (null != local.localData) {
 			var bAny = local.localData.getDatas().get(eOnlineTimers);
 			if (null != bAny) {
 				var timers = (BOnlineTimers)bAny.getAny().getBean();
 				for (var timerId : timers.getTimerIds().keySet())
 					cancel(timerId);
-				for (var name : timers.getNamedNames())
-					timer.cancelNamed(name);
 			}
 		}
 		return 0;
@@ -179,22 +169,22 @@ public class TimerRole {
 	}
 
 	// 调度 cron 定时器
-	private void scheduleCronLocal(long timerId, BCronTimer cron, String name) {
+	private void scheduleCronLocal(String timerId, BCronTimer cron, String name) {
 		try {
 			long delay = cron.getNextExpectedTime() - System.currentTimeMillis();
-			scheduleCronNext( timerId, delay, name);
+			scheduleCronNext(timerId, delay, name);
 		} catch (Exception ex) {
 			Timer.logger.error("", ex);
 		}
 	}
 
 	// 再次调度 cron 定时器，真正安装到ThreadPool中。
-	private void scheduleCronNext(long timerId, long delay, String name) {
+	private void scheduleCronNext(String timerId, long delay, String name) {
 		var timer = online.providerApp.zeze.getTimer();
 		timer.timersFuture.put(timerId, Task.scheduleUnsafe(delay, () -> fireCron(timerId, name)));
 	}
 
-	private void fireCron(long timerId, String name) throws Throwable {
+	private void fireCron(String timerId, String name) throws Throwable {
 		var timer = online.providerApp.zeze.getTimer();
 		final var handle = timer.timerHandles.get(name);
 		var ret = Task.call(online.providerApp.zeze.newProcedure(() -> {
@@ -244,13 +234,13 @@ public class TimerRole {
 	}
 
 	// 调度 Simple 定时器到ThreadPool中。
-	private void scheduleSimple(long timerId, long delay, String name) {
+	private void scheduleSimple(String timerId, long delay, String name) {
 		var timer = online.providerApp.zeze.getTimer();
 		timer.timersFuture.put(timerId, Task.scheduleUnsafe(delay, () -> fireOnlineSimpleTimer(timerId, name)));
 	}
 
 	// Timer发生，执行回调。
-	private void fireOnlineSimpleTimer(long timerId, String name) throws Throwable {
+	private void fireOnlineSimpleTimer(String timerId, String name) throws Throwable {
 		var timer = online.providerApp.zeze.getTimer();
 		final var handle = timer.timerHandles.get(name);
 		var ret = Task.call(online.providerApp.zeze.newProcedure(() -> {
