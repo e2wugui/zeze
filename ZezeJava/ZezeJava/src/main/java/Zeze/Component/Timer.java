@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import Zeze.Arch.ProviderApp;
+import Zeze.Arch.ProviderImplement;
 import Zeze.Arch.ProviderWithOnline;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Builtin.Timer.*;
@@ -71,11 +72,12 @@ public class Timer extends AbstractTimer {
 	}
 
 	public void initializeOnlineTimer(ProviderApp providerApp) {
-		if (null != providerApp && null != providerApp.providerImplement) {
-			if (providerApp.providerImplement instanceof ProviderWithOnline arch)
-				timerAccount = new TimerAccount(arch.online);
-			else if (providerApp.providerImplement instanceof Zeze.Game.ProviderImplementWithOnline game)
-				timerRole = new TimerRole(game.online);
+		ProviderImplement impl;
+		if (null != providerApp && null != (impl = providerApp.providerImplement)) {
+			if (impl instanceof ProviderWithOnline)
+				timerAccount = new TimerAccount(((ProviderWithOnline)impl).online);
+			else if (impl instanceof Zeze.Game.ProviderImplementWithOnline)
+				timerRole = new TimerRole(((Zeze.Game.ProviderImplementWithOnline)impl).online);
 		}
 	}
 
