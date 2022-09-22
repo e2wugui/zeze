@@ -20,6 +20,14 @@
 			<variable id="1" name="Current" type="long"/>
 			<variable id="2" name="Name" type="string"/>
 			<variable id="3" name="LocalId" type="long"/>
+			<variable id="4" name="ListDynamic" type="list[dynamic]">
+				<value bean="demo.Bean1"/>
+				<value bean="Simple"/>
+			</variable>
+			<variable id="5" name="MapDynamic" type="map[long, dynamic]">
+				<value bean="demo.Bean1"/>
+				<value bean="Simple"/>
+			</variable>
 		</bean>
 
 		<table name="Autokey_" key="AutoKey" value="AutoValue"/>

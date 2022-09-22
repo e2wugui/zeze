@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cs
 {
@@ -26,6 +27,8 @@ namespace Zeze.Gen.cs
             {
                 if (type.IsKeyable)
                     return (type as Types.BeanKey).FullName;
+                if (type is TypeDynamic)
+                    return "Zeze.Transaction.DynamicBean";
                 return (type as Types.Bean).FullName;
             }
             return type.Name;
@@ -63,9 +66,8 @@ namespace Zeze.Gen.cs
                     var beanKey = type as Types.BeanKey;
                     GenAddBean(sw, beanKey.FullName, true, beanKey.Variables);
                 }
-                else
+                else if (type is Types.Bean bean)
                 {
-                    var bean = type as Types.Bean;
                     GenAddBean(sw, bean.FullName, false, bean.Variables);
                 }
             }

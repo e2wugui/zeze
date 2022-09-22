@@ -45,6 +45,14 @@ namespace Zeze.Gen.cs
                     sw.WriteLine();
             }
 
+            sw.WriteLine($"{prefix}public static Zeze.Transaction.DynamicBean NewDynamicBean{var.NameUpper1}()");
+            sw.WriteLine($"{prefix}{{");
+            if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
+                sw.WriteLine($"{prefix}    return new Zeze.Transaction.DynamicBean({var.Id}, GetSpecialTypeIdFromBean_{var.NameUpper1}, CreateBeanFromSpecialTypeId_{var.NameUpper1});");
+            else
+                sw.WriteLine($"{prefix}    return new Zeze.Transaction.DynamicBean({var.Id}, {type.DynamicParams.GetSpecialTypeIdFromBean_Csharp}, {type.DynamicParams.CreateBeanFromSpecialTypeId_Csharp});");
+            sw.WriteLine($"{prefix}}}");
+            sw.WriteLine();
             sw.WriteLine($"{prefix}public static long GetSpecialTypeIdFromBean_{var.NameUpper1}(Zeze.Transaction.Bean bean)");
             sw.WriteLine($"{prefix}{{");
             if (string.IsNullOrEmpty(type.DynamicParams.GetSpecialTypeIdFromBean))

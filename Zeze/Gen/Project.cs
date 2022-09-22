@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Xml;
+using Zeze.Gen.Types;
 
 namespace Zeze.Gen
 {
@@ -214,7 +215,7 @@ namespace Zeze.Gen
                     {
                         if (type.IsKeyable)
                             _AllBeanKeys.Add(type as Types.BeanKey);
-                        else
+                        else if (type is Bean)
                             _AllBeans.Add(type as Types.Bean);
                     }
                 }

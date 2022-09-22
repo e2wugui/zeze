@@ -229,6 +229,11 @@ namespace Zeze.Transaction
         public Func<Bean, long> GetSpecialTypeIdFromBean { get; }
         public Func<long, Bean> CreateBeanFromSpecialTypeId { get; }
 
+        public DynamicBean()
+        {
+            throw new NotImplementedException("use method in holder bean that user defined.");
+        }
+
         public DynamicBean(int variableId, Func<Bean, long> get, Func<long, Bean> create)
             : base(variableId)
         {

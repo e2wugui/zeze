@@ -44,8 +44,11 @@ namespace Zeze.Gen.Types
 				throw new Exception("map key need a keyable type");
 			ValueType = Type.Compile(space, value, null, null, var);
 
-			if (ValueType.IsNormalBeanOrRocks)
-				(ValueType as Bean).MapKeyTypes.Add(KeyType);
+			if (ValueType is Bean b)
+				b.MapKeyTypes.Add(KeyType);
+			//else if (ValueType is TypeDynamic d)
+			//	d.MapKeyTypes.Add(KeyType);
+
 
 			//if (ValueType is TypeBinary)
 			//	throw new Exception(Name + " Error : value type is binary.");

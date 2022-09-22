@@ -491,7 +491,7 @@ public class Timer extends AbstractTimer {
 				simpleTimer.setNextExpectedTime(simpleTimer.getExpectedTime() + simpleTimer.getPeriod());
 				break;
 			}
-		}else {
+		} else {
 			simpleTimer.setExpectedTime(simpleTimer.getExpectedTime() + simpleTimer.getPeriod());
 			simpleTimer.setNextExpectedTime(simpleTimer.getExpectedTime() + simpleTimer.getPeriod());
 		}
@@ -609,6 +609,9 @@ public class Timer extends AbstractTimer {
 				cronTimer.setNextExpectedTime(cronNextTime(cronTimer.getCronExpression(), cronTimer.getExpectedTime()));
 				break;
 			}
+		} else {
+			cronTimer.setExpectedTime(cronTimer.getNextExpectedTime());
+			cronTimer.setNextExpectedTime(cronNextTime(cronTimer.getCronExpression(), cronTimer.getExpectedTime()));
 		}
 
 		// check endTime
