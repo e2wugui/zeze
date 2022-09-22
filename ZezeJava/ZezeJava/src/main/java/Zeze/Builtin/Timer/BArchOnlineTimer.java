@@ -84,7 +84,6 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean {
         return _TimerObj;
     }
 
-
     public Zeze.Builtin.Timer.BCronTimer getTimerObj_Zeze_Builtin_Timer_BCronTimer() {
         return (Zeze.Builtin.Timer.BCronTimer)_TimerObj.getBean();
     }

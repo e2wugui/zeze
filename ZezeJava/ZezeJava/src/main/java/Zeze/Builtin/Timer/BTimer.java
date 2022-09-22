@@ -110,7 +110,6 @@ public final class BTimer extends Zeze.Transaction.Bean {
         return _TimerObj;
     }
 
-
     public Zeze.Builtin.Timer.BCronTimer getTimerObj_Zeze_Builtin_Timer_BCronTimer() {
         return (Zeze.Builtin.Timer.BCronTimer)_TimerObj.getBean();
     }
@@ -130,7 +129,6 @@ public final class BTimer extends Zeze.Transaction.Bean {
     public Zeze.Transaction.DynamicBean getCustomData() {
         return _CustomData;
     }
-
 
     public long getConcurrentFireSerialNo() {
         if (!isManaged())

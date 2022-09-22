@@ -77,7 +77,6 @@ public final class BItem extends Zeze.Transaction.Bean {
         return _Item;
     }
 
-
     @SuppressWarnings("deprecation")
     public BItem() {
         _Item = newDynamicBean_Item();
