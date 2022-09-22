@@ -47,6 +47,7 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
         return _Value;
     }
 
+
     @SuppressWarnings("deprecation")
     public BLinkedMapNodeValue() {
         _Id = "";

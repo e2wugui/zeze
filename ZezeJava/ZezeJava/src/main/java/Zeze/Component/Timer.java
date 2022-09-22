@@ -90,10 +90,9 @@ public class Timer extends AbstractTimer {
 	}
 
 	public void addHandle(String name, Action1<TimerContext> action, Action2<BIndex, BTimer> cancel) {
-		if (null != timerHandles.putIfAbsent(name, action))
-			throw new RuntimeException("duplicate timer handle name of: " + name);
-		if (null != cancel && null != timerCancelHandles.putIfAbsent(name, cancel))
-			throw new RuntimeException("duplicate timer cancel handle name of: " + name);
+		timerHandles.putIfAbsent(name, action);
+		if (null != cancel)
+			timerCancelHandles.putIfAbsent(name, cancel);
 	}
 
 	public void removeHandle(String name) {
@@ -479,6 +478,7 @@ public class Timer extends AbstractTimer {
 		long now = System.currentTimeMillis();
 		simpleTimer.setHappenTime(now);
 
+		// 下面这段代码可以写的更简洁，但这样写，思路更清楚。
 		if (missfire) {
 			switch (simpleTimer.getMissfirePolicy()) {
 			case eMissfirePolicyRunOnce:
@@ -597,6 +597,8 @@ public class Timer extends AbstractTimer {
 
 		var now = System.currentTimeMillis();
 		cronTimer.setHappenTime(now);
+
+		// 下面这段代码可以写的更简洁，但这样写，思路更清楚。
 		if (missfire) {
 			switch (cronTimer.getMissfirePolicy()) {
 			case eMissfirePolicyRunOnce:

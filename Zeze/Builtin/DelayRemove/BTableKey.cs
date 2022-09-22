@@ -13,12 +13,14 @@ namespace Zeze.Builtin.DelayRemove
 
         public string TableName { get; }
         public Zeze.Net.Binary EncodedKey { get; }
+        public long EnqueueTime { get; }
     }
 
     public sealed class BTableKey : Zeze.Transaction.Bean, BTableKeyReadOnly
     {
         string _TableName;
         Zeze.Net.Binary _EncodedKey;
+        long _EnqueueTime;
 
         public string TableName
         {
@@ -72,22 +74,49 @@ namespace Zeze.Builtin.DelayRemove
             }
         }
 
+        public long EnqueueTime
+        {
+            get
+            {
+                if (!IsManaged)
+                    return _EnqueueTime;
+                var txn = Zeze.Transaction.Transaction.Current;
+                if (txn == null) return _EnqueueTime;
+                txn.VerifyRecordAccessed(this, true);
+                var log = (Log__EnqueueTime)txn.GetLog(ObjectId + 3);
+                return log != null ? log.Value : _EnqueueTime;
+            }
+            set
+            {
+                if (!IsManaged)
+                {
+                    _EnqueueTime = value;
+                    return;
+                }
+                var txn = Zeze.Transaction.Transaction.Current;
+                txn.VerifyRecordAccessed(this);
+                txn.PutLog(new Log__EnqueueTime() { Belong = this, VariableId = 3, Value = value });
+            }
+        }
+
         public BTableKey()
         {
             _TableName = "";
             _EncodedKey = Zeze.Net.Binary.Empty;
         }
 
-        public BTableKey(string _TableName_, Zeze.Net.Binary _EncodedKey_)
+        public BTableKey(string _TableName_, Zeze.Net.Binary _EncodedKey_, long _EnqueueTime_)
         {
             _TableName = _TableName_;
             _EncodedKey = _EncodedKey_;
+            _EnqueueTime = _EnqueueTime_;
         }
 
         public void Assign(BTableKey other)
         {
             TableName = other.TableName;
             EncodedKey = other.EncodedKey;
+            EnqueueTime = other.EnqueueTime;
         }
 
         public BTableKey CopyIfManaged()
@@ -122,6 +151,11 @@ namespace Zeze.Builtin.DelayRemove
             public override void Commit() { ((BTableKey)Belong)._EncodedKey = this.Value; }
         }
 
+        sealed class Log__EnqueueTime : Zeze.Transaction.Log<long>
+        {
+            public override void Commit() { ((BTableKey)Belong)._EnqueueTime = this.Value; }
+        }
+
         public override string ToString()
         {
             var sb = new System.Text.StringBuilder();
@@ -135,7 +169,8 @@ namespace Zeze.Builtin.DelayRemove
             sb.Append(Zeze.Util.Str.Indent(level)).Append("Zeze.Builtin.DelayRemove.BTableKey: {").Append(Environment.NewLine);
             level += 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append("TableName").Append('=').Append(TableName).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("EncodedKey").Append('=').Append(EncodedKey).Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("EncodedKey").Append('=').Append(EncodedKey).Append(',').Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("EnqueueTime").Append('=').Append(EnqueueTime).Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
         }
@@ -159,6 +194,14 @@ namespace Zeze.Builtin.DelayRemove
                     _o_.WriteBinary(_x_);
                 }
             }
+            {
+                long _x_ = EnqueueTime;
+                if (_x_ != 0)
+                {
+                    _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                    _o_.WriteLong(_x_);
+                }
+            }
             _o_.WriteByte(0);
         }
 
@@ -174,6 +217,11 @@ namespace Zeze.Builtin.DelayRemove
             if (_i_ == 2)
             {
                 EncodedKey = _o_.ReadBinary(_t_);
+                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+            }
+            if (_i_ == 3)
+            {
+                EnqueueTime = _o_.ReadLong(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
             while (_t_ != 0)
@@ -193,6 +241,7 @@ namespace Zeze.Builtin.DelayRemove
 
         public override bool NegativeCheck()
         {
+            if (EnqueueTime < 0) return true;
             return false;
         }
 
@@ -205,6 +254,7 @@ namespace Zeze.Builtin.DelayRemove
                 {
                     case 1: _TableName = ((Zeze.Transaction.Log<string>)vlog).Value; break;
                     case 2: _EncodedKey = ((Zeze.Transaction.Log<Zeze.Net.Binary>)vlog).Value; break;
+                    case 3: _EnqueueTime = ((Zeze.Transaction.Log<long>)vlog).Value; break;
                 }
             }
         }

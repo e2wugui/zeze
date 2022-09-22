@@ -2,6 +2,7 @@ package Zeze.Transaction;
 
 import Zeze.Application;
 import Zeze.Config;
+import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Reduce;
 
@@ -82,4 +83,6 @@ public abstract class Table {
 	public abstract int reduceInvalid(Reduce rpc, ByteBuffer bbKey);
 
 	abstract void reduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex);
+
+	public abstract void remove(Binary encodedKey);
 }

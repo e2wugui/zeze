@@ -18,7 +18,6 @@ Zege
 	置顶。
 
 ServiceManager::OfflineNotify 选择目标遍历优化。
-Table.DelayRemove 删除的实现。
 
 Zege c# ModuleFriend 还需要的能力 @项洋呈
 	1. Nodes 限制大小，当往后面翻超过n(如10个）节点时，删除开头的节点。
@@ -38,13 +37,22 @@ Zege c#
 	c# group encrypt message;
 
 【2022/10/26】
-Task & Achievement @项洋呈
-dynamic is bean? @张路
-
-【2022/9/26】
 
 ------------------------------------------------------------------------------------------------------------------------------
-tag 1.0.6 Timer; conf+cs+net; ServiceManager.OfflineNotify
+tag v1.0.8 Task & Achievement;
+------------------------------------------------------------------------------------------------------------------------------
+Task & Achievement @项洋呈
+
+------------------------------------------------------------------------------------------------------------------------------
+tag v1.0.7 Task & Achievement Start; Table.DelayRemove RemoveTimer; dynamic direct put in collection without Bean-Holder;
+------------------------------------------------------------------------------------------------------------------------------
+Task & Achievement @项洋呈
+Table.DelayRemove 删除的实现。
+dynamic is bean? 支持放入容器。@张路
+
+【2022/9/22】
+------------------------------------------------------------------------------------------------------------------------------
+tag v1.0.6 Timer; conf+cs+net; ServiceManager.OfflineNotify
 ------------------------------------------------------------------------------------------------------------------------------
 Component.Timer 安全加强：
 	1. fire是检查Index.ServerId确认自己是否拥有者。错误时cancel future，注意不是cancel timer。

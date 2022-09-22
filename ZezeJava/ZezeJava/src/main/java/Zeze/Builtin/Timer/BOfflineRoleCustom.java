@@ -45,6 +45,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean {
         return _CustomData;
     }
 
+
     @SuppressWarnings("deprecation")
     public BOfflineRoleCustom() {
         _CustomData = newDynamicBean_CustomData();

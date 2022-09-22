@@ -37,6 +37,7 @@ public final class BAny extends Zeze.Transaction.Bean {
         return _Any;
     }
 
+
     @SuppressWarnings("deprecation")
     public BAny() {
         _Any = newDynamicBean_Any();

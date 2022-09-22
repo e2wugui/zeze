@@ -222,6 +222,7 @@
 			<bean name="BTableKey">
 				<variable id="1" name="TableName" type="string" />
 				<variable id="2" name="EncodedKey" type="binary" />
+				<variable id="3" name="EnqueueTime" type="long" />
 			</bean>
 		</module>
 

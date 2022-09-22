@@ -64,11 +64,27 @@ public final class Config {
 
 	private int onlineLogoutDelay = 60 * 10 * 1000; // 10 minutes
 
+	private int delayRemoveHourStart = 3;
+	private int delayRemoveHourEnd = 7;
+	private int delayRemoveDays = 7; // a week
+
 	public Config() {
 	}
 
 	public String getName() {
 		return name;
+	}
+
+	public int getDelayRemoveHourStart() {
+		return delayRemoveHourStart;
+	}
+
+	public int getDelayRemoveHourEnd() {
+		return delayRemoveHourEnd;
+	}
+
+	public int getDelayRemoveDays() {
+		return delayRemoveDays;
 	}
 
 	public int getOnlineLogoutDelay() {
@@ -392,6 +408,18 @@ public final class Config {
 		attr = self.getAttribute("AutoResetTable");
 		if (!attr.isEmpty())
 			autoResetTable = Boolean.parseBoolean(attr);
+
+		attr = self.getAttribute("DelayRemoveHourStart");
+		if (!attr.isEmpty())
+			delayRemoveHourStart = Integer.parseInt(attr);
+
+		attr = self.getAttribute("DelayRemoveHourEnd");
+		if (!attr.isEmpty())
+			delayRemoveHourEnd = Integer.parseInt(attr);
+
+		attr = self.getAttribute("DelayRemoveDays");
+		if (!attr.isEmpty())
+			delayRemoveDays = Integer.parseInt(attr);
 
 		NodeList childNodes = self.getChildNodes();
 		for (int i = 0; i < childNodes.getLength(); i++) {

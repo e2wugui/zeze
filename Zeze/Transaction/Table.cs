@@ -59,6 +59,7 @@ namespace Zeze.Transaction
         public abstract ByteBuffer EncodeKey(object key);
         public abstract object DecodeObjectKey(ByteBuffer bb);
         public abstract Bean NewBeanValue();
+        public abstract Task RemoveAsync(Binary encodedKey);
     }
 
     public abstract class Table<K, V> : Table where V : Bean, new()
@@ -508,6 +509,12 @@ namespace Zeze.Transaction
             }
             value.InitRootInfoWithRedo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
             cr.Put(currentT, value);
+        }
+
+        public override async Task RemoveAsync(Binary encodedKey)
+        {
+            var key = DecodeKey(ByteBuffer.Wrap(encodedKey));
+            await RemoveAsync(key);
         }
 
         // 几乎和Put一样，还是独立开吧。

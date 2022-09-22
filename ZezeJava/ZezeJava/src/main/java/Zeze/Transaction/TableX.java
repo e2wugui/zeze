@@ -558,6 +558,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		cr.put(currentT, value);
 	}
 
+	@Override
+	public void remove(Binary encodedKey) {
+		var key = decodeKey(ByteBuffer.Wrap(encodedKey));
+		remove(key);
+	}
+
 	// 几乎和Put一样，还是独立开吧。
 	public final void remove(K key) {
 		var currentT = Transaction.getCurrent();

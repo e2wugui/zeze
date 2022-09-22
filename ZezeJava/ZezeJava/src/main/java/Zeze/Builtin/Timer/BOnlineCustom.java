@@ -40,6 +40,7 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean {
         return _CustomData;
     }
 
+
     @SuppressWarnings("deprecation")
     public BOnlineCustom() {
         _CustomData = newDynamicBean_CustomData();

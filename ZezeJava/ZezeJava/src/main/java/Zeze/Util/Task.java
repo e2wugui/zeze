@@ -223,14 +223,22 @@ public final class Task {
 	}
 
 	public static void scheduleAt(int hour, int minute, Action0 action) {
+		scheduleAt(hour, minute, -1, action);
+	}
+
+	public static void scheduleAt(int hour, int minute, long period, Action0 action) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> scheduleAtUnsafe(hour, minute, action));
+			t.runWhileCommit(() -> scheduleAtUnsafe(hour, minute, period, action));
 		else
-			scheduleAtUnsafe(hour, minute, action);
+			scheduleAtUnsafe(hour, minute, period, action);
 	}
 
 	public static Future<?> scheduleAtUnsafe(int hour, int minute, Action0 action) {
+		return scheduleAtUnsafe(hour, minute, -1, action);
+	}
+
+	public static Future<?> scheduleAtUnsafe(int hour, int minute, long period, Action0 action) {
 		var firstTime = Calendar.getInstance();
 		firstTime.set(Calendar.HOUR_OF_DAY, hour);
 		firstTime.set(Calendar.MINUTE, minute);
@@ -239,6 +247,8 @@ public final class Task {
 		if (firstTime.before(Calendar.getInstance())) // 如果第一次的时间比当前时间早，推到明天。
 			firstTime.add(Calendar.DAY_OF_MONTH, 1); // tomorrow!
 		var delay = firstTime.getTime().getTime() - System.currentTimeMillis();
+		if (period > 0)
+			return scheduleUnsafe(delay, period, action);
 		return scheduleUnsafe(delay, action);
 	}
 

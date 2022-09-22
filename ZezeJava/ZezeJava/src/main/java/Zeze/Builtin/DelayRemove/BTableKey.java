@@ -9,6 +9,7 @@ public final class BTableKey extends Zeze.Transaction.Bean {
 
     private String _TableName;
     private Zeze.Net.Binary _EncodedKey;
+    private long _EnqueueTime;
 
     public String getTableName() {
         if (!isManaged())
@@ -52,6 +53,25 @@ public final class BTableKey extends Zeze.Transaction.Bean {
         txn.putLog(new Log__EncodedKey(this, 2, value));
     }
 
+    public long getEnqueueTime() {
+        if (!isManaged())
+            return _EnqueueTime;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _EnqueueTime;
+        var log = (Log__EnqueueTime)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _EnqueueTime;
+    }
+
+    public void setEnqueueTime(long value) {
+        if (!isManaged()) {
+            _EnqueueTime = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__EnqueueTime(this, 3, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BTableKey() {
         _TableName = "";
@@ -59,18 +79,20 @@ public final class BTableKey extends Zeze.Transaction.Bean {
     }
 
     @SuppressWarnings("deprecation")
-    public BTableKey(String _TableName_, Zeze.Net.Binary _EncodedKey_) {
+    public BTableKey(String _TableName_, Zeze.Net.Binary _EncodedKey_, long _EnqueueTime_) {
         if (_TableName_ == null)
             throw new IllegalArgumentException();
         _TableName = _TableName_;
         if (_EncodedKey_ == null)
             throw new IllegalArgumentException();
         _EncodedKey = _EncodedKey_;
+        _EnqueueTime = _EnqueueTime_;
     }
 
     public void assign(BTableKey other) {
         setTableName(other.getTableName());
         setEncodedKey(other.getEncodedKey());
+        setEnqueueTime(other.getEnqueueTime());
     }
 
     @Deprecated
@@ -119,6 +141,13 @@ public final class BTableKey extends Zeze.Transaction.Bean {
         public void commit() { ((BTableKey)getBelong())._EncodedKey = value; }
     }
 
+    private static final class Log__EnqueueTime extends Zeze.Transaction.Logs.LogLong {
+        public Log__EnqueueTime(BTableKey bean, int varId, long value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BTableKey)getBelong())._EnqueueTime = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -131,7 +160,8 @@ public final class BTableKey extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.DelayRemove.BTableKey: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("TableName").append('=').append(getTableName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("EncodedKey").append('=').append(getEncodedKey()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("EncodedKey").append('=').append(getEncodedKey()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("EnqueueTime").append('=').append(getEnqueueTime()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -165,6 +195,13 @@ public final class BTableKey extends Zeze.Transaction.Bean {
                 _o_.WriteBinary(_x_);
             }
         }
+        {
+            long _x_ = getEnqueueTime();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -178,6 +215,10 @@ public final class BTableKey extends Zeze.Transaction.Bean {
         }
         if (_i_ == 2) {
             setEncodedKey(_o_.ReadBinary(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            setEnqueueTime(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -196,6 +237,8 @@ public final class BTableKey extends Zeze.Transaction.Bean {
 
     @Override
     public boolean negativeCheck() {
+        if (getEnqueueTime() < 0)
+            return true;
         return false;
     }
 
@@ -210,6 +253,7 @@ public final class BTableKey extends Zeze.Transaction.Bean {
             switch (vlog.getVariableId()) {
                 case 1: _TableName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 2: _EncodedKey = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 3: _EnqueueTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }

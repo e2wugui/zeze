@@ -69,6 +69,7 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean {
         return _CustomData;
     }
 
+
     @SuppressWarnings("deprecation")
     public BOfflineAccountCustom() {
         _Account = "";

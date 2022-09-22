@@ -45,6 +45,7 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean {
         return _Value;
     }
 
+
     @SuppressWarnings("deprecation")
     public BQueueNodeValue() {
         _Value = newDynamicBean_Value();
