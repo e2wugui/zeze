@@ -18,8 +18,8 @@ import Zeze.Util.Task;
 /**
  * 1. schedule，scheduleNamed 完全重新实现一套基于内存表和内存的。
  * 2. 不直接使用 Timer.schedule。但有如下关联。
- *    直接使用 Timer.timerIdAutoKey，使得返回的timerId共享一个名字空间。
- *    直接使用 Timer.timersFuture，从 ThreadPool 返回的future保存在这里。
+ * 直接使用 Timer.timerIdAutoKey，使得返回的timerId共享一个名字空间。
+ * 直接使用 Timer.timersFuture，从 ThreadPool 返回的future保存在这里。
  * 3. cancel 用户入口从 Timer.calcel 调用。
  */
 public class TimerRole {
@@ -137,7 +137,7 @@ public class TimerRole {
 	}
 
 	public Timer.Result scheduleOffline(long roleId, long delay, long period, long times, long endTime,
-								Class<? extends TimerHandle> handleClassName, Bean customData) {
+										Class<? extends TimerHandle> handleClassName, Bean customData) {
 		var loginVersion = online.getOfflineLoginVersion(roleId);
 		if (null == loginVersion)
 			return Timer.Result.eInvalidLoginState;
@@ -241,7 +241,13 @@ public class TimerRole {
 		// 先整体在一个事务内更新，这样更安全。
 		// 由于Online Timer是本进程的，用户也不会修改，所以整体更新目前看来还可接受。
 		for (var tid : timers.getTimerIds().keySet()) {
-			timer.tArchOlineTimer().get(tid).setLoginVersion(loginVersion);
+			var archTimer = timer.tArchOlineTimer().get(tid);
+			if (archTimer != null)
+				archTimer.setLoginVersion(loginVersion);
+
+			var gameTimer = timer.tGameOlineTimer().get(tid);
+			if (gameTimer != null)
+				gameTimer.setLoginVersion(loginVersion);
 		}
 		return 0;
 	}
