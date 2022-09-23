@@ -7,11 +7,14 @@ import Zeze.Serialize.ByteBuffer;
 public final class BOfflineRoleCustom extends Zeze.Transaction.Bean {
     public static final long TYPEID = -124522910617189691L;
 
+    private String _TimerName;
     private long _RoleId;
+    private long _LoginVersion;
+    private String _HandleName;
     private final Zeze.Transaction.DynamicBean _CustomData;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_CustomData() {
-        return new Zeze.Transaction.DynamicBean(2, Zeze.Component.Timer::getSpecialTypeIdFromBean, Zeze.Component.Timer::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(5, Zeze.Component.Timer::getSpecialTypeIdFromBean, Zeze.Component.Timer::createBeanFromSpecialTypeId);
     }
 
     public static long getSpecialTypeIdFromBean_CustomData(Zeze.Transaction.Bean bean) {
@@ -22,13 +25,34 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean {
         return Zeze.Component.Timer.createBeanFromSpecialTypeId(typeId);
     }
 
+    public String getTimerName() {
+        if (!isManaged())
+            return _TimerName;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _TimerName;
+        var log = (Log__TimerName)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _TimerName;
+    }
+
+    public void setTimerName(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _TimerName = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__TimerName(this, 1, value));
+    }
+
     public long getRoleId() {
         if (!isManaged())
             return _RoleId;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _RoleId;
-        var log = (Log__RoleId)txn.getLog(objectId() + 1);
+        var log = (Log__RoleId)txn.getLog(objectId() + 2);
         return log != null ? log.value : _RoleId;
     }
 
@@ -38,7 +62,47 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean {
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__RoleId(this, 1, value));
+        txn.putLog(new Log__RoleId(this, 2, value));
+    }
+
+    public long getLoginVersion() {
+        if (!isManaged())
+            return _LoginVersion;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _LoginVersion;
+        var log = (Log__LoginVersion)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _LoginVersion;
+    }
+
+    public void setLoginVersion(long value) {
+        if (!isManaged()) {
+            _LoginVersion = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__LoginVersion(this, 3, value));
+    }
+
+    public String getHandleName() {
+        if (!isManaged())
+            return _HandleName;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _HandleName;
+        var log = (Log__HandleName)txn.getLog(objectId() + 4);
+        return log != null ? log.value : _HandleName;
+    }
+
+    public void setHandleName(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _HandleName = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__HandleName(this, 4, value));
     }
 
     public Zeze.Transaction.DynamicBean getCustomData() {
@@ -47,17 +111,30 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean {
 
     @SuppressWarnings("deprecation")
     public BOfflineRoleCustom() {
+        _TimerName = "";
+        _LoginVersion = -1;
+        _HandleName = "";
         _CustomData = newDynamicBean_CustomData();
     }
 
     @SuppressWarnings("deprecation")
-    public BOfflineRoleCustom(long _RoleId_) {
+    public BOfflineRoleCustom(String _TimerName_, long _RoleId_, long _LoginVersion_, String _HandleName_) {
+        if (_TimerName_ == null)
+            throw new IllegalArgumentException();
+        _TimerName = _TimerName_;
         _RoleId = _RoleId_;
+        _LoginVersion = _LoginVersion_;
+        if (_HandleName_ == null)
+            throw new IllegalArgumentException();
+        _HandleName = _HandleName_;
         _CustomData = newDynamicBean_CustomData();
     }
 
     public void assign(BOfflineRoleCustom other) {
+        setTimerName(other.getTimerName());
         setRoleId(other.getRoleId());
+        setLoginVersion(other.getLoginVersion());
+        setHandleName(other.getHandleName());
         _CustomData.assign(other._CustomData);
     }
 
@@ -93,11 +170,32 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
+    private static final class Log__TimerName extends Zeze.Transaction.Logs.LogString {
+        public Log__TimerName(BOfflineRoleCustom bean, int varId, String value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BOfflineRoleCustom)getBelong())._TimerName = value; }
+    }
+
     private static final class Log__RoleId extends Zeze.Transaction.Logs.LogLong {
         public Log__RoleId(BOfflineRoleCustom bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
         public void commit() { ((BOfflineRoleCustom)getBelong())._RoleId = value; }
+    }
+
+    private static final class Log__LoginVersion extends Zeze.Transaction.Logs.LogLong {
+        public Log__LoginVersion(BOfflineRoleCustom bean, int varId, long value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BOfflineRoleCustom)getBelong())._LoginVersion = value; }
+    }
+
+    private static final class Log__HandleName extends Zeze.Transaction.Logs.LogString {
+        public Log__HandleName(BOfflineRoleCustom bean, int varId, String value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BOfflineRoleCustom)getBelong())._HandleName = value; }
     }
 
     @Override
@@ -111,7 +209,10 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Timer.BOfflineRoleCustom: {").append(System.lineSeparator());
         level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("TimerName").append('=').append(getTimerName()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("RoleId").append('=').append(getRoleId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("LoginVersion").append('=').append(getLoginVersion()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("HandleName").append('=').append(getHandleName()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("CustomData").append('=').append(System.lineSeparator());
         _CustomData.getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
@@ -135,16 +236,37 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
+            String _x_ = getTimerName();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        {
             long _x_ = getRoleId();
             if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
+            }
+        }
+        {
+            long _x_ = getLoginVersion();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
+        {
+            String _x_ = getHandleName();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
             }
         }
         {
             var _x_ = _CustomData;
             if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.DYNAMIC);
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.DYNAMIC);
                 _x_.encode(_o_);
             }
         }
@@ -156,10 +278,22 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setRoleId(_o_.ReadLong(_t_));
+            setTimerName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
+            setRoleId(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            setLoginVersion(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            setHandleName(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 5) {
             _o_.ReadDynamic(_CustomData, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
@@ -183,6 +317,8 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean {
     public boolean negativeCheck() {
         if (getRoleId() < 0)
             return true;
+        if (getLoginVersion() < 0)
+            return true;
         return false;
     }
 
@@ -195,8 +331,11 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _RoleId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _CustomData.followerApply(vlog); break;
+                case 1: _TimerName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 2: _RoleId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 3: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 4: _HandleName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 5: _CustomData.followerApply(vlog); break;
             }
         }
     }

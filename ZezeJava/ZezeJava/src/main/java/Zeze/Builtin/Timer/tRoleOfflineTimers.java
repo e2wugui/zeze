@@ -24,9 +24,7 @@ public final class tRoleOfflineTimers extends Zeze.Transaction.TableX<Long, Zeze
         return false;
     }
 
-    public static final int VAR_ServerId = 1;
-    public static final int VAR_LoginVersion = 2;
-    public static final int VAR_OfflineTimers = 3;
+    public static final int VAR_OfflineTimers = 1;
 
     @Override
     public Long decodeKey(ByteBuffer _os_) {

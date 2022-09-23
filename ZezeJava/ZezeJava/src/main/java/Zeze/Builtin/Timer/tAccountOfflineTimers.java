@@ -24,9 +24,7 @@ public final class tAccountOfflineTimers extends Zeze.Transaction.TableX<Zeze.Bu
         return false;
     }
 
-    public static final int VAR_ServerId = 1;
-    public static final int VAR_LoginVersion = 2;
-    public static final int VAR_OfflineTimers = 3;
+    public static final int VAR_OfflineTimers = 1;
 
     @Override
     public Zeze.Builtin.Timer.BAccountClientId decodeKey(ByteBuffer _os_) {

@@ -949,27 +949,29 @@
 
 			<!-- Offline Timer -->
 			<bean name="BOfflineAccountCustom">
-				<variable id="1" name="Account" type="string"/>
-				<variable id="2" name="ClientId" type="string"/>
-				<variable id="3" name="CustomData" type="dynamic"> 保存真正的用户自定义数据
+				<variable id="1" name="TimerName"    type="string"/>
+				<variable id="2" name="Account"      type="string"/>
+				<variable id="3" name="ClientId"     type="string"/>
+				<variable id="4" name="LoginVersion" type="long" default="-1"/>
+				<variable id="5" name="HandleName"   type="string"/>
+				<variable id="6" name="CustomData"   type="dynamic"> 保存真正的用户自定义数据
 					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::getSpecialTypeIdFromBean"/>
 					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::createBeanFromSpecialTypeId"/>
 				</variable>
 			</bean>
 			<bean name="BOfflineRoleCustom">
-				<variable id="1" name="RoleId" type="long"/>
-				<variable id="2" name="CustomData" type="dynamic"> 保存真正的用户自定义数据
+				<variable id="1" name="TimerName"    type="string"/>
+				<variable id="2" name="RoleId"       type="long"/>
+				<variable id="3" name="LoginVersion" type="long" default="-1"/>
+				<variable id="4" name="HandleName"   type="string"/>
+				<variable id="5" name="CustomData"   type="dynamic"> 保存真正的用户自定义数据
 					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::getSpecialTypeIdFromBean"/>
 					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::createBeanFromSpecialTypeId"/>
 				</variable>
 			</bean>
-			<bean name="BOfflineTimer">
-				<variable id="1" name="TimerId" type="long"/>
-			</bean>
 			<bean name="BOfflineTimers">
-				<variable id="1" name="ServerId" type="int" default="-1"/>  下线之后第一个来注册Timer的服务器Id，一般是下线服务器Id。
-				<variable id="2" name="LoginVersion" type="long" default="-1"/>
-				<variable id="3" name="OfflineTimers" type="map[long, BOfflineTimer]"/>
+				key是timerId，value是注册离线定时器的ServerId。
+				<variable id="1" name="OfflineTimers" type="map[string, int]"/>
 			</bean>
 			<table name="tRoleOfflineTimers" key="long" value="BOfflineTimers"/>
 

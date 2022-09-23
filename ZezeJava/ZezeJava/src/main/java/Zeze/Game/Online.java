@@ -243,6 +243,16 @@ public class Online extends AbstractOnline {
 		Transaction.whileCommit(() -> localRemoveEvents.triggerThread(this, arg));
 	}
 
+	public Long getOfflineLoginVersion(long roleId) {
+		var online = _tonline.get(roleId);
+		if (null != online)
+			return null; // is not online
+		var version = _tversion.get(roleId);
+		if (null == version)
+			return null; // no version
+		return version.getLoginVersion();
+	}
+
 	public Long getLocalLoginVersion(long roleId) {
 		var local = _tlocal.get(roleId);
 		if (null == local)

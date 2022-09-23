@@ -382,6 +382,22 @@ public class Online extends AbstractOnline {
 		});
 	}
 
+	public Long getOfflineLoginVersion(String account, String clientId) {
+		var online = _tonline.get(account);
+		if (null != online)
+			return null; // is not online
+		var login = online.getLogins().get(clientId);
+		if (null == login)
+			return null; // is not login
+		var version = _tversion.get(account);
+		if (null == version)
+			return null; // no version
+		var loginVersion = version.getLogins().get(clientId);
+		if (null == loginVersion)
+			return null; // no login version
+		return loginVersion.getLoginVersion();
+	}
+
 	public Long getLocalLoginVersion(String account, String clientId) {
 		var local = _tlocal.get(account);
 		if (null == local)

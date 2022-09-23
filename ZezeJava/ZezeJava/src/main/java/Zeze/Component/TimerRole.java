@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import java.text.ParseException;
+import Zeze.Builtin.Timer.BOfflineRoleCustom;
 import Zeze.Game.LocalRemoveEventArgument;
 import Zeze.Game.LoginArgument;
 import Zeze.Game.Online;
@@ -32,6 +34,7 @@ public class TimerRole {
 		// online timer 生命期和 Online.Local 一致。
 		online.getLocalRemoveEvents().getRunEmbedEvents().offer(this::onLocalRemoveEvent);
 		online.getReloginEvents().getRunEmbedEvents().offer(this::onReloginEvent);
+		online.getLoginEvents().getRunEmbedEvents().offer(this::onLoginEvent);
 	}
 
 	// 本进程内的有名字定时器，名字仅在本进程内唯一。
@@ -133,14 +136,83 @@ public class TimerRole {
 		return true;
 	}
 
-	public long scheduleOffline(long roleId, String timerName, long delay, long period,
-								String handleClassName, Bean customData) {
+	public Timer.Result scheduleOffline(long roleId, long delay, long period, long times, long endTime,
+								Class<? extends TimerHandle> handleClassName, Bean customData) {
+		var loginVersion = online.getOfflineLoginVersion(roleId);
+		if (null == loginVersion)
+			return Timer.Result.eInvalidLoginState;
+
 		var timer = online.providerApp.zeze.getTimer();
-		return 0;
+		var custom = new BOfflineRoleCustom("", roleId, loginVersion, handleClassName.getName());
+		var timerName = timer.schedule(delay, period, times, endTime,
+				Timer.eMissfirePolicyNothing, OfflineHandle.class, custom);
+		custom.setTimerName(timerName); // 没办法，循环依赖了，只能在这里设置。
+		if (null != customData) {
+			timer.register(customData.getClass());
+			custom.getCustomData().setBean(customData);
+		}
+		var offline = timer.tRoleOfflineTimers().getOrAdd(roleId);
+		if (null != offline.getOfflineTimers().putIfAbsent(timerName, timer.zeze.getConfig().getServerId()))
+			return Timer.Result.eTimerExist;
+		return Timer.Result.eSuccess;
+	}
+
+	public Timer.Result scheduleOffline(long roleId, String cron, long times, long endTime,
+										Class<? extends TimerHandle> handleClassName, Bean customData) throws ParseException {
+		var loginVersion = online.getOfflineLoginVersion(roleId);
+		if (null == loginVersion)
+			return Timer.Result.eInvalidLoginState;
+
+		var timer = online.providerApp.zeze.getTimer();
+		var custom = new BOfflineRoleCustom("", roleId, loginVersion, handleClassName.getName());
+		var timerName = timer.schedule(cron, times, endTime,
+				Timer.eMissfirePolicyNothing, OfflineHandle.class, custom);
+		custom.setTimerName(timerName); // 没办法，循环依赖了，只能在这里设置。
+		if (null != customData) {
+			timer.register(customData.getClass());
+			custom.getCustomData().setBean(customData);
+		}
+		var offline = timer.tRoleOfflineTimers().getOrAdd(roleId);
+		if (null != offline.getOfflineTimers().putIfAbsent(timerName, timer.zeze.getConfig().getServerId()))
+			return Timer.Result.eTimerExist;
+		return Timer.Result.eSuccess;
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////
 	// 内部实现
+	private static class OfflineHandle extends TimerHandle {
+		@Override
+		public void onTimer(TimerContext context) throws Throwable {
+			var offlineCustom = (BOfflineRoleCustom)context.customData;
+			var loginVersion = context.timer.getRoleTimer().online.getOfflineLoginVersion(offlineCustom.getRoleId());
+			// 检查版本号，不正确的登录版本号表示过期的timer，取消掉即可。
+			if (null != loginVersion && loginVersion == offlineCustom.getLoginVersion()) {
+				@SuppressWarnings("unchecked")
+				var handleClass = (Class<? extends TimerHandle>)Class.forName(offlineCustom.getHandleName());
+				final var handle = handleClass.getDeclaredConstructor().newInstance();
+				handle.onTimer(context);
+			} else {
+				context.timer.cancel(offlineCustom.getTimerName());
+				var offlineTimers = context.timer.tRoleOfflineTimers().get(offlineCustom.getRoleId());
+				offlineTimers.getOfflineTimers().remove(offlineCustom.getTimerName());
+			}
+		}
+	}
+
+	private long onLoginEvent(Object sender, EventDispatcher.EventArgument arg) {
+		var timer = online.providerApp.zeze.getTimer();
+		var loginArg = (LoginArgument)arg;
+		var offlineTimers = timer.tRoleOfflineTimers().get(loginArg.roleId);
+		for (var e : offlineTimers.getOfflineTimers().entrySet()) {
+			timer.redirectCancel(e.getValue(), e.getKey());
+		}
+		// 嵌入本地服务器事件事务中，
+		// 删除之后，如果上面的redirectCancel失败，
+		// 那么该timer触发的时候会检测到版本号不一致，
+		// 然后timer最终也会被cancel掉。
+		timer.tRoleOfflineTimers().remove(loginArg.roleId);
+		return 0;
+	}
 
 	// Online.Local 删除事件，取消这个用户所有的在线定时器。
 	private long onLocalRemoveEvent(Object sender, EventDispatcher.EventArgument arg) throws Throwable {

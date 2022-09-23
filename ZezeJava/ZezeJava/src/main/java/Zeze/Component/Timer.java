@@ -20,6 +20,12 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.util.CronExpression;
 
 public class Timer extends AbstractTimer {
+	public static enum Result {
+		eSuccess,
+		eInvalidLoginState,
+		eTimerExist,
+	}
+
 	private static final BeanFactory beanFactory = new BeanFactory();
 
 	public static long getSpecialTypeIdFromBean(Bean bean) {
@@ -50,16 +56,18 @@ public class Timer extends AbstractTimer {
 	}
 
 	@SuppressWarnings("unchecked")
+	private long loadCustomClass() throws ClassNotFoundException {
+		var classes = _tCustomClasses.getOrAdd(1);
+		for (var cls : classes.getCustomClasses()) {
+			beanFactory.register((Class<? extends Bean>)Class.forName(cls));
+		}
+		return 0L;
+	}
+
 	public void start() throws Throwable {
 		nodeIdAutoKey = zeze.getAutoKey("Zeze.Component.Timer.NodeId");
 		timerIdAutoKey = zeze.getAutoKey("Zeze.Component.Timer.TimerId");
-		if (0L != zeze.newProcedure(() -> {
-			var classes = _tCustomClasses.getOrAdd(1);
-			for (var cls : classes.getCustomClasses()) {
-				beanFactory.register((Class<? extends Bean>)Class.forName(cls));
-			}
-			return 0L;
-		}, "").call()) {
+		if (0L != zeze.newProcedure(this::loadCustomClass, "").call()) {
 			throw new IllegalStateException("Load Item Classes Failed.");
 		}
 		Task.run(this::loadTimer, "LoadTimerLocal");
@@ -369,6 +377,14 @@ public class Timer extends AbstractTimer {
 		return _tGameOlineTimer;
 	}
 
+	tAccountOfflineTimers tAccountOfflineTimers() {
+		return _tAccountOfflineTimers;
+	}
+
+	tRoleOfflineTimers tRoleOfflineTimers() {
+		return _tRoleOfflineTimers;
+	}
+
 	private TimerAccount timerAccount;
 	private TimerRole timerRole;
 
@@ -469,18 +485,14 @@ public class Timer extends AbstractTimer {
 
 		// 下面这段代码可以写的更简洁，但这样写，思路更清楚。
 		if (missfire) {
-			switch (simpleTimer.getMissfirePolicy()) {
-			case eMissfirePolicyRunOnce:
+			if (simpleTimer.getMissfirePolicy() == eMissfirePolicyRunOnce) {
 				// 这种策略重置时间，定时器将在新的开始时间之后按原来的间隔执行。
 				// simpleTimer.setStartTime(now); // todo 这个要不要重置？
 				simpleTimer.setExpectedTime(now);
 				simpleTimer.setNextExpectedTime(now + simpleTimer.getPeriod());
-				break;
-
-			default:
+			} else {
 				simpleTimer.setExpectedTime(simpleTimer.getExpectedTime() + simpleTimer.getPeriod());
 				simpleTimer.setNextExpectedTime(simpleTimer.getExpectedTime() + simpleTimer.getPeriod());
-				break;
 			}
 		} else {
 			simpleTimer.setExpectedTime(simpleTimer.getExpectedTime() + simpleTimer.getPeriod());
@@ -488,9 +500,7 @@ public class Timer extends AbstractTimer {
 		}
 
 		// check endTime
-		if (simpleTimer.getEndTime() > 0 && simpleTimer.getNextExpectedTime() > simpleTimer.getEndTime())
-			return false;
-		return true;
+		return simpleTimer.getEndTime() <= 0 || simpleTimer.getNextExpectedTime() <= simpleTimer.getEndTime();
 	}
 
 	private long fireSimple(int serverId, String timerId, long concurrentSerialNo, boolean missfire) {
@@ -592,18 +602,14 @@ public class Timer extends AbstractTimer {
 
 		// 下面这段代码可以写的更简洁，但这样写，思路更清楚。
 		if (missfire) {
-			switch (cronTimer.getMissfirePolicy()) {
-			case eMissfirePolicyRunOnce:
+			if (cronTimer.getMissfirePolicy() == eMissfirePolicyRunOnce) {
 				// 这种策略重置时间，定时器将在新的开始时间之后按原来的间隔执行。
 				// cronTimer.setStartTime(now); // todo 这个要不要重置？
 				cronTimer.setExpectedTime(now);
 				cronTimer.setNextExpectedTime(cronNextTime(cronTimer.getCronExpression(), now));
-				break;
-
-			default:
+			} else {
 				cronTimer.setExpectedTime(cronTimer.getNextExpectedTime());
 				cronTimer.setNextExpectedTime(cronNextTime(cronTimer.getCronExpression(), cronTimer.getExpectedTime()));
-				break;
 			}
 		} else {
 			cronTimer.setExpectedTime(cronTimer.getNextExpectedTime());
@@ -611,10 +617,7 @@ public class Timer extends AbstractTimer {
 		}
 
 		// check endTime
-		if (cronTimer.getEndTime() > 0 && cronTimer.getNextExpectedTime() > cronTimer.getEndTime())
-			return false;
-
-		return true;
+		return cronTimer.getEndTime() <= 0 || cronTimer.getNextExpectedTime() <= cronTimer.getEndTime();
 	}
 
 	private void fireCron(int serverId, String timerId, long concurrentSerialNo, boolean missfire) {
@@ -689,12 +692,15 @@ public class Timer extends AbstractTimer {
 	// @serverId 需要接管的服务器Id。
 	private long spliceLoadTimer(int serverId, long loadSerialNo) {
 		if (serverId == zeze.getConfig().getServerId())
-			throw new IllegalArgumentException();
+			return 0; // skip self
 
 		final var first = new OutObject<Long>();
 		final var last = new OutObject<Long>();
 
 		var result = Task.call(zeze.newProcedure(() -> {
+			// 当接管别的服务器的定时器时，有可能那台服务器有新的CustomData，这个时候重新加载一次。
+			loadCustomClass();
+
 			var src = _tNodeRoot.get(serverId);
 			if (null == src || src.getHeadNodeId() == 0 || src.getTailNodeId() == 0)
 				return 0L; // nothing need to do.
