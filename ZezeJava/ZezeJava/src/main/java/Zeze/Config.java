@@ -68,11 +68,17 @@ public final class Config {
 	private int delayRemoveHourEnd = 7;
 	private int delayRemoveDays = 7; // a week
 
+	private int offlineTimerLimit = 200;
+
 	public Config() {
 	}
 
 	public String getName() {
 		return name;
+	}
+
+	public int getOfflineTimerLimit() {
+		return offlineTimerLimit;
 	}
 
 	public int getDelayRemoveHourStart() {
@@ -420,6 +426,10 @@ public final class Config {
 		attr = self.getAttribute("DelayRemoveDays");
 		if (!attr.isEmpty())
 			delayRemoveDays = Integer.parseInt(attr);
+
+		attr = self.getAttribute("OfflineTimerLimit");
+		if (!attr.isEmpty())
+			offlineTimerLimit = Integer.parseInt(attr);
 
 		NodeList childNodes = self.getChildNodes();
 		for (int i = 0; i < childNodes.getLength(); i++) {

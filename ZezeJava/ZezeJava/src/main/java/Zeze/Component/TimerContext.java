@@ -7,10 +7,17 @@ public class TimerContext {
 	public final Timer timer;
 	public final String timerId;
 	public final String timerName;
-	public final Bean customData;
+	public Bean customData;
 	public final long curTimeMills;
 	public final long nextExpectedTimeMills;
 	public final long expectedTimeMills;
+
+	// TimerRole Parameter
+	public long roleId;
+
+	// TimerAccount Parameter
+	public String account;
+	public String clientId;
 
 	// 从数据库结构构建上下文。
 	TimerContext(Timer timer, BTimer bTimer, long cur, long next, long expected) {

@@ -20,12 +20,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.util.CronExpression;
 
 public class Timer extends AbstractTimer {
-	public static enum Result {
-		eSuccess,
-		eInvalidLoginState,
-		eTimerExist,
-	}
-
 	private static final BeanFactory beanFactory = new BeanFactory();
 
 	public static long getSpecialTypeIdFromBean(Bean bean) {

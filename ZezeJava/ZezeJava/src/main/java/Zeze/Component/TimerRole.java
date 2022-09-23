@@ -136,11 +136,11 @@ public class TimerRole {
 		return true;
 	}
 
-	public Timer.Result scheduleOffline(long roleId, long delay, long period, long times, long endTime,
+	public String scheduleOffline(long roleId, long delay, long period, long times, long endTime,
 										Class<? extends TimerHandle> handleClassName, Bean customData) {
 		var loginVersion = online.getOfflineLoginVersion(roleId);
 		if (null == loginVersion)
-			return Timer.Result.eInvalidLoginState;
+			throw new IllegalStateException("not logout. roleId=" + roleId);
 
 		var timer = online.providerApp.zeze.getTimer();
 		var custom = new BOfflineRoleCustom("", roleId, loginVersion, handleClassName.getName());
@@ -152,16 +152,19 @@ public class TimerRole {
 			custom.getCustomData().setBean(customData);
 		}
 		var offline = timer.tRoleOfflineTimers().getOrAdd(roleId);
+		if (offline.getOfflineTimers().size() > timer.zeze.getConfig().getOfflineTimerLimit())
+			throw new IllegalStateException("too many offline timers. roleId=" + roleId + " size=" + offline.getOfflineTimers().size());
+
 		if (null != offline.getOfflineTimers().putIfAbsent(timerName, timer.zeze.getConfig().getServerId()))
-			return Timer.Result.eTimerExist;
-		return Timer.Result.eSuccess;
+			throw new IllegalStateException("duplicate timerName. roleId=" + roleId);
+		return timerName;
 	}
 
-	public Timer.Result scheduleOffline(long roleId, String cron, long times, long endTime,
+	public String scheduleOffline(long roleId, String cron, long times, long endTime,
 										Class<? extends TimerHandle> handleClassName, Bean customData) throws ParseException {
 		var loginVersion = online.getOfflineLoginVersion(roleId);
 		if (null == loginVersion)
-			return Timer.Result.eInvalidLoginState;
+			throw new IllegalStateException("not logout. roleId=" + roleId);
 
 		var timer = online.providerApp.zeze.getTimer();
 		var custom = new BOfflineRoleCustom("", roleId, loginVersion, handleClassName.getName());
@@ -173,9 +176,12 @@ public class TimerRole {
 			custom.getCustomData().setBean(customData);
 		}
 		var offline = timer.tRoleOfflineTimers().getOrAdd(roleId);
+		if (offline.getOfflineTimers().size() > timer.zeze.getConfig().getOfflineTimerLimit())
+			throw new IllegalStateException("too many offline timers. roleId=" + roleId + " size=" + offline.getOfflineTimers().size());
+
 		if (null != offline.getOfflineTimers().putIfAbsent(timerName, timer.zeze.getConfig().getServerId()))
-			return Timer.Result.eTimerExist;
-		return Timer.Result.eSuccess;
+			throw new IllegalStateException("duplicate timerName. roleId=" + roleId);
+		return timerName;
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////
@@ -190,6 +196,8 @@ public class TimerRole {
 				@SuppressWarnings("unchecked")
 				var handleClass = (Class<? extends TimerHandle>)Class.forName(offlineCustom.getHandleName());
 				final var handle = handleClass.getDeclaredConstructor().newInstance();
+				context.roleId = offlineCustom.getRoleId();
+				context.customData = offlineCustom.getCustomData().getBean();
 				handle.onTimer(context);
 			} else {
 				context.timer.cancel(offlineCustom.getTimerName());
@@ -294,6 +302,7 @@ public class TimerRole {
 			var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
 					cronTimer.getHappenTime(), cronTimer.getNextExpectedTime(),
 					cronTimer.getExpectedTime());
+			context.roleId = bTimer.getRoleId();
 			var retNest = Task.call(online.providerApp.zeze.newProcedure(() -> {
 				handle.onTimer(context);
 				return Procedure.Success;
@@ -350,6 +359,7 @@ public class TimerRole {
 				var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
 						simpleTimer.getHappenTimes(), simpleTimer.getNextExpectedTime(),
 						simpleTimer.getExpectedTime());
+				context.roleId = bTimer.getRoleId();
 				handle.onTimer(context);
 				return Procedure.Success;
 			}, "fireOnlineLocalHandle"));

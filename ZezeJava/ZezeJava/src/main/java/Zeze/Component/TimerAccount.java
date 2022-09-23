@@ -7,6 +7,7 @@ import Zeze.Builtin.Timer.BAccountClientId;
 import Zeze.Builtin.Timer.BArchOnlineTimer;
 import Zeze.Builtin.Timer.BCronTimer;
 import Zeze.Builtin.Timer.BOfflineAccountCustom;
+import Zeze.Builtin.Timer.BOnlineCustom;
 import Zeze.Builtin.Timer.BOnlineTimers;
 import Zeze.Builtin.Timer.BSimpleTimer;
 import Zeze.Arch.LoginArgument;
@@ -135,11 +136,11 @@ public class TimerAccount {
 		return true;
 	}
 
-	public Timer.Result scheduleOffline(String account, String clientId, long delay, long period, long times, long endTime,
+	public String scheduleOffline(String account, String clientId, long delay, long period, long times, long endTime,
 										Class<? extends TimerHandle> handleClassName, Bean customData) {
 		var loginVersion = online.getOfflineLoginVersion(account, clientId);
 		if (null == loginVersion)
-			return Timer.Result.eInvalidLoginState;
+			throw new IllegalStateException("not logout. account=" + account + " clientId=" + clientId);
 
 		var timer = online.providerApp.zeze.getTimer();
 		var custom = new BOfflineAccountCustom("", account, clientId, loginVersion, handleClassName.getName());
@@ -151,16 +152,20 @@ public class TimerAccount {
 			custom.getCustomData().setBean(customData);
 		}
 		var offline = timer.tAccountOfflineTimers().getOrAdd(new BAccountClientId(account, clientId));
+		if (offline.getOfflineTimers().size() > timer.zeze.getConfig().getOfflineTimerLimit())
+			throw new IllegalStateException("too many offline timers. account="
+					+ account + " clientId=" + clientId + " size=" + offline.getOfflineTimers().size());
+
 		if (null != offline.getOfflineTimers().putIfAbsent(timerName, timer.zeze.getConfig().getServerId()))
-			return Timer.Result.eTimerExist;
-		return Timer.Result.eSuccess;
+			throw new IllegalStateException("duplicate timerName. account=" + account + " clientId=" + clientId);
+		return timerName;
 	}
 
-	public Timer.Result scheduleOffline(String account, String clientId, String cron, long times, long endTime,
+	public String scheduleOffline(String account, String clientId, String cron, long times, long endTime,
 										Class<? extends TimerHandle> handleClassName, Bean customData) throws ParseException {
 		var loginVersion = online.getOfflineLoginVersion(account, clientId);
 		if (null == loginVersion)
-			return Timer.Result.eInvalidLoginState;
+			throw new IllegalStateException("not logout. account=" + account + " clientId=" + clientId);
 
 		var timer = online.providerApp.zeze.getTimer();
 		var custom = new BOfflineAccountCustom("", account, clientId, loginVersion, handleClassName.getName());
@@ -172,9 +177,13 @@ public class TimerAccount {
 			custom.getCustomData().setBean(customData);
 		}
 		var offline = timer.tAccountOfflineTimers().getOrAdd(new BAccountClientId(account, clientId));
+		if (offline.getOfflineTimers().size() > timer.zeze.getConfig().getOfflineTimerLimit())
+			throw new IllegalStateException("too many offline timers. account="
+					+ account + " clientId=" + clientId + " size=" + offline.getOfflineTimers().size());
+
 		if (null != offline.getOfflineTimers().putIfAbsent(timerName, timer.zeze.getConfig().getServerId()))
-			return Timer.Result.eTimerExist;
-		return Timer.Result.eSuccess;
+			throw new IllegalStateException("duplicate timerName. account=" + account + " clientId=" + clientId);
+		return timerName;
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////
@@ -190,6 +199,9 @@ public class TimerAccount {
 				@SuppressWarnings("unchecked")
 				var handleClass = (Class<? extends TimerHandle>)Class.forName(offlineCustom.getHandleName());
 				final var handle = handleClass.getDeclaredConstructor().newInstance();
+				context.account = offlineCustom.getAccount();
+				context.clientId = offlineCustom.getClientId();
+				context.customData = offlineCustom.getCustomData().getBean();
 				handle.onTimer(context);
 			} else {
 				context.timer.cancel(offlineCustom.getTimerName());
@@ -290,6 +302,8 @@ public class TimerAccount {
 			var customData = onlineTimers.getTimerIds().get(timerId).getCustomData().getBean();
 			var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
 					cronTimer.getHappenTime(), cronTimer.getNextExpectedTime(), cronTimer.getExpectedTime());
+			context.account = bTimer.getAccount();
+			context.clientId = bTimer.getClientId();
 			var retNest = Task.call(online.providerApp.zeze.newProcedure(() -> {
 				handle.onTimer(context);
 				return Procedure.Success;
@@ -297,7 +311,6 @@ public class TimerAccount {
 			if (retNest == Procedure.Exception)
 				return retNest;
 			// skip other error
-
 			if (!Timer.nextCronTimer(cronTimer, false)) {
 				cancel(timerId);
 				return 0; // procedure done
@@ -347,6 +360,8 @@ public class TimerAccount {
 				var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
 						simpleTimer.getHappenTimes(), simpleTimer.getNextExpectedTime(),
 						simpleTimer.getExpectedTime());
+				context.account = bTimer.getAccount();
+				context.clientId = bTimer.getClientId();
 				handle.onTimer(context);
 				return Procedure.Success;
 			}, "fireOnlineLocalHandle"));
