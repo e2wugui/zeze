@@ -281,13 +281,13 @@ public class LinkedMap<V extends Bean> {
 				module.Zeze.newProcedure(() -> {
 					removeNode(finalNodeId);
 					return 0;
-				}, name + ".clear.node").Call();
+				}, name + ".clear.node").call();
 				nodeId = node.getPrevNodeId();
 			}
 			module.Zeze.newProcedure(() -> {
 				module._tLinkedMaps.remove(name);
 				return 0;
-			}, name + ".clear.root").Call();
+			}, name + ".clear.root").call();
 		}, name + ".clear", DispatchMode.Normal);
 	}
 

@@ -97,7 +97,7 @@ public class EventDispatcher {
 				app.newProcedure(() -> {
 					handle.invoke(sender, arg);
 					return 0L;
-				}, "EventDispatcher.triggerProcedureIgnoreError").Call();
+				}, "EventDispatcher.triggerProcedureIgnoreError").call();
 				// 返回错误码时是逻辑错误，这里不需要记录日志。内部已经记录了。
 			} catch (Throwable ex) {
 				logger.error("EventDispatcher.triggerProcedureIgnoreError", ex); // 除了框架错误，一般情况下，错误不会到达这里。
@@ -111,7 +111,7 @@ public class EventDispatcher {
 			var result = app.newProcedure(() -> {
 				handle.invoke(sender, arg);
 				return 0L;
-			}, "EventDispatcher.triggerProcedure").Call();
+			}, "EventDispatcher.triggerProcedure").call();
 			if (result != 0)
 				throw new IllegalStateException("Nest Call Fail: " + result);
 		}

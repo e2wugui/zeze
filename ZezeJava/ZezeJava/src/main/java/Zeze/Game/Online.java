@@ -345,7 +345,7 @@ public class Online extends AbstractOnline {
 							logoutTrigger(roleId);
 						}
 						return Procedure.Success;
-					}, "Game.Online.onLinkBroken").Call());
+					}, "Game.Online.onLinkBroken").call());
 		});
 	}
 
@@ -754,7 +754,7 @@ public class Online extends AbstractOnline {
 				providerApp.zeze.newProcedure(() -> {
 					tryRemoveLocal(roleId.value);
 					return 0L;
-				}, "VerifyLocal:" + roleId.value).Call();
+				}, "VerifyLocal:" + roleId.value).call();
 			} catch (Throwable e) {
 				logger.error("", e);
 			}

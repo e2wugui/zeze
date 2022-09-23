@@ -44,7 +44,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 			var rc = zeze.newProcedure(() -> {
 				out.value = handle.requestHandle.call(rpcArg.getHashCode(), rpcArg.getParams());
 				return Procedure.Success;
-			}, "ProcessModuleRedirectRequest").Call();
+			}, "ProcessModuleRedirectRequest").call();
 			if (rc != Procedure.Success) {
 				rpc.SendResultCode(rc);
 				return rc;
@@ -159,7 +159,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 				hashResult.setReturnCode(providerApp.zeze.newProcedure(() -> {
 					out.value = handle.requestHandle.call(hash, pa.getParams());
 					return Procedure.Success;
-				}, "ProcessModuleRedirectAllRequest").Call());
+				}, "ProcessModuleRedirectAllRequest").call());
 				future = (RedirectAllFuture<?>)out.value;
 				break;
 			default:

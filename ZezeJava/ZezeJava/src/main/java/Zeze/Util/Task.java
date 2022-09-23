@@ -453,7 +453,7 @@ public final class Task {
 		try {
 			// 日志在Call里面记录。因为要支持嵌套。
 			// 统计在Call里面实现。
-			long result = procedure.Call();
+			long result = procedure.call();
 			if (result != 0 && isRequestSaved && actionWhenError != null)
 				actionWhenError.run(from, result);
 			logAndStatistics(null, result, from, isRequestSaved, procedure.getActionName());

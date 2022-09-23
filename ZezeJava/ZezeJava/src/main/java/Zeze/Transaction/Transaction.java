@@ -186,7 +186,7 @@ public final class Transaction {
 					for (; tryCount < 256; ++tryCount) { // 最多尝试次数
 						CheckResult checkResult = CheckResult.Redo; // 用来决定是否释放锁，除非 _lock_and_check_ 明确返回需要释放锁，否则都不释放。
 						try {
-							var result = procedure.Call();
+							var result = procedure.call();
 							switch (state) {
 							case Running:
 								var saveSize = savepoints.size();

@@ -151,7 +151,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 		ctx.getService().getZeze().newProcedure(() -> {
 			onResult.run(result);
 			return Procedure.Success;
-		}, "RedirectAllFutureImpl.result").Call();
+		}, "RedirectAllFutureImpl.result").call();
 	}
 
 	@Override
@@ -178,7 +178,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 			c.getService().getZeze().newProcedure(() -> {
 				onResult.run(result);
 				return Procedure.Success;
-			}, "RedirectAllFutureImpl.onResult").Call();
+			}, "RedirectAllFutureImpl.onResult").call();
 		}
 		return this;
 	}
@@ -203,7 +203,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 			ctx.getService().getZeze().newProcedure(() -> {
 				onA.run(ctx);
 				return Procedure.Success;
-			}, "RedirectAllFutureImpl.allDone").Call();
+			}, "RedirectAllFutureImpl.allDone").call();
 		}
 		lock.lock();
 		try {
@@ -227,7 +227,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 		c.getService().getZeze().newProcedure(() -> {
 			onAllDone.run(c1);
 			return Procedure.Success;
-		}, "RedirectAllFutureImpl.onAllDone").Call();
+		}, "RedirectAllFutureImpl.onAllDone").call();
 		return this;
 	}
 

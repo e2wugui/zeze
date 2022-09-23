@@ -66,7 +66,7 @@ public final class TaskOneByOneByKey {
 					cond.await();
 				else {
 					try {
-						procedure.Call();
+						procedure.call();
 					} catch (Throwable ex) {
 						logger.error("{} Run", procedure.getActionName(), ex);
 					} finally {
@@ -213,7 +213,7 @@ public final class TaskOneByOneByKey {
 	}
 
 	public void Execute(int key, Procedure procedure, Action0 cancel, DispatchMode mode) {
-		concurrency[hash(key) & hashMask].execute(procedure::Call, procedure.getActionName(), cancel, mode);
+		concurrency[hash(key) & hashMask].execute(procedure::call, procedure.getActionName(), cancel, mode);
 	}
 
 	public void Execute(long key, Action0 action) {

@@ -11,15 +11,15 @@ public class ABasicSimpleAddOneThread extends TestCase {
 	public void testBenchmark() throws Throwable {
 		App.Instance.Start();
 		try {
-			App.Instance.Zeze.newProcedure(ABasicSimpleAddOneThread::Remove, "remove").Call();
+			App.Instance.Zeze.newProcedure(ABasicSimpleAddOneThread::Remove, "remove").call();
 			System.out.println("benchmark start...");
 			var b = new Zeze.Util.Benchmark();
 			for (int i = 0; i < AddCount; ++i) {
-				App.Instance.Zeze.newProcedure(ABasicSimpleAddOneThread::Add, "Add").Call();
+				App.Instance.Zeze.newProcedure(ABasicSimpleAddOneThread::Add, "Add").call();
 			}
 			b.report(this.getClass().getName(), AddCount);
-			App.Instance.Zeze.newProcedure(ABasicSimpleAddOneThread::Check, "check").Call();
-			App.Instance.Zeze.newProcedure(ABasicSimpleAddOneThread::Remove, "remove").Call();
+			App.Instance.Zeze.newProcedure(ABasicSimpleAddOneThread::Check, "check").call();
+			App.Instance.Zeze.newProcedure(ABasicSimpleAddOneThread::Remove, "remove").call();
 		} finally {
 			App.Instance.Stop();
 		}

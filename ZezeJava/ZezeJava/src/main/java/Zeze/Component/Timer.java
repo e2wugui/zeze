@@ -513,7 +513,7 @@ public class Timer extends AbstractTimer {
 
 			var node = _tNodes.get(index.getNodeId());
 			if (null == node) {
-				cancel(serverId, timerId, index, node);
+				cancel(serverId, timerId, index, null);
 				return 0; // procedure done
 			}
 
@@ -631,7 +631,7 @@ public class Timer extends AbstractTimer {
 			var node = _tNodes.get(index.getNodeId());
 			if (null == node) {
 				// maybe concurrent cancel
-				cancel(serverId, timerId, index, node);
+				cancel(serverId, timerId, index, null);
 				return 0; // procedure done
 			}
 			var timer = node.getTimers().get(timerId);

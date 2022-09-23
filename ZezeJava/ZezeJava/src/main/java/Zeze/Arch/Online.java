@@ -302,7 +302,7 @@ public class Online extends AbstractOnline {
 						logoutTrigger(account, clientId);
 				}
 				return Procedure.Success;
-			}, "Onlines.OnLinkBroken").Call();
+			}, "Onlines.OnLinkBroken").call();
 		}));
 	}
 
@@ -384,7 +384,7 @@ public class Online extends AbstractOnline {
 
 	public Long getOfflineLoginVersion(String account, String clientId) {
 		var online = _tonline.get(account);
-		if (null != online)
+		if (null == online)
 			return null; // is not online
 		var login = online.getLogins().get(clientId);
 		if (null == login)
@@ -706,7 +706,7 @@ public class Online extends AbstractOnline {
 		if (handle != null) {
 			for (var target : accounts) {
 				providerApp.zeze.newProcedure(() -> handle.call(account, clientId, target, parameter),
-						"Arch.Online.Transmit:" + actionName).Call();
+						"Arch.Online.Transmit:" + actionName).call();
 			}
 		}
 	}
@@ -814,7 +814,7 @@ public class Online extends AbstractOnline {
 		providerApp.zeze.newProcedure(() -> {
 			transmitInProcedure(account, clientId, actionName, targets, binaryParam);
 			return Procedure.Success;
-		}, "Onlines.Transmit").Call();
+		}, "Onlines.Transmit").call();
 	}
 
 	public void transmitWhileCommit(String account, String clientId, String actionName, String target,
@@ -893,7 +893,7 @@ public class Online extends AbstractOnline {
 				providerApp.zeze.newProcedure(() -> {
 					tryRemoveLocal(account.value);
 					return 0L;
-				}, "VerifyLocal:" + account).Call();
+				}, "VerifyLocal:" + account).call();
 			} catch (Throwable e) {
 				logger.error("", e);
 			}
