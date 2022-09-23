@@ -31,7 +31,7 @@ namespace Zeze.Component
 			await delay.queue.AddAsync(value);
 		}
 
-		private Zeze.Collections.Queue<BTableKey> queue;
+		private readonly Zeze.Collections.Queue<BTableKey> queue;
         public Zeze.Application Zeze { get; }
 
 		private DelayRemove(Zeze.Application zz)
@@ -53,39 +53,54 @@ namespace Zeze.Component
                 at = at.AddDays(1);
             var delay = Util.Time.DateTimeToUnixMillis(at) - Util.Time.DateTimeToUnixMillis(now);
             var period = 24 * 3600 * 1000; // 24 hours
-            Util.Scheduler.Schedule((ThisTask) => OnTimer(serverId), delay, period);
+            Util.Scheduler.Schedule(OnTimer, delay, period);
         }
 
-        private void OnTimer(int serverId)
+        private void OnTimer(SchedulerTask ThisTask)
         {
-            // delayRemove可能需要删除很多记录，不嵌入Timer事务，启动新的线程执行新的事务。
-            // 这里仅利用Timer的触发。
-            // 每个节点的记录删除一个事务执行。
-            _ = Mission.CallAsync(Zeze.NewProcedure(() => RunDelayRemove(serverId), "delayRemoveProcedure"));
-        }
-
-        private async Task<long> RunDelayRemove(int serverId)
-        {
-            // 已经在事务中了。
+            // delayRemove可能需要删除很多记录，不能在一个事务内完成全部删除。
+            // 这里按每个节点的记录的删除在一个事务中执行，节点间用不同的事务。
             var days = Zeze.Config.DelayRemoveDays;
             if (days < 7)
                 days = 7;
             var diffMills = days * 24 * 3600 * 1000;
 
-            var maxTime = 0L; // 放到外面可以处理下面的node.getValues().isEmpty()的情况。
-            var node = await queue.PollNodeAsync();
-            foreach (var value in node.Values)
+            var removing = true;
+            while (removing)
             {
-                var tableKey = (BTableKey)value.Value.Bean;
-                // queue是按时间顺序的，记住最后一条即可，这样写能适应不按顺序的。
-                maxTime = Math.Max(maxTime, tableKey.EnqueueTime);
-                var table = Zeze.GetTableSlow(tableKey.TableName);
-                if (null != table)
-                    await table.RemoveAsync(tableKey.EncodedKey);
+                Zeze.NewProcedure(async () =>
+                {
+                    var node = await queue.PollNodeAsync();
+                    // 检查节点的第一个（最老的）项是否需要删除。
+                    // 如果不需要，那么整个节点都不会删除，并且中断循环。
+                    // 如果需要，那么整个节点都删除，即使中间有一些没有达到过期。
+                    // 这是个不精确的删除过期的方法。
+                    if (node.Values.Count > 0)
+                    {
+                        var first = (BTableKey)node.Values[0].Value.Bean;
+                        if (diffMills < Util.Time.NowUnixMillis - first.EnqueueTime)
+                        {
+                            removing = false;
+                            return 0;
+                        }
+                    }
+
+                    // node.getValues().isEmpty，这一项将保持0，循环后设置removing.value将基本是true。
+                    // 即，空节点总是尝试继续删除。
+                    var maxTime = 0L;
+                    foreach (var value in node.Values)
+                    {
+                        var tableKey = (BTableKey)value.Value.Bean;
+                        // queue是按时间顺序的，记住最后一条即可。
+                        maxTime = tableKey.EnqueueTime;
+                        var table = Zeze.GetTableSlow(tableKey.TableName);
+                        if (null != table)
+                            await table.RemoveAsync(tableKey.EncodedKey);
+                    }
+                    removing = diffMills < Util.Time.NowUnixMillis - maxTime;
+                    return 0;
+                }, "delayRemoveProcedure").CallSynchronously();
             }
-            if (diffMills < Util.Time.NowUnixMillis - maxTime)
-                OnTimer(serverId); // 都是最老的，再次尝试删除。
-            return 0;
         }
     }
 }

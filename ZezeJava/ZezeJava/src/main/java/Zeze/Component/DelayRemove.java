@@ -26,7 +26,7 @@ public class DelayRemove extends AbstractDelayRemove {
 	}
 
 	private final Zeze.Collections.Queue<BTableKey> queue;
-	private Zeze.Application zeze;
+	private final Zeze.Application zeze;
 
 	private DelayRemove(Zeze.Application zz) {
 		this.zeze = zz;
@@ -54,35 +54,46 @@ public class DelayRemove extends AbstractDelayRemove {
 
 		var delay = firstTime.getTime().getTime() - System.currentTimeMillis();
 		var period = 24 * 3600 * 1000; // 24 hours
-		Task.scheduleUnsafe(delay, period, () -> onTimer(serverId));
+		Task.scheduleUnsafe(delay, period, this::onTimer);
 	}
 
-	private void onTimer(int serverId) {
-		// delayRemove可能需要删除很多记录，不嵌入Timer事务，启动新的线程执行新的事务。
-		// 这里仅利用Timer的触发。
-		// 每个节点的记录删除一个事务执行。
-		Task.run(zeze.newProcedure(() -> runDelayRemove(serverId), "delayRemoveProcedure"));
-	}
-
-	private long runDelayRemove(int serverId) {
-		// 已经在事务中了。
+	private void onTimer() throws Throwable {
+		// delayRemove可能需要删除很多记录，不能在一个事务内完成全部删除。
+		// 这里按每个节点的记录的删除在一个事务中执行，节点间用不同的事务。
 		var days = zeze.getConfig().getDelayRemoveDays();
 		if (days < 7)
-			days = 7;
+			days = 7; // xxx 至少保留7天。
 		var diffMills = days * 24 * 3600 * 1000;
+		var removing = new Zeze.Util.OutObject<>(true);
+		while (removing.value) {
+			zeze.newProcedure(() -> {
+				var node = queue.pollNode();
+				// 检查节点的第一个（最老的）项是否需要删除。
+				// 如果不需要，那么整个节点都不会删除，并且中断循环。
+				// 如果需要，那么整个节点都删除，即使中间有一些没有达到过期。
+				// 这是个不精确的删除过期的方法。
+				if (!node.getValues().isEmpty()) {
+					var first = (BTableKey)node.getValues().get(0).getValue().getBean();
+					if (diffMills < System.currentTimeMillis() - first.getEnqueueTime()) {
+						removing.value = false;
+						return 0;
+					}
+				}
 
-		var maxTime = 0L; // 放到外面可以处理下面的node.getValues().isEmpty()的情况。
-		var node = queue.pollNode();
-		for (var value : node.getValues()) {
-			var tableKey = (BTableKey)value.getValue().getBean();
-			// queue是按时间顺序的，记住最后一条即可，这样写能适应不按顺序的。
-			maxTime = Math.max(maxTime, tableKey.getEnqueueTime());
-			var table = zeze.getTableSlow(tableKey.getTableName());
-			if (null != table)
-				table.remove(tableKey.getEncodedKey());
+				// node.getValues().isEmpty，这一项将保持0，循环后设置removing.value将基本是true。
+				// 即，空节点总是尝试继续删除。
+				long maxTime = 0;
+				for (var value : node.getValues()) {
+					var tableKey = (BTableKey)value.getValue().getBean();
+					// queue是按时间顺序的，记住最后一条即可。
+					maxTime = tableKey.getEnqueueTime();
+					var table = zeze.getTableSlow(tableKey.getTableName());
+					if (null != table)
+						table.remove(tableKey.getEncodedKey());
+				}
+				removing.value = diffMills < System.currentTimeMillis() - maxTime;
+				return 0;
+			}, "delayRemoveProcedure").call();
 		}
-		if (diffMills < System.currentTimeMillis() - maxTime)
-			onTimer(serverId); // 都是最老的，再次尝试删除。
-		return 0;
 	}
 }

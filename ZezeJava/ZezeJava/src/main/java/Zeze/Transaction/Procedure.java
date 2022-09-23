@@ -121,7 +121,12 @@ public class Procedure {
 	 *
 	 * @return 0 success; other means error.
 	 */
+	@Deprecated
 	public final long Call() throws Throwable {
+		return call();
+	}
+
+	public final long call() throws Throwable {
 		Transaction currentT = Transaction.getCurrent();
 		if (currentT == null) {
 			try {
