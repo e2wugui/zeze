@@ -34,7 +34,7 @@ public class TestLinkedMap {
 				map.put(i, bean);
 			}
 			return Procedure.Success;
-		}, "test1_LinkedMapPut").Call();
+		}, "test1_LinkedMapPut").call();
 		Assert.assertEquals(ret, Procedure.Success);
 	}
 
@@ -47,7 +47,7 @@ public class TestLinkedMap {
 				Assert.assertEquals(bean.getI(), i);
 			}
 			return Procedure.Success;
-		}, "test2_LinkedMapGet").Call();
+		}, "test2_LinkedMapGet").call();
 		Assert.assertEquals(ret, Procedure.Success);
 	}
 
@@ -75,7 +75,7 @@ public class TestLinkedMap {
 			}
 			Assert.assertTrue(map.isEmpty());
 			return Procedure.Success;
-		}, "test2_LinkedMapRemove").Call();
+		}, "test2_LinkedMapRemove").call();
 		Assert.assertEquals(ret, Procedure.Success);
 	}
 }

@@ -40,7 +40,7 @@ public class TestTableNestAction {
 					System.out.println(value2.value);
 				});
 				return Procedure.Exception;
-			}, "nest procedure1").Call();
+			}, "nest procedure1").call();
 
 			demo.App.getInstance().Zeze.newProcedure(() -> {
 				Transaction.getCurrent().runWhileCommit(() -> {
@@ -58,17 +58,17 @@ public class TestTableNestAction {
 						System.out.println(value2.value);
 					});
 					return Procedure.Exception;
-				}, "nest procedure1").Call();
+				}, "nest procedure1").call();
 
 				return Procedure.Success;
-			}, "nest procedure2").Call();
+			}, "nest procedure2").call();
 
 			Transaction.getCurrent().runWhileCommit(() -> {
 				Assert.assertEquals(value1.value, value2.value);
 				value1.value++; // 3
 			});
 			return Procedure.Success;
-		}, "out").Call();
+		}, "out").call();
 
 		Assert.assertEquals(value1.value, 3);
 		Assert.assertEquals(value2.value, 2);
@@ -91,18 +91,18 @@ public class TestTableNestAction {
 					Transaction.whileCommit(() -> sb.append('4')); // do
 					Transaction.whileRollback(() -> sb.append('5'));
 					return Procedure.Success;
-				}, "nest procedure11").Call();
+				}, "nest procedure11").call();
 
 				zeze.newProcedure(() -> {
 					Transaction.whileCommit(() -> sb.append('6'));
 					Transaction.whileRollback(() -> sb.append('7')); // do
 					return Procedure.Exception;
-				}, "nest procedure12").Call();
+				}, "nest procedure12").call();
 
 				Transaction.whileCommit(() -> sb.append('8')); // do
 				Transaction.whileRollback(() -> sb.append('9'));
 				return Procedure.Success;
-			}, "nest procedure1").Call();
+			}, "nest procedure1").call();
 
 			zeze.newProcedure(() -> {
 				Transaction.whileCommit(() -> sb.append('A'));
@@ -116,12 +116,12 @@ public class TestTableNestAction {
 						Transaction.whileCommit(() -> sb.append('E'));
 						Transaction.whileRollback(() -> sb.append('F')); // do
 						return Procedure.Success;
-					}, "nest procedure211").Call();
+					}, "nest procedure211").call();
 
 					Transaction.whileCommit(() -> sb.append('G'));
 					Transaction.whileRollback(() -> sb.append('H')); // do
 					return Procedure.Exception;
-				}, "nest procedure21").Call();
+				}, "nest procedure21").call();
 
 				zeze.newProcedure(() -> {
 					Transaction.whileCommit(() -> sb.append('I'));
@@ -131,22 +131,22 @@ public class TestTableNestAction {
 						Transaction.whileCommit(() -> sb.append('K'));
 						Transaction.whileRollback(() -> sb.append('L')); // do
 						return Procedure.Exception;
-					}, "nest procedure221").Call();
+					}, "nest procedure221").call();
 
 					Transaction.whileCommit(() -> sb.append('M'));
 					Transaction.whileRollback(() -> sb.append('N')); // do
 					return Procedure.Success;
-				}, "nest procedure22").Call();
+				}, "nest procedure22").call();
 
 				Transaction.whileCommit(() -> sb.append('O'));
 				Transaction.whileRollback(() -> sb.append('P')); // do
 				return Procedure.Exception;
-			}, "nest procedure2").Call();
+			}, "nest procedure2").call();
 
 			Transaction.whileCommit(() -> sb.append('Q')); // do
 			Transaction.whileRollback(() -> sb.append('R'));
 			return Procedure.Success;
-		}, "nest procedure").Call();
+		}, "nest procedure").call();
 
 		zeze.newProcedure(() -> {
 			Transaction.whileCommit(() -> sb.append('S'));
@@ -156,18 +156,18 @@ public class TestTableNestAction {
 				Transaction.whileCommit(() -> sb.append('U'));
 				Transaction.whileRollback(() -> sb.append('V')); // do
 				return Procedure.Exception;
-			}, "nest procedure1").Call();
+			}, "nest procedure1").call();
 
 			zeze.newProcedure(() -> {
 				Transaction.whileCommit(() -> sb.append('W'));
 				Transaction.whileRollback(() -> sb.append('X')); // do
 				return Procedure.Success;
-			}, "nest procedure2").Call();
+			}, "nest procedure2").call();
 
 			Transaction.whileCommit(() -> sb.append('Y'));
 			Transaction.whileRollback(() -> sb.append('Z')); // do
 			return Procedure.Exception;
-		}, "nest procedure").Call();
+		}, "nest procedure").call();
 
 		//noinspection SpellCheckingInspection
 		Assert.assertEquals("02478BDFHJLNPQTVXZ", sb.toString());

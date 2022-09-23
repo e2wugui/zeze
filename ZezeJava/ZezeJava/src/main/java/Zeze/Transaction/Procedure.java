@@ -36,9 +36,9 @@ public class Procedure {
 
 	private static final Logger logger = LogManager.getLogger(Procedure.class);
 	@SuppressWarnings("CanBeFinal")
-	public static ILogAction logAction = Procedure::DefaultLogAction;
+	public static ILogAction logAction = Procedure::defaultLogAction;
 
-	public static void DefaultLogAction(Throwable ex, long result, Procedure p, String message) {
+	public static void defaultLogAction(Throwable ex, long result, Procedure p, String message) {
 		org.apache.logging.log4j.Level level;
 		if (ex != null)
 			level = org.apache.logging.log4j.Level.ERROR;

@@ -22,7 +22,7 @@ public class TestNestProcedureModifyMapSet {
 		Assert.assertEquals(Procedure.Success, demo.App.Instance.Zeze.newProcedure(() -> {
 			demo.App.Instance.demo_Module1.getTable1().remove(1L);
 			return 0L;
-		}, "ModifyMapRemove").Call());
+		}, "ModifyMapRemove").call());
 
 		Assert.assertEquals(Procedure.Success, demo.App.Instance.Zeze.newProcedure(() -> {
 			var value = demo.App.Instance.demo_Module1.getTable1().getOrAdd(1L);
@@ -34,11 +34,11 @@ public class TestNestProcedureModifyMapSet {
 				value.getMap15().put(1L, 2L);
 				Assert.assertEquals(2, (long)value.getMap15().get(1L));
 				return Zeze.Transaction.Procedure.LogicError;
-			}, "ModifyMapPut2").Call());
+			}, "ModifyMapPut2").call());
 
 			Assert.assertEquals(1, (long)value.getMap15().get(1L));
 			return 0L;
-		}, "ModifyMapPut1").Call());
+		}, "ModifyMapPut1").call());
 	}
 
 	@Test
@@ -46,7 +46,7 @@ public class TestNestProcedureModifyMapSet {
 		Assert.assertEquals(Procedure.Success, demo.App.Instance.Zeze.newProcedure(() -> {
 			demo.App.Instance.demo_Module1.getTable1().remove(1L);
 			return 0L;
-		}, "ModifyMapRemove").Call());
+		}, "ModifyMapRemove").call());
 
 		Assert.assertEquals(Procedure.Success, demo.App.Instance.Zeze.newProcedure(() -> {
 			var value = demo.App.Instance.demo_Module1.getTable1().getOrAdd(1L);
@@ -57,10 +57,10 @@ public class TestNestProcedureModifyMapSet {
 				value.getSet10().remove(1);
 				Assert.assertFalse(value.getSet10().contains(1));
 				return Zeze.Transaction.Procedure.LogicError;
-			}, "ModifySetRemove1").Call());
+			}, "ModifySetRemove1").call());
 
 			Assert.assertTrue(value.getSet10().contains(1));
 			return 0L;
-		}, "ModifySetAdd1").Call());
+		}, "ModifySetAdd1").call());
 	}
 }

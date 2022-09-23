@@ -182,7 +182,7 @@ public class Simulate {
 							}
 						}
 						var proc0 = proc;
-						app.getZeze().newProcedure(() -> (long)proc0.mh.invoke(), proc.name).Call();
+						app.getZeze().newProcedure(() -> (long)proc0.mh.invoke(), proc.name).call();
 
 						var tc = totalCount.incrementAndGet();
 						if (tc % procsEveryWindowMove == 0) {

@@ -20,7 +20,7 @@ public class App extends Zeze.AppBase {
 				{
 					Instance.demo_Module1.getTable1().get(1L);
 					return 0L;
-				}, "Global Access").Call();
+				}, "Global Access").call();
 				++i;
 				System.err.println("" + i + "-" + result);
 			}

@@ -2,15 +2,14 @@ package Zeze.Component;
 
 import java.text.ParseException;
 import Zeze.Arch.LocalRemoveEventArgument;
+import Zeze.Arch.LoginArgument;
 import Zeze.Arch.Online;
 import Zeze.Builtin.Timer.BAccountClientId;
 import Zeze.Builtin.Timer.BArchOnlineTimer;
 import Zeze.Builtin.Timer.BCronTimer;
 import Zeze.Builtin.Timer.BOfflineAccountCustom;
-import Zeze.Builtin.Timer.BOnlineCustom;
 import Zeze.Builtin.Timer.BOnlineTimers;
 import Zeze.Builtin.Timer.BSimpleTimer;
-import Zeze.Arch.LoginArgument;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
@@ -22,7 +21,7 @@ import Zeze.Util.Task;
  * 2. 不直接使用 Timer.schedule。但有如下关联。
  *    直接使用 Timer.timerIdAutoKey，使得返回的timerId共享一个名字空间。
  *    直接使用 Timer.timersFuture，从 ThreadPool 返回的future保存在这里。
- * 3. cancel 用户入口从 Timer.calcel 调用。
+ * 3. cancel 用户入口从 Timer.cancel 调用。
  */
 public class TimerAccount {
 	final Online online;

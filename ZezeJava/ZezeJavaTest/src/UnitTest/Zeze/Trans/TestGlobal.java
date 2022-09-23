@@ -70,7 +70,7 @@ public class TestGlobal extends TestCase {
 			Assert.assertEquals(Procedure.Success, app1.Zeze.newProcedure(() -> {
 				app1.demo_Module1.getTable1().remove(6785L);
 				return Procedure.Success;
-			}, "RemoveClean").Call());
+			}, "RemoveClean").call());
 
 			Future<?>[] task2 = new Future[2];
 			int count = 2000;
@@ -88,13 +88,13 @@ public class TestGlobal extends TestCase {
 				System.out.println("app1 " + last1);
 				Assert.assertEquals(countall, last1);
 				return Procedure.Success;
-			}, "CheckResult1").Call());
+			}, "CheckResult1").call());
 			Assert.assertEquals(Procedure.Success, app2.Zeze.newProcedure(() -> {
 				int last2 = app2.demo_Module1.getTable1().get(6785L).getInt1();
 				System.out.println("app2 " + last2);
 				Assert.assertEquals(countall, last2);
 				return Procedure.Success;
-			}, "CheckResult2").Call());
+			}, "CheckResult2").call());
 		} finally {
 			app1.Stop();
 			app2.Stop();

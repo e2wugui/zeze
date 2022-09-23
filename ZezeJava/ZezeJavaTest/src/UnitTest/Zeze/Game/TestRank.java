@@ -77,7 +77,7 @@ public class TestRank extends TestCase {
 						assertEquals(Procedure.Success, r.longValue());
 					});
 					return Procedure.Success;
-				}, "updateRank").Call();
+				}, "updateRank").call();
 			}
 
 			app.getZeze().newProcedure(() -> {
@@ -91,7 +91,7 @@ public class TestRank extends TestCase {
 					assertEquals(roleId2Value.applyAsLong(rank.getRoleId()), rank.getValue());
 				}
 				return Procedure.Success;
-			}, "getRankDirect").Call();
+			}, "getRankDirect").call();
 
 			var hashSet1 = new ConcurrentHashSet<Integer>();
 			var hashSet2 = new ConcurrentHashSet<Integer>();
@@ -128,7 +128,7 @@ public class TestRank extends TestCase {
 					});
 				}).await();
 				return Procedure.Success;
-			}, "getRankAll").Call();
+			}, "getRankAll").call();
 			assertEquals(concLevel, hashSet1.size());
 			assertEquals(concLevel, hashSet2.size());
 		} catch (Throwable e) {

@@ -17,7 +17,7 @@ public class CBasicSimpleAddConcurrent extends TestCase {
 		try {
 			for (int i = 0; i < ConcurrentLevel; ++i) {
 				final long k = i;
-				App.Instance.Zeze.newProcedure(() -> Remove(k), "remove").Call();
+				App.Instance.Zeze.newProcedure(() -> Remove(k), "remove").call();
 			}
 			ArrayList<Future<Long>> tasks = new ArrayList<>(AddCount);
 			System.out.println("benchmark start...");
@@ -32,10 +32,10 @@ public class CBasicSimpleAddConcurrent extends TestCase {
 				task.get();
 			}
 			b.report(this.getClass().getName(), AddCount);
-			App.Instance.Zeze.newProcedure(CBasicSimpleAddConcurrent::Check, "check").Call();
+			App.Instance.Zeze.newProcedure(CBasicSimpleAddConcurrent::Check, "check").call();
 			for (long i = 0; i < ConcurrentLevel; ++i) {
 				final long k = i;
-				App.Instance.Zeze.newProcedure(() -> Remove(k), "remove").Call();
+				App.Instance.Zeze.newProcedure(() -> Remove(k), "remove").call();
 			}
 		} finally {
 			App.Instance.Stop();

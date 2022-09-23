@@ -20,7 +20,7 @@ import Zeze.Util.Task;
  * 2. 不直接使用 Timer.schedule。但有如下关联。
  * 直接使用 Timer.timerIdAutoKey，使得返回的timerId共享一个名字空间。
  * 直接使用 Timer.timersFuture，从 ThreadPool 返回的future保存在这里。
- * 3. cancel 用户入口从 Timer.calcel 调用。
+ * 3. cancel 用户入口从 Timer.cancel 调用。
  */
 public class TimerRole {
 	final Online online;

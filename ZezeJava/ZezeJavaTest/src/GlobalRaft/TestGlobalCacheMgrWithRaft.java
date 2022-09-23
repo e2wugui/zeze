@@ -325,7 +325,7 @@ public class TestGlobalCacheMgrWithRaft {
 //				v.setInt1(v.getInt1() + 1);
 //				System.out.println(String.format("appId %d value %d timestamp %s", appId, v.getInt1(), System.currentTimeMillis()));
 //				return Procedure.Success;
-//			}, "doConcurrency" + appId).Call();
+//			}, "doConcurrency" + appId).call();
 		}
 
 		int finalCount = count;
@@ -355,7 +355,7 @@ public class TestGlobalCacheMgrWithRaft {
 					return Procedure.LogicError;
 				count.set(App1.demo_Module1.getTable1().getOrAdd(99L).getInt1());
 				return Procedure.Success;
-			}, "GetCurrentCount").Call();
+			}, "GetCurrentCount").call();
 			if (result == Procedure.Success)
 				break;
 		}
@@ -370,7 +370,7 @@ public class TestGlobalCacheMgrWithRaft {
 					App1.demo_Module1.getTable1().remove(99L);
 				}
 				return Procedure.Success;
-			}, "ClearData").Call();
+			}, "ClearData").call();
 		} catch (Throwable e) {
 			e.printStackTrace();
 		}

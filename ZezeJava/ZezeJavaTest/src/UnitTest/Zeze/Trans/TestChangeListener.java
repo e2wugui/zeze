@@ -39,7 +39,7 @@ public class TestChangeListener {
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
 			return Procedure.Success;
-		}, "TestChangeListener.Remove").Call());
+		}, "TestChangeListener.Remove").call());
 
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
@@ -69,7 +69,7 @@ public class TestChangeListener {
 			value.getMap15().put(1L, 1L);
 			value.getMap15().put(2L, 2L);
 			return Procedure.Success;
-		}, "TestChangeListener.Prepare").Call());
+		}, "TestChangeListener.Prepare").call());
 	}
 
 	@Test
@@ -107,7 +107,7 @@ public class TestChangeListener {
 			value.getMap15().put(4L, 4L);
 
 			return Procedure.Success;
-		}, "TestChangeListener.Modify").Call());
+		}, "TestChangeListener.Modify").call());
 		Verify();
 
 		Init();
@@ -124,7 +124,7 @@ public class TestChangeListener {
 			value.getMap15().remove(1L);
 			value.getMap15().remove(2L);
 			return Procedure.Success;
-		}, "TestChangeListener.ModifyCollections").Call());
+		}, "TestChangeListener.ModifyCollections").call());
 		Verify();
 
 		Init();
@@ -133,7 +133,7 @@ public class TestChangeListener {
 			ArrayList<Integer> except = new ArrayList<>(Arrays.asList(1, 2));
 			value.getSet10().removeAll(except);
 			return Procedure.Success;
-		}, "TestChangeListener.ModifySetExcept").Call());
+		}, "TestChangeListener.ModifySetExcept").call());
 		Verify();
 
 		Init();
@@ -151,7 +151,7 @@ public class TestChangeListener {
 			set10.clear();
 			set10.addAll(temp);
 			return Procedure.Success;
-		}, "TestChangeListener.ModifySetIntersect").Call());
+		}, "TestChangeListener.ModifySetIntersect").call());
 		Verify();
 
 		Init();
@@ -160,7 +160,7 @@ public class TestChangeListener {
 			ArrayList<Integer> SymmetricExcept = new ArrayList<>(Arrays.asList(123, 140));
 			value.getSet10().removeAll(SymmetricExcept);
 			return Procedure.Success;
-		}, "TestChangeListener.ModifySetSymmetricExcept").Call());
+		}, "TestChangeListener.ModifySetSymmetricExcept").call());
 		Verify();
 
 		Init();
@@ -170,21 +170,21 @@ public class TestChangeListener {
 			//value.getSet10().UnionWith(Union);
 			value.getSet10().addAll(Union);
 			return Procedure.Success;
-		}, "TestChangeListener.ModifySetUnion").Call());
+		}, "TestChangeListener.ModifySetUnion").call());
 		Verify();
 
 		Init();
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().put(1L, new demo.Module1.BValue());
 			return Procedure.Success;
-		}, "TestChangeListener.PutRecord").Call());
+		}, "TestChangeListener.PutRecord").call());
 		Verify();
 
 		Init();
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
 			return Procedure.Success;
-		}, "TestChangeListener.RemoveRecord").Call());
+		}, "TestChangeListener.RemoveRecord").call());
 		Verify();
 	}
 
@@ -195,7 +195,7 @@ public class TestChangeListener {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 			localValue = value == null ? null : value.copy();
 			return Procedure.Success;
-		}, "TestChangeListener.CopyLocal").Call());
+		}, "TestChangeListener.CopyLocal").call());
 
 		_CLInt1.Init(localValue);
 		_ClLong2.Init(localValue);
@@ -219,7 +219,7 @@ public class TestChangeListener {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 			localValue = value == null ? null : value.copy();
 			return Procedure.Success;
-		}, "TestChangeListener.CopyLocal").Call());
+		}, "TestChangeListener.CopyLocal").call());
 
 		_CLInt1.Verify(localValue);
 		_ClLong2.Verify(localValue);

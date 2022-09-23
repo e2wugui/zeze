@@ -173,7 +173,7 @@ public final class Tasks {
 				for (long key = 0; key < Simulate.AccessKeyBound; key++)
 					app.demo_Module1.getTable1().remove(key);
 				return 0L;
-			}, Table1Long2Add1.class.getName() + ".prepare").Call();
+			}, Table1Long2Add1.class.getName() + ".prepare").call();
 		}
 
 		static final LongAdder commitCount = new LongAdder();

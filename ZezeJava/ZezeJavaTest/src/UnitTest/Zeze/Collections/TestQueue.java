@@ -36,7 +36,7 @@ public class TestQueue {
 			var bean = queue.peek();
 			Assert.assertEquals(bean.getI(), 0);
 			return Procedure.Success;
-		}, "test1_QueueAdd").Call();
+		}, "test1_QueueAdd").call();
 		Assert.assertEquals(ret, Procedure.Success);
 	}
 
@@ -65,7 +65,7 @@ public class TestQueue {
 			}
 			Assert.assertTrue(queue.isEmpty());
 			return Procedure.Success;
-		}, "test2_QueuePop").Call();
+		}, "test2_QueuePop").call();
 		Assert.assertEquals(ret, Procedure.Success);
 	}
 
@@ -82,7 +82,7 @@ public class TestQueue {
 			var bean = queue.peek();
 			Assert.assertEquals(bean.getI(), 9);
 			return Procedure.Success;
-		}, "test3_QueuePush").Call();
+		}, "test3_QueuePush").call();
 		Assert.assertEquals(ret, Procedure.Success);
 	}
 
@@ -111,7 +111,7 @@ public class TestQueue {
 			}
 			Assert.assertTrue(queue.isEmpty());
 			return Procedure.Success;
-		}, "test4_QueuePop").Call();
+		}, "test4_QueuePop").call();
 		Assert.assertEquals(ret, Procedure.Success);
 	}
 }

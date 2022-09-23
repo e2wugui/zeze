@@ -38,7 +38,7 @@ public class TestProcedureRedo {
             v.getMap15().put(1L, 100L);
             return Procedure.Success;
 
-        }, "TestProcedureRedoFirst").Call();
+        }, "TestProcedureRedoFirst").call();
 
         var outLong2 = new OutLong();
         var ftask1 = Task.runUnsafe(App.getInstance().Zeze.newProcedure(()  -> {

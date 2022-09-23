@@ -24,7 +24,7 @@ public class TestCheckpointModeTable{
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 					var value = demo.App.getInstance().demo_Module1.getTableImportant().getOrAdd(1L);
 					return value.getInt1() == expect ? Procedure.Success : Procedure.LogicError;
-		}, "TestCheckpointModeTable.Check").Call());
+		}, "TestCheckpointModeTable.Check").call());
 	}
 
 	@Test
@@ -33,7 +33,7 @@ public class TestCheckpointModeTable{
 					var value = demo.App.getInstance().demo_Module1.getTableImportant().getOrAdd(1L);
 					value.setInt1(0);
 					return Procedure.Success;
-		}, "TestCheckpointModeTable.Init").Call());
+		}, "TestCheckpointModeTable.Init").call());
 		Check(0);
 
 		int sum = 0; {

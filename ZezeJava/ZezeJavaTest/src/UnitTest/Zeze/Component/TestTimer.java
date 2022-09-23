@@ -27,12 +27,14 @@ public class TestTimer {
 	}
 
 	static class TestTimerHandle1 extends TimerHandle {
+		@Override
 		public void onTimer(TimerContext timerContext) {
 			System.out.println(">> Name: " + timerContext.timerName + " ID: " + timerContext.timerId + " Now: " + timerContext.curTimeMills + " Expected: " + timerContext.expectedTimeMills + " Next: " + timerContext.nextExpectedTimeMills);
 		}
 	}
 
 	static class TestTimerHandle2 extends TimerHandle {
+		@Override
 		public void onTimer(TimerContext timerContext) {
 			TestBean bean = (TestBean)timerContext.customData;
 			bean.addValue();
@@ -41,6 +43,7 @@ public class TestTimer {
 	}
 
 	static class TestTimerHandle3 extends TimerHandle {
+		@Override
 		public void onTimer(TimerContext timerContext) {
 			TestBean bean = (TestBean)timerContext.customData;
 			if (bean.checkLiving()) {

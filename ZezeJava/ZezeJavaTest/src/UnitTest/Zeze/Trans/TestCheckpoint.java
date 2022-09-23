@@ -31,7 +31,7 @@ public class TestCheckpoint{
 			App.Instance.demo_Module1.getTable1().remove(3L);
 			App.Instance.demo_Module1.getTable1().remove(4L);
 			return 0L;
-		}, "remove").Call());
+		}, "remove").call());
 		System.out.println("1");
 		System.out.println(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
 		App.Instance.Zeze.CheckpointRun();
@@ -42,21 +42,21 @@ public class TestCheckpoint{
 			App.Instance.demo_Module1.getTable1().get(1L);
 			App.Instance.demo_Module1.getTable1().getOrAdd(2L).setInt1(222);
 			return 0L;
-		}, "12").Call());
+		}, "12").call());
 		//System.out.println("3");
 		//System.out.println(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
 		Assert.assertEquals(Procedure.Success, App.Instance.Zeze.newProcedure(() -> {
 			App.Instance.demo_Module1.getTable1().get(3L);
 			App.Instance.demo_Module1.getTable1().getOrAdd(4L).setInt1(444);
 			return 0L;
-		}, "34").Call());
+		}, "34").call());
 		//System.out.println("4");
 		//System.out.println(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
 		Assert.assertEquals(Procedure.Success, App.Instance.Zeze.newProcedure(() -> {
 			App.Instance.demo_Module1.getTable1().get(2L);
 			App.Instance.demo_Module1.getTable1().getOrAdd(3L).setInt1(333);
 			return 0L;
-		}, "23").Call());
+		}, "23").call());
 		//System.out.println("5");
 		//System.out.println(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
 		App.Instance.Zeze.checkpointRun();
@@ -72,8 +72,8 @@ public class TestCheckpoint{
 
 	@Test
 	public final void testCp() throws Throwable {
-		Assert.assertEquals(demo.App.getInstance().Zeze.newProcedure(TestCheckpoint::ProcClear, "ProcClear").Call(), Procedure.Success);
-		Assert.assertEquals(demo.App.getInstance().Zeze.newProcedure(this::ProcChange, "ProcChange").Call(), Procedure.Success);
+		Assert.assertEquals(demo.App.getInstance().Zeze.newProcedure(TestCheckpoint::ProcClear, "ProcClear").call(), Procedure.Success);
+		Assert.assertEquals(demo.App.getInstance().Zeze.newProcedure(this::ProcChange, "ProcChange").call(), Procedure.Success);
 		demo.App.getInstance().Zeze.checkpointRun();
 		demo.Module1.Table1 table = demo.App.getInstance().demo_Module1.getTable1();
 		ByteBuffer value = table.internalGetStorageForTestOnly("IKnownWhatIAmDoing").getDatabaseTable().find(table.encodeKey(56L));

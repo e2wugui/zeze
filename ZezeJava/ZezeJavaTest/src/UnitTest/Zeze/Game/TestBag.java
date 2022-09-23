@@ -45,7 +45,7 @@ public class TestBag {
 			// 总共占用20个格子
 			Assert.assertEquals(ADD_PILE_NUM * 2, bag.getBean().getItems().size());
 			return Procedure.Success;
-		}, "test1_Add").Call();
+		}, "test1_Add").call();
 		Assert.assertEquals(ret, Procedure.Success);
 	}
 
@@ -62,7 +62,7 @@ public class TestBag {
 				Assert.assertEquals(bag.getBean().getItems().get(i + 1).getNumber(), ADD_NUM / 2);
 			}
 			return Procedure.Success;
-		}, "test2_Move").Call();
+		}, "test2_Move").call();
 		Assert.assertEquals(ret, Procedure.Success);
 	}
 
@@ -84,7 +84,7 @@ public class TestBag {
 				Assert.assertEquals(bag.getBean().getItems().get(i).getNumber(), ADD_NUM / 2 - SECOND_REMOVE_NUM);
 			}
 			return Procedure.Success;
-		}, "test3_Remove").Call();
+		}, "test3_Remove").call();
 		Assert.assertEquals(ret, Procedure.Success);
 	}
 
@@ -103,7 +103,7 @@ public class TestBag {
 			}
 			Assert.assertEquals(bag.getBean().getItems().size(), ADD_PILE_NUM * 2);
 			return Procedure.Success;
-		}, "test4_Move").Call();
+		}, "test4_Move").call();
 		Assert.assertEquals(ret, Procedure.Success);
 	}
 }

@@ -41,13 +41,13 @@ public class TestAutoKey {
 			var id = autoKey.nextId();
 			Assert.assertEquals(makeId(1), id);
 			return Procedure.Success;
-		}, "test1_AutoKey").Call());
+		}, "test1_AutoKey").call());
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			var autoKey = demo.App.getInstance().Zeze.getAutoKey("test1");
 			var id = autoKey.nextId();
 			Assert.assertEquals(makeId(2), id);
 			return Procedure.Success;
-		}, "test1_AutoKey").Call());
+		}, "test1_AutoKey").call());
 	}
 
 	@Test
@@ -59,13 +59,13 @@ public class TestAutoKey {
 			var id = autoKey.nextId();
 			Assert.assertEquals(makeId(allocCount + 1), id);
 			return Procedure.Success;
-		}, "test2_AutoKey").Call());
+		}, "test2_AutoKey").call());
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			var autoKey = demo.App.getInstance().Zeze.getAutoKey("test1");
 			var id = autoKey.nextId();
 			Assert.assertEquals(makeId(allocCount + 2), id);
 			return Procedure.Success;
-		}, "test2_AutoKey").Call());
+		}, "test2_AutoKey").call());
 	}
 
 	@Test
@@ -77,12 +77,12 @@ public class TestAutoKey {
 			var id = autoKey.nextId();
 			Assert.assertEquals(makeId(allocCount * 2L + 1), id);
 			return Procedure.Success;
-		}, "test3_AutoKey").Call());
+		}, "test3_AutoKey").call());
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			var autoKey = demo.App.getInstance().Zeze.getAutoKey("test1");
 			var id = autoKey.nextId();
 			Assert.assertEquals(makeId(allocCount * 2L + 2), id);
 			return Procedure.Success;
-		}, "test3_AutoKey").Call());
+		}, "test3_AutoKey").call());
 	}
 }
