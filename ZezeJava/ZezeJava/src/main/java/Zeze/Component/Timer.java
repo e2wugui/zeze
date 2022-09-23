@@ -13,8 +13,6 @@ import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
-import Zeze.Util.Action1;
-import Zeze.Util.Action2;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
@@ -38,10 +36,6 @@ public class Timer extends AbstractTimer {
 	public final Zeze.Application zeze;
 	private AutoKey nodeIdAutoKey;
 	AutoKey timerIdAutoKey;
-	// 保存所有可用的timer处理回调，由于可能需要把timer的触发派发到其他服务器执行，必须静态注册。
-	// 一般在Module.Initialize中注册即可。
-	final ConcurrentHashMap<String, Action1<TimerContext>> timerHandles = new ConcurrentHashMap<>();
-	private final ConcurrentHashMap<String, Action2<BIndex, BTimer>> timerCancelHandles = new ConcurrentHashMap<>();
 	// 在这台服务器进程内调度的所有Timer。key是timerId，value是ThreadPool.schedule的返回值。
 	final ConcurrentHashMap<String, Future<?>> timersFuture = new ConcurrentHashMap<>();
 
@@ -65,7 +59,7 @@ public class Timer extends AbstractTimer {
 				beanFactory.register((Class<? extends Bean>)Class.forName(cls));
 			}
 			return 0L;
-		}, "").Call()) {
+		}, "").call()) {
 			throw new IllegalStateException("Load Item Classes Failed.");
 		}
 		Task.run(this::loadTimer, "LoadTimerLocal");
@@ -85,57 +79,43 @@ public class Timer extends AbstractTimer {
 		UnRegisterZezeTables(this.zeze);
 	}
 
-	public void addHandle(String name, Action1<TimerContext> action) {
-		addHandle(name, action, null);
-	}
-
-	public void addHandle(String name, Action1<TimerContext> action, Action2<BIndex, BTimer> cancel) {
-		timerHandles.putIfAbsent(name, action);
-		if (null != cancel)
-			timerCancelHandles.putIfAbsent(name, cancel);
-	}
-
-	public void removeHandle(String name) {
-		timerHandles.remove(name);
-	}
-
 	/////////////////////////////////////////////////////////////////////////
 	// Simple Timer
 	// 调度一个Timer实例。
 	// name为静态注册到这个模块的处理名字。
 	// 相同的name可以调度多个timer实例。
 	// @return 返回 TimerId。
-	public String schedule(long delay, long period, String name, Bean customData) {
-		return schedule(delay, period, -1, name, customData);
+	public String schedule(long delay, long period, Class<? extends TimerHandle> handle, Bean customData) {
+		return schedule(delay, period, -1, handle, customData);
 	}
 
 	// 调度一个Timeout，即仅执行一次的Timer。
-	public String schedule(long delay, String name, Bean customData) {
-		return schedule(delay, -1, 1, name, customData);
+	public String schedule(long delay, Class<? extends TimerHandle> handle, Bean customData) {
+		return schedule(delay, -1, 1, handle, customData);
 	}
 
-	public String schedule(long delay, long period, long times, String name, Bean customData) {
-		return schedule(delay, period, times, -1, name, customData);
+	public String schedule(long delay, long period, long times, Class<? extends TimerHandle> handle, Bean customData) {
+		return schedule(delay, period, times, -1, handle, customData);
 	}
 
-	public String schedule(long delay, long period, long times, long endTime, String name, Bean customData) {
-		return schedule(delay, period, times, endTime, eMissfirePolicyNothing, name, customData);
+	public String schedule(long delay, long period, long times, long endTime, Class<? extends TimerHandle> handle, Bean customData) {
+		return schedule(delay, period, times, endTime, eMissfirePolicyNothing, handle, customData);
 	}
 
-	public String schedule(long delay, long period, long times, long endTime, int missfirePolicy, String name, Bean customData) {
+	public String schedule(long delay, long period, long times, long endTime, int missfirePolicy, Class<? extends TimerHandle> handle, Bean customData) {
 		var simpleTimer = new BSimpleTimer();
 		initSimpleTimer(simpleTimer, delay, period, times, endTime);
 		simpleTimer.setMissfirePolicy(missfirePolicy);
-		return schedule(simpleTimer, name, customData);
+		return schedule(simpleTimer, handle, customData);
 	}
 
 	// 直接传递BSimpleTimer，需要自己调用它Timer.initSimpleTimer初始化。所以暂时不开放了。
-	private String schedule(BSimpleTimer simpleTimer, String name, Bean customData) {
+	private String schedule(BSimpleTimer simpleTimer, Class<? extends TimerHandle> handle, Bean customData) {
 		// auto name
-		return schedule("@" + timerIdAutoKey.nextString(), simpleTimer, name, customData);
+		return schedule("@" + timerIdAutoKey.nextString(), simpleTimer, handle, customData);
 	}
 
-	private String schedule(String timerId, BSimpleTimer simpleTimer, String name, Bean customData) {
+	private String schedule(String timerId, BSimpleTimer simpleTimer, Class<? extends TimerHandle> handle, Bean customData) {
 		var serverId = zeze.getConfig().getServerId();
 		var root = _tNodeRoot.getOrAdd(serverId);
 		var nodeId = root.getHeadNodeId();
@@ -173,7 +153,7 @@ public class Timer extends AbstractTimer {
 
 				var timer = new BTimer();
 				timer.setTimerName(timerId);
-				timer.setHandleName(name);
+				timer.setHandleName(handle.getName());
 				timer.setTimerObj(simpleTimer);
 				node.getTimers().put(timerId, timer);
 
@@ -184,7 +164,7 @@ public class Timer extends AbstractTimer {
 
 				Transaction.whileCommit(() -> scheduleSimple(serverId, timerId,
 						simpleTimer.getExpectedTime() - System.currentTimeMillis(),
-						name, timer.getConcurrentFireSerialNo()));
+						timer.getConcurrentFireSerialNo()));
 				return timerId;
 			}
 			nodeId = nodeIdAutoKey.nextId();
@@ -194,32 +174,38 @@ public class Timer extends AbstractTimer {
 	//////////////////////////////////////////////////////////////////////////////////
 	// Cron Timer
 	// 每月第N(monthDay)天的某个时刻(hour,minute,second)。
-	public String scheduleMonth(int monthDay, int hour, int minute, int second, String name, Bean customData) throws ParseException {
+	public String scheduleMonth(int monthDay, int hour, int minute, int second,
+								Class<? extends TimerHandle> name, Bean customData) throws ParseException {
 		var cron = second + " " + minute + " " + hour + " " + monthDay + " * ?";
 		return schedule(cron, name, customData);
 	}
 
 	// 每周第N(weekDay)天的某个时刻(hour, minute, second)。
-	public String scheduleWeek(int weekDay, int hour, int minute, int second, String name, Bean customData) throws ParseException {
+	public String scheduleWeek(int weekDay, int hour, int minute, int second,
+							   Class<? extends TimerHandle> name, Bean customData) throws ParseException {
 		var cron = second + " " + minute + " " + hour + " * * " + weekDay;
 		return schedule(cron, name, customData);
 	}
 
 	// 每天的某个时刻(hour, minute, second)。
-	public String scheduleDay(int hour, int minute, int second, String name, Bean customData) throws ParseException {
+	public String scheduleDay(int hour, int minute, int second,
+							  Class<? extends TimerHandle> name, Bean customData) throws ParseException {
 		var cron = second + " " + minute + " " + hour + " * * ?";
 		return schedule(cron, name, customData);
 	}
 
-	public String schedule(String cronExpression, String name, Bean customData) throws ParseException {
+	public String schedule(String cronExpression,
+						   Class<? extends TimerHandle> name, Bean customData) throws ParseException {
 		return schedule(cronExpression, -1, -1, name, customData);
 	}
 
-	public String schedule(String cronExpression, long times, long endTime, String name, Bean customData) throws ParseException {
+	public String schedule(String cronExpression, long times, long endTime,
+						   Class<? extends TimerHandle> name, Bean customData) throws ParseException {
 		return schedule(cronExpression, times, endTime, eMissfirePolicyNothing, name, customData);
 	}
 
-	public String schedule(String cronExpression, long times, long endTime, int missfirePolicy, String name, Bean customData) throws ParseException {
+	public String schedule(String cronExpression, long times, long endTime, int missfirePolicy,
+						   Class<? extends TimerHandle> name, Bean customData) throws ParseException {
 		var cronTimer = new BCronTimer();
 		initCronTimer(cronTimer, cronExpression, times, endTime);
 		cronTimer.setMissfirePolicy(missfirePolicy);
@@ -227,11 +213,13 @@ public class Timer extends AbstractTimer {
 	}
 
 	// 直接传递BCronTimer需要自动调用Timer.initCronTimer初始化。先不开放了。
-	private String schedule(BCronTimer cronTimer, String name, Bean customData) {
+	private String schedule(BCronTimer cronTimer,
+							Class<? extends TimerHandle> name, Bean customData) {
 		return schedule("@" + timerIdAutoKey.nextString(), cronTimer, name, customData);
 	}
 
-	private String schedule(String timerId, BCronTimer cronTimer, String name, Bean customData) {
+	private String schedule(String timerId, BCronTimer cronTimer,
+							Class<? extends TimerHandle> name, Bean customData) {
 		var serverId = zeze.getConfig().getServerId();
 		var root = _tNodeRoot.getOrAdd(serverId);
 		var nodeId = root.getHeadNodeId();
@@ -269,7 +257,7 @@ public class Timer extends AbstractTimer {
 
 				var timer = new BTimer();
 				timer.setTimerName(timerId);
-				timer.setHandleName(name);
+				timer.setHandleName(name.getName());
 				timer.setTimerObj(cronTimer);
 				node.getTimers().put(timerId, timer);
 
@@ -278,7 +266,7 @@ public class Timer extends AbstractTimer {
 					timer.getCustomData().setBean(customData);
 				}
 
-				Transaction.whileCommit(() -> scheduleCron(serverId, timerId, cronTimer, name, timer.getConcurrentFireSerialNo()));
+				Transaction.whileCommit(() -> scheduleCron(serverId, timerId, cronTimer, timer.getConcurrentFireSerialNo()));
 				return timerId;
 			}
 			nodeId = nodeIdAutoKey.nextId();
@@ -290,19 +278,23 @@ public class Timer extends AbstractTimer {
 	// 有名字的Timer，每个名字只能全局调度唯一一个真正的Timer。
 	// 对这种Timer，不暴露TimerId，只能通过名字访问。
 	// 当真正的Timer被迁移到不同的Server时，名字到TimerId的映射不需要改变。
-	public boolean scheduleNamed(String timerId, long delay, String handleName, Bean customData) {
+	public boolean scheduleNamed(String timerId, long delay,
+								 Class<? extends TimerHandle> handleName, Bean customData) {
 		return scheduleNamed(timerId, delay, -1, -1, -1, eMissfirePolicyNothing, handleName, customData);
 	}
 
-	public boolean scheduleNamed(String timerId, long delay, long period, String handleName, Bean customData) {
+	public boolean scheduleNamed(String timerId, long delay, long period,
+								 Class<? extends TimerHandle> handleName, Bean customData) {
 		return scheduleNamed(timerId, delay, period, -1, -1, eMissfirePolicyNothing, handleName, customData);
 	}
 
-	public boolean scheduleNamed(String timerId, long delay, long period, long times, String handleName, Bean customData) {
+	public boolean scheduleNamed(String timerId, long delay, long period, long times,
+								 Class<? extends TimerHandle> handleName, Bean customData) {
 		return scheduleNamed(timerId, delay, period, times, -1, eMissfirePolicyNothing, handleName, customData);
 	}
 
-	public boolean scheduleNamed(String timerId, long delay, long period, long times, long endTime, int missfirePolicy, String handleName, Bean customData) {
+	public boolean scheduleNamed(String timerId, long delay, long period, long times, long endTime, int missfirePolicy,
+								 Class<? extends TimerHandle> handleName, Bean customData) {
 		if (timerId.startsWith("@"))
 			throw new IllegalArgumentException("invalid timer name. startsWith '@' is reserved.");
 
@@ -317,15 +309,18 @@ public class Timer extends AbstractTimer {
 		return true;
 	}
 
-	public boolean scheduleNamed(String timerName, String cron, String handleName, Bean customData) throws ParseException {
+	public boolean scheduleNamed(String timerName, String cron,
+								 Class<? extends TimerHandle> handleName, Bean customData) throws ParseException {
 		return scheduleNamed(timerName, cron, -1, -1, eMissfirePolicyNothing, handleName, customData);
 	}
 
-	public boolean scheduleNamed(String timerName, String cron, long times, long endTime, String handleName, Bean customData) throws ParseException {
+	public boolean scheduleNamed(String timerName, String cron, long times, long endTime,
+								 Class<? extends TimerHandle> handleName, Bean customData) throws ParseException {
 		return scheduleNamed(timerName, cron, times, endTime, eMissfirePolicyNothing, handleName, customData);
 	}
 
-	public boolean scheduleNamed(String timerName, String cron, long times, long endTime, int missfirePolicy, String handleName, Bean customData) throws ParseException {
+	public boolean scheduleNamed(String timerName, String cron, long times, long endTime, int missfirePolicy,
+								 Class<? extends TimerHandle> handleName, Bean customData) throws ParseException {
 		var timerId = _tIndexs.get(timerName);
 		if (null != timerId)
 			return false;
@@ -338,8 +333,10 @@ public class Timer extends AbstractTimer {
 
 	// 取消一个具体的Timer实例。
 	public void cancel(String timerId) {
+		/*
 		try {
 			// XXX 统一通过这里取消定时器，可能会浪费一次内存表查询。
+			// 还是让账户相关Timer自己取消吧。
 			if (null != timerRole && timerRole.cancel(timerId))
 				return; // done
 
@@ -350,6 +347,7 @@ public class Timer extends AbstractTimer {
 			logger.error("ignore cancel error.", ex);
 			return; // done;
 		}
+		*/
 
 		var index = _tIndexs.get(timerId);
 		if (null == index) {
@@ -407,16 +405,7 @@ public class Timer extends AbstractTimer {
 			return;
 
 		var timers = node.getTimers();
-		var timer = timers.remove(timerName);
-		var cancelHandle = timerCancelHandles.get(timer.getHandleName());
-		if (null != cancelHandle) {
-			try {
-				cancelHandle.run(index, timer);
-			} catch (Throwable e) {
-				// log cancel error only.
-				logger.error("", e);
-			}
-		}
+		timers.remove(timerName);
 
 		if (timers.isEmpty()) {
 			var prev = _tNodes.get(node.getPrevNodeId());
@@ -442,9 +431,9 @@ public class Timer extends AbstractTimer {
 		}
 	}
 
-	private void scheduleSimple(int serverId, String timerId, long delay, String name, long concurrentSerialNo) {
+	private void scheduleSimple(int serverId, String timerId, long delay, long concurrentSerialNo) {
 		timersFuture.put(timerId, Task.scheduleUnsafe(delay,
-				() -> fireSimple(serverId, timerId, name, concurrentSerialNo, false)));
+				() -> fireSimple(serverId, timerId, concurrentSerialNo, false)));
 	}
 
 	public static void initSimpleTimer(BSimpleTimer simpleTimer, long delay, long period, long times, long endTime) {
@@ -504,8 +493,7 @@ public class Timer extends AbstractTimer {
 		return true;
 	}
 
-	private long fireSimple(int serverId, String timerId, String name, long concurrentSerialNo, boolean missfire) {
-		final var handle = timerHandles.get(name);
+	private long fireSimple(int serverId, String timerId, long concurrentSerialNo, boolean missfire) {
 		if (0 != Task.call(zeze.newProcedure(() -> {
 			var index = _tIndexs.get(timerId);
 			if (null == index || index.getServerId() != zeze.getConfig().getServerId()) {
@@ -514,23 +502,26 @@ public class Timer extends AbstractTimer {
 			}
 
 			var node = _tNodes.get(index.getNodeId());
-			if (null == node || handle == null) {
+			if (null == node) {
 				cancel(serverId, timerId, index, node);
 				return 0; // procedure done
 			}
 
 			var timer = node.getTimers().get(timerId);
+			@SuppressWarnings("unchecked")
+			var handleClass = (Class<? extends TimerHandle>)Class.forName(timer.getHandleName());
+			final var handle = handleClass.getDeclaredConstructor().newInstance();
 			var simpleTimer = timer.getTimerObj_Zeze_Builtin_Timer_BSimpleTimer();
 			if (concurrentSerialNo == timer.getConcurrentFireSerialNo()) {
 
-				final var context = new TimerContext(timer, simpleTimer.getHappenTime(),
+				final var context = new TimerContext(this, timer, simpleTimer.getHappenTime(),
 						simpleTimer.getNextExpectedTime(), simpleTimer.getExpectedTime());
 
 				// 当调度发生了错误或者由于异步时序没有原子保证，导致同时（或某个瞬间）在多个Server进程调度时，
 				// 这个系列号保证触发用户回调只会发生一次。这个并发问题不取消定时器，继续尝试调度（去争抢执行权）。
 				// 定时器的调度生命期由其他地方保证最终一致。如果保证发生了错误，将一致并发争抢执行权。
 				var ret = Task.call(zeze.newProcedure(() -> {
-					handle.run(context);
+					handle.onTimer(context);
 					return 0;
 				}, "fireSimpleUser"));
 				if (ret == Procedure.Exception) {
@@ -551,7 +542,7 @@ public class Timer extends AbstractTimer {
 
 			// continue period
 			long delay = simpleTimer.getNextExpectedTime() - System.currentTimeMillis();
-			scheduleSimple(serverId, timerId, delay, name, concurrentSerialNo + 1);
+			scheduleSimple(serverId, timerId, delay, concurrentSerialNo + 1);
 
 			return 0L;
 		}, "fireSimple"))) {
@@ -560,18 +551,19 @@ public class Timer extends AbstractTimer {
 		return 0L;
 	}
 
-	private void scheduleCron(int serverId, String timerName, BCronTimer cron, String name, long concurrentSerialNo) {
+	private void scheduleCron(int serverId, String timerName, BCronTimer cron, long concurrentSerialNo) {
 		try {
 			long delay = cron.getNextExpectedTime() - System.currentTimeMillis();
-			scheduleCronNext(serverId, timerName, delay, name, concurrentSerialNo);
+			scheduleCronNext(serverId, timerName, delay, concurrentSerialNo);
 		} catch (Exception ex) {
 			// 这个错误是在不好处理。先只记录日志吧。
 			logger.error("", ex);
 		}
 	}
 
-	private void scheduleCronNext(int serverId, String timerName, long delay, String name, long concurrentSerialNo) {
-		timersFuture.put(timerName, Task.scheduleUnsafe(delay, () -> fireCron(serverId, timerName, name, concurrentSerialNo, false)));
+	private void scheduleCronNext(int serverId, String timerName, long delay, long concurrentSerialNo) {
+		timersFuture.put(timerName, Task.scheduleUnsafe(delay,
+				() -> fireCron(serverId, timerName, concurrentSerialNo, false)));
 	}
 
 	public static long cronNextTime(String cron, long time) throws ParseException {
@@ -625,8 +617,7 @@ public class Timer extends AbstractTimer {
 		return true;
 	}
 
-	private void fireCron(int serverId, String timerId, String name, long concurrentSerialNo, boolean missfire) {
-		final var handle = timerHandles.get(name);
+	private void fireCron(int serverId, String timerId, long concurrentSerialNo, boolean missfire) {
 		if (0 != Task.call(zeze.newProcedure(() -> {
 			var index = _tIndexs.get(timerId);
 			if (null == index || index.getServerId() != zeze.getConfig().getServerId()) {
@@ -635,22 +626,25 @@ public class Timer extends AbstractTimer {
 			}
 
 			var node = _tNodes.get(index.getNodeId());
-			if (null == node || handle == null) {
+			if (null == node) {
 				// maybe concurrent cancel
 				cancel(serverId, timerId, index, node);
 				return 0; // procedure done
 			}
 			var timer = node.getTimers().get(timerId);
+			@SuppressWarnings("unchecked")
+			var handleClass = (Class<? extends TimerHandle>)Class.forName(timer.getHandleName());
+			final var handle = handleClass.getDeclaredConstructor().newInstance();
 			var cronTimer = timer.getTimerObj_Zeze_Builtin_Timer_BCronTimer();
 			if (concurrentSerialNo == timer.getConcurrentFireSerialNo()) {
-				final var context = new TimerContext(timer, cronTimer.getHappenTime(),
+				final var context = new TimerContext(this, timer, cronTimer.getHappenTime(),
 						cronTimer.getNextExpectedTime(), cronTimer.getExpectedTime());
 
 				// 当调度发生了错误或者由于异步时序没有原子保证，导致同时（或某个瞬间）在多个Server进程调度时，
 				// 这个系列号保证触发用户回调只会发生一次。这个并发问题不取消定时器，继续尝试调度（去争抢执行权）。
 				// 定时器的调度生命期由其他地方保证最终一致。如果保证发生了错误，将一致并发争抢执行权。
 				var ret = Task.call(zeze.newProcedure(() -> {
-					handle.run(context);
+					handle.onTimer(context);
 					return 0;
 				}, "fireCronUser"));
 				if (ret == Procedure.Exception) {
@@ -669,7 +663,7 @@ public class Timer extends AbstractTimer {
 
 			// continue period
 			long delay = cronTimer.getNextExpectedTime() - System.currentTimeMillis();
-			scheduleCronNext(serverId, timerId, delay, name, concurrentSerialNo + 1);
+			scheduleCronNext(serverId, timerId, delay, concurrentSerialNo + 1);
 			return 0L; // procedure done
 		}, "fireCron"))) {
 			cancel(timerId);
@@ -683,7 +677,7 @@ public class Timer extends AbstractTimer {
 			var root = _tNodeRoot.getOrAdd(serverId);
 			// 本地每次load都递增。用来处理和接管的并发。
 			root.setLoadSerialNo(root.getLoadSerialNo() + 1);
-			out.value = root.copy(); // TODO zyao runwhileSucc
+			out.value = root.copy();
 			return 0L;
 		}, "LoadTimerLocal"))) {
 			var root = out.value;
@@ -750,7 +744,7 @@ public class Timer extends AbstractTimer {
 						switch (simpleTimer.getMissfirePolicy()) {
 						case eMissfirePolicyRunOnce:
 						case eMissfirePolicyRunOnceOldNext:
-							Task.run(() -> fireSimple(serverId, timer.getTimerName(), timer.getHandleName(),
+							Task.run(() -> fireSimple(serverId, timer.getTimerName(),
 									timer.getConcurrentFireSerialNo(), true), "missfireSimple");
 							continue; // loop done, continue
 
@@ -762,14 +756,14 @@ public class Timer extends AbstractTimer {
 					}
 					scheduleSimple(serverId, timer.getTimerName(),
 							simpleTimer.getNextExpectedTime() - System.currentTimeMillis(),
-							timer.getHandleName(), timer.getConcurrentFireSerialNo());
+							timer.getConcurrentFireSerialNo());
 				} else {
 					var cronTimer = (BCronTimer)timer.getTimerObj().getBean();
 					if (cronTimer.getNextExpectedTime() < now) {
 						switch (cronTimer.getMissfirePolicy()) {
 						case eMissfirePolicyRunOnce:
 						case eMissfirePolicyRunOnceOldNext:
-							Task.run(() -> fireCron(serverId, timer.getTimerName(), timer.getHandleName(),
+							Task.run(() -> fireCron(serverId, timer.getTimerName(),
 									timer.getConcurrentFireSerialNo(), true), "missfireCron");
 							continue; // loop done, continue
 
@@ -777,8 +771,7 @@ public class Timer extends AbstractTimer {
 							break;
 						}
 					}
-					scheduleCron(serverId, timer.getTimerName(), cronTimer,
-							timer.getHandleName(), timer.getConcurrentFireSerialNo());
+					scheduleCron(serverId, timer.getTimerName(), cronTimer, timer.getConcurrentFireSerialNo());
 				}
 				if (serverId != zeze.getConfig().getServerId()) {
 					Task.call(zeze.newProcedure(() -> {

@@ -1,5 +1,7 @@
 package UnitTest.Zeze.Component;
 
+import Zeze.Component.TimerContext;
+import Zeze.Component.TimerHandle;
 import Zeze.Transaction.Procedure;
 import demo.App;
 import org.junit.After;
@@ -24,20 +26,43 @@ public class TestTimer {
 		demo.App.getInstance().Stop();
 	}
 
+	static class TestTimerHandle1 extends TimerHandle {
+		public void onTimer(TimerContext timerContext) {
+			System.out.println(">> Name: " + timerContext.timerName + " ID: " + timerContext.timerId + " Now: " + timerContext.curTimeMills + " Expected: " + timerContext.expectedTimeMills + " Next: " + timerContext.nextExpectedTimeMills);
+		}
+	}
+
+	static class TestTimerHandle2 extends TimerHandle {
+		public void onTimer(TimerContext timerContext) {
+			TestBean bean = (TestBean)timerContext.customData;
+			bean.addValue();
+			System.out.println(">> Name: " + timerContext.timerName + " ID: " + timerContext.timerId + " Now: " + timerContext.curTimeMills + " Expected: " + timerContext.expectedTimeMills + " Next: " + timerContext.nextExpectedTimeMills + " Bean Value: " + bean.getTestValue());
+		}
+	}
+
+	static class TestTimerHandle3 extends TimerHandle {
+		public void onTimer(TimerContext timerContext) {
+			TestBean bean = (TestBean)timerContext.customData;
+			if (bean.checkLiving()) {
+				bean.addValue();
+				System.out.println(">> Name: " + timerContext.timerName + " ID: " + timerContext.timerId + " Now: " + timerContext.curTimeMills + " Expected: " + timerContext.expectedTimeMills + " Next: " + timerContext.nextExpectedTimeMills + " Bean Value: " + bean.getTestValue());
+			} else {
+				timerContext.timer.cancel("3");
+				System.out.println(">> Schedule Canceled");
+			}
+		}
+	}
+
 	@Test
 	public final void test1BasicTimer() throws Throwable {
 		System.out.println("========== Testing Basic Timer ==========");
 		var timer = App.getInstance().Zeze.getTimer();
 
 		// Test schedule timer
-		timer.addHandle("print1", timerContext -> {
-			System.out.println(">> Name: " + timerContext.timerName + " ID: " + timerContext.timerId + " Now: " + timerContext.curTimeMills + " Expected: " + timerContext.expectedTimeMills + " Next: " + timerContext.nextExpectedTimeMills);
-		});
-
 		Assert.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(() -> {
-			timer.schedule(1, 200, 10, "print1", null);
+			timer.schedule(1, 200, 10, TestTimerHandle1.class, null);
 			return Procedure.Success;
-		}, "test_CommonSchedule").Call());
+		}, "test_CommonSchedule").call());
 
 		// to prevent thread from being killed
 		int sleepCircle = 12;
@@ -49,16 +74,11 @@ public class TestTimer {
 
 		// Test with customBean
 		TestBean testBean1 = new TestBean();
-		timer.addHandle("addTestBean", timerContext -> {
-			TestBean bean = (TestBean)timerContext.customData;
-			bean.addValue();
-			System.out.println(">> Name: " + timerContext.timerName + " ID: " + timerContext.timerId + " Now: " + timerContext.curTimeMills + " Expected: " + timerContext.expectedTimeMills + " Next: " + timerContext.nextExpectedTimeMills + " Bean Value: " + bean.getTestValue());
-		});
 
 		Assert.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(() -> {
-			timer.schedule(1, 200, 10, "addTestBean", testBean1);
+			timer.schedule(1, 200, 10, TestTimerHandle2.class, testBean1);
 			return Procedure.Success;
-		}, "test_ScheduleWithCustomBean").Call());
+		}, "test_ScheduleWithCustomBean").call());
 
 		for (int i = 0; i < sleepCircle; ++i) {
 			Thread.sleep(200);
@@ -70,20 +90,10 @@ public class TestTimer {
 
 		// Test canceling schedule
 		TestBean testBean2 = new TestBean();
-		timer.addHandle("cancelSchedule", timerContext -> {
-			TestBean bean = (TestBean)timerContext.customData;
-			if (bean.checkLiving()) {
-				bean.addValue();
-				System.out.println(">> Name: " + timerContext.timerName + " ID: " + timerContext.timerId + " Now: " + timerContext.curTimeMills + " Expected: " + timerContext.expectedTimeMills + " Next: " + timerContext.nextExpectedTimeMills + " Bean Value: " + bean.getTestValue());
-			} else {
-				timer.cancel("3");
-				System.out.println(">> Schedule Canceled");
-			}
-		});
 		Assert.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(() -> {
-			timer.schedule(1, 200, 10, "cancelSchedule", testBean2);
+			timer.schedule(1, 200, 10, TestTimerHandle3.class, testBean2);
 			return Procedure.Success;
-		}, "test_CancelSchedule").Call());
+		}, "test_CancelSchedule").call());
 
 		for (int i = 0; i < sleepCircle; ++i) {
 			Thread.sleep(200);

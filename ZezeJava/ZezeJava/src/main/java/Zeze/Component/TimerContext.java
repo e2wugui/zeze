@@ -4,6 +4,7 @@ import Zeze.Builtin.Timer.*;
 import Zeze.Transaction.Bean;
 
 public class TimerContext {
+	public final Timer timer;
 	public final String timerId;
 	public final String timerName;
 	public final Bean customData;
@@ -12,17 +13,19 @@ public class TimerContext {
 	public final long expectedTimeMills;
 
 	// 从数据库结构构建上下文。
-	TimerContext(BTimer timer, long cur, long next, long expected) {
-		timerId = timer.getTimerName();
-		timerName = timer.getHandleName();
-		customData = timer.getCustomData().getBean();
+	TimerContext(Timer timer, BTimer bTimer, long cur, long next, long expected) {
+		this.timer = timer;
+		timerId = bTimer.getTimerName();
+		timerName = bTimer.getHandleName();
+		customData = bTimer.getCustomData().getBean();
 		curTimeMills = cur;
 		nextExpectedTimeMills = next;
 		expectedTimeMills = expected;
 	}
 
 	// 完全自定义构造上下文。
-	TimerContext(String timerId, String timerName, Bean customData, long cur, long next, long expected) {
+	TimerContext(Timer timer, String timerId, String timerName, Bean customData, long cur, long next, long expected) {
+		this.timer = timer;
 		this.timerId = timerId;
 		this.timerName = timerName;
 		this.customData = customData;

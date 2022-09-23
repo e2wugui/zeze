@@ -37,20 +37,21 @@ public class TimerAccount {
 	// 本进程内的有名字定时器，名字仅在本进程内唯一。
 	public boolean scheduleOnlineNamed(String account, String clientId, String timerName,
 									   long delay, long period, long times, long endTime,
-									   String handleName, Bean customData) throws Throwable {
+									   TimerHandle handle, Bean customData) throws Throwable {
 		var timer = online.providerApp.zeze.getTimer();
 		var bTimer = timer.tArchOlineTimer().get(timerName);
 		if (null != bTimer)
 			return false;
 		var simpleTimer = new BSimpleTimer();
 		Timer.initSimpleTimer(simpleTimer, delay, period, times, endTime);
-		scheduleOnline(account, clientId, timerName, simpleTimer, handleName, customData);
+		scheduleOnline(account, clientId, timerName, simpleTimer, handle, customData);
 		return true;
 	}
 
 	// 本进程内的有名字定时器，名字仅在本进程内唯一。
 	public boolean scheduleOnlineNamed(String account, String clientId, String timerName,
-									   String cron, long times, long endTime, String handleName, Bean customData) throws Throwable {
+									   String cron, long times, long endTime,
+									   TimerHandle handleName, Bean customData) throws Throwable {
 		var timer = online.providerApp.zeze.getTimer();
 		var timerId = timer.tArchOlineTimer().get(timerName);
 		if (null != timerId)
@@ -61,14 +62,16 @@ public class TimerAccount {
 		return true;
 	}
 
-	public String scheduleOnline(String account, String clientId, long delay, long period, long times, long endTime, String name, Bean customData) throws Throwable {
+	public String scheduleOnline(String account, String clientId, long delay, long period, long times, long endTime,
+								 TimerHandle name, Bean customData) throws Throwable {
 		var simpleTimer = new BSimpleTimer();
 		Timer.initSimpleTimer(simpleTimer, delay, period, times, endTime);
 		var timer = online.providerApp.zeze.getTimer();
 		return scheduleOnline(account, clientId, "@" + timer.timerIdAutoKey.nextString(), simpleTimer, name, customData);
 	}
 
-	private String scheduleOnline(String account, String clientId, String timerId, BSimpleTimer simpleTimer, String name, Bean customData) throws Throwable {
+	private String scheduleOnline(String account, String clientId, String timerId, BSimpleTimer simpleTimer,
+								  TimerHandle name, Bean customData) throws Throwable {
 		var loginVersion = online.getLocalLoginVersion(account, clientId);
 		if (null == loginVersion)
 			throw new IllegalStateException("not login. account=" + account + " clientId=" + clientId);
@@ -85,14 +88,16 @@ public class TimerAccount {
 		return timerId;
 	}
 
-	public String scheduleOnline(String account, String clientId, String cron, long times, long endTime, String name, Bean customData) throws Throwable {
+	public String scheduleOnline(String account, String clientId, String cron, long times, long endTime,
+								 TimerHandle name, Bean customData) throws Throwable {
 		var cronTimer = new BCronTimer();
 		Timer.initCronTimer(cronTimer, cron, times, endTime);
 		var timer = online.providerApp.zeze.getTimer();
 		return scheduleOnline(account, clientId, "@" + timer.timerIdAutoKey.nextString(), cronTimer, name, customData);
 	}
 
-	private String scheduleOnline(String account, String clientId, String timerId, BCronTimer cronTimer, String name, Bean customData) throws Throwable {
+	private String scheduleOnline(String account, String clientId, String timerId, BCronTimer cronTimer,
+								  TimerHandle name, Bean customData) throws Throwable {
 		var loginVersion = online.getLocalLoginVersion(account, clientId);
 		if (null == loginVersion)
 			throw new IllegalStateException("not login. account=" + account + " clientId=" + clientId);
@@ -162,24 +167,23 @@ public class TimerAccount {
 	}
 
 	// 调度 cron 定时器
-	private void scheduleCron(String timerId, BCronTimer cron, String name) {
+	private void scheduleCron(String timerId, BCronTimer cron, TimerHandle handle) {
 		try {
 			long delay = cron.getNextExpectedTime() - System.currentTimeMillis();
-			scheduleCronNext( timerId, delay, name);
+			scheduleCronNext( timerId, delay, handle);
 		} catch (Exception ex) {
 			Timer.logger.error("", ex);
 		}
 	}
 
 	// 再次调度 cron 定时器，真正安装到ThreadPool中。
-	private void scheduleCronNext(String timerId, long delay, String name) {
+	private void scheduleCronNext(String timerId, long delay, TimerHandle handle) {
 		var timer = online.providerApp.zeze.getTimer();
-		timer.timersFuture.put(timerId, Task.scheduleUnsafe(delay, () -> fireCron(timerId, name)));
+		timer.timersFuture.put(timerId, Task.scheduleUnsafe(delay, () -> fireCron(timerId, handle)));
 	}
 
-	private void fireCron(String timerId, String name) throws Throwable {
+	private void fireCron(String timerId, TimerHandle handle) throws Throwable {
 		var timer = online.providerApp.zeze.getTimer();
-		final var handle = timer.timerHandles.get(name);
 		var ret = Task.call(online.providerApp.zeze.newProcedure(() -> {
 			if (null == handle) {
 				cancel(timerId);
@@ -191,6 +195,7 @@ public class TimerAccount {
 				timer.cancelFuture(timerId);
 				return 0; // done
 			}
+
 			var globalLoginVersion = online.getGlobalLoginVersion(bTimer.getAccount(), bTimer.getClientId());
 			if (null == globalLoginVersion || bTimer.getLoginVersion() != globalLoginVersion) {
 				// 已经不是注册定时器时候的登录了。
@@ -201,10 +206,10 @@ public class TimerAccount {
 			var cronTimer = bTimer.getTimerObj_Zeze_Builtin_Timer_BCronTimer();
 			var onlineTimers = online.<BOnlineTimers>getLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers);
 			var customData = onlineTimers.getTimerIds().get(timerId).getCustomData().getBean();
-			var context = new TimerContext(timerId, name, customData,
+			var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
 					cronTimer.getHappenTime(), cronTimer.getNextExpectedTime(), cronTimer.getExpectedTime());
 			var retNest = Task.call(online.providerApp.zeze.newProcedure(() -> {
-				handle.run(context);
+				handle.onTimer(context);
 				return Procedure.Success;
 			}, "fireOnlineLocalHandle"));
 			if (retNest == Procedure.Exception)
@@ -218,7 +223,7 @@ public class TimerAccount {
 
 			// continue period
 			long delay = cronTimer.getNextExpectedTime() - System.currentTimeMillis();
-			scheduleCronNext(timerId, delay, name);
+			scheduleCronNext(timerId, delay, handle);
 			return 0;
 		}, "fireOnlineSimpleTimer"));
 		if (ret != 0)
@@ -226,15 +231,14 @@ public class TimerAccount {
 	}
 
 	// 调度 Simple 定时器到ThreadPool中。
-	private void scheduleSimple(String timerId, long delay, String name) {
+	private void scheduleSimple(String timerId, long delay, TimerHandle handle) {
 		var timer = online.providerApp.zeze.getTimer();
-		timer.timersFuture.put(timerId, Task.scheduleUnsafe(delay, () -> fireSimple(timerId, name)));
+		timer.timersFuture.put(timerId, Task.scheduleUnsafe(delay, () -> fireSimple(timerId, handle)));
 	}
 
 	// Timer发生，执行回调。
-	private void fireSimple(String timerId, String name) throws Throwable {
+	private void fireSimple(String timerId, TimerHandle handle) throws Throwable {
 		var timer = online.providerApp.zeze.getTimer();
-		final var handle = timer.timerHandles.get(name);
 		var ret = Task.call(online.providerApp.zeze.newProcedure(() -> {
 			if (null == handle) {
 				cancel(timerId);
@@ -258,10 +262,10 @@ public class TimerAccount {
 				var onlineTimers = online.<BOnlineTimers>getLocalBean(
 						bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers);
 				var customData = onlineTimers.getTimerIds().get(timerId).getCustomData().getBean();
-				var context = new TimerContext(timerId, name, customData,
+				var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
 						simpleTimer.getHappenTimes(), simpleTimer.getNextExpectedTime(),
 						simpleTimer.getExpectedTime());
-				handle.run(context);
+				handle.onTimer(context);
 				return Procedure.Success;
 			}, "fireOnlineLocalHandle"));
 			if (retNest == Procedure.Exception)
@@ -276,7 +280,7 @@ public class TimerAccount {
 
 			// continue period
 			var delay = simpleTimer.getNextExpectedTime() - System.currentTimeMillis();
-			scheduleSimple(timerId, delay, name);
+			scheduleSimple(timerId, delay, handle);
 			return 0; // last procedure done
 		}, "fireOnlineSimpleTimer"));
 		if (ret != 0)
