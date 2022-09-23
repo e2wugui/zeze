@@ -57,6 +57,8 @@ namespace Zeze.Gen
                 tlevel = self.GetAttribute("TransactionLevel");
                 if (tlevel.Length > 0)
                     TransactionLevel = (TransactionLevel)TransactionLevel.Parse(typeof(TransactionLevel), tlevel);
+                else if (false == string.IsNullOrEmpty(space.DefaultTransactionLevel))
+                    TransactionLevel = (TransactionLevel)TransactionLevel.Parse(typeof(TransactionLevel), space.DefaultTransactionLevel);
             }
 
             XmlNodeList childNodes = self.ChildNodes;

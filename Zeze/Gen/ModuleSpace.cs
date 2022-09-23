@@ -12,6 +12,7 @@ namespace Zeze.Gen
         public string NamePinyin => Program.ToPinyin(Name);
         public ModuleSpace Parent { get; private set; }
         public Util.Ranges ProtocolIdRanges { get; } = new Util.Ranges();
+        public string DefaultTransactionLevel { get; private set; }
         public int Id { get; }
 
         public XmlElement Self { get; }
@@ -136,6 +137,7 @@ namespace Zeze.Gen
             Parent = parent;
             Name = self.GetAttribute("name").Trim();
             Program.CheckReserveName(Name);
+            DefaultTransactionLevel = self.GetAttribute("DefaultTransactionLevel").Trim();
 
             if (hasId)
             {
