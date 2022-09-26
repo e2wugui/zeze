@@ -26,14 +26,14 @@ public class TestTimer {
 		demo.App.getInstance().Stop();
 	}
 
-	static class TestTimerHandle1 extends TimerHandle {
+	public static class TestTimerHandle1 extends TimerHandle {
 		@Override
 		public void onTimer(TimerContext timerContext) {
 			System.out.println(">> Name: " + timerContext.timerName + " ID: " + timerContext.timerId + " Now: " + timerContext.curTimeMills + " Expected: " + timerContext.expectedTimeMills + " Next: " + timerContext.nextExpectedTimeMills);
 		}
 	}
 
-	static class TestTimerHandle2 extends TimerHandle {
+	public static class TestTimerHandle2 extends TimerHandle {
 		@Override
 		public void onTimer(TimerContext timerContext) {
 			TestBean bean = (TestBean)timerContext.customData;
@@ -42,7 +42,7 @@ public class TestTimer {
 		}
 	}
 
-	static class TestTimerHandle3 extends TimerHandle {
+	public static class TestTimerHandle3 extends TimerHandle {
 		@Override
 		public void onTimer(TimerContext timerContext) {
 			TestBean bean = (TestBean)timerContext.customData;
