@@ -107,7 +107,7 @@ local {{e.name}} = {{e.value}}
 }
 {{- bean_variables = []
 for variable in bean.variables
-    if variable.variable_type.is_bean
+    if variable.variable_type.is_bean || variable.variable_type.is_collection
         bean_variables = array.add(bean_variables, variable)
     end
 end -}}
