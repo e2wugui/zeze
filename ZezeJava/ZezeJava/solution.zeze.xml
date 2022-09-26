@@ -3,7 +3,7 @@
 <solution name="Zeze" ModuleIdAllowRanges="11000-12000">
 	<module name="Builtin" id="11000">
 		<!-- Global With Raft 模块 -->
-		<module name="GlobalCacheManagerWithRaft" id="11001">
+		<module name="GlobalCacheManagerWithRaft" id="11001" DefaultTransactionLevel="None">
 			<!-- table -->
 			<bean name="BCacheState" kind="rocks">
 				<variable id="1" name="AcquireStatePending" type="int" transient="true"/>
@@ -47,13 +47,13 @@
 				<variable id="3" name="ServerReleaseTimeout" type="int"/>
 			</bean>
 
-			<rpc name="Acquire" argument="BAcquireParam" result="BReduceParam" base="Zeze.Raft.RaftRpc" handle="server" TransactionLevel="None" />
-			<rpc name="Reduce" argument="BReduceParam" result="BReduceParam" base="Zeze.Raft.RaftRpc" handle="client" />
-			<rpc name="Login" argument="BLoginParam" result="BAchillesHeelConfig" base="Zeze.Raft.RaftRpc" handle="server" TransactionLevel="None" />
-			<rpc name="ReLogin" argument="BLoginParam" base="Zeze.Raft.RaftRpc" handle="server" TransactionLevel="None" />
-			<rpc name="NormalClose" handle="server" base="Zeze.Raft.RaftRpc" TransactionLevel="None" />
-			<rpc name="Cleanup" argument="BAchillesHeel" base="Zeze.Raft.RaftRpc" handle="server" TransactionLevel="None" />
-			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" handle="server" TransactionLevel="None" />
+			<rpc name="Acquire" argument="BAcquireParam" result="BReduceParam" base="Zeze.Raft.RaftRpc" handle="server" />
+			<rpc name="Reduce" argument="BReduceParam" result="BReduceParam" base="Zeze.Raft.RaftRpc" handle="client" TransactionLevel="Serializable" />
+			<rpc name="Login" argument="BLoginParam" result="BAchillesHeelConfig" base="Zeze.Raft.RaftRpc" handle="server" />
+			<rpc name="ReLogin" argument="BLoginParam" base="Zeze.Raft.RaftRpc" handle="server" />
+			<rpc name="NormalClose" handle="server" base="Zeze.Raft.RaftRpc" />
+			<rpc name="Cleanup" argument="BAchillesHeel" base="Zeze.Raft.RaftRpc" handle="server" />
+			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" handle="server" />
 		</module>
 
 		<!-- Rocks 测试模块 -->
