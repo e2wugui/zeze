@@ -208,9 +208,14 @@ public class TimerRole {
 	}
 
 	private long onLoginEvent(Object sender, EventDispatcher.EventArgument arg) {
+		// For-test
+		System.out.println(">>>>>>>>>> onLoginEvent <<<<<<<<<<");
 		var timer = online.providerApp.zeze.getTimer();
 		var loginArg = (LoginArgument)arg;
 		var offlineTimers = timer.tRoleOfflineTimers().get(loginArg.roleId);
+		// X: fix offlineTimers is null
+		if (null == offlineTimers)
+			return 0;
 		for (var e : offlineTimers.getOfflineTimers().entrySet()) {
 			timer.redirectCancel(e.getValue(), e.getKey());
 		}
@@ -249,13 +254,7 @@ public class TimerRole {
 		// 先整体在一个事务内更新，这样更安全。
 		// 由于Online Timer是本进程的，用户也不会修改，所以整体更新目前看来还可接受。
 		for (var tid : timers.getTimerIds().keySet()) {
-			var archTimer = timer.tArchOlineTimer().get(tid);
-			if (archTimer != null)
-				archTimer.setLoginVersion(loginVersion);
-
-			var gameTimer = timer.tGameOlineTimer().get(tid);
-			if (gameTimer != null)
-				gameTimer.setLoginVersion(loginVersion);
+			timer.tGameOlineTimer().get(tid).setLoginVersion(loginVersion);
 		}
 		return 0;
 	}
