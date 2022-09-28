@@ -369,7 +369,8 @@ public final class Agent {
 				}
 				continue;
 			}
-			if (immediately || now - rpc.getSendTime() > timeout) {
+			if ((immediately && now - rpc.getCreateTime() > timeout)
+					|| now - rpc.getSendTime() > timeout) {
 				if (isDebugEnabled)
 					logger.debug("ReSendU {}/{} {}", urgentPending.size(), leaderSocket, rpc);
 				rpc.setSendTime(now);
@@ -389,7 +390,8 @@ public final class Agent {
 				}
 				continue;
 			}
-			if (immediately || now - rpc.getSendTime() > timeout) {
+			if ((immediately && now - rpc.getCreateTime() > timeout)
+					|| now - rpc.getSendTime() > timeout) {
 				if (isDebugEnabled)
 					logger.debug("ReSend {}/{} {}", pending.size(), leaderSocket, rpc);
 				rpc.setSendTime(now);

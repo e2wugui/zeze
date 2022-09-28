@@ -750,7 +750,8 @@ namespace Zeze.Raft
                         removed.Add(r);
                     continue;
                 }
-                if (immediately || now - iraft.SendTime > RaftConfig.AppendEntriesTimeout + 1000)
+                if ((immediately && now - iraft.CreateTime > RaftConfig.AppendEntriesTimeout + 1000)
+                    || now - iraft.SendTime > RaftConfig.AppendEntriesTimeout + 1000)
                 {
                     logger.Debug($"{leaderSocket} {rpc}");
 
@@ -773,7 +774,8 @@ namespace Zeze.Raft
                         removed.Add(r);
                     continue;
                 }
-                if (immediately || now - iraft.SendTime > RaftConfig.AppendEntriesTimeout + 1000)
+                if ((immediately && now - iraft.CreateTime > RaftConfig.AppendEntriesTimeout + 1000)
+                    || now - iraft.SendTime > RaftConfig.AppendEntriesTimeout + 1000)
                 {
                     logger.Debug($"{leaderSocket} {rpc}");
 
