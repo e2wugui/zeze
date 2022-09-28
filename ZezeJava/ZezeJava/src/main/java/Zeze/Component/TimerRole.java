@@ -18,9 +18,8 @@ import Zeze.Util.Task;
 /**
  * 1. schedule，scheduleNamed 完全重新实现一套基于内存表和内存的。
  * 2. 不直接使用 Timer.schedule。但有如下关联。
- * 直接使用 Timer.timerIdAutoKey，使得返回的timerId共享一个名字空间。
- * 直接使用 Timer.timersFuture，从 ThreadPool 返回的future保存在这里。
- * 3. cancel 用户入口从 Timer.cancel 调用。
+ *    直接使用 Timer.timerIdAutoKey，使得返回的timerId共享一个名字空间。
+ *    直接使用 Timer.timersFuture，从 ThreadPool 返回的future保存在这里。
  */
 public class TimerRole {
 	final Online online;
