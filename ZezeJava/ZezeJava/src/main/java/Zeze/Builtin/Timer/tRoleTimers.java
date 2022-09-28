@@ -4,14 +4,14 @@ package Zeze.Builtin.Timer;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tGameOlineTimer extends Zeze.Transaction.TableX<String, Zeze.Builtin.Timer.BGameOnlineTimer> {
-    public tGameOlineTimer() {
-        super("Zeze_Builtin_Timer_tGameOlineTimer");
+public final class tRoleTimers extends Zeze.Transaction.TableX<String, Zeze.Builtin.Timer.BGameOnlineTimer> {
+    public tRoleTimers() {
+        super("Zeze_Builtin_Timer_tRoleTimers");
     }
 
     @Override
     public int getId() {
-        return -848362429;
+        return -218884023;
     }
 
     @Override

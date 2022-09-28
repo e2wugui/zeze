@@ -4,14 +4,14 @@ package Zeze.Builtin.Timer;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tArchOlineTimer extends Zeze.Transaction.TableX<String, Zeze.Builtin.Timer.BArchOnlineTimer> {
-    public tArchOlineTimer() {
-        super("Zeze_Builtin_Timer_tArchOlineTimer");
+public final class tAccountTimers extends Zeze.Transaction.TableX<String, Zeze.Builtin.Timer.BArchOnlineTimer> {
+    public tAccountTimers() {
+        super("Zeze_Builtin_Timer_tAccountTimers");
     }
 
     @Override
     public int getId() {
-        return 1665324784;
+        return 1803422289;
     }
 
     @Override

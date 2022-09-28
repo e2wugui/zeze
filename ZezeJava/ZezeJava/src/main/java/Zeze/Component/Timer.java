@@ -363,12 +363,12 @@ public class Timer extends AbstractTimer {
 
 	///////////////////////////////////////////////////////////////////////////////
 	// Online Timer
-	tArchOlineTimer tArchOlineTimer() {
-		return _tArchOlineTimer;
+	tAccountTimers tAccountTimers() {
+		return _tAccountTimers;
 	}
 
-	tGameOlineTimer tGameOlineTimer() {
-		return _tGameOlineTimer;
+	tRoleTimers tRoleTimers() {
+		return _tRoleTimers;
 	}
 
 	tAccountOfflineTimers tAccountOfflineTimers() {

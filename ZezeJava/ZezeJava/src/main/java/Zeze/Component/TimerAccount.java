@@ -42,7 +42,7 @@ public class TimerAccount {
 									   long delay, long period, long times, long endTime,
 									   TimerHandle handle, Bean customData) throws Throwable {
 		var timer = online.providerApp.zeze.getTimer();
-		var bTimer = timer.tArchOlineTimer().get(timerName);
+		var bTimer = timer.tAccountTimers().get(timerName);
 		if (null != bTimer)
 			return false;
 		var simpleTimer = new BSimpleTimer();
@@ -56,7 +56,7 @@ public class TimerAccount {
 									   String cron, long times, long endTime,
 									   TimerHandle handleName, Bean customData) throws Throwable {
 		var timer = online.providerApp.zeze.getTimer();
-		var timerId = timer.tArchOlineTimer().get(timerName);
+		var timerId = timer.tAccountTimers().get(timerName);
 		if (null != timerId)
 			return false;
 		var cronTimer = new BCronTimer();
@@ -81,7 +81,7 @@ public class TimerAccount {
 
 		var timer = online.providerApp.zeze.getTimer();
 		var onlineTimer = new BArchOnlineTimer(account, clientId, loginVersion);
-		timer.tArchOlineTimer().insert(timerId, onlineTimer);
+		timer.tAccountTimers().insert(timerId, onlineTimer);
 		onlineTimer.getTimerObj().setBean(simpleTimer);
 
 		var timerIds = online.getOrAddLocalBean(account, clientId, eOnlineTimers, new BOnlineTimers());
@@ -107,7 +107,7 @@ public class TimerAccount {
 
 		var timer = online.providerApp.zeze.getTimer();
 		var onlineTimer = new BArchOnlineTimer(account, clientId, loginVersion);
-		timer.tArchOlineTimer().insert(timerId, onlineTimer);
+		timer.tAccountTimers().insert(timerId, onlineTimer);
 		onlineTimer.getTimerObj().setBean(cronTimer);
 
 		var timerIds = online.getOrAddLocalBean(account, clientId, eOnlineTimers, new BOnlineTimers());
@@ -120,7 +120,7 @@ public class TimerAccount {
 	public boolean cancel(String timerId) throws Throwable {
 		var timer = online.providerApp.zeze.getTimer();
 		// remove online timer
-		var bTimer = timer.tArchOlineTimer().get(timerId);
+		var bTimer = timer.tAccountTimers().get(timerId);
 		if (null == bTimer)
 			return false;
 
@@ -128,7 +128,7 @@ public class TimerAccount {
 		var onlineTimers = online.getOrAddLocalBean(bTimer.getAccount(), bTimer.getClientId(),
 				eOnlineTimers, new BOnlineTimers());
 		onlineTimers.getTimerIds().remove(timerId);
-		timer.tArchOlineTimer().remove(timerId);
+		timer.tAccountTimers().remove(timerId);
 
 		// cancel future task
 		timer.cancelFuture(timerId);
@@ -254,7 +254,7 @@ public class TimerAccount {
 		// 先整体在一个事务内更新，这样更安全。
 		// 由于Online Timer是本进程的，用户也不会修改，所以整体更新目前看来还可接受。
 		for (var tid : timers.getTimerIds().keySet()) {
-			timer.tArchOlineTimer().get(tid).setLoginVersion(loginVersion);
+			timer.tAccountTimers().get(tid).setLoginVersion(loginVersion);
 		}
 		return 0;
 	}
@@ -283,7 +283,7 @@ public class TimerAccount {
 				return 0; // done
 			}
 
-			var bTimer = timer.tArchOlineTimer().get(timerId);
+			var bTimer = timer.tAccountTimers().get(timerId);
 			if (null == bTimer) {
 				timer.cancelFuture(timerId);
 				return 0; // done
@@ -339,7 +339,7 @@ public class TimerAccount {
 				return 0; // done
 			}
 
-			var bTimer = timer.tArchOlineTimer().get(timerId);
+			var bTimer = timer.tAccountTimers().get(timerId);
 			if (null == bTimer) {
 				timer.cancelFuture(timerId);
 				return 0; // done

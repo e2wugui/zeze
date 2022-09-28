@@ -41,7 +41,7 @@ public class TimerRole {
 									   long delay, long period, long times, long endTime,
 									   TimerHandle handleName, Bean customData) throws Throwable {
 		var timer = online.providerApp.zeze.getTimer();
-		var timerId = timer.tGameOlineTimer().get(timerName);
+		var timerId = timer.tRoleTimers().get(timerName);
 		if (null != timerId)
 			return false;
 		var simpleTimer = new BSimpleTimer();
@@ -55,7 +55,7 @@ public class TimerRole {
 									   String cron, long times, long endTime,
 									   TimerHandle handleName, Bean customData) throws Throwable {
 		var timer = online.providerApp.zeze.getTimer();
-		var timerId = timer.tGameOlineTimer().get(timerName);
+		var timerId = timer.tRoleTimers().get(timerName);
 		if (null != timerId)
 			return false;
 		var cronTimer = new BCronTimer();
@@ -81,7 +81,7 @@ public class TimerRole {
 
 		var timer = online.providerApp.zeze.getTimer();
 		var onlineTimer = new BGameOnlineTimer(roleId, loginVersion);
-		timer.tGameOlineTimer().put(timerId, onlineTimer);
+		timer.tRoleTimers().put(timerId, onlineTimer);
 		onlineTimer.getTimerObj().setBean(simpleTimer);
 
 		var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
@@ -108,7 +108,7 @@ public class TimerRole {
 		var timer = online.providerApp.zeze.getTimer();
 		var onlineTimer = new BGameOnlineTimer(roleId, loginVersion);
 		onlineTimer.getTimerObj().setBean(cronTimer);
-		timer.tGameOlineTimer().insert(timerId, onlineTimer);
+		timer.tRoleTimers().insert(timerId, onlineTimer);
 
 		var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
 		timerIds.getTimerIds().getOrAdd(timerId).getCustomData().setBean(customData);
@@ -121,14 +121,14 @@ public class TimerRole {
 		var timer = online.providerApp.zeze.getTimer();
 
 		// remove online timer
-		var bTimer = timer.tGameOlineTimer().get(timerId);
+		var bTimer = timer.tRoleTimers().get(timerId);
 		if (null == bTimer)
 			return false;
 
 		// remove online local
 		var onlineTimers = online.getOrAddLocalBean(bTimer.getRoleId(), eOnlineTimers, new BOnlineTimers());
 		onlineTimers.getTimerIds().remove(timerId);
-		timer.tArchOlineTimer().remove(timerId);
+		timer.tRoleTimers().remove(timerId);
 
 		// cancel future task
 		timer.cancelFuture(timerId);
@@ -253,7 +253,7 @@ public class TimerRole {
 		// 先整体在一个事务内更新，这样更安全。
 		// 由于Online Timer是本进程的，用户也不会修改，所以整体更新目前看来还可接受。
 		for (var tid : timers.getTimerIds().keySet()) {
-			timer.tGameOlineTimer().get(tid).setLoginVersion(loginVersion);
+			timer.tRoleTimers().get(tid).setLoginVersion(loginVersion);
 		}
 		return 0;
 	}
@@ -282,7 +282,7 @@ public class TimerRole {
 				return 0; // done
 			}
 
-			var bTimer = timer.tGameOlineTimer().get(timerId);
+			var bTimer = timer.tRoleTimers().get(timerId);
 			if (null == bTimer) {
 				timer.cancelFuture(timerId);
 				return 0; // done
@@ -338,7 +338,7 @@ public class TimerRole {
 				return 0; // done
 			}
 
-			var bTimer = timer.tGameOlineTimer().get(timerId);
+			var bTimer = timer.tRoleTimers().get(timerId);
 			if (null == bTimer) {
 				timer.cancelFuture(timerId);
 				return 0; // done

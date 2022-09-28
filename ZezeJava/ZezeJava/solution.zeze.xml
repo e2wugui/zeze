@@ -937,8 +937,8 @@
 				<variable id="3" name="LoginVersion" type="long"/>
 			</bean>
 
-			<table name="tArchOlineTimer" key="string" value="BArchOnlineTimer" memory="true"/>
-			<table name="tGameOlineTimer" key="string" value="BGameOnlineTimer" memory="true"/>
+			<table name="tAccountTimers" key="string" value="BArchOnlineTimer" memory="true"/>
+			<table name="tRoleTimers" key="string" value="BGameOnlineTimer" memory="true"/>
 
 			<bean name="BOnlineCustom"> 保存真正的用户自定义数据
 				<variable id="1" name="CustomData" type="dynamic"/>
