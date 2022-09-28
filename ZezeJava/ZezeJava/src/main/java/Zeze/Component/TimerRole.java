@@ -186,7 +186,7 @@ public class TimerRole {
 
 	//////////////////////////////////////////////////////////////////////////////////////////
 	// 内部实现
-	private static class OfflineHandle extends TimerHandle {
+	public static class OfflineHandle extends TimerHandle {
 		@Override
 		public void onTimer(TimerContext context) throws Throwable {
 			var offlineCustom = (BOfflineRoleCustom)context.customData;

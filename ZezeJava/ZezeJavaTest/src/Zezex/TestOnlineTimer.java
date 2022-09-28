@@ -175,7 +175,11 @@ public class TestOnlineTimer {
 		}
 	}
 
-	static class TestOfflineTimerHandle extends TimerHandle{
+	public static class TestOfflineTimerHandle extends TimerHandle {
+		public TestOfflineTimerHandle() {
+			super();
+		}
+
 		@Override
 		public void onTimer(TimerContext context) throws Throwable {
 			TestBean bean = (TestBean)context.customData;
@@ -211,6 +215,11 @@ public class TestOnlineTimer {
 			var roleId = null != role ? role.getId() : createRole(client0, "role0");
 			login(client0, roleId);
 
+			sleep(200, 1);
+
+			// 角色下线时注册定时器
+			logout(client0, roleId);
+
 			timer0.initializeOnlineTimer(server0.ProviderApp);
 			timer1.initializeOnlineTimer(server1.ProviderApp);
 			var timerRole0 = timer0.getRoleTimer();
@@ -222,14 +231,14 @@ public class TestOnlineTimer {
 				return Procedure.Success;
 			}, "test1").call());
 
-			sleep(200, 10);
+			sleep(200, 15);
 
 			// 注册登录客户端1，踢掉客户端0的登录
-			log("注册登录客户端1");
-			auth(client1, "account0");
-			login(client1, roleId);
-
-			sleep(200, 20);
+//			log("注册登录客户端1");
+//			auth(client1, "account0");
+//			login(client1, roleId);
+//
+//			sleep(200, 20);
 
 		} finally {
 			stopAll();
