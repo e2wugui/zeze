@@ -204,15 +204,21 @@ namespace Zeze.Gen.Types
 				if (cn.Count > 0)
 				{
 					if (cn[0]?.NodeType == XmlNodeType.Text)
-						comment = cn[0].InnerText.Trim();
+						comment = cn[0].InnerText;
 				}
 				else
 				{
 					var xn = self.NextSibling;
 					if (xn?.NodeType == XmlNodeType.Text)
-						comment = xn.InnerText.Trim();
+						comment = xn.InnerText;
 				}
-
+				if (comment.Length > 0)
+				{
+					var p = comment.IndexOf('\n');
+					if (p >= 0)
+						comment = comment[..p];
+					comment = comment.Trim();
+				}
 				if (comment.Length == 0)
 				{
 					for (var c = self.PreviousSibling; c != null; c = c.PreviousSibling)

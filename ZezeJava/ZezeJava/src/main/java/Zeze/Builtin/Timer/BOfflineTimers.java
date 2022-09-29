@@ -3,7 +3,6 @@ package Zeze.Builtin.Timer;
 
 import Zeze.Serialize.ByteBuffer;
 
-// key是timerId，value是注册离线定时器的ServerId。
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BOfflineTimers extends Zeze.Transaction.Bean {
     public static final long TYPEID = -4429519688247847602L;

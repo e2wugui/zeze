@@ -3,7 +3,6 @@ package Zeze.Builtin.Provider;
 
 import Zeze.Serialize.ByteBuffer;
 
-// Linkd，Provider之间连接建立以后，通告自己的信息。保留。
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean {
     public static final long TYPEID = 6291432069805514560L;
