@@ -1,6 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Provider;
 
+// 通知linkd订阅模块的服务列表。
 public class Subscribe extends Zeze.Net.Rpc<Zeze.Builtin.Provider.BSubscribe, Zeze.Transaction.EmptyBean> {
     public static final int ModuleId_ = 11008;
     public static final int ProtocolId_ = 1110460218;

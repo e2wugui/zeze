@@ -1,6 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.ProviderDirect;
 
+// 转发只定义一个rpc，以后可能需要实现server之间的直连，不再通过转发
 public class ModuleRedirect extends Zeze.Net.Rpc<Zeze.Builtin.ProviderDirect.BModuleRedirectArgument, Zeze.Builtin.ProviderDirect.BModuleRedirectResult> {
     public static final int ModuleId_ = 11009;
     public static final int ProtocolId_ = 1107993902;

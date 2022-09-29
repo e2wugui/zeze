@@ -23,6 +23,8 @@ namespace Zeze.Gen.java
             sw.WriteLine("import Zeze.Serialize.Serializable;");
 
             sw.WriteLine();
+            if (beanKey.Comment.Length > 0)
+                sw.WriteLine(beanKey.Comment);
             sw.WriteLine("@SuppressWarnings({\"UnusedAssignment\", \"RedundantIfStatement\", \"RedundantSuppression\", \"MethodMayBeStatic\", \"PatternVariableCanBeUsed\"})");
             sw.WriteLine($"public final class {beanKey.Name} implements Serializable, Comparable<{beanKey.Name}> {{");
 

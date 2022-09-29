@@ -3,6 +3,7 @@ package Zeze.Builtin.Collections.Queue;
 
 import Zeze.Serialize.ByteBuffer;
 
+// 一个节点可以存多个KeyValue对，
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BQueueNode extends Zeze.Transaction.Bean {
     public static final long TYPEID = 400956918018571167L;

@@ -3,6 +3,7 @@ package Zeze.Builtin.Timer;
 
 import Zeze.Serialize.ByteBuffer;
 
+// 保存在内存Map中
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BArchOnlineTimer extends Zeze.Transaction.Bean {
     public static final long TYPEID = -1410268970794351805L;

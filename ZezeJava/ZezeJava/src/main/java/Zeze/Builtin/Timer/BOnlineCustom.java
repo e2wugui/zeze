@@ -3,6 +3,7 @@ package Zeze.Builtin.Timer;
 
 import Zeze.Serialize.ByteBuffer;
 
+// 保存真正的用户自定义数据
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BOnlineCustom extends Zeze.Transaction.Bean {
     public static final long TYPEID = 4804037996721232525L;

@@ -22,6 +22,8 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             //sw.WriteLine("import Zeze.Serialize.ByteBuffer;");
             //sw.WriteLine();
+            if (bean.Comment.Length > 0)
+                sw.WriteLine(bean.Comment);
             sw.WriteLine($"public interface {bean.Name}ReadOnly {{");
             //PropertyReadOnly.Make(bean, sw, "    "); // java 不支持ReadOnly
             sw.WriteLine("}");
@@ -37,6 +39,8 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             sw.WriteLine("import Zeze.Serialize.ByteBuffer;");
             sw.WriteLine();
+            if (bean.Comment.Length > 0)
+                sw.WriteLine(bean.Comment);
             // sw.WriteLine($"public final class {bean.Name} extends Zeze.Transaction.Bean implements {bean.Name}ReadOnly {{");
             sw.WriteLine("@SuppressWarnings({\"UnusedAssignment\", \"RedundantIfStatement\", \"SwitchStatementWithTooFewBranches\", \"RedundantSuppression\"})");
             sw.WriteLine($"public final class {bean.Name} extends Zeze.Transaction.Bean {{");

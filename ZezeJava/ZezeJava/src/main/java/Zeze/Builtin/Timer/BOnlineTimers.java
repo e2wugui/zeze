@@ -3,6 +3,7 @@ package Zeze.Builtin.Timer;
 
 import Zeze.Serialize.ByteBuffer;
 
+// 这个Bean作为Online.Local.Any存储
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BOnlineTimers extends Zeze.Transaction.Bean {
     public static final long TYPEID = 5020093653412966560L;

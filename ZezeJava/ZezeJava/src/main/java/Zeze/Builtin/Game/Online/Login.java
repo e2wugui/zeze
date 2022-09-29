@@ -1,6 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Game.Online;
 
+// 登录角色
 public class Login extends Zeze.Net.Rpc<Zeze.Builtin.Game.Online.BLogin, Zeze.Transaction.EmptyBean> {
     public static final int ModuleId_ = 11013;
     public static final int ProtocolId_ = -789575265; // 3505392031

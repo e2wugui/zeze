@@ -3,6 +3,7 @@ package Zeze.Builtin.Collections.Queue;
 
 import Zeze.Serialize.ByteBuffer;
 
+// key: Queue的Name
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tQueues extends Zeze.Transaction.TableX<String, Zeze.Builtin.Collections.Queue.BQueue> {
     public tQueues() {

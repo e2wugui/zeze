@@ -22,6 +22,7 @@ namespace Zeze.Gen
         }
 
         public string FullName => Path();
+        public string Comment { get; private set; }
 
         public Module(ModuleSpace space, XmlElement self) : base(space, self, true)
         {
@@ -33,6 +34,7 @@ namespace Zeze.Gen
             WebPathBase = self.GetAttribute("WebPathBase");
             if (WebPathBase.Length > 0 && false == WebPathBase.EndsWith("/"))
                 WebPathBase += "/";
+            Comment = Bean.GetComment(self);
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)

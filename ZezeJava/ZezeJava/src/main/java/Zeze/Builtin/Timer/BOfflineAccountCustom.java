@@ -3,6 +3,7 @@ package Zeze.Builtin.Timer;
 
 import Zeze.Serialize.ByteBuffer;
 
+// Offline Timer
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BOfflineAccountCustom extends Zeze.Transaction.Bean {
     public static final long TYPEID = -8019295337231502138L;

@@ -3,6 +3,7 @@ package Zeze.Builtin.GlobalCacheManagerWithRaft;
 
 import Zeze.Serialize.ByteBuffer;
 
+// rpc
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BAcquireParam extends Zeze.Transaction.Bean {
     public static final long TYPEID = -8330630345134214646L;

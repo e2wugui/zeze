@@ -24,6 +24,7 @@ namespace Zeze.Gen
         public TransactionLevel TransactionLevel { get; } = TransactionLevel.Serializable;
         public List<Types.Enum> Enums { get; private set; } = new List<Types.Enum>();
         public string FullName => Space.Path(".", Name);
+        public string Comment { get; private set; }
 
         // setup in compile
         public Types.Type ArgumentType { get; private set; }
@@ -60,6 +61,8 @@ namespace Zeze.Gen
                 else if (false == string.IsNullOrEmpty(space.DefaultTransactionLevel))
                     TransactionLevel = (TransactionLevel)TransactionLevel.Parse(typeof(TransactionLevel), space.DefaultTransactionLevel);
             }
+
+            Comment = Types.Bean.GetComment(self);
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)

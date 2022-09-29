@@ -3,6 +3,7 @@ package Zeze.Builtin.Provider;
 
 import Zeze.Serialize.ByteBuffer;
 
+// link to gs
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BDispatch extends Zeze.Transaction.Bean {
     public static final long TYPEID = -496680173908943081L;

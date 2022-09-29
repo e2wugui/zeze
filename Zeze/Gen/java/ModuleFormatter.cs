@@ -502,6 +502,8 @@ namespace Zeze.Gen.java
             sw.WriteLine("// auto-generated @formatter:off");
             sw.WriteLine("package " + module.Path() + ";");
             sw.WriteLine();
+            if (module.Comment.Length > 0)
+                sw.WriteLine(module.Comment);
             sw.WriteLine("public abstract class AbstractModule extends Zeze.IModule {");
             sw.WriteLine($"    @Override public String getFullName() {{ return \"{module.Path()}\"; }}");
             sw.WriteLine($"    @Override public String getName() {{ return \"{moduleName}\"; }}");

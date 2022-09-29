@@ -17,6 +17,8 @@ namespace Zeze.Gen.java
             sw.WriteLine("// auto-generated @formatter:off");
             sw.WriteLine("package " + p.Space.Path() + ";");
             sw.WriteLine();
+            if (p.Comment.Length > 0)
+                sw.WriteLine(p.Comment);
             string argument = p.ArgumentType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(p.ArgumentType);
             sw.WriteLine("public class " + p.Name + " extends Zeze.Net.Protocol<" + argument + "> {");
             sw.WriteLine("    public static final int ModuleId_ = " + p.Space.Id + ";");

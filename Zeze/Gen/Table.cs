@@ -23,6 +23,7 @@ namespace Zeze.Gen
         public string Kind { get; private set; } = "";
         public bool IsRocks => Kind.Equals("rocks");
         public int Id { get; private set; }
+        public string Comment { get; private set; }
 
         public Table(ModuleSpace space, XmlElement self)
         {
@@ -43,6 +44,7 @@ namespace Zeze.Gen
 
             attr = self.GetAttribute("id");
             Id = attr.Length > 0 ? int.Parse(attr) : Util.FixedHash.Hash32(FullName);
+            Comment = Types.Bean.GetComment(self);
         }
 
         public void Compile()

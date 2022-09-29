@@ -17,10 +17,11 @@ namespace Zeze.Gen.java
             sw.WriteLine("// auto-generated @formatter:off");
             sw.WriteLine("package " + rpc.Space.Path() + ";");
             sw.WriteLine();
+            if (rpc.Comment.Length > 0)
+                sw.WriteLine(rpc.Comment);
             string argument = rpc.ArgumentType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(rpc.ArgumentType);
             string result = rpc.ResultType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(rpc.ResultType);
             string baseclass = string.IsNullOrEmpty(rpc.Base) ? "Zeze.Net.Rpc" : rpc.Base;
-
             sw.WriteLine($"public class {rpc.Name} extends {baseclass}<{argument}, {result}> {{");
             sw.WriteLine("    public static final int ModuleId_ = " + rpc.Space.Id + ";");
             sw.WriteLine("    public static final int ProtocolId_ = " + rpc.Id + ";" + (rpc.Id < 0 ? " // " + (uint)rpc.Id : ""));

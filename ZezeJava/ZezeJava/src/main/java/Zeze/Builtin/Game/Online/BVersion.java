@@ -3,6 +3,7 @@ package Zeze.Builtin.Game.Online;
 
 import Zeze.Serialize.ByteBuffer;
 
+// tables
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BVersion extends Zeze.Transaction.Bean {
     public static final long TYPEID = -4544955921052723023L;

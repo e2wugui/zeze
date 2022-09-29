@@ -134,8 +134,6 @@ namespace Zeze.Gen.Types
 			Type.Add(space, this);
 			space.Add(this);
 
-			// previous sibling comment
-			Comment = self.GetAttribute("comment");
 			string attr = self.GetAttribute("TypeId");
 			Extendable = self.GetAttribute("extendable") == "true";
 			Base = self.GetAttribute("base");
@@ -144,20 +142,7 @@ namespace Zeze.Gen.Types
 			TypeId = attr.Length > 0 ? int.Parse(attr) : Util.FixedHash.Hash64(space.Path(".", _name));
 			if (false == Program.BeanTypeIdDuplicateChecker.Add(TypeId))
 				throw new Exception("duplicate Bean.TypeId, please choice one.");
-
-			if (Comment.Length == 0)
-			{
-				for (XmlNode c = self.PreviousSibling; c != null; c = c.PreviousSibling)
-				{
-					if (XmlNodeType.Element == c.NodeType)
-						break;
-					if (XmlNodeType.Comment == c.NodeType)
-					{
-						Comment = c.InnerText.Trim();
-						break;
-					}
-				}
-			}
+			Comment = GetComment(self);
 
 			XmlNodeList childNodes = self.ChildNodes;
 			foreach (XmlNode node in childNodes)
@@ -180,6 +165,78 @@ namespace Zeze.Gen.Types
 						throw new Exception("node=" + nodename);
 				}
 			}
+		}
+
+		public static string Trim(string str)
+		{
+			var s = str.Trim();
+			if (s.Length == 0)
+				return "";
+			str = str.Replace("\r", "");
+			if (str.Contains('\n'))
+			{
+				int i, j;
+				for (i = 0;; i++)
+				{
+					if (!char.IsWhiteSpace(str[i]))
+						break;
+				}
+				for (j = i - 1; j >= 0; j--)
+				{
+					if (str[j] == '\n')
+						break;
+				}
+				if (j < 0)
+					j = i - 1;
+				str = str[(j + 1)..].TrimEnd();
+			}
+			else
+				str = str.Trim();
+			return str;
+		}
+		
+		public static string GetComment(XmlElement self)
+		{
+			var comment = self.GetAttribute("comment").Trim();
+			if (comment.Length == 0)
+			{
+				var cn = self.ChildNodes;
+				if (cn.Count > 0)
+				{
+					if (cn[0]?.NodeType == XmlNodeType.Text)
+						comment = cn[0].InnerText.Trim();
+				}
+				else
+				{
+					var xn = self.NextSibling;
+					if (xn?.NodeType == XmlNodeType.Text)
+						comment = xn.InnerText.Trim();
+				}
+
+				if (comment.Length == 0)
+				{
+					for (var c = self.PreviousSibling; c != null; c = c.PreviousSibling)
+					{
+						if (c.NodeType == XmlNodeType.Element)
+							break;
+						if (c.NodeType == XmlNodeType.Comment)
+						{
+							comment = Trim(c.InnerText);
+							break;
+						}
+					}
+				}
+			}
+
+			if (comment.Length > 0)
+			{
+				if (comment.Contains('\n'))
+					comment = "/*\n" + comment + "\n*/";
+				else
+					comment = "// " + comment;
+			}
+
+			return comment;
 		}
 
 		public void Compile()

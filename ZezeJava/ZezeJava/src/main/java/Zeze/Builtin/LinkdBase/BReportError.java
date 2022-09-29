@@ -3,6 +3,7 @@ package Zeze.Builtin.LinkdBase;
 
 import Zeze.Serialize.ByteBuffer;
 
+// linkd to client
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BReportError extends Zeze.Transaction.Bean {
     public static final long TYPEID = -947669033141460287L;

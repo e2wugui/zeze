@@ -118,21 +118,7 @@ namespace Zeze.Gen.Types
 
 		private void parse(XmlElement self)
 		{
-			// previous sibling comment
-			Comment = self.GetAttribute("comment");
-			if (Comment.Length == 0)
-			{
-				for (XmlNode c = self.PreviousSibling; c != null; c = c.PreviousSibling)
-				{
-					if (XmlNodeType.Element == c.NodeType)
-						break;
-					if (XmlNodeType.Comment == c.NodeType)
-					{
-						Comment = c.InnerText.Trim();
-						break;
-					}
-				}
-			}
+			Comment = Bean.GetComment(self);
 
 			XmlNodeList childNodes = self.ChildNodes;
 			foreach (XmlNode node in childNodes)

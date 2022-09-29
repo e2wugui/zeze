@@ -1,6 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.ProviderDirect;
 
+// 默认不启用事务，由协议实现自己控制。
 public class TransmitAccount extends Zeze.Net.Protocol<Zeze.Builtin.ProviderDirect.BTransmitAccount> {
     public static final int ModuleId_ = 11009;
     public static final int ProtocolId_ = 952255342;

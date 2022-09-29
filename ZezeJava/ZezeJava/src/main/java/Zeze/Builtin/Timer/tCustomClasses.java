@@ -3,6 +3,7 @@ package Zeze.Builtin.Timer;
 
 import Zeze.Serialize.ByteBuffer;
 
+// key is 1, only one record
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tCustomClasses extends Zeze.Transaction.TableX<Integer, Zeze.Builtin.Timer.BCustomClasses> {
     public tCustomClasses() {
