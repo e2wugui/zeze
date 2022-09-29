@@ -1,5 +1,6 @@
 // auto-generated
 
+// 登出
 namespace Zeze.Builtin.Online
 {
     public sealed class Logout : Zeze.Net.Rpc<Zeze.Transaction.EmptyBean, Zeze.Transaction.EmptyBean>

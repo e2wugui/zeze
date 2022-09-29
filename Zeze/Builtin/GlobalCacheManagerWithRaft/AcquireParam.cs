@@ -2,6 +2,7 @@
 using ByteBuffer = Zeze.Serialize.ByteBuffer;
 using Environment = System.Environment;
 
+// rpc
 namespace Zeze.Builtin.GlobalCacheManagerWithRaft
 {
     public interface AcquireParamReadOnly

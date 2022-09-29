@@ -2,6 +2,7 @@
 using ByteBuffer = Zeze.Serialize.ByteBuffer;
 using Environment = System.Environment;
 
+// table
 namespace Zeze.Builtin.GlobalCacheManagerWithRaft
 {
     public sealed class CacheState : Zeze.Raft.RocksRaft.Bean

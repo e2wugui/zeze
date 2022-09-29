@@ -2,6 +2,7 @@
 using ByteBuffer = Zeze.Serialize.ByteBuffer;
 using Environment = System.Environment;
 
+// Linkd，Provider之间连接建立以后，通告自己的信息。保留。
 namespace Zeze.Builtin.Provider
 {
     public interface BAnnounceLinkInfoReadOnly

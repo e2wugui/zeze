@@ -1,6 +1,7 @@
 // auto-generated
 using Zeze.Serialize;
 
+// key: Queue的Name
 namespace Zeze.Builtin.Collections.Queue
 {
     public sealed class tQueues : Zeze.Transaction.Table<string, Zeze.Builtin.Collections.Queue.BQueue>

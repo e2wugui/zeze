@@ -2,6 +2,7 @@
 using ByteBuffer = Zeze.Serialize.ByteBuffer;
 using Environment = System.Environment;
 
+// linkd to client
 namespace Zeze.Builtin.LinkdBase
 {
     public interface BReportErrorReadOnly

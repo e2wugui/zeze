@@ -1,6 +1,7 @@
 // auto-generated
 using Zeze.Serialize;
 
+// key: LinkedMap的Name
 namespace Zeze.Builtin.Collections.LinkedMap
 {
     public sealed class tLinkedMaps : Zeze.Transaction.Table<string, Zeze.Builtin.Collections.LinkedMap.BLinkedMap>

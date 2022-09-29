@@ -2,6 +2,7 @@
 using ByteBuffer = Zeze.Serialize.ByteBuffer;
 using Environment = System.Environment;
 
+// protocols
 namespace Zeze.Builtin.Game.Online
 {
     public interface BLoginReadOnly

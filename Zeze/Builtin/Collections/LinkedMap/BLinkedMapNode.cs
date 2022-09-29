@@ -2,6 +2,7 @@
 using ByteBuffer = Zeze.Serialize.ByteBuffer;
 using Environment = System.Environment;
 
+// 一个节点可以存多个KeyValue对，
 namespace Zeze.Builtin.Collections.LinkedMap
 {
     public interface BLinkedMapNodeReadOnly

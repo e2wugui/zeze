@@ -1,6 +1,7 @@
 // auto-generated
 using Zeze.Serialize;
 
+// key is bag name
 namespace Zeze.Builtin.Game.Bag
 {
     public sealed class tbag : Zeze.Transaction.Table<string, Zeze.Builtin.Game.Bag.BBag>

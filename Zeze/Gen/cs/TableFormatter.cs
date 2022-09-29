@@ -21,6 +21,8 @@ namespace Zeze.Gen.cs
             sw.WriteLine("using Zeze.Serialize;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
             sw.WriteLine();
+            if (table.Comment.Length > 0)
+                sw.WriteLine(table.Comment);
             sw.WriteLine("namespace " + table.Space.Path());
             sw.WriteLine("{");
             string key = TypeName.GetName(table.KeyType);

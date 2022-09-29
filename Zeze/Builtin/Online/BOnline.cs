@@ -2,6 +2,7 @@
 using ByteBuffer = Zeze.Serialize.ByteBuffer;
 using Environment = System.Environment;
 
+// tables
 namespace Zeze.Builtin.Online
 {
     public interface BOnlineReadOnly
