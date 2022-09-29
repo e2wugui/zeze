@@ -1,5 +1,6 @@
 // auto-generated
 
+// 通知linkd订阅模块的服务列表。
 namespace Zeze.Builtin.Provider
 {
     public sealed class Subscribe : Zeze.Net.Rpc<Zeze.Builtin.Provider.BSubscribe, Zeze.Transaction.EmptyBean>

@@ -21,6 +21,8 @@ namespace Zeze.Gen.cs
             sw.WriteLine("using Zeze.Serialize;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
             sw.WriteLine();
+            if (beanKey.Comment.Length > 0)
+                sw.WriteLine(beanKey.Comment);
             sw.WriteLine("namespace " + beanKey.Space.Path());
             sw.WriteLine("{");
             sw.WriteLine("    public sealed class " + beanKey.Name + " : Serializable, System.IComparable");

@@ -1,5 +1,6 @@
 // auto-generated
 
+// 默认不启用事务，由协议实现自己控制。
 namespace Zeze.Builtin.ProviderDirect
 {
     public sealed class TransmitAccount : Zeze.Net.Protocol<Zeze.Builtin.ProviderDirect.BTransmitAccount>

@@ -1,5 +1,6 @@
 // auto-generated
 
+// 使用protocol而不是rpc，是为了可以按分组返回结果，当然现在定义支持一个结果里面包含多个分组结果
 namespace Zeze.Builtin.ProviderDirect
 {
     public sealed class ModuleRedirectAllRequest : Zeze.Net.Protocol<Zeze.Builtin.ProviderDirect.BModuleRedirectAllRequest>

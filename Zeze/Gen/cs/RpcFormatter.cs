@@ -19,6 +19,8 @@ namespace Zeze.Gen.cs
             //sw.WriteLine("using Zeze.Serialize;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
             sw.WriteLine();
+            if (rpc.Comment.Length > 0)
+                sw.WriteLine(rpc.Comment);
             sw.WriteLine("namespace " + rpc.Space.Path());
             sw.WriteLine("{");
 

@@ -1,5 +1,6 @@
 // auto-generated
 
+// 转发只定义一个rpc，以后可能需要实现server之间的直连，不再通过转发
 namespace Zeze.Builtin.ProviderDirect
 {
     public sealed class ModuleRedirect : Zeze.Net.Rpc<Zeze.Builtin.ProviderDirect.BModuleRedirectArgument, Zeze.Builtin.ProviderDirect.BModuleRedirectResult>

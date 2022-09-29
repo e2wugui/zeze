@@ -1,5 +1,6 @@
 // auto-generated
 
+// 登录角色
 namespace Zeze.Builtin.Game.Online
 {
     public sealed class Login : Zeze.Net.Rpc<Zeze.Builtin.Game.Online.BLogin, Zeze.Transaction.EmptyBean>

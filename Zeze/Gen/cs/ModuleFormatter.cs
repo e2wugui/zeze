@@ -313,6 +313,8 @@ namespace Zeze.Gen.cs
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine();
+            if (module.Comment.Length > 0)
+                sw.WriteLine(module.Comment);
             sw.WriteLine("namespace " + module.Path());
             sw.WriteLine("{");
             sw.WriteLine("    public abstract class AbstractModule : Zeze.IModule");

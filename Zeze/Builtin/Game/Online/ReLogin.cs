@@ -1,5 +1,6 @@
 // auto-generated
 
+// 网络断开重新登录（数据无法同步时会失败，此时客户端应该重新走完整的登录流程-装载数据。）
 namespace Zeze.Builtin.Game.Online
 {
     public sealed class ReLogin : Zeze.Net.Rpc<Zeze.Builtin.Game.Online.BReLogin, Zeze.Transaction.EmptyBean>

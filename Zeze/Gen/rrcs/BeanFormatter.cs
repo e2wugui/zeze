@@ -21,6 +21,8 @@ namespace Zeze.Gen.rrcs
             sw.WriteLine("using Environment = System.Environment;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
             sw.WriteLine();
+            if (bean.Comment.Length > 0)
+                sw.WriteLine(bean.Comment);
             sw.WriteLine("namespace " + bean.Space.Path());
             sw.WriteLine("{");
             sw.WriteLine($"    public sealed class {bean.Name} : Zeze.Raft.RocksRaft.Bean");

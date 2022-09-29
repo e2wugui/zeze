@@ -2,6 +2,7 @@
 using ByteBuffer = Zeze.Serialize.ByteBuffer;
 using Environment = System.Environment;
 
+// link to gs
 namespace Zeze.Builtin.Provider
 {
     public interface BDispatchReadOnly

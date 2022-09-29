@@ -1,6 +1,7 @@
 // auto-generated
 using Zeze.Serialize;
 
+// key is 1, only one record
 namespace Zeze.Builtin.Game.Bag
 {
     public sealed class tItemClasses : Zeze.Transaction.Table<int, Zeze.Builtin.Game.Bag.BItemClasses>
