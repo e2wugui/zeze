@@ -207,8 +207,6 @@ public class TimerRole {
 	}
 
 	private long onLoginEvent(Object sender, EventDispatcher.EventArgument arg) {
-		// For-test
-		System.out.println(">>>>>>>>>> onLoginEvent <<<<<<<<<<");
 		var timer = online.providerApp.zeze.getTimer();
 		var loginArg = (LoginArgument)arg;
 		var offlineTimers = timer.tRoleOfflineTimers().get(loginArg.roleId);

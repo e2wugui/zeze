@@ -216,6 +216,9 @@ public class TimerAccount {
 		var loginArg = (LoginArgument)arg;
 		var loginKey = new BAccountClientId(loginArg.account, loginArg.clientId);
 		var offlineTimers = timer.tAccountOfflineTimers().get(loginKey);
+		// X: fix offlineTimers is null
+		if (null == offlineTimers)
+			return 0;
 		for (var e : offlineTimers.getOfflineTimers().entrySet()) {
 			timer.redirectCancel(e.getValue(), e.getKey());
 		}

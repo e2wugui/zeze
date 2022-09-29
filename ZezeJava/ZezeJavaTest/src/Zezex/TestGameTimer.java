@@ -5,26 +5,19 @@ import ClientGame.Login.BRole;
 import ClientGame.Login.CreateRole;
 import ClientGame.Login.GetRoleList;
 import UnitTest.Zeze.Component.TestBean;
-import Zeze.Builtin.Game.Online.Login;
-import Zeze.Builtin.Game.Online.Logout;
 import Zeze.Builtin.Game.Online.ReLogin;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Task;
 import Zezex.Linkd.Auth;
-import junit.framework.TestCase;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.core.LoggerContext;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class TestOnlineTimer {
+public class TestGameTimer {
 
 	final ArrayList<ClientGame.App> clients = new ArrayList<>();
 	final ArrayList<Zezex.App> links = new ArrayList<>();
@@ -213,20 +206,20 @@ public class TestOnlineTimer {
 	}
 
 	private static void relogin(ClientGame.App app, long roleId) {
-		var relogin = new ReLogin();
+		var relogin = new Zeze.Builtin.Game.Online.ReLogin();
 		relogin.Argument.setRoleId(roleId);
 		relogin.SendForWait(app.ClientService.GetSocket()).await();
 		Assert.assertEquals(0, relogin.getResultCode());
 	}
 
 	private static void logout(ClientGame.App app, long roleIdForLogOnly) {
-		var logout = new Logout();
+		var logout = new Zeze.Builtin.Game.Online.Logout();
 		logout.SendForWait(app.ClientService.GetSocket()).await();
 		Assert.assertEquals(0, logout.getResultCode());
 	}
 
 	private static void login(ClientGame.App app, long roleId) {
-		var login = new Login();
+		var login = new Zeze.Builtin.Game.Online.Login();
 		login.Argument.setRoleId(roleId);
 		login.SendForWait(app.ClientService.GetSocket()).await();
 		Assert.assertEquals(0, login.getResultCode());
