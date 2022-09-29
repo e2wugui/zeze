@@ -62,6 +62,7 @@ public class Connector {
 		name = hostNameOrAddress + ':' + port;
 		String attr = self.getAttribute("IsAutoReconnect");
 		isAutoReconnect = !attr.isEmpty() && Boolean.parseBoolean(attr);
+		attr = self.getAttribute("MaxReconnectDelay");
 		if (!attr.isEmpty())
 			setMaxReconnectDelay(Integer.parseInt(attr) * 1000);
 	}

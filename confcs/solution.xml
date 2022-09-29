@@ -27,7 +27,7 @@
 		<bean name="Removed2">
 			<variable id="1" name="int1" type="int"/> com aa
 		</bean>
-		<bean name="Simple">
+		<bean name="Simple" TypeId="1">
 			<variable id="1" name="int1" type="int"/> com aa
 			<variable id="2" name="long2" type="long"/> com aa
 			<variable id="3" name="string3" type="string"/> com aa
@@ -121,7 +121,7 @@
 	</module>
 
 	<module name="Module2" id="2">
-		<bean name="Value">
+		<bean name="Value" TypeId="2">
 			<variable id="1" default="1" name="s" type="int"/> com aa
 		</bean>
 	</module>

@@ -392,7 +392,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		byte c = closed;
 		if (c != 0) {
 			if (c < SEND_CLOSE_DETAIL_MAX) {
-				closedHandle.compareAndSet(this, c, c + 1);
+				closedHandle.compareAndSet(this, (byte)c, (byte)(c + 1));
 				logger.error("Send to closed socket: {} len={}", this, length, new Exception());
 			} else
 				logger.error("Send to closed socket: {} len={}", this, length);
