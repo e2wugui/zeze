@@ -41,7 +41,6 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.KV;
-import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.LongList;
@@ -517,17 +516,21 @@ public final class ServiceManagerServer implements Closeable {
 		// 从注册了这个notifyId的其他session中随机选择一个。
 		private KV<Session, AsyncSocket> randomFor(String notifyId, HashSet<Session> skips) {
 			var sessions = new ArrayList<KV<Session, AsyncSocket>>();
-			serviceManager.server.getAllSocks().forEach(socket -> {
-				var session = (Session)socket.getUserState();
-				if (session != null && session != this && !skips.contains(session)) {
-					boolean contain;
-					synchronized (session.offlineRegisterNotifies) {
-						contain = session.offlineRegisterNotifies.containsKey(notifyId);
+			try {
+				serviceManager.server.foreach(socket -> {
+					var session = (Session)socket.getUserState();
+					if (session != null && session != this && !skips.contains(session)) {
+						boolean contain;
+						synchronized (session.offlineRegisterNotifies) {
+							contain = session.offlineRegisterNotifies.containsKey(notifyId);
+						}
+						if (contain)
+							sessions.add(KV.create(session, socket));
 					}
-					if (contain)
-						sessions.add(KV.create(session, socket));
-				}
-			});
+				});
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 			if (sessions.isEmpty())
 				return null;
 			return sessions.get(Random.getInstance().nextInt(sessions.size()));
@@ -836,10 +839,6 @@ public final class ServiceManagerServer implements Closeable {
 		public NetServer(ServiceManagerServer sm, Zeze.Config config) throws Throwable {
 			super("Zeze.Services.ServiceManager", config);
 			serviceManager = sm;
-		}
-
-		LongConcurrentHashMap<AsyncSocket> getAllSocks() {
-			return getSocketMap();
 		}
 
 		@Override

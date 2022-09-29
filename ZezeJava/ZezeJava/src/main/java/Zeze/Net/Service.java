@@ -1,5 +1,7 @@
 package Zeze.Net;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
@@ -28,7 +30,18 @@ import org.apache.logging.log4j.Logger;
 
 public class Service {
 	protected static final Logger logger = LogManager.getLogger(Service.class);
-	private static final AtomicLong StaticSessionIdAtomicLong = new AtomicLong(1);
+	private static final AtomicLong staticSessionIdAtomicLong = new AtomicLong(1);
+	private static final VarHandle closedRecvSizeHandle, closedSendSizeHandle;
+
+	static {
+		var l = MethodHandles.lookup();
+		try {
+			closedRecvSizeHandle = l.findVarHandle(Service.class, "closedRecvSize", long.class);
+			closedSendSizeHandle = l.findVarHandle(Service.class, "closedSendSize", long.class);
+		} catch (ReflectiveOperationException e) {
+			throw new RuntimeException(e);
+		}
+	}
 
 	private final String name;
 	private final Application zeze;
@@ -39,6 +52,9 @@ public class Service {
 	private final LongConcurrentHashMap<ProtocolFactoryHandle<? extends Protocol<?>>> factorys = new LongConcurrentHashMap<>();
 	private final LongConcurrentHashMap<Protocol<?>> rpcContexts = new LongConcurrentHashMap<>();
 	private final LongConcurrentHashMap<ManualContext> manualContexts = new LongConcurrentHashMap<>();
+	@SuppressWarnings("unused")
+	private volatile long closedRecvSize, closedSendSize; // 已关闭连接的从socket接收/发送数据的总字节数
+	private volatile long recvSize, sendSize; // 当前已统计的从socket接收/发送数据的总字节数
 
 	public Service(String name) {
 		this.name = name;
@@ -108,15 +124,46 @@ public class Service {
 
 	public final long nextSessionId() {
 		LongSupplier gen = sessionIdGenerator;
-		return gen != null ? gen.getAsLong() : StaticSessionIdAtomicLong.getAndIncrement();
+		return gen != null ? gen.getAsLong() : staticSessionIdAtomicLong.getAndIncrement();
 	}
 
 	public final int getSocketCount() {
 		return socketMap.size();
 	}
 
-	protected final LongConcurrentHashMap<AsyncSocket> getSocketMap() {
-		return socketMap;
+	protected final boolean addSocket(AsyncSocket so) {
+		return socketMap.putIfAbsent(so.getSessionId(), so) == null;
+	}
+
+	final boolean changeSocketSessionId(AsyncSocket so, long newSessionId) {
+		var oldSessionId = so.getSessionId();
+		if (socketMap.remove(oldSessionId, this)) {
+			if (socketMap.putIfAbsent(newSessionId, so) != null) {
+				socketMap.putIfAbsent(oldSessionId, so); // rollback
+				throw new IllegalStateException("duplicate sessionId: " + so);
+			}
+			return true;
+		}
+		// 为了简化并发问题，只能加入Service以后的Socket的SessionId。
+		throw new IllegalStateException("Not Exist In Service: " + so);
+	}
+
+	public final void updateRecvSendSize() {
+		long r = 0, s = 0;
+		for (var socket : socketMap) {
+			r += socket.getRecvSize();
+			s += socket.getSendSize();
+		}
+		recvSize = closedRecvSize + r;
+		sendSize = closedSendSize + s;
+	}
+
+	public final long getRecvSize() {
+		return recvSize;
+	}
+
+	public final long getSendSize() {
+		return sendSize;
 	}
 
 	/**
@@ -180,6 +227,8 @@ public class Service {
 	 */
 	public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
 		socketMap.remove(so.getSessionId(), so);
+		closedRecvSizeHandle.getAndAdd(this, so.getRecvSize());
+		closedSendSizeHandle.getAndAdd(this, so.getSendSize());
 	}
 
 	/**
@@ -220,7 +269,7 @@ public class Service {
 	 * @param so new socket accepted.
 	 */
 	public void OnSocketAccept(AsyncSocket so) throws Throwable {
-		socketMap.putIfAbsent(so.getSessionId(), so);
+		addSocket(so);
 		OnHandshakeDone(so);
 	}
 
@@ -258,7 +307,7 @@ public class Service {
 	 * @param so connect succeed
 	 */
 	public void OnSocketConnected(AsyncSocket so) throws Throwable {
-		socketMap.putIfAbsent(so.getSessionId(), so);
+		addSocket(so);
 		OnHandshakeDone(so);
 	}
 

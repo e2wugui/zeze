@@ -18,7 +18,7 @@ public class HandshakeServer extends HandshakeBase {
 	@Override
 	public void OnSocketAccept(AsyncSocket so) throws Throwable {
 		// 重载这个方法，推迟OnHandshakeDone调用
-		getSocketMap().putIfAbsent(so.getSessionId(), so);
+		addSocket(so);
 		var hand0 = new SHandshake0();
 		hand0.Argument.enableEncrypt = getConfig().getHandshakeOptions().getEnableEncrypt();
 		hand0.Send(so);
