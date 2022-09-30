@@ -7,7 +7,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
-import java.util.function.IntFunction;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DatabaseRocksDb;
 import org.rocksdb.RocksDB;
@@ -15,9 +16,10 @@ import org.rocksdb.RocksDBException;
 
 public class Cache {
 	private final String name;
-	private final IntFunction<CacheObject> factory;
+	private final Function<String, CacheObject> loader;
+	private final BiFunction<String, ByteBuffer, CacheObject> decoder;
 	private RocksDB db;
-	private ConcurrentLruLike<Long, CacheObject> lru;
+	private ConcurrentLruLike<String, CacheObject> lru;
 	private volatile long todayDays;
 	private volatile FileOutputStream todayFile;
 
@@ -26,11 +28,14 @@ public class Cache {
 	 *
 	 * @param name Cache名字，直接作为目录名字，需要注意有些字符可能不能用。
 	 * @param lruCapacity 解码后的对象lru容量。
-	 * @param factory 根据id创建对象实例的工厂。
+	 * @param loader 根据id装载对象实例的。
+	 * @param decoder 根据id和数据创建出对象实例。
+	 *
 	 */
-	public Cache(String name, int lruCapacity, IntFunction<CacheObject> factory) throws RocksDBException {
+	public Cache(String name, int lruCapacity, Function<String, CacheObject> loader, BiFunction<String,ByteBuffer, CacheObject> decoder) throws RocksDBException {
 		this.name = name;
-		this.factory = factory;
+		this.loader = loader;
+		this.decoder = decoder;
 
 		//noinspection ResultOfMethodCallIgnored
 		new File(name).mkdirs();
@@ -49,33 +54,60 @@ public class Cache {
 		lru = null;
 	}
 
-	public CacheObject get(long id) throws RocksDBException {
+	public CacheObject get(String id) throws RocksDBException, IOException {
+		if (id.isEmpty())
+			throw new IllegalArgumentException();
+
 		var value = lru.get(id);
-		if (null != value)
-			return value;
+		if (null != value) {
+			if (!CacheObject.isNull(value))
+				return value;
 
-		var key = ByteBuffer.Allocate(9);
-		key.WriteLong(id);
+			var nullCache = (CacheObject.NullCache)value;
+			if (System.currentTimeMillis() - nullCache.CreateTime < 5 * 60 * 1000) // 5 minutes
+				return null; // null cache 不会写入RocksDb，短时间内就会允许再次尝试。
+
+			// remove and try load，下面的流程会浪费一次RocksDb的查询，先这样了。
+			lru.remove(id);
+		}
+
+		// 当Lru不命中，并且同时多个线程并发执行到这里，会执行多次decoder/loader操作。
+		// 也就是说同一个进程对同一个数据的decoder/loader没有互斥。
+
+		var key = ByteBuffer.Allocate(128);
+		key.WriteString(id);
 		var bytes = db.get(DatabaseRocksDb.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex);
-		if (null == bytes)
-			return null;
+		if (null != bytes) {
+			// decoder
+			var bb = ByteBuffer.Wrap(bytes);
+			bb.ReadString(); // skip cacheId.
+			// 当出现并发get重复从db读取时，这里的getOrAdd会忽略后面读到的value，返回已经存在的。
+			return lru.getOrAdd(id, () -> decoder.apply(id, bb));
+		}
 
-		var bb = ByteBuffer.Wrap(bytes);
-		value = factory.apply(bb.ReadInt());
-		value.decode(bb);
+		// do user loader to load object.
+		value = loader.apply(id);
+		if (null != value)
+			dbSave(value);
+		else
+			value = new CacheObject.NullCache();
 
 		// 当出现并发get重复从db读取时，这里的getOrAdd会忽略后面读到的value，返回已经存在的。
 		var tmpLambda = value;
 		return lru.getOrAdd(id, () -> tmpLambda);
 	}
 
-	public void put(long id, CacheObject value) throws RocksDBException, IOException {
-		lru.getOrAdd(id, () -> value);
+	private void dbSave(CacheObject value) throws RocksDBException, IOException {
+		var id = value.cacheId();
+		if (id.isEmpty())
+			throw new IllegalArgumentException();
+
 		var bb = ByteBuffer.Allocate();
-		bb.WriteInt(value.cacheId());
+		bb.WriteString(value.cacheId());
 		value.encode(bb);
-		var key = ByteBuffer.Allocate(9);
-		key.WriteLong(id);
+
+		var key = ByteBuffer.Allocate(128);
+		key.WriteString(id);
 		db.put(DatabaseRocksDb.getDefaultWriteOptions(), key.Bytes, 0, key.WriteIndex, bb.Bytes, 0, bb.WriteIndex);
 
 		today().write((id + "\n").getBytes(StandardCharsets.UTF_8));
@@ -118,11 +150,11 @@ public class Cache {
 	private void tryRemove(File file) throws IOException, RocksDBException {
 		try (var r = new BufferedReader(new FileReader(file, StandardCharsets.UTF_8))) {
 			for (var line = r.readLine(); line != null; line = r.readLine()) {
-				var id = Long.parseLong(line);
+				var id = line;
 				if (lru.get(id) != null)
 					continue; // 当前使用中的项不删除。
 				var key = ByteBuffer.Allocate(9);
-				key.WriteLong(id);
+				key.WriteString(id);
 				db.delete(DatabaseRocksDb.getDefaultWriteOptions(), key.Bytes, 0, key.WriteIndex);
 			}
 		}
