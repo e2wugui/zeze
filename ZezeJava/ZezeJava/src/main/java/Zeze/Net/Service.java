@@ -9,8 +9,6 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Enumeration;
-import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 import java.util.function.Predicate;
@@ -123,7 +121,7 @@ public class Service {
 	}
 
 	public final long nextSessionId() {
-		LongSupplier gen = sessionIdGenerator;
+		var gen = sessionIdGenerator;
 		return gen != null ? gen.getAsLong() : staticSessionIdAtomicLong.getAndIncrement();
 	}
 
@@ -135,14 +133,16 @@ public class Service {
 		return socketMap.putIfAbsent(so.getSessionId(), so) == null;
 	}
 
-	final boolean changeSocketSessionId(AsyncSocket so, long newSessionId) {
+	final void changeSocketSessionId(AsyncSocket so, long newSessionId) {
 		var oldSessionId = so.getSessionId();
-		if (socketMap.remove(oldSessionId, this)) {
-			if (socketMap.putIfAbsent(newSessionId, so) != null) {
-				socketMap.putIfAbsent(oldSessionId, so); // rollback
-				throw new IllegalStateException("duplicate sessionId: " + so);
+		if (socketMap.remove(oldSessionId, so)) {
+			if (socketMap.putIfAbsent(newSessionId, so) == null)
+				return;
+			if (socketMap.putIfAbsent(oldSessionId, so) != null) { // rollback
+				closedRecvSizeHandle.getAndAdd(this, so.getRecvSize());
+				closedSendSizeHandle.getAndAdd(this, so.getSendSize());
 			}
-			return true;
+			throw new IllegalStateException("duplicate sessionId: " + so);
 		}
 		// 为了简化并发问题，只能加入Service以后的Socket的SessionId。
 		throw new IllegalStateException("Not Exist In Service: " + so);
@@ -177,7 +177,7 @@ public class Service {
 	}
 
 	public AsyncSocket GetSocket() {
-		Iterator<AsyncSocket> sockets = socketMap.iterator();
+		var sockets = socketMap.iterator();
 		return sockets.hasNext() ? sockets.next() : null;
 	}
 
@@ -226,9 +226,10 @@ public class Service {
 	 * @param e  caught exception, null for none.
 	 */
 	public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
-		socketMap.remove(so.getSessionId(), so);
-		closedRecvSizeHandle.getAndAdd(this, so.getRecvSize());
-		closedSendSizeHandle.getAndAdd(this, so.getSendSize());
+		if (socketMap.remove(so.getSessionId(), so)) {
+			closedRecvSizeHandle.getAndAdd(this, so.getRecvSize());
+			closedSendSizeHandle.getAndAdd(this, so.getSendSize());
+		}
 	}
 
 	/**
@@ -338,9 +339,9 @@ public class Service {
 	public <P extends Protocol<?>> void dispatchProtocol2(Object key, P p, ProtocolFactoryHandle<P> factoryHandle) {
 		if (factoryHandle.Handle != null) {
 			if (factoryHandle.Level != TransactionLevel.None) {
-				zeze.getTaskOneByOneByKey().Execute(key, () ->
-								Task.call(zeze.newProcedure(() -> factoryHandle.Handle.handle(p), p.getClass().getName(),
-										factoryHandle.Level, p.getUserState()), p, Protocol::trySendResultCode),
+				zeze.getTaskOneByOneByKey().Execute(key,
+						() -> Task.call(zeze.newProcedure(() -> factoryHandle.Handle.handle(p), p.getClass().getName(),
+								factoryHandle.Level, p.getUserState()), p, Protocol::trySendResultCode),
 						factoryHandle.Mode);
 			} else {
 				zeze.getTaskOneByOneByKey().Execute(key,
@@ -393,25 +394,32 @@ public class Service {
 	public static class ProtocolFactoryHandle<P extends Protocol<?>> {
 		public Factory<P> Factory;
 		public ProtocolHandle<P> Handle;
-		public TransactionLevel Level = TransactionLevel.Serializable;
-		public DispatchMode Mode = DispatchMode.Normal;
+		public TransactionLevel Level;
+		public DispatchMode Mode;
 
 		public ProtocolFactoryHandle() {
+			Level = TransactionLevel.Serializable;
+			Mode = DispatchMode.Normal;
 		}
 
 		public ProtocolFactoryHandle(Factory<P> factory) {
 			Factory = factory;
+			Level = TransactionLevel.Serializable;
+			Mode = DispatchMode.Normal;
 		}
 
 		public ProtocolFactoryHandle(Factory<P> factory, ProtocolHandle<P> handle) {
 			Factory = factory;
 			Handle = handle;
+			Level = TransactionLevel.Serializable;
+			Mode = DispatchMode.Normal;
 		}
 
 		public ProtocolFactoryHandle(Factory<P> factory, ProtocolHandle<P> handle, TransactionLevel level) {
 			Factory = factory;
 			Handle = handle;
 			Level = level;
+			Mode = DispatchMode.Normal;
 		}
 
 		public ProtocolFactoryHandle(Factory<P> factory, ProtocolHandle<P> handle, TransactionLevel level, DispatchMode mode) {
@@ -470,34 +478,34 @@ public class Service {
 		return result;
 	}
 
-	public abstract static class ManualContext {
-		private long SessionId;
-		private Object UserState;
-		private boolean IsTimeout;
+	public static abstract class ManualContext {
+		private long sessionId;
+		private Object userState;
+		private boolean isTimeout;
 		private Service service;
 
 		public final long getSessionId() {
-			return SessionId;
+			return sessionId;
 		}
 
 		public final void setSessionId(long value) {
-			SessionId = value;
+			sessionId = value;
 		}
 
 		public final Object getUserState() {
-			return UserState;
+			return userState;
 		}
 
 		public final void setUserState(Object value) {
-			UserState = value;
+			userState = value;
 		}
 
 		public boolean isTimeout() {
-			return IsTimeout;
+			return isTimeout;
 		}
 
 		void setIsTimeout(boolean value) {
-			IsTimeout = value;
+			isTimeout = value;
 		}
 
 		public Service getService() {
@@ -554,15 +562,15 @@ public class Service {
 	// 还是不直接暴露内部的容器。提供这个方法给外面用。以后如果有问题，可以改这里。
 
 	public final void foreach(Action1<AsyncSocket> action) throws Throwable {
-		for (AsyncSocket socket : socketMap)
+		for (var socket : socketMap)
 			action.run(socket);
 	}
 
 	public static String getOneNetworkInterfaceIpAddress() {
 		try {
-			Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+			var interfaces = NetworkInterface.getNetworkInterfaces();
 			while (interfaces.hasMoreElements()) {
-				Enumeration<InetAddress> inetAddresses = interfaces.nextElement().getInetAddresses();
+				var inetAddresses = interfaces.nextElement().getInetAddresses();
 				if (inetAddresses.hasMoreElements())
 					return inetAddresses.nextElement().getHostAddress();
 			}

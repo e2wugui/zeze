@@ -89,8 +89,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	public void setSessionId(long newSessionId) {
-		if (service.changeSocketSessionId(this, newSessionId))
-			sessionId = newSessionId;
+		service.changeSocketSessionId(this, newSessionId);
+		sessionId = newSessionId;
 	}
 
 	public Service getService() {
