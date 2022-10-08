@@ -831,5 +831,21 @@ namespace Zeze.Transaction
         }
 
         public override bool IsNew => TStorage == null || TStorage.TableAsync.IsNew;
+
+        /// <summary>
+        /// 这个方法用来编码服务器的ChangeListener，
+        /// 客户端解码参见class ChangesRecord。
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="r"></param>
+        /// <returns></returns>
+        public ByteBuffer ChangeListenerEncodeWithTableName(object key, Changes.Record r)
+        {
+            var bb = ByteBuffer.Allocate();
+            bb.WriteString(Name);
+            bb.WriteByteBuffer(EncodeKey(key));
+            r.Encode(bb);
+            return bb;
+        }
     }
 }

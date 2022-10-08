@@ -44,6 +44,7 @@ md %project_dir%\Zeze\Transaction
 xcopy /Y %zeze_src_dir%\Zeze\Transaction\TransactionLevel.cs %project_dir%\Zeze\Transaction\
 xcopy /Y %zeze_src_dir%\Zeze\Transaction\Log.cs %project_dir%\Zeze\Transaction\
 xcopy /Y %zeze_src_dir%\Zeze\Transaction\DispatchMode.cs %project_dir%\Zeze\Transaction\
+xcopy /Y %zeze_src_dir%\Zeze\Transaction\ChangesRecord.cs %project_dir%\Zeze\Transaction\
 
 md %project_dir%\Zeze\Transaction\Collections
 xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\LogBean.cs %project_dir%\Zeze\Transaction\Collections\

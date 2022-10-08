@@ -53,6 +53,11 @@ namespace Zeze
         public bool FastRedoWhenConflict { get; set; } = false;
         public int OnlineLogoutDelay { get; set; } = 60 * 10 * 1000; // 10 minutes
         public bool DonotCheckSchemasWhenTableIsNew { get; set; } = false;
+
+        public int DelayRemoveHourStart { get; set; } = 3;
+        public int DelayRemoveHourEnd { get; set; } = 7;
+        public int DelayRemoveDays { get; set; } = 7; // a week
+
 #endif
         /// <summary>
         /// 根据自定义配置名字查找。
@@ -247,6 +252,20 @@ namespace Zeze
             attr = self.GetAttribute("FastRedoWhenConflict");
             if (attr.Length > 0)
                 FastRedoWhenConflict = bool.Parse(attr);
+
+
+            attr = self.GetAttribute("DelayRemoveHourStart");
+            if (attr.Length > 0)
+                DelayRemoveHourStart = int.Parse(attr);
+
+            attr = self.GetAttribute("DelayRemoveHourEnd");
+            if (attr.Length > 0)
+                DelayRemoveHourEnd = int.Parse(attr);
+
+            attr = self.GetAttribute("DelayRemoveDays");
+            if (attr.Length > 0)
+                DelayRemoveDays = int.Parse(attr);
+
 #endif
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)

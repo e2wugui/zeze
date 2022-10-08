@@ -123,7 +123,7 @@ namespace Zeze.Util
             return Bean.NegativeCheck();
         }
 
-        public override ConfBean Copy()
+        public override ConfDynamicBean Copy()
         {
             var copy = new ConfDynamicBean(VariableId, GetSpecialTypeIdFromBean, CreateBeanFromSpecialTypeId);
             copy._Bean = Bean.Copy();
