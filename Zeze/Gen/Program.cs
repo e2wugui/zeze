@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Xml;
+using System.Xml.Linq;
 using Zeze.Gen.Types;
 using Zeze.Util;
 
@@ -109,11 +110,14 @@ namespace Zeze.Gen
             */
             Solutions[xmlfile] = solution;
         }
+
         public static void Main(string[] args)
         {
             BeanTypeIdDuplicateChecker.Add(Zeze.Transaction.EmptyBean.TYPEID);
 
             List<string> xmlFileList = new List<string>();
+            var BeautifulVariableId = false;
+
             for (int i = 0; i < args.Length; ++i)
             {
                 switch (args[i])
@@ -123,6 +127,10 @@ namespace Zeze.Gen
                         break;
                     case "-DeleteOldFile":
                         DeleteOldFile = bool.Parse(args[++i]);
+                        break;
+
+                    case "-BeautifulVariableId":
+                        BeautifulVariableId = true;
                         break;
 
                     default:
@@ -156,9 +164,23 @@ namespace Zeze.Gen
 
             foreach (string file in xmlFileList) // make 参数指定的 Solution
             {
-                Solution sol = null;
-                Solutions.TryGetValue(file, out sol);
-                sol.Make();
+                if (Solutions.TryGetValue(file, out var sol))
+                {
+                    if (BeautifulVariableId)
+                    {
+                        // 编译对这个操作用户不大，需要编译是为了限制，不去修改定义有问题的配置。
+                        XmlDocument doc = new XmlDocument();
+                        doc.PreserveWhitespace = true;
+                        doc.Load(file);
+                        Solution.BeautifulVariableId(doc.DocumentElement);
+                        using var sw = new StreamWriter(file, false, new UTF8Encoding(false));
+                        doc.Save(sw);
+                    }
+                    else
+                    {
+                        sol.Make();
+                    }
+                }
             }
 
             if (DeleteOldFile)

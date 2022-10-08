@@ -122,8 +122,29 @@ namespace Zeze.Gen.Types
 		public bool Extendable { get; private set; }
 		public string Base { get; private set; }
 		public List<string> Derives = new();
-		// ///////////////////////////////////////////
-		public Bean(ModuleSpace space, XmlElement self)
+
+		public static void BeautifulVariableId(XmlElement self)
+		{
+            XmlNodeList childNodes = self.ChildNodes;
+            var varId = 1;
+            foreach (XmlNode node in childNodes)
+            {
+                if (XmlNodeType.Element != node.NodeType)
+                    continue;
+
+                XmlElement e = (XmlElement)node;
+
+                switch (e.Name)
+                {
+                    case "variable":
+                        Variable.BeautifulVariableId(e, varId++);
+                        break;
+                }
+            }
+        }
+
+        // ///////////////////////////////////////////
+        public Bean(ModuleSpace space, XmlElement self)
 		{
 			Space = space;
 			_name = self.GetAttribute("name").Trim();

@@ -106,7 +106,13 @@ namespace Zeze.Gen.Types
 			// ParseDynamicBase 上面调用了多次，只会成功一次。
 		}
 
-		public Variable(Type bean, XmlElement self)
+		public static void BeautifulVariableId(XmlElement self, int varId)
+		{
+			self.SetAttribute("id", varId.ToString());
+		}
+
+
+        public Variable(Type bean, XmlElement self)
 		{
 			Bean = bean;
 			Name = self.GetAttribute("name").Trim();

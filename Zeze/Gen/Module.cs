@@ -24,6 +24,30 @@ namespace Zeze.Gen
         public string FullName => Path();
         public string Comment { get; private set; }
 
+        public static void BeautifulVariableId(XmlElement self)
+        {
+            XmlNodeList childNodes = self.ChildNodes;
+            foreach (XmlNode node in childNodes)
+            {
+                if (XmlNodeType.Element != node.NodeType)
+                    continue;
+
+                XmlElement e = (XmlElement)node;
+                switch (e.Name)
+                {
+                    case "bean":
+                        Bean.BeautifulVariableId(e);
+                        break;
+                    case "module":
+                        Module.BeautifulVariableId(e);
+                        break;
+                    case "beankey":
+                        BeanKey.BeautifulVariableId(e);
+                        break;
+                }
+            }
+        }
+
         public Module(ModuleSpace space, XmlElement self) : base(space, self, true)
         {
             if (space.Modules.ContainsKey(Name))

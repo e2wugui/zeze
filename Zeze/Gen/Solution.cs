@@ -55,6 +55,30 @@ namespace Zeze.Gen
             }
         }
 
+        public static void BeautifulVariableId(XmlElement self)
+        {
+            XmlNodeList childNodes = self.ChildNodes;
+            foreach (XmlNode node in childNodes)
+            {
+                if (XmlNodeType.Element != node.NodeType)
+                    continue;
+
+                XmlElement e = (XmlElement)node;
+                switch (e.Name)
+                {
+                    case "bean":
+                        Types.Bean.BeautifulVariableId(e);
+                        break;
+                    case "module":
+                        Module.BeautifulVariableId(e);
+                        break;
+                    case "beankey":
+                        Types.BeanKey.BeautifulVariableId(e);
+                        break;
+                }
+            }
+        }
+
         public override void Compile()
         {
             foreach (Project project in Projects.Values)
