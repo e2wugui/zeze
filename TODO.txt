@@ -19,7 +19,7 @@ Zege
 
 ServiceManager::OfflineNotify 选择目标遍历优化。
 
-Zege c# ModuleFriend 还需要的能力 @项洋呈
+Zege c# ModuleFriend 还需要的能力
 	1. Nodes 限制大小，当往后面翻超过n(如10个）节点时，删除开头的节点。
 	2. 删除开头的节点时，保存FirstNode，用来快速回到列表开头。
 	3. 置顶(TopmostFriends，有数量限制)实现（现在server和协议都没有），快速回到列表头时优先显示置顶。
