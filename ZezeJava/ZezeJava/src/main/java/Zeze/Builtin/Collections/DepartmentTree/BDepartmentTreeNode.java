@@ -308,7 +308,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
                     var _k_ = _o_.ReadString(_s_);
-                    Zeze.Transaction.DynamicBean _v_ = new Zeze.Transaction.DynamicBean(0, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
+                    var _v_ = new Zeze.Transaction.DynamicBean(0, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
                     _o_.ReadDynamic(_v_, _t_);
                     _x_.put(_k_, _v_);
                 }

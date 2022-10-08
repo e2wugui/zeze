@@ -246,18 +246,18 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
         setDouble(other.getDouble());
         setString(other.getString());
         setBinary(other.getBinary());
-        getSetInt().clear();
-        for (var e : other.getSetInt())
-            getSetInt().add(e);
-        getSetBeankey().clear();
-        for (var e : other.getSetBeankey())
-            getSetBeankey().add(e);
-        getMapInt().clear();
-        for (var e : other.getMapInt().entrySet())
-            getMapInt().put(e.getKey(), e.getValue());
-        getMapBean().clear();
-        for (var e : other.getMapBean().entrySet())
-            getMapBean().put(e.getKey(), e.getValue());
+        _SetInt.clear();
+        for (var e : other._SetInt)
+            _SetInt.add(e);
+        _SetBeankey.clear();
+        for (var e : other._SetBeankey)
+            _SetBeankey.add(e);
+        _MapInt.clear();
+        for (var e : other._MapInt.entrySet())
+            _MapInt.put(e.getKey(), e.getValue());
+        _MapBean.clear();
+        for (var e : other._MapBean.entrySet())
+            _MapBean.put(e.getKey(), e.getValue());
         setBeankey(other.getBeankey());
     }
 

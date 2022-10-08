@@ -100,15 +100,14 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeDynamic type)
         {
-            string tName = TypeName.GetName(type);
             if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
             {
-                sw.WriteLine($"{prefix}{tName} {varname} = new Zeze.Transaction.DynamicBean"
+                sw.WriteLine($"{prefix}var {varname} = new Zeze.Transaction.DynamicBean"
                     + $"(0, {type.Variable.Bean.Name}::getSpecialTypeIdFromBean_{type.Variable.NameUpper1}, {type.Variable.Bean.Name}::createBeanFromSpecialTypeId_{type.Variable.NameUpper1});");
             }
             else
             {
-                sw.WriteLine($"{prefix}{tName} {varname} = new Zeze.Transaction.DynamicBean"
+                sw.WriteLine($"{prefix}var {varname} = new Zeze.Transaction.DynamicBean"
                     + $"(0, {type.DynamicParams.GetSpecialTypeIdFromBean}, {type.DynamicParams.CreateBeanFromSpecialTypeId});");
             }
         }

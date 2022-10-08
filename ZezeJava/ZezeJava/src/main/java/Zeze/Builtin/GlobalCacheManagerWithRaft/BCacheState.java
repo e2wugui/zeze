@@ -61,9 +61,9 @@ public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
     public void assign(BCacheState other) {
         setAcquireStatePending(other.getAcquireStatePending());
         setModify(other.getModify());
-        getShare().clear();
-        for (var e : other.getShare())
-            getShare().add(e);
+        _Share.clear();
+        for (var e : other._Share)
+            _Share.add(e);
     }
 
     @Deprecated
