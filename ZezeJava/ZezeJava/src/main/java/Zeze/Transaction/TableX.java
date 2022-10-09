@@ -828,7 +828,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @param r Changes.Record From ChangeListener
 	 * @return ByteBuffer Encoded Change Log
 	 */
-	public ByteBuffer encodeChangeListenerWithTableName(String specialName, Object key, Changes.Record r) {
+	public ByteBuffer encodeChangeListenerWithSpecialName(String specialName, Object key, Changes.Record r) {
 		var bb = ByteBuffer.Allocate();
 		bb.WriteString(null == specialName ? getName() : specialName);
 		bb.WriteByteBuffer(encodeKey(key));

@@ -22,7 +22,7 @@ public class ModuleFriend extends AbstractModule {
 		var indexOf = nodeKey.getName().lastIndexOf('@');
 		var account = nodeKey.getName().substring(0, indexOf);
 		var notify = new FriendNodeLogBeanNotify();
-		var encoded = App.LinkedMaps.encodeChangeListenerWithSpecialTableName(nodeKey.getName(), key, r);
+		var encoded = App.LinkedMaps.encodeChangeListenerWithSpecialName(nodeKey.getName(), key, r);
 		notify.Argument.setChangeLog(new Binary(encoded));
 		App.Provider.online.sendAccount(account, notify, null); // TODO online sender
 	}

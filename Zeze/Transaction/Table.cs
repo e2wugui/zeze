@@ -840,7 +840,7 @@ namespace Zeze.Transaction
         /// <param name="key"></param>
         /// <param name="r"></param>
         /// <returns></returns>
-        public ByteBuffer EncodeChangeListenerWithSpecialTableName(string specialName, object key, Changes.Record r)
+        public ByteBuffer EncodeChangeListenerWithSpecialName(string specialName, object key, Changes.Record r)
         {
             var bb = ByteBuffer.Allocate();
             bb.WriteString(null == specialName ? Name : specialName);
