@@ -321,6 +321,27 @@ public class ModuleFriend extends AbstractModule {
 		return Procedure.Success;
 	}
 
+	/**
+	 *
+	 * @param group
+	 * @param account
+	 * @param departmentId 为0时，完全从群中退出，否则仅退出部门。
+	 */
+	private void quitMember(DepartmentTree<BManager, BGroupMember, BDepartmentMember, BGroupData, BDepartmentData> group,
+							String account, long departmentId) {
+		var groupMembers = group.getGroupMembers();
+		var groupMember = groupMembers.get(account);
+		if (departmentId == 0) {
+			for (var belong : groupMember.getBelongDepartments()) {
+				group.getDepartmentMembers(belong).remove(account);
+			}
+			groupMembers.remove(account);
+		} else {
+			groupMember.getBelongDepartments().remove(departmentId);
+			group.getDepartmentMembers(departmentId).remove(account);
+		}
+	}
+
 	@Override
 	protected long ProcessDelDepartmentMemberRequest(Zege.Friend.DelDepartmentMember r) {
 		var session = ProviderUserSession.get(r);
@@ -329,18 +350,7 @@ public class ModuleFriend extends AbstractModule {
 		r.setResultCode(group.checkManagePermission(session.getAccount(), r.Argument.getDepartmentId()));
 		if (r.getResultCode() != 0)
 			return r.getResultCode();
-
-		var groupMembers = group.getGroupMembers();
-		var groupMember = groupMembers.get(r.Argument.getAccount());
-		if (r.Argument.getDepartmentId() == 0) {
-			for (var belong : groupMember.getBelongDepartments()) {
-				group.getDepartmentMembers(belong).remove(r.Argument.getAccount());
-			}
-			groupMembers.remove(r.Argument.getAccount());
-		} else {
-			groupMember.getBelongDepartments().remove(r.Argument.getDepartmentId());
-			group.getDepartmentMembers(r.Argument.getDepartmentId()).remove(r.Argument.getAccount());
-		}
+		quitMember(group, r.Argument.getAccount(), r.Argument.getDepartmentId());
 		session.sendResponseWhileCommit(r);
 		return Procedure.Success;
 	}
@@ -432,58 +442,70 @@ public class ModuleFriend extends AbstractModule {
 	@Override
 	protected long ProcessDeleteFriendRequest(Zege.Friend.DeleteFriend r) {
 		var session = ProviderUserSession.get(r);
+
 		var self = getFriends(session.getAccount());
-
-		// 参数检查
-		if (!App.Zege_User.containsKey(r.Argument.getAccount()))
-			return errorCode(eUserNotFound);
-
-		if (r.Argument.getAccount().endsWith("@group")) {
-			// TODO: to support deleting group top later.
-		} else {
+		if (null != self)
 			self.remove(r.Argument.getAccount());
-		}
-
-		session.sendResponseWhileCommit(r);
-		return Procedure.Success;
-	}
-
-	@Override
-	protected long ProcessMakeFriendTopRequest(Zege.Friend.MakeFriendTop r) {
-		var session = ProviderUserSession.get(r);
-		var self = getFriends(session.getAccount());
-
-		// 参数检查
-		if (!App.Zege_User.containsKey(r.Argument.getAccount()))
-			return errorCode(eUserNotFound);
 
 		if (r.Argument.getAccount().endsWith("@group")) {
-			// TODO: to support making group top later.
+			var group = getGroup(r.Argument.getAccount());
+			quitMember(group, session.getAccount(), 0);
 		} else {
-			self.getOrAdd(r.Argument.getAccount()).setIsTop(r.Argument.isIsTop());
+			var peer = getFriends(r.Argument.getAccount());
+			if (null != peer)
+				peer.remove(session.getAccount());
 		}
+
+		session.sendResponseWhileCommit(r);
+		return Procedure.Success;
+	}
+
+	private static int indexOfTopmost(BTopmostFriends topmosts, String account) {
+		for (int i = 0; i < topmosts.getTopmosts().size(); ++i) {
+			if (topmosts.getTopmosts().get(i).getAccount().equals(account))
+				return i;
+		}
+		return -1;
+	}
+
+	@Override
+	protected long ProcessSetTopmostFriendRequest(Zege.Friend.SetTopmostFriend r) {
+		var session = ProviderUserSession.get(r);
+
+		var topmostFriends = _tTopmostFriends.getOrAdd(session.getAccount());
+		var indexOf = indexOfTopmost(topmostFriends, r.Argument.getAccount());
+		if (r.Argument.isTopmost()) {
+			if (-1 == indexOf) {
+				// 参数检查
+				if (r.Argument.getAccount().endsWith("@group")) {
+					if (getGroup(r.Argument.getAccount()).getRoot() == null)
+						return errorCode(eGroupNotExist);
+				} else {
+					var friends = getFriends(session.getAccount());
+					var friend = friends.get(r.Argument.getAccount());
+					if (null == friend)
+						return errorCode(eNotFriend);
+				}
+				// 加入置顶
+				var topmost = new Zege.User.BAccount();
+				topmost.setAccount(r.Argument.getAccount());
+				topmostFriends.getTopmosts().add(0, topmost);
+			}
+		} else {
+			// 删除置顶
+			if (indexOf >= 0)
+				topmostFriends.getTopmosts().remove(indexOf);
+		}
+
 		session.sendResponseWhileCommit(r);
 		return Procedure.Success;
 	}
 
 	@Override
-	protected long ProcessGetTopmostFriendRequest(Zege.Friend.GetTopmostFriend r) {
+	protected long ProcessGetTopmostFriendsRequest(Zege.Friend.GetTopmostFriends r) {
 		var session = ProviderUserSession.get(r);
-		var friends = getFriends(session.getAccount());
-		var topmost = new BTopmostFriend();
-
-		var nodeId = new OutLong();
-		var friendNode = friends.getFirstNode(nodeId);
-		var v = friendNode.getValues();
-
-		var x = v.list; // TODO
-
-		if (topmost.getNode().getValues().size() == 0)
-			return errorCode(eFriendNodeNotFound);
-
-		r.Result.setNodeId(topmost.getNodeId());
-		r.Result.getNode().assign(topmost.getNode()); // TODO 这里拷贝一次，有点浪费。优化？？？上面还有一处。
-
+		var topmostFriends = _tTopmostFriends.getOrAdd(session.getAccount());
+		r.Result.getTopmosts().addAll(topmostFriends.getTopmosts());
 		session.sendResponseWhileCommit(r);
 		return Procedure.Success;
 	}

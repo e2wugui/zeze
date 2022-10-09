@@ -124,11 +124,12 @@
 		<enum name="eToomanyBelongDepartments"  value="8"/>
 		<enum name="eParameterError"            value="9"/>
 		<enum name="eUserExists"                value="10"/>
+		<enum name="eNotFriend"                 value="11"/>
+		<enum name="eGroupNotExist"             value="12"/>
 
 		<!-- 好友列表用 Zeze.Collections.LinkedMap 下面时自定义数据结构的定义 -->
 		<bean name="BFriend">
 			<variable id="1" name="Memo" type="string"/>
-			<variable id="2" name="isTop" type="bool"/>
 		</bean>
 
 		<!-- 协议：读取好友节点 -->
@@ -153,18 +154,13 @@
 
 		<rpc name="AddFriend" argument="BAddFriend" handle="server"/>
 
-		<bean name="BDeleteFriend">
-			<variable id="1" name="Account" type="string"/>
-			<variable id="2" name="FriendID" type="int"/>
-		</bean>
-		<rpc name="DeleteFriend" argument="BDeleteFriend" handle="server"/>
+		<rpc name="DeleteFriend" argument="Zege.User.BAccount" handle="server"/>
 
-		<bean name="BMakeFriendTop">
+		<bean name="BSetTopmostFriend">
 			<variable id="1" name="Account" type="string"/>
-			<variable id="2" name="FriendID" type="int"/>
-			<variable id="3" name="isTop" type="bool"/>
+			<variable id="2" name="Topmost" type="bool"/>
 		</bean>
-		<rpc name="MakeFriendTop" argument="BMakeFriendTop" handle="server"/>
+		<rpc name="SetTopmostFriend" argument="BSetTopmostFriend" handle="server"/>
 
 		<bean name="BFriendNodeLogBean">
 			<enum name="ChangeTagRemove" value="0"/> ChangeLog is empty
@@ -318,12 +314,13 @@
 		<rpc name="AddManager" argument="BAddManager" handle="server"/>
 		<rpc name="DeleteManager" argument="BDeleteManager" handle="server"/>
 
-		<bean name="BTopmostFriend">
-			<variable id="1" name="NodeId" type="long"/>
-			<variable id="2" name="Node"   type="Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode"/>
+		<!-- 置顶好友，有数量限制 -->
+		<bean name="BTopmostFriends">
+			<variable id="1" name="Topmosts" type="list[Zege.User.BAccount]"/>
 		</bean>
+		<table name="tTopmostFriends" key="string" value="BTopmostFriends"/>
 
-		<rpc name="GetTopmostFriend" result="BTopmostFriend" handle="server"/>
+		<rpc name="GetTopmostFriends" result="BTopmostFriends" handle="server"/>
 
 	</module>
 
