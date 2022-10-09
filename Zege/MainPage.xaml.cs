@@ -159,7 +159,7 @@ namespace Zege
 
         private void OnMakeCurrentFriendTop(object sender, EventArgs e)
         {
-            App.Zege_Friend.MakeCurrentFriendTop();
+            //App.Zege_Friend.SetTopmostFriend();
         }
 
         private void OnReturnTop(object sender, EventArgs e)

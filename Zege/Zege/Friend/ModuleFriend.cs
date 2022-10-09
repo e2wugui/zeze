@@ -13,31 +13,23 @@ namespace Zege.Friend
     {
         public void Start(global::Zege.App app)
         {
-            MaxNodeSize = 200; // TODO: move this to config
-            EmptyFriend = false;
-            TopDirty = true;
         }
 
         public void Stop(global::Zege.App app)
         {
-            EmptyFriend = false;
-            TopDirty = true;
         }
 
         // 给ListView提供数据，可能是本地CachedNodes中好友的一部分。
         private ObservableCollection<FriendItem> ItemsSource { get; set; } = new();
         private ListView ListView { get; set; }
 
-
         // 先实现仅从尾部添加和删除节点的方案。
         // 支持从头部删除下一步考虑。
         private List<BGetFriendNode> Nodes { get; } = new();
-        private int MaxNodeSize { get; set; }
-        private bool EmptyFriend { get;set; }
-        // 置顶好友单独保存。
-        private BTopmostFriend Topmost;
-        private bool TopDirty { get; set; }
         private GetFriendNode GetFriendNodePending { get; set; }
+
+        // 置顶好友单独保存。
+        private BTopmostFriends Topmosts;
 
         [DispatchMode(Mode = DispatchMode.UIThread)]
         protected override Task<long> ProcessFriendNodeLogBeanNotify(Protocol _p)
@@ -76,15 +68,6 @@ namespace Zege.Friend
 
         private GetFriendNode TryNewGetFriendNode(bool forward)
         {
-            if (EmptyFriend)
-                return null;
-
-            if (TopDirty)
-            {
-                GetTopMost(); // TODO: resolve failure case
-                TopDirty = false;
-            }
-
             if (forward)
             {
                 if (Nodes.Count > 0)
@@ -139,9 +122,6 @@ namespace Zege.Friend
             if (r.ResultCode == 0)
             {
                 UpdateItemsSource(NodesIndexOf(r.Result.NodeId), r.Result);
-            }else if (r.ResultCode == ErrorCode(eFriendNodeNotFound))
-            {
-                EmptyFriend = true;
             }
             return Task.FromResult(0L);
         }
@@ -282,21 +262,21 @@ namespace Zege.Friend
         // Test Field
         static int NextFriendId = 0;
 
-        private void GetTopMost()
+        private void GetTopmosts()
         {
-            var r = new GetTopmostFriend();
-            r.Send(App.ClientService.GetSocket(), ProcessGetTopMost);
+            var r = new GetTopmostFriends();
+            r.Send(App.ClientService.GetSocket(), ProcessGetTopmosts);
         }
 
         [DispatchMode(Mode = DispatchMode.UIThread)]
-        private Task<long> ProcessGetTopMost(Protocol p)
+        private Task<long> ProcessGetTopmosts(Protocol p)
         {
-            GetFriendNodePending = null;
-            var r = p as GetTopmostFriend;
+            var r = p as GetTopmostFriends;
             if (r.ResultCode == 0)
             {
-                Topmost = r.Result;
+                Topmosts = r.Result;
             }
+            // TODO Update ItemsSource
             return Task.FromResult(0L);
         }
 
@@ -329,15 +309,16 @@ namespace Zege.Friend
 
         public void DeleteTail()
         {
-            var r = new DeleteFriend();
-            r.Argument.FriendID = -1;
-            r.Send(App.ClientService.GetSocket());
+            // TODO
+            //var r = new DeleteFriend();
+            //r.Send(App.ClientService.GetSocket());
         }
 
-        public void MakeCurrentFriendTop()
+        public void SetTopmostFriend(string account, bool topmost)
         {
-            TopDirty = true;
-            var r = new MakeFriendTop();
+            var r = new SetTopmostFriend();
+            r.Argument.Account = account;
+            r.Argument.Topmost = topmost;
             r.Send(App.ClientService.GetSocket());
         }
 
