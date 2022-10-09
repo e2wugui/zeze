@@ -35,8 +35,23 @@ namespace Zege.Friend
         [DispatchMode(Mode = DispatchMode.UIThread)]
         protected override Task<long> ProcessFriendNodeLogBeanNotify(Protocol p)
         {
+            // FollowerApply，可以全客户端只有一个协议。
+            // 这里把好友相关的两个表的FollowerApply定义到一起。
+            // 如果其他模块还需要FollowerApply，可以使用这个协议，也可以自己定义一个新的。
+            // 是否使用同一个协议，看服务器通知的时候new哪一个协议。
+
             var r = p as FriendNodeLogBeanNotify;
-            ChangesRecord.FollowerApply(ByteBuffer.Wrap(r.Argument.ChangeLog), (tableName) => FriendNodes); // TODO 根据表名选择表
+            ChangesRecord.FollowerApply(ByteBuffer.Wrap(r.Argument.ChangeLog),
+                (tableName) =>
+                {
+                    if (tableName.Equals(FriendNodes.Name))
+                        return FriendNodes;
+
+                    if (tableName.Equals(FriendTopmosts.Name))
+                        return FriendTopmosts;
+
+                    throw new NotImplementedException();
+                });
             return Task.FromResult(ResultCode.Success);
         }
 
@@ -44,8 +59,6 @@ namespace Zege.Friend
         {
             if (args.ScrollY > ListView.Height - 120)
                 FriendNodes.TryGetFriendNode(true);
-            else if (args.ScrollY < 120)
-                FriendNodes.TryGetFriendNode(false);
         }
 
         public void Bind(ListView view)
