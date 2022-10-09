@@ -13,8 +13,8 @@ namespace Zege.Friend
     {
         public void Start(global::Zege.App app)
         {
-            FriendNodes = new FriendNodes(this, ""); // TODO table name
-            FriendTopmosts = new FriendNodes(this, ""); // TODO table name
+            FriendNodes = new FriendNodes(this, "@Zege.Friend");
+            FriendTopmosts = new FriendNodes(this, "@Zege.Topmost");
         }
 
         public void Stop(global::Zege.App app)
@@ -44,10 +44,10 @@ namespace Zege.Friend
             ChangesRecord.FollowerApply(ByteBuffer.Wrap(r.Argument.ChangeLog),
                 (tableName) =>
                 {
-                    if (tableName.Equals(FriendNodes.Name))
+                    if (tableName.EndsWith(FriendNodes.LinkedMapNameEndsWith))
                         return FriendNodes;
 
-                    if (tableName.Equals(FriendTopmosts.Name))
+                    if (tableName.EndsWith(FriendTopmosts.LinkedMapNameEndsWith))
                         return FriendTopmosts;
 
                     throw new NotImplementedException();
@@ -68,18 +68,18 @@ namespace Zege.Friend
             view.Scrolled += OnScrolled;
         }
 
-        public void GetFristFriendNodeAsync()
+        public void GetFristFriendNode()
         {
             if (FriendNodes.Nodes.Count == 0)
                 FriendNodes.TryGetFriendNode(true);
         }
 
-        private FriendItem FriendToItem(long nodeId, BLinkedMapNodeValue nodeValue)
+        private FriendItem FriendToItem(BLinkedMapNodeKey nodeKey, BLinkedMapNodeValue nodeValue)
         {
             var friend = (BFriend)nodeValue.Value;
             return new FriendItem()
             {
-                NodeId = nodeId,
+                NodeKey = nodeKey,
                 Account = nodeValue.Id,
                 Image = "https://www.google.com/images/hpp/Chrome_Owned_96x96.png",
                 Nick = friend.Memo,
@@ -94,14 +94,15 @@ namespace Zege.Friend
             return ii.Nick.Equals(((BFriend)jj.Value).Memo);
         }
 
-        internal void OnRemoveNode(long nodeId)
+        internal void OnRemoveNode(BLinkedMapNodeKey nodeKey)
         {
             int i = ItemsSource.Count - 1;
 
             // 从后面开始搜索这个节点的项
             for (; i >= 0; i--)
             {
-                if (ItemsSource[i].NodeId == nodeId)
+                var item = ItemsSource[i];
+                if (item.NodeKey.Equals(nodeKey))
                     break;
             }
 
@@ -109,7 +110,7 @@ namespace Zege.Friend
             for (; i >= 0; i--)
             {
                 var item = ItemsSource[i];
-                if (item.NodeId != nodeId)
+                if (false == item.NodeKey.Equals(nodeKey))
                     break;
                 ItemsSource.RemoveAt(i);
             }
@@ -123,7 +124,7 @@ namespace Zege.Friend
                 friendNodes.Nodes.Add(node);
                 foreach (var friend in node.Node.Values)
                 {
-                    ItemsSource.Add(FriendToItem(node.NodeId, friend));
+                    ItemsSource.Add(FriendToItem(node.NodeKey, friend));
                 }
             }
             else if (-2 == indexOf)
@@ -133,7 +134,7 @@ namespace Zege.Friend
                 var i = 0;
                 foreach (var friend in node.Node.Values)
                 {
-                    ItemsSource.Insert(i++, FriendToItem(node.NodeId, friend));
+                    ItemsSource.Insert(i++, FriendToItem(node.NodeKey, friend));
                 }
             }
             else
@@ -155,7 +156,8 @@ namespace Zege.Friend
                 int i = ItemsSource.Count - 1;
                 for (; i >= 0; --i)
                 {
-                    if (ItemsSource[i].NodeId == node.NodeId)
+                    var item = ItemsSource[i];
+                    if (item.NodeKey.Equals(node.NodeKey))
                         break;
                 }
                 if (-1 == i)
@@ -166,7 +168,7 @@ namespace Zege.Friend
                 while (i >= 0 && j >= 0)
                 {
                     var ii = ItemsSource[i];
-                    if (ii.NodeId != node.NodeId)
+                    if (false == ii.NodeKey.Equals(node.NodeKey))
                         break; // view 中属于当前节点的item已经结束。
 
                     var jj = node.Node.Values[j];
@@ -180,7 +182,7 @@ namespace Zege.Friend
                             //ItemsSource.Insert(i, FriendToItem(node.NodeId, jj));
 
                             // Replaced 可以正确通知View，不需要删除再加入。
-                            ItemsSource[i] = FriendToItem(node.NodeId, jj);
+                            ItemsSource[i] = FriendToItem(node.NodeKey, jj);
                         }
                         // 相同的好友，处理完成，都往前推进。
                         --i;
@@ -198,7 +200,7 @@ namespace Zege.Friend
                 for (; i >= 0; --i)
                 {
                     var ii = ItemsSource[i];
-                    if (ii.NodeId != node.NodeId)
+                    if (false == ii.NodeKey.Equals(node.NodeKey))
                         break; // view 中属于当前节点的item已经结束。
                     ItemsSource.RemoveAt(i);
                 }
@@ -207,7 +209,7 @@ namespace Zege.Friend
                 ++i; // 到这里时，i为-1，或者指向前面一个节点的最后一个好友。需要在这个后面开始插入剩余的friend。
                 for (; j >= 0; --j)
                 {
-                    ItemsSource.Insert(i, FriendToItem(node.NodeId, node.Node.Values[j]));
+                    ItemsSource.Insert(i, FriendToItem(node.NodeKey, node.Node.Values[j]));
                 }
             }
         }
@@ -235,17 +237,9 @@ namespace Zege.Friend
 
         public void AddNewFriend()
         {
-            var newFriend = new FriendItem();
-            newFriend.Nick = "Friend " + NextFriendId++;
-            newFriend.NodeId = FriendNodes.Nodes.Count;
-            newFriend.Image = "https://www.google.com/images/hpp/Chrome_Owned_96x96.png";
-            newFriend.Time = DateTime.Now.ToString();
-            newFriend.Message = "";
-            ItemsSource.Add(newFriend); // TODO: remove this
-
             var r = new AddFriend();
             //r.Argument.Account = 
-            r.Send(App.ClientService.GetSocket(), ProcessAddNewFriend);
+            //todo r.Send(App.ClientService.GetSocket(), ProcessAddNewFriend);
         }
 
         [DispatchMode(Mode = DispatchMode.UIThread)]
@@ -266,7 +260,7 @@ namespace Zege.Friend
             var r = p as GetFriendNode;
             if (r.ResultCode == 0)
             {
-                FriendNodes.OnGetFriendNodeResponse(r.Result.NodeId, r.Result);
+                FriendNodes.OnGetFriendNodeResponse(r.Result);
             }
             return Task.FromResult(0L);
         }
@@ -303,7 +297,7 @@ namespace Zege.Friend
     public class FriendItem
     {
         // Basic
-        public long NodeId { get; set; }
+        public BLinkedMapNodeKey NodeKey { get; set; }
         public string Account { get; set; }
 
         // Bind To View

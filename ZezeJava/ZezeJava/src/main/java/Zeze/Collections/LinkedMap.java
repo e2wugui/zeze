@@ -41,8 +41,8 @@ public class LinkedMap<V extends Bean> {
 			_tLinkedMaps.getChangeListenerMap().getListeners().add(this::OnLinkedMapRootChange);
 		}
 
-		public ByteBuffer changeListenerEncodeWithTableName(Object key, Changes.Record r) {
-			return _tLinkedMapNodes.changeListenerEncodeWithTableName(key, r);
+		public ByteBuffer encodeChangeListenerWithSpecialTableName(String specialName, Object key, Changes.Record r) {
+			return _tLinkedMapNodes.encodeChangeListenerWithTableName(specialName, key, r);
 		}
 
 		private void OnLinkedMapNodeChange(Object key, Changes.Record r) {

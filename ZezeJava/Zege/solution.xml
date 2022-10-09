@@ -168,16 +168,17 @@
 
 		<protocol name="FriendNodeLogBeanNotify" argument="BFriendNodeLogBean" handle="client"/>
 
-		<bean name="BNodeId">
-			<variable id="1" name="NodeId" type="long"/>
+		<bean name="BGetFriendNodeArgument">
+			<variable id="1" name="LinkedMapNameEndsWith" type="string"/> 参数是结束名，服务器构造完整的LinkedMap.Name。
+			<variable id="2" name="NodeId" type="long"/>
 		</bean>
 
 		<bean name="BGetFriendNode">
-			<variable id="1" name="NodeId" type="long"/>
-			<variable id="2" name="Node"   type="Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode"/>
+			<variable id="1" name="NodeKey" type="Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey"/>
+			<variable id="3" name="Node"    type="Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode"/>
 		</bean>
 
-		<rpc name="GetFriendNode" argument="BNodeId" result="BGetFriendNode" handle="server"/>
+		<rpc name="GetFriendNode" argument="BGetFriendNodeArgument" result="BGetFriendNode" handle="server"/>
 
 		<!-- 部门树用 Zeze.Collections.DepartmentTree 下面时自定义数据结构的定义 -->
 		<bean name="BManager">
@@ -490,7 +491,6 @@
 	</project>
 
 	<project name="Zege" gendir="../.." platform="conf+cs+net">
-		<beankey ref="Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey"/>
 		<service name="ClientService" handle="client" base="Zeze.Services.HandshakeClient">
 			<module ref="Zeze.Builtin.Online"/>
 			<module ref="Zeze.Builtin.LinkdBase"/>

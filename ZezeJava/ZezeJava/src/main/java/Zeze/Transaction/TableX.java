@@ -616,8 +616,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	// Key 都是简单变量，系列化方法都不一样，需要生成。
 	public abstract ByteBuffer encodeKey(K key);
+
+	@SuppressWarnings("unchecked")
 	public ByteBuffer encodeKey(Object key) {
-		//noinspection unchecked
 		return encodeKey((K)key);
 	}
 
@@ -820,16 +821,16 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	/**
-	 /// 这个方法用来编码服务器的ChangeListener，
-	 /// 客户端解码参见 c# Zeze.Transaction.ChangesRecord。
+	 * 这个方法用来编码服务器的ChangeListener，
+	 * 客户端解码参见 c# Zeze.Transaction.ChangesRecord。
+	 * @param specialName special name, use talbe.Name if null.
 	 * @param key Object Key From ChangeListener
 	 * @param r Changes.Record From ChangeListener
 	 * @return ByteBuffer Encoded Change Log
 	 */
-	public ByteBuffer changeListenerEncodeWithTableName(Object key, Changes.Record r)
-	{
+	public ByteBuffer encodeChangeListenerWithTableName(String specialName, Object key, Changes.Record r) {
 		var bb = ByteBuffer.Allocate();
-		bb.WriteString(getName());
+		bb.WriteString(null == specialName ? getName() : specialName);
 		bb.WriteByteBuffer(encodeKey(key));
 		r.encode(bb);
 		return bb;

@@ -9,10 +9,10 @@ using Zeze.Transaction.Collections;
 namespace Zeze.Transaction
 {
 	public class Changes
-	{
+	{        
 		// 收集日志时,记录所有Bean修改.
-		// key is Bean.ObjectId
-		public Dictionary<long, LogBean> Beans { get; } = new();
+        // key is Bean.ObjectId
+        public Dictionary<long, LogBean> Beans { get; } = new();
 		public Transaction Transaction { get; }
 
 		public class Record

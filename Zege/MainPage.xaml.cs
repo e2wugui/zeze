@@ -91,7 +91,7 @@ namespace Zege
             {
                 if (await App.Zege_Linkd.ChallengeMeAsync(account, passwd, save))
                 {
-                    App.Zege_Friend.GetFristFriendNodeAsync();
+                    App.Zege_Friend.GetFristFriendNode();
                     var clientId = "PC";
                     await App.Zeze_Builtin_Online.LoginAsync(clientId);
                 }

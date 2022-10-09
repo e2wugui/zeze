@@ -2,13 +2,11 @@ package Zege.Friend;
 
 import Zege.User.BUser;
 import Zeze.Arch.ProviderUserSession;
-import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey;
 import Zeze.Collections.DepartmentTree;
 import Zeze.Collections.LinkedMap;
 import Zeze.Component.AutoKey;
 import Zeze.Net.Binary;
-import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutLong;
@@ -16,22 +14,28 @@ import Zeze.Util.OutLong;
 public class ModuleFriend extends AbstractModule {
 	private AutoKey GroupIdAutoKey;
 
-	public static final String FriendsLinkedMapNameEndsWith = "@Zege.Friend";
+	public static final String eFriendsLinkedMapNameEndsWith = "@Zege.Friend";
+	public static final String eTopmostLinkedMapNameEndsWith = "@Zege.Topmost";
+
+	private void onChangeListener(Object key, Changes.Record r) {
+		var nodeKey = (BLinkedMapNodeKey)key; // 这里带了LinkedMap#Name
+		var indexOf = nodeKey.getName().lastIndexOf('@');
+		var account = nodeKey.getName().substring(0, indexOf);
+		var notify = new FriendNodeLogBeanNotify();
+		var encoded = App.LinkedMaps.encodeChangeListenerWithSpecialTableName(nodeKey.getName(), key, r);
+		notify.Argument.setChangeLog(new Binary(encoded));
+		App.Provider.online.sendAccount(account, notify, null); // TODO online sender
+	}
 
 	public void Start(Zege.App app) throws Throwable {
 		GroupIdAutoKey = app.getZeze().getAutoKey("Zege.GroupId");
-		App.LinkedMaps.NodeListeners.put(FriendsLinkedMapNameEndsWith, (key, r) -> {
-			var nodeKey = (BLinkedMapNodeKey)key;
-			var indexOf = nodeKey.getName().lastIndexOf('@');
-			var account = nodeKey.getName().substring(0, indexOf);
-			var notify = new FriendNodeLogBeanNotify();
-			notify.Argument.setChangeLog(new Binary(App.LinkedMaps.changeListenerEncodeWithTableName(key, r)));
-			App.Provider.online.sendAccount(account, notify, null); // TODO online sender
-		});
+		App.LinkedMaps.NodeListeners.put(eFriendsLinkedMapNameEndsWith, this::onChangeListener);
+		App.LinkedMaps.NodeListeners.put(eTopmostLinkedMapNameEndsWith, this::onChangeListener);
 	}
 
 	public void Stop(Zege.App app) throws Throwable {
-		App.LinkedMaps.NodeListeners.remove(FriendsLinkedMapNameEndsWith);
+		App.LinkedMaps.NodeListeners.remove(eFriendsLinkedMapNameEndsWith);
+		App.LinkedMaps.NodeListeners.remove(eTopmostLinkedMapNameEndsWith);
 	}
 
 	public DepartmentTree<BManager, BGroupMember, BDepartmentMember, BGroupData, BDepartmentData> getGroup(String group) {
@@ -45,7 +49,11 @@ public class ModuleFriend extends AbstractModule {
 	}
 
 	public LinkedMap<BFriend> getFriends(String owner) {
-		return App.LinkedMaps.open(owner + FriendsLinkedMapNameEndsWith, BFriend.class, App.ZegeConfig.FriendCountPerNode);
+		return App.LinkedMaps.open(owner + eFriendsLinkedMapNameEndsWith, BFriend.class, App.ZegeConfig.FriendCountPerNode);
+	}
+
+	public LinkedMap<BFriend> getTopmosts(String owner) {
+		return App.LinkedMaps.open(owner + eTopmostLinkedMapNameEndsWith, BFriend.class, App.ZegeConfig.FriendCountPerNode);
 	}
 
 	@Override
@@ -134,10 +142,18 @@ public class ModuleFriend extends AbstractModule {
 		return Procedure.Success;
 	}
 
+	private LinkedMap<BFriend> getFriendsOrTopmosts(String account, String endsWith) {
+		if (endsWith.equals(eFriendsLinkedMapNameEndsWith))
+			return getFriends(account);
+		if (endsWith.equals(eTopmostLinkedMapNameEndsWith))
+			return getTopmosts(account);
+		throw new UnsupportedOperationException();
+	}
+
 	@Override
 	protected long ProcessGetFriendNodeRequest(Zege.Friend.GetFriendNode r) {
 		var session = ProviderUserSession.get(r);
-		var friends = getFriends(session.getAccount());
+		var friends = getFriendsOrTopmosts(session.getAccount(), r.Argument.getLinkedMapNameEndsWith());
 		var nodeId = new OutLong(r.Argument.getNodeId());
 		var friendNode = r.Argument.getNodeId() == 0
 				? friends.getFirstNode(nodeId)
@@ -145,7 +161,7 @@ public class ModuleFriend extends AbstractModule {
 		if (null == friendNode)
 			return errorCode(eFriendNodeNotFound);
 
-		r.Result.setNodeId(nodeId.value);
+		r.Result.setNodeKey(new BLinkedMapNodeKey(friends.getName(), nodeId.value));
 		r.Result.getNode().assign(friendNode); // TODO 这里拷贝一次，有点浪费。优化？？？上面还有一处。
 
 		session.sendResponseWhileCommit(r);
@@ -298,12 +314,12 @@ public class ModuleFriend extends AbstractModule {
 
 	/**
 	 *
-	 * @param group
-	 * @param account
+	 * @param group x
+	 * @param account x
 	 * @param departmentId 为0时，完全从群中退出，否则仅退出部门。
 	 */
-	private void quitMember(DepartmentTree<BManager, BGroupMember, BDepartmentMember, BGroupData, BDepartmentData> group,
-							String account, long departmentId) {
+	private static void quitMember(DepartmentTree<BManager, BGroupMember, BDepartmentMember, BGroupData, BDepartmentData> group,
+								   String account, long departmentId) {
 		var groupMembers = group.getGroupMembers();
 		var groupMember = groupMembers.get(account);
 		if (departmentId == 0) {

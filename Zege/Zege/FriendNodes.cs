@@ -14,7 +14,7 @@ namespace Zege.Friend
     public class FriendNodes : ChangesTable
     {
         public ModuleFriend ModuleFriend { get; }
-        public string Name { get; }
+        public string LinkedMapNameEndsWith { get; }
 
         public GetFriendNode GetFriendNodePending { get; set; }
 
@@ -27,7 +27,7 @@ namespace Zege.Friend
         public FriendNodes(ModuleFriend module, string name)
         {
             ModuleFriend = module;
-            Name = name;
+            LinkedMapNameEndsWith = name;
         }
 
         // Change Log Apply: 实现 ChangesTable
@@ -58,7 +58,7 @@ namespace Zege.Friend
             var tvalue = (BLinkedMapNode)value;
 
             var node = new BGetFriendNode();
-            node.NodeId = tkey.NodeId;
+            node.NodeKey = tkey;
             node.Node = tvalue;
 
             // 新节点加入：添加好友时，头部节点满了；或者活跃的好友数量超出了头部节点的容量
@@ -73,7 +73,7 @@ namespace Zege.Friend
             if (indexOf >= 0)
             {
                 Nodes.RemoveAt(indexOf);
-                ModuleFriend.OnRemoveNode(tkey.NodeId);
+                ModuleFriend.OnRemoveNode(tkey);
             }
         }
 
@@ -82,7 +82,7 @@ namespace Zege.Friend
         {
             for (int i = 0; i < Nodes.Count; ++i)
             {
-                if (Nodes[i].NodeId == nodeId)
+                if (Nodes[i].NodeKey.NodeId == nodeId)
                     return i;
             }
             return -1;
@@ -136,10 +136,10 @@ namespace Zege.Friend
             GetFriendNodePending?.Send(ModuleFriend.App.ClientService.GetSocket(), ModuleFriend.ProcessGetFriendNodeResponse);
         }
 
-        internal Task<long> OnGetFriendNodeResponse(long nodeId, BGetFriendNode node)
+        internal Task<long> OnGetFriendNodeResponse(BGetFriendNode get)
         {
             GetFriendNodePending = null;
-            ModuleFriend.UpdateItemsSource(IndexOf(nodeId), this, node);
+            ModuleFriend.UpdateItemsSource(IndexOf(get.NodeKey.NodeId), this, get);
             return Task.FromResult(0L);
         }
     }
