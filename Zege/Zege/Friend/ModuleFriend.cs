@@ -13,6 +13,8 @@ namespace Zege.Friend
     {
         public void Start(global::Zege.App app)
         {
+            FriendNodes = new FriendNodes(this, ""); // TODO table name
+            FriendTopmosts = new FriendNodes(this, ""); // TODO table name
         }
 
         public void Stop(global::Zege.App app)
@@ -23,115 +25,27 @@ namespace Zege.Friend
         private ObservableCollection<FriendItem> ItemsSource { get; set; } = new();
         private ListView ListView { get; set; }
 
-        // 先实现仅从尾部添加和删除节点的方案。
-        // 支持从头部删除下一步考虑。
-        private List<BGetFriendNode> Nodes { get; } = new();
-        private GetFriendNode GetFriendNodePending { get; set; }
+        // 好友数据
+        private FriendNodes FriendNodes { get; set; }
+        private FriendNodes FriendTopmosts { get; set; }
 
         // 置顶好友单独保存。
         private BTopmostFriends Topmosts;
 
         [DispatchMode(Mode = DispatchMode.UIThread)]
-        protected override Task<long> ProcessFriendNodeLogBeanNotify(Protocol _p)
+        protected override Task<long> ProcessFriendNodeLogBeanNotify(Protocol p)
         {
-            var p = _p as FriendNodeLogBeanNotify;
-            var indexOf = NodesIndexOf(p.Argument.NodeId);
-            if (indexOf >= 0)
-            {
-                switch (p.Argument.ChangeTag)
-                {
-                    case BFriendNodeLogBean.ChangeTagRemove:
-                        // TODO remove 
-                        break;
-
-                    case BFriendNodeLogBean.ChangeTagPut:
-                        {
-                            var node = new BGetFriendNode();
-                            node.Decode(ByteBuffer.Wrap(p.Argument.ChangeLog));
-                            UpdateItemsSource(indexOf, node);
-                        }
-                        break;
-
-                    case BFriendNodeLogBean.ChangeTagEdit:
-                        {
-                            var logBean = new LogBean();
-                            logBean.Decode(ByteBuffer.Wrap(p.Argument.ChangeLog));
-                            var node = Nodes[indexOf];
-                            node.FollowerApply(logBean);
-                            UpdateItemsSource(indexOf, node);
-                        }
-                        break;
-                }
-            }
+            var r = p as FriendNodeLogBeanNotify;
+            ChangesRecord.FollowerApply(ByteBuffer.Wrap(r.Argument.ChangeLog), (tableName) => FriendNodes); // TODO 根据表名选择表
             return Task.FromResult(ResultCode.Success);
-        }
-
-        private GetFriendNode TryNewGetFriendNode(bool forward)
-        {
-            if (forward)
-            {
-                if (Nodes.Count > 0)
-                {
-                    var last = Nodes[^1];
-                    if (last.Node.NextNodeId == 0)
-                        return null; // 已经是最后一个节点了。
-                    var rpc = new GetFriendNode();
-                    rpc.Argument.NodeId = last.Node.NextNodeId;
-                    return rpc;
-                }
-                else
-                {
-                    var rpc = new GetFriendNode();
-                    rpc.Argument.NodeId = 0;
-                    return rpc;
-                }
-            }
-
-            if (Nodes.Count > 0)
-            {
-                var last = Nodes[0];
-                if (last.Node.PrevNodeId == 0)
-                    return null; // 已经是最后一个节点了。
-                var rpc = new GetFriendNode();
-                rpc.Argument.NodeId = last.Node.PrevNodeId;
-                return rpc;
-            }
-            else
-            {
-                var rpc = new GetFriendNode();
-                rpc.Argument.NodeId = 0;
-                return rpc;
-            }
-
-        }
-
-        private void TryGetFriendNode(bool forward)
-        {
-            if (GetFriendNodePending != null)
-                return; // done
-
-            GetFriendNodePending = TryNewGetFriendNode(forward);
-            GetFriendNodePending?.Send(App.ClientService.GetSocket(), ProcessGetFriendNodeResponse);
-        }
-
-        [DispatchMode(Mode = DispatchMode.UIThread)]
-        private Task<long> ProcessGetFriendNodeResponse(Protocol p)
-        {
-            GetFriendNodePending = null;
-            var r = p as GetFriendNode;
-            if (r.ResultCode == 0)
-            {
-                UpdateItemsSource(NodesIndexOf(r.Result.NodeId), r.Result);
-            }
-            return Task.FromResult(0L);
         }
 
         private void OnScrolled(object sender, ScrolledEventArgs args)
         {
             if (args.ScrollY > ListView.Height - 120)
-                TryGetFriendNode(true);
+                FriendNodes.TryGetFriendNode(true);
             else if (args.ScrollY < 120)
-                TryGetFriendNode(false);
+                FriendNodes.TryGetFriendNode(false);
         }
 
         public void Bind(ListView view)
@@ -143,18 +57,8 @@ namespace Zege.Friend
 
         public void GetFristFriendNodeAsync()
         {
-            if (Nodes.Count == 0)
-                TryGetFriendNode(true);
-        }
-
-        private int NodesIndexOf(long nodeId)
-        {
-            for (int i = 0; i < Nodes.Count; ++i)
-            {
-                if (Nodes[i].NodeId == nodeId)
-                    return i;
-            }
-            return -1;
+            if (FriendNodes.Nodes.Count == 0)
+                FriendNodes.TryGetFriendNode(true);
         }
 
         private FriendItem FriendToItem(long nodeId, BLinkedMapNodeValue nodeValue)
@@ -177,23 +81,56 @@ namespace Zege.Friend
             return ii.Nick.Equals(((BFriend)jj.Value).Memo);
         }
 
-        private void UpdateItemsSource(int indexOf, BGetFriendNode node)
+        internal void OnRemoveNode(long nodeId)
+        {
+            int i = ItemsSource.Count - 1;
+
+            // 从后面开始搜索这个节点的项
+            for (; i >= 0; i--)
+            {
+                if (ItemsSource[i].NodeId == nodeId)
+                    break;
+            }
+
+            // 删除节点中的项
+            for (; i >= 0; i--)
+            {
+                var item = ItemsSource[i];
+                if (item.NodeId != nodeId)
+                    break;
+                ItemsSource.RemoveAt(i);
+            }
+        }
+
+        internal void UpdateItemsSource(int indexOf, FriendNodes friendNodes, BGetFriendNode node)
         {
             if (-1 == indexOf)
             {
-                Nodes.Add(node);
+                // 在尾部添加：浏览发现新的节点。
+                friendNodes.Nodes.Add(node);
                 foreach (var friend in node.Node.Values)
                 {
                     ItemsSource.Add(FriendToItem(node.NodeId, friend));
                 }
             }
+            else if (-2 == indexOf)
+            {
+                // 在头部添加：新节点发生了。
+                friendNodes.Nodes.Insert(0, node);
+                var i = 0;
+                foreach (var friend in node.Node.Values)
+                {
+                    ItemsSource.Insert(i++, FriendToItem(node.NodeId, friend));
+                }
+            }
             else
             {
-                Nodes[indexOf] = node; // replace
+                // 节点更新：节点内的项发生了变动。
+                friendNodes.Nodes[indexOf] = node; // replace
 
                 // 更新节点中的好友到View中。
                 // 由于直接修改：ObservableCollection[i].Nick = "New Nick"；这种形式应该是没有通知View更新的。
-                // 所以下面自己比较，尽可能优化少去引起View的更新。
+                // 下面自己比较，尽可能优化少去引起View的更新。
                 // 算法分析：
                 // node中好友由于活动，可能会被提升到开头（可能不再这个节点，提到了更前面的节点）。
                 // 下面从尾巴开始比较，可能在循环中删除。
@@ -226,8 +163,11 @@ namespace Zege.Friend
                         if (FriendMatch(ii, jj)) // BUG：false == ；因为下面的RemoveAt第二次失败，先保留错误的代码。
                         {
                             // 数据发生了变更，使用删除再次加入的方式更新View。
-                            ItemsSource.RemoveAt(i);
-                            ItemsSource.Insert(i, FriendToItem(node.NodeId, jj));
+                            //ItemsSource.RemoveAt(i);
+                            //ItemsSource.Insert(i, FriendToItem(node.NodeId, jj));
+
+                            // Replaced 可以正确通知View，不需要删除再加入。
+                            ItemsSource[i] = FriendToItem(node.NodeId, jj);
                         }
                         // 相同的好友，处理完成，都往前推进。
                         --i;
@@ -284,7 +224,7 @@ namespace Zege.Friend
         {
             var newFriend = new FriendItem();
             newFriend.Nick = "Friend " + NextFriendId++;
-            newFriend.NodeId = Nodes.Count;
+            newFriend.NodeId = FriendNodes.Nodes.Count;
             newFriend.Image = "https://www.google.com/images/hpp/Chrome_Owned_96x96.png";
             newFriend.Time = DateTime.Now.ToString();
             newFriend.Message = "";
@@ -298,11 +238,22 @@ namespace Zege.Friend
         [DispatchMode(Mode = DispatchMode.UIThread)]
         private Task<long> ProcessAddNewFriend(Protocol p)
         {
-            GetFriendNodePending = null;
+            FriendNodes.GetFriendNodePending = null;
             var r = p as AddFriend;
             if (r.ResultCode == 0)
             {
-                TryGetFriendNode(false);
+                FriendNodes.TryGetFriendNode(false);
+            }
+            return Task.FromResult(0L);
+        }
+
+        [DispatchMode(Mode = DispatchMode.UIThread)]
+        internal Task<long> ProcessGetFriendNodeResponse(Protocol p)
+        {
+            var r = p as GetFriendNode;
+            if (r.ResultCode == 0)
+            {
+                FriendNodes.OnGetFriendNodeResponse(r.Result.NodeId, r.Result);
             }
             return Task.FromResult(0L);
         }
@@ -329,8 +280,9 @@ namespace Zege.Friend
 
         public void Test()
         {
-            var res = TryNewGetFriendNode(true);
+            var res = FriendNodes.TryNewGetFriendNode(true);
         }
+
         // Test Field
 
     }

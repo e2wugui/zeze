@@ -25,33 +25,8 @@ public class ModuleFriend extends AbstractModule {
 			var indexOf = nodeKey.getName().lastIndexOf('@');
 			var account = nodeKey.getName().substring(0, indexOf);
 			var notify = new FriendNodeLogBeanNotify();
-			notify.Argument.setAccount(account);
-			notify.Argument.setNodeId(nodeKey.getNodeId());
-
-			// 协议的enum定义在BFriendNodeLogBean中，需要和Changes.Record中的定义一样。
-			notify.Argument.setChangeTag(r.getState());
-			// fill change log
-			switch (r.getState()) {
-			case Changes.Record.Remove:
-				App.Provider.online.sendAccount(account, notify, null); // TODO online sender
-				return; // done
-
-			case Changes.Record.Edit:
-				var logBean = r.getLogBean();
-				if (null != logBean) {
-					notify.Argument.setChangeLog(new Binary(ByteBuffer.encode(logBean)));
-					App.Provider.online.sendAccount(account, notify, null); // TODO online sender
-				}
-				return; // done
-
-			case Changes.Record.Put:
-				var node = new BGetFriendNode();
-				node.setNodeId(nodeKey.getNodeId());
-				node.getNode().assign((BLinkedMapNode)r.getValue()); // TODO 这里拷贝一次，有点浪费。优化？？？下面还有一处。
-				notify.Argument.setChangeLog(new Binary(ByteBuffer.encode(node)));
-				App.Provider.online.sendAccount(account, notify, null); // TODO online sender
-				return; // done
-			}
+			notify.Argument.setChangeLog(new Binary(App.LinkedMaps.changeListenerEncodeWithTableName(key, r)));
+			App.Provider.online.sendAccount(account, notify, null); // TODO online sender
 		});
 	}
 

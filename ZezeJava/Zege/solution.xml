@@ -163,14 +163,7 @@
 		<rpc name="SetTopmostFriend" argument="BSetTopmostFriend" handle="server"/>
 
 		<bean name="BFriendNodeLogBean">
-			<enum name="ChangeTagRemove" value="0"/> ChangeLog is empty
-			<enum name="ChangeTagPut"    value="1"/> ChangeLog is full bean of value
-			<enum name="ChangeTagEdit"   value="2"/> ChangeLog is increacement LogBean
-
-			<variable id="1" name="Account"   type="string"/>
-			<variable id="2" name="NodeId"    type="long"/>
-			<variable id="3" name="ChangeTag" type="int"/>
-			<variable id="4" name="ChangeLog" type="binary"/>
+			<variable id="1" name="ChangeLog" type="binary"/>
 		</bean>
 
 		<protocol name="FriendNodeLogBeanNotify" argument="BFriendNodeLogBean" handle="client"/>
@@ -497,6 +490,7 @@
 	</project>
 
 	<project name="Zege" gendir="../.." platform="conf+cs+net">
+		<beankey ref="Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey"/>
 		<service name="ClientService" handle="client" base="Zeze.Services.HandshakeClient">
 			<module ref="Zeze.Builtin.Online"/>
 			<module ref="Zeze.Builtin.LinkdBase"/>

@@ -616,6 +616,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	// Key 都是简单变量，系列化方法都不一样，需要生成。
 	public abstract ByteBuffer encodeKey(K key);
+	public ByteBuffer encodeKey(Object key) {
+		//noinspection unchecked
+		return encodeKey((K)key);
+	}
 
 	public abstract K decodeKey(ByteBuffer bb);
 
@@ -813,5 +817,21 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	public final boolean isNew() {
 		return storage == null // memory table always return true
 				|| storage.getDatabaseTable().isNew();
+	}
+
+	/**
+	 /// 这个方法用来编码服务器的ChangeListener，
+	 /// 客户端解码参见 c# Zeze.Transaction.ChangesRecord。
+	 * @param key Object Key From ChangeListener
+	 * @param r Changes.Record From ChangeListener
+	 * @return ByteBuffer Encoded Change Log
+	 */
+	public ByteBuffer changeListenerEncodeWithTableName(Object key, Changes.Record r)
+	{
+		var bb = ByteBuffer.Allocate();
+		bb.WriteString(getName());
+		bb.WriteByteBuffer(encodeKey(key));
+		r.encode(bb);
+		return bb;
 	}
 }

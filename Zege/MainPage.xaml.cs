@@ -2,6 +2,7 @@
 using NLog;
 using NLog.Config;
 using NLog.Targets;
+using System.Collections.ObjectModel;
 using Zege.Friend;
 using Zege.User;
 using Zeze.Transaction;
@@ -12,8 +13,6 @@ namespace Zege
     public partial class MainPage : ContentPage
     {
         public App App { get; private set; }
-
-        public bool IsRefreshing;
 
         public MainPage()
         {
@@ -167,9 +166,18 @@ namespace Zege
             App.Zege_Friend.ReturnTop();
         }
 
-        private void OnTest(object sender, EventArgs e)
+        private async void OnTest(object sender, EventArgs e)
         {
-            App.Zege_Friend.Test();
+            //App.Zege_Friend.Test();
+            var x = new ObservableCollection<int>(); 
+            for (int i = 0; i < 10; ++i)
+                x.Add(i);
+            for (int i = x.Count - 1; i >= 0; --i)
+            {
+                x.RemoveAt(i);
+                x.Insert(i, i);
+            }
+            await DisplayAlert("Alert", "Done!", "OK");
         }
     }
 }

@@ -8,6 +8,7 @@ import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeId;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.ChangeListener;
 import Zeze.Transaction.Changes;
@@ -38,6 +39,10 @@ public class LinkedMap<V extends Bean> {
 			// 监听回调按LinkedMap.Name的后缀名进行回调，不支持广播。
 			_tLinkedMapNodes.getChangeListenerMap().getListeners().add(this::OnLinkedMapNodeChange);
 			_tLinkedMaps.getChangeListenerMap().getListeners().add(this::OnLinkedMapRootChange);
+		}
+
+		public ByteBuffer changeListenerEncodeWithTableName(Object key, Changes.Record r) {
+			return _tLinkedMapNodes.changeListenerEncodeWithTableName(key, r);
 		}
 
 		private void OnLinkedMapNodeChange(Object key, Changes.Record r) {

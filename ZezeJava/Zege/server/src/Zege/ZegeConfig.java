@@ -11,7 +11,7 @@ public class ZegeConfig implements Zeze.Config.ICustomize {
 	public int GroupInviteLimit = 10;
 	public int BelongDepartmentLimit = 100;
 
-	public int FriendCountPerNode = 10; // TODO 以后记得改大，比如100。
+	public int FriendCountPerNode = 10; // TODO 现在为了测试多节点，设置的比较小。以后记得改大，比如200。
 
 	@Override
 	public String getName() {

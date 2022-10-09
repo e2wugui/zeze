@@ -60,19 +60,19 @@ namespace Zeze.Transaction
             }
         }
     }
-}
 
-public interface ChangesTable
-{
-    public object DecodeKey(ByteBuffer bb);
+    public interface ChangesTable
+    {
+        public object DecodeKey(ByteBuffer bb);
 #if USE_CONFCS
     public Zeze.Util.ConfBean NewValueBean();
     public Zeze.Util.ConfBean Get(object key);
     public void Put(object key, Zeze.Util.ConfBean value);
 #else
-    public Zeze.Transaction.Bean NewValueBean();
-    public Zeze.Transaction.Bean Get(object key);
-    public void Put(object key, Zeze.Transaction.Bean value);
+        public Zeze.Transaction.Bean NewValueBean();
+        public Zeze.Transaction.Bean Get(object key);
+        public void Put(object key, Zeze.Transaction.Bean value);
 #endif
-    public void Remove(object key);
+        public void Remove(object key);
+    }
 }
