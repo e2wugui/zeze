@@ -50,7 +50,7 @@ namespace Zeze.Gen.confcs
             // declare variables
             bean.Variables.Sort((a, b) => a.Id - b.Id);
             foreach (Variable v in bean.Variables)
-                sw.WriteLine("        public " + TypeName.GetName(v.VariableType) + " " + v.Name + ";" + v.Comment);
+                sw.WriteLine("        public " + TypeName.GetName(v.VariableType) + " " + v.NameUpper1 + ";" + v.Comment);
             sw.WriteLine();
 
             Property.Make(bean, sw, "        ");
@@ -75,13 +75,13 @@ namespace Zeze.Gen.confcs
             sw.WriteLine("        public const long TYPEID = " + bean.TypeId + ";");
             sw.WriteLine("        public override long TypeId => " + bean.TypeId + ";");
             sw.WriteLine();
-            cs.Decode.Make(bean, sw, "        ", false);
+            cs.Decode.Make(bean, sw, "        ", true);
             var macro = project.MacroEditor;
             if (false == string.IsNullOrEmpty(macro))
                 sw.WriteLine($"#if {macro}");
             {
-                cs.Tostring.Make(bean, sw, "        ", false);
-                cs.Encode.Make(bean, sw, "        ", false);
+                cs.Tostring.Make(bean, sw, "        ", true);
+                cs.Encode.Make(bean, sw, "        ", true);
                 // cs.NegativeCheck.Make(bean, sw, "        ");
             }
             if (false == string.IsNullOrEmpty(macro))

@@ -40,79 +40,79 @@ namespace Zeze.Gen.confcs
 
         public void Visit(Types.TypeBool type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.Name} = ((Zeze.Transaction.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NameUpper1} = ((Zeze.Transaction.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
         }
 
         public void Visit(Types.TypeByte type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.Name} = ((Zeze.Transaction.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NameUpper1} = ((Zeze.Transaction.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
         }
 
         public void Visit(Types.TypeShort type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.Name} = ((Zeze.Transaction.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NameUpper1} = ((Zeze.Transaction.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
         }
 
         public void Visit(Types.TypeInt type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.Name} = ((Zeze.Transaction.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NameUpper1} = ((Zeze.Transaction.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
         }
 
         public void Visit(Types.TypeLong type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.Name} = ((Zeze.Transaction.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NameUpper1} = ((Zeze.Transaction.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
         }
 
         public void Visit(Types.TypeFloat type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.Name} = ((Zeze.Transaction.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NameUpper1} = ((Zeze.Transaction.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
         }
 
         public void Visit(Types.TypeDouble type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.Name} = ((Zeze.Transaction.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NameUpper1} = ((Zeze.Transaction.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
         }
 
         public void Visit(Types.TypeBinary type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.Name} = ((Zeze.Transaction.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NameUpper1} = ((Zeze.Transaction.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
         }
 
         public void Visit(Types.TypeString type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.Name} = ((Zeze.Transaction.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NameUpper1} = ((Zeze.Transaction.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
         }
 
         public void Visit(Types.TypeList type)
         {
             var v = type.ValueType.IsNormalBean ? "2" : "1";
-            sw.WriteLine(prefix + $"    case {var.Id}: Zeze.Transaction.Collections.CollApply.ApplyList{v}({var.Name}, vlog); break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: Zeze.Transaction.Collections.CollApply.ApplyList{v}({var.NameUpper1}, vlog); break;");
         }
 
         public void Visit(Types.TypeSet type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: Zeze.Transaction.Collections.CollApply.ApplySet1({var.Name}, vlog); break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: Zeze.Transaction.Collections.CollApply.ApplySet1({var.NameUpper1}, vlog); break;");
         }
 
         public void Visit(Types.TypeMap type)
         {
             var v = type.ValueType.IsNormalBean ? "2" : "1";
-            sw.WriteLine(prefix + $"    case {var.Id}: Zeze.Transaction.Collections.CollApply.ApplyMap{v}({var.Name}, vlog); break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: Zeze.Transaction.Collections.CollApply.ApplyMap{v}({var.NameUpper1}, vlog); break;");
         }
 
         public void Visit(Types.Bean type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.Name}.FollowerApply(vlog); break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NameUpper1}.FollowerApply(vlog); break;");
         }
 
         public void Visit(Types.BeanKey type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.Name} = ((Zeze.Transaction.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NameUpper1} = ((Zeze.Transaction.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
         }
 
         public void Visit(Types.TypeDynamic type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.Name}.FollowerApply(vlog); break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NameUpper1}.FollowerApply(vlog); break;");
         }
 
         public void Visit(Types.TypeQuaternion type)

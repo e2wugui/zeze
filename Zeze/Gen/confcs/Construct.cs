@@ -56,7 +56,7 @@ namespace Zeze.Gen.confcs
             string value = variable.Initial;
             if (value.Length > 0)
             {
-                string varname = variable.Name;
+                string varname = variable.NameUpper1;
                 sw.WriteLine($"{prefix}{varname} = new {TypeName.GetName(type)}{value};");
             }
         }
@@ -64,7 +64,7 @@ namespace Zeze.Gen.confcs
         public void Visit(Bean type)
         {
             string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.Name + " = new " + typeName + "();");
+            sw.WriteLine(prefix + variable.NameUpper1 + " = new " + typeName + "();");
         }
 
         public void Visit(BeanKey type)
@@ -99,13 +99,13 @@ namespace Zeze.Gen.confcs
 
         public void Visit(TypeBinary type)
         {
-            sw.WriteLine(prefix + variable.Name + " = Zeze.Net.Binary.Empty;");
+            sw.WriteLine(prefix + variable.NameUpper1 + " = Zeze.Net.Binary.Empty;");
         }
 
         public void Visit(TypeString type)
         {
             string value = variable.Initial;
-            string varname = variable.Name;
+            string varname = variable.NameUpper1;
             sw.WriteLine(prefix + varname + " = \"" + value + "\";");
         }
 
@@ -116,25 +116,25 @@ namespace Zeze.Gen.confcs
             if (type.FixSize >= 0)
             {
                 string typeName = TypeName.GetName(type);
-                sw.WriteLine($"{prefix}{variable.Name} = new {typeName.Replace("[]", $"[{type.FixSize}]")};");
+                sw.WriteLine($"{prefix}{variable.NameUpper1} = new {typeName.Replace("[]", $"[{type.FixSize}]")};");
             }
             else
             {
                 string typeName = TypeName.GetName(type);
-                sw.WriteLine($"{prefix}{variable.Name} = new {typeName}();");
+                sw.WriteLine($"{prefix}{variable.NameUpper1} = new {typeName}();");
             }
         }
 
         public void Visit(TypeSet type)
         {
             string typeName = TypeName.GetName(type);
-            sw.WriteLine($"{prefix}{variable.Name} = new {typeName}();");
+            sw.WriteLine($"{prefix}{variable.NameUpper1} = new {typeName}();");
         }
 
         public void Visit(TypeMap type)
         {
             string typeName = TypeName.GetName(type);
-            sw.WriteLine($"{prefix}{variable.Name} = new {typeName}();");
+            sw.WriteLine($"{prefix}{variable.NameUpper1} = new {typeName}();");
         }
 
         public void Visit(TypeFloat type)
