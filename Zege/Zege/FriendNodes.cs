@@ -107,12 +107,14 @@ namespace Zege.Friend
                         return null; // 已经是最后一个节点了。
                     var rpc = new GetFriendNode();
                     rpc.Argument.NodeId = last.Node.NextNodeId;
+                    rpc.Argument.LinkedMapNameEndsWith = LinkedMapNameEndsWith;
                     return rpc;
                 }
                 else
                 {
                     var rpc = new GetFriendNode();
                     rpc.Argument.NodeId = 0;
+                    rpc.Argument.LinkedMapNameEndsWith = LinkedMapNameEndsWith;
                     return rpc;
                 }
             }
@@ -124,12 +126,14 @@ namespace Zege.Friend
                     return null; // 已经是最后一个节点了。
                 var rpc = new GetFriendNode();
                 rpc.Argument.NodeId = last.Node.PrevNodeId;
+                rpc.Argument.LinkedMapNameEndsWith = LinkedMapNameEndsWith;
                 return rpc;
             }
             else
             {
                 var rpc = new GetFriendNode();
                 rpc.Argument.NodeId = 0;
+                rpc.Argument.LinkedMapNameEndsWith = LinkedMapNameEndsWith;
                 return rpc;
             }
 
