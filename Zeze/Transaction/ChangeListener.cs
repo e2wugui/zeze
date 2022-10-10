@@ -17,15 +17,35 @@ namespace Zeze.Transaction
 		public void OnChanged(object tkey, Changes.Record changes);
 	}
 
+	public class ChangeListenerBinder : ChangeListener
+	{
+		public Action<object, Changes.Record> Action { get; }
+
+        public ChangeListenerBinder(Action<object, Changes.Record> action)
+		{
+			Action = action;
+		}
+
+        public void OnChanged(object tkey, Changes.Record changes)
+		{
+			Action(tkey, changes);
+		}
+	}
+
 	/// <summary>
 	/// 管理表格的数据变更订阅者。每张表拥有一个自己的listener管理对象。 功能：增加；删除；查询；触发回调
 	/// </summary>
 	public sealed class ChangeListenerMap
 	{
 		private readonly HashSet<ChangeListener> Listnerers = new();
-		internal volatile HashSet<ChangeListener> VolatileListnerers;
+		private volatile HashSet<ChangeListener> VolatileListnerers;
 
-		public void AddListener(ChangeListener listener)
+		public void AddListener(Action<object, Changes.Record> listener)
+		{
+			AddListener(new ChangeListenerBinder(listener));
+		}
+
+        public void AddListener(ChangeListener listener)
         {
 			lock (this)
             {

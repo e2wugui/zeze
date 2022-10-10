@@ -3,6 +3,7 @@ package Zeze.Transaction;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Collections.Collection;
 import Zeze.Transaction.Collections.LogBean;
@@ -15,7 +16,7 @@ public final class Changes {
 
 	private final LongHashMap<LogBean> beans = new LongHashMap<>(); // 收集日志时,记录所有Bean修改. key is Bean.ObjectId
 	private final HashMap<TableKey, Record> records = new HashMap<>(); // 收集记录的修改,以后需要序列化传输.
-	private final IdentityHashMap<Table, HashSet<ChangeListener>> listeners = new IdentityHashMap<>();
+	private final IdentityHashMap<Table, Set<ChangeListener>> listeners = new IdentityHashMap<>();
 	// private Transaction transaction;
 
 	public Changes(Transaction t) {

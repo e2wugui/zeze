@@ -836,7 +836,7 @@ namespace Zeze.Transaction
         /// 这个方法用来编码服务器的ChangeListener，
         /// 客户端解码参见class ChangesRecord。
         /// </summary>
-        /// <param name="specialName">指定一个表名，当它为null时，直接使用当前的名字</param>
+        /// <param name="specialName">指定一个名字，当它为null时，直接使用当前的名字</param>
         /// <param name="key"></param>
         /// <param name="r"></param>
         /// <returns></returns>

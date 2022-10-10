@@ -3,6 +3,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using Zeze.Builtin.Collections.LinkedMap;
+using Zeze.Serialize;
 using Zeze.Transaction;
 
 namespace Zeze.Collections
@@ -31,7 +32,12 @@ namespace Zeze.Collections
 			{
 				Zeze = zeze;
 				RegisterZezeTables(zeze);
-			}
+
+                // 总是监听，但不直接开放。
+                // 监听回调按LinkedMap.Name的后缀名进行回调，不支持广播。
+                _tLinkedMapNodes.ChangeListenerMap.AddListener(OnLinkedMapNodeChange);
+                _tLinkedMaps.ChangeListenerMap.AddListener(OnLinkedMapRootChange);
+            }
 
             public override void UnRegister()
             {
@@ -43,8 +49,40 @@ namespace Zeze.Collections
 			{
 				return (LinkedMap<V>)LinkedMaps.GetOrAdd(name, k => new LinkedMap<V>(this, k, nodeCapacity));
 			}
-		}
-	}
+
+            public ByteBuffer EncodeChangeListenerWithSpecialName(string specialName, object key, Changes.Record r)
+            {
+                return _tLinkedMapNodes.EncodeChangeListenerWithSpecialName(specialName, key, r);
+            }
+
+            public readonly ConcurrentDictionary<string, ChangeListener> NodeListeners = new();
+            public readonly ConcurrentDictionary<string, ChangeListener> RootListeners = new();
+
+            private void OnLinkedMapNodeChange(Object key, Changes.Record r)
+            {
+                var nodeKey = (BLinkedMapNodeKey)key;
+                var indexOf = nodeKey.Name.LastIndexOf('@');
+                if (indexOf >= 0)
+                {
+                    var endsWith = nodeKey.Name.Substring(indexOf);
+                    if (NodeListeners.TryGetValue(endsWith, out var listener))
+                        listener.OnChanged(key, r);
+                }
+            }
+
+            private void OnLinkedMapRootChange(Object key, Changes.Record r)
+            {
+                var name = (string)key;
+                var indexOf = name.LastIndexOf('@');
+                if (indexOf >= 0)
+                {
+                    var endsWith = name.Substring(indexOf);
+                    if (RootListeners.TryGetValue(endsWith, out var listener))
+                        listener.OnChanged(key, r);
+                }
+            }
+        }
+    }
 
 	public class LinkedMap<V> : LinkedMap
 		where V : Bean, new()

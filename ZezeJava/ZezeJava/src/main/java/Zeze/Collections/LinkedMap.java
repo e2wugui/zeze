@@ -37,8 +37,8 @@ public class LinkedMap<V extends Bean> {
 
 			// 总是监听，但不直接开放。
 			// 监听回调按LinkedMap.Name的后缀名进行回调，不支持广播。
-			_tLinkedMapNodes.getChangeListenerMap().getListeners().add(this::OnLinkedMapNodeChange);
-			_tLinkedMaps.getChangeListenerMap().getListeners().add(this::OnLinkedMapRootChange);
+			_tLinkedMapNodes.getChangeListenerMap().addListener(this::OnLinkedMapNodeChange);
+			_tLinkedMaps.getChangeListenerMap().addListener(this::OnLinkedMapRootChange);
 		}
 
 		public ByteBuffer encodeChangeListenerWithSpecialName(String specialName, Object key, Changes.Record r) {
