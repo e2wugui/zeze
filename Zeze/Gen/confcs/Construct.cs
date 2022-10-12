@@ -57,7 +57,12 @@ namespace Zeze.Gen.confcs
             if (value.Length > 0)
             {
                 string varname = variable.NameUpper1;
-                sw.WriteLine($"{prefix}{varname} = new {TypeName.GetName(type)}{value};");
+                sw.WriteLine($"{prefix}{varname} = new {TypeName.GetName(type)}({value});");
+            }
+            else
+            {
+                // 当conf+cs用unity.Vector2之类的变量时，由于他们是值类型，这里不需要new。TODO
+                sw.WriteLine($"{prefix}{variable.NameUpper1} = new {TypeName.GetName(type)}();");
             }
         }
 
