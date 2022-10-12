@@ -200,8 +200,9 @@ namespace Zeze.Transaction
                 if (txn == null)
                     return TypeId_;
                 txn.VerifyRecordAccessed(this, true);
-                // 不能独立设置，总是设置Bean时一起Commit，所以这里访问Bean的Log。
-                var log = (DynamicLog)txn.GetLog(this.ObjectId + 1);
+
+                // 总是跟随Bean_一起设置，这里只需提供读取。
+                var log = (LogDynamic)txn.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
                 return log != null ? log.SpecialTypeId : TypeId_;
             }
         }
@@ -216,7 +217,7 @@ namespace Zeze.Transaction
                 if (txn == null)
                     return Bean_;
                 txn.VerifyRecordAccessed(this, true);
-                var log = (DynamicLog)txn.GetLog(this.ObjectId + 1);
+                var log = (LogDynamic)txn.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
                 return log != null ? log.Value : Bean_;
             }
 
@@ -235,7 +236,8 @@ namespace Zeze.Transaction
                 value.VariableId = 1; // 只有一个变量
                 var txn = Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new DynamicLog(this, value));
+                var log = (LogDynamic)txn.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
+                log.SetBean(value);
             }
         }
 
@@ -296,7 +298,8 @@ namespace Zeze.Transaction
             bean.VariableId = 1; // 只有一个变量
             var txn = Transaction.Current;
             txn.VerifyRecordAccessed(this);
-            txn.PutLog(new DynamicLog(specialTypeId, this, bean));
+            var log = (LogDynamic)txn.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
+            log.SetBean(bean);
         }
 
         public override void Decode(ByteBuffer bb)
@@ -335,11 +338,111 @@ namespace Zeze.Transaction
 
         public override void FollowerApply(Zeze.Transaction.Log log)
         {
-            var dlog = (DynamicLog)log;
-            TypeId_ = dlog.SpecialTypeId;
-            Bean_.FollowerApply(log);
+            var dlog = (LogDynamic)log;
+            if (null != dlog.Value)
+            {
+                // 内部Bean整个被替换。
+                TypeId_ = dlog.SpecialTypeId;
+                Bean_ = dlog.Value;
+            }
+            else
+            {
+                // 内部Bean发生了改变。
+                Bean_.FollowerApply(dlog.LogBean);
+            }
         }
 
+        public class LogDynamic : LogBean
+        {
+            public long SpecialTypeId { get; private set; }
+            public Bean Value { get; private set; }
+            public LogBean LogBean { get; private set; }
+
+            // 收集内部的Bean发生了改变。
+            public override void Collect(Changes changes, Bean recent, Log vlog)
+            {
+                if (LogBean == null)
+                {
+                    LogBean = (LogBean)vlog;
+                    changes.Collect(recent, this);
+                }
+            }
+
+            public override void Commit()
+            {
+                if (Value != null)
+                {
+                    var self = (DynamicBean)This;
+                    self.Bean_ = Value;
+                    self.TypeId_ = SpecialTypeId;
+                }
+            }
+
+            public void SetBean(Bean bean)
+            {
+                Value = bean;
+                var self = (DynamicBean)This;
+                SpecialTypeId = self.GetSpecialTypeIdFromBean(bean);
+            }
+
+            public override void Encode(ByteBuffer bb)
+            {
+                // encode Value & SpecialTypeId. Value maybe null.
+                if (null != Value)
+                {
+                    bb.WriteBool(true);
+                    bb.WriteLong(SpecialTypeId);
+                    Value.Encode(bb);
+                }
+                else
+                {
+                    bb.WriteBool(false); // Value Tag
+                    if (null != LogBean)
+                    {
+                        bb.WriteBool(true);
+                        LogBean.Encode(bb);
+                    }
+                    else
+                    { 
+                        bb.WriteBool(false);
+                    }
+                }
+            }
+
+            public override void Decode(ByteBuffer bb)
+            {
+                var hasValue = bb.ReadBool();
+                if (hasValue)
+                {
+                    SpecialTypeId = bb.ReadLong();
+                    var self = (DynamicBean)This; // TODO Decode的时候，This没有设置，怎么办？
+                                                  // TODO LogDynamic 注册和创建：反射找到宿主Bean的static方法？
+                    Value = self.CreateBeanFromSpecialTypeId(SpecialTypeId);
+                    Value.Decode(bb);
+                }
+                else
+                {
+                    var hasLogBean = bb.ReadBool();
+                    if (hasLogBean)
+                    {
+                        LogBean = new LogBean(); // XXX 确认直接可以使用这个类？
+                        LogBean.Decode(bb);
+                    }
+                }
+            }
+        }
+
+        public override LogBean CreateLogBean()
+        {
+            return new LogDynamic()
+            {
+                Belong = Parent,
+                This = this,
+                VariableId = VariableId,
+            };
+        }
+
+        /* 先注释用来参考
         private sealed class DynamicLog : Log<Bean>
         {
             public long SpecialTypeId { get; private set; }
@@ -378,5 +481,6 @@ namespace Zeze.Transaction
                 base.Decode(bb);
             }
         }
+        */
     }
 }
