@@ -390,7 +390,11 @@ namespace Zeze.Transaction
                         e.Value.Origin.SetNotFresh();
                         if (e.Value.Dirty)
                         {
+                            var oldValue = e.Value.Origin.Value; // before Commit
                             e.Value.Origin.Commit(e.Value);
+                            var newValue = e.Value.Origin.Value; // maybe put
+                            // 如果newValue为null，表示记录被删除，以后再次PutValue，version从0重新开始。
+                            newValue?.SetVersionInternal(null != oldValue ? oldValue.GetVersion() + 1: 1);
                         }
                     }
                 }

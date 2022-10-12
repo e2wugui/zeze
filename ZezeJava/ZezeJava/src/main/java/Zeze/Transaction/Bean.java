@@ -155,4 +155,14 @@ public abstract class Bean implements Serializable {
 		log.setVariableId(variableId);
 		return log;
 	}
+
+	// 当Bean放到Table中时，用来支持数据版本号。
+	public long version() {
+		return 0;
+	}
+
+	// package use in Transaction.finalCommit
+	protected void version(long newVersion) {
+		// 子类实现
+	}
 }

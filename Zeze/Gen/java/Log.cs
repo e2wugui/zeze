@@ -15,6 +15,8 @@ namespace Zeze.Gen.java
         {
             foreach (Variable var in bean.Variables)
             {
+                if (bean.Version.Equals(var.Name))
+                    continue; // 版本变量不需要生成Log实现。
                 var.VariableType.Accept(new Log(bean, sw, var, prefix));
             }
         }

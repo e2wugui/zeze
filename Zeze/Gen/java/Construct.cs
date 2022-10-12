@@ -17,7 +17,7 @@ namespace Zeze.Gen.java
             var hasImmutable = false;
             foreach (var var in bean.Variables)
             {
-                if (var.VariableType.IsImmutable)
+                if (var.VariableType.IsImmutable && false == bean.Version.Equals(var.Name))
                     hasImmutable = true;
                 var.VariableType.Accept(new Construct(sw, var, prefix + "    ", bean.Name));
             }
@@ -30,7 +30,7 @@ namespace Zeze.Gen.java
                 var first = true;
                 foreach (var var in bean.Variables)
                 {
-                    if (var.VariableType.IsImmutable)
+                    if (var.VariableType.IsImmutable && false == bean.Version.Equals(var.Name))
                     {
                         if (first)
                             first = false;
@@ -45,12 +45,15 @@ namespace Zeze.Gen.java
                 {
                     if (var.VariableType.IsImmutable)
                     {
-                        if (!var.VariableType.IsJavaPrimitive)
+                        if (false == bean.Version.Equals(var.Name))
                         {
-                            sw.WriteLine($"{prefix}    if ({var.NamePrivate}_ == null)");
-                            sw.WriteLine($"{prefix}        throw new IllegalArgumentException();");
+                            if (!var.VariableType.IsJavaPrimitive)
+                            {
+                                sw.WriteLine($"{prefix}    if ({var.NamePrivate}_ == null)");
+                                sw.WriteLine($"{prefix}        throw new IllegalArgumentException();");
+                            }
+                            sw.WriteLine($"{prefix}    {var.NamePrivate} = {var.NamePrivate}_;");
                         }
-                        sw.WriteLine($"{prefix}    {var.NamePrivate} = {var.NamePrivate}_;");
                     }
                     else
                         var.VariableType.Accept(new Construct(sw, var, prefix + "    ", bean.Name));

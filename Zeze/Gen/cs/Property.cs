@@ -21,7 +21,37 @@ namespace Zeze.Gen.cs
                 sw.WriteLine();
             
             foreach (Variable var in bean.Variables)
+            {
+                if (bean.Version.Equals(var.Name))
+                {
+                    // 版本变量生成特殊 private getter、setter，仅给Encode，Decode用。
+                    sw.WriteLine($"{prefix}private long {var.NameUpper1}");
+                    sw.WriteLine($"{prefix}{{");
+                    sw.WriteLine($"{prefix}    get");
+                    sw.WriteLine($"{prefix}    {{");
+                    sw.WriteLine($"{prefix}        return {var.NamePrivate};");
+                    sw.WriteLine($"{prefix}    }}");
+                    sw.WriteLine($"{prefix}    set");
+                    sw.WriteLine($"{prefix}    {{");
+                    sw.WriteLine($"{prefix}        {var.NamePrivate} = value;");
+                    sw.WriteLine($"{prefix}    }}");
+                    sw.WriteLine($"{prefix}}}");
+                    sw.WriteLine();
+                    // 重载实现 Bean.Version 接口
+                    sw.WriteLine($"{prefix}public override long GetVersion()");
+                    sw.WriteLine($"{prefix}{{");
+                    sw.WriteLine($"{prefix}    return {var.NamePrivate};");
+                    sw.WriteLine($"{prefix}}}");
+                    sw.WriteLine();
+                    sw.WriteLine($"{prefix}protected override void SetVersion(long newValue)");
+                    sw.WriteLine($"{prefix}{{");
+                    sw.WriteLine($"{prefix}    {var.NamePrivate} = newValue;");
+                    sw.WriteLine($"{prefix}}}");
+                    sw.WriteLine();
+                    continue;
+                }
                 var.VariableType.Accept(new Property(sw, var, prefix));
+            }
         }
 
         public Property(StreamWriter sw, Variable var, string prefix)

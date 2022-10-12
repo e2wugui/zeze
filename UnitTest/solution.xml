@@ -43,7 +43,7 @@
 			<!-- <variable id="5" name="DenyCircle" type="Simple"/> com aa -->
 			<variable id="5" name="AllowCircle" type="list[Simple]" /> com aa
 		</bean>
-		<bean name="Value">
+		<bean name="Value" version="version">
 			<enum name="Enum1" value="4" />
 
 			<variable id="1" name="int1" type="int" AllowNegative="true" /> com aa
@@ -68,6 +68,7 @@
 			<variable id="17" name="map17" type="map[Key,Simple]" />
 			<variable id="18" name="map18" type="map[Key,dynamic:Simple]" />
 			<variable id="19" name="dynamic19" type="dynamic:Simple" />
+			<variable id="20" name="version" type="long" />
 		</bean>
 		<beankey name="Key">
 			<enum name="Enum1" value="4" />

@@ -17,7 +17,11 @@ namespace Zeze.Gen.cs
             sw.WriteLine($"{prefix}public {bean.Name} Copy();");
             sw.WriteLine();
             foreach (Variable var in bean.Variables)
+            {
+                if (bean.Version.Equals(var.Name))
+                    continue; // Version不需要生成访问接口。
                 var.VariableType.Accept(new PropertyReadOnly(sw, var, prefix));
+            }
         }
 
         public PropertyReadOnly(StreamWriter sw, Variable var, string prefix)

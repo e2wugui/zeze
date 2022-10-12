@@ -357,6 +357,13 @@ public final class Transaction {
 					v.atomicTupleRecord.record.setNotFresh();
 					if (v.dirty) {
 						v.atomicTupleRecord.record.commit(v);
+						var newValue = v.atomicTupleRecord.record.getSoftValue();
+						if (null != newValue) {
+							// 如果newValue为null，表示记录被删除，以后再次PutValue，version从0重新开始。
+							var oldValue = v.atomicTupleRecord.strongRef;
+							var oldVersion = null != oldValue ? oldValue.version() : 0;
+							newValue.version(oldVersion + 1);
+						}
 					}
 				}
 			} catch (Throwable e) {

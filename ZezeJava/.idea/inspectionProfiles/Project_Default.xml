@@ -1523,7 +1523,7 @@
       <option name="m_includeLibraryClasses" value="false" />
       <option name="m_limit" value="10" />
     </inspection_tool>
-    <inspection_tool class="MethodMayBeStatic" enabled="true" level="WARNING" enabled_by_default="true">
+    <inspection_tool class="MethodMayBeStatic" enabled="false" level="WARNING" enabled_by_default="false">
       <option name="m_onlyPrivateOrFinal" value="false" />
       <option name="m_ignoreEmptyMethods" value="true" />
     </inspection_tool>
@@ -1559,6 +1559,7 @@
     <inspection_tool class="MismatchedStringCase" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="MisorderedAssertEqualsArguments" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="MissingAccessibleContext" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="MissingActionUpdateThread" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="MissingDeprecatedAnnotation" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="MissingDeprecatedAnnotationOnScheduledForRemovalApi" enabled="true" level="ERROR" enabled_by_default="true" />
     <inspection_tool class="MissingFinalNewline" enabled="true" level="ERROR" enabled_by_default="true" />

@@ -16,7 +16,7 @@ namespace Zeze.Gen.cs
             var hasImmutable = false;
             foreach (var var in bean.Variables)
             {
-                if (var.VariableType.IsImmutable)
+                if (var.VariableType.IsImmutable && false == bean.Version.Equals(var.Name))
                     hasImmutable = true;
                 var.VariableType.Accept(new Construct(sw, var, prefix + "    "));
             }
@@ -28,7 +28,7 @@ namespace Zeze.Gen.cs
                 var first = true;
                 foreach (var var in bean.Variables)
                 {
-                    if (var.VariableType.IsImmutable)
+                    if (var.VariableType.IsImmutable && false == bean.Version.Equals(var.Name))
                     {
                         if (first)
                             first = false;
@@ -43,7 +43,10 @@ namespace Zeze.Gen.cs
                 foreach (var var in bean.Variables)
                 {
                     if (var.VariableType.IsImmutable)
-                        sw.WriteLine($"{prefix}    {var.NamePrivate} = {var.NamePrivate}_;");
+                    {
+                        if (false == bean.Version.Equals(var.Name))
+                            sw.WriteLine($"{prefix}    {var.NamePrivate} = {var.NamePrivate}_;");
+                    }
                     else
                         var.VariableType.Accept(new Construct(sw, var, prefix + "    "));
                 }

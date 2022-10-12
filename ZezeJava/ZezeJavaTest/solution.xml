@@ -38,7 +38,7 @@
 			<variable id="3" name="string3" type="string"/> com aa
 			<variable id="4" name="removed" type="BRemoved2"/> com aa
 		</bean>
-		<bean name="BValue">
+		<bean name="BValue" version="version">
 			<enum name="Enum1" value="4" comment="enum的注释"/>
 
 			<variable id="1" name="int1" type="int" AllowNegative="true"/> com aa
@@ -75,6 +75,8 @@
 			<variable id="27" name="dynamic27" type="dynamic:BSimple"/>
 			<variable id="28" name="key28" type="Key"/>
 			<variable id="29" name="array29" type="array[float]"/>
+
+			<variable id="30" name="version" type="long"/>
 		</bean>
 		<beankey name="Key" comment="beankey的注释">
 			<enum name="Enum1" value="4" description="enum的注释"/>

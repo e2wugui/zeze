@@ -122,6 +122,7 @@ namespace Zeze.Gen.Types
 		public bool Extendable { get; private set; }
 		public string Base { get; private set; }
 		public List<string> Derives = new();
+		public string Version { get; private set; }
 
 		public static void BeautifulVariableId(XmlElement self)
 		{
@@ -164,6 +165,7 @@ namespace Zeze.Gen.Types
 			if (false == Program.BeanTypeIdDuplicateChecker.Add(TypeId))
 				throw new Exception("duplicate Bean.TypeId, please choice one.");
 			Comment = GetComment(self);
+			Version = self.GetAttribute("version").Trim();
 
 			XmlNodeList childNodes = self.ChildNodes;
 			foreach (XmlNode node in childNodes)
@@ -266,10 +268,27 @@ namespace Zeze.Gen.Types
 			return comment;
 		}
 
+		public Variable GetVariable(string name)
+		{
+			foreach (var v in Variables)
+				if (v.Name.Equals(name))
+					return v;
+			return null;
+		}
+
 		public void Compile()
 		{
 			foreach (Variable var in Variables)
 				var.Compile(Space);
+
+			if (false == string.IsNullOrEmpty(Version))
+			{
+				var v = GetVariable(Version);
+				if (null == v)
+					throw new Exception($"version var not found. Bean={FullName} version={Version}");
+				if (!(v.VariableType is TypeLong))
+					throw new Exception($"type of version var is not long. Bean={FullName} version={Version}");
+			}
 			// this.comparable = _isComparable();
 		}
 	}

@@ -36,6 +36,8 @@ namespace Zeze.Gen.java
                 {
                     if (v.Transient)
                         continue;
+                    if (bean.Version.Equals(v.Name))
+                        continue; // 版本变量不需要生成FollowerApply实现。
                     v.VariableType.Accept(new FollowerApply(v, sw, prefix + "        "));
                 }
 

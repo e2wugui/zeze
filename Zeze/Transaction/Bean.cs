@@ -124,6 +124,21 @@ namespace Zeze.Transaction
         {
             return bean.TypeId == EmptyBean.TYPEID;
         }
+
+        public virtual long GetVersion()
+        {
+            return 0;
+        }
+
+        protected virtual void SetVersion(long newValue)
+        {
+            // 子类重载
+        }
+
+        internal void SetVersionInternal(long newValue)
+        {
+            SetVersion(newValue);
+        }
     }
 
     public class EmptyBean : Bean
