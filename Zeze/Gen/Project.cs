@@ -224,6 +224,10 @@ namespace Zeze.Gen
             {
                 AllBeans[b.FullName] = b;
                 b.DetectCircle(new HashSet<Types.Type>());
+                if (false == string.IsNullOrEmpty(b.Version) && false == IsTableValueType(b))
+                {
+                    Console.WriteLine($"WARNING: bean '{b.FullName}' has version but not use in any table.");
+                }
             }
             foreach (var b in _AllBeanKeys)
             {
@@ -259,6 +263,16 @@ namespace Zeze.Gen
             // rollback
             foreach (var e in saved)
                 e.Key.Name = e.Value;
+        }
+
+        public bool IsTableValueType(Bean bean)
+        {
+            foreach (var t in AllTables.Values)
+            {
+                if (t.ValueType == bean)
+                    return true;
+            }
+            return false;
         }
 
         protected virtual void MakePlatform()
