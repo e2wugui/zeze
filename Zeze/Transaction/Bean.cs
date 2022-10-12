@@ -345,7 +345,7 @@ namespace Zeze.Transaction
                 TypeId_ = dlog.SpecialTypeId;
                 Bean_ = dlog.Value;
             }
-            else
+            else if (null != dlog.LogBean) // 安全写法，不检查应该是没问题的？
             {
                 // 内部Bean发生了改变。
                 Bean_.FollowerApply(dlog.LogBean);
@@ -388,6 +388,8 @@ namespace Zeze.Transaction
             public override void Encode(ByteBuffer bb)
             {
                 // encode Value & SpecialTypeId. Value maybe null.
+                var self = (DynamicBean)This;
+                bb.WriteString(self.GetType().FullName); // 系列化宿主Bean.FullName，Decode反射得到CreateBeanFromSpecialTypeId？参见下面的TODO
                 if (null != Value)
                 {
                     bb.WriteBool(true);
