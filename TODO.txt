@@ -18,6 +18,10 @@ Zege
 	置顶。
 
 ServiceManager::OfflineNotify 选择目标遍历优化。
+DynamicLog：encode/decode 【大问题】
+	1. 当整个Bean替换的时候需要传递Bean.Encode 
+	2. 当Bean发生了编辑时需要传递LogBean。
+	x. 需要像容器一样实现一个专有LogBean管理类。
 
 Zege
 	Topmost 重新实现：

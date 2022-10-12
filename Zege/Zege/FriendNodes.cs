@@ -180,7 +180,7 @@ namespace Zege.Friend
                 NodeKey = nodeKey,
                 Account = nodeValue.Id,
                 Image = "https://www.google.com/images/hpp/Chrome_Owned_96x96.png",
-                Nick = friend.Memo,
+                Nick = string.IsNullOrEmpty(friend.Memo) ? nodeValue.Id : friend.Memo,
                 Time = "12:30",
                 Message = "",
             };

@@ -25,7 +25,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		var txn = Transaction.getCurrentVerifyRead(this);
 		if (txn == null)
 			return bean;
-		var log = (LogV)txn.getLog(objectId() + 1);
+		var log = (DynamicLog)txn.getLog(objectId() + 1);
 		return log != null ? log.getValue() : bean;
 	}
 
@@ -41,7 +41,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		value.initRootInfoWithRedo(rootInfo, this);
 		value.variableId(1); // 只有一个变量
 		var txn = Transaction.getCurrentVerifyWrite(this);
-		txn.putLog(new LogV(this, value));
+		txn.putLog(new DynamicLog(this, value));
 	}
 
 	@Override
@@ -52,7 +52,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		if (txn == null)
 			return typeId;
 		// 不能独立设置，总是设置Bean时一起Commit，所以这里访问Bean的Log。
-		var log = (LogV)txn.getLog(objectId() + 1);
+		var log = (DynamicLog)txn.getLog(objectId() + 1);
 		return log != null ? log.specialTypeId : typeId;
 	}
 
@@ -100,7 +100,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		bean.initRootInfoWithRedo(rootInfo, this);
 		bean.variableId(1); // 只有一个变量
 		var txn = Transaction.getCurrentVerifyWrite(this);
-		txn.putLog(new LogV(specialTypeId, this, bean));
+		txn.putLog(new DynamicLog(specialTypeId, this, bean));
 	}
 
 	@Override
@@ -151,23 +151,25 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 
 	@Override
 	public void followerApply(Log log) {
+		var dLog = (DynamicLog)log;
+		typeId = dLog.specialTypeId;
 		bean.followerApply(log);
 	}
 
-	private static final class LogV extends Log1<DynamicBean, Bean> {
-		private final long specialTypeId;
+	private static final class DynamicLog extends Log1<DynamicBean, Bean> {
+		private long specialTypeId;
 
 		public long getSpecialTypeId() {
 			return specialTypeId;
 		}
 
-		public LogV(DynamicBean self, Bean value) {
+		public DynamicLog(DynamicBean self, Bean value) {
 			super(self, 0, value);
 			// 提前转换，如果是本Dynamic中没有配置的Bean，马上抛出异常。
 			specialTypeId = self.getSpecialTypeIdFromBean.applyAsLong(value);
 		}
 
-		public LogV(long specialTypeId, DynamicBean self, Bean value) {
+		public DynamicLog(long specialTypeId, DynamicBean self, Bean value) {
 			super(self, 0, value);
 			this.specialTypeId = specialTypeId;
 		}
@@ -181,6 +183,18 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		public void commit() {
 			getBeanTyped().bean = getValue();
 			getBeanTyped().typeId = getSpecialTypeId();
+		}
+
+		@Override
+		public void encode(ByteBuffer bb) {
+			bb.WriteLong(specialTypeId);
+			getValue().encode(bb);
+		}
+
+		@Override
+		public void decode(ByteBuffer bb) {
+			specialTypeId = bb.ReadLong();
+			getValue().decode(bb); // todo 怎么创建bean。
 		}
 	}
 }

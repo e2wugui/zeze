@@ -335,12 +335,14 @@ namespace Zeze.Transaction
 
         public override void FollowerApply(Zeze.Transaction.Log log)
         {
+            var dlog = (DynamicLog)log;
+            TypeId_ = dlog.SpecialTypeId;
             Bean_.FollowerApply(log);
         }
 
         private sealed class DynamicLog : Log<Bean>
         {
-            public long SpecialTypeId { get; }
+            public long SpecialTypeId { get; private set; }
 
             public DynamicLog(DynamicBean self, Bean value)
             {
@@ -362,6 +364,18 @@ namespace Zeze.Transaction
                 var self = (DynamicBean)Belong;
                 self.Bean_ = Value;
                 self.TypeId_ = SpecialTypeId;
+            }
+
+            public override void Encode(ByteBuffer bb)
+            {
+                SerializeHelper<long>.Encode(bb, SpecialTypeId);
+                base.Encode(bb);
+            }
+
+            public override void Decode(ByteBuffer bb)
+            {
+                SpecialTypeId = SerializeHelper<long>.Decode(bb);
+                base.Decode(bb);
             }
         }
     }
