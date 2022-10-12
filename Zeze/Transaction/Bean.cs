@@ -202,7 +202,7 @@ namespace Zeze.Transaction
                 txn.VerifyRecordAccessed(this, true);
 
                 // 总是跟随Bean_一起设置，这里只需提供读取。
-                var log = (LogDynamic)txn.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
+                var log = (LogDynamic)txn.GetLog(Parent.ObjectId + VariableId);
                 return log != null ? log.SpecialTypeId : TypeId_;
             }
         }
@@ -217,7 +217,7 @@ namespace Zeze.Transaction
                 if (txn == null)
                     return Bean_;
                 txn.VerifyRecordAccessed(this, true);
-                var log = (LogDynamic)txn.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
+                var log = (LogDynamic)txn.GetLog(Parent.ObjectId + VariableId);
                 return log != null ? log.Value : Bean_;
             }
 
