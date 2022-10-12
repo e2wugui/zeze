@@ -226,7 +226,7 @@ namespace Zeze.Gen
                 b.DetectCircle(new HashSet<Types.Type>());
                 if (false == string.IsNullOrEmpty(b.Version) && false == IsTableValueType(b))
                 {
-                    Console.WriteLine($"WARNING: bean '{b.FullName}' has version but not use in any table.");
+                    Console.WriteLine($"WARNING: bean '{b.FullName}' has version but never use in any table.");
                 }
             }
             foreach (var b in _AllBeanKeys)
