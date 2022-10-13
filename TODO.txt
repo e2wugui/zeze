@@ -18,10 +18,6 @@ Zege
 	置顶。
 
 ServiceManager::OfflineNotify 选择目标遍历优化。
-DynamicLog：encode/decode 【大问题】
-	1. 当整个Bean替换的时候需要传递Bean.Encode 
-	2. 当Bean发生了编辑时需要传递LogBean。
-	x. 需要像容器一样实现一个专有LogBean管理类。
 
 Zege
 	Topmost 重新实现：
@@ -49,16 +45,20 @@ tag v1.0.7 Task; Table.DelayRemove; dynamic in collection; Zeze.Util.Cache
 Task & Achievement & Statistics @项洋呈
 Table.DelayRemove 删除的实现。
 dynamic is bean? 支持放入容器。@张路
+DynamicLog：encode/decode 【大问题】
+	1. 当整个Bean替换的时候需要传递Bean.Encode 
+	2. 当Bean发生了编辑时需要传递LogBean。
+	x. 需要像容器一样实现一个专有LogBean管理类。
 Zege c#
 	Mission.cs 增加错误处理Action; Done！
 	c# create account;auth;login;friends; Done！
 	c# friends listener; 
+	c# MessageWindow;
 	c# friend encrypt message;
 	c# group department;
 	c# group message (no encrypt);
 	c# group cert-key transfer(p2p);
 	c# group encrypt message;
-
 
 【2022/9/22】
 ------------------------------------------------------------------------------------------------------------------------------
