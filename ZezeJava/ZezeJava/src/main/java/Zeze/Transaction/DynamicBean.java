@@ -3,12 +3,13 @@ package Zeze.Transaction;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Collections.LogBean;
 
 public class DynamicBean extends Bean implements DynamicBeanReadOnly {
-	private Bean bean;
-	private long typeId;
-	private transient final ToLongFunction<Bean> getSpecialTypeIdFromBean;
-	private transient final LongFunction<Bean> createBeanFromSpecialTypeId;
+	Bean bean;
+	long typeId;
+	transient final ToLongFunction<Bean> getSpecialTypeIdFromBean;
+	transient final LongFunction<Bean> createBeanFromSpecialTypeId;
 
 	public DynamicBean(int variableId, ToLongFunction<Bean> get, LongFunction<Bean> create) {
 		super(variableId);
@@ -25,8 +26,8 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		var txn = Transaction.getCurrentVerifyRead(this);
 		if (txn == null)
 			return bean;
-		var log = (DynamicLog)txn.getLog(objectId() + 1);
-		return log != null ? log.getValue() : bean;
+		var log = (LogDynamic)txn.getLog(parent().objectId() + variableId());
+		return log != null ? log.value : bean;
 	}
 
 	@SuppressWarnings("deprecation")
@@ -41,7 +42,8 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		value.initRootInfoWithRedo(rootInfo, this);
 		value.variableId(1); // 只有一个变量
 		var txn = Transaction.getCurrentVerifyWrite(this);
-		txn.putLog(new DynamicLog(this, value));
+		var log = (LogDynamic)txn.logGetOrAdd(parent().objectId() + variableId(), this::createLogBean);
+		log.setValue(value);
 	}
 
 	@Override
@@ -52,7 +54,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		if (txn == null)
 			return typeId;
 		// 不能独立设置，总是设置Bean时一起Commit，所以这里访问Bean的Log。
-		var log = (DynamicLog)txn.getLog(objectId() + 1);
+		var log = (LogDynamic)txn.getLog(parent().objectId() + variableId());
 		return log != null ? log.specialTypeId : typeId;
 	}
 
@@ -100,7 +102,8 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		bean.initRootInfoWithRedo(rootInfo, this);
 		bean.variableId(1); // 只有一个变量
 		var txn = Transaction.getCurrentVerifyWrite(this);
-		txn.putLog(new DynamicLog(specialTypeId, this, bean));
+		var log = (LogDynamic)txn.logGetOrAdd(parent().objectId() + variableId(), this::createLogBean);
+		log.setValue(bean);
 	}
 
 	@Override
@@ -151,50 +154,21 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 
 	@Override
 	public void followerApply(Log log) {
-		var dLog = (DynamicLog)log;
-		typeId = dLog.specialTypeId;
-		bean.followerApply(log);
+		var dLog = (LogDynamic)log;
+		if (null != dLog.value) {
+			typeId = dLog.specialTypeId;
+			bean = dLog.value;
+		} else if (null != dLog.logBean){
+			bean.followerApply(dLog.logBean);
+		}
 	}
 
-	private static final class DynamicLog extends Log1<DynamicBean, Bean> {
-		private long specialTypeId;
-
-		public long getSpecialTypeId() {
-			return specialTypeId;
-		}
-
-		public DynamicLog(DynamicBean self, Bean value) {
-			super(self, 0, value);
-			// 提前转换，如果是本Dynamic中没有配置的Bean，马上抛出异常。
-			specialTypeId = self.getSpecialTypeIdFromBean.applyAsLong(value);
-		}
-
-		public DynamicLog(long specialTypeId, DynamicBean self, Bean value) {
-			super(self, 0, value);
-			this.specialTypeId = specialTypeId;
-		}
-
-		@Override
-		public long getLogKey() {
-			return getBean().objectId() + 1;
-		}
-
-		@Override
-		public void commit() {
-			getBeanTyped().bean = getValue();
-			getBeanTyped().typeId = getSpecialTypeId();
-		}
-
-		@Override
-		public void encode(ByteBuffer bb) {
-			bb.WriteLong(specialTypeId);
-			getValue().encode(bb);
-		}
-
-		@Override
-		public void decode(ByteBuffer bb) {
-			specialTypeId = bb.ReadLong();
-			getValue().decode(bb); // todo 怎么创建bean。
-		}
+	@Override
+	public LogBean createLogBean() {
+		var dLog = new LogDynamic();
+		dLog.setBelong(parent());
+		dLog.setThis(this);
+		dLog.setVariableId(variableId());
+		return dLog;
 	}
 }
