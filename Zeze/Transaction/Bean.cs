@@ -370,6 +370,7 @@ namespace Zeze.Transaction
         }
     }
 
+    // see Zeze.Util.ConfBean.cs::LogConfDynamic
     public class LogDynamic : LogBean
     {
         public long SpecialTypeId { get; private set; }
