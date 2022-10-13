@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cs
 {
@@ -114,6 +115,11 @@ namespace Zeze.Gen.cs
                 if (dep.IsCollection)
                 {
                     tlogs.Add(GetCollectionLogTemplateName(dep));
+                    continue;
+                }
+                if (dep is TypeDynamic)
+                {
+                    tlogs.Add($"Zeze.Util.LogConfDynamic");
                     continue;
                 }
                 if (dep.IsNormalBeanOrRocks)
