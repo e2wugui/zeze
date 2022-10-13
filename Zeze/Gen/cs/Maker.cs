@@ -1,5 +1,8 @@
-﻿using System.IO;
-using System.Net.Http.Headers;
+﻿using Org.BouncyCastle.Utilities;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
 namespace Zeze.Gen.cs
 {
@@ -50,7 +53,7 @@ namespace Zeze.Gen.cs
             new App(Project, genDir, srcDir).Make();
         }
 
-        public void MakeConfCsNet()
+        public void MakeConfCsNet(HashSet<Types.Type> dependsFollowerApplyTables)
         {
             string projectBasedir = Project.GenDir;
             string projectDir = Path.Combine(projectBasedir, Project.Name);
@@ -86,6 +89,69 @@ namespace Zeze.Gen.cs
             new App(Project, genDir, srcDir, true).Make(true);
 
             Project.GenTables = savedGenTables;
+            GenFollowerApplyTablesLogFactoryRegister(genDir, dependsFollowerApplyTables);
+        }
+
+        public void GenFollowerApplyTablesLogFactoryRegister(string genDir, HashSet<Types.Type> dependsFollowerApplyTables)
+        {
+            using StreamWriter sw = Project.Solution.OpenWriter(genDir, "FollowerApplyTables.cs");
+
+            sw.WriteLine("// auto-generated");
+            sw.WriteLine();
+            sw.WriteLine("using Zeze.Transaction;");
+            sw.WriteLine("using Zeze.Transaction.Collections;");
+            sw.WriteLine();
+            sw.WriteLine("namespace " + Project.Solution.Path());
+            sw.WriteLine("{");
+            sw.WriteLine("    public class FollowerApplyTables");
+            sw.WriteLine("    {");
+            sw.WriteLine("        public static void RegisterLogFactory()");
+            sw.WriteLine("        {");
+
+            var tlogs = new HashSet<string>();
+            foreach (var dep in dependsFollowerApplyTables)
+            {
+                if (dep.IsCollection)
+                {
+                    tlogs.Add(GetCollectionLogTemplateName(dep));
+                    continue;
+                }
+                if (dep.IsNormalBeanOrRocks)
+                    continue;
+                tlogs.Add($"Log<{TypeName.GetName(dep)}>");
+            }
+            var sorted = tlogs.ToArray();
+            Array.Sort(sorted);
+            foreach (var tlog in sorted)
+            {
+                sw.WriteLine($"            Log.Register<{tlog}>();");
+            }
+
+            sw.WriteLine("        }");
+            sw.WriteLine("    }");
+            sw.WriteLine("}");
+        }
+
+        private string GetCollectionLogTemplateName(Types.Type type)
+        {
+            if (type is Types.TypeList tlist)
+            {
+                string value = rrcs.TypeName.GetName(tlist.ValueType);
+                return "LogList" + (tlist.ValueType.IsNormalBeanOrRocks ? "2<" : "1<") + value + ">";
+            }
+            else if (type is Types.TypeSet tset)
+            {
+                string value = rrcs.TypeName.GetName(tset.ValueType);
+                return "LogSet1<" + value + ">";
+            }
+            else if (type is Types.TypeMap tmap)
+            {
+                string key = rrcs.TypeName.GetName(tmap.KeyType);
+                string value = rrcs.TypeName.GetName(tmap.ValueType);
+                var version = tmap.ValueType.IsNormalBeanOrRocks ? "2<" : "1<";
+                return $"LogMap{version}{key}, {value}>";
+            }
+            throw new System.Exception();
         }
     }
 }

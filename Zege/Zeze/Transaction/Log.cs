@@ -57,7 +57,7 @@ namespace Zeze.Transaction
         }
     }
 
-    public abstract class Log<T> : Log
+    public class Log<T> : Log
     {
         public T Value { get; set; }
 
@@ -77,6 +77,7 @@ namespace Zeze.Transaction
         }
 
 #if !USE_CONFCS
+        
         internal override void EndSavepoint(Savepoint currentsp)
         {
             currentsp.Logs[LogKey] = this;
@@ -85,6 +86,11 @@ namespace Zeze.Transaction
         internal override Log BeginSavepoint()
         {
             return this;
+        }
+
+        public override void Commit()
+        {
+            throw new NotImplementedException();
         }
 #endif
     }

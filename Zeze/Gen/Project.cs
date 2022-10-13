@@ -24,6 +24,8 @@ namespace Zeze.Gen
 
         private XmlElement Self;
         private XmlElement ModuleStartSelf;
+        private XmlElement FollowerApplyTablesSelf;
+
         public string BuiltinNG { get; set; }
         public bool BuiltinNotGen => BuiltinNG.Equals("true");
 
@@ -111,6 +113,10 @@ namespace Zeze.Gen
                     case "bean":
                     case "beankey":
                         // Make 的时候解析。
+                        break;
+                    case "FollowerApplyTables":
+                        FollowerApplyTablesSelf = e;
+                        // Make conf+cs+net 的时候解析。
                         break;
                     default:
                         throw new Exception("unknown element name: " + e.Name);
@@ -315,10 +321,19 @@ namespace Zeze.Gen
                     new confcs.Maker(this).Make();
                     break;
                 case "conf+cs+net":
+                    var followerApplyTables = Program.Refs(FollowerApplyTablesSelf, "table", "name");
+                    var dependsFollowerApplyTables = new HashSet<Types.Type>();
+                    foreach (var tFullName in followerApplyTables)
+                    {
+                        var table = Program.GetNamedObject<Table>(tFullName);
+                        table.Depends(dependsFollowerApplyTables);
+                    }
+
                     // 警告，confcs.Maker为了简化，没有生成Gen目录，而是直接放到ProjectName下，这样和需要实现的代码混在一起，
                     // 会导致自己实现代码被删除，这个platform有网络协议以及模块。
-                    // 需要重新写了一份，选择需要生成的内容以及重新定义生成目录。
-                    new cs.Maker(this).MakeConfCsNet();
+                    // 需要重新写一份，选择需要生成的内容以及重新定义生成目录。
+
+                    new cs.Maker(this).MakeConfCsNet(dependsFollowerApplyTables);
                     break;
                 default:
                     throw new Exception("Project: unsupport platform: " + Platform);

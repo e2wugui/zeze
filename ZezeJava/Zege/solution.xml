@@ -499,6 +499,9 @@
 			<module ref="Message"/>
 			<module ref="User"/>
 		</service>
+		<FollowerApplyTables>
+			<table name="Zeze.Builtin.Collections.LinkedMap.tLinkedMapNodes"/>
+		</FollowerApplyTables>
 	</project>
 
 </solution>

@@ -88,6 +88,7 @@ namespace Zeze.Services
         {
             rocks.RegisterTableTemplate<Zeze.Net.Binary, Zeze.Builtin.GlobalCacheManagerWithRaft.CacheState>("Global");
             rocks.RegisterTableTemplate<Zeze.Net.Binary, Zeze.Builtin.GlobalCacheManagerWithRaft.AcquiredState>("Session");
+            Zeze.Raft.RocksRaft.Rocks.RegisterLog<Zeze.Raft.RocksRaft.Log<Zeze.Net.Binary>>();
             Zeze.Raft.RocksRaft.Rocks.RegisterLog<Zeze.Raft.RocksRaft.Log<int>>();
             Zeze.Raft.RocksRaft.Rocks.RegisterLog<Zeze.Raft.RocksRaft.LogSet1<int>>();
         }
