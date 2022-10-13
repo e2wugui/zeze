@@ -35,10 +35,11 @@ Zege c# ModuleFriend 还需要的能力
 【2022/10/28】
 
 ------------------------------------------------------------------------------------------------------------------------------
-tag v1.0.8 Task & Achievement & Statistics;
+tag v1.0.8 Task; Gen.Project.FollowerApplyTables; 
 ------------------------------------------------------------------------------------------------------------------------------
 Task & Achievement & Statistics @项洋呈
 Zege c#
+	c# login bug;
 	c# friends listener; 
 	c# MessageWindow;
 	c# friend encrypt message;
