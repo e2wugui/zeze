@@ -20,12 +20,12 @@ public class PList2<V extends Bean> extends PList<V> {
 
 	public PList2(Class<V> valueClass) {
 		valueFactory = Reflect.getDefaultConstructor(valueClass);
-		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.LogList2<" + Reflect.getStableName(valueClass) + '>');
+		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Transaction.Collections.LogList2<" + Reflect.getStableName(valueClass) + '>');
 	}
 
 	public PList2(ToLongFunction<Bean> get, LongFunction<Bean> create) { // only for DynamicBean value
 		valueFactory = SerializeHelper.createDynamicFactory(get, create);
-		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Transaction.LogList2<Zeze.Transaction.DynamicBean>");
+		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Transaction.Collections.LogList2<Zeze.Transaction.DynamicBean>");
 	}
 
 	private PList2(int logTypeId, MethodHandle valueFactory) {

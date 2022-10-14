@@ -18,7 +18,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	private boolean built = false;
 
 	public LogMap2(Class<K> keyClass, Class<V> valueClass) {
-		super("Zeze.Raft.RocksRaft.LogMap2<" + Reflect.getStableName(keyClass) + ", "
+		super("Zeze.Transaction.Collections.LogMap2<" + Reflect.getStableName(keyClass) + ", "
 				+ Reflect.getStableName(valueClass) + '>', keyClass, valueClass);
 		valueFactory = Reflect.getDefaultConstructor(valueClass);
 	}

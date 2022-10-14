@@ -5,7 +5,7 @@ import Zeze.Transaction.Log;
 import Zeze.Serialize.ByteBuffer;
 
 public abstract class LogInt extends Log {
-	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.Log<int>");
+	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Transaction.Log<int>");
 
 	public int value;
 

@@ -142,7 +142,7 @@ public class ModuleFriend extends AbstractModule {
 		return Procedure.Success;
 	}
 
-	private LinkedMap<BFriend> getFriendsOrTopmosts(String account, String endsWith) {
+	private LinkedMap<BFriend> getFriendsOrTopmost(String account, String endsWith) {
 		if (endsWith.equals(eFriendsLinkedMapNameEndsWith))
 			return getFriends(account);
 		if (endsWith.equals(eTopmostLinkedMapNameEndsWith))
@@ -153,7 +153,7 @@ public class ModuleFriend extends AbstractModule {
 	@Override
 	protected long ProcessGetFriendNodeRequest(Zege.Friend.GetFriendNode r) {
 		var session = ProviderUserSession.get(r);
-		var friends = getFriendsOrTopmosts(session.getAccount(), r.Argument.getLinkedMapNameEndsWith());
+		var friends = getFriendsOrTopmost(session.getAccount(), r.Argument.getLinkedMapNameEndsWith());
 		var nodeId = new OutLong(r.Argument.getNodeId());
 		var friendNode = r.Argument.getNodeId() == 0
 				? friends.getFirstNode(nodeId)

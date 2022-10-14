@@ -5,10 +5,14 @@ using Zeze.Transaction.Collections;
 
 namespace Zeze.Transaction
 {
+    /// <summary>
+    /// 这个类描述了增量更新的Changes.Record的解码和FollowerApply过程。
+    /// 编码参见Table.ChangeListenerEncodeWithTableName。
+    /// 客户端数据存储通常更加灵活，而且需要更新UI，所以这个代码用处不大。
+    /// 【建议】客户端的解码和FollowerApply参考这个代码完全自己实现一份。
+    /// </summary>
     public class ChangesRecord
     {
-        // 编码参见Table.ChangeListenerEncodeWithTableName
-
         public const int Remove = 0;
         public const int Put = 1;
         public const int Edit = 2;

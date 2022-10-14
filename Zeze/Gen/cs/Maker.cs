@@ -106,7 +106,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("{");
             sw.WriteLine("    public class FollowerApplyTables");
             sw.WriteLine("    {");
-            sw.WriteLine("        public static void RegisterLogFactory()");
+            sw.WriteLine("        public static void RegisterLog()");
             sw.WriteLine("        {");
 
             var tlogs = new HashSet<string>();

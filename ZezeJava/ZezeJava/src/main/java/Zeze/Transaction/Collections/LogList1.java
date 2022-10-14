@@ -38,7 +38,7 @@ public class LogList1<V> extends LogList<V> {
 	protected final ArrayList<OpLog<V>> opLogs = new ArrayList<>();
 
 	public LogList1(Class<V> valueClass) {
-		super("Zeze.Raft.RocksRaft.LogList1<" + Reflect.getStableName(valueClass) + '>');
+		super("Zeze.Transaction.Collections.LogList1<" + Reflect.getStableName(valueClass) + '>');
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
 	}
 

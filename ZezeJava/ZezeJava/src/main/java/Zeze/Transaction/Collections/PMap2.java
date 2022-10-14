@@ -22,7 +22,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	public PMap2(Class<K> keyClass, Class<V> valueClass) {
 		keyCodecFuncs = SerializeHelper.createCodec(keyClass);
 		valueFactory = Reflect.getDefaultConstructor(valueClass);
-		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.LogMap2<"
+		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Transaction.Collections.LogMap2<"
 				+ Reflect.getStableName(keyClass) + ", " + Reflect.getStableName(valueClass) + '>');
 	}
 

@@ -4,7 +4,6 @@ using Zeze.Builtin.Collections.LinkedMap;
 using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Transaction;
-using Zeze.Transaction.Collections;
 using Zeze.Util;
 
 namespace Zege.Friend
@@ -32,6 +31,17 @@ namespace Zege.Friend
         // 置顶好友单独保存。
         private BTopmostFriends Topmosts;
 
+        private FriendNodes GetFriendNodes(string tableName)
+        {
+            if (tableName.EndsWith(FriendNodes.LinkedMapNameEndsWith))
+                return FriendNodes;
+
+            if (tableName.EndsWith(FriendTopmosts.LinkedMapNameEndsWith))
+                return FriendTopmosts;
+
+            throw new NotImplementedException();
+        }
+
         [DispatchMode(Mode = DispatchMode.UIThread)]
         protected override Task<long> ProcessFriendNodeLogBeanNotify(Protocol p)
         {
@@ -41,17 +51,12 @@ namespace Zege.Friend
             // 是否使用同一个协议，看服务器通知的时候new哪一个协议。
 
             var r = p as FriendNodeLogBeanNotify;
-            ChangesRecord.FollowerApply(ByteBuffer.Wrap(r.Argument.ChangeLog),
-                (tableName) =>
-                {
-                    if (tableName.EndsWith(FriendNodes.LinkedMapNameEndsWith))
-                        return FriendNodes;
-
-                    if (tableName.EndsWith(FriendTopmosts.LinkedMapNameEndsWith))
-                        return FriendTopmosts;
-
-                    throw new NotImplementedException();
-                });
+            var bb = ByteBuffer.Wrap(r.Argument.ChangeLog);
+            var tableName = bb.ReadString();
+            var table = GetFriendNodes(tableName);
+            var key = new BLinkedMapNodeKey();
+            key.Decode(bb.ReadByteBuffer());
+            table.FollowerApply(key, bb);
             return Task.FromResult(ResultCode.Success);
         }
 

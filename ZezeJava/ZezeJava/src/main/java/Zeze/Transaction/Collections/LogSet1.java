@@ -18,7 +18,7 @@ public class LogSet1<V> extends LogSet<V> {
 	private final Set<V> removed = new HashSet<>();
 
 	public LogSet1(Class<V> valueClass) {
-		super("Zeze.Raft.RocksRaft.LogSet1<" + Reflect.getStableName(valueClass) + '>');
+		super("Zeze.Transaction.Collections.LogSet1<" + Reflect.getStableName(valueClass) + '>');
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
 	}
 

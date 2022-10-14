@@ -14,7 +14,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	private final MethodHandle valueFactory;
 
 	public LogList2(Class<V> valueClass) {
-		super("Zeze.Raft.RocksRaft.LogList2<" + Reflect.getStableName(valueClass) + '>', valueClass);
+		super("Zeze.Transaction.Collections.LogList2<" + Reflect.getStableName(valueClass) + '>', valueClass);
 		valueFactory = Reflect.getDefaultConstructor(valueClass);
 	}
 

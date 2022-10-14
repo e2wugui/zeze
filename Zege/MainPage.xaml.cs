@@ -21,8 +21,9 @@ namespace Zege
             //SecureStorage.Default.SetAsync("", "");
             // fix remove me
             // SemanticScreenReader.Announce(CounterBtn.Text);
-
             LoggingConfiguration();
+
+            FollowerApplyTables.RegisterLog();
         }
 
         private void LoggingConfiguration()

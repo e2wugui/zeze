@@ -18,7 +18,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	private final Set<K> removed = new HashSet<>();
 
 	public LogMap1(Class<K> keyClass, Class<V> valueClass) {
-		this("Zeze.Raft.RocksRaft.LogMap1<" + Reflect.getStableName(keyClass) + ", "
+		this("Zeze.Transaction.Collections.LogMap1<" + Reflect.getStableName(keyClass) + ", "
 				+ Reflect.getStableName(valueClass) + '>', keyClass, valueClass);
 	}
 

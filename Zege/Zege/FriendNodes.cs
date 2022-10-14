@@ -7,11 +7,12 @@ using Zeze.Builtin.Collections.LinkedMap;
 using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Transaction;
+using Zeze.Transaction.Collections;
 using Zeze.Util;
 
 namespace Zege.Friend
 {
-    public class FriendNodes : ChangesTable
+    public class FriendNodes
     {
         public ModuleFriend ModuleFriend { get; }
         public string LinkedMapNameEndsWith { get; }
@@ -46,42 +47,51 @@ namespace Zege.Friend
             return key;
         }
 
-        public ConfBean NewValueBean()
+        public void FollowerApply(BLinkedMapNodeKey key, ByteBuffer bb)
         {
-            return new BLinkedMapNode();
-        }
-
-        public ConfBean Get(object key)
-        {
-            var tkey = (BLinkedMapNodeKey)key;
-            var indexOf = IndexOf(tkey.NodeId);
-            if (indexOf < 0)
-                return null;
-            return Nodes[indexOf];
-        }
-
-        public void Put(object key, ConfBean value)
-        {
-            var tkey = (BLinkedMapNodeKey)key;
-            var tvalue = (BLinkedMapNode)value;
-
-            var node = new BGetFriendNode();
-            node.NodeKey = tkey;
-            node.Node = tvalue;
-
-            // 新节点加入：添加好友时，头部节点满了；或者活跃的好友数量超出了头部节点的容量
-            Nodes.Insert(0, node);
-            UpdateItemsSource(UpdateType.InsertHead, node);
-        }
-
-        public void Remove(object key)
-        {
-            var tkey = (BLinkedMapNodeKey)key;
-            var indexOf = IndexOf(tkey.NodeId);
-            if (indexOf >= 0)
+            int state;
+            state = bb.ReadInt();
+            switch (state)
             {
-                Nodes.RemoveAt(indexOf);
-                ModuleFriend.OnRemoveNode(tkey);
+                case ChangesRecord.Remove:
+                    {
+                        var indexOf = IndexOf(key.NodeId);
+                        if (indexOf >= 0)
+                        {
+                            Nodes.RemoveAt(indexOf);
+                            ModuleFriend.OnRemoveNode(key);
+                        }
+                    }
+                    break;
+
+                case ChangesRecord.Put:
+                    {
+                        var value = new BLinkedMapNode();
+                        value.Decode(bb);
+                        var node = new BGetFriendNode();
+                        node.NodeKey = key;
+                        node.Node = value;
+                        // 新节点加入：添加好友时，头部节点满了；或者活跃的好友数量超出了头部节点的容量
+                        Nodes.Insert(0, node);
+                        UpdateItemsSource(UpdateType.InsertHead, node);
+                    }
+                    break;
+
+                case ChangesRecord.Edit:
+                    {
+                        var logBean = new HashSet<LogBean>();
+                        bb.Decode(logBean);
+                        var it = logBean.GetEnumerator();
+                        if (it.MoveNext())
+                        {
+                            var indexOf = IndexOf(key.NodeId);
+                            if (indexOf < 0)
+                                return;
+                            Nodes[indexOf].Node.FollowerApply(it.Current);
+                            UpdateItemsSource(UpdateType.Update, Nodes[indexOf]);
+                        }
+                    }
+                    break;
             }
         }
 
@@ -277,7 +287,7 @@ namespace Zege.Friend
 
                 if (ii.Account.Equals(jj.Id))
                 {
-                    if (FriendMatch(ii, jj)) // BUG：false == ；因为下面的RemoveAt第二次失败，先保留错误的代码。
+                    if (false == FriendMatch(ii, jj))
                     {
                         // 数据发生了变更，使用删除再次加入的方式更新View。
                         //ItemsSource.RemoveAt(i);

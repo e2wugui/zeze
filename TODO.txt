@@ -39,8 +39,8 @@ tag v1.0.8 Task; Gen.Project.FollowerApplyTables;
 ------------------------------------------------------------------------------------------------------------------------------
 Task & Achievement & Statistics @项洋呈
 Zege c#
-	c# login bug;
-	c# friends listener; 
+	c# login bug; done?
+	c# friends listener; done
 	c# MessageWindow;
 	c# friend encrypt message;
 	c# group department;

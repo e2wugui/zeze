@@ -14,7 +14,7 @@ public class PSet1<V> extends PSet<V> {
 
 	public PSet1(Class<V> valueClass) {
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
-		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.LogSet1<" + Reflect.getStableName(valueClass) + '>');
+		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Transaction.Collections.LogSet1<" + Reflect.getStableName(valueClass) + '>');
 	}
 
 	private PSet1(int logTypeId, SerializeHelper.CodecFuncs<V> valueCodecFuncs) {

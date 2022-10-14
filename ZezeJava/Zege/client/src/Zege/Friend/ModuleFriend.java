@@ -20,6 +20,7 @@ public class ModuleFriend extends AbstractModule {
     public BGetFriendNode getFriendNode(long nodeId) {
         var req = new GetFriendNode();
         req.Argument.setNodeId(nodeId);
+        req.Argument.setLinkedMapNameEndsWith("@Zege.Friend");
         req.SendForWait(App.Connector.TryGetReadySocket()).await();
         return req.getResultCode() == 0 ? req.Result : new BGetFriendNode();
     }

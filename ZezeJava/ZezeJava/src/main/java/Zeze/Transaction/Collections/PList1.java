@@ -15,7 +15,7 @@ public class PList1<V> extends PList<V> {
 
 	public PList1(Class<V> valueClass) {
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
-		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Transaction.LogList1<" + Reflect.getStableName(valueClass) + '>');
+		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Transaction.Collections.LogList1<" + Reflect.getStableName(valueClass) + '>');
 	}
 
 	private PList1(int logTypeId, SerializeHelper.CodecFuncs<V> valueCodecFuncs) {
