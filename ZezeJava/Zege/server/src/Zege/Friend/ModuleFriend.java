@@ -451,52 +451,26 @@ public class ModuleFriend extends AbstractModule {
 		return Procedure.Success;
 	}
 
-	private static int indexOfTopmost(BTopmostFriends topmosts, String account) {
-		for (int i = 0; i < topmosts.getTopmosts().size(); ++i) {
-			if (topmosts.getTopmosts().get(i).getAccount().equals(account))
-				return i;
-		}
-		return -1;
-	}
-
 	@Override
-	protected long ProcessSetTopmostFriendRequest(Zege.Friend.SetTopmostFriend r) {
+	protected long ProcessSetTopmostRequest(Zege.Friend.SetTopmost r) {
 		var session = ProviderUserSession.get(r);
 
-		var topmostFriends = _tTopmostFriends.getOrAdd(session.getAccount());
-		var indexOf = indexOfTopmost(topmostFriends, r.Argument.getAccount());
 		if (r.Argument.isTopmost()) {
-			if (-1 == indexOf) {
-				// 参数检查
-				if (r.Argument.getAccount().endsWith("@group")) {
-					if (getGroup(r.Argument.getAccount()).getRoot() == null)
-						return errorCode(eGroupNotExist);
-				} else {
-					var friends = getFriends(session.getAccount());
-					var friend = friends.get(r.Argument.getAccount());
-					if (null == friend)
-						return errorCode(eNotFriend);
-				}
-				// 加入置顶
-				var topmost = new Zege.User.BAccount();
-				topmost.setAccount(r.Argument.getAccount());
-				topmostFriends.getTopmosts().add(0, topmost);
-			}
+			var friends = getFriends(session.getAccount());
+			var willTopmost = friends.remove(r.Argument.getAccount());
+			if (null == willTopmost)
+				return errorCode(eNotFriend);
+			var tops = getTopmosts(session.getAccount());
+			tops.getOrAdd(r.Argument.getAccount()).assign(willTopmost);
 		} else {
-			// 删除置顶
-			if (indexOf >= 0)
-				topmostFriends.getTopmosts().remove(indexOf);
+			var tops = getTopmosts(session.getAccount());
+			var removeTopmost = tops.remove(r.Argument.getAccount());
+			if (null == removeTopmost)
+				return errorCode(eNotTopmost);
+			var friends = getFriends(session.getAccount());
+			friends.getOrAdd(r.Argument.getAccount()).assign(removeTopmost);
 		}
 
-		session.sendResponseWhileCommit(r);
-		return Procedure.Success;
-	}
-
-	@Override
-	protected long ProcessGetTopmostFriendsRequest(Zege.Friend.GetTopmostFriends r) {
-		var session = ProviderUserSession.get(r);
-		var topmostFriends = _tTopmostFriends.getOrAdd(session.getAccount());
-		r.Result.getTopmosts().addAll(topmostFriends.getTopmosts());
 		session.sendResponseWhileCommit(r);
 		return Procedure.Success;
 	}

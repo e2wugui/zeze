@@ -126,6 +126,7 @@
 		<enum name="eUserExists"                value="10"/>
 		<enum name="eNotFriend"                 value="11"/>
 		<enum name="eGroupNotExist"             value="12"/>
+		<enum name="eNotTopmost"                value="13"/>
 
 		<!-- 好友列表用 Zeze.Collections.LinkedMap 下面时自定义数据结构的定义 -->
 		<bean name="BFriend">
@@ -156,11 +157,11 @@
 
 		<rpc name="DeleteFriend" argument="Zege.User.BAccount" handle="server"/>
 
-		<bean name="BSetTopmostFriend">
+		<bean name="BSetTopmost">
 			<variable id="1" name="Account" type="string"/>
 			<variable id="2" name="Topmost" type="bool"/>
 		</bean>
-		<rpc name="SetTopmostFriend" argument="BSetTopmostFriend" handle="server"/>
+		<rpc name="SetTopmost" argument="BSetTopmost" handle="server"/>
 
 		<bean name="BFriendNodeLogBean">
 			<variable id="1" name="ChangeLog" type="binary"/>
@@ -307,15 +308,6 @@
 		</bean>
 		<rpc name="AddManager" argument="BAddManager" handle="server"/>
 		<rpc name="DeleteManager" argument="BDeleteManager" handle="server"/>
-
-		<!-- 置顶好友，有数量限制 -->
-		<bean name="BTopmostFriends">
-			<variable id="1" name="Topmosts" type="list[Zege.User.BAccount]"/>
-		</bean>
-		<table name="tTopmostFriends" key="string" value="BTopmostFriends"/>
-
-		<rpc name="GetTopmostFriends" result="BTopmostFriends" handle="server"/>
-
 	</module>
 
 	<module name="Message" id="3">

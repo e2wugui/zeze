@@ -39,6 +39,7 @@ Zege c#
 	1. 使用另一个LinkedMap存储，
 	2. 有数量限制？读取的时候装载全部Node？
 	3. 复杂度放在服务器：判断好友的时候用"或者的关系"判断两个LinkedMap。需要Review所有好友相关操作。
+Zege c#
 	c# MessageWindow;
 	c# friend encrypt message;
 	c# group department;

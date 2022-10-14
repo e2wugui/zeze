@@ -159,7 +159,11 @@ namespace Zege
 
         private void OnMakeCurrentFriendTop(object sender, EventArgs e)
         {
-            //App.Zege_Friend.SetTopmostFriend();
+            var selected = FriendsListView.SelectedItem as FriendItem;
+            if (null == selected)
+                return;
+
+            App.Zege_Friend.SetTopmost(selected);
         }
 
         private void OnReturnTop(object sender, EventArgs e)

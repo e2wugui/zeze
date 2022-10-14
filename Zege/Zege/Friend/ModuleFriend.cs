@@ -12,8 +12,8 @@ namespace Zege.Friend
     {
         public void Start(global::Zege.App app)
         {
-            FriendTopmosts = new FriendNodes(this, "@Zege.Topmost", true);
-            FriendNodes = new FriendNodes(this, "@Zege.Friend", false);
+            Topmosts = new FriendNodes(this, "@Zege.Topmost", true);
+            Friends = new FriendNodes(this, "@Zege.Friend", false);
         }
 
         public void Stop(global::Zege.App app)
@@ -25,19 +25,16 @@ namespace Zege.Friend
         private ListView ListView { get; set; }
 
         // 好友数据
-        private FriendNodes FriendNodes { get; set; }
-        private FriendNodes FriendTopmosts { get; set; }
-
-        // 置顶好友单独保存。
-        private BTopmostFriends Topmosts;
+        private FriendNodes Friends { get; set; }
+        private FriendNodes Topmosts { get; set; }
 
         private FriendNodes GetFriendNodes(string tableName)
         {
-            if (tableName.EndsWith(FriendNodes.LinkedMapNameEndsWith))
-                return FriendNodes;
+            if (tableName.EndsWith(Friends.LinkedMapNameEndsWith))
+                return Friends;
 
-            if (tableName.EndsWith(FriendTopmosts.LinkedMapNameEndsWith))
-                return FriendTopmosts;
+            if (tableName.EndsWith(Topmosts.LinkedMapNameEndsWith))
+                return Topmosts;
 
             throw new NotImplementedException();
         }
@@ -63,7 +60,7 @@ namespace Zege.Friend
         private void OnScrolled(object sender, ScrolledEventArgs args)
         {
             if (args.ScrollY > ListView.Height - 120)
-                FriendNodes.TryGetFriendNode(true);
+                Friends.TryGetFriendNode(true);
         }
 
         public void Bind(ListView view)
@@ -75,10 +72,10 @@ namespace Zege.Friend
 
         public void GetFristFriendNode()
         {
-            FriendTopmosts.GetAllFriendNode(() =>
+            Topmosts.GetAllFriendNode(() =>
             {
-                if (FriendNodes.Nodes.Count == 0)
-                    FriendNodes.TryGetFriendNode(true);
+                if (Friends.Nodes.Count == 0)
+                    Friends.TryGetFriendNode(true);
             });
         }
 
@@ -104,24 +101,6 @@ namespace Zege.Friend
             }
         }
 
-        private void GetTopmosts()
-        {
-            var r = new GetTopmostFriends();
-            r.Send(App.ClientService.GetSocket(), ProcessGetTopmosts);
-        }
-
-        [DispatchMode(Mode = DispatchMode.UIThread)]
-        private Task<long> ProcessGetTopmosts(Protocol p)
-        {
-            var r = p as GetTopmostFriends;
-            if (r.ResultCode == 0)
-            {
-                Topmosts = r.Result;
-            }
-            // TODO Update ItemsSource
-            return Task.FromResult(0L);
-        }
-
         public void AddNewFriend()
         {
             var r = new AddFriend();
@@ -132,11 +111,11 @@ namespace Zege.Friend
         [DispatchMode(Mode = DispatchMode.UIThread)]
         private Task<long> ProcessAddNewFriend(Protocol p)
         {
-            FriendNodes.GetFriendNodePending = null;
+            Friends.GetFriendNodePending = null;
             var r = p as AddFriend;
             if (r.ResultCode == 0)
             {
-                FriendNodes.TryGetFriendNode(false);
+                Friends.TryGetFriendNode(false);
             }
             return Task.FromResult(0L);
         }
@@ -157,11 +136,12 @@ namespace Zege.Friend
             //r.Send(App.ClientService.GetSocket());
         }
 
-        public void SetTopmostFriend(string account, bool topmost)
+        public void SetTopmost(FriendItem friend)
         {
-            var r = new SetTopmostFriend();
-            r.Argument.Account = account;
-            r.Argument.Topmost = topmost;
+            var r = new SetTopmost();
+            r.Argument.Account = friend.Account;
+            // 普通好友则设置Topmost，否则去除Topmost。
+            r.Argument.Topmost = friend.NodeKey.Name.EndsWith(Friends.LinkedMapNameEndsWith);
             r.Send(App.ClientService.GetSocket());
         }
 
@@ -172,7 +152,7 @@ namespace Zege.Friend
 
         public void Test()
         {
-            var res = FriendNodes.TryNewGetFriendNode(true);
+            var res = Friends.TryNewGetFriendNode(true);
         }
 
         // Test Field
