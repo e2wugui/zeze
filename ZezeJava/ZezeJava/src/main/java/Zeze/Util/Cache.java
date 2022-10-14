@@ -26,13 +26,12 @@ public class Cache {
 	/**
 	 * 创建LocalCache
 	 *
-	 * @param name Cache名字，直接作为目录名字，需要注意有些字符可能不能用。
+	 * @param name        Cache名字，直接作为目录名字，需要注意有些字符可能不能用。
 	 * @param lruCapacity 解码后的对象lru容量。
-	 * @param loader 根据id装载对象实例的。
-	 * @param decoder 根据id和数据创建出对象实例。
-	 *
+	 * @param loader      根据id装载对象实例的。
+	 * @param decoder     根据id和数据创建出对象实例。
 	 */
-	public Cache(String name, int lruCapacity, Function<String, CacheObject> loader, BiFunction<String,ByteBuffer, CacheObject> decoder) throws RocksDBException {
+	public Cache(String name, int lruCapacity, Function<String, CacheObject> loader, BiFunction<String, ByteBuffer, CacheObject> decoder) throws RocksDBException {
 		this.name = name;
 		this.loader = loader;
 		this.decoder = decoder;
@@ -149,8 +148,7 @@ public class Cache {
 
 	private void tryRemove(File file) throws IOException, RocksDBException {
 		try (var r = new BufferedReader(new FileReader(file, StandardCharsets.UTF_8))) {
-			for (var line = r.readLine(); line != null; line = r.readLine()) {
-				var id = line;
+			for (var id = r.readLine(); id != null; id = r.readLine()) {
 				if (lru.get(id) != null)
 					continue; // 当前使用中的项不删除。
 				var key = ByteBuffer.Allocate(9);

@@ -158,7 +158,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		if (null != dLog.value) {
 			typeId = dLog.specialTypeId;
 			bean = dLog.value;
-		} else if (null != dLog.logBean){
+		} else if (null != dLog.logBean) {
 			bean.followerApply(dLog.logBean);
 		}
 	}

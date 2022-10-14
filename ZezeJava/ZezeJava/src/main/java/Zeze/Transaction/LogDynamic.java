@@ -53,12 +53,10 @@ public class LogDynamic extends LogBean {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb)
-	{
+	public void decode(ByteBuffer bb) {
 		var parentTypeName = bb.ReadString();
 		var hasValue = bb.ReadBool();
-		if (hasValue)
-		{
+		if (hasValue) {
 			specialTypeId = bb.ReadLong();
 			try {
 				var parentType = Class.forName(parentTypeName);
