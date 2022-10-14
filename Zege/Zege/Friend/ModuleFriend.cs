@@ -75,8 +75,11 @@ namespace Zege.Friend
 
         public void GetFristFriendNode()
         {
-            if (FriendNodes.Nodes.Count == 0)
-                FriendNodes.TryGetFriendNode(true);
+            FriendTopmosts.GetAllFriendNode(() =>
+            {
+                if (FriendNodes.Nodes.Count == 0)
+                    FriendNodes.TryGetFriendNode(true);
+            });
         }
 
         internal void OnRemoveNode(BLinkedMapNodeKey nodeKey)
@@ -138,14 +141,12 @@ namespace Zege.Friend
             return Task.FromResult(0L);
         }
 
+        // 这个方法没有真正被使用。
+        // 定义在这里是为了给GetFriendNode设置DispatchMode。
+        // 真正的处理在FriendNodes里面实现。
         [DispatchMode(Mode = DispatchMode.UIThread)]
         internal Task<long> ProcessGetFriendNodeResponse(Protocol p)
         {
-            var r = p as GetFriendNode;
-            if (r.ResultCode == 0)
-            {
-                FriendNodes.OnGetFriendNodeResponse(r.Result);
-            }
             return Task.FromResult(0L);
         }
 

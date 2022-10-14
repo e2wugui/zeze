@@ -1,14 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Zeze.Builtin.Collections.LinkedMap;
 using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Transaction;
 using Zeze.Transaction.Collections;
-using Zeze.Util;
 
 namespace Zege.Friend
 {
@@ -31,6 +26,7 @@ namespace Zege.Friend
         // 没有这个参数Insert无法确定ItemSource中的Insert Index。
         // see UpdateItemSource
         public bool FirstItemSource { get; }
+        public Action LoadAllCompleted { get; private set; }
 
         public FriendNodes(ModuleFriend module, string name, bool firstItemSource)
         {
@@ -149,37 +145,61 @@ namespace Zege.Friend
 
         }
 
-        internal void TryGetFriendNode(bool forward)
+        public bool TryGetFriendNode(bool forward)
         {
             if (GetFriendNodePending != null)
-                return; // done
+                return true; // done
 
             GetFriendNodePending = TryNewGetFriendNode(forward);
-            GetFriendNodePending?.Send(ModuleFriend.App.ClientService.GetSocket(), ModuleFriend.ProcessGetFriendNodeResponse);
+            GetFriendNodePending?.Send(ModuleFriend.App.ClientService.GetSocket(), ProcessGetFriendNodeResponse);
+            return GetFriendNodePending != null;
         }
 
-        internal Task<long> OnGetFriendNodeResponse(BGetFriendNode get)
+        // 查询好友结果处理函数。
+        private Task<long> ProcessGetFriendNodeResponse(Protocol p)
         {
-            GetFriendNodePending = null;
-            var indexOf = IndexOf(get.NodeKey.NodeId);
-            if (indexOf >= 0)
+            var r = p as GetFriendNode;
+            if (r.ResultCode == 0)
             {
-                Nodes[indexOf] = get;
-                UpdateItemsSource(UpdateType.Update, get);
+                GetFriendNodePending = null;
+                var indexOf = IndexOf(r.Result.NodeKey.NodeId);
+                if (indexOf >= 0)
+                {
+                    Nodes[indexOf] = r.Result;
+                    UpdateItemsSource(UpdateType.Update, r.Result);
+                }
+                else
+                {
+                    Nodes.Add(r.Result);
+                    UpdateItemsSource(UpdateType.InsertTail, r.Result);
+                }
             }
-            else
+
+            if (LoadAllCompleted != null)
             {
-                Nodes.Add(get);
-                UpdateItemsSource(UpdateType.InsertTail, get);
+                // 失败马上触发结束回调；到达最后一个Node触发结束回调；
+                if (r.ResultCode != 0 || false == TryGetFriendNode(true))
+                    LoadAllCompleted();
             }
 
             return Task.FromResult(0L);
         }
 
+        public void GetAllFriendNode(Action callback)
+        {
+            if (null != LoadAllCompleted)
+                throw new InvalidOperationException();
+
+            LoadAllCompleted = callback;
+            TryGetFriendNode(true);
+        }
+
         public bool FriendMatch(FriendItem ii, BLinkedMapNodeValue jj)
         {
             // todo 更多数据变化检查。需要结合User.Nick？
-            return ii.Nick.Equals(((BFriend)jj.Value).Memo);
+            var cur = (BFriend)jj.Value;
+            var nick = string.IsNullOrEmpty(cur.Memo) ? jj.Id : cur.Memo;
+            return ii.Nick.Equals(nick);
         }
 
         public FriendItem ToFriendItem(BLinkedMapNodeKey nodeKey, BLinkedMapNodeValue nodeValue)

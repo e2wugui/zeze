@@ -19,12 +19,6 @@ Zege
 
 ServiceManager::OfflineNotify 选择目标遍历优化。
 
-Zege
-	Topmost 重新实现：
-	1. 使用另一个LinkedMap存储，
-	2. 有数量限制？读取的时候装载全部Node？
-	3. 复杂度放在服务器：判断好友的时候用"或者的关系"判断两个LinkedMap。需要Review所有好友相关操作。
-
 Zege c# ModuleFriend 还需要的能力
 	1. Nodes 限制大小，当往后面翻超过n(如10个）节点时，删除开头的节点。
 	2. 删除开头的节点时，保存FirstNode，用来快速回到列表开头。
@@ -41,6 +35,10 @@ Task & Achievement & Statistics @项洋呈
 Zege c#
 	c# login bug; done?
 	c# friends listener; done
+	Topmost 重新实现：
+	1. 使用另一个LinkedMap存储，
+	2. 有数量限制？读取的时候装载全部Node？
+	3. 复杂度放在服务器：判断好友的时候用"或者的关系"判断两个LinkedMap。需要Review所有好友相关操作。
 	c# MessageWindow;
 	c# friend encrypt message;
 	c# group department;
