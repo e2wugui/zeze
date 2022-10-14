@@ -35,7 +35,7 @@ Zege c# ModuleFriend 还需要的能力
 【2022/10/28】
 
 ------------------------------------------------------------------------------------------------------------------------------
-tag v1.0.8 Task; Gen.Project.FollowerApplyTables; 
+tag v1.0.8 Task; Gen.Project.FollowerApplyTables; FollowerApply work between conf+cs+net and java;
 ------------------------------------------------------------------------------------------------------------------------------
 Task & Achievement & Statistics @项洋呈
 Zege c#
