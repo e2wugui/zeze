@@ -4,9 +4,15 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Collections.LogBean;
 
 public class LogDynamic extends LogBean {
+	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Transaction.LogDynamic");
+
 	public long specialTypeId;
 	public Bean value;
 	public LogBean logBean;
+
+	public LogDynamic() {
+		super(TYPE_ID);
+	}
 
 	// 收集内部的Bean发生了改变。
 	@Override

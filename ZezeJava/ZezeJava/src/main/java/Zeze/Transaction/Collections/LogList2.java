@@ -53,6 +53,11 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 		}
 		bb.WriteUInt(changed.size());
 		for (var e : changed.entrySet()) {
+			/*
+			System.out.println(e.getKey().getClass().getName()
+					+ " " + e.getKey().getThis().getClass().getName()
+					+ " typeId=" + e.getKey().getTypeId());
+			*/
 			e.getKey().encode(bb);
 			bb.WriteUInt(e.getValue().value);
 		}
