@@ -29,18 +29,18 @@ Zege c# ModuleFriend 还需要的能力
 【2022/10/28】
 
 ------------------------------------------------------------------------------------------------------------------------------
-tag v1.0.8 Task; Gen.Project.FollowerApplyTables; FollowerApply work between conf+cs+net and java;
+tag v1.0.8 Task; FollowerApply between conf+cs+net and java;
 ------------------------------------------------------------------------------------------------------------------------------
 Task & Achievement & Statistics @项洋呈
 Zege c#
 	c# login bug; done?
 	c# friends listener; done
-	Topmost 重新实现：
+	Topmost 重新实现：done
 	1. 使用另一个LinkedMap存储，
 	2. 有数量限制？读取的时候装载全部Node？
 	3. 复杂度放在服务器：判断好友的时候用"或者的关系"判断两个LinkedMap。需要Review所有好友相关操作。
 Zege c#
-	c# MessageWindow;
+	c# MessageView;
 	c# friend encrypt message;
 	c# group department;
 	c# group message (no encrypt);
