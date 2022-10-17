@@ -127,6 +127,7 @@
 		<enum name="eNotFriend"                 value="11"/>
 		<enum name="eGroupNotExist"             value="12"/>
 		<enum name="eNotTopmost"                value="13"/>
+		<enum name="eAlreadyIsFriend"           value="14"/>
 
 		<!-- 好友列表用 Zeze.Collections.LinkedMap 下面时自定义数据结构的定义 -->
 		<bean name="BFriend">

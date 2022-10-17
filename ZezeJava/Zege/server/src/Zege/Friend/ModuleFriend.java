@@ -56,6 +56,16 @@ public class ModuleFriend extends AbstractModule {
 		return App.LinkedMaps.open(owner + eTopmostLinkedMapNameEndsWith, BFriend.class, App.ZegeConfig.FriendCountPerNode);
 	}
 
+	/*
+	 * 现在好友是双向的。被对方删除，自己会知道。
+	 * todo 为了能查阅旧的聊天历史，自己这一方不会删除，而是设置标志。
+	 * todo 所以下面的判断以及添加好友(再次添加)流程需要处理标志。
+	 * todo 注意：这个标志目前还没定义和实现。
+	 */
+	public boolean isFriend(String owner, String friend) {
+		return getFriends(owner).get(friend) != null || getTopmosts(owner).get(friend) != null;
+	}
+
 	@Override
 	protected long ProcessAddFriendRequest(Zege.Friend.AddFriend r) {
 		var session = ProviderUserSession.get(r);
@@ -64,6 +74,10 @@ public class ModuleFriend extends AbstractModule {
 		// 参数检查
 		if (!App.Zege_User.containsKey(r.Argument.getAccount()))
 			return errorCode(eUserNotFound);
+
+		// todo 好友判断流程需要重新设计。
+		if (isFriend(session.getAccount(), r.Argument.getAccount()))
+			return errorCode(eAlreadyIsFriend);
 
 		if (r.Argument.getAccount().endsWith("@group")) {
 			// 添加群，todo，如果目标需要群主批准，需要走审批流程
@@ -434,17 +448,16 @@ public class ModuleFriend extends AbstractModule {
 	protected long ProcessDeleteFriendRequest(Zege.Friend.DeleteFriend r) {
 		var session = ProviderUserSession.get(r);
 
-		var self = getFriends(session.getAccount());
-		if (null != self)
-			self.remove(r.Argument.getAccount());
+		// todo 好友添加删除等流程需要重新设计。
+		getFriends(session.getAccount()).remove(r.Argument.getAccount());
+		getTopmosts(session.getAccount()).remove(r.Argument.getAccount());
 
 		if (r.Argument.getAccount().endsWith("@group")) {
 			var group = getGroup(r.Argument.getAccount());
 			quitMember(group, session.getAccount(), 0);
 		} else {
-			var peer = getFriends(r.Argument.getAccount());
-			if (null != peer)
-				peer.remove(session.getAccount());
+			getFriends(r.Argument.getAccount()).remove(session.getAccount());
+			getTopmosts(r.Argument.getAccount()).remove(session.getAccount());
 		}
 
 		session.sendResponseWhileCommit(r);
