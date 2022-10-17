@@ -469,11 +469,13 @@ public class ModuleFriend extends AbstractModule {
 		var session = ProviderUserSession.get(r);
 
 		if (r.Argument.isTopmost()) {
+			var tops = getTopmosts(session.getAccount());
+			if (tops.size() >= App.ZegeConfig.FriendCountPerNode)
+				return errorCode(eTooManyTopmost);
 			var friends = getFriends(session.getAccount());
 			var willTopmost = friends.remove(r.Argument.getAccount());
 			if (null == willTopmost)
 				return errorCode(eNotFriend);
-			var tops = getTopmosts(session.getAccount());
 			tops.getOrAdd(r.Argument.getAccount()).assign(willTopmost);
 		} else {
 			var tops = getTopmosts(session.getAccount());
