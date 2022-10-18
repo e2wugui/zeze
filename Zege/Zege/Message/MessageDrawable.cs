@@ -55,9 +55,9 @@ namespace Zege.Message
                             {
                                 if (lastLine.Length > 0 && IsLatin(lastLine[lastLine.Length - 1]))
                                 {
-                                    // 最后一个字母是单词。
+                                    // 最后一个是单词。
                                     var nextCharIndex = lenLine;
-                                    if (nextCharIndex < lastLine.Length && false == IsLatin(lastLine[nextCharIndex]))
+                                    if (nextCharIndex < Message.Length && false == IsLatin(Message[nextCharIndex]))
                                     {
                                         // 下一个不是字母。可以马上画出。
                                         canvas.DrawString(lastLine, (float)x, (float)y, HorizontalAlignment.Left);
@@ -136,7 +136,7 @@ namespace Zege.Message
                             {
                                 // 最后一个字母是单词。
                                 var nextCharIndex = lenLine + 1;
-                                if (nextCharIndex < line.Length && false == IsLatin(line[nextCharIndex]))
+                                if (nextCharIndex < Message.Length && false == IsLatin(Message[nextCharIndex]))
                                 {
                                     // 下一个不是字母。可以马上画出。
                                     canvas.DrawString(line, (float)x, (float)y, HorizontalAlignment.Left);
