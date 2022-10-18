@@ -20,12 +20,16 @@ namespace Zege.Message
         }
 
         public string Account { get; private set; } = string.Empty;
-        public WebView WebView { get; private set; }
-
-        public void Bind(WebView webview)
+        public GraphicsView MessageView { get; private set; }
+        public MessageDrawable Drawable { get; private set; }
+        public void Bind(GraphicsView view)
         {
-            WebView = webview;
-            WebView.Source = new HtmlWebViewSource() { Html = MessageHistoryHtml };
+            if (null == MessageView)
+            {
+                MessageView = view;
+                Drawable = new MessageDrawable();
+                MessageView.Drawable = Drawable;
+            }
         }
 
         public void ShowHistory(string account)
@@ -34,15 +38,16 @@ namespace Zege.Message
                 return;
 
             Account = account;
-            WebView.Source = new HtmlWebViewSource() { Html = MessageHistoryHtml };
         }
 
         public void AddMessage(string message)
         {
+            /*
             var self = Random.Shared.Next(100) > 50;
             var className = self ? "class=\"SelfMessage\"" : string.Empty;
             message = message.Replace("\r", $"<br>");
-            WebView.Eval($"addMessage('<p {className}>{message}</p>')");
+            MessageView.Eval($"addMessage('<p {className}>{message}</p>')");
+            */
         }
 
         public const string MessageHistoryHtml =

@@ -4,6 +4,7 @@ using NLog.Config;
 using NLog.Targets;
 using System.Collections.ObjectModel;
 using Zege.Friend;
+using Zege.Message;
 using Zege.User;
 using Zeze.Transaction;
 using Zeze.Transaction.Collections;
@@ -46,7 +47,7 @@ namespace Zege
                 App = new App();
                 App.Start("127.0.0.1", 5100);
                 App.Zege_Friend.Bind(FriendsListView);
-                App.Zege_Message.Bind(MessageWebView);
+                App.Zege_Message.Bind(MessageView);
                 FriendsListView.ItemSelected += OnFriendsItemSelected;
             }
         }
@@ -67,6 +68,9 @@ namespace Zege
             var message = MessageEditor.Text;
             if (string.IsNullOrEmpty(message))
                 return;
+
+            Drawable.Message = message;
+            MessageView.Invalidate();
 
             App?.Zege_Message.AddMessage(message);
             MessageEditor.Text = string.Empty;
@@ -142,8 +146,12 @@ namespace Zege
             });
         }
 
+        public MessageDrawable Drawable;
         private void OnClear(object sender, EventArgs e)
         {
+            Drawable = new MessageDrawable();
+            MessageView.Drawable = Drawable;
+            MessageView.Invalidate();
             SecureStorage.Default.RemoveAll();
         }
 
