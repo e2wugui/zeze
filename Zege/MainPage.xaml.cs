@@ -65,17 +65,40 @@ namespace Zege
 
         private MessageDrawable Drawable = new MessageDrawable();
 
+        private double NextMessageY = 5.0;
+
         private void OnSendClicked(object sender, EventArgs e)
         {
             var message = MessageEditor.Text;
             if (string.IsNullOrEmpty(message))
                 return;
 
-            Drawable.Message = message;
-            MessageView.Invalidate();
+            // test Drawable
+            //Drawable.Message = message;
+            //MessageView.Invalidate();
+            // test MessageLayout
+
+            var lastMessage = new Editor()
+            {
+                WidthRequest = 300,
+                AutoSize = EditorAutoSizeOption.TextChanges,
+                Text = message,
+                BackgroundColor = Colors.LightGreen,
+            };
+            //lastMessage.Layout(rect);
+            lastMessage.SizeChanged += OnMessageSizeChanged;
+            MessageLayout.Add(lastMessage);
 
             App?.Zege_Message.AddMessage(message);
             MessageEditor.Text = string.Empty;
+        }
+
+        public void OnMessageSizeChanged(object sender, EventArgs e)
+        {
+            var lastMessage = (Editor)sender;
+            MessageLayout.SetLayoutBounds(lastMessage, new Rect(0, NextMessageY, lastMessage.Width, lastMessage.Height));
+            NextMessageY += lastMessage.Height + 5;
+            lastMessage.SizeChanged -= OnMessageSizeChanged;
         }
 
         private async void OnLoginClicked(object sender, EventArgs e)

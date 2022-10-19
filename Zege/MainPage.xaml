@@ -32,7 +32,8 @@
                 </ListView.ItemTemplate>
             </ListView>
             <VerticalStackLayout>
-                <GraphicsView x:Name="MessageView" HeightRequest="450" WidthRequest="600"/>
+                <GraphicsView x:Name="MessageView" HeightRequest="1" WidthRequest="600"/>
+                <AbsoluteLayout x:Name="MessageLayout" HeightRequest="449" WidthRequest="600"/>
                 <HorizontalStackLayout>
                     <Editor x:Name="MessageEditor" HeightRequest="150" WidthRequest="445"/>
                     <Button Text="Send" Clicked="OnSendClicked" Grid.Row="3"/>
