@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Maui.Graphics;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,7 +9,7 @@ namespace Zege.Message
 {
     public class MessageDrawable : IDrawable
     {
-        public string Message { get; set; } = "啊一啊一啊一啊一啊一啊一啊一啊一啊一啊一啊一啊一啊一啊一啊一啊一啊一啊一";
+        public string Message { get; set; } = "调度超期(比如服务器down机重启)调度是如何进行的 -- simpleTimer cronTimer是否有不同";
 
         private const double Margin = 5;
         private bool Init = false;
@@ -21,9 +22,19 @@ namespace Zege.Message
             return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z';
         }
 
+        private List<(float, float, string)> Lines = new();
+
+        private void DrawLines(ICanvas canvas)
+        {
+            foreach (var line in Lines)
+                canvas.DrawString(line.Item3, line.Item1, line.Item2, HorizontalAlignment.Left);
+            Lines.Clear();
+        }
+
         private void DrawLine(ICanvas canvas, string line, double x, ref double y)
         {
-            canvas.DrawString(line, (float)x, (float)y, HorizontalAlignment.Left);
+            Lines.Add(((float)x, (float)y, line));
+            //canvas.DrawString(line, (float)x, (float)y, HorizontalAlignment.Left);
             if (line.Length < Message.Length)
             {
                 y += CharSize.Height + Margin;
@@ -78,10 +89,10 @@ namespace Zege.Message
 
                 CharSize = canvas.GetStringSize("啊", Font, FontSize);
             }
-            canvas.FontColor = Colors.Blue;
+            canvas.FontColor = Colors.Gray;
             canvas.DrawRectangle(dirtyRect);
 
-            var rect = new Rect(dirtyRect.X, dirtyRect.Y, dirtyRect.Width / 2, dirtyRect.Height);
+            var rect = new Rect(dirtyRect.X, dirtyRect.Y, dirtyRect.Width * 0.6, dirtyRect.Height);
             var rectf = new Rect(rect.X + Margin, rect.Y + Margin, rect.Width - 2 * Margin, rect.Height);
             var charsLine = (int)(rectf.Width / CharSize.Width);
             var x = rectf.X;
@@ -134,9 +145,13 @@ namespace Zege.Message
                 }
             }
             rect.Height = y - rect.Y + Margin * 2;
-            canvas.DrawRectangle(rect);
+            canvas.FillColor = Colors.LightGreen;
+            canvas.FillRectangle(rect);
+            //canvas.DrawRoundedRectangle((float)rect.X, (float)rect.Y, (float)rect.Width, (float)rect.Height, 3f);
+            canvas.FontColor = Colors.Black;
+            DrawLines(canvas);
 
-            // 1. 消息框宽度 80%
+            // 1. 消息框宽度 60%
             // 2. 消息框 Align
             // 3. 消息框高度 Word Wrap？
             // 4. 消息框背景色
