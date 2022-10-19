@@ -177,18 +177,13 @@ namespace Zege
             App.Zege_Friend.ReturnTop();
         }
 
-        private async void OnTest(object sender, EventArgs e)
+        private void OnTest(object sender, EventArgs e)
         {
             //App.Zege_Friend.Test();
-            var x = new ObservableCollection<int>(); 
-            for (int i = 0; i < 10; ++i)
-                x.Add(i);
-            for (int i = x.Count - 1; i >= 0; --i)
-            {
-                x.RemoveAt(i);
-                x.Insert(i, i);
-            }
-            await DisplayAlert("Alert", "Done!", "OK");
+            var message = MessageEditor.Text;
+            if (string.IsNullOrEmpty(message))
+                return;
+            LabelMultiLine.Text = message;
         }
     }
 }

@@ -730,7 +730,7 @@ public class Timer extends AbstractTimer {
 	}
 
 	// 如果存在node，至少执行一次循环。
-	private long loadTimer(long first, long last, int serverId) {
+	private long loadTimer(long first, long last, int serverId) throws ParseException {
 		while (true) {
 			var node = _tNodes.selectDirty(first);
 			if (null == node)
@@ -748,10 +748,13 @@ public class Timer extends AbstractTimer {
 									timer.getConcurrentFireSerialNo(), true), "missfireSimple");
 							continue; // loop done, continue
 
-						// case eMissfirePolicyNothing: break;
-						default:
+						case eMissfirePolicyNothing:
+							// 重置启动时间，调度下一个（未来）间隔的时间。没有考虑对齐。
+							simpleTimer.setNextExpectedTime(System.currentTimeMillis() + simpleTimer.getPeriod());
 							break;
 
+						default:
+							throw new RuntimeException("Unknown MissfirePolicy");
 						}
 					}
 					scheduleSimple(serverId, timer.getTimerName(),
@@ -767,8 +770,13 @@ public class Timer extends AbstractTimer {
 									timer.getConcurrentFireSerialNo(), true), "missfireCron");
 							continue; // loop done, continue
 
-						default:
+						case eMissfirePolicyNothing:
+							// 计算下一次（未来）发生的时间。
+							cronTimer.setNextExpectedTime(cronNextTime(cronTimer.getCronExpression(), System.currentTimeMillis()));
 							break;
+
+						default:
+							throw new RuntimeException("Unknown MissfirePolicy");
 						}
 					}
 					scheduleCron(serverId, timer.getTimerName(), cronTimer, timer.getConcurrentFireSerialNo());
