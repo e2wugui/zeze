@@ -63,6 +63,8 @@ namespace Zege
             App.Zege_Message.ShowHistory(selected.Account);
         }
 
+        private MessageDrawable Drawable = new MessageDrawable();
+
         private void OnSendClicked(object sender, EventArgs e)
         {
             var message = MessageEditor.Text;
@@ -142,16 +144,12 @@ namespace Zege
                         await Mission.AppShell.DisplayAlertAsync("Create Account", $"Unknown Error{rc}");
                         break;
                 }
-
             });
         }
 
-        public MessageDrawable Drawable;
         private void OnClear(object sender, EventArgs e)
         {
-            Drawable = new MessageDrawable();
             MessageView.Drawable = Drawable;
-            MessageView.Invalidate();
             SecureStorage.Default.RemoveAll();
         }
 

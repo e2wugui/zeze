@@ -52,7 +52,7 @@ namespace Zege.Message
                 var nextCharIndex = line.Length;
                 if (nextCharIndex < Message.Length && false == IsLatin(Message[nextCharIndex]))
                 {
-                    // 下一个不是字母。可以马上画出。
+                    // 下一个不是字母（单词没有被截取）。马上画出。
                     DrawLine(canvas, line, x, ref y);
                     return;
                 }
@@ -69,11 +69,27 @@ namespace Zege.Message
                     DrawLine(canvas, line, x, ref y);
                     return;
                 }
+                // 重新截取前面的单词分隔符，包括分隔符。
                 line = line.Substring(0, i + 1);
                 // 继续后面的正常画出。
             }
             // 正常画出。
             DrawLine(canvas, line, x, ref y);
+        }
+
+        private string GetLine(int maxLen)
+        {
+            var line = maxLen < Message.Length ? Message.Substring(0, maxLen) : Message;
+            for (var i = 0; i < line.Length; ++i)
+            {
+                if (line[i] == '\n')
+                {
+                    if (i == line.Length - 1)
+                        return line;
+                    return line.Substring(0, i + 1); // i + 1 吃掉换行符。
+                }
+            }
+            return line;
         }
 
         public void Draw(ICanvas canvas, RectF dirtyRect)
@@ -82,7 +98,7 @@ namespace Zege.Message
             {
                 Init = true;
                 Font = Microsoft.Maui.Graphics.Font.Default;
-                FontSize = 16;
+                FontSize = 14;
 
                 canvas.Font = Font;
                 canvas.FontSize = FontSize;
@@ -92,6 +108,10 @@ namespace Zege.Message
             canvas.FontColor = Colors.Gray;
             canvas.DrawRectangle(dirtyRect);
 
+            // 统一换行符
+            Message = Message.Replace("\r\n", "\n");
+            Message = Message.Replace("\r", "\n");
+
             var rect = new Rect(dirtyRect.X, dirtyRect.Y, dirtyRect.Width * 0.6, dirtyRect.Height);
             var rectf = new Rect(rect.X + Margin, rect.Y + Margin, rect.Width - 2 * Margin, rect.Height);
             var charsLine = (int)(rectf.Width / CharSize.Width);
@@ -100,31 +120,38 @@ namespace Zege.Message
             while (false == string.IsNullOrEmpty(Message))
             {
                 var lenLine = charsLine;
-                var line = lenLine < Message.Length ? Message.Substring(0, lenLine) : Message;
+                var line = GetLine(lenLine);
                 var lineSize = canvas.GetStringSize(line, Font, FontSize);
                 if (lineSize.Width < rectf.Width)
                 {
-                    string lastLine;
-                    while (true)
+                    if (line.EndsWith("\n"))
                     {
-                        // 记住最后行，往后找，直到画不下，然后画出最后一行。
-                        lastLine = line;
-                        if (lenLine < Message.Length)
+                        DrawLine(canvas, line, x, ref y);
+                    }
+                    else
+                    {
+                        string lastLine;
+                        while (true)
                         {
-                            ++lenLine;
-                            line = lenLine < Message.Length ? Message.Substring(0, lenLine) : Message;
-                            lineSize = canvas.GetStringSize(line, Font, FontSize);
-                            if (lineSize.Width > rectf.Width)
+                            // 记住最后行，往后找，直到画不下，然后画出最后一行。
+                            lastLine = line;
+                            if (lenLine < Message.Length)
                             {
-                                DrawWordWrapLine(canvas, lastLine, x, ref y);
+                                ++lenLine;
+                                line = GetLine(lenLine);
+                                lineSize = canvas.GetStringSize(line, Font, FontSize);
+                                if (lineSize.Width > rectf.Width)
+                                {
+                                    DrawWordWrapLine(canvas, lastLine, x, ref y);
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                // 消息已经不够长了。
+                                DrawLine(canvas, lastLine, x, ref y);
                                 break;
                             }
-                        }
-                        else
-                        {
-                            // 消息已经不够长了。
-                            DrawLine(canvas, lastLine, x, ref y);
-                            break;
                         }
                     }
                 }
@@ -134,7 +161,7 @@ namespace Zege.Message
                     {
                         // 往前找，直到能画得下，然后画出当前行。
                         --lenLine;
-                        line = lenLine < Message.Length ? Message.Substring(0, lenLine) : Message;
+                        line = GetLine(lenLine);
                         lineSize = canvas.GetStringSize(line, Font, FontSize);
                         if (lineSize.Width < rectf.Width)
                         {

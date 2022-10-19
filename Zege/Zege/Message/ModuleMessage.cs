@@ -21,14 +21,12 @@ namespace Zege.Message
 
         public string Account { get; private set; } = string.Empty;
         public GraphicsView MessageView { get; private set; }
-        public MessageDrawable Drawable { get; private set; }
+
         public void Bind(GraphicsView view)
         {
             if (null == MessageView)
             {
                 MessageView = view;
-                Drawable = new MessageDrawable();
-                MessageView.Drawable = Drawable;
             }
         }
 
