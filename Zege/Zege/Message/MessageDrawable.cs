@@ -11,7 +11,8 @@ namespace Zege.Message
     {
         public string Message { get; set; } = "调度超期(比如服务器down机重启)调度是如何进行的 -- simpleTimer cronTimer是否有不同";
 
-        private const double Margin = 5;
+        private const double Margin = 10;
+        private const double LinePadding = 5;
         private bool Init = false;
         private Microsoft.Maui.Graphics.Font Font;
         private int FontSize;
@@ -36,7 +37,7 @@ namespace Zege.Message
             var line = Message.Substring(lineStart, lineEnd - lineStart);
             Lines.Add(((float)x, (float)y, line));
             if (lineEnd < Message.Length)
-                y += CharSize.Height + Margin;
+                y += CharSize.Height + LinePadding;
             lineStart = lineEnd;
         }
 
@@ -93,7 +94,7 @@ namespace Zege.Message
             canvas.DrawRectangle(dirtyRect);
 
             var rect = new Rect(dirtyRect.X, dirtyRect.Y, dirtyRect.Width * 0.6, dirtyRect.Height);
-            var rectf = new Rect(rect.X + Margin, rect.Y + Margin, rect.Width - 2 * Margin, rect.Height);
+            var rectf = new Rect(rect.X + Margin, rect.Y + LinePadding, rect.Width - 2 * Margin, rect.Height);
             var x = rectf.X;
             var y = rectf.Y + CharSize.Height;
             var lineStart = 0;
@@ -127,7 +128,7 @@ namespace Zege.Message
                 if (lineSize.Width > maxLineWidth)
                     maxLineWidth = lineSize.Width;
             }
-            rect.Height = y - rect.Y + Margin * 2;
+            rect.Height = y - rect.Y + Margin + LinePadding;
             rect.Width = maxLineWidth + Margin * 2;
             canvas.FillColor = Colors.LightGreen;
             canvas.FillRectangle(rect);
