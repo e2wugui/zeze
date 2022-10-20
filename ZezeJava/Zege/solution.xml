@@ -322,13 +322,10 @@
 		<bean name="BMessageRoot">
 			<variable id="1" name="NextMessageId"  type="long" />
 			<variable id="2" name="FirstMessageId" type="long" />
-			<variable id="3" name="LastMessageId"  type="long" />
-
 			多个客户端同时登录时，一个设置，其他得到已读通知。
 			已读的条件是消息同步发送给客户端就算已读？
-			<variable id="4" name="MessageIdHashRead" type="long" />
-
-			<variable id="5" name="MessageTotalBytes" type="long" />
+			<variable id="3" name="MessageIdHashRead" type="long" />
+			<variable id="4" name="MessageTotalBytes" type="long" />
 		</bean>
 
 		<bean name="BSystemMessage">

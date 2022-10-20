@@ -82,7 +82,6 @@ public class ModuleMessage extends AbstractModule {
     private long saveMessage(String owner, String friend, BMessage message) {
         var messageRoot = _tFriendMessage.getOrAdd(new BFriendKey(owner, friend));
         var messageId = messageRoot.getNextMessageId();
-        messageRoot.setLastMessageId(messageId);
         _tFriendMessages.insert(new BFriendMessageKey(owner, friend, messageId), message);
         messageRoot.setNextMessageId(messageId + 1);
         // 统计消息总大小。只计算消息实体，否则需要系列化一次，比较麻烦。
@@ -139,28 +138,30 @@ public class ModuleMessage extends AbstractModule {
 
         // 提取消息历史
         r.Result.setMessageIdHashRead(messageRoot.getMessageIdHashRead());
-        for (; from.value <= to.value; ++from.value) {
+        // [from, to)
+        for (; from.value < to.value; ++from.value) {
             var message = _tFriendMessages.get(new BFriendMessageKey(session.getAccount(), r.Argument.getFriend(), from.value));
             if (null != message)
                 r.Result.getMessages().add(message);
             else
                 logger.warn("message not found. id={} owner={} friend={}", from, session.getAccount(), r.Argument.getFriend());
         }
-        r.Result.setReachEnd(messageRoot.getLastMessageId() == to.value);
+        r.Result.setReachEnd(messageRoot.getNextMessageId() == to.value);
         session.sendResponseWhileCommit(r);
         return Procedure.Success;
     }
 
+    // [from, to)
     private boolean calculateMessageRange(OutLong from, OutLong to, BMessageRoot messageRoot) {
         if (from.value == eGetMessageFromAboutRead)
             from.value = Math.max(from.value, messageRoot.getMessageIdHashRead() - App.ZegeConfig.AboutHasRead);
         else if (from.value == eGetMessageFromAboutLast)
-            from.value = Math.max(from.value, messageRoot.getLastMessageId() - App.ZegeConfig.AboutLast);
+            from.value = Math.max(from.value, messageRoot.getNextMessageId() - App.ZegeConfig.AboutLast);
         else
             from.value = Math.max(from.value, messageRoot.getFirstMessageId());
 
-        if (to.value == eGetMessageToAuto || to.value > messageRoot.getLastMessageId())
-            to.value = messageRoot.getLastMessageId();
+        if (to.value == eGetMessageToAuto || to.value > messageRoot.getNextMessageId())
+            to.value = messageRoot.getNextMessageId();
         if (to.value < from.value)
             return false;
         if (to.value - from.value > App.ZegeConfig.MessageLimit)
@@ -191,7 +192,8 @@ public class ModuleMessage extends AbstractModule {
 
         // 提取消息历史
         r.Result.setMessageIdHashRead(messageRoot.getMessageIdHashRead());
-        for (; from.value <= to.value; ++from.value) {
+        // [from, to)
+        for (; from.value < to.value; ++from.value) {
             var message = _tDepartementMessages.get(new BDepartmentMessageKey(departmentKey, from.value));
             if (null != message)
                 r.Result.getMessages().add(message);
@@ -216,7 +218,7 @@ public class ModuleMessage extends AbstractModule {
         // 检查消息范围
         var messageRoot = _tFriendMessage.getOrAdd(new BFriendKey(session.getAccount(), r.Argument.getFriend()));
         if (r.Argument.getMessageIdHashRead() < messageRoot.getMessageIdHashRead()
-                || r.Argument.getMessageIdHashRead() > messageRoot.getLastMessageId())
+                || r.Argument.getMessageIdHashRead() >= messageRoot.getNextMessageId())
             return errorCode(eMessageRange); // 已读消息只能推进
 
         messageRoot.setMessageIdHashRead(r.Argument.getMessageIdHashRead());
@@ -243,7 +245,7 @@ public class ModuleMessage extends AbstractModule {
         // 检查消息范围
         var messageRoot = _tDepartementMessage.getOrAdd(departmentKey);
         if (r.Argument.getMessageIdHashRead() < messageRoot.getMessageIdHashRead()
-                || r.Argument.getMessageIdHashRead() > messageRoot.getLastMessageId())
+                || r.Argument.getMessageIdHashRead() >= messageRoot.getNextMessageId())
             return errorCode(eMessageRange); // 已读消息只能推进
 
         messageRoot.setMessageIdHashRead(r.Argument.getMessageIdHashRead());
