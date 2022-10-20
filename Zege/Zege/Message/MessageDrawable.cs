@@ -31,65 +31,49 @@ namespace Zege.Message
             Lines.Clear();
         }
 
-        private void DrawLine(ICanvas canvas, string line, double x, ref double y)
+        private void DrawLine(ref int lineStart, int lineEnd, double x, ref double y)
         {
+            var line = Message.Substring(lineStart, lineEnd - lineStart);
             Lines.Add(((float)x, (float)y, line));
-            //canvas.DrawString(line, (float)x, (float)y, HorizontalAlignment.Left);
-            if (line.Length < Message.Length)
-            {
+            if (lineEnd < Message.Length)
                 y += CharSize.Height + Margin;
-                Message = Message.Substring(line.Length);
-                return;
-            }
-            Message = string.Empty;
+            lineStart = lineEnd;
         }
 
-        private void DrawWordWrapLine(ICanvas canvas, string line, double x, ref double y)
+        private void DrawWordWrapLine(ref int lineStart, ref int lineEnd, double x, ref double y)
         {
-            if (line.Length > 0 && IsLatin(line[line.Length - 1]))
+            if (IsLatin(Message[lineEnd - 1]))
             {
                 // 最后一个是单词。
-                var nextCharIndex = line.Length;
+                var nextCharIndex = lineEnd;
                 if (nextCharIndex < Message.Length && false == IsLatin(Message[nextCharIndex]))
                 {
                     // 下一个不是字母（单词没有被截取）。马上画出。
-                    DrawLine(canvas, line, x, ref y);
+                    DrawLine(ref lineStart, lineEnd, x, ref y);
                     return;
                 }
 
                 // 往前找单词分割。
-                var i = line.Length - 1;
-                for (; i >= 0 && IsLatin(line[i]); i--)
+                var i = lineEnd - 1;
+                for (; i >= lineStart && IsLatin(Message[i]); i--)
                 {
                     // search...
                 }
-                if (i < 0)
+                if (i < lineStart)
                 {
                     // 很长的单词，一行都放不下。强制画出。
-                    DrawLine(canvas, line, x, ref y);
+                    DrawLine(ref lineStart, lineEnd, x, ref y);
                     return;
                 }
                 // 重新截取前面的单词分隔符，包括分隔符。
-                line = line.Substring(0, i + 1);
+                DrawLine(ref lineStart, i + 1, x, ref y);
+                lineStart = i + 1;
+                lineEnd = i; // 外面循环结束马上会加1.这里指向上一个。
+                return;
                 // 继续后面的正常画出。
             }
             // 正常画出。
-            DrawLine(canvas, line, x, ref y);
-        }
-
-        private string GetLine(int maxLen)
-        {
-            var line = maxLen < Message.Length ? Message.Substring(0, maxLen) : Message;
-            for (var i = 0; i < line.Length; ++i)
-            {
-                if (line[i] == '\n')
-                {
-                    if (i == line.Length - 1)
-                        return line;
-                    return line.Substring(0, i + 1); // i + 1 吃掉换行符。
-                }
-            }
-            return line;
+            DrawLine(ref lineStart, lineEnd, x, ref y);
         }
 
         public void Draw(ICanvas canvas, RectF dirtyRect)
@@ -99,79 +83,52 @@ namespace Zege.Message
                 Init = true;
                 Font = Microsoft.Maui.Graphics.Font.Default;
                 FontSize = 14;
-
                 canvas.Font = Font;
                 canvas.FontSize = FontSize;
-
                 CharSize = canvas.GetStringSize("啊", Font, FontSize);
             }
+            //canvas.Font = Font;
+            //canvas.FontSize = FontSize;
             canvas.FontColor = Colors.Gray;
             canvas.DrawRectangle(dirtyRect);
 
-            // 统一换行符
-            Message = Message.Replace("\r\n", "\n");
-            Message = Message.Replace("\r", "\n");
-
             var rect = new Rect(dirtyRect.X, dirtyRect.Y, dirtyRect.Width * 0.6, dirtyRect.Height);
             var rectf = new Rect(rect.X + Margin, rect.Y + Margin, rect.Width - 2 * Margin, rect.Height);
-            var charsLine = (int)(rectf.Width / CharSize.Width);
             var x = rectf.X;
             var y = rectf.Y + CharSize.Height;
-            while (false == string.IsNullOrEmpty(Message))
+            var lineStart = 0;
+            var lineEnd = 0;
+            var maxLineWidth = 0.0;
+            for (; lineEnd < Message.Length; ++lineEnd)
             {
-                var lenLine = charsLine;
-                var line = GetLine(lenLine);
+                var c = Message[lineEnd];
+                var line = Message.Substring(lineStart, lineEnd - lineStart + 1);
                 var lineSize = canvas.GetStringSize(line, Font, FontSize);
-                if (lineSize.Width < rectf.Width)
+                if (lineSize.Width > rectf.Width)
                 {
-                    if (line.EndsWith("\n"))
-                    {
-                        DrawLine(canvas, line, x, ref y);
-                    }
-                    else
-                    {
-                        string lastLine;
-                        while (true)
-                        {
-                            // 记住最后行，往后找，直到画不下，然后画出最后一行。
-                            lastLine = line;
-                            if (lenLine < Message.Length)
-                            {
-                                ++lenLine;
-                                line = GetLine(lenLine);
-                                lineSize = canvas.GetStringSize(line, Font, FontSize);
-                                if (lineSize.Width > rectf.Width)
-                                {
-                                    DrawWordWrapLine(canvas, lastLine, x, ref y);
-                                    break;
-                                }
-                            }
-                            else
-                            {
-                                // 消息已经不够长了。
-                                DrawLine(canvas, lastLine, x, ref y);
-                                break;
-                            }
-                        }
-                    }
+                    // 超出了，画出行（不包括当前超出字符）。
+                    DrawWordWrapLine(ref lineStart, ref lineEnd, x, ref y);
+                    continue;
                 }
-                else
+                if (c == '\n')
                 {
-                    while (true)
-                    {
-                        // 往前找，直到能画得下，然后画出当前行。
-                        --lenLine;
-                        line = GetLine(lenLine);
-                        lineSize = canvas.GetStringSize(line, Font, FontSize);
-                        if (lineSize.Width < rectf.Width)
-                        {
-                            DrawWordWrapLine(canvas, line, x, ref y);
-                            break;
-                        }
-                    }
+                    // 行结束，强制换行。lineEnd + 1：吃掉换行符。
+                    DrawLine(ref lineStart, lineEnd + 1, x, ref y);
+                    continue;
                 }
+                if (lineSize.Width > maxLineWidth)
+                    maxLineWidth = lineSize.Width;
+            }
+            if (lineStart < lineEnd)
+            {
+                var line = Message.Substring(lineStart, lineEnd - lineStart);
+                var lineSize = canvas.GetStringSize(line, Font, FontSize);
+                DrawLine(ref lineStart, lineEnd, x, ref y);
+                if (lineSize.Width > maxLineWidth)
+                    maxLineWidth = lineSize.Width;
             }
             rect.Height = y - rect.Y + Margin * 2;
+            rect.Width = maxLineWidth + Margin * 2;
             canvas.FillColor = Colors.LightGreen;
             canvas.FillRectangle(rect);
             //canvas.DrawRoundedRectangle((float)rect.X, (float)rect.Y, (float)rect.Width, (float)rect.Height, 3f);

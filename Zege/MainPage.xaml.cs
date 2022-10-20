@@ -70,12 +70,14 @@ namespace Zege
         private void OnSendClicked(object sender, EventArgs e)
         {
             var message = MessageEditor.Text;
+            message = message.Replace("\r\n", "\n");
+            message = message.Replace("\r", "\n");
             if (string.IsNullOrEmpty(message))
                 return;
 
             // test Drawable
-            //Drawable.Message = message;
-            //MessageView.Invalidate();
+            Drawable.Message = message;
+            MessageView.Invalidate();
             // test MessageLayout
 
             var lastMessage = new Editor()
@@ -85,9 +87,10 @@ namespace Zege
                 Text = message,
                 BackgroundColor = Colors.LightGreen,
             };
-            //lastMessage.Layout(rect);
             lastMessage.SizeChanged += OnMessageSizeChanged;
             MessageLayout.Add(lastMessage);
+            //MessageLayout.SetLayoutBounds(lastMessage, new Rect(0, NextMessageY, lastMessage.Width, lastMessage.Height));
+            //NextMessageY += lastMessage.Height + 5;
 
             App?.Zege_Message.AddMessage(message);
             MessageEditor.Text = string.Empty;
