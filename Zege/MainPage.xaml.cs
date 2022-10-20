@@ -27,6 +27,9 @@ namespace Zege
             FollowerApplyTables.RegisterLog();
         }
 
+        internal ScrollView MessageScrollView => _MessageScrollView;
+        internal AbsoluteLayout MessageLayout => _MessageLayout;
+
         private void LoggingConfiguration()
         {
             var config = new LoggingConfiguration();
@@ -60,7 +63,7 @@ namespace Zege
 
             // TODO: make selected to top here
 
-            App.Zege_Message.ShowHistory(selected.Account);
+            App.Zege_Message.SwitchChat(selected.Account);
         }
 
         private MessageDrawable Drawable = new MessageDrawable();
@@ -80,9 +83,18 @@ namespace Zege
             MessageView.Invalidate();
             // test MessageLayout
 
+            var photo = new Image()
+            {
+                Source = "https://www.google.com/images/hpp/Chrome_Owned_96x96.png",
+                HeightRequest = 30,
+                WidthRequest = 30,
+            };
+            MessageLayout.Add(photo);
+            MessageLayout.SetLayoutBounds(photo, new Rect(0, NextMessageY, 30, 30));
+
             var lastMessage = new Editor()
             {
-                MinimumWidthRequest = 25,
+                MinimumWidthRequest = 30,
                 MaximumWidthRequest = 300,
                 AutoSize = EditorAutoSizeOption.TextChanges,
                 Text = message,
@@ -97,12 +109,13 @@ namespace Zege
             MessageEditor.Text = string.Empty;
         }
 
-        public void OnMessageSizeChanged(object sender, EventArgs e)
+        public async void OnMessageSizeChanged(object sender, EventArgs e)
         {
             var lastMessage = (Editor)sender;
-            MessageLayout.SetLayoutBounds(lastMessage, new Rect(0, NextMessageY, lastMessage.Width, lastMessage.Height));
+            MessageLayout.SetLayoutBounds(lastMessage, new Rect(40, NextMessageY, lastMessage.Width, lastMessage.Height));
             NextMessageY += lastMessage.Height + 5;
             lastMessage.SizeChanged -= OnMessageSizeChanged;
+            await MessageScrollView.ScrollToAsync(0, NextMessageY, true);
         }
 
         private async void OnLoginClicked(object sender, EventArgs e)

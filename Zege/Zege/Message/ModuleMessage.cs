@@ -1,4 +1,5 @@
 
+using Zeze.Transaction;
 using Zeze.Util;
 
 namespace Zege.Message
@@ -13,9 +14,11 @@ namespace Zege.Message
         {
         }
 
-        protected override async System.Threading.Tasks.Task<long> ProcessNotifyMessageRequest(Zeze.Net.Protocol _p)
+        [DispatchMode(Mode = DispatchMode.UIThread)]
+        protected override async Task<long> ProcessNotifyMessageRequest(Zeze.Net.Protocol _p)
         {
             var p = _p as NotifyMessage;
+            //AddMessage(p.Argument.From, p.Argument.Group);
             return ResultCode.NotImplement;
         }
 
@@ -30,12 +33,26 @@ namespace Zege.Message
             }
         }
 
-        public void ShowHistory(string account)
+        public void SwitchChat(string account)
         {
             if (account.Equals(Account))
                 return;
 
             Account = account;
+
+            var rpc = new GetFriendMessage();
+            rpc.Argument.Friend = account;
+            rpc.Send(App.ClientService.GetSocket(), ProcessGetFriendMessageResponse);
+        }
+
+        private BGetMessageResult RecentMessages;
+
+        [DispatchMode(Mode = DispatchMode.UIThread)]
+        private async Task<long> ProcessGetFriendMessageResponse(Zeze.Net.Protocol p)
+        {
+            var r = p as GetFriendMessage;
+            RecentMessages = r.Result;
+            return 0;
         }
 
         public void AddMessage(string message)

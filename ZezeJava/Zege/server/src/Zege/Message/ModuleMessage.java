@@ -82,6 +82,7 @@ public class ModuleMessage extends AbstractModule {
     private long saveMessage(String owner, String friend, BMessage message) {
         var messageRoot = _tFriendMessage.getOrAdd(new BFriendKey(owner, friend));
         var messageId = messageRoot.getNextMessageId();
+        messageRoot.setLastMessageId(messageId);
         _tFriendMessages.insert(new BFriendMessageKey(owner, friend, messageId), message);
         messageRoot.setNextMessageId(messageId + 1);
         // 统计消息总大小。只计算消息实体，否则需要系列化一次，比较麻烦。
@@ -145,6 +146,7 @@ public class ModuleMessage extends AbstractModule {
             else
                 logger.warn("message not found. id={} owner={} friend={}", from, session.getAccount(), r.Argument.getFriend());
         }
+        r.Result.setReachEnd(messageRoot.getLastMessageId() == to.value);
         session.sendResponseWhileCommit(r);
         return Procedure.Success;
     }
