@@ -667,7 +667,7 @@ public class Timer extends AbstractTimer {
 		}
 	}
 
-	private void loadTimer() {
+	private void loadTimer() throws ParseException {
 		var serverId = zeze.getConfig().getServerId();
 		final var out = new OutObject<BNodeRoot>();
 		if (Procedure.Success == Task.call(zeze.newProcedure(() -> {
@@ -684,7 +684,7 @@ public class Timer extends AbstractTimer {
 
 	// 收到接管通知的服务器调用这个函数进行接管处理。
 	// @serverId 需要接管的服务器Id。
-	private long spliceLoadTimer(int serverId, long loadSerialNo) {
+	private long spliceLoadTimer(int serverId, long loadSerialNo) throws ParseException {
 		if (serverId == zeze.getConfig().getServerId())
 			return 0; // skip self
 
