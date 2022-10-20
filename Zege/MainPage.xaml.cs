@@ -82,7 +82,7 @@ namespace Zege
 
             var lastMessage = new Editor()
             {
-                WidthRequest = 300,
+                MinimumWidthRequest = 25,
                 AutoSize = EditorAutoSizeOption.TextChanges,
                 Text = message,
                 BackgroundColor = Colors.LightGreen,
