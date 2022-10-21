@@ -352,7 +352,7 @@
 			<enum name="eTypeEmoji"  value="1"/> 自定义表情消息，加密的，解密出来是系列化的BEmojiMessage。
 
 			<variable id="1" name="Type"           type="int" />
-			<variable id="2" name="SecureKeyIndex" type="int" />
+			<variable id="2" name="SecureKeyIndex" type="int" /> SecureKeyIndex 为 -1 表示不加密。
 			<variable id="3" name="SecureMessage"  type="binary" /> eTypeSystem 时是未加密的。
 			<variable id="4" name="From"           type="string" /> 发送用户，服务器填写
 			<variable id="5" name="Group"          type="string" /> 群消息才填写，服务器填写，
