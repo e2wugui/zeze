@@ -137,7 +137,6 @@ public class ModuleMessage extends AbstractModule {
             return errorCode(eMessageRange);
 
         // 提取消息历史
-        r.Result.setMessageIdHashRead(messageRoot.getMessageIdHashRead());
         // [from, to)
         for (; from.value < to.value; ++from.value) {
             var message = _tFriendMessages.get(new BFriendMessageKey(session.getAccount(), r.Argument.getFriend(), from.value));
@@ -146,6 +145,8 @@ public class ModuleMessage extends AbstractModule {
             else
                 logger.warn("message not found. id={} owner={} friend={}", from, session.getAccount(), r.Argument.getFriend());
         }
+        r.Result.setNextMessageIdNotRead(messageRoot.getNextMessageIdNotRead());
+        r.Result.setNextMessageId(messageRoot.getNextMessageId());
         r.Result.setReachEnd(messageRoot.getNextMessageId() == to.value);
         session.sendResponseWhileCommit(r);
         return Procedure.Success;
@@ -154,7 +155,7 @@ public class ModuleMessage extends AbstractModule {
     // [from, to)
     private boolean calculateMessageRange(OutLong from, OutLong to, BMessageRoot messageRoot) {
         if (from.value == eGetMessageFromAboutRead)
-            from.value = Math.max(from.value, messageRoot.getMessageIdHashRead() - App.ZegeConfig.AboutHasRead);
+            from.value = Math.max(from.value, messageRoot.getNextMessageIdNotRead() - App.ZegeConfig.AboutHasRead);
         else if (from.value == eGetMessageFromAboutLast)
             from.value = Math.max(from.value, messageRoot.getNextMessageId() - App.ZegeConfig.AboutLast);
         else
@@ -191,7 +192,6 @@ public class ModuleMessage extends AbstractModule {
             return errorCode(eMessageRange);
 
         // 提取消息历史
-        r.Result.setMessageIdHashRead(messageRoot.getMessageIdHashRead());
         // [from, to)
         for (; from.value < to.value; ++from.value) {
             var message = _tDepartementMessages.get(new BDepartmentMessageKey(departmentKey, from.value));
@@ -201,6 +201,7 @@ public class ModuleMessage extends AbstractModule {
                 logger.warn("message not found. id={} account={} group={} friend={}",
                         from, session.getAccount(), departmentKey.getGroup(), departmentKey.getDepartmentId());
         }
+        r.Result.setNextMessageIdNotRead(messageRoot.getNextMessageIdNotRead());
         session.sendResponseWhileCommit(r);
         return Procedure.Success;
     }
@@ -217,11 +218,11 @@ public class ModuleMessage extends AbstractModule {
 
         // 检查消息范围
         var messageRoot = _tFriendMessage.getOrAdd(new BFriendKey(session.getAccount(), r.Argument.getFriend()));
-        if (r.Argument.getMessageIdHashRead() < messageRoot.getMessageIdHashRead()
+        if (r.Argument.getMessageIdHashRead() < messageRoot.getNextMessageIdNotRead() - 1
                 || r.Argument.getMessageIdHashRead() >= messageRoot.getNextMessageId())
             return errorCode(eMessageRange); // 已读消息只能推进
 
-        messageRoot.setMessageIdHashRead(r.Argument.getMessageIdHashRead());
+        messageRoot.setNextMessageIdNotRead(r.Argument.getMessageIdHashRead() + 1);
 
         // todo 广播已读消息Id给当前登录的所有客户端。
         session.sendResponseWhileCommit(r);
@@ -244,11 +245,11 @@ public class ModuleMessage extends AbstractModule {
 
         // 检查消息范围
         var messageRoot = _tDepartementMessage.getOrAdd(departmentKey);
-        if (r.Argument.getMessageIdHashRead() < messageRoot.getMessageIdHashRead()
+        if (r.Argument.getMessageIdHashRead() < messageRoot.getNextMessageIdNotRead() - 1
                 || r.Argument.getMessageIdHashRead() >= messageRoot.getNextMessageId())
             return errorCode(eMessageRange); // 已读消息只能推进
 
-        messageRoot.setMessageIdHashRead(r.Argument.getMessageIdHashRead());
+        messageRoot.setNextMessageIdNotRead(r.Argument.getMessageIdHashRead() + 1);
 
         // todo 广播已读消息Id给当前登录的所有客户端。
         session.sendResponseWhileCommit(r);

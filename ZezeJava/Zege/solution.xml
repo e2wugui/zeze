@@ -324,7 +324,7 @@
 			<variable id="2" name="FirstMessageId" type="long" />
 			多个客户端同时登录时，一个设置，其他得到已读通知。
 			已读的条件是消息同步发送给客户端就算已读？
-			<variable id="3" name="MessageIdHashRead" type="long" />
+			<variable id="3" name="NextMessageIdNotRead" type="long" />
 			<variable id="4" name="MessageTotalBytes" type="long" />
 		</bean>
 
@@ -419,23 +419,24 @@
 		<!-- 消息浏览控制 -->
 		<bean name="BGetFriendMessage">
 			<variable id="1" name="Friend"        type="string" />
-			<variable id="2" name="MessageIdFrom" type="long" default="-2"/> -1:(MessageIdHasRead-3) -2:(LastMessageId-20)
+			<variable id="2" name="MessageIdFrom" type="long" default="-2"/> -1:(NextMessageIdHasRead-3) -2:(LastMessageId-20)
 			<variable id="3" name="MessageIdTo"   type="long" default="-1"/> -1:auto
 		</bean>
 
 		<bean name="BGetMessageResult">
-			<variable id="1" name="Messages"          type="list[BMessage]" />
-			<variable id="2" name="MessageIdHashRead" type="long" />
-			<variable id="3" name="ReachEnd"          type="bool" />
+			<variable id="1" name="Messages"             type="list[BMessage]" />
+			<variable id="2" name="ReachEnd"             type="bool" />
+			<variable id="3" name="NextMessageIdNotRead" type="long" />
+			<variable id="4" name="NextMessageId"        type="long" />
 		</bean>
 
 		<bean name="BSetFriendMessageHasRead">
-			<variable id="1" name="Friend" type="string" />
+			<variable id="1" name="Friend"            type="string" />
 			<variable id="2" name="MessageIdHashRead" type="long" />
 		</bean>
 
 		<bean name="BSetGroupMessageHasRead">
-			<variable id="1" name="GroupDepartment" type="BDepartmentKey" />
+			<variable id="1" name="GroupDepartment"   type="BDepartmentKey" />
 			<variable id="2" name="MessageIdHashRead" type="long" />
 		</bean>
 
