@@ -1,16 +1,14 @@
 package UnitTest.Zeze.Trans;
 
 import java.lang.reflect.InvocationTargetException;
-import Zeze.Transaction.Bean;
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Procedure;
 import demo.App;
 import demo.Module1.BValue;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.Procedure;
 
 public class TestCheckpoint{
 

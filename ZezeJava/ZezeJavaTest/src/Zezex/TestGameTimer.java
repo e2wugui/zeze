@@ -5,7 +5,6 @@ import ClientGame.Login.BRole;
 import ClientGame.Login.CreateRole;
 import ClientGame.Login.GetRoleList;
 import UnitTest.Zeze.Component.TestBean;
-import Zeze.Builtin.Game.Online.ReLogin;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
 import Zeze.Transaction.Procedure;
