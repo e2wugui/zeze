@@ -1,5 +1,7 @@
 package UnitTest.Zeze.Trans;
 
+import java.lang.reflect.InvocationTargetException;
+import Zeze.Transaction.Bean;
 import demo.App;
 import demo.Module1.BValue;
 import org.junit.After;
@@ -78,7 +80,18 @@ public class TestCheckpoint{
 		demo.Module1.Table1 table = demo.App.getInstance().demo_Module1.getTable1();
 		ByteBuffer value = table.internalGetStorageForTestOnly("IKnownWhatIAmDoing").getDatabaseTable().find(table.encodeKey(56L));
 		Assert.assertNotNull(value);
-		Assert.assertEquals(value, bytesInTrans);
+		Assert.assertEquals(resetVersion(value), resetVersion(bytesInTrans));
+	}
+
+	private ByteBuffer resetVersion(ByteBuffer bb) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+		var value = new BValue();
+		value.decode(bb);
+		var method = value.getClass().getDeclaredMethod("version", long.class);
+		method.setAccessible(true);
+		method.invoke(value, 0);
+		var result = ByteBuffer.Allocate();
+		value.encode(result);
+		return result;
 	}
 
 	private static long ProcClear() {
