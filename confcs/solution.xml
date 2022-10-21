@@ -11,6 +11,8 @@
 	</bean>
 
 	<module name="Module1" id="1">
+		<enum name="eTestEnum" value="1"/> Test Enum
+
 		<beankey name="AutoKey">
 			<variable id="1" name="name" type="string"/> 一般就是表名。
 			<variable id="2" name="localId" type="long"/>

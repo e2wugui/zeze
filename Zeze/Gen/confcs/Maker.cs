@@ -28,6 +28,10 @@ namespace Zeze.Gen.confcs
                 new BeanFormatter(Project, bean).Make(genCommonDir);
             foreach (Types.BeanKey beanKey in Project.AllBeanKeys.Values)
                 new cs.BeanKeyFormatter(beanKey).Make(genCommonDir);
+
+            // conf+cs 的ModuleFormatter仅生成enum。
+            foreach (Module mod in Project.AllOrderDefineModules)
+                new ModuleFormatter(Project, mod, genDir, srcDir).Make();
         }
     }
 }
