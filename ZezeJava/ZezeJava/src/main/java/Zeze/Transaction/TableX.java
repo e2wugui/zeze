@@ -18,7 +18,7 @@ import static Zeze.Services.GlobalCacheManagerConst.StateModify;
 import static Zeze.Services.GlobalCacheManagerConst.StateRemoved;
 import static Zeze.Services.GlobalCacheManagerConst.StateShare;
 
-public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Table {
+public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Table implements TableReadOnly<K, V> {
 	private static final Logger logger = LogManager.getLogger(TableX.class);
 	private static final boolean isDebugEnabled = logger.isDebugEnabled();
 
@@ -382,6 +382,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return 0;
 	}
 
+	@Override
 	public final Binary encodeGlobalKey(K key) {
 		var bb = ByteBuffer.Allocate();
 		bb.WriteInt4(getId());
@@ -474,6 +475,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		*/
 	}
 
+	@Override
 	public final V get(K key) {
 		var currentT = Transaction.getCurrent();
 		assert currentT != null;
@@ -491,6 +493,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return r.strongRef;
 	}
 
+	@Override
 	public final boolean contains(K key) {
 		return get(key) != null;
 	}
@@ -614,14 +617,17 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 	}
 
+	@Override
 	// Key 都是简单变量，系列化方法都不一样，需要生成。
 	public abstract ByteBuffer encodeKey(K key);
 
 	@SuppressWarnings("unchecked")
+	@Override
 	public ByteBuffer encodeKey(Object key) {
 		return encodeKey((K)key);
 	}
 
+	@Override
 	public abstract K decodeKey(ByteBuffer bb);
 
 	public final void delayRemove(K key) {
@@ -637,6 +643,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @param bb bean encoded data
 	 * @return Value
 	 */
+	@Override
 	public final V decodeValue(ByteBuffer bb) {
 		V value = newValue();
 		value.decode(bb);
@@ -652,8 +659,14 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @param callback walk callback
 	 * @return count
 	 */
-	public final long Walk(TableWalkHandle<K, V> callback) {
+	@Override
+	public final long walk(TableWalkHandle<K, V> callback) {
 		return Walk(callback, null);
+	}
+
+	@Deprecated
+	public final long Walk(TableWalkHandle<K, V> callback) {
+		return walk(callback, null);
 	}
 
 	private boolean invokeCallback(byte[] key, byte[] value, TableWalkHandle<K, V> callback) {
@@ -682,7 +695,13 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return callback.handle(k, decodeValue(ByteBuffer.Wrap(value)));
 	}
 
+	@Deprecated
 	public final long Walk(TableWalkHandle<K, V> callback, Runnable afterLock) {
+		return walk(callback, afterLock);
+	}
+
+	@Override
+	public final long walk(TableWalkHandle<K, V> callback, Runnable afterLock) {
 		if (Transaction.getCurrent() != null)
 			throw new IllegalStateException("must be called without transaction");
 
@@ -696,11 +715,21 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		});
 	}
 
+	@Deprecated
 	public final long WalkCacheKey(TableWalkKey<K> callback) {
+		return walkCacheKey(callback);
+	}
+	@Override
+	public final long walkCacheKey(TableWalkKey<K> callback) {
 		return cache.walkKey(callback);
 	}
 
 	public final long WalkDatabaseKey(TableWalkKey<K> callback) {
+		return walkDatabaseKey(callback);
+	}
+
+	@Override
+	public final long walkDatabaseKey(TableWalkKey<K> callback) {
 		return storage.getDatabaseTable().walkKey(key -> callback.handle(decodeKey(ByteBuffer.Wrap(key))));
 	}
 
@@ -711,8 +740,14 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @param callback walk callback
 	 * @return count
 	 */
-	public final long WalkDatabase(TableWalkHandleRaw callback) {
+	@Override
+	public final long walkDatabase(TableWalkHandleRaw callback) {
 		return storage.getDatabaseTable().walk(callback);
+	}
+
+	@Deprecated
+	public final long WalkDatabase(TableWalkHandleRaw callback) {
+		return walkDatabase(callback);
 	}
 
 	/**
@@ -722,12 +757,18 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @param callback walk callback
 	 * @return count
 	 */
-	public final long WalkDatabase(TableWalkHandle<K, V> callback) {
+	@Override
+	public final long walkDatabase(TableWalkHandle<K, V> callback) {
 		return storage.getDatabaseTable().walk((key, value) -> {
 			K k = decodeKey(ByteBuffer.Wrap(key));
 			V v = decodeValue(ByteBuffer.Wrap(value));
 			return callback.handle(k, v);
 		});
+	}
+
+	@Deprecated
+	public final long WalkDatabase(TableWalkHandle<K, V> callback) {
+		return walkDatabase(callback);
 	}
 
 	/**
@@ -736,11 +777,18 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 *
 	 * @return count
 	 */
-	public final long WalkCache(TableWalkHandle<K, V> callback) {
-		return WalkCache(callback, null);
+	@Override
+	public final long walkCache(TableWalkHandle<K, V> callback) {
+		return walkCache(callback, null);
 	}
 
-	public final long WalkCache(TableWalkHandle<K, V> callback, Runnable afterLock) {
+	@Deprecated
+	public final long WalkCache(TableWalkHandle<K, V> callback) {
+		return walkCache(callback);
+	}
+
+	@Override
+	public final long walkCache(TableWalkHandle<K, V> callback, Runnable afterLock) {
 		if (Transaction.getCurrent() != null)
 			throw new IllegalStateException("must be called without transaction");
 
@@ -769,6 +817,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return count;
 	}
 
+	@Deprecated
+	public final long WalkCache(TableWalkHandle<K, V> callback, Runnable afterLock) {
+		return walkCache(callback, afterLock);
+	}
 	/**
 	 * 获得记录的拷贝。
 	 * 1. 一般在事务外使用。
@@ -781,6 +833,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @return record value
 	 */
 	@SuppressWarnings("unchecked")
+	@Override
 	public final V selectCopy(K key) {
 		var tkey = new TableKey(getId(), key);
 		var currentT = Transaction.getCurrent();
@@ -804,6 +857,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@SuppressWarnings("unchecked")
+	@Override
 	public final V selectDirty(K key) {
 		var currentT = Transaction.getCurrent();
 		if (currentT != null) {
@@ -828,6 +882,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @param r Changes.Record From ChangeListener
 	 * @return ByteBuffer Encoded Change Log
 	 */
+	@Override
 	public ByteBuffer encodeChangeListenerWithSpecialName(String specialName, Object key, Changes.Record r) {
 		var bb = ByteBuffer.Allocate();
 		bb.WriteString(null == specialName ? getName() : specialName);
