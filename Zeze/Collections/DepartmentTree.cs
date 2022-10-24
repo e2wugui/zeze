@@ -78,12 +78,12 @@ namespace Zeze.Collections
 			return module.LinkedMaps.Open<TMember>($"{departmentId}#{name}");
 		}
 
-		public async Task<BDepartmentRoot> SelectDirtyRootAsync()
+		public async Task<BDepartmentRootReadOnly> SelectDirtyRootAsync()
 		{
 			return await module._tDepartment.SelectDirtyAsync(name);
 		}
 
-		public async Task<BDepartmentTreeNode> SelectDirtyNodeAsync(long departmentId)
+		public async Task<BDepartmentTreeNodeReadOnly> SelectDirtyNodeAsync(long departmentId)
 		{
 			return await module._tDepartmentTree.SelectDirtyAsync(new BDepartmentKey(name, departmentId));
 		}

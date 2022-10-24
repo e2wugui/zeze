@@ -62,7 +62,8 @@ namespace Zeze.Transaction
         public abstract Task RemoveAsync(Binary encodedKey);
     }
 
-    public abstract class Table<K, V> : Table where V : Bean, new()
+    public abstract class Table<K, V, VReadOnly> : Table, TableReadOnly<K, V, VReadOnly>
+        where V : Bean, VReadOnly, new()
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public Table(string name) : base(name)
@@ -71,12 +72,12 @@ namespace Zeze.Transaction
 
         protected Zeze.Services.ServiceManager.Agent.AutoKey AutoKey { get; private set;  }
 
-        private async Task<Record<K, V>> LoadAsync(K key)
+        private async Task<Record<K, V, VReadOnly>> LoadAsync(K key)
         {
             var tkey = new TableKey(Id, key);
             while (true)
             {
-                Record<K, V> r = Cache.GetOrAdd(key, (key) => new Record<K, V>(this, key, null));
+                Record<K, V, VReadOnly> r = Cache.GetOrAdd(key, (key) => new Record<K, V, VReadOnly>(this, key, null));
                 var lockr = await r.Mutex.LockAsync();
                 try
                 {
@@ -176,7 +177,7 @@ namespace Zeze.Transaction
 
             var tkey = new TableKey(Id, key);
 
-            Record<K, V> r = null;
+            Record<K, V, VReadOnly> r = null;
             var lockey = await Zeze.Locks.Get(tkey).WriterLockAsync();
             try
             {
@@ -266,7 +267,7 @@ namespace Zeze.Transaction
             K key = DecodeKey(bbkey);
 
             var tkey = new TableKey(Id, key);
-            Record<K, V> r = null;
+            Record<K, V, VReadOnly> r = null;
             var lockey = await Zeze.Locks.Get(tkey).WriterLockAsync();
             try
             {
@@ -339,7 +340,7 @@ namespace Zeze.Transaction
 
         internal override async Task<int> ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex)
         {
-            var remain = new List<(TableKey, Record<K, V>)>(Cache.DataMap.Count);
+            var remain = new List<(TableKey, Record<K, V, VReadOnly>)>(Cache.DataMap.Count);
             foreach (var e in Cache.DataMap)
             {
                 var gkey = EncodeGlobalKey(e.Key);
@@ -428,6 +429,11 @@ namespace Zeze.Transaction
             return await GetAsync(key) != null;
         }
 
+        async Task<VReadOnly> TableReadOnly<K, V, VReadOnly>.GetAsync(K key)
+        {
+            return await GetAsync(key);
+        }
+
         public async Task<V> GetAsync(K key)
         {
             var currentT = Transaction.Current;
@@ -439,7 +445,7 @@ namespace Zeze.Transaction
                 return (V)cr.NewestValue();
             }
 
-            Record<K, V> r = await LoadAsync(key);
+            var r = await LoadAsync(key);
             currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), new Transaction.RecordAccessed(r));
             return r.ValueTyped;
         }
@@ -461,7 +467,7 @@ namespace Zeze.Transaction
             }
             else
             {
-                Record<K, V> r = await LoadAsync(key);
+                var r = await LoadAsync(key);
                 cr = new Transaction.RecordAccessed(r);
                 currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
 
@@ -536,9 +542,9 @@ namespace Zeze.Transaction
             currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
         }
 
-        internal TableCache<K, V> Cache { get; private set; }
+        internal TableCache<K, V, VReadOnly> Cache { get; private set; }
 
-        public Storage<K, V> GetStorageForTestOnly(string IAmSure)
+        public Storage<K, V, VReadOnly> GetStorageForTestOnly(string IAmSure)
         {
             if (!IAmSure.Equals("IKnownWhatIAmDoing"))
                 throw new Exception();
@@ -546,7 +552,7 @@ namespace Zeze.Transaction
         }
 
         override internal Database.TableAsync OldTable { get; set; }
-        internal Storage<K, V> TStorage { get; private set; }
+        internal Storage<K, V, VReadOnly> TStorage { get; private set; }
         public Database Database { get; private set; }
         public override Storage Storage => TStorage;
 
@@ -560,9 +566,9 @@ namespace Zeze.Transaction
                 AutoKey = app.ServiceManagerAgent.GetAutoKey(Name);
 
             base.TableConf = app.Config.GetTableConf(Name);
-            Cache = new TableCache<K, V>(app, this);
+            Cache = new TableCache<K, V, VReadOnly>(app, this);
 
-            TStorage = IsMemory ? null : new Storage<K, V>(this, database, Name);
+            TStorage = IsMemory ? null : new Storage<K, V, VReadOnly>(this, database, Name);
             OldTable = TableConf.DatabaseOldMode == 1
                 ? app.GetDatabase(TableConf.DatabaseOldName).OpenTable(Name) : null;
             return TStorage;
@@ -815,7 +821,7 @@ namespace Zeze.Transaction
             }
         }
 
-        public async Task<V> SelectDirtyAsync(K key)
+        public async Task<VReadOnly> SelectDirtyAsync(K key)
         {
             var tkey = new TableKey(Id, key);
             Transaction currentT = Transaction.Current;

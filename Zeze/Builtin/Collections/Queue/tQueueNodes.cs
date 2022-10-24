@@ -3,7 +3,7 @@ using Zeze.Serialize;
 
 namespace Zeze.Builtin.Collections.Queue
 {
-    public sealed class tQueueNodes : Zeze.Transaction.Table<Zeze.Builtin.Collections.Queue.BQueueNodeKey, Zeze.Builtin.Collections.Queue.BQueueNode>
+    public sealed class tQueueNodes : Zeze.Transaction.Table<Zeze.Builtin.Collections.Queue.BQueueNodeKey, Zeze.Builtin.Collections.Queue.BQueueNode, Zeze.Builtin.Collections.Queue.BQueueNodeReadOnly>
     {
         public tQueueNodes() : base("Zeze_Builtin_Collections_Queue_tQueueNodes")
         {

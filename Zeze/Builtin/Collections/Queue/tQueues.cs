@@ -4,7 +4,7 @@ using Zeze.Serialize;
 // key: Queue的Name
 namespace Zeze.Builtin.Collections.Queue
 {
-    public sealed class tQueues : Zeze.Transaction.Table<string, Zeze.Builtin.Collections.Queue.BQueue>
+    public sealed class tQueues : Zeze.Transaction.Table<string, Zeze.Builtin.Collections.Queue.BQueue, Zeze.Builtin.Collections.Queue.BQueueReadOnly>
     {
         public tQueues() : base("Zeze_Builtin_Collections_Queue_tQueues")
         {

@@ -4,7 +4,7 @@ using Zeze.Serialize;
 // key: LinkedMap的Name
 namespace Zeze.Builtin.Collections.LinkedMap
 {
-    public sealed class tLinkedMaps : Zeze.Transaction.Table<string, Zeze.Builtin.Collections.LinkedMap.BLinkedMap>
+    public sealed class tLinkedMaps : Zeze.Transaction.Table<string, Zeze.Builtin.Collections.LinkedMap.BLinkedMap, Zeze.Builtin.Collections.LinkedMap.BLinkedMapReadOnly>
     {
         public tLinkedMaps() : base("Zeze_Builtin_Collections_LinkedMap_tLinkedMaps")
         {

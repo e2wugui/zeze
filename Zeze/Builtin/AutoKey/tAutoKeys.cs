@@ -3,7 +3,7 @@ using Zeze.Serialize;
 
 namespace Zeze.Builtin.AutoKey
 {
-    public sealed class tAutoKeys : Zeze.Transaction.Table<Zeze.Builtin.AutoKey.BSeedKey, Zeze.Builtin.AutoKey.BAutoKey>
+    public sealed class tAutoKeys : Zeze.Transaction.Table<Zeze.Builtin.AutoKey.BSeedKey, Zeze.Builtin.AutoKey.BAutoKey, Zeze.Builtin.AutoKey.BAutoKeyReadOnly>
     {
         public tAutoKeys() : base("Zeze_Builtin_AutoKey_tAutoKeys")
         {

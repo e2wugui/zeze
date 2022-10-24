@@ -3,7 +3,7 @@ using Zeze.Serialize;
 
 namespace Zeze.Builtin.Online
 {
-    public sealed class tlocal : Zeze.Transaction.Table<string, Zeze.Builtin.Online.BLocals>
+    public sealed class tlocal : Zeze.Transaction.Table<string, Zeze.Builtin.Online.BLocals, Zeze.Builtin.Online.BLocalsReadOnly>
     {
         public tlocal() : base("Zeze_Builtin_Online_tlocal")
         {

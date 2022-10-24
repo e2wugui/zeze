@@ -3,7 +3,7 @@ using Zeze.Serialize;
 
 namespace Zeze.Builtin.Collections.LinkedMap
 {
-    public sealed class tLinkedMapNodes : Zeze.Transaction.Table<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode>
+    public sealed class tLinkedMapNodes : Zeze.Transaction.Table<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeReadOnly>
     {
         public tLinkedMapNodes() : base("Zeze_Builtin_Collections_LinkedMap_tLinkedMapNodes")
         {

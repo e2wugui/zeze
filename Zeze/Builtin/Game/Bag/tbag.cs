@@ -4,7 +4,7 @@ using Zeze.Serialize;
 // key is bag name
 namespace Zeze.Builtin.Game.Bag
 {
-    public sealed class tbag : Zeze.Transaction.Table<string, Zeze.Builtin.Game.Bag.BBag>
+    public sealed class tbag : Zeze.Transaction.Table<string, Zeze.Builtin.Game.Bag.BBag, Zeze.Builtin.Game.Bag.BBagReadOnly>
     {
         public tbag() : base("Zeze_Builtin_Game_Bag_tbag")
         {

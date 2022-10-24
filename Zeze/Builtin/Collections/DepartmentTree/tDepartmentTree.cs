@@ -3,7 +3,7 @@ using Zeze.Serialize;
 
 namespace Zeze.Builtin.Collections.DepartmentTree
 {
-    public sealed class tDepartmentTree : Zeze.Transaction.Table<Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey, Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode>
+    public sealed class tDepartmentTree : Zeze.Transaction.Table<Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey, Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode, Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNodeReadOnly>
     {
         public tDepartmentTree() : base("Zeze_Builtin_Collections_DepartmentTree_tDepartmentTree")
         {

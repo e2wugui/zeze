@@ -4,7 +4,7 @@ using Zeze.Serialize;
 // 群部门树根。普通用户也可以创建部门。暂不开放这个给个人。
 namespace Zeze.Builtin.Collections.DepartmentTree
 {
-    public sealed class tDepartment : Zeze.Transaction.Table<string, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot>
+    public sealed class tDepartment : Zeze.Transaction.Table<string, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRootReadOnly>
     {
         public tDepartment() : base("Zeze_Builtin_Collections_DepartmentTree_tDepartment")
         {

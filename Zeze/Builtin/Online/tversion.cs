@@ -3,7 +3,7 @@ using Zeze.Serialize;
 
 namespace Zeze.Builtin.Online
 {
-    public sealed class tversion : Zeze.Transaction.Table<string, Zeze.Builtin.Online.BVersions>
+    public sealed class tversion : Zeze.Transaction.Table<string, Zeze.Builtin.Online.BVersions, Zeze.Builtin.Online.BVersionsReadOnly>
     {
         public tversion() : base("Zeze_Builtin_Online_tversion")
         {

@@ -3,7 +3,7 @@ using Zeze.Serialize;
 
 namespace Zeze.Builtin.Game.Rank
 {
-    public sealed class trank : Zeze.Transaction.Table<Zeze.Builtin.Game.Rank.BConcurrentKey, Zeze.Builtin.Game.Rank.BRankList>
+    public sealed class trank : Zeze.Transaction.Table<Zeze.Builtin.Game.Rank.BConcurrentKey, Zeze.Builtin.Game.Rank.BRankList, Zeze.Builtin.Game.Rank.BRankListReadOnly>
     {
         public trank() : base("Zeze_Builtin_Game_Rank_trank")
         {

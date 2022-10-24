@@ -11,7 +11,11 @@ namespace UnitTest.Zeze.Trans
     [TestClass]
     public class TestBegin
     {
-        public class MyBean : Bean
+        public interface MyBeanReadOnly
+        { 
+        }
+
+        public class MyBean : Bean, MyBeanReadOnly
         {
             public override void Decode(ByteBuffer bb)
             {

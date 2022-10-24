@@ -3,7 +3,7 @@ using Zeze.Serialize;
 
 namespace Zeze.Builtin.Game.Online
 {
-    public sealed class tonline : Zeze.Transaction.Table<long, Zeze.Builtin.Game.Online.BOnline>
+    public sealed class tonline : Zeze.Transaction.Table<long, Zeze.Builtin.Game.Online.BOnline, Zeze.Builtin.Game.Online.BOnlineReadOnly>
     {
         public tonline() : base("Zeze_Builtin_Game_Online_tonline")
         {

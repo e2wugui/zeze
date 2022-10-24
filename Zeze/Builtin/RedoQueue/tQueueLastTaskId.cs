@@ -3,7 +3,7 @@ using Zeze.Serialize;
 
 namespace Zeze.Builtin.RedoQueue
 {
-    public sealed class tQueueLastTaskId : Zeze.Transaction.Table<string, Zeze.Builtin.RedoQueue.BTaskId>
+    public sealed class tQueueLastTaskId : Zeze.Transaction.Table<string, Zeze.Builtin.RedoQueue.BTaskId, Zeze.Builtin.RedoQueue.BTaskIdReadOnly>
     {
         public tQueueLastTaskId() : base("Zeze_Builtin_RedoQueue_tQueueLastTaskId")
         {

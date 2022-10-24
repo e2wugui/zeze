@@ -3,7 +3,7 @@ using Zeze.Serialize;
 
 namespace Zeze.Builtin.Game.Online
 {
-    public sealed class taccount : Zeze.Transaction.Table<string, Zeze.Builtin.Game.Online.BAccount>
+    public sealed class taccount : Zeze.Transaction.Table<string, Zeze.Builtin.Game.Online.BAccount, Zeze.Builtin.Game.Online.BAccountReadOnly>
     {
         public taccount() : base("Zeze_Builtin_Game_Online_taccount")
         {

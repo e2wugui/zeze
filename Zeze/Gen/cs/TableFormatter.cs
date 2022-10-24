@@ -27,7 +27,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("{");
             string key = TypeName.GetName(table.KeyType);
             string value = TypeName.GetName(table.ValueType);
-            sw.WriteLine("    public sealed class " + table.Name + " : Zeze.Transaction.Table<" + key + ", " + value + ">");
+            sw.WriteLine("    public sealed class " + table.Name + $" : Zeze.Transaction.Table<{key}, {value}, {value}ReadOnly>");
             sw.WriteLine("    {");
             sw.WriteLine("        public " + table.Name + "() : base(\"" + table.Space.Path("_", table.Name) + "\")");
             sw.WriteLine("        {");
