@@ -29,6 +29,7 @@ namespace Zege
 
         internal ScrollView MessageScrollView => _MessageScrollView;
         internal AbsoluteLayout MessageLayout => _MessageLayout;
+        public Layout MessageParent => _MessageParent;
 
         private void LoggingConfiguration()
         {
@@ -48,6 +49,7 @@ namespace Zege
             if (App == null)
             {
                 App = new App();
+                App.MainWindow = this;
                 App.Start("127.0.0.1", 5100);
                 App.Zege_Friend.Bind(FriendsListView);
                 App.Zege_Message.Bind(MessageView);
@@ -64,6 +66,11 @@ namespace Zege
             // TODO: make selected to top here
 
             App.Zege_Message.SwitchChat(selected.Account);
+        }
+
+        public void UpdateRedPoint(string target, long notReadCount)
+        {
+            // TODO 更新未读红点。
         }
 
         private MessageDrawable Drawable = new MessageDrawable();

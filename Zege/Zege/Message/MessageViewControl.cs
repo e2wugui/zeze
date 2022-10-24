@@ -14,13 +14,6 @@ namespace Zege.Message
         private AbsoluteLayout MessageLayout;
         private double NextMessageY = 5.0;
 
-        public MessageViewControl(Layout parent, ScrollView view, AbsoluteLayout layout)
-        {
-            Parent = parent;
-            ScrollView = view;
-            MessageLayout = layout;
-        }
-
         public MessageViewControl(Layout parent)
         {
             Parent = parent;

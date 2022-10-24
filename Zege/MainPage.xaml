@@ -31,7 +31,7 @@
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
-            <VerticalStackLayout x:Name="ChatLayout">
+            <VerticalStackLayout x:Name="_MessageParent">
                 <ScrollView x:Name="_MessageScrollView" HeightRequest="225" WidthRequest="600">
                     <AbsoluteLayout x:Name="_MessageLayout" />
                 </ScrollView>

@@ -1,4 +1,5 @@
 
+using System.Collections.Concurrent;
 using Zeze.Transaction;
 using Zeze.Util;
 
@@ -6,6 +7,8 @@ namespace Zege.Message
 {
     public partial class ModuleMessage : AbstractModule
     {
+        private ConcurrentDictionary<string, MessageFriend> Friends = new();
+
         public void Start(global::Zege.App app)
         {
         }
@@ -18,7 +21,8 @@ namespace Zege.Message
         protected override async Task<long> ProcessNotifyMessageRequest(Zeze.Net.Protocol _p)
         {
             var p = _p as NotifyMessage;
-            //AddMessage(p.Argument.From, p.Argument.Group);
+            var friend = Friends.GetOrAdd(p.Argument.From, (key) => new MessageFriend(this, key));
+            friend.OnNotifyMessage(p);
             return ResultCode.NotImplement;
         }
 
@@ -45,13 +49,12 @@ namespace Zege.Message
             rpc.Send(App.ClientService.GetSocket(), ProcessGetFriendMessageResponse);
         }
 
-        private BGetMessageResult RecentMessages;
-
         [DispatchMode(Mode = DispatchMode.UIThread)]
-        private async Task<long> ProcessGetFriendMessageResponse(Zeze.Net.Protocol p)
+        internal async Task<long> ProcessGetFriendMessageResponse(Zeze.Net.Protocol p)
         {
             var r = p as GetFriendMessage;
-            RecentMessages = r.Result;
+            var friend = Friends.GetOrAdd(r.Argument.Friend, (key) => new MessageFriend(this, key));
+            friend.OnGetFriendMessage(r);
             return 0;
         }
 

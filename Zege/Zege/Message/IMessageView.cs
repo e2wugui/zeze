@@ -8,6 +8,8 @@ namespace Zege.Message
 {
     // 消息窗口接口。
     // 现在先实现MessageViewControl（用控件实现的）。
+    // 关于消息的更多显示方式，需要修改接口。
+    // 现在仅是草稿。
     public interface IMessageView
     {
         // 翻阅历史消息时用来加入消息。

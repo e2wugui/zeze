@@ -7,6 +7,7 @@ namespace Zege
     public sealed partial class App
     {
         public Connector Connector;
+        public MainPage MainWindow { get; set; }
 
         public void Start(string ip, int port)
         {
