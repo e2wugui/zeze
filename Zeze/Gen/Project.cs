@@ -321,12 +321,15 @@ namespace Zeze.Gen
                     new confcs.Maker(this).Make();
                     break;
                 case "conf+cs+net":
-                    var followerApplyTables = Program.Refs(FollowerApplyTablesSelf, "table", "name");
                     var dependsFollowerApplyTables = new HashSet<Types.Type>();
-                    foreach (var tFullName in followerApplyTables)
+                    if (FollowerApplyTablesSelf != null)
                     {
-                        var table = Program.GetNamedObject<Table>(tFullName);
-                        table.Depends(dependsFollowerApplyTables);
+                        var followerApplyTables = Program.Refs(FollowerApplyTablesSelf, "table", "name");
+                        foreach (var tFullName in followerApplyTables)
+                        {
+                            var table = Program.GetNamedObject<Table>(tFullName);
+                            table.Depends(dependsFollowerApplyTables);
+                        }
                     }
 
                     // 警告，confcs.Maker为了简化，没有生成Gen目录，而是直接放到ProjectName下，这样和需要实现的代码混在一起，
