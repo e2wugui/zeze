@@ -31,11 +31,11 @@
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
-            <VerticalStackLayout>
-                <GraphicsView x:Name="MessageView" HeightRequest="225" WidthRequest="600"/>
+            <VerticalStackLayout x:Name="ChatLayout">
                 <ScrollView x:Name="_MessageScrollView" HeightRequest="225" WidthRequest="600">
                     <AbsoluteLayout x:Name="_MessageLayout" />
                 </ScrollView>
+                <GraphicsView x:Name="MessageView" HeightRequest="225" WidthRequest="600"/>
                 <HorizontalStackLayout>
                     <Editor x:Name="MessageEditor" HeightRequest="150" WidthRequest="445"/>
                     <Button Text="Send" Clicked="OnSendClicked" Grid.Row="3"/>

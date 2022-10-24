@@ -70,6 +70,8 @@ namespace Zege
 
         private double NextMessageY = 5.0;
 
+        public HashSet<IView> Selfs = new();
+
         private void OnSendClicked(object sender, EventArgs e)
         {
             var message = MessageEditor.Text;
@@ -89,22 +91,24 @@ namespace Zege
                 HeightRequest = 30,
                 WidthRequest = 30,
             };
+            var self = Random.Shared.Next(100) < 50;
+            var x = self ? MessageScrollView.Width - 40 : 0;
             MessageLayout.Add(photo);
-            MessageLayout.SetLayoutBounds(photo, new Rect(0, NextMessageY, 30, 30));
-
+            MessageLayout.SetLayoutBounds(photo, new Rect(x, NextMessageY, 30, 30));
             var lastMessage = new Editor()
             {
                 MinimumWidthRequest = 30,
                 MaximumWidthRequest = 300,
                 AutoSize = EditorAutoSizeOption.TextChanges,
                 Text = message,
-                BackgroundColor = Colors.LightGreen,
+                BackgroundColor = self ? Colors.LightGreen : Colors.White,
             };
             lastMessage.SizeChanged += OnMessageSizeChanged;
             MessageLayout.Add(lastMessage);
             //MessageLayout.SetLayoutBounds(lastMessage, new Rect(0, NextMessageY, lastMessage.Width, lastMessage.Height));
             //NextMessageY += lastMessage.Height + 5;
-
+            if (self)
+                Selfs.Add(lastMessage);
             App?.Zege_Message.AddMessage(message);
             MessageEditor.Text = string.Empty;
         }
@@ -112,7 +116,9 @@ namespace Zege
         public async void OnMessageSizeChanged(object sender, EventArgs e)
         {
             var lastMessage = (Editor)sender;
-            MessageLayout.SetLayoutBounds(lastMessage, new Rect(40, NextMessageY, lastMessage.Width, lastMessage.Height));
+            var self = Selfs.Contains(lastMessage);
+            var x = self ? MessageScrollView.Width - lastMessage.Width - 40 : 40;
+            MessageLayout.SetLayoutBounds(lastMessage, new Rect(x, NextMessageY, lastMessage.Width, lastMessage.Height));
             NextMessageY += lastMessage.Height + 5;
             lastMessage.SizeChanged -= OnMessageSizeChanged;
             await MessageScrollView.ScrollToAsync(0, NextMessageY, true);
