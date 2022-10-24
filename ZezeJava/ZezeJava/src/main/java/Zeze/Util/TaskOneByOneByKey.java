@@ -35,6 +35,10 @@ public final class TaskOneByOneByKey {
 		this(1024, null);
 	}
 
+	public TaskOneByOneByKey(int concurrencyLevel) {
+		this(concurrencyLevel, null);
+	}
+
 	public TaskOneByOneByKey(int concurrencyLevel, Executor executor) {
 		this.executor = executor;
 		if (concurrencyLevel < 1 || concurrencyLevel > 0x4000_0000)
