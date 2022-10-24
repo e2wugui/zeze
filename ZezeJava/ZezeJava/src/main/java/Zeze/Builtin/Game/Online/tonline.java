@@ -45,4 +45,8 @@ public final class tonline extends Zeze.Transaction.TableX<Long, Zeze.Builtin.Ga
     public Zeze.Builtin.Game.Online.BOnline newValue() {
         return new Zeze.Builtin.Game.Online.BOnline();
     }
+
+    public Zeze.Builtin.Game.Online.BOnlineReadOnly getReadOnly(Long k) {
+        return get(k);
+    }
 }

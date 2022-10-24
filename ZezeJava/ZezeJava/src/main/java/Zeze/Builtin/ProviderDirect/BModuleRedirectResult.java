@@ -4,13 +4,14 @@ package Zeze.Builtin.ProviderDirect;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BModuleRedirectResult extends Zeze.Transaction.Bean {
+public final class BModuleRedirectResult extends Zeze.Transaction.Bean implements BModuleRedirectResultReadOnly {
     public static final long TYPEID = 6325051164605397555L;
 
     private int _ModuleId;
     private int _ServerId; // 目标server的id。
     private Zeze.Net.Binary _Params;
 
+    @Override
     public int getModuleId() {
         if (!isManaged())
             return _ModuleId;
@@ -30,6 +31,7 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean {
         txn.putLog(new Log__ModuleId(this, 1, value));
     }
 
+    @Override
     public int getServerId() {
         if (!isManaged())
             return _ServerId;
@@ -49,6 +51,7 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean {
         txn.putLog(new Log__ServerId(this, 2, value));
     }
 
+    @Override
     public Zeze.Net.Binary getParams() {
         if (!isManaged())
             return _Params;

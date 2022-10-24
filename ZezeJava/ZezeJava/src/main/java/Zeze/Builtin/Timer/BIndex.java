@@ -4,12 +4,13 @@ package Zeze.Builtin.Timer;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BIndex extends Zeze.Transaction.Bean {
+public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnly {
     public static final long TYPEID = 8921847554177605341L;
 
     private int _ServerId;
     private long _NodeId;
 
+    @Override
     public int getServerId() {
         if (!isManaged())
             return _ServerId;
@@ -29,6 +30,7 @@ public final class BIndex extends Zeze.Transaction.Bean {
         txn.putLog(new Log__ServerId(this, 1, value));
     }
 
+    @Override
     public long getNodeId() {
         if (!isManaged())
             return _NodeId;

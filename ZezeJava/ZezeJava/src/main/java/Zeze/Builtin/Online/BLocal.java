@@ -4,7 +4,7 @@ package Zeze.Builtin.Online;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BLocal extends Zeze.Transaction.Bean {
+public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnly {
     public static final long TYPEID = -6330089022826554666L;
 
     private long _LoginVersion;
@@ -22,6 +22,7 @@ public final class BLocal extends Zeze.Transaction.Bean {
         __zeze_map_key__ = value;
     }
 
+    @Override
     public long getLoginVersion() {
         if (!isManaged())
             return _LoginVersion;
@@ -43,6 +44,11 @@ public final class BLocal extends Zeze.Transaction.Bean {
 
     public Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Online.BAny> getDatas() {
         return _Datas;
+    }
+
+    @Override
+    public Zeze.Transaction.Collections.PMap2ReadOnly<String, Zeze.Builtin.Online.BAny, Zeze.Builtin.Online.BAnyReadOnly> getDatasReadOnly() {
+        return new Zeze.Transaction.Collections.PMap2ReadOnly<>(_Datas);
     }
 
     @SuppressWarnings("deprecation")

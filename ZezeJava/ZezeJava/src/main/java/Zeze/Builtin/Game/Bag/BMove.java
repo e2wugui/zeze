@@ -4,7 +4,7 @@ package Zeze.Builtin.Game.Bag;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BMove extends Zeze.Transaction.Bean {
+public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly {
     public static final long TYPEID = -7346236832819011963L;
 
     private String _BagName;
@@ -12,6 +12,7 @@ public final class BMove extends Zeze.Transaction.Bean {
     private int _PositionTo;
     private int _number; // -1 表示全部
 
+    @Override
     public String getBagName() {
         if (!isManaged())
             return _BagName;
@@ -33,6 +34,7 @@ public final class BMove extends Zeze.Transaction.Bean {
         txn.putLog(new Log__BagName(this, 1, value));
     }
 
+    @Override
     public int getPositionFrom() {
         if (!isManaged())
             return _PositionFrom;
@@ -52,6 +54,7 @@ public final class BMove extends Zeze.Transaction.Bean {
         txn.putLog(new Log__PositionFrom(this, 2, value));
     }
 
+    @Override
     public int getPositionTo() {
         if (!isManaged())
             return _PositionTo;
@@ -71,6 +74,7 @@ public final class BMove extends Zeze.Transaction.Bean {
         txn.putLog(new Log__PositionTo(this, 3, value));
     }
 
+    @Override
     public int getNumber() {
         if (!isManaged())
             return _number;

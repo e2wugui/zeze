@@ -4,13 +4,14 @@ package Zeze.Builtin.ProviderDirect;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BProviderInfo extends Zeze.Transaction.Bean {
+public final class BProviderInfo extends Zeze.Transaction.Bean implements BProviderInfoReadOnly {
     public static final long TYPEID = 858135112612157161L;
 
     private String _Ip;
     private int _Port;
     private int _ServerId;
 
+    @Override
     public String getIp() {
         if (!isManaged())
             return _Ip;
@@ -32,6 +33,7 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
         txn.putLog(new Log__Ip(this, 1, value));
     }
 
+    @Override
     public int getPort() {
         if (!isManaged())
             return _Port;
@@ -51,6 +53,7 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
         txn.putLog(new Log__Port(this, 2, value));
     }
 
+    @Override
     public int getServerId() {
         if (!isManaged())
             return _ServerId;

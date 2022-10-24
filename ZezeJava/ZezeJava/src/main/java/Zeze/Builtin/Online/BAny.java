@@ -4,7 +4,7 @@ package Zeze.Builtin.Online;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BAny extends Zeze.Transaction.Bean {
+public final class BAny extends Zeze.Transaction.Bean implements BAnyReadOnly {
     public static final long TYPEID = 5253251427600819301L;
 
     private final Zeze.Transaction.DynamicBean _Any;
@@ -34,6 +34,11 @@ public final class BAny extends Zeze.Transaction.Bean {
     }
 
     public Zeze.Transaction.DynamicBean getAny() {
+        return _Any;
+    }
+
+    @Override
+    public Zeze.Transaction.DynamicBeanReadOnly getAnyReadOnly() {
         return _Any;
     }
 

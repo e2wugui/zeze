@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 
 // link to gs
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BDispatch extends Zeze.Transaction.Bean {
+public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchReadOnly {
     public static final long TYPEID = -496680173908943081L;
 
     private long _linkSid;
@@ -15,6 +15,7 @@ public final class BDispatch extends Zeze.Transaction.Bean {
     private String _context; // SetUserState
     private Zeze.Net.Binary _contextx; // SetUserState
 
+    @Override
     public long getLinkSid() {
         if (!isManaged())
             return _linkSid;
@@ -34,6 +35,7 @@ public final class BDispatch extends Zeze.Transaction.Bean {
         txn.putLog(new Log__linkSid(this, 1, value));
     }
 
+    @Override
     public String getAccount() {
         if (!isManaged())
             return _account;
@@ -55,6 +57,7 @@ public final class BDispatch extends Zeze.Transaction.Bean {
         txn.putLog(new Log__account(this, 2, value));
     }
 
+    @Override
     public long getProtocolType() {
         if (!isManaged())
             return _protocolType;
@@ -74,6 +77,7 @@ public final class BDispatch extends Zeze.Transaction.Bean {
         txn.putLog(new Log__protocolType(this, 3, value));
     }
 
+    @Override
     public Zeze.Net.Binary getProtocolData() {
         if (!isManaged())
             return _protocolData;
@@ -95,6 +99,7 @@ public final class BDispatch extends Zeze.Transaction.Bean {
         txn.putLog(new Log__protocolData(this, 4, value));
     }
 
+    @Override
     public String getContext() {
         if (!isManaged())
             return _context;
@@ -116,6 +121,7 @@ public final class BDispatch extends Zeze.Transaction.Bean {
         txn.putLog(new Log__context(this, 5, value));
     }
 
+    @Override
     public Zeze.Net.Binary getContextx() {
         if (!isManaged())
             return _contextx;

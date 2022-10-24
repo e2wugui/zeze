@@ -4,12 +4,13 @@ package Zeze.Builtin.Game.Online;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BLocal extends Zeze.Transaction.Bean {
+public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnly {
     public static final long TYPEID = 1038509325594826174L;
 
     private long _LoginVersion;
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Game.Online.BAny> _Datas;
 
+    @Override
     public long getLoginVersion() {
         if (!isManaged())
             return _LoginVersion;
@@ -31,6 +32,11 @@ public final class BLocal extends Zeze.Transaction.Bean {
 
     public Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Game.Online.BAny> getDatas() {
         return _Datas;
+    }
+
+    @Override
+    public Zeze.Transaction.Collections.PMap2ReadOnly<String, Zeze.Builtin.Game.Online.BAny, Zeze.Builtin.Game.Online.BAnyReadOnly> getDatasReadOnly() {
+        return new Zeze.Transaction.Collections.PMap2ReadOnly<>(_Datas);
     }
 
     @SuppressWarnings("deprecation")

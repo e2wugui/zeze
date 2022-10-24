@@ -4,7 +4,7 @@ package Zeze.Builtin.Online;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BReliableNotify extends Zeze.Transaction.Bean {
+public final class BReliableNotify extends Zeze.Transaction.Bean implements BReliableNotifyReadOnly {
     public static final long TYPEID = -8784206618120085556L;
 
     private final Zeze.Transaction.Collections.PList1<Zeze.Net.Binary> _Notifies; // full encoded protocol list
@@ -14,6 +14,12 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
         return _Notifies;
     }
 
+    @Override
+    public Zeze.Transaction.Collections.PList1ReadOnly<Zeze.Net.Binary> getNotifiesReadOnly() {
+        return new Zeze.Transaction.Collections.PList1ReadOnly<>(_Notifies);
+    }
+
+    @Override
     public long getReliableNotifyIndex() {
         if (!isManaged())
             return _ReliableNotifyIndex;

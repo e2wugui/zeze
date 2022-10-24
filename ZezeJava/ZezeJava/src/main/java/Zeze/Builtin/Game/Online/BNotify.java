@@ -4,11 +4,12 @@ package Zeze.Builtin.Game.Online;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BNotify extends Zeze.Transaction.Bean {
+public final class BNotify extends Zeze.Transaction.Bean implements BNotifyReadOnly {
     public static final long TYPEID = 663625160021568926L;
 
     private Zeze.Net.Binary _FullEncodedProtocol;
 
+    @Override
     public Zeze.Net.Binary getFullEncodedProtocol() {
         if (!isManaged())
             return _FullEncodedProtocol;

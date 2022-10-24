@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 
 // gs to link
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BModule extends Zeze.Transaction.Bean {
+public final class BModule extends Zeze.Transaction.Bean implements BModuleReadOnly {
     public static final long TYPEID = 5883923521926593765L;
 
     public static final int ChoiceTypeDefault = 0; // choice by load
@@ -32,6 +32,7 @@ public final class BModule extends Zeze.Transaction.Bean {
         __zeze_map_key__ = value;
     }
 
+    @Override
     public int getChoiceType() {
         if (!isManaged())
             return _ChoiceType;
@@ -51,6 +52,7 @@ public final class BModule extends Zeze.Transaction.Bean {
         txn.putLog(new Log__ChoiceType(this, 1, value));
     }
 
+    @Override
     public int getConfigType() {
         if (!isManaged())
             return _ConfigType;
@@ -70,6 +72,7 @@ public final class BModule extends Zeze.Transaction.Bean {
         txn.putLog(new Log__ConfigType(this, 2, value));
     }
 
+    @Override
     public int getSubscribeType() {
         if (!isManaged())
             return _SubscribeType;

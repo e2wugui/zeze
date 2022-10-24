@@ -4,12 +4,13 @@ package Zeze.Builtin.Game.Online;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BReLogin extends Zeze.Transaction.Bean {
+public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginReadOnly {
     public static final long TYPEID = 8551355014943125267L;
 
     private long _RoleId;
     private long _ReliableNotifyConfirmIndex;
 
+    @Override
     public long getRoleId() {
         if (!isManaged())
             return _RoleId;
@@ -29,6 +30,7 @@ public final class BReLogin extends Zeze.Transaction.Bean {
         txn.putLog(new Log__RoleId(this, 1, value));
     }
 
+    @Override
     public long getReliableNotifyConfirmIndex() {
         if (!isManaged())
             return _ReliableNotifyConfirmIndex;

@@ -4,13 +4,14 @@ package Zeze.Builtin.GlobalCacheManagerWithRaft;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BLoginParam extends Zeze.Transaction.Bean {
+public final class BLoginParam extends Zeze.Transaction.Bean implements BLoginParamReadOnly {
     public static final long TYPEID = 9076855952725286109L;
 
     private int _ServerId;
     private int _GlobalCacheManagerHashIndex;
     private boolean _DebugMode; // 调试模式下不检查Release Timeout,方便单步调试
 
+    @Override
     public int getServerId() {
         if (!isManaged())
             return _ServerId;
@@ -30,6 +31,7 @@ public final class BLoginParam extends Zeze.Transaction.Bean {
         txn.putLog(new Log__ServerId(this, 1, value));
     }
 
+    @Override
     public int getGlobalCacheManagerHashIndex() {
         if (!isManaged())
             return _GlobalCacheManagerHashIndex;
@@ -49,6 +51,7 @@ public final class BLoginParam extends Zeze.Transaction.Bean {
         txn.putLog(new Log__GlobalCacheManagerHashIndex(this, 2, value));
     }
 
+    @Override
     public boolean isDebugMode() {
         if (!isManaged())
             return _DebugMode;

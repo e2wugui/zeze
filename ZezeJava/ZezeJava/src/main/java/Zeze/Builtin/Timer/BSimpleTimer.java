@@ -4,7 +4,7 @@ package Zeze.Builtin.Timer;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BSimpleTimer extends Zeze.Transaction.Bean {
+public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimpleTimerReadOnly {
     public static final long TYPEID = 1832177636612857692L;
 
     private long _Delay;
@@ -18,6 +18,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
     private long _HappenTime;
     private int _MissfirePolicy;
 
+    @Override
     public long getDelay() {
         if (!isManaged())
             return _Delay;
@@ -37,6 +38,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
         txn.putLog(new Log__Delay(this, 1, value));
     }
 
+    @Override
     public long getPeriod() {
         if (!isManaged())
             return _Period;
@@ -56,6 +58,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
         txn.putLog(new Log__Period(this, 2, value));
     }
 
+    @Override
     public long getRemainTimes() {
         if (!isManaged())
             return _RemainTimes;
@@ -75,6 +78,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
         txn.putLog(new Log__RemainTimes(this, 3, value));
     }
 
+    @Override
     public long getHappenTimes() {
         if (!isManaged())
             return _HappenTimes;
@@ -94,6 +98,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
         txn.putLog(new Log__HappenTimes(this, 4, value));
     }
 
+    @Override
     public long getStartTime() {
         if (!isManaged())
             return _StartTime;
@@ -113,6 +118,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
         txn.putLog(new Log__StartTime(this, 5, value));
     }
 
+    @Override
     public long getEndTime() {
         if (!isManaged())
             return _EndTime;
@@ -132,6 +138,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
         txn.putLog(new Log__EndTime(this, 6, value));
     }
 
+    @Override
     public long getNextExpectedTime() {
         if (!isManaged())
             return _NextExpectedTime;
@@ -151,6 +158,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
         txn.putLog(new Log__NextExpectedTime(this, 7, value));
     }
 
+    @Override
     public long getExpectedTime() {
         if (!isManaged())
             return _ExpectedTime;
@@ -170,6 +178,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
         txn.putLog(new Log__ExpectedTime(this, 8, value));
     }
 
+    @Override
     public long getHappenTime() {
         if (!isManaged())
             return _HappenTime;
@@ -189,6 +198,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean {
         txn.putLog(new Log__HappenTime(this, 9, value));
     }
 
+    @Override
     public int getMissfirePolicy() {
         if (!isManaged())
             return _MissfirePolicy;

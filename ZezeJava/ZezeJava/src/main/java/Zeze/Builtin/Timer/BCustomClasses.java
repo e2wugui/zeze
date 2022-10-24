@@ -4,13 +4,18 @@ package Zeze.Builtin.Timer;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BCustomClasses extends Zeze.Transaction.Bean {
+public final class BCustomClasses extends Zeze.Transaction.Bean implements BCustomClassesReadOnly {
     public static final long TYPEID = -6120785275253681446L;
 
     private final Zeze.Transaction.Collections.PSet1<String> _CustomClasses;
 
     public Zeze.Transaction.Collections.PSet1<String> getCustomClasses() {
         return _CustomClasses;
+    }
+
+    @Override
+    public Zeze.Transaction.Collections.PSet1ReadOnly<String> getCustomClassesReadOnly() {
+        return new Zeze.Transaction.Collections.PSet1ReadOnly<>(_CustomClasses);
     }
 
     @SuppressWarnings("deprecation")

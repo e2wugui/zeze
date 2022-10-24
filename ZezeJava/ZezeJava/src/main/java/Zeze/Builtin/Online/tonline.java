@@ -44,4 +44,8 @@ public final class tonline extends Zeze.Transaction.TableX<String, Zeze.Builtin.
     public Zeze.Builtin.Online.BOnlines newValue() {
         return new Zeze.Builtin.Online.BOnlines();
     }
+
+    public Zeze.Builtin.Online.BOnlinesReadOnly getReadOnly(String k) {
+        return get(k);
+    }
 }

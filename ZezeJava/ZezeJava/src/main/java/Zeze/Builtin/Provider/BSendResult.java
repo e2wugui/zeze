@@ -4,13 +4,18 @@ package Zeze.Builtin.Provider;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BSendResult extends Zeze.Transaction.Bean {
+public final class BSendResult extends Zeze.Transaction.Bean implements BSendResultReadOnly {
     public static final long TYPEID = -7186434891670297524L;
 
     private final Zeze.Transaction.Collections.PSet1<Long> _ErrorLinkSids;
 
     public Zeze.Transaction.Collections.PSet1<Long> getErrorLinkSids() {
         return _ErrorLinkSids;
+    }
+
+    @Override
+    public Zeze.Transaction.Collections.PSet1ReadOnly<Long> getErrorLinkSidsReadOnly() {
+        return new Zeze.Transaction.Collections.PSet1ReadOnly<>(_ErrorLinkSids);
     }
 
     @SuppressWarnings("deprecation")

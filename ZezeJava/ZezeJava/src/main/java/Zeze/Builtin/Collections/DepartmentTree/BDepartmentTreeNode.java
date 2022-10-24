@@ -4,7 +4,7 @@ package Zeze.Builtin.Collections.DepartmentTree;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
+public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements BDepartmentTreeNodeReadOnly {
     public static final long TYPEID = 2712461973987809351L;
 
     private long _ParentDepartment; // 0表示第一级部门
@@ -38,6 +38,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
         return Zeze.Collections.DepartmentTree.createBeanFromSpecialTypeId(typeId);
     }
 
+    @Override
     public long getParentDepartment() {
         if (!isManaged())
             return _ParentDepartment;
@@ -61,6 +62,12 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
         return _Childs;
     }
 
+    @Override
+    public Zeze.Transaction.Collections.PMap1ReadOnly<String, Long> getChildsReadOnly() {
+        return new Zeze.Transaction.Collections.PMap1ReadOnly<>(_Childs);
+    }
+
+    @Override
     public String getName() {
         if (!isManaged())
             return _Name;
@@ -86,7 +93,17 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
         return _Managers;
     }
 
+    @Override
+    public Zeze.Transaction.Collections.PMap2ReadOnly<String, Zeze.Transaction.DynamicBean, Zeze.Transaction.DynamicBeanReadOnly> getManagersReadOnly() {
+        return new Zeze.Transaction.Collections.PMap2ReadOnly<>(_Managers);
+    }
+
     public Zeze.Transaction.DynamicBean getData() {
+        return _Data;
+    }
+
+    @Override
+    public Zeze.Transaction.DynamicBeanReadOnly getDataReadOnly() {
         return _Data;
     }
 

@@ -4,13 +4,14 @@ package Zeze.Builtin.Web;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BStream extends Zeze.Transaction.Bean {
+public final class BStream extends Zeze.Transaction.Bean implements BStreamReadOnly {
     public static final long TYPEID = 6767831806810414082L;
 
     private long _ExchangeId;
     private Zeze.Net.Binary _Body;
     private boolean _Finish;
 
+    @Override
     public long getExchangeId() {
         if (!isManaged())
             return _ExchangeId;
@@ -30,6 +31,7 @@ public final class BStream extends Zeze.Transaction.Bean {
         txn.putLog(new Log__ExchangeId(this, 1, value));
     }
 
+    @Override
     public Zeze.Net.Binary getBody() {
         if (!isManaged())
             return _Body;
@@ -51,6 +53,7 @@ public final class BStream extends Zeze.Transaction.Bean {
         txn.putLog(new Log__Body(this, 2, value));
     }
 
+    @Override
     public boolean isFinish() {
         if (!isManaged())
             return _Finish;

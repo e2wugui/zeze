@@ -4,13 +4,14 @@ package Zeze.Builtin.Provider;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BSetUserState extends Zeze.Transaction.Bean {
+public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUserStateReadOnly {
     public static final long TYPEID = -4860388989628287875L;
 
     private long _linkSid;
     private String _context;
     private Zeze.Net.Binary _contextx;
 
+    @Override
     public long getLinkSid() {
         if (!isManaged())
             return _linkSid;
@@ -30,6 +31,7 @@ public final class BSetUserState extends Zeze.Transaction.Bean {
         txn.putLog(new Log__linkSid(this, 1, value));
     }
 
+    @Override
     public String getContext() {
         if (!isManaged())
             return _context;
@@ -51,6 +53,7 @@ public final class BSetUserState extends Zeze.Transaction.Bean {
         txn.putLog(new Log__context(this, 2, value));
     }
 
+    @Override
     public Zeze.Net.Binary getContextx() {
         if (!isManaged())
             return _contextx;

@@ -5,12 +5,13 @@ import Zeze.Serialize.ByteBuffer;
 
 // 一个节点可以存多个KeyValue对，
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BQueueNode extends Zeze.Transaction.Bean {
+public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNodeReadOnly {
     public static final long TYPEID = 400956918018571167L;
 
     private long _NextNodeId; // 后一个节点ID. 0表示已到达结尾。
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.Collections.Queue.BQueueNodeValue> _Values;
 
+    @Override
     public long getNextNodeId() {
         if (!isManaged())
             return _NextNodeId;
@@ -32,6 +33,11 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
 
     public Zeze.Transaction.Collections.PList2<Zeze.Builtin.Collections.Queue.BQueueNodeValue> getValues() {
         return _Values;
+    }
+
+    @Override
+    public Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.Collections.Queue.BQueueNodeValue, Zeze.Builtin.Collections.Queue.BQueueNodeValueReadOnly> getValuesReadOnly() {
+        return new Zeze.Transaction.Collections.PList2ReadOnly<>(_Values);
     }
 
     @SuppressWarnings("deprecation")

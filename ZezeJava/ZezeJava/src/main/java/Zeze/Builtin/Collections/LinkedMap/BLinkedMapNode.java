@@ -5,13 +5,14 @@ import Zeze.Serialize.ByteBuffer;
 
 // 一个节点可以存多个KeyValue对，
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BLinkedMapNode extends Zeze.Transaction.Bean {
+public final class BLinkedMapNode extends Zeze.Transaction.Bean implements BLinkedMapNodeReadOnly {
     public static final long TYPEID = 3432187612551867839L;
 
     private long _PrevNodeId; // 前一个节点ID. 0表示已到达开头。
     private long _NextNodeId; // 后一个节点ID. 0表示已到达结尾。
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue> _Values; // 多个KeyValue对,容量由LinkedMap构造时的nodeSize决定
 
+    @Override
     public long getPrevNodeId() {
         if (!isManaged())
             return _PrevNodeId;
@@ -31,6 +32,7 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
         txn.putLog(new Log__PrevNodeId(this, 1, value));
     }
 
+    @Override
     public long getNextNodeId() {
         if (!isManaged())
             return _NextNodeId;
@@ -52,6 +54,11 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
 
     public Zeze.Transaction.Collections.PList2<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue> getValues() {
         return _Values;
+    }
+
+    @Override
+    public Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValueReadOnly> getValuesReadOnly() {
+        return new Zeze.Transaction.Collections.PList2ReadOnly<>(_Values);
     }
 
     @SuppressWarnings("deprecation")

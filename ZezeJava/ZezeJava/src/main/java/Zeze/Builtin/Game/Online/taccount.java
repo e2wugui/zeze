@@ -47,4 +47,8 @@ public final class taccount extends Zeze.Transaction.TableX<String, Zeze.Builtin
     public Zeze.Builtin.Game.Online.BAccount newValue() {
         return new Zeze.Builtin.Game.Online.BAccount();
     }
+
+    public Zeze.Builtin.Game.Online.BAccountReadOnly getReadOnly(String k) {
+        return get(k);
+    }
 }

@@ -12,12 +12,17 @@ namespace Zeze.Gen.java
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine($"{prefix}public long typeId();");
-            sw.WriteLine($"{prefix}public void Encode(Zeze.Serialize.ByteBuffer _os_);");
+            sw.WriteLine($"{prefix}public void encode(Zeze.Serialize.ByteBuffer _o_);");
             sw.WriteLine($"{prefix}public boolean negativeCheck();");
             sw.WriteLine($"{prefix}public {bean.Name} copy();");
             sw.WriteLine();
             foreach (Variable var in bean.Variables)
-                var.VariableType.Accept(new PropertyReadOnly(sw, var, prefix));
+            {
+                if (bean.Version.Equals(var.Name))
+                    sw.WriteLine($"{prefix}public long version();");
+                else
+                    var.VariableType.Accept(new PropertyReadOnly(sw, var, prefix));
+            }
         }
 
         public PropertyReadOnly(StreamWriter sw, Variable var, string prefix)
@@ -79,31 +84,29 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeList type)
         {
-            var valueName = type.ValueType.IsNormalBean
-                ? TypeName.GetName(type.ValueType) + "ReadOnly"
-                : TypeName.GetName(type.ValueType);
-            sw.WriteLine(prefix + "public System.Collections.Generic.IReadOnlyList<" + valueName + ">" + var.NameUpper1 + " { get; }");
+            var v = BoxingName.GetBoxingName(type.ValueType);
+            var t = type.ValueType.IsNormalBean ? $"PList2ReadOnly<{v}, {v}ReadOnly>" : $"PList1ReadOnly<{v}>";
+            sw.WriteLine($"{prefix}public Zeze.Transaction.Collections.{t} get{var.NameUpper1}ReadOnly();");
         }
 
         public void Visit(TypeSet type)
         {
-            var v = TypeName.GetName(type.ValueType);
-            var t = $"System.Collections.Generic.IReadOnlySet<{v}>";
-            sw.WriteLine($"{prefix}public {t} {var.NameUpper1} {{ get; }}");
+            var v = BoxingName.GetBoxingName(type.ValueType);
+            var t = $"Zeze.Transaction.Collections.PSet1ReadOnly<{v}>";
+            sw.WriteLine($"{prefix}public {t} get{var.NameUpper1}ReadOnly();");
         }
 
         public void Visit(TypeMap type)
         {
-            var valueName = type.ValueType.IsNormalBean
-                ? TypeName.GetName(type.ValueType) + "ReadOnly"
-                : TypeName.GetName(type.ValueType);
-            var keyName = TypeName.GetName(type.KeyType);
-            sw.WriteLine($"{prefix} public System.Collections.Generic.IReadOnlyDictionary<{keyName},{valueName}> {var.NameUpper1} {{ get; }}");
+            var k = BoxingName.GetBoxingName(type.KeyType);
+            var v = BoxingName.GetBoxingName(type.ValueType);
+            var t = type.ValueType.IsNormalBean ? $"PMap2ReadOnly<{k}, {v}, {v}ReadOnly>" : $"PMap1ReadOnly<{k}, {v}>";
+            sw.WriteLine($"{prefix}public Zeze.Transaction.Collections.{t} get{var.NameUpper1}ReadOnly();");
         }
 
         public void Visit(Bean type)
         {
-            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + "ReadOnly " + var.Getter + ";");
+            sw.WriteLine($"{prefix}public {TypeName.GetName(type)}ReadOnly get{var.NameUpper1}ReadOnly();");
         }
 
         public void Visit(BeanKey type)
@@ -113,12 +116,12 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeDynamic type)
         {
-            sw.WriteLine($"{prefix}public {TypeName.GetName(type)}ReadOnly {var.NameUpper1} {{ get; }}");
+            sw.WriteLine($"{prefix}public {TypeName.GetName(type)}ReadOnly get{var.NameUpper1}ReadOnly();");
             sw.WriteLine();
             foreach (Bean real in type.RealBeans.Values)
             {
                 string rname = TypeName.GetName(real);
-                sw.WriteLine(prefix + "public " + rname + "ReadOnly " + var.NameUpper1 + "_" + real.Space.Path("_", real.Name) + " { get; }");
+                sw.WriteLine($"{prefix}public {rname}ReadOnly get{var.NameUpper1}_{real.Space.Path("_", real.Name)}ReadOnly();");
             }
         }
 

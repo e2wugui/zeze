@@ -45,4 +45,8 @@ public final class tSessions extends Zeze.Transaction.TableX<String, Zeze.Builti
     public Zeze.Builtin.Web.BSession newValue() {
         return new Zeze.Builtin.Web.BSession();
     }
+
+    public Zeze.Builtin.Web.BSessionReadOnly getReadOnly(String k) {
+        return get(k);
+    }
 }

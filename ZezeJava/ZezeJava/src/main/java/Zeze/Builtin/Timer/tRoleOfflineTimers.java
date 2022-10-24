@@ -44,4 +44,8 @@ public final class tRoleOfflineTimers extends Zeze.Transaction.TableX<Long, Zeze
     public Zeze.Builtin.Timer.BOfflineTimers newValue() {
         return new Zeze.Builtin.Timer.BOfflineTimers();
     }
+
+    public Zeze.Builtin.Timer.BOfflineTimersReadOnly getReadOnly(Long k) {
+        return get(k);
+    }
 }

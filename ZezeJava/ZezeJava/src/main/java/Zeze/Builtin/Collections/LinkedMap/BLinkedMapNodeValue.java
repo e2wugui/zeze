@@ -4,7 +4,7 @@ package Zeze.Builtin.Collections.LinkedMap;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
+public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean implements BLinkedMapNodeValueReadOnly {
     public static final long TYPEID = -6110801358414370128L;
 
     private String _Id; // LinkedMap的Key转成字符串类型
@@ -22,6 +22,7 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
         return Zeze.Collections.LinkedMap.createBeanFromSpecialTypeId(typeId);
     }
 
+    @Override
     public String getId() {
         if (!isManaged())
             return _Id;
@@ -44,6 +45,11 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
     }
 
     public Zeze.Transaction.DynamicBean getValue() {
+        return _Value;
+    }
+
+    @Override
+    public Zeze.Transaction.DynamicBeanReadOnly getValueReadOnly() {
         return _Value;
     }
 

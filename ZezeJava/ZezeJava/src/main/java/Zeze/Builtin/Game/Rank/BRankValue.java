@@ -4,13 +4,14 @@ package Zeze.Builtin.Game.Rank;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BRankValue extends Zeze.Transaction.Bean {
+public final class BRankValue extends Zeze.Transaction.Bean implements BRankValueReadOnly {
     public static final long TYPEID = 2276228832088785165L;
 
     private long _RoleId;
     private long _Value; // 含义由 BConcurrentKey.RankType 决定
     private Zeze.Net.Binary _ValueEx; // 自定义数据。
 
+    @Override
     public long getRoleId() {
         if (!isManaged())
             return _RoleId;
@@ -30,6 +31,7 @@ public final class BRankValue extends Zeze.Transaction.Bean {
         txn.putLog(new Log__RoleId(this, 1, value));
     }
 
+    @Override
     public long getValue() {
         if (!isManaged())
             return _Value;
@@ -49,6 +51,7 @@ public final class BRankValue extends Zeze.Transaction.Bean {
         txn.putLog(new Log__Value(this, 2, value));
     }
 
+    @Override
     public Zeze.Net.Binary getValueEx() {
         if (!isManaged())
             return _ValueEx;

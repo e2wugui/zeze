@@ -4,7 +4,7 @@ package Zeze.Builtin.Provider;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BKick extends Zeze.Transaction.Bean {
+public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly {
     public static final long TYPEID = -6855697390328479333L;
 
     public static final int ErrorProtocolUnknown = 1;
@@ -17,6 +17,7 @@ public final class BKick extends Zeze.Transaction.Bean {
     private int _code;
     private String _desc; // // for debug
 
+    @Override
     public long getLinksid() {
         if (!isManaged())
             return _linksid;
@@ -36,6 +37,7 @@ public final class BKick extends Zeze.Transaction.Bean {
         txn.putLog(new Log__linksid(this, 1, value));
     }
 
+    @Override
     public int getCode() {
         if (!isManaged())
             return _code;
@@ -55,6 +57,7 @@ public final class BKick extends Zeze.Transaction.Bean {
         txn.putLog(new Log__code(this, 2, value));
     }
 
+    @Override
     public String getDesc() {
         if (!isManaged())
             return _desc;

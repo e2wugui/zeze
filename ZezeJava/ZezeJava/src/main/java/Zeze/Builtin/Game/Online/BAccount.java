@@ -4,7 +4,7 @@ package Zeze.Builtin.Game.Online;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BAccount extends Zeze.Transaction.Bean {
+public final class BAccount extends Zeze.Transaction.Bean implements BAccountReadOnly {
     public static final long TYPEID = -6071732171172452068L;
 
     private String _Name;
@@ -12,6 +12,7 @@ public final class BAccount extends Zeze.Transaction.Bean {
     private long _LastLoginRoleId;
     private long _LastLoginVersion; // 用来生成 role 登录版本号。每次递增。
 
+    @Override
     public String getName() {
         if (!isManaged())
             return _Name;
@@ -37,6 +38,12 @@ public final class BAccount extends Zeze.Transaction.Bean {
         return _Roles;
     }
 
+    @Override
+    public Zeze.Transaction.Collections.PList1ReadOnly<Long> getRolesReadOnly() {
+        return new Zeze.Transaction.Collections.PList1ReadOnly<>(_Roles);
+    }
+
+    @Override
     public long getLastLoginRoleId() {
         if (!isManaged())
             return _LastLoginRoleId;
@@ -56,6 +63,7 @@ public final class BAccount extends Zeze.Transaction.Bean {
         txn.putLog(new Log__LastLoginRoleId(this, 3, value));
     }
 
+    @Override
     public long getLastLoginVersion() {
         if (!isManaged())
             return _LastLoginVersion;

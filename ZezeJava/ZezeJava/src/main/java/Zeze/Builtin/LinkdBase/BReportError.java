@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 
 // linkd to client
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BReportError extends Zeze.Transaction.Bean {
+public final class BReportError extends Zeze.Transaction.Bean implements BReportErrorReadOnly {
     public static final long TYPEID = -947669033141460287L;
 
     public static final int FromLink = 0;
@@ -17,6 +17,7 @@ public final class BReportError extends Zeze.Transaction.Bean {
     private int _code;
     private String _desc;
 
+    @Override
     public int getFrom() {
         if (!isManaged())
             return _from;
@@ -36,6 +37,7 @@ public final class BReportError extends Zeze.Transaction.Bean {
         txn.putLog(new Log__from(this, 1, value));
     }
 
+    @Override
     public int getCode() {
         if (!isManaged())
             return _code;
@@ -55,6 +57,7 @@ public final class BReportError extends Zeze.Transaction.Bean {
         txn.putLog(new Log__code(this, 2, value));
     }
 
+    @Override
     public String getDesc() {
         if (!isManaged())
             return _desc;

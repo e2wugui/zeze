@@ -4,13 +4,18 @@ package Zeze.Builtin.Online;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BLocals extends Zeze.Transaction.Bean {
+public final class BLocals extends Zeze.Transaction.Bean implements BLocalsReadOnly {
     public static final long TYPEID = -3801167864121993305L;
 
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Online.BLocal> _Logins; // key is ClientId
 
     public Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Online.BLocal> getLogins() {
         return _Logins;
+    }
+
+    @Override
+    public Zeze.Transaction.Collections.PMap2ReadOnly<String, Zeze.Builtin.Online.BLocal, Zeze.Builtin.Online.BLocalReadOnly> getLoginsReadOnly() {
+        return new Zeze.Transaction.Collections.PMap2ReadOnly<>(_Logins);
     }
 
     @SuppressWarnings("deprecation")

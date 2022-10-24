@@ -4,7 +4,7 @@ package Zeze.Builtin.Collections.LinkedMap;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BLinkedMap extends Zeze.Transaction.Bean {
+public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMapReadOnly {
     public static final long TYPEID = -8443895985300072767L;
 
     private long _HeadNodeId;
@@ -12,6 +12,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
     private long _Count;
     private long _LastNodeId; // 最近分配过的NodeId, 用于下次分配
 
+    @Override
     public long getHeadNodeId() {
         if (!isManaged())
             return _HeadNodeId;
@@ -31,6 +32,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
         txn.putLog(new Log__HeadNodeId(this, 1, value));
     }
 
+    @Override
     public long getTailNodeId() {
         if (!isManaged())
             return _TailNodeId;
@@ -50,6 +52,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
         txn.putLog(new Log__TailNodeId(this, 2, value));
     }
 
+    @Override
     public long getCount() {
         if (!isManaged())
             return _Count;
@@ -69,6 +72,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
         txn.putLog(new Log__Count(this, 3, value));
     }
 
+    @Override
     public long getLastNodeId() {
         if (!isManaged())
             return _LastNodeId;

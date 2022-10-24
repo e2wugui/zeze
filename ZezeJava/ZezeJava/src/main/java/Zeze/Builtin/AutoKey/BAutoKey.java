@@ -4,11 +4,12 @@ package Zeze.Builtin.AutoKey;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BAutoKey extends Zeze.Transaction.Bean {
+public final class BAutoKey extends Zeze.Transaction.Bean implements BAutoKeyReadOnly {
     public static final long TYPEID = 3694349315876280858L;
 
     private long _NextId;
 
+    @Override
     public long getNextId() {
         if (!isManaged())
             return _NextId;

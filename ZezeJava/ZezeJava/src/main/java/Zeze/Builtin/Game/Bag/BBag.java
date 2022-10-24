@@ -4,12 +4,13 @@ package Zeze.Builtin.Game.Bag;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BBag extends Zeze.Transaction.Bean {
+public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
     public static final long TYPEID = -5051317137860806350L;
 
     private int _Capacity;
     private final Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Game.Bag.BItem> _Items; // key is bag position
 
+    @Override
     public int getCapacity() {
         if (!isManaged())
             return _Capacity;
@@ -31,6 +32,11 @@ public final class BBag extends Zeze.Transaction.Bean {
 
     public Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Game.Bag.BItem> getItems() {
         return _Items;
+    }
+
+    @Override
+    public Zeze.Transaction.Collections.PMap2ReadOnly<Integer, Zeze.Builtin.Game.Bag.BItem, Zeze.Builtin.Game.Bag.BItemReadOnly> getItemsReadOnly() {
+        return new Zeze.Transaction.Collections.PMap2ReadOnly<>(_Items);
     }
 
     @SuppressWarnings("deprecation")

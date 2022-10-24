@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 
 // tables
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BVersion extends Zeze.Transaction.Bean {
+public final class BVersion extends Zeze.Transaction.Bean implements BVersionReadOnly {
     public static final long TYPEID = -4544955921052723023L;
 
     private long _LoginVersion;
@@ -14,6 +14,7 @@ public final class BVersion extends Zeze.Transaction.Bean {
     private long _ReliableNotifyIndex;
     private int _ServerId;
 
+    @Override
     public long getLoginVersion() {
         if (!isManaged())
             return _LoginVersion;
@@ -37,6 +38,12 @@ public final class BVersion extends Zeze.Transaction.Bean {
         return _ReliableNotifyMark;
     }
 
+    @Override
+    public Zeze.Transaction.Collections.PSet1ReadOnly<String> getReliableNotifyMarkReadOnly() {
+        return new Zeze.Transaction.Collections.PSet1ReadOnly<>(_ReliableNotifyMark);
+    }
+
+    @Override
     public long getReliableNotifyConfirmIndex() {
         if (!isManaged())
             return _ReliableNotifyConfirmIndex;
@@ -56,6 +63,7 @@ public final class BVersion extends Zeze.Transaction.Bean {
         txn.putLog(new Log__ReliableNotifyConfirmIndex(this, 3, value));
     }
 
+    @Override
     public long getReliableNotifyIndex() {
         if (!isManaged())
             return _ReliableNotifyIndex;
@@ -75,6 +83,7 @@ public final class BVersion extends Zeze.Transaction.Bean {
         txn.putLog(new Log__ReliableNotifyIndex(this, 4, value));
     }
 
+    @Override
     public int getServerId() {
         if (!isManaged())
             return _ServerId;

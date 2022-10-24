@@ -4,13 +4,14 @@ package Zeze.Builtin.GlobalCacheManagerWithRaft;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BAchillesHeel extends Zeze.Transaction.Bean {
+public final class BAchillesHeel extends Zeze.Transaction.Bean implements BAchillesHeelReadOnly {
     public static final long TYPEID = -1597142225818031748L;
 
     private int _ServerId;
     private String _SecureKey;
     private int _GlobalCacheManagerHashIndex;
 
+    @Override
     public int getServerId() {
         if (!isManaged())
             return _ServerId;
@@ -30,6 +31,7 @@ public final class BAchillesHeel extends Zeze.Transaction.Bean {
         txn.putLog(new Log__ServerId(this, 1, value));
     }
 
+    @Override
     public String getSecureKey() {
         if (!isManaged())
             return _SecureKey;
@@ -51,6 +53,7 @@ public final class BAchillesHeel extends Zeze.Transaction.Bean {
         txn.putLog(new Log__SecureKey(this, 2, value));
     }
 
+    @Override
     public int getGlobalCacheManagerHashIndex() {
         if (!isManaged())
             return _GlobalCacheManagerHashIndex;

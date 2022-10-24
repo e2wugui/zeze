@@ -4,7 +4,7 @@ package Zeze.Builtin.ProviderDirect;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BModuleRedirectArgument extends Zeze.Transaction.Bean {
+public final class BModuleRedirectArgument extends Zeze.Transaction.Bean implements BModuleRedirectArgumentReadOnly {
     public static final long TYPEID = -5561456902586805165L;
 
     private int _ModuleId;
@@ -14,6 +14,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean {
     private Zeze.Net.Binary _Params;
     private String _ServiceNamePrefix;
 
+    @Override
     public int getModuleId() {
         if (!isManaged())
             return _ModuleId;
@@ -33,6 +34,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean {
         txn.putLog(new Log__ModuleId(this, 1, value));
     }
 
+    @Override
     public int getHashCode() {
         if (!isManaged())
             return _HashCode;
@@ -52,6 +54,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean {
         txn.putLog(new Log__HashCode(this, 2, value));
     }
 
+    @Override
     public int getRedirectType() {
         if (!isManaged())
             return _RedirectType;
@@ -71,6 +74,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean {
         txn.putLog(new Log__RedirectType(this, 3, value));
     }
 
+    @Override
     public String getMethodFullName() {
         if (!isManaged())
             return _MethodFullName;
@@ -92,6 +96,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean {
         txn.putLog(new Log__MethodFullName(this, 4, value));
     }
 
+    @Override
     public Zeze.Net.Binary getParams() {
         if (!isManaged())
             return _Params;
@@ -113,6 +118,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean {
         txn.putLog(new Log__Params(this, 5, value));
     }
 
+    @Override
     public String getServiceNamePrefix() {
         if (!isManaged())
             return _ServiceNamePrefix;

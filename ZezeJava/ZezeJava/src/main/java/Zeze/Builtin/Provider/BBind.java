@@ -4,7 +4,7 @@ package Zeze.Builtin.Provider;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BBind extends Zeze.Transaction.Bean {
+public final class BBind extends Zeze.Transaction.Bean implements BBindReadOnly {
     public static final long TYPEID = 318036402741860020L;
 
     public static final int ResultSuccess = 0;
@@ -17,8 +17,18 @@ public final class BBind extends Zeze.Transaction.Bean {
         return _modules;
     }
 
+    @Override
+    public Zeze.Transaction.Collections.PMap2ReadOnly<Integer, Zeze.Builtin.Provider.BModule, Zeze.Builtin.Provider.BModuleReadOnly> getModulesReadOnly() {
+        return new Zeze.Transaction.Collections.PMap2ReadOnly<>(_modules);
+    }
+
     public Zeze.Transaction.Collections.PSet1<Long> getLinkSids() {
         return _linkSids;
+    }
+
+    @Override
+    public Zeze.Transaction.Collections.PSet1ReadOnly<Long> getLinkSidsReadOnly() {
+        return new Zeze.Transaction.Collections.PSet1ReadOnly<>(_linkSids);
     }
 
     @SuppressWarnings("deprecation")

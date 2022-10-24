@@ -4,13 +4,14 @@ package Zeze.Builtin.Timer;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BNodeRoot extends Zeze.Transaction.Bean {
+public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootReadOnly {
     public static final long TYPEID = 4685790459206796029L;
 
     private long _HeadNodeId;
     private long _TailNodeId;
     private long _LoadSerialNo;
 
+    @Override
     public long getHeadNodeId() {
         if (!isManaged())
             return _HeadNodeId;
@@ -30,6 +31,7 @@ public final class BNodeRoot extends Zeze.Transaction.Bean {
         txn.putLog(new Log__HeadNodeId(this, 1, value));
     }
 
+    @Override
     public long getTailNodeId() {
         if (!isManaged())
             return _TailNodeId;
@@ -49,6 +51,7 @@ public final class BNodeRoot extends Zeze.Transaction.Bean {
         txn.putLog(new Log__TailNodeId(this, 2, value));
     }
 
+    @Override
     public long getLoadSerialNo() {
         if (!isManaged())
             return _LoadSerialNo;

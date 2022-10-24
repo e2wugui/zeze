@@ -4,13 +4,18 @@ package Zeze.Builtin.Timer;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BOfflineTimers extends Zeze.Transaction.Bean {
+public final class BOfflineTimers extends Zeze.Transaction.Bean implements BOfflineTimersReadOnly {
     public static final long TYPEID = -4429519688247847602L;
 
     private final Zeze.Transaction.Collections.PMap1<String, Integer> _OfflineTimers;
 
     public Zeze.Transaction.Collections.PMap1<String, Integer> getOfflineTimers() {
         return _OfflineTimers;
+    }
+
+    @Override
+    public Zeze.Transaction.Collections.PMap1ReadOnly<String, Integer> getOfflineTimersReadOnly() {
+        return new Zeze.Transaction.Collections.PMap1ReadOnly<>(_OfflineTimers);
     }
 
     @SuppressWarnings("deprecation")

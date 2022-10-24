@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 
 // 保存真正的用户自定义数据
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BOnlineCustom extends Zeze.Transaction.Bean {
+public final class BOnlineCustom extends Zeze.Transaction.Bean implements BOnlineCustomReadOnly {
     public static final long TYPEID = 4804037996721232525L;
 
     private final Zeze.Transaction.DynamicBean _CustomData;
@@ -38,6 +38,11 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean {
     }
 
     public Zeze.Transaction.DynamicBean getCustomData() {
+        return _CustomData;
+    }
+
+    @Override
+    public Zeze.Transaction.DynamicBeanReadOnly getCustomDataReadOnly() {
         return _CustomData;
     }
 

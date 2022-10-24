@@ -4,7 +4,7 @@ package Zeze.Builtin.ProviderDirect;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
+public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implements BModuleRedirectAllHashReadOnly {
     public static final long TYPEID = 5611412794338295457L;
 
     private long _ReturnCode;
@@ -22,6 +22,7 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
         __zeze_map_key__ = value;
     }
 
+    @Override
     public long getReturnCode() {
         if (!isManaged())
             return _ReturnCode;
@@ -41,6 +42,7 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
         txn.putLog(new Log__ReturnCode(this, 1, value));
     }
 
+    @Override
     public Zeze.Net.Binary getParams() {
         if (!isManaged())
             return _Params;

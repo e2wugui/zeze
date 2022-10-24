@@ -4,7 +4,7 @@ package Zeze.Builtin.Collections.Queue;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BQueueNodeValue extends Zeze.Transaction.Bean {
+public final class BQueueNodeValue extends Zeze.Transaction.Bean implements BQueueNodeValueReadOnly {
     public static final long TYPEID = 486912310764000976L;
 
     private long _Timestamp;
@@ -22,6 +22,7 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean {
         return Zeze.Collections.Queue.createBeanFromSpecialTypeId(typeId);
     }
 
+    @Override
     public long getTimestamp() {
         if (!isManaged())
             return _Timestamp;
@@ -42,6 +43,11 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean {
     }
 
     public Zeze.Transaction.DynamicBean getValue() {
+        return _Value;
+    }
+
+    @Override
+    public Zeze.Transaction.DynamicBeanReadOnly getValueReadOnly() {
         return _Value;
     }
 

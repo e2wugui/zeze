@@ -4,13 +4,18 @@ package Zeze.Builtin.Game.Rank;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BRankList extends Zeze.Transaction.Bean {
+public final class BRankList extends Zeze.Transaction.Bean implements BRankListReadOnly {
     public static final long TYPEID = -1625874326687776700L;
 
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.Rank.BRankValue> _RankList;
 
     public Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.Rank.BRankValue> getRankList() {
         return _RankList;
+    }
+
+    @Override
+    public Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.Game.Rank.BRankValue, Zeze.Builtin.Game.Rank.BRankValueReadOnly> getRankListReadOnly() {
+        return new Zeze.Transaction.Collections.PList2ReadOnly<>(_RankList);
     }
 
     @SuppressWarnings("deprecation")

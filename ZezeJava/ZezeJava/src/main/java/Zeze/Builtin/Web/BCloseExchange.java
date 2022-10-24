@@ -4,11 +4,12 @@ package Zeze.Builtin.Web;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BCloseExchange extends Zeze.Transaction.Bean {
+public final class BCloseExchange extends Zeze.Transaction.Bean implements BCloseExchangeReadOnly {
     public static final long TYPEID = 2158529094627834211L;
 
     private long _ExchangeId;
 
+    @Override
     public long getExchangeId() {
         if (!isManaged())
             return _ExchangeId;

@@ -4,7 +4,7 @@ package Zeze.Builtin.Web;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BHeader extends Zeze.Transaction.Bean {
+public final class BHeader extends Zeze.Transaction.Bean implements BHeaderReadOnly {
     public static final long TYPEID = -1798266087121028059L;
 
     private final Zeze.Transaction.Collections.PList1<String> _Values;
@@ -23,6 +23,11 @@ public final class BHeader extends Zeze.Transaction.Bean {
 
     public Zeze.Transaction.Collections.PList1<String> getValues() {
         return _Values;
+    }
+
+    @Override
+    public Zeze.Transaction.Collections.PList1ReadOnly<String> getValuesReadOnly() {
+        return new Zeze.Transaction.Collections.PList1ReadOnly<>(_Values);
     }
 
     @SuppressWarnings("deprecation")

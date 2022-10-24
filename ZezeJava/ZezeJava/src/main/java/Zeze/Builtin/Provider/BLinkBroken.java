@@ -4,7 +4,7 @@ package Zeze.Builtin.Provider;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BLinkBroken extends Zeze.Transaction.Bean {
+public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBrokenReadOnly {
     public static final long TYPEID = 1424702393060691138L;
 
     public static final int REASON_PEERCLOSE = 0;
@@ -15,6 +15,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean {
     private String _context; // SetUserState
     private Zeze.Net.Binary _contextx; // SetUserState
 
+    @Override
     public String getAccount() {
         if (!isManaged())
             return _account;
@@ -36,6 +37,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean {
         txn.putLog(new Log__account(this, 1, value));
     }
 
+    @Override
     public long getLinkSid() {
         if (!isManaged())
             return _linkSid;
@@ -55,6 +57,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean {
         txn.putLog(new Log__linkSid(this, 2, value));
     }
 
+    @Override
     public int getReason() {
         if (!isManaged())
             return _reason;
@@ -74,6 +77,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean {
         txn.putLog(new Log__reason(this, 3, value));
     }
 
+    @Override
     public String getContext() {
         if (!isManaged())
             return _context;
@@ -95,6 +99,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean {
         txn.putLog(new Log__context(this, 5, value));
     }
 
+    @Override
     public Zeze.Net.Binary getContextx() {
         if (!isManaged())
             return _contextx;

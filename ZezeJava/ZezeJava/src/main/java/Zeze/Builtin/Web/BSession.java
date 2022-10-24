@@ -4,11 +4,12 @@ package Zeze.Builtin.Web;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BSession extends Zeze.Transaction.Bean {
+public final class BSession extends Zeze.Transaction.Bean implements BSessionReadOnly {
     public static final long TYPEID = -9018388719477863848L;
 
     private String _Account;
 
+    @Override
     public String getAccount() {
         if (!isManaged())
             return _Account;

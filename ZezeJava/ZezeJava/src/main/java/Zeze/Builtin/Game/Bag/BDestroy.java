@@ -4,12 +4,13 @@ package Zeze.Builtin.Game.Bag;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BDestroy extends Zeze.Transaction.Bean {
+public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyReadOnly {
     public static final long TYPEID = -3139270057603893776L;
 
     private String _BagName;
     private int _Position;
 
+    @Override
     public String getBagName() {
         if (!isManaged())
             return _BagName;
@@ -31,6 +32,7 @@ public final class BDestroy extends Zeze.Transaction.Bean {
         txn.putLog(new Log__BagName(this, 1, value));
     }
 
+    @Override
     public int getPosition() {
         if (!isManaged())
             return _Position;

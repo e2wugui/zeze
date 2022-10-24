@@ -4,13 +4,14 @@ package Zeze.Builtin.Timer;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BNode extends Zeze.Transaction.Bean {
+public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly {
     public static final long TYPEID = -44647384323818353L;
 
     private long _PrevNodeId;
     private long _NextNodeId;
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Timer.BTimer> _Timers;
 
+    @Override
     public long getPrevNodeId() {
         if (!isManaged())
             return _PrevNodeId;
@@ -30,6 +31,7 @@ public final class BNode extends Zeze.Transaction.Bean {
         txn.putLog(new Log__PrevNodeId(this, 1, value));
     }
 
+    @Override
     public long getNextNodeId() {
         if (!isManaged())
             return _NextNodeId;
@@ -51,6 +53,11 @@ public final class BNode extends Zeze.Transaction.Bean {
 
     public Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Timer.BTimer> getTimers() {
         return _Timers;
+    }
+
+    @Override
+    public Zeze.Transaction.Collections.PMap2ReadOnly<String, Zeze.Builtin.Timer.BTimer, Zeze.Builtin.Timer.BTimerReadOnly> getTimersReadOnly() {
+        return new Zeze.Transaction.Collections.PMap2ReadOnly<>(_Timers);
     }
 
     @SuppressWarnings("deprecation")

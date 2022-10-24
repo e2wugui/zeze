@@ -4,13 +4,14 @@ package Zeze.Builtin.DelayRemove;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BTableKey extends Zeze.Transaction.Bean {
+public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyReadOnly {
     public static final long TYPEID = 6060766480176216446L;
 
     private String _TableName;
     private Zeze.Net.Binary _EncodedKey;
     private long _EnqueueTime;
 
+    @Override
     public String getTableName() {
         if (!isManaged())
             return _TableName;
@@ -32,6 +33,7 @@ public final class BTableKey extends Zeze.Transaction.Bean {
         txn.putLog(new Log__TableName(this, 1, value));
     }
 
+    @Override
     public Zeze.Net.Binary getEncodedKey() {
         if (!isManaged())
             return _EncodedKey;
@@ -53,6 +55,7 @@ public final class BTableKey extends Zeze.Transaction.Bean {
         txn.putLog(new Log__EncodedKey(this, 2, value));
     }
 
+    @Override
     public long getEnqueueTime() {
         if (!isManaged())
             return _EnqueueTime;

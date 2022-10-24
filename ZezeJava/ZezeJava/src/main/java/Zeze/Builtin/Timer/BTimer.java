@@ -4,7 +4,7 @@ package Zeze.Builtin.Timer;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BTimer extends Zeze.Transaction.Bean {
+public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnly {
     public static final long TYPEID = -3755541261968580150L;
 
     private String _TimerName;
@@ -64,6 +64,7 @@ public final class BTimer extends Zeze.Transaction.Bean {
         __zeze_map_key__ = value;
     }
 
+    @Override
     public String getTimerName() {
         if (!isManaged())
             return _TimerName;
@@ -85,6 +86,7 @@ public final class BTimer extends Zeze.Transaction.Bean {
         txn.putLog(new Log__TimerName(this, 1, value));
     }
 
+    @Override
     public String getHandleName() {
         if (!isManaged())
             return _HandleName;
@@ -126,10 +128,31 @@ public final class BTimer extends Zeze.Transaction.Bean {
         _TimerObj.setBean(value);
     }
 
+    @Override
+    public Zeze.Transaction.DynamicBeanReadOnly getTimerObjReadOnly() {
+        return _TimerObj;
+    }
+
+    @Override
+    public Zeze.Builtin.Timer.BCronTimerReadOnly getTimerObj_Zeze_Builtin_Timer_BCronTimerReadOnly() {
+        return (Zeze.Builtin.Timer.BCronTimer)_TimerObj.getBean();
+    }
+
+    @Override
+    public Zeze.Builtin.Timer.BSimpleTimerReadOnly getTimerObj_Zeze_Builtin_Timer_BSimpleTimerReadOnly() {
+        return (Zeze.Builtin.Timer.BSimpleTimer)_TimerObj.getBean();
+    }
+
     public Zeze.Transaction.DynamicBean getCustomData() {
         return _CustomData;
     }
 
+    @Override
+    public Zeze.Transaction.DynamicBeanReadOnly getCustomDataReadOnly() {
+        return _CustomData;
+    }
+
+    @Override
     public long getConcurrentFireSerialNo() {
         if (!isManaged())
             return _ConcurrentFireSerialNo;

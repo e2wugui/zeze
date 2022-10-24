@@ -5,11 +5,12 @@ import Zeze.Serialize.ByteBuffer;
 
 // protocols
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BLogin extends Zeze.Transaction.Bean {
+public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnly {
     public static final long TYPEID = -2914025305442353160L;
 
     private String _ClientId;
 
+    @Override
     public String getClientId() {
         if (!isManaged())
             return _ClientId;

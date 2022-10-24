@@ -44,4 +44,8 @@ public final class tAutoKeys extends Zeze.Transaction.TableX<Zeze.Builtin.AutoKe
     public Zeze.Builtin.AutoKey.BAutoKey newValue() {
         return new Zeze.Builtin.AutoKey.BAutoKey();
     }
+
+    public Zeze.Builtin.AutoKey.BAutoKeyReadOnly getReadOnly(Zeze.Builtin.AutoKey.BSeedKey k) {
+        return get(k);
+    }
 }

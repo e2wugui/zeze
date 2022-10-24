@@ -4,7 +4,7 @@ package Zeze.Builtin.ProviderDirect;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BTransmitAccount extends Zeze.Transaction.Bean {
+public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTransmitAccountReadOnly {
     public static final long TYPEID = 2637210793748287339L;
 
     private String _ActionName;
@@ -13,6 +13,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
     private String _SenderAccount; // 结果发送给Sender。
     private String _SenderClientId; // 结果发送给Sender。
 
+    @Override
     public String getActionName() {
         if (!isManaged())
             return _ActionName;
@@ -34,6 +35,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
         txn.putLog(new Log__ActionName(this, 1, value));
     }
 
+    @Override
     public Zeze.Net.Binary getParameter() {
         if (!isManaged())
             return _Parameter;
@@ -59,6 +61,12 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
         return _TargetAccounts;
     }
 
+    @Override
+    public Zeze.Transaction.Collections.PSet1ReadOnly<String> getTargetAccountsReadOnly() {
+        return new Zeze.Transaction.Collections.PSet1ReadOnly<>(_TargetAccounts);
+    }
+
+    @Override
     public String getSenderAccount() {
         if (!isManaged())
             return _SenderAccount;
@@ -80,6 +88,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
         txn.putLog(new Log__SenderAccount(this, 4, value));
     }
 
+    @Override
     public String getSenderClientId() {
         if (!isManaged())
             return _SenderClientId;

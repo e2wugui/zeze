@@ -4,7 +4,7 @@ package Zeze.Builtin.Timer;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BCronTimer extends Zeze.Transaction.Bean {
+public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTimerReadOnly {
     public static final long TYPEID = -6995089347718168392L;
 
     private String _CronExpression;
@@ -15,6 +15,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
     private long _EndTime; // 结束时间 -1 表示永不结束
     private int _MissfirePolicy;
 
+    @Override
     public String getCronExpression() {
         if (!isManaged())
             return _CronExpression;
@@ -36,6 +37,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
         txn.putLog(new Log__CronExpression(this, 1, value));
     }
 
+    @Override
     public long getNextExpectedTime() {
         if (!isManaged())
             return _NextExpectedTime;
@@ -55,6 +57,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
         txn.putLog(new Log__NextExpectedTime(this, 2, value));
     }
 
+    @Override
     public long getExpectedTime() {
         if (!isManaged())
             return _ExpectedTime;
@@ -74,6 +77,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
         txn.putLog(new Log__ExpectedTime(this, 3, value));
     }
 
+    @Override
     public long getHappenTime() {
         if (!isManaged())
             return _HappenTime;
@@ -93,6 +97,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
         txn.putLog(new Log__HappenTime(this, 4, value));
     }
 
+    @Override
     public long getRemainTimes() {
         if (!isManaged())
             return _RemainTimes;
@@ -112,6 +117,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
         txn.putLog(new Log__RemainTimes(this, 5, value));
     }
 
+    @Override
     public long getEndTime() {
         if (!isManaged())
             return _EndTime;
@@ -131,6 +137,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean {
         txn.putLog(new Log__EndTime(this, 6, value));
     }
 
+    @Override
     public int getMissfirePolicy() {
         if (!isManaged())
             return _MissfirePolicy;

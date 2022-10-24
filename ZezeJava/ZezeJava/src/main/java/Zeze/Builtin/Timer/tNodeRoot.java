@@ -47,4 +47,8 @@ public final class tNodeRoot extends Zeze.Transaction.TableX<Integer, Zeze.Built
     public Zeze.Builtin.Timer.BNodeRoot newValue() {
         return new Zeze.Builtin.Timer.BNodeRoot();
     }
+
+    public Zeze.Builtin.Timer.BNodeRootReadOnly getReadOnly(Integer k) {
+        return get(k);
+    }
 }

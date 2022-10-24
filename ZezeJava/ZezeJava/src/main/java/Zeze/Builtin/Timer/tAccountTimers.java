@@ -47,4 +47,8 @@ public final class tAccountTimers extends Zeze.Transaction.TableX<String, Zeze.B
     public Zeze.Builtin.Timer.BArchOnlineTimer newValue() {
         return new Zeze.Builtin.Timer.BArchOnlineTimer();
     }
+
+    public Zeze.Builtin.Timer.BArchOnlineTimerReadOnly getReadOnly(String k) {
+        return get(k);
+    }
 }

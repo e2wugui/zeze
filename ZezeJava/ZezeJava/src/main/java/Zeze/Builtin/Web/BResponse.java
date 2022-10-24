@@ -4,7 +4,7 @@ package Zeze.Builtin.Web;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BResponse extends Zeze.Transaction.Bean {
+public final class BResponse extends Zeze.Transaction.Bean implements BResponseReadOnly {
     public static final long TYPEID = -5862638463049880127L;
 
     private int _Code;
@@ -14,6 +14,7 @@ public final class BResponse extends Zeze.Transaction.Bean {
     private String _Message;
     private String _Stacktrace;
 
+    @Override
     public int getCode() {
         if (!isManaged())
             return _Code;
@@ -37,6 +38,12 @@ public final class BResponse extends Zeze.Transaction.Bean {
         return _Headers;
     }
 
+    @Override
+    public Zeze.Transaction.Collections.PMap2ReadOnly<String, Zeze.Builtin.Web.BHeader, Zeze.Builtin.Web.BHeaderReadOnly> getHeadersReadOnly() {
+        return new Zeze.Transaction.Collections.PMap2ReadOnly<>(_Headers);
+    }
+
+    @Override
     public Zeze.Net.Binary getBody() {
         if (!isManaged())
             return _Body;
@@ -58,6 +65,7 @@ public final class BResponse extends Zeze.Transaction.Bean {
         txn.putLog(new Log__Body(this, 3, value));
     }
 
+    @Override
     public boolean isFinish() {
         if (!isManaged())
             return _Finish;
@@ -77,6 +85,7 @@ public final class BResponse extends Zeze.Transaction.Bean {
         txn.putLog(new Log__Finish(this, 4, value));
     }
 
+    @Override
     public String getMessage() {
         if (!isManaged())
             return _Message;
@@ -98,6 +107,7 @@ public final class BResponse extends Zeze.Transaction.Bean {
         txn.putLog(new Log__Message(this, 5, value));
     }
 
+    @Override
     public String getStacktrace() {
         if (!isManaged())
             return _Stacktrace;

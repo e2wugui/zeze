@@ -49,4 +49,8 @@ public final class tDepartment extends Zeze.Transaction.TableX<String, Zeze.Buil
     public Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot newValue() {
         return new Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot();
     }
+
+    public Zeze.Builtin.Collections.DepartmentTree.BDepartmentRootReadOnly getReadOnly(String k) {
+        return get(k);
+    }
 }

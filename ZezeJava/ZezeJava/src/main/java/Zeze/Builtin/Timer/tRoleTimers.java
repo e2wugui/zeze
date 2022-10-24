@@ -46,4 +46,8 @@ public final class tRoleTimers extends Zeze.Transaction.TableX<String, Zeze.Buil
     public Zeze.Builtin.Timer.BGameOnlineTimer newValue() {
         return new Zeze.Builtin.Timer.BGameOnlineTimer();
     }
+
+    public Zeze.Builtin.Timer.BGameOnlineTimerReadOnly getReadOnly(String k) {
+        return get(k);
+    }
 }

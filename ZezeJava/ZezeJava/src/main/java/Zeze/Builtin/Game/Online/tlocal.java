@@ -45,4 +45,8 @@ public final class tlocal extends Zeze.Transaction.TableX<Long, Zeze.Builtin.Gam
     public Zeze.Builtin.Game.Online.BLocal newValue() {
         return new Zeze.Builtin.Game.Online.BLocal();
     }
+
+    public Zeze.Builtin.Game.Online.BLocalReadOnly getReadOnly(Long k) {
+        return get(k);
+    }
 }

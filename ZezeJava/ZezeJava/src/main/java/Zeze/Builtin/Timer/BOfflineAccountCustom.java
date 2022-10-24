@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 
 // Offline Timer
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BOfflineAccountCustom extends Zeze.Transaction.Bean {
+public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implements BOfflineAccountCustomReadOnly {
     public static final long TYPEID = -8019295337231502138L;
 
     private String _TimerName;
@@ -27,6 +27,7 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean {
         return Zeze.Component.Timer.createBeanFromSpecialTypeId(typeId);
     }
 
+    @Override
     public String getTimerName() {
         if (!isManaged())
             return _TimerName;
@@ -48,6 +49,7 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean {
         txn.putLog(new Log__TimerName(this, 1, value));
     }
 
+    @Override
     public String getAccount() {
         if (!isManaged())
             return _Account;
@@ -69,6 +71,7 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean {
         txn.putLog(new Log__Account(this, 2, value));
     }
 
+    @Override
     public String getClientId() {
         if (!isManaged())
             return _ClientId;
@@ -90,6 +93,7 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean {
         txn.putLog(new Log__ClientId(this, 3, value));
     }
 
+    @Override
     public long getLoginVersion() {
         if (!isManaged())
             return _LoginVersion;
@@ -109,6 +113,7 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean {
         txn.putLog(new Log__LoginVersion(this, 4, value));
     }
 
+    @Override
     public String getHandleName() {
         if (!isManaged())
             return _HandleName;
@@ -131,6 +136,11 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean {
     }
 
     public Zeze.Transaction.DynamicBean getCustomData() {
+        return _CustomData;
+    }
+
+    @Override
+    public Zeze.Transaction.DynamicBeanReadOnly getCustomDataReadOnly() {
         return _CustomData;
     }
 

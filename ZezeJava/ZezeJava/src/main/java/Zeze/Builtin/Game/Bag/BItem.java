@@ -4,7 +4,7 @@ package Zeze.Builtin.Game.Bag;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BItem extends Zeze.Transaction.Bean {
+public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly {
     public static final long TYPEID = 8937000213993683283L;
 
     private int _Id;
@@ -35,6 +35,7 @@ public final class BItem extends Zeze.Transaction.Bean {
         __zeze_map_key__ = value;
     }
 
+    @Override
     public int getId() {
         if (!isManaged())
             return _Id;
@@ -54,6 +55,7 @@ public final class BItem extends Zeze.Transaction.Bean {
         txn.putLog(new Log__Id(this, 1, value));
     }
 
+    @Override
     public int getNumber() {
         if (!isManaged())
             return _Number;
@@ -74,6 +76,11 @@ public final class BItem extends Zeze.Transaction.Bean {
     }
 
     public Zeze.Transaction.DynamicBean getItem() {
+        return _Item;
+    }
+
+    @Override
+    public Zeze.Transaction.DynamicBeanReadOnly getItemReadOnly() {
         return _Item;
     }
 

@@ -4,7 +4,7 @@ package Zeze.Builtin.ProviderDirect;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BTransmit extends Zeze.Transaction.Bean {
+public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitReadOnly {
     public static final long TYPEID = 7395081565293443928L;
 
     private String _ActionName;
@@ -12,6 +12,7 @@ public final class BTransmit extends Zeze.Transaction.Bean {
     private long _Sender; // 结果发送给Sender。
     private Zeze.Net.Binary _Parameter; // encoded bean
 
+    @Override
     public String getActionName() {
         if (!isManaged())
             return _ActionName;
@@ -37,6 +38,12 @@ public final class BTransmit extends Zeze.Transaction.Bean {
         return _Roles;
     }
 
+    @Override
+    public Zeze.Transaction.Collections.PSet1ReadOnly<Long> getRolesReadOnly() {
+        return new Zeze.Transaction.Collections.PSet1ReadOnly<>(_Roles);
+    }
+
+    @Override
     public long getSender() {
         if (!isManaged())
             return _Sender;
@@ -56,6 +63,7 @@ public final class BTransmit extends Zeze.Transaction.Bean {
         txn.putLog(new Log__Sender(this, 3, value));
     }
 
+    @Override
     public Zeze.Net.Binary getParameter() {
         if (!isManaged())
             return _Parameter;

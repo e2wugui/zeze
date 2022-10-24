@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 
 // tables
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BOnline extends Zeze.Transaction.Bean {
+public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadOnly {
     public static final long TYPEID = -7786403987996508020L;
 
     private String _LinkName;
@@ -23,6 +23,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
         __zeze_map_key__ = value;
     }
 
+    @Override
     public String getLinkName() {
         if (!isManaged())
             return _LinkName;
@@ -44,6 +45,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
         txn.putLog(new Log__LinkName(this, 1, value));
     }
 
+    @Override
     public long getLinkSid() {
         if (!isManaged())
             return _LinkSid;

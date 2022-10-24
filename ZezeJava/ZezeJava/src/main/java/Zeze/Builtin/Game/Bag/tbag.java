@@ -46,4 +46,8 @@ public final class tbag extends Zeze.Transaction.TableX<String, Zeze.Builtin.Gam
     public Zeze.Builtin.Game.Bag.BBag newValue() {
         return new Zeze.Builtin.Game.Bag.BBag();
     }
+
+    public Zeze.Builtin.Game.Bag.BBagReadOnly getReadOnly(String k) {
+        return get(k);
+    }
 }

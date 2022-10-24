@@ -4,7 +4,7 @@ package Zeze.Builtin.Provider;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BSend extends Zeze.Transaction.Bean {
+public final class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
     public static final long TYPEID = 545774009128015305L;
 
     private final Zeze.Transaction.Collections.PSet1<Long> _linkSids;
@@ -15,6 +15,12 @@ public final class BSend extends Zeze.Transaction.Bean {
         return _linkSids;
     }
 
+    @Override
+    public Zeze.Transaction.Collections.PSet1ReadOnly<Long> getLinkSidsReadOnly() {
+        return new Zeze.Transaction.Collections.PSet1ReadOnly<>(_linkSids);
+    }
+
+    @Override
     public long getProtocolType() {
         if (!isManaged())
             return _protocolType;
@@ -34,6 +40,7 @@ public final class BSend extends Zeze.Transaction.Bean {
         txn.putLog(new Log__protocolType(this, 2, value));
     }
 
+    @Override
     public Zeze.Net.Binary getProtocolWholeData() {
         if (!isManaged())
             return _protocolWholeData;

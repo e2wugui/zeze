@@ -44,4 +44,8 @@ public final class tAccountOfflineTimers extends Zeze.Transaction.TableX<Zeze.Bu
     public Zeze.Builtin.Timer.BOfflineTimers newValue() {
         return new Zeze.Builtin.Timer.BOfflineTimers();
     }
+
+    public Zeze.Builtin.Timer.BOfflineTimersReadOnly getReadOnly(Zeze.Builtin.Timer.BAccountClientId k) {
+        return get(k);
+    }
 }

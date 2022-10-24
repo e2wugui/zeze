@@ -4,7 +4,7 @@ package Zeze.Builtin.ProviderDirect;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean {
+public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implements BModuleRedirectAllResultReadOnly {
     public static final long TYPEID = -6979067915808179070L;
 
     private int _ModuleId;
@@ -14,6 +14,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean {
     private long _SessionId; // 发起请求者初始化，返回结果时带回。
     private final Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash> _Hashs; // 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
 
+    @Override
     public int getModuleId() {
         if (!isManaged())
             return _ModuleId;
@@ -33,6 +34,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean {
         txn.putLog(new Log__ModuleId(this, 1, value));
     }
 
+    @Override
     public int getServerId() {
         if (!isManaged())
             return _ServerId;
@@ -52,6 +54,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean {
         txn.putLog(new Log__ServerId(this, 2, value));
     }
 
+    @Override
     public long getSourceProvider() {
         if (!isManaged())
             return _SourceProvider;
@@ -71,6 +74,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean {
         txn.putLog(new Log__SourceProvider(this, 3, value));
     }
 
+    @Override
     public String getMethodFullName() {
         if (!isManaged())
             return _MethodFullName;
@@ -92,6 +96,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean {
         txn.putLog(new Log__MethodFullName(this, 4, value));
     }
 
+    @Override
     public long getSessionId() {
         if (!isManaged())
             return _SessionId;
@@ -113,6 +118,11 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean {
 
     public Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash> getHashs() {
         return _Hashs;
+    }
+
+    @Override
+    public Zeze.Transaction.Collections.PMap2ReadOnly<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHashReadOnly> getHashsReadOnly() {
+        return new Zeze.Transaction.Collections.PMap2ReadOnly<>(_Hashs);
     }
 
     @SuppressWarnings("deprecation")

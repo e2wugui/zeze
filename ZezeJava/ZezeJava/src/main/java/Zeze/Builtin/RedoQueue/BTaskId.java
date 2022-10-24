@@ -4,11 +4,12 @@ package Zeze.Builtin.RedoQueue;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BTaskId extends Zeze.Transaction.Bean {
+public final class BTaskId extends Zeze.Transaction.Bean implements BTaskIdReadOnly {
     public static final long TYPEID = -3646825359403112989L;
 
     private long _TaskId;
 
+    @Override
     public long getTaskId() {
         if (!isManaged())
             return _TaskId;

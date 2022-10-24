@@ -45,4 +45,8 @@ public final class tCustomClasses extends Zeze.Transaction.TableX<Integer, Zeze.
     public Zeze.Builtin.Timer.BCustomClasses newValue() {
         return new Zeze.Builtin.Timer.BCustomClasses();
     }
+
+    public Zeze.Builtin.Timer.BCustomClassesReadOnly getReadOnly(Integer k) {
+        return get(k);
+    }
 }

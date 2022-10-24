@@ -4,11 +4,12 @@ package Zeze.Builtin.Collections.LinkedMap;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BLinkedMapNodeId extends Zeze.Transaction.Bean {
+public final class BLinkedMapNodeId extends Zeze.Transaction.Bean implements BLinkedMapNodeIdReadOnly {
     public static final long TYPEID = -6424218657633143196L;
 
     private long _NodeId; // KeyValue对所属的节点ID. 每个节点有多个KeyValue对共享
 
+    @Override
     public long getNodeId() {
         if (!isManaged())
             return _NodeId;

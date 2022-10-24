@@ -4,13 +4,14 @@ package Zeze.Builtin.Provider;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BBroadcast extends Zeze.Transaction.Bean {
+public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcastReadOnly {
     public static final long TYPEID = -6926497733546172658L;
 
     private long _protocolType;
     private Zeze.Net.Binary _protocolWholeData; // 完整的协议打包，包括了 type, size
     private int _time;
 
+    @Override
     public long getProtocolType() {
         if (!isManaged())
             return _protocolType;
@@ -30,6 +31,7 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
         txn.putLog(new Log__protocolType(this, 1, value));
     }
 
+    @Override
     public Zeze.Net.Binary getProtocolWholeData() {
         if (!isManaged())
             return _protocolWholeData;
@@ -51,6 +53,7 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
         txn.putLog(new Log__protocolWholeData(this, 2, value));
     }
 
+    @Override
     public int getTime() {
         if (!isManaged())
             return _time;

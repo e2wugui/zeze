@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 
 // 保存在内存Map中
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BArchOnlineTimer extends Zeze.Transaction.Bean {
+public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BArchOnlineTimerReadOnly {
     public static final long TYPEID = -1410268970794351805L;
 
     private String _Account;
@@ -39,6 +39,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean {
 
     private long _LoginVersion;
 
+    @Override
     public String getAccount() {
         if (!isManaged())
             return _Account;
@@ -60,6 +61,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean {
         txn.putLog(new Log__Account(this, 1, value));
     }
 
+    @Override
     public String getClientId() {
         if (!isManaged())
             return _ClientId;
@@ -101,6 +103,22 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean {
         _TimerObj.setBean(value);
     }
 
+    @Override
+    public Zeze.Transaction.DynamicBeanReadOnly getTimerObjReadOnly() {
+        return _TimerObj;
+    }
+
+    @Override
+    public Zeze.Builtin.Timer.BCronTimerReadOnly getTimerObj_Zeze_Builtin_Timer_BCronTimerReadOnly() {
+        return (Zeze.Builtin.Timer.BCronTimer)_TimerObj.getBean();
+    }
+
+    @Override
+    public Zeze.Builtin.Timer.BSimpleTimerReadOnly getTimerObj_Zeze_Builtin_Timer_BSimpleTimerReadOnly() {
+        return (Zeze.Builtin.Timer.BSimpleTimer)_TimerObj.getBean();
+    }
+
+    @Override
     public long getLoginVersion() {
         if (!isManaged())
             return _LoginVersion;

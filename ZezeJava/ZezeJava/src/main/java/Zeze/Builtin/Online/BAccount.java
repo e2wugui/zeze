@@ -4,11 +4,12 @@ package Zeze.Builtin.Online;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BAccount extends Zeze.Transaction.Bean {
+public final class BAccount extends Zeze.Transaction.Bean implements BAccountReadOnly {
     public static final long TYPEID = 3220082739597459764L;
 
     private long _LastLoginVersion; // 用来生成 role 登录版本号。每次递增。
 
+    @Override
     public long getLastLoginVersion() {
         if (!isManaged())
             return _LastLoginVersion;

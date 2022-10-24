@@ -78,6 +78,11 @@ namespace Zeze.Gen.java
             sw.WriteLine($"    public {value} newValue() {{");
             sw.WriteLine($"        return new {value}();");
             sw.WriteLine("    }");
+            sw.WriteLine();
+            //sw.WriteLine("    @Override");
+            sw.WriteLine($"    public {value}ReadOnly getReadOnly({keyboxing} k) {{");
+            sw.WriteLine($"        return get(k);");
+            sw.WriteLine("    }");
             //sw.WriteLine();
             //CreateChangeVariableCollector.Make(sw, "    ", (Types.Bean)table.ValueType);
             sw.WriteLine("}");

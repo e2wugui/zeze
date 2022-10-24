@@ -4,13 +4,14 @@ package Zeze.Builtin.GlobalCacheManagerWithRaft;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BAchillesHeelConfig extends Zeze.Transaction.Bean {
+public final class BAchillesHeelConfig extends Zeze.Transaction.Bean implements BAchillesHeelConfigReadOnly {
     public static final long TYPEID = 6351123425648255834L;
 
     private int _MaxNetPing;
     private int _ServerProcessTime;
     private int _ServerReleaseTimeout;
 
+    @Override
     public int getMaxNetPing() {
         if (!isManaged())
             return _MaxNetPing;
@@ -30,6 +31,7 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean {
         txn.putLog(new Log__MaxNetPing(this, 1, value));
     }
 
+    @Override
     public int getServerProcessTime() {
         if (!isManaged())
             return _ServerProcessTime;
@@ -49,6 +51,7 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean {
         txn.putLog(new Log__ServerProcessTime(this, 2, value));
     }
 
+    @Override
     public int getServerReleaseTimeout() {
         if (!isManaged())
             return _ServerReleaseTimeout;

@@ -4,7 +4,7 @@ package Zeze.Builtin.RedoQueue;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BQueueTask extends Zeze.Transaction.Bean {
+public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTaskReadOnly {
     public static final long TYPEID = 3220291684741669511L;
 
     private String _QueueName; // 队列名称。
@@ -13,6 +13,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
     private Zeze.Net.Binary _TaskParam; // 任务参数。
     private long _PrevTaskId; // 上一个任务编号，用来发现错误。
 
+    @Override
     public String getQueueName() {
         if (!isManaged())
             return _QueueName;
@@ -34,6 +35,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
         txn.putLog(new Log__QueueName(this, 1, value));
     }
 
+    @Override
     public int getTaskType() {
         if (!isManaged())
             return _TaskType;
@@ -53,6 +55,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
         txn.putLog(new Log__TaskType(this, 2, value));
     }
 
+    @Override
     public long getTaskId() {
         if (!isManaged())
             return _TaskId;
@@ -72,6 +75,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
         txn.putLog(new Log__TaskId(this, 3, value));
     }
 
+    @Override
     public Zeze.Net.Binary getTaskParam() {
         if (!isManaged())
             return _TaskParam;
@@ -93,6 +97,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
         txn.putLog(new Log__TaskParam(this, 4, value));
     }
 
+    @Override
     public long getPrevTaskId() {
         if (!isManaged())
             return _PrevTaskId;

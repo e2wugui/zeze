@@ -4,12 +4,13 @@ package Zeze.Builtin.GlobalCacheManagerWithRaft;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BReduceParam extends Zeze.Transaction.Bean {
+public final class BReduceParam extends Zeze.Transaction.Bean implements BReduceParamReadOnly {
     public static final long TYPEID = -7052326232144455304L;
 
     private Zeze.Net.Binary _GlobalKey;
     private int _State;
 
+    @Override
     public Zeze.Net.Binary getGlobalKey() {
         if (!isManaged())
             return _GlobalKey;
@@ -31,6 +32,7 @@ public final class BReduceParam extends Zeze.Transaction.Bean {
         txn.putLog(new Log__GlobalKey(this, 1, value));
     }
 
+    @Override
     public int getState() {
         if (!isManaged())
             return _State;

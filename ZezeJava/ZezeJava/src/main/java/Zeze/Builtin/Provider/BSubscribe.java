@@ -4,13 +4,18 @@ package Zeze.Builtin.Provider;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BSubscribe extends Zeze.Transaction.Bean {
+public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscribeReadOnly {
     public static final long TYPEID = 1112180088628051173L;
 
     private final Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Provider.BModule> _modules; // moduleId -> BModule
 
     public Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Provider.BModule> getModules() {
         return _modules;
+    }
+
+    @Override
+    public Zeze.Transaction.Collections.PMap2ReadOnly<Integer, Zeze.Builtin.Provider.BModule, Zeze.Builtin.Provider.BModuleReadOnly> getModulesReadOnly() {
+        return new Zeze.Transaction.Collections.PMap2ReadOnly<>(_modules);
     }
 
     @SuppressWarnings("deprecation")

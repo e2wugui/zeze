@@ -4,7 +4,7 @@ package Zeze.Builtin.ProviderDirect;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
+public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean implements BModuleRedirectAllRequestReadOnly {
     public static final long TYPEID = -1938324199607833342L;
 
     private int _ModuleId;
@@ -16,6 +16,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
     private Zeze.Net.Binary _Params;
     private String _ServiceNamePrefix;
 
+    @Override
     public int getModuleId() {
         if (!isManaged())
             return _ModuleId;
@@ -35,6 +36,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
         txn.putLog(new Log__ModuleId(this, 1, value));
     }
 
+    @Override
     public int getHashCodeConcurrentLevel() {
         if (!isManaged())
             return _HashCodeConcurrentLevel;
@@ -58,6 +60,12 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
         return _HashCodes;
     }
 
+    @Override
+    public Zeze.Transaction.Collections.PSet1ReadOnly<Integer> getHashCodesReadOnly() {
+        return new Zeze.Transaction.Collections.PSet1ReadOnly<>(_HashCodes);
+    }
+
+    @Override
     public long getSourceProvider() {
         if (!isManaged())
             return _SourceProvider;
@@ -77,6 +85,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
         txn.putLog(new Log__SourceProvider(this, 4, value));
     }
 
+    @Override
     public long getSessionId() {
         if (!isManaged())
             return _SessionId;
@@ -96,6 +105,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
         txn.putLog(new Log__SessionId(this, 5, value));
     }
 
+    @Override
     public String getMethodFullName() {
         if (!isManaged())
             return _MethodFullName;
@@ -117,6 +127,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
         txn.putLog(new Log__MethodFullName(this, 6, value));
     }
 
+    @Override
     public Zeze.Net.Binary getParams() {
         if (!isManaged())
             return _Params;
@@ -138,6 +149,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
         txn.putLog(new Log__Params(this, 7, value));
     }
 
+    @Override
     public String getServiceNamePrefix() {
         if (!isManaged())
             return _ServiceNamePrefix;

@@ -4,7 +4,7 @@ package Zeze.Builtin.Timer;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BOfflineRoleCustom extends Zeze.Transaction.Bean {
+public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements BOfflineRoleCustomReadOnly {
     public static final long TYPEID = -124522910617189691L;
 
     private String _TimerName;
@@ -25,6 +25,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean {
         return Zeze.Component.Timer.createBeanFromSpecialTypeId(typeId);
     }
 
+    @Override
     public String getTimerName() {
         if (!isManaged())
             return _TimerName;
@@ -46,6 +47,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean {
         txn.putLog(new Log__TimerName(this, 1, value));
     }
 
+    @Override
     public long getRoleId() {
         if (!isManaged())
             return _RoleId;
@@ -65,6 +67,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean {
         txn.putLog(new Log__RoleId(this, 2, value));
     }
 
+    @Override
     public long getLoginVersion() {
         if (!isManaged())
             return _LoginVersion;
@@ -84,6 +87,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean {
         txn.putLog(new Log__LoginVersion(this, 3, value));
     }
 
+    @Override
     public String getHandleName() {
         if (!isManaged())
             return _HandleName;
@@ -106,6 +110,11 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean {
     }
 
     public Zeze.Transaction.DynamicBean getCustomData() {
+        return _CustomData;
+    }
+
+    @Override
+    public Zeze.Transaction.DynamicBeanReadOnly getCustomDataReadOnly() {
         return _CustomData;
     }
 

@@ -4,7 +4,7 @@ package Zeze.Builtin.Web;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BRequest extends Zeze.Transaction.Bean {
+public final class BRequest extends Zeze.Transaction.Bean implements BRequestReadOnly {
     public static final long TYPEID = -8704897348167290545L;
 
     private long _ExchangeId;
@@ -16,6 +16,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
     private boolean _Finish; // linkd 拦截处理验证信息后，还会转发请求给server。				验证过后的账号填写在这里。server读取并处理后续流程。
     private String _AuthedAccount;
 
+    @Override
     public long getExchangeId() {
         if (!isManaged())
             return _ExchangeId;
@@ -35,6 +36,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
         txn.putLog(new Log__ExchangeId(this, 1, value));
     }
 
+    @Override
     public String getMethod() {
         if (!isManaged())
             return _Method;
@@ -56,6 +58,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
         txn.putLog(new Log__Method(this, 2, value));
     }
 
+    @Override
     public String getPath() {
         if (!isManaged())
             return _Path;
@@ -77,6 +80,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
         txn.putLog(new Log__Path(this, 3, value));
     }
 
+    @Override
     public String getQuery() {
         if (!isManaged())
             return _Query;
@@ -102,6 +106,12 @@ public final class BRequest extends Zeze.Transaction.Bean {
         return _Headers;
     }
 
+    @Override
+    public Zeze.Transaction.Collections.PMap2ReadOnly<String, Zeze.Builtin.Web.BHeader, Zeze.Builtin.Web.BHeaderReadOnly> getHeadersReadOnly() {
+        return new Zeze.Transaction.Collections.PMap2ReadOnly<>(_Headers);
+    }
+
+    @Override
     public Zeze.Net.Binary getBody() {
         if (!isManaged())
             return _Body;
@@ -123,6 +133,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
         txn.putLog(new Log__Body(this, 6, value));
     }
 
+    @Override
     public boolean isFinish() {
         if (!isManaged())
             return _Finish;
@@ -142,6 +153,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
         txn.putLog(new Log__Finish(this, 7, value));
     }
 
+    @Override
     public String getAuthedAccount() {
         if (!isManaged())
             return _AuthedAccount;

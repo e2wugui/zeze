@@ -4,12 +4,13 @@ package Zeze.Builtin.Game.Online;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
+public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean implements BReliableNotifyConfirmReadOnly {
     public static final long TYPEID = -6588057877320371892L;
 
     private long _ReliableNotifyConfirmIndex;
     private boolean _Sync;
 
+    @Override
     public long getReliableNotifyConfirmIndex() {
         if (!isManaged())
             return _ReliableNotifyConfirmIndex;
@@ -29,6 +30,7 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
         txn.putLog(new Log__ReliableNotifyConfirmIndex(this, 1, value));
     }
 
+    @Override
     public boolean isSync() {
         if (!isManaged())
             return _Sync;

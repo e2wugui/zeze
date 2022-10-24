@@ -44,4 +44,8 @@ public final class tValueIdToNodeId extends Zeze.Transaction.TableX<Zeze.Builtin
     public Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeId newValue() {
         return new Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeId();
     }
+
+    public Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeIdReadOnly getReadOnly(Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey k) {
+        return get(k);
+    }
 }

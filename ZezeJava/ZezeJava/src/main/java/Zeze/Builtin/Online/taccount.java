@@ -44,4 +44,8 @@ public final class taccount extends Zeze.Transaction.TableX<String, Zeze.Builtin
     public Zeze.Builtin.Online.BAccount newValue() {
         return new Zeze.Builtin.Online.BAccount();
     }
+
+    public Zeze.Builtin.Online.BAccountReadOnly getReadOnly(String k) {
+        return get(k);
+    }
 }

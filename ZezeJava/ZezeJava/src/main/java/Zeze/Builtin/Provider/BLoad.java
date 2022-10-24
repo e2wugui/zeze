@@ -4,13 +4,14 @@ package Zeze.Builtin.Provider;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BLoad extends Zeze.Transaction.Bean {
+public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly {
     public static final long TYPEID = 8972064501607813483L;
 
     private int _Online; // 用户数量
     private int _ProposeMaxOnline; // 建议最大用户数量
     private int _OnlineNew; // 最近上线用户数量，一般是一秒内的。用来防止短时间内给同一个gs分配太多用户。
 
+    @Override
     public int getOnline() {
         if (!isManaged())
             return _Online;
@@ -30,6 +31,7 @@ public final class BLoad extends Zeze.Transaction.Bean {
         txn.putLog(new Log__Online(this, 1, value));
     }
 
+    @Override
     public int getProposeMaxOnline() {
         if (!isManaged())
             return _ProposeMaxOnline;
@@ -49,6 +51,7 @@ public final class BLoad extends Zeze.Transaction.Bean {
         txn.putLog(new Log__ProposeMaxOnline(this, 2, value));
     }
 
+    @Override
     public int getOnlineNew() {
         if (!isManaged())
             return _OnlineNew;

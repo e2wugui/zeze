@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 
 // 保存在内存Map中
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BGameOnlineTimer extends Zeze.Transaction.Bean {
+public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGameOnlineTimerReadOnly {
     public static final long TYPEID = -3455653027701280193L;
 
     private long _RoleId;
@@ -38,6 +38,7 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean {
 
     private long _LoginVersion;
 
+    @Override
     public long getRoleId() {
         if (!isManaged())
             return _RoleId;
@@ -77,6 +78,22 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean {
         _TimerObj.setBean(value);
     }
 
+    @Override
+    public Zeze.Transaction.DynamicBeanReadOnly getTimerObjReadOnly() {
+        return _TimerObj;
+    }
+
+    @Override
+    public Zeze.Builtin.Timer.BCronTimerReadOnly getTimerObj_Zeze_Builtin_Timer_BCronTimerReadOnly() {
+        return (Zeze.Builtin.Timer.BCronTimer)_TimerObj.getBean();
+    }
+
+    @Override
+    public Zeze.Builtin.Timer.BSimpleTimerReadOnly getTimerObj_Zeze_Builtin_Timer_BSimpleTimerReadOnly() {
+        return (Zeze.Builtin.Timer.BSimpleTimer)_TimerObj.getBean();
+    }
+
+    @Override
     public long getLoginVersion() {
         if (!isManaged())
             return _LoginVersion;

@@ -25,12 +25,13 @@ namespace Zeze.Gen.java
             if (bean.Comment.Length > 0)
                 sw.WriteLine(bean.Comment);
             sw.WriteLine($"public interface {bean.Name}ReadOnly {{");
-            //PropertyReadOnly.Make(bean, sw, "    "); // java 不支持ReadOnly
+            PropertyReadOnly.Make(bean, sw, "    ");
             sw.WriteLine("}");
         }
+
         public void Make(string baseDir)
         {
-            //MakeReadOnly(baseDir);
+            MakeReadOnly(baseDir);
 
             using StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + ".java");
 
@@ -41,9 +42,8 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             if (bean.Comment.Length > 0)
                 sw.WriteLine(bean.Comment);
-            // sw.WriteLine($"public final class {bean.Name} extends Zeze.Transaction.Bean implements {bean.Name}ReadOnly {{");
             sw.WriteLine("@SuppressWarnings({\"UnusedAssignment\", \"RedundantIfStatement\", \"SwitchStatementWithTooFewBranches\", \"RedundantSuppression\"})");
-            sw.WriteLine($"public final class {bean.Name} extends Zeze.Transaction.Bean {{");
+            sw.WriteLine($"public final class {bean.Name} extends Zeze.Transaction.Bean implements {bean.Name}ReadOnly {{");
             WriteDefine(sw);
             sw.WriteLine("}");
         }

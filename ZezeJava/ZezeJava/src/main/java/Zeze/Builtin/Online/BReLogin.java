@@ -4,12 +4,13 @@ package Zeze.Builtin.Online;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BReLogin extends Zeze.Transaction.Bean {
+public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginReadOnly {
     public static final long TYPEID = -603574147996514517L;
 
     private String _ClientId;
     private long _ReliableNotifyConfirmIndex;
 
+    @Override
     public String getClientId() {
         if (!isManaged())
             return _ClientId;
@@ -31,6 +32,7 @@ public final class BReLogin extends Zeze.Transaction.Bean {
         txn.putLog(new Log__ClientId(this, 1, value));
     }
 
+    @Override
     public long getReliableNotifyConfirmIndex() {
         if (!isManaged())
             return _ReliableNotifyConfirmIndex;

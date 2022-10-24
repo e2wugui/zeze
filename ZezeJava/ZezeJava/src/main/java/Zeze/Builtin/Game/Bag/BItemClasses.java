@@ -4,13 +4,18 @@ package Zeze.Builtin.Game.Bag;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BItemClasses extends Zeze.Transaction.Bean {
+public final class BItemClasses extends Zeze.Transaction.Bean implements BItemClassesReadOnly {
     public static final long TYPEID = 1779211758793833239L;
 
     private final Zeze.Transaction.Collections.PSet1<String> _ItemClasses;
 
     public Zeze.Transaction.Collections.PSet1<String> getItemClasses() {
         return _ItemClasses;
+    }
+
+    @Override
+    public Zeze.Transaction.Collections.PSet1ReadOnly<String> getItemClassesReadOnly() {
+        return new Zeze.Transaction.Collections.PSet1ReadOnly<>(_ItemClasses);
     }
 
     @SuppressWarnings("deprecation")

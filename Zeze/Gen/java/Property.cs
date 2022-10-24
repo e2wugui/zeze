@@ -53,6 +53,7 @@ namespace Zeze.Gen.java
                     sw.WriteLine();
                     continue;
                 }
+
                 var.VariableType.Accept(new Property(sw, var, prefix));
             }
         }
@@ -72,6 +73,7 @@ namespace Zeze.Gen.java
         void WriteProperty(Type type, bool checkNull = false)
         {
             var typeName = TypeName.GetName(type);
+            sw.WriteLine($"{prefix}@Override");
             sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + " {");
             sw.WriteLine(prefix + "    if (!isManaged())");
             sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
@@ -150,14 +152,15 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
-            /*
-            var valueName = type.ValueType.IsNormalBean
-                ? TypeName.GetName(type.ValueType) + "ReadOnly"
-                : TypeName.GetName(type.ValueType);
-            var beanNameReadOnly = TypeName.GetName(var.Bean) + "ReadOnly";
-            sw.WriteLine($"{prefix}System.Collections.Generic.IReadOnlyList<{valueName}> {beanNameReadOnly}.{var.NameUpper1} => {var.NamePrivate};");
+
+            var v = BoxingName.GetBoxingName(type.ValueType);
+            var t = type.ValueType.IsNormalBean ? "PList2ReadOnly" : "PList1ReadOnly";
+            var tx = type.ValueType.IsNormalBean ? $"{t}<{v}, {v}ReadOnly>" : $"{t}<{v}>";
+            sw.WriteLine($"{prefix}@Override");
+            sw.WriteLine($"{prefix}public Zeze.Transaction.Collections.{tx} {var.ReadOnlyGetter} {{");
+            sw.WriteLine($"{prefix}    return new Zeze.Transaction.Collections.{t}<>({var.NamePrivate});");
+            sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
-            */
         }
 
         public void Visit(TypeSet type)
@@ -166,13 +169,14 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
-            /*
-            var v = TypeName.GetName(type.ValueType);
-            var t = $"System.Collections.Generic.IReadOnlySet<{v}>";
-            var beanNameReadOnly = TypeName.GetName(var.Bean) + "ReadOnly";
-            sw.WriteLine($"{prefix}{t} {beanNameReadOnly}.{var.NameUpper1} => {var.NamePrivate};");
+
+            var v = BoxingName.GetBoxingName(type.ValueType);
+            var t = $"Zeze.Transaction.Collections.PSet1ReadOnly<{v}>";
+            sw.WriteLine($"{prefix}@Override");
+            sw.WriteLine($"{prefix}public {t} {var.ReadOnlyGetter} {{");
+            sw.WriteLine($"{prefix}    return new Zeze.Transaction.Collections.PSet1ReadOnly<>({var.NamePrivate});");
+            sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
-            */
         }
 
         public void Visit(TypeMap type)
@@ -181,27 +185,31 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
-            /*
-            var valueName = type.ValueType.IsNormalBean
-                ? TypeName.GetName(type.ValueType) + "ReadOnly"
-                : TypeName.GetName(type.ValueType);
-            var keyName = TypeName.GetName(type.KeyType);
-            var beanNameReadOnly = TypeName.GetName(var.Bean) + "ReadOnly";
-            sw.WriteLine($"{prefix}System.Collections.Generic.IReadOnlyDictionary<{keyName},{valueName}> {beanNameReadOnly}.{var.NameUpper1} => {var.NamePrivate}ReadOnly;");
+
+            var k = BoxingName.GetBoxingName(type.KeyType);
+            var v = BoxingName.GetBoxingName(type.ValueType);
+            var t = type.ValueType.IsNormalBean ? "PMap2ReadOnly" : "PMap1ReadOnly";
+            var tx = type.ValueType.IsNormalBean ? $"{t}<{k}, {v}, {v}ReadOnly>" : $"{t}<{k}, {v}>";
+            sw.WriteLine($"{prefix}@Override");
+            sw.WriteLine($"{prefix}public Zeze.Transaction.Collections.{tx} {var.ReadOnlyGetter} {{");
+            sw.WriteLine($"{prefix}    return new Zeze.Transaction.Collections.{t}<>({var.NamePrivate});");
+            sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
-            */
         }
 
         public void Visit(Bean type)
         {
             var typeName = TypeName.GetName(type);
-            //var typeNameReadOnly = typeName + "ReadOnly";
-            //var beanNameReadOnly = TypeName.GetName(var.Bean) + "ReadOnly";
             sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + " {");
             sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
-            //sw.WriteLine(prefix + typeNameReadOnly + " " + beanNameReadOnly + "." + var.NameUpper1 + " => " + var.NamePrivate + ";");
+
+            sw.WriteLine($"{prefix}@Override");
+            sw.WriteLine($"{prefix}public {TypeName.GetName(type)}ReadOnly get{var.NameUpper1}ReadOnly() {{");
+            sw.WriteLine($"{prefix}    return {var.NamePrivate};");
+            sw.WriteLine($"{prefix}}}");
+            sw.WriteLine();
         }
 
         public void Visit(BeanKey type)
@@ -212,38 +220,9 @@ namespace Zeze.Gen.java
         public void Visit(TypeDynamic type)
         {
             var typeName = TypeName.GetName(type);
-            //var beanNameReadOnly = TypeName.GetName(var.Bean) + "ReadOnly";
             sw.WriteLine($"{prefix}public {typeName} {var.Getter} {{");
             sw.WriteLine($"{prefix}    return {var.NamePrivate};");
             sw.WriteLine($"{prefix}}}");
-            //sw.WriteLine($"{prefix}{typeName}ReadOnly {beanNameReadOnly}.{var.NameUpper1} => {var.NameUpper1};");
-            /*
-            sw.WriteLine(prefix + "{");
-            sw.WriteLine(prefix + "    get");
-            sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        if (!IsManaged)");
-            sw.WriteLine(prefix + "            return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);");
-            sw.WriteLine(prefix + "        if (txn == null) return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "        var log = (Log_" + var.NamePrivate + ")txn.getLog(objectId() + " + var.Id + ");");
-            sw.WriteLine(prefix + "        return log != null ? log.value : " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "    private set");
-            sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        if (value == null)");
-            sw.WriteLine(prefix + "            throw new System.ArgumentNullException();");
-            sw.WriteLine(prefix + "        if (!IsManaged)");
-            sw.WriteLine(prefix + "        {");
-            sw.WriteLine(prefix + "            " + var.NamePrivate + " = value;");
-            sw.WriteLine(prefix + "            return;");
-            sw.WriteLine(prefix + "        }");
-            sw.WriteLine(prefix + "        value.initRootInfo(RootInfo, this);");
-            sw.WriteLine(prefix + "        value.variableId(" + var.Id + ");");
-            sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);");
-            sw.WriteLine(prefix + "        txn.putLog(new Log_" + var.NamePrivate + "(this, value));"); //
-            sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "}");
-            */
             sw.WriteLine();
             foreach (Bean real in type.RealBeans.Values)
             {
@@ -259,6 +238,21 @@ namespace Zeze.Gen.java
                 sw.WriteLine();
                 //sw.WriteLine(prefix + rname + "ReadOnly " + beanNameReadOnly + "." + pname + " => " + pname + ";");
                 //sw.WriteLine();
+            }
+            
+            sw.WriteLine($"{prefix}@Override");
+            sw.WriteLine($"{prefix}public {TypeName.GetName(type)}ReadOnly get{var.NameUpper1}ReadOnly() {{");
+            sw.WriteLine($"{prefix}    return {var.NamePrivate};");
+            sw.WriteLine($"{prefix}}}");
+            sw.WriteLine();
+            foreach (Bean real in type.RealBeans.Values)
+            {
+                string rname = TypeName.GetName(real);
+                sw.WriteLine($"{prefix}@Override");
+                sw.WriteLine($"{prefix}public {rname}ReadOnly get{var.NameUpper1}_{real.Space.Path("_", real.Name)}ReadOnly() {{");
+                sw.WriteLine($"{prefix}    return ({rname}){var.NamePrivate}.getBean();");
+                sw.WriteLine($"{prefix}}}");
+                sw.WriteLine();
             }
         }
 

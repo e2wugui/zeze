@@ -16,6 +16,7 @@ namespace Zeze.Gen.Types
 		public string NameGetter => Type.Equals("bool") ? $"is{NameUpper1}" : $"get{NameUpper1}";
 		public string NameSetter => $"set{NameUpper1}";
 		public string Getter => $"{NameGetter}()";
+		public string ReadOnlyGetter => $"{NameGetter}ReadOnly()";
 		public string Setter(string value) { return $"{NameSetter}({value})"; }
 		public int Id { get; private set; }
 		public string Type { get; private set; }
