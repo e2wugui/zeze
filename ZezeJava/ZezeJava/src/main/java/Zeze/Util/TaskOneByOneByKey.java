@@ -2,6 +2,7 @@ package Zeze.Util;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.concurrent.Executor;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Transaction.DispatchMode;
@@ -24,12 +25,18 @@ public final class TaskOneByOneByKey {
 
 	private final TaskOneByOne[] concurrency;
 	private final int hashMask;
+	private final Executor executor;
 
-	public TaskOneByOneByKey() {
-		this(1024);
+	public TaskOneByOneByKey(Executor executor) {
+		this(1024, executor);
 	}
 
-	public TaskOneByOneByKey(int concurrencyLevel) {
+	public TaskOneByOneByKey() {
+		this(1024, null);
+	}
+
+	public TaskOneByOneByKey(int concurrencyLevel, Executor executor) {
+		this.executor = executor;
 		if (concurrencyLevel < 1 || concurrencyLevel > 0x4000_0000)
 			throw new IllegalArgumentException("Illegal concurrencyLevel: " + concurrencyLevel);
 
@@ -298,7 +305,7 @@ public final class TaskOneByOneByKey {
 		return (h ^ (h >>> 7) ^ (h >>> 4));
 	}
 
-	static final class TaskOneByOne {
+	final class TaskOneByOne {
 		static abstract class Task implements Runnable {
 			final String name;
 			final Action0 cancel;
@@ -378,10 +385,14 @@ public final class TaskOneByOneByKey {
 				lock.unlock();
 			}
 			if (submit) {
-				var threadPool = task.mode == DispatchMode.Critical
-						? Zeze.Util.Task.getCriticalThreadPool()
-						: Zeze.Util.Task.getThreadPool();
-				threadPool.submit(task);
+				if (executor != null) {
+					executor.execute(task);
+				} else {
+					var threadPool = task.mode == DispatchMode.Critical
+							? Zeze.Util.Task.getCriticalThreadPool()
+							: Zeze.Util.Task.getThreadPool();
+					threadPool.submit(task);
+				}
 			} else if (task.cancel != null) {
 				try {
 					task.cancel.run();
@@ -405,10 +416,14 @@ public final class TaskOneByOneByKey {
 			} finally {
 				lock.unlock();
 			}
-			var threadPool = task.mode == DispatchMode.Critical
-					? Zeze.Util.Task.getCriticalThreadPool()
-					: Zeze.Util.Task.getThreadPool();
-			threadPool.submit(task);
+			if (executor != null) {
+				executor.execute(task);
+			} else {
+				var threadPool = task.mode == DispatchMode.Critical
+						? Zeze.Util.Task.getCriticalThreadPool()
+						: Zeze.Util.Task.getThreadPool();
+				threadPool.submit(task);
+			}
 		}
 
 		void shutdown(boolean cancel) {
