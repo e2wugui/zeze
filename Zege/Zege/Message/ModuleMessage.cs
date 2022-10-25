@@ -8,6 +8,7 @@ namespace Zege.Message
     public partial class ModuleMessage : AbstractModule
     {
         private ConcurrentDictionary<string, MessageFriend> Friends = new();
+        public MessageFriend CurrentChat { get; private set; }
 
         public void Start(global::Zege.App app)
         {
@@ -18,54 +19,38 @@ namespace Zege.Message
         }
 
         [DispatchMode(Mode = DispatchMode.UIThread)]
-        protected override async Task<long> ProcessNotifyMessageRequest(Zeze.Net.Protocol _p)
+        protected override Task<long> ProcessNotifyMessageRequest(Zeze.Net.Protocol _p)
         {
             var p = _p as NotifyMessage;
             var friend = Friends.GetOrAdd(p.Argument.From, (key) => new MessageFriend(this, key));
             friend.OnNotifyMessage(p);
-            return ResultCode.NotImplement;
-        }
-
-        public string Account { get; private set; } = string.Empty;
-        public GraphicsView MessageView { get; private set; }
-
-        public void Bind(GraphicsView view)
-        {
-            if (null == MessageView)
-            {
-                MessageView = view;
-            }
-        }
-
-        public void SwitchChat(string account)
-        {
-            if (account.Equals(Account))
-                return;
-
-            Account = account;
-
-            var rpc = new GetFriendMessage();
-            rpc.Argument.Friend = account;
-            rpc.Send(App.ClientService.GetSocket(), ProcessGetFriendMessageResponse);
+            return Task.FromResult(0L);
         }
 
         [DispatchMode(Mode = DispatchMode.UIThread)]
-        internal async Task<long> ProcessGetFriendMessageResponse(Zeze.Net.Protocol p)
+        internal Task<long> ProcessGetFriendMessageResponse(Zeze.Net.Protocol p)
         {
             var r = p as GetFriendMessage;
             var friend = Friends.GetOrAdd(r.Argument.Friend, (key) => new MessageFriend(this, key));
             friend.OnGetFriendMessage(r);
-            return 0;
+            return Task.FromResult(0L);
         }
 
+        public void StartChat(string account)
+        {
+            if (account.Equals(CurrentChat?.Friend))
+                return;
+            CurrentChat = Friends.GetOrAdd(account, (key) => new MessageFriend(this, key));
+            CurrentChat.Show();
+        }
+
+        /*
         public void AddMessage(string message)
         {
-            /*
             var self = Random.Shared.Next(100) > 50;
             var className = self ? "class=\"SelfMessage\"" : string.Empty;
             message = message.Replace("\r", $"<br>");
             MessageView.Eval($"addMessage('<p {className}>{message}</p>')");
-            */
         }
 
         public const string MessageHistoryHtml =
@@ -96,5 +81,6 @@ namespace Zege.Message
                 </body>
                 </html>
                 """;
+        */
     }
 }

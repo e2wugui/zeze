@@ -18,17 +18,12 @@ namespace Zege
         public MainPage()
         {
             InitializeComponent();
-
-            //SecureStorage.Default.SetAsync("", "");
-            // fix remove me
-            // SemanticScreenReader.Announce(CounterBtn.Text);
             LoggingConfiguration();
-
             FollowerApplyTables.RegisterLog();
         }
 
-        internal ScrollView MessageScrollView => _MessageScrollView;
-        internal AbsoluteLayout MessageLayout => _MessageLayout;
+        public ScrollView MessageScrollView => _MessageScrollView;
+        public AbsoluteLayout MessageLayout => _MessageLayout;
         public Layout MessageParent => _MessageParent;
 
         private void LoggingConfiguration()
@@ -52,7 +47,6 @@ namespace Zege
                 App.MainWindow = this;
                 App.Start("127.0.0.1", 5100);
                 App.Zege_Friend.Bind(FriendsListView);
-                App.Zege_Message.Bind(MessageView);
                 FriendsListView.ItemSelected += OnFriendsItemSelected;
             }
         }
@@ -65,7 +59,7 @@ namespace Zege
 
             // TODO: make selected to top here
 
-            App.Zege_Message.SwitchChat(selected.Account);
+            App.Zege_Message.StartChat(selected.Account);
         }
 
         public void UpdateRedPoint(string target, long notReadCount)
@@ -73,62 +67,11 @@ namespace Zege
             // TODO 更新未读红点。
         }
 
-        private MessageDrawable Drawable = new MessageDrawable();
-
-        private double NextMessageY = 5.0;
-
-        public HashSet<IView> Selfs = new();
-
-        private void OnSendClicked(object sender, EventArgs e)
+        private async void OnSendClicked(object sender, EventArgs e)
         {
             var message = MessageEditor.Text;
-            message = message.Replace("\r\n", "\n");
-            message = message.Replace("\r", "\n");
-            if (string.IsNullOrEmpty(message))
-                return;
-
-            // test Drawable
-            Drawable.Message = message;
-            MessageView.Invalidate();
-            // test MessageLayout
-
-            var photo = new Image()
-            {
-                Source = "https://www.google.com/images/hpp/Chrome_Owned_96x96.png",
-                HeightRequest = 30,
-                WidthRequest = 30,
-            };
-            var self = Random.Shared.Next(100) < 50;
-            var x = self ? MessageScrollView.Width - 40 : 0;
-            MessageLayout.Add(photo);
-            MessageLayout.SetLayoutBounds(photo, new Rect(x, NextMessageY, 30, 30));
-            var lastMessage = new Editor()
-            {
-                MinimumWidthRequest = 30,
-                MaximumWidthRequest = 300,
-                AutoSize = EditorAutoSizeOption.TextChanges,
-                Text = message,
-                BackgroundColor = self ? Colors.LightGreen : Colors.White,
-            };
-            lastMessage.SizeChanged += OnMessageSizeChanged;
-            MessageLayout.Add(lastMessage);
-            //MessageLayout.SetLayoutBounds(lastMessage, new Rect(0, NextMessageY, lastMessage.Width, lastMessage.Height));
-            //NextMessageY += lastMessage.Height + 5;
-            if (self)
-                Selfs.Add(lastMessage);
-            App?.Zege_Message.AddMessage(message);
+            await App.Zege_Message.CurrentChat?.SendAsync(message);
             MessageEditor.Text = string.Empty;
-        }
-
-        public async void OnMessageSizeChanged(object sender, EventArgs e)
-        {
-            var lastMessage = (Editor)sender;
-            var self = Selfs.Contains(lastMessage);
-            var x = self ? MessageScrollView.Width - lastMessage.Width - 40 : 40;
-            MessageLayout.SetLayoutBounds(lastMessage, new Rect(x, NextMessageY, lastMessage.Width, lastMessage.Height));
-            NextMessageY += lastMessage.Height + 5;
-            lastMessage.SizeChanged -= OnMessageSizeChanged;
-            await MessageScrollView.ScrollToAsync(0, NextMessageY, true);
         }
 
         private async void OnLoginClicked(object sender, EventArgs e)
@@ -202,7 +145,6 @@ namespace Zege
 
         private void OnClear(object sender, EventArgs e)
         {
-            MessageView.Drawable = Drawable;
             SecureStorage.Default.RemoveAll();
         }
 

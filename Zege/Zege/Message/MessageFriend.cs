@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Zeze.Serialize;
 
 namespace Zege.Message
 {
@@ -25,7 +26,7 @@ namespace Zege.Message
         {
             Module = module;
             Friend = friend;
-            View = new MessageViewControl(Module.App.MainWindow.MessageParent);
+            View = new MessageViewControl(Module.App, Module.App.MainWindow.MessageParent);
 
             var rpc = new GetFriendMessage();
             rpc.Argument.Friend = friend;
@@ -40,7 +41,7 @@ namespace Zege.Message
 
             // 处理最新的消息。
             if (Messages.TryAdd(p.Argument.MessageId, p.Argument))
-                UpdateView(p.Argument, View.AddTail);
+                View.AddTail(p.Argument);
 
             NextMessageId = p.Argument.MessageId + 1;
             // TODO 需要检测当前View是否正在显示最新的消息，如果是，不需要更新红点。
@@ -76,7 +77,7 @@ namespace Zege.Message
                 foreach (var msg in r.Result.Messages)
                 {
                     if (Messages.TryAdd(msg.MessageId, msg))
-                        UpdateView(msg, View.AddTail);
+                        View.AddTail(msg);
                 }
             }
             else
@@ -86,33 +87,36 @@ namespace Zege.Message
                 {
                     var msg = r.Result.Messages[i];
                     if (Messages.TryAdd(msg.MessageId, msg))
-                        UpdateView(msg, View.InsertHead);
+                        View.InsertHead(msg);
                 }
             }
         }
 
-        private void UpdateView(BMessage msg, Action<bool, long, string> action)
+        public void Show()
         {
-            // 这两个分支以后再简化，先清晰点，写成这样了。
-            switch (msg.Type)
+            View.Show(NextMessageIdNotRead);
+        }
+
+        public async Task SendAsync(string message)
+        {
+            message = message.Replace("\r\n", "\n");
+            message = message.Replace("\r", "\n");
+
+            var rpc = new SendMessage();
+            rpc.Argument.Friend = Friend;
+            rpc.Argument.Message.Type = BMessage.eTypeText;
+            var textMessage = new BTextMessage() { Message = message };
+            rpc.Argument.Message.SecureMessage = new Zeze.Net.Binary(ByteBuffer.Encode(textMessage));
+
+            await rpc.SendAsync(Module.App.ClientService.GetSocket());
+            if (0 == rpc.ResultCode)
             {
-                case BMessage.eTypeText:
-                    {
-                        var text = new BTextMessage();
-                        var self = msg.From.Equals(Module.App.Zege_User.Account);
-                        action(self, msg.MessageId, text.Message);
-                    }
-                    break;
-
-                case BMessage.eTypeSystem:
-                    {
-                    }
-                    break;
-
-                case BMessage.eTypeEmoji:
-                    {
-                    }
-                    break;
+                // 自己发送的消息的这些变量是本地的，需要自己填写。
+                // 服务器仅负责NotifyMessage的填写，收到别人的消息不需要填写。
+                // 好友消息今天写这两个就够了。群消息还需要填写Group,DepartmentId。
+                rpc.Argument.Message.MessageId = rpc.Result.MessageId;
+                rpc.Argument.Message.From = Module.App.Zege_User.Account;
+                View.AddTail(rpc.Argument.Message);
             }
         }
     }

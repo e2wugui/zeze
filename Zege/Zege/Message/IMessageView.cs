@@ -13,10 +13,10 @@ namespace Zege.Message
     public interface IMessageView
     {
         // 翻阅历史消息时用来加入消息。
-        public void InsertHead(bool self, long messageId, string message);
+        public void InsertHead(BMessage message);
 
         // 收到最新的消息时，加入消息。
-        public void AddTail(bool self, long messageId, string message);
+        public void AddTail(BMessage message);
 
         // 删除旧的消息，不缓存运行以来所有的消息，限制内存的使用。
         // 不包含此消息Id。

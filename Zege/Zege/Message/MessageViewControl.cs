@@ -1,25 +1,29 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Zeze.Serialize;
 
 namespace Zege.Message
 {
     // 使用控件实现的消息窗口。
     public class MessageViewControl : IMessageView
     {
+        public App App { get; }
         private Layout Parent;
         private ScrollView ScrollView;
         private AbsoluteLayout MessageLayout;
         private double NextMessageY = 5.0;
 
-        public MessageViewControl(Layout parent)
+        public MessageViewControl(App app, Layout parent)
         {
+            App = app;
             Parent = parent;
             ScrollView = new ScrollView()
             {
-                HeightRequest = 225,
+                HeightRequest = 450,
                 WidthRequest = 600,
             };
             MessageLayout = new AbsoluteLayout();
@@ -55,27 +59,60 @@ namespace Zege.Message
             MessageVisible(messageId);
         }
 
-        public void InsertHead(bool self, long messageId, string message)
+        public void InsertHead(BMessage message)
         {
-            Insert(0, self, messageId, message);
+            Insert(0, message);
         }
 
         public HashSet<IView> Selfs = new();
         public List<(long, Image, Editor)> Messages = new();
 
-        public void AddTail(bool self, long messageId, string message)
+        public void AddTail(BMessage message)
         {
-            Insert(Messages.Count, self, messageId, message);
+            Insert(Messages.Count, message);
         }
 
-        private void Insert(int index, bool self, long messageId, string message)
+        private string DecodeMessage(BMessage msg)
         {
+            var bb = ByteBuffer.Wrap(msg.SecureMessage);
+            switch (msg.Type)
+            {
+                case BMessage.eTypeText:
+                    {
+                        var text = new BTextMessage();
+                        text.Decode(bb);
+                        return text.Message;
+                    }
+
+                case BMessage.eTypeSystem:
+                    {
+                        var sys = new BSystemMessage();
+                        sys.Encode(bb);
+                        var sb = new StringBuilder();
+                        Zeze.Util.Str.BuildString(sb, sys.Properties, null);
+                        return sb.ToString();
+                    }
+
+                case BMessage.eTypeEmoji:
+                    {
+                        return "This Is A Emoji.";
+                    }
+            }
+            return "Unknown Message";
+        }
+
+        private void Insert(int index, BMessage message)
+        {
+            var self = App.Zege_User.Account.Equals(message.From);
+            var messageId = message.MessageId;
+
             var photo = new Image()
             {
                 Source = "https://www.google.com/images/hpp/Chrome_Owned_96x96.png",
                 HeightRequest = 30,
                 WidthRequest = 30,
             };
+
             MessageLayout.Add(photo);
             var x = self ? ScrollView.Width - 40 : 0;
             MessageLayout.SetLayoutBounds(photo, new Rect(x, NextMessageY, 30, 30));
@@ -84,7 +121,7 @@ namespace Zege.Message
                 MinimumWidthRequest = 30,
                 MaximumWidthRequest = 300,
                 AutoSize = EditorAutoSizeOption.TextChanges,
-                Text = message,
+                Text = DecodeMessage(message),
                 BackgroundColor = self ? Colors.LightGreen : Colors.White,
             };
             lastMessage.SizeChanged += OnMessageSizeChanged;
