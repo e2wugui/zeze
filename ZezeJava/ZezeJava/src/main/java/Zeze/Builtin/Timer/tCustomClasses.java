@@ -2,10 +2,13 @@
 package Zeze.Builtin.Timer;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.TableX;
+import Zeze.Transaction.TableReadOnly;
 
 // key is 1, only one record
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tCustomClasses extends Zeze.Transaction.TableX<Integer, Zeze.Builtin.Timer.BCustomClasses, Zeze.Builtin.Timer.BCustomClassesReadOnly> {
+public final class tCustomClasses extends TableX<Integer, Zeze.Builtin.Timer.BCustomClasses>
+        implements TableReadOnly<Integer, Zeze.Builtin.Timer.BCustomClasses, Zeze.Builtin.Timer.BCustomClassesReadOnly> {
     public tCustomClasses() {
         super("Zeze_Builtin_Timer_tCustomClasses");
     }
@@ -46,4 +49,8 @@ public final class tCustomClasses extends Zeze.Transaction.TableX<Integer, Zeze.
         return new Zeze.Builtin.Timer.BCustomClasses();
     }
 
+    @Override
+    public Zeze.Builtin.Timer.BCustomClassesReadOnly getReadOnly(Integer key) {
+        return get(key);
+    }
 }

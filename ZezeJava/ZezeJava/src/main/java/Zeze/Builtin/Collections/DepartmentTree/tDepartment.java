@@ -2,10 +2,13 @@
 package Zeze.Builtin.Collections.DepartmentTree;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.TableX;
+import Zeze.Transaction.TableReadOnly;
 
 // 群部门树根。普通用户也可以创建部门。暂不开放这个给个人。
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tDepartment extends Zeze.Transaction.TableX<String, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRootReadOnly> {
+public final class tDepartment extends TableX<String, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot>
+        implements TableReadOnly<String, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRootReadOnly> {
     public tDepartment() {
         super("Zeze_Builtin_Collections_DepartmentTree_tDepartment");
     }
@@ -50,4 +53,8 @@ public final class tDepartment extends Zeze.Transaction.TableX<String, Zeze.Buil
         return new Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot();
     }
 
+    @Override
+    public Zeze.Builtin.Collections.DepartmentTree.BDepartmentRootReadOnly getReadOnly(String key) {
+        return get(key);
+    }
 }

@@ -2,9 +2,12 @@
 package Zeze.Builtin.Game.Rank;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.TableX;
+import Zeze.Transaction.TableReadOnly;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class trank extends Zeze.Transaction.TableX<Zeze.Builtin.Game.Rank.BConcurrentKey, Zeze.Builtin.Game.Rank.BRankList, Zeze.Builtin.Game.Rank.BRankListReadOnly> {
+public final class trank extends TableX<Zeze.Builtin.Game.Rank.BConcurrentKey, Zeze.Builtin.Game.Rank.BRankList>
+        implements TableReadOnly<Zeze.Builtin.Game.Rank.BConcurrentKey, Zeze.Builtin.Game.Rank.BRankList, Zeze.Builtin.Game.Rank.BRankListReadOnly> {
     public trank() {
         super("Zeze_Builtin_Game_Rank_trank");
     }
@@ -45,4 +48,8 @@ public final class trank extends Zeze.Transaction.TableX<Zeze.Builtin.Game.Rank.
         return new Zeze.Builtin.Game.Rank.BRankList();
     }
 
+    @Override
+    public Zeze.Builtin.Game.Rank.BRankListReadOnly getReadOnly(Zeze.Builtin.Game.Rank.BConcurrentKey key) {
+        return get(key);
+    }
 }

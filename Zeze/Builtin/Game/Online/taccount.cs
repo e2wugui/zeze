@@ -1,9 +1,11 @@
 // auto-generated
 using Zeze.Serialize;
+using Zeze.Transaction;
+using System.Threading.Tasks;
 
 namespace Zeze.Builtin.Game.Online
 {
-    public sealed class taccount : Zeze.Transaction.Table<string, Zeze.Builtin.Game.Online.BAccount, Zeze.Builtin.Game.Online.BAccountReadOnly>
+    public sealed class taccount : Table<string, Zeze.Builtin.Game.Online.BAccount>, TableReadOnly<string, Zeze.Builtin.Game.Online.BAccount, Zeze.Builtin.Game.Online.BAccountReadOnly>
     {
         public taccount() : base("Zeze_Builtin_Game_Online_taccount")
         {
@@ -30,6 +32,11 @@ namespace Zeze.Builtin.Game.Online
             ByteBuffer _os_ = ByteBuffer.Allocate();
             _os_.WriteString(_v_);
             return _os_;
+        }
+
+        async Task<Zeze.Builtin.Game.Online.BAccountReadOnly> TableReadOnly<string, Zeze.Builtin.Game.Online.BAccount, Zeze.Builtin.Game.Online.BAccountReadOnly>.GetAsync(string key)
+        {
+            return await GetAsync(key);
         }
     }
 }

@@ -23,25 +23,25 @@ namespace Zeze.Transaction
     /// </summary>
     /// <typeparam name="K"></typeparam>
     /// <typeparam name="V"></typeparam>
-    public class TableCache<K, V, VReadOnly> where V : Bean, VReadOnly, new()
+    public class TableCache<K, V> where V : Bean, new()
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        internal ConcurrentDictionary<K, Record<K, V, VReadOnly>> DataMap { get; }
+        internal ConcurrentDictionary<K, Record<K, V>> DataMap { get; }
 
-        private ConcurrentQueue<ConcurrentDictionary<K, Record<K, V, VReadOnly>>> LruQueue { get; }
-            = new ConcurrentQueue<ConcurrentDictionary<K, Record<K, V, VReadOnly>>>();
+        private ConcurrentQueue<ConcurrentDictionary<K, Record<K, V>>> LruQueue { get; }
+            = new ConcurrentQueue<ConcurrentDictionary<K, Record<K, V>>>();
 
-        private volatile ConcurrentDictionary<K, Record<K, V, VReadOnly>> LruHot;
+        private volatile ConcurrentDictionary<K, Record<K, V>> LruHot;
 
-        public Table<K, V, VReadOnly> Table { get; }
+        public Table<K, V> Table { get; }
         private Util.SchedulerTask TimerNewHot;
         private Util.SchedulerTask TimerClean;
 
-        public TableCache(Application _, Table<K, V, VReadOnly> table)
+        public TableCache(Application _, Table<K, V> table)
         {
             this.Table = table;
-            DataMap = new ConcurrentDictionary<K, Record<K, V, VReadOnly>>(
+            DataMap = new ConcurrentDictionary<K, Record<K, V>>(
                 GetCacheConcurrencyLevel(), GetCacheInitialCapacity());
             NewLruHot();
             TimerNewHot = Util.Scheduler.Schedule((task) =>
@@ -110,12 +110,12 @@ namespace Zeze.Transaction
 
         private void NewLruHot()
         {
-            var volatiletmp = new ConcurrentDictionary<K, Record<K, V, VReadOnly>>(GetCacheConcurrencyLevel(), GetLruInitialCapacity());
+            var volatiletmp = new ConcurrentDictionary<K, Record<K, V>>(GetCacheConcurrencyLevel(), GetLruInitialCapacity());
             LruHot = volatiletmp;
             LruQueue.Enqueue(volatiletmp);
         }
 
-        public Record<K, V, VReadOnly> GetOrAdd(K key, Func<K, Record<K, V, VReadOnly>> valueFactory)
+        public Record<K, V> GetOrAdd(K key, Func<K, Record<K, V>> valueFactory)
         {
             var lruHot = LruHot;
             var result = DataMap.GetOrAdd(key, k =>
@@ -147,7 +147,7 @@ namespace Zeze.Transaction
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        internal Record<K, V, VReadOnly> Get(K key)
+        internal Record<K, V> Get(K key)
         {
             if (DataMap.TryGetValue(key, out var r))
                 return r;
@@ -169,7 +169,7 @@ namespace Zeze.Transaction
             if (cap <= 0)
                 return;
 
-            var polls = new List<ConcurrentDictionary<K, Record<K, V, VReadOnly>>>(cap);
+            var polls = new List<ConcurrentDictionary<K, Record<K, V>>>(cap);
             while (LruQueue.Count > 8640)
             {
                 // 大概，删除超过一天的节点。
@@ -240,7 +240,7 @@ namespace Zeze.Transaction
         }
 
         // under lockey.writelock
-        private bool Remove(KeyValuePair<K, Record<K, V, VReadOnly>> p)
+        private bool Remove(KeyValuePair<K, Record<K, V>> p)
         {
             if (DataMap.TryRemove(p))
             {
@@ -255,7 +255,7 @@ namespace Zeze.Transaction
             return false;
         }
 
-        private bool TryRemoveRecordUnderLock(KeyValuePair<K, Record<K, V, VReadOnly>> p)
+        private bool TryRemoveRecordUnderLock(KeyValuePair<K, Record<K, V>> p)
         {
             var storage = Table.TStorage;
             if (null == storage)
@@ -302,7 +302,7 @@ namespace Zeze.Transaction
             return Remove(p);
         }
 
-        private bool TryRemoveRecord(KeyValuePair<K, Record<K, V, VReadOnly>> p)
+        private bool TryRemoveRecord(KeyValuePair<K, Record<K, V>> p)
         {
             // lockey 第一优先，和事务并发。
             var tkey = new TableKey(this.Table.Id, p.Key);

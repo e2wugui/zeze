@@ -2,9 +2,12 @@
 package Zeze.Builtin.Timer;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.TableX;
+import Zeze.Transaction.TableReadOnly;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tRoleOfflineTimers extends Zeze.Transaction.TableX<Long, Zeze.Builtin.Timer.BOfflineTimers, Zeze.Builtin.Timer.BOfflineTimersReadOnly> {
+public final class tRoleOfflineTimers extends TableX<Long, Zeze.Builtin.Timer.BOfflineTimers>
+        implements TableReadOnly<Long, Zeze.Builtin.Timer.BOfflineTimers, Zeze.Builtin.Timer.BOfflineTimersReadOnly> {
     public tRoleOfflineTimers() {
         super("Zeze_Builtin_Timer_tRoleOfflineTimers");
     }
@@ -45,4 +48,8 @@ public final class tRoleOfflineTimers extends Zeze.Transaction.TableX<Long, Zeze
         return new Zeze.Builtin.Timer.BOfflineTimers();
     }
 
+    @Override
+    public Zeze.Builtin.Timer.BOfflineTimersReadOnly getReadOnly(Long key) {
+        return get(key);
+    }
 }

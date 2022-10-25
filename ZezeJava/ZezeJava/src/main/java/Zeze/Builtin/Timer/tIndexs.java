@@ -2,9 +2,12 @@
 package Zeze.Builtin.Timer;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.TableX;
+import Zeze.Transaction.TableReadOnly;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tIndexs extends Zeze.Transaction.TableX<String, Zeze.Builtin.Timer.BIndex, Zeze.Builtin.Timer.BIndexReadOnly> {
+public final class tIndexs extends TableX<String, Zeze.Builtin.Timer.BIndex>
+        implements TableReadOnly<String, Zeze.Builtin.Timer.BIndex, Zeze.Builtin.Timer.BIndexReadOnly> {
     public tIndexs() {
         super("Zeze_Builtin_Timer_tIndexs");
     }
@@ -46,4 +49,8 @@ public final class tIndexs extends Zeze.Transaction.TableX<String, Zeze.Builtin.
         return new Zeze.Builtin.Timer.BIndex();
     }
 
+    @Override
+    public Zeze.Builtin.Timer.BIndexReadOnly getReadOnly(String key) {
+        return get(key);
+    }
 }

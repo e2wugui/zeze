@@ -53,8 +53,8 @@ public final class Simulate {
 		for (var app : Apps)
 			app.Start();
 
-		var allTFlush = new ArrayList<Zeze.Transaction.TableX<Long, BValue, BValueReadOnly>>();
-		var allTable1 = new ArrayList<Zeze.Transaction.TableX<Long, BValue, BValueReadOnly>>();
+		var allTFlush = new ArrayList<Zeze.Transaction.TableX<Long, BValue>>();
+		var allTable1 = new ArrayList<Zeze.Transaction.TableX<Long, BValue>>();
 		for (var app : Apps) {
 			allTFlush.add(app.app.demo_Module1.getTflush());
 			allTable1.add(app.app.demo_Module1.getTable1());

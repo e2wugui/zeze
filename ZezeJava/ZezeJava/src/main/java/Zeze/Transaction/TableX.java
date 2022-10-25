@@ -18,14 +18,13 @@ import static Zeze.Services.GlobalCacheManagerConst.StateModify;
 import static Zeze.Services.GlobalCacheManagerConst.StateRemoved;
 import static Zeze.Services.GlobalCacheManagerConst.StateShare;
 
-public abstract class TableX<K extends Comparable<K>, V extends Bean, VReadOnly>
-		extends Table implements TableReadOnly<K, V, VReadOnly> {
+public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Table {
 	private static final Logger logger = LogManager.getLogger(TableX.class);
 	private static final boolean isDebugEnabled = logger.isDebugEnabled();
 
 	private AutoKey autoKey;
-	private TableCache<K, V, VReadOnly> cache;
-	private Storage<K, V, VReadOnly> storage;
+	private TableCache<K, V> cache;
+	private Storage<K, V> storage;
 	private Database.Table oldTable;
 	private DatabaseRocksDb.Table localRocksCacheTable;
 
@@ -37,14 +36,14 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean, VReadOnly>
 		return autoKey;
 	}
 
-	public final Storage<K, V, VReadOnly> internalGetStorageForTestOnly(String IAmSure) {
+	public final Storage<K, V> internalGetStorageForTestOnly(String IAmSure) {
 		if (!IAmSure.equals("IKnownWhatIAmDoing"))
 			throw new IllegalArgumentException();
 		return storage;
 	}
 
 	@Override
-	final Storage<K, V, VReadOnly> getStorage() {
+	final Storage<K, V> getStorage() {
 		return storage;
 	}
 
@@ -79,7 +78,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean, VReadOnly>
 		}
 	}
 
-	public Supplier<ArrayList<TableX<K, V, VReadOnly>>> getSimulateTables; // only for temp debug
+	public Supplier<ArrayList<TableX<K, V>>> getSimulateTables; // only for temp debug
 
 	private void verifyGlobalRecordState(K key, boolean isModify) { // only for temp debug
 		var getSimulateTables = this.getSimulateTables;
@@ -103,7 +102,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean, VReadOnly>
 	}
 
 	@SuppressWarnings("unchecked")
-	private AtomicTupleRecord<K, V, VReadOnly> load(K key) {
+	private AtomicTupleRecord<K, V> load(K key) {
 		var tkey = new TableKey(getId(), key);
 		while (true) {
 			var r = cache.getOrAdd(key, () -> new Record1<>(this, key, null));
@@ -383,7 +382,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean, VReadOnly>
 		return 0;
 	}
 
-	@Override
 	public final Binary encodeGlobalKey(K key) {
 		var bb = ByteBuffer.Allocate();
 		bb.WriteInt4(getId());
@@ -396,7 +394,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean, VReadOnly>
 	final void reduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex) {
 		var globalAgent = getZeze().getGlobalAgent();
 		var locks = getZeze().getLocks();
-		var remain = new ArrayList<KV<Lockey, Record1<K, V, VReadOnly>>>(cache.getDataMap().size());
+		var remain = new ArrayList<KV<Lockey, Record1<K, V>>>(cache.getDataMap().size());
 		logger.info("ReduceInvalidAllLocalOnly CacheSize=" + cache.getDataMap().size());
 		for (var e : cache.getDataMap().entrySet()) {
 			var k = e.getKey();
@@ -476,12 +474,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean, VReadOnly>
 		*/
 	}
 
-	@SuppressWarnings("unchecked")
-	@Override
-	public VReadOnly getReadOnly(K key) {
-		return (VReadOnly)get(key);
-	}
-
 	public final V get(K key) {
 		var currentT = Transaction.getCurrent();
 		assert currentT != null;
@@ -499,7 +491,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean, VReadOnly>
 		return r.strongRef;
 	}
 
-	@Override
 	public final boolean contains(K key) {
 		return get(key) != null;
 	}
@@ -592,7 +583,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean, VReadOnly>
 	}
 
 	@Override
-	final Storage<?, ?, ?> open(Application app, Database database) {
+	final Storage<?, ?> open(Application app, Database database) {
 		if (storage != null)
 			throw new IllegalStateException("table has opened: " + getName());
 
@@ -624,16 +615,13 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean, VReadOnly>
 	}
 
 	// Key 都是简单变量，系列化方法都不一样，需要生成。
-	@Override
 	public abstract ByteBuffer encodeKey(K key);
 
 	@SuppressWarnings("unchecked")
-	@Override
 	public ByteBuffer encodeKey(Object key) {
 		return encodeKey((K)key);
 	}
 
-	@Override
 	public abstract K decodeKey(ByteBuffer bb);
 
 	public final void delayRemove(K key) {
@@ -649,7 +637,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean, VReadOnly>
 	 * @param bb bean encoded data
 	 * @return Value
 	 */
-	@Override
 	public final V decodeValue(ByteBuffer bb) {
 		V value = newValue();
 		value.decode(bb);
@@ -665,7 +652,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean, VReadOnly>
 	 * @param callback walk callback
 	 * @return count
 	 */
-	@Override
 	public final long walk(TableWalkHandle<K, V> callback) {
 		return walk(callback, null);
 	}
@@ -706,7 +692,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean, VReadOnly>
 		return walk(callback, afterLock);
 	}
 
-	@Override
 	public final long walk(TableWalkHandle<K, V> callback, Runnable afterLock) {
 		if (Transaction.getCurrent() != null)
 			throw new IllegalStateException("must be called without transaction");
@@ -726,7 +711,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean, VReadOnly>
 		return walkCacheKey(callback);
 	}
 
-	@Override
 	public final long walkCacheKey(TableWalkKey<K> callback) {
 		return cache.walkKey(callback);
 	}
@@ -735,7 +719,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean, VReadOnly>
 		return walkDatabaseKey(callback);
 	}
 
-	@Override
 	public final long walkDatabaseKey(TableWalkKey<K> callback) {
 		return storage.getDatabaseTable().walkKey(key -> callback.handle(decodeKey(ByteBuffer.Wrap(key))));
 	}
@@ -747,7 +730,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean, VReadOnly>
 	 * @param callback walk callback
 	 * @return count
 	 */
-	@Override
 	public final long walkDatabase(TableWalkHandleRaw callback) {
 		return storage.getDatabaseTable().walk(callback);
 	}
@@ -764,7 +746,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean, VReadOnly>
 	 * @param callback walk callback
 	 * @return count
 	 */
-	@Override
 	public final long walkDatabase(TableWalkHandle<K, V> callback) {
 		return storage.getDatabaseTable().walk((key, value) -> {
 			K k = decodeKey(ByteBuffer.Wrap(key));
@@ -784,7 +765,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean, VReadOnly>
 	 *
 	 * @return count
 	 */
-	@Override
 	public final long walkCache(TableWalkHandle<K, V> callback) {
 		return walkCache(callback, null);
 	}
@@ -794,7 +774,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean, VReadOnly>
 		return walkCache(callback);
 	}
 
-	@Override
 	public final long walkCache(TableWalkHandle<K, V> callback, Runnable afterLock) {
 		if (Transaction.getCurrent() != null)
 			throw new IllegalStateException("must be called without transaction");
@@ -841,7 +820,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean, VReadOnly>
 	 * @return record value
 	 */
 	@SuppressWarnings("unchecked")
-	@Override
 	public final V selectCopy(K key) {
 		var tkey = new TableKey(getId(), key);
 		var currentT = Transaction.getCurrent();
@@ -865,7 +843,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean, VReadOnly>
 	}
 
 	@SuppressWarnings("unchecked")
-	@Override
 	public final V selectDirty(K key) {
 		var currentT = Transaction.getCurrent();
 		if (currentT != null) {
@@ -891,7 +868,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean, VReadOnly>
 	 * @param r           Changes.Record From ChangeListener
 	 * @return ByteBuffer Encoded Change Log
 	 */
-	@Override
 	public ByteBuffer encodeChangeListenerWithSpecialName(String specialName, Object key, Changes.Record r) {
 		var bb = ByteBuffer.Allocate();
 		bb.WriteString(null == specialName ? getName() : specialName);

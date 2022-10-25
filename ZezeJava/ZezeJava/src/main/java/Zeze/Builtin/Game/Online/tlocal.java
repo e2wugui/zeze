@@ -2,9 +2,12 @@
 package Zeze.Builtin.Game.Online;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.TableX;
+import Zeze.Transaction.TableReadOnly;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tlocal extends Zeze.Transaction.TableX<Long, Zeze.Builtin.Game.Online.BLocal, Zeze.Builtin.Game.Online.BLocalReadOnly> {
+public final class tlocal extends TableX<Long, Zeze.Builtin.Game.Online.BLocal>
+        implements TableReadOnly<Long, Zeze.Builtin.Game.Online.BLocal, Zeze.Builtin.Game.Online.BLocalReadOnly> {
     public tlocal() {
         super("Zeze_Builtin_Game_Online_tlocal");
     }
@@ -46,4 +49,8 @@ public final class tlocal extends Zeze.Transaction.TableX<Long, Zeze.Builtin.Gam
         return new Zeze.Builtin.Game.Online.BLocal();
     }
 
+    @Override
+    public Zeze.Builtin.Game.Online.BLocalReadOnly getReadOnly(Long key) {
+        return get(key);
+    }
 }

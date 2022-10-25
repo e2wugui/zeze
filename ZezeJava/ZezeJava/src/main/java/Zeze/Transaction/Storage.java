@@ -4,14 +4,14 @@ import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Serialize.ByteBuffer;
 
-public final class Storage<K extends Comparable<K>, V extends Bean, VReadOnly> {
+public final class Storage<K extends Comparable<K>, V extends Bean> {
 	private final Table table;
 	private final Database.Table databaseTable;
-	private final ConcurrentHashMap<K, Record1<K, V, VReadOnly>> changed = new ConcurrentHashMap<>();
-	private final ConcurrentHashMap<K, Record1<K, V, VReadOnly>> encoded = new ConcurrentHashMap<>();
-	private final ConcurrentHashMap<K, Record1<K, V, VReadOnly>> snapshot = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<K, Record1<K, V>> changed = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<K, Record1<K, V>> encoded = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<K, Record1<K, V>> snapshot = new ConcurrentHashMap<>();
 
-	public Storage(TableX<K, V, VReadOnly> table, Database database, String tableName) {
+	public Storage(TableX<K, V> table, Database database, String tableName) {
 		this.table = table;
 		databaseTable = database.openTable(tableName);
 	}
@@ -24,12 +24,12 @@ public final class Storage<K extends Comparable<K>, V extends Bean, VReadOnly> {
 		return databaseTable;
 	}
 
-	public V find(K key, TableX<K, V, VReadOnly> table) {
+	public V find(K key, TableX<K, V> table) {
 		ByteBuffer value = databaseTable.find(table.encodeKey(key));
 		return value != null ? table.decodeValue(value) : null;
 	}
 
-	public void onRecordChanged(Record1<K, V, VReadOnly> r) {
+	public void onRecordChanged(Record1<K, V> r) {
 		changed.put(r.getObjectKey(), r);
 	}
 

@@ -1,9 +1,11 @@
 // auto-generated
 using Zeze.Serialize;
+using Zeze.Transaction;
+using System.Threading.Tasks;
 
 namespace Zeze.Builtin.Game.Online
 {
-    public sealed class tlocal : Zeze.Transaction.Table<long, Zeze.Builtin.Game.Online.BLocal, Zeze.Builtin.Game.Online.BLocalReadOnly>
+    public sealed class tlocal : Table<long, Zeze.Builtin.Game.Online.BLocal>, TableReadOnly<long, Zeze.Builtin.Game.Online.BLocal, Zeze.Builtin.Game.Online.BLocalReadOnly>
     {
         public tlocal() : base("Zeze_Builtin_Game_Online_tlocal")
         {
@@ -28,6 +30,11 @@ namespace Zeze.Builtin.Game.Online
             ByteBuffer _os_ = ByteBuffer.Allocate();
             _os_.WriteLong(_v_);
             return _os_;
+        }
+
+        async Task<Zeze.Builtin.Game.Online.BLocalReadOnly> TableReadOnly<long, Zeze.Builtin.Game.Online.BLocal, Zeze.Builtin.Game.Online.BLocalReadOnly>.GetAsync(long key)
+        {
+            return await GetAsync(key);
         }
     }
 }

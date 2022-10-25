@@ -1,9 +1,11 @@
 // auto-generated
 using Zeze.Serialize;
+using Zeze.Transaction;
+using System.Threading.Tasks;
 
 namespace Zeze.Builtin.Collections.Queue
 {
-    public sealed class tQueueNodes : Zeze.Transaction.Table<Zeze.Builtin.Collections.Queue.BQueueNodeKey, Zeze.Builtin.Collections.Queue.BQueueNode, Zeze.Builtin.Collections.Queue.BQueueNodeReadOnly>
+    public sealed class tQueueNodes : Table<Zeze.Builtin.Collections.Queue.BQueueNodeKey, Zeze.Builtin.Collections.Queue.BQueueNode>, TableReadOnly<Zeze.Builtin.Collections.Queue.BQueueNodeKey, Zeze.Builtin.Collections.Queue.BQueueNode, Zeze.Builtin.Collections.Queue.BQueueNodeReadOnly>
     {
         public tQueueNodes() : base("Zeze_Builtin_Collections_Queue_tQueueNodes")
         {
@@ -28,6 +30,11 @@ namespace Zeze.Builtin.Collections.Queue
             ByteBuffer _os_ = ByteBuffer.Allocate();
             _v_.Encode(_os_);
             return _os_;
+        }
+
+        async Task<Zeze.Builtin.Collections.Queue.BQueueNodeReadOnly> TableReadOnly<Zeze.Builtin.Collections.Queue.BQueueNodeKey, Zeze.Builtin.Collections.Queue.BQueueNode, Zeze.Builtin.Collections.Queue.BQueueNodeReadOnly>.GetAsync(Zeze.Builtin.Collections.Queue.BQueueNodeKey key)
+        {
+            return await GetAsync(key);
         }
     }
 }

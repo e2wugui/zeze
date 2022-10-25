@@ -2,9 +2,12 @@
 package Zeze.Builtin.Collections.DepartmentTree;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.TableX;
+import Zeze.Transaction.TableReadOnly;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tDepartmentTree extends Zeze.Transaction.TableX<Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey, Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode, Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNodeReadOnly> {
+public final class tDepartmentTree extends TableX<Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey, Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode>
+        implements TableReadOnly<Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey, Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode, Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNodeReadOnly> {
     public tDepartmentTree() {
         super("Zeze_Builtin_Collections_DepartmentTree_tDepartmentTree");
     }
@@ -49,4 +52,8 @@ public final class tDepartmentTree extends Zeze.Transaction.TableX<Zeze.Builtin.
         return new Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode();
     }
 
+    @Override
+    public Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNodeReadOnly getReadOnly(Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey key) {
+        return get(key);
+    }
 }

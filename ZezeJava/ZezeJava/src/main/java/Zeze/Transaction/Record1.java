@@ -10,7 +10,7 @@ import Zeze.Util.Macro;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public final class Record1<K extends Comparable<K>, V extends Bean, VReadOnly> extends Record {
+public final class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 	private static final Logger logger = LogManager.getLogger(Record1.class);
 	private static final boolean isDebugEnabled = logger.isDebugEnabled();
 	private static final VarHandle LRU_NODE_HANDLE;
@@ -23,16 +23,16 @@ public final class Record1<K extends Comparable<K>, V extends Bean, VReadOnly> e
 		}
 	}
 
-	private final TableX<K, V, VReadOnly> table;
+	private final TableX<K, V> table;
 	private final K key;
 	private ByteBuffer snapshotKey;
 	private ByteBuffer snapshotValue;
 	private long savedTimestampForCheckpointPeriod;
 	private boolean existInBackDatabase;
 	private boolean existInBackDatabaseSavedForFlushRemove;
-	private volatile ConcurrentHashMap<K, Record1<K, V, VReadOnly>> lruNode;
+	private volatile ConcurrentHashMap<K, Record1<K, V>> lruNode;
 
-	public Record1(TableX<K, V, VReadOnly> table, K key, V value) {
+	public Record1(TableX<K, V> table, K key, V value) {
 		super(value);
 		this.table = table;
 		this.key = key;
@@ -56,20 +56,20 @@ public final class Record1<K extends Comparable<K>, V extends Bean, VReadOnly> e
 		existInBackDatabase = value;
 	}
 
-	ConcurrentHashMap<K, Record1<K, V, VReadOnly>> getLruNode() {
+	ConcurrentHashMap<K, Record1<K, V>> getLruNode() {
 		return lruNode;
 	}
 
-	void setLruNode(ConcurrentHashMap<K, Record1<K, V, VReadOnly>> value) {
+	void setLruNode(ConcurrentHashMap<K, Record1<K, V>> value) {
 		lruNode = value;
 	}
 
 	@SuppressWarnings("unchecked")
-	ConcurrentHashMap<K, Record1<K, V, VReadOnly>> getAndSetLruNodeNull() {
-		return (ConcurrentHashMap<K, Record1<K, V, VReadOnly>>)LRU_NODE_HANDLE.getAndSet(this, null);
+	ConcurrentHashMap<K, Record1<K, V>> getAndSetLruNodeNull() {
+		return (ConcurrentHashMap<K, Record1<K, V>>)LRU_NODE_HANDLE.getAndSet(this, null);
 	}
 
-	boolean compareAndSetLruNodeNull(ConcurrentHashMap<K, Record1<K, V, VReadOnly>> c) {
+	boolean compareAndSetLruNodeNull(ConcurrentHashMap<K, Record1<K, V>> c) {
 		return LRU_NODE_HANDLE.compareAndSet(this, c, null);
 	}
 
@@ -136,7 +136,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean, VReadOnly> e
 		}
 	}
 
-	boolean tryEncodeN(ConcurrentHashMap<K, Record1<K, V, VReadOnly>> changed, ConcurrentHashMap<K, Record1<K, V, VReadOnly>> encoded) {
+	boolean tryEncodeN(ConcurrentHashMap<K, Record1<K, V>> changed, ConcurrentHashMap<K, Record1<K, V>> encoded) {
 		Lockey lockey = table.getZeze().getLocks().get(new TableKey(table.getId(), key));
 		if (!lockey.tryEnterReadLock(0)) {
 			return false;

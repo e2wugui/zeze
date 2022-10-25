@@ -1,9 +1,11 @@
 // auto-generated
 using Zeze.Serialize;
+using Zeze.Transaction;
+using System.Threading.Tasks;
 
 namespace Zeze.Builtin.Online
 {
-    public sealed class tversion : Zeze.Transaction.Table<string, Zeze.Builtin.Online.BVersions, Zeze.Builtin.Online.BVersionsReadOnly>
+    public sealed class tversion : Table<string, Zeze.Builtin.Online.BVersions>, TableReadOnly<string, Zeze.Builtin.Online.BVersions, Zeze.Builtin.Online.BVersionsReadOnly>
     {
         public tversion() : base("Zeze_Builtin_Online_tversion")
         {
@@ -27,6 +29,11 @@ namespace Zeze.Builtin.Online
             ByteBuffer _os_ = ByteBuffer.Allocate();
             _os_.WriteString(_v_);
             return _os_;
+        }
+
+        async Task<Zeze.Builtin.Online.BVersionsReadOnly> TableReadOnly<string, Zeze.Builtin.Online.BVersions, Zeze.Builtin.Online.BVersionsReadOnly>.GetAsync(string key)
+        {
+            return await GetAsync(key);
         }
     }
 }

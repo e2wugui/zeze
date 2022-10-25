@@ -2,10 +2,13 @@
 package Zeze.Builtin.Timer;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.TableX;
+import Zeze.Transaction.TableReadOnly;
 
 // key is serverid 每一台server拥有自己的链表。
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tNodeRoot extends Zeze.Transaction.TableX<Integer, Zeze.Builtin.Timer.BNodeRoot, Zeze.Builtin.Timer.BNodeRootReadOnly> {
+public final class tNodeRoot extends TableX<Integer, Zeze.Builtin.Timer.BNodeRoot>
+        implements TableReadOnly<Integer, Zeze.Builtin.Timer.BNodeRoot, Zeze.Builtin.Timer.BNodeRootReadOnly> {
     public tNodeRoot() {
         super("Zeze_Builtin_Timer_tNodeRoot");
     }
@@ -48,4 +51,8 @@ public final class tNodeRoot extends Zeze.Transaction.TableX<Integer, Zeze.Built
         return new Zeze.Builtin.Timer.BNodeRoot();
     }
 
+    @Override
+    public Zeze.Builtin.Timer.BNodeRootReadOnly getReadOnly(Integer key) {
+        return get(key);
+    }
 }

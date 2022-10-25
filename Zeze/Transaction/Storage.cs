@@ -24,21 +24,21 @@ namespace Zeze.Transaction
         public abstract void Close();
 	}
 
-    public sealed class Storage<K, V, VReadOnly> : Storage where V : Bean, VReadOnly, new()
+    public sealed class Storage<K, V> : Storage where V : Bean, new()
     {
         public Table Table { get; }
 
-        public Storage(Table<K, V, VReadOnly> table, Database database, string tableName)
+        public Storage(Table<K, V> table, Database database, string tableName)
         {
             Table = table;
             TableAsync = database.OpenTable(tableName);
         }
 
-        private readonly ConcurrentDictionary<K, Record<K, V, VReadOnly>> changed = new();
-        private readonly ConcurrentDictionary<K, Record<K, V, VReadOnly>> encoded = new();
-        private readonly ConcurrentDictionary<K, Record<K, V, VReadOnly>> snapshot = new();
+        private readonly ConcurrentDictionary<K, Record<K, V>> changed = new();
+        private readonly ConcurrentDictionary<K, Record<K, V>> encoded = new();
+        private readonly ConcurrentDictionary<K, Record<K, V>> snapshot = new();
 
-        internal void OnRecordChanged(Record<K, V, VReadOnly> r)
+        internal void OnRecordChanged(Record<K, V> r)
         {
             changed[r.Key] = r;
         }
@@ -130,7 +130,7 @@ namespace Zeze.Transaction
             snapshot.Clear();
         }
 
-        public async Task<V> FindAsync(K key, Table<K, V, VReadOnly> table)
+        public async Task<V> FindAsync(K key, Table<K, V> table)
         {
             ByteBuffer value = await TableAsync.FindAsync(table.EncodeKey(key));
             return null != value ? table.DecodeValue(value) : null;

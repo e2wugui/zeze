@@ -1,9 +1,11 @@
 // auto-generated
 using Zeze.Serialize;
+using Zeze.Transaction;
+using System.Threading.Tasks;
 
 namespace Zeze.Builtin.AutoKey
 {
-    public sealed class tAutoKeys : Zeze.Transaction.Table<Zeze.Builtin.AutoKey.BSeedKey, Zeze.Builtin.AutoKey.BAutoKey, Zeze.Builtin.AutoKey.BAutoKeyReadOnly>
+    public sealed class tAutoKeys : Table<Zeze.Builtin.AutoKey.BSeedKey, Zeze.Builtin.AutoKey.BAutoKey>, TableReadOnly<Zeze.Builtin.AutoKey.BSeedKey, Zeze.Builtin.AutoKey.BAutoKey, Zeze.Builtin.AutoKey.BAutoKeyReadOnly>
     {
         public tAutoKeys() : base("Zeze_Builtin_AutoKey_tAutoKeys")
         {
@@ -27,6 +29,11 @@ namespace Zeze.Builtin.AutoKey
             ByteBuffer _os_ = ByteBuffer.Allocate();
             _v_.Encode(_os_);
             return _os_;
+        }
+
+        async Task<Zeze.Builtin.AutoKey.BAutoKeyReadOnly> TableReadOnly<Zeze.Builtin.AutoKey.BSeedKey, Zeze.Builtin.AutoKey.BAutoKey, Zeze.Builtin.AutoKey.BAutoKeyReadOnly>.GetAsync(Zeze.Builtin.AutoKey.BSeedKey key)
+        {
+            return await GetAsync(key);
         }
     }
 }

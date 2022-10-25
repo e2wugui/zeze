@@ -21,6 +21,8 @@ namespace Zeze.Gen.java
             sw.WriteLine("package " + table.Space.Path() + ";");
             sw.WriteLine();
             sw.WriteLine("import Zeze.Serialize.ByteBuffer;");
+            sw.WriteLine("import Zeze.Transaction.TableX;");
+            sw.WriteLine("import Zeze.Transaction.TableReadOnly;");
             sw.WriteLine();
             string key = TypeName.GetName(table.KeyType);
             string value = TypeName.GetName(table.ValueType);
@@ -28,7 +30,8 @@ namespace Zeze.Gen.java
             if (table.Comment.Length > 0)
                 sw.WriteLine(table.Comment);
             sw.WriteLine("@SuppressWarnings({\"DuplicateBranchesInSwitch\", \"RedundantSuppression\"})");
-            sw.WriteLine("public final class " + table.Name + $" extends Zeze.Transaction.TableX<{keyboxing}, {value}, {value}ReadOnly> {{");
+            sw.WriteLine("public final class " + table.Name + $" extends TableX<{keyboxing}, {value}>");
+            sw.WriteLine($"        implements TableReadOnly<{keyboxing}, {value}, {value}ReadOnly> {{");
             sw.WriteLine("    public " + table.Name + "() {");
             sw.WriteLine("        super(\"" + table.Space.Path("_", table.Name) + "\");");
             sw.WriteLine("    }");
@@ -79,6 +82,10 @@ namespace Zeze.Gen.java
             sw.WriteLine($"        return new {value}();");
             sw.WriteLine("    }");
             sw.WriteLine();
+            sw.WriteLine("    @Override");
+            sw.WriteLine($"    public {value}ReadOnly getReadOnly({keyboxing} key) {{");
+            sw.WriteLine($"        return get(key);");
+            sw.WriteLine("    }");
             //sw.WriteLine();
             //CreateChangeVariableCollector.Make(sw, "    ", (Types.Bean)table.ValueType);
             sw.WriteLine("}");

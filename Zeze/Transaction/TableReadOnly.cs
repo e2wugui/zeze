@@ -28,7 +28,7 @@ namespace Zeze.Transaction
         public long WalkCache(Func<K, V, bool> callback);
         public long WalkCache(Func<K, V, bool> callback, Action afterLock);
         public Task<V> SelectCopyAsync(K key);
-        public Task<VReadOnly> SelectDirtyAsync(K key);
+        public Task<V> SelectDirtyAsync(K key);
         public ByteBuffer EncodeChangeListenerWithSpecialName(string specialName, object key, Changes.Record r);
     }
 }

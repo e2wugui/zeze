@@ -1,9 +1,11 @@
 // auto-generated
 using Zeze.Serialize;
+using Zeze.Transaction;
+using System.Threading.Tasks;
 
 namespace Zeze.Builtin.Collections.LinkedMap
 {
-    public sealed class tLinkedMapNodes : Zeze.Transaction.Table<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeReadOnly>
+    public sealed class tLinkedMapNodes : Table<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode>, TableReadOnly<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeReadOnly>
     {
         public tLinkedMapNodes() : base("Zeze_Builtin_Collections_LinkedMap_tLinkedMapNodes")
         {
@@ -29,6 +31,11 @@ namespace Zeze.Builtin.Collections.LinkedMap
             ByteBuffer _os_ = ByteBuffer.Allocate();
             _v_.Encode(_os_);
             return _os_;
+        }
+
+        async Task<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeReadOnly> TableReadOnly<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeReadOnly>.GetAsync(Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey key)
+        {
+            return await GetAsync(key);
         }
     }
 }

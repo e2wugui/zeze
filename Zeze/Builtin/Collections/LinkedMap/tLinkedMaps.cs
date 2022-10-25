@@ -1,10 +1,12 @@
 // auto-generated
 using Zeze.Serialize;
+using Zeze.Transaction;
+using System.Threading.Tasks;
 
 // key: LinkedMap的Name
 namespace Zeze.Builtin.Collections.LinkedMap
 {
-    public sealed class tLinkedMaps : Zeze.Transaction.Table<string, Zeze.Builtin.Collections.LinkedMap.BLinkedMap, Zeze.Builtin.Collections.LinkedMap.BLinkedMapReadOnly>
+    public sealed class tLinkedMaps : Table<string, Zeze.Builtin.Collections.LinkedMap.BLinkedMap>, TableReadOnly<string, Zeze.Builtin.Collections.LinkedMap.BLinkedMap, Zeze.Builtin.Collections.LinkedMap.BLinkedMapReadOnly>
     {
         public tLinkedMaps() : base("Zeze_Builtin_Collections_LinkedMap_tLinkedMaps")
         {
@@ -31,6 +33,11 @@ namespace Zeze.Builtin.Collections.LinkedMap
             ByteBuffer _os_ = ByteBuffer.Allocate();
             _os_.WriteString(_v_);
             return _os_;
+        }
+
+        async Task<Zeze.Builtin.Collections.LinkedMap.BLinkedMapReadOnly> TableReadOnly<string, Zeze.Builtin.Collections.LinkedMap.BLinkedMap, Zeze.Builtin.Collections.LinkedMap.BLinkedMapReadOnly>.GetAsync(string key)
+        {
+            return await GetAsync(key);
         }
     }
 }

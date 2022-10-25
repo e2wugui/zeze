@@ -118,16 +118,16 @@ namespace Zeze.Transaction
         }
     }
 
-    public class Record<K, V, VReadOnly> : Record where V : Bean, VReadOnly, new()
+    public class Record<K, V> : Record where V : Bean, new()
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public K Key { get; }
-        public Table<K, V, VReadOnly> TTable { get;  }
+        public Table<K, V> TTable { get;  }
         public override Table Table => TTable;
 
         public V ValueTyped => (V)Value;
    
-        public Record(Table<K, V, VReadOnly> table, K key, V value) : base(value)
+        public Record(Table<K, V> table, K key, V value) : base(value)
         {
             this.TTable = table;
             this.Key = key;
@@ -206,8 +206,8 @@ namespace Zeze.Transaction
         private ByteBuffer snapshotValue;
 
         internal bool TryEncodeN(
-            ConcurrentDictionary<K, Record<K, V, VReadOnly>> changed,
-            ConcurrentDictionary<K, Record<K, V, VReadOnly>> encoded)
+            ConcurrentDictionary<K, Record<K, V>> changed,
+            ConcurrentDictionary<K, Record<K, V>> encoded)
         {
             var lockey = TTable.Zeze.Locks.Get(new TableKey(TTable.Id, Key));
             if (false == lockey.TryEnterReadLock())
@@ -336,19 +336,19 @@ namespace Zeze.Transaction
             snapshotValue = null;
         }
 
-        private volatile ConcurrentDictionary<K, Record<K, V, VReadOnly>> _LruNode;
-        public ConcurrentDictionary<K, Record<K, V, VReadOnly>> LruNode
+        private volatile ConcurrentDictionary<K, Record<K, V>> _LruNode;
+        public ConcurrentDictionary<K, Record<K, V>> LruNode
         { 
             get { return _LruNode; }
             set { _LruNode = value; }
         }
         
-        public ConcurrentDictionary<K, Record<K, V, VReadOnly>> GetAndSetLruNodeNull()
+        public ConcurrentDictionary<K, Record<K, V>> GetAndSetLruNodeNull()
         {
             return Interlocked.Exchange(ref _LruNode, null);
         }
 
-        public bool CompareAndSetLruNodeNull(ConcurrentDictionary<K, Record<K, V, VReadOnly>> c)
+        public bool CompareAndSetLruNodeNull(ConcurrentDictionary<K, Record<K, V>> c)
         {
             return Interlocked.CompareExchange(ref _LruNode, null, c) == c;
         }

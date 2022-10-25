@@ -2,10 +2,13 @@
 package Zeze.Builtin.Game.Bag;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.TableX;
+import Zeze.Transaction.TableReadOnly;
 
 // key is bag name
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tbag extends Zeze.Transaction.TableX<String, Zeze.Builtin.Game.Bag.BBag, Zeze.Builtin.Game.Bag.BBagReadOnly> {
+public final class tbag extends TableX<String, Zeze.Builtin.Game.Bag.BBag>
+        implements TableReadOnly<String, Zeze.Builtin.Game.Bag.BBag, Zeze.Builtin.Game.Bag.BBagReadOnly> {
     public tbag() {
         super("Zeze_Builtin_Game_Bag_tbag");
     }
@@ -47,4 +50,8 @@ public final class tbag extends Zeze.Transaction.TableX<String, Zeze.Builtin.Gam
         return new Zeze.Builtin.Game.Bag.BBag();
     }
 
+    @Override
+    public Zeze.Builtin.Game.Bag.BBagReadOnly getReadOnly(String key) {
+        return get(key);
+    }
 }

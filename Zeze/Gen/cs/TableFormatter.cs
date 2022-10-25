@@ -19,6 +19,8 @@ namespace Zeze.Gen.cs
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine("using Zeze.Serialize;");
+            sw.WriteLine("using Zeze.Transaction;");
+            sw.WriteLine("using System.Threading.Tasks;");
             //sw.WriteLine("using Zeze.Transaction.Collections;");
             sw.WriteLine();
             if (table.Comment.Length > 0)
@@ -27,7 +29,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("{");
             string key = TypeName.GetName(table.KeyType);
             string value = TypeName.GetName(table.ValueType);
-            sw.WriteLine("    public sealed class " + table.Name + $" : Zeze.Transaction.Table<{key}, {value}, {value}ReadOnly>");
+            sw.WriteLine("    public sealed class " + table.Name + $" : Table<{key}, {value}>, TableReadOnly<{key}, {value}, {value}ReadOnly>");
             sw.WriteLine("    {");
             sw.WriteLine("        public " + table.Name + "() : base(\"" + table.Space.Path("_", table.Name) + "\")");
             sw.WriteLine("        {");
@@ -62,6 +64,11 @@ namespace Zeze.Gen.cs
             sw.WriteLine("            ByteBuffer _os_ = ByteBuffer.Allocate();");
             table.KeyType.Accept(new Encode("_v_", -1, "_os_", sw, "            ", null));
             sw.WriteLine("            return _os_;");
+            sw.WriteLine("        }");
+            sw.WriteLine();
+            sw.WriteLine($"        async Task<{value}ReadOnly> TableReadOnly<{key}, {value}, {value}ReadOnly>.GetAsync({key} key)");
+            sw.WriteLine("        {");
+            sw.WriteLine("            return await GetAsync(key);");
             sw.WriteLine("        }");
             sw.WriteLine("    }");
             sw.WriteLine("}");

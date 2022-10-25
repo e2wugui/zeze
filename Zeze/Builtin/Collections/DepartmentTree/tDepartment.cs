@@ -1,10 +1,12 @@
 // auto-generated
 using Zeze.Serialize;
+using Zeze.Transaction;
+using System.Threading.Tasks;
 
 // 群部门树根。普通用户也可以创建部门。暂不开放这个给个人。
 namespace Zeze.Builtin.Collections.DepartmentTree
 {
-    public sealed class tDepartment : Zeze.Transaction.Table<string, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRootReadOnly>
+    public sealed class tDepartment : Table<string, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot>, TableReadOnly<string, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRootReadOnly>
     {
         public tDepartment() : base("Zeze_Builtin_Collections_DepartmentTree_tDepartment")
         {
@@ -31,6 +33,11 @@ namespace Zeze.Builtin.Collections.DepartmentTree
             ByteBuffer _os_ = ByteBuffer.Allocate();
             _os_.WriteString(_v_);
             return _os_;
+        }
+
+        async Task<Zeze.Builtin.Collections.DepartmentTree.BDepartmentRootReadOnly> TableReadOnly<string, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRootReadOnly>.GetAsync(string key)
+        {
+            return await GetAsync(key);
         }
     }
 }

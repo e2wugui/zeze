@@ -14,7 +14,7 @@ public class DelayRemove extends AbstractDelayRemove {
 	 */
 	private static final ConcurrentHashMap<Integer, DelayRemove> delays = new ConcurrentHashMap<>();
 
-	public static <K extends Comparable<K>> void remove(TableX<K, ?, ?> table, K key) {
+	public static <K extends Comparable<K>> void remove(TableX<K, ?> table, K key) {
 		var zz = table.getZeze();
 		var serverId = zz.getConfig().getServerId();
 		var delay = delays.computeIfAbsent(serverId, (_key_) -> new DelayRemove(zz));

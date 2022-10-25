@@ -2,9 +2,12 @@
 package Zeze.Builtin.Game.Online;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.TableX;
+import Zeze.Transaction.TableReadOnly;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class taccount extends Zeze.Transaction.TableX<String, Zeze.Builtin.Game.Online.BAccount, Zeze.Builtin.Game.Online.BAccountReadOnly> {
+public final class taccount extends TableX<String, Zeze.Builtin.Game.Online.BAccount>
+        implements TableReadOnly<String, Zeze.Builtin.Game.Online.BAccount, Zeze.Builtin.Game.Online.BAccountReadOnly> {
     public taccount() {
         super("Zeze_Builtin_Game_Online_taccount");
     }
@@ -48,4 +51,8 @@ public final class taccount extends Zeze.Transaction.TableX<String, Zeze.Builtin
         return new Zeze.Builtin.Game.Online.BAccount();
     }
 
+    @Override
+    public Zeze.Builtin.Game.Online.BAccountReadOnly getReadOnly(String key) {
+        return get(key);
+    }
 }

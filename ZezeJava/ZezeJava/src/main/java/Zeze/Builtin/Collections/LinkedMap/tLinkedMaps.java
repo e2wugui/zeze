@@ -2,10 +2,13 @@
 package Zeze.Builtin.Collections.LinkedMap;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.TableX;
+import Zeze.Transaction.TableReadOnly;
 
 // key: LinkedMap的Name
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tLinkedMaps extends Zeze.Transaction.TableX<String, Zeze.Builtin.Collections.LinkedMap.BLinkedMap, Zeze.Builtin.Collections.LinkedMap.BLinkedMapReadOnly> {
+public final class tLinkedMaps extends TableX<String, Zeze.Builtin.Collections.LinkedMap.BLinkedMap>
+        implements TableReadOnly<String, Zeze.Builtin.Collections.LinkedMap.BLinkedMap, Zeze.Builtin.Collections.LinkedMap.BLinkedMapReadOnly> {
     public tLinkedMaps() {
         super("Zeze_Builtin_Collections_LinkedMap_tLinkedMaps");
     }
@@ -49,4 +52,8 @@ public final class tLinkedMaps extends Zeze.Transaction.TableX<String, Zeze.Buil
         return new Zeze.Builtin.Collections.LinkedMap.BLinkedMap();
     }
 
+    @Override
+    public Zeze.Builtin.Collections.LinkedMap.BLinkedMapReadOnly getReadOnly(String key) {
+        return get(key);
+    }
 }

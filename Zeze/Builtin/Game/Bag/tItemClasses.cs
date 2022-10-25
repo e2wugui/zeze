@@ -1,10 +1,12 @@
 // auto-generated
 using Zeze.Serialize;
+using Zeze.Transaction;
+using System.Threading.Tasks;
 
 // key is 1, only one record
 namespace Zeze.Builtin.Game.Bag
 {
-    public sealed class tItemClasses : Zeze.Transaction.Table<int, Zeze.Builtin.Game.Bag.BItemClasses, Zeze.Builtin.Game.Bag.BItemClassesReadOnly>
+    public sealed class tItemClasses : Table<int, Zeze.Builtin.Game.Bag.BItemClasses>, TableReadOnly<int, Zeze.Builtin.Game.Bag.BItemClasses, Zeze.Builtin.Game.Bag.BItemClassesReadOnly>
     {
         public tItemClasses() : base("Zeze_Builtin_Game_Bag_tItemClasses")
         {
@@ -28,6 +30,11 @@ namespace Zeze.Builtin.Game.Bag
             ByteBuffer _os_ = ByteBuffer.Allocate();
             _os_.WriteInt(_v_);
             return _os_;
+        }
+
+        async Task<Zeze.Builtin.Game.Bag.BItemClassesReadOnly> TableReadOnly<int, Zeze.Builtin.Game.Bag.BItemClasses, Zeze.Builtin.Game.Bag.BItemClassesReadOnly>.GetAsync(int key)
+        {
+            return await GetAsync(key);
         }
     }
 }

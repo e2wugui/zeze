@@ -1,9 +1,11 @@
 // auto-generated
 using Zeze.Serialize;
+using Zeze.Transaction;
+using System.Threading.Tasks;
 
 namespace Zeze.Builtin.Game.Rank
 {
-    public sealed class trank : Zeze.Transaction.Table<Zeze.Builtin.Game.Rank.BConcurrentKey, Zeze.Builtin.Game.Rank.BRankList, Zeze.Builtin.Game.Rank.BRankListReadOnly>
+    public sealed class trank : Table<Zeze.Builtin.Game.Rank.BConcurrentKey, Zeze.Builtin.Game.Rank.BRankList>, TableReadOnly<Zeze.Builtin.Game.Rank.BConcurrentKey, Zeze.Builtin.Game.Rank.BRankList, Zeze.Builtin.Game.Rank.BRankListReadOnly>
     {
         public trank() : base("Zeze_Builtin_Game_Rank_trank")
         {
@@ -27,6 +29,11 @@ namespace Zeze.Builtin.Game.Rank
             ByteBuffer _os_ = ByteBuffer.Allocate();
             _v_.Encode(_os_);
             return _os_;
+        }
+
+        async Task<Zeze.Builtin.Game.Rank.BRankListReadOnly> TableReadOnly<Zeze.Builtin.Game.Rank.BConcurrentKey, Zeze.Builtin.Game.Rank.BRankList, Zeze.Builtin.Game.Rank.BRankListReadOnly>.GetAsync(Zeze.Builtin.Game.Rank.BConcurrentKey key)
+        {
+            return await GetAsync(key);
         }
     }
 }

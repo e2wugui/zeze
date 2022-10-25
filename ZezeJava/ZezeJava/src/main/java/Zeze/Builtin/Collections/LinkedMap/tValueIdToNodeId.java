@@ -2,9 +2,12 @@
 package Zeze.Builtin.Collections.LinkedMap;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.TableX;
+import Zeze.Transaction.TableReadOnly;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tValueIdToNodeId extends Zeze.Transaction.TableX<Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeId, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeIdReadOnly> {
+public final class tValueIdToNodeId extends TableX<Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeId>
+        implements TableReadOnly<Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeId, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeIdReadOnly> {
     public tValueIdToNodeId() {
         super("Zeze_Builtin_Collections_LinkedMap_tValueIdToNodeId");
     }
@@ -45,4 +48,8 @@ public final class tValueIdToNodeId extends Zeze.Transaction.TableX<Zeze.Builtin
         return new Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeId();
     }
 
+    @Override
+    public Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeIdReadOnly getReadOnly(Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey key) {
+        return get(key);
+    }
 }

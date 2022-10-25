@@ -19,19 +19,10 @@ using System.Threading;
 
 namespace Draft
 {
-    public class X
-    {
-
-    }
-
     public class Program
     {
-
         public static void Main(string[] args)
         {
-            Console.WriteLine(typeof(X).FullName);
-            return;
-
             var fileName = "test.pkcs12";
             var passwd = "123";
             var alias = "test";

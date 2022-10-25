@@ -2,9 +2,12 @@
 package Zeze.Builtin.Collections.Queue;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.TableX;
+import Zeze.Transaction.TableReadOnly;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tQueueNodes extends Zeze.Transaction.TableX<Zeze.Builtin.Collections.Queue.BQueueNodeKey, Zeze.Builtin.Collections.Queue.BQueueNode, Zeze.Builtin.Collections.Queue.BQueueNodeReadOnly> {
+public final class tQueueNodes extends TableX<Zeze.Builtin.Collections.Queue.BQueueNodeKey, Zeze.Builtin.Collections.Queue.BQueueNode>
+        implements TableReadOnly<Zeze.Builtin.Collections.Queue.BQueueNodeKey, Zeze.Builtin.Collections.Queue.BQueueNode, Zeze.Builtin.Collections.Queue.BQueueNodeReadOnly> {
     public tQueueNodes() {
         super("Zeze_Builtin_Collections_Queue_tQueueNodes");
     }
@@ -46,4 +49,8 @@ public final class tQueueNodes extends Zeze.Transaction.TableX<Zeze.Builtin.Coll
         return new Zeze.Builtin.Collections.Queue.BQueueNode();
     }
 
+    @Override
+    public Zeze.Builtin.Collections.Queue.BQueueNodeReadOnly getReadOnly(Zeze.Builtin.Collections.Queue.BQueueNodeKey key) {
+        return get(key);
+    }
 }

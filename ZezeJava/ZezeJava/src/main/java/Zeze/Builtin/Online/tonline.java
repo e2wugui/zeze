@@ -2,9 +2,12 @@
 package Zeze.Builtin.Online;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.TableX;
+import Zeze.Transaction.TableReadOnly;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tonline extends Zeze.Transaction.TableX<String, Zeze.Builtin.Online.BOnlines, Zeze.Builtin.Online.BOnlinesReadOnly> {
+public final class tonline extends TableX<String, Zeze.Builtin.Online.BOnlines>
+        implements TableReadOnly<String, Zeze.Builtin.Online.BOnlines, Zeze.Builtin.Online.BOnlinesReadOnly> {
     public tonline() {
         super("Zeze_Builtin_Online_tonline");
     }
@@ -45,4 +48,8 @@ public final class tonline extends Zeze.Transaction.TableX<String, Zeze.Builtin.
         return new Zeze.Builtin.Online.BOnlines();
     }
 
+    @Override
+    public Zeze.Builtin.Online.BOnlinesReadOnly getReadOnly(String key) {
+        return get(key);
+    }
 }

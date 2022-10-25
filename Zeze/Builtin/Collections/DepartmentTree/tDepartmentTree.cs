@@ -1,9 +1,11 @@
 // auto-generated
 using Zeze.Serialize;
+using Zeze.Transaction;
+using System.Threading.Tasks;
 
 namespace Zeze.Builtin.Collections.DepartmentTree
 {
-    public sealed class tDepartmentTree : Zeze.Transaction.Table<Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey, Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode, Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNodeReadOnly>
+    public sealed class tDepartmentTree : Table<Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey, Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode>, TableReadOnly<Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey, Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode, Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNodeReadOnly>
     {
         public tDepartmentTree() : base("Zeze_Builtin_Collections_DepartmentTree_tDepartmentTree")
         {
@@ -30,6 +32,11 @@ namespace Zeze.Builtin.Collections.DepartmentTree
             ByteBuffer _os_ = ByteBuffer.Allocate();
             _v_.Encode(_os_);
             return _os_;
+        }
+
+        async Task<Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNodeReadOnly> TableReadOnly<Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey, Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode, Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNodeReadOnly>.GetAsync(Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey key)
+        {
+            return await GetAsync(key);
         }
     }
 }

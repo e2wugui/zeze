@@ -2,9 +2,12 @@
 package Zeze.Builtin.RedoQueue;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.TableX;
+import Zeze.Transaction.TableReadOnly;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tQueueLastTaskId extends Zeze.Transaction.TableX<String, Zeze.Builtin.RedoQueue.BTaskId, Zeze.Builtin.RedoQueue.BTaskIdReadOnly> {
+public final class tQueueLastTaskId extends TableX<String, Zeze.Builtin.RedoQueue.BTaskId>
+        implements TableReadOnly<String, Zeze.Builtin.RedoQueue.BTaskId, Zeze.Builtin.RedoQueue.BTaskIdReadOnly> {
     public tQueueLastTaskId() {
         super("Zeze_Builtin_RedoQueue_tQueueLastTaskId");
     }
@@ -45,4 +48,8 @@ public final class tQueueLastTaskId extends Zeze.Transaction.TableX<String, Zeze
         return new Zeze.Builtin.RedoQueue.BTaskId();
     }
 
+    @Override
+    public Zeze.Builtin.RedoQueue.BTaskIdReadOnly getReadOnly(String key) {
+        return get(key);
+    }
 }

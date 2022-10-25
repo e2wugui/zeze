@@ -1,9 +1,11 @@
 // auto-generated
 using Zeze.Serialize;
+using Zeze.Transaction;
+using System.Threading.Tasks;
 
 namespace Zeze.Builtin.Game.Online
 {
-    public sealed class tversion : Zeze.Transaction.Table<long, Zeze.Builtin.Game.Online.BVersion, Zeze.Builtin.Game.Online.BVersionReadOnly>
+    public sealed class tversion : Table<long, Zeze.Builtin.Game.Online.BVersion>, TableReadOnly<long, Zeze.Builtin.Game.Online.BVersion, Zeze.Builtin.Game.Online.BVersionReadOnly>
     {
         public tversion() : base("Zeze_Builtin_Game_Online_tversion")
         {
@@ -31,6 +33,11 @@ namespace Zeze.Builtin.Game.Online
             ByteBuffer _os_ = ByteBuffer.Allocate();
             _os_.WriteLong(_v_);
             return _os_;
+        }
+
+        async Task<Zeze.Builtin.Game.Online.BVersionReadOnly> TableReadOnly<long, Zeze.Builtin.Game.Online.BVersion, Zeze.Builtin.Game.Online.BVersionReadOnly>.GetAsync(long key)
+        {
+            return await GetAsync(key);
         }
     }
 }

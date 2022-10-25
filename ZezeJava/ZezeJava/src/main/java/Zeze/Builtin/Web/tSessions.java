@@ -2,10 +2,13 @@
 package Zeze.Builtin.Web;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.TableX;
+import Zeze.Transaction.TableReadOnly;
 
 // key is sessionid in cookie
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tSessions extends Zeze.Transaction.TableX<String, Zeze.Builtin.Web.BSession, Zeze.Builtin.Web.BSessionReadOnly> {
+public final class tSessions extends TableX<String, Zeze.Builtin.Web.BSession>
+        implements TableReadOnly<String, Zeze.Builtin.Web.BSession, Zeze.Builtin.Web.BSessionReadOnly> {
     public tSessions() {
         super("Zeze_Builtin_Web_tSessions");
     }
@@ -46,4 +49,8 @@ public final class tSessions extends Zeze.Transaction.TableX<String, Zeze.Builti
         return new Zeze.Builtin.Web.BSession();
     }
 
+    @Override
+    public Zeze.Builtin.Web.BSessionReadOnly getReadOnly(String key) {
+        return get(key);
+    }
 }

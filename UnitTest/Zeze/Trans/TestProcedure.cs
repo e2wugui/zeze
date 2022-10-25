@@ -66,7 +66,7 @@ namespace UnitTest.Zeze.Trans
             var root = new TableKey(1, 1);
             // 特殊测试，拼凑一个record用来提供需要的信息。
             var table = new MyTable();
-            var r = new Record<long, TestBegin.MyBean, TestBegin.MyBeanReadOnly>(table, 1, bean);
+            var r = new Record<long, TestBegin.MyBean>(table, 1, bean);
             bean.InitRootInfo(r.CreateRootInfoIfNeed(root), null);
             var rc = demo.App.Instance.Zeze.NewProcedure(ProcNest, "ProcNest").CallSynchronously();
             Assert.IsTrue(rc == ResultCode.Success);
@@ -74,7 +74,7 @@ namespace UnitTest.Zeze.Trans
             Assert.AreEqual(bean._i, 123);
         }
 
-        public class MyTable : Table<long, TestBegin.MyBean, TestBegin.MyBeanReadOnly>
+        public class MyTable : Table<long, TestBegin.MyBean>
         {
             public MyTable() : base("MyTable_1232")
             {
