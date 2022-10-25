@@ -25,7 +25,7 @@ public abstract class Database {
 	}
 
 	private final ConcurrentHashMap<String, Zeze.Transaction.Table> tables = new ConcurrentHashMap<>();
-	private final ArrayList<Storage<?, ?>> storages = new ArrayList<>();
+	private final ArrayList<Storage<?, ?, ?>> storages = new ArrayList<>();
 	private final DatabaseConf conf;
 	private final String databaseUrl;
 	private Operates directOperates;

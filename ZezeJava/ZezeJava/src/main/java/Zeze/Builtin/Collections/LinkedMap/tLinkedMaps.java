@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 
 // key: LinkedMap的Name
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tLinkedMaps extends Zeze.Transaction.TableX<String, Zeze.Builtin.Collections.LinkedMap.BLinkedMap> {
+public final class tLinkedMaps extends Zeze.Transaction.TableX<String, Zeze.Builtin.Collections.LinkedMap.BLinkedMap, Zeze.Builtin.Collections.LinkedMap.BLinkedMapReadOnly> {
     public tLinkedMaps() {
         super("Zeze_Builtin_Collections_LinkedMap_tLinkedMaps");
     }

@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 
 // key is bag name
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tbag extends Zeze.Transaction.TableX<String, Zeze.Builtin.Game.Bag.BBag> {
+public final class tbag extends Zeze.Transaction.TableX<String, Zeze.Builtin.Game.Bag.BBag, Zeze.Builtin.Game.Bag.BBagReadOnly> {
     public tbag() {
         super("Zeze_Builtin_Game_Bag_tbag");
     }

@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 
 // 群部门树根。普通用户也可以创建部门。暂不开放这个给个人。
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tDepartment extends Zeze.Transaction.TableX<String, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot> {
+public final class tDepartment extends Zeze.Transaction.TableX<String, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot, Zeze.Builtin.Collections.DepartmentTree.BDepartmentRootReadOnly> {
     public tDepartment() {
         super("Zeze_Builtin_Collections_DepartmentTree_tDepartment");
     }

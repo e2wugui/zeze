@@ -4,7 +4,7 @@ package Zeze.Builtin.Timer;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tIndexs extends Zeze.Transaction.TableX<String, Zeze.Builtin.Timer.BIndex> {
+public final class tIndexs extends Zeze.Transaction.TableX<String, Zeze.Builtin.Timer.BIndex, Zeze.Builtin.Timer.BIndexReadOnly> {
     public tIndexs() {
         super("Zeze_Builtin_Timer_tIndexs");
     }

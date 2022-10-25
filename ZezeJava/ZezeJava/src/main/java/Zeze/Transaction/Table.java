@@ -54,11 +54,11 @@ public abstract class Table {
 		database = db;
 	}
 
-	abstract Storage<?, ?> open(Application app, Database database);
+	abstract Storage<?, ?, ?> open(Application app, Database database);
 
 	abstract void close();
 
-	abstract Storage<?, ?> getStorage();
+	abstract Storage<?, ?, ?> getStorage();
 
 	abstract Database.Table getOldTable();
 

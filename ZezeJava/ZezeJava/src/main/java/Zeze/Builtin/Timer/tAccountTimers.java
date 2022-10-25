@@ -4,7 +4,7 @@ package Zeze.Builtin.Timer;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tAccountTimers extends Zeze.Transaction.TableX<String, Zeze.Builtin.Timer.BArchOnlineTimer> {
+public final class tAccountTimers extends Zeze.Transaction.TableX<String, Zeze.Builtin.Timer.BArchOnlineTimer, Zeze.Builtin.Timer.BArchOnlineTimerReadOnly> {
     public tAccountTimers() {
         super("Zeze_Builtin_Timer_tAccountTimers");
     }

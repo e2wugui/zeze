@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 
 // key is 1, only one record
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tItemClasses extends Zeze.Transaction.TableX<Integer, Zeze.Builtin.Game.Bag.BItemClasses> {
+public final class tItemClasses extends Zeze.Transaction.TableX<Integer, Zeze.Builtin.Game.Bag.BItemClasses, Zeze.Builtin.Game.Bag.BItemClassesReadOnly> {
     public tItemClasses() {
         super("Zeze_Builtin_Game_Bag_tItemClasses");
     }

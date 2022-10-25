@@ -28,7 +28,7 @@ namespace Zeze.Gen.java
             if (table.Comment.Length > 0)
                 sw.WriteLine(table.Comment);
             sw.WriteLine("@SuppressWarnings({\"DuplicateBranchesInSwitch\", \"RedundantSuppression\"})");
-            sw.WriteLine("public final class " + table.Name + " extends Zeze.Transaction.TableX<" + keyboxing + ", " + value + "> {");
+            sw.WriteLine("public final class " + table.Name + $" extends Zeze.Transaction.TableX<{keyboxing}, {value}, {value}ReadOnly> {{");
             sw.WriteLine("    public " + table.Name + "() {");
             sw.WriteLine("        super(\"" + table.Space.Path("_", table.Name) + "\");");
             sw.WriteLine("    }");

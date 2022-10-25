@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 
 // key is sessionid in cookie
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tSessions extends Zeze.Transaction.TableX<String, Zeze.Builtin.Web.BSession> {
+public final class tSessions extends Zeze.Transaction.TableX<String, Zeze.Builtin.Web.BSession, Zeze.Builtin.Web.BSessionReadOnly> {
     public tSessions() {
         super("Zeze_Builtin_Web_tSessions");
     }

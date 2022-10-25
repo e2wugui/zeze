@@ -4,7 +4,7 @@ package Zeze.Builtin.Game.Online;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tlocal extends Zeze.Transaction.TableX<Long, Zeze.Builtin.Game.Online.BLocal> {
+public final class tlocal extends Zeze.Transaction.TableX<Long, Zeze.Builtin.Game.Online.BLocal, Zeze.Builtin.Game.Online.BLocalReadOnly> {
     public tlocal() {
         super("Zeze_Builtin_Game_Online_tlocal");
     }

@@ -23,19 +23,19 @@ import static Zeze.Services.GlobalCacheManagerConst.StateRemoved;
  * 通用类的写法需要在V外面包装一层。这里直接使用Record来达到这个目的。
  * 这样，这个类就不通用了。通用类需要包装，多创建一个对象，还需要包装接口。
  */
-class TableCache<K extends Comparable<K>, V extends Bean> {
+class TableCache<K extends Comparable<K>, V extends Bean, VReadOnly> {
 	private static final Logger logger = LogManager.getLogger(TableCache.class);
 	private static final int MAX_NODE_COUNT = 8640; // 最大的LRU节点数量,超过时会触发shrink
 	private static final int SHRINK_NODE_COUNT = 8000; // shrink的目标节点数量
 
-	private final TableX<K, V> table;
-	private final ConcurrentHashMap<K, Record1<K, V>> dataMap;
-	private final ConcurrentLinkedQueue<ConcurrentHashMap<K, Record1<K, V>>> lruQueue = new ConcurrentLinkedQueue<>();
-	private volatile ConcurrentHashMap<K, Record1<K, V>> lruHot;
+	private final TableX<K, V, VReadOnly> table;
+	private final ConcurrentHashMap<K, Record1<K, V, VReadOnly>> dataMap;
+	private final ConcurrentLinkedQueue<ConcurrentHashMap<K, Record1<K, V, VReadOnly>>> lruQueue = new ConcurrentLinkedQueue<>();
+	private volatile ConcurrentHashMap<K, Record1<K, V, VReadOnly>> lruHot;
 	private Future<?> timerNewHot;
 	private Future<?> timerClean;
 
-	TableCache(Application ignoredApp, TableX<K, V> table) {
+	TableCache(Application ignoredApp, TableX<K, V, VReadOnly> table) {
 		this.table = table;
 		dataMap = new ConcurrentHashMap<>(getCacheInitialCapacity());
 		newLruHot();
@@ -49,7 +49,7 @@ class TableCache<K extends Comparable<K>, V extends Bean> {
 		timerClean = Task.scheduleUnsafe(cleanPeriod, cleanPeriod, this::cleanNow);
 	}
 
-	final ConcurrentHashMap<K, Record1<K, V>> getDataMap() {
+	final ConcurrentHashMap<K, Record1<K, V, VReadOnly>> getDataMap() {
 		return dataMap;
 	}
 
@@ -75,12 +75,12 @@ class TableCache<K extends Comparable<K>, V extends Bean> {
 	}
 
 	private void newLruHot() {
-		var newLru = new ConcurrentHashMap<K, Record1<K, V>>(getLruInitialCapacity());
+		var newLru = new ConcurrentHashMap<K, Record1<K, V, VReadOnly>>(getLruInitialCapacity());
 		lruHot = newLru;
 		lruQueue.add(newLru);
 	}
 
-	final Record1<K, V> getOrAdd(K key, Zeze.Util.Factory<Record1<K, V>> valueFactory) {
+	final Record1<K, V, VReadOnly> getOrAdd(K key, Zeze.Util.Factory<Record1<K, V, VReadOnly>> valueFactory) {
 		var lruHot = this.lruHot;
 		var result = dataMap.get(key);
 		if (result == null) { // slow-path
@@ -108,7 +108,7 @@ class TableCache<K extends Comparable<K>, V extends Bean> {
 	/**
 	 * 内部特殊使用，不调整 Lru。
 	 */
-	final Record1<K, V> get(K key) {
+	final Record1<K, V, VReadOnly> get(K key) {
 		return dataMap.get(key);
 	}
 
@@ -127,7 +127,7 @@ class TableCache<K extends Comparable<K>, V extends Bean> {
 
 		var timeBegin = System.nanoTime();
 		int recordCount = 0, nodeCount = 0;
-		var polls = new ArrayList<ConcurrentHashMap<K, Record1<K, V>>>(lruQueue.size() - SHRINK_NODE_COUNT);
+		var polls = new ArrayList<ConcurrentHashMap<K, Record1<K, V, VReadOnly>>>(lruQueue.size() - SHRINK_NODE_COUNT);
 		while (lruQueue.size() > SHRINK_NODE_COUNT) {
 			// 大概，删除超过一天的节点。
 			var node = lruQueue.poll();
@@ -203,7 +203,7 @@ class TableCache<K extends Comparable<K>, V extends Bean> {
 	}
 
 	// under lockey.writeLock and record.fairLock
-	private void remove(Map.Entry<K, Record1<K, V>> p) {
+	private void remove(Map.Entry<K, Record1<K, V, VReadOnly>> p) {
 		if (dataMap.remove(p.getKey(), p.getValue())) {
 			// 这里有个时间窗口：先删除DataMap再去掉Lru引用，
 			// 当对Key再次GetOrAdd时，LruNode里面可能已经存在旧的record。
@@ -218,7 +218,7 @@ class TableCache<K extends Comparable<K>, V extends Bean> {
 			p.getValue().setState(StateRemoved); // 也确保已删除状态
 	}
 
-	private boolean tryRemoveRecordUnderLock(Map.Entry<K, Record1<K, V>> p) {
+	private boolean tryRemoveRecordUnderLock(Map.Entry<K, Record1<K, V, VReadOnly>> p) {
 		if (table.getStorage() == null) {
 			/* 不支持内存表cache同步。
 			if (p.Value.Acquire(GlobalCacheManager.StateInvalid) != GlobalCacheManager.StateInvalid)
@@ -258,7 +258,7 @@ class TableCache<K extends Comparable<K>, V extends Bean> {
 		return true;
 	}
 
-	private boolean tryRemoveRecord(Map.Entry<K, Record1<K, V>> p) {
+	private boolean tryRemoveRecord(Map.Entry<K, Record1<K, V, VReadOnly>> p) {
 		// lockey 第一优先，和事务并发。
 		final TableKey tkey = new TableKey(table.getId(), p.getKey());
 		final Locks locks = table.getZeze().getLocks();

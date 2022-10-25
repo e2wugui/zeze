@@ -4,7 +4,7 @@ package Zeze.Builtin.RedoQueue;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tQueueLastTaskId extends Zeze.Transaction.TableX<String, Zeze.Builtin.RedoQueue.BTaskId> {
+public final class tQueueLastTaskId extends Zeze.Transaction.TableX<String, Zeze.Builtin.RedoQueue.BTaskId, Zeze.Builtin.RedoQueue.BTaskIdReadOnly> {
     public tQueueLastTaskId() {
         super("Zeze_Builtin_RedoQueue_tQueueLastTaskId");
     }

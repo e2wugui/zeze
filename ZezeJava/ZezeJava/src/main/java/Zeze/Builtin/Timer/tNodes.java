@@ -4,7 +4,7 @@ package Zeze.Builtin.Timer;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tNodes extends Zeze.Transaction.TableX<Long, Zeze.Builtin.Timer.BNode> {
+public final class tNodes extends Zeze.Transaction.TableX<Long, Zeze.Builtin.Timer.BNode, Zeze.Builtin.Timer.BNodeReadOnly> {
     public tNodes() {
         super("Zeze_Builtin_Timer_tNodes");
     }

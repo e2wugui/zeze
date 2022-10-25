@@ -4,7 +4,7 @@ package Zeze.Builtin.Online;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class taccount extends Zeze.Transaction.TableX<String, Zeze.Builtin.Online.BAccount> {
+public final class taccount extends Zeze.Transaction.TableX<String, Zeze.Builtin.Online.BAccount, Zeze.Builtin.Online.BAccountReadOnly> {
     public taccount() {
         super("Zeze_Builtin_Online_taccount");
     }

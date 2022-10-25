@@ -4,7 +4,7 @@ package Zeze.Builtin.Online;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tonline extends Zeze.Transaction.TableX<String, Zeze.Builtin.Online.BOnlines> {
+public final class tonline extends Zeze.Transaction.TableX<String, Zeze.Builtin.Online.BOnlines, Zeze.Builtin.Online.BOnlinesReadOnly> {
     public tonline() {
         super("Zeze_Builtin_Online_tonline");
     }

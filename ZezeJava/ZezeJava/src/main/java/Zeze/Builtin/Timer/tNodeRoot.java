@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 
 // key is serverid 每一台server拥有自己的链表。
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tNodeRoot extends Zeze.Transaction.TableX<Integer, Zeze.Builtin.Timer.BNodeRoot> {
+public final class tNodeRoot extends Zeze.Transaction.TableX<Integer, Zeze.Builtin.Timer.BNodeRoot, Zeze.Builtin.Timer.BNodeRootReadOnly> {
     public tNodeRoot() {
         super("Zeze_Builtin_Timer_tNodeRoot");
     }

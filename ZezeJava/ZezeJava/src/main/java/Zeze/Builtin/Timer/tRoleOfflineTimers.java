@@ -4,7 +4,7 @@ package Zeze.Builtin.Timer;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tRoleOfflineTimers extends Zeze.Transaction.TableX<Long, Zeze.Builtin.Timer.BOfflineTimers> {
+public final class tRoleOfflineTimers extends Zeze.Transaction.TableX<Long, Zeze.Builtin.Timer.BOfflineTimers, Zeze.Builtin.Timer.BOfflineTimersReadOnly> {
     public tRoleOfflineTimers() {
         super("Zeze_Builtin_Timer_tRoleOfflineTimers");
     }
