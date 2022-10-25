@@ -22,24 +22,20 @@ public class PList1ReadOnly<V> implements Iterable<V> {
 		return list.get(index);
 	}
 
-	public boolean contains(Object v) {
-		//noinspection SuspiciousMethodCalls
+	public boolean contains(V v) {
 		return list.contains(v);
 	}
 
-	public boolean containsAll(java.util.Collection<?> c) {
-		//noinspection SuspiciousMethodCalls
+	public boolean containsAll(java.util.Collection<? extends V> c) {
 		return list.containsAll(c);
 	}
 
-	public int indexOf(Object o) {
-		//noinspection SuspiciousMethodCalls
-		return list.indexOf(o);
+	public int indexOf(V v) {
+		return list.indexOf(v);
 	}
 
-	public int lastIndexOf(Object o) {
-		//noinspection SuspiciousMethodCalls
-		return list.lastIndexOf(o);
+	public int lastIndexOf(V v) {
+		return list.lastIndexOf(v);
 	}
 
 	public void copyTo(V[] array, int arrayIndex) {

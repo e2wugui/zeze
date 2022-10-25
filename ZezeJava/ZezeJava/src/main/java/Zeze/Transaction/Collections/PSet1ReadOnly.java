@@ -18,13 +18,11 @@ public class PSet1ReadOnly<V> implements Iterable<V> {
 		return set.size();
 	}
 
-	public boolean contains(Object v) {
-		//noinspection SuspiciousMethodCalls
+	public boolean contains(V v) {
 		return set.contains(v);
 	}
 
-	public boolean containsAll(java.util.Collection<?> c) {
-		//noinspection SuspiciousMethodCalls
+	public boolean containsAll(java.util.Collection<? extends V> c) {
 		return set.containsAll(c);
 	}
 

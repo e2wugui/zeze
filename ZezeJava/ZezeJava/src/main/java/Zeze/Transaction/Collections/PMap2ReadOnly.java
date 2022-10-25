@@ -24,18 +24,16 @@ public class PMap2ReadOnly<K, V extends Bean, VReadOnly> implements Iterable<Map
 	}
 
 	@SuppressWarnings("unchecked")
-	public VReadOnly getReadOnly(Object key) {
-		//noinspection SuspiciousMethodCalls
+	public VReadOnly get(K key) {
 		return (VReadOnly)map.get(key);
 	}
 
-	public boolean containsValue(Object v) {
+	public boolean containsValue(VReadOnly v) {
 		//noinspection SuspiciousMethodCalls
 		return map.containsValue(v);
 	}
 
-	public boolean containsKey(Object key) {
-		//noinspection SuspiciousMethodCalls
+	public boolean containsKey(K key) {
 		return map.containsKey(key);
 	}
 

@@ -19,26 +19,27 @@ public class PList2ReadOnly<V extends Bean, VReadOnly> implements Iterable<VRead
 		return list.size();
 	}
 
-	public V get(int index) {
-		return list.get(index);
+	@SuppressWarnings("unchecked")
+	public VReadOnly get(int index) {
+		return (VReadOnly)list.get(index);
 	}
 
-	public boolean contains(Object v) {
+	public boolean contains(VReadOnly v) {
 		//noinspection SuspiciousMethodCalls
 		return list.contains(v);
 	}
 
-	public boolean containsAll(java.util.Collection<?> c) {
+	public boolean containsAll(java.util.Collection<? extends VReadOnly> c) {
 		//noinspection SuspiciousMethodCalls
 		return list.containsAll(c);
 	}
 
-	public int indexOf(Object o) {
+	public int indexOf(VReadOnly o) {
 		//noinspection SuspiciousMethodCalls
 		return list.indexOf(o);
 	}
 
-	public int lastIndexOf(Object o) {
+	public int lastIndexOf(VReadOnly o) {
 		//noinspection SuspiciousMethodCalls
 		return list.lastIndexOf(o);
 	}

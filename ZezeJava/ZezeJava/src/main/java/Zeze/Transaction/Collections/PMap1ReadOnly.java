@@ -22,18 +22,15 @@ public class PMap1ReadOnly<K, V> implements Iterable<Map.Entry<K, V>> {
 		return map.size();
 	}
 
-	public V getReadOnly(Object key) {
-		//noinspection SuspiciousMethodCalls
+	public V getReadOnly(K key) {
 		return map.get(key);
 	}
 
-	public boolean containsValue(Object v) {
-		//noinspection SuspiciousMethodCalls
+	public boolean containsValue(V v) {
 		return map.containsValue(v);
 	}
 
-	public boolean containsKey(Object key) {
-		//noinspection SuspiciousMethodCalls
+	public boolean containsKey(K key) {
 		return map.containsKey(key);
 	}
 
