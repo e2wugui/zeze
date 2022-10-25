@@ -46,8 +46,4 @@ public final class tItemClasses extends Zeze.Transaction.TableX<Integer, Zeze.Bu
         return new Zeze.Builtin.Game.Bag.BItemClasses();
     }
 
-    @Override
-    public Zeze.Builtin.Game.Bag.BItemClassesReadOnly getReadOnly(Integer k) {
-        return get(k);
-    }
 }

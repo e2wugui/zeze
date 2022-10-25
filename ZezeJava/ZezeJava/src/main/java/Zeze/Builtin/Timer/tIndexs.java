@@ -46,8 +46,4 @@ public final class tIndexs extends Zeze.Transaction.TableX<String, Zeze.Builtin.
         return new Zeze.Builtin.Timer.BIndex();
     }
 
-    @Override
-    public Zeze.Builtin.Timer.BIndexReadOnly getReadOnly(String k) {
-        return get(k);
-    }
 }

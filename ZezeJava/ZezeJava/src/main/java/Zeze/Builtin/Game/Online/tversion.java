@@ -49,8 +49,4 @@ public final class tversion extends Zeze.Transaction.TableX<Long, Zeze.Builtin.G
         return new Zeze.Builtin.Game.Online.BVersion();
     }
 
-    @Override
-    public Zeze.Builtin.Game.Online.BVersionReadOnly getReadOnly(Long k) {
-        return get(k);
-    }
 }

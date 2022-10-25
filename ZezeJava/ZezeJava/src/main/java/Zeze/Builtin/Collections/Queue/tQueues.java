@@ -49,8 +49,4 @@ public final class tQueues extends Zeze.Transaction.TableX<String, Zeze.Builtin.
         return new Zeze.Builtin.Collections.Queue.BQueue();
     }
 
-    @Override
-    public Zeze.Builtin.Collections.Queue.BQueueReadOnly getReadOnly(String k) {
-        return get(k);
-    }
 }

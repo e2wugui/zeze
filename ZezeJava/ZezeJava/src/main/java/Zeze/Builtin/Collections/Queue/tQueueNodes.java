@@ -46,8 +46,4 @@ public final class tQueueNodes extends Zeze.Transaction.TableX<Zeze.Builtin.Coll
         return new Zeze.Builtin.Collections.Queue.BQueueNode();
     }
 
-    @Override
-    public Zeze.Builtin.Collections.Queue.BQueueNodeReadOnly getReadOnly(Zeze.Builtin.Collections.Queue.BQueueNodeKey k) {
-        return get(k);
-    }
 }

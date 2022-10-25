@@ -46,8 +46,4 @@ public final class tSessions extends Zeze.Transaction.TableX<String, Zeze.Builti
         return new Zeze.Builtin.Web.BSession();
     }
 
-    @Override
-    public Zeze.Builtin.Web.BSessionReadOnly getReadOnly(String k) {
-        return get(k);
-    }
 }
