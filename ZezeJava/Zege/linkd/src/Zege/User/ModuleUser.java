@@ -59,16 +59,6 @@ public class ModuleUser extends AbstractModule {
         return proxy(ByteBuffer.calc_hashnr(r.Argument.getAccount()), r);
     }
 
-    @Override
-    protected long ProcessOfflineNotifyRequest(Zege.User.OfflineNotify r) {
-        return Zeze.Transaction.Procedure.NotImplement;
-    }
-
-    @Override
-    protected long ProcessOfflineRegisterRequest(Zege.User.OfflineRegister r) {
-        return Zeze.Transaction.Procedure.NotImplement;
-    }
-
     // ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
     public ModuleUser(Zege.App app) {
         super(app);

@@ -96,21 +96,9 @@
 		</bean>
 		<rpc name="VerifyChallengeResult" argument="BVerifyChallengeResultArgument" handle="server" />
 
-		<bean name="BOfflineNotify">
-			<variable id="1" name="ServerId" type="int" />
-			<variable id="2" name="NotifyId" type="string" />
-            <variable id="3" name="NotifySerialId" type="long" /> context 如果够用就直接用这个，
-            <variable id="4" name="NotifyContext" type="binary" /> context 扩展context。
-		</bean>
-		<rpc name="OfflineNotify" argument="BOfflineNotify" handle="server" />
-		<rpc name="OfflineRegister" argument="BOfflineNotify" handle="server" />
-
 		<servlet name="Prepare"/>
 		<servlet name="Create"/>
 		<servlet name="CreateWithCert"/>
-
-		<!-- demo delete me -->
-		<servletstream name="Upload"/>
 	</module>
 
 	<module name="Friend" id="2">

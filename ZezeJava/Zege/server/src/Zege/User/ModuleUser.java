@@ -42,21 +42,6 @@ public class ModuleUser extends AbstractModule {
     }
 
     @Override
-    protected void OnServletBeginStreamUpload(HttpExchange x, long from, long to, long size) {
-
-    }
-
-    @Override
-    protected void OnServletStreamContentUpload(HttpExchange x, HttpContent c) {
-
-    }
-
-    @Override
-    protected void OnServletEndStreamUpload(HttpExchange x) {
-
-    }
-
-    @Override
     protected long ProcessCreateRequest(Zege.User.Create r) throws GeneralSecurityException, IOException {
         var account = r.Argument.getAccount();
         var user = _tUser.getOrAdd(account);
@@ -169,16 +154,6 @@ public class ModuleUser extends AbstractModule {
         r.Result.setRandomData(new Binary(rands));
         r.SendResult();
         return Procedure.Success;
-    }
-
-    @Override
-    protected long ProcessOfflineNotifyRequest(Zege.User.OfflineNotify r) {
-        return Zeze.Transaction.Procedure.NotImplement;
-    }
-
-    @Override
-    protected long ProcessOfflineRegisterRequest(Zege.User.OfflineRegister r) {
-        return Zeze.Transaction.Procedure.NotImplement;
     }
 
     // ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
