@@ -9,42 +9,35 @@ DatabaseTikv.OperatesTikv
 ServiceConf.Acceptor ip="@internal" "@external"
 Universe
 DatagramChannel
+ServiceManager::OfflineNotify 选择目标遍历优化。
+
+【2022/10/28】
+
 Zege
+	c# 快速回到列表头可以实现成两种，到置顶，到FirstNode（这个功能可选，考虑一下）。
+	c# encrypt message;
+	c# group department;
+	c# group message (no encrypt);
+	c# group cert-key transfer(p2p);
+	c# group encrypt message;
 	公开群不加密，公开私有可以切换，切换不会重新加密解密消息历史。
 	项目管理。
 	文档，批注，多人编辑。
 	GMT 时间。
 	好友列表也保存关注对象，可以接收通知。
-	置顶。
-
-ServiceManager::OfflineNotify 选择目标遍历优化。
-
-Zege c# ModuleFriend 还需要的能力
-	1. Nodes 限制大小，当往后面翻超过n(如10个）节点时，删除开头的节点。
-	2. 删除开头的节点时，保存FirstNode，用来快速回到列表开头。
-	3. 置顶(TopmostFriends，有数量限制)实现（现在server和协议都没有），快速回到列表头时优先显示置顶。
-	4. 快速回到列表头可以实现成两种，到置顶，到FirstNode（这个功能可选，考虑一下）。
-	5. 更多的动态更新（需要server实现Listener来通知）。
-
-【2022/10/28】
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag v1.0.9 Task; Zege ...;
 ------------------------------------------------------------------------------------------------------------------------------
 Task & Achievement & Statistics @项洋呈
 Zege
-	c# encrypt message;
-	c# group department;
-	c# group message (no encrypt);
-	c# group cert-key transfer(p2p);
-	c# group encrypt message;
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag v1.0.8 TableReadOnly BeanReadOnly ...; FollowerApply between conf+cs+net and java; Zega ...;
 ------------------------------------------------------------------------------------------------------------------------------
 TableReadOnly ...
 	table现在是module私有的，因为只读访问可能比较多，为了避免很多包装，提供只读接口给其他模块读取用。
-	1. BeanReadOnly getter 名字，统一 ReadOnly 后缀。OK！
+	1. BeanReadOnly getter 名字，统一 ReadOnly 后缀。不可变变量还是不加ReadOnly了。
 	2. Collections增加一个模板参数，现有三个模板参数。PMap2<K, V, VReadOnly> OK!
 	3. 容器提供如 PListReadOnly 包装。
 	   a) 修改操作不提供。
