@@ -476,7 +476,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean, VReadOnly>
 		*/
 	}
 
-
 	@SuppressWarnings("unchecked")
 	@Override
 	public VReadOnly getReadOnly(K key) {
@@ -668,7 +667,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean, VReadOnly>
 	 */
 	@Override
 	public final long walk(TableWalkHandle<K, V> callback) {
-		return Walk(callback, null);
+		return walk(callback, null);
 	}
 
 	@Deprecated

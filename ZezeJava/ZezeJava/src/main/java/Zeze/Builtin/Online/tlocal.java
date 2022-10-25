@@ -45,6 +45,7 @@ public final class tlocal extends Zeze.Transaction.TableX<String, Zeze.Builtin.O
         return new Zeze.Builtin.Online.BLocals();
     }
 
+    @Override
     public Zeze.Builtin.Online.BLocalsReadOnly getReadOnly(String k) {
         return get(k);
     }

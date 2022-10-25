@@ -45,6 +45,7 @@ public final class tQueueLastTaskId extends Zeze.Transaction.TableX<String, Zeze
         return new Zeze.Builtin.RedoQueue.BTaskId();
     }
 
+    @Override
     public Zeze.Builtin.RedoQueue.BTaskIdReadOnly getReadOnly(String k) {
         return get(k);
     }

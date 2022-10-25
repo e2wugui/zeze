@@ -45,6 +45,7 @@ public final class trank extends Zeze.Transaction.TableX<Zeze.Builtin.Game.Rank.
         return new Zeze.Builtin.Game.Rank.BRankList();
     }
 
+    @Override
     public Zeze.Builtin.Game.Rank.BRankListReadOnly getReadOnly(Zeze.Builtin.Game.Rank.BConcurrentKey k) {
         return get(k);
     }

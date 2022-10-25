@@ -129,7 +129,7 @@ public class Online extends AbstractOnline {
 	}
 
 	public long walkLocal(TableWalkHandle<String, BLocals> walker) {
-		return _tlocal.WalkCache(walker);
+		return _tlocal.walkCache(walker);
 	}
 
 	public long getLoginTimes() {
@@ -883,7 +883,7 @@ public class Online extends AbstractOnline {
 
 	private void verifyLocal() {
 		var account = new OutObject<String>();
-		_tlocal.WalkCache((k, v) -> {
+		_tlocal.walkCache((k, v) -> {
 			// 先得到roleId
 			account.value = k;
 			return true;

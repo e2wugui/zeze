@@ -47,6 +47,7 @@ public final class tNodes extends Zeze.Transaction.TableX<Long, Zeze.Builtin.Tim
         return new Zeze.Builtin.Timer.BNode();
     }
 
+    @Override
     public Zeze.Builtin.Timer.BNodeReadOnly getReadOnly(Long k) {
         return get(k);
     }

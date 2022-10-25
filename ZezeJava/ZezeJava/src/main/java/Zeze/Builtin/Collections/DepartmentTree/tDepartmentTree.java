@@ -49,6 +49,7 @@ public final class tDepartmentTree extends Zeze.Transaction.TableX<Zeze.Builtin.
         return new Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode();
     }
 
+    @Override
     public Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNodeReadOnly getReadOnly(Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey k) {
         return get(k);
     }

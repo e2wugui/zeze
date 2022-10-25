@@ -50,6 +50,7 @@ public final class tDepartment extends Zeze.Transaction.TableX<String, Zeze.Buil
         return new Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot();
     }
 
+    @Override
     public Zeze.Builtin.Collections.DepartmentTree.BDepartmentRootReadOnly getReadOnly(String k) {
         return get(k);
     }

@@ -233,7 +233,7 @@ public final class Tasks {
 			}
 			if (success != sum) {
 				var a = new OutLong();
-				app.demo_Module1.getTable1().Walk((k, v) -> {
+				app.demo_Module1.getTable1().walk((k, v) -> {
 					a.value += v.getLong2();
 					return true;
 				});

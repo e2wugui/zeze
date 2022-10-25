@@ -45,6 +45,7 @@ public final class tversion extends Zeze.Transaction.TableX<String, Zeze.Builtin
         return new Zeze.Builtin.Online.BVersions();
     }
 
+    @Override
     public Zeze.Builtin.Online.BVersionsReadOnly getReadOnly(String k) {
         return get(k);
     }

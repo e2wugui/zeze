@@ -49,6 +49,7 @@ public final class tLinkedMaps extends Zeze.Transaction.TableX<String, Zeze.Buil
         return new Zeze.Builtin.Collections.LinkedMap.BLinkedMap();
     }
 
+    @Override
     public Zeze.Builtin.Collections.LinkedMap.BLinkedMapReadOnly getReadOnly(String k) {
         return get(k);
     }

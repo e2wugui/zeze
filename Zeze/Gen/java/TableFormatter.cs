@@ -79,7 +79,7 @@ namespace Zeze.Gen.java
             sw.WriteLine($"        return new {value}();");
             sw.WriteLine("    }");
             sw.WriteLine();
-            //sw.WriteLine("    @Override");
+            sw.WriteLine("    @Override");
             sw.WriteLine($"    public {value}ReadOnly getReadOnly({keyboxing} k) {{");
             sw.WriteLine($"        return get(k);");
             sw.WriteLine("    }");
