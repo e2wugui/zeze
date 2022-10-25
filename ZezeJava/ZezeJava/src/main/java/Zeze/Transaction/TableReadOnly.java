@@ -6,8 +6,6 @@ import Zeze.Serialize.ByteBuffer;
 /**
  * Table 只读接口。
  * 模块返回这个类型的表格定义接口给其他模块读取用。
- * 【注意】由于Java的Bean实现没有ReadOnly，使用这里的get得到Bean仍然是可以修改的。
- * 【注意】目前这个接口仅仅作为代码规范，并没有完全保护到数据修改。
  */
 public interface TableReadOnly<K extends Comparable<K>, V extends Bean, VReadOnly> {
 	public Binary encodeGlobalKey(K key);
