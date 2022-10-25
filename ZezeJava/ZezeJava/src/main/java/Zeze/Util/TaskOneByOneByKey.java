@@ -309,19 +309,19 @@ public final class TaskOneByOneByKey {
 		return (h ^ (h >>> 7) ^ (h >>> 4));
 	}
 
-	final class TaskOneByOne {
-		static abstract class Task implements Runnable {
-			final String name;
-			final Action0 cancel;
-			final DispatchMode mode;
+	static abstract class Task implements Runnable {
+		final String name;
+		final Action0 cancel;
+		final DispatchMode mode;
 
-			Task(String name, Action0 cancel, DispatchMode mode) {
-				this.name = name;
-				this.cancel = cancel;
-				this.mode = mode;
-			}
+		Task(String name, Action0 cancel, DispatchMode mode) {
+			this.name = name;
+			this.cancel = cancel;
+			this.mode = mode;
 		}
+	}
 
+	final class TaskOneByOne {
 		final class TaskAction extends Task {
 			final Action0 action;
 
