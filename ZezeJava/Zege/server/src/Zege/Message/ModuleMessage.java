@@ -106,7 +106,7 @@ public class ModuleMessage extends AbstractModule {
         var self = session.getAccount().equals(r.Argument.getFriend());
         r.Result.setMessageId(saveMessage(session.getAccount(), r.Argument.getFriend(), r.Argument.getMessage()));
         if (!self) // 给自己发消息时不能保存两份。
-            r.Argument.getMessage().setMessageId(saveMessage(r.Argument.getFriend(), session.getAccount(), r.Argument.getMessage()));
+            r.Argument.getMessage().setMessageId(saveMessage(r.Argument.getFriend(), session.getAccount(), r.Argument.getMessage().copy()));
 
         // 即时通知。todo 手机通知使用手机服务商消息通知服务；电脑版立即发送整个消息。
         if (!self) {

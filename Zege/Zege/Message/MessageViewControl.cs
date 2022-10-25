@@ -123,8 +123,10 @@ namespace Zege.Message
                 AutoSize = EditorAutoSizeOption.TextChanges,
                 Text = DecodeMessage(message),
                 BackgroundColor = self ? Colors.LightGreen : Colors.White,
+                IsReadOnly = true,
             };
             lastMessage.SizeChanged += OnMessageSizeChanged;
+            MessageLayout.Add(lastMessage);
             if (self)
                 Selfs.Add(lastMessage);
 

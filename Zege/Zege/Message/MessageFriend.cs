@@ -114,6 +114,9 @@ namespace Zege.Message
                 // 自己发送的消息的这些变量是本地的，需要自己填写。
                 // 服务器仅负责NotifyMessage的填写，收到别人的消息不需要填写。
                 // 好友消息今天写这两个就够了。群消息还需要填写Group,DepartmentId。
+                // 自己发送的消息服务器不Notify，是为了更大的灵活性。
+                // 即发送者可以先把消息加入聊天窗口，等失败获成功时再更新状态。
+                // 目前聊天窗口没有这个能力，所以等待服务器返回发送成功结果时才加入聊天窗口。
                 rpc.Argument.Message.MessageId = rpc.Result.MessageId;
                 rpc.Argument.Message.From = Module.App.Zege_User.Account;
                 View.AddTail(rpc.Argument.Message);
