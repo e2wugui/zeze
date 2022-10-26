@@ -220,7 +220,7 @@ public final class GenModule {
 				sb.appendLine("        _p_.Send(_t_, null);");
 			else {
 				sb.appendLine("        var _f_ = new Zeze.Arch.RedirectFuture<{}>();", m.resultTypeName);
-				sb.appendLine("        _p_.Send(_t_, _rpc_ -> {");
+				sb.appendLine("        if (!_p_.Send(_t_, _rpc_ -> {");
 				if (m.resultType == Long.class)
 					sb.appendLine("            _f_.setResult(_rpc_.isTimeout() ? Zeze.Transaction.Procedure.Timeout : _rpc_.getResultCode());");
 				else {
@@ -257,7 +257,16 @@ public final class GenModule {
 					sb.appendLine("            _f_.setResult(_r_);");
 				}
 				sb.appendLine("            return Zeze.Transaction.Procedure.Success;");
-				sb.appendLine("        });");
+				sb.appendLine("        })) {");
+				if (m.resultType == Long.class)
+					sb.appendLine("            _f_.setResult(Zeze.Transaction.Procedure.ErrorSendFail);");
+				else if (m.returnTypeHasResultCode) {
+					sb.appendLine("            var _r_ = new {}();", m.resultTypeName);
+					sb.appendLine("            _r_.resultCode = Zeze.Transaction.Procedure.ErrorSendFail;");
+					sb.appendLine("            _f_.setResult(_r_);");
+				} else
+					sb.appendLine("            _f_.setResult(null);");
+				sb.appendLine("        }");
 				sb.appendLine("        return _f_;");
 			}
 			sb.appendLine("    }");

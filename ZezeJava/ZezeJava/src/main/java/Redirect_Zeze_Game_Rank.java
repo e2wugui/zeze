@@ -48,10 +48,12 @@ public final class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
         _a_.setParams(new Zeze.Net.Binary(_b_));
 
         var _f_ = new Zeze.Arch.RedirectFuture<Long>();
-        _p_.Send(_t_, _rpc_ -> {
+        if (!_p_.Send(_t_, _rpc_ -> {
             _f_.setResult(_rpc_.isTimeout() ? Zeze.Transaction.Procedure.Timeout : _rpc_.getResultCode());
             return Zeze.Transaction.Procedure.Success;
-        });
+        })) {
+            _f_.setResult(Zeze.Transaction.Procedure.ErrorSendFail);
+        }
         return _f_;
     }
 
