@@ -155,7 +155,7 @@ public class RedirectBase {
 				} else {
 					for (var hashIndex : request.Argument.getHashCodes()) {
 						BModuleRedirectAllHash hashResult = new BModuleRedirectAllHash();
-						hashResult.setReturnCode(Procedure.ProviderNotExist);
+						hashResult.setReturnCode(Procedure.ErrorSendFail);
 						miss.Argument.getHashs().put(hashIndex, hashResult);
 					}
 				}

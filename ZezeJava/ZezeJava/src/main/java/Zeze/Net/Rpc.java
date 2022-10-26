@@ -136,8 +136,8 @@ public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends 
 
 		// try remove. 只维护一个上下文。
 		service.removeRpcContext(sessionId, this);
-		sessionId = service.addRpcContext(this);
 		this.responseHandle = responseHandle;
+		sessionId = service.addRpcContext(this);
 		timeout = millisecondsTimeout;
 		isTimeout = false;
 		isRequest = true;
