@@ -267,10 +267,14 @@ public class Program {
 		@Override
 		public boolean processNotifyMessage(BMessage notify) {
 			if (notify.getGroup().equals(Group) && notify.getDepartmentId() == DepartmentId) {
-				var bb = ByteBuffer.Wrap(notify.getSecureMessage());
-				var bMsg = new BTextMessage();
-				bMsg.decode(bb);
-				System.out.println(bMsg.getMessage());
+				if (notify.getSecureKeyIndex() == -1) {
+					System.out.println(notify.getFrom() + ": This Is A Encrypted Message.");
+				} else {
+					var bb = ByteBuffer.Wrap(notify.getSecureMessage());
+					var bMsg = new BTextMessage();
+					bMsg.decode(bb);
+					System.out.println(notify.getFrom() + ": " + bMsg.getMessage());
+				}
 				return true;
 			}
 			return false;
@@ -367,10 +371,14 @@ public class Program {
 		@Override
 		public boolean processNotifyMessage(BMessage notify) {
 			if (notify.getGroup().equals(Group) && notify.getDepartmentId() == 0) {
-				var bb = ByteBuffer.Wrap(notify.getSecureMessage());
-				var bMsg = new BTextMessage();
-				bMsg.decode(bb);
-				System.out.println(bMsg.getMessage());
+				if (notify.getSecureKeyIndex() == -1) {
+					System.out.println(notify.getFrom() + ": This Is A Encrypted Message.");
+				} else {
+					var bb = ByteBuffer.Wrap(notify.getSecureMessage());
+					var bMsg = new BTextMessage();
+					bMsg.decode(bb);
+					System.out.println(bMsg.getMessage());
+				}
 				return true;
 			}
 			return false;
@@ -416,10 +424,14 @@ public class Program {
 		@Override
 		public boolean processNotifyMessage(BMessage notify) {
 			if (notify.getGroup().isEmpty() && notify.getFrom().equals(Target)) {
-				var bb = ByteBuffer.Wrap(notify.getSecureMessage());
-				var bMsg = new BTextMessage();
-				bMsg.decode(bb);
-				System.out.println(bMsg.getMessage());
+				if (notify.getSecureKeyIndex() == -1) {
+					System.out.println(notify.getFrom() + ": This Is A Encrypted Message.");
+				} else {
+					var bb = ByteBuffer.Wrap(notify.getSecureMessage());
+					var bMsg = new BTextMessage();
+					bMsg.decode(bb);
+					System.out.println(bMsg.getMessage());
+				}
 				return true;
 			}
 			return false;

@@ -30,7 +30,21 @@ Zege
 tag v1.0.9 Task; Zege ...;
 ------------------------------------------------------------------------------------------------------------------------------
 Task & Achievement & Statistics @项洋呈
-Zege
+Zege Add Friend
+	* 总则：双向好友，可以从一方的状态推测对方状态。
+	* 操作：Invite-Accept-Deny-Expire；Remove；
+	* 状态：Invite,Normal,Deny,Remove,Expire,(None)
+		(None) 表示数据不存在。
+	* 数据：FriendList,NotifyList。
+	State      Operate
+	FriendList Invite Accept Deny  Expire Remove
+	1 (None)   -2     (nop)  (nop) (nop)  (nop)
+	2 Invite   -2     -3     -4    -5     (nop)
+	3 Normal   (nop)  (nop)  (nop) (nop)  -6
+	4 Deny     -2     (nop)  (nop) (nop)  (nop)
+	5 Expire   -2     (nop)  (nop) (nop)  (nop)
+	6 Remove   -2     (nop)  (nop) (nop)  (nop)
+
 gen.exe dynamic 到类继承的映射。
 	类实例的数据关联到table.bean，不能保存实例，每次使用的时候创建，用完就丢弃。
 	每一级Bean.Dynamic只允许一个。

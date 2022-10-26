@@ -334,8 +334,16 @@
 			<variable id="2" name="Message"    type="string"/>
 		</bean>
 
+		<bean name="BP2PMessage">
+			<variable id="1" name="Addresses" type="list[string]"/> 发送者本地所有网络设备的IP地址。
+			<variable id="2" name="ServerSee" type="string"/> 服务器看到的发送者的RemoteAddress。
+			<variable id="3" name="Protocol" type="string"/> tcp or udp
+			<variable id="4" name="Port" type="int"/> port
+		</bean>
+
 		<bean name="BMessage">
-			<enum name="eTypeSystem" value="-1"/> 系统消息，不加密，SecureKeyIndex is -1; P2P协商消息，不加密，服务器要参与协商；BSystemMessage
+			<enum name="eTypeSystem" value="-1"/> 系统消息，不加密，SecureKeyIndex is -1;
+			<enum name="eTypeP2P"    value="-2"/> P2P协商消息，不加密，服务器要参与协商；BP2PMessage
 			<enum name="eTypeText"   value="0"/> 文本聊天消息，加密的，BTextMessage。
 			<enum name="eTypeEmoji"  value="1"/> 自定义表情消息，加密的，解密出来是系列化的BEmojiMessage。
 

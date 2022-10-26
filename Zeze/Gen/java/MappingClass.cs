@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Zeze.Gen.Types;
 
-namespace Zeze.Gen.cs
+namespace Zeze.Gen.java
 {
     public class MappingClass
     {
@@ -32,18 +32,15 @@ namespace Zeze.Gen.cs
             List<Types.Bean> inherits = new();
             inherits.Add(Bean);
             var clsName = Bean.MappingClassName(inherits);
-            using var sw = Bean.Space.OpenWriter(GenDir, $"Mapping{clsName}.cs");
-            sw.WriteLine("// auto-generated");
-            sw.WriteLine("");
-            sw.WriteLine("namespace " + Bean.Space.Path());
-            sw.WriteLine("{");
-            sw.WriteLine($"    public class Mapping{clsName}");
-            sw.WriteLine($"    {{");
+            using var sw = Bean.Space.OpenWriter(GenDir, $"Mapping{clsName}.java");
+            sw.WriteLine("// auto-generated @formatter:off");
+            sw.WriteLine("package " + Bean.Space.Path() + ";");
+            sw.WriteLine();
+            sw.WriteLine($"public class Mapping{clsName} {{");
             MakeCreateCode(sw, Bean, inherits);
-            sw.WriteLine($"    }}");
+            sw.WriteLine($"}}");
             sw.WriteLine();
             sw.Write(InheritClass.ToString());
-            sw.WriteLine("}");
         }
 
         public void MakeCreateCode(StreamWriter sw, Types.Bean bean, List<Types.Bean> inherits)
@@ -51,14 +48,13 @@ namespace Zeze.Gen.cs
             MakeInheritClass(bean, inherits);
 
             var clsName = bean.MappingClassName(inherits);
-            sw.WriteLine($"        public static {clsName} Create({BuildInherits(inherits)})");
-            sw.WriteLine($"        {{");
+            sw.WriteLine($"    public static {clsName} create({BuildInherits(inherits)}) {{");
             var dVar = bean.GetFirstDynamicVariable(); // 一开始已经检查过Dynamic数量，这里直接查询即可。
             List<Bean> subBeans = new();
             if (null == dVar)
             {
                 // 没有子类，创建最终类。
-                sw.WriteLine($"            return new {clsName}({BuildInherits(inherits, false)});");
+                sw.WriteLine($"       return new {clsName}({BuildInherits(inherits, false)});");
             }
             else
             {
@@ -72,17 +68,16 @@ namespace Zeze.Gen.cs
 
                 // 创建本级switch
                 var basep = $"base{inherits.Count - 1}";
-                sw.WriteLine($"            switch ({basep}.{dVar.NameUpper1}.Bean.TypeId)");
-                sw.WriteLine($"            {{");
+                sw.WriteLine($"        var subBean = {basep}.get{dVar.NameUpper1}().getBean();");
+                sw.WriteLine($"        var subBeanTypeId = subBean.typeId();");
                 foreach (var subBean in subBeans)
                 {
-                    sw.WriteLine($"                case {subBean.FullName}.TYPEID:");
-                    sw.WriteLine($"                    return Create({BuildInherits(inherits, false)}, ({subBean.FullName}){basep}.{dVar.NameUpper1}.Bean);");
+                    sw.WriteLine($"        if (subBeanTypeId == {subBean.FullName}.TYPEID)");
+                    sw.WriteLine($"            return create({BuildInherits(inherits, false)}, ({subBean.FullName})subBean);");
                 }
-                sw.WriteLine($"            }}");
-                sw.WriteLine($"            throw new System.Exception(\"Unkown Dynamic Bean.\");");
+                sw.WriteLine($"        throw new RuntimeException(\"Unkown Dynamic Bean.\");");
             }
-            sw.WriteLine($"        }}");
+            sw.WriteLine($"    }}");
             sw.WriteLine();
 
             // 深度搜索创建代码。
@@ -103,17 +98,15 @@ namespace Zeze.Gen.cs
             var inheritsParent = new List<Bean>();
             for (int i = 0; i < inherits.Count - 1; ++i)
                 inheritsParent.Add(inherits[i]);
-            var baseCls = inheritsParent.Count > 0 ? " : " + inherits[inherits.Count - 1].MappingClassName(inheritsParent) : "";
-            InheritClass.Append($"    public class {clsName} {baseCls}\n");
-            InheritClass.Append($"    {{\n");
-            InheritClass.Append($"        private {bean.FullName} _Bean;\n");
-            InheritClass.Append($"        public {clsName}({BuildInherits(inherits)})\n");
+            var baseCls = inheritsParent.Count > 0 ? " extends " + inherits[inherits.Count - 1].MappingClassName(inheritsParent) : "";
+            InheritClass.Append($"class {clsName} {baseCls} {{\n");
+            InheritClass.Append($"    private {bean.FullName} _Bean;\n");
+            InheritClass.Append($"    public {clsName}({BuildInherits(inherits)}) {{\n");
             if (inheritsParent.Count > 0)
-                InheritClass.Append($"            : base({BuildInherits(inheritsParent, false)})\n");
-            InheritClass.Append($"        {{\n");
-            InheritClass.Append($"            _Bean = base{inherits.Count - 1};\n");
-            InheritClass.Append($"        }}\n");
+                InheritClass.Append($"       super({BuildInherits(inheritsParent, false)});\n");
+            InheritClass.Append($"       _Bean = base{inherits.Count - 1};\n");
             InheritClass.Append($"    }}\n");
+            InheritClass.Append($"}}\n");
             InheritClass.Append("\n");
         }
 
