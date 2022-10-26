@@ -321,7 +321,7 @@ namespace Game.Bag
         {
             if (bag.Items.TryGetValue(position, out var bItem))
             {
-                switch (bItem.Extra.TypeId)
+                switch (bItem.Extra.Bean.TypeId)
                 {
                     case Item.BFoodExtra.TYPEID: return new Item.Food(bItem, (Item.BFoodExtra)bItem.Extra.Bean);
                     case Item.BHorseExtra.TYPEID: return new Item.Horse(bItem, (Item.BHorseExtra)bItem.Extra.Bean);

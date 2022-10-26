@@ -91,6 +91,12 @@ namespace Zeze.Gen
         public SortedDictionary<string, Servlet> Servlets { get; private set; } = new();
         public SortedDictionary<string, ServletStream> ServletStreams { get; private set; } = new();
         public List<Types.Enum> Enums { get; private set; } = new();
+        public HashSet<Types.Bean> MappingClassBeans { get; } = new();
+
+        public void AddMappingClassBean(Types.Bean bean)
+        {
+            MappingClassBeans.Add(bean);
+        }
 
         public void Add(ServletStream ss)
         {

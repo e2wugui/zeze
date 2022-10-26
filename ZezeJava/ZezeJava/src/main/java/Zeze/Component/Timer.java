@@ -64,7 +64,7 @@ public class Timer extends AbstractTimer {
 		if (0L != zeze.newProcedure(this::loadCustomClass, "").call()) {
 			throw new IllegalStateException("Load Item Classes Failed.");
 		}
-		Task.run(this::loadTimer, "LoadTimerLocal");
+		Task.run(zeze.newProcedure(this::loadTimer, "LoadTimerLocal"));
 	}
 
 	public void initializeOnlineTimer(ProviderApp providerApp) {
@@ -667,7 +667,7 @@ public class Timer extends AbstractTimer {
 		}
 	}
 
-	private void loadTimer() throws ParseException {
+	private long loadTimer() throws ParseException {
 		var serverId = zeze.getConfig().getServerId();
 		final var out = new OutObject<BNodeRoot>();
 		if (Procedure.Success == Task.call(zeze.newProcedure(() -> {
@@ -680,6 +680,7 @@ public class Timer extends AbstractTimer {
 			var root = out.value;
 			loadTimer(root.getHeadNodeId(), root.getHeadNodeId(), serverId);
 		}
+		return 0;
 	}
 
 	// 收到接管通知的服务器调用这个函数进行接管处理。

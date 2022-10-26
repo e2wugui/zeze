@@ -40,8 +40,14 @@ namespace Zeze.Gen.cs
                 else
                     new ProtocolFormatter(protocol).Make(genCommonDir);
             }
+            var MappingClassBeans = new HashSet<Bean>();
             foreach (Module mod in Project.AllOrderDefineModules)
+            {
                 new ModuleFormatter(Project, mod, genDir, srcDir).Make();
+                // 收集需要生成类映射的Bean。
+                foreach (var bean in mod.MappingClassBeans)
+                    MappingClassBeans.Add(bean);
+            }
             foreach (Service ma in Project.Services.Values)
                 new ServiceFormatter(ma, genDir, srcDir).Make();
             foreach (Table table in Project.AllTables.Values)
@@ -52,6 +58,14 @@ namespace Zeze.Gen.cs
             new Schemas(Project, genDir).Make();
 
             new App(Project, genDir, srcDir).Make();
+
+            if (Project.MappingClass)
+            {
+                foreach (var bean in MappingClassBeans)
+                {
+                    new MappingClass(genDir, srcDir, bean).Make();
+                }
+            }
         }
 
         public void MakeConfCsNet(HashSet<Types.Type> dependsFollowerApplyTables)

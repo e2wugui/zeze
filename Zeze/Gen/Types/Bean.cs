@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Xml;
 
 namespace Zeze.Gen.Types
@@ -123,8 +124,9 @@ namespace Zeze.Gen.Types
 		public string Base { get; private set; }
 		public List<string> Derives = new();
 		public string Version { get; private set; }
+		public bool MappingClass { get; private set; }
 
-		public static void BeautifulVariableId(XmlElement self)
+        public static void BeautifulVariableId(XmlElement self)
 		{
             XmlNodeList childNodes = self.ChildNodes;
             var varId = 1;
@@ -166,8 +168,11 @@ namespace Zeze.Gen.Types
 				throw new Exception("duplicate Bean.TypeId, please choice one.");
 			Comment = GetComment(self);
 			Version = self.GetAttribute("version").Trim();
+			MappingClass = self.GetAttribute("MappingClass").Equals("true");
+			if (MappingClass)
+				space.AddMappingClassBean(this);
 
-			XmlNodeList childNodes = self.ChildNodes;
+            XmlNodeList childNodes = self.ChildNodes;
 			foreach (XmlNode node in childNodes)
 			{
 				if (XmlNodeType.Element != node.NodeType)
@@ -291,5 +296,45 @@ namespace Zeze.Gen.Types
 			}
 			// this.comparable = _isComparable();
 		}
-	}
+
+		public Variable GetFirstDynamicVariable()
+		{
+            foreach (var var in Variables)
+			{
+                if (var.VariableType is TypeDynamic)
+                    return var;
+            }
+            return null;
+        }
+
+        public bool RecursiveCheckDynamicCountLessthanOrEqual(int n)
+		{
+			var dynamicCount = 0;
+            foreach (var var in Variables)
+			{
+				if (var.VariableType is TypeDynamic dVar)
+				{
+					++dynamicCount;
+                    foreach (var bean in dVar.DynamicParams.Beans)
+					{
+                        var beanWithSpecialTypeIdArray = bean.Split(':');
+                        var dBean = Type.Compile(Space, beanWithSpecialTypeIdArray[0]) as Bean;
+						if (false == dBean.RecursiveCheckDynamicCountLessthanOrEqual(n))
+							return false;
+					}
+				}
+
+            }
+			return dynamicCount <= 1;
+        }
+
+        public string MappingClassName(List<Types.Bean> inherits)
+        {
+			var sb = new StringBuilder();
+			sb.Append("CMapping");
+			for (int i = 0; i < inherits.Count; ++i)
+				sb.Append(inherits[i].Name);
+            return sb.ToString();
+        }
+    }
 }

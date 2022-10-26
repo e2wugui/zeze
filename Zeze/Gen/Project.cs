@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Xml;
+using Zeze.Gen.cs;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen
@@ -34,6 +35,7 @@ namespace Zeze.Gen
         public string MacroEditor { get; private set; }
         public static Project MakingInstance { get; set; }
         public string SolutionName { get; set; }
+        public bool MappingClass { get; set; }
 
         public List<Module> GetAllOrderdRefModules()
         {
@@ -83,6 +85,7 @@ namespace Zeze.Gen
             IncludeAllModules = self.GetAttribute("IncludeAllModules");
             MacroEditor = self.GetAttribute("MacroEditor");
             SolutionName = self.GetAttribute("SolutionName");
+            MappingClass = self.GetAttribute("MappingClass").Equals("true");
 
             //Program.AddNamedObject(FullName, this);
 
