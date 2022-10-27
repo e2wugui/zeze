@@ -13,6 +13,7 @@ import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
+import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
@@ -58,15 +59,23 @@ public class Timer extends AbstractTimer {
 		return 0L;
 	}
 
+	/**
+	 * 非事务环境调用。用于启动Timer服务。
+	 * @throws Throwable 可能抛出任何异常。一般框架处理。调用者不需要捕捉。
+	 */
 	public void start() throws Throwable {
 		nodeIdAutoKey = zeze.getAutoKey("Zeze.Component.Timer.NodeId");
 		timerIdAutoKey = zeze.getAutoKey("Zeze.Component.Timer.TimerId");
 		if (0L != zeze.newProcedure(this::loadCustomClass, "").call()) {
 			throw new IllegalStateException("Load Item Classes Failed.");
 		}
-		Task.run(zeze.newProcedure(this::loadTimer, "LoadTimerLocal"));
+		Task.run(this::loadTimer, "LoadTimerLocal");
 	}
 
+	/**
+	 * 初始化在线Timer。在线Timer需要ProviderApp。
+	 * @param providerApp 参数
+	 */
 	public void initializeOnlineTimer(ProviderApp providerApp) {
 		ProviderImplement impl;
 		if (null != providerApp && null != (impl = providerApp.providerImplement)) {
@@ -77,6 +86,10 @@ public class Timer extends AbstractTimer {
 		}
 	}
 
+	/**
+	 * 停止Timer服务。
+	 * @throws Throwable 抛出任何异常。
+	 */
 	public void stop() throws Throwable {
 		UnRegisterZezeTables(this.zeze);
 	}
@@ -87,23 +100,73 @@ public class Timer extends AbstractTimer {
 	// name为静态注册到这个模块的处理名字。
 	// 相同的name可以调度多个timer实例。
 	// @return 返回 TimerId。
+
+	/**
+	 * 调度一个Timer。
+	 * 需要在事务内使用。
+	 * @param delay 延迟
+	 * @param period 间隔
+	 * @param handle Timer处理Class
+	 * @param customData 自定义数据
+	 * @return TimerId
+	 */
 	public String schedule(long delay, long period, Class<? extends TimerHandle> handle, Bean customData) {
 		return schedule(delay, period, -1, handle, customData);
 	}
 
-	// 调度一个Timeout，即仅执行一次的Timer。
+	/**
+	 * 调度一个Timeout，即仅执行一次的Timer。
+	 * 需要在事务内使用。
+	 * @param delay 延迟
+	 * @param handle Timer处理Class
+	 * @param customData 自定义数据
+	 * @return TimerId
+	 */
 	public String schedule(long delay, Class<? extends TimerHandle> handle, Bean customData) {
 		return schedule(delay, -1, 1, handle, customData);
 	}
 
+	/**
+	 * 调度一个Timer。
+	 * 需要在事务内使用。
+	 * @param delay 延迟
+	 * @param period 间隔
+	 * @param times 最大触发次数
+	 * @param handle Timer处理Class
+	 * @param customData 自定义数据
+	 * @return TimerId
+	 */
 	public String schedule(long delay, long period, long times, Class<? extends TimerHandle> handle, Bean customData) {
 		return schedule(delay, period, times, -1, handle, customData);
 	}
 
+	/**
+	 * 调度一个Timer。
+	 * 需要在事务内使用。
+	 * @param delay 延迟
+	 * @param period 间隔
+	 * @param times 最大触发次数
+	 * @param endTime 结束时间
+	 * @param handle Timer处理Class
+	 * @param customData 自定义数据
+	 * @return TimerId
+	 */
 	public String schedule(long delay, long period, long times, long endTime, Class<? extends TimerHandle> handle, Bean customData) {
 		return schedule(delay, period, times, endTime, eMissfirePolicyNothing, handle, customData);
 	}
 
+	/**
+	 * 调度一个Timer。
+	 * 需要在事务内使用。
+	 * @param delay 延迟
+	 * @param period 间隔
+	 * @param times 最大触发次数
+	 * @param endTime 结束时间
+	 * @param missfirePolicy 错失触发策略
+	 * @param handle Timer处理Class
+	 * @param customData 自定义数据
+	 * @return TimerId
+	 */
 	public String schedule(long delay, long period, long times, long endTime, int missfirePolicy, Class<? extends TimerHandle> handle, Bean customData) {
 		var simpleTimer = new BSimpleTimer();
 		initSimpleTimer(simpleTimer, delay, period, times, endTime);
@@ -175,43 +238,107 @@ public class Timer extends AbstractTimer {
 
 	//////////////////////////////////////////////////////////////////////////////////
 	// Cron Timer
-	// 每月第N(monthDay)天的某个时刻(hour,minute,second)。
+	/**
+	 * 每月第N(monthDay)天的某个时刻(hour,minute,second)。
+	 * 需要在事务内使用。
+	 * @param monthDay 月内第几天
+	 * @param hour 小时
+	 * @param minute 分钟
+	 * @param second 秒
+	 * @param handle 回调class
+	 * @param customData 自定义数据
+	 * @return TimerId
+	 * @throws ParseException CronTimer表达式解析异常
+	 */
 	public String scheduleMonth(int monthDay, int hour, int minute, int second,
-								Class<? extends TimerHandle> name, Bean customData) throws ParseException {
+								Class<? extends TimerHandle> handle, Bean customData) throws ParseException {
 		var cron = second + " " + minute + " " + hour + " " + monthDay + " * ?";
-		return schedule(cron, name, customData);
+		return schedule(cron, handle, customData);
 	}
 
-	// 每周第N(weekDay)天的某个时刻(hour, minute, second)。
+	/**
+	 * 每周第N(weekDay)天的某个时刻(hour, minute, second)。
+	 * 需要在事务内使用。
+	 * @param weekDay 一周的第几天
+	 * @param hour 小时
+	 * @param minute 分钟
+	 * @param second 秒
+	 * @param handle 回调class
+	 * @param customData 自定义数据
+	 * @return TimerId
+	 * @throws ParseException CronTimer表达式解析异常
+	 */
 	public String scheduleWeek(int weekDay, int hour, int minute, int second,
-							   Class<? extends TimerHandle> name, Bean customData) throws ParseException {
+							   Class<? extends TimerHandle> handle, Bean customData) throws ParseException {
 		var cron = second + " " + minute + " " + hour + " * * " + weekDay;
-		return schedule(cron, name, customData);
+		return schedule(cron, handle, customData);
 	}
 
-	// 每天的某个时刻(hour, minute, second)。
+	/**
+	 * 每天的某个时刻(hour, minute, second)。
+	 * 需要在事务内使用。
+	 * @param hour 小时
+	 * @param minute 分钟
+	 * @param second 秒
+	 * @param handle 回调class
+	 * @param customData 自定义数据
+	 * @return TimerId
+	 * @throws ParseException CronTimer表达式解析异常
+	 */
 	public String scheduleDay(int hour, int minute, int second,
-							  Class<? extends TimerHandle> name, Bean customData) throws ParseException {
+							  Class<? extends TimerHandle> handle, Bean customData) throws ParseException {
 		var cron = second + " " + minute + " " + hour + " * * ?";
-		return schedule(cron, name, customData);
+		return schedule(cron, handle, customData);
 	}
 
+	/**
+	 * 调度一个根据Cron表达式描述的Timer。
+	 * 需要在事务内使用。
+	 * @param cronExpression cron 表达式
+	 * @param handle 回调class
+	 * @param customData 自定义数据
+	 * @return TimerId
+	 * @throws ParseException CronTimer表达式解析异常
+	 */
 	public String schedule(String cronExpression,
-						   Class<? extends TimerHandle> name, Bean customData) throws ParseException {
-		return schedule(cronExpression, -1, -1, name, customData);
+						   Class<? extends TimerHandle> handle, Bean customData) throws ParseException {
+		return schedule(cronExpression, -1, -1, handle, customData);
 	}
 
+	/**
+	 * 调度一个根据Cron表达式描述的Timer。
+	 * 需要在事务内使用。
+	 * @param cronExpression cron 表达式
+	 * @param times 次数限制
+	 * @param endTime 结束时间限制
+	 * @param handle 回调class
+	 * @param customData 自定义数据
+	 * @return TimerId
+	 * @throws ParseException cron解析异常
+	 */
 	public String schedule(String cronExpression, long times, long endTime,
-						   Class<? extends TimerHandle> name, Bean customData) throws ParseException {
-		return schedule(cronExpression, times, endTime, eMissfirePolicyNothing, name, customData);
+						   Class<? extends TimerHandle> handle, Bean customData) throws ParseException {
+		return schedule(cronExpression, times, endTime, eMissfirePolicyNothing, handle, customData);
 	}
 
+	/**
+	 * 调度一个根据Cron表达式描述的Timer。
+	 * 需要在事务内使用。
+	 * @param cronExpression cron 表达式
+	 * @param times 次数限制
+	 * @param endTime 结束时间限制
+	 * @param missfirePolicy 触发丢失处理策略
+	 * @param handle 回调class
+	 * @param customData 自定义数据
+	 * @return TimerId
+	 * @throws ParseException cron解析异常
+	 */
 	public String schedule(String cronExpression, long times, long endTime, int missfirePolicy,
-						   Class<? extends TimerHandle> name, Bean customData) throws ParseException {
+						   Class<? extends TimerHandle> handle, Bean customData) throws ParseException {
 		var cronTimer = new BCronTimer();
 		initCronTimer(cronTimer, cronExpression, times, endTime);
 		cronTimer.setMissfirePolicy(missfirePolicy);
-		return schedule(cronTimer, name, customData);
+		return schedule(cronTimer, handle, customData);
 	}
 
 	// 直接传递BCronTimer需要自动调用Timer.initCronTimer初始化。先不开放了。
@@ -280,23 +407,67 @@ public class Timer extends AbstractTimer {
 	// 有名字的Timer，每个名字只能全局调度唯一一个真正的Timer。
 	// 对这种Timer，不暴露TimerId，只能通过名字访问。
 	// 当真正的Timer被迁移到不同的Server时，名字到TimerId的映射不需要改变。
+
+	/**
+	 * 调度一个有名的Timer。
+	 * 需要在事务内调用。
+	 * @param timerId 名字
+	 * @param delay 延迟
+	 * @param handle 回调class
+	 * @param customData 自定义数据
+	 * @return 调度是否成功
+	 */
 	public boolean scheduleNamed(String timerId, long delay,
-								 Class<? extends TimerHandle> handleName, Bean customData) {
-		return scheduleNamed(timerId, delay, -1, -1, -1, eMissfirePolicyNothing, handleName, customData);
+								 Class<? extends TimerHandle> handle, Bean customData) {
+		return scheduleNamed(timerId, delay, -1, -1, -1, eMissfirePolicyNothing, handle, customData);
 	}
 
+	/**
+	 * 调度一个有名的Timer。
+	 * 需要在事务内调用。
+	 * @param timerId 名字
+	 * @param delay 延迟
+	 * @param period 间隔
+	 * @param handle 回调class
+	 * @param customData 自定义数据
+	 * @return 调度是否成功
+	 */
 	public boolean scheduleNamed(String timerId, long delay, long period,
-								 Class<? extends TimerHandle> handleName, Bean customData) {
-		return scheduleNamed(timerId, delay, period, -1, -1, eMissfirePolicyNothing, handleName, customData);
+								 Class<? extends TimerHandle> handle, Bean customData) {
+		return scheduleNamed(timerId, delay, period, -1, -1, eMissfirePolicyNothing, handle, customData);
 	}
 
+	/**
+	 * 调度一个有名的Timer。
+	 * 需要在事务内调用。
+	 * @param timerId 名字
+	 * @param delay 延迟
+	 * @param period 间隔
+	 * @param times 次数
+	 * @param handle 回调class
+	 * @param customData 自定义数据
+	 * @return 调度是否成功
+	 */
 	public boolean scheduleNamed(String timerId, long delay, long period, long times,
-								 Class<? extends TimerHandle> handleName, Bean customData) {
-		return scheduleNamed(timerId, delay, period, times, -1, eMissfirePolicyNothing, handleName, customData);
+								 Class<? extends TimerHandle> handle, Bean customData) {
+		return scheduleNamed(timerId, delay, period, times, -1, eMissfirePolicyNothing, handle, customData);
 	}
 
+	/**
+	 * 调度一个有名的Timer。
+	 * 需要在事务内调用。
+	 * @param timerId 名字
+	 * @param delay 延迟
+	 * @param period 间隔
+	 * @param times 次数
+	 * @param endTime 结束时间
+	 * @param missfirePolicy 触发丢失策略
+	 * @param handle 回调class
+	 * @param customData 自定义数据
+	 * @return 调度是否成功
+	 */
 	public boolean scheduleNamed(String timerId, long delay, long period, long times, long endTime, int missfirePolicy,
-								 Class<? extends TimerHandle> handleName, Bean customData) {
+								 Class<? extends TimerHandle> handle, Bean customData) {
 		if (timerId.startsWith("@"))
 			throw new IllegalArgumentException("invalid timer name. startsWith '@' is reserved.");
 
@@ -307,33 +478,72 @@ public class Timer extends AbstractTimer {
 		var simpleTimer = new BSimpleTimer();
 		initSimpleTimer(simpleTimer, delay, period, times, endTime);
 		simpleTimer.setMissfirePolicy(missfirePolicy);
-		schedule(timerId, simpleTimer, handleName, customData);
+		schedule(timerId, simpleTimer, handle, customData);
 		return true;
 	}
 
+	/**
+	 * 调度一个有名的Timer。
+	 * 需要在事务内调用。
+	 * @param timerName 名字，即TimerId
+	 * @param cron cron 表达式
+	 * @param handle 回调class
+	 * @param customData 自定义数据
+	 * @return 调度是否成功
+	 * @throws ParseException cron解析异常
+	 */
 	public boolean scheduleNamed(String timerName, String cron,
-								 Class<? extends TimerHandle> handleName, Bean customData) throws ParseException {
-		return scheduleNamed(timerName, cron, -1, -1, eMissfirePolicyNothing, handleName, customData);
+								 Class<? extends TimerHandle> handle, Bean customData) throws ParseException {
+		return scheduleNamed(timerName, cron, -1, -1, eMissfirePolicyNothing, handle, customData);
 	}
 
+	/**
+	 * 调度一个有名的Timer。
+	 * 需要在事务内调用。
+	 * @param timerName 名字，即TimerId
+	 * @param cron cron 表达式
+	 * @param times 次数
+	 * @param endTime 结束时间
+	 * @param handle 回调class
+	 * @param customData 自定义数据
+	 * @return 调度是否成功
+	 * @throws ParseException cron解析异常
+	 */
 	public boolean scheduleNamed(String timerName, String cron, long times, long endTime,
-								 Class<? extends TimerHandle> handleName, Bean customData) throws ParseException {
-		return scheduleNamed(timerName, cron, times, endTime, eMissfirePolicyNothing, handleName, customData);
+								 Class<? extends TimerHandle> handle, Bean customData) throws ParseException {
+		return scheduleNamed(timerName, cron, times, endTime, eMissfirePolicyNothing, handle, customData);
 	}
 
+	/**
+	 * 调度一个有名的Timer。
+	 * 需要在事务内调用。
+	 * @param timerName 名字，即TimerId
+	 * @param cron cron 表达式
+	 * @param times 次数
+	 * @param endTime 结束时间
+	 * @param missfirePolicy 触发丢失策略
+	 * @param handle 回调class
+	 * @param customData 自定义数据
+	 * @return 调度是否成功
+	 * @throws ParseException cron解析异常
+	 */
 	public boolean scheduleNamed(String timerName, String cron, long times, long endTime, int missfirePolicy,
-								 Class<? extends TimerHandle> handleName, Bean customData) throws ParseException {
+								 Class<? extends TimerHandle> handle, Bean customData) throws ParseException {
 		var timerId = _tIndexs.get(timerName);
 		if (null != timerId)
 			return false;
 		var cronTimer = new BCronTimer();
 		initCronTimer(cronTimer, cron, times, endTime);
 		cronTimer.setMissfirePolicy(missfirePolicy);
-		schedule(timerName, cronTimer, handleName, customData);
+		schedule(timerName, cronTimer, handle, customData);
 		return true;
 	}
 
-	// 取消一个具体的Timer实例。
+	/**
+	 * 取消一个具体的Timer实例。
+	 * 需要在事务内调用。
+	 * @param timerId timerId
+	 */
 	public void cancel(String timerId) {
 		/*
 		try {
@@ -550,7 +760,7 @@ public class Timer extends AbstractTimer {
 
 			return 0L;
 		}, "fireSimple"))) {
-			cancel(timerId);
+			Task.call(zeze.newProcedure(() -> {cancel(timerId);return 0L;}, "cancelTimer"));
 		}
 		return 0L;
 	}
@@ -663,11 +873,11 @@ public class Timer extends AbstractTimer {
 			scheduleCronNext(serverId, timerId, delay, concurrentSerialNo + 1);
 			return 0L; // procedure done
 		}, "fireCron"))) {
-			cancel(timerId);
+			Task.call(zeze.newProcedure(() -> { cancel(timerId); return 0L; }, "cancelTimer"));
 		}
 	}
 
-	private long loadTimer() throws ParseException {
+	private void loadTimer() throws ParseException {
 		var serverId = zeze.getConfig().getServerId();
 		final var out = new OutObject<BNodeRoot>();
 		if (Procedure.Success == Task.call(zeze.newProcedure(() -> {
@@ -680,7 +890,6 @@ public class Timer extends AbstractTimer {
 			var root = out.value;
 			loadTimer(root.getHeadNodeId(), root.getHeadNodeId(), serverId);
 		}
-		return 0;
 	}
 
 	// 收到接管通知的服务器调用这个函数进行接管处理。
@@ -732,68 +941,71 @@ public class Timer extends AbstractTimer {
 
 	// 如果存在node，至少执行一次循环。
 	private long loadTimer(long first, long last, int serverId) throws ParseException {
-		while (true) {
-			var node = _tNodes.selectDirty(first);
-			if (null == node)
-				break; // when root is empty。no node。
+		var node = new OutLong(first);
+		while (node.value != last) {
+			// skip error. 使用node返回的值决定是否继续循环。
+			Task.call(zeze.newProcedure(() -> loadTimer(node, last, serverId), "loadTimer"));
+		}
+		return 0L;
+	}
 
-			var now = System.currentTimeMillis();
-			for (var timer : node.getTimers().values()) {
-				if (timer.getTimerObj().getBean().typeId() == BSimpleTimer.TYPEID) {
-					var simpleTimer = (BSimpleTimer)timer.getTimerObj().getBean();
-					if (simpleTimer.getNextExpectedTime() < now) { // missfire found
-						switch (simpleTimer.getMissfirePolicy()) {
-						case eMissfirePolicyRunOnce:
-						case eMissfirePolicyRunOnceOldNext:
-							Task.run(() -> fireSimple(serverId, timer.getTimerName(),
-									timer.getConcurrentFireSerialNo(), true), "missfireSimple");
-							continue; // loop done, continue
+	private long loadTimer(OutLong first, long last, int serverId) throws ParseException {
+		var node = _tNodes.get(first.value);
+		if (null == node) {
+			first.value = last; // 马上结束外面的循环。last仅用在这里。
+			return 0; // when root is empty。no node。skip error.
+		}
+		first.value = node.getNextNodeId(); // 设置下一个node。
 
-						case eMissfirePolicyNothing:
-							// 重置启动时间，调度下一个（未来）间隔的时间。没有考虑对齐。
-							simpleTimer.setNextExpectedTime(System.currentTimeMillis() + simpleTimer.getPeriod());
-							break;
+		var now = System.currentTimeMillis();
+		for (var timer : node.getTimers().values()) {
+			if (timer.getTimerObj().getBean().typeId() == BSimpleTimer.TYPEID) {
+				var simpleTimer = (BSimpleTimer)timer.getTimerObj().getBean();
+				if (simpleTimer.getNextExpectedTime() < now) { // missfire found
+					switch (simpleTimer.getMissfirePolicy()) {
+					case eMissfirePolicyRunOnce:
+					case eMissfirePolicyRunOnceOldNext:
+						Task.run(() -> fireSimple(serverId, timer.getTimerName(),
+								timer.getConcurrentFireSerialNo(), true), "missfireSimple");
+						continue; // loop done, continue
 
-						default:
-							throw new RuntimeException("Unknown MissfirePolicy");
-						}
+					case eMissfirePolicyNothing:
+						// 重置启动时间，调度下一个（未来）间隔的时间。没有考虑对齐。
+						simpleTimer.setNextExpectedTime(System.currentTimeMillis() + simpleTimer.getPeriod());
+						break;
+
+					default:
+						throw new RuntimeException("Unknown MissfirePolicy");
 					}
-					scheduleSimple(serverId, timer.getTimerName(),
-							simpleTimer.getNextExpectedTime() - System.currentTimeMillis(),
-							timer.getConcurrentFireSerialNo());
-				} else {
-					var cronTimer = (BCronTimer)timer.getTimerObj().getBean();
-					if (cronTimer.getNextExpectedTime() < now) {
-						switch (cronTimer.getMissfirePolicy()) {
-						case eMissfirePolicyRunOnce:
-						case eMissfirePolicyRunOnceOldNext:
-							Task.run(() -> fireCron(serverId, timer.getTimerName(),
-									timer.getConcurrentFireSerialNo(), true), "missfireCron");
-							continue; // loop done, continue
+				}
+				scheduleSimple(serverId, timer.getTimerName(),
+						simpleTimer.getNextExpectedTime() - System.currentTimeMillis(),
+						timer.getConcurrentFireSerialNo());
+			} else {
+				var cronTimer = (BCronTimer)timer.getTimerObj().getBean();
+				if (cronTimer.getNextExpectedTime() < now) {
+					switch (cronTimer.getMissfirePolicy()) {
+					case eMissfirePolicyRunOnce:
+					case eMissfirePolicyRunOnceOldNext:
+						Task.run(() -> fireCron(serverId, timer.getTimerName(),
+								timer.getConcurrentFireSerialNo(), true), "missfireCron");
+						continue; // loop done, continue
 
-						case eMissfirePolicyNothing:
-							// 计算下一次（未来）发生的时间。
-							cronTimer.setNextExpectedTime(cronNextTime(cronTimer.getCronExpression(), System.currentTimeMillis()));
-							break;
+					case eMissfirePolicyNothing:
+						// 计算下一次（未来）发生的时间。
+						cronTimer.setNextExpectedTime(cronNextTime(cronTimer.getCronExpression(), System.currentTimeMillis()));
+						break;
 
-						default:
-							throw new RuntimeException("Unknown MissfirePolicy");
-						}
+					default:
+						throw new RuntimeException("Unknown MissfirePolicy");
 					}
-					scheduleCron(serverId, timer.getTimerName(), cronTimer, timer.getConcurrentFireSerialNo());
 				}
-				if (serverId != zeze.getConfig().getServerId()) {
-					Task.call(zeze.newProcedure(() -> {
-						var index = _tIndexs.get(timer.getTimerName());
-						index.setServerId(serverId);
-						return 0L;
-					}, "SetTimerServerIdWhenLoadTimerLocal"));
-				}
+				scheduleCron(serverId, timer.getTimerName(), cronTimer, timer.getConcurrentFireSerialNo());
 			}
-
-			first = node.getNextNodeId();
-			if (first == last)
-				break;
+			if (serverId != zeze.getConfig().getServerId()) {
+				var index = _tIndexs.get(timer.getTimerName());
+				index.setServerId(serverId);
+			}
 		}
 		return 0L;
 	}
