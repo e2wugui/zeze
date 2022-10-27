@@ -42,7 +42,6 @@ namespace Zeze.Gen.cs
             MakeCreateCode(sw, Bean, inherits);
             sw.WriteLine($"    }}");
             sw.WriteLine();
-            sw.Write(InheritClass.ToString());
             sw.WriteLine("}");
         }
 
@@ -80,7 +79,7 @@ namespace Zeze.Gen.cs
                     sw.WriteLine($"                    return Create({BuildInherits(inherits, false)}, ({subBean.FullName}){basep}.{dVar.NameUpper1}.Bean);");
                 }
                 sw.WriteLine($"            }}");
-                sw.WriteLine($"            throw new System.Exception(\"Unkown Dynamic Bean.\");");
+                sw.WriteLine($"            throw new System.Exception(\"Unknown Dynamic Bean.\");");
             }
             sw.WriteLine($"        }}");
             sw.WriteLine();
@@ -94,27 +93,31 @@ namespace Zeze.Gen.cs
             }
         }
 
-        // 这个应该生成到srcDir，暂时不开放这个功能，先生成到genDir的Create方法的同一个文件中。
-        private StringBuilder InheritClass = new();
-
         private void MakeInheritClass(Bean bean, List<Types.Bean> inherits)
         {
             var clsName = bean.MappingClassName(inherits);
+            using var sw = Bean.Space.OpenWriter(SrcDir, clsName + ".cs", false); // 全部生成到Root的名字控件下。
+            if (sw == null)
+                return;
             var inheritsParent = new List<Bean>();
             for (int i = 0; i < inherits.Count - 1; ++i)
                 inheritsParent.Add(inherits[i]);
             var baseCls = inheritsParent.Count > 0 ? " : " + inherits[inherits.Count - 1].MappingClassName(inheritsParent) : "";
-            InheritClass.Append($"    public class {clsName} {baseCls}\n");
-            InheritClass.Append($"    {{\n");
-            InheritClass.Append($"        private {bean.FullName} _Bean;\n");
-            InheritClass.Append($"        public {clsName}({BuildInherits(inherits)})\n");
+
+            sw.WriteLine("namespace " + Bean.Space.Path());
+            sw.WriteLine("{");
+            sw.WriteLine($"    public class {clsName} {baseCls}");
+            sw.WriteLine($"    {{");
+            sw.WriteLine($"        private {bean.FullName} _Bean;");
+            sw.WriteLine($"        public {clsName}({BuildInherits(inherits)})");
             if (inheritsParent.Count > 0)
-                InheritClass.Append($"            : base({BuildInherits(inheritsParent, false)})\n");
-            InheritClass.Append($"        {{\n");
-            InheritClass.Append($"            _Bean = base{inherits.Count - 1};\n");
-            InheritClass.Append($"        }}\n");
-            InheritClass.Append($"    }}\n");
-            InheritClass.Append("\n");
+                sw.WriteLine($"            : base({BuildInherits(inheritsParent, false)})");
+            sw.WriteLine($"        {{");
+            sw.WriteLine($"            _Bean = base{inherits.Count - 1};");
+            sw.WriteLine($"        }}");
+            sw.WriteLine($"    }}");
+            sw.WriteLine("}");
+            sw.WriteLine();
         }
 
         public string BuildInherits(List<Types.Bean> inherits, bool isParam = true)
