@@ -942,10 +942,10 @@ public class Timer extends AbstractTimer {
 	// 如果存在node，至少执行一次循环。
 	private long loadTimer(long first, long last, int serverId) throws ParseException {
 		var node = new OutLong(first);
-		while (node.value != last) {
+		do {
 			// skip error. 使用node返回的值决定是否继续循环。
 			Task.call(zeze.newProcedure(() -> loadTimer(node, last, serverId), "loadTimer"));
-		}
+		} while (node.value != last);
 		return 0L;
 	}
 
