@@ -12,6 +12,7 @@ public class ZegeConfig implements Zeze.Config.ICustomize {
 	public int BelongDepartmentLimit = 100;
 
 	public int FriendCountPerNode = 10; // TODO 现在为了测试多节点，设置的比较小。以后记得改大，比如200。
+	public int NotifyCountPerNode = 100;
 
 	@Override
 	public String getName() {
@@ -54,5 +55,8 @@ public class ZegeConfig implements Zeze.Config.ICustomize {
 		if (!attr.isEmpty())
 			FriendCountPerNode = Integer.parseInt(attr);
 
+		attr = self.getAttribute("NotifyCountPerNode");
+		if (!attr.isEmpty())
+			NotifyCountPerNode = Integer.parseInt(attr);
 	}
 }

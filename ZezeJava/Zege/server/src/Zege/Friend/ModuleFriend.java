@@ -169,9 +169,7 @@ public class ModuleFriend extends AbstractModule {
 		var session = ProviderUserSession.get(r);
 		var friends = getFriendsOrTopmost(session.getAccount(), r.Argument.getLinkedMapNameEndsWith());
 		var nodeId = new OutLong(r.Argument.getNodeId());
-		var friendNode = r.Argument.getNodeId() == 0
-				? friends.getFirstNode(nodeId)
-				: friends.getNode(r.Argument.getNodeId());
+		var friendNode = nodeId.value == 0 ? friends.getFirstNode(nodeId) : friends.getNode(nodeId.value);
 		if (null == friendNode)
 			return errorCode(eFriendNodeNotFound);
 

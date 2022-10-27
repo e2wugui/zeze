@@ -20,7 +20,7 @@ namespace Zege.Friend
         {
         }
 
-        // 给ListView提供数据，可能是本地CachedNodes中好友的一部分。
+        // 给ListView提供数据。
         internal ObservableCollection<FriendItem> ItemsSource { get; } = new();
         private ListView ListView { get; set; }
 

@@ -166,7 +166,7 @@
 
 		<bean name="BGetFriendNode">
 			<variable id="1" name="NodeKey" type="Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey"/>
-			<variable id="3" name="Node"    type="Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode"/>
+			<variable id="2" name="Node"    type="Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode"/>
 		</bean>
 
 		<rpc name="GetFriendNode" argument="BGetFriendNodeArgument" result="BGetFriendNode" handle="server"/>
@@ -449,6 +449,44 @@
 		<rpc name="SetGroupMessageHasRead" argument="BSetGroupMessageHasRead" handle="server"/>
 	</module>
 
+	<!--
+	通用通知模块。
+	a) 特性
+	   1. 数量不限（客户端翻页）。
+	   2. 会过期（可选？）。
+	b) 用途
+	   1. 好友添加待定请求。
+	-->
+	<module name="Notify" id="4">
+		<enum name="eNotifyNodeNotFound" value="1"/>
+
+		<!-- 通知用 Zeze.Collections.LinkedMap 下面时自定义数据结构的定义 -->
+		<bean name="BNotify">
+			<variable id="1" name="Title" type="string"/> 显示标题
+			<variable id="2" name="Name"  type="string"/> 通知名字（内部）
+			<variable id="3" name="Data"  type="binary"/> 通知数据（任意）
+		</bean>
+
+		<!-- LogBean.FollowerApply -->
+		<bean name="BNotifyNodeLogBean">
+			<variable id="1" name="ChangeLog" type="binary"/>
+		</bean>
+
+		<protocol name="NotifyNodeLogBeanNotify" argument="BNotifyNodeLogBean" handle="client"/>
+
+		<!-- Rpc -->
+		<bean name="BGetNotifyNodeArgument">
+			<variable id="1" name="NodeId" type="long"/>
+		</bean>
+
+		<bean name="BGetNotifyNode">
+			<variable id="1" name="NodeKey" type="Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey"/>
+			<variable id="2" name="Node"    type="Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode"/>
+		</bean>
+
+		<rpc name="GetNotifyNode" argument="BGetNotifyNodeArgument" result="BGetNotifyNode" handle="server"/>
+	</module>
+
 	<project name="server" gendir="." scriptdir="src" platform="java" GenTables="">
 		<!--
 		这里引用的模块不该定义协议，定义了也不会被生成，一般为纯逻辑或者数据库模块。
@@ -459,6 +497,7 @@
 			<module ref="User"/>
 			<module ref="Friend"/>
 			<module ref="Message"/>
+			<module ref="Notify"/>
 		</service>
 
 		<ModuleStartOrder>
@@ -487,6 +526,7 @@
 			<module ref="Friend"/>
 			<module ref="Message"/>
 			<module ref="User"/>
+			<module ref="Notify"/>
 		</service>
 		<FollowerApplyTables>
 			<table name="Zeze.Builtin.Collections.LinkedMap.tLinkedMapNodes"/>

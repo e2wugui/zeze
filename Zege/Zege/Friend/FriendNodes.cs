@@ -14,7 +14,7 @@ namespace Zege.Friend
 
         public GetFriendNode GetFriendNodePending { get; set; }
 
-        // 1. 浏览仅支持往后，用不删除开头的节点。
+        // 1. 浏览仅支持往后，不删除开头的节点。
         //    如果浏览了非常多的节点，在View回到头部以后，从尾部开始删除部分节点。
         // 2. 头部节点在添加好友或者活跃Item(BringToTop)非常多的情况下会发生添加。
         //    即，当ChangeLog发生Put时，总在头部添加。
