@@ -945,7 +945,7 @@ public class Timer extends AbstractTimer {
 		do {
 			// skip error. 使用node返回的值决定是否继续循环。
 			Task.call(zeze.newProcedure(() -> loadTimer(node, last, serverId), "loadTimer"));
-		} while (node.value != last);
+		} while (node.value == last);
 		return 0L;
 	}
 
