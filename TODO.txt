@@ -44,6 +44,9 @@ Zege Add Friend
 	4 Deny     -2     (nop)  (nop) (nop)  (nop)
 	5 Expire   -2     (nop)  (nop) (nop)  (nop)
 	6 Remove   -2     (nop)  (nop) (nop)  (nop)
+Zeze 过载保护
+Zeze.Net.FamilyClass 增加FamilyClass，中间转发服务（如Linkd）可用来区分Protocol和Rpc，
+	顺便加入压缩Protocol.ResultCode,Rpc.IsRequest的能力。
 Zege Notify Module Added
 gen.exe dynamic 到类继承的映射。
 	类实例的数据关联到table.bean，不能保存实例，每次使用的时候创建，用完就丢弃。
