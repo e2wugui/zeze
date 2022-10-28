@@ -12,6 +12,7 @@ namespace Zeze.Net
         public abstract int ProtocolId { get; }
 
 		public long TypeId => (long)ModuleId << 32 | (uint)ProtocolId;
+		public int FamilyClass { get; protected set; } = Zeze.Net.FamilyClass.Protocol;
 
 #if USE_CONFCS
 		public virtual Zeze.Util.ConfBean ResultBean { get; }
@@ -114,7 +115,7 @@ namespace Zeze.Net
 			return false;
 		}
 
-		// always true for Protocol, Rpc Will override
+		// always true for Protocol, Rpc Will setup
 		public bool IsRequest { get; set; } = true;
 		public long ResultCode { get; set; }
 
@@ -222,15 +223,22 @@ namespace Zeze.Net
 #endif
         public override void Decode(ByteBuffer bb)
         {
-			ResultCode = bb.ReadLong();
-			Argument.Decode(bb);
+            var compress = bb.ReadInt();
+            FamilyClass = compress & Zeze.Net.FamilyClass.FamilyClassMask;
+            ResultCode = ((compress & Zeze.Net.FamilyClass.BitResultCode) != 0) ? bb.ReadLong() : 0;
+            Argument.Decode(bb);
 		}
 
 		public override void Encode(ByteBuffer bb)
         {
-			bb.WriteLong(ResultCode);
-			Argument.Encode(bb);
-		}
+            var compress = FamilyClass; // is Protocol(2)
+            if (ResultCode != 0)
+                compress |= Zeze.Net.FamilyClass.BitResultCode;
+            bb.WriteInt(compress);
+            if (ResultCode != 0)
+                bb.WriteLong(ResultCode);
+            Argument.Encode(bb);
+        }
 
         public override string ToString()
         {

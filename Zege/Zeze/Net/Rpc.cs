@@ -38,6 +38,7 @@ namespace Zeze.Net
         public Rpc()
         {
             this.IsTimeout = false;
+            base.FamilyClass = Zeze.Net.FamilyClass.Request;
         }
 
         /// <summary>
@@ -228,25 +229,26 @@ namespace Zeze.Net
 
         public override void Decode(ByteBuffer bb)
         {
-            IsRequest = bb.ReadBool();
+            var compress = bb.ReadInt();
+            FamilyClass = compress & Zeze.Net.FamilyClass.FamilyClassMask;
+            IsRequest = FamilyClass == Zeze.Net.FamilyClass.Request;
+            ResultCode = ((compress & Zeze.Net.FamilyClass.BitResultCode) != 0) ? bb.ReadLong() : 0;
             SessionId = bb.ReadLong();
-            ResultCode = bb.ReadLong();
-
             if (IsRequest)
-            {
                 Argument.Decode(bb);
-            }
             else
-            {
                 Result.Decode(bb);
-            }
         }
 
         public override void Encode(ByteBuffer bb)
         {
-            bb.WriteBool(IsRequest);
+            var compress = IsRequest ? Zeze.Net.FamilyClass.Request : Zeze.Net.FamilyClass.Response; // skip value of FamilyClass
+            if (ResultCode != 0)
+                compress |= Zeze.Net.FamilyClass.BitResultCode;
+            bb.WriteInt(compress);
+            if (ResultCode != 0)
+                bb.WriteLong(ResultCode);
             bb.WriteLong(SessionId);
-            bb.WriteLong(ResultCode);
 
             if (IsRequest)
             {

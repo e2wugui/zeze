@@ -209,7 +209,17 @@ export module Zeze {
 		}
 	}
 
+	export class FamilyClass {
+		public static readonly Protocol: number = 2;
+		public static readonly Request: number = 1;
+		public static readonly Response: number = 2;
+		public static readonly BitResultCode: number = 1 << 5;
+		public static readonly FamilyClassMask: number = FamilyClass.BitResultCode - 1;
+
+    }
+
 	export abstract class Protocol implements Serializable {
+		public FamilyClass: number = Zeze.FamilyClass.Protocol;
 		public ResultCode: bigint; // int
 		public Sender: Socket;
 
@@ -291,12 +301,19 @@ export module Zeze {
 		}
 
 		public Encode(_os_: ByteBuffer) {
-			_os_.WriteLong(this.ResultCode);
+			var compress = this.FamilyClass;
+			if (this.ResultCode != 0n)
+				compress |= Zeze.FamilyClass.BitResultCode;
+			_os_.WriteInt(compress);
+			if (this.ResultCode != 0n)
+				_os_.WriteLong(this.ResultCode);
 			this.Argument.Encode(_os_);
 		}
 
 		public Decode(_os_: ByteBuffer) {
-			this.ResultCode = _os_.ReadLong();
+			var compress = _os_.ReadInt();
+			this.FamilyClass = compress & Zeze.FamilyClass.FamilyClassMask;
+			this.ResultCode = ((compress & Zeze.FamilyClass.BitResultCode) != 0) ? _os_.ReadLong() : 0n;
 			this.Argument.Decode(_os_);
 		}
 	}
@@ -383,25 +400,30 @@ export module Zeze {
 		}
 
 		Decode(bb: Zeze.ByteBuffer) {
-			this.IsRequest = bb.ReadBool();
+			var compress = bb.ReadInt();
+			this.FamilyClass = compress & Zeze.FamilyClass.FamilyClassMask;
+			this.IsRequest = this.FamilyClass == Zeze.FamilyClass.Request;
+			this.ResultCode = ((compress & Zeze.FamilyClass.BitResultCode) != 0) ? bb.ReadLong() : 0n;
 			this.sid = bb.ReadLong();
-			this.ResultCode = bb.ReadLong();
-			if (this.IsRequest) {
+			if (this.IsRequest)
 				this.Argument.Decode(bb);
-			} else {
+			else
 				this.Result.Decode(bb);
-			}
 		}
 
 		Encode(bb: Zeze.ByteBuffer) {
-			bb.WriteBool(this.IsRequest);
+			// skip value of this.FamilyClass
+			var compress = this.IsRequest ? Zeze.FamilyClass.Request : Zeze.FamilyClass.Response;
+			if (this.ResultCode != 0n)
+				compress |= Zeze.FamilyClass.BitResultCode;
+			bb.WriteInt(compress);
+			if (this.ResultCode != 0n)
+				bb.WriteLong(this.ResultCode);
 			bb.WriteLong(this.sid);
-			bb.WriteLong(this.ResultCode);
-			if (this.IsRequest) {
+			if (this.IsRequest)
 				this.Argument.Encode(bb);
-			} else {
+			else
 				this.Result.Encode(bb);
-			}
 		}
 	}
 
