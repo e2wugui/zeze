@@ -444,17 +444,25 @@ namespace Zeze.Services.ToLuaService
                 }
 
                 // see Rpc.Encode
+                int compress = isRequest ? FamilyClass.Request : FamilyClass.Response;
+                if (resultCode != 0)
+                    compress |= FamilyClass.BitResultCode;
+
                 ByteBuffer bb = ByteBuffer.Allocate();
                 bb.WriteInt4(ModuleId);
                 bb.WriteInt4(ProtocolId);
                 bb.BeginWriteWithSize4(out var outstate);
-                bb.WriteBool(isRequest);
+
+                bb.WriteInt(compress); // FamilyClass
+                if (resultCode != 0)
+                    bb.WriteLong(resultCode);
                 bb.WriteLong(sid);
-                bb.WriteLong(resultCode);
+
                 Lua.GetField(-1, argumentName);
                 EncodeBean(bb, argumentBeanTypeId);
                 Lua.Pop(1);
                 bb.EndWriteWithSize4(outstate);
+
                 socket.Send(bb);
 
                 if (timeout > 0)
@@ -463,15 +471,24 @@ namespace Zeze.Services.ToLuaService
             else
             {
                 // see Protocol.Encode
+                int compress = FamilyClass.Protocol;
+                if (resultCode != 0)
+                    compress |= FamilyClass.BitResultCode;
+
                 ByteBuffer bb = ByteBuffer.Allocate();
                 bb.WriteInt4(ModuleId);
                 bb.WriteInt4(ProtocolId);
                 bb.BeginWriteWithSize4(out var state);
-                bb.WriteLong(resultCode);
+
+                bb.WriteInt(compress);
+                if (resultCode != 0)
+                    bb.WriteLong(resultCode);
+
                 Lua.GetField(-1, "Argument");
                 EncodeBean(bb, pa.ArgumentBeanTypeId);
                 Lua.Pop(1);
                 bb.EndWriteWithSize4(state);
+
                 socket.Send(bb);
             }
         }
@@ -722,9 +739,12 @@ namespace Zeze.Services.ToLuaService
 
             if (pa.IsRpc)
             {
-                bool IsRequest = _os_.ReadBool();
+                int compress = _os_.ReadInt();
+                int familyClass = compress & FamilyClass.FamilyClassMask; // lua需要的话，Push，但懒得看table索引，先不公开了。
+                bool IsRequest = familyClass == FamilyClass.Request;
+                long resultCode = ((compress & FamilyClass.BitResultCode) != 0) ? _os_.ReadLong() : 0;
                 long sid = _os_.ReadLong();
-                long resultCode = _os_.ReadLong();
+
                 long argumentBeanTypeId;
                 string argument;
                 if (IsRequest)
@@ -755,8 +775,12 @@ namespace Zeze.Services.ToLuaService
             }
             else
             {
+                int compress = _os_.ReadInt();
+                //int familyClass = compress & FamilyClass.FamilyClassMask; // lua需要的话，Push，但懒得看table索引，先不公开了。
+                long resultCode = ((compress & FamilyClass.BitResultCode) != 0) ? _os_.ReadLong() : 0;
+
                 Lua.PushString("ResultCode");
-                Lua.PushInteger(_os_.ReadLong());
+                Lua.PushInteger(resultCode);
                 Lua.SetTable(-3);
                 Lua.PushString("Argument");
                 DecodeBean(_os_, pa.ArgumentBeanTypeId);
