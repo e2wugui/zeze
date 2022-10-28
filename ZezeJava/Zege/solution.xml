@@ -462,9 +462,10 @@
 
 		<!-- 通知用 Zeze.Collections.LinkedMap 下面时自定义数据结构的定义 -->
 		<bean name="BNotify">
-			<variable id="1" name="Title" type="string"/> 显示标题
-			<variable id="2" name="Name"  type="string"/> 通知名字（内部）
-			<variable id="3" name="Data"  type="binary"/> 通知数据（任意）
+			<variable id="1" name="Title"  type="string"/> 显示标题
+			<variable id="2" name="Name"   type="string"/> 通知名字（内部）
+			<variable id="3" name="Data"   type="binary"/> 通知数据（任意）
+			<variable id="4" name="Expire" type="long"/> 到期时间，默认 0， 表示永久。
 		</bean>
 
 		<!-- LogBean.FollowerApply -->
