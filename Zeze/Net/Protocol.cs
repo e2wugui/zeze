@@ -116,17 +116,7 @@ namespace Zeze.Net
 		}
 
 		// always true for Protocol, Rpc Will setup
-		public bool IsRequest
-		{
-			get
-			{
-				return FamilyClass != 0;
-			}
-			set
-			{
-				FamilyClass = value ? Zeze.Net.FamilyClass.Request : Zeze.Net.FamilyClass.Response;
-			}
-		}
+		public bool IsRequest { get; set; } = true;
 		public long ResultCode { get; set; }
 
 		/// <summary>

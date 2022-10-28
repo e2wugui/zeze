@@ -38,7 +38,7 @@ namespace Zeze.Net
         public Rpc()
         {
             this.IsTimeout = false;
-            base.FamilyClass = Zeze.Net.FamilyClass.Request;
+            base.FamilyClass = Zeze.Net.FamilyClass.Rpc;
         }
 
         /// <summary>
@@ -230,6 +230,7 @@ namespace Zeze.Net
         public override void Decode(ByteBuffer bb)
         {
             FamilyClass = bb.ReadInt();
+            IsRequest = bb.ReadBool();
             SessionId = bb.ReadLong();
             ResultCode = bb.ReadLong();
 
@@ -246,6 +247,7 @@ namespace Zeze.Net
         public override void Encode(ByteBuffer bb)
         {
             bb.WriteInt(FamilyClass);
+            bb.WriteBool(IsRequest);
             bb.WriteLong(SessionId);
             bb.WriteLong(ResultCode);
 

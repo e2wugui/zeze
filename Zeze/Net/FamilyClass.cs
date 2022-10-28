@@ -8,8 +8,7 @@ namespace Zeze.Net
 {
     public class FamilyClass
     {
-        public const int Response = 0;
-        public const int Request = 1;
-        public const int Protocol = 2;
+        public const int Protocol = 0;
+        public const int Rpc = 1;
     }
 }
