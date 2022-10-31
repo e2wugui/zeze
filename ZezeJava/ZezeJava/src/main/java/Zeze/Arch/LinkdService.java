@@ -86,8 +86,9 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 			if ((compress & Zeze.Net.FamilyClass.BitResultCode) != 0)
 				bb.ReadLong();
 			var sessionId = bb.ReadLong();
-			var result = EmptyBean.instance;
+			// argument 忽略，必须要解析出来，也不知道是什么。
 
+			// 开始响应rpc.response.
 			// 【注意】复用了上面的变量 bb，compress。
 			compress = FamilyClass.Response;
 			compress |= FamilyClass.BitResultCode;
@@ -95,7 +96,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 			bb.WriteInt(compress);
 			bb.WriteLong(Procedure.Busy);
 			bb.WriteLong(sessionId);
-			result.encode(bb); // emptyBean对应任意bean的默认值状态。
+			EmptyBean.instance.encode(bb); // emptyBean对应任意bean的默认值状态。
 			var so = GetSocket(dispatch.Argument.getLinkSid());
 			if (null != so)
 				so.Send(bb.Bytes, bb.ReadIndex, bb.Size());

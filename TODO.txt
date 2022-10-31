@@ -43,6 +43,7 @@ Zege Add Friend
 	4 Deny     -2     (nop)  (nop) (nop)  (nop)
 	5 Expire   -2     (nop)  (nop) (nop)  (nop)
 	6 Remove   -2     (nop)  (nop) (nop)  (nop)
+Linkd 过载保护，响应rpc.request和报告错误。
 Zeze 过载保护。1. 负载报告完成；2. 负载分配。
 Zeze.Net.FamilyClass 增加FamilyClass，中间转发服务（如Linkd）可用来区分Protocol和Rpc，
 	顺便加入压缩Protocol.ResultCode,Rpc.IsRequest的能力。
