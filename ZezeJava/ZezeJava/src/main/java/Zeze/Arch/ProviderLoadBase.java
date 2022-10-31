@@ -1,4 +1,4 @@
-package Zeze.Game;
+package Zeze.Arch;
 
 import java.util.concurrent.Future;
 import Zeze.Builtin.Provider.BLoad;
@@ -6,20 +6,24 @@ import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.BServerLoad;
 
-public class LoadReporter {
+public abstract class ProviderLoadBase {
 	private long lastLoginTime;
 	private int reportDelaySeconds;
 	private int timeoutDelaySeconds;
 	private Future<?> timerTask;
+	private final Zeze.Application zeze;
+	private final ProviderOverload overload = new ProviderOverload();
 
-	public final Online online;
+	public ProviderLoadBase(Zeze.Application zeze) {
+		this.zeze = zeze;
+	}
 
-	public LoadReporter(Online online) {
-		this.online = online;
+	public ProviderOverload getOverload() {
+		return overload;
 	}
 
 	public final void start() {
-		start(1);
+		start(2);
 	}
 
 	public final void start(int delaySeconds) {
@@ -36,18 +40,31 @@ public class LoadReporter {
 		}
 	}
 
+	public abstract int getOnlineLocalCount();
+	public abstract long getOnlineLoginTimes();
+
+	public abstract LoadConfig getLoadConfig();
+
+	public abstract String getProviderIp();
+	public abstract int getProviderPort();
+
 	private void onTimerTask() {
-		int online = this.online.getLocalCount();
-		long loginTimes = this.online.getLoginTimes();
+		var overload = this.overload.getOverload();
+		int online = getOnlineLocalCount();
+		long loginTimes = getOnlineLoginTimes();
 		int onlineNew = (int)(loginTimes - lastLoginTime);
 		lastLoginTime = loginTimes;
-
 		int onlineNewPerSecond = onlineNew / timeoutDelaySeconds;
-		//noinspection ConstantConditions
-		var config = this.online.providerApp.distribute.loadConfig;
+		var config = getLoadConfig();
+		if (overload != BLoad.eWorkFine) {
+			// fast report
+			report(overload, online, onlineNew);
+			start(2);
+			return;
+		}
 		if (onlineNewPerSecond > config.getMaxOnlineNew()) {
 			// 最近上线太多，马上报告负载。linkd不会再分配用户过来。
-			report(online, onlineNew);
+			report(overload, online, onlineNew);
 			// new delay for digestion
 			start(onlineNewPerSecond / config.getMaxOnlineNew() + config.getDigestionDelayExSeconds());
 			// 消化完后，下一次强迫报告Load。
@@ -58,25 +75,26 @@ public class LoadReporter {
 		reportDelaySeconds += timeoutDelaySeconds;
 		if (reportDelaySeconds >= config.getReportDelaySeconds()) {
 			reportDelaySeconds = 0;
-			report(online, onlineNew);
+			report(overload, online, onlineNew);
 		}
 		start();
 	}
 
-	public void report(int online, int onlineNew) {
+	public void report(int overload, int online, int onlineNew) {
 		var load = new BLoad();
+
+		load.setOverload(overload);
 		load.setOnline(online);
-		//noinspection ConstantConditions
-		load.setProposeMaxOnline(this.online.providerApp.distribute.loadConfig.getProposeMaxOnline());
+		load.setProposeMaxOnline(getLoadConfig().getProposeMaxOnline());
 		load.setOnlineNew(onlineNew);
 		var bb = ByteBuffer.Allocate(256);
 		load.encode(bb);
 
 		var loadServer = new BServerLoad();
-		loadServer.ip = this.online.providerApp.directIp;
-		loadServer.port = this.online.providerApp.directPort;
+		loadServer.ip = getProviderIp();
+		loadServer.port = getProviderPort();
 		loadServer.param = new Binary(bb);
 
-		this.online.providerApp.zeze.getServiceManagerAgent().setServerLoad(loadServer);
+		this.zeze.getServiceManagerAgent().setServerLoad(loadServer);
 	}
 }

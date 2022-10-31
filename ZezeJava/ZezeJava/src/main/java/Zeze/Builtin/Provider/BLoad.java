@@ -7,9 +7,14 @@ import Zeze.Serialize.ByteBuffer;
 public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly {
     public static final long TYPEID = 8972064501607813483L;
 
+    public static final int eWorkFine = 0;
+    public static final int eThreshold = 1;
+    public static final int eOverload = 2;
+
     private int _Online; // 用户数量
     private int _ProposeMaxOnline; // 建议最大用户数量
     private int _OnlineNew; // 最近上线用户数量，一般是一秒内的。用来防止短时间内给同一个gs分配太多用户。
+    private int _Overload; // 过载保护类型。参见上面的枚举定义。
 
     @Override
     public int getOnline() {
@@ -71,21 +76,43 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
         txn.putLog(new Log__OnlineNew(this, 3, value));
     }
 
+    @Override
+    public int getOverload() {
+        if (!isManaged())
+            return _Overload;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _Overload;
+        var log = (Log__Overload)txn.getLog(objectId() + 4);
+        return log != null ? log.value : _Overload;
+    }
+
+    public void setOverload(int value) {
+        if (!isManaged()) {
+            _Overload = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__Overload(this, 4, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BLoad() {
     }
 
     @SuppressWarnings("deprecation")
-    public BLoad(int _Online_, int _ProposeMaxOnline_, int _OnlineNew_) {
+    public BLoad(int _Online_, int _ProposeMaxOnline_, int _OnlineNew_, int _Overload_) {
         _Online = _Online_;
         _ProposeMaxOnline = _ProposeMaxOnline_;
         _OnlineNew = _OnlineNew_;
+        _Overload = _Overload_;
     }
 
     public void assign(BLoad other) {
         setOnline(other.getOnline());
         setProposeMaxOnline(other.getProposeMaxOnline());
         setOnlineNew(other.getOnlineNew());
+        setOverload(other.getOverload());
     }
 
     @Deprecated
@@ -141,6 +168,13 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
         public void commit() { ((BLoad)getBelong())._OnlineNew = value; }
     }
 
+    private static final class Log__Overload extends Zeze.Transaction.Logs.LogInt {
+        public Log__Overload(BLoad bean, int varId, int value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BLoad)getBelong())._Overload = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -154,7 +188,8 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Online").append('=').append(getOnline()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("ProposeMaxOnline").append('=').append(getProposeMaxOnline()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("OnlineNew").append('=').append(getOnlineNew()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("OnlineNew").append('=').append(getOnlineNew()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Overload").append('=').append(getOverload()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -195,6 +230,13 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
                 _o_.WriteInt(_x_);
             }
         }
+        {
+            int _x_ = getOverload();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -212,6 +254,10 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
         }
         if (_i_ == 3) {
             setOnlineNew(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            setOverload(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -236,6 +282,8 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
             return true;
         if (getOnlineNew() < 0)
             return true;
+        if (getOverload() < 0)
+            return true;
         return false;
     }
 
@@ -251,6 +299,7 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
                 case 1: _Online = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
                 case 2: _ProposeMaxOnline = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
                 case 3: _OnlineNew = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 4: _Overload = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
             }
         }
     }

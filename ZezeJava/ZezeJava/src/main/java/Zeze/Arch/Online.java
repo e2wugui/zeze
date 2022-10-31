@@ -49,7 +49,7 @@ public class Online extends AbstractOnline {
 	private static final Logger logger = LogManager.getLogger(Online.class);
 
 	public final ProviderApp providerApp;
-	//public final LoadReporter LoadReporter;
+	public final ProviderLoad load;
 	private final AtomicLong loginTimes = new AtomicLong();
 
 	private final EventDispatcher loginEvents = new EventDispatcher("Online.Login");
@@ -64,6 +64,10 @@ public class Online extends AbstractOnline {
 		 * @return 按普通事务处理过程返回值处理
 		 */
 		long call(String senderAccount, String senderClientId, String target, Binary parameter);
+	}
+
+	public ProviderLoad getLoad() {
+		return load;
 	}
 
 	private final ConcurrentHashMap<String, TransmitAction> transmitActions = new ConcurrentHashMap<>();
@@ -86,7 +90,7 @@ public class Online extends AbstractOnline {
 		if (Reflect.stackWalker.getCallerClass() != RedirectGenMain.class)
 			throw new IllegalCallerException(Reflect.stackWalker.getCallerClass().getName());
 		providerApp = null;
-		//LoadReporter = null;
+		load = null;
 	}
 
 	public Online(AppBase app) {
@@ -97,17 +101,17 @@ public class Online extends AbstractOnline {
 		} else // for RedirectGenMain
 			this.providerApp = null;
 
-		//LoadReporter = new LoadReporter(this);
+		load = new ProviderLoad(this);
 	}
 
 	public void start() {
-		//LoadReporter.StartTimerTask();
+		load.start();
 		verifyLocalTimer = Task.scheduleAtUnsafe(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal); // at 3:10 - 6:10
 		providerApp.builtinModules.put(this.getFullName(), this);
 	}
 
 	public void stop() {
-		//LoadReporter.Stop();
+		load.stop();
 		if (verifyLocalTimer != null)
 			verifyLocalTimer.cancel(false);
 	}

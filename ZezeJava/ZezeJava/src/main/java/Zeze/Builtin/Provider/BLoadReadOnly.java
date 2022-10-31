@@ -10,4 +10,5 @@ public interface BLoadReadOnly {
     public int getOnline();
     public int getProposeMaxOnline();
     public int getOnlineNew();
+    public int getOverload();
 }

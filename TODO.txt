@@ -24,6 +24,7 @@ Zege
 	文档，批注，多人编辑。
 	GMT 时间。
 	好友列表也保存关注对象，可以接收通知。
+Zeze 过载保护。1. 负载报告完成；2. 负载分配TODO。
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag v1.0.9 Task; Zege ...;
@@ -43,7 +44,7 @@ Zege Add Friend
 	4 Deny     -2     (nop)  (nop) (nop)  (nop)
 	5 Expire   -2     (nop)  (nop) (nop)  (nop)
 	6 Remove   -2     (nop)  (nop) (nop)  (nop)
-Zeze 过载保护
+Zeze 过载保护。1. 负载报告完成；2. 负载分配TODO。
 Zeze.Net.FamilyClass 增加FamilyClass，中间转发服务（如Linkd）可用来区分Protocol和Rpc，
 	顺便加入压缩Protocol.ResultCode,Rpc.IsRequest的能力。
 Zege Notify Module Added

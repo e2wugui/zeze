@@ -55,7 +55,7 @@ public class Online extends AbstractOnline {
 	protected static final Logger logger = LogManager.getLogger(Online.class);
 
 	public final ProviderApp providerApp;
-	private final LoadReporter loadReporter;
+	private final ProviderLoad load;
 	private final AtomicLong loginTimes = new AtomicLong();
 
 	private final EventDispatcher loginEvents = new EventDispatcher("Online.Login");
@@ -83,6 +83,10 @@ public class Online extends AbstractOnline {
 		return bean.typeId();
 	}
 
+	public ProviderLoad getLoad() {
+		return load;
+	}
+
 	public static Bean createBeanFromSpecialTypeId(long typeId) {
 		throw new UnsupportedOperationException("Online Memory Table Dynamic Not Need.");
 	}
@@ -92,7 +96,7 @@ public class Online extends AbstractOnline {
 		if (Reflect.stackWalker.getCallerClass() != RedirectGenMain.class)
 			throw new IllegalCallerException(Reflect.stackWalker.getCallerClass().getName());
 		providerApp = null;
-		loadReporter = null;
+		load = null;
 	}
 
 	protected Online(AppBase app) {
@@ -103,17 +107,17 @@ public class Online extends AbstractOnline {
 		} else // for RedirectGenMain
 			this.providerApp = null;
 
-		loadReporter = new LoadReporter(this);
+		load = new ProviderLoad(this);
 	}
 
 	public void start() {
-		loadReporter.start();
+		load.start();
 		verifyLocalTimer = Task.scheduleAtUnsafe(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
 		providerApp.builtinModules.put(this.getFullName(), this);
 	}
 
 	public void stop() {
-		loadReporter.stop();
+		load.stop();
 		if (null != verifyLocalTimer)
 			verifyLocalTimer.cancel(false);
 	}
