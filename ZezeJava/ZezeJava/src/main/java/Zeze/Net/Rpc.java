@@ -21,6 +21,11 @@ public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends 
 	private boolean isRequest = true;
 	private boolean sendResultDone; // XXX ugly
 
+	@Override
+	public int getFamilyClass() {
+		return isRequest ? FamilyClass.Request : FamilyClass.Response;
+	}
+
 	public long getSessionId() {
 		return sessionId;
 	}
@@ -252,8 +257,7 @@ public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends 
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		// skip value of this.FamilyClass
-		var compress = isRequest ? Zeze.Net.FamilyClass.Request : Zeze.Net.FamilyClass.Response;
+		var compress = getFamilyClass();
 		if (resultCode != 0)
 			compress |= Zeze.Net.FamilyClass.BitResultCode;
 		bb.WriteInt(compress);
@@ -271,7 +275,7 @@ public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends 
 	@Override
 	public void decode(ByteBuffer bb) {
 		var compress = bb.ReadInt();
-		familyClass = compress & Zeze.Net.FamilyClass.FamilyClassMask;
+		var familyClass = compress & Zeze.Net.FamilyClass.FamilyClassMask;
 		isRequest = familyClass == Zeze.Net.FamilyClass.Request;
 		resultCode = ((compress & Zeze.Net.FamilyClass.BitResultCode) != 0) ? bb.ReadLong() : 0;
 		sessionId = bb.ReadLong();

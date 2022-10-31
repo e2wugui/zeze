@@ -12,7 +12,7 @@ namespace Zeze.Net
         public abstract int ProtocolId { get; }
 
 		public long TypeId => (long)ModuleId << 32 | (uint)ProtocolId;
-		public int FamilyClass { get; protected set; } = Zeze.Net.FamilyClass.Protocol;
+		public virtual int FamilyClass => Zeze.Net.FamilyClass.Protocol;
 
 #if USE_CONFCS
 		public virtual Zeze.Util.ConfBean ResultBean { get; }
@@ -224,7 +224,7 @@ namespace Zeze.Net
         public override void Decode(ByteBuffer bb)
         {
             var compress = bb.ReadInt();
-            FamilyClass = compress & Zeze.Net.FamilyClass.FamilyClassMask;
+            //FamilyClass = compress & Zeze.Net.FamilyClass.FamilyClassMask;
             ResultCode = ((compress & Zeze.Net.FamilyClass.BitResultCode) != 0) ? bb.ReadLong() : 0;
             Argument.Decode(bb);
 		}

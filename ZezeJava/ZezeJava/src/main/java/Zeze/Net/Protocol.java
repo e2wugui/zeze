@@ -9,7 +9,10 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 
 	private AsyncSocket sender;
 	private Object userState;
-	protected int familyClass = FamilyClass.Protocol;
+
+	public int getFamilyClass() {
+		return FamilyClass.Protocol;
+	}
 
 	protected long resultCode;
 	public TArgument Argument;
@@ -79,7 +82,7 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		var compress = this.familyClass;
+		var compress = FamilyClass.Protocol;
 		if (resultCode != 0)
 			compress |= Zeze.Net.FamilyClass.BitResultCode;
 		bb.WriteInt(compress);
@@ -91,7 +94,7 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 	@Override
 	public void decode(ByteBuffer bb) {
 		var compress = bb.ReadInt();
-		familyClass = compress & Zeze.Net.FamilyClass.FamilyClassMask;
+		// familyClass = compress & Zeze.Net.FamilyClass.FamilyClassMask;
 		resultCode = ((compress & Zeze.Net.FamilyClass.BitResultCode) != 0) ? bb.ReadLong() : 0;
 		Argument.decode(bb);
 	}
