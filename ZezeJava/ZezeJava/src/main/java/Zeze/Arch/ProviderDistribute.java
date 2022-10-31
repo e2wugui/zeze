@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
+import Zeze.Builtin.Provider.BLoad;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.Agent;
@@ -16,7 +17,6 @@ import Zeze.Util.Random;
 /**
  * Provider负载分发算法。
  * Linkd,Provider都需要使用。这里原则上必须是抽象的。
- * 目前LoadConfig仅用于Linkd。Provider可以传null，并不使用相关算法(ChoiceLoad)。
  */
 public class ProviderDistribute {
 	public final Application zeze;
@@ -66,14 +66,26 @@ public class ProviderDistribute {
 	}
 
 	// ChoiceDataIndex 用于RedirectAll或者那些已知数据分块索引的地方。
-	public static BServiceInfo choiceDataIndex(ConsistentHash<BServiceInfo> consistentHash,
+	public BServiceInfo choiceDataIndex(Agent.SubscribeState providers, ConsistentHash<BServiceInfo> consistentHash,
 											   int dataIndex, int dataConcurrentLevel) {
 		if (consistentHash == null)
 			return null;
 //		if (consistentHash.getNodes().size() > dataConcurrentLevel)
 //			throw new IllegalStateException("ChoiceDataIndex: too many servers: "
 //			+ consistentHash.getNodes().size() + " > " + dataConcurrentLevel);
-		return consistentHash.get(ByteBuffer.calc_hashnr(dataIndex));
+		var serviceInfo = consistentHash.get(ByteBuffer.calc_hashnr(dataIndex));
+		if (null != serviceInfo) {
+			var providerModuleState = (ProviderModuleState)providers.localStates.get(serviceInfo.getServiceIdentity());
+			if (providerModuleState == null)
+				return null;
+			var providerSocket = providerService.GetSocket(providerModuleState.sessionId);
+			if (providerSocket == null)
+				return null;
+			var ps = (LinkdProviderSession)providerSocket.getUserState();
+			if (ps.load.getOverload() == BLoad.eOverload)
+				return null;
+		}
+		return serviceInfo;
 	}
 
 	public BServiceInfo choiceHash(Agent.SubscribeState providers, int hash, int dataConcurrentLevel) {
@@ -84,7 +96,7 @@ public class ProviderDistribute {
 		if (dataConcurrentLevel <= 1)
 			return consistentHash.get(hash);
 
-		return choiceDataIndex(consistentHash, (int)((hash & 0xffff_ffffL) % dataConcurrentLevel), dataConcurrentLevel);
+		return choiceDataIndex(providers, consistentHash, (int)((hash & 0xffff_ffffL) % dataConcurrentLevel), dataConcurrentLevel);
 	}
 
 	public BServiceInfo choiceHash(Agent.SubscribeState providers, int hash) {
@@ -122,18 +134,21 @@ public class ProviderDistribute {
 			}
 			// Object tempVar2 = App.ProviderService.GetSocket(providerModuleState.getSessionId()).getUserState();
 			var ps = (ProviderSession)providerService.GetSocket(providerModuleState.sessionId).getUserState();
-			if (ps == null) {
+			if (ps == null)
 				continue; // 这里发现关闭的服务，仅仅忽略.
-			}
+
+			if (ps.load.getOverload() == BLoad.eOverload)
+				continue; // 忽略过载的服务器
+
 			all.add(ps);
 
-			if (ps.load.getOnlineNew() > loadConfig.getMaxOnlineNew()) {
+			if (ps.load.getOnlineNew() > loadConfig.getMaxOnlineNew())
 				continue;
-			}
+
 			int weight = ps.load.getProposeMaxOnline() - ps.load.getOnline();
-			if (weight <= 0) {
+			if (weight <= 0)
 				continue;
-			}
+
 			frees.add(ps);
 			TotalWeight += weight;
 		}
@@ -173,9 +188,13 @@ public class ProviderDistribute {
 			if (providerSocket == null)
 				continue;
 			var ps = (LinkdProviderSession)providerSocket.getUserState();
+
 			// 这里发现关闭的服务，仅仅忽略.
 			if (ps == null)
 				continue;
+
+			if (ps.load.getOverload() == BLoad.eOverload)
+				continue; // 忽略过载服务器。
 
 			// 这个和一个一个喂饱冲突，但是一下子给一个服务分配太多用户，可能超载。如果不想让这个生效，把MaxOnlineNew设置的很大。
 			if (ps.load.getOnlineNew() > loadConfig.getMaxOnlineNew())
