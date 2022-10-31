@@ -28,6 +28,7 @@ public class Procedure {
 	public static final long RaftApplied = -16;
 	public static final long RaftExpired = -17;
 	public static final long Closed = -18;
+	public static final long Busy = -19;
 	// >0 用户自定义。
 
 	public interface ILogAction {

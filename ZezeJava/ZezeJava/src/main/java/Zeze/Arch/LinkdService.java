@@ -3,13 +3,17 @@ package Zeze.Arch;
 import Zeze.Builtin.LinkdBase.BReportError;
 import Zeze.Builtin.LinkdBase.ReportError;
 import Zeze.Builtin.Provider.BDispatch;
+import Zeze.Builtin.Provider.BLoad;
 import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
+import Zeze.Net.FamilyClass;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.EmptyBean;
+import Zeze.Transaction.Procedure;
 import Zeze.Util.ConcurrentLruLike;
 import Zeze.Util.OutLong;
 import Zeze.Util.Task;
@@ -71,7 +75,40 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		super.Start();
 	}
 
+	private void reportError(Dispatch dispatch) {
+		// 如果是 rpc.request 直接返回Procedure.Busy错误。
+		// see Zeze.Net.Rpc.decode/encode
+		var bb = ByteBuffer.Wrap(dispatch.Argument.getProtocolData());
+		var compress = bb.ReadInt();
+		var familyClass = compress & FamilyClass.FamilyClassMask;
+		var isRequest = familyClass == FamilyClass.Request;
+		if (isRequest) {
+			if ((compress & Zeze.Net.FamilyClass.BitResultCode) != 0)
+				bb.ReadLong();
+			var sessionId = bb.ReadLong();
+			var result = EmptyBean.instance;
+
+			// 【注意】复用了上面的变量 bb，compress。
+			compress = FamilyClass.Response;
+			compress |= FamilyClass.BitResultCode;
+			bb = ByteBuffer.Allocate();
+			bb.WriteInt(compress);
+			bb.WriteLong(Procedure.Busy);
+			bb.WriteLong(sessionId);
+			result.encode(bb); // emptyBean对应任意bean的默认值状态。
+			var so = GetSocket(dispatch.Argument.getLinkSid());
+			if (null != so)
+				so.Send(bb.Bytes, bb.ReadIndex, bb.Size());
+		}
+		// 报告服务器繁忙，但不关闭连接。
+		reportError(dispatch.Argument.getLinkSid(), BReportError.FromLink, BReportError.CodeProviderBusy, "provider is busy.", false);
+	}
+
 	public void reportError(long linkSid, int from, int code, String desc) {
+		reportError(linkSid, from, code, desc, true);
+	}
+
+	private void reportError(long linkSid, int from, int code, String desc, boolean closeLink) {
 		var link = GetSocket(linkSid);
 		if (link != null) {
 			new ReportError(new BReportError(from, code, desc)).Send(link);
@@ -91,11 +128,13 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 			}
 			// 延迟关闭。等待客户端收到错误以后主动关闭，或者超时。
 			// 虽然使用了写完关闭(CloseGracefully)方法，但是等待一下，尽量让客户端主动关闭，有利于减少 TCP_TIME_WAIT?
-			Task.schedule(2000, () -> {
-				var so = GetSocket(linkSid);
-				if (so != null)
-					so.closeGracefully();
-			});
+			if (closeLink) {
+				Task.schedule(2000, () -> {
+					var so = GetSocket(linkSid);
+					if (so != null)
+						so.closeGracefully();
+				});
+			}
 		}
 	}
 
@@ -173,11 +212,18 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		var providerSessionId = linkSession.tryGetProvider(moduleId);
 		if (providerSessionId != null) {
 			var socket = linkdApp.linkdProviderService.GetSocket(providerSessionId);
-			if (socket != null)
-				return socket.Send(dispatch);
-			// 原来绑定的provider找不到连接，尝试继续从静态绑定里面查找。
-			// 此时应该处于 UnBind 过程中。
-			//linkSession.UnBind(so, moduleId, null);
+			if (socket == null)
+				return false;
+
+			var ps = (LinkdProviderSession)socket.getUserState();
+			if (ps.load.getOverload() == BLoad.eOverload) {
+				// 过载时会直接拒绝请求以及报告错误。
+				reportError(dispatch);
+				// 但是不能继续派发了。所以这里返回true，表示处理完成。
+				return true;
+			}
+
+			return socket.Send(dispatch);
 		}
 		return false;
 	}
@@ -186,10 +232,19 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		var provider = new OutLong();
 		if (linkdApp.linkdProvider.choiceProviderAndBind(moduleId, so, provider)) {
 			var providerSocket = linkdApp.linkdProviderService.GetSocket(provider.value);
-			if (providerSocket != null) {
-				// ChoiceProviderAndBind 内部已经处理了绑定。这里只需要发送。
-				return providerSocket.Send(dispatch);
+			if (providerSocket == null)
+				return false;
+
+			var ps = (LinkdProviderSession)providerSocket.getUserState();
+			if (ps.load.getOverload() == BLoad.eOverload) {
+				// 过载时会直接拒绝请求以及报告错误。
+				reportError(dispatch);
+				// 但是不能继续派发了。所以这里返回true，表示处理完成。
+				return true;
 			}
+
+			// ChoiceProviderAndBind 内部已经处理了绑定。这里只需要发送。
+			return providerSocket.Send(dispatch);
 			// 找到provider但是发送之前连接关闭，当作没有找到处理。这个窗口很小，再次查找意义不大。
 		}
 		return false;

@@ -27,6 +27,7 @@ namespace Zeze.Util
         public const long RaftApplied = -16;
         public const long RaftExpired = -17;
         public const long Closed = -18;
+        public const long Busy = -19;
         // >0 用户自定义。
     }
 }

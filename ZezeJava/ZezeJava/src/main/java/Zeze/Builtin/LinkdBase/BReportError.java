@@ -12,6 +12,7 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
     public static final int FromProvider = 1;
     public static final int CodeNotAuthed = 1;
     public static final int CodeNoProvider = 2;
+    public static final int CodeProviderBusy = 3;
 
     private int _from;
     private int _code;
