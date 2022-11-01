@@ -50,8 +50,8 @@ public class ProviderOverload {
 		public boolean equals(Object other) {
 			if (other == this)
 				return true;
-			if (other instanceof ThreadPoolMonitor config) {
-				return threadPool.equals(config.threadPool);
+			if (other instanceof ThreadPoolMonitor) {
+				return threadPool.equals(((ThreadPoolMonitor)other).threadPool);
 			}
 			return false;
 		}
