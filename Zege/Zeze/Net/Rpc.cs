@@ -26,7 +26,7 @@ namespace Zeze.Net
         public override Zeze.Transaction.Bean ResultBean => Result;
 #endif
         public Binary ResultEncoded { get; set; } // 如果设置了这个，发送结果的时候，优先使用这个编码过的。
-
+        public override int FamilyClass => IsRequest ? Zeze.Net.FamilyClass.Request : Zeze.Net.FamilyClass.Response;
         public bool IsTimeout { get; internal set; }
         public long SessionId { get; set; }
 
@@ -38,7 +38,6 @@ namespace Zeze.Net
         public Rpc()
         {
             this.IsTimeout = false;
-            base.FamilyClass = Zeze.Net.FamilyClass.Request;
         }
 
         /// <summary>
@@ -230,8 +229,8 @@ namespace Zeze.Net
         public override void Decode(ByteBuffer bb)
         {
             var compress = bb.ReadInt();
-            FamilyClass = compress & Zeze.Net.FamilyClass.FamilyClassMask;
-            IsRequest = FamilyClass == Zeze.Net.FamilyClass.Request;
+            var familyClass = compress & Zeze.Net.FamilyClass.FamilyClassMask;
+            IsRequest = familyClass == Zeze.Net.FamilyClass.Request;
             ResultCode = ((compress & Zeze.Net.FamilyClass.BitResultCode) != 0) ? bb.ReadLong() : 0;
             SessionId = bb.ReadLong();
             if (IsRequest)
@@ -242,7 +241,7 @@ namespace Zeze.Net
 
         public override void Encode(ByteBuffer bb)
         {
-            var compress = IsRequest ? Zeze.Net.FamilyClass.Request : Zeze.Net.FamilyClass.Response; // skip value of FamilyClass
+            var compress = FamilyClass;
             if (ResultCode != 0)
                 compress |= Zeze.Net.FamilyClass.BitResultCode;
             bb.WriteInt(compress);

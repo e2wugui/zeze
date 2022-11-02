@@ -34,7 +34,6 @@ Zege Add Friend
 	* 操作：Invite-Accept-Deny-Expire；Remove；
 	* 状态：Invite,Normal,Deny,Remove,Expire,(None)
 		(None) 表示数据不存在。
-	* 数据：FriendList,NotifyList。
 	State      Operate
 	FriendList Invite Accept Deny  Expire Remove
 	1 (None)   -2     (nop)  (nop) (nop)  (nop)
@@ -43,6 +42,37 @@ Zege Add Friend
 	4 Deny     -2     (nop)  (nop) (nop)  (nop)
 	5 Expire   -2     (nop)  (nop) (nop)  (nop)
 	6 Remove   -2     (nop)  (nop) (nop)  (nop)
+Bean.setBean
+	class Beanx
+	{
+		private Beany _Beany;
+		public Beany
+		{
+			get
+			{
+				if (!IsManaged)
+					return _Beany;
+				var txn = Zeze.Transaction.Transaction.Current;
+				if (txn == null) return _int1;
+				txn.VerifyRecordAccessed(this, true);
+				var log = (Log__Beany)txn.GetLog(ObjectId + 1);
+				return log != null ? log.Value : _Beany;
+			}
+
+			set
+			{
+				if (!IsManaged)
+				{
+				    _Beany = value;
+				    return;
+				}
+				value.InitRootInfoWithRedo(RootInfo, this);
+				var txn = Zeze.Transaction.Transaction.Current;
+				txn.VerifyRecordAccessed(this);
+				txn.PutLog(new Log__Beany() { Belong = this, VariableId = 1, Value = value });
+			}
+		}
+	}
 Linkd 过载保护，响应rpc.request和报告错误。
 Zeze 过载保护。1. 负载报告完成；2. 负载分配。
 Zeze.Net.FamilyClass 增加FamilyClass，中间转发服务（如Linkd）可用来区分Protocol和Rpc，

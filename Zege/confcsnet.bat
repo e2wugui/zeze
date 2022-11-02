@@ -18,6 +18,9 @@ REM --------------------------------------------------------------
 
 md %project_dir%\Zeze 2> nul
 
+REM Serialize在上面的ExportConf中目录已经创建了。
+xcopy /Y %zeze_src_dir%\Zeze\Serialize\Vector3.cs %project_dir%\Zeze\Serialize
+
 md %project_dir%\Zeze\Net 2> nul
 xcopy /Y %zeze_src_dir%\Zeze\Net %project_dir%\Zeze\Net
 

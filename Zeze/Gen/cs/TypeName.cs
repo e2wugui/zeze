@@ -98,32 +98,32 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeQuaternion type)
         {
-            throw new System.NotImplementedException();
+            name = "Zeze.Serialize.Quaternion";
         }
 
         public void Visit(TypeVector2 type)
         {
-            throw new System.NotImplementedException();
+            name = "Zeze.Serialize.Vector2";
         }
 
         public void Visit(TypeVector2Int type)
         {
-            throw new System.NotImplementedException();
+            name = "Zeze.Serialize.Vector2Int";
         }
 
         public void Visit(TypeVector3 type)
         {
-            throw new System.NotImplementedException();
+            name = "Zeze.Serialize.Vector3";
         }
 
         public void Visit(TypeVector3Int type)
         {
-            throw new System.NotImplementedException();
+            name = "Zeze.Serialize.Vector3Int";
         }
 
         public void Visit(TypeVector4 type)
         {
-            throw new System.NotImplementedException();
+            name = "Zeze.Serialize.Vector4";
         }
     }
 }

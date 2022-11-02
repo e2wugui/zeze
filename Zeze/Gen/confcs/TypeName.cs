@@ -108,32 +108,32 @@ namespace Zeze.Gen.confcs
 
         public void Visit(TypeQuaternion type)
         {
-            name = "UnityEngine.Quaternion";
+            name = Project.MakingInstance.IsUnity ? "UnityEngine.Quaternion" : "Zeze.Serialize.Quaternion";
         }
 
         public void Visit(TypeVector2 type)
         {
-            name = "UnityEngine.Vector2";
+            name = Project.MakingInstance.IsUnity ? "UnityEngine.Vector2" : "Zeze.Serialize.Vector2";
         }
 
         public void Visit(TypeVector2Int type)
         {
-            name = "UnityEngine.Vector2Int";
+            name = Project.MakingInstance.IsUnity ? "UnityEngine.Vector2Int" : "Zeze.Serialize.Vector2Int";
         }
 
         public void Visit(TypeVector3 type)
         {
-            name = "UnityEngine.Vector3";
+            name = Project.MakingInstance.IsUnity ? "UnityEngine.Vector3" : "Zeze.Serialize.Vector3";
         }
 
         public void Visit(TypeVector3Int type)
         {
-            name = "UnityEngine.Vector3Int";
+            name = Project.MakingInstance.IsUnity ? "UnityEngine.Vector3Int" : "Zeze.Serialize.Vector3Int";
         }
 
         public void Visit(TypeVector4 type)
         {
-            name = "UnityEngine.Vector4";
+            name = Project.MakingInstance.IsUnity ? "UnityEngine.Vector4" : "Zeze.Serialize.Vector4";
         }
     }
 }

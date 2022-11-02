@@ -36,6 +36,7 @@ namespace Zeze.Gen
         public static Project MakingInstance { get; set; }
         public string SolutionName { get; set; }
         public bool MappingClass { get; set; }
+        public bool IsUnity { get; private set; } = false;
 
         public List<Module> GetAllOrderdRefModules()
         {
@@ -86,6 +87,7 @@ namespace Zeze.Gen
             MacroEditor = self.GetAttribute("MacroEditor");
             SolutionName = self.GetAttribute("SolutionName");
             MappingClass = self.GetAttribute("MappingClass").Equals("true");
+            IsUnity = self.GetAttribute("IsUnity").Equals("true");
 
             //Program.AddNamedObject(FullName, this);
 
