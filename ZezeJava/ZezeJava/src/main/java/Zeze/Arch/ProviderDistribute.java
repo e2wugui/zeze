@@ -81,7 +81,7 @@ public class ProviderDistribute {
 			var providerSocket = providerService.GetSocket(providerModuleState.sessionId);
 			if (providerSocket == null)
 				return null;
-			var ps = (LinkdProviderSession)providerSocket.getUserState();
+			var ps = (ProviderSession)providerSocket.getUserState();
 			if (ps.load.getOverload() == BLoad.eOverload)
 				return null;
 		}
@@ -187,7 +187,7 @@ public class ProviderDistribute {
 			var providerSocket = providerService.GetSocket(providerModuleState.sessionId);
 			if (providerSocket == null)
 				continue;
-			var ps = (LinkdProviderSession)providerSocket.getUserState();
+			var ps = (ProviderSession)providerSocket.getUserState();
 
 			// 这里发现关闭的服务，仅仅忽略.
 			if (ps == null)
