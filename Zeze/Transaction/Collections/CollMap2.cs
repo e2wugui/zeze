@@ -152,11 +152,13 @@ namespace Zeze.Transaction.Collections
 
 		public override LogBean CreateLogBean()
 		{
-			var log = new LogMap2<K, V>();
-			log.Belong = Parent;
-			log.This = this;
-			log.VariableId = VariableId;
-			log.Value = _map;
+			var log = new LogMap2<K, V>
+			{
+				Belong = Parent,
+				This = this,
+				VariableId = VariableId,
+				Value = _map
+			};
 			return log;
 		}
 

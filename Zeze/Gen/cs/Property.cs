@@ -66,8 +66,19 @@ namespace Zeze.Gen.cs
             var typeName = TypeName.GetName(type);
             var typeNameReadOnly = typeName + "ReadOnly";
             var beanNameReadOnly = TypeName.GetName(var.Bean) + "ReadOnly";
-            sw.WriteLine(prefix + "public " + typeName + " " + var.NameUpper1 + " => " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + typeNameReadOnly + " " + beanNameReadOnly + "." + var.NameUpper1 + " => " + var.NamePrivate + ";");
+            sw.WriteLine($"{prefix}public {typeName} {var.NameUpper1}");
+            sw.WriteLine($"{prefix}{{");
+            sw.WriteLine($"{prefix}    get");
+            sw.WriteLine($"{prefix}    {{");
+            sw.WriteLine($"{prefix}        return {var.NamePrivate}.Value;");
+            sw.WriteLine($"{prefix}    }}");
+            sw.WriteLine($"{prefix}    set");
+            sw.WriteLine($"{prefix}    {{");
+            sw.WriteLine($"{prefix}        {var.NamePrivate}.Value = value;");
+            sw.WriteLine($"{prefix}    }}");
+            sw.WriteLine($"{prefix}}}");
+            sw.WriteLine();
+            sw.WriteLine(prefix + typeNameReadOnly + " " + beanNameReadOnly + "." + var.NameUpper1 + " => " + var.NamePrivate + ".Value;");
         }
 
         void WriteProperty(Type type, bool checkNull = false)

@@ -168,7 +168,7 @@ namespace Zeze.Transaction
 
 			if (false == Beans.TryGetValue(log.Belong.ObjectId, out LogBean logbean))
 			{
-				if (log.Belong is Collection)
+				if (log.Belong is Collection) 
 				{
 					// 容器使用共享的日志。需要先去查询，没有的话才创建。
 					logbean = (LogBean)Transaction.Current.GetLog(log.Belong.Parent.ObjectId + log.Belong.VariableId);

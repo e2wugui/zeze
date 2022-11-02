@@ -87,7 +87,7 @@ namespace Zeze.Gen.cs
         public void Visit(Bean type)
         {
             string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "();");
+            sw.WriteLine(prefix + variable.NamePrivate + $" = new Zeze.Transaction.Collections.CollOne<{typeName}>();");
             sw.WriteLine(prefix + variable.NamePrivate + $".VariableId = {variable.Id};");
         }
 

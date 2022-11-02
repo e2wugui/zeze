@@ -118,7 +118,12 @@ namespace Zeze.Gen.cs
                     || vt is Bean
                     || vt is TypeDynamic
                     ? "readonly " : "";
-                sw.WriteLine("        " + ro + TypeName.GetName(vt) + " " + v.NamePrivate + ";" + v.Comment);
+
+                if (vt is Bean)
+                    sw.WriteLine($"        {ro}Zeze.Transaction.Collections.CollOne<{TypeName.GetName(vt)}> {v.NamePrivate};{v.Comment}");
+                else
+                    sw.WriteLine("        " + ro + TypeName.GetName(vt) + " " + v.NamePrivate + ";" + v.Comment);
+
                 if (vt is TypeMap pmap)
                 {
                     var key = TypeName.GetName(pmap.KeyType);

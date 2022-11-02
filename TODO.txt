@@ -34,15 +34,7 @@ Zege Add Friend
 	* 操作：Invite-Accept-Deny-Expire；Remove；
 	* 状态：Invite,Normal,Deny,Remove,Expire,(None)
 		(None) 表示数据不存在。
-	State      Operate
-	FriendList Invite Accept Deny  Expire Remove
-	1 (None)   -2     (nop)  (nop) (nop)  (nop)
-	2 Invite   -2     -3     -4    -5     (nop)
-	3 Normal   (nop)  (nop)  (nop) (nop)  -6
-	4 Deny     -2     (nop)  (nop) (nop)  (nop)
-	5 Expire   -2     (nop)  (nop) (nop)  (nop)
-	6 Remove   -2     (nop)  (nop) (nop)  (nop)
-Bean.setBean
+Bean.setBean CollBean<> LogCollBean<>
 	class Beanx
 	{
 		private Beany _Beany;
@@ -53,23 +45,33 @@ Bean.setBean
 				if (!IsManaged)
 					return _Beany;
 				var txn = Zeze.Transaction.Transaction.Current;
-				if (txn == null) return _int1;
+				if (txn == null)
+					return _Beany;
 				txn.VerifyRecordAccessed(this, true);
-				var log = (Log__Beany)txn.GetLog(ObjectId + 1);
-				return log != null ? log.Value : _Beany;
+				if (false == txn.TryGetLog(ObjectId + 1, out var log))
+					return _Beany;
+				var logBean = (LogSetBean)log;
+				return logBean.Value;
 			}
 
 			set
 			{
+				if (null == value)
+					throw new ArgumentException("value is null");
 				if (!IsManaged)
 				{
-				    _Beany = value;
-				    return;
+					_Beany = value;
+					return;
 				}
 				value.InitRootInfoWithRedo(RootInfo, this);
 				var txn = Zeze.Transaction.Transaction.Current;
 				txn.VerifyRecordAccessed(this);
-				txn.PutLog(new Log__Beany() { Belong = this, VariableId = 1, Value = value });
+				var logBean = (LogSetBean)txn.LogGetOrAdd(ObjectId + 1,
+					() =>
+					{
+						return new LogSetBean((newValue) => _Beany = (Beany)newValue) { Belong = this, VariableId = 1 }
+					});
+				logBean.SetBean(value);
 			}
 		}
 	}
