@@ -59,6 +59,7 @@ xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\LogMap1.cs %project_dir%\Ze
 xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\LogMap2.cs %project_dir%\Zeze\Transaction\Collections\
 xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\LogSet.cs %project_dir%\Zeze\Transaction\Collections\
 xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\LogSet1.cs %project_dir%\Zeze\Transaction\Collections\
+xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\LogOne.cs %project_dir%\Zeze\Transaction\Collections\
 xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\CollApply.cs %project_dir%\Zeze\Transaction\Collections\
 
 REM ---------------------------------------------------------------

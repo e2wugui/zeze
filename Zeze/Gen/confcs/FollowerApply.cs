@@ -102,7 +102,7 @@ namespace Zeze.Gen.confcs
 
         public void Visit(Types.Bean type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NameUpper1}.FollowerApply(vlog); break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: Zeze.Transaction.Collections.CollApply.ApplyOne<{type.FullName}>(ref {var.NameUpper1}, vlog); break;");
         }
 
         public void Visit(Types.BeanKey type)

@@ -201,13 +201,16 @@ namespace Zeze.Gen.java
         {
             var typeName = TypeName.GetName(type);
             sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + " {");
-            sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + "    return " + var.NamePrivate + ".getValue();");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
-
+            sw.WriteLine(prefix + "public void " + var.Setter($"{typeName} value") + " {");
+            sw.WriteLine(prefix + "    " + var.NamePrivate + ".setValue(value);");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine();
             sw.WriteLine($"{prefix}@Override");
             sw.WriteLine($"{prefix}public {TypeName.GetName(type)}ReadOnly get{var.NameUpper1}ReadOnly() {{");
-            sw.WriteLine($"{prefix}    return {var.NamePrivate};");
+            sw.WriteLine($"{prefix}    return {var.NamePrivate}.getValue();");
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
         }

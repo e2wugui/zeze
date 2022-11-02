@@ -138,7 +138,12 @@ namespace Zeze.Gen.java
                     // || vt is TypeVector4
                     // || vt is TypeQuaternion
                     ? "final " : "";
-                sw.WriteLine("    private " + final + TypeName.GetName(vt) + " " + v.NamePrivate + ";" + v.Comment);
+
+                if (vt is Bean)
+                    sw.WriteLine($"        {final}Zeze.Transaction.Collections.CollOne<{TypeName.GetName(vt)}> {v.NamePrivate};{v.Comment}");
+                else
+                    sw.WriteLine("    private " + final + TypeName.GetName(vt) + " " + v.NamePrivate + ";" + v.Comment);
+
                 // ReadOnlyMap
                 /*
                 if (vt is TypeMap pmap)

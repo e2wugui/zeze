@@ -111,5 +111,24 @@ namespace Zeze.Transaction.Collections
             _set.Union(log.Added);
             _set.Except(log.Removed);
         }
+
+        public static void ApplyOne<V>(ref V value, Log _log)
+#if USE_CONFCS
+			where V : Util.ConfBean, new()
+#else
+            where V : Bean, new()
+#endif
+        {
+            var log = (LogOne<V>)_log;
+            if (null != log.Value)
+            {
+                value = log.Value;
+            }
+            else if (null != log.LogBean)
+            {
+                value.FollowerApply(log.LogBean);
+            }
+
+        }
     }
 }
