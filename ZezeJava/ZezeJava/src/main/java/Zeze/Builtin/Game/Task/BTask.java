@@ -82,7 +82,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
     public BTask() {
         _TaskId = "";
         _TaskName = "";
-        _CurrentPhase = new Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Game.Task.BTaskPhase>(Zeze.Builtin.Game.Task.BTaskPhase.class);
+        _CurrentPhase = new Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Game.Task.BTaskPhase>(new Zeze.Builtin.Game.Task.BTaskPhase(), Zeze.Builtin.Game.Task.BTaskPhase.class);
         _CurrentPhase.variableId(3);
         _TaskPhases = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Game.Task.BTaskPhase.class);
         _TaskPhases.variableId(4);
@@ -96,7 +96,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         if (_TaskName_ == null)
             throw new IllegalArgumentException();
         _TaskName = _TaskName_;
-        _CurrentPhase = new Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Game.Task.BTaskPhase>(Zeze.Builtin.Game.Task.BTaskPhase.class);
+        _CurrentPhase = new Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Game.Task.BTaskPhase>(new Zeze.Builtin.Game.Task.BTaskPhase(), Zeze.Builtin.Game.Task.BTaskPhase.class);
         _CurrentPhase.variableId(3);
         _TaskPhases = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Game.Task.BTaskPhase.class);
         _TaskPhases.variableId(4);

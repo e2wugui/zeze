@@ -72,7 +72,7 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
     public BTaskPhase() {
         _PhaseId = "";
         _PhaseName = "";
-        _CurrentCondition = new Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Game.Task.BTaskCondition>(Zeze.Builtin.Game.Task.BTaskCondition.class);
+        _CurrentCondition = new Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Game.Task.BTaskCondition>(new Zeze.Builtin.Game.Task.BTaskCondition(), Zeze.Builtin.Game.Task.BTaskCondition.class);
         _CurrentCondition.variableId(3);
     }
 
@@ -84,7 +84,7 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
         if (_PhaseName_ == null)
             throw new IllegalArgumentException();
         _PhaseName = _PhaseName_;
-        _CurrentCondition = new Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Game.Task.BTaskCondition>(Zeze.Builtin.Game.Task.BTaskCondition.class);
+        _CurrentCondition = new Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Game.Task.BTaskCondition>(new Zeze.Builtin.Game.Task.BTaskCondition(), Zeze.Builtin.Game.Task.BTaskCondition.class);
         _CurrentCondition.variableId(3);
     }
 
