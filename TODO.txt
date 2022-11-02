@@ -35,46 +35,6 @@ Zege Add Friend
 	* 状态：Invite,Normal,Deny,Remove,Expire,(None)
 		(None) 表示数据不存在。
 Bean.setBean CollBean<> LogCollBean<>
-	class Beanx
-	{
-		private Beany _Beany;
-		public Beany
-		{
-			get
-			{
-				if (!IsManaged)
-					return _Beany;
-				var txn = Zeze.Transaction.Transaction.Current;
-				if (txn == null)
-					return _Beany;
-				txn.VerifyRecordAccessed(this, true);
-				if (false == txn.TryGetLog(ObjectId + 1, out var log))
-					return _Beany;
-				var logBean = (LogSetBean)log;
-				return logBean.Value;
-			}
-
-			set
-			{
-				if (null == value)
-					throw new ArgumentException("value is null");
-				if (!IsManaged)
-				{
-					_Beany = value;
-					return;
-				}
-				value.InitRootInfoWithRedo(RootInfo, this);
-				var txn = Zeze.Transaction.Transaction.Current;
-				txn.VerifyRecordAccessed(this);
-				var logBean = (LogSetBean)txn.LogGetOrAdd(ObjectId + 1,
-					() =>
-					{
-						return new LogSetBean((newValue) => _Beany = (Beany)newValue) { Belong = this, VariableId = 1 }
-					});
-				logBean.SetBean(value);
-			}
-		}
-	}
 Linkd 过载保护，响应rpc.request和报告错误。
 Zeze 过载保护。1. 负载报告完成；2. 负载分配。
 Zeze.Net.FamilyClass 增加FamilyClass，中间转发服务（如Linkd）可用来区分Protocol和Rpc，
