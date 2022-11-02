@@ -12,7 +12,8 @@ public class CollOne<V extends Bean> extends Collection {
     V _Value;
     private final MethodHandle valueFactory;
 
-    public CollOne(Class<V> valueClass) {
+    public CollOne(V init, Class<V> valueClass) {
+        _Value = init;
         valueFactory = Reflect.getDefaultConstructor(valueClass);
     }
 

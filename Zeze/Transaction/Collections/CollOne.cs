@@ -10,7 +10,7 @@ namespace Zeze.Transaction.Collections
 {
     public class CollOne<V> : Collection where V : Bean, new()
     {
-        internal V _Value;
+        internal V _Value = new();
 
         public V Value
         {

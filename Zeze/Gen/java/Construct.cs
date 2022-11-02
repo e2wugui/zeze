@@ -180,7 +180,7 @@ namespace Zeze.Gen.java
         public void Visit(Bean type)
         {
             string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + $" = new Zeze.Transaction.Collections.CollOne<{typeName}>({typeName}.class);");
+            sw.WriteLine(prefix + variable.NamePrivate + $" = new Zeze.Transaction.Collections.CollOne<{typeName}>(new {typeName}(), {typeName}.class);");
             sw.WriteLine(prefix + variable.NamePrivate + $".variableId({variable.Id});");
         }
 
