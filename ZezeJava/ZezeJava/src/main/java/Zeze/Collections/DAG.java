@@ -4,12 +4,29 @@ import java.lang.invoke.MethodHandle;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Collections.DAG.BDAGNodeKey;
 import Zeze.Transaction.Bean;
+import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.graph.DirectedAcyclicGraph;
 
 public class DAG<V extends Bean> {
+	DirectedAcyclicGraph<BDAGNodeKey, DefaultEdge> graph = new DirectedAcyclicGraph<>(DefaultEdge.class);
 
 	public boolean addNode(String id, V value) {
 		var nodeIdKey = new BDAGNodeKey(name, id);
+		checkValid();
 		return false;
+	}
+
+	public boolean addEdge(String from, String to) {
+		checkValid();
+		return false;
+	}
+
+	public boolean checkValid() {
+		return true;
+	}
+
+	public boolean isEmpty() {
+		return graph.vertexSet().isEmpty();
 	}
 
 	/**

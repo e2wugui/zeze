@@ -13,6 +13,10 @@ import java.util.Map;
  * 6. 任务的状态变化，需要通知其他服务器的客户端
  * 7. 任务的状态变化，需要通知其他服务器的其他模块
  */
+
+/**
+ * TaskGraphics 是本地程序员配置的，因此不需要支持事务操作。
+ */
 public class TaskGraphics {
 
 }

@@ -28,6 +28,9 @@ public final class tTask extends TableX<Zeze.Builtin.Game.Task.BTaskKey, Zeze.Bu
     }
 
     public static final int VAR_TaskId = 1;
+    public static final int VAR_TaskName = 2;
+    public static final int VAR_CurrentPhase = 3;
+    public static final int VAR_TaskPhases = 4;
 
     @Override
     public Zeze.Builtin.Game.Task.BTaskKey decodeKey(ByteBuffer _os_) {

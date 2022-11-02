@@ -731,8 +731,14 @@
 			</module> Rank 11015
 
             <module name="Task" id="11018">
+				<bean name="BTaskCondition">
+					<variable id="1" name="ConditionId" type="string"/>
+					<variable id="2" name="ConditionName" type="string"/>
+				</bean>
 				<bean name="BTaskPhase">
 					<variable id="1" name="PhaseId" type="string"/>
+					<variable id="2" name="PhaseName" type="string"/>
+					<variable id="3" name="CurrentCondition" type="BTaskCondition"/>
 				</bean>
 				<beankey name="BTaskKey">
 					<variable id="1" name="TaskId" type="string"/>
@@ -740,6 +746,9 @@
 				</beankey>
 				<bean name="BTask">
 					<variable id="1" name="TaskId" type="string"/>
+					<variable id="2" name="TaskName" type="string"/>
+					<variable id="3" name="CurrentPhase" type="BTaskPhase"/>
+					<variable id="4" name="TaskPhases" type="list" value="BTaskPhase"/>
 				</bean>
 				<table name="tTask" key="BTaskKey" value="BTask"/>
             </module> Task 11018
