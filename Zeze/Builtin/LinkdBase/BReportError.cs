@@ -23,6 +23,7 @@ namespace Zeze.Builtin.LinkdBase
         public const int FromProvider = 1;
         public const int CodeNotAuthed = 1;
         public const int CodeNoProvider = 2;
+        public const int CodeProviderBusy = 3;
 
         int _from;
         int _code;

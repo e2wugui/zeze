@@ -483,8 +483,9 @@
 				<enum name="FromLink"     value="0"/>
 				<enum name="FromProvider" value="1"/>
 
-				<enum name="CodeNotAuthed"  value="1"/>
-				<enum name="CodeNoProvider" value="2"/>
+				<enum name="CodeNotAuthed"    value="1"/>
+				<enum name="CodeNoProvider"   value="2"/>
+				<enum name="CodeProviderBusy" value="3"/>
 
 				<variable id="1" name="from" type="int"/>
 				<variable id="2" name="code" type="int"/>

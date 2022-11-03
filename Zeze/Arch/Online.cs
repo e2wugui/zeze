@@ -30,7 +30,7 @@ namespace Zeze.Arch
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public ProviderApp ProviderApp { get; }
         public AppBase App { get; }
-        //public LoadReporter LoadReporter { get; }
+        public ProviderLoad Load { get; }
         public taccount TableAccount => _taccount;
 
         public static Online Create(AppBase app)
@@ -48,7 +48,7 @@ namespace Zeze.Arch
             this.App = app ?? throw new ArgumentException("app is null");
             this.ProviderApp = app.Zeze.Redirect.ProviderApp;
 
-            //LoadReporter = new(this);
+            Load = new(this);
         }
 
         public override void Register()
@@ -66,14 +66,14 @@ namespace Zeze.Arch
         private Util.SchedulerTask VerifyLocalTimer;
         public void Start()
         {
-            //LoadReporter.Start();
+            Load.Start();
             VerifyLocalTimer = Util.Scheduler.ScheduleAt(VerifyLocal, 3 + Util.Random.Instance.Next(3), 10); // at 3:10 - 6:10
             ProviderApp.BuiltinModules.Add(FullName, this);
         }
 
         public void Stop()
         {
-            //LoadReporter.Stop();
+            Load.Stop();
             VerifyLocalTimer?.Cancel();
         }
 

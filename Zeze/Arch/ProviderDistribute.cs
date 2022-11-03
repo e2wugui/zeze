@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Zeze.Builtin.Provider;
 using Zeze.Services.ServiceManager;
 
 namespace Zeze.Arch
@@ -68,7 +69,26 @@ namespace Zeze.Arch
             if (list.Count == 0)
                 return null;
             var servercount = (uint)Math.Min(dataConcurrentLevel, list.Count); // 服务器数量超过并发级别时，忽略更多的服务器。
-            return list[(int)((uint)dataIndex % servercount)];
+
+            var serviceInfo = list[(int)((uint)dataIndex % servercount)];
+            if (null == serviceInfo)
+                return null;
+
+            if (false == providers.LocalStates.TryGetValue(serviceInfo.ServiceIdentity, out var pms))
+                return null;
+            var providerModuleState = (ProviderModuleState)pms;
+            if (providerModuleState.SessionId == 0)
+                return serviceInfo; // loop back 本机，不做过载保护。
+
+            var providerSocket = ProviderService.GetSocket(providerModuleState.SessionId);
+            if (providerSocket == null)
+                return null;
+
+            var ps = (ProviderSession)providerSocket.UserState;
+            if (ps.Load.Overload == BLoad.eOverload)
+                return null;
+
+            return serviceInfo;
         }
 
         public ServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash, int dataConcurrentLevel = 1)
@@ -127,16 +147,24 @@ namespace Zeze.Arch
             {
                 if (false == providers.LocalStates.TryGetValue(list[i].ServiceIdentity, out var localState))
                     continue;
+
                 if (localState is not ProviderModuleState providerModuleState)
                     continue;
+
                 if (ProviderService.GetSocket(providerModuleState.SessionId)?.UserState is not ProviderSession ps)
                     continue; // 这里发现关闭的服务，仅仅忽略.
+
+                if (ps.Load.Overload == BLoad.eOverload)
+                    continue; // 忽略过载的服务器
+
                 all.Add(ps);
                 if (ps.Load.OnlineNew > MaxOnlineNew)
                     continue;
+
                 int weight = ps.Load.ProposeMaxOnline - ps.Load.Online;
                 if (weight <= 0)
                     continue;
+
                 frees.Add(ps);
                 TotalWeight += weight;
             }
@@ -181,11 +209,17 @@ namespace Zeze.Arch
                     var serviceinfo = list[index];
                     if (false == providers.LocalStates.TryGetValue(list[i].ServiceIdentity, out var localState))
                         continue;
+
                     if (localState is not ProviderModuleState providerModuleState)
                         continue;
+
                     // 这里发现关闭的服务，仅仅忽略.
                     if (ProviderService.GetSocket(providerModuleState.SessionId)?.UserState is not ProviderSession ps)
                         continue;
+
+                    if (ps.Load.Overload == BLoad.eOverload)
+                        continue; // 忽略过载的服务器
+
                     // 这个和一个一个喂饱冲突，但是一下子给一个服务分配太多用户，可能超载。如果不想让这个生效，把MaxOnlineNew设置的很大。
                     if (ps.Load.OnlineNew > LoadConfig.MaxOnlineNew)
                         continue;

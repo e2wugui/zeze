@@ -30,7 +30,7 @@ namespace Zeze.Game
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public ProviderApp ProviderApp { get; }
         public AppBase App { get; }
-        public LoadReporter LoadReporter { get; }
+        public ProviderLoad LoadReporter { get; }
         public taccount TableAccount => _taccount;
 
         public static Online Create(AppBase app)

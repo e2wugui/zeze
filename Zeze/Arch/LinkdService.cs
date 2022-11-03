@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using Zeze.Builtin.LinkdBase;
 using Zeze.Builtin.Provider;
 using Zeze.Net;
+using Zeze.Serialize;
+using Zeze.Transaction;
 using Zeze.Util;
 
 namespace Zeze.Arch
@@ -23,7 +25,44 @@ namespace Zeze.Arch
             StableLinkSids = new ConcurrentLruLike<StableLinkSidKey, StableLinkSid>(1000000, TryLruRemove);
         }
 
+        private void ReportError(Dispatch dispatch)
+        {
+            // 如果是 rpc.request 直接返回Procedure.Busy错误。
+            // see Zeze.Net.Rpc.decode/encode
+            var bb = ByteBuffer.Wrap(dispatch.Argument.ProtocolData);
+            var compress = bb.ReadInt();
+            var familyClass = compress & FamilyClass.FamilyClassMask;
+            var isRequest = familyClass == FamilyClass.Request;
+            if (isRequest)
+            {
+                if ((compress & FamilyClass.BitResultCode) != 0)
+                    bb.ReadLong();
+                var sessionId = bb.ReadLong();
+                // argument 忽略，必须要解析出来，也不知道是什么。
+
+                // 开始响应rpc.response.
+                // 【注意】复用了上面的变量 bb，compress。
+                compress = FamilyClass.Response;
+                compress |= FamilyClass.BitResultCode;
+                bb = ByteBuffer.Allocate();
+                bb.WriteInt(compress);
+                bb.WriteLong(ResultCode.Busy);
+                bb.WriteLong(sessionId);
+                EmptyBean.Instance.Encode(bb); // emptyBean对应任意bean的默认值状态。
+                var so = GetSocket(dispatch.Argument.LinkSid);
+                if (null != so)
+                    so.Send(bb.Bytes, bb.ReadIndex, bb.Size);
+            }
+            // 报告服务器繁忙，但不关闭连接。
+            ReportError(dispatch.Argument.LinkSid, BReportError.FromLink, BReportError.CodeProviderBusy, "provider is busy.", false);
+        }
+
         public void ReportError(long linkSid, int from, int code, string desc)
+        {
+            ReportError(linkSid, from, code, desc, true);
+        }
+
+        public void ReportError(long linkSid, int from, int code, string desc, bool closeLink)
         {
             var link = this.GetSocket(linkSid);
             if (null != link)
@@ -50,7 +89,8 @@ namespace Zeze.Arch
                 }
                 // 延迟关闭。等待客户端收到错误以后主动关闭，或者超时。
                 // 虽然使用了写完关闭(CloseGracefully)方法，但是等待一下，尽量让客户端主动关闭，有利于减少 TCP_TIME_WAIT?
-                Scheduler.Schedule((ThisTask) => this.GetSocket(linkSid)?.CloseGracefully(), 2000);
+                if (closeLink)
+                    Scheduler.Schedule((ThisTask) => this.GetSocket(linkSid)?.CloseGracefully(), 2000);
             }
         }
 
