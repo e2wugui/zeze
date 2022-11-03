@@ -78,6 +78,8 @@ public class ProviderDistribute {
 			var providerModuleState = (ProviderModuleState)providers.localStates.get(serviceInfo.getServiceIdentity());
 			if (providerModuleState == null)
 				return null;
+			if (providerModuleState.sessionId == 0)
+				return serviceInfo; // loop back 本机，不做过载保护。
 			var providerSocket = providerService.GetSocket(providerModuleState.sessionId);
 			if (providerSocket == null)
 				return null;
