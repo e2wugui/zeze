@@ -54,6 +54,9 @@ public class TestRoleTimer {
 			server.Stop();
 		for (var link : links)
 			link.Stop();
+		clients.clear();
+		links.clear();
+		servers.clear();
 	}
 
 	private static void testContent(TimerContext context) throws Throwable {
@@ -132,6 +135,8 @@ public class TestRoleTimer {
 			sleep(200, 15);
 			log("测试三通过");
 
+			logout(client1, roleId);
+			sleep(200, 5);
 		} finally {
 			stopAll();
 		}
@@ -156,7 +161,7 @@ public class TestRoleTimer {
 			log("在客户端0登录role0");
 			auth(client0, "account0");
 			var role = getRole(client0);
-			var roleId = null != role ? role.getId() : createRole(client0, "role0");
+			var roleId = createRole(client0, "new_role0");
 			login(client0, roleId);
 
 			timer0.initializeOnlineTimer(server0.ProviderApp);
@@ -199,6 +204,8 @@ public class TestRoleTimer {
 			sleep(1000, 7);
 			log("测试三通过");
 
+			logout(client1, roleId);
+			sleep(200, 5);
 		} finally {
 			stopAll();
 		}
@@ -239,7 +246,7 @@ public class TestRoleTimer {
 			log("注册登录客户端0");
 			auth(client0, "account0");
 			var role = getRole(client0);
-			var roleId = null != role ? role.getId() : createRole(client0, "role0");
+			var roleId = null != role ? role.getId() : createRole(client0, "role1");
 			login(client0, roleId);
 
 			sleep(200, 1);
@@ -260,13 +267,14 @@ public class TestRoleTimer {
 			auth(client1, "account0");
 			login(client1, roleId);
 
-			sleep(200, 10);
+			sleep(200, 5);
 
+			logout(client1, roleId);
+			sleep(200, 5);
 		} finally {
 			stopAll();
 		}
 	}
-
 
 	@Test
 	public void testRoleTimerCron2() throws Throwable {
@@ -296,7 +304,7 @@ public class TestRoleTimer {
 			log("注册登录客户端0");
 			auth(client0, "account0");
 			var role = getRole(client0);
-			var roleId = null != role ? role.getId() : createRole(client0, "role0");
+			var roleId = createRole(client0, "new_role1");
 			login(client0, roleId);
 
 			sleep(200, 1);
@@ -317,8 +325,9 @@ public class TestRoleTimer {
 			auth(client1, "account0");
 			login(client1, roleId);
 
-			sleep(1000, 7);
-
+			sleep(200, 5);
+			logout(client1, roleId);
+			sleep(200, 5);
 		} finally {
 			stopAll();
 		}
@@ -341,6 +350,7 @@ public class TestRoleTimer {
 		var login = new Zeze.Builtin.Game.Online.Login();
 		login.Argument.setRoleId(roleId);
 		login.SendForWait(app.ClientService.GetSocket()).await();
+		System.out.println("login result: " + login.getResultCode());
 		Assert.assertEquals(0, login.getResultCode());
 	}
 
