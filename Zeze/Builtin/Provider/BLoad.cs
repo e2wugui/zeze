@@ -14,13 +14,19 @@ namespace Zeze.Builtin.Provider
         public int Online { get; }
         public int ProposeMaxOnline { get; }
         public int OnlineNew { get; }
+        public int Overload { get; }
     }
 
     public sealed class BLoad : Zeze.Transaction.Bean, BLoadReadOnly
     {
+        public const int eWorkFine = 0;
+        public const int eThreshold = 1;
+        public const int eOverload = 2;
+
         int _Online; // 用户数量
         int _ProposeMaxOnline; // 建议最大用户数量
         int _OnlineNew; // 最近上线用户数量，一般是一秒内的。用来防止短时间内给同一个gs分配太多用户。
+        int _Overload; // 过载保护类型。参见上面的枚举定义。
 
         public int Online
         {
@@ -97,15 +103,41 @@ namespace Zeze.Builtin.Provider
             }
         }
 
+        public int Overload
+        {
+            get
+            {
+                if (!IsManaged)
+                    return _Overload;
+                var txn = Zeze.Transaction.Transaction.Current;
+                if (txn == null) return _Overload;
+                txn.VerifyRecordAccessed(this, true);
+                var log = (Log__Overload)txn.GetLog(ObjectId + 4);
+                return log != null ? log.Value : _Overload;
+            }
+            set
+            {
+                if (!IsManaged)
+                {
+                    _Overload = value;
+                    return;
+                }
+                var txn = Zeze.Transaction.Transaction.Current;
+                txn.VerifyRecordAccessed(this);
+                txn.PutLog(new Log__Overload() { Belong = this, VariableId = 4, Value = value });
+            }
+        }
+
         public BLoad()
         {
         }
 
-        public BLoad(int _Online_, int _ProposeMaxOnline_, int _OnlineNew_)
+        public BLoad(int _Online_, int _ProposeMaxOnline_, int _OnlineNew_, int _Overload_)
         {
             _Online = _Online_;
             _ProposeMaxOnline = _ProposeMaxOnline_;
             _OnlineNew = _OnlineNew_;
+            _Overload = _Overload_;
         }
 
         public void Assign(BLoad other)
@@ -113,6 +145,7 @@ namespace Zeze.Builtin.Provider
             Online = other.Online;
             ProposeMaxOnline = other.ProposeMaxOnline;
             OnlineNew = other.OnlineNew;
+            Overload = other.Overload;
         }
 
         public BLoad CopyIfManaged()
@@ -152,6 +185,11 @@ namespace Zeze.Builtin.Provider
             public override void Commit() { ((BLoad)Belong)._OnlineNew = this.Value; }
         }
 
+        sealed class Log__Overload : Zeze.Transaction.Log<int>
+        {
+            public override void Commit() { ((BLoad)Belong)._Overload = this.Value; }
+        }
+
         public override string ToString()
         {
             var sb = new System.Text.StringBuilder();
@@ -166,7 +204,8 @@ namespace Zeze.Builtin.Provider
             level += 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append("Online").Append('=').Append(Online).Append(',').Append(Environment.NewLine);
             sb.Append(Zeze.Util.Str.Indent(level)).Append("ProposeMaxOnline").Append('=').Append(ProposeMaxOnline).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("OnlineNew").Append('=').Append(OnlineNew).Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("OnlineNew").Append('=').Append(OnlineNew).Append(',').Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("Overload").Append('=').Append(Overload).Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
         }
@@ -198,6 +237,14 @@ namespace Zeze.Builtin.Provider
                     _o_.WriteInt(_x_);
                 }
             }
+            {
+                int _x_ = Overload;
+                if (_x_ != 0)
+                {
+                    _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
+                    _o_.WriteInt(_x_);
+                }
+            }
             _o_.WriteByte(0);
         }
 
@@ -220,6 +267,11 @@ namespace Zeze.Builtin.Provider
                 OnlineNew = _o_.ReadInt(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
+            if (_i_ == 4)
+            {
+                Overload = _o_.ReadInt(_t_);
+                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+            }
             while (_t_ != 0)
             {
                 _o_.SkipUnknownField(_t_);
@@ -240,6 +292,7 @@ namespace Zeze.Builtin.Provider
             if (Online < 0) return true;
             if (ProposeMaxOnline < 0) return true;
             if (OnlineNew < 0) return true;
+            if (Overload < 0) return true;
             return false;
         }
 
@@ -253,6 +306,7 @@ namespace Zeze.Builtin.Provider
                     case 1: _Online = ((Zeze.Transaction.Log<int>)vlog).Value; break;
                     case 2: _ProposeMaxOnline = ((Zeze.Transaction.Log<int>)vlog).Value; break;
                     case 3: _OnlineNew = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                    case 4: _Overload = ((Zeze.Transaction.Log<int>)vlog).Value; break;
                 }
             }
         }
