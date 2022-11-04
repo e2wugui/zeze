@@ -759,7 +759,8 @@ namespace Zeze.Game
                 if (version.LoginVersion != local.LoginVersion)
                 {
                     // not local
-                    _ = RedirectNotify(version.ServerId, rpc.Argument.RoleId);
+                    if (ProviderApp.ProviderDirectService.ProviderByServerId.ContainsKey(version.ServerId))
+                        _ = RedirectNotify(version.ServerId, rpc.Argument.RoleId);
                 }
             }
             var loginVersion = account.LastLoginVersion + 1;
@@ -837,7 +838,8 @@ namespace Zeze.Game
                 if (version.LoginVersion != local.LoginVersion)
                 {
                     // not local
-                    _ = RedirectNotify(version.ServerId, rpc.Argument.RoleId);
+                    if (ProviderApp.ProviderDirectService.ProviderByServerId.ContainsKey(version.ServerId))
+                        _ = RedirectNotify(version.ServerId, rpc.Argument.RoleId);
                 }
             }
             var loginVersion = account.LastLoginVersion + 1;
@@ -891,7 +893,10 @@ namespace Zeze.Game
             var version = await _tversion.GetOrAddAsync(session.RoleId.Value);
             // 登录在其他机器上。
             if (local == null && online != null)
-                _ = RedirectNotify(version.ServerId, session.RoleId.Value); // nowait
+            {
+                if (ProviderApp.ProviderDirectService.ProviderByServerId.ContainsKey(version.ServerId))
+                    _ = RedirectNotify(version.ServerId, session.RoleId.Value); // nowait
+            }
             if (null != local)
                 await RemoveLocalAndTrigger(session.RoleId.Value);
             if (null != online)

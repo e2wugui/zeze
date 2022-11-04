@@ -952,7 +952,8 @@ namespace Zeze.Arch
                 if (loginVersion.LoginVersion != loginLocal.LoginVersion)
                 {
                     // not local
-                    _ = RedirectNotify(loginVersion.ServerId, session.Account);
+                    if (ProviderApp.ProviderDirectService.ProviderByServerId.ContainsKey(loginVersion.ServerId))
+                        _ = RedirectNotify(loginVersion.ServerId, session.Account);
                 }
             }
             var loginVersionSerialId = account.LastLoginVersion + 1;
@@ -1028,7 +1029,8 @@ namespace Zeze.Arch
                 if (loginVersion.LoginVersion != loginLocal.LoginVersion)
                 {
                     // not local
-                    _ = RedirectNotify(loginVersion.ServerId, session.Account);
+                    if (ProviderApp.ProviderDirectService.ProviderByServerId.ContainsKey(loginVersion.ServerId))
+                        _ = RedirectNotify(loginVersion.ServerId, session.Account);
                 }
             }
             var loginVersionSerialId = account.LastLoginVersion + 1;
@@ -1086,7 +1088,10 @@ namespace Zeze.Arch
             var loginVersion = version.Logins.GetOrAdd(clientId);
             // 登录在其他机器上。
             if (local == null && online != null)
-                _ = RedirectNotify(loginVersion.ServerId, session.Account); // nowait
+            {
+                if (ProviderApp.ProviderDirectService.ProviderByServerId.ContainsKey(loginVersion.ServerId))
+                    _ = RedirectNotify(loginVersion.ServerId, session.Account); // nowait
+            }
             if (null != local)
                 await RemoveLocalAndTrigger(session.Account, clientId);
             if (null != online)

@@ -805,7 +805,8 @@ public class Online extends AbstractOnline {
 			logoutTriggerExtra(rpc.Argument.getRoleId());
 			if (version.getLoginVersion() != local.getLoginVersion()) {
 				// not local
-				redirectNotify(version.getServerId(), rpc.Argument.getRoleId());
+				if (null != providerApp.providerDirectService.providerByServerId.get(version.getServerId()))
+					redirectNotify(version.getServerId(), rpc.Argument.getRoleId());
 			}
 		}
 		var loginVersion = account.getLastLoginVersion() + 1;
@@ -867,7 +868,8 @@ public class Online extends AbstractOnline {
 			// logoutTriggerExtra(rpc.Argument.getRoleId());
 			if (version.getLoginVersion() != local.getLoginVersion()) {
 				// not local
-				redirectNotify(version.getServerId(), rpc.Argument.getRoleId());
+				if (null != providerApp.providerDirectService.providerByServerId.get(version.getServerId()))
+					redirectNotify(version.getServerId(), rpc.Argument.getRoleId());
 			}
 		}
 		var loginVersion = account.getLastLoginVersion() + 1;
@@ -915,8 +917,10 @@ public class Online extends AbstractOnline {
 		var version = _tversion.getOrAdd(session.getRoleId());
 
 		// 登录在其他机器上。
-		if (local == null && online != null)
-			redirectNotify(version.getServerId(), session.getRoleId());
+		if (local == null && online != null) {
+			if (null != providerApp.providerDirectService.providerByServerId.get(version.getServerId()))
+				redirectNotify(version.getServerId(), session.getRoleId());
+		}
 		if (null != local)
 			removeLocalAndTrigger(session.getRoleId());
 		if (null != online)
