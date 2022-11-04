@@ -7,6 +7,7 @@ import java.util.concurrent.Future;
 import Zeze.Arch.RedirectBase;
 import Zeze.Collections.Queue;
 import Zeze.Component.AutoKey;
+import Zeze.Component.DelayRemove;
 import Zeze.Component.Timer;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManagerWithRaftAgent;
@@ -46,6 +47,7 @@ public final class Application {
 	private AutoKey.Module autoKey;
 	private Timer timer;
 	private Zeze.Collections.Queue.Module queueModule;
+	private Zeze.Component.DelayRemove delayRemove;
 	private IGlobalAgent globalAgent;
 	private Zeze.Transaction.AchillesHeelDaemon achillesHeelDaemon;
 	private Checkpoint checkpoint;
@@ -190,7 +192,7 @@ public final class Application {
 	public Zeze.Collections.Queue.Module getQueueModule() {
 		return queueModule;
 	}
-
+	public Zeze.Component.DelayRemove getDelayRemove() { return delayRemove; }
 	@Deprecated //use newProcedure
 	public Procedure NewProcedure(FuncLong action, String actionName) {
 		return newProcedure(action, actionName);
@@ -238,6 +240,7 @@ public final class Application {
 			// 自动初始化的组件。
 			autoKey = new AutoKey.Module(this);
 			queueModule = new Queue.Module(this);
+			delayRemove = new DelayRemove(this);
 			timer = new Timer(this);
 
 			// XXX Remove Me
@@ -368,6 +371,8 @@ public final class Application {
 		}
 		if (serviceManagerAgent != null)
 			serviceManagerAgent.stop();
+
+		delayRemove = null;
 		if (queueModule != null) {
 			queueModule.UnRegisterZezeTables(this);
 			queueModule = null;

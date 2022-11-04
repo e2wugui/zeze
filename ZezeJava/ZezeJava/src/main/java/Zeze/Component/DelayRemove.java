@@ -12,9 +12,9 @@ public class DelayRemove extends AbstractDelayRemove {
 	/**
 	 * 每个ServerId分配一个独立的GC队列。Server之间不会争抢。如果一个Server一直没有起来，那么它的GC就一直不会执行。
 	 */
-	private static final ConcurrentHashMap<Integer, DelayRemove> delays = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Integer, DelayRemove> delays = new ConcurrentHashMap<>();
 
-	public static <K extends Comparable<K>> void remove(TableX<K, ?> table, K key) {
+	public <K extends Comparable<K>> void remove(TableX<K, ?> table, K key) {
 		var zz = table.getZeze();
 		var serverId = zz.getConfig().getServerId();
 		var delay = delays.computeIfAbsent(serverId, (_key_) -> new DelayRemove(zz));
@@ -28,7 +28,7 @@ public class DelayRemove extends AbstractDelayRemove {
 	private final Zeze.Collections.Queue<BTableKey> queue;
 	private final Zeze.Application zeze;
 
-	private DelayRemove(Zeze.Application zz) {
+	public DelayRemove(Zeze.Application zz) {
 		this.zeze = zz;
 
 		var serverId = zz.getConfig().getServerId();

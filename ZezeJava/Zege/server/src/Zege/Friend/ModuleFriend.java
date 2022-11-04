@@ -174,7 +174,7 @@ public class ModuleFriend extends AbstractModule {
 			return errorCode(eFriendNodeNotFound);
 
 		r.Result.setNodeKey(new BLinkedMapNodeKey(friends.getName(), nodeId.value));
-		r.Result.getNode().assign(friendNode); // TODO 这里拷贝一次，有点浪费。优化？？？上面还有一处。
+		r.Result.setNode(friendNode);
 
 		session.sendResponseWhileCommit(r);
 		return Procedure.Success;

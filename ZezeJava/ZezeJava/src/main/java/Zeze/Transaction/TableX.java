@@ -625,7 +625,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	public abstract K decodeKey(ByteBuffer bb);
 
 	public final void delayRemove(K key) {
-		DelayRemove.remove(this, key);
+		getZeze().getDelayRemove().remove(this, key);
 	}
 
 	@Override

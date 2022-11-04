@@ -591,7 +591,7 @@ namespace Zeze.Transaction
 
         public async Task DelayRemoveAsync(K key)
         {
-            await Component.DelayRemove.RemoveAsync(this, key);
+            await Zeze.DelayRemove.RemoveAsync(this, key);
         }
 
         public override ByteBuffer EncodeKey(object key)

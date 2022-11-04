@@ -7,6 +7,7 @@ using System.Transactions;
 using Zeze.Transaction;
 using Zeze.Services.ServiceManager;
 using System.Collections.Concurrent;
+using Zeze.Component;
 
 namespace Zeze
 {
@@ -24,7 +25,7 @@ namespace Zeze
 
         public Component.AutoKey.Module AutoKeys { get; private set; }
         public Collections.Queue.Module Queues { get; private set; }
-
+        public Zeze.Component.DelayRemove DelayRemove { get; private set; }
         internal Locks Locks { get; private set; }
 
         public Component.AutoKey GetAutoKey(string name)
@@ -174,6 +175,7 @@ namespace Zeze
                 // Initialize Component
                 AutoKeys = new(this);
                 Queues = new(this);
+                DelayRemove = new DelayRemove(this);
             }
 
             // Start ServiceManager

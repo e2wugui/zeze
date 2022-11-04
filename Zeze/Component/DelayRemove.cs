@@ -16,9 +16,9 @@ namespace Zeze.Component
 		/**
 		 * 每个ServerId分配一个独立的GC队列。Server之间不会争抢。如果一个Server一直没有起来，那么它的GC就一直不会执行。
 		 */
-		private static ConcurrentDictionary<int, DelayRemove> delays = new();
+		private ConcurrentDictionary<int, DelayRemove> delays = new();
 
-		public static async Task RemoveAsync(Table table, object key)
+		public async Task RemoveAsync(Table table, object key)
 		{
 			var serverId = table.Zeze.Config.ServerId;
 			var delay = delays.GetOrAdd(serverId, (_key_) => new DelayRemove(table.Zeze));
@@ -34,7 +34,7 @@ namespace Zeze.Component
 		private readonly Zeze.Collections.Queue<BTableKey> queue;
         public Zeze.Application Zeze { get; }
 
-		private DelayRemove(Zeze.Application zz)
+		public DelayRemove(Zeze.Application zz)
 		{
 			this.Zeze = zz;
 			var serverId = zz.Config.ServerId;
