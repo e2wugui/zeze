@@ -62,15 +62,17 @@ end}}
             ret variable.initial 
         else 
             ret "0"
-    end
+        end
     when "string"
         if variable.initial !='' 
             ret variable.initial 
-    else 
-        ret "''"
-    end
-    when "map",'list', 'set', 'dynamic'
+        else 
+            ret "''"
+        end
+    when "map",'list', 'set'
         ret "{}"
+    when 'dynamic'
+        ret 'message_init._default_empty_bean'
     end
 end}}
 

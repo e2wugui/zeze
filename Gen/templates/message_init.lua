@@ -11,6 +11,7 @@ local EmptyBean = {
 
 EmptyBean.__index = EmptyBean
 message_init.EmptyBean = EmptyBean
+message_init._default_empty_bean = EmptyBean:new()
 
 ---@class {{message_namespace}}.vector2 : {{message_namespace}}.Bean
 local vector2 = {
