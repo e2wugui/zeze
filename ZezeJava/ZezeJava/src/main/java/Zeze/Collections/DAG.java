@@ -2,6 +2,7 @@ package Zeze.Collections;
 
 import java.lang.invoke.MethodHandle;
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Builtin.Collections.DAG.BDAGNode;
 import Zeze.Builtin.Collections.DAG.BDAGNodeKey;
 import Zeze.Transaction.Bean;
 import org.jgrapht.graph.DefaultEdge;
@@ -12,6 +13,8 @@ public class DAG<V extends Bean> {
 
 	public boolean addNode(String id, V value) {
 		var nodeIdKey = new BDAGNodeKey(name, id);
+		var nodeNode = new BDAGNode();
+		nodeNode.getValue().setBean(value);
 		checkValid();
 		return false;
 	}

@@ -10,4 +10,6 @@ public interface BTaskPhaseReadOnly {
     public String getPhaseId();
     public String getPhaseName();
     public Zeze.Builtin.Game.Task.BTaskConditionReadOnly getCurrentConditionReadOnly();
+    public Zeze.Transaction.DynamicBeanReadOnly getTaskPhaseCustomDataReadOnly();
+
 }

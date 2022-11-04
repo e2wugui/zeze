@@ -734,11 +734,19 @@
 				<bean name="BTaskCondition">
 					<variable id="1" name="ConditionId" type="string"/>
 					<variable id="2" name="ConditionName" type="string"/>
+					<variable id="3" name="ConditionCustomData" type="dynamic">
+						<GetSpecialTypeIdFromBean value="Zeze.Game.Condition::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.Condition::createBeanFromSpecialTypeId"/>
+					</variable>
 				</bean>
 				<bean name="BTaskPhase">
 					<variable id="1" name="PhaseId" type="string"/>
 					<variable id="2" name="PhaseName" type="string"/>
 					<variable id="3" name="CurrentCondition" type="BTaskCondition"/>
+					<variable id="4" name="TaskPhaseCustomData" type="dynamic">
+						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskPhase::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.Condition::createBeanFromSpecialTypeId"/>
+					</variable>
 				</bean>
 				<beankey name="BTaskKey">
 					<variable id="1" name="TaskId" type="string"/>
@@ -749,8 +757,20 @@
 					<variable id="2" name="TaskName" type="string"/>
 					<variable id="3" name="CurrentPhase" type="BTaskPhase"/>
 					<variable id="4" name="TaskPhases" type="list" value="BTaskPhase"/>
+					<variable id="5" name="TaskCustomData" type="dynamic">
+						<GetSpecialTypeIdFromBean value="Zeze.Game.Task::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.Task::createBeanFromSpecialTypeId"/>
+					</variable>
 				</bean>
+				<table name="tTaskCondition" key="BTaskKey" value="BTask"/>
+				<table name="tTaskPhase" key="BTaskKey" value="BTask"/>
 				<table name="tTask" key="BTaskKey" value="BTask"/>
+
+				<!-- Task rpc -->
+				<bean name="BCompleteCondition">
+					<variable id="1" name="ConditionId" type="string"/>
+				</bean>
+				<rpc name="CompleteCondition" argument="BCompleteCondition" handle="server"/>
             </module> Task 11018
 
 		</module> Game

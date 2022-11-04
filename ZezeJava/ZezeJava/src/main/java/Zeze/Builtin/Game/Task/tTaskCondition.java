@@ -6,15 +6,15 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tTask extends TableX<Zeze.Builtin.Game.Task.BTaskKey, Zeze.Builtin.Game.Task.BTask>
+public final class tTaskCondition extends TableX<Zeze.Builtin.Game.Task.BTaskKey, Zeze.Builtin.Game.Task.BTask>
         implements TableReadOnly<Zeze.Builtin.Game.Task.BTaskKey, Zeze.Builtin.Game.Task.BTask, Zeze.Builtin.Game.Task.BTaskReadOnly> {
-    public tTask() {
-        super("Zeze_Builtin_Game_Task_tTask");
+    public tTaskCondition() {
+        super("Zeze_Builtin_Game_Task_tTaskCondition");
     }
 
     @Override
     public int getId() {
-        return 1009392690;
+        return 1082052680;
     }
 
     @Override

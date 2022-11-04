@@ -11,6 +11,19 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
     private String _TaskName;
         final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Game.Task.BTaskPhase> _CurrentPhase;
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.Task.BTaskPhase> _TaskPhases;
+    private final Zeze.Transaction.DynamicBean _TaskCustomData;
+
+    public static Zeze.Transaction.DynamicBean newDynamicBean_TaskCustomData() {
+        return new Zeze.Transaction.DynamicBean(5, Zeze.Game.Task::getSpecialTypeIdFromBean, Zeze.Game.Task::createBeanFromSpecialTypeId);
+    }
+
+    public static long getSpecialTypeIdFromBean_TaskCustomData(Zeze.Transaction.Bean bean) {
+        return Zeze.Game.Task.getSpecialTypeIdFromBean(bean);
+    }
+
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_TaskCustomData(long typeId) {
+        return Zeze.Game.Task.createBeanFromSpecialTypeId(typeId);
+    }
 
     @Override
     public String getTaskId() {
@@ -78,6 +91,15 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         return new Zeze.Transaction.Collections.PList2ReadOnly<>(_TaskPhases);
     }
 
+    public Zeze.Transaction.DynamicBean getTaskCustomData() {
+        return _TaskCustomData;
+    }
+
+    @Override
+    public Zeze.Transaction.DynamicBeanReadOnly getTaskCustomDataReadOnly() {
+        return _TaskCustomData;
+    }
+
     @SuppressWarnings("deprecation")
     public BTask() {
         _TaskId = "";
@@ -86,6 +108,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         _CurrentPhase.variableId(3);
         _TaskPhases = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Game.Task.BTaskPhase.class);
         _TaskPhases.variableId(4);
+        _TaskCustomData = newDynamicBean_TaskCustomData();
     }
 
     @SuppressWarnings("deprecation")
@@ -100,6 +123,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         _CurrentPhase.variableId(3);
         _TaskPhases = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Game.Task.BTaskPhase.class);
         _TaskPhases.variableId(4);
+        _TaskCustomData = newDynamicBean_TaskCustomData();
     }
 
     public void assign(BTask other) {
@@ -109,6 +133,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         _TaskPhases.clear();
         for (var e : other._TaskPhases)
             _TaskPhases.add(e.copy());
+        _TaskCustomData.assign(other._TaskCustomData);
     }
 
     @Deprecated
@@ -181,7 +206,10 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
             sb.append(',').append(System.lineSeparator());
         }
         level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append(']').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append(']').append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("TaskCustomData").append('=').append(System.lineSeparator());
+        _TaskCustomData.getBean().buildString(sb, level + 4);
+        sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -235,6 +263,13 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
                     _v_.encode(_o_);
             }
         }
+        {
+            var _x_ = _TaskCustomData;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.DYNAMIC);
+                _x_.encode(_o_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -264,6 +299,10 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 5) {
+            _o_.ReadDynamic(_TaskCustomData, _t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -274,12 +313,14 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _CurrentPhase.initRootInfo(root, this);
         _TaskPhases.initRootInfo(root, this);
+        _TaskCustomData.initRootInfo(root, this);
     }
 
     @Override
     protected void resetChildrenRootInfo() {
         _CurrentPhase.resetRootInfo();
         _TaskPhases.resetRootInfo();
+        _TaskCustomData.resetRootInfo();
     }
 
     @Override
@@ -300,6 +341,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
                 case 2: _TaskName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 3: _CurrentPhase.followerApply(vlog); break;
                 case 4: _TaskPhases.followerApply(vlog); break;
+                case 5: _TaskCustomData.followerApply(vlog); break;
             }
         }
     }

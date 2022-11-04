@@ -1,14 +1,12 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Game.Task;
 
-public interface BTaskConditionReadOnly {
+// Task rpc
+public interface BCompleteConditionReadOnly {
     public long typeId();
     public void encode(Zeze.Serialize.ByteBuffer _o_);
     public boolean negativeCheck();
-    public BTaskCondition copy();
+    public BCompleteCondition copy();
 
     public String getConditionId();
-    public String getConditionName();
-    public Zeze.Transaction.DynamicBeanReadOnly getConditionCustomDataReadOnly();
-
 }

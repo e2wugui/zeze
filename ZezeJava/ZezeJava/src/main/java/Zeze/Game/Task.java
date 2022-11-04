@@ -8,6 +8,7 @@ import Zeze.Builtin.Game.Task.BTaskPhase;
 import Zeze.Builtin.Game.Task.tTask;
 import Zeze.Collections.BeanFactory;
 import Zeze.Collections.DAG;
+import Zeze.Transaction.Bean;
 
 /**
  * 设计思路
@@ -18,10 +19,16 @@ public class Task {
 	private final Module module;
 	private final String name;
 	private final BTask bean;
-	DAG<BTaskPhase> phaseDAG; // 任务的各个阶段的连接图
+	private final DAG<BTaskPhase> phaseDAG; // 任务的各个阶段的连接图
 	private final ConcurrentHashMap<String, TaskPhase> taskPhases = new ConcurrentHashMap<>(); // 任务的各个阶段
+	public static long getSpecialTypeIdFromBean(Bean bean) {
+		return BeanFactory.getSpecialTypeIdFromBean(bean);
+	}
+	public static Bean createBeanFromSpecialTypeId(long typeId) {
+		return beanFactory.createBeanFromSpecialTypeId(typeId);
+	}
 
-	private Task(Module module, String taskId, String taskName, DAG<BTaskPhase> phaseDAG) {
+	protected Task(Module module, String taskId, String taskName, DAG<BTaskPhase> phaseDAG) {
 		this.module = module;
 		this.name = taskName;
 		this.bean = this.module._tTask.getOrAdd(new BTaskKey(taskId, taskName));
