@@ -5,6 +5,7 @@ import Zeze.Application;
 import Zeze.Builtin.Game.Task.BTask;
 import Zeze.Builtin.Game.Task.BTaskKey;
 import Zeze.Builtin.Game.Task.BTaskPhase;
+import Zeze.Builtin.Game.Task.CompleteCondition;
 import Zeze.Builtin.Game.Task.tTask;
 import Zeze.Collections.BeanFactory;
 import Zeze.Collections.DAG;
@@ -90,6 +91,11 @@ public class Task {
 		public Task open(String taskName) {
 			var taskPhases = DAGs.open(taskName + ".TaskPhase", BTaskPhase.class);
 			return tasks.computeIfAbsent(taskName, key -> new Task(this, "1", key, taskPhases)); // TODO: Danger!!! taskId is hard coded, use Autokey to solve it
+		}
+
+		@Override
+		protected long ProcessCompleteConditionRequest(CompleteCondition r) throws Throwable {
+			return 0;
 		}
 	}
 }
