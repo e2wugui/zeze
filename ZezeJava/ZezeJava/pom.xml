@@ -96,7 +96,7 @@
 		<rocksdbjni.version>7.6.0</rocksdbjni.version>
 		<netty.version>4.1.82.Final</netty.version>
 		<tikv.version>3.3.0</tikv.version>
-		<commons-dbcp2.version>2.9.0</commons-dbcp2.version>
+		<druid.version>1.2.14</druid.version>
 		<mysql-conncetor-java.version>8.0.30</mysql-conncetor-java.version>
 		<rocketmq-client.version>4.9.4</rocketmq-client.version>
 		<javaee-api.version>8.0.1</javaee-api.version>
@@ -162,11 +162,11 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-dbcp2 -->
+		<!-- https://mvnrepository.com/artifact/com.alibaba/druid -->
 		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-dbcp2</artifactId>
-			<version>${commons-dbcp2.version}</version>
+			<groupId>com.alibaba</groupId>
+			<artifactId>druid</artifactId>
+			<version>${druid.version}</version>
 			<scope>provided</scope>
 		</dependency>
 
