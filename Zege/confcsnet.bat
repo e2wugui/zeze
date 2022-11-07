@@ -41,7 +41,6 @@ xcopy /Y %zeze_src_dir%\Zeze\Util\DispatchModeAttribute.cs %project_dir%\Zeze\Ut
 
 md %project_dir%\Zeze\Services
 xcopy /Y %zeze_src_dir%\Zeze\Services\Handshake.cs %project_dir%\Zeze\Services\
-xcopy /Y %zeze_src_dir%\Zeze\Services\ToLuaService.cs %project_dir%\Zeze\Services\
 
 md %project_dir%\Zeze\Transaction
 xcopy /Y %zeze_src_dir%\Zeze\Transaction\TransactionLevel.cs %project_dir%\Zeze\Transaction\
