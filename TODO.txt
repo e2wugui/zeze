@@ -26,7 +26,7 @@ Zege
 	好友列表也保存关注对象，可以接收通知。
 
 ------------------------------------------------------------------------------------------------------------------------------
-tag v1.0.9 Task; MappingClass(dynamic); Overload(java); Variable Bean Set; Zege ...;
+tag v1.0.9 Task; MappingClass(dynamic); Overload(java); Variable Bean Set; Druid; Zege ...;
 ------------------------------------------------------------------------------------------------------------------------------
 Task & Achievement & Statistics @项洋呈
 Zege Add Friend
@@ -34,6 +34,7 @@ Zege Add Friend
 	* 操作：Invite-Accept-Deny-Expire；Remove；
 	* 状态：Invite,Normal,Deny,Remove,Expire,(None)
 		(None) 表示数据不存在。
+(java)Dbcp -> Druid
 Bean.setBean CollOne<> LogOne<>
 Linkd 过载保护，响应rpc.request和报告错误。
 Zeze 过载保护。1. 负载报告完成；2. 负载分配。
