@@ -68,6 +68,7 @@
                 <Button Text="Make Current Friend Top" Clicked="OnMakeCurrentFriendTop"/>
                 <Button Text="Return to Top" Clicked="OnReturnTop"/>
                 <Button Text="Test" Clicked="OnTest"/>
+                <Button Text="Notify" Clicked="OnOpenNotifyWindow"/>
                 <Label Text="a1" x:Name="LabelMultiLine" HeightRequest="80"/>
             </VerticalStackLayout>
 

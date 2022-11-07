@@ -180,5 +180,12 @@ namespace Zege
                 return;
             LabelMultiLine.Text = message;
         }
+
+        private void OnOpenNotifyWindow(object sender, EventArgs e)
+        {
+            // TODO 不总是创建新窗口。
+            var notify = new Window(new Zege.Notify.NotifyPage());
+            Microsoft.Maui.Controls.Application.Current.OpenWindow(notify);
+        }
     }
 }

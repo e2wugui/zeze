@@ -6,6 +6,11 @@ namespace Zeze.Net
 {
     public abstract class Protocol : Serializable
     {
+		public interface IDecodeAndDispatch
+		{
+			bool DecodeAndDispatch(Service service, long sessionId, long typeId, ByteBuffer _os_);
+        }
+
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         public abstract int ModuleId { get; }
@@ -124,7 +129,7 @@ namespace Zeze.Net
 		/// </summary>
 		/// <param name="bb"></param>
 		/// <returns></returns>
-		internal static void Decode(Service service, AsyncSocket so, ByteBuffer bb, Zeze.Services.ToLuaService.ToLua toLua = null)
+		internal static void Decode(Service service, AsyncSocket so, ByteBuffer bb, IDecodeAndDispatch toLua = null)
         {
 			ByteBuffer os = ByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.Size); // 创建一个新的ByteBuffer，解码确认了才修改bb索引。
 			while (os.Size > 0)

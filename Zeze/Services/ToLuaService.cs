@@ -179,7 +179,7 @@ namespace Zeze.Services.ToLuaService
     }
 #endif // end USE_KERA_LUA
 
-    public class ToLua
+    public class ToLua : Protocol.IDecodeAndDispatch
     {
         public ILua Lua { get; private set; }
 
