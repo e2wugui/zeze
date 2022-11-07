@@ -102,7 +102,7 @@ public class TestDatabaseRocksDB extends TestCase {
 		databaseConf.setDatabaseType(DbType.MySql);
 		databaseConf.setDatabaseUrl(dbHome);
 		databaseConf.setName("RocksDB");
-		databaseConf.setDbcpConf(new Config.DbcpConf());
+		databaseConf.setDruidConf(new Config.DruidConf());
 
 		return new DatabaseRocksDb(databaseConf);
 	}

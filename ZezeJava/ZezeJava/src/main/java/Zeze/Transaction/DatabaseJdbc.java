@@ -2,51 +2,55 @@ package Zeze.Transaction;
 
 import java.sql.SQLException;
 import Zeze.Config.DatabaseConf;
-import org.apache.commons.dbcp2.BasicDataSource;
+import com.alibaba.druid.pool.DruidDataSource;
 
 public abstract class DatabaseJdbc extends Database {
-	protected final BasicDataSource dataSource;
+	protected final DruidDataSource dataSource;
 
 	public DatabaseJdbc(DatabaseConf conf) {
 		super(conf);
 
-		dataSource = new BasicDataSource();
-		var dbcpConf = conf.getDbcpConf();
+		dataSource = new DruidDataSource();
+		var druidConf = conf.getDruidConf();
 
-		BasicDataSource pool = dataSource;// 连接池
+		DruidDataSource pool = dataSource;// 连接池
 
 		// must present
 		pool.setUrl(conf.getDatabaseUrl());
-		pool.setDriverClassName(dbcpConf.driverClassName); // setup in Zeze.Config.DatabaseConf
+		pool.setDriverClassName(druidConf.driverClassName); // setup in Zeze.Config.DatabaseConf
 
 		// always on
 		pool.setPoolPreparedStatements(true);
 
 		// options
-		if (dbcpConf.userName != null)
-			pool.setUsername(dbcpConf.userName);
-		if (dbcpConf.password != null)
-			pool.setPassword(dbcpConf.password);
-		if (dbcpConf.initialSize != null)
-			pool.setInitialSize(dbcpConf.initialSize); // 初始的连接数；
-		if (dbcpConf.maxTotal != null)
-			pool.setMaxTotal(dbcpConf.maxTotal);
-		if (dbcpConf.maxIdle != null)
-			pool.setMaxIdle(dbcpConf.maxIdle);
-		if (dbcpConf.minIdle != null)
-			pool.setMinIdle(dbcpConf.minIdle);
-		if (dbcpConf.maxWaitMillis != null)
-			pool.setMaxWaitMillis(dbcpConf.maxWaitMillis);
+		if (druidConf.initialSize != null)
+			pool.setInitialSize(druidConf.initialSize); // 初始的连接数；
+		if (druidConf.maxActive != null)
+			pool.setMaxActive(druidConf.maxActive);
+		if (druidConf.minIdle != null)
+			pool.setMinIdle(druidConf.minIdle);
+		if (druidConf.maxWait != null)
+			pool.setMaxWait(druidConf.maxWait);
+		if (druidConf.maxOpenPreparedStatements != null)
+			pool.setMaxOpenPreparedStatements(druidConf.maxOpenPreparedStatements);
+		//if (druidConf.maxIdle != null)
+		//	pool.setMaxIdle(druidConf.maxIdle);
+
+		if (druidConf.phyMaxUseCount != null)
+			pool.setPhyMaxUseCount(druidConf.phyMaxUseCount);
+		if (druidConf.phyTimeoutMillis != null)
+			pool.setPhyTimeoutMillis(druidConf.phyTimeoutMillis);
+
+		if (druidConf.userName != null)
+			pool.setUsername(druidConf.userName);
+		if (druidConf.password != null)
+			pool.setPassword(druidConf.password);
 	}
 
 	@Override
 	public void close() {
 		super.close();
-		try {
-			dataSource.close();
-		} catch (SQLException skip) {
-			logger.error("", skip);
-		}
+		dataSource.close();
 	}
 
 	@Override

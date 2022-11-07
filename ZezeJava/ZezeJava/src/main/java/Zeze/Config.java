@@ -513,13 +513,17 @@ public final class Config {
 		}
 	}
 
-	public static final class DbcpConf {
+	public static final class DruidConf {
 		public String driverClassName;
 		public Integer initialSize;
-		public Integer maxTotal;
+		public Integer maxActive;
 		public Integer maxIdle;
 		public Integer minIdle;
-		public Long maxWaitMillis;
+		public Long maxWait;
+		public Integer phyMaxUseCount;
+		public Long phyTimeoutMillis;
+
+		public Integer maxOpenPreparedStatements;
 
 		public String userName;
 		public String password;
@@ -539,16 +543,19 @@ public final class Config {
 			return str == null ? null : Long.parseLong(str);
 		}
 
-		public DbcpConf() {
+		public DruidConf() {
 		}
 
-		public DbcpConf(Element self) {
+		public DruidConf(Element self) {
 			driverClassName = EmptyToNullString(self.getAttribute("DriverClassName"));
 			initialSize = EmptyToNullInteger(self.getAttribute("InitialSize"));
-			maxTotal = EmptyToNullInteger(self.getAttribute("MaxTotal"));
+			maxActive = EmptyToNullInteger(self.getAttribute("MaxActive"));
 			maxIdle = EmptyToNullInteger(self.getAttribute("MaxIdle"));
 			minIdle = EmptyToNullInteger(self.getAttribute("MinIdle"));
-			maxWaitMillis = EmptyToNullLong(self.getAttribute("MaxWaitMillis"));
+			maxWait = EmptyToNullLong(self.getAttribute("MaxWait"));
+			maxOpenPreparedStatements = EmptyToNullInteger(self.getAttribute("MaxOpenPreparedStatements"));
+			phyMaxUseCount = EmptyToNullInteger(self.getAttribute("PhyMaxUseCount"));
+			phyTimeoutMillis = EmptyToNullLong(self.getAttribute("PhyTimeoutMillis"));
 
 			userName = EmptyToNullString(self.getAttribute("UserName"));
 			password = EmptyToNullString(self.getAttribute("Password"));
@@ -559,7 +566,7 @@ public final class Config {
 		private String name = "";
 		private DbType databaseType = DbType.Memory;
 		private String databaseUrl = "";
-		private DbcpConf dbcpConf; // only valid when jdbc: mysql, sqlserver,
+		private DruidConf druidConf; // only valid when jdbc: mysql, sqlserver,
 		private boolean distTxn; // 是否启用分布式事务(目前仅TiKV支持)
 
 		public String getName() {
@@ -586,12 +593,12 @@ public final class Config {
 			this.databaseUrl = databaseUrl;
 		}
 
-		public DbcpConf getDbcpConf() {
-			return dbcpConf;
+		public DruidConf getDruidConf() {
+			return druidConf;
 		}
 
-		public void setDbcpConf(DbcpConf conf) {
-			dbcpConf = conf;
+		public void setDruidConf(DruidConf conf) {
+			druidConf = conf;
 		}
 
 		public boolean isDistTxn() {
@@ -613,15 +620,15 @@ public final class Config {
 				break;
 			case "MySql":
 				databaseType = DbType.MySql;
-				dbcpConf = new DbcpConf(self);
-				if (null == dbcpConf.driverClassName)
-					dbcpConf.driverClassName = "com.mysql.cj.jdbc.Driver";
+				druidConf = new DruidConf(self);
+				if (null == druidConf.driverClassName)
+					druidConf.driverClassName = "com.mysql.cj.jdbc.Driver";
 				break;
 			case "SqlServer":
 				databaseType = DbType.SqlServer;
-				dbcpConf = new DbcpConf(self);
-				if (null == dbcpConf.driverClassName)
-					dbcpConf.driverClassName = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
+				druidConf = new DruidConf(self);
+				if (null == druidConf.driverClassName)
+					druidConf.driverClassName = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
 				break;
 			case "Tikv":
 				databaseType = DbType.Tikv;

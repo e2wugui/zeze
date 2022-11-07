@@ -22,7 +22,7 @@ public class TestDatabaseSqlServer extends TestCase {
 		databaseConf.setDatabaseType(DbType.SqlServer);
 		databaseConf.setDatabaseUrl(url);
 		databaseConf.setName("sqlserver");
-		databaseConf.setDbcpConf(new Config.DbcpConf());
+		databaseConf.setDruidConf(new Config.DruidConf());
 
 		DatabaseSqlServer sqlserver = new DatabaseSqlServer(databaseConf);
 		Database.Table table = sqlserver.openTable("test1");

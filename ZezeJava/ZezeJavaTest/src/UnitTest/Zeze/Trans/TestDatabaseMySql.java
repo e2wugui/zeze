@@ -45,7 +45,7 @@ public class TestDatabaseMySql extends TestCase {
 		databaseConf.setDatabaseType(DbType.MySql);
 		databaseConf.setDatabaseUrl(url);
 		databaseConf.setName("mysql");
-		databaseConf.setDbcpConf(new Config.DbcpConf());
+		databaseConf.setDruidConf(new Config.DruidConf());
 
 		DatabaseMySql sqlserver = new DatabaseMySql(databaseConf);
 		Database.Table table = sqlserver.openTable("test_1");
