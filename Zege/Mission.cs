@@ -48,7 +48,7 @@ namespace Zege
             }
         }
 
-        public static AppShell AppShell => (AppShell)Application.Current.MainPage;
+        public static AppShell AppShell => (AppShell)Microsoft.Maui.Controls.Application.Current.MainPage;
 
         /// <summary>
         /// 成功（结果码为零）返回false；

@@ -34,7 +34,7 @@ Zege Add Friend
 	* 操作：Invite-Accept-Deny-Expire；Remove；
 	* 状态：Invite,Normal,Deny,Remove,Expire,(None)
 		(None) 表示数据不存在。
-Bean.setBean CollBean<> LogCollBean<>
+Bean.setBean CollOne<> LogOne<>
 Linkd 过载保护，响应rpc.request和报告错误。
 Zeze 过载保护。1. 负载报告完成；2. 负载分配。
 Zeze.Net.FamilyClass 增加FamilyClass，中间转发服务（如Linkd）可用来区分Protocol和Rpc，
@@ -43,7 +43,6 @@ Zege Notify Module Added
 gen.exe dynamic 到类继承的映射。
 	类实例的数据关联到table.bean，不能保存实例，每次使用的时候创建，用完就丢弃。
 	每一级Bean.Dynamic只允许一个。
-	MapToClass="Name" 第一级必须指定，下面的子类没指定就使用BeanName.SubString(1).Upper1.
 
 【2022/10/28】
 

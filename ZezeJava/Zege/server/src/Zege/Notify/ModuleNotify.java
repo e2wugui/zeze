@@ -1,6 +1,5 @@
 package Zege.Notify;
 
-import Zege.Friend.BFriend;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey;
 import Zeze.Collections.LinkedMap;
@@ -44,7 +43,7 @@ public class ModuleNotify extends AbstractModule {
             return errorCode(eNotifyNodeNotFound);
 
         r.Result.setNodeKey(new BLinkedMapNodeKey(notify.getName(), nodeId.value));
-        r.Result.getNode().assign(node); // TODO 这里拷贝一次，有点浪费。优化？？？
+        r.Result.setNode(node);
 
         session.sendResponseWhileCommit(r);
         return Procedure.Success;
