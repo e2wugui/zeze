@@ -82,20 +82,21 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		var compress = FamilyClass.Protocol;
-		if (resultCode != 0)
-			compress |= Zeze.Net.FamilyClass.BitResultCode;
-		bb.WriteInt(compress);
-		if (resultCode != 0)
+		if (resultCode == 0)
+			bb.WriteInt(FamilyClass.Protocol);
+		else {
+			bb.WriteInt(FamilyClass.Protocol | FamilyClass.BitResultCode);
 			bb.WriteLong(resultCode);
+		}
 		Argument.encode(bb);
 	}
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		var compress = bb.ReadInt();
-		// familyClass = compress & Zeze.Net.FamilyClass.FamilyClassMask;
-		resultCode = ((compress & Zeze.Net.FamilyClass.BitResultCode) != 0) ? bb.ReadLong() : 0;
+		var header = bb.ReadInt();
+		if ((header & FamilyClass.FamilyClassMask) != FamilyClass.Protocol)
+			throw new IllegalStateException("invalid header(" + header + ") for decoding protocol " + getClass());
+		resultCode = (header & FamilyClass.BitResultCode) != 0 ? bb.ReadLong() : 0;
 		Argument.decode(bb);
 	}
 

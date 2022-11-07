@@ -2,6 +2,7 @@ package Zeze.Raft;
 
 import java.util.function.ToLongFunction;
 import Zeze.Net.AsyncSocket;
+import Zeze.Net.FamilyClass;
 import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
@@ -16,6 +17,11 @@ public abstract class RaftRpc<TArgument extends Bean, TResult extends Bean> exte
 
 	TaskCompletionSource<RaftRpc<TArgument, TResult>> future;
 	ToLongFunction<Protocol<?>> handle;
+
+	@Override
+	public int getFamilyClass() {
+		return isRequest() ? FamilyClass.RaftRequest : FamilyClass.RaftResponse;
+	}
 
 	@Override
 	public long getCreateTime() {
@@ -67,9 +73,15 @@ public abstract class RaftRpc<TArgument extends Bean, TResult extends Bean> exte
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteBool(isRequest());
+		var header = getFamilyClass();
+		if (resultCode == 0)
+			bb.WriteInt(header);
+		else {
+			bb.WriteInt(header | FamilyClass.BitResultCode);
+			bb.WriteLong(resultCode);
+		}
 		bb.WriteLong(getSessionId());
-		bb.WriteLong(getResultCode());
+
 		unique.encode(bb);
 		bb.WriteLong(createTime);
 
@@ -81,9 +93,14 @@ public abstract class RaftRpc<TArgument extends Bean, TResult extends Bean> exte
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		setRequest(bb.ReadBool());
+		var header = bb.ReadInt();
+		var familyClass = header & FamilyClass.FamilyClassMask;
+		if (familyClass != FamilyClass.RaftRequest && familyClass != FamilyClass.RaftResponse)
+			throw new IllegalStateException("invalid header(" + header + ") for decoding raft rpc " + getClass());
+		setRequest(familyClass == FamilyClass.RaftRequest);
+		resultCode = (header & FamilyClass.BitResultCode) != 0 ? bb.ReadLong() : 0;
 		setSessionId(bb.ReadLong());
-		setResultCode(bb.ReadLong());
+
 		unique.decode(bb);
 		createTime = bb.ReadLong();
 

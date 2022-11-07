@@ -262,7 +262,10 @@ public final class GenModule {
 					sb.appendLine("            _f_.setResult(Zeze.Transaction.Procedure.ErrorSendFail);");
 				else if (m.returnTypeHasResultCode) {
 					sb.appendLine("            var _r_ = new {}();", m.resultTypeName);
-					sb.appendLine("            _r_.resultCode = Zeze.Transaction.Procedure.ErrorSendFail;");
+					if (Serializable.class.isAssignableFrom(m.resultClass))
+						sb.appendLine("            _r_.setResultCode(Zeze.Transaction.Procedure.ErrorSendFail);");
+					else
+						sb.appendLine("            _r_.resultCode = Zeze.Transaction.Procedure.ErrorSendFail;");
 					sb.appendLine("            _f_.setResult(_r_);");
 				} else
 					sb.appendLine("            _f_.setResult(null);");

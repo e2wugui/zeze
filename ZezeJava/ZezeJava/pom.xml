@@ -99,6 +99,7 @@
 		<mysql-conncetor-java.version>8.0.30</mysql-conncetor-java.version>
 		<rocketmq-client.version>4.9.4</rocketmq-client.version>
 		<javaee-api.version>8.0.1</javaee-api.version>
+		<jgrapht-core.version>1.5.1</jgrapht-core.version>
 		<junit.version>4.13.2</junit.version>
 	</properties>
 
@@ -187,6 +188,13 @@
 			<groupId>javax</groupId>
 			<artifactId>javaee-api</artifactId>
 			<version>${javaee-api.version}</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.jgrapht</groupId>
+			<artifactId>jgrapht-core</artifactId>
+			<version>${jgrapht-core.version}</version>
 			<scope>provided</scope>
 		</dependency>
 

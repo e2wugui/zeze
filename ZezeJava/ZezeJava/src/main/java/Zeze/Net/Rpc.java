@@ -257,12 +257,13 @@ public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends 
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		var compress = getFamilyClass();
-		if (resultCode != 0)
-			compress |= Zeze.Net.FamilyClass.BitResultCode;
-		bb.WriteInt(compress);
-		if (resultCode != 0)
+		var header = getFamilyClass();
+		if (resultCode == 0)
+			bb.WriteInt(header);
+		else {
+			bb.WriteInt(header | FamilyClass.BitResultCode);
 			bb.WriteLong(resultCode);
+		}
 		bb.WriteLong(sessionId);
 		if (isRequest)
 			Argument.encode(bb);
@@ -274,10 +275,12 @@ public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends 
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		var compress = bb.ReadInt();
-		var familyClass = compress & Zeze.Net.FamilyClass.FamilyClassMask;
-		isRequest = familyClass == Zeze.Net.FamilyClass.Request;
-		resultCode = ((compress & Zeze.Net.FamilyClass.BitResultCode) != 0) ? bb.ReadLong() : 0;
+		var header = bb.ReadInt();
+		var familyClass = header & FamilyClass.FamilyClassMask;
+		if (familyClass != FamilyClass.Request && familyClass != FamilyClass.Response)
+			throw new IllegalStateException("invalid header(" + header + ") for decoding rpc " + getClass());
+		isRequest = familyClass == FamilyClass.Request;
+		resultCode = (header & FamilyClass.BitResultCode) != 0 ? bb.ReadLong() : 0;
 		sessionId = bb.ReadLong();
 		if (isRequest)
 			Argument.decode(bb);
