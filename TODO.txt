@@ -26,14 +26,18 @@ Zege
 	好友列表也保存关注对象，可以接收通知。
 
 ------------------------------------------------------------------------------------------------------------------------------
-tag v1.0.9 Task; MappingClass(dynamic); Overload(java); Variable Bean Set; Druid; Zege ...;
+tag v1.1.0 Zege Add Friend;
 ------------------------------------------------------------------------------------------------------------------------------
-Task & Achievement & Statistics @项洋呈
 Zege Add Friend
 	* 总则：双向好友，可以从一方的状态推测对方状态。
 	* 操作：Invite-Accept-Deny-Expire；Remove；
 	* 状态：Invite,Normal,Deny,Remove,Expire,(None)
 		(None) 表示数据不存在。
+
+------------------------------------------------------------------------------------------------------------------------------
+tag v1.0.9 Task ...; MappingClass(dynamic); Overload(java); Variable Bean Set; Druid; Zege ...;
+------------------------------------------------------------------------------------------------------------------------------
+Task & Achievement & Statistics @项洋呈
 (java)Dbcp -> Druid
 Bean.setBean CollOne<> LogOne<>
 Linkd 过载保护，响应rpc.request和报告错误。
