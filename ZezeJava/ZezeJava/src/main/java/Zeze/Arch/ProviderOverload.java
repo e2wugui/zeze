@@ -22,9 +22,9 @@ public class ProviderOverload {
 	}
 
 	public static class ThreadPoolMonitor {
-		ThreadPoolExecutor threadPool;
-		int threshold;
-		int overload;
+		final ThreadPoolExecutor threadPool;
+		final int threshold;
+		final int overload;
 
 		public ThreadPoolMonitor(ThreadPoolExecutor threadPool, int threshold, int overload) {
 			this.threadPool = threadPool;

@@ -10,6 +10,7 @@ import java.util.function.BiFunction;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.Collections.CollOne;
 import Zeze.Transaction.Collections.PList2;
 import Zeze.Transaction.Collections.PMap2;
 import Zeze.Transaction.DynamicBean;
@@ -516,6 +517,18 @@ public final class Json {
 				reader.pos(p).parse0(obj, classMeta);
 			}
 			return obj;
+		});
+
+		Json.getClassMeta(CollOne.class).setParser((reader, classMeta, obj, parent) -> {
+			if (obj == null)
+				throw new UnsupportedOperationException();
+			reader.parse(obj.getValue());
+			return obj;
+		});
+		Json.getClassMeta(CollOne.class).setWriter((writer, classMeta, obj) -> {
+			if (obj == null)
+				throw new UnsupportedOperationException();
+			writer.write(obj.getValue());
 		});
 	}
 }

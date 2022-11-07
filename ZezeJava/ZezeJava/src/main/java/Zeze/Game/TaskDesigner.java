@@ -10,7 +10,7 @@ import Zeze.Builtin.Game.Task.BTaskPhase;
 
 public class TaskDesigner {
 	public final Application zeze;
-	Task.Module taskModule;
+	final Task.Module taskModule;
 
 	public TaskDesigner(Application zeze, Task.Module taskModule) {
 		this.zeze = zeze;

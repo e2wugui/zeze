@@ -9,7 +9,7 @@ import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
 
 public class DAG<V extends Bean> {
-	DirectedAcyclicGraph<BDAGNodeKey, DefaultEdge> graph = new DirectedAcyclicGraph<>(DefaultEdge.class);
+	final DirectedAcyclicGraph<BDAGNodeKey, DefaultEdge> graph = new DirectedAcyclicGraph<>(DefaultEdge.class);
 
 	public boolean addNode(String id, V value) {
 		var nodeIdKey = new BDAGNodeKey(name, id);

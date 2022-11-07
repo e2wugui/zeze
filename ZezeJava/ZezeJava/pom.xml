@@ -78,6 +78,7 @@
 						<arg>java.base/sun.security.util=ALL-UNNAMED</arg>
 						<arg>--add-exports</arg>
 						<arg>java.base/sun.security.x509=ALL-UNNAMED</arg>
+						<arg>-Xlint:unchecked</arg>
 					</compilerArgs>
 				</configuration>
 			</plugin>

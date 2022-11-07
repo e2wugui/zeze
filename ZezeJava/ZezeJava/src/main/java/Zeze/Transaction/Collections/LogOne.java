@@ -22,6 +22,7 @@ public class LogOne<V extends Bean> extends LogBean {
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void commit() {
         if (value != null) {
