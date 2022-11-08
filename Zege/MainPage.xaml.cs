@@ -25,6 +25,7 @@ namespace Zege
         public ScrollView MessageScrollView => _MessageScrollView;
         public AbsoluteLayout MessageLayout => _MessageLayout;
         public Layout MessageParent => _MessageParent;
+        public Window NotifyWindow { get; private set; }
 
         private void LoggingConfiguration()
         {
@@ -183,9 +184,17 @@ namespace Zege
 
         private void OnOpenNotifyWindow(object sender, EventArgs e)
         {
-            // TODO 不总是创建新窗口。
-            var notify = new Window(new Zege.Notify.NotifyPage());
-            Microsoft.Maui.Controls.Application.Current.OpenWindow(notify);
+            if (null == NotifyWindow)
+            {
+                NotifyWindow = new Window(new Zege.Notify.NotifyPage());
+                NotifyWindow.Destroying += NotifyWindow_Destroying;
+                Microsoft.Maui.Controls.Application.Current.OpenWindow(NotifyWindow);
+            }
+        }
+
+        private void NotifyWindow_Destroying(object sender, EventArgs e)
+        {
+            NotifyWindow = null;
         }
     }
 }
