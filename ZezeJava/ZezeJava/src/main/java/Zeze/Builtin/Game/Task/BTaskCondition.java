@@ -7,97 +7,97 @@ import Zeze.Serialize.ByteBuffer;
 public final class BTaskCondition extends Zeze.Transaction.Bean implements BTaskConditionReadOnly {
     public static final long TYPEID = 3233174055754866965L;
 
-    private String _ConditionId;
-    private String _ConditionName;
-    private final Zeze.Transaction.DynamicBean _ConditionCustomData;
+    private String _TaskConditionId;
+    private String _TaskConditionName;
+    private final Zeze.Transaction.DynamicBean _TaskConditionCustomData;
 
-    public static Zeze.Transaction.DynamicBean newDynamicBean_ConditionCustomData() {
+    public static Zeze.Transaction.DynamicBean newDynamicBean_TaskConditionCustomData() {
         return new Zeze.Transaction.DynamicBean(3, Zeze.Game.Condition::getSpecialTypeIdFromBean, Zeze.Game.Condition::createBeanFromSpecialTypeId);
     }
 
-    public static long getSpecialTypeIdFromBean_ConditionCustomData(Zeze.Transaction.Bean bean) {
+    public static long getSpecialTypeIdFromBean_TaskConditionCustomData(Zeze.Transaction.Bean bean) {
         return Zeze.Game.Condition.getSpecialTypeIdFromBean(bean);
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_ConditionCustomData(long typeId) {
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_TaskConditionCustomData(long typeId) {
         return Zeze.Game.Condition.createBeanFromSpecialTypeId(typeId);
     }
 
     @Override
-    public String getConditionId() {
+    public String getTaskConditionId() {
         if (!isManaged())
-            return _ConditionId;
+            return _TaskConditionId;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _ConditionId;
-        var log = (Log__ConditionId)txn.getLog(objectId() + 1);
-        return log != null ? log.value : _ConditionId;
+            return _TaskConditionId;
+        var log = (Log__TaskConditionId)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _TaskConditionId;
     }
 
-    public void setConditionId(String value) {
+    public void setTaskConditionId(String value) {
         if (value == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _ConditionId = value;
+            _TaskConditionId = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ConditionId(this, 1, value));
+        txn.putLog(new Log__TaskConditionId(this, 1, value));
     }
 
     @Override
-    public String getConditionName() {
+    public String getTaskConditionName() {
         if (!isManaged())
-            return _ConditionName;
+            return _TaskConditionName;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _ConditionName;
-        var log = (Log__ConditionName)txn.getLog(objectId() + 2);
-        return log != null ? log.value : _ConditionName;
+            return _TaskConditionName;
+        var log = (Log__TaskConditionName)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _TaskConditionName;
     }
 
-    public void setConditionName(String value) {
+    public void setTaskConditionName(String value) {
         if (value == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _ConditionName = value;
+            _TaskConditionName = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ConditionName(this, 2, value));
+        txn.putLog(new Log__TaskConditionName(this, 2, value));
     }
 
-    public Zeze.Transaction.DynamicBean getConditionCustomData() {
-        return _ConditionCustomData;
+    public Zeze.Transaction.DynamicBean getTaskConditionCustomData() {
+        return _TaskConditionCustomData;
     }
 
     @Override
-    public Zeze.Transaction.DynamicBeanReadOnly getConditionCustomDataReadOnly() {
-        return _ConditionCustomData;
+    public Zeze.Transaction.DynamicBeanReadOnly getTaskConditionCustomDataReadOnly() {
+        return _TaskConditionCustomData;
     }
 
     @SuppressWarnings("deprecation")
     public BTaskCondition() {
-        _ConditionId = "";
-        _ConditionName = "";
-        _ConditionCustomData = newDynamicBean_ConditionCustomData();
+        _TaskConditionId = "";
+        _TaskConditionName = "";
+        _TaskConditionCustomData = newDynamicBean_TaskConditionCustomData();
     }
 
     @SuppressWarnings("deprecation")
-    public BTaskCondition(String _ConditionId_, String _ConditionName_) {
-        if (_ConditionId_ == null)
+    public BTaskCondition(String _TaskConditionId_, String _TaskConditionName_) {
+        if (_TaskConditionId_ == null)
             throw new IllegalArgumentException();
-        _ConditionId = _ConditionId_;
-        if (_ConditionName_ == null)
+        _TaskConditionId = _TaskConditionId_;
+        if (_TaskConditionName_ == null)
             throw new IllegalArgumentException();
-        _ConditionName = _ConditionName_;
-        _ConditionCustomData = newDynamicBean_ConditionCustomData();
+        _TaskConditionName = _TaskConditionName_;
+        _TaskConditionCustomData = newDynamicBean_TaskConditionCustomData();
     }
 
     public void assign(BTaskCondition other) {
-        setConditionId(other.getConditionId());
-        setConditionName(other.getConditionName());
-        _ConditionCustomData.assign(other._ConditionCustomData);
+        setTaskConditionId(other.getTaskConditionId());
+        setTaskConditionName(other.getTaskConditionName());
+        _TaskConditionCustomData.assign(other._TaskConditionCustomData);
     }
 
     @Deprecated
@@ -132,18 +132,18 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
         return TYPEID;
     }
 
-    private static final class Log__ConditionId extends Zeze.Transaction.Logs.LogString {
-        public Log__ConditionId(BTaskCondition bean, int varId, String value) { super(bean, varId, value); }
+    private static final class Log__TaskConditionId extends Zeze.Transaction.Logs.LogString {
+        public Log__TaskConditionId(BTaskCondition bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BTaskCondition)getBelong())._ConditionId = value; }
+        public void commit() { ((BTaskCondition)getBelong())._TaskConditionId = value; }
     }
 
-    private static final class Log__ConditionName extends Zeze.Transaction.Logs.LogString {
-        public Log__ConditionName(BTaskCondition bean, int varId, String value) { super(bean, varId, value); }
+    private static final class Log__TaskConditionName extends Zeze.Transaction.Logs.LogString {
+        public Log__TaskConditionName(BTaskCondition bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BTaskCondition)getBelong())._ConditionName = value; }
+        public void commit() { ((BTaskCondition)getBelong())._TaskConditionName = value; }
     }
 
     @Override
@@ -157,10 +157,10 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Task.BTaskCondition: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ConditionId").append('=').append(getConditionId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ConditionName").append('=').append(getConditionName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ConditionCustomData").append('=').append(System.lineSeparator());
-        _ConditionCustomData.getBean().buildString(sb, level + 4);
+        sb.append(Zeze.Util.Str.indent(level)).append("TaskConditionId").append('=').append(getTaskConditionId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("TaskConditionName").append('=').append(getTaskConditionName()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("TaskConditionCustomData").append('=').append(System.lineSeparator());
+        _TaskConditionCustomData.getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -182,21 +182,21 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = getConditionId();
+            String _x_ = getTaskConditionId();
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
-            String _x_ = getConditionName();
+            String _x_ = getTaskConditionName();
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
-            var _x_ = _ConditionCustomData;
+            var _x_ = _TaskConditionCustomData;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.DYNAMIC);
                 _x_.encode(_o_);
@@ -210,15 +210,15 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setConditionId(_o_.ReadString(_t_));
+            setTaskConditionId(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            setConditionName(_o_.ReadString(_t_));
+            setTaskConditionName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            _o_.ReadDynamic(_ConditionCustomData, _t_);
+            _o_.ReadDynamic(_TaskConditionCustomData, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -229,12 +229,12 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
 
     @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _ConditionCustomData.initRootInfo(root, this);
+        _TaskConditionCustomData.initRootInfo(root, this);
     }
 
     @Override
     protected void resetChildrenRootInfo() {
-        _ConditionCustomData.resetRootInfo();
+        _TaskConditionCustomData.resetRootInfo();
     }
 
     @Override
@@ -251,9 +251,9 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ConditionId = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _ConditionName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 3: _ConditionCustomData.followerApply(vlog); break;
+                case 1: _TaskConditionId = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 2: _TaskConditionName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 3: _TaskConditionCustomData.followerApply(vlog); break;
             }
         }
     }

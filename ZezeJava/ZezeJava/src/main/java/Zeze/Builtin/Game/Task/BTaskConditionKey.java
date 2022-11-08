@@ -5,22 +5,22 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed"})
-public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
-    private String _TaskId;
+public final class BTaskConditionKey implements Serializable, Comparable<BTaskConditionKey> {
+    private String _TaskConditionId;
 
     // for decode only
-    public BTaskKey() {
-        _TaskId = "";
+    public BTaskConditionKey() {
+        _TaskConditionId = "";
     }
 
-    public BTaskKey(String _TaskId_) {
-        if (_TaskId_ == null)
+    public BTaskConditionKey(String _TaskConditionId_) {
+        if (_TaskConditionId_ == null)
             throw new IllegalArgumentException();
-        this._TaskId = _TaskId_;
+        this._TaskConditionId = _TaskConditionId_;
     }
 
-    public String getTaskId() {
-        return _TaskId;
+    public String getTaskConditionId() {
+        return _TaskConditionId;
     }
 
     @Override
@@ -32,9 +32,9 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
     }
 
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Task.BTaskKey: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Task.BTaskConditionKey: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("TaskId").append('=').append(getTaskId()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("TaskConditionId").append('=').append(getTaskConditionId()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -55,7 +55,7 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = getTaskId();
+            String _x_ = getTaskConditionId();
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
@@ -69,7 +69,7 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _TaskId = _o_.ReadString(_t_);
+            _TaskConditionId = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -82,9 +82,9 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
     public boolean equals(Object _obj1_) {
         if (_obj1_ == this)
             return true;
-        if (_obj1_ instanceof BTaskKey) {
-            var _obj_ = (BTaskKey)_obj1_;
-            if (!getTaskId().equals(_obj_.getTaskId()))
+        if (_obj1_ instanceof BTaskConditionKey) {
+            var _obj_ = (BTaskConditionKey)_obj1_;
+            if (!getTaskConditionId().equals(_obj_.getTaskConditionId()))
                 return false;
             return true;
         }
@@ -95,17 +95,17 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
     public int hashCode() {
         final int _prime_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _prime_ + _TaskId.hashCode();
+        _h_ = _h_ * _prime_ + _TaskConditionId.hashCode();
         return _h_;
     }
 
     @Override
-    public int compareTo(BTaskKey _o_) {
+    public int compareTo(BTaskConditionKey _o_) {
         if (_o_ == this)
             return 0;
         if (_o_ != null) {
             int _c_;
-            _c_ = _TaskId.compareTo(_o_._TaskId);
+            _c_ = _TaskConditionId.compareTo(_o_._TaskConditionId);
             if (_c_ != 0)
                 return _c_;
             return _c_;

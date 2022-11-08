@@ -731,17 +731,23 @@
 			</module> Rank 11015
 
             <module name="Task" id="11018">
+				<beankey name="BTaskConditionKey">
+					<variable id="1" name="TaskConditionId" type="string"/>
+				</beankey>
 				<bean name="BTaskCondition">
-					<variable id="1" name="ConditionId" type="string"/>
-					<variable id="2" name="ConditionName" type="string"/>
-					<variable id="3" name="ConditionCustomData" type="dynamic">
+					<variable id="1" name="TaskConditionId" type="string"/>
+					<variable id="2" name="TaskConditionName" type="string"/>
+					<variable id="3" name="TaskConditionCustomData" type="dynamic">
 						<GetSpecialTypeIdFromBean value="Zeze.Game.Condition::getSpecialTypeIdFromBean"/>
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.Condition::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
+				<beankey name="BTaskPhaseKey">
+					<variable id="1" name="TaskPhaseId" type="string"/>
+				</beankey>
 				<bean name="BTaskPhase">
-					<variable id="1" name="PhaseId" type="string"/>
-					<variable id="2" name="PhaseName" type="string"/>
+					<variable id="1" name="TaskPhaseId" type="string"/>
+					<variable id="2" name="TaskPhaseName" type="string"/>
 					<variable id="3" name="CurrentCondition" type="BTaskCondition"/>
 					<variable id="4" name="TaskPhaseCustomData" type="dynamic">
 						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskPhase::getSpecialTypeIdFromBean"/>
@@ -750,7 +756,6 @@
 				</bean>
 				<beankey name="BTaskKey">
 					<variable id="1" name="TaskId" type="string"/>
-					<variable id="2" name="TaskName" type="string"/>
 				</beankey>
 				<bean name="BTask">
 					<variable id="1" name="TaskId" type="string"/>
@@ -762,15 +767,23 @@
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.Task::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
-				<table name="tTaskCondition" key="BTaskKey" value="BTask"/>
-				<table name="tTaskPhase" key="BTaskKey" value="BTask"/>
+				<table name="tTaskCondition" key="BTaskConditionKey" value="BTaskCondition"/>
+				<table name="tTaskPhase" key="BTaskPhaseKey" value="BTaskPhase"/>
 				<table name="tTask" key="BTaskKey" value="BTask"/>
 
 				<!-- Task rpc -->
 				<bean name="BCompleteCondition">
-					<variable id="1" name="ConditionId" type="string"/>
+					<variable id="1" name="TaskId" type="string"/>
+					<variable id="2" name="TaskPhaseId" type="string"/>
+					<variable id="3" name="TaskConditionId" type="string"/>
 				</bean>
 				<rpc name="CompleteCondition" argument="BCompleteCondition" handle="server"/>
+
+				<!-- 只供测试的Custom Bean -->
+				<bean name="BCustomConditionBean">
+					<variable id="1" name="CoinSum" type="int"/> 玩家吃到的金币数量
+					<variable id="2" name="TargetCoinSum" type="int"/> 任务需要的金币数量
+				</bean>
             </module> Task 11018
 
 		</module> Game

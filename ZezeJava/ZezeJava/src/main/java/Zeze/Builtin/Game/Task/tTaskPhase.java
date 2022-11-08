@@ -6,8 +6,8 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tTaskPhase extends TableX<Zeze.Builtin.Game.Task.BTaskKey, Zeze.Builtin.Game.Task.BTask>
-        implements TableReadOnly<Zeze.Builtin.Game.Task.BTaskKey, Zeze.Builtin.Game.Task.BTask, Zeze.Builtin.Game.Task.BTaskReadOnly> {
+public final class tTaskPhase extends TableX<Zeze.Builtin.Game.Task.BTaskPhaseKey, Zeze.Builtin.Game.Task.BTaskPhase>
+        implements TableReadOnly<Zeze.Builtin.Game.Task.BTaskPhaseKey, Zeze.Builtin.Game.Task.BTaskPhase, Zeze.Builtin.Game.Task.BTaskPhaseReadOnly> {
     public tTaskPhase() {
         super("Zeze_Builtin_Game_Task_tTaskPhase");
     }
@@ -27,33 +27,32 @@ public final class tTaskPhase extends TableX<Zeze.Builtin.Game.Task.BTaskKey, Ze
         return false;
     }
 
-    public static final int VAR_TaskId = 1;
-    public static final int VAR_TaskName = 2;
-    public static final int VAR_CurrentPhase = 3;
-    public static final int VAR_TaskPhases = 4;
-    public static final int VAR_TaskCustomData = 5;
+    public static final int VAR_TaskPhaseId = 1;
+    public static final int VAR_TaskPhaseName = 2;
+    public static final int VAR_CurrentCondition = 3;
+    public static final int VAR_TaskPhaseCustomData = 4;
 
     @Override
-    public Zeze.Builtin.Game.Task.BTaskKey decodeKey(ByteBuffer _os_) {
-        Zeze.Builtin.Game.Task.BTaskKey _v_ = new Zeze.Builtin.Game.Task.BTaskKey();
+    public Zeze.Builtin.Game.Task.BTaskPhaseKey decodeKey(ByteBuffer _os_) {
+        Zeze.Builtin.Game.Task.BTaskPhaseKey _v_ = new Zeze.Builtin.Game.Task.BTaskPhaseKey();
         _v_.decode(_os_);
         return _v_;
     }
 
     @Override
-    public ByteBuffer encodeKey(Zeze.Builtin.Game.Task.BTaskKey _v_) {
+    public ByteBuffer encodeKey(Zeze.Builtin.Game.Task.BTaskPhaseKey _v_) {
         ByteBuffer _os_ = ByteBuffer.Allocate(16);
         _v_.encode(_os_);
         return _os_;
     }
 
     @Override
-    public Zeze.Builtin.Game.Task.BTask newValue() {
-        return new Zeze.Builtin.Game.Task.BTask();
+    public Zeze.Builtin.Game.Task.BTaskPhase newValue() {
+        return new Zeze.Builtin.Game.Task.BTaskPhase();
     }
 
     @Override
-    public Zeze.Builtin.Game.Task.BTaskReadOnly getReadOnly(Zeze.Builtin.Game.Task.BTaskKey key) {
+    public Zeze.Builtin.Game.Task.BTaskPhaseReadOnly getReadOnly(Zeze.Builtin.Game.Task.BTaskPhaseKey key) {
         return get(key);
     }
 }

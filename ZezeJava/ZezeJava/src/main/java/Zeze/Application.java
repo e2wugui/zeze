@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.concurrent.Future;
 import Zeze.Arch.RedirectBase;
+import Zeze.Collections.DAG;
 import Zeze.Collections.Queue;
 import Zeze.Component.AutoKey;
 import Zeze.Component.DelayRemove;
@@ -46,6 +47,8 @@ public final class Application {
 	private final Agent serviceManagerAgent;
 	private AutoKey.Module autoKey;
 	private Timer timer;
+	private DAG.Module dagModule;
+	private Zeze.Game.Task.Module taskModule;
 	private Zeze.Collections.Queue.Module queueModule;
 	private Zeze.Component.DelayRemove delayRemove;
 	private IGlobalAgent globalAgent;
@@ -189,10 +192,18 @@ public final class Application {
 		return timer;
 	}
 
+	public Zeze.Game.Task.Module getTaskModule() {
+		return taskModule;
+	}
+
 	public Zeze.Collections.Queue.Module getQueueModule() {
 		return queueModule;
 	}
-	public Zeze.Component.DelayRemove getDelayRemove() { return delayRemove; }
+
+	public Zeze.Component.DelayRemove getDelayRemove() {
+		return delayRemove;
+	}
+
 	@Deprecated //use newProcedure
 	public Procedure NewProcedure(FuncLong action, String actionName) {
 		return newProcedure(action, actionName);
@@ -242,6 +253,8 @@ public final class Application {
 			queueModule = new Queue.Module(this);
 			delayRemove = new DelayRemove(this);
 			timer = new Timer(this);
+			dagModule = new DAG.Module(this);
+			taskModule = new Zeze.Game.Task.Module(this, dagModule);
 
 			// XXX Remove Me
 			conf.clearInUseAndIAmSureAppStopped(this, databases);

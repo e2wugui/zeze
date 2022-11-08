@@ -1,7 +1,9 @@
 package Zeze.Game;
 
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
+import Zeze.Arch.ProviderUserSession;
 import Zeze.Builtin.Game.Task.BTask;
 import Zeze.Builtin.Game.Task.BTaskKey;
 import Zeze.Builtin.Game.Task.BTaskPhase;
@@ -22,9 +24,11 @@ public class Task {
 	private final BTask bean;
 	private final DAG<BTaskPhase> phaseDAG; // 任务的各个阶段的连接图
 	private final ConcurrentHashMap<String, TaskPhase> taskPhases = new ConcurrentHashMap<>(); // 任务的各个阶段
+
 	public static long getSpecialTypeIdFromBean(Bean bean) {
 		return BeanFactory.getSpecialTypeIdFromBean(bean);
 	}
+
 	public static Bean createBeanFromSpecialTypeId(long typeId) {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
@@ -32,7 +36,7 @@ public class Task {
 	protected Task(Module module, String taskId, String taskName, DAG<BTaskPhase> phaseDAG) {
 		this.module = module;
 		this.name = taskName;
-		this.bean = this.module._tTask.getOrAdd(new BTaskKey(taskId, taskName));
+		this.bean = this.module._tTask.getOrAdd(new BTaskKey(taskId));
 		this.phaseDAG = phaseDAG;
 	}
 
@@ -52,28 +56,14 @@ public class Task {
 		return bean.getCurrentPhase();
 	}
 
-	// ==================== 功能模块 ====================
-	public void addPhase(BTaskPhase phase) {
-		phaseDAG.addNode(phase.getPhaseId(), phase);
-	}
-
-	public void linkPhase(BTaskPhase from, BTaskPhase to) {
-		phaseDAG.addEdge(from.getPhaseId(), to.getPhaseId());
-	}
-
-	public boolean accept(ConditionEvent event) {
-		return false;
-	}
-	// ==================== 功能模块 ====================
-
 	public static class Module extends AbstractTask {
 		private final ConcurrentHashMap<String, Task> tasks = new ConcurrentHashMap<>();
 		public final Application zeze;
-		public final DAG.Module DAGs;
+		public final DAG.Module moduleDAG;
 
-		Module(Application zeze, DAG.Module dagModule) {
+		public Module(Application zeze, DAG.Module dagModule) {
 			this.zeze = zeze;
-			this.DAGs = dagModule;
+			this.moduleDAG = dagModule;
 			RegisterZezeTables(zeze);
 		}
 
@@ -88,14 +78,42 @@ public class Task {
 			return _tTask;
 		}
 
-		public Task open(String taskName) {
-			var taskPhases = DAGs.open(taskName + ".TaskPhase", BTaskPhase.class);
-			return tasks.computeIfAbsent(taskName, key -> new Task(this, "1", key, taskPhases)); // TODO: Danger!!! taskId is hard coded, use Autokey to solve it
+		public Task open(String taskId) {
+			var taskPhases = moduleDAG.open(taskId + ".TaskPhase", BTaskPhase.class);
+			return tasks.computeIfAbsent(taskId, key -> new Task(this, "1", key, taskPhases)); // TODO: Danger!!! taskId is hard coded, use Autokey to solve it
 		}
 
 		@Override
 		protected long ProcessCompleteConditionRequest(CompleteCondition r) throws Throwable {
+			var session = ProviderUserSession.get(r);
+			var taskId = r.Argument.getTaskId();
+			var phaseId = r.Argument.getTaskPhaseId();
+			var conditionId = r.Argument.getTaskConditionId();
+
+			var task = open(taskId);
+			var currentPhase = task.getCurrentPhase();
+			if (!Objects.equals(currentPhase.getTaskPhaseId(), phaseId)) {
+				// TODO: 处理异常
+				return -1;
+			}
+
+
+			session.sendResponseWhileCommit(r);
 			return 0;
 		}
 	}
+
+	// ==================== 功能模块 ====================
+	public void addPhase(BTaskPhase phase) {
+		phaseDAG.addNode(phase.getTaskPhaseId(), phase);
+	}
+
+	public void linkPhase(BTaskPhase from, BTaskPhase to) {
+		phaseDAG.addEdge(from.getTaskPhaseId(), to.getTaskPhaseId());
+	}
+
+	public boolean accept(ConditionEvent event) {
+		return false;
+	}
+	// ==================== 功能模块 ====================
 }

@@ -8,5 +8,7 @@ public interface BCompleteConditionReadOnly {
     public boolean negativeCheck();
     public BCompleteCondition copy();
 
-    public String getConditionId();
+    public String getTaskId();
+    public String getTaskPhaseId();
+    public String getTaskConditionId();
 }

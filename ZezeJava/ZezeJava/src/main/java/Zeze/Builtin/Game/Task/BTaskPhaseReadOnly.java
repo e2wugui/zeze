@@ -7,8 +7,8 @@ public interface BTaskPhaseReadOnly {
     public boolean negativeCheck();
     public BTaskPhase copy();
 
-    public String getPhaseId();
-    public String getPhaseName();
+    public String getTaskPhaseId();
+    public String getTaskPhaseName();
     public Zeze.Builtin.Game.Task.BTaskConditionReadOnly getCurrentConditionReadOnly();
     public Zeze.Transaction.DynamicBeanReadOnly getTaskPhaseCustomDataReadOnly();
 
