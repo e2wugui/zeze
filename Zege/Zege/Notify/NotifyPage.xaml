@@ -5,7 +5,7 @@
              Title="NotifyPage">
     <VerticalStackLayout>
         <Label 
-            Text="Welcome to .NET MAUI!"
+            Text="Welcome to .NET MAUI!aaaaaaaaaa"
             VerticalOptions="Center" 
             HorizontalOptions="Center" />
     </VerticalStackLayout>

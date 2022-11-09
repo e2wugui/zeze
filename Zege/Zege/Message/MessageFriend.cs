@@ -26,7 +26,7 @@ namespace Zege.Message
         {
             Module = module;
             Friend = friend;
-            View = new MessageViewControl(Module.App, Module.App.MainWindow.MessageParent);
+            View = new MessageViewControl(Module.App, Module.App.MainPage.MessageParent);
 
             var rpc = new GetFriendMessage();
             rpc.Argument.Friend = friend;
@@ -45,7 +45,7 @@ namespace Zege.Message
 
             NextMessageId = p.Argument.MessageId + 1;
             // TODO 需要检测当前View是否正在显示最新的消息，如果是，不需要更新红点。
-            Module.App.MainWindow.UpdateRedPoint(Friend, NextMessageId - NextMessageIdNotRead);
+            Module.App.MainPage.UpdateRedPoint(Friend, NextMessageId - NextMessageIdNotRead);
         }
 
         private bool IsNewMessage(List<BMessage> messages)
@@ -67,7 +67,7 @@ namespace Zege.Message
             NextMessageId = r.Result.NextMessageId;
             ReachEnd = r.Result.ReachEnd;
 
-            Module.App.MainWindow.UpdateRedPoint(Friend, NextMessageId - NextMessageIdNotRead);
+            Module.App.MainPage.UpdateRedPoint(Friend, NextMessageId - NextMessageIdNotRead);
 
             if (r.Result.Messages.Count == 0)
                 return; // skip empty result; 可以不判断。

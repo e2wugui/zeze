@@ -1,0 +1,79 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Zege.MainPage"
+             Title="Zege">
+
+    <ScrollView>
+        <HorizontalStackLayout>
+
+            <!-- ItemSource="{Binding Friends}"-->
+            <ListView x:Name ="FriendsListView" HeightRequest="600" WidthRequest="350" >
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <ViewCell>
+                            <Grid Padding="10">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="30" />
+                                    <RowDefinition Height="30" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="60" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="60" />
+                                </Grid.ColumnDefinitions>
+
+                                <Image Grid.RowSpan="2" Source="{Binding Image}" Aspect="AspectFill" HeightRequest="60" WidthRequest="60" />
+                                <Label Grid.Column="1" Text="{Binding Nick}" LineBreakMode="TailTruncation" FontAttributes="Bold" />
+                                <Label Grid.Column="2" Text="{Binding Time}" LineBreakMode="NoWrap" />
+                                <Label Grid.Row="1" Grid.Column="1" Text="{Binding Message}" LineBreakMode="TailTruncation" />
+                            </Grid>
+                        </ViewCell>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+            <VerticalStackLayout x:Name="_MessageParent">
+                <ScrollView x:Name="_MessageScrollView" HeightRequest="450" WidthRequest="600">
+                    <AbsoluteLayout x:Name="_MessageLayout" />
+                </ScrollView>
+                <HorizontalStackLayout>
+                    <Editor x:Name="MessageEditor" HeightRequest="150" WidthRequest="445"/>
+                    <Button Text="Send" Clicked="OnSendClicked" Grid.Row="3"/>
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+            <VerticalStackLayout>
+                <Grid Padding="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="40" />
+                        <RowDefinition Height="40" />
+                        <RowDefinition Height="40" />
+                        <RowDefinition Height="40" />
+                        <RowDefinition Height="40" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="80" />
+                        <ColumnDefinition Width="100" />
+                    </Grid.ColumnDefinitions>
+                    <Label Text="Account" VerticalOptions="Center"/>
+                    <Editor x:Name="AccountEditor" Grid.Column="1"/>
+                    <Label Text="Password" Grid.Row="1" VerticalOptions="Center"/>
+                    <Editor x:Name="PasswordEditor" Grid.Row="1" Grid.Column="1"/>
+                    <Label Text="Save" Grid.Row="2" VerticalOptions="Center"/>
+                    <CheckBox x:Name="SavePasswordCheckBox" Grid.Row="2" Grid.Column="1"/>
+                    <Button Text="Login" Clicked="OnLoginClicked" Grid.Row="3"/>
+                    <Button Text="Create" Clicked="OnCreateClicked" Grid.Row="3" Grid.Column="1"/>
+                    <Button Text="Clear All Certs" Grid.ColumnSpan="2" Clicked="OnClear" Grid.Row="4"/>
+                </Grid>
+                <Button Text="Add Tail" Clicked="OnAddTail"/>
+                <Button Text="Delete Tail" Clicked="OnDeleteTail"/>
+                <Button Text="Make Current Friend Top" Clicked="OnMakeCurrentFriendTop"/>
+                <Button Text="Return to Top" Clicked="OnReturnTop"/>
+                <Button Text="Test" Clicked="OnTest"/>
+                <Button Text="Notify" Clicked="OnOpenNotifyWindow"/>
+                <Label Text="a1" x:Name="LabelMultiLine" HeightRequest="80"/>
+            </VerticalStackLayout>
+
+        </HorizontalStackLayout>
+    </ScrollView>
+
+</ContentPage>

@@ -45,7 +45,7 @@ namespace Zege
             if (App == null)
             {
                 App = new App();
-                App.MainWindow = this;
+                App.MainPage = this;
                 App.Start("127.0.0.1", 5100);
                 App.Zege_Friend.Bind(FriendsListView);
                 FriendsListView.ItemSelected += OnFriendsItemSelected;
@@ -196,5 +196,6 @@ namespace Zege
         {
             NotifyWindow = null;
         }
+
     }
 }
