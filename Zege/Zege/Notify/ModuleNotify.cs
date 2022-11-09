@@ -6,6 +6,7 @@ using Zeze.Transaction.Collections;
 using Zeze.Transaction;
 using Zeze.Util;
 using System.Collections.ObjectModel;
+using Zeze.Net;
 
 namespace Zege.Notify
 {
@@ -13,6 +14,9 @@ namespace Zege.Notify
     {
         public List<BGetNotifyNode> Nodes { get; } = new();
         internal ObservableCollection<NotifyItem> ItemsSource { get; } = new();
+        public NotifyPage NotifyPage { get; private set; }
+        public GetNotifyNode GetNotifyNodePending { get; set; }
+
 
         public void Start(global::Zege.App app)
         {
@@ -20,6 +24,93 @@ namespace Zege.Notify
 
         public void Stop(global::Zege.App app)
         {
+        }
+
+        public void GetFirstNode()
+        {
+            if (Nodes.Count == 0)
+                TryGetFriendNode(true);
+        }
+
+        internal GetNotifyNode TryNewGetFriendNode(bool forward)
+        {
+            if (forward)
+            {
+                if (Nodes.Count > 0)
+                {
+                    var last = Nodes[^1];
+                    if (last.Node.NextNodeId == 0)
+                        return null; // 已经是最后一个节点了。
+                    var rpc = new GetNotifyNode();
+                    rpc.Argument.NodeId = last.Node.NextNodeId;
+                    return rpc;
+                }
+                else
+                {
+                    var rpc = new GetNotifyNode();
+                    rpc.Argument.NodeId = 0;
+                    return rpc;
+                }
+            }
+
+            if (Nodes.Count > 0)
+            {
+                var last = Nodes[0];
+                if (last.Node.PrevNodeId == 0)
+                    return null; // 已经是最后一个节点了。
+                var rpc = new GetNotifyNode();
+                rpc.Argument.NodeId = last.Node.PrevNodeId;
+                return rpc;
+            }
+            else
+            {
+                var rpc = new GetNotifyNode();
+                rpc.Argument.NodeId = 0;
+                return rpc;
+            }
+
+        }
+
+        public bool TryGetFriendNode(bool forward)
+        {
+            if (GetNotifyNodePending != null)
+                return true; // done
+
+            GetNotifyNodePending = TryNewGetFriendNode(forward);
+            GetNotifyNodePending?.Send(App.ClientService.GetSocket(), ProcessGetNotifyNodeResponse);
+            return GetNotifyNodePending != null;
+        }
+
+        // 查询好友结果处理函数。
+        [DispatchMode(Mode = DispatchMode.UIThread)]
+        private Task<long> ProcessGetNotifyNodeResponse(Protocol p)
+        {
+            var r = p as GetNotifyNode;
+            if (r.ResultCode == 0)
+            {
+                GetNotifyNodePending = null;
+                var indexOf = IndexOf(r.Result.NodeKey.NodeId);
+                if (indexOf >= 0)
+                {
+                    Nodes[indexOf] = r.Result;
+                    UpdateItemsSource(UpdateType.Update, r.Result);
+                }
+                else
+                {
+                    Nodes.Add(r.Result);
+                    UpdateItemsSource(UpdateType.InsertTail, r.Result);
+                }
+            }
+            return Task.FromResult(0L);
+        }
+
+        public void SetNotifyPage(NotifyPage page)
+        {
+            if (null != NotifyPage)
+                NotifyPage.NotifyListView.ItemsSource = null; // detach
+            NotifyPage = page;
+            if (null != NotifyPage)
+                NotifyPage.NotifyListView.ItemsSource = ItemsSource; // attach
         }
 
         protected override Task<long> ProcessNotifyNodeLogBeanNotify(Zeze.Net.Protocol _p)

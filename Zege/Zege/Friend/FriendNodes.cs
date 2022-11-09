@@ -35,14 +35,6 @@ namespace Zege.Friend
             FirstItemSource = firstItemSource;
         }
 
-        // Change Log Apply: 实现 ChangesTable
-        public object DecodeKey(ByteBuffer bb)
-        {
-            var key = new BLinkedMapNodeKey();
-            key.Decode(bb);
-            return key;
-        }
-
         public void FollowerApply(BLinkedMapNodeKey key, ByteBuffer bb)
         {
             int state;

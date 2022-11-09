@@ -6,4 +6,6 @@ public partial class NotifyPage : ContentPage
 	{
 		InitializeComponent();
 	}
+
+	public ListView NotifyListView => _NotifyListView;
 }

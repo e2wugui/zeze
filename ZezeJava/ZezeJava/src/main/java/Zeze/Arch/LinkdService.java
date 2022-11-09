@@ -213,8 +213,12 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		var providerSessionId = linkSession.tryGetProvider(moduleId);
 		if (providerSessionId != null) {
 			var socket = linkdApp.linkdProviderService.GetSocket(providerSessionId);
-			if (socket == null)
-				return false;
+			if (socket == null) {
+				reportError(linkSession.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider,
+						"no provider: " + moduleId + ", " + dispatch.getProtocolId());
+				// 此后断开连接，不再继续搜索，返回true
+				return true;
+			}
 
 			var ps = (LinkdProviderSession)socket.getUserState();
 			if (ps.load.getOverload() == BLoad.eOverload) {
@@ -224,7 +228,11 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 				return true;
 			}
 
-			return socket.Send(dispatch);
+			if (!socket.Send(dispatch))
+				reportError(linkSession.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider,
+						"no provider: " + moduleId + ", " + dispatch.getProtocolId());
+			// 此后断开连接，不再继续搜索，返回true
+			return true;
 		}
 		return false;
 	}

@@ -218,12 +218,21 @@ namespace Zeze.Arch
                 var socket = LinkdApp.LinkdProviderService.GetSocket(provider);
                 if (null != socket)
                 {
-                    socket.Send(dispatch);
-                    return;
+                    var ps = (LinkdProviderSession)socket.UserState;
+                    if (ps.Load.Overload == BLoad.eOverload)
+                    {
+                        // 过载时会直接拒绝请求以及报告错误。
+                        ReportError(dispatch);
+                        // 但是不能继续派发了。所以这里返回true，表示处理完成。
+                        return;
+                    }
+                    if (socket.Send(dispatch))
+                        return;
                 }
-                // 原来绑定的provider找不到连接，尝试继续从静态绑定里面查找。
-                // 此时应该处于 UnBind 过程中。
-                //linkSession.UnBind(so, moduleId, null);
+
+                ReportError(so.SessionId, BReportError.FromLink, BReportError.CodeNoProvider, "no provider.");
+                // 此后断开连接，不再继续搜索。
+                return;
             }
 
             if (LinkdApp.LinkdProvider.ChoiceProviderAndBind(moduleId, so, out provider))

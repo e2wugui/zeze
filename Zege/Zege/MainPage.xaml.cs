@@ -98,6 +98,7 @@ namespace Zege
                     App.Zege_Friend.GetFristFriendNode();
                     var clientId = "PC";
                     await App.Zeze_Builtin_Online.LoginAsync(clientId);
+                    App.Zege_Notify.GetFirstNode();
                 }
                 else
                 {
@@ -184,9 +185,11 @@ namespace Zege
 
         private void OnOpenNotifyWindow(object sender, EventArgs e)
         {
-            if (null == NotifyWindow)
+            if (null == NotifyWindow && null != App)
             {
-                NotifyWindow = new Window(new Zege.Notify.NotifyPage());
+                var notifyPage = new Zege.Notify.NotifyPage();
+                App.Zege_Notify.SetNotifyPage(notifyPage);
+                NotifyWindow = new Window(notifyPage);
                 NotifyWindow.Destroying += NotifyWindow_Destroying;
                 Microsoft.Maui.Controls.Application.Current.OpenWindow(NotifyWindow);
             }
@@ -194,6 +197,7 @@ namespace Zege
 
         private void NotifyWindow_Destroying(object sender, EventArgs e)
         {
+            App.Zege_Notify.SetNotifyPage(null);
             NotifyWindow = null;
         }
 
