@@ -63,6 +63,13 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		return ProviderDistribute.makeServiceName(serverServiceNamePrefix, moduleId);
 	}
 
+	public ProviderModuleState getProviderModuleState(int moduleId) {
+		var providers = distribute.zeze.getServiceManagerAgent().getSubscribeStates().get(makeServiceName(moduleId));
+		if (providers == null)
+			return null;
+		return (ProviderModuleState)providers.getSubscribeInfo().getLocalState();
+	}
+
 	public boolean choiceProviderAndBind(int moduleId, AsyncSocket link, OutLong provider) {
 		provider.value = 0L;
 		var providers = distribute.zeze.getServiceManagerAgent().getSubscribeStates().get(makeServiceName(moduleId));

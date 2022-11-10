@@ -1,4 +1,5 @@
 
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Zeze.Builtin.LinkdBase;
@@ -189,6 +190,18 @@ namespace Zeze.Arch
             }
             rpc.SendResultCode(BBind.ResultSuccess);
             return Task.FromResult(ResultCode.Success);
+        }
+
+        public string MakeServiceName(int moduleId)
+        {
+            return ProviderDistribute.MakeServiceName(ServerServiceNamePrefix, moduleId);
+        }
+
+        public ProviderModuleState GetProviderModuleState(int moduleId)
+        {
+            if (false == Distribute.Zeze.ServiceManagerAgent.SubscribeStates.TryGetValue(MakeServiceName(moduleId), out var providers))
+                return null;
+            return (ProviderModuleState)providers.SubscribeInfo.LocalState;
         }
 
 

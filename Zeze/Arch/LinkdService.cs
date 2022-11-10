@@ -178,6 +178,46 @@ namespace Zeze.Arch
             }
         }
 
+        private bool TryReportError(LinkdUserSession linkSession, int moduleId, Dispatch dispatch)
+        {
+            var pms = LinkdApp.LinkdProvider.GetProviderModuleState(moduleId);
+            if (null == pms)
+                return false;
+            if (pms.ConfigType == BModule.ConfigTypeDynamic)
+            {
+                ReportError(linkSession.SessionId, BReportError.FromLink, BReportError.CodeNoProvider,
+                        "no provider: " + moduleId + ", " + dispatch.ProtocolId);
+                // 此后断开连接，不再继续搜索，返回true
+                return true;
+            }
+            return false;
+        }
+
+        public bool FindSend(LinkdUserSession linkSession, int moduleId, Dispatch dispatch)
+        {
+            if (linkSession.TryGetProvider(moduleId, out var provider))
+            {
+                var socket = LinkdApp.LinkdProviderService.GetSocket(provider);
+                if (null == socket)
+                    return TryReportError(linkSession, moduleId, dispatch);
+
+                var ps = (LinkdProviderSession)socket.UserState;
+                if (ps.Load.Overload == BLoad.eOverload)
+                {
+                    // 过载时会直接拒绝请求以及报告错误。
+                    ReportError(dispatch);
+                    // 但是不能继续派发了。所以这里返回true，表示处理完成。
+                    return true;
+                }
+
+                if (socket.Send(dispatch))
+                    return true;
+
+                return TryReportError(linkSession, moduleId, dispatch);
+            }
+            return false;
+        }
+
         public override void DispatchUnknownProtocol(
             Zeze.Net.AsyncSocket so,
             int moduleId,
@@ -212,30 +252,10 @@ namespace Zeze.Arch
             dispatch.Argument.Context = linkSession.Context;
             dispatch.Argument.Contextx = linkSession.Contextx;
 
-            long provider;
-            if (linkSession.TryGetProvider(moduleId, out provider))
-            {
-                var socket = LinkdApp.LinkdProviderService.GetSocket(provider);
-                if (null != socket)
-                {
-                    var ps = (LinkdProviderSession)socket.UserState;
-                    if (ps.Load.Overload == BLoad.eOverload)
-                    {
-                        // 过载时会直接拒绝请求以及报告错误。
-                        ReportError(dispatch);
-                        // 但是不能继续派发了。所以这里返回true，表示处理完成。
-                        return;
-                    }
-                    if (socket.Send(dispatch))
-                        return;
-                }
-
-                ReportError(so.SessionId, BReportError.FromLink, BReportError.CodeNoProvider, "no provider.");
-                // 此后断开连接，不再继续搜索。
+            if (FindSend(linkSession, moduleId, dispatch))
                 return;
-            }
 
-            if (LinkdApp.LinkdProvider.ChoiceProviderAndBind(moduleId, so, out provider))
+            if (LinkdApp.LinkdProvider.ChoiceProviderAndBind(moduleId, so, out var provider))
             {
                 var providerSocket = LinkdApp.LinkdProviderService.GetSocket(provider);
                 if (null != providerSocket)

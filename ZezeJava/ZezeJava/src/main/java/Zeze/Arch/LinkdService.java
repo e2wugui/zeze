@@ -4,6 +4,7 @@ import Zeze.Builtin.LinkdBase.BReportError;
 import Zeze.Builtin.LinkdBase.ReportError;
 import Zeze.Builtin.Provider.BDispatch;
 import Zeze.Builtin.Provider.BLoad;
+import Zeze.Builtin.Provider.BModule;
 import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
@@ -209,16 +210,25 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 				linkSession.getContext(), linkSession.getContextx()));
 	}
 
+	private boolean tryReportError(LinkdUserSession linkSession, int moduleId, Dispatch dispatch) {
+		var pms = linkdApp.linkdProvider.getProviderModuleState(moduleId);
+		if (null == pms)
+			return false;
+		if (pms.configType == BModule.ConfigTypeDynamic) {
+			reportError(linkSession.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider,
+					"no provider: " + moduleId + ", " + dispatch.getProtocolId());
+			// 此后断开连接，不再继续搜索，返回true
+			return true;
+		}
+		return false;
+	}
+
 	public boolean findSend(LinkdUserSession linkSession, int moduleId, Dispatch dispatch) {
 		var providerSessionId = linkSession.tryGetProvider(moduleId);
 		if (providerSessionId != null) {
 			var socket = linkdApp.linkdProviderService.GetSocket(providerSessionId);
-			if (socket == null) {
-				reportError(linkSession.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider,
-						"no provider: " + moduleId + ", " + dispatch.getProtocolId());
-				// 此后断开连接，不再继续搜索，返回true
-				return true;
-			}
+			if (socket == null)
+				return tryReportError(linkSession, moduleId, dispatch);
 
 			var ps = (LinkdProviderSession)socket.getUserState();
 			if (ps.load.getOverload() == BLoad.eOverload) {
@@ -228,11 +238,10 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 				return true;
 			}
 
-			if (!socket.Send(dispatch))
-				reportError(linkSession.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider,
-						"no provider: " + moduleId + ", " + dispatch.getProtocolId());
-			// 此后断开连接，不再继续搜索，返回true
-			return true;
+			if (socket.Send(dispatch))
+				return true;
+
+			return tryReportError(linkSession, moduleId, dispatch);
 		}
 		return false;
 	}
