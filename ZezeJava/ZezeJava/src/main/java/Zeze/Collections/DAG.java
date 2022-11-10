@@ -9,37 +9,16 @@ import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
 
 public class DAG<V extends Bean> {
-	final DirectedAcyclicGraph<BDAGNodeKey, DefaultEdge> graph = new DirectedAcyclicGraph<>(DefaultEdge.class);
-
-	public boolean addNode(String id, V value) {
-		var nodeIdKey = new BDAGNodeKey(name, id);
-		var nodeNode = new BDAGNode();
-		nodeNode.getValue().setBean(value);
-		checkValid();
-		return false;
+	public static final BeanFactory beanFactory = new BeanFactory();
+	public static long getSpecialTypeIdFromBean(Bean bean) {
+		return BeanFactory.getSpecialTypeIdFromBean(bean);
 	}
-
-	public boolean addEdge(String from, String to) {
-		checkValid();
-		return false;
+	public static Bean createBeanFromSpecialTypeId(long typeId) {
+		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
-
-	public boolean checkValid() {
-		return true;
+	public MethodHandle getValueConstructor() {
+		return valueConstructor;
 	}
-
-	public boolean isEmpty() {
-		return graph.vertexSet().isEmpty();
-	}
-
-	/**
-	 * 检查有向图合法
-	 * 1. 无环
-	 */
-	public boolean isValid() {
-		return isNoCycle();
-	}
-
 	public Module getModule() {
 		return module;
 	}
@@ -47,23 +26,25 @@ public class DAG<V extends Bean> {
 	public String getName() {
 		return name;
 	}
+	final DirectedAcyclicGraph<BDAGNodeKey, DefaultEdge> graph = new DirectedAcyclicGraph<>(DefaultEdge.class);
 
-	public MethodHandle getValueConstructor() {
-		return valueConstructor;
+	public boolean addNode(long id, V value) throws Exception {
+		var nodeIdKey = new BDAGNodeKey(name, Long.toString(id));
+		var nodeNode = new BDAGNode();
+		nodeNode.getValue().setBean(value);
+		checkValid();
+		return true;
 	}
-
-	public int getNodeSize() {
-		return nodeSize;
+	public boolean addEdge(long from, long to) throws Exception {
+		checkValid();
+		return true;
 	}
-
-	public static final BeanFactory beanFactory = new BeanFactory();
-
-	public static long getSpecialTypeIdFromBean(Bean bean) {
-		return BeanFactory.getSpecialTypeIdFromBean(bean);
+	public void checkValid() throws Exception {
+		if (!isValid())
+			throw new Exception("DAG is invalid."); // TODO: 让异常提示更加智能
 	}
-
-	public static Bean createBeanFromSpecialTypeId(long typeId) {
-		return beanFactory.createBeanFromSpecialTypeId(typeId);
+	public boolean isEmpty() {
+		return graph.vertexSet().isEmpty();
 	}
 
 	public static class Module extends AbstractDAG {
@@ -73,10 +54,6 @@ public class DAG<V extends Bean> {
 		public Module(Zeze.Application zeze) {
 			this.zeze = zeze;
 			RegisterZezeTables(zeze);
-
-			// TODO: 检查任务无环性等……
-//			_tLinkedMapNodes.getChangeListenerMap().addListener(this::OnLinkedMapNodeChange);
-//			_tLinkedMaps.getChangeListenerMap().addListener(this::OnLinkedMapRootChange);
 		}
 
 		@Override
@@ -88,22 +65,25 @@ public class DAG<V extends Bean> {
 
 		@SuppressWarnings("unchecked")
 		public <BNodeType extends Bean> DAG<BNodeType> open(String dagName, Class<BNodeType> nodeType) {
-			return (DAG<BNodeType>)DAGs.computeIfAbsent("1", key -> new DAG<>(this, key, nodeType, 0)); // TODO: node size 也许不对
+			return (DAG<BNodeType>)DAGs.computeIfAbsent("1", key -> new DAG<>(this, key, nodeType));
 		}
 	}
 
-	private final Module module;
-	private final String name;
-	private final MethodHandle valueConstructor;
-	private final int nodeSize;
-
-	private DAG(DAG.Module module, String name, Class<V> valueClass, int nodeSize) {
+	private DAG(DAG.Module module, String name, Class<V> valueClass) {
 		this.module = module;
 		this.name = name;
 		this.valueConstructor = beanFactory.register(valueClass);
-		this.nodeSize = nodeSize;
 	}
-
+	private final Module module;
+	private final String name;
+	private final MethodHandle valueConstructor;
+	/**
+	 * 检查有向图合法
+	 * 1. 无环
+	 */
+	private boolean isValid() {
+		return isNoCycle();
+	}
 	private boolean isNoCycle() {
 		return true;
 	}

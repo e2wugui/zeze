@@ -17,13 +17,8 @@ public class TaskDesigner {
 		this.taskModule = taskModule;
 	}
 
-	public Task create(String taskName) {
+	public Task createExampleTask(String taskName) {
 		Task newTask = taskModule.open(taskName);
-		BTaskPhase phase1 = new BTaskPhase();
-		BTaskPhase phase2 = new BTaskPhase();
-		newTask.addPhase(phase1);
-		newTask.addPhase(phase2);
-		newTask.linkPhase(phase1, phase2);
 		return newTask;
 	}
 }

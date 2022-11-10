@@ -1,13 +1,16 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Game.Task;
 
-public interface BTaskConditionReadOnly {
+// Task rpc
+public interface BTaskEventReadOnly {
     public long typeId();
     public void encode(Zeze.Serialize.ByteBuffer _o_);
     public boolean negativeCheck();
-    public BTaskCondition copy();
+    public BTaskEvent copy();
 
+    public long getTaskId();
+    public long getTaskPhaseId();
     public long getTaskConditionId();
-    public Zeze.Transaction.DynamicBeanReadOnly getTaskConditionCustomDataReadOnly();
+    public Zeze.Transaction.DynamicBeanReadOnly getDynamicDataReadOnly();
 
 }

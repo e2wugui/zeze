@@ -6,20 +6,17 @@ import Zeze.Serialize.Serializable;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed"})
 public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
-    private String _TaskId;
+    private long _TaskId;
 
     // for decode only
     public BTaskKey() {
-        _TaskId = "";
     }
 
-    public BTaskKey(String _TaskId_) {
-        if (_TaskId_ == null)
-            throw new IllegalArgumentException();
+    public BTaskKey(long _TaskId_) {
         this._TaskId = _TaskId_;
     }
 
-    public String getTaskId() {
+    public long getTaskId() {
         return _TaskId;
     }
 
@@ -55,10 +52,10 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = getTaskId();
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
-                _o_.WriteString(_x_);
+            long _x_ = getTaskId();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
             }
         }
         _o_.WriteByte(0);
@@ -69,7 +66,7 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _TaskId = _o_.ReadString(_t_);
+            _TaskId = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -84,7 +81,7 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
             return true;
         if (_obj1_ instanceof BTaskKey) {
             var _obj_ = (BTaskKey)_obj1_;
-            if (!getTaskId().equals(_obj_.getTaskId()))
+            if (getTaskId() != _obj_.getTaskId())
                 return false;
             return true;
         }
@@ -95,7 +92,7 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
     public int hashCode() {
         final int _prime_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _prime_ + _TaskId.hashCode();
+        _h_ = _h_ * _prime_ + Long.hashCode(_TaskId);
         return _h_;
     }
 
@@ -105,7 +102,7 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
             return 0;
         if (_o_ != null) {
             int _c_;
-            _c_ = _TaskId.compareTo(_o_._TaskId);
+            _c_ = Long.compare(_TaskId, _o_._TaskId);
             if (_c_ != 0)
                 return _c_;
             return _c_;
@@ -114,6 +111,8 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
     }
 
     public boolean negativeCheck() {
+        if (getTaskId() < 0)
+            return true;
         return false;
     }
 }

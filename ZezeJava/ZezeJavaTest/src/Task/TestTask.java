@@ -10,15 +10,29 @@ import Zeze.Builtin.Game.Online.ReLogin;
 import Zezex.Linkd.Auth;
 import org.junit.Assert;
 
+/**
+ * 在Zeze外面（模拟服务器环境）测试Task系统。其中，需要测试的需求有：
+ * Gameplay视角：
+ * 1. 创建角色后，允许客户端角色使用方法访问自己RoleId的任务列表。以一个金币获取任务为例：
+ * 2. 允许客户端角色接取任务。
+ * 3. 允许客户端角色推进任务进度。
+ * 4. 允许客户端角色放弃任务。
+ * 5. 允许客户端角色完成任务。
+ * Designer视角
+ * 1. 允许设计者创建任务：对Zeze.Game.Task进行扩展。
+ * 2. 允许设计者创建任务进度：对Zeze.Game.TaskProgress进行扩展。
+ * 3. 允许设计者创建任务进度变更事件：对Zeze.Game.TaskProgressChangeEvent进行扩展。
+ * 4. 允许设计者创建任务进度变更事件处理器：对Zeze.Game.TaskProgressChangeEventHandler进行扩展。
+ */
 public class TestTask {
 
 	final ArrayList<ClientGame.App> clients = new ArrayList<>();
 	final ArrayList<Zezex.App> links = new ArrayList<>();
 	final ArrayList<Game.App> servers = new ArrayList<>();
-	final static int ClientCount = 2;
-	final static int LinkCount = 2;
-	final static int ServerCount = 2;
-	final static int RoleCount = 2;
+	final static int ClientCount = 1;
+	final static int LinkCount = 1;
+	final static int ServerCount = 1;
+	final static int RoleCount = 1;
 
 	private void start() throws Throwable {
 		for (int i = 0; i < ClientCount; ++i) {
