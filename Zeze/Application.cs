@@ -90,7 +90,15 @@ namespace Zeze
 
         private readonly ConcurrentDictionary<int, Table> Tables = new();
 
-        public void AddTable(string dbName, Table table)
+        public void OpenDynamicTable(string dbName, Table table)
+        {
+            lock (this)
+            {
+                AddTable(dbName, table).OpenDynamicTable(this, table);
+            }
+        }
+
+        public Database AddTable(string dbName, Table table)
         {
             TableKey.Tables[table.Id] = table.Name;
             if (Databases.TryGetValue(dbName, out var db))
@@ -98,7 +106,7 @@ namespace Zeze
                 if (false == Tables.TryAdd(table.Id, table))
                     throw new Exception($"duplicate table name={table.Name}");
                 db.AddTable(table);
-                return;
+                return db;
             }
             throw new Exception($"database not found dbName={dbName}");
         }

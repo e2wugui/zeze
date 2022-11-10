@@ -70,6 +70,13 @@ namespace Zeze.Transaction
             }
         }
 
+        public void OpenDynamicTable(Application app, Zeze.Transaction.Table table)
+        {
+            var storage = table.Open(app, this);
+            if (null != storage)
+                storages.Add(storage);
+        }
+
         public virtual void Close()
         {
             foreach (Zeze.Transaction.Table table in tables.Values)

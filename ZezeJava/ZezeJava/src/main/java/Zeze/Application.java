@@ -152,12 +152,17 @@ public final class Application {
 		return solutionName;
 	}
 
-	public void addTable(String dbName, Table table) {
+	public Database addTable(String dbName, Table table) {
 		TableKey.tables.put(table.getId(), table.getName());
 		var db = getDatabase(dbName);
 		if (tables.putIfAbsent(table.getId(), table) != null)
 			throw new IllegalStateException("duplicate table name=" + table.getName());
 		db.addTable(table);
+		return db;
+	}
+
+	public synchronized void openDynamicTable(String dbName, Table table) {
+		addTable(dbName, table).openDynamicTable(this, table);
 	}
 
 	public void removeTable(String dbName, Table table) {
