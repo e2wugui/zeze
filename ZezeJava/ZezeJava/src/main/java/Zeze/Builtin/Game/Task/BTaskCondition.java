@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Game.Task;
 
-import Zeze.Game.TaskCondition;import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BTaskCondition extends Zeze.Transaction.Bean implements BTaskConditionReadOnly {
@@ -11,15 +11,15 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
     private final Zeze.Transaction.DynamicBean _TaskConditionCustomData;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_TaskConditionCustomData() {
-        return new Zeze.Transaction.DynamicBean(2, TaskCondition::getSpecialTypeIdFromBean, TaskCondition::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(2, Zeze.Game.TaskCondition::getSpecialTypeIdFromBean, Zeze.Game.TaskCondition::createBeanFromSpecialTypeId);
     }
 
     public static long getSpecialTypeIdFromBean_TaskConditionCustomData(Zeze.Transaction.Bean bean) {
-        return TaskCondition.getSpecialTypeIdFromBean(bean);
+        return Zeze.Game.TaskCondition.getSpecialTypeIdFromBean(bean);
     }
 
     public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_TaskConditionCustomData(long typeId) {
-        return TaskCondition.createBeanFromSpecialTypeId(typeId);
+        return Zeze.Game.TaskCondition.createBeanFromSpecialTypeId(typeId);
     }
 
     private transient Object __zeze_map_key__;
