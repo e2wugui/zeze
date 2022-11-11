@@ -13,8 +13,13 @@ namespace Zeze.Tikv
         {
             Console.WriteLine("RunScan");
 
+            var databaseConf = new Config.DatabaseConf()
+            {
+                DatabaseType = Config.DbType.Tikv,
+                DatabaseUrl = url,
+            };
             // for keyprefix
-            var tikvDb = new DatabaseTikv(null, url);
+            var tikvDb = new DatabaseTikv(null, databaseConf);
             var table = tikvDb.OpenTable("_testtable_").ITable as DatabaseTikv.TableTikv;
 
             // prepare data
@@ -41,8 +46,12 @@ namespace Zeze.Tikv
         public static void RunWrap(string url)
         {
             Console.WriteLine("RunWrap");
-
-            var tikvDb = new DatabaseTikv(null, url);
+            var databaseConf = new Config.DatabaseConf()
+            {
+                DatabaseType = Config.DbType.Tikv,
+                DatabaseUrl = url,
+            };
+            var tikvDb = new DatabaseTikv(null, databaseConf);
             var table = tikvDb.OpenTable("_testtable_");
             var key = Zeze.Serialize.ByteBuffer.Allocate(64);
             key.WriteString("key");

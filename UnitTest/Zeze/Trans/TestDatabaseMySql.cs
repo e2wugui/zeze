@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Zeze;
 using Zeze.Serialize;
 using Zeze.Transaction;
 
@@ -27,7 +28,12 @@ namespace UnitTest.Zeze.Trans
         public async Task Test1()
         {
             string url = "server=localhost;database=devtest;uid=dev;pwd=devtest12345";
-            var sqlserver = new DatabaseMySql(demo.App.Instance.Zeze, url);
+            var databaseConf = new Config.DatabaseConf()
+            {
+                DatabaseType = Config.DbType.MySql,
+                DatabaseUrl = url,
+            };
+            var sqlserver = new DatabaseMySql(demo.App.Instance.Zeze, databaseConf);
             var table = sqlserver.OpenTable("test_1");
             {
                 using var trans = sqlserver.BeginTransaction();

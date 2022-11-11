@@ -66,7 +66,7 @@ public abstract class Database {
 	}
 
 	protected final void setDirectOperates(Operates value) {
-		directOperates = value;
+		directOperates = conf.isDisableOperates() ? new NullOperates() : value;
 	}
 
 	public final void open(Application app) {
@@ -208,5 +208,28 @@ public abstract class Database {
 		KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version);
 
 		DataWithVersion getDataWithVersion(ByteBuffer key);
+	}
+
+	private static class NullOperates implements Operates {
+
+		@Override
+		public void setInUse(int localId, String global) {
+
+		}
+
+		@Override
+		public int clearInUse(int localId, String global) {
+			return 0;
+		}
+
+		@Override
+		public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
+			return KV.create(version, true);
+		}
+
+		@Override
+		public DataWithVersion getDataWithVersion(ByteBuffer key) {
+			return null;
+		}
 	}
 }

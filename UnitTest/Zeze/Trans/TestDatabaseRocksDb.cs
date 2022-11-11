@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Zeze;
 using Zeze.Serialize;
 using Zeze.Transaction;
 
@@ -35,7 +36,12 @@ namespace UnitTest.Zeze.Trans
                 return;
 
             string url = "./rocksdb";
-            var db = new DatabaseRocksDb(demo.App.Instance.Zeze, url);
+            var databaseConf = new Config.DatabaseConf()
+            {
+                DatabaseType = Config.DbType.RocksDb,
+                DatabaseUrl = url,
+            };
+            var db = new DatabaseRocksDb(demo.App.Instance.Zeze, databaseConf);
             var table = db.OpenTable("test_1");
             {
                 using var trans = db.BeginTransaction();

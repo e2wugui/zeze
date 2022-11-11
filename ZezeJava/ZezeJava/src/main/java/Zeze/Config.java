@@ -568,6 +568,7 @@ public final class Config {
 		private String databaseUrl = "";
 		private DruidConf druidConf; // only valid when jdbc: mysql, sqlserver,
 		private boolean distTxn; // 是否启用分布式事务(目前仅TiKV支持)
+		private boolean disableOperates;
 
 		public String getName() {
 			return name;
@@ -604,9 +605,15 @@ public final class Config {
 		public boolean isDistTxn() {
 			return distTxn;
 		}
+		public boolean isDisableOperates() {
+			return disableOperates;
+		}
 
 		public void setDistTxn(boolean distTxn) {
 			this.distTxn = distTxn;
+		}
+		public void setDisableOperates(boolean disableOperates) {
+			this.disableOperates = disableOperates;
 		}
 
 		public DatabaseConf() {
@@ -641,6 +648,7 @@ public final class Config {
 			}
 			databaseUrl = self.getAttribute("DatabaseUrl");
 			distTxn = "true".equalsIgnoreCase(self.getAttribute("distTxn"));
+			disableOperates = "true".equalsIgnoreCase(self.getAttribute("DisableOperates"));
 
 			if (conf.getDatabaseConfMap().putIfAbsent(getName(), this) != null)
 				throw new IllegalStateException("Duplicate Database '" + getName() + "'");

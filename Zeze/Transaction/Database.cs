@@ -26,12 +26,15 @@ namespace Zeze.Transaction
         internal ICollection<Zeze.Transaction.Table> Tables => tables.Values;
 
         public string DatabaseUrl { get; }
+        public Config.DatabaseConf DatabaseConf { get; }
+
         public Application Zeze { get; }
 
-        public Database(Application zeze, string url)
+        public Database(Application zeze, Config.DatabaseConf databaseConf)
         {
             Zeze = zeze;
-            this.DatabaseUrl = url;
+            this.DatabaseConf = databaseConf;
+            this.DatabaseUrl = databaseConf.DatabaseUrl;
             Executor = new (() => MaxPoolSize);
         }
 
@@ -297,7 +300,41 @@ namespace Zeze.Transaction
             public (ByteBuffer, long) GetDataWithVersion(ByteBuffer key);
         }
 
-        public IOperates DirectOperates { get; protected set; }
+        private IOperates _DirectOperates;
+        public IOperates DirectOperates
+        {
+            get
+            {
+                return _DirectOperates;
+            }
+
+            protected set
+            {
+                _DirectOperates = DatabaseConf.DisableOperates ? new NullOperates() : value;
+            }
+        }
+
+        public class NullOperates : IOperates
+        {
+            public int ClearInUse(int localId, string global)
+            {
+                return 0;
+            }
+
+            public (ByteBuffer, long) GetDataWithVersion(ByteBuffer key)
+            {
+                return (null, 0);
+            }
+
+            public bool SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, ref long version)
+            {
+                return true;
+            }
+
+            public void SetInUse(int localId, string global)
+            {
+            }
+        }
     }
 
 #if USE_DATABASE
@@ -306,10 +343,10 @@ namespace Zeze.Transaction
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public MySqlConnectionStringBuilder MySqlConnectionStringBuilder { get; }
 
-        public DatabaseMySql(Application zeze, string url) : base(zeze, url)
+        public DatabaseMySql(Application zeze, Config.DatabaseConf databaseConf) : base(zeze, databaseConf)
         {
             DirectOperates = new OperatesMySql(this);
-            MySqlConnectionStringBuilder = new MySqlConnectionStringBuilder(url);
+            MySqlConnectionStringBuilder = new MySqlConnectionStringBuilder(databaseConf.DatabaseUrl);
         }
 
         public override int MaxPoolSize => (int)MySqlConnectionStringBuilder.MaximumPoolSize;
@@ -779,10 +816,10 @@ namespace Zeze.Transaction
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public SqlConnectionStringBuilder SqlConnectionStringBuilder { get; }
 
-        public DatabaseSqlServer(Application zeze, string url) : base(zeze, url)
+        public DatabaseSqlServer(Application zeze, Config.DatabaseConf databaseConf) : base(zeze, databaseConf)
         {
             DirectOperates = new OperatesSqlServer(this);
-            SqlConnectionStringBuilder = new SqlConnectionStringBuilder(url);
+            SqlConnectionStringBuilder = new SqlConnectionStringBuilder(databaseConf.DatabaseUrl);
         }
 
         public override int MaxPoolSize => SqlConnectionStringBuilder.MaxPoolSize;
@@ -1259,7 +1296,7 @@ namespace Zeze.Transaction
         private readonly DbOptions DbOptions = new();
         private readonly ConcurrentDictionary<string, string> ColumnFamilies = new();
 
-        public DatabaseRocksDb(Application zeze, string url) : base(zeze, url)
+        public DatabaseRocksDb(Application zeze, Config.DatabaseConf databaseConf) : base(zeze, databaseConf)
         {
             if (false == string.IsNullOrEmpty(zeze.Config.GlobalCacheManagerHostNameOrAddress))
             {
@@ -1273,7 +1310,7 @@ namespace Zeze.Transaction
                 ColumnFamilies[cf] = cf;
             }
             // DirectOperates 依赖 Db，所以只能在这里打开。要不然，放在Open里面更加合理。
-            Db = RocksDb.Open(DbOptions, url, columnFamilies);
+            Db = RocksDb.Open(DbOptions, databaseConf.DatabaseUrl, columnFamilies);
             DirectOperates = new OperatesRocksDb(this);
         }
 
@@ -1543,7 +1580,7 @@ namespace Zeze.Transaction
     {
         private readonly ProceduresMemory _ProceduresMemory = new();
 
-        public DatabaseMemory(Application zeze, string url) : base(zeze, url)
+        public DatabaseMemory(Application zeze, Config.DatabaseConf databaseConf) : base(zeze, databaseConf)
         {
             DirectOperates = _ProceduresMemory;
         }
