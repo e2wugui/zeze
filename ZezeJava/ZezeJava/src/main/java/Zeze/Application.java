@@ -47,7 +47,6 @@ public final class Application {
 	private final Agent serviceManagerAgent;
 	private AutoKey.Module autoKey;
 	private Timer timer;
-	private DAG.Module dagModule;
 	private Zeze.Game.Task.Module taskModule;
 	private Zeze.Collections.Queue.Module queueModule;
 	private Zeze.Component.DelayRemove delayRemove;
@@ -258,8 +257,7 @@ public final class Application {
 			queueModule = new Queue.Module(this);
 			delayRemove = new DelayRemove(this);
 			timer = new Timer(this);
-			dagModule = new DAG.Module(this);
-			taskModule = new Zeze.Game.Task.Module(this, dagModule);
+			taskModule = new Zeze.Game.Task.Module(this);
 
 			// XXX Remove Me
 			conf.clearInUseAndIAmSureAppStopped(this, databases);

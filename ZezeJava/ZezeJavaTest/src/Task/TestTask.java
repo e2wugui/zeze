@@ -7,7 +7,10 @@ import ClientGame.Login.GetRoleList;
 import Zeze.Builtin.Game.Online.Login;
 import Zeze.Builtin.Game.Online.Logout;
 import Zeze.Builtin.Game.Online.ReLogin;
+import Zeze.Game.Task;
+import Zeze.Game.TaskPhase;
 import Zezex.Linkd.Auth;
+import demo.Server;
 import org.junit.Assert;
 
 /**
@@ -80,6 +83,19 @@ public class TestTask {
 			var roleId = null != role ? role.getId() : createRole(client0, "role0");
 			login(client0, roleId);
 
+			var server0 = servers.get(0);
+			var task1 = server0.getZeze().getTaskModule().open("Task01-GetGold");
+			TaskPhase phase1 = task1.newPhase();
+			TaskPhase phase2 = task1.newPhase();
+			TaskPhase phase3 = task1.newPhase();
+			ConditionNamedCount goldCondition = new ConditionNamedCount("Gold", 100);
+			phase1.addCondition(goldCondition);
+			phase2.addCondition(goldCondition);
+			phase3.addCondition(goldCondition);
+			task1.linkPhase(phase1, phase2);
+			task1.linkPhase(phase2, phase3);
+			task1.setupTask();
+
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
@@ -89,7 +105,7 @@ public class TestTask {
 
 	// 一个简单的任务，用于测试。
 	static void collectACoin(ClientGame.App app, long roleId) {
-		
+
 	}
 
 	// 全局的一些辅助函数

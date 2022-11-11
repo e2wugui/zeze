@@ -1,10 +1,9 @@
 package Zeze.Game;
 
-import Zeze.Builtin.Game.Task.TriggerTaskEvent;
 import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
 
-public abstract class Condition {
+public abstract class TaskCondition {
 	private final static BeanFactory beanFactory = new BeanFactory();
 	public abstract boolean accept(ConditionEvent event);
 	public abstract boolean isDone();

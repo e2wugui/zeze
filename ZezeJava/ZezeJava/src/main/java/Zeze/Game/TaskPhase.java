@@ -1,22 +1,24 @@
 package Zeze.Game;
 
 import java.util.ArrayList;
-import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Builtin.Game.Task.BTaskCondition;
 import Zeze.Builtin.Game.Task.BTaskPhase;
 import Zeze.Collections.BeanFactory;
-import Zeze.Collections.DAG;
 import Zeze.Transaction.Bean;
+import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.graph.DirectedAcyclicGraph;
 
 public class TaskPhase {
 	private final static BeanFactory beanFactory = new BeanFactory();
 	private final Task task; // Phase所属的Task
 	private final long phaseId; // Phase的Id（自动生成，任务内唯一）
 	private BTaskPhase bean;
-	private final ArrayList<ConditionEvent> conditions = new ArrayList<>(); // 任务的各个事件
+	private final DirectedAcyclicGraph<TaskCondition, DefaultEdge> conditions = new DirectedAcyclicGraph<>(DefaultEdge.class); // 任务的各个阶段的连接图
+	private final ArrayList<TaskCondition> currentConditions = new ArrayList<>(); // 任务的各个阶段的连接图
+
 	public static long getSpecialTypeIdFromBean(Bean bean) {
 		return BeanFactory.getSpecialTypeIdFromBean(bean);
 	}
+
 	public static Bean createBeanFromSpecialTypeId(long typeId) {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
@@ -29,16 +31,35 @@ public class TaskPhase {
 	public Task getTask() {
 		return task;
 	}
+
 	public long getPhaseId() {
 		return phaseId;
 	}
+
 	public BTaskPhase getBean() {
 		return bean;
 	}
+
 	public void setBean(BTaskPhase bean) {
 		this.bean = bean;
 	}
+
+	public void addCondition(TaskCondition condition) {
+		conditions.addVertex(condition);
+	}
+
+	public void linkCondition(TaskCondition from, TaskCondition to) throws Exception {
+		conditions.addEdge(from, to);
+	}
+
+	public boolean isCompleted() {
+		var zeroInDegreeNode = conditions.vertexSet().stream().filter(p -> conditions.inDegreeOf(p) == 0);
+		return zeroInDegreeNode.allMatch(TaskCondition::isDone);
+	}
+
 	public boolean accept(ConditionEvent event) {
-		return false;
+		for (var condition : currentConditions)
+			condition.accept(event);
+		return isCompleted();
 	}
 }

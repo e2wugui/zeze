@@ -1,10 +1,9 @@
 package Task;
 
-import Zeze.Game.Condition;
+import Zeze.Game.TaskCondition;
 import Zeze.Game.ConditionEvent;
-import Zeze.Transaction.Bean;
 
-public class ConditionNamedCount extends Condition {
+public class ConditionNamedCount extends TaskCondition {
 	private String name;
 	private int count;
 	private int targetCount;

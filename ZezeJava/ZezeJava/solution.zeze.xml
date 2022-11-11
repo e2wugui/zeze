@@ -731,6 +731,7 @@
 			</module> Rank 11015
 
             <module name="Task" id="11018">
+				<enum name="Disabled" value="0"/> 可接取
 				<enum name="Init" value="0"/> 可接取
 				<enum name="Processing" value="1"/> 未完成，已经接取
 				<enum name="Finish" value="2"/> 已完成，未提交
@@ -759,35 +760,35 @@
 				<bean name="BTaskCondition">
 					<variable id="1" name="TaskConditionId" type="long"/>
 					<variable id="2" name="TaskConditionCustomData" type="dynamic">
-						<GetSpecialTypeIdFromBean value="Zeze.Game.Condition::getSpecialTypeIdFromBean"/>
-						<CreateBeanFromSpecialTypeId value="Zeze.Game.Condition::createBeanFromSpecialTypeId"/>
+						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskCondition::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskCondition::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
 				<table name="tTask" key="BTaskKey" value="BTask"/>
 
 				<!-- Task rpc -->
-				<bean name="BTaskEvent">
-					<variable id="1" name="TaskId" type="long"/>
-					<variable id="2" name="TaskPhaseId" type="long"/>
-					<variable id="3" name="TaskConditionId" type="long"/>
-					<variable id="4" name="DynamicData" type="dynamic">
-						<GetSpecialTypeIdFromBean value="Zeze.Game.Task::getSpecialTypeIdFromBean"/>
-						<CreateBeanFromSpecialTypeId value="Zeze.Game.Task::createBeanFromSpecialTypeId"/>
-					</variable>
-				</bean>
-                <bean name="BTaskEventResult">
-                    <variable id="1" name="success" type="bool"/>
-                </bean>
-                <rpc name="TriggerTaskEvent" argument="BTaskEvent" result="BTaskEventResult" handle="server"/>
+<!--				<bean name="BTaskEvent">-->
+<!--					<variable id="1" name="TaskId" type="long"/>-->
+<!--					<variable id="2" name="TaskPhaseId" type="long"/>-->
+<!--					<variable id="3" name="TaskConditionId" type="long"/>-->
+<!--					<variable id="4" name="DynamicData" type="dynamic">-->
+<!--						<GetSpecialTypeIdFromBean value="Zeze.Game.Task::getSpecialTypeIdFromBean"/>-->
+<!--						<CreateBeanFromSpecialTypeId value="Zeze.Game.Task::createBeanFromSpecialTypeId"/>-->
+<!--					</variable>-->
+<!--				</bean>-->
+<!--                <bean name="BTaskEventResult">-->
+<!--                    <variable id="1" name="success" type="bool"/>-->
+<!--                </bean>-->
+<!--                <rpc name="TriggerTaskEvent" argument="BTaskEvent" result="BTaskEventResult" handle="server"/>-->
 
-				<!-- 内置条件类型 -->
-				<bean name="BNamedCountCondition">
-					<variable id="1" name="CurrentCount" type="long"/> 玩家吃到的金币数量
-					<variable id="2" name="TargetCount" type="long"/> 任务需要的金币数量
-				</bean>
-				<bean name="BNamedCountConditionComplete">
-					<variable id="1" name="CoinSum" type="long"/> 玩家吃到的金币数量
-				</bean>
+<!--				&lt;!&ndash; 内置条件类型 &ndash;&gt;-->
+<!--				<bean name="BNamedCountCondition">-->
+<!--					<variable id="1" name="CurrentCount" type="long"/> 玩家吃到的金币数量-->
+<!--					<variable id="2" name="TargetCount" type="long"/> 任务需要的金币数量-->
+<!--				</bean>-->
+<!--				<bean name="BNamedCountConditionComplete">-->
+<!--					<variable id="1" name="CoinSum" type="long"/> 玩家吃到的金币数量-->
+<!--				</bean>-->
             </module> Task 11018
 
 		</module> Game
