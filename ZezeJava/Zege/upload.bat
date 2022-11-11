@@ -1,5 +1,5 @@
 
-pscp -r ../ZezeJava/lib lichenghua@10.12.7.140:/export/home/lichenghua/zege/
+pscp -r ../ZezeJavaTest/lib lichenghua@10.12.7.140:/export/home/lichenghua/zege/
 
 pscp -r ../ZezeJava/build/classes/java/main lichenghua@10.12.7.140:/export/home/lichenghua/zege/zeze/
 
