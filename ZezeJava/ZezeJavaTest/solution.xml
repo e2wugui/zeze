@@ -2,6 +2,7 @@
 
 <solution name="demo" ModuleIdAllowRanges="1-3,5">
 	<import file="demo2.xml"/>
+	<import file="taskExt.xml"/>
 
 	<bean name="Bean1"> bean的注释
 		<enum name="Enum1" value="4"/> enum的注释
@@ -10,17 +11,6 @@
 		<variable id="2" name="V2" type="map" key="int" value="int"/> bean1v2
 		bean1v2line2
 	</bean>
-
-	<!-- 模拟外部在扩展使用Zeze Builtin任务系统时需要的bean和rpc -->
-	<bean name="BCollectCoinTask">
-		<variable id="1" name="name" type="string"/>
-		<variable id="2" name="targetCoinCount" type="long"/>
-	</bean>
-	<bean name="BCollectCoinEvent">
-		<variable id="1" name="name" type="string"/>
-		<variable id="2" name="coinCount" type="long"/>
-	</bean>
-<!--	<rpc name="C"-->
 
 	<module name="Module1" id="1"> module的注释
 		<beankey name="AutoKey"> beankey的注释
@@ -154,6 +144,7 @@
 			<module ref="Module1"/>
 			<module ref="M6"/>
 			<module ref="demo.M6.M7"/>
+			<module ref="TaskTest.TaskExt"/>
 		</service>
 	</project>
 

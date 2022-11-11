@@ -52,9 +52,9 @@ public class TaskPhase {
 		return zeroInDegreeNode.allMatch(TaskCondition::isDone);
 	}
 
-	public boolean accept(ConditionEvent event) {
+	public boolean accept(Bean eventBean) {
 		for (var condition : currentConditions)
-			condition.accept(event);
+			condition.accept(eventBean);
 		return isCompleted();
 	}
 

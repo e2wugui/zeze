@@ -741,9 +741,10 @@
 				</beankey>
 				<bean name="BTask">
 					<variable id="1" name="TaskId" type="long"/>
-					<variable id="2" name="CurrentPhaseId" type="long"/>
-					<variable id="3" name="TaskPhases" type="map" key="long" value="BTaskPhase"/>
-					<variable id="4" name="TaskCustomData" type="dynamic">
+					<variable id="2" name="State" type="int"/>
+					<variable id="3" name="CurrentPhaseId" type="long"/>
+					<variable id="4" name="TaskPhases" type="map" key="long" value="BTaskPhase"/>
+					<variable id="5" name="TaskCustomData" type="dynamic">
 						<GetSpecialTypeIdFromBean value="Zeze.Game.Task::getSpecialTypeIdFromBean"/>
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.Task::createBeanFromSpecialTypeId"/>
 					</variable>

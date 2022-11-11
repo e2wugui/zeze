@@ -1,4 +1,4 @@
-package Task;
+package TaskTest.TaskExt;
 
 import java.util.ArrayList;
 import ClientGame.Login.BRole;
@@ -7,10 +7,8 @@ import ClientGame.Login.GetRoleList;
 import Zeze.Builtin.Game.Online.Login;
 import Zeze.Builtin.Game.Online.Logout;
 import Zeze.Builtin.Game.Online.ReLogin;
-import Zeze.Game.Task;
 import Zeze.Game.TaskPhase;
 import Zezex.Linkd.Auth;
-import demo.Server;
 import org.junit.Assert;
 
 /**

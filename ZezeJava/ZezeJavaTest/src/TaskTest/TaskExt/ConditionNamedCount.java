@@ -1,7 +1,8 @@
-package Task;
+package TaskTest.TaskExt;
 
 import Zeze.Game.TaskCondition;
 import Zeze.Game.ConditionEvent;
+import Zeze.Transaction.Bean;
 
 public class ConditionNamedCount extends TaskCondition {
 	private final String name;
@@ -21,15 +22,15 @@ public class ConditionNamedCount extends TaskCondition {
 	}
 
 	@Override
-	public boolean accept(ConditionEvent event) {
-		if (event instanceof Event) {
-//			var e = (Event)event;
-//			if (e.getName().equals(name)) {
-//				if (count + 1 >= targetCount) {
-//					setDone(true);
-//				}
-//				return true;
-//			}
+	public boolean accept(Bean eventBean) {
+		if (eventBean instanceof BCollectCoinEvent) {
+			// TODO:
+			var e = (BCollectCoinEvent)eventBean;
+			if (e.getName().equals(name)) {
+				if (e.getCoinCount() >= targetCount) {
+					return true;
+				}
+			}
 		}
 		return false;
 	}

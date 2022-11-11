@@ -8,6 +8,7 @@ public interface BTaskReadOnly {
     public BTask copy();
 
     public long getTaskId();
+    public int getState();
     public long getCurrentPhaseId();
     public Zeze.Transaction.Collections.PMap2ReadOnly<Long, Zeze.Builtin.Game.Task.BTaskPhase, Zeze.Builtin.Game.Task.BTaskPhaseReadOnly> getTaskPhasesReadOnly();
     public Zeze.Transaction.DynamicBeanReadOnly getTaskCustomDataReadOnly();

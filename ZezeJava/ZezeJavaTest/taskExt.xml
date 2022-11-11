@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<solution name="TaskTest" ModuleIdAllowRanges="8-9">
+    <module name="TaskExt" id="8">
+        <!-- 模拟外部在扩展使用Zeze Builtin任务系统时需要的bean和rpc -->
+        <bean name="BCollectCoinTask">
+            <variable id="1" name="name" type="string"/>
+            <variable id="2" name="targetCoinCount" type="long"/>
+        </bean>
+        <bean name="BCollectCoinEvent">
+            <variable id="1" name="name" type="string"/>
+            <variable id="2" name="coinCount" type="long"/>
+        </bean>
+    </module>
+</solution>

@@ -15,8 +15,8 @@ import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
 
 /**
- * 设计思路
- * 一个通用的Task Module，存储所有的Task
+ * Task类
+ * Task类本质是一个配置表，把真正需要的数据放到BTask里面
  */
 public class Task {
 	private final static BeanFactory beanFactory = new BeanFactory();
@@ -99,10 +99,6 @@ public class Task {
 			}
 			return Procedure.Success;
 		}
-
-		private void processEvent(Bean eventBean) {
-
-		}
 	}
 
 	// ==================== 任务初始化阶段的方法 ====================
@@ -143,8 +139,8 @@ public class Task {
 	// ==================== 任务初始化阶段的方法 ====================
 
 	// ==================== 任务进行阶段的方法 ====================
-	public void accept(ConditionEvent event) {
-		currentPhase.accept(event);
+	public void accept(Bean eventBean) {
+		currentPhase.accept(eventBean);
 		proceedToNextPhase();
 	}
 
