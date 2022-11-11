@@ -219,7 +219,7 @@ namespace Zege.Notify
             return new NotifyItem()
             {
                 NodeKey = nodeKey,
-                Id = nodeValue.Id,
+                NodeValue = nodeValue,
                 Title = notify.Title,
             };
         }
@@ -275,7 +275,7 @@ namespace Zege.Notify
 
                 var jj = node.Node.Values[j];
 
-                if (ii.Id.Equals(jj.Id))
+                if (ii.NodeValue.Id.Equals(jj.Id))
                 {
                     if (false == NotifyMatch(ii, jj))
                     {
@@ -338,7 +338,7 @@ namespace Zege.Notify
     {
         // Basic
         public BLinkedMapNodeKey NodeKey { get; set; }
-        public string Id { get; set; }
+        public BLinkedMapNodeValue NodeValue { get; set; }
 
         // Bind To View
         public string Title { get; set; }

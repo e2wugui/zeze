@@ -1,5 +1,6 @@
 package Zege.Friend;
 
+import Zege.Notify.BNotify;
 import Zege.User.BUser;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey;
@@ -58,12 +59,56 @@ public class ModuleFriend extends AbstractModule {
 
 	/*
 	 * 现在好友是双向的。被对方删除，自己会知道。
-	 * todo 为了能查阅旧的聊天历史，自己这一方不会删除，而是设置标志。
-	 * todo 所以下面的判断以及添加好友(再次添加)流程需要处理标志。
-	 * todo 注意：这个标志目前还没定义和实现。
+	 * 为了能查阅旧的聊天历史，自己这一方不会删除，而是设置标志。
 	 */
 	public boolean isFriend(String owner, String friend) {
-		return getFriends(owner).get(friend) != null || getTopmosts(owner).get(friend) != null;
+		var bf = getFriends(owner).get(friend);
+		if (bf != null && bf.getState() == BFriend.eNormal)
+			return true;
+
+		var tf = getTopmosts(owner).get(friend);
+		return tf != null && tf.getState() == BFriend.eNormal;
+	}
+
+	@Override
+	protected long ProcessAcceptFriendRequest(Zege.Friend.AcceptFriend r) {
+		var session = ProviderUserSession.get(r);
+
+		// 首先尝试设置对方的好友状态，如果失败，表示对方取消了申请，那么接受好友也失败。
+		if (!trySetFriendState(r.Argument.getAccount(), session.getAccount(), BFriend.eNormal))
+			return errorCode(eAcceptFromNotExist);
+		// todo 此时是否应该需要删除notify，【注意】这里返回错误码了，事务会回滚，需要删除的话，需要特别处理错误。
+
+		// 增加申请者到自己的好友列表
+		// 首先检查申请者是否已经存在，存在的话仅修改状态（目前想到，双方同时添加对方会出现这个），
+		// 都不存在最后才添加。
+		if (!trySetFriend(session.getAccount(), r.Argument.getAccount(), BFriend.eNormal, r.Argument.getMemo())) {
+			// 第一次申请
+			var firstAccept = getFriends(session.getAccount()).getOrAdd(r.Argument.getAccount());
+			firstAccept.setState(BFriend.eNormal);
+			firstAccept.setMemo(r.Argument.getMemo());
+		}
+		// 请求已经接受，删除通知。
+		App.Zege_Notify.getNotify(session.getAccount()).remove(makeNotifyId(r.Argument.getAccount()));
+		session.sendResponseWhileCommit(r);
+		return Procedure.Success;
+	}
+
+	@Override
+	protected long ProcessDenyFriendRequest(Zege.Friend.DenyFriend r) {
+		var session = ProviderUserSession.get(r);
+
+		// 拒绝时，尝试设置双方的好友状态，忽略不存在的情况。
+		trySetFriendState(session.getAccount(), r.Argument.getAccount(), BFriend.eDeny);
+		trySetFriendState(r.Argument.getAccount(), session.getAccount(), BFriend.eDeny);
+
+		// 总是成功。
+		session.sendResponseWhileCommit(r);
+		return Procedure.Success;
+	}
+
+	public static String makeNotifyId(String account) {
+		return "AddFriend@" + account;
 	}
 
 	@Override
@@ -75,7 +120,6 @@ public class ModuleFriend extends AbstractModule {
 		if (!App.Zege_User.containsKey(r.Argument.getAccount()))
 			return errorCode(eUserNotFound);
 
-		// todo 好友判断流程需要重新设计。
 		if (isFriend(session.getAccount(), r.Argument.getAccount()))
 			return errorCode(eAlreadyIsFriend);
 
@@ -86,13 +130,54 @@ public class ModuleFriend extends AbstractModule {
 			// 虽然互相添加的代码看起来一样，但group members bean类型和下面的好友bean类型不一样，所以需要分开写。
 			peer.getOrAdd(session.getAccount());
 		} else {
-			// 添加好友，双向添加。todo 审批流程
-			var peer = getFriends(r.Argument.getAccount());
-			self.getOrAdd(r.Argument.getAccount()).setMemo(r.Argument.getMemo());
-			peer.getOrAdd(session.getAccount());
+			// 添加好友，双向添加。
+			var bf = self.getOrAdd(r.Argument.getAccount());
+			bf.setMemo(r.Argument.getMemo());
+			bf.setState(BFriend.eInvite);
+
+			var notify = new BNotify();
+			var nick = App.Zege_User.get(session.getAccount()).getNick();
+			notify.setTitle(nick.isEmpty() ? session.getAccount() : nick);
+			notify.setType(BNotify.eTypeAddFriend);
+			notify.getProperties().put("from", session.getAccount());
+			App.Zege_Notify.getNotify(r.Argument.getAccount()).put(makeNotifyId(session.getAccount()), notify);
 		}
 		session.sendResponseWhileCommit(r);
 		return Procedure.Success;
+	}
+
+	private boolean trySetFriendState(String owner, String friend, int state) {
+		var peer = getFriends(owner);
+		var pf = peer.get(friend);
+		if (null != pf) {
+			pf.setState(state);
+			return true;
+		}
+		var tops = getTopmosts(owner);
+		pf = tops.get(owner);
+		if (null != pf) {
+			pf.setState(state);
+			return true;
+		}
+		return false;
+	}
+
+	private boolean trySetFriend(String owner, String friend, int state, String memo) {
+		var peer = getFriends(owner);
+		var pf = peer.get(friend);
+		if (null != pf) {
+			pf.setState(state);
+			pf.setMemo(memo);
+			return true;
+		}
+		var tops = getTopmosts(owner);
+		pf = tops.get(owner);
+		if (null != pf) {
+			pf.setState(state);
+			pf.setMemo(memo);
+			return true;
+		}
+		return false;
 	}
 
 	@Override
@@ -325,9 +410,8 @@ public class ModuleFriend extends AbstractModule {
 	}
 
 	/**
-	 *
-	 * @param group x
-	 * @param account x
+	 * @param group        x
+	 * @param account      x
 	 * @param departmentId 为0时，完全从群中退出，否则仅退出部门。
 	 */
 	private static void quitMember(DepartmentTree<BManager, BGroupMember, BDepartmentMember, BGroupData, BDepartmentData> group,
@@ -446,16 +530,15 @@ public class ModuleFriend extends AbstractModule {
 	protected long ProcessDeleteFriendRequest(Zege.Friend.DeleteFriend r) {
 		var session = ProviderUserSession.get(r);
 
-		// todo 好友添加删除等流程需要重新设计。
 		getFriends(session.getAccount()).remove(r.Argument.getAccount());
 		getTopmosts(session.getAccount()).remove(r.Argument.getAccount());
 
 		if (r.Argument.getAccount().endsWith("@group")) {
+			// todo 确认群的退出流程。
 			var group = getGroup(r.Argument.getAccount());
 			quitMember(group, session.getAccount(), 0);
 		} else {
-			getFriends(r.Argument.getAccount()).remove(session.getAccount());
-			getTopmosts(r.Argument.getAccount()).remove(session.getAccount());
+			trySetFriendState(r.Argument.getAccount(), session.getAccount(), BFriend.eRemove);
 		}
 
 		session.sendResponseWhileCommit(r);

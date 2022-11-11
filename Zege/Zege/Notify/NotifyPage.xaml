@@ -24,5 +24,10 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
+        <VerticalStackLayout>
+            <Editor x:Name="Memo"/>
+            <Button Text="Accept" Clicked="OnAccept"/>
+            <Button Text="Deny" Clicked="OnDeny"/>
+        </VerticalStackLayout>
     </HorizontalStackLayout>
 </ContentPage>

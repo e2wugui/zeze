@@ -117,10 +117,17 @@
 		<enum name="eNotTopmost"                value="13"/>
 		<enum name="eAlreadyIsFriend"           value="14"/>
 		<enum name="eTooManyTopmost"            value="15"/>
+		<enum name="eAcceptFromNotExist"        value="16"/>
 
 		<!-- 好友列表用 Zeze.Collections.LinkedMap 下面时自定义数据结构的定义 -->
 		<bean name="BFriend">
+			<enum name="eNormal" value="0"/>
+			<enum name="eInvite" value="1"/>
+			<enum name="eDeny"   value="2"/>
+			<enum name="eRemove" value="3"/>
+
 			<variable id="1" name="Memo" type="string"/>
+			<variable id="2" name="State" type="int"/>
 		</bean>
 
 		<!-- 协议：读取好友节点 -->
@@ -144,7 +151,8 @@
 		</bean>
 
 		<rpc name="AddFriend" argument="BAddFriend" handle="server"/>
-
+		<rpc name="AcceptFriend" argument="BAddFriend" handle="server"/>
+		<rpc name="DenyFriend" argument="Zege.User.BAccount" handle="server"/>
 		<rpc name="DeleteFriend" argument="Zege.User.BAccount" handle="server"/>
 
 		<bean name="BSetTopmost">
@@ -463,10 +471,13 @@
 
 		<!-- 通知用 Zeze.Collections.LinkedMap 下面时自定义数据结构的定义 -->
 		<bean name="BNotify">
-			<variable id="1" name="Title"  type="string"/> 显示标题
-			<variable id="2" name="Name"   type="string"/> 通知名字（内部）
-			<variable id="3" name="Data"   type="binary"/> 通知数据（任意）
-			<variable id="4" name="Expire" type="long"/> 到期时间，默认 0， 表示永久。
+			<enum name="eTypeAddFriend" value="0"/>
+
+			<variable id="1" name="Title"      type="string"/> 显示标题
+			<variable id="2" name="Type"       type="int"/> 通知类型（内部）
+			<variable id="3" name="Properties" type="map[string, string]"/> 通知属性（由Name决定）
+			<variable id="4" name="Data"       type="binary"/> 通知数据（由Name决定）
+			<variable id="5" name="Expire"     type="long"/> 到期时间，默认 0， 表示永久。
 		</bean>
 
 		<!-- LogBean.FollowerApply -->

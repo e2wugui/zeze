@@ -31,7 +31,7 @@ tag v1.1.0 TableDynamic; Zege ...; Task ...;
 Zege Add Friend
 	* 总则：双向好友，可以从一方的状态推测对方状态。
 	* 操作：Invite-Accept-Deny-Expire；Remove；
-	* 状态：Invite,Normal,Deny,Remove,Expire,(None)
+	* 状态：Invite,Normal,Deny,Remove,(None)
 		(None) 表示数据不存在。
 TableDynamic
 

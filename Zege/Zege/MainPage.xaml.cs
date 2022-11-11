@@ -187,7 +187,7 @@ namespace Zege
         {
             if (null == NotifyWindow && null != App)
             {
-                var notifyPage = new Zege.Notify.NotifyPage();
+                var notifyPage = new Zege.Notify.NotifyPage(App);
                 App.Zege_Notify.SetNotifyPage(notifyPage);
                 NotifyWindow = new Window(notifyPage);
                 NotifyWindow.Destroying += NotifyWindow_Destroying;
