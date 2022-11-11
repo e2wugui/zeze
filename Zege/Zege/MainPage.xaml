@@ -49,6 +49,7 @@
                         <RowDefinition Height="40" />
                         <RowDefinition Height="40" />
                         <RowDefinition Height="40" />
+                        <RowDefinition Height="40" />
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="80" />
@@ -56,17 +57,20 @@
                     </Grid.ColumnDefinitions>
                     <Label Text="Account" VerticalOptions="Center"/>
                     <Editor x:Name="AccountEditor" Grid.Column="1"/>
+
                     <Label Text="Password" Grid.Row="1" VerticalOptions="Center"/>
                     <Editor x:Name="PasswordEditor" Grid.Row="1" Grid.Column="1"/>
+
                     <Label Text="Save" Grid.Row="2" VerticalOptions="Center"/>
                     <CheckBox x:Name="SavePasswordCheckBox" Grid.Row="2" Grid.Column="1"/>
+
                     <Button Text="Login" Clicked="OnLoginClicked" Grid.Row="3"/>
                     <Button Text="Create" Clicked="OnCreateClicked" Grid.Row="3" Grid.Column="1"/>
+
                     <Button Text="Clear All Certs" Grid.ColumnSpan="2" Clicked="OnClear" Grid.Row="4"/>
+                    <Button Text="Add" Clicked="OnAdd" Grid.Row="5"/>
                 </Grid>
-                <Button Text="Add Tail" Clicked="OnAddTail"/>
-                <Button Text="Delete Tail" Clicked="OnDeleteTail"/>
-                <Button Text="Make Current Friend Top" Clicked="OnMakeCurrentFriendTop"/>
+                <Button Text="Top" Clicked="OnMakeCurrentFriendTop"/>
                 <Button Text="Return to Top" Clicked="OnReturnTop"/>
                 <Button Text="Test" Clicked="OnTest"/>
                 <Button Text="Notify" Clicked="OnOpenNotifyWindow"/>

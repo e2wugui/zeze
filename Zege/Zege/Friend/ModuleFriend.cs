@@ -101,13 +101,6 @@ namespace Zege.Friend
             }
         }
 
-        public void AddNewFriend()
-        {
-            var r = new AddFriend();
-            //r.Argument.Account = 
-            //todo r.Send(App.ClientService.GetSocket(), ProcessAddNewFriend);
-        }
-
         [DispatchMode(Mode = DispatchMode.UIThread)]
         private Task<long> ProcessAddNewFriend(Protocol p)
         {
@@ -127,13 +120,6 @@ namespace Zege.Friend
         internal Task<long> ProcessGetFriendNodeResponse(Protocol p)
         {
             return Task.FromResult(0L);
-        }
-
-        public void DeleteTail()
-        {
-            // TODO
-            //var r = new DeleteFriend();
-            //r.Send(App.ClientService.GetSocket());
         }
 
         public void SetTopmost(FriendItem friend)

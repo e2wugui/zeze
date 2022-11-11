@@ -150,15 +150,6 @@ namespace Zege
             SecureStorage.Default.RemoveAll();
         }
 
-        private void OnAddTail(object sender, EventArgs e)
-        {
-            App.Zege_Friend.AddNewFriend();
-        }
-
-        private void OnDeleteTail(object sender, EventArgs e)
-        {
-            App.Zege_Friend.DeleteTail();
-        }
 
         private void OnMakeCurrentFriendTop(object sender, EventArgs e)
         {
@@ -201,5 +192,12 @@ namespace Zege
             NotifyWindow = null;
         }
 
+        private void OnAdd(object sender, EventArgs e)
+        {
+            var rpc = new AddFriend();
+            rpc.Argument.Account = AccountEditor.Text;
+            rpc.Argument.Memo = PasswordEditor.Text;
+            rpc.Send(App.ClientService.GetSocket()); // skip rpc result
+        }
     }
 }
