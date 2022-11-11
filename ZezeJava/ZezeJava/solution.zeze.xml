@@ -753,33 +753,43 @@
 					<variable id="2" name="CurrentConditionId" type="long"/>
 					<variable id="3" name="TaskConditions" type="map" key="long" value="BTaskCondition"/>
 					<variable id="4" name="TaskPhaseCustomData" type="dynamic">
-						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskPhase::getSpecialTypeIdFromBean"/>
-						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskPhase::createBeanFromSpecialTypeId"/>
+						<GetSpecialTypeIdFromBean value="Zeze.Game.Task::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.Task::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
 				<bean name="BTaskCondition">
 					<variable id="1" name="TaskConditionId" type="long"/>
 					<variable id="2" name="TaskConditionCustomData" type="dynamic">
-						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskCondition::getSpecialTypeIdFromBean"/>
-						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskCondition::createBeanFromSpecialTypeId"/>
+						<GetSpecialTypeIdFromBean value="Zeze.Game.Task::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.Task::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
 				<table name="tTask" key="BTaskKey" value="BTask"/>
 
+				<bean name="BPTaskInfo">
+					<variable id="1" name="processingTask" type="map" key="long" value="BTask"/>
+					<variable id="2" name="finishedTask" type="set" value="long"/> 已经结束的任务，不存储可重复完成的任务
+					<variable id="3" name="RoleTaskCustomData" type="dynamic">
+						<GetSpecialTypeIdFromBean value="Zeze.Game.Task::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.Task::createBeanFromSpecialTypeId"/>
+					</variable>
+				</bean>
+				<table name="tRoleTask" key="long" value="BPTaskInfo"/>
+
 				<!-- Task rpc -->
-<!--				<bean name="BTaskEvent">-->
-<!--					<variable id="1" name="TaskId" type="long"/>-->
-<!--					<variable id="2" name="TaskPhaseId" type="long"/>-->
-<!--					<variable id="3" name="TaskConditionId" type="long"/>-->
-<!--					<variable id="4" name="DynamicData" type="dynamic">-->
-<!--						<GetSpecialTypeIdFromBean value="Zeze.Game.Task::getSpecialTypeIdFromBean"/>-->
-<!--						<CreateBeanFromSpecialTypeId value="Zeze.Game.Task::createBeanFromSpecialTypeId"/>-->
-<!--					</variable>-->
-<!--				</bean>-->
-<!--                <bean name="BTaskEventResult">-->
-<!--                    <variable id="1" name="success" type="bool"/>-->
-<!--                </bean>-->
-<!--                <rpc name="TriggerTaskEvent" argument="BTaskEvent" result="BTaskEventResult" handle="server"/>-->
+				<bean name="BTaskEvent">
+					<variable id="1" name="TaskName" type="string"/>
+					<variable id="2" name="TaskPhaseId" type="long"/>
+					<variable id="3" name="TaskConditionId" type="long"/>
+					<variable id="4" name="DynamicData" type="dynamic">
+						<GetSpecialTypeIdFromBean value="Zeze.Game.Task::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.Task::createBeanFromSpecialTypeId"/>
+					</variable>
+				</bean>
+                <bean name="BTaskEventResult">
+                    <variable id="1" name="success" type="bool"/>
+                </bean>
+                <rpc name="TriggerTaskEvent" argument="BTaskEvent" result="BTaskEventResult" handle="server"/>
 
 <!--				&lt;!&ndash; 内置条件类型 &ndash;&gt;-->
 <!--				<bean name="BNamedCountCondition">-->

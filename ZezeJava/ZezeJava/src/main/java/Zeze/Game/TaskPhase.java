@@ -8,20 +8,11 @@ import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
 
 public class TaskPhase {
-	private final static BeanFactory beanFactory = new BeanFactory();
 	private final Task task; // Phase所属的Task
 	private final long phaseId; // Phase的Id（自动生成，任务内唯一）
 	private BTaskPhase bean;
 	private final DirectedAcyclicGraph<TaskCondition, DefaultEdge> conditions = new DirectedAcyclicGraph<>(DefaultEdge.class); // 任务的各个阶段的连接图
 	private final ArrayList<TaskCondition> currentConditions = new ArrayList<>(); // 任务的各个阶段的连接图
-
-	public static long getSpecialTypeIdFromBean(Bean bean) {
-		return BeanFactory.getSpecialTypeIdFromBean(bean);
-	}
-
-	public static Bean createBeanFromSpecialTypeId(long typeId) {
-		return beanFactory.createBeanFromSpecialTypeId(typeId);
-	}
 
 	public TaskPhase(Task task, long phaseId) {
 		this.task = task;
@@ -44,6 +35,10 @@ public class TaskPhase {
 		this.bean = bean;
 	}
 
+	public ArrayList<TaskCondition> getCurrentConditions() {
+		return currentConditions;
+	}
+
 	public void addCondition(TaskCondition condition) {
 		conditions.addVertex(condition);
 	}
@@ -61,5 +56,10 @@ public class TaskPhase {
 		for (var condition : currentConditions)
 			condition.accept(event);
 		return isCompleted();
+	}
+
+	public void setupPhase() {
+		var zeroInDegreeNode = conditions.vertexSet().stream().filter(p -> conditions.inDegreeOf(p) == 0);
+		zeroInDegreeNode.forEach(currentConditions::add);
 	}
 }

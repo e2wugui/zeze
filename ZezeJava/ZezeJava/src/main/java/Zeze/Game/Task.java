@@ -3,11 +3,14 @@ package Zeze.Game;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Builtin.Game.Task.BTask;
+import Zeze.Builtin.Game.Task.BTaskEvent;
 import Zeze.Builtin.Game.Task.BTaskKey;
 import Zeze.Builtin.Game.Task.BTaskPhase;
+import Zeze.Builtin.Game.Task.TriggerTaskEvent;
 import Zeze.Builtin.Game.Task.tTask;
 import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.Procedure;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
 
@@ -51,8 +54,8 @@ public class Task {
 		return bean;
 	}
 
-	public BTaskPhase getCurrentPhase() {
-		return bean.getTaskPhases().get(bean.getCurrentPhaseId());
+	public TaskPhase getCurrentPhase() {
+		return currentPhase;
 	}
 
 	public static class Module extends AbstractTask {
@@ -78,6 +81,28 @@ public class Task {
 		public Task open(String taskName) {
 			return tasks.computeIfAbsent(taskName, key -> new Task(this, key));
 		}
+
+		@Override
+		protected long ProcessTriggerTaskEventRequest(TriggerTaskEvent r) throws Throwable {
+			var taskName = r.Argument.getTaskName();
+			var phaseId = r.Argument.getTaskPhaseId();
+			var conditionId = r.Argument.getTaskConditionId();
+			var eventBean = r.Argument.getDynamicData().getBean();
+
+			var task = open(taskName);
+			var phase = task.getCurrentPhase();
+			if (phase.getPhaseId() != phaseId)
+				return Procedure.Exception;
+			var conditions = phase.getCurrentConditions();
+			for (var condition : conditions) {
+//				condition.accept(eventBean);
+			}
+			return Procedure.Success;
+		}
+
+		private void processEvent(Bean eventBean) {
+
+		}
 	}
 
 	// ==================== 任务初始化阶段的方法 ====================
@@ -93,8 +118,9 @@ public class Task {
 	}
 
 	public void setupTask() throws Exception {
+		var ps = phases.vertexSet().stream();
 		// 找任务开始的节点
-		var zeroInDegreeNode = phases.vertexSet().stream().filter(p -> phases.inDegreeOf(p) == 0);
+		var zeroInDegreeNode = ps.filter(p -> phases.inDegreeOf(p) == 0);
 		if (zeroInDegreeNode.count() != 1)
 			throw new Exception("Task has more than one Start Phase node.");
 		if (zeroInDegreeNode.findAny().isEmpty())
@@ -103,7 +129,7 @@ public class Task {
 		currentPhase = startPhase;
 
 		// 找任务结束的节点
-		var zeroOutDegreeNode = phases.vertexSet().stream().filter(p -> phases.outDegreeOf(p) == 0);
+		var zeroOutDegreeNode = ps.filter(p -> phases.outDegreeOf(p) == 0);
 		if (zeroOutDegreeNode.count() != 1)
 			throw new Exception("Task has more than one End Phase node.");
 		if (zeroOutDegreeNode.findAny().isEmpty())
@@ -111,6 +137,8 @@ public class Task {
 		endPhase = zeroOutDegreeNode.findAny().get();
 
 		taskState = Module.Disabled;
+
+		ps.forEach(TaskPhase::setupPhase);
 	}
 	// ==================== 任务初始化阶段的方法 ====================
 

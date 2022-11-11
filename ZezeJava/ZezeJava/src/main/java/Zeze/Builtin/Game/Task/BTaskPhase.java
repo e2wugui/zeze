@@ -13,15 +13,15 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
     private final Zeze.Transaction.DynamicBean _TaskPhaseCustomData;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_TaskPhaseCustomData() {
-        return new Zeze.Transaction.DynamicBean(4, Zeze.Game.TaskPhase::getSpecialTypeIdFromBean, Zeze.Game.TaskPhase::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(4, Zeze.Game.Task::getSpecialTypeIdFromBean, Zeze.Game.Task::createBeanFromSpecialTypeId);
     }
 
     public static long getSpecialTypeIdFromBean_TaskPhaseCustomData(Zeze.Transaction.Bean bean) {
-        return Zeze.Game.TaskPhase.getSpecialTypeIdFromBean(bean);
+        return Zeze.Game.Task.getSpecialTypeIdFromBean(bean);
     }
 
     public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_TaskPhaseCustomData(long typeId) {
-        return Zeze.Game.TaskPhase.createBeanFromSpecialTypeId(typeId);
+        return Zeze.Game.Task.createBeanFromSpecialTypeId(typeId);
     }
 
     private transient Object __zeze_map_key__;
