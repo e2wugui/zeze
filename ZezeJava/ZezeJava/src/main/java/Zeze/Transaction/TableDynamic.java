@@ -70,4 +70,14 @@ public class TableDynamic<K extends Comparable<K>, V extends Bean> extends Table
 	public boolean isAutoKey() {
 		return isAutoKey;
 	}
+
+	public void drop() {
+		var databaseTable = getStorage().getDatabaseTable();
+		if (databaseTable instanceof DatabaseMySql.TableMysql) {
+			var tableMysql = (DatabaseMySql.TableMysql)databaseTable;
+			tableMysql.drop();
+			return; // done
+		}
+		throw new UnsupportedOperationException();
+	}
 }

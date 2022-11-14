@@ -19,6 +19,19 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		return new TableMysql(name);
 	}
 
+	public void dropTable(String name) {
+		var tTable = getTable(name);
+		if (null == tTable)
+			return;
+
+		var storage = tTable.getStorage();
+		if (null == storage)
+			return;
+
+		var dTable = (TableMysql)storage.getDatabaseTable();
+		dTable.drop();
+	}
+
 	private final class OperatesMySql implements Operates {
 		@Override
 		public void setInUse(int localId, String global) {
@@ -300,9 +313,23 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 	}
 
-	private final class TableMysql implements Database.Table {
+	public final class TableMysql implements Database.Table {
 		private final String name;
 		private final boolean isNew;
+		private boolean dropped = false;
+
+		public void drop() {
+			try (var connection = dataSource.getConnection()) {
+				connection.setAutoCommit(true);
+				String sql = "DROP TABLE IF EXISTS " + name;
+				try (var cmd = connection.prepareStatement(sql)) {
+					cmd.executeUpdate();
+					dropped = true;
+				}
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
+		}
 
 		@Override
 		public DatabaseMySql getDatabase() {
@@ -347,6 +374,9 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 		@Override
 		public ByteBuffer find(ByteBuffer key) {
+			if (dropped)
+				return null;
+
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
@@ -369,6 +399,9 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 		@Override
 		public void remove(Transaction t, ByteBuffer key) {
+			if (dropped)
+				return;
+
 			var my = (JdbcTrans)t;
 			String sql = "DELETE FROM " + getName() + " WHERE id=?";
 			try (var cmd = my.Connection.prepareStatement(sql)) {
@@ -381,6 +414,9 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 		@Override
 		public void replace(Transaction t, ByteBuffer key, ByteBuffer value) {
+			if (dropped)
+				return;
+
 			var my = (JdbcTrans)t;
 			String sql = "REPLACE INTO " + getName() + " values(?, ?)";
 			try (var cmd = my.Connection.prepareStatement(sql)) {
@@ -394,6 +430,9 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 		@Override
 		public long walk(TableWalkHandleRaw callback) {
+			if (dropped)
+				return 0;
+
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
@@ -419,6 +458,9 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 		@Override
 		public long walkKey(TableWalkKeyRaw callback) {
+			if (dropped)
+				return 0;
+
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
