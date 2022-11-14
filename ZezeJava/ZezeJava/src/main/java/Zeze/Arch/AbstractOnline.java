@@ -82,6 +82,10 @@ public abstract class AbstractOnline extends Zeze.IModule {
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
+    public void RegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {
+    }
+
+
     protected abstract long ProcessLoginRequest(Zeze.Builtin.Online.Login r) throws Throwable;
     protected abstract long ProcessLogoutRequest(Zeze.Builtin.Online.Logout r) throws Throwable;
     protected abstract long ProcessReliableNotifyConfirmRequest(Zeze.Builtin.Online.ReliableNotifyConfirm r) throws Throwable;

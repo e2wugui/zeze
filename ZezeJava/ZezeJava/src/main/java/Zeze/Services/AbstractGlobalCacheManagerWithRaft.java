@@ -89,6 +89,10 @@ public abstract class AbstractGlobalCacheManagerWithRaft extends Zeze.IModule {
         Zeze.Raft.RocksRaft.Rocks.registerLog(() -> new Zeze.Raft.RocksRaft.LogSet1<>(Integer.class));
     }
 
+    public void RegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {
+    }
+
+
     protected abstract long ProcessAcquireRequest(Zeze.Builtin.GlobalCacheManagerWithRaft.Acquire r) throws Throwable;
     protected abstract long ProcessCleanupRequest(Zeze.Builtin.GlobalCacheManagerWithRaft.Cleanup r) throws Throwable;
     protected abstract long ProcessKeepAliveRequest(Zeze.Builtin.GlobalCacheManagerWithRaft.KeepAlive r) throws Throwable;

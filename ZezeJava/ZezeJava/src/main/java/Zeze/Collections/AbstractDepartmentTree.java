@@ -39,4 +39,8 @@ public abstract class AbstractDepartmentTree extends Zeze.IModule {
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
+
+    public void RegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {
+    }
+
 }

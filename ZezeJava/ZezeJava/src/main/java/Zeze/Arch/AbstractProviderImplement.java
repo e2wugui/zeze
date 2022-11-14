@@ -83,6 +83,10 @@ public abstract class AbstractProviderImplement extends Zeze.IModule {
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
+    public void RegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {
+    }
+
+
     protected abstract long ProcessAnnounceLinkInfo(Zeze.Builtin.Provider.AnnounceLinkInfo p) throws Throwable;
     protected abstract long ProcessDispatch(Zeze.Builtin.Provider.Dispatch p) throws Throwable;
     protected abstract long ProcessLinkBroken(Zeze.Builtin.Provider.LinkBroken p) throws Throwable;

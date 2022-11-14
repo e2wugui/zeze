@@ -37,5 +37,9 @@ public abstract class AbstractRedoQueueServer extends Zeze.IModule {
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
+    public void RegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {
+    }
+
+
     protected abstract long ProcessRunTaskRequest(Zeze.Builtin.RedoQueue.RunTask r) throws Throwable;
 }

@@ -121,10 +121,18 @@ namespace Zeze.Gen.java
                 sw.WriteLine("    public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {");
                 foreach (var mf in mfs) mf.RegisterRocksTables(sw);
                 sw.WriteLine("    }");
+                sw.WriteLine();
+
+                sw.WriteLine("    public void RegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {");
+                foreach (var mf in mfs) mf.RegisterHttpServlet(sw, "httpServer");
+                sw.WriteLine("    }");
+                sw.WriteLine();
 
                 // gen abstract protocol handles
                 // 如果模块嵌套，仅传入Module.Name不够。但一般够用了。
                 foreach (var mf in mfs) mf.GenAbstractProtocolHandles(sw, false);
+
+                foreach (var mf in mfs) mf.GenAbstractHttpHandles(sw);
 
                 sw.WriteLine("}");
             }

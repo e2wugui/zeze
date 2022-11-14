@@ -46,7 +46,7 @@ namespace Zege
             {
                 App = new App();
                 App.MainPage = this;
-                App.Start("10.12.7.140", 5100);
+                App.Start("10.12.7.140", 29555);
                 App.Zege_Friend.Bind(FriendsListView);
                 FriendsListView.ItemSelected += OnFriendsItemSelected;
             }

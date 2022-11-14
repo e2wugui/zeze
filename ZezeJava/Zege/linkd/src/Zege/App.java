@@ -86,7 +86,6 @@ public class App extends Zeze.AppBase {
     }
 
     public void Stop() throws Throwable {
-        LinkdApp.httpService.stop();
         stopService(); // 关闭网络
         stopModules(); // 关闭模块，卸载配置什么的。
         if (Zeze != null)

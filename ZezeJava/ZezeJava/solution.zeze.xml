@@ -884,80 +884,6 @@
 			<table name="tlocal" key="string" memory="true" value="BLocals"/>
 		</module> Online 11100
 
-		<module name="Web" id="11102">
-			<!--
-			多数情况下，Http请求处理一个rpc完成。当需要处理上传大文件或下载大文件时，使用流接口处理。
-			1. 普通请求
-               linkd -> Rpc Request -> server
-			2. 上传文件
-			   linkd -> Rpc Request -> server
-			   linkd -> Rpc RequestInputStream -> server
-			   ... until Finish
-			3. 下载文件
-			   linkd -> Rpc Request -> server
-			   server -> Rpc ResponseOutputStream -> linkd
-			   ... until Finish
-			4. 上传下载可以同时进行，但一般不会有这种应用。
-			-->
-
-			<rpc name="Request" argument="BRequest" result="BResponse" handle="server" />
-			<rpc name="RequestInputStream" argument="BStream" handle="server" />
-			<rpc name="ResponseOutputStream" argument="BStream" handle="client" />
-
-			<enum name="DuplicateExchangeId" value="1"/>
-			<enum name="UnknownPath404" value="2"/>
-			<enum name="ServletException" value="3"/>
-			<enum name="ExchangeIdNotFound" value="4"/>
-			<enum name="OnUploadException" value="5"/>
-			<enum name="OnDownloadException" value="5"/>
-
-			<bean name="BHeader">
-				<variable id="1" name="Values" type="list[string]"/>
-			</bean>
-
-			<bean name="BRequest">
-				<variable id="1" name="ExchangeId" type="long"/>
-				<variable id="2" name="Method" type="string"/>
-				<variable id="3" name="Path" type="string"/>
-				<variable id="4" name="Query" type="string"/>
-				<variable id="5" name="Headers" type="map[string, BHeader]"/>
-				<variable id="6" name="Body" type="binary"/>
-				<variable id="7" name="Finish" type="bool"/>
-				linkd 拦截处理验证信息后，还会转发请求给server。
-				验证过后的账号填写在这里。server读取并处理后续流程。
-				<variable id="8" name="AuthedAccount" type="string"/>
-			</bean>
-
-			<bean name="BResponse">
-				<variable id="1" name="Code" type="int"/>
-				<variable id="2" name="Headers" type="map[string, BHeader]"/>
-				<variable id="3" name="Body" type="binary"/>
-				<variable id="4" name="Finish" type="bool"/>
-
-				<!-- error report -->
-				<variable id="5" name="Message"    type="string"/>
-				<variable id="6" name="Stacktrace" type="string"/>
-			</bean>
-
-			<bean name="BStream">
-				<variable id="1" name="ExchangeId" type="long"/>
-				<variable id="2" name="Body" type="binary"/>
-				<variable id="3" name="Finish" type="bool"/>
-			</bean>
-
-			<bean name="BCloseExchange">
-				<variable id="1" name="ExchangeId" type="long"/>
-			</bean>
-
-			<rpc name="CloseExchange" argument="BCloseExchange" handle="server,client" />
-
-			<bean name="BSession">
-				<variable id="1" name="Account" type="string"/>
-			</bean>
-
-			<table name="tSessions" key="string" value="BSession"/> key is sessionid in cookie
-		</module>
-
 		<module name="Timer" id="11016">
 			<enum name="eMissfirePolicyNothing" value="0"/> quartz 兼容
 			<enum name="eMissfirePolicyRunOnce" value="1"/> quartz 兼容
@@ -1094,8 +1020,13 @@
 			<table name="tAccountOfflineTimers" key="BAccountClientId" value="BOfflineTimers"/>
 
 		</module>
+
+		<module name="Statistics" id="11020">
+			<servlet name="Query"/>
+		</module>
+
 		<!--
-		可用id范围 [11020, 11100) [11103, 12000]
+		可用id范围 [11102] [11021, 11100) [11103, 12000]
 		-->
 
 	</module> Builtin
@@ -1105,6 +1036,12 @@
 	<component name="Timer" gendir="src/main/java" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Timer"/>
+		</service>
+	</component>
+
+	<component name="Statistics" gendir="src/main/java" platform="zeze+java">
+		<service name="" handle="server,servlet">
+			<module ref="Zeze.Builtin.Statistics"/>
 		</service>
 	</component>
 
@@ -1164,7 +1101,6 @@
 	<component name="LinkdProvider" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java" PresentModuleFullName="Zeze.Builtin.Provider">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.Provider"/>
-			<module ref="Zeze.Builtin.Web"/>
 		</service>
 	</component>
 
@@ -1172,12 +1108,6 @@
 	<component name="ProviderImplement" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Provider"/>
-		</service>
-	</component>
-
-	<component name="Web" gendir="src/main/java" genrelativedir="Zeze/Web" platform="zeze+java">
-		<service name="" handle="server">
-			<module ref="Zeze.Builtin.Web"/>
 		</service>
 	</component>
 

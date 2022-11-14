@@ -26,4 +26,8 @@ public abstract class AbstractAutoKey extends Zeze.IModule {
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
+
+    public void RegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {
+    }
+
 }

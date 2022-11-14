@@ -307,24 +307,4 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 		return Zeze.Transaction.Procedure.Success;
 	}
-
-	@Override
-	protected long ProcessCloseExchangeRequest(Zeze.Builtin.Web.CloseExchange r) {
-		if (linkdApp.httpService == null) {
-			r.SendResultCode(errorCode(Zeze.Web.Web.ModuleId, Zeze.Web.Web.ExchangeIdNotFound));
-			return 0;
-		}
-
-		return linkdApp.httpService.internalCloseExchange(r);
-	}
-
-	@Override
-	protected long ProcessResponseOutputStreamRequest(Zeze.Builtin.Web.ResponseOutputStream r) {
-		if (linkdApp.httpService == null) {
-			r.SendResultCode(errorCode(Zeze.Web.Web.ModuleId, Zeze.Web.Web.ExchangeIdNotFound));
-			return 0;
-		}
-
-		return linkdApp.httpService.internalResponseOutputStream(r);
-	}
 }
