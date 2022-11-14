@@ -43,6 +43,7 @@ public class LogDynamic extends LogBean {
 		// encode Value & SpecialTypeId. Value maybe null.
 		var self = (DynamicBean)getThis();
 		bb.WriteString(self.parent().getClass().getName()); // use in decode reflect
+		bb.WriteInt(self.variableId());
 		if (null != value) {
 			bb.WriteBool(true);
 			bb.WriteLong(specialTypeId);
@@ -61,12 +62,13 @@ public class LogDynamic extends LogBean {
 	@Override
 	public void decode(ByteBuffer bb) {
 		var parentTypeName = bb.ReadString();
+		var varId = bb.ReadInt();
 		var hasValue = bb.ReadBool();
 		if (hasValue) {
 			specialTypeId = bb.ReadLong();
 			try {
 				var parentType = Class.forName(parentTypeName);
-				var factory = parentType.getMethod("CreateBeanFromSpecialTypeId", Long.class);
+				var factory = parentType.getMethod("CreateBeanFromSpecialTypeId_" + varId, Long.class);
 				value = (Bean)factory.invoke(null, new Object[]{specialTypeId});
 				value.decode(bb);
 			} catch (Exception ex) {

@@ -15,10 +15,10 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
     public static final long DynamicTypeId_TimerObj_Zeze_Builtin_Timer_BSimpleTimer = 1832177636612857692L;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_TimerObj() {
-        return new Zeze.Transaction.DynamicBean(3, BArchOnlineTimer::getSpecialTypeIdFromBean_TimerObj, BArchOnlineTimer::createBeanFromSpecialTypeId_TimerObj);
+        return new Zeze.Transaction.DynamicBean(3, BArchOnlineTimer::getSpecialTypeIdFromBean_3, BArchOnlineTimer::createBeanFromSpecialTypeId_3);
     }
 
-    public static long getSpecialTypeIdFromBean_TimerObj(Zeze.Transaction.Bean bean) {
+    public static long getSpecialTypeIdFromBean_3(Zeze.Transaction.Bean bean) {
         var _typeId_ = bean.typeId();
         if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
             return Zeze.Transaction.EmptyBean.TYPEID;
@@ -29,7 +29,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
         throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Timer.BArchOnlineTimer:TimerObj");
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_TimerObj(long typeId) {
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_3(long typeId) {
         if (typeId == -6995089347718168392L)
             return new Zeze.Builtin.Timer.BCronTimer();
         if (typeId == 1832177636612857692L)

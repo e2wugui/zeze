@@ -14,11 +14,11 @@ public final class BDAGNode extends Zeze.Transaction.Bean implements BDAGNodeRea
         return new Zeze.Transaction.DynamicBean(1, Zeze.Collections.DAG::getSpecialTypeIdFromBean, Zeze.Collections.DAG::createBeanFromSpecialTypeId);
     }
 
-    public static long getSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean) {
+    public static long getSpecialTypeIdFromBean_1(Zeze.Transaction.Bean bean) {
         return Zeze.Collections.DAG.getSpecialTypeIdFromBean(bean);
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_Value(long typeId) {
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_1(long typeId) {
         return Zeze.Collections.DAG.createBeanFromSpecialTypeId(typeId);
     }
 

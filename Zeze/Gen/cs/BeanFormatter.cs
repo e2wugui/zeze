@@ -50,12 +50,12 @@ namespace Zeze.Gen.cs
             sw.WriteLine($"{prefix}public static Zeze.Transaction.DynamicBean NewDynamicBean{var.NameUpper1}()");
             sw.WriteLine($"{prefix}{{");
             if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
-                sw.WriteLine($"{prefix}    return new Zeze.Transaction.DynamicBean({var.Id}, GetSpecialTypeIdFromBean_{var.NameUpper1}, CreateBeanFromSpecialTypeId_{var.NameUpper1});");
+                sw.WriteLine($"{prefix}    return new Zeze.Transaction.DynamicBean({var.Id}, GetSpecialTypeIdFromBean_{var.Id}, CreateBeanFromSpecialTypeId_{var.Id});");
             else
-                sw.WriteLine($"{prefix}    return new Zeze.Transaction.DynamicBean({var.Id}, {type.DynamicParams.GetSpecialTypeIdFromBean_Csharp}, {type.DynamicParams.CreateBeanFromSpecialTypeId_Csharp});");
+                sw.WriteLine($"{prefix}    return new Zeze.Transaction.DynamicBean({var.Id}, {type.DynamicParams.GetSpecialTypeIdFromBeanCsharp}, {type.DynamicParams.CreateBeanFromSpecialTypeIdCsharp});");
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
-            sw.WriteLine($"{prefix}public static long GetSpecialTypeIdFromBean_{var.NameUpper1}(Zeze.Transaction.Bean bean)");
+            sw.WriteLine($"{prefix}public static long GetSpecialTypeIdFromBean_{var.Id}(Zeze.Transaction.Bean bean)");
             sw.WriteLine($"{prefix}{{");
             if (string.IsNullOrEmpty(type.DynamicParams.GetSpecialTypeIdFromBean))
             {
@@ -71,11 +71,11 @@ namespace Zeze.Gen.cs
             else
             {
                 // 转发给全局静态（static）函数。
-                sw.WriteLine($"{prefix}    return {type.DynamicParams.GetSpecialTypeIdFromBean_Csharp.Replace("::", ".")}(bean);");
+                sw.WriteLine($"{prefix}    return {type.DynamicParams.GetSpecialTypeIdFromBeanCsharp.Replace("::", ".")}(bean);");
             }
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
-            sw.WriteLine($"{prefix}public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_{var.NameUpper1}(long typeId)");
+            sw.WriteLine($"{prefix}public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_{var.Id}(long typeId)");
             sw.WriteLine($"{prefix}{{");
             if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId))
             {
@@ -94,7 +94,7 @@ namespace Zeze.Gen.cs
             else
             {
                 // 转发给全局静态（static）函数。
-                sw.WriteLine($"{prefix}    return {type.DynamicParams.CreateBeanFromSpecialTypeId_Csharp}(typeId);");
+                sw.WriteLine($"{prefix}    return {type.DynamicParams.CreateBeanFromSpecialTypeIdCsharp}(typeId);");
             }
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();

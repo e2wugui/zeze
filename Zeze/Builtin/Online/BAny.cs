@@ -23,12 +23,12 @@ namespace Zeze.Builtin.Online
             return new Zeze.Transaction.DynamicBean(1, Zeze.Arch.Online.GetSpecialTypeIdFromBean, Zeze.Arch.Online.CreateBeanFromSpecialTypeId);
         }
 
-        public static long GetSpecialTypeIdFromBean_Any(Zeze.Transaction.Bean bean)
+        public static long GetSpecialTypeIdFromBean_1(Zeze.Transaction.Bean bean)
         {
             return Zeze.Arch.Online.GetSpecialTypeIdFromBean(bean);
         }
 
-        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Any(long typeId)
+        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_1(long typeId)
         {
             return Zeze.Arch.Online.CreateBeanFromSpecialTypeId(typeId);
         }

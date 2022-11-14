@@ -17,11 +17,11 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
         return new Zeze.Transaction.DynamicBean(4, Zeze.Game.Task::getSpecialTypeIdFromBean, Zeze.Game.Task::createBeanFromSpecialTypeId);
     }
 
-    public static long getSpecialTypeIdFromBean_DynamicData(Zeze.Transaction.Bean bean) {
+    public static long getSpecialTypeIdFromBean_4(Zeze.Transaction.Bean bean) {
         return Zeze.Game.Task.getSpecialTypeIdFromBean(bean);
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_DynamicData(long typeId) {
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_4(long typeId) {
         return Zeze.Game.Task.createBeanFromSpecialTypeId(typeId);
     }
 

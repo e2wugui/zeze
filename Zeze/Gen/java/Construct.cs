@@ -194,8 +194,8 @@ namespace Zeze.Gen.java
         {
             if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
             {
-                return $"{beanName}::getSpecialTypeIdFromBean_{variable.NameUpper1}, " +
-                       $"{beanName}::createBeanFromSpecialTypeId_{variable.NameUpper1}";
+                return $"{beanName}::getSpecialTypeIdFromBean_{variable.Id}, " +
+                       $"{beanName}::createBeanFromSpecialTypeId_{variable.Id}";
             }
             return $"{type.DynamicParams.GetSpecialTypeIdFromBean}, " +
                    $"{type.DynamicParams.CreateBeanFromSpecialTypeId}";

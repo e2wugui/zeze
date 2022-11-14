@@ -17,11 +17,11 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         return new Zeze.Transaction.DynamicBean(5, Zeze.Game.Task::getSpecialTypeIdFromBean, Zeze.Game.Task::createBeanFromSpecialTypeId);
     }
 
-    public static long getSpecialTypeIdFromBean_TaskCustomData(Zeze.Transaction.Bean bean) {
+    public static long getSpecialTypeIdFromBean_5(Zeze.Transaction.Bean bean) {
         return Zeze.Game.Task.getSpecialTypeIdFromBean(bean);
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_TaskCustomData(long typeId) {
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_5(long typeId) {
         return Zeze.Game.Task.createBeanFromSpecialTypeId(typeId);
     }
 

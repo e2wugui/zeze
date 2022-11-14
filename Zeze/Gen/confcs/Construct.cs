@@ -161,7 +161,7 @@ namespace Zeze.Gen.confcs
             // if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
             // {
             //     sw.WriteLine(prefix + variable.Name + " = new Zeze.Util.ConfDynamicBean"
-            //         + $"({variable.Id}, GetSpecialTypeIdFromBean_{variable.NameUpper1}, CreateBeanFromSpecialTypeId_{variable.NameUpper1});");
+            //         + $"({variable.Id}, GetSpecialTypeIdFromBean_{variable.Id}, CreateBeanFromSpecialTypeId_{variable.Id});");
             // }
             // else
             // {

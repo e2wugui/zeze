@@ -27,12 +27,12 @@ namespace Zeze.Builtin.Game.Bag
             return new Zeze.Transaction.DynamicBean(3, Zeze.Game.Bag.GetSpecialTypeIdFromBean, Zeze.Game.Bag.CreateBeanFromSpecialTypeId);
         }
 
-        public static long GetSpecialTypeIdFromBean_Item(Zeze.Transaction.Bean bean)
+        public static long GetSpecialTypeIdFromBean_3(Zeze.Transaction.Bean bean)
         {
             return Zeze.Game.Bag.GetSpecialTypeIdFromBean(bean);
         }
 
-        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Item(long typeId)
+        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_3(long typeId)
         {
             return Zeze.Game.Bag.CreateBeanFromSpecialTypeId(typeId);
         }

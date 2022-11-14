@@ -14,11 +14,11 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
         return new Zeze.Transaction.DynamicBean(2, Zeze.Game.Task::getSpecialTypeIdFromBean, Zeze.Game.Task::createBeanFromSpecialTypeId);
     }
 
-    public static long getSpecialTypeIdFromBean_TaskConditionCustomData(Zeze.Transaction.Bean bean) {
+    public static long getSpecialTypeIdFromBean_2(Zeze.Transaction.Bean bean) {
         return Zeze.Game.Task.getSpecialTypeIdFromBean(bean);
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_TaskConditionCustomData(long typeId) {
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_2(long typeId) {
         return Zeze.Game.Task.createBeanFromSpecialTypeId(typeId);
     }
 

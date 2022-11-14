@@ -119,7 +119,7 @@ namespace Zeze.Gen.confcs
             //     sw.WriteLine();
 
             var baseType = string.IsNullOrEmpty(type.DynamicParams.Base) ? "Zeze.Util.ConfBean" : type.DynamicParams.Base;
-            sw.WriteLine($"{prefix}public static long GetSpecialTypeIdFromBean_{var.NameUpper1}({baseType} bean)");
+            sw.WriteLine($"{prefix}public static long GetSpecialTypeIdFromBean_{var.Id}({baseType} bean)");
             sw.WriteLine($"{prefix}{{");
             if (string.IsNullOrEmpty(type.DynamicParams.GetSpecialTypeIdFromBean))
             {
@@ -135,11 +135,11 @@ namespace Zeze.Gen.confcs
             else
             {
                 // 转发给全局静态（static）函数。
-                sw.WriteLine($"{prefix}    return {type.DynamicParams.GetSpecialTypeIdFromBean_Csharp.Replace("::", ".")}(bean);");
+                sw.WriteLine($"{prefix}    return {type.DynamicParams.GetSpecialTypeIdFromBeanCsharp.Replace("::", ".")}(bean);");
             }
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
-            sw.WriteLine($"{prefix}public static {baseType} CreateBeanFromSpecialTypeId_{var.NameUpper1}(long typeId)");
+            sw.WriteLine($"{prefix}public static {baseType} CreateBeanFromSpecialTypeId_{var.Id}(long typeId)");
             sw.WriteLine($"{prefix}{{");
             if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId))
             {
@@ -157,7 +157,7 @@ namespace Zeze.Gen.confcs
             else
             {
                 // 转发给全局静态（static）函数。
-                sw.WriteLine($"{prefix}    return {type.DynamicParams.CreateBeanFromSpecialTypeId_Csharp}(typeId);");
+                sw.WriteLine($"{prefix}    return {type.DynamicParams.CreateBeanFromSpecialTypeIdCsharp}(typeId);");
             }
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();

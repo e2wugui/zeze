@@ -14,11 +14,11 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean implements BQue
         return new Zeze.Transaction.DynamicBean(2, Zeze.Collections.Queue::getSpecialTypeIdFromBean, Zeze.Collections.Queue::createBeanFromSpecialTypeId);
     }
 
-    public static long getSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean) {
+    public static long getSpecialTypeIdFromBean_2(Zeze.Transaction.Bean bean) {
         return Zeze.Collections.Queue.getSpecialTypeIdFromBean(bean);
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_Value(long typeId) {
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_2(long typeId) {
         return Zeze.Collections.Queue.createBeanFromSpecialTypeId(typeId);
     }
 

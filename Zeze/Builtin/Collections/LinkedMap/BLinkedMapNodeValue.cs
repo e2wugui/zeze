@@ -25,12 +25,12 @@ namespace Zeze.Builtin.Collections.LinkedMap
             return new Zeze.Transaction.DynamicBean(2, Zeze.Collections.LinkedMap.GetSpecialTypeIdFromBean, Zeze.Collections.LinkedMap.CreateBeanFromSpecialTypeId);
         }
 
-        public static long GetSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean)
+        public static long GetSpecialTypeIdFromBean_2(Zeze.Transaction.Bean bean)
         {
             return Zeze.Collections.LinkedMap.GetSpecialTypeIdFromBean(bean);
         }
 
-        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Value(long typeId)
+        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_2(long typeId)
         {
             return Zeze.Collections.LinkedMap.CreateBeanFromSpecialTypeId(typeId);
         }

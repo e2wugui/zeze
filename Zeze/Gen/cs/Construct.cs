@@ -173,12 +173,12 @@ namespace Zeze.Gen.cs
             if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
             {
                 sw.WriteLine(prefix + variable.NamePrivate + " = new Zeze.Transaction.DynamicBean"
-                    + $"({variable.Id}, GetSpecialTypeIdFromBean_{variable.NameUpper1}, CreateBeanFromSpecialTypeId_{variable.NameUpper1});");
+                    + $"({variable.Id}, GetSpecialTypeIdFromBean_{variable.Id}, CreateBeanFromSpecialTypeId_{variable.Id});");
             }
             else
             {
                 sw.WriteLine(prefix + variable.NamePrivate + " = new Zeze.Transaction.DynamicBean"
-                    + $"({variable.Id}, {type.DynamicParams.GetSpecialTypeIdFromBean_Csharp}, {type.DynamicParams.CreateBeanFromSpecialTypeId_Csharp});");
+                    + $"({variable.Id}, {type.DynamicParams.GetSpecialTypeIdFromBeanCsharp}, {type.DynamicParams.CreateBeanFromSpecialTypeIdCsharp});");
             }
         }
 

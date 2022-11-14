@@ -409,6 +409,7 @@ namespace Zeze.Transaction
             // encode Value & SpecialTypeId. Value maybe null.
             var self = (DynamicBean)This;
             bb.WriteString(self.Parent.GetType().FullName); // use in decode reflect
+            bb.WriteInt(self.VariableId);
             if (null != Value)
             {
                 bb.WriteBool(true);
@@ -433,12 +434,13 @@ namespace Zeze.Transaction
         public override void Decode(ByteBuffer bb)
         {
             var parentTypeName = bb.ReadString();
+            var variableId = bb.ReadInt();
             var hasValue = bb.ReadBool();
             if (hasValue)
             {
                 SpecialTypeId = bb.ReadLong();
                 var parentType = Zeze.Util.Reflect.GetType(parentTypeName);
-                var factory = parentType.GetMethod("CreateBeanFromSpecialTypeId", BindingFlags.Static | BindingFlags.Public, new Type[] { typeof(long) });
+                var factory = parentType.GetMethod("CreateBeanFromSpecialTypeId_" + variableId, BindingFlags.Static | BindingFlags.Public, new Type[] { typeof(long) });
                 Value = (Bean)factory.Invoke(null, new object[] { SpecialTypeId });
                 Value.Decode(bb);
             }

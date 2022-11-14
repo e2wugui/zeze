@@ -19,11 +19,11 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
         return new Zeze.Transaction.DynamicBean(6, Zeze.Component.Timer::getSpecialTypeIdFromBean, Zeze.Component.Timer::createBeanFromSpecialTypeId);
     }
 
-    public static long getSpecialTypeIdFromBean_CustomData(Zeze.Transaction.Bean bean) {
+    public static long getSpecialTypeIdFromBean_6(Zeze.Transaction.Bean bean) {
         return Zeze.Component.Timer.getSpecialTypeIdFromBean(bean);
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_CustomData(long typeId) {
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_6(long typeId) {
         return Zeze.Component.Timer.createBeanFromSpecialTypeId(typeId);
     }
 

@@ -16,11 +16,11 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
         return new Zeze.Transaction.DynamicBean(4, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
     }
 
-    public static long getSpecialTypeIdFromBean_Managers(Zeze.Transaction.Bean bean) {
+    public static long getSpecialTypeIdFromBean_4(Zeze.Transaction.Bean bean) {
         return Zeze.Collections.DepartmentTree.getSpecialTypeIdFromBean(bean);
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_Managers(long typeId) {
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_4(long typeId) {
         return Zeze.Collections.DepartmentTree.createBeanFromSpecialTypeId(typeId);
     }
 
@@ -30,11 +30,11 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
         return new Zeze.Transaction.DynamicBean(5, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
     }
 
-    public static long getSpecialTypeIdFromBean_Data(Zeze.Transaction.Bean bean) {
+    public static long getSpecialTypeIdFromBean_5(Zeze.Transaction.Bean bean) {
         return Zeze.Collections.DepartmentTree.getSpecialTypeIdFromBean(bean);
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_Data(long typeId) {
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_5(long typeId) {
         return Zeze.Collections.DepartmentTree.createBeanFromSpecialTypeId(typeId);
     }
 

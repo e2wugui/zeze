@@ -548,8 +548,8 @@ namespace Zeze.Gen.java
 
             if ((serv.HandleFlags & Program.HandleServletFlag) == 0)
                 return;
-
-            sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(getClass());");
+            if (false == string.IsNullOrEmpty(httpServer))
+                sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(getClass());");
             var httpVar = string.IsNullOrEmpty(httpServer) ? "App.HttpServer" : httpServer;
             foreach (var s in module.Servlets.Values)
             {

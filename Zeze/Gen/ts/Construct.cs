@@ -121,8 +121,8 @@ namespace Zeze.Gen.ts
         {
             var bean = variable.Bean as Bean;
             sw.WriteLine(prefix + "this." + variable.Name + " = new Zeze.DynamicBean("
-                + $"{bean.Space.Path("_", bean.Name)}.GetSpecialTypeIdFromBean_{variable.NameUpper1}, "
-                + $"{bean.Space.Path("_", bean.Name)}.CreateBeanFromSpecialTypeId_{variable.NameUpper1}"
+                + $"{bean.Space.Path("_", bean.Name)}.GetSpecialTypeIdFromBean_{variable.Id}, "
+                + $"{bean.Space.Path("_", bean.Name)}.CreateBeanFromSpecialTypeId_{variable.Id}"
                 + ");");
         }
 

@@ -27,12 +27,12 @@ namespace Zeze.Builtin.Collections.DepartmentTree
             return new Zeze.Transaction.DynamicBean(2, Zeze.Collections.DepartmentTree.GetSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree.CreateBeanFromSpecialTypeId);
         }
 
-        public static long GetSpecialTypeIdFromBean_Managers(Zeze.Transaction.Bean bean)
+        public static long GetSpecialTypeIdFromBean_2(Zeze.Transaction.Bean bean)
         {
             return Zeze.Collections.DepartmentTree.GetSpecialTypeIdFromBean(bean);
         }
 
-        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Managers(long typeId)
+        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_2(long typeId)
         {
             return Zeze.Collections.DepartmentTree.CreateBeanFromSpecialTypeId(typeId);
         }

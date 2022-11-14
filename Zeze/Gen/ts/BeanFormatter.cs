@@ -58,7 +58,7 @@ namespace Zeze.Gen.ts
                     sw.WriteLine();
             }
 
-            sw.WriteLine($"    public static GetSpecialTypeIdFromBean_{v.NameUpper1}(bean: Zeze.Bean): bigint {{");
+            sw.WriteLine($"    public static GetSpecialTypeIdFromBean_{v.Id}(bean: Zeze.Bean): bigint {{");
             sw.WriteLine($"        switch (bean.TypeId())");
             sw.WriteLine($"        {{");
             sw.WriteLine($"            case Zeze.EmptyBean.TYPEID: return Zeze.EmptyBean.TYPEID;");
@@ -70,7 +70,7 @@ namespace Zeze.Gen.ts
             sw.WriteLine($"        throw new Error(\"Unknown Bean! dynamic@{(v.Bean as Types.Bean).FullName}:{v.Name}\");");
             sw.WriteLine($"    }}");
             sw.WriteLine();
-            sw.WriteLine($"    public static CreateBeanFromSpecialTypeId_{v.NameUpper1}(typeId: bigint): Zeze.Bean {{");
+            sw.WriteLine($"    public static CreateBeanFromSpecialTypeId_{v.Id}(typeId: bigint): Zeze.Bean {{");
             sw.WriteLine($"        switch (typeId)");
             sw.WriteLine($"        {{");
             //sw.WriteLine($"            case Zeze.EmptyBean.TYPEID: return new Zeze.EmptyBean();");

@@ -14,11 +14,11 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean implements 
         return new Zeze.Transaction.DynamicBean(2, Zeze.Collections.LinkedMap::getSpecialTypeIdFromBean, Zeze.Collections.LinkedMap::createBeanFromSpecialTypeId);
     }
 
-    public static long getSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean) {
+    public static long getSpecialTypeIdFromBean_2(Zeze.Transaction.Bean bean) {
         return Zeze.Collections.LinkedMap.getSpecialTypeIdFromBean(bean);
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_Value(long typeId) {
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_2(long typeId) {
         return Zeze.Collections.LinkedMap.createBeanFromSpecialTypeId(typeId);
     }
 

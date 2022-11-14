@@ -370,13 +370,13 @@ namespace Zeze.Gen.cs
                     sw.WriteLine($"{prefix}if (_x_ != null)");
                     sw.WriteLine($"{prefix}{{");
                     sw.WriteLine($"{prefix}    _i_ = {bufname}.WriteTag(_i_, {id}, {TypeTagName.GetName(type)});");
-                    sw.WriteLine($"{prefix}    {bufname}.WriteLong(GetSpecialTypeIdFromBean_{varUpperName1}(_x_));");
+                    sw.WriteLine($"{prefix}    {bufname}.WriteLong(GetSpecialTypeIdFromBean_{id}(_x_));");
                     sw.WriteLine($"{prefix}    _x_.Encode({bufname});");
                     sw.WriteLine($"{prefix}}}");
                 }
                 else
                 {
-                    sw.WriteLine($"{prefix}{bufname}.WriteLong(GetSpecialTypeIdFromBean_{varUpperName1}({varname}));");
+                    sw.WriteLine($"{prefix}{bufname}.WriteLong(GetSpecialTypeIdFromBean_{id}({varname}));");
                     sw.WriteLine($"{prefix}{varname}.Encode({bufname});");
                 }
             }

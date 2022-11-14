@@ -13,11 +13,11 @@ public final class BAny extends Zeze.Transaction.Bean implements BAnyReadOnly {
         return new Zeze.Transaction.DynamicBean(1, Zeze.Arch.Online::getSpecialTypeIdFromBean, Zeze.Arch.Online::createBeanFromSpecialTypeId);
     }
 
-    public static long getSpecialTypeIdFromBean_Any(Zeze.Transaction.Bean bean) {
+    public static long getSpecialTypeIdFromBean_1(Zeze.Transaction.Bean bean) {
         return Zeze.Arch.Online.getSpecialTypeIdFromBean(bean);
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_Any(long typeId) {
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_1(long typeId) {
         return Zeze.Arch.Online.createBeanFromSpecialTypeId(typeId);
     }
 

@@ -151,7 +151,7 @@ namespace Zeze.Gen.rrcs
         public void Visit(TypeDynamic type)
         {
             sw.WriteLine(prefix + variable.NamePrivate + " = new Zeze.Raft.RocksRaft.DynamicBean"
-                + $"({variable.Id}, GetSpecialTypeIdFromBean_{variable.NameUpper1}, CreateBeanFromSpecialTypeId_{variable.NameUpper1});");
+                + $"({variable.Id}, GetSpecialTypeIdFromBean_{variable.Id}, CreateBeanFromSpecialTypeId_{variable.Id});");
         }
 
         public void Visit(TypeQuaternion type)

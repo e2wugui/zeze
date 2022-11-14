@@ -17,11 +17,11 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         return new Zeze.Transaction.DynamicBean(5, Zeze.Component.Timer::getSpecialTypeIdFromBean, Zeze.Component.Timer::createBeanFromSpecialTypeId);
     }
 
-    public static long getSpecialTypeIdFromBean_CustomData(Zeze.Transaction.Bean bean) {
+    public static long getSpecialTypeIdFromBean_5(Zeze.Transaction.Bean bean) {
         return Zeze.Component.Timer.getSpecialTypeIdFromBean(bean);
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_CustomData(long typeId) {
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_5(long typeId) {
         return Zeze.Component.Timer.createBeanFromSpecialTypeId(typeId);
     }
 

@@ -15,11 +15,11 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
         return new Zeze.Transaction.DynamicBean(3, Zeze.Game.Bag::getSpecialTypeIdFromBean, Zeze.Game.Bag::createBeanFromSpecialTypeId);
     }
 
-    public static long getSpecialTypeIdFromBean_Item(Zeze.Transaction.Bean bean) {
+    public static long getSpecialTypeIdFromBean_3(Zeze.Transaction.Bean bean) {
         return Zeze.Game.Bag.getSpecialTypeIdFromBean(bean);
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_Item(long typeId) {
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_3(long typeId) {
         return Zeze.Game.Bag.createBeanFromSpecialTypeId(typeId);
     }
 

@@ -15,11 +15,11 @@ public final class BPTaskInfo extends Zeze.Transaction.Bean implements BPTaskInf
         return new Zeze.Transaction.DynamicBean(3, Zeze.Game.Task::getSpecialTypeIdFromBean, Zeze.Game.Task::createBeanFromSpecialTypeId);
     }
 
-    public static long getSpecialTypeIdFromBean_RoleTaskCustomData(Zeze.Transaction.Bean bean) {
+    public static long getSpecialTypeIdFromBean_3(Zeze.Transaction.Bean bean) {
         return Zeze.Game.Task.getSpecialTypeIdFromBean(bean);
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_RoleTaskCustomData(long typeId) {
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_3(long typeId) {
         return Zeze.Game.Task.createBeanFromSpecialTypeId(typeId);
     }
 

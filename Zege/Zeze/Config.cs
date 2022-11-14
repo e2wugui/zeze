@@ -98,21 +98,21 @@ namespace Zeze
         public ConcurrentDictionary<string, DatabaseConf> DatabaseConfMap { get; }
             = new ConcurrentDictionary<string, DatabaseConf>();
 
-        private Transaction.Database CreateDatabase(Application zeze, DbType dbType, string url)
+        private Transaction.Database CreateDatabase(Application zeze, DbType dbType, DatabaseConf databaseConf)
         {
             switch (dbType)
             {
                 case DbType.Memory:
-                    return new Transaction.DatabaseMemory(zeze, url);
+                    return new Transaction.DatabaseMemory(zeze, databaseConf);
 #if USE_DATABASE
                 case DbType.MySql:
-                    return new Transaction.DatabaseMySql(zeze, url);
+                    return new Transaction.DatabaseMySql(zeze, databaseConf);
                 case DbType.SqlServer:
-                    return new Transaction.DatabaseSqlServer(zeze, url);
+                    return new Transaction.DatabaseSqlServer(zeze, databaseConf);
                 case DbType.Tikv:
-                    return new Tikv.DatabaseTikv(zeze, url);
+                    return new Tikv.DatabaseTikv(zeze, databaseConf);
                 case DbType.RocksDb:
-                    return new Transaction.DatabaseRocksDb(zeze, url);
+                    return new Transaction.DatabaseRocksDb(zeze, databaseConf);
 #endif
                 default:
                     throw new Exception("unknown database type.");
@@ -124,7 +124,7 @@ namespace Zeze
             // add other database
             foreach (var db in DatabaseConfMap.Values)
             {
-                map.Add(db.Name, CreateDatabase(zeze, db.DatabaseType, db.DatabaseUrl));
+                map.Add(db.Name, CreateDatabase(zeze, db.DatabaseType, db));
             }
         }
 
@@ -361,8 +361,9 @@ namespace Zeze
         public sealed class DatabaseConf
         {
             public string Name { get; } = "";
-            public DbType DatabaseType { get; } = DbType.Memory;
-            public string DatabaseUrl { get; } = "";
+            public DbType DatabaseType { get; set; } = DbType.Memory;
+            public string DatabaseUrl { get; set; } = "";
+            public bool DisableOperates { get; set; } = false;
 
             public DatabaseConf()
             { 
@@ -383,6 +384,7 @@ namespace Zeze
                 DatabaseUrl = self.GetAttribute("DatabaseUrl");
                 if (!conf.DatabaseConfMap.TryAdd(Name, this))
                     throw new Exception($"Duplicate Database '{Name}'");
+                DisableOperates = "true".Equals(self.GetAttribute("DisableOperates"));
             }
         }
 

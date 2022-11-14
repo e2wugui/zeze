@@ -107,14 +107,14 @@ namespace Zeze.Gen.ts
             if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
             {
                 sw.WriteLine($"{prefix}var {varname} = new Zeze.DynamicBean("
-                + $"{bean.Space.Path("_", bean.Name)}.GetSpecialTypeIdFromBean_{type.Variable.NameUpper1}, "
-                + $"{bean.Space.Path("_", bean.Name)}.CreateBeanFromSpecialTypeId_{type.Variable.NameUpper1}"
+                + $"{bean.Space.Path("_", bean.Name)}.GetSpecialTypeIdFromBean_{type.Variable.Id}, "
+                + $"{bean.Space.Path("_", bean.Name)}.CreateBeanFromSpecialTypeId_{type.Variable.Id}"
                 + ");");
             }
             else
             {
                 sw.WriteLine($"{prefix}var {varname} = new Zeze.DynamicBean"
-                    + $"(0, {type.DynamicParams.GetSpecialTypeIdFromBean_Csharp}, {type.DynamicParams.CreateBeanFromSpecialTypeId_Csharp});");
+                    + $"(0, {type.DynamicParams.GetSpecialTypeIdFromBeanCsharp}, {type.DynamicParams.CreateBeanFromSpecialTypeIdCsharp});");
             }
         }
 

@@ -16,11 +16,11 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
         return new Zeze.Transaction.DynamicBean(4, Zeze.Game.Task::getSpecialTypeIdFromBean, Zeze.Game.Task::createBeanFromSpecialTypeId);
     }
 
-    public static long getSpecialTypeIdFromBean_TaskPhaseCustomData(Zeze.Transaction.Bean bean) {
+    public static long getSpecialTypeIdFromBean_4(Zeze.Transaction.Bean bean) {
         return Zeze.Game.Task.getSpecialTypeIdFromBean(bean);
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_TaskPhaseCustomData(long typeId) {
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_4(long typeId) {
         return Zeze.Game.Task.createBeanFromSpecialTypeId(typeId);
     }
 
