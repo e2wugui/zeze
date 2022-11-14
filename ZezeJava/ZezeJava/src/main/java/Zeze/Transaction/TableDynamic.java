@@ -71,7 +71,7 @@ public class TableDynamic<K extends Comparable<K>, V extends Bean> extends Table
 		return isAutoKey;
 	}
 
-	public void drop() {
+	public void dropTable() {
 		var databaseTable = getStorage().getDatabaseTable();
 		if (databaseTable instanceof DatabaseMySql.TableMysql) {
 			var tableMysql = (DatabaseMySql.TableMysql)databaseTable;
