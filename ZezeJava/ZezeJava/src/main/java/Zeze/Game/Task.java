@@ -1,6 +1,8 @@
 package Zeze.Game;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 import Zeze.Application;
 import Zeze.Builtin.Game.Task.BTask;
 import Zeze.Builtin.Game.Task.BTaskEvent;
@@ -118,27 +120,30 @@ public class Task {
 	}
 
 	public void setupTask() throws Exception {
-		var ps = phases.vertexSet().stream();
+		// Debug Info
+		var vertexCount = phases.vertexSet().size();
+		var edgeCount = phases.edgeSet().size();
 		// 找任务开始的节点
-		var zeroInDegreeNode = ps.filter(p -> phases.inDegreeOf(p) == 0);
-		if (zeroInDegreeNode.count() != 1)
+		Supplier<Stream<TaskPhase>> zeroInDegreeNodeSupplier = () -> phases.vertexSet().stream().filter(p -> phases.inDegreeOf(p) == 0);
+		// TODO: 暂时还不能保证唯一性
+		if (zeroInDegreeNodeSupplier.get().count() != 1)
 			throw new Exception("Task has more than one Start Phase node.");
-//		if (zeroInDegreeNode.findAny().isEmpty())
-//			throw new Exception("Task has no Start Phase node.");
-		startPhase = zeroInDegreeNode.findAny().get();
+		if (zeroInDegreeNodeSupplier.get().findAny().isEmpty())
+			throw new Exception("Task has no Start Phase node.");
+		startPhase = zeroInDegreeNodeSupplier.get().findAny().get();
 		currentPhase = startPhase;
 
 		// 找任务结束的节点
-		var zeroOutDegreeNode = ps.filter(p -> phases.outDegreeOf(p) == 0);
-		if (zeroOutDegreeNode.count() != 1)
+		Supplier<Stream<TaskPhase>> zeroOutDegreeNodeSupplier = () -> phases.vertexSet().stream().filter(p -> phases.outDegreeOf(p) == 0);
+		if (zeroOutDegreeNodeSupplier.get().count() != 1)
 			throw new Exception("Task has more than one End Phase node.");
-		if (zeroOutDegreeNode.findAny().isEmpty())
+		if (zeroOutDegreeNodeSupplier.get().findAny().isEmpty())
 			throw new Exception("Task has no End Phase node.");
-		endPhase = zeroOutDegreeNode.findAny().get();
+		endPhase = zeroOutDegreeNodeSupplier.get().findAny().get();
 
 		taskState = Module.Disabled;
 
-		ps.forEach(TaskPhase::setupPhase);
+		phases.vertexSet().forEach(TaskPhase::setupPhase);
 	}
 	// ==================== 任务初始化阶段的方法 ====================
 

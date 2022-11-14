@@ -116,10 +116,10 @@ public class TestTask extends TestCase {
 				task1.linkPhase(phase3, phase4);
 				task1.setupTask();
 				// 测试一：金币收集任务（ConditionNamedCount）
-				collectCoin(client0, roleId, task1, 9); // 已经收集9个金币，任务未完成
-				collectCoin(client0, roleId, task1, 11); // 已经收集11个金币，任务完成，推动任务前进
-				collectCoin(client0, roleId, task1, 21); // 已经收集21个金币，任务完成，推动任务前进
-				collectCoin(client0, roleId, task1, 31); // 已经收集31个金币，任务完成，推动任务前进
+				collectCoin(client0, roleId, task1, 9); // 已经收集9个金币，任务Phase未完成
+				collectCoin(client0, roleId, task1, 11); // 已经收集11个金币，任务Phase完成，推动任务前进
+				collectCoin(client0, roleId, task1, 21); // 已经收集21个金币，任务Phase完成，推动任务前进
+				collectCoin(client0, roleId, task1, 31); // 已经收集31个金币，任务Phase完成，任务全部完成
 
 				return Procedure.Success;
 			}, "testTask01 - GetGold").call());
