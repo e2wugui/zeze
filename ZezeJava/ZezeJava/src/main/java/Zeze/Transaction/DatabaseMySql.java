@@ -319,14 +319,18 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		private boolean dropped = false;
 
 		public void drop() {
+			if (dropped)
+				return;
+
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 				String sql = "DROP TABLE IF EXISTS " + name;
 				try (var cmd = connection.prepareStatement(sql)) {
+					dropped = true; // set flag before real drop.
 					cmd.executeUpdate();
-					dropped = true;
 				}
 			} catch (SQLException e) {
+				dropped = false; // rollback
 				throw new RuntimeException(e);
 			}
 		}
