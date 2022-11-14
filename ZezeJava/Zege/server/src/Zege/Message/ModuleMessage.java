@@ -143,7 +143,7 @@ public class ModuleMessage extends AbstractModule {
             if (null != message)
                 r.Result.getMessages().add(message);
             else
-                logger.warn("message not found. id={} owner={} friend={}", from, session.getAccount(), r.Argument.getFriend());
+                logger.debug("message not found. id={} owner={} friend={}", from, session.getAccount(), r.Argument.getFriend());
         }
         r.Result.setNextMessageIdNotRead(messageRoot.getNextMessageIdNotRead());
         r.Result.setNextMessageId(messageRoot.getNextMessageId());
@@ -198,7 +198,7 @@ public class ModuleMessage extends AbstractModule {
             if (null != message)
                 r.Result.getMessages().add(message);
             else
-                logger.warn("message not found. id={} account={} group={} friend={}",
+                logger.debug("message not found. id={} account={} group={} friend={}",
                         from, session.getAccount(), departmentKey.getGroup(), departmentKey.getDepartmentId());
         }
         r.Result.setNextMessageIdNotRead(messageRoot.getNextMessageIdNotRead());
