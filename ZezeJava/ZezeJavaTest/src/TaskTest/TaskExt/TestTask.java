@@ -10,7 +10,9 @@ import Zeze.Builtin.Game.Online.ReLogin;
 import Zeze.Builtin.Game.Task.TriggerTaskEvent;
 import Zeze.Game.Task;
 import Zeze.Game.TaskPhase;
+import Zeze.Transaction.Procedure;
 import Zezex.Linkd.Auth;
+import junit.framework.TestCase;
 import org.junit.Assert;
 
 /**
@@ -27,7 +29,7 @@ import org.junit.Assert;
  * 3. 允许设计者创建任务进度变更事件：对Zeze.Game.TaskProgressChangeEvent进行扩展。
  * 4. 允许设计者创建任务进度变更事件处理器：对Zeze.Game.TaskProgressChangeEventHandler进行扩展。
  */
-public class TestTask {
+public class TestTask extends TestCase {
 
 	final ArrayList<ClientGame.App> clients = new ArrayList<>();
 	final ArrayList<Zezex.App> links = new ArrayList<>();
@@ -84,33 +86,44 @@ public class TestTask {
 			login(client0, roleId);
 
 			var server0 = servers.get(0);
-			var task1 = server0.getZeze().getTaskModule().open("Task01-GetGold");
-			TaskPhase phase1 = task1.newPhase();
-			TaskPhase phase2 = task1.newPhase();
-			TaskPhase phase3 = task1.newPhase();
-			TaskPhase phase4 = task1.newPhase();
-			ConditionNamedCount goldCondition = new ConditionNamedCount("Gold", 100);
-			phase1.addCondition(goldCondition);
-			phase2.addCondition(goldCondition);
-			phase3.addCondition(goldCondition);
-			/*
-			 * ==>==>==>==>==>==>==>==>
-			 * 		   Phase2
-			 *		 /		 \
-			 * Phase1		  Phase4
-			 *		 \		 /
-			 *		  Phase3
-			 * ==>==>==>==>==>==>==>==>
-			 */
-			task1.linkPhase(phase1, phase2);
-			task1.linkPhase(phase2, phase3);
-			task1.linkPhase(phase2, phase4);
-			task1.linkPhase(phase3, phase4);
-			task1.setupTask();
 
-			// 测试一：金币收集任务（ConditionNamedCount）
-			collectCoin(client0, roleId, task1, 99); // 已经收集99个金币，任务未完成
-			collectCoin(client0, roleId, task1, 101); // 已经收集101个金币，任务完成，推动任务前进
+			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
+				var task1 = server0.getZeze().getTaskModule().open("Task01GetGold");
+				TaskPhase phase1 = task1.newPhase();
+				TaskPhase phase2 = task1.newPhase();
+				TaskPhase phase3 = task1.newPhase();
+				TaskPhase phase4 = task1.newPhase();
+				ConditionNamedCount goldCondition10 = new ConditionNamedCount("Gold", 10);
+				ConditionNamedCount goldCondition20 = new ConditionNamedCount("Gold", 20);
+				ConditionNamedCount goldCondition30 = new ConditionNamedCount("Gold", 30);
+				ConditionNamedCount goldCondition40 = new ConditionNamedCount("Gold", 40);
+				phase1.addCondition(goldCondition10);
+				phase2.addCondition(goldCondition20);
+				phase3.addCondition(goldCondition30);
+				phase4.addCondition(goldCondition40);
+				/*
+				 * ==>==>==>==>==>==>==>==>
+				 * 		   Phase2
+				 *		 /		 \
+				 * Phase1		  Phase4
+				 *		 \		 /
+				 *		  Phase3
+				 * ==>==>==>==>==>==>==>==>
+				 */
+				task1.linkPhase(phase1, phase2);
+				task1.linkPhase(phase2, phase3);
+				task1.linkPhase(phase2, phase4);
+				task1.linkPhase(phase3, phase4);
+				task1.setupTask();
+				// 测试一：金币收集任务（ConditionNamedCount）
+				collectCoin(client0, roleId, task1, 9); // 已经收集9个金币，任务未完成
+				collectCoin(client0, roleId, task1, 11); // 已经收集11个金币，任务完成，推动任务前进
+				collectCoin(client0, roleId, task1, 21); // 已经收集21个金币，任务完成，推动任务前进
+				collectCoin(client0, roleId, task1, 31); // 已经收集31个金币，任务完成，推动任务前进
+
+				return Procedure.Success;
+			}, "testTask01 - GetGold").call());
+			Thread.sleep(2000);
 
 		} catch (Exception e) {
 			e.printStackTrace();

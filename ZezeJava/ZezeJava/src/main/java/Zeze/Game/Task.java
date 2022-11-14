@@ -109,7 +109,7 @@ public class Task {
 	public TaskPhase newPhase() {
 		TaskPhase phase = new TaskPhase(this, 1); // TODO: Danger!!! phaseId is hard coded, use Autokey to resolve it
 		phases.addVertex(phase);
-		bean.getTaskPhases().put(phase.getPhaseId(), phase.getBean());
+//		bean.getTaskPhases().put(phase.getPhaseId(), phase.getBean());
 		return phase;
 	}
 
@@ -123,8 +123,8 @@ public class Task {
 		var zeroInDegreeNode = ps.filter(p -> phases.inDegreeOf(p) == 0);
 		if (zeroInDegreeNode.count() != 1)
 			throw new Exception("Task has more than one Start Phase node.");
-		if (zeroInDegreeNode.findAny().isEmpty())
-			throw new Exception("Task has no Start Phase node.");
+//		if (zeroInDegreeNode.findAny().isEmpty())
+//			throw new Exception("Task has no Start Phase node.");
 		startPhase = zeroInDegreeNode.findAny().get();
 		currentPhase = startPhase;
 
