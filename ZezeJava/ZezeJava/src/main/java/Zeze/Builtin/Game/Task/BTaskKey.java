@@ -4,6 +4,7 @@ package Zeze.Builtin.Game.Task;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 
+// Task的Bean数据
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed"})
 public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
     private long _TaskId;

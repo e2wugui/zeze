@@ -731,11 +731,13 @@
 			</module> Rank 11015
 
             <module name="Task" id="11018">
+				<!-- 任务状态 -->
 				<enum name="Disabled" value="0"/> 可接取
 				<enum name="Init" value="0"/> 可接取
 				<enum name="Processing" value="1"/> 未完成，已经接取
 				<enum name="Finish" value="2"/> 已完成，未提交
 				<enum name="Committed" value="3"/> 已经提交
+				<!-- Task的Bean数据 -->
 				<beankey name="BTaskKey">
 					<variable id="1" name="TaskId" type="long"/>
 				</beankey>
@@ -749,6 +751,7 @@
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.Task::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
+				<!-- TaskPhase的Bean数据，只存在在BTask之内 -->
 				<bean name="BTaskPhase">
 					<variable id="1" name="TaskPhaseId" type="long"/>
 					<variable id="2" name="CurrentConditionId" type="long"/>
@@ -758,6 +761,7 @@
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.Task::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
+				<!-- TaskCondition的Bean数据，只存在在BTaskPhase之内 -->
 				<bean name="BTaskCondition">
 					<variable id="1" name="TaskConditionId" type="long"/>
 					<variable id="2" name="TaskConditionCustomData" type="dynamic">
@@ -765,8 +769,10 @@
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.Task::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
+				<!-- Task的总表，包含了所有的Task的Bean -->
 				<table name="tTask" key="BTaskKey" value="BTask"/>
 
+				<!-- 记录每个角色的任务数据 -->
 				<bean name="BPTaskInfo">
 					<variable id="1" name="processingTask" type="map" key="long" value="BTask"/>
 					<variable id="2" name="finishedTask" type="set" value="long"/> 已经结束的任务，不存储可重复完成的任务
@@ -777,11 +783,12 @@
 				</bean>
 				<table name="tRoleTask" key="long" value="BPTaskInfo"/>
 
-				<!-- Task rpc -->
+				<!-- Task rpc的Bean -->
 				<bean name="BTaskEvent">
 					<variable id="1" name="TaskName" type="string"/>
-					<variable id="2" name="TaskPhaseId" type="long"/>
-					<variable id="3" name="TaskConditionId" type="long"/>
+					<!-- 不需要指定下面具体的Condition，当一个具体的Condition的Bean被传入时，会自动判断当前的Phase的各个Condition是否接受这个Event -->
+<!--					<variable id="2" name="TaskPhaseId" type="long"/>-->
+<!--					<variable id="3" name="TaskConditionId" type="long"/>-->
 					<variable id="4" name="DynamicData" type="dynamic">
 						<GetSpecialTypeIdFromBean value="Zeze.Game.Task::getSpecialTypeIdFromBean"/>
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.Task::createBeanFromSpecialTypeId"/>
@@ -790,16 +797,11 @@
                 <bean name="BTaskEventResult">
                     <variable id="1" name="success" type="bool"/>
                 </bean>
+				<!--
+					所有的TaskEvent均由这个rpc驱动（仿照现serverdev的结构）
+					这个rpc的参数是BTaskEvent，内部的DynamicData是各个不同的任务的不同Bean数据
+				-->
                 <rpc name="TriggerTaskEvent" argument="BTaskEvent" result="BTaskEventResult" handle="server"/>
-
-<!--				&lt;!&ndash; 内置条件类型 &ndash;&gt;-->
-<!--				<bean name="BNamedCountCondition">-->
-<!--					<variable id="1" name="CurrentCount" type="long"/> 玩家吃到的金币数量-->
-<!--					<variable id="2" name="TargetCount" type="long"/> 任务需要的金币数量-->
-<!--				</bean>-->
-<!--				<bean name="BNamedCountConditionComplete">-->
-<!--					<variable id="1" name="CoinSum" type="long"/> 玩家吃到的金币数量-->
-<!--				</bean>-->
             </module> Task 11018
 
 		</module> Game

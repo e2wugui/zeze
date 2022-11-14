@@ -1,6 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Game.Task;
 
+// 记录每个角色的任务数据
 public interface BPTaskInfoReadOnly {
     public long typeId();
     public void encode(Zeze.Serialize.ByteBuffer _o_);

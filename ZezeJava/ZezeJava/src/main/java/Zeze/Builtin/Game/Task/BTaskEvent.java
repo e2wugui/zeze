@@ -3,14 +3,12 @@ package Zeze.Builtin.Game.Task;
 
 import Zeze.Serialize.ByteBuffer;
 
-// Task rpc
+// Task rpc的Bean
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEventReadOnly {
     public static final long TYPEID = -4434634468626847386L;
 
     private String _TaskName;
-    private long _TaskPhaseId;
-    private long _TaskConditionId;
     private final Zeze.Transaction.DynamicBean _DynamicData;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_DynamicData() {
@@ -47,46 +45,6 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
         txn.putLog(new Log__TaskName(this, 1, value));
     }
 
-    @Override
-    public long getTaskPhaseId() {
-        if (!isManaged())
-            return _TaskPhaseId;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
-            return _TaskPhaseId;
-        var log = (Log__TaskPhaseId)txn.getLog(objectId() + 2);
-        return log != null ? log.value : _TaskPhaseId;
-    }
-
-    public void setTaskPhaseId(long value) {
-        if (!isManaged()) {
-            _TaskPhaseId = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__TaskPhaseId(this, 2, value));
-    }
-
-    @Override
-    public long getTaskConditionId() {
-        if (!isManaged())
-            return _TaskConditionId;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
-            return _TaskConditionId;
-        var log = (Log__TaskConditionId)txn.getLog(objectId() + 3);
-        return log != null ? log.value : _TaskConditionId;
-    }
-
-    public void setTaskConditionId(long value) {
-        if (!isManaged()) {
-            _TaskConditionId = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__TaskConditionId(this, 3, value));
-    }
-
     public Zeze.Transaction.DynamicBean getDynamicData() {
         return _DynamicData;
     }
@@ -103,19 +61,15 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
     }
 
     @SuppressWarnings("deprecation")
-    public BTaskEvent(String _TaskName_, long _TaskPhaseId_, long _TaskConditionId_) {
+    public BTaskEvent(String _TaskName_) {
         if (_TaskName_ == null)
             throw new IllegalArgumentException();
         _TaskName = _TaskName_;
-        _TaskPhaseId = _TaskPhaseId_;
-        _TaskConditionId = _TaskConditionId_;
         _DynamicData = newDynamicBean_DynamicData();
     }
 
     public void assign(BTaskEvent other) {
         setTaskName(other.getTaskName());
-        setTaskPhaseId(other.getTaskPhaseId());
-        setTaskConditionId(other.getTaskConditionId());
         _DynamicData.assign(other._DynamicData);
     }
 
@@ -158,20 +112,6 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
         public void commit() { ((BTaskEvent)getBelong())._TaskName = value; }
     }
 
-    private static final class Log__TaskPhaseId extends Zeze.Transaction.Logs.LogLong {
-        public Log__TaskPhaseId(BTaskEvent bean, int varId, long value) { super(bean, varId, value); }
-
-        @Override
-        public void commit() { ((BTaskEvent)getBelong())._TaskPhaseId = value; }
-    }
-
-    private static final class Log__TaskConditionId extends Zeze.Transaction.Logs.LogLong {
-        public Log__TaskConditionId(BTaskEvent bean, int varId, long value) { super(bean, varId, value); }
-
-        @Override
-        public void commit() { ((BTaskEvent)getBelong())._TaskConditionId = value; }
-    }
-
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -184,8 +124,6 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Task.BTaskEvent: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("TaskName").append('=').append(getTaskName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("TaskPhaseId").append('=').append(getTaskPhaseId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("TaskConditionId").append('=').append(getTaskConditionId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("DynamicData").append('=').append(System.lineSeparator());
         _DynamicData.getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
@@ -216,20 +154,6 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
             }
         }
         {
-            long _x_ = getTaskPhaseId();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
-                _o_.WriteLong(_x_);
-            }
-        }
-        {
-            long _x_ = getTaskConditionId();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
-                _o_.WriteLong(_x_);
-            }
-        }
-        {
             var _x_ = _DynamicData;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.DYNAMIC);
@@ -247,12 +171,8 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
             setTaskName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        if (_i_ == 2) {
-            setTaskPhaseId(_o_.ReadLong(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 3) {
-            setTaskConditionId(_o_.ReadLong(_t_));
+        while ((_t_ & 0xff) > 1 && _i_ < 4) {
+            _o_.SkipUnknownField(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 4) {
@@ -277,10 +197,6 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
 
     @Override
     public boolean negativeCheck() {
-        if (getTaskPhaseId() < 0)
-            return true;
-        if (getTaskConditionId() < 0)
-            return true;
         return false;
     }
 
@@ -294,8 +210,6 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _TaskName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _TaskPhaseId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 3: _TaskConditionId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 4: _DynamicData.followerApply(vlog); break;
             }
         }

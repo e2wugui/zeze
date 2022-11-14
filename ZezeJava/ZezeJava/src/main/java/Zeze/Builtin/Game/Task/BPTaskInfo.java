@@ -3,6 +3,7 @@ package Zeze.Builtin.Game.Task;
 
 import Zeze.Serialize.ByteBuffer;
 
+// 记录每个角色的任务数据
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BPTaskInfo extends Zeze.Transaction.Bean implements BPTaskInfoReadOnly {
     public static final long TYPEID = -141577318142513096L;

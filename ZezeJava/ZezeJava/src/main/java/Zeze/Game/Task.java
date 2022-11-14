@@ -31,6 +31,7 @@ public class Task {
 
 	private final Module module;
 	private final BTask bean;
+	private final String name;
 	private final DirectedAcyclicGraph<TaskPhase, DefaultEdge> phases = new DirectedAcyclicGraph<>(DefaultEdge.class); // 任务的各个阶段的连接图
 	private int taskState;
 	private TaskPhase startPhase;
@@ -41,6 +42,7 @@ public class Task {
 		this.module = module;
 		long taskId = 1; // TODO: Danger!!! taskId is hard coded, use Autokey to resolve it
 		this.bean = this.module._tTask.getOrAdd(new BTaskKey(taskId));
+		this.name = name;
 		startPhase = null;
 		currentPhase = null;
 		endPhase = null;
@@ -52,6 +54,10 @@ public class Task {
 
 	public BTask getBean() {
 		return bean;
+	}
+
+	public String getName() {
+		return name;
 	}
 
 	public TaskPhase getCurrentPhase() {
@@ -78,6 +84,8 @@ public class Task {
 			return _tTask;
 		}
 
+		// 需要在事务内使用。
+		// 使用完不要保存。
 		public Task open(String taskName) {
 			return tasks.computeIfAbsent(taskName, key -> new Task(this, key));
 		}
@@ -85,17 +93,13 @@ public class Task {
 		@Override
 		protected long ProcessTriggerTaskEventRequest(TriggerTaskEvent r) throws Throwable {
 			var taskName = r.Argument.getTaskName();
-			var phaseId = r.Argument.getTaskPhaseId();
-			var conditionId = r.Argument.getTaskConditionId();
 			var eventBean = r.Argument.getDynamicData().getBean();
 
 			var task = open(taskName);
 			var phase = task.getCurrentPhase();
-			if (phase.getPhaseId() != phaseId)
-				return Procedure.Exception;
 			var conditions = phase.getCurrentConditions();
 			for (var condition : conditions) {
-//				condition.accept(eventBean);
+				condition.accept(eventBean);
 			}
 			return Procedure.Success;
 		}

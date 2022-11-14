@@ -3,6 +3,7 @@ package Zeze.Builtin.Game.Task;
 
 import Zeze.Serialize.ByteBuffer;
 
+// TaskCondition的Bean数据，只存在在BTaskPhase之内
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BTaskCondition extends Zeze.Transaction.Bean implements BTaskConditionReadOnly {
     public static final long TYPEID = 3233174055754866965L;

@@ -3,6 +3,7 @@ package Zeze.Builtin.Game.Task;
 
 import Zeze.Serialize.ByteBuffer;
 
+// TaskPhase的Bean数据，只存在在BTask之内
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhaseReadOnly {
     public static final long TYPEID = -2081342941887981883L;

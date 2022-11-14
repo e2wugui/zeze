@@ -7,6 +7,8 @@ import ClientGame.Login.GetRoleList;
 import Zeze.Builtin.Game.Online.Login;
 import Zeze.Builtin.Game.Online.Logout;
 import Zeze.Builtin.Game.Online.ReLogin;
+import Zeze.Builtin.Game.Task.TriggerTaskEvent;
+import Zeze.Game.Task;
 import Zeze.Game.TaskPhase;
 import Zezex.Linkd.Auth;
 import org.junit.Assert;
@@ -86,13 +88,29 @@ public class TestTask {
 			TaskPhase phase1 = task1.newPhase();
 			TaskPhase phase2 = task1.newPhase();
 			TaskPhase phase3 = task1.newPhase();
+			TaskPhase phase4 = task1.newPhase();
 			ConditionNamedCount goldCondition = new ConditionNamedCount("Gold", 100);
 			phase1.addCondition(goldCondition);
 			phase2.addCondition(goldCondition);
 			phase3.addCondition(goldCondition);
+			/*
+			 * ==>==>==>==>==>==>==>==>
+			 * 		   Phase2
+			 *		 /		 \
+			 * Phase1		  Phase4
+			 *		 \		 /
+			 *		  Phase3
+			 * ==>==>==>==>==>==>==>==>
+			 */
 			task1.linkPhase(phase1, phase2);
 			task1.linkPhase(phase2, phase3);
+			task1.linkPhase(phase2, phase4);
+			task1.linkPhase(phase3, phase4);
 			task1.setupTask();
+
+			// 测试一：金币收集任务（ConditionNamedCount）
+			collectCoin(client0, roleId, task1, 99); // 已经收集99个金币，任务未完成
+			collectCoin(client0, roleId, task1, 101); // 已经收集101个金币，任务完成，推动任务前进
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -102,11 +120,15 @@ public class TestTask {
 	}
 
 	// 一个简单的任务，用于测试。
-	static void collectACoin(ClientGame.App app, long roleId) {
-
+	private static void collectCoin(ClientGame.App app, long roleId, Task task, long count) {
+		TriggerTaskEvent taskEvent = new TriggerTaskEvent();
+		taskEvent.Argument.setTaskName(task.getName()); // TODO: 为保证唯一性，也许需要使用Task ID？
+		taskEvent.Argument.getDynamicData().setBean(new BCollectCoinEvent("收集金币", count));
+		taskEvent.SendForWait(app.ClientService.GetSocket()).await();
+		Assert.assertEquals(0, taskEvent.getResultCode());
 	}
 
-	// 全局的一些辅助函数
+	// 全局角色登录状态函数
 
 	private static void relogin(ClientGame.App app, long roleId) {
 		var relogin = new ReLogin();

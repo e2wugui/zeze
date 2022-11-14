@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Game.Task;
 
-// Task rpc
+// Task rpc的Bean
 public interface BTaskEventReadOnly {
     public long typeId();
     public void encode(Zeze.Serialize.ByteBuffer _o_);
@@ -9,8 +9,6 @@ public interface BTaskEventReadOnly {
     public BTaskEvent copy();
 
     public String getTaskName();
-    public long getTaskPhaseId();
-    public long getTaskConditionId();
     public Zeze.Transaction.DynamicBeanReadOnly getDynamicDataReadOnly();
 
 }

@@ -1,6 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Game.Task;
 
+// TaskCondition的Bean数据，只存在在BTaskPhase之内
 public interface BTaskConditionReadOnly {
     public long typeId();
     public void encode(Zeze.Serialize.ByteBuffer _o_);
