@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Zege.Friend;
 using Zeze.Util;
 
 namespace Zeze.Collections
@@ -19,8 +18,11 @@ namespace Zeze.Collections
         {
             switch (typeId)
             {
-                case BFriend.TYPEID:
-                    return new BFriend();
+                case Zege.Friend.BFriend.TYPEID:
+                    return new Zege.Friend.BFriend();
+
+                case Zege.Notify.BNotify.TYPEID:
+                    return new Zege.Notify.BNotify();
 
                 default:
                     throw new Exception("Unknown Dynamic TypeId");

@@ -38,7 +38,7 @@ public partial class NotifyPage : ContentPage
                 {
                     var rpc = new AcceptFriend();
                     rpc.Argument.Account = from;
-                    rpc.Argument.Memo = Memo.Text;
+                    rpc.Argument.Memo = Memo.Text == null ? "" : Memo.Text;
                     rpc.Send(App.ClientService.GetSocket()); // skip rpc result
                 }
 				break;

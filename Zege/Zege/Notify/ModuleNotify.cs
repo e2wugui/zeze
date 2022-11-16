@@ -113,6 +113,7 @@ namespace Zege.Notify
                 NotifyPage.NotifyListView.ItemsSource = ItemsSource; // attach
         }
 
+        [DispatchMode(Mode = DispatchMode.UIThread)]
         protected override Task<long> ProcessNotifyNodeLogBeanNotify(Zeze.Net.Protocol _p)
         {
             var p = _p as NotifyNodeLogBeanNotify;
