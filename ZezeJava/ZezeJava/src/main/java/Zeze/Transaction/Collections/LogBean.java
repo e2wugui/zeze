@@ -63,7 +63,7 @@ public class LogBean extends Log {
 	@Override
 	public void encode(ByteBuffer bb) {
 		var vars = variables;
-		//System.out.println("LogBean.this=" + getThis().getClass().getName());
+		System.out.println("LogBean.this=" + getThis().getClass().getName());
 		if (vars != null) {
 			bb.WriteUInt(vars.size());
 			for (var it = vars.iterator(); it.moveToNext(); ) {
@@ -71,7 +71,7 @@ public class LogBean extends Log {
 				bb.WriteInt4(log.getTypeId());
 				bb.WriteUInt(log.getVariableId());
 				log.encode(bb);
-				//System.out.println("key=" + it.key() + " typeId=" + log.getTypeId() + " varId=" + log.getVariableId() + " name=" + log.getClass().getName());
+				System.out.println("key=" + it.key() + " typeId=" + log.getTypeId() + " varId=" + log.getVariableId() + " name=" + log.getClass().getName());
 			}
 		} else
 			bb.WriteUInt(0);

@@ -28,7 +28,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 
 	public DatabaseMemory(DatabaseConf conf) {
 		super(conf);
-		setDirectOperates(this);
+		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : this);
 	}
 
 	@Override

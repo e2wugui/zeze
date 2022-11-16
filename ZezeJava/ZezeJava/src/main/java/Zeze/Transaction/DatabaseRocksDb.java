@@ -103,7 +103,7 @@ public class DatabaseRocksDb extends Database {
 				var name = new String(columnFamilies.get(i).getName(), StandardCharsets.UTF_8);
 				this.columnFamilies.put(name, outHandles.get(i));
 			}
-			setDirectOperates(new OperatesRocksDb());
+			setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesRocksDb());
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}

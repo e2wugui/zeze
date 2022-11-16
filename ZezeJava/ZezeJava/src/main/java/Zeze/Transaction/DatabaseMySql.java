@@ -11,7 +11,7 @@ import Zeze.Serialize.ByteBuffer;
 public final class DatabaseMySql extends DatabaseJdbc {
 	public DatabaseMySql(DatabaseConf conf) {
 		super(conf);
-		setDirectOperates(new OperatesMySql());
+		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesMySql());
 	}
 
 	@Override

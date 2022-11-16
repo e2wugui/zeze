@@ -66,7 +66,7 @@ public abstract class Database {
 	}
 
 	protected final void setDirectOperates(Operates value) {
-		directOperates = conf.isDisableOperates() ? new NullOperates() : value;
+		directOperates = value;
 	}
 
 	public final void open(Application app) {
@@ -210,7 +210,7 @@ public abstract class Database {
 		DataWithVersion getDataWithVersion(ByteBuffer key);
 	}
 
-	private static class NullOperates implements Operates {
+	public static class NullOperates implements Operates {
 
 		@Override
 		public void setInUse(int localId, String global) {

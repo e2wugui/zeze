@@ -45,7 +45,7 @@ public class DatabaseTikv extends Database {
 			client = session.createRawClient();
 			txnClient = null;
 		}
-		setDirectOperates(new OperatesTikv());
+		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesTikv());
 	}
 
 	@Override

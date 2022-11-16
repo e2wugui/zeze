@@ -543,6 +543,8 @@
 		</service>
 		<FollowerApplyTables>
 			<table name="Zeze.Builtin.Collections.LinkedMap.tLinkedMapNodes"/>
+			<bean ref="Zege.Notify.BNotify"/>
+			<bean ref="Zege.Friend.BFriend"/>
 		</FollowerApplyTables>
 	</project>
 

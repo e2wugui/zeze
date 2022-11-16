@@ -11,7 +11,7 @@ import Zeze.Serialize.ByteBuffer;
 public final class DatabaseSqlServer extends DatabaseJdbc {
 	public DatabaseSqlServer(DatabaseConf conf) {
 		super(conf);
-		setDirectOperates(new OperatesSqlServer());
+		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesSqlServer());
 	}
 
 	@Override
