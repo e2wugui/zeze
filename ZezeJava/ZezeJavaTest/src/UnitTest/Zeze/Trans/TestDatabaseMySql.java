@@ -31,6 +31,8 @@ public class TestDatabaseMySql extends TestCase {
 		case "DESKTOP-DVFC8AI": // lichenghua's computer 1 & 2
 		case "DESKTOP-L17H5QD": // lichenghua's computer 2
 			return "jdbc:mysql://localhost/devtest?user=dev&password=devtest12345&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
+		case "DESKTOP-VVU42V2":
+			return null;
 		default:
 			return "jdbc:mysql://localhost:3306/mysql?user=root&password=123&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
 		}
@@ -41,6 +43,8 @@ public class TestDatabaseMySql extends TestCase {
 			return;
 		}
 		String url = getPersonalUrl();
+		if (url == null)
+			return;
 		DatabaseConf databaseConf = new DatabaseConf();
 		databaseConf.setDatabaseType(DbType.MySql);
 		databaseConf.setDatabaseUrl(url);

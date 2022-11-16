@@ -92,7 +92,7 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean implements BLi
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeId: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("NodeId").append('=').append(getNodeId()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("NodeId=").append(getNodeId()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }

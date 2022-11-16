@@ -265,15 +265,15 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Timer.BTimer: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("TimerName").append('=').append(getTimerName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("HandleName").append('=').append(getHandleName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("TimerObj").append('=').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("TimerName=").append(getTimerName()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("HandleName=").append(getHandleName()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("TimerObj=").append(System.lineSeparator());
         _TimerObj.getBean().buildString(sb, level + 4);
         sb.append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("CustomData").append('=').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("CustomData=").append(System.lineSeparator());
         _CustomData.getBean().buildString(sb, level + 4);
         sb.append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ConcurrentFireSerialNo").append('=').append(getConcurrentFireSerialNo()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ConcurrentFireSerialNo=").append(getConcurrentFireSerialNo()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }

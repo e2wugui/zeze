@@ -72,16 +72,18 @@ public final class BOfflineTimers extends Zeze.Transaction.Bean implements BOffl
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Timer.BOfflineTimers: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("OfflineTimers").append("=[").append(System.lineSeparator());
-        level += 4;
-        for (var _kv_ : _OfflineTimers.entrySet()) {
-            sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
-            sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(_kv_.getKey()).append(',').append(System.lineSeparator());
-            sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(_kv_.getValue()).append(',').append(System.lineSeparator());
-            sb.append(Zeze.Util.Str.indent(level)).append(')').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("OfflineTimers={");
+        if (!_OfflineTimers.isEmpty()) {
+            sb.append(System.lineSeparator());
+            level += 4;
+            for (var _kv_ : _OfflineTimers.entrySet()) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_kv_.getKey()).append(',').append(System.lineSeparator());
+                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(_kv_.getValue()).append(',').append(System.lineSeparator());
+            }
+            level -= 4;
+            sb.append(Zeze.Util.Str.indent(level));
         }
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append(']').append(System.lineSeparator());
+        sb.append('}').append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }

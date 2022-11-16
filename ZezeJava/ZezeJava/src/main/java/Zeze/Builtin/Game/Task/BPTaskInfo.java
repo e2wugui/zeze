@@ -112,26 +112,32 @@ public final class BPTaskInfo extends Zeze.Transaction.Bean implements BPTaskInf
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Task.BPTaskInfo: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("processingTask").append("=[").append(System.lineSeparator());
-        level += 4;
-        for (var _kv_ : _processingTask.entrySet()) {
-            sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
-            sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(_kv_.getKey()).append(',').append(System.lineSeparator());
-            sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
-            _kv_.getValue().buildString(sb, level + 4);
-            sb.append(',').append(System.lineSeparator());
-            sb.append(Zeze.Util.Str.indent(level)).append(')').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("processingTask={");
+        if (!_processingTask.isEmpty()) {
+            sb.append(System.lineSeparator());
+            level += 4;
+            for (var _kv_ : _processingTask.entrySet()) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_kv_.getKey()).append(',').append(System.lineSeparator());
+                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(System.lineSeparator());
+                _kv_.getValue().buildString(sb, level + 4);
+                sb.append(',').append(System.lineSeparator());
+            }
+            level -= 4;
+            sb.append(Zeze.Util.Str.indent(level));
         }
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append(']').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("finishedTask").append("=[").append(System.lineSeparator());
-        level += 4;
-        for (var _item_ : _finishedTask) {
-            sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(_item_).append(',').append(System.lineSeparator());
+        sb.append('}').append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("finishedTask={");
+        if (!_finishedTask.isEmpty()) {
+            sb.append(System.lineSeparator());
+            level += 4;
+            for (var _item_ : _finishedTask) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
+            }
+            level -= 4;
+            sb.append(Zeze.Util.Str.indent(level));
         }
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append(']').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("RoleTaskCustomData").append('=').append(System.lineSeparator());
+        sb.append('}').append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("RoleTaskCustomData=").append(System.lineSeparator());
         _RoleTaskCustomData.getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;

@@ -79,7 +79,7 @@ namespace Zeze.Gen.java
 
         public void Visit(Bean type)
         {
-            sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(\"{varname}\").append('=').append(System.lineSeparator());");
+            sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(\"{varname}=\").append(System.lineSeparator());");
             sw.WriteLine(prefix + NamePrivate + ".buildString(sb, level + " + INDENT_SIZE + ");");
             sw.Write(prefix + "sb");
             if (sep != 0)
@@ -89,7 +89,7 @@ namespace Zeze.Gen.java
 
         public void Visit(BeanKey type)
         {
-            sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(\"{varname}\").append('=').append(System.lineSeparator());");
+            sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(\"{varname}=\").append(System.lineSeparator());");
             sw.WriteLine(prefix + Getter + ".buildString(sb, level + " + INDENT_SIZE + ");");
             sw.Write(prefix + "sb");
             if (sep != 0)
@@ -99,7 +99,7 @@ namespace Zeze.Gen.java
 
         void formatSimple()
         {
-            sw.Write(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(\"{varname}\").append('=').append({Getter})");
+            sw.Write(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(\"{varname}=\").append({Getter})");
             if (sep != 0)
                 sw.Write($".append('{sep}')");
             sw.WriteLine(".append(System.lineSeparator());");
@@ -152,13 +152,17 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeList type)
         {
-            sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(\"{varname}\").append(\"=[\").append(System.lineSeparator());");
-            sw.WriteLine(prefix + "level += " + INDENT_SIZE + ';');
-            sw.WriteLine(prefix + $"for (var _item_ : {NamePrivate}) {{");
-            type.ValueType.Accept(new Tostring(sw, null, "Item", "_item_", prefix + "    ", ','));
+            sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(\"{varname}=[\");");
+            sw.WriteLine(prefix + $"if (!{NamePrivate}.isEmpty()) {{");
+            sw.WriteLine(prefix + "    sb.append(System.lineSeparator());");
+            sw.WriteLine(prefix + "    level += " + INDENT_SIZE + ';');
+            sw.WriteLine(prefix + $"    for (var _item_ : {NamePrivate}) {{");
+            type.ValueType.Accept(new Tostring(sw, null, "Item", "_item_", prefix + "        ", ','));
+            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    level -= " + INDENT_SIZE + ';');
+            sw.WriteLine(prefix + "    sb.append(Zeze.Util.Str.indent(level));");
             sw.WriteLine(prefix + "}");
-            sw.WriteLine(prefix + "level -= " + INDENT_SIZE + ';');
-            sw.Write(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(']')");
+            sw.Write(prefix + "sb.append(']')");
             if (sep != 0)
                 sw.Write($".append('{sep}')");
             sw.WriteLine(".append(System.lineSeparator());");
@@ -166,13 +170,17 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeSet type)
         {
-            sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(\"{varname}\").append(\"=[\").append(System.lineSeparator());");
-            sw.WriteLine(prefix + "level += " + INDENT_SIZE + ';');
-            sw.WriteLine(prefix + $"for (var _item_ : {NamePrivate}) {{");
-            type.ValueType.Accept(new Tostring(sw, null, "Item", "_item_", prefix + "    ", ','));
+            sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(\"{varname}={{\");");
+            sw.WriteLine(prefix + $"if (!{NamePrivate}.isEmpty()) {{");
+            sw.WriteLine(prefix + "    sb.append(System.lineSeparator());");
+            sw.WriteLine(prefix + "    level += " + INDENT_SIZE + ';');
+            sw.WriteLine(prefix + $"    for (var _item_ : {NamePrivate}) {{");
+            type.ValueType.Accept(new Tostring(sw, null, "Item", "_item_", prefix + "        ", ','));
+            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    level -= " + INDENT_SIZE + ';');
+            sw.WriteLine(prefix + "    sb.append(Zeze.Util.Str.indent(level));");
             sw.WriteLine(prefix + "}");
-            sw.WriteLine(prefix + "level -= " + INDENT_SIZE + ';');
-            sw.Write(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(']')");
+            sw.Write(prefix + "sb.append('}')");
             if (sep != 0)
                 sw.Write($".append('{sep}')");
             sw.WriteLine(".append(System.lineSeparator());");
@@ -180,16 +188,20 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeMap type)
         {
-            sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(\"{varname}\").append(\"=[\").append(System.lineSeparator());");
-            sw.WriteLine(prefix + "level += " + INDENT_SIZE + ';');
-            sw.WriteLine(prefix + $"for (var _kv_ : {NamePrivate}.entrySet()) {{");
-            sw.WriteLine(prefix + "    sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());");
-            type.KeyType.Accept(new Tostring(sw, null, "Key", "_kv_.getKey()", prefix + "    ", ','));
-            type.ValueType.Accept(new Tostring(sw, null, "Value", "_kv_.getValue()", prefix + "    ", ','));
-            sw.WriteLine(prefix + "    sb.append(Zeze.Util.Str.indent(level)).append(')').append(System.lineSeparator());");
+            sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(\"{varname}={{\");");
+            sw.WriteLine(prefix + $"if (!{NamePrivate}.isEmpty()) {{");
+            sw.WriteLine(prefix + "    sb.append(System.lineSeparator());");
+            sw.WriteLine(prefix + "    level += " + INDENT_SIZE + ';');
+            sw.WriteLine(prefix + $"    for (var _kv_ : {NamePrivate}.entrySet()) {{");
+            // sw.WriteLine(prefix + "        sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());");
+            type.KeyType.Accept(new Tostring(sw, null, "Key", "_kv_.getKey()", prefix + "        ", ','));
+            type.ValueType.Accept(new Tostring(sw, null, "Value", "_kv_.getValue()", prefix + "        ", ','));
+            // sw.WriteLine(prefix + "        sb.append(Zeze.Util.Str.indent(level)).append(')').append(System.lineSeparator());");
+            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    level -= " + INDENT_SIZE + ';');
+            sw.WriteLine(prefix + "    sb.append(Zeze.Util.Str.indent(level));");
             sw.WriteLine(prefix + "}");
-            sw.WriteLine(prefix + "level -= " + INDENT_SIZE + ';');
-            sw.Write(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(']')");
+            sw.Write(prefix + "sb.append('}')");
             if (sep != 0)
                 sw.Write($".append('{sep}')");
             sw.WriteLine(".append(System.lineSeparator());");
@@ -197,7 +209,7 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeDynamic type)
         {
-            sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(\"{varname}\").append('=').append(System.lineSeparator());");
+            sw.WriteLine(prefix + $"sb.append(Zeze.Util.Str.indent(level)).append(\"{varname}=\").append(System.lineSeparator());");
             sw.WriteLine(prefix + NamePrivate + ".getBean().buildString(sb, level + " + INDENT_SIZE + ");");
             sw.Write(prefix + "sb");
             if (sep != 0)

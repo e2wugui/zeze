@@ -206,22 +206,24 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Task.BTask: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("TaskId").append('=').append(getTaskId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("State").append('=').append(getState()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("CurrentPhaseId").append('=').append(getCurrentPhaseId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("TaskPhases").append("=[").append(System.lineSeparator());
-        level += 4;
-        for (var _kv_ : _TaskPhases.entrySet()) {
-            sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
-            sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(_kv_.getKey()).append(',').append(System.lineSeparator());
-            sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
-            _kv_.getValue().buildString(sb, level + 4);
-            sb.append(',').append(System.lineSeparator());
-            sb.append(Zeze.Util.Str.indent(level)).append(')').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("TaskId=").append(getTaskId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("State=").append(getState()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("CurrentPhaseId=").append(getCurrentPhaseId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("TaskPhases={");
+        if (!_TaskPhases.isEmpty()) {
+            sb.append(System.lineSeparator());
+            level += 4;
+            for (var _kv_ : _TaskPhases.entrySet()) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_kv_.getKey()).append(',').append(System.lineSeparator());
+                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(System.lineSeparator());
+                _kv_.getValue().buildString(sb, level + 4);
+                sb.append(',').append(System.lineSeparator());
+            }
+            level -= 4;
+            sb.append(Zeze.Util.Str.indent(level));
         }
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append(']').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("TaskCustomData").append('=').append(System.lineSeparator());
+        sb.append('}').append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("TaskCustomData=").append(System.lineSeparator());
         _TaskCustomData.getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;

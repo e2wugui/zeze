@@ -110,16 +110,20 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Collections.Queue.BQueueNode: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("NextNodeId").append('=').append(getNextNodeId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Values").append("=[").append(System.lineSeparator());
-        level += 4;
-        for (var _item_ : _Values) {
-            sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(System.lineSeparator());
-            _item_.buildString(sb, level + 4);
-            sb.append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("NextNodeId=").append(getNextNodeId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Values=[");
+        if (!_Values.isEmpty()) {
+            sb.append(System.lineSeparator());
+            level += 4;
+            for (var _item_ : _Values) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(System.lineSeparator());
+                _item_.buildString(sb, level + 4);
+                sb.append(',').append(System.lineSeparator());
+            }
+            level -= 4;
+            sb.append(Zeze.Util.Str.indent(level));
         }
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append(']').append(System.lineSeparator());
+        sb.append(']').append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }

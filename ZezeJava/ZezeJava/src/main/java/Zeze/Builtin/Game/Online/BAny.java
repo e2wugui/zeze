@@ -94,7 +94,7 @@ public final class BAny extends Zeze.Transaction.Bean implements BAnyReadOnly {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Online.BAny: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Any").append('=').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Any=").append(System.lineSeparator());
         _Any.getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;

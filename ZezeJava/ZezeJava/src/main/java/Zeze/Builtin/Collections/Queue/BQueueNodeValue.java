@@ -117,8 +117,8 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean implements BQue
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Collections.Queue.BQueueNodeValue: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Timestamp").append('=').append(getTimestamp()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Timestamp=").append(getTimestamp()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(System.lineSeparator());
         _Value.getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;

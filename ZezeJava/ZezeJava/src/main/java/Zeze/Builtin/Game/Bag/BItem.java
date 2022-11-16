@@ -159,9 +159,9 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Bag.BItem: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Id").append('=').append(getId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Number").append('=').append(getNumber()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Id=").append(getId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Number=").append(getNumber()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(System.lineSeparator());
         _Item.getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;

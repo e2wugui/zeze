@@ -97,7 +97,7 @@ public final class BNotify extends Zeze.Transaction.Bean implements BNotifyReadO
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Online.BNotify: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("FullEncodedProtocol").append('=').append(getFullEncodedProtocol()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("FullEncodedProtocol=").append(getFullEncodedProtocol()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }

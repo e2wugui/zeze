@@ -92,7 +92,7 @@ public final class BAccount extends Zeze.Transaction.Bean implements BAccountRea
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Online.BAccount: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("LastLoginVersion").append('=').append(getLastLoginVersion()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("LastLoginVersion=").append(getLastLoginVersion()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }

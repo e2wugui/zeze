@@ -98,7 +98,7 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean implements BOnlin
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Timer.BOnlineCustom: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("CustomData").append('=').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("CustomData=").append(System.lineSeparator());
         _CustomData.getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;

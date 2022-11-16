@@ -92,7 +92,7 @@ public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTa
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Task.BTaskEventResult: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("success").append('=').append(isSuccess()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("success=").append(isSuccess()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
