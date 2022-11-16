@@ -68,6 +68,11 @@ public class DelayRemove extends AbstractDelayRemove {
 		while (removing.value) {
 			zeze.newProcedure(() -> {
 				var node = queue.pollNode();
+				if (node == null) {
+					removing.value = false;
+					return 0;
+				}
+
 				// 检查节点的第一个（最老的）项是否需要删除。
 				// 如果不需要，那么整个节点都不会删除，并且中断循环。
 				// 如果需要，那么整个节点都删除，即使中间有一些没有达到过期。
