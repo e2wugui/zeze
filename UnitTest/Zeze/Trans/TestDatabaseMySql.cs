@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Zeze;
 using Zeze.Serialize;
 using Zeze.Transaction;
 
@@ -28,9 +27,9 @@ namespace UnitTest.Zeze.Trans
         public async Task Test1()
         {
             string url = "server=localhost;database=devtest;uid=dev;pwd=devtest12345";
-            var databaseConf = new Config.DatabaseConf()
+            var databaseConf = new global::Zeze.Config.DatabaseConf()
             {
-                DatabaseType = Config.DbType.MySql,
+                DatabaseType = global::Zeze.Config.DbType.MySql,
                 DatabaseUrl = url,
             };
             var sqlserver = new DatabaseMySql(demo.App.Instance.Zeze, databaseConf);

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Zeze;
 using Zeze.Serialize;
 using Zeze.Transaction;
 
@@ -29,9 +28,9 @@ namespace UnitTest.Zeze.Trans
         public async Task Test1()
         {
             string url = "Server=(localdb)\\MSSQLLocalDB;Integrated Security=true";
-            var databaseConf = new Config.DatabaseConf()
+            var databaseConf = new global::Zeze.Config.DatabaseConf()
             {
-                DatabaseType = Config.DbType.SqlServer,
+                DatabaseType = global::Zeze.Config.DbType.SqlServer,
                 DatabaseUrl = url,
             };
             var sqlserver = new DatabaseSqlServer(demo.App.Instance.Zeze, databaseConf);
