@@ -102,6 +102,8 @@ public class ModuleFriend extends AbstractModule {
 		trySetFriendState(session.getAccount(), r.Argument.getAccount(), BFriend.eDeny);
 		trySetFriendState(r.Argument.getAccount(), session.getAccount(), BFriend.eDeny);
 
+		App.Zege_Notify.getNotify(session.getAccount()).remove(makeNotifyId(r.Argument.getAccount()));
+
 		// 总是成功。
 		session.sendResponseWhileCommit(r);
 		return Procedure.Success;
