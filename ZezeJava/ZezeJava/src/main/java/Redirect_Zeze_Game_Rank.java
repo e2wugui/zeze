@@ -18,7 +18,7 @@ public final class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
         _a_.setHashCodeConcurrentLevel(hash);
         _a_.setMethodFullName("Zeze.Game.Rank:getRankAll");
         _a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);
-        _a_.setSessionId(_redirect_.providerApp.providerDirectService.addManualContextWithTimeout(_c_));
+        _a_.setSessionId(_redirect_.providerApp.providerDirectService.addManualContextWithTimeout(_c_, 10000));
         var _b_ = Zeze.Serialize.ByteBuffer.Allocate();
         keyHint.encode(_b_);
         _a_.setParams(new Zeze.Net.Binary(_b_));
@@ -51,7 +51,7 @@ public final class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
         if (!_p_.Send(_t_, _rpc_ -> {
             _f_.setResult(_rpc_.isTimeout() ? Zeze.Transaction.Procedure.Timeout : _rpc_.getResultCode());
             return Zeze.Transaction.Procedure.Success;
-        })) {
+        }, 5000)) {
             _f_.setResult(Zeze.Transaction.Procedure.ErrorSendFail);
         }
         return _f_;

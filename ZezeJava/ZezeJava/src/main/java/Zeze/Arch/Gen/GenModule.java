@@ -257,7 +257,10 @@ public final class GenModule {
 					sb.appendLine("            _f_.setResult(_r_);");
 				}
 				sb.appendLine("            return Zeze.Transaction.Procedure.Success;");
-				sb.appendLine("        })) {");
+				if (m.annotation instanceof RedirectHash)
+					sb.appendLine("        }, {})) {", ((RedirectHash)m.annotation).timeout());
+				else
+					sb.appendLine("        }, {})) {", ((RedirectToServer)m.annotation).timeout());
 				if (m.resultType == Long.class)
 					sb.appendLine("            _f_.setResult(Zeze.Transaction.Procedure.ErrorSendFail);");
 				else if (m.returnTypeHasResultCode) {
@@ -379,7 +382,7 @@ public final class GenModule {
 		sb.appendLine("        _a_.setHashCodeConcurrentLevel({});", m.hashOrServerIdParameter.getName());
 		sb.appendLine("        _a_.setMethodFullName(\"{}:{}\");", module.getFullName(), m.method.getName());
 		sb.appendLine("        _a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);");
-		sb.appendLine("        _a_.setSessionId(_redirect_.providerApp.providerDirectService.addManualContextWithTimeout(_c_));");
+		sb.appendLine("        _a_.setSessionId(_redirect_.providerApp.providerDirectService.addManualContextWithTimeout(_c_, {}));", ((RedirectAll)m.annotation).timeout());
 		if (m.inputParameters.size() > 0) {
 			sb.appendLine("        var _b_ = Zeze.Serialize.ByteBuffer.Allocate();");
 			Gen.instance.genEncode(sb, "        ", "_b_", m.inputParameters);

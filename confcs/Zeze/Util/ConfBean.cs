@@ -211,7 +211,7 @@ namespace Zeze.Util
                 var hasLogBean = bb.ReadBool();
                 if (hasLogBean)
                 {
-                    LogBean = new LogBean(); // XXX 确认直接可以使用这个类？
+                    LogBean = new LogBean();
                     LogBean.Decode(bb);
                 }
             }

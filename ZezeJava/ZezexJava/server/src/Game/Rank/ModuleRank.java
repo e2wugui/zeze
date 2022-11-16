@@ -556,7 +556,7 @@ public class ModuleRank extends AbstractModule {
 		return RedirectFuture.finish(new Binary("ok"));
 	}
 
-	@RedirectToServer // 返回结果可以是Bean类型,其中如果有setResultCode(long)方法则会自动设置成resultCode
+	@RedirectToServer(timeout = 1000) // 返回结果可以是Bean类型,其中如果有setResultCode(long)方法则会自动设置成resultCode
 	public RedirectFuture<BRankList> TestToServerBeanResult(int serverId) { // 可以没有自定义输入参数,但必须至少有serverId参数
 		return RedirectFuture.finish(new BRankList());
 	}
@@ -567,7 +567,7 @@ public class ModuleRank extends AbstractModule {
 		public Object obj;
 	}
 
-	@RedirectHash
+	@RedirectHash(timeout = 2000)
 	public RedirectFuture<GenericResult<BRankList>> TestHashGenericResult(int serverId, Long arg) {
 		return RedirectFuture.finish(new GenericResult<>());
 	}
@@ -580,7 +580,7 @@ public class ModuleRank extends AbstractModule {
 	public void TestHashNoResult(int hash, BRankList rankList) {
 	}
 
-	@RedirectAll
+	@RedirectAll(timeout = 3000)
 	public void TestAllNoResult(int hash, Object obj) {
 	}
 

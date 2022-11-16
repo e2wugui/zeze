@@ -17,6 +17,7 @@ import Zeze.Util.LongHashMap;
 
 public final class ByteBuffer {
 	public static final boolean IGNORE_INCOMPATIBLE_FIELD = false; // 不忽略兼容字段则会抛异常
+	public static final byte[] Empty = new byte[0];
 
 	public byte[] Bytes;
 	public int ReadIndex;
@@ -62,9 +63,7 @@ public final class ByteBuffer {
 	}
 
 	private ByteBuffer(int capacity) {
-		Bytes = new byte[capacity]; // ToPower2(capacity)
-		ReadIndex = 0;
-		WriteIndex = 0;
+		Bytes = capacity == 0 ? Empty : new byte[capacity]; // ToPower2(capacity)
 	}
 
 	private ByteBuffer(byte[] bytes, int readIndex, int writeIndex) {
@@ -72,8 +71,6 @@ public final class ByteBuffer {
 		ReadIndex = readIndex;
 		WriteIndex = writeIndex;
 	}
-
-	public static final byte[] Empty = new byte[0];
 
 	public void FreeInternalBuffer() {
 		Bytes = Empty;
@@ -245,6 +242,8 @@ public final class ByteBuffer {
 
 	public byte[] Copy() {
 		int size = Size();
+		if (size == 0)
+			return Empty;
 		byte[] copy = new byte[size];
 		System.arraycopy(Bytes, ReadIndex, copy, 0, size);
 		return copy;
@@ -946,6 +945,8 @@ public final class ByteBuffer {
 
 	public byte[] ReadBytes() {
 		int n = ReadUInt();
+		if (n == 0)
+			return Empty;
 		ensureRead(n);
 		byte[] v = new byte[n];
 		System.arraycopy(Bytes, ReadIndex, v, 0, n);

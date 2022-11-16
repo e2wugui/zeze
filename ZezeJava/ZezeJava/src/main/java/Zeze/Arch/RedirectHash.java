@@ -9,4 +9,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RedirectHash {
 	String ConcurrentLevelSource() default "";
+
+	int timeout() default 5000;
 }

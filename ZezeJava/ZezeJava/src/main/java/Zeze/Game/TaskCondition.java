@@ -1,6 +1,5 @@
 package Zeze.Game;
 
-import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
 
 public abstract class TaskCondition {

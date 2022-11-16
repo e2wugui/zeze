@@ -2,7 +2,6 @@ package Zeze.Game;
 
 import java.util.ArrayList;
 import Zeze.Builtin.Game.Task.BTaskPhase;
-import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;

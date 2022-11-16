@@ -25,7 +25,7 @@ public final class Redirect_Zeze_Game_Online extends Zeze.Game.Online {
         if (!_p_.Send(_t_, _rpc_ -> {
             _f_.setResult(_rpc_.isTimeout() ? Zeze.Transaction.Procedure.Timeout : _rpc_.getResultCode());
             return Zeze.Transaction.Procedure.Success;
-        })) {
+        }, 5000)) {
             _f_.setResult(Zeze.Transaction.Procedure.ErrorSendFail);
         }
         return _f_;
