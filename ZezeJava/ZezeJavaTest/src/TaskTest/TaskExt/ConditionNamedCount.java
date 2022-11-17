@@ -5,31 +5,20 @@ import Zeze.Game.ConditionEvent;
 import Zeze.Transaction.Bean;
 
 public class ConditionNamedCount extends TaskCondition {
-	private final String name;
-	private final int count;
-	private final int targetCount;
+	private final BCollectCoinTask bean;
 
-	public ConditionNamedCount(String name, int targetCount) {
-		this.name = name;
-		this.count = 0;
-		this.targetCount = targetCount;
-	}
-
-	public ConditionNamedCount(String name, int count, int targetCount) {
-		this.name = name;
-		this.count = count;
-		this.targetCount = targetCount;
+	public ConditionNamedCount(String name, long currentCount, long targetCount) {
+		bean = new BCollectCoinTask();
+		bean.setName(name);
+		bean.setCurrentCoinCount(currentCount);
+		bean.setTargetCoinCount(targetCount);
 	}
 
 	@Override
 	public boolean accept(Bean eventBean) {
-		if (eventBean instanceof BCollectCoinEvent) {
-			// TODO:
-			var e = (BCollectCoinEvent)eventBean;
-			if (e.getName().equals(name)) {
-				if (e.getCoinCount() >= targetCount) {
-					return true;
-				}
+		if (eventBean instanceof BCollectCoinEvent e) {
+			if (e.getName().equals(bean.getName())) {
+				return e.getCoinCount() >= bean.getTargetCoinCount();
 			}
 		}
 		return false;
@@ -37,7 +26,7 @@ public class ConditionNamedCount extends TaskCondition {
 
 	@Override
 	public boolean isDone() {
-		return count >= targetCount;
+		return bean.getCurrentCoinCount() >= bean.getTargetCoinCount();
 	}
 
 	public static class Event extends ConditionEvent {
@@ -52,15 +41,29 @@ public class ConditionNamedCount extends TaskCondition {
 		}
 	}
 
+	public BCollectCoinTask getBean() {
+		return bean;
+	}
+
+	@Override
+	public Class<? extends Bean> getBeanClass() {
+		return bean.getClass();
+	}
+
+	@Override
+	public Class<? extends Bean> getEventBeanClass() {
+		return BCollectCoinEvent.class;
+	}
+
 	public String getName() {
-		return name;
+		return bean.getName();
 	}
 
-	public int getCount() {
-		return count;
+	public long getCount() {
+		return bean.getCurrentCoinCount();
 	}
 
-	public int getTargetCount() {
-		return targetCount;
+	public long getTargetCount() {
+		return bean.getTargetCoinCount();
 	}
 }

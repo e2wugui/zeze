@@ -88,15 +88,16 @@ public class TestTask extends TestCase {
 			var server0 = servers.get(0);
 
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
+
 				var task1 = server0.getZeze().getTaskModule().open("Task01GetGold");
 				TaskPhase phase1 = task1.newPhase();
 				TaskPhase phase2 = task1.newPhase();
 				TaskPhase phase3 = task1.newPhase();
 				TaskPhase phase4 = task1.newPhase();
-				ConditionNamedCount goldCondition10 = new ConditionNamedCount("Gold", 10);
-				ConditionNamedCount goldCondition20 = new ConditionNamedCount("Gold", 20);
-				ConditionNamedCount goldCondition30 = new ConditionNamedCount("Gold", 30);
-				ConditionNamedCount goldCondition40 = new ConditionNamedCount("Gold", 40);
+				ConditionNamedCount goldCondition10 = new ConditionNamedCount("10Gold", 0, 10);
+				ConditionNamedCount goldCondition20 = new ConditionNamedCount("20Gold", 0, 20);
+				ConditionNamedCount goldCondition30 = new ConditionNamedCount("30Gold", 0, 30);
+				ConditionNamedCount goldCondition40 = new ConditionNamedCount("40Gold", 0, 40);
 				phase1.addCondition(goldCondition10);
 				phase2.addCondition(goldCondition20);
 				phase3.addCondition(goldCondition30);
@@ -136,7 +137,8 @@ public class TestTask extends TestCase {
 	private static void collectCoin(ClientGame.App app, long roleId, Task task, long count) {
 		TriggerTaskEvent taskEvent = new TriggerTaskEvent();
 		taskEvent.Argument.setTaskName(task.getName()); // TODO: 为保证唯一性，也许需要使用Task ID？
-		taskEvent.Argument.getDynamicData().setBean(new BCollectCoinEvent("收集金币", count));
+		var bean = new BCollectCoinEvent("收集金币", count);
+		taskEvent.Argument.getDynamicData().setBean(bean);
 		taskEvent.SendForWait(app.ClientService.GetSocket()).await();
 		Assert.assertEquals(0, taskEvent.getResultCode());
 	}

@@ -797,6 +797,10 @@
                 <bean name="BTaskEventResult">
                     <variable id="1" name="success" type="bool"/>
                 </bean>
+				<bean name="BEventClasses">
+					<variable id="1" name="EventClasses" type="set" value="string"/>
+				</bean>
+				<table name="tEventClasses" key="int" value="BEventClasses"/> key is 1, only one record
 				<!--
 					所有的TaskEvent均由这个rpc驱动（仿照现serverdev的结构）
 					这个rpc的参数是BTaskEvent，内部的DynamicData是各个不同的任务的不同Bean数据

@@ -4,6 +4,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import Zeze.Application;
+import Zeze.Arch.ProviderApp;
 import Zeze.Builtin.Game.Task.BTask;
 import Zeze.Builtin.Game.Task.BTaskKey;
 import Zeze.Builtin.Game.Task.TriggerTaskEvent;
@@ -66,11 +67,15 @@ public class Task {
 
 	public static class Module extends AbstractTask {
 		private final ConcurrentHashMap<String, Task> tasks = new ConcurrentHashMap<>();
+		public final ProviderApp providerApp;
 		public final Application zeze;
 
 		public Module(Application zeze) {
 			this.zeze = zeze;
+			this.providerApp = zeze.redirect.providerApp;
 			RegisterZezeTables(zeze);
+			RegisterProtocols(this.providerApp.providerService);
+			providerApp.builtinModules.put(this.getFullName(), this);
 		}
 
 		@Override
@@ -88,6 +93,11 @@ public class Task {
 		// 使用完不要保存。
 		public Task open(String taskName) {
 			return tasks.computeIfAbsent(taskName, key -> new Task(this, key));
+		}
+
+		public void register(Class<? extends Bean> cls) {
+			beanFactory.register(cls);
+			_tEventClasses.getOrAdd(1).getEventClasses().add(cls.getName());
 		}
 
 		@Override
@@ -109,7 +119,6 @@ public class Task {
 	public TaskPhase newPhase() {
 		TaskPhase phase = new TaskPhase(this, 1); // TODO: Danger!!! phaseId is hard coded, use Autokey to resolve it
 		phases.addVertex(phase);
-//		bean.getTaskPhases().put(phase.getPhaseId(), phase.getBean());
 		return phase;
 	}
 

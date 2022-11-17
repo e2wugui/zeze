@@ -6,6 +6,7 @@
         <bean name="BCollectCoinTask">
             <variable id="1" name="name" type="string"/>
             <variable id="2" name="targetCoinCount" type="long"/>
+            <variable id="3" name="currentCoinCount" type="long"/>
         </bean>
         <bean name="BCollectCoinEvent">
             <variable id="1" name="name" type="string"/>

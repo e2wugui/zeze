@@ -14,6 +14,7 @@ public abstract class AbstractTask extends Zeze.IModule {
     public static final int Finish = 2; // 已完成，未提交
     public static final int Committed = 3; // 已经提交
 
+    protected final Zeze.Builtin.Game.Task.tEventClasses _tEventClasses = new Zeze.Builtin.Game.Task.tEventClasses();
     protected final Zeze.Builtin.Game.Task.tRoleTask _tRoleTask = new Zeze.Builtin.Game.Task.tRoleTask();
     protected final Zeze.Builtin.Game.Task.tTask _tTask = new Zeze.Builtin.Game.Task.tTask();
 
@@ -34,11 +35,13 @@ public abstract class AbstractTask extends Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
+        zeze.addTable(zeze.getConfig().getTableConf(_tEventClasses.getName()).getDatabaseName(), _tEventClasses);
         zeze.addTable(zeze.getConfig().getTableConf(_tRoleTask.getName()).getDatabaseName(), _tRoleTask);
         zeze.addTable(zeze.getConfig().getTableConf(_tTask.getName()).getDatabaseName(), _tTask);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
+        zeze.removeTable(zeze.getConfig().getTableConf(_tEventClasses.getName()).getDatabaseName(), _tEventClasses);
         zeze.removeTable(zeze.getConfig().getTableConf(_tRoleTask.getName()).getDatabaseName(), _tRoleTask);
         zeze.removeTable(zeze.getConfig().getTableConf(_tTask.getName()).getDatabaseName(), _tTask);
     }

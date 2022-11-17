@@ -40,6 +40,9 @@ public class TaskPhase {
 
 	public void addCondition(TaskCondition condition) {
 		conditions.addVertex(condition);
+		// 自动注册加入的Condition自己的Bean和Event Bean的class。
+		task.getModule().register(condition.getBeanClass());
+		task.getModule().register(condition.getEventBeanClass());
 	}
 
 	public void linkCondition(TaskCondition from, TaskCondition to) throws Exception {
