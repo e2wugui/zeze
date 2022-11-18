@@ -631,7 +631,7 @@ public class Schemas implements Serializable {
 		}
 
 		for (var table : tables.values()) {
-			var zTable = app.getTableSlow(table.name);
+			var zTable = app.getTable(table.name);
 			if (zTable == null || zTable.isNew() || app.getConfig().autoResetTable())
 				continue;
 			var otherTable = other.tables.get(table.name);

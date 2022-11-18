@@ -92,7 +92,7 @@ public class DelayRemove extends AbstractDelayRemove {
 					var tableKey = (BTableKey)value.getValue().getBean();
 					// queue是按时间顺序的，记住最后一条即可。
 					maxTime = tableKey.getEnqueueTime();
-					var table = zeze.getTableSlow(tableKey.getTableName());
+					var table = zeze.getTable(tableKey.getTableName());
 					if (null != table)
 						table.remove(tableKey.getEncodedKey());
 				}

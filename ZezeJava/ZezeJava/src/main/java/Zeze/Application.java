@@ -2,7 +2,10 @@ package Zeze;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import Zeze.Arch.RedirectBase;
 import Zeze.Collections.Queue;
@@ -41,6 +44,7 @@ public final class Application {
 	private final Config conf;
 	private final HashMap<String, Database> databases = new HashMap<>();
 	private final LongConcurrentHashMap<Table> tables = new LongConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, Table> tableNameMap = new ConcurrentHashMap<>();
 	private final TaskOneByOneByKey taskOneByOneByKey = new TaskOneByOneByKey();
 	private final Locks locks = new Locks();
 	private final Agent serviceManagerAgent;
@@ -154,6 +158,8 @@ public final class Application {
 		TableKey.tables.put(table.getId(), table.getName());
 		var db = getDatabase(dbName);
 		if (tables.putIfAbsent(table.getId(), table) != null)
+			throw new IllegalStateException("duplicate table id=" + table.getId());
+		if (tableNameMap.putIfAbsent(table.getName(), table) != null)
 			throw new IllegalStateException("duplicate table name=" + table.getName());
 		db.addTable(table);
 		return db;
@@ -165,6 +171,7 @@ public final class Application {
 
 	public void removeTable(String dbName, Table table) {
 		tables.remove(table.getId());
+		tableNameMap.remove(table.getName());
 		getDatabase(dbName).removeTable(table);
 	}
 
@@ -172,12 +179,12 @@ public final class Application {
 		return tables.get(id);
 	}
 
-	public Table getTableSlow(String name) {
-		for (var table : tables) {
-			if (table.getName().equals(name))
-				return table;
-		}
-		return null;
+	public Table getTable(String name) {
+		return tableNameMap.get(name);
+	}
+
+	public Map<String, Table> getTables() {
+		return Collections.unmodifiableMap(tableNameMap);
 	}
 
 	public Database getDatabase(String name) {
