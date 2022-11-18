@@ -747,7 +747,7 @@
 					<variable id="2" name="State" type="int"/> 任务的状态，详见在上面的enum
 					<variable id="3" name="CurrentPhaseId" type="string"/> 当前的PhaseId
 					<variable id="4" name="TaskPhases" type="map" key="string" value="BTaskPhase"/> 该任务所有的Phase
-					<variable id="5" name="PreTasks" type="list" value="string"/> 前置任务名（存储前置任务，不存储后置任务，方便用户扩展）
+					<variable id="5" name="PreTasks" type="list" value="string"/> 前置任务名（只需要存储前置任务就可以建立起整个TaskGraphics，不需要存储后置任务）
 					<variable id="6" name="TaskCustomData" type="dynamic"> 用于用户（程序员）自定义扩展数据
 						<GetSpecialTypeIdFromBean value="Zeze.Game.Task::getSpecialTypeIdFromBean"/>
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.Task::createBeanFromSpecialTypeId"/>

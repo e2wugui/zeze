@@ -43,6 +43,7 @@ public class Task {
 		}
 
 		private final ConcurrentHashMap<String, Task> tasks = new ConcurrentHashMap<>();
+		private final TaskGraphics taskGraphics;
 		public final ProviderApp providerApp;
 		public final Application zeze;
 
@@ -52,6 +53,7 @@ public class Task {
 			RegisterZezeTables(zeze);
 			RegisterProtocols(this.providerApp.providerService);
 			providerApp.builtinModules.put(this.getFullName(), this);
+			taskGraphics = new TaskGraphics(this);
 		}
 
 		public void register(Class<? extends Bean> cls) {
@@ -71,8 +73,12 @@ public class Task {
 		}
 
 		// 需要在事务内使用。 使用完不要保存。
-		public Task newTask(String taskName) {
-			return open(taskName);
+		public Task newTask(String taskName, String[] preTaskNames) {
+			var task = open(taskName);
+			for (var name : preTaskNames) {
+				task.addPreTaskName(name);
+			}
+			return task;
 		}
 
 		private Task open(String taskName) {
@@ -114,9 +120,11 @@ public class Task {
 	 * Task Info:
 	 * 1. Task Name
 	 * 2. Task State
+	 * 3. Pre Tasks
 	 */
 	public String getName() { return bean.getTaskName(); }
 	public int getTaskState() { return bean.getState(); }
+	public void addPreTaskName(String taskName) { bean.getPreTasks().add(taskName); }
 
 	/**
 	 * Task Phases

@@ -15,16 +15,15 @@ package Zeze.Game;
 import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
-import Zeze.Builtin.Game.Task.BTaskKey;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
 
 /**
- * TaskGraphics 是本地程序员配置的，因此不需要支持事务操作。
+ * TaskGraphics
  */
 public class TaskGraphics {
 	Task.Module taskModule;
-	DirectedAcyclicGraph<Task, DefaultEdge> graph;
+	private final DirectedAcyclicGraph<Task, DefaultEdge> graph;
 
 	public TaskGraphics(Task.Module taskModule) {
 		this.taskModule = taskModule;

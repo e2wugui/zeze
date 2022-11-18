@@ -91,7 +91,7 @@ public class TestTask extends TestCase {
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
 
 				var module = server0.getZeze().getTaskModule();
-				var task1 = module.newTask("Task01GetGold");
+				var task1 = module.newTask("Task01GetGold", null);
 				TaskPhase phase1 = task1.newPhase("Phase01");
 				TaskPhase phase2 = task1.newPhase("Phase02");
 				TaskPhase phase3 = task1.newPhase("Phase03");
