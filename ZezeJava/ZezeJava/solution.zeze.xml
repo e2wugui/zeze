@@ -740,6 +740,7 @@
 				<!-- Task的Bean数据 -->
 				<beankey name="BTaskKey">
 					<variable id="1" name="TaskId" type="long"/>
+					<variable id="2" name="TaskName" type="string"/>
 				</beankey>
 				<bean name="BTask">
 					<variable id="1" name="TaskId" type="long"/>

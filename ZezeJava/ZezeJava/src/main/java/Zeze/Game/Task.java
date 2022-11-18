@@ -10,6 +10,7 @@ import Zeze.Builtin.Game.Task.BTaskKey;
 import Zeze.Builtin.Game.Task.TriggerTaskEvent;
 import Zeze.Builtin.Game.Task.tTask;
 import Zeze.Collections.BeanFactory;
+import Zeze.Component.AutoKey;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import org.jgrapht.graph.DefaultEdge;
@@ -20,55 +21,11 @@ import org.jgrapht.graph.DirectedAcyclicGraph;
  * Task类本质是一个配置表，把真正需要的数据放到BTask里面
  */
 public class Task {
-	private final static BeanFactory beanFactory = new BeanFactory();
-
-	public static long getSpecialTypeIdFromBean(Bean bean) {
-		return BeanFactory.getSpecialTypeIdFromBean(bean);
-	}
-
-	public static Bean createBeanFromSpecialTypeId(long typeId) {
-		return beanFactory.createBeanFromSpecialTypeId(typeId);
-	}
-
-	private final Module module;
-	private final BTask bean;
-	private final String name;
-	private final DirectedAcyclicGraph<TaskPhase, DefaultEdge> phases = new DirectedAcyclicGraph<>(DefaultEdge.class); // 任务的各个阶段的连接图
-	private int taskState;
-	private TaskPhase startPhase;
-	private TaskPhase currentPhase;
-	private TaskPhase endPhase;
-
-	protected Task(Module module, String name) {
-		this.module = module;
-		long taskId = 1; // TODO: Danger!!! taskId is hard coded, use Autokey to resolve it
-		this.bean = this.module._tTask.getOrAdd(new BTaskKey(taskId));
-		this.name = name;
-		startPhase = null;
-		currentPhase = null;
-		endPhase = null;
-	}
-
-	public Module getModule() {
-		return module;
-	}
-
-	public BTask getBean() {
-		return bean;
-	}
-
-	public String getName() {
-		return name;
-	}
-
-	public TaskPhase getCurrentPhase() {
-		return currentPhase;
-	}
-
 	public static class Module extends AbstractTask {
 		private final ConcurrentHashMap<String, Task> tasks = new ConcurrentHashMap<>();
 		public final ProviderApp providerApp;
 		public final Application zeze;
+		private final AutoKey taskIdAutoKey;
 
 		public Module(Application zeze) {
 			this.zeze = zeze;
@@ -76,6 +33,12 @@ public class Task {
 			RegisterZezeTables(zeze);
 			RegisterProtocols(this.providerApp.providerService);
 			providerApp.builtinModules.put(this.getFullName(), this);
+			taskIdAutoKey = zeze.getAutoKey("TaskId");
+		}
+
+		public void register(Class<? extends Bean> cls) {
+			beanFactory.register(cls);
+			_tEventClasses.getOrAdd(1).getEventClasses().add(cls.getName());
 		}
 
 		@Override
@@ -95,11 +58,6 @@ public class Task {
 			return tasks.computeIfAbsent(taskName, key -> new Task(this, key));
 		}
 
-		public void register(Class<? extends Bean> cls) {
-			beanFactory.register(cls);
-			_tEventClasses.getOrAdd(1).getEventClasses().add(cls.getName());
-		}
-
 		@Override
 		protected long ProcessTriggerTaskEventRequest(TriggerTaskEvent r) throws Throwable {
 			var taskName = r.Argument.getTaskName();
@@ -115,9 +73,64 @@ public class Task {
 		}
 	}
 
+	// @formatter:off
+	private final static BeanFactory beanFactory = new BeanFactory();
+	public static long getSpecialTypeIdFromBean(Bean bean) { return BeanFactory.getSpecialTypeIdFromBean(bean); }
+	public static Bean createBeanFromSpecialTypeId(long typeId) { return beanFactory.createBeanFromSpecialTypeId(typeId); }
+
+	/**
+	 * Module
+	 */
+	public Module getModule() { return module; }
+	private final Module module;
+
+	/**
+	 * Task Bean
+	 */
+	public BTask getBean() { return bean; }
+	private final BTask bean;
+
+	/**
+	 * Task Info:
+	 * 1. Task Id
+	 * 2. Task Name
+	 * 3. Task State
+	 */
+	public long getId() { return id; }
+	private final long id;
+	public String getName() { return name; }
+	private final String name;
+	public int getTaskState() { return taskState; }
+	private int taskState;
+
+	/**
+	 * Task Phases
+	 */
+	public TaskPhase getCurrentPhase() { return currentPhase; }
+	private TaskPhase startPhase;
+	private TaskPhase currentPhase;
+	private TaskPhase endPhase;
+	private final DirectedAcyclicGraph<TaskPhase, DefaultEdge> phases;
+
+	/**
+	 * Protected Task Constructor
+	 * - DO NOT DIRECTLY USE THIS CONSTRUCTOR TO CREATE A NEW TASK
+	 */
+	protected Task(Module module, String name) {
+		this.module = module;
+		this.id = module.taskIdAutoKey.nextId();
+		this.name = name;
+		this.bean = this.module._tTask.getOrAdd(new BTaskKey(getId(), getName()));
+		phases = new DirectedAcyclicGraph<>(DefaultEdge.class); // 任务的各个阶段的连接图
+		startPhase = null;
+		currentPhase = null;
+		endPhase = null;
+		taskState = Module.Disabled;
+	}
+	// @formatter:on
 	// ==================== 任务初始化阶段的方法 ====================
 	public TaskPhase newPhase() {
-		TaskPhase phase = new TaskPhase(this, 1); // TODO: Danger!!! phaseId is hard coded, use Autokey to resolve it
+		TaskPhase phase = new TaskPhase(this, null); // anonymous phase
 		phases.addVertex(phase);
 		return phase;
 	}
@@ -155,12 +168,22 @@ public class Task {
 	// ==================== 任务初始化阶段的方法 ====================
 
 	// ==================== 任务进行阶段的方法 ====================
+
+	/**
+	 * Runtime方法：accept
+	 * - 用于接收事件，改变数据库的数据
+	 * - 当满足任务推进情况时，会自动推进任务
+	 */
 	public void accept(Bean eventBean) {
-		currentPhase.accept(eventBean);
-		proceedToNextPhase();
+		if (currentPhase.accept(eventBean))
+			tryToProceedToNextPhase();
 	}
 
-	private void proceedToNextPhase() {
+	/**
+	 * 内部方法：proceedToNextPhase
+	 * - 当accept成功后（即对数据库数据进行了修改之后），会自动调用此方法
+	 */
+	private void tryToProceedToNextPhase() {
 	}
 	// ==================== 任务进行阶段的方法 ====================
 }

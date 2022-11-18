@@ -72,6 +72,7 @@ public class TestTask extends TestCase {
 			link.Stop();
 	}
 
+	// ======================================== 测试用例1：NameCount的一个任务实例 - 吃金币 ========================================
 	public void test1() throws Throwable {
 		Zeze.Util.Task.tryInitThreadPool(null, null, null);
 
@@ -142,6 +143,9 @@ public class TestTask extends TestCase {
 		taskEvent.SendForWait(app.ClientService.GetSocket()).await();
 		Assert.assertEquals(0, taskEvent.getResultCode());
 	}
+
+
+	// ======================================== 测试用例1：对话任务的一个任务实例 - NPC对话 ========================================
 
 	// 全局角色登录状态函数
 

@@ -8,22 +8,22 @@ import org.jgrapht.graph.DirectedAcyclicGraph;
 
 public class TaskPhase {
 	private final Task task; // Phase所属的Task
-	private final long phaseId; // Phase的Id（自动生成，任务内唯一）
+	private final String name; // Phase的Id（自动生成，任务内唯一）
 	private BTaskPhase bean;
 	private final DirectedAcyclicGraph<TaskCondition, DefaultEdge> conditions = new DirectedAcyclicGraph<>(DefaultEdge.class); // 任务的各个阶段的连接图
 	private final ArrayList<TaskCondition> currentConditions = new ArrayList<>(); // 任务的各个阶段的连接图
 
-	public TaskPhase(Task task, long phaseId) {
+	public TaskPhase(Task task, String name) {
 		this.task = task;
-		this.phaseId = phaseId;
+		this.name = name;
 	}
 
 	public Task getTask() {
 		return task;
 	}
 
-	public long getPhaseId() {
-		return phaseId;
+	public String getPhaseName() {
+		return name;
 	}
 
 	public BTaskPhase getBean() {
