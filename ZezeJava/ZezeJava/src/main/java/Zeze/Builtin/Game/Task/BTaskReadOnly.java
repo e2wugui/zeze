@@ -11,6 +11,7 @@ public interface BTaskReadOnly {
     public int getState();
     public String getCurrentPhaseId();
     public Zeze.Transaction.Collections.PMap2ReadOnly<String, Zeze.Builtin.Game.Task.BTaskPhase, Zeze.Builtin.Game.Task.BTaskPhaseReadOnly> getTaskPhasesReadOnly();
+    public Zeze.Transaction.Collections.PList1ReadOnly<String> getPreTasksReadOnly();
     public Zeze.Transaction.DynamicBeanReadOnly getTaskCustomDataReadOnly();
 
 }

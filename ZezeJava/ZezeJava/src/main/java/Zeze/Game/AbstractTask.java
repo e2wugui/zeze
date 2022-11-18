@@ -8,7 +8,7 @@ public abstract class AbstractTask extends Zeze.IModule {
     @Override public int getId() { return ModuleId; }
     @Override public boolean isBuiltin() { return true; }
 
-    public static final int Invalid = -1; // 可接取
+    public static final int Invalid = -1; // 未初始化或初始化失败
     public static final int Disabled = 0; // 可接取
     public static final int Init = 1; // 可接取
     public static final int Processing = 2; // 未完成，已经接取
