@@ -14,6 +14,7 @@ import Zeze.Transaction.DatabaseMySql;
 import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Transaction.DatabaseSqlServer;
 import Zeze.Transaction.DatabaseTikv;
+import com.amazonaws.regions.Regions;
 import org.apache.logging.log4j.Level;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -33,6 +34,7 @@ public final class Config {
 		SqlServer,
 		Tikv,
 		RocksDb,
+		DynamoDb,
 	}
 
 	private String name = "";
@@ -513,6 +515,19 @@ public final class Config {
 		}
 	}
 
+	public static final class DynamoConf {
+		public Regions region = Regions.CN_NORTH_1;
+
+		public DynamoConf() {
+		}
+
+		public DynamoConf(Element self) {
+			var attr = self.getAttribute("region");
+			if (!attr.isEmpty())
+				region = Regions.valueOf(attr);
+		}
+	}
+
 	public static final class DruidConf {
 		public String driverClassName;
 		public Integer initialSize;
@@ -567,6 +582,7 @@ public final class Config {
 		private DbType databaseType = DbType.Memory;
 		private String databaseUrl = "";
 		private DruidConf druidConf; // only valid when jdbc: mysql, sqlserver,
+		private DynamoConf dynamoConf; // only valid when dynamodb
 		private boolean distTxn; // 是否启用分布式事务(目前仅TiKV支持)
 		private boolean disableOperates;
 
@@ -588,6 +604,14 @@ public final class Config {
 
 		public void setDatabaseType(DbType databaseType) {
 			this.databaseType = databaseType;
+		}
+
+		public DynamoConf getDynamoConf() {
+			return dynamoConf;
+		}
+
+		public void setDynamoConf(DynamoConf conf) {
+			dynamoConf = conf;
 		}
 
 		public void setDatabaseUrl(String databaseUrl) {
@@ -642,6 +666,10 @@ public final class Config {
 				break;
 			case "RocksDB":
 				databaseType = DbType.RocksDb;
+				break;
+			case "DynamoDB":
+				databaseType = DbType.DynamoDb;
+				dynamoConf = new DynamoConf(self);
 				break;
 			default:
 				throw new UnsupportedOperationException("unknown database type.");

@@ -18,8 +18,11 @@ dependencies {
     // runtimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl:2.18.0'
 
     // for jdbc(mysql,sqlserver,tidb)
-    compileOnly 'com.alibaba:druid:1.2.14'
+    compileOnly 'com.alibaba:druid:1.2.15'
     compileOnly 'mysql:mysql-connector-java:8.0.30'
+
+    // dynamodb
+    compileOnly 'com.amazonaws:aws-java-sdk-dynamodb:1.12.342'
 
     // for rocketmq
     compileOnly 'org.apache.rocketmq:rocketmq-client:4.9.4'
