@@ -7,10 +7,10 @@ import Zeze.Serialize.ByteBuffer;
 public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly {
     public static final long TYPEID = -3876171389489280800L;
 
-    private long _TaskId;
-    private int _State;
-    private long _CurrentPhaseId;
-    private final Zeze.Transaction.Collections.PMap2<Long, Zeze.Builtin.Game.Task.BTaskPhase> _TaskPhases;
+    private String _TaskName; // 任务的名字，唯一
+    private int _State; // 任务的状态，详见在上面的enum
+    private String _CurrentPhaseId; // 当前的PhaseId
+    private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Game.Task.BTaskPhase> _TaskPhases; // 该任务所有的Phase
     private final Zeze.Transaction.DynamicBean _TaskCustomData;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_TaskCustomData() {
@@ -38,23 +38,25 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
     }
 
     @Override
-    public long getTaskId() {
+    public String getTaskName() {
         if (!isManaged())
-            return _TaskId;
+            return _TaskName;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _TaskId;
-        var log = (Log__TaskId)txn.getLog(objectId() + 1);
-        return log != null ? log.value : _TaskId;
+            return _TaskName;
+        var log = (Log__TaskName)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _TaskName;
     }
 
-    public void setTaskId(long value) {
+    public void setTaskName(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
         if (!isManaged()) {
-            _TaskId = value;
+            _TaskName = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__TaskId(this, 1, value));
+        txn.putLog(new Log__TaskName(this, 1, value));
     }
 
     @Override
@@ -78,7 +80,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
     }
 
     @Override
-    public long getCurrentPhaseId() {
+    public String getCurrentPhaseId() {
         if (!isManaged())
             return _CurrentPhaseId;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
@@ -88,7 +90,9 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         return log != null ? log.value : _CurrentPhaseId;
     }
 
-    public void setCurrentPhaseId(long value) {
+    public void setCurrentPhaseId(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
         if (!isManaged()) {
             _CurrentPhaseId = value;
             return;
@@ -97,12 +101,12 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         txn.putLog(new Log__CurrentPhaseId(this, 3, value));
     }
 
-    public Zeze.Transaction.Collections.PMap2<Long, Zeze.Builtin.Game.Task.BTaskPhase> getTaskPhases() {
+    public Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Game.Task.BTaskPhase> getTaskPhases() {
         return _TaskPhases;
     }
 
     @Override
-    public Zeze.Transaction.Collections.PMap2ReadOnly<Long, Zeze.Builtin.Game.Task.BTaskPhase, Zeze.Builtin.Game.Task.BTaskPhaseReadOnly> getTaskPhasesReadOnly() {
+    public Zeze.Transaction.Collections.PMap2ReadOnly<String, Zeze.Builtin.Game.Task.BTaskPhase, Zeze.Builtin.Game.Task.BTaskPhaseReadOnly> getTaskPhasesReadOnly() {
         return new Zeze.Transaction.Collections.PMap2ReadOnly<>(_TaskPhases);
     }
 
@@ -117,23 +121,29 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
 
     @SuppressWarnings("deprecation")
     public BTask() {
-        _TaskPhases = new Zeze.Transaction.Collections.PMap2<>(Long.class, Zeze.Builtin.Game.Task.BTaskPhase.class);
+        _TaskName = "";
+        _CurrentPhaseId = "";
+        _TaskPhases = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Game.Task.BTaskPhase.class);
         _TaskPhases.variableId(4);
         _TaskCustomData = newDynamicBean_TaskCustomData();
     }
 
     @SuppressWarnings("deprecation")
-    public BTask(long _TaskId_, int _State_, long _CurrentPhaseId_) {
-        _TaskId = _TaskId_;
+    public BTask(String _TaskName_, int _State_, String _CurrentPhaseId_) {
+        if (_TaskName_ == null)
+            throw new IllegalArgumentException();
+        _TaskName = _TaskName_;
         _State = _State_;
+        if (_CurrentPhaseId_ == null)
+            throw new IllegalArgumentException();
         _CurrentPhaseId = _CurrentPhaseId_;
-        _TaskPhases = new Zeze.Transaction.Collections.PMap2<>(Long.class, Zeze.Builtin.Game.Task.BTaskPhase.class);
+        _TaskPhases = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Game.Task.BTaskPhase.class);
         _TaskPhases.variableId(4);
         _TaskCustomData = newDynamicBean_TaskCustomData();
     }
 
     public void assign(BTask other) {
-        setTaskId(other.getTaskId());
+        setTaskName(other.getTaskName());
         setState(other.getState());
         setCurrentPhaseId(other.getCurrentPhaseId());
         _TaskPhases.clear();
@@ -174,11 +184,11 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         return TYPEID;
     }
 
-    private static final class Log__TaskId extends Zeze.Transaction.Logs.LogLong {
-        public Log__TaskId(BTask bean, int varId, long value) { super(bean, varId, value); }
+    private static final class Log__TaskName extends Zeze.Transaction.Logs.LogString {
+        public Log__TaskName(BTask bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BTask)getBelong())._TaskId = value; }
+        public void commit() { ((BTask)getBelong())._TaskName = value; }
     }
 
     private static final class Log__State extends Zeze.Transaction.Logs.LogInt {
@@ -188,8 +198,8 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         public void commit() { ((BTask)getBelong())._State = value; }
     }
 
-    private static final class Log__CurrentPhaseId extends Zeze.Transaction.Logs.LogLong {
-        public Log__CurrentPhaseId(BTask bean, int varId, long value) { super(bean, varId, value); }
+    private static final class Log__CurrentPhaseId extends Zeze.Transaction.Logs.LogString {
+        public Log__CurrentPhaseId(BTask bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
         public void commit() { ((BTask)getBelong())._CurrentPhaseId = value; }
@@ -206,7 +216,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Task.BTask: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("TaskId=").append(getTaskId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("TaskName=").append(getTaskName()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("State=").append(getState()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("CurrentPhaseId=").append(getCurrentPhaseId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("TaskPhases={");
@@ -246,10 +256,10 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            long _x_ = getTaskId();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
-                _o_.WriteLong(_x_);
+            String _x_ = getTaskName();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
             }
         }
         {
@@ -260,10 +270,10 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
             }
         }
         {
-            long _x_ = getCurrentPhaseId();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
-                _o_.WriteLong(_x_);
+            String _x_ = getCurrentPhaseId();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
             }
         }
         {
@@ -271,9 +281,9 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.MAP);
-                _o_.WriteMapType(_n_, ByteBuffer.INTEGER, ByteBuffer.BEAN);
+                _o_.WriteMapType(_n_, ByteBuffer.BYTES, ByteBuffer.BEAN);
                 for (var _e_ : _x_.entrySet()) {
-                    _o_.WriteLong(_e_.getKey());
+                    _o_.WriteString(_e_.getKey());
                     _e_.getValue().encode(_o_);
                 }
             }
@@ -293,7 +303,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setTaskId(_o_.ReadLong(_t_));
+            setTaskName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
@@ -301,7 +311,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            setCurrentPhaseId(_o_.ReadLong(_t_));
+            setCurrentPhaseId(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 4) {
@@ -310,7 +320,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
-                    var _k_ = _o_.ReadLong(_s_);
+                    var _k_ = _o_.ReadString(_s_);
                     var _v_ = _o_.ReadBean(new Zeze.Builtin.Game.Task.BTaskPhase(), _t_);
                     _x_.put(_k_, _v_);
                 }
@@ -342,16 +352,8 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
 
     @Override
     public boolean negativeCheck() {
-        if (getTaskId() < 0)
-            return true;
         if (getState() < 0)
             return true;
-        if (getCurrentPhaseId() < 0)
-            return true;
-        for (var _v_ : _TaskPhases.values()) {
-            if (_v_.negativeCheck())
-                return true;
-        }
         return false;
     }
 
@@ -364,9 +366,9 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _TaskId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _TaskName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 2: _State = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 3: _CurrentPhaseId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 3: _CurrentPhaseId = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 4: _TaskPhases.followerApply(vlog); break;
                 case 5: _TaskCustomData.followerApply(vlog); break;
             }

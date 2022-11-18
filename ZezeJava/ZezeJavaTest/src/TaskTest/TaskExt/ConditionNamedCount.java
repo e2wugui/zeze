@@ -4,7 +4,7 @@ import Zeze.Game.TaskCondition;
 import Zeze.Game.ConditionEvent;
 import Zeze.Transaction.Bean;
 
-public class ConditionNamedCount extends TaskCondition {
+public class ConditionNamedCount extends TaskCondition<BCollectCoinTask, BCollectCoinEvent> {
 	private final BCollectCoinTask bean;
 
 	public ConditionNamedCount(String name, long currentCount, long targetCount) {
@@ -29,6 +29,11 @@ public class ConditionNamedCount extends TaskCondition {
 		return bean.getCurrentCoinCount() >= bean.getTargetCoinCount();
 	}
 
+	@Override
+	public BCollectCoinTask getConditionBean() {
+		return bean;
+	}
+
 	public static class Event extends ConditionEvent {
 		private final String name;
 
@@ -41,20 +46,7 @@ public class ConditionNamedCount extends TaskCondition {
 		}
 	}
 
-	public BCollectCoinTask getBean() {
-		return bean;
-	}
-
 	@Override
-	public Class<? extends Bean> getBeanClass() {
-		return bean.getClass();
-	}
-
-	@Override
-	public Class<? extends Bean> getEventBeanClass() {
-		return BCollectCoinEvent.class;
-	}
-
 	public String getName() {
 		return bean.getName();
 	}

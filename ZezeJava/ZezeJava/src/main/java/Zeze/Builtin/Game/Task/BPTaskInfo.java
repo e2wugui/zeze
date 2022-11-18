@@ -8,7 +8,7 @@ import Zeze.Serialize.ByteBuffer;
 public final class BPTaskInfo extends Zeze.Transaction.Bean implements BPTaskInfoReadOnly {
     public static final long TYPEID = -141577318142513096L;
 
-    private final Zeze.Transaction.Collections.PMap2<Long, Zeze.Builtin.Game.Task.BTask> _processingTask;
+    private final Zeze.Transaction.Collections.PMap2<Long, Zeze.Builtin.Game.Task.BTask> _processingTask; // key：RoleId
     private final Zeze.Transaction.Collections.PSet1<Long> _finishedTask; // 已经结束的任务，不存储可重复完成的任务
     private final Zeze.Transaction.DynamicBean _RoleTaskCustomData;
 

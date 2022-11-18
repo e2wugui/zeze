@@ -10,7 +10,6 @@ import Zeze.Builtin.Game.Task.BTaskKey;
 import Zeze.Builtin.Game.Task.TriggerTaskEvent;
 import Zeze.Builtin.Game.Task.tTask;
 import Zeze.Collections.BeanFactory;
-import Zeze.Component.AutoKey;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import org.jgrapht.graph.DefaultEdge;
@@ -21,11 +20,30 @@ import org.jgrapht.graph.DirectedAcyclicGraph;
  * Task类本质是一个配置表，把真正需要的数据放到BTask里面
  */
 public class Task {
+	/**
+	 * Task Module
+	 */
 	public static class Module extends AbstractTask {
+		/**
+		 * 所有任务的Trigger Rpc，负责中转请求
+		 */
+		@Override
+		protected long ProcessTriggerTaskEventRequest(TriggerTaskEvent r) throws Throwable {
+			var name = r.Argument.getTaskName();
+			var eventBean = r.Argument.getDynamicData().getBean();
+
+			var task = open(name);
+			var phase = task.getCurrentPhase();
+			var conditions = phase.getCurrentConditions();
+			for (var condition : conditions) {
+				condition.accept(eventBean);
+			}
+			return Procedure.Success;
+		}
+
 		private final ConcurrentHashMap<String, Task> tasks = new ConcurrentHashMap<>();
 		public final ProviderApp providerApp;
 		public final Application zeze;
-		private final AutoKey taskIdAutoKey;
 
 		public Module(Application zeze) {
 			this.zeze = zeze;
@@ -33,7 +51,6 @@ public class Task {
 			RegisterZezeTables(zeze);
 			RegisterProtocols(this.providerApp.providerService);
 			providerApp.builtinModules.put(this.getFullName(), this);
-			taskIdAutoKey = zeze.getAutoKey("TaskId");
 		}
 
 		public void register(Class<? extends Bean> cls) {
@@ -52,28 +69,30 @@ public class Task {
 			return _tTask;
 		}
 
-		// 需要在事务内使用。
-		// 使用完不要保存。
-		public Task open(String taskName) {
-			return tasks.computeIfAbsent(taskName, key -> new Task(this, key));
+		// 需要在事务内使用。 使用完不要保存。
+		public Task newTask(String taskName) {
+			return open(taskName);
 		}
 
-		@Override
-		protected long ProcessTriggerTaskEventRequest(TriggerTaskEvent r) throws Throwable {
-			var taskName = r.Argument.getTaskName();
-			var eventBean = r.Argument.getDynamicData().getBean();
-
-			var task = open(taskName);
-			var phase = task.getCurrentPhase();
-			var conditions = phase.getCurrentConditions();
-			for (var condition : conditions) {
-				condition.accept(eventBean);
-			}
-			return Procedure.Success;
+		private Task open(String taskName) {
+			return tasks.computeIfAbsent(taskName, key -> new Task(this, key));
 		}
 	}
 
+	/**
+	 * Runtime方法：accept
+	 * - 用于接收事件，改变数据库的数据
+	 * - 当满足任务推进情况时，会自动推进任务
+	 */
+	public void accept(Bean eventBean) {
+		if (currentPhase.accept(eventBean))
+			tryToProceedToNextPhase();
+	}
+
 	// @formatter:off
+	/**
+	 * BeanFactory
+	 */
 	private final static BeanFactory beanFactory = new BeanFactory();
 	public static long getSpecialTypeIdFromBean(Bean bean) { return BeanFactory.getSpecialTypeIdFromBean(bean); }
 	public static Bean createBeanFromSpecialTypeId(long typeId) { return beanFactory.createBeanFromSpecialTypeId(typeId); }
@@ -92,16 +111,11 @@ public class Task {
 
 	/**
 	 * Task Info:
-	 * 1. Task Id
-	 * 2. Task Name
-	 * 3. Task State
+	 * 1. Task Name
+	 * 2. Task State
 	 */
-	public long getId() { return id; }
-	private final long id;
-	public String getName() { return name; }
-	private final String name;
-	public int getTaskState() { return taskState; }
-	private int taskState;
+	public String getName() { return bean.getTaskName(); }
+	public int getTaskState() { return bean.getState(); }
 
 	/**
 	 * Task Phases
@@ -110,7 +124,7 @@ public class Task {
 	private TaskPhase startPhase;
 	private TaskPhase currentPhase;
 	private TaskPhase endPhase;
-	private final DirectedAcyclicGraph<TaskPhase, DefaultEdge> phases;
+	private final DirectedAcyclicGraph<TaskPhase, DefaultEdge> phases; // 任务的各个阶段的连接图
 
 	/**
 	 * Protected Task Constructor
@@ -118,19 +132,20 @@ public class Task {
 	 */
 	protected Task(Module module, String name) {
 		this.module = module;
-		this.id = module.taskIdAutoKey.nextId();
-		this.name = name;
-		this.bean = this.module._tTask.getOrAdd(new BTaskKey(getId(), getName()));
-		phases = new DirectedAcyclicGraph<>(DefaultEdge.class); // 任务的各个阶段的连接图
+		this.bean = this.module._tTask.getOrAdd(new BTaskKey(name));
+		bean.setTaskName(name);
+		bean.setState(Module.Disabled);
+		phases= new DirectedAcyclicGraph<>(DefaultEdge.class);
 		startPhase = null;
 		currentPhase = null;
 		endPhase = null;
-		taskState = Module.Disabled;
 	}
 	// @formatter:on
-	// ==================== 任务初始化阶段的方法 ====================
-	public TaskPhase newPhase() {
-		TaskPhase phase = new TaskPhase(this, null); // anonymous phase
+
+
+	// ======================================== 任务初始化阶段的方法 ========================================
+	public TaskPhase newPhase(String name) throws Throwable {
+		TaskPhase phase = new TaskPhase(this, name);
 		phases.addVertex(phase);
 		return phase;
 	}
@@ -161,23 +176,10 @@ public class Task {
 			throw new Exception("Task has no End Phase node.");
 		endPhase = zeroOutDegreeNodeSupplier.get().findAny().get();
 
-		taskState = Module.Disabled;
-
 		phases.vertexSet().forEach(TaskPhase::setupPhase);
 	}
-	// ==================== 任务初始化阶段的方法 ====================
 
-	// ==================== 任务进行阶段的方法 ====================
-
-	/**
-	 * Runtime方法：accept
-	 * - 用于接收事件，改变数据库的数据
-	 * - 当满足任务推进情况时，会自动推进任务
-	 */
-	public void accept(Bean eventBean) {
-		if (currentPhase.accept(eventBean))
-			tryToProceedToNextPhase();
-	}
+	// ======================================== Private方法 ========================================
 
 	/**
 	 * 内部方法：proceedToNextPhase
@@ -185,5 +187,4 @@ public class Task {
 	 */
 	private void tryToProceedToNextPhase() {
 	}
-	// ==================== 任务进行阶段的方法 ====================
 }

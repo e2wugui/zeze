@@ -12,14 +12,14 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
     private final Zeze.Transaction.DynamicBean _DynamicData;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_DynamicData() {
-        return new Zeze.Transaction.DynamicBean(4, Zeze.Game.Task::getSpecialTypeIdFromBean, Zeze.Game.Task::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(2, Zeze.Game.Task::getSpecialTypeIdFromBean, Zeze.Game.Task::createBeanFromSpecialTypeId);
     }
 
-    public static long getSpecialTypeIdFromBean_4(Zeze.Transaction.Bean bean) {
+    public static long getSpecialTypeIdFromBean_2(Zeze.Transaction.Bean bean) {
         return Zeze.Game.Task.getSpecialTypeIdFromBean(bean);
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_4(long typeId) {
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_2(long typeId) {
         return Zeze.Game.Task.createBeanFromSpecialTypeId(typeId);
     }
 
@@ -156,7 +156,7 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
         {
             var _x_ = _DynamicData;
             if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.DYNAMIC);
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.DYNAMIC);
                 _x_.encode(_o_);
             }
         }
@@ -171,11 +171,7 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
             setTaskName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        while ((_t_ & 0xff) > 1 && _i_ < 4) {
-            _o_.SkipUnknownField(_t_);
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 4) {
+        if (_i_ == 2) {
             _o_.ReadDynamic(_DynamicData, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
@@ -210,7 +206,7 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _TaskName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 4: _DynamicData.followerApply(vlog); break;
+                case 2: _DynamicData.followerApply(vlog); break;
             }
         }
     }

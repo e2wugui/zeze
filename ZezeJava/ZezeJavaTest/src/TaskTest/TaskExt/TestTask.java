@@ -90,11 +90,12 @@ public class TestTask extends TestCase {
 
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
 
-				var task1 = server0.getZeze().getTaskModule().open("Task01GetGold");
-				TaskPhase phase1 = task1.newPhase();
-				TaskPhase phase2 = task1.newPhase();
-				TaskPhase phase3 = task1.newPhase();
-				TaskPhase phase4 = task1.newPhase();
+				var module = server0.getZeze().getTaskModule();
+				var task1 = module.newTask("Task01GetGold");
+				TaskPhase phase1 = task1.newPhase("Phase01");
+				TaskPhase phase2 = task1.newPhase("Phase02");
+				TaskPhase phase3 = task1.newPhase("Phase03");
+				TaskPhase phase4 = task1.newPhase("Phase04");
 				ConditionNamedCount goldCondition10 = new ConditionNamedCount("10Gold", 0, 10);
 				ConditionNamedCount goldCondition20 = new ConditionNamedCount("20Gold", 0, 20);
 				ConditionNamedCount goldCondition30 = new ConditionNamedCount("30Gold", 0, 30);
@@ -137,13 +138,12 @@ public class TestTask extends TestCase {
 	// 一个简单的任务，用于测试。
 	private static void collectCoin(ClientGame.App app, long roleId, Task task, long count) {
 		TriggerTaskEvent taskEvent = new TriggerTaskEvent();
-		taskEvent.Argument.setTaskName(task.getName()); // TODO: 为保证唯一性，也许需要使用Task ID？
+		taskEvent.Argument.setTaskName(task.getName());
 		var bean = new BCollectCoinEvent("收集金币", count);
 		taskEvent.Argument.getDynamicData().setBean(bean);
 		taskEvent.SendForWait(app.ClientService.GetSocket()).await();
 		Assert.assertEquals(0, taskEvent.getResultCode());
 	}
-
 
 	// ======================================== 测试用例1：对话任务的一个任务实例 - NPC对话 ========================================
 

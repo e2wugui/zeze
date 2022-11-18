@@ -8,9 +8,9 @@ public interface BTaskPhaseReadOnly {
     public boolean negativeCheck();
     public BTaskPhase copy();
 
-    public long getTaskPhaseId();
-    public long getCurrentConditionId();
-    public Zeze.Transaction.Collections.PMap2ReadOnly<Long, Zeze.Builtin.Game.Task.BTaskCondition, Zeze.Builtin.Game.Task.BTaskConditionReadOnly> getTaskConditionsReadOnly();
+    public String getTaskPhaseName();
+    public String getCurrentConditionName();
+    public Zeze.Transaction.Collections.PMap2ReadOnly<String, Zeze.Builtin.Game.Task.BTaskCondition, Zeze.Builtin.Game.Task.BTaskConditionReadOnly> getTaskConditionsReadOnly();
     public Zeze.Transaction.DynamicBeanReadOnly getTaskPhaseCustomDataReadOnly();
 
 }
