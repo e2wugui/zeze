@@ -8,11 +8,12 @@ public abstract class AbstractTask extends Zeze.IModule {
     @Override public int getId() { return ModuleId; }
     @Override public boolean isBuiltin() { return true; }
 
+    public static final int Invalid = -1; // 可接取
     public static final int Disabled = 0; // 可接取
-    public static final int Init = 0; // 可接取
-    public static final int Processing = 1; // 未完成，已经接取
-    public static final int Finish = 2; // 已完成，未提交
-    public static final int Committed = 3; // 已经提交
+    public static final int Init = 1; // 可接取
+    public static final int Processing = 2; // 未完成，已经接取
+    public static final int Finish = 3; // 已完成，未提交
+    public static final int Committed = 4; // 已经提交
 
     protected final Zeze.Builtin.Game.Task.tEventClasses _tEventClasses = new Zeze.Builtin.Game.Task.tEventClasses();
     protected final Zeze.Builtin.Game.Task.tRoleTask _tRoleTask = new Zeze.Builtin.Game.Task.tRoleTask();

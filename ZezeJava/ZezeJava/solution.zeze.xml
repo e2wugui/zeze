@@ -732,11 +732,12 @@
 
             <module name="Task" id="11018">
 				<!-- 任务状态 -->
+				<enum name="Invalid" value="-1"/> 未初始化或初始化失败
 				<enum name="Disabled" value="0"/> 可接取
-				<enum name="Init" value="0"/> 可接取
-				<enum name="Processing" value="1"/> 未完成，已经接取
-				<enum name="Finish" value="2"/> 已完成，未提交
-				<enum name="Committed" value="3"/> 已经提交
+				<enum name="Init" value="1"/> 可接取
+				<enum name="Processing" value="2"/> 未完成，已经接取
+				<enum name="Finish" value="3"/> 已完成，未提交
+				<enum name="Committed" value="4"/> 已经提交
 				<!-- Task的Bean数据 -->
 				<beankey name="BTaskKey">
 					<variable id="1" name="TaskName" type="string"/>

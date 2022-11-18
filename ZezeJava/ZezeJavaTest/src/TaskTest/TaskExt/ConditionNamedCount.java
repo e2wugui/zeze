@@ -5,15 +5,20 @@ import Zeze.Game.ConditionEvent;
 import Zeze.Transaction.Bean;
 
 public class ConditionNamedCount extends TaskCondition<BCollectCoinTask, BCollectCoinEvent> {
-	private final BCollectCoinTask bean;
 
-	public ConditionNamedCount(String name, long currentCount, long targetCount) {
-		bean = new BCollectCoinTask();
-		bean.setName(name);
-		bean.setCurrentCoinCount(currentCount);
-		bean.setTargetCoinCount(targetCount);
+	// @formatter:off
+	/**
+	 * Override Methods
+	 */
+	@Override
+	public BCollectCoinTask getConditionBean() {
+		return bean;
 	}
-
+	private final BCollectCoinTask bean;
+	@Override
+	public String getName() {
+		return bean.getName();
+	}
 	@Override
 	public boolean accept(Bean eventBean) {
 		if (eventBean instanceof BCollectCoinEvent e) {
@@ -23,32 +28,17 @@ public class ConditionNamedCount extends TaskCondition<BCollectCoinTask, BCollec
 		}
 		return false;
 	}
-
 	@Override
 	public boolean isDone() {
 		return bean.getCurrentCoinCount() >= bean.getTargetCoinCount();
 	}
 
-	@Override
-	public BCollectCoinTask getConditionBean() {
-		return bean;
-	}
-
-	public static class Event extends ConditionEvent {
-		private final String name;
-
-		public Event(String name) {
-			this.name = name;
-		}
-
-		public String getName() {
-			return name;
-		}
-	}
-
-	@Override
-	public String getName() {
-		return bean.getName();
+	// @formatter:on
+	public ConditionNamedCount(String name, long currentCount, long targetCount) {
+		bean = new BCollectCoinTask();
+		bean.setName(name);
+		bean.setCurrentCoinCount(currentCount);
+		bean.setTargetCoinCount(targetCount);
 	}
 
 	public long getCount() {

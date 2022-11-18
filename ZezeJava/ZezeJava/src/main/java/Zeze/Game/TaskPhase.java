@@ -1,6 +1,9 @@
 package Zeze.Game;
 
 import java.util.ArrayList;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 import Zeze.Builtin.Game.Task.BTask;
 import Zeze.Builtin.Game.Task.BTaskPhase;
 import Zeze.Transaction.Bean;
@@ -8,11 +11,14 @@ import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
 
 public class TaskPhase {
+	public static int TASK_PHASE_STATE_INVALID = -1;
+	public static int TASK_PHASE_STATE_VALID = 0;
 
 	public TaskPhase(Task task, String name) throws Throwable {
 		this.task = task;
 		this.bean = task.getBean().getTaskPhases().getOrAdd(name);
 		this.bean.setTaskPhaseName(name);
+		this.state = TASK_PHASE_STATE_INVALID;
 	}
 
 	/**
@@ -30,10 +36,10 @@ public class TaskPhase {
 	/**
 	 * 当前Phase所属的Task
 	 */
-	public Task getTask() {
-		return task;
-	}
+	public Task getTask() { return task; }
 	private final Task task;
+	public boolean isValid(){ return state!=TASK_PHASE_STATE_INVALID; }
+	int state;
 
 	/**
 	 * TaskPhase Bean
@@ -57,7 +63,7 @@ public class TaskPhase {
 		return currentConditions;
 	}
 	private final DirectedAcyclicGraph<TaskCondition<?,?>, DefaultEdge> conditions = new DirectedAcyclicGraph<>(DefaultEdge.class); // 任务的各个阶段的连接图
-	private final ArrayList<TaskCondition<?,?>> currentConditions = new ArrayList<>(); // 任务的各个阶段的连接图
+	private final ArrayList<TaskCondition<?,?>> currentConditions = new ArrayList<>(); // 当前的任务Phase条件（允许不止一个条件）
 
 	// @formatter:on
 
@@ -83,7 +89,20 @@ public class TaskPhase {
 	}
 
 	public void setupPhase() {
-		var zeroInDegreeNode = conditions.vertexSet().stream().filter(p -> conditions.inDegreeOf(p) == 0);
-		zeroInDegreeNode.forEach(currentConditions::add);
+		Supplier<Stream<TaskCondition<?, ?>>> zeroInDegreeNodeSupplier = () -> conditions.vertexSet().stream().filter(p -> conditions.inDegreeOf(p) == 0);
+		if (zeroInDegreeNodeSupplier.get().findAny().isEmpty()) {
+			state = TASK_PHASE_STATE_INVALID;
+			System.out.println("Task has no Start Condition node.");
+			return;
+		}
+		Supplier<Stream<TaskCondition<?, ?>>> zeroOutDegreeNodeSupplier = () -> conditions.vertexSet().stream().filter(p -> conditions.outDegreeOf(p) == 0);
+		if (zeroInDegreeNodeSupplier.get().findAny().isEmpty()) {
+			state = TASK_PHASE_STATE_INVALID;
+			System.out.println("Task has no End Condition node.");
+			return;
+		}
+
+		// set current conditions with start conditions
+		zeroInDegreeNodeSupplier.get().forEach(currentConditions::add);
 	}
 }

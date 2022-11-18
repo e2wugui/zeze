@@ -1,5 +1,6 @@
 package Zeze.Game;
 
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -134,14 +135,13 @@ public class Task {
 		this.module = module;
 		this.bean = this.module._tTask.getOrAdd(new BTaskKey(name));
 		bean.setTaskName(name);
-		bean.setState(Module.Disabled);
+		bean.setState(Module.Invalid);
 		phases= new DirectedAcyclicGraph<>(DefaultEdge.class);
 		startPhase = null;
 		currentPhase = null;
 		endPhase = null;
 	}
 	// @formatter:on
-
 
 	// ======================================== 任务初始化阶段的方法 ========================================
 	public TaskPhase newPhase(String name) throws Throwable {
@@ -154,29 +154,46 @@ public class Task {
 		phases.addEdge(from, to);
 	}
 
-	public void setupTask() throws Exception {
+	public void setupTask() {
 		// Debug Info
 		var vertexCount = phases.vertexSet().size();
 		var edgeCount = phases.edgeSet().size();
 		// 找任务开始的节点
 		Supplier<Stream<TaskPhase>> zeroInDegreeNodeSupplier = () -> phases.vertexSet().stream().filter(p -> phases.inDegreeOf(p) == 0);
-		// TODO: 暂时还不能保证唯一性
-		if (zeroInDegreeNodeSupplier.get().count() != 1)
-			throw new Exception("Task has more than one Start Phase node.");
-		if (zeroInDegreeNodeSupplier.get().findAny().isEmpty())
-			throw new Exception("Task has no Start Phase node.");
+		if (zeroInDegreeNodeSupplier.get().count() != 1) {
+			bean.setState(Module.Invalid);
+			System.out.println("Task has more than one Start Phase node.");
+			return;
+		}
+		if (zeroInDegreeNodeSupplier.get().findAny().isEmpty()) {
+			bean.setState(Module.Invalid);
+			System.out.println("Task has no Start Phase node.");
+			return;
+		}
 		startPhase = zeroInDegreeNodeSupplier.get().findAny().get();
 		currentPhase = startPhase;
 
 		// 找任务结束的节点
 		Supplier<Stream<TaskPhase>> zeroOutDegreeNodeSupplier = () -> phases.vertexSet().stream().filter(p -> phases.outDegreeOf(p) == 0);
-		if (zeroOutDegreeNodeSupplier.get().count() != 1)
-			throw new Exception("Task has more than one End Phase node.");
-		if (zeroOutDegreeNodeSupplier.get().findAny().isEmpty())
-			throw new Exception("Task has no End Phase node.");
+		if (zeroOutDegreeNodeSupplier.get().count() != 1) {
+			bean.setState(Module.Invalid);
+			System.out.println("Task has more than one End Phase node.");
+			return;
+		}
+		if (zeroOutDegreeNodeSupplier.get().findAny().isEmpty()) {
+			bean.setState(Module.Invalid);
+			System.out.println("Task has no End Phase node.");
+			return;
+		}
 		endPhase = zeroOutDegreeNodeSupplier.get().findAny().get();
 
-		phases.vertexSet().forEach(TaskPhase::setupPhase);
+		for (var phase : phases.vertexSet()) {
+			phase.setupPhase();
+			if (!phase.isValid()) {
+				bean.setState(Module.Invalid);
+				return;
+			}
+		}
 	}
 
 	// ======================================== Private方法 ========================================
@@ -186,5 +203,8 @@ public class Task {
 	 * - 当accept成功后（即对数据库数据进行了修改之后），会自动调用此方法
 	 */
 	private void tryToProceedToNextPhase() {
+		if (currentPhase.isCompleted()) {
+			var nextPhase = phases.getDescendants(currentPhase);
+		}
 	}
 }
