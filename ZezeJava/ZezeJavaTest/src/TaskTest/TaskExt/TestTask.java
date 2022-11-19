@@ -96,10 +96,10 @@ public class TestTask extends TestCase {
 				TaskPhase phase2 = task1.newPhase("Phase02");
 				TaskPhase phase3 = task1.newPhase("Phase03");
 				TaskPhase phase4 = task1.newPhase("Phase04");
-				ConditionNamedCount goldCondition10 = new ConditionNamedCount("10Gold", 0, 10);
-				ConditionNamedCount goldCondition20 = new ConditionNamedCount("20Gold", 0, 20);
-				ConditionNamedCount goldCondition30 = new ConditionNamedCount("30Gold", 0, 30);
-				ConditionNamedCount goldCondition40 = new ConditionNamedCount("40Gold", 0, 40);
+				ConditionNamedCount goldCondition10 = new ConditionNamedCount("收集金币", 0, 10);
+				ConditionNamedCount goldCondition20 = new ConditionNamedCount("收集金币", 0, 20);
+				ConditionNamedCount goldCondition30 = new ConditionNamedCount("收集金币", 0, 30);
+				ConditionNamedCount goldCondition40 = new ConditionNamedCount("收集金币", 0, 40);
 				phase1.addCondition(goldCondition10);
 				phase2.addCondition(goldCondition20);
 				phase3.addCondition(goldCondition30);

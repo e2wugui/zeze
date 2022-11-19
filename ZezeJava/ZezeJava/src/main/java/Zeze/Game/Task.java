@@ -30,15 +30,21 @@ public class Task {
 		 */
 		@Override
 		protected long ProcessTriggerTaskEventRequest(TriggerTaskEvent r) throws Throwable {
-			var name = r.Argument.getTaskName();
+			var task = open(r.Argument.getTaskName()); // TODO: 处理没找到Task等异常情况
 			var eventBean = r.Argument.getDynamicData().getBean();
 
-			var task = open(name);
-			var phase = task.getCurrentPhase();
-			var conditions = phase.getCurrentConditions();
-			for (var condition : conditions) {
-				condition.accept(eventBean);
+			// 转发给任务当前phase的所有的condition
+			int acceptedCount = 0;
+			for (var condition : task.getCurrentPhase().getCurrentConditions()) {
+				if (condition.getEventBeanClass() == eventBean.getClass()) {
+					if (condition.accept(eventBean)) {
+						acceptedCount++;
+						r.Result.getAcceptedCondition().add(condition.getName());
+					}
+				}
 			}
+			r.Result.setAcceptedCount(acceptedCount);
+			r.Result.setSuccess(true);
 			return Procedure.Success;
 		}
 
@@ -75,9 +81,12 @@ public class Task {
 		// 需要在事务内使用。 使用完不要保存。
 		public Task newTask(String taskName, String[] preTaskNames) {
 			var task = open(taskName);
-			for (var name : preTaskNames) {
-				task.addPreTaskName(name);
+			if (null != preTaskNames) {
+				for (var name : preTaskNames) {
+					task.addPreTaskName(name);
+				}
 			}
+			taskGraphics.addNewTask(task);
 			return task;
 		}
 

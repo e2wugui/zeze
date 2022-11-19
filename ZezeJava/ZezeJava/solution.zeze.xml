@@ -796,9 +796,11 @@
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.Task::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
-				<bean name="BTaskEventResult">
-					<variable id="1" name="success" type="bool"/>
-				</bean>
+                <bean name="BTaskEventResult">
+                    <variable id="1" name="success" type="bool"/> 是否发送成功（如果失败，可能是没有找到对应的Task等等）
+					<variable id="2" name="acceptedCount" type="int"/> 本次发送的事件被接受的次数
+					<variable id="3" name="acceptedCondition" type="list" value="string"/> 本次发送的事件被接受的Condition的Name
+                </bean>
 				<bean name="BEventClasses">
 					<variable id="1" name="EventClasses" type="set" value="string"/>
 				</bean>

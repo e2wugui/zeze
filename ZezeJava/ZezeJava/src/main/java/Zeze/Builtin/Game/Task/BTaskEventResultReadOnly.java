@@ -8,4 +8,6 @@ public interface BTaskEventResultReadOnly {
     public BTaskEventResult copy();
 
     public boolean isSuccess();
+    public int getAcceptedCount();
+    public Zeze.Transaction.Collections.PList1ReadOnly<String> getAcceptedConditionReadOnly();
 }
