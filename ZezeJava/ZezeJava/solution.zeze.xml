@@ -730,7 +730,7 @@
 				<table name="trank" key="BConcurrentKey" value="BRankList"/>
 			</module> Rank 11015
 
-            <module name="Task" id="11018">
+			<module name="Task" id="11018">
 				<!-- 任务状态 -->
 				<enum name="Invalid" value="-1"/> 未初始化或初始化失败
 				<enum name="Disabled" value="0"/> 可接取
@@ -796,9 +796,9 @@
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.Task::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
-                <bean name="BTaskEventResult">
-                    <variable id="1" name="success" type="bool"/>
-                </bean>
+				<bean name="BTaskEventResult">
+					<variable id="1" name="success" type="bool"/>
+				</bean>
 				<bean name="BEventClasses">
 					<variable id="1" name="EventClasses" type="set" value="string"/>
 				</bean>
@@ -807,8 +807,8 @@
 					所有的TaskEvent均由这个rpc驱动（仿照现serverdev的结构）
 					这个rpc的参数是BTaskEvent，内部的DynamicData是各个不同的任务的不同Bean数据
 				-->
-                <rpc name="TriggerTaskEvent" argument="BTaskEvent" result="BTaskEventResult" handle="server"/>
-            </module> Task 11018
+				<rpc name="TriggerTaskEvent" argument="BTaskEvent" result="BTaskEventResult" handle="server"/>
+			</module> Task 11018
 
 		</module> Game
 
@@ -1033,8 +1033,14 @@
 			<servlet name="Query"/>
 		</module>
 
+		<module name="DbWeb" id="11021">
+			<servlet name="ListTable" TransactionLevel="None"/>
+			<servlet name="GetValue" TransactionLevel="None"/>
+			<servlet name="WalkTable" TransactionLevel="None"/>
+		</module>
+
 		<!--
-		可用id范围 [11021, 11100) [11102, 12000]
+		可用id范围 [11022, 11100) [11102, 12000]
 		-->
 
 	</module> Builtin
@@ -1050,6 +1056,12 @@
 	<component name="Statistics" gendir="src/main/java" platform="zeze+java">
 		<service name="" handle="server,servlet">
 			<module ref="Zeze.Builtin.Statistics"/>
+		</service>
+	</component>
+
+	<component name="DbWeb" gendir="src/main/java" platform="zeze+java">
+		<service name="" handle="server,servlet">
+			<module ref="Zeze.Builtin.DbWeb"/>
 		</service>
 	</component>
 

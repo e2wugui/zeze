@@ -5,6 +5,9 @@ import java.net.URLDecoder;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.OpenOption;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.regex.Pattern;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
@@ -116,6 +119,24 @@ public class HttpExchange {
 		var uri = request.uri();
 		var i = uri.indexOf('?');
 		return i >= 0 ? uri.substring(i + 1) : null;
+	}
+
+	public Map<String, String> queryMap() {
+		var s = query();
+		if (s == null)
+			return Map.of();
+		var m = new LinkedHashMap<String, String>();
+		for (int i = 0, b = 0, e = -1, n = s.length(); ; i++) {
+			int c = i < n ? s.charAt(i) : '&';
+			if (c == '&') {
+				m.put(urlDecode(s.substring(b, e >= 0 ? e : i)), e >= 0 ? urlDecode(s.substring(e + 1, i)) : "");
+				if (i >= n)
+					return m;
+				b = i + 1;
+				e = -1;
+			} else if (c == '=' && e < 0)
+				e = i;
+		}
 	}
 
 	public static String filePath(String path) {

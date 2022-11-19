@@ -18,6 +18,7 @@ import Zeze.Arch.ProviderModuleBinds;
 import Zeze.Arch.ProviderWithOnline;
 import Zeze.Collections.DepartmentTree;
 import Zeze.Collections.LinkedMap;
+import Zeze.Component.DbWeb;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Netty.HttpServer;
@@ -76,6 +77,10 @@ public class App extends Zeze.AppBase {
         createService();
 
         HttpServer = new HttpServer(Zeze, null, 600);
+
+        var dbWeb = new DbWeb();
+        dbWeb.Initialize(this);
+        dbWeb.RegisterHttpServlet(HttpServer);
 
         Provider = new ProviderWithOnline();
         ProviderDirect = new ProviderDirect();
