@@ -96,8 +96,9 @@
 		<rocksdbjni.version>7.6.0</rocksdbjni.version>
 		<netty.version>4.1.82.Final</netty.version>
 		<tikv.version>3.3.0</tikv.version>
-		<druid.version>1.2.14</druid.version>
+		<druid.version>1.2.15</druid.version>
 		<mysql-conncetor-java.version>8.0.30</mysql-conncetor-java.version>
+		<aws-java-sdk-dynamodb.version>1.12.342</aws-java-sdk-dynamodb.version>
 		<rocketmq-client.version>4.9.4</rocketmq-client.version>
 		<javaee-api.version>8.0.1</javaee-api.version>
 		<jgrapht-core.version>1.5.1</jgrapht-core.version>
@@ -175,6 +176,13 @@
 			<groupId>mysql</groupId>
 			<artifactId>mysql-connector-java</artifactId>
 			<version>${mysql-conncetor-java.version}</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>com.amazonaws</groupId>
+			<artifactId>aws-java-sdk-dynamodb</artifactId>
+			<version>${aws-java-sdk-dynamodb.version}</version>
 			<scope>provided</scope>
 		</dependency>
 

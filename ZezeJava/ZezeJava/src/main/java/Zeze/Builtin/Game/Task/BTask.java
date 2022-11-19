@@ -11,7 +11,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
     private int _State; // 任务的状态，详见在上面的enum
     private String _CurrentPhaseId; // 当前的PhaseId
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Game.Task.BTaskPhase> _TaskPhases; // 该任务所有的Phase
-    private final Zeze.Transaction.Collections.PList1<String> _PreTasks; // 前置任务名（存储前置任务，不存储后置任务，方便用户扩展）
+    private final Zeze.Transaction.Collections.PList1<String> _PreTasks; // 前置任务名（只需要存储前置任务就可以建立起整个TaskGraphics，不需要存储后置任务）
     private final Zeze.Transaction.DynamicBean _TaskCustomData;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_TaskCustomData() {

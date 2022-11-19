@@ -5,7 +5,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
-import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
 import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
@@ -83,10 +82,16 @@ public class DatabaseDynamoDb extends Database {
 		}
 	}
 
-	private class TableDynamoDb implements Database.Table {
-		private final static KeySchemaElement keySchema = new KeySchemaElement("key", KeyType.HASH);
-		private final static AttributeDefinition valueAttribute = new AttributeDefinition("value", ScalarAttributeType.B);
+	private static final KeySchemaElement keySchema = new KeySchemaElement("key", KeyType.HASH);
+	private static final AttributeDefinition valueAttribute = new AttributeDefinition("value", ScalarAttributeType.B);
 
+	private static byte[] copyIf(java.nio.ByteBuffer bb) {
+		if (bb.limit() == bb.capacity() && bb.arrayOffset() == 0)
+			return bb.array();
+		return Arrays.copyOfRange(bb.array(), bb.arrayOffset(), bb.limit());
+	}
+
+	private class TableDynamoDb implements Database.Table {
 		private final String name;
 		private boolean isNew;
 
@@ -141,12 +146,6 @@ public class DatabaseDynamoDb extends Database {
 		public void remove(Transaction t, ByteBuffer key) {
 			var myt = (TransDynamoDb)t;
 			myt.remove(name, key);
-		}
-
-		private static byte[] copyIf(java.nio.ByteBuffer bb) {
-			if (bb.limit() == bb.capacity() && bb.arrayOffset() == 0)
-				return bb.array();
-			return Arrays.copyOfRange(bb.array(), bb.arrayOffset(), bb.limit());
 		}
 
 		@Override
