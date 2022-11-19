@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
+import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
 import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
@@ -28,6 +29,8 @@ public class DatabaseDynamoDb extends Database {
 		super(conf);
 
 		var dynamoConf = conf.getDynamoConf();
+		// 这里验证证书是通过配置文件指定的。
+		// todo 增加参数指定endpoint，用来支持明确的服务器，便于测试。
 		dynamoDbClient = AmazonDynamoDBClientBuilder.standard()
 				.withRegion(dynamoConf.region)
 				.enableEndpointDiscovery()
