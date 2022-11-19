@@ -17,8 +17,10 @@ import Zeze.Util.JsonWriter;
 import Zeze.Util.Str;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
+//TODO: 修改value, 新建记录, 删除记录, 清空表, 从某个key开始walk
 public class DbWeb extends AbstractDbWeb {
 	private Application zeze;
+	private String cachedListHtml;
 
 	@Override
 	public void Initialize(AppBase app) {
@@ -28,20 +30,30 @@ public class DbWeb extends AbstractDbWeb {
 
 	@Override
 	protected void OnServletListTable(HttpExchange x) {
-		var sb = new StringBuilder("<html><head><meta http-equiv=content-type content=text/html;charset=utf-8 />\n");
-		sb.append("<title>ListTable</title></head><body>\n");
-		sb.append("<script>function f(){var e=document.getElementById('t');e.value=document.getElementsByName('t')\n");
-		sb.append("[0].value;}</script><b>DbWeb</b><form action=WalkTable method=get><p>table: <select name=t >\n");
-		var tableNames = new ArrayList<String>();
-		for (var table : zeze.getTables().values())
-			tableNames.add(table.getName());
-		Collections.sort(tableNames);
-		for (var tableName : tableNames)
-			sb.append("<option value=\"").append(tableName).append("\">").append(tableName).append("</option>\n");
-		sb.append("</select> <input type=submit value=walk onclick=f() /></form><form action=GetValue method=get>\n");
-		sb.append("key: <input type=hidden id=t name=t /><input name=k /> \n");
-		sb.append("<input type=submit value=get onclick=f() /></form><hr></body></html>\n");
-		x.sendHtml(HttpResponseStatus.OK, sb.toString());
+		try {
+			var html = cachedListHtml;
+			if (html != null) {
+				x.sendHtml(HttpResponseStatus.OK, html);
+				return;
+			}
+			var sb = new StringBuilder("<html><head><meta http-equiv=content-type content=text/html;charset=utf-8 />");
+			sb.append("\n<title>ListTable</title></head><body>\n");
+			sb.append("<script>function f(){var d=document,e=d.getElementById('t');e.value=d.getElementsByName('t')");
+			sb.append("[0].value;}</script><b>DbWeb</b><form action=WalkTable method=get><p>table: <select name=t >\n");
+			var tableNames = new ArrayList<String>();
+			for (var table : zeze.getTables().values())
+				tableNames.add(table.getName());
+			Collections.sort(tableNames);
+			for (var tableName : tableNames)
+				sb.append("<option value=\"").append(tableName).append("\">").append(tableName).append("</option>\n");
+			sb.append("</select> <input type=submit value=walk onclick=f() /></form><form action=GetValue method=get>");
+			sb.append("\nkey: <input type=hidden id=t name=t /><input name=k /> \n");
+			sb.append("<input type=submit value=get onclick=f() /></form><hr></body></html>\n");
+			cachedListHtml = html = sb.toString();
+			x.sendHtml(HttpResponseStatus.OK, html);
+		} catch (Exception e) {
+			x.sendPlainText(HttpResponseStatus.OK, Str.stacktrace(e));
+		}
 	}
 
 	@Override
@@ -49,12 +61,14 @@ public class DbWeb extends AbstractDbWeb {
 		try {
 			var qm = x.queryMap();
 			var tableName = qm.get("t");
+			var n = qm.get("n");
 			Objects.requireNonNull(tableName, "tableName");
+			var count = n != null ? Math.min(Integer.parseInt(n), 1_000_000) : 100;
 			var table = (TableX<?, ?>)zeze.getTable(tableName);
 			var keys = new ArrayList<>();
 			table.walk((k, __) -> {
 				keys.add(k);
-				return keys.size() < 100;
+				return keys.size() < count;
 			});
 			var sb = new StringBuilder("<html><head><meta http-equiv=content-type content=text/html;charset=utf-8 />");
 			sb.append("\n<title>walkTable</title></head><body><style>a{text-decoration:none}</style>\n");
@@ -71,7 +85,7 @@ public class DbWeb extends AbstractDbWeb {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static <K extends Comparable<K>> Bean selectDirty(TableX<?, Bean> table, Object key) {
+	private static <K extends Comparable<K>> Bean selectDirty(TableX<?, ?> table, Object key) {
 		return ((TableX<K, ?>)table).selectDirty((K)key);
 	}
 
@@ -83,8 +97,7 @@ public class DbWeb extends AbstractDbWeb {
 			var key = qm.get("k");
 			Objects.requireNonNull(tableName, "tableName");
 			Objects.requireNonNull(key, "key");
-			@SuppressWarnings("unchecked")
-			var table = (TableX<?, Bean>)zeze.getTable(tableName);
+			var table = (TableX<?, ?>)zeze.getTable(tableName);
 			Object k;
 			var keyType = ((ParameterizedType)table.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
 			if (keyType == Long.class)
