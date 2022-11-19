@@ -145,6 +145,7 @@
 			<module ref="M6"/>
 			<module ref="demo.M6.M7"/>
 			<module ref="TaskTest.TaskExt"/>
+			<module ref="TaskTest.NPCTask"/>
 		</service>
 	</project>
 

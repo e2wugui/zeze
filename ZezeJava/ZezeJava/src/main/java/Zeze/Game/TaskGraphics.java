@@ -50,21 +50,21 @@ public class TaskGraphics {
 		var taskTable = taskModule.getTable();
 		if (taskTable.isNew())
 			return;
-		taskTable.walk((k, v) -> {
-			Task task = new Task(taskModule, k.getTaskName());
-			// TODO: 需要彻底初始化Task
-			graph.addVertex(task);
-			return true;
-		});
-		taskTable.walk((k, v) -> {
-			var currentTask = getTaskByName(v.getTaskName());
-			var preTaskNamesPList = v.getPreTasks();
-			for (var preTaskName : preTaskNamesPList) {
-				var preTask = getTaskByName(preTaskName);
-				graph.addEdge(preTask, currentTask); // 会再添加过程中检查任务图结构是否合法
-			}
-			return true;
-		});
+//		taskTable.walk((k, v) -> {
+//			Task<?> task = new Task(taskModule, k.getTaskName(), );
+//			// TODO: 需要彻底初始化Task
+//			graph.addVertex(task);
+//			return true;
+//		});
+//		taskTable.walk((k, v) -> {
+//			var currentTask = getTaskByName(v.getTaskName());
+//			var preTaskNamesPList = v.getPreTasks();
+//			for (var preTaskName : preTaskNamesPList) {
+//				var preTask = getTaskByName(preTaskName);
+//				graph.addEdge(preTask, currentTask); // 会再添加过程中检查任务图结构是否合法
+//			}
+//			return true;
+//		});
 	}
 
 	private Task getTaskByName(String taskName) {

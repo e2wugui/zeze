@@ -1,9 +1,13 @@
-package TaskTest.TaskExt;
+package TaskTest;
 
 import java.util.ArrayList;
 import ClientGame.Login.BRole;
 import ClientGame.Login.CreateRole;
 import ClientGame.Login.GetRoleList;
+import TaskTest.NPCTask.BNPCTaskDynamics;
+import TaskTest.NPCTask.NPCTask;
+import TaskTest.TaskExt.BCollectCoinEvent;
+import TaskTest.TaskExt.ConditionNamedCount;
 import Zeze.Builtin.Game.Online.Login;
 import Zeze.Builtin.Game.Online.Logout;
 import Zeze.Builtin.Game.Online.ReLogin;
@@ -91,7 +95,9 @@ public class TestTask extends TestCase {
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
 
 				var module = server0.getZeze().getTaskModule();
-				var task1 = module.newTask("Task01GetGold", null);
+				var task1 = module.open("Task02NpcTask", NPCTask.class, BNPCTaskDynamics.class);
+				task1.setReceiveNpcId(1001); // 设置接取任务的NPC
+				task1.setSubmitNpcId(1002); // 设置提交任务的NPC
 				TaskPhase phase1 = task1.newPhase("Phase01");
 				TaskPhase phase2 = task1.newPhase("Phase02");
 				TaskPhase phase3 = task1.newPhase("Phase03");

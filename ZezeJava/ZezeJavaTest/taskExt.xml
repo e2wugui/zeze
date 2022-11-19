@@ -13,4 +13,12 @@
             <variable id="2" name="coinCount" type="long"/>
         </bean>
     </module>
+
+    <!-- 扩展Task主类，建立一种要向NPC交互的衍生任务 -->
+    <module name="NPCTask" id="9">
+        <bean name="BNPCTaskDynamics">
+            <variable id="1" name="ReceiveNpcId" type="long"/> 接任务的NPC
+            <variable id="2" name="SubmitNpcId" type="long"/> 交任务的NPC
+        </bean>
+    </module>
 </solution>

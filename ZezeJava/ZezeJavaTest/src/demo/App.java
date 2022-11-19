@@ -2,6 +2,7 @@ package demo;
 
 import Benchmark.ABasicSimpleAddOneThread;
 import Benchmark.CBasicSimpleAddConcurrent;
+import TaskTest.NPCTask.NPCTask;
 import Zeze.Collections.LinkedMap;
 import Zeze.Config;
 import Zeze.Game.Bag;
@@ -98,6 +99,7 @@ public class App extends Zeze.AppBase {
     public demo.M6.ModuleM6 demo_M6;
     public demo.M6.M7.ModuleM7 demo_M6_M7;
     public TaskTest.TaskExt.ModuleTaskExt TaskTest_TaskExt;
+    public TaskTest.NPCTask.ModuleNPCTask TaskTest_NPCTask;
 
     @Override
     public Zeze.Application getZeze() {
@@ -145,10 +147,16 @@ public class App extends Zeze.AppBase {
         if (modules.put(TaskTest_TaskExt.getFullName(), TaskTest_TaskExt) != null)
             throw new RuntimeException("duplicate module name: TaskTest_TaskExt");
 
+        TaskTest_NPCTask = replaceModuleInstance(new TaskTest.NPCTask.ModuleNPCTask(this));
+        TaskTest_NPCTask.Initialize(this);
+        if (modules.put(TaskTest_NPCTask.getFullName(), TaskTest_NPCTask) != null)
+            throw new RuntimeException("duplicate module name: TaskTest_NPCTask");
+
         Zeze.setSchemas(new demo.Schemas());
     }
 
     public synchronized void destroyModules() {
+        TaskTest_NPCTask = null;
         TaskTest_TaskExt = null;
         demo_M6_M7 = null;
         demo_M6 = null;
@@ -171,9 +179,12 @@ public class App extends Zeze.AppBase {
         demo_M6.Start(this);
         demo_M6_M7.Start(this);
         TaskTest_TaskExt.Start(this);
+        TaskTest_NPCTask.Start(this);
     }
 
     public synchronized void stopModules() throws Throwable {
+        if (TaskTest_NPCTask != null)
+            TaskTest_NPCTask.Stop(this);
         if (TaskTest_TaskExt != null)
             TaskTest_TaskExt.Stop(this);
         if (demo_M6_M7 != null)

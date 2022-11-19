@@ -1,6 +1,7 @@
 package Zeze.Game;
 
-import java.util.Objects;
+import java.lang.invoke.MethodHandle;
+import java.lang.reflect.ParameterizedType;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -12,6 +13,7 @@ import Zeze.Builtin.Game.Task.TriggerTaskEvent;
 import Zeze.Builtin.Game.Task.tTask;
 import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
@@ -20,7 +22,7 @@ import org.jgrapht.graph.DirectedAcyclicGraph;
  * Task类
  * Task类本质是一个配置表，把真正需要的数据放到BTask里面
  */
-public class Task {
+public class Task<ExtendedBean extends Bean> {
 	/**
 	 * Task Module
 	 */
@@ -30,7 +32,9 @@ public class Task {
 		 */
 		@Override
 		protected long ProcessTriggerTaskEventRequest(TriggerTaskEvent r) throws Throwable {
-			var task = open(r.Argument.getTaskName()); // TODO: 处理没找到Task等异常情况
+			var taskName = r.Argument.getTaskName();
+			var customBeanClass = r.Argument.getDynamicData().getBean().getClass();
+			var task = getTask(taskName); // TODO: 处理没找到Task等异常情况
 			var eventBean = r.Argument.getDynamicData().getBean();
 
 			// 转发给任务当前phase的所有的condition
@@ -48,7 +52,7 @@ public class Task {
 			return Procedure.Success;
 		}
 
-		private final ConcurrentHashMap<String, Task> tasks = new ConcurrentHashMap<>();
+		private final ConcurrentHashMap<String, Task<?>> tasks = new ConcurrentHashMap<>();
 		private final TaskGraphics taskGraphics;
 		public final ProviderApp providerApp;
 		public final Application zeze;
@@ -78,20 +82,26 @@ public class Task {
 			return _tTask;
 		}
 
-		// 需要在事务内使用。 使用完不要保存。
-		public Task newTask(String taskName, String[] preTaskNames) {
-			var task = open(taskName);
-			if (null != preTaskNames) {
-				for (var name : preTaskNames) {
-					task.addPreTaskName(name);
-				}
-			}
-			taskGraphics.addNewTask(task);
-			return task;
+		public <ExtendedBean extends Bean, ExtendedTask extends Task<ExtendedBean>> ExtendedTask newTask(String taskName, Class<ExtendedTask> extendedTaskClass, Class<ExtendedBean> extendedBeanClass) {
+			return open(taskName, extendedTaskClass, extendedBeanClass);
 		}
 
-		private Task open(String taskName) {
-			return tasks.computeIfAbsent(taskName, key -> new Task(this, key));
+		// 需要在事务内使用。 使用完不要保存。
+		@SuppressWarnings("unchecked")
+		public <ExtendedBean extends Bean, ExtendedTask extends Task<ExtendedBean>> ExtendedTask open(String taskName, Class<ExtendedTask> extendedTaskClass, Class<ExtendedBean> extendedBeanClass) {
+			var res = (ExtendedTask)tasks.computeIfAbsent(taskName, key -> {
+				try {
+					var c = extendedTaskClass.getDeclaredConstructor(Module.class, String.class);
+					return (Task<?>)c.newInstance(Module.this, taskName);
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			});
+			return res;
+		}
+
+		public Task<?> getTask(String taskName) {
+			return tasks.get(taskName);
 		}
 	}
 
@@ -105,13 +115,15 @@ public class Task {
 			tryToProceedToNextPhase();
 	}
 
-	// @formatter:off
 	/**
-	 * BeanFactory
+	 * Runtime方法：isCompleted
+	 * - 用于判断任务是否完成
 	 */
-	private final static BeanFactory beanFactory = new BeanFactory();
-	public static long getSpecialTypeIdFromBean(Bean bean) { return BeanFactory.getSpecialTypeIdFromBean(bean); }
-	public static Bean createBeanFromSpecialTypeId(long typeId) { return beanFactory.createBeanFromSpecialTypeId(typeId); }
+	public boolean isCompleted() {
+		return endPhase.isCompleted() && currentPhase == endPhase;
+	}
+
+	// @formatter:off
 
 	/**
 	 * Module
@@ -123,6 +135,8 @@ public class Task {
 	 * Task Bean
 	 */
 	public BTask getBean() { return bean; }
+	@SuppressWarnings("unchecked")
+	public ExtendedBean getExtendedBean() { return (ExtendedBean)bean.getTaskCustomData().getBean(); }
 	private final BTask bean;
 
 	/**
@@ -145,18 +159,31 @@ public class Task {
 	private final DirectedAcyclicGraph<TaskPhase, DefaultEdge> phases; // 任务的各个阶段的连接图
 
 	/**
-	 * Protected Task Constructor
-	 * - DO NOT DIRECTLY USE THIS CONSTRUCTOR TO CREATE A NEW TASK
+	 * Task Constructors
 	 */
-	protected Task(Module module, String name) {
+	public Task(Module module, String name, Class<ExtendedBean> extendedBeanClass){
+		this(module, name, extendedBeanClass, null);
+	}
+	public Task(Module module, String name, Class<ExtendedBean> extendedBeanClass, String[] preTaskNames) {
 		this.module = module;
 		this.bean = this.module._tTask.getOrAdd(new BTaskKey(name));
 		bean.setTaskName(name);
 		bean.setState(Module.Invalid);
+		bean.getTaskCustomData().setBean(new EmptyBean());
 		phases= new DirectedAcyclicGraph<>(DefaultEdge.class);
 		startPhase = null;
 		currentPhase = null;
 		endPhase = null;
+
+		extendedBeanConstructor = beanFactory.register(extendedBeanClass);
+		bean.getTaskCustomData().setBean(BeanFactory.invoke(extendedBeanConstructor));
+
+		if (null != preTaskNames) { // 允许没有前置任务
+			for (var preTaskName : preTaskNames) {
+				addPreTaskName(preTaskName);
+			}
+		}
+		module.taskGraphics.addNewTask(this);
 	}
 	// @formatter:on
 
@@ -213,7 +240,7 @@ public class Task {
 		}
 	}
 
-	// ======================================== Private方法 ========================================
+	// ======================================== Private方法和一些不需要被注意的方法 ========================================
 
 	/**
 	 * 内部方法：proceedToNextPhase
@@ -224,4 +251,19 @@ public class Task {
 			var nextPhase = phases.getDescendants(currentPhase);
 		}
 	}
+
+	/**
+	 * BeanFactory
+	 */
+	private final static BeanFactory beanFactory = new BeanFactory();
+
+	public static long getSpecialTypeIdFromBean(Bean bean) {
+		return BeanFactory.getSpecialTypeIdFromBean(bean);
+	}
+
+	public static Bean createBeanFromSpecialTypeId(long typeId) {
+		return beanFactory.createBeanFromSpecialTypeId(typeId);
+	}
+
+	private final MethodHandle extendedBeanConstructor;
 }
