@@ -123,8 +123,8 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Task.BTaskEvent: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("TaskName").append('=').append(getTaskName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("DynamicData").append('=').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("TaskName=").append(getTaskName()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("DynamicData=").append(System.lineSeparator());
         _DynamicData.getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;

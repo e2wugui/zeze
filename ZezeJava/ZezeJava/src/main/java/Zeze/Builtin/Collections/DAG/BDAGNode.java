@@ -83,7 +83,7 @@ public final class BDAGNode extends Zeze.Transaction.Bean implements BDAGNodeRea
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Collections.DAG.BDAGNode: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(System.lineSeparator());
         _Value.getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;

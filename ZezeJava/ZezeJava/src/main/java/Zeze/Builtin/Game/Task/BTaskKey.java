@@ -35,7 +35,7 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Task.BTaskKey: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("TaskName").append('=').append(getTaskName()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("TaskName=").append(getTaskName()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }

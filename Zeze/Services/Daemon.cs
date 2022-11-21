@@ -18,6 +18,8 @@ namespace Zeze.Services;
 public static class Daemon
 {
     public const string PropertyNamePort = "Zeze.ProcessDaemon.Port";
+    public const string PropertyNameClearInUse = "Zeze.Database.ClearInUse";
+
     static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
     // Key Is ServerId。每个Server对应一个Monitor。
@@ -36,24 +38,39 @@ public static class Daemon
         UdpSocket = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
         UdpSocket.Client.SendTimeout = 200;
 
-        ProcessStartInfo startInfo = new(args[0])
-        {
-            Environment =
-            {
-                [PropertyNamePort] = ((IPEndPoint)UdpSocket.Client.LocalEndPoint!).Port.ToString()
-            },
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            CreateNoWindow = true,
-            UseShellExecute = false
-        };
-        for (var i = 1; i < args.Length; i++)
-            startInfo.ArgumentList.Add(args[i]);
-
         try
         {
+            var restart = false;
             while (true)
             {
+                ProcessStartInfo startInfo = restart
+                    ? new(args[0])
+                    {
+                        Environment =
+                        {
+                            [PropertyNamePort] = ((IPEndPoint)UdpSocket.Client.LocalEndPoint!).Port.ToString(),
+                            [PropertyNameClearInUse] = "true", // restart 需要设置这个属性。
+                        },
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true,
+                        UseShellExecute = false
+                    }
+                    : new(args[0])
+                    {
+                        Environment =
+                        {
+                            [PropertyNamePort] = ((IPEndPoint)UdpSocket.Client.LocalEndPoint!).Port.ToString(),
+                        },
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true,
+                        UseShellExecute = false
+                    };
+
+                for (var i = 1; i < args.Length; i++)
+                    startInfo.ArgumentList.Add(args[i]);
+
                 Subprocess = Process.Start(startInfo)!;
                 Subprocess.OutputDataReceived += (_, eventArgs) => Console.WriteLine(eventArgs.Data);
                 Subprocess.ErrorDataReceived += (_, eventArgs) => Console.Error.WriteLine(eventArgs.Data);
@@ -64,6 +81,7 @@ public static class Daemon
                     break;
                 JoinMonitors();
                 logger.Warn($"Subprocess Restart! ExitCode={exitCode}");
+                restart = true;
             }
         }
         catch (Exception ex)

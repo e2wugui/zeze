@@ -152,9 +152,9 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean implements 
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.BAchillesHeelConfig: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("MaxNetPing").append('=').append(getMaxNetPing()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ServerProcessTime").append('=').append(getServerProcessTime()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ServerReleaseTimeout").append('=').append(getServerReleaseTimeout()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("MaxNetPing=").append(getMaxNetPing()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ServerProcessTime=").append(getServerProcessTime()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ServerReleaseTimeout=").append(getServerReleaseTimeout()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }

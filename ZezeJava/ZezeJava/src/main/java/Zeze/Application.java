@@ -13,6 +13,7 @@ import Zeze.Component.AutoKey;
 import Zeze.Component.DelayRemove;
 import Zeze.Component.Timer;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Services.Daemon;
 import Zeze.Services.GlobalCacheManagerWithRaftAgent;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Transaction.AchillesHeelDaemon;
@@ -265,8 +266,8 @@ public final class Application {
 			timer = new Timer(this);
 			taskModule = new Zeze.Game.Task.Module(this);
 
-			// XXX Remove Me
-			conf.clearInUseAndIAmSureAppStopped(this, databases);
+			if (System.getProperty(Daemon.propertyNameClearInUse).equals("true"))
+				conf.clearInUseAndIAmSureAppStopped(this, databases);
 
 			// Set Database InUse
 			for (var db : databases.values())

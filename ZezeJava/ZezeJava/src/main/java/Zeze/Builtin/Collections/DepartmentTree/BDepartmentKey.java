@@ -40,8 +40,8 @@ public final class BDepartmentKey implements Serializable, Comparable<BDepartmen
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Owner").append('=').append(getOwner()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("DepartmentId").append('=').append(getDepartmentId()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Owner=").append(getOwner()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("DepartmentId=").append(getDepartmentId()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }

@@ -168,8 +168,8 @@ namespace Zeze
 
             if (Config.ServerId >= 0)
             {
-                // XXX Remove Me
-                Config?.ClearInUseAndIAmSureAppStopped(this, Databases); // XXX REMOVE ME!
+                if (Environment.GetEnvironmentVariable(Services.Daemon.PropertyNameClearInUse).Equals("true"))
+                    Config?.ClearInUseAndIAmSureAppStopped(this, Databases);
 
                 // Set Databases InUse
                 foreach (var db in Databases.Values)

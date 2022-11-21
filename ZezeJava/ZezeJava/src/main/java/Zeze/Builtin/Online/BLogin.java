@@ -98,7 +98,7 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Online.BLogin: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ClientId").append('=').append(getClientId()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ClientId=").append(getClientId()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }

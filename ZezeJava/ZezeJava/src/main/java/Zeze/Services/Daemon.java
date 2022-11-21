@@ -26,6 +26,7 @@ import org.apache.logging.log4j.Logger;
 
 public class Daemon {
 	public static final String propertyNamePort = "Zeze.ProcessDaemon.Port";
+	public static final String propertyNameClearInUse = "Zeze.Database.ClearInUse";
 	private static final Logger logger = LogManager.getLogger(Daemon.class);
 
 	// Key Is ServerId。每个Server对应一个Monitor。
@@ -43,22 +44,26 @@ public class Daemon {
 		udpSocket = new DatagramSocket(0, InetAddress.getLoopbackAddress());
 		udpSocket.setSoTimeout(200);
 
-		var command = new ArrayList<String>();
-		command.add("java");
-		command.add("-D" + propertyNamePort + "=" + udpSocket.getLocalPort());
-		Collections.addAll(command, args);
-
-		var pb = new ProcessBuilder(command);
-		pb.inheritIO();
-
 		try {
+			var restart = false;
 			while (true) {
+				var command = new ArrayList<String>();
+				command.add("java");
+				command.add("-D" + propertyNamePort + "=" + udpSocket.getLocalPort());
+				if (restart)
+					command.add("-D" + propertyNameClearInUse + "=true");
+				Collections.addAll(command, args);
+
+				var pb = new ProcessBuilder(command);
+				pb.inheritIO();
+
 				subprocess = pb.start();
 				var exitCode = mainRun();
 				if (exitCode == 0)
 					break;
 				joinMonitors();
 				logger.warn("Subprocess Restart! ExitCode={}", exitCode);
+				restart = true;
 			}
 		} catch (Throwable ex) {
 			logger.error("Daemon.main", ex);
