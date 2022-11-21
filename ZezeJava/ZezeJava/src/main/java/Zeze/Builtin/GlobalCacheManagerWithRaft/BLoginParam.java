@@ -152,9 +152,9 @@ public final class BLoginParam extends Zeze.Transaction.Bean implements BLoginPa
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.BLoginParam: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ServerId=").append(getServerId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("GlobalCacheManagerHashIndex=").append(getGlobalCacheManagerHashIndex()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("DebugMode=").append(isDebugMode()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ServerId").append('=').append(getServerId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("GlobalCacheManagerHashIndex").append('=').append(getGlobalCacheManagerHashIndex()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("DebugMode").append('=').append(isDebugMode()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }

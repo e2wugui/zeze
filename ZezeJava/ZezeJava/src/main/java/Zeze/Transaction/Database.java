@@ -157,9 +157,28 @@ public abstract class Database {
 		void rollback();
 	}
 
-	public static class DataWithVersion {
+	public static class DataWithVersion implements Zeze.Serialize.Serializable {
 		public ByteBuffer data;
 		public long version;
+
+		@Override
+		public void encode(ByteBuffer bb) {
+			bb.WriteByteBuffer(data);
+			bb.WriteLong(version);
+		}
+
+		@Override
+		public void decode(ByteBuffer bb) {
+			data = ByteBuffer.Wrap(bb.ReadBytes());
+			version = bb.ReadLong();
+		}
+
+		public static DataWithVersion decode(byte[] bytes) {
+			var dv = new DataWithVersion();
+			if (bytes != null)
+				dv.decode(ByteBuffer.Wrap(bytes));
+			return dv;
+		}
 	}
 
 	/**

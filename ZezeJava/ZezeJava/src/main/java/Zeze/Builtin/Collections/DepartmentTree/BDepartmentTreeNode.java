@@ -198,35 +198,31 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ParentDepartment=").append(getParentDepartment()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Childs={");
-        if (!_Childs.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _kv_ : _Childs.entrySet()) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_kv_.getKey()).append(',').append(System.lineSeparator());
-                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(_kv_.getValue()).append(',').append(System.lineSeparator());
-            }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+        sb.append(Zeze.Util.Str.indent(level)).append("ParentDepartment").append('=').append(getParentDepartment()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Childs").append("=[").append(System.lineSeparator());
+        level += 4;
+        for (var _kv_ : _Childs.entrySet()) {
+            sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
+            sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(_kv_.getKey()).append(',').append(System.lineSeparator());
+            sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(_kv_.getValue()).append(',').append(System.lineSeparator());
+            sb.append(Zeze.Util.Str.indent(level)).append(')').append(System.lineSeparator());
         }
-        sb.append('}').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Name=").append(getName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Managers={");
-        if (!_Managers.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _kv_ : _Managers.entrySet()) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_kv_.getKey()).append(',').append(System.lineSeparator());
-                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(System.lineSeparator());
-                _kv_.getValue().getBean().buildString(sb, level + 4);
-                sb.append(',').append(System.lineSeparator());
-            }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append(']').append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Name").append('=').append(getName()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Managers").append("=[").append(System.lineSeparator());
+        level += 4;
+        for (var _kv_ : _Managers.entrySet()) {
+            sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
+            sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(_kv_.getKey()).append(',').append(System.lineSeparator());
+            sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
+            _kv_.getValue().getBean().buildString(sb, level + 4);
+            sb.append(',').append(System.lineSeparator());
+            sb.append(Zeze.Util.Str.indent(level)).append(')').append(System.lineSeparator());
         }
-        sb.append('}').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Data=").append(System.lineSeparator());
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append(']').append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Data").append('=').append(System.lineSeparator());
         _Data.getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;

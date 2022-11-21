@@ -92,7 +92,7 @@ public final class BAutoKey extends Zeze.Transaction.Bean implements BAutoKeyRea
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.AutoKey.BAutoKey: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("NextId=").append(getNextId()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("NextId").append('=').append(getNextId()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }

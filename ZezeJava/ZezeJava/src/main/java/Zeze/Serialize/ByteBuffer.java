@@ -27,7 +27,15 @@ public final class ByteBuffer {
 		return Bytes.length;
 	}
 
+	public int capacity() {
+		return Bytes.length;
+	}
+
 	public int Size() {
+		return WriteIndex - ReadIndex;
+	}
+
+	public int size() {
 		return WriteIndex - ReadIndex;
 	}
 

@@ -86,7 +86,7 @@ public class DatabaseTikv extends Database {
 		@Override
 		public synchronized KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
 			var value = table.find(key);
-			var dv = new DVTikv();
+			var dv = new DataWithVersion();
 			if (value != null)
 				dv.decode(value);
 			if (dv.version != version)
@@ -95,7 +95,9 @@ public class DatabaseTikv extends Database {
 			dv.version = ++version;
 			dv.data = data;
 			try (var txn = beginTransaction()) {
-				table.replace(txn, key, ByteBuffer.Wrap(dv.encode()));
+				var bb = ByteBuffer.Allocate();
+				dv.encode(bb);
+				table.replace(txn, key, bb);
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
@@ -104,7 +106,7 @@ public class DatabaseTikv extends Database {
 
 		@Override
 		public synchronized DataWithVersion getDataWithVersion(ByteBuffer key) {
-			var dv = new DVTikv();
+			var dv = new DataWithVersion();
 			var value = table.find(key);
 			if (value != null)
 				dv.decode(value);
@@ -118,27 +120,6 @@ public class DatabaseTikv extends Database {
 		@Override
 		public int clearInUse(int localId, String global) {
 			return 0;
-		}
-	}
-
-	private static final class DVTikv extends DataWithVersion implements Zeze.Serialize.Serializable {
-		public byte[] encode() {
-			int dataSize = data.Size();
-			var bb = ByteBuffer.Allocate(ByteBuffer.writeUIntSize(dataSize) + dataSize + ByteBuffer.writeLongSize(version));
-			encode(bb);
-			return bb.Bytes;
-		}
-
-		@Override
-		public void encode(ByteBuffer bb) {
-			bb.WriteByteBuffer(data);
-			bb.WriteLong(version);
-		}
-
-		@Override
-		public void decode(ByteBuffer bb) {
-			data = ByteBuffer.Wrap(bb.ReadBytes());
-			version = bb.ReadLong();
 		}
 	}
 

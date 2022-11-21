@@ -135,8 +135,8 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Task.BTaskCondition: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("TaskConditionName=").append(getTaskConditionName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("TaskConditionCustomData=").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("TaskConditionName").append('=').append(getTaskConditionName()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("TaskConditionCustomData").append('=').append(System.lineSeparator());
         _TaskConditionCustomData.getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;

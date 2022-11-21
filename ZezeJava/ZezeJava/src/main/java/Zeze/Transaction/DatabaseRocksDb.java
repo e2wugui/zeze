@@ -270,41 +270,13 @@ public class DatabaseRocksDb extends Database {
 		}
 	}
 
-	private static final class DVRocks extends DataWithVersion implements Zeze.Serialize.Serializable {
-		@Override
-		public void encode(ByteBuffer bb) {
-			bb.WriteByteBuffer(data);
-			bb.WriteLong(version);
-		}
-
-		@Override
-		public void decode(ByteBuffer bb) {
-			data = ByteBuffer.Wrap(bb.ReadBytes());
-			version = bb.ReadLong();
-		}
-
-		byte[] encode() {
-			int size = data.Size();
-			var bb = ByteBuffer.Allocate(ByteBuffer.writeUIntSize(size) + size + ByteBuffer.writeLongSize(version));
-			encode(bb);
-			return bb.Bytes;
-		}
-
-		static DVRocks decode(byte[] bytes) {
-			var dv = new DVRocks();
-			if (bytes != null)
-				dv.decode(ByteBuffer.Wrap(bytes));
-			return dv;
-		}
-	}
-
 	private final class OperatesRocksDb implements Operates {
 		private final ColumnFamilyHandle columnFamily = getOrAddFamily("zeze.OperatesRocksDb.Schemas", null);
 
 		@Override
 		public synchronized DataWithVersion getDataWithVersion(ByteBuffer key) {
 			try {
-				return DVRocks.decode(rocksDb.get(columnFamily, defaultReadOptions, key.Bytes, key.ReadIndex, key.Size()));
+				return DataWithVersion.decode(rocksDb.get(columnFamily, defaultReadOptions, key.Bytes, key.ReadIndex, key.Size()));
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
 			}
@@ -313,14 +285,17 @@ public class DatabaseRocksDb extends Database {
 		@Override
 		public synchronized KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
 			try {
-				var dv = DVRocks.decode(rocksDb.get(columnFamily, defaultReadOptions, key.Bytes, key.ReadIndex, key.Size()));
+				var dv = DataWithVersion.decode(rocksDb.get(columnFamily, defaultReadOptions, key.Bytes, key.ReadIndex, key.Size()));
 				if (dv.version != version)
 					return KV.create(version, false);
 
 				dv.version = ++version;
 				dv.data = data;
-				var value = dv.encode();
-				rocksDb.put(columnFamily, defaultWriteOptions, key.Bytes, key.ReadIndex, key.Size(), value, 0, value.length);
+				var value = ByteBuffer.Allocate();
+				dv.encode(value);
+				rocksDb.put(columnFamily, defaultWriteOptions,
+						key.Bytes, key.ReadIndex, key.size(),
+						value.Bytes, value.ReadIndex, value.size());
 				return KV.create(version, true);
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);

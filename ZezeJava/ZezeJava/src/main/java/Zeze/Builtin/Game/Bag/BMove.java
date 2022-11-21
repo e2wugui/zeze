@@ -187,10 +187,10 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Bag.BMove: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("BagName=").append(getBagName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("PositionFrom=").append(getPositionFrom()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("PositionTo=").append(getPositionTo()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("number=").append(getNumber()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("BagName").append('=').append(getBagName()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("PositionFrom").append('=').append(getPositionFrom()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("PositionTo").append('=').append(getPositionTo()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("number").append('=').append(getNumber()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }

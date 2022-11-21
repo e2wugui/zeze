@@ -73,19 +73,15 @@ public final class BRankList extends Zeze.Transaction.Bean implements BRankListR
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Rank.BRankList: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("RankList=[");
-        if (!_RankList.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _item_ : _RankList) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(System.lineSeparator());
-                _item_.buildString(sb, level + 4);
-                sb.append(',').append(System.lineSeparator());
-            }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+        sb.append(Zeze.Util.Str.indent(level)).append("RankList").append("=[").append(System.lineSeparator());
+        level += 4;
+        for (var _item_ : _RankList) {
+            sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(System.lineSeparator());
+            _item_.buildString(sb, level + 4);
+            sb.append(',').append(System.lineSeparator());
         }
-        sb.append(']').append(System.lineSeparator());
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append(']').append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }

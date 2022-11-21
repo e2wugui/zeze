@@ -173,9 +173,9 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BModule: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ChoiceType=").append(getChoiceType()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ConfigType=").append(getConfigType()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("SubscribeType=").append(getSubscribeType()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ChoiceType").append('=').append(getChoiceType()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ConfigType").append('=').append(getConfigType()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("SubscribeType").append('=').append(getSubscribeType()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }

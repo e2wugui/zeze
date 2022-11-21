@@ -133,10 +133,10 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Collections.DAG.BDAGEdge: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("From=").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("From").append('=').append(System.lineSeparator());
         getFrom().buildString(sb, level + 4);
         sb.append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("To=").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("To").append('=').append(System.lineSeparator());
         getTo().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;

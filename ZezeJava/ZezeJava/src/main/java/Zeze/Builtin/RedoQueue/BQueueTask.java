@@ -222,11 +222,11 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.RedoQueue.BQueueTask: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("QueueName=").append(getQueueName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("TaskType=").append(getTaskType()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("TaskId=").append(getTaskId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("TaskParam=").append(getTaskParam()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("PrevTaskId=").append(getPrevTaskId()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("QueueName").append('=').append(getQueueName()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("TaskType").append('=').append(getTaskType()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("TaskId").append('=').append(getTaskId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("TaskParam").append('=').append(getTaskParam()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("PrevTaskId").append('=').append(getPrevTaskId()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }

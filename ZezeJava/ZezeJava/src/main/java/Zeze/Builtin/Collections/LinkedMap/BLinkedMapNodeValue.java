@@ -122,8 +122,8 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean implements 
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Id=").append(getId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Id").append('=').append(getId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
         _Value.getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;

@@ -164,9 +164,9 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.LinkdBase.BReportError: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("from=").append(getFrom()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("code=").append(getCode()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("desc=").append(getDesc()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("from").append('=').append(getFrom()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("code").append('=').append(getCode()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("desc").append('=').append(getDesc()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }

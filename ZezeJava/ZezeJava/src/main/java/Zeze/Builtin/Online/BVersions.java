@@ -73,20 +73,18 @@ public final class BVersions extends Zeze.Transaction.Bean implements BVersionsR
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Online.BVersions: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Logins={");
-        if (!_Logins.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _kv_ : _Logins.entrySet()) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_kv_.getKey()).append(',').append(System.lineSeparator());
-                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(System.lineSeparator());
-                _kv_.getValue().buildString(sb, level + 4);
-                sb.append(',').append(System.lineSeparator());
-            }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+        sb.append(Zeze.Util.Str.indent(level)).append("Logins").append("=[").append(System.lineSeparator());
+        level += 4;
+        for (var _kv_ : _Logins.entrySet()) {
+            sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
+            sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(_kv_.getKey()).append(',').append(System.lineSeparator());
+            sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
+            _kv_.getValue().buildString(sb, level + 4);
+            sb.append(',').append(System.lineSeparator());
+            sb.append(Zeze.Util.Str.indent(level)).append(')').append(System.lineSeparator());
         }
-        sb.append('}').append(System.lineSeparator());
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append(']').append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }

@@ -5,6 +5,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Util.KV;
+import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
 import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
@@ -34,6 +36,7 @@ public class DatabaseDynamoDb extends Database {
 				.withRegion(dynamoConf.region)
 				.enableEndpointDiscovery()
 				.build();
+		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesDynamoDb());
 	}
 
 	@Override
@@ -44,6 +47,51 @@ public class DatabaseDynamoDb extends Database {
 	@Override
 	public Transaction beginTransaction() {
 		return new TransDynamoDb();
+	}
+
+	private class OperatesDynamoDb implements Database.Operates {
+		private final TableDynamoDb dataWithVersion;
+
+		public OperatesDynamoDb() {
+			dataWithVersion = (TableDynamoDb)openTable("zeze.OperatesDynamoDb.Schemas");
+		}
+
+		@Override
+		public void setInUse(int localId, String global) {
+			// 暂时不支持
+		}
+
+		@Override
+		public int clearInUse(int localId, String global) {
+			// 暂时不支持
+			return 0;
+		}
+
+		@Override
+		public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
+			var dv = getDataWithVersion(key);
+			if (dv.version != version)
+				return KV.create(version, false);
+
+			dv.version = ++version;
+			dv.data = data;
+			var value = ByteBuffer.Allocate();
+			dv.encode(value);
+
+			var trans = beginTransaction();
+			dataWithVersion.replace(trans, key, value);
+			trans.commit();
+			return KV.create(version, true);
+		}
+
+		@Override
+		public DataWithVersion getDataWithVersion(ByteBuffer key) {
+			var result = new DataWithVersion();
+			var bb = dataWithVersion.find(key);
+			if (null != bb)
+				result.decode(bb);
+			return result;
+		}
 	}
 
 	private class TransDynamoDb implements Transaction {

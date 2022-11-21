@@ -186,10 +186,10 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BLoad: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Online=").append(getOnline()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ProposeMaxOnline=").append(getProposeMaxOnline()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("OnlineNew=").append(getOnlineNew()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Overload=").append(getOverload()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Online").append('=').append(getOnline()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ProposeMaxOnline").append('=').append(getProposeMaxOnline()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("OnlineNew").append('=').append(getOnlineNew()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Overload").append('=').append(getOverload()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
