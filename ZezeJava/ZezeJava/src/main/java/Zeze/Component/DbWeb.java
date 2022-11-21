@@ -4,13 +4,15 @@ import java.lang.reflect.ParameterizedType;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.Objects;
 import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Net.Binary;
 import Zeze.Netty.HttpExchange;
+import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.Table;
 import Zeze.Transaction.TableX;
 import Zeze.Util.JsonReader;
 import Zeze.Util.JsonWriter;
@@ -36,19 +38,22 @@ public class DbWeb extends AbstractDbWeb {
 				x.sendHtml(HttpResponseStatus.OK, html);
 				return;
 			}
-			var sb = new StringBuilder("<html><head><meta http-equiv=content-type content=text/html;charset=utf-8 />");
-			sb.append("\n<title>ListTable</title></head><body>\n");
-			sb.append("<script>function f(){var d=document,e=d.getElementById('t');e.value=d.getElementsByName('t')");
-			sb.append("[0].value;}</script><b>DbWeb</b><form action=WalkTable method=get><p>table: <select name=t >\n");
-			var tableNames = new ArrayList<String>();
-			for (var table : zeze.getTables().values())
-				tableNames.add(table.getName());
-			Collections.sort(tableNames);
-			for (var tableName : tableNames)
-				sb.append("<option value=\"").append(tableName).append("\">").append(tableName).append("</option>\n");
-			sb.append("</select> <input type=submit value=walk onclick=f() /></form><form action=GetValue method=get>");
-			sb.append("\nkey: <input type=hidden id=t name=t /><input name=k /> \n");
-			sb.append("<input type=submit value=get onclick=f() /></form><hr></body></html>\n");
+			var sb = new StringBuilder("<html><head><meta http-equiv=content-type content=text/html;charset=utf-8 />\n"
+					+ "<title>ListTable</title></head><body>\n"
+					+ "<script>function f(){var d=document,e=d.getElementById('t');e.value=d.getElementsByName('t')"
+					+ "[0].value;}</script><b>DbWeb</b><form action=WalkTable method=get><p>table: <select name=t >\n");
+			var tables = new ArrayList<>(zeze.getTables().values());
+			tables.sort(Comparator.comparing(Table::getName));
+			for (var table : tables) {
+				var tableName = table.getName();
+				sb.append("<option value=\"").append(tableName).append("\">").append(tableName).append(" (");
+				sb.append(((Class<?>)(((ParameterizedType)table.getClass().getGenericSuperclass())
+						.getActualTypeArguments()[0])).getSimpleName());
+				sb.append(")</option>\n");
+			}
+			sb.append("</select> <input type=submit value=walk onclick=f() /></form><form action=GetValue method=get>\n"
+					+ "key: <input type=hidden id=t name=t /><input name=k /> \n"
+					+ "<input type=submit value=get onclick=f() /></form><hr></body></html>\n");
 			cachedListHtml = html = sb.toString();
 			x.sendHtml(HttpResponseStatus.OK, html);
 		} catch (Exception e) {
@@ -70,8 +75,8 @@ public class DbWeb extends AbstractDbWeb {
 				keys.add(k);
 				return keys.size() < count;
 			});
-			var sb = new StringBuilder("<html><head><meta http-equiv=content-type content=text/html;charset=utf-8 />");
-			sb.append("\n<title>walkTable</title></head><body><style>a{text-decoration:none}</style>\n");
+			var sb = new StringBuilder("<html><head><meta http-equiv=content-type content=text/html;charset=utf-8 />\n"
+					+ "<title>walkTable</title></head><body><style>a{text-decoration:none}</style>\n");
 			for (var k : keys) {
 				sb.append("<p><a href=\"GetTable?t=").append(tableName).append("&k=")
 						.append(URLEncoder.encode(k.toString(), StandardCharsets.UTF_8)).append("\">")
@@ -97,8 +102,8 @@ public class DbWeb extends AbstractDbWeb {
 			var key = qm.get("k");
 			Objects.requireNonNull(tableName, "tableName");
 			Objects.requireNonNull(key, "key");
-			var table = (TableX<?, ?>)zeze.getTable(tableName);
 			Object k;
+			var table = (TableX<?, ?>)zeze.getTable(tableName);
 			var keyType = ((ParameterizedType)table.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
 			if (keyType == Long.class)
 				k = Long.parseLong(key);
@@ -108,7 +113,7 @@ public class DbWeb extends AbstractDbWeb {
 				k = key;
 			else if (keyType == Binary.class)
 				k = new Binary(key);
-			else if (Bean.class.isAssignableFrom((Class<?>)keyType))
+			else if (Serializable.class.isAssignableFrom((Class<?>)keyType)) // BeanKey
 				k = JsonReader.local().buf(key).parse((Class<?>)keyType);
 			else {
 				x.sendPlainText(HttpResponseStatus.OK,
