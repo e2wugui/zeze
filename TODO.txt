@@ -26,13 +26,15 @@ Zege
 	好友列表也保存关注对象，可以接收通知。
 
 ------------------------------------------------------------------------------------------------------------------------------
-tag v1.1.1 DatabaseDynamoDb; InUse; Limit Of Table.Key.Size; Zege ...; Task ...;
+tag v1.1.1 DatabaseDynamoDb; Database.SetInuse; SQL-Type Of Table Key & Value; Table Walk Page; Task ...;
 ------------------------------------------------------------------------------------------------------------------------------
 DatabaseDynamoDb 还需测试。
-Table.WalkPage 考虑中。
 Database.Operates.SetInuse 总是Clear的代码改成使用系统属性参数。
 Daemon 杀掉重启Server设置ClearInuse的参数。
 Table key,value都定义成VARBINARY(Max)。
+Table.WalkPage
+	@return K lastKey
+	K Walk(K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> handle)
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag v1.1.0 TableDynamic; Zege ...; Task ...;

@@ -1,6 +1,7 @@
 package Zeze.Transaction;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
@@ -126,6 +127,18 @@ public abstract class Database {
 
 	public abstract Table openTable(String name);
 
+	public static byte[] copyIf(java.nio.ByteBuffer bb) {
+		if (bb.limit() == bb.capacity() && bb.arrayOffset() == 0)
+			return bb.array();
+		return Arrays.copyOfRange(bb.array(), bb.arrayOffset(), bb.limit());
+	}
+
+	public static byte[] copyIf(ByteBuffer bb) {
+		if (bb.ReadIndex == 0 && bb.WriteIndex == bb.capacity())
+			return bb.Bytes;
+		return Arrays.copyOfRange(bb.Bytes, bb.ReadIndex, bb.WriteIndex);
+	}
+
 	public interface Table {
 		boolean isNew();
 
@@ -147,6 +160,8 @@ public abstract class Database {
 		long walkKey(TableWalkKeyRaw callback);
 
 		void close();
+
+		ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback);
 	}
 
 	public abstract Transaction beginTransaction();

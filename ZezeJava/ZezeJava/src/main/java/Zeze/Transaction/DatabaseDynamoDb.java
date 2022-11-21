@@ -132,12 +132,6 @@ public class DatabaseDynamoDb extends Database {
 	private static final KeySchemaElement keySchema = new KeySchemaElement("key", KeyType.HASH);
 	private static final AttributeDefinition valueAttribute = new AttributeDefinition("value", ScalarAttributeType.B);
 
-	private static byte[] copyIf(java.nio.ByteBuffer bb) {
-		if (bb.limit() == bb.capacity() && bb.arrayOffset() == 0)
-			return bb.array();
-		return Arrays.copyOfRange(bb.array(), bb.arrayOffset(), bb.limit());
-	}
-
 	private class TableDynamoDb implements Database.Table {
 		private final String name;
 		private boolean isNew;
@@ -220,6 +214,12 @@ public class DatabaseDynamoDb extends Database {
 				req.setExclusiveStartKey(scanResult.getLastEvaluatedKey());
 			}
 			return count;
+		}
+
+		@Override
+		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
+			// todo dynamodb walk page
+			return null;
 		}
 
 		@Override

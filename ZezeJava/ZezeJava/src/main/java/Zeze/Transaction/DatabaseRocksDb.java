@@ -257,6 +257,12 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
+		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
+			// todo rocksdb walk page
+			return null;
+		}
+
+		@Override
 		public long walkKey(TableWalkKeyRaw callback) {
 			try (var it = rocksDb.newIterator(columnFamily, defaultReadOptions)) {
 				long countWalked = 0;

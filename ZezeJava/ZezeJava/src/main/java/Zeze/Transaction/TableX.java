@@ -655,6 +655,30 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return walk(callback, null);
 	}
 
+	public final K walk(K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback) {
+		return walk(exclusiveStartKey, proposeLimit, callback, null);
+	}
+
+	public final K walk(K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback, Runnable afterLock) {
+		if (Transaction.getCurrent() != null)
+			throw new IllegalStateException("must be called without transaction");
+
+		var encodedExclusiveStartKey = null == exclusiveStartKey ? null : encodeKey(exclusiveStartKey);
+		var lastKey = storage.getDatabaseTable().walk(
+				encodedExclusiveStartKey,
+				proposeLimit,
+				(key, value) -> {
+					if (invokeCallback(key, value, callback)) {
+						if (afterLock != null)
+							afterLock.run();
+						return true;
+					}
+					return false;
+				});
+
+		return null == lastKey ? null : decodeKey(lastKey);
+	}
+
 	@Deprecated
 	public final long Walk(TableWalkHandle<K, V> callback) {
 		return walk(callback, null);

@@ -7,6 +7,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import Zeze.Config.DatabaseConf;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
+import Zeze.Util.OutObject;
 
 /**
  * Zeze.Transaction.Table.storage 为 null 时，就表示内存表了。这个实现是为了测试 checkpoint 流程。
@@ -247,6 +248,16 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 					break;
 			}
 			return count;
+		}
+
+		@Override
+		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
+			var lastKey = new OutObject<byte[]>(null);
+			walk((key, value) -> {
+				lastKey.value = key;
+				return callback.handle(key, value);
+			});
+			return lastKey.value == null ? null : ByteBuffer.Wrap(lastKey.value);
 		}
 
 		@Override

@@ -204,6 +204,12 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
+		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
+			// todo tikv walk page
+			return null;
+		}
+
+		@Override
 		public long walkKey(TableWalkKeyRaw callback) {
 			long countWalked = 0;
 			int keyPrefixSize = keyPrefix.length;

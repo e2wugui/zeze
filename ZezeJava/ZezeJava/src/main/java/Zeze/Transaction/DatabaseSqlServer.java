@@ -419,6 +419,12 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		@Override
+		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
+			// todo sqlserver walk page
+			return null;
+		}
+
+		@Override
 		public long walkKey(TableWalkKeyRaw callback) {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);

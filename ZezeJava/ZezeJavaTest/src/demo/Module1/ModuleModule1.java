@@ -41,6 +41,8 @@ public class ModuleModule1 extends AbstractModule {
 		return _Table3;
 	}
 
+	public tWalkPage tWalkPage() { return _tWalkPage; }
+
 	public TableImportant getTableImportant() {
 		return _TableImportant;
 	}
