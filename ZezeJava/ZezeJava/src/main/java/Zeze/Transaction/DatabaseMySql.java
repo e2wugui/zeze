@@ -139,8 +139,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(false);
 				String TableDataWithVersion = "CREATE TABLE IF NOT EXISTS _ZezeDataWithVersion_ (" + "\r\n" +
-						"                        id VARBINARY(767) NOT NULL PRIMARY KEY," + "\r\n" +
-						"                        data MEDIUMBLOB NOT NULL," + "\r\n" +
+						"                        id VARBINARY(Max) NOT NULL PRIMARY KEY," + "\r\n" +
+						"                        data VARBINARY(Max) NOT NULL," + "\r\n" +
 						"                        version bigint NOT NULL" + "\r\n" +
 						"                    )ENGINE=INNODB";
 				try (var cmd = connection.prepareStatement(TableDataWithVersion)) {
@@ -151,8 +151,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				}
 				//noinspection SpellCheckingInspection
 				String ProcSaveDataWithSameVersion = "Create procedure _ZezeSaveDataWithSameVersion_ (" + "\r\n" +
-						"                        IN    in_id VARBINARY(767)," + "\r\n" +
-						"                        IN    in_data MEDIUMBLOB," + "\r\n" +
+						"                        IN    in_id VARBINARY(Max)," + "\r\n" +
+						"                        IN    in_data VARBINARY(Max)," + "\r\n" +
 						"                        INOUT inout_version bigint," + "\r\n" +
 						"                        OUT   ReturnValue int" + "\r\n" +
 						"                    )" + "\r\n" +
@@ -363,7 +363,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
-				String sql = "CREATE TABLE IF NOT EXISTS " + getName() + "(id VARBINARY(767) NOT NULL PRIMARY KEY, value MEDIUMBLOB NOT NULL)ENGINE=INNODB";
+				String sql = "CREATE TABLE IF NOT EXISTS " + getName() + "(id VARBINARY(Max) NOT NULL PRIMARY KEY, value VARBINARY(Max) NOT NULL)ENGINE=INNODB";
 				try (var cmd = connection.prepareStatement(sql)) {
 					cmd.executeUpdate();
 				}

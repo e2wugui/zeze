@@ -126,14 +126,14 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				connection.setAutoCommit(false);
 
 				//noinspection SpellCheckingInspection
-				String TableDataWithVersion = "if not exists (select * from sysobjects where name='_ZezeDataWithVersion_' and xtype='U')" + " CREATE TABLE _ZezeDataWithVersion_ (id VARBINARY(767) NOT NULL PRIMARY KEY, data VARBINARY(MAX) NOT NULL, version bigint NOT NULL)";
+				String TableDataWithVersion = "if not exists (select * from sysobjects where name='_ZezeDataWithVersion_' and xtype='U')" + " CREATE TABLE _ZezeDataWithVersion_ (id VARBINARY(Max) NOT NULL PRIMARY KEY, data VARBINARY(MAX) NOT NULL, version bigint NOT NULL)";
 				try (var cmd = connection.prepareStatement(TableDataWithVersion)) {
 					cmd.executeUpdate();
 				}
 
 				//noinspection SpellCheckingInspection
 				String ProcSaveDataWithSameVersion = "Create or Alter procedure _ZezeSaveDataWithSameVersion_" + "\r\n" +
-						"                        @id VARBINARY(767)," + "\r\n" +
+						"                        @id VARBINARY(Max)," + "\r\n" +
 						"                        @data VARBINARY(MAX)," + "\r\n" +
 						"                        @version bigint output," + "\r\n" +
 						"                        @ReturnValue int output" + "\r\n" +
@@ -328,7 +328,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				connection.setAutoCommit(true);
 
 				//noinspection SpellCheckingInspection
-				String sql = "if not exists (select * from sysobjects where name='" + getName() + "' and xtype='U') CREATE TABLE " + getName() + "(id VARBINARY(767) NOT NULL PRIMARY KEY, value VARBINARY(MAX) NOT NULL)";
+				String sql = "if not exists (select * from sysobjects where name='" + getName() + "' and xtype='U') CREATE TABLE " + getName() + "(id VARBINARY(Max) NOT NULL PRIMARY KEY, value VARBINARY(MAX) NOT NULL)";
 				try (var cmd = connection.prepareStatement(sql)) {
 					cmd.executeUpdate();
 				}

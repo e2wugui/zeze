@@ -32,7 +32,7 @@ DatabaseDynamoDb 还需测试。
 Table.WalkPage 考虑中。
 Database.Operates.SetInuse 总是Clear的代码改成使用系统属性参数。
 Daemon 杀掉重启Server设置ClearInuse的参数。
-Table.Key.Size 限制以及检查。
+Table key,value都定义成VARBINARY(Max)。
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag v1.1.0 TableDynamic; Zege ...; Task ...;

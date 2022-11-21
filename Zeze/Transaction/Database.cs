@@ -476,7 +476,7 @@ namespace Zeze.Transaction
                 string sql = "SELECT data,version FROM _ZezeDataWithVersion_ WHERE id=@id";
 
                 var cmd = new MySqlCommand(sql, connection);
-                cmd.Parameters.Add("@id", MySqlDbType.VarBinary, 767).Value = key.Copy();
+                cmd.Parameters.Add("@id", MySqlDbType.VarBinary, int.MaxValue).Value = key.Copy();
                 cmd.Prepare();
 
                 using MySqlDataReader reader = cmd.ExecuteReader();
@@ -500,7 +500,7 @@ namespace Zeze.Transaction
                 {
                     CommandType = CommandType.StoredProcedure
                 };
-                cmd.Parameters.Add("@in_id", MySqlDbType.VarBinary, 767).Value = key.Copy();
+                cmd.Parameters.Add("@in_id", MySqlDbType.VarBinary, int.MaxValue).Value = key.Copy();
                 cmd.Parameters.Add("@in_data", MySqlDbType.VarBinary, int.MaxValue).Value = data.Copy();
                 cmd.Parameters.Add(new MySqlParameter("@inout_version", MySqlDbType.Int64)
                 {
@@ -534,8 +534,8 @@ namespace Zeze.Transaction
 
                 string TableDataWithVersion =
                     @"CREATE TABLE IF NOT EXISTS _ZezeDataWithVersion_ (
-                        id VARBINARY(767) NOT NULL PRIMARY KEY,
-                        data MEDIUMBLOB NOT NULL,
+                        id VARBINARY(Max) NOT NULL PRIMARY KEY,
+                        data VARBINARY(Max) NOT NULL,
                         version bigint NOT NULL
                     )ENGINE=INNODB";
                 new MySqlCommand(TableDataWithVersion, connection).ExecuteNonQuery();
@@ -543,8 +543,8 @@ namespace Zeze.Transaction
                 new MySqlCommand("DROP PROCEDURE IF EXISTS _ZezeSaveDataWithSameVersion_", connection).ExecuteNonQuery();
                 string ProcSaveDataWithSameVersion =
                     @"Create procedure _ZezeSaveDataWithSameVersion_ (
-                        IN    in_id VARBINARY(767),
-                        IN    in_data MEDIUMBLOB,
+                        IN    in_id VARBINARY(Max),
+                        IN    in_data VARBINARY(Max),
                         INOUT inout_version bigint,
                         OUT   ReturnValue int
                     )
@@ -715,7 +715,7 @@ namespace Zeze.Transaction
                     using var connection = new MySqlConnection(database.DatabaseUrl);
                     connection.Open();
                     string sql = "CREATE TABLE IF NOT EXISTS " + Name
-                        + "(id VARBINARY(767) NOT NULL PRIMARY KEY, value MEDIUMBLOB NOT NULL)ENGINE=INNODB";
+                        + "(id VARBINARY(Max) NOT NULL PRIMARY KEY, value VARBINARY(Max) NOT NULL)ENGINE=INNODB";
                     var cmd = new MySqlCommand(sql, connection);
                     cmd.ExecuteNonQuery();
                 }
@@ -733,7 +733,7 @@ namespace Zeze.Transaction
                 string sql = "SELECT value FROM " + Name + " WHERE id = @ID";
                 // 是否可以重用 SqlCommand
                 var cmd = new MySqlCommand(sql, connection);
-                cmd.Parameters.Add("@ID", MySqlDbType.VarBinary, 767).Value = key.Copy();
+                cmd.Parameters.Add("@ID", MySqlDbType.VarBinary, int.MaxValue).Value = key.Copy();
                 cmd.Prepare();
 
                 using MySqlDataReader reader = cmd.ExecuteReader();
@@ -750,7 +750,7 @@ namespace Zeze.Transaction
                 var my = t as MySqlTrans;
                 string sql = "DELETE FROM " + Name + " WHERE id=@ID";
                 var cmd = new MySqlCommand(sql, my.Connection, my.Transaction);
-                cmd.Parameters.Add("@ID", MySqlDbType.VarBinary, 767).Value = key.Copy();
+                cmd.Parameters.Add("@ID", MySqlDbType.VarBinary, int.MaxValue).Value = key.Copy();
                 cmd.Prepare();
                 cmd.ExecuteNonQuery();
             }
@@ -760,7 +760,7 @@ namespace Zeze.Transaction
                 var my = t as MySqlTrans;
                 string sql = "REPLACE INTO " + Name + " values(@ID,@VALUE)";
                 var cmd = new MySqlCommand(sql, my.Connection, my.Transaction);
-                cmd.Parameters.Add("@ID", MySqlDbType.VarBinary, 767).Value = key.Copy();
+                cmd.Parameters.Add("@ID", MySqlDbType.VarBinary, int.MaxValue).Value = key.Copy();
                 cmd.Parameters.Add("@VALUE", MySqlDbType.VarBinary, int.MaxValue).Value = value.Copy();
                 cmd.Prepare();
                 cmd.ExecuteNonQuery();
@@ -950,7 +950,7 @@ namespace Zeze.Transaction
                 string sql = "SELECT data,version FROM _ZezeDataWithVersion_ WHERE id=@id";
 
                 var cmd = new SqlCommand(sql, connection);
-                cmd.Parameters.Add("@id", SqlDbType.VarBinary, 767).Value = key.Copy();
+                cmd.Parameters.Add("@id", SqlDbType.VarBinary, int.MaxValue).Value = key.Copy();
                 cmd.Prepare();
 
                 using SqlDataReader reader = cmd.ExecuteReader();
@@ -974,7 +974,7 @@ namespace Zeze.Transaction
                 {
                     CommandType = CommandType.StoredProcedure
                 };
-                cmd.Parameters.Add("@id", SqlDbType.VarBinary, 767).Value = key.Copy();
+                cmd.Parameters.Add("@id", SqlDbType.VarBinary, int.MaxValue).Value = key.Copy();
                 cmd.Parameters.Add("@data", SqlDbType.VarBinary, int.MaxValue).Value = data.Copy();
                 cmd.Parameters.Add(new SqlParameter("@version", SqlDbType.BigInt)
                 {
@@ -1008,12 +1008,12 @@ namespace Zeze.Transaction
 
                 string TableDataWithVersion
                     = "if not exists (select * from sysobjects where name='_ZezeDataWithVersion_' and xtype='U')"
-                    + " CREATE TABLE _ZezeDataWithVersion_ (id VARBINARY(767) NOT NULL PRIMARY KEY, data VARBINARY(MAX) NOT NULL, version bigint NOT NULL)";
+                    + " CREATE TABLE _ZezeDataWithVersion_ (id VARBINARY(Max) NOT NULL PRIMARY KEY, data VARBINARY(MAX) NOT NULL, version bigint NOT NULL)";
                 new SqlCommand(TableDataWithVersion, connection).ExecuteNonQuery();
 
                 string ProcSaveDataWithSameVersion =
                     @"Create or Alter procedure _ZezeSaveDataWithSameVersion_
-                        @id VARBINARY(767),
+                        @id VARBINARY(Max),
                         @data VARBINARY(MAX),
                         @version bigint output,
                         @ReturnValue int output
@@ -1188,7 +1188,7 @@ namespace Zeze.Transaction
 
                     string sql = "if not exists (select * from sysobjects where name='" + Name
                         + "' and xtype='U') CREATE TABLE " + Name
-                        + "(id VARBINARY(767) NOT NULL PRIMARY KEY, value VARBINARY(MAX) NOT NULL)";
+                        + "(id VARBINARY(Max) NOT NULL PRIMARY KEY, value VARBINARY(MAX) NOT NULL)";
                     var cmd = new SqlCommand(sql, connection);
                     cmd.ExecuteNonQuery();
                 }
@@ -1207,7 +1207,7 @@ namespace Zeze.Transaction
 
                 // 是否可以重用 SqlCommand
                 var cmd = new SqlCommand(sql, connection);
-                cmd.Parameters.Add("@ID", System.Data.SqlDbType.VarBinary, 767).Value = key.Copy();
+                cmd.Parameters.Add("@ID", System.Data.SqlDbType.VarBinary, int.MaxValue).Value = key.Copy();
                 cmd.Prepare();
 
                 using SqlDataReader reader = cmd.ExecuteReader();
@@ -1224,7 +1224,7 @@ namespace Zeze.Transaction
                 var my = t as SqlTrans;
                 string sql = "DELETE FROM " + Name + " WHERE id=@ID";
                 var cmd = new SqlCommand(sql, my.Connection, my.Transaction);
-                cmd.Parameters.Add("@ID", System.Data.SqlDbType.VarBinary, 767).Value = key.Copy();
+                cmd.Parameters.Add("@ID", System.Data.SqlDbType.VarBinary, int.MaxValue).Value = key.Copy();
                 cmd.Prepare();
                 cmd.ExecuteNonQuery();
             }
@@ -1236,7 +1236,7 @@ namespace Zeze.Transaction
                     + " if @@rowcount = 0 and @@error = 0 insert into " + Name + " values(@ID,@VALUE)";
 
                 var cmd = new SqlCommand(sql, my.Connection, my.Transaction);
-                cmd.Parameters.Add("@ID", System.Data.SqlDbType.VarBinary, 767).Value = key.Copy();
+                cmd.Parameters.Add("@ID", System.Data.SqlDbType.VarBinary, int.MaxValue).Value = key.Copy();
                 cmd.Parameters.Add("@VALUE", System.Data.SqlDbType.VarBinary, int.MaxValue).Value = value.Copy();
                 cmd.Prepare();
                 cmd.ExecuteNonQuery();
