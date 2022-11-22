@@ -25,6 +25,8 @@ public class TestDatabaseMySql extends TestCase {
 	}
 
 	private static String getPersonalUrl() throws UnknownHostException {
+		return null;
+		/*
 		var hostName = InetAddress.getLocalHost().getHostName();
 		System.out.println("hostName=" + hostName);
 		switch (hostName) {
@@ -36,6 +38,7 @@ public class TestDatabaseMySql extends TestCase {
 		default:
 			return "jdbc:mysql://localhost:3306/mysql?user=root&password=123&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
 		}
+		*/
 	}
 
 	public final void test1() throws Exception {
