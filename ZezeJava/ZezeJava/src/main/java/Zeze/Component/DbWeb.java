@@ -13,13 +13,14 @@ import Zeze.Netty.HttpExchange;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Table;
+import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.TableX;
 import Zeze.Util.JsonReader;
 import Zeze.Util.JsonWriter;
 import Zeze.Util.Str;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
-//TODO: 修改value, 新建记录, 删除记录, 清空表, 从某个key开始walk
+//TODO: 修改value, 新建记录, 删除记录, 清空表
 public class DbWeb extends AbstractDbWeb {
 	private Application zeze;
 	private String cachedListHtml;
@@ -61,27 +62,60 @@ public class DbWeb extends AbstractDbWeb {
 		}
 	}
 
+	private static Object parseKey(TableX<?, ?> table, String key) throws ReflectiveOperationException {
+		Object k;
+		var keyType = ((ParameterizedType)table.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
+		if (keyType == Long.class)
+			k = Long.parseLong(key);
+		else if (keyType == Integer.class)
+			k = Integer.parseInt(key);
+		else if (keyType == String.class)
+			k = key;
+		else if (keyType == Binary.class)
+			k = new Binary(key);
+		else if (Serializable.class.isAssignableFrom((Class<?>)keyType)) // BeanKey
+			k = JsonReader.local().buf(key).parse((Class<?>)keyType);
+		else
+			throw new IllegalStateException("ERROR: unsupported key of " + keyType + " for table " + table.getName());
+		return k;
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <K extends Comparable<K>, V extends Bean> K walk(TableX<?, ?> table, Object exclusiveStartKey,
+																   int proposeLimit, TableWalkHandle<?, ?> callback) {
+		return ((TableX<K, V>)table).walk((K)exclusiveStartKey, proposeLimit, (TableWalkHandle<K, V>)callback);
+	}
+
 	@Override
 	protected void OnServletWalkTable(HttpExchange x) {
 		try {
 			var qm = x.queryMap();
 			var tableName = qm.get("t");
+			var key = qm.get("k");
 			var n = qm.get("n");
 			Objects.requireNonNull(tableName, "tableName");
 			var count = n != null ? Math.min(Integer.parseInt(n), 1_000_000) : 100;
 			var table = (TableX<?, ?>)zeze.getTable(tableName);
 			var keys = new ArrayList<>();
-			table.walk((k, __) -> {
+			var lastKey = walk(table, key != null && !key.isEmpty() ? parseKey(table, key) : null, count, (k, __) -> {
 				keys.add(k);
 				return keys.size() < count;
 			});
 			var sb = new StringBuilder("<html><head><meta http-equiv=content-type content=text/html;charset=utf-8 />\n"
-					+ "<title>walkTable</title></head><body><style>a{text-decoration:none}</style>\n");
+					+ "<title>WalkTable</title></head><body><style>a{text-decoration:none}</style>\n");
 			for (var k : keys) {
 				sb.append("<p><a href=\"GetTable?t=").append(tableName).append("&k=")
 						.append(URLEncoder.encode(k.toString(), StandardCharsets.UTF_8)).append("\">")
 						.append(tableName).append(": ").append(k).append("</a>\n");
 			}
+			if (lastKey != null) {
+				sb.append("<hr><a href=\"WalkTable?t=").append(tableName).append("&k=")
+						.append(URLEncoder.encode(lastKey.toString(), StandardCharsets.UTF_8));
+				if (n != null)
+					sb.append("&n=").append(n);
+				sb.append("\">NEXT</a>\n");
+			} else
+				sb.append("<hr>END\n");
 			sb.append("<hr></body></html>\n");
 			x.sendHtml(HttpResponseStatus.OK, sb.toString());
 		} catch (Exception e) {
@@ -102,24 +136,8 @@ public class DbWeb extends AbstractDbWeb {
 			var key = qm.get("k");
 			Objects.requireNonNull(tableName, "tableName");
 			Objects.requireNonNull(key, "key");
-			Object k;
 			var table = (TableX<?, ?>)zeze.getTable(tableName);
-			var keyType = ((ParameterizedType)table.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
-			if (keyType == Long.class)
-				k = Long.parseLong(key);
-			else if (keyType == Integer.class)
-				k = Integer.parseInt(key);
-			else if (keyType == String.class)
-				k = key;
-			else if (keyType == Binary.class)
-				k = new Binary(key);
-			else if (Serializable.class.isAssignableFrom((Class<?>)keyType)) // BeanKey
-				k = JsonReader.local().buf(key).parse((Class<?>)keyType);
-			else {
-				x.sendPlainText(HttpResponseStatus.OK,
-						"ERROR: unsupported key of " + keyType + " for table " + tableName);
-				return;
-			}
+			var k = parseKey(table, key);
 			var jw = JsonWriter.local().clear();
 			var oldFlags = jw.getFlags();
 			var v = selectDirty(table, k);
