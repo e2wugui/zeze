@@ -275,16 +275,14 @@ namespace Zeze
 
                 _checkpoint?.StopAndJoin();
                 _checkpoint = null;
-                foreach (var db in Databases.Values)
-                {
-                    db.Close();
-                }
                 Databases.Clear();
                 ServiceManagerAgent.Stop();
                 Locks = null;
                 Config = null;
 
                 Config?.ClearInUseAndIAmSureAppStopped(this, Databases);
+                foreach (var db in Databases.Values)
+                    db.Close();
             }
         }
  

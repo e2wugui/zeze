@@ -384,14 +384,14 @@ public final class Application {
 			checkpoint.stopAndJoin();
 			checkpoint = null;
 		}
-		for (var db : databases.values())
-			db.close();
+
 		if (LocalRocksCacheDb != null) {
 			var dir = LocalRocksCacheDb.getDatabaseUrl();
 			LocalRocksCacheDb.close();
 			deleteDirectory(new File(dir));
 			LocalRocksCacheDb = null;
 		}
+
 		if (serviceManagerAgent != null)
 			serviceManagerAgent.stop();
 
@@ -404,8 +404,12 @@ public final class Application {
 			autoKey.UnRegisterZezeTables(this);
 			autoKey = null;
 		}
+
 		if (conf != null)
 			conf.clearInUseAndIAmSureAppStopped(this, databases);
+
+		for (var db : databases.values())
+			db.close();
 	}
 
 	public void checkpointRun() {
