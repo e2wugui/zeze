@@ -1,11 +1,15 @@
 package Zeze.Transaction;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import Zeze.Config.DatabaseConf;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Util.IntHashMap;
 import Zeze.Util.KV;
 import Zeze.Util.OutObject;
 
@@ -183,7 +187,14 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 
 	public final class TableMemory implements Database.Table {
 		private final String name;
-		private final HashMap<ByteBuffer, byte[]> map = new HashMap<>();
+		private final TreeMap<ByteBuffer, byte[]> map = new TreeMap<>(new ByteBufferComparator());
+
+		private static class ByteBufferComparator implements Comparator<ByteBuffer> {
+			@Override
+			public int compare(ByteBuffer o1, ByteBuffer o2) {
+				return o1.compareTo(o2);
+			}
+		}
 
 		public TableMemory(String name) {
 			this.name = name;
@@ -252,12 +263,40 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 
 		@Override
 		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
-			var lastKey = new OutObject<byte[]>(null);
-			walk((key, value) -> {
-				lastKey.value = key;
-				return callback.handle(key, value);
-			});
-			return lastKey.value == null ? null : ByteBuffer.Wrap(lastKey.value);
+			final var keys = new ArrayList<ByteBuffer>();
+			final var values = new ArrayList<byte[]>();
+			lock.readLock().lock();
+			try {
+				var it =
+						null == exclusiveStartKey
+						? map.entrySet().iterator()
+						: map.tailMap(exclusiveStartKey).entrySet().iterator();
+
+				// 第一个Item可能需要忽略
+				if (proposeLimit > 0 && it.hasNext()) {
+					var next = it.next();
+					if (null == exclusiveStartKey || !next.getKey().equals(exclusiveStartKey)) {
+						keys.add(next.getKey());
+						values.add(next.getValue());
+						--proposeLimit;
+					}
+				}
+				while (proposeLimit > 0 && it.hasNext()) {
+					var next = it.next();
+					keys.add(next.getKey());
+					values.add(next.getValue());
+					--proposeLimit;
+				}
+			} finally {
+				lock.readLock().unlock();
+			}
+			byte[] lastKey = null;
+			for (int i = 0, n = keys.size(); i < n; i++) {
+				lastKey = keys.get(i).Copy();
+				if (!callback.handle(lastKey, values.get(i).clone()))
+					break;
+			}
+			return null == lastKey ? null : ByteBuffer.Wrap(lastKey);
 		}
 
 		@Override

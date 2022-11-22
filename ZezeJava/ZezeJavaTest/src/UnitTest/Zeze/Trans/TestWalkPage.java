@@ -1,13 +1,16 @@
 package UnitTest.Zeze.Trans;
 
+import java.util.ArrayList;
+import java.util.List;
+import Zeze.Util.OutInt;
 import demo.App;
 import demo.Bean1;
-import junit.framework.TestCase;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestWalkPage extends TestCase {
+public class TestWalkPage {
 	@Before
 	public final void testInit() throws Throwable {
 		demo.App.getInstance().Start();
@@ -29,11 +32,21 @@ public class TestWalkPage extends TestCase {
 			t.put(5, new Bean1());
 			return 0;
 		}, "prepare walk data").call();
+		App.getInstance().Zeze.checkpointRun();
 
-		t.walk(null, 1,
-				(key, value) -> {
-				
-					return true;
-			});
+		var walkedKeys = new ArrayList<Integer>();
+		Integer exclusiveStartKey = null;
+		var walkTimes = new OutInt(0);
+		do {
+			exclusiveStartKey = t.walk(exclusiveStartKey, 1,
+					(key, value) -> {
+						walkTimes.value += 1;
+						walkedKeys.add(key);
+						return true;
+					});
+		} while (exclusiveStartKey != null);
+		Assert.assertEquals(walkTimes.value, walkedKeys.size());
+		var expected = List.of(1, 2, 3, 4, 5);
+		Assert.assertEquals(expected, walkedKeys);
 	}
 }

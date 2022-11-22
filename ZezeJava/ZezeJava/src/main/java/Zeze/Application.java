@@ -264,9 +264,9 @@ public final class Application {
 			queueModule = new Queue.Module(this);
 			delayRemove = new DelayRemove(this);
 			timer = new Timer(this);
-			taskModule = new Zeze.Game.Task.Module(this);
+			//taskModule = new Zeze.Game.Task.Module(this);
 
-			if (System.getProperty(Daemon.propertyNameClearInUse).equals("true"))
+			if ("true".equals(System.getProperty(Daemon.propertyNameClearInUse)))
 				conf.clearInUseAndIAmSureAppStopped(this, databases);
 
 			// Set Database InUse

@@ -14,8 +14,9 @@ import Zeze.Util.BitConverter;
 import Zeze.Util.IdentityHashSet;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashMap;
+import org.jetbrains.annotations.NotNull;
 
-public final class ByteBuffer {
+public final class ByteBuffer implements Comparable<ByteBuffer> {
 	public static final boolean IGNORE_INCOMPATIBLE_FIELD = false; // 不忽略兼容字段则会抛异常
 	public static final byte[] Empty = new byte[0];
 
@@ -1664,5 +1665,20 @@ public final class ByteBuffer {
 
 	public static byte[] Copy(byte[] src, int offset, int length) {
 		return Arrays.copyOfRange(src, offset, offset + length);
+	}
+
+	@Override
+	public int compareTo(@NotNull ByteBuffer o) {
+		int c = Integer.compare(size(), o.size());
+		if (c != 0)
+			return c;
+
+		int count = size(); // same as o.size()
+		for (int i = 0; i < count; ++i) {
+			c = Byte.compare(Bytes[i + ReadIndex], o.Bytes[i + o.ReadIndex]);
+			if (c != 0)
+				return c;
+		}
+		return 0;
 	}
 }
