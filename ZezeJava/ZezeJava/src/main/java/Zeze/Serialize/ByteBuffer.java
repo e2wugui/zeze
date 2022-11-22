@@ -1669,16 +1669,6 @@ public final class ByteBuffer implements Comparable<ByteBuffer> {
 
 	@Override
 	public int compareTo(@NotNull ByteBuffer o) {
-		int c = Integer.compare(size(), o.size());
-		if (c != 0)
-			return c;
-
-		int count = size(); // same as o.size()
-		for (int i = 0; i < count; ++i) {
-			c = Byte.compare(Bytes[i + ReadIndex], o.Bytes[i + o.ReadIndex]);
-			if (c != 0)
-				return c;
-		}
-		return 0;
+		return Arrays.compare(Bytes, ReadIndex, WriteIndex, o.Bytes, o.ReadIndex, o.WriteIndex);
 	}
 }

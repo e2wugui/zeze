@@ -94,9 +94,7 @@ public final class Binary implements Comparable<Binary> {
 
 	@Override
 	public int compareTo(Binary other) {
-		int n = count;
-		int c = n - other.count;
-		return c != 0 ? c : Arrays.compare(bytes, offset, offset + n, other.bytes, other.offset, n);
+		return Arrays.compare(bytes, offset, offset + count, other.bytes, other.offset, other.offset + other.count);
 	}
 
 	public boolean equals(Binary other) {
