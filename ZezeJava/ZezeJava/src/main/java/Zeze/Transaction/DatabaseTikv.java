@@ -205,8 +205,26 @@ public class DatabaseTikv extends Database {
 
 		@Override
 		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
-			// todo tikv walk page
-			return null;
+			int keyPrefixSize = keyPrefix.length;
+			var startKey = ByteString.copyFrom(keyPrefix);
+			var endKey = Key.toRawKey(keyPrefix).nextPrefix().toByteString();
+			Iterator<Kvrpcpb.KvPair> it;
+			if (distTxn)
+				it = new ConcreteScanIterator(config, session.getRegionStoreClientBuilder(), startKey, endKey, version);
+			else
+				it = client.scan0(startKey, endKey);
+
+			// todo 参考rocksdb，看看tikv能不能支持it.seek.
+			byte[] lastKey = null;
+			while (it.hasNext()) {
+				var kv = it.next();
+				var value = kv.getValue();
+				if (value.isEmpty()) // deleted
+					continue;
+				if (!callback.handle(kv.getKey().substring(keyPrefixSize).toByteArray(), value.toByteArray()))
+					break;
+			}
+			return null == lastKey ? null : ByteBuffer.Wrap(lastKey);
 		}
 
 		@Override

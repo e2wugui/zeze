@@ -691,7 +691,7 @@ public class Timer extends AbstractTimer {
 		if (missfire) {
 			if (simpleTimer.getMissfirePolicy() == eMissfirePolicyRunOnce) {
 				// 这种策略重置时间，定时器将在新的开始时间之后按原来的间隔执行。
-				// simpleTimer.setStartTime(now); // todo 这个要不要重置？
+				// simpleTimer.setStartTime(now);
 				simpleTimer.setExpectedTime(now);
 				simpleTimer.setNextExpectedTime(now + simpleTimer.getPeriod());
 			} else {
@@ -808,7 +808,7 @@ public class Timer extends AbstractTimer {
 		if (missfire) {
 			if (cronTimer.getMissfirePolicy() == eMissfirePolicyRunOnce) {
 				// 这种策略重置时间，定时器将在新的开始时间之后按原来的间隔执行。
-				// cronTimer.setStartTime(now); // todo 这个要不要重置？
+				// cronTimer.setStartTime(now);
 				cronTimer.setExpectedTime(now);
 				cronTimer.setNextExpectedTime(cronNextTime(cronTimer.getCronExpression(), now));
 			} else {

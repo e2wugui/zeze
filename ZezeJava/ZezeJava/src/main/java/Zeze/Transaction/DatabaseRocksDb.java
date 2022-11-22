@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.imageio.plugins.tiff.BaselineTIFFTagSet;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
@@ -258,8 +259,29 @@ public class DatabaseRocksDb extends Database {
 
 		@Override
 		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
-			// todo rocksdb walk page
-			return null;
+			try (var it = rocksDb.newIterator(columnFamily, defaultReadOptions)) {
+				if (null != exclusiveStartKey)
+					it.seek(copyIf(exclusiveStartKey));
+
+				byte[] lastKey = null;
+				// 第一个item可能为exclusiveStartKey时需要忽略。
+				if (proposeLimit > 0 && it.isValid()) {
+					lastKey = it.key();
+					if (null == exclusiveStartKey || !ByteBuffer.Wrap(lastKey).equals(exclusiveStartKey)) {
+						--proposeLimit;
+						if (!callback.handle(lastKey, it.value()))
+							return null == lastKey ? null : ByteBuffer.Wrap(lastKey);
+					}
+					it.next(); // skip
+				}
+				for (; proposeLimit > 0 && it.isValid(); it.next()) {
+					--proposeLimit;
+					lastKey = it.key();
+					if (!callback.handle(lastKey, it.value()))
+						break;
+				}
+				return null == lastKey ? null : ByteBuffer.Wrap(lastKey);
+			}
 		}
 
 		@Override

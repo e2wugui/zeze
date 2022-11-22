@@ -168,7 +168,7 @@ namespace Zeze
 
             if (Config.ServerId >= 0)
             {
-                if (Environment.GetEnvironmentVariable(Services.Daemon.PropertyNameClearInUse).Equals("true"))
+                if ("true".Equals(Environment.GetEnvironmentVariable(Services.Daemon.PropertyNameClearInUse)))
                     Config?.ClearInUseAndIAmSureAppStopped(this, Databases);
 
                 // Set Databases InUse

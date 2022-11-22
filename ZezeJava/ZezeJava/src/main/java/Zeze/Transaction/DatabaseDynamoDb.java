@@ -218,8 +218,27 @@ public class DatabaseDynamoDb extends Database {
 
 		@Override
 		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
-			// todo dynamodb walk page
-			return null;
+			var attributesToGet = new ArrayList<String>();
+			attributesToGet.add("key");
+			attributesToGet.add("value");
+			var req = new ScanRequest();
+			req.setAttributesToGet(attributesToGet);
+			if (null != exclusiveStartKey) {
+				var key = new HashMap<String, AttributeValue>();
+				key.put("key", new AttributeValue().withB(java.nio.ByteBuffer.wrap(
+						exclusiveStartKey.Bytes, exclusiveStartKey.ReadIndex, exclusiveStartKey.size())));
+				req.setExclusiveStartKey(key);
+			}
+			var scanResult = dynamoDbClient.scan(req);
+			byte[] lastKey = null;
+			for (var item : scanResult.getItems()) {
+				var key = copyIf(item.get("key").getB());
+				lastKey = key;
+				var value = copyIf(item.get("value").getB());
+				if (!callback.handle(key, value))
+					break;
+			}
+			return null == lastKey ? null : ByteBuffer.Wrap(lastKey);
 		}
 
 		@Override
