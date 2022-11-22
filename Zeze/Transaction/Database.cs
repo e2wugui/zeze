@@ -21,6 +21,10 @@ namespace Zeze.Transaction
     /// </summary>
     public abstract class Database
     {
+        // 当数据库对Key长度有限制时，使用这个常量。这个数字来自 MySql 8。
+        // 以后需要升级时，修改这个常量。但是对于已经存在的表，需要自己完成Alter。
+        public const int eMaxKeyLength = 3072;
+
         private readonly ConcurrentDictionary<string, Zeze.Transaction.Table> tables = new();
         internal readonly List<Storage> storages = new();
         internal ICollection<Zeze.Transaction.Table> Tables => tables.Values;
@@ -533,18 +537,18 @@ namespace Zeze.Transaction
                 connection.Open();
 
                 string TableDataWithVersion =
-                    @"CREATE TABLE IF NOT EXISTS _ZezeDataWithVersion_ (
-                        id VARBINARY(Max) NOT NULL PRIMARY KEY,
-                        data VARBINARY(Max) NOT NULL,
+                    @$"CREATE TABLE IF NOT EXISTS _ZezeDataWithVersion_ (
+                        id VARBINARY({eMaxKeyLength}) NOT NULL PRIMARY KEY,
+                        data LONGBLOB NOT NULL,
                         version bigint NOT NULL
-                    )ENGINE=INNODB";
+                    )";
                 new MySqlCommand(TableDataWithVersion, connection).ExecuteNonQuery();
 
                 new MySqlCommand("DROP PROCEDURE IF EXISTS _ZezeSaveDataWithSameVersion_", connection).ExecuteNonQuery();
                 string ProcSaveDataWithSameVersion =
-                    @"Create procedure _ZezeSaveDataWithSameVersion_ (
-                        IN    in_id VARBINARY(Max),
-                        IN    in_data VARBINARY(Max),
+                    @$"Create procedure _ZezeSaveDataWithSameVersion_ (
+                        IN    in_id VARBINARY({eMaxKeyLength}),
+                        IN    in_data LONGBLOB,
                         INOUT inout_version bigint,
                         OUT   ReturnValue int
                     )
@@ -590,7 +594,7 @@ namespace Zeze.Transaction
                 new MySqlCommand(ProcSaveDataWithSameVersion, connection).ExecuteNonQuery();
 
                 string TableInstances =
-                    @"CREATE TABLE IF NOT EXISTS _ZezeInstances_ (localid int NOT NULL PRIMARY KEY)ENGINE=INNODB";
+                    @"CREATE TABLE IF NOT EXISTS _ZezeInstances_ (localid int NOT NULL PRIMARY KEY)";
                 new MySqlCommand(TableInstances, connection).ExecuteNonQuery();
                 // zeze_global 使用 _ZezeDataWithVersion_ 存储。
 
@@ -598,12 +602,12 @@ namespace Zeze.Transaction
                 string ProcSetInUse =
                     @"Create procedure _ZezeSetInUse_ (
                         in in_localid int,
-                        in in_global MEDIUMBLOB,
+                        in in_global LONGBLOB,
                         out ReturnValue int
                     )
                     return_label:begin
-                        DECLARE currentglobal MEDIUMBLOB;
-                        declare emptybinary MEDIUMBLOB;
+                        DECLARE currentglobal LONGLOB;
+                        declare emptybinary LONGLOB;
                         DECLARE InstanceCount int;
                         DECLARE ROWCOUNT int;
 
@@ -661,12 +665,12 @@ namespace Zeze.Transaction
                 string ProcClearInUse =
                     @"Create procedure _ZezeClearInUse_ (
                         in in_localid int,
-                        in in_global MEDIUMBLOB,
+                        in in_global LONGLOB,
                         out ReturnValue int
                     )
                     return_label:begin
                         DECLARE InstanceCount int;
-                        declare emptybinary MEDIUMBLOB;
+                        declare emptybinary LONGLOB;
                         DECLARE ROWCOUNT INT;
 
                         START TRANSACTION;
@@ -714,8 +718,8 @@ namespace Zeze.Transaction
                 {
                     using var connection = new MySqlConnection(database.DatabaseUrl);
                     connection.Open();
-                    string sql = "CREATE TABLE IF NOT EXISTS " + Name
-                        + "(id VARBINARY(Max) NOT NULL PRIMARY KEY, value VARBINARY(Max) NOT NULL)ENGINE=INNODB";
+                    string sql = @$"CREATE TABLE IF NOT EXISTS {Name}
+                                    (id VARBINARY({eMaxKeyLength}) NOT NULL PRIMARY KEY, value LONGBLOB NOT NULL)";
                     var cmd = new MySqlCommand(sql, connection);
                     cmd.ExecuteNonQuery();
                 }
@@ -1007,13 +1011,14 @@ namespace Zeze.Transaction
                 connection.Open();
 
                 string TableDataWithVersion
-                    = "if not exists (select * from sysobjects where name='_ZezeDataWithVersion_' and xtype='U')"
-                    + " CREATE TABLE _ZezeDataWithVersion_ (id VARBINARY(Max) NOT NULL PRIMARY KEY, data VARBINARY(MAX) NOT NULL, version bigint NOT NULL)";
+                    = @$"if not exists (select * from sysobjects where name='_ZezeDataWithVersion_' and xtype='U')
+                        CREATE TABLE _ZezeDataWithVersion_ (id VARBINARY({eMaxKeyLength}) NOT NULL PRIMARY KEY, 
+                        data VARBINARY(MAX) NOT NULL, version bigint NOT NULL)";
                 new SqlCommand(TableDataWithVersion, connection).ExecuteNonQuery();
 
                 string ProcSaveDataWithSameVersion =
-                    @"Create or Alter procedure _ZezeSaveDataWithSameVersion_
-                        @id VARBINARY(Max),
+                    @$"Create or Alter procedure _ZezeSaveDataWithSameVersion_
+                        @id VARBINARY({eMaxKeyLength}),
                         @data VARBINARY(MAX),
                         @version bigint output,
                         @ReturnValue int output
@@ -1186,9 +1191,8 @@ namespace Zeze.Transaction
                     using SqlConnection connection = new(DatabaseReal.DatabaseUrl);
                     connection.Open();
 
-                    string sql = "if not exists (select * from sysobjects where name='" + Name
-                        + "' and xtype='U') CREATE TABLE " + Name
-                        + "(id VARBINARY(Max) NOT NULL PRIMARY KEY, value VARBINARY(MAX) NOT NULL)";
+                    string sql = @$"if not exists (select * from sysobjects where name='{Name}' and xtype='U') CREATE TABLE {Name}
+                                    (id VARBINARY({eMaxKeyLength}) NOT NULL PRIMARY KEY, value VARBINARY(MAX) NOT NULL)";
                     var cmd = new SqlCommand(sql, connection);
                     cmd.ExecuteNonQuery();
                 }

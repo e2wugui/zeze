@@ -139,10 +139,10 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(false);
 				String TableDataWithVersion = "CREATE TABLE IF NOT EXISTS _ZezeDataWithVersion_ (" + "\r\n" +
-						"                        id VARBINARY(Max) NOT NULL PRIMARY KEY," + "\r\n" +
-						"                        data VARBINARY(Max) NOT NULL," + "\r\n" +
+						"                        id VARBINARY(" + eMaxKeyLength + ") NOT NULL PRIMARY KEY," + "\r\n" +
+						"                        data LONGBLOB NOT NULL," + "\r\n" +
 						"                        version bigint NOT NULL" + "\r\n" +
-						"                    )ENGINE=INNODB";
+						"                    )";
 				try (var cmd = connection.prepareStatement(TableDataWithVersion)) {
 					cmd.executeUpdate();
 				}
@@ -151,8 +151,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				}
 				//noinspection SpellCheckingInspection
 				String ProcSaveDataWithSameVersion = "Create procedure _ZezeSaveDataWithSameVersion_ (" + "\r\n" +
-						"                        IN    in_id VARBINARY(Max)," + "\r\n" +
-						"                        IN    in_data VARBINARY(Max)," + "\r\n" +
+						"                        IN    in_id VARBINARY(" + eMaxKeyLength + ")," + "\r\n" +
+						"                        IN    in_data LONGBLOB," + "\r\n" +
 						"                        INOUT inout_version bigint," + "\r\n" +
 						"                        OUT   ReturnValue int" + "\r\n" +
 						"                    )" + "\r\n" +
@@ -199,7 +199,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					cmd.executeUpdate();
 				}
 				//noinspection SpellCheckingInspection
-				String TableInstances = "CREATE TABLE IF NOT EXISTS _ZezeInstances_ (localid int NOT NULL PRIMARY KEY)ENGINE=INNODB";
+				String TableInstances = "CREATE TABLE IF NOT EXISTS _ZezeInstances_ (localid int NOT NULL PRIMARY KEY)";
 				try (var cmd = connection.prepareStatement(TableInstances)) {
 					cmd.executeUpdate();
 				}
@@ -210,12 +210,12 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				//noinspection SpellCheckingInspection
 				String ProcSetInUse = "Create procedure _ZezeSetInUse_ (" + "\r\n" +
 						"                        in in_localid int," + "\r\n" +
-						"                        in in_global MEDIUMBLOB," + "\r\n" +
+						"                        in in_global LONGBLOB," + "\r\n" +
 						"                        out ReturnValue int" + "\r\n" +
 						"                    )" + "\r\n" +
 						"                    return_label:begin" + "\r\n" +
-						"                        DECLARE currentglobal MEDIUMBLOB;" + "\r\n" +
-						"                        declare emptybinary MEDIUMBLOB;" + "\r\n" +
+						"                        DECLARE currentglobal LONGBLOB;" + "\r\n" +
+						"                        declare emptybinary LONGBLOB;" + "\r\n" +
 						"                        DECLARE InstanceCount int;" + "\r\n" +
 						"                        DECLARE ROWCOUNT int;" + "\r\n" +
 						"\r\n" +
@@ -276,12 +276,12 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				//noinspection SpellCheckingInspection
 				String ProcClearInUse = "Create procedure _ZezeClearInUse_ (" + "\r\n" +
 						"                        in in_localid int," + "\r\n" +
-						"                        in in_global MEDIUMBLOB," + "\r\n" +
+						"                        in in_global LONGBLOB," + "\r\n" +
 						"                        out ReturnValue int" + "\r\n" +
 						"                    )" + "\r\n" +
 						"                    return_label:begin" + "\r\n" +
 						"                        DECLARE InstanceCount int;" + "\r\n" +
-						"                        declare emptybinary MEDIUMBLOB;" + "\r\n" +
+						"                        declare emptybinary LONGBLOB;" + "\r\n" +
 						"                        DECLARE ROWCOUNT INT;" + "\r\n" +
 						"\r\n" +
 						"                        START TRANSACTION;" + "\r\n" +
@@ -363,7 +363,10 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
-				String sql = "CREATE TABLE IF NOT EXISTS " + getName() + "(id VARBINARY(Max) NOT NULL PRIMARY KEY, value VARBINARY(Max) NOT NULL)ENGINE=INNODB";
+				String sql = "CREATE TABLE IF NOT EXISTS " + getName()
+						+ "(id VARBINARY("
+						+ eMaxKeyLength
+						+ ") NOT NULL PRIMARY KEY, value LONGBLOB NOT NULL)";
 				try (var cmd = connection.prepareStatement(sql)) {
 					cmd.executeUpdate();
 				}

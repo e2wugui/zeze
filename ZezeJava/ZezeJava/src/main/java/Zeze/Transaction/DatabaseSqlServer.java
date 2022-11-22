@@ -126,7 +126,10 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				connection.setAutoCommit(false);
 
 				//noinspection SpellCheckingInspection
-				String TableDataWithVersion = "if not exists (select * from sysobjects where name='_ZezeDataWithVersion_' and xtype='U')" + " CREATE TABLE _ZezeDataWithVersion_ (id VARBINARY(Max) NOT NULL PRIMARY KEY, data VARBINARY(MAX) NOT NULL, version bigint NOT NULL)";
+				String TableDataWithVersion = "if not exists (select * from sysobjects where name='_ZezeDataWithVersion_' and xtype='U')"
+						+ " CREATE TABLE _ZezeDataWithVersion_ (id VARBINARY("
+						+ eMaxKeyLength
+						+ ") NOT NULL PRIMARY KEY, data VARBINARY(MAX) NOT NULL, version bigint NOT NULL)";
 				try (var cmd = connection.prepareStatement(TableDataWithVersion)) {
 					cmd.executeUpdate();
 				}
@@ -328,7 +331,11 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				connection.setAutoCommit(true);
 
 				//noinspection SpellCheckingInspection
-				String sql = "if not exists (select * from sysobjects where name='" + getName() + "' and xtype='U') CREATE TABLE " + getName() + "(id VARBINARY(Max) NOT NULL PRIMARY KEY, value VARBINARY(MAX) NOT NULL)";
+				String sql = "if not exists (select * from sysobjects where name='"
+						+ getName() + "' and xtype='U') CREATE TABLE "
+						+ getName() + "(id VARBINARY("
+						+ eMaxKeyLength
+						+ ") NOT NULL PRIMARY KEY, value VARBINARY(MAX) NOT NULL)";
 				try (var cmd = connection.prepareStatement(sql)) {
 					cmd.executeUpdate();
 				}
