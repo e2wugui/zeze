@@ -134,6 +134,7 @@ public final class App extends Zeze.AppBase {
     public Game.Rank.ModuleRank Game_Rank;
     public Game.Timer.ModuleTimer Game_Timer;
     public Game.LongSet.ModuleLongSet Game_LongSet;
+    public Zeze.Builtin.Game.Task.ModuleTask Zeze_Builtin_Game_Task;
 
     @Override
     public Zeze.Application getZeze() {
@@ -207,10 +208,16 @@ public final class App extends Zeze.AppBase {
         if (modules.put(Game_LongSet.getFullName(), Game_LongSet) != null)
             throw new RuntimeException("duplicate module name: Game_LongSet");
 
+        Zeze_Builtin_Game_Task = replaceModuleInstance(new Zeze.Builtin.Game.Task.ModuleTask(this));
+        Zeze_Builtin_Game_Task.Initialize(this);
+        if (modules.put(Zeze_Builtin_Game_Task.getFullName(), Zeze_Builtin_Game_Task) != null)
+            throw new RuntimeException("duplicate module name: Zeze_Builtin_Game_Task");
+
         Zeze.setSchemas(new Game.Schemas());
     }
 
     public synchronized void destroyModules() {
+        Zeze_Builtin_Game_Task = null;
         Game_LongSet = null;
         Game_Timer = null;
         Game_Rank = null;
@@ -244,9 +251,12 @@ public final class App extends Zeze.AppBase {
         Game_Rank.Start(this);
         Game_Timer.Start(this);
         Game_LongSet.Start(this);
+        Zeze_Builtin_Game_Task.Start(this);
     }
 
     public synchronized void stopModules() throws Throwable {
+        if (Zeze_Builtin_Game_Task != null)
+            Zeze_Builtin_Game_Task.Stop(this);
         if (Game_LongSet != null)
             Game_LongSet.Stop(this);
         if (Game_Timer != null)

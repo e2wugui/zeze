@@ -310,7 +310,7 @@
 			<module ref="Rank"/>
 			<module ref="Timer"/>
 			<module ref="LongSet"/>
-<!--			<module ref="Zeze.Builtin.Game.Task" dynamic="true"/>-->
+			<module ref="Zeze.Builtin.Game.Task"/>
 		</service>
 
 		<ModuleStartOrder>

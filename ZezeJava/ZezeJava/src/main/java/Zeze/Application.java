@@ -51,7 +51,6 @@ public final class Application {
 	private final Agent serviceManagerAgent;
 	private AutoKey.Module autoKey;
 	private Timer timer;
-	private Zeze.Game.Task.Module taskModule;
 	private Zeze.Collections.Queue.Module queueModule;
 	private Zeze.Component.DelayRemove delayRemove;
 	private IGlobalAgent globalAgent;
@@ -203,10 +202,6 @@ public final class Application {
 		return timer;
 	}
 
-	public Zeze.Game.Task.Module getTaskModule() {
-		return taskModule;
-	}
-
 	public Zeze.Collections.Queue.Module getQueueModule() {
 		return queueModule;
 	}
@@ -264,7 +259,6 @@ public final class Application {
 			queueModule = new Queue.Module(this);
 			delayRemove = new DelayRemove(this);
 			timer = new Timer(this);
-			//taskModule = new Zeze.Game.Task.Module(this);
 
 			if ("true".equals(System.getProperty(Daemon.propertyNameClearInUse)))
 				conf.clearInUseAndIAmSureAppStopped(this, databases);
