@@ -94,7 +94,7 @@ public class TestTask extends TestCase {
 
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
 
-				var module = server0.Zeze_Builtin_Game_Task.getModule();
+				var module = server0.Game_Task.getModule();
 				var task1 = module.open("Task02NpcTask", NPCTask.class, BNPCTaskDynamics.class);
 				task1.setReceiveNpcId(1001); // 设置接取任务的NPC
 				task1.setSubmitNpcId(1002); // 设置提交任务的NPC

@@ -288,6 +288,10 @@
 		<table name="tIndexs" key="string" value="BNodeId"/> key is "{name}#{value}"
 	</module>
 
+	<module name="Task" id="13">
+		<bean name="placeholder" type="int"/>
+	</module>
+
 	<!--
 	name 项目名字
 	gendir 代码生成输出目录，默认是当前目录
@@ -310,7 +314,7 @@
 			<module ref="Rank"/>
 			<module ref="Timer"/>
 			<module ref="LongSet"/>
-			<module ref="Zeze.Builtin.Game.Task"/>
+			<module ref="Task"/>
 		</service>
 
 		<ModuleStartOrder>
