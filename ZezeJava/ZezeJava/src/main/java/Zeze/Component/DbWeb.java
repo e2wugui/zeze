@@ -16,7 +16,7 @@ import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Table;
-import Zeze.Transaction.TableWalkHandle;
+import Zeze.Transaction.TableWalkKey;
 import Zeze.Transaction.TableX;
 import Zeze.Util.JsonReader;
 import Zeze.Util.JsonWriter;
@@ -99,9 +99,9 @@ public class DbWeb extends AbstractDbWeb {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static <K extends Comparable<K>, V extends Bean> K walk(TableX<?, ?> table, Object exclusiveStartKey,
-																   int proposeLimit, TableWalkHandle<?, ?> callback) {
-		return ((TableX<K, V>)table).walk((K)exclusiveStartKey, proposeLimit, (TableWalkHandle<K, V>)callback);
+	public static <K extends Comparable<K>, V extends Bean> K walkKey(TableX<?, ?> table, Object exclusiveStartKey,
+																	  int proposeLimit, TableWalkKey<?> callback) {
+		return ((TableX<K, V>)table).walkKey((K)exclusiveStartKey, proposeLimit, (TableWalkKey<K>)callback);
 	}
 
 	@Override
@@ -115,18 +115,18 @@ public class DbWeb extends AbstractDbWeb {
 			var count = n != null ? Math.min(Integer.parseInt(n), 1_000_000) : 100;
 			var table = (TableX<?, ?>)zeze.getTable(tableName);
 			var keys = new ArrayList<>();
-			var lastKey = walk(table, key != null && !key.isEmpty() ? parseKey(table, key) : null, count, (k, __) -> {
+			var lastKey = walkKey(table, key != null && !key.isEmpty() ? parseKey(table, key) : null, count, k -> {
 				keys.add(k);
 				return keys.size() < count;
 			});
 			var sb = new StringBuilder("<html><head><meta http-equiv=content-type content=text/html;charset=utf-8 />\n"
 					+ "<title>WalkTable</title></head><body><style>a{text-decoration:none}</style>\n");
 			for (var k : keys) {
-				sb.append("<p><a href=\"GetTable?t=").append(tableName).append("&k=")
+				sb.append("<p><a href=\"GetValue?t=").append(tableName).append("&k=")
 						.append(URLEncoder.encode(k.toString(), StandardCharsets.UTF_8)).append("\">")
 						.append(tableName).append(": ").append(k).append("</a>\n");
 			}
-			if (lastKey != null) {
+			if (lastKey != null && keys.size() >= count) {
 				sb.append("<hr><a href=\"WalkTable?t=").append(tableName).append("&k=")
 						.append(URLEncoder.encode(lastKey.toString(), StandardCharsets.UTF_8));
 				if (n != null)

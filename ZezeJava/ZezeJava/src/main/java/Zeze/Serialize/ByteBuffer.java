@@ -1667,7 +1667,7 @@ public final class ByteBuffer implements Comparable<ByteBuffer> {
 	}
 
 	public static int Compare(byte[] left, byte[] right) {
-		return Arrays.compare(left, right);
+		return Arrays.compareUnsigned(left, right);
 	}
 
 	public static byte[] Copy(byte[] src) {
@@ -1680,6 +1680,6 @@ public final class ByteBuffer implements Comparable<ByteBuffer> {
 
 	@Override
 	public int compareTo(@NotNull ByteBuffer o) {
-		return Arrays.compare(Bytes, ReadIndex, WriteIndex, o.Bytes, o.ReadIndex, o.WriteIndex);
+		return Arrays.compareUnsigned(Bytes, ReadIndex, WriteIndex, o.Bytes, o.ReadIndex, o.WriteIndex);
 	}
 }

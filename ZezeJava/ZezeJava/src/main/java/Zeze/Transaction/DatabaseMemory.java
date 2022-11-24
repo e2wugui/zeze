@@ -295,7 +295,8 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 						values.add(next.getValue());
 						proposeLimit--;
 					}
-					for (; proposeLimit-- > 0 && it.hasNext(); next = it.next()) {
+					while (proposeLimit-- > 0 && it.hasNext()) {
+						next = it.next();
 						keys.add(next.getKey());
 						values.add(next.getValue());
 					}
@@ -328,8 +329,8 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 						keys.add(key);
 						proposeLimit--;
 					}
-					for (; proposeLimit-- > 0 && it.hasNext(); key = it.next())
-						keys.add(key);
+					while (proposeLimit-- > 0 && it.hasNext())
+						keys.add(it.next());
 				}
 			} finally {
 				lock.readLock().unlock();
