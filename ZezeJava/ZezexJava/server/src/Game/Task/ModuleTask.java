@@ -18,7 +18,6 @@ public class ModuleTask extends AbstractModule {
     // ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
     public ModuleTask(Game.App app) {
         super(app);
-        module = new Task.Module(app.Zeze);
     }
     // ZEZE_FILE_CHUNK }}} GEN MODULE @formatter:on
 }

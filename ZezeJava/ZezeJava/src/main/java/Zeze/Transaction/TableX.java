@@ -663,20 +663,38 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		if (Transaction.getCurrent() != null)
 			throw new IllegalStateException("must be called without transaction");
 
-		var encodedExclusiveStartKey = null == exclusiveStartKey ? null : encodeKey(exclusiveStartKey);
-		var lastKey = storage.getDatabaseTable().walk(
-				encodedExclusiveStartKey,
-				proposeLimit,
-				(key, value) -> {
-					if (invokeCallback(key, value, callback)) {
-						if (afterLock != null)
-							afterLock.run();
-						return true;
-					}
-					return false;
-				});
+		var encodedExclusiveStartKey = exclusiveStartKey != null ? encodeKey(exclusiveStartKey) : null;
+		var lastKey = storage.getDatabaseTable().walk(encodedExclusiveStartKey, proposeLimit, (key, value) -> {
+			if (invokeCallback(key, value, callback)) {
+				if (afterLock != null)
+					afterLock.run();
+				return true;
+			}
+			return false;
+		});
 
-		return null == lastKey ? null : decodeKey(lastKey);
+		return lastKey != null ? decodeKey(lastKey) : null;
+	}
+
+	public final K walkKey(K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) {
+		return walkKey(exclusiveStartKey, proposeLimit, callback, null);
+	}
+
+	public final K walkKey(K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback, Runnable afterLock) {
+		if (Transaction.getCurrent() != null)
+			throw new IllegalStateException("must be called without transaction");
+
+		var encodedExclusiveStartKey = exclusiveStartKey != null ? encodeKey(exclusiveStartKey) : null;
+		var lastKey = storage.getDatabaseTable().walkKey(encodedExclusiveStartKey, proposeLimit, key -> {
+			if (invokeCallback(key, callback)) {
+				if (afterLock != null)
+					afterLock.run();
+				return true;
+			}
+			return false;
+		});
+
+		return lastKey != null ? decodeKey(lastKey) : null;
 	}
 
 	@Deprecated
@@ -691,8 +709,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		try {
 			var r = cache.get(k);
 			if (r != null && r.getState() != StateRemoved) {
-				if (r.getState() == StateShare
-						|| r.getState() == StateModify) {
+				if (r.getState() == StateShare || r.getState() == StateModify) {
 					// 拥有正确的状态：
 					@SuppressWarnings("unchecked")
 					var strongRef = (V)r.getSoftValue();
@@ -708,6 +725,31 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 		// 缓存中不存在或者正在被删除，使用数据库中的数据。
 		return callback.handle(k, decodeValue(ByteBuffer.Wrap(value)));
+	}
+
+	private boolean invokeCallback(byte[] key, TableWalkKey<K> callback) {
+		K k = decodeKey(ByteBuffer.Wrap(key));
+		var lockey = getZeze().getLocks().get(new TableKey(getId(), k));
+		lockey.enterReadLock();
+		try {
+			var r = cache.get(k);
+			if (r != null && r.getState() != StateRemoved) {
+				if (r.getState() == StateShare || r.getState() == StateModify) {
+					// 拥有正确的状态：
+					@SuppressWarnings("unchecked")
+					var strongRef = (V)r.getSoftValue();
+					if (strongRef == null)
+						return true; // 已经被删除，但是还没有checkpoint的记录看不到。
+					return callback.handle(r.getObjectKey());
+				}
+				// else GlobalCacheManager.StateInvalid
+				// 继续后面的处理：使用数据库中的数据。
+			}
+		} finally {
+			lockey.exitReadLock();
+		}
+		// 缓存中不存在或者正在被删除，使用数据库中的数据。
+		return callback.handle(k);
 	}
 
 	@Deprecated

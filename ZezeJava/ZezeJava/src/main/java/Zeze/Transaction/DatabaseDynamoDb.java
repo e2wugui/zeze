@@ -1,8 +1,9 @@
 package Zeze.Transaction;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
@@ -204,7 +205,7 @@ public class DatabaseDynamoDb extends Database {
 					var value = copyIf(item.get("value").getB());
 					if (!callback.handle(key, value))
 						return count;
-					count ++;
+					count++;
 				}
 				if (scanResult.getLastEvaluatedKey() == null)
 					break;
@@ -214,31 +215,6 @@ public class DatabaseDynamoDb extends Database {
 				req.setExclusiveStartKey(scanResult.getLastEvaluatedKey());
 			}
 			return count;
-		}
-
-		@Override
-		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
-			var attributesToGet = new ArrayList<String>();
-			attributesToGet.add("key");
-			attributesToGet.add("value");
-			var req = new ScanRequest();
-			req.setAttributesToGet(attributesToGet);
-			if (null != exclusiveStartKey) {
-				var key = new HashMap<String, AttributeValue>();
-				key.put("key", new AttributeValue().withB(java.nio.ByteBuffer.wrap(
-						exclusiveStartKey.Bytes, exclusiveStartKey.ReadIndex, exclusiveStartKey.size())));
-				req.setExclusiveStartKey(key);
-			}
-			var scanResult = dynamoDbClient.scan(req);
-			byte[] lastKey = null;
-			for (var item : scanResult.getItems()) {
-				var key = copyIf(item.get("key").getB());
-				lastKey = key;
-				var value = copyIf(item.get("value").getB());
-				if (!callback.handle(key, value))
-					break;
-			}
-			return null == lastKey ? null : ByteBuffer.Wrap(lastKey);
 		}
 
 		@Override
@@ -254,7 +230,7 @@ public class DatabaseDynamoDb extends Database {
 					var key = copyIf(item.get("key").getB());
 					if (!callback.handle(key))
 						return count;
-					count ++;
+					count++;
 				}
 				if (scanResult.getLastEvaluatedKey() == null)
 					break;
@@ -267,8 +243,49 @@ public class DatabaseDynamoDb extends Database {
 		}
 
 		@Override
-		public void close() {
+		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
+			if (proposeLimit <= 0)
+				return null;
 
+			var req = new ScanRequest();
+			req.setAttributesToGet(List.of("key", "value"));
+			if (exclusiveStartKey != null) {
+				req.setExclusiveStartKey(Map.of("key", new AttributeValue().withB(java.nio.ByteBuffer.wrap(
+						exclusiveStartKey.Bytes, exclusiveStartKey.ReadIndex, exclusiveStartKey.size()))));
+			}
+			var scanResult = dynamoDbClient.scan(req);
+			byte[] lastKey = null;
+			for (var item : scanResult.getItems()) {
+				lastKey = copyIf(item.get("key").getB());
+				if (!callback.handle(lastKey, copyIf(item.get("value").getB())) || --proposeLimit == 0)
+					break;
+			}
+			return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
+		}
+
+		@Override
+		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
+			if (proposeLimit <= 0)
+				return null;
+
+			var req = new ScanRequest();
+			req.setAttributesToGet(List.of("key"));
+			if (exclusiveStartKey != null) {
+				req.setExclusiveStartKey(Map.of("key", new AttributeValue().withB(java.nio.ByteBuffer.wrap(
+						exclusiveStartKey.Bytes, exclusiveStartKey.ReadIndex, exclusiveStartKey.size()))));
+			}
+			var scanResult = dynamoDbClient.scan(req);
+			byte[] lastKey = null;
+			for (var item : scanResult.getItems()) {
+				lastKey = copyIf(item.get("key").getB());
+				if (!callback.handle(lastKey) || --proposeLimit == 0)
+					break;
+			}
+			return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
+		}
+
+		@Override
+		public void close() {
 		}
 	}
 }

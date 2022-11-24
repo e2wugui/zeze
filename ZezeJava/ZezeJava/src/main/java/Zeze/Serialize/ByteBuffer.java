@@ -997,7 +997,18 @@ public final class ByteBuffer implements Comparable<ByteBuffer> {
 
 	@Override
 	public boolean equals(Object other) {
-		return other instanceof ByteBuffer && equals((ByteBuffer)other);
+		if (other instanceof ByteBuffer)
+			return equals((ByteBuffer)other);
+		if (other instanceof byte[]) {
+			var bytes = (byte[])other;
+			return Arrays.equals(Bytes, ReadIndex, WriteIndex, bytes, 0, bytes.length);
+		}
+		if (other instanceof Binary) {
+			var binary = (Binary)other;
+			return Arrays.equals(Bytes, ReadIndex, WriteIndex,
+					binary.bytesUnsafe(), binary.getOffset(), binary.getOffset() + binary.size());
+		}
+		return false;
 	}
 
 	public boolean equals(ByteBuffer other) {

@@ -104,7 +104,17 @@ public final class Binary implements Comparable<Binary> {
 
 	@Override
 	public boolean equals(Object other) {
-		return this == other || other instanceof Binary && equals((Binary)other);
+		if (other instanceof Binary)
+			return equals((Binary)other);
+		if (other instanceof byte[]) {
+			var bytes = (byte[])other;
+			return Arrays.equals(bytes, offset, offset + count, bytes, 0, bytes.length);
+		}
+		if (other instanceof ByteBuffer) {
+			var bb = (ByteBuffer)other;
+			return Arrays.equals(bytes, offset, offset + count, bb.Bytes, bb.ReadIndex, bb.WriteIndex);
+		}
+		return false;
 	}
 
 	@Override

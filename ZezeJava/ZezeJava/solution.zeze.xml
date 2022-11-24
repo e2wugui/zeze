@@ -1040,6 +1040,9 @@
 			<servlet name="ListTable" TransactionLevel="None"/>
 			<servlet name="GetValue" TransactionLevel="None"/>
 			<servlet name="WalkTable" TransactionLevel="None"/>
+			<servlet name="PutRecord" TransactionLevel="Serializable"/>
+			<servlet name="DeleteRecord" TransactionLevel="Serializable"/>
+			<servlet name="ClearTable" TransactionLevel="None"/>
 		</module>
 
 		<!--

@@ -120,8 +120,7 @@ public class HttpExchange {
 		return i >= 0 ? uri.substring(i + 1) : null;
 	}
 
-	public Map<String, String> queryMap() {
-		var s = query();
+	public static Map<String, String> parseQuery(String s) {
 		if (s == null)
 			return Map.of();
 		var m = new LinkedHashMap<String, String>();
@@ -136,6 +135,14 @@ public class HttpExchange {
 			} else if (c == '=' && e < 0)
 				e = i;
 		}
+	}
+
+	public Map<String, String> queryMap() {
+		return parseQuery(query());
+	}
+
+	public Map<String, String> contentQueryMap() {
+		return parseQuery(content().toString(StandardCharsets.UTF_8));
 	}
 
 	public static String filePath(String path) {

@@ -6,21 +6,28 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Objects;
+import java.util.function.Predicate;
 import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Net.Binary;
 import Zeze.Netty.HttpExchange;
+import Zeze.Netty.Netty;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Table;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.TableX;
 import Zeze.Util.JsonReader;
 import Zeze.Util.JsonWriter;
+import Zeze.Util.OutLong;
 import Zeze.Util.Str;
+import Zeze.Util.Task;
+import io.netty.handler.codec.http.DefaultHttpHeaders;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
-//TODO: 修改value, 新建记录, 删除记录, 清空表
 public class DbWeb extends AbstractDbWeb {
 	private Application zeze;
 	private String cachedListHtml;
@@ -40,9 +47,18 @@ public class DbWeb extends AbstractDbWeb {
 				return;
 			}
 			var sb = new StringBuilder("<html><head><meta http-equiv=content-type content=text/html;charset=utf-8 />\n"
-					+ "<title>ListTable</title></head><body>\n"
-					+ "<script>function f(){var d=document,e=d.getElementById('t');e.value=d.getElementsByName('t')"
-					+ "[0].value;}</script><b>DbWeb</b><form action=WalkTable method=get><p>table: <select name=t >\n");
+					+ "<title>ListTable</title></head><body><script>var d=document;\n"
+					+ "function c(){d.getElementById('k').name='';d.getElementById('v').name='';\n"
+					+ "e=d.getElementById('f');e.method='get';e.action='ClearTable';return confirm('confirm?');}\n"
+					+ "function g(){d.getElementById('k').name='k';d.getElementById('v').name='';\n"
+					+ "e=d.getElementById('f');e.method='get';e.action='GetValue';}\n"
+					+ "function w(){d.getElementById('k').name='k';d.getElementById('v').name='';\n"
+					+ "e=d.getElementById('f');e.method='get';e.action='WalkTable';}\n"
+					+ "function r(){d.getElementById('k').name='k';d.getElementById('v').name='';\n"
+					+ "e=d.getElementById('f');e.method='get';e.action='DeleteRecord';return confirm('confirm?');}\n"
+					+ "function p(){d.getElementById('k').name='k';d.getElementById('v').name='v';\n"
+					+ "e=d.getElementById('f');e.method='post';e.action='PutRecord';return confirm('confirm?');}\n"
+					+ "</script><b>DbWeb</b><form id=f action=a method=get><p>table: <select name=t >\n");
 			var tables = new ArrayList<>(zeze.getTables().values());
 			tables.sort(Comparator.comparing(Table::getName));
 			for (var table : tables) {
@@ -52,9 +68,11 @@ public class DbWeb extends AbstractDbWeb {
 						.getActualTypeArguments()[0])).getSimpleName());
 				sb.append(")</option>\n");
 			}
-			sb.append("</select> <input type=submit value=walk onclick=f() /></form><form action=GetValue method=get>\n"
-					+ "key: <input type=hidden id=t name=t /><input name=k /> \n"
-					+ "<input type=submit value=get onclick=f() /></form><hr></body></html>\n");
+			sb.append("</select> <input type=submit value=clear onclick=\"return c()\"/><p>key: <input id=k />\n"
+					+ "<input type=submit value=get onclick=g() /> <input type=submit value=walk onclick=w() />\n"
+					+ "<input type=submit value=delete onclick=\"return r()\"/><p>value(json): \n"
+					+ "<input type=submit value=put onclick=\"return p()\"/><br>\n"
+					+ "<textarea id=v style=\"width:400px;height:400px;\"></textarea></form><hr></body></html>\n");
 			cachedListHtml = html = sb.toString();
 			x.sendHtml(HttpResponseStatus.OK, html);
 		} catch (Exception e) {
@@ -146,6 +164,110 @@ public class DbWeb extends AbstractDbWeb {
 			x.sendPlainText(HttpResponseStatus.OK, vs);
 		} catch (Exception e) {
 			x.sendPlainText(HttpResponseStatus.OK, Str.stacktrace(e));
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private static <K extends Comparable<K>, V extends Bean> void put(TableX<?, ?> table, Object key, Object value) {
+		((TableX<K, V>)table).put((K)key, (V)value);
+	}
+
+	@Override
+	protected void OnServletPutRecord(HttpExchange x) {
+		try {
+			var qm = x.contentQueryMap();
+			var tableName = qm.get("t");
+			var key = qm.get("k");
+			var value = qm.get("v");
+			Objects.requireNonNull(tableName, "tableName");
+			Objects.requireNonNull(key, "key");
+			Objects.requireNonNull(value, "value");
+			var table = (TableX<?, ?>)zeze.getTable(tableName);
+			var k = parseKey(table, key);
+			var valueClass = (Class<?>)
+					((ParameterizedType)table.getClass().getGenericSuperclass()).getActualTypeArguments()[1];
+			var v = JsonReader.local().buf(value).parse(valueClass);
+			if (v == null) {
+				x.sendPlainText(HttpResponseStatus.OK, "parse value failed!");
+				return;
+			}
+			put(table, k, v);
+			x.sendPlainText(HttpResponseStatus.OK, "PutRecord done!");
+		} catch (Exception e) {
+			x.sendPlainText(HttpResponseStatus.OK, Str.stacktrace(e));
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private static <K extends Comparable<K>> void remove(TableX<?, ?> table, Object key) {
+		((TableX<K, ?>)table).remove((K)key);
+	}
+
+	@Override
+	protected void OnServletDeleteRecord(HttpExchange x) {
+		try {
+			var qm = x.queryMap();
+			var tableName = qm.get("t");
+			var key = qm.get("k");
+			Objects.requireNonNull(tableName, "tableName");
+			Objects.requireNonNull(key, "key");
+			var table = (TableX<?, ?>)zeze.getTable(tableName);
+			var k = parseKey(table, key);
+			remove(table, k);
+			x.sendPlainText(HttpResponseStatus.OK, "DeleteRecord done!");
+		} catch (Exception e) {
+			x.sendPlainText(HttpResponseStatus.OK, Str.stacktrace(e));
+		}
+	}
+
+	public <K extends Comparable<K>, V extends Bean> void clearTable(TableX<K, V> table, Predicate<K> batchCallback) {
+		final var DELETE_BATCH_COUNT = 100;
+		var keys = new ArrayList<K>();
+		K lastKey = null;
+		do {
+			lastKey = table.walkKey(lastKey, DELETE_BATCH_COUNT, k -> {
+				keys.add(k);
+				return keys.size() < DELETE_BATCH_COUNT;
+			});
+			Task.call(zeze.newProcedure(() -> {
+				for (var key : keys)
+					table.remove(key);
+				return Procedure.Success;
+			}, "clearTable"));
+			if (batchCallback != null && !batchCallback.test(lastKey))
+				break;
+		} while (lastKey != null);
+	}
+
+	@Override
+	protected void OnServletClearTable(HttpExchange x) {
+		var beginStream = false;
+		try {
+			var qm = x.queryMap();
+			var tableName = qm.get("t");
+			Objects.requireNonNull(tableName, "tableName");
+			var table = (TableX<?, ?>)zeze.getTable(tableName);
+			x.beginStream(HttpResponseStatus.OK, Netty.setDate(new DefaultHttpHeaders())
+					.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE));
+			beginStream = true;
+			x.sendStream(("ClearTable '" + tableName + "' begin ...\n").getBytes(StandardCharsets.UTF_8));
+			var t = new OutLong(System.nanoTime());
+			clearTable(table, lastKey -> {
+				var t1 = System.nanoTime();
+				if (t1 - t.value >= 1_000_000_000L && lastKey != null) {
+					t.value = t1;
+					x.sendStream(("  key: " + lastKey).getBytes(StandardCharsets.UTF_8));
+				}
+				return true;
+			});
+			x.sendStream("ClearTable done!".getBytes(StandardCharsets.UTF_8));
+			x.endStream();
+		} catch (Exception e) {
+			if (beginStream) {
+				x.sendStream(Str.stacktrace(e).getBytes(StandardCharsets.UTF_8));
+				x.endStream();
+			} else
+				x.sendPlainText(HttpResponseStatus.OK, Str.stacktrace(e));
 		}
 	}
 }

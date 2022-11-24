@@ -164,9 +164,11 @@ public abstract class Database {
 
 		long walkKey(TableWalkKeyRaw callback);
 
-		void close();
-
 		ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback);
+
+		ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback);
+
+		void close();
 	}
 
 	public abstract Transaction beginTransaction();

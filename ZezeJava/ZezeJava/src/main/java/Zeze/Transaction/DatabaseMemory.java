@@ -9,9 +9,7 @@ import java.util.TreeMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import Zeze.Config.DatabaseConf;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Util.IntHashMap;
 import Zeze.Util.KV;
-import Zeze.Util.OutObject;
 
 /**
  * Zeze.Transaction.Table.storage 为 null 时，就表示内存表了。这个实现是为了测试 checkpoint 流程。
@@ -262,44 +260,6 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		}
 
 		@Override
-		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
-			final var keys = new ArrayList<ByteBuffer>();
-			final var values = new ArrayList<byte[]>();
-			lock.readLock().lock();
-			try {
-				var it =
-						null == exclusiveStartKey
-						? map.entrySet().iterator()
-						: map.tailMap(exclusiveStartKey).entrySet().iterator();
-
-				// 第一个Item可能需要忽略
-				if (proposeLimit > 0 && it.hasNext()) {
-					var next = it.next();
-					if (null == exclusiveStartKey || !next.getKey().equals(exclusiveStartKey)) {
-						keys.add(next.getKey());
-						values.add(next.getValue());
-						--proposeLimit;
-					}
-				}
-				while (proposeLimit > 0 && it.hasNext()) {
-					var next = it.next();
-					keys.add(next.getKey());
-					values.add(next.getValue());
-					--proposeLimit;
-				}
-			} finally {
-				lock.readLock().unlock();
-			}
-			byte[] lastKey = null;
-			for (int i = 0, n = keys.size(); i < n; i++) {
-				lastKey = keys.get(i).Copy();
-				if (!callback.handle(lastKey, values.get(i).clone()))
-					break;
-			}
-			return null == lastKey ? null : ByteBuffer.Wrap(lastKey);
-		}
-
-		@Override
 		public long walkKey(TableWalkKeyRaw callback) {
 			ByteBuffer[] keys;
 			lock.readLock().lock();
@@ -315,6 +275,72 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 					break;
 			}
 			return count;
+		}
+
+		@Override
+		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
+			if (proposeLimit <= 0)
+				return null;
+			final var keys = new ArrayList<ByteBuffer>();
+			final var values = new ArrayList<byte[]>();
+			lock.readLock().lock();
+			try {
+				var it = exclusiveStartKey == null
+						? map.entrySet().iterator()
+						: map.tailMap(exclusiveStartKey).entrySet().iterator();
+				if (it.hasNext()) {
+					var next = it.next();
+					if (!next.getKey().equals(exclusiveStartKey)) { // 第一个Item可能需要忽略
+						keys.add(next.getKey());
+						values.add(next.getValue());
+						proposeLimit--;
+					}
+					for (; proposeLimit-- > 0 && it.hasNext(); next = it.next()) {
+						keys.add(next.getKey());
+						values.add(next.getValue());
+					}
+				}
+			} finally {
+				lock.readLock().unlock();
+			}
+			byte[] lastKey = null;
+			for (int i = 0, n = keys.size(); i < n; i++) {
+				lastKey = keys.get(i).Copy();
+				if (!callback.handle(lastKey, values.get(i).clone()))
+					break;
+			}
+			return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
+		}
+
+		@Override
+		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
+			if (proposeLimit <= 0)
+				return null;
+			final var keys = new ArrayList<ByteBuffer>();
+			lock.readLock().lock();
+			try {
+				var it = exclusiveStartKey == null
+						? map.keySet().iterator()
+						: map.tailMap(exclusiveStartKey).keySet().iterator();
+				if (it.hasNext()) {
+					var key = it.next();
+					if (!key.equals(exclusiveStartKey)) { // 第一个Item可能需要忽略
+						keys.add(key);
+						proposeLimit--;
+					}
+					for (; proposeLimit-- > 0 && it.hasNext(); key = it.next())
+						keys.add(key);
+				}
+			} finally {
+				lock.readLock().unlock();
+			}
+			byte[] lastKey = null;
+			for (var key : keys) {
+				lastKey = key.Copy();
+				if (!callback.handle(lastKey))
+					break;
+			}
+			return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 		}
 
 		@Override

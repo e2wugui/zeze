@@ -204,6 +204,28 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
+		public long walkKey(TableWalkKeyRaw callback) {
+			long countWalked = 0;
+			int keyPrefixSize = keyPrefix.length;
+			var startKey = ByteString.copyFrom(keyPrefix);
+			var endKey = Key.toRawKey(keyPrefix).nextPrefix().toByteString();
+			Iterator<Kvrpcpb.KvPair> it;
+			if (distTxn)
+				it = new ConcreteScanIterator(config, session.getRegionStoreClientBuilder(), startKey, endKey, version);
+			else
+				it = client.scan0(startKey, endKey);
+			while (it.hasNext()) {
+				var kv = it.next();
+				if (kv.getValue().isEmpty()) // deleted
+					continue;
+				countWalked++;
+				if (!callback.handle(kv.getKey().substring(keyPrefixSize).toByteArray()))
+					break;
+			}
+			return countWalked;
+		}
+
+		@Override
 		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
 			int keyPrefixSize = keyPrefix.length;
 			var startKey = ByteString.copyFrom(keyPrefix);
@@ -228,25 +250,9 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public long walkKey(TableWalkKeyRaw callback) {
-			long countWalked = 0;
-			int keyPrefixSize = keyPrefix.length;
-			var startKey = ByteString.copyFrom(keyPrefix);
-			var endKey = Key.toRawKey(keyPrefix).nextPrefix().toByteString();
-			Iterator<Kvrpcpb.KvPair> it;
-			if (distTxn)
-				it = new ConcreteScanIterator(config, session.getRegionStoreClientBuilder(), startKey, endKey, version);
-			else
-				it = client.scan0(startKey, endKey);
-			while (it.hasNext()) {
-				var kv = it.next();
-				if (kv.getValue().isEmpty()) // deleted
-					continue;
-				countWalked++;
-				if (!callback.handle(kv.getKey().substring(keyPrefixSize).toByteArray()))
-					break;
-			}
-			return countWalked;
+		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
+			// todo
+			return null;
 		}
 
 		private ByteString addKeyPrefixBS(ByteBuffer key) {

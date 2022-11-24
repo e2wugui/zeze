@@ -4,7 +4,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import javax.imageio.plugins.tiff.BaselineTIFFTagSet;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
@@ -258,33 +257,6 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
-		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
-			try (var it = rocksDb.newIterator(columnFamily, defaultReadOptions)) {
-				if (null != exclusiveStartKey)
-					it.seek(copyIf(exclusiveStartKey));
-
-				byte[] lastKey = null;
-				// 第一个item可能为exclusiveStartKey时需要忽略。
-				if (proposeLimit > 0 && it.isValid()) {
-					lastKey = it.key();
-					if (null == exclusiveStartKey || !ByteBuffer.Wrap(lastKey).equals(exclusiveStartKey)) {
-						--proposeLimit;
-						if (!callback.handle(lastKey, it.value()))
-							return null == lastKey ? null : ByteBuffer.Wrap(lastKey);
-					}
-					it.next(); // skip
-				}
-				for (; proposeLimit > 0 && it.isValid(); it.next()) {
-					--proposeLimit;
-					lastKey = it.key();
-					if (!callback.handle(lastKey, it.value()))
-						break;
-				}
-				return null == lastKey ? null : ByteBuffer.Wrap(lastKey);
-			}
-		}
-
-		@Override
 		public long walkKey(TableWalkKeyRaw callback) {
 			try (var it = rocksDb.newIterator(columnFamily, defaultReadOptions)) {
 				long countWalked = 0;
@@ -294,6 +266,64 @@ public class DatabaseRocksDb extends Database {
 						break;
 				}
 				return countWalked;
+			}
+		}
+
+		@Override
+		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
+			if (proposeLimit <= 0)
+				return null;
+			try (var it = rocksDb.newIterator(columnFamily, defaultReadOptions)) {
+				if (exclusiveStartKey == null)
+					it.seekToFirst();
+				else
+					it.seek(copyIf(exclusiveStartKey));
+				if (!it.isValid())
+					return null;
+
+				var lastKey = it.key();
+				//noinspection EqualsBetweenInconvertibleTypes
+				if (exclusiveStartKey != null && exclusiveStartKey.equals(lastKey)) { // 第一个item可能为exclusiveStartKey时需要忽略。
+					if (!callback.handle(lastKey, it.value()))
+						return ByteBuffer.Wrap(lastKey);
+					proposeLimit--;
+					it.next();
+				}
+				for (; proposeLimit-- > 0 && it.isValid(); it.next()) {
+					lastKey = it.key();
+					if (!callback.handle(lastKey, it.value()))
+						break;
+				}
+				return ByteBuffer.Wrap(lastKey);
+			}
+		}
+
+		@Override
+		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
+			if (proposeLimit <= 0)
+				return null;
+			try (var it = rocksDb.newIterator(columnFamily, defaultReadOptions)) {
+				if (exclusiveStartKey == null)
+					it.seekToFirst();
+				else
+					it.seek(copyIf(exclusiveStartKey));
+				if (!it.isValid())
+					return null;
+
+				var lastKey = it.key();
+				//noinspection EqualsBetweenInconvertibleTypes
+				if (exclusiveStartKey != null && exclusiveStartKey.equals(lastKey)) { // 第一个item可能为exclusiveStartKey时需要忽略。
+					if (!callback.handle(lastKey))
+						return ByteBuffer.Wrap(lastKey);
+					proposeLimit--;
+					it.next();
+				}
+				for (; proposeLimit-- > 0 && it.isValid(); it.next()) {
+					lastKey = it.key();
+					if (!callback.handle(lastKey))
+						break;
+				}
+				return ByteBuffer.Wrap(lastKey);
 			}
 		}
 	}
