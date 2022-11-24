@@ -88,15 +88,14 @@ public class Task<ExtendedBean extends Bean> {
 		// 需要在事务内使用。 使用完不要保存。
 		@SuppressWarnings("unchecked")
 		public <ExtendedBean extends Bean, ExtendedTask extends Task<ExtendedBean>> ExtendedTask open(String taskName, Class<ExtendedTask> extendedTaskClass, Class<ExtendedBean> extendedBeanClass) {
-			var res = (ExtendedTask)tasks.computeIfAbsent(taskName, key -> {
+			return (ExtendedTask)tasks.computeIfAbsent(taskName, key -> {
 				try {
 					var c = extendedTaskClass.getDeclaredConstructor(Module.class, String.class);
-					return (Task<?>)c.newInstance(Module.this, taskName);
+					return c.newInstance(this, taskName);
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
 			});
-			return res;
 		}
 
 		public Task<?> getTask(String taskName) {

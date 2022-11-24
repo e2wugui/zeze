@@ -1,7 +1,7 @@
 package Zeze.Game;
 
 public abstract class ConditionEvent {
-	private boolean breakIfAccepted = false;
+	private final boolean breakIfAccepted;
 
 	public ConditionEvent() {
 		this(false);

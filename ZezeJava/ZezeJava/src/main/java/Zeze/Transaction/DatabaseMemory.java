@@ -183,16 +183,16 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		return result;
 	}
 
+	private static class ByteBufferComparator implements Comparator<ByteBuffer> {
+		@Override
+		public int compare(ByteBuffer o1, ByteBuffer o2) {
+			return o1.compareTo(o2);
+		}
+	}
+
 	public final class TableMemory implements Database.Table {
 		private final String name;
 		private final TreeMap<ByteBuffer, byte[]> map = new TreeMap<>(new ByteBufferComparator());
-
-		private static class ByteBufferComparator implements Comparator<ByteBuffer> {
-			@Override
-			public int compare(ByteBuffer o1, ByteBuffer o2) {
-				return o1.compareTo(o2);
-			}
-		}
 
 		public TableMemory(String name) {
 			this.name = name;

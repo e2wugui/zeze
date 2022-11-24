@@ -22,7 +22,7 @@ import org.jgrapht.graph.DirectedAcyclicGraph;
  * TaskGraphics
  */
 public class TaskGraphics {
-	Task.Module taskModule;
+	final Task.Module taskModule;
 	private final DirectedAcyclicGraph<Task, DefaultEdge> graph;
 
 	public TaskGraphics(Task.Module taskModule) {
@@ -47,9 +47,9 @@ public class TaskGraphics {
 	}
 
 	private void buildGraph() {
-		var taskTable = taskModule.getTable();
-		if (taskTable.isNew())
-			return;
+//		var taskTable = taskModule.getTable();
+//		if (taskTable.isNew())
+//			return;
 //		taskTable.walk((k, v) -> {
 //			Task<?> task = new Task(taskModule, k.getTaskName(), );
 //			// TODO: 需要彻底初始化Task

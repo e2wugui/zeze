@@ -1,18 +1,16 @@
 package Zeze.Game;
 
 import java.util.ArrayList;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
-import Zeze.Builtin.Game.Task.BTask;
 import Zeze.Builtin.Game.Task.BTaskPhase;
 import Zeze.Transaction.Bean;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
 
 public class TaskPhase {
-	public static int TASK_PHASE_STATE_INVALID = -1;
-	public static int TASK_PHASE_STATE_VALID = 0;
+	public static final int TASK_PHASE_STATE_INVALID = -1;
+	public static final int TASK_PHASE_STATE_VALID = 0;
 
 	public TaskPhase(Task task, String name) throws Throwable {
 		this.task = task;
