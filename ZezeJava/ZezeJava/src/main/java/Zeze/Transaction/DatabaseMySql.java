@@ -266,7 +266,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 						"                        set ReturnValue=0;" + "\r\n" +
 						"                        COMMIT;" + "\r\n" +
 						"                        LEAVE return_label;" + "\r\n" +
-						"                    end";
+						"                    end;";
 				try (var cmd = connection.prepareStatement(ProcSetInUse)) {
 					cmd.executeUpdate();
 				}
@@ -302,7 +302,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 						"                        set ReturnValue=0;" + "\r\n" +
 						"                        COMMIT;" + "\r\n" +
 						"                        LEAVE return_label;" + "\r\n" +
-						"                    end";
+						"                    end;";
 				try (var cmd = connection.prepareStatement(ProcClearInUse)) {
 					cmd.executeUpdate();
 				}
