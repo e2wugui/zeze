@@ -251,6 +251,20 @@ export module Zeze {
 			service.DispatchProtocol(this, factoryHandle);
 		}
 
+		public static DecodeProtocol(service: Service, singleEncodedProtocol: ByteBuffer): Protocol {
+			var moduleId: number = singleEncodedProtocol.ReadInt4();
+			var protocolId: number = singleEncodedProtocol.ReadInt4();
+			var size: number = singleEncodedProtocol.ReadInt4();
+			var type: bigint = BigInt(moduleId) << 32n | BigInt(protocolId);
+			var factoryHandle = service.FactoryHandleMap.get(type);
+			if (factoryHandle != null) {
+				var p = factoryHandle.factory();
+				p.Decode(singleEncodedProtocol);
+				return p;
+			}
+			return null;
+		}
+
 		public static DecodeProtocols(service: Service, socket: Socket, input: Zeze.ByteBuffer) {
 			var os = new Zeze.ByteBuffer(input.Bytes, input.ReadIndex, input.Size());
 			while (os.Size() > 0) {

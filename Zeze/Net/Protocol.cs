@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Zeze.Gen;
 using Zeze.Serialize;
 
 namespace Zeze.Net
@@ -125,11 +126,33 @@ namespace Zeze.Net
 		public long ResultCode { get; set; }
 
 		/// <summary>
-		/// Id + size + protocol.bytes
-		/// </summary>
-		/// <param name="bb"></param>
-		/// <returns></returns>
-		internal static void Decode(Service service, AsyncSocket so, ByteBuffer bb, IDecodeAndDispatch toLua = null)
+        /// 单个协议解码。输入是一个完整的协议包，返回解出的协议。如果没有找到解码存根，返回null。
+        /// </summary>
+        /// <param name="service">服务，用来查找协议存根。</param>
+        /// <param name="singleEncodedProtocol">单个完整的协议包</param>
+        /// <returns>decoded protocol instance. if decode fail return null.</returns>
+        public static Protocol Decode(Service service, ByteBuffer singleEncodedProtocol)
+        {
+            var moduleId = singleEncodedProtocol.ReadInt4();
+            var protocolId = singleEncodedProtocol.ReadInt4();
+            var size = singleEncodedProtocol.ReadInt4();
+
+            var factoryHandle = service.FindProtocolFactoryHandle(MakeTypeId(moduleId, protocolId));
+            if (factoryHandle != null && factoryHandle.Factory != null)
+            {
+                var p = factoryHandle.Factory();
+                p.Decode(singleEncodedProtocol);
+                return p;
+            }
+            return null;
+        }
+        
+		/// <summary>
+        /// Id + size + protocol.bytes
+        /// </summary>
+        /// <param name="bb"></param>
+        /// <returns></returns>
+        internal static void Decode(Service service, AsyncSocket so, ByteBuffer bb, IDecodeAndDispatch toLua = null)
         {
 			ByteBuffer os = ByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.Size); // 创建一个新的ByteBuffer，解码确认了才修改bb索引。
 			while (os.Size > 0)

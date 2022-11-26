@@ -169,6 +169,26 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 	}
 
 	/**
+	 * 单个协议解码。输入是一个完整的协议包，返回解出的协议。如果没有找到解码存根，返回null。
+	 * @param service 服务，用来查找协议存根。
+	 * @param singleEncodedProtocol 单个完整的协议包。
+	 * @return decoded protocol instance. if decode fail return null.
+	 */
+	public static Protocol<?> decode(Service service, ByteBuffer singleEncodedProtocol) {
+		var moduleId = singleEncodedProtocol.ReadInt4();
+		var protocolId = singleEncodedProtocol.ReadInt4();
+		var size = singleEncodedProtocol.ReadInt4();
+
+		var factoryHandle = service.findProtocolFactoryHandle(makeTypeId(moduleId, protocolId));
+		if (factoryHandle != null && factoryHandle.Factory != null) {
+			var p = factoryHandle.Factory.create();
+			p.decode(singleEncodedProtocol);
+			return p;
+		}
+		return null;
+	}
+
+	/**
 	 * moduleId[4] + protocolId[4] + size[4] + protocol.bytes[size]
 	 */
 	public static void decode(Service service, AsyncSocket so, ByteBuffer bb) throws Throwable {
