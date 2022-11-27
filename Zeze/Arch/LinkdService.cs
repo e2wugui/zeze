@@ -277,7 +277,9 @@ namespace Zeze.Arch
             }
             else
             {
-                logger.Log(SocketOptions.SocketLogLevel, "Protocol Handle Not Found. {0}", p);
+#if HAS_NLOG
+                logger.Log(Mission.NlogLogLevel(SocketOptions.SocketLogLevel), "Protocol Handle Not Found. {0}", p);
+#endif
                 p.Sender.Close(null);
             }
         }

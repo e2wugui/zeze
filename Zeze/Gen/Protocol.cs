@@ -51,15 +51,15 @@ namespace Zeze.Gen
                 else if ("false".Equals(tlevel))
                     TransactionLevel = TransactionLevel.Serializable;
                 else
-                    TransactionLevel = (TransactionLevel)TransactionLevel.Parse(typeof(TransactionLevel), tlevel);
+                    TransactionLevel = (TransactionLevel)Enum.Parse(typeof(TransactionLevel), tlevel);
             }
             else
             {
                 tlevel = self.GetAttribute("TransactionLevel");
                 if (tlevel.Length > 0)
-                    TransactionLevel = (TransactionLevel)TransactionLevel.Parse(typeof(TransactionLevel), tlevel);
+                    TransactionLevel = (TransactionLevel)Enum.Parse(typeof(TransactionLevel), tlevel);
                 else if (false == string.IsNullOrEmpty(space.DefaultTransactionLevel))
-                    TransactionLevel = (TransactionLevel)TransactionLevel.Parse(typeof(TransactionLevel), space.DefaultTransactionLevel);
+                    TransactionLevel = (TransactionLevel)Enum.Parse(typeof(TransactionLevel), space.DefaultTransactionLevel);
             }
 
             Comment = Types.Bean.GetComment(self);

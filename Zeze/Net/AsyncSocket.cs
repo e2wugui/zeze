@@ -15,8 +15,11 @@ namespace Zeze.Net
     /// </summary>
     public sealed class AsyncSocket : IDisposable
     {
+#if HAS_NLOG
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-
+#elif HAS_MYLOG
+        private static readonly Zeze.MyLog logger = Zeze.MyLog.GetLogger(typeof(AsyncSocket));
+#endif
         private byte[] _inputBuffer;
         private List<ArraySegment<byte>> _outputBufferList;
         private int _outputBufferListCountSum;
@@ -330,7 +333,9 @@ namespace Zeze.Net
                     }
                     catch (Exception ex)
                     {
+#if HAS_NLOG || HAS_MYLOG
                         logger.Error(ex);
+#endif
                     }
                 }
                 BeginAcceptAsync();
@@ -362,7 +367,9 @@ namespace Zeze.Net
                 }
                 catch (Exception ex)
                 {
+#if HAS_NLOG || HAS_MYLOG
                     logger.Error(ex);
+#endif
                 }
                 Close(null);
             }
@@ -390,7 +397,9 @@ namespace Zeze.Net
                 }
                 catch (Exception ex)
                 {
+#if HAS_NLOG || HAS_MYLOG
                     logger.Error(ex);
+#endif
                 }
                 Close(null);
             }
@@ -560,7 +569,13 @@ namespace Zeze.Net
         {
             this.LastException = e;
             if (null != e)
+            {
+#if HAS_NLOG
+                logger.Log(Mission.NlogLogLevel(Service.SocketOptions.SocketLogLevel), e, "Close");
+#elif HAS_MYLOG
                 logger.Log(Service.SocketOptions.SocketLogLevel, e, "Close");
+#endif
+            }
             Dispose();
         }
 
@@ -596,7 +611,9 @@ namespace Zeze.Net
             }
             catch (Exception e)
             {
+#if HAS_NLOG || HAS_MYLOG
                 logger.Error(e);
+#endif
             }
             try
             {
@@ -604,7 +621,9 @@ namespace Zeze.Net
             }
             catch (Exception e)
             {
+#if HAS_NLOG || HAS_MYLOG
                 logger.Error(e);
+#endif
             }
         }
 
@@ -628,7 +647,9 @@ namespace Zeze.Net
             }
             catch (Exception e)
             {
+#if HAS_NLOG || HAS_MYLOG
                 logger.Error(e);
+#endif
             }
 
             try
@@ -637,7 +658,9 @@ namespace Zeze.Net
             }
             catch (Exception e)
             {
+#if HAS_NLOG || HAS_MYLOG
                 logger.Error(e);
+#endif
             }
         }
 

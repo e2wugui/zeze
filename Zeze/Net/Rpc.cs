@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading.Tasks;
-using NLog;
 using Zeze.Serialize;
 using Zeze.Util;
 
@@ -16,7 +15,11 @@ namespace Zeze.Net
         where TResult : Zeze.Transaction.Bean, new()
 #endif
     {
+#if HAS_NLOG
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+#elif HAS_MYLOG
+        private static readonly Zeze.MyLog logger = Zeze.MyLog.GetLogger(typeof(Rpc<TArgument, TResult>));
+#endif
 
         public TResult Result { get; set; } = new TResult();
 
@@ -170,7 +173,11 @@ namespace Zeze.Net
         {
             if (SendResultDone)
             {
-                logger.Log(LogLevel.Error, $"Rpc.SendResult Already Done {Sender.Socket} {this}");
+#if HAS_NLOG
+                logger.Log(NLog.LogLevel.Error, $"Rpc.SendResult Already Done {Sender.Socket} {this}");
+#elif HAS_MYLOG
+                logger.Log(Config.LogLevel.Error, $"Rpc.SendResult Already Done {Sender.Socket} {this}");
+#endif
                 return;
             }
             SendResultDone = true;
@@ -179,7 +186,11 @@ namespace Zeze.Net
             IsRequest = false;
             if (false == base.Send(Sender))
             {
+#if HAS_NLOG
+                logger.Log(Mission.NlogLogLevel(Service.SocketOptions.SocketLogLevel), $"Rpc.SendResult Failed {Sender.Socket} {this}");
+#elif HAS_MYLOG
                 logger.Log(Service.SocketOptions.SocketLogLevel, $"Rpc.SendResult Failed {Sender.Socket} {this}");
+#endif
             }
         }
 
@@ -204,7 +215,11 @@ namespace Zeze.Net
             Rpc<TArgument, TResult> context = service.RemoveRpcContext<Rpc<TArgument, TResult>>(SessionId);
             if (null == context)
             {
+#if HAS_NLOG
+                logger.Log(Mission.NlogLogLevel(Service.SocketOptions.SocketLogLevel), "rpc response: lost context, maybe timeout. {0}", this);
+#elif HAS_MYLOG
                 logger.Log(Service.SocketOptions.SocketLogLevel, "rpc response: lost context, maybe timeout. {0}", this);
+#endif
                 return;
             }
 

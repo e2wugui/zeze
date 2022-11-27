@@ -27,7 +27,7 @@ xcopy /Y %zeze_src_dir%\Zeze\Net %project_dir%\Zeze\Net
 xcopy /Y %zeze_src_dir%\Zeze\IModule.cs %project_dir%\Zeze\
 xcopy /Y %zeze_src_dir%\Zeze\AppBase.cs %project_dir%\Zeze\
 xcopy /Y %zeze_src_dir%\Zeze\Config.cs  %project_dir%\Zeze\
-xcopy /Y %zeze_src_dir%\Zeze\Config.cs  %project_dir%\Zeze\
+IF NOT EXIST "%project_dir%\Zeze\MyLog.cs" copy %zeze_src_dir%\Zeze\MyLog.cs  %project_dir%\Zeze\MyLog.cs
 
 md %project_dir%\Zeze\Util
 xcopy /Y %zeze_src_dir%\Zeze\Util\ResultCode.cs %project_dir%\Zeze\Util\
@@ -66,5 +66,10 @@ REM Zege 需要的代码输出
 REM --------------------------------------------------------------
 
 xcopy /Y %zeze_src_dir%\Zeze\Util\Cert.cs %project_dir%\Zeze\Util\
+
+echo 1. 在项目中定义宏 USE_CONFCS
+echo 2. 如果项目包好NLog，请定义宏 HAS_NLOG
+echo    如果项目有自己的Log管理，请定义宏 HAS_MYLOG，并修改 Zeze.MyLog.cs，实现相应的方法。
+echo    如果项目禁止库代码记录log，不需要定义任何宏
 
 pause

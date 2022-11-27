@@ -15,9 +15,21 @@ namespace Zeze
             public string Name { get; }
             public void Parse(XmlElement self);
         }
+
+        public enum LogLevel
+        {
+            Trace,
+            Debug,
+            Info,
+            Warn,
+            Error,
+            Fatal,
+            Off
+        }
+
         public ConcurrentDictionary<string, ICustomize> Customize { get; }
             = new ConcurrentDictionary<string, ICustomize>();
-        public NLog.LogLevel ProcessReturnErrorLogLevel { get; set; } = NLog.LogLevel.Info;
+        public LogLevel ProcessReturnErrorLogLevel { get; set; } = LogLevel.Info;
 
 #if !USE_CONFCS
         public enum DbType
@@ -199,7 +211,7 @@ namespace Zeze
             string attr;
             attr = self.GetAttribute("ProcessReturnErrorLogLevel");
             if (attr.Length > 0)
-                ProcessReturnErrorLogLevel = NLog.LogLevel.FromString(attr);
+                ProcessReturnErrorLogLevel = (LogLevel)Enum.Parse(typeof(LogLevel), attr);
 
 #if !USE_CONFCS
             Name = self.GetAttribute("name");

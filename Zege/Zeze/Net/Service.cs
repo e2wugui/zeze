@@ -8,12 +8,18 @@ using System.Net.NetworkInformation;
 using Zeze.Util;
 using System.Threading.Tasks;
 using Zeze.Transaction;
+using NLog;
+using NLog.Fluent;
 
 namespace Zeze.Net
 {
     public class Service
     {
+#if HAS_NLOG
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+#elif HAS_MYLOG
+        private static readonly Zeze.MyLog logger = global::Zeze.MyLog.GetLogger(typeof(Service));
+#endif
 
         /// <summary>
         /// 同一个 Service 下的所有连接都是用相同配置。
@@ -136,7 +142,13 @@ namespace Zeze.Net
             SocketMap.TryRemove(KeyValuePair.Create(so.SessionId, so));
 
             if (null != e)
+            {
+#if HAS_NLOG
+                logger.Log(Mission.NlogLogLevel(SocketOptions.SocketLogLevel), e, "OnSocketClose");
+#elif HAS_MYLOG
                 logger.Log(SocketOptions.SocketLogLevel, e, "OnSocketClose");
+#endif
+            }
         }
 
         /// <summary>
@@ -217,12 +229,20 @@ namespace Zeze.Net
         public virtual void OnSocketConnectError(AsyncSocket so, Exception e)
         {
             SocketMap.TryRemove(KeyValuePair.Create(so.SessionId, so));
+#if HAS_NLOG
+            logger.Log(Mission.NlogLogLevel(SocketOptions.SocketLogLevel), e, "OnSocketConnectError");
+#elif HAS_MYLOG
             logger.Log(SocketOptions.SocketLogLevel, e, "OnSocketConnectError");
+#endif
         }
 
         public virtual void OnSocketAcceptError(AsyncSocket listener, Exception e)
         {
+#if HAS_NLOG
+            logger.Log(Mission.NlogLogLevel(SocketOptions.SocketLogLevel), e, $"OnSocketAcceptError {listener}");
+#elif HAS_MYLOG
             logger.Log(SocketOptions.SocketLogLevel, e, $"OnSocketAcceptError {listener}");
+#endif
         }
 
         /// <summary>
@@ -287,7 +307,11 @@ namespace Zeze.Net
             }
             else
             {
+#if HAS_NLOG
+                logger.Log(Mission.NlogLogLevel(SocketOptions.SocketLogLevel), "Protocol Handle Not Found. {0}", p);
+#elif HAS_MYLOG
                 logger.Log(SocketOptions.SocketLogLevel, "Protocol Handle Not Found. {0}", p);
+#endif
             }
         }
 
@@ -319,7 +343,11 @@ namespace Zeze.Net
             }
             else
             {
+#if HAS_NLOG
+                logger.Log(Mission.NlogLogLevel(SocketOptions.SocketLogLevel), "Protocol Handle Not Found. {0}", p);
+#elif HAS_MYLOG
                 logger.Log(SocketOptions.SocketLogLevel, "Protocol Handle Not Found. {0}", p);
+#endif
             }
         }
 
@@ -552,7 +580,9 @@ namespace Zeze.Net
                 if (string.IsNullOrEmpty(ip))
                 {
                     // 实在找不到ip地址，就设置成loopback。
+#if HAS_NLOG || HAS_MYLOG
                     logger.Warn("PassiveAddress No Config. set ip to 127.0.0.1");
+#endif
                     ip = "127.0.0.1";
                 }
             }

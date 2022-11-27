@@ -48,7 +48,11 @@ namespace Zeze.Services
 
     public class HandshakeBase : Service
     {
+#if HAS_NLOG
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+#elif HAS_MYLOG
+        private static readonly Zeze.MyLog logger = global::Zeze.MyLog.GetLogger(typeof(HandshakeBase));
+#endif
 
         private readonly HashSet<long> HandshakeProtocols = new();
 
@@ -129,7 +133,9 @@ namespace Zeze.Services
                 //logger.Debug(ipaddress);
                 if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
                 byte[] key = Config.HandshakeOptions.SecureIp ?? ipaddress.GetAddressBytes();
+#if HAS_NLOG || HAS_MYLOG
                 logger.Debug("{0} localip={1}", p.Sender.SessionId, BitConverter.ToString(key));
+#endif
                 int half = material.Length / 2;
                 byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
                 p.Sender.SetInputSecurityCodec(hmacMd5, Config.HandshakeOptions.C2sNeedCompress);
@@ -221,8 +227,9 @@ namespace Zeze.Services
                         IPAddress ipaddress = ((IPEndPoint)p.Sender.Socket.RemoteEndPoint).Address;
                         if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
                         byte[] key = ipaddress.GetAddressBytes();
+#if HAS_NLOG || HAS_MYLOG
                         logger.Debug("{0} remoteip={1}", p.Sender.SessionId, BitConverter.ToString(key));
-
+#endif
                         int half = material.Length / 2;
                         byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
                         p.Sender.SetOutputSecurityCodec(hmacMd5, p.Argument.c2sneedcompress);

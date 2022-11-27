@@ -20,7 +20,7 @@ namespace Zeze.Net
         public int Backlog { get; set; }
 
         // 其他杂项
-        public NLog.LogLevel SocketLogLevel { get; set; }
+        public Config.LogLevel SocketLogLevel { get; set; }
 
         public SocketOptions()
         {
@@ -32,7 +32,7 @@ namespace Zeze.Net
             Backlog = 128;
             NoDelay = true;
 
-            SocketLogLevel = NLog.LogLevel.Trace; // 可以使用 NLog.LogLevel.FromString 从配置中读取
+            SocketLogLevel = Config.LogLevel.Trace; // 可以使用 NLog.LogLevel.FromString 从配置中读取
         }
     }
 }

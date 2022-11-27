@@ -175,7 +175,7 @@ namespace Zeze.Net
             attr = self.GetAttribute("Backlog");
             if (attr.Length > 0) SocketOptions.Backlog = int.Parse(attr);
             attr = self.GetAttribute("SocketLogLevel");
-            if (attr.Length > 0) SocketOptions.SocketLogLevel = NLog.LogLevel.FromString(attr);
+            if (attr.Length > 0) SocketOptions.SocketLogLevel = (Config.LogLevel)Enum.Parse(typeof(Config.LogLevel), attr);
 
             // HandshakeOptions
             attr = self.GetAttribute("DhGroups");

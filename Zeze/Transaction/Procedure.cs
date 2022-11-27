@@ -42,8 +42,9 @@ namespace Zeze.Transaction
 
         public static void DefaultLogAction(Exception ex, long result, Procedure p, string message)
         {
+#if HAS_NLOG
             NLog.LogLevel ll = (null != ex) ? NLog.LogLevel.Error
-                : (0 != result) ? p.Zeze.Config.ProcessReturnErrorLogLevel
+                : (0 != result) ? Mission.NlogLogLevel(p.Zeze.Config.ProcessReturnErrorLogLevel)
                 : NLog.LogLevel.Trace;
 
             var module = "";
@@ -51,6 +52,7 @@ namespace Zeze.Transaction
                 module = "@" + IModule.GetModuleId(result) + ":" + IModule.GetErrorCode(result);
 
             logger.Log(ll, ex, $"Procedure={p} Return={result}{module} {message} UserState={p.UserState}");
+#endif
         }
 
         public async Task<long> ExecuteAsync(Net.Protocol from = null, Action<Net.Protocol, long> actionWhenError = null)
