@@ -1,7 +1,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Text;
 using Zeze.Serialize;
 
@@ -71,7 +70,7 @@ namespace Zeze.Transaction.Collections
 
 		public void Clear()
 		{
-			Value = ImmutableList<E>.Empty;
+			Value = System.Collections.Immutable.ImmutableList<E>.Empty;
 			OpLogs.Clear();
 			OpLogs.Add(new OpLog(OpLog.OP_CLEAR, 0, default));
 		}

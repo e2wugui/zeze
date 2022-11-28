@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,7 +10,7 @@ namespace Zeze.Transaction.Collections
 	public class LogSet<V> : LogBean
 	{
 #if !USE_CONFCS
-		internal ImmutableHashSet<V> Value { get; set; }
+		internal System.Collections.Immutable.ImmutableHashSet<V> Value { get; set; }
 
 		public override void Collect(Changes changes, Bean recent, Log vlog)
 		{

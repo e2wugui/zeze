@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Zeze.Serialize;
-using System.Collections.Immutable;
 
 namespace Zeze.Transaction.Collections
 {
@@ -79,7 +78,7 @@ namespace Zeze.Transaction.Collections
 			{
 				Remove(e.Key);
 			}
-			Value = ImmutableDictionary<K, V>.Empty;
+			Value = System.Collections.Immutable.ImmutableDictionary<K, V>.Empty;
         }
 
         internal override void EndSavepoint(Savepoint currentsp)

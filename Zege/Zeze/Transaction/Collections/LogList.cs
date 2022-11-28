@@ -1,13 +1,12 @@
 
 using System;
-using System.Collections.Immutable;
 
 namespace Zeze.Transaction.Collections
 {
 	public abstract class LogList<E> : LogBean
 	{
 #if !USE_CONFCS
-		internal ImmutableList<E> Value
+		internal System.Collections.Immutable.ImmutableList<E> Value
 		{
 			get;
 			set;

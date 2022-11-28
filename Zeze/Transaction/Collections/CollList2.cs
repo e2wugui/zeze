@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 
 namespace Zeze.Transaction.Collections
 {
@@ -119,7 +118,7 @@ namespace Zeze.Transaction.Collections
 			}
 			else
 			{
-				_list = ImmutableList<E>.Empty;
+				_list = System.Collections.Immutable.ImmutableList<E>.Empty;
 			}
 		}
 
@@ -192,7 +191,7 @@ namespace Zeze.Transaction.Collections
 						tmp = tmp.RemoveAt(opLog.index);
 						break;
 					case LogList1<E>.OpLog.OP_CLEAR:
-						tmp = ImmutableList<E>.Empty;
+						tmp = System.Collections.Immutable.ImmutableList<E>.Empty;
 						break;
 				}
 			}

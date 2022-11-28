@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,7 +10,7 @@ namespace Zeze.Transaction.Collections
 {
 	public abstract class CollSet<V> : Collection, ISet<V>, IReadOnlySet<V>, IEnumerable<V>, IEnumerable
 	{
-		internal ImmutableHashSet<V> _set = ImmutableHashSet<V>.Empty;
+		internal System.Collections.Immutable.ImmutableHashSet<V> _set = System.Collections.Immutable.ImmutableHashSet<V>.Empty;
 
 		public abstract bool Add(V item);
         public abstract void Clear();
@@ -21,7 +20,7 @@ namespace Zeze.Transaction.Collections
         public abstract void SymmetricExceptWith(IEnumerable<V> other);
         public abstract void UnionWith(IEnumerable<V> other);
 
-        protected ImmutableHashSet<V> Set
+        protected System.Collections.Immutable.ImmutableHashSet<V> Set
         {
 			get
             {

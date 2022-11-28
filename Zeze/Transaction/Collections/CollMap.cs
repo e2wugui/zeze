@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
@@ -12,7 +11,7 @@ namespace Zeze.Transaction.Collections
 {
 	public abstract class CollMap<K, V> : Collection, IDictionary<K, V>, IEnumerable<KeyValuePair<K, V>>, IEnumerable
 	{
-		internal ImmutableDictionary<K, V> _map = ImmutableDictionary<K, V>.Empty;
+		internal System.Collections.Immutable.ImmutableDictionary<K, V> _map = System.Collections.Immutable.ImmutableDictionary<K, V>.Empty;
 
 		public V Get(K key)
         {
@@ -30,7 +29,7 @@ namespace Zeze.Transaction.Collections
 		public abstract bool Remove(K key);
 		public abstract bool Remove(KeyValuePair<K, V> item);
 
-		protected ImmutableDictionary<K, V> Map
+		protected System.Collections.Immutable.ImmutableDictionary<K, V> Map
         {
 			get
             {
@@ -77,7 +76,7 @@ namespace Zeze.Transaction.Collections
 			return Map.GetEnumerator();
 		}
 
-		public ImmutableDictionary<K, V>.Enumerator GetEnumerator()
+		public System.Collections.Immutable.ImmutableDictionary<K, V>.Enumerator GetEnumerator()
 		{
 			return Map.GetEnumerator();
 		}

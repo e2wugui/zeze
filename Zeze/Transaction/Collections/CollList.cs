@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Text;
 using Zeze.Serialize;
 
@@ -8,7 +7,7 @@ namespace Zeze.Transaction.Collections
 {
 	public abstract class CollList<E> : Collection, IList<E>, IReadOnlyList<E>, IEnumerable<E>, IEnumerable
 	{
-		internal ImmutableList<E> _list = ImmutableList<E>.Empty;
+		internal System.Collections.Immutable.ImmutableList<E> _list = System.Collections.Immutable.ImmutableList<E>.Empty;
 
 		public abstract void Add(E item);
 		public abstract void AddRange(IEnumerable<E> items);
@@ -20,7 +19,7 @@ namespace Zeze.Transaction.Collections
 		public abstract E this[int index] { get; set; }
 
 
-		protected ImmutableList<E> Data
+		protected System.Collections.Immutable.ImmutableList<E> Data
 		{
 			get
 			{
@@ -62,7 +61,7 @@ namespace Zeze.Transaction.Collections
 
 		public int LastIndexOf(E o)
 		{
-			return Data.LastIndexOf(o);
+			return Data.LastIndexOf(o, 0, Data.Count, null);
 		}
 
 		IEnumerator IEnumerable.GetEnumerator()
@@ -75,7 +74,7 @@ namespace Zeze.Transaction.Collections
 			return Data.GetEnumerator();
 		}
 
-		public ImmutableList<E>.Enumerator GetEnumerator()
+		public System.Collections.Immutable.ImmutableList<E>.Enumerator GetEnumerator()
 		{
 			return Data.GetEnumerator();
 		}

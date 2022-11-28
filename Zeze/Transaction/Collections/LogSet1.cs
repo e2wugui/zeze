@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -122,7 +121,7 @@ namespace Zeze.Transaction.Collections
 			{
 				Remove(e);
 			}
-			Value = ImmutableHashSet<V>.Empty;
+			Value = System.Collections.Immutable.ImmutableHashSet<V>.Empty;
 		}
 
         internal override void EndSavepoint(Savepoint currentsp)
