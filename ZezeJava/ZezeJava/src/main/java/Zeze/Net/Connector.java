@@ -168,7 +168,7 @@ public class Connector {
 		reconnectTask = Zeze.Util.Task.scheduleUnsafe(reConnectDelay, this::Start);
 	}
 
-	// 需要逻辑相关的握手行为时，重载这个方式。
+	// 需要逻辑相关的握手行为时，重载这个方法。
 	public void OnSocketHandshakeDone(AsyncSocket so) {
 		synchronized (this) {
 			if (socket == so) {

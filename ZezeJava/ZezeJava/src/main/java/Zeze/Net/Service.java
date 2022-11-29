@@ -54,6 +54,8 @@ public class Service {
 	private volatile long closedRecvSize, closedSendSize; // 已关闭连接的从socket接收/发送数据的总字节数
 	private volatile long recvSize, sendSize; // 当前已统计的从socket接收/发送数据的总字节数
 
+	private Selectors selectors;
+
 	public Service(String name) {
 		this.name = name;
 		zeze = null;
@@ -85,6 +87,14 @@ public class Service {
 		}
 		this.config.SetService(this);
 		socketOptions = this.config.getSocketOptions();
+	}
+
+	public void setSelectors(Selectors selectors) {
+		this.selectors = selectors;
+	}
+
+	public Selectors getSelectors() {
+		return null != selectors ? selectors : Selectors.getInstance();
 	}
 
 	public final String getName() {

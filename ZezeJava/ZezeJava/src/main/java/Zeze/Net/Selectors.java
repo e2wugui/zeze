@@ -14,7 +14,7 @@ public class Selectors {
 	private volatile Selector[] selectorList;
 	private final AtomicLong choiceCount = new AtomicLong();
 
-	private Selectors() {
+	public Selectors() {
 		add(Math.min(Runtime.getRuntime().availableProcessors(), 8));
 	}
 
@@ -22,7 +22,7 @@ public class Selectors {
 		return selectorList.length;
 	}
 
-	public synchronized void add(int count) {
+	public synchronized Selectors add(int count) {
 		try {
 			Selector[] tmp = selectorList;
 			tmp = tmp == null ? new Selector[count] : Arrays.copyOf(tmp, tmp.length + count);
@@ -31,6 +31,7 @@ public class Selectors {
 				tmp[i].start();
 			}
 			selectorList = tmp;
+			return this;
 		} catch (IOException ex) {
 			throw new RuntimeException(ex);
 		}

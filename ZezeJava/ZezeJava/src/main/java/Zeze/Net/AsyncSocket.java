@@ -193,7 +193,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			ss.bind(localEP, service.getSocketOptions().getBacklog());
 			logger.info("Listen: {} for {}:{}", localEP, service.getClass().getName(), service.getName());
 
-			selector = Selectors.getInstance().choice();
+			selector = service.getSelectors().choice();
 			selectionKey = selector.register(ssc, 0, this); // 先获取key,因为有小概率出现事件处理比赋值更先执行
 			selector.register(ssc, SelectionKey.OP_ACCEPT, this);
 		} catch (IOException e) {
@@ -273,7 +273,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		if (noDelay != null)
 			so.setTcpNoDelay(noDelay);
 
-		selector = Selectors.getInstance().choice();
+		selector = service.getSelectors().choice();
 		selectionKey = selector.register(sc, 0, this); // 先获取key,因为有小概率出现事件处理比赋值更先执行
 		selector.register(sc, SelectionKey.OP_READ, this);
 		logger.info("Accept: {} for {}:{}", this, service.getClass().getName(), service.getName());
@@ -312,7 +312,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			if (noDelay != null)
 				so.setTcpNoDelay(noDelay);
 
-			selector = Selectors.getInstance().choice();
+			selector = service.getSelectors().choice();
 			InetAddress address = InetAddress.getByName(hostNameOrAddress); // TODO async dns lookup
 			selectionKey = selector.register(sc, 0, this); // 先获取key,因为有小概率出现事件处理比赋值更先执行
 			// 必须在connect前设置，否则selectionKey没初始化，有可能事件丢失？（现象好像是doHandle触发了）。

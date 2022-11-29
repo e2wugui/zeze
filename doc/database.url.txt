@@ -1,0 +1,2 @@
+porlardb-x2.0 额外参数
+	seUnicode=true&characterEncoding=utf8

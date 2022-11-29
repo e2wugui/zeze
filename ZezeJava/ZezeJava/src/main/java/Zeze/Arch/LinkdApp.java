@@ -1,6 +1,7 @@
 package Zeze.Arch;
 
 import Zeze.Builtin.Provider.BLoad;
+import Zeze.Net.Selectors;
 import Zeze.Serialize.ByteBuffer;
 
 public class LinkdApp {
@@ -12,6 +13,7 @@ public class LinkdApp {
 	// 现在内部可以自动设置两个参数，但有点不够可靠，生产环境最好手动设置。
 	public final String providerIp;
 	public final int providerPort;
+	public final Zeze.Net.Selectors selectors;
 
 	public LinkdApp(String linkdServiceName, Zeze.Application zeze, LinkdProvider linkdProvider,
 					LinkdProviderService linkdProviderService, LinkdService linkdService, LoadConfig loadConfig) {
@@ -44,6 +46,9 @@ public class LinkdApp {
 		var kv = this.linkdProviderService.getOnePassiveAddress();
 		providerIp = kv.getKey();
 		providerPort = kv.getValue();
+
+		selectors = new Selectors();
+		this.linkdService.setSelectors(selectors);
 	}
 
 	public String getName() {
