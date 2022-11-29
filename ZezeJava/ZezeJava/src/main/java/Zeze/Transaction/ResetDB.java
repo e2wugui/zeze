@@ -56,7 +56,11 @@ public class ResetDB {
 				if (rmTable == null) {
 					continue;
 				}
-				Database.Table databaseTable = rmTable.getStorage().getDatabaseTable();
+				Storage<?, ?> storage = rmTable.getStorage();
+				if(storage == null){
+					continue;
+				}
+				Database.Table databaseTable = storage.getDatabaseTable();
 				AtomicBoolean empty = new AtomicBoolean(true);
 				databaseTable.walk((key, value) -> {
 					empty.set(false);
@@ -89,7 +93,11 @@ public class ResetDB {
 				continue;
 			}
 			Database.Transaction transaction = db.beginTransaction();
-			Database.Table databaseTable = table.getStorage().getDatabaseTable();
+			Storage<?, ?> storage = table.getStorage();
+			if(storage == null){
+				continue;
+			}
+			Database.Table databaseTable = storage.getDatabaseTable();
 			AtomicInteger count = new AtomicInteger();
 			databaseTable.walk((key, value) -> {
 				databaseTable.remove(transaction, ByteBuffer.Wrap(key));
