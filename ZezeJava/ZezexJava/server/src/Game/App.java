@@ -11,6 +11,7 @@ import Zeze.Config;
 import Zeze.Game.Online;
 import Zeze.Game.ProviderDirectWithTransmit;
 import Zeze.Game.ProviderImplementWithOnline;
+import Zeze.Game.Task;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.JsonReader;
 import Zeze.Util.PersistentAtomicLong;
@@ -87,6 +88,7 @@ public final class App extends Zeze.AppBase {
 		Provider.online.Initialize(this);
 
 		createModules();
+		taskModule = new Task.Module(getZeze());
 		if (GenModule.instance.genFileSrcRoot != null) {
 			System.out.println("---------------");
 			System.out.println("New Source File Has Generate. Re-Compile Need.");
@@ -117,6 +119,8 @@ public final class App extends Zeze.AppBase {
 		destroyZeze();
 	}
 
+	public Task.Module taskModule;
+
 	// ZEZE_FILE_CHUNK {{{ GEN APP @formatter:off
     public Zeze.Application Zeze;
     public final java.util.HashMap<String, Zeze.IModule> modules = new java.util.HashMap<>();
@@ -134,7 +138,6 @@ public final class App extends Zeze.AppBase {
     public Game.Rank.ModuleRank Game_Rank;
     public Game.Timer.ModuleTimer Game_Timer;
     public Game.LongSet.ModuleLongSet Game_LongSet;
-    public Game.Task.ModuleTask Game_Task;
 
     @Override
     public Zeze.Application getZeze() {
@@ -208,16 +211,10 @@ public final class App extends Zeze.AppBase {
         if (modules.put(Game_LongSet.getFullName(), Game_LongSet) != null)
             throw new RuntimeException("duplicate module name: Game_LongSet");
 
-        Game_Task = replaceModuleInstance(new Game.Task.ModuleTask(this));
-        Game_Task.Initialize(this);
-        if (modules.put(Game_Task.getFullName(), Game_Task) != null)
-            throw new RuntimeException("duplicate module name: Game_Task");
-
         Zeze.setSchemas(new Game.Schemas());
     }
 
     public synchronized void destroyModules() {
-        Game_Task = null;
         Game_LongSet = null;
         Game_Timer = null;
         Game_Rank = null;
@@ -251,12 +248,9 @@ public final class App extends Zeze.AppBase {
         Game_Rank.Start(this);
         Game_Timer.Start(this);
         Game_LongSet.Start(this);
-        Game_Task.Start(this);
     }
 
     public synchronized void stopModules() throws Throwable {
-        if (Game_Task != null)
-            Game_Task.Stop(this);
         if (Game_LongSet != null)
             Game_LongSet.Stop(this);
         if (Game_Timer != null)

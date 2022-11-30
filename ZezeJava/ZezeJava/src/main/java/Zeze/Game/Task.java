@@ -181,7 +181,7 @@ public class Task<ExtendedBean extends Bean> {
 				addPreTaskName(preTaskName);
 			}
 		}
-		module.taskGraphics.addNewTask(this);
+//		module.taskGraphics.addNewTask(this);
 	}
 	// @formatter:on
 

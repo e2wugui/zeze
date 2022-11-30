@@ -27,18 +27,6 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         return Zeze.Game.Task.createBeanFromSpecialTypeId(typeId);
     }
 
-    private transient Object __zeze_map_key__;
-
-    @Override
-    public Object mapKey() {
-        return __zeze_map_key__;
-    }
-
-    @Override
-    public void mapKey(Object value) {
-        __zeze_map_key__ = value;
-    }
-
     @Override
     public String getTaskName() {
         if (!isManaged())

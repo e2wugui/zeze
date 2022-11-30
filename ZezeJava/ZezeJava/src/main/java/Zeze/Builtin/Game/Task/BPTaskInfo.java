@@ -8,7 +8,7 @@ import Zeze.Serialize.ByteBuffer;
 public final class BPTaskInfo extends Zeze.Transaction.Bean implements BPTaskInfoReadOnly {
     public static final long TYPEID = -141577318142513096L;
 
-    private final Zeze.Transaction.Collections.PMap2<Long, Zeze.Builtin.Game.Task.BTask> _processingTask; // key：RoleId
+    private final Zeze.Transaction.Collections.PMap1<Long, Long> _processingTask; // key：RoleId
     private final Zeze.Transaction.Collections.PSet1<Long> _finishedTask; // 已经结束的任务，不存储可重复完成的任务
     private final Zeze.Transaction.DynamicBean _RoleTaskCustomData;
 
@@ -24,13 +24,13 @@ public final class BPTaskInfo extends Zeze.Transaction.Bean implements BPTaskInf
         return Zeze.Game.Task.createBeanFromSpecialTypeId(typeId);
     }
 
-    public Zeze.Transaction.Collections.PMap2<Long, Zeze.Builtin.Game.Task.BTask> getProcessingTask() {
+    public Zeze.Transaction.Collections.PMap1<Long, Long> getProcessingTask() {
         return _processingTask;
     }
 
     @Override
-    public Zeze.Transaction.Collections.PMap2ReadOnly<Long, Zeze.Builtin.Game.Task.BTask, Zeze.Builtin.Game.Task.BTaskReadOnly> getProcessingTaskReadOnly() {
-        return new Zeze.Transaction.Collections.PMap2ReadOnly<>(_processingTask);
+    public Zeze.Transaction.Collections.PMap1ReadOnly<Long, Long> getProcessingTaskReadOnly() {
+        return new Zeze.Transaction.Collections.PMap1ReadOnly<>(_processingTask);
     }
 
     public Zeze.Transaction.Collections.PSet1<Long> getFinishedTask() {
@@ -53,7 +53,7 @@ public final class BPTaskInfo extends Zeze.Transaction.Bean implements BPTaskInf
 
     @SuppressWarnings("deprecation")
     public BPTaskInfo() {
-        _processingTask = new Zeze.Transaction.Collections.PMap2<>(Long.class, Zeze.Builtin.Game.Task.BTask.class);
+        _processingTask = new Zeze.Transaction.Collections.PMap1<>(Long.class, Long.class);
         _processingTask.variableId(1);
         _finishedTask = new Zeze.Transaction.Collections.PSet1<>(Long.class);
         _finishedTask.variableId(2);
@@ -62,8 +62,7 @@ public final class BPTaskInfo extends Zeze.Transaction.Bean implements BPTaskInf
 
     public void assign(BPTaskInfo other) {
         _processingTask.clear();
-        for (var e : other._processingTask.entrySet())
-            _processingTask.put(e.getKey(), e.getValue().copy());
+        _processingTask.putAll(other._processingTask);
         _finishedTask.clear();
         _finishedTask.addAll(other._finishedTask);
         _RoleTaskCustomData.assign(other._RoleTaskCustomData);
@@ -118,9 +117,7 @@ public final class BPTaskInfo extends Zeze.Transaction.Bean implements BPTaskInf
             level += 4;
             for (var _kv_ : _processingTask.entrySet()) {
                 sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_kv_.getKey()).append(',').append(System.lineSeparator());
-                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(System.lineSeparator());
-                _kv_.getValue().buildString(sb, level + 4);
-                sb.append(',').append(System.lineSeparator());
+                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(_kv_.getValue()).append(',').append(System.lineSeparator());
             }
             level -= 4;
             sb.append(Zeze.Util.Str.indent(level));
@@ -164,10 +161,10 @@ public final class BPTaskInfo extends Zeze.Transaction.Bean implements BPTaskInf
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.MAP);
-                _o_.WriteMapType(_n_, ByteBuffer.INTEGER, ByteBuffer.BEAN);
+                _o_.WriteMapType(_n_, ByteBuffer.INTEGER, ByteBuffer.INTEGER);
                 for (var _e_ : _x_.entrySet()) {
                     _o_.WriteLong(_e_.getKey());
-                    _e_.getValue().encode(_o_);
+                    _o_.WriteLong(_e_.getValue());
                 }
             }
         }
@@ -202,7 +199,7 @@ public final class BPTaskInfo extends Zeze.Transaction.Bean implements BPTaskInf
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
                     var _k_ = _o_.ReadLong(_s_);
-                    var _v_ = _o_.ReadBean(new Zeze.Builtin.Game.Task.BTask(), _t_);
+                    var _v_ = _o_.ReadLong(_t_);
                     _x_.put(_k_, _v_);
                 }
             } else
@@ -246,7 +243,7 @@ public final class BPTaskInfo extends Zeze.Transaction.Bean implements BPTaskInf
     @Override
     public boolean negativeCheck() {
         for (var _v_ : _processingTask.values()) {
-            if (_v_.negativeCheck())
+            if (_v_ < 0)
                 return true;
         }
         for (var _v_ : _finishedTask) {

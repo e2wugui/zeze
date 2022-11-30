@@ -31,6 +31,11 @@ public class TaskGraphics {
 		buildGraph();
 	}
 
+	public boolean loadAllTaskConfigs(String file_path){
+
+		return true;
+	}
+
 	public void addNewTask(Task task) {
 		graph.addVertex(task);
 		for (var preTaskName : task.getBean().getPreTasks()) {

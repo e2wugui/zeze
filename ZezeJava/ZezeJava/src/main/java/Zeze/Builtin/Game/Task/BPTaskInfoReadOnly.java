@@ -8,7 +8,7 @@ public interface BPTaskInfoReadOnly {
     public boolean negativeCheck();
     public BPTaskInfo copy();
 
-    public Zeze.Transaction.Collections.PMap2ReadOnly<Long, Zeze.Builtin.Game.Task.BTask, Zeze.Builtin.Game.Task.BTaskReadOnly> getProcessingTaskReadOnly();
+    public Zeze.Transaction.Collections.PMap1ReadOnly<Long, Long> getProcessingTaskReadOnly();
     public Zeze.Transaction.Collections.PSet1ReadOnly<Long> getFinishedTaskReadOnly();
     public Zeze.Transaction.DynamicBeanReadOnly getRoleTaskCustomDataReadOnly();
 

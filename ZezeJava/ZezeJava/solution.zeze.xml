@@ -777,7 +777,7 @@
 
 				<!-- 记录每个角色的任务数据 -->
 				<bean name="BPTaskInfo">
-					<variable id="1" name="processingTask" type="map" key="long" value="BTask"/> key：RoleId
+					<variable id="1" name="processingTask" type="map" key="long" value="long"/> key：RoleId
 					<variable id="2" name="finishedTask" type="set" value="long"/> 已经结束的任务，不存储可重复完成的任务
 					<variable id="3" name="RoleTaskCustomData" type="dynamic"> 用于用户（程序员）自定义扩展数据
 						<GetSpecialTypeIdFromBean value="Zeze.Game.Task::getSpecialTypeIdFromBean"/>
