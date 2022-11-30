@@ -1,11 +1,11 @@
 // auto-generated @formatter:off
-package Zeze.Builtin.Game.Task;
+package Zeze.Builtin.Game.TaskBase;
 
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTaskEventResultReadOnly {
-    public static final long TYPEID = -4357525030735911735L;
+    public static final long TYPEID = 7412512539470816714L;
 
     private boolean _success; // 是否发送成功（如果失败，可能是没有找到对应的Task等等）
     private int _acceptedCount; // 本次发送的事件被接受的次数
@@ -136,7 +136,7 @@ public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTa
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Task.BTaskEventResult: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.TaskBase.BTaskEventResult: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("success=").append(isSuccess()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("acceptedCount=").append(getAcceptedCount()).append(',').append(System.lineSeparator());

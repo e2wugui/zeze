@@ -1,7 +1,9 @@
-package TaskTest.TaskExt;
+package Zeze.Game.Task;
 
+
+import Zeze.Builtin.Game.TaskBase.BCollectCoinTask;
+import Zeze.Builtin.Game.TaskBase.BCollectCoinEvent;
 import Zeze.Game.TaskCondition;
-import Zeze.Game.ConditionEvent;
 import Zeze.Transaction.Bean;
 
 public class ConditionNamedCount extends TaskCondition<BCollectCoinTask, BCollectCoinEvent> {

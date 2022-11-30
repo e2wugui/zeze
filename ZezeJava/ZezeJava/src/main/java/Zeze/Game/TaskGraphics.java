@@ -22,10 +22,10 @@ import org.jgrapht.graph.DirectedAcyclicGraph;
  * TaskGraphics
  */
 public class TaskGraphics {
-	final Task.Module taskModule;
-	private final DirectedAcyclicGraph<Task, DefaultEdge> graph;
+	final TaskBase.Module taskModule;
+	private final DirectedAcyclicGraph<TaskBase, DefaultEdge> graph;
 
-	public TaskGraphics(Task.Module taskModule) {
+	public TaskGraphics(TaskBase.Module taskModule) {
 		this.taskModule = taskModule;
 		graph = new DirectedAcyclicGraph<>(DefaultEdge.class);
 		buildGraph();
@@ -36,7 +36,7 @@ public class TaskGraphics {
 		return true;
 	}
 
-	public void addNewTask(Task task) {
+	public void addNewTask(TaskBase task) {
 		graph.addVertex(task);
 		for (var preTaskName : task.getBean().getPreTasks()) {
 			var preTasks = getTaskByName(preTaskName);
@@ -72,16 +72,16 @@ public class TaskGraphics {
 //		});
 	}
 
-	private Task getTaskByName(String taskName) {
-		Supplier<Stream<Task>> supplier = () -> graph.vertexSet().stream().filter(task -> Objects.equals(task.getName(), taskName));
+	private TaskBase getTaskByName(String taskName) {
+		Supplier<Stream<TaskBase>> supplier = () -> graph.vertexSet().stream().filter(task -> Objects.equals(task.getName(), taskName));
 		if (supplier.get().findAny().isEmpty()) {
 			throw new RuntimeException("Task not found: " + taskName);
 		}
 		return supplier.get().findAny().get();
 	}
 
-	private Task[] getTasksOfZeroInAndOutDegree() {
-		Supplier<Stream<Task>> supplier = () -> graph.vertexSet().stream().filter(task -> graph.inDegreeOf(task) == 0 && graph.outDegreeOf(task) == 0); // 寻找离散任务点
-		return supplier.get().toArray(Task[]::new);
+	private TaskBase[] getTasksOfZeroInAndOutDegree() {
+		Supplier<Stream<TaskBase>> supplier = () -> graph.vertexSet().stream().filter(task -> graph.inDegreeOf(task) == 0 && graph.outDegreeOf(task) == 0); // 寻找离散任务点
+		return supplier.get().toArray(TaskBase[]::new);
 	}
 }

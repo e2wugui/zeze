@@ -1,5 +1,5 @@
 // auto-generated @formatter:off
-package Zeze.Builtin.Game.Task;
+package Zeze.Builtin.Game.TaskBase;
 
 // TaskCondition的Bean数据，只存在在BTaskPhase之内
 public interface BTaskConditionReadOnly {

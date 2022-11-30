@@ -1,11 +1,11 @@
 // auto-generated @formatter:off
-package Zeze.Builtin.Game.Task;
+package Zeze.Builtin.Game.TaskBase;
 
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BEventClasses extends Zeze.Transaction.Bean implements BEventClassesReadOnly {
-    public static final long TYPEID = -6842044204994485959L;
+    public static final long TYPEID = 351947457243088872L;
 
     private final Zeze.Transaction.Collections.PSet1<String> _EventClasses;
 
@@ -70,7 +70,7 @@ public final class BEventClasses extends Zeze.Transaction.Bean implements BEvent
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Task.BEventClasses: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.TaskBase.BEventClasses: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("EventClasses={");
         if (!_EventClasses.isEmpty()) {

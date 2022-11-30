@@ -1,26 +1,26 @@
 // auto-generated @formatter:off
-package Zeze.Builtin.Game.Task;
+package Zeze.Builtin.Game.TaskBase;
 
 import Zeze.Serialize.ByteBuffer;
 
 // TaskCondition的Bean数据，只存在在BTaskPhase之内
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BTaskCondition extends Zeze.Transaction.Bean implements BTaskConditionReadOnly {
-    public static final long TYPEID = 3233174055754866965L;
+    public static final long TYPEID = 4477615436284693494L;
 
     private String _TaskConditionName; // Condition的名字（这个名字主要需要在下面这个dynamic中动态指定）
     private final Zeze.Transaction.DynamicBean _TaskConditionCustomData;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_TaskConditionCustomData() {
-        return new Zeze.Transaction.DynamicBean(2, Zeze.Game.Task::getSpecialTypeIdFromBean, Zeze.Game.Task::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(2, Zeze.Game.TaskBase::getSpecialTypeIdFromBean, Zeze.Game.TaskBase::createBeanFromSpecialTypeId);
     }
 
     public static long getSpecialTypeIdFromBean_2(Zeze.Transaction.Bean bean) {
-        return Zeze.Game.Task.getSpecialTypeIdFromBean(bean);
+        return Zeze.Game.TaskBase.getSpecialTypeIdFromBean(bean);
     }
 
     public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_2(long typeId) {
-        return Zeze.Game.Task.createBeanFromSpecialTypeId(typeId);
+        return Zeze.Game.TaskBase.createBeanFromSpecialTypeId(typeId);
     }
 
     private transient Object __zeze_map_key__;
@@ -133,7 +133,7 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Task.BTaskCondition: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.TaskBase.BTaskCondition: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("TaskConditionName=").append(getTaskConditionName()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("TaskConditionCustomData=").append(System.lineSeparator());

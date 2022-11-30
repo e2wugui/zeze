@@ -730,7 +730,7 @@
 				<table name="trank" key="BConcurrentKey" value="BRankList"/>
 			</module> Rank 11015
 
-			<module name="Task" id="11018">
+			<module name="TaskBase" id="11018">
 				<!-- 任务状态 -->
 				<enum name="Invalid" value="-1"/> 未初始化或初始化失败
 				<enum name="Disabled" value="0"/> 可接取
@@ -750,8 +750,8 @@
 					<variable id="5" name="TaskPhases" type="map" key="string" value="BTaskPhase"/> 该任务所有的Phase
 					<variable id="6" name="PreTasks" type="list" value="string"/> 前置任务名（只需要存储前置任务就可以建立起整个TaskGraphics，不需要存储后置任务）
 					<variable id="7" name="TaskCustomData" type="dynamic"> 用于用户（程序员）自定义扩展数据
-						<GetSpecialTypeIdFromBean value="Zeze.Game.Task::getSpecialTypeIdFromBean"/>
-						<CreateBeanFromSpecialTypeId value="Zeze.Game.Task::createBeanFromSpecialTypeId"/>
+						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskBase::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskBase::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
 				<!-- TaskPhase的Bean数据，只存在在BTask之内 -->
@@ -760,16 +760,16 @@
 					<variable id="2" name="CurrentConditionName" type="string"/> 当前的ConditionId
 					<variable id="3" name="TaskConditions" type="map" key="string" value="BTaskCondition"/> 该Phase所有的Condition
 					<variable id="4" name="TaskPhaseCustomData" type="dynamic"> 用于用户（程序员）自定义扩展数据
-						<GetSpecialTypeIdFromBean value="Zeze.Game.Task::getSpecialTypeIdFromBean"/>
-						<CreateBeanFromSpecialTypeId value="Zeze.Game.Task::createBeanFromSpecialTypeId"/>
+						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskBase::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskBase::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
 				<!-- TaskCondition的Bean数据，只存在在BTaskPhase之内 -->
 				<bean name="BTaskCondition">
 					<variable id="1" name="TaskConditionName" type="string"/> Condition的名字（这个名字主要需要在下面这个dynamic中动态指定）
 					<variable id="2" name="TaskConditionCustomData" type="dynamic"> 用于用户（程序员）自定义扩展数据
-						<GetSpecialTypeIdFromBean value="Zeze.Game.Task::getSpecialTypeIdFromBean"/>
-						<CreateBeanFromSpecialTypeId value="Zeze.Game.Task::createBeanFromSpecialTypeId"/>
+						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskBase::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskBase::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
 				<!-- Task的总表，包含了所有的Task的Bean -->
@@ -780,8 +780,8 @@
 					<variable id="1" name="processingTask" type="map" key="long" value="long"/> key：RoleId
 					<variable id="2" name="finishedTask" type="set" value="long"/> 已经结束的任务，不存储可重复完成的任务
 					<variable id="3" name="RoleTaskCustomData" type="dynamic"> 用于用户（程序员）自定义扩展数据
-						<GetSpecialTypeIdFromBean value="Zeze.Game.Task::getSpecialTypeIdFromBean"/>
-						<CreateBeanFromSpecialTypeId value="Zeze.Game.Task::createBeanFromSpecialTypeId"/>
+						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskBase::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskBase::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
 				<table name="tRoleTask" key="long" value="BPTaskInfo"/>
@@ -793,8 +793,8 @@
 <!--					<variable id="2" name="TaskPhaseId" type="long"/>-->
 <!--					<variable id="3" name="TaskConditionId" type="long"/>-->
 					<variable id="2" name="DynamicData" type="dynamic">
-						<GetSpecialTypeIdFromBean value="Zeze.Game.Task::getSpecialTypeIdFromBean"/>
-						<CreateBeanFromSpecialTypeId value="Zeze.Game.Task::createBeanFromSpecialTypeId"/>
+						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskBase::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskBase::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
                 <bean name="BTaskEventResult">
@@ -811,7 +811,22 @@
 					这个rpc的参数是BTaskEvent，内部的DynamicData是各个不同的任务的不同Bean数据
 				-->
 				<rpc name="TriggerTaskEvent" argument="BTaskEvent" result="BTaskEventResult" handle="server"/>
-			</module> Task 11018
+
+				<!-- NPCTask -->
+				<bean name="BNPCTaskDynamics">
+					<variable id="1" name="ReceiveNpcId" type="long"/> 接任务的NPC
+					<variable id="2" name="SubmitNpcId" type="long"/> 交任务的NPC
+				</bean>
+				<bean name="BCollectCoinTask">
+					<variable id="1" name="name" type="string"/>
+					<variable id="2" name="targetCoinCount" type="long"/>
+					<variable id="3" name="currentCoinCount" type="long"/>
+				</bean>
+				<bean name="BCollectCoinEvent">
+					<variable id="1" name="name" type="string"/>
+					<variable id="2" name="coinCount" type="long"/>
+				</bean>
+			</module> TaskBase
 
 		</module> Game
 
@@ -1091,9 +1106,9 @@
 		</service>
 	</component>
 
-	<component name="Task" gendir="src/main/java" genrelativedir="Zeze/Game" platform="zeze+java">
+	<component name="TaskBase" gendir="src/main/java" genrelativedir="Zeze/Game" platform="zeze+java">
 		<service name="" handle="server">
-			<module ref="Zeze.Builtin.Game.Task"/>
+			<module ref="Zeze.Builtin.Game.TaskBase"/>
 		</service>
 	</component>
 

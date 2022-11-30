@@ -1,5 +1,5 @@
 // auto-generated @formatter:off
-package Zeze.Builtin.Game.Task;
+package Zeze.Builtin.Game.TaskBase;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
@@ -7,15 +7,15 @@ import Zeze.Transaction.TableReadOnly;
 
 // key is 1, only one record
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tEventClasses extends TableX<Integer, Zeze.Builtin.Game.Task.BEventClasses>
-        implements TableReadOnly<Integer, Zeze.Builtin.Game.Task.BEventClasses, Zeze.Builtin.Game.Task.BEventClassesReadOnly> {
+public final class tEventClasses extends TableX<Integer, Zeze.Builtin.Game.TaskBase.BEventClasses>
+        implements TableReadOnly<Integer, Zeze.Builtin.Game.TaskBase.BEventClasses, Zeze.Builtin.Game.TaskBase.BEventClassesReadOnly> {
     public tEventClasses() {
-        super("Zeze_Builtin_Game_Task_tEventClasses");
+        super("Zeze_Builtin_Game_TaskBase_tEventClasses");
     }
 
     @Override
     public int getId() {
-        return -1411967206;
+        return -1631158308;
     }
 
     @Override
@@ -45,12 +45,12 @@ public final class tEventClasses extends TableX<Integer, Zeze.Builtin.Game.Task.
     }
 
     @Override
-    public Zeze.Builtin.Game.Task.BEventClasses newValue() {
-        return new Zeze.Builtin.Game.Task.BEventClasses();
+    public Zeze.Builtin.Game.TaskBase.BEventClasses newValue() {
+        return new Zeze.Builtin.Game.TaskBase.BEventClasses();
     }
 
     @Override
-    public Zeze.Builtin.Game.Task.BEventClassesReadOnly getReadOnly(Integer key) {
+    public Zeze.Builtin.Game.TaskBase.BEventClassesReadOnly getReadOnly(Integer key) {
         return get(key);
     }
 }

@@ -1,10 +1,10 @@
 // auto-generated @formatter:off
 package Zeze.Game;
 
-public abstract class AbstractTask extends Zeze.IModule {
+public abstract class AbstractTaskBase extends Zeze.IModule {
     public static final int ModuleId = 11018;
-    @Override public String getFullName() { return "Zeze.Game.Task"; }
-    @Override public String getName() { return "Task"; }
+    @Override public String getFullName() { return "Zeze.Game.TaskBase"; }
+    @Override public String getName() { return "TaskBase"; }
     @Override public int getId() { return ModuleId; }
     @Override public boolean isBuiltin() { return true; }
 
@@ -15,24 +15,24 @@ public abstract class AbstractTask extends Zeze.IModule {
     public static final int Finish = 3; // 已完成，未提交
     public static final int Committed = 4; // 已经提交
 
-    protected final Zeze.Builtin.Game.Task.tEventClasses _tEventClasses = new Zeze.Builtin.Game.Task.tEventClasses();
-    protected final Zeze.Builtin.Game.Task.tRoleTask _tRoleTask = new Zeze.Builtin.Game.Task.tRoleTask();
-    protected final Zeze.Builtin.Game.Task.tTask _tTask = new Zeze.Builtin.Game.Task.tTask();
+    protected final Zeze.Builtin.Game.TaskBase.tEventClasses _tEventClasses = new Zeze.Builtin.Game.TaskBase.tEventClasses();
+    protected final Zeze.Builtin.Game.TaskBase.tRoleTask _tRoleTask = new Zeze.Builtin.Game.TaskBase.tRoleTask();
+    protected final Zeze.Builtin.Game.TaskBase.tTask _tTask = new Zeze.Builtin.Game.TaskBase.tTask();
 
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Game.Task.TriggerTaskEvent>();
-            factoryHandle.Factory = Zeze.Builtin.Game.Task.TriggerTaskEvent::new;
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Game.TaskBase.TriggerTaskEvent>();
+            factoryHandle.Factory = Zeze.Builtin.Game.TaskBase.TriggerTaskEvent::new;
             factoryHandle.Handle = this::ProcessTriggerTaskEventRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessTriggerTaskEventRequest", Zeze.Transaction.TransactionLevel.Serializable);
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessTriggerTaskEventRequest", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47324894444505L, factoryHandle); // 11018, -1350190119
+            service.AddFactoryHandle(47323020635145L, factoryHandle); // 11018, 1070967817
         }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
-        service.getFactorys().remove(47324894444505L);
+        service.getFactorys().remove(47323020635145L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
@@ -54,5 +54,5 @@ public abstract class AbstractTask extends Zeze.IModule {
     }
 
 
-    protected abstract long ProcessTriggerTaskEventRequest(Zeze.Builtin.Game.Task.TriggerTaskEvent r) throws Throwable;
+    protected abstract long ProcessTriggerTaskEventRequest(Zeze.Builtin.Game.TaskBase.TriggerTaskEvent r) throws Throwable;
 }

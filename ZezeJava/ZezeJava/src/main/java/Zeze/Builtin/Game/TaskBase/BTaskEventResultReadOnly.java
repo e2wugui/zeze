@@ -1,5 +1,5 @@
 // auto-generated @formatter:off
-package Zeze.Builtin.Game.Task;
+package Zeze.Builtin.Game.TaskBase;
 
 public interface BTaskEventResultReadOnly {
     public long typeId();

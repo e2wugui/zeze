@@ -1,5 +1,5 @@
 // auto-generated @formatter:off
-package Zeze.Builtin.Game.Task;
+package Zeze.Builtin.Game.TaskBase;
 
 // 记录每个角色的任务数据
 public interface BPTaskInfoReadOnly {

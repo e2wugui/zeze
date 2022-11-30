@@ -3,7 +3,7 @@ package Zeze.Game;
 import java.util.ArrayList;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
-import Zeze.Builtin.Game.Task.BTaskPhase;
+import Zeze.Builtin.Game.TaskBase.BTaskPhase;
 import Zeze.Transaction.Bean;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
@@ -12,7 +12,7 @@ public class TaskPhase {
 	public static final int TASK_PHASE_STATE_INVALID = -1;
 	public static final int TASK_PHASE_STATE_VALID = 0;
 
-	public TaskPhase(Task task, String name) throws Throwable {
+	public TaskPhase(TaskBase task, String name) throws Throwable {
 		this.task = task;
 		this.bean = task.getBean().getTaskPhases().getOrAdd(name);
 		this.bean.setTaskPhaseName(name);
@@ -34,8 +34,8 @@ public class TaskPhase {
 	/**
 	 * 当前Phase所属的Task
 	 */
-	public Task getTask() { return task; }
-	private final Task task;
+	public TaskBase getTask() { return task; }
+	private final TaskBase task;
 	public boolean isValid(){ return state!=TASK_PHASE_STATE_INVALID; }
 	int state;
 

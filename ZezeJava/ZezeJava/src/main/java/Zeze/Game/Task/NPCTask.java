@@ -1,8 +1,9 @@
-package TaskTest.NPCTask;
+package Zeze.Game.Task;
 
-import Zeze.Game.Task;
+import Zeze.Builtin.Game.TaskBase.BNPCTaskDynamics;
+import Zeze.Game.TaskBase;
 
-public class NPCTask extends Task<BNPCTaskDynamics> {
+public class NPCTask extends TaskBase<BNPCTaskDynamics> {
 
 	public long getReceiveNpcId() {
 		return getExtendedBean().getReceiveNpcId();
@@ -20,10 +21,10 @@ public class NPCTask extends Task<BNPCTaskDynamics> {
 		getExtendedBean().setSubmitNpcId(value);
 	}
 
-	public NPCTask(Task.Module taskModule, String taskName) {
+	public NPCTask(TaskBase.Module taskModule, String taskName) {
 		this(taskModule, taskName, null);
 	}
-	public NPCTask(Task.Module taskModule, String taskName, String[] preTasks) {
+	public NPCTask(TaskBase.Module taskModule, String taskName, String[] preTasks) {
 		super(taskModule, taskName, BNPCTaskDynamics.class);
 	}
 }

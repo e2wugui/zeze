@@ -11,7 +11,7 @@ import Zeze.Config;
 import Zeze.Game.Online;
 import Zeze.Game.ProviderDirectWithTransmit;
 import Zeze.Game.ProviderImplementWithOnline;
-import Zeze.Game.Task;
+import Zeze.Game.TaskBase;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.JsonReader;
 import Zeze.Util.PersistentAtomicLong;
@@ -88,7 +88,7 @@ public final class App extends Zeze.AppBase {
 		Provider.online.Initialize(this);
 
 		createModules();
-		taskModule = new Task.Module(getZeze());
+		taskModule = new TaskBase.Module(getZeze());
 		if (GenModule.instance.genFileSrcRoot != null) {
 			System.out.println("---------------");
 			System.out.println("New Source File Has Generate. Re-Compile Need.");
@@ -119,7 +119,7 @@ public final class App extends Zeze.AppBase {
 		destroyZeze();
 	}
 
-	public Task.Module taskModule;
+	public TaskBase.Module taskModule;
 
 	// ZEZE_FILE_CHUNK {{{ GEN APP @formatter:off
     public Zeze.Application Zeze;

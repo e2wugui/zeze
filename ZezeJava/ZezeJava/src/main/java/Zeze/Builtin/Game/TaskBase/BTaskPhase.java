@@ -1,28 +1,28 @@
 // auto-generated @formatter:off
-package Zeze.Builtin.Game.Task;
+package Zeze.Builtin.Game.TaskBase;
 
 import Zeze.Serialize.ByteBuffer;
 
 // TaskPhase的Bean数据，只存在在BTask之内
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhaseReadOnly {
-    public static final long TYPEID = -2081342941887981883L;
+    public static final long TYPEID = -3008758867375693466L;
 
     private String _TaskPhaseName; // 任务Phase的名字，字符串有可能很长，而且有小概率会重复，所以不作为key
     private String _CurrentConditionName; // 当前的ConditionId
-    private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Game.Task.BTaskCondition> _TaskConditions; // 该Phase所有的Condition
+    private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Game.TaskBase.BTaskCondition> _TaskConditions; // 该Phase所有的Condition
     private final Zeze.Transaction.DynamicBean _TaskPhaseCustomData;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_TaskPhaseCustomData() {
-        return new Zeze.Transaction.DynamicBean(4, Zeze.Game.Task::getSpecialTypeIdFromBean, Zeze.Game.Task::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(4, Zeze.Game.TaskBase::getSpecialTypeIdFromBean, Zeze.Game.TaskBase::createBeanFromSpecialTypeId);
     }
 
     public static long getSpecialTypeIdFromBean_4(Zeze.Transaction.Bean bean) {
-        return Zeze.Game.Task.getSpecialTypeIdFromBean(bean);
+        return Zeze.Game.TaskBase.getSpecialTypeIdFromBean(bean);
     }
 
     public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_4(long typeId) {
-        return Zeze.Game.Task.createBeanFromSpecialTypeId(typeId);
+        return Zeze.Game.TaskBase.createBeanFromSpecialTypeId(typeId);
     }
 
     private transient Object __zeze_map_key__;
@@ -81,12 +81,12 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
         txn.putLog(new Log__CurrentConditionName(this, 2, value));
     }
 
-    public Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Game.Task.BTaskCondition> getTaskConditions() {
+    public Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Game.TaskBase.BTaskCondition> getTaskConditions() {
         return _TaskConditions;
     }
 
     @Override
-    public Zeze.Transaction.Collections.PMap2ReadOnly<String, Zeze.Builtin.Game.Task.BTaskCondition, Zeze.Builtin.Game.Task.BTaskConditionReadOnly> getTaskConditionsReadOnly() {
+    public Zeze.Transaction.Collections.PMap2ReadOnly<String, Zeze.Builtin.Game.TaskBase.BTaskCondition, Zeze.Builtin.Game.TaskBase.BTaskConditionReadOnly> getTaskConditionsReadOnly() {
         return new Zeze.Transaction.Collections.PMap2ReadOnly<>(_TaskConditions);
     }
 
@@ -103,7 +103,7 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
     public BTaskPhase() {
         _TaskPhaseName = "";
         _CurrentConditionName = "";
-        _TaskConditions = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Game.Task.BTaskCondition.class);
+        _TaskConditions = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Game.TaskBase.BTaskCondition.class);
         _TaskConditions.variableId(3);
         _TaskPhaseCustomData = newDynamicBean_TaskPhaseCustomData();
     }
@@ -116,7 +116,7 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
         if (_CurrentConditionName_ == null)
             throw new IllegalArgumentException();
         _CurrentConditionName = _CurrentConditionName_;
-        _TaskConditions = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Game.Task.BTaskCondition.class);
+        _TaskConditions = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Game.TaskBase.BTaskCondition.class);
         _TaskConditions.variableId(3);
         _TaskPhaseCustomData = newDynamicBean_TaskPhaseCustomData();
     }
@@ -185,7 +185,7 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Task.BTaskPhase: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.TaskBase.BTaskPhase: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("TaskPhaseName=").append(getTaskPhaseName()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("CurrentConditionName=").append(getCurrentConditionName()).append(',').append(System.lineSeparator());
@@ -280,7 +280,7 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
                     var _k_ = _o_.ReadString(_s_);
-                    var _v_ = _o_.ReadBean(new Zeze.Builtin.Game.Task.BTaskCondition(), _t_);
+                    var _v_ = _o_.ReadBean(new Zeze.Builtin.Game.TaskBase.BTaskCondition(), _t_);
                     _x_.put(_k_, _v_);
                 }
             } else

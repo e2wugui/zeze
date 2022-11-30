@@ -1,27 +1,27 @@
 // auto-generated @formatter:off
-package Zeze.Builtin.Game.Task;
+package Zeze.Builtin.Game.TaskBase;
 
 import Zeze.Serialize.ByteBuffer;
 
 // 记录每个角色的任务数据
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BPTaskInfo extends Zeze.Transaction.Bean implements BPTaskInfoReadOnly {
-    public static final long TYPEID = -141577318142513096L;
+    public static final long TYPEID = -1068993243630224679L;
 
     private final Zeze.Transaction.Collections.PMap1<Long, Long> _processingTask; // key：RoleId
     private final Zeze.Transaction.Collections.PSet1<Long> _finishedTask; // 已经结束的任务，不存储可重复完成的任务
     private final Zeze.Transaction.DynamicBean _RoleTaskCustomData;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_RoleTaskCustomData() {
-        return new Zeze.Transaction.DynamicBean(3, Zeze.Game.Task::getSpecialTypeIdFromBean, Zeze.Game.Task::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(3, Zeze.Game.TaskBase::getSpecialTypeIdFromBean, Zeze.Game.TaskBase::createBeanFromSpecialTypeId);
     }
 
     public static long getSpecialTypeIdFromBean_3(Zeze.Transaction.Bean bean) {
-        return Zeze.Game.Task.getSpecialTypeIdFromBean(bean);
+        return Zeze.Game.TaskBase.getSpecialTypeIdFromBean(bean);
     }
 
     public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_3(long typeId) {
-        return Zeze.Game.Task.createBeanFromSpecialTypeId(typeId);
+        return Zeze.Game.TaskBase.createBeanFromSpecialTypeId(typeId);
     }
 
     public Zeze.Transaction.Collections.PMap1<Long, Long> getProcessingTask() {
@@ -109,7 +109,7 @@ public final class BPTaskInfo extends Zeze.Transaction.Bean implements BPTaskInf
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Task.BPTaskInfo: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.TaskBase.BPTaskInfo: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("processingTask={");
         if (!_processingTask.isEmpty()) {

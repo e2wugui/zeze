@@ -1,26 +1,26 @@
 // auto-generated @formatter:off
-package Zeze.Builtin.Game.Task;
+package Zeze.Builtin.Game.TaskBase;
 
 import Zeze.Serialize.ByteBuffer;
 
 // Task rpc的Bean
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEventReadOnly {
-    public static final long TYPEID = -4434634468626847386L;
+    public static final long TYPEID = -5362050394114558969L;
 
     private String _TaskName;
     private final Zeze.Transaction.DynamicBean _DynamicData;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_DynamicData() {
-        return new Zeze.Transaction.DynamicBean(2, Zeze.Game.Task::getSpecialTypeIdFromBean, Zeze.Game.Task::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(2, Zeze.Game.TaskBase::getSpecialTypeIdFromBean, Zeze.Game.TaskBase::createBeanFromSpecialTypeId);
     }
 
     public static long getSpecialTypeIdFromBean_2(Zeze.Transaction.Bean bean) {
-        return Zeze.Game.Task.getSpecialTypeIdFromBean(bean);
+        return Zeze.Game.TaskBase.getSpecialTypeIdFromBean(bean);
     }
 
     public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_2(long typeId) {
-        return Zeze.Game.Task.createBeanFromSpecialTypeId(typeId);
+        return Zeze.Game.TaskBase.createBeanFromSpecialTypeId(typeId);
     }
 
     @Override
@@ -121,7 +121,7 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Task.BTaskEvent: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.TaskBase.BTaskEvent: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("TaskName=").append(getTaskName()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("DynamicData=").append(System.lineSeparator());

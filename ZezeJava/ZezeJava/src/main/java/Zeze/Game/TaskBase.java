@@ -6,10 +6,10 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 import Zeze.Application;
 import Zeze.Arch.ProviderApp;
-import Zeze.Builtin.Game.Task.BTask;
-import Zeze.Builtin.Game.Task.BTaskKey;
-import Zeze.Builtin.Game.Task.TriggerTaskEvent;
-import Zeze.Builtin.Game.Task.tTask;
+import Zeze.Builtin.Game.TaskBase.BTask;
+import Zeze.Builtin.Game.TaskBase.BTaskKey;
+import Zeze.Builtin.Game.TaskBase.TriggerTaskEvent;
+import Zeze.Builtin.Game.TaskBase.tTask;
 import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
@@ -21,11 +21,11 @@ import org.jgrapht.graph.DirectedAcyclicGraph;
  * Task类
  * Task类本质是一个配置表，把真正需要的数据放到BTask里面
  */
-public class Task<ExtendedBean extends Bean> {
+public class TaskBase<ExtendedBean extends Bean> {
 	/**
 	 * Task Module
 	 */
-	public static class Module extends AbstractTask {
+	public static class Module extends AbstractTaskBase {
 		/**
 		 * 所有任务的Trigger Rpc，负责中转请求
 		 */
@@ -51,7 +51,7 @@ public class Task<ExtendedBean extends Bean> {
 			return Procedure.Success;
 		}
 
-		private final ConcurrentHashMap<String, Task<?>> tasks = new ConcurrentHashMap<>();
+		private final ConcurrentHashMap<String, TaskBase<?>> tasks = new ConcurrentHashMap<>();
 		private final TaskGraphics taskGraphics;
 		public final ProviderApp providerApp;
 		public final Application zeze;
@@ -81,13 +81,13 @@ public class Task<ExtendedBean extends Bean> {
 			return _tTask;
 		}
 
-		public <ExtendedBean extends Bean, ExtendedTask extends Task<ExtendedBean>> ExtendedTask newTask(String taskName, Class<ExtendedTask> extendedTaskClass, Class<ExtendedBean> extendedBeanClass) {
+		public <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>> ExtendedTask newTask(String taskName, Class<ExtendedTask> extendedTaskClass, Class<ExtendedBean> extendedBeanClass) {
 			return open(taskName, extendedTaskClass, extendedBeanClass);
 		}
 
 		// 需要在事务内使用。 使用完不要保存。
 		@SuppressWarnings("unchecked")
-		public <ExtendedBean extends Bean, ExtendedTask extends Task<ExtendedBean>> ExtendedTask open(String taskName, Class<ExtendedTask> extendedTaskClass, Class<ExtendedBean> extendedBeanClass) {
+		public <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>> ExtendedTask open(String taskName, Class<ExtendedTask> extendedTaskClass, Class<ExtendedBean> extendedBeanClass) {
 			return (ExtendedTask)tasks.computeIfAbsent(taskName, key -> {
 				try {
 					var c = extendedTaskClass.getDeclaredConstructor(Module.class, String.class);
@@ -98,7 +98,7 @@ public class Task<ExtendedBean extends Bean> {
 			});
 		}
 
-		public Task<?> getTask(String taskName) {
+		public TaskBase<?> getTask(String taskName) {
 			return tasks.get(taskName);
 		}
 	}
@@ -159,10 +159,10 @@ public class Task<ExtendedBean extends Bean> {
 	/**
 	 * Task Constructors
 	 */
-	public Task(Module module, String name, Class<ExtendedBean> extendedBeanClass){
+	public TaskBase(Module module, String name, Class<ExtendedBean> extendedBeanClass){
 		this(module, name, extendedBeanClass, null);
 	}
-	public Task(Module module, String name, Class<ExtendedBean> extendedBeanClass, String[] preTaskNames) {
+	public TaskBase(Module module, String name, Class<ExtendedBean> extendedBeanClass, String[] preTaskNames) {
 		this.module = module;
 		this.bean = this.module._tTask.getOrAdd(new BTaskKey(name));
 		bean.setTaskName(name);

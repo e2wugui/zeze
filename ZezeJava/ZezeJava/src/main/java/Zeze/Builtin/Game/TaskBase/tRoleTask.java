@@ -1,20 +1,20 @@
 // auto-generated @formatter:off
-package Zeze.Builtin.Game.Task;
+package Zeze.Builtin.Game.TaskBase;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tRoleTask extends TableX<Long, Zeze.Builtin.Game.Task.BPTaskInfo>
-        implements TableReadOnly<Long, Zeze.Builtin.Game.Task.BPTaskInfo, Zeze.Builtin.Game.Task.BPTaskInfoReadOnly> {
+public final class tRoleTask extends TableX<Long, Zeze.Builtin.Game.TaskBase.BPTaskInfo>
+        implements TableReadOnly<Long, Zeze.Builtin.Game.TaskBase.BPTaskInfo, Zeze.Builtin.Game.TaskBase.BPTaskInfoReadOnly> {
     public tRoleTask() {
-        super("Zeze_Builtin_Game_Task_tRoleTask");
+        super("Zeze_Builtin_Game_TaskBase_tRoleTask");
     }
 
     @Override
     public int getId() {
-        return -1706187955;
+        return 192055248;
     }
 
     @Override
@@ -46,12 +46,12 @@ public final class tRoleTask extends TableX<Long, Zeze.Builtin.Game.Task.BPTaskI
     }
 
     @Override
-    public Zeze.Builtin.Game.Task.BPTaskInfo newValue() {
-        return new Zeze.Builtin.Game.Task.BPTaskInfo();
+    public Zeze.Builtin.Game.TaskBase.BPTaskInfo newValue() {
+        return new Zeze.Builtin.Game.TaskBase.BPTaskInfo();
     }
 
     @Override
-    public Zeze.Builtin.Game.Task.BPTaskInfoReadOnly getReadOnly(Long key) {
+    public Zeze.Builtin.Game.TaskBase.BPTaskInfoReadOnly getReadOnly(Long key) {
         return get(key);
     }
 }
