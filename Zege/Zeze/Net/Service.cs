@@ -139,7 +139,7 @@ namespace Zeze.Net
         /// <param name="e"></param>
         public virtual void OnSocketClose(AsyncSocket so, Exception e)
         {
-            SocketMap.TryRemove(KeyValuePair.Create(so.SessionId, so));
+            SocketMap.TryRemove(new KeyValuePair<long, AsyncSocket>(so.SessionId, so));
 
             if (null != e)
             {
@@ -228,7 +228,7 @@ namespace Zeze.Net
         /// <param name="e"></param>
         public virtual void OnSocketConnectError(AsyncSocket so, Exception e)
         {
-            SocketMap.TryRemove(KeyValuePair.Create(so.SessionId, so));
+            SocketMap.TryRemove(new KeyValuePair<long, AsyncSocket>(so.SessionId, so));
 #if HAS_NLOG
             logger.Log(Mission.NlogLogLevel(SocketOptions.SocketLogLevel), e, "OnSocketConnectError");
 #elif HAS_MYLOG
@@ -445,7 +445,7 @@ namespace Zeze.Net
 
         internal void TryRemoveRpcContext(long sid, Protocol current)
         {
-            RpcContextsPrivate.TryRemove(KeyValuePair.Create(sid, current));
+            RpcContextsPrivate.TryRemove(new KeyValuePair<long, Protocol>(sid, current));
         }
 
         internal T RemoveRpcContext<T>(long sid) where T : Protocol

@@ -79,7 +79,7 @@ namespace Zeze.Net
 
         public void RemoveConnector(Connector c)
         {
-            Connectors.TryRemove(KeyValuePair.Create(c.Name, c));
+            Connectors.TryRemove(new KeyValuePair<string, Connector>(c.Name, c));
         }
 
         public void ForEachConnector(Action<Connector> action)
@@ -122,7 +122,7 @@ namespace Zeze.Net
 
         public void RemoveAcceptor(Acceptor a)
         {
-            Acceptors.TryRemove(KeyValuePair.Create(a.Name, a));
+            Acceptors.TryRemove(new KeyValuePair<string, Acceptor>(a.Name, a));
         }
 
         public void ForEachAcceptor(Action<Acceptor> action)

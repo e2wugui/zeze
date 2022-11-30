@@ -675,7 +675,7 @@ namespace Zeze.Net
 
         public void SetSessionId(long newSessionId)
         {
-            if (Service.SocketMapInternal.TryRemove(KeyValuePair.Create(SessionId, this)))
+            if (Service.SocketMapInternal.TryRemove(new KeyValuePair<long, AsyncSocket>(SessionId, this)))
             {
                 if (!Service.SocketMapInternal.TryAdd(newSessionId, this))
                 {
