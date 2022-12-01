@@ -2,6 +2,7 @@ package Zeze.Component;
 
 import java.util.Calendar;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import Zeze.Builtin.DelayRemove.BTableKey;
 import Zeze.Net.Binary;
 import Zeze.Transaction.TableX;
@@ -27,23 +28,29 @@ public class DelayRemove extends AbstractDelayRemove {
 
 	private final Zeze.Collections.Queue<BTableKey> queue;
 	private final Zeze.Application zeze;
+	private Future<?> timer;
 
 	public DelayRemove(Zeze.Application zz) {
 		this.zeze = zz;
 
 		var serverId = zz.getConfig().getServerId();
 		queue = zz.getQueueModule().open("__GCTableQueue#" + serverId, BTableKey.class);
+	}
+
+	public void start() {
+		if (null != timer)
+			return;
 
 		// start timer to gc. work on queue.pollNode? peekNode? poll? peek?
 		// 根据配置的Timer的时间范围，按分钟精度随机出每天的开始时间，最后计算延迟，然后按24小时间隔执行。
 		var firstTime = Calendar.getInstance();
-		firstTime.set(Calendar.HOUR_OF_DAY, zz.getConfig().getDelayRemoveHourStart());
+		firstTime.set(Calendar.HOUR_OF_DAY, zeze.getConfig().getDelayRemoveHourStart());
 		firstTime.set(Calendar.MINUTE, 0);
 		firstTime.set(Calendar.SECOND, 0);
 		firstTime.set(Calendar.MILLISECOND, 0);
 
 		// rand to end
-		var minutes = 60 * (zz.getConfig().getDelayRemoveHourEnd() - zz.getConfig().getDelayRemoveHourStart());
+		var minutes = 60 * (zeze.getConfig().getDelayRemoveHourEnd() - zeze.getConfig().getDelayRemoveHourStart());
 		if (minutes <= 0)
 			minutes = 60;
 		minutes = Random.getInstance().nextInt(minutes);
@@ -54,9 +61,15 @@ public class DelayRemove extends AbstractDelayRemove {
 
 		var delay = firstTime.getTime().getTime() - System.currentTimeMillis();
 		var period = 24 * 3600 * 1000; // 24 hours
-		Task.scheduleUnsafe(delay, period, this::onTimer);
+		timer = Task.scheduleUnsafe(delay, period, this::onTimer);
 	}
 
+	public void stop() {
+		if (null != timer) {
+			timer.cancel(true);
+			timer = null;
+		}
+	}
 	private void onTimer() throws Throwable {
 		// delayRemove可能需要删除很多记录，不能在一个事务内完成全部删除。
 		// 这里按每个节点的记录的删除在一个事务中执行，节点间用不同的事务。

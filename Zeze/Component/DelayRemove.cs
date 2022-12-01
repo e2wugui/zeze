@@ -33,12 +33,19 @@ namespace Zeze.Component
 
 		private readonly Zeze.Collections.Queue<BTableKey> queue;
         public Zeze.Application Zeze { get; }
+        private Util.SchedulerTask Timer;
 
 		public DelayRemove(Zeze.Application zz)
 		{
 			this.Zeze = zz;
 			var serverId = zz.Config.ServerId;
 			queue = zz.Queues.Open<BTableKey>("__GCTableQueue#" + serverId);
+        }
+
+        public void Start()
+        {
+            if (null != Timer)
+                return;
 
             // start timer to gc. work on queue.pollNode? peekNode? poll? peek?
             // 根据配置的Timer的时间范围，按分钟精度随机出每天的开始时间，最后计算延迟，然后按24小时间隔执行。
@@ -53,7 +60,13 @@ namespace Zeze.Component
                 at = at.AddDays(1);
             var delay = Util.Time.DateTimeToUnixMillis(at) - Util.Time.DateTimeToUnixMillis(now);
             var period = 24 * 3600 * 1000; // 24 hours
-            Util.Scheduler.Schedule(OnTimer, delay, period);
+            Timer = Util.Scheduler.Schedule(OnTimer, delay, period);
+        }
+
+        public void Stop()
+        {
+            Timer?.Cancel();
+            Timer = null;
         }
 
         private void OnTimer(SchedulerTask ThisTask)

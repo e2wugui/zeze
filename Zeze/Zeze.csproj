@@ -31,14 +31,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="MySql.Data" Version="8.0.28" />
+    <PackageReference Include="MySql.Data" Version="8.0.31" />
     <PackageReference Include="Nito.AsyncEx" Version="5.1.2" />
-    <PackageReference Include="NLog" Version="4.7.14" />
-    <PackageReference Include="RocksDbSharp" Version="6.2.2" />
-    <PackageReference Include="Scriban" Version="5.4.1" />
-    <PackageReference Include="System.Collections.Immutable" Version="6.0.0" />
-    <PackageReference Include="System.Data.SqlClient" Version="4.8.3" />
-    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="6.0.0" />
+    <PackageReference Include="NLog" Version="5.1.0" />
+    <PackageReference Include="RocksDB" Version="7.7.3.33461" />
+    <PackageReference Include="Scriban" Version="5.5.1" />
+    <PackageReference Include="System.Collections.Immutable" Version="7.0.0" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.5" />
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="7.0.0" />
   </ItemGroup>
 
 </Project>

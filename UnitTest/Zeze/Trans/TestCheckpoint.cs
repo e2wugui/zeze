@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using demo.Module1;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Zeze.Serialize;
 using Zeze.Transaction;
@@ -9,20 +11,20 @@ using Zeze.Util;
 
 namespace UnitTest.Zeze.Trans
 {
-    [TestClass]
-    public class TestCheckpoint
-    {
-        [TestInitialize]
-        public void TestInit()
-        {
-            demo.App.Instance.Start();
-        }
+	[TestClass]
+	public class TestCheckpoint
+	{
+		[TestInitialize]
+		public void TestInit()
+		{
+			demo.App.Instance.Start();
+		}
 
-        [TestCleanup]
-        public void TestCleanup()
-        {
-            demo.App.Instance.Stop();
-        }
+		[TestCleanup]
+		public void TestCleanup()
+		{
+			demo.App.Instance.Stop();
+		}
 
 		[TestMethod]
 		public async Task TestModeTable()
@@ -78,19 +80,32 @@ namespace UnitTest.Zeze.Trans
 		}
 
 		[TestMethod]
-        public async Task TestCp()
-        {
-            Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(ProcClear, "ProcClear").CallSynchronously() == ResultCode.Success);
-            Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(ProcChange, "ProcChange").CallSynchronously() == ResultCode.Success);
-            await demo.App.Instance.Zeze.CheckpointNow();
+		public async Task TestCp()
+		{
+			Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(ProcClear, "ProcClear").CallSynchronously() == ResultCode.Success);
+			Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(ProcChange, "ProcChange").CallSynchronously() == ResultCode.Success);
+			await demo.App.Instance.Zeze.CheckpointNow();
 			var table = demo.App.Instance.demo_Module1.Table1;
 			var dbtable = table.GetStorageForTestOnly("IKnownWhatIAmDoing").TableAsync;
-            ByteBuffer value = dbtable.ITable.Find(table.EncodeKey(56));
-            Assert.IsNotNull(value);
-            Assert.AreEqual(value, bytesInTrans);
-        }
+			ByteBuffer value = dbtable.ITable.Find(table.EncodeKey(56));
+			Assert.IsNotNull(value);
+			Assert.AreEqual(ResetVersion(value), ResetVersion(bytesInTrans));
+		}
 
-		async Task<long> ProcClear()
+		private ByteBuffer ResetVersion(ByteBuffer bb)
+		{
+
+			var value = new Value();
+			value.Decode(bb);
+			var setVersion = typeof(Value).GetMethod("SetVersion", BindingFlags.Instance | BindingFlags.NonPublic);
+			setVersion.Invoke(value, new object[] { 0 });
+			var result = ByteBuffer.Allocate();
+			value.Encode(result);
+			return result;
+		}
+
+    
+	async Task<long> ProcClear()
         {
             await demo.App.Instance.demo_Module1.Table1.RemoveAsync(56);
             return ResultCode.Success;

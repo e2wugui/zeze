@@ -345,6 +345,7 @@ public final class Application {
 			isStart = true;
 
 			timer.start();
+			delayRemove.start();
 		}
 	}
 
@@ -353,6 +354,11 @@ public final class Application {
 			return;
 		isStart = false;
 		logger.info("Stop ServerId={}", conf != null ? conf.getServerId() : -1);
+
+		if (null != delayRemove) {
+			delayRemove.stop();
+			delayRemove = null;
+		}
 
 		if (null != timer) {
 			timer.stop();

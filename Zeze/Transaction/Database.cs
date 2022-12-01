@@ -606,8 +606,8 @@ namespace Zeze.Transaction
                         out ReturnValue int
                     )
                     return_label:begin
-                        DECLARE currentglobal LONGLOB;
-                        declare emptybinary LONGLOB;
+                        DECLARE currentglobal LONGBLOB;
+                        declare emptybinary LONGBLOB;
                         DECLARE InstanceCount int;
                         DECLARE ROWCOUNT int;
 
@@ -665,12 +665,12 @@ namespace Zeze.Transaction
                 string ProcClearInUse =
                     @"Create procedure _ZezeClearInUse_ (
                         in in_localid int,
-                        in in_global LONGLOB,
+                        in in_global LONGBLOB,
                         out ReturnValue int
                     )
                     return_label:begin
                         DECLARE InstanceCount int;
-                        declare emptybinary LONGLOB;
+                        declare emptybinary LONGBLOB;
                         DECLARE ROWCOUNT INT;
 
                         START TRANSACTION;

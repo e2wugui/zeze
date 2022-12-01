@@ -183,7 +183,7 @@ namespace Zeze
                 // Initialize Component
                 AutoKeys = new(this);
                 Queues = new(this);
-                DelayRemove = new DelayRemove(this);
+                DelayRemove = new(this);
             }
 
             // Start ServiceManager
@@ -224,7 +224,7 @@ namespace Zeze
 
                 // Start Checkpoint
                 Checkpoint.Start(Config.CheckpointPeriod); // 定时模式可以和其他模式混用。
-
+                
                 /////////////////////////////////////////////////////
                 /// Schemas Check
                 Schemas.Compile();
@@ -255,6 +255,7 @@ namespace Zeze
                         break;
                 }
                 AchillesHeelDaemon.Start();
+                DelayRemove.Start();
             }
         }
 
@@ -269,6 +270,9 @@ namespace Zeze
                 if (false == IsStart)
                     return;
                 IsStart = false;
+
+                DelayRemove?.Stop();
+                DelayRemove = null;
 
                 AchillesHeelDaemon?.StopAndJoin();
                 GlobalAgent?.Dispose(); // 关闭时需要生成新的SessionId，这个现在使用AutoKey，需要事务支持。
