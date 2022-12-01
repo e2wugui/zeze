@@ -15,7 +15,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.LongSupplier;
@@ -61,7 +61,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private final Acceptor acceptor;
 	private final Connector connector;
 
-	private final ConcurrentLinkedQueue<Action0> operates = new ConcurrentLinkedQueue<>();
+	private ArrayList<Action0> operates0 = new ArrayList<>();
+	private ArrayList<Action0> operates1 = new ArrayList<>();
 	private final AtomicLong outputBufferListCountSum = new AtomicLong();
 	private final ArrayDeque<java.nio.ByteBuffer> outputBufferListSending = new ArrayDeque<>(); // 正在发送的 buffers. 只在selector线程访问
 
@@ -379,8 +380,10 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		try {
 			if (closed != 0)
 				return false;
-			operates.offer(callback);
-			interestOps(0, SelectionKey.OP_WRITE); // try
+			var operates = operates0;
+			operates.add(callback);
+			if (operates.size() == 1)
+				interestOps(0, SelectionKey.OP_WRITE); // try
 			return true;
 		} finally {
 			lock.unlock();
@@ -522,8 +525,18 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 	private void doWrite(SocketChannel sc) throws Throwable { // 只在selector线程调用
 		while (true) {
-			for (Action0 op; (op = operates.poll()) != null; )
-				op.run();
+			var operates = operates0;
+			lock.lock();
+			try {
+				operates0 = operates1; // swap
+				operates1 = operates;
+			} finally {
+				lock.unlock();
+			}
+			//noinspection ForLoopReplaceableByForEach
+			for (int i = 0, n = operates.size(); i < n; i++)
+				operates.get(i).run();
+			operates.clear();
 
 			int bufSize = outputBufferListSending.size();
 			if (bufSize <= 0) {
@@ -531,7 +544,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				// 必须和把Operate加入队列同步！否则可能会出现，刚加入操作没有被处理，但是OP_WRITE又被Remove的问题。
 				lock.lock();
 				try {
-					if (operates.isEmpty()) {
+					if (operates0.isEmpty()) {
 						// 真的没有等待处理的操作了，去掉事件，返回。以后新的操作在下一次doWrite时处理。
 						interestOps(SelectionKey.OP_WRITE, 0);
 						if (closePending)
