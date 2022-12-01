@@ -395,8 +395,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		int opsNew = (ops & ~remove) | add;
 		if (ops != opsNew) {
 			selectionKey.interestOps(opsNew);
-			if (Thread.currentThread() != selector)
-				selectionKey.selector().wakeup();
+			selector.wakeup();
 		}
 	}
 
@@ -592,7 +591,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			logger.error("Service.OnSocketDisposed", e);
 		}
 		if (acceptor != null)
-			selectionKey.selector().wakeup(); // Acceptor的socket需要selector在select开始时执行,所以wakeup一下尽早触发下次select
+			selector.wakeup(); // Acceptor的socket需要selector在select开始时执行,所以wakeup一下尽早触发下次select
 	}
 
 	private boolean close(Throwable ex, boolean gracefully) {

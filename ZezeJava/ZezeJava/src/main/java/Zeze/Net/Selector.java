@@ -4,15 +4,18 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 class Selector extends Thread {
 	private final static Logger logger = LogManager.getLogger(Selector.class);
 
-	private volatile boolean running = true;
 	private final java.nio.channels.Selector selector;
 	private final java.nio.ByteBuffer readBuffer = java.nio.ByteBuffer.allocate(32 * 1024); // 此线程共享的buffer,只能临时使用
+	private final AtomicInteger wakeupNotified = new AtomicInteger();
+	private boolean firstAction;
+	private volatile boolean running = true;
 
 	Selector(String threadName) throws IOException {
 		super(threadName);
@@ -59,12 +62,22 @@ class Selector extends Thread {
 		}
 	}
 
+	public void wakeup() {
+		if (Thread.currentThread() != this && wakeupNotified.compareAndSet(0, 1))
+			selector.wakeup();
+	}
+
 	@Override
 	public void run() {
 		while (running) {
 			try {
 				// 如果在这个时间窗口 wakeup，下面的 select 会马上返回。wakeup 不会丢失。
+				firstAction = true;
 				selector.select(key -> {
+					if (firstAction) {
+						firstAction = false;
+						wakeupNotified.set(0);
+					}
 					if (!key.isValid())
 						return; // key maybe cancel in loop
 					SelectorHandle handle = null;
