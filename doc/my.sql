@@ -2,7 +2,7 @@
 必须的
 
 DROP TABLE IF EXISTS ?
-CREATE TABLE IF NOT EXISTS TableName (id VARBINARY(3072) NOT NULL PRIMARY KEY, value LONGBLOB NOT NULL)
+CREATE TABLE IF NOT EXISTS TableName (id VARBINARY(3070) NOT NULL PRIMARY KEY, value LONGBLOB NOT NULL)
 SELECT value FROM TableName WHERE id = ?
 DELETE FROM TableName WHERE id=?
 REPLACE INTO TableName values(?, ?)
@@ -14,7 +14,7 @@ SELECT id,value FROM TableName WHERE id > ? LIMIT ?
 可选的（最好提供）
 
 CREATE TABLE IF NOT EXISTS _ZezeDataWithVersion_ (
-	id VARBINARY(3072) NOT NULL PRIMARY KEY,
+	id VARBINARY(3070) NOT NULL PRIMARY KEY,
 	data LONGBLOB NOT NULL,
 	version bigint NOT NULL
 	);
@@ -24,7 +24,7 @@ DROP PROCEDURE IF EXISTS _ZezeSaveDataWithSameVersion_;
 SELECT data,version FROM _ZezeDataWithVersion_ WHERE id=?;
 
 Create procedure _ZezeSaveDataWithSameVersion_ (
-	IN    in_id VARBINARY(3072),
+	IN    in_id VARBINARY(3070),
 	IN    in_data LONGBLOB,
 	INOUT inout_version bigint,
 	OUT   ReturnValue int
