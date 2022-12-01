@@ -87,6 +87,9 @@ namespace Zeze.Util
 				if (def == typeof(Zeze.Transaction.Collections.LogList2<>))
 					return $"Zeze.Transaction.Collections.LogList2<{GetStableName(type.GenericTypeArguments[0])}>";
 
+                if (def == typeof(Zeze.Transaction.Collections.LogOne<>))
+                    return $"Zeze.Transaction.Collections.LogOne<{GetStableName(type.GenericTypeArguments[0])}>";
+
 				throw new Exception($"Unsupported Generic Type {type.FullName}");
 			}
 
@@ -150,8 +153,11 @@ namespace Zeze.Util
 				if (def == typeof(Zeze.Transaction.Collections.LogList2<>))
 					return $"Zeze.Transaction.Collections.LogList2<{GetStableName(type.GenericTypeArguments[0])}>";
 
-				// Zeze.Raft.RocksRaft.Logs
-				if (def == typeof(Zeze.Raft.RocksRaft.Log<>))
+                if (def == typeof(Zeze.Transaction.Collections.LogOne<>))
+                    return $"Zeze.Transaction.Collections.LogOne<{GetStableName(type.GenericTypeArguments[0])}>";
+
+                // Zeze.Raft.RocksRaft.Logs
+                if (def == typeof(Zeze.Raft.RocksRaft.Log<>))
 					return $"Zeze.Raft.RocksRaft.Log<{GetStableName(type.GenericTypeArguments[0])}>";
 				if (def == typeof(Zeze.Raft.RocksRaft.LogMap1<,>))
 					return $"Zeze.Raft.RocksRaft.LogMap1<{GetStableName(type.GenericTypeArguments[0])}, {GetStableName(type.GenericTypeArguments[1])}>";

@@ -49,13 +49,13 @@ namespace Zeze.Component
 
             // start timer to gc. work on queue.pollNode? peekNode? poll? peek?
             // 根据配置的Timer的时间范围，按分钟精度随机出每天的开始时间，最后计算延迟，然后按24小时间隔执行。
-            var now = new DateTime();
+            var now = DateTime.Now;
             var at = new DateTime(now.Year, now.Month, now.Day, Zeze.Config.DelayRemoveHourStart, 0, 0);
             var minutes = 60 * (Zeze.Config.DelayRemoveHourEnd - Zeze.Config.DelayRemoveHourStart);
             if (minutes <= 0)
                 minutes = 60;
             minutes = Util.Random.Instance.Next(minutes);
-            at.AddMinutes(minutes);
+            at = at.AddMinutes(minutes);
             if (at.CompareTo(now) < 0)
                 at = at.AddDays(1);
             var delay = Util.Time.DateTimeToUnixMillis(at) - Util.Time.DateTimeToUnixMillis(now);
