@@ -1,4 +1,9 @@
 
+KEY.type = VARBINARY(?)
+	3070 porlardb-x
+	3072 mysql 8
+	8000 sqlserver£¿
+
 ±ØÐëµÄ
 
 DROP TABLE IF EXISTS ?
