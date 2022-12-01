@@ -70,8 +70,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private final BufferCodec outputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer. 只在selector线程访问
 	private Codec inputCodecChain; // 只在selector线程访问
 	private Codec outputCodecChain; // 只在selector线程访问
-	private volatile boolean isInputSecurity;
-	private volatile boolean isOutputSecurity;
+	private volatile byte security; // 1:Input; 2:Output; 1|2:Input+Output
 
 	private final Selector selector;
 	private final SelectionKey selectionKey;
@@ -335,15 +334,15 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	public boolean isInputSecurity() {
-		return isInputSecurity;
+		return (security & 1) != 0;
 	}
 
 	public boolean isOutputSecurity() {
-		return isOutputSecurity;
+		return (security & 2) != 0;
 	}
 
 	public boolean isSecurity() {
-		return isInputSecurity() && isOutputSecurity();
+		return security == (1 | 2);
 	}
 
 	public void VerifySecurity() {
@@ -359,7 +358,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			if (key != null)
 				chain = new Decrypt(chain, key);
 			inputCodecChain = chain;
-			isInputSecurity = true;
+			//noinspection NonAtomicOperationOnVolatileField
+			security |= 1;
 		});
 	}
 
@@ -371,7 +371,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			if (compress)
 				chain = new Compress(chain);
 			outputCodecChain = chain;
-			isOutputSecurity = true;
+			//noinspection NonAtomicOperationOnVolatileField
+			security |= 2;
 		});
 	}
 
