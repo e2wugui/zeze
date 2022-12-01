@@ -749,7 +749,7 @@
 					<variable id="4" name="CurrentPhaseId" type="string"/> 当前的PhaseId
 					<variable id="5" name="TaskPhases" type="map" key="string" value="BTaskPhase"/> 该任务所有的Phase
 					<variable id="6" name="PreTasks" type="list" value="string"/> 前置任务名（只需要存储前置任务就可以建立起整个TaskGraphics，不需要存储后置任务）
-					<variable id="7" name="TaskCustomData" type="dynamic"> 用于用户（程序员）自定义扩展数据
+					<variable id="7" name="TaskCustomData" type="dynamic"> 用于自定义扩展Task的数据
 						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskBase::getSpecialTypeIdFromBean"/>
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskBase::createBeanFromSpecialTypeId"/>
 					</variable>
@@ -759,7 +759,7 @@
 					<variable id="1" name="TaskPhaseName" type="string"/> 任务Phase的名字，字符串有可能很长，而且有小概率会重复，所以不作为key
 					<variable id="2" name="CurrentConditionName" type="string"/> 当前的ConditionId
 					<variable id="3" name="TaskConditions" type="map" key="string" value="BTaskCondition"/> 该Phase所有的Condition
-					<variable id="4" name="TaskPhaseCustomData" type="dynamic"> 用于用户（程序员）自定义扩展数据
+					<variable id="4" name="TaskPhaseCustomData" type="dynamic"> 用于自定义扩展Phase的数据
 						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskBase::getSpecialTypeIdFromBean"/>
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskBase::createBeanFromSpecialTypeId"/>
 					</variable>
@@ -767,7 +767,7 @@
 				<!-- TaskCondition的Bean数据，只存在在BTaskPhase之内 -->
 				<bean name="BTaskCondition">
 					<variable id="1" name="TaskConditionName" type="string"/> Condition的名字（这个名字主要需要在下面这个dynamic中动态指定）
-					<variable id="2" name="TaskConditionCustomData" type="dynamic"> 用于用户（程序员）自定义扩展数据
+					<variable id="2" name="TaskConditionCustomData" type="dynamic"> 用于自定义扩展Condition的数据
 						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskBase::getSpecialTypeIdFromBean"/>
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskBase::createBeanFromSpecialTypeId"/>
 					</variable>
@@ -780,8 +780,8 @@
 					<variable id="1" name="processingTask" type="map" key="long" value="long"/> key：RoleId
 					<variable id="2" name="finishedTask" type="set" value="long"/> 已经结束的任务，不存储可重复完成的任务
 					<variable id="3" name="RoleTaskCustomData" type="dynamic"> 用于用户（程序员）自定义扩展数据
-						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskBase::getSpecialTypeIdFromBean"/>
-						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskBase::createBeanFromSpecialTypeId"/>
+						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskConditionBase::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskConditionBase::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
 				<table name="tRoleTask" key="long" value="BPTaskInfo"/>

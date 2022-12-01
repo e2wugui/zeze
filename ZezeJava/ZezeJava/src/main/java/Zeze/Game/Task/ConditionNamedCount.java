@@ -1,53 +1,44 @@
 package Zeze.Game.Task;
 
-
 import Zeze.Builtin.Game.TaskBase.BCollectCoinTask;
 import Zeze.Builtin.Game.TaskBase.BCollectCoinEvent;
-import Zeze.Game.TaskCondition;
+import Zeze.Game.TaskConditionBase;
 import Zeze.Transaction.Bean;
 
-public class ConditionNamedCount extends TaskCondition<BCollectCoinTask, BCollectCoinEvent> {
+public class ConditionNamedCount extends TaskConditionBase<BCollectCoinTask, BCollectCoinEvent> {
 
 	// @formatter:off
-	/**
-	 * Override Methods
-	 */
-	@Override
-	public BCollectCoinTask getConditionBean() {
-		return bean;
-	}
-	private final BCollectCoinTask bean;
-	@Override
-	public String getName() {
-		return bean.getName();
-	}
 	@Override
 	public boolean accept(Bean eventBean) {
 		if (eventBean instanceof BCollectCoinEvent e) {
-			if (e.getName().equals(bean.getName())) {
-				return e.getCoinCount() >= bean.getTargetCoinCount();
+			if (e.getName().equals(getExtendedBean().getName())) {
+				return e.getCoinCount() >= getExtendedBean().getTargetCoinCount();
 			}
 		}
 		return false;
 	}
 	@Override
 	public boolean isDone() {
-		return bean.getCurrentCoinCount() >= bean.getTargetCoinCount();
+		return getCurrentCount() >= getTargetCount();
 	}
 
 	// @formatter:on
 	public ConditionNamedCount(String name, long currentCount, long targetCount) {
-		bean = new BCollectCoinTask();
-		bean.setName(name);
-		bean.setCurrentCoinCount(currentCount);
-		bean.setTargetCoinCount(targetCount);
+		super(BCollectCoinTask.class, BCollectCoinEvent.class);
+		getExtendedBean().setName(name);
+		getExtendedBean().setCurrentCoinCount(currentCount);
+		getExtendedBean().setTargetCoinCount(targetCount);
 	}
 
-	public long getCount() {
-		return bean.getCurrentCoinCount();
+	public long getCurrentCount() {
+		return getExtendedBean().getCurrentCoinCount();
 	}
 
 	public long getTargetCount() {
-		return bean.getTargetCoinCount();
+		return getExtendedBean().getTargetCoinCount();
+	}
+	@Override
+	public String getName() {
+		return getExtendedBean().getName();
 	}
 }

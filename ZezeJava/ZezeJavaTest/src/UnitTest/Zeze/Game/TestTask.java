@@ -8,9 +8,7 @@ import Zeze.Builtin.Game.Online.Login;
 import Zeze.Builtin.Game.Online.Logout;
 import Zeze.Builtin.Game.Online.ReLogin;
 import Zeze.Builtin.Game.TaskBase.BCollectCoinEvent;
-import Zeze.Builtin.Game.TaskBase.BNPCTaskDynamics;
 import Zeze.Builtin.Game.TaskBase.TriggerTaskEvent;
-import Zeze.Builtin.Game.TaskBase.BNPCTaskDynamics;
 import Zeze.Game.Task.ConditionNamedCount;
 import Zeze.Game.TaskBase;
 import Zeze.Game.TaskPhase;
@@ -80,7 +78,7 @@ public class TestTask extends TestCase {
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
 
 				var module = server0.taskModule;
-				var task1 = module.open("Task02NpcTask", Zeze.Game.Task.NPCTask.class, BNPCTaskDynamics.class);
+				var task1 = module.newNPCTask("Task02NpcTask");
 				task1.setReceiveNpcId(1001); // 设置接取任务的NPC
 				task1.setSubmitNpcId(1002); // 设置提交任务的NPC
 				TaskPhase phase1 = task1.newPhase("Phase01");

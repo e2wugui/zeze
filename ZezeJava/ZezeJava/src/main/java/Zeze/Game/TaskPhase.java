@@ -57,43 +57,43 @@ public class TaskPhase {
 	/**
 	 * Task Conditions
 	 */
-	public ArrayList<TaskCondition<?,?>> getCurrentConditions() {
+	public ArrayList<TaskConditionBase<?,?>> getCurrentConditions() {
 		return currentConditions;
 	}
-	private final DirectedAcyclicGraph<TaskCondition<?,?>, DefaultEdge> conditions = new DirectedAcyclicGraph<>(DefaultEdge.class); // 任务的各个阶段的连接图
-	private final ArrayList<TaskCondition<?,?>> currentConditions = new ArrayList<>(); // 当前的任务Phase条件（允许不止一个条件）
+	private final DirectedAcyclicGraph<TaskConditionBase<?,?>, DefaultEdge> conditions = new DirectedAcyclicGraph<>(DefaultEdge.class); // 任务的各个阶段的连接图
+	private final ArrayList<TaskConditionBase<?,?>> currentConditions = new ArrayList<>(); // 当前的任务Phase条件（允许不止一个条件）
 
 	// @formatter:on
 
 	// ======================================== 任务Phase初始化阶段的方法 ========================================
-	public void addCondition(TaskCondition<?, ?> condition) throws Throwable {
+	public void addCondition(TaskConditionBase<?, ?> condition) throws Throwable {
 		conditions.addVertex(condition);
 		var beanCondition = bean.getTaskConditions().getOrAdd(condition.getName());
 		beanCondition.setTaskConditionName(condition.getName());
-		beanCondition.getTaskConditionCustomData().setBean(condition.getConditionBean());
+		beanCondition.getTaskConditionCustomData().setBean(condition.getExtendedBean());
 
 		// 自动注册加入的Condition自己的Bean和Event Bean的class。
 		task.getModule().register(condition.getConditionBeanClass());
 		task.getModule().register(condition.getEventBeanClass());
 	}
 
-	public void linkCondition(TaskCondition<?, ?> from, TaskCondition<?, ?> to) throws Exception {
+	public void linkCondition(TaskConditionBase<?, ?> from, TaskConditionBase<?, ?> to) throws Exception {
 		conditions.addEdge(from, to);
 	}
 
 	public boolean isCompleted() {
 		var zeroInDegreeNode = conditions.vertexSet().stream().filter(p -> conditions.inDegreeOf(p) == 0);
-		return zeroInDegreeNode.allMatch(TaskCondition::isDone);
+		return zeroInDegreeNode.allMatch(TaskConditionBase::isDone);
 	}
 
 	public void setupPhase() {
-		Supplier<Stream<TaskCondition<?, ?>>> zeroInDegreeNodeSupplier = () -> conditions.vertexSet().stream().filter(p -> conditions.inDegreeOf(p) == 0);
+		Supplier<Stream<TaskConditionBase<?, ?>>> zeroInDegreeNodeSupplier = () -> conditions.vertexSet().stream().filter(p -> conditions.inDegreeOf(p) == 0);
 		if (zeroInDegreeNodeSupplier.get().findAny().isEmpty()) {
 			state = TASK_PHASE_STATE_INVALID;
 			System.out.println("Task has no Start Condition node.");
 			return;
 		}
-		Supplier<Stream<TaskCondition<?, ?>>> zeroOutDegreeNodeSupplier = () -> conditions.vertexSet().stream().filter(p -> conditions.outDegreeOf(p) == 0);
+		Supplier<Stream<TaskConditionBase<?, ?>>> zeroOutDegreeNodeSupplier = () -> conditions.vertexSet().stream().filter(p -> conditions.outDegreeOf(p) == 0);
 		if (zeroInDegreeNodeSupplier.get().findAny().isEmpty()) {
 			state = TASK_PHASE_STATE_INVALID;
 			System.out.println("Task has no End Condition node.");

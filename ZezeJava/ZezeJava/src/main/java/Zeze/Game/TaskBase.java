@@ -6,11 +6,13 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 import Zeze.Application;
 import Zeze.Arch.ProviderApp;
+import Zeze.Builtin.Game.TaskBase.BNPCTaskDynamics;
 import Zeze.Builtin.Game.TaskBase.BTask;
 import Zeze.Builtin.Game.TaskBase.BTaskKey;
 import Zeze.Builtin.Game.TaskBase.TriggerTaskEvent;
 import Zeze.Builtin.Game.TaskBase.tTask;
 import Zeze.Collections.BeanFactory;
+import Zeze.Game.Task.NPCTask;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
@@ -81,13 +83,16 @@ public class TaskBase<ExtendedBean extends Bean> {
 			return _tTask;
 		}
 
-		public <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>> ExtendedTask newTask(String taskName, Class<ExtendedTask> extendedTaskClass, Class<ExtendedBean> extendedBeanClass) {
+		public <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>> ExtendedTask newCustomTask(String taskName, Class<ExtendedTask> extendedTaskClass, Class<ExtendedBean> extendedBeanClass) {
 			return open(taskName, extendedTaskClass, extendedBeanClass);
+		}
+		public NPCTask newNPCTask(String taskName){
+			return open(taskName, NPCTask.class, BNPCTaskDynamics.class);
 		}
 
 		// 需要在事务内使用。 使用完不要保存。
 		@SuppressWarnings("unchecked")
-		public <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>> ExtendedTask open(String taskName, Class<ExtendedTask> extendedTaskClass, Class<ExtendedBean> extendedBeanClass) {
+		private <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>> ExtendedTask open(String taskName, Class<ExtendedTask> extendedTaskClass, Class<ExtendedBean> extendedBeanClass) {
 			return (ExtendedTask)tasks.computeIfAbsent(taskName, key -> {
 				try {
 					var c = extendedTaskClass.getDeclaredConstructor(Module.class, String.class);

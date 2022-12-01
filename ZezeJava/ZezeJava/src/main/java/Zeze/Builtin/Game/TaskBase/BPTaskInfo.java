@@ -13,15 +13,15 @@ public final class BPTaskInfo extends Zeze.Transaction.Bean implements BPTaskInf
     private final Zeze.Transaction.DynamicBean _RoleTaskCustomData;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_RoleTaskCustomData() {
-        return new Zeze.Transaction.DynamicBean(3, Zeze.Game.TaskBase::getSpecialTypeIdFromBean, Zeze.Game.TaskBase::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(3, Zeze.Game.TaskConditionBase::getSpecialTypeIdFromBean, Zeze.Game.TaskConditionBase::createBeanFromSpecialTypeId);
     }
 
     public static long getSpecialTypeIdFromBean_3(Zeze.Transaction.Bean bean) {
-        return Zeze.Game.TaskBase.getSpecialTypeIdFromBean(bean);
+        return Zeze.Game.TaskConditionBase.getSpecialTypeIdFromBean(bean);
     }
 
     public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_3(long typeId) {
-        return Zeze.Game.TaskBase.createBeanFromSpecialTypeId(typeId);
+        return Zeze.Game.TaskConditionBase.createBeanFromSpecialTypeId(typeId);
     }
 
     public Zeze.Transaction.Collections.PMap1<Long, Long> getProcessingTask() {
