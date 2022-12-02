@@ -30,12 +30,15 @@ public class Service {
 	protected static final Logger logger = LogManager.getLogger(Service.class);
 	private static final AtomicLong staticSessionIdAtomicLong = new AtomicLong(1);
 	private static final VarHandle closedRecvSizeHandle, closedSendSizeHandle;
+	private static final VarHandle overflowSizeHandle, overflowCountHandle;
 
 	static {
 		var l = MethodHandles.lookup();
 		try {
 			closedRecvSizeHandle = l.findVarHandle(Service.class, "closedRecvSize", long.class);
 			closedSendSizeHandle = l.findVarHandle(Service.class, "closedSendSize", long.class);
+			overflowSizeHandle = l.findVarHandle(Service.class, "overflowSize", long.class);
+			overflowCountHandle = l.findVarHandle(Service.class, "overflowCount", int.class);
 		} catch (ReflectiveOperationException e) {
 			throw new RuntimeException(e);
 		}
@@ -53,6 +56,10 @@ public class Service {
 	@SuppressWarnings("unused")
 	private volatile long closedRecvSize, closedSendSize; // 已关闭连接的从socket接收/发送数据的总字节数
 	private volatile long recvSize, sendSize; // 当前已统计的从socket接收/发送数据的总字节数
+	@SuppressWarnings("unused")
+	private volatile long overflowSize;
+	@SuppressWarnings("unused")
+	private volatile int overflowCount;
 
 	private Selectors selectors;
 
@@ -397,11 +404,16 @@ public class Service {
 	}
 
 	@SuppressWarnings("RedundantThrows")
-	public boolean checkOverflow(AsyncSocket so, long newSize, int deltaSize) throws Throwable {
+	public boolean checkOverflow(AsyncSocket so, long newSize, byte[] bytes, int offset, int length) throws Throwable {
 		var maxSize = getSocketOptions().getOutputBufferMaxSize();
 		if (newSize <= maxSize)
 			return true;
-		logger.error("Send overflow: {} {}+{} > {}", this, newSize - deltaSize, deltaSize, maxSize, new Exception());
+		overflowSizeHandle.getAndAdd(this, (long)length);
+		if ((int)overflowCountHandle.getAndAdd(this, 1) == 0) {
+			Task.scheduleUnsafe(1000, () -> logger.error("Send overflow: {} {}/{} > {}",
+					this, overflowSizeHandle.getAndSet(this, 0L), overflowCountHandle.getAndSet(this, 0), maxSize,
+					new Exception()));
+		}
 		return false;
 	}
 

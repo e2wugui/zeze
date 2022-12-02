@@ -17,6 +17,11 @@ class Selector extends Thread {
 	private boolean firstAction;
 	private volatile boolean running = true;
 
+//	public final AtomicLong wakeupCount0 = new AtomicLong();
+//	public final AtomicLong wakeupCount1 = new AtomicLong();
+//	public final AtomicLong wakeupTime = new AtomicLong();
+//	public long lastTime;
+
 	Selector(String threadName) throws IOException {
 		super(threadName);
 		setDaemon(true);
@@ -63,20 +68,37 @@ class Selector extends Thread {
 	}
 
 	public void wakeup() {
-		if (Thread.currentThread() != this && wakeupNotified.compareAndSet(0, 1))
+		if (Thread.currentThread() != this && wakeupNotified.compareAndSet(0, 1)) {
+//			wakeupCount1.incrementAndGet();
+//			long t = System.nanoTime();
 			selector.wakeup();
+//			wakeupTime.addAndGet(System.nanoTime() - t);
+		}// else
+//			wakeupCount0.incrementAndGet();
 	}
 
 	@Override
 	public void run() {
+//		lastTime = System.nanoTime();
 		while (running) {
+//			var t = System.nanoTime();
+//			if (t - lastTime >= 1_000_000_000L) {
+//				long time = t - lastTime;
+//				lastTime = t;
+//				long count0 = wakeupCount0.getAndSet(0);
+//				long count1 = wakeupCount1.getAndSet(0);
+//				long wTime = wakeupTime.getAndSet(0);
+//				logger.info("wakeup: {}, {}, {} ns, {} ms", count0, count1, count1 > 0 ? wTime / count1 : -1,
+//						time / 1_000_000);
+//			}
 			try {
 				// 如果在这个时间窗口 wakeup，下面的 select 会马上返回。wakeup 不会丢失。
 				firstAction = true;
+				wakeupNotified.set(0);
 				selector.select(key -> {
 					if (firstAction) {
 						firstAction = false;
-						wakeupNotified.set(0);
+						wakeupNotified.set(1);
 					}
 					if (!key.isValid())
 						return; // key maybe cancel in loop
