@@ -111,7 +111,7 @@ public final class RelativeRecordSet {
 		boolean needFlushNow = false;
 		boolean allCheckpointWhenCommit = true;
 
-		var RelativeRecordSets = new TreeMap<Long, RelativeRecordSet>();
+		var relativeRecordSets = new TreeMap<Long, RelativeRecordSet>();
 		var transAccessRecords = new HashSet<Record>();
 		boolean allRead = true;
 		for (var ar : trans.getAccessedRecords().values()) {
@@ -130,7 +130,7 @@ public final class RelativeRecordSet {
 			// 读写都需要收集。
 			transAccessRecords.add(record);
 			var volatileRrs = record.getRelativeRecordSet();
-			RelativeRecordSets.put(volatileRrs.id, volatileRrs);
+			relativeRecordSets.put(volatileRrs.id, volatileRrs);
 		}
 
 		if (allCheckpointWhenCommit) {
@@ -144,10 +144,10 @@ public final class RelativeRecordSet {
 			return;
 		}
 
-		var LockedRelativeRecordSets = new ArrayList<RelativeRecordSet>();
+		var lockedRelativeRecordSets = new ArrayList<RelativeRecordSet>();
 		try {
-			_lock_(LockedRelativeRecordSets, RelativeRecordSets, transAccessRecords);
-			if (!LockedRelativeRecordSets.isEmpty()) {
+			_lock_(lockedRelativeRecordSets, relativeRecordSets, transAccessRecords);
+			if (!lockedRelativeRecordSets.isEmpty()) {
 				/*
 				// 锁住以后重新检查是否可以不用合并，直接提交。
 				//【这个算优化吗？】效果应该不明显，而且正确性还要仔细分析，先不实现了。
@@ -179,7 +179,7 @@ public final class RelativeRecordSet {
 				    return;
 				}
 				*/
-				var mergedSet = _merge_(LockedRelativeRecordSets, trans, allRead);
+				var mergedSet = _merge_(lockedRelativeRecordSets, trans, allRead);
 				commit.run(); // 必须在锁获得并且合并完集合以后才提交修改。
 				if (needFlushNow) {
 					procedure.getZeze().getCheckpoint().flush(mergedSet);
@@ -194,7 +194,7 @@ public final class RelativeRecordSet {
 			// else
 			// 本次事务没有访问任何数据。
 		} finally {
-			LockedRelativeRecordSets.forEach(RelativeRecordSet::unLock);
+			lockedRelativeRecordSets.forEach(RelativeRecordSet::unLock);
 		}
 	}
 
