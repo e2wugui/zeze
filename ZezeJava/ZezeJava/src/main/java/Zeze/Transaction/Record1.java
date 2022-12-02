@@ -48,10 +48,6 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		return key;
 	}
 
-	void setSavedTimestampForCheckpointPeriod(long value) {
-		savedTimestampForCheckpointPeriod = value;
-	}
-
 	void setExistInBackDatabase(boolean value) {
 		existInBackDatabase = value;
 	}

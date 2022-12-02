@@ -130,6 +130,340 @@ Zeze漫谈
 	java的lru用LinkedList结构记录了全访问顺序队列，这造成它的并发性能不高。
 	ConcurrentLruLike基于ConcurrentHashMap，提供修改的并发访问，访问顺序队列变得不精确，按lruQueue的精度推进。
 
+乐观锁详解
+	算法要点
+	1．排序加锁，实际上所访问的记录存储在SortedDictionary中。
+	2．加锁后检查冲突，即数据是否改变。冲突则重做事务。
+	3．冲突重做时保持已经得到的锁，这样在冲突非常严重时，第二次执行事务一般都能成功，
+	   而不会陷入一直冲突，事务永远没法完成的情况。
+	4．重做保持锁，但重做过程中所访问的记录可能发生变化，所以重做仍然需要再次执行lockAndCheck逻辑，
+	   并且处理所访问的记录发生变更的问题。
+	5. 逻辑处理返回错误码或者异常时也需要检查lockAndCheck，因为乐观锁在实际处理逻辑时没有加锁，
+	   可能存在并发原因导致本来不应该发生逻辑错误，此时的仍然需要加锁并完成冲突检查，如果冲突了，
+	   也需要重做。
+
+	上代码。
+
+	public long perform(Procedure procedure) {
+		try {
+			var checkpoint = procedure.getZeze().getCheckpoint();
+			if (checkpoint == null)
+				return Procedure.Closed;
+			for (int tryCount = 0; tryCount < 256; ++tryCount) { // 最多尝试次数
+				// 默认在锁内重复尝试，除非CheckResult.RedoAndReleaseLock，否则由于CheckResult.Redo保持锁会导致死锁。
+				checkpoint.enterFlushReadLock();
+				try {
+					for (; tryCount < 256; ++tryCount) { // 最多尝试次数
+						CheckResult checkResult = CheckResult.Redo; // 用来决定是否释放锁，除非 _lock_and_check_ 明确返回需要释放锁，否则都不释放。
+						try {
+							var result = procedure.call();
+							switch (state) {
+							case Running:
+								var saveSize = savepoints.size();
+								if ((result == Procedure.Success && saveSize != 1)
+										|| (result != Procedure.Success && saveSize > 0)) {
+									// 这个错误不应该重做
+									logger.fatal("Transaction.Perform:{}. savepoints.Count != 1.", procedure);
+									finalRollback(procedure);
+									return Procedure.ErrorSavepoint;
+								}
+								checkResult = lockAndCheck(procedure.getTransactionLevel());
+								if (checkResult == CheckResult.Success) {
+									if (result == Procedure.Success) {
+										finalCommit(procedure);
+										// 正常一次成功的不统计，用来观察redo多不多。
+										// 失败在 Procedure.cs 中的统计。
+										if (tryCount > 0) {
+											if (Macro.enableStatistics) {
+												ProcedureStatistics.getInstance().getOrAdd("Zeze.Transaction.TryCount").getOrAdd(tryCount).increment();
+											}
+										}
+										return Procedure.Success;
+									}
+									finalRollback(procedure, true);
+									return result;
+								}
+								break; // retry
+
+							case Abort:
+								logger.warn("Transaction.Perform: Abort");
+								finalRollback(procedure);
+								return Procedure.AbortException;
+
+							case Redo:
+								//checkResult = CheckResult.Redo;
+								break; // retry
+
+							case RedoAndReleaseLock:
+								checkResult = CheckResult.RedoAndReleaseLock;
+								break; // retry
+							}
+							// retry clear in finally
+							if (alwaysReleaseLockWhenRedo && checkResult == CheckResult.Redo)
+								checkResult = CheckResult.RedoAndReleaseLock;
+							triggerRedoActions();
+						} catch (Throwable e) {
+							// Procedure.Call 里面已经处理了异常。只有 unit test 或者重做或者内部错误会到达这里。
+							// 在 unit test 下，异常日志会被记录两次。
+							switch (state) {
+							case Running:
+								logger.error("Transaction.Perform:{} exception. run count:{}", procedure, tryCount, e);
+								if (!savepoints.isEmpty()) {
+									// 这个错误不应该重做
+									logger.fatal("Transaction.Perform:{}. exception. savepoints.Count != 0.", procedure, e);
+									finalRollback(procedure);
+									return Procedure.ErrorSavepoint;
+								}
+								// 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
+								if (e instanceof AssertionError) {
+									finalRollback(procedure);
+									throw (AssertionError)e;
+								}
+								checkResult = lockAndCheck(procedure.getTransactionLevel());
+								if (checkResult == CheckResult.Success) {
+									finalRollback(procedure, true);
+									return Procedure.Exception;
+								}
+								// retry
+								break;
+
+							case Abort:
+								if (!"GlobalAgent.Acquire Failed".equals(e.getMessage()) &&
+										!"GlobalAgent In FastErrorPeriod".equals(e.getMessage()))
+									logger.warn("Transaction.Perform: Abort", e);
+								finalRollback(procedure);
+								return Procedure.AbortException;
+
+							case Redo:
+								checkResult = CheckResult.Redo;
+								break;
+
+							case RedoAndReleaseLock:
+								checkResult = CheckResult.RedoAndReleaseLock;
+								break;
+
+							default: // case Completed:
+								if (e instanceof AssertionError)
+									throw (AssertionError)e;
+							}
+							triggerRedoActions();
+							// retry
+						} finally {
+							if (checkResult == CheckResult.RedoAndReleaseLock) {
+								holdLocks.forEach(Lockey::exitLock);
+								holdLocks.clear();
+							}
+							// retry 可能保持已有的锁，清除记录和保存点。
+							accessedRecords.clear();
+							savepoints.clear();
+							actions.clear();
+							redoActions.clear();
+
+							state = TransactionState.Running; // prepare to retry
+						}
+
+						if (checkResult == CheckResult.RedoAndReleaseLock) {
+							// logger.debug("CheckResult.RedoAndReleaseLock break {}", procedure);
+							break;
+						}
+					}
+				} finally {
+					checkpoint.exitFlushReadLock();
+				}
+				//logger.Debug("Checkpoint.WaitRun {0}", procedure);
+				// 实现Fresh队列以后删除Sleep。
+				try {
+					Thread.sleep(Zeze.Util.Random.getInstance().nextInt(80) + 20);
+				} catch (InterruptedException e) {
+					logger.error("", e);
+				}
+			}
+			logger.error("Transaction.Perform:{}. too many try.", procedure);
+			finalRollback(procedure);
+			return Procedure.TooManyTry;
+		} finally {
+			holdLocks.forEach(Lockey::exitLock);
+			holdLocks.clear();
+		}
+	}
+
+	private CheckResult lockAndCheck(TransactionLevel level) {
+		boolean allRead = true;
+		var saveSize = savepoints.size();
+		if (saveSize > 0) {
+			// 全部 Rollback 时 Count 为 0；最后提交时 Count 必须为 1；
+			// 其他情况属于Begin,Commit,Rollback不匹配。外面检查。
+			var it = savepoints.get(saveSize - 1).logIterator();
+			if (it != null) {
+				while (it.moveToNext()) {
+					// 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。
+					// 现在不会有这种情况，保留给未来扩展需要。
+					Log log = it.value();
+					if (log.getBean() == null)
+						continue;
+
+					TableKey tkey = log.getBean().tableKey();
+					var record = accessedRecords.get(tkey);
+					if (record != null) {
+						record.dirty = true;
+						allRead = false;
+					} else {
+						// 只有测试代码会把非 Managed 的 Bean 的日志加进来。
+						logger.fatal("impossible! record not found.");
+					}
+				}
+			}
+		}
+
+		if (allRead && level == TransactionLevel.AllowDirtyWhenAllRead)
+			return CheckResult.Success; // 使用一个新的enum表示一下？
+
+		boolean conflict = false; // 冲突了，也继续加锁，为重做做准备！！！
+		if (holdLocks.isEmpty()) {
+			for (var e : accessedRecords.entrySet()) {
+				var r = lockAndCheck(e);
+				switch (r) {
+				case Success:
+					break;
+				case Redo:
+					conflict = true;
+					break; // continue lock
+				default:
+					return r;
+				}
+			}
+			return conflict ? CheckResult.Redo : CheckResult.Success;
+		}
+
+		int index = 0;
+		int n = holdLocks.size();
+		final var ite = accessedRecords.entrySet().iterator();
+		var e = ite.hasNext() ? ite.next() : null;
+		while (null != e) {
+			// 如果 holdLocks 全部被对比完毕，直接锁定它
+			if (index >= n) {
+				var r = lockAndCheck(e);
+				switch (r) {
+				case Success:
+					break;
+				case Redo:
+					conflict = true;
+					break; // continue lock
+				default:
+					return r;
+				}
+				e = ite.hasNext() ? ite.next() : null;
+				continue;
+			}
+
+			Lockey curLock = holdLocks.get(index);
+			int c = curLock.getTableKey().compareTo(e.getKey());
+
+			// holdLocks a  b  ...
+			// needLocks a  b  ...
+			if (c == 0) {
+				// 这里可能发生读写锁提升
+				if (e.getValue().dirty && !curLock.isWriteLockHeld()) {
+					// 必须先全部释放，再升级当前记录锁，再锁后面的记录。
+					// 直接 unlockRead，lockWrite会死锁。
+					n = _unlock_start_(index, n);
+					// 从当前index之后都是新加锁，并且index和n都不会再发生变化。
+					// 重新从当前 e 继续锁。
+					continue;
+				}
+				// BUG 即使锁内。Record.Global.State 可能没有提升到需要水平。需要重新_check_。
+				var r = _check_(e.getValue().dirty, e.getValue());
+				switch (r) {
+				case Success:
+					// 已经锁内，所以肯定不会冲突，多数情况是这个。
+					break;
+				case Redo:
+					// Impossible!
+					conflict = true;
+					break; // continue lock
+				default:
+					// _check_可能需要到Global提升状态，这里可能发生GLOBAL-DEAD-LOCK。
+					return r;
+				}
+				++index;
+				e = ite.hasNext() ? ite.next() : null;
+				continue;
+			}
+			// holdLocks a  b  ...
+			// needLocks a  c  ...
+			if (c < 0) {
+				// 释放掉 比当前锁序小的锁，因为当前事务中不再需要这些锁
+				int unlockEndIndex = index;
+				for (; unlockEndIndex < n && holdLocks.get(unlockEndIndex).getTableKey().compareTo(e.getKey()) < 0; ++unlockEndIndex)
+					holdLocks.get(unlockEndIndex).exitLock();
+				holdLocks.subList(index, unlockEndIndex).clear();
+				n = holdLocks.size();
+				// 重新从当前 e 继续锁。
+				continue;
+			}
+
+			// holdLocks a  c  ...
+			// needLocks a  b  ...
+			// 为了不违背锁序，释放从当前锁开始的所有锁
+			n = _unlock_start_(index, n);
+			// 重新从当前 e 继续锁。
+		}
+		return conflict ? CheckResult.Redo : CheckResult.Success;
+	}
+
+	private CheckResult lockAndCheck(Map.Entry<TableKey, RecordAccessed> e) {
+		Lockey lockey = locks.get(e.getKey());
+		boolean writeLock = e.getValue().dirty;
+		lockey.enterLock(writeLock);
+		holdLocks.add(lockey);
+		return _check_(writeLock, e.getValue());
+	}
+
+	private static CheckResult _check_(boolean writeLock, RecordAccessed e) {
+		e.atomicTupleRecord.record.enterFairLock();
+		try {
+			if (writeLock) {
+				switch (e.atomicTupleRecord.record.getState()) {
+				case GlobalCacheManagerConst.StateRemoved:
+					// 被从cache中清除，不持有该记录的Global锁，简单重做即可。
+					return CheckResult.Redo;
+
+				case GlobalCacheManagerConst.StateInvalid:
+					return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，可能有Reduce请求。
+
+				case GlobalCacheManagerConst.StateModify:
+					return e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
+
+				case GlobalCacheManagerConst.StateShare:
+					// 这里可能死锁：另一个先获得提升的请求要求本机Reduce，但是本机Checkpoint无法进行下去，被当前事务挡住了。
+					// 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
+					var acquire = e.atomicTupleRecord.record.acquire(GlobalCacheManagerConst.StateModify,
+							e.atomicTupleRecord.record.isFresh(), false);
+					if (acquire.resultState != GlobalCacheManagerConst.StateModify) {
+						e.atomicTupleRecord.record.setNotFresh(); // 抢失败不再新鲜。
+						logger.debug("Acquire Failed. Maybe DeadLock Found {}", e.atomicTupleRecord);
+						e.atomicTupleRecord.record.setState(GlobalCacheManagerConst.StateInvalid); // 这里保留StateShare更好吗？
+						return CheckResult.RedoAndReleaseLock;
+					}
+					e.atomicTupleRecord.record.setState(GlobalCacheManagerConst.StateModify);
+					return e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
+				}
+				return e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp() ? CheckResult.Redo : CheckResult.Success; // impossible
+			}
+			switch (e.atomicTupleRecord.record.getState()) {
+			case GlobalCacheManagerConst.StateRemoved:
+				// 被从cache中清除，不持有该记录的Global锁，简单重做即可。
+				return CheckResult.Redo;
+
+			case GlobalCacheManagerConst.StateInvalid:
+				return CheckResult.RedoAndReleaseLock; // 发现Invalid，可能有Reduce请求或者被Cache清理，此时保险起见释放锁。
+			}
+			return e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
+		} finally {
+			e.atomicTupleRecord.record.exitFairLock();
+		}
+	}
+
 单点的Global
 	这个算法是非常暴力的，核心出发点就是Global是全能的，知道所有东西。所以算法也非常直接简单。
 
@@ -148,4 +482,3 @@ RocksDb 误打误撞
 一些历史
 	乐观锁来自黄强的一个版本，虽然只有不到200行代码，但是精华所在啊。
 	Service的概念来自曾攀的c++-share库，以前叫Manager，觉得叫Service更像是网络相关的东西就改名了。这个概念也符合简单暴力原则。
-
