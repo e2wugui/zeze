@@ -84,6 +84,8 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 		snapshot.putAll(encoded);
 		encoded.clear();
 		int cc = snapshot.size();
+		// @zhanglu @zuoyao 帮忙确认一下这个，按Record1.encode0里面的注释，保存这个时戳不需要在这里执行了。
+		// 确认无误，删除setSavedTimestampForCheckpointPeriod方法和这里的调用。
 		for (var v : snapshot.values())
 			v.setSavedTimestampForCheckpointPeriod(v.getTimestamp());
 		return cc;

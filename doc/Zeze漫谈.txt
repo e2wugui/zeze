@@ -5,7 +5,7 @@ Zeze漫谈
 简介
 	Zeze是一个嵌入开发语言的分布式事务框架。
 
-思想和规则
+思想变化和规则
 	简单
 	直接
 	暴力
@@ -15,10 +15,120 @@ Zeze漫谈
 	刚好原则
 		考虑未来，但不多做东西，需要的时候再来添加。
 	分层思路、二的魔法
-		需要分级，但只分二级。
+		需要分级，但只分二级。当然从整个系统，从客户端到存储看来，很多二级最终也形成了多余二的分级。
+		这里主要特指在每个功能设计时不是必要都只分二级。
 
-庞大的class Record
+庞大的记录(Record)
 	Record最早只是Cache中的一个数据，后来所有相关功能需要的时候，都会在Record里面加上自己的状态。现在已经变得很庞大。
+
+	1. class Record
+
+	a) 乐观锁和缓存
+	下面变量定义按源码顺序排列，没有分类。
+	ReentrantLock fairLock;                       // 记录锁。
+	boolean dirty;                                // 记录是否脏的标志。
+	volatile Bean strongDirtyValue;               // 脏记录用这个保存数据Bean的引用，防止脏记录被软引用回收掉。
+	volatile long timestamp;                      // 时戳，乐观锁核心状态。
+	volatile SoftReference<Bean> softValue;       // 记录软引用，满足一定条件可以被回收，被回收的数据Bean会在需要的时候重新重本地硬盘中装载进来。
+	volatile RelativeRecordSet relativeRecordSet; // 记录所属的关联记录集合。记录总是属于一个关联记录集合。
+	volatile int state;                           // 记录状态，也就是是否获得锁的标志。
+
+	SoftReference 二级缓存
+	记录缓存最早的版本都保存在内存中的。通过每个表的缓存容量配置（CacheCapacity）控制内存的使用。
+	由于表的记录大小不一，使用频率不一，通过配置控制内存使用是一个比较繁重的工作。所以，引入基于
+	软引用的二级缓存，内存中用SoftReference<Bean>，同时在本地硬盘保存一份。当软引用失效时从本地硬盘装载。
+	引入软引用以后，JVM会最大化利用内存，把部分记录回收掉。这样每个记录在内存中只记录一个引用，
+	没有数据，缓存容量就可以设置的比较大，内存也不容易受到记录大小的影响。带来的好处是，I) 使得本地
+	缓存更大，有利于提高缓存命中率；II) 简化配置，即统一把所有表的容量都设置成一样的，并且比较大的数值。
+
+	乐观锁和关联记录集合后面再说。
+
+	b) 新鲜的优化
+	boolean fresh; 
+	long acquireTime;
+	用来表示记录是否新鲜的。刚刚获得控制权的记录，由于乐观锁，有可能没有真正成功执行完事务又会被其他服务器抢走，
+	造成资源浪费，甚至一直互相抢夺造成事务失败，虽然可能性比较低。
+
+	final boolean isFresh() {
+		// 这个标志在申请锁时会被发送给Global，并影响Global对锁的分配。
+		return fresh;
+	}
+
+	final boolean isFreshAcquire() {
+		// 新鲜的，并且获得时间小于1秒，此时别的服务器的申请会被拒绝。
+		// fresh 被降级时会设置成false；
+		// acquireTime 是一个保护措施，防止获得锁后最终没有实际使用的情况，超过一秒也会被认为不再新鲜；
+		return fresh && System.currentTimeMillis() - acquireTime < 1000;
+	}
+
+	final void setNotFresh() {
+		// 被降级，锁被分配给别的服务器了。不再新鲜。
+		fresh = false;
+	}
+
+	final void setFreshAcquire() {
+		// 申请成功装载记录时设置。
+		acquireTime = System.currentTimeMillis();
+		fresh = true;
+	}
+
+	c) Checkpoint的优化
+	Database.Transaction databaseTransactionTmp;
+	Database.Transaction databaseTransactionOldTmp;
+
+	Database.Transaction 是Zeze的后端数据库，如MySql的事务。
+	Zeze支持多个后端数据库，并把他们看成一个整体来使用。
+	Checkpoint时，会创建每个后端数据库的事务用来提交数据。
+	Checkpoint是按记录操作的，把后端数据库的事务保存到记录上是一种优化，
+	这样保存记录数据时，不用一个个去查找后端数据库的事务了。
+
+	databaseTransactionOldTmp
+	Zeze支持的一个策略：可以把一个很大的后端数据库备份放到一边变成"只读"，
+	Zeze会在执行中，把数据从备份库中根据实际使用装载到当前的工作数据库中。
+	对于某些游戏不断合服，造成后端数据库很大，但是活跃数据又不大时，这个
+	策略可以大大的减小工作数据库，有利于性能和减少全备份时间。
+	使用这个策略，主要是修改配置，由于这个功能比较奇怪，这里不详细说明配置了。
+	实际上一下子也说不出来，需要去看代码。"只读"，当记录从工作记录中删除时，
+	需要删除备份库，否则下一次查询又装载一次，逻辑就不对了。
+
+	2. class Record1<K, V> extends Record
+	这个类是上面Record的子类，带了类型，以及系列化相关的方法。
+
+	a) 基本
+	TableX<K, V> table;       // 记录所属的表。
+	final K key;              // 记录的Key。
+
+	b) 系列化快照
+	ByteBuffer snapshotKey;   // 记录的Key系列化后的临时引用。
+	ByteBuffer snapshotValue; // 记录的Value系列化后的临时引用。
+
+	c) 安全清除Dirty
+	long savedTimestampForCheckpointPeriod; // 用来保存Checkpoint关键点时的时戳。
+	//      记录的修改访问操作是和Checkpoint流程部分流程并发的，存在下面的情况。
+	//      当记录建立快照后，又会被修改时，Checkpoint不能把记录设置成不脏。
+	//      Checkpoint仅在保存的时戳和快照时的时戳一样时才修改记录的脏标志。
+
+	d) 删除不存在的记录优化
+	boolean existInBackDatabase;                    // 记录是否在后端数据库中存在。
+	boolean existInBackDatabaseSavedForFlushRemove; // 保存上面存在标志，用来提高并发（避免锁）
+	//      记录是否在后端数据库中存在，是为了优化记录不存在时，避免把删除操作发送给后端数据库。
+	//      一般后端数据库删除不存在的记录的操作代价和删除存在是一样的。这种情况的案例：
+	//      如果应用创建了很多临时记录，但是还没有提交到后端数据库前就删除了。如果没有这个标志，
+	//      Zeze会这种情况下的把删除操作交给后端数据库，造成性能浪费。
+
+	e) ConcurrentLruLike 的辅助变量
+	volatile ConcurrentHashMap<K, Record1<K, V>> lruNode;
+
+	Zeze.Util.ConcurrentLruLike 是一个通用的包装。
+	Zeze.Transaction.TableCache 也类似ConcurrentLruLike，但是专用的，可以省一点内存和提高一点性能。
+
+	java 默认的lru并发性能不够好，所以写了这个ConcurrentLruLike，它实际的并发特性来源自ConcurrentHashMap。
+	简单说明一下：
+	ConcurrentHashMap<K, Record1<K, V>> dataMap;                         // Lru里面所有的记录映射。
+	ConcurrentLinkedQueue<ConcurrentHashMap<K, Record1<K, V>>> lruQueue; // 记录活跃时所属的映射的队列，按时间排序。
+	ConcurrentHashMap<K, Record1<K, V>> lruHot;                          // 热点映射，肯定不会被回收。
+	java的lru用LinkedList结构记录了全访问顺序队列，这造成它的并发性能不高。
+	ConcurrentLruLike基于ConcurrentHashMap，提供修改的并发访问，访问顺序队列变得不精确，按lruQueue的精度推进。
 
 单点的Global
 	这个算法是非常暴力的，核心出发点就是Global是全能的，知道所有东西。所以算法也非常直接简单。
