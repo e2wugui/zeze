@@ -397,7 +397,7 @@ public class Service {
 	}
 
 	@SuppressWarnings("RedundantThrows")
-	public boolean checkOverflow(long newSize, int deltaSize) throws Throwable {
+	public boolean checkOverflow(AsyncSocket so, long newSize, int deltaSize) throws Throwable {
 		var maxSize = getSocketOptions().getOutputBufferMaxSize();
 		if (newSize <= maxSize)
 			return true;

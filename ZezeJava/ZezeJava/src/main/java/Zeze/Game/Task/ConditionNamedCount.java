@@ -10,7 +10,9 @@ public class ConditionNamedCount extends TaskConditionBase<BCollectCoinTask, BCo
 	// @formatter:off
 	@Override
 	public boolean accept(Bean eventBean) {
-		if (eventBean instanceof BCollectCoinEvent e) {
+		if (eventBean instanceof BCollectCoinEvent) {
+			//noinspection PatternVariableCanBeUsed
+			var e = (BCollectCoinEvent)eventBean;
 			if (e.getName().equals(getExtendedBean().getName())) {
 				return e.getCoinCount() >= getExtendedBean().getTargetCoinCount();
 			}

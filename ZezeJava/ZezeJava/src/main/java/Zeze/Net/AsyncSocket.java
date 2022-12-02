@@ -416,7 +416,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			return false;
 		}
 		try {
-			if (!service.checkOverflow(outputBufferListCountSum.addAndGet(length), length)) {
+			if (!service.checkOverflow(this, outputBufferListCountSum.addAndGet(length), length)) {
 				outputBufferListCountSum.addAndGet(-length);
 				return false;
 			}
