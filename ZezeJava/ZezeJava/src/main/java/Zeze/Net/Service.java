@@ -396,6 +396,15 @@ public class Service {
 		throw new UnsupportedOperationException("Unknown Protocol (" + moduleId + ", " + protocolId + ") size=" + data.Size());
 	}
 
+	@SuppressWarnings("RedundantThrows")
+	public boolean checkOverflow(long newSize, int deltaSize) throws Throwable {
+		var maxSize = getSocketOptions().getOutputBufferMaxSize();
+		if (newSize <= maxSize)
+			return true;
+		logger.error("Send overflow: {} {}+{} > {}", this, newSize - deltaSize, deltaSize, maxSize, new Exception());
+		return false;
+	}
+
 	////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/**

@@ -415,13 +415,11 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				logger.error("Send to closed socket: {} len={}", this, length);
 			return false;
 		}
-		if (outputBufferListCountSum.addAndGet(length) > service.getSocketOptions().getOutputBufferMaxSize()) {
-			outputBufferListCountSum.addAndGet(-length);
-			logger.error("Send overflow: {} {}+{} > {}", this, outputBufferListCountSum.get(), length,
-					service.getSocketOptions().getOutputBufferMaxSize(), new Exception());
-			return false;
-		}
 		try {
+			if (!service.checkOverflow(outputBufferListCountSum.addAndGet(length), length)) {
+				outputBufferListCountSum.addAndGet(-length);
+				return false;
+			}
 			if (SubmitAction(() -> { // 进selector线程调用
 				Codec codec = outputCodecChain;
 				if (codec != null) {
@@ -442,6 +440,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				return true;
 			logger.error("Send to closed socket: {} len={}", this, length, new Exception());
 		} catch (Throwable ex) {
+			outputBufferListCountSum.addAndGet(-length);
 			close(ex);
 		}
 		return false;
@@ -527,12 +526,9 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		while (true) {
 			var operates = operates0;
 			lock.lock();
-			try {
-				operates0 = operates1; // swap
-				operates1 = operates;
-			} finally {
-				lock.unlock();
-			}
+			operates0 = operates1; // swap
+			operates1 = operates;
+			lock.unlock();
 			//noinspection ForLoopReplaceableByForEach
 			for (int i = 0, n = operates.size(); i < n; i++)
 				operates.get(i).run();
