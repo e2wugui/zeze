@@ -30,6 +30,14 @@ zekv?
 	桶的管理和分配。关键！
 	桶的raft。
 	并发：zeze专用，无需复杂并发控制。或者几乎不需要？
+raft c++？
+c++ net？
+task 多久了？接收？
+增加 AsyncSocket.send(Protocol)。
+1. 马上加入队列保证时序；
+2. 加入多个socket时，共享一次encode，由io-thread执行；
+3. 很多累积的protocol要不要多线程并发encode？这个最好测试一下一个io-thread做encode，能达到多大流量，够的话，就不需要并发了。系统整体的话由多个io-thread提供高的吞吐。
+4. 这种方案，MaxOutputBufferSize怎么检查？
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag v1.1.2 Multi-Selectors; 
