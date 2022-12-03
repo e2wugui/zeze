@@ -83,7 +83,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		var familyClass = compress & FamilyClass.FamilyClassMask;
 		var isRequest = familyClass == FamilyClass.Request;
 		if (isRequest) {
-			if ((compress & Zeze.Net.FamilyClass.BitResultCode) != 0)
+			if ((compress & FamilyClass.BitResultCode) != 0)
 				bb.ReadLong();
 			var sessionId = bb.ReadLong();
 			// argument 忽略，必须要解析出来，也不知道是什么。

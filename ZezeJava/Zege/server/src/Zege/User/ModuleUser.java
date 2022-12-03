@@ -10,7 +10,6 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Cert;
 import Zeze.Util.Random;
-import io.netty.handler.codec.http.HttpContent;
 
 public class ModuleUser extends AbstractModule {
     public void Start(Zege.App app) {

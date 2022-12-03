@@ -7,6 +7,7 @@ import Zeze.Builtin.LinkdBase.BReportError;
 import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Net.AsyncSocket;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Record;
 import Zeze.Util.OutLong;
@@ -121,7 +122,7 @@ public class LinkdService extends LinkdServiceBase {
     }
 
     @Override
-    public void dispatchUnknownProtocol(Zeze.Net.AsyncSocket so, int moduleId, int protocolId, Zeze.Serialize.ByteBuffer data) {
+    public void dispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId, Zeze.Serialize.ByteBuffer data) {
         var linkSession = getAuthedSession(so);
         setStableLinkSid(linkSession, so, moduleId, protocolId, data);
 

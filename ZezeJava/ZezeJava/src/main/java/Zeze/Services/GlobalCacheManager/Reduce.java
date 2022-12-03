@@ -1,8 +1,9 @@
 package Zeze.Services.GlobalCacheManager;
 
 import Zeze.Net.Binary;
+import Zeze.Net.Rpc;
 
-public class Reduce extends Zeze.Net.Rpc<BGlobalKeyState, BGlobalKeyState> {
+public class Reduce extends Rpc<BGlobalKeyState, BGlobalKeyState> {
 	public static final int ProtocolId_ = Zeze.Transaction.Bean.hash32(Reduce.class.getName()); // -1004125491
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 3290841805
 

@@ -5,10 +5,11 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Services.GlobalCacheManager.Login;
 import Zeze.Services.GlobalCacheManager.ReLogin;
+import Zeze.Net.Service;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
 
-public final class GlobalClient extends Zeze.Net.Service {
+public final class GlobalClient extends Service {
 	public GlobalClient(GlobalAgent agent, Application zeze) throws Throwable {
 		super(agent.getZeze().getSolutionName() + ".GlobalClient", zeze);
 	}

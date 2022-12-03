@@ -9,6 +9,7 @@ import Zeze.Builtin.ProviderDirect.Transmit;
 import Zeze.Builtin.ProviderDirect.TransmitAccount;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
+import Zeze.Net.Protocol;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutObject;
 import org.apache.logging.log4j.LogManager;
@@ -84,7 +85,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 		return Procedure.Success;
 	}
 
-	private void sendResult(AsyncSocket sender, Zeze.Net.Protocol<?> p) throws Throwable {
+	private void sendResult(AsyncSocket sender, Protocol<?> p) throws Throwable {
 		if (sender == null) {
 			var service = providerApp.providerDirectService;
 			p.dispatch(service, service.findProtocolFactoryHandle(p.getTypeId()));

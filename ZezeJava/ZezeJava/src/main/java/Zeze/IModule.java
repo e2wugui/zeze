@@ -1,5 +1,7 @@
 package Zeze;
 
+import Zeze.Net.Protocol;
+
 public abstract class IModule {
 	public abstract String getFullName();
 
@@ -33,14 +35,14 @@ public abstract class IModule {
 	public static long errorCode(int moduleId, int code) {
 		if (code < 0)
 			throw new IllegalArgumentException("code must greater than 0.");
-		return Zeze.Net.Protocol.makeTypeId(moduleId, code);
+		return Protocol.makeTypeId(moduleId, code);
 	}
 
 	public static int getModuleId(long result) {
-		return Zeze.Net.Protocol.getModuleId(result);
+		return Protocol.getModuleId(result);
 	}
 
 	public static int getErrorCode(long result) {
-		return Zeze.Net.Protocol.getProtocolId(result);
+		return Protocol.getProtocolId(result);
 	}
 }

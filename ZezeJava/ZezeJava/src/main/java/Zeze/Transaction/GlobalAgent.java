@@ -29,7 +29,7 @@ public final class GlobalAgent implements IGlobalAgent {
 
 		public Agent(Zeze.Application zeze, GlobalClient client, String host, int port, int _GlobalCacheManagerHashIndex) {
 			super(zeze);
-			connector = new Zeze.Net.Connector(host, port, true);
+			connector = new Connector(host, port, true);
 			connector.userState = this;
 			super.globalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
 			connector.setMaxReconnectDelay(AchillesHeelConfig.reconnectTimer);

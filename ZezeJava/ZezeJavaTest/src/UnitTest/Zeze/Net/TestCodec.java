@@ -1,7 +1,11 @@
 package UnitTest.Zeze.Net;
 
-import Zeze.Net.*;
 import Zeze.Serialize.*;
+import Zeze.Net.BufferCodec;
+import Zeze.Net.Compress;
+import Zeze.Net.Decompress;
+import Zeze.Net.Decrypt;
+import Zeze.Net.Encrypt;
 import junit.framework.TestCase;
 import org.junit.Assert;
 import java.util.*;
