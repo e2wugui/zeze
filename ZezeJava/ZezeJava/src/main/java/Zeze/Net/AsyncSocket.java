@@ -552,8 +552,19 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				}
 				// 发现数据，继续尝试处理。
 			} else {
-				long rc = bufSize == 1 ? sc.write(outputBufferListSending.peekFirst()) :
-						sc.write(outputBufferListSending.toArray(new java.nio.ByteBuffer[bufSize]));
+				var sendBufferSize = getSocket().getSendBufferSize();
+				var sendBuffers = new java.nio.ByteBuffer[2000];
+				var i = 0;
+				for (var it = outputBufferListSending.iterator(); i < 2000 && it.hasNext(); /*nothing*/) {
+					var buffer = it.next();
+					sendBuffers[i++] = buffer;
+					sendBufferSize -= buffer.limit();
+					if (sendBufferSize <= 0)
+						break;
+				}
+				long rc = sc.write(sendBuffers, 0, i);
+				//long rc = bufSize == 1 ? sc.write(outputBufferListSending.peekFirst()) :
+				//		sc.write(outputBufferListSending.toArray(new java.nio.ByteBuffer[bufSize]));
 				if (rc < 0) {
 					close(); // 很罕见的正常关闭, 不设置异常, 其实write抛异常的可能性更大
 					return;
