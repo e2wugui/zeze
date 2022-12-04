@@ -14,7 +14,7 @@ public class Benchmark {
 		startTime = System.nanoTime();
 	}
 
-	public void report(String name, long tasks) {
+	public double report(String name, long tasks) {
 		double cpu = ((double)os.getProcessCpuTime() - startProcessCpuTime) / 1_000_000_000;
 		var endTime = System.nanoTime();
 		var elapsedTime = endTime - startTime;
@@ -23,5 +23,6 @@ public class Benchmark {
 		System.out.printf(
 				"%s tasks/s=%.2f time=%.2fs cpu=%.2fs concurrent=%.2f%n",
 				name, (tasks / seconds), seconds, cpu, cpuPercent);
+		return seconds;
 	}
 }

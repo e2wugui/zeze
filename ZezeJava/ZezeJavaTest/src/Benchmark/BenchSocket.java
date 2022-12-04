@@ -101,19 +101,23 @@ public class BenchSocket {
 			// bench
 			var b = new Zeze.Util.Benchmark();
 			long sum = 0;
-			for (int i = 0; i < 500000; ++i) {
+			long count = 50_0000;
+			for (int i = 0; i < count; ++i) {
 				var benchProtocol = new BenchProtocol().encode();
 				sum += benchProtocol.size();
 				socket.Send(benchProtocol);
 			}
 			var benchEnd = new BenchEnd();
 			benchEnd.SendForWait(socket).await();
-			b.report("BenchSocket", 1);
-			System.out.println("sum=" + sum);
+			var seconds = b.report("BenchSocket", count);
+			System.out.println("sum=" + sum + "bytes, speed=" + sum / seconds / 1024 / 1024 + "M");
 			/*
-			50_0000个BenchProtocol一次性提交统计。
-			BenchSocket tasks/s=0.14 time=7.03s cpu=25.53s concurrent=3.63
-			sum=9500000
+			BenchSocket tasks/s=70508.60 time=7.09s cpu=25.36s concurrent=3.58
+			sum=9500000bytes, speed=1.2778M
+			BenchSocket tasks/s=72412.75 time=6.90s cpu=24.88s concurrent=3.60
+			sum=9500000bytes, speed=1.3130M
+			BenchSocket tasks/s=71550.84 time=6.99s cpu=24.92s concurrent=3.57
+			sum=9500000bytes, speed=1.2961M
 		 	*/
 		} finally {
 			client.Stop();
