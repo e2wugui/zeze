@@ -21,7 +21,7 @@ public class BenchSocket {
 	static class ServerService extends Service {
 		public ServerService(String name, Config config) throws Throwable {
 			super(name, config);
-			AddFactoryHandle(new BenchProtocol().getTypeId(), new ProtocolFactoryHandle<>(BenchProtocol::new, this::ProcessBenchProtocol));
+			//AddFactoryHandle(new BenchProtocol().getTypeId(), new ProtocolFactoryHandle<>(BenchProtocol::new, this::ProcessBenchProtocol));
 			AddFactoryHandle(new BenchEnd().getTypeId(), new ProtocolFactoryHandle<>(BenchEnd::new, this::ProcessBenchEnd));
 		}
 
@@ -32,6 +32,14 @@ public class BenchSocket {
 		public long ProcessBenchEnd(BenchEnd r) {
 			r.SendResult();
 			return 0;
+		}
+
+		@Override
+		public void dispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId, ByteBuffer data) throws Throwable {
+			if (moduleId == 0 && protocolId == BenchProtocol.ProtocolId_)
+				return; // 忽略压测协议，不进行decode，增加流量。
+
+			super.dispatchUnknownProtocol(so, moduleId, protocolId, data);
 		}
 	}
 
