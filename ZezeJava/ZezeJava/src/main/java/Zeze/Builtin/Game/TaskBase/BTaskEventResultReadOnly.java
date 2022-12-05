@@ -7,7 +7,5 @@ public interface BTaskEventResultReadOnly {
     public boolean negativeCheck();
     public BTaskEventResult copy();
 
-    public boolean isSuccess();
-    public int getAcceptedCount();
-    public Zeze.Transaction.Collections.PList1ReadOnly<String> getAcceptedConditionReadOnly();
+    public long getResultCode();
 }

@@ -4,24 +4,21 @@ package Zeze.Builtin.Game.TaskBase;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 
-// Task的Bean数据
+// ======================================== Task的Bean数据 ========================================
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression", "MethodMayBeStatic", "PatternVariableCanBeUsed"})
 public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
-    private String _TaskName;
+    private long _TaskId;
 
     // for decode only
     public BTaskKey() {
-        _TaskName = "";
     }
 
-    public BTaskKey(String _TaskName_) {
-        if (_TaskName_ == null)
-            throw new IllegalArgumentException();
-        this._TaskName = _TaskName_;
+    public BTaskKey(long _TaskId_) {
+        this._TaskId = _TaskId_;
     }
 
-    public String getTaskName() {
-        return _TaskName;
+    public long getTaskId() {
+        return _TaskId;
     }
 
     @Override
@@ -35,7 +32,7 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.TaskBase.BTaskKey: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("TaskName=").append(getTaskName()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("TaskId=").append(getTaskId()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -56,10 +53,10 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = getTaskName();
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
-                _o_.WriteString(_x_);
+            long _x_ = getTaskId();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
             }
         }
         _o_.WriteByte(0);
@@ -70,7 +67,7 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _TaskName = _o_.ReadString(_t_);
+            _TaskId = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -85,7 +82,7 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
             return true;
         if (_obj1_ instanceof BTaskKey) {
             var _obj_ = (BTaskKey)_obj1_;
-            if (!getTaskName().equals(_obj_.getTaskName()))
+            if (getTaskId() != _obj_.getTaskId())
                 return false;
             return true;
         }
@@ -96,7 +93,7 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
     public int hashCode() {
         final int _prime_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _prime_ + _TaskName.hashCode();
+        _h_ = _h_ * _prime_ + Long.hashCode(_TaskId);
         return _h_;
     }
 
@@ -106,7 +103,7 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
             return 0;
         if (_o_ != null) {
             int _c_;
-            _c_ = _TaskName.compareTo(_o_._TaskName);
+            _c_ = Long.compare(_TaskId, _o_._TaskId);
             if (_c_ != 0)
                 return _c_;
             return _c_;
@@ -115,6 +112,8 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
     }
 
     public boolean negativeCheck() {
+        if (getTaskId() < 0)
+            return true;
         return false;
     }
 }

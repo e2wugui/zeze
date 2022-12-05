@@ -21,10 +21,11 @@ public class NPCTask extends TaskBase<BNPCTaskDynamics> {
 		getExtendedBean().setSubmitNpcId(value);
 	}
 
-	public NPCTask(TaskBase.Module taskModule, String taskName) {
-		this(taskModule, taskName, null);
+	public static class NPCTaskOpt extends TaskBase.TaskBaseOpt{
+		public long ReceiveNpcId;
+		public long SubmitNpcId;
 	}
-	public NPCTask(TaskBase.Module taskModule, String taskName, String[] preTasks) {
-		super(taskModule, taskName, BNPCTaskDynamics.class);
+	public NPCTask(TaskBase.Module taskModule, NPCTaskOpt opt) {
+		super(taskModule, opt, BNPCTaskDynamics.class);
 	}
 }

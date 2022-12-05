@@ -7,12 +7,14 @@ public interface BTaskReadOnly {
     public boolean negativeCheck();
     public BTask copy();
 
-    public String getTaskName();
+    public long getTaskId();
     public int getTaskType();
-    public int getState();
-    public String getCurrentPhaseId();
-    public Zeze.Transaction.Collections.PMap2ReadOnly<String, Zeze.Builtin.Game.TaskBase.BTaskPhase, Zeze.Builtin.Game.TaskBase.BTaskPhaseReadOnly> getTaskPhasesReadOnly();
-    public Zeze.Transaction.Collections.PList1ReadOnly<String> getPreTasksReadOnly();
-    public Zeze.Transaction.DynamicBeanReadOnly getTaskCustomDataReadOnly();
+    public int getTaskState();
+    public String getTaskName();
+    public String getTaskDescription();
+    public Zeze.Transaction.Collections.PList1ReadOnly<Long> getPreTasksIdReadOnly();
+    public long getCurrentPhaseId();
+    public Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.Game.TaskBase.BTaskPhase, Zeze.Builtin.Game.TaskBase.BTaskPhaseReadOnly> getTaskPhasesReadOnly();
+    public Zeze.Transaction.DynamicBeanReadOnly getExtendedDataReadOnly();
 
 }

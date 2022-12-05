@@ -33,10 +33,10 @@ public class TaskBase<ExtendedBean extends Bean> {
 		 */
 		@Override
 		protected long ProcessTriggerTaskEventRequest(TriggerTaskEvent r) throws Throwable {
-			var taskName = r.Argument.getTaskName();
-			var customBeanClass = r.Argument.getDynamicData().getBean().getClass();
-			var task = getTask(taskName); // TODO: 处理没找到Task等异常情况
-			var eventBean = r.Argument.getDynamicData().getBean();
+			var taskId = r.Argument.getTaskId();
+			var customBeanClass = r.Argument.getExtendedData().getBean().getClass();
+			var task = getTask(taskId); // TODO: 处理没找到Task等异常情况
+			var eventBean = r.Argument.getExtendedData().getBean();
 
 			// 转发给任务当前phase的所有的condition
 			int acceptedCount = 0;
@@ -44,12 +44,10 @@ public class TaskBase<ExtendedBean extends Bean> {
 				if (condition.getEventBeanClass() == eventBean.getClass()) {
 					if (condition.accept(eventBean)) {
 						acceptedCount++;
-						r.Result.getAcceptedCondition().add(condition.getName());
 					}
 				}
 			}
-			r.Result.setAcceptedCount(acceptedCount);
-			r.Result.setSuccess(true);
+			r.Result.setResultCode(TaskResultAccepted);
 			return Procedure.Success;
 		}
 
@@ -83,30 +81,92 @@ public class TaskBase<ExtendedBean extends Bean> {
 			return _tTask;
 		}
 
-		public <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>> ExtendedTask newCustomTask(String taskName, Class<ExtendedTask> extendedTaskClass, Class<ExtendedBean> extendedBeanClass) {
-			return open(taskName, extendedTaskClass, extendedBeanClass);
+		public <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>> ExtendedTask newCustomTask(TaskBaseOpt opt, Class<ExtendedTask> extendedTaskClass, Class<ExtendedBean> extendedBeanClass) {
+			return open(opt, extendedTaskClass, extendedBeanClass);
 		}
-		public NPCTask newNPCTask(String taskName){
-			return open(taskName, NPCTask.class, BNPCTaskDynamics.class);
+
+		public NPCTask newNPCTask(TaskBaseOpt opt) {
+			return open(opt, NPCTask.class, BNPCTaskDynamics.class);
 		}
 
 		// 需要在事务内使用。 使用完不要保存。
 		@SuppressWarnings("unchecked")
-		private <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>> ExtendedTask open(String taskName, Class<ExtendedTask> extendedTaskClass, Class<ExtendedBean> extendedBeanClass) {
-			return (ExtendedTask)tasks.computeIfAbsent(taskName, key -> {
+		private <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>> ExtendedTask open(TaskBaseOpt opt, Class<ExtendedTask> extendedTaskClass, Class<ExtendedBean> extendedBeanClass) {
+			return (ExtendedTask)tasks.computeIfAbsent(Long.toString(opt.id), key -> {
 				try {
-					var c = extendedTaskClass.getDeclaredConstructor(Module.class, String.class);
-					return c.newInstance(this, taskName);
+					var c = extendedTaskClass.getDeclaredConstructor(Module.class, TaskBase.TaskBaseOpt.class, Class.class);
+					return c.newInstance(this, opt, extendedBeanClass);
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
 			});
 		}
 
-		public TaskBase<?> getTask(String taskName) {
-			return tasks.get(taskName);
+		public TaskBase<?> getTask(long taskId) {
+			return tasks.get(Long.toString(taskId));
 		}
 	}
+
+	// @formatter:off
+
+	/**
+	 * Task Info:
+	 * 1. Task Id
+	 * 2. Task Type
+	 * 3. Task State
+	 * 4. Task Name
+	 * 5. Task Description
+	 */
+	public long getId() { return bean.getTaskId(); }
+	public int getType() { return bean.getTaskType(); }
+	public int getState() { return bean.getTaskState(); }
+	public String getName() { return bean.getTaskName(); }
+	public String getDescription() { return bean.getTaskDescription(); }
+	public Module getModule() { return module; }
+	private final Module module;
+
+	/**
+	 * Task Constructors
+	 */
+	public static class TaskBaseOpt{
+		public long id;
+		public int type;
+		public String name;
+		public String description;
+		public long[] preTaskIds;
+	}
+	public TaskBase(Module module, TaskBaseOpt opt, Class<ExtendedBean> extendedBeanClass) {
+		this.module = module;
+		this.bean = this.module._tTask.getOrAdd(new BTaskKey(opt.id));
+		this.bean.setTaskId(opt.id);
+		this.bean.setTaskType(opt.type);
+		this.bean.setTaskState(Module.Invalid);
+		this.bean.setTaskName(opt.name);
+		this.bean.setTaskDescription(opt.description);
+		for (long id :opt.preTaskIds) {
+			this.bean.getPreTasksId().add(id);
+		};
+		this.bean.getExtendedData().setBean(new EmptyBean());
+		phases= new DirectedAcyclicGraph<>(DefaultEdge.class);
+
+		MethodHandle extendedBeanConstructor = beanFactory.register(extendedBeanClass);
+		bean.getExtendedData().setBean(BeanFactory.invoke(extendedBeanConstructor));
+
+//		module.taskGraphics.addNewTask(this);
+	}
+	// @formatter:on
+
+	/**
+	 * Task Phases
+	 */
+	public TaskPhase getCurrentPhase() {
+		return currentPhase;
+	}
+
+	private TaskPhase startPhase;
+	private TaskPhase currentPhase;
+	private TaskPhase endPhase;
+	private final DirectedAcyclicGraph<TaskPhase, DefaultEdge> phases; // 任务的各个阶段的连接图
 
 	/**
 	 * Runtime方法：accept
@@ -126,75 +186,10 @@ public class TaskBase<ExtendedBean extends Bean> {
 		return endPhase.isCompleted() && currentPhase == endPhase;
 	}
 
-	// @formatter:off
-
-	/**
-	 * Module
-	 */
-	public Module getModule() { return module; }
-	private final Module module;
-
-	/**
-	 * Task Bean
-	 */
-	public BTask getBean() { return bean; }
-	@SuppressWarnings("unchecked")
-	public ExtendedBean getExtendedBean() { return (ExtendedBean)bean.getTaskCustomData().getBean(); }
-	private final BTask bean;
-
-	/**
-	 * Task Info:
-	 * 1. Task Name
-	 * 2. Task State
-	 * 3. Pre Tasks
-	 */
-	public String getName() { return bean.getTaskName(); }
-	public int getTaskState() { return bean.getState(); }
-	public void addPreTaskName(String taskName) { bean.getPreTasks().add(taskName); }
-
-	/**
-	 * Task Phases
-	 */
-	public TaskPhase getCurrentPhase() { return currentPhase; }
-	private TaskPhase startPhase;
-	private TaskPhase currentPhase;
-	private TaskPhase endPhase;
-	private final DirectedAcyclicGraph<TaskPhase, DefaultEdge> phases; // 任务的各个阶段的连接图
-
-	/**
-	 * Task Constructors
-	 */
-	public TaskBase(Module module, String name, Class<ExtendedBean> extendedBeanClass){
-		this(module, name, extendedBeanClass, null);
-	}
-	public TaskBase(Module module, String name, Class<ExtendedBean> extendedBeanClass, String[] preTaskNames) {
-		this.module = module;
-		this.bean = this.module._tTask.getOrAdd(new BTaskKey(name));
-		bean.setTaskName(name);
-		bean.setState(Module.Invalid);
-		bean.getTaskCustomData().setBean(new EmptyBean());
-		phases= new DirectedAcyclicGraph<>(DefaultEdge.class);
-		startPhase = null;
-		currentPhase = null;
-		endPhase = null;
-
-		extendedBeanConstructor = beanFactory.register(extendedBeanClass);
-		bean.getTaskCustomData().setBean(BeanFactory.invoke(extendedBeanConstructor));
-
-		if (null != preTaskNames) { // 允许没有前置任务
-			for (var preTaskName : preTaskNames) {
-				addPreTaskName(preTaskName);
-			}
-		}
-//		module.taskGraphics.addNewTask(this);
-	}
-	// @formatter:on
-
 	// ======================================== 任务初始化阶段的方法 ========================================
-	public TaskPhase newPhase(String name) throws Throwable {
-		TaskPhase phase = new TaskPhase(this, name);
+
+	public void addPhase(TaskPhase phase) {
 		phases.addVertex(phase);
-		return phase;
 	}
 
 	public void linkPhase(TaskPhase from, TaskPhase to) throws Exception {
@@ -208,12 +203,12 @@ public class TaskBase<ExtendedBean extends Bean> {
 		// 找任务开始的节点
 		Supplier<Stream<TaskPhase>> zeroInDegreeNodeSupplier = () -> phases.vertexSet().stream().filter(p -> phases.inDegreeOf(p) == 0);
 		if (zeroInDegreeNodeSupplier.get().count() != 1) {
-			bean.setState(Module.Invalid);
+			bean.setTaskState(Module.Invalid);
 			System.out.println("Task has more than one Start Phase node.");
 			return;
 		}
 		if (zeroInDegreeNodeSupplier.get().findAny().isEmpty()) {
-			bean.setState(Module.Invalid);
+			bean.setTaskState(Module.Invalid);
 			System.out.println("Task has no Start Phase node.");
 			return;
 		}
@@ -223,12 +218,12 @@ public class TaskBase<ExtendedBean extends Bean> {
 		// 找任务结束的节点
 		Supplier<Stream<TaskPhase>> zeroOutDegreeNodeSupplier = () -> phases.vertexSet().stream().filter(p -> phases.outDegreeOf(p) == 0);
 		if (zeroOutDegreeNodeSupplier.get().count() != 1) {
-			bean.setState(Module.Invalid);
+			bean.setTaskState(Module.Invalid);
 			System.out.println("Task has more than one End Phase node.");
 			return;
 		}
 		if (zeroOutDegreeNodeSupplier.get().findAny().isEmpty()) {
-			bean.setState(Module.Invalid);
+			bean.setTaskState(Module.Invalid);
 			System.out.println("Task has no End Phase node.");
 			return;
 		}
@@ -236,10 +231,6 @@ public class TaskBase<ExtendedBean extends Bean> {
 
 		for (var phase : phases.vertexSet()) {
 			phase.setupPhase();
-			if (!phase.isValid()) {
-				bean.setState(Module.Invalid);
-				return;
-			}
 		}
 	}
 
@@ -256,7 +247,7 @@ public class TaskBase<ExtendedBean extends Bean> {
 	}
 
 	/**
-	 * BeanFactory
+	 * Bean
 	 */
 	private final static BeanFactory beanFactory = new BeanFactory();
 
@@ -268,5 +259,14 @@ public class TaskBase<ExtendedBean extends Bean> {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
-	private final MethodHandle extendedBeanConstructor;
+	public BTask getBean() {
+		return bean;
+	}
+
+	@SuppressWarnings("unchecked")
+	public ExtendedBean getExtendedBean() {
+		return (ExtendedBean)bean.getExtendedData().getBean();
+	}
+
+	private final BTask bean;
 }

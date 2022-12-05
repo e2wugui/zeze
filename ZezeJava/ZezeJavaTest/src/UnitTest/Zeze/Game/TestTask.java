@@ -10,6 +10,7 @@ import Zeze.Builtin.Game.Online.ReLogin;
 import Zeze.Builtin.Game.TaskBase.BCollectCoinEvent;
 import Zeze.Builtin.Game.TaskBase.TriggerTaskEvent;
 import Zeze.Game.Task.ConditionNamedCount;
+import Zeze.Game.Task.NPCTask;
 import Zeze.Game.TaskBase;
 import Zeze.Game.TaskPhase;
 import Zeze.Transaction.Procedure;
@@ -78,13 +79,21 @@ public class TestTask extends TestCase {
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
 
 				var module = server0.taskModule;
-				var task1 = module.newNPCTask("Task02NpcTask");
-				task1.setReceiveNpcId(1001); // 设置接取任务的NPC
-				task1.setSubmitNpcId(1002); // 设置提交任务的NPC
-				TaskPhase phase1 = task1.newPhase("Phase01");
-				TaskPhase phase2 = task1.newPhase("Phase02");
-				TaskPhase phase3 = task1.newPhase("Phase03");
-				TaskPhase phase4 = task1.newPhase("Phase04");
+				NPCTask.NPCTaskOpt taskOpt = new NPCTask.NPCTaskOpt();
+				taskOpt.id = 1;
+				taskOpt.name = "吃金币";
+				taskOpt.description = "";
+				taskOpt.SubmitNpcId = 1001;
+				taskOpt.ReceiveNpcId = 1002;
+				var task1 = module.newNPCTask(taskOpt);
+				TaskPhase.TaskPhaseOpt phaseOpt1 = new TaskPhase.TaskPhaseOpt();
+				TaskPhase phase1 = new TaskPhase(task1, phaseOpt1);
+				TaskPhase.TaskPhaseOpt phaseOpt2 = new TaskPhase.TaskPhaseOpt();
+				TaskPhase phase2 = new TaskPhase(task1, phaseOpt2);
+				TaskPhase.TaskPhaseOpt phaseOpt3 = new TaskPhase.TaskPhaseOpt();
+				TaskPhase phase3 = new TaskPhase(task1, phaseOpt3);
+				TaskPhase.TaskPhaseOpt phaseOpt4 = new TaskPhase.TaskPhaseOpt();
+				TaskPhase phase4 = new TaskPhase(task1, phaseOpt4);
 				ConditionNamedCount goldCondition10 = new ConditionNamedCount("收集金币", 0, 10);
 				ConditionNamedCount goldCondition20 = new ConditionNamedCount("收集金币", 0, 20);
 				ConditionNamedCount goldCondition30 = new ConditionNamedCount("收集金币", 0, 30);
@@ -125,11 +134,11 @@ public class TestTask extends TestCase {
 	}
 
 	// 一个简单的任务，用于测试。
-	private static void collectCoin(ClientGame.App app, long roleId, TaskBase task, long count) {
+	private static void collectCoin(ClientGame.App app, long roleId, TaskBase<?> task, long count) {
 		TriggerTaskEvent taskEvent = new TriggerTaskEvent();
-		taskEvent.Argument.setTaskName(task.getName());
+		taskEvent.Argument.setTaskId(task.getId());
 		var bean = new BCollectCoinEvent("收集金币", count);
-		taskEvent.Argument.getDynamicData().setBean(bean);
+		taskEvent.Argument.getExtendedData().setBean(bean);
 		taskEvent.SendForWait(app.ClientService.GetSocket()).await();
 		Assert.assertEquals(0, taskEvent.getResultCode());
 	}

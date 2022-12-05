@@ -3,15 +3,19 @@ package Zeze.Builtin.Game.TaskBase;
 
 import Zeze.Serialize.ByteBuffer;
 
-// Task rpc的Bean
+/*
+					Task rpc
+					所有的TaskEvent均由这个rpc驱动（仿照现serverdev的结构）
+					这个rpc的参数是BTaskEvent，内部的DynamicData是各个不同的任务的不同Bean数据
+*/
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEventReadOnly {
     public static final long TYPEID = -5362050394114558969L;
 
-    private String _TaskName;
-    private final Zeze.Transaction.DynamicBean _DynamicData;
+    private long _taskId;
+    private final Zeze.Transaction.DynamicBean _extendedData;
 
-    public static Zeze.Transaction.DynamicBean newDynamicBean_DynamicData() {
+    public static Zeze.Transaction.DynamicBean newDynamicBean_ExtendedData() {
         return new Zeze.Transaction.DynamicBean(2, Zeze.Game.TaskBase::getSpecialTypeIdFromBean, Zeze.Game.TaskBase::createBeanFromSpecialTypeId);
     }
 
@@ -24,53 +28,48 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
     }
 
     @Override
-    public String getTaskName() {
+    public long getTaskId() {
         if (!isManaged())
-            return _TaskName;
+            return _taskId;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _TaskName;
-        var log = (Log__TaskName)txn.getLog(objectId() + 1);
-        return log != null ? log.value : _TaskName;
+            return _taskId;
+        var log = (Log__taskId)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _taskId;
     }
 
-    public void setTaskName(String value) {
-        if (value == null)
-            throw new IllegalArgumentException();
+    public void setTaskId(long value) {
         if (!isManaged()) {
-            _TaskName = value;
+            _taskId = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__TaskName(this, 1, value));
+        txn.putLog(new Log__taskId(this, 1, value));
     }
 
-    public Zeze.Transaction.DynamicBean getDynamicData() {
-        return _DynamicData;
+    public Zeze.Transaction.DynamicBean getExtendedData() {
+        return _extendedData;
     }
 
     @Override
-    public Zeze.Transaction.DynamicBeanReadOnly getDynamicDataReadOnly() {
-        return _DynamicData;
+    public Zeze.Transaction.DynamicBeanReadOnly getExtendedDataReadOnly() {
+        return _extendedData;
     }
 
     @SuppressWarnings("deprecation")
     public BTaskEvent() {
-        _TaskName = "";
-        _DynamicData = newDynamicBean_DynamicData();
+        _extendedData = newDynamicBean_ExtendedData();
     }
 
     @SuppressWarnings("deprecation")
-    public BTaskEvent(String _TaskName_) {
-        if (_TaskName_ == null)
-            throw new IllegalArgumentException();
-        _TaskName = _TaskName_;
-        _DynamicData = newDynamicBean_DynamicData();
+    public BTaskEvent(long _taskId_) {
+        _taskId = _taskId_;
+        _extendedData = newDynamicBean_ExtendedData();
     }
 
     public void assign(BTaskEvent other) {
-        setTaskName(other.getTaskName());
-        _DynamicData.assign(other._DynamicData);
+        setTaskId(other.getTaskId());
+        _extendedData.assign(other._extendedData);
     }
 
     @Deprecated
@@ -105,11 +104,11 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
         return TYPEID;
     }
 
-    private static final class Log__TaskName extends Zeze.Transaction.Logs.LogString {
-        public Log__TaskName(BTaskEvent bean, int varId, String value) { super(bean, varId, value); }
+    private static final class Log__taskId extends Zeze.Transaction.Logs.LogLong {
+        public Log__taskId(BTaskEvent bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BTaskEvent)getBelong())._TaskName = value; }
+        public void commit() { ((BTaskEvent)getBelong())._taskId = value; }
     }
 
     @Override
@@ -123,9 +122,9 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.TaskBase.BTaskEvent: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("TaskName=").append(getTaskName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("DynamicData=").append(System.lineSeparator());
-        _DynamicData.getBean().buildString(sb, level + 4);
+        sb.append(Zeze.Util.Str.indent(level)).append("taskId=").append(getTaskId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("extendedData=").append(System.lineSeparator());
+        _extendedData.getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -147,14 +146,14 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = getTaskName();
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
-                _o_.WriteString(_x_);
+            long _x_ = getTaskId();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
             }
         }
         {
-            var _x_ = _DynamicData;
+            var _x_ = _extendedData;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.DYNAMIC);
                 _x_.encode(_o_);
@@ -168,11 +167,11 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setTaskName(_o_.ReadString(_t_));
+            setTaskId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            _o_.ReadDynamic(_DynamicData, _t_);
+            _o_.ReadDynamic(_extendedData, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -183,16 +182,18 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
 
     @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _DynamicData.initRootInfo(root, this);
+        _extendedData.initRootInfo(root, this);
     }
 
     @Override
     protected void resetChildrenRootInfo() {
-        _DynamicData.resetRootInfo();
+        _extendedData.resetRootInfo();
     }
 
     @Override
     public boolean negativeCheck() {
+        if (getTaskId() < 0)
+            return true;
         return false;
     }
 
@@ -205,8 +206,8 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _TaskName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _DynamicData.followerApply(vlog); break;
+                case 1: _taskId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 2: _extendedData.followerApply(vlog); break;
             }
         }
     }

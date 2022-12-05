@@ -4,67 +4,67 @@ package Zeze.Builtin.Game.TaskBase;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTaskEventResultReadOnly {
-    public static final long TYPEID = 7412512539470816714L;
+public final class BTConditionReachNPCEvent extends Zeze.Transaction.Bean implements BTConditionReachNPCEventReadOnly {
+    public static final long TYPEID = 2892693821665031607L;
 
-    private long _resultCode; // 返回码
+    private long _npcId;
 
     @Override
-    public long getResultCode() {
+    public long getNpcId() {
         if (!isManaged())
-            return _resultCode;
+            return _npcId;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _resultCode;
-        var log = (Log__resultCode)txn.getLog(objectId() + 1);
-        return log != null ? log.value : _resultCode;
+            return _npcId;
+        var log = (Log__npcId)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _npcId;
     }
 
-    public void setResultCode(long value) {
+    public void setNpcId(long value) {
         if (!isManaged()) {
-            _resultCode = value;
+            _npcId = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__resultCode(this, 1, value));
+        txn.putLog(new Log__npcId(this, 1, value));
     }
 
     @SuppressWarnings("deprecation")
-    public BTaskEventResult() {
+    public BTConditionReachNPCEvent() {
     }
 
     @SuppressWarnings("deprecation")
-    public BTaskEventResult(long _resultCode_) {
-        _resultCode = _resultCode_;
+    public BTConditionReachNPCEvent(long _npcId_) {
+        _npcId = _npcId_;
     }
 
-    public void assign(BTaskEventResult other) {
-        setResultCode(other.getResultCode());
+    public void assign(BTConditionReachNPCEvent other) {
+        setNpcId(other.getNpcId());
     }
 
     @Deprecated
-    public void Assign(BTaskEventResult other) {
+    public void Assign(BTConditionReachNPCEvent other) {
         assign(other);
     }
 
-    public BTaskEventResult copyIfManaged() {
+    public BTConditionReachNPCEvent copyIfManaged() {
         return isManaged() ? copy() : this;
     }
 
     @Override
-    public BTaskEventResult copy() {
-        var copy = new BTaskEventResult();
+    public BTConditionReachNPCEvent copy() {
+        var copy = new BTConditionReachNPCEvent();
         copy.assign(this);
         return copy;
     }
 
     @Deprecated
-    public BTaskEventResult Copy() {
+    public BTConditionReachNPCEvent Copy() {
         return copy();
     }
 
-    public static void swap(BTaskEventResult a, BTaskEventResult b) {
-        BTaskEventResult save = a.copy();
+    public static void swap(BTConditionReachNPCEvent a, BTConditionReachNPCEvent b) {
+        BTConditionReachNPCEvent save = a.copy();
         a.assign(b);
         b.assign(save);
     }
@@ -74,11 +74,11 @@ public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTa
         return TYPEID;
     }
 
-    private static final class Log__resultCode extends Zeze.Transaction.Logs.LogLong {
-        public Log__resultCode(BTaskEventResult bean, int varId, long value) { super(bean, varId, value); }
+    private static final class Log__npcId extends Zeze.Transaction.Logs.LogLong {
+        public Log__npcId(BTConditionReachNPCEvent bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BTaskEventResult)getBelong())._resultCode = value; }
+        public void commit() { ((BTConditionReachNPCEvent)getBelong())._npcId = value; }
     }
 
     @Override
@@ -90,9 +90,9 @@ public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTa
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.TaskBase.BTaskEventResult: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.TaskBase.BTConditionReachNPCEvent: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("resultCode=").append(getResultCode()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("npcId=").append(getNpcId()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -113,7 +113,7 @@ public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTa
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            long _x_ = getResultCode();
+            long _x_ = getNpcId();
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
@@ -127,7 +127,7 @@ public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTa
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setResultCode(_o_.ReadLong(_t_));
+            setNpcId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -146,7 +146,7 @@ public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTa
 
     @Override
     public boolean negativeCheck() {
-        if (getResultCode() < 0)
+        if (getNpcId() < 0)
             return true;
         return false;
     }
@@ -160,7 +160,7 @@ public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTa
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _resultCode = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _npcId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }

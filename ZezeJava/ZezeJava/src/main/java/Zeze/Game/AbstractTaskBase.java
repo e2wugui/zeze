@@ -14,6 +14,15 @@ public abstract class AbstractTaskBase extends Zeze.IModule {
     public static final int Processing = 2; // 未完成，已经接取
     public static final int Finish = 3; // 已完成，未提交
     public static final int Committed = 4; // 已经提交
+    public static final int TaskResultAccepted = 100;
+    public static final int TaskResultTaskNotFound = 101;
+    public static final int CommitAuto = 11;
+    public static final int CommitNPCTalk = 12;
+    public static final int CompleteNPCTalk = 21;
+    public static final int CompleteArriveArea = 22;
+    public static final int CompleteCollectItem = 23;
+    public static final int CompleteSubmitItem = 24;
+    public static final int CompleteArriveNPC = 25;
 
     protected final Zeze.Builtin.Game.TaskBase.tEventClasses _tEventClasses = new Zeze.Builtin.Game.TaskBase.tEventClasses();
     protected final Zeze.Builtin.Game.TaskBase.tRoleTask _tRoleTask = new Zeze.Builtin.Game.TaskBase.tRoleTask();

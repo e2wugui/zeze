@@ -6,8 +6,8 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tRoleTask extends TableX<Long, Zeze.Builtin.Game.TaskBase.BPTaskInfo>
-        implements TableReadOnly<Long, Zeze.Builtin.Game.TaskBase.BPTaskInfo, Zeze.Builtin.Game.TaskBase.BPTaskInfoReadOnly> {
+public final class tRoleTask extends TableX<Long, Zeze.Builtin.Game.TaskBase.RoleTasks>
+        implements TableReadOnly<Long, Zeze.Builtin.Game.TaskBase.RoleTasks, Zeze.Builtin.Game.TaskBase.RoleTasksReadOnly> {
     public tRoleTask() {
         super("Zeze_Builtin_Game_TaskBase_tRoleTask");
     }
@@ -27,9 +27,9 @@ public final class tRoleTask extends TableX<Long, Zeze.Builtin.Game.TaskBase.BPT
         return false;
     }
 
-    public static final int VAR_processingTask = 1;
-    public static final int VAR_finishedTask = 2;
-    public static final int VAR_RoleTaskCustomData = 3;
+    public static final int VAR_availableTasksId = 1;
+    public static final int VAR_processingTasksId = 2;
+    public static final int VAR_finishedTaskId = 3;
 
     @Override
     public Long decodeKey(ByteBuffer _os_) {
@@ -46,12 +46,12 @@ public final class tRoleTask extends TableX<Long, Zeze.Builtin.Game.TaskBase.BPT
     }
 
     @Override
-    public Zeze.Builtin.Game.TaskBase.BPTaskInfo newValue() {
-        return new Zeze.Builtin.Game.TaskBase.BPTaskInfo();
+    public Zeze.Builtin.Game.TaskBase.RoleTasks newValue() {
+        return new Zeze.Builtin.Game.TaskBase.RoleTasks();
     }
 
     @Override
-    public Zeze.Builtin.Game.TaskBase.BPTaskInfoReadOnly getReadOnly(Long key) {
+    public Zeze.Builtin.Game.TaskBase.RoleTasksReadOnly getReadOnly(Long key) {
         return get(key);
     }
 }

@@ -3,52 +3,52 @@ package Zeze.Builtin.Game.TaskBase;
 
 import Zeze.Serialize.ByteBuffer;
 
-// NPCTask
+// 内置任务类型：NPCTask
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BNPCTaskDynamics extends Zeze.Transaction.Bean implements BNPCTaskDynamicsReadOnly {
     public static final long TYPEID = 1525363162945047522L;
 
-    private long _ReceiveNpcId; // 接任务的NPC
-    private long _SubmitNpcId; // 交任务的NPC
+    private long _receiveNpcId; // 接任务的NPC
+    private long _submitNpcId; // 交任务的NPC
 
     @Override
     public long getReceiveNpcId() {
         if (!isManaged())
-            return _ReceiveNpcId;
+            return _receiveNpcId;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _ReceiveNpcId;
-        var log = (Log__ReceiveNpcId)txn.getLog(objectId() + 1);
-        return log != null ? log.value : _ReceiveNpcId;
+            return _receiveNpcId;
+        var log = (Log__receiveNpcId)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _receiveNpcId;
     }
 
     public void setReceiveNpcId(long value) {
         if (!isManaged()) {
-            _ReceiveNpcId = value;
+            _receiveNpcId = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ReceiveNpcId(this, 1, value));
+        txn.putLog(new Log__receiveNpcId(this, 1, value));
     }
 
     @Override
     public long getSubmitNpcId() {
         if (!isManaged())
-            return _SubmitNpcId;
+            return _submitNpcId;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _SubmitNpcId;
-        var log = (Log__SubmitNpcId)txn.getLog(objectId() + 2);
-        return log != null ? log.value : _SubmitNpcId;
+            return _submitNpcId;
+        var log = (Log__submitNpcId)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _submitNpcId;
     }
 
     public void setSubmitNpcId(long value) {
         if (!isManaged()) {
-            _SubmitNpcId = value;
+            _submitNpcId = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__SubmitNpcId(this, 2, value));
+        txn.putLog(new Log__submitNpcId(this, 2, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -56,9 +56,9 @@ public final class BNPCTaskDynamics extends Zeze.Transaction.Bean implements BNP
     }
 
     @SuppressWarnings("deprecation")
-    public BNPCTaskDynamics(long _ReceiveNpcId_, long _SubmitNpcId_) {
-        _ReceiveNpcId = _ReceiveNpcId_;
-        _SubmitNpcId = _SubmitNpcId_;
+    public BNPCTaskDynamics(long _receiveNpcId_, long _submitNpcId_) {
+        _receiveNpcId = _receiveNpcId_;
+        _submitNpcId = _submitNpcId_;
     }
 
     public void assign(BNPCTaskDynamics other) {
@@ -98,18 +98,18 @@ public final class BNPCTaskDynamics extends Zeze.Transaction.Bean implements BNP
         return TYPEID;
     }
 
-    private static final class Log__ReceiveNpcId extends Zeze.Transaction.Logs.LogLong {
-        public Log__ReceiveNpcId(BNPCTaskDynamics bean, int varId, long value) { super(bean, varId, value); }
+    private static final class Log__receiveNpcId extends Zeze.Transaction.Logs.LogLong {
+        public Log__receiveNpcId(BNPCTaskDynamics bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BNPCTaskDynamics)getBelong())._ReceiveNpcId = value; }
+        public void commit() { ((BNPCTaskDynamics)getBelong())._receiveNpcId = value; }
     }
 
-    private static final class Log__SubmitNpcId extends Zeze.Transaction.Logs.LogLong {
-        public Log__SubmitNpcId(BNPCTaskDynamics bean, int varId, long value) { super(bean, varId, value); }
+    private static final class Log__submitNpcId extends Zeze.Transaction.Logs.LogLong {
+        public Log__submitNpcId(BNPCTaskDynamics bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BNPCTaskDynamics)getBelong())._SubmitNpcId = value; }
+        public void commit() { ((BNPCTaskDynamics)getBelong())._submitNpcId = value; }
     }
 
     @Override
@@ -123,8 +123,8 @@ public final class BNPCTaskDynamics extends Zeze.Transaction.Bean implements BNP
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.TaskBase.BNPCTaskDynamics: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ReceiveNpcId=").append(getReceiveNpcId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("SubmitNpcId=").append(getSubmitNpcId()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("receiveNpcId=").append(getReceiveNpcId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("submitNpcId=").append(getSubmitNpcId()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -205,8 +205,8 @@ public final class BNPCTaskDynamics extends Zeze.Transaction.Bean implements BNP
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ReceiveNpcId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _SubmitNpcId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _receiveNpcId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 2: _submitNpcId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }

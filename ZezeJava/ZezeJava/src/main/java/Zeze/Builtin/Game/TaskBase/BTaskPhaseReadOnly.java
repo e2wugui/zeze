@@ -1,16 +1,18 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Game.TaskBase;
 
-// TaskPhase的Bean数据，只存在在BTask之内
 public interface BTaskPhaseReadOnly {
     public long typeId();
     public void encode(Zeze.Serialize.ByteBuffer _o_);
     public boolean negativeCheck();
     public BTaskPhase copy();
 
-    public String getTaskPhaseName();
-    public String getCurrentConditionName();
-    public Zeze.Transaction.Collections.PMap2ReadOnly<String, Zeze.Builtin.Game.TaskBase.BTaskCondition, Zeze.Builtin.Game.TaskBase.BTaskConditionReadOnly> getTaskConditionsReadOnly();
-    public Zeze.Transaction.DynamicBeanReadOnly getTaskPhaseCustomDataReadOnly();
+    public long getPhaseId();
+    public int getPhaseType();
+    public String getPhaseName();
+    public String getPhaseDescription();
+    public Zeze.Transaction.Collections.PList1ReadOnly<Long> getPrePhasesIdReadOnly();
+    public Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.Game.TaskBase.BTaskCondition, Zeze.Builtin.Game.TaskBase.BTaskConditionReadOnly> getConditionsReadOnly();
+    public Zeze.Transaction.DynamicBeanReadOnly getExtendedDataReadOnly();
 
 }

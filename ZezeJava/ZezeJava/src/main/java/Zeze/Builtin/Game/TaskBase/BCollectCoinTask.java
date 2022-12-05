@@ -3,6 +3,7 @@ package Zeze.Builtin.Game.TaskBase;
 
 import Zeze.Serialize.ByteBuffer;
 
+// 内置条件类型：CollectCoinTask
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BCollectCoinTask extends Zeze.Transaction.Bean implements BCollectCoinTaskReadOnly {
     public static final long TYPEID = -5612956764852219684L;

@@ -9,14 +9,40 @@ import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
 
 public class TaskPhase {
-	public static final int TASK_PHASE_STATE_INVALID = -1;
-	public static final int TASK_PHASE_STATE_VALID = 0;
+	// @formatter:off
 
-	public TaskPhase(TaskBase task, String name) throws Throwable {
+	/**
+	 * Phase Info:
+	 * 1. Phase Id
+	 * 2. Phase Type
+	 * 3. Phase Name
+	 * 4. Phase Description
+	 */
+	public long getPhaseId() { return bean.getPhaseId(); }
+	public int getPhaseType() { return bean.getPhaseType(); }
+	public String getPhaseName() { return bean.getPhaseName(); }
+	public String getPhaseDescription() { return bean.getPhaseDescription(); }
+	public TaskBase<?> getTask() { return task; }
+	private final TaskBase<?> task;
+
+	public static class TaskPhaseOpt{
+		public long id;
+		public int type;
+		public String name;
+		public String description;
+		public long[] prePhaseIds;
+	}
+	public TaskPhase(TaskBase<?> task, TaskPhaseOpt opt) throws Throwable {
 		this.task = task;
-		this.bean = task.getBean().getTaskPhases().getOrAdd(name);
-		this.bean.setTaskPhaseName(name);
-		this.state = TASK_PHASE_STATE_INVALID;
+		this.bean =new BTaskPhase();
+		this.bean.setPhaseId(opt.id);
+		this.bean.setPhaseType(opt.type);
+		this.bean.setPhaseName(opt.name);
+		this.bean.setPhaseDescription(opt.description);
+		for (var prePhaseId : opt.prePhaseIds) {
+			this.bean.getPrePhasesId().add(prePhaseId);
+		}
+		task.getBean().getTaskPhases().add(this.bean);
 	}
 
 	/**
@@ -30,30 +56,6 @@ public class TaskPhase {
 		return isCompleted();
 	}
 
-	// @formatter:off
-	/**
-	 * 当前Phase所属的Task
-	 */
-	public TaskBase getTask() { return task; }
-	private final TaskBase task;
-	public boolean isValid(){ return state!=TASK_PHASE_STATE_INVALID; }
-	int state;
-
-	/**
-	 * TaskPhase Bean
-	 */
-	public BTaskPhase getBean() { return bean; }
-	private final BTaskPhase bean;
-
-
-	/**
-	 * Task Info:
-	 * 1. TaskPhase Name
-	 */
-	public String getPhaseName() {
-		return bean.getTaskPhaseName();
-	}
-
 	/**
 	 * Task Conditions
 	 */
@@ -63,14 +65,10 @@ public class TaskPhase {
 	private final DirectedAcyclicGraph<TaskConditionBase<?,?>, DefaultEdge> conditions = new DirectedAcyclicGraph<>(DefaultEdge.class); // 任务的各个阶段的连接图
 	private final ArrayList<TaskConditionBase<?,?>> currentConditions = new ArrayList<>(); // 当前的任务Phase条件（允许不止一个条件）
 
-	// @formatter:on
-
 	// ======================================== 任务Phase初始化阶段的方法 ========================================
 	public void addCondition(TaskConditionBase<?, ?> condition) throws Throwable {
 		conditions.addVertex(condition);
-		var beanCondition = bean.getTaskConditions().getOrAdd(condition.getName());
-		beanCondition.setTaskConditionName(condition.getName());
-		beanCondition.getTaskConditionCustomData().setBean(condition.getExtendedBean());
+		bean.getConditions().add(condition.getBean());
 
 		// 自动注册加入的Condition自己的Bean和Event Bean的class。
 		task.getModule().register(condition.getConditionBeanClass());
@@ -89,13 +87,11 @@ public class TaskPhase {
 	public void setupPhase() {
 		Supplier<Stream<TaskConditionBase<?, ?>>> zeroInDegreeNodeSupplier = () -> conditions.vertexSet().stream().filter(p -> conditions.inDegreeOf(p) == 0);
 		if (zeroInDegreeNodeSupplier.get().findAny().isEmpty()) {
-			state = TASK_PHASE_STATE_INVALID;
 			System.out.println("Task has no Start Condition node.");
 			return;
 		}
 		Supplier<Stream<TaskConditionBase<?, ?>>> zeroOutDegreeNodeSupplier = () -> conditions.vertexSet().stream().filter(p -> conditions.outDegreeOf(p) == 0);
 		if (zeroInDegreeNodeSupplier.get().findAny().isEmpty()) {
-			state = TASK_PHASE_STATE_INVALID;
 			System.out.println("Task has no End Condition node.");
 			return;
 		}
@@ -103,4 +99,9 @@ public class TaskPhase {
 		// set current conditions with start conditions
 		zeroInDegreeNodeSupplier.get().forEach(currentConditions::add);
 	}
+
+	public BTaskPhase getBean() { return bean; }
+	private final BTaskPhase bean;
+
+	// @formatter:on
 }
