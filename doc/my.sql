@@ -51,6 +51,7 @@ Create procedure _ZezeSaveDataWithSameVersion_ (
 			end if;
 			set oldversionexsit = oldversionexsit + 1;
 			update _ZezeDataWithVersion_ set data=in_data, version=oldversionexsit where id=in_id;
+			/*
 			select ROW_COUNT() into ROWCOUNT;
 			if ROWCOUNT = 1 then
 				set inout_version = oldversionexsit;
@@ -61,9 +62,14 @@ Create procedure _ZezeSaveDataWithSameVersion_ (
 			set ReturnValue=3;
 			ROLLBACK;
 			LEAVE return_label;
+			*/
+			/* new add */
+			set ReturnValue=0;
+			COMMIT;
 		end if;
 
 		insert into _ZezeDataWithVersion_ values(in_id,in_data,inout_version);
+		/*
 		select ROW_COUNT() into ROWCOUNT;
 		if ROWCOUNT = 1 then
 			set ReturnValue=0;
@@ -73,6 +79,13 @@ Create procedure _ZezeSaveDataWithSameVersion_ (
 		set ReturnValue=4;
 		ROLLBACK;
 		LEAVE return_label;
+		*/
+
+		/* new add */
+		set ReturnValue=0;
+		IF 1=1 THEN
+			COMMIT;
+		END IF;
 	END;
 
 CREATE TABLE IF NOT EXISTS _ZezeInstances_ (localid int NOT NULL PRIMARY KEY);
@@ -97,15 +110,17 @@ Create procedure _ZezeSetInUse_ (
 			LEAVE return_label;
 		end if;		
 		insert into _ZezeInstances_ values(in_localid);
+		/*
 		select ROW_COUNT() into ROWCOUNT;
 		if ROWCOUNT = 0 then
 			set ReturnValue=3;
 			ROLLBACK;
 			LEAVE return_label;
 		end if;
+		*/
 		set emptybinary = BINARY '';
 		select data into currentglobal from _ZezeDataWithVersion_ where id=emptybinary;
-		select FOUND_ROWS() into ROWCOUNT;
+		SELECT COUNT(*) into ROWCOUNT from _ZezeDataWithVersion_ where id=emptybinary;
 		if ROWCOUNT > 0 then
 			if currentglobal <> in_global then
 				set ReturnValue=4;
@@ -114,12 +129,14 @@ Create procedure _ZezeSetInUse_ (
 			end if;
 		else
 			insert into _ZezeDataWithVersion_ values(emptybinary, in_global, 0);
+			/*
 			select ROW_COUNT() into ROWCOUNT;
 			if ROWCOUNT <> 1 then
 				set ReturnValue=5;
 				ROLLBACK;
 				LEAVE return_label;
 			end if;
+			*/
 		end if;
 		set InstanceCount=0;
 		select count(*) INTO InstanceCount from _ZezeInstances_;
@@ -134,7 +151,9 @@ Create procedure _ZezeSetInUse_ (
 			LEAVE return_label;
 		end if;
 		set ReturnValue=0;
-		COMMIT;
+		IF 1=1 THEN
+			COMMIT;
+		END IF;
 		LEAVE return_label;
 	end;
 
@@ -152,12 +171,14 @@ Create procedure _ZezeClearInUse_ (
 		START TRANSACTION;
 		set ReturnValue=1;
 		delete from _ZezeInstances_ where localid=in_localid;
+		/*
 		select ROW_COUNT() into ROWCOUNT;
 		if ROWCOUNT = 0 then
 			set ReturnValue=2;
 			ROLLBACK;
 			LEAVE return_label;
 		end if;
+		*/
 		set InstanceCount=0;
 		select count(*) INTO InstanceCount from _ZezeInstances_;
 		if InstanceCount = 0 then
@@ -165,6 +186,8 @@ Create procedure _ZezeClearInUse_ (
 			delete from _ZezeDataWithVersion_ where id=emptybinary;
 		end if;
 		set ReturnValue=0;
-		COMMIT;
+		IF 1=1 THEN
+			COMMIT;
+		END IF;
 		LEAVE return_label;
 	end;
