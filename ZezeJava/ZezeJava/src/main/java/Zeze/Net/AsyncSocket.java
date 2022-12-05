@@ -14,7 +14,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
@@ -64,7 +63,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private ArrayList<Action0> operates0 = new ArrayList<>();
 	private ArrayList<Action0> operates1 = new ArrayList<>();
 	private final AtomicLong outputBufferListCountSum = new AtomicLong();
-	private final ArrayDeque<java.nio.ByteBuffer> outputBufferListSending = new ArrayDeque<>(); // 正在发送的 buffers. 只在selector线程访问
+	//	private final ArrayDeque<java.nio.ByteBuffer> outputBufferListSending = new ArrayDeque<>(); // 正在发送的 buffers. 只在selector线程访问
+	private final OutputBuffer outputBuffer;
 
 	private final BufferCodec inputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer. 只在selector线程访问
 	private final BufferCodec outputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer. 只在selector线程访问
@@ -83,7 +83,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private long recvSize; // 从socket接收数据的统计总字节数
 	private long sendSize; // 向socket发送数据的统计总字节数
 
-	private int sendBufferSize; // 缓存下来为了避免每次去查询。是一种优化。
+//	private int sendBufferSize; // 缓存下来为了避免每次去查询。是一种优化。
 
 	public long getSessionId() {
 		return sessionId;
@@ -196,6 +196,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			logger.info("Listen: {} for {}:{}", localEP, service.getClass().getName(), service.getName());
 
 			selector = service.getSelectors().choice();
+			outputBuffer = null;
 			selectionKey = selector.register(ssc, 0, this); // 先获取key,因为有小概率出现事件处理比赋值更先执行
 			selector.register(ssc, SelectionKey.OP_ACCEPT, this);
 		} catch (IOException e) {
@@ -271,12 +272,13 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		Integer sendBufSize = this.service.getSocketOptions().getSendBuffer();
 		if (sendBufSize != null)
 			so.setSendBufferSize(sendBufSize);
-		sendBufSize = so.getSendBufferSize();
+//		sendBufSize = so.getSendBufferSize();
 		Boolean noDelay = this.service.getSocketOptions().getNoDelay();
 		if (noDelay != null)
 			so.setTcpNoDelay(noDelay);
 
 		selector = service.getSelectors().choice();
+		outputBuffer = new OutputBuffer(selector);
 		selectionKey = selector.register(sc, 0, this); // 先获取key,因为有小概率出现事件处理比赋值更先执行
 		selector.register(sc, SelectionKey.OP_READ, this);
 		logger.info("Accept: {} for {}:{}", this, service.getClass().getName(), service.getName());
@@ -311,11 +313,13 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			Integer sendBufSize = this.service.getSocketOptions().getSendBuffer();
 			if (sendBufSize != null)
 				so.setSendBufferSize(sendBufSize);
+//			sendBufSize = so.getSendBufferSize();
 			Boolean noDelay = this.service.getSocketOptions().getNoDelay();
 			if (noDelay != null)
 				so.setTcpNoDelay(noDelay);
 
 			selector = service.getSelectors().choice();
+			outputBuffer = new OutputBuffer(selector);
 			InetAddress address = InetAddress.getByName(hostNameOrAddress); // TODO async dns lookup
 			selectionKey = selector.register(sc, 0, this); // 先获取key,因为有小概率出现事件处理比赋值更先执行
 			// 必须在connect前设置，否则selectionKey没初始化，有可能事件丢失？（现象好像是doHandle触发了）。
@@ -435,10 +439,13 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 					int deltaLen = newLen - length;
 					if (deltaLen != 0)
 						outputBufferListCountSum.getAndAdd(deltaLen);
-					outputBufferListSending.addLast(java.nio.ByteBuffer.wrap(codecBuf.Bytes, codecBuf.ReadIndex, newLen));
+//					outputBufferListSending.addLast(java.nio.ByteBuffer.wrap(codecBuf.Bytes, codecBuf.ReadIndex, newLen));
+					outputBuffer.put(codecBuf.Bytes, codecBuf.ReadIndex, newLen);
 					codecBuf.FreeInternalBuffer();
-				} else
-					outputBufferListSending.addLast(java.nio.ByteBuffer.wrap(bytes, offset, length));
+				} else {
+//					outputBufferListSending.addLast(java.nio.ByteBuffer.wrap(bytes, offset, length));
+					outputBuffer.put(bytes, offset, length);
+				}
 			}))
 				return true;
 			logger.error("Send to closed socket: {} len={}", this, length, new Exception());
@@ -537,7 +544,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				operates.get(i).run();
 			operates.clear();
 
-			int bufSize = outputBufferListSending.size();
+//			int bufSize = outputBufferListSending.size();
+			int bufSize = outputBuffer.size();
 			if (bufSize <= 0) {
 				// 时间窗口
 				// 必须和把Operate加入队列同步！否则可能会出现，刚加入操作没有被处理，但是OP_WRITE又被Remove的问题。
@@ -555,34 +563,36 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				}
 				// 发现数据，继续尝试处理。
 			} else {
-				var willSend = this.sendBufferSize;
-				var sendBuffers = new java.nio.ByteBuffer[1000];
-				var i = 0;
-				for (var it = outputBufferListSending.iterator(); i < 2000 && it.hasNext(); /*nothing*/) {
-					var buffer = it.next();
-					sendBuffers[i++] = buffer;
-					willSend -= buffer.limit();
-					if (willSend <= 0)
-						break;
-				}
-				long rc = sc.write(sendBuffers, 0, i);
+//				var willSend = this.sendBufferSize;
+//				var sendBuffers = new java.nio.ByteBuffer[1000];
+//				var i = 0;
+//				for (var it = outputBufferListSending.iterator(); i < 2000 && it.hasNext(); /*nothing*/) {
+//					var buffer = it.next();
+//					sendBuffers[i++] = buffer;
+//					willSend -= buffer.limit();
+//					if (willSend <= 0)
+//						break;
+//				}
+//				long rc = sc.write(sendBuffers, 0, i);
 //				long rc = bufSize == 1 ? sc.write(outputBufferListSending.peekFirst()) :
 //						sc.write(outputBufferListSending.toArray(new java.nio.ByteBuffer[bufSize]));
+				long rc = outputBuffer.writeTo(sc);
 				if (rc < 0) {
 					close(); // 很罕见的正常关闭, 不设置异常, 其实write抛异常的可能性更大
 					return;
 				}
 				sendSize += rc;
 				outputBufferListCountSum.getAndAdd(-rc);
-				for (java.nio.ByteBuffer bb; (bb = outputBufferListSending.pollFirst()) != null; ) {
-					if (bb.remaining() > 0) {
-						outputBufferListSending.addFirst(bb);
-						// 有数据正在发送，此时可以安全退出执行，写完以后Selector会再次触发doWrite。
-						// add write event，里面判断了事件没有变化时不做操作，严格来说，再次注册事件是不需要的。
-						interestOps(0, SelectionKey.OP_WRITE);
-						return;
-					}
+//				for (java.nio.ByteBuffer bb; (bb = outputBufferListSending.pollFirst()) != null; ) {
+//					if (bb.remaining() > 0) {
+//						outputBufferListSending.addFirst(bb);
+				if (outputBuffer.size() > 0) {
+					// 有数据正在发送，此时可以安全退出执行，写完以后Selector会再次触发doWrite。
+					// add write event，里面判断了事件没有变化时不做操作，严格来说，再次注册事件是不需要的。
+					interestOps(0, SelectionKey.OP_WRITE);
+					return;
 				}
+//				}
 				// 全部都写出去了，继续尝试看看有没有新的操作。
 			}
 		}
@@ -603,6 +613,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 		if (acceptor != null)
 			selector.wakeup(); // Acceptor的socket需要selector在select开始时执行,所以wakeup一下尽早触发下次select
+		if (outputBuffer != null)
+			outputBuffer.close();
 	}
 
 	private boolean close(Throwable ex, boolean gracefully) {

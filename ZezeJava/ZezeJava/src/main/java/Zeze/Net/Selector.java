@@ -4,18 +4,22 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
+import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-class Selector extends Thread {
-	private final static Logger logger = LogManager.getLogger(Selector.class);
+class Selector extends Thread implements ByteBufferAllocator {
+	private static final Logger logger = LogManager.getLogger(Selector.class);
+	private static final int BBPOOL_CAPACITY = 100 * 1024;
 
 	private final java.nio.channels.Selector selector;
 	private final java.nio.ByteBuffer readBuffer = java.nio.ByteBuffer.allocate(32 * 1024); // 此线程共享的buffer,只能临时使用
 	private final AtomicInteger wakeupNotified = new AtomicInteger();
 	private boolean firstAction;
 	private volatile boolean running = true;
+
+	private final ArrayList<java.nio.ByteBuffer> bbPool = new ArrayList<>();
 
 //	public final AtomicLong wakeupCount0 = new AtomicLong();
 //	public final AtomicLong wakeupCount1 = new AtomicLong();
@@ -30,6 +34,21 @@ class Selector extends Thread {
 
 	ByteBuffer getReadBuffer() {
 		return readBuffer;
+	}
+
+	@Override
+	public ByteBuffer alloc() {
+		int n = bbPool.size();
+		return n > 0 ? bbPool.remove(n - 1) : java.nio.ByteBuffer.allocateDirect(DEFAULT_SIZE);
+	}
+
+	@Override
+	public void free(ByteBuffer bb) {
+		if (bbPool.size() < BBPOOL_CAPACITY) {
+			bb.position(0);
+			bb.limit(bb.capacity());
+			bbPool.add(bb);
+		}
 	}
 
 	SelectionKey register(SelectableChannel sc, int ops, SelectorHandle handle) {
