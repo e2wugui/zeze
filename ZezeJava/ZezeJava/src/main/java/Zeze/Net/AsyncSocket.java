@@ -83,6 +83,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private long recvSize; // 从socket接收数据的统计总字节数
 	private long sendSize; // 向socket发送数据的统计总字节数
 
+	private int sendBufferSize; // 缓存下来为了避免每次去查询。是一种优化。
+
 	public long getSessionId() {
 		return sessionId;
 	}
@@ -269,6 +271,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		Integer sendBufSize = this.service.getSocketOptions().getSendBuffer();
 		if (sendBufSize != null)
 			so.setSendBufferSize(sendBufSize);
+		sendBufSize = so.getSendBufferSize();
 		Boolean noDelay = this.service.getSocketOptions().getNoDelay();
 		if (noDelay != null)
 			so.setTcpNoDelay(noDelay);
@@ -552,19 +555,19 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				}
 				// 发现数据，继续尝试处理。
 			} else {
-				var sendBufferSize = getSocket().getSendBufferSize();
-				var sendBuffers = new java.nio.ByteBuffer[2000];
+				var willSend = this.sendBufferSize;
+				var sendBuffers = new java.nio.ByteBuffer[1000];
 				var i = 0;
 				for (var it = outputBufferListSending.iterator(); i < 2000 && it.hasNext(); /*nothing*/) {
 					var buffer = it.next();
 					sendBuffers[i++] = buffer;
-					sendBufferSize -= buffer.limit();
-					if (sendBufferSize <= 0)
+					willSend -= buffer.limit();
+					if (willSend <= 0)
 						break;
 				}
 				long rc = sc.write(sendBuffers, 0, i);
-				//long rc = bufSize == 1 ? sc.write(outputBufferListSending.peekFirst()) :
-				//		sc.write(outputBufferListSending.toArray(new java.nio.ByteBuffer[bufSize]));
+//				long rc = bufSize == 1 ? sc.write(outputBufferListSending.peekFirst()) :
+//						sc.write(outputBufferListSending.toArray(new java.nio.ByteBuffer[bufSize]));
 				if (rc < 0) {
 					close(); // 很罕见的正常关闭, 不设置异常, 其实write抛异常的可能性更大
 					return;

@@ -14,6 +14,7 @@ import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
+import demo.Bean1;
 import demo.Module1.BValue;
 import org.junit.Test;
 
@@ -93,6 +94,39 @@ public class BenchSocket {
 	}
 
 	@Test
+	public void testSerialize() {
+		var bValue = new BValue();
+		for (long i = 0; i < 100; ++i) {
+			bValue.getMap15().put(i, i);
+			bValue.getArray29().add((float)i);
+		}
+		long sum = 0;
+		var b = new Zeze.Util.Benchmark();
+		for (var i = 0; i < 100_0000; ++i) {
+			var bb = ByteBuffer.Allocate();
+			bValue.encode(bb);
+			sum += bb.size();
+		}
+		var seconds = b.report("encode", 100_0000);
+		System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
+
+		// decode
+		var b2 = new Zeze.Util.Benchmark();
+		var encoded = ByteBuffer.Allocate();
+		bValue.encode(encoded);
+		var dummy = 0;
+		for (var i = 0; i < 20_0000; ++i) {
+			var bb = ByteBuffer.Wrap(encoded.Bytes, encoded.ReadIndex, encoded.size());
+			var value = new BValue();
+			value.decode(bb);
+			dummy += value.getInt1();
+		}
+		seconds = b2.report("decode", 20_0000);
+		System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
+		System.out.println("dummy=" + dummy);
+	}
+
+	@Test
 	public void testBench() throws Throwable {
 		// create server
 		var serverConfig = new Config();
@@ -104,7 +138,7 @@ public class BenchSocket {
 		var client = new ClientService("benchClient", clientConfig);
 		var connector = new Connector("127.0.0.1", 9797);
 		client.getConfig().addConnector(connector);
-		client.getSocketOptions().setOutputBufferMaxSize(20 * 1024 * 1024);
+		client.getSocketOptions().setOutputBufferMaxSize(40 * 1024 * 1024);
 
 		Zeze.Util.Task.tryInitThreadPool(null, null, null);
 
@@ -113,7 +147,7 @@ public class BenchSocket {
 		for (var i = 0; i < 10; ++i) {
 			bValues.add(new BValue());
 			var bValue = bValues.get(0);
-			var bytes = new byte[Zeze.Util.Random.getInstance().nextInt(200) + 100];
+			var bytes = new byte[Zeze.Util.Random.getInstance().nextInt(200) + 50];
 			Zeze.Util.Random.getInstance().nextBytes(bytes);
 			bValue.setBytes8(new Binary(bytes));
 		}
@@ -121,7 +155,6 @@ public class BenchSocket {
 		server.Start();
 		client.Start();
 		try {
-
 			connector.WaitReady();
 			var socket = connector.getSocket();
 
@@ -129,26 +162,21 @@ public class BenchSocket {
 			var b = new Zeze.Util.Benchmark();
 			long sum = 0;
 			long count = 50_0000;
-			for (int i = 0; i < count; ++i) {
-				var randIndex = Zeze.Util.Random.getInstance().nextInt(bValues.size());
-				var randBValue = bValues.get(randIndex);
-				// 预先完成 encode 效率会高些，但不符合实际情况。
-				var benchProtocol = new BenchProtocol(randBValue).encode();
-				sum += benchProtocol.size();
-				socket.Send(benchProtocol);
+			var benchLoop = 1;
+			for (var bench = 0; bench < benchLoop; ++bench) {
+				for (int i = 0; i < count; ++i) {
+					var randIndex = Zeze.Util.Random.getInstance().nextInt(bValues.size());
+					var randBValue = bValues.get(randIndex);
+					// 预先完成 encode 效率会高些，但不符合实际情况。
+					var benchProtocol = new BenchProtocol(randBValue).encode();
+					sum += benchProtocol.size();
+					socket.Send(benchProtocol);
+				}
+				var benchEnd = new BenchEnd();
+				benchEnd.SendForWait(socket, Integer.MAX_VALUE).await();
 			}
-			var benchEnd = new BenchEnd();
-			benchEnd.SendForWait(socket, Integer.MAX_VALUE).await();
 			var seconds = b.report("BenchSocket", count);
-			System.out.println("sum=" + sum + "bytes, speed=" + sum / seconds / 1024 / 1024 + "M");
-			/*
-			BenchSocket tasks/s=70508.60 time=7.09s cpu=25.36s concurrent=3.58
-			sum=9500000bytes, speed=1.2778M
-			BenchSocket tasks/s=72412.75 time=6.90s cpu=24.88s concurrent=3.60
-			sum=9500000bytes, speed=1.3130M
-			BenchSocket tasks/s=71550.84 time=6.99s cpu=24.92s concurrent=3.57
-			sum=9500000bytes, speed=1.2961M
-		 	*/
+			System.out.println("sum=" + sum + " bytes, speed=" + sum / seconds / 1024 / 1024 + "M");
 		} finally {
 			client.Stop();
 			server.Stop();
