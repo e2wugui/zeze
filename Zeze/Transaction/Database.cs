@@ -588,7 +588,9 @@ namespace Zeze.Transaction
                             LEAVE return_label;
                         end if;
                         set ReturnValue=4;
-                        ROLLBACK;
+                        if 1=1 then
+                            ROLLBACK;
+                        end if;
                         LEAVE return_label;
                     end;";
                 new MySqlCommand(ProcSaveDataWithSameVersion, connection).ExecuteNonQuery();
@@ -656,7 +658,9 @@ namespace Zeze.Transaction
                             LEAVE return_label;
                         end if;
                         set ReturnValue=0;
-                        COMMIT;
+                        if 1=1 then
+                            COMMIT;
+                        end if;
                         LEAVE return_label;
                     end";
                 new MySqlCommand(ProcSetInUse, connection).ExecuteNonQuery();
@@ -689,7 +693,9 @@ namespace Zeze.Transaction
                             delete from _ZezeDataWithVersion_ where id=emptybinary;
                         end if;
                         set ReturnValue=0;
-                        COMMIT;
+                        if 1=1 then
+                            COMMIT;
+                        end if;
                         LEAVE return_label;
                     end";
                 new MySqlCommand(ProcClearInUse, connection).ExecuteNonQuery();
