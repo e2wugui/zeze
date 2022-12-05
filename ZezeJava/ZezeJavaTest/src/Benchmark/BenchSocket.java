@@ -1,9 +1,12 @@
 package Benchmark;
 
+import java.util.ArrayList;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Config;
 import Zeze.Net.Acceptor;
 import Zeze.Net.AsyncSocket;
+import Zeze.Net.Binary;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
@@ -56,6 +59,10 @@ public class BenchSocket {
 		public BenchProtocol() {
 			Argument = new BValue();
 		}
+
+		public BenchProtocol(BValue argument) {
+			Argument = argument;
+		}
 	}
 
 	static class BenchEnd extends Rpc<EmptyBean, EmptyBean> {
@@ -89,8 +96,20 @@ public class BenchSocket {
 		var client = new ClientService("benchClient", clientConfig);
 		var connector = new Connector("127.0.0.1", 9797);
 		client.getConfig().addConnector(connector);
+		client.getSocketOptions().setOutputBufferMaxSize(20 * 1024 * 1024);
 
 		Zeze.Util.Task.tryInitThreadPool(null, null, null);
+
+		// 生成一些随机大小的协议参数Bean。
+		var bValues = new ArrayList<BValue>();
+		for (var i = 0; i < 10; ++i) {
+			bValues.add(new BValue());
+			var bValue = bValues.get(0);
+			var bytes = new byte[Zeze.Util.Random.getInstance().nextInt(200) + 100];
+			Zeze.Util.Random.getInstance().nextBytes(bytes);
+			bValue.setBytes8(new Binary(bytes));
+		}
+
 		server.Start();
 		client.Start();
 		try {
@@ -103,12 +122,15 @@ public class BenchSocket {
 			long sum = 0;
 			long count = 50_0000;
 			for (int i = 0; i < count; ++i) {
-				var benchProtocol = new BenchProtocol().encode();
+				var randIndex = Zeze.Util.Random.getInstance().nextInt(bValues.size());
+				var randBValue = bValues.get(randIndex);
+				// 预先完成 encode 效率会高些，但不符合实际情况。
+				var benchProtocol = new BenchProtocol(randBValue).encode();
 				sum += benchProtocol.size();
 				socket.Send(benchProtocol);
 			}
 			var benchEnd = new BenchEnd();
-			benchEnd.SendForWait(socket).await();
+			benchEnd.SendForWait(socket, Integer.MAX_VALUE).await();
 			var seconds = b.report("BenchSocket", count);
 			System.out.println("sum=" + sum + "bytes, speed=" + sum / seconds / 1024 / 1024 + "M");
 			/*
