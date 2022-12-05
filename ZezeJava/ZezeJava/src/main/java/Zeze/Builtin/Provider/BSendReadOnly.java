@@ -7,7 +7,7 @@ public interface BSendReadOnly {
     public boolean negativeCheck();
     public BSend copy();
 
-    public Zeze.Transaction.Collections.PSet1ReadOnly<Long> getLinkSidsReadOnly();
+    public Zeze.Transaction.Collections.PList1ReadOnly<Long> getLinkSidsReadOnly();
     public long getProtocolType();
     public Zeze.Net.Binary getProtocolWholeData();
 }

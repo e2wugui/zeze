@@ -11,19 +11,19 @@ namespace Zeze.Builtin.Provider
         public bool NegativeCheck();
         public BSend Copy();
 
-        public System.Collections.Generic.IReadOnlySet<long> LinkSids { get; }
+        public System.Collections.Generic.IReadOnlyList<long>LinkSids { get; }
         public long ProtocolType { get; }
         public Zeze.Net.Binary ProtocolWholeData { get; }
     }
 
     public sealed class BSend : Zeze.Transaction.Bean, BSendReadOnly
     {
-        readonly Zeze.Transaction.Collections.CollSet1<long> _linkSids;
+        readonly Zeze.Transaction.Collections.CollList1<long> _linkSids;
         long _protocolType;
         Zeze.Net.Binary _protocolWholeData; // 完整的协议打包，包括了 type, size
 
-        public Zeze.Transaction.Collections.CollSet1<long> LinkSids => _linkSids;
-        System.Collections.Generic.IReadOnlySet<long> Zeze.Builtin.Provider.BSendReadOnly.LinkSids => _linkSids;
+        public Zeze.Transaction.Collections.CollList1<long> LinkSids => _linkSids;
+        System.Collections.Generic.IReadOnlyList<long> Zeze.Builtin.Provider.BSendReadOnly.LinkSids => _linkSids;
 
         public long ProtocolType
         {
@@ -78,13 +78,13 @@ namespace Zeze.Builtin.Provider
 
         public BSend()
         {
-            _linkSids = new Zeze.Transaction.Collections.CollSet1<long>() { VariableId = 1 };
+            _linkSids = new Zeze.Transaction.Collections.CollList1<long>() { VariableId = 1 };
             _protocolWholeData = Zeze.Net.Binary.Empty;
         }
 
         public BSend(long _protocolType_, Zeze.Net.Binary _protocolWholeData_)
         {
-            _linkSids = new Zeze.Transaction.Collections.CollSet1<long>() { VariableId = 1 };
+            _linkSids = new Zeze.Transaction.Collections.CollList1<long>() { VariableId = 1 };
             _protocolType = _protocolType_;
             _protocolWholeData = _protocolWholeData_;
         }

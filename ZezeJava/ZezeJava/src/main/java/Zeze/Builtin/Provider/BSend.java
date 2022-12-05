@@ -7,17 +7,17 @@ import Zeze.Serialize.ByteBuffer;
 public final class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
     public static final long TYPEID = 545774009128015305L;
 
-    private final Zeze.Transaction.Collections.PSet1<Long> _linkSids;
+    private final Zeze.Transaction.Collections.PList1<Long> _linkSids;
     private long _protocolType;
     private Zeze.Net.Binary _protocolWholeData; // 完整的协议打包，包括了 type, size
 
-    public Zeze.Transaction.Collections.PSet1<Long> getLinkSids() {
+    public Zeze.Transaction.Collections.PList1<Long> getLinkSids() {
         return _linkSids;
     }
 
     @Override
-    public Zeze.Transaction.Collections.PSet1ReadOnly<Long> getLinkSidsReadOnly() {
-        return new Zeze.Transaction.Collections.PSet1ReadOnly<>(_linkSids);
+    public Zeze.Transaction.Collections.PList1ReadOnly<Long> getLinkSidsReadOnly() {
+        return new Zeze.Transaction.Collections.PList1ReadOnly<>(_linkSids);
     }
 
     @Override
@@ -64,14 +64,14 @@ public final class BSend extends Zeze.Transaction.Bean implements BSendReadOnly 
 
     @SuppressWarnings("deprecation")
     public BSend() {
-        _linkSids = new Zeze.Transaction.Collections.PSet1<>(Long.class);
+        _linkSids = new Zeze.Transaction.Collections.PList1<>(Long.class);
         _linkSids.variableId(1);
         _protocolWholeData = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
     public BSend(long _protocolType_, Zeze.Net.Binary _protocolWholeData_) {
-        _linkSids = new Zeze.Transaction.Collections.PSet1<>(Long.class);
+        _linkSids = new Zeze.Transaction.Collections.PList1<>(Long.class);
         _linkSids.variableId(1);
         _protocolType = _protocolType_;
         if (_protocolWholeData_ == null)
@@ -143,7 +143,7 @@ public final class BSend extends Zeze.Transaction.Bean implements BSendReadOnly 
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BSend: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("linkSids={");
+        sb.append(Zeze.Util.Str.indent(level)).append("linkSids=[");
         if (!_linkSids.isEmpty()) {
             sb.append(System.lineSeparator());
             level += 4;
@@ -153,7 +153,7 @@ public final class BSend extends Zeze.Transaction.Bean implements BSendReadOnly 
             level -= 4;
             sb.append(Zeze.Util.Str.indent(level));
         }
-        sb.append('}').append(',').append(System.lineSeparator());
+        sb.append(']').append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("protocolType=").append(getProtocolType()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("protocolWholeData=").append(getProtocolWholeData()).append(System.lineSeparator());
         level -= 4;

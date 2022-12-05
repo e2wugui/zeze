@@ -11,19 +11,19 @@ namespace Zeze.Builtin.Provider
         public bool NegativeCheck();
         public BSendResult Copy();
 
-        public System.Collections.Generic.IReadOnlySet<long> ErrorLinkSids { get; }
+        public System.Collections.Generic.IReadOnlyList<long>ErrorLinkSids { get; }
     }
 
     public sealed class BSendResult : Zeze.Transaction.Bean, BSendResultReadOnly
     {
-        readonly Zeze.Transaction.Collections.CollSet1<long> _ErrorLinkSids;
+        readonly Zeze.Transaction.Collections.CollList1<long> _ErrorLinkSids;
 
-        public Zeze.Transaction.Collections.CollSet1<long> ErrorLinkSids => _ErrorLinkSids;
-        System.Collections.Generic.IReadOnlySet<long> Zeze.Builtin.Provider.BSendResultReadOnly.ErrorLinkSids => _ErrorLinkSids;
+        public Zeze.Transaction.Collections.CollList1<long> ErrorLinkSids => _ErrorLinkSids;
+        System.Collections.Generic.IReadOnlyList<long> Zeze.Builtin.Provider.BSendResultReadOnly.ErrorLinkSids => _ErrorLinkSids;
 
         public BSendResult()
         {
-            _ErrorLinkSids = new Zeze.Transaction.Collections.CollSet1<long>() { VariableId = 1 };
+            _ErrorLinkSids = new Zeze.Transaction.Collections.CollList1<long>() { VariableId = 1 };
         }
 
         public void Assign(BSendResult other)

@@ -7,5 +7,5 @@ public interface BSendResultReadOnly {
     public boolean negativeCheck();
     public BSendResult copy();
 
-    public Zeze.Transaction.Collections.PSet1ReadOnly<Long> getErrorLinkSidsReadOnly();
+    public Zeze.Transaction.Collections.PList1ReadOnly<Long> getErrorLinkSidsReadOnly();
 }

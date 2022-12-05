@@ -275,13 +275,13 @@
 			<protocol name="Kick" argument="BKick" handle="client"/>
 
 			<bean name="BSend">
-				<variable name="linkSids"     id="1" type="set" value="long"/>
+				<variable name="linkSids"     id="1" type="list" value="long"/>
 				<variable name="protocolType" id="2" type="long"/>
 				<variable name="protocolWholeData" id="3" type="binary"/> 完整的协议打包，包括了 type, size
 			</bean>
 
 			<bean name="BSendResult">
-				<variable name="ErrorLinkSids" id="1" type="set" value="long"/>
+				<variable name="ErrorLinkSids" id="1" type="list" value="long"/>
 			</bean>
 
 			<rpc name="Send" argument="BSend" result="BSendResult" handle="client"/>

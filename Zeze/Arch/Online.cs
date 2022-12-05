@@ -478,7 +478,8 @@ namespace Zeze.Arch
                     var send = new Send();
                     send.Argument.ProtocolType = typeId;
                     send.Argument.ProtocolWholeData = fullEncodedProtocol;
-                    send.Argument.LinkSids.UnionWith(group.Logins.Values);
+                    foreach (var linkSid in group.Logins.Values)
+                        send.Argument.LinkSids.Add(linkSid);
                     Send(group.LinkSocket, group.Contexts, send);
                 }
             });
@@ -596,7 +597,8 @@ namespace Zeze.Arch
                         var send = new Send();
                         send.Argument.ProtocolType = typeId;
                         send.Argument.ProtocolWholeData = fullEncodedProtocol;
-                        send.Argument.LinkSids.UnionWith(group.Logins.Values);
+                        foreach (var linkSid in group.Logins.Values)
+                            send.Argument.LinkSids.Add(linkSid);
                         Send(group.LinkSocket, group.Contexts, send);
                     }
                 }

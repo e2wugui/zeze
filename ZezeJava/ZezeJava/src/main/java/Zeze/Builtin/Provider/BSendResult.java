@@ -7,20 +7,20 @@ import Zeze.Serialize.ByteBuffer;
 public final class BSendResult extends Zeze.Transaction.Bean implements BSendResultReadOnly {
     public static final long TYPEID = -7186434891670297524L;
 
-    private final Zeze.Transaction.Collections.PSet1<Long> _ErrorLinkSids;
+    private final Zeze.Transaction.Collections.PList1<Long> _ErrorLinkSids;
 
-    public Zeze.Transaction.Collections.PSet1<Long> getErrorLinkSids() {
+    public Zeze.Transaction.Collections.PList1<Long> getErrorLinkSids() {
         return _ErrorLinkSids;
     }
 
     @Override
-    public Zeze.Transaction.Collections.PSet1ReadOnly<Long> getErrorLinkSidsReadOnly() {
-        return new Zeze.Transaction.Collections.PSet1ReadOnly<>(_ErrorLinkSids);
+    public Zeze.Transaction.Collections.PList1ReadOnly<Long> getErrorLinkSidsReadOnly() {
+        return new Zeze.Transaction.Collections.PList1ReadOnly<>(_ErrorLinkSids);
     }
 
     @SuppressWarnings("deprecation")
     public BSendResult() {
-        _ErrorLinkSids = new Zeze.Transaction.Collections.PSet1<>(Long.class);
+        _ErrorLinkSids = new Zeze.Transaction.Collections.PList1<>(Long.class);
         _ErrorLinkSids.variableId(1);
     }
 
@@ -72,7 +72,7 @@ public final class BSendResult extends Zeze.Transaction.Bean implements BSendRes
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BSendResult: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ErrorLinkSids={");
+        sb.append(Zeze.Util.Str.indent(level)).append("ErrorLinkSids=[");
         if (!_ErrorLinkSids.isEmpty()) {
             sb.append(System.lineSeparator());
             level += 4;
@@ -82,7 +82,7 @@ public final class BSendResult extends Zeze.Transaction.Bean implements BSendRes
             level -= 4;
             sb.append(Zeze.Util.Str.indent(level));
         }
-        sb.append('}').append(System.lineSeparator());
+        sb.append(']').append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }

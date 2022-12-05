@@ -439,7 +439,8 @@ namespace Zeze.Game
                         var send = new Send();
                         send.Argument.ProtocolType = typeId;
                         send.Argument.ProtocolWholeData = fullEncodedProtocol;
-                        send.Argument.LinkSids.UnionWith(group.Roles.Values);
+                        foreach (var linkSid in group.Roles.Values)
+                            send.Argument.LinkSids.Add(linkSid);
                         Send(group.LinkSocket, group.Contexts, send);
                 }
             });

@@ -95,11 +95,33 @@ public class BenchSocket {
 
 	@Test
 	public void testSerialize() {
-		var bValue = new BValue();
-		for (long i = 0; i < 100; ++i) {
-			bValue.getMap15().put(i, i);
-			bValue.getArray29().add((float)i);
+		{
+			System.out.println("PMap");
+			var bValue = new BValue();
+			for (long i = 0; i < 100; ++i) {
+				bValue.getMap15().put(i, i);
+			}
+			testSerialize(bValue);
 		}
+		{
+			System.out.println("PList");
+			var bValue = new BValue();
+			for (long i = 0; i < 100; ++i) {
+				bValue.getArray29().add((float)i);
+			}
+			testSerialize(bValue);
+		}
+
+		{
+			System.out.println("PSet");
+			var bValue = new BValue();
+			for (int i = 0; i < 100; ++i) {
+				bValue.getSet10().add(i);
+			}
+			testSerialize(bValue);
+		}
+	}
+	public void testSerialize(BValue bValue) {
 		long sum = 0;
 		var b = new Zeze.Util.Benchmark();
 		for (var i = 0; i < 100_0000; ++i) {
