@@ -192,8 +192,10 @@ public final class DatabaseMySql extends DatabaseJdbc {
 						"                            LEAVE return_label;" + "\r\n" +
 						"                        end if;" + "\r\n" +
 						"                        set ReturnValue=4;" + "\r\n" +
-						"                        ROLLBACK;" + "\r\n" +
-						"                        LEAVE return_label;" + "\r\n" +
+						"                        if 1=1 then" + "\r\n" +
+						"							 ROLLBACK;" + "\r\n" +
+						"                        end if;" + "\r\n" +
+						"						 LEAVE return_label;" + "\r\n" +
 						"                    end;";
 				try (var cmd = connection.prepareStatement(ProcSaveDataWithSameVersion)) {
 					cmd.executeUpdate();
@@ -264,8 +266,10 @@ public final class DatabaseMySql extends DatabaseJdbc {
 						"                            LEAVE return_label;" + "\r\n" +
 						"                        end if;" + "\r\n" +
 						"                        set ReturnValue=0;" + "\r\n" +
-						"                        COMMIT;" + "\r\n" +
-						"                        LEAVE return_label;" + "\r\n" +
+						"                        if 1=1 then" + "\r\n" +
+						"							 COMMIT;" + "\r\n" +
+						"                        end if;" + "\r\n" +
+						"						 LEAVE return_label;" + "\r\n" +
 						"                    end;";
 				try (var cmd = connection.prepareStatement(ProcSetInUse)) {
 					cmd.executeUpdate();
@@ -300,8 +304,10 @@ public final class DatabaseMySql extends DatabaseJdbc {
 						"                            delete from _ZezeDataWithVersion_ where id=emptybinary;" + "\r\n" +
 						"                        end if;" + "\r\n" +
 						"                        set ReturnValue=0;" + "\r\n" +
-						"                        COMMIT;" + "\r\n" +
-						"                        LEAVE return_label;" + "\r\n" +
+						"                        if 1=1 then" + "\r\n" +
+						"							 COMMIT;" + "\r\n" +
+						"                        end if;" + "\r\n" +
+						"						 LEAVE return_label;" + "\r\n" +
 						"                    end;";
 				try (var cmd = connection.prepareStatement(ProcClearInUse)) {
 					cmd.executeUpdate();
