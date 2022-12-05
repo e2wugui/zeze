@@ -138,7 +138,8 @@ public class BenchSocket {
 		var client = new ClientService("benchClient", clientConfig);
 		var connector = new Connector("127.0.0.1", 9797);
 		client.getConfig().addConnector(connector);
-		client.getSocketOptions().setOutputBufferMaxSize(40 * 1024 * 1024);
+		int maxOutputBufferSize = 100 * 1024 * 1024;
+		client.getSocketOptions().setOutputBufferMaxSize(maxOutputBufferSize);
 
 		Zeze.Util.Task.tryInitThreadPool(null, null, null);
 
@@ -161,20 +162,19 @@ public class BenchSocket {
 			// bench
 			var b = new Zeze.Util.Benchmark();
 			long sum = 0;
-			long count = 50_0000;
-			var benchLoop = 1;
-			for (var bench = 0; bench < benchLoop; ++bench) {
-				for (int i = 0; i < count; ++i) {
-					var randIndex = Zeze.Util.Random.getInstance().nextInt(bValues.size());
-					var randBValue = bValues.get(randIndex);
-					// 预先完成 encode 效率会高些，但不符合实际情况。
-					var benchProtocol = new BenchProtocol(randBValue).encode();
-					sum += benchProtocol.size();
-					socket.Send(benchProtocol);
-				}
-				var benchEnd = new BenchEnd();
-				benchEnd.SendForWait(socket, Integer.MAX_VALUE).await();
+			long count = 0;
+			while (sum < maxOutputBufferSize) {
+				var randIndex = Zeze.Util.Random.getInstance().nextInt(bValues.size());
+				var randBValue = bValues.get(randIndex);
+				// 预先完成 encode 效率会高些，但不符合实际情况。
+				var benchProtocol = new BenchProtocol(randBValue).encode();
+				sum += benchProtocol.size();
+				++count;
+				socket.Send(benchProtocol);
 			}
+			var benchEnd = new BenchEnd();
+			benchEnd.SendForWait(socket, Integer.MAX_VALUE).await();
+
 			var seconds = b.report("BenchSocket", count);
 			System.out.println("sum=" + sum + " bytes, speed=" + sum / seconds / 1024 / 1024 + "M");
 		} finally {
