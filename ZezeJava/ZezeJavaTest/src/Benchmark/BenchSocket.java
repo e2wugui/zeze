@@ -19,7 +19,7 @@ import demo.Module1.BValue;
 import org.junit.Test;
 
 public class BenchSocket {
-	static class ServerService extends Service {
+	static class ServerService extends Zeze.Services.HandshakeServer {
 		public ServerService(String name, Config config) throws Throwable {
 			super(name, config);
 			//AddFactoryHandle(new BenchProtocol().getTypeId(), new ProtocolFactoryHandle<>(BenchProtocol::new, this::ProcessBenchProtocol));
@@ -44,7 +44,7 @@ public class BenchSocket {
 		}
 	}
 
-	static class ClientService extends Service {
+	static class ClientService extends Zeze.Services.HandshakeClient {
 
 		public ClientService(String name, Config config) throws Throwable {
 			super(name, config);
@@ -128,10 +128,17 @@ public class BenchSocket {
 
 	@Test
 	public void testBench() throws Throwable {
+		testBench(false);
+		System.out.println("Encrypt");
+		testBench(true);
+	}
+
+	public void testBench(boolean encrypt) throws Throwable {
 		// create server
 		var serverConfig = new Config();
 		var server = new ServerService("benchServer", serverConfig);
 		server.getConfig().addAcceptor(new Acceptor(9797, "127.0.0.1"));
+		server.getConfig().getHandshakeOptions().setEnableEncrypt(encrypt);
 
 		// create client and connector
 		var clientConfig = new Config();
