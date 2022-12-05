@@ -163,7 +163,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 						"                        START TRANSACTION;" + "\r\n" +
 						"                        set ReturnValue=1;" + "\r\n" +
 						"                        select version INTO oldversionexsit from _ZezeDataWithVersion_ where id=in_id;" + "\r\n" +
-						"                        select FOUND_ROWS() into ROWCOUNT;" + "\r\n" +
+						"                        select COUNT(*) into ROWCOUNT from _ZezeDataWithVersion_ where id=in_id;" + "\r\n" +
 						"                        if ROWCOUNT > 0 then" + "\r\n" +
 						"                            if oldversionexsit <> inout_version then" + "\r\n" +
 						"                                set ReturnValue=2;" + "\r\n" +
@@ -237,7 +237,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 						"                        end if;" + "\r\n" +
 						"                        set emptybinary = BINARY '';" + "\r\n" +
 						"                        select data into currentglobal from _ZezeDataWithVersion_ where id=emptybinary;" + "\r\n" +
-						"                        select FOUND_ROWS() into ROWCOUNT;" + "\r\n" +
+						"                        select COUNT(*) into ROWCOUNT from _ZezeDataWithVersion_ where id=emptybinary;" + "\r\n" +
 						"                        if ROWCOUNT > 0 then" + "\r\n" +
 						"                            if currentglobal <> in_global then" + "\r\n" +
 						"                                set ReturnValue=4;" + "\r\n" +

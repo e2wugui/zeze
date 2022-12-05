@@ -559,7 +559,7 @@ namespace Zeze.Transaction
                         START TRANSACTION;
                         set ReturnValue=1;
                         select version INTO oldversionexsit from _ZezeDataWithVersion_ where id=in_id;
-                        select FOUND_ROWS() into ROWCOUNT;
+                        select COUNT(*) into ROWCOUNT from _ZezeDataWithVersion_ where id=in_id;
                         if ROWCOUNT > 0 then
                             if oldversionexsit <> inout_version then
                                 set ReturnValue=2;
@@ -629,7 +629,7 @@ namespace Zeze.Transaction
                         end if;
                         set emptybinary = BINARY '';
                         select data into currentglobal from _ZezeDataWithVersion_ where id=emptybinary;
-                        select FOUND_ROWS() into ROWCOUNT;
+                        select COUNT(*) into ROWCOUNT from _ZezeDataWithVersion_ where id=emptybinary;
                         if ROWCOUNT > 0 then
                             if currentglobal <> in_global then
                                 set ReturnValue=4;
