@@ -12,7 +12,7 @@ public interface BTaskEventReadOnly {
     public boolean negativeCheck();
     public BTaskEvent copy();
 
-    public long getTaskId();
+    public long getRoleId();
     public Zeze.Transaction.DynamicBeanReadOnly getExtendedDataReadOnly();
 
 }

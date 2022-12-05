@@ -9,23 +9,30 @@ import Zeze.Transaction.Bean;
 
 public abstract class TaskConditionBase<ConditionBean extends Bean, EventBean extends Bean> {
 
-	public abstract String getName();
 	public abstract boolean isDone();
+
 	public abstract boolean accept(Bean eventBean);
+
 	public TaskConditionBase(Class<ConditionBean> extendedBeanClass, Class<EventBean> eventBeanClass) {
 		bean = new BTaskCondition();
 
-		extendedBeanConstructor = beanFactory.register(extendedBeanClass);
+		MethodHandle extendedBeanConstructor = beanFactory.register(extendedBeanClass);
 		bean.getExtendedData().setBean(BeanFactory.invoke(extendedBeanConstructor));
 	}
 
 	/**
 	 * Bean
 	 */
-	public BTaskCondition getBean() { return bean; }
+	public BTaskCondition getBean() {
+		return bean;
+	}
+
 	private final BTaskCondition bean;
+
 	@SuppressWarnings("unchecked")
-	public ConditionBean getExtendedBean() { return (ConditionBean)bean.getExtendedData().getBean(); }
+	public ConditionBean getExtendedBean() {
+		return (ConditionBean)bean.getExtendedData().getBean();
+	}
 
 	private final static BeanFactory beanFactory = new BeanFactory();
 
@@ -37,16 +44,15 @@ public abstract class TaskConditionBase<ConditionBean extends Bean, EventBean ex
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
-	private final MethodHandle extendedBeanConstructor;
 	@SuppressWarnings("unchecked")
-	public final Class<ConditionBean> getConditionBeanClass(){
-		ParameterizedType parameterizedType = (ParameterizedType) this.getClass().getGenericSuperclass();
-		return (Class<ConditionBean>) parameterizedType.getActualTypeArguments()[0];
+	public final Class<ConditionBean> getConditionBeanClass() {
+		ParameterizedType parameterizedType = (ParameterizedType)this.getClass().getGenericSuperclass();
+		return (Class<ConditionBean>)parameterizedType.getActualTypeArguments()[0];
 	}
 
 	@SuppressWarnings("unchecked")
-	public final Class<EventBean> getEventBeanClass(){
-		ParameterizedType parameterizedType = (ParameterizedType) this.getClass().getGenericSuperclass();
-		return (Class<EventBean>) parameterizedType.getActualTypeArguments()[1];
+	public final Class<EventBean> getEventBeanClass() {
+		ParameterizedType parameterizedType = (ParameterizedType)this.getClass().getGenericSuperclass();
+		return (Class<EventBean>)parameterizedType.getActualTypeArguments()[1];
 	}
 }

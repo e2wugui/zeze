@@ -6,10 +6,6 @@ import Zeze.Game.TaskConditionBase;
 import Zeze.Transaction.Bean;
 
 public class ConditionReachNPC extends TaskConditionBase<BTConditionReachNPC, BTConditionReachNPCEvent> {
-	@Override
-	public String getName() {
-		return null;
-	}
 
 	@Override
 	public boolean isDone() {

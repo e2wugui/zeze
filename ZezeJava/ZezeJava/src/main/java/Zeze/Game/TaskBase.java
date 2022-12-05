@@ -33,18 +33,17 @@ public class TaskBase<ExtendedBean extends Bean> {
 		 */
 		@Override
 		protected long ProcessTriggerTaskEventRequest(TriggerTaskEvent r) throws Throwable {
-			var taskId = r.Argument.getTaskId();
-			var customBeanClass = r.Argument.getExtendedData().getBean().getClass();
-			var task = getTask(taskId); // TODO: 处理没找到Task等异常情况
-			var eventBean = r.Argument.getExtendedData().getBean();
-
-			// 转发给任务当前phase的所有的condition
-			int acceptedCount = 0;
-			for (var condition : task.getCurrentPhase().getCurrentConditions()) {
-				if (condition.getEventBeanClass() == eventBean.getClass()) {
-					if (condition.accept(eventBean)) {
-						acceptedCount++;
-					}
+			var roleId = r.Argument.getRoleId();
+			var processingTasksId = _tRoleTask.get(roleId).getProcessingTasksId();
+			for (long id : processingTasksId) {
+				var task = tasks.get(Long.toString(id));
+				if (null == task) {
+					r.Result.setResultCode(TaskResultTaskNotFound);
+					return Procedure.Success;
+				}
+				var eventBean = r.Argument.getExtendedData().getBean();
+				for (var condition : task.getCurrentPhase().getCurrentConditions()){
+					condition.accept(eventBean);
 				}
 			}
 			r.Result.setResultCode(TaskResultAccepted);

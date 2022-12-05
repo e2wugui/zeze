@@ -136,7 +136,7 @@ public class TestTask extends TestCase {
 	// 一个简单的任务，用于测试。
 	private static void collectCoin(ClientGame.App app, long roleId, TaskBase<?> task, long count) {
 		TriggerTaskEvent taskEvent = new TriggerTaskEvent();
-		taskEvent.Argument.setTaskId(task.getId());
+		taskEvent.Argument.setRoleId(roleId);
 		var bean = new BCollectCoinEvent("收集金币", count);
 		taskEvent.Argument.getExtendedData().setBean(bean);
 		taskEvent.SendForWait(app.ClientService.GetSocket()).await();

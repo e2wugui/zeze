@@ -769,9 +769,10 @@
 					这个rpc的参数是BTaskEvent，内部的DynamicData是各个不同的任务的不同Bean数据
 				-->
 				<bean name="BTaskEvent">
-					<variable id="1" name="taskId" type="long"/>
+					<variable id="1" name="roleId" type="long"/>
 					<!-- 不需要指定下面具体的Condition，当一个具体的Condition的Bean被传入时，会自动判断当前的Phase的各个Condition是否接受这个Event -->
-					<variable id="2" name="extendedData" type="dynamic">
+					<variable id="3" name="extendedData" type="dynamic">
+<!--						<variable id="2" name="taskId" type="long"/>-->
 						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskBase::getSpecialTypeIdFromBean"/>
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskBase::createBeanFromSpecialTypeId"/>
 					</variable>

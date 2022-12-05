@@ -38,9 +38,4 @@ public class ConditionNamedCount extends TaskConditionBase<BCollectCoinTask, BCo
 	public long getTargetCount() {
 		return getExtendedBean().getTargetCoinCount();
 	}
-
-	@Override
-	public String getName() {
-		return getExtendedBean().getName();
-	}
 }

@@ -7,11 +7,6 @@ import Zeze.Game.TaskConditionBase;
 public class ConditionSubmitItem extends TaskConditionBase<BTConditionSubmitItem, BTConditionSubmitItemEvent> {
 
 	@Override
-	public String getName() {
-		return "SubmitItem";
-	}
-
-	@Override
 	public boolean isDone() {
 		return false;
 	}
