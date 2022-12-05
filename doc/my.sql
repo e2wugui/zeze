@@ -42,7 +42,7 @@ Create procedure _ZezeSaveDataWithSameVersion_ (
 		START TRANSACTION;
 		set ReturnValue=1;
 		select version INTO oldversionexsit from _ZezeDataWithVersion_ where id=in_id;
-		select FOUND_ROWS() into ROWCOUNT;
+		select COUNT(*) into ROWCOUNT from _ZezeDataWithVersion_ where id=in_id;
 		if ROWCOUNT > 0 then
 			if oldversionexsit <> inout_version then
 				set ReturnValue=2;
