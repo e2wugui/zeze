@@ -119,7 +119,7 @@ public class BenchSocket {
 			var bb = ByteBuffer.Wrap(encoded.Bytes, encoded.ReadIndex, encoded.size());
 			var value = new BValue();
 			value.decode(bb);
-			dummy += value.getInt1();
+			dummy += value.getArray29().size() + value.getMap15().size();
 		}
 		seconds = b2.report("decode", 20_0000);
 		System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
