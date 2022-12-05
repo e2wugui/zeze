@@ -24,6 +24,18 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
         return Zeze.Game.TaskConditionBase.createBeanFromSpecialTypeId(typeId);
     }
 
+    private transient Object __zeze_map_key__;
+
+    @Override
+    public Object mapKey() {
+        return __zeze_map_key__;
+    }
+
+    @Override
+    public void mapKey(Object value) {
+        __zeze_map_key__ = value;
+    }
+
     @Override
     public int getConditionType() {
         if (!isManaged())

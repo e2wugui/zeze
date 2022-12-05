@@ -11,7 +11,6 @@ import Zeze.Builtin.Game.TaskBase.BTask;
 import Zeze.Builtin.Game.TaskBase.BTaskEvent;
 import Zeze.Builtin.Game.TaskBase.BTaskKey;
 import Zeze.Builtin.Game.TaskBase.TriggerTaskEvent;
-import Zeze.Builtin.Game.TaskBase.tTask;
 import Zeze.Collections.BeanFactory;
 import Zeze.Game.Task.NPCTask;
 import Zeze.Transaction.Bean;
@@ -20,17 +19,13 @@ import Zeze.Transaction.Procedure;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
 
-/**
- * Task类
- * Task类本质是一个配置表，把真正需要的数据放到BTask里面
- */
 public class TaskBase<ExtendedBean extends Bean> {
 	/**
 	 * Task Module
 	 */
 	public static class Module extends AbstractTaskBase {
 		/**
-		 * 所有任务的Trigger Rpc，负责中转请求
+		 * 所有任务的Trigger Rpc，负责中转所以请求
 		 */
 		@Override
 		protected long ProcessTriggerTaskEventRequest(TriggerTaskEvent r) throws Throwable {
@@ -40,8 +35,7 @@ public class TaskBase<ExtendedBean extends Bean> {
 				r.Result.setResultCode(TaskResultInvalidRoleId);
 				return Procedure.Success;
 			}
-			var processingTasksId = taskInfo.getProcessingTasksId();
-			for (long id : processingTasksId) {
+			for (long id : taskInfo.getProcessingTasksId()) {
 				// 广播事件给所有任务
 				var task = tasks.get(Long.toString(id));
 				if (task.accept(r.Argument))
@@ -50,6 +44,20 @@ public class TaskBase<ExtendedBean extends Bean> {
 			}
 			r.Result.setResultCode(TaskResultAccepted);
 			return Procedure.Success;
+		}
+
+		/**
+		 * 新建内置任务：NPCTask
+		 */
+		public NPCTask newNPCTask(TaskBaseOpt opt) {
+			return open(opt, NPCTask.class, BNPCTaskDynamics.class);
+		}
+
+		/**
+		 * 新建非内置任务
+		 */
+		public <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>> ExtendedTask newCustomTask(TaskBaseOpt opt, Class<ExtendedTask> extendedTaskClass, Class<ExtendedBean> extendedBeanClass) {
+			return open(opt, extendedTaskClass, extendedBeanClass);
 		}
 
 		private final ConcurrentHashMap<String, TaskBase<?>> tasks = new ConcurrentHashMap<>();
@@ -66,6 +74,12 @@ public class TaskBase<ExtendedBean extends Bean> {
 			taskGraphics = new TaskGraphics(this);
 		}
 
+		/**
+		 * 加载任务配置表
+		 */
+		public void loadConfig(String taskConfigTable) {
+		}
+
 		public void register(Class<? extends Bean> cls) {
 			beanFactory.register(cls);
 			_tEventClasses.getOrAdd(1).getEventClasses().add(cls.getName());
@@ -76,18 +90,6 @@ public class TaskBase<ExtendedBean extends Bean> {
 			if (null != zeze) {
 				UnRegisterZezeTables(zeze);
 			}
-		}
-
-		public tTask getTable() {
-			return _tTask;
-		}
-
-		public <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>> ExtendedTask newCustomTask(TaskBaseOpt opt, Class<ExtendedTask> extendedTaskClass, Class<ExtendedBean> extendedBeanClass) {
-			return open(opt, extendedTaskClass, extendedBeanClass);
-		}
-
-		public NPCTask newNPCTask(TaskBaseOpt opt) {
-			return open(opt, NPCTask.class, BNPCTaskDynamics.class);
 		}
 
 		// 需要在事务内使用。 使用完不要保存。
@@ -102,30 +104,9 @@ public class TaskBase<ExtendedBean extends Bean> {
 				}
 			});
 		}
-
-		public TaskBase<?> getTask(long taskId) {
-			return tasks.get(Long.toString(taskId));
-		}
 	}
 
 	// @formatter:off
-
-	/**
-	 * Task Info:
-	 * 1. Task Id
-	 * 2. Task Type
-	 * 3. Task State
-	 * 4. Task Name
-	 * 5. Task Description
-	 */
-	public long getId() { return bean.getTaskId(); }
-	public int getType() { return bean.getTaskType(); }
-	public int getState() { return bean.getTaskState(); }
-	public String getName() { return bean.getTaskName(); }
-	public String getDescription() { return bean.getTaskDescription(); }
-	public Module getModule() { return module; }
-	private final Module module;
-
 	/**
 	 * Task Constructors
 	 */
@@ -155,19 +136,24 @@ public class TaskBase<ExtendedBean extends Bean> {
 
 //		module.taskGraphics.addNewTask(this);
 	}
-	// @formatter:on
 
 	/**
-	 * Task Phases
+	 * Task Info:
+	 * 1. Task Id
+	 * 2. Task Type
+	 * 3. Task State
+	 * 4. Task Name
+	 * 5. Task Description
 	 */
-	public TaskPhase getCurrentPhase() {
-		return currentPhase;
-	}
-
-	private TaskPhase startPhase;
-	private TaskPhase currentPhase;
-	private TaskPhase endPhase;
-	private final DirectedAcyclicGraph<TaskPhase, DefaultEdge> phases; // 任务的各个阶段的连接图
+	public long getId() { return bean.getTaskId(); }
+	public int getType() { return bean.getTaskType(); }
+	public int getState() { return bean.getTaskState(); }
+	public String getName() { return bean.getTaskName(); }
+	public String getDescription() { return bean.getTaskDescription(); }
+	public Module getModule() { return module; }
+	private final Module module;
+	private TaskPhase startPhase, currentPhase, endPhase;
+	// @formatter:on
 
 	/**
 	 * Runtime方法：accept
@@ -176,7 +162,9 @@ public class TaskBase<ExtendedBean extends Bean> {
 	 */
 	public boolean accept(BTaskEvent eventBean) {
 		if (currentPhase.accept(eventBean)) {
-			tryToProceedToNextPhase();
+			if (currentPhase.isCompleted()) {
+				
+			}
 		}
 		return false;
 	}
@@ -187,6 +175,15 @@ public class TaskBase<ExtendedBean extends Bean> {
 	 */
 	public boolean isCompleted() {
 		return endPhase.isCompleted() && currentPhase == endPhase;
+	}
+
+	/**
+	 * Runtime方法：reset
+	 * - 将任务回归到初始化状态
+	 */
+	public void reset() {
+		currentPhase = startPhase;
+		currentPhase.reset();
 	}
 
 	// ======================================== 任务初始化阶段的方法 ========================================
@@ -232,22 +229,14 @@ public class TaskBase<ExtendedBean extends Bean> {
 		}
 		endPhase = zeroOutDegreeNodeSupplier.get().findAny().get();
 
-		for (var phase : phases.vertexSet()) {
-			phase.setupPhase();
-		}
+//		for (var phase : phases.vertexSet()) {
+//			phase.setupPhase();
+//		}
 	}
 
 	// ======================================== Private方法和一些不需要被注意的方法 ========================================
 
-	/**
-	 * 内部方法：proceedToNextPhase
-	 * - 当accept成功后（即对数据库数据进行了修改之后），会自动调用此方法
-	 */
-	private void tryToProceedToNextPhase() {
-		if (currentPhase.isCompleted()) {
-			var nextPhase = phases.getDescendants(currentPhase);
-		}
-	}
+	private final DirectedAcyclicGraph<TaskPhase, DefaultEdge> phases; // 任务的各个阶段的连接图
 
 	/**
 	 * Bean

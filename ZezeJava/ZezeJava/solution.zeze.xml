@@ -750,7 +750,7 @@
 					<variable id="5" name="taskDescription" type="string"/> 任务的描述。
 					<variable id="6" name="preTasksId" type="list" value="long"/> 前置任务Id（只需要存储前置任务就可以建立起整个TaskGraphics，不需要存储后置任务）
 					<variable id="7" name="currentPhaseId" type="long"/> 当前的PhaseId
-					<variable id="8" name="taskPhases" type="list" value="BTaskPhase"/> 该任务所有的Phase
+					<variable id="8" name="taskPhases" type="map" key="long" value="BTaskPhase"/> 该任务所有的Phase
 					<variable id="9" name="extendedData" type="dynamic"> 用于自定义扩展Task的数据
 						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskBase::getSpecialTypeIdFromBean"/>
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskBase::createBeanFromSpecialTypeId"/>
@@ -789,25 +789,32 @@
 				<!-- ======================================== TaskPhase的Bean数据 ======================================== -->
 				<enum name="CommitAuto" value="11"/>
 				<enum name="CommitNPCTalk" value="12"/>
+				<enum name="ConditionCompleteAll" value="21"/>
+				<enum name="ConditionCompleteAny" value="22"/>
+				<enum name="ConditionCompleteSequence" value="23"/> 按顺序完成（比如一长段NPC对话的各个选项）
+				<enum name="ConditionCompleteBranch" value="24"/> 通过不同的完成条件实现进入不同的分支Phase
 				<bean name="BTaskPhase">
 					<variable id="1" name="phaseId" type="long"/> Phase的Id
 					<variable id="2" name="phaseType" type="int"/> Phase的提交类型
 					<variable id="3" name="phaseName" type="string"/> Phase的名字
 					<variable id="4" name="phaseDescription" type="string"/> Phase的描述
 					<variable id="5" name="prePhasesId" type="list" value="long"/> 前置PhaseId
-					<variable id="6" name="conditions" type="list" value="BTaskCondition"/> 该Phase所有的Condition
-					<variable id="7" name="extendedData" type="dynamic"> 用于自定义扩展Phase的数据
+					<variable id="6" name="afterPhasesId" type="list" value="long"/> 后置PhaseId
+					<variable id="7" name="nextPhaseId" type="long"/> 下一个PhaseId（允许通过不同的conditions完成情况动态变化）
+					<variable id="8" name="conditions" type="map" key="long" value="BTaskCondition"/> 该Phase所有的Condition
+					<variable id="9" name="conditionsCompleteType" type="int"/> 该Phase的Condition的完成类型
+					<variable id="10" name="extendedData" type="dynamic"> 用于自定义扩展Phase的数据
 						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskBase::getSpecialTypeIdFromBean"/>
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskBase::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
 				<!-- ======================================== TaskPhase的Bean数据 ======================================== -->
 				<!-- ======================================== TaskCondition的Bean数据 ======================================== -->
-				<enum name="CompleteNPCTalk" value="21"/>
-				<enum name="CompleteArriveArea" value="22"/>
-				<enum name="CompleteCollectItem" value="23"/>
-				<enum name="CompleteSubmitItem" value="24"/>
-				<enum name="CompleteArriveNPC" value="25"/>
+				<enum name="CompleteNPCTalk" value="31"/>
+				<enum name="CompleteArriveArea" value="32"/>
+				<enum name="CompleteCollectItem" value="33"/>
+				<enum name="CompleteSubmitItem" value="34"/>
+				<enum name="CompleteArriveNPC" value="35"/>
 				<bean name="BTaskCondition"> TODO: 允许广播
 					<variable id="1" name="conditionType" type="int"/> Condition的完成类型
 					<variable id="2" name="conditionId" type="long"/> Condition的Id

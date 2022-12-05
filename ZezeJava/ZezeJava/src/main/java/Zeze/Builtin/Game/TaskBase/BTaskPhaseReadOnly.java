@@ -12,7 +12,10 @@ public interface BTaskPhaseReadOnly {
     public String getPhaseName();
     public String getPhaseDescription();
     public Zeze.Transaction.Collections.PList1ReadOnly<Long> getPrePhasesIdReadOnly();
-    public Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.Game.TaskBase.BTaskCondition, Zeze.Builtin.Game.TaskBase.BTaskConditionReadOnly> getConditionsReadOnly();
+    public Zeze.Transaction.Collections.PList1ReadOnly<Long> getAfterPhasesIdReadOnly();
+    public long getNextPhaseId();
+    public Zeze.Transaction.Collections.PMap2ReadOnly<Long, Zeze.Builtin.Game.TaskBase.BTaskCondition, Zeze.Builtin.Game.TaskBase.BTaskConditionReadOnly> getConditionsReadOnly();
+    public int getConditionsCompleteType();
     public Zeze.Transaction.DynamicBeanReadOnly getExtendedDataReadOnly();
 
 }

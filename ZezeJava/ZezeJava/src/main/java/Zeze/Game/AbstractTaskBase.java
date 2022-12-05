@@ -19,11 +19,15 @@ public abstract class AbstractTaskBase extends Zeze.IModule {
     public static final int TaskResultInvalidRoleId = 102;
     public static final int CommitAuto = 11;
     public static final int CommitNPCTalk = 12;
-    public static final int CompleteNPCTalk = 21;
-    public static final int CompleteArriveArea = 22;
-    public static final int CompleteCollectItem = 23;
-    public static final int CompleteSubmitItem = 24;
-    public static final int CompleteArriveNPC = 25;
+    public static final int ConditionCompleteAll = 21;
+    public static final int ConditionCompleteAny = 22;
+    public static final int ConditionCompleteSequence = 23; // 按顺序完成（比如一长段NPC对话的各个选项）
+    public static final int ConditionCompleteBranch = 24; // 通过不同的完成条件实现进入不同的分支Phase
+    public static final int CompleteNPCTalk = 31;
+    public static final int CompleteArriveArea = 32;
+    public static final int CompleteCollectItem = 33;
+    public static final int CompleteSubmitItem = 34;
+    public static final int CompleteArriveNPC = 35;
 
     protected final Zeze.Builtin.Game.TaskBase.tEventClasses _tEventClasses = new Zeze.Builtin.Game.TaskBase.tEventClasses();
     protected final Zeze.Builtin.Game.TaskBase.tRoleTask _tRoleTask = new Zeze.Builtin.Game.TaskBase.tRoleTask();
