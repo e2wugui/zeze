@@ -3,6 +3,7 @@ package Zeze.Game;
 import java.util.ArrayList;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
+import Zeze.Builtin.Game.TaskBase.BTaskEvent;
 import Zeze.Builtin.Game.TaskBase.BTaskPhase;
 import Zeze.Transaction.Bean;
 import org.jgrapht.graph.DefaultEdge;
@@ -50,7 +51,7 @@ public class TaskPhase {
 	 * - 用于接收事件，改变数据库的数据
 	 * - 当满足任务Phase推进情况时，会自动推进任务Phase
 	 */
-	public boolean accept(Bean eventBean) {
+	public boolean accept(BTaskEvent eventBean) {
 		for (var condition : currentConditions)
 			condition.accept(eventBean);
 		return isCompleted();

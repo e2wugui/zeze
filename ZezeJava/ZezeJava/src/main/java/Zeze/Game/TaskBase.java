@@ -8,6 +8,7 @@ import Zeze.Application;
 import Zeze.Arch.ProviderApp;
 import Zeze.Builtin.Game.TaskBase.BNPCTaskDynamics;
 import Zeze.Builtin.Game.TaskBase.BTask;
+import Zeze.Builtin.Game.TaskBase.BTaskEvent;
 import Zeze.Builtin.Game.TaskBase.BTaskKey;
 import Zeze.Builtin.Game.TaskBase.TriggerTaskEvent;
 import Zeze.Builtin.Game.TaskBase.tTask;
@@ -34,17 +35,18 @@ public class TaskBase<ExtendedBean extends Bean> {
 		@Override
 		protected long ProcessTriggerTaskEventRequest(TriggerTaskEvent r) throws Throwable {
 			var roleId = r.Argument.getRoleId();
-			var processingTasksId = _tRoleTask.get(roleId).getProcessingTasksId();
+			var taskInfo = _tRoleTask.get(roleId);
+			if (taskInfo == null) {
+				r.Result.setResultCode(TaskResultInvalidRoleId);
+				return Procedure.Success;
+			}
+			var processingTasksId = taskInfo.getProcessingTasksId();
 			for (long id : processingTasksId) {
+				// 广播事件给所有任务
 				var task = tasks.get(Long.toString(id));
-				if (null == task) {
-					r.Result.setResultCode(TaskResultTaskNotFound);
-					return Procedure.Success;
-				}
-				var eventBean = r.Argument.getExtendedData().getBean();
-				for (var condition : task.getCurrentPhase().getCurrentConditions()){
-					condition.accept(eventBean);
-				}
+				if (task.accept(r.Argument))
+					if (r.Argument.isIsBreakIfAccepted())
+						break;
 			}
 			r.Result.setResultCode(TaskResultAccepted);
 			return Procedure.Success;
@@ -172,9 +174,11 @@ public class TaskBase<ExtendedBean extends Bean> {
 	 * - 用于接收事件，改变数据库的数据
 	 * - 当满足任务推进情况时，会自动推进任务
 	 */
-	public void accept(Bean eventBean) {
-		if (currentPhase.accept(eventBean))
+	public boolean accept(BTaskEvent eventBean) {
+		if (currentPhase.accept(eventBean)) {
 			tryToProceedToNextPhase();
+		}
+		return false;
 	}
 
 	/**

@@ -2,8 +2,8 @@ package Zeze.Game.Task;
 
 import Zeze.Builtin.Game.TaskBase.BTConditionReachNPC;
 import Zeze.Builtin.Game.TaskBase.BTConditionReachNPCEvent;
+import Zeze.Builtin.Game.TaskBase.BTaskEvent;
 import Zeze.Game.TaskConditionBase;
-import Zeze.Transaction.Bean;
 
 public class ConditionReachNPC extends TaskConditionBase<BTConditionReachNPC, BTConditionReachNPCEvent> {
 
@@ -13,7 +13,7 @@ public class ConditionReachNPC extends TaskConditionBase<BTConditionReachNPC, BT
 	}
 
 	@Override
-	public boolean accept(Bean eventBean) {
+	public boolean accept(BTaskEvent eventBean) {
 		return false;
 	}
 

@@ -770,6 +770,7 @@
 				-->
 				<bean name="BTaskEvent">
 					<variable id="1" name="roleId" type="long"/>
+					<variable id="2" name="isBreakIfAccepted" type="bool"/> 是否在接取任务时，如果任务已经接取，则直接返回。
 					<!-- 不需要指定下面具体的Condition，当一个具体的Condition的Bean被传入时，会自动判断当前的Phase的各个Condition是否接受这个Event -->
 					<variable id="3" name="extendedData" type="dynamic">
 <!--						<variable id="2" name="taskId" type="long"/>-->
@@ -779,6 +780,7 @@
 				</bean>
 				<enum name="TaskResultAccepted" value="100"/>
 				<enum name="TaskResultTaskNotFound" value="101"/>
+				<enum name="TaskResultInvalidRoleId" value="102"/>
 				<bean name="BTaskEventResult">
 					<variable id="1" name="resultCode" type="long"/> 返回码
 				</bean>

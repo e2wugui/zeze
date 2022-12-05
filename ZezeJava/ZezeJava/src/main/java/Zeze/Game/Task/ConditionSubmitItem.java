@@ -2,6 +2,7 @@ package Zeze.Game.Task;
 
 import Zeze.Builtin.Game.TaskBase.BTConditionSubmitItem;
 import Zeze.Builtin.Game.TaskBase.BTConditionSubmitItemEvent;
+import Zeze.Builtin.Game.TaskBase.BTaskEvent;
 import Zeze.Game.TaskConditionBase;
 
 public class ConditionSubmitItem extends TaskConditionBase<BTConditionSubmitItem, BTConditionSubmitItemEvent> {
@@ -12,7 +13,7 @@ public class ConditionSubmitItem extends TaskConditionBase<BTConditionSubmitItem
 	}
 
 	@Override
-	public boolean accept(Zeze.Transaction.Bean eventBean) {
+	public boolean accept(BTaskEvent eventBean) {
 		return false;
 	}
 

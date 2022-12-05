@@ -3,6 +3,7 @@ package Zeze.Game;
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.ParameterizedType;
 import Zeze.Builtin.Game.TaskBase.BTaskCondition;
+import Zeze.Builtin.Game.TaskBase.BTaskEvent;
 import Zeze.Builtin.Game.TaskBase.BTaskPhase;
 import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
@@ -11,7 +12,7 @@ public abstract class TaskConditionBase<ConditionBean extends Bean, EventBean ex
 
 	public abstract boolean isDone();
 
-	public abstract boolean accept(Bean eventBean);
+	public abstract boolean accept(BTaskEvent eventBean);
 
 	public TaskConditionBase(Class<ConditionBean> extendedBeanClass, Class<EventBean> eventBeanClass) {
 		bean = new BTaskCondition();

@@ -13,6 +13,7 @@ public interface BTaskEventReadOnly {
     public BTaskEvent copy();
 
     public long getRoleId();
+    public boolean isIsBreakIfAccepted();
     public Zeze.Transaction.DynamicBeanReadOnly getExtendedDataReadOnly();
 
 }

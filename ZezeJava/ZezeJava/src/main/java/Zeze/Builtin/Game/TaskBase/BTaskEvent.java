@@ -13,6 +13,7 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
     public static final long TYPEID = -5362050394114558969L;
 
     private long _roleId;
+    private boolean _isBreakIfAccepted; // 是否在接取任务时，如果任务已经接取，则直接返回。
     private final Zeze.Transaction.DynamicBean _extendedData;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_ExtendedData() {
@@ -47,6 +48,26 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
         txn.putLog(new Log__roleId(this, 1, value));
     }
 
+    @Override
+    public boolean isIsBreakIfAccepted() {
+        if (!isManaged())
+            return _isBreakIfAccepted;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _isBreakIfAccepted;
+        var log = (Log__isBreakIfAccepted)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _isBreakIfAccepted;
+    }
+
+    public void setIsBreakIfAccepted(boolean value) {
+        if (!isManaged()) {
+            _isBreakIfAccepted = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__isBreakIfAccepted(this, 2, value));
+    }
+
     public Zeze.Transaction.DynamicBean getExtendedData() {
         return _extendedData;
     }
@@ -62,13 +83,15 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
     }
 
     @SuppressWarnings("deprecation")
-    public BTaskEvent(long _roleId_) {
+    public BTaskEvent(long _roleId_, boolean _isBreakIfAccepted_) {
         _roleId = _roleId_;
+        _isBreakIfAccepted = _isBreakIfAccepted_;
         _extendedData = newDynamicBean_ExtendedData();
     }
 
     public void assign(BTaskEvent other) {
         setRoleId(other.getRoleId());
+        setIsBreakIfAccepted(other.isIsBreakIfAccepted());
         _extendedData.assign(other._extendedData);
     }
 
@@ -111,6 +134,13 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
         public void commit() { ((BTaskEvent)getBelong())._roleId = value; }
     }
 
+    private static final class Log__isBreakIfAccepted extends Zeze.Transaction.Logs.LogBool {
+        public Log__isBreakIfAccepted(BTaskEvent bean, int varId, boolean value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BTaskEvent)getBelong())._isBreakIfAccepted = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -123,6 +153,7 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.TaskBase.BTaskEvent: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("roleId=").append(getRoleId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("isBreakIfAccepted=").append(isIsBreakIfAccepted()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("extendedData=").append(System.lineSeparator());
         _extendedData.getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
@@ -153,6 +184,13 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
             }
         }
         {
+            boolean _x_ = isIsBreakIfAccepted();
+            if (_x_) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteByte(1);
+            }
+        }
+        {
             var _x_ = _extendedData;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.DYNAMIC);
@@ -170,8 +208,8 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
             setRoleId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        while ((_t_ & 0xff) > 1 && _i_ < 3) {
-            _o_.SkipUnknownField(_t_);
+        if (_i_ == 2) {
+            setIsBreakIfAccepted(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
@@ -211,6 +249,7 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _roleId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 2: _isBreakIfAccepted = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
                 case 3: _extendedData.followerApply(vlog); break;
             }
         }

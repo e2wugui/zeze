@@ -16,6 +16,7 @@ public abstract class AbstractTaskBase extends Zeze.IModule {
     public static final int Committed = 4; // 已经提交
     public static final int TaskResultAccepted = 100;
     public static final int TaskResultTaskNotFound = 101;
+    public static final int TaskResultInvalidRoleId = 102;
     public static final int CommitAuto = 11;
     public static final int CommitNPCTalk = 12;
     public static final int CompleteNPCTalk = 21;
