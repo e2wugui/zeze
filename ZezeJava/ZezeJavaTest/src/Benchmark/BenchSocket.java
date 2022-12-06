@@ -103,11 +103,9 @@ public class BenchSocket {
 		var key = new byte[16];
 		Zeze.Util.Random.getInstance().nextBytes(key);
 
-		var data= new byte[100];
-		Zeze.Util.Random.getInstance().nextBytes(data);
-
+		var dataLength = 100;
 		// 预先分配足够的内存池，避免后面性能测试时，两次由于这个产生波动。
-		var bufCount = (data.length * count) / ByteBufferAllocator.DEFAULT_SIZE + 1;
+		var bufCount = (dataLength * count) / ByteBufferAllocator.DEFAULT_SIZE + 1;
 		for (int i = 0; i < bufCount; ++i)
 			selector.free(java.nio.ByteBuffer.allocateDirect(ByteBufferAllocator.DEFAULT_SIZE));
 
@@ -119,6 +117,8 @@ public class BenchSocket {
 			chain = new Compress(chain);
 			var b = new Zeze.Util.Benchmark();
 			for (int i = 0; i < count; ++i) {
+				var data= new byte[100];
+				Zeze.Util.Random.getInstance().nextBytes(data);
 				chain.update(data, 0, data.length);
 				chain.flush();
 			}
@@ -135,6 +135,8 @@ public class BenchSocket {
 			chain = new Compress(chain);
 			var b = new Zeze.Util.Benchmark();
 			for (int i = 0; i < count; ++i) {
+				var data= new byte[100];
+				Zeze.Util.Random.getInstance().nextBytes(data);
 				chain.update(data, 0, data.length);
 				chain.flush();
 				var codecBuf = outCopy.getBuffer();
