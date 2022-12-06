@@ -99,7 +99,7 @@ public class BenchSocket {
 	@Test
 	public void testOutputBufferCodec() throws IOException {
 		var selector = new Zeze.Net.Selector("dummySelector");
-		var count = 500_0000;
+		var count = 200_0000;
 		var key = new byte[16];
 		Zeze.Util.Random.getInstance().nextBytes(key);
 
@@ -108,23 +108,10 @@ public class BenchSocket {
 		var bufCount = (dataPieceLength * count) / ByteBufferAllocator.DEFAULT_SIZE + 1;
 		for (int i = 0; i < bufCount; ++i)
 			selector.free(java.nio.ByteBuffer.allocateDirect(ByteBufferAllocator.DEFAULT_SIZE));
-
-		// test
-		{
-			var out = new Zeze.Net.OutputBuffer(selector);
-			Codec chain = out;
-			chain = new Encrypt(chain, key);
-			chain = new Compress(chain);
-			var b = new Zeze.Util.Benchmark();
-			for (int i = 0; i < count; ++i) {
-				var data= new byte[dataPieceLength];
-				Zeze.Util.Random.getInstance().nextBytes(data);
-				chain.update(data, 0, data.length);
-				chain.flush();
-			}
-			var seconds = b.report("encrypt direct to OutputBuffer", count);
-			System.out.println("speed=" + out.size() / seconds / 1024 / 1024);
-			out.close();
+		var datas = new byte[count][];
+		for (var i = 0; i < count; ++i) {
+			datas[i] = new byte[dataPieceLength];
+			Zeze.Util.Random.getInstance().nextBytes(datas[i]);
 		}
 		// test
 		{
@@ -135,16 +122,29 @@ public class BenchSocket {
 			chain = new Compress(chain);
 			var b = new Zeze.Util.Benchmark();
 			for (int i = 0; i < count; ++i) {
-				var data= new byte[dataPieceLength];
-				Zeze.Util.Random.getInstance().nextBytes(data);
-				chain.update(data, 0, data.length);
+				chain.update(datas[i], 0, datas[i].length);
 				chain.flush();
 				var codecBuf = outCopy.getBuffer();
 				out.put(codecBuf.Bytes, codecBuf.ReadIndex, codecBuf.size());
 				codecBuf.FreeInternalBuffer();
 			}
 			var seconds = b.report("encrypt copy to OutputBuffer", count);
-			System.out.println("speed=" + out.size() / seconds / 1024 / 1024);
+			System.out.println("speed=" + dataPieceLength * count / seconds / 1024 / 1024);
+			out.close();
+		}
+		// test
+		{
+			var out = new Zeze.Net.OutputBuffer(selector);
+			Codec chain = out;
+			chain = new Encrypt(chain, key);
+			chain = new Compress(chain);
+			var b = new Zeze.Util.Benchmark();
+			for (int i = 0; i < count; ++i) {
+				chain.update(datas[i], 0, datas[i].length);
+				chain.flush();
+			}
+			var seconds = b.report("encrypt direct to OutputBuffer", count);
+			System.out.println("speed=" + dataPieceLength * count / seconds / 1024 / 1024);
 			out.close();
 		}
 		selector.close();
