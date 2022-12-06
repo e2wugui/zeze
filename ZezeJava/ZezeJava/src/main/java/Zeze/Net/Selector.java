@@ -6,20 +6,25 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class Selector extends Thread implements ByteBufferAllocator {
 	private static final Logger logger = LogManager.getLogger(Selector.class);
-	private static final int BBPOOL_CAPACITY = 100 * 1024;
+	private static final int BBPOOL_LOCAL_CAPACITY = 1024; // Selector线程本地保留的数量
+	private static final int BBPOOL_GLOBAL_PIECE_COUNT = 1024; // 全局池中的一批数量
+	private static final int BBPOOL_GLOBAL_MAX_CAPACITY = 100 * BBPOOL_GLOBAL_PIECE_COUNT; // 全局池的最大数量,以批为单位
+	private static final ArrayList<ByteBuffer> bbGlobalPool = new ArrayList<>(); // 全局池
+	private static final Lock bbGlobalPoolLock = new ReentrantLock(); // 全局池的锁
 
 	private final java.nio.channels.Selector selector;
-	private final java.nio.ByteBuffer readBuffer = java.nio.ByteBuffer.allocate(32 * 1024); // 此线程共享的buffer,只能临时使用
+	private final ByteBuffer readBuffer = ByteBuffer.allocate(32 * 1024); // 此线程共享的buffer,只能临时使用
 	private final AtomicInteger wakeupNotified = new AtomicInteger();
+	private final ArrayList<ByteBuffer> bbPool = new ArrayList<>();
 	private boolean firstAction;
 	private volatile boolean running = true;
-
-	private final ArrayList<java.nio.ByteBuffer> bbPool = new ArrayList<>();
 
 //	public final AtomicLong wakeupCount0 = new AtomicLong();
 //	public final AtomicLong wakeupCount1 = new AtomicLong();
@@ -39,16 +44,41 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	@Override
 	public ByteBuffer alloc() {
 		int n = bbPool.size();
-		return n > 0 ? bbPool.remove(n - 1) : java.nio.ByteBuffer.allocateDirect(DEFAULT_SIZE);
+		if (n <= 0) {
+			bbGlobalPoolLock.lock();
+			try {
+				var gn = bbGlobalPool.size();
+				if (gn >= BBPOOL_GLOBAL_PIECE_COUNT) {
+					var bbMoves = bbGlobalPool.subList(gn - BBPOOL_GLOBAL_PIECE_COUNT, gn);
+					bbPool.addAll(bbMoves);
+					bbMoves.clear();
+				}
+			} finally {
+				bbGlobalPoolLock.unlock();
+			}
+			n = bbPool.size();
+		}
+		return n > 0 ? bbPool.remove(n - 1) : ByteBuffer.allocateDirect(DEFAULT_SIZE);
 	}
 
 	@Override
 	public void free(ByteBuffer bb) {
-		if (bbPool.size() < BBPOOL_CAPACITY) {
-			bb.position(0);
-			bb.limit(bb.capacity());
-			bbPool.add(bb);
+		int n = bbPool.size();
+		if (n >= BBPOOL_LOCAL_CAPACITY + BBPOOL_GLOBAL_PIECE_COUNT) { // 可以释放一批
+			var bbMoves = bbPool.subList(n - BBPOOL_GLOBAL_PIECE_COUNT, n);
+			bbGlobalPoolLock.lock();
+			try {
+				if (bbGlobalPool.size() >= BBPOOL_GLOBAL_MAX_CAPACITY) // 全局池也放不下就丢弃这个bb
+					return;
+				bbGlobalPool.addAll(bbMoves);
+			} finally {
+				bbGlobalPoolLock.unlock();
+			}
+			bbMoves.clear();
 		}
+		bb.position(0);
+		bb.limit(bb.capacity());
+		bbPool.add(bb);
 	}
 
 	SelectionKey register(SelectableChannel sc, int ops, SelectorHandle handle) {
