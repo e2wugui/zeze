@@ -33,15 +33,17 @@ zekv?
 raft c++？
 c++ net？
 ts log?
-task 多久了？接收？
+task 才一个月，再一个月考虑接收？
+c# fresh 有bug？
+DatabaseDynamoDb 还需测试。
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag v1.1.2 Multi-Selectors; Zeze.Net.OutputBuffer; 
 ------------------------------------------------------------------------------------------------------------------------------
-可以自建Selectors实例，并设置到Service中，使得Service中新建连接使用设置的Selectors.
-java::Zeze.Net.OutputBuffer
+可以自建Selectors实例，并设置到Service中，使得Service中新建连接使用设置的Selectors。
+java::Zeze.Net.OutputBuffer @张路
 	合并协议到固定的buffer中，以后才调用jdk.writes。
-	加密操作的输出可以直接定向到新的outputbuffer中
+	加密操作的输出可以直接定向到新的outputbuffer中。
 
 【2022/11/29】
 ------------------------------------------------------------------------------------------------------------------------------
@@ -50,10 +52,11 @@ tag v1.1.1 DatabaseDynamoDb; Database.SetInuse; Table SQL-Type; Table Walk Page;
 DatabaseDynamoDb 还需测试。
 Database.Operates.SetInuse 总是Clear的代码改成使用系统属性参数。
 Daemon 杀掉重启Server设置ClearInuse的参数。
-Table key,value都定义成VARBINARY(Max)。
+Table key,value都定义成VARBINARY(eMaxKeyLength)。
 Table.WalkPage
 	@return K lastKey
 	K Walk(K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> handle)
+	K WalkKey(...)
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag v1.1.0 TableDynamic; Zege ...; Task ...;

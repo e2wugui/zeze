@@ -1,8 +1,6 @@
 package Benchmark;
 
 import java.util.ArrayList;
-import java.util.Random;
-import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Config;
 import Zeze.Net.Acceptor;
 import Zeze.Net.AsyncSocket;
@@ -10,11 +8,9 @@ import Zeze.Net.Binary;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
-import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
-import demo.Bean1;
 import demo.Module1.BValue;
 import org.junit.Test;
 
@@ -141,7 +137,7 @@ public class BenchSocket {
 			var bb = ByteBuffer.Wrap(encoded.Bytes, encoded.ReadIndex, encoded.size());
 			var value = new BValue();
 			value.decode(bb);
-			dummy += value.getArray29().size() + value.getMap15().size();
+			dummy += value.getArray29().size() + value.getMap15().size() + value.getSet10().size();
 		}
 		seconds = b2.report("decode", 20_0000);
 		System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
