@@ -3,6 +3,7 @@ package Zeze.Builtin.Game.TaskBase;
 
 import Zeze.Serialize.ByteBuffer;
 
+// <enum name="ConditionCompleteBranch" value="24"/> 通过不同的完成条件实现进入不同的分支Phase
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhaseReadOnly {
     public static final long TYPEID = -3008758867375693466L;
@@ -15,19 +16,26 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
     private final Zeze.Transaction.Collections.PList1<Long> _afterPhasesId; // 后置PhaseId
     private long _nextPhaseId; // 下一个PhaseId（允许通过不同的conditions完成情况动态变化）
     private final Zeze.Transaction.Collections.PMap2<Long, Zeze.Builtin.Game.TaskBase.BTaskCondition> _conditions; // 该Phase所有的Condition
-    private int _conditionsCompleteType; // 该Phase的Condition的完成类型
     private final Zeze.Transaction.DynamicBean _extendedData;
+    public static final long DynamicTypeId_ExtendedData_Zeze_Builtin_Game_TaskBase_BTaskPhaseCommitNPCTalk = 4346965359965455652L;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_ExtendedData() {
-        return new Zeze.Transaction.DynamicBean(10, Zeze.Game.TaskBase::getSpecialTypeIdFromBean, Zeze.Game.TaskBase::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(10, BTaskPhase::getSpecialTypeIdFromBean_10, BTaskPhase::createBeanFromSpecialTypeId_10);
     }
 
     public static long getSpecialTypeIdFromBean_10(Zeze.Transaction.Bean bean) {
-        return Zeze.Game.TaskBase.getSpecialTypeIdFromBean(bean);
+        var _typeId_ = bean.typeId();
+        if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
+            return Zeze.Transaction.EmptyBean.TYPEID;
+        if (_typeId_ == 4346965359965455652L)
+            return 4346965359965455652L; // Zeze.Builtin.Game.TaskBase.BTaskPhaseCommitNPCTalk
+        throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Game.TaskBase.BTaskPhase:extendedData");
     }
 
     public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_10(long typeId) {
-        return Zeze.Game.TaskBase.createBeanFromSpecialTypeId(typeId);
+        if (typeId == 4346965359965455652L)
+            return new Zeze.Builtin.Game.TaskBase.BTaskPhaseCommitNPCTalk();
+        return null;
     }
 
     private transient Object __zeze_map_key__;
@@ -173,33 +181,26 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
         return new Zeze.Transaction.Collections.PMap2ReadOnly<>(_conditions);
     }
 
-    @Override
-    public int getConditionsCompleteType() {
-        if (!isManaged())
-            return _conditionsCompleteType;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
-            return _conditionsCompleteType;
-        var log = (Log__conditionsCompleteType)txn.getLog(objectId() + 9);
-        return log != null ? log.value : _conditionsCompleteType;
-    }
-
-    public void setConditionsCompleteType(int value) {
-        if (!isManaged()) {
-            _conditionsCompleteType = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__conditionsCompleteType(this, 9, value));
-    }
-
     public Zeze.Transaction.DynamicBean getExtendedData() {
         return _extendedData;
+    }
+
+    public Zeze.Builtin.Game.TaskBase.BTaskPhaseCommitNPCTalk getExtendedData_Zeze_Builtin_Game_TaskBase_BTaskPhaseCommitNPCTalk() {
+        return (Zeze.Builtin.Game.TaskBase.BTaskPhaseCommitNPCTalk)_extendedData.getBean();
+    }
+
+    public void setExtendedData(Zeze.Builtin.Game.TaskBase.BTaskPhaseCommitNPCTalk value) {
+        _extendedData.setBean(value);
     }
 
     @Override
     public Zeze.Transaction.DynamicBeanReadOnly getExtendedDataReadOnly() {
         return _extendedData;
+    }
+
+    @Override
+    public Zeze.Builtin.Game.TaskBase.BTaskPhaseCommitNPCTalkReadOnly getExtendedData_Zeze_Builtin_Game_TaskBase_BTaskPhaseCommitNPCTalkReadOnly() {
+        return (Zeze.Builtin.Game.TaskBase.BTaskPhaseCommitNPCTalk)_extendedData.getBean();
     }
 
     @SuppressWarnings("deprecation")
@@ -216,7 +217,7 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
     }
 
     @SuppressWarnings("deprecation")
-    public BTaskPhase(long _phaseId_, int _phaseType_, String _phaseName_, String _phaseDescription_, long _nextPhaseId_, int _conditionsCompleteType_) {
+    public BTaskPhase(long _phaseId_, int _phaseType_, String _phaseName_, String _phaseDescription_, long _nextPhaseId_) {
         _phaseId = _phaseId_;
         _phaseType = _phaseType_;
         if (_phaseName_ == null)
@@ -232,7 +233,6 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
         _nextPhaseId = _nextPhaseId_;
         _conditions = new Zeze.Transaction.Collections.PMap2<>(Long.class, Zeze.Builtin.Game.TaskBase.BTaskCondition.class);
         _conditions.variableId(8);
-        _conditionsCompleteType = _conditionsCompleteType_;
         _extendedData = newDynamicBean_ExtendedData();
     }
 
@@ -249,7 +249,6 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
         _conditions.clear();
         for (var e : other._conditions.entrySet())
             _conditions.put(e.getKey(), e.getValue().copy());
-        setConditionsCompleteType(other.getConditionsCompleteType());
         _extendedData.assign(other._extendedData);
     }
 
@@ -320,13 +319,6 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
         public void commit() { ((BTaskPhase)getBelong())._nextPhaseId = value; }
     }
 
-    private static final class Log__conditionsCompleteType extends Zeze.Transaction.Logs.LogInt {
-        public Log__conditionsCompleteType(BTaskPhase bean, int varId, int value) { super(bean, varId, value); }
-
-        @Override
-        public void commit() { ((BTaskPhase)getBelong())._conditionsCompleteType = value; }
-    }
-
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -379,7 +371,6 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
             sb.append(Zeze.Util.Str.indent(level));
         }
         sb.append('}').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("conditionsCompleteType=").append(getConditionsCompleteType()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("extendedData=").append(System.lineSeparator());
         _extendedData.getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
@@ -470,13 +461,6 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
             }
         }
         {
-            int _x_ = getConditionsCompleteType();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 9, ByteBuffer.INTEGER);
-                _o_.WriteInt(_x_);
-            }
-        }
-        {
             var _x_ = _extendedData;
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 10, ByteBuffer.DYNAMIC);
@@ -544,8 +528,8 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        if (_i_ == 9) {
-            setConditionsCompleteType(_o_.ReadInt(_t_));
+        while ((_t_ & 0xff) > 1 && _i_ < 10) {
+            _o_.SkipUnknownField(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 10) {
@@ -594,7 +578,7 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
             if (_v_.negativeCheck())
                 return true;
         }
-        if (getConditionsCompleteType() < 0)
+        if (_extendedData.negativeCheck())
             return true;
         return false;
     }
@@ -616,7 +600,6 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
                 case 6: _afterPhasesId.followerApply(vlog); break;
                 case 7: _nextPhaseId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 8: _conditions.followerApply(vlog); break;
-                case 9: _conditionsCompleteType = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
                 case 10: _extendedData.followerApply(vlog); break;
             }
         }

@@ -1,40 +1,45 @@
 package Zeze.Game;
 
-import java.util.ArrayList;
-import java.util.function.Supplier;
-import java.util.stream.Stream;
+import java.util.List;
 import Zeze.Builtin.Game.TaskBase.BTaskEvent;
 import Zeze.Builtin.Game.TaskBase.BTaskPhase;
-import Zeze.Transaction.Bean;
-import org.jgrapht.graph.DefaultEdge;
-import org.jgrapht.graph.DirectedAcyclicGraph;
+import Zeze.Util.Action0;
 
-public class TaskPhase {
+public class TaskPhase { // TODO 使用Action绑定来引导Condition切换NextPhase
+
+	public static final int CommitAuto = 11;
+	public static final int CommitNPCTalk = 12;
+	/**
+	 * 指定这个方法以允许任务根据不同的Condition完成情况来切换到不同的NextPhase。
+	 */
+	void assignPhaseProceed(Action0 phaseProceed) {
+		this.phaseProceed = phaseProceed;
+	}
+
+	Action0 phaseProceed;
+
 	// @formatter:off
 	public static class TaskPhaseOpt{
 		public long id;
-		public int commitType;
 		public String name;
 		public String description;
-		public int conditionsCompleteType;
-		public long[] prePhaseIds;
-		public long[] afterPhaseIds;
+		public List<Long> afterPhaseIds = new java.util.ArrayList<>();
+		public int commitType;
+		public int commitNPCId;
 	}
-	public TaskPhase(TaskBase<?> task, TaskPhaseOpt opt) throws Throwable {
+	public TaskPhase(final TaskBase<?> task, TaskPhaseOpt opt) {
 		this.task = task;
 		this.bean =new BTaskPhase();
 		this.bean.setPhaseId(opt.id);
 		this.bean.setPhaseType(opt.commitType);
 		this.bean.setPhaseName(opt.name);
 		this.bean.setPhaseDescription(opt.description);
-		this.bean.setConditionsCompleteType(opt.conditionsCompleteType);
-		for (var prePhaseId : opt.prePhaseIds) {
-			this.bean.getPrePhasesId().add(prePhaseId);
-		}
+//		for (var prePhaseId : opt.prePhaseIds) {
+//			this.bean.getPrePhasesId().add(prePhaseId);
+//		}
 		for (var afterPhaseId : opt.afterPhaseIds) {
 			this.bean.getAfterPhasesId().add(afterPhaseId);
 		}
-		task.getBean().getTaskPhases().put(this.bean.getPhaseId(), this.bean);
 	}
 
 	/**
@@ -48,7 +53,6 @@ public class TaskPhase {
 	public int getPhaseType() { return bean.getPhaseType(); }
 	public String getPhaseName() { return bean.getPhaseName(); }
 	public String getPhaseDescription() { return bean.getPhaseDescription(); }
-	public int getConditionsCompleteType() { return bean.getConditionsCompleteType(); }
 
 	/**
 	 * Runtime方法：accept
@@ -57,7 +61,7 @@ public class TaskPhase {
 	 */
 	public boolean accept(BTaskEvent eventBean) {
 		boolean res = false;
-		for (var condition : currentConditions)
+		for (var condition : conditions)
 			res = res || condition.accept(eventBean);
 		return res;
 	}
@@ -76,35 +80,47 @@ public class TaskPhase {
 	 * - 用于判断任务Phase是否完成
 	 */
 	public boolean isCompleted() {
-		if (getConditionsCompleteType() == TaskBase.Module.ConditionCompleteAll) {
-
-		}
-		else if (getConditionsCompleteType() == TaskBase.Module.ConditionCompleteAny) {
-		}
-		else {
-			throw new RuntimeException("unknown complete type");
-		}
+//		if (getConditionsCompleteType() == TaskBase.Module.ConditionCompleteAll) {
+//
+//		}
+//		else if (getConditionsCompleteType() == TaskBase.Module.ConditionCompleteAny) {
+//		}
+//		else {
+//			throw new RuntimeException("unknown complete type");
+//		}
 		return false;
 	}
 
 	/**
 	 * Task Conditions
 	 */
-	public ArrayList<TaskConditionBase<?,?>> getCurrentConditions() {
-		return currentConditions;
-	}
-	private final DirectedAcyclicGraph<TaskConditionBase<?,?>, DefaultEdge> conditions = new DirectedAcyclicGraph<>(DefaultEdge.class); // 任务的各个阶段的连接图
-	private final ArrayList<TaskConditionBase<?,?>> currentConditions = new ArrayList<>(); // 当前的任务Phase条件（允许不止一个条件）
+	public List<TaskConditionBase<?,?>> conditions;
+
+
 
 	// ======================================== 任务Phase初始化阶段的方法 ========================================
-	public void addCondition(TaskConditionBase<?, ?> condition) throws Throwable {
-		conditions.addVertex(condition);
-		bean.getConditions().put(condition.getBean().getConditionId(), condition.getBean());
 
-		// 自动注册加入的Condition自己的Bean和Event Bean的class。
-		task.getModule().register(condition.getConditionBeanClass());
-		task.getModule().register(condition.getEventBeanClass());
+	public void addCondition(TaskConditionBase<?,?> condition) {
+		// 不能添加不是这个任务的condition
+		if (condition.getPhase() == this)
+			conditions.add(condition);
 	}
+
+//	public ArrayList<TaskConditionBase<?,?>> getCurrentConditions() {
+//		return currentConditions;
+//	}
+//	private final DirectedAcyclicGraph<TaskConditionBase<?,?>, DefaultEdge> conditions = new DirectedAcyclicGraph<>(DefaultEdge.class); // 任务的各个阶段的连接图
+//	private final ArrayList<TaskConditionBase<?,?>> currentConditions = new ArrayList<>(); // 当前的任务Phase条件（允许不止一个条件）
+
+	// ======================================== 任务Phase初始化阶段的方法 ========================================
+//	public void addCondition(TaskConditionBase<?, ?> condition) throws Throwable {
+//		conditions.addVertex(condition);
+//		bean.getConditions().put(condition.getBean().getConditionId(), condition.getBean());
+//
+//		// 自动注册加入的Condition自己的Bean和Event Bean的class。
+//		task.getModule().register(condition.getConditionBeanClass());
+//		task.getModule().register(condition.getEventBeanClass());
+//	}
 
 //	public void linkCondition(TaskConditionBase<?, ?> from, TaskConditionBase<?, ?> to) throws Exception {
 //		conditions.addEdge(from, to);
@@ -127,6 +143,7 @@ public class TaskPhase {
 //	}
 
 	public TaskBase<?> getTask() { return task; }
+	public BTaskPhase getBean() { return bean; }
 	private final BTaskPhase bean;
 	private final TaskBase<?> task;
 

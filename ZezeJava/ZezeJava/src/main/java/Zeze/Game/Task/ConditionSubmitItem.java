@@ -4,6 +4,7 @@ import Zeze.Builtin.Game.TaskBase.BTConditionSubmitItem;
 import Zeze.Builtin.Game.TaskBase.BTConditionSubmitItemEvent;
 import Zeze.Builtin.Game.TaskBase.BTaskEvent;
 import Zeze.Game.TaskConditionBase;
+import Zeze.Game.TaskPhase;
 
 public class ConditionSubmitItem extends TaskConditionBase<BTConditionSubmitItem, BTConditionSubmitItemEvent> {
 
@@ -17,7 +18,7 @@ public class ConditionSubmitItem extends TaskConditionBase<BTConditionSubmitItem
 		return false;
 	}
 
-	public ConditionSubmitItem() {
-		super(BTConditionSubmitItem.class, BTConditionSubmitItemEvent.class);
+	public ConditionSubmitItem(TaskPhase phase) {
+		super(phase, BTConditionSubmitItem.class, BTConditionSubmitItemEvent.class);
 	}
 }

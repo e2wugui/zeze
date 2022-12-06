@@ -9,12 +9,18 @@ import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
 
 public abstract class TaskConditionBase<ConditionBean extends Bean, EventBean extends Bean> {
+	private final TaskPhase phase;
+
+	public TaskPhase getPhase() {
+		return phase;
+	}
 
 	public abstract boolean isDone();
 
 	public abstract boolean accept(BTaskEvent eventBean);
 
-	public TaskConditionBase(Class<ConditionBean> extendedBeanClass, Class<EventBean> eventBeanClass) {
+	public TaskConditionBase(TaskPhase phase, Class<ConditionBean> extendedBeanClass, Class<EventBean> eventBeanClass) {
+		this.phase = phase;
 		bean = new BTaskCondition();
 
 		MethodHandle extendedBeanConstructor = beanFactory.register(extendedBeanClass);

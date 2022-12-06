@@ -17,12 +17,6 @@ public abstract class AbstractTaskBase extends Zeze.IModule {
     public static final int TaskResultAccepted = 100;
     public static final int TaskResultTaskNotFound = 101;
     public static final int TaskResultInvalidRoleId = 102;
-    public static final int CommitAuto = 11;
-    public static final int CommitNPCTalk = 12;
-    public static final int ConditionCompleteAll = 21;
-    public static final int ConditionCompleteAny = 22;
-    public static final int ConditionCompleteSequence = 23; // 按顺序完成（比如一长段NPC对话的各个选项）
-    public static final int ConditionCompleteBranch = 24; // 通过不同的完成条件实现进入不同的分支Phase
     public static final int CompleteNPCTalk = 31;
     public static final int CompleteArriveArea = 32;
     public static final int CompleteCollectItem = 33;

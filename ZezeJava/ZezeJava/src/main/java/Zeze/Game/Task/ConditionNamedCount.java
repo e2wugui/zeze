@@ -4,6 +4,7 @@ import Zeze.Builtin.Game.TaskBase.BCollectCoinTask;
 import Zeze.Builtin.Game.TaskBase.BCollectCoinEvent;
 import Zeze.Builtin.Game.TaskBase.BTaskEvent;
 import Zeze.Game.TaskConditionBase;
+import Zeze.Game.TaskPhase;
 
 public class ConditionNamedCount extends TaskConditionBase<BCollectCoinTask, BCollectCoinEvent> {
 
@@ -25,8 +26,8 @@ public class ConditionNamedCount extends TaskConditionBase<BCollectCoinTask, BCo
 		return getCurrentCount() >= getTargetCount();
 	}
 
-	public ConditionNamedCount(String name, long currentCount, long targetCount) {
-		super(BCollectCoinTask.class, BCollectCoinEvent.class);
+	public ConditionNamedCount(TaskPhase phase, String name, long currentCount, long targetCount) {
+		super(phase, BCollectCoinTask.class, BCollectCoinEvent.class);
 		getExtendedBean().setName(name);
 		getExtendedBean().setCurrentCoinCount(currentCount);
 		getExtendedBean().setTargetCoinCount(targetCount);

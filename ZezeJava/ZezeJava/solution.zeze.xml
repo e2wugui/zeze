@@ -787,12 +787,12 @@
 				<rpc name="TriggerTaskEvent" argument="BTaskEvent" result="BTaskEventResult" handle="server"/>
 				<!-- ======================================== Task的Bean数据 ======================================== -->
 				<!-- ======================================== TaskPhase的Bean数据 ======================================== -->
-				<enum name="CommitAuto" value="11"/>
-				<enum name="CommitNPCTalk" value="12"/>
-				<enum name="ConditionCompleteAll" value="21"/>
-				<enum name="ConditionCompleteAny" value="22"/>
-				<enum name="ConditionCompleteSequence" value="23"/> 按顺序完成（比如一长段NPC对话的各个选项）
-				<enum name="ConditionCompleteBranch" value="24"/> 通过不同的完成条件实现进入不同的分支Phase
+<!--				<enum name="CommitAuto" value="11"/>-->
+<!--				<enum name="CommitNPCTalk" value="12"/>-->
+<!--				<enum name="ConditionCompleteAll" value="21"/>-->
+<!--				<enum name="ConditionCompleteAny" value="22"/>-->
+<!--				<enum name="ConditionCompleteSequence" value="23"/> 按顺序完成（比如一长段NPC对话的各个选项）-->
+<!--				<enum name="ConditionCompleteBranch" value="24"/> 通过不同的完成条件实现进入不同的分支Phase-->
 				<bean name="BTaskPhase">
 					<variable id="1" name="phaseId" type="long"/> Phase的Id
 					<variable id="2" name="phaseType" type="int"/> Phase的提交类型
@@ -802,11 +802,14 @@
 					<variable id="6" name="afterPhasesId" type="list" value="long"/> 后置PhaseId
 					<variable id="7" name="nextPhaseId" type="long"/> 下一个PhaseId（允许通过不同的conditions完成情况动态变化）
 					<variable id="8" name="conditions" type="map" key="long" value="BTaskCondition"/> 该Phase所有的Condition
-					<variable id="9" name="conditionsCompleteType" type="int"/> 该Phase的Condition的完成类型
-					<variable id="10" name="extendedData" type="dynamic"> 用于自定义扩展Phase的数据
-						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskBase::getSpecialTypeIdFromBean"/>
-						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskBase::createBeanFromSpecialTypeId"/>
+<!--					<variable id="9" name="conditionsCompleteType" type="int"/> 该Phase的Condition的完成类型-->
+					<variable id="10" name="extendedData" type="dynamic"> 不同类型的Phase的其他数据
+						<!-- 自动提交的任务不需要额外的bean-->
+						<value bean="BTaskPhaseCommitNPCTalk"/>
 					</variable>
+				</bean>
+				<bean name="BTaskPhaseCommitNPCTalk">
+					<variable id="1" name="npcId" type="long"/> 交任务的NPC
 				</bean>
 				<!-- ======================================== TaskPhase的Bean数据 ======================================== -->
 				<!-- ======================================== TaskCondition的Bean数据 ======================================== -->
@@ -846,6 +849,20 @@
                 <bean name="BTConditionReachNPCEvent">
                     <variable id="1" name="npcId" type="long"/>
                 </bean>
+				<!-- 内置条件类型：NPC对话-->
+				<bean name="BTConditionNPCTalk">
+					<variable id="1" name="taskId" type="long"/>
+					<variable id="2" name="phaseId" type="long"/>
+					<variable id="3" name="npcId" type="long"/>
+					<variable id="4" name="dialogOptions" type="map" key="int" value="int"/> key为对话的id，value为对话选项有几个。如果没有就不用加。
+				</bean>
+				<bean name="BTConditionNPCTalkEvent">
+					<variable id="1" name="taskId" type="long"/>
+					<variable id="2" name="phaseId" type="long"/>
+					<variable id="3" name="finished" type="bool"/> 如果完成了对话，也可以用这个Event发一条，下面的就留空。
+					<variable id="4" name="dialogId" type="int"/>
+					<variable id="5" name="dialogOption" type="int"/> 选择了第几个选项
+				</bean>
 				<!-- ======================================== TaskCondition的Bean数据 ======================================== -->
 				<!-- 记录每个角色的任务数据 -->
 				<bean name="RoleTasks">

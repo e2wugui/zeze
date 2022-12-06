@@ -4,6 +4,7 @@ import Zeze.Builtin.Game.TaskBase.BTConditionReachNPC;
 import Zeze.Builtin.Game.TaskBase.BTConditionReachNPCEvent;
 import Zeze.Builtin.Game.TaskBase.BTaskEvent;
 import Zeze.Game.TaskConditionBase;
+import Zeze.Game.TaskPhase;
 
 public class ConditionReachNPC extends TaskConditionBase<BTConditionReachNPC, BTConditionReachNPCEvent> {
 
@@ -17,7 +18,7 @@ public class ConditionReachNPC extends TaskConditionBase<BTConditionReachNPC, BT
 		return false;
 	}
 
-	public ConditionReachNPC() {
-		super(BTConditionReachNPC.class, BTConditionReachNPCEvent.class);
+	public ConditionReachNPC(TaskPhase phase) {
+		super(phase, BTConditionReachNPC.class, BTConditionReachNPCEvent.class);
 	}
 }

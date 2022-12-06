@@ -1,9 +1,9 @@
 package Zeze.Game;
 
 import java.lang.invoke.MethodHandle;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Supplier;
-import java.util.stream.Stream;
 import Zeze.Application;
 import Zeze.Arch.ProviderApp;
 import Zeze.Builtin.Game.TaskBase.BNPCTaskDynamics;
@@ -16,8 +16,6 @@ import Zeze.Game.Task.NPCTask;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
-import org.jgrapht.graph.DefaultEdge;
-import org.jgrapht.graph.DirectedAcyclicGraph;
 
 public class TaskBase<ExtendedBean extends Bean> {
 	/**
@@ -129,7 +127,7 @@ public class TaskBase<ExtendedBean extends Bean> {
 			this.bean.getPreTasksId().add(id);
 		};
 		this.bean.getExtendedData().setBean(new EmptyBean());
-		phases= new DirectedAcyclicGraph<>(DefaultEdge.class);
+		this.phases = new ArrayList<>();
 
 		MethodHandle extendedBeanConstructor = beanFactory.register(extendedBeanClass);
 		bean.getExtendedData().setBean(BeanFactory.invoke(extendedBeanConstructor));
@@ -152,6 +150,7 @@ public class TaskBase<ExtendedBean extends Bean> {
 	public String getDescription() { return bean.getTaskDescription(); }
 	public Module getModule() { return module; }
 	private final Module module;
+	private final List<TaskPhase> phases;
 	private TaskPhase startPhase, currentPhase, endPhase;
 	// @formatter:on
 
@@ -163,7 +162,7 @@ public class TaskBase<ExtendedBean extends Bean> {
 	public boolean accept(BTaskEvent eventBean) {
 		if (currentPhase.accept(eventBean)) {
 			if (currentPhase.isCompleted()) {
-				
+
 			}
 		}
 		return false;
@@ -188,55 +187,72 @@ public class TaskBase<ExtendedBean extends Bean> {
 
 	// ======================================== 任务初始化阶段的方法 ========================================
 
+	public TaskPhase addPhase(TaskPhase.TaskPhaseOpt opt) {
+		var phase = new TaskPhase(this, opt);
+		phases.add(phase);
+		bean.getTaskPhases().put(phase.getPhaseId(), phase.getBean());
+		return phase;
+	}
 	public void addPhase(TaskPhase phase) {
-		phases.addVertex(phase);
+		// 不能添加不是这个任务的phase
+		if (phase.getTask() == this){
+			phases.add(phase);
+			bean.getTaskPhases().put(phase.getPhaseId(), phase.getBean());
+		}
 	}
 
-	public void linkPhase(TaskPhase from, TaskPhase to) throws Exception {
-		phases.addEdge(from, to);
+	public boolean checkValid() throws Throwable {
+		for (TaskPhase phase : phases) {
+			phase.phaseProceed.run();
+		}
+		return true;
 	}
 
-	public void setupTask() {
-		// Debug Info
-		var vertexCount = phases.vertexSet().size();
-		var edgeCount = phases.edgeSet().size();
-		// 找任务开始的节点
-		Supplier<Stream<TaskPhase>> zeroInDegreeNodeSupplier = () -> phases.vertexSet().stream().filter(p -> phases.inDegreeOf(p) == 0);
-		if (zeroInDegreeNodeSupplier.get().count() != 1) {
-			bean.setTaskState(Module.Invalid);
-			System.out.println("Task has more than one Start Phase node.");
-			return;
-		}
-		if (zeroInDegreeNodeSupplier.get().findAny().isEmpty()) {
-			bean.setTaskState(Module.Invalid);
-			System.out.println("Task has no Start Phase node.");
-			return;
-		}
-		startPhase = zeroInDegreeNodeSupplier.get().findAny().get();
-		currentPhase = startPhase;
+//	public void linkPhase(TaskPhase from, TaskPhase to) throws Exception {
+//		phases.addEdge(from, to);
+//	}
 
-		// 找任务结束的节点
-		Supplier<Stream<TaskPhase>> zeroOutDegreeNodeSupplier = () -> phases.vertexSet().stream().filter(p -> phases.outDegreeOf(p) == 0);
-		if (zeroOutDegreeNodeSupplier.get().count() != 1) {
-			bean.setTaskState(Module.Invalid);
-			System.out.println("Task has more than one End Phase node.");
-			return;
-		}
-		if (zeroOutDegreeNodeSupplier.get().findAny().isEmpty()) {
-			bean.setTaskState(Module.Invalid);
-			System.out.println("Task has no End Phase node.");
-			return;
-		}
-		endPhase = zeroOutDegreeNodeSupplier.get().findAny().get();
+//	public void setupTask() {
+//		// Debug Info
+//		var vertexCount = phases.vertexSet().size();
+//		var edgeCount = phases.edgeSet().size();
+//		// 找任务开始的节点
+//		Supplier<Stream<TaskPhase>> zeroInDegreeNodeSupplier = () -> phases.vertexSet().stream().filter(p -> phases.inDegreeOf(p) == 0);
+//		if (zeroInDegreeNodeSupplier.get().count() != 1) {
+//			bean.setTaskState(Module.Invalid);
+//			System.out.println("Task has more than one Start Phase node.");
+//			return;
+//		}
+//		if (zeroInDegreeNodeSupplier.get().findAny().isEmpty()) {
+//			bean.setTaskState(Module.Invalid);
+//			System.out.println("Task has no Start Phase node.");
+//			return;
+//		}
+//		startPhase = zeroInDegreeNodeSupplier.get().findAny().get();
+//		currentPhase = startPhase;
+//
+//		// 找任务结束的节点
+//		Supplier<Stream<TaskPhase>> zeroOutDegreeNodeSupplier = () -> phases.vertexSet().stream().filter(p -> phases.outDegreeOf(p) == 0);
+//		if (zeroOutDegreeNodeSupplier.get().count() != 1) {
+//			bean.setTaskState(Module.Invalid);
+//			System.out.println("Task has more than one End Phase node.");
+//			return;
+//		}
+//		if (zeroOutDegreeNodeSupplier.get().findAny().isEmpty()) {
+//			bean.setTaskState(Module.Invalid);
+//			System.out.println("Task has no End Phase node.");
+//			return;
+//		}
+//		endPhase = zeroOutDegreeNodeSupplier.get().findAny().get();
 
 //		for (var phase : phases.vertexSet()) {
 //			phase.setupPhase();
 //		}
-	}
+//	}
 
 	// ======================================== Private方法和一些不需要被注意的方法 ========================================
 
-	private final DirectedAcyclicGraph<TaskPhase, DefaultEdge> phases; // 任务的各个阶段的连接图
+//	private final DirectedAcyclicGraph<TaskPhase, DefaultEdge> phases; // 任务的各个阶段的连接图
 
 	/**
 	 * Bean

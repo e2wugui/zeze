@@ -79,6 +79,7 @@ public class TestTask extends TestCase {
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
 
 				var module = server0.taskModule;
+				// ==================== 创建一个任务 ====================
 				NPCTask.NPCTaskOpt taskOpt = new NPCTask.NPCTaskOpt();
 				taskOpt.id = 1;
 				taskOpt.name = "吃金币";
@@ -86,22 +87,7 @@ public class TestTask extends TestCase {
 				taskOpt.SubmitNpcId = 1001;
 				taskOpt.ReceiveNpcId = 1002;
 				var task1 = module.newNPCTask(taskOpt);
-				TaskPhase.TaskPhaseOpt phaseOpt1 = new TaskPhase.TaskPhaseOpt();
-				TaskPhase phase1 = new TaskPhase(task1, phaseOpt1);
-				TaskPhase.TaskPhaseOpt phaseOpt2 = new TaskPhase.TaskPhaseOpt();
-				TaskPhase phase2 = new TaskPhase(task1, phaseOpt2);
-				TaskPhase.TaskPhaseOpt phaseOpt3 = new TaskPhase.TaskPhaseOpt();
-				TaskPhase phase3 = new TaskPhase(task1, phaseOpt3);
-				TaskPhase.TaskPhaseOpt phaseOpt4 = new TaskPhase.TaskPhaseOpt();
-				TaskPhase phase4 = new TaskPhase(task1, phaseOpt4);
-				ConditionNamedCount goldCondition10 = new ConditionNamedCount("收集金币", 0, 10);
-				ConditionNamedCount goldCondition20 = new ConditionNamedCount("收集金币", 0, 20);
-				ConditionNamedCount goldCondition30 = new ConditionNamedCount("收集金币", 0, 30);
-				ConditionNamedCount goldCondition40 = new ConditionNamedCount("收集金币", 0, 40);
-				phase1.addCondition(goldCondition10);
-				phase2.addCondition(goldCondition20);
-				phase3.addCondition(goldCondition30);
-				phase4.addCondition(goldCondition40);
+				// ==================== 设置任务的各个Phase ====================
 				/*
 				 * ==>==>==>==>==>==>==>==>
 				 * 		   Phase2
@@ -111,11 +97,50 @@ public class TestTask extends TestCase {
 				 *		  Phase3
 				 * ==>==>==>==>==>==>==>==>
 				 */
-				task1.linkPhase(phase1, phase2);
-				task1.linkPhase(phase2, phase3);
-				task1.linkPhase(phase2, phase4);
-				task1.linkPhase(phase3, phase4);
-				task1.setupTask();
+				TaskPhase.TaskPhaseOpt phaseOpt1 = new TaskPhase.TaskPhaseOpt();
+				phaseOpt1.id = 1;
+				phaseOpt1.name = "阶段一";
+				phaseOpt1.description = "";
+				phaseOpt1.afterPhaseIds.add(2L);
+				phaseOpt1.afterPhaseIds.add(3L);
+				phaseOpt1.commitType = TaskPhase.CommitAuto;
+				TaskPhase.TaskPhaseOpt phaseOpt2 = new TaskPhase.TaskPhaseOpt();
+				phaseOpt2.id = 2;
+				phaseOpt2.name = "阶段二";
+				phaseOpt2.description = "";
+				phaseOpt2.afterPhaseIds.add(4L);
+				phaseOpt2.commitType = TaskPhase.CommitAuto;
+				TaskPhase.TaskPhaseOpt phaseOpt3 = new TaskPhase.TaskPhaseOpt();
+				phaseOpt3.id = 3;
+				phaseOpt3.name = "阶段三";
+				phaseOpt3.description = "";
+				phaseOpt3.afterPhaseIds.add(4L);
+				phaseOpt3.commitType = TaskPhase.CommitAuto;
+				TaskPhase.TaskPhaseOpt phaseOpt4 = new TaskPhase.TaskPhaseOpt();
+				phaseOpt4.id = 4;
+				phaseOpt4.name = "阶段四";
+				phaseOpt4.description = "";
+				phaseOpt4.afterPhaseIds.clear();
+				phaseOpt4.commitType = TaskPhase.CommitNPCTalk;
+				phaseOpt4.commitNPCId = 1002;
+				var phase1 = task1.addPhase(phaseOpt1);
+				var phase2 = task1.addPhase(phaseOpt2);
+				var phase3 = task1.addPhase(phaseOpt3);
+				var phase4 = task1.addPhase(phaseOpt4);
+				// ==================== 设置任务Phase的各个条件 ====================
+//				ConditionNamedCount goldCondition10 = new ConditionNamedCount("收集金币", 0, 10);
+//				ConditionNamedCount goldCondition20 = new ConditionNamedCount("收集金币", 0, 20);
+//				ConditionNamedCount goldCondition30 = new ConditionNamedCount("收集金币", 0, 30);
+//				ConditionNamedCount goldCondition40 = new ConditionNamedCount("收集金币", 0, 40);
+//				phase1.addCondition(goldCondition10);
+//				phase2.addCondition(goldCondition20);
+//				phase3.addCondition(goldCondition30);
+//				phase4.addCondition(goldCondition40);
+//				task1.linkPhase(phase1, phase2);
+//				task1.linkPhase(phase2, phase3);
+//				task1.linkPhase(phase2, phase4);
+//				task1.linkPhase(phase3, phase4);
+//				task1.setupTask();
 				// 测试一：金币收集任务（ConditionNamedCount）
 				collectCoin(client0, roleId, task1, 9); // 已经收集9个金币，任务Phase未完成
 				collectCoin(client0, roleId, task1, 11); // 已经收集11个金币，任务Phase完成，推动任务前进
