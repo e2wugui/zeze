@@ -43,25 +43,40 @@ public final class OutputBuffer implements Codec, Closeable {
 	public void put(byte[] src, int offset, int length) {
 		if (length > 0) {
 			for (size += length; ; ) {
+				var tail = this.tail;
 				int left = tail.remaining();
 				if (left >= length) {
 					tail.put(src, offset, length);
 					break;
 				}
 				tail.put(src, offset, left);
-				tail.limit(tail.position());
-				tail.position(tailPos);
-				buffers.addLast(tail);
-				tail = allocator.alloc();
-				tailPos = 0;
+				pushAndAllocTail();
 				offset += left;
 				length -= left;
 			}
 		}
 	}
 
+	public void put(byte b) {
+		size++;
+		int left = tail.remaining();
+		if (left <= 0)
+			pushAndAllocTail();
+		tail.put(b);
+	}
+
+	private void pushAndAllocTail() {
+		var tail = this.tail;
+		tail.limit(tail.position());
+		tail.position(tailPos);
+		buffers.addLast(tail);
+		this.tail = allocator.alloc();
+		tailPos = 0;
+	}
+
 	public long writeTo(SocketChannel channel) throws IOException {
 		long r;
+		var head = this.head;
 		if (head == null && (head = buffers.pollFirst()) == null) { // head和队列都没有buffer了,只需要输出tail
 			var tail = this.tail;
 			int writePos = tail.position();
@@ -77,6 +92,7 @@ public final class OutputBuffer implements Codec, Closeable {
 			tail.position(writePos);
 			tail.limit(tail.capacity());
 		} else {
+			this.head = head;
 			var next = buffers.peekFirst();
 			if (next == null) {
 				var tail = this.tail;
@@ -84,7 +100,7 @@ public final class OutputBuffer implements Codec, Closeable {
 					r = channel.write(head);
 					if (!head.hasRemaining()) { // 队头已经输出完
 						allocator.free(head);
-						head = null;
+						this.head = null;
 					}
 				} else { // 队列只有对头,且tail有数据
 					outputs[0] = head;
@@ -95,7 +111,7 @@ public final class OutputBuffer implements Codec, Closeable {
 					r = channel.write(outputs);
 					if (!head.hasRemaining()) { // 队头已经输出完
 						allocator.free(head);
-						head = null;
+						this.head = null;
 						int newTailPos = tail.position();
 						if (newTailPos >= writePos) // tail全部输出完
 							newTailPos = writePos = 0;
@@ -111,7 +127,7 @@ public final class OutputBuffer implements Codec, Closeable {
 				r = channel.write(outputs);
 				if (!head.hasRemaining()) { // 第1个输出完了
 					allocator.free(head);
-					head = null;
+					this.head = null;
 					if (!next.hasRemaining()) { // 第2个也输出完了
 						allocator.free(next);
 						buffers.removeFirst();
@@ -125,18 +141,16 @@ public final class OutputBuffer implements Codec, Closeable {
 	}
 
 	@Override
-	public void update(byte c) throws CodecException {
-		put(new byte[]{ c }, 0, 1);
+	public void update(byte c) {
+		put(c);
 	}
 
 	@Override
-	public void update(byte[] data, int off, int len) throws CodecException {
+	public void update(byte[] data, int off, int len) {
 		put(data, off, len);
 	}
 
 	@Override
-	public void flush() throws CodecException {
-
+	public void flush() {
 	}
 }
-

@@ -67,7 +67,6 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private final OutputBuffer outputBuffer;
 
 	private final BufferCodec inputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer. 只在selector线程访问
-	private final BufferCodec outputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer. 只在selector线程访问
 	private Codec inputCodecChain; // 只在selector线程访问
 	private Codec outputCodecChain; // 只在selector线程访问
 	private volatile byte security; // 1:Input; 2:Output; 1|2:Input+Output
@@ -372,7 +371,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 	public void SetOutputSecurityCodec(byte[] key, boolean compress) {
 		SubmitAction(() -> { // 进selector线程调用
-			Codec chain = outputCodecBuffer;
+			Codec chain = outputBuffer;
 			if (key != null)
 				chain = new Encrypt(chain, key);
 			if (compress)
@@ -431,17 +430,18 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				Codec codec = outputCodecChain;
 				if (codec != null) {
 					// 压缩加密等 codec 链操作。
-					ByteBuffer codecBuf = outputCodecBuffer.getBuffer(); // codec对buffer的引用一定是不可变的
-					codecBuf.EnsureWrite(length); // reserve
+//					ByteBuffer codecBuf = outputCodecBuffer.getBuffer(); // codec对buffer的引用一定是不可变的
+//					codecBuf.EnsureWrite(length); // reserve
+					int oldSize = outputBuffer.size();
 					codec.update(bytes, offset, length);
 					codec.flush();
-					int newLen = codecBuf.Size();
-					int deltaLen = newLen - length;
+//					int newLen = codecBuf.Size();
+					int deltaLen = outputBuffer.size() - oldSize - length;
 					if (deltaLen != 0)
 						outputBufferListCountSum.getAndAdd(deltaLen);
 //					outputBufferListSending.addLast(java.nio.ByteBuffer.wrap(codecBuf.Bytes, codecBuf.ReadIndex, newLen));
-					outputBuffer.put(codecBuf.Bytes, codecBuf.ReadIndex, newLen);
-					codecBuf.FreeInternalBuffer();
+//					outputBuffer.put(codecBuf.Bytes, codecBuf.ReadIndex, newLen);
+//					codecBuf.FreeInternalBuffer();
 				} else {
 //					outputBufferListSending.addLast(java.nio.ByteBuffer.wrap(bytes, offset, length));
 					outputBuffer.put(bytes, offset, length);
