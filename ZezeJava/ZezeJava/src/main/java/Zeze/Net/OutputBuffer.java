@@ -18,7 +18,7 @@ interface ByteBufferAllocator {
 }
 
 // 非线程安全,通常只能在selector线程调用
-final class OutputBuffer implements Closeable {
+final class OutputBuffer implements Codec, Closeable {
 	private final ByteBufferAllocator allocator;
 	private final ArrayDeque<ByteBuffer> buffers = new ArrayDeque<>();
 	private final ByteBuffer[] outputs = new ByteBuffer[2];
@@ -133,5 +133,20 @@ final class OutputBuffer implements Closeable {
 		if (r > 0)
 			size -= r;
 		return r;
+	}
+
+	@Override
+	public void update(byte c) throws CodecException {
+		put(new byte[]{ c }, 0, 1);
+	}
+
+	@Override
+	public void update(byte[] data, int off, int len) throws CodecException {
+		put(data, off, len);
+	}
+
+	@Override
+	public void flush() throws CodecException {
+
 	}
 }
