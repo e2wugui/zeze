@@ -1,11 +1,18 @@
 package Benchmark;
 
+import java.io.IOException;
+import java.nio.channels.Selector;
 import java.util.ArrayList;
 import Zeze.Config;
 import Zeze.Net.Acceptor;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
+import Zeze.Net.BufferCodec;
+import Zeze.Net.ByteBufferAllocator;
+import Zeze.Net.Codec;
+import Zeze.Net.Compress;
 import Zeze.Net.Connector;
+import Zeze.Net.Encrypt;
 import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
@@ -87,6 +94,58 @@ public class BenchSocket {
 			Argument = new EmptyBean();
 			Result = new EmptyBean();
 		}
+	}
+
+	@Test
+	public void testOutputBufferCodec() throws IOException {
+		var selector = new Zeze.Net.Selector("dummySelector");
+		var count = 500_0000;
+		var key = new byte[16];
+		Zeze.Util.Random.getInstance().nextBytes(key);
+
+		var data= new byte[100];
+		Zeze.Util.Random.getInstance().nextBytes(data);
+
+		// 预先分配足够的内存池，避免后面性能测试时，两次由于这个产生波动。
+		var bufCount = (data.length * count) / ByteBufferAllocator.DEFAULT_SIZE + 1;
+		for (int i = 0; i < bufCount; ++i)
+			selector.free(java.nio.ByteBuffer.allocateDirect(ByteBufferAllocator.DEFAULT_SIZE));
+
+		// test
+		{
+			var out = new Zeze.Net.OutputBuffer(selector);
+			Codec chain = out;
+			chain = new Encrypt(chain, key);
+			chain = new Compress(chain);
+			var b = new Zeze.Util.Benchmark();
+			for (int i = 0; i < count; ++i) {
+				chain.update(data, 0, data.length);
+				chain.flush();
+			}
+			var seconds = b.report("encrypt direct to OutputBuffer", count);
+			System.out.println("speed=" + out.size() / seconds / 1024 / 1024);
+			out.close();
+		}
+		// test
+		{
+			var out = new Zeze.Net.OutputBuffer(selector);
+			var outCopy = new BufferCodec();
+			Codec chain = outCopy;
+			chain = new Encrypt(chain, key);
+			chain = new Compress(chain);
+			var b = new Zeze.Util.Benchmark();
+			for (int i = 0; i < count; ++i) {
+				chain.update(data, 0, data.length);
+				chain.flush();
+				var codecBuf = outCopy.getBuffer();
+				out.put(codecBuf.Bytes, codecBuf.ReadIndex, codecBuf.size());
+				codecBuf.FreeInternalBuffer();
+			}
+			var seconds = b.report("encrypt copy to OutputBuffer", count);
+			System.out.println("speed=" + out.size() / seconds / 1024 / 1024);
+			out.close();
+		}
+		selector.close();
 	}
 
 	@Test

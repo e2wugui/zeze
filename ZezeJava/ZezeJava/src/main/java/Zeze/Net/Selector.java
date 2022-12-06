@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-class Selector extends Thread implements ByteBufferAllocator {
+public class Selector extends Thread implements ByteBufferAllocator {
 	private static final Logger logger = LogManager.getLogger(Selector.class);
 	private static final int BBPOOL_CAPACITY = 100 * 1024;
 
@@ -26,7 +26,7 @@ class Selector extends Thread implements ByteBufferAllocator {
 //	public final AtomicLong wakeupTime = new AtomicLong();
 //	public long lastTime;
 
-	Selector(String threadName) throws IOException {
+	public Selector(String threadName) throws IOException {
 		super(threadName);
 		setDaemon(true);
 		selector = java.nio.channels.Selector.open();
@@ -65,7 +65,7 @@ class Selector extends Thread implements ByteBufferAllocator {
 		}
 	}
 
-	void close() {
+	public void close() {
 		running = false;
 		selector.wakeup();
 

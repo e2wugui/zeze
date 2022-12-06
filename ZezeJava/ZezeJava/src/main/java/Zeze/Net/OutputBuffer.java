@@ -6,19 +6,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayDeque;
 
-interface ByteBufferAllocator {
-	public static final int DEFAULT_SIZE = 32 * 1024;
-
-	default ByteBuffer alloc() {
-		return ByteBuffer.allocateDirect(DEFAULT_SIZE);
-	}
-
-	default void free(@SuppressWarnings("unused") ByteBuffer bb) {
-	}
-}
-
 // 非线程安全,通常只能在selector线程调用
-final class OutputBuffer implements Codec, Closeable {
+public final class OutputBuffer implements Codec, Closeable {
 	private final ByteBufferAllocator allocator;
 	private final ArrayDeque<ByteBuffer> buffers = new ArrayDeque<>();
 	private final ByteBuffer[] outputs = new ByteBuffer[2];
@@ -150,3 +139,4 @@ final class OutputBuffer implements Codec, Closeable {
 
 	}
 }
+
