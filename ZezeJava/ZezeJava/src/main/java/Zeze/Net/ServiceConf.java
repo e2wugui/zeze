@@ -22,6 +22,7 @@ public final class ServiceConf {
 	private HandshakeOptions handshakeOptions = new HandshakeOptions();
 	private final ConcurrentHashMap<String, Acceptor> acceptors = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, Connector> connectors = new ConcurrentHashMap<>();
+	private int maxConnections = 1024; // 适合绝大多数网络服务，对于连接机，比如Linkd，Gated等需要自己加大。
 
 	public Service getService() {
 		return service;
@@ -33,6 +34,10 @@ public final class ServiceConf {
 
 	public String getName() {
 		return name;
+	}
+
+	public int getMaxConnections() {
+		return maxConnections;
 	}
 
 	public SocketOptions getSocketOptions() {
@@ -240,6 +245,10 @@ public final class ServiceConf {
 		if (attr.length() > 0) {
 			getHandshakeOptions().setEnableEncrypt(Boolean.parseBoolean(attr));
 		}
+		attr = self.getAttribute("maxConnections");
+		if (!attr.isEmpty())
+			maxConnections = Integer.parseInt(attr);
+
 		{
 			String name = getName();
 			if (name.isEmpty()) {
