@@ -9,6 +9,9 @@ public class TaskPhase { // TODO 使用Action绑定来引导Condition切换NextP
 
 	public static final int CommitAuto = 11;
 	public static final int CommitNPCTalk = 12;
+	public static final int ConditionCompleteAll = 31;
+	public static final int ConditionCompleteAny = 32;
+	public static final int ConditionCompleteSequence = 33;
 
 	/**
 	 * 指定这个方法以允许任务根据不同的Condition完成情况来切换到不同的NextPhase。
@@ -22,6 +25,7 @@ public class TaskPhase { // TODO 使用Action绑定来引导Condition切换NextP
 		public List<Long> afterPhaseIds = new java.util.ArrayList<>();
 		public int commitType;
 		public int commitNPCId;
+		public int conditionsCompleteType;
 	}
 	public TaskPhase(final TaskBase<?> task, TaskPhaseOpt opt) {
 		this.task = task;
@@ -31,11 +35,12 @@ public class TaskPhase { // TODO 使用Action绑定来引导Condition切换NextP
 		this.bean.setPhaseName(opt.name);
 		this.bean.setPhaseDescription(opt.description);
 		for (var afterPhaseId : opt.afterPhaseIds)
-			this.bean.getAfterPhasesId().add(afterPhaseId);
+			this.bean.getAfterPhaseIds().add(afterPhaseId);
 		if (opt.afterPhaseIds.isEmpty())
 			setNextPhaseId(-1);
 		else
 			setNextPhaseId(opt.afterPhaseIds.get(0)); // 默认推进到第一个加入的Phase （如果不特别指定）
+		this.bean.setConditionsCompleteType(opt.conditionsCompleteType);
 	}
 
 	/**
@@ -49,6 +54,7 @@ public class TaskPhase { // TODO 使用Action绑定来引导Condition切换NextP
 	public int getPhaseType() { return bean.getPhaseType(); }
 	public String getPhaseName() { return bean.getPhaseName(); }
 	public String getPhaseDescription() { return bean.getPhaseDescription(); }
+	public long getNextPhaseId() { return bean.getNextPhaseId(); }
 	public void setNextPhaseId(long id) { bean.setNextPhaseId(id); }
 
 	/**
@@ -97,11 +103,24 @@ public class TaskPhase { // TODO 使用Action绑定来引导Condition切换NextP
 
 	// ======================================== 任务Phase初始化阶段的方法 ========================================
 
+	public void loadBean(BTaskPhase bean) {
+		this.bean = bean;
+
+	}
+
 	public <T extends TaskConditionBase<?,?>> T addCondition(T condition) {
 		// 不能添加不是这个任务的condition
 		if (condition.getPhase() == this)
 			conditions.add(condition);
 		return condition;
+	}
+
+	public boolean isStartPhase() {
+		return bean.getNextPhaseId() == getPhaseId();
+	}
+
+	public boolean isEndPhase() {
+		return bean.getAfterPhaseIds().isEmpty();
 	}
 
 //	public ArrayList<TaskConditionBase<?,?>> getCurrentConditions() {
@@ -142,7 +161,7 @@ public class TaskPhase { // TODO 使用Action绑定来引导Condition切换NextP
 
 	public TaskBase<?> getTask() { return task; }
 	public BTaskPhase getBean() { return bean; }
-	private final BTaskPhase bean;
+	private BTaskPhase bean;
 	private final TaskBase<?> task;
 
 	// @formatter:on

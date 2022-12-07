@@ -33,7 +33,7 @@ public final class tTask extends TableX<Zeze.Builtin.Game.TaskBase.BTaskKey, Zez
     public static final int VAR_taskState = 3;
     public static final int VAR_taskName = 4;
     public static final int VAR_taskDescription = 5;
-    public static final int VAR_preTasksId = 6;
+    public static final int VAR_preTaskIds = 6;
     public static final int VAR_currentPhaseId = 7;
     public static final int VAR_taskPhases = 8;
     public static final int VAR_extendedData = 9;

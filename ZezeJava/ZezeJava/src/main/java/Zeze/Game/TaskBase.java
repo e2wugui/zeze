@@ -10,14 +10,15 @@ import Zeze.Builtin.Game.TaskBase.BBroadcastTaskEvent;
 import Zeze.Builtin.Game.TaskBase.BNPCTaskDynamics;
 import Zeze.Builtin.Game.TaskBase.BSpecificTaskEvent;
 import Zeze.Builtin.Game.TaskBase.BTask;
-import Zeze.Builtin.Game.TaskBase.BTaskEvent;
 import Zeze.Builtin.Game.TaskBase.BTaskKey;
+import Zeze.Builtin.Game.TaskBase.BTaskPhase;
 import Zeze.Builtin.Game.TaskBase.TriggerTaskEvent;
 import Zeze.Collections.BeanFactory;
 import Zeze.Game.Task.NPCTask;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.Action0;
 
 public abstract class TaskBase<ExtendedBean extends Bean> {
 	/**
@@ -29,8 +30,8 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		 */
 		@Override
 		protected long ProcessTriggerTaskEventRequest(TriggerTaskEvent r) throws Throwable {
+			// 检查角色Id
 			var roleId = r.Argument.getRoleId();
-
 			var taskInfo = _tRoleTask.get(roleId);
 			if (taskInfo == null) {
 				r.Result.setResultCode(TaskResultInvalidRoleId);
@@ -40,13 +41,15 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 			var eventTypeBean = r.Argument.getTaskEventTypeDynamic().getBean();
 			var eventExtendedBean = r.Argument.getExtendedData().getBean();
 			if (eventTypeBean instanceof BSpecificTaskEvent specificTaskEventBean) {
+				// 检查任务Id
 				var id = specificTaskEventBean.getTaskId();
 				var taskBean = taskInfo.getProcessingTasksId().get(id);
 				if (null == taskBean) {
 					r.Result.setResultCode(TaskResultTaskNotFound);
 					return Procedure.Success;
 				}
-				var task = tasks.get(Long.toString(id));
+
+				var task = tasks.get(id);
 				task.loadBean(taskBean);
 				if (task.accept(eventExtendedBean))
 					r.Result.setResultCode(TaskResultAccepted);
@@ -56,7 +59,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 				var taskBeanList = taskInfo.getProcessingTasksId().values();
 				for (var taskBean : taskBeanList) {
 					var id = taskBean.getTaskId();
-					var task = tasks.get(Long.toString(id));
+					var task = tasks.get(id);
 					task.loadBean(taskBean);
 					if (task.accept(eventExtendedBean))
 						if (broadcastTaskEventBean.isIsBreakIfAccepted())
@@ -82,10 +85,10 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 			return open(opt, extendedTaskClass, extendedBeanClass);
 		}
 
-		private final ConcurrentHashMap<String, TaskBase<?>> tasks = new ConcurrentHashMap<>();
-		//		private final TaskGraphics taskGraphics;
+		private final ConcurrentHashMap<Long, TaskBase<?>> tasks = new ConcurrentHashMap<>();
 		public final ProviderApp providerApp;
 		public final Application zeze;
+		//		private final TaskGraphics taskGraphics;
 
 		public Module(Application zeze) {
 			this.zeze = zeze;
@@ -114,10 +117,10 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 			}
 		}
 
-		// 需要在事务内使用。 使用完不要保存。
+		// 需要在事务内使用。使用完不要保存。
 		@SuppressWarnings("unchecked")
 		private <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>> ExtendedTask open(TaskBaseOpt opt, Class<ExtendedTask> extendedTaskClass, Class<ExtendedBean> extendedBeanClass) {
-			return (ExtendedTask)tasks.computeIfAbsent(Long.toString(opt.id), key -> {
+			return (ExtendedTask)tasks.computeIfAbsent(opt.id, key -> {
 				try {
 					var c = extendedTaskClass.getDeclaredConstructor(Module.class, TaskBase.TaskBaseOpt.class, Class.class);
 					return c.newInstance(this, opt, extendedBeanClass);
@@ -148,14 +151,14 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		this.bean.setTaskName(opt.name);
 		this.bean.setTaskDescription(opt.description);
 		for (long id :opt.preTaskIds) {
-			this.bean.getPreTasksId().add(id);
+			this.bean.getPreTaskIds().add(id);
 		};
 		this.bean.getExtendedData().setBean(new EmptyBean());
-		this.phases = new ArrayList<>();
 
 		MethodHandle extendedBeanConstructor = beanFactory.register(extendedBeanClass);
 		bean.getExtendedData().setBean(BeanFactory.invoke(extendedBeanConstructor));
 
+		currentPhase = null;
 //		module.taskGraphics.addNewTask(this);
 	}
 
@@ -174,8 +177,8 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	public String getDescription() { return bean.getTaskDescription(); }
 	public Module getModule() { return module; }
 	private final Module module;
-	private final List<TaskPhase> phases;
-	private TaskPhase startPhase, currentPhase, endPhase;
+	private final List<TaskPhase> phases = new ArrayList<>();
+	private final TaskPhase currentPhase;
 	// @formatter:on
 
 	/**
@@ -185,9 +188,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	 */
 	public boolean accept(Bean eventBean) throws Throwable {
 		if (currentPhase.accept(eventBean)) {
-//			if (currentPhase.isCompleted()) {
-//
-//			}
+//			currentPhase = currentPhase.nextPhase;
 		}
 		return false;
 	}
@@ -196,17 +197,13 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	 * Runtime方法：isCompleted
 	 * - 用于判断任务是否完成
 	 */
-	public boolean isCompleted() {
-		return endPhase.isCompleted() && currentPhase == endPhase;
-	}
+	public boolean isCompleted() { return currentPhase.isEndPhase() && currentPhase.isCompleted(); }
 
 	/**
 	 * Runtime方法：reset
 	 * - 将任务回归到初始化状态
 	 */
 	public void reset() {
-		currentPhase = startPhase;
-		currentPhase.reset();
 	}
 
 	// ======================================== 任务初始化阶段的方法 ========================================
@@ -218,9 +215,26 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	protected abstract void loadExtendedData();
 
 	protected final void loadBean(BTask bean) {
+		reset();
 		this.bean = bean;
+		currentPhase.loadBean(bean.getTaskPhases().get(bean.getCurrentPhaseId()));
 		loadExtendedData();
 	}
+
+	public void setOnComplete(Action0 callback) {
+		onCompleteUserCallback = callback;
+	}
+
+	/**
+	 * 在任务结束后调用的方法，比如：发放奖励。
+	 */
+	protected final void onComplete() throws Throwable {
+		if (isCompleted() && null != onCompleteUserCallback) {
+			onCompleteUserCallback.run();
+		}
+	}
+
+	Action0 onCompleteUserCallback;
 
 	public TaskPhase addPhase(TaskPhase.TaskPhaseOpt opt) {
 		var phase = new TaskPhase(this, opt);
@@ -235,13 +249,6 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 			phases.add(phase);
 			bean.getTaskPhases().put(phase.getPhaseId(), phase.getBean());
 		}
-	}
-
-	public boolean checkValid() throws Throwable {
-		for (TaskPhase phase : phases) {
-//			phase.phaseProceed.run();
-		}
-		return true;
 	}
 
 //	public void linkPhase(TaskPhase from, TaskPhase to) throws Exception {
@@ -289,6 +296,28 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	// ======================================== Private方法和一些不需要被注意的方法 ========================================
 
 //	private final DirectedAcyclicGraph<TaskPhase, DefaultEdge> phases; // 任务的各个阶段的连接图
+
+	/**
+	 * 初始化任务的各个阶段
+	 */
+	protected void setUpTask() {
+		int startNodeSize = 0;
+		BTaskPhase startBean = null;
+		for (var phaseBean : bean.getTaskPhases().values()) {
+			boolean isStart = true;
+			for (var id : phaseBean.getAfterPhaseIds()) {
+				// 如果没有phase依赖这个phase，意味着这个phase是开始的phase
+				if (id == phaseBean.getPhaseId())
+					isStart = false;
+			}
+			if (isStart) {
+				++startNodeSize;
+				startBean = phaseBean;
+			}
+		}
+		// 理论上只允许一个开始节点，这里暂时不处理过多的开始节点的问题。
+		currentPhase.loadBean(startBean);
+	}
 
 	/**
 	 * Bean
