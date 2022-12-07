@@ -5,6 +5,7 @@ import Zeze.Builtin.Game.TaskBase.BTConditionNPCTalkEvent;
 import Zeze.Builtin.Game.TaskBase.BTaskEvent;
 import Zeze.Game.TaskConditionBase;
 import Zeze.Game.TaskPhase;
+import Zeze.Transaction.Bean;
 
 public class ConditionNPCTalk extends TaskConditionBase<BTConditionNPCTalk, BTConditionNPCTalkEvent> {
 	public ConditionNPCTalk(TaskPhase phase) {
@@ -19,10 +20,9 @@ public class ConditionNPCTalk extends TaskConditionBase<BTConditionNPCTalk, BTCo
 	}
 
 	@Override
-	public boolean accept(BTaskEvent eventBean) throws Throwable {
-		if (!(eventBean.getExtendedData().getBean() instanceof BTConditionNPCTalkEvent))
+	public boolean accept(Bean eventBean) throws Throwable {
+		if (!(eventBean instanceof BTConditionNPCTalkEvent e))
 			return false;
-		BTConditionNPCTalkEvent e = (BTConditionNPCTalkEvent)eventBean.getExtendedData().getBean();
 		if (isDone())
 			onComplete();
 		return true;

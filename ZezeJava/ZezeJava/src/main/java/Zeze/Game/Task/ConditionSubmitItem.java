@@ -1,10 +1,12 @@
 package Zeze.Game.Task;
 
+import Zeze.Builtin.Game.TaskBase.BTConditionReachNPC;
 import Zeze.Builtin.Game.TaskBase.BTConditionSubmitItem;
 import Zeze.Builtin.Game.TaskBase.BTConditionSubmitItemEvent;
 import Zeze.Builtin.Game.TaskBase.BTaskEvent;
 import Zeze.Game.TaskConditionBase;
 import Zeze.Game.TaskPhase;
+import Zeze.Transaction.Bean;
 
 public class ConditionSubmitItem extends TaskConditionBase<BTConditionSubmitItem, BTConditionSubmitItemEvent> {
 
@@ -14,8 +16,12 @@ public class ConditionSubmitItem extends TaskConditionBase<BTConditionSubmitItem
 	}
 
 	@Override
-	public boolean accept(BTaskEvent eventBean) throws Throwable {
-		return false;
+	public boolean accept(Bean eventBean) throws Throwable {
+		if (!(eventBean instanceof BTConditionSubmitItem e))
+			return false;
+		if (isDone())
+			onComplete();
+		return true;
 	}
 
 	public ConditionSubmitItem(TaskPhase phase) {

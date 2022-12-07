@@ -3,6 +3,7 @@ package Zeze.Game;
 import java.util.List;
 import Zeze.Builtin.Game.TaskBase.BTaskEvent;
 import Zeze.Builtin.Game.TaskBase.BTaskPhase;
+import Zeze.Transaction.Bean;
 
 public class TaskPhase { // TODO 使用Action绑定来引导Condition切换NextPhase
 
@@ -55,7 +56,7 @@ public class TaskPhase { // TODO 使用Action绑定来引导Condition切换NextP
 	 * - 用于接收事件，改变数据库的数据
 	 * - 当满足任务Phase推进情况时，会自动推进任务Phase
 	 */
-	public boolean accept(BTaskEvent eventBean) throws Throwable {
+	public boolean accept(Bean eventBean) throws Throwable {
 		boolean res = false;
 		for (var condition : conditions)
 			res = res || condition.accept(eventBean);

@@ -1,10 +1,12 @@
 package Zeze.Game.Task;
 
+import Zeze.Builtin.Game.TaskBase.BCollectCoinEvent;
 import Zeze.Builtin.Game.TaskBase.BTConditionReachNPC;
 import Zeze.Builtin.Game.TaskBase.BTConditionReachNPCEvent;
 import Zeze.Builtin.Game.TaskBase.BTaskEvent;
 import Zeze.Game.TaskConditionBase;
 import Zeze.Game.TaskPhase;
+import Zeze.Transaction.Bean;
 
 public class ConditionReachNPC extends TaskConditionBase<BTConditionReachNPC, BTConditionReachNPCEvent> {
 
@@ -14,8 +16,12 @@ public class ConditionReachNPC extends TaskConditionBase<BTConditionReachNPC, BT
 	}
 
 	@Override
-	public boolean accept(BTaskEvent eventBean) throws Throwable {
-		return false;
+	public boolean accept(Bean eventBean) throws Throwable {
+		if (!(eventBean instanceof BTConditionReachNPC e))
+			return false;
+		if (isDone())
+			onComplete();
+		return true;
 	}
 
 	public ConditionReachNPC(TaskPhase phase) {

@@ -8,6 +8,7 @@ import Zeze.Builtin.Game.Online.Login;
 import Zeze.Builtin.Game.Online.Logout;
 import Zeze.Builtin.Game.Online.ReLogin;
 import Zeze.Builtin.Game.TaskBase.BCollectCoinEvent;
+import Zeze.Builtin.Game.TaskBase.BSpecificTaskEvent;
 import Zeze.Builtin.Game.TaskBase.BTConditionNPCTalk;
 import Zeze.Builtin.Game.TaskBase.BTConditionNPCTalkEvent;
 import Zeze.Builtin.Game.TaskBase.TriggerTaskEvent;
@@ -170,6 +171,9 @@ public class TestTask extends TestCase {
 		bean.setFinished(false);
 		bean.setDialogId(dialogId);
 		bean.setDialogOption(optionId);
+
+		taskEvent.Argument.setTaskEventTypeDynamic(new BSpecificTaskEvent(taskId));
+		taskEvent.Argument.getExtendedData().setBean(bean);
 	}
 
 	private static void finishTalk(ClientGame.App app, long roleId, long taskId, long phaseId) {

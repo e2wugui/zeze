@@ -8,7 +8,7 @@ public interface RoleTasksReadOnly {
     public boolean negativeCheck();
     public RoleTasks copy();
 
-    public Zeze.Transaction.Collections.PList1ReadOnly<Long> getAvailableTasksIdReadOnly();
-    public Zeze.Transaction.Collections.PList1ReadOnly<Long> getProcessingTasksIdReadOnly();
-    public Zeze.Transaction.Collections.PList1ReadOnly<Long> getFinishedTaskIdReadOnly();
+    public Zeze.Transaction.Collections.PSet1ReadOnly<Long> getAvailableTasksIdReadOnly();
+    public Zeze.Transaction.Collections.PMap2ReadOnly<Long, Zeze.Builtin.Game.TaskBase.BTask, Zeze.Builtin.Game.TaskBase.BTaskReadOnly> getProcessingTasksIdReadOnly();
+    public Zeze.Transaction.Collections.PSet1ReadOnly<Long> getFinishedTaskIdReadOnly();
 }

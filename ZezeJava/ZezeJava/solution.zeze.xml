@@ -733,10 +733,10 @@
 			<module name="TaskBase" id="11018">
 				<!-- 任务状态 -->
 				<enum name="Invalid" value="-1"/> 未初始化或初始化失败
-				<enum name="Disabled" value="0"/> 可接取
+				<enum name="Disabled" value="0"/> 不可接取
 				<enum name="Init" value="1"/> 可接取
-				<enum name="Processing" value="2"/> 未完成，已经接取
-				<enum name="Finish" value="3"/> 已完成，未提交
+				<enum name="Processing" value="2"/> 已经接取，未完成
+				<enum name="Finished" value="3"/> 已完成，未提交
 				<enum name="Committed" value="4"/> 已经提交
 				<!-- ======================================== Task的Bean数据 ======================================== -->
 				<beankey name="BTaskKey">
@@ -770,17 +770,26 @@
 				-->
 				<bean name="BTaskEvent">
 					<variable id="1" name="roleId" type="long"/>
-					<variable id="2" name="isBreakIfAccepted" type="bool"/> 是否在接取任务时，如果任务已经接取，则直接返回。
 					<!-- 不需要指定下面具体的Condition，当一个具体的Condition的Bean被传入时，会自动判断当前的Phase的各个Condition是否接受这个Event -->
+					<variable id="2" name="taskEventTypeDynamic" type="dynamic">
+                        <value bean="BSpecificTaskEvent"/> 交给特定任务的事件（如NPC对话选择任务）
+                        <value bean="BBroadcastTaskEvent"/> 广播给所有任务的事件（如击杀怪物的任务）
+					</variable>
 					<variable id="3" name="extendedData" type="dynamic">
-<!--						<variable id="2" name="taskId" type="long"/>-->
 						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskBase::getSpecialTypeIdFromBean"/>
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskBase::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
+				<bean name="BSpecificTaskEvent">
+                    <variable id="1" name="taskId" type="long"/>
+				</bean>
+				<bean name="BBroadcastTaskEvent">
+                    <variable id="1" name="isBreakIfAccepted" type="bool"/>
+				</bean>
 				<enum name="TaskResultAccepted" value="100"/>
-				<enum name="TaskResultTaskNotFound" value="101"/>
+				<enum name="TaskResultRejected" value="101"/>
 				<enum name="TaskResultInvalidRoleId" value="102"/>
+				<enum name="TaskResultTaskNotFound" value="103"/>
 				<bean name="BTaskEventResult">
 					<variable id="1" name="resultCode" type="long"/> 返回码
 				</bean>
@@ -867,9 +876,9 @@
 				<!-- ======================================== TaskCondition的Bean数据 ======================================== -->
 				<!-- 记录每个角色的任务数据 -->
 				<bean name="RoleTasks">
-					<variable id="1" name="availableTasksId" type="list" value="long"/>
-					<variable id="2" name="processingTasksId" type="list" value="long"/>
-					<variable id="3" name="finishedTaskId" type="list" value="long"/>
+					<variable id="1" name="availableTasksId" type="set" value="long"/>
+					<variable id="2" name="processingTasksId" type="map" key="long" value="BTask"/>
+					<variable id="3" name="finishedTaskId" type="set" value="long"/>
 				</bean>
 				<table name="tRoleTask" key="long" value="RoleTasks"/>
 

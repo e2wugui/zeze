@@ -9,14 +9,15 @@ public abstract class AbstractTaskBase extends Zeze.IModule {
     @Override public boolean isBuiltin() { return true; }
 
     public static final int Invalid = -1; // 未初始化或初始化失败
-    public static final int Disabled = 0; // 可接取
+    public static final int Disabled = 0; // 不可接取
     public static final int Init = 1; // 可接取
-    public static final int Processing = 2; // 未完成，已经接取
-    public static final int Finish = 3; // 已完成，未提交
+    public static final int Processing = 2; // 已经接取，未完成
+    public static final int Finished = 3; // 已完成，未提交
     public static final int Committed = 4; // 已经提交
     public static final int TaskResultAccepted = 100;
-    public static final int TaskResultTaskNotFound = 101;
+    public static final int TaskResultRejected = 101;
     public static final int TaskResultInvalidRoleId = 102;
+    public static final int TaskResultTaskNotFound = 103;
     public static final int CompleteNPCTalk = 31;
     public static final int CompleteArriveArea = 32;
     public static final int CompleteCollectItem = 33;

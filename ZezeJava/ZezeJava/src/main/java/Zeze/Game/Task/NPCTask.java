@@ -4,6 +4,10 @@ import Zeze.Builtin.Game.TaskBase.BNPCTaskDynamics;
 import Zeze.Game.TaskBase;
 
 public class NPCTask extends TaskBase<BNPCTaskDynamics> {
+	@Override
+	public void loadExtendedData() {
+
+	}
 
 	public long getReceiveNpcId() {
 		return getExtendedBean().getReceiveNpcId();

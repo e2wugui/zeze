@@ -13,7 +13,33 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
     public static final long TYPEID = -5362050394114558969L;
 
     private long _roleId;
-    private boolean _isBreakIfAccepted; // 是否在接取任务时，如果任务已经接取，则直接返回。
+    private final Zeze.Transaction.DynamicBean _taskEventTypeDynamic;
+    public static final long DynamicTypeId_TaskEventTypeDynamic_Zeze_Builtin_Game_TaskBase_BSpecificTaskEvent = 2442000638159095225L;
+    public static final long DynamicTypeId_TaskEventTypeDynamic_Zeze_Builtin_Game_TaskBase_BBroadcastTaskEvent = 2627115510834301728L;
+
+    public static Zeze.Transaction.DynamicBean newDynamicBean_TaskEventTypeDynamic() {
+        return new Zeze.Transaction.DynamicBean(2, BTaskEvent::getSpecialTypeIdFromBean_2, BTaskEvent::createBeanFromSpecialTypeId_2);
+    }
+
+    public static long getSpecialTypeIdFromBean_2(Zeze.Transaction.Bean bean) {
+        var _typeId_ = bean.typeId();
+        if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
+            return Zeze.Transaction.EmptyBean.TYPEID;
+        if (_typeId_ == 2442000638159095225L)
+            return 2442000638159095225L; // Zeze.Builtin.Game.TaskBase.BSpecificTaskEvent
+        if (_typeId_ == 2627115510834301728L)
+            return 2627115510834301728L; // Zeze.Builtin.Game.TaskBase.BBroadcastTaskEvent
+        throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Game.TaskBase.BTaskEvent:taskEventTypeDynamic");
+    }
+
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_2(long typeId) {
+        if (typeId == 2442000638159095225L)
+            return new Zeze.Builtin.Game.TaskBase.BSpecificTaskEvent();
+        if (typeId == 2627115510834301728L)
+            return new Zeze.Builtin.Game.TaskBase.BBroadcastTaskEvent();
+        return null;
+    }
+
     private final Zeze.Transaction.DynamicBean _extendedData;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_ExtendedData() {
@@ -48,24 +74,39 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
         txn.putLog(new Log__roleId(this, 1, value));
     }
 
-    @Override
-    public boolean isIsBreakIfAccepted() {
-        if (!isManaged())
-            return _isBreakIfAccepted;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
-            return _isBreakIfAccepted;
-        var log = (Log__isBreakIfAccepted)txn.getLog(objectId() + 2);
-        return log != null ? log.value : _isBreakIfAccepted;
+    public Zeze.Transaction.DynamicBean getTaskEventTypeDynamic() {
+        return _taskEventTypeDynamic;
     }
 
-    public void setIsBreakIfAccepted(boolean value) {
-        if (!isManaged()) {
-            _isBreakIfAccepted = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__isBreakIfAccepted(this, 2, value));
+    public Zeze.Builtin.Game.TaskBase.BSpecificTaskEvent getTaskEventTypeDynamic_Zeze_Builtin_Game_TaskBase_BSpecificTaskEvent() {
+        return (Zeze.Builtin.Game.TaskBase.BSpecificTaskEvent)_taskEventTypeDynamic.getBean();
+    }
+
+    public void setTaskEventTypeDynamic(Zeze.Builtin.Game.TaskBase.BSpecificTaskEvent value) {
+        _taskEventTypeDynamic.setBean(value);
+    }
+
+    public Zeze.Builtin.Game.TaskBase.BBroadcastTaskEvent getTaskEventTypeDynamic_Zeze_Builtin_Game_TaskBase_BBroadcastTaskEvent() {
+        return (Zeze.Builtin.Game.TaskBase.BBroadcastTaskEvent)_taskEventTypeDynamic.getBean();
+    }
+
+    public void setTaskEventTypeDynamic(Zeze.Builtin.Game.TaskBase.BBroadcastTaskEvent value) {
+        _taskEventTypeDynamic.setBean(value);
+    }
+
+    @Override
+    public Zeze.Transaction.DynamicBeanReadOnly getTaskEventTypeDynamicReadOnly() {
+        return _taskEventTypeDynamic;
+    }
+
+    @Override
+    public Zeze.Builtin.Game.TaskBase.BSpecificTaskEventReadOnly getTaskEventTypeDynamic_Zeze_Builtin_Game_TaskBase_BSpecificTaskEventReadOnly() {
+        return (Zeze.Builtin.Game.TaskBase.BSpecificTaskEvent)_taskEventTypeDynamic.getBean();
+    }
+
+    @Override
+    public Zeze.Builtin.Game.TaskBase.BBroadcastTaskEventReadOnly getTaskEventTypeDynamic_Zeze_Builtin_Game_TaskBase_BBroadcastTaskEventReadOnly() {
+        return (Zeze.Builtin.Game.TaskBase.BBroadcastTaskEvent)_taskEventTypeDynamic.getBean();
     }
 
     public Zeze.Transaction.DynamicBean getExtendedData() {
@@ -79,19 +120,20 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
 
     @SuppressWarnings("deprecation")
     public BTaskEvent() {
+        _taskEventTypeDynamic = newDynamicBean_TaskEventTypeDynamic();
         _extendedData = newDynamicBean_ExtendedData();
     }
 
     @SuppressWarnings("deprecation")
-    public BTaskEvent(long _roleId_, boolean _isBreakIfAccepted_) {
+    public BTaskEvent(long _roleId_) {
         _roleId = _roleId_;
-        _isBreakIfAccepted = _isBreakIfAccepted_;
+        _taskEventTypeDynamic = newDynamicBean_TaskEventTypeDynamic();
         _extendedData = newDynamicBean_ExtendedData();
     }
 
     public void assign(BTaskEvent other) {
         setRoleId(other.getRoleId());
-        setIsBreakIfAccepted(other.isIsBreakIfAccepted());
+        _taskEventTypeDynamic.assign(other._taskEventTypeDynamic);
         _extendedData.assign(other._extendedData);
     }
 
@@ -134,13 +176,6 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
         public void commit() { ((BTaskEvent)getBelong())._roleId = value; }
     }
 
-    private static final class Log__isBreakIfAccepted extends Zeze.Transaction.Logs.LogBool {
-        public Log__isBreakIfAccepted(BTaskEvent bean, int varId, boolean value) { super(bean, varId, value); }
-
-        @Override
-        public void commit() { ((BTaskEvent)getBelong())._isBreakIfAccepted = value; }
-    }
-
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -153,7 +188,9 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.TaskBase.BTaskEvent: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("roleId=").append(getRoleId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("isBreakIfAccepted=").append(isIsBreakIfAccepted()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("taskEventTypeDynamic=").append(System.lineSeparator());
+        _taskEventTypeDynamic.getBean().buildString(sb, level + 4);
+        sb.append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("extendedData=").append(System.lineSeparator());
         _extendedData.getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
@@ -184,10 +221,10 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
             }
         }
         {
-            boolean _x_ = isIsBreakIfAccepted();
-            if (_x_) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
-                _o_.WriteByte(1);
+            var _x_ = _taskEventTypeDynamic;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.DYNAMIC);
+                _x_.encode(_o_);
             }
         }
         {
@@ -209,7 +246,7 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            setIsBreakIfAccepted(_o_.ReadBool(_t_));
+            _o_.ReadDynamic(_taskEventTypeDynamic, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
@@ -224,17 +261,21 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
 
     @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+        _taskEventTypeDynamic.initRootInfo(root, this);
         _extendedData.initRootInfo(root, this);
     }
 
     @Override
     protected void resetChildrenRootInfo() {
+        _taskEventTypeDynamic.resetRootInfo();
         _extendedData.resetRootInfo();
     }
 
     @Override
     public boolean negativeCheck() {
         if (getRoleId() < 0)
+            return true;
+        if (_taskEventTypeDynamic.negativeCheck())
             return true;
         return false;
     }
@@ -249,7 +290,7 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _roleId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _isBreakIfAccepted = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
+                case 2: _taskEventTypeDynamic.followerApply(vlog); break;
                 case 3: _extendedData.followerApply(vlog); break;
             }
         }

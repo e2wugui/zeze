@@ -2,23 +2,21 @@ package Zeze.Game.Task;
 
 import Zeze.Builtin.Game.TaskBase.BCollectCoinTask;
 import Zeze.Builtin.Game.TaskBase.BCollectCoinEvent;
+import Zeze.Builtin.Game.TaskBase.BTConditionNPCTalkEvent;
 import Zeze.Builtin.Game.TaskBase.BTaskEvent;
 import Zeze.Game.TaskConditionBase;
 import Zeze.Game.TaskPhase;
+import Zeze.Transaction.Bean;
 
 public class ConditionNamedCount extends TaskConditionBase<BCollectCoinTask, BCollectCoinEvent> {
 
 	@Override
-	public boolean accept(BTaskEvent eventBean) {
-		if (eventBean.getExtendedData().getBean() instanceof BCollectCoinEvent) {
-			//noinspection PatternVariableCanBeUsed
-			var e = (BCollectCoinEvent)eventBean.getExtendedData().getBean();
-			if (e.getName().equals(getExtendedBean().getName())) {
-				return e.getCoinCount() >= getExtendedBean().getTargetCoinCount();
-			}
-			return true;
-		}
-		return false;
+	public boolean accept(Bean eventBean) throws Throwable {
+		if (!(eventBean instanceof BCollectCoinEvent e))
+			return false;
+		if (isDone())
+			onComplete();
+		return true;
 	}
 
 	@Override

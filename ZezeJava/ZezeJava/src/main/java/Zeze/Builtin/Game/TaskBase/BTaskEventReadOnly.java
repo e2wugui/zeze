@@ -13,7 +13,10 @@ public interface BTaskEventReadOnly {
     public BTaskEvent copy();
 
     public long getRoleId();
-    public boolean isIsBreakIfAccepted();
+    public Zeze.Transaction.DynamicBeanReadOnly getTaskEventTypeDynamicReadOnly();
+
+    public Zeze.Builtin.Game.TaskBase.BSpecificTaskEventReadOnly getTaskEventTypeDynamic_Zeze_Builtin_Game_TaskBase_BSpecificTaskEventReadOnly();
+    public Zeze.Builtin.Game.TaskBase.BBroadcastTaskEventReadOnly getTaskEventTypeDynamic_Zeze_Builtin_Game_TaskBase_BBroadcastTaskEventReadOnly();
     public Zeze.Transaction.DynamicBeanReadOnly getExtendedDataReadOnly();
 
 }

@@ -6,7 +6,9 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Arch.ProviderApp;
+import Zeze.Builtin.Game.TaskBase.BBroadcastTaskEvent;
 import Zeze.Builtin.Game.TaskBase.BNPCTaskDynamics;
+import Zeze.Builtin.Game.TaskBase.BSpecificTaskEvent;
 import Zeze.Builtin.Game.TaskBase.BTask;
 import Zeze.Builtin.Game.TaskBase.BTaskEvent;
 import Zeze.Builtin.Game.TaskBase.BTaskKey;
@@ -17,35 +19,57 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 
-public class TaskBase<ExtendedBean extends Bean> {
+public abstract class TaskBase<ExtendedBean extends Bean> {
 	/**
 	 * Task Module
 	 */
 	public static class Module extends AbstractTaskBase {
 		/**
-		 * 所有任务的Trigger Rpc，负责中转所以请求
+		 * 所有任务的Trigger Rpc，负责中转所有请求
 		 */
 		@Override
 		protected long ProcessTriggerTaskEventRequest(TriggerTaskEvent r) throws Throwable {
 			var roleId = r.Argument.getRoleId();
+
 			var taskInfo = _tRoleTask.get(roleId);
 			if (taskInfo == null) {
 				r.Result.setResultCode(TaskResultInvalidRoleId);
 				return Procedure.Success;
 			}
-			for (long id : taskInfo.getProcessingTasksId()) {
-				// 广播事件给所有任务
+
+			var eventTypeBean = r.Argument.getTaskEventTypeDynamic().getBean();
+			var eventExtendedBean = r.Argument.getExtendedData().getBean();
+			if (eventTypeBean instanceof BSpecificTaskEvent specificTaskEventBean) {
+				var id = specificTaskEventBean.getTaskId();
+				var taskBean = taskInfo.getProcessingTasksId().get(id);
+				if (null == taskBean) {
+					r.Result.setResultCode(TaskResultTaskNotFound);
+					return Procedure.Success;
+				}
 				var task = tasks.get(Long.toString(id));
-				if (task.accept(r.Argument))
-					if (r.Argument.isIsBreakIfAccepted())
-						break;
+				task.loadBean(taskBean);
+				if (task.accept(eventExtendedBean))
+					r.Result.setResultCode(TaskResultAccepted);
+				else
+					r.Result.setResultCode(TaskResultRejected);
+			} else if (eventTypeBean instanceof BBroadcastTaskEvent broadcastTaskEventBean) {
+				var taskBeanList = taskInfo.getProcessingTasksId().values();
+				for (var taskBean : taskBeanList) {
+					var id = taskBean.getTaskId();
+					var task = tasks.get(Long.toString(id));
+					task.loadBean(taskBean);
+					if (task.accept(eventExtendedBean))
+						if (broadcastTaskEventBean.isIsBreakIfAccepted())
+							break;
+				}
+				r.Result.setResultCode(TaskResultAccepted);
 			}
-			r.Result.setResultCode(TaskResultAccepted);
 			return Procedure.Success;
 		}
 
 		/**
 		 * 新建内置任务：NPCTask
+		 * (当前public，后续应该改成protected，统一使用loadConfig(String taskConfigTable)读表加载)
 		 */
 		public NPCTask newNPCTask(TaskBaseOpt opt) {
 			return open(opt, NPCTask.class, BNPCTaskDynamics.class);
@@ -59,7 +83,7 @@ public class TaskBase<ExtendedBean extends Bean> {
 		}
 
 		private final ConcurrentHashMap<String, TaskBase<?>> tasks = new ConcurrentHashMap<>();
-		private final TaskGraphics taskGraphics;
+		//		private final TaskGraphics taskGraphics;
 		public final ProviderApp providerApp;
 		public final Application zeze;
 
@@ -69,7 +93,7 @@ public class TaskBase<ExtendedBean extends Bean> {
 			RegisterZezeTables(zeze);
 			RegisterProtocols(this.providerApp.providerService);
 			providerApp.builtinModules.put(this.getFullName(), this);
-			taskGraphics = new TaskGraphics(this);
+//			taskGraphics = new TaskGraphics(this);
 		}
 
 		/**
@@ -159,11 +183,11 @@ public class TaskBase<ExtendedBean extends Bean> {
 	 * - 用于接收事件，改变数据库的数据
 	 * - 当满足任务推进情况时，会自动推进任务
 	 */
-	public boolean accept(BTaskEvent eventBean) throws Throwable {
+	public boolean accept(Bean eventBean) throws Throwable {
 		if (currentPhase.accept(eventBean)) {
-			if (currentPhase.isCompleted()) {
-
-			}
+//			if (currentPhase.isCompleted()) {
+//
+//			}
 		}
 		return false;
 	}
@@ -187,15 +211,27 @@ public class TaskBase<ExtendedBean extends Bean> {
 
 	// ======================================== 任务初始化阶段的方法 ========================================
 
+	/**
+	 * loadBean
+	 * 将Bean加载为配置表
+	 */
+	protected abstract void loadExtendedData();
+
+	protected final void loadBean(BTask bean) {
+		this.bean = bean;
+		loadExtendedData();
+	}
+
 	public TaskPhase addPhase(TaskPhase.TaskPhaseOpt opt) {
 		var phase = new TaskPhase(this, opt);
 		phases.add(phase);
 		bean.getTaskPhases().put(phase.getPhaseId(), phase.getBean());
 		return phase;
 	}
+
 	public void addPhase(TaskPhase phase) {
 		// 不能添加不是这个任务的phase
-		if (phase.getTask() == this){
+		if (phase.getTask() == this) {
 			phases.add(phase);
 			bean.getTaskPhases().put(phase.getPhaseId(), phase.getBean());
 		}
@@ -276,5 +312,5 @@ public class TaskBase<ExtendedBean extends Bean> {
 		return (ExtendedBean)bean.getExtendedData().getBean();
 	}
 
-	private final BTask bean;
+	private BTask bean;
 }
