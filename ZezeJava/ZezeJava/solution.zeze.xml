@@ -855,6 +855,7 @@
 					<variable id="2" name="phaseId" type="long"/>
 					<variable id="3" name="npcId" type="long"/>
 					<variable id="4" name="dialogOptions" type="map" key="int" value="int"/> key为对话的id，value为对话选项有几个。如果没有就不用加。
+					<variable id="5" name="dialogSelected" type="map" key="int" value="int"/> key为对话的id，value为选了第几个选项。如果还没选初始化为-1。
 				</bean>
 				<bean name="BTConditionNPCTalkEvent">
 					<variable id="1" name="taskId" type="long"/>

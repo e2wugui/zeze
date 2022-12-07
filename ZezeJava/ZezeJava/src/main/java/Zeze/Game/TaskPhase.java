@@ -3,20 +3,15 @@ package Zeze.Game;
 import java.util.List;
 import Zeze.Builtin.Game.TaskBase.BTaskEvent;
 import Zeze.Builtin.Game.TaskBase.BTaskPhase;
-import Zeze.Util.Action0;
 
 public class TaskPhase { // TODO 使用Action绑定来引导Condition切换NextPhase
 
 	public static final int CommitAuto = 11;
 	public static final int CommitNPCTalk = 12;
+
 	/**
 	 * 指定这个方法以允许任务根据不同的Condition完成情况来切换到不同的NextPhase。
 	 */
-	void assignPhaseProceed(Action0 phaseProceed) {
-		this.phaseProceed = phaseProceed;
-	}
-
-	Action0 phaseProceed;
 
 	// @formatter:off
 	public static class TaskPhaseOpt{
@@ -34,12 +29,12 @@ public class TaskPhase { // TODO 使用Action绑定来引导Condition切换NextP
 		this.bean.setPhaseType(opt.commitType);
 		this.bean.setPhaseName(opt.name);
 		this.bean.setPhaseDescription(opt.description);
-//		for (var prePhaseId : opt.prePhaseIds) {
-//			this.bean.getPrePhasesId().add(prePhaseId);
-//		}
-		for (var afterPhaseId : opt.afterPhaseIds) {
+		for (var afterPhaseId : opt.afterPhaseIds)
 			this.bean.getAfterPhasesId().add(afterPhaseId);
-		}
+		if (opt.afterPhaseIds.isEmpty())
+			setNextPhaseId(-1);
+		else
+			setNextPhaseId(opt.afterPhaseIds.get(0)); // 默认推进到第一个加入的Phase （如果不特别指定）
 	}
 
 	/**
@@ -53,13 +48,14 @@ public class TaskPhase { // TODO 使用Action绑定来引导Condition切换NextP
 	public int getPhaseType() { return bean.getPhaseType(); }
 	public String getPhaseName() { return bean.getPhaseName(); }
 	public String getPhaseDescription() { return bean.getPhaseDescription(); }
+	public void setNextPhaseId(long id) { bean.setNextPhaseId(id); }
 
 	/**
 	 * Runtime方法：accept
 	 * - 用于接收事件，改变数据库的数据
 	 * - 当满足任务Phase推进情况时，会自动推进任务Phase
 	 */
-	public boolean accept(BTaskEvent eventBean) {
+	public boolean accept(BTaskEvent eventBean) throws Throwable {
 		boolean res = false;
 		for (var condition : conditions)
 			res = res || condition.accept(eventBean);
@@ -100,10 +96,11 @@ public class TaskPhase { // TODO 使用Action绑定来引导Condition切换NextP
 
 	// ======================================== 任务Phase初始化阶段的方法 ========================================
 
-	public void addCondition(TaskConditionBase<?,?> condition) {
+	public <T extends TaskConditionBase<?,?>> T addCondition(T condition) {
 		// 不能添加不是这个任务的condition
 		if (condition.getPhase() == this)
 			conditions.add(condition);
+		return condition;
 	}
 
 //	public ArrayList<TaskConditionBase<?,?>> getCurrentConditions() {

@@ -12,6 +12,7 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
     private long _phaseId;
     private long _npcId;
     private final Zeze.Transaction.Collections.PMap1<Integer, Integer> _dialogOptions; // key为对话的id，value为对话选项有几个。如果没有就不用加。
+    private final Zeze.Transaction.Collections.PMap1<Integer, Integer> _dialogSelected; // key为对话的id，value为选了第几个选项。如果还没选初始化为-1。
 
     @Override
     public long getTaskId() {
@@ -82,10 +83,21 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
         return new Zeze.Transaction.Collections.PMap1ReadOnly<>(_dialogOptions);
     }
 
+    public Zeze.Transaction.Collections.PMap1<Integer, Integer> getDialogSelected() {
+        return _dialogSelected;
+    }
+
+    @Override
+    public Zeze.Transaction.Collections.PMap1ReadOnly<Integer, Integer> getDialogSelectedReadOnly() {
+        return new Zeze.Transaction.Collections.PMap1ReadOnly<>(_dialogSelected);
+    }
+
     @SuppressWarnings("deprecation")
     public BTConditionNPCTalk() {
         _dialogOptions = new Zeze.Transaction.Collections.PMap1<>(Integer.class, Integer.class);
         _dialogOptions.variableId(4);
+        _dialogSelected = new Zeze.Transaction.Collections.PMap1<>(Integer.class, Integer.class);
+        _dialogSelected.variableId(5);
     }
 
     @SuppressWarnings("deprecation")
@@ -95,6 +107,8 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
         _npcId = _npcId_;
         _dialogOptions = new Zeze.Transaction.Collections.PMap1<>(Integer.class, Integer.class);
         _dialogOptions.variableId(4);
+        _dialogSelected = new Zeze.Transaction.Collections.PMap1<>(Integer.class, Integer.class);
+        _dialogSelected.variableId(5);
     }
 
     public void assign(BTConditionNPCTalk other) {
@@ -103,6 +117,8 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
         setNpcId(other.getNpcId());
         _dialogOptions.clear();
         _dialogOptions.putAll(other._dialogOptions);
+        _dialogSelected.clear();
+        _dialogSelected.putAll(other._dialogSelected);
     }
 
     @Deprecated
@@ -183,6 +199,18 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
             level -= 4;
             sb.append(Zeze.Util.Str.indent(level));
         }
+        sb.append('}').append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("dialogSelected={");
+        if (!_dialogSelected.isEmpty()) {
+            sb.append(System.lineSeparator());
+            level += 4;
+            for (var _kv_ : _dialogSelected.entrySet()) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_kv_.getKey()).append(',').append(System.lineSeparator());
+                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(_kv_.getValue()).append(',').append(System.lineSeparator());
+            }
+            level -= 4;
+            sb.append(Zeze.Util.Str.indent(level));
+        }
         sb.append('}').append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -236,6 +264,18 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
                 }
             }
         }
+        {
+            var _x_ = _dialogSelected;
+            int _n_ = _x_.size();
+            if (_n_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.MAP);
+                _o_.WriteMapType(_n_, ByteBuffer.INTEGER, ByteBuffer.INTEGER);
+                for (var _e_ : _x_.entrySet()) {
+                    _o_.WriteLong(_e_.getKey());
+                    _o_.WriteLong(_e_.getValue());
+                }
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -269,6 +309,20 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 5) {
+            var _x_ = _dialogSelected;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
+                int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
+                for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
+                    var _k_ = _o_.ReadInt(_s_);
+                    var _v_ = _o_.ReadInt(_t_);
+                    _x_.put(_k_, _v_);
+                }
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Map");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -278,11 +332,13 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
     @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _dialogOptions.initRootInfo(root, this);
+        _dialogSelected.initRootInfo(root, this);
     }
 
     @Override
     protected void resetChildrenRootInfo() {
         _dialogOptions.resetRootInfo();
+        _dialogSelected.resetRootInfo();
     }
 
     @Override
@@ -294,6 +350,10 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
         if (getNpcId() < 0)
             return true;
         for (var _v_ : _dialogOptions.values()) {
+            if (_v_ < 0)
+                return true;
+        }
+        for (var _v_ : _dialogSelected.values()) {
             if (_v_ < 0)
                 return true;
         }
@@ -313,6 +373,7 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
                 case 2: _phaseId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 3: _npcId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 4: _dialogOptions.followerApply(vlog); break;
+                case 5: _dialogSelected.followerApply(vlog); break;
             }
         }
     }

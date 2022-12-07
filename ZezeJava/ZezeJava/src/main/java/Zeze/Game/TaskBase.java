@@ -159,7 +159,7 @@ public class TaskBase<ExtendedBean extends Bean> {
 	 * - 用于接收事件，改变数据库的数据
 	 * - 当满足任务推进情况时，会自动推进任务
 	 */
-	public boolean accept(BTaskEvent eventBean) {
+	public boolean accept(BTaskEvent eventBean) throws Throwable {
 		if (currentPhase.accept(eventBean)) {
 			if (currentPhase.isCompleted()) {
 
@@ -203,7 +203,7 @@ public class TaskBase<ExtendedBean extends Bean> {
 
 	public boolean checkValid() throws Throwable {
 		for (TaskPhase phase : phases) {
-			phase.phaseProceed.run();
+//			phase.phaseProceed.run();
 		}
 		return true;
 	}

@@ -12,4 +12,5 @@ public interface BTConditionNPCTalkReadOnly {
     public long getPhaseId();
     public long getNpcId();
     public Zeze.Transaction.Collections.PMap1ReadOnly<Integer, Integer> getDialogOptionsReadOnly();
+    public Zeze.Transaction.Collections.PMap1ReadOnly<Integer, Integer> getDialogSelectedReadOnly();
 }

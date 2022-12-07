@@ -14,7 +14,7 @@ public class ConditionReachNPC extends TaskConditionBase<BTConditionReachNPC, BT
 	}
 
 	@Override
-	public boolean accept(BTaskEvent eventBean) {
+	public boolean accept(BTaskEvent eventBean) throws Throwable {
 		return false;
 	}
 

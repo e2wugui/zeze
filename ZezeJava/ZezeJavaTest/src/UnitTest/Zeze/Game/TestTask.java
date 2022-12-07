@@ -8,12 +8,18 @@ import Zeze.Builtin.Game.Online.Login;
 import Zeze.Builtin.Game.Online.Logout;
 import Zeze.Builtin.Game.Online.ReLogin;
 import Zeze.Builtin.Game.TaskBase.BCollectCoinEvent;
+import Zeze.Builtin.Game.TaskBase.BTConditionNPCTalk;
+import Zeze.Builtin.Game.TaskBase.BTConditionNPCTalkEvent;
 import Zeze.Builtin.Game.TaskBase.TriggerTaskEvent;
+import Zeze.Game.Task.ConditionNPCTalk;
 import Zeze.Game.Task.ConditionNamedCount;
 import Zeze.Game.Task.NPCTask;
 import Zeze.Game.TaskBase;
+import Zeze.Game.TaskConditionBase;
 import Zeze.Game.TaskPhase;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.Action0;
+import Zeze.Util.Action1;
 import Zezex.Linkd.Auth;
 import junit.framework.TestCase;
 import org.junit.Assert;
@@ -128,6 +134,19 @@ public class TestTask extends TestCase {
 				var phase3 = task1.addPhase(phaseOpt3);
 				var phase4 = task1.addPhase(phaseOpt4);
 				// ==================== 设置任务Phase的各个条件 ====================
+				ConditionNPCTalk dialog1 = phase1.addCondition(new ConditionNPCTalk(phase1));
+				dialog1.setOnComplete(new Action1<TaskConditionBase<BTConditionNPCTalk, BTConditionNPCTalkEvent>>() {
+					@Override
+					public void run(TaskConditionBase<BTConditionNPCTalk, BTConditionNPCTalkEvent> condition) throws Throwable {
+						var phase = condition.getPhase();
+						var extendedBean = condition.getExtendedBean();
+						var dialogSelected = extendedBean.getDialogSelected();
+						if (dialogSelected.get(1) == 1) // 如果在第一个对话中选了1选项，则影响任务路线，推进到第2个Phase
+							phase.setNextPhaseId(2L);
+						else if (dialogSelected.get(1) == 2) // 如果在第一个对话中选了2选项，则影响任务路线，推进到第3个Phase
+							phase.setNextPhaseId(3L);
+					}
+				});
 //				ConditionNamedCount goldCondition10 = new ConditionNamedCount("收集金币", 0, 10);
 //				ConditionNamedCount goldCondition20 = new ConditionNamedCount("收集金币", 0, 20);
 //				ConditionNamedCount goldCondition30 = new ConditionNamedCount("收集金币", 0, 30);
