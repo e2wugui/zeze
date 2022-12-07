@@ -11,7 +11,7 @@ import Zeze.Transaction.Bean;
 public class ConditionReachNPC extends TaskConditionBase<BTConditionReachNPC, BTConditionReachNPCEvent> {
 
 	@Override
-	public boolean isDone() {
+	public boolean isCompleted() {
 		return false;
 	}
 
@@ -19,7 +19,7 @@ public class ConditionReachNPC extends TaskConditionBase<BTConditionReachNPC, BT
 	public boolean accept(Bean eventBean) throws Throwable {
 		if (!(eventBean instanceof BTConditionReachNPC e))
 			return false;
-		if (isDone())
+		if (isCompleted())
 			onComplete();
 		return true;
 	}

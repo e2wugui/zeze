@@ -1,8 +1,6 @@
 package Zeze.Game;
 
 import java.lang.invoke.MethodHandle;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Arch.ProviderApp;
@@ -177,8 +175,12 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	public String getDescription() { return bean.getTaskDescription(); }
 	public Module getModule() { return module; }
 	private final Module module;
-	private final List<TaskPhase> phases = new ArrayList<>();
-	private final TaskPhase currentPhase;
+	public BTask getBean() { return bean; }
+	private BTask bean;
+	private final ConcurrentHashMap<Long, TaskPhase> phases = new ConcurrentHashMap<>();
+	private TaskPhase currentPhase;
+	public void setOnComplete(Action0 callback) { onCompleteUserCallback = callback; }
+	Action0 onCompleteUserCallback;
 	// @formatter:on
 
 	/**
@@ -187,120 +189,32 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	 * - 当满足任务推进情况时，会自动推进任务
 	 */
 	public boolean accept(Bean eventBean) throws Throwable {
-		if (currentPhase.accept(eventBean)) {
-//			currentPhase = currentPhase.nextPhase;
-		}
-		return false;
+		if (!currentPhase.accept(eventBean))
+			return false;
+
+		if (currentPhase.isCompleted())
+			if (currentPhase.isEndPhase())
+				onComplete();
+			else {
+				currentPhase.onComplete();
+				currentPhase = phases.get(currentPhase.getNextPhaseId());
+			}
+		return true;
 	}
 
 	/**
 	 * Runtime方法：isCompleted
 	 * - 用于判断任务是否完成
 	 */
-	public boolean isCompleted() { return currentPhase.isEndPhase() && currentPhase.isCompleted(); }
+	public boolean isCompleted() {
+		return currentPhase.isEndPhase() && currentPhase.isCompleted();
+	}
 
 	/**
 	 * Runtime方法：reset
 	 * - 将任务回归到初始化状态
 	 */
 	public void reset() {
-	}
-
-	// ======================================== 任务初始化阶段的方法 ========================================
-
-	/**
-	 * loadBean
-	 * 将Bean加载为配置表
-	 */
-	protected abstract void loadExtendedData();
-
-	protected final void loadBean(BTask bean) {
-		reset();
-		this.bean = bean;
-		currentPhase.loadBean(bean.getTaskPhases().get(bean.getCurrentPhaseId()));
-		loadExtendedData();
-	}
-
-	public void setOnComplete(Action0 callback) {
-		onCompleteUserCallback = callback;
-	}
-
-	/**
-	 * 在任务结束后调用的方法，比如：发放奖励。
-	 */
-	protected final void onComplete() throws Throwable {
-		if (isCompleted() && null != onCompleteUserCallback) {
-			onCompleteUserCallback.run();
-		}
-	}
-
-	Action0 onCompleteUserCallback;
-
-	public TaskPhase addPhase(TaskPhase.TaskPhaseOpt opt) {
-		var phase = new TaskPhase(this, opt);
-		phases.add(phase);
-		bean.getTaskPhases().put(phase.getPhaseId(), phase.getBean());
-		return phase;
-	}
-
-	public void addPhase(TaskPhase phase) {
-		// 不能添加不是这个任务的phase
-		if (phase.getTask() == this) {
-			phases.add(phase);
-			bean.getTaskPhases().put(phase.getPhaseId(), phase.getBean());
-		}
-	}
-
-//	public void linkPhase(TaskPhase from, TaskPhase to) throws Exception {
-//		phases.addEdge(from, to);
-//	}
-
-//	public void setupTask() {
-//		// Debug Info
-//		var vertexCount = phases.vertexSet().size();
-//		var edgeCount = phases.edgeSet().size();
-//		// 找任务开始的节点
-//		Supplier<Stream<TaskPhase>> zeroInDegreeNodeSupplier = () -> phases.vertexSet().stream().filter(p -> phases.inDegreeOf(p) == 0);
-//		if (zeroInDegreeNodeSupplier.get().count() != 1) {
-//			bean.setTaskState(Module.Invalid);
-//			System.out.println("Task has more than one Start Phase node.");
-//			return;
-//		}
-//		if (zeroInDegreeNodeSupplier.get().findAny().isEmpty()) {
-//			bean.setTaskState(Module.Invalid);
-//			System.out.println("Task has no Start Phase node.");
-//			return;
-//		}
-//		startPhase = zeroInDegreeNodeSupplier.get().findAny().get();
-//		currentPhase = startPhase;
-//
-//		// 找任务结束的节点
-//		Supplier<Stream<TaskPhase>> zeroOutDegreeNodeSupplier = () -> phases.vertexSet().stream().filter(p -> phases.outDegreeOf(p) == 0);
-//		if (zeroOutDegreeNodeSupplier.get().count() != 1) {
-//			bean.setTaskState(Module.Invalid);
-//			System.out.println("Task has more than one End Phase node.");
-//			return;
-//		}
-//		if (zeroOutDegreeNodeSupplier.get().findAny().isEmpty()) {
-//			bean.setTaskState(Module.Invalid);
-//			System.out.println("Task has no End Phase node.");
-//			return;
-//		}
-//		endPhase = zeroOutDegreeNodeSupplier.get().findAny().get();
-
-//		for (var phase : phases.vertexSet()) {
-//			phase.setupPhase();
-//		}
-//	}
-
-	// ======================================== Private方法和一些不需要被注意的方法 ========================================
-
-//	private final DirectedAcyclicGraph<TaskPhase, DefaultEdge> phases; // 任务的各个阶段的连接图
-
-	/**
-	 * 初始化任务的各个阶段
-	 */
-	protected void setUpTask() {
 		int startNodeSize = 0;
 		BTaskPhase startBean = null;
 		for (var phaseBean : bean.getTaskPhases().values()) {
@@ -317,29 +231,52 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		}
 		// 理论上只允许一个开始节点，这里暂时不处理过多的开始节点的问题。
 		currentPhase.loadBean(startBean);
+		currentPhase.reset();
 	}
+
+	// ======================================== 任务初始化阶段的方法 ========================================
 
 	/**
-	 * Bean
+	 * loadBean
+	 * 将Bean加载为配置表
 	 */
-	private final static BeanFactory beanFactory = new BeanFactory();
-
-	public static long getSpecialTypeIdFromBean(Bean bean) {
-		return BeanFactory.getSpecialTypeIdFromBean(bean);
+	protected final void loadBean(BTask bean) {
+		this.bean = bean;
+		currentPhase.loadBean(bean.getTaskPhases().get(bean.getCurrentPhaseId()));
+		loadExtendedData();
 	}
 
-	public static Bean createBeanFromSpecialTypeId(long typeId) {
-		return beanFactory.createBeanFromSpecialTypeId(typeId);
+	protected abstract void loadExtendedData();
+
+	/**
+	 * 在任务结束后调用的方法，比如：发放奖励。
+	 */
+	protected final void onComplete() throws Throwable {
+		if (isCompleted() && null != onCompleteUserCallback) {
+			onCompleteUserCallback.run();
+		}
 	}
 
-	public BTask getBean() {
-		return bean;
+	public TaskPhase addPhase(TaskPhase.TaskPhaseOpt opt) {
+		var phase = new TaskPhase(this, opt);
+		phases.put(phase.getPhaseId(), phase);
+		bean.getTaskPhases().put(phase.getPhaseId(), phase.getBean());
+		return phase;
 	}
 
+	public void addPhase(TaskPhase phase) {
+		// 不能添加不是这个任务的phase
+		if (phase.getTask() == this) {
+			phases.put(phase.getPhaseId(), phase);
+			bean.getTaskPhases().put(phase.getPhaseId(), phase.getBean());
+		}
+	}
+
+	// ======================================== Private方法和一些不需要被注意的方法 ========================================
+	// @formatter:off
 	@SuppressWarnings("unchecked")
-	public ExtendedBean getExtendedBean() {
-		return (ExtendedBean)bean.getExtendedData().getBean();
-	}
-
-	private BTask bean;
+	public ExtendedBean getExtendedBean() { return (ExtendedBean)bean.getExtendedData().getBean(); }
+	private final static BeanFactory beanFactory = new BeanFactory();
+	public static long getSpecialTypeIdFromBean(Bean bean) { return BeanFactory.getSpecialTypeIdFromBean(bean); }
+	public static Bean createBeanFromSpecialTypeId(long typeId) { return beanFactory.createBeanFromSpecialTypeId(typeId); }
 }

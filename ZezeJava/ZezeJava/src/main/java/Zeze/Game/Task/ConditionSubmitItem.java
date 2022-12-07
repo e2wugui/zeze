@@ -11,7 +11,7 @@ import Zeze.Transaction.Bean;
 public class ConditionSubmitItem extends TaskConditionBase<BTConditionSubmitItem, BTConditionSubmitItemEvent> {
 
 	@Override
-	public boolean isDone() {
+	public boolean isCompleted() {
 		return false;
 	}
 
@@ -19,7 +19,7 @@ public class ConditionSubmitItem extends TaskConditionBase<BTConditionSubmitItem
 	public boolean accept(Bean eventBean) throws Throwable {
 		if (!(eventBean instanceof BTConditionSubmitItem e))
 			return false;
-		if (isDone())
+		if (isCompleted())
 			onComplete();
 		return true;
 	}

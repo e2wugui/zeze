@@ -8,8 +8,8 @@ public interface BTaskConditionReadOnly {
     public boolean negativeCheck();
     public BTaskCondition copy();
 
-    public int getConditionType();
     public long getConditionId();
+    public int getConditionType();
     public Zeze.Transaction.DynamicBeanReadOnly getExtendedDataReadOnly();
 
 }

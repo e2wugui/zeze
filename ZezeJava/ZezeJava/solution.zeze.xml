@@ -828,8 +828,8 @@
 				<enum name="CompleteSubmitItem" value="34"/>
 				<enum name="CompleteArriveNPC" value="35"/>
 				<bean name="BTaskCondition"> TODO: 允许广播
-					<variable id="1" name="conditionType" type="int"/> Condition的完成类型
-					<variable id="2" name="conditionId" type="long"/> Condition的Id
+					<variable id="1" name="conditionId" type="long"/> Condition的Id
+					<variable id="2" name="conditionType" type="int"/> Condition的完成类型
 					<variable id="3" name="extendedData" type="dynamic"> 用于自定义扩展Condition的数据
 						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskConditionBase::getSpecialTypeIdFromBean"/>
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskConditionBase::createBeanFromSpecialTypeId"/>

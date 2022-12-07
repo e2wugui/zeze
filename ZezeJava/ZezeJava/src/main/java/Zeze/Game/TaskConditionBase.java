@@ -11,14 +11,10 @@ import Zeze.Util.Action1;
 public abstract class TaskConditionBase<ConditionBean extends Bean, EventBean extends Bean> {
 
 	// @formatter:off
-	public TaskPhase getPhase() { return phase; }
-	private final TaskPhase phase;
 	public abstract boolean accept(Bean eventBean) throws Throwable;
-	public abstract boolean isDone();
-	public final void setOnComplete(Action1<TaskConditionBase<ConditionBean, EventBean>> callback) { onCompleteUserCallback = callback; }
-	private Action1<TaskConditionBase<ConditionBean, EventBean>> onCompleteUserCallback;
+	public abstract boolean isCompleted();
 	public final void onComplete() throws Throwable {
-		if (isDone() && null != onCompleteUserCallback) {
+		if (isCompleted() && null != onCompleteUserCallback) {
 			onCompleteUserCallback.run(this);
 		}
 	}
@@ -32,23 +28,23 @@ public abstract class TaskConditionBase<ConditionBean extends Bean, EventBean ex
 	}
 
 	/**
-	 * Bean
+	 * Condition Info:
 	 */
-	public BTaskCondition getBean() {
-		return bean;
-	}
+	public long getConditionId() { return bean.getConditionId(); }
+	public final BTaskCondition getBean() { return bean; }
 	private final BTaskCondition bean;
+	public TaskPhase getPhase() { return phase; }
+	private final TaskPhase phase;
+	public final void setOnComplete(Action1<TaskConditionBase<ConditionBean, EventBean>> callback) { onCompleteUserCallback = callback; }
+	private Action1<TaskConditionBase<ConditionBean, EventBean>> onCompleteUserCallback;
+
+
+	// ======================================== Private方法和一些不需要被注意的方法 ========================================
 	@SuppressWarnings("unchecked")
-	public ConditionBean getExtendedBean() {
-		return (ConditionBean)bean.getExtendedData().getBean();
-	}
+	public ConditionBean getExtendedBean() { return (ConditionBean)bean.getExtendedData().getBean(); }
 	private final static BeanFactory beanFactory = new BeanFactory();
-	public static long getSpecialTypeIdFromBean(Bean bean) {
-		return BeanFactory.getSpecialTypeIdFromBean(bean);
-	}
-	public static Bean createBeanFromSpecialTypeId(long typeId) {
-		return beanFactory.createBeanFromSpecialTypeId(typeId);
-	}
+	public static long getSpecialTypeIdFromBean(Bean bean) { return BeanFactory.getSpecialTypeIdFromBean(bean); }
+	public static Bean createBeanFromSpecialTypeId(long typeId) { return beanFactory.createBeanFromSpecialTypeId(typeId); }
 	@SuppressWarnings("unchecked")
 	public final Class<ConditionBean> getConditionBeanClass() {
 		ParameterizedType parameterizedType = (ParameterizedType)this.getClass().getGenericSuperclass();

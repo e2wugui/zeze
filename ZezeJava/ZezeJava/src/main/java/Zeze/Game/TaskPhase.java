@@ -1,12 +1,14 @@
 package Zeze.Game;
 
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Game.TaskBase.BTaskEvent;
 import Zeze.Builtin.Game.TaskBase.BTaskPhase;
 import Zeze.Transaction.Bean;
+import Zeze.Util.Action0;
+import Zeze.Util.Action1;
 
 public class TaskPhase { // TODO 使用Action绑定来引导Condition切换NextPhase
-
 	public static final int CommitAuto = 11;
 	public static final int CommitNPCTalk = 12;
 	public static final int ConditionCompleteAll = 31;
@@ -41,6 +43,7 @@ public class TaskPhase { // TODO 使用Action绑定来引导Condition切换NextP
 		else
 			setNextPhaseId(opt.afterPhaseIds.get(0)); // 默认推进到第一个加入的Phase （如果不特别指定）
 		this.bean.setConditionsCompleteType(opt.conditionsCompleteType);
+		currentConditionId = 1; // TODO: 硬编码！注意错误
 	}
 
 	/**
@@ -56,6 +59,15 @@ public class TaskPhase { // TODO 使用Action绑定来引导Condition切换NextP
 	public String getPhaseDescription() { return bean.getPhaseDescription(); }
 	public long getNextPhaseId() { return bean.getNextPhaseId(); }
 	public void setNextPhaseId(long id) { bean.setNextPhaseId(id); }
+	public int getConditionsCompleteType() { return bean.getConditionsCompleteType(); }
+	private final ConcurrentHashMap<Long, TaskConditionBase<?,?>> conditions = new ConcurrentHashMap<>();
+	private long currentConditionId; // 只在ConditionCompleteSequence时有效
+	public final void setOnComplete(Action0 callback) { onCompleteUserCallback = callback; }
+	private Action0 onCompleteUserCallback;
+	public TaskBase<?> getTask() { return task; }
+	private final TaskBase<?> task;
+	public BTaskPhase getBean() { return bean; }
+	private BTaskPhase bean;
 
 	/**
 	 * Runtime方法：accept
@@ -63,10 +75,25 @@ public class TaskPhase { // TODO 使用Action绑定来引导Condition切换NextP
 	 * - 当满足任务Phase推进情况时，会自动推进任务Phase
 	 */
 	public boolean accept(Bean eventBean) throws Throwable {
-		boolean res = false;
-		for (var condition : conditions)
-			res = res || condition.accept(eventBean);
-		return res;
+		if (getConditionsCompleteType() == ConditionCompleteSequence) {
+			var condition = conditions.get(currentConditionId);
+			if (!condition.accept(eventBean))
+				return false;
+
+			if(condition.isCompleted()) {
+				condition.onComplete();
+				++currentConditionId;
+			}
+			return true;
+		} else {
+			boolean res = false;
+			for (var condition : conditions.values()) {
+				res = res || condition.accept(eventBean);
+				if(condition.isCompleted())
+					condition.onComplete();
+			}
+			return res;
+		}
 	}
 
 	/**
@@ -74,8 +101,9 @@ public class TaskPhase { // TODO 使用Action绑定来引导Condition切换NextP
 	 * - 用于重置任务Phase
 	 */
 	public void reset() {
-//		for (var condition : currentConditions)
+//		for (var condition : conditions.values())
 //			condition.reset();
+		currentConditionId = 1;
 	}
 
 	/**
@@ -83,86 +111,45 @@ public class TaskPhase { // TODO 使用Action绑定来引导Condition切换NextP
 	 * - 用于判断任务Phase是否完成
 	 */
 	public boolean isCompleted() {
-//		if (getConditionsCompleteType() == TaskBase.Module.ConditionCompleteAll) {
-//
-//		}
-//		else if (getConditionsCompleteType() == TaskBase.Module.ConditionCompleteAny) {
-//		}
-//		else {
-//			throw new RuntimeException("unknown complete type");
-//		}
+		if (getConditionsCompleteType() == ConditionCompleteAll) {
+			for (var condition : conditions.values())
+				if (!condition.isCompleted())
+					return false;
+			return true;
+		}
+		if (getConditionsCompleteType() == ConditionCompleteAny) {
+			for (var condition : conditions.values())
+				if (condition.isCompleted())
+					return true;
+			return false;
+		}
+		if (getConditionsCompleteType() == ConditionCompleteSequence) { // 在判断是否完成上，ConditionCompleteSequence实际上和ConditionCompleteAll是一样的
+			for (var condition : conditions.values())
+				if (!condition.isCompleted())
+					return false;
+			return true;
+		}
 		return false;
 	}
 
-	/**
-	 * Task Conditions
-	 */
-	public List<TaskConditionBase<?,?>> conditions;
-
-
-
-	// ======================================== 任务Phase初始化阶段的方法 ========================================
-
-	public void loadBean(BTaskPhase bean) {
-		this.bean = bean;
-
+	public final void onComplete() throws Throwable {
+		if (isCompleted() && null != onCompleteUserCallback) {
+			onCompleteUserCallback.run();
+		}
 	}
 
+	// ======================================== 任务Phase初始化阶段的方法 ========================================
+	public void loadBean(BTaskPhase bean) {
+		this.bean = bean;
+	}
 	public <T extends TaskConditionBase<?,?>> T addCondition(T condition) {
 		// 不能添加不是这个任务的condition
 		if (condition.getPhase() == this)
-			conditions.add(condition);
+			conditions.put(condition.getConditionId(), condition);
 		return condition;
 	}
-
-	public boolean isStartPhase() {
-		return bean.getNextPhaseId() == getPhaseId();
-	}
-
-	public boolean isEndPhase() {
-		return bean.getAfterPhaseIds().isEmpty();
-	}
-
-//	public ArrayList<TaskConditionBase<?,?>> getCurrentConditions() {
-//		return currentConditions;
-//	}
-//	private final DirectedAcyclicGraph<TaskConditionBase<?,?>, DefaultEdge> conditions = new DirectedAcyclicGraph<>(DefaultEdge.class); // 任务的各个阶段的连接图
-//	private final ArrayList<TaskConditionBase<?,?>> currentConditions = new ArrayList<>(); // 当前的任务Phase条件（允许不止一个条件）
-
-	// ======================================== 任务Phase初始化阶段的方法 ========================================
-//	public void addCondition(TaskConditionBase<?, ?> condition) throws Throwable {
-//		conditions.addVertex(condition);
-//		bean.getConditions().put(condition.getBean().getConditionId(), condition.getBean());
-//
-//		// 自动注册加入的Condition自己的Bean和Event Bean的class。
-//		task.getModule().register(condition.getConditionBeanClass());
-//		task.getModule().register(condition.getEventBeanClass());
-//	}
-
-//	public void linkCondition(TaskConditionBase<?, ?> from, TaskConditionBase<?, ?> to) throws Exception {
-//		conditions.addEdge(from, to);
-//	}
-//
-//	public void setupPhase() {
-//		Supplier<Stream<TaskConditionBase<?, ?>>> zeroInDegreeNodeSupplier = () -> conditions.vertexSet().stream().filter(p -> conditions.inDegreeOf(p) == 0);
-//		if (zeroInDegreeNodeSupplier.get().findAny().isEmpty()) {
-//			System.out.println("Task has no Start Condition node.");
-//			return;
-//		}
-//		Supplier<Stream<TaskConditionBase<?, ?>>> zeroOutDegreeNodeSupplier = () -> conditions.vertexSet().stream().filter(p -> conditions.outDegreeOf(p) == 0);
-//		if (zeroInDegreeNodeSupplier.get().findAny().isEmpty()) {
-//			System.out.println("Task has no End Condition node.");
-//			return;
-//		}
-//
-//		// set current conditions with start conditions
-//		zeroInDegreeNodeSupplier.get().forEach(currentConditions::add);
-//	}
-
-	public TaskBase<?> getTask() { return task; }
-	public BTaskPhase getBean() { return bean; }
-	private BTaskPhase bean;
-	private final TaskBase<?> task;
+	public boolean isStartPhase() { return bean.getNextPhaseId() == getPhaseId(); } // 也许可以这么用，但暂时没有这么用。
+	public boolean isEndPhase() { return bean.getAfterPhaseIds().isEmpty(); }
 
 	// @formatter:on
 }

@@ -23,13 +23,13 @@ public class ConditionNPCTalk extends TaskConditionBase<BTConditionNPCTalk, BTCo
 	public boolean accept(Bean eventBean) throws Throwable {
 		if (!(eventBean instanceof BTConditionNPCTalkEvent e))
 			return false;
-		if (isDone())
+		if (isCompleted())
 			onComplete();
 		return true;
 	}
 
 	@Override
-	public boolean isDone() {
+	public boolean isCompleted() {
 		for (var option : getExtendedBean().getDialogSelected())
 			if (option.getValue() == -1)
 				return false;

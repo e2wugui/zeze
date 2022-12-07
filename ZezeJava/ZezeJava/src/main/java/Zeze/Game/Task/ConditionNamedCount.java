@@ -14,13 +14,13 @@ public class ConditionNamedCount extends TaskConditionBase<BCollectCoinTask, BCo
 	public boolean accept(Bean eventBean) throws Throwable {
 		if (!(eventBean instanceof BCollectCoinEvent e))
 			return false;
-		if (isDone())
+		if (isCompleted())
 			onComplete();
 		return true;
 	}
 
 	@Override
-	public boolean isDone() {
+	public boolean isCompleted() {
 		return getCurrentCount() >= getTargetCount();
 	}
 
