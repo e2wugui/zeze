@@ -12,10 +12,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class Selector extends Thread implements ByteBufferAllocator {
+	public static final int DEFAULT_BUFFER_SIZE = 32 * 1024; // 单个buffer的字节容量
+	public static final int DEFAULT_BBPOOL_LOCAL_CAPACITY = 1000; // 本地池的最大保留buffer数量
+	public static final int DEFAULT_BBPOOL_MOVE_COUNT = 1000; // 本地池和全局池之间移动一次的buffer数量
+	public static final int DEFAULT_BBPOOL_GLOBAL_CAPACITY = 100 * DEFAULT_BBPOOL_MOVE_COUNT; // 全局池的最大buffer数量
 	private static final Logger logger = LogManager.getLogger(Selector.class);
-	private static final int BBPOOL_LOCAL_CAPACITY = 1024; // Selector线程本地保留的数量
-	private static final int BBPOOL_GLOBAL_PIECE_COUNT = 1024; // 全局池中的一批数量
-	private static final int BBPOOL_GLOBAL_MAX_CAPACITY = 100 * BBPOOL_GLOBAL_PIECE_COUNT; // 全局池的最大数量,以批为单位
 	private static final ArrayList<ByteBuffer> bbGlobalPool = new ArrayList<>(); // 全局池
 	private static final Lock bbGlobalPoolLock = new ReentrantLock(); // 全局池的锁
 
@@ -23,6 +24,10 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	private final ByteBuffer readBuffer = ByteBuffer.allocate(32 * 1024); // 此线程共享的buffer,只能临时使用
 	private final AtomicInteger wakeupNotified = new AtomicInteger();
 	private final ArrayList<ByteBuffer> bbPool = new ArrayList<>();
+	private final int bufferSize;
+	private final int bbPoolLocalCapacity;
+	private final int bbPoolMoveCount;
+	private final int bbPoolGlobalCapacity;
 	private boolean firstAction;
 	private volatile boolean running = true;
 
@@ -32,13 +37,47 @@ public class Selector extends Thread implements ByteBufferAllocator {
 //	public long lastTime;
 
 	public Selector(String threadName) throws IOException {
+		this(threadName, DEFAULT_BUFFER_SIZE, DEFAULT_BBPOOL_LOCAL_CAPACITY, DEFAULT_BBPOOL_MOVE_COUNT,
+				DEFAULT_BBPOOL_GLOBAL_CAPACITY);
+	}
+
+	public Selector(String threadName, int bufferSize, int bbPoolLocalCapacity, int bbPoolMoveCount,
+					int bbPoolGlobalCapacity) throws IOException {
 		super(threadName);
+		if (bufferSize <= 0)
+			throw new IllegalArgumentException("bufferSize <= 0: " + bufferSize);
+		if (bbPoolLocalCapacity < 0)
+			throw new IllegalArgumentException("bbPoolLocalCapacity < 0: " + bbPoolLocalCapacity);
+		if (bbPoolMoveCount <= 0)
+			throw new IllegalArgumentException("bbPoolMoveCount <= 0: " + bbPoolMoveCount);
+		if (bbPoolGlobalCapacity < 0)
+			throw new IllegalArgumentException("bbPoolGlobalCapacity < 0: " + bbPoolGlobalCapacity);
+		this.bufferSize = bufferSize;
+		this.bbPoolLocalCapacity = bbPoolLocalCapacity;
+		this.bbPoolMoveCount = bbPoolMoveCount;
+		this.bbPoolGlobalCapacity = bbPoolGlobalCapacity;
 		setDaemon(true);
 		selector = java.nio.channels.Selector.open();
 	}
 
 	ByteBuffer getReadBuffer() {
 		return readBuffer;
+	}
+
+	public int getBufferSize() {
+		return bufferSize;
+	}
+
+	public int getBbPoolLocalCapacity() {
+		return bbPoolLocalCapacity;
+	}
+
+	public int getBbPoolMoveCount() {
+		return bbPoolMoveCount;
+	}
+
+	public int getBbPoolGlobalCapacity() {
+		return bbPoolGlobalCapacity;
 	}
 
 	@Override
@@ -48,8 +87,8 @@ public class Selector extends Thread implements ByteBufferAllocator {
 			bbGlobalPoolLock.lock();
 			try {
 				var gn = bbGlobalPool.size();
-				if (gn >= BBPOOL_GLOBAL_PIECE_COUNT) {
-					var bbMoves = bbGlobalPool.subList(gn - BBPOOL_GLOBAL_PIECE_COUNT, gn);
+				if (gn >= bbPoolMoveCount) {
+					var bbMoves = bbGlobalPool.subList(gn - bbPoolMoveCount, gn);
 					bbPool.addAll(bbMoves);
 					bbMoves.clear();
 				}
@@ -58,17 +97,17 @@ public class Selector extends Thread implements ByteBufferAllocator {
 			}
 			n = bbPool.size();
 		}
-		return n > 0 ? bbPool.remove(n - 1) : ByteBuffer.allocateDirect(DEFAULT_SIZE);
+		return n > 0 ? bbPool.remove(n - 1) : ByteBuffer.allocateDirect(bufferSize);
 	}
 
 	@Override
 	public void free(ByteBuffer bb) {
 		int n = bbPool.size();
-		if (n >= BBPOOL_LOCAL_CAPACITY + BBPOOL_GLOBAL_PIECE_COUNT) { // 可以释放一批
-			var bbMoves = bbPool.subList(n - BBPOOL_GLOBAL_PIECE_COUNT, n);
+		if (n >= bbPoolLocalCapacity + bbPoolMoveCount) { // 可以释放一批
+			var bbMoves = bbPool.subList(n - bbPoolMoveCount, n);
 			bbGlobalPoolLock.lock();
 			try {
-				if (bbGlobalPool.size() >= BBPOOL_GLOBAL_MAX_CAPACITY) // 全局池也放不下就丢弃这个bb
+				if (bbGlobalPool.size() >= bbPoolGlobalCapacity) // 全局池也放不下就丢弃这个bb
 					return;
 				bbGlobalPool.addAll(bbMoves);
 			} finally {

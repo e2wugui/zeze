@@ -5,29 +5,46 @@ import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class Selectors {
-	private static final Selectors instance = new Selectors();
-
-	public static Selectors getInstance() {
-		return instance;
+	public static final class InstanceHolder { // for lazy-init
+		private static final Selectors instance = new Selectors("Selector");
 	}
 
+	public static Selectors getInstance() {
+		return InstanceHolder.instance;
+	}
+
+	private final String name;
 	private volatile Selector[] selectorList;
 	private final AtomicLong choiceCount = new AtomicLong();
 
-	public Selectors() {
+	public Selectors(String name) {
+		this.name = name;
 		add(Math.min(Runtime.getRuntime().availableProcessors(), 8));
+	}
+
+	public Selectors(String name, int count, int bufferSize, int bbPoolLocalCapacity, int bbPoolMoveCount,
+					 int bbPoolGlobalCapacity) {
+		this.name = name;
+		add(count, bufferSize, bbPoolLocalCapacity, bbPoolMoveCount, bbPoolGlobalCapacity);
 	}
 
 	public int getCount() {
 		return selectorList.length;
 	}
 
-	public synchronized Selectors add(int count) {
+	public Selectors add(int count) {
+		return add(count, Selector.DEFAULT_BUFFER_SIZE, Selector.DEFAULT_BBPOOL_LOCAL_CAPACITY,
+				Selector.DEFAULT_BBPOOL_MOVE_COUNT, Selector.DEFAULT_BBPOOL_GLOBAL_CAPACITY);
+	}
+
+	public synchronized Selectors add(int count, int bufferSize, int bbPoolLocalCapacity, int bbPoolMoveCount,
+									  int bbPoolGlobalCapacity) {
 		try {
 			Selector[] tmp = selectorList;
 			tmp = tmp == null ? new Selector[count] : Arrays.copyOf(tmp, tmp.length + count);
 			for (int i = tmp.length - count; i < tmp.length; i++) {
-				tmp[i] = new Selector("Selector-" + i);
+				tmp[i] = new Selector(name + '-' + i, bufferSize, bbPoolLocalCapacity, bbPoolMoveCount,
+						bbPoolGlobalCapacity);
 				tmp[i].start();
 			}
 			selectorList = tmp;

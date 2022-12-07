@@ -105,9 +105,9 @@ public class BenchSocket {
 
 		var dataPieceLength = 100;
 		// 预先分配足够的内存池，避免后面性能测试时，两次由于这个产生波动。
-		var bufCount = (dataPieceLength * count) / ByteBufferAllocator.DEFAULT_SIZE + 1;
+		var bufCount = (dataPieceLength * count) / selector.getBufferSize() + 1;
 		for (int i = 0; i < bufCount; ++i)
-			selector.free(java.nio.ByteBuffer.allocateDirect(ByteBufferAllocator.DEFAULT_SIZE));
+			selector.free(java.nio.ByteBuffer.allocateDirect(selector.getBufferSize()));
 		var datas = new byte[count][];
 		for (var i = 0; i < count; ++i) {
 			datas[i] = new byte[dataPieceLength];

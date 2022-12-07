@@ -17,7 +17,6 @@ public final class OutputBuffer implements Codec, Closeable {
 
 	public OutputBuffer(ByteBufferAllocator allocator) {
 		this.allocator = allocator;
-		tail = allocator.alloc();
 	}
 
 	@Override
@@ -28,8 +27,11 @@ public final class OutputBuffer implements Codec, Closeable {
 		}
 		for (ByteBuffer bb; (bb = buffers.pollFirst()) != null; )
 			allocator.free(bb);
-		allocator.free(tail);
-		tail = null;
+		if (tail != null) {
+			allocator.free(tail);
+			tail = null;
+			tailPos = 0;
+		}
 	}
 
 	public int size() {
@@ -42,15 +44,17 @@ public final class OutputBuffer implements Codec, Closeable {
 
 	public void put(byte[] src, int offset, int length) {
 		if (length > 0) {
+			var tail = this.tail;
+			if (tail == null)
+				this.tail = tail = allocator.alloc();
 			for (size += length; ; ) {
-				var tail = this.tail;
 				int left = tail.remaining();
 				if (left >= length) {
 					tail.put(src, offset, length);
 					break;
 				}
 				tail.put(src, offset, left);
-				pushAndAllocTail();
+				tail = pushAndAllocTail();
 				offset += left;
 				length -= left;
 			}
@@ -59,19 +63,22 @@ public final class OutputBuffer implements Codec, Closeable {
 
 	public void put(byte b) {
 		size++;
-		int left = tail.remaining();
-		if (left <= 0)
-			pushAndAllocTail();
+		var tail = this.tail;
+		if (tail == null)
+			this.tail = tail = allocator.alloc();
+		else if (tail.remaining() <= 0)
+			tail = pushAndAllocTail();
 		tail.put(b);
 	}
 
-	private void pushAndAllocTail() {
+	private ByteBuffer pushAndAllocTail() {
 		var tail = this.tail;
 		tail.limit(tail.position());
 		tail.position(tailPos);
 		buffers.addLast(tail);
-		this.tail = allocator.alloc();
+		this.tail = tail = allocator.alloc();
 		tailPos = 0;
+		return tail;
 	}
 
 	public long writeTo(SocketChannel channel) throws IOException {
@@ -79,46 +86,48 @@ public final class OutputBuffer implements Codec, Closeable {
 		var head = this.head;
 		if (head == null && (head = buffers.pollFirst()) == null) { // head和队列都没有buffer了,只需要输出tail
 			var tail = this.tail;
+			if (tail == null)
+				return 0; // tail没有数据
 			int writePos = tail.position();
-			if (writePos <= tailPos) // tail没有数据
-				return 0;
 			tail.limit(writePos);
 			tail.position(tailPos);
 			r = channel.write(tail);
 			int newTailPos = tail.position();
-			if (newTailPos >= writePos) // tail全部输出完
-				newTailPos = writePos = 0;
-			tailPos = newTailPos;
-			tail.position(writePos);
-			tail.limit(tail.capacity());
+			if (newTailPos >= writePos) { // tail全部输出完
+				this.tail = null;
+				tailPos = 0;
+				allocator.free(tail);
+			} else {
+				tailPos = newTailPos;
+				tail.position(writePos);
+				tail.limit(tail.capacity());
+			}
 		} else {
 			this.head = head;
 			var next = buffers.peekFirst();
 			if (next == null) {
-				var tail = this.tail;
-				if (tail.position() == 0) { // 队列只有对头,且tail没有数据
-					r = channel.write(head);
-					if (!head.hasRemaining()) { // 队头已经输出完
-						allocator.free(head);
-						this.head = null;
-					}
-				} else { // 队列只有对头,且tail有数据
-					outputs[0] = head;
-					outputs[1] = tail;
-					int writePos = tail.position();
-					tail.limit(writePos);
-					tail.position(0);
-					r = channel.write(outputs);
-					if (!head.hasRemaining()) { // 队头已经输出完
-						allocator.free(head);
-						this.head = null;
-						int newTailPos = tail.position();
-						if (newTailPos >= writePos) // tail全部输出完
-							newTailPos = writePos = 0;
+				var tail = this.tail; // 队列不空时,tail肯定不为null
+				outputs[0] = head;
+				outputs[1] = tail;
+				int writePos = tail.position();
+				tail.limit(writePos);
+				tail.position(0);
+				r = channel.write(outputs);
+				if (!head.hasRemaining()) { // 队头已经输出完
+					allocator.free(head);
+					this.head = null;
+					int newTailPos = tail.position();
+					if (newTailPos >= writePos) { // tail全部输出完
+						this.tail = null;
+						tailPos = 0;
+						allocator.free(tail);
+					} else {
 						tailPos = newTailPos;
 						tail.position(writePos);
-					} else
-						tail.position(writePos);
+						tail.limit(tail.capacity());
+					}
+				} else {
+					tail.position(writePos);
 					tail.limit(tail.capacity());
 				}
 			} else { // 输出head和队头的2个buffers

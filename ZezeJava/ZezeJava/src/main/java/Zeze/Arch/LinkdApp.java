@@ -48,7 +48,7 @@ public class LinkdApp {
 		providerIp = kv.getKey();
 		providerPort = kv.getValue();
 
-		selectors = new Selectors();
+		selectors = new Selectors("LinkdApp");
 		this.linkdService.setSelectors(selectors);
 	}
 
