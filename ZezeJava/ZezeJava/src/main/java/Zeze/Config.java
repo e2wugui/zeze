@@ -299,6 +299,19 @@ public final class Config {
 			db.getDirectOperates().clearInUse(getServerId(), getGlobalCacheManagerHostNameOrAddress());
 	}
 
+	public void dropMysqlOperatesProcedures() {
+		for (var conf : getDatabaseConfMap().values()) {
+			if (conf.databaseType == DbType.MySql) {
+				var db = new DatabaseMySql(conf);
+				try {
+					db.dropOperatesProcedures();
+				} finally {
+					db.close();
+				}
+			}
+		}
+	}
+
 	public ConcurrentHashMap<String, ServiceConf> getServiceConfMap() {
 		return serviceConfMap;
 	}

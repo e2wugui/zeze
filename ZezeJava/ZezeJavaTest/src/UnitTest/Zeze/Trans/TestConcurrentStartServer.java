@@ -9,7 +9,7 @@ public class TestConcurrentStartServer {
 
 	@Test
 	public void testConcurrentStartServer() throws Throwable {
-		for (var i = 0; i < 1; ++i)
+		for (var i = 0; i < 10; ++i)
 			start2();
 	}
 

@@ -1,10 +1,10 @@
 
-KEY.type = VARBINARY(?)
-	3070 porlardb-x
-	3072 mysql 8
-	8000 sqlserver？
+-- KEY.type = VARBINARY(?)
+-- 	3070 porlardb-x
+-- 	3072 mysql 8
+-- 	8000 sqlserver？
 
-必须的
+-- 必须的
 
 DROP TABLE IF EXISTS ?
 CREATE TABLE IF NOT EXISTS TableName (id VARBINARY(3070) NOT NULL PRIMARY KEY, value LONGBLOB NOT NULL)
@@ -12,11 +12,11 @@ SELECT value FROM TableName WHERE id = ?
 DELETE FROM TableName WHERE id=?
 REPLACE INTO TableName values(?, ?)
 
-这两句也是必须的，但对使用有限制，不会非常频繁。
+-- 这两句也是必须的，但对使用有限制，不会非常频繁。
 SELECT id,value FROM TableName
 SELECT id,value FROM TableName WHERE id > ? LIMIT ?
 
-可选的（最好提供）
+-- 可选的（最好提供）
 
 CREATE TABLE IF NOT EXISTS _ZezeDataWithVersion_ (
 	id VARBINARY(3070) NOT NULL PRIMARY KEY,
@@ -24,11 +24,11 @@ CREATE TABLE IF NOT EXISTS _ZezeDataWithVersion_ (
 	version bigint NOT NULL
 	);
 
-DROP PROCEDURE IF EXISTS _ZezeSaveDataWithSameVersion_;
+-- DROP PROCEDURE IF EXISTS _ZezeSaveDataWithSameVersion_;
 
 SELECT data,version FROM _ZezeDataWithVersion_ WHERE id=?;
 
-Create procedure _ZezeSaveDataWithSameVersion_ (
+Create procedure IF NOT EXISTS _ZezeSaveDataWithSameVersion_ (
 	IN    in_id VARBINARY(3070),
 	IN    in_data LONGBLOB,
 	INOUT inout_version bigint,
@@ -90,7 +90,7 @@ Create procedure _ZezeSaveDataWithSameVersion_ (
 
 CREATE TABLE IF NOT EXISTS _ZezeInstances_ (localid int NOT NULL PRIMARY KEY);
 
-Create procedure _ZezeSetInUse_ (
+Create procedure IF NOT EXISTS _ZezeSetInUse_ (
 	in in_localid int,
 	in in_global LONGBLOB,
 	out ReturnValue int
@@ -157,7 +157,7 @@ Create procedure _ZezeSetInUse_ (
 		LEAVE return_label;
 	end;
 
-Create procedure _ZezeClearInUse_ (
+Create procedure IF NOT EXISTS _ZezeClearInUse_ (
 	in in_localid int,
 	in in_global LONGBLOB,
 	out ReturnValue int

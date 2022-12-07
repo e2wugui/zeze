@@ -32,6 +32,24 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		dTable.drop();
 	}
 
+	public void dropOperatesProcedures() {
+		try (var connection = dataSource.getConnection()) {
+			connection.setAutoCommit(false);
+			try (var cmd = connection.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeSaveDataWithSameVersion_")) {
+				cmd.executeUpdate();
+			}
+			try (var cmd = connection.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeSetInUse_")) {
+				cmd.executeUpdate();
+			}
+			try (var cmd = connection.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeClearInUse_")) {
+				cmd.executeUpdate();
+			}
+			connection.commit();
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	private final class OperatesMySql implements Operates {
 		@Override
 		public void setInUse(int localId, String global) {
