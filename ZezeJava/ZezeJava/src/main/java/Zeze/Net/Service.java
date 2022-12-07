@@ -287,7 +287,7 @@ public class Service {
 	 * @param so new socket accepted.
 	 */
 	public void OnSocketAccept(AsyncSocket so) throws Throwable {
-		if (socketMap.size() > getConfig().getMaxConnections()) {
+		if (null != config && socketMap.size() > config.getMaxConnections()) {
 			throw new RuntimeException("too many connections");
 		}
 		addSocket(so);
