@@ -36,6 +36,10 @@ ts log?
 task 才一个月，再一个月考虑接收？
 c# fresh 有bug？
 DatabaseDynamoDb 还需测试。
+一致性hash；现在的随便写的，需要重新审核。
+负载均衡；全面审核。
+过载保护；更多。
+ServiceManager raft
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag v1.1.2 Multi-Selectors; Zeze.Net.OutputBuffer; 
@@ -44,6 +48,7 @@ tag v1.1.2 Multi-Selectors; Zeze.Net.OutputBuffer;
 java::Zeze.Net.OutputBuffer @张路
 	合并协议到固定的buffer中，以后才调用jdk.writes。
 	加密操作的输出可以直接定向到新的outputbuffer中。
+ServiceConfig.maxConnections 限制服务最大连接数量。
 
 【2022/11/29】
 ------------------------------------------------------------------------------------------------------------------------------
