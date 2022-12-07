@@ -10,6 +10,6 @@ public interface BTConditionNPCTalkEventReadOnly {
     public long getTaskId();
     public long getPhaseId();
     public boolean isFinished();
-    public int getDialogId();
+    public long getDialogId();
     public int getDialogOption();
 }

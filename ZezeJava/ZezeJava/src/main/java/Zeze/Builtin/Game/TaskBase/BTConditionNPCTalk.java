@@ -11,8 +11,8 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
     private long _taskId;
     private long _phaseId;
     private long _npcId;
-    private final Zeze.Transaction.Collections.PMap1<Integer, Integer> _dialogOptions; // key为对话的id，value为对话选项有几个。如果没有就不用加。
-    private final Zeze.Transaction.Collections.PMap1<Integer, Integer> _dialogSelected; // key为对话的id，value为选了第几个选项。如果还没选初始化为-1。
+    private final Zeze.Transaction.Collections.PMap1<Long, Integer> _dialogOptions; // key为对话的id，value为对话选项有几个。如果没有就不用加。
+    private final Zeze.Transaction.Collections.PMap1<Long, Integer> _dialogSelected; // key为对话的id，value为选了第几个选项。如果还没选初始化为-1。
 
     @Override
     public long getTaskId() {
@@ -74,29 +74,29 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
         txn.putLog(new Log__npcId(this, 3, value));
     }
 
-    public Zeze.Transaction.Collections.PMap1<Integer, Integer> getDialogOptions() {
+    public Zeze.Transaction.Collections.PMap1<Long, Integer> getDialogOptions() {
         return _dialogOptions;
     }
 
     @Override
-    public Zeze.Transaction.Collections.PMap1ReadOnly<Integer, Integer> getDialogOptionsReadOnly() {
+    public Zeze.Transaction.Collections.PMap1ReadOnly<Long, Integer> getDialogOptionsReadOnly() {
         return new Zeze.Transaction.Collections.PMap1ReadOnly<>(_dialogOptions);
     }
 
-    public Zeze.Transaction.Collections.PMap1<Integer, Integer> getDialogSelected() {
+    public Zeze.Transaction.Collections.PMap1<Long, Integer> getDialogSelected() {
         return _dialogSelected;
     }
 
     @Override
-    public Zeze.Transaction.Collections.PMap1ReadOnly<Integer, Integer> getDialogSelectedReadOnly() {
+    public Zeze.Transaction.Collections.PMap1ReadOnly<Long, Integer> getDialogSelectedReadOnly() {
         return new Zeze.Transaction.Collections.PMap1ReadOnly<>(_dialogSelected);
     }
 
     @SuppressWarnings("deprecation")
     public BTConditionNPCTalk() {
-        _dialogOptions = new Zeze.Transaction.Collections.PMap1<>(Integer.class, Integer.class);
+        _dialogOptions = new Zeze.Transaction.Collections.PMap1<>(Long.class, Integer.class);
         _dialogOptions.variableId(4);
-        _dialogSelected = new Zeze.Transaction.Collections.PMap1<>(Integer.class, Integer.class);
+        _dialogSelected = new Zeze.Transaction.Collections.PMap1<>(Long.class, Integer.class);
         _dialogSelected.variableId(5);
     }
 
@@ -105,9 +105,9 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
         _taskId = _taskId_;
         _phaseId = _phaseId_;
         _npcId = _npcId_;
-        _dialogOptions = new Zeze.Transaction.Collections.PMap1<>(Integer.class, Integer.class);
+        _dialogOptions = new Zeze.Transaction.Collections.PMap1<>(Long.class, Integer.class);
         _dialogOptions.variableId(4);
-        _dialogSelected = new Zeze.Transaction.Collections.PMap1<>(Integer.class, Integer.class);
+        _dialogSelected = new Zeze.Transaction.Collections.PMap1<>(Long.class, Integer.class);
         _dialogSelected.variableId(5);
     }
 
@@ -301,7 +301,7 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
-                    var _k_ = _o_.ReadInt(_s_);
+                    var _k_ = _o_.ReadLong(_s_);
                     var _v_ = _o_.ReadInt(_t_);
                     _x_.put(_k_, _v_);
                 }
@@ -315,7 +315,7 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
-                    var _k_ = _o_.ReadInt(_s_);
+                    var _k_ = _o_.ReadLong(_s_);
                     var _v_ = _o_.ReadInt(_t_);
                     _x_.put(_k_, _v_);
                 }

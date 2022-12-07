@@ -13,11 +13,10 @@ public abstract class TaskConditionBase<ConditionBean extends Bean, EventBean ex
 	// @formatter:off
 	public TaskPhase getPhase() { return phase; }
 	private final TaskPhase phase;
-	public final void setOnComplete(Action1<TaskConditionBase<ConditionBean, EventBean>> callback) { onCompleteUserCallback = callback; }
-	private Action1<TaskConditionBase<ConditionBean, EventBean>> onCompleteUserCallback;
 	public abstract boolean accept(BTaskEvent eventBean) throws Throwable;
 	public abstract boolean isDone();
-
+	public final void setOnComplete(Action1<TaskConditionBase<ConditionBean, EventBean>> callback) { onCompleteUserCallback = callback; }
+	private Action1<TaskConditionBase<ConditionBean, EventBean>> onCompleteUserCallback;
 	public final void onComplete() throws Throwable {
 		if (isDone() && null != onCompleteUserCallback) {
 			onCompleteUserCallback.run(this);

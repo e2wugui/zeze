@@ -66,7 +66,7 @@ public class TestTask extends TestCase {
 			link.Stop();
 	}
 
-	// ======================================== 测试用例1：NameCount的一个任务实例 - 吃金币 ========================================
+	// ======================================== 测试用例1：NPCTalk的一个任务实例 - 通过对话选择不同的任务分支 ========================================
 	public void test1() throws Throwable {
 		Zeze.Util.Task.tryInitThreadPool(null, null, null);
 
@@ -135,39 +135,23 @@ public class TestTask extends TestCase {
 				var phase4 = task1.addPhase(phaseOpt4);
 				// ==================== 设置任务Phase的各个条件 ====================
 				ConditionNPCTalk dialog1 = phase1.addCondition(new ConditionNPCTalk(phase1));
-				dialog1.setOnComplete(new Action1<TaskConditionBase<BTConditionNPCTalk, BTConditionNPCTalkEvent>>() {
-					@Override
-					public void run(TaskConditionBase<BTConditionNPCTalk, BTConditionNPCTalkEvent> condition) throws Throwable {
-						var phase = condition.getPhase();
-						var extendedBean = condition.getExtendedBean();
-						var dialogSelected = extendedBean.getDialogSelected();
-						if (dialogSelected.get(1) == 1) // 如果在第一个对话中选了1选项，则影响任务路线，推进到第2个Phase
-							phase.setNextPhaseId(2L);
-						else if (dialogSelected.get(1) == 2) // 如果在第一个对话中选了2选项，则影响任务路线，推进到第3个Phase
-							phase.setNextPhaseId(3L);
-					}
+				dialog1.addSelectableDialog(20010L, 2);
+				dialog1.setOnComplete(condition -> {
+					var phase = condition.getPhase();
+					var extendedBean = condition.getExtendedBean();
+					var dialogSelected = extendedBean.getDialogSelected();
+					if (dialogSelected.get(20010L) == 1) // 如果在第一个对话中选了1选项，则影响任务路线，推进到第2个Phase
+						phase.setNextPhaseId(2L);
+					else if (dialogSelected.get(20010L) == 2) // 如果在第一个对话中选了2选项，则影响任务路线，推进到第3个Phase
+						phase.setNextPhaseId(3L);
 				});
-//				ConditionNamedCount goldCondition10 = new ConditionNamedCount("收集金币", 0, 10);
-//				ConditionNamedCount goldCondition20 = new ConditionNamedCount("收集金币", 0, 20);
-//				ConditionNamedCount goldCondition30 = new ConditionNamedCount("收集金币", 0, 30);
-//				ConditionNamedCount goldCondition40 = new ConditionNamedCount("收集金币", 0, 40);
-//				phase1.addCondition(goldCondition10);
-//				phase2.addCondition(goldCondition20);
-//				phase3.addCondition(goldCondition30);
-//				phase4.addCondition(goldCondition40);
-//				task1.linkPhase(phase1, phase2);
-//				task1.linkPhase(phase2, phase3);
-//				task1.linkPhase(phase2, phase4);
-//				task1.linkPhase(phase3, phase4);
-//				task1.setupTask();
-				// 测试一：金币收集任务（ConditionNamedCount）
-				collectCoin(client0, roleId, task1, 9); // 已经收集9个金币，任务Phase未完成
-				collectCoin(client0, roleId, task1, 11); // 已经收集11个金币，任务Phase完成，推动任务前进
-				collectCoin(client0, roleId, task1, 21); // 已经收集21个金币，任务Phase完成，推动任务前进
-				collectCoin(client0, roleId, task1, 31); // 已经收集31个金币，任务Phase完成，任务全部完成
+
+				// ==================== 模拟客户端Runtime事件 ====================
+				selectOption(client0, roleId, task1.getId(), phase1.getPhaseId(), 20010L, 1);
+				finishTalk(client0, roleId, task1.getId(), phase1.getPhaseId());
 
 				return Procedure.Success;
-			}, "testTask01 - GetGold").call());
+			}, "testTask01 - NPC Talk").call());
 			Thread.sleep(2000);
 
 		} catch (Exception e) {
@@ -175,6 +159,26 @@ public class TestTask extends TestCase {
 		} finally {
 			stop();
 		}
+	}
+
+	private static void selectOption(ClientGame.App app, long roleId, long taskId, long phaseId, long dialogId, int optionId) {
+		TriggerTaskEvent taskEvent = new TriggerTaskEvent();
+		taskEvent.Argument.setRoleId(roleId);
+		var bean = new BTConditionNPCTalkEvent();
+		bean.setTaskId(taskId);
+		bean.setPhaseId(phaseId);
+		bean.setFinished(false);
+		bean.setDialogId(dialogId);
+		bean.setDialogOption(optionId);
+	}
+
+	private static void finishTalk(ClientGame.App app, long roleId, long taskId, long phaseId) {
+		TriggerTaskEvent taskEvent = new TriggerTaskEvent();
+		taskEvent.Argument.setRoleId(roleId);
+		var bean = new BTConditionNPCTalkEvent();
+		bean.setTaskId(taskId);
+		bean.setPhaseId(phaseId);
+		bean.setFinished(true); // 在对话结束时，发一条这个事件
 	}
 
 	// 一个简单的任务，用于测试。

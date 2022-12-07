@@ -10,7 +10,7 @@ public final class BTConditionNPCTalkEvent extends Zeze.Transaction.Bean impleme
     private long _taskId;
     private long _phaseId;
     private boolean _finished; // 如果完成了对话，也可以用这个Event发一条，下面的就留空。
-    private int _dialogId;
+    private long _dialogId;
     private int _dialogOption; // 选择了第几个选项
 
     @Override
@@ -74,7 +74,7 @@ public final class BTConditionNPCTalkEvent extends Zeze.Transaction.Bean impleme
     }
 
     @Override
-    public int getDialogId() {
+    public long getDialogId() {
         if (!isManaged())
             return _dialogId;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
@@ -84,7 +84,7 @@ public final class BTConditionNPCTalkEvent extends Zeze.Transaction.Bean impleme
         return log != null ? log.value : _dialogId;
     }
 
-    public void setDialogId(int value) {
+    public void setDialogId(long value) {
         if (!isManaged()) {
             _dialogId = value;
             return;
@@ -118,7 +118,7 @@ public final class BTConditionNPCTalkEvent extends Zeze.Transaction.Bean impleme
     }
 
     @SuppressWarnings("deprecation")
-    public BTConditionNPCTalkEvent(long _taskId_, long _phaseId_, boolean _finished_, int _dialogId_, int _dialogOption_) {
+    public BTConditionNPCTalkEvent(long _taskId_, long _phaseId_, boolean _finished_, long _dialogId_, int _dialogOption_) {
         _taskId = _taskId_;
         _phaseId = _phaseId_;
         _finished = _finished_;
@@ -187,8 +187,8 @@ public final class BTConditionNPCTalkEvent extends Zeze.Transaction.Bean impleme
         public void commit() { ((BTConditionNPCTalkEvent)getBelong())._finished = value; }
     }
 
-    private static final class Log__dialogId extends Zeze.Transaction.Logs.LogInt {
-        public Log__dialogId(BTConditionNPCTalkEvent bean, int varId, int value) { super(bean, varId, value); }
+    private static final class Log__dialogId extends Zeze.Transaction.Logs.LogLong {
+        public Log__dialogId(BTConditionNPCTalkEvent bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
         public void commit() { ((BTConditionNPCTalkEvent)getBelong())._dialogId = value; }
@@ -258,10 +258,10 @@ public final class BTConditionNPCTalkEvent extends Zeze.Transaction.Bean impleme
             }
         }
         {
-            int _x_ = getDialogId();
+            long _x_ = getDialogId();
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
-                _o_.WriteInt(_x_);
+                _o_.WriteLong(_x_);
             }
         }
         {
@@ -291,7 +291,7 @@ public final class BTConditionNPCTalkEvent extends Zeze.Transaction.Bean impleme
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 4) {
-            setDialogId(_o_.ReadInt(_t_));
+            setDialogId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 5) {
@@ -337,7 +337,7 @@ public final class BTConditionNPCTalkEvent extends Zeze.Transaction.Bean impleme
                 case 1: _taskId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 2: _phaseId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 3: _finished = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
-                case 4: _dialogId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 4: _dialogId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 5: _dialogOption = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
             }
         }
