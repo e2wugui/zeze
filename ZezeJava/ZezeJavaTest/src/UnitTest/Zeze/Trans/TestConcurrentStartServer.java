@@ -9,6 +9,8 @@ public class TestConcurrentStartServer {
 
 	@Test
 	public void testConcurrentStartServer() throws Throwable {
+		//var config = Config.load("zeze.xml");
+		//config.dropMysqlOperatesProcedures();
 		for (var i = 0; i < 10; ++i)
 			start2();
 	}

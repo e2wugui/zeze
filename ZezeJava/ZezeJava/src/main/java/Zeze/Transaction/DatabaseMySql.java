@@ -158,7 +158,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 		public OperatesMySql() {
 			try (var connection = dataSource.getConnection()) {
-				connection.setAutoCommit(false);
+				connection.setAutoCommit(true);
 				String TableDataWithVersion = "CREATE TABLE IF NOT EXISTS _ZezeDataWithVersion_ (" + "\r\n" +
 						"                        id VARBINARY(" + eMaxKeyLength + ") NOT NULL PRIMARY KEY," + "\r\n" +
 						"                        data LONGBLOB NOT NULL," + "\r\n" +
@@ -169,7 +169,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				}
 				//noinspection SpellCheckingInspection
 				String ProcSaveDataWithSameVersion =
-						"Create procedure IF NOT EXISTS _ZezeSaveDataWithSameVersion_ (" + "\r\n" +
+						"Create procedure _ZezeSaveDataWithSameVersion_ (" + "\r\n" +
 						"                        IN    in_id VARBINARY(" + eMaxKeyLength + ")," + "\r\n" +
 						"                        IN    in_data LONGBLOB," + "\r\n" +
 						"                        INOUT inout_version bigint," + "\r\n" +
@@ -203,7 +203,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 						"                            LEAVE return_label;" + "\r\n" +
 						"                        end if;" + "\r\n" +
 						"\r\n" +
-						"                        insert into _ZezeDataWithVersion_ values(in_id,in_data,inout_version);" + "\r\n" +
+						"                        insert IGNORE into _ZezeDataWithVersion_ values(in_id,in_data,inout_version);" + "\r\n" +
 						"                        select ROW_COUNT() into ROWCOUNT;" + "\r\n" +
 						"                        if ROWCOUNT = 1 then" + "\r\n" +
 						"                            set ReturnValue=0;" + "\r\n" +
@@ -218,6 +218,9 @@ public final class DatabaseMySql extends DatabaseJdbc {
 						"                    end;";
 				try (var cmd = connection.prepareStatement(ProcSaveDataWithSameVersion)) {
 					cmd.executeUpdate();
+				} catch (SQLException ex) {
+					if (!ex.getMessage().contains("already exists"))
+						throw ex;
 				}
 				//noinspection SpellCheckingInspection
 				String TableInstances = "CREATE TABLE IF NOT EXISTS _ZezeInstances_ (localid int NOT NULL PRIMARY KEY)";
@@ -225,7 +228,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					cmd.executeUpdate();
 				}
 				//noinspection SpellCheckingInspection
-				String ProcSetInUse = "Create procedure IF NOT EXISTS _ZezeSetInUse_ (" + "\r\n" +
+				String ProcSetInUse = "Create procedure _ZezeSetInUse_ (" + "\r\n" +
 						"                        in in_localid int," + "\r\n" +
 						"                        in in_global LONGBLOB," + "\r\n" +
 						"                        out ReturnValue int" + "\r\n" +
@@ -243,7 +246,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 						"                            ROLLBACK;" + "\r\n" +
 						"                            LEAVE return_label;" + "\r\n" +
 						"                        end if;" + "\r\n" +
-						"                        insert into _ZezeInstances_ values(in_localid);" + "\r\n" +
+						"                        insert IGNORE into _ZezeInstances_ values(in_localid);" + "\r\n" +
 						"                        select ROW_COUNT() into ROWCOUNT;" + "\r\n" +
 						"                        if ROWCOUNT = 0 then" + "\r\n" +
 						"                            set ReturnValue=3;" + "\r\n" +
@@ -260,13 +263,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 						"                                LEAVE return_label;" + "\r\n" +
 						"                            end if;" + "\r\n" +
 						"                        else" + "\r\n" +
-						"                            insert into _ZezeDataWithVersion_ values(emptybinary, in_global, 0);" + "\r\n" +
-						"                            select ROW_COUNT() into ROWCOUNT;" + "\r\n" +
-						"                            if ROWCOUNT <> 1 then" + "\r\n" +
-						"                                set ReturnValue=5;" + "\r\n" +
-						"                                ROLLBACK;" + "\r\n" +
-						"                                LEAVE return_label;" + "\r\n" +
-						"                            end if;" + "\r\n" +
+						// 忽略这一行的操作结果，当最后一个实例退出的时候，这条记录会被删除。不考虑退出和启动的并发了？
+						"                            insert IGNORE into _ZezeDataWithVersion_ values(emptybinary, in_global, 0);" + "\r\n" +
 						"                        end if;" + "\r\n" +
 						"                        set InstanceCount=0;" + "\r\n" +
 						"                        select count(*) INTO InstanceCount from _ZezeInstances_;" + "\r\n" +
@@ -288,9 +286,12 @@ public final class DatabaseMySql extends DatabaseJdbc {
 						"                    end;";
 				try (var cmd = connection.prepareStatement(ProcSetInUse)) {
 					cmd.executeUpdate();
+				} catch (SQLException ex) {
+					if (!ex.getMessage().contains("already exists"))
+						throw ex;
 				}
 				//noinspection SpellCheckingInspection
-				String ProcClearInUse = "Create procedure IF NOT EXISTS _ZezeClearInUse_ (" + "\r\n" +
+				String ProcClearInUse = "Create procedure _ZezeClearInUse_ (" + "\r\n" +
 						"                        in in_localid int," + "\r\n" +
 						"                        in in_global LONGBLOB," + "\r\n" +
 						"                        out ReturnValue int" + "\r\n" +
@@ -323,8 +324,10 @@ public final class DatabaseMySql extends DatabaseJdbc {
 						"                    end;";
 				try (var cmd = connection.prepareStatement(ProcClearInUse)) {
 					cmd.executeUpdate();
+				} catch (SQLException ex) {
+					if (!ex.getMessage().contains("already exists"))
+						throw ex;
 				}
-				connection.commit();
 			} catch (SQLException e) {
 				throw new RuntimeException(e);
 			}

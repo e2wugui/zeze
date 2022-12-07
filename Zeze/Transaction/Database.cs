@@ -589,7 +589,7 @@ namespace Zeze.Transaction
                             LEAVE return_label;
                         end if;
 
-                        insert into _ZezeDataWithVersion_ values(in_id,in_data,inout_version);
+                        insert IGNORE into _ZezeDataWithVersion_ values(in_id,in_data,inout_version);
                         select ROW_COUNT() into ROWCOUNT;
                         if ROWCOUNT = 1 then
                             set ReturnValue=0;
@@ -628,7 +628,7 @@ namespace Zeze.Transaction
                             ROLLBACK;
                             LEAVE return_label;
                         end if;
-                        insert into _ZezeInstances_ values(in_localid);
+                        insert IGNORE into _ZezeInstances_ values(in_localid);
                         select ROW_COUNT() into ROWCOUNT;
                         if ROWCOUNT = 0 then
                             set ReturnValue=3;
@@ -645,13 +645,7 @@ namespace Zeze.Transaction
                                 LEAVE return_label;
                             end if;
                         else
-                            insert into _ZezeDataWithVersion_ values(emptybinary, in_global, 0);
-                            select ROW_COUNT() into ROWCOUNT;
-                            if ROWCOUNT <> 1 then
-                                set ReturnValue=5;
-                                ROLLBACK;
-                                LEAVE return_label;
-                            end if;
+                            insert IGNORE into _ZezeDataWithVersion_ values(emptybinary, in_global, 0);
                         end if;
                         set InstanceCount=0;
                         select count(*) INTO InstanceCount from _ZezeInstances_;
@@ -1063,7 +1057,7 @@ namespace Zeze.Transaction
                             return 3
                         end
 
-                        insert into _ZezeDataWithVersion_ values(@id,@data,@version)
+                        insert IGNORE into _ZezeDataWithVersion_ values(@id,@data,@version)
                         if @@rowcount = 1
                         begin
                             set @ReturnValue=0
@@ -1097,7 +1091,7 @@ namespace Zeze.Transaction
                             ROLLBACK TRANSACTION
                             return 2
                         end
-                        insert into _ZezeInstances_ values(@localid)
+                        insert IGNORE into _ZezeInstances_ values(@localid)
                         if @@rowcount = 0
                         begin
                             set @ReturnValue=3
@@ -1119,13 +1113,7 @@ namespace Zeze.Transaction
                         end
                         else
                         begin
-                            insert into _ZezeDataWithVersion_ values(@emptybinary, @global, 0)
-                            if @@rowcount <> 1
-                            begin
-                                set @ReturnValue=5
-                                ROLLBACK TRANSACTION
-                                return 5
-                            end
+                            insert IGNORE into _ZezeDataWithVersion_ values(@emptybinary, @global, 0)
                         end
                         DECLARE @InstanceCount int
                         set @InstanceCount=0

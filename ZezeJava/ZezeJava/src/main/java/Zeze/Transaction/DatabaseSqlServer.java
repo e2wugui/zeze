@@ -168,7 +168,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 						"                            return 3" + "\r\n" +
 						"                        end" + "\r\n" +
 						"\r\n" +
-						"                        insert into _ZezeDataWithVersion_ values(@id,@data,@version)" + "\r\n" +
+						"                        insert IGNORE into _ZezeDataWithVersion_ values(@id,@data,@version)" + "\r\n" +
 						"                        if @@rowcount = 1" + "\r\n" +
 						"                        begin" + "\r\n" +
 						"                            set @ReturnValue=0" + "\r\n" +
@@ -205,7 +205,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 						"                            ROLLBACK TRANSACTION" + "\r\n" +
 						"                            return 2" + "\r\n" +
 						"                        end" + "\r\n" +
-						"                        insert into _ZezeInstances_ values(@localid)" + "\r\n" +
+						"                        insert IGNORE into _ZezeInstances_ values(@localid)" + "\r\n" +
 						"                        if @@rowcount = 0" + "\r\n" +
 						"                        begin" + "\r\n" +
 						"                            set @ReturnValue=3" + "\r\n" +
@@ -227,13 +227,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 						"                        end" + "\r\n" +
 						"                        else" + "\r\n" +
 						"                        begin" + "\r\n" +
-						"                            insert into _ZezeDataWithVersion_ values(@emptybinary, @global, 0)" + "\r\n" +
-						"                            if @@rowcount <> 1" + "\r\n" +
-						"                            begin" + "\r\n" +
-						"                                set @ReturnValue=5" + "\r\n" +
-						"                                ROLLBACK TRANSACTION" + "\r\n" +
-						"                                return 5" + "\r\n" +
-						"                            end" + "\r\n" +
+						"                            insert IGNORE into _ZezeDataWithVersion_ values(@emptybinary, @global, 0)" + "\r\n" +
 						"                        end" + "\r\n" +
 						"                        DECLARE @InstanceCount int" + "\r\n" +
 						"                        set @InstanceCount=0" + "\r\n" +
