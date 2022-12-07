@@ -35,34 +35,37 @@ public final class DatabaseMySql extends DatabaseJdbc {
 	private final class OperatesMySql implements Operates {
 		@Override
 		public void setInUse(int localId, String global) {
-			try (var connection = dataSource.getConnection()) {
-				connection.setAutoCommit(true);
-				try (var cmd = connection.prepareCall("{CALL _ZezeSetInUse_(?, ?, ?)}")) {
-					cmd.setInt(1, localId);
-					cmd.setBytes(2, global.getBytes(StandardCharsets.UTF_8));
-					cmd.registerOutParameter(3, Types.INTEGER);
-					cmd.executeUpdate();
-					switch (cmd.getInt(3)) {
-					case 0:
-						return;
-					case 1:
-						throw new IllegalStateException("Unknown Error");
-					case 2:
-						throw new IllegalStateException("Instance Exist.");
-					case 3:
-						throw new IllegalStateException("Insert LocalId Failed");
-					case 4:
-						throw new IllegalStateException("Global Not Equals");
-					case 5:
-						throw new IllegalStateException("Insert Global Failed");
-					case 6:
-						throw new IllegalStateException("Instance Greater Than One But No Global");
-					default:
-						throw new IllegalStateException("Unknown ReturnValue");
+			while (true) {
+				try (var connection = dataSource.getConnection()) {
+					connection.setAutoCommit(true);
+					try (var cmd = connection.prepareCall("{CALL _ZezeSetInUse_(?, ?, ?)}")) {
+						cmd.setInt(1, localId);
+						cmd.setBytes(2, global.getBytes(StandardCharsets.UTF_8));
+						cmd.registerOutParameter(3, Types.INTEGER);
+						cmd.executeUpdate();
+						switch (cmd.getInt(3)) {
+						case 0:
+							return;
+						case 1:
+							throw new IllegalStateException("Unknown Error");
+						case 2:
+							throw new IllegalStateException("Instance Exist.");
+						case 3:
+							throw new IllegalStateException("Insert LocalId Failed");
+						case 4:
+							throw new IllegalStateException("Global Not Equals");
+						case 5:
+							throw new IllegalStateException("Insert Global Failed");
+						case 6:
+							throw new IllegalStateException("Instance Greater Than One But No Global");
+						default:
+							throw new IllegalStateException("Unknown ReturnValue");
+						}
 					}
+				} catch (SQLException e) {
+					if (!e.getMessage().contains("Deadlock"))
+						throw new RuntimeException(e);
 				}
-			} catch (SQLException e) {
-				throw new RuntimeException(e);
 			}
 		}
 
@@ -146,11 +149,9 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				try (var cmd = connection.prepareStatement(TableDataWithVersion)) {
 					cmd.executeUpdate();
 				}
-				try (var cmd = connection.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeSaveDataWithSameVersion_")) {
-					cmd.executeUpdate();
-				}
 				//noinspection SpellCheckingInspection
-				String ProcSaveDataWithSameVersion = "Create procedure _ZezeSaveDataWithSameVersion_ (" + "\r\n" +
+				String ProcSaveDataWithSameVersion =
+						"Create procedure IF NOT EXISTS _ZezeSaveDataWithSameVersion_ (" + "\r\n" +
 						"                        IN    in_id VARBINARY(" + eMaxKeyLength + ")," + "\r\n" +
 						"                        IN    in_data LONGBLOB," + "\r\n" +
 						"                        INOUT inout_version bigint," + "\r\n" +
@@ -205,12 +206,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				try (var cmd = connection.prepareStatement(TableInstances)) {
 					cmd.executeUpdate();
 				}
-				// zeze_global 使用 _ZezeDataWithVersion_ 存储。
-				try (var cmd = connection.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeSetInUse_")) {
-					cmd.executeUpdate();
-				}
 				//noinspection SpellCheckingInspection
-				String ProcSetInUse = "Create procedure _ZezeSetInUse_ (" + "\r\n" +
+				String ProcSetInUse = "Create procedure IF NOT EXISTS _ZezeSetInUse_ (" + "\r\n" +
 						"                        in in_localid int," + "\r\n" +
 						"                        in in_global LONGBLOB," + "\r\n" +
 						"                        out ReturnValue int" + "\r\n" +
@@ -274,11 +271,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				try (var cmd = connection.prepareStatement(ProcSetInUse)) {
 					cmd.executeUpdate();
 				}
-				try (var cmd = connection.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeClearInUse_")) {
-					cmd.executeUpdate();
-				}
 				//noinspection SpellCheckingInspection
-				String ProcClearInUse = "Create procedure _ZezeClearInUse_ (" + "\r\n" +
+				String ProcClearInUse = "Create procedure IF NOT EXISTS _ZezeClearInUse_ (" + "\r\n" +
 						"                        in in_localid int," + "\r\n" +
 						"                        in in_global LONGBLOB," + "\r\n" +
 						"                        out ReturnValue int" + "\r\n" +

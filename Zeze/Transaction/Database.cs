@@ -416,40 +416,50 @@ namespace Zeze.Transaction
 
             public void SetInUse(int localId, string global)
             {
-                using var connection = new MySqlConnection(Database.DatabaseUrl);
-                connection.Open();
-                var cmd = new MySqlCommand("_ZezeSetInUse_", connection)
+                while (true)
                 {
-                    CommandType = CommandType.StoredProcedure
-                };
-                cmd.Parameters.Add("@in_localid", MySqlDbType.Int32).Value = localId;
-                cmd.Parameters.Add("@in_global", MySqlDbType.VarBinary, int.MaxValue).Value = Encoding.UTF8.GetBytes(global);
-                cmd.Parameters.Add(new MySqlParameter("@ReturnValue", MySqlDbType.Int32)
-                {
-                    Direction = ParameterDirection.Output,
-                });
-                cmd.Prepare();
-                cmd.ExecuteNonQuery();
-                switch ((int)cmd.Parameters["@ReturnValue"].Value)
-                {
-                    case 0:
-                        return;
-                    case 1:
-                        throw new Exception("Unknown Error");
-                    case 2:
-                        throw new Exception("Instance Exist.");
-                    case 3:
-                        throw new Exception("Insert LocalId Failed");
-                    case 4:
-                        throw new Exception("Global Not Equals");
-                    case 5:
-                        throw new Exception("Insert Global Failed");
-                    case 6:
-                        throw new Exception("Instance Greater Than One But No Global");
-                    default:
-                        throw new Exception("Unknown ReturnValue");
+                    try
+                    {
+                        using var connection = new MySqlConnection(Database.DatabaseUrl);
+                        connection.Open();
+                        var cmd = new MySqlCommand("_ZezeSetInUse_", connection)
+                        {
+                            CommandType = CommandType.StoredProcedure
+                        };
+                        cmd.Parameters.Add("@in_localid", MySqlDbType.Int32).Value = localId;
+                        cmd.Parameters.Add("@in_global", MySqlDbType.VarBinary, int.MaxValue).Value = Encoding.UTF8.GetBytes(global);
+                        cmd.Parameters.Add(new MySqlParameter("@ReturnValue", MySqlDbType.Int32)
+                        {
+                            Direction = ParameterDirection.Output,
+                        });
+                        cmd.Prepare();
+                        cmd.ExecuteNonQuery();
+                        switch ((int)cmd.Parameters["@ReturnValue"].Value)
+                        {
+                            case 0:
+                                return;
+                            case 1:
+                                throw new Exception("Unknown Error");
+                            case 2:
+                                throw new Exception("Instance Exist.");
+                            case 3:
+                                throw new Exception("Insert LocalId Failed");
+                            case 4:
+                                throw new Exception("Global Not Equals");
+                            case 5:
+                                throw new Exception("Insert Global Failed");
+                            case 6:
+                                throw new Exception("Instance Greater Than One But No Global");
+                            default:
+                                throw new Exception("Unknown ReturnValue");
+                        }
+                    }
+                    catch (SqlException ex)
+                    {
+                        if (false == ex.Message.Contains("Deadlock"))
+                            throw;
+                    }
                 }
-
             }
 
             public int ClearInUse(int localId, string global)
@@ -544,9 +554,8 @@ namespace Zeze.Transaction
                     )";
                 new MySqlCommand(TableDataWithVersion, connection).ExecuteNonQuery();
 
-                new MySqlCommand("DROP PROCEDURE IF EXISTS _ZezeSaveDataWithSameVersion_", connection).ExecuteNonQuery();
                 string ProcSaveDataWithSameVersion =
-                    @$"Create procedure _ZezeSaveDataWithSameVersion_ (
+                    @$"Create procedure IF NOT EXISTS _ZezeSaveDataWithSameVersion_ (
                         IN    in_id VARBINARY({eMaxKeyLength}),
                         IN    in_data LONGBLOB,
                         INOUT inout_version bigint,
@@ -600,9 +609,8 @@ namespace Zeze.Transaction
                 new MySqlCommand(TableInstances, connection).ExecuteNonQuery();
                 // zeze_global 使用 _ZezeDataWithVersion_ 存储。
 
-                new MySqlCommand("DROP PROCEDURE IF EXISTS _ZezeSetInUse_", connection).ExecuteNonQuery();
                 string ProcSetInUse =
-                    @"Create procedure _ZezeSetInUse_ (
+                    @"Create procedure IF NOT EXISTS _ZezeSetInUse_ (
                         in in_localid int,
                         in in_global LONGBLOB,
                         out ReturnValue int
@@ -665,9 +673,8 @@ namespace Zeze.Transaction
                     end";
                 new MySqlCommand(ProcSetInUse, connection).ExecuteNonQuery();
 
-                new MySqlCommand("DROP PROCEDURE IF EXISTS _ZezeClearInUse_", connection).ExecuteNonQuery();
                 string ProcClearInUse =
-                    @"Create procedure _ZezeClearInUse_ (
+                    @"Create procedure IF NOT EXISTS _ZezeClearInUse_ (
                         in in_localid int,
                         in in_global LONGBLOB,
                         out ReturnValue int
