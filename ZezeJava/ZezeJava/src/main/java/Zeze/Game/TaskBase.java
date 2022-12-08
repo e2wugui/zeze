@@ -38,7 +38,8 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 
 			var eventTypeBean = r.Argument.getTaskEventTypeDynamic().getBean();
 			var eventExtendedBean = r.Argument.getExtendedData().getBean();
-			if (eventTypeBean instanceof BSpecificTaskEvent specificTaskEventBean) {
+			if (eventTypeBean instanceof BSpecificTaskEvent) {
+				var specificTaskEventBean = (BSpecificTaskEvent) eventTypeBean; // 兼容JDK11
 				// 检查任务Id
 				var id = specificTaskEventBean.getTaskId();
 				var taskBean = taskInfo.getProcessingTasksId().get(id);
@@ -53,7 +54,8 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 					r.Result.setResultCode(TaskResultAccepted);
 				else
 					r.Result.setResultCode(TaskResultRejected);
-			} else if (eventTypeBean instanceof BBroadcastTaskEvent broadcastTaskEventBean) {
+			} else if (eventTypeBean instanceof BBroadcastTaskEvent) {
+				var broadcastTaskEventBean = (BBroadcastTaskEvent) eventTypeBean; // 兼容JDK11
 				var taskBeanList = taskInfo.getProcessingTasksId().values();
 				for (var taskBean : taskBeanList) {
 					var id = taskBean.getTaskId();

@@ -2,8 +2,6 @@ package Zeze.Game.Task;
 
 import Zeze.Builtin.Game.TaskBase.BCollectCoinTask;
 import Zeze.Builtin.Game.TaskBase.BCollectCoinEvent;
-import Zeze.Builtin.Game.TaskBase.BTConditionNPCTalkEvent;
-import Zeze.Builtin.Game.TaskBase.BTaskEvent;
 import Zeze.Game.TaskConditionBase;
 import Zeze.Game.TaskPhase;
 import Zeze.Transaction.Bean;
@@ -12,7 +10,7 @@ public class ConditionNamedCount extends TaskConditionBase<BCollectCoinTask, BCo
 
 	@Override
 	public boolean accept(Bean eventBean) throws Throwable {
-		if (!(eventBean instanceof BCollectCoinEvent e))
+		if (!(eventBean instanceof BCollectCoinEvent))
 			return false;
 		if (isCompleted())
 			onComplete();

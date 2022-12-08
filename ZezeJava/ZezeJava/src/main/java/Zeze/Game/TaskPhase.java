@@ -85,15 +85,15 @@ public class TaskPhase { // TODO 使用Action绑定来引导Condition切换NextP
 				++currentConditionId;
 			}
 			return true;
-		} else {
-			boolean res = false;
-			for (var condition : conditions.values()) {
-				res = res || condition.accept(eventBean);
-				if(condition.isCompleted())
-					condition.onComplete();
-			}
-			return res;
 		}
+
+		boolean res = false;
+		for (var condition : conditions.values()) {
+			res = res || condition.accept(eventBean);
+			if(condition.isCompleted())
+				condition.onComplete();
+		}
+		return res;
 	}
 
 	/**

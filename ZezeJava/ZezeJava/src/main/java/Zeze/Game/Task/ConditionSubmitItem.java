@@ -17,7 +17,7 @@ public class ConditionSubmitItem extends TaskConditionBase<BTConditionSubmitItem
 
 	@Override
 	public boolean accept(Bean eventBean) throws Throwable {
-		if (!(eventBean instanceof BTConditionSubmitItem e))
+		if (!(eventBean instanceof BTConditionSubmitItem))
 			return false;
 		if (isCompleted())
 			onComplete();
