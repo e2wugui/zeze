@@ -40,10 +40,10 @@ public class SortedMap<K extends Comparable<K>, V> {
 		}
 	}
 
-	private final ArrayList<Entry<K, V>> elements;
+	private final ArrayList<Entry<K, V>> elements = new ArrayList<>();
 
-	public SortedMap(int initCapacity) {
-		elements = new ArrayList<>(initCapacity);
+	public Entry<K, V> first() {
+		return elements.isEmpty() ? null : elements.get(0);
 	}
 
 	public Entry<K, V> lowerBound(K key) {
@@ -61,63 +61,35 @@ public class SortedMap<K extends Comparable<K>, V> {
 	}
 
 	public int lowerBoundIndex(K key) {
-		/*
-template<class ForwardIt, class T>
-ForwardIt lower_bound(ForwardIt first, ForwardIt last, const T& value)
-{
-    ForwardIt it;
-    typename std::iterator_traits<ForwardIt>::difference_type count, step;
-    count = std::distance(first, last);
-
-    while (count > 0)
-    {
-        it = first;
-        step = count / 2;
-        std::advance(it, step);
-
-        if (*it < value)
-        {
-            first = ++it;
-            count -= step + 1;
-        }
-        else
-            count = step;
-    }
-
-    return first;
-}
-		*/
-		return 0;
+		var first = 0;
+		var count = elements.size();
+		while (count > 0) {
+			var it = first;
+			var step = count / 2;
+			it += step;
+			if (get(it).key.compareTo(key) < 0) {
+				first = it + 1;
+				count -= step + 1;
+			} else
+				count = step;
+		}
+		return first;
 	}
 
 	public int upperBoundIndex(K key) {
-		/*
-template<class ForwardIt, class T>
-ForwardIt upper_bound(ForwardIt first, ForwardIt last, const T& value)
-{
-    ForwardIt it;
-    typename std::iterator_traits<ForwardIt>::difference_type count, step;
-    count = std::distance(first, last);
-
-    while (count > 0)
-    {
-        it = first;
-        step = count / 2;
-        std::advance(it, step);
-
-        if (!(value < *it))
-        {
-            first = ++it;
-            count -= step + 1;
-        }
-        else
-            count = step;
-    }
-
-    return first;
-}
-		*/
-		return 0;
+		var first = 0;
+		var count = elements.size();
+		while (count > 0) {
+			var it = first;
+			var step = count / 2;
+			it += step;
+			if (get(it).key.compareTo(key) > 0) {
+				first = it + 1;
+				count -= step + 1;
+			} else
+				count = step;
+		}
+		return first;
 	}
 
 	public int findIndex(K key) {
@@ -143,10 +115,13 @@ ForwardIt upper_bound(ForwardIt first, ForwardIt last, const T& value)
 		return null;
 	}
 
-	public int put(K key, V value) {
+	public int add(K key, V value) {
 		// todo 随便写写先
+		// 1 3, 4, 6, 9, 12
 		var index = lowerBoundIndex(key);
 		if (index >= 0) {
+			if (get(index).key.compareTo(key) == 0)
+				return -1; // duplicate.
 			elements.add(index, Entry.create(key, value));
 			return index;
 		}
