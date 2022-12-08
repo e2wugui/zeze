@@ -40,7 +40,7 @@ public class ConsistentHash<E> {
 			for (int i = 0; i < half; ++i) {
 				var hash4 = md5.digest((nodeKey + i).getBytes(StandardCharsets.UTF_8));
 				for (int j = 0; j < 2; ++j) {
-					virtual[i * half + j] = ByteBuffer.ToLong(hash4, j * 8);
+					virtual[i * 2 + j] = ByteBuffer.ToLong(hash4, j * 8);
 				}
 			}
 			Arrays.sort(virtual);

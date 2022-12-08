@@ -48,14 +48,14 @@ public class SortedMap<K extends Comparable<K>, V> {
 
 	public Entry<K, V> lowerBound(K key) {
 		var index = lowerBoundIndex(key);
-		if (index >= 0)
+		if (index >= 0 && index < elements.size())
 			return getAt(index);
 		return null;
 	}
 
 	public Entry<K, V> upperBound(K key) {
 		var index = upperBoundIndex(key);
-		if (index >= 0)
+		if (index >= 0 && index < elements.size())
 			return getAt(index);
 		return null;
 	}
@@ -102,6 +102,11 @@ public class SortedMap<K extends Comparable<K>, V> {
 		return first;
 	}
 
+	/**
+	 * 二分法查找key
+	 * @param key key
+	 * @return index found. -1 means not found.
+	 */
 	public int findIndex(K key) {
 		int low = 0;
 		int high = elements.size() - 1;
@@ -140,7 +145,7 @@ public class SortedMap<K extends Comparable<K>, V> {
 	public Entry<K, V> remove(K key) {
 		var index = findIndex(key);
 		if (index >= 0)
-			return remove(index);
+			return removeAt(index);
 		return null;
 	}
 
@@ -148,7 +153,7 @@ public class SortedMap<K extends Comparable<K>, V> {
 		return elements.get(index);
 	}
 
-	public Entry<K, V> remove(int index) {
+	public Entry<K, V> removeAt(int index) {
 		return elements.remove(index);
 	}
 
