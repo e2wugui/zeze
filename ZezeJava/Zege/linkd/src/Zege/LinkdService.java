@@ -8,6 +8,7 @@ import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Net.AsyncSocket;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Record;
 import Zeze.Util.OutLong;
@@ -92,7 +93,7 @@ public class LinkdService extends LinkdServiceBase {
     }
 
     // 所有的群相关协议的参数的第一个变量必须都是Group: type==String，variable.id==1，
-    private int DecodeGroupDepartmentIdHash(Zeze.Serialize.ByteBuffer bb) {
+    private static int DecodeGroupDepartmentIdHash(Zeze.Serialize.ByteBuffer bb) {
         var rpc = new RpcGroupDepartmentId();
         rpc.decode(bb);
         return rpc.Argument.hashCode();
@@ -114,11 +115,11 @@ public class LinkdService extends LinkdServiceBase {
             Result = EmptyBean.instance;
         }
     }
-    private int DecodeAccountHash(Zeze.Serialize.ByteBuffer bb) {
+    private static int DecodeAccountHash(Zeze.Serialize.ByteBuffer bb) {
         var rpc = new RpcAccount();
         rpc.decode(bb);
         // 必须和Arch\LinkdProvider.java::ChoiceProviderAndBind中的ChoiceTypeHashAccount方式的hash方式一样。
-        return ByteBuffer.calc_hashnr(rpc.Argument.getAccount());
+        return Bean.hash32(rpc.Argument.getAccount());
     }
 
     @Override

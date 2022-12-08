@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Game.TaskBase;
 
-// 内置条件类型：提交物品
+// 内置条件类型：击杀怪物
 public interface BTConditionKillMonsterReadOnly {
     public long typeId();
     public void encode(Zeze.Serialize.ByteBuffer _o_);

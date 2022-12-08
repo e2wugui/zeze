@@ -7,6 +7,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutLong;
 
@@ -83,7 +84,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		var providerModuleState = (ProviderModuleState)providers.getSubscribeInfo().getLocalState();
 		switch (providerModuleState.choiceType) {
 		case BModule.ChoiceTypeHashAccount:
-			if (!distribute.choiceHash(providers, ByteBuffer.calc_hashnr(linkSession.getAccount()), provider))
+			if (!distribute.choiceHash(providers, Bean.hash32(linkSession.getAccount()), provider))
 				return false;
 			break; // bind static later
 

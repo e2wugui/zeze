@@ -44,15 +44,16 @@ public class ConsistentHash<E> {
 				}
 			}
 			Arrays.sort(virtual);
-			System.out.print(nodeKey);
+			//System.out.print(nodeKey);
 			for (var hash : virtual)
-				System.out.print("," + hash);
+				//System.out.print("," + hash);
 			System.out.println();
 			var conflicts = circle.addAll(virtual, node);
 			for (var conflict : conflicts) {
 				System.out.println("+++++++++++++++++++++++++++++++++++++");
 				logger.warn("hash conflict! key={} node={}", conflict.key, conflict.value);
 			}
+			//System.out.println();
 		} catch (NoSuchAlgorithmException ex) {
 			throw new RuntimeException(ex);
 		} finally {
@@ -79,31 +80,8 @@ public class ConsistentHash<E> {
 		}
 	}
 
-	private static byte[] toBytes(final int data) {
-		return new byte[] {
-				(byte)((data >> 24) & 0xff),
-				(byte)((data >> 16) & 0xff),
-				(byte)((data >> 8) & 0xff),
-				(byte)((data >> 0) & 0xff),
-		};
-	}
-
 	public E get(int hash) {
-		//*
-		hash = ByteBuffer.calc_hashnr(hash);
-		/*/
-		try {
-			var md5 = MessageDigest.getInstance("MD5");
-			var digest = md5.digest(toBytes(hash));
-			hash = 0;
-			for (int i = 0; i < 4; ++i)
-				hash ^= ByteBuffer.ToInt(digest, i * 4);
-		} catch (NoSuchAlgorithmException e) {
-			throw new RuntimeException(e);
-		}
-		//*/
-		//var hash = Bean.hash64(String.valueOf(_hash));
-		System.out.println("get="+hash);
+		hash = ByteBuffer.calc_hashnr(((long)hash << 32) ^ hash);
 		lock.lock();
 		try {
 			// todo 换成新的SrotedMap的方法。原来是ceilingEntry，对不对。
