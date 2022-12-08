@@ -8,15 +8,16 @@ import Zeze.Transaction.Bean;
 
 public class ConditionSubmitItem extends TaskConditionBase<BTConditionSubmitItem, BTConditionSubmitItemEvent> {
 	// @formatter:off
-	public ConditionSubmitItem(TaskPhase phase) { super(phase, BTConditionSubmitItem.class, BTConditionSubmitItemEvent.class); }
+	protected static class Opt extends TaskConditionBase.Opt {}
+	public ConditionSubmitItem(TaskPhase phase, Opt opt) { super(phase, opt); }
 
 	@Override
 	public boolean accept(Bean eventBean) throws Throwable {
-		if (!(eventBean instanceof BTConditionSubmitItem))
+		if (!(eventBean instanceof BTConditionSubmitItemEvent))
 			return false;
 
 		var bean = getExtendedBean();
-		var submitItemEventBean = (BTConditionSubmitItem)eventBean;
+		var submitItemEventBean = (BTConditionSubmitItemEvent)eventBean;
 		for (var item : submitItemEventBean.getItems()) {
 			bean.getItemsSubmitted().put(item.getKey(), item.getValue());
 		}

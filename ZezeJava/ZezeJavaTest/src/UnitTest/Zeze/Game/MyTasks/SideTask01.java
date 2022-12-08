@@ -1,4 +1,4 @@
-package UnitTest.Zeze.Game.MyTestTasks;
+package UnitTest.Zeze.Game.MyTasks;
 
 import TaskTest.TaskExt.BSideTask01;
 import Zeze.Game.TaskBase;

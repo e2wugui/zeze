@@ -7,8 +7,10 @@ import Zeze.Game.TaskPhase;
 import Zeze.Transaction.Bean;
 
 public class ConditionNPCTalk extends TaskConditionBase<BTConditionNPCTalk, BTConditionNPCTalkEvent> {
-	public ConditionNPCTalk(TaskPhase phase) {
-		super(phase, BTConditionNPCTalk.class, BTConditionNPCTalkEvent.class);
+	// @formatter:off
+	protected static class Opt extends TaskConditionBase.Opt {}
+	public ConditionNPCTalk(TaskPhase phase, Opt opt) {
+		super(phase, opt);
 		var extendedBean = getExtendedBean();
 	}
 
@@ -22,6 +24,7 @@ public class ConditionNPCTalk extends TaskConditionBase<BTConditionNPCTalk, BTCo
 	public boolean accept(Bean eventBean) throws Throwable {
 		if (!(eventBean instanceof BTConditionNPCTalkEvent))
 			return false;
+
 		if (isCompleted())
 			onComplete();
 		return true;
@@ -34,4 +37,5 @@ public class ConditionNPCTalk extends TaskConditionBase<BTConditionNPCTalk, BTCo
 				return false;
 		return true;
 	}
+	// @formatter:on
 }

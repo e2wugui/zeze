@@ -11,24 +11,21 @@ public class ConditionReachPosition extends TaskConditionBase<BTConditionReachPo
 	public static final int ReachPosition2D = 1;
 	public static final int ReachPosition3D = 2;
 
-	public ConditionReachPosition(TaskPhase phase, double x, double y, double radius) {
-		super(phase, BTConditionReachPosition.class, BTConditionReachPositionEvent.class);
-		var bean = getExtendedBean();
-		bean.setDimension(ReachPosition2D);
-		bean.setX(x);
-		bean.setY(y);
-		bean.setRadius(radius);
-		bean.setReached(false);
+	protected static class Opt extends TaskConditionBase.Opt {
+		int dim;
+		double x;
+		double y;
+		double z;
+		double radius;
 	}
-
-	public ConditionReachPosition(TaskPhase phase, double x, double y, double z, double radius) {
-		super(phase, BTConditionReachPosition.class, BTConditionReachPositionEvent.class);
+	public ConditionReachPosition(TaskPhase phase, Opt opt) {
+		super(phase, opt);
 		var bean = getExtendedBean();
-		bean.setDimension(ReachPosition3D);
-		bean.setX(x);
-		bean.setY(y);
-		bean.setZ(z);
-		bean.setRadius(radius);
+		bean.setDimension(opt.dim);
+		bean.setX(opt.x);
+		bean.setY(opt.y);
+		bean.setZ(opt.z);
+		bean.setRadius(opt.radius);
 		bean.setReached(false);
 	}
 

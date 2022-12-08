@@ -3,7 +3,6 @@ package Zeze.Game;
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.ParameterizedType;
 import Zeze.Builtin.Game.TaskBase.BTaskCondition;
-import Zeze.Builtin.Game.TaskBase.BTaskEvent;
 import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
 import Zeze.Util.Action1;
@@ -13,17 +12,13 @@ public abstract class TaskConditionBase<ConditionBean extends Bean, EventBean ex
 	// @formatter:off
 	public abstract boolean accept(Bean eventBean) throws Throwable;
 	public abstract boolean isCompleted();
-	public void onComplete() throws Throwable {
-		if (isCompleted() && null != onCompleteUserCallback) {
-			onCompleteUserCallback.run(this);
-		}
-	}
 
-	public TaskConditionBase(TaskPhase phase, Class<ConditionBean> extendedBeanClass, Class<EventBean> eventBeanClass) {
+	protected static class Opt {}
+	public TaskConditionBase(TaskPhase phase, Opt opt) {
 		this.phase = phase;
 		bean = new BTaskCondition();
 
-		MethodHandle extendedBeanConstructor = beanFactory.register(extendedBeanClass);
+		MethodHandle extendedBeanConstructor = beanFactory.register(getConditionBeanClass());
 		bean.getExtendedData().setBean(BeanFactory.invoke(extendedBeanConstructor));
 	}
 
@@ -37,6 +32,11 @@ public abstract class TaskConditionBase<ConditionBean extends Bean, EventBean ex
 	private final TaskPhase phase;
 	public final void setOnComplete(Action1<TaskConditionBase<ConditionBean, EventBean>> callback) { onCompleteUserCallback = callback; }
 	private Action1<TaskConditionBase<ConditionBean, EventBean>> onCompleteUserCallback;
+	public void onComplete() throws Throwable {
+		if (isCompleted() && null != onCompleteUserCallback) {
+			onCompleteUserCallback.run(this);
+		}
+	}
 
 
 	// ======================================== Private方法和一些不需要被注意的方法 ========================================
@@ -55,4 +55,5 @@ public abstract class TaskConditionBase<ConditionBean extends Bean, EventBean ex
 		ParameterizedType parameterizedType = (ParameterizedType)this.getClass().getGenericSuperclass();
 		return (Class<EventBean>)parameterizedType.getActualTypeArguments()[1];
 	}
+	// @formatter:on
 }

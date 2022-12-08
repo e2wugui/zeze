@@ -5,7 +5,7 @@ import java.util.List;
 import ClientGame.Login.BRole;
 import ClientGame.Login.CreateRole;
 import ClientGame.Login.GetRoleList;
-import UnitTest.Zeze.Game.MyTestTasks.DailyTask01;
+import UnitTest.Zeze.Game.MyTasks.DailyTask01;
 import Zeze.Builtin.Game.Online.Login;
 import Zeze.Builtin.Game.Online.Logout;
 import Zeze.Builtin.Game.Online.ReLogin;
@@ -14,7 +14,6 @@ import Zeze.Builtin.Game.TaskBase.BTConditionNPCTalkEvent;
 import Zeze.Builtin.Game.TaskBase.TriggerTaskEvent;
 import Zeze.Game.Task.ConditionNPCTalk;
 import Zeze.Game.Task.NPCTask;
-import Zeze.Game.TaskBase;
 import Zeze.Game.TaskPhase;
 import Zeze.Transaction.Procedure;
 import Zezex.Linkd.Auth;
@@ -126,7 +125,7 @@ public class TestTask extends TestCase {
 				var phase3 = task1.addPhase(phaseOpt3, List.of(4L));
 				var phase4 = task1.addPhase(phaseOpt4, List.of(-1L));
 				// ==================== 设置任务Phase的各个条件 ====================
-				ConditionNPCTalk dialog1 = phase1.addCondition(new ConditionNPCTalk(phase1));
+				ConditionNPCTalk dialog1 = phase1.addCondition(new ConditionNPCTalk(phase1, null));
 				dialog1.addSelectableDialog(20010L, 2);
 				dialog1.setOnComplete(condition -> {
 					var phase = condition.getPhase();

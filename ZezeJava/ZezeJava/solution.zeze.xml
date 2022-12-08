@@ -833,7 +833,6 @@
 					</variable>
 				</bean>
 				<!-- 内置条件类型：击杀怪物 -->
-				<!-- 内置条件类型：提交物品 -->
 				<bean name="BTConditionKillMonster">
 					<variable id="1" name="monsters" type="map" key="long" value="int"/> key：monsterId，value：monsterCount
 					<variable id="2" name="monstersKilled" type="map" key="long" value="int"/> key：monsterId，value：monsterCount
@@ -841,6 +840,7 @@
 				<bean name="BTConditionKillMonsterEvent">
 					<variable id="1" name="monsters" type="map" key="long" value="int"/> key：monsterId，value：monsterCount
 				</bean>
+				<!-- 内置条件类型：提交物品 -->
 				<bean name="BTConditionSubmitItem">
 					<variable id="1" name="items" type="map" key="long" value="int"/> key：itemId，value：itemCount
 					<variable id="2" name="itemsSubmitted" type="map" key="long" value="int"/> key：itemId，value：itemCount
@@ -848,6 +848,7 @@
 				<bean name="BTConditionSubmitItemEvent">
 					<variable id="1" name="items" type="map" key="long" value="int"/> key：itemId，value：itemCount
 				</bean>
+				<!-- 内置条件类型：到达位置 -->
 				<bean name="BTConditionReachPosition">
 					<variable id="1" name="dimension" type="int"/> 2D | 3D
 					<variable id="2" name="x" type="double"/>
