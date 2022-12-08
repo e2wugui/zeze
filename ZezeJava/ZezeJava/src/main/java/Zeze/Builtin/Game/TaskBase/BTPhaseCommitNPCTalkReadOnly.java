@@ -1,11 +1,12 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Game.TaskBase;
 
-public interface BTaskPhaseCommitNPCTalkReadOnly {
+public interface BTPhaseCommitNPCTalkReadOnly {
     public long typeId();
     public void encode(Zeze.Serialize.ByteBuffer _o_);
     public boolean negativeCheck();
-    public BTaskPhaseCommitNPCTalk copy();
+    public BTPhaseCommitNPCTalk copy();
 
     public long getNpcId();
+    public boolean isCommitted();
 }

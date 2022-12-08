@@ -2,6 +2,7 @@
 
 <solution name="demo" ModuleIdAllowRanges="1-3,5">
 	<import file="demo2.xml"/>
+	<import file="taskExt.xml"/>
 
 	<bean name="Bean1"> bean的注释
 		<enum name="Enum1" value="4"/> enum的注释
@@ -145,6 +146,7 @@
 			<module ref="Module1"/>
 			<module ref="M6"/>
 			<module ref="demo.M6.M7"/>
+			<module ref="TaskTest.TaskExt"/>
 		</service>
 	</project>
 

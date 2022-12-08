@@ -1,22 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <solution name="TaskTest" ModuleIdAllowRanges="8-9">
-<!--    <module name="TaskExt" id="8">-->
-<!--        &lt;!&ndash; 模拟外部在扩展使用Zeze Builtin任务系统时需要的bean和rpc &ndash;&gt;-->
-<!--        <bean name="BCollectCoinTask">-->
-<!--            <variable id="1" name="name" type="string"/>-->
-<!--            <variable id="2" name="targetCoinCount" type="long"/>-->
-<!--            <variable id="3" name="currentCoinCount" type="long"/>-->
-<!--        </bean>-->
-<!--        <bean name="BCollectCoinEvent">-->
-<!--            <variable id="1" name="name" type="string"/>-->
-<!--            <variable id="2" name="coinCount" type="long"/>-->
-<!--        </bean>-->
-<!--    </module>-->
-
-    <!-- 扩展Task主类，建立一种要向NPC交互的衍生任务 -->
-<!--    <bean name="BNPCTaskDynamics">-->
-<!--        <variable id="1" name="ReceiveNpcId" type="long"/> 接任务的NPC-->
-<!--        <variable id="2" name="SubmitNpcId" type="long"/> 交任务的NPC-->
-<!--    </bean>-->
+    <module name="TaskExt" id="8">
+        <!-- 扩展的任务 Extended Task -->
+        <bean name="BDailyTask01">
+            <variable id="1" name="Placeholder" type="long"/>
+        </bean>
+        <bean name="BMainTask01">
+            <variable id="1" name="Placeholder" type="long"/>
+        </bean>
+        <bean name="BSideTask01">
+            <variable id="1" name="Placeholder" type="long"/>
+        </bean>
+        <bean name="BHiddenTask01">
+            <variable id="1" name="Placeholder" type="long"/>
+        </bean>
+        <!-- 扩展的条件 Extended Condition -->
+    </module>
 </solution>

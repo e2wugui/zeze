@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Builtin.Game.TaskBase.BTPhaseCommitNPCTalk;
+import Zeze.Builtin.Game.TaskBase.BTPhaseCommitNPCTalkEvent;
 import Zeze.Builtin.Game.TaskBase.BTaskPhase;
 import Zeze.Transaction.Bean;
 import Zeze.Util.Action0;
@@ -32,7 +34,7 @@ public class TaskPhase {
 		this.task = task;
 		this.bean =new BTaskPhase();
 		this.bean.setPhaseId(opt.id);
-		this.bean.setPhaseType(opt.commitType);
+		this.bean.setCommitType(opt.commitType);
 		this.bean.setPhaseName(opt.name);
 		this.bean.setPhaseDescription(opt.description);
 		for (var afterPhaseId : afterPhaseIds)
@@ -54,7 +56,7 @@ public class TaskPhase {
 	 * 4. Phase Description
 	 */
 	public long getPhaseId() { return bean.getPhaseId(); }
-	public int getPhaseType() { return bean.getPhaseType(); }
+	public int getCommitType() { return bean.getCommitType(); }
 	public String getPhaseName() { return bean.getPhaseName(); }
 	public String getPhaseDescription() { return bean.getPhaseDescription(); }
 	public long getNextPhaseId() { return bean.getNextPhaseId(); }
@@ -74,6 +76,21 @@ public class TaskPhase {
 	 * - 当满足任务Phase推进情况时，会自动推进任务Phase
 	 */
 	public boolean accept(Bean eventBean) throws Throwable {
+
+		// 如果是Phase的bean，那就在Phase这儿截断。
+		if (eventBean instanceof BTPhaseCommitNPCTalkEvent) {
+			var e = (BTPhaseCommitNPCTalkEvent)eventBean;
+			if (e.getPhaseId() != getPhaseId())
+				return false;
+
+			if (getCommitType() == CommitNPCTalk) {
+				var commitBean = (BTPhaseCommitNPCTalk)bean.getExtendedData().getBean();
+				commitBean.setCommitted(true);
+				return true;
+			}
+			return false;
+		}
+
 		if (getConditionsCompleteType() == ConditionCompleteSequence) {
 			var condition = conditions.get(currentConditionId);
 			if (!condition.accept(eventBean))
@@ -110,6 +127,9 @@ public class TaskPhase {
 	 * - 用于判断任务Phase是否完成
 	 */
 	public boolean isCompleted() {
+		if (!checkCommitted())
+			return false;
+
 		if (getConditionsCompleteType() == ConditionCompleteAll) {
 			for (var condition : conditions.values())
 				if (!condition.isCompleted())
@@ -149,8 +169,9 @@ public class TaskPhase {
 		conditions.put(condition.getConditionId(), condition);
 		return condition;
 	}
-	public boolean isStartPhase() { return bean.getNextPhaseId() == getPhaseId(); } // 也许可以这么用，但暂时没有这么用。
+	public boolean isStartPhase() { return bean.getNextPhaseId() == getPhaseId() || bean.getNextPhaseId() == -1; } // 也许可以这么用，但暂时没有这么用。
 	public boolean isEndPhase() { return bean.getAfterPhaseIds().isEmpty(); }
+	private boolean checkCommitted() { return getCommitType() == CommitAuto || ((BTPhaseCommitNPCTalk)bean.getExtendedData().getBean()).isCommitted(); }
 
 	// @formatter:on
 }

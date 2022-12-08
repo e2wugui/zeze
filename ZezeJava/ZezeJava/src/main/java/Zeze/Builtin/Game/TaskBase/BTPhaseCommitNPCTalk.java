@@ -4,10 +4,11 @@ package Zeze.Builtin.Game.TaskBase;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BTaskPhaseCommitNPCTalk extends Zeze.Transaction.Bean implements BTaskPhaseCommitNPCTalkReadOnly {
-    public static final long TYPEID = 4346965359965455652L;
+public final class BTPhaseCommitNPCTalk extends Zeze.Transaction.Bean implements BTPhaseCommitNPCTalkReadOnly {
+    public static final long TYPEID = 3048609919075856845L;
 
     private long _npcId; // 交任务的NPC
+    private boolean _committed; // 是否已经交任务
 
     @Override
     public long getNpcId() {
@@ -29,42 +30,64 @@ public final class BTaskPhaseCommitNPCTalk extends Zeze.Transaction.Bean impleme
         txn.putLog(new Log__npcId(this, 1, value));
     }
 
-    @SuppressWarnings("deprecation")
-    public BTaskPhaseCommitNPCTalk() {
+    @Override
+    public boolean isCommitted() {
+        if (!isManaged())
+            return _committed;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _committed;
+        var log = (Log__committed)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _committed;
+    }
+
+    public void setCommitted(boolean value) {
+        if (!isManaged()) {
+            _committed = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__committed(this, 2, value));
     }
 
     @SuppressWarnings("deprecation")
-    public BTaskPhaseCommitNPCTalk(long _npcId_) {
+    public BTPhaseCommitNPCTalk() {
+    }
+
+    @SuppressWarnings("deprecation")
+    public BTPhaseCommitNPCTalk(long _npcId_, boolean _committed_) {
         _npcId = _npcId_;
+        _committed = _committed_;
     }
 
-    public void assign(BTaskPhaseCommitNPCTalk other) {
+    public void assign(BTPhaseCommitNPCTalk other) {
         setNpcId(other.getNpcId());
+        setCommitted(other.isCommitted());
     }
 
     @Deprecated
-    public void Assign(BTaskPhaseCommitNPCTalk other) {
+    public void Assign(BTPhaseCommitNPCTalk other) {
         assign(other);
     }
 
-    public BTaskPhaseCommitNPCTalk copyIfManaged() {
+    public BTPhaseCommitNPCTalk copyIfManaged() {
         return isManaged() ? copy() : this;
     }
 
     @Override
-    public BTaskPhaseCommitNPCTalk copy() {
-        var copy = new BTaskPhaseCommitNPCTalk();
+    public BTPhaseCommitNPCTalk copy() {
+        var copy = new BTPhaseCommitNPCTalk();
         copy.assign(this);
         return copy;
     }
 
     @Deprecated
-    public BTaskPhaseCommitNPCTalk Copy() {
+    public BTPhaseCommitNPCTalk Copy() {
         return copy();
     }
 
-    public static void swap(BTaskPhaseCommitNPCTalk a, BTaskPhaseCommitNPCTalk b) {
-        BTaskPhaseCommitNPCTalk save = a.copy();
+    public static void swap(BTPhaseCommitNPCTalk a, BTPhaseCommitNPCTalk b) {
+        BTPhaseCommitNPCTalk save = a.copy();
         a.assign(b);
         b.assign(save);
     }
@@ -75,10 +98,17 @@ public final class BTaskPhaseCommitNPCTalk extends Zeze.Transaction.Bean impleme
     }
 
     private static final class Log__npcId extends Zeze.Transaction.Logs.LogLong {
-        public Log__npcId(BTaskPhaseCommitNPCTalk bean, int varId, long value) { super(bean, varId, value); }
+        public Log__npcId(BTPhaseCommitNPCTalk bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BTaskPhaseCommitNPCTalk)getBelong())._npcId = value; }
+        public void commit() { ((BTPhaseCommitNPCTalk)getBelong())._npcId = value; }
+    }
+
+    private static final class Log__committed extends Zeze.Transaction.Logs.LogBool {
+        public Log__committed(BTPhaseCommitNPCTalk bean, int varId, boolean value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BTPhaseCommitNPCTalk)getBelong())._committed = value; }
     }
 
     @Override
@@ -90,9 +120,10 @@ public final class BTaskPhaseCommitNPCTalk extends Zeze.Transaction.Bean impleme
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.TaskBase.BTaskPhaseCommitNPCTalk: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.TaskBase.BTPhaseCommitNPCTalk: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("npcId=").append(getNpcId()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("npcId=").append(getNpcId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("committed=").append(isCommitted()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -119,6 +150,13 @@ public final class BTaskPhaseCommitNPCTalk extends Zeze.Transaction.Bean impleme
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            boolean _x_ = isCommitted();
+            if (_x_) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteByte(1);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -128,6 +166,10 @@ public final class BTaskPhaseCommitNPCTalk extends Zeze.Transaction.Bean impleme
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
             setNpcId(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            setCommitted(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -161,6 +203,7 @@ public final class BTaskPhaseCommitNPCTalk extends Zeze.Transaction.Bean impleme
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _npcId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 2: _committed = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
             }
         }
     }

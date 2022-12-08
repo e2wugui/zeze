@@ -8,20 +8,14 @@ import ClientGame.Login.GetRoleList;
 import Zeze.Builtin.Game.Online.Login;
 import Zeze.Builtin.Game.Online.Logout;
 import Zeze.Builtin.Game.Online.ReLogin;
-import Zeze.Builtin.Game.TaskBase.BCollectCoinEvent;
 import Zeze.Builtin.Game.TaskBase.BSpecificTaskEvent;
-import Zeze.Builtin.Game.TaskBase.BTConditionNPCTalk;
 import Zeze.Builtin.Game.TaskBase.BTConditionNPCTalkEvent;
 import Zeze.Builtin.Game.TaskBase.TriggerTaskEvent;
 import Zeze.Game.Task.ConditionNPCTalk;
-import Zeze.Game.Task.ConditionNamedCount;
 import Zeze.Game.Task.NPCTask;
 import Zeze.Game.TaskBase;
-import Zeze.Game.TaskConditionBase;
 import Zeze.Game.TaskPhase;
 import Zeze.Transaction.Procedure;
-import Zeze.Util.Action0;
-import Zeze.Util.Action1;
 import Zezex.Linkd.Auth;
 import junit.framework.TestCase;
 import org.junit.Assert;
@@ -179,16 +173,6 @@ public class TestTask extends TestCase {
 		bean.setTaskId(taskId);
 		bean.setPhaseId(phaseId);
 		bean.setFinished(true); // 在对话结束时，发一条这个事件
-	}
-
-	// 一个简单的任务，用于测试。
-	private static void collectCoin(ClientGame.App app, long roleId, TaskBase<?> task, long count) {
-		TriggerTaskEvent taskEvent = new TriggerTaskEvent();
-		taskEvent.Argument.setRoleId(roleId);
-		var bean = new BCollectCoinEvent("收集金币", count);
-		taskEvent.Argument.getExtendedData().setBean(bean);
-		taskEvent.SendForWait(app.ClientService.GetSocket()).await();
-		Assert.assertEquals(0, taskEvent.getResultCode());
 	}
 
 	// ======================================== 测试用例1：对话任务的一个任务实例 - NPC对话 ========================================

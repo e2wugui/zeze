@@ -97,6 +97,7 @@ public class App extends Zeze.AppBase {
     public demo.Module1.Module11.ModuleModule11 demo_Module1_Module11;
     public demo.M6.ModuleM6 demo_M6;
     public demo.M6.M7.ModuleM7 demo_M6_M7;
+    public TaskTest.TaskExt.ModuleTaskExt TaskTest_TaskExt;
 
     @Override
     public Zeze.Application getZeze() {
@@ -139,10 +140,16 @@ public class App extends Zeze.AppBase {
         if (modules.put(demo_M6_M7.getFullName(), demo_M6_M7) != null)
             throw new RuntimeException("duplicate module name: demo_M6_M7");
 
+        TaskTest_TaskExt = replaceModuleInstance(new TaskTest.TaskExt.ModuleTaskExt(this));
+        TaskTest_TaskExt.Initialize(this);
+        if (modules.put(TaskTest_TaskExt.getFullName(), TaskTest_TaskExt) != null)
+            throw new RuntimeException("duplicate module name: TaskTest_TaskExt");
+
         Zeze.setSchemas(new demo.Schemas());
     }
 
     public synchronized void destroyModules() {
+        TaskTest_TaskExt = null;
         demo_M6_M7 = null;
         demo_M6 = null;
         demo_Module1_Module11 = null;
@@ -163,9 +170,12 @@ public class App extends Zeze.AppBase {
         demo_Module1_Module11.Start(this);
         demo_M6.Start(this);
         demo_M6_M7.Start(this);
+        TaskTest_TaskExt.Start(this);
     }
 
     public synchronized void stopModules() throws Throwable {
+        if (TaskTest_TaskExt != null)
+            TaskTest_TaskExt.Stop(this);
         if (demo_M6_M7 != null)
             demo_M6_M7.Stop(this);
         if (demo_M6 != null)

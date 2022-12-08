@@ -4,95 +4,90 @@ package Zeze.Builtin.Game.TaskBase;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BCollectCoinEvent extends Zeze.Transaction.Bean implements BCollectCoinEventReadOnly {
-    public static final long TYPEID = -6706619269913025707L;
+public final class BTPhaseCommitNPCTalkEvent extends Zeze.Transaction.Bean implements BTPhaseCommitNPCTalkEventReadOnly {
+    public static final long TYPEID = 1897060175056015337L;
 
-    private String _name;
-    private long _coinCount;
+    private long _phaseId;
+    private long _npcId;
 
     @Override
-    public String getName() {
+    public long getPhaseId() {
         if (!isManaged())
-            return _name;
+            return _phaseId;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _name;
-        var log = (Log__name)txn.getLog(objectId() + 1);
-        return log != null ? log.value : _name;
+            return _phaseId;
+        var log = (Log__phaseId)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _phaseId;
     }
 
-    public void setName(String value) {
-        if (value == null)
-            throw new IllegalArgumentException();
+    public void setPhaseId(long value) {
         if (!isManaged()) {
-            _name = value;
+            _phaseId = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__name(this, 1, value));
+        txn.putLog(new Log__phaseId(this, 1, value));
     }
 
     @Override
-    public long getCoinCount() {
+    public long getNpcId() {
         if (!isManaged())
-            return _coinCount;
+            return _npcId;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _coinCount;
-        var log = (Log__coinCount)txn.getLog(objectId() + 2);
-        return log != null ? log.value : _coinCount;
+            return _npcId;
+        var log = (Log__npcId)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _npcId;
     }
 
-    public void setCoinCount(long value) {
+    public void setNpcId(long value) {
         if (!isManaged()) {
-            _coinCount = value;
+            _npcId = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__coinCount(this, 2, value));
+        txn.putLog(new Log__npcId(this, 2, value));
     }
 
     @SuppressWarnings("deprecation")
-    public BCollectCoinEvent() {
-        _name = "";
+    public BTPhaseCommitNPCTalkEvent() {
     }
 
     @SuppressWarnings("deprecation")
-    public BCollectCoinEvent(String _name_, long _coinCount_) {
-        if (_name_ == null)
-            throw new IllegalArgumentException();
-        _name = _name_;
-        _coinCount = _coinCount_;
+    public BTPhaseCommitNPCTalkEvent(long _phaseId_, long _npcId_) {
+        _phaseId = _phaseId_;
+        _npcId = _npcId_;
     }
 
-    public void assign(BCollectCoinEvent other) {
-        setName(other.getName());
-        setCoinCount(other.getCoinCount());
+    public void assign(BTPhaseCommitNPCTalkEvent other) {
+        setPhaseId(other.getPhaseId());
+        setNpcId(other.getNpcId());
     }
 
     @Deprecated
-    public void Assign(BCollectCoinEvent other) {
+    public void Assign(BTPhaseCommitNPCTalkEvent other) {
         assign(other);
     }
 
-    public BCollectCoinEvent copyIfManaged() {
+    public BTPhaseCommitNPCTalkEvent copyIfManaged() {
         return isManaged() ? copy() : this;
     }
 
     @Override
-    public BCollectCoinEvent copy() {
-        var copy = new BCollectCoinEvent();
+    public BTPhaseCommitNPCTalkEvent copy() {
+        var copy = new BTPhaseCommitNPCTalkEvent();
         copy.assign(this);
         return copy;
     }
 
     @Deprecated
-    public BCollectCoinEvent Copy() {
+    public BTPhaseCommitNPCTalkEvent Copy() {
         return copy();
     }
 
-    public static void swap(BCollectCoinEvent a, BCollectCoinEvent b) {
-        BCollectCoinEvent save = a.copy();
+    public static void swap(BTPhaseCommitNPCTalkEvent a, BTPhaseCommitNPCTalkEvent b) {
+        BTPhaseCommitNPCTalkEvent save = a.copy();
         a.assign(b);
         b.assign(save);
     }
@@ -102,18 +97,18 @@ public final class BCollectCoinEvent extends Zeze.Transaction.Bean implements BC
         return TYPEID;
     }
 
-    private static final class Log__name extends Zeze.Transaction.Logs.LogString {
-        public Log__name(BCollectCoinEvent bean, int varId, String value) { super(bean, varId, value); }
+    private static final class Log__phaseId extends Zeze.Transaction.Logs.LogLong {
+        public Log__phaseId(BTPhaseCommitNPCTalkEvent bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BCollectCoinEvent)getBelong())._name = value; }
+        public void commit() { ((BTPhaseCommitNPCTalkEvent)getBelong())._phaseId = value; }
     }
 
-    private static final class Log__coinCount extends Zeze.Transaction.Logs.LogLong {
-        public Log__coinCount(BCollectCoinEvent bean, int varId, long value) { super(bean, varId, value); }
+    private static final class Log__npcId extends Zeze.Transaction.Logs.LogLong {
+        public Log__npcId(BTPhaseCommitNPCTalkEvent bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BCollectCoinEvent)getBelong())._coinCount = value; }
+        public void commit() { ((BTPhaseCommitNPCTalkEvent)getBelong())._npcId = value; }
     }
 
     @Override
@@ -125,10 +120,10 @@ public final class BCollectCoinEvent extends Zeze.Transaction.Bean implements BC
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.TaskBase.BCollectCoinEvent: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.TaskBase.BTPhaseCommitNPCTalkEvent: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("name=").append(getName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("coinCount=").append(getCoinCount()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("phaseId=").append(getPhaseId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("npcId=").append(getNpcId()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -149,14 +144,14 @@ public final class BCollectCoinEvent extends Zeze.Transaction.Bean implements BC
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = getName();
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
-                _o_.WriteString(_x_);
+            long _x_ = getPhaseId();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
             }
         }
         {
-            long _x_ = getCoinCount();
+            long _x_ = getNpcId();
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
@@ -170,11 +165,11 @@ public final class BCollectCoinEvent extends Zeze.Transaction.Bean implements BC
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setName(_o_.ReadString(_t_));
+            setPhaseId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            setCoinCount(_o_.ReadLong(_t_));
+            setNpcId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -193,7 +188,9 @@ public final class BCollectCoinEvent extends Zeze.Transaction.Bean implements BC
 
     @Override
     public boolean negativeCheck() {
-        if (getCoinCount() < 0)
+        if (getPhaseId() < 0)
+            return true;
+        if (getNpcId() < 0)
             return true;
         return false;
     }
@@ -207,8 +204,8 @@ public final class BCollectCoinEvent extends Zeze.Transaction.Bean implements BC
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _name = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _coinCount = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _phaseId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 2: _npcId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }
