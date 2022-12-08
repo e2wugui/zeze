@@ -60,6 +60,11 @@ public class SortedMap<K extends Comparable<K>, V> {
 		return null;
 	}
 
+	/**
+	 * std::lower_bound 定义。返回指定key为上限的索引。
+	 * @param key key
+	 * @return index locate，不存在时返回lastIndex+1。
+	 */
 	public int lowerBoundIndex(K key) {
 		var first = 0;
 		var count = elements.size();
@@ -76,6 +81,11 @@ public class SortedMap<K extends Comparable<K>, V> {
 		return first;
 	}
 
+	/**
+	 * std::upper_bound 定义。返回指定key为下限的索引。
+	 * @param key key
+	 * @return index locate，不存在时返回lastIndex+1
+	 */
 	public int upperBoundIndex(K key) {
 		var first = 0;
 		var count = elements.size();
@@ -83,7 +93,7 @@ public class SortedMap<K extends Comparable<K>, V> {
 			var it = first;
 			var step = count / 2;
 			it += step;
-			if (get(it).key.compareTo(key) > 0) {
+			if (get(it).key.compareTo(key) <= 0) {
 				first = it + 1;
 				count -= step + 1;
 			} else
@@ -117,16 +127,14 @@ public class SortedMap<K extends Comparable<K>, V> {
 
 	public int add(K key, V value) {
 		// todo 随便写写先
-		// 1 3, 4, 6, 9, 12
 		var index = lowerBoundIndex(key);
 		if (index >= 0) {
-			if (get(index).key.compareTo(key) == 0)
+			if (index < elements.size() && get(index).key.compareTo(key) == 0)
 				return -1; // duplicate.
 			elements.add(index, Entry.create(key, value));
 			return index;
 		}
-		elements.add(Entry.create(key, value));
-		return elements.size() - 1;
+		throw new RuntimeException("internal error");
 	}
 
 	public Entry<K, V> remove(K key) {
@@ -142,5 +150,10 @@ public class SortedMap<K extends Comparable<K>, V> {
 
 	public Entry<K, V> remove(int index) {
 		return elements.remove(index);
+	}
+
+	@Override
+	public String toString() {
+		return elements.toString();
 	}
 }
