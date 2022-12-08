@@ -9,4 +9,9 @@ public class OutLong {
 	public OutLong(long value) {
 		this.value = value;
 	}
+
+	@Override
+	public String toString() {
+		return String.valueOf(value);
+	}
 }
