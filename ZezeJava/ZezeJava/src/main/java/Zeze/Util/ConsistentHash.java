@@ -44,16 +44,11 @@ public class ConsistentHash<E> {
 				}
 			}
 			Arrays.sort(virtual);
-			//System.out.print(nodeKey);
-			for (var hash : virtual)
-				//System.out.print("," + hash);
-			System.out.println();
 			var conflicts = circle.addAll(virtual, node);
 			for (var conflict : conflicts) {
 				System.out.println("+++++++++++++++++++++++++++++++++++++");
 				logger.warn("hash conflict! key={} node={}", conflict.key, conflict.value);
 			}
-			//System.out.println();
 		} catch (NoSuchAlgorithmException ex) {
 			throw new RuntimeException(ex);
 		} finally {

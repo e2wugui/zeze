@@ -17,15 +17,17 @@ public class TestConsistentHash {
 		consistentHash.add("3", 3);
 		consistentHash.add("4", 4);
 
-		System.out.println(consistentHash.get("1".hashCode()));
-		System.out.println(consistentHash.get("2".hashCode()));
-		System.out.println(consistentHash.get("3".hashCode()));
-		System.out.println(consistentHash.get("4".hashCode()));
+		System.out.print(consistentHash.get("1".hashCode()) + ",");
+		System.out.print(consistentHash.get("2".hashCode()) + ",");
+		System.out.print(consistentHash.get("3".hashCode()) + ",");
+		System.out.print(consistentHash.get("4".hashCode()) + ",");
+		System.out.println();
 		//*
-		System.out.println(consistentHash.get(Bean.hash32("1")));
-		System.out.println(consistentHash.get(Bean.hash32("2")));
-		System.out.println(consistentHash.get(Bean.hash32("3")));
-		System.out.println(consistentHash.get(Bean.hash32("4")));
+		System.out.print(consistentHash.get(Bean.hash32("1")) + ",");
+		System.out.print(consistentHash.get(Bean.hash32("2")) + ",");
+		System.out.print(consistentHash.get(Bean.hash32("3")) + ",");
+		System.out.print(consistentHash.get(Bean.hash32("4")) + ",");
+		System.out.println();
 		/*/
 		Assert.assertEquals(consistentHash.get(Bean.hash32("1")), Integer.valueOf(1));
 		Assert.assertEquals(consistentHash.get(Bean.hash32("2")), Integer.valueOf(2));
