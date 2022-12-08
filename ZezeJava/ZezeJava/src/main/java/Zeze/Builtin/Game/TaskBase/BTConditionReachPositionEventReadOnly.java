@@ -1,11 +1,13 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Game.TaskBase;
 
-public interface BTConditionReachNPCReadOnly {
+public interface BTConditionReachPositionEventReadOnly {
     public long typeId();
     public void encode(Zeze.Serialize.ByteBuffer _o_);
     public boolean negativeCheck();
-    public BTConditionReachNPC copy();
+    public BTConditionReachPositionEvent copy();
 
-    public long getNpcId();
+    public double getX();
+    public double getY();
+    public double getZ();
 }

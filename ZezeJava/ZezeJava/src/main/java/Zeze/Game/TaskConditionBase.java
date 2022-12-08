@@ -13,7 +13,7 @@ public abstract class TaskConditionBase<ConditionBean extends Bean, EventBean ex
 	// @formatter:off
 	public abstract boolean accept(Bean eventBean) throws Throwable;
 	public abstract boolean isCompleted();
-	public final void onComplete() throws Throwable {
+	public void onComplete() throws Throwable {
 		if (isCompleted() && null != onCompleteUserCallback) {
 			onCompleteUserCallback.run(this);
 		}

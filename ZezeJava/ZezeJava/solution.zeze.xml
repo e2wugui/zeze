@@ -848,15 +848,23 @@
 				<!-- 内置条件类型：提交物品 -->
 				<bean name="BTConditionSubmitItem">
 					<variable id="1" name="items" type="map" key="long" value="int"/> key：itemId，value：itemCount
+					<variable id="2" name="itemsSubmitted" type="map" key="long" value="int"/> key：itemId，value：itemCount
 				</bean>
 				<bean name="BTConditionSubmitItemEvent">
 					<variable id="1" name="items" type="map" key="long" value="int"/> key：itemId，value：itemCount
 				</bean>
-				<bean name="BTConditionReachNPC">
-                    <variable id="1" name="npcId" type="long"/>
+				<bean name="BTConditionReachPosition">
+					<variable id="1" name="dimension" type="int"/> 2D | 3D
+					<variable id="2" name="x" type="double"/>
+					<variable id="3" name="y" type="double"/>
+					<variable id="4" name="z" type="double"/>
+					<variable id="5" name="radius" type="double"/>
+					<variable id="6" name="Reached" type="bool"/>
 				</bean>
-                <bean name="BTConditionReachNPCEvent">
-                    <variable id="1" name="npcId" type="long"/>
+                <bean name="BTConditionReachPositionEvent">
+					<variable id="1" name="x" type="double"/>
+					<variable id="2" name="y" type="double"/>
+					<variable id="3" name="z" type="double"/>
                 </bean>
 				<!-- 内置条件类型：NPC对话-->
 				<bean name="BTConditionNPCTalk">

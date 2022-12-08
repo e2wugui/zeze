@@ -1,7 +1,10 @@
 package Zeze.Game;
 
 import java.lang.invoke.MethodHandle;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.validation.constraints.NotNull;
 import Zeze.Application;
 import Zeze.Arch.ProviderApp;
 import Zeze.Builtin.Game.TaskBase.BBroadcastTaskEvent;
@@ -39,7 +42,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 			var eventTypeBean = r.Argument.getTaskEventTypeDynamic().getBean();
 			var eventExtendedBean = r.Argument.getExtendedData().getBean();
 			if (eventTypeBean instanceof BSpecificTaskEvent) {
-				var specificTaskEventBean = (BSpecificTaskEvent) eventTypeBean; // 兼容JDK11
+				var specificTaskEventBean = (BSpecificTaskEvent)eventTypeBean; // 兼容JDK11
 				// 检查任务Id
 				var id = specificTaskEventBean.getTaskId();
 				var taskBean = taskInfo.getProcessingTasksId().get(id);
@@ -55,7 +58,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 				else
 					r.Result.setResultCode(TaskResultRejected);
 			} else if (eventTypeBean instanceof BBroadcastTaskEvent) {
-				var broadcastTaskEventBean = (BBroadcastTaskEvent) eventTypeBean; // 兼容JDK11
+				var broadcastTaskEventBean = (BBroadcastTaskEvent)eventTypeBean; // 兼容JDK11
 				var taskBeanList = taskInfo.getProcessingTasksId().values();
 				for (var taskBean : taskBeanList) {
 					var id = taskBean.getTaskId();
@@ -259,8 +262,12 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		}
 	}
 
-	public TaskPhase addPhase(TaskPhase.TaskPhaseOpt opt) {
-		var phase = new TaskPhase(this, opt);
+	public TaskPhase addPhase(TaskPhase.TaskPhaseOpt opt, List<Long> afterPhaseIds) {
+		return addPhase(opt, afterPhaseIds, null);
+	}
+
+	public TaskPhase addPhase(TaskPhase.TaskPhaseOpt opt, List<Long> afterPhaseIds, Action0 onCompleteUserCallback) {
+		var phase = new TaskPhase(this, opt, afterPhaseIds, onCompleteUserCallback);
 		phases.put(phase.getPhaseId(), phase);
 		bean.getTaskPhases().put(phase.getPhaseId(), phase.getBean());
 		return phase;

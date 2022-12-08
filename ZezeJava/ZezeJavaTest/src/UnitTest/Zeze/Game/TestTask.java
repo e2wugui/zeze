@@ -1,6 +1,7 @@
 package UnitTest.Zeze.Game;
 
 import java.util.ArrayList;
+import java.util.List;
 import ClientGame.Login.BRole;
 import ClientGame.Login.CreateRole;
 import ClientGame.Login.GetRoleList;
@@ -95,6 +96,27 @@ public class TestTask extends TestCase {
 				taskOpt.ReceiveNpcId = 1002;
 				var task1 = module.newNPCTask(taskOpt);
 				// ==================== 设置任务的各个Phase ====================
+				TaskPhase.TaskPhaseOpt phaseOpt1 = new TaskPhase.TaskPhaseOpt();
+				phaseOpt1.id = 1;
+				phaseOpt1.name = "阶段一";
+				phaseOpt1.description = "";
+				phaseOpt1.commitType = TaskPhase.CommitAuto;
+				TaskPhase.TaskPhaseOpt phaseOpt2 = new TaskPhase.TaskPhaseOpt();
+				phaseOpt2.id = 2;
+				phaseOpt2.name = "阶段二";
+				phaseOpt2.description = "";
+				phaseOpt2.commitType = TaskPhase.CommitAuto;
+				TaskPhase.TaskPhaseOpt phaseOpt3 = new TaskPhase.TaskPhaseOpt();
+				phaseOpt3.id = 3;
+				phaseOpt3.name = "阶段三";
+				phaseOpt3.description = "";
+				phaseOpt3.commitType = TaskPhase.CommitAuto;
+				TaskPhase.TaskPhaseOpt phaseOpt4 = new TaskPhase.TaskPhaseOpt();
+				phaseOpt4.id = 4;
+				phaseOpt4.name = "阶段四";
+				phaseOpt4.description = "";
+				phaseOpt4.commitType = TaskPhase.CommitNPCTalk;
+				phaseOpt4.commitNPCId = 1002;
 				/*
 				 * ==>==>==>==>==>==>==>==>
 				 * 		   Phase2
@@ -104,36 +126,10 @@ public class TestTask extends TestCase {
 				 *		  Phase3
 				 * ==>==>==>==>==>==>==>==>
 				 */
-				TaskPhase.TaskPhaseOpt phaseOpt1 = new TaskPhase.TaskPhaseOpt();
-				phaseOpt1.id = 1;
-				phaseOpt1.name = "阶段一";
-				phaseOpt1.description = "";
-				phaseOpt1.afterPhaseIds.add(2L);
-				phaseOpt1.afterPhaseIds.add(3L);
-				phaseOpt1.commitType = TaskPhase.CommitAuto;
-				TaskPhase.TaskPhaseOpt phaseOpt2 = new TaskPhase.TaskPhaseOpt();
-				phaseOpt2.id = 2;
-				phaseOpt2.name = "阶段二";
-				phaseOpt2.description = "";
-				phaseOpt2.afterPhaseIds.add(4L);
-				phaseOpt2.commitType = TaskPhase.CommitAuto;
-				TaskPhase.TaskPhaseOpt phaseOpt3 = new TaskPhase.TaskPhaseOpt();
-				phaseOpt3.id = 3;
-				phaseOpt3.name = "阶段三";
-				phaseOpt3.description = "";
-				phaseOpt3.afterPhaseIds.add(4L);
-				phaseOpt3.commitType = TaskPhase.CommitAuto;
-				TaskPhase.TaskPhaseOpt phaseOpt4 = new TaskPhase.TaskPhaseOpt();
-				phaseOpt4.id = 4;
-				phaseOpt4.name = "阶段四";
-				phaseOpt4.description = "";
-				phaseOpt4.afterPhaseIds.clear();
-				phaseOpt4.commitType = TaskPhase.CommitNPCTalk;
-				phaseOpt4.commitNPCId = 1002;
-				var phase1 = task1.addPhase(phaseOpt1);
-				var phase2 = task1.addPhase(phaseOpt2);
-				var phase3 = task1.addPhase(phaseOpt3);
-				var phase4 = task1.addPhase(phaseOpt4);
+				var phase1 = task1.addPhase(phaseOpt1, List.of(2L, 3L));
+				var phase2 = task1.addPhase(phaseOpt2, List.of(4L));
+				var phase3 = task1.addPhase(phaseOpt3, List.of(4L));
+				var phase4 = task1.addPhase(phaseOpt4, List.of(-1L));
 				// ==================== 设置任务Phase的各个条件 ====================
 				ConditionNPCTalk dialog1 = phase1.addCondition(new ConditionNPCTalk(phase1));
 				dialog1.addSelectableDialog(20010L, 2);

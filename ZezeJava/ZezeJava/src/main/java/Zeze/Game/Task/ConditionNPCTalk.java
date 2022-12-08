@@ -2,7 +2,6 @@ package Zeze.Game.Task;
 
 import Zeze.Builtin.Game.TaskBase.BTConditionNPCTalk;
 import Zeze.Builtin.Game.TaskBase.BTConditionNPCTalkEvent;
-import Zeze.Builtin.Game.TaskBase.BTaskEvent;
 import Zeze.Game.TaskConditionBase;
 import Zeze.Game.TaskPhase;
 import Zeze.Transaction.Bean;

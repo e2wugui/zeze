@@ -9,4 +9,5 @@ public interface BTConditionSubmitItemReadOnly {
     public BTConditionSubmitItem copy();
 
     public Zeze.Transaction.Collections.PMap1ReadOnly<Long, Integer> getItemsReadOnly();
+    public Zeze.Transaction.Collections.PMap1ReadOnly<Long, Integer> getItemsSubmittedReadOnly();
 }
