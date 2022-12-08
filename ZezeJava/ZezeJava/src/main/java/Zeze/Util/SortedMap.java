@@ -49,14 +49,14 @@ public class SortedMap<K extends Comparable<K>, V> {
 	public Entry<K, V> lowerBound(K key) {
 		var index = lowerBoundIndex(key);
 		if (index >= 0)
-			return get(index);
+			return getAt(index);
 		return null;
 	}
 
 	public Entry<K, V> upperBound(K key) {
 		var index = upperBoundIndex(key);
 		if (index >= 0)
-			return get(index);
+			return getAt(index);
 		return null;
 	}
 
@@ -72,7 +72,7 @@ public class SortedMap<K extends Comparable<K>, V> {
 			var it = first;
 			var step = count / 2;
 			it += step;
-			if (get(it).key.compareTo(key) < 0) {
+			if (getAt(it).key.compareTo(key) < 0) {
 				first = it + 1;
 				count -= step + 1;
 			} else
@@ -93,7 +93,7 @@ public class SortedMap<K extends Comparable<K>, V> {
 			var it = first;
 			var step = count / 2;
 			it += step;
-			if (get(it).key.compareTo(key) <= 0) {
+			if (getAt(it).key.compareTo(key) <= 0) {
 				first = it + 1;
 				count -= step + 1;
 			} else
@@ -121,7 +121,7 @@ public class SortedMap<K extends Comparable<K>, V> {
 	public Entry<K, V> get(K key) {
 		var index = findIndex(key);
 		if (index >= 0)
-			return get(index);
+			return getAt(index);
 		return null;
 	}
 
@@ -129,7 +129,7 @@ public class SortedMap<K extends Comparable<K>, V> {
 		// todo 随便写写先
 		var index = lowerBoundIndex(key);
 		if (index >= 0) {
-			if (index < elements.size() && get(index).key.compareTo(key) == 0)
+			if (index < elements.size() && getAt(index).key.compareTo(key) == 0)
 				return -1; // duplicate.
 			elements.add(index, Entry.create(key, value));
 			return index;
@@ -144,7 +144,7 @@ public class SortedMap<K extends Comparable<K>, V> {
 		return null;
 	}
 
-	public Entry<K, V> get(int index) {
+	public Entry<K, V> getAt(int index) {
 		return elements.get(index);
 	}
 

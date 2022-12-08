@@ -16,7 +16,7 @@ public class TestSortedMap {
 			sortedMap.add(hash, hash);
 		Arrays.sort(src);
 		for (var i = 0; i < src.length; ++i)
-			Assert.assertEquals(Long.valueOf(src[i]), sortedMap.get(i).getKey());
+			Assert.assertEquals(Long.valueOf(src[i]), sortedMap.getAt(i).getKey());
 		//System.out.println(sortedMap);
 	}
 
@@ -60,5 +60,37 @@ public class TestSortedMap {
 		Assert.assertEquals(sortedMap.upperBoundIndex(9L), 5); //
 		Assert.assertEquals(sortedMap.upperBoundIndex(10L), 5);
 		//System.out.println(sortedMap.upperBoundIndex(10L));
+	}
+
+	@Test
+	public void testSortedMapFind() {
+		var sortedMap = new SortedMap<Long, Long>();
+		var src = new long[] { 1, 3, 5, 6, 9};
+		for (var hash : src)
+			sortedMap.add(hash, hash);
+		/*
+		System.out.println(sortedMap.get(0L));
+		System.out.println(sortedMap.get(1L));
+		System.out.println(sortedMap.get(2L));
+		System.out.println(sortedMap.get(3L));
+		System.out.println(sortedMap.get(4L));
+		System.out.println(sortedMap.get(5L));
+		System.out.println(sortedMap.get(6L));
+		System.out.println(sortedMap.get(7L));
+		System.out.println(sortedMap.get(8L));
+		System.out.println(sortedMap.get(9L));
+		System.out.println(sortedMap.get(10L));
+		*/
+		Assert.assertEquals(sortedMap.get(0L), null);
+		Assert.assertEquals(sortedMap.get(1L).getKey(), Long.valueOf(1));
+		Assert.assertEquals(sortedMap.get(2L), null);
+		Assert.assertEquals(sortedMap.get(3L).getKey(), Long.valueOf(3));
+		Assert.assertEquals(sortedMap.get(4L), null);
+		Assert.assertEquals(sortedMap.get(5L).getKey(), Long.valueOf(5));
+		Assert.assertEquals(sortedMap.get(6L).getKey(), Long.valueOf(6));
+		Assert.assertEquals(sortedMap.get(7L), null);
+		Assert.assertEquals(sortedMap.get(8L), null);
+		Assert.assertEquals(sortedMap.get(9L).getKey(), Long.valueOf(9));
+		Assert.assertEquals(sortedMap.get(10L), null);
 	}
 }
