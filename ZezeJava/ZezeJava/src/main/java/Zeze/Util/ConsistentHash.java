@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Bean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -76,7 +77,8 @@ public class ConsistentHash<E> {
 		}
 	}
 
-	public E get(long hash) {
+	public E get(int _hash) {
+		var hash = Bean.hash64(String.valueOf(_hash));
 		lock.lock();
 		try {
 			// todo 换成新的SrotedMap的方法。原来是ceilingEntry，对不对。
