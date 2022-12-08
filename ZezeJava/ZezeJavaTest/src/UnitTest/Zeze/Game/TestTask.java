@@ -5,6 +5,7 @@ import java.util.List;
 import ClientGame.Login.BRole;
 import ClientGame.Login.CreateRole;
 import ClientGame.Login.GetRoleList;
+import UnitTest.Zeze.Game.MyTestTasks.DailyTask01;
 import Zeze.Builtin.Game.Online.Login;
 import Zeze.Builtin.Game.Online.Logout;
 import Zeze.Builtin.Game.Online.ReLogin;
@@ -90,22 +91,22 @@ public class TestTask extends TestCase {
 				taskOpt.ReceiveNpcId = 1002;
 				var task1 = module.newNPCTask(taskOpt);
 				// ==================== 设置任务的各个Phase ====================
-				TaskPhase.TaskPhaseOpt phaseOpt1 = new TaskPhase.TaskPhaseOpt();
+				TaskPhase.Opt phaseOpt1 = new TaskPhase.Opt();
 				phaseOpt1.id = 1;
 				phaseOpt1.name = "阶段一";
 				phaseOpt1.description = "";
 				phaseOpt1.commitType = TaskPhase.CommitAuto;
-				TaskPhase.TaskPhaseOpt phaseOpt2 = new TaskPhase.TaskPhaseOpt();
+				TaskPhase.Opt phaseOpt2 = new TaskPhase.Opt();
 				phaseOpt2.id = 2;
 				phaseOpt2.name = "阶段二";
 				phaseOpt2.description = "";
 				phaseOpt2.commitType = TaskPhase.CommitAuto;
-				TaskPhase.TaskPhaseOpt phaseOpt3 = new TaskPhase.TaskPhaseOpt();
+				TaskPhase.Opt phaseOpt3 = new TaskPhase.Opt();
 				phaseOpt3.id = 3;
 				phaseOpt3.name = "阶段三";
 				phaseOpt3.description = "";
 				phaseOpt3.commitType = TaskPhase.CommitAuto;
-				TaskPhase.TaskPhaseOpt phaseOpt4 = new TaskPhase.TaskPhaseOpt();
+				TaskPhase.Opt phaseOpt4 = new TaskPhase.Opt();
 				phaseOpt4.id = 4;
 				phaseOpt4.name = "阶段四";
 				phaseOpt4.description = "";
@@ -142,9 +143,45 @@ public class TestTask extends TestCase {
 				finishTalk(client0, roleId, task1.getId(), phase1.getPhaseId());
 
 				return Procedure.Success;
-			}, "testTask01 - NPC Talk").call());
+			}, "Task01 - NPC Talk").call());
 			Thread.sleep(2000);
 
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			stop();
+		}
+	}
+
+	// ======================================== 测试用例2：每日任务 ========================================
+	public void test2() throws Throwable {
+		Zeze.Util.Task.tryInitThreadPool(null, null, null);
+
+		try {
+			start();
+
+			System.out.println("=============== 在Client0注册Role0 ===============");
+			var client0 = clients.get(0);
+			auth(client0, "account0");
+			var role = getRole(client0);
+			var roleId = null != role ? role.getId() : createRole(client0, "role0");
+			login(client0, roleId);
+
+			var server0 = servers.get(0);
+
+			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
+				var module = server0.taskModule;
+
+				// ==================== 创建一个任务 ====================
+				DailyTask01.Opt opt = new DailyTask01.Opt();
+				opt.id = 1;
+				var dailyTask = module.newTask(opt, DailyTask01.class);
+				TaskPhase.Opt phaseOpt1 = new TaskPhase.Opt();
+				var phase1 = dailyTask.addPhase(phaseOpt1, List.of(2L, 3L));
+
+				return Procedure.Success;
+			}, "Daily Task - 01").call());
+			Thread.sleep(2000);
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
@@ -164,6 +201,9 @@ public class TestTask extends TestCase {
 
 		taskEvent.Argument.setTaskEventTypeDynamic(new BSpecificTaskEvent(taskId));
 		taskEvent.Argument.getExtendedData().setBean(bean);
+
+		taskEvent.SendForWait(app.ClientService.GetSocket()).await();
+		Assert.assertEquals(0, taskEvent.getResultCode());
 	}
 
 	private static void finishTalk(ClientGame.App app, long roleId, long taskId, long phaseId) {
@@ -173,12 +213,15 @@ public class TestTask extends TestCase {
 		bean.setTaskId(taskId);
 		bean.setPhaseId(phaseId);
 		bean.setFinished(true); // 在对话结束时，发一条这个事件
+
+		taskEvent.Argument.setTaskEventTypeDynamic(new BSpecificTaskEvent(taskId));
+		taskEvent.Argument.getExtendedData().setBean(bean);
+
+		taskEvent.SendForWait(app.ClientService.GetSocket()).await();
+		Assert.assertEquals(0, taskEvent.getResultCode());
 	}
 
-	// ======================================== 测试用例1：对话任务的一个任务实例 - NPC对话 ========================================
-
 	// 全局角色登录状态函数
-
 	private static void relogin(ClientGame.App app, long roleId) {
 		var relogin = new ReLogin();
 		relogin.Argument.setRoleId(roleId);

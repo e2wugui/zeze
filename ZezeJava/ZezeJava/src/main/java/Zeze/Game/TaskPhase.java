@@ -22,7 +22,7 @@ public class TaskPhase {
 	 */
 
 	// @formatter:off
-	public static class TaskPhaseOpt{
+	public static class Opt {
 		public long id;
 		public String name;
 		public String description;
@@ -30,7 +30,7 @@ public class TaskPhase {
 		public int commitNPCId;
 		public int conditionsCompleteType;
 	}
-	public TaskPhase(final TaskBase<?> task, TaskPhaseOpt opt, List<Long> afterPhaseIds, Action0 onCompleteUserCallback) {
+	public TaskPhase(final TaskBase<?> task, Opt opt, List<Long> afterPhaseIds, Action0 onCompleteUserCallback) {
 		this.task = task;
 		this.bean =new BTaskPhase();
 		this.bean.setPhaseId(opt.id);

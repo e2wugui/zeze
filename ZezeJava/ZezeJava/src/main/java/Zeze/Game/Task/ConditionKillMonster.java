@@ -9,6 +9,7 @@ import Zeze.Transaction.Bean;
 public class ConditionKillMonster extends TaskConditionBase<BTConditionKillMonster, BTConditionKillMonsterEvent> {
 	public ConditionKillMonster(TaskPhase phase) {
 		super(phase, BTConditionKillMonster.class, BTConditionKillMonsterEvent.class);
+		var bean = getExtendedBean();
 	}
 
 	@Override

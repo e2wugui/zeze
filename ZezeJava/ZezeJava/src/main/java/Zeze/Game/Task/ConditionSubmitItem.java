@@ -34,6 +34,5 @@ public class ConditionSubmitItem extends TaskConditionBase<BTConditionSubmitItem
 				return false;
 		return false;
 	}
-
 	// @formatter:on
 }

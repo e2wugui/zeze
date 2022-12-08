@@ -1,14 +1,12 @@
 package Zeze.Game;
 
 import java.lang.invoke.MethodHandle;
-import java.util.ArrayList;
+import java.lang.reflect.ParameterizedType;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import javax.validation.constraints.NotNull;
 import Zeze.Application;
 import Zeze.Arch.ProviderApp;
 import Zeze.Builtin.Game.TaskBase.BBroadcastTaskEvent;
-import Zeze.Builtin.Game.TaskBase.BNPCTaskDynamics;
 import Zeze.Builtin.Game.TaskBase.BSpecificTaskEvent;
 import Zeze.Builtin.Game.TaskBase.BTask;
 import Zeze.Builtin.Game.TaskBase.BTaskKey;
@@ -77,15 +75,15 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		 * 新建内置任务：NPCTask
 		 * (当前public，后续应该改成protected，统一使用loadConfig(String taskConfigTable)读表加载)
 		 */
-		public NPCTask newNPCTask(TaskBaseOpt opt) {
-			return open(opt, NPCTask.class, BNPCTaskDynamics.class);
+		public NPCTask newNPCTask(TaskBase.Opt opt) {
+			return open(opt, NPCTask.class);
 		}
 
 		/**
 		 * 新建非内置任务
 		 */
-		public <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>> ExtendedTask newCustomTask(TaskBaseOpt opt, Class<ExtendedTask> extendedTaskClass, Class<ExtendedBean> extendedBeanClass) {
-			return open(opt, extendedTaskClass, extendedBeanClass);
+		public <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>> ExtendedTask newTask(TaskBase.Opt opt, Class<ExtendedTask> extendedTaskClass) {
+			return open(opt, extendedTaskClass);
 		}
 
 		private final ConcurrentHashMap<Long, TaskBase<?>> tasks = new ConcurrentHashMap<>();
@@ -122,11 +120,11 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 
 		// 需要在事务内使用。使用完不要保存。
 		@SuppressWarnings("unchecked")
-		private <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>> ExtendedTask open(TaskBaseOpt opt, Class<ExtendedTask> extendedTaskClass, Class<ExtendedBean> extendedBeanClass) {
+		private <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>> ExtendedTask open(TaskBase.Opt opt, Class<ExtendedTask> extendedTaskClass) {
 			return (ExtendedTask)tasks.computeIfAbsent(opt.id, key -> {
 				try {
-					var c = extendedTaskClass.getDeclaredConstructor(Module.class, TaskBase.TaskBaseOpt.class, Class.class);
-					return c.newInstance(this, opt, extendedBeanClass);
+					var c = extendedTaskClass.getDeclaredConstructor(Module.class, TaskBase.Opt.class);
+					return c.newInstance(this, opt);
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
@@ -138,14 +136,14 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	/**
 	 * Task Constructors
 	 */
-	public static class TaskBaseOpt{
+	protected static class Opt{
 		public long id;
 		public int type;
 		public String name;
 		public String description;
 		public long[] preTaskIds;
 	}
-	public TaskBase(Module module, TaskBaseOpt opt, Class<ExtendedBean> extendedBeanClass) {
+	protected TaskBase(Module module, Opt opt) {
 		this.module = module;
 		this.bean = this.module._tTask.getOrAdd(new BTaskKey(opt.id));
 		this.bean.setTaskId(opt.id);
@@ -158,7 +156,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		};
 		this.bean.getExtendedData().setBean(new EmptyBean());
 
-		MethodHandle extendedBeanConstructor = beanFactory.register(extendedBeanClass);
+		MethodHandle extendedBeanConstructor = beanFactory.register(getExtendedBeanClass());
 		bean.getExtendedData().setBean(BeanFactory.invoke(extendedBeanConstructor));
 
 		currentPhase = null;
@@ -251,6 +249,9 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		loadExtendedData();
 	}
 
+	/**
+	 * 在使用Bean恢复Task类时需要调用的方法
+	 */
 	protected abstract void loadExtendedData();
 
 	/**
@@ -262,23 +263,25 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		}
 	}
 
-	public TaskPhase addPhase(TaskPhase.TaskPhaseOpt opt, List<Long> afterPhaseIds) {
+	public TaskPhase addPhase(TaskPhase.Opt opt, List<Long> afterPhaseIds) {
 		return addPhase(opt, afterPhaseIds, null);
 	}
 
-	public TaskPhase addPhase(TaskPhase.TaskPhaseOpt opt, List<Long> afterPhaseIds, Action0 onCompleteUserCallback) {
+	public TaskPhase addPhase(TaskPhase.Opt opt, List<Long> afterPhaseIds, Action0 onCompleteUserCallback) {
 		var phase = new TaskPhase(this, opt, afterPhaseIds, onCompleteUserCallback);
 		phases.put(phase.getPhaseId(), phase);
 		bean.getTaskPhases().put(phase.getPhaseId(), phase.getBean());
 		return phase;
 	}
 
-	public void addPhase(TaskPhase phase) {
+	public TaskPhase addPhase(TaskPhase phase) {
 		// 不能添加不是这个任务的phase
-		if (phase.getTask() == this) {
-			phases.put(phase.getPhaseId(), phase);
-			bean.getTaskPhases().put(phase.getPhaseId(), phase.getBean());
-		}
+		if (phase.getTask() != this)
+			return null;
+
+		phases.put(phase.getPhaseId(), phase);
+		bean.getTaskPhases().put(phase.getPhaseId(), phase.getBean());
+		return phase;
 	}
 
 	// ======================================== Private方法和一些不需要被注意的方法 ========================================
@@ -288,4 +291,9 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	private final static BeanFactory beanFactory = new BeanFactory();
 	public static long getSpecialTypeIdFromBean(Bean bean) { return BeanFactory.getSpecialTypeIdFromBean(bean); }
 	public static Bean createBeanFromSpecialTypeId(long typeId) { return beanFactory.createBeanFromSpecialTypeId(typeId); }
+	@SuppressWarnings("unchecked")
+	private Class<ExtendedBean> getExtendedBeanClass() {
+		ParameterizedType parameterizedType = (ParameterizedType)this.getClass().getGenericSuperclass();
+		return (Class<ExtendedBean>)parameterizedType.getActualTypeArguments()[0];
+	}
 }

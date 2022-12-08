@@ -766,11 +766,10 @@
 				<!--
 					Task rpc
 					所有的TaskEvent均由这个rpc驱动（仿照现serverdev的结构）
-					这个rpc的参数是BTaskEvent，内部的DynamicData是各个不同的任务的不同Bean数据
+					这个rpc的参数是BTaskEvent，内部的DynamicData是各个不同的任务的不同Event数据
 				-->
 				<bean name="BTaskEvent">
 					<variable id="1" name="roleId" type="long"/>
-					<!-- 不需要指定下面具体的Condition，当一个具体的Condition的Bean被传入时，会自动判断当前的Phase的各个Condition是否接受这个Event -->
 					<variable id="2" name="taskEventTypeDynamic" type="dynamic">
                         <value bean="BSpecificTaskEvent"/> 交给特定任务的事件（如NPC对话选择任务）
                         <value bean="BBroadcastTaskEvent"/> 广播给所有任务的事件（如击杀怪物的任务）

@@ -4,10 +4,14 @@ import TaskTest.TaskExt.BDailyTask01;
 import Zeze.Game.TaskBase;
 
 public class DailyTask01 extends TaskBase<BDailyTask01> {
-	
-	public DailyTask01(Module module, TaskBaseOpt opt, Class<BDailyTask01> bDailyTask01Class) {
-		super(module, opt, bDailyTask01Class);
+
+	public static class Opt extends TaskBase.Opt {
+
 	}
+	public DailyTask01(Module module, Opt opt) {
+		super(module, opt);
+	}
+
 	@Override
 	protected void loadExtendedData() {
 
