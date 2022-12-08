@@ -43,7 +43,8 @@ namespace Zeze.Gen.java
             if (bean.Comment.Length > 0)
                 sw.WriteLine(bean.Comment);
             sw.WriteLine("@SuppressWarnings({\"UnusedAssignment\", \"RedundantIfStatement\", \"SwitchStatementWithTooFewBranches\", \"RedundantSuppression\"})");
-            sw.WriteLine($"public final class {bean.Name} extends Zeze.Transaction.Bean implements {bean.Name}ReadOnly {{");
+            var final = bean.Extendable ? "" : "final ";
+            sw.WriteLine($"public {final}class {bean.Name} extends Zeze.Transaction.Bean implements {bean.Name}ReadOnly {{");
             WriteDefine(sw);
             sw.WriteLine("}");
         }
