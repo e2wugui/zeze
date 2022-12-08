@@ -91,15 +91,19 @@ public class ConsistentHash<E> {
 	}
 
 	public E get(int hash) {
+		//*
+		hash = ByteBuffer.calc_hashnr(hash);
+		/*/
 		try {
 			var md5 = MessageDigest.getInstance("MD5");
 			var digest = md5.digest(toBytes(hash));
 			hash = 0;
 			for (int i = 0; i < 4; ++i)
-				hash = hash ^ ByteBuffer.ToInt(digest, i * 4);
+				hash ^= ByteBuffer.ToInt(digest, i * 4);
 		} catch (NoSuchAlgorithmException e) {
 			throw new RuntimeException(e);
 		}
+		//*/
 		//var hash = Bean.hash64(String.valueOf(_hash));
 		System.out.println("get="+hash);
 		lock.lock();
