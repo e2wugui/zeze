@@ -1,14 +1,14 @@
 package Benchmark;
 
 import java.io.IOException;
-import java.nio.channels.Selector;
 import java.util.ArrayList;
+import Zeze.Builtin.Provider.BSendResult;
+import Zeze.Builtin.Provider.Send;
 import Zeze.Config;
 import Zeze.Net.Acceptor;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.BufferCodec;
-import Zeze.Net.ByteBufferAllocator;
 import Zeze.Net.Codec;
 import Zeze.Net.Compress;
 import Zeze.Net.Connector;
@@ -18,9 +18,12 @@ import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
+import Zeze.Transaction.Record;
+import Zeze.Util.LongList;
 import demo.Module1.BValue;
 import org.junit.Test;
 
+@SuppressWarnings({"unused", "NewClassNamingConvention"})
 public class BenchSocket {
 	static class ServerService extends Zeze.Services.HandshakeServer {
 		public ServerService(String name, Config config) throws Throwable {
@@ -178,7 +181,8 @@ public class BenchSocket {
 			testSerialize(bValue);
 		}
 	}
-	public void testSerialize(BValue bValue) {
+
+	public static void testSerialize(BValue bValue) {
 		long sum = 0;
 		var b = new Zeze.Util.Benchmark();
 		for (var i = 0; i < 100_0000; ++i) {
@@ -205,6 +209,133 @@ public class BenchSocket {
 		System.out.println("dummy=" + dummy);
 	}
 
+	public static class FastBSend extends Bean {
+		private final LongList linkSids = new LongList();
+		private long protocolType;
+		private Binary protocolWholeData; // 完整的协议打包，包括了 type, size
+
+		public LongList getLinkSids() {
+			return linkSids;
+		}
+
+		public long getProtocolType() {
+			return protocolType;
+		}
+
+		public void setProtocolType(long protocolType) {
+			this.protocolType = protocolType;
+		}
+
+		public Binary getProtocolWholeData() {
+			return protocolWholeData;
+		}
+
+		public void setProtocolWholeData(Binary protocolWholeData) {
+			this.protocolWholeData = protocolWholeData;
+		}
+
+		@Override
+		public void encode(ByteBuffer bb) {
+			int i = 0;
+			{
+				var x = linkSids;
+				int n = x.size();
+				if (n != 0) {
+					i = bb.WriteTag(i, 1, ByteBuffer.LIST);
+					bb.WriteListType(n, ByteBuffer.INTEGER);
+					for (int j = 0; j < n; j++)
+						bb.WriteLong(x.get(j));
+				}
+			}
+			{
+				long x = getProtocolType();
+				if (x != 0) {
+					i = bb.WriteTag(i, 2, ByteBuffer.INTEGER);
+					bb.WriteLong(x);
+				}
+			}
+			{
+				var x = getProtocolWholeData();
+				if (x.size() != 0) {
+					bb.WriteTag(i, 3, ByteBuffer.BYTES);
+					bb.WriteBinary(x);
+				}
+			}
+			bb.WriteByte(0);
+		}
+
+		@Override
+		public void decode(ByteBuffer bb) {
+			int t = bb.ReadByte();
+			int i = bb.ReadTagSize(t);
+			if (i == 1) {
+				var x = linkSids;
+				x.clear();
+				if ((t & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+					int n = bb.ReadTagSize(t = bb.ReadByte());
+					if (x.capacity() < n)
+						x.wraps(new long[Math.min(n, 0x10000)]);
+					for (; n > 0; n--)
+						x.add(bb.ReadLong(t));
+				} else
+					bb.SkipUnknownFieldOrThrow(t, "Collection");
+				i += bb.ReadTagSize(t = bb.ReadByte());
+			}
+			if (i == 2) {
+				setProtocolType(bb.ReadLong(t));
+				i += bb.ReadTagSize(t = bb.ReadByte());
+			}
+			if (i == 3) {
+				setProtocolWholeData(bb.ReadBinary(t));
+				bb.ReadTagSize(t = bb.ReadByte());
+			}
+			while (t != 0) {
+				bb.SkipUnknownField(t);
+				bb.ReadTagSize(t = bb.ReadByte());
+			}
+		}
+
+		@Override
+		protected void resetChildrenRootInfo() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		protected void initChildrenRootInfo(Record.RootInfo root) {
+			throw new UnsupportedOperationException();
+		}
+	}
+
+	public static class FastSend extends Rpc<FastBSend, BSendResult> {
+		public static final int ModuleId_ = Send.ModuleId_;
+		public static final int ProtocolId_ = Send.ProtocolId_;
+		public static final long TypeId_ = Send.TypeId_;
+
+		@Override
+		public int getModuleId() {
+			return ModuleId_;
+		}
+
+		@Override
+		public int getProtocolId() {
+			return ProtocolId_;
+		}
+
+		public FastSend() {
+			this(new FastBSend());
+		}
+
+		public FastSend(FastBSend arg) {
+			Argument = arg;
+			Result = new Zeze.Builtin.Provider.BSendResult();
+		}
+	}
+
+	@Test
+	public void testSerializeSend() {
+		//TODO
+	}
+
 	@Test
 	public void testBench() throws Throwable {
 		testBench(false);
@@ -212,7 +343,7 @@ public class BenchSocket {
 		testBench(true);
 	}
 
-	public void testBench(boolean encrypt) throws Throwable {
+	public static void testBench(boolean encrypt) throws Throwable {
 		// create server
 		var serverConfig = new Config();
 		var server = new ServerService("benchServer", serverConfig);
