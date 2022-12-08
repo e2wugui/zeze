@@ -44,17 +44,15 @@ public class ConsistentHash<E> {
 				}
 			}
 			Arrays.sort(virtual);
-			// todo 批量加入
 			System.out.print(nodeKey);
-			for (var hash : virtual) {
+			for (var hash : virtual)
 				System.out.print("," + hash);
-				var conflict = circle.add(hash, node);
-				if (conflict == -1) {
-					System.out.println("+++++++++++++++++++++++++++++++++++++");
-					logger.warn("hash conflict! key={} node={}", nodeKey, node);
-				}
-			}
 			System.out.println();
+			var conflicts = circle.addAll(virtual, node);
+			for (var conflict : conflicts) {
+				System.out.println("+++++++++++++++++++++++++++++++++++++");
+				logger.warn("hash conflict! key={} node={}", conflict.key, conflict.value);
+			}
 		} catch (NoSuchAlgorithmException ex) {
 			throw new RuntimeException(ex);
 		} finally {

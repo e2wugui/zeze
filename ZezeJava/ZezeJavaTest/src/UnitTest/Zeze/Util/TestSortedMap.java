@@ -93,4 +93,14 @@ public class TestSortedMap {
 		Assert.assertEquals(sortedMap.get(9L).getKey(), Long.valueOf(9));
 		Assert.assertEquals(sortedMap.get(10L), null);
 	}
+
+	@Test
+	public void testAddAll() {
+		var m = new SortedMap<Integer, Integer>();
+		Assert.assertEquals(0, m.addAll(new Integer[]{10, 30, 50,70, 90}, 111).size());
+		Assert.assertEquals(1, m.addAll(new Integer[]{80, 50, 20}, 222).size());
+		Assert.assertEquals(0, m.addAll(new Integer[]{100, 40, 0}, 333).size());
+		Assert.assertEquals(10, m.size());
+//		System.out.println(m);
+	}
 }
