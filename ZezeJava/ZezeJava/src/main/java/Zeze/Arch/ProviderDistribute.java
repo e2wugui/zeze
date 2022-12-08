@@ -39,7 +39,7 @@ public class ProviderDistribute {
 	public void removeServer(Agent.SubscribeState state, BServiceInfo s) {
 		var consistentHash = consistentHashes.get(s.getServiceName());
 		if (consistentHash != null)
-			consistentHash.remove(s.getServiceIdentity(), s);
+			consistentHash.remove(s);
 	}
 
 	public void applyServers(Agent.SubscribeState ass) {
@@ -53,7 +53,7 @@ public class ProviderDistribute {
 		}
 		for (var node : nodes) {
 			if (!current.contains(node))
-				consistentHash.remove(node.getServiceIdentity(), node);
+				consistentHash.remove(node);
 		}
 	}
 
