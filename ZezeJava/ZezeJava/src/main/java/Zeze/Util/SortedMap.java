@@ -149,6 +149,13 @@ public class SortedMap<K extends Comparable<K>, V> {
 		return null;
 	}
 
+	public Entry<K, V> remove(K key, V value) {
+		var index = findIndex(key);
+		if (index >= 0 && getAt(index).value == value)
+			return removeAt(index);
+		return null;
+	}
+
 	public Entry<K, V> getAt(int index) {
 		return elements.get(index);
 	}

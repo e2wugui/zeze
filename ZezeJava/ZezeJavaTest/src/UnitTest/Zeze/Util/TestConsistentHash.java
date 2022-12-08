@@ -16,17 +16,17 @@ public class TestConsistentHash {
 		consistentHash.add("3", 3);
 		consistentHash.add("4", 4);
 
-		/*
+		//*
 		System.out.println(consistentHash.get("1".hashCode()));
 		System.out.println(consistentHash.get("2".hashCode()));
 		System.out.println(consistentHash.get("3".hashCode()));
 		System.out.println(consistentHash.get("4".hashCode()));
-		*/
+		/*/
 		Assert.assertEquals(consistentHash.get("1".hashCode()), Integer.valueOf(2));
 		Assert.assertEquals(consistentHash.get("2".hashCode()), Integer.valueOf(3));
 		Assert.assertEquals(consistentHash.get("3".hashCode()), Integer.valueOf(1));
 		Assert.assertEquals(consistentHash.get("4".hashCode()), Integer.valueOf(2));
-
+		// */
 		consistentHash.remove(1);
 		consistentHash.remove(2);
 		consistentHash.remove(3);
