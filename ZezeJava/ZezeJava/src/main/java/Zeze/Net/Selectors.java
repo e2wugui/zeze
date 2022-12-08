@@ -22,10 +22,9 @@ public class Selectors {
 		add(Math.min(Runtime.getRuntime().availableProcessors(), 8));
 	}
 
-	public Selectors(String name, int count, int bufferSize, int bbPoolLocalCapacity, int bbPoolMoveCount,
-					 int bbPoolGlobalCapacity) {
+	public Selectors(String name, int count, int bufferSize, int bbPoolLocalCapacity, int bbPoolMoveCount) {
 		this.name = name;
-		add(count, bufferSize, bbPoolLocalCapacity, bbPoolMoveCount, bbPoolGlobalCapacity);
+		add(count, bufferSize, bbPoolLocalCapacity, bbPoolMoveCount);
 	}
 
 	public int getCount() {
@@ -34,17 +33,15 @@ public class Selectors {
 
 	public Selectors add(int count) {
 		return add(count, Selector.DEFAULT_BUFFER_SIZE, Selector.DEFAULT_BBPOOL_LOCAL_CAPACITY,
-				Selector.DEFAULT_BBPOOL_MOVE_COUNT, Selector.DEFAULT_BBPOOL_GLOBAL_CAPACITY);
+				Selector.DEFAULT_BBPOOL_MOVE_COUNT);
 	}
 
-	public synchronized Selectors add(int count, int bufferSize, int bbPoolLocalCapacity, int bbPoolMoveCount,
-									  int bbPoolGlobalCapacity) {
+	public synchronized Selectors add(int count, int bufferSize, int bbPoolLocalCapacity, int bbPoolMoveCount) {
 		try {
 			Selector[] tmp = selectorList;
 			tmp = tmp == null ? new Selector[count] : Arrays.copyOf(tmp, tmp.length + count);
 			for (int i = tmp.length - count; i < tmp.length; i++) {
-				tmp[i] = new Selector(name + '-' + i, bufferSize, bbPoolLocalCapacity, bbPoolMoveCount,
-						bbPoolGlobalCapacity);
+				tmp[i] = new Selector(name + '-' + i, bufferSize, bbPoolLocalCapacity, bbPoolMoveCount);
 				tmp[i].start();
 			}
 			selectorList = tmp;

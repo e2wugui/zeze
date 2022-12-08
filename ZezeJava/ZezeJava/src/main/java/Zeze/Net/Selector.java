@@ -19,6 +19,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	private static final Logger logger = LogManager.getLogger(Selector.class);
 	private static final ArrayList<ByteBuffer> bbGlobalPool = new ArrayList<>(); // 全局池
 	private static final Lock bbGlobalPoolLock = new ReentrantLock(); // 全局池的锁
+	private static int bbPoolGlobalCapacity = DEFAULT_BBPOOL_GLOBAL_CAPACITY;
 
 	private final java.nio.channels.Selector selector;
 	private final ByteBuffer readBuffer = ByteBuffer.allocate(32 * 1024); // 此线程共享的buffer,只能临时使用
@@ -27,7 +28,6 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	private final int bufferSize;
 	private final int bbPoolLocalCapacity;
 	private final int bbPoolMoveCount;
-	private final int bbPoolGlobalCapacity;
 	private boolean firstAction;
 	private volatile boolean running = true;
 
@@ -37,12 +37,11 @@ public class Selector extends Thread implements ByteBufferAllocator {
 //	public long lastTime;
 
 	public Selector(String threadName) throws IOException {
-		this(threadName, DEFAULT_BUFFER_SIZE, DEFAULT_BBPOOL_LOCAL_CAPACITY, DEFAULT_BBPOOL_MOVE_COUNT,
-				DEFAULT_BBPOOL_GLOBAL_CAPACITY);
+		this(threadName, DEFAULT_BUFFER_SIZE, DEFAULT_BBPOOL_LOCAL_CAPACITY, DEFAULT_BBPOOL_MOVE_COUNT);
 	}
 
-	public Selector(String threadName, int bufferSize, int bbPoolLocalCapacity, int bbPoolMoveCount,
-					int bbPoolGlobalCapacity) throws IOException {
+	public Selector(String threadName, int bufferSize, int bbPoolLocalCapacity, int bbPoolMoveCount)
+			throws IOException {
 		super(threadName);
 		if (bufferSize <= 0)
 			throw new IllegalArgumentException("bufferSize <= 0: " + bufferSize);
@@ -50,14 +49,21 @@ public class Selector extends Thread implements ByteBufferAllocator {
 			throw new IllegalArgumentException("bbPoolLocalCapacity < 0: " + bbPoolLocalCapacity);
 		if (bbPoolMoveCount <= 0)
 			throw new IllegalArgumentException("bbPoolMoveCount <= 0: " + bbPoolMoveCount);
-		if (bbPoolGlobalCapacity < 0)
-			throw new IllegalArgumentException("bbPoolGlobalCapacity < 0: " + bbPoolGlobalCapacity);
 		this.bufferSize = bufferSize;
 		this.bbPoolLocalCapacity = bbPoolLocalCapacity;
 		this.bbPoolMoveCount = bbPoolMoveCount;
-		this.bbPoolGlobalCapacity = bbPoolGlobalCapacity;
 		setDaemon(true);
 		selector = java.nio.channels.Selector.open();
+	}
+
+	public static int getBbPoolGlobalCapacity() {
+		return bbPoolGlobalCapacity;
+	}
+
+	public static void setBbPoolGlobalCapacity(int bbPoolGlobalCapacity) {
+		if (bbPoolGlobalCapacity < 0)
+			throw new IllegalArgumentException("bbPoolGlobalCapacity < 0: " + bbPoolGlobalCapacity);
+		Selector.bbPoolGlobalCapacity = bbPoolGlobalCapacity;
 	}
 
 	ByteBuffer getReadBuffer() {
@@ -74,10 +80,6 @@ public class Selector extends Thread implements ByteBufferAllocator {
 
 	public int getBbPoolMoveCount() {
 		return bbPoolMoveCount;
-	}
-
-	public int getBbPoolGlobalCapacity() {
-		return bbPoolGlobalCapacity;
 	}
 
 	@Override
