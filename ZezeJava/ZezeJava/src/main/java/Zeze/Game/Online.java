@@ -432,7 +432,7 @@ public class Online extends AbstractOnline {
 				if (group.linkSocket == null)
 					continue; // skip not online
 
-				var send = new Send(new BSend(typeId, fullEncodedProtocol));
+				var send = new Send(new Zeze.Arch.Beans.BSend(typeId, fullEncodedProtocol));
 				send.Argument.getLinkSids().addAll(group.roles.values());
 				send(group.linkSocket, group.contexts, send);
 			}

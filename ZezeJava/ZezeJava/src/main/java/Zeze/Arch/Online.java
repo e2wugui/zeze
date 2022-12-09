@@ -503,7 +503,7 @@ public class Online extends AbstractOnline {
 				if (group.linkSocket == null)
 					continue; // skip not online
 
-				var send = new Send(new BSend(typeId, fullEncodedProtocol));
+				var send = new Send(new Zeze.Arch.Beans.BSend(typeId, fullEncodedProtocol));
 				send.Argument.getLinkSids().addAll(group.logins.values());
 				send(group.linkSocket, group.contexts, send);
 			}
@@ -635,7 +635,7 @@ public class Online extends AbstractOnline {
 				for (var group : groups) {
 					if (group.linkSocket == null)
 						continue; // skip not online
-					var send = new Send(new BSend(typeId, fullEncodedProtocol));
+					var send = new Send(new Zeze.Arch.Beans.BSend(typeId, fullEncodedProtocol));
 					send.Argument.getLinkSids().addAll(group.logins.values());
 					send(group.linkSocket, group.contexts, send);
 				}

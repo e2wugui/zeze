@@ -2,6 +2,7 @@
 
 <solution name="Zeze" ModuleIdAllowRanges="11000-12000">
 	<external bean="Zeze.Arch.Beans.BSend"/>
+	<external bean="Zeze.Arch.Beans.BSendResult"/>
 
 	<module name="Builtin" id="11000">
 		<!-- Global With Raft 模块 -->
@@ -337,7 +338,7 @@
 				<variable name="ErrorLinkSids" id="1" type="list" value="long"/>
 			</bean>
 
-			<rpc name="Send" argument="Zeze.Arch.Beans.BSend" result="BSendResult" handle="client"/>
+			<rpc name="Send" argument="Zeze.Arch.Beans.BSend" result="Zeze.Arch.Beans.BSendResult" handle="client"/>
 
 			<bean name="BBroadcast">
 				<variable name="protocolType"      id="1" type="long"/>

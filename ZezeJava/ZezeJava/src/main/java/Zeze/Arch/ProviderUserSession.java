@@ -84,7 +84,7 @@ public class ProviderUserSession {
 	}
 
 	public final void sendResponse(long typeId, Binary fullEncodedProtocol) {
-		var send = new Send(new BSend(typeId, fullEncodedProtocol));
+		var send = new Send(new Zeze.Arch.Beans.BSend(typeId, fullEncodedProtocol));
 		send.Argument.getLinkSids().add(getLinkSid());
 
 		var link = getLink();
