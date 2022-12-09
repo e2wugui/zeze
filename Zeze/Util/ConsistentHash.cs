@@ -1,6 +1,9 @@
 
+using Scriban.Syntax;
 using System;
 using System.Collections.Generic;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Zeze.Util
 {
@@ -8,23 +11,10 @@ namespace Zeze.Util
 	{
 		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-		private int numberOfReplicas;
-		private SortedDictionary<int, TNode> circle = new();
-		private HashSet<TNode> nodes = new();
+		private SortedMap<int, TNode> circle = new();
+		private Dictionary<TNode, int[]> nodes = new();
 
-		public ConsistentHash()
-		{
-			this.numberOfReplicas = 128;
-		}
-
-		public ConsistentHash(int numberOfReplicas)
-		{
-			if (numberOfReplicas <= 0)
-				throw new ArgumentException();
-			this.numberOfReplicas = numberOfReplicas;
-		}
-
-		public IReadOnlySet<TNode> Nodes => nodes;
+		public IReadOnlyCollection<TNode> Nodes => nodes.Keys;
 
 		public void Add(string nodeKey, TNode node)
 		{
@@ -33,60 +23,52 @@ namespace Zeze.Util
 
 			lock (this)
 			{
-				if (!nodes.Add(node))
+				int[] vn = new int[160];
+				if (!nodes.TryAdd(node, vn))
 					return;
 
 				nodeKey ??= "";
-				
-				for (int i = 0; i < numberOfReplicas; ++i)
+				var half = vn.Length >> 2;
+				for (int i = 0; i < half; ++i)
 				{
-					var hash = Util.FixedHash.Hash32(nodeKey + "#" + i);
-					if (circle.TryAdd(hash, node))
-						continue;
-
-					if (circle.TryGetValue(hash, out var conflict))
-					{
-						logger.Warn($"hash conflict! add={nodeKey} i={i} exist={conflict}");
-					}
+					var hash4 = MD5.Create().ComputeHash(Encoding.UTF8.GetBytes(nodeKey + "-" + i));
+                    for (int j = 0; j < 4; ++j)
+						vn[i * 4 + j] = BitConverter.ToInt32(hash4, j * 4);
 				}
-			}
-		}
+                var conflicts = circle.AddAll(vn, node);
+                foreach (var conflict in conflicts)
+                    logger.Warn($"hash conflict! add={nodeKey} {conflict}");
+            }
+        }
 
-		public void Remove(string nodeKey, TNode node)
+		public void Remove(TNode node)
 		{
-			if (null == node)
-				return;
-
 			lock (this)
             {
-				if (!nodes.Remove(node))
+				if (false == nodes.TryGetValue(node, out var vn))
 					return;
 
-				nodeKey ??= "";
+				foreach (var v in vn)
+					circle.Remove(v, node);
 
-				for (int i = 0; i < numberOfReplicas; ++i)
-				{
-					var hash = Util.FixedHash.Hash32(nodeKey + "#" + i);
-					if (circle.TryGetValue(hash, out var current) && current.Equals(node))
-						circle.Remove(hash);
-				}
-			}
-		}
+                nodes.Remove(node);
+            }
+        }
 
 		public TNode Get(int hash)
 		{
-			lock (this)
+            hash = FixedHash.calc_hashnr(((long)hash << 32) ^ hash);
+            lock (this)
             {
-				throw new NotImplementedException();
-				/*
-				if (circle.Count == 0)
-					return default;
-
-				var tailMap = circle.TailMap(hash);
-				var key = tailMap.Count == 0 ? circle.firstKey() : tailMap.firstKey();
-				return circle.get(key);
-				*/
-			}
-		}
+                var e = circle.UpperBound(hash);
+                if (e == null)
+                {
+                    e = circle.First;
+                    if (e == null)
+                        return default;
+                }
+                return e.Value;
+            }
+        }
 	}
 }

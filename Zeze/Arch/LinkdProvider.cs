@@ -222,7 +222,7 @@ namespace Zeze.Arch
             switch (providerModuleState.ChoiceType)
             {
                 case BModule.ChoiceTypeHashAccount:
-                    return LinkdApp.LinkdProvider.Distribute.ChoiceHash(providers, FixedHash.calc_hashnr(linkSession.Account), out provider);
+                    return LinkdApp.LinkdProvider.Distribute.ChoiceHash(providers, FixedHash.Hash32(linkSession.Account), out provider);
 
                 case BModule.ChoiceTypeHashRoleId:
                     var roleId = linkSession.RoleId;

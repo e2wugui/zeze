@@ -43,10 +43,9 @@ public class ConsistentHash<E> {
 					virtual[i * 4 + j] = ByteBuffer.ToInt(hash4, j * 4);
 				}
 			}
-			Arrays.sort(virtual);
 			var conflicts = circle.addAll(virtual, node);
 			for (var conflict : conflicts) {
-				System.out.println("+++++++++++++++++++++++++++++++++++++");
+				//System.out.println("+++++++++++++++++++++++++++++++++++++");
 				logger.warn("hash conflict! key={} node={}", conflict.key, conflict.value);
 			}
 		} catch (NoSuchAlgorithmException ex) {

@@ -33,7 +33,7 @@ namespace Zeze.Arch
         public void RemoveServer(Agent.SubscribeState state, ServiceInfo s)
         {
             if (ConsistentHashs.TryGetValue(s.ServiceName, out var consistentHash))
-                consistentHash.Remove(s.ServiceIdentity, s);
+                consistentHash.Remove(s);
         }
 
         public void ApplyServers(Agent.SubscribeState ass)
@@ -49,7 +49,7 @@ namespace Zeze.Arch
             foreach (var node in nodes)
             {
                 if (!current.Contains(node))
-                    consistentHash.Remove(node.ServiceIdentity, node);
+                    consistentHash.Remove(node);
             }
         }
 
