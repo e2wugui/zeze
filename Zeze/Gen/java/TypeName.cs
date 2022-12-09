@@ -98,12 +98,12 @@ namespace Zeze.Gen.java
 
         public virtual void Visit(Bean type)
         {
-            name = type.Space.Path(".", type.Name);
+            name = type.FullName;
         }
 
         public virtual void Visit(BeanKey type)
         {
-            name = type.Space.Path(".", type.Name);
+            name = type.FullName;
         }
 
         public virtual void Visit(TypeDynamic type)

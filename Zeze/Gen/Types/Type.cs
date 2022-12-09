@@ -60,7 +60,7 @@ namespace Zeze.Gen.Types
 
 		public static Type Compile(ModuleSpace space, string name, string key, string value, Variable var)
 		{
-			Type type = null;
+			Type type;
 
 			if (Types.TryGetValue(name, out type))
 			{

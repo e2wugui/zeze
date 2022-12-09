@@ -80,12 +80,12 @@ namespace Zeze.Gen.ts
 
         public void Visit(Bean type)
         {
-            name = type.Space.Path("_", type.Name);
+            name = type.FullName.Replace(".", "_");
         }
 
         public void Visit(BeanKey type)
         {
-            name = type.Space.Path("_", type.Name);
+            name = type.FullName.Replace(".", "_");
         }
 
         public void Visit(TypeDynamic type)

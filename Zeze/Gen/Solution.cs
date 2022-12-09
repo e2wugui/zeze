@@ -49,6 +49,9 @@ namespace Zeze.Gen
                     case "import":
                         Program.ImportSolution(e.GetAttribute("file"));
                         break;
+                    case "external":
+                        new Types.External(this, e);
+                        break;
                     default:
                         throw new Exception("unknown nodename " + e.Name + " in solution=" + Name);
                 }

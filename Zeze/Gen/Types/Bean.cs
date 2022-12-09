@@ -96,13 +96,13 @@ namespace Zeze.Gen.Types
 			Enums.Add(e);
 		}
 
-		public ModuleSpace Space { get; private set; }
+		public ModuleSpace Space { get; protected set; }
 
 		public override bool IsImmutable => false;
 		public override bool IsJavaPrimitive => false;
 		public override string Name => _name;
 		public string NamePinyin => Program.ToPinyin(Name);
-		private string _name;
+		protected string _name;
         public override bool IsNeedNegativeCheck
 		{
 			get
@@ -118,7 +118,7 @@ namespace Zeze.Gen.Types
         public List<Variable> Variables { get; private set; } = new List<Variable>();
 		public List<Enum> Enums { get; private set; } = new List<Enum>();
 		public string Comment { get; private set; }
-		public string FullName => Space.Path(".", Name);
+		public virtual string FullName => Space.Path(".", Name);
 		public long TypeId { get; private set; }
 		public bool Extendable { get; private set; }
 		public string Base { get; private set; }
@@ -144,6 +144,10 @@ namespace Zeze.Gen.Types
                         break;
                 }
             }
+        }
+
+		protected Bean()
+		{
         }
 
         // ///////////////////////////////////////////

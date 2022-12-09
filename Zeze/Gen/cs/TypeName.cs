@@ -83,12 +83,12 @@ namespace Zeze.Gen.cs
 
         public void Visit(Bean type)
         {
-            name = type.Space.Path(".", type.Name);
+            name = type.FullName;
         }
 
         public void Visit(BeanKey type)
         {
-            name = type.Space.Path(".", type.Name);
+            name = type.FullName;
         }
 
         public void Visit(TypeDynamic type)
