@@ -1,5 +1,6 @@
 package Zeze.Util;
 
+import java.util.Collection;
 import java.util.function.LongConsumer;
 import java.util.function.LongPredicate;
 import Zeze.Serialize.ByteBuffer;
@@ -61,7 +62,7 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 		return _buffer;
 	}
 
-	public boolean empty() {
+	public boolean isEmpty() {
 		return _count <= 0;
 	}
 
@@ -253,6 +254,16 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 
 	public LongList add(LongList o) {
 		return add(o._buffer, 0, o._count);
+	}
+
+	public LongList addAll(Collection<Long> c) {
+		int n = _count;
+		reserve(n + c.size());
+		long[] buf = _buffer;
+		for (Long v : c)
+			buf[n++] = v;
+		_count = n;
+		return this;
 	}
 
 	public LongList insert(int fromIdx, long data) {

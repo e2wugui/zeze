@@ -237,11 +237,13 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	protected long ProcessSendRequest(Send r) {
 		var ptype = r.Argument.getProtocolType();
 		var pdata = r.Argument.getProtocolWholeData();
+		var linkSids = r.Argument.getLinkSids();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG) {
-			AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "SENT[{}]: {}:{} [{}]", r.Argument.getLinkSids(),
+			AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "SENT[{}]: {}:{} [{}]", linkSids.dump(),
 					Protocol.getModuleId(ptype), Protocol.getProtocolId(ptype), pdata.size());
 		}
-		for (var linkSid : r.Argument.getLinkSids()) {
+		for (int i = 0, n = linkSids.size(); i < n; i++) {
+			var linkSid = linkSids.get(i);
 			var link = linkdApp.linkdService.GetSocket(linkSid);
 			// ProtocolId现在是hash值，显示出来也不好看，以后加配置换成名字。
 			if (link != null) {

@@ -26,7 +26,6 @@ import Zeze.Builtin.Game.Online.SReliableNotify;
 import Zeze.Builtin.Game.Online.taccount;
 import Zeze.Builtin.Provider.BBroadcast;
 import Zeze.Builtin.Provider.BKick;
-import Zeze.Builtin.Provider.BSend;
 import Zeze.Builtin.Provider.Broadcast;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Builtin.Provider.SetUserState;
@@ -43,6 +42,7 @@ import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.IntHashMap;
+import Zeze.Util.LongList;
 import Zeze.Util.OutLong;
 import Zeze.Util.Random;
 import Zeze.Util.RedirectGenMain;
@@ -409,9 +409,10 @@ public class Online extends AbstractOnline {
 		}, "Game.Online.send"), null, null, DispatchMode.Normal);
 	}
 
-	private long triggerLinkBroken(String linkName, Collection<Long> errorSids, Map<Long, Long> context)
+	private long triggerLinkBroken(String linkName, LongList errorSids, Map<Long, Long> context)
 			throws Throwable {
-		for (var sid : errorSids) {
+		for (int i = 0, n = errorSids.size(); i < n; i++) {
+			var sid = errorSids.get(i);
 			var roleId = context.get(sid);
 			if (roleId != null)
 				onLinkBroken(roleId, linkName, sid);

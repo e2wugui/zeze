@@ -3,7 +3,6 @@ package Zeze.Util;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Set;
@@ -78,7 +77,7 @@ public class ConsistentHash<E> {
 		hash = ByteBuffer.calc_hashnr(((long)hash << 32) ^ hash);
 		lock.lock();
 		try {
-			// todo 换成新的SrotedMap的方法。原来是ceilingEntry，对不对。
+			// todo 换成新的SortedMap的方法。原来是ceilingEntry，对不对。
 			var e = circle.upperBound(hash);
 			if (e == null) {
 				e = circle.first();

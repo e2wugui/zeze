@@ -1,5 +1,6 @@
 package Zeze.Util;
 
+import java.util.Collection;
 import java.util.function.IntConsumer;
 import java.util.function.IntPredicate;
 import Zeze.Serialize.ByteBuffer;
@@ -61,7 +62,7 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 		return _buffer;
 	}
 
-	public boolean empty() {
+	public boolean isEmpty() {
 		return _count <= 0;
 	}
 
@@ -253,6 +254,16 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 
 	public IntList add(IntList o) {
 		return add(o._buffer, 0, o._count);
+	}
+
+	public IntList addAll(Collection<Integer> c) {
+		int n = _count;
+		reserve(n + c.size());
+		int[] buf = _buffer;
+		for (Integer v : c)
+			buf[n++] = v;
+		_count = n;
+		return this;
 	}
 
 	public IntList insert(int fromIdx, int data) {

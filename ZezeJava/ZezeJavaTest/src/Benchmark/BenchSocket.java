@@ -3,7 +3,6 @@ package Benchmark;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;
-import Zeze.Builtin.Provider.BSendResult;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Config;
 import Zeze.Net.Acceptor;
@@ -19,8 +18,6 @@ import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
-import Zeze.Transaction.Record;
-import Zeze.Util.LongList;
 import demo.Module1.BValue;
 import org.junit.Test;
 
@@ -210,104 +207,7 @@ public class BenchSocket {
 		System.out.println("dummy=" + dummy);
 	}
 
-	public static class FastBSend extends Bean {
-		private final LongList linkSids = new LongList();
-		private long protocolType;
-		private Binary protocolWholeData; // 完整的协议打包，包括了 type, size
-
-		public LongList getLinkSids() {
-			return linkSids;
-		}
-
-		public long getProtocolType() {
-			return protocolType;
-		}
-
-		public void setProtocolType(long protocolType) {
-			this.protocolType = protocolType;
-		}
-
-		public Binary getProtocolWholeData() {
-			return protocolWholeData;
-		}
-
-		public void setProtocolWholeData(Binary protocolWholeData) {
-			this.protocolWholeData = protocolWholeData;
-		}
-
-		@Override
-		public void encode(ByteBuffer bb) {
-			int i = 0;
-			{
-				var x = linkSids;
-				int n = x.size();
-				if (n != 0) {
-					i = bb.WriteTag(i, 1, ByteBuffer.LIST);
-					bb.WriteListType(n, ByteBuffer.INTEGER);
-					for (int j = 0; j < n; j++)
-						bb.WriteLong(x.get(j));
-				}
-			}
-			{
-				long x = protocolType;
-				if (x != 0) {
-					i = bb.WriteTag(i, 2, ByteBuffer.INTEGER);
-					bb.WriteLong(x);
-				}
-			}
-			{
-				var x = protocolWholeData;
-				if (x.size() != 0) {
-					bb.WriteTag(i, 3, ByteBuffer.BYTES);
-					bb.WriteBinary(x);
-				}
-			}
-			bb.WriteByte(0);
-		}
-
-		@Override
-		public void decode(ByteBuffer bb) {
-			int t = bb.ReadByte();
-			int i = bb.ReadTagSize(t);
-			if (i == 1) {
-				var x = linkSids;
-				x.clear();
-				if ((t & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
-					int n = bb.ReadTagSize(t = bb.ReadByte());
-					if (x.capacity() < n)
-						x.wraps(new long[Math.min(n, 0x10000)]);
-					for (; n > 0; n--)
-						x.add(bb.ReadLong(t));
-				} else
-					bb.SkipUnknownFieldOrThrow(t, "Collection");
-				i += bb.ReadTagSize(t = bb.ReadByte());
-			}
-			if (i == 2) {
-				protocolType = bb.ReadLong(t);
-				i += bb.ReadTagSize(t = bb.ReadByte());
-			}
-			if (i == 3) {
-				protocolWholeData = bb.ReadBinary(t);
-				bb.ReadTagSize(t = bb.ReadByte());
-			}
-			while (t != 0) {
-				bb.SkipUnknownField(t);
-				bb.ReadTagSize(t = bb.ReadByte());
-			}
-		}
-
-		@Override
-		protected void resetChildrenRootInfo() {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		protected void initChildrenRootInfo(Record.RootInfo root) {
-			throw new UnsupportedOperationException();
-		}
-	}
-
-	public static class FastSend extends Rpc<FastBSend, BSendResult> {
+	public static class SlowSend extends Rpc<Zeze.Builtin.Provider.BSend, Zeze.Builtin.Provider.BSendResult> {
 		public static final int ModuleId_ = Send.ModuleId_;
 		public static final int ProtocolId_ = Send.ProtocolId_;
 		public static final long TypeId_ = Send.TypeId_;
@@ -322,11 +222,11 @@ public class BenchSocket {
 			return ProtocolId_;
 		}
 
-		public FastSend() {
-			this(new FastBSend());
+		public SlowSend() {
+			this(new Zeze.Builtin.Provider.BSend());
 		}
 
-		public FastSend(FastBSend arg) {
+		public SlowSend(Zeze.Builtin.Provider.BSend arg) {
 			Argument = arg;
 			Result = new Zeze.Builtin.Provider.BSendResult();
 		}
@@ -349,7 +249,7 @@ public class BenchSocket {
 		var b = new Zeze.Util.Benchmark();
 		var count = 1_000_000;
 		for (int i = 0; i < count; i++) {
-			var p = new Send();
+			var p = new SlowSend();
 			for (int j = 0, n = rand.nextInt(1, 100); j < n; j++)
 				p.Argument.getLinkSids().add((long)rand.nextInt());
 			p.Argument.setProtocolType(rand.nextLong());
@@ -365,7 +265,7 @@ public class BenchSocket {
 		var b = new Zeze.Util.Benchmark();
 		var count = 1_000_000;
 		for (int i = 0; i < count; i++) {
-			var p = new Send();
+			var p = new SlowSend();
 			bb.ReadIndex = 0;
 			p.decode(bb);
 		}
@@ -379,7 +279,7 @@ public class BenchSocket {
 		var b = new Zeze.Util.Benchmark();
 		var count = 1_000_000;
 		for (int i = 0; i < count; i++) {
-			var p = new FastSend();
+			var p = new Send();
 			for (int j = 0, n = rand.nextInt(1, 100); j < n; j++)
 				p.Argument.getLinkSids().add(rand.nextInt());
 			p.Argument.setProtocolType(rand.nextLong());
@@ -395,7 +295,7 @@ public class BenchSocket {
 		var b = new Zeze.Util.Benchmark();
 		var count = 1_000_000;
 		for (int i = 0; i < count; i++) {
-			var p = new FastSend();
+			var p = new Send();
 			bb.ReadIndex = 0;
 			p.decode(bb);
 		}

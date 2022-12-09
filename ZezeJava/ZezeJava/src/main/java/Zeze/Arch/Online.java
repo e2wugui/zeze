@@ -19,7 +19,6 @@ import Zeze.Builtin.Online.SReliableNotify;
 import Zeze.Builtin.Online.taccount;
 import Zeze.Builtin.Provider.BBroadcast;
 import Zeze.Builtin.Provider.BKick;
-import Zeze.Builtin.Provider.BSend;
 import Zeze.Builtin.Provider.Broadcast;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Builtin.Provider.SetUserState;
@@ -37,6 +36,7 @@ import Zeze.Transaction.Transaction;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.KV;
+import Zeze.Util.LongList;
 import Zeze.Util.OutObject;
 import Zeze.Util.Random;
 import Zeze.Util.RedirectGenMain;
@@ -481,9 +481,10 @@ public class Online extends AbstractOnline {
 		return groups.values();
 	}
 
-	private long triggerLinkBroken(String linkName, Collection<Long> errorSids, Map<Long, KV<String, String>> contexts)
+	private long triggerLinkBroken(String linkName, LongList errorSids, Map<Long, KV<String, String>> contexts)
 			throws Throwable {
-		for (var sid : errorSids) {
+		for (int i = 0, n = errorSids.size(); i < n; i++) {
+			var sid = errorSids.get(i);
 			var ctx = contexts.get(sid);
 			if (ctx != null)
 				onLinkBroken(ctx.getKey(), ctx.getValue(), linkName, sid);
