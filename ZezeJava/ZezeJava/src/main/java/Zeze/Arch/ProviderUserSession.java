@@ -2,7 +2,6 @@ package Zeze.Arch;
 
 import java.util.Map;
 import java.util.TreeMap;
-import Zeze.Builtin.Provider.BSend;
 import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Game.ProviderImplementWithOnline;

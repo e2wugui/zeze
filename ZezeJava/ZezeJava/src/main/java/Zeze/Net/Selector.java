@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import Zeze.Util.Action0;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -28,6 +29,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	private final int bufferSize;
 	private final int bbPoolLocalCapacity;
 	private final int bbPoolMoveCount;
+	private ArrayList<Action0> operates = new ArrayList<>(); // 用于跟AsyncSocket交换
 	private boolean firstAction;
 	private volatile boolean running = true;
 
@@ -120,6 +122,12 @@ public class Selector extends Thread implements ByteBufferAllocator {
 		bb.position(0);
 		bb.limit(bb.capacity());
 		bbPool.add(bb);
+	}
+
+	ArrayList<Action0> swapOperates(ArrayList<Action0> operates) {
+		var t = this.operates;
+		this.operates = operates;
+		return t;
 	}
 
 	SelectionKey register(SelectableChannel sc, int ops, SelectorHandle handle) {

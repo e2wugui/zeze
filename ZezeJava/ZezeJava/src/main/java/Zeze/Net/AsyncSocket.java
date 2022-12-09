@@ -30,7 +30,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public static final Logger logger = LogManager.getLogger(AsyncSocket.class);
 	public static final Level LEVEL_PROTOCOL_LOG = Level.toLevel(System.getProperty("protocolLog"), Level.OFF);
 	public static final boolean ENABLE_PROTOCOL_LOG = LEVEL_PROTOCOL_LOG != Level.OFF;
-	private static final VarHandle closedHandle;
+	private static final VarHandle closedHandle, outputBufferSizeHandle;
 	private static final byte SEND_CLOSE_DETAIL_MAX = 100; // 必须小于REAL_CLOSED
 	private static final byte REAL_CLOSED = Byte.MAX_VALUE;
 	private static final AtomicLong sessionIdGen = new AtomicLong(1);
@@ -38,7 +38,9 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 	static {
 		try {
-			closedHandle = MethodHandles.lookup().findVarHandle(AsyncSocket.class, "closed", byte.class);
+			var lookup = MethodHandles.lookup();
+			closedHandle = lookup.findVarHandle(AsyncSocket.class, "closed", byte.class);
+			outputBufferSizeHandle = lookup.findVarHandle(AsyncSocket.class, "outputBufferSize", long.class);
 		} catch (ReflectiveOperationException e) {
 			throw new RuntimeException(e);
 		}
@@ -57,13 +59,15 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private final ReentrantLock lock = new ReentrantLock();
 	private long sessionId = nextSessionId(); // 只在setSessionId里修改
 	private final Service service;
-	private final Acceptor acceptor;
-	private final Connector connector;
+	private final Object acceptorOrConnector;
+	private final Selector selector;
+	private final SelectionKey selectionKey;
+	private volatile SocketAddress remoteAddress; // 连接成功时设置
+	private volatile Object userState;
 
-	private ArrayList<Action0> operates0 = new ArrayList<>();
-	private ArrayList<Action0> operates1 = new ArrayList<>();
-	private final AtomicLong outputBufferListCountSum = new AtomicLong();
-	//	private final ArrayDeque<java.nio.ByteBuffer> outputBufferListSending = new ArrayDeque<>(); // 正在发送的 buffers. 只在selector线程访问
+	@SuppressWarnings("unused")
+	private volatile long outputBufferSize;
+	private ArrayList<Action0> operates = new ArrayList<>();
 	private final OutputBuffer outputBuffer;
 
 	private final BufferCodec inputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer. 只在selector线程访问
@@ -71,18 +75,12 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private Codec outputCodecChain; // 只在selector线程访问
 	private volatile byte security; // 1:Input; 2:Output; 1|2:Input+Output
 
-	private final Selector selector;
-	private final SelectionKey selectionKey;
-	private volatile SocketAddress remoteAddress; // 连接成功时设置
-	private volatile Object userState;
 	private volatile boolean isHandshakeDone;
 	@SuppressWarnings("unused")
 	private volatile byte closed;
 	private boolean closePending;
 	private long recvSize; // 从socket接收数据的统计总字节数
 	private long sendSize; // 向socket发送数据的统计总字节数
-
-//	private int sendBufferSize; // 缓存下来为了避免每次去查询。是一种优化。
 
 	public long getSessionId() {
 		return sessionId;
@@ -98,11 +96,11 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	public Acceptor getAcceptor() {
-		return acceptor;
+		return acceptorOrConnector instanceof Acceptor ? (Acceptor)acceptorOrConnector : null;
 	}
 
 	public Connector getConnector() {
-		return connector;
+		return acceptorOrConnector instanceof Connector ? (Connector)acceptorOrConnector : null;
 	}
 
 	public SelectableChannel getChannel() { // SocketChannel or ServerSocketChannel, 一定不为null
@@ -178,8 +176,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	 */
 	public AsyncSocket(Service service, InetSocketAddress localEP, Acceptor acceptor) {
 		this.service = service;
-		this.acceptor = acceptor;
-		connector = null;
+		this.acceptorOrConnector = acceptor;
 
 		ServerSocketChannel ssc = null;
 		try {
@@ -224,7 +221,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			try {
 				sc = ((ServerSocketChannel)channel).accept();
 				if (sc != null)
-					service.OnSocketAccept(new AsyncSocket(service, sc, acceptor));
+					service.OnSocketAccept(new AsyncSocket(service, sc, (Acceptor)acceptorOrConnector));
 			} catch (Throwable e) {
 				if (sc != null)
 					sc.close();
@@ -258,8 +255,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	 */
 	private AsyncSocket(Service service, SocketChannel sc, Acceptor acceptor) throws IOException {
 		this.service = service;
-		this.acceptor = acceptor;
-		connector = null;
+		this.acceptorOrConnector = acceptor;
 
 		// 据说连接接受以后设置无效，应该从 ServerSocket 继承
 		sc.configureBlocking(false);
@@ -271,7 +267,6 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		Integer sendBufSize = this.service.getSocketOptions().getSendBuffer();
 		if (sendBufSize != null)
 			so.setSendBufferSize(sendBufSize);
-//		sendBufSize = so.getSendBufferSize();
 		Boolean noDelay = this.service.getSocketOptions().getNoDelay();
 		if (noDelay != null)
 			so.setTcpNoDelay(noDelay);
@@ -289,16 +284,15 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private void doConnectSuccess(SocketChannel sc) throws Throwable {
 		remoteAddress = sc.socket().getRemoteSocketAddress();
 		logger.info("Connect: {} for {}:{}", this, service.getClass().getName(), service.getName());
-		if (connector != null)
-			connector.OnSocketConnected(this);
+		if (acceptorOrConnector instanceof Connector)
+			((Connector)acceptorOrConnector).OnSocketConnected(this);
 		service.OnSocketConnected(this);
 		interestOps(SelectionKey.OP_CONNECT, SelectionKey.OP_READ);
 	}
 
 	public AsyncSocket(Service service, String hostNameOrAddress, int port, Object userState, Connector connector) {
 		this.service = service;
-		this.connector = connector;
-		acceptor = null;
+		this.acceptorOrConnector = connector;
 		this.userState = userState;
 
 		SocketChannel sc = null;
@@ -312,7 +306,6 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			Integer sendBufSize = this.service.getSocketOptions().getSendBuffer();
 			if (sendBufSize != null)
 				so.setSendBufferSize(sendBufSize);
-//			sendBufSize = so.getSendBufferSize();
 			Boolean noDelay = this.service.getSocketOptions().getNoDelay();
 			if (noDelay != null)
 				so.setTcpNoDelay(noDelay);
@@ -387,7 +380,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		try {
 			if (closed != 0)
 				return false;
-			var operates = operates0;
+			var operates = this.operates;
 			operates.add(callback);
 			if (operates.size() == 1)
 				interestOps(0, SelectionKey.OP_WRITE); // try
@@ -422,35 +415,28 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			return false;
 		}
 		try {
-			if (!service.checkOverflow(this, outputBufferListCountSum.addAndGet(length), bytes, offset, length)) {
-				outputBufferListCountSum.addAndGet(-length);
+			if (!service.checkOverflow(this, (long)outputBufferSizeHandle.getAndAdd(this, (long)length) + length,
+					bytes, offset, length)) {
+				outputBufferSizeHandle.getAndAdd(this, (long)-length);
 				return false;
 			}
 			if (SubmitAction(() -> { // 进selector线程调用
 				Codec codec = outputCodecChain;
 				if (codec != null) {
 					// 压缩加密等 codec 链操作。
-//					ByteBuffer codecBuf = outputCodecBuffer.getBuffer(); // codec对buffer的引用一定是不可变的
-//					codecBuf.EnsureWrite(length); // reserve
 					int oldSize = outputBuffer.size();
 					codec.update(bytes, offset, length);
 					codec.flush();
-//					int newLen = codecBuf.Size();
 					int deltaLen = outputBuffer.size() - oldSize - length;
 					if (deltaLen != 0)
-						outputBufferListCountSum.getAndAdd(deltaLen);
-//					outputBufferListSending.addLast(java.nio.ByteBuffer.wrap(codecBuf.Bytes, codecBuf.ReadIndex, newLen));
-//					outputBuffer.put(codecBuf.Bytes, codecBuf.ReadIndex, newLen);
-//					codecBuf.FreeInternalBuffer();
-				} else {
-//					outputBufferListSending.addLast(java.nio.ByteBuffer.wrap(bytes, offset, length));
+						outputBufferSizeHandle.getAndAdd(this, (long)deltaLen);
+				} else
 					outputBuffer.put(bytes, offset, length);
-				}
 			}))
 				return true;
 			logger.error("Send to closed socket: {} len={}", this, length, new Exception());
 		} catch (Throwable ex) {
-			outputBufferListCountSum.addAndGet(-length);
+			outputBufferSizeHandle.getAndAdd(this, (long)-length);
 			close(ex);
 		}
 		return false;
@@ -534,24 +520,23 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 	private void doWrite(SocketChannel sc) throws Throwable { // 只在selector线程调用
 		while (true) {
-			var operates = operates0;
+			var operates = this.operates;
+			var newOperates = selector.swapOperates(operates);
 			lock.lock();
-			operates0 = operates1; // swap
-			operates1 = operates;
+			this.operates = newOperates;
 			lock.unlock();
 			//noinspection ForLoopReplaceableByForEach
 			for (int i = 0, n = operates.size(); i < n; i++)
 				operates.get(i).run();
 			operates.clear();
 
-//			int bufSize = outputBufferListSending.size();
 			int bufSize = outputBuffer.size();
 			if (bufSize <= 0) {
 				// 时间窗口
 				// 必须和把Operate加入队列同步！否则可能会出现，刚加入操作没有被处理，但是OP_WRITE又被Remove的问题。
 				lock.lock();
 				try {
-					if (operates0.isEmpty()) {
+					if (this.operates.isEmpty()) {
 						// 真的没有等待处理的操作了，去掉事件，返回。以后新的操作在下一次doWrite时处理。
 						interestOps(SelectionKey.OP_WRITE, 0);
 						if (closePending)
@@ -563,36 +548,19 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				}
 				// 发现数据，继续尝试处理。
 			} else {
-//				var willSend = this.sendBufferSize;
-//				var sendBuffers = new java.nio.ByteBuffer[1000];
-//				var i = 0;
-//				for (var it = outputBufferListSending.iterator(); i < 2000 && it.hasNext(); /*nothing*/) {
-//					var buffer = it.next();
-//					sendBuffers[i++] = buffer;
-//					willSend -= buffer.limit();
-//					if (willSend <= 0)
-//						break;
-//				}
-//				long rc = sc.write(sendBuffers, 0, i);
-//				long rc = bufSize == 1 ? sc.write(outputBufferListSending.peekFirst()) :
-//						sc.write(outputBufferListSending.toArray(new java.nio.ByteBuffer[bufSize]));
 				long rc = outputBuffer.writeTo(sc);
 				if (rc < 0) {
 					close(); // 很罕见的正常关闭, 不设置异常, 其实write抛异常的可能性更大
 					return;
 				}
 				sendSize += rc;
-				outputBufferListCountSum.getAndAdd(-rc);
-//				for (java.nio.ByteBuffer bb; (bb = outputBufferListSending.pollFirst()) != null; ) {
-//					if (bb.remaining() > 0) {
-//						outputBufferListSending.addFirst(bb);
+				outputBufferSizeHandle.getAndAdd(this, -rc);
 				if (outputBuffer.size() > 0) {
 					// 有数据正在发送，此时可以安全退出执行，写完以后Selector会再次触发doWrite。
 					// add write event，里面判断了事件没有变化时不做操作，严格来说，再次注册事件是不需要的。
 					interestOps(0, SelectionKey.OP_WRITE);
 					return;
 				}
-//				}
 				// 全部都写出去了，继续尝试看看有没有新的操作。
 			}
 		}
@@ -611,7 +579,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		} catch (Throwable e) {
 			logger.error("Service.OnSocketDisposed", e);
 		}
-		if (acceptor != null)
+		if (acceptorOrConnector instanceof Acceptor)
 			selector.wakeup(); // Acceptor的socket需要selector在select开始时执行,所以wakeup一下尽早触发下次select
 		if (outputBuffer != null)
 			outputBuffer.close();
@@ -629,9 +597,9 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		} else
 			logger.debug("close{}: {}", gracefully ? " gracefully" : "", this);
 
-		if (connector != null) {
+		if (acceptorOrConnector instanceof Connector) {
 			try {
-				connector.OnSocketClose(this, ex);
+				((Connector)acceptorOrConnector).OnSocketClose(this, ex);
 			} catch (Throwable e) {
 				logger.error("Connector.OnSocketClose", e);
 			}
@@ -675,7 +643,9 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		SocketAddress localAddress = getLocalAddress();
 		SocketAddress remoteAddress = this.remoteAddress;
 		return "[" + sessionId + ']' +
-				(localAddress != null ? localAddress : (acceptor != null ? acceptor.getName() : "")) + "-" + // 如果有localAddress则表示还没close
-				(remoteAddress != null ? remoteAddress : (connector != null ? connector.getName() : "")); // 如果有RemoteAddress则表示曾经连接成功过
+				(localAddress != null ? localAddress : (acceptorOrConnector instanceof Acceptor ?
+						((Acceptor)acceptorOrConnector).getName() : "")) + "-" + // 如果有localAddress则表示还没close
+				(remoteAddress != null ? remoteAddress : (acceptorOrConnector instanceof Connector ?
+						((Connector)acceptorOrConnector).getName() : "")); // 如果有RemoteAddress则表示曾经连接成功过
 	}
 }
