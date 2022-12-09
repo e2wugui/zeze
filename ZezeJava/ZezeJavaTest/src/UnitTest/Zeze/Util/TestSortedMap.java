@@ -97,10 +97,20 @@ public class TestSortedMap {
 	@Test
 	public void testAddAll() {
 		var m = new SortedMap<Integer, Integer>();
-		Assert.assertEquals(0, m.addAll(new Integer[]{10, 30, 50,70, 90}, 111).size());
-		Assert.assertEquals(1, m.addAll(new Integer[]{80, 50, 20}, 222).size());
-		Assert.assertEquals(0, m.addAll(new Integer[]{100, 40, 0}, 333).size());
-		Assert.assertEquals(10, m.size());
+		Assert.assertEquals(0, m.addAll(new Integer[]{10, 30, 50, 90, 70}, 1).size());
+		Assert.assertEquals(1, m.addAll(new Integer[]{80, 50, 20}, 2).size());
+		Assert.assertEquals(0, m.addAll(new Integer[]{100, 40, 0}, 3).size());
 //		System.out.println(m);
+		Assert.assertEquals(10, m.size());
+		Assert.assertEquals(Integer.valueOf(1), m.get(10).getValue());
+		Assert.assertEquals(Integer.valueOf(2), m.get(20).getValue());
+		Assert.assertEquals(Integer.valueOf(1), m.get(30).getValue());
+		Assert.assertEquals(Integer.valueOf(3), m.get(40).getValue());
+		Assert.assertEquals(Integer.valueOf(1), m.get(50).getValue());
+		Assert.assertNull(m.get(60));
+		Assert.assertEquals(Integer.valueOf(1), m.get(70).getValue());
+		Assert.assertEquals(Integer.valueOf(2), m.get(80).getValue());
+		Assert.assertEquals(Integer.valueOf(1), m.get(90).getValue());
+		Assert.assertEquals(Integer.valueOf(3), m.get(100).getValue());
 	}
 }
