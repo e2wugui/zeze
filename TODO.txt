@@ -39,6 +39,7 @@ c# fresh 有bug？
 DatabaseDynamoDb 还需测试。
 负载均衡；全面审核。
 过载保护；更多。
+确认：GlobalCacheManagerWithRaft Recude 需要 TransactionLevel="Serializable" ?
 
 ------------------------------------------------------------------------------------------------------------------------------
 v1.1.3 ServiceManagerWithRaft; 

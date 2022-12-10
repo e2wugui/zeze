@@ -1128,13 +1128,91 @@
 			<servlet name="ClearTable" TransactionLevel="None"/>
 		</module>
 
+		<module name="ServiceManagerWithRaft" id="11022">
+			<bean name="BAllocateIdArgument">
+				<variable id="1" name="Name" type="string"/>
+				<variable id="2" name="Count" type="int"/>
+			</bean>
+
+			<bean name="BAllocateIdResult">
+				<variable id="1" name="Name" type="string"/>
+				<variable id="2" name="StartId" type="long"/>
+				<variable id="3" name="Count" type="int"/>
+			</bean>
+
+			<bean name="BOfflineNotify">
+				<variable id="1" name="ServerId" type="int"/>
+				<variable id="2" name="NotifyId" type="string"/>
+				<variable id="3" name="NotifySerialId" type="long"/>
+				<variable id="4" name="NotifyContext" type="binary"/>
+			</bean>
+
+			<bean name="BServerLoad">
+				<variable id="1" name="Ip" type="string"/>
+				<variable id="2" name="Port" type="int"/>
+				<variable id="3" name="Param" type="binary"/>
+			</bean>
+
+			<bean name="BServiceInfo">
+				<variable id="1" name="ServiceName" type="string"/>
+				<variable id="2" name="ServiceIdentiry" type="string"/>
+				<variable id="3" name="PassiveIp" type="string"/>
+				<variable id="4" name="PassivePort" type="int"/>
+				<variable id="5" name="ExtraInfo" type="binary"/>
+				<variable id="6" name="Param" type="binary"/>
+			</bean>
+
+			<bean name="BServiceInfos">
+				<variable id="1" name="ServiceName" type="string"/>
+				<variable id="2" name="ServiceInfoListSortedByIdentity" type="list[BServiceInfo]"/>
+				<variable id="3" name="SerialId" type="long"/>
+			</bean>
+
+			<bean name="BServiceListVersion">
+				<variable id="1" name="ServiceName" type="string"/>
+				<variable id="2" name="SerialId" type="long"/>
+			</bean>
+
+			<bean name="BSubscribeInfo">
+				<variable id="1" name="ServiceName" type="string"/>
+				<variable id="2" name="SubscribeType" type="int"/>
+			</bean>
+
+			<rpc name="AllocateId" argument="BAllocateIdArgument" result="BAllocateIdResult" base="Zeze.Raft.RaftRpc" handle="server"/>
+			<rpc name="CommitServiceList" argument="BServiceListVersion" base="Zeze.Raft.RaftRpc" handle="client"/>
+			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" handle="client"/>			
+			<rpc name="NotifyServiceList" argument="BServiceInfos" base="Zeze.Raft.RaftRpc" handle="client"/>
+			<rpc name="OfflineNotify" argument="BOfflineNotify" base="Zeze.Raft.RaftRpc" handle="client"/>
+			<rpc name="OfflineRegister" argument="BOfflineNotify" base="Zeze.Raft.RaftRpc" handle="server"/>
+			<rpc name="ReadyServiceList" argument="BServiceListVersion" base="Zeze.Raft.RaftRpc" handle="server"/>
+			<rpc name="Register" argument="BServiceInfo" base="Zeze.Raft.RaftRpc" handle="server,client"/>
+			<rpc name="SetServerLoad" argument="BServerLoad" base="Zeze.Raft.RaftRpc" handle="server"/>
+			<rpc name="Subscribe" argument="BSubscribeInfo" base="Zeze.Raft.RaftRpc" handle="server"/>
+			<rpc name="SubscribeFirstCommit" argument="BServiceInfos" base="Zeze.Raft.RaftRpc" handle="client"/>
+			<rpc name="UnRegister" argument="BServiceInfo" base="Zeze.Raft.RaftRpc" handle="server,client"/>
+			<rpc name="UnSubscribe" argument="BSubscribeInfo" base="Zeze.Raft.RaftRpc" handle="server"/>
+			<rpc name="Update" argument="BServiceInfo" base="Zeze.Raft.RaftRpc" handle="server,client"/>
+		</module>
+
 		<!--
-		可用id范围 [11022, 11100) [11102, 12000]
+		可用id范围 [11023, 11100) [11102, 12000]
 		-->
 
 	</module> Builtin
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+
+	<component name="ServiceManagerWithRaft" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.ServiceManagerWithRaft"/>
+		</service>
+	</component>
+
+	<component name="ServiceManagerAgentWithRaft" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java" GenTables="client">
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.ServiceManagerWithRaft"/>
+		</service>
+	</component>
 
 	<component name="Timer" gendir="src/main/java" platform="zeze+java">
 		<service name="" handle="server">
