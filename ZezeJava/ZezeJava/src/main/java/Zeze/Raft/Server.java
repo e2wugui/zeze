@@ -10,6 +10,8 @@ import Zeze.Net.Service;
 import Zeze.Services.HandshakeBoth;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.Action0;
+import Zeze.Util.Func0;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
 import org.apache.logging.log4j.LogManager;
@@ -169,6 +171,11 @@ public class Server extends HandshakeBoth {
 			}
 			return;
 		}
+		dispatchRaftRpcResponse(p, responseHandle, factoryHandle);
+	}
+
+	public <P extends Protocol<?>> void dispatchRaftRpcResponse(P p, ProtocolHandle<P> responseHandle,
+																ProtocolFactoryHandle<?> factoryHandle) throws Throwable {
 		super.DispatchRpcResponse(p, responseHandle, factoryHandle);
 	}
 
@@ -215,7 +222,7 @@ public class Server extends HandshakeBoth {
 			}
 			//【防止重复的请求】
 			// see Log.java::LogSequence.TryApply
-			taskOneByOne.Execute(raftRpc.getUnique(), () -> processRequest(p, factoryHandle),
+			dispatchRaftRequest(raftRpc.getUnique(), () -> processRequest(p, factoryHandle),
 					p.getClass().getName(), () -> p.SendResultCode(Procedure.RaftRetry), factoryHandle.Mode);
 			return;
 		}
@@ -224,6 +231,10 @@ public class Server extends HandshakeBoth {
 
 		// 选举中
 		// DO NOT process application request.
+	}
+
+	public void dispatchRaftRequest(UniqueRequestId key, Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
+		taskOneByOne.Execute(key, func, name, cancel, mode);
 	}
 
 	private void trySendLeaderIs(AsyncSocket sender) {
