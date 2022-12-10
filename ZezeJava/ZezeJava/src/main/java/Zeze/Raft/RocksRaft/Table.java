@@ -203,6 +203,17 @@ public final class Table<K, V extends Bean> {
 		return value;
 	}
 
+	@SuppressWarnings("unchecked")
+	public V selectDirty(K key) {
+		Transaction currentT = Transaction.getCurrent();
+		if (currentT != null) {
+			var cr = currentT.getRecordAccessed(new TableKey(name, key));
+			if (cr != null)
+				return (V)cr.newestValue();
+		}
+		return storageLoad(key);
+	}
+
 	public boolean tryAdd(K key, V value) {
 		if (get(key) != null)
 			return false;
