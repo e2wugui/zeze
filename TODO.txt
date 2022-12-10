@@ -45,6 +45,7 @@ DatabaseDynamoDb 还需测试。
 v1.1.3 ServiceManagerWithRaft; 
 ------------------------------------------------------------------------------------------------------------------------------
 ServiceManagerWithRaft
+	New RocksRaft.Table.selectDirty(); 读取可以并发。
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag v1.1.2 Multi-Selectors; Zeze.Net.OutputBuffer; SortedMap; ConsistentHash;

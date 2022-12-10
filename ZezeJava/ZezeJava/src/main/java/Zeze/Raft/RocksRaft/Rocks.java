@@ -18,6 +18,7 @@ import java.util.function.Supplier;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
+import Zeze.Config;
 import Zeze.Raft.LogSequence;
 import Zeze.Raft.Raft;
 import Zeze.Raft.RaftConfig;
@@ -30,9 +31,11 @@ import Zeze.Raft.RocksRaft.Log1.LogInt;
 import Zeze.Raft.RocksRaft.Log1.LogLong;
 import Zeze.Raft.RocksRaft.Log1.LogShort;
 import Zeze.Raft.RocksRaft.Log1.LogString;
+import Zeze.Raft.Server;
 import Zeze.Raft.StateMachine;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DatabaseRocksDb;
+import Zeze.Util.Func3;
 import Zeze.Util.FuncLong;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongConcurrentHashMap;
@@ -103,6 +106,11 @@ public final class Rocks extends StateMachine implements Closeable {
 
 	public Rocks(String raftName, RocksMode mode, RaftConfig raftConfig, Zeze.Config config,
 				 boolean RocksDbWriteOptionSync) throws Throwable {
+		this(raftName, mode, raftConfig, config, RocksDbWriteOptionSync, Server::new);
+	}
+
+	public Rocks(String raftName, RocksMode mode, RaftConfig raftConfig, Zeze.Config config,
+				 boolean RocksDbWriteOptionSync, Func3<Raft, String, Config, Server> serverFactory) throws Throwable {
 		rocksMode = mode;
 
 		addFactory(new Changes(this).getTypeId(), () -> new Changes(this));
@@ -111,7 +119,7 @@ public final class Rocks extends StateMachine implements Closeable {
 				? DatabaseRocksDb.getSyncWriteOptions()
 				: DatabaseRocksDb.getDefaultWriteOptions();
 		// 这个赋值是不必要的，new Raft(...)内部会赋值。有点奇怪。
-		setRaft(new Raft(this, raftName, raftConfig, config));
+		setRaft(new Raft(this, raftName, raftConfig, config, "Zeze.Raft.Server", serverFactory));
 		getRaft().addAtFatalKill(() -> {
 			if (storage != null)
 				storage.close();

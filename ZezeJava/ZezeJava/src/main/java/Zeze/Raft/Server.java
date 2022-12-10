@@ -22,7 +22,7 @@ import org.apache.logging.log4j.Logger;
  * 【注意】
  * 为了简化配置，应用可以注册协议到Server，使用同一个Acceptor进行连接。
  */
-public final class Server extends HandshakeBoth {
+public class Server extends HandshakeBoth {
 	private static final Logger logger = LogManager.getLogger(Server.class);
 
 	private final Raft raft;

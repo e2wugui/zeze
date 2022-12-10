@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import Zeze.Config;
 import Zeze.Net.Binary;
 import Zeze.Net.Connector;
 import Zeze.Net.Service;
@@ -24,6 +25,8 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action0;
 import Zeze.Util.ConcurrentHashSet;
+import Zeze.Util.Func1;
+import Zeze.Util.Func3;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCanceledException;
@@ -278,6 +281,11 @@ public final class Raft {
 
 	public Raft(StateMachine sm, String RaftName, RaftConfig raftConf, Zeze.Config config, String name)
 			throws Throwable {
+		this(sm, RaftName, raftConf, config, name, Server::new);
+	}
+
+	public Raft(StateMachine sm, String RaftName, RaftConfig raftConf, Zeze.Config config, String name,
+				Func3<Raft, String, Config, Server> serverFactory) throws Throwable {
 		if (raftConf == null)
 			raftConf = Zeze.Raft.RaftConfig.load();
 		raftConf.verify();
@@ -296,8 +304,7 @@ public final class Raft {
 
 		if (config == null)
 			config = Zeze.Config.load();
-
-		server = new Server(this, name, config);
+		server = serverFactory.call(this, name, config);
 		if (server.getConfig().acceptorCount() != 0)
 			throw new IllegalStateException("Acceptor Found!");
 		if (server.getConfig().connectorCount() != 0)
