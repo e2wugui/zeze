@@ -12,8 +12,8 @@ import java.util.List;
  */
 public class SortedMap<K extends Comparable<K>, V> {
 	public static class Entry<K extends Comparable<K>, V> implements Comparable<Entry<K, V>> {
-		K key;
-		V value;
+		final K key;
+		final V value;
 
 		public Entry(K key, V value) {
 			this.key = key;

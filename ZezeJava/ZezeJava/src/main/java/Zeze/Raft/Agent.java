@@ -312,7 +312,8 @@ public final class Agent {
 			OutObject<Connector> outNode = new OutObject<>();
 			if (client.getConfig().tryGetOrAddConnector(address[0], Integer.parseInt(address[1]), true, outNode))
 				outNode.value.Start();
-		} else if (!r.Argument.isLeader() && r.Argument.getLeaderId().equals(r.getSender().getConnector().getName())) {
+		} else //noinspection DataFlowIssue
+			if (!r.Argument.isLeader() && r.Argument.getLeaderId().equals(r.getSender().getConnector().getName())) {
 			// 【错误处理】用来观察。
 			logger.warn("New Leader Is Not A Leader.");
 			// 发送者不是Leader，但它的发送的LeaderId又是自己，【尝试选择另外一个Node】。

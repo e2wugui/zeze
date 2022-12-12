@@ -36,6 +36,7 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 	 * 使用 Connector 配置得到名字，只要保证配置一样。
 	 */
 	public static String getLinkName(AsyncSocket sender) {
+		//noinspection DataFlowIssue
 		return sender.getConnector().getName();
 	}
 

@@ -25,7 +25,6 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action0;
 import Zeze.Util.ConcurrentHashSet;
-import Zeze.Util.Func1;
 import Zeze.Util.Func3;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;

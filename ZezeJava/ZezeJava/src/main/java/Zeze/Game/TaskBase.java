@@ -153,7 +153,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		this.bean.setTaskDescription(opt.description);
 		for (long id :opt.preTaskIds) {
 			this.bean.getPreTaskIds().add(id);
-		};
+		}
 		this.bean.getExtendedData().setBean(new EmptyBean());
 
 		MethodHandle extendedBeanConstructor = beanFactory.register(getExtendedBeanClass());

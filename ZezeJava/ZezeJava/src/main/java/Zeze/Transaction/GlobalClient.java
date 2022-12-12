@@ -33,6 +33,7 @@ public final class GlobalClient extends Service {
 					// 清理本地已经分配的记录锁。
 					// 1. 关闭网络。下面两行有点重复，就这样了。
 					so.close(new Exception("GlobalAgent.ReLogin Fail code=" + reLogin.getResultCode()));
+					//noinspection DataFlowIssue
 					so.getConnector().Stop();
 					// 2. 开始清理，由守护线程保护，必须成功。
 					agent.startRelease(getZeze(), () -> {
