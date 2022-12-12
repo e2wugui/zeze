@@ -5,7 +5,7 @@ allprojects {
     apply plugin: 'idea'
 
     repositories {
-        maven { url 'https://maven.aliyun.com/nexus/content/groups/public/' }
+        maven { url 'https://repo.huaweicloud.com/repository/maven/' }
         maven { url 'https://repo.huaweicloud.com/repository/maven/' }
         mavenCentral()
     }
