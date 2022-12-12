@@ -26,7 +26,7 @@ namespace Zeze.Gen.Types
             if (Types.ContainsKey(_name))
                 throw new Exception("duplicate type: " + _name);
             Types.Add(_name, this);
-            Console.WriteLine($"external {_name}");
+            //Console.WriteLine($"external {_name}");
         }
 
         public override void Depends(HashSet<Type> includes)

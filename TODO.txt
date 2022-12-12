@@ -55,6 +55,11 @@ DatabaseDynamoDb 还需测试。
 	   online事件使用的地方修改。
 	   确定是否需要替换，什么时候启动？不替换就是永久不启动了。
 
+1. ZezeJava\test\build.bat 编译
+2. ZezeJava\test\GlobalRaft\service&global_raft3.bat 启动global raft
+3. ZezeJava\test\InfiniteSimulate\ 修改zeze.xml: GlobalCacheManagerHostNameOrAddress="GlobalCacheManagersConf"
+4. ZezeJava\test\InfiniteSimulate\simulate.bat 启动simulate
+
 ------------------------------------------------------------------------------------------------------------------------------
 v1.1.3 ServiceManagerWithRaft; 
 ------------------------------------------------------------------------------------------------------------------------------
