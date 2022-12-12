@@ -91,13 +91,13 @@
 		<maven.compiler.target>11</maven.compiler.target>
 		<log4j-api.version>2.19.0</log4j-api.version>
 		<log4j-core.version>2.19.0</log4j-core.version>
-		<annotations.version>23.0.0</annotations.version>
-		<pcollectons.version>3.2.0</pcollectons.version>
-		<rocksdbjni.version>7.6.0</rocksdbjni.version>
-		<netty.version>4.1.82.Final</netty.version>
+		<annotations.version>23.1.0</annotations.version>
+		<pcollectons.version>4.0.1</pcollectons.version>
+		<rocksdbjni.version>7.7.3</rocksdbjni.version>
+		<netty.version>4.1.85.Final</netty.version>
 		<tikv.version>3.3.0</tikv.version>
 		<druid.version>1.2.15</druid.version>
-		<mysql-conncetor-java.version>8.0.30</mysql-conncetor-java.version>
+		<mysql-conncetor-java.version>8.0.31</mysql-conncetor-java.version>
 		<aws-java-sdk-dynamodb.version>1.12.342</aws-java-sdk-dynamodb.version>
 		<rocketmq-client.version>4.9.4</rocketmq-client.version>
 		<javaee-api.version>8.0.1</javaee-api.version>
