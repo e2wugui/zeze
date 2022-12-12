@@ -33,7 +33,7 @@ public class ConditionSubmitItem extends TaskConditionBase<BTConditionSubmitItem
 		for (var item : bean.getItems())
 			if (bean.getItemsSubmitted().get(item.getKey()) < item.getValue())
 				return false;
-		return false;
+		return true;
 	}
 	// @formatter:on
 }

@@ -89,7 +89,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		private final ConcurrentHashMap<Long, TaskBase<?>> tasks = new ConcurrentHashMap<>();
 		public final ProviderApp providerApp;
 		public final Application zeze;
-		//		private final TaskGraphics taskGraphics;
+		private final TaskGraphics taskGraphics;
 
 		public Module(Application zeze) {
 			this.zeze = zeze;
@@ -97,7 +97,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 			RegisterZezeTables(zeze);
 			RegisterProtocols(this.providerApp.providerService);
 			providerApp.builtinModules.put(this.getFullName(), this);
-//			taskGraphics = new TaskGraphics(this);
+			taskGraphics = new TaskGraphics(this);
 		}
 
 		/**
@@ -118,13 +118,19 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 			}
 		}
 
+		public ConcurrentHashMap<Long, TaskBase<?>> getTasks() {
+			return tasks;
+		}
+
 		// 需要在事务内使用。使用完不要保存。
 		@SuppressWarnings("unchecked")
 		private <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>> ExtendedTask open(TaskBase.Opt opt, Class<ExtendedTask> extendedTaskClass) {
 			return (ExtendedTask)tasks.computeIfAbsent(opt.id, key -> {
 				try {
-					var c = extendedTaskClass.getDeclaredConstructor(Module.class, TaskBase.Opt.class);
-					return c.newInstance(this, opt);
+					var c = extendedTaskClass.getDeclaredConstructor(Module.class, TaskBase.Opt.class); // TODO：可以把这个的Constructor缓存起来
+					var res = c.newInstance(this, opt);
+					taskGraphics.rebuildGraph();
+					return res;
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}

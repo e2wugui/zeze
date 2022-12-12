@@ -30,13 +30,13 @@ public abstract class TaskConditionBase<ConditionBean extends Bean, EventBean ex
 	private final BTaskCondition bean;
 	public TaskPhase getPhase() { return phase; }
 	private final TaskPhase phase;
-	public final void setOnComplete(Action1<TaskConditionBase<ConditionBean, EventBean>> callback) { onCompleteUserCallback = callback; }
-	private Action1<TaskConditionBase<ConditionBean, EventBean>> onCompleteUserCallback;
 	public void onComplete() throws Throwable {
 		if (isCompleted() && null != onCompleteUserCallback) {
 			onCompleteUserCallback.run(this);
 		}
 	}
+	public final void setOnComplete(Action1<TaskConditionBase<ConditionBean, EventBean>> callback) { onCompleteUserCallback = callback; }
+	private Action1<TaskConditionBase<ConditionBean, EventBean>> onCompleteUserCallback;
 
 
 	// ======================================== Private方法和一些不需要被注意的方法 ========================================
@@ -46,12 +46,12 @@ public abstract class TaskConditionBase<ConditionBean extends Bean, EventBean ex
 	public static long getSpecialTypeIdFromBean(Bean bean) { return BeanFactory.getSpecialTypeIdFromBean(bean); }
 	public static Bean createBeanFromSpecialTypeId(long typeId) { return beanFactory.createBeanFromSpecialTypeId(typeId); }
 	@SuppressWarnings("unchecked")
-	public final Class<ConditionBean> getConditionBeanClass() {
+	private Class<ConditionBean> getConditionBeanClass() {
 		ParameterizedType parameterizedType = (ParameterizedType)this.getClass().getGenericSuperclass();
 		return (Class<ConditionBean>)parameterizedType.getActualTypeArguments()[0];
 	}
 	@SuppressWarnings("unchecked")
-	public final Class<EventBean> getEventBeanClass() {
+	private Class<EventBean> getEventBeanClass() {
 		ParameterizedType parameterizedType = (ParameterizedType)this.getClass().getGenericSuperclass();
 		return (Class<EventBean>)parameterizedType.getActualTypeArguments()[1];
 	}

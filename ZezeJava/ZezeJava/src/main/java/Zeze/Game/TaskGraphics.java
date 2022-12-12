@@ -23,31 +23,25 @@ import org.jgrapht.graph.DirectedAcyclicGraph;
  */
 public class TaskGraphics {
 	final TaskBase.Module taskModule;
-//	private final DirectedAcyclicGraph<TaskBase, DefaultEdge> graph;
+	private final DirectedAcyclicGraph<TaskBase<?>, DefaultEdge> graph;
 
 	public TaskGraphics(TaskBase.Module taskModule) {
 		this.taskModule = taskModule;
-//		graph = new DirectedAcyclicGraph<>(DefaultEdge.class);
-//		buildGraph();
+		graph = new DirectedAcyclicGraph<>(DefaultEdge.class);
+		rebuildGraph();
 	}
 
-//	public boolean loadAllTaskConfigs(String file_path){
-//
-//		return true;
-//	}
-//
+	public void rebuildGraph() {
+		for (var task : taskModule.getTasks().values()) {
+			graph.addVertex(task);
+		}
+	}
+
 //	public void addNewTask(TaskBase task) {
 //		graph.addVertex(task);
 //		for (var preTaskName : task.getBean().getPreTasks()) {
 //			var preTasks = getTaskByName(preTaskName);
 //			graph.addEdge(preTasks, task); // 会再添加过程中检查任务图结构是否合法
-//		}
-//	}
-//
-//	public void refreshGraph() {
-//		var tasks = getTasksOfZeroInAndOutDegree();
-//		for (var task : tasks) {
-//			addNewTask(task);
 //		}
 //	}
 

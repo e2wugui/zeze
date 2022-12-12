@@ -2,7 +2,6 @@ package UnitTest.Zeze.Game.MyConditions;
 
 import TaskTest.TaskExt.BTConditionExploreWorld;
 import TaskTest.TaskExt.BTConditionExploreWorldEvent;
-import Zeze.Builtin.Game.TaskBase.BTConditionNPCTalkEvent;
 import Zeze.Game.TaskConditionBase;
 import Zeze.Game.TaskPhase;
 import Zeze.Transaction.Bean;
