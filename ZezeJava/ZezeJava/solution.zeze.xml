@@ -51,7 +51,7 @@
 			</bean>
 
 			<rpc name="Acquire" argument="BAcquireParam" result="BReduceParam" base="Zeze.Raft.RaftRpc" handle="server" />
-			<rpc name="Reduce" argument="BReduceParam" result="BReduceParam" base="Zeze.Raft.RaftRpc" handle="client" TransactionLevel="Serializable" />
+			<rpc name="Reduce" argument="BReduceParam" result="BReduceParam" base="Zeze.Raft.RaftRpc" handle="client" />
 			<rpc name="Login" argument="BLoginParam" result="BAchillesHeelConfig" base="Zeze.Raft.RaftRpc" handle="server" />
 			<rpc name="ReLogin" argument="BLoginParam" base="Zeze.Raft.RaftRpc" handle="server" />
 			<rpc name="NormalClose" handle="server" base="Zeze.Raft.RaftRpc" />

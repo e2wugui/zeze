@@ -49,7 +49,7 @@ public abstract class AbstractGlobalCacheManagerWithRaftAgent extends Zeze.IModu
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.GlobalCacheManagerWithRaft.Reduce>();
             factoryHandle.Factory = Zeze.Builtin.GlobalCacheManagerWithRaft.Reduce::new;
             factoryHandle.Handle = this::ProcessReduceRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessReduceRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessReduceRequest", Zeze.Transaction.TransactionLevel.None);
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessReduceRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47250386526035L, factoryHandle); // 11001, 1451302739
         }
