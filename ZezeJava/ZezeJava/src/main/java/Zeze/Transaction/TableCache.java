@@ -247,7 +247,7 @@ class TableCache<K extends Comparable<K>, V extends Bean> {
 		if (record.getState() != StateInvalid) {
 			record.setState(StateInvalid); // 先本地改成Invalid,避免TableX.VerifyGlobalRecordState验证失败
 			try {
-				record.acquire(StateInvalid, false, true);
+				record.acquire(StateInvalid, false, false);
 			} catch (Throwable e) {
 				logger.error("Acquire({}:{}) exception:", record.getTable().getName(), record.getObjectKey(), e);
 				// 此时GlobalServer可能已经改成StateInvalid了, 无论如何还是当成已经Invalid保证安全
