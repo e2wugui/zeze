@@ -85,7 +85,9 @@ public class TestGameTimer {
 			var server0 = servers.get(0);
 //			var server1 = servers.get(1);
 			var timer0 = server0.getZeze().getTimer();
+			timer0.initializeOnlineTimer(server0.ProviderApp);
 //			var timer1 = server1.getZeze().getTimer();
+//			timer1.initializeOnlineTimer(server1.ProviderApp);
 
 			log("测试 Role Online Timer ");
 			log("在客户端0登录role0");
@@ -94,8 +96,6 @@ public class TestGameTimer {
 			var roleId = null != role ? role.getId() : createRole(client0, "role0");
 			login(client0, roleId);
 
-			timer0.initializeOnlineTimer(server0.ProviderApp);
-//			timer1.initializeOnlineTimer(server1.ProviderApp);
 			var timerRole0 = timer0.getRoleTimer();
 //			var timerRole1 = timer1.getRoleTimer();
 

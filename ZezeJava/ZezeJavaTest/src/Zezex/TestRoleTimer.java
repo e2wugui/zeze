@@ -87,6 +87,7 @@ public class TestRoleTimer {
 			var link1 = links.get(1);
 			var server0 = servers.get(0);
 			var timer0 = server0.getZeze().getTimer();
+			timer0.initializeOnlineTimer(server0.ProviderApp);
 
 			log("测试 Role Online Timer ");
 			log("在客户端0登录role0");
@@ -95,7 +96,6 @@ public class TestRoleTimer {
 			var roleId = null != role ? role.getId() : createRole(client0, "role0");
 			login(client0, roleId);
 
-			timer0.initializeOnlineTimer(server0.ProviderApp);
 			var timerRole0 = timer0.getRoleTimer();
 
 			TestBean bean = new TestBean();
