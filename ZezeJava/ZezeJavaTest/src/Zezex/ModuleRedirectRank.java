@@ -18,13 +18,31 @@ public class ModuleRedirectRank extends TestCase {
 
 		try {
 			app1.Start(new String[]{"-ServerId", "0"});
-			app2.Start(new String[]{"-ServerId", "1", "-ProviderDirectPort", "20002"});
 
 			System.out.println("Begin Thread.sleep");
 			Thread.sleep(2000); // wait connected
 			System.out.println("End Thread.sleep app1 " + app1.Zeze.getServiceManagerAgent().getSubscribeStates().values());
+		} catch (Throwable e) {
+			try {
+				app1.Stop();
+			} catch (Throwable ex) {
+				throw new RuntimeException(ex);
+			}
+			throw new RuntimeException(e);
+		}
+
+		try {
+			app2.Start(new String[]{"-ServerId", "1", "-ProviderDirectPort", "20002"});
+
+			System.out.println("Begin Thread.sleep");
+			Thread.sleep(2000); // wait connected
 			System.out.println("End Thread.sleep app2 " + app2.Zeze.getServiceManagerAgent().getSubscribeStates().values());
 		} catch (Throwable e) {
+			try {
+				app2.Stop();
+			} catch (Throwable ex) {
+				throw new RuntimeException(ex);
+			}
 			throw new RuntimeException(e);
 		}
 	}

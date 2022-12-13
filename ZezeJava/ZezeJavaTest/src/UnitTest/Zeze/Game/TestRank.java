@@ -23,8 +23,16 @@ public class TestRank extends TestCase {
 
 	private final SimpleApp[] apps = new SimpleApp[APP_COUNT];
 
+	private boolean disableTest = false;
 	@Override
 	protected void setUp() {
+		var config = Zeze.Config.load();
+		if (config.getGlobalCacheManagerHostNameOrAddress().contains(".xml")) {
+			System.out.println("Test Rank Disable On GlobL-Raft.");
+			disableTest = true;
+			return;
+		}
+
 		System.out.println("------ setUp begin");
 		try {
 			for (int i = 0; i < APP_COUNT; i++)
@@ -48,6 +56,8 @@ public class TestRank extends TestCase {
 
 	@Override
 	protected void tearDown() {
+		if (disableTest)
+			return;
 		System.out.println("------ tearDown begin");
 		try {
 			for (int i = 0; i < APP_COUNT; i++)
@@ -59,6 +69,9 @@ public class TestRank extends TestCase {
 	}
 
 	public void testRank() throws Throwable {
+		if (disableTest)
+			return;
+
 		try {
 			System.out.println("------ testRank begin");
 			SimpleApp app = apps[0]; // 可以随便取一个, 不过都是对称的, 应该不用都测
