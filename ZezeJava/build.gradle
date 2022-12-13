@@ -6,7 +6,7 @@ allprojects {
 
     repositories {
         maven { url 'https://repo.huaweicloud.com/repository/maven/' }
-        maven { url 'https://repo.huaweicloud.com/repository/maven/' }
+        maven { url 'https://maven.aliyun.com/nexus/content/groups/public/' }
         mavenCentral()
     }
 
