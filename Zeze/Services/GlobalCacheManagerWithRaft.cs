@@ -752,19 +752,21 @@ namespace Zeze.Services
                         {
                             session.Kick();
                             var Acquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
-                            logger.Info($"AchillesHeelDaemon.Release begin {session}");
+                            var releaseCount = 0L;
                             await Acquired.WalkKeyAsync(async (key) =>
                             {
                                 // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
                                 if (Rocks.Raft.IsLeader)
                                 {
                                     await Release(session, key, false);
+                                    ++releaseCount;
                                     return true;
                                 }
                                 return false;
                             });
                             session.SetActiveTime(Util.Time.NowUnixMillis);
-                            logger.Info($"AchillesHeelDaemon.Release end {session}");
+                            if (releaseCount > 0)
+                                logger.Info($"AchillesHeelDaemon.Release session={session} count={releaseCount}");
                             // skip allReleaseFuture result
                         }
                     }

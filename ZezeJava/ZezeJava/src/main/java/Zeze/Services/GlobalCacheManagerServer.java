@@ -161,17 +161,19 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 				synchronized (session) {
 					session.kick();
 					if (!session.acquired.isEmpty()) {
-						logger.info("AchillesHeelDaemon.Release begin {}", session);
+						var releaseCount = 0L;
 						for (var k : session.acquired.keySet()) {
 							// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
 							try {
 								release(session, k, false);
+								++ releaseCount;
 							} catch (InterruptedException ex) {
 								logger.error("", ex);
 							}
 						}
 						session.setActiveTime(System.currentTimeMillis());
-						logger.info("AchillesHeelDaemon.Release end {}", session);
+						if (releaseCount > 0)
+							logger.info("AchillesHeelDaemon.Release session={} count={}", session, releaseCount);
 					}
 				}
 			}

@@ -226,14 +226,16 @@ namespace Zeze.Services
                         session.Kick();
                         if (session.Acquired.Count > 0)
                         {
-                            logger.Info($"AchillesHeelDaemon.Release begin {session}");
+                            var releaseCount = 0L;
                             foreach (var e in session.Acquired)
                             {
                                 // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
                                 await ReleaseAsync(session, e.Key, false);
+                                releaseCount++;
                             }
                             session.SetActiveTime(Util.Time.NowUnixMillis);
-                            logger.Info($"AchillesHeelDaemon.Release end {session}");
+                            if (releaseCount > 0)
+                                logger.Info($"AchillesHeelDaemon.Release session={session} count={releaseCount}");
                         }
                     }
                 }

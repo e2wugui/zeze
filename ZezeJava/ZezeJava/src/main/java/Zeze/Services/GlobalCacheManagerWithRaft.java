@@ -30,6 +30,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Util.IdentityHashSet;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
+import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.Level;
@@ -124,23 +125,25 @@ public class GlobalCacheManagerWithRaft
 		if (raft != null && raft.isLeader()) {
 			sessions.forEach(session -> {
 				if (now - session.getActiveTime() > achillesHeelConfig.globalDaemonTimeout && !session.debugMode) {
-					logger.info("AchillesHeelDaemon.Release begin {}", session);
 					synchronized (session) {
 						session.kick();
 						var Acquired = serverAcquiredTemplate.openTable(session.serverId);
 						try {
+							var releaseCount = new OutLong();
 							Acquired.walkKey(key -> {
 								// 在循环中删除。这样虽然效率低些，但是能处理更多情况。
 								if (rocks.getRaft().isLeader()) {
 //									logger.info("AchillesHeelDaemon.Release table={} key={} session={}",
 //											Acquired.getName(), key, session);
 									release(session, key);
+									++ releaseCount.value;
 									return true;
 								}
 								return false;
 							});
 							session.setActiveTime(System.currentTimeMillis());
-							logger.info("AchillesHeelDaemon.Release end {}", session);
+							if (releaseCount.value > 0)
+								logger.info("AchillesHeelDaemon.Release session={} count={}", session, releaseCount.value);
 						} catch (Throwable e) {
 							logger.error("AchillesHeelDaemon.Release {} exception", session, e);
 						} finally {
