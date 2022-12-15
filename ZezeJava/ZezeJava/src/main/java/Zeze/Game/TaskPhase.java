@@ -1,7 +1,5 @@
 package Zeze.Game;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Game.TaskBase.BTPhaseCommitNPCTalk;
@@ -16,10 +14,6 @@ public class TaskPhase {
 	public static final int ConditionCompleteAll = 31;
 	public static final int ConditionCompleteAny = 32;
 	public static final int ConditionCompleteSequence = 33;
-
-	/**
-	 * 指定这个方法以允许任务根据不同的Condition完成情况来切换到不同的NextPhase。
-	 */
 
 	// @formatter:off
 	public static class Opt {

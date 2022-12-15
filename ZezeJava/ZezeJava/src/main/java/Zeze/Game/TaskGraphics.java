@@ -1,41 +1,91 @@
 package Zeze.Game;
 
-/*
- * 所有任务的集合类
- * TODO:
- * 1. 任务的状态变化，需要通知客户端
- * 2. 任务的状态变化，需要通知其他模块
- * 3. 任务的状态变化，需要通知数据库
- * 4. 任务的状态变化，需要通知其他服务器
- * 5. 任务的状态变化，需要通知其他服务器的数据库
- * 6. 任务的状态变化，需要通知其他服务器的客户端
- * 7. 任务的状态变化，需要通知其他服务器的其他模块
- */
-
-import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
 
 /**
- * TaskGraphics
+ * 计划不要TaskGraphics了，直接将功能集成进TaskBase中
  */
 public class TaskGraphics {
-	final TaskBase.Module taskModule;
-	private final DirectedAcyclicGraph<TaskBase<?>, DefaultEdge> graph;
-
-	public TaskGraphics(TaskBase.Module taskModule) {
-		this.taskModule = taskModule;
-		graph = new DirectedAcyclicGraph<>(DefaultEdge.class);
-		rebuildGraph();
-	}
-
-	public void rebuildGraph() {
-		for (var task : taskModule.getTasks().values()) {
-			graph.addVertex(task);
-		}
-	}
+//	final TaskBase.Module taskModule;
+//	private DirectedAcyclicGraph<Long /* Task Id*/, DefaultEdge> graph;
+//
+//	public TaskGraphics(TaskBase.Module taskModule) {
+//		this.taskModule = taskModule;
+//		graph = new DirectedAcyclicGraph<>(DefaultEdge.class);
+//	}
+//
+//	public void rebuildGraph() throws Exception {
+//		graph = null;
+//		graph = new DirectedAcyclicGraph<>(DefaultEdge.class);
+//
+//		// init vertex
+//		for (var task : taskModule.getTasks().values()) {
+//			graph.addVertex(task.getId());
+//		}
+//
+//		// init edge
+//		for (var task : taskModule.getTasks().values()) {
+//			var taskId = task.getId();
+//			for (var preId : task.getBean().getPreTaskIds()) {
+//				if (!graph.vertexSet().contains(preId))
+//					throw new Exception("No PreTask: " + preId + "for Task: " + taskId);
+//				graph.addEdge(preId, taskId);
+//			}
+//		}
+//	}
+//
+//	// ======================================== Edit Mode ========================================
+//	public static class EditMode {
+//		private final DirectedAcyclicGraph<Long /* Task Id*/, DefaultEdge> graphToEdit;
+//
+//		public EditMode(DirectedAcyclicGraph<Long, DefaultEdge> graph) {
+//			graphToEdit = graph;
+//		}
+//
+//		public void addNewTask(TaskBase<?> task) throws Exception {
+//			var taskId = task.getId();
+//			if (checkTaskExist(taskId))
+//				throw new Exception("Task: " + taskId + " already Exist");
+//
+//			graphToEdit.addVertex(taskId);
+//
+//			for (var preId : task.getBean().getPreTaskIds()) {
+//				if (!checkTaskExist(preId))
+//					throw new Exception("No PreTask: " + preId + "for Task: " + taskId);
+//				graphToEdit.addEdge(preId, taskId);
+//
+//			}
+//		}
+//
+//		public void removeTaskSafe(TaskBase<?> task) throws Exception {
+//			var taskId = task.getId();
+//			if (!checkTaskExist(taskId))
+//				throw new Exception("Task: " + taskId + " NOT Exist");
+//
+//			var preTaskIds = graphToEdit.getAncestors(taskId);
+//			var afterTaskIds = graphToEdit.getDescendants(taskId);
+//		}
+//
+//		public void removeTaskLink() {
+//			Supplier<Stream<Long>> zeroInAndOutNodesSupplier = () -> graphToEdit.vertexSet().stream().filter(task -> graphToEdit.inDegreeOf(task) == 0 && graphToEdit.outDegreeOf(task) == 0); // 寻找离散任务点
+//			var zeroInAndOutNodes = zeroInAndOutNodesSupplier.get();
+//		}
+//
+//		public void End() {
+//
+//		}
+//
+//		private boolean checkTaskExist(long id) {
+//			return graphToEdit.vertexSet().contains(id);
+//		}
+//	}
+//
+//	public EditMode enterEditMode() {
+//		return new EditMode(graph);
+//	}
 
 //	public void addNewTask(TaskBase task) {
 //		graph.addVertex(task);

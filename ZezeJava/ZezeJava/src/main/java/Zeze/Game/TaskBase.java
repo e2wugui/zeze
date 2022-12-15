@@ -1,6 +1,7 @@
 package Zeze.Game;
 
 import java.lang.invoke.MethodHandle;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.ParameterizedType;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -15,13 +16,15 @@ import Zeze.Builtin.Game.TaskBase.TriggerTaskEvent;
 import Zeze.Collections.BeanFactory;
 import Zeze.Game.Task.NPCTask;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.Collections.PList1;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
+import Zeze.Util.ConcurrentHashSet;
 
 public abstract class TaskBase<ExtendedBean extends Bean> {
 	/**
-	 * Task Module
+	 * Task Module：承担TaskGraphics的功能
 	 */
 	public static class Module extends AbstractTaskBase {
 		/**
@@ -72,6 +75,21 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		}
 
 		/**
+		 * 在加载任务配表前，需要先注册任务类型。（因为TaskBase是个绝对抽象类，不知道任何外部的扩展任何类型的信息）
+		 */
+		public <ExtendedBean extends Bean,
+				ExtendedTask extends TaskBase<ExtendedBean>,
+				ExtendedOpt extends TaskBase.Opt
+				> void registerTask(Class<ExtendedTask> extendedTaskClass, Class<ExtendedOpt> extendedOptClass) {
+			try {
+				var c = extendedTaskClass.getDeclaredConstructor(Module.class, extendedOptClass);
+				extendedTaskConstructors.add(c);
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		/**
 		 * 新建内置任务：NPCTask
 		 * (当前public，后续应该改成protected，统一使用loadConfig(String taskConfigTable)读表加载)
 		 */
@@ -82,14 +100,15 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		/**
 		 * 新建非内置任务
 		 */
-		public <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>> ExtendedTask newTask(TaskBase.Opt opt, Class<ExtendedTask> extendedTaskClass) {
+		public <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>>
+		ExtendedTask newTask(TaskBase.Opt opt, Class<ExtendedTask> extendedTaskClass) {
 			return open(opt, extendedTaskClass);
 		}
 
 		private final ConcurrentHashMap<Long, TaskBase<?>> tasks = new ConcurrentHashMap<>();
+		private final ConcurrentHashSet<Constructor<?>> extendedTaskConstructors = new ConcurrentHashSet<>();
 		public final ProviderApp providerApp;
 		public final Application zeze;
-		private final TaskGraphics taskGraphics;
 
 		public Module(Application zeze) {
 			this.zeze = zeze;
@@ -97,13 +116,21 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 			RegisterZezeTables(zeze);
 			RegisterProtocols(this.providerApp.providerService);
 			providerApp.builtinModules.put(this.getFullName(), this);
-			taskGraphics = new TaskGraphics(this);
 		}
 
 		/**
-		 * 加载任务配置表
+		 * 加载任务配置表里的所有任务（在服务器启动时，或者想要验证配表是否合法时）
+		 * 需要在事务中执行。
 		 */
-		public void loadConfig(String taskConfigTable) {
+		public void loadConfig(String taskConfigTable) throws Exception {
+
+			// 这里解析任务配置表，然后把所有任务配置填充到task里面。
+
+			// 初始化所有Task的初始配置
+			for (var task : tasks.values()) {
+				task.preTaskIds.clear();
+				task.nextTaskIds.clear();
+			}
 		}
 
 		public void register(Class<? extends Bean> cls) {
@@ -118,10 +145,6 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 			}
 		}
 
-		public ConcurrentHashMap<Long, TaskBase<?>> getTasks() {
-			return tasks;
-		}
-
 		// 需要在事务内使用。使用完不要保存。
 		@SuppressWarnings("unchecked")
 		private <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>> ExtendedTask open(TaskBase.Opt opt, Class<ExtendedTask> extendedTaskClass) {
@@ -129,7 +152,6 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 				try {
 					var c = extendedTaskClass.getDeclaredConstructor(Module.class, TaskBase.Opt.class); // TODO：可以把这个的Constructor缓存起来
 					var res = c.newInstance(this, opt);
-					taskGraphics.rebuildGraph();
 					return res;
 				} catch (Exception e) {
 					throw new RuntimeException(e);
@@ -157,7 +179,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		this.bean.setTaskState(Module.Invalid);
 		this.bean.setTaskName(opt.name);
 		this.bean.setTaskDescription(opt.description);
-		for (long id :opt.preTaskIds) {
+		for (long id : opt.preTaskIds) {
 			this.bean.getPreTaskIds().add(id);
 		}
 		this.bean.getExtendedData().setBean(new EmptyBean());
@@ -166,7 +188,6 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		bean.getExtendedData().setBean(BeanFactory.invoke(extendedBeanConstructor));
 
 		currentPhase = null;
-//		module.taskGraphics.addNewTask(this);
 	}
 
 	/**
@@ -182,6 +203,10 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	public int getState() { return bean.getTaskState(); }
 	public String getName() { return bean.getTaskName(); }
 	public String getDescription() { return bean.getTaskDescription(); }
+	public ConcurrentHashSet<Long> getPreTaskIds() { return preTaskIds; } // 这里不返回PList1<Long>，只返回一个拷贝。因为我们不希望在Runtime阶段再来修改PreTask。
+	public ConcurrentHashSet<Long> getNextTaskIds() { return nextTaskIds; }
+	private final ConcurrentHashSet<Long> preTaskIds = new ConcurrentHashSet<>();; // 将通过Module在加载完配置后（即TaskGraphics的功能）统一初始化，与Bean无关，不需要存储在数据库
+	private final ConcurrentHashSet<Long> nextTaskIds = new ConcurrentHashSet<>();; // 将通过Module在加载完配置后（即TaskGraphics的功能）统一初始化，与Bean无关，不需要存储在数据库
 	public Module getModule() { return module; }
 	private final Module module;
 	public BTask getBean() { return bean; }

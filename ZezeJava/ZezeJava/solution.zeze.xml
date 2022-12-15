@@ -751,7 +751,7 @@
 					<variable id="3" name="taskState" type="int"/> 任务的状态：可接取、已接取、已完成等
 					<variable id="4" name="taskName" type="string"/> 任务的名字，唯一
 					<variable id="5" name="taskDescription" type="string"/> 任务的描述。
-					<variable id="6" name="preTaskIds" type="list" value="long"/> 前置任务Id（只需要存储前置任务就可以建立起整个TaskGraphics，不需要存储后置任务）
+					<variable id="6" name="preTaskIds" type="list" value="long"/> 前置任务Id（只需要存储前置任务就可以建立起整个TaskGraphics，不需要存储后置任务，这样也方便扩展）
 					<variable id="7" name="currentPhaseId" type="long"/> 当前的PhaseId
 					<variable id="8" name="taskPhases" type="map" key="long" value="BTaskPhase"/> 该任务所有的Phase
 					<variable id="9" name="extendedData" type="dynamic"> 用于自定义扩展Task的数据
