@@ -489,9 +489,10 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 				r.Argument.getServiceIdentity(), r.Argument.getPassiveIp(), r.Argument.getPassivePort());
 		var netSession = (Session)r.getSender().getUserState();
 		var session = tableSession.get(netSession.name);
+		/* todo
 		if (!session.getRegisters().contains(toRocksKey(r.Argument)))
 			return Zeze.Services.ServiceManager.Update.ServiceNotRegister;
-
+		*/
 		var state = tableServerState.get(r.Argument.getServiceName());
 		if (state == null)
 			return Update.ServerStateError;
