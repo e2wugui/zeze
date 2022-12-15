@@ -16,6 +16,10 @@ public class Subscribe extends Zeze.Raft.RaftRpc<Zeze.Builtin.ServiceManagerWith
         return ProtocolId_;
     }
 
+    public static final int Success = 0;
+    public static final int DuplicateSubscribe = 1;
+    public static final int UnknownSubscribeType = 2;
+
     public Subscribe() {
         Argument = new Zeze.Builtin.ServiceManagerWithRaft.BSubscribeInfo();
         Result = Zeze.Transaction.EmptyBean.instance;

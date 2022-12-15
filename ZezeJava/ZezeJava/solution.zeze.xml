@@ -1199,7 +1199,11 @@
 				<enum name="DuplicateRegister" value="1"/>
 			</rpc>
 			<rpc name="SetServerLoad" argument="BServerLoad" base="Zeze.Raft.RaftRpc" handle="server"/>
-			<rpc name="Subscribe" argument="BSubscribeInfo" base="Zeze.Raft.RaftRpc" handle="server"/>
+			<rpc name="Subscribe" argument="BSubscribeInfo" base="Zeze.Raft.RaftRpc" handle="server">
+				<enum name="Success" value="0"/>
+				<enum name="DuplicateSubscribe" value="1"/>
+				<enum name="UnknownSubscribeType" value="2"/>
+			</rpc>
 			<rpc name="SubscribeFirstCommit" argument="BServiceInfos" base="Zeze.Raft.RaftRpc" handle="client"/>
 			<rpc name="UnRegister" argument="BServiceInfo" base="Zeze.Raft.RaftRpc" handle="server,client"/>
 			<rpc name="UnSubscribe" argument="BSubscribeInfo" base="Zeze.Raft.RaftRpc" handle="server">
@@ -1231,18 +1235,22 @@
 				<variable id="1" name="SessionId" type="long"/>
 				<variable id="2" name="OfflineRegisterServerId" type="int"/>
 				<variable id="3" name="OfflineRegisterNotifies" type="map[string, BOfflineNotifyRocks]"/>
-				<variable id="4" name="Registers" type="set[BKeyServiceInfoRocks]"/>
-				<variable id="5" name="Subscribes" type="map[string, BSubscribeInfoRocks]"/>
-				
+				<variable id="4" name="Registers" type="map[BServiceInfoKeyRocks, BServiceInfoRocks]"/>
+				<variable id="5" name="Subscribes" type="map[string, BSubscribeInfoRocks]"/>				
 			</bean>
-			<beankey name="BKeyServiceInfoRocks" kind="rocks">
+			<beankey name="BServiceInfoKeyRocks" kind="rocks">
+				<variable id="1" name="ServiceName" type="string"/>
+				<variable id="2" name="ServiceIdentity" type="string"/>
+			</beankey>
+			<bean name="BServiceInfoRocks" kind="rocks">
 				<variable id="1" name="ServiceName" type="string"/>
 				<variable id="2" name="ServiceIdentity" type="string"/>
 				<variable id="3" name="PassiveIp" type="string"/>
 				<variable id="4" name="PassivePort" type="int"/>
 				<variable id="5" name="ExtraInfo" type="binary"/>
 				<variable id="6" name="Param" type="binary"/>
-			</beankey>
+				<variable id="7" name="SessionName" type="string"/>
+			</bean>
 			<bean name="BSubscribeInfoRocks" kind="rocks">
 				<variable id="1" name="ServiceName" type="string"/>
 				<variable id="2" name="SubscribeType" type="int"/>
@@ -1265,15 +1273,6 @@
 			</bean>
 			<bean name="BSubscribeStateRocks" kind="rocks">
 				<variable id="1" name="Ready" type="bool"/>
-			</bean>
-			<bean name="BServiceInfoRocks" kind="rocks">
-				<variable id="1" name="ServiceName" type="string"/>
-				<variable id="2" name="ServiceIdentity" type="string"/>
-				<variable id="3" name="PassiveIp" type="string"/>
-				<variable id="4" name="PassivePort" type="int"/>
-				<variable id="5" name="ExtraInfo" type="binary"/>
-				<variable id="6" name="Param" type="binary"/>
-				<variable id="7" name="SessionName" type="string"/>
 			</bean>
 			<table name="tServerState" key="string" value="BServerState" kind="rocks"/>
 

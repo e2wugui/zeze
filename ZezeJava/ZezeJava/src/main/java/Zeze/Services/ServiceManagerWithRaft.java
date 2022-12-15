@@ -1,8 +1,9 @@
 package Zeze.Services;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.TreeMap;
 import java.util.concurrent.Future;
 import Zeze.Builtin.ServiceManagerWithRaft.*;
 import Zeze.Net.AsyncSocket;
@@ -19,9 +20,6 @@ import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
 import Zeze.Util.Func0;
 import Zeze.Util.KV;
-import Zeze.Util.LongHashMap;
-import Zeze.Util.LongHashSet;
-import Zeze.Util.LongList;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
@@ -34,7 +32,10 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 	private final Table<String, BSession> tableSession;
 	private final Table<String, BLoadObservers> tableLoadObservers;
 	private final Table<String, BServerState> tableServerState;
-	private final ConcurrentHashMap<Integer, Future<?>> offlineNotifyFutures = new ConcurrentHashMap<>();
+	private final HashMap<Integer, Future<?>> offlineNotifyFutures = new HashMap<>();
+	private final HashMap<String, Future<?>> notifyTimeoutTasks = new HashMap<>();
+
+	private Future<?> startNotifyDelayTask;
 	// 需要从配置文件中读取，把这个引用加入：Zeze.Config.AddCustomize
 	private final ServiceManagerServer.Conf config;
 
@@ -266,13 +267,10 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 		return 0;
 	}
 
-	// todo subscribeAndSend 的时候注册
-	//  for (var info : serviceInfos.values())
-	//     serviceManager.addLoadObserver(info.getPassiveIp(), info.getPassivePort(), r.getSender());
-	private void addLoadObserver(String ip, int port, AsyncSocket sender) {
+	private void addLoadObserver(String ip, int port, String sessionName) {
 		if (!ip.isEmpty() && port != 0) {
 			var loadObservers = tableLoadObservers.getOrAdd(ip + ":" + port);
-			loadObservers.getObservers().add(((Session)sender.getUserState()).name);
+			loadObservers.getObservers().add(sessionName);
 		}
 	}
 
@@ -310,10 +308,8 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 				sessionName);
 	}
 
-	private static BKeyServiceInfoRocks toRocksKey(BServiceInfo serverInfo) {
-		return new BKeyServiceInfoRocks(serverInfo.getServiceName(), serverInfo.getServiceIdentity(),
-				serverInfo.getPassiveIp(), serverInfo.getPassivePort(),
-				serverInfo.getExtraInfo(), serverInfo.getParam());
+	private static BServiceInfoKeyRocks toRocksKey(BServiceInfo serverInfo) {
+		return new BServiceInfoKeyRocks(serverInfo.getServiceName(), serverInfo.getServiceIdentity());
 	}
 
 	private static BSubscribeInfoRocks toRocks(BSubscribeInfo si) {
@@ -325,26 +321,14 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 		var netSession = (Session)r.getSender().getUserState();
 		var session = tableSession.get(netSession.name);
 		// 允许重复登录，断线重连Agent不好原子实现重发。
-		if (session.getRegisters().add(toRocksKey(r.Argument))) {
-			logger.info("{}: Register {} serverId={} ip={} port={}", r.getSender(), r.Argument.getServiceName(),
-					r.Argument.getServiceIdentity(), r.Argument.getPassiveIp(), r.Argument.getPassivePort());
-		} else {
-			logger.info("{}: Already Registered {} serverId={} ip={} port={}", r.getSender(), r.Argument.getServiceName(),
-					r.Argument.getServiceIdentity(), r.Argument.getPassiveIp(), r.Argument.getPassivePort());
-		}
+		session.getRegisters().put(toRocksKey(r.Argument), toRocks(r.Argument, netSession.name));
 		var state = tableServerState.getOrAdd(r.Argument.getServiceName());
-
 		// AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
 		state.getServiceInfos().put(r.Argument.getServiceIdentity(), toRocks(r.Argument, netSession.name));
 		r.SendResultCode(Register.Success);
 		startReadyCommitNotify(state);
 		notifySimpleOnRegister(state, r.Argument);
-
 		return Procedure.Success;
-	}
-
-	private void startReadyCommitNotify(BServerState state) {
-		// todo
 	}
 
 	private void notifySimpleOnRegister(BServerState state, BServiceInfo info) {
@@ -489,14 +473,11 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 				r.Argument.getServiceIdentity(), r.Argument.getPassiveIp(), r.Argument.getPassivePort());
 		var netSession = (Session)r.getSender().getUserState();
 		var session = tableSession.get(netSession.name);
-		/* todo
-		if (!session.getRegisters().contains(toRocksKey(r.Argument)))
-			return Zeze.Services.ServiceManager.Update.ServiceNotRegister;
-		*/
+		if (!session.getRegisters().containsKey(toRocksKey(r.Argument)))
+			return Update.ServiceNotRegister;
 		var state = tableServerState.get(r.Argument.getServiceName());
 		if (state == null)
 			return Update.ServerStateError;
-
 		var rc = updateAndNotify(state, r.Argument);
 		if (rc != 0)
 			return rc;
@@ -546,18 +527,144 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 		return 0;
 	}
 
+	private void startReadyCommitNotify(BServerState state) {
+		startReadyCommitNotify(state, false);
+	}
+
+	private static BServiceInfos newSortedBServiceInfos(BServerState state) {
+		var result = new BServiceInfos(state.getServiceName(), state.getSerialId());
+		var sortedMap = new TreeMap<BServiceInfoKeyRocks, BServiceInfoRocks>();
+		for (var info : state.getServiceInfos())
+			sortedMap.put(new BServiceInfoKeyRocks(state.getServiceName(), info.getKey()), info.getValue());
+		for (var sortedInfo : sortedMap.values())
+			result.getServiceInfoListSortedByIdentity().add(fromRocks(sortedInfo));
+		return result;
+	}
+
+	private void startReadyCommitNotify(BServerState state, boolean notifySimple) {
+		if (startNotifyDelayTask != null)
+			return;
+
+		state.setSerialId(state.getSerialId() + 1);
+		var notify = new NotifyServiceList(newSortedBServiceInfos(state));
+
+		var notifyBytes = notify.encode();
+		var sb = new StringBuilder();
+
+		if (notifySimple) {
+			for (var it : state.getSimple()) {
+				var session = tableSession.get(it.getKey());
+				if (null != session) {
+					var s = rocks.getRaft().getServer().GetSocket(session.getSessionId());
+					if (s != null && s.Send(notifyBytes))
+						sb.append(s.getSessionId()).append(',');
+				}
+			}
+		}
+
+		var n = sb.length();
+		if (n > 0)
+			sb.setCharAt(n - 1, ';');
+		else
+			sb.append(';');
+
+		for (var it : state.getReadyCommit()) {
+			it.getValue().setReady(false);
+			var session = tableSession.get(it.getKey());
+			if (null != session) {
+				var s = rocks.getRaft().getServer().GetSocket(session.getSessionId());
+				if (s != null && s.Send(notifyBytes))
+					sb.append(s.getSessionId()).append(',');
+			}
+		}
+		if (sb.length() > 1)
+			AsyncSocket.logger.info("SEND[{}]: NotifyServiceList: {}", sb, notify.Argument);
+
+		if (state.getReadyCommit().size() > 0) {
+			var notifyTimeoutTask = notifyTimeoutTasks.get(state.getServiceName());
+			// 只有两段公告模式需要回应处理。
+			if (notifyTimeoutTask != null)
+				notifyTimeoutTask.cancel(false);
+			notifyTimeoutTasks.put(state.getServiceName(),
+					Task.scheduleUnsafe(config.retryNotifyDelayWhenNotAllReady,
+					() -> {
+						// NotifyTimeoutTask 会在下面两种情况下被修改：
+						// 1. 在 Notify.ReadyCommit 完成以后会被清空。
+						// 2. 启动了新的 Notify。
+						startReadyCommitNotify(state); // restart
+					}));
+		}
+	}
+
 	@Override
 	protected long ProcessReadyServiceListRequest(ReadyServiceList r) throws Throwable {
+		var netSession = (Session)r.getSender().getUserState();
+		var state = tableServerState.getOrAdd(r.Argument.getServiceName());
+		setReady(state, r, netSession.name);
 		return 0;
 	}
 
-	private long subscribeAndSend(BServerState state, Subscribe r, String ssName) {
-		// todo
-		return 0;
+	private void setReady(BServerState state, ReadyServiceList r, String sessionName) {
+		if (r.Argument.getSerialId() != state.getSerialId()) {
+			logger.debug("Ready Skip: SerialId Not Equal. {} Now={}", r.Argument.getSerialId(), state.getSerialId());
+			return;
+		}
+		// logger.debug("Ready:{} Now={}", p.Argument.SerialId, SerialId);
+		var subscribeState = state.getReadyCommit().get(sessionName);
+		if (subscribeState != null) {
+			subscribeState.setReady(true);
+			tryCommit(state);
+		}
 	}
 
 	private void tryCommit(BServerState state) {
+		var notifyTimeoutTask = notifyTimeoutTasks.get(state.getServiceName());
+		if (notifyTimeoutTask == null)
+			return; // no pending notify
 
+		for (var it : state.getReadyCommit()) {
+			if (!it.getValue().isReady())
+				return;
+		}
+
+		logger.debug("Ready Broadcast.");
+		var commit = new CommitServiceList();
+		commit.Argument.setServiceName(state.getServiceName());
+		commit.Argument.setSerialId(state.getSerialId());
+		for (var it : state.getReadyCommit()) {
+			var session = tableSession.get(it.getKey());
+			if (null != session)
+				commit.Send(rocks.getRaft().getServer().GetSocket(session.getSessionId()));
+		}
+		notifyTimeoutTask.cancel(false);
+		notifyTimeoutTasks.remove(state.getServiceName());
+	}
+
+	private long subscribeAndSend(BServerState state, Subscribe r, String ssName) {
+		// 外面会话的 TryAdd 加入成功，下面TryAdd肯定也成功。
+		switch (r.Argument.getSubscribeType()) {
+		case BSubscribeInfo.SubscribeTypeSimple:
+			state.getSimple().put(ssName, new BSubscribeStateRocks());
+			if (startNotifyDelayTask == null)
+				new SubscribeFirstCommit(newSortedBServiceInfos(state)).Send(r.getSender());
+			break;
+
+		case BSubscribeInfo.SubscribeTypeReadyCommit:
+			state.getReadyCommit().put(ssName, new BSubscribeStateRocks());
+			startReadyCommitNotify(state);
+			break;
+
+		default:
+			r.SendResultCode(Subscribe.UnknownSubscribeType);
+			return Procedure.LogicError;
+		}
+
+		var netSession = (Session)r.getSender().getUserState();
+		for (var info : state.getServiceInfos().values())
+			addLoadObserver(info.getPassiveIp(), info.getPassivePort(), netSession.name);
+
+		r.SendResultCode(Zeze.Services.ServiceManager.Subscribe.Success);
+		return Procedure.Success;
 	}
 
 }

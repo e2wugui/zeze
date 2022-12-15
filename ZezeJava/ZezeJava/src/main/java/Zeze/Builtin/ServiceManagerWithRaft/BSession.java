@@ -10,7 +10,7 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
     private long _SessionId;
     private int _OfflineRegisterServerId;
     private final Zeze.Raft.RocksRaft.CollMap2<String, Zeze.Builtin.ServiceManagerWithRaft.BOfflineNotifyRocks> _OfflineRegisterNotifies;
-    private final Zeze.Raft.RocksRaft.CollSet1<Zeze.Builtin.ServiceManagerWithRaft.BKeyServiceInfoRocks> _Registers;
+    private final Zeze.Raft.RocksRaft.CollMap2<Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoKeyRocks, Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoRocks> _Registers;
     private final Zeze.Raft.RocksRaft.CollMap2<String, Zeze.Builtin.ServiceManagerWithRaft.BSubscribeInfoRocks> _Subscribes;
 
     public long getSessionId() {
@@ -59,7 +59,7 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
         return _OfflineRegisterNotifies;
     }
 
-    public Zeze.Raft.RocksRaft.CollSet1<Zeze.Builtin.ServiceManagerWithRaft.BKeyServiceInfoRocks> getRegisters() {
+    public Zeze.Raft.RocksRaft.CollMap2<Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoKeyRocks, Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoRocks> getRegisters() {
         return _Registers;
     }
 
@@ -70,7 +70,7 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
     public BSession() {
         _OfflineRegisterNotifies = new Zeze.Raft.RocksRaft.CollMap2<>(String.class, Zeze.Builtin.ServiceManagerWithRaft.BOfflineNotifyRocks.class);
         _OfflineRegisterNotifies.variableId(3);
-        _Registers = new Zeze.Raft.RocksRaft.CollSet1<>(Zeze.Builtin.ServiceManagerWithRaft.BKeyServiceInfoRocks.class);
+        _Registers = new Zeze.Raft.RocksRaft.CollMap2<>(Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoKeyRocks.class, Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoRocks.class);
         _Registers.variableId(4);
         _Subscribes = new Zeze.Raft.RocksRaft.CollMap2<>(String.class, Zeze.Builtin.ServiceManagerWithRaft.BSubscribeInfoRocks.class);
         _Subscribes.variableId(5);
@@ -81,7 +81,7 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
         _OfflineRegisterServerId = _OfflineRegisterServerId_;
         _OfflineRegisterNotifies = new Zeze.Raft.RocksRaft.CollMap2<>(String.class, Zeze.Builtin.ServiceManagerWithRaft.BOfflineNotifyRocks.class);
         _OfflineRegisterNotifies.variableId(3);
-        _Registers = new Zeze.Raft.RocksRaft.CollSet1<>(Zeze.Builtin.ServiceManagerWithRaft.BKeyServiceInfoRocks.class);
+        _Registers = new Zeze.Raft.RocksRaft.CollMap2<>(Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoKeyRocks.class, Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoRocks.class);
         _Registers.variableId(4);
         _Subscribes = new Zeze.Raft.RocksRaft.CollMap2<>(String.class, Zeze.Builtin.ServiceManagerWithRaft.BSubscribeInfoRocks.class);
         _Subscribes.variableId(5);
@@ -94,8 +94,8 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
         for (var e : other._OfflineRegisterNotifies.entrySet())
             _OfflineRegisterNotifies.put(e.getKey(), e.getValue());
         _Registers.clear();
-        for (var e : other._Registers)
-            _Registers.add(e);
+        for (var e : other._Registers.entrySet())
+            _Registers.put(e.getKey(), e.getValue());
         _Subscribes.clear();
         for (var e : other._Subscribes.entrySet())
             _Subscribes.put(e.getKey(), e.getValue());
@@ -160,10 +160,15 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append(']').append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Registers").append("=[").append(System.lineSeparator());
         level += 4;
-        for (var _item_ : getRegisters()) {
-            sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(System.lineSeparator());
-            _item_.buildString(sb, level + 4);
+        for (var _kv_ : getRegisters().entrySet()) {
+            sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
+            sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(System.lineSeparator());
+            _kv_.getKey().buildString(sb, level + 4);
             sb.append(',').append(System.lineSeparator());
+            sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
+            _kv_.getValue().buildString(sb, level + 4);
+            sb.append(',').append(System.lineSeparator());
+            sb.append(Zeze.Util.Str.indent(level)).append(')').append(System.lineSeparator());
         }
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append(']').append(',').append(System.lineSeparator());
@@ -228,10 +233,12 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
             var _x_ = getRegisters();
             int _n_ = _x_.size();
             if (_n_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.LIST);
-                _o_.WriteListType(_n_, ByteBuffer.BEAN);
-                for (var _v_ : _x_)
-                    _v_.encode(_o_);
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.MAP);
+                _o_.WriteMapType(_n_, ByteBuffer.BEAN, ByteBuffer.BEAN);
+                for (var _e_ : _x_.entrySet()) {
+                    _e_.getKey().encode(_o_);
+                    _e_.getValue().encode(_o_);
+                }
             }
         }
         {
@@ -278,11 +285,15 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
         if (_i_ == 4) {
             var _x_ = getRegisters();
             _x_.clear();
-            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
-                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadBean(new Zeze.Builtin.ServiceManagerWithRaft.BKeyServiceInfoRocks(), _t_));
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
+                int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
+                for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
+                    var _k_ = _o_.ReadBean(new Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoKeyRocks(), _s_);
+                    var _v_ = _o_.ReadBean(new Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoRocks(), _t_);
+                    _x_.put(_k_, _v_);
+                }
             } else
-                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+                _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 5) {
