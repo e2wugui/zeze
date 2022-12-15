@@ -1220,6 +1220,8 @@
 			</bean>
 			<table name="tSession" key="string" value="BSession" kind="rocks"/>
 
+			<!-- service -->
+
 		</module>
 
 		<!--

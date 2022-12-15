@@ -7,6 +7,7 @@ import java.util.concurrent.Future;
 import Zeze.Builtin.ServiceManagerWithRaft.AllocateId;
 import Zeze.Builtin.ServiceManagerWithRaft.BAutoKey;
 import Zeze.Builtin.ServiceManagerWithRaft.BOfflineNotifyRocks;
+import Zeze.Builtin.ServiceManagerWithRaft.BServerLoad;
 import Zeze.Builtin.ServiceManagerWithRaft.BSession;
 import Zeze.Builtin.ServiceManagerWithRaft.KeepAlive;
 import Zeze.Builtin.ServiceManagerWithRaft.Login;
@@ -31,6 +32,8 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Util.Action0;
 import Zeze.Util.Func0;
 import Zeze.Util.KV;
+import Zeze.Util.LongHashSet;
+import Zeze.Util.LongList;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
@@ -44,6 +47,8 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 	private final ConcurrentHashMap<Integer, Future<?>> offlineNotifyFutures = new ConcurrentHashMap<>();
 	// 需要从配置文件中读取，把这个引用加入：Zeze.Config.AddCustomize
 	private final ServiceManagerServer.Conf config;
+
+	private final ConcurrentHashMap<String, LoadObservers> loads = new ConcurrentHashMap<>();
 
 	public ServiceManagerWithRaft(String raftName, RaftConfig raftConf, Zeze.Config config,
 								  boolean RocksDbWriteOptionSync) throws Throwable {
@@ -283,8 +288,48 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 		return 0;
 	}
 
+	public final class LoadObservers {
+		private final LongHashSet observers = new LongHashSet();
+
+		public synchronized void addObserver(long sessionId) {
+			observers.add(sessionId);
+		}
+
+		// synchronized big?
+		public synchronized void setLoad(BServerLoad load) {
+			var set = new SetServerLoad();
+			set.Argument = load;
+			LongList removed = null;
+			for (var it = observers.iterator(); it.moveToNext(); ) {
+				long observer = it.value();
+				try {
+					if (set.Send(rocks.getRaft().getServer().GetSocket(observer)))
+						continue;
+				} catch (Throwable ignored) {
+				}
+				if (removed == null)
+					removed = new LongList();
+				removed.add(observer);
+			}
+			if (removed != null)
+				removed.foreach(observers::remove);
+		}
+	}
+
+	// todo subscribeAndSend 的时候注册
+	//  for (var info : serviceInfos.values())
+	//     serviceManager.addLoadObserver(info.getPassiveIp(), info.getPassivePort(), r.getSender());
+	private void addLoadObserver(String ip, int port, AsyncSocket sender) {
+		if (!ip.isEmpty() && port != 0) {
+			loads.computeIfAbsent(ip + ":" + port, __ -> new LoadObservers())
+					.addObserver(sender.getSessionId());
+		}
+	}
+
 	@Override
 	protected long ProcessSetServerLoadRequest(SetServerLoad r) throws Throwable {
+		loads.computeIfAbsent(r.Argument.getIp() + ":" + r.Argument.getPort(), __ -> new LoadObservers())
+				.setLoad(r.Argument);
 		return 0;
 	}
 
