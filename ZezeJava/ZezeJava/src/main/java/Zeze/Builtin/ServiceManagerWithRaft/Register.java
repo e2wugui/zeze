@@ -16,6 +16,9 @@ public class Register extends Zeze.Raft.RaftRpc<Zeze.Builtin.ServiceManagerWithR
         return ProtocolId_;
     }
 
+    public static final int Success = 0;
+    public static final int DuplicateRegister = 1;
+
     public Register() {
         Argument = new Zeze.Builtin.ServiceManagerWithRaft.BServiceInfo();
         Result = Zeze.Transaction.EmptyBean.instance;

@@ -16,6 +16,12 @@ public class Update extends Zeze.Raft.RaftRpc<Zeze.Builtin.ServiceManagerWithRaf
         return ProtocolId_;
     }
 
+    public static final int Success = 0;
+    public static final int ServiceNotRegister = 1;
+    public static final int ServerStateError = 2;
+    public static final int ServiceIdentityNotExist = 3;
+    public static final int ServiceNotSubscribe = 4;
+
     public Update() {
         Argument = new Zeze.Builtin.ServiceManagerWithRaft.BServiceInfo();
         Result = Zeze.Transaction.EmptyBean.instance;

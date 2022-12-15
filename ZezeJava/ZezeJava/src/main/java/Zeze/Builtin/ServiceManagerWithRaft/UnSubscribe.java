@@ -16,6 +16,9 @@ public class UnSubscribe extends Zeze.Raft.RaftRpc<Zeze.Builtin.ServiceManagerWi
         return ProtocolId_;
     }
 
+    public static final int Success = 0;
+    public static final int NotExist = 1;
+
     public UnSubscribe() {
         Argument = new Zeze.Builtin.ServiceManagerWithRaft.BSubscribeInfo();
         Result = Zeze.Transaction.EmptyBean.instance;

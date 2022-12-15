@@ -154,9 +154,15 @@ public abstract class AbstractServiceManagerWithRaft extends Zeze.IModule {
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
         rocks.registerTableTemplate("tAutoKey", String.class, Zeze.Builtin.ServiceManagerWithRaft.BAutoKey.class);
         rocks.registerTableTemplate("tLoadObservers", String.class, Zeze.Builtin.ServiceManagerWithRaft.BLoadObservers.class);
+        rocks.registerTableTemplate("tServerState", String.class, Zeze.Builtin.ServiceManagerWithRaft.BServerState.class);
         rocks.registerTableTemplate("tSession", String.class, Zeze.Builtin.ServiceManagerWithRaft.BSession.class);
         Zeze.Raft.RocksRaft.Rocks.registerLog(() -> new Zeze.Raft.RocksRaft.LogSet1<>(String.class));
+        Zeze.Raft.RocksRaft.Rocks.registerLog(() -> new Zeze.Raft.RocksRaft.LogMap1<>(String.class, Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoRocks.class));
+        Zeze.Raft.RocksRaft.Rocks.registerLog(() -> new Zeze.Raft.RocksRaft.LogMap1<>(String.class, Zeze.Builtin.ServiceManagerWithRaft.BSubscribeStateRocks.class));
         Zeze.Raft.RocksRaft.Rocks.registerLog(() -> new Zeze.Raft.RocksRaft.LogMap1<>(String.class, Zeze.Builtin.ServiceManagerWithRaft.BOfflineNotifyRocks.class));
+        Zeze.Raft.RocksRaft.Rocks.registerLog(() -> new Zeze.Raft.RocksRaft.LogSet1<>(Zeze.Builtin.ServiceManagerWithRaft.BKeyServiceInfoRocks.class));
+        Zeze.Raft.RocksRaft.Rocks.registerLog(() -> new Zeze.Raft.RocksRaft.Log1.LogBeanKey<>(Zeze.Builtin.ServiceManagerWithRaft.BKeyServiceInfoRocks.class));
+        Zeze.Raft.RocksRaft.Rocks.registerLog(() -> new Zeze.Raft.RocksRaft.LogMap1<>(String.class, Zeze.Builtin.ServiceManagerWithRaft.BSubscribeInfoRocks.class));
     }
 
     public void RegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {

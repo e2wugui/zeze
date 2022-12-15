@@ -8,7 +8,7 @@ public final class BServiceInfo extends Zeze.Transaction.Bean implements BServic
     public static final long TYPEID = -8052613410984017450L;
 
     private String _ServiceName;
-    private String _ServiceIdentiry;
+    private String _ServiceIdentity;
     private String _PassiveIp;
     private int _PassivePort;
     private Zeze.Net.Binary _ExtraInfo;
@@ -37,25 +37,25 @@ public final class BServiceInfo extends Zeze.Transaction.Bean implements BServic
     }
 
     @Override
-    public String getServiceIdentiry() {
+    public String getServiceIdentity() {
         if (!isManaged())
-            return _ServiceIdentiry;
+            return _ServiceIdentity;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _ServiceIdentiry;
-        var log = (Log__ServiceIdentiry)txn.getLog(objectId() + 2);
-        return log != null ? log.value : _ServiceIdentiry;
+            return _ServiceIdentity;
+        var log = (Log__ServiceIdentity)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _ServiceIdentity;
     }
 
-    public void setServiceIdentiry(String value) {
+    public void setServiceIdentity(String value) {
         if (value == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _ServiceIdentiry = value;
+            _ServiceIdentity = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ServiceIdentiry(this, 2, value));
+        txn.putLog(new Log__ServiceIdentity(this, 2, value));
     }
 
     @Override
@@ -147,20 +147,20 @@ public final class BServiceInfo extends Zeze.Transaction.Bean implements BServic
     @SuppressWarnings("deprecation")
     public BServiceInfo() {
         _ServiceName = "";
-        _ServiceIdentiry = "";
+        _ServiceIdentity = "";
         _PassiveIp = "";
         _ExtraInfo = Zeze.Net.Binary.Empty;
         _Param = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public BServiceInfo(String _ServiceName_, String _ServiceIdentiry_, String _PassiveIp_, int _PassivePort_, Zeze.Net.Binary _ExtraInfo_, Zeze.Net.Binary _Param_) {
+    public BServiceInfo(String _ServiceName_, String _ServiceIdentity_, String _PassiveIp_, int _PassivePort_, Zeze.Net.Binary _ExtraInfo_, Zeze.Net.Binary _Param_) {
         if (_ServiceName_ == null)
             throw new IllegalArgumentException();
         _ServiceName = _ServiceName_;
-        if (_ServiceIdentiry_ == null)
+        if (_ServiceIdentity_ == null)
             throw new IllegalArgumentException();
-        _ServiceIdentiry = _ServiceIdentiry_;
+        _ServiceIdentity = _ServiceIdentity_;
         if (_PassiveIp_ == null)
             throw new IllegalArgumentException();
         _PassiveIp = _PassiveIp_;
@@ -175,7 +175,7 @@ public final class BServiceInfo extends Zeze.Transaction.Bean implements BServic
 
     public void assign(BServiceInfo other) {
         setServiceName(other.getServiceName());
-        setServiceIdentiry(other.getServiceIdentiry());
+        setServiceIdentity(other.getServiceIdentity());
         setPassiveIp(other.getPassiveIp());
         setPassivePort(other.getPassivePort());
         setExtraInfo(other.getExtraInfo());
@@ -221,11 +221,11 @@ public final class BServiceInfo extends Zeze.Transaction.Bean implements BServic
         public void commit() { ((BServiceInfo)getBelong())._ServiceName = value; }
     }
 
-    private static final class Log__ServiceIdentiry extends Zeze.Transaction.Logs.LogString {
-        public Log__ServiceIdentiry(BServiceInfo bean, int varId, String value) { super(bean, varId, value); }
+    private static final class Log__ServiceIdentity extends Zeze.Transaction.Logs.LogString {
+        public Log__ServiceIdentity(BServiceInfo bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BServiceInfo)getBelong())._ServiceIdentiry = value; }
+        public void commit() { ((BServiceInfo)getBelong())._ServiceIdentity = value; }
     }
 
     private static final class Log__PassiveIp extends Zeze.Transaction.Logs.LogString {
@@ -268,7 +268,7 @@ public final class BServiceInfo extends Zeze.Transaction.Bean implements BServic
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ServiceManagerWithRaft.BServiceInfo: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ServiceName=").append(getServiceName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ServiceIdentiry=").append(getServiceIdentiry()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ServiceIdentity=").append(getServiceIdentity()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("PassiveIp=").append(getPassiveIp()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("PassivePort=").append(getPassivePort()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("ExtraInfo=").append(getExtraInfo()).append(',').append(System.lineSeparator());
@@ -300,7 +300,7 @@ public final class BServiceInfo extends Zeze.Transaction.Bean implements BServic
             }
         }
         {
-            String _x_ = getServiceIdentiry();
+            String _x_ = getServiceIdentity();
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
@@ -346,7 +346,7 @@ public final class BServiceInfo extends Zeze.Transaction.Bean implements BServic
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            setServiceIdentiry(_o_.ReadString(_t_));
+            setServiceIdentity(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
@@ -396,7 +396,7 @@ public final class BServiceInfo extends Zeze.Transaction.Bean implements BServic
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _ServiceName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _ServiceIdentiry = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 2: _ServiceIdentity = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 3: _PassiveIp = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 4: _PassivePort = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
                 case 5: _ExtraInfo = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;

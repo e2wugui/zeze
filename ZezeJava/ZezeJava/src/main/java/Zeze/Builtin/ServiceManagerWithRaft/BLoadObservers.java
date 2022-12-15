@@ -3,7 +3,7 @@ package Zeze.Builtin.ServiceManagerWithRaft;
 
 import Zeze.Serialize.ByteBuffer;
 
-// load
+// load observers
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BLoadObservers extends Zeze.Raft.RocksRaft.Bean {
     public static final long TYPEID = -2506288796041147342L;

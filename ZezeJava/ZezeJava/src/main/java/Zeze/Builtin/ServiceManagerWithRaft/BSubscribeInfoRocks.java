@@ -1,27 +1,37 @@
-// auto-generated @formatter:off
+// auto-generated rocks @formatter:off
 package Zeze.Builtin.ServiceManagerWithRaft;
 
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BSubscribeInfo extends Zeze.Transaction.Bean implements BSubscribeInfoReadOnly {
-    public static final long TYPEID = 6777856993253287025L;
-
-    public static final int SubscribeTypeSimple = 0;
-    public static final int SubscribeTypeReadyCommit = 1;
+public final class BSubscribeInfoRocks extends Zeze.Raft.RocksRaft.Bean {
+    public static final long TYPEID = 3024932175735380785L;
 
     private String _ServiceName;
     private int _SubscribeType;
 
+    private transient Object __zeze_map_key__;
+
     @Override
+    public Object mapKey() {
+        return __zeze_map_key__;
+    }
+
+    @Override
+    public void mapKey(Object value) {
+        __zeze_map_key__ = value;
+    }
+
     public String getServiceName() {
         if (!isManaged())
             return _ServiceName;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
         if (txn == null)
             return _ServiceName;
-        var log = (Log__ServiceName)txn.getLog(objectId() + 1);
-        return log != null ? log.value : _ServiceName;
+        var log = txn.getLog(objectId() + 1);
+        if (log == null)
+            return _ServiceName;
+        return ((Zeze.Raft.RocksRaft.Log1.LogString)log).value;
     }
 
     public void setServiceName(String value) {
@@ -31,19 +41,20 @@ public final class BSubscribeInfo extends Zeze.Transaction.Bean implements BSubs
             _ServiceName = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ServiceName(this, 1, value));
+        var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
+        txn.putLog(new Zeze.Raft.RocksRaft.Log1.LogString(this, 1, value));
     }
 
-    @Override
     public int getSubscribeType() {
         if (!isManaged())
             return _SubscribeType;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
         if (txn == null)
             return _SubscribeType;
-        var log = (Log__SubscribeType)txn.getLog(objectId() + 2);
-        return log != null ? log.value : _SubscribeType;
+        var log = txn.getLog(objectId() + 2);
+        if (log == null)
+            return _SubscribeType;
+        return ((Zeze.Raft.RocksRaft.Log1.LogInt)log).value;
     }
 
     public void setSubscribeType(int value) {
@@ -51,51 +62,49 @@ public final class BSubscribeInfo extends Zeze.Transaction.Bean implements BSubs
             _SubscribeType = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__SubscribeType(this, 2, value));
+        var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
+        txn.putLog(new Zeze.Raft.RocksRaft.Log1.LogInt(this, 2, value));
     }
 
-    @SuppressWarnings("deprecation")
-    public BSubscribeInfo() {
+    public BSubscribeInfoRocks() {
         _ServiceName = "";
     }
 
-    @SuppressWarnings("deprecation")
-    public BSubscribeInfo(String _ServiceName_, int _SubscribeType_) {
+    public BSubscribeInfoRocks(String _ServiceName_, int _SubscribeType_) {
         if (_ServiceName_ == null)
             throw new IllegalArgumentException();
         _ServiceName = _ServiceName_;
         _SubscribeType = _SubscribeType_;
     }
 
-    public void assign(BSubscribeInfo other) {
+    public void assign(BSubscribeInfoRocks other) {
         setServiceName(other.getServiceName());
         setSubscribeType(other.getSubscribeType());
     }
 
     @Deprecated
-    public void Assign(BSubscribeInfo other) {
+    public void Assign(BSubscribeInfoRocks other) {
         assign(other);
     }
 
-    public BSubscribeInfo copyIfManaged() {
+    public BSubscribeInfoRocks copyIfManaged() {
         return isManaged() ? copy() : this;
     }
 
     @Override
-    public BSubscribeInfo copy() {
-        var copy = new BSubscribeInfo();
+    public BSubscribeInfoRocks copy() {
+        var copy = new BSubscribeInfoRocks();
         copy.assign(this);
         return copy;
     }
 
     @Deprecated
-    public BSubscribeInfo Copy() {
+    public BSubscribeInfoRocks Copy() {
         return copy();
     }
 
-    public static void swap(BSubscribeInfo a, BSubscribeInfo b) {
-        BSubscribeInfo save = a.copy();
+    public static void swap(BSubscribeInfoRocks a, BSubscribeInfoRocks b) {
+        BSubscribeInfoRocks save = a.copy();
         a.assign(b);
         b.assign(save);
     }
@@ -103,20 +112,6 @@ public final class BSubscribeInfo extends Zeze.Transaction.Bean implements BSubs
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__ServiceName extends Zeze.Transaction.Logs.LogString {
-        public Log__ServiceName(BSubscribeInfo bean, int varId, String value) { super(bean, varId, value); }
-
-        @Override
-        public void commit() { ((BSubscribeInfo)getBelong())._ServiceName = value; }
-    }
-
-    private static final class Log__SubscribeType extends Zeze.Transaction.Logs.LogInt {
-        public Log__SubscribeType(BSubscribeInfo bean, int varId, int value) { super(bean, varId, value); }
-
-        @Override
-        public void commit() { ((BSubscribeInfo)getBelong())._SubscribeType = value; }
     }
 
     @Override
@@ -128,10 +123,10 @@ public final class BSubscribeInfo extends Zeze.Transaction.Bean implements BSubs
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ServiceManagerWithRaft.BSubscribeInfo: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ServiceManagerWithRaft.BSubscribeInfoRocks: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ServiceName=").append(getServiceName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("SubscribeType=").append(getSubscribeType()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ServiceName").append('=').append(getServiceName()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("SubscribeType").append('=').append(getSubscribeType()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -173,11 +168,11 @@ public final class BSubscribeInfo extends Zeze.Transaction.Bean implements BSubs
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setServiceName(_o_.ReadString(_t_));
+            _ServiceName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            setSubscribeType(_o_.ReadInt(_t_));
+            _SubscribeType = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -187,31 +182,27 @@ public final class BSubscribeInfo extends Zeze.Transaction.Bean implements BSubs
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+    protected void initChildrenRootInfo(Zeze.Raft.RocksRaft.Record.RootInfo root) {
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
+    public void leaderApplyNoRecursive(Zeze.Raft.RocksRaft.Log vlog) {
+        switch (vlog.getVariableId()) {
+            case 1: _ServiceName = ((Zeze.Raft.RocksRaft.Log1.LogString)vlog).value; break;
+            case 2: _SubscribeType = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).value; break;
+        }
     }
 
     @Override
-    public boolean negativeCheck() {
-        if (getSubscribeType() < 0)
-            return true;
-        return false;
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+    public void followerApply(Zeze.Raft.RocksRaft.Log log) {
+        var vars = ((Zeze.Raft.RocksRaft.LogBean)log).getVariables();
         if (vars == null)
             return;
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ServiceName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _SubscribeType = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 1: _ServiceName = ((Zeze.Raft.RocksRaft.Log1.LogString)vlog).value; break;
+                case 2: _SubscribeType = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).value; break;
             }
         }
     }

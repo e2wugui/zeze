@@ -8,7 +8,7 @@ public interface BServiceInfoReadOnly {
     public BServiceInfo copy();
 
     public String getServiceName();
-    public String getServiceIdentiry();
+    public String getServiceIdentity();
     public String getPassiveIp();
     public int getPassivePort();
     public Zeze.Net.Binary getExtraInfo();
