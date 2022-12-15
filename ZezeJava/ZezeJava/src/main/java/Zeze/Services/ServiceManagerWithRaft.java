@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import Zeze.Builtin.ServiceManagerWithRaft.AllocateId;
 import Zeze.Builtin.ServiceManagerWithRaft.BAutoKey;
+import Zeze.Builtin.ServiceManagerWithRaft.BLoadObservers;
 import Zeze.Builtin.ServiceManagerWithRaft.BOfflineNotifyRocks;
 import Zeze.Builtin.ServiceManagerWithRaft.BServerLoad;
 import Zeze.Builtin.ServiceManagerWithRaft.BSession;
@@ -44,11 +45,10 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 	private final Rocks rocks;
 	private final Table<String, BAutoKey> tableAutoKey;
 	private final Table<String, BSession> tableSession;
+	private final Table<String, BLoadObservers> tableLoadObservers;
 	private final ConcurrentHashMap<Integer, Future<?>> offlineNotifyFutures = new ConcurrentHashMap<>();
 	// 需要从配置文件中读取，把这个引用加入：Zeze.Config.AddCustomize
 	private final ServiceManagerServer.Conf config;
-
-	private final ConcurrentHashMap<String, LoadObservers> loads = new ConcurrentHashMap<>();
 
 	public ServiceManagerWithRaft(String raftName, RaftConfig raftConf, Zeze.Config config,
 								  boolean RocksDbWriteOptionSync) throws Throwable {
@@ -63,6 +63,8 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 
 		tableAutoKey = rocks.<String, BAutoKey>getTableTemplate("tAutoKey").openTable();
 		tableSession = rocks.<String, BSession>getTableTemplate("tSession").openTable();
+		tableLoadObservers = rocks.<String, BLoadObservers>getTableTemplate("tLoadObservers").openTable();
+
 	}
 
 	/**
@@ -321,15 +323,35 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 	//     serviceManager.addLoadObserver(info.getPassiveIp(), info.getPassivePort(), r.getSender());
 	private void addLoadObserver(String ip, int port, AsyncSocket sender) {
 		if (!ip.isEmpty() && port != 0) {
-			loads.computeIfAbsent(ip + ":" + port, __ -> new LoadObservers())
-					.addObserver(sender.getSessionId());
+			var loadObservers = tableLoadObservers.getOrAdd(ip + ":" + port);
+			loadObservers.getObservers().add(((Session)sender.getUserState()).name);
 		}
 	}
 
 	@Override
 	protected long ProcessSetServerLoadRequest(SetServerLoad r) throws Throwable {
-		loads.computeIfAbsent(r.Argument.getIp() + ":" + r.Argument.getPort(), __ -> new LoadObservers())
-				.setLoad(r.Argument);
+		var loadObservers = tableLoadObservers.getOrAdd(r.Argument.getIp() + ":" + r.Argument.getPort());
+		var observers = loadObservers.getObservers();
+
+		var set = new SetServerLoad();
+		set.Argument = r.Argument;
+
+		ArrayList<String> removed = null;
+		for (var observer : observers) {
+			try {
+				var session = tableSession.get(observer);
+				if (null != session && set.Send(rocks.getRaft().getServer().GetSocket(session.getSessionId())))
+					continue;
+			} catch (Throwable ignored) {
+			}
+			if (removed == null)
+				removed = new ArrayList<>();
+			removed.add(observer);
+		}
+		if (removed != null) {
+			for (var remove : removed)
+				observers.remove(remove);
+		}
 		return 0;
 	}
 

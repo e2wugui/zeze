@@ -1220,6 +1220,12 @@
 			</bean>
 			<table name="tSession" key="string" value="BSession" kind="rocks"/>
 
+			<!-- load observers -->
+			<bean name="BLoadObservers" kind="rocks">
+				<variable name="Observers" id="1" type="set[string]"/> 负载订阅者，subscribeAndSend中订阅。
+			</bean>
+			<table name="tLoadObservers" key="string" value="BLoadObservers" kind="rocks"/>
+
 			<!-- service -->
 
 		</module>
