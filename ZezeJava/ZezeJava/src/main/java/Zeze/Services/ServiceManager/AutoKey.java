@@ -2,11 +2,11 @@ package Zeze.Services.ServiceManager;
 
 public final class AutoKey {
 	private final String name;
-	private final Agent agent;
+	private final AbstractAgent agent;
 	private int count;
 	private long current;
 
-	public AutoKey(String name, Agent agent) {
+	public AutoKey(String name, AbstractAgent agent) {
 		this.name = name;
 		this.agent = agent;
 	}
@@ -15,7 +15,7 @@ public final class AutoKey {
 		return name;
 	}
 
-	public Agent getAgent() {
+	public AbstractAgent getAgent() {
 		return agent;
 	}
 
@@ -29,7 +29,7 @@ public final class AutoKey {
 
 	public synchronized long next() {
 		if (count <= 0) {
-			allocate();
+			agent.allocate(this);
 			if (count <= 0)
 				throw new IllegalStateException("AllocateId failed for " + name);
 		}
@@ -38,12 +38,8 @@ public final class AutoKey {
 		return current++;
 	}
 
-	private void allocate() {
-		var r = new AllocateId();
-		r.Argument.setName(name);
-		r.Argument.setCount(1024);
-		r.SendAndWaitCheckResultCode(agent.getClient().getSocket());
-		current = r.Result.getStartId();
-		count = r.Result.getCount();
+	void setCurrentAndCount(long current, int count) {
+		this.current = current;
+		this.count = count;
 	}
 }
