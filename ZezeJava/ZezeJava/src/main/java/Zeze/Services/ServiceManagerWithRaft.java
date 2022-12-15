@@ -22,10 +22,18 @@ import Zeze.Util.Func0;
 import Zeze.Util.KV;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.LoggerContext;
 
 public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
+	static {
+		System.getProperties().putIfAbsent("log4j.configurationFile", "log4j2.xml");
+		var level = Level.toLevel(System.getProperty("logLevel"), Level.INFO);
+		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
+	}
+
 	private static final Logger logger = LogManager.getLogger(ServiceManagerWithRaft.class);
 	private final Rocks rocks;
 	private final Table<String, BAutoKey> tableAutoKey;
@@ -54,13 +62,23 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 		tableSession = rocks.<String, BSession>getTableTemplate("tSession").openTable();
 		tableLoadObservers = rocks.<String, BLoadObservers>getTableTemplate("tLoadObservers").openTable();
 		tableServerState = rocks.<String, BServerState>getTableTemplate("tServerState").openTable();
+
+		if (this.config.startNotifyDelay > 0) {
+			startNotifyDelayTask = Task.scheduleUnsafe(this.config.startNotifyDelay, () -> {
+				startNotifyDelayTask = null;
+				tableServerState.walk((__, state) -> {
+					startReadyCommitNotify(state, true);
+					return true;
+				});
+			});
+		}
 	}
 
 	/**
 	 * 所有Raft网络层收到的请求和Rpc的结果，全部加锁，直接运行。
 	 * 这样整个程序就单线程化了。
 	 */
-	public static class SMServer extends Zeze.Raft.Server {
+	public class SMServer extends Zeze.Raft.Server {
 		public SMServer(Zeze.Raft.Raft raft, String name, Zeze.Config config) throws Throwable {
 			super(raft, name, config);
 		}
@@ -68,12 +86,14 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 		@Override
 		public synchronized <P extends Protocol<?>> void dispatchRaftRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
 																ProtocolFactoryHandle<?> factoryHandle) throws Throwable {
+			// todo newProcedure
 			Task.runRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, DispatchMode.Direct);
 		}
 
 		@Override
 		public synchronized void dispatchRaftRequest(UniqueRequestId key, Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
 			try {
+				// todo newProcedure
 				func.call();
 			} catch (Throwable ex) {
 				logger.error("impossible!", ex);
@@ -85,11 +105,16 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 			var netSession = (Session)so.getUserState();
 			if (null != netSession) {
 				synchronized (this) {
+					// todo newProcedure
 					netSession.onClose();
 				}
 			}
 			super.OnSocketClose(so, e);
 		}
+	}
+
+	private static BSubscribeInfo fromRocks(BSubscribeInfoRocks rocks) {
+		return new BSubscribeInfo(rocks.getServiceName(), rocks.getSubscribeType());
 	}
 
 	public class Session {
@@ -126,22 +151,22 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 			if (keepAliveTimerTask != null)
 				keepAliveTimerTask.cancel(false);
 
-			/*
-			for (var info : subscribes.values())
-				serviceManager.unSubscribeNow(sessionId, info);
-
-			var changed = new HashMap<String, ServerState>(registers.size());
-			for (var info : registers) {
-				var state = serviceManager.unRegisterNow(sessionId, info);
-				if (state != null)
-					changed.putIfAbsent(state.serviceName, state);
-			}
-			changed.values().forEach(ServerState::startReadyCommitNotify);
-			 */
-			// offline notify，开启一个线程执行，避免互等造成麻烦。
-			// 这个操作不能cancel，即使Server重新起来了，通知也会进行下去。
 			var session = tableSession.get(name);
 			if (null != session) {
+				for (var info : session.getSubscribes().values())
+					unSubscribeNow(name, fromRocks(info));
+
+				var changed = new HashMap<String, BServerState>(session.getRegisters().size());
+				for (var info : session.getRegisters()) {
+					var state = unRegisterNow(name, fromRocks(info.getValue()));
+					if (state != null)
+						changed.putIfAbsent(state.getServiceName(), state);
+				}
+				for (var state : changed.values())
+					startReadyCommitNotify(state);
+
+				// offline notify，开启一个线程执行，避免互等造成麻烦。
+				// 这个操作不能cancel，即使Server重新起来了，通知也会进行下去。
 				var serverId = session.getOfflineRegisterServerId();
 				if (serverId >= 0) {
 					if (!offlineNotifyFutures.containsKey(serverId))
