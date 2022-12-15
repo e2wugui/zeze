@@ -158,16 +158,16 @@ public final class ServiceManagerServer implements Closeable {
 	private volatile Future<?> startNotifyDelayTask;
 
 	public static final class Conf implements Zeze.Config.ICustomize {
-		private int keepAlivePeriod = -1;
+		public int keepAlivePeriod = -1;
 		/**
 		 * 启动以后接收注册和订阅，一段时间内不进行通知。
 		 * 用来处理ServiceManager异常重启导致服务列表重置的问题。
 		 * 在Delay时间内，希望所有的服务都重新连接上来并注册和订阅。
 		 * Delay到达时，全部通知一遍，以后正常工作。
 		 */
-		private int startNotifyDelay = 12 * 1000;
-		private int retryNotifyDelayWhenNotAllReady = 30 * 1000;
-		private String dbHome = ".";
+		public int startNotifyDelay = 12 * 1000;
+		public int retryNotifyDelayWhenNotAllReady = 30 * 1000;
+		public String dbHome = ".";
 
 		@Override
 		public String getName() {
@@ -470,15 +470,15 @@ public final class ServiceManagerServer implements Closeable {
 					// 为了理解简单，还是使用同步吧。
 					if (!serviceManager.offlineNotifyFutures.containsKey(offlineRegisterServerId))
 						serviceManager.offlineNotifyFutures.put(offlineRegisterServerId,
-								Task.scheduleUnsafe(eOfflineNotifyDelay, this::offlineNotify));
+								Task.scheduleUnsafe(eOfflineNotifyDelay, () -> offlineNotify(true)));
 				}
 			} else {
-				Task.run(this::offlineNotify, "offlineNotifyImmediately");
+				Task.run(() -> offlineNotify(false), "offlineNotifyImmediately");
 			}
 		}
 
-		private void offlineNotify() {
-			if (null == serviceManager.offlineNotifyFutures.remove(offlineRegisterServerId))
+		private void offlineNotify(boolean delay) {
+			if (delay && null == serviceManager.offlineNotifyFutures.remove(offlineRegisterServerId))
 				return; // 此serverId的新连接已经连上或者通知已经执行。
 
 			BOfflineNotify[] notifyIds;

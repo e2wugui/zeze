@@ -39,6 +39,22 @@ public abstract class CollMap<K, V> extends Collection implements Iterable<Map.E
 		return map;
 	}
 
+	public final boolean containsValue(Object v) {
+		return getMap().containsValue(v);
+	}
+
+	public final boolean containsKey(Object key) {
+		return getMap().containsKey(key);
+	}
+
+	public java.util.Collection<V> values() {
+		return getMap().values();
+	}
+
+	public Set<K> keys() {
+		return getMap().keySet();
+	}
+
 	public final int size() {
 		return getMap().size();
 	}

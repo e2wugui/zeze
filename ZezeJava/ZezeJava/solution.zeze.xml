@@ -1178,6 +1178,12 @@
 				<variable id="2" name="SubscribeType" type="int"/>
 			</bean>
 
+			<bean name="BLogin">
+				<variable id="1" name="SessionName" type="string"/>
+			</bean>
+
+			<rpc name="Login" argument="BLogin" base="Zeze.Raft.RaftRpc" handle="server"/>
+
 			<rpc name="AllocateId" argument="BAllocateIdArgument" result="BAllocateIdResult" base="Zeze.Raft.RaftRpc" handle="server"/>
 			<rpc name="CommitServiceList" argument="BServiceListVersion" base="Zeze.Raft.RaftRpc" handle="client"/>
 			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" handle="client"/>			
@@ -1192,6 +1198,28 @@
 			<rpc name="UnRegister" argument="BServiceInfo" base="Zeze.Raft.RaftRpc" handle="server,client"/>
 			<rpc name="UnSubscribe" argument="BSubscribeInfo" base="Zeze.Raft.RaftRpc" handle="server"/>
 			<rpc name="Update" argument="BServiceInfo" base="Zeze.Raft.RaftRpc" handle="server,client"/>
+
+			<!-- autokey -->
+			<bean name="BAutoKey" kind="rocks">
+				<variable id="1" name="Current" type="long"/>
+			</bean>
+			<table name="tAutoKey" key="string" value="BAutoKey" kind="rocks"/>
+
+			<!-- session -->
+			<bean name="BOfflineNotifyRocks" kind="rocks">
+				<variable id="1" name="ServerId" type="int"/>
+				<variable id="2" name="NotifyId" type="string"/>
+				<variable id="3" name="NotifySerialId" type="long"/>
+				<variable id="4" name="NotifyContext" type="binary"/>
+			</bean>
+			<bean name="BSession" kind="rocks">
+				<variable id="1" name="SessionId" type="long"/>
+				<variable id="2" name="OfflineRegisterServerId" type="int"/>
+				<variable id="3" name="OfflineRegisterNotifies" type="map[string, BOfflineNotifyRocks]"/>
+				
+			</bean>
+			<table name="tSession" key="string" value="BSession" kind="rocks"/>
+
 		</module>
 
 		<!--
