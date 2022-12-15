@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Game;
 
-public abstract class AbstractOnline extends Zeze.IModule {
+public abstract class AbstractOnline implements Zeze.IModule {
     public static final int ModuleId = 11013;
     @Override public String getFullName() { return "Zeze.Game.Online"; }
     @Override public String getName() { return "Online"; }

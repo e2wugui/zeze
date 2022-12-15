@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Component;
 
-public abstract class AbstractDbWeb extends Zeze.IModule {
+public abstract class AbstractDbWeb implements Zeze.IModule {
     public static final int ModuleId = 11021;
     @Override public String getFullName() { return "Zeze.Component.DbWeb"; }
     @Override public String getName() { return "DbWeb"; }

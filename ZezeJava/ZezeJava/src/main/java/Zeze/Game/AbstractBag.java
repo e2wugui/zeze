@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Game;
 
-public abstract class AbstractBag extends Zeze.IModule {
+public abstract class AbstractBag implements Zeze.IModule {
     public static final int ModuleId = 11014;
     @Override public String getFullName() { return "Zeze.Game.Bag"; }
     @Override public String getName() { return "Bag"; }

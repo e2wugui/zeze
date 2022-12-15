@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Services;
 
-public abstract class AbstractGlobalCacheManagerWithRaft extends Zeze.IModule {
+public abstract class AbstractGlobalCacheManagerWithRaft implements Zeze.IModule {
     public static final int ModuleId = 11001;
     @Override public String getFullName() { return "Zeze.Services.GlobalCacheManagerWithRaft"; }
     @Override public String getName() { return "GlobalCacheManagerWithRaft"; }

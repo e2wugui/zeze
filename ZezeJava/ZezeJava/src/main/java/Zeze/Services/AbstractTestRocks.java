@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Services;
 
-public abstract class AbstractTestRocks extends Zeze.IModule {
+public abstract class AbstractTestRocks implements Zeze.IModule {
     public static final int ModuleId = 11002;
     @Override public String getFullName() { return "Zeze.Services.TestRocks"; }
     @Override public String getName() { return "TestRocks"; }

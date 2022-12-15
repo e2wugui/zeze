@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Collections;
 
-public abstract class AbstractDepartmentTree extends Zeze.IModule {
+public abstract class AbstractDepartmentTree implements Zeze.IModule {
     public static final int ModuleId = 11101;
     @Override public String getFullName() { return "Zeze.Collections.DepartmentTree"; }
     @Override public String getName() { return "DepartmentTree"; }

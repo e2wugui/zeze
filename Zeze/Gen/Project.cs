@@ -19,6 +19,7 @@ namespace Zeze.Gen
         public string GenCommonRelativeDir { get; private set; }
         public HashSet<string> GenTables { get; set; } = new HashSet<string>();
         public SortedDictionary<string, Service> Services { get; private set; } = new SortedDictionary<string, Service>();
+        public bool EnableBase { get; private set; } = false;
 
         // setup when compile
         public List<Module> Modules { get; private set; }
@@ -88,7 +89,7 @@ namespace Zeze.Gen
             SolutionName = self.GetAttribute("SolutionName");
             MappingClass = self.GetAttribute("MappingClass").Equals("true");
             IsUnity = self.GetAttribute("IsUnity").Equals("true");
-
+            EnableBase = self.GetAttribute("EnableBase").Equals("true");
             //Program.AddNamedObject(FullName, this);
 
             Self = self; // 保存，在编译的时候使用。

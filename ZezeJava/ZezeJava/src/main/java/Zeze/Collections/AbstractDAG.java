@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Collections;
 
-public abstract class AbstractDAG extends Zeze.IModule {
+public abstract class AbstractDAG implements Zeze.IModule {
     public static final int ModuleId = 11017;
     @Override public String getFullName() { return "Zeze.Collections.DAG"; }
     @Override public String getName() { return "DAG"; }

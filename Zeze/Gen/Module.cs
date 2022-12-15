@@ -11,6 +11,7 @@ namespace Zeze.Gen
         Service _ReferenceService;
 
         public readonly string WebPathBase;
+        public readonly string ClassBase;
 
         public void SetReferenceService(Service service)
         {
@@ -56,6 +57,7 @@ namespace Zeze.Gen
             Program.AddNamedObject(Path(".", $"Module{Name}"), this);
             Program.AddNamedObject(Path(".", "AbstractModule"), this);
             WebPathBase = self.GetAttribute("WebPathBase");
+            ClassBase = self.GetAttribute("base");
             if (WebPathBase.Length > 0 && false == WebPathBase.EndsWith("/"))
                 WebPathBase += "/";
             Comment = Bean.GetComment(self);

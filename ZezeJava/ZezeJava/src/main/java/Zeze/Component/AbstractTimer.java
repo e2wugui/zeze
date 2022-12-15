@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Component;
 
-public abstract class AbstractTimer extends Zeze.IModule {
+public abstract class AbstractTimer implements Zeze.IModule {
     public static final int ModuleId = 11016;
     @Override public String getFullName() { return "Zeze.Component.Timer"; }
     @Override public String getName() { return "Timer"; }

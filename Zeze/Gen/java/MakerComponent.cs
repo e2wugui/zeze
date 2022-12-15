@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace Zeze.Gen.java
@@ -78,6 +79,7 @@ namespace Zeze.Gen.java
             var mfs = new List<ModuleFormatter>();
             foreach (Module mod in Project.AllOrderDefineModules)
                 mfs.Add(new ModuleFormatter(Project, mod, genDir, srcDir));
+
             var baseFileName = Path.Combine(srcDir, "Abstract" + Project.Name + ".java");
             {
                 using StreamWriter sw = Program.OpenStreamWriter(baseFileName);
@@ -85,9 +87,10 @@ namespace Zeze.Gen.java
                 sw.WriteLine("// auto-generated @formatter:off");
                 sw.WriteLine($"package {ns};");
                 sw.WriteLine();
-
-                sw.WriteLine($"public abstract class Abstract{Project.Name} extends Zeze.IModule {{");
                 var presentModule = GetPresentModule(mfs);
+                var classBase = (!Project.EnableBase || string.IsNullOrEmpty(presentModule.ClassBase))
+                    ? "" : $"extends {presentModule.ClassBase} ";
+                sw.WriteLine($"public abstract class Abstract{Project.Name} {classBase}implements Zeze.IModule {{");
                 sw.WriteLine($"    public static final int ModuleId = {presentModule.Id};");
                 sw.WriteLine($"    @Override public String getFullName() {{ return \"{ns + "." + Project.Name}\"; }}");
                 sw.WriteLine($"    @Override public String getName() {{ return \"{Project.Name}\"; }}");

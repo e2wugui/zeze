@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Component;
 
-public abstract class AbstractLinkdBase extends Zeze.IModule {
+public abstract class AbstractLinkdBase implements Zeze.IModule {
     public static final int ModuleId = 11011;
     @Override public String getFullName() { return "Zeze.Component.LinkdBase"; }
     @Override public String getName() { return "LinkdBase"; }

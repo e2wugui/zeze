@@ -271,7 +271,7 @@ public final class Agent extends AbstractAgent {
 	}
 
 	public Agent(Zeze.Application zeze, String netServiceName) throws Throwable {
-		super(zeze);
+		super.zeze = zeze;
 
 		var config = zeze.getConfig();
 		if (null == config) {

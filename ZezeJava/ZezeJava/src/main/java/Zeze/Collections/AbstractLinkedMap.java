@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Collections;
 
-public abstract class AbstractLinkedMap extends Zeze.IModule {
+public abstract class AbstractLinkedMap implements Zeze.IModule {
     public static final int ModuleId = 11005;
     @Override public String getFullName() { return "Zeze.Collections.LinkedMap"; }
     @Override public String getName() { return "LinkedMap"; }

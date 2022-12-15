@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Game;
 
-public abstract class AbstractRank extends Zeze.IModule {
+public abstract class AbstractRank implements Zeze.IModule {
     public static final int ModuleId = 11015;
     @Override public String getFullName() { return "Zeze.Game.Rank"; }
     @Override public String getName() { return "Rank"; }

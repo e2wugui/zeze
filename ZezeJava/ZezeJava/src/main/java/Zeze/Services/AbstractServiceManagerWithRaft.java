@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Services;
 
-public abstract class AbstractServiceManagerWithRaft extends Zeze.IModule {
+public abstract class AbstractServiceManagerWithRaft implements Zeze.IModule {
     public static final int ModuleId = 11022;
     @Override public String getFullName() { return "Zeze.Services.ServiceManagerWithRaft"; }
     @Override public String getName() { return "ServiceManagerWithRaft"; }

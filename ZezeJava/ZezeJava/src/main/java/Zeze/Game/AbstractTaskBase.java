@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Game;
 
-public abstract class AbstractTaskBase extends Zeze.IModule {
+public abstract class AbstractTaskBase implements Zeze.IModule {
     public static final int ModuleId = 11018;
     @Override public String getFullName() { return "Zeze.Game.TaskBase"; }
     @Override public String getName() { return "TaskBase"; }

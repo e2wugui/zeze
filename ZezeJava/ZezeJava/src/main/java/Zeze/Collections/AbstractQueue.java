@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Collections;
 
-public abstract class AbstractQueue extends Zeze.IModule {
+public abstract class AbstractQueue implements Zeze.IModule {
     public static final int ModuleId = 11006;
     @Override public String getFullName() { return "Zeze.Collections.Queue"; }
     @Override public String getName() { return "Queue"; }

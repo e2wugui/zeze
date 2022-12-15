@@ -2,33 +2,33 @@ package Zeze;
 
 import Zeze.Net.Protocol;
 
-public abstract class IModule {
-	public abstract String getFullName();
+public interface IModule {
+	public String getFullName();
 
-	public abstract String getName();
+	public String getName();
 
-	public abstract int getId();
+	public int getId();
 
-	public String getWebPathBase() {
+	default String getWebPathBase() {
 		return "";
 	}
 
-	public boolean isBuiltin() {
+	default boolean isBuiltin() {
 		return false;
 	}
 
-	public void Initialize(Zeze.AppBase app) {
+	default void Initialize(Zeze.AppBase app) {
 	}
 
-	public void UnRegister() { // 为了重新装载 Module 的补丁。注册在构造函数里面进行。
+	default void UnRegister() { // 为了重新装载 Module 的补丁。注册在构造函数里面进行。
 	}
 
 	@Deprecated //use errorCode
-	public final long ErrorCode(int code) {
+	default long ErrorCode(int code) {
 		return errorCode(code);
 	}
 
-	public final long errorCode(int code) {
+	default long errorCode(int code) {
 		return errorCode(getId(), code);
 	}
 

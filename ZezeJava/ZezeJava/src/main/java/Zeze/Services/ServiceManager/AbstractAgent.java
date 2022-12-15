@@ -17,7 +17,7 @@ public abstract class AbstractAgent implements Closeable {
 	// ServiceName ->
 	protected final ConcurrentHashMap<String, Agent.SubscribeState> subscribeStates = new ConcurrentHashMap<>();
 
-	protected final Zeze.Application zeze;
+	protected Zeze.Application zeze;
 
 	/**
 	 * 订阅服务状态发生变化时回调。 如果需要处理这个事件，请在订阅前设置回调。
@@ -36,11 +36,7 @@ public abstract class AbstractAgent implements Closeable {
 	protected final ConcurrentHashMap<String, AutoKey> autoKeys = new ConcurrentHashMap<>();
 
 	public final ConcurrentHashMap<String, BServerLoad> loads = new ConcurrentHashMap<>();
-
-	public AbstractAgent(Zeze.Application zeze) {
-		this.zeze = zeze;
-	}
-
+	
 	public ConcurrentHashMap<String, Agent.SubscribeState> getSubscribeStates() {
 		return subscribeStates;
 	}

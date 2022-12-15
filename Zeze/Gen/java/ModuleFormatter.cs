@@ -504,7 +504,8 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             if (module.Comment.Length > 0)
                 sw.WriteLine(module.Comment);
-            sw.WriteLine("public abstract class AbstractModule extends Zeze.IModule {");
+            var classBase = (!project.EnableBase || string.IsNullOrEmpty(module.ClassBase)) ? "" : $"extends {module.ClassBase} ";
+            sw.WriteLine($"public abstract class AbstractModule {classBase}implements Zeze.IModule {{");
             sw.WriteLine($"    @Override public String getFullName() {{ return \"{module.Path()}\"; }}");
             sw.WriteLine($"    @Override public String getName() {{ return \"{moduleName}\"; }}");
             sw.WriteLine($"    @Override public int getId() {{ return ModuleId; }}");

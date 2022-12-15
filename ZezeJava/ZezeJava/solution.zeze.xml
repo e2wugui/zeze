@@ -1128,7 +1128,7 @@
 			<servlet name="ClearTable" TransactionLevel="None"/>
 		</module>
 
-		<module name="ServiceManagerWithRaft" id="11022">
+		<module name="ServiceManagerWithRaft" base="Zeze.Services.ServiceManager.AbstractAgent" id="11022">
 			<bean name="BAllocateIdArgument">
 				<variable id="1" name="Name" type="string"/>
 				<variable id="2" name="Count" type="int"/>
@@ -1292,7 +1292,7 @@
 		</service>
 	</component>
 
-	<component name="ServiceManagerAgentWithRaft" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java" GenTables="client">
+	<component name="ServiceManagerAgentWithRaft" EnableBase="true" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java" GenTables="client">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.ServiceManagerWithRaft"/>
 		</service>

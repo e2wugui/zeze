@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Component;
 
-public abstract class AbstractAutoKey extends Zeze.IModule {
+public abstract class AbstractAutoKey implements Zeze.IModule {
     public static final int ModuleId = 11003;
     @Override public String getFullName() { return "Zeze.Component.AutoKey"; }
     @Override public String getName() { return "AutoKey"; }

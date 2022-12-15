@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Component;
 
-public abstract class AbstractRedoQueueServer extends Zeze.IModule {
+public abstract class AbstractRedoQueueServer implements Zeze.IModule {
     public static final int ModuleId = 11010;
     @Override public String getFullName() { return "Zeze.Component.RedoQueueServer"; }
     @Override public String getName() { return "RedoQueueServer"; }
