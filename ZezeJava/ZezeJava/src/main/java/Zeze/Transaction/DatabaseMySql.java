@@ -219,7 +219,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				try (var cmd = connection.prepareStatement(ProcSaveDataWithSameVersion)) {
 					cmd.executeUpdate();
 				} catch (SQLException ex) {
-					if (!ex.getMessage().contains("already exists"))
+					if (!ex.getMessage().contains("already exist"))
 						throw ex;
 				}
 				//noinspection SpellCheckingInspection
@@ -287,7 +287,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				try (var cmd = connection.prepareStatement(ProcSetInUse)) {
 					cmd.executeUpdate();
 				} catch (SQLException ex) {
-					if (!ex.getMessage().contains("already exists"))
+					if (!ex.getMessage().contains("already exist"))
 						throw ex;
 				}
 				//noinspection SpellCheckingInspection
@@ -325,7 +325,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				try (var cmd = connection.prepareStatement(ProcClearInUse)) {
 					cmd.executeUpdate();
 				} catch (SQLException ex) {
-					if (!ex.getMessage().contains("already exists"))
+					if (!ex.getMessage().contains("already exist"))
 						throw ex;
 				}
 			} catch (SQLException e) {
