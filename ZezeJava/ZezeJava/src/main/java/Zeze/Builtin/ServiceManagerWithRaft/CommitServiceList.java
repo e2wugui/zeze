@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.ServiceManagerWithRaft;
 
-public class CommitServiceList extends Zeze.Raft.RaftRpc<Zeze.Builtin.ServiceManagerWithRaft.BServiceListVersion, Zeze.Transaction.EmptyBean> {
+public class CommitServiceList extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceManager.BServiceListVersion, Zeze.Transaction.EmptyBean> {
     public static final int ModuleId_ = 11022;
     public static final int ProtocolId_ = 920176378;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47340049712890
@@ -17,11 +17,11 @@ public class CommitServiceList extends Zeze.Raft.RaftRpc<Zeze.Builtin.ServiceMan
     }
 
     public CommitServiceList() {
-        Argument = new Zeze.Builtin.ServiceManagerWithRaft.BServiceListVersion();
+        Argument = new Zeze.Services.ServiceManager.BServiceListVersion();
         Result = Zeze.Transaction.EmptyBean.instance;
     }
 
-    public CommitServiceList(Zeze.Builtin.ServiceManagerWithRaft.BServiceListVersion arg) {
+    public CommitServiceList(Zeze.Services.ServiceManager.BServiceListVersion arg) {
         Argument = arg;
         Result = Zeze.Transaction.EmptyBean.instance;
     }

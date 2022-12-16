@@ -20,8 +20,6 @@ import Zeze.Services.ServiceManager.AutoKey;
 import Zeze.Services.ServiceManager.BOfflineNotify;
 import Zeze.Services.ServiceManager.BServerLoad;
 import Zeze.Services.ServiceManager.BServiceInfo;
-import Zeze.Services.ServiceManager.BServiceInfos;
-import Zeze.Services.ServiceManager.BServiceListVersion;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutObject;
@@ -75,18 +73,11 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	////////////////////////////////////////////////////////////////////////
-	private static BServiceListVersion fromRaft(Zeze.Builtin.ServiceManagerWithRaft.BServiceListVersion a) {
-		var r = new BServiceListVersion();
-		r.serviceName = a.getServiceName();
-		r.serialId = a.getSerialId();
-		return r;
-	}
-
 	@Override
 	protected long ProcessCommitServiceListRequest(CommitServiceList r) throws Throwable {
-		var state = subscribeStates.get(r.Argument.getServiceName());
+		var state = subscribeStates.get(r.Argument.serviceName);
 		if (state != null)
-			state.onCommit(fromRaft(r.Argument));
+			state.onCommit(r.Argument);
 		else
 			logger.warn("CommitServiceList But SubscribeState Not Found.");
 		return Procedure.Success;
@@ -100,42 +91,14 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		return Procedure.Success;
 	}
 
-	private static BServiceInfo fromRaft(Zeze.Builtin.ServiceManagerWithRaft.BServiceInfo a) {
-		var r = new BServiceInfo();
-		r.serviceName = a.getServiceName();
-		r.serviceIdentity = a.getServiceIdentity();
-		r.setPassiveIp(a.getPassiveIp());
-		r.setPassivePort(a.getPassivePort());
-		r.setExtraInfo(a.getExtraInfo());
-		return r;
-	}
-
-	private static BServiceInfos fromRaft(Zeze.Builtin.ServiceManagerWithRaft.BServiceInfos a) {
-		var r = new BServiceInfos();
-		r.serviceName = a.getServiceName();
-		r.serialId = a.getSerialId();
-		for (var si : a.getServiceInfoListSortedByIdentity())
-			r.serviceInfoListSortedByIdentity.add(fromRaft(si));
-		return r;
-	}
-
 	@Override
 	protected long ProcessNotifyServiceListRequest(NotifyServiceList r) throws Throwable {
 		var state = subscribeStates.get(r.Argument.getServiceName());
 		if (state != null)
-			state.onNotify(fromRaft(r.Argument));
+			state.onNotify(r.Argument);
 		else
 			logger.warn("NotifyServiceList But SubscribeState Not Found.");
 		return Procedure.Success;
-	}
-
-	private static BOfflineNotify fromRaft(Zeze.Builtin.ServiceManagerWithRaft.BOfflineNotify a) {
-		var r = new BOfflineNotify();
-		r.serverId = a.getServerId();
-		r.notifyId = a.getNotifyId();
-		r.notifySerialId = a.getNotifySerialId();
-		r.notifyContext = a.getNotifyContext();
-		return r;
 	}
 
 	@Override
@@ -145,7 +108,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			return 0;
 		}
 		try {
-			if (onOfflineNotify.call(fromRaft(r.Argument))) {
+			if (onOfflineNotify.call(r.Argument)) {
 				r.SendResult();
 				return 0;
 			}
@@ -161,7 +124,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		var state = subscribeStates.get(r.Argument.getServiceName());
 		if (state == null)
 			return Update.ServiceNotSubscribe;
-		state.onRegister(fromRaft(r.Argument));
+		state.onRegister(r.Argument);
 		r.SendResult();
 		return 0;
 	}
@@ -170,7 +133,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	protected long ProcessSubscribeFirstCommitRequest(SubscribeFirstCommit r) throws Throwable {
 		var state = subscribeStates.get(r.Argument.getServiceName());
 		if (state != null)
-			state.onFirstCommit(fromRaft(r.Argument));
+			state.onFirstCommit(r.Argument);
 		return Procedure.Success;
 	}
 
@@ -179,7 +142,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		var state = subscribeStates.get(r.Argument.getServiceName());
 		if (state == null)
 			return Update.ServiceNotSubscribe;
-		state.onUnRegister(fromRaft(r.Argument));
+		state.onUnRegister(r.Argument);
 		r.SendResult();
 		return 0;
 	}
@@ -189,7 +152,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		var state = subscribeStates.get(r.Argument.getServiceName());
 		if (state == null)
 			return Update.ServiceNotSubscribe;
-		state.onUpdate(fromRaft(r.Argument));
+		state.onUpdate(r.Argument);
 		r.SendResult();
 		return 0;
 	}
@@ -197,9 +160,8 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	@Override
 	protected boolean sendReadyList(String serviceName, long serialId) {
 		var r = new ReadyServiceList();
-		r.Argument.setServiceName(serviceName);
-		r.Argument.setSerialId(serialId);
-
+		r.Argument.serviceName = serviceName;
+		r.Argument.serialId = serialId;
 		raftClient.send(r, p -> 0);
 		return true;
 	}
@@ -214,16 +176,6 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			setCurrentAndCount(autoKey, r.Result.getStartId(), r.Result.getCount());
 	}
 
-	private Zeze.Builtin.ServiceManagerWithRaft.BServiceInfo toRaft(BServiceInfo a) {
-		var r = new Zeze.Builtin.ServiceManagerWithRaft.BServiceInfo();
-		r.setServiceName(a.serviceName);
-		r.setServiceIdentity(a.serviceIdentity);
-		r.setPassiveIp(a.getPassiveIp());
-		r.setPassivePort(a.getPassivePort());
-		r.setExtraInfo(a.getExtraInfo());
-		return r;
-	}
-
 	private void waitLoginReady() {
 		// raft onSetLeader是第一个就发送了Login，实际上不需要等待登录成功。
 		// 写在这里，保留实现等待登录成功。
@@ -233,7 +185,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	public BServiceInfo registerService(BServiceInfo info) {
 		verify(info.getServiceIdentity());
 		waitLoginReady();
-		raftClient.sendForWait(new Register(toRaft(info))).await();
+		raftClient.sendForWait(new Register(info)).await();
 		logger.debug("RegisterService {}", info);
 		return info;
 	}
@@ -241,21 +193,14 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	@Override
 	public BServiceInfo updateService(BServiceInfo info) {
 		waitLoginReady();
-		raftClient.sendForWait(new Update(toRaft(info))).await();
+		raftClient.sendForWait(new Update(info)).await();
 		return info;
 	}
 
 	@Override
 	public void unRegisterService(BServiceInfo info) {
 		waitLoginReady();
-		raftClient.sendForWait(new UnRegister(toRaft(info))).await();
-	}
-
-	private static Zeze.Builtin.ServiceManagerWithRaft.BSubscribeInfo toRaft(BSubscribeInfo a) {
-		var r = new Zeze.Builtin.ServiceManagerWithRaft.BSubscribeInfo();
-		r.setServiceName(a.getServiceName());
-		r.setSubscribeType(a.getSubscribeType());
-		return r;
+		raftClient.sendForWait(new UnRegister(info)).await();
 	}
 
 	@Override
@@ -270,7 +215,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		});
 
 		if (newAdd.value) {
-			raftClient.sendForWait(new Subscribe(toRaft(info))).await();
+			raftClient.sendForWait(new Subscribe(info)).await();
 			logger.debug("SubscribeService {}", info);
 		}
 		return subState;
@@ -283,7 +228,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		var state = subscribeStates.remove(serviceName);
 		if (state != null) {
 			try {
-				raftClient.sendForWait(new UnSubscribe(toRaft(state.subscribeInfo))).await();
+				raftClient.sendForWait(new UnSubscribe(state.subscribeInfo)).await();
 				logger.debug("UnSubscribeService {}", state.subscribeInfo);
 			} catch (Throwable e) {
 				subscribeStates.putIfAbsent(serviceName, state); // rollback
@@ -292,33 +237,16 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		}
 	}
 
-	private Zeze.Builtin.ServiceManagerWithRaft.BServerLoad toRaft(BServerLoad a) {
-		var r = new Zeze.Builtin.ServiceManagerWithRaft.BServerLoad();
-		r.setIp(a.ip);
-		r.setPort(a.port);
-		r.setParam(a.param);
-		return r;
-	}
-
 	@Override
 	public boolean setServerLoad(BServerLoad load) {
-		raftClient.send(new SetServerLoad(toRaft(load)), p -> 0);
+		raftClient.send(new SetServerLoad(load), p -> 0);
 		return true;
-	}
-
-	private static Zeze.Builtin.ServiceManagerWithRaft.BOfflineNotify toRaft(BOfflineNotify a) {
-		var r = new Zeze.Builtin.ServiceManagerWithRaft.BOfflineNotify();
-		r.setServerId(a.serverId);
-		r.setNotifyId(a.notifyId);
-		r.setNotifySerialId(a.notifySerialId);
-		r.setNotifyContext(a.notifyContext);
-		return r;
 	}
 
 	@Override
 	public void offlineRegister(BOfflineNotify argument) {
 		waitLoginReady();
-		raftClient.sendForWait(new OfflineRegister(toRaft(argument))).await();
+		raftClient.sendForWait(new OfflineRegister(argument)).await();
 	}
 
 	@Override

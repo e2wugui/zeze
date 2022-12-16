@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.ServiceManagerWithRaft;
 
-public class NotifyServiceList extends Zeze.Raft.RaftRpc<Zeze.Builtin.ServiceManagerWithRaft.BServiceInfos, Zeze.Transaction.EmptyBean> {
+public class NotifyServiceList extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceManager.BServiceInfos, Zeze.Transaction.EmptyBean> {
     public static final int ModuleId_ = 11022;
     public static final int ProtocolId_ = 457655771;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47339587192283
@@ -17,11 +17,11 @@ public class NotifyServiceList extends Zeze.Raft.RaftRpc<Zeze.Builtin.ServiceMan
     }
 
     public NotifyServiceList() {
-        Argument = new Zeze.Builtin.ServiceManagerWithRaft.BServiceInfos();
+        Argument = new Zeze.Services.ServiceManager.BServiceInfos();
         Result = Zeze.Transaction.EmptyBean.instance;
     }
 
-    public NotifyServiceList(Zeze.Builtin.ServiceManagerWithRaft.BServiceInfos arg) {
+    public NotifyServiceList(Zeze.Services.ServiceManager.BServiceInfos arg) {
         Argument = arg;
         Result = Zeze.Transaction.EmptyBean.instance;
     }

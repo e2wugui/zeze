@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.ServiceManagerWithRaft;
 
-public class Register extends Zeze.Raft.RaftRpc<Zeze.Builtin.ServiceManagerWithRaft.BServiceInfo, Zeze.Transaction.EmptyBean> {
+public class Register extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceManager.BServiceInfo, Zeze.Transaction.EmptyBean> {
     public static final int ModuleId_ = 11022;
     public static final int ProtocolId_ = 1511238554;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47340640775066
@@ -20,11 +20,11 @@ public class Register extends Zeze.Raft.RaftRpc<Zeze.Builtin.ServiceManagerWithR
     public static final int DuplicateRegister = 1;
 
     public Register() {
-        Argument = new Zeze.Builtin.ServiceManagerWithRaft.BServiceInfo();
+        Argument = new Zeze.Services.ServiceManager.BServiceInfo();
         Result = Zeze.Transaction.EmptyBean.instance;
     }
 
-    public Register(Zeze.Builtin.ServiceManagerWithRaft.BServiceInfo arg) {
+    public Register(Zeze.Services.ServiceManager.BServiceInfo arg) {
         Argument = arg;
         Result = Zeze.Transaction.EmptyBean.instance;
     }

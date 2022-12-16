@@ -4,6 +4,15 @@
 	<external bean="Zeze.Arch.Beans.BSend"/>
 	<external bean="Zeze.Arch.Beans.BSendResult"/>
 
+	<external bean="Zeze.Services.ServiceManager.BAllocateIdArgument"/>
+	<external bean="Zeze.Services.ServiceManager.BAllocateIdResult"/>
+	<external bean="Zeze.Services.ServiceManager.BOfflineNotify"/>
+	<external bean="Zeze.Services.ServiceManager.BServerLoad"/>
+	<external bean="Zeze.Services.ServiceManager.BServiceInfo"/>
+	<external bean="Zeze.Services.ServiceManager.BServiceInfos"/>
+	<external bean="Zeze.Services.ServiceManager.BServiceListVersion"/>
+	<external bean="Zeze.Services.ServiceManager.BSubscribeInfo"/>
+
 	<module name="Builtin" id="11000">
 		<!-- Global With Raft 模块 -->
 		<module name="GlobalCacheManagerWithRaft" id="11001" DefaultTransactionLevel="None">
@@ -1129,6 +1138,7 @@
 		</module>
 
 		<module name="ServiceManagerWithRaft" base="Zeze.Services.ServiceManager.AbstractAgent" id="11022">
+			<!--
 			<bean name="BAllocateIdArgument">
 				<variable id="1" name="Name" type="string"/>
 				<variable id="2" name="Count" type="int"/>
@@ -1179,37 +1189,37 @@
 				<variable id="1" name="ServiceName" type="string"/>
 				<variable id="2" name="SubscribeType" type="int"/>
 			</bean>
-
+			-->
 			<bean name="BLogin">
 				<variable id="1" name="SessionName" type="string"/>
 			</bean>
 
 			<rpc name="Login" argument="BLogin" base="Zeze.Raft.RaftRpc" handle="server"/>
 
-			<rpc name="AllocateId" argument="BAllocateIdArgument" result="BAllocateIdResult" base="Zeze.Raft.RaftRpc" handle="server"/>
-			<rpc name="CommitServiceList" argument="BServiceListVersion" base="Zeze.Raft.RaftRpc" handle="client"/>
+			<rpc name="AllocateId" argument="Zeze.Services.ServiceManager.BAllocateIdArgument" result="Zeze.Services.ServiceManager.BAllocateIdResult" base="Zeze.Raft.RaftRpc" handle="server"/>
+			<rpc name="CommitServiceList" argument="Zeze.Services.ServiceManager.BServiceListVersion" base="Zeze.Raft.RaftRpc" handle="client"/>
 			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" handle="client"/>			
-			<rpc name="NotifyServiceList" argument="BServiceInfos" base="Zeze.Raft.RaftRpc" handle="client"/>
-			<rpc name="OfflineNotify" argument="BOfflineNotify" base="Zeze.Raft.RaftRpc" handle="client"/>
-			<rpc name="OfflineRegister" argument="BOfflineNotify" base="Zeze.Raft.RaftRpc" handle="server"/>
-			<rpc name="ReadyServiceList" argument="BServiceListVersion" base="Zeze.Raft.RaftRpc" handle="server"/>
-			<rpc name="Register" argument="BServiceInfo" base="Zeze.Raft.RaftRpc" handle="server,client">
+			<rpc name="NotifyServiceList" argument="Zeze.Services.ServiceManager.BServiceInfos" base="Zeze.Raft.RaftRpc" handle="client"/>
+			<rpc name="OfflineNotify" argument="Zeze.Services.ServiceManager.BOfflineNotify" base="Zeze.Raft.RaftRpc" handle="client"/>
+			<rpc name="OfflineRegister" argument="Zeze.Services.ServiceManager.BOfflineNotify" base="Zeze.Raft.RaftRpc" handle="server"/>
+			<rpc name="ReadyServiceList" argument="Zeze.Services.ServiceManager.BServiceListVersion" base="Zeze.Raft.RaftRpc" handle="server"/>
+			<rpc name="Register" argument="Zeze.Services.ServiceManager.BServiceInfo" base="Zeze.Raft.RaftRpc" handle="server,client">
 				<enum name="Success" value="0"/>
 				<enum name="DuplicateRegister" value="1"/>
 			</rpc>
-			<rpc name="SetServerLoad" argument="BServerLoad" base="Zeze.Raft.RaftRpc" handle="server"/>
-			<rpc name="Subscribe" argument="BSubscribeInfo" base="Zeze.Raft.RaftRpc" handle="server">
+			<rpc name="SetServerLoad" argument="Zeze.Services.ServiceManager.BServerLoad" base="Zeze.Raft.RaftRpc" handle="server"/>
+			<rpc name="Subscribe" argument="Zeze.Services.ServiceManager.BSubscribeInfo" base="Zeze.Raft.RaftRpc" handle="server">
 				<enum name="Success" value="0"/>
 				<enum name="DuplicateSubscribe" value="1"/>
 				<enum name="UnknownSubscribeType" value="2"/>
 			</rpc>
-			<rpc name="SubscribeFirstCommit" argument="BServiceInfos" base="Zeze.Raft.RaftRpc" handle="client"/>
-			<rpc name="UnRegister" argument="BServiceInfo" base="Zeze.Raft.RaftRpc" handle="server,client"/>
-			<rpc name="UnSubscribe" argument="BSubscribeInfo" base="Zeze.Raft.RaftRpc" handle="server">
+			<rpc name="SubscribeFirstCommit" argument="Zeze.Services.ServiceManager.BServiceInfos" base="Zeze.Raft.RaftRpc" handle="client"/>
+			<rpc name="UnRegister" argument="Zeze.Services.ServiceManager.BServiceInfo" base="Zeze.Raft.RaftRpc" handle="server,client"/>
+			<rpc name="UnSubscribe" argument="Zeze.Services.ServiceManager.BSubscribeInfo" base="Zeze.Raft.RaftRpc" handle="server">
 				<enum name="Success" value="0"/>
 				<enum name="NotExist" value="1"/>
 			</rpc>
-			<rpc name="Update" argument="BServiceInfo" base="Zeze.Raft.RaftRpc" handle="server,client">
+			<rpc name="Update" argument="Zeze.Services.ServiceManager.BServiceInfo" base="Zeze.Raft.RaftRpc" handle="server,client">
 				<enum name="Success" value="0"/>
 				<enum name="ServiceNotRegister" value="1"/>
 				<enum name="ServerStateError" value="2"/>

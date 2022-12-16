@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.ServiceManagerWithRaft;
 
-public class Subscribe extends Zeze.Raft.RaftRpc<Zeze.Builtin.ServiceManagerWithRaft.BSubscribeInfo, Zeze.Transaction.EmptyBean> {
+public class Subscribe extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceManager.BSubscribeInfo, Zeze.Transaction.EmptyBean> {
     public static final int ModuleId_ = 11022;
     public static final int ProtocolId_ = 1141948215;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47340271484727
@@ -21,11 +21,11 @@ public class Subscribe extends Zeze.Raft.RaftRpc<Zeze.Builtin.ServiceManagerWith
     public static final int UnknownSubscribeType = 2;
 
     public Subscribe() {
-        Argument = new Zeze.Builtin.ServiceManagerWithRaft.BSubscribeInfo();
+        Argument = new Zeze.Services.ServiceManager.BSubscribeInfo();
         Result = Zeze.Transaction.EmptyBean.instance;
     }
 
-    public Subscribe(Zeze.Builtin.ServiceManagerWithRaft.BSubscribeInfo arg) {
+    public Subscribe(Zeze.Services.ServiceManager.BSubscribeInfo arg) {
         Argument = arg;
         Result = Zeze.Transaction.EmptyBean.instance;
     }

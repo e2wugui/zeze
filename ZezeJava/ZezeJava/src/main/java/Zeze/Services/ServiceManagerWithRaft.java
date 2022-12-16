@@ -15,6 +15,9 @@ import Zeze.Raft.RocksRaft.Rocks;
 import Zeze.Raft.RocksRaft.RocksMode;
 import Zeze.Raft.RocksRaft.Table;
 import Zeze.Raft.UniqueRequestId;
+import Zeze.Services.ServiceManager.BServiceInfo;
+import Zeze.Services.ServiceManager.BServiceInfos;
+import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
@@ -114,7 +117,10 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 	}
 
 	private static BSubscribeInfo fromRocks(BSubscribeInfoRocks rocks) {
-		return new BSubscribeInfo(rocks.getServiceName(), rocks.getSubscribeType());
+		var r = new BSubscribeInfo();
+		r.setServiceName(rocks.getServiceName());
+		r.setSubscribeType(rocks.getSubscribeType());
+		return r;
 	}
 
 	public class Session {
@@ -207,10 +213,10 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 
 				var notify = new OfflineNotify();
 				var netNotifyId = notify.Argument;
-				netNotifyId.setServerId(notifyId.getServerId());
-				netNotifyId.setNotifyId(notifyId.getNotifyId());
-				netNotifyId.setNotifySerialId(notifyId.getNotifySerialId());
-				netNotifyId.setNotifyContext(notifyId.getNotifyContext());
+				netNotifyId.serverId = notifyId.getServerId();
+				netNotifyId.notifyId = notifyId.getNotifyId();
+				netNotifyId.notifySerialId = notifyId.getNotifySerialId();
+				netNotifyId.notifyContext = notifyId.getNotifyContext();
 
 				tryNotifyOffline(notify, session, notifyId, skips);
 			}
@@ -271,20 +277,20 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 	@Override
 	protected long ProcessOfflineRegisterRequest(OfflineRegister r) throws Throwable {
 		logger.info("{}: OfflineRegister serverId={} notifyId={}",
-				r.getSender(), r.Argument.getServerId(), r.Argument.getNotifyId());
+				r.getSender(), r.Argument.serverId, r.Argument.notifyId);
 		var netSession = (Session)r.getSender().getUserState();
 		var session = tableSession.get(netSession.name);
 		// 允许重复注册：简化server注册逻辑。
-		session.setOfflineRegisterServerId(r.Argument.getServerId());
+		session.setOfflineRegisterServerId(r.Argument.serverId);
 
 		var bOfflineNotifyRocks = new BOfflineNotifyRocks();
-		bOfflineNotifyRocks.setServerId(r.Argument.getServerId());
-		bOfflineNotifyRocks.setNotifyContext(r.Argument.getNotifyContext());
-		bOfflineNotifyRocks.setNotifyId(r.Argument.getNotifyId());
-		bOfflineNotifyRocks.setNotifySerialId(r.Argument.getNotifySerialId());
-		session.getOfflineRegisterNotifies().put(r.Argument.getNotifyId(), bOfflineNotifyRocks);
+		bOfflineNotifyRocks.setServerId(r.Argument.serverId);
+		bOfflineNotifyRocks.setNotifyContext(r.Argument.notifyContext);
+		bOfflineNotifyRocks.setNotifyId(r.Argument.notifyId);
+		bOfflineNotifyRocks.setNotifySerialId(r.Argument.notifySerialId);
+		session.getOfflineRegisterNotifies().put(r.Argument.notifyId, bOfflineNotifyRocks);
 
-		var future = offlineNotifyFutures.remove(r.Argument.getServerId());
+		var future = offlineNotifyFutures.remove(r.Argument.serverId);
 		if (null != future)
 			future.cancel(true);
 
@@ -301,7 +307,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 
 	@Override
 	protected long ProcessSetServerLoadRequest(SetServerLoad r) throws Throwable {
-		var loadObservers = tableLoadObservers.getOrAdd(r.Argument.getIp() + ":" + r.Argument.getPort());
+		var loadObservers = tableLoadObservers.getOrAdd(r.Argument.ip + ":" + r.Argument.port);
 		var observers = loadObservers.getObservers();
 
 		var set = new SetServerLoad();
@@ -556,7 +562,9 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 	}
 
 	private static BServiceInfos newSortedBServiceInfos(BServerState state) {
-		var result = new BServiceInfos(state.getServiceName(), state.getSerialId());
+		var result = new BServiceInfos();
+		result.serviceName = state.getServiceName();
+		result.serialId = state.getSerialId();
 		var sortedMap = new TreeMap<BServiceInfoKeyRocks, BServiceInfoRocks>();
 		for (var info : state.getServiceInfos())
 			sortedMap.put(new BServiceInfoKeyRocks(state.getServiceName(), info.getKey()), info.getValue());
@@ -623,14 +631,14 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 	@Override
 	protected long ProcessReadyServiceListRequest(ReadyServiceList r) throws Throwable {
 		var netSession = (Session)r.getSender().getUserState();
-		var state = tableServerState.getOrAdd(r.Argument.getServiceName());
+		var state = tableServerState.getOrAdd(r.Argument.serviceName);
 		setReady(state, r, netSession.name);
 		return 0;
 	}
 
 	private void setReady(BServerState state, ReadyServiceList r, String sessionName) {
-		if (r.Argument.getSerialId() != state.getSerialId()) {
-			logger.debug("Ready Skip: SerialId Not Equal. {} Now={}", r.Argument.getSerialId(), state.getSerialId());
+		if (r.Argument.serialId != state.getSerialId()) {
+			logger.debug("Ready Skip: SerialId Not Equal. {} Now={}", r.Argument.serialId, state.getSerialId());
 			return;
 		}
 		// logger.debug("Ready:{} Now={}", p.Argument.SerialId, SerialId);
@@ -653,8 +661,8 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 
 		logger.debug("Ready Broadcast.");
 		var commit = new CommitServiceList();
-		commit.Argument.setServiceName(state.getServiceName());
-		commit.Argument.setSerialId(state.getSerialId());
+		commit.Argument.serviceName = state.getServiceName();
+		commit.Argument.serialId = state.getSerialId();
 		for (var it : state.getReadyCommit()) {
 			var session = tableSession.get(it.getKey());
 			if (null != session)
