@@ -17,10 +17,10 @@ public final class BServiceInfos extends Bean {
 	};
 
 	// ServiceList maybe empty. need a ServiceName
-	private String serviceName;
+	public String serviceName;
 	// sorted by ServiceIdentity
-	private final ArrayList<BServiceInfo> serviceInfoListSortedByIdentity = new ArrayList<>();
-	private long serialId;
+	public final ArrayList<BServiceInfo> serviceInfoListSortedByIdentity = new ArrayList<>();
+	public long serialId;
 
 	public BServiceInfos() {
 	}

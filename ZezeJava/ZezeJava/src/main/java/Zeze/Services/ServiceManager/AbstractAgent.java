@@ -11,7 +11,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public abstract class AbstractAgent implements Closeable {
-	static final Logger logger = LogManager.getLogger(Agent.class);
+	static final Logger logger = LogManager.getLogger(AbstractAgent.class);
 
 	// key is ServiceName。对于一个Agent，一个服务只能有一个订阅。
 	// ServiceName ->
@@ -36,7 +36,7 @@ public abstract class AbstractAgent implements Closeable {
 	protected final ConcurrentHashMap<String, AutoKey> autoKeys = new ConcurrentHashMap<>();
 
 	public final ConcurrentHashMap<String, BServerLoad> loads = new ConcurrentHashMap<>();
-	
+
 	public ConcurrentHashMap<String, Agent.SubscribeState> getSubscribeStates() {
 		return subscribeStates;
 	}
@@ -183,7 +183,7 @@ public abstract class AbstractAgent implements Closeable {
 			}
 		}
 
-		synchronized void onRegister(BServiceInfo info) {
+		public synchronized void onRegister(BServiceInfo info) {
 			serviceInfos.insert(info);
 			if (onUpdate != null) {
 				Task.getCriticalThreadPool().execute(() -> {
@@ -204,7 +204,7 @@ public abstract class AbstractAgent implements Closeable {
 			}
 		}
 
-		synchronized void onUnRegister(BServiceInfo info) {
+		public synchronized void onUnRegister(BServiceInfo info) {
 			var removed = serviceInfos.remove(info);
 			if (removed == null)
 				return;
@@ -227,7 +227,7 @@ public abstract class AbstractAgent implements Closeable {
 			}
 		}
 
-		synchronized void onUpdate(BServiceInfo info) {
+		public synchronized void onUpdate(BServiceInfo info) {
 			var exist = serviceInfos.findServiceInfo(info);
 			if (exist == null)
 				return;
@@ -366,4 +366,7 @@ public abstract class AbstractAgent implements Closeable {
 
 	public abstract void offlineRegister(BOfflineNotify argument);
 
+	protected static void setCurrentAndCount(AutoKey autoKey, long current, int count) {
+		autoKey.setCurrentAndCount(current, count);
+	}
 }

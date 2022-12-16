@@ -12,7 +12,6 @@ public final class BServiceInfo extends Zeze.Transaction.Bean implements BServic
     private String _PassiveIp;
     private int _PassivePort;
     private Zeze.Net.Binary _ExtraInfo;
-    private Zeze.Net.Binary _Param;
 
     @Override
     public String getServiceName() {
@@ -122,39 +121,16 @@ public final class BServiceInfo extends Zeze.Transaction.Bean implements BServic
         txn.putLog(new Log__ExtraInfo(this, 5, value));
     }
 
-    @Override
-    public Zeze.Net.Binary getParam() {
-        if (!isManaged())
-            return _Param;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
-            return _Param;
-        var log = (Log__Param)txn.getLog(objectId() + 6);
-        return log != null ? log.value : _Param;
-    }
-
-    public void setParam(Zeze.Net.Binary value) {
-        if (value == null)
-            throw new IllegalArgumentException();
-        if (!isManaged()) {
-            _Param = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Param(this, 6, value));
-    }
-
     @SuppressWarnings("deprecation")
     public BServiceInfo() {
         _ServiceName = "";
         _ServiceIdentity = "";
         _PassiveIp = "";
         _ExtraInfo = Zeze.Net.Binary.Empty;
-        _Param = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public BServiceInfo(String _ServiceName_, String _ServiceIdentity_, String _PassiveIp_, int _PassivePort_, Zeze.Net.Binary _ExtraInfo_, Zeze.Net.Binary _Param_) {
+    public BServiceInfo(String _ServiceName_, String _ServiceIdentity_, String _PassiveIp_, int _PassivePort_, Zeze.Net.Binary _ExtraInfo_) {
         if (_ServiceName_ == null)
             throw new IllegalArgumentException();
         _ServiceName = _ServiceName_;
@@ -168,9 +144,6 @@ public final class BServiceInfo extends Zeze.Transaction.Bean implements BServic
         if (_ExtraInfo_ == null)
             throw new IllegalArgumentException();
         _ExtraInfo = _ExtraInfo_;
-        if (_Param_ == null)
-            throw new IllegalArgumentException();
-        _Param = _Param_;
     }
 
     public void assign(BServiceInfo other) {
@@ -179,7 +152,6 @@ public final class BServiceInfo extends Zeze.Transaction.Bean implements BServic
         setPassiveIp(other.getPassiveIp());
         setPassivePort(other.getPassivePort());
         setExtraInfo(other.getExtraInfo());
-        setParam(other.getParam());
     }
 
     @Deprecated
@@ -249,13 +221,6 @@ public final class BServiceInfo extends Zeze.Transaction.Bean implements BServic
         public void commit() { ((BServiceInfo)getBelong())._ExtraInfo = value; }
     }
 
-    private static final class Log__Param extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Param(BServiceInfo bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
-
-        @Override
-        public void commit() { ((BServiceInfo)getBelong())._Param = value; }
-    }
-
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -271,8 +236,7 @@ public final class BServiceInfo extends Zeze.Transaction.Bean implements BServic
         sb.append(Zeze.Util.Str.indent(level)).append("ServiceIdentity=").append(getServiceIdentity()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("PassiveIp=").append(getPassiveIp()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("PassivePort=").append(getPassivePort()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ExtraInfo=").append(getExtraInfo()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Param=").append(getParam()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ExtraInfo=").append(getExtraInfo()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -327,13 +291,6 @@ public final class BServiceInfo extends Zeze.Transaction.Bean implements BServic
                 _o_.WriteBinary(_x_);
             }
         }
-        {
-            var _x_ = getParam();
-            if (_x_.size() != 0) {
-                _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.BYTES);
-                _o_.WriteBinary(_x_);
-            }
-        }
         _o_.WriteByte(0);
     }
 
@@ -359,10 +316,6 @@ public final class BServiceInfo extends Zeze.Transaction.Bean implements BServic
         }
         if (_i_ == 5) {
             setExtraInfo(_o_.ReadBinary(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 6) {
-            setParam(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -400,7 +353,6 @@ public final class BServiceInfo extends Zeze.Transaction.Bean implements BServic
                 case 3: _PassiveIp = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 4: _PassivePort = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
                 case 5: _ExtraInfo = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
-                case 6: _Param = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
             }
         }
     }

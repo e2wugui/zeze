@@ -12,5 +12,4 @@ public interface BServiceInfoReadOnly {
     public String getPassiveIp();
     public int getPassivePort();
     public Zeze.Net.Binary getExtraInfo();
-    public Zeze.Net.Binary getParam();
 }

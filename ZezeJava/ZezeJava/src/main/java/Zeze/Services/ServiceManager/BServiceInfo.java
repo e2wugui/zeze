@@ -9,13 +9,13 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 	/**
 	 * 服务名，比如"GameServer"
 	 */
-	private String serviceName;
+	public String serviceName;
 
 	/**
 	 * 服务id，对于 Zeze.Application，一般就是 Config.ServerId.
 	 * 这里使用类型 string 是为了更好的支持扩展。
 	 */
-	private String serviceIdentity;
+	public String serviceIdentity;
 
 	/**
 	 * 服务ip-port，如果没有，保持空和0.

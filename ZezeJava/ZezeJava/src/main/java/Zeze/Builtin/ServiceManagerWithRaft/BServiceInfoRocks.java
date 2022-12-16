@@ -12,7 +12,6 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
     private String _PassiveIp;
     private int _PassivePort;
     private Zeze.Net.Binary _ExtraInfo;
-    private Zeze.Net.Binary _Param;
     private String _SessionName;
 
     private transient Object __zeze_map_key__;
@@ -140,36 +139,13 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
         txn.putLog(new Zeze.Raft.RocksRaft.Log1.LogBinary(this, 5, value));
     }
 
-    public Zeze.Net.Binary getParam() {
-        if (!isManaged())
-            return _Param;
-        var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
-        if (txn == null)
-            return _Param;
-        var log = txn.getLog(objectId() + 6);
-        if (log == null)
-            return _Param;
-        return ((Zeze.Raft.RocksRaft.Log1.LogBinary)log).value;
-    }
-
-    public void setParam(Zeze.Net.Binary value) {
-        if (value == null)
-            throw new IllegalArgumentException();
-        if (!isManaged()) {
-            _Param = value;
-            return;
-        }
-        var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
-        txn.putLog(new Zeze.Raft.RocksRaft.Log1.LogBinary(this, 6, value));
-    }
-
     public String getSessionName() {
         if (!isManaged())
             return _SessionName;
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
         if (txn == null)
             return _SessionName;
-        var log = txn.getLog(objectId() + 7);
+        var log = txn.getLog(objectId() + 6);
         if (log == null)
             return _SessionName;
         return ((Zeze.Raft.RocksRaft.Log1.LogString)log).value;
@@ -183,7 +159,7 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
             return;
         }
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
-        txn.putLog(new Zeze.Raft.RocksRaft.Log1.LogString(this, 7, value));
+        txn.putLog(new Zeze.Raft.RocksRaft.Log1.LogString(this, 6, value));
     }
 
     public BServiceInfoRocks() {
@@ -191,11 +167,10 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
         _ServiceIdentity = "";
         _PassiveIp = "";
         _ExtraInfo = Zeze.Net.Binary.Empty;
-        _Param = Zeze.Net.Binary.Empty;
         _SessionName = "";
     }
 
-    public BServiceInfoRocks(String _ServiceName_, String _ServiceIdentity_, String _PassiveIp_, int _PassivePort_, Zeze.Net.Binary _ExtraInfo_, Zeze.Net.Binary _Param_, String _SessionName_) {
+    public BServiceInfoRocks(String _ServiceName_, String _ServiceIdentity_, String _PassiveIp_, int _PassivePort_, Zeze.Net.Binary _ExtraInfo_, String _SessionName_) {
         if (_ServiceName_ == null)
             throw new IllegalArgumentException();
         _ServiceName = _ServiceName_;
@@ -209,9 +184,6 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
         if (_ExtraInfo_ == null)
             throw new IllegalArgumentException();
         _ExtraInfo = _ExtraInfo_;
-        if (_Param_ == null)
-            throw new IllegalArgumentException();
-        _Param = _Param_;
         if (_SessionName_ == null)
             throw new IllegalArgumentException();
         _SessionName = _SessionName_;
@@ -223,7 +195,6 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
         setPassiveIp(other.getPassiveIp());
         setPassivePort(other.getPassivePort());
         setExtraInfo(other.getExtraInfo());
-        setParam(other.getParam());
         setSessionName(other.getSessionName());
     }
 
@@ -275,7 +246,6 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("PassiveIp").append('=').append(getPassiveIp()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("PassivePort").append('=').append(getPassivePort()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("ExtraInfo").append('=').append(getExtraInfo()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Param").append('=').append(getParam()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("SessionName").append('=').append(getSessionName()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -332,16 +302,9 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
             }
         }
         {
-            var _x_ = getParam();
-            if (_x_.size() != 0) {
-                _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.BYTES);
-                _o_.WriteBinary(_x_);
-            }
-        }
-        {
             String _x_ = getSessionName();
             if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 7, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
@@ -373,10 +336,6 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 6) {
-            _Param = _o_.ReadBinary(_t_);
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 7) {
             _SessionName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
@@ -398,8 +357,7 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
             case 3: _PassiveIp = ((Zeze.Raft.RocksRaft.Log1.LogString)vlog).value; break;
             case 4: _PassivePort = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).value; break;
             case 5: _ExtraInfo = ((Zeze.Raft.RocksRaft.Log1.LogBinary)vlog).value; break;
-            case 6: _Param = ((Zeze.Raft.RocksRaft.Log1.LogBinary)vlog).value; break;
-            case 7: _SessionName = ((Zeze.Raft.RocksRaft.Log1.LogString)vlog).value; break;
+            case 6: _SessionName = ((Zeze.Raft.RocksRaft.Log1.LogString)vlog).value; break;
         }
     }
 
@@ -416,8 +374,7 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
                 case 3: _PassiveIp = ((Zeze.Raft.RocksRaft.Log1.LogString)vlog).value; break;
                 case 4: _PassivePort = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).value; break;
                 case 5: _ExtraInfo = ((Zeze.Raft.RocksRaft.Log1.LogBinary)vlog).value; break;
-                case 6: _Param = ((Zeze.Raft.RocksRaft.Log1.LogBinary)vlog).value; break;
-                case 7: _SessionName = ((Zeze.Raft.RocksRaft.Log1.LogString)vlog).value; break;
+                case 6: _SessionName = ((Zeze.Raft.RocksRaft.Log1.LogString)vlog).value; break;
             }
         }
     }

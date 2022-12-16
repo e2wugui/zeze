@@ -1159,7 +1159,6 @@
 				<variable id="3" name="PassiveIp" type="string"/>
 				<variable id="4" name="PassivePort" type="int"/>
 				<variable id="5" name="ExtraInfo" type="binary"/>
-				<variable id="6" name="Param" type="binary"/>
 			</bean>
 
 			<bean name="BServiceInfos">
@@ -1248,8 +1247,7 @@
 				<variable id="3" name="PassiveIp" type="string"/>
 				<variable id="4" name="PassivePort" type="int"/>
 				<variable id="5" name="ExtraInfo" type="binary"/>
-				<variable id="6" name="Param" type="binary"/>
-				<variable id="7" name="SessionName" type="string"/>
+				<variable id="6" name="SessionName" type="string"/>
 			</bean>
 			<bean name="BSubscribeInfoRocks" kind="rocks">
 				<variable id="1" name="ServiceName" type="string"/>
@@ -1275,7 +1273,6 @@
 				<variable id="1" name="Ready" type="bool"/>
 			</bean>
 			<table name="tServerState" key="string" value="BServerState" kind="rocks"/>
-
 		</module>
 
 		<!--

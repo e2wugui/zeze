@@ -328,8 +328,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 
 	private static BServiceInfoRocks toRocks(BServiceInfo serverInfo, String sessionName) {
 		return new BServiceInfoRocks(serverInfo.getServiceName(), serverInfo.getServiceIdentity(),
-				serverInfo.getPassiveIp(), serverInfo.getPassivePort(),
-				serverInfo.getExtraInfo(), serverInfo.getParam(),
+				serverInfo.getPassiveIp(), serverInfo.getPassivePort(), serverInfo.getExtraInfo(),
 				sessionName);
 	}
 
@@ -417,7 +416,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 
 	private static BServiceInfo fromRocks(BServiceInfoRocks rocks) {
 		return new BServiceInfo(rocks.getServiceName(), rocks.getServiceIdentity(),
-				rocks.getPassiveIp(), rocks.getPassivePort(), rocks.getExtraInfo(), rocks.getParam());
+				rocks.getPassiveIp(), rocks.getPassivePort(), rocks.getExtraInfo());
 	}
 
 	public void notifySimpleOnUnRegister(BServerState state, BServiceInfo info) {
