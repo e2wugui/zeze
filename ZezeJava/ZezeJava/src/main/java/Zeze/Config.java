@@ -48,10 +48,20 @@ public final class Config {
 	private Level processReturnErrorLogLevel = Level.INFO;
 	private int serverId;
 	private String globalCacheManagerHostNameOrAddress = "";
+
+	private String serviceManager = ""; // ”“|”raft"|"disable", default: enable service manager
+	// raft：本来可以直接在这里配置raftXmlFile。但是，
+	// 1. 文件名名字空间属于自定义的，不污染这里了，
+	// 2. 这里定义服务类型，raft配置可以留在文件中，
+	// 3. raft配置，service配置可以共存，这里配置选择方式。
+	// end serviceManager
+
 	// 分成多行配置，支持多HostNameOrAddress或者多raft.xml。
 	// 多行的时候，所有服务器的顺序必须保持一致。
 	// 为了保持原来接口不变，多行会被编码成一个string保存到GlobalCacheManagerHostNameOrAddress中。
 	public GlobalCacheManagersConf globalCacheManagers;
+	public ServiceManagerConf serviceManagerConf;
+
 	private int globalCacheManagerPort;
 	private final ConcurrentHashMap<String, TableConf> tableConfMap = new ConcurrentHashMap<>();
 	private TableConf defaultTableConf;
@@ -182,6 +192,8 @@ public final class Config {
 	public GlobalCacheManagersConf getGlobalCacheManagers() {
 		return globalCacheManagers;
 	}
+
+	public ServiceManagerConf getServiceManagerConf() { return serviceManagerConf; }
 
 	public int getGlobalCacheManagerPort() {
 		return globalCacheManagerPort;
@@ -458,6 +470,10 @@ public final class Config {
 				new GlobalCacheManagersConf(this, e);
 				break;
 
+			case "ServiceManagerConf":
+				new ServiceManagerConf(this, e);
+				break;
+
 			case "TableConf":
 				new TableConf(this, e);
 				break;
@@ -485,6 +501,19 @@ public final class Config {
 		}
 		if (globalCacheManagerHostNameOrAddress.equals("GlobalCacheManagersConf"))
 			globalCacheManagerHostNameOrAddress = globalCacheManagers.toString();
+	}
+
+	public static final class ServiceManagerConf {
+		private final String raftXml;
+
+		public ServiceManagerConf(Config conf, Element self) {
+			raftXml = self.getAttribute("raftXml");
+			conf.serviceManagerConf = this;
+		}
+
+		public String getRaftXml() {
+			return raftXml;
+		}
 	}
 
 	public static final class GlobalCacheManagersConf {

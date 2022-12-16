@@ -3,12 +3,15 @@
 <zeze
 	GlobalCacheManagerHostNameOrAddress="127.0.0.1" GlobalCacheManagerPort="5555"
 	CheckpointPeriod="60000" ServerId="0" CheckpointMode="Table"
+	ServiceManager="raft"
 	>
 
 	<GlobalCacheManagersConf>
 		<host name="global.raft.xml"/>
 	</GlobalCacheManagersConf>
 	
+	<ServiceManagerConf raftXml="servicemanager.raft.xml"/>
+
 	<!--
 	数据库配置。默认数据库的名字为空。
 	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>

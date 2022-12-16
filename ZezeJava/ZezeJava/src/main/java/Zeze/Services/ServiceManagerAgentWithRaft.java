@@ -32,7 +32,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	private final Zeze.Raft.Agent raftClient;
 	private final String sessionName;
 
-	public ServiceManagerAgentWithRaft(String sessionName, Zeze.Application zeze, Zeze.Raft.RaftConfig raftConf) throws Throwable {
+	public ServiceManagerAgentWithRaft(String sessionName, Zeze.Application zeze, String raftXml) throws Throwable {
 		this.sessionName = sessionName;
 		super.zeze = zeze;
 
@@ -41,6 +41,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			throw new IllegalStateException("Config is null");
 		}
 
+		var raftConf = Zeze.Raft.RaftConfig.load(raftXml);
 		raftClient = new Zeze.Raft.Agent("servicemanager.raft", zeze, raftConf);
 		raftClient.setOnSetLeader(this::raftOnSetLeader);
 		raftClient.dispatchProtocolToInternalThreadPool = true;
