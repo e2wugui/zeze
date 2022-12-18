@@ -10,6 +10,7 @@ dependencies {
     implementation 'io.netty:netty-codec-http:4.1.85.Final'
     implementation 'io.netty:netty-transport-native-epoll:4.1.85.Final:linux-x86_64'
     implementation 'org.jgrapht:jgrapht-core:1.5.1'
+    implementation group: 'com.opencsv', name: 'opencsv', version: '5.7.1'
 
     // optional dependencies
     // for tikv

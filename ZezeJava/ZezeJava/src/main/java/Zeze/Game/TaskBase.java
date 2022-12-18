@@ -1,9 +1,11 @@
 package Zeze.Game;
 
+import java.io.FileReader;
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.ParameterizedType;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Arch.ProviderApp;
@@ -20,6 +22,7 @@ import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
 import Zeze.Util.ConcurrentHashSet;
+import com.opencsv.CSVReaderHeaderAware;
 
 public abstract class TaskBase<ExtendedBean extends Bean> {
 
@@ -29,7 +32,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	 */
 	protected static class Opt{
 		public long id;
-		public int type;
+//		public int type; 这个不能设置，每个任务实例会自动赋值
 		public String name;
 		public String description;
 		public long[] preTaskIds;
@@ -38,7 +41,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		this.module = module;
 		this.bean = this.module._tTask.getOrAdd(new BTaskKey(opt.id));
 		this.bean.setTaskId(opt.id);
-		this.bean.setTaskType(opt.type);
+		this.bean.setTaskType(getType());
 		this.bean.setTaskState(Module.Invalid);
 		this.bean.setTaskName(opt.name);
 		this.bean.setTaskDescription(opt.description);
@@ -62,7 +65,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	 * 5. Task Description
 	 */
 	public long getId() { return bean.getTaskId(); }
-	public int getType() { return bean.getTaskType(); }
+	public abstract int getType();
 	public int getState() { return bean.getTaskState(); }
 	public String getName() { return bean.getTaskName(); }
 	public String getDescription() { return bean.getTaskDescription(); }
@@ -251,10 +254,10 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		public <ExtendedBean extends Bean,
 				ExtendedTask extends TaskBase<ExtendedBean>,
 				ExtendedOpt extends TaskBase.Opt
-				> void registerTask(Class<ExtendedTask> extendedTaskClass, Class<ExtendedOpt> extendedOptClass) {
+				> void registerTask(long taskType, Class<ExtendedTask> extendedTaskClass, Class<ExtendedOpt> extendedOptClass) {
 			try {
 				var c = extendedTaskClass.getDeclaredConstructor(Module.class, extendedOptClass);
-				constructors.add(c);
+				constructors.put(taskType, c);
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
@@ -277,7 +280,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		}
 
 		private final ConcurrentHashMap<Long, TaskBase<?>> tasks = new ConcurrentHashMap<>();
-		private final ConcurrentHashSet<Constructor<?>> constructors = new ConcurrentHashSet<>();
+		private final ConcurrentHashMap<Long, Constructor<?>> constructors = new ConcurrentHashMap<>();
 		public final ProviderApp providerApp;
 		public final Application zeze;
 
@@ -293,14 +296,17 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		 * 加载任务配置表里的所有任务（在服务器启动时，或者想要验证配表是否合法时）
 		 * 需要在事务中执行。
 		 */
-		public void loadConfig(String taskConfigTable) throws Exception {
+		public void loadConfig(String taskConfigFile) throws Exception {
 
 			// 这里解析任务配置表，然后把所有任务配置填充到task里面。
+			Map<String, String> values = new CSVReaderHeaderAware(new FileReader(taskConfigFile)).readMap();
+			// TODO: 解析values，然后把所有任务配置填充到task里面。
 
 			// 初始化所有Task的初始配置
 			for (var task : tasks.values()) {
 				task.preTaskIds.clear();
 				task.nextTaskIds.clear();
+
 			}
 		}
 
