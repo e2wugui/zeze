@@ -16,149 +16,12 @@ import Zeze.Builtin.Game.TaskBase.TriggerTaskEvent;
 import Zeze.Collections.BeanFactory;
 import Zeze.Game.Task.NPCTask;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Collections.PList1;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
 import Zeze.Util.ConcurrentHashSet;
 
 public abstract class TaskBase<ExtendedBean extends Bean> {
-	/**
-	 * Task Module：承担TaskGraphics的功能
-	 */
-	public static class Module extends AbstractTaskBase {
-		/**
-		 * 所有任务的Trigger Rpc，负责中转所有请求
-		 */
-		@Override
-		protected long ProcessTriggerTaskEventRequest(TriggerTaskEvent r) throws Throwable {
-			// 检查角色Id
-			var roleId = r.Argument.getRoleId();
-			var taskInfo = _tRoleTask.get(roleId);
-			if (taskInfo == null) {
-				r.Result.setResultCode(TaskResultInvalidRoleId);
-				return Procedure.Success;
-			}
-
-			var eventTypeBean = r.Argument.getTaskEventTypeDynamic().getBean();
-			var eventExtendedBean = r.Argument.getExtendedData().getBean();
-			if (eventTypeBean instanceof BSpecificTaskEvent) {
-				var specificTaskEventBean = (BSpecificTaskEvent)eventTypeBean; // 兼容JDK11
-				// 检查任务Id
-				var id = specificTaskEventBean.getTaskId();
-				var taskBean = taskInfo.getProcessingTasksId().get(id);
-				if (null == taskBean) {
-					r.Result.setResultCode(TaskResultTaskNotFound);
-					return Procedure.Success;
-				}
-
-				var task = tasks.get(id);
-				task.loadBean(taskBean);
-				if (task.accept(eventExtendedBean))
-					r.Result.setResultCode(TaskResultAccepted);
-				else
-					r.Result.setResultCode(TaskResultRejected);
-			} else if (eventTypeBean instanceof BBroadcastTaskEvent) {
-				var broadcastTaskEventBean = (BBroadcastTaskEvent)eventTypeBean; // 兼容JDK11
-				var taskBeanList = taskInfo.getProcessingTasksId().values();
-				for (var taskBean : taskBeanList) {
-					var id = taskBean.getTaskId();
-					var task = tasks.get(id);
-					task.loadBean(taskBean);
-					if (task.accept(eventExtendedBean))
-						if (broadcastTaskEventBean.isIsBreakIfAccepted())
-							break;
-				}
-				r.Result.setResultCode(TaskResultAccepted);
-			}
-			return Procedure.Success;
-		}
-
-		/**
-		 * 在加载任务配表前，需要先注册任务类型。（因为TaskBase是个绝对抽象类，不知道任何外部的扩展任何类型的信息）
-		 */
-		public <ExtendedBean extends Bean,
-				ExtendedTask extends TaskBase<ExtendedBean>,
-				ExtendedOpt extends TaskBase.Opt
-				> void registerTask(Class<ExtendedTask> extendedTaskClass, Class<ExtendedOpt> extendedOptClass) {
-			try {
-				var c = extendedTaskClass.getDeclaredConstructor(Module.class, extendedOptClass);
-				extendedTaskConstructors.add(c);
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
-		}
-
-		/**
-		 * 新建内置任务：NPCTask
-		 * (当前public，后续应该改成protected，统一使用loadConfig(String taskConfigTable)读表加载)
-		 */
-		public NPCTask newNPCTask(TaskBase.Opt opt) {
-			return open(opt, NPCTask.class);
-		}
-
-		/**
-		 * 新建非内置任务
-		 */
-		public <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>>
-		ExtendedTask newTask(TaskBase.Opt opt, Class<ExtendedTask> extendedTaskClass) {
-			return open(opt, extendedTaskClass);
-		}
-
-		private final ConcurrentHashMap<Long, TaskBase<?>> tasks = new ConcurrentHashMap<>();
-		private final ConcurrentHashSet<Constructor<?>> extendedTaskConstructors = new ConcurrentHashSet<>();
-		public final ProviderApp providerApp;
-		public final Application zeze;
-
-		public Module(Application zeze) {
-			this.zeze = zeze;
-			this.providerApp = zeze.redirect.providerApp;
-			RegisterZezeTables(zeze);
-			RegisterProtocols(this.providerApp.providerService);
-			providerApp.builtinModules.put(this.getFullName(), this);
-		}
-
-		/**
-		 * 加载任务配置表里的所有任务（在服务器启动时，或者想要验证配表是否合法时）
-		 * 需要在事务中执行。
-		 */
-		public void loadConfig(String taskConfigTable) throws Exception {
-
-			// 这里解析任务配置表，然后把所有任务配置填充到task里面。
-
-			// 初始化所有Task的初始配置
-			for (var task : tasks.values()) {
-				task.preTaskIds.clear();
-				task.nextTaskIds.clear();
-			}
-		}
-
-		public void register(Class<? extends Bean> cls) {
-			beanFactory.register(cls);
-			_tEventClasses.getOrAdd(1).getEventClasses().add(cls.getName());
-		}
-
-		@Override
-		public void UnRegister() {
-			if (null != zeze) {
-				UnRegisterZezeTables(zeze);
-			}
-		}
-
-		// 需要在事务内使用。使用完不要保存。
-		@SuppressWarnings("unchecked")
-		private <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>> ExtendedTask open(TaskBase.Opt opt, Class<ExtendedTask> extendedTaskClass) {
-			return (ExtendedTask)tasks.computeIfAbsent(opt.id, key -> {
-				try {
-					var c = extendedTaskClass.getDeclaredConstructor(Module.class, TaskBase.Opt.class); // TODO：可以把这个的Constructor缓存起来
-					var res = c.newInstance(this, opt);
-					return res;
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
-			});
-		}
-	}
 
 	// @formatter:off
 	/**
@@ -326,5 +189,151 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	private Class<ExtendedBean> getExtendedBeanClass() {
 		ParameterizedType parameterizedType = (ParameterizedType)this.getClass().getGenericSuperclass();
 		return (Class<ExtendedBean>)parameterizedType.getActualTypeArguments()[0];
+	}
+
+// @formatter:on
+	// ======================================== Task Module Part ========================================
+
+	/**
+	 * Task Module：承担TaskGraphics的功能
+	 */
+	public static class Module extends AbstractTaskBase {
+		/**
+		 * 所有任务的Trigger Rpc，负责中转所有请求
+		 */
+		@Override
+		protected long ProcessTriggerTaskEventRequest(TriggerTaskEvent r) throws Throwable {
+			// 检查角色Id
+			var roleId = r.Argument.getRoleId();
+			var taskInfo = _tRoleTask.get(roleId);
+			if (taskInfo == null) {
+				r.Result.setResultCode(TaskResultInvalidRoleId);
+				return Procedure.Success;
+			}
+
+			var eventTypeBean = r.Argument.getTaskEventTypeDynamic().getBean();
+			var eventExtendedBean = r.Argument.getExtendedData().getBean();
+			if (eventTypeBean instanceof BSpecificTaskEvent) {
+				var specificTaskEventBean = (BSpecificTaskEvent)eventTypeBean; // 兼容JDK11
+				// 检查任务Id
+				var id = specificTaskEventBean.getTaskId();
+				var taskBean = taskInfo.getProcessingTasksId().get(id);
+				if (null == taskBean) {
+					r.Result.setResultCode(TaskResultTaskNotFound);
+					return Procedure.Success;
+				}
+
+				var task = tasks.get(id);
+				task.loadBean(taskBean);
+				if (task.accept(eventExtendedBean))
+					r.Result.setResultCode(TaskResultAccepted);
+				else
+					r.Result.setResultCode(TaskResultRejected);
+			} else if (eventTypeBean instanceof BBroadcastTaskEvent) {
+				var broadcastTaskEventBean = (BBroadcastTaskEvent)eventTypeBean; // 兼容JDK11
+				var taskBeanList = taskInfo.getProcessingTasksId().values();
+				for (var taskBean : taskBeanList) {
+					var id = taskBean.getTaskId();
+					var task = tasks.get(id);
+					task.loadBean(taskBean);
+					if (task.accept(eventExtendedBean))
+						if (broadcastTaskEventBean.isIsBreakIfAccepted())
+							break;
+				}
+				r.Result.setResultCode(TaskResultAccepted);
+			}
+			return Procedure.Success;
+		}
+
+		/**
+		 * 在加载任务配表前，需要先注册任务类型。（因为TaskBase是个绝对抽象类，不知道任何外部的扩展任何类型的信息）
+		 */
+		public <ExtendedBean extends Bean,
+				ExtendedTask extends TaskBase<ExtendedBean>,
+				ExtendedOpt extends TaskBase.Opt
+				> void registerTask(Class<ExtendedTask> extendedTaskClass, Class<ExtendedOpt> extendedOptClass) {
+			try {
+				var c = extendedTaskClass.getDeclaredConstructor(Module.class, extendedOptClass);
+				constructors.add(c);
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		/**
+		 * 新建内置任务：NPCTask
+		 * (当前public，后续应该改成protected，统一使用loadConfig(String taskConfigTable)读表加载)
+		 */
+		public NPCTask newNPCTask(TaskBase.Opt opt) {
+			return open(opt, NPCTask.class);
+		}
+
+		/**
+		 * 新建非内置任务
+		 */
+		public <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>>
+		ExtendedTask newTask(TaskBase.Opt opt, Class<ExtendedTask> extendedTaskClass) {
+			return open(opt, extendedTaskClass);
+		}
+
+		private final ConcurrentHashMap<Long, TaskBase<?>> tasks = new ConcurrentHashMap<>();
+		private final ConcurrentHashSet<Constructor<?>> constructors = new ConcurrentHashSet<>();
+		public final ProviderApp providerApp;
+		public final Application zeze;
+
+		public Module(Application zeze) {
+			this.zeze = zeze;
+			this.providerApp = zeze.redirect.providerApp;
+			RegisterZezeTables(zeze);
+			RegisterProtocols(this.providerApp.providerService);
+			providerApp.builtinModules.put(this.getFullName(), this);
+		}
+
+		/**
+		 * 加载任务配置表里的所有任务（在服务器启动时，或者想要验证配表是否合法时）
+		 * 需要在事务中执行。
+		 */
+		public void loadConfig(String taskConfigTable) throws Exception {
+
+			// 这里解析任务配置表，然后把所有任务配置填充到task里面。
+
+			// 初始化所有Task的初始配置
+			for (var task : tasks.values()) {
+				task.preTaskIds.clear();
+				task.nextTaskIds.clear();
+			}
+		}
+
+		public void register(Class<? extends Bean> cls) {
+			beanFactory.register(cls);
+			_tEventClasses.getOrAdd(1).getEventClasses().add(cls.getName());
+		}
+
+		@Override
+		public void UnRegister() {
+			if (null != zeze) {
+				UnRegisterZezeTables(zeze);
+			}
+		}
+
+		// 需要在事务内使用。使用完不要保存。
+		@SuppressWarnings("unchecked")
+		private <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>> ExtendedTask open(TaskBase.Opt opt, Class<ExtendedTask> extendedTaskClass) {
+			return (ExtendedTask)tasks.computeIfAbsent(opt.id, key -> {
+				try {
+//					if (extendedTaskConstructors.contains(extendedTaskClass)) {
+//						var c = extendedTaskConstructors.get(extendedTaskClass);
+//					}
+//					if (null != c) {
+//						return c.newInstance(this, opt);
+//					}
+					var c = extendedTaskClass.getDeclaredConstructor(Module.class, TaskBase.Opt.class); // TODO：可以把这个的Constructor缓存起来
+					var res = c.newInstance(this, opt);
+					return res;
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			});
+		}
 	}
 }
