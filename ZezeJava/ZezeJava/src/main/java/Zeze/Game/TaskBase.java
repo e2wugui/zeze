@@ -16,13 +16,14 @@ import Zeze.Builtin.Game.TaskBase.BTaskKey;
 import Zeze.Builtin.Game.TaskBase.BTaskPhase;
 import Zeze.Builtin.Game.TaskBase.TriggerTaskEvent;
 import Zeze.Collections.BeanFactory;
-import Zeze.Game.Task.NPCTask;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
 import Zeze.Util.ConcurrentHashSet;
 import com.opencsv.CSVReaderHeaderAware;
+import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.graph.DirectedAcyclicGraph;
 
 public abstract class TaskBase<ExtendedBean extends Bean> {
 
@@ -30,31 +31,53 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	/**
 	 * Task Constructors
 	 */
-	protected static class Opt{
-		public long id;
-//		public int type; 这个不能设置，每个任务实例会自动赋值
-		public String name;
-		public String description;
-		public long[] preTaskIds;
-	}
-	protected TaskBase(Module module, Opt opt) {
+	@SuppressWarnings("unchecked")
+	protected
+	<ExtendedBean extends Bean,
+	ExtendedTask extends TaskBase<ExtendedBean>
+	>
+	TaskBase(Module module, Class<ExtendedTask> extendedTaskClass) {
 		this.module = module;
-		this.bean = this.module._tTask.getOrAdd(new BTaskKey(opt.id));
-		this.bean.setTaskId(opt.id);
-		this.bean.setTaskType(getType());
-		this.bean.setTaskState(Module.Invalid);
-		this.bean.setTaskName(opt.name);
-		this.bean.setTaskDescription(opt.description);
-		for (long id : opt.preTaskIds) {
-			this.bean.getPreTaskIds().add(id);
-		}
-		this.bean.getExtendedData().setBean(new EmptyBean());
 
-		MethodHandle extendedBeanConstructor = beanFactory.register(getExtendedBeanClass());
-		bean.getExtendedData().setBean(BeanFactory.invoke(extendedBeanConstructor));
+		module.registerTask(getType(), extendedTaskClass); // 自动注册新任务实例
+
+		beanFactory.register(getExtendedBeanClass()); // 注册扩展数据的BeanFactory
 
 		currentPhase = null;
 	}
+
+	// ======================================== 任务初始化阶段的方法 ========================================
+
+	/**
+	 * loadBean
+	 * 将Bean加载为配置表
+	 */
+	protected final void loadBean(BTask bean) {
+		this.bean = bean;
+		loadBeanExtended();
+		currentPhase.loadBean(bean.getTaskPhases().get(bean.getCurrentPhaseId()));
+	}
+	protected abstract void loadBeanExtended();
+
+	public void loadMap(Map<String, String> map){
+		this.bean = new BTask();
+		var taskType = Integer.parseInt(map.get("TaskType"));
+		var taskId = Long.parseLong(map.get("TaskId"));
+		var taskName = map.get("TaskName");
+		var taskDesc = map.get("TaskDesc");
+
+		if (taskType != getType()) {
+			throw new RuntimeException("taskType != getType()");
+		}
+
+		bean.setTaskType(taskType);
+		bean.setTaskId(taskId);
+		bean.setTaskName(taskName);
+		bean.setTaskDescription(taskDesc);
+		bean.setTaskState(Module.Invalid);
+		loadMapExtended();
+	}
+	protected abstract void loadMapExtended();
 
 	/**
 	 * Task Info:
@@ -64,8 +87,9 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	 * 4. Task Name
 	 * 5. Task Description
 	 */
+	public abstract void parse(Map<String, String> values);
 	public long getId() { return bean.getTaskId(); }
-	public abstract int getType();
+	public abstract int getType(); // 任务类型，每个任务实例都不一样
 	public int getState() { return bean.getTaskState(); }
 	public String getName() { return bean.getTaskName(); }
 	public String getDescription() { return bean.getTaskDescription(); }
@@ -133,23 +157,6 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		currentPhase.loadBean(startBean);
 		currentPhase.reset();
 	}
-
-	// ======================================== 任务初始化阶段的方法 ========================================
-
-	/**
-	 * loadBean
-	 * 将Bean加载为配置表
-	 */
-	protected final void loadBean(BTask bean) {
-		this.bean = bean;
-		currentPhase.loadBean(bean.getTaskPhases().get(bean.getCurrentPhaseId()));
-		loadExtendedData();
-	}
-
-	/**
-	 * 在使用Bean恢复Task类时需要调用的方法
-	 */
-	protected abstract void loadExtendedData();
 
 	/**
 	 * 在任务结束后调用的方法，比如：发放奖励。
@@ -252,35 +259,27 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		 * 在加载任务配表前，需要先注册任务类型。（因为TaskBase是个绝对抽象类，不知道任何外部的扩展任何类型的信息）
 		 */
 		public <ExtendedBean extends Bean,
-				ExtendedTask extends TaskBase<ExtendedBean>,
-				ExtendedOpt extends TaskBase.Opt
-				> void registerTask(long taskType, Class<ExtendedTask> extendedTaskClass, Class<ExtendedOpt> extendedOptClass) {
+				ExtendedTask extends TaskBase<ExtendedBean>
+				> void registerTask(long taskType, Class<ExtendedTask> extendedTaskClass) {
 			try {
-				var c = extendedTaskClass.getDeclaredConstructor(Module.class, extendedOptClass);
+				var c = extendedTaskClass.getDeclaredConstructor(Module.class, extendedTaskClass);
 				constructors.put(taskType, c);
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
 		}
 
-		/**
-		 * 新建内置任务：NPCTask
-		 * (当前public，后续应该改成protected，统一使用loadConfig(String taskConfigTable)读表加载)
-		 */
-		public NPCTask newNPCTask(TaskBase.Opt opt) {
-			return open(opt, NPCTask.class);
-		}
-
-		/**
-		 * 新建非内置任务
-		 */
-		public <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>>
-		ExtendedTask newTask(TaskBase.Opt opt, Class<ExtendedTask> extendedTaskClass) {
-			return open(opt, extendedTaskClass);
-		}
+//		/**
+//		 * 新建非内置任务
+//		 */
+//		public <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>>
+//		ExtendedTask newTask(TaskBase.Opt opt, Class<ExtendedTask> extendedTaskClass) {
+//			return open(opt, extendedTaskClass);
+//		}
 
 		private final ConcurrentHashMap<Long, TaskBase<?>> tasks = new ConcurrentHashMap<>();
 		private final ConcurrentHashMap<Long, Constructor<?>> constructors = new ConcurrentHashMap<>();
+		private final DirectedAcyclicGraph<Long, DefaultEdge> taskGraph = new DirectedAcyclicGraph<>(DefaultEdge.class);
 		public final ProviderApp providerApp;
 		public final Application zeze;
 
@@ -299,14 +298,39 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		public void loadConfig(String taskConfigFile) throws Exception {
 
 			// 这里解析任务配置表，然后把所有任务配置填充到task里面。
-			Map<String, String> values = new CSVReaderHeaderAware(new FileReader(taskConfigFile)).readMap();
+			var reader = new CSVReaderHeaderAware(new FileReader(taskConfigFile));
+			while (true) {
+				Map<String, String> values = reader.readMap();
+				if (values == null)
+					break;
+				var taskType = Long.parseLong(values.get("TaskType"));
+				var taskId = Long.parseLong(values.get("TaskId"));
+				var taskName = values.get("TaskName");
+				var taskDesc = values.get("TaskDesc");
+
+				var taskConstructor = constructors.get(taskType);
+			}
 			// TODO: 解析values，然后把所有任务配置填充到task里面。
 
 			// 初始化所有Task的初始配置
 			for (var task : tasks.values()) {
 				task.preTaskIds.clear();
 				task.nextTaskIds.clear();
+				taskGraph.addVertex(task.getId());
+			}
 
+			for (var task : tasks.values()) {
+				for (var preId : task.preTaskIds) {
+					var preTask = tasks.get(preId);
+					if (null == preTask)
+						throw new RuntimeException("task " + task.getId() + " preTask " + preId + " not found.");
+					taskGraph.addEdge(preId, task.getId()); // 有向无环图，如果不合法会自动抛异常
+				}
+			}
+
+			for (var task : tasks.values()) {
+				taskGraph.getAncestors(task.getId()).forEach(task.preTaskIds::add); // 从图中获取所有前置任务
+				taskGraph.getDescendants(task.getId()).forEach(task.nextTaskIds::add); // 从图中获取所有后置任务
 			}
 		}
 
@@ -323,23 +347,23 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		}
 
 		// 需要在事务内使用。使用完不要保存。
-		@SuppressWarnings("unchecked")
-		private <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>> ExtendedTask open(TaskBase.Opt opt, Class<ExtendedTask> extendedTaskClass) {
-			return (ExtendedTask)tasks.computeIfAbsent(opt.id, key -> {
-				try {
-//					if (extendedTaskConstructors.contains(extendedTaskClass)) {
-//						var c = extendedTaskConstructors.get(extendedTaskClass);
-//					}
-//					if (null != c) {
-//						return c.newInstance(this, opt);
-//					}
-					var c = extendedTaskClass.getDeclaredConstructor(Module.class, TaskBase.Opt.class); // TODO：可以把这个的Constructor缓存起来
-					var res = c.newInstance(this, opt);
-					return res;
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
-			});
-		}
+//		@SuppressWarnings("unchecked")
+//		private <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>> ExtendedTask open(TaskBase.Opt opt, Class<ExtendedTask> extendedTaskClass) {
+//			return (ExtendedTask)tasks.computeIfAbsent(opt.id, key -> {
+//				try {
+////					if (extendedTaskConstructors.contains(extendedTaskClass)) {
+////						var c = extendedTaskConstructors.get(extendedTaskClass);
+////					}
+////					if (null != c) {
+////						return c.newInstance(this, opt);
+////					}
+//					var c = extendedTaskClass.getDeclaredConstructor(Module.class, TaskBase.Opt.class); // TODO：可以把这个的Constructor缓存起来
+//					var res = c.newInstance(this, opt);
+//					return res;
+//				} catch (Exception e) {
+//					throw new RuntimeException(e);
+//				}
+//			});
+//		}
 	}
 }
