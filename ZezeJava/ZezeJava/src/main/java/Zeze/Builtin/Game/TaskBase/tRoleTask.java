@@ -27,9 +27,8 @@ public final class tRoleTask extends TableX<Long, Zeze.Builtin.Game.TaskBase.Rol
         return false;
     }
 
-    public static final int VAR_availableTasksId = 1;
-    public static final int VAR_processingTasksId = 2;
-    public static final int VAR_finishedTaskId = 3;
+    public static final int VAR_processingTasksId = 1;
+    public static final int VAR_finishedTaskId = 2;
 
     @Override
     public Long decodeKey(ByteBuffer _os_) {

@@ -6,6 +6,8 @@ import ClientGame.Login.BRole;
 import ClientGame.Login.CreateRole;
 import ClientGame.Login.GetRoleList;
 import UnitTest.Zeze.Game.MyTasks.DailyTask01;
+import UnitTest.Zeze.Game.MyTasks.MainTask01;
+import UnitTest.Zeze.Game.MyTasks.SideTask01;
 import Zeze.Builtin.Game.Online.Login;
 import Zeze.Builtin.Game.Online.Logout;
 import Zeze.Builtin.Game.Online.ReLogin;
@@ -171,13 +173,11 @@ public class TestTask extends TestCase {
 				var module = server0.taskModule;
 				// ==================== 创建一个任务 ====================
 				module.registerTask(DailyTask01.class);
+				module.registerTask(MainTask01.class);
+				module.registerTask(SideTask01.class);
 				module.loadConfig("F:/zeze/ZezeJava/ZezeJavaTest/src/UnitTest/Zeze/Game/tasks_config.CSV");
-//
-//				DailyTask01.Opt opt = new DailyTask01.Opt();
-//				opt.id = 1;
-//				var dailyTask = module.newTask(opt, DailyTask01.class);
-//				TaskPhase.Opt phaseOpt1 = new TaskPhase.Opt();
-//				var phase1 = dailyTask.addPhase(phaseOpt1, List.of(2L, 3L));
+
+				// 通过领任务的方式测试
 
 				return Procedure.Success;
 			}, "Daily Task - 01").call());

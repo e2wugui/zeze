@@ -31,16 +31,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	/**
 	 * Task Constructors
 	 */
-	@SuppressWarnings("unchecked")
-	protected
-	<ExtendedBean extends Bean,
-	ExtendedTask extends TaskBase<ExtendedBean>
-	>
-	TaskBase(Module module, Class<ExtendedTask> extendedTaskClass) {
-		this.module = module;
-		beanFactory.register(getExtendedBeanClass()); // 注册扩展数据的BeanFactory
-	}
-
+	protected TaskBase(Module module) { this.module = module; }
 	// ======================================== 任务初始化阶段的方法 ========================================
 
 	/**
@@ -60,6 +51,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		var taskId = Long.parseLong(map.get("TaskId"));
 		var taskName = map.get("TaskName");
 		var taskDesc = map.get("TaskDesc");
+		var preTaskIds = map.get("PreTaskIds");
 
 		if (taskType != getType()) {
 			throw new RuntimeException("taskType != getType()");
@@ -70,6 +62,15 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		bean.setTaskName(taskName);
 		bean.setTaskDescription(taskDesc);
 		bean.setTaskState(Module.Invalid);
+
+		var res = preTaskIds.split(",");
+		for (var s : res) {
+			if (s.isEmpty())
+				continue;
+			var id = Long.parseLong(s);
+			this.bean.getPreTaskIds().add(id);
+		}
+
 		loadMapExtended(map);
 	}
 	protected abstract void loadMapExtended(Map<String, String> map);
@@ -203,7 +204,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	 */
 	public static class Module extends AbstractTaskBase {
 
-		private final ConcurrentHashMap<Long, TaskBase<?>> tasks = new ConcurrentHashMap<>();
+		private final ConcurrentHashMap<Long, TaskBase<?>> taskNodes = new ConcurrentHashMap<>();
 		private final ConcurrentHashMap<Integer, Constructor<?>> constructors = new ConcurrentHashMap<>();
 		private final DirectedAcyclicGraph<Long, DefaultEdge> taskGraph = new DirectedAcyclicGraph<>(DefaultEdge.class);
 		public final ProviderApp providerApp;
@@ -250,33 +251,33 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 				var taskType = Integer.parseInt(initValues.get("TaskType"));
 				var task = (TaskBase<?>)constructors.get(taskType).newInstance(this);
 				task.loadMap(initValues);
-				tasks.put(task.getId(), task); // 将配置表存入tasks
+				taskNodes.put(task.getId(), task); // 将配置表存入tasks
 			}
 
 			// 初始化所有Task的初始配置
-			for (var task : tasks.values()) {
+			for (var task : taskNodes.values()) {
 				task.preTaskIds.clear();
 				task.nextTaskIds.clear();
 				taskGraph.addVertex(task.getId());
 			}
 
-			for (var task : tasks.values()) {
-				for (var preId : task.preTaskIds) {
-					var preTask = tasks.get(preId);
+			for (var task : taskNodes.values()) {
+				for (var preId : task.getBean().getPreTaskIds()) {
+					var preTask = taskNodes.get(preId);
 					if (null == preTask)
 						throw new RuntimeException("task " + task.getId() + " preTask " + preId + " not found.");
 					taskGraph.addEdge(preId, task.getId()); // 有向无环图，如果不合法会自动抛异常
 				}
 			}
 
-			for (var task : tasks.values()) {
+			for (var task : taskNodes.values()) {
 				taskGraph.getAncestors(task.getId()).forEach(task.preTaskIds::add); // 从图中获取所有前置任务
 				taskGraph.getDescendants(task.getId()).forEach(task.nextTaskIds::add); // 从图中获取所有后置任务
 			}
 		}
 
 		/**
-		 * 新建任务（仅供测试使用）
+		 * 新建任务（仅供测试使用，会马上删除）
 		 */
 		public <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>>
 		ExtendedTask newTask(Class<ExtendedTask> extendedTaskClass) {
@@ -321,7 +322,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 					return Procedure.Success;
 				}
 
-				var task = tasks.get(id);
+				var task = taskNodes.get(id);
 				task.loadBean(taskBean);
 				if (task.accept(eventExtendedBean))
 					r.Result.setResultCode(TaskResultAccepted);
@@ -332,7 +333,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 				var taskBeanList = taskInfo.getProcessingTasksId().values();
 				for (var taskBean : taskBeanList) {
 					var id = taskBean.getTaskId();
-					var task = tasks.get(id);
+					var task = taskNodes.get(id);
 					task.loadBean(taskBean);
 					if (task.accept(eventExtendedBean))
 						if (broadcastTaskEventBean.isIsBreakIfAccepted())

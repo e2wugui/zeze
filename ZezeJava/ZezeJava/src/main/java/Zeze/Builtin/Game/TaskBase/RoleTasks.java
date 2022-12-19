@@ -8,18 +8,8 @@ import Zeze.Serialize.ByteBuffer;
 public final class RoleTasks extends Zeze.Transaction.Bean implements RoleTasksReadOnly {
     public static final long TYPEID = 55619011865561918L;
 
-    private final Zeze.Transaction.Collections.PSet1<Long> _availableTasksId;
-    private final Zeze.Transaction.Collections.PMap2<Long, Zeze.Builtin.Game.TaskBase.BTask> _processingTasksId;
-    private final Zeze.Transaction.Collections.PSet1<Long> _finishedTaskId;
-
-    public Zeze.Transaction.Collections.PSet1<Long> getAvailableTasksId() {
-        return _availableTasksId;
-    }
-
-    @Override
-    public Zeze.Transaction.Collections.PSet1ReadOnly<Long> getAvailableTasksIdReadOnly() {
-        return new Zeze.Transaction.Collections.PSet1ReadOnly<>(_availableTasksId);
-    }
+    private final Zeze.Transaction.Collections.PMap2<Long, Zeze.Builtin.Game.TaskBase.BTask> _processingTasksId; // 活跃的任务（不可接、可接、正在进行、可提交等所有活跃任务）
+    private final Zeze.Transaction.Collections.PSet1<Long> _finishedTaskId; // 已经完成封存的任务
 
     public Zeze.Transaction.Collections.PMap2<Long, Zeze.Builtin.Game.TaskBase.BTask> getProcessingTasksId() {
         return _processingTasksId;
@@ -41,17 +31,13 @@ public final class RoleTasks extends Zeze.Transaction.Bean implements RoleTasksR
 
     @SuppressWarnings("deprecation")
     public RoleTasks() {
-        _availableTasksId = new Zeze.Transaction.Collections.PSet1<>(Long.class);
-        _availableTasksId.variableId(1);
         _processingTasksId = new Zeze.Transaction.Collections.PMap2<>(Long.class, Zeze.Builtin.Game.TaskBase.BTask.class);
-        _processingTasksId.variableId(2);
+        _processingTasksId.variableId(1);
         _finishedTaskId = new Zeze.Transaction.Collections.PSet1<>(Long.class);
-        _finishedTaskId.variableId(3);
+        _finishedTaskId.variableId(2);
     }
 
     public void assign(RoleTasks other) {
-        _availableTasksId.clear();
-        _availableTasksId.addAll(other._availableTasksId);
         _processingTasksId.clear();
         for (var e : other._processingTasksId.entrySet())
             _processingTasksId.put(e.getKey(), e.getValue().copy());
@@ -102,17 +88,6 @@ public final class RoleTasks extends Zeze.Transaction.Bean implements RoleTasksR
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.TaskBase.RoleTasks: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("availableTasksId={");
-        if (!_availableTasksId.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _item_ : _availableTasksId) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
-            }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
-        }
-        sb.append('}').append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("processingTasksId={");
         if (!_processingTasksId.isEmpty()) {
             sb.append(System.lineSeparator());
@@ -158,20 +133,10 @@ public final class RoleTasks extends Zeze.Transaction.Bean implements RoleTasksR
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            var _x_ = _availableTasksId;
-            int _n_ = _x_.size();
-            if (_n_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.LIST);
-                _o_.WriteListType(_n_, ByteBuffer.INTEGER);
-                for (var _v_ : _x_)
-                    _o_.WriteLong(_v_);
-            }
-        }
-        {
             var _x_ = _processingTasksId;
             int _n_ = _x_.size();
             if (_n_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.MAP);
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.MAP);
                 _o_.WriteMapType(_n_, ByteBuffer.INTEGER, ByteBuffer.BEAN);
                 for (var _e_ : _x_.entrySet()) {
                     _o_.WriteLong(_e_.getKey());
@@ -183,7 +148,7 @@ public final class RoleTasks extends Zeze.Transaction.Bean implements RoleTasksR
             var _x_ = _finishedTaskId;
             int _n_ = _x_.size();
             if (_n_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.LIST);
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.LIST);
                 _o_.WriteListType(_n_, ByteBuffer.INTEGER);
                 for (var _v_ : _x_)
                     _o_.WriteLong(_v_);
@@ -197,16 +162,6 @@ public final class RoleTasks extends Zeze.Transaction.Bean implements RoleTasksR
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            var _x_ = _availableTasksId;
-            _x_.clear();
-            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
-                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadLong(_t_));
-            } else
-                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 2) {
             var _x_ = _processingTasksId;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
@@ -220,7 +175,7 @@ public final class RoleTasks extends Zeze.Transaction.Bean implements RoleTasksR
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        if (_i_ == 3) {
+        if (_i_ == 2) {
             var _x_ = _finishedTaskId;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
@@ -238,24 +193,18 @@ public final class RoleTasks extends Zeze.Transaction.Bean implements RoleTasksR
 
     @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _availableTasksId.initRootInfo(root, this);
         _processingTasksId.initRootInfo(root, this);
         _finishedTaskId.initRootInfo(root, this);
     }
 
     @Override
     protected void resetChildrenRootInfo() {
-        _availableTasksId.resetRootInfo();
         _processingTasksId.resetRootInfo();
         _finishedTaskId.resetRootInfo();
     }
 
     @Override
     public boolean negativeCheck() {
-        for (var _v_ : _availableTasksId) {
-            if (_v_ < 0)
-                return true;
-        }
         for (var _v_ : _processingTasksId.values()) {
             if (_v_.negativeCheck())
                 return true;
@@ -276,9 +225,8 @@ public final class RoleTasks extends Zeze.Transaction.Bean implements RoleTasksR
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _availableTasksId.followerApply(vlog); break;
-                case 2: _processingTasksId.followerApply(vlog); break;
-                case 3: _finishedTaskId.followerApply(vlog); break;
+                case 1: _processingTasksId.followerApply(vlog); break;
+                case 2: _finishedTaskId.followerApply(vlog); break;
             }
         }
     }

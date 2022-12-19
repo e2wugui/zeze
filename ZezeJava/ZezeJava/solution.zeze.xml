@@ -892,9 +892,8 @@
 				<!-- ======================================== TaskCondition的Bean数据 ======================================== -->
 				<!-- 记录每个角色的任务数据 -->
 				<bean name="RoleTasks">
-					<variable id="1" name="availableTasksId" type="set" value="long"/>
-					<variable id="2" name="processingTasksId" type="map" key="long" value="BTask"/>
-					<variable id="3" name="finishedTaskId" type="set" value="long"/>
+					<variable id="1" name="processingTasksId" type="map" key="long" value="BTask"/> 活跃的任务（不可接、可接、正在进行、可提交等所有活跃任务）
+					<variable id="2" name="finishedTaskId" type="set" value="long"/> 已经完成封存的任务
 				</bean>
 				<table name="tRoleTask" key="long" value="RoleTasks"/>
 

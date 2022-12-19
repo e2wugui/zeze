@@ -8,15 +8,15 @@ import Zeze.Game.TaskBase;
 public class DailyTask01 extends TaskBase<BDailyTask01> {
 	static int DAILY_TASK_TYPE = 1;
 
+	public DailyTask01(Module module) {
+		super(module);
+	}
+
 	private BDailyTask01 dailyTaskData;
 
 	@Override
 	public int getType() {
 		return DAILY_TASK_TYPE;
-	}
-
-	public DailyTask01(Module module) {
-		super(module, DailyTask01.class);
 	}
 
 	@Override
