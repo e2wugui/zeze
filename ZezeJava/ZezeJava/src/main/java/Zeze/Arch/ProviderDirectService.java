@@ -1,6 +1,7 @@
 package Zeze.Arch;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.Builtin.ProviderDirect.AnnounceProviderInfo;
@@ -14,9 +15,12 @@ import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BServiceInfos;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
+import Zeze.Util.Action0;
+import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
+import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -121,6 +125,42 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		}
 	}
 
+	public void waitDirectServerReady(int serverId) {
+		waitDirectServerReady(serverId, 3000);
+	}
+
+	public void waitDirectServerReady(int serverId, long timeout) {
+		var future = new TaskCompletionSource<Long>();
+		Action0 callback = () -> future.setResult(0L);
+		try {
+			waitDirectServerReady(serverId, callback);
+			future.await(timeout);
+		} finally {
+			serverReadyEvents.computeIfAbsent(serverId, (key) -> new ConcurrentHashSet<>()).remove(callback);
+		}
+	}
+
+	public synchronized void waitDirectServerReady(int serverId, Action0 callback) {
+		if (providerByServerId.containsKey(serverId))
+			return;
+		serverReadyEvents.computeIfAbsent(serverId, (key) -> new ConcurrentHashSet<>()).add(callback);
+	}
+
+	// under lock
+	private void notifyServerReady(int serverId) {
+		var watchers = serverReadyEvents.computeIfAbsent(serverId, (key) -> new ConcurrentHashSet<>());
+		for (var w : watchers) {
+			try {
+				w.run();
+			} catch (Throwable ex) {
+				logger.error("", ex);
+			}
+		}
+		watchers.clear();
+	}
+
+	private ConcurrentHashMap<Integer, ConcurrentHashSet<Action0>> serverReadyEvents = new ConcurrentHashMap<>();
+
 	synchronized void setRelativeServiceReady(ProviderSession ps, String ip, int port) {
 		ps.serverLoadIp = ip;
 		ps.serverLoadPort = port;
@@ -128,6 +168,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		if (providerByLoadName.putIfAbsent(ps.getServerLoadName(), ps) != null)
 			return;
 		providerByServerId.put(ps.getServerId(), ps);
+		notifyServerReady(ps.getServerId());
 
 		// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
 		for (var ss : getZeze().getServiceManagerAgent().getSubscribeStates().values()) {

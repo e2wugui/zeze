@@ -87,13 +87,13 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 
 		@Override
 		public synchronized <P extends Protocol<?>> void dispatchRaftRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
-																ProtocolFactoryHandle<?> factoryHandle) throws Throwable {
+																ProtocolFactoryHandle<?> factoryHandle) {
 			var procedure = rocks.newProcedure(() -> responseHandle.handle(rpc));
 			Task.call(procedure::call, rpc);
 		}
 
 		@Override
-		public synchronized void dispatchRaftRequest(Protocol<?> p, Func0<Long> func, String name, Action0 cancel, DispatchMode mode) throws Throwable {
+		public synchronized void dispatchRaftRequest(Protocol<?> p, Func0<Long> func, String name, Action0 cancel, DispatchMode mode) {
 			var procedure = new Procedure(rocks, func::call);
 			Task.call(procedure::call, p, Protocol::SendResultCode);
 		}
@@ -239,7 +239,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 	}
 
 	@Override
-	protected long ProcessLoginRequest(Login r) throws Throwable {
+	protected long ProcessLoginRequest(Login r) {
 		var session = tableSession.getOrAdd(r.Argument.getSessionName());
 		r.getSender().setUserState(new Session(r.Argument.getSessionName(), r.getSender().getSessionId()));
 		session.setSessionId(r.getSender().getSessionId());
@@ -248,7 +248,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 	}
 
 	@Override
-	protected long ProcessAllocateIdRequest(AllocateId r) throws Throwable {
+	protected long ProcessAllocateIdRequest(AllocateId r) {
 		r.Result.setName(r.Argument.getName());
 		var autoKey = tableAutoKey.getOrAdd(r.Argument.getName());
 
@@ -270,7 +270,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 	}
 
 	@Override
-	protected long ProcessOfflineRegisterRequest(OfflineRegister r) throws Throwable {
+	protected long ProcessOfflineRegisterRequest(OfflineRegister r) {
 		logger.info("{}: OfflineRegister serverId={} notifyId={}",
 				r.getSender(), r.Argument.serverId, r.Argument.notifyId);
 		var netSession = (Session)r.getSender().getUserState();
@@ -301,7 +301,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 	}
 
 	@Override
-	protected long ProcessSetServerLoadRequest(SetServerLoad r) throws Throwable {
+	protected long ProcessSetServerLoadRequest(SetServerLoad r) {
 		var loadObservers = tableLoadObservers.getOrAdd(r.Argument.ip + ":" + r.Argument.port);
 		var observers = loadObservers.getObservers();
 
@@ -342,7 +342,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 	}
 
 	@Override
-	protected long ProcessRegisterRequest(Register r) throws Throwable {
+	protected long ProcessRegisterRequest(Register r) {
 		var netSession = (Session)r.getSender().getUserState();
 		var session = tableSession.get(netSession.name);
 		// 允许重复登录，断线重连Agent不好原子实现重发。
@@ -378,7 +378,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 	}
 
 	@Override
-	protected long ProcessSubscribeRequest(Subscribe r) throws Throwable {
+	protected long ProcessSubscribeRequest(Subscribe r) {
 		logger.info("{}: Subscribe {} type={}",
 				r.getSender(), r.Argument.getServiceName(), r.Argument.getSubscribeType());
 		var netSession = (Session)r.getSender().getUserState();
@@ -389,7 +389,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 	}
 
 	@Override
-	protected long ProcessUnRegisterRequest(UnRegister r) throws Throwable {
+	protected long ProcessUnRegisterRequest(UnRegister r) {
 		logger.info("{}: UnRegister {} serverId={}",
 				r.getSender(), r.Argument.getServiceName(), r.Argument.getServiceIdentity());
 		var netSession = (Session)r.getSender().getUserState();
@@ -443,7 +443,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 	}
 
 	@Override
-	protected long ProcessUnSubscribeRequest(UnSubscribe r) throws Throwable {
+	protected long ProcessUnSubscribeRequest(UnSubscribe r) {
 		logger.info("{}: UnSubscribe {} type={}",
 				r.getSender(), r.Argument.getServiceName(), r.Argument.getSubscribeType());
 		var netSession = (Session)r.getSender().getUserState();
@@ -493,7 +493,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 	}
 
 	@Override
-	protected long ProcessUpdateRequest(Update r) throws Throwable {
+	protected long ProcessUpdateRequest(Update r) {
 		logger.info("{}: Update {} serverId={} ip={} port={}", r.getSender(), r.Argument.getServiceName(),
 				r.Argument.getServiceIdentity(), r.Argument.getPassiveIp(), r.Argument.getPassivePort());
 		var netSession = (Session)r.getSender().getUserState();
@@ -624,7 +624,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 	}
 
 	@Override
-	protected long ProcessReadyServiceListRequest(ReadyServiceList r) throws Throwable {
+	protected long ProcessReadyServiceListRequest(ReadyServiceList r) {
 		var netSession = (Session)r.getSender().getUserState();
 		var state = tableServerState.getOrAdd(r.Argument.serviceName);
 		setReady(state, r, netSession.name);
