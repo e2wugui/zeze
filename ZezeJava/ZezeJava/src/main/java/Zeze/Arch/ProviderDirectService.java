@@ -141,8 +141,14 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	}
 
 	public synchronized void waitDirectServerReady(int serverId, Action0 callback) {
-		if (providerByServerId.containsKey(serverId))
+		if (providerByServerId.containsKey(serverId)) {
+			try {
+				callback.run();
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 			return;
+		}
 		serverReadyEvents.computeIfAbsent(serverId, (key) -> new ConcurrentHashSet<>()).add(callback);
 	}
 
