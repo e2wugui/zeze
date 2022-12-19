@@ -726,7 +726,6 @@ public class GlobalCacheManagerWithRaft
 			rpc.SendResultCode(NormalCloseUnbindFail);
 			return 0;
 		}
-		// TODO 确认Walk中删除记录是否有问题。
 		var SenderAcquired = serverAcquiredTemplate.openTable(session.serverId);
 		SenderAcquired.walkKey(key -> {
 			release(session, key);

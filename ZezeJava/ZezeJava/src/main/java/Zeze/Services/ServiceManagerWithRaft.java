@@ -10,7 +10,9 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Raft.RaftConfig;
+import Zeze.Raft.RaftRpc;
 import Zeze.Raft.RocksRaft.CollMap2;
+import Zeze.Raft.RocksRaft.Procedure;
 import Zeze.Raft.RocksRaft.Rocks;
 import Zeze.Raft.RocksRaft.RocksMode;
 import Zeze.Raft.RocksRaft.Table;
@@ -19,7 +21,6 @@ import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BServiceInfos;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.DispatchMode;
-import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
 import Zeze.Util.Func0;
 import Zeze.Util.KV;
@@ -89,18 +90,14 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 		@Override
 		public synchronized <P extends Protocol<?>> void dispatchRaftRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
 																ProtocolFactoryHandle<?> factoryHandle) throws Throwable {
-			// todo newProcedure
-			Task.runRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, DispatchMode.Direct);
+			var procedure = rocks.newProcedure(() -> responseHandle.handle(rpc));
+			Task.runRpcResponseUnsafe(procedure::call, rpc, DispatchMode.Direct);
 		}
 
 		@Override
-		public synchronized void dispatchRaftRequest(UniqueRequestId key, Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
-			try {
-				// todo newProcedure
-				func.call();
-			} catch (Throwable ex) {
-				logger.error("impossible!", ex);
-			}
+		public synchronized void dispatchRaftRequest(Protocol<?> p, Func0<Long> func, String name, Action0 cancel, DispatchMode mode) throws Throwable {
+			var procedure = new Procedure(rocks, func::call);
+			Task.call(procedure::call, p, Protocol::SendResultCode);
 		}
 
 		@Override
@@ -108,8 +105,8 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 			var netSession = (Session)so.getUserState();
 			if (null != netSession) {
 				synchronized (this) {
-					// todo newProcedure
-					netSession.onClose();
+					var procedure = rocks.newProcedure(() -> { netSession.onClose(); return 0; });
+					procedure.call();
 				}
 			}
 			super.OnSocketClose(so, e);
@@ -358,7 +355,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 		r.SendResultCode(Register.Success);
 		startReadyCommitNotify(state);
 		notifySimpleOnRegister(state, r.Argument);
-		return Procedure.Success;
+		return 0;
 	}
 
 	private void notifySimpleOnRegister(BServerState state, BServiceInfo info) {
@@ -403,7 +400,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 		session.getRegisters().remove(toRocksKey(r.Argument)); // ignore remove failed
 		// 注销不存在也返回成功，否则Agent处理比较麻烦。
 		r.SendResultCode(Zeze.Services.ServiceManager.UnRegister.Success);
-		return Procedure.Success;
+		return 0;
 	}
 
 	public BServerState unRegisterNow(String ssName, BServiceInfo info) {
@@ -462,7 +459,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 					r.setResultCode(UnSubscribe.Success);
 					r.SendResult();
 					tryCommit(changed);
-					return Procedure.Success;
+					return 0;
 				}
 			}
 		}
@@ -472,7 +469,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 		//return Procedure.LogicError;
 		r.setResultCode(Zeze.Services.ServiceManager.UnRegister.Success);
 		r.SendResult();
-		return Procedure.Success;
+		return 0;
 	}
 
 	public BServerState unSubscribeNow(String sessionName, BSubscribeInfo info) {
@@ -688,7 +685,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 
 		default:
 			r.SendResultCode(Subscribe.UnknownSubscribeType);
-			return Procedure.LogicError;
+			return Zeze.Transaction.Procedure.LogicError;
 		}
 
 		var netSession = (Session)r.getSender().getUserState();
@@ -696,7 +693,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 			addLoadObserver(info.getPassiveIp(), info.getPassivePort(), netSession.name);
 
 		r.SendResultCode(Zeze.Services.ServiceManager.Subscribe.Success);
-		return Procedure.Success;
+		return 0;
 	}
 
 }

@@ -205,7 +205,7 @@ public class Server extends HandshakeBoth {
 	}
 
 	@Override
-	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) {
+	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) throws Throwable {
 		if (isImportantProtocol(p.getTypeId())) {
 			// 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
 			// 内部协议总是使用明确返回值或者超时，不使用框架的错误时自动发送结果。
@@ -222,7 +222,7 @@ public class Server extends HandshakeBoth {
 			}
 			//【防止重复的请求】
 			// see Log.java::LogSequence.TryApply
-			dispatchRaftRequest(raftRpc.getUnique(), () -> processRequest(p, factoryHandle),
+			dispatchRaftRequest((RaftRpc<?, ?>)raftRpc, () -> processRequest(p, factoryHandle),
 					p.getClass().getName(), () -> p.SendResultCode(Procedure.RaftRetry), factoryHandle.Mode);
 			return;
 		}
@@ -233,8 +233,8 @@ public class Server extends HandshakeBoth {
 		// DO NOT process application request.
 	}
 
-	public void dispatchRaftRequest(UniqueRequestId key, Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
-		taskOneByOne.Execute(key, func, name, cancel, mode);
+	public void dispatchRaftRequest(Protocol<?> p, Func0<Long> func, String name, Action0 cancel, DispatchMode mode) throws Throwable {
+		taskOneByOne.Execute(((IRaftRpc)p).getUnique(), func, name, cancel, mode);
 	}
 
 	private void trySendLeaderIs(AsyncSocket sender) {
