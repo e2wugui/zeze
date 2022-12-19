@@ -159,7 +159,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		watchers.clear();
 	}
 
-	private ConcurrentHashMap<Integer, ConcurrentHashSet<Action0>> serverReadyEvents = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Integer, ConcurrentHashSet<Action0>> serverReadyEvents = new ConcurrentHashMap<>();
 
 	synchronized void setRelativeServiceReady(ProviderSession ps, String ip, int port) {
 		ps.serverLoadIp = ip;
