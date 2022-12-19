@@ -12,7 +12,7 @@ import Zeze.Serialize.ByteBuffer;
 public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEventReadOnly {
     public static final long TYPEID = -5362050394114558969L;
 
-    private long _roleId;
+    private long _roleId; // 当新角色创建时直接发roleId，不附带任何下面这两个dynamics，能够创建整个角色的初始任务表。
     private final Zeze.Transaction.DynamicBean _taskEventTypeDynamic;
     public static final long DynamicTypeId_TaskEventTypeDynamic_Zeze_Builtin_Game_TaskBase_BSpecificTaskEvent = 2442000638159095225L;
     public static final long DynamicTypeId_TaskEventTypeDynamic_Zeze_Builtin_Game_TaskBase_BBroadcastTaskEvent = 2627115510834301728L;

@@ -1,7 +1,6 @@
 package Zeze.Game;
 
 import java.io.FileReader;
-import java.lang.invoke.MethodHandle;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.ParameterizedType;
 import java.util.List;
@@ -10,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Arch.ProviderApp;
 import Zeze.Builtin.Game.TaskBase.BBroadcastTaskEvent;
+import Zeze.Builtin.Game.TaskBase.BRoleTasks;
 import Zeze.Builtin.Game.TaskBase.BSpecificTaskEvent;
 import Zeze.Builtin.Game.TaskBase.BTask;
 import Zeze.Builtin.Game.TaskBase.BTaskKey;
@@ -17,8 +17,8 @@ import Zeze.Builtin.Game.TaskBase.BTaskPhase;
 import Zeze.Builtin.Game.TaskBase.TriggerTaskEvent;
 import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
+import Zeze.Transaction.Transaction;
 import Zeze.Util.Action0;
 import Zeze.Util.ConcurrentHashSet;
 import com.opencsv.CSVReaderHeaderAware;
@@ -185,18 +185,18 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 
 	// ======================================== Private方法和一些不需要被注意的方法 ========================================
 	// @formatter:off
-	@SuppressWarnings("unchecked")
-	public ExtendedBean getExtendedBean() { return (ExtendedBean)bean.getExtendedData().getBean(); }
 	private final static BeanFactory beanFactory = new BeanFactory();
 	public static long getSpecialTypeIdFromBean(Bean bean) { return BeanFactory.getSpecialTypeIdFromBean(bean); }
 	public static Bean createBeanFromSpecialTypeId(long typeId) { return beanFactory.createBeanFromSpecialTypeId(typeId); }
+	@SuppressWarnings("unchecked")
+	public ExtendedBean getExtendedBean() { return (ExtendedBean)bean.getExtendedData().getBean(); }
 	@SuppressWarnings("unchecked")
 	public Class<ExtendedBean> getExtendedBeanClass() {
 		ParameterizedType parameterizedType = (ParameterizedType)this.getClass().getGenericSuperclass();
 		return (Class<ExtendedBean>)parameterizedType.getActualTypeArguments()[0];
 	}
 
-// @formatter:on
+	// @formatter:on
 	// ======================================== Task Module Part ========================================
 
 	/**
@@ -219,7 +219,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		}
 
 		/**
-		 * 在加载任务配表前，需要先注册任务类型。（因为TaskBase是个绝对抽象类，不知道任何外部的扩展任何类型的信息）
+		 * 在加载任务配表前，必须需要先注册任务类型。（因为TaskBase是个绝对抽象类，不知道任何外部的扩展任何类型的信息）
 		 */
 		public <ExtendedBean extends Bean,
 				ExtendedTask extends TaskBase<ExtendedBean>
@@ -252,6 +252,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 				var task = (TaskBase<?>)constructors.get(taskType).newInstance(this);
 				task.loadMap(initValues);
 				taskNodes.put(task.getId(), task); // 将配置表存入tasks
+				_tTask.put(new BTaskKey(task.getId()), task.getBean()); // 将配置表存入_tTask数据库
 			}
 
 			// 初始化所有Task的初始配置
@@ -302,21 +303,32 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		 */
 		@Override
 		protected long ProcessTriggerTaskEventRequest(TriggerTaskEvent r) throws Throwable {
-			// 检查角色Id
+			// 检查角色Id，如果没有，那就创建整个角色的任务表。
 			var roleId = r.Argument.getRoleId();
-			var taskInfo = _tRoleTask.get(roleId);
-			if (taskInfo == null) {
-				r.Result.setResultCode(TaskResultInvalidRoleId);
+
+			// 如果是新角色，那就创建整个角色的任务表。
+			if (!_tRoleTask.contains(roleId)) {
+				var roleTasks = new BRoleTasks();
+				roleTasks.getFinishedTaskIds().clear();
+
+				for (var task : taskNodes.values()) {
+					roleTasks.getProcessingTasks().put(task.getId(), task.getBean().copy());
+				}
+
+				_tRoleTask.put(roleId, roleTasks); // 读取角色任务表，如果没有，会自动创建一个空的。
+
+				r.Result.setResultCode(TaskResultNewRoleTasksCreated);
 				return Procedure.Success;
 			}
 
+			var taskInfo = _tRoleTask.get(roleId);
 			var eventTypeBean = r.Argument.getTaskEventTypeDynamic().getBean();
 			var eventExtendedBean = r.Argument.getExtendedData().getBean();
 			if (eventTypeBean instanceof BSpecificTaskEvent) {
 				var specificTaskEventBean = (BSpecificTaskEvent)eventTypeBean; // 兼容JDK11
 				// 检查任务Id
 				var id = specificTaskEventBean.getTaskId();
-				var taskBean = taskInfo.getProcessingTasksId().get(id);
+				var taskBean = taskInfo.getProcessingTasks().get(id);
 				if (null == taskBean) {
 					r.Result.setResultCode(TaskResultTaskNotFound);
 					return Procedure.Success;
@@ -330,7 +342,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 					r.Result.setResultCode(TaskResultRejected);
 			} else if (eventTypeBean instanceof BBroadcastTaskEvent) {
 				var broadcastTaskEventBean = (BBroadcastTaskEvent)eventTypeBean; // 兼容JDK11
-				var taskBeanList = taskInfo.getProcessingTasksId().values();
+				var taskBeanList = taskInfo.getProcessingTasks().values();
 				for (var taskBean : taskBeanList) {
 					var id = taskBean.getTaskId();
 					var task = taskNodes.get(id);

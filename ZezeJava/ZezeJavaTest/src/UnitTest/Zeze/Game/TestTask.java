@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Game;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import ClientGame.Login.BRole;
@@ -175,8 +176,12 @@ public class TestTask extends TestCase {
 				module.registerTask(DailyTask01.class);
 				module.registerTask(MainTask01.class);
 				module.registerTask(SideTask01.class);
-				module.loadConfig("F:/zeze/ZezeJava/ZezeJavaTest/src/UnitTest/Zeze/Game/tasks_config.CSV");
+				String taskConfigPath = new File("").getAbsolutePath();
+				taskConfigPath = taskConfigPath.replace('\\', '/');
+				taskConfigPath += "/src/UnitTest/Zeze/Game/tasks_config.CSV";
+				module.loadConfig(taskConfigPath);
 
+				registerRole(client0, roleId);
 				// 通过领任务的方式测试
 
 				return Procedure.Success;
@@ -187,6 +192,13 @@ public class TestTask extends TestCase {
 		} finally {
 			stop();
 		}
+	}
+
+	private static void registerRole(ClientGame.App app, long roleId) {
+		TriggerTaskEvent event = new TriggerTaskEvent();
+		event.Argument.setRoleId(roleId);
+		event.SendForWait(app.ClientService.GetSocket()).await();
+		Assert.assertEquals(0, event.getResultCode());
 	}
 
 	private static void selectOption(ClientGame.App app, long roleId, long taskId, long phaseId, long dialogId, int optionId) {

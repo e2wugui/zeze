@@ -781,12 +781,12 @@
 					这个rpc的参数是BTaskEvent，内部的DynamicData是各个不同的任务的不同Event数据
 				-->
 				<bean name="BTaskEvent">
-					<variable id="1" name="roleId" type="long"/>
+					<variable id="1" name="roleId" type="long"/> 当新角色创建时直接发roleId，不附带任何下面这两个dynamics，能够创建整个角色的初始任务表。
 					<variable id="2" name="taskEventTypeDynamic" type="dynamic">
                         <value bean="BSpecificTaskEvent"/> 交给特定任务的事件（如NPC对话选择任务）
                         <value bean="BBroadcastTaskEvent"/> 广播给所有任务的事件（如击杀怪物的任务）
 					</variable>
-					<variable id="3" name="extendedData" type="dynamic"> 用于携带各种不同的PhaseEvent 或 ConditionEvent，TriggerTaskEvent这个rpc会自动转发
+					<variable id="3" name="extendedData" type="dynamic"> 用于携带各种不同的TaskEvent/PhaseEvent/ConditionEvent，TriggerTaskEvent这个rpc会自动转发
 						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskBase::getSpecialTypeIdFromBean"/>
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskBase::createBeanFromSpecialTypeId"/>
 					</variable>
@@ -797,10 +797,11 @@
 				<bean name="BBroadcastTaskEvent">
                     <variable id="1" name="isBreakIfAccepted" type="bool"/>
 				</bean>
-				<enum name="TaskResultAccepted" value="100"/>
-				<enum name="TaskResultRejected" value="101"/>
-				<enum name="TaskResultInvalidRoleId" value="102"/>
-				<enum name="TaskResultTaskNotFound" value="103"/>
+				<enum name="TaskResultNewRoleTasksCreated" value="100"/>
+				<enum name="TaskResultAccepted" value="101"/>
+				<enum name="TaskResultRejected" value="102"/>
+				<enum name="TaskResultInvalidRoleId" value="103"/>
+				<enum name="TaskResultTaskNotFound" value="104"/>
 				<bean name="BTaskEventResult">
 					<variable id="1" name="resultCode" type="long"/> 返回码
 				</bean>
@@ -891,11 +892,11 @@
 				</bean>
 				<!-- ======================================== TaskCondition的Bean数据 ======================================== -->
 				<!-- 记录每个角色的任务数据 -->
-				<bean name="RoleTasks">
-					<variable id="1" name="processingTasksId" type="map" key="long" value="BTask"/> 活跃的任务（不可接、可接、正在进行、可提交等所有活跃任务）
-					<variable id="2" name="finishedTaskId" type="set" value="long"/> 已经完成封存的任务
+				<bean name="BRoleTasks">
+					<variable id="1" name="processingTasks" type="map" key="long" value="BTask"/> 处理中的任务（不可接、可接、正在进行、可提交等所有处理中的任务）
+					<variable id="2" name="finishedTaskIds" type="set" value="long"/> 已经完成封存的任务
 				</bean>
-				<table name="tRoleTask" key="long" value="RoleTasks"/>
+				<table name="tRoleTask" key="long" value="BRoleTasks"/>
 
 				<bean name="BEventClasses">
 					<variable id="1" name="EventClasses" type="set" value="string"/>
