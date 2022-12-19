@@ -10,7 +10,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
     private long _taskId; // 任务的Id
     private int _taskType; // 任务的类型：每日任务、隐藏任务等
     private int _taskState; // 任务的状态：可接取、已接取、已完成等
-    private String _taskName; // 任务的名字，唯一
+    private String _taskName; // 任务的名字
     private String _taskDescription; // 任务的描述。
     private final Zeze.Transaction.Collections.PList1<Long> _preTaskIds; // 前置任务Id（只需要存储前置任务就可以建立起整个TaskGraphics，不需要存储后置任务，这样也方便扩展）
     private long _currentPhaseId; // 当前的PhaseId

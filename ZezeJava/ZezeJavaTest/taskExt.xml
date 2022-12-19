@@ -5,6 +5,7 @@
         <!-- 扩展的任务 Extended Task -->
         <bean name="BDailyTask01">
             <variable id="1" name="placeholder" type="long"/>
+            <variable id="2" name="taskNum" type="int"/>
         </bean>
         <bean name="BMainTask01">
             <variable id="1" name="placeholder" type="long"/>

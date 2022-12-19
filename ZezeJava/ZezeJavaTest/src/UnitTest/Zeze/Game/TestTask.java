@@ -170,7 +170,8 @@ public class TestTask extends TestCase {
 
 				var module = server0.taskModule;
 				// ==================== 创建一个任务 ====================
-				module.loadConfig("F:\\zeze\\ZezeJava\\ZezeJavaTest\\src\\UnitTest\\Zeze\\Game\\tasks_config.CSV");
+				module.registerTask(DailyTask01.class);
+				module.loadConfig("F:/zeze/ZezeJava/ZezeJavaTest/src/UnitTest/Zeze/Game/tasks_config.CSV");
 //
 //				DailyTask01.Opt opt = new DailyTask01.Opt();
 //				opt.id = 1;

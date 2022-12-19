@@ -38,12 +38,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	>
 	TaskBase(Module module, Class<ExtendedTask> extendedTaskClass) {
 		this.module = module;
-
-		module.registerTask(getType(), extendedTaskClass); // 自动注册新任务实例
-
 		beanFactory.register(getExtendedBeanClass()); // 注册扩展数据的BeanFactory
-
-		currentPhase = null;
 	}
 
 	// ======================================== 任务初始化阶段的方法 ========================================
@@ -54,10 +49,10 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	 */
 	protected final void loadBean(BTask bean) {
 		this.bean = bean;
-		loadBeanExtended();
+		loadBeanExtended(bean);
 		currentPhase.loadBean(bean.getTaskPhases().get(bean.getCurrentPhaseId()));
 	}
-	protected abstract void loadBeanExtended();
+	protected abstract void loadBeanExtended(BTask bean);
 
 	public void loadMap(Map<String, String> map){
 		this.bean = new BTask();
@@ -75,9 +70,9 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		bean.setTaskName(taskName);
 		bean.setTaskDescription(taskDesc);
 		bean.setTaskState(Module.Invalid);
-		loadMapExtended();
+		loadMapExtended(map);
 	}
-	protected abstract void loadMapExtended();
+	protected abstract void loadMapExtended(Map<String, String> map);
 
 	/**
 	 * Task Info:
@@ -87,7 +82,6 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	 * 4. Task Name
 	 * 5. Task Description
 	 */
-	public abstract void parse(Map<String, String> values);
 	public long getId() { return bean.getTaskId(); }
 	public abstract int getType(); // 任务类型，每个任务实例都不一样
 	public int getState() { return bean.getTaskState(); }
@@ -260,10 +254,11 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		 */
 		public <ExtendedBean extends Bean,
 				ExtendedTask extends TaskBase<ExtendedBean>
-				> void registerTask(long taskType, Class<ExtendedTask> extendedTaskClass) {
+				> void registerTask(Class<ExtendedTask> extendedTaskClass) {
 			try {
-				var c = extendedTaskClass.getDeclaredConstructor(Module.class, extendedTaskClass);
-				constructors.put(taskType, c);
+				var c = extendedTaskClass.getDeclaredConstructor(Module.class);
+				var task = c.newInstance(this);
+				constructors.put(task.getType(), c);
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
@@ -278,7 +273,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 //		}
 
 		private final ConcurrentHashMap<Long, TaskBase<?>> tasks = new ConcurrentHashMap<>();
-		private final ConcurrentHashMap<Long, Constructor<?>> constructors = new ConcurrentHashMap<>();
+		private final ConcurrentHashMap<Integer, Constructor<?>> constructors = new ConcurrentHashMap<>();
 		private final DirectedAcyclicGraph<Long, DefaultEdge> taskGraph = new DirectedAcyclicGraph<>(DefaultEdge.class);
 		public final ProviderApp providerApp;
 		public final Application zeze;
@@ -303,12 +298,14 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 				Map<String, String> values = reader.readMap();
 				if (values == null)
 					break;
-				var taskType = Long.parseLong(values.get("TaskType"));
+				var taskType = Integer.parseInt(values.get("TaskType"));
 				var taskId = Long.parseLong(values.get("TaskId"));
 				var taskName = values.get("TaskName");
 				var taskDesc = values.get("TaskDesc");
 
 				var taskConstructor = constructors.get(taskType);
+				var task = (TaskBase<?>)taskConstructor.newInstance(this);
+				task.loadMap(values);
 			}
 			// TODO: 解析values，然后把所有任务配置填充到task里面。
 
