@@ -10,13 +10,11 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Raft.RaftConfig;
-import Zeze.Raft.RaftRpc;
 import Zeze.Raft.RocksRaft.CollMap2;
 import Zeze.Raft.RocksRaft.Procedure;
 import Zeze.Raft.RocksRaft.Rocks;
 import Zeze.Raft.RocksRaft.RocksMode;
 import Zeze.Raft.RocksRaft.Table;
-import Zeze.Raft.UniqueRequestId;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BServiceInfos;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
@@ -91,7 +89,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 		public synchronized <P extends Protocol<?>> void dispatchRaftRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
 																ProtocolFactoryHandle<?> factoryHandle) throws Throwable {
 			var procedure = rocks.newProcedure(() -> responseHandle.handle(rpc));
-			Task.runRpcResponseUnsafe(procedure::call, rpc, DispatchMode.Direct);
+			Task.call(procedure::call, rpc);
 		}
 
 		@Override
