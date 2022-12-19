@@ -190,7 +190,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	public static long getSpecialTypeIdFromBean(Bean bean) { return BeanFactory.getSpecialTypeIdFromBean(bean); }
 	public static Bean createBeanFromSpecialTypeId(long typeId) { return beanFactory.createBeanFromSpecialTypeId(typeId); }
 	@SuppressWarnings("unchecked")
-	private Class<ExtendedBean> getExtendedBeanClass() {
+	public Class<ExtendedBean> getExtendedBeanClass() {
 		ParameterizedType parameterizedType = (ParameterizedType)this.getClass().getGenericSuperclass();
 		return (Class<ExtendedBean>)parameterizedType.getActualTypeArguments()[0];
 	}
@@ -202,6 +202,100 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	 * Task Module：承担TaskGraphics的功能
 	 */
 	public static class Module extends AbstractTaskBase {
+
+		private final ConcurrentHashMap<Long, TaskBase<?>> tasks = new ConcurrentHashMap<>();
+		private final ConcurrentHashMap<Integer, Constructor<?>> constructors = new ConcurrentHashMap<>();
+		private final DirectedAcyclicGraph<Long, DefaultEdge> taskGraph = new DirectedAcyclicGraph<>(DefaultEdge.class);
+		public final ProviderApp providerApp;
+		public final Application zeze;
+
+		public Module(Application zeze) {
+			this.zeze = zeze;
+			this.providerApp = zeze.redirect.providerApp;
+			RegisterZezeTables(zeze);
+			RegisterProtocols(this.providerApp.providerService);
+			providerApp.builtinModules.put(this.getFullName(), this);
+		}
+
+		/**
+		 * 在加载任务配表前，需要先注册任务类型。（因为TaskBase是个绝对抽象类，不知道任何外部的扩展任何类型的信息）
+		 */
+		public <ExtendedBean extends Bean,
+				ExtendedTask extends TaskBase<ExtendedBean>
+				> void registerTask(Class<ExtendedTask> extendedTaskClass) {
+			try {
+				var c = extendedTaskClass.getDeclaredConstructor(Module.class);
+				var task = c.newInstance(this);
+				beanFactory.register(task.getExtendedBeanClass());
+				_tEventClasses.getOrAdd(1).getEventClasses().add(task.getExtendedBeanClass().getName()); // key is 1, only one record
+				constructors.put(task.getType(), c);
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		/**
+		 * 加载任务配置表里的所有任务（在服务器启动时，或者想要验证配表是否合法时）
+		 * 需要在事务中执行。
+		 */
+		public void loadConfig(String taskConfigFile) throws Exception {
+
+			// 这里解析任务配置表，然后把所有任务配置填充到task里面。
+			var reader = new CSVReaderHeaderAware(new FileReader(taskConfigFile));
+			while (true) {
+				Map<String, String> initValues = reader.readMap();
+				if (initValues == null)
+					break;
+
+				var taskType = Integer.parseInt(initValues.get("TaskType"));
+				var task = (TaskBase<?>)constructors.get(taskType).newInstance(this);
+				task.loadMap(initValues);
+				tasks.put(task.getId(), task); // 将配置表存入tasks
+			}
+
+			// 初始化所有Task的初始配置
+			for (var task : tasks.values()) {
+				task.preTaskIds.clear();
+				task.nextTaskIds.clear();
+				taskGraph.addVertex(task.getId());
+			}
+
+			for (var task : tasks.values()) {
+				for (var preId : task.preTaskIds) {
+					var preTask = tasks.get(preId);
+					if (null == preTask)
+						throw new RuntimeException("task " + task.getId() + " preTask " + preId + " not found.");
+					taskGraph.addEdge(preId, task.getId()); // 有向无环图，如果不合法会自动抛异常
+				}
+			}
+
+			for (var task : tasks.values()) {
+				taskGraph.getAncestors(task.getId()).forEach(task.preTaskIds::add); // 从图中获取所有前置任务
+				taskGraph.getDescendants(task.getId()).forEach(task.nextTaskIds::add); // 从图中获取所有后置任务
+			}
+		}
+
+		/**
+		 * 新建任务（仅供测试使用）
+		 */
+		public <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>>
+		ExtendedTask newTask(Class<ExtendedTask> extendedTaskClass) {
+			try {
+				var c = extendedTaskClass.getDeclaredConstructor(Module.class);
+				var task = c.newInstance(this);
+				return task;
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		@Override
+		public void UnRegister() {
+			if (null != zeze) {
+				UnRegisterZezeTables(zeze);
+			}
+		}
+
 		/**
 		 * 所有任务的Trigger Rpc，负责中转所有请求
 		 */
@@ -248,119 +342,5 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 			}
 			return Procedure.Success;
 		}
-
-		/**
-		 * 在加载任务配表前，需要先注册任务类型。（因为TaskBase是个绝对抽象类，不知道任何外部的扩展任何类型的信息）
-		 */
-		public <ExtendedBean extends Bean,
-				ExtendedTask extends TaskBase<ExtendedBean>
-				> void registerTask(Class<ExtendedTask> extendedTaskClass) {
-			try {
-				var c = extendedTaskClass.getDeclaredConstructor(Module.class);
-				var task = c.newInstance(this);
-				constructors.put(task.getType(), c);
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
-		}
-
-//		/**
-//		 * 新建非内置任务
-//		 */
-//		public <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>>
-//		ExtendedTask newTask(TaskBase.Opt opt, Class<ExtendedTask> extendedTaskClass) {
-//			return open(opt, extendedTaskClass);
-//		}
-
-		private final ConcurrentHashMap<Long, TaskBase<?>> tasks = new ConcurrentHashMap<>();
-		private final ConcurrentHashMap<Integer, Constructor<?>> constructors = new ConcurrentHashMap<>();
-		private final DirectedAcyclicGraph<Long, DefaultEdge> taskGraph = new DirectedAcyclicGraph<>(DefaultEdge.class);
-		public final ProviderApp providerApp;
-		public final Application zeze;
-
-		public Module(Application zeze) {
-			this.zeze = zeze;
-			this.providerApp = zeze.redirect.providerApp;
-			RegisterZezeTables(zeze);
-			RegisterProtocols(this.providerApp.providerService);
-			providerApp.builtinModules.put(this.getFullName(), this);
-		}
-
-		/**
-		 * 加载任务配置表里的所有任务（在服务器启动时，或者想要验证配表是否合法时）
-		 * 需要在事务中执行。
-		 */
-		public void loadConfig(String taskConfigFile) throws Exception {
-
-			// 这里解析任务配置表，然后把所有任务配置填充到task里面。
-			var reader = new CSVReaderHeaderAware(new FileReader(taskConfigFile));
-			while (true) {
-				Map<String, String> values = reader.readMap();
-				if (values == null)
-					break;
-				var taskType = Integer.parseInt(values.get("TaskType"));
-				var taskId = Long.parseLong(values.get("TaskId"));
-				var taskName = values.get("TaskName");
-				var taskDesc = values.get("TaskDesc");
-
-				var taskConstructor = constructors.get(taskType);
-				var task = (TaskBase<?>)taskConstructor.newInstance(this);
-				task.loadMap(values);
-			}
-			// TODO: 解析values，然后把所有任务配置填充到task里面。
-
-			// 初始化所有Task的初始配置
-			for (var task : tasks.values()) {
-				task.preTaskIds.clear();
-				task.nextTaskIds.clear();
-				taskGraph.addVertex(task.getId());
-			}
-
-			for (var task : tasks.values()) {
-				for (var preId : task.preTaskIds) {
-					var preTask = tasks.get(preId);
-					if (null == preTask)
-						throw new RuntimeException("task " + task.getId() + " preTask " + preId + " not found.");
-					taskGraph.addEdge(preId, task.getId()); // 有向无环图，如果不合法会自动抛异常
-				}
-			}
-
-			for (var task : tasks.values()) {
-				taskGraph.getAncestors(task.getId()).forEach(task.preTaskIds::add); // 从图中获取所有前置任务
-				taskGraph.getDescendants(task.getId()).forEach(task.nextTaskIds::add); // 从图中获取所有后置任务
-			}
-		}
-
-		public void register(Class<? extends Bean> cls) {
-			beanFactory.register(cls);
-			_tEventClasses.getOrAdd(1).getEventClasses().add(cls.getName());
-		}
-
-		@Override
-		public void UnRegister() {
-			if (null != zeze) {
-				UnRegisterZezeTables(zeze);
-			}
-		}
-
-		// 需要在事务内使用。使用完不要保存。
-//		@SuppressWarnings("unchecked")
-//		private <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>> ExtendedTask open(TaskBase.Opt opt, Class<ExtendedTask> extendedTaskClass) {
-//			return (ExtendedTask)tasks.computeIfAbsent(opt.id, key -> {
-//				try {
-////					if (extendedTaskConstructors.contains(extendedTaskClass)) {
-////						var c = extendedTaskConstructors.get(extendedTaskClass);
-////					}
-////					if (null != c) {
-////						return c.newInstance(this, opt);
-////					}
-//					var c = extendedTaskClass.getDeclaredConstructor(Module.class, TaskBase.Opt.class); // TODO：可以把这个的Constructor缓存起来
-//					var res = c.newInstance(this, opt);
-//					return res;
-//				} catch (Exception e) {
-//					throw new RuntimeException(e);
-//				}
-//			});
-//		}
 	}
 }
