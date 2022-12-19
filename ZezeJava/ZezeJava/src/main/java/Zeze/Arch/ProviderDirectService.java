@@ -168,7 +168,6 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		if (providerByLoadName.putIfAbsent(ps.getServerLoadName(), ps) != null)
 			return;
 		providerByServerId.put(ps.getServerId(), ps);
-		notifyServerReady(ps.getServerId());
 
 		// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
 		for (var ss : getZeze().getServiceManagerAgent().getSubscribeStates().values()) {
@@ -187,6 +186,8 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 				}
 			}
 		}
+		// 最后才通知成功。
+		notifyServerReady(ps.getServerId());
 	}
 
 	private void setReady(Agent.SubscribeState ss, BServiceInfo server, ProviderSession ps, int mid, BModule m) {
