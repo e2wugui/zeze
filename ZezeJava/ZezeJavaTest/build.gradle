@@ -27,6 +27,10 @@ dependencies {
     // for rocketMQ
     implementation 'org.apache.rocketmq:rocketmq-client:4.9.4'
     implementation 'javax:javaee-api:8.0.1'
+
+    // for task component
+    implementation 'org.jgrapht:jgrapht-core:1.5.1'
+    implementation 'com.opencsv:opencsv:5.7.1'
 }
 
 sourceSets {
