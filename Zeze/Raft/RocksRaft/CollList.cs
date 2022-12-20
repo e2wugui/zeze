@@ -1,12 +1,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Text;
 using Zeze.Serialize;
 
 namespace Zeze.Raft.RocksRaft
 {
-	public abstract class CollList<E> : Collection, IEnumerable<E>, IEnumerable
+	public abstract class CollList<E> : Collection, IEnumerable<E>
 	{
 		internal ImmutableList<E> _list = ImmutableList<E>.Empty;
 
@@ -80,7 +81,7 @@ namespace Zeze.Raft.RocksRaft
 		public override string ToString()
 		{
 			var sb = new StringBuilder();
-			Zeze.Util.Str.BuildString(sb, Data);
+			Util.Str.BuildString(sb, Data);
 			return sb.ToString();
 		}
 
@@ -101,6 +102,19 @@ namespace Zeze.Raft.RocksRaft
 			{
 				SerializeHelper<E>.Encode(bb, e);
 			}
+		}
+
+		public override int GetHashCode()
+		{
+			int h = 1;
+			foreach (var e in _list)
+				h = h * 31 + (e != null ? e.GetHashCode() : 0);
+			return h;
+		}
+
+		public override bool Equals(object obj)
+		{
+			return obj is CollList<E> cl && Enumerable.SequenceEqual(_list, cl._list);
 		}
 	}
 }

@@ -1,15 +1,12 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Zeze.Serialize;
 
 namespace Zeze.Raft.RocksRaft
 {
-	public abstract class CollMap<K, V> : Collection, IEnumerable<KeyValuePair<K, V>>, IEnumerable
+	public abstract class CollMap<K, V> : Collection, IEnumerable<KeyValuePair<K, V>>
 	{
 		internal ImmutableDictionary<K, V> _map = ImmutableDictionary<K, V>.Empty;
 
@@ -88,6 +85,30 @@ namespace Zeze.Raft.RocksRaft
 				SerializeHelper<K>.Encode(bb, e.Key);
 				SerializeHelper<V>.Encode(bb, e.Value);
 			}
+		}
+
+		public override int GetHashCode()
+		{
+			int h = 0;
+			foreach (var (k, v) in _map)
+				h += (k != null ? k.GetHashCode() : 0) ^ (v != null ? v.GetHashCode() : 0);
+			return h;
+		}
+
+		public override bool Equals(object obj)
+		{
+			if (obj == this)
+				return true;
+			if (obj is not CollMap<K, V> c)
+				return false;
+			if (c.Count != Count)
+				return false;
+			foreach (var (k, v) in c._map)
+			{
+				if (!_map.TryGetValue(k, out var v2) || !Equals(v, v2))
+					return false;
+			}
+			return true;
 		}
 	}
 }

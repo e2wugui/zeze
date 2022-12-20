@@ -1,15 +1,12 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Zeze.Serialize;
 
 namespace Zeze.Raft.RocksRaft
 {
-	public abstract class CollSet<V> : Collection, IEnumerable<V>, IEnumerable
+	public abstract class CollSet<V> : Collection, IEnumerable<V>
 	{
 		internal ImmutableHashSet<V> _set = ImmutableHashSet<V>.Empty;
 
@@ -79,6 +76,33 @@ namespace Zeze.Raft.RocksRaft
 			{
 				SerializeHelper<V>.Encode(bb, e);
 			}
+		}
+
+		public override int GetHashCode()
+		{
+			int h = 0;
+			foreach (var v in _set)
+			{
+				if (v != null)
+					h += v.GetHashCode();
+			}
+			return h;
+		}
+
+		public override bool Equals(object obj)
+		{
+			if (obj == this)
+				return true;
+			if (obj is not CollSet<V> c)
+				return false;
+			if (c.Count != Count)
+				return false;
+			foreach (var v in c._set)
+			{
+				if (!_set.Contains(v))
+					return false;
+			}
+			return true;
 		}
     }
 }
