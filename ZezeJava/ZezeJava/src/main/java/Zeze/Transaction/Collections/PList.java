@@ -69,7 +69,6 @@ public abstract class PList<V> extends Collection implements List<V> {
 
 	@Override
 	public <T> T[] toArray(T[] a) {
-		//noinspection SuspiciousToArrayCall
 		return getList().toArray(a);
 	}
 
@@ -124,6 +123,16 @@ public abstract class PList<V> extends Collection implements List<V> {
 				PList.this.remove(next);
 			}
 		};
+	}
+
+	@Override
+	public int hashCode() {
+		return list.hashCode();
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		return o instanceof PList && list.equals(((PList<?>)o).list);
 	}
 
 	@Override

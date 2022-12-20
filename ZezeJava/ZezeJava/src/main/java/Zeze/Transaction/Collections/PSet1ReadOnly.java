@@ -35,7 +35,6 @@ public class PSet1ReadOnly<V> implements Iterable<V> {
 	}
 
 	public <T> T[] toArray(T[] a) {
-		//noinspection SuspiciousToArrayCall
 		return set.toArray(a);
 	}
 

@@ -97,26 +97,26 @@ public final class BSeedKey implements Serializable, Comparable<BSeedKey> {
     }
 
     @Override
-    public boolean equals(Object _obj1_) {
-        if (_obj1_ == this)
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
             return true;
-        if (_obj1_ instanceof BSeedKey) {
-            var _obj_ = (BSeedKey)_obj1_;
-            if (getServerId() != _obj_.getServerId())
-                return false;
-            if (!getKeyName().equals(_obj_.getKeyName()))
-                return false;
-            return true;
-        }
-        return false;
+        if (!(_o_ instanceof BSeedKey))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BSeedKey)_o_;
+        if (getServerId() != _b_.getServerId())
+            return false;
+        if (!getKeyName().equals(_b_.getKeyName()))
+            return false;
+        return true;
     }
 
     @Override
     public int hashCode() {
-        final int _prime_ = 31;
+        final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _prime_ + Integer.hashCode(_ServerId);
-        _h_ = _h_ * _prime_ + _KeyName.hashCode();
+        _h_ = _h_ * _p_ + Integer.hashCode(_ServerId);
+        _h_ = _h_ * _p_ + _KeyName.hashCode();
         return _h_;
     }
 

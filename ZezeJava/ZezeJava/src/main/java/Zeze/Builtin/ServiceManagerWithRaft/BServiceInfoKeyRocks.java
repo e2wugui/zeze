@@ -100,26 +100,26 @@ public final class BServiceInfoKeyRocks implements Serializable, Comparable<BSer
     }
 
     @Override
-    public boolean equals(Object _obj1_) {
-        if (_obj1_ == this)
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
             return true;
-        if (_obj1_ instanceof BServiceInfoKeyRocks) {
-            var _obj_ = (BServiceInfoKeyRocks)_obj1_;
-            if (!getServiceName().equals(_obj_.getServiceName()))
-                return false;
-            if (!getServiceIdentity().equals(_obj_.getServiceIdentity()))
-                return false;
-            return true;
-        }
-        return false;
+        if (!(_o_ instanceof BServiceInfoKeyRocks))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BServiceInfoKeyRocks)_o_;
+        if (!getServiceName().equals(_b_.getServiceName()))
+            return false;
+        if (!getServiceIdentity().equals(_b_.getServiceIdentity()))
+            return false;
+        return true;
     }
 
     @Override
     public int hashCode() {
-        final int _prime_ = 31;
+        final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _prime_ + _ServiceName.hashCode();
-        _h_ = _h_ * _prime_ + _ServiceIdentity.hashCode();
+        _h_ = _h_ * _p_ + _ServiceName.hashCode();
+        _h_ = _h_ * _p_ + _ServiceIdentity.hashCode();
         return _h_;
     }
 

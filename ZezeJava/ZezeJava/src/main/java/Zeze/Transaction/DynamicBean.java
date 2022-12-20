@@ -171,4 +171,19 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		dLog.setVariableId(variableId());
 		return dLog;
 	}
+
+	@Override
+	public int hashCode() {
+		return Long.hashCode(typeId) ^ bean.hashCode();
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (o == this)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
+		var that = (DynamicBean)o;
+		return typeId == that.typeId && bean.equals(that.bean);
+	}
 }

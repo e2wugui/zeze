@@ -97,26 +97,26 @@ public final class BeanKey implements Serializable, Comparable<BeanKey> {
     }
 
     @Override
-    public boolean equals(Object _obj1_) {
-        if (_obj1_ == this)
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
             return true;
-        if (_obj1_ instanceof BeanKey) {
-            var _obj_ = (BeanKey)_obj1_;
-            if (getId() != _obj_.getId())
-                return false;
-            if (!getName().equals(_obj_.getName()))
-                return false;
-            return true;
-        }
-        return false;
+        if (!(_o_ instanceof BeanKey))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BeanKey)_o_;
+        if (getId() != _b_.getId())
+            return false;
+        if (!getName().equals(_b_.getName()))
+            return false;
+        return true;
     }
 
     @Override
     public int hashCode() {
-        final int _prime_ = 31;
+        final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _prime_ + Integer.hashCode(_Id);
-        _h_ = _h_ * _prime_ + _Name.hashCode();
+        _h_ = _h_ * _p_ + Integer.hashCode(_Id);
+        _h_ = _h_ * _p_ + _Name.hashCode();
         return _h_;
     }
 

@@ -97,26 +97,26 @@ public final class BDepartmentKey implements Serializable, Comparable<BDepartmen
     }
 
     @Override
-    public boolean equals(Object _obj1_) {
-        if (_obj1_ == this)
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
             return true;
-        if (_obj1_ instanceof BDepartmentKey) {
-            var _obj_ = (BDepartmentKey)_obj1_;
-            if (!getOwner().equals(_obj_.getOwner()))
-                return false;
-            if (getDepartmentId() != _obj_.getDepartmentId())
-                return false;
-            return true;
-        }
-        return false;
+        if (!(_o_ instanceof BDepartmentKey))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BDepartmentKey)_o_;
+        if (!getOwner().equals(_b_.getOwner()))
+            return false;
+        if (getDepartmentId() != _b_.getDepartmentId())
+            return false;
+        return true;
     }
 
     @Override
     public int hashCode() {
-        final int _prime_ = 31;
+        final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _prime_ + _Owner.hashCode();
-        _h_ = _h_ * _prime_ + Long.hashCode(_DepartmentId);
+        _h_ = _h_ * _p_ + _Owner.hashCode();
+        _h_ = _h_ * _p_ + Long.hashCode(_DepartmentId);
         return _h_;
     }
 

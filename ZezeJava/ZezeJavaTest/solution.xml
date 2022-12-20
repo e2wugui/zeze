@@ -52,7 +52,7 @@
 				<value bean="BSimple:2" />
 			</variable>
 		</bean>
-		<bean name="BValue" version="version">
+		<bean name="BValue" version="version" equals="true">
 			<enum name="Enum1" value="4" comment="enum的注释"/>
 
 			<variable id="1" name="int1" type="int" AllowNegative="true"/> com aa

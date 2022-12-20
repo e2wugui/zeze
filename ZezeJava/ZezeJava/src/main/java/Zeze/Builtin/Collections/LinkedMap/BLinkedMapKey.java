@@ -100,26 +100,26 @@ public final class BLinkedMapKey implements Serializable, Comparable<BLinkedMapK
     }
 
     @Override
-    public boolean equals(Object _obj1_) {
-        if (_obj1_ == this)
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
             return true;
-        if (_obj1_ instanceof BLinkedMapKey) {
-            var _obj_ = (BLinkedMapKey)_obj1_;
-            if (!getName().equals(_obj_.getName()))
-                return false;
-            if (!getValueId().equals(_obj_.getValueId()))
-                return false;
-            return true;
-        }
-        return false;
+        if (!(_o_ instanceof BLinkedMapKey))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BLinkedMapKey)_o_;
+        if (!getName().equals(_b_.getName()))
+            return false;
+        if (!getValueId().equals(_b_.getValueId()))
+            return false;
+        return true;
     }
 
     @Override
     public int hashCode() {
-        final int _prime_ = 31;
+        final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _prime_ + _Name.hashCode();
-        _h_ = _h_ * _prime_ + _ValueId.hashCode();
+        _h_ = _h_ * _p_ + _Name.hashCode();
+        _h_ = _h_ * _p_ + _ValueId.hashCode();
         return _h_;
     }
 

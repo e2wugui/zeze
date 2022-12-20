@@ -100,26 +100,26 @@ public final class BAccountClientId implements Serializable, Comparable<BAccount
     }
 
     @Override
-    public boolean equals(Object _obj1_) {
-        if (_obj1_ == this)
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
             return true;
-        if (_obj1_ instanceof BAccountClientId) {
-            var _obj_ = (BAccountClientId)_obj1_;
-            if (!getAccount().equals(_obj_.getAccount()))
-                return false;
-            if (!getClientId().equals(_obj_.getClientId()))
-                return false;
-            return true;
-        }
-        return false;
+        if (!(_o_ instanceof BAccountClientId))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BAccountClientId)_o_;
+        if (!getAccount().equals(_b_.getAccount()))
+            return false;
+        if (!getClientId().equals(_b_.getClientId()))
+            return false;
+        return true;
     }
 
     @Override
     public int hashCode() {
-        final int _prime_ = 31;
+        final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _prime_ + _Account.hashCode();
-        _h_ = _h_ * _prime_ + _ClientId.hashCode();
+        _h_ = _h_ * _p_ + _Account.hashCode();
+        _h_ = _h_ * _p_ + _ClientId.hashCode();
         return _h_;
     }
 

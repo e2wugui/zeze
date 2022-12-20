@@ -77,23 +77,23 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
     }
 
     @Override
-    public boolean equals(Object _obj1_) {
-        if (_obj1_ == this)
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
             return true;
-        if (_obj1_ instanceof BTaskKey) {
-            var _obj_ = (BTaskKey)_obj1_;
-            if (getTaskId() != _obj_.getTaskId())
-                return false;
-            return true;
-        }
-        return false;
+        if (!(_o_ instanceof BTaskKey))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BTaskKey)_o_;
+        if (getTaskId() != _b_.getTaskId())
+            return false;
+        return true;
     }
 
     @Override
     public int hashCode() {
-        final int _prime_ = 31;
+        final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _prime_ + Long.hashCode(_TaskId);
+        _h_ = _h_ * _p_ + Long.hashCode(_TaskId);
         return _h_;
     }
 

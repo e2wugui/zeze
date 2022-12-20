@@ -24,6 +24,7 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 
 	@Override
 	public abstract V remove(Object key);
+
 	public abstract boolean remove(Map.Entry<K, V> item);
 
 	@Override
@@ -171,6 +172,16 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 	@Override
 	public Iterator<Map.Entry<K, V>> iterator() {
 		return entrySet().iterator();
+	}
+
+	@Override
+	public int hashCode() {
+		return map.hashCode();
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		return o instanceof PMap && map.equals(((PMap<?, ?>)o).map);
 	}
 
 	@Override

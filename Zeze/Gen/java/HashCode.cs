@@ -1,5 +1,4 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
@@ -12,13 +11,13 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "public int hashCode() {");
             if (bean.Variables.Count > 0)
             {
-                sw.WriteLine(prefix + "    final int _prime_ = 31;");
+                sw.WriteLine(prefix + "    final int _p_ = 31;"); // prime number
                 sw.WriteLine(prefix + "    int _h_ = 0;");
                 foreach (Variable var in bean.Variables)
                 {
                     HashCode e = new HashCode(var.NamePrivate);
                     var.VariableType.Accept(e);
-                    sw.WriteLine(prefix + "    _h_ = _h_ * _prime_ + " + e.text + ";");
+                    sw.WriteLine(prefix + "    _h_ = _h_ * _p_ + " + e.text + ";");
                 }
                 sw.WriteLine(prefix + "    return _h_;");
             }
@@ -27,6 +26,28 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "}");
 			sw.WriteLine();
 		}
+
+        public static void Make(Bean bean, StreamWriter sw, string prefix)
+        {
+            sw.WriteLine(prefix + "@Override");
+            sw.WriteLine(prefix + "public int hashCode() {");
+            if (bean.Variables.Count > 0)
+            {
+                sw.WriteLine(prefix + "    final int _p_ = 31;"); // prime number
+                sw.WriteLine(prefix + "    int _h_ = 0;");
+                foreach (Variable var in bean.Variables)
+                {
+                    HashCode e = new HashCode(var.NamePrivate);
+                    var.VariableType.Accept(e);
+                    sw.WriteLine(prefix + "    _h_ = _h_ * _p_ + " + e.text + ";");
+                }
+                sw.WriteLine(prefix + "    return _h_;");
+            }
+            else
+                sw.WriteLine(prefix + "    return 0;");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine();
+        }
 
         readonly string varname;
         string text;
@@ -83,17 +104,17 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeList type)
         {
-            throw new NotImplementedException();
+            text = varname + ".hashCode()";
         }
 
         public void Visit(TypeSet type)
         {
-            throw new NotImplementedException();
+            text = varname + ".hashCode()";
         }
 
         public void Visit(TypeMap type)
         {
-            throw new NotImplementedException();
+            text = varname + ".hashCode()";
         }
 
         public void Visit(Bean type)
@@ -108,7 +129,7 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeDynamic type)
         {
-            throw new NotImplementedException();
+            text = varname + ".hashCode()";
         }
 
         public void Visit(TypeQuaternion type)

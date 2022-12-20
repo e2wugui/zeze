@@ -121,6 +121,7 @@ namespace Zeze.Gen.Types
 		public virtual string FullName => Space.Path(".", Name);
 		public long TypeId { get; private set; }
 		public bool Extendable { get; private set; }
+		public bool Equalable { get; private set; }
 		public string Base { get; private set; }
 		public List<string> Derives = new();
 		public string Version { get; private set; }
@@ -164,6 +165,7 @@ namespace Zeze.Gen.Types
 
 			string attr = self.GetAttribute("TypeId");
 			Extendable = self.GetAttribute("extendable") == "true";
+			Equalable = self.GetAttribute("equals") == "true";
 			Base = self.GetAttribute("base");
 			if (Base != "" && !Base.Contains('.'))
 				Base = Space.Path(".", Base);

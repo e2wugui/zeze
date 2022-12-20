@@ -72,7 +72,6 @@ public abstract class PSet<V> extends Collection implements Set<V> {
 
 	@Override
 	public <T> T[] toArray(T[] a) {
-		//noinspection SuspiciousToArrayCall
 		return getSet().toArray(a);
 	}
 
@@ -97,6 +96,16 @@ public abstract class PSet<V> extends Collection implements Set<V> {
 				PSet.this.remove(next);
 			}
 		};
+	}
+
+	@Override
+	public int hashCode() {
+		return set.hashCode();
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		return o instanceof PSet && set.equals(((PSet<?>)o).set);
 	}
 
 	@Override

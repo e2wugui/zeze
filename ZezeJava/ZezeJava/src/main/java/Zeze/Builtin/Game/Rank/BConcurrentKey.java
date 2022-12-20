@@ -155,35 +155,35 @@ public final class BConcurrentKey implements Serializable, Comparable<BConcurren
     }
 
     @Override
-    public boolean equals(Object _obj1_) {
-        if (_obj1_ == this)
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
             return true;
-        if (_obj1_ instanceof BConcurrentKey) {
-            var _obj_ = (BConcurrentKey)_obj1_;
-            if (getRankType() != _obj_.getRankType())
-                return false;
-            if (getConcurrentId() != _obj_.getConcurrentId())
-                return false;
-            if (getTimeType() != _obj_.getTimeType())
-                return false;
-            if (getYear() != _obj_.getYear())
-                return false;
-            if (getOffset() != _obj_.getOffset())
-                return false;
-            return true;
-        }
-        return false;
+        if (!(_o_ instanceof BConcurrentKey))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BConcurrentKey)_o_;
+        if (getRankType() != _b_.getRankType())
+            return false;
+        if (getConcurrentId() != _b_.getConcurrentId())
+            return false;
+        if (getTimeType() != _b_.getTimeType())
+            return false;
+        if (getYear() != _b_.getYear())
+            return false;
+        if (getOffset() != _b_.getOffset())
+            return false;
+        return true;
     }
 
     @Override
     public int hashCode() {
-        final int _prime_ = 31;
+        final int _p_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _prime_ + Integer.hashCode(_RankType);
-        _h_ = _h_ * _prime_ + Integer.hashCode(_ConcurrentId);
-        _h_ = _h_ * _prime_ + Integer.hashCode(_TimeType);
-        _h_ = _h_ * _prime_ + Integer.hashCode(_Year);
-        _h_ = _h_ * _prime_ + Long.hashCode(_Offset);
+        _h_ = _h_ * _p_ + Integer.hashCode(_RankType);
+        _h_ = _h_ * _p_ + Integer.hashCode(_ConcurrentId);
+        _h_ = _h_ * _p_ + Integer.hashCode(_TimeType);
+        _h_ = _h_ * _p_ + Integer.hashCode(_Year);
+        _h_ = _h_ * _p_ + Long.hashCode(_Offset);
         return _h_;
     }
 

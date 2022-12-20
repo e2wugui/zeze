@@ -53,7 +53,6 @@ public class PList2ReadOnly<V extends Bean, VReadOnly> implements Iterable<VRead
 	}
 
 	public <T> T[] toArray(T[] a) {
-		//noinspection SuspiciousToArrayCall
 		return list.toArray(a);
 	}
 

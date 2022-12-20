@@ -32,6 +32,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	protected ProviderApp providerApp;
 	public final ConcurrentHashMap<String, ProviderSession> providerByLoadName = new ConcurrentHashMap<>();
 	public final LongConcurrentHashMap<ProviderSession> providerByServerId = new LongConcurrentHashMap<>();
+	private final LongConcurrentHashMap<ConcurrentHashSet<Action0>> serverReadyEvents = new LongConcurrentHashMap<>();
 
 	public ProviderDirectService(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);
@@ -135,7 +136,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			waitDirectServerReady(serverId, callback);
 			future.await(timeout);
 		} finally {
-			serverReadyEvents.computeIfAbsent(serverId, (key) -> new ConcurrentHashSet<>()).remove(callback);
+			serverReadyEvents.computeIfAbsent(serverId, __ -> new ConcurrentHashSet<>()).remove(callback);
 		}
 	}
 
@@ -148,12 +149,12 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			}
 			return;
 		}
-		serverReadyEvents.computeIfAbsent(serverId, (key) -> new ConcurrentHashSet<>()).add(callback);
+		serverReadyEvents.computeIfAbsent(serverId, __ -> new ConcurrentHashSet<>()).add(callback);
 	}
 
 	// under lock
 	private void notifyServerReady(int serverId) {
-		var watchers = serverReadyEvents.computeIfAbsent(serverId, (key) -> new ConcurrentHashSet<>());
+		var watchers = serverReadyEvents.computeIfAbsent(serverId, __ -> new ConcurrentHashSet<>());
 		for (var w : watchers) {
 			try {
 				w.run();
@@ -163,8 +164,6 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		}
 		watchers.clear();
 	}
-
-	private final ConcurrentHashMap<Integer, ConcurrentHashSet<Action0>> serverReadyEvents = new ConcurrentHashMap<>();
 
 	synchronized void setRelativeServiceReady(ProviderSession ps, String ip, int port) {
 		ps.serverLoadIp = ip;
