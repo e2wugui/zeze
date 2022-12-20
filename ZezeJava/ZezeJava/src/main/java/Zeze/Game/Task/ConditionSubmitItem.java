@@ -2,14 +2,14 @@ package Zeze.Game.Task;
 
 import Zeze.Builtin.Game.TaskBase.BTConditionSubmitItem;
 import Zeze.Builtin.Game.TaskBase.BTConditionSubmitItemEvent;
+import Zeze.Builtin.Game.TaskBase.BTaskCondition;
 import Zeze.Game.TaskConditionBase;
 import Zeze.Game.TaskPhase;
 import Zeze.Transaction.Bean;
 
 public class ConditionSubmitItem extends TaskConditionBase<BTConditionSubmitItem, BTConditionSubmitItemEvent> {
 	// @formatter:off
-	protected static class Opt extends TaskConditionBase.Opt {}
-	public ConditionSubmitItem(TaskPhase phase, Opt opt) { super(phase, opt); }
+	public ConditionSubmitItem(TaskPhase phase) { super(phase); }
 
 	@Override
 	public boolean accept(Bean eventBean) throws Throwable {
@@ -22,8 +22,8 @@ public class ConditionSubmitItem extends TaskConditionBase<BTConditionSubmitItem
 			bean.getItemsSubmitted().put(item.getKey(), item.getValue());
 		}
 
-		if (isCompleted())
-			onComplete();
+//		if (isCompleted())
+//			onComplete();
 		return true;
 	}
 
@@ -35,5 +35,10 @@ public class ConditionSubmitItem extends TaskConditionBase<BTConditionSubmitItem
 				return false;
 		return true;
 	}
+	@Override
+	protected void loadBeanExtended(BTaskCondition bean) {
+
+	}
+
 	// @formatter:on
 }

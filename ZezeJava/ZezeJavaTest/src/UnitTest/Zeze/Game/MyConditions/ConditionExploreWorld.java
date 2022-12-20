@@ -2,20 +2,15 @@ package UnitTest.Zeze.Game.MyConditions;
 
 import TaskTest.TaskExt.BTConditionExploreWorld;
 import TaskTest.TaskExt.BTConditionExploreWorldEvent;
+import Zeze.Builtin.Game.TaskBase.BTaskCondition;
 import Zeze.Game.TaskConditionBase;
 import Zeze.Game.TaskPhase;
 import Zeze.Transaction.Bean;
 
 public class ConditionExploreWorld extends TaskConditionBase<BTConditionExploreWorld, BTConditionExploreWorldEvent> {
 	// @formatter:off
-	protected static class Opt extends TaskConditionBase.Opt {
-		double exploreRate;
-	}
-	public ConditionExploreWorld(TaskPhase phase, Opt opt) {
-		super(phase, opt);
-		var bean = getExtendedBean();
-		bean.setExploreRate(opt.exploreRate);
-		bean.setFinished(false);
+	public ConditionExploreWorld(TaskPhase phase) {
+		super(phase);
 	}
 
 	@Override
@@ -28,12 +23,18 @@ public class ConditionExploreWorld extends TaskConditionBase<BTConditionExploreW
 			return true;
 		}
 
-		if (isCompleted())
-			onComplete();
+//		if (isCompleted())
+//			onComplete();
 		return true;
 	}
 
 	@Override
 	public boolean isCompleted() { return getExtendedBean().isFinished(); }
+
+	@Override
+	protected void loadBeanExtended(BTaskCondition bean) {
+
+	}
+
 	// @formatter:on
 }

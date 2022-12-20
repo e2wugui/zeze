@@ -2,17 +2,15 @@ package Zeze.Game.Task;
 
 import Zeze.Builtin.Game.TaskBase.BTConditionKillMonster;
 import Zeze.Builtin.Game.TaskBase.BTConditionKillMonsterEvent;
-import Zeze.Builtin.Game.TaskBase.BTConditionSubmitItem;
+import Zeze.Builtin.Game.TaskBase.BTaskCondition;
 import Zeze.Game.TaskConditionBase;
 import Zeze.Game.TaskPhase;
 import Zeze.Transaction.Bean;
 
 public class ConditionKillMonster extends TaskConditionBase<BTConditionKillMonster, BTConditionKillMonsterEvent> {
 	// @formatter:off
-	protected static class Opt extends TaskConditionBase.Opt {
-	}
-	public ConditionKillMonster(TaskPhase phase, Opt opt) {
-		super(phase, opt);
+	public ConditionKillMonster(TaskPhase phase) {
+		super(phase);
 	}
 
 	public void addMonsterToBeKilled(long monsterId, int killCount) {
@@ -32,8 +30,8 @@ public class ConditionKillMonster extends TaskConditionBase<BTConditionKillMonst
 			bean.getMonstersKilled().put(monster.getKey(), monster.getValue());
 		}
 
-		if (isCompleted())
-			onComplete();
+//		if (isCompleted())
+//			onComplete();
 		return true;
 	}
 
@@ -45,5 +43,10 @@ public class ConditionKillMonster extends TaskConditionBase<BTConditionKillMonst
 				return false;
 		return true;
 	}
+	@Override
+	protected void loadBeanExtended(BTaskCondition bean) {
+
+	}
+
 	// @formatter:on
 }

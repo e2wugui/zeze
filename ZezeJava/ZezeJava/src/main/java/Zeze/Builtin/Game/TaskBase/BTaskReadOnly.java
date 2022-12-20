@@ -7,6 +7,7 @@ public interface BTaskReadOnly {
     public boolean negativeCheck();
     public BTask copy();
 
+    public long getRoleId();
     public long getTaskId();
     public int getTaskType();
     public int getTaskState();

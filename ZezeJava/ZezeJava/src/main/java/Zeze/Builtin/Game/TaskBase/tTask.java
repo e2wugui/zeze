@@ -28,15 +28,16 @@ public final class tTask extends TableX<Zeze.Builtin.Game.TaskBase.BTaskKey, Zez
         return false;
     }
 
-    public static final int VAR_taskId = 1;
-    public static final int VAR_taskType = 2;
-    public static final int VAR_taskState = 3;
-    public static final int VAR_taskName = 4;
-    public static final int VAR_taskDescription = 5;
-    public static final int VAR_preTaskIds = 6;
-    public static final int VAR_currentPhaseId = 7;
-    public static final int VAR_taskPhases = 8;
-    public static final int VAR_extendedData = 9;
+    public static final int VAR_roleId = 1;
+    public static final int VAR_taskId = 2;
+    public static final int VAR_taskType = 3;
+    public static final int VAR_taskState = 4;
+    public static final int VAR_taskName = 5;
+    public static final int VAR_taskDescription = 6;
+    public static final int VAR_preTaskIds = 7;
+    public static final int VAR_currentPhaseId = 8;
+    public static final int VAR_taskPhases = 9;
+    public static final int VAR_extendedData = 10;
 
     @Override
     public Zeze.Builtin.Game.TaskBase.BTaskKey decodeKey(ByteBuffer _os_) {

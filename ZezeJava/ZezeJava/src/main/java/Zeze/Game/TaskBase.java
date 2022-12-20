@@ -116,7 +116,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 				onComplete();
 			else {
 				currentPhase.onComplete();
-				currentPhase = phases.get(currentPhase.getNextPhaseId());
+				currentPhase = phases.get(currentPhase.getBean().getNextPhaseId());
 			}
 		return true;
 	}
@@ -134,23 +134,23 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	 * - 将任务回归到初始化状态
 	 */
 	public void reset() {
-		int startNodeSize = 0;
-		BTaskPhase startBean = null;
-		for (var phaseBean : bean.getTaskPhases().values()) {
-			boolean isStart = true;
-			for (var id : phaseBean.getAfterPhaseIds()) {
-				// 如果没有phase依赖这个phase，意味着这个phase是开始的phase
-				if (id == phaseBean.getPhaseId())
-					isStart = false;
-			}
-			if (isStart) {
-				++startNodeSize;
-				startBean = phaseBean;
-			}
-		}
-		// 理论上只允许一个开始节点，这里暂时不处理过多的开始节点的问题。
-		currentPhase.loadBean(startBean);
-		currentPhase.reset();
+//		int startNodeSize = 0;
+//		BTaskPhase startBean = null;
+//		for (var phaseBean : bean.getTaskPhases().values()) {
+//			boolean isStart = true;
+//			for (var id : phaseBean.getAfterPhaseIds()) {
+//				// 如果没有phase依赖这个phase，意味着这个phase是开始的phase
+//				if (id == phaseBean.getPhaseId())
+//					isStart = false;
+//			}
+//			if (isStart) {
+//				++startNodeSize;
+//				startBean = phaseBean;
+//			}
+//		}
+//		// 理论上只允许一个开始节点，这里暂时不处理过多的开始节点的问题。
+//		currentPhase.loadBean(startBean);
+//		currentPhase.reset();
 	}
 
 	/**
@@ -162,26 +162,26 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		}
 	}
 
-	public TaskPhase addPhase(TaskPhase.Opt opt, List<Long> afterPhaseIds) {
-		return addPhase(opt, afterPhaseIds, null);
-	}
-
-	public TaskPhase addPhase(TaskPhase.Opt opt, List<Long> afterPhaseIds, Action0 onCompleteUserCallback) {
-		var phase = new TaskPhase(this, opt, afterPhaseIds, onCompleteUserCallback);
-		phases.put(phase.getPhaseId(), phase);
-		bean.getTaskPhases().put(phase.getPhaseId(), phase.getBean());
-		return phase;
-	}
-
-	public TaskPhase addPhase(TaskPhase phase) {
-		// 不能添加不是这个任务的phase
-		if (phase.getTask() != this)
-			return null;
-
-		phases.put(phase.getPhaseId(), phase);
-		bean.getTaskPhases().put(phase.getPhaseId(), phase.getBean());
-		return phase;
-	}
+//	public TaskPhase addPhase(TaskPhase.Opt opt, List<Long> afterPhaseIds) {
+//		return addPhase(opt, afterPhaseIds, null);
+//	}
+//
+//	public TaskPhase addPhase(TaskPhase.Opt opt, List<Long> afterPhaseIds, Action0 onCompleteUserCallback) {
+//		var phase = new TaskPhase(this, opt, afterPhaseIds, onCompleteUserCallback);
+//		phases.put(phase.getBean().getPhaseId(), phase);
+//		bean.getTaskPhases().put(phase.getBean().getPhaseId(), phase.getBean());
+//		return phase;
+//	}
+//
+//	public TaskPhase addPhase(TaskPhase phase) {
+//		// 不能添加不是这个任务的phase
+//		if (phase.getTask() != this)
+//			return null;
+//
+//		phases.put(phase.getBean().getPhaseId(), phase);
+//		bean.getTaskPhases().put(phase.getBean().getPhaseId(), phase.getBean());
+//		return phase;
+//	}
 
 	// ======================================== Private方法和一些不需要被注意的方法 ========================================
 	// @formatter:off

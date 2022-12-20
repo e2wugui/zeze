@@ -2,16 +2,15 @@ package Zeze.Game.Task;
 
 import Zeze.Builtin.Game.TaskBase.BTConditionNPCTalk;
 import Zeze.Builtin.Game.TaskBase.BTConditionNPCTalkEvent;
+import Zeze.Builtin.Game.TaskBase.BTaskCondition;
 import Zeze.Game.TaskConditionBase;
 import Zeze.Game.TaskPhase;
 import Zeze.Transaction.Bean;
 
 public class ConditionNPCTalk extends TaskConditionBase<BTConditionNPCTalk, BTConditionNPCTalkEvent> {
 	// @formatter:off
-	protected static class Opt extends TaskConditionBase.Opt {}
-	public ConditionNPCTalk(TaskPhase phase, Opt opt) {
-		super(phase, opt);
-		var extendedBean = getExtendedBean();
+	public ConditionNPCTalk(TaskPhase phase) {
+		super(phase);
 	}
 
 	public void addSelectableDialog(long dialogId, int optionsCount) {
@@ -25,8 +24,8 @@ public class ConditionNPCTalk extends TaskConditionBase<BTConditionNPCTalk, BTCo
 		if (!(eventBean instanceof BTConditionNPCTalkEvent))
 			return false;
 
-		if (isCompleted())
-			onComplete();
+//		if (isCompleted())
+//			onComplete();
 		return true;
 	}
 
@@ -36,6 +35,10 @@ public class ConditionNPCTalk extends TaskConditionBase<BTConditionNPCTalk, BTCo
 			if (option.getValue() == -1)
 				return false;
 		return true;
+	}
+	@Override
+	protected void loadBeanExtended(BTaskCondition bean) {
+
 	}
 	// @formatter:on
 }

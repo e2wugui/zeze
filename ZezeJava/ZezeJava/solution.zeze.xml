@@ -817,21 +817,12 @@
 					<variable id="4" name="phaseDescription" type="string"/> Phase的描述
 					<variable id="5" name="prePhaseIds" type="list" value="long"/> 前置PhaseId
 					<variable id="6" name="nextPhaseId" type="long"/> 下一个PhaseId（允许通过不同的conditions完成情况动态变化）
-					<variable id="7" name="commitType" type="int"/> Phase的提交类型：commitAuto | commitNPCTalk
-					<variable id="8" name="conditions" type="map" key="long" value="BTaskCondition"/> 该Phase包含的所有的Condition
-					<variable id="9" name="conditionsCompleteType" type="int"/> 该Phase所有Condition的完成类型：完成所有completeAll | 完成任一completeAny | 顺序完成completeSequence
-					<variable id="10" name="extendedData" type="dynamic"> 不同类型的Phase的其他数据
-						<!-- 自动提交的任务不需要额外的bean-->
-						<value bean="BTPhaseCommitNPCTalk"/>
-					</variable>
+					<variable id="7" name="subPhases" type="list" value="BSubPhase"/> 该Phase包含的所有的SubPhase
 				</bean>
-				<bean name="BTPhaseCommitNPCTalk">
-					<variable id="1" name="npcId" type="long"/> 交任务的NPC
-					<variable id="2" name="committed" type="bool"/> 是否已经交任务
-				</bean>
-				<bean name="BTPhaseCommitNPCTalkEvent">
-                    <variable id="1" name="phaseId" type="long"/>
-					<variable id="2" name="npcId" type="long"/>
+				<bean name="BSubPhase">
+					<variable id="1" name="conditions" type="map" key="long" value="BTaskCondition"/> 该SubPhase包含的所有的Condition
+					<variable id="2" name="completeType" type="int"/> CompleteAll/CompleteAny
+					<variable id="3" name="nextSubPhaseId" type="int"/> 下一个SubPhaseId（允许通过不同的conditions完成情况动态变化）
 				</bean>
 				<!-- ======================================== TaskPhase的Bean数据 ======================================== -->
 				<!-- ======================================== TaskCondition的Bean数据 ======================================== -->
