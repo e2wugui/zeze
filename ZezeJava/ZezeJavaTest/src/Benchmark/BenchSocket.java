@@ -2,6 +2,7 @@ package Benchmark;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Config;
@@ -242,64 +243,70 @@ public class BenchSocket {
 		}
 	}
 
-	private static ByteBuffer benchSendEncode() {
+	private static List<ByteBuffer> benchSendEncode() {
 		var rand = ThreadLocalRandom.current();
 		var pdata = new byte[100];
-		var bb = ByteBuffer.Allocate(1000);
 		var b = new Zeze.Util.Benchmark();
 		var count = 1_000_000;
+		var result = new ArrayList<ByteBuffer>(count);
 		for (int i = 0; i < count; i++) {
 			var p = new SlowSend();
 			for (int j = 0, n = rand.nextInt(1, 100); j < n; j++)
 				p.Argument.getLinkSids().add((long)rand.nextInt());
 			p.Argument.setProtocolType(rand.nextLong());
 			p.Argument.setProtocolWholeData(new Binary(pdata, 0, rand.nextInt(100)));
-			bb.Reset();
+			var bb = ByteBuffer.Allocate(1000);
 			p.encode(bb);
+			result.add(bb);
 		}
 		b.report("benchSendEncode    ", count);
-		return bb;
+		return result;
 	}
 
-	private static void benchSendDecode(ByteBuffer bb) {
+	private static void benchSendDecode(List<ByteBuffer> bbs) {
 		var b = new Zeze.Util.Benchmark();
-		var count = 1_000_000;
-		for (int i = 0; i < count; i++) {
+		var sum = 0L;
+		for (var bb : bbs) {
 			var p = new SlowSend();
 			bb.ReadIndex = 0;
 			p.decode(bb);
+			sum += p.Argument.getLinkSids().size() + p.Argument.getProtocolType();
 		}
-		b.report("benchSendDecode    ", count);
+		b.report("benchSendDecode    ", bbs.size());
+		System.out.println("sum=" + sum);
 	}
 
-	private static ByteBuffer benchFastSendEncode() {
+	private static List<ByteBuffer> benchFastSendEncode() {
 		var rand = ThreadLocalRandom.current();
 		var pdata = new byte[100];
-		var bb = ByteBuffer.Allocate(1000);
 		var b = new Zeze.Util.Benchmark();
 		var count = 1_000_000;
+		var result = new ArrayList<ByteBuffer>(count);
 		for (int i = 0; i < count; i++) {
 			var p = new Send();
 			for (int j = 0, n = rand.nextInt(1, 100); j < n; j++)
 				p.Argument.getLinkSids().add(rand.nextInt());
 			p.Argument.setProtocolType(rand.nextLong());
 			p.Argument.setProtocolWholeData(new Binary(pdata, 0, rand.nextInt(100)));
-			bb.Reset();
+			var bb = ByteBuffer.Allocate(1000);
 			p.encode(bb);
+			result.add(bb);
 		}
 		b.report("benchFastSendEncode", count);
-		return bb;
+		return result;
 	}
 
-	private static void benchFastSendDecode(ByteBuffer bb) {
+	private static void benchFastSendDecode(List<ByteBuffer> bbs) {
 		var b = new Zeze.Util.Benchmark();
-		var count = 1_000_000;
-		for (int i = 0; i < count; i++) {
+		var sum = 0L;
+		for (var bb : bbs) {
 			var p = new Send();
 			bb.ReadIndex = 0;
 			p.decode(bb);
+			sum += p.Argument.getLinkSids().size() + p.Argument.getProtocolType();
 		}
-		b.report("benchFastSendDecode", count);
+		b.report("benchFastSendDecode", bbs.size());
+		System.out.println("sum=" + sum);
 	}
 
 	@Test
