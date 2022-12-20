@@ -755,15 +755,16 @@
 					<variable id="1" name="TaskId" type="long"/>
 				</beankey>
 				<bean name="BTask">
-					<variable id="1" name="taskId" type="long"/> 任务的Id
-					<variable id="2" name="taskType" type="int"/> 任务的类型：每日任务、隐藏任务等
-					<variable id="3" name="taskState" type="int"/> 任务的状态：可接取、已接取、已完成等
-					<variable id="4" name="taskName" type="string"/> 任务的名字
-					<variable id="5" name="taskDescription" type="string"/> 任务的描述。
-					<variable id="6" name="preTaskIds" type="list" value="long"/> 前置任务Id（只需要存储前置任务就可以建立起整个TaskGraphics，不需要存储后置任务，这样也方便扩展）
-					<variable id="7" name="currentPhaseId" type="long"/> 当前的PhaseId
-					<variable id="8" name="taskPhases" type="map" key="long" value="BTaskPhase"/> 该任务所有的Phase
-					<variable id="9" name="extendedData" type="dynamic"> 用于自定义扩展Task的数据
+					<variable id="1" name="roleId" type="long"/> 任务的Id
+					<variable id="2" name="taskId" type="long"/> 任务的Id
+					<variable id="3" name="taskType" type="int"/> 任务的类型：每日任务、隐藏任务等
+					<variable id="4" name="taskState" type="int"/> 任务的状态：可接取、已接取、已完成等
+					<variable id="5" name="taskName" type="string"/> 任务的名字
+					<variable id="6" name="taskDescription" type="string"/> 任务的描述。
+					<variable id="7" name="preTaskIds" type="list" value="long"/> 前置任务Id（只需要存储前置任务就可以建立起整个TaskGraphics，不需要存储后置任务，这样也方便扩展）
+					<variable id="8" name="currentPhaseId" type="long"/> 当前的PhaseId
+					<variable id="9" name="taskPhases" type="map" key="long" value="BTaskPhase"/> 该任务所有的Phase
+					<variable id="10" name="extendedData" type="dynamic"> 用于自定义扩展Task的数据
 						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskBase::getSpecialTypeIdFromBean"/>
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskBase::createBeanFromSpecialTypeId"/>
 					</variable>
@@ -810,15 +811,16 @@
 				<!-- ======================================== Task的Bean数据 ======================================== -->
 				<!-- ======================================== TaskPhase的Bean数据 ======================================== -->
 				<bean name="BTaskPhase">
-					<variable id="1" name="phaseId" type="long"/> Phase的Id
-					<variable id="2" name="phaseName" type="string"/> Phase的名字
-					<variable id="3" name="phaseDescription" type="string"/> Phase的描述
-					<variable id="4" name="afterPhaseIds" type="list" value="long"/> 后置PhaseId
-					<variable id="5" name="nextPhaseId" type="long"/> 下一个PhaseId（允许通过不同的conditions完成情况动态变化）
-					<variable id="6" name="commitType" type="int"/> Phase的提交类型：commitAuto | commitNPCTalk
-					<variable id="7" name="conditions" type="map" key="long" value="BTaskCondition"/> 该Phase包含的所有的Condition
-					<variable id="8" name="conditionsCompleteType" type="int"/> 该Phase所有Condition的完成类型：完成所有completeAll | 完成任一completeAny | 顺序完成completeSequence
-					<variable id="9" name="extendedData" type="dynamic"> 不同类型的Phase的其他数据
+					<variable id="1" name="taskId" type="long"/> Phase的Id
+					<variable id="2" name="phaseId" type="long"/> Phase的Id
+					<variable id="3" name="phaseName" type="string"/> Phase的名字
+					<variable id="4" name="phaseDescription" type="string"/> Phase的描述
+					<variable id="5" name="prePhaseIds" type="list" value="long"/> 前置PhaseId
+					<variable id="6" name="nextPhaseId" type="long"/> 下一个PhaseId（允许通过不同的conditions完成情况动态变化）
+					<variable id="7" name="commitType" type="int"/> Phase的提交类型：commitAuto | commitNPCTalk
+					<variable id="8" name="conditions" type="map" key="long" value="BTaskCondition"/> 该Phase包含的所有的Condition
+					<variable id="9" name="conditionsCompleteType" type="int"/> 该Phase所有Condition的完成类型：完成所有completeAll | 完成任一completeAny | 顺序完成completeSequence
+					<variable id="10" name="extendedData" type="dynamic"> 不同类型的Phase的其他数据
 						<!-- 自动提交的任务不需要额外的bean-->
 						<value bean="BTPhaseCommitNPCTalk"/>
 					</variable>
