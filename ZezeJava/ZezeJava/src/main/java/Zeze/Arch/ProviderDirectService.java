@@ -1,6 +1,7 @@
 package Zeze.Arch;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.Builtin.ProviderDirect.AnnounceProviderInfo;
@@ -16,6 +17,7 @@ import Zeze.Services.ServiceManager.BServiceInfos;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Util.Action0;
 import Zeze.Util.ConcurrentHashSet;
+import Zeze.Util.IntHashSet;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
@@ -44,7 +46,8 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		if (conn != null) {
 			conn.Stop();
 			providerByLoadName.remove(connName);
-			providerByServerId.remove(Long.parseLong(pm.getServiceIdentity()));
+			var serverId = Integer.parseInt(pm.getServiceIdentity());
+			providerByServerId.remove(serverId);
 			ss.setServiceIdentityReadyState(pm.getServiceIdentity(), null);
 			getConfig().removeConnector(conn);
 		}
@@ -140,17 +143,57 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		}
 	}
 
-	public synchronized void waitDirectServerReady(int serverId, Action0 callback) {
-		if (providerByServerId.containsKey(serverId)) {
-			try {
-				callback.run();
-			} catch (Throwable e) {
-				throw new RuntimeException(e);
+	public void waitDirectServerReady(int serverId, Action0 callback) {
+		boolean alreadyReady = false;
+		try {
+			synchronized (this) {
+				if (providerByServerId.containsKey(serverId)) {
+					alreadyReady = true;
+					return;
+				}
+				serverReadyEvents.computeIfAbsent(serverId, __ -> new ConcurrentHashSet<>()).add(callback);
 			}
-			return;
+		} finally {
+			// 锁外回调，避免死锁风险。
+			if (alreadyReady) {
+				try {
+					callback.run();
+				} catch (Throwable e) {
+					throw new RuntimeException(e);
+				}
+			}
 		}
-		serverReadyEvents.computeIfAbsent(serverId, __ -> new ConcurrentHashSet<>()).add(callback);
 	}
+
+	// 由于sm的服务信息是碎片传递给订阅者的，所以本质上得到的快照在启动的时候几乎总是不完整的，
+	// 为了得到真正所有的服务器信息，只有sleep。
+	// 先不提供waitAllDirectServerReady了。
+	/*
+	public void waitAllDirectServerReady(Action0 callback) {
+		// 得到当前provider服务集合（快照）。
+		var servers = new HashSet<Integer>();
+		for (var ss : providerApp.zeze.getServiceManager().getSubscribeStates().values()) {
+			if (ss.getServiceName().startsWith(providerApp.serverServiceNamePrefix)) {
+				for (var info : ss.getServiceInfos().getServiceInfoListSortedByIdentity()) {
+					var serverId = Integer.parseInt(info.serviceIdentity);
+					servers.add(serverId);
+				}
+			}
+		}
+		// 得到没有direct没有好的。
+		var pending = new HashSet<Integer>();
+		synchronized (this) {
+			for (var serverId : servers) {
+				if (!providerByServerId.containsKey(serverId))
+					pending.add(serverId);
+			}
+		}
+		// 订阅没有准备好的。
+		for (var pend : pending) {
+
+		}
+	}
+	*/
 
 	// under lock
 	private void notifyServerReady(int serverId) {
