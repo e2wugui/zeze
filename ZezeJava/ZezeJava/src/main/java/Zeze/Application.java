@@ -88,6 +88,9 @@ public final class Application {
 		conf = config != null ? config : Config.load();
 		conf.createDatabase(this, databases);
 
+		// Start Thread Pool
+		Task.tryInitThreadPool(this, null, null); // 确保Task线程池已经建立,如需定制,在createZeze前先手动初始化
+
 		switch (conf.getServiceManager()) {
 		case "raft":
 			serviceManager = new ServiceManagerAgentWithRaft(this);
@@ -266,9 +269,6 @@ public final class Application {
 		var serverId = conf != null ? conf.getServerId() : -1;
 		logger.info("Start ServerId={}", serverId);
 
-		// Start Thread Pool
-		Task.tryInitThreadPool(this, null, null); // 确保Task线程池已经建立,如需定制,在Start前先手动初始化
-
 		if (serverId >= 0) {
 			// 自动初始化的组件。
 			autoKey = new AutoKey.Module(this);
@@ -297,7 +297,12 @@ public final class Application {
 		var serviceManagerConf = conf != null ? conf.getServiceConf(Agent.defaultServiceName) : null;
 		if (serviceManagerConf != null && serviceManager != null) {
 			serviceManager.start();
-			serviceManager.waitReady();
+			try {
+				serviceManager.waitReady();
+			} catch (Throwable ignored) {
+				// raft 版第一次等待由于选择leader原因肯定会失败一次。
+				serviceManager.waitReady();
+			}
 		}
 
 		if (serverId >= 0) {

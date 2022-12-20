@@ -462,6 +462,8 @@ public final class Config {
 		if (!attr.isEmpty())
 			offlineTimerLimit = Integer.parseInt(attr);
 
+		serviceManager = self.getAttribute("ServiceManager");
+
 		NodeList childNodes = self.getChildNodes();
 		for (int i = 0; i < childNodes.getLength(); i++) {
 			Node node = childNodes.item(i);

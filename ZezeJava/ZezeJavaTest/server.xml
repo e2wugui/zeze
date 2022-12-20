@@ -9,7 +9,7 @@ AutoKeyLocalStep: 自增长步长。server 实例数量上限。
 	GlobalCacheManagerHostNameOrAddress="127.0.0.1" GlobalCacheManagerPort="5555"
 	CheckpointPeriod="60000"
 	ServerId="0"
-	ServiceManager="raft"
+	ServiceManager=""
 	>
 	<GlobalCacheManagersConf>
 		<host name="global.raft.xml"/>

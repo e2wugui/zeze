@@ -46,12 +46,11 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			agent.getRaftClient().getClient().Start();
 
 		for (var agent : agents) {
-			// raft 登录需要选择leader，所以总是会起新的登录，第一次等待会失败，所以下面尝试两次。
-			for (int i = 0; i < 2; ++i) {
-				try {
-					agent.waitLoginSuccess();
-				} catch (Throwable ignored) {
-				}
+			try {
+				agent.waitLoginSuccess();
+			} catch (Throwable ignored) {
+				// raft 登录需要选择leader，所以总是会起新的登录，第一次等待会失败，所以下面尝试两次。
+				agent.waitLoginSuccess();
 			}
 		}
 	}
