@@ -16,6 +16,7 @@ import Zeze.Builtin.Game.TaskBase.BTaskKey;
 import Zeze.Builtin.Game.TaskBase.BTaskPhase;
 import Zeze.Builtin.Game.TaskBase.TriggerTaskEvent;
 import Zeze.Collections.BeanFactory;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
@@ -356,6 +357,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 
 			resultCode |= TaskResultSuccess;
 			r.Result.setResultCode(resultCode);
+//			r.getSender().Send(ByteBuffer.encode(r.Result));
 			return Procedure.Success;
 		}
 	}
