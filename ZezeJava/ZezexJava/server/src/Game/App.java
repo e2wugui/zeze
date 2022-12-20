@@ -88,12 +88,12 @@ public final class App extends Zeze.AppBase {
 		Provider.online.Initialize(this);
 
 		createModules();
-		taskModule = new TaskBase.Module(getZeze());
 		if (GenModule.instance.genFileSrcRoot != null) {
 			System.out.println("---------------");
 			System.out.println("New Source File Has Generate. Re-Compile Need.");
 			System.exit(0);
 		}
+		taskModule = new TaskBase.Module(getZeze());
 
 		// start
 		Zeze.start(); // 启动数据库
