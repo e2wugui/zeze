@@ -15,7 +15,9 @@ import Zeze.Component.Timer;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.Daemon;
 import Zeze.Services.GlobalCacheManagerWithRaftAgent;
+import Zeze.Services.ServiceManager.AbstractAgent;
 import Zeze.Services.ServiceManager.Agent;
+import Zeze.Services.ServiceManagerAgentWithRaft;
 import Zeze.Transaction.AchillesHeelDaemon;
 import Zeze.Transaction.Checkpoint;
 import Zeze.Transaction.Database;
@@ -48,7 +50,7 @@ public final class Application {
 	private final ConcurrentHashMap<String, Table> tableNameMap = new ConcurrentHashMap<>();
 	private final TaskOneByOneByKey taskOneByOneByKey = new TaskOneByOneByKey();
 	private final Locks locks = new Locks();
-	private final Agent serviceManagerAgent;
+	private final AbstractAgent serviceManager;
 	private AutoKey.Module autoKey;
 	private Timer timer;
 	private Zeze.Collections.Queue.Module queueModule;
@@ -85,7 +87,21 @@ public final class Application {
 		this.solutionName = solutionName;
 		conf = config != null ? config : Config.load();
 		conf.createDatabase(this, databases);
-		serviceManagerAgent = new Agent(this);
+
+		switch (conf.getServiceManager()) {
+		case "raft":
+			serviceManager = new ServiceManagerAgentWithRaft(this);
+			break;
+
+		case "disable":
+			serviceManager = null;
+			break;
+
+		default:
+			serviceManager = new Agent(this);
+			break;
+		}
+
 		ShutdownHook.add(this, () -> {
 			logger.info("zeze({}) ShutdownHook begin", this.solutionName);
 			stop();
@@ -96,7 +112,7 @@ public final class Application {
 	public Application() {
 		solutionName = "";
 		conf = null;
-		serviceManagerAgent = null;
+		serviceManager = null;
 		ShutdownHook.add(this, () -> {
 			logger.info("zeze ShutdownHook begin");
 			stop();
@@ -116,8 +132,8 @@ public final class Application {
 		return isStart;
 	}
 
-	public Agent getServiceManagerAgent() {
-		return serviceManagerAgent;
+	public AbstractAgent getServiceManager() {
+		return serviceManager;
 	}
 
 	public IGlobalAgent getGlobalAgent() {
@@ -279,9 +295,9 @@ public final class Application {
 
 		// Start ServiceManager
 		var serviceManagerConf = conf != null ? conf.getServiceConf(Agent.defaultServiceName) : null;
-		if (serviceManagerConf != null && serviceManagerAgent != null) {
-			serviceManagerAgent.getClient().Start();
-			serviceManagerAgent.waitConnectorReady();
+		if (serviceManagerConf != null && serviceManager != null) {
+			serviceManager.start();
+			serviceManager.waitReady();
 		}
 
 		if (serverId >= 0) {
@@ -392,8 +408,8 @@ public final class Application {
 			LocalRocksCacheDb = null;
 		}
 
-		if (serviceManagerAgent != null)
-			serviceManagerAgent.stop();
+		if (serviceManager != null)
+			serviceManager.close();
 
 		delayRemove = null;
 		if (queueModule != null) {

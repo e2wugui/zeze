@@ -58,7 +58,7 @@ public class RedirectBase {
 	}
 
 	public AsyncSocket choiceHash(IModule module, int hash, int dataConcurrentLevel) {
-		var subscribes = providerApp.zeze.getServiceManagerAgent().getSubscribeStates();
+		var subscribes = providerApp.zeze.getServiceManager().getSubscribeStates();
 		var serviceName = ProviderDistribute.makeServiceName(providerApp.serverServiceNamePrefix, module.getId());
 
 		var servers = subscribes.get(serviceName);
@@ -119,7 +119,7 @@ public class RedirectBase {
 		var miss = new ModuleRedirectAllResult();
 		var serviceName = ProviderDistribute.makeServiceName(req.Argument.getServiceNamePrefix(), req.Argument.getModuleId());
 		var consistent = providerApp.distribute.getConsistentHash(serviceName);
-		var providers = providerApp.zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
+		var providers = providerApp.zeze.getServiceManager().getSubscribeStates().get(serviceName);
 		var localServiceIdentity = String.valueOf(providerApp.zeze.getConfig().getServerId());
 		for (int i = 0; i < req.Argument.getHashCodeConcurrentLevel(); ++i) {
 			var target = providerApp.distribute.choiceDataIndex(providers, consistent, i, req.Argument.getHashCodeConcurrentLevel());

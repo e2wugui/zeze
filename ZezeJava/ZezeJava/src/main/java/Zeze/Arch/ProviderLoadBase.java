@@ -95,6 +95,6 @@ public abstract class ProviderLoadBase {
 		loadServer.port = getProviderPort();
 		loadServer.param = new Binary(bb);
 
-		this.zeze.getServiceManagerAgent().setServerLoad(loadServer);
+		this.zeze.getServiceManager().setServerLoad(loadServer);
 	}
 }

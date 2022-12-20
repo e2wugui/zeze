@@ -30,11 +30,11 @@ public class LinkdApp {
 		this.linkdProvider.distribute = new ProviderDistribute(zeze, loadConfig, linkdProviderService);
 		this.linkdProvider.RegisterProtocols(this.linkdProviderService);
 
-		this.zeze.getServiceManagerAgent().setOnChanged(this.linkdProvider.distribute::applyServers);
-		this.zeze.getServiceManagerAgent().setOnUpdate(this.linkdProvider.distribute::addServer);
-		this.zeze.getServiceManagerAgent().setOnRemoved(this.linkdProvider.distribute::removeServer);
+		this.zeze.getServiceManager().setOnChanged(this.linkdProvider.distribute::applyServers);
+		this.zeze.getServiceManager().setOnUpdate(this.linkdProvider.distribute::addServer);
+		this.zeze.getServiceManager().setOnRemoved(this.linkdProvider.distribute::removeServer);
 
-		this.zeze.getServiceManagerAgent().setOnSetServerLoad(serverLoad -> {
+		this.zeze.getServiceManager().setOnSetServerLoad(serverLoad -> {
 			var ps = this.linkdProviderService.providerSessions.get(serverLoad.getName());
 			if (ps != null) {
 				var bb = ByteBuffer.Wrap(serverLoad.param);
@@ -58,7 +58,7 @@ public class LinkdApp {
 
 	public void registerService(Binary extra) {
 		var identity = "@" + providerIp + ":" + providerPort;
-		zeze.getServiceManagerAgent().registerService(linkdServiceName, identity,
+		zeze.getServiceManager().registerService(linkdServiceName, identity,
 				providerIp, providerPort, extra);
 	}
 }

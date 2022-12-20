@@ -590,7 +590,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		setDatabase(database);
 
 		if (isAutoKey())
-			autoKey = app.getServiceManagerAgent().getAutoKey(getName());
+			autoKey = app.getServiceManager().getAutoKey(getName());
 
 		setTableConf(app.getConfig().getTableConf(getName()));
 		cache = new TableCache<>(app, this);

@@ -97,6 +97,10 @@ public abstract class AbstractAgent implements Closeable {
 
 	protected abstract void allocate(AutoKey autoKey);
 
+	public abstract void start() throws Throwable;
+
+	public abstract void waitReady();
+
 	// 【警告】
 	// 记住当前已经注册和订阅信息，当ServiceManager连接发生重连时，重新发送请求。
 	// 维护这些状态数据都是先更新本地再发送远程请求，在失败的时候rollback。

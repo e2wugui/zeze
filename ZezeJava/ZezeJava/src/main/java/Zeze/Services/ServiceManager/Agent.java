@@ -29,6 +29,16 @@ public final class Agent extends AbstractAgent {
 		return client;
 	}
 
+	@Override
+	public void start() throws Throwable {
+		client.Start();
+	}
+
+	@Override
+	public void waitReady() {
+		waitConnectorReady();
+	}
+
 	public void waitConnectorReady() {
 		// 实际上只有一个连接，这样就不用查找了。
 		client.getConfig().forEachConnector(Connector::WaitReady);

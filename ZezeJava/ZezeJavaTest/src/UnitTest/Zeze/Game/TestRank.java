@@ -42,7 +42,7 @@ public class TestRank extends TestCase {
 			Thread.sleep(2000); // wait connected
 			for (int i = 0; i < APP_COUNT; i++) {
 				System.out.format("End Thread.sleep app%d:%n", SERVER_ID_BEGIN + i);
-				apps[i].getZeze().getServiceManagerAgent().getSubscribeStates().forEach((name, state) -> {
+				apps[i].getZeze().getServiceManager().getSubscribeStates().forEach((name, state) -> {
 					System.out.format("  '%s':%n", name);
 					state.localStates.forEach((k, v) -> System.out.format("    { %s, %s }%n", k, v));
 				});

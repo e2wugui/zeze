@@ -50,7 +50,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	 * Provider主动连接Linkd。
 	 */
 	public void registerModulesAndSubscribeLinkd() {
-		var sm = providerApp.zeze.getServiceManagerAgent();
+		var sm = providerApp.zeze.getServiceManager();
 		var identity = String.valueOf(providerApp.zeze.getConfig().getServerId());
 		// 注册本provider的静态服务
 		for (var it = providerApp.staticBinds.iterator(); it.moveToNext(); ) {

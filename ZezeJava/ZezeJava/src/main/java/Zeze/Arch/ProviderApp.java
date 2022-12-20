@@ -65,7 +65,7 @@ public class ProviderApp {
 
 		this.providerImplement.RegisterProtocols(providerService);
 
-		this.zeze.getServiceManagerAgent().setOnSetServerLoad((serverLoad) -> {
+		this.zeze.getServiceManager().setOnSetServerLoad((serverLoad) -> {
 			var ps = providerDirectService.providerByLoadName.get(serverLoad.getName());
 			if (ps != null) {
 				var load = new BLoad();
@@ -76,16 +76,16 @@ public class ProviderApp {
 
 		this.distribute = new ProviderDistribute(zeze, loadConfig, toOtherProviderService);
 
-		this.zeze.getServiceManagerAgent().setOnChanged((ss) -> {
+		this.zeze.getServiceManager().setOnChanged((ss) -> {
 			providerImplement.applyOnChanged(ss);
 			distribute.applyServers(ss);
 		});
-		this.zeze.getServiceManagerAgent().setOnPrepare(providerImplement::applyOnPrepare);
-		this.zeze.getServiceManagerAgent().setOnUpdate((ss, si) -> {
+		this.zeze.getServiceManager().setOnPrepare(providerImplement::applyOnPrepare);
+		this.zeze.getServiceManager().setOnUpdate((ss, si) -> {
 			distribute.addServer(ss, si);
 			providerDirectService.addServer(ss, si);
 		});
-		this.zeze.getServiceManagerAgent().setOnRemoved((ss, si) -> {
+		this.zeze.getServiceManager().setOnRemoved((ss, si) -> {
 			distribute.removeServer(ss, si);
 			providerDirectService.removeServer(ss, si);
 		});

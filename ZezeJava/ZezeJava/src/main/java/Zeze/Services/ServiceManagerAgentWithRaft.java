@@ -1,6 +1,7 @@
 package Zeze.Services;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
 import Zeze.Builtin.ServiceManagerWithRaft.AllocateId;
 import Zeze.Builtin.ServiceManagerWithRaft.CommitServiceList;
 import Zeze.Builtin.ServiceManagerWithRaft.KeepAlive;
@@ -24,16 +25,15 @@ import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
+import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWithRaft {
 	static final Logger logger = LogManager.getLogger(ServiceManagerAgentWithRaft.class);
 	private final Zeze.Raft.Agent raftClient;
-	private final String sessionName;
 
-	public ServiceManagerAgentWithRaft(String sessionName, Zeze.Application zeze, String raftXml) throws Throwable {
-		this.sessionName = sessionName;
+	public ServiceManagerAgentWithRaft(Zeze.Application zeze) throws Throwable {
 		super.zeze = zeze;
 
 		var config = zeze.getConfig();
@@ -41,7 +41,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			throw new IllegalStateException("Config is null");
 		}
 
-		var raftConf = Zeze.Raft.RaftConfig.load(raftXml);
+		var raftConf = Zeze.Raft.RaftConfig.load(config.getServiceManagerConf().getRaftXml());
 		raftClient = new Zeze.Raft.Agent("servicemanager.raft", zeze, raftConf);
 		raftClient.setOnSetLeader(this::raftOnSetLeader);
 		raftClient.dispatchProtocolToInternalThreadPool = true;
@@ -59,8 +59,9 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		if (config == null)
 			return;
 
+		var future = startNewLogin();
 		var login = new Login();
-		login.Argument.setSessionName(sessionName);
+		login.Argument.setSessionName(zeze.getConfig().getServiceManagerConf().getSessionName());
 
 		agent.send(login, p -> {
 			var rpc = (Login)p;
@@ -68,6 +69,8 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 				raftOnSetLeader(agent);
 			else if (rpc.getResultCode() != 0) {
 				logger.error("Login Timeout Or ResultCode != 0. Code={}", rpc.getResultCode());
+			} else {
+				future.setResult(true);
 			}
 			return 0;
 		}, true);
@@ -177,9 +180,35 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			setCurrentAndCount(autoKey, r.Result.getStartId(), r.Result.getCount());
 	}
 
+	private volatile TaskCompletionSource<Boolean> loginFuture = new TaskCompletionSource<>();
+
 	private void waitLoginReady() {
-		// raft onSetLeader是第一个就发送了Login，实际上不需要等待登录成功。
-		// 写在这里，保留实现等待登录成功。
+		var volatileTmp = loginFuture;
+		if (volatileTmp.isDone()) {
+			try {
+				if (volatileTmp.get())
+					return;
+			} catch (InterruptedException | ExecutionException e) {
+				throw new RuntimeException(e);
+			}
+			throw new IllegalStateException("login fail.");
+		}
+		if (!volatileTmp.await(super.zeze.getConfig().getServiceManagerConf().getLoginTimeout()))
+			throw new IllegalStateException("login timeout.");
+		// 再次查看结果。
+		try {
+			if (volatileTmp.isDone() && volatileTmp.get())
+				return;
+		} catch (InterruptedException | ExecutionException e) {
+			throw new RuntimeException(e);
+		}
+		// 只等待一次，不成功则失败。
+		throw new IllegalStateException("login timeout.");
+	}
+
+	private synchronized TaskCompletionSource<Boolean> startNewLogin() {
+		loginFuture.cancel(true); // 如果旧的Future上面有人在等，让他们失败。
+		return loginFuture = new TaskCompletionSource<>();
 	}
 
 	@Override
@@ -253,9 +282,23 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	@Override
 	public void close() throws IOException {
 		try {
+			var tmp = loginFuture;
+			if (null != tmp) {
+				tmp.cancel(true);
+			}
 			raftClient.stop();
 		} catch (Throwable e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	@Override
+	public void start() throws Throwable {
+		raftClient.getClient().Start();
+	}
+
+	@Override
+	public void waitReady() {
+		waitLoginReady();
 	}
 }

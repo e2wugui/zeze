@@ -62,6 +62,10 @@ public final class Config {
 	public GlobalCacheManagersConf globalCacheManagers;
 	public ServiceManagerConf serviceManagerConf;
 
+	public String getServiceManager() {
+		return serviceManager;
+	}
+
 	private int globalCacheManagerPort;
 	private final ConcurrentHashMap<String, TableConf> tableConfMap = new ConcurrentHashMap<>();
 	private TableConf defaultTableConf;
@@ -504,15 +508,28 @@ public final class Config {
 	}
 
 	public static final class ServiceManagerConf {
+		private final String sessionName;
 		private final String raftXml;
+		private long loginTimeout = 8000;
 
 		public ServiceManagerConf(Config conf, Element self) {
+			sessionName = self.getAttribute("sessionName");
 			raftXml = self.getAttribute("raftXml");
+			String attr = self.getAttribute("loginTimeout");
+			if (!attr.isEmpty())
+				loginTimeout = Long.parseLong(attr);
+
 			conf.serviceManagerConf = this;
 		}
 
 		public String getRaftXml() {
 			return raftXml;
+		}
+		public String getSessionName() {
+			return sessionName;
+		}
+		public long getLoginTimeout() {
+			return loginTimeout;
 		}
 	}
 

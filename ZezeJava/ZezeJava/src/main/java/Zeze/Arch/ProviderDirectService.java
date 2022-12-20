@@ -1,7 +1,6 @@
 package Zeze.Arch;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.Builtin.ProviderDirect.AnnounceProviderInfo;
@@ -176,7 +175,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		providerByServerId.put(ps.getServerId(), ps);
 
 		// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
-		for (var ss : getZeze().getServiceManagerAgent().getSubscribeStates().values()) {
+		for (var ss : getZeze().getServiceManager().getSubscribeStates().values()) {
 			if (ss.getServiceName().startsWith(providerApp.serverServiceNamePrefix)) {
 				var infos = ss.getSubscribeType() == BSubscribeInfo.SubscribeTypeSimple
 						? ss.getServiceInfos() : ss.getServiceInfosPending();
@@ -207,7 +206,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		var ps = (ProviderSession)socket.getUserState();
 		if (ps != null) {
 			for (var service : ps.ServiceReadyStates.entrySet()) {
-				var subs = getZeze().getServiceManagerAgent().getSubscribeStates().get(service.getKey());
+				var subs = getZeze().getServiceManager().getSubscribeStates().get(service.getKey());
 				for (var identity : service.getValue().keySet()) {
 					subs.setServiceIdentityReadyState(identity, null);
 				}

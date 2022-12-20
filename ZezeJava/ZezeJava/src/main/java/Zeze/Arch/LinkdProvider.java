@@ -56,7 +56,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	public boolean choiceHashWithoutBind(int moduleId, int hash, OutLong provider) {
 		var serviceName = ProviderDistribute.makeServiceName(serverServiceNamePrefix, moduleId);
 		provider.value = 0L;
-		var providers = distribute.zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
+		var providers = distribute.zeze.getServiceManager().getSubscribeStates().get(serviceName);
 		return providers != null && distribute.choiceHash(providers, hash, provider);
 	}
 
@@ -65,7 +65,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	}
 
 	public ProviderModuleState getProviderModuleState(int moduleId) {
-		var providers = distribute.zeze.getServiceManagerAgent().getSubscribeStates().get(makeServiceName(moduleId));
+		var providers = distribute.zeze.getServiceManager().getSubscribeStates().get(makeServiceName(moduleId));
 		if (providers == null)
 			return null;
 		return (ProviderModuleState)providers.getSubscribeInfo().getLocalState();
@@ -73,7 +73,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 	public boolean choiceProviderAndBind(int moduleId, AsyncSocket link, OutLong provider) {
 		provider.value = 0L;
-		var providers = distribute.zeze.getServiceManagerAgent().getSubscribeStates().get(makeServiceName(moduleId));
+		var providers = distribute.zeze.getServiceManager().getSubscribeStates().get(makeServiceName(moduleId));
 		if (providers == null)
 			return false;
 		var linkSession = (LinkdUserSession)link.getUserState();
@@ -153,7 +153,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 				var providerModuleState = new ProviderModuleState(providerSession.getSessionId(),
 						moduleId, module.getChoiceType(), module.getConfigType());
 				var serviceName = ProviderDistribute.makeServiceName(providerInfo.getServiceNamePrefix(), moduleId);
-				var subState = distribute.zeze.getServiceManagerAgent().subscribeService(
+				var subState = distribute.zeze.getServiceManager().subscribeService(
 						serviceName, BSubscribeInfo.SubscribeTypeSimple, providerModuleState);
 				// 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
 				// 即使 SubscribeTypeSimple 也需要设置 Ready，因为 providerModuleState 需要设置到ServiceInfo中，以后Choice的时候需要用。
@@ -184,7 +184,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			var providerModuleState = new ProviderModuleState(providerSession.getSessionId(),
 					moduleId, module.getChoiceType(), module.getConfigType());
 			var serviceName = ProviderDistribute.makeServiceName(providerInfo.getServiceNamePrefix(), moduleId);
-			var subState = distribute.zeze.getServiceManagerAgent().subscribeService(
+			var subState = distribute.zeze.getServiceManager().subscribeService(
 					serviceName, module.getSubscribeType(), providerModuleState);
 			// 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
 			// 即使 SubscribeTypeSimple 也需要设置 Ready，因为 providerModuleState 需要设置到ServiceInfo中，以后Choice的时候需要用。
@@ -206,7 +206,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			if (!isOnProviderClose)
 				providerSession.getStaticBinds().remove(moduleId);
 			var serviceName = ProviderDistribute.makeServiceName(providerInfo.getServiceNamePrefix(), moduleId);
-			var volatileProviders = distribute.zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
+			var volatileProviders = distribute.zeze.getServiceManager().getSubscribeStates().get(serviceName);
 			if (volatileProviders != null) {
 				// UnBind 不删除provider-list，这个总是通过ServiceManager通告更新。
 				// 这里仅仅设置该moduleId对应的服务的状态不可用。

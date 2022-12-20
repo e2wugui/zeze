@@ -212,7 +212,7 @@ public class ProviderDistribute {
 
 	public boolean choiceProviderByServerId(String serviceNamePrefix, int moduleId, int serverId, OutLong provider) {
 		var serviceName = makeServiceName(serviceNamePrefix, moduleId);
-		var providers = zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
+		var providers = zeze.getServiceManager().getSubscribeStates().get(serviceName);
 		if (providers != null) {
 			var si = providers.getServiceInfos().findServiceInfoByServerId(serverId);
 			if (si != null) {
