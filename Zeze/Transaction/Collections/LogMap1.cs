@@ -116,6 +116,7 @@ namespace Zeze.Transaction.Collections
         internal override Log BeginSavepoint()
         {
             var dup = new LogMap1<K, V>();
+            dup.This = This;
             dup.Belong = Belong;
             dup.VariableId = VariableId;
             dup.Value = Value;

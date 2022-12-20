@@ -109,8 +109,9 @@ namespace Zeze.Raft.RocksRaft
 
 		internal override Log BeginSavepoint()
 		{
-			var dup = new LogSet<V>();
-			dup.Belong = Belong;
+			var dup = new LogSet1<V>();
+            dup.This = This;
+            dup.Belong = Belong;
 			dup.VariableId = VariableId;
 			dup.Value = Value;
 			return dup;

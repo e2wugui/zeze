@@ -406,6 +406,23 @@ namespace Zeze.Transaction
             }
         }
 
+        internal override Log BeginSavepoint()
+        {
+            var dup = new LogDynamic();
+            dup.This = This;
+            dup.Belong = Belong;
+            dup.VariableId = VariableId;
+            dup.SpecialTypeId = SpecialTypeId;
+            dup.Value = Value;
+            return dup;
+        }
+
+        internal override void EndSavepoint(Savepoint currentsp)
+        {
+            // 结束保存点，直接覆盖到当前的日志里面即可。
+            currentsp.PutLog(this);
+        }
+
         public override void Commit()
         {
             if (Value != null)

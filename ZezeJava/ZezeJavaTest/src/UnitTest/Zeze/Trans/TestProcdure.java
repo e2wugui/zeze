@@ -95,14 +95,14 @@ public class TestProcdure {
 
 	@Test
 	public void testNestLogOneLogDynamic() throws Throwable {
-		App.Instance.Zeze.newProcedure(() -> {
+		Assert.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
 			var value = App.Instance.demo_Module1.getTable1().getOrAdd(18989L);
 			value.setBean12(new BSimple());
 			value.getDynamic14().setBean(new BSimple());
 			value.getSet10().add(1);
 			value.getMap15().put(1L, 1L);
 			value.getList9().add(new demo.Bean1());
-			App.Instance.Zeze.newProcedure(() -> {
+			Assert.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
 				var value2 = App.Instance.demo_Module1.getTable1().getOrAdd(18989L);
 				value2.setBean12(new BSimple());
 				value2.getDynamic14().setBean(new BSimple());
@@ -110,8 +110,8 @@ public class TestProcdure {
 				value2.getMap15().put(1L, 1L);
 				value2.getList9().add(new demo.Bean1());
 				return 0;
-			}, "Nest").call();
+			}, "Nest").call());
 			return 0;
-		}, "testNestLogOneLogDynamic").call();
+		}, "testNestLogOneLogDynamic").call());
 	}
 }

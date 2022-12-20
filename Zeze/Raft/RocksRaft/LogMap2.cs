@@ -17,7 +17,8 @@ namespace Zeze.Raft.RocksRaft
 		internal override Log BeginSavepoint()
 		{
 			var dup = new LogMap2<K, V>();
-			dup.Belong = Belong;
+            dup.This = This;
+            dup.Belong = Belong;
 			dup.VariableId = VariableId;
 			dup.Value = Value;
 			return dup;
