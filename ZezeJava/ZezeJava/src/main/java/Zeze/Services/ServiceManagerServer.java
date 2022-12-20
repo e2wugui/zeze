@@ -12,9 +12,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
+import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.AllocateId;
 import Zeze.Services.ServiceManager.BOfflineNotify;
@@ -876,6 +878,11 @@ public final class ServiceManagerServer implements Closeable {
 		String ip = null;
 		int port = 5001;
 
+		String raftName = null;
+		String raftConf = "servicemanager.raft.xml";
+
+		Task.tryInitThreadPool(null, null, null);
+
 		for (int i = 0; i < args.length; ++i) {
 			switch (args[i]) {
 			case "-ip":
@@ -884,18 +891,46 @@ public final class ServiceManagerServer implements Closeable {
 			case "-port":
 				port = Integer.parseInt(args[++i]);
 				break;
+			case "-raft":
+				raftName = args[++i];
+				break;
+			case "-raftConf":
+				raftConf = args[++i];
+				break;
+			case "-threads":
+				i++;
+				// ThreadPool.SetMinThreads(int.Parse(args[i]), completionPortThreads);
+				break;
+			default:
+				throw new IllegalArgumentException("unknown argument: " + args[i]);
 			}
 		}
-		logger.info("Start {}:{}", ip != null ? ip : "any", port);
-
-		Task.tryInitThreadPool(null, null, null);
-
-		InetAddress address = (ip != null && !ip.isBlank()) ? InetAddress.getByName(ip) : null;
-		var config = new Zeze.Config().addCustomize(new ServiceManagerServer.Conf()).loadAndParse();
-
-		try (var ignored = new ServiceManagerServer(address, port, config)) {
-			synchronized (Thread.currentThread()) {
-				Thread.currentThread().wait();
+		if (raftName == null || raftName.isEmpty()) {
+			logger.info("Start {}:{}", ip != null ? ip : "any", port);
+			InetAddress address = (ip != null && !ip.isBlank()) ? InetAddress.getByName(ip) : null;
+			var config = new Zeze.Config().addCustomize(new ServiceManagerServer.Conf()).loadAndParse();
+			try (var ignored = new ServiceManagerServer(address, port, config)) {
+				synchronized (Thread.currentThread()) {
+					Thread.currentThread().wait();
+				}
+			}
+		} else if (raftName.equals("RunAllNodes")) {
+			logger.info("Start Raft=RunAllNodes");
+			//noinspection unused
+			try (var raft1 = new ServiceManagerWithRaft("127.0.0.1:6556", RaftConfig.load(raftConf));
+				 var raft2 = new ServiceManagerWithRaft("127.0.0.1:6557", RaftConfig.load(raftConf));
+				 var raft3 = new ServiceManagerWithRaft("127.0.0.1:6558", RaftConfig.load(raftConf))) {
+				synchronized (Thread.currentThread()) {
+					Thread.currentThread().wait();
+				}
+			}
+		} else {
+			logger.info("Start Raft={},{}", raftName, raftConf);
+			//noinspection unused
+			try (var raft = new ServiceManagerWithRaft(raftName, RaftConfig.load(raftConf))) {
+				synchronized (Thread.currentThread()) {
+					Thread.currentThread().wait();
+				}
 			}
 		}
 	}

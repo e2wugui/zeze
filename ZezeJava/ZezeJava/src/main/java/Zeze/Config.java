@@ -508,8 +508,8 @@ public final class Config {
 	}
 
 	public static final class ServiceManagerConf {
-		private final String sessionName;
-		private final String raftXml;
+		private String sessionName;
+		private String raftXml;
 		private long loginTimeout = 8000;
 
 		public ServiceManagerConf(Config conf, Element self) {
@@ -525,11 +525,25 @@ public final class Config {
 		public String getRaftXml() {
 			return raftXml;
 		}
+
 		public String getSessionName() {
 			return sessionName;
 		}
+
 		public long getLoginTimeout() {
 			return loginTimeout;
+		}
+
+		public void setRaftXml(String raftXml) {
+			this.raftXml = raftXml;
+		}
+
+		public void setSessionName(String sessionName) {
+			this.sessionName = sessionName;
+		}
+
+		public void setLoginTimeout(long timeout) {
+			loginTimeout = timeout;
 		}
 	}
 

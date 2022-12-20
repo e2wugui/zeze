@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.TreeMap;
 import java.util.concurrent.Future;
 import Zeze.Builtin.ServiceManagerWithRaft.*;
+import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
@@ -29,7 +30,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
 
-public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
+public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft implements AutoCloseable {
 	static {
 		System.getProperties().putIfAbsent("log4j.configurationFile", "log4j2.xml");
 		var level = Level.toLevel(System.getProperty("logLevel"), Level.INFO);
@@ -48,6 +49,10 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 	private Future<?> startNotifyDelayTask;
 	// 需要从配置文件中读取，把这个引用加入：Zeze.Config.AddCustomize
 	private final ServiceManagerServer.Conf config;
+
+	public ServiceManagerWithRaft(String raftName, RaftConfig raftConf) throws Throwable {
+		this(raftName, raftConf, Config.load(), false);
+	}
 
 	public ServiceManagerWithRaft(String raftName, RaftConfig raftConf, Zeze.Config config,
 								  boolean RocksDbWriteOptionSync) throws Throwable {
@@ -74,6 +79,11 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft {
 				});
 			});
 		}
+	}
+
+	@Override
+	public void close() throws Exception {
+		rocks.close();
 	}
 
 	/**
