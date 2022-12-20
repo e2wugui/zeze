@@ -99,10 +99,16 @@ public class TestProcdure {
 			var value = App.Instance.demo_Module1.getTable1().getOrAdd(18989L);
 			value.setBean12(new BSimple());
 			value.getDynamic14().setBean(new BSimple());
+			value.getSet10().add(1);
+			value.getMap15().put(1L, 1L);
+			value.getList9().add(new demo.Bean1());
 			App.Instance.Zeze.newProcedure(() -> {
 				var value2 = App.Instance.demo_Module1.getTable1().getOrAdd(18989L);
 				value2.setBean12(new BSimple());
 				value2.getDynamic14().setBean(new BSimple());
+				value2.getSet10().add(1);
+				value2.getMap15().put(1L, 1L);
+				value2.getList9().add(new demo.Bean1());
 				return 0;
 			}, "Nest").call();
 			return 0;
