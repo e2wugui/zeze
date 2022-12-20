@@ -172,6 +172,11 @@ namespace Zeze.Gen.cs
             Tostring.Make(bean, sw, "        ");
             Encode.Make(bean, sw, "        ");
             Decode.Make(bean, sw, "        ");
+            if (bean.Equalable)
+            {
+                Equal.Make(bean, sw, "        ");
+                HashCode.Make(bean, sw, "        ");
+            }
             InitChildrenTableKey.Make(bean, sw, "        ");
             InitChildrenTableKey.MakeReset(bean, sw, "        ");
             NegativeCheck.Make(bean, sw, "        ");

@@ -56,7 +56,7 @@
 				<value bean="Simple:2" />
 			</variable>
 		</bean>
-		<bean name="Value" version="version">
+		<bean name="Value" version="version" equals="true">
 			<enum name="Enum1" value="4" />
 
 			<variable id="1" name="int1" type="int" AllowNegative="true" /> com aa

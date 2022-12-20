@@ -142,16 +142,16 @@ namespace Zeze.Builtin.Game.Rank
             }
         }
 
-        public override bool Equals(object _obj1_)
+        public override bool Equals(object _o_)
         {
-            if (_obj1_ == this) return true;
-            if (_obj1_ is BConcurrentKey _obj_)
+            if (_o_ == this) return true;
+            if (_o_ is BConcurrentKey _b_)
             {
-                if (_RankType != _obj_._RankType) return false;
-                if (_ConcurrentId != _obj_._ConcurrentId) return false;
-                if (_TimeType != _obj_._TimeType) return false;
-                if (_Year != _obj_._Year) return false;
-                if (_Offset != _obj_._Offset) return false;
+                if (_RankType != _b_._RankType) return false;
+                if (_ConcurrentId != _b_._ConcurrentId) return false;
+                if (_TimeType != _b_._TimeType) return false;
+                if (_Year != _b_._Year) return false;
+                if (_Offset != _b_._Offset) return false;
                 return true;
             }
             return false;
@@ -159,13 +159,13 @@ namespace Zeze.Builtin.Game.Rank
 
         public override int GetHashCode()
         {
-            const int _prime_ = 31;
+            const int _p_ = 31;
             int _h_ = 0;
-            _h_ = _h_ * _prime_ + _RankType.GetHashCode();
-            _h_ = _h_ * _prime_ + _ConcurrentId.GetHashCode();
-            _h_ = _h_ * _prime_ + _TimeType.GetHashCode();
-            _h_ = _h_ * _prime_ + _Year.GetHashCode();
-            _h_ = _h_ * _prime_ + _Offset.GetHashCode();
+            _h_ = _h_ * _p_ + _RankType.GetHashCode();
+            _h_ = _h_ * _p_ + _ConcurrentId.GetHashCode();
+            _h_ = _h_ * _p_ + _TimeType.GetHashCode();
+            _h_ = _h_ * _p_ + _Year.GetHashCode();
+            _h_ = _h_ * _p_ + _Offset.GetHashCode();
             return _h_;
         }
 

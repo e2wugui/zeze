@@ -1,5 +1,4 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cs
@@ -21,14 +20,34 @@ namespace Zeze.Gen.cs
         /// <param name="prefix"></param>
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "public override bool Equals(object _obj1_)");
+            sw.WriteLine(prefix + "public override bool Equals(object _o_)");
             sw.WriteLine(prefix + "{");
-            sw.WriteLine(prefix + "    if (_obj1_ == this) return true;");
-            sw.WriteLine(prefix + "    if (_obj1_ is " + bean.Name + " _obj_)");
+            sw.WriteLine(prefix + "    if (_o_ == this) return true;");
+            sw.WriteLine(prefix + "    if (_o_ is " + bean.Name + " _b_)");
             sw.WriteLine(prefix + "    {");
             foreach (Variable var in bean.Variables)
             {
-                var v = new Equal(var, "_obj_", false);
+                var v = new Equal(var, "_b_", false);
+                var.VariableType.Accept(v);
+                sw.WriteLine(prefix + "        if (" + v.text + ") return false;");
+            }
+            sw.WriteLine(prefix + "        return true;");
+            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    return false;");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine();
+        }
+
+        public static void Make(Bean bean, StreamWriter sw, string prefix)
+        {
+            sw.WriteLine(prefix + "public override bool Equals(object _o_)");
+            sw.WriteLine(prefix + "{");
+            sw.WriteLine(prefix + "    if (_o_ == this) return true;");
+            sw.WriteLine(prefix + "    if (_o_ is " + bean.Name + " _b_)");
+            sw.WriteLine(prefix + "    {");
+            foreach (Variable var in bean.Variables)
+            {
+                var v = new Equal(var, "_b_", false);
                 var.VariableType.Accept(v);
                 sw.WriteLine(prefix + "        if (" + v.text + ") return false;");
             }
@@ -98,17 +117,17 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeList type)
         {
-            throw new NotImplementedException();
+            text = (isEquals ? "" : "!") + var.NamePrivate + ".Equals(" + another + "." + var.NamePrivate + ")";
         }
 
         public void Visit(TypeSet type)
         {
-            throw new NotImplementedException();
+            text = (isEquals ? "" : "!") + var.NamePrivate + ".Equals(" + another + "." + var.NamePrivate + ")";
         }
 
         public void Visit(TypeMap type)
         {
-            throw new NotImplementedException();
+            text = (isEquals ? "" : "!") + var.NamePrivate + ".Equals(" + another + "." + var.NamePrivate + ")";
         }
 
         public void Visit(Bean type)
@@ -123,37 +142,37 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeDynamic type)
         {
-            throw new NotImplementedException();
+            text = (isEquals ? "" : "!") + var.NamePrivate + ".Equals(" + another + "." + var.NamePrivate + ")";
         }
 
         public void Visit(TypeQuaternion type)
         {
-            throw new NotImplementedException();
+            text = (isEquals ? "" : "!") + var.NamePrivate + ".Equals(" + another + "." + var.NamePrivate + ")";
         }
 
         public void Visit(TypeVector2 type)
         {
-            throw new NotImplementedException();
+            text = (isEquals ? "" : "!") + var.NamePrivate + ".Equals(" + another + "." + var.NamePrivate + ")";
         }
 
         public void Visit(TypeVector2Int type)
         {
-            throw new NotImplementedException();
+            text = (isEquals ? "" : "!") + var.NamePrivate + ".Equals(" + another + "." + var.NamePrivate + ")";
         }
 
         public void Visit(TypeVector3 type)
         {
-            throw new NotImplementedException();
+            text = (isEquals ? "" : "!") + var.NamePrivate + ".Equals(" + another + "." + var.NamePrivate + ")";
         }
 
         public void Visit(TypeVector3Int type)
         {
-            throw new NotImplementedException();
+            text = (isEquals ? "" : "!") + var.NamePrivate + ".Equals(" + another + "." + var.NamePrivate + ")";
         }
 
         public void Visit(TypeVector4 type)
         {
-            throw new NotImplementedException();
+            text = (isEquals ? "" : "!") + var.NamePrivate + ".Equals(" + another + "." + var.NamePrivate + ")";
         }
     }
 }

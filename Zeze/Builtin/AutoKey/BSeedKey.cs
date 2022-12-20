@@ -85,13 +85,13 @@ namespace Zeze.Builtin.AutoKey
             }
         }
 
-        public override bool Equals(object _obj1_)
+        public override bool Equals(object _o_)
         {
-            if (_obj1_ == this) return true;
-            if (_obj1_ is BSeedKey _obj_)
+            if (_o_ == this) return true;
+            if (_o_ is BSeedKey _b_)
             {
-                if (_ServerId != _obj_._ServerId) return false;
-                if (!_KeyName.Equals(_obj_._KeyName)) return false;
+                if (_ServerId != _b_._ServerId) return false;
+                if (!_KeyName.Equals(_b_._KeyName)) return false;
                 return true;
             }
             return false;
@@ -99,10 +99,10 @@ namespace Zeze.Builtin.AutoKey
 
         public override int GetHashCode()
         {
-            const int _prime_ = 31;
+            const int _p_ = 31;
             int _h_ = 0;
-            _h_ = _h_ * _prime_ + _ServerId.GetHashCode();
-            _h_ = _h_ * _prime_ + _KeyName.GetHashCode();
+            _h_ = _h_ * _p_ + _ServerId.GetHashCode();
+            _h_ = _h_ * _p_ + _KeyName.GetHashCode();
             return _h_;
         }
 

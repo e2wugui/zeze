@@ -368,6 +368,25 @@ namespace Zeze.Transaction
                 VariableId = VariableId,
             };
         }
+
+        public override int GetHashCode()
+        {
+            return TypeId_.GetHashCode() ^ Bean_.GetHashCode();
+        }
+
+        protected bool Equals(DynamicBean other)
+        {
+            return TypeId_ == other.TypeId_ && Bean_.Equals(other.Bean_);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(obj, null))
+                return false;
+            if (ReferenceEquals(obj, this))
+                return true;
+            return GetType() == obj.GetType() && Equals((DynamicBean)obj);
+        }
     }
 
     // see Zeze.Util.ConfBean.cs::LogConfDynamic

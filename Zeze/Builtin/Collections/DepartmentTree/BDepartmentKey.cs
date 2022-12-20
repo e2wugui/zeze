@@ -85,13 +85,13 @@ namespace Zeze.Builtin.Collections.DepartmentTree
             }
         }
 
-        public override bool Equals(object _obj1_)
+        public override bool Equals(object _o_)
         {
-            if (_obj1_ == this) return true;
-            if (_obj1_ is BDepartmentKey _obj_)
+            if (_o_ == this) return true;
+            if (_o_ is BDepartmentKey _b_)
             {
-                if (!_Owner.Equals(_obj_._Owner)) return false;
-                if (_DepartmentId != _obj_._DepartmentId) return false;
+                if (!_Owner.Equals(_b_._Owner)) return false;
+                if (_DepartmentId != _b_._DepartmentId) return false;
                 return true;
             }
             return false;
@@ -99,10 +99,10 @@ namespace Zeze.Builtin.Collections.DepartmentTree
 
         public override int GetHashCode()
         {
-            const int _prime_ = 31;
+            const int _p_ = 31;
             int _h_ = 0;
-            _h_ = _h_ * _prime_ + _Owner.GetHashCode();
-            _h_ = _h_ * _prime_ + _DepartmentId.GetHashCode();
+            _h_ = _h_ * _p_ + _Owner.GetHashCode();
+            _h_ = _h_ * _p_ + _DepartmentId.GetHashCode();
             return _h_;
         }
 

@@ -86,13 +86,13 @@ namespace Zeze.Builtin.Collections.LinkedMap
             }
         }
 
-        public override bool Equals(object _obj1_)
+        public override bool Equals(object _o_)
         {
-            if (_obj1_ == this) return true;
-            if (_obj1_ is BLinkedMapKey _obj_)
+            if (_o_ == this) return true;
+            if (_o_ is BLinkedMapKey _b_)
             {
-                if (!_Name.Equals(_obj_._Name)) return false;
-                if (!_ValueId.Equals(_obj_._ValueId)) return false;
+                if (!_Name.Equals(_b_._Name)) return false;
+                if (!_ValueId.Equals(_b_._ValueId)) return false;
                 return true;
             }
             return false;
@@ -100,10 +100,10 @@ namespace Zeze.Builtin.Collections.LinkedMap
 
         public override int GetHashCode()
         {
-            const int _prime_ = 31;
+            const int _p_ = 31;
             int _h_ = 0;
-            _h_ = _h_ * _prime_ + _Name.GetHashCode();
-            _h_ = _h_ * _prime_ + _ValueId.GetHashCode();
+            _h_ = _h_ * _p_ + _Name.GetHashCode();
+            _h_ = _h_ * _p_ + _ValueId.GetHashCode();
             return _h_;
         }
 
