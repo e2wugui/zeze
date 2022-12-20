@@ -30,6 +30,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	@Override
 	public Log beginSavepoint() {
 		var dup = new LogList2<V>(getTypeId(), valueFactory);
+		dup.setThis(getThis());
 		dup.setBelong(getBelong());
 		dup.setVariableId(getVariableId());
 		dup.setValue(getValue());

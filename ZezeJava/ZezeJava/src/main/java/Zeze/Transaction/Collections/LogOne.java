@@ -4,6 +4,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
+import Zeze.Transaction.Savepoint;
 
 public class LogOne<V extends Bean> extends LogBean {
     public V value;
@@ -13,7 +14,23 @@ public class LogOne<V extends Bean> extends LogBean {
         this.value = value;
     }
 
+    @Override
+    public Log beginSavepoint() {
+        var dup = new LogOne<>();
+        dup.setThis(getThis());
+        dup.setBelong(getBelong());
+        dup.setVariableId(getVariableId());
+        dup.value = value;
+        return dup;
+    }
+
+    @Override
+    public void endSavepoint(Savepoint currentSp) {
+        // 结束保存点，直接覆盖到当前的日志里面即可。
+        currentSp.putLog(this);
+    }
     // 收集内部的Bean发生了改变。
+
     @Override
     public void collect(Changes changes, Bean recent, Log vlog) {
         if (logBean == null) {

@@ -20,7 +20,9 @@ import Zeze.Transaction.Procedure;
 import Zezex.Linkd.Auth;
 import junit.framework.TestCase;
 import org.junit.Assert;
+import org.junit.Ignore;
 
+@Ignore
 public class TestTask extends TestCase {
 	final ArrayList<ClientGame.App> clients = new ArrayList<>();
 	final ArrayList<Zezex.App> links = new ArrayList<>();

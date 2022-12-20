@@ -161,6 +161,7 @@ public class LogList1<V> extends LogList<V> {
 	@Override
 	public Log beginSavepoint() {
 		var dup = new LogList1<>(getTypeId(), valueCodecFuncs);
+		dup.setThis(getThis());
 		dup.setBelong(getBelong());
 		dup.setVariableId(getVariableId());
 		dup.setValue(getValue());

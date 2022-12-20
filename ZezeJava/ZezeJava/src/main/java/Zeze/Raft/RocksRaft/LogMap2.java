@@ -35,6 +35,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	@Override
 	public Log beginSavepoint() {
 		var dup = new LogMap2<K, V>(getTypeId(), keyCodecFuncs, valueFactory);
+		dup.setThis(getThis());
 		dup.setBelong(getBelong());
 		dup.setVariableId(getVariableId());
 		dup.setValue(getValue());

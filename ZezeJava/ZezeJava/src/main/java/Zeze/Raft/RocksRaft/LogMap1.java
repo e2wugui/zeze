@@ -126,6 +126,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	@Override
 	public Log beginSavepoint() {
 		var dup = new LogMap1<>(getTypeId(), keyCodecFuncs, valueCodecFuncs);
+		dup.setThis(getThis());
 		dup.setBelong(getBelong());
 		dup.setVariableId(getVariableId());
 		dup.setValue(getValue());

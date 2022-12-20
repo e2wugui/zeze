@@ -6,6 +6,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Record1;
 import Zeze.Transaction.TableKey;
 import demo.App;
+import demo.Module1.BSimple;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -90,5 +91,21 @@ public class TestProcdure {
 			App.getInstance().demo_Module1.getTable1().remove(999L);
 			return 0;
 		}, "testVector3").call();
+	}
+
+	@Test
+	public void testNestLogOneLogDynamic() throws Throwable {
+		App.Instance.Zeze.newProcedure(() -> {
+			var value = App.Instance.demo_Module1.getTable1().getOrAdd(18989L);
+			value.setBean12(new BSimple());
+			value.getDynamic14().setBean(new BSimple());
+			App.Instance.Zeze.newProcedure(() -> {
+				var value2 = App.Instance.demo_Module1.getTable1().getOrAdd(18989L);
+				value2.setBean12(new BSimple());
+				value2.getDynamic14().setBean(new BSimple());
+				return 0;
+			}, "Nest").call();
+			return 0;
+		}, "testNestLogOneLogDynamic").call();
 	}
 }

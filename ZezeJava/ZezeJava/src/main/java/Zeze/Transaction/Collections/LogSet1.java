@@ -144,6 +144,7 @@ public class LogSet1<V> extends LogSet<V> {
 	@Override
 	public Log beginSavepoint() {
 		var dup = new LogSet1<>(getTypeId(), valueCodecFuncs);
+		dup.setThis(getThis());
 		dup.setBelong(getBelong());
 		dup.setVariableId(getVariableId());
 		dup.setValue(getValue());

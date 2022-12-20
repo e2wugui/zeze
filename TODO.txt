@@ -41,10 +41,6 @@ DatabaseDynamoDb 还需测试。
 过载保护；更多。
 确认：GlobalCacheManagerWithRaft Recude 需要 TransactionLevel="Serializable" ?
 【全面】升级Zeze到serverdev
-	1. 不兼容协议编码升级。@张路
-	   测试客户端登陆通过即可。
-	   难点是所有的客户端版本都需要升级一次。
-	   本周启动。
 	2. 全面升级Arch。@张路
 	   主要流程测试。
 	   比如，linkd的Netty【可选的】换成Zeze.Netty（gs.online可能需要点改动。
@@ -54,6 +50,8 @@ DatabaseDynamoDb 还需测试。
 	   online在serverdev中做了哪些改变？@左尧。
 	   online事件使用的地方修改。
 	   确定是否需要替换，什么时候启动？不替换就是永久不启动了。
+
+ServiceManagerWithRaft 测试
 
 1. ZezeJava\test\build.bat 编译
 2. ZezeJava\test\GlobalRaft\service&global_raft3.bat 启动global raft
@@ -68,6 +66,11 @@ New RocksRaft.Table.selectDirty(); 没有仔细考虑。
 ServiceManagerWithRaft
 	1. 大锁内处理所有rpc和Rpc结果（单线程）；
 	2. 原来的ServiceManager只需要一个网络(Service)配置，新加WithRaft以后怎么配置和选择
+【全面】升级Zeze到serverdev
+	1. 不兼容协议编码升级。@张路
+	   测试客户端登陆通过即可。
+	   难点是所有的客户端版本都需要升级一次。
+	   本周启动。
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag v1.1.2 Multi-Selectors; Zeze.Net.OutputBuffer; SortedMap; ConsistentHash;

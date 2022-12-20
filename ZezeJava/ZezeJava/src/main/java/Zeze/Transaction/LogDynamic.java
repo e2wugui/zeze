@@ -14,6 +14,23 @@ public class LogDynamic extends LogBean {
 		super(TYPE_ID);
 	}
 
+	@Override
+	public Log beginSavepoint() {
+		var dup = new LogDynamic();
+		dup.setThis(getThis());
+		dup.setBelong(getBelong());
+		dup.setVariableId(getVariableId());
+		dup.specialTypeId = specialTypeId;
+		dup.value = value;
+		return dup;
+	}
+
+	@Override
+	public void endSavepoint(Savepoint currentSp) {
+		// 结束保存点，直接覆盖到当前的日志里面即可。
+		currentSp.putLog(this);
+	}
+
 	// 收集内部的Bean发生了改变。
 	@Override
 	public void collect(Changes changes, Bean recent, Log vlog) {
