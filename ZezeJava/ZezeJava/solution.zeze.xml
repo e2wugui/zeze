@@ -797,11 +797,12 @@
 				<bean name="BBroadcastTaskEvent">
                     <variable id="1" name="isBreakIfAccepted" type="bool"/>
 				</bean>
-				<enum name="TaskResultNewRoleTasksCreated" value="100"/>
-				<enum name="TaskResultAccepted" value="101"/>
-				<enum name="TaskResultRejected" value="102"/>
-				<enum name="TaskResultInvalidRoleId" value="103"/>
-				<enum name="TaskResultTaskNotFound" value="104"/>
+				<enum name="TaskResultSuccess" value="1"/> 使用二进制bit返回值，允许多重result返回。 0代表执行成功。
+				<enum name="TaskResultNewRoleTasksCreated" value="2"/>
+				<enum name="TaskResultAccepted" value="4"/>
+				<enum name="TaskResultRejected" value="8"/>
+				<enum name="TaskResultInvalidRoleId" value="16"/>
+				<enum name="TaskResultTaskNotFound" value="32"/>
 				<bean name="BTaskEventResult">
 					<variable id="1" name="resultCode" type="long"/> 返回码
 				</bean>

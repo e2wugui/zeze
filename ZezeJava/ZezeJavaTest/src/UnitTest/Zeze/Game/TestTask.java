@@ -15,6 +15,7 @@ import Zeze.Builtin.Game.Online.ReLogin;
 import Zeze.Builtin.Game.TaskBase.BSpecificTaskEvent;
 import Zeze.Builtin.Game.TaskBase.BTConditionNPCTalkEvent;
 import Zeze.Builtin.Game.TaskBase.TriggerTaskEvent;
+import Zeze.Game.TaskBase;
 import Zeze.Game.TaskPhase;
 import Zeze.Transaction.Procedure;
 import Zezex.Linkd.Auth;
@@ -200,7 +201,11 @@ public class TestTask extends TestCase {
 		TriggerTaskEvent event = new TriggerTaskEvent();
 		event.Argument.setRoleId(roleId);
 		event.SendForWait(app.ClientService.GetSocket()).await();
-		Assert.assertEquals(0, event.getResultCode());
+		var resCode = event.getResultCode();
+		var success = (resCode & TaskBase.Module.TaskResultSuccess);
+		Assert.assertNotEquals(0, success);
+		var roleTasksCreated = (resCode & TaskBase.Module.TaskResultNewRoleTasksCreated);
+		Assert.assertNotEquals(0, roleTasksCreated);
 	}
 
 	private static void selectOption(ClientGame.App app, long roleId, long taskId, long phaseId, long dialogId, int optionId) {

@@ -18,7 +18,6 @@ import Zeze.Builtin.Game.TaskBase.TriggerTaskEvent;
 import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
-import Zeze.Transaction.Transaction;
 import Zeze.Util.Action0;
 import Zeze.Util.ConcurrentHashSet;
 import com.opencsv.CSVReaderHeaderAware;
@@ -303,6 +302,8 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		 */
 		@Override
 		protected long ProcessTriggerTaskEventRequest(TriggerTaskEvent r) throws Throwable {
+			int resultCode = 0;
+
 			// 检查角色Id，如果没有，那就创建整个角色的任务表。
 			var roleId = r.Argument.getRoleId();
 
@@ -317,8 +318,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 
 				_tRoleTask.put(roleId, roleTasks); // 读取角色任务表，如果没有，会自动创建一个空的。
 
-				r.Result.setResultCode(TaskResultNewRoleTasksCreated);
-				return Procedure.Success;
+				resultCode |= TaskResultNewRoleTasksCreated;
 			}
 
 			var taskInfo = _tRoleTask.get(roleId);
@@ -353,6 +353,9 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 				}
 				r.Result.setResultCode(TaskResultAccepted);
 			}
+
+			resultCode |= TaskResultSuccess;
+			r.Result.setResultCode(resultCode);
 			return Procedure.Success;
 		}
 	}
