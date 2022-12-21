@@ -5,6 +5,7 @@ using System.Text;
 using System.Xml;
 using System.Xml.Schema;
 using Zeze.Net;
+using Zeze.Transaction;
 
 namespace Zeze
 {
@@ -49,6 +50,8 @@ namespace Zeze
         public int CheckpointModeTableFlushSetCount { get; set; } = 100;
         public Transaction.CheckpointMode CheckpointMode { get; set; }
             = Transaction.CheckpointMode.Table;
+
+        public bool NoDatabase { get; set; } = false;
 
         public int ServerId { get; set; }
         public string GlobalCacheManagerHostNameOrAddress { get; set; }
@@ -218,6 +221,7 @@ namespace Zeze
 
             CheckpointPeriod = int.Parse(self.GetAttribute("CheckpointPeriod"));
             ServerId = int.Parse(self.GetAttribute("ServerId"));
+            NoDatabase = self.GetAttribute("NoDatabase").Equals("false");
 
             GlobalCacheManagerHostNameOrAddress = self.GetAttribute("GlobalCacheManagerHostNameOrAddress");
             attr = self.GetAttribute("GlobalCacheManagerPort");

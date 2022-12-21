@@ -43,7 +43,7 @@ import org.apache.logging.log4j.Logger;
 public final class Application {
 	static final Logger logger = LogManager.getLogger(Application.class);
 
-	private final String solutionName;
+	private final String projectName;
 	private final Config conf;
 	private final HashMap<String, Database> databases = new HashMap<>();
 	private final LongConcurrentHashMap<Table> tables = new LongConcurrentHashMap<>();
@@ -83,8 +83,8 @@ public final class Application {
 		this(solutionName, null);
 	}
 
-	public Application(String solutionName, Config config) throws Throwable {
-		this.solutionName = solutionName;
+	public Application(String projectName, Config config) throws Throwable {
+		this.projectName = projectName;
 		conf = config != null ? config : Config.load();
 		conf.createDatabase(this, databases);
 
@@ -106,14 +106,14 @@ public final class Application {
 		}
 
 		ShutdownHook.add(this, () -> {
-			logger.info("zeze({}) ShutdownHook begin", this.solutionName);
+			logger.info("zeze({}) ShutdownHook begin", this.projectName);
 			stop();
-			logger.info("zeze({}) ShutdownHook end", this.solutionName);
+			logger.info("zeze({}) ShutdownHook end", this.projectName);
 		});
 	}
 
 	public Application() {
-		solutionName = "";
+		projectName = "";
 		conf = null;
 		serviceManager = null;
 		ShutdownHook.add(this, () -> {
@@ -169,8 +169,8 @@ public final class Application {
 		schemas = value;
 	}
 
-	public String getSolutionName() {
-		return solutionName;
+	public String getProjectName() {
+		return projectName;
 	}
 
 	public Database addTable(String dbName, Table table) {
@@ -267,9 +267,11 @@ public final class Application {
 		if (isStart)
 			return;
 		var serverId = conf != null ? conf.getServerId() : -1;
+		var noDatabase = conf == null || conf.isNoDatabase() || serverId < 0;
+
 		logger.info("Start ServerId={}", serverId);
 
-		if (serverId >= 0) {
+		if (!noDatabase) {
 			// 自动初始化的组件。
 			autoKey = new AutoKey.Module(this);
 			queueModule = new Queue.Module(this);
@@ -305,7 +307,7 @@ public final class Application {
 			}
 		}
 
-		if (serverId >= 0) {
+		if (!noDatabase) {
 			// Open Databases
 			for (var db : databases.values())
 				db.open(this);

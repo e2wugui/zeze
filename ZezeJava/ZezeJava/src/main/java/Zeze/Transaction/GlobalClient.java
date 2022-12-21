@@ -11,7 +11,7 @@ import Zeze.Util.Task;
 
 public final class GlobalClient extends Service {
 	public GlobalClient(GlobalAgent agent, Application zeze) throws Throwable {
-		super(agent.getZeze().getSolutionName() + ".GlobalClient", zeze);
+		super(agent.getZeze().getProjectName() + ".GlobalClient", zeze);
 	}
 
 	@Override

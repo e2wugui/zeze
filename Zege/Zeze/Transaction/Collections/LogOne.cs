@@ -24,6 +24,22 @@ namespace Zeze.Transaction.Collections
             Value = value;
         }
 
+        internal override Log BeginSavepoint()
+        {
+            var dup = new LogOne<V>();
+            dup.This = This;
+            dup.Belong = Belong;
+            dup.VariableId = VariableId;
+            dup.Value = Value;
+            return dup;
+        }
+
+        internal override void EndSavepoint(Savepoint currentsp)
+        {
+            // 结束保存点，直接覆盖到当前的日志里面即可。
+            currentsp.PutLog(this);
+        }
+
         // 收集内部的Bean发生了改变。
         public override void Collect(Changes changes, Bean recent, Log vlog)
         {

@@ -47,6 +47,7 @@ public final class Config {
 	private CheckpointMode checkpointMode = CheckpointMode.Table;
 	private Level processReturnErrorLogLevel = Level.INFO;
 	private int serverId;
+	private boolean noDatabase = false;
 	private String globalCacheManagerHostNameOrAddress = "";
 
 	private String serviceManager = ""; // ”“|”raft"|"disable", default: enable service manager
@@ -183,6 +184,14 @@ public final class Config {
 
 	public void setServerId(int value) {
 		serverId = value;
+	}
+
+	public boolean isNoDatabase() {
+		return noDatabase;
+	}
+
+	public void setNoDatabase(boolean value) {
+		noDatabase = value;
 	}
 
 	public String getGlobalCacheManagerHostNameOrAddress() {
@@ -394,6 +403,7 @@ public final class Config {
 
 		setCheckpointPeriod(Integer.parseInt(self.getAttribute("CheckpointPeriod")));
 		setServerId(Integer.parseInt(self.getAttribute("ServerId")));
+		noDatabase = self.getAttribute("NoDatabase").equals("false");
 
 		setGlobalCacheManagerHostNameOrAddress(self.getAttribute("GlobalCacheManagerHostNameOrAddress"));
 		String attr = self.getAttribute("GlobalCacheManagerPort");

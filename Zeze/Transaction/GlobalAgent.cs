@@ -347,7 +347,7 @@ namespace Zeze.Transaction
     public sealed class GlobalClient : Zeze.Net.Service
     {
         public GlobalClient(GlobalAgent agent, Application zeze)
-            : base($"{agent.Zeze.SolutionName}.GlobalClient", zeze)
+            : base($"{agent.Zeze.ProjectName}.GlobalClient", zeze)
         {
         }
 

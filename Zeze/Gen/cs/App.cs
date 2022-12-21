@@ -63,7 +63,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("                if (Zeze != null)");
             sw.WriteLine("                    throw new System.Exception(\"Zeze Has Created!\");");
             sw.WriteLine();
-            sw.WriteLine($"                Zeze = new Zeze.Application(\"{project.Solution.Name}\", config);");
+            sw.WriteLine($"                Zeze = new Zeze.Application(\"{project.Name}\", config);");
             sw.WriteLine("            }");
             sw.WriteLine("        }");
             sw.WriteLine();

@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Zeze.Serialize
 {
@@ -31,6 +27,25 @@ namespace Zeze.Serialize
         {
             bb.WriteFloat(x);
             bb.WriteFloat(y);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(x, y);
+        }
+
+        protected bool Equals(Vector2 other)
+        {
+            return x == other.x && y == other.y;
+        }
+
+        public override bool Equals(object o)
+        {
+            if (ReferenceEquals(o, null))
+                return false;
+            if (ReferenceEquals(o, this))
+                return true;
+            return o.GetType() == GetType() && Equals((Vector2)o);
         }
     }
 
@@ -63,6 +78,25 @@ namespace Zeze.Serialize
         {
             base.Encode(bb);
             bb.WriteFloat(z);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(x, y, z);
+        }
+
+        protected bool Equals(Vector3 other)
+        {
+            return x == other.x && y == other.y && z == other.z;
+        }
+
+        public override bool Equals(object o)
+        {
+            if (ReferenceEquals(o, null))
+                return false;
+            if (ReferenceEquals(o, this))
+                return true;
+            return o.GetType() == GetType() && Equals((Vector3)o);
         }
     }
 
@@ -100,6 +134,25 @@ namespace Zeze.Serialize
         {
             base.Encode(bb);
             bb.WriteFloat(w);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(x, y, z, w);
+        }
+
+        protected bool Equals(Vector4 other)
+        {
+            return x == other.x && y == other.y && z == other.z && w == other.w;
+        }
+
+        public override bool Equals(object o)
+        {
+            if (ReferenceEquals(o, null))
+                return false;
+            if (ReferenceEquals(o, this))
+                return true;
+            return o.GetType() == GetType() && Equals((Vector4)o);
         }
     }
 
@@ -156,6 +209,25 @@ namespace Zeze.Serialize
             bb.WriteInt(x);
             bb.WriteInt(y);
         }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(x, y);
+        }
+
+        protected bool Equals(Vector2Int other)
+        {
+            return x == other.x && y == other.y;
+        }
+
+        public override bool Equals(object o)
+        {
+            if (ReferenceEquals(o, null))
+                return false;
+            if (ReferenceEquals(o, this))
+                return true;
+            return o.GetType() == GetType() && Equals((Vector2Int)o);
+        }
     }
 
     public class Vector3Int : Vector2Int
@@ -187,6 +259,25 @@ namespace Zeze.Serialize
         {
             base.Encode(bb);
             bb.WriteInt(z);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(x, y, z);
+        }
+
+        protected bool Equals(Vector3Int other)
+        {
+            return x == other.x && y == other.y && z == other.z;
+        }
+
+        public override bool Equals(object o)
+        {
+            if (ReferenceEquals(o, null))
+                return false;
+            if (ReferenceEquals(o, this))
+                return true;
+            return o.GetType() == GetType() && Equals((Vector3Int)o);
         }
     }
 }

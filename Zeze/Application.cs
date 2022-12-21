@@ -56,11 +56,11 @@ namespace Zeze
         }
 
         public Schemas Schemas { get; set; } // no thread protected
-        public string SolutionName { get; }
+        public string ProjectName { get; }
 
-        public Application(string solutionName, Config config = null)
+        public Application(string projectName, Config config = null)
         {
-            SolutionName = solutionName;
+            ProjectName = projectName;
 
             Config = config;
             if (null == Config)
@@ -165,8 +165,9 @@ namespace Zeze
                     return;
                 IsStart = true;
             }
+            var noDatabase = Config.NoDatabase || Config.ServerId < 0;
 
-            if (Config.ServerId >= 0)
+            if (false == noDatabase)
             {
                 if ("true".Equals(Environment.GetEnvironmentVariable(Services.Daemon.PropertyNameClearInUse)))
                     Config?.ClearInUseAndIAmSureAppStopped(this, Databases);
@@ -193,7 +194,7 @@ namespace Zeze
                 await ServiceManagerAgent.WaitConnectorReadyAsync();
             }
 
-            if (Config.ServerId >= 0)
+            if (false == noDatabase)
             {
                 // Open Databases
                 foreach (var db in Databases.Values)
