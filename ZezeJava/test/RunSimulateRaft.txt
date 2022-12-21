@@ -1,0 +1,4 @@
+1. ZezeJava\test\build.bat 编译
+2. ZezeJava\test\GlobalRaft\service&global_raft3.bat 启动global raft
+3. ZezeJava\test\InfiniteSimulate\ 修改zeze.xml: GlobalCacheManagerHostNameOrAddress="GlobalCacheManagersConf"
+4. ZezeJava\test\InfiniteSimulate\simulate.bat 启动simulate
