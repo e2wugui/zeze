@@ -88,70 +88,91 @@ public final class GenModule {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	public synchronized <T extends IModule> T replaceModuleInstance(AppBase userApp, T module) {
-		if (module.getClass().getName().startsWith(REDIRECT_PREFIX)) // 预防二次replace
-			return module;
+		var modules = new IModule[]{module};
+		replaceModuleInstances(userApp, modules);
+		return (T)modules[0];
+	}
 
-		var overrides = new ArrayList<MethodOverride>();
-		for (var method : module.getClass().getDeclaredMethods()) {
-			for (var anno : method.getAnnotations()) {
-				var type = anno.annotationType();
-				if (type == RedirectToServer.class || type == RedirectHash.class || type == RedirectAll.class) {
-					overrides.add(new MethodOverride(method, anno));
-					break;
-				}
-			}
-		}
-		if (overrides.isEmpty())
-			return module; // 没有需要重定向的方法。
-		overrides.sort(Comparator.comparing(o -> o.method.getName())); // 按方法名排序，避免每次生成结果发生变化。
-
-		String genClassName = getRedirectClassName(module.getClass());
+	public synchronized void replaceModuleInstances(AppBase userApp, IModule[] modules) {
 		try {
-			if (genFileSrcRoot == null) { // 不需要生成到文件的时候，尝试装载已经存在的生成模块子类。
-				var genClass = genClassMap.get(genClassName);
-				if (genClass == null) {
-					try {
-						genClass = Class.forName(genClassName);
-						genClassMap.put(genClassName, genClass);
-					} catch (ClassNotFoundException ignored) {
+			var classNames = new String[modules.length];
+			var classNameAndCodes = new HashMap<String, String>(); // <className, code>
+			for (int i = 0, n = modules.length; i < n; i++) {
+				var module = modules[i];
+				if (module.getClass().getName().startsWith(REDIRECT_PREFIX)) // 预防二次replace
+					continue;
+
+				var overrides = new ArrayList<MethodOverride>();
+				for (var method : module.getClass().getDeclaredMethods()) {
+					for (var anno : method.getAnnotations()) {
+						var type = anno.annotationType();
+						if (type == RedirectToServer.class || type == RedirectHash.class || type == RedirectAll.class) {
+							overrides.add(new MethodOverride(method, anno));
+							break;
+						}
 					}
 				}
-				if (genClass != null) {
-					module.UnRegister();
-					return newModule(genClass, userApp);
+				if (overrides.isEmpty())
+					continue; // 没有需要重定向的方法。
+				overrides.sort(Comparator.comparing(o -> o.method.getName())); // 按方法名排序，避免每次生成结果发生变化。
+
+				String genClassName = getRedirectClassName(module.getClass());
+				if (genFileSrcRoot == null) { // 不需要生成到文件的时候，尝试装载已经存在的生成模块子类。
+					var genClass = genClassMap.get(genClassName);
+					if (genClass == null) {
+						try {
+							genClass = Class.forName(genClassName);
+							genClassMap.put(genClassName, genClass);
+						} catch (ClassNotFoundException ignored) {
+						}
+					}
+					if (genClass != null) {
+						module.UnRegister();
+						modules[i] = newModule(genClass, userApp);
+						continue;
+					}
 				}
+
+				var code = genModuleCode(genClassName, module, overrides, userApp);
+
+				if (genFileSrcRoot != null) {
+					byte[] oldBytes = null;
+					byte[] newBytes = code.getBytes(StandardCharsets.UTF_8);
+					var file = new File(genFileSrcRoot, genClassName + ".java");
+					if (file.exists()) {
+						oldBytes = Files.readAllBytes(file.toPath());
+						if (Arrays.equals(oldBytes, newBytes))
+							System.out.println("  Existed File: " + file.getAbsolutePath());
+						else {
+							System.out.println("Overwrite File: " + file.getAbsolutePath());
+							oldBytes = null;
+						}
+					} else
+						System.out.println("      New File: " + file.getAbsolutePath());
+					if (oldBytes == null) {
+						try (var fos = new FileOutputStream(file)) {
+							fos.write(newBytes);
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					}
+					continue; // 生成代码文件不会再继续执行，所以这里无需编译。
+				}
+				classNames[i] = genClassName;
+				classNameAndCodes.put(genClassName, code);
 			}
 
-			var code = genModuleCode(genClassName, module, overrides, userApp);
-
-			if (genFileSrcRoot != null) {
-				byte[] oldBytes = null;
-				byte[] newBytes = code.getBytes(StandardCharsets.UTF_8);
-				var file = new File(genFileSrcRoot, genClassName + ".java");
-				if (file.exists()) {
-					oldBytes = Files.readAllBytes(file.toPath());
-					if (Arrays.equals(oldBytes, newBytes))
-						System.out.println("  Existed File: " + file.getAbsolutePath());
-					else {
-						System.out.println("Overwrite File: " + file.getAbsolutePath());
-						oldBytes = null;
-					}
-				} else
-					System.out.println("      New File: " + file.getAbsolutePath());
-				if (oldBytes == null) {
-					try (var fos = new FileOutputStream(file)) {
-						fos.write(newBytes);
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
+			var classNameAndClasses = compiler.compileAll(classNameAndCodes);
+			genClassMap.putAll(classNameAndClasses);
+			for (int i = 0, n = classNames.length; i < n; i++) {
+				var className = classNames[i];
+				if (className != null) {
+					modules[i].UnRegister();
+					modules[i] = newModule(classNameAndClasses.get(className), userApp);
 				}
-				return module; // 生成带File需要再次编译，所以这里返回原来的module。
 			}
-			module.UnRegister();
-			var genClass = compiler.compile(genClassName, code);
-			genClassMap.put(genClassName, genClass);
-			return newModule(genClass, userApp);
 		} catch (RuntimeException | Error e) {
 			throw e;
 		} catch (Throwable e) {

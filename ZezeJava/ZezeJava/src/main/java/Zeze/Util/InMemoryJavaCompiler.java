@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
 import javax.tools.FileObject;
@@ -106,6 +107,26 @@ public class InMemoryJavaCompiler {
 		if (exMsg != null)
 			throw new IllegalStateException(exMsg);
 		return classLoader.findClass(className);
+	}
+
+	public void compileAll(Map<String, String> classNameAndCodes, Map<String, Class<?>> classNameAndClasses)
+			throws ClassNotFoundException {
+		sourceCodes.clear();
+		for (Map.Entry<String, String> e : classNameAndCodes.entrySet())
+			addSource(e.getKey(), e.getValue());
+		String exMsg = compileAll();
+		if (exMsg != null)
+			throw new IllegalStateException(exMsg);
+		if (classNameAndClasses != null) {
+			for (String className : classNameAndCodes.keySet())
+				classNameAndClasses.put(className, classLoader.findClass(className));
+		}
+	}
+
+	public Map<String, Class<?>> compileAll(Map<String, String> classNameAndCodes) throws ClassNotFoundException {
+		var classNameAndClasses = new HashMap<String, Class<?>>(classNameAndCodes.size());
+		compileAll(classNameAndCodes, classNameAndClasses);
+		return classNameAndClasses;
 	}
 
 	private static final class SourceCode extends SimpleJavaFileObject {
