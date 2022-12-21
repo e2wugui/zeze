@@ -40,6 +40,8 @@ DatabaseDynamoDb 还需测试。
 负载均衡；全面审核。
 过载保护；更多。
 ServiceManagerWithRaft 测试
+Timer.cancel 无法redirect时，直接从db中cancel掉。
+
 【全面】升级Zeze到serverdev
 	2. 全面升级Arch。@张路
 	   主要流程测试。
