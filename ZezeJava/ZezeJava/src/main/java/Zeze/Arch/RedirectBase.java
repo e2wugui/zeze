@@ -36,6 +36,11 @@ public class RedirectBase {
 		return GenModule.instance.replaceModuleInstance(userApp, module);
 	}
 
+	public static IModule[] replaceModuleInstances(Zeze.AppBase userApp, IModule[] modules) {
+		GenModule.instance.replaceModuleInstances(userApp, modules);
+		return modules;
+	}
+
 	public AsyncSocket choiceServer(IModule module, int serverId) {
 		if (serverId == providerApp.zeze.getConfig().getServerId())
 			return null; // is Local

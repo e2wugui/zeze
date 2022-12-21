@@ -129,22 +129,29 @@ public class App extends Zeze.AppBase {
     }
 
     public synchronized void createModules() {
-        Zege_Friend = replaceModuleInstance(new Zege.Friend.ModuleFriend(this));
+        var _modules_ = replaceModuleInstances(new Zeze.IModule[] {
+            new Zege.Friend.ModuleFriend(this),
+            new Zege.Message.ModuleMessage(this),
+            new Zege.Linkd.ModuleLinkd(this),
+            new Zege.User.ModuleUser(this),
+        });
+
+        Zege_Friend = (Zege.Friend.ModuleFriend)_modules_[0];
         Zege_Friend.Initialize(this);
         if (modules.put(Zege_Friend.getFullName(), Zege_Friend) != null)
             throw new RuntimeException("duplicate module name: Zege_Friend");
 
-        Zege_Message = replaceModuleInstance(new Zege.Message.ModuleMessage(this));
+        Zege_Message = (Zege.Message.ModuleMessage)_modules_[1];
         Zege_Message.Initialize(this);
         if (modules.put(Zege_Message.getFullName(), Zege_Message) != null)
             throw new RuntimeException("duplicate module name: Zege_Message");
 
-        Zege_Linkd = replaceModuleInstance(new Zege.Linkd.ModuleLinkd(this));
+        Zege_Linkd = (Zege.Linkd.ModuleLinkd)_modules_[2];
         Zege_Linkd.Initialize(this);
         if (modules.put(Zege_Linkd.getFullName(), Zege_Linkd) != null)
             throw new RuntimeException("duplicate module name: Zege_Linkd");
 
-        Zege_User = replaceModuleInstance(new Zege.User.ModuleUser(this));
+        Zege_User = (Zege.User.ModuleUser)_modules_[3];
         Zege_User.Initialize(this);
         if (modules.put(Zege_User.getFullName(), Zege_User) != null)
             throw new RuntimeException("duplicate module name: Zege_User");

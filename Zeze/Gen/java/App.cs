@@ -132,15 +132,25 @@ namespace Zeze.Gen.java
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    public synchronized void createModules() {");
-            foreach (Module m in project.AllOrderDefineModules)
+            if (project.AllOrderDefineModules.Count > 0)
             {
-                string moduleName = Program.Upper1(m.Name);
-                var fullname = m.Path("_");
-                sw.WriteLine("        " + fullname + " = replaceModuleInstance(new " + m.Path(".", $"Module{moduleName}") + "(this));");
-                sw.WriteLine($"        {fullname}.Initialize(this);");
-                sw.WriteLine($"        if (modules.put({fullname}.getFullName(), {fullname}) != null)");
-                sw.WriteLine($"            throw new RuntimeException(\"duplicate module name: {fullname}\");");
+                sw.WriteLine("        var _modules_ = replaceModuleInstances(new Zeze.IModule[] {");
+                foreach (Module m in project.AllOrderDefineModules)
+                    sw.WriteLine("            new " + m.Path(".", "Module" + Program.Upper1(m.Name)) + "(this),");
+                sw.WriteLine("        });");
                 sw.WriteLine();
+                int index = 0;
+                foreach (Module m in project.AllOrderDefineModules)
+                {
+                    string className = m.Path(".", "Module" + Program.Upper1(m.Name));
+                    var fullname = m.Path("_");
+                    sw.WriteLine($"        {fullname} = ({className})_modules_[" + index + "];");
+                    sw.WriteLine($"        {fullname}.Initialize(this);");
+                    sw.WriteLine($"        if (modules.put({fullname}.getFullName(), {fullname}) != null)");
+                    sw.WriteLine($"            throw new RuntimeException(\"duplicate module name: {fullname}\");");
+                    sw.WriteLine();
+                    index++;
+                }
             }
             sw.WriteLine("        Zeze.setSchemas(new " + project.Solution.Path(".", "Schemas") + "());");
             sw.WriteLine("    }");

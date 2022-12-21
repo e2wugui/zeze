@@ -120,7 +120,6 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 
 	@Override
 	public <T> T[] toArray(T[] a) {
-		//noinspection SuspiciousToArrayCall
 		return prepareRead().toArray(a);
 	}
 

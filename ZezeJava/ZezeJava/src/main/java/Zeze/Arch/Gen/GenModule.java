@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import Zeze.AppBase;
 import Zeze.Arch.RedirectAll;
 import Zeze.Arch.RedirectAllFuture;
@@ -97,8 +98,8 @@ public final class GenModule {
 
 	public synchronized void replaceModuleInstances(AppBase userApp, IModule[] modules) {
 		try {
-			var classNames = new String[modules.length];
-			var classNameAndCodes = new HashMap<String, String>(); // <className, code>
+			String[] classNames = null;
+			Map<String, String> classNameAndCodes = null; // <className, code>
 			for (int i = 0, n = modules.length; i < n; i++) {
 				var module = modules[i];
 				if (module.getClass().getName().startsWith(REDIRECT_PREFIX)) // 预防二次replace
@@ -160,17 +161,22 @@ public final class GenModule {
 					}
 					continue; // 生成代码文件不会再继续执行，所以这里无需编译。
 				}
+				if (classNames == null) {
+					classNames = new String[modules.length];
+					classNameAndCodes = new HashMap<>();
+				}
 				classNames[i] = genClassName;
 				classNameAndCodes.put(genClassName, code);
 			}
 
-			var classNameAndClasses = compiler.compileAll(classNameAndCodes);
-			genClassMap.putAll(classNameAndClasses);
-			for (int i = 0, n = classNames.length; i < n; i++) {
-				var className = classNames[i];
-				if (className != null) {
-					modules[i].UnRegister();
-					modules[i] = newModule(classNameAndClasses.get(className), userApp);
+			if (classNames != null) {
+				compiler.compileAll(classNameAndCodes, genClassMap);
+				for (int i = 0, n = classNames.length; i < n; i++) {
+					var className = classNames[i];
+					if (className != null) {
+						modules[i].UnRegister();
+						modules[i] = newModule(genClassMap.get(className), userApp);
+					}
 				}
 			}
 		} catch (RuntimeException | Error e) {

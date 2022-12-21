@@ -111,7 +111,11 @@ public final class App extends Zeze.AppBase {
     }
 
     public synchronized void createModules() {
-        Zezex_Linkd = replaceModuleInstance(new Zezex.Linkd.ModuleLinkd(this));
+        var _modules_ = replaceModuleInstances(new Zeze.IModule[] {
+            new Zezex.Linkd.ModuleLinkd(this),
+        });
+
+        Zezex_Linkd = (Zezex.Linkd.ModuleLinkd)_modules_[0];
         Zezex_Linkd.Initialize(this);
         if (modules.put(Zezex_Linkd.getFullName(), Zezex_Linkd) != null)
             throw new RuntimeException("duplicate module name: Zezex_Linkd");

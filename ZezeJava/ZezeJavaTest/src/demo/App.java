@@ -120,27 +120,35 @@ public class App extends Zeze.AppBase {
     }
 
     public synchronized void createModules() {
-        demo_Module1 = replaceModuleInstance(new demo.Module1.ModuleModule1(this));
+        var _modules_ = replaceModuleInstances(new Zeze.IModule[] {
+            new demo.Module1.ModuleModule1(this),
+            new demo.Module1.Module11.ModuleModule11(this),
+            new demo.M6.ModuleM6(this),
+            new demo.M6.M7.ModuleM7(this),
+            new TaskTest.TaskExt.ModuleTaskExt(this),
+        });
+
+        demo_Module1 = (demo.Module1.ModuleModule1)_modules_[0];
         demo_Module1.Initialize(this);
         if (modules.put(demo_Module1.getFullName(), demo_Module1) != null)
             throw new RuntimeException("duplicate module name: demo_Module1");
 
-        demo_Module1_Module11 = replaceModuleInstance(new demo.Module1.Module11.ModuleModule11(this));
+        demo_Module1_Module11 = (demo.Module1.Module11.ModuleModule11)_modules_[1];
         demo_Module1_Module11.Initialize(this);
         if (modules.put(demo_Module1_Module11.getFullName(), demo_Module1_Module11) != null)
             throw new RuntimeException("duplicate module name: demo_Module1_Module11");
 
-        demo_M6 = replaceModuleInstance(new demo.M6.ModuleM6(this));
+        demo_M6 = (demo.M6.ModuleM6)_modules_[2];
         demo_M6.Initialize(this);
         if (modules.put(demo_M6.getFullName(), demo_M6) != null)
             throw new RuntimeException("duplicate module name: demo_M6");
 
-        demo_M6_M7 = replaceModuleInstance(new demo.M6.M7.ModuleM7(this));
+        demo_M6_M7 = (demo.M6.M7.ModuleM7)_modules_[3];
         demo_M6_M7.Initialize(this);
         if (modules.put(demo_M6_M7.getFullName(), demo_M6_M7) != null)
             throw new RuntimeException("duplicate module name: demo_M6_M7");
 
-        TaskTest_TaskExt = replaceModuleInstance(new TaskTest.TaskExt.ModuleTaskExt(this));
+        TaskTest_TaskExt = (TaskTest.TaskExt.ModuleTaskExt)_modules_[4];
         TaskTest_TaskExt.Initialize(this);
         if (modules.put(TaskTest_TaskExt.getFullName(), TaskTest_TaskExt) != null)
             throw new RuntimeException("duplicate module name: TaskTest_TaskExt");

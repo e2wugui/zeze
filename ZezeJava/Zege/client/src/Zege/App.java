@@ -75,32 +75,41 @@ public class App extends Zeze.AppBase {
     }
 
     public synchronized void createModules() {
-        Zeze_Builtin_Online = replaceModuleInstance(new Zeze.Builtin.Online.ModuleOnline(this));
+        var _modules_ = replaceModuleInstances(new Zeze.IModule[] {
+            new Zeze.Builtin.Online.ModuleOnline(this),
+            new Zeze.Builtin.LinkdBase.ModuleLinkdBase(this),
+            new Zege.Linkd.ModuleLinkd(this),
+            new Zege.Friend.ModuleFriend(this),
+            new Zege.Message.ModuleMessage(this),
+            new Zege.User.ModuleUser(this),
+        });
+
+        Zeze_Builtin_Online = (Zeze.Builtin.Online.ModuleOnline)_modules_[0];
         Zeze_Builtin_Online.Initialize(this);
         if (modules.put(Zeze_Builtin_Online.getFullName(), Zeze_Builtin_Online) != null)
             throw new RuntimeException("duplicate module name: Zeze_Builtin_Online");
 
-        Zeze_Builtin_LinkdBase = replaceModuleInstance(new Zeze.Builtin.LinkdBase.ModuleLinkdBase(this));
+        Zeze_Builtin_LinkdBase = (Zeze.Builtin.LinkdBase.ModuleLinkdBase)_modules_[1];
         Zeze_Builtin_LinkdBase.Initialize(this);
         if (modules.put(Zeze_Builtin_LinkdBase.getFullName(), Zeze_Builtin_LinkdBase) != null)
             throw new RuntimeException("duplicate module name: Zeze_Builtin_LinkdBase");
 
-        Zege_Linkd = replaceModuleInstance(new Zege.Linkd.ModuleLinkd(this));
+        Zege_Linkd = (Zege.Linkd.ModuleLinkd)_modules_[2];
         Zege_Linkd.Initialize(this);
         if (modules.put(Zege_Linkd.getFullName(), Zege_Linkd) != null)
             throw new RuntimeException("duplicate module name: Zege_Linkd");
 
-        Zege_Friend = replaceModuleInstance(new Zege.Friend.ModuleFriend(this));
+        Zege_Friend = (Zege.Friend.ModuleFriend)_modules_[3];
         Zege_Friend.Initialize(this);
         if (modules.put(Zege_Friend.getFullName(), Zege_Friend) != null)
             throw new RuntimeException("duplicate module name: Zege_Friend");
 
-        Zege_Message = replaceModuleInstance(new Zege.Message.ModuleMessage(this));
+        Zege_Message = (Zege.Message.ModuleMessage)_modules_[4];
         Zege_Message.Initialize(this);
         if (modules.put(Zege_Message.getFullName(), Zege_Message) != null)
             throw new RuntimeException("duplicate module name: Zege_Message");
 
-        Zege_User = replaceModuleInstance(new Zege.User.ModuleUser(this));
+        Zege_User = (Zege.User.ModuleUser)_modules_[5];
         Zege_User.Initialize(this);
         if (modules.put(Zege_User.getFullName(), Zege_User) != null)
             throw new RuntimeException("duplicate module name: Zege_User");

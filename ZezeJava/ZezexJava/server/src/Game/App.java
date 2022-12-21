@@ -12,6 +12,7 @@ import Zeze.Game.Online;
 import Zeze.Game.ProviderDirectWithTransmit;
 import Zeze.Game.ProviderImplementWithOnline;
 import Zeze.Game.TaskBase;
+import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.JsonReader;
 import Zeze.Util.PersistentAtomicLong;
@@ -28,8 +29,8 @@ public final class App extends Zeze.AppBase {
 	public ProviderDirectWithTransmit ProviderDirect;
 
 	@Override
-	public <T extends Zeze.IModule> T replaceModuleInstance(T module) {
-		return RedirectBase.replaceModuleInstance(this, module);
+	public IModule[] replaceModuleInstances(IModule[] modules) {
+		return RedirectBase.replaceModuleInstances(this, modules);
 	}
 
 	public ProviderImplementWithOnline getProvider() {
@@ -161,52 +162,65 @@ public final class App extends Zeze.AppBase {
     }
 
     public synchronized void createModules() {
-        Game_Login = replaceModuleInstance(new Game.Login.ModuleLogin(this));
+        var _modules_ = replaceModuleInstances(new Zeze.IModule[] {
+            new Game.Login.ModuleLogin(this),
+            new Game.Item.ModuleItem(this),
+            new Game.Fight.ModuleFight(this),
+            new Game.Skill.ModuleSkill(this),
+            new Game.Buf.ModuleBuf(this),
+            new Game.Equip.ModuleEquip(this),
+            new Game.Map.ModuleMap(this),
+            new Game.Rank.ModuleRank(this),
+            new Game.Timer.ModuleTimer(this),
+            new Game.LongSet.ModuleLongSet(this),
+        });
+
+        Game_Login = (Game.Login.ModuleLogin)_modules_[0];
         Game_Login.Initialize(this);
         if (modules.put(Game_Login.getFullName(), Game_Login) != null)
             throw new RuntimeException("duplicate module name: Game_Login");
 
-        Game_Item = replaceModuleInstance(new Game.Item.ModuleItem(this));
+        Game_Item = (Game.Item.ModuleItem)_modules_[1];
         Game_Item.Initialize(this);
         if (modules.put(Game_Item.getFullName(), Game_Item) != null)
             throw new RuntimeException("duplicate module name: Game_Item");
 
-        Game_Fight = replaceModuleInstance(new Game.Fight.ModuleFight(this));
+        Game_Fight = (Game.Fight.ModuleFight)_modules_[2];
         Game_Fight.Initialize(this);
         if (modules.put(Game_Fight.getFullName(), Game_Fight) != null)
             throw new RuntimeException("duplicate module name: Game_Fight");
 
-        Game_Skill = replaceModuleInstance(new Game.Skill.ModuleSkill(this));
+        Game_Skill = (Game.Skill.ModuleSkill)_modules_[3];
         Game_Skill.Initialize(this);
         if (modules.put(Game_Skill.getFullName(), Game_Skill) != null)
             throw new RuntimeException("duplicate module name: Game_Skill");
 
-        Game_Buf = replaceModuleInstance(new Game.Buf.ModuleBuf(this));
+        Game_Buf = (Game.Buf.ModuleBuf)_modules_[4];
         Game_Buf.Initialize(this);
         if (modules.put(Game_Buf.getFullName(), Game_Buf) != null)
             throw new RuntimeException("duplicate module name: Game_Buf");
 
-        Game_Equip = replaceModuleInstance(new Game.Equip.ModuleEquip(this));
+        Game_Equip = (Game.Equip.ModuleEquip)_modules_[5];
         Game_Equip.Initialize(this);
         if (modules.put(Game_Equip.getFullName(), Game_Equip) != null)
             throw new RuntimeException("duplicate module name: Game_Equip");
 
-        Game_Map = replaceModuleInstance(new Game.Map.ModuleMap(this));
+        Game_Map = (Game.Map.ModuleMap)_modules_[6];
         Game_Map.Initialize(this);
         if (modules.put(Game_Map.getFullName(), Game_Map) != null)
             throw new RuntimeException("duplicate module name: Game_Map");
 
-        Game_Rank = replaceModuleInstance(new Game.Rank.ModuleRank(this));
+        Game_Rank = (Game.Rank.ModuleRank)_modules_[7];
         Game_Rank.Initialize(this);
         if (modules.put(Game_Rank.getFullName(), Game_Rank) != null)
             throw new RuntimeException("duplicate module name: Game_Rank");
 
-        Game_Timer = replaceModuleInstance(new Game.Timer.ModuleTimer(this));
+        Game_Timer = (Game.Timer.ModuleTimer)_modules_[8];
         Game_Timer.Initialize(this);
         if (modules.put(Game_Timer.getFullName(), Game_Timer) != null)
             throw new RuntimeException("duplicate module name: Game_Timer");
 
-        Game_LongSet = replaceModuleInstance(new Game.LongSet.ModuleLongSet(this));
+        Game_LongSet = (Game.LongSet.ModuleLongSet)_modules_[9];
         Game_LongSet.Initialize(this);
         if (modules.put(Game_LongSet.getFullName(), Game_LongSet) != null)
             throw new RuntimeException("duplicate module name: Game_LongSet");

@@ -1,7 +1,6 @@
 package Zeze.Arch;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.Builtin.ProviderDirect.AnnounceProviderInfo;
@@ -17,7 +16,6 @@ import Zeze.Services.ServiceManager.BServiceInfos;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Util.Action0;
 import Zeze.Util.ConcurrentHashSet;
-import Zeze.Util.IntHashSet;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
@@ -144,24 +142,16 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	}
 
 	public void waitDirectServerReady(int serverId, Action0 callback) {
-		boolean alreadyReady = false;
-		try {
-			synchronized (this) {
-				if (providerByServerId.containsKey(serverId)) {
-					alreadyReady = true;
-					return;
-				}
+		synchronized (this) {
+			if (!providerByServerId.containsKey(serverId)) {
 				serverReadyEvents.computeIfAbsent(serverId, __ -> new ConcurrentHashSet<>()).add(callback);
+				return;
 			}
-		} finally {
-			// 锁外回调，避免死锁风险。
-			if (alreadyReady) {
-				try {
-					callback.run();
-				} catch (Throwable e) {
-					throw new RuntimeException(e);
-				}
-			}
+		}
+		try {
+			callback.run(); // 锁外回调，避免死锁风险。
+		} catch (Throwable e) {
+			throw new RuntimeException(e);
 		}
 	}
 

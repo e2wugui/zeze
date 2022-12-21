@@ -40,10 +40,12 @@ public abstract class CollMap<K, V> extends Collection implements Iterable<Map.E
 	}
 
 	public final boolean containsValue(Object v) {
+		//noinspection SuspiciousMethodCalls
 		return getMap().containsValue(v);
 	}
 
 	public final boolean containsKey(Object key) {
+		//noinspection SuspiciousMethodCalls
 		return getMap().containsKey(key);
 	}
 
