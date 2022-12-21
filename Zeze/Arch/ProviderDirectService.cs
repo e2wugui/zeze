@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NLog;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,12 +14,13 @@ namespace Zeze.Arch
 {
 	public class ProviderDirectService : Zeze.Services.HandshakeBoth
 	{
-		//private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 		public ProviderApp ProviderApp;
 		public readonly ConcurrentDictionary<string, ProviderSession> ProviderByLoadName = new();
 		public readonly ConcurrentDictionary<int, ProviderSession> ProviderByServerId = new();
+		public readonly ConcurrentDictionary<int, IdentityHashSet<Action>> ServerReadyEvents = new();
 
-		public ProviderDirectService(string name, Zeze.Application zeze)
+        public ProviderDirectService(string name, Zeze.Application zeze)
 			: base(name, zeze)
 		{
 		}
@@ -126,6 +128,52 @@ namespace Zeze.Arch
 			}
 		}
 
+        public void WaitDirectServerReady(int serverId, int timeout = 3000)
+        {
+            var future = new TaskCompletionSource<int>();
+            Action callback = () => future.SetResult(0);
+            try
+            {
+                WaitDirectServerReady(serverId, callback);
+                future.Task.Wait(timeout);
+            }
+            finally
+            {
+                ServerReadyEvents.GetOrAdd(serverId, _ => new IdentityHashSet<Action>()).Remove(callback);
+            }
+        }
+
+        public void WaitDirectServerReady(int serverId, Action callback)
+        {
+            lock(this)
+			{
+                if (!ProviderByServerId.ContainsKey(serverId))
+                {
+                    ServerReadyEvents.GetOrAdd(serverId, _ => new IdentityHashSet<Action>()).Add(callback);
+                    return;
+                }
+            }
+            callback(); // 锁外回调，避免死锁风险。
+        }
+
+        // under lock
+        private void NotifyServerReady(int serverId)
+        {
+            var watchers = ServerReadyEvents.GetOrAdd(serverId, _ => new IdentityHashSet<Action>());
+            foreach (var w in watchers)
+            {
+                try
+                {
+                    w();
+                }
+                catch (Exception ex)
+				{
+                    logger.Error(ex);
+                }
+            }
+            watchers.Clear();
+        }
+        
 		internal void SetRelativeServiceReady(ProviderSession ps, String ip, int port)
 		{
 			lock (this)
@@ -158,7 +206,8 @@ namespace Zeze.Arch
 						}
 					}
 				}
-			}
+				NotifyServerReady(ps.ServerId);
+            }
 		}
 
 		private void SetReady(Agent.SubscribeState ss, ServiceInfo server, ProviderSession ps,
