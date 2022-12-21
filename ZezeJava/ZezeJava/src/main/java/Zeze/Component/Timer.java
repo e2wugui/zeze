@@ -567,8 +567,7 @@ public class Timer extends AbstractTimer {
 			cancel(zeze.getConfig().getServerId(), timerId, null, null);
 			return;
 		}
-
-		redirectCancel(index.getServerId(), timerId);
+		cancelTryRedirect(index.getServerId(), timerId);
 	}
 
 	///////////////////////////////////////////////////////////////////////////////
@@ -602,8 +601,15 @@ public class Timer extends AbstractTimer {
 
 	/////////////////////////////////////////////////////////////
 	// 内部实现
-	@RedirectToServer
-	protected void redirectCancel(int serverId, String timerId) {
+	void cancelTryRedirect(int serverId, String timerId) {
+		if (zeze.redirect.providerApp.providerDirectService.providerByServerId.containsKey(serverId))
+			redirectCancel(serverId, timerId);
+		else
+			// 远程服务联系不上时，直接强制从数据库cancel掉。
+			cancelAlways(serverId, timerId);
+	}
+
+	private void cancelAlways(int serverId, String timerId) {
 		// 尽可能的执行取消操作，不做严格判断。
 		var index = _tIndexs.get(timerId);
 		if (null == index) {
@@ -611,6 +617,11 @@ public class Timer extends AbstractTimer {
 			return;
 		}
 		cancel(serverId, timerId, index, _tNodes.get(index.getNodeId()));
+	}
+
+	@RedirectToServer
+	protected void redirectCancel(int serverId, String timerId) {
+		cancelAlways(serverId, timerId);
 	}
 
 	void cancelFuture(String timerName) {

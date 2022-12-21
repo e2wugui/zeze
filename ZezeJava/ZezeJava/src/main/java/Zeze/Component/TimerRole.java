@@ -214,7 +214,7 @@ public class TimerRole {
 		if (null == offlineTimers)
 			return 0;
 		for (var e : offlineTimers.getOfflineTimers().entrySet()) {
-			timer.redirectCancel(e.getValue(), e.getKey());
+			timer.cancelTryRedirect(e.getValue(), e.getKey());
 		}
 		// 嵌入本地服务器事件事务中，
 		// 删除之后，如果上面的redirectCancel失败，
