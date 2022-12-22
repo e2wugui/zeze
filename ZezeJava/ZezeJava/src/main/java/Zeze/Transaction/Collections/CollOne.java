@@ -1,12 +1,10 @@
 package Zeze.Transaction.Collections;
 
-import java.lang.invoke.MethodHandle;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
-import Zeze.Transaction.Transaction;
 import Zeze.Transaction.Record;
-import Zeze.Util.Reflect;
+import Zeze.Transaction.Transaction;
 
 public class CollOne<V extends Bean> extends Collection {
 	V _Value;
@@ -111,6 +109,6 @@ public class CollOne<V extends Bean> extends Collection {
 	@SuppressWarnings("unchecked")
 	@Override
 	public CollOne<V> copy() {
-		return new CollOne<V>((V)getValue().copy(), null);
+		return new CollOne<>((V)getValue().copy(), null);
 	}
 }

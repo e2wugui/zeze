@@ -87,8 +87,14 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 			throw new IllegalStateException("add handler: duplicate path=" + path);
 	}
 
+	// 允许扩展HttpExchange类
+	public HttpExchange createHttpExchange(ChannelHandlerContext context) {
+		return new HttpExchange(this, context);
+	}
+
+	@SuppressWarnings("RedundantThrows")
 	@Override
-	protected void initChannel(SocketChannel ch) {
+	protected void initChannel(SocketChannel ch) throws Exception {
 		if (ch.pipeline().get(HttpResponseEncoder.class) != null)
 			return;
 		Netty.logger.info("accept {}", ch.remoteAddress());
@@ -102,7 +108,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	@Override
 	public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 		try {
-			exchanges.computeIfAbsent(ctx, c -> new HttpExchange(this, c)).channelRead(msg);
+			exchanges.computeIfAbsent(ctx, this::createHttpExchange).channelRead(msg);
 		} finally {
 			ReferenceCountUtil.release(msg);
 		}

@@ -18,7 +18,7 @@ public final class BitConverter {
 			str[j++] = (byte)num2Hex((b >> 4) & 0xf);
 			str[j++] = (byte)num2Hex(b & 0xf);
 		}
-		return new String(str, StandardCharsets.UTF_8);
+		return new String(str, StandardCharsets.ISO_8859_1);
 	}
 
 	public static String toString(byte[] bytes) {
