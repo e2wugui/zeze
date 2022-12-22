@@ -757,7 +757,7 @@
 				<bean name="BTask">
 					<variable id="1" name="roleId" type="long"/> 任务的Id
 					<variable id="2" name="taskId" type="long"/> 任务的Id
-					<variable id="3" name="taskType" type="int"/> 任务的类型：每日任务、隐藏任务等
+					<variable id="3" name="taskType" type="string"/> 任务的类型：每日任务、隐藏任务等
 					<variable id="4" name="taskState" type="int"/> 任务的状态：可接取、已接取、已完成等
 					<variable id="5" name="taskName" type="string"/> 任务的名字
 					<variable id="6" name="taskDescription" type="string"/> 任务的描述。

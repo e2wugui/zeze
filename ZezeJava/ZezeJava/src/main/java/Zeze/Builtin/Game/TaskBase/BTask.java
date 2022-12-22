@@ -9,7 +9,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
 
     private long _roleId; // 任务的Id
     private long _taskId; // 任务的Id
-    private int _taskType; // 任务的类型：每日任务、隐藏任务等
+    private String _taskType; // 任务的类型：每日任务、隐藏任务等
     private int _taskState; // 任务的状态：可接取、已接取、已完成等
     private String _taskName; // 任务的名字
     private String _taskDescription; // 任务的描述。
@@ -83,7 +83,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
     }
 
     @Override
-    public int getTaskType() {
+    public String getTaskType() {
         if (!isManaged())
             return _taskType;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
@@ -93,7 +93,9 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         return log != null ? log.value : _taskType;
     }
 
-    public void setTaskType(int value) {
+    public void setTaskType(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
         if (!isManaged()) {
             _taskType = value;
             return;
@@ -215,6 +217,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
 
     @SuppressWarnings("deprecation")
     public BTask() {
+        _taskType = "";
         _taskName = "";
         _taskDescription = "";
         _preTaskIds = new Zeze.Transaction.Collections.PList1<>(Long.class);
@@ -225,9 +228,11 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
     }
 
     @SuppressWarnings("deprecation")
-    public BTask(long _roleId_, long _taskId_, int _taskType_, int _taskState_, String _taskName_, String _taskDescription_, long _currentPhaseId_) {
+    public BTask(long _roleId_, long _taskId_, String _taskType_, int _taskState_, String _taskName_, String _taskDescription_, long _currentPhaseId_) {
         _roleId = _roleId_;
         _taskId = _taskId_;
+        if (_taskType_ == null)
+            throw new IllegalArgumentException();
         _taskType = _taskType_;
         _taskState = _taskState_;
         if (_taskName_ == null)
@@ -306,8 +311,8 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         public void commit() { ((BTask)getBelong())._taskId = value; }
     }
 
-    private static final class Log__taskType extends Zeze.Transaction.Logs.LogInt {
-        public Log__taskType(BTask bean, int varId, int value) { super(bean, varId, value); }
+    private static final class Log__taskType extends Zeze.Transaction.Logs.LogString {
+        public Log__taskType(BTask bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
         public void commit() { ((BTask)getBelong())._taskType = value; }
@@ -421,10 +426,10 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
             }
         }
         {
-            int _x_ = getTaskType();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
-                _o_.WriteInt(_x_);
+            String _x_ = getTaskType();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
             }
         }
         {
@@ -500,7 +505,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            setTaskType(_o_.ReadInt(_t_));
+            setTaskType(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 4) {
@@ -573,8 +578,6 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
             return true;
         if (getTaskId() < 0)
             return true;
-        if (getTaskType() < 0)
-            return true;
         if (getTaskState() < 0)
             return true;
         for (var _v_ : _preTaskIds) {
@@ -601,7 +604,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
             switch (vlog.getVariableId()) {
                 case 1: _roleId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 2: _taskId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 3: _taskType = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 3: _taskType = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 4: _taskState = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
                 case 5: _taskName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 6: _taskDescription = ((Zeze.Transaction.Logs.LogString)vlog).value; break;

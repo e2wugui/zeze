@@ -1,11 +1,16 @@
 package Zeze.Game;
 
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
-import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonReader;
 import Zeze.Application;
 import Zeze.Arch.ProviderApp;
 import Zeze.Builtin.Game.TaskBase.BBroadcastTaskEvent;
@@ -13,10 +18,8 @@ import Zeze.Builtin.Game.TaskBase.BRoleTasks;
 import Zeze.Builtin.Game.TaskBase.BSpecificTaskEvent;
 import Zeze.Builtin.Game.TaskBase.BTask;
 import Zeze.Builtin.Game.TaskBase.BTaskKey;
-import Zeze.Builtin.Game.TaskBase.BTaskPhase;
 import Zeze.Builtin.Game.TaskBase.TriggerTaskEvent;
 import Zeze.Collections.BeanFactory;
-import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
@@ -28,9 +31,6 @@ import org.jgrapht.graph.DirectedAcyclicGraph;
 public abstract class TaskBase<ExtendedBean extends Bean> {
 
 	// @formatter:off
-	/**
-	 * Task Constructors
-	 */
 	protected TaskBase(Module module) { this.module = module; }
 	// ======================================== 任务初始化阶段的方法 ========================================
 
@@ -47,13 +47,13 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 
 	public void loadMap(Map<String, String> map){
 		this.bean = new BTask();
-		var taskType = Integer.parseInt(map.get("TaskType"));
+		var taskType = map.get("TaskType");
 		var taskId = Long.parseLong(map.get("TaskId"));
 		var taskName = map.get("TaskName");
 		var taskDesc = map.get("TaskDesc");
 		var preTaskIds = map.get("PreTaskIds");
 
-		if (taskType != getType()) {
+		if (!Objects.equals(taskType,getType())) {
 			throw new RuntimeException("taskType != getType()");
 		}
 
@@ -75,6 +75,21 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	}
 	protected abstract void loadMapExtended(Map<String, String> map);
 
+	public void loadJson(JsonObject json) {
+		this.bean = new BTask();
+
+		bean.setTaskId(json.getInt("taskId"));
+		bean.setTaskName(json.getString("taskName"));
+		bean.setTaskDescription(json.getString("taskDesc"));
+
+		var preTaskIds = json.getJsonArray("preTaskIds");
+		for (var id : preTaskIds)
+			this.bean.getPreTaskIds().add(Long.parseLong(id.toString()));
+
+		loadJsonExtended(json);
+	}
+	protected abstract void loadJsonExtended(JsonObject json);
+
 	/**
 	 * Task Info:
 	 * 1. Task Id
@@ -84,7 +99,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	 * 5. Task Description
 	 */
 	public long getId() { return bean.getTaskId(); }
-	public abstract int getType(); // 任务类型，每个任务实例都不一样
+	public abstract String getType(); // 任务类型，每个任务实例都不一样
 	public int getState() { return bean.getTaskState(); }
 	public String getName() { return bean.getTaskName(); }
 	public String getDescription() { return bean.getTaskDescription(); }
@@ -162,7 +177,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		}
 	}
 
-//	public TaskPhase addPhase(TaskPhase.Opt opt, List<Long> afterPhaseIds) {
+	//	public TaskPhase addPhase(TaskPhase.Opt opt, List<Long> afterPhaseIds) {
 //		return addPhase(opt, afterPhaseIds, null);
 //	}
 //
@@ -173,15 +188,15 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 //		return phase;
 //	}
 //
-//	public TaskPhase addPhase(TaskPhase phase) {
-//		// 不能添加不是这个任务的phase
-//		if (phase.getTask() != this)
-//			return null;
-//
-//		phases.put(phase.getBean().getPhaseId(), phase);
-//		bean.getTaskPhases().put(phase.getBean().getPhaseId(), phase.getBean());
-//		return phase;
-//	}
+	public TaskPhase addPhase(TaskPhase phase) {
+		// 不能添加不是这个任务的phase
+		if (phase.getTask() != this)
+			return null;
+
+		phases.put(phase.getBean().getPhaseId(), phase);
+		bean.getTaskPhases().put(phase.getBean().getPhaseId(), phase.getBean());
+		return phase;
+	}
 
 	// ======================================== Private方法和一些不需要被注意的方法 ========================================
 	// @formatter:off
@@ -196,6 +211,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		return (Class<ExtendedBean>)parameterizedType.getActualTypeArguments()[0];
 	}
 
+
 	// @formatter:on
 	// ======================================== Task Module Part ========================================
 
@@ -205,7 +221,8 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	public static class Module extends AbstractTaskBase {
 
 		private final ConcurrentHashMap<Long, TaskBase<?>> taskNodes = new ConcurrentHashMap<>();
-		private final ConcurrentHashMap<Integer, Constructor<?>> constructors = new ConcurrentHashMap<>();
+		private final ConcurrentHashMap<String, Constructor<?>> constructors = new ConcurrentHashMap<>();
+		private final ConcurrentHashMap<String, Constructor<?>> conditionConstructors = new ConcurrentHashMap<>();
 		private final DirectedAcyclicGraph<Long, DefaultEdge> taskGraph = new DirectedAcyclicGraph<>(DefaultEdge.class);
 		public final ProviderApp providerApp;
 		public final Application zeze;
@@ -230,6 +247,18 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 				beanFactory.register(task.getExtendedBeanClass());
 				_tEventClasses.getOrAdd(1).getEventClasses().add(task.getExtendedBeanClass().getName()); // key is 1, only one record
 				constructors.put(task.getType(), c);
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		public <ConditionBean extends Bean, EventBean extends Bean,
+				ExtendedCondition extends TaskConditionBase<ConditionBean, EventBean>
+				> void registerCondition(Class<ExtendedCondition> extendedConditionClass) {
+			try {
+				var c = extendedConditionClass.getDeclaredConstructor(TaskPhase.class);
+				var condition = c.newInstance((Object)null);
+				conditionConstructors.put(condition.getType(), c);
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
@@ -274,6 +303,34 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 			for (var task : taskNodes.values()) {
 				taskGraph.getAncestors(task.getId()).forEach(task.preTaskIds::add); // 从图中获取所有前置任务
 				taskGraph.getDescendants(task.getId()).forEach(task.nextTaskIds::add); // 从图中获取所有后置任务
+			}
+		}
+
+		public void loadJson(String jsonFile) throws FileNotFoundException, InvocationTargetException, InstantiationException, IllegalAccessException {
+			JsonReader reader = Json.createReader(new FileReader(jsonFile));
+			var json = reader.readObject();
+			reader.close();
+
+			var taskType = json.getString("taskType");
+			var constructor = constructors.get(taskType);
+			var task = (TaskBase<?>)constructor.newInstance(this);
+			task.loadJson(json);
+
+			var phases = json.getJsonArray("Phases");
+			for (var phase : phases) {
+				TaskPhase taskPhase = new TaskPhase(task);
+				taskPhase.loadJson(phase.asJsonObject());
+
+				var subPhases = json.getJsonArray("SubPhases");
+				for (var subPhase : subPhases) {
+					var conditionType = subPhase.asJsonObject().getString("conditionType");
+					var conditionConstructor = conditionConstructors.get(conditionType);
+					var condition = (TaskConditionBase<?, ?>)conditionConstructor.newInstance(taskPhase);
+					condition.loadJson(subPhase.asJsonObject());
+//					taskPhase.getBean().getSubPhases().add();
+				}
+
+				task.getBean().getTaskPhases().put(taskPhase.getBean().getPhaseId(), taskPhase.getBean());
 			}
 		}
 

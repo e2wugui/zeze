@@ -1,5 +1,6 @@
 package Zeze.Game.Task;
 
+import javax.json.JsonObject;
 import Zeze.Builtin.Game.TaskBase.BTConditionKillMonster;
 import Zeze.Builtin.Game.TaskBase.BTConditionKillMonsterEvent;
 import Zeze.Builtin.Game.TaskBase.BTaskCondition;
@@ -47,6 +48,13 @@ public class ConditionKillMonster extends TaskConditionBase<BTConditionKillMonst
 	protected void loadBeanExtended(BTaskCondition bean) {
 
 	}
+	@Override
+	public String getType() {
+		return "KillMonster";
+	}
+	@Override
+	public void loadJsonExtended(JsonObject json) {
 
-	// @formatter:on
+	}
+// @formatter:on
 }

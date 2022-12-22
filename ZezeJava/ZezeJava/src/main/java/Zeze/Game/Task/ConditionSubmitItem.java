@@ -1,5 +1,6 @@
 package Zeze.Game.Task;
 
+import javax.json.JsonObject;
 import Zeze.Builtin.Game.TaskBase.BTConditionSubmitItem;
 import Zeze.Builtin.Game.TaskBase.BTConditionSubmitItemEvent;
 import Zeze.Builtin.Game.TaskBase.BTaskCondition;
@@ -39,6 +40,13 @@ public class ConditionSubmitItem extends TaskConditionBase<BTConditionSubmitItem
 	protected void loadBeanExtended(BTaskCondition bean) {
 
 	}
+	@Override
+	public String getType() {
+		return "SubmitItem";
+	}
+	@Override
+	public void loadJsonExtended(JsonObject json) {
 
+	}
 	// @formatter:on
 }

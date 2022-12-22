@@ -1,5 +1,6 @@
 package Zeze.Game.Task;
 
+import javax.json.JsonObject;
 import Zeze.Builtin.Game.TaskBase.BTConditionReachPosition;
 import Zeze.Builtin.Game.TaskBase.BTConditionReachPositionEvent;
 import Zeze.Builtin.Game.TaskBase.BTaskCondition;
@@ -55,6 +56,14 @@ public class ConditionReachPosition extends TaskConditionBase<BTConditionReachPo
 	public boolean isCompleted() { return getExtendedBean().isReached(); }
 	@Override
 	protected void loadBeanExtended(BTaskCondition bean) {
+
+	}
+	@Override
+	public String getType() {
+		return "ReachPosition";
+	}
+	@Override
+	public void loadJsonExtended(JsonObject json) {
 
 	}
 	// @formatter:on

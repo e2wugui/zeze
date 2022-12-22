@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Game.MyConditions;
 
+import javax.json.JsonObject;
 import TaskTest.TaskExt.BTConditionExploreWorld;
 import TaskTest.TaskExt.BTConditionExploreWorldEvent;
 import Zeze.Builtin.Game.TaskBase.BTaskCondition;
@@ -34,6 +35,12 @@ public class ConditionExploreWorld extends TaskConditionBase<BTConditionExploreW
 	@Override
 	protected void loadBeanExtended(BTaskCondition bean) {
 
+	}@Override
+	public void loadJsonExtended(JsonObject json) {
+
+	}@Override
+	public String getType() {
+		return null;
 	}
 
 	// @formatter:on

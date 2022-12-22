@@ -2,6 +2,7 @@ package Zeze.Game;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.ParameterizedType;
+import javax.json.JsonObject;
 import Zeze.Builtin.Game.TaskBase.BTask;
 import Zeze.Builtin.Game.TaskBase.BTaskCondition;
 import Zeze.Collections.BeanFactory;
@@ -15,8 +16,11 @@ public abstract class TaskConditionBase<ConditionBean extends Bean, EventBean ex
 	public final BTaskCondition getBean() {return bean;}
 	public void loadBean(BTaskCondition bean) { this.bean = bean; loadBeanExtended(bean); }
 	protected abstract void loadBeanExtended(BTaskCondition bean);
+	public void loadJson(JsonObject json) {  }
+	public abstract void loadJsonExtended(JsonObject json);
 	public TaskPhase getPhase() { return phase; }
 	private final TaskPhase phase;
+	public abstract String getType();
 	public abstract boolean accept(Bean eventBean) throws Throwable;
 	public abstract boolean isCompleted();
 

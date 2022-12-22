@@ -1,5 +1,6 @@
 package Zeze.Game.Task;
 
+import javax.json.JsonObject;
 import Zeze.Builtin.Game.TaskBase.BTConditionNPCTalk;
 import Zeze.Builtin.Game.TaskBase.BTConditionNPCTalkEvent;
 import Zeze.Builtin.Game.TaskBase.BTaskCondition;
@@ -40,5 +41,13 @@ public class ConditionNPCTalk extends TaskConditionBase<BTConditionNPCTalk, BTCo
 	protected void loadBeanExtended(BTaskCondition bean) {
 
 	}
-	// @formatter:on
+	@Override
+	public String getType() {
+		return "NPCTalk";
+	}
+	@Override
+	public void loadJsonExtended(JsonObject json) {
+
+	}
+// @formatter:on
 }

@@ -9,7 +9,7 @@ public interface BTaskReadOnly {
 
     public long getRoleId();
     public long getTaskId();
-    public int getTaskType();
+    public String getTaskType();
     public int getTaskState();
     public String getTaskName();
     public String getTaskDescription();
