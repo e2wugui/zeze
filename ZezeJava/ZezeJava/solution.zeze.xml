@@ -755,7 +755,7 @@
 					<variable id="1" name="TaskId" type="long"/>
 				</beankey>
 				<bean name="BTask">
-					<variable id="1" name="roleId" type="long"/> 任务的Id
+					<variable id="1" name="roleId" type="long"/> 角色的Id
 					<variable id="2" name="taskId" type="long"/> 任务的Id
 					<variable id="3" name="taskType" type="string"/> 任务的类型：每日任务、隐藏任务等
 					<variable id="4" name="taskState" type="int"/> 任务的状态：可接取、已接取、已完成等
@@ -811,18 +811,18 @@
 				<!-- ======================================== Task的Bean数据 ======================================== -->
 				<!-- ======================================== TaskPhase的Bean数据 ======================================== -->
 				<bean name="BTaskPhase">
-					<variable id="1" name="taskId" type="long"/> Phase的Id
 					<variable id="2" name="phaseId" type="long"/> Phase的Id
 					<variable id="3" name="phaseName" type="string"/> Phase的名字
 					<variable id="4" name="phaseDescription" type="string"/> Phase的描述
 					<variable id="5" name="prePhaseIds" type="list" value="long"/> 前置PhaseId
 					<variable id="6" name="nextPhaseId" type="long"/> 下一个PhaseId（允许通过不同的conditions完成情况动态变化）
-					<variable id="7" name="subPhases" type="list" value="BSubPhase"/> 该Phase包含的所有的SubPhase
+					<variable id="7" name="subPhases" type="map" key="long" value="BSubPhase"/> 该Phase包含的所有的SubPhase
 				</bean>
 				<bean name="BSubPhase">
-					<variable id="1" name="conditions" type="map" key="long" value="BTaskCondition"/> 该SubPhase包含的所有的Condition
+					<variable id="1" name="subPhaseId" type="long"/>
 					<variable id="2" name="completeType" type="int"/> CompleteAll/CompleteAny
 					<variable id="3" name="nextSubPhaseId" type="int"/> 下一个SubPhaseId（允许通过不同的conditions完成情况动态变化）
+					<variable id="4" name="conditions" type="map" key="long" value="BTaskCondition"/> 该SubPhase包含的所有的Condition
 				</bean>
 				<!-- ======================================== TaskPhase的Bean数据 ======================================== -->
 				<!-- ======================================== TaskCondition的Bean数据 ======================================== -->
@@ -832,8 +832,7 @@
 				<enum name="CompleteSubmitItem" value="34"/>
 				<enum name="CompleteArriveNPC" value="35"/>
 				<bean name="BTaskCondition"> TODO: 允许广播
-					<variable id="1" name="conditionId" type="long"/> Condition的Id
-					<variable id="2" name="conditionType" type="int"/> Condition的完成类型
+					<variable id="2" name="conditionType" type="string"/> Condition的完成类型
 					<variable id="3" name="extendedData" type="dynamic"> 用于自定义扩展Condition的数据
 						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskConditionBase::getSpecialTypeIdFromBean"/>
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskConditionBase::createBeanFromSpecialTypeId"/>

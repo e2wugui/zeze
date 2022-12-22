@@ -8,11 +8,10 @@ public interface BTaskPhaseReadOnly {
     public boolean negativeCheck();
     public BTaskPhase copy();
 
-    public long getTaskId();
     public long getPhaseId();
     public String getPhaseName();
     public String getPhaseDescription();
     public Zeze.Transaction.Collections.PList1ReadOnly<Long> getPrePhaseIdsReadOnly();
     public long getNextPhaseId();
-    public Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.Game.TaskBase.BSubPhase, Zeze.Builtin.Game.TaskBase.BSubPhaseReadOnly> getSubPhasesReadOnly();
+    public Zeze.Transaction.Collections.PMap2ReadOnly<Long, Zeze.Builtin.Game.TaskBase.BSubPhase, Zeze.Builtin.Game.TaskBase.BSubPhaseReadOnly> getSubPhasesReadOnly();
 }

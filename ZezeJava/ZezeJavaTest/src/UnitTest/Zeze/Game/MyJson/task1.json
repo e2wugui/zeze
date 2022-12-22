@@ -10,28 +10,42 @@
 			"phaseName" : "Phase 1",
 			"phaseDesc" : "Phase 1 Description",
 			"prePhaseIds" : [],
-			"nextPhaseId" : "2",
+			"nextPhaseId" : 2,
 			"SubPhases" : [
 				{
-					"conditionType" : "KillMonster",
-					"monsters" : [
+					"subPhaseId" : 1,
+					"nextSubPhaseId" : 2,
+					"completeType" : 0,
+					"conditions" : [
 						{
-							"monsterId" : 1001,
-							"monsterCount" : 10
-						},
-						{
-							"monsterId" : 1002,
-							"monsterCount" : 5
+							"conditionType" : "KillMonster",
+							"monsters" : [
+								{
+									"monsterId" : 1001,
+									"monsterCount" : 10
+								},
+								{
+									"monsterId" : 1002,
+									"monsterCount" : 5
+								}
+							]
 						}
 					]
 				},
 				{
-					"conditionName" : "NPCTalk",
-					"npcId" : 101,
-					"dialogOptions" : [{
-						"1" : 3,
-						"2" : 2
-					}]
+					"subPhaseId" : 1,
+					"nextSubPhaseId" : 2,
+					"completeType" : 0,
+					"conditions" : [
+						{
+							"conditionType" : "NPCTalk",
+							"npcId" : 101,
+							"dialogOptions" : [{
+								"1" : 3,
+								"2" : 2
+							}]
+						}
+					]
 				}
 			]
 		}

@@ -7,7 +7,7 @@ import Zeze.Serialize.ByteBuffer;
 public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly {
     public static final long TYPEID = -4882366066662057969L;
 
-    private long _roleId; // 任务的Id
+    private long _roleId; // 角色的Id
     private long _taskId; // 任务的Id
     private String _taskType; // 任务的类型：每日任务、隐藏任务等
     private int _taskState; // 任务的状态：可接取、已接取、已完成等

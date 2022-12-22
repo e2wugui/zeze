@@ -5,8 +5,6 @@ import java.io.FileReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
-import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.json.Json;
 import javax.json.JsonObject;
@@ -33,20 +31,17 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	protected TaskBase(Module module) { this.module = module; }
 	// ======================================== 任务初始化阶段的方法 ========================================
 
-	/**
-	 * loadBean
-	 * 将Bean加载为配置表
-	 */
 	protected final void loadBean(BTask bean) {
 		this.bean = bean;
 		loadBeanExtended(bean);
-		currentPhase.loadBean(bean.getTaskPhases().get(bean.getCurrentPhaseId()));
+//		currentPhase.loadBean(bean.getTaskPhases().get(bean.getCurrentPhaseId()));
 	}
 	protected abstract void loadBeanExtended(BTask bean);
 
 	public void loadJson(JsonObject json) {
 		this.bean = new BTask();
 
+		bean.setTaskType(getType());
 		bean.setTaskId(json.getInt("taskId"));
 		bean.setTaskName(json.getString("taskName"));
 		bean.setTaskDescription(json.getString("taskDesc"));
@@ -58,30 +53,19 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		loadJsonExtended(json);
 	}
 	protected abstract void loadJsonExtended(JsonObject json);
-	public TaskPhase addPhase(TaskPhase phase) {
-		// 不能添加不是这个任务的phase
-		if (phase.getTask() != this)
-			return null;
-
-		phases.put(phase.getBean().getPhaseId(), phase);
-		bean.getTaskPhases().put(phase.getBean().getPhaseId(), phase.getBean());
-		return phase;
-	}
 
 	public abstract String getType(); // 任务类型，每个任务实例都不一样
-	public ConcurrentHashSet<Long> getPreTaskIds() { return preTaskIds; } // 这里不返回PList1<Long>，只返回一个拷贝。因为我们不希望在Runtime阶段再来修改PreTask。
-	public ConcurrentHashSet<Long> getNextTaskIds() { return nextTaskIds; }
-	private final ConcurrentHashSet<Long> preTaskIds = new ConcurrentHashSet<>();; // 将通过Module在加载完配置后（即TaskGraphics的功能）统一初始化，与Bean无关，不需要存储在数据库
-	private final ConcurrentHashSet<Long> nextTaskIds = new ConcurrentHashSet<>();; // 将通过Module在加载完配置后（即TaskGraphics的功能）统一初始化，与Bean无关，不需要存储在数据库
 	public Module getModule() { return module; }
 	private final Module module;
 	public BTask getBean() { return bean; }
 	private BTask bean;
-	private final ConcurrentHashMap<Long, TaskPhase> phases = new ConcurrentHashMap<>();
-	private TaskPhase currentPhase;
-	public void setOnComplete(Action0 callback) { onCompleteUserCallback = callback; }
-	Action0 onCompleteUserCallback;
+	public final ConcurrentHashSet<Long> preTaskIds = new ConcurrentHashSet<>();; // 将通过Module在加载完配置后（即TaskGraphics的功能）统一初始化，与Bean无关，不需要存储在数据库
+	public final ConcurrentHashSet<Long> nextTaskIds = new ConcurrentHashSet<>();; // 将通过Module在加载完配置后（即TaskGraphics的功能）统一初始化，与Bean无关，不需要存储在数据库
 	// @formatter:on
+
+	public void addPhase(TaskPhase phase) {
+		bean.getTaskPhases().put(phase.getBean().getPhaseId(), phase.getBean());
+	}
 
 	/**
 	 * Runtime方法：accept
@@ -89,16 +73,16 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	 * - 当满足任务推进情况时，会自动推进任务
 	 */
 	public boolean accept(Bean eventBean) throws Throwable {
-		if (!currentPhase.accept(eventBean))
-			return false;
-
-		if (currentPhase.isCompleted())
-			if (currentPhase.isEndPhase())
-				onComplete();
-			else {
-				currentPhase.onComplete();
-				currentPhase = phases.get(currentPhase.getBean().getNextPhaseId());
-			}
+//		if (!currentPhase.accept(eventBean))
+//			return false;
+//
+//		if (currentPhase.isCompleted())
+//			if (currentPhase.isEndPhase())
+//				onComplete();
+//			else {
+//				currentPhase.onComplete();
+//				currentPhase = phases.get(currentPhase.getBean().getNextPhaseId());
+//			}
 		return true;
 	}
 
@@ -107,7 +91,8 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	 * - 用于判断任务是否完成
 	 */
 	public boolean isCompleted() {
-		return currentPhase.isEndPhase() && currentPhase.isCompleted();
+//		return currentPhase.isEndPhase() && currentPhase.isCompleted();
+		return false;
 	}
 
 	/**
@@ -138,9 +123,9 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	 * 在任务结束后调用的方法，比如：发放奖励。
 	 */
 	protected final void onComplete() throws Throwable {
-		if (isCompleted() && null != onCompleteUserCallback) {
-			onCompleteUserCallback.run();
-		}
+//		if (isCompleted() && null != onCompleteUserCallback) {
+//			onCompleteUserCallback.run();
+//		}
 	}
 
 	//	public TaskPhase addPhase(TaskPhase.Opt opt, List<Long> afterPhaseIds) {
@@ -176,10 +161,9 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	 * Task Module：承担TaskGraphics的功能
 	 */
 	public static class Module extends AbstractTaskBase {
-
-		private final ConcurrentHashMap<Long, TaskBase<?>> taskNodes = new ConcurrentHashMap<>();
 		private final ConcurrentHashMap<String, Constructor<?>> constructors = new ConcurrentHashMap<>();
-		private final ConcurrentHashMap<String, Constructor<?>> conditionConstructors = new ConcurrentHashMap<>();
+		public final ConcurrentHashMap<String, Constructor<?>> conditionConstructors = new ConcurrentHashMap<>();
+		public final ConcurrentHashMap<Long, TaskBase<?>> taskNodes = new ConcurrentHashMap<>();
 		private final DirectedAcyclicGraph<Long, DefaultEdge> taskGraph = new DirectedAcyclicGraph<>(DefaultEdge.class);
 		public final ProviderApp providerApp;
 		public final Application zeze;
@@ -239,18 +223,6 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 			for (var phase : phases) {
 				TaskPhase taskPhase = new TaskPhase(task);
 				taskPhase.loadJson(phase.asJsonObject());
-
-				var subPhases = json.getJsonArray("SubPhases");
-				for (var subPhase : subPhases) {
-					TaskPhase.SubPhase sub = new TaskPhase.SubPhase(taskPhase);
-					sub.loadJson(subPhase.asJsonObject());
-					var conditionType = subPhase.asJsonObject().getString("conditionType");
-					var conditionConstructor = conditionConstructors.get(conditionType);
-					var condition = (TaskConditionBase<?, ?>)conditionConstructor.newInstance(taskPhase);
-					condition.loadJson(subPhase.asJsonObject());
-					sub.addCondition(condition);
-				}
-
 				task.addPhase(taskPhase);
 			}
 
@@ -269,6 +241,8 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 			}
 
 			for (var t : taskNodes.values()) {
+				t.preTaskIds.clear();
+				t.nextTaskIds.clear();
 				taskGraph.getAncestors(task.getBean().getTaskId()).forEach(t.preTaskIds::add); // 从图中获取所有前置任务
 				taskGraph.getDescendants(task.getBean().getTaskId()).forEach(t.nextTaskIds::add); // 从图中获取所有后置任务
 			}

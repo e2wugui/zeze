@@ -1,5 +1,6 @@
 package Zeze.Game;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.json.JsonObject;
@@ -18,27 +19,44 @@ public class TaskPhase {
 	// @formatter:on
 
 	// @formatter:off
-	public void loadJson(JsonObject json) {
+	public void loadJson(JsonObject json)throws InvocationTargetException, InstantiationException, IllegalAccessException {
 		this.bean = new BTaskPhase();
-		var phaseId = json.getInt("phaseId");
-		var phaseName = json.getString("phaseName");
-		var phaseDesc = json.getString("phaseDesc");
-		var nextPhaseId = json.getInt("nextPhaseId");
 
-		bean.setPhaseId(phaseId);
-		bean.setPhaseName(phaseName);
-		bean.setPhaseDescription(phaseDesc);
-		bean.setNextPhaseId(nextPhaseId);
+		bean.setPhaseId(json.getInt("phaseId"));
+		bean.setPhaseName(json.getString("phaseName"));
+		bean.setPhaseDescription(json.getString("phaseDesc"));
+		bean.setNextPhaseId(json.getInt("nextPhaseId"));
 
 		var prePhaseIds = json.getJsonArray("prePhaseIds");
 		for (var id : prePhaseIds)
 			this.bean.getPrePhaseIds().add(Long.parseLong(id.toString()));
+
+		var module = task.getModule();
+		var subPhases = json.getJsonArray("SubPhases");
+		for (var subPhase : subPhases) {
+			TaskPhase.SubPhase sub = new TaskPhase.SubPhase(this);
+			sub.loadJson(subPhase.asJsonObject());
+			var conditions = subPhase.asJsonObject().getJsonArray("conditions");
+			for (var condition : conditions) {
+				var conditionType = condition.asJsonObject().getString("conditionType");
+				var conditionConstructor = module.conditionConstructors.get(conditionType);
+				var con = (TaskConditionBase<?, ?>)conditionConstructor.newInstance(this);
+				con.loadJson(condition.asJsonObject());
+				sub.addCondition(con);
+			}
+			addSubPhase(sub);
+		}
+	}
+
+	public void addSubPhase(SubPhase subPhase) {
+		bean.getSubPhases().put(subPhase.getBean().getSubPhaseId(), subPhase.getBean());
 	}
 
 	public static class SubPhase {
 		public static int COMPLETE_ALL = 0;
 		public static int COMPLETE_ANY = 1;
 		private BSubPhase bean;
+		public BSubPhase getBean() { return bean; }
 		private final TaskPhase phase;
 		private final ConcurrentHashMap<Long, TaskConditionBase<?,?>> conditions = new ConcurrentHashMap<>();
 		public SubPhase(TaskPhase phase) {
@@ -47,13 +65,14 @@ public class TaskPhase {
 
 		public void loadJson(JsonObject json) {
 			bean = new BSubPhase();
+			bean.setSubPhaseId(json.getInt("subPhaseId"));
 			bean.setNextSubPhaseId(json.getInt("nextSubPhaseId"));
 			bean.setCompleteType(json.getInt("completeType"));
 		}
 
 		public void addCondition(TaskConditionBase<?,?> condition) {
-			conditions.put(condition.getBean().getConditionId(), condition);
-			bean.getConditions().put(condition.getBean().getConditionId(), condition.getBean());
+//			conditions.put(condition.getBean().getConditionId(), condition);
+//			bean.getConditions().put(condition.getBean().getConditionId(), condition.getBean());
 		}
 	}
 

@@ -16,7 +16,11 @@ public abstract class TaskConditionBase<ConditionBean extends Bean, EventBean ex
 	public final BTaskCondition getBean() {return bean;}
 	public void loadBean(BTaskCondition bean) { this.bean = bean; loadBeanExtended(bean); }
 	protected abstract void loadBeanExtended(BTaskCondition bean);
-	public void loadJson(JsonObject json) {  }
+	public void loadJson(JsonObject json) {
+		bean = new BTaskCondition();
+		bean.setConditionType(getType());
+		loadJsonExtended(json);
+	}
 	public abstract void loadJsonExtended(JsonObject json);
 	public TaskPhase getPhase() { return phase; }
 	private final TaskPhase phase;
