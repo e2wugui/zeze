@@ -1,5 +1,4 @@
 ﻿using System.IO;
-using Zeze.Collections;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
@@ -141,9 +140,9 @@ namespace Zeze.Gen.java
                     ? "final " : "";
 
                 if (vt is Bean)
-                    sw.WriteLine($"        {final}Zeze.Transaction.Collections.CollOne<{TypeName.GetName(vt)}> {v.NamePrivate};{v.Comment}");
+                    sw.WriteLine($"    private {final}Zeze.Transaction.Collections.CollOne<{TypeName.GetName(vt)}> {v.NamePrivate};{v.Comment}");
                 else
-                    sw.WriteLine("    private " + final + TypeName.GetName(vt) + " " + v.NamePrivate + ";" + v.Comment);
+                    sw.WriteLine($"    private {final}{TypeName.GetName(vt)} {v.NamePrivate};{v.Comment}");
 
                 // ReadOnlyMap
                 /*
