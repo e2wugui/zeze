@@ -56,6 +56,7 @@ ServiceManagerWithRaft 测试
 v1.1.4  
 ------------------------------------------------------------------------------------------------------------------------------
 Timer.cancel 无法redirect时，直接从db中cancel掉。
+ProviderDirectService.WaitDirectServerReady
 
 【2022/12/21】
 

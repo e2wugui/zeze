@@ -81,8 +81,6 @@ namespace Zeze.Transaction.Collections
 
         public override void Decode(ByteBuffer bb)
         {
-            if (null == Value)
-                Value = new V();
             Value.Decode(bb);
         }
 

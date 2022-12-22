@@ -10,15 +10,9 @@ import Zeze.Util.Reflect;
 
 public class CollOne<V extends Bean> extends Collection {
 	V _Value;
-	private transient final MethodHandle valueFactory;
 
 	public CollOne(V init, Class<V> valueClass) {
 		_Value = init;
-		valueFactory = Reflect.getDefaultConstructor(valueClass);
-	}
-
-	CollOne(MethodHandle vf) {
-		valueFactory = vf;
 	}
 
 	public V getValue() {
@@ -82,17 +76,9 @@ public class CollOne<V extends Bean> extends Collection {
 		return log;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public void decode(ByteBuffer bb) {
 		var Value = getValue();
-		if (null == Value) {
-			try {
-				Value = (V)valueFactory.invoke();
-			} catch (Throwable e) {
-				throw new RuntimeException(e);
-			}
-		}
 		Value.decode(bb);
 	}
 
@@ -125,8 +111,6 @@ public class CollOne<V extends Bean> extends Collection {
 	@SuppressWarnings("unchecked")
 	@Override
 	public CollOne<V> copy() {
-		var copy = new CollOne<V>(valueFactory);
-		copy._Value = (V)getValue().copy();
-		return copy;
+		return new CollOne<V>((V)getValue().copy(), null);
 	}
 }
