@@ -14,7 +14,8 @@ public abstract class AbstractTaskBase implements Zeze.IModule {
     public static final int Processing = 2; // 已经接取，未完成
     public static final int Finished = 3; // 已完成，未提交
     public static final int Committed = 4; // 已经提交
-    public static final int TaskResultSuccess = 1; // 使用二进制bit返回值，允许多重result返回。 0代表执行成功。
+    public static final int TaskResultSuccess = 0; // 使用二进制bit返回值，允许多重result返回。 0代表执行成功。
+    public static final int TaskResultFailure = 0;
     public static final int TaskResultNewRoleTasksCreated = 2;
     public static final int TaskResultAccepted = 4;
     public static final int TaskResultRejected = 8;

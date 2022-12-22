@@ -769,11 +769,6 @@
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskBase::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
-				<!-- 内置任务类型：NPCTask -->
-				<bean name="BNPCTaskDynamics">
-					<variable id="1" name="receiveNpcId" type="long"/> 接任务的NPC
-					<variable id="2" name="submitNpcId" type="long"/> 交任务的NPC
-				</bean>
 				<!-- Task的总表，包含了所有的Task的Bean -->
 				<table name="tTask" key="BTaskKey" value="BTask"/>
 				<!--
@@ -798,7 +793,8 @@
 				<bean name="BBroadcastTaskEvent">
                     <variable id="1" name="isBreakIfAccepted" type="bool"/>
 				</bean>
-				<enum name="TaskResultSuccess" value="1"/> 使用二进制bit返回值，允许多重result返回。 0代表执行成功。
+				<enum name="TaskResultSuccess" value="0"/> 使用二进制bit返回值，允许多重result返回。 0代表执行成功。
+				<enum name="TaskResultFailure" value="0"/>
 				<enum name="TaskResultNewRoleTasksCreated" value="2"/>
 				<enum name="TaskResultAccepted" value="4"/>
 				<enum name="TaskResultRejected" value="8"/>

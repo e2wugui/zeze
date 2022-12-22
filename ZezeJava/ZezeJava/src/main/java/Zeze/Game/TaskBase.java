@@ -20,7 +20,6 @@ import Zeze.Builtin.Game.TaskBase.TriggerTaskEvent;
 import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
-import Zeze.Util.Action0;
 import Zeze.Util.ConcurrentHashSet;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
@@ -48,7 +47,6 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	protected final void loadBean(BTask bean) {
 		this.bean = bean;
 		loadBeanExtended(bean);
-//		currentPhase.loadBean(bean.getTaskPhases().get(bean.getCurrentPhaseId()));
 	}
 	protected abstract void loadBeanExtended(BTask bean);
 
@@ -280,7 +278,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 
 			var taskInfo = _tRoleTask.get(roleId);
 			var eventTypeBean = r.Argument.getTaskEventTypeDynamic().getBean();
-			var eventExtendedBean = r.Argument.getExtendedData().getBean();
+			var eventBean = r.Argument.getExtendedData().getBean();
 			if (eventTypeBean instanceof BSpecificTaskEvent) {
 				var specificTaskEventBean = (BSpecificTaskEvent)eventTypeBean; // 兼容JDK11
 				// 检查任务Id
@@ -293,10 +291,10 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 
 				var task = taskNodes.get(id);
 				task.loadBean(taskBean);
-				if (task.accept(eventExtendedBean))
-					r.Result.setResultCode(TaskResultAccepted);
+				if (task.accept(eventBean))
+					resultCode |= TaskResultAccepted;
 				else
-					r.Result.setResultCode(TaskResultRejected);
+					resultCode |= TaskResultRejected;
 			} else if (eventTypeBean instanceof BBroadcastTaskEvent) {
 				var broadcastTaskEventBean = (BBroadcastTaskEvent)eventTypeBean; // 兼容JDK11
 				var taskBeanList = taskInfo.getProcessingTasks().values();
@@ -304,16 +302,14 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 					var id = taskBean.getTaskId();
 					var task = taskNodes.get(id);
 					task.loadBean(taskBean);
-					if (task.accept(eventExtendedBean))
+					if (task.accept(eventBean))
 						if (broadcastTaskEventBean.isIsBreakIfAccepted())
 							break;
 				}
-				r.Result.setResultCode(TaskResultAccepted);
+				resultCode |= TaskResultAccepted;
 			}
 
-			resultCode |= TaskResultSuccess;
 			r.Result.setResultCode(resultCode);
-//			r.getSender().Send(ByteBuffer.encode(r.Result));
 			return Procedure.Success;
 		}
 	}
