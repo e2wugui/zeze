@@ -10,7 +10,7 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
     private long _subPhaseId;
     private int _completeType; // CompleteAll/CompleteAny
     private int _nextSubPhaseId; // 下一个SubPhaseId（允许通过不同的conditions完成情况动态变化）
-    private final Zeze.Transaction.Collections.PMap2<Long, Zeze.Builtin.Game.TaskBase.BTaskCondition> _conditions; // 该SubPhase包含的所有的Condition
+    private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.TaskBase.BTaskCondition> _conditions; // 该SubPhase包含的所有的Condition
 
     private transient Object __zeze_map_key__;
 
@@ -84,18 +84,18 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
         txn.putLog(new Log__nextSubPhaseId(this, 3, value));
     }
 
-    public Zeze.Transaction.Collections.PMap2<Long, Zeze.Builtin.Game.TaskBase.BTaskCondition> getConditions() {
+    public Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.TaskBase.BTaskCondition> getConditions() {
         return _conditions;
     }
 
     @Override
-    public Zeze.Transaction.Collections.PMap2ReadOnly<Long, Zeze.Builtin.Game.TaskBase.BTaskCondition, Zeze.Builtin.Game.TaskBase.BTaskConditionReadOnly> getConditionsReadOnly() {
-        return new Zeze.Transaction.Collections.PMap2ReadOnly<>(_conditions);
+    public Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.Game.TaskBase.BTaskCondition, Zeze.Builtin.Game.TaskBase.BTaskConditionReadOnly> getConditionsReadOnly() {
+        return new Zeze.Transaction.Collections.PList2ReadOnly<>(_conditions);
     }
 
     @SuppressWarnings("deprecation")
     public BSubPhase() {
-        _conditions = new Zeze.Transaction.Collections.PMap2<>(Long.class, Zeze.Builtin.Game.TaskBase.BTaskCondition.class);
+        _conditions = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Game.TaskBase.BTaskCondition.class);
         _conditions.variableId(4);
     }
 
@@ -104,7 +104,7 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
         _subPhaseId = _subPhaseId_;
         _completeType = _completeType_;
         _nextSubPhaseId = _nextSubPhaseId_;
-        _conditions = new Zeze.Transaction.Collections.PMap2<>(Long.class, Zeze.Builtin.Game.TaskBase.BTaskCondition.class);
+        _conditions = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Game.TaskBase.BTaskCondition.class);
         _conditions.variableId(4);
     }
 
@@ -113,8 +113,8 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
         setCompleteType(other.getCompleteType());
         setNextSubPhaseId(other.getNextSubPhaseId());
         _conditions.clear();
-        for (var e : other._conditions.entrySet())
-            _conditions.put(e.getKey(), e.getValue().copy());
+        for (var e : other._conditions)
+            _conditions.add(e.copy());
     }
 
     @Deprecated
@@ -184,20 +184,19 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
         sb.append(Zeze.Util.Str.indent(level)).append("subPhaseId=").append(getSubPhaseId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("completeType=").append(getCompleteType()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("nextSubPhaseId=").append(getNextSubPhaseId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("conditions={");
+        sb.append(Zeze.Util.Str.indent(level)).append("conditions=[");
         if (!_conditions.isEmpty()) {
             sb.append(System.lineSeparator());
             level += 4;
-            for (var _kv_ : _conditions.entrySet()) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_kv_.getKey()).append(',').append(System.lineSeparator());
-                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(System.lineSeparator());
-                _kv_.getValue().buildString(sb, level + 4);
+            for (var _item_ : _conditions) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(System.lineSeparator());
+                _item_.buildString(sb, level + 4);
                 sb.append(',').append(System.lineSeparator());
             }
             level -= 4;
             sb.append(Zeze.Util.Str.indent(level));
         }
-        sb.append('}').append(System.lineSeparator());
+        sb.append(']').append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -242,12 +241,10 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
             var _x_ = _conditions;
             int _n_ = _x_.size();
             if (_n_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.MAP);
-                _o_.WriteMapType(_n_, ByteBuffer.INTEGER, ByteBuffer.BEAN);
-                for (var _e_ : _x_.entrySet()) {
-                    _o_.WriteLong(_e_.getKey());
-                    _e_.getValue().encode(_o_);
-                }
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.LIST);
+                _o_.WriteListType(_n_, ByteBuffer.BEAN);
+                for (var _v_ : _x_)
+                    _v_.encode(_o_);
             }
         }
         _o_.WriteByte(0);
@@ -272,15 +269,11 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
         if (_i_ == 4) {
             var _x_ = _conditions;
             _x_.clear();
-            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
-                int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
-                for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
-                    var _k_ = _o_.ReadLong(_s_);
-                    var _v_ = _o_.ReadBean(new Zeze.Builtin.Game.TaskBase.BTaskCondition(), _t_);
-                    _x_.put(_k_, _v_);
-                }
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadBean(new Zeze.Builtin.Game.TaskBase.BTaskCondition(), _t_));
             } else
-                _o_.SkipUnknownFieldOrThrow(_t_, "Map");
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

@@ -12,27 +12,15 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
     private final Zeze.Transaction.DynamicBean _extendedData;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_ExtendedData() {
-        return new Zeze.Transaction.DynamicBean(3, Zeze.Game.TaskConditionBase::getSpecialTypeIdFromBean, Zeze.Game.TaskConditionBase::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(3, Zeze.Game.TaskBase::getSpecialTypeIdFromBean, Zeze.Game.TaskBase::createBeanFromSpecialTypeId);
     }
 
     public static long getSpecialTypeIdFromBean_3(Zeze.Transaction.Bean bean) {
-        return Zeze.Game.TaskConditionBase.getSpecialTypeIdFromBean(bean);
+        return Zeze.Game.TaskBase.getSpecialTypeIdFromBean(bean);
     }
 
     public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_3(long typeId) {
-        return Zeze.Game.TaskConditionBase.createBeanFromSpecialTypeId(typeId);
-    }
-
-    private transient Object __zeze_map_key__;
-
-    @Override
-    public Object mapKey() {
-        return __zeze_map_key__;
-    }
-
-    @Override
-    public void mapKey(Object value) {
-        __zeze_map_key__ = value;
+        return Zeze.Game.TaskBase.createBeanFromSpecialTypeId(typeId);
     }
 
     @Override

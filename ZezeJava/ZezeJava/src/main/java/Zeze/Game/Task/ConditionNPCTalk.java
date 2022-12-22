@@ -13,11 +13,15 @@ public class ConditionNPCTalk extends TaskConditionBase<BTConditionNPCTalk, BTCo
 	public ConditionNPCTalk(TaskPhase phase) {
 		super(phase);
 	}
-
-	public void addSelectableDialog(long dialogId, int optionsCount) {
-		var extendedBean = getExtendedBean();
-		extendedBean.getDialogOptions().put(dialogId, optionsCount);
-		extendedBean.getDialogSelected().put(dialogId, -1); // 初始化为-1，表示还没有选
+	@Override
+	protected void loadJsonExtended(JsonObject json) {
+		BTConditionNPCTalk bean = new BTConditionNPCTalk();
+		bean.setNpcId(json.getInt("npcId"));
+		var options = json.getJsonObject("dialogOptions");
+		options.keySet().forEach(key -> {
+			bean.getDialogOptions().put(key, options.getInt(key));
+		});
+		getBean().getExtendedData().setBean(bean);
 	}
 
 	@Override
@@ -44,10 +48,6 @@ public class ConditionNPCTalk extends TaskConditionBase<BTConditionNPCTalk, BTCo
 	@Override
 	public String getType() {
 		return "NPCTalk";
-	}
-	@Override
-	public void loadJsonExtended(JsonObject json) {
-
 	}
 // @formatter:on
 }

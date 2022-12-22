@@ -58,7 +58,6 @@ public class TaskPhase {
 		private BSubPhase bean;
 		public BSubPhase getBean() { return bean; }
 		private final TaskPhase phase;
-		private final ConcurrentHashMap<Long, TaskConditionBase<?,?>> conditions = new ConcurrentHashMap<>();
 		public SubPhase(TaskPhase phase) {
 			this.phase = phase;
 		}
@@ -71,8 +70,7 @@ public class TaskPhase {
 		}
 
 		public void addCondition(TaskConditionBase<?,?> condition) {
-//			conditions.put(condition.getBean().getConditionId(), condition);
-//			bean.getConditions().put(condition.getBean().getConditionId(), condition.getBean());
+			bean.getConditions().add(condition.getBean());
 		}
 	}
 

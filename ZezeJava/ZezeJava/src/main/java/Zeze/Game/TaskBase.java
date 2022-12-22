@@ -30,14 +30,6 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	// @formatter:off
 	protected TaskBase(Module module) { this.module = module; }
 	// ======================================== 任务初始化阶段的方法 ========================================
-
-	protected final void loadBean(BTask bean) {
-		this.bean = bean;
-		loadBeanExtended(bean);
-//		currentPhase.loadBean(bean.getTaskPhases().get(bean.getCurrentPhaseId()));
-	}
-	protected abstract void loadBeanExtended(BTask bean);
-
 	public void loadJson(JsonObject json) {
 		this.bean = new BTask();
 
@@ -53,6 +45,12 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		loadJsonExtended(json);
 	}
 	protected abstract void loadJsonExtended(JsonObject json);
+	protected final void loadBean(BTask bean) {
+		this.bean = bean;
+		loadBeanExtended(bean);
+//		currentPhase.loadBean(bean.getTaskPhases().get(bean.getCurrentPhaseId()));
+	}
+	protected abstract void loadBeanExtended(BTask bean);
 
 	public abstract String getType(); // 任务类型，每个任务实例都不一样
 	public Module getModule() { return module; }
@@ -146,8 +144,6 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	public static long getSpecialTypeIdFromBean(Bean bean) { return BeanFactory.getSpecialTypeIdFromBean(bean); }
 	public static Bean createBeanFromSpecialTypeId(long typeId) { return beanFactory.createBeanFromSpecialTypeId(typeId); }
 	@SuppressWarnings("unchecked")
-	public ExtendedBean getExtendedBean() { return (ExtendedBean)bean.getExtendedData().getBean(); }
-	@SuppressWarnings("unchecked")
 	public Class<ExtendedBean> getExtendedBeanClass() {
 		ParameterizedType parameterizedType = (ParameterizedType)this.getClass().getGenericSuperclass();
 		return (Class<ExtendedBean>)parameterizedType.getActualTypeArguments()[0];
@@ -177,7 +173,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		}
 
 		/**
-		 * 在加载任务配表前，必须需要先注册任务类型。（因为TaskBase是个绝对抽象类，不知道任何外部的扩展任何类型的信息）
+		 * 在加载任务配表前，必须需要提前注册所有的任务类型。
 		 */
 		public <ExtendedBean extends Bean,
 				ExtendedTask extends TaskBase<ExtendedBean>
@@ -193,12 +189,17 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 			}
 		}
 
+		/**
+		 * 在加载任务配表前，必须需要提前注册所有的条件类型。
+		 */
 		public <ConditionBean extends Bean, EventBean extends Bean,
 				ExtendedCondition extends TaskConditionBase<ConditionBean, EventBean>
 				> void registerCondition(Class<ExtendedCondition> extendedConditionClass) {
 			try {
 				var c = extendedConditionClass.getDeclaredConstructor(TaskPhase.class);
 				var condition = c.newInstance((Object)null);
+				beanFactory.register(condition.getConditionBeanClass());
+				beanFactory.register(condition.getEventBeanClass());
 				conditionConstructors.put(condition.getType(), c);
 			} catch (Exception e) {
 				throw new RuntimeException(e);
@@ -226,6 +227,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 				task.addPhase(taskPhase);
 			}
 
+			taskNodes.put(task.getBean().getTaskId(), task);
 			_tTask.put(new BTaskKey(task.getBean().getTaskId()), task.getBean());
 			for (var t : taskNodes.values()) {
 				taskGraph.addVertex(task.getBean().getTaskId());
@@ -262,19 +264,16 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		protected long ProcessTriggerTaskEventRequest(TriggerTaskEvent r) throws Throwable {
 			int resultCode = 0;
 
-			// 检查角色Id，如果没有，那就创建整个角色的任务表。
 			var roleId = r.Argument.getRoleId();
-
-			// 如果是新角色，那就创建整个角色的任务表。
+			// 读取角色任务表，如果没有，会自动创建一个空的。
 			if (!_tRoleTask.contains(roleId)) {
 				var roleTasks = new BRoleTasks();
-				roleTasks.getFinishedTaskIds().clear();
 
 				for (var task : taskNodes.values()) {
 					roleTasks.getProcessingTasks().put(task.getBean().getTaskId(), task.getBean().copy());
 				}
 
-				_tRoleTask.put(roleId, roleTasks); // 读取角色任务表，如果没有，会自动创建一个空的。
+				_tRoleTask.put(roleId, roleTasks);
 
 				resultCode |= TaskResultNewRoleTasksCreated;
 			}

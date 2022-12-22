@@ -63,7 +63,7 @@ public class ConditionReachPosition extends TaskConditionBase<BTConditionReachPo
 		return "ReachPosition";
 	}
 	@Override
-	public void loadJsonExtended(JsonObject json) {
+	protected void loadJsonExtended(JsonObject json) {
 
 	}
 	// @formatter:on

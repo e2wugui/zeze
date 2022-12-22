@@ -822,7 +822,7 @@
 					<variable id="1" name="subPhaseId" type="long"/>
 					<variable id="2" name="completeType" type="int"/> CompleteAll/CompleteAny
 					<variable id="3" name="nextSubPhaseId" type="int"/> 下一个SubPhaseId（允许通过不同的conditions完成情况动态变化）
-					<variable id="4" name="conditions" type="map" key="long" value="BTaskCondition"/> 该SubPhase包含的所有的Condition
+					<variable id="4" name="conditions" type="list" value="BTaskCondition"/> 该SubPhase包含的所有的Condition
 				</bean>
 				<!-- ======================================== TaskPhase的Bean数据 ======================================== -->
 				<!-- ======================================== TaskCondition的Bean数据 ======================================== -->
@@ -834,8 +834,8 @@
 				<bean name="BTaskCondition"> TODO: 允许广播
 					<variable id="2" name="conditionType" type="string"/> Condition的完成类型
 					<variable id="3" name="extendedData" type="dynamic"> 用于自定义扩展Condition的数据
-						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskConditionBase::getSpecialTypeIdFromBean"/>
-						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskConditionBase::createBeanFromSpecialTypeId"/>
+						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskBase::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskBase::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
 				<!-- 内置条件类型：击杀怪物 -->
@@ -870,10 +870,8 @@
                 </bean>
 				<!-- 内置条件类型：NPC对话-->
 				<bean name="BTConditionNPCTalk">
-					<variable id="1" name="taskId" type="long"/>
-					<variable id="2" name="phaseId" type="long"/>
 					<variable id="3" name="npcId" type="long"/>
-					<variable id="4" name="dialogOptions" type="map" key="long" value="int"/> key为对话的id，value为对话选项有几个。如果没有就不用加。
+					<variable id="4" name="dialogOptions" type="map" key="string" value="int"/> key为对话的id，value为对话选项有几个。如果没有就不用加。
 					<variable id="5" name="dialogSelected" type="map" key="long" value="int"/> key为对话的id，value为选了第几个选项。如果还没选初始化为-1。
 				</bean>
 				<bean name="BTConditionNPCTalkEvent">

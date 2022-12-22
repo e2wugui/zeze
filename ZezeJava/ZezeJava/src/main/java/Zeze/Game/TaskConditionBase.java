@@ -12,27 +12,25 @@ import Zeze.Util.Action1;
 public abstract class TaskConditionBase<ConditionBean extends Bean, EventBean extends Bean> {
 
 	// @formatter:off
+	private final TaskPhase phase;
 	private BTaskCondition bean;
+	public TaskConditionBase(TaskPhase phase) {
+		this.phase = phase;
+	}
 	public final BTaskCondition getBean() {return bean;}
-	public void loadBean(BTaskCondition bean) { this.bean = bean; loadBeanExtended(bean); }
-	protected abstract void loadBeanExtended(BTaskCondition bean);
+	public void loadBean(BTaskCondition bean) { this.bean = bean; loadBeanExtended(this.bean); }
 	public void loadJson(JsonObject json) {
 		bean = new BTaskCondition();
 		bean.setConditionType(getType());
 		loadJsonExtended(json);
 	}
-	public abstract void loadJsonExtended(JsonObject json);
 	public TaskPhase getPhase() { return phase; }
-	private final TaskPhase phase;
+	protected abstract void loadJsonExtended(JsonObject json);
+	protected abstract void loadBeanExtended(BTaskCondition bean);
 	public abstract String getType();
 	public abstract boolean accept(Bean eventBean) throws Throwable;
 	public abstract boolean isCompleted();
 
-	public TaskConditionBase(TaskPhase phase) {
-		this.phase = phase;
-		beanFactory.register(getConditionBeanClass());
-		beanFactory.register(getEventBeanClass());
-	}
 
 	// ======================================== Private方法和一些不需要被注意的方法 ========================================
 	@SuppressWarnings("unchecked")
@@ -44,13 +42,13 @@ public abstract class TaskConditionBase<ConditionBean extends Bean, EventBean ex
 	public static Bean createBeanFromSpecialTypeId(long typeId) { return beanFactory.createBeanFromSpecialTypeId(typeId); }
 
 	@SuppressWarnings("unchecked")
-	private Class<ConditionBean> getConditionBeanClass() {
+	public Class<ConditionBean> getConditionBeanClass() {
 		ParameterizedType parameterizedType = (ParameterizedType)this.getClass().getGenericSuperclass();
 		return (Class<ConditionBean>)parameterizedType.getActualTypeArguments()[0];
 	}
 
 	@SuppressWarnings("unchecked")
-	private Class<EventBean> getEventBeanClass() {
+	public Class<EventBean> getEventBeanClass() {
 		ParameterizedType parameterizedType = (ParameterizedType)this.getClass().getGenericSuperclass();
 		return (Class<EventBean>)parameterizedType.getActualTypeArguments()[1];
 	}

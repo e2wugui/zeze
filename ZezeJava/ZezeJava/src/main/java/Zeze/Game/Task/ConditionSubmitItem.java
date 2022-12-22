@@ -45,7 +45,7 @@ public class ConditionSubmitItem extends TaskConditionBase<BTConditionSubmitItem
 		return "SubmitItem";
 	}
 	@Override
-	public void loadJsonExtended(JsonObject json) {
+	protected void loadJsonExtended(JsonObject json) {
 
 	}
 	// @formatter:on

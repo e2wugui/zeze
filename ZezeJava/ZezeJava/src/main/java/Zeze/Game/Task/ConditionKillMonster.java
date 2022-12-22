@@ -15,7 +15,7 @@ public class ConditionKillMonster extends TaskConditionBase<BTConditionKillMonst
 		super(phase);
 	}
 	@Override
-	public void loadJsonExtended(JsonObject json) {
+	protected void loadJsonExtended(JsonObject json) {
 		bean = new BTConditionKillMonster();
 		var monsters = json.getJsonArray("monsters");
 		for (var monster : monsters) {

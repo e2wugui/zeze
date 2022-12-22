@@ -40,10 +40,10 @@
 						{
 							"conditionType" : "NPCTalk",
 							"npcId" : 101,
-							"dialogOptions" : [{
-								"1" : 3,
-								"2" : 2
-							}]
+							"dialogOptions" : {
+								"dialog1" : 3,
+								"dialog2" : 2
+							}
 						}
 					]
 				}

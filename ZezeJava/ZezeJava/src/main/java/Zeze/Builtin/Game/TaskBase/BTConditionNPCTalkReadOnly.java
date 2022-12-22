@@ -8,9 +8,7 @@ public interface BTConditionNPCTalkReadOnly {
     public boolean negativeCheck();
     public BTConditionNPCTalk copy();
 
-    public long getTaskId();
-    public long getPhaseId();
     public long getNpcId();
-    public Zeze.Transaction.Collections.PMap1ReadOnly<Long, Integer> getDialogOptionsReadOnly();
+    public Zeze.Transaction.Collections.PMap1ReadOnly<String, Integer> getDialogOptionsReadOnly();
     public Zeze.Transaction.Collections.PMap1ReadOnly<Long, Integer> getDialogSelectedReadOnly();
 }

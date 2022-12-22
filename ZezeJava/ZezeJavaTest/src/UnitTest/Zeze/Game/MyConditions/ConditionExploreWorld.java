@@ -35,8 +35,9 @@ public class ConditionExploreWorld extends TaskConditionBase<BTConditionExploreW
 	@Override
 	protected void loadBeanExtended(BTaskCondition bean) {
 
-	}@Override
-	public void loadJsonExtended(JsonObject json) {
+	}
+	@Override
+	protected void loadJsonExtended(JsonObject json) {
 
 	}@Override
 	public String getType() {
