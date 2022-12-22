@@ -3,6 +3,7 @@ package Zeze.Game;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.json.JsonObject;
+import Zeze.Builtin.Game.TaskBase.BSubPhase;
 import Zeze.Builtin.Game.TaskBase.BTask;
 import Zeze.Builtin.Game.TaskBase.BTaskPhase;
 import Zeze.Transaction.Bean;
@@ -14,7 +15,6 @@ public class TaskPhase {
 	private BTaskPhase bean;
 	public TaskBase<?> getTask() { return task; }
 	private final TaskBase<?> task;
-	private final ConcurrentHashMap<Long, TaskConditionBase<?,?>> conditions = new ConcurrentHashMap<>();
 	// @formatter:on
 
 	// @formatter:off
@@ -33,6 +33,28 @@ public class TaskPhase {
 		var prePhaseIds = json.getJsonArray("prePhaseIds");
 		for (var id : prePhaseIds)
 			this.bean.getPrePhaseIds().add(Long.parseLong(id.toString()));
+	}
+
+	public static class SubPhase {
+		public static int COMPLETE_ALL = 0;
+		public static int COMPLETE_ANY = 1;
+		private BSubPhase bean;
+		private final TaskPhase phase;
+		private final ConcurrentHashMap<Long, TaskConditionBase<?,?>> conditions = new ConcurrentHashMap<>();
+		public SubPhase(TaskPhase phase) {
+			this.phase = phase;
+		}
+
+		public void loadJson(JsonObject json) {
+			bean = new BSubPhase();
+			bean.setNextSubPhaseId(json.getInt("nextSubPhaseId"));
+			bean.setCompleteType(json.getInt("completeType"));
+		}
+
+		public void addCondition(TaskConditionBase<?,?> condition) {
+			conditions.put(condition.getBean().getConditionId(), condition);
+			bean.getConditions().put(condition.getBean().getConditionId(), condition.getBean());
+		}
 	}
 
 	/**
@@ -121,35 +143,6 @@ public class TaskPhase {
 	// ======================================== 任务Phase初始化阶段的方法 ========================================
 	public void loadBean(BTaskPhase bean) {
 		this.bean = bean;
-	}
-	public void loadMap(Map<String, String> map) {
-		this.bean = new BTaskPhase();
-		var phaseId = Long.parseLong(map.get("PhaseId"));
-		var phaseName = map.get("PhaseName");
-		var phaseDesc = map.get("PhaseDesc");
-		var prePhaseIds = map.get("PrePhaseIds");
-		var nextPhaseId = Long.parseLong(map.get("NextPhaseId"));
-
-		bean.setPhaseId(phaseId);
-		bean.setPhaseName(phaseName);
-		bean.setPhaseDescription(phaseDesc);
-		bean.setNextPhaseId(nextPhaseId);
-
-		var res = prePhaseIds.split(",");
-		for (var s : res) {
-			if (s.isEmpty())
-				continue;
-			var id = Long.parseLong(s);
-			this.bean.getPrePhaseIds().add(id);
-		}
-	}
-	public <T extends TaskConditionBase<?,?>> T addCondition(T condition) {
-		// 不能添加不是这个任务的condition
-		if (condition.getPhase() != this)
-			return null;
-
-		conditions.put(condition.getBean().getConditionId(), condition);
-		return condition;
 	}
 	public boolean isStartPhase() { return bean.getNextPhaseId() == bean.getPhaseId() || bean.getNextPhaseId() == -1; } // 也许可以这么用，但暂时没有这么用。
 	public boolean isEndPhase() { return bean.getPrePhaseIds().isEmpty(); }

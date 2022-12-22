@@ -24,7 +24,6 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
 import Zeze.Util.ConcurrentHashSet;
-import com.opencsv.CSVReaderHeaderAware;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
 
@@ -45,36 +44,6 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	}
 	protected abstract void loadBeanExtended(BTask bean);
 
-	public void loadMap(Map<String, String> map){
-		this.bean = new BTask();
-		var taskType = map.get("TaskType");
-		var taskId = Long.parseLong(map.get("TaskId"));
-		var taskName = map.get("TaskName");
-		var taskDesc = map.get("TaskDesc");
-		var preTaskIds = map.get("PreTaskIds");
-
-		if (!Objects.equals(taskType,getType())) {
-			throw new RuntimeException("taskType != getType()");
-		}
-
-		bean.setTaskType(taskType);
-		bean.setTaskId(taskId);
-		bean.setTaskName(taskName);
-		bean.setTaskDescription(taskDesc);
-		bean.setTaskState(Module.Invalid);
-
-		var res = preTaskIds.split(",");
-		for (var s : res) {
-			if (s.isEmpty())
-				continue;
-			var id = Long.parseLong(s);
-			this.bean.getPreTaskIds().add(id);
-		}
-
-		loadMapExtended(map);
-	}
-	protected abstract void loadMapExtended(Map<String, String> map);
-
 	public void loadJson(JsonObject json) {
 		this.bean = new BTask();
 
@@ -89,20 +58,17 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		loadJsonExtended(json);
 	}
 	protected abstract void loadJsonExtended(JsonObject json);
+	public TaskPhase addPhase(TaskPhase phase) {
+		// 不能添加不是这个任务的phase
+		if (phase.getTask() != this)
+			return null;
 
-	/**
-	 * Task Info:
-	 * 1. Task Id
-	 * 2. Task Type
-	 * 3. Task State
-	 * 4. Task Name
-	 * 5. Task Description
-	 */
-	public long getId() { return bean.getTaskId(); }
+		phases.put(phase.getBean().getPhaseId(), phase);
+		bean.getTaskPhases().put(phase.getBean().getPhaseId(), phase.getBean());
+		return phase;
+	}
+
 	public abstract String getType(); // 任务类型，每个任务实例都不一样
-	public int getState() { return bean.getTaskState(); }
-	public String getName() { return bean.getTaskName(); }
-	public String getDescription() { return bean.getTaskDescription(); }
 	public ConcurrentHashSet<Long> getPreTaskIds() { return preTaskIds; } // 这里不返回PList1<Long>，只返回一个拷贝。因为我们不希望在Runtime阶段再来修改PreTask。
 	public ConcurrentHashSet<Long> getNextTaskIds() { return nextTaskIds; }
 	private final ConcurrentHashSet<Long> preTaskIds = new ConcurrentHashSet<>();; // 将通过Module在加载完配置后（即TaskGraphics的功能）统一初始化，与Bean无关，不需要存储在数据库
@@ -188,15 +154,6 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 //		return phase;
 //	}
 //
-	public TaskPhase addPhase(TaskPhase phase) {
-		// 不能添加不是这个任务的phase
-		if (phase.getTask() != this)
-			return null;
-
-		phases.put(phase.getBean().getPhaseId(), phase);
-		bean.getTaskPhases().put(phase.getBean().getPhaseId(), phase.getBean());
-		return phase;
-	}
 
 	// ======================================== Private方法和一些不需要被注意的方法 ========================================
 	// @formatter:off
@@ -268,46 +225,8 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		 * 加载任务配置表里的所有任务（在服务器启动时，或者想要验证配表是否合法时）
 		 * 需要在事务中执行。
 		 */
-		public void loadConfig(String taskConfigFile) throws Exception {
-
-			// 这里解析任务配置表，然后把所有任务配置填充到task里面。
-			var reader = new CSVReaderHeaderAware(new FileReader(taskConfigFile));
-			while (true) {
-				Map<String, String> initValues = reader.readMap();
-				if (initValues == null)
-					break;
-
-				var taskType = Integer.parseInt(initValues.get("TaskType"));
-				var task = (TaskBase<?>)constructors.get(taskType).newInstance(this);
-				task.loadMap(initValues);
-				taskNodes.put(task.getId(), task); // 将配置表存入tasks
-				_tTask.put(new BTaskKey(task.getId()), task.getBean()); // 将配置表存入_tTask数据库
-			}
-
-			// 初始化所有Task的初始配置
-			for (var task : taskNodes.values()) {
-				task.preTaskIds.clear();
-				task.nextTaskIds.clear();
-				taskGraph.addVertex(task.getId());
-			}
-
-			for (var task : taskNodes.values()) {
-				for (var preId : task.getBean().getPreTaskIds()) {
-					var preTask = taskNodes.get(preId);
-					if (null == preTask)
-						throw new RuntimeException("task " + task.getId() + " preTask " + preId + " not found.");
-					taskGraph.addEdge(preId, task.getId()); // 有向无环图，如果不合法会自动抛异常
-				}
-			}
-
-			for (var task : taskNodes.values()) {
-				taskGraph.getAncestors(task.getId()).forEach(task.preTaskIds::add); // 从图中获取所有前置任务
-				taskGraph.getDescendants(task.getId()).forEach(task.nextTaskIds::add); // 从图中获取所有后置任务
-			}
-		}
-
-		public void loadJson(String jsonFile) throws FileNotFoundException, InvocationTargetException, InstantiationException, IllegalAccessException {
-			JsonReader reader = Json.createReader(new FileReader(jsonFile));
+		public void loadJson(String taskJson) throws FileNotFoundException, InvocationTargetException, InstantiationException, IllegalAccessException {
+			JsonReader reader = Json.createReader(new FileReader(taskJson));
 			var json = reader.readObject();
 			reader.close();
 
@@ -323,28 +242,35 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 
 				var subPhases = json.getJsonArray("SubPhases");
 				for (var subPhase : subPhases) {
+					TaskPhase.SubPhase sub = new TaskPhase.SubPhase(taskPhase);
+					sub.loadJson(subPhase.asJsonObject());
 					var conditionType = subPhase.asJsonObject().getString("conditionType");
 					var conditionConstructor = conditionConstructors.get(conditionType);
 					var condition = (TaskConditionBase<?, ?>)conditionConstructor.newInstance(taskPhase);
 					condition.loadJson(subPhase.asJsonObject());
-//					taskPhase.getBean().getSubPhases().add();
+					sub.addCondition(condition);
 				}
 
-				task.getBean().getTaskPhases().put(taskPhase.getBean().getPhaseId(), taskPhase.getBean());
+				task.addPhase(taskPhase);
 			}
-		}
 
-		/**
-		 * 新建任务（仅供测试使用，会马上删除）
-		 */
-		public <ExtendedBean extends Bean, ExtendedTask extends TaskBase<ExtendedBean>>
-		ExtendedTask newTask(Class<ExtendedTask> extendedTaskClass) {
-			try {
-				var c = extendedTaskClass.getDeclaredConstructor(Module.class);
-				var task = c.newInstance(this);
-				return task;
-			} catch (Exception e) {
-				throw new RuntimeException(e);
+			_tTask.put(new BTaskKey(task.getBean().getTaskId()), task.getBean());
+			for (var t : taskNodes.values()) {
+				taskGraph.addVertex(task.getBean().getTaskId());
+			}
+
+			for (var t : taskNodes.values()) {
+				for (var preId : t.getBean().getPreTaskIds()) {
+					var preTask = taskNodes.get(preId);
+					if (null == preTask)
+						throw new RuntimeException("task " + task.getBean().getTaskId() + " preTask " + preId + " not found.");
+					taskGraph.addEdge(preId, task.getBean().getTaskId()); // 有向无环图，如果不合法会自动抛异常
+				}
+			}
+
+			for (var t : taskNodes.values()) {
+				taskGraph.getAncestors(task.getBean().getTaskId()).forEach(t.preTaskIds::add); // 从图中获取所有前置任务
+				taskGraph.getDescendants(task.getBean().getTaskId()).forEach(t.nextTaskIds::add); // 从图中获取所有后置任务
 			}
 		}
 
@@ -371,7 +297,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 				roleTasks.getFinishedTaskIds().clear();
 
 				for (var task : taskNodes.values()) {
-					roleTasks.getProcessingTasks().put(task.getId(), task.getBean().copy());
+					roleTasks.getProcessingTasks().put(task.getBean().getTaskId(), task.getBean().copy());
 				}
 
 				_tRoleTask.put(roleId, roleTasks); // 读取角色任务表，如果没有，会自动创建一个空的。

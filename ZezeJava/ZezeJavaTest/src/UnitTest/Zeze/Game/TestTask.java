@@ -187,10 +187,10 @@ public class TestTask extends TestCase {
 				module.registerCondition(ConditionSubmitItem.class);
 				module.registerCondition(ConditionKillMonster.class);
 				module.registerCondition(ConditionReachPosition.class);
-				String taskConfigPath = new File("").getAbsolutePath();
-				taskConfigPath = taskConfigPath.replace('\\', '/');
-				taskConfigPath += "/src/UnitTest/Zeze/Game/tasks_config.CSV";
-				module.loadConfig(taskConfigPath);
+				String taskJsonPath = new File("").getAbsolutePath();
+				taskJsonPath = taskJsonPath.replace('\\', '/');
+				taskJsonPath += "/src/UnitTest/Zeze/Game/MyJson/task1.json";
+				module.loadJson(taskJsonPath);
 
 				registerRole(client0, roleId);
 				// 通过领任务的方式测试

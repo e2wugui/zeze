@@ -25,9 +25,4 @@ public class MainTask01 extends TaskBase<BMainTask01> {
 	protected void loadJsonExtended(JsonObject json) {
 
 	}
-
-	@Override
-	protected void loadMapExtended(Map<String, String> map) {
-
-	}
 }

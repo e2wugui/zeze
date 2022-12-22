@@ -25,9 +25,4 @@ public class SideTask01 extends TaskBase<BSideTask01> {
 	protected void loadJsonExtended(JsonObject json) {
 
 	}
-
-	@Override
-	protected void loadMapExtended(Map<String, String> map) {
-
-	}
 }

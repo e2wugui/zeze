@@ -28,12 +28,4 @@ public class DailyTask01 extends TaskBase<BDailyTask01> {
 	protected void loadJsonExtended(JsonObject json) {
 
 	}
-
-	@Override
-	protected void loadMapExtended(Map<String, String> map) {
-		var taskNum = map.get("TaskNum");
-		if (null != taskNum) {
-			dailyTaskData.setTaskNum(Integer.parseInt(taskNum));
-		}
-	}
 }
