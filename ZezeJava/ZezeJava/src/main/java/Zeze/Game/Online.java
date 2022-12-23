@@ -45,8 +45,6 @@ import Zeze.Util.IntHashMap;
 import Zeze.Util.LongList;
 import Zeze.Util.OutLong;
 import Zeze.Util.Random;
-import Zeze.Util.RedirectGenMain;
-import Zeze.Util.Reflect;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -91,22 +89,10 @@ public class Online extends AbstractOnline {
 		throw new UnsupportedOperationException("Online Memory Table Dynamic Not Need.");
 	}
 
-	@Deprecated // 仅供内部使用, 正常创建应该调用 Online.create(app)
-	public Online() {
-		if (Reflect.stackWalker.getCallerClass() != RedirectGenMain.class)
-			throw new IllegalCallerException(Reflect.stackWalker.getCallerClass().getName());
-		providerApp = null;
-		load = null;
-	}
-
 	protected Online(AppBase app) {
-		if (app != null) {
-			this.providerApp = app.getZeze().redirect.providerApp;
-			RegisterProtocols(providerApp.providerService);
-			RegisterZezeTables(providerApp.zeze);
-		} else // for RedirectGenMain
-			this.providerApp = null;
-
+		providerApp = app.getZeze().redirect.providerApp;
+		RegisterProtocols(providerApp.providerService);
+		RegisterZezeTables(providerApp.zeze);
 		load = new ProviderLoad(this);
 	}
 

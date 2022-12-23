@@ -129,12 +129,14 @@ public class App extends Zeze.AppBase {
     }
 
     public synchronized void createModules() {
-        var _modules_ = replaceModuleInstances(new Zeze.IModule[] {
-            new Zege.Friend.ModuleFriend(this),
-            new Zege.Message.ModuleMessage(this),
-            new Zege.Linkd.ModuleLinkd(this),
-            new Zege.User.ModuleUser(this),
+        var _modules_ = createRedirectModules(new Class[] {
+            Zege.Friend.ModuleFriend.class,
+            Zege.Message.ModuleMessage.class,
+            Zege.Linkd.ModuleLinkd.class,
+            Zege.User.ModuleUser.class,
         });
+        if (_modules_ == null)
+            return;
 
         Zege_Friend = (Zege.Friend.ModuleFriend)_modules_[0];
         Zege_Friend.Initialize(this);

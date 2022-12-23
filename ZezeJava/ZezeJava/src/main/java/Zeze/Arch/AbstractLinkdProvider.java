@@ -3,9 +3,12 @@ package Zeze.Arch;
 
 public abstract class AbstractLinkdProvider implements Zeze.IModule {
     public static final int ModuleId = 11008;
-    @Override public String getFullName() { return "Zeze.Arch.LinkdProvider"; }
-    @Override public String getName() { return "LinkdProvider"; }
+    public static final String ModuleName = "LinkdProvider";
+    public static final String ModuleFullName = "Zeze.Arch.LinkdProvider";
+
     @Override public int getId() { return ModuleId; }
+    @Override public String getName() { return ModuleName; }
+    @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
 
     public void RegisterProtocols(Zeze.Net.Service service) {

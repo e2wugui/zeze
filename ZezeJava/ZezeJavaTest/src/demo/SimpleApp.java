@@ -8,7 +8,6 @@ import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderDirectService;
 import Zeze.Arch.ProviderModuleBinds;
 import Zeze.Arch.ProviderService;
-import Zeze.Arch.RedirectBase;
 import Zeze.Config;
 import Zeze.Game.Online;
 import Zeze.Game.ProviderDirectWithTransmit;
@@ -53,11 +52,6 @@ public class SimpleApp extends AppBase {
 	@Override
 	public Application getZeze() {
 		return zeze;
-	}
-
-	@Override
-	public IModule[] replaceModuleInstances(IModule[] modules) {
-		return RedirectBase.replaceModuleInstances(this, modules);
 	}
 
 	public void start() throws Throwable {

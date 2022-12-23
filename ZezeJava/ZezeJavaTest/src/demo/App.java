@@ -120,13 +120,15 @@ public class App extends Zeze.AppBase {
     }
 
     public synchronized void createModules() {
-        var _modules_ = replaceModuleInstances(new Zeze.IModule[] {
-            new demo.Module1.ModuleModule1(this),
-            new demo.Module1.Module11.ModuleModule11(this),
-            new demo.M6.ModuleM6(this),
-            new demo.M6.M7.ModuleM7(this),
-            new TaskTest.TaskExt.ModuleTaskExt(this),
+        var _modules_ = createRedirectModules(new Class[] {
+            demo.Module1.ModuleModule1.class,
+            demo.Module1.Module11.ModuleModule11.class,
+            demo.M6.ModuleM6.class,
+            demo.M6.M7.ModuleM7.class,
+            TaskTest.TaskExt.ModuleTaskExt.class,
         });
+        if (_modules_ == null)
+            return;
 
         demo_Module1 = (demo.Module1.ModuleModule1)_modules_[0];
         demo_Module1.Initialize(this);

@@ -3,9 +3,12 @@ package Zeze.Collections;
 
 public abstract class AbstractDAG implements Zeze.IModule {
     public static final int ModuleId = 11017;
-    @Override public String getFullName() { return "Zeze.Collections.DAG"; }
-    @Override public String getName() { return "DAG"; }
+    public static final String ModuleName = "DAG";
+    public static final String ModuleFullName = "Zeze.Collections.DAG";
+
     @Override public int getId() { return ModuleId; }
+    @Override public String getName() { return ModuleName; }
+    @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
 
     protected final Zeze.Builtin.Collections.DAG.tDAGs _tDAGs = new Zeze.Builtin.Collections.DAG.tDAGs();

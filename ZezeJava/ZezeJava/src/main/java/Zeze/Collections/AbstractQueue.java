@@ -3,9 +3,12 @@ package Zeze.Collections;
 
 public abstract class AbstractQueue implements Zeze.IModule {
     public static final int ModuleId = 11006;
-    @Override public String getFullName() { return "Zeze.Collections.Queue"; }
-    @Override public String getName() { return "Queue"; }
+    public static final String ModuleName = "Queue";
+    public static final String ModuleFullName = "Zeze.Collections.Queue";
+
     @Override public int getId() { return ModuleId; }
+    @Override public String getName() { return ModuleName; }
+    @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
 
     protected final Zeze.Builtin.Collections.Queue.tQueueNodes _tQueueNodes = new Zeze.Builtin.Collections.Queue.tQueueNodes();

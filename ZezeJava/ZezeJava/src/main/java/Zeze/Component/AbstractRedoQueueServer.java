@@ -3,9 +3,12 @@ package Zeze.Component;
 
 public abstract class AbstractRedoQueueServer implements Zeze.IModule {
     public static final int ModuleId = 11010;
-    @Override public String getFullName() { return "Zeze.Component.RedoQueueServer"; }
-    @Override public String getName() { return "RedoQueueServer"; }
+    public static final String ModuleName = "RedoQueueServer";
+    public static final String ModuleFullName = "Zeze.Component.RedoQueueServer";
+
     @Override public int getId() { return ModuleId; }
+    @Override public String getName() { return ModuleName; }
+    @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
 
     protected final Zeze.Builtin.RedoQueue.tQueueLastTaskId _tQueueLastTaskId = new Zeze.Builtin.RedoQueue.tQueueLastTaskId();

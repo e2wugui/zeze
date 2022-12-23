@@ -3,9 +3,12 @@ package Zeze.Services;
 
 public abstract class AbstractTestRocks implements Zeze.IModule {
     public static final int ModuleId = 11002;
-    @Override public String getFullName() { return "Zeze.Services.TestRocks"; }
-    @Override public String getName() { return "TestRocks"; }
+    public static final String ModuleName = "TestRocks";
+    public static final String ModuleFullName = "Zeze.Services.TestRocks";
+
     @Override public int getId() { return ModuleId; }
+    @Override public String getName() { return ModuleName; }
+    @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
 
     public void RegisterProtocols(Zeze.Net.Service service) {

@@ -31,13 +31,6 @@ public class Rank extends AbstractRank {
 		return GenModule.createRedirectModule(Rank.class, app);
 	}
 
-	@Deprecated // 仅供内部使用, 正常创建应该调用 Rank.create(app)
-	public Rank() {
-		if (Reflect.stackWalker.getCallerClass() != RedirectGenMain.class)
-			throw new IllegalCallerException(Reflect.stackWalker.getCallerClass().getName());
-		app = null;
-	}
-
 	protected Rank(AppBase app) {
 		if (app == null)
 			throw new NullPointerException();
@@ -54,10 +47,8 @@ public class Rank extends AbstractRank {
 
 	@Override
 	public void UnRegister() {
-		if (app != null) {
-			UnRegisterProtocols(app.getZeze().redirect.providerApp.providerService);
-			UnRegisterZezeTables(app.getZeze());
-		}
+		UnRegisterProtocols(app.getZeze().redirect.providerApp.providerService);
+		UnRegisterZezeTables(app.getZeze());
 	}
 
 	public void Start(String serviceNamePrefix, String providerDirectIp, int providerDirectPort) {

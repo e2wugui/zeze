@@ -134,10 +134,12 @@ namespace Zeze.Gen.java
             sw.WriteLine("    public synchronized void createModules() {");
             if (project.AllOrderDefineModules.Count > 0)
             {
-                sw.WriteLine("        var _modules_ = replaceModuleInstances(new Zeze.IModule[] {");
+                sw.WriteLine("        var _modules_ = createRedirectModules(new Class[] {");
                 foreach (Module m in project.AllOrderDefineModules)
-                    sw.WriteLine("            new " + m.Path(".", "Module" + Program.Upper1(m.Name)) + "(this),");
+                    sw.WriteLine("            " + m.Path(".", "Module" + Program.Upper1(m.Name)) + ".class,");
                 sw.WriteLine("        });");
+                sw.WriteLine("        if (_modules_ == null)");
+                sw.WriteLine("            return;");
                 sw.WriteLine();
                 int index = 0;
                 foreach (Module m in project.AllOrderDefineModules)

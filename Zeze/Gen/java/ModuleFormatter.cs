@@ -378,7 +378,7 @@ namespace Zeze.Gen.java
                 var version = tmap.ValueType.IsNormalBean ? "2" : "1";
                 return $"() -> new Zeze.Raft.RocksRaft.LogMap{version}<>({key}.class, {value}.class)";
             }
-            throw new System.Exception();
+            throw new Exception();
         }
 
         public void RegisterRocksTables(StreamWriter sw)
@@ -433,9 +433,6 @@ namespace Zeze.Gen.java
 
         void ModuleGen(StreamWriter sw)
         {
-            sw.WriteLine($"    public static final int ModuleId = {module.Id};");
-            sw.WriteLine();
-
             DefineZezeTables(sw);
 
             sw.WriteLine($"    public final {project.Solution.Name}.App App;");
@@ -506,9 +503,13 @@ namespace Zeze.Gen.java
                 sw.WriteLine(module.Comment);
             var classBase = (!project.EnableBase || string.IsNullOrEmpty(module.ClassBase)) ? "" : $"extends {module.ClassBase} ";
             sw.WriteLine($"public abstract class AbstractModule {classBase}implements Zeze.IModule {{");
-            sw.WriteLine($"    @Override public String getFullName() {{ return \"{module.Path()}\"; }}");
-            sw.WriteLine($"    @Override public String getName() {{ return \"{moduleName}\"; }}");
+            sw.WriteLine($"    public static final int ModuleId = {module.Id};");
+            sw.WriteLine($"    public static final String ModuleName = \"{moduleName}\";");
+            sw.WriteLine($"    public static final String ModuleFullName = \"{module.Path()}\";");
+            sw.WriteLine();
             sw.WriteLine($"    @Override public int getId() {{ return ModuleId; }}");
+            sw.WriteLine($"    @Override public String getName() {{ return ModuleName; }}");
+            sw.WriteLine($"    @Override public String getFullName() {{ return ModuleFullName; }}");
             sw.WriteLine($"    @Override public String getWebPathBase() {{ return \"{module.WebPathBase}\";}}");
             sw.WriteLine();
             // declare enums

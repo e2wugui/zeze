@@ -3,9 +3,12 @@ package Zeze.Game;
 
 public abstract class AbstractBag implements Zeze.IModule {
     public static final int ModuleId = 11014;
-    @Override public String getFullName() { return "Zeze.Game.Bag"; }
-    @Override public String getName() { return "Bag"; }
+    public static final String ModuleName = "Bag";
+    public static final String ModuleFullName = "Zeze.Game.Bag";
+
     @Override public int getId() { return ModuleId; }
+    @Override public String getName() { return ModuleName; }
+    @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
 
     public static final int ResultCodeFromInvalid = 1;

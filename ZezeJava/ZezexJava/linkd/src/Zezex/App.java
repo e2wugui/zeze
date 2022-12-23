@@ -111,9 +111,11 @@ public final class App extends Zeze.AppBase {
     }
 
     public synchronized void createModules() {
-        var _modules_ = replaceModuleInstances(new Zeze.IModule[] {
-            new Zezex.Linkd.ModuleLinkd(this),
+        var _modules_ = createRedirectModules(new Class[] {
+            Zezex.Linkd.ModuleLinkd.class,
         });
+        if (_modules_ == null)
+            return;
 
         Zezex_Linkd = (Zezex.Linkd.ModuleLinkd)_modules_[0];
         Zezex_Linkd.Initialize(this);

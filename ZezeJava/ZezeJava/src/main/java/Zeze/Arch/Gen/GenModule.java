@@ -12,7 +12,6 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import Zeze.AppBase;
 import Zeze.Arch.RedirectAll;
 import Zeze.Arch.RedirectAllFuture;
@@ -76,7 +75,7 @@ public final class GenModule {
 		return ctor.newInstance(app);
 	}
 
-	private static String getRedirectClassName(Class<? extends IModule> moduleClass) {
+	private static String getRedirectClassName(Class<?> moduleClass) {
 		String className = moduleClass.getName();
 		return className.startsWith(REDIRECT_PREFIX) ? className : REDIRECT_PREFIX + className.replace('.', '_');
 	}
@@ -89,24 +88,18 @@ public final class GenModule {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	public synchronized <T extends IModule> T replaceModuleInstance(AppBase userApp, T module) {
-		var modules = new IModule[]{module};
-		replaceModuleInstances(userApp, modules);
-		return (T)modules[0];
-	}
-
-	public synchronized void replaceModuleInstances(AppBase userApp, IModule[] modules) {
+	public synchronized IModule[] createRedirectModules(AppBase userApp, Class<?>[] moduleClasses) {
+		int i = 0, n = moduleClasses.length;
 		try {
-			String[] classNames = null;
-			Map<String, String> classNameAndCodes = null; // <className, code>
-			for (int i = 0, n = modules.length; i < n; i++) {
-				var module = modules[i];
-				if (module.getClass().getName().startsWith(REDIRECT_PREFIX)) // 预防二次replace
+			var classNames = new String[n];
+			var classNameAndCodes = new HashMap<String, String>(); // <className, code>
+			for (; i < n; i++) {
+				var moduleClass = moduleClasses[i];
+				if (moduleClass.getName().startsWith(REDIRECT_PREFIX)) // 预防二次replace
 					continue;
 
 				var overrides = new ArrayList<MethodOverride>();
-				for (var method : module.getClass().getDeclaredMethods()) {
+				for (var method : moduleClass.getDeclaredMethods()) {
 					for (var anno : method.getAnnotations()) {
 						var type = anno.annotationType();
 						if (type == RedirectToServer.class || type == RedirectHash.class || type == RedirectAll.class) {
@@ -119,7 +112,7 @@ public final class GenModule {
 					continue; // 没有需要重定向的方法。
 				overrides.sort(Comparator.comparing(o -> o.method.getName())); // 按方法名排序，避免每次生成结果发生变化。
 
-				String genClassName = getRedirectClassName(module.getClass());
+				String genClassName = getRedirectClassName(moduleClass);
 				if (genFileSrcRoot == null) { // 不需要生成到文件的时候，尝试装载已经存在的生成模块子类。
 					var genClass = genClassMap.get(genClassName);
 					if (genClass == null) {
@@ -130,13 +123,12 @@ public final class GenModule {
 						}
 					}
 					if (genClass != null) {
-						module.UnRegister();
-						modules[i] = newModule(genClass, userApp);
+						classNames[i] = genClassName;
 						continue;
 					}
 				}
 
-				var code = genModuleCode(genClassName, module, overrides, userApp);
+				var code = genModuleCode(genClassName, moduleClass, overrides, userApp);
 
 				if (genFileSrcRoot != null) {
 					byte[] oldBytes = null;
@@ -159,39 +151,37 @@ public final class GenModule {
 							e.printStackTrace();
 						}
 					}
-					continue; // 生成代码文件不会再继续执行，所以这里无需编译。
-				}
-				if (classNames == null) {
-					classNames = new String[modules.length];
-					classNameAndCodes = new HashMap<>();
 				}
 				classNames[i] = genClassName;
 				classNameAndCodes.put(genClassName, code);
 			}
+			if (genFileSrcRoot != null) // 仅生成代码时无需编译和创建模块实例
+				return null;
 
-			if (classNames != null) {
+			var modules = new IModule[n];
+			if (!classNameAndCodes.isEmpty())
 				compiler.compileAll(classNameAndCodes, genClassMap);
-				for (int i = 0, n = classNames.length; i < n; i++) {
-					var className = classNames[i];
-					if (className != null) {
-						modules[i].UnRegister();
-						modules[i] = newModule(genClassMap.get(className), userApp);
-					}
-				}
+			for (i = 0; i < n; i++) {
+				var className = classNames[i];
+				modules[i] = newModule(className != null ? genClassMap.get(className) : moduleClasses[i], userApp);
 			}
-		} catch (RuntimeException | Error e) {
-			throw e;
+			return modules;
 		} catch (Throwable e) {
+			if (i < n)
+				throw new RuntimeException("module class: " + moduleClasses[i].getName(), e);
 			throw new RuntimeException(e);
 		}
 	}
 
-	private static String genModuleCode(String genClassName, IModule module, List<MethodOverride> overrides, AppBase userApp) throws Throwable {
+	private static String genModuleCode(String genClassName, Class<?> moduleClass, List<MethodOverride> overrides, AppBase userApp) throws Throwable {
 		var sb = new StringBuilderCs();
 		sb.appendLine("// auto-generated @" + "formatter:off");
-		sb.appendLine("public final class {} extends {} {", genClassName, module.getClass().getName());
+		sb.appendLine("public final class {} extends {} {", genClassName, moduleClass.getName());
 		sb.appendLine("    private final Zeze.Arch.RedirectBase _redirect_;");
 		sb.appendLine();
+
+		int moduleId = moduleClass.getField("ModuleId").getInt(null);
+		var moduleFullName = (String)moduleClass.getField("ModuleFullName").get(null);
 
 		var sbHandles = new StringBuilderCs();
 		for (var m : overrides) {
@@ -207,7 +197,7 @@ public final class GenModule {
 				returnName = "Zeze.Arch.RedirectAllFuture<" + m.resultTypeName + '>';
 			else {
 				throw new UnsupportedOperationException("Redirect return type Must Be void or RedirectFuture or RedirectAllFuture: "
-						+ module.getClass().getName() + '.' + m.method.getName());
+						+ moduleClass.getName() + '.' + m.method.getName());
 			}
 			String modifier;
 			int flags = m.method.getModifiers();
@@ -217,7 +207,7 @@ public final class GenModule {
 				modifier = "protected ";
 			else {
 				throw new UnsupportedOperationException("Redirect method Must Be public or protected: "
-						+ module.getClass().getName() + '.' + m.method.getName());
+						+ moduleClass.getName() + '.' + m.method.getName());
 			}
 
 			sb.appendLine("    @Override");
@@ -226,16 +216,16 @@ public final class GenModule {
 			choiceTargetRunLoopback(sb, m, returnName);
 
 			if (m.annotation instanceof RedirectAll) {
-				genRedirectAll(sb, sbHandles, module, m);
+				genRedirectAll(sb, sbHandles, moduleId, moduleFullName, m);
 				continue;
 			}
 
 			sb.appendLine("        var _p_ = new Zeze.Builtin.ProviderDirect.ModuleRedirect();");
 			sb.appendLine("        var _a_ = _p_.Argument;");
-			sb.appendLine("        _a_.setModuleId({});", module.getId());
+			sb.appendLine("        _a_.setModuleId({});", moduleId);
 			sb.appendLine("        _a_.setRedirectType({});", m.getRedirectType());
 			sb.appendLine("        _a_.setHashCode({});", m.hashOrServerIdParameter.getName());
-			sb.appendLine("        _a_.setMethodFullName(\"{}:{}\");", module.getFullName(), m.method.getName());
+			sb.appendLine("        _a_.setMethodFullName(\"{}:{}\");", moduleFullName, m.method.getName());
 			sb.appendLine("        _a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);");
 			if (m.inputParameters.size() > 0) {
 				sb.appendLine("        var _b_ = Zeze.Serialize.ByteBuffer.Allocate();");
@@ -306,7 +296,7 @@ public final class GenModule {
 			sb.appendLine();
 
 			// Handles
-			sbHandles.appendLine("        _app_.getZeze().redirect.handles.put(\"{}:{}\", new Zeze.Arch.RedirectHandle(", module.getFullName(), m.method.getName());
+			sbHandles.appendLine("        _app_.getZeze().redirect.handles.put(\"{}:{}\", new Zeze.Arch.RedirectHandle(", moduleFullName, m.method.getName());
 			sbHandles.appendLine("            Zeze.Transaction.TransactionLevel.{}, (_hash_, _params_) -> {", m.transactionLevel);
 			boolean genLocal = false;
 			for (int i = 0; i < m.inputParameters.size(); ++i) {
@@ -351,7 +341,7 @@ public final class GenModule {
 		}
 
 		sb.appendLine("    @SuppressWarnings({\"unchecked\", \"RedundantSuppression\"})");
-		var ctor = getCtor(module.getClass(), userApp);
+		var ctor = getCtor(moduleClass, userApp);
 		if (ctor.getParameterCount() == 1) {
 			sb.appendLine("    public {}({} _app_) {", genClassName, ctor.getParameters()[0].getType().getName().replace('$', '.'));
 			sb.appendLine("        super(_app_);");
@@ -389,7 +379,7 @@ public final class GenModule {
 	}
 
 	private static void genRedirectAll(StringBuilderCs sb, StringBuilderCs sbHandles,
-									   IModule module, MethodOverride m) throws Throwable {
+									   int moduleId, String moduleFullName, MethodOverride m) throws Throwable {
 		sb.append("        var _c_ = new Zeze.Arch.RedirectAllContext<>({}, ", m.hashOrServerIdParameter.getName());
 		if (m.resultTypeName != null) {
 			sb.appendLine("_params_ -> {");
@@ -405,9 +395,9 @@ public final class GenModule {
 			sb.appendLine("null);");
 		sb.appendLine("        var _p_ = new Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest();");
 		sb.appendLine("        var _a_ = _p_.Argument;");
-		sb.appendLine("        _a_.setModuleId({});", module.getId());
+		sb.appendLine("        _a_.setModuleId({});", moduleId);
 		sb.appendLine("        _a_.setHashCodeConcurrentLevel({});", m.hashOrServerIdParameter.getName());
-		sb.appendLine("        _a_.setMethodFullName(\"{}:{}\");", module.getFullName(), m.method.getName());
+		sb.appendLine("        _a_.setMethodFullName(\"{}:{}\");", moduleFullName, m.method.getName());
 		sb.appendLine("        _a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);");
 		sb.appendLine("        _a_.setSessionId(_redirect_.providerApp.providerDirectService.addManualContextWithTimeout(_c_, {}));", ((RedirectAll)m.annotation).timeout());
 		if (m.inputParameters.size() > 0) {
@@ -423,7 +413,7 @@ public final class GenModule {
 		sb.appendLine();
 
 		// handles
-		sbHandles.appendLine("        _app_.getZeze().redirect.handles.put(\"{}:{}\", new Zeze.Arch.RedirectHandle(", module.getFullName(), m.method.getName());
+		sbHandles.appendLine("        _app_.getZeze().redirect.handles.put(\"{}:{}\", new Zeze.Arch.RedirectHandle(", moduleFullName, m.method.getName());
 		sbHandles.appendLine("            Zeze.Transaction.TransactionLevel.{}, (_hash_, _params_) -> {", m.transactionLevel);
 		if (!m.inputParameters.isEmpty()) {
 			sbHandles.appendLine("                var _b_ = _params_.Wrap();");

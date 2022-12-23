@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 
 namespace Zeze.Gen.java
@@ -92,9 +91,12 @@ namespace Zeze.Gen.java
                     ? "" : $"extends {presentModule.ClassBase} ";
                 sw.WriteLine($"public abstract class Abstract{Project.Name} {classBase}implements Zeze.IModule {{");
                 sw.WriteLine($"    public static final int ModuleId = {presentModule.Id};");
-                sw.WriteLine($"    @Override public String getFullName() {{ return \"{ns + "." + Project.Name}\"; }}");
-                sw.WriteLine($"    @Override public String getName() {{ return \"{Project.Name}\"; }}");
+                sw.WriteLine($"    public static final String ModuleName = \"{Project.Name}\";");
+                sw.WriteLine($"    public static final String ModuleFullName = \"{ns + "." + Project.Name}\";");
+                sw.WriteLine();
                 sw.WriteLine($"    @Override public int getId() {{ return ModuleId; }}");
+                sw.WriteLine($"    @Override public String getName() {{ return ModuleName; }}");
+                sw.WriteLine($"    @Override public String getFullName() {{ return ModuleFullName; }}");
                 sw.WriteLine($"    @Override public boolean isBuiltin() {{ return true; }}");
                 sw.WriteLine();
 

@@ -28,96 +28,98 @@ import Zeze.Util.JsonReader;
 import Zeze.Util.PersistentAtomicLong;
 
 public class App extends Zeze.AppBase {
-    public static final App Instance = new App();
-    public static App getInstance() {
-        return Instance;
-    }
+	public static final App Instance = new App();
 
-    public ProviderApp ProviderApp;
-    public ProviderDirect ProviderDirect;
-    public ProviderWithOnline Provider;
-    public LinkedMap.Module LinkedMaps;
-    public DepartmentTree.Module DepartmentTrees;
-    public Zeze.Netty.HttpServer HttpServer;
+	public static App getInstance() {
+		return Instance;
+	}
 
-    private LoadConfig LoadConfig() {
-        try {
-            byte[] bytes = Files.readAllBytes(Paths.get("linkd.json"));
-            return new JsonReader().buf(bytes).parse(LoadConfig.class);
-            // return new ObjectMapper().readValue(bytes, LoadConfig.class);
-        } catch (Exception e) {
-            // e.printStackTrace();
-        }
-        return new LoadConfig();
-    }
+	public ProviderApp ProviderApp;
+	public ProviderDirect ProviderDirect;
+	public ProviderWithOnline Provider;
+	public LinkedMap.Module LinkedMaps;
+	public DepartmentTree.Module DepartmentTrees;
+	public Zeze.Netty.HttpServer HttpServer;
 
-    public KeyStore FakeCa;
-    private void createFakeCa() throws IOException, GeneralSecurityException {
-        var file = "ZegeFakeCa.pkcs12";
-        var passwd = "123";
-        if (Files.exists(Path.of(file))) {
-            FakeCa = Cert.loadKeyStore(new FileInputStream(file), passwd);
-        } else {
-            var rsa = Cert.generateRsaKeyPair();
-            var cert = Cert.generate("ZegeFakeCa", rsa.getPublic(), "ZegeFakeCa", rsa.getPrivate(), 100000);
-            FakeCa = KeyStore.getInstance("pkcs12");
-            FakeCa.load(null, null);
-            FakeCa.setKeyEntry("ZegeFakeCa", rsa.getPrivate(), passwd.toCharArray(), new Certificate[]{ cert });
-            FakeCa.store(new FileOutputStream(file), passwd.toCharArray());
-        }
-    }
+	private static LoadConfig LoadConfig() {
+		try {
+			byte[] bytes = Files.readAllBytes(Paths.get("linkd.json"));
+			return new JsonReader().buf(bytes).parse(LoadConfig.class);
+			// return new ObjectMapper().readValue(bytes, LoadConfig.class);
+		} catch (Exception e) {
+			// e.printStackTrace();
+		}
+		return new LoadConfig();
+	}
 
-    public ZegeConfig ZegeConfig = new ZegeConfig();
+	public KeyStore FakeCa;
 
-    public void Start(String conf) throws Throwable {
-        var config = new Config().addCustomize(ZegeConfig);
-        config.loadAndParse(conf);
+	private void createFakeCa() throws IOException, GeneralSecurityException {
+		var file = "ZegeFakeCa.pkcs12";
+		var passwd = "123";
+		if (Files.exists(Path.of(file))) {
+			FakeCa = Cert.loadKeyStore(new FileInputStream(file), passwd);
+		} else {
+			var rsa = Cert.generateRsaKeyPair();
+			var cert = Cert.generate("ZegeFakeCa", rsa.getPublic(), "ZegeFakeCa", rsa.getPrivate(), 100000);
+			FakeCa = KeyStore.getInstance("pkcs12");
+			FakeCa.load(null, null);
+			FakeCa.setKeyEntry("ZegeFakeCa", rsa.getPrivate(), passwd.toCharArray(), new Certificate[]{cert});
+			FakeCa.store(new FileOutputStream(file), passwd.toCharArray());
+		}
+	}
 
-        createZeze(config);
-        createService();
+	public ZegeConfig ZegeConfig = new ZegeConfig();
 
-        HttpServer = new HttpServer(Zeze, null, 600);
+	public void Start(String conf) throws Throwable {
+		var config = new Config().addCustomize(ZegeConfig);
+		config.loadAndParse(conf);
 
-        var dbWeb = new DbWeb();
-        dbWeb.Initialize(this);
-        dbWeb.RegisterHttpServlet(HttpServer);
+		createZeze(config);
+		createService();
 
-        Provider = new ProviderWithOnline();
-        ProviderDirect = new ProviderDirect();
-        ProviderApp = new ProviderApp(Zeze, Provider, Server,
-                "Zege.Server.Module#",
-                ProviderDirect, ServerDirect, "Zege.Linkd", LoadConfig());
-        Provider.online = GenModule.instance.replaceModuleInstance(this, new Online(this));
-        LinkedMaps = new LinkedMap.Module(Zeze);
-        DepartmentTrees = new DepartmentTree.Module(Zeze, LinkedMaps);
+		HttpServer = new HttpServer(Zeze, null, 600);
 
-        createModules();
-        Zeze.start(); // 启动数据库
-        startModules(); // 启动模块，装载配置什么的。
-        Provider.online.start();
-        HttpServer.start(new Netty(1), 80); //TODO: 从配置里读线程数和端口
+		var dbWeb = new DbWeb();
+		dbWeb.Initialize(this);
+		dbWeb.RegisterHttpServlet(HttpServer);
 
-        createFakeCa();
+		Provider = new ProviderWithOnline();
+		ProviderDirect = new ProviderDirect();
+		ProviderApp = new ProviderApp(Zeze, Provider, Server,
+				"Zege.Server.Module#",
+				ProviderDirect, ServerDirect, "Zege.Linkd", LoadConfig());
+		Provider.online = (Online)GenModule.instance.createRedirectModules(this, new Class[]{Online.class})[0];
+		LinkedMaps = new LinkedMap.Module(Zeze);
+		DepartmentTrees = new DepartmentTree.Module(Zeze, LinkedMaps);
 
-        PersistentAtomicLong socketSessionIdGen = PersistentAtomicLong.getOrAdd("Zege.Server." + Zeze.getConfig().getServerId());
-        AsyncSocket.setSessionIdGenFunc(socketSessionIdGen::next);
-        startService(); // 启动网络
-        ProviderApp.startLast(ProviderModuleBinds.load(), modules);
-    }
+		createModules();
+		Zeze.start(); // 启动数据库
+		startModules(); // 启动模块，装载配置什么的。
+		Provider.online.start();
+		HttpServer.start(new Netty(1), 80); //TODO: 从配置里读线程数和端口
 
-    public void Stop() throws Throwable {
-        if (Provider != null && Provider.online != null)
-            Provider.online.stop();
-        stopService(); // 关闭网络
-        stopModules(); // 关闭模块，卸载配置什么的。
-        if (Zeze != null)
-            Zeze.stop(); // 关闭数据库
-        destroyModules();
-        destroyServices();
-        destroyZeze();
-    }
+		createFakeCa();
 
-    // ZEZE_FILE_CHUNK {{{ GEN APP @formatter:off
+		PersistentAtomicLong socketSessionIdGen = PersistentAtomicLong.getOrAdd("Zege.Server." + Zeze.getConfig().getServerId());
+		AsyncSocket.setSessionIdGenFunc(socketSessionIdGen::next);
+		startService(); // 启动网络
+		ProviderApp.startLast(ProviderModuleBinds.load(), modules);
+	}
+
+	public void Stop() throws Throwable {
+		if (Provider != null && Provider.online != null)
+			Provider.online.stop();
+		stopService(); // 关闭网络
+		stopModules(); // 关闭模块，卸载配置什么的。
+		if (Zeze != null)
+			Zeze.stop(); // 关闭数据库
+		destroyModules();
+		destroyServices();
+		destroyZeze();
+	}
+
+	// ZEZE_FILE_CHUNK {{{ GEN APP @formatter:off
     public Zeze.Application Zeze;
     public final java.util.HashMap<String, Zeze.IModule> modules = new java.util.HashMap<>();
 
@@ -151,12 +153,14 @@ public class App extends Zeze.AppBase {
     }
 
     public synchronized void createModules() {
-        var _modules_ = replaceModuleInstances(new Zeze.IModule[] {
-            new Zege.User.ModuleUser(this),
-            new Zege.Friend.ModuleFriend(this),
-            new Zege.Message.ModuleMessage(this),
-            new Zege.Notify.ModuleNotify(this),
+        var _modules_ = createRedirectModules(new Class[] {
+            Zege.User.ModuleUser.class,
+            Zege.Friend.ModuleFriend.class,
+            Zege.Message.ModuleMessage.class,
+            Zege.Notify.ModuleNotify.class,
         });
+        if (_modules_ == null)
+            return;
 
         Zege_User = (Zege.User.ModuleUser)_modules_[0];
         Zege_User.Initialize(this);

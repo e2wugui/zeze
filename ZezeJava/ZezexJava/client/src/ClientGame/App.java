@@ -67,13 +67,15 @@ public class App extends Zeze.AppBase {
     }
 
     public synchronized void createModules() {
-        var _modules_ = replaceModuleInstances(new Zeze.IModule[] {
-            new Zeze.Builtin.Game.Online.ModuleOnline(this),
-            new Zeze.Builtin.Game.Bag.ModuleBag(this),
-            new Zeze.Builtin.LinkdBase.ModuleLinkdBase(this),
-            new ClientZezex.Linkd.ModuleLinkd(this),
-            new ClientGame.Login.ModuleLogin(this),
+        var _modules_ = createRedirectModules(new Class[] {
+            Zeze.Builtin.Game.Online.ModuleOnline.class,
+            Zeze.Builtin.Game.Bag.ModuleBag.class,
+            Zeze.Builtin.LinkdBase.ModuleLinkdBase.class,
+            ClientZezex.Linkd.ModuleLinkd.class,
+            ClientGame.Login.ModuleLogin.class,
         });
+        if (_modules_ == null)
+            return;
 
         Zeze_Builtin_Game_Online = (Zeze.Builtin.Game.Online.ModuleOnline)_modules_[0];
         Zeze_Builtin_Game_Online.Initialize(this);

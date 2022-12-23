@@ -3,9 +3,12 @@ package Zeze.Component;
 
 public abstract class AbstractDbWeb implements Zeze.IModule {
     public static final int ModuleId = 11021;
-    @Override public String getFullName() { return "Zeze.Component.DbWeb"; }
-    @Override public String getName() { return "DbWeb"; }
+    public static final String ModuleName = "DbWeb";
+    public static final String ModuleFullName = "Zeze.Component.DbWeb";
+
     @Override public int getId() { return ModuleId; }
+    @Override public String getName() { return ModuleName; }
+    @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
 
     public void RegisterProtocols(Zeze.Net.Service service) {

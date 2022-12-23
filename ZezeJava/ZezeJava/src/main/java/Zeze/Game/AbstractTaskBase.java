@@ -3,9 +3,12 @@ package Zeze.Game;
 
 public abstract class AbstractTaskBase implements Zeze.IModule {
     public static final int ModuleId = 11018;
-    @Override public String getFullName() { return "Zeze.Game.TaskBase"; }
-    @Override public String getName() { return "TaskBase"; }
+    public static final String ModuleName = "TaskBase";
+    public static final String ModuleFullName = "Zeze.Game.TaskBase";
+
     @Override public int getId() { return ModuleId; }
+    @Override public String getName() { return ModuleName; }
+    @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
 
     public static final int Disabled = 0; // 不可接取

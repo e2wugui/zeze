@@ -6,13 +6,11 @@ import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.LoadConfig;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderModuleBinds;
-import Zeze.Arch.RedirectBase;
 import Zeze.Config;
 import Zeze.Game.Online;
 import Zeze.Game.ProviderDirectWithTransmit;
 import Zeze.Game.ProviderImplementWithOnline;
 import Zeze.Game.TaskBase;
-import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.JsonReader;
 import Zeze.Util.PersistentAtomicLong;
@@ -27,11 +25,6 @@ public final class App extends Zeze.AppBase {
 	public ProviderImplementWithOnline Provider;
 	public ProviderApp ProviderApp;
 	public ProviderDirectWithTransmit ProviderDirect;
-
-	@Override
-	public IModule[] replaceModuleInstances(IModule[] modules) {
-		return RedirectBase.replaceModuleInstances(this, modules);
-	}
 
 	public ProviderImplementWithOnline getProvider() {
 		return Provider;
@@ -162,18 +155,20 @@ public final class App extends Zeze.AppBase {
     }
 
     public synchronized void createModules() {
-        var _modules_ = replaceModuleInstances(new Zeze.IModule[] {
-            new Game.Login.ModuleLogin(this),
-            new Game.Item.ModuleItem(this),
-            new Game.Fight.ModuleFight(this),
-            new Game.Skill.ModuleSkill(this),
-            new Game.Buf.ModuleBuf(this),
-            new Game.Equip.ModuleEquip(this),
-            new Game.Map.ModuleMap(this),
-            new Game.Rank.ModuleRank(this),
-            new Game.Timer.ModuleTimer(this),
-            new Game.LongSet.ModuleLongSet(this),
+        var _modules_ = createRedirectModules(new Class[] {
+            Game.Login.ModuleLogin.class,
+            Game.Item.ModuleItem.class,
+            Game.Fight.ModuleFight.class,
+            Game.Skill.ModuleSkill.class,
+            Game.Buf.ModuleBuf.class,
+            Game.Equip.ModuleEquip.class,
+            Game.Map.ModuleMap.class,
+            Game.Rank.ModuleRank.class,
+            Game.Timer.ModuleTimer.class,
+            Game.LongSet.ModuleLongSet.class,
         });
+        if (_modules_ == null)
+            return;
 
         Game_Login = (Game.Login.ModuleLogin)_modules_[0];
         Game_Login.Initialize(this);

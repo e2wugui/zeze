@@ -3,9 +3,12 @@ package Zeze.Component;
 
 public abstract class AbstractStatistics implements Zeze.IModule {
     public static final int ModuleId = 11020;
-    @Override public String getFullName() { return "Zeze.Component.Statistics"; }
-    @Override public String getName() { return "Statistics"; }
+    public static final String ModuleName = "Statistics";
+    public static final String ModuleFullName = "Zeze.Component.Statistics";
+
     @Override public int getId() { return ModuleId; }
+    @Override public String getName() { return ModuleName; }
+    @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
 
     public void RegisterProtocols(Zeze.Net.Service service) {

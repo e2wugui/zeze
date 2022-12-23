@@ -3,9 +3,12 @@ package Zeze.Component;
 
 public abstract class AbstractTimer implements Zeze.IModule {
     public static final int ModuleId = 11016;
-    @Override public String getFullName() { return "Zeze.Component.Timer"; }
-    @Override public String getName() { return "Timer"; }
+    public static final String ModuleName = "Timer";
+    public static final String ModuleFullName = "Zeze.Component.Timer";
+
     @Override public int getId() { return ModuleId; }
+    @Override public String getName() { return ModuleName; }
+    @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
 
     public static final int eMissfirePolicyNothing = 0; // quartz 兼容

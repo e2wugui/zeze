@@ -1,7 +1,6 @@
 package Zeze.Arch;
 
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Arch.Gen.GenModule;
 import Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash;
 import Zeze.Builtin.ProviderDirect.ModuleRedirect;
 import Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest;
@@ -30,15 +29,6 @@ public class RedirectBase {
 
 	public RedirectBase(ProviderApp app) {
 		providerApp = app;
-	}
-
-	public static <T extends IModule> T replaceModuleInstance(Zeze.AppBase userApp, T module) {
-		return GenModule.instance.replaceModuleInstance(userApp, module);
-	}
-
-	public static IModule[] replaceModuleInstances(Zeze.AppBase userApp, IModule[] modules) {
-		GenModule.instance.replaceModuleInstances(userApp, modules);
-		return modules;
 	}
 
 	public AsyncSocket choiceServer(IModule module, int serverId) {

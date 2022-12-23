@@ -3,9 +3,12 @@ package Zeze.Arch;
 
 public abstract class AbstractProviderDirect implements Zeze.IModule {
     public static final int ModuleId = 11009;
-    @Override public String getFullName() { return "Zeze.Arch.ProviderDirect"; }
-    @Override public String getName() { return "ProviderDirect"; }
+    public static final String ModuleName = "ProviderDirect";
+    public static final String ModuleFullName = "Zeze.Arch.ProviderDirect";
+
     @Override public int getId() { return ModuleId; }
+    @Override public String getName() { return ModuleName; }
+    @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
 
     public static final int ErrorTransmitParameterFactoryNotFound = 1;

@@ -3,9 +3,12 @@ package Zeze.Component;
 
 public abstract class AbstractAutoKey implements Zeze.IModule {
     public static final int ModuleId = 11003;
-    @Override public String getFullName() { return "Zeze.Component.AutoKey"; }
-    @Override public String getName() { return "AutoKey"; }
+    public static final String ModuleName = "AutoKey";
+    public static final String ModuleFullName = "Zeze.Component.AutoKey";
+
     @Override public int getId() { return ModuleId; }
+    @Override public String getName() { return ModuleName; }
+    @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
 
     protected final Zeze.Builtin.AutoKey.tAutoKeys _tAutoKeys = new Zeze.Builtin.AutoKey.tAutoKeys();

@@ -75,14 +75,16 @@ public class App extends Zeze.AppBase {
     }
 
     public synchronized void createModules() {
-        var _modules_ = replaceModuleInstances(new Zeze.IModule[] {
-            new Zeze.Builtin.Online.ModuleOnline(this),
-            new Zeze.Builtin.LinkdBase.ModuleLinkdBase(this),
-            new Zege.Linkd.ModuleLinkd(this),
-            new Zege.Friend.ModuleFriend(this),
-            new Zege.Message.ModuleMessage(this),
-            new Zege.User.ModuleUser(this),
+        var _modules_ = createRedirectModules(new Class[] {
+            Zeze.Builtin.Online.ModuleOnline.class,
+            Zeze.Builtin.LinkdBase.ModuleLinkdBase.class,
+            Zege.Linkd.ModuleLinkd.class,
+            Zege.Friend.ModuleFriend.class,
+            Zege.Message.ModuleMessage.class,
+            Zege.User.ModuleUser.class,
         });
+        if (_modules_ == null)
+            return;
 
         Zeze_Builtin_Online = (Zeze.Builtin.Online.ModuleOnline)_modules_[0];
         Zeze_Builtin_Online.Initialize(this);

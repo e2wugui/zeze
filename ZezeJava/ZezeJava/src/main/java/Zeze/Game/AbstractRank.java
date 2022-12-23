@@ -3,9 +3,12 @@ package Zeze.Game;
 
 public abstract class AbstractRank implements Zeze.IModule {
     public static final int ModuleId = 11015;
-    @Override public String getFullName() { return "Zeze.Game.Rank"; }
-    @Override public String getName() { return "Rank"; }
+    public static final String ModuleName = "Rank";
+    public static final String ModuleFullName = "Zeze.Game.Rank";
+
     @Override public int getId() { return ModuleId; }
+    @Override public String getName() { return ModuleName; }
+    @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
 
     protected final Zeze.Builtin.Game.Rank.trank _trank = new Zeze.Builtin.Game.Rank.trank();

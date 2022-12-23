@@ -3,9 +3,12 @@ package Zeze.Arch;
 
 public abstract class AbstractOnline implements Zeze.IModule {
     public static final int ModuleId = 11100;
-    @Override public String getFullName() { return "Zeze.Arch.Online"; }
-    @Override public String getName() { return "Online"; }
+    public static final String ModuleName = "Online";
+    public static final String ModuleFullName = "Zeze.Arch.Online";
+
     @Override public int getId() { return ModuleId; }
+    @Override public String getName() { return ModuleName; }
+    @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
 
     public static final int ResultCodeSuccess = 0;

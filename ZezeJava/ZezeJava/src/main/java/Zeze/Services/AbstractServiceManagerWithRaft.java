@@ -3,9 +3,12 @@ package Zeze.Services;
 
 public abstract class AbstractServiceManagerWithRaft implements Zeze.IModule {
     public static final int ModuleId = 11022;
-    @Override public String getFullName() { return "Zeze.Services.ServiceManagerWithRaft"; }
-    @Override public String getName() { return "ServiceManagerWithRaft"; }
+    public static final String ModuleName = "ServiceManagerWithRaft";
+    public static final String ModuleFullName = "Zeze.Services.ServiceManagerWithRaft";
+
     @Override public int getId() { return ModuleId; }
+    @Override public String getName() { return ModuleName; }
+    @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
 
     public void RegisterProtocols(Zeze.Net.Service service) {

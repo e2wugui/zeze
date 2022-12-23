@@ -1,9 +1,11 @@
 package Zeze;
 
+import Zeze.Arch.Gen.GenModule;
+
 public abstract class AppBase {
 	public abstract Application getZeze();
 
-	public Zeze.IModule[] replaceModuleInstances(Zeze.IModule[] modules) {
-		return modules;
+	public IModule[] createRedirectModules(Class<?>[] moduleClasses) {
+		return GenModule.instance.createRedirectModules(this, moduleClasses);
 	}
 }
