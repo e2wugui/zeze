@@ -9,7 +9,7 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
 
     private long _subPhaseId;
     private int _completeType; // CompleteAll/CompleteAny
-    private int _nextSubPhaseId; // 下一个SubPhaseId（允许通过不同的conditions完成情况动态变化）
+    private long _nextSubPhaseId; // 下一个SubPhaseId（允许通过不同的conditions完成情况动态变化）
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.TaskBase.BTaskCondition> _conditions; // 该SubPhase包含的所有的Condition
 
     private transient Object __zeze_map_key__;
@@ -65,7 +65,7 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
     }
 
     @Override
-    public int getNextSubPhaseId() {
+    public long getNextSubPhaseId() {
         if (!isManaged())
             return _nextSubPhaseId;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
@@ -75,7 +75,7 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
         return log != null ? log.value : _nextSubPhaseId;
     }
 
-    public void setNextSubPhaseId(int value) {
+    public void setNextSubPhaseId(long value) {
         if (!isManaged()) {
             _nextSubPhaseId = value;
             return;
@@ -100,7 +100,7 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
     }
 
     @SuppressWarnings("deprecation")
-    public BSubPhase(long _subPhaseId_, int _completeType_, int _nextSubPhaseId_) {
+    public BSubPhase(long _subPhaseId_, int _completeType_, long _nextSubPhaseId_) {
         _subPhaseId = _subPhaseId_;
         _completeType = _completeType_;
         _nextSubPhaseId = _nextSubPhaseId_;
@@ -163,8 +163,8 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
         public void commit() { ((BSubPhase)getBelong())._completeType = value; }
     }
 
-    private static final class Log__nextSubPhaseId extends Zeze.Transaction.Logs.LogInt {
-        public Log__nextSubPhaseId(BSubPhase bean, int varId, int value) { super(bean, varId, value); }
+    private static final class Log__nextSubPhaseId extends Zeze.Transaction.Logs.LogLong {
+        public Log__nextSubPhaseId(BSubPhase bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
         public void commit() { ((BSubPhase)getBelong())._nextSubPhaseId = value; }
@@ -231,10 +231,10 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
             }
         }
         {
-            int _x_ = getNextSubPhaseId();
+            long _x_ = getNextSubPhaseId();
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
-                _o_.WriteInt(_x_);
+                _o_.WriteLong(_x_);
             }
         }
         {
@@ -263,7 +263,7 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            setNextSubPhaseId(_o_.ReadInt(_t_));
+            setNextSubPhaseId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 4) {
@@ -314,7 +314,7 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
             switch (vlog.getVariableId()) {
                 case 1: _subPhaseId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 2: _completeType = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 3: _nextSubPhaseId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 3: _nextSubPhaseId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 4: _conditions.followerApply(vlog); break;
             }
         }

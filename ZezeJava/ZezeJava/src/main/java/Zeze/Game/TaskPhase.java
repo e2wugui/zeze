@@ -16,9 +16,9 @@ public class TaskPhase {
 	private final TaskBase<?> task;
 	public BTaskPhase getBean() { return bean; }
 	private BTaskPhase bean;
-	private SubPhase currentSubPhase;
 	public final ConcurrentHashMap<Long, SubPhase> subPhases = new ConcurrentHashMap<>();
-	public Func0<Boolean> isAbleToStartCheckCallback;
+	private SubPhase currentSubPhase;
+	public Func0<Boolean> isAbleToStartCallback = null; // 描述该Phase是否可以开始的回调函数，经典的情况就是：NPC占用。如果当前NPC被其他任务占用，那么当前Phase就不能开始。
 	// @formatter:on
 
 	// @formatter:off
@@ -31,8 +31,6 @@ public class TaskPhase {
 		bean.setNextPhaseId(json.getInt("nextPhaseId"));
 
 		var prePhaseIds = json.getJsonArray("prePhaseIds");
-		if (prePhaseIds.isEmpty())
-			bean.setCurrentSubPhaseId(0);
 		for (var id : prePhaseIds)
 			this.bean.getPrePhaseIds().add(Long.parseLong(id.toString()));
 
@@ -60,45 +58,37 @@ public class TaskPhase {
 	}
 
 	/**
+	 * Runtime方法: 从Bean中恢复Phase
+	 */
+	public void loadBean(BTaskPhase bean) {
+		this.bean = bean;
+
+		currentSubPhase = subPhases.get(bean.getCurrentSubPhaseId());
+		currentSubPhase.loadBean(bean.getSubPhases().get(bean.getCurrentSubPhaseId()));
+	}
+
+	/**
 	 * Runtime方法：accept
 	 * - 用于接收事件，改变数据库的数据
 	 * - 当满足任务Phase推进情况时，会自动推进任务Phase
 	 */
 	public boolean accept(Bean eventBean) throws Throwable {
-//
-//		// 如果是Phase的bean，那就在Phase这儿截断。
-//		if (eventBean instanceof BTPhaseCommitNPCTalkEvent) {
-//			var e = (BTPhaseCommitNPCTalkEvent)eventBean;
-//			if (e.getPhaseId() != getPhaseId())
-//				return false;
-//
-//			if (getCommitType() == CommitNPCTalk) {
-//				var commitBean = (BTPhaseCommitNPCTalk)bean.getExtendedData().getBean();
-//				commitBean.setCommitted(true);
-//				return true;
-//			}
-//			return false;
-//		}
-//
-//		if (getConditionsCompleteType() == ConditionCompleteSequence) {
-//			var condition = conditions.get(currentConditionId);
-//			if (!condition.accept(eventBean))
-//				return false;
-//
-//			if(condition.isCompleted()) {
-//				condition.onComplete();
-//				++currentConditionId;
-//			}
-//			return true;
-//		}
-//
-		boolean res = false;
-//		for (var condition : conditions.values()) {
-//			res = res || condition.accept(eventBean);
-//			if(condition.isCompleted())
-//				condition.onComplete();
-//		}
-		return res;
+		if (!currentSubPhase.accept(eventBean))
+			return false;
+
+		// 如果有condition被accept了，检查是否需要推进到下一个SubPhase
+		if (currentSubPhase.isCompleted()) {
+			if (currentSubPhase.isEndSubPhase()) {
+				// 做一些onComplete的工作
+			} else {
+				long nextSubPhaseId = currentSubPhase.getBean().getNextSubPhaseId();
+				bean.setCurrentSubPhaseId(nextSubPhaseId);
+				currentSubPhase = subPhases.get(nextSubPhaseId);
+				currentSubPhase.loadBean(bean.getSubPhases().get(bean.getCurrentSubPhaseId()));
+			}
+		}
+
+		return true;
 	}
 
 	/**
@@ -121,17 +111,61 @@ public class TaskPhase {
 		public final ConcurrentHashSet<TaskConditionBase<?,?>> conditions = new ConcurrentHashSet<>();
 
 		/**
+		 * Runtime方法：accept
+		 */
+		public boolean accept(Bean eventBean) throws Throwable {
+			boolean res = false;
+			for (var condition : conditions) {
+				if (condition.accept(eventBean)) {
+					res = true;
+				}
+			}
+			return res;
+		}
+
+		/**
+		 * Runtime方法：isCompleted
+		 */
+		public boolean isCompleted() {
+			if (bean.getCompleteType() == COMPLETE_ALL) {
+				for (var condition : conditions) {
+					if (!condition.isCompleted())
+						return false;
+				}
+				return true;
+			} if (bean.getCompleteType() == COMPLETE_ANY) {
+				for (var condition : conditions) {
+					if (condition.isCompleted())
+						return true;
+				}
+				return false;
+			}
+			return false;
+		}
+
+		/**
+		 * Runtime方法: 从Bean中恢复SubPhase
+		 */
+		public void loadBean(BSubPhase bean) {
+			this.bean = bean;
+		}
+
+		public boolean isEndSubPhase() {
+			return bean.getNextSubPhaseId() == -1;
+		}
+
+		/**
 		 * 非Runtime方法：用于加载json配置。
 		 */
 		public void loadJson(JsonObject json) {
 			bean = new BSubPhase();
 			bean.setSubPhaseId(json.getInt("subPhaseId"));
 			bean.setNextSubPhaseId(json.getInt("nextSubPhaseId"));
-			bean.setCompleteType(json.getInt("completeType"));
+			bean.setCompleteType(json.getInt("completeType")); // 0: COMPLETE_ALL, 1: COMPLETE_ANY
 		}
 
 		/**
-		 * 非Runtime方法：用于加载配置。
+		 * 非Runtime方法：用于加载Condition配置。
 		 */
 		public void addCondition(TaskConditionBase<?,?> condition) {
 			bean.getConditions().add(condition.getBean());
@@ -139,11 +173,9 @@ public class TaskPhase {
 		}
 	}
 
-	// ======================================== 任务Phase初始化阶段的方法 ========================================
-	public void loadBean(BTaskPhase bean) { this.bean = bean; }
-	public boolean isStartPhase() { return bean.getNextPhaseId() == bean.getPhaseId() || bean.getNextPhaseId() == -1; } // 也许可以这么用，但暂时没有这么用。
-	public boolean isEndPhase() { return bean.getPrePhaseIds().isEmpty(); }
-//	public boolean isCompleted() { return bean.isCompleted(); }
-
+	public boolean isEndPhase() { return bean.getNextPhaseId() == -1; }
+	public boolean isCompleted() {
+		return currentSubPhase.isEndSubPhase() && currentSubPhase.isCompleted();
+	}
 	// @formatter:on
 }

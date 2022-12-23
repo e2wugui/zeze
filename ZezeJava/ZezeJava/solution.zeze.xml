@@ -744,7 +744,6 @@
 
 			<module name="TaskBase" id="11018">
 				<!-- 任务状态 -->
-				<enum name="Invalid" value="-1"/> 未初始化或初始化失败
 				<enum name="Disabled" value="0"/> 不可接取
 				<enum name="Init" value="1"/> 可接取
 				<enum name="Processing" value="2"/> 已经接取，未完成
@@ -818,7 +817,7 @@
 				<bean name="BSubPhase">
 					<variable id="1" name="subPhaseId" type="long"/>
 					<variable id="2" name="completeType" type="int"/> CompleteAll/CompleteAny
-					<variable id="3" name="nextSubPhaseId" type="int"/> 下一个SubPhaseId（允许通过不同的conditions完成情况动态变化）
+					<variable id="3" name="nextSubPhaseId" type="long"/> 下一个SubPhaseId（允许通过不同的conditions完成情况动态变化）
 					<variable id="4" name="conditions" type="list" value="BTaskCondition"/> 该SubPhase包含的所有的Condition
 				</bean>
 				<!-- ======================================== TaskPhase的Bean数据 ======================================== -->

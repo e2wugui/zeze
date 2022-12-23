@@ -9,6 +9,6 @@ public interface BSubPhaseReadOnly {
 
     public long getSubPhaseId();
     public int getCompleteType();
-    public int getNextSubPhaseId();
+    public long getNextSubPhaseId();
     public Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.Game.TaskBase.BTaskCondition, Zeze.Builtin.Game.TaskBase.BTaskConditionReadOnly> getConditionsReadOnly();
 }
