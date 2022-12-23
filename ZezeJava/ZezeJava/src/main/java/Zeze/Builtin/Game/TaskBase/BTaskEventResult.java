@@ -8,6 +8,7 @@ public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTa
     public static final long TYPEID = 7412512539470816714L;
 
     private long _resultCode; // 返回码
+    private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.TaskBase.BTask> _changedTasks; // 变化的任务
 
     @Override
     public long getResultCode() {
@@ -29,17 +30,33 @@ public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTa
         txn.putLog(new Log__resultCode(this, 1, value));
     }
 
+    public Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.TaskBase.BTask> getChangedTasks() {
+        return _changedTasks;
+    }
+
+    @Override
+    public Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.Game.TaskBase.BTask, Zeze.Builtin.Game.TaskBase.BTaskReadOnly> getChangedTasksReadOnly() {
+        return new Zeze.Transaction.Collections.PList2ReadOnly<>(_changedTasks);
+    }
+
     @SuppressWarnings("deprecation")
     public BTaskEventResult() {
+        _changedTasks = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Game.TaskBase.BTask.class);
+        _changedTasks.variableId(2);
     }
 
     @SuppressWarnings("deprecation")
     public BTaskEventResult(long _resultCode_) {
         _resultCode = _resultCode_;
+        _changedTasks = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Game.TaskBase.BTask.class);
+        _changedTasks.variableId(2);
     }
 
     public void assign(BTaskEventResult other) {
         setResultCode(other.getResultCode());
+        _changedTasks.clear();
+        for (var e : other._changedTasks)
+            _changedTasks.add(e.copy());
     }
 
     @Deprecated
@@ -92,7 +109,20 @@ public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTa
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.TaskBase.BTaskEventResult: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("resultCode=").append(getResultCode()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("resultCode=").append(getResultCode()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("changedTasks=[");
+        if (!_changedTasks.isEmpty()) {
+            sb.append(System.lineSeparator());
+            level += 4;
+            for (var _item_ : _changedTasks) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(System.lineSeparator());
+                _item_.buildString(sb, level + 4);
+                sb.append(',').append(System.lineSeparator());
+            }
+            level -= 4;
+            sb.append(Zeze.Util.Str.indent(level));
+        }
+        sb.append(']').append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -119,6 +149,16 @@ public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTa
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            var _x_ = _changedTasks;
+            int _n_ = _x_.size();
+            if (_n_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.LIST);
+                _o_.WriteListType(_n_, ByteBuffer.BEAN);
+                for (var _v_ : _x_)
+                    _v_.encode(_o_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -130,6 +170,16 @@ public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTa
             setResultCode(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 2) {
+            var _x_ = _changedTasks;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadBean(new Zeze.Builtin.Game.TaskBase.BTask(), _t_));
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -138,16 +188,22 @@ public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTa
 
     @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+        _changedTasks.initRootInfo(root, this);
     }
 
     @Override
     protected void resetChildrenRootInfo() {
+        _changedTasks.resetRootInfo();
     }
 
     @Override
     public boolean negativeCheck() {
         if (getResultCode() < 0)
             return true;
+        for (var _v_ : _changedTasks) {
+            if (_v_.negativeCheck())
+                return true;
+        }
         return false;
     }
 
@@ -161,6 +217,7 @@ public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTa
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _resultCode = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 2: _changedTasks.followerApply(vlog); break;
             }
         }
     }

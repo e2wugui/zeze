@@ -220,8 +220,8 @@ public class TestTask extends TestCase {
 		bean.setDialogId(dialogId);
 		bean.setDialogOption(optionId);
 
-		taskEvent.Argument.setTaskEventTypeDynamic(new BSpecificTaskEvent(taskId));
-		taskEvent.Argument.getExtendedData().setBean(bean);
+		taskEvent.Argument.setEventType(new BSpecificTaskEvent(taskId));
+		taskEvent.Argument.getEventBean().setBean(bean);
 
 		taskEvent.SendForWait(app.ClientService.GetSocket()).await();
 		Assert.assertEquals(0, taskEvent.getResultCode());
@@ -233,8 +233,8 @@ public class TestTask extends TestCase {
 		var bean = new BTConditionNPCTalkEvent();
 		bean.setFinished(true); // 在对话结束时，发一条这个事件
 
-		taskEvent.Argument.setTaskEventTypeDynamic(new BSpecificTaskEvent(taskId));
-		taskEvent.Argument.getExtendedData().setBean(bean);
+		taskEvent.Argument.setEventType(new BSpecificTaskEvent(taskId));
+		taskEvent.Argument.getEventBean().setBean(bean);
 
 		taskEvent.SendForWait(app.ClientService.GetSocket()).await();
 		Assert.assertEquals(0, taskEvent.getResultCode());

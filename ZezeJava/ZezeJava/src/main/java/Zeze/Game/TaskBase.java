@@ -11,9 +11,11 @@ import javax.json.JsonObject;
 import javax.json.JsonReader;
 import Zeze.Application;
 import Zeze.Arch.ProviderApp;
+import Zeze.Builtin.Game.TaskBase.BAcceptTaskEvent;
 import Zeze.Builtin.Game.TaskBase.BBroadcastTaskEvent;
 import Zeze.Builtin.Game.TaskBase.BRoleTasks;
 import Zeze.Builtin.Game.TaskBase.BSpecificTaskEvent;
+import Zeze.Builtin.Game.TaskBase.BSubmitTaskEvent;
 import Zeze.Builtin.Game.TaskBase.BTask;
 import Zeze.Builtin.Game.TaskBase.BTaskKey;
 import Zeze.Builtin.Game.TaskBase.TriggerTaskEvent;
@@ -25,7 +27,7 @@ import Zeze.Game.Task.ConditionSubmitItem;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.ConcurrentHashSet;
-import Zeze.Util.Func0;
+import Zeze.Util.Func1;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
 
@@ -42,8 +44,8 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	public final ConcurrentHashSet<Long> preTaskIds = new ConcurrentHashSet<>(); // 将通过Module在加载完配置后（即TaskGraphics的功能）统一初始化，与Bean无关，不需要存储在数据库
 	public final ConcurrentHashSet<Long> nextTaskIds = new ConcurrentHashSet<>(); // 将通过Module在加载完配置后（即TaskGraphics的功能）统一初始化，与Bean无关，不需要存储在数据库
 	public final ConcurrentHashMap<Long, TaskPhase> phases = new ConcurrentHashMap<>();
-	public Func0<Boolean> isAbleToStartCallback = null; // 设置除了前置任务这个条件外的其他条件，比如等级、职业等……
-	public Func0<Boolean> onCompleteCallBack = null; // 任务完成时的回调，比如发放奖励等……
+	public Func1<Long /* role id */, Boolean> isAbleToStartCallback = null; // 设置除了前置任务这个条件外的其他条件，比如等级、职业等…… 为null表示不需要额外条件自动领取
+	public Func1<Long /* role id */, Boolean> onCompleteCallback = null; // 任务完成时的回调，比如发放奖励等……
 
 	/**
 	 * 非Runtime方法：用于加载json配置。
@@ -120,15 +122,15 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		// 如果是Committed状态，这个任务已经结束了。如果是循环任务，那就应该重新开始。
 
 		if (bean.getTaskState() == Module.Disabled) {
-			if (isAbleToStartCallback == null || isAbleToStartCallback.call()) {
+			if (isAbleToStartCallback == null || isAbleToStartCallback.call(bean.getRoleId())) {
 				bean.setTaskState(Module.Init);
 			}
 		} else if (bean.getTaskState() == Module.Processing) {
 			if (currentPhase.isCompleted()) {
 				if (currentPhase.isEndPhase()) {
 					bean.setTaskState(Module.Finished);
-					if (onCompleteCallBack != null)
-						onCompleteCallBack.call();
+					if (onCompleteCallback != null)
+						onCompleteCallback.call(bean.getRoleId());
 				} else {
 					var nextPhaseId = currentPhase.getBean().getNextPhaseId();
 					bean.setCurrentPhaseId(nextPhaseId);
@@ -139,6 +141,20 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		} else if (bean.getTaskState() == Module.Finished) {
 
 		}
+	}
+
+	/**
+	 * Runtime方法：接任务
+	 */
+	public void start() {
+		bean.setTaskState(Module.Processing);
+	}
+
+	/**
+	 * Runtime方法：交任务
+	 */
+	public void commit() {
+		bean.setTaskState(Module.Committed);
 	}
 
 	// ======================================== Private方法和一些不需要被注意的方法 ========================================
@@ -255,11 +271,22 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		 * 在Bean部分通过json表初始化完后，需要在程序部分继续设置一些逻辑部分的回调。
 		 * 当不设置时默认为null，即无需任何条件即可开始。
 		 */
-		public void setIsAbleToStartCallback(long taskId, Func0<Boolean> callback) {
+		public void setIsAbleToStartCallback(long taskId, Func1<Long, Boolean> callback) {
 			var task = taskNodes.get(taskId);
 			if (null == task)
 				throw new RuntimeException("task " + taskId + " not found.");
 			task.isAbleToStartCallback = callback;
+		}
+
+		/**
+		 * 在Bean部分通过json表初始化完后，需要在程序部分继续设置一些逻辑部分的回调。
+		 * 当不设置时默认为null，即任务完成不触发任何效果（奖励等）。
+		 */
+		public void setOnCompleteCallback(long taskId, Func1<Long, Boolean> callback) {
+			var task = taskNodes.get(taskId);
+			if (null == task)
+				throw new RuntimeException("task " + taskId + " not found.");
+			task.onCompleteCallback = callback;
 		}
 
 		@Override
@@ -288,7 +315,10 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 				// 初始化Task Bean
 				for (var taskBean : roleTasks.getProcessingTasks().values()) {
 					taskBean.setRoleId(roleId);
-					taskBean.setTaskState(Disabled);
+					var task = taskNodes.get(taskBean.getTaskId());
+					task.loadBean(taskBean);
+					task.tryToProceedPhase(); // 在这一阶段就检查这个任务是不是当前角色可接的
+					r.Result.getChangedTasks().add(taskBean);
 				}
 
 				_tRoleTask.put(roleId, roleTasks);
@@ -297,24 +327,54 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 			}
 
 			var taskInfo = _tRoleTask.get(roleId);
-			var eventTypeBean = r.Argument.getTaskEventTypeDynamic().getBean();
-			var eventBean = r.Argument.getExtendedData().getBean();
-			if (eventTypeBean instanceof BSpecificTaskEvent) {
-				var specificTaskEventBean = (BSpecificTaskEvent)eventTypeBean; // 兼容JDK11
-				// 检查任务Id
-				var id = specificTaskEventBean.getTaskId();
-				var taskBean = taskInfo.getProcessingTasks().get(id);
+			var eventTypeBean = r.Argument.getEventType().getBean();
+			var eventBean = r.Argument.getEventBean().getBean();
+			if (eventTypeBean instanceof BAcceptTaskEvent) {
+				var acceptEventEventBean = (BAcceptTaskEvent)eventTypeBean;
+				var taskId = acceptEventEventBean.getTaskId();
+				var taskBean = taskInfo.getProcessingTasks().get(taskId);
 				if (null == taskBean) {
 					r.Result.setResultCode(TaskResultTaskNotFound | TaskResultFailure);
 					return Procedure.Success;
 				}
 
-				var task = taskNodes.get(id);
+				var task = taskNodes.get(taskId);
+				task.loadBean(taskBean);
+				task.start();
+				r.Result.getChangedTasks().add(taskBean);
+			} else if (eventTypeBean instanceof BSubmitTaskEvent) {
+				var submitTaskEventBean = (BSubmitTaskEvent)eventTypeBean;
+				var taskId = submitTaskEventBean.getTaskId();
+				var taskBean = taskInfo.getProcessingTasks().get(taskId);
+				if (null == taskBean) {
+					r.Result.setResultCode(TaskResultTaskNotFound | TaskResultFailure);
+					return Procedure.Success;
+				}
+
+				var task = taskNodes.get(taskId);
+				task.loadBean(taskBean);
+				task.commit();
+				// 封存任务
+				taskInfo.getProcessingTasks().remove(taskId);
+				taskInfo.getFinishedTaskIds().add(taskId);
+				r.Result.getChangedTasks().add(taskBean);
+			} else if (eventTypeBean instanceof BSpecificTaskEvent) {
+				var specificTaskEventBean = (BSpecificTaskEvent)eventTypeBean; // 兼容JDK11
+				// 检查任务Id
+				var taskId = specificTaskEventBean.getTaskId();
+				var taskBean = taskInfo.getProcessingTasks().get(taskId);
+				if (null == taskBean) {
+					r.Result.setResultCode(TaskResultTaskNotFound | TaskResultFailure);
+					return Procedure.Success;
+				}
+
+				var task = taskNodes.get(taskId);
 				task.loadBean(taskBean);
 				if (task.accept(eventBean))
 					resultCode |= TaskResultAccepted | TaskResultSuccess;
 				else
 					resultCode |= TaskResultRejected | TaskResultSuccess;
+				r.Result.getChangedTasks().add(taskBean);
 			} else if (eventTypeBean instanceof BBroadcastTaskEvent) {
 				var broadcastTaskEventBean = (BBroadcastTaskEvent)eventTypeBean; // 兼容JDK11
 				var taskBeanList = taskInfo.getProcessingTasks().values();
@@ -322,32 +382,17 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 					var id = taskBean.getTaskId();
 					var task = taskNodes.get(id);
 					task.loadBean(taskBean);
-					if (task.accept(eventBean))
+					if (task.accept(eventBean)) {
+						r.Result.getChangedTasks().add(taskBean);
 						if (broadcastTaskEventBean.isIsBreakIfAccepted())
 							break;
+					}
 				}
 				resultCode |= TaskResultAccepted | TaskResultSuccess;
 			}
 
 			r.Result.setResultCode(resultCode);
 			return Procedure.Success;
-		}
-
-		/**
-		 * 当有任务完成时刷新任务表
-		 */
-		protected void flushTaskMap(long roleId) {
-			var taskInfo = _tRoleTask.get(roleId);
-			var taskBeanList = taskInfo.getProcessingTasks().values();
-			for (var taskBean : taskBeanList) {
-				var id = taskBean.getTaskId();
-				var task = taskNodes.get(id);
-				task.loadBean(taskBean);
-//				if (task.isFinished()) {
-//					taskInfo.getFinishedTasks().put(id, taskBean);
-//					taskInfo.getProcessingTasks().remove(id);
-//				}
-			}
 		}
 	}
 }

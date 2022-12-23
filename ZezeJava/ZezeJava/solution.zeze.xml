@@ -777,14 +777,22 @@
 				-->
 				<bean name="BTaskEvent">
 					<variable id="1" name="roleId" type="long"/> 当新角色创建时直接发roleId，不附带任何下面这两个dynamics，能够创建整个角色的初始任务表。
-					<variable id="2" name="taskEventTypeDynamic" type="dynamic">
+					<variable id="2" name="eventType" type="dynamic">
+						<value bean="BAcceptTaskEvent"/> 接任务专用Bean
+						<value bean="BSubmitTaskEvent"/> 交任务专用Bean
                         <value bean="BSpecificTaskEvent"/> 交给特定任务的事件（如NPC对话选择任务）
                         <value bean="BBroadcastTaskEvent"/> 广播给所有任务的事件（如击杀怪物的任务）
 					</variable>
-					<variable id="3" name="extendedData" type="dynamic"> 用于携带各种不同的TaskEvent/PhaseEvent/ConditionEvent，TriggerTaskEvent这个rpc会自动转发
+					<variable id="3" name="eventBean" type="dynamic"> 用于携带各种不同的TaskEvent/PhaseEvent/ConditionEvent，TriggerTaskEvent这个rpc会自动转发
 						<GetSpecialTypeIdFromBean value="Zeze.Game.TaskBase::getSpecialTypeIdFromBean"/>
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.TaskBase::createBeanFromSpecialTypeId"/>
 					</variable>
+				</bean>
+				<bean name="BAcceptTaskEvent">
+					<variable id="1" name="taskId" type="long"/>
+				</bean>
+				<bean name="BSubmitTaskEvent">
+					<variable id="1" name="taskId" type="long"/>
 				</bean>
 				<bean name="BSpecificTaskEvent">
                     <variable id="1" name="taskId" type="long"/>
@@ -792,8 +800,8 @@
 				<bean name="BBroadcastTaskEvent">
                     <variable id="1" name="isBreakIfAccepted" type="bool"/>
 				</bean>
-				<enum name="TaskResultFailure" value="0"/>
-				<enum name="TaskResultSuccess" value="1"/> 使用二进制bit返回值，允许多重result返回。 1代表执行成功。
+				<enum name="TaskResultFailure" value="0"/> 使用二进制bit返回值，允许多重result返回。 1代表执行成功。
+				<enum name="TaskResultSuccess" value="1"/>
 				<enum name="TaskResultNewRoleTasksCreated" value="2"/>
 				<enum name="TaskResultAccepted" value="4"/>
 				<enum name="TaskResultRejected" value="8"/>
@@ -801,6 +809,7 @@
 				<enum name="TaskResultTaskNotFound" value="32"/>
 				<bean name="BTaskEventResult">
 					<variable id="1" name="resultCode" type="long"/> 返回码
+					<variable id="2" name="changedTasks" type="list" value="BTask"/> 变化的任务
 				</bean>
 				<rpc name="TriggerTaskEvent" argument="BTaskEvent" result="BTaskEventResult" handle="server"/>
 				<!-- ======================================== Task的Bean数据 ======================================== -->
@@ -871,8 +880,6 @@
 					<variable id="5" name="dialogSelected" type="map" key="string" value="int"/> key为对话的Id（String类型），value为选了第几个选项。如果还没选初始化为-1。
 				</bean>
 				<bean name="BTConditionNPCTalkEvent">
-<!--					<variable id="1" name="taskId" type="long"/>-->
-<!--					<variable id="2" name="phaseId" type="long"/>-->
 					<variable id="3" name="finished" type="bool"/> 如果完成了对话，也可以用这个Event发一条，下面的就留空。
 					<variable id="4" name="dialogId" type="string"/>
 					<variable id="5" name="dialogOption" type="int"/> 选择了第几个选项
@@ -1185,7 +1192,7 @@
 
 			<rpc name="AllocateId" argument="Zeze.Services.ServiceManager.BAllocateIdArgument" result="Zeze.Services.ServiceManager.BAllocateIdResult" base="Zeze.Raft.RaftRpc" handle="server"/>
 			<rpc name="CommitServiceList" argument="Zeze.Services.ServiceManager.BServiceListVersion" base="Zeze.Raft.RaftRpc" handle="client"/>
-			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" handle="client"/>			
+			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" handle="client"/>
 			<rpc name="NotifyServiceList" argument="Zeze.Services.ServiceManager.BServiceInfos" base="Zeze.Raft.RaftRpc" handle="client"/>
 			<rpc name="OfflineNotify" argument="Zeze.Services.ServiceManager.BOfflineNotify" base="Zeze.Raft.RaftRpc" handle="client"/>
 			<rpc name="OfflineRegister" argument="Zeze.Services.ServiceManager.BOfflineNotify" base="Zeze.Raft.RaftRpc" handle="server"/>
@@ -1232,7 +1239,7 @@
 				<variable id="2" name="OfflineRegisterServerId" type="int"/>
 				<variable id="3" name="OfflineRegisterNotifies" type="map[string, BOfflineNotifyRocks]"/>
 				<variable id="4" name="Registers" type="map[BServiceInfoKeyRocks, BServiceInfoRocks]"/>
-				<variable id="5" name="Subscribes" type="map[string, BSubscribeInfoRocks]"/>				
+				<variable id="5" name="Subscribes" type="map[string, BSubscribeInfoRocks]"/>
 			</bean>
 			<beankey name="BServiceInfoKeyRocks" kind="rocks">
 				<variable id="1" name="ServiceName" type="string"/>

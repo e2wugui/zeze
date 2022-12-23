@@ -13,10 +13,12 @@ public interface BTaskEventReadOnly {
     public BTaskEvent copy();
 
     public long getRoleId();
-    public Zeze.Transaction.DynamicBeanReadOnly getTaskEventTypeDynamicReadOnly();
+    public Zeze.Transaction.DynamicBeanReadOnly getEventTypeReadOnly();
 
-    public Zeze.Builtin.Game.TaskBase.BSpecificTaskEventReadOnly getTaskEventTypeDynamic_Zeze_Builtin_Game_TaskBase_BSpecificTaskEventReadOnly();
-    public Zeze.Builtin.Game.TaskBase.BBroadcastTaskEventReadOnly getTaskEventTypeDynamic_Zeze_Builtin_Game_TaskBase_BBroadcastTaskEventReadOnly();
-    public Zeze.Transaction.DynamicBeanReadOnly getExtendedDataReadOnly();
+    public Zeze.Builtin.Game.TaskBase.BSubmitTaskEventReadOnly getEventType_Zeze_Builtin_Game_TaskBase_BSubmitTaskEventReadOnly();
+    public Zeze.Builtin.Game.TaskBase.BAcceptTaskEventReadOnly getEventType_Zeze_Builtin_Game_TaskBase_BAcceptTaskEventReadOnly();
+    public Zeze.Builtin.Game.TaskBase.BSpecificTaskEventReadOnly getEventType_Zeze_Builtin_Game_TaskBase_BSpecificTaskEventReadOnly();
+    public Zeze.Builtin.Game.TaskBase.BBroadcastTaskEventReadOnly getEventType_Zeze_Builtin_Game_TaskBase_BBroadcastTaskEventReadOnly();
+    public Zeze.Transaction.DynamicBeanReadOnly getEventBeanReadOnly();
 
 }
