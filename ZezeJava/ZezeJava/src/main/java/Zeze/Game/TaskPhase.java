@@ -12,12 +12,12 @@ import Zeze.Util.Func0;
 public class TaskPhase {
 	// @formatter:off
 	public TaskPhase(final TaskBase<?> task) { this.task = task; }
-	public BTaskPhase getBean() { return bean; }
-	private BTaskPhase bean;
 	public TaskBase<?> getTask() { return task; }
 	private final TaskBase<?> task;
+	public BTaskPhase getBean() { return bean; }
+	private BTaskPhase bean;
+	private SubPhase currentSubPhase;
 	public final ConcurrentHashMap<Long, SubPhase> subPhases = new ConcurrentHashMap<>();
-	public SubPhase currentSubPhase;
 	public Func0<Boolean> isAbleToStartCheckCallback;
 	// @formatter:on
 
@@ -31,11 +31,14 @@ public class TaskPhase {
 		bean.setNextPhaseId(json.getInt("nextPhaseId"));
 
 		var prePhaseIds = json.getJsonArray("prePhaseIds");
+		if (prePhaseIds.isEmpty())
+			bean.setCurrentSubPhaseId(0);
 		for (var id : prePhaseIds)
 			this.bean.getPrePhaseIds().add(Long.parseLong(id.toString()));
 
 		var module = task.getModule();
 		var subPhases = json.getJsonArray("SubPhases");
+		boolean isFirst = true;
 		for (var subPhase : subPhases) {
 			TaskPhase.SubPhase sub = new TaskPhase.SubPhase(this);
 			sub.loadJson(subPhase.asJsonObject());
@@ -48,6 +51,11 @@ public class TaskPhase {
 				sub.addCondition(con);
 			}
 			addSubPhase(sub);
+			if (isFirst){
+				bean.setCurrentSubPhaseId(sub.getBean().getSubPhaseId());
+				currentSubPhase = sub;
+				isFirst = false;
+			}
 		}
 	}
 
@@ -129,15 +137,6 @@ public class TaskPhase {
 			bean.getConditions().add(condition.getBean());
 			conditions.add(condition);
 		}
-	}
-
-	/**
-	 * Runtime方法：reset
-	 * - 用于重置任务Phase
-	 */
-	public void reset() {
-//		for (var condition : conditions.values())
-//			condition.reset();
 	}
 
 	// ======================================== 任务Phase初始化阶段的方法 ========================================

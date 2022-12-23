@@ -33,8 +33,21 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 
 	// @formatter:off
 	protected TaskBase(Module module) { this.module = module; }
-	// ======================================== 任务初始化阶段的方法 ========================================
-	public void loadJson(JsonObject json) {
+	public Module getModule() { return module; }
+	private final Module module;
+	public BTask getBean() { return bean; }
+	private BTask bean;
+	private TaskPhase currentPhase;
+	public abstract String getType(); // 任务类型，每个任务实例都不一样
+	public final ConcurrentHashSet<Long> preTaskIds = new ConcurrentHashSet<>(); // 将通过Module在加载完配置后（即TaskGraphics的功能）统一初始化，与Bean无关，不需要存储在数据库
+	public final ConcurrentHashSet<Long> nextTaskIds = new ConcurrentHashSet<>(); // 将通过Module在加载完配置后（即TaskGraphics的功能）统一初始化，与Bean无关，不需要存储在数据库
+	public final ConcurrentHashMap<Long, TaskPhase> phases = new ConcurrentHashMap<>();
+	public Func0<Boolean> onCompleteCallBack;
+
+	/**
+	 * 非Runtime方法：用于加载json配置。
+	 */
+	public void loadJson(JsonObject json) throws InvocationTargetException, InstantiationException, IllegalAccessException {
 		this.bean = new BTask();
 
 		bean.setTaskType(getType());
@@ -47,6 +60,17 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 			this.bean.getPreTaskIds().add(Long.parseLong(id.toString()));
 
 		loadJsonExtended(json);
+
+		var phases = json.getJsonArray("Phases");
+		for (var phase : phases) {
+			TaskPhase taskPhase = new TaskPhase(this);
+			taskPhase.loadJson(phase.asJsonObject());
+			if (taskPhase.getBean().getPrePhaseIds().isEmpty()) {
+				bean.setCurrentPhaseId(taskPhase.getBean().getPhaseId()); // TODO: 这里可能会出问题
+				currentPhase = taskPhase;
+			}
+			addPhase(taskPhase);
+		}
 	}
 	protected abstract void loadJsonExtended(JsonObject json);
 
@@ -62,16 +86,6 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	}
 	protected abstract void loadBeanExtended(BTask bean);
 
-	public abstract String getType(); // 任务类型，每个任务实例都不一样
-	public Module getModule() { return module; }
-	private final Module module;
-	public BTask getBean() { return bean; }
-	private BTask bean;
-	public final ConcurrentHashSet<Long> preTaskIds = new ConcurrentHashSet<>(); // 将通过Module在加载完配置后（即TaskGraphics的功能）统一初始化，与Bean无关，不需要存储在数据库
-	public final ConcurrentHashSet<Long> nextTaskIds = new ConcurrentHashSet<>(); // 将通过Module在加载完配置后（即TaskGraphics的功能）统一初始化，与Bean无关，不需要存储在数据库
-	public final ConcurrentHashMap<Long, TaskPhase> phases = new ConcurrentHashMap<>();
-	public TaskPhase currentPhase;
-	public Func0<Boolean> onCompleteCallBack; // 任务完成时的回调，用于任务链的处理
 	// @formatter:on
 
 	public void addPhase(TaskPhase phase) {
@@ -110,30 +124,6 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		currentPhase = phases.get(currentPhase.getBean().getNextPhaseId());
 	}
 
-	/**
-	 * Runtime方法：reset
-	 * - 将任务回归到初始化状态
-	 */
-	public void reset() {
-//		int startNodeSize = 0;
-//		BTaskPhase startBean = null;
-//		for (var phaseBean : bean.getTaskPhases().values()) {
-//			boolean isStart = true;
-//			for (var id : phaseBean.getAfterPhaseIds()) {
-//				// 如果没有phase依赖这个phase，意味着这个phase是开始的phase
-//				if (id == phaseBean.getPhaseId())
-//					isStart = false;
-//			}
-//			if (isStart) {
-//				++startNodeSize;
-//				startBean = phaseBean;
-//			}
-//		}
-//		// 理论上只允许一个开始节点，这里暂时不处理过多的开始节点的问题。
-//		currentPhase.loadBean(startBean);
-//		currentPhase.reset();
-	}
-
 	// ======================================== Private方法和一些不需要被注意的方法 ========================================
 	// @formatter:off
 	private final static BeanFactory beanFactory = new BeanFactory();
@@ -144,7 +134,6 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		ParameterizedType parameterizedType = (ParameterizedType)this.getClass().getGenericSuperclass();
 		return (Class<ExtendedBean>)parameterizedType.getActualTypeArguments()[0];
 	}
-
 
 	// @formatter:on
 	// ======================================== Task Module Part ========================================
@@ -221,13 +210,6 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 			var constructor = constructors.get(taskType);
 			var task = (TaskBase<?>)constructor.newInstance(this);
 			task.loadJson(json);
-
-			var phases = json.getJsonArray("Phases");
-			for (var phase : phases) {
-				TaskPhase taskPhase = new TaskPhase(task);
-				taskPhase.loadJson(phase.asJsonObject());
-				task.addPhase(taskPhase);
-			}
 
 			taskNodes.put(task.getBean().getTaskId(), task);
 			_tTask.put(new BTaskKey(task.getBean().getTaskId()), task.getBean());

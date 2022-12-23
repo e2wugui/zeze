@@ -33,7 +33,7 @@
 					]
 				},
 				{
-					"subPhaseId" : 1,
+					"subPhaseId" : 2,
 					"nextSubPhaseId" : 2,
 					"completeType" : 0,
 					"conditions" : [
