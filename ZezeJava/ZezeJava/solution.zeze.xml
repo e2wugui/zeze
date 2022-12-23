@@ -771,6 +771,7 @@
 				<bean name="BDailyTask">
 					<variable id="1" name="everydayTaskCount" type="int"/> 每天任务刷新的个数
 					<variable id="2" name="flushTime" type="long"/> 刷新时间，按照UTC+0存储，自动翻译到各个机子上
+					<variable id="3" name="todayTaskPhaseIds" type="list" value="long"/> 今天的所有的每日任务的Id（实际上是PhaseId）
 				</bean>
 				<!-- Task的总表，包含了所有的Task的Bean -->
 				<table name="tTask" key="BTaskKey" value="BTask"/>

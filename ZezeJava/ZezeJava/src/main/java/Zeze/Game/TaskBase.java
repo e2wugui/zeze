@@ -106,6 +106,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	 * - 当满足任务推进情况时，会自动推进任务
 	 */
 	public boolean accept(Bean eventBean) throws Throwable {
+
 		if (!currentPhase.accept(eventBean))
 			return false;
 
@@ -131,8 +132,6 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 			if (currentPhase.isCompleted()) {
 				if (currentPhase.isEndPhase()) {
 					bean.setTaskState(Module.Finished);
-					if (onCompleteCallback != null)
-						onCompleteCallback.call(bean.getRoleId());
 				} else {
 					var nextPhaseId = currentPhase.getBean().getNextPhaseId();
 					bean.setCurrentPhaseId(nextPhaseId);
@@ -140,8 +139,9 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 					currentPhase.loadBean(bean.getTaskPhases().get(bean.getCurrentPhaseId()));
 				}
 			}
-		} else if (bean.getTaskState() == Module.Finished) {
-
+		} else if (bean.getTaskState() == Module.Committed) {
+			if (onCompleteCallback != null)
+				onCompleteCallback.call(bean.getRoleId());
 		}
 	}
 

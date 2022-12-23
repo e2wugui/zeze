@@ -9,4 +9,5 @@ public interface BDailyTaskReadOnly {
 
     public int getEverydayTaskCount();
     public long getFlushTime();
+    public Zeze.Transaction.Collections.PList1ReadOnly<Long> getTodayTaskPhaseIdsReadOnly();
 }

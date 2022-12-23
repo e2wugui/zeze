@@ -9,6 +9,7 @@ public final class BDailyTask extends Zeze.Transaction.Bean implements BDailyTas
 
     private int _everydayTaskCount; // 每天任务刷新的个数
     private long _flushTime; // 刷新时间，按照UTC+0存储，自动翻译到各个机子上
+    private final Zeze.Transaction.Collections.PList1<Long> _todayTaskPhaseIds; // 今天的所有的每日任务的Id（实际上是PhaseId）
 
     @Override
     public int getEverydayTaskCount() {
@@ -50,19 +51,34 @@ public final class BDailyTask extends Zeze.Transaction.Bean implements BDailyTas
         txn.putLog(new Log__flushTime(this, 2, value));
     }
 
+    public Zeze.Transaction.Collections.PList1<Long> getTodayTaskPhaseIds() {
+        return _todayTaskPhaseIds;
+    }
+
+    @Override
+    public Zeze.Transaction.Collections.PList1ReadOnly<Long> getTodayTaskPhaseIdsReadOnly() {
+        return new Zeze.Transaction.Collections.PList1ReadOnly<>(_todayTaskPhaseIds);
+    }
+
     @SuppressWarnings("deprecation")
     public BDailyTask() {
+        _todayTaskPhaseIds = new Zeze.Transaction.Collections.PList1<>(Long.class);
+        _todayTaskPhaseIds.variableId(3);
     }
 
     @SuppressWarnings("deprecation")
     public BDailyTask(int _everydayTaskCount_, long _flushTime_) {
         _everydayTaskCount = _everydayTaskCount_;
         _flushTime = _flushTime_;
+        _todayTaskPhaseIds = new Zeze.Transaction.Collections.PList1<>(Long.class);
+        _todayTaskPhaseIds.variableId(3);
     }
 
     public void assign(BDailyTask other) {
         setEverydayTaskCount(other.getEverydayTaskCount());
         setFlushTime(other.getFlushTime());
+        _todayTaskPhaseIds.clear();
+        _todayTaskPhaseIds.addAll(other._todayTaskPhaseIds);
     }
 
     @Deprecated
@@ -123,7 +139,18 @@ public final class BDailyTask extends Zeze.Transaction.Bean implements BDailyTas
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.TaskBase.BDailyTask: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("everydayTaskCount=").append(getEverydayTaskCount()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("flushTime=").append(getFlushTime()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("flushTime=").append(getFlushTime()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("todayTaskPhaseIds=[");
+        if (!_todayTaskPhaseIds.isEmpty()) {
+            sb.append(System.lineSeparator());
+            level += 4;
+            for (var _item_ : _todayTaskPhaseIds) {
+                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
+            }
+            level -= 4;
+            sb.append(Zeze.Util.Str.indent(level));
+        }
+        sb.append(']').append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -157,6 +184,16 @@ public final class BDailyTask extends Zeze.Transaction.Bean implements BDailyTas
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            var _x_ = _todayTaskPhaseIds;
+            int _n_ = _x_.size();
+            if (_n_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.LIST);
+                _o_.WriteListType(_n_, ByteBuffer.INTEGER);
+                for (var _v_ : _x_)
+                    _o_.WriteLong(_v_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -172,6 +209,16 @@ public final class BDailyTask extends Zeze.Transaction.Bean implements BDailyTas
             setFlushTime(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 3) {
+            var _x_ = _todayTaskPhaseIds;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadLong(_t_));
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -180,10 +227,12 @@ public final class BDailyTask extends Zeze.Transaction.Bean implements BDailyTas
 
     @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+        _todayTaskPhaseIds.initRootInfo(root, this);
     }
 
     @Override
     protected void resetChildrenRootInfo() {
+        _todayTaskPhaseIds.resetRootInfo();
     }
 
     @Override
@@ -192,6 +241,10 @@ public final class BDailyTask extends Zeze.Transaction.Bean implements BDailyTas
             return true;
         if (getFlushTime() < 0)
             return true;
+        for (var _v_ : _todayTaskPhaseIds) {
+            if (_v_ < 0)
+                return true;
+        }
         return false;
     }
 
@@ -206,6 +259,7 @@ public final class BDailyTask extends Zeze.Transaction.Bean implements BDailyTas
             switch (vlog.getVariableId()) {
                 case 1: _everydayTaskCount = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
                 case 2: _flushTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 3: _todayTaskPhaseIds.followerApply(vlog); break;
             }
         }
     }

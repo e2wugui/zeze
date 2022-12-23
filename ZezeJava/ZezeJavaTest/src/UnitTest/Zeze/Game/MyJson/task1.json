@@ -12,7 +12,7 @@
 			"phaseName" : "Phase 1",
 			"phaseDesc" : "Phase 1 Description",
 			"prePhaseIds" : [],
-			"nextPhaseId" : 2,
+			"nextPhaseId" : -1,
 			"SubPhases" : [
 				{
 					"subPhaseId" : 1,
