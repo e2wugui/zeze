@@ -13,6 +13,7 @@ import Zeze.Application;
 import Zeze.Arch.ProviderApp;
 import Zeze.Builtin.Game.TaskBase.BAcceptTaskEvent;
 import Zeze.Builtin.Game.TaskBase.BBroadcastTaskEvent;
+import Zeze.Builtin.Game.TaskBase.BDailyTask;
 import Zeze.Builtin.Game.TaskBase.BRoleTasks;
 import Zeze.Builtin.Game.TaskBase.BSpecificTaskEvent;
 import Zeze.Builtin.Game.TaskBase.BSubmitTaskEvent;
@@ -24,6 +25,7 @@ import Zeze.Game.Task.ConditionKillMonster;
 import Zeze.Game.Task.ConditionNPCTalk;
 import Zeze.Game.Task.ConditionReachPosition;
 import Zeze.Game.Task.ConditionSubmitItem;
+import Zeze.Game.Task.DailyTask;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.ConcurrentHashSet;
@@ -41,6 +43,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	private BTask bean;
 	private TaskPhase currentPhase;
 	public abstract String getType(); // 任务类型，每个任务实例都不一样
+	public abstract ExtendedBean getExtendedBean(); // 任务扩展数据，每个任务实例都不一样
 	public final ConcurrentHashSet<Long> preTaskIds = new ConcurrentHashSet<>(); // 将通过Module在加载完配置后（即TaskGraphics的功能）统一初始化，与Bean无关，不需要存储在数据库
 	public final ConcurrentHashSet<Long> nextTaskIds = new ConcurrentHashSet<>(); // 将通过Module在加载完配置后（即TaskGraphics的功能）统一初始化，与Bean无关，不需要存储在数据库
 	public final ConcurrentHashMap<Long, TaskPhase> phases = new ConcurrentHashMap<>();
@@ -63,6 +66,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 			this.bean.getPreTaskIds().add(Long.parseLong(id.toString()));
 
 		loadJsonExtended(json);
+		bean.getExtendedData().setBean(getExtendedBean());
 
 		var phases = json.getJsonArray("Phases");
 		for (var phase : phases) {
@@ -85,14 +89,12 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	protected final void loadBean(BTask bean) {
 		this.bean = bean;
 		loadBeanExtended(bean);
-
 		currentPhase = phases.get(bean.getCurrentPhaseId());
 		currentPhase.loadBean(bean.getTaskPhases().get(bean.getCurrentPhaseId()));
 	}
 	protected abstract void loadBeanExtended(BTask bean);
 
 	// @formatter:on
-
 	public void addPhase(TaskPhase phase) {
 		phases.put(phase.getBean().getPhaseId(), phase);
 		bean.getTaskPhases().put(phase.getBean().getPhaseId(), phase.getBean());
@@ -189,7 +191,10 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 			RegisterProtocols(this.providerApp.providerService);
 			providerApp.builtinModules.put(this.getFullName(), this);
 
-			// 注册内置Condition
+			// 注册内置Task类型
+			registerTask(DailyTask.class);
+
+			// 注册内置Condition类型
 			registerCondition(ConditionNPCTalk.class);
 			registerCondition(ConditionSubmitItem.class);
 			registerCondition(ConditionKillMonster.class);
@@ -206,8 +211,8 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 				var c = extendedTaskClass.getDeclaredConstructor(Module.class);
 				var task = c.newInstance(this);
 				beanFactory.register(task.getExtendedBeanClass());
-				_tEventClasses.getOrAdd(1).getEventClasses().add(task.getExtendedBeanClass().getName()); // key is 1, only one record
 				constructors.put(task.getType(), c);
+//				_tEventClasses.getOrAdd(1).getEventClasses().add(task.getExtendedBeanClass().getName()); // key is 1, only one record
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}

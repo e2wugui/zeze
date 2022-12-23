@@ -23,6 +23,7 @@ public class ConditionKillMonster extends TaskConditionBase<BTConditionKillMonst
 			int count = monster.asJsonObject().getInt("monsterCount");
 			bean.getMonsters().put(monsterId, count);
 		}
+		getBean().getExtendedData().setBean(bean);
 	}
 
 	public void addMonsterToBeKilled(long monsterId, int killCount) {

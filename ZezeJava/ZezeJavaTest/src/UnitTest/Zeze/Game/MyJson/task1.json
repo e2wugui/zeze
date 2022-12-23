@@ -4,6 +4,8 @@
 	"taskName" : "My First Task",
 	"taskDesc" : "It is the task description",
 	"preTaskIds" : [],
+	"everydayTaskCount" : 4,
+	"flushTime" : 24,
 	"Phases" : [
 		{
 			"phaseId" : 1,

@@ -2,25 +2,16 @@ package UnitTest.Zeze.Game;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.List;
 import ClientGame.Login.BRole;
 import ClientGame.Login.CreateRole;
 import ClientGame.Login.GetRoleList;
-import UnitTest.Zeze.Game.MyTasks.DailyTask01;
-import UnitTest.Zeze.Game.MyTasks.MainTask01;
-import UnitTest.Zeze.Game.MyTasks.SideTask01;
 import Zeze.Builtin.Game.Online.Login;
 import Zeze.Builtin.Game.Online.Logout;
 import Zeze.Builtin.Game.Online.ReLogin;
 import Zeze.Builtin.Game.TaskBase.BSpecificTaskEvent;
 import Zeze.Builtin.Game.TaskBase.BTConditionNPCTalkEvent;
 import Zeze.Builtin.Game.TaskBase.TriggerTaskEvent;
-import Zeze.Game.Task.ConditionKillMonster;
-import Zeze.Game.Task.ConditionNPCTalk;
-import Zeze.Game.Task.ConditionReachPosition;
-import Zeze.Game.Task.ConditionSubmitItem;
 import Zeze.Game.TaskBase;
-import Zeze.Game.TaskPhase;
 import Zeze.Transaction.Procedure;
 import Zezex.Linkd.Auth;
 import junit.framework.TestCase;
@@ -180,16 +171,12 @@ public class TestTask extends TestCase {
 
 				var module = server0.taskModule;
 				// ==================== 创建一个任务 ====================
-				module.registerTask(DailyTask01.class);
-				module.registerTask(MainTask01.class);
-				module.registerTask(SideTask01.class);
-				String taskJsonPath = new File("").getAbsolutePath();
-				taskJsonPath = taskJsonPath.replace('\\', '/');
-				taskJsonPath += "/src/UnitTest/Zeze/Game/MyJson/task1.json";
-				module.loadJson(taskJsonPath);
+				String task1JsonPath = new File("").getAbsolutePath();
+				task1JsonPath = task1JsonPath.replace('\\', '/');
+				task1JsonPath += "/src/UnitTest/Zeze/Game/MyJson/task1.json";
+				module.loadJson(task1JsonPath);
 
 				registerRole(client0, roleId); // 注册角色
-
 
 				return Procedure.Success;
 			}, "Daily Task - 01").call());
