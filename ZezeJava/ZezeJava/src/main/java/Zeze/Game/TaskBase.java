@@ -18,9 +18,14 @@ import Zeze.Builtin.Game.TaskBase.BTask;
 import Zeze.Builtin.Game.TaskBase.BTaskKey;
 import Zeze.Builtin.Game.TaskBase.TriggerTaskEvent;
 import Zeze.Collections.BeanFactory;
+import Zeze.Game.Task.ConditionKillMonster;
+import Zeze.Game.Task.ConditionNPCTalk;
+import Zeze.Game.Task.ConditionReachPosition;
+import Zeze.Game.Task.ConditionSubmitItem;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.ConcurrentHashSet;
+import Zeze.Util.Func0;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DirectedAcyclicGraph;
 
@@ -44,9 +49,16 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		loadJsonExtended(json);
 	}
 	protected abstract void loadJsonExtended(JsonObject json);
+
+	/**
+	 * Runtime方法：从Bean中恢复Task配置类
+	 */
 	protected final void loadBean(BTask bean) {
 		this.bean = bean;
 		loadBeanExtended(bean);
+
+		currentPhase = phases.get(bean.getCurrentPhaseId());
+		currentPhase.loadBean(bean.getTaskPhases().get(bean.getCurrentPhaseId()));
 	}
 	protected abstract void loadBeanExtended(BTask bean);
 
@@ -55,11 +67,15 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	private final Module module;
 	public BTask getBean() { return bean; }
 	private BTask bean;
-	public final ConcurrentHashSet<Long> preTaskIds = new ConcurrentHashSet<>();; // 将通过Module在加载完配置后（即TaskGraphics的功能）统一初始化，与Bean无关，不需要存储在数据库
-	public final ConcurrentHashSet<Long> nextTaskIds = new ConcurrentHashSet<>();; // 将通过Module在加载完配置后（即TaskGraphics的功能）统一初始化，与Bean无关，不需要存储在数据库
+	public final ConcurrentHashSet<Long> preTaskIds = new ConcurrentHashSet<>(); // 将通过Module在加载完配置后（即TaskGraphics的功能）统一初始化，与Bean无关，不需要存储在数据库
+	public final ConcurrentHashSet<Long> nextTaskIds = new ConcurrentHashSet<>(); // 将通过Module在加载完配置后（即TaskGraphics的功能）统一初始化，与Bean无关，不需要存储在数据库
+	public final ConcurrentHashMap<Long, TaskPhase> phases = new ConcurrentHashMap<>();
+	public TaskPhase currentPhase;
+	public Func0<Boolean> onCompleteCallBack; // 任务完成时的回调，用于任务链的处理
 	// @formatter:on
 
 	public void addPhase(TaskPhase phase) {
+		phases.put(phase.getBean().getPhaseId(), phase);
 		bean.getTaskPhases().put(phase.getBean().getPhaseId(), phase.getBean());
 	}
 
@@ -69,26 +85,29 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	 * - 当满足任务推进情况时，会自动推进任务
 	 */
 	public boolean accept(Bean eventBean) throws Throwable {
-//		if (!currentPhase.accept(eventBean))
-//			return false;
-//
-//		if (currentPhase.isCompleted())
+		if (!currentPhase.accept(eventBean))
+			return false;
+
+		/*
+		 * 当Event被接受后，意味着当前Phase有可能已经完成了。
+		 * 当前一个Phase完成之后
+		 */
+		tryToProceedPhase();
+		return true;
+	}
+
+	protected void tryToProceedPhase() {
+
+//		if (currentPhase.isCompleted()) {
 //			if (currentPhase.isEndPhase())
 //				onComplete();
 //			else {
 //				currentPhase.onComplete();
 //				currentPhase = phases.get(currentPhase.getBean().getNextPhaseId());
 //			}
-		return true;
-	}
+//		}
 
-	/**
-	 * Runtime方法：isCompleted
-	 * - 用于判断任务是否完成
-	 */
-	public boolean isCompleted() {
-//		return currentPhase.isEndPhase() && currentPhase.isCompleted();
-		return false;
+		currentPhase = phases.get(currentPhase.getBean().getNextPhaseId());
 	}
 
 	/**
@@ -114,27 +133,6 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 //		currentPhase.loadBean(startBean);
 //		currentPhase.reset();
 	}
-
-	/**
-	 * 在任务结束后调用的方法，比如：发放奖励。
-	 */
-	protected final void onComplete() throws Throwable {
-//		if (isCompleted() && null != onCompleteUserCallback) {
-//			onCompleteUserCallback.run();
-//		}
-	}
-
-	//	public TaskPhase addPhase(TaskPhase.Opt opt, List<Long> afterPhaseIds) {
-//		return addPhase(opt, afterPhaseIds, null);
-//	}
-//
-//	public TaskPhase addPhase(TaskPhase.Opt opt, List<Long> afterPhaseIds, Action0 onCompleteUserCallback) {
-//		var phase = new TaskPhase(this, opt, afterPhaseIds, onCompleteUserCallback);
-//		phases.put(phase.getBean().getPhaseId(), phase);
-//		bean.getTaskPhases().put(phase.getBean().getPhaseId(), phase.getBean());
-//		return phase;
-//	}
-//
 
 	// ======================================== Private方法和一些不需要被注意的方法 ========================================
 	// @formatter:off
@@ -168,6 +166,12 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 			RegisterZezeTables(zeze);
 			RegisterProtocols(this.providerApp.providerService);
 			providerApp.builtinModules.put(this.getFullName(), this);
+
+			// 注册内置Condition
+			registerCondition(ConditionNPCTalk.class);
+			registerCondition(ConditionSubmitItem.class);
+			registerCondition(ConditionKillMonster.class);
+			registerCondition(ConditionReachPosition.class);
 		}
 
 		/**

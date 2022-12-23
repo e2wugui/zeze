@@ -14,4 +14,5 @@ public interface BTaskPhaseReadOnly {
     public Zeze.Transaction.Collections.PList1ReadOnly<Long> getPrePhaseIdsReadOnly();
     public long getNextPhaseId();
     public Zeze.Transaction.Collections.PMap2ReadOnly<Long, Zeze.Builtin.Game.TaskBase.BSubPhase, Zeze.Builtin.Game.TaskBase.BSubPhaseReadOnly> getSubPhasesReadOnly();
+    public long getCurrentSubPhaseId();
 }

@@ -7,9 +7,7 @@ public interface BTConditionNPCTalkEventReadOnly {
     public boolean negativeCheck();
     public BTConditionNPCTalkEvent copy();
 
-    public long getTaskId();
-    public long getPhaseId();
     public boolean isFinished();
-    public long getDialogId();
+    public String getDialogId();
     public int getDialogOption();
 }

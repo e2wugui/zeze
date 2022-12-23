@@ -183,17 +183,13 @@ public class TestTask extends TestCase {
 				module.registerTask(DailyTask01.class);
 				module.registerTask(MainTask01.class);
 				module.registerTask(SideTask01.class);
-				module.registerCondition(ConditionNPCTalk.class);
-				module.registerCondition(ConditionSubmitItem.class);
-				module.registerCondition(ConditionKillMonster.class);
-				module.registerCondition(ConditionReachPosition.class);
 				String taskJsonPath = new File("").getAbsolutePath();
 				taskJsonPath = taskJsonPath.replace('\\', '/');
 				taskJsonPath += "/src/UnitTest/Zeze/Game/MyJson/task1.json";
 				module.loadJson(taskJsonPath);
 
-				registerRole(client0, roleId);
-				// 通过领任务的方式测试
+				registerRole(client0, roleId); // 注册角色
+
 
 				return Procedure.Success;
 			}, "Daily Task - 01").call());
@@ -216,12 +212,10 @@ public class TestTask extends TestCase {
 		Assert.assertNotEquals(0, roleTasksCreated);
 	}
 
-	private static void selectOption(ClientGame.App app, long roleId, long taskId, long phaseId, long dialogId, int optionId) {
+	private static void selectOption(ClientGame.App app, long roleId, long taskId, String dialogId, int optionId) {
 		TriggerTaskEvent taskEvent = new TriggerTaskEvent();
 		taskEvent.Argument.setRoleId(roleId);
 		var bean = new BTConditionNPCTalkEvent();
-		bean.setTaskId(taskId);
-		bean.setPhaseId(phaseId);
 		bean.setFinished(false);
 		bean.setDialogId(dialogId);
 		bean.setDialogOption(optionId);
@@ -233,12 +227,10 @@ public class TestTask extends TestCase {
 		Assert.assertEquals(0, taskEvent.getResultCode());
 	}
 
-	private static void finishTalk(ClientGame.App app, long roleId, long taskId, long phaseId) {
+	private static void finishTalk(ClientGame.App app, long roleId, long taskId) {
 		TriggerTaskEvent taskEvent = new TriggerTaskEvent();
 		taskEvent.Argument.setRoleId(roleId);
 		var bean = new BTConditionNPCTalkEvent();
-		bean.setTaskId(taskId);
-		bean.setPhaseId(phaseId);
 		bean.setFinished(true); // 在对话结束时，发一条这个事件
 
 		taskEvent.Argument.setTaskEventTypeDynamic(new BSpecificTaskEvent(taskId));
@@ -247,6 +239,8 @@ public class TestTask extends TestCase {
 		taskEvent.SendForWait(app.ClientService.GetSocket()).await();
 		Assert.assertEquals(0, taskEvent.getResultCode());
 	}
+
+	// ======================================== 用户登录相关 ========================================
 
 	// 全局角色登录状态函数
 	private static void relogin(ClientGame.App app, long roleId) {

@@ -14,6 +14,7 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
     private final Zeze.Transaction.Collections.PList1<Long> _prePhaseIds; // 前置PhaseId
     private long _nextPhaseId; // 下一个PhaseId（允许通过不同的conditions完成情况动态变化）
     private final Zeze.Transaction.Collections.PMap2<Long, Zeze.Builtin.Game.TaskBase.BSubPhase> _subPhases; // 该Phase包含的所有的SubPhase
+    private long _currentSubPhaseId; // 当前的SubPhaseId
 
     private transient Object __zeze_map_key__;
 
@@ -129,6 +130,26 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
         return new Zeze.Transaction.Collections.PMap2ReadOnly<>(_subPhases);
     }
 
+    @Override
+    public long getCurrentSubPhaseId() {
+        if (!isManaged())
+            return _currentSubPhaseId;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _currentSubPhaseId;
+        var log = (Log__currentSubPhaseId)txn.getLog(objectId() + 8);
+        return log != null ? log.value : _currentSubPhaseId;
+    }
+
+    public void setCurrentSubPhaseId(long value) {
+        if (!isManaged()) {
+            _currentSubPhaseId = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__currentSubPhaseId(this, 8, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BTaskPhase() {
         _phaseName = "";
@@ -140,7 +161,7 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
     }
 
     @SuppressWarnings("deprecation")
-    public BTaskPhase(long _phaseId_, String _phaseName_, String _phaseDescription_, long _nextPhaseId_) {
+    public BTaskPhase(long _phaseId_, String _phaseName_, String _phaseDescription_, long _nextPhaseId_, long _currentSubPhaseId_) {
         _phaseId = _phaseId_;
         if (_phaseName_ == null)
             throw new IllegalArgumentException();
@@ -153,6 +174,7 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
         _nextPhaseId = _nextPhaseId_;
         _subPhases = new Zeze.Transaction.Collections.PMap2<>(Long.class, Zeze.Builtin.Game.TaskBase.BSubPhase.class);
         _subPhases.variableId(7);
+        _currentSubPhaseId = _currentSubPhaseId_;
     }
 
     public void assign(BTaskPhase other) {
@@ -165,6 +187,7 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
         _subPhases.clear();
         for (var e : other._subPhases.entrySet())
             _subPhases.put(e.getKey(), e.getValue().copy());
+        setCurrentSubPhaseId(other.getCurrentSubPhaseId());
     }
 
     @Deprecated
@@ -227,6 +250,13 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
         public void commit() { ((BTaskPhase)getBelong())._nextPhaseId = value; }
     }
 
+    private static final class Log__currentSubPhaseId extends Zeze.Transaction.Logs.LogLong {
+        public Log__currentSubPhaseId(BTaskPhase bean, int varId, long value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BTaskPhase)getBelong())._currentSubPhaseId = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -266,7 +296,8 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
             level -= 4;
             sb.append(Zeze.Util.Str.indent(level));
         }
-        sb.append('}').append(System.lineSeparator());
+        sb.append('}').append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("currentSubPhaseId=").append(getCurrentSubPhaseId()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -336,6 +367,13 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
                 }
             }
         }
+        {
+            long _x_ = getCurrentSubPhaseId();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 8, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -387,6 +425,10 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 8) {
+            setCurrentSubPhaseId(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -419,6 +461,8 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
             if (_v_.negativeCheck())
                 return true;
         }
+        if (getCurrentSubPhaseId() < 0)
+            return true;
         return false;
     }
 
@@ -437,6 +481,7 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
                 case 5: _prePhaseIds.followerApply(vlog); break;
                 case 6: _nextPhaseId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 7: _subPhases.followerApply(vlog); break;
+                case 8: _currentSubPhaseId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }

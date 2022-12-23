@@ -41,8 +41,8 @@
 							"conditionType" : "NPCTalk",
 							"npcId" : 101,
 							"dialogOptions" : {
-								"dialog1" : 3,
-								"dialog2" : 2
+								"npc01dialog10001" : 3,
+								"npc01dialog10002" : 2
 							}
 						}
 					]

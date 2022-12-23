@@ -793,8 +793,8 @@
 				<bean name="BBroadcastTaskEvent">
                     <variable id="1" name="isBreakIfAccepted" type="bool"/>
 				</bean>
-				<enum name="TaskResultSuccess" value="0"/> 使用二进制bit返回值，允许多重result返回。 0代表执行成功。
 				<enum name="TaskResultFailure" value="0"/>
+				<enum name="TaskResultSuccess" value="1"/> 使用二进制bit返回值，允许多重result返回。 1代表执行成功。
 				<enum name="TaskResultNewRoleTasksCreated" value="2"/>
 				<enum name="TaskResultAccepted" value="4"/>
 				<enum name="TaskResultRejected" value="8"/>
@@ -813,6 +813,7 @@
 					<variable id="5" name="prePhaseIds" type="list" value="long"/> 前置PhaseId
 					<variable id="6" name="nextPhaseId" type="long"/> 下一个PhaseId（允许通过不同的conditions完成情况动态变化）
 					<variable id="7" name="subPhases" type="map" key="long" value="BSubPhase"/> 该Phase包含的所有的SubPhase
+					<variable id="8" name="currentSubPhaseId" type="long"/> 当前的SubPhaseId
 				</bean>
 				<bean name="BSubPhase">
 					<variable id="1" name="subPhaseId" type="long"/>
@@ -867,14 +868,14 @@
 				<!-- 内置条件类型：NPC对话-->
 				<bean name="BTConditionNPCTalk">
 					<variable id="3" name="npcId" type="long"/>
-					<variable id="4" name="dialogOptions" type="map" key="string" value="int"/> key为对话的id，value为对话选项有几个。如果没有就不用加。
-					<variable id="5" name="dialogSelected" type="map" key="long" value="int"/> key为对话的id，value为选了第几个选项。如果还没选初始化为-1。
+					<variable id="4" name="dialogOptions" type="map" key="string" value="int"/> key为对话的Id（String类型），value为对话选项有几个。如果没有就不用加。
+					<variable id="5" name="dialogSelected" type="map" key="string" value="int"/> key为对话的Id（String类型），value为选了第几个选项。如果还没选初始化为-1。
 				</bean>
 				<bean name="BTConditionNPCTalkEvent">
-					<variable id="1" name="taskId" type="long"/>
-					<variable id="2" name="phaseId" type="long"/>
+<!--					<variable id="1" name="taskId" type="long"/>-->
+<!--					<variable id="2" name="phaseId" type="long"/>-->
 					<variable id="3" name="finished" type="bool"/> 如果完成了对话，也可以用这个Event发一条，下面的就留空。
-					<variable id="4" name="dialogId" type="long"/>
+					<variable id="4" name="dialogId" type="string"/>
 					<variable id="5" name="dialogOption" type="int"/> 选择了第几个选项
 				</bean>
 				<!-- ======================================== TaskCondition的Bean数据 ======================================== -->

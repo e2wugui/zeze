@@ -9,8 +9,8 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
     public static final long TYPEID = -6781843567973700426L;
 
     private long _npcId;
-    private final Zeze.Transaction.Collections.PMap1<String, Integer> _dialogOptions; // key为对话的id，value为对话选项有几个。如果没有就不用加。
-    private final Zeze.Transaction.Collections.PMap1<Long, Integer> _dialogSelected; // key为对话的id，value为选了第几个选项。如果还没选初始化为-1。
+    private final Zeze.Transaction.Collections.PMap1<String, Integer> _dialogOptions; // key为对话的Id（String类型），value为对话选项有几个。如果没有就不用加。
+    private final Zeze.Transaction.Collections.PMap1<String, Integer> _dialogSelected; // key为对话的Id（String类型），value为选了第几个选项。如果还没选初始化为-1。
 
     @Override
     public long getNpcId() {
@@ -41,12 +41,12 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
         return new Zeze.Transaction.Collections.PMap1ReadOnly<>(_dialogOptions);
     }
 
-    public Zeze.Transaction.Collections.PMap1<Long, Integer> getDialogSelected() {
+    public Zeze.Transaction.Collections.PMap1<String, Integer> getDialogSelected() {
         return _dialogSelected;
     }
 
     @Override
-    public Zeze.Transaction.Collections.PMap1ReadOnly<Long, Integer> getDialogSelectedReadOnly() {
+    public Zeze.Transaction.Collections.PMap1ReadOnly<String, Integer> getDialogSelectedReadOnly() {
         return new Zeze.Transaction.Collections.PMap1ReadOnly<>(_dialogSelected);
     }
 
@@ -54,7 +54,7 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
     public BTConditionNPCTalk() {
         _dialogOptions = new Zeze.Transaction.Collections.PMap1<>(String.class, Integer.class);
         _dialogOptions.variableId(4);
-        _dialogSelected = new Zeze.Transaction.Collections.PMap1<>(Long.class, Integer.class);
+        _dialogSelected = new Zeze.Transaction.Collections.PMap1<>(String.class, Integer.class);
         _dialogSelected.variableId(5);
     }
 
@@ -63,7 +63,7 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
         _npcId = _npcId_;
         _dialogOptions = new Zeze.Transaction.Collections.PMap1<>(String.class, Integer.class);
         _dialogOptions.variableId(4);
-        _dialogSelected = new Zeze.Transaction.Collections.PMap1<>(Long.class, Integer.class);
+        _dialogSelected = new Zeze.Transaction.Collections.PMap1<>(String.class, Integer.class);
         _dialogSelected.variableId(5);
     }
 
@@ -193,9 +193,9 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.MAP);
-                _o_.WriteMapType(_n_, ByteBuffer.INTEGER, ByteBuffer.INTEGER);
+                _o_.WriteMapType(_n_, ByteBuffer.BYTES, ByteBuffer.INTEGER);
                 for (var _e_ : _x_.entrySet()) {
-                    _o_.WriteLong(_e_.getKey());
+                    _o_.WriteString(_e_.getKey());
                     _o_.WriteLong(_e_.getValue());
                 }
             }
@@ -235,7 +235,7 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
-                    var _k_ = _o_.ReadLong(_s_);
+                    var _k_ = _o_.ReadString(_s_);
                     var _v_ = _o_.ReadInt(_t_);
                     _x_.put(_k_, _v_);
                 }

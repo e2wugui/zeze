@@ -1,13 +1,13 @@
 package Zeze.Game;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.json.JsonObject;
 import Zeze.Builtin.Game.TaskBase.BSubPhase;
-import Zeze.Builtin.Game.TaskBase.BTask;
 import Zeze.Builtin.Game.TaskBase.BTaskPhase;
 import Zeze.Transaction.Bean;
+import Zeze.Util.ConcurrentHashSet;
+import Zeze.Util.Func0;
 
 public class TaskPhase {
 	// @formatter:off
@@ -16,6 +16,9 @@ public class TaskPhase {
 	private BTaskPhase bean;
 	public TaskBase<?> getTask() { return task; }
 	private final TaskBase<?> task;
+	public final ConcurrentHashMap<Long, SubPhase> subPhases = new ConcurrentHashMap<>();
+	public SubPhase currentSubPhase;
+	public Func0<Boolean> isAbleToStartCheckCallback;
 	// @formatter:on
 
 	// @formatter:off
@@ -45,32 +48,6 @@ public class TaskPhase {
 				sub.addCondition(con);
 			}
 			addSubPhase(sub);
-		}
-	}
-
-	public void addSubPhase(SubPhase subPhase) {
-		bean.getSubPhases().put(subPhase.getBean().getSubPhaseId(), subPhase.getBean());
-	}
-
-	public static class SubPhase {
-		public static int COMPLETE_ALL = 0;
-		public static int COMPLETE_ANY = 1;
-		private BSubPhase bean;
-		public BSubPhase getBean() { return bean; }
-		private final TaskPhase phase;
-		public SubPhase(TaskPhase phase) {
-			this.phase = phase;
-		}
-
-		public void loadJson(JsonObject json) {
-			bean = new BSubPhase();
-			bean.setSubPhaseId(json.getInt("subPhaseId"));
-			bean.setNextSubPhaseId(json.getInt("nextSubPhaseId"));
-			bean.setCompleteType(json.getInt("completeType"));
-		}
-
-		public void addCondition(TaskConditionBase<?,?> condition) {
-			bean.getConditions().add(condition.getBean());
 		}
 	}
 
@@ -117,6 +94,44 @@ public class TaskPhase {
 	}
 
 	/**
+	 * 非Runtime方法：用于加载配置。
+	 */
+	public void addSubPhase(SubPhase subPhase) {
+		bean.getSubPhases().put(subPhase.getBean().getSubPhaseId(), subPhase.getBean());
+		subPhases.put(subPhase.getBean().getSubPhaseId(), subPhase);
+	}
+
+	public static class SubPhase {
+		public static int COMPLETE_ALL = 0;
+		public static int COMPLETE_ANY = 1;
+		private BSubPhase bean;
+		public BSubPhase getBean() { return bean; }
+		private final TaskPhase phase;
+		public SubPhase(TaskPhase phase) {
+			this.phase = phase;
+		}
+		public final ConcurrentHashSet<TaskConditionBase<?,?>> conditions = new ConcurrentHashSet<>();
+
+		/**
+		 * 非Runtime方法：用于加载json配置。
+		 */
+		public void loadJson(JsonObject json) {
+			bean = new BSubPhase();
+			bean.setSubPhaseId(json.getInt("subPhaseId"));
+			bean.setNextSubPhaseId(json.getInt("nextSubPhaseId"));
+			bean.setCompleteType(json.getInt("completeType"));
+		}
+
+		/**
+		 * 非Runtime方法：用于加载配置。
+		 */
+		public void addCondition(TaskConditionBase<?,?> condition) {
+			bean.getConditions().add(condition.getBean());
+			conditions.add(condition);
+		}
+	}
+
+	/**
 	 * Runtime方法：reset
 	 * - 用于重置任务Phase
 	 */
@@ -125,44 +140,11 @@ public class TaskPhase {
 //			condition.reset();
 	}
 
-	/**
-	 * Runtime方法：isCompleted
-	 * - 用于判断任务Phase是否完成
-	 */
-	public boolean isCompleted() {
-//		if (!checkCommitted())
-//			return false;
-//
-//		if (getConditionsCompleteType() == ConditionCompleteAll) {
-//			for (var condition : conditions.values())
-//				if (!condition.isCompleted())
-//					return false;
-//			return true;
-//		}
-//		if (getConditionsCompleteType() == ConditionCompleteAny) {
-//			for (var condition : conditions.values())
-//				if (condition.isCompleted())
-//					return true;
-//			return false;
-//		}
-//		if (getConditionsCompleteType() == ConditionCompleteSequence) { // 在判断是否完成上，ConditionCompleteSequence实际上和ConditionCompleteAll是一样的
-//			for (var condition : conditions.values())
-//				if (!condition.isCompleted())
-//					return false;
-//			return true;
-//		}
-		return false;
-	}
-
-	public final void onComplete() throws Throwable {
-	}
-
 	// ======================================== 任务Phase初始化阶段的方法 ========================================
-	public void loadBean(BTaskPhase bean) {
-		this.bean = bean;
-	}
+	public void loadBean(BTaskPhase bean) { this.bean = bean; }
 	public boolean isStartPhase() { return bean.getNextPhaseId() == bean.getPhaseId() || bean.getNextPhaseId() == -1; } // 也许可以这么用，但暂时没有这么用。
 	public boolean isEndPhase() { return bean.getPrePhaseIds().isEmpty(); }
+//	public boolean isCompleted() { return bean.isCompleted(); }
 
 	// @formatter:on
 }
