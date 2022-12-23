@@ -403,7 +403,7 @@ public final class Config {
 
 		setCheckpointPeriod(Integer.parseInt(self.getAttribute("CheckpointPeriod")));
 		setServerId(Integer.parseInt(self.getAttribute("ServerId")));
-		noDatabase = self.getAttribute("NoDatabase").equals("false");
+		noDatabase = self.getAttribute("NoDatabase").equals("true");
 
 		setGlobalCacheManagerHostNameOrAddress(self.getAttribute("GlobalCacheManagerHostNameOrAddress"));
 		String attr = self.getAttribute("GlobalCacheManagerPort");
