@@ -1549,7 +1549,7 @@ public final class ByteBuffer implements Comparable<ByteBuffer> {
 			}
 			return;
 		default:
-			throw new IllegalStateException("SkipUnknownField");
+			throw new IllegalStateException("SkipUnknownField: " + type);
 		}
 	}
 

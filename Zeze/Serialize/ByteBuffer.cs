@@ -1470,7 +1470,7 @@ namespace Zeze.Serialize
                     }
                     return;
                 default:
-                    throw new Exception("SkipUnknownField");
+                    throw new Exception("SkipUnknownField: " + type);
             }
         }
 

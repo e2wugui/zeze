@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 public final class Random {
-	public static java.util.Random getInstance() {
+	public static ThreadLocalRandom getInstance() {
 		return ThreadLocalRandom.current();
 	}
 
