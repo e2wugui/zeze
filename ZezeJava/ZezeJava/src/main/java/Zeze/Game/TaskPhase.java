@@ -1,6 +1,7 @@
 package Zeze.Game;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.json.JsonObject;
 import Zeze.Builtin.Game.TaskBase.BSubPhase;
@@ -127,13 +128,13 @@ public class TaskPhase {
 		 * Runtime方法：isCompleted
 		 */
 		public boolean isCompleted() {
-			if (bean.getCompleteType() == COMPLETE_ALL) {
+			if (Objects.equals(bean.getCompleteType(),COMPLETE_ALL)) {
 				for (var condition : conditions) {
 					if (!condition.isCompleted())
 						return false;
 				}
 				return true;
-			} if (bean.getCompleteType() == COMPLETE_ANY) {
+			} if (Objects.equals(bean.getCompleteType(),COMPLETE_ANY)) {
 				for (var condition : conditions) {
 					if (condition.isCompleted())
 						return true;

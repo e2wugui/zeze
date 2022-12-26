@@ -37,6 +37,15 @@ public class DailyTask extends TaskBase<BDailyTask> {
 		bean.setFlushTime(json.getInt("flushTime"));
 	}
 
+	@Override
+	protected boolean isAbleToStartTask() {
+		return true;
+	}
+
+	@Override
+	protected void onCompleteTask() {
+	}
+
 	/**
 	 * Runtime方法：每日刷新任务
 	 * 刷新四个Phase，每个Phase随机一个任务。

@@ -30,4 +30,14 @@ public class MyTask01 extends TaskBase<BMyTask01> {
 	protected void loadBeanExtended(BTask bean) {
 		this.bean = (BMyTask01)bean.getExtendedData().getBean();
 	}
+
+	@Override
+	protected boolean isAbleToStartTask() {
+		return false;
+	}
+
+	@Override
+	protected void onCompleteTask() {
+
+	}
 }

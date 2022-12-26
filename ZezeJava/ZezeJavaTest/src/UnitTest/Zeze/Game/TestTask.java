@@ -14,6 +14,7 @@ import Zeze.Builtin.Game.TaskBase.BTConditionNPCTalkEvent;
 import Zeze.Builtin.Game.TaskBase.TriggerTaskEvent;
 import Zeze.Game.TaskBase;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.ConcurrentHashSet;
 import Zezex.Linkd.Auth;
 import junit.framework.TestCase;
 import org.junit.Assert;
@@ -61,7 +62,14 @@ public class TestTask extends TestCase {
 	}
 
 	// ======================================== 测试用例1：每日任务 ========================================
-	public void test2() throws Throwable {
+
+	static class TaskClient {
+		public long TaskId;
+		public int state; // 0: 不可接取, 1: 可接取, 2: 已接取, 3: 已完成未提交 4: 已提交
+	}
+	static ConcurrentHashSet<TaskClient> tasksInfoClient = new ConcurrentHashSet<>(); // 模拟一份在客户端的任务数据
+
+	public void test1() throws Throwable {
 		Zeze.Util.Task.tryInitThreadPool(null, null, null);
 
 		try {
@@ -103,18 +111,40 @@ public class TestTask extends TestCase {
 		}
 	}
 
+	/**
+	 * 当角色创建时，会自动赋给这个角色整个任务列表。在返回的ChangedTasks中，会有整个任务列表的信息。
+	 */
 	private static void registerRole(ClientGame.App app, long roleId) {
 		TriggerTaskEvent event = new TriggerTaskEvent();
 		event.Argument.setRoleId(roleId);
 		event.SendForWait(app.ClientService.GetSocket()).await();
-		var resCode = event.getResultCode();
+		var resCode = event.Result.getResultCode();
+		var tasksInfo = event.Result.getChangedTasks();
+		tasksInfoClient.clear();
+		for (var taskInfo : tasksInfo) {
+			var task = new TaskClient();
+			task.TaskId = taskInfo.getTaskId();
+			task.state = taskInfo.getTaskState();
+			tasksInfoClient.add(task);
+		}
+
 		var success = (resCode & TaskBase.Module.TaskResultSuccess);
 		Assert.assertNotEquals(0, success);
 		var roleTasksCreated = (resCode & TaskBase.Module.TaskResultNewRoleTasksCreated);
 		Assert.assertNotEquals(0, roleTasksCreated);
 	}
 
+	/**
+	 * 接任务
+	 */
 	private static void acceptTask(ClientGame.App app, long roleId, long taskId) {
+
+	}
+
+	/**
+	 * 完成任务之后交任务
+	 */
+	private static void commitTask(ClientGame.App app, long roleId, long taskId) {
 
 	}
 
