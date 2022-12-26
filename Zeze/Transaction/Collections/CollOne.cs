@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Zeze.Serialize;
 
 namespace Zeze.Transaction.Collections
@@ -117,6 +113,11 @@ namespace Zeze.Transaction.Collections
             var copy = new CollOne<V>();
             copy._Value = (V)Value.Copy();
             return copy;
+        }
+
+        public override string ToString()
+        {
+            return Value.ToString();
         }
     }
 }

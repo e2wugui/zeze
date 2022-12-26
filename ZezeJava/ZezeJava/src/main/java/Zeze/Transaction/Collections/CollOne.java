@@ -111,4 +111,9 @@ public class CollOne<V extends Bean> extends Collection {
 	public CollOne<V> copy() {
 		return new CollOne<>((V)getValue().copy(), null);
 	}
+
+	@Override
+	public String toString() {
+		return getValue().toString();
+	}
 }
