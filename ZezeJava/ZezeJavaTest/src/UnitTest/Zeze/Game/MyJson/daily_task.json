@@ -17,7 +17,7 @@
 				{
 					"subPhaseId" : 1,
 					"nextSubPhaseId" : 2,
-					"completeType" : 0,
+					"completeType" : "ALL",
 					"conditions" : [
 						{
 							"conditionType" : "KillMonster",

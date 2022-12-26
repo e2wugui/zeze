@@ -43,8 +43,6 @@ public class ConditionKillMonster extends TaskConditionBase<BTConditionKillMonst
 			bean.getMonstersKilled().put(monster.getKey(), monster.getValue());
 		}
 
-//		if (isCompleted())
-//			onComplete();
 		return true;
 	}
 

@@ -3,18 +3,9 @@
 <solution name="TaskTest" ModuleIdAllowRanges="8-9">
     <module name="TaskExt" id="8">
         <!-- 扩展的任务 Extended Task -->
-        <bean name="BDailyTask01">
+        <bean name="BMyTask01">
             <variable id="1" name="placeholder" type="long"/>
             <variable id="2" name="taskNum" type="int"/>
-        </bean>
-        <bean name="BMainTask01">
-            <variable id="1" name="placeholder" type="long"/>
-        </bean>
-        <bean name="BSideTask01">
-            <variable id="1" name="placeholder" type="long"/>
-        </bean>
-        <bean name="BHiddenTask01">
-            <variable id="1" name="placeholder" type="long"/>
         </bean>
         <!-- 扩展的条件 Extended Condition -->
         <bean name="BTConditionExploreWorld">

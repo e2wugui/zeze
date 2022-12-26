@@ -100,8 +100,8 @@ public class TaskPhase {
 	}
 
 	public static class SubPhase {
-		public static int COMPLETE_ALL = 0;
-		public static int COMPLETE_ANY = 1;
+		public static String COMPLETE_ALL = "ALL";
+		public static String COMPLETE_ANY = "ANY";
 		private BSubPhase bean;
 		public BSubPhase getBean() { return bean; }
 		private final TaskPhase phase;
@@ -161,7 +161,7 @@ public class TaskPhase {
 			bean = new BSubPhase();
 			bean.setSubPhaseId(json.getInt("subPhaseId"));
 			bean.setNextSubPhaseId(json.getInt("nextSubPhaseId"));
-			bean.setCompleteType(json.getInt("completeType")); // 0: COMPLETE_ALL, 1: COMPLETE_ANY
+			bean.setCompleteType(json.getString("completeType")); // 0: COMPLETE_ALL, 1: COMPLETE_ANY
 		}
 
 		/**

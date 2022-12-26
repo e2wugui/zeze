@@ -830,7 +830,7 @@
 				</bean>
 				<bean name="BSubPhase">
 					<variable id="1" name="subPhaseId" type="long"/>
-					<variable id="2" name="completeType" type="int"/> CompleteAll/CompleteAny
+					<variable id="2" name="completeType" type="string"/> CompleteAll/CompleteAny
 					<variable id="3" name="nextSubPhaseId" type="long"/> 下一个SubPhaseId（允许通过不同的conditions完成情况动态变化）
 					<variable id="4" name="conditions" type="list" value="BTaskCondition"/> 该SubPhase包含的所有的Condition
 				</bean>
