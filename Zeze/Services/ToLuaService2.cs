@@ -794,10 +794,10 @@ namespace Zeze.Services.ToLuaService2
 
                         // 在lua就处理好了相应的类型转换，可以做到协议的生成里，不想把这么特殊的代码保持在c#中
                         long dynamicBeanId = Convert.ToInt64(Lua.ToString(luaState, -1));
+                        Lua.Pop(luaState, 1);
                         bb.WriteLong(dynamicBeanId);
                         if (dynamicBeanId != 0) // 不是empty bean
                         {
-                            Lua.Pop(luaState, 1);
                             // os.BeginWriteSegment(out var state);
                             EncodeBean(luaState, bb, dynamicBeanId, index);
                             // os.EndWriteSegment(state);
