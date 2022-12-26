@@ -32,6 +32,7 @@ public class DailyTask extends TaskBase<BDailyTask> {
 	// @formatter:on
 	@Override
 	protected void loadJsonExtended(JsonObject json) {
+		bean = new BDailyTask();
 		bean.setEverydayTaskCount(json.getInt("everydayTaskCount"));
 		bean.setFlushTime(json.getInt("flushTime"));
 	}

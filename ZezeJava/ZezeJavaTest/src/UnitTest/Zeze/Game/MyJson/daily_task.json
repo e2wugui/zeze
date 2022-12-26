@@ -1,5 +1,5 @@
 {
-	"taskType" : "Daily",
+	"taskType" : "DailyTask",
 	"taskId" : 1,
 	"taskName" : "My First Task",
 	"taskDesc" : "It is the task description",
@@ -37,7 +37,51 @@
 				{
 					"subPhaseId" : 2,
 					"nextSubPhaseId" : -1,
-					"completeType" : 0,
+					"completeType" : "ALL",
+					"conditions" : [
+						{
+							"conditionType" : "NPCTalk",
+							"npcId" : 101,
+							"dialogOptions" : {
+								"npc01dialog10001" : 3,
+								"npc01dialog10002" : 2
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"phaseId" : 2,
+			"phaseName" : "Phase 2",
+			"phaseDesc" : "Phase 2 Description",
+			"prePhaseIds" : [],
+			"nextPhaseId" : -1,
+			"SubPhases" : [
+				{
+					"subPhaseId" : 1,
+					"nextSubPhaseId" : 2,
+					"completeType" : "ALL",
+					"conditions" : [
+						{
+							"conditionType" : "KillMonster",
+							"monsters" : [
+								{
+									"monsterId" : 1003,
+									"monsterCount" : 5
+								},
+								{
+									"monsterId" : 1004,
+									"monsterCount" : 10
+								}
+							]
+						}
+					]
+				},
+				{
+					"subPhaseId" : 2,
+					"nextSubPhaseId" : -1,
+					"completeType" : "ALL",
 					"conditions" : [
 						{
 							"conditionType" : "NPCTalk",

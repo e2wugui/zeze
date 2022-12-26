@@ -17,9 +17,7 @@ import Zeze.Transaction.Procedure;
 import Zezex.Linkd.Auth;
 import junit.framework.TestCase;
 import org.junit.Assert;
-import org.junit.Ignore;
 
-@Ignore
 public class TestTask extends TestCase {
 	final ArrayList<ClientGame.App> clients = new ArrayList<>();
 	final ArrayList<Zezex.App> links = new ArrayList<>();
@@ -82,16 +80,21 @@ public class TestTask extends TestCase {
 
 				var module = server0.taskModule;
 				module.registerTask(MyTask01.class);
-				// ==================== 创建一个任务 ====================
+				// ==================== 读取任务列表：DailyTask ====================
 				String task1JsonPath = new File("").getAbsolutePath();
 				task1JsonPath = task1JsonPath.replace('\\', '/');
 				task1JsonPath += "/src/UnitTest/Zeze/Game/MyJson/daily_task.json";
 				module.loadJson(task1JsonPath);
 
 				registerRole(client0, roleId); // 注册角色
+				acceptTask(client0, roleId, 1); // 接受任务1
+				killMonster(client0, roleId, 1, 1001, 10); // 杀死10只怪物1001
+				selectOption(client0, roleId, 1, "npc01dialog10001", 1); // 选择对话选项1
+				selectOption(client0, roleId, 1, "npc01dialog10002", 2); // 选择对话选项2
+				finishTalk(client0, roleId, 1); // 完成对话
 
 				return Procedure.Success;
-			}, "Daily Task - 01").call());
+			}, "Daily Task - Test").call());
 			Thread.sleep(2000);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -109,6 +112,14 @@ public class TestTask extends TestCase {
 		Assert.assertNotEquals(0, success);
 		var roleTasksCreated = (resCode & TaskBase.Module.TaskResultNewRoleTasksCreated);
 		Assert.assertNotEquals(0, roleTasksCreated);
+	}
+
+	private static void acceptTask(ClientGame.App app, long roleId, long taskId) {
+
+	}
+
+	private static void killMonster(ClientGame.App app, long roleId, long taskId, int monsterId, int count) {
+
 	}
 
 	private static void selectOption(ClientGame.App app, long roleId, long taskId, String dialogId, int optionId) {
