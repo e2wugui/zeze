@@ -74,7 +74,10 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 			startNotifyDelayTask = Task.scheduleUnsafe(this.config.startNotifyDelay, () -> {
 				startNotifyDelayTask = null;
 				tableServerState.walk((__, state) -> {
-					startReadyCommitNotify(state, true);
+					rocks.newProcedure(() -> {
+						startReadyCommitNotify(state, true);
+						return 0;
+					}).call();
 					return true;
 				});
 			});
@@ -98,12 +101,17 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 		@Override
 		public synchronized <P extends Protocol<?>> void dispatchRaftRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
 																ProtocolFactoryHandle<?> factoryHandle) {
+			System.out.println("dispatchRaftRpcResponse: " + rpc.getClass().getName());
 			var procedure = rocks.newProcedure(() -> responseHandle.handle(rpc));
 			Task.call(procedure::call, rpc);
 		}
 
 		@Override
 		public synchronized void dispatchRaftRequest(Protocol<?> p, Func0<Long> func, String name, Action0 cancel, DispatchMode mode) {
+
+			var netSession = (Session)p.getSender().getUserState();
+			var ssName = null != netSession ? netSession.name : "";
+			System.out.println("dispatchRaftRequest: " + p.getClass().getName() + "@" + ssName);
 			var procedure = new Procedure(rocks, func::call);
 			Task.call(procedure::call, p, Protocol::SendResultCode);
 		}
@@ -112,6 +120,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 		public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
 			var netSession = (Session)so.getUserState();
 			if (null != netSession) {
+				System.out.println("OnSocketClose: " + netSession.name);
 				synchronized (this) {
 					var procedure = rocks.newProcedure(() -> { netSession.onClose(); return 0; });
 					procedure.call();
@@ -334,6 +343,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 			for (var remove : removed)
 				observers.remove(remove);
 		}
+		r.SendResult();
 		return 0;
 	}
 
@@ -360,9 +370,9 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 		var state = tableServerState.getOrAdd(r.Argument.getServiceName());
 		// AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
 		state.getServiceInfos().put(r.Argument.getServiceIdentity(), toRocks(r.Argument, netSession.name));
-		r.SendResultCode(Register.Success);
 		startReadyCommitNotify(state);
 		notifySimpleOnRegister(state, r.Argument);
+		r.SendResultCode(Register.Success);
 		return 0;
 	}
 
@@ -628,7 +638,11 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 						// NotifyTimeoutTask 会在下面两种情况下被修改：
 						// 1. 在 Notify.ReadyCommit 完成以后会被清空。
 						// 2. 启动了新的 Notify。
-						startReadyCommitNotify(state); // restart
+						// restart
+						rocks.newProcedure(() -> {
+							startReadyCommitNotify(state);
+							return 0;
+						}).call();
 					}));
 		}
 	}
@@ -638,6 +652,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 		var netSession = (Session)r.getSender().getUserState();
 		var state = tableServerState.getOrAdd(r.Argument.serviceName);
 		setReady(state, r, netSession.name);
+		r.SendResult();
 		return 0;
 	}
 

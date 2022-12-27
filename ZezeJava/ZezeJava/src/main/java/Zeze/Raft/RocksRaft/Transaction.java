@@ -193,7 +193,7 @@ public final class Transaction {
 			throw e;
 		} catch (RaftRetryException e) {
 			procedure.setAutoResponseResultCode(Zeze.Transaction.Procedure.RaftRetry);
-			logger.debug("RocksRaft Retry", e);
+			logger.info("RocksRaft Retry", e);
 			_final_rollback_(procedure);
 			return Zeze.Transaction.Procedure.RaftRetry;
 		} catch (Throwable e) {

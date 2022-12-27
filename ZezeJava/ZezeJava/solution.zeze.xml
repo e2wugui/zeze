@@ -1206,7 +1206,7 @@
 				<enum name="Success" value="0"/>
 				<enum name="DuplicateRegister" value="1"/>
 			</rpc>
-			<rpc name="SetServerLoad" argument="Zeze.Services.ServiceManager.BServerLoad" base="Zeze.Raft.RaftRpc" handle="server"/>
+			<rpc name="SetServerLoad" argument="Zeze.Services.ServiceManager.BServerLoad" base="Zeze.Raft.RaftRpc" handle="server,client"/>
 			<rpc name="Subscribe" argument="Zeze.Services.ServiceManager.BSubscribeInfo" base="Zeze.Raft.RaftRpc" handle="server">
 				<enum name="Success" value="0"/>
 				<enum name="DuplicateSubscribe" value="1"/>

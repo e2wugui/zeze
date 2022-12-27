@@ -363,7 +363,7 @@ namespace Zeze.Gen.java
             if (type is Types.TypeList tlist)
             {
                 string value = BoxingName.GetBoxingName(tlist.ValueType);
-                var version = tlist.ValueType.IsNormalBean ? "2" : "1";
+                var version = tlist.ValueType.IsNormalBeanOrRocks ? "2" : "1";
                 return $"() -> new Zeze.Raft.RocksRaft.LogList{version}<>({value}.class)";
             }
             else if (type is Types.TypeSet tset)
@@ -375,7 +375,7 @@ namespace Zeze.Gen.java
             {
                 string key = BoxingName.GetBoxingName(tmap.KeyType);
                 string value = BoxingName.GetBoxingName(tmap.ValueType);
-                var version = tmap.ValueType.IsNormalBean ? "2" : "1";
+                var version = tmap.ValueType.IsNormalBeanOrRocks ? "2" : "1";
                 return $"() -> new Zeze.Raft.RocksRaft.LogMap{version}<>({key}.class, {value}.class)";
             }
             throw new Exception();

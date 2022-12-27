@@ -84,8 +84,9 @@ public abstract class AbstractServiceManagerAgentWithRaft extends Zeze.Services.
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.ServiceManagerWithRaft.SetServerLoad>();
             factoryHandle.Factory = Zeze.Builtin.ServiceManagerWithRaft.SetServerLoad::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSetServerLoadResponse", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessSetServerLoadResponse", Zeze.Transaction.DispatchMode.Normal);
+            factoryHandle.Handle = this::ProcessSetServerLoadRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSetServerLoadRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessSetServerLoadRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47342529828679L, factoryHandle); // 11022, -894675129
         }
         {
@@ -164,6 +165,7 @@ public abstract class AbstractServiceManagerAgentWithRaft extends Zeze.Services.
     protected abstract long ProcessNotifyServiceListRequest(Zeze.Builtin.ServiceManagerWithRaft.NotifyServiceList r) throws Throwable;
     protected abstract long ProcessOfflineNotifyRequest(Zeze.Builtin.ServiceManagerWithRaft.OfflineNotify r) throws Throwable;
     protected abstract long ProcessRegisterRequest(Zeze.Builtin.ServiceManagerWithRaft.Register r) throws Throwable;
+    protected abstract long ProcessSetServerLoadRequest(Zeze.Builtin.ServiceManagerWithRaft.SetServerLoad r) throws Throwable;
     protected abstract long ProcessSubscribeFirstCommitRequest(Zeze.Builtin.ServiceManagerWithRaft.SubscribeFirstCommit r) throws Throwable;
     protected abstract long ProcessUnRegisterRequest(Zeze.Builtin.ServiceManagerWithRaft.UnRegister r) throws Throwable;
     protected abstract long ProcessUpdateRequest(Zeze.Builtin.ServiceManagerWithRaft.Update r) throws Throwable;

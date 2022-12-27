@@ -84,6 +84,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			state.onCommit(r.Argument);
 		else
 			logger.warn("CommitServiceList But SubscribeState Not Found.");
+		r.SendResult();
 		return Procedure.Success;
 	}
 
@@ -102,6 +103,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			state.onNotify(r.Argument);
 		else
 			logger.warn("NotifyServiceList But SubscribeState Not Found.");
+		r.SendResult();
 		return Procedure.Success;
 	}
 
@@ -134,10 +136,27 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
+	protected long ProcessSetServerLoadRequest(SetServerLoad r) throws Throwable {
+		loads.put(r.Argument.getName(), r.Argument);
+		if (onSetServerLoad != null) {
+			Task.getCriticalThreadPool().execute(() -> {
+				try {
+					onSetServerLoad.run(r.Argument);
+				} catch (Throwable e) {
+					logger.error("", e);
+				}
+			});
+		}
+		r.SendResult();
+		return 0;
+	}
+
+	@Override
 	protected long ProcessSubscribeFirstCommitRequest(SubscribeFirstCommit r) throws Throwable {
 		var state = subscribeStates.get(r.Argument.getServiceName());
 		if (state != null)
 			state.onFirstCommit(r.Argument);
+		r.SendResult();
 		return Procedure.Success;
 	}
 
@@ -245,8 +264,16 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		});
 
 		if (newAdd.value) {
-			raftClient.sendForWait(new Subscribe(info)).await();
-			logger.debug("SubscribeService {}", info);
+			try {
+				raftClient.sendForWait(new Subscribe(info)).await();
+				logger.debug("SubscribeService {}", info);
+			} catch (Throwable ex) {
+				// 【警告】这里没有原子化执行请求和处理结果。
+				// 由于上面是computeIfAbsent，仅第一个请求会发送，不会并发发送相同的订阅，所以，
+				// 可以在这里rollback处理一下。
+				subscribeStates.remove(info.getServiceName()); // rollback
+				throw ex;
+			}
 		}
 		return subState;
 	}

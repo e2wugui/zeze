@@ -110,9 +110,14 @@ public final class Agent extends AbstractAgent {
 		});
 
 		if (newAdd.value) {
-			var r = new Subscribe(info);
-			r.SendAndWaitCheckResultCode(client.getSocket());
-			logger.debug("SubscribeService {}", info);
+			try {
+				var r = new Subscribe(info);
+				r.SendAndWaitCheckResultCode(client.getSocket());
+				logger.debug("SubscribeService {}", info);
+			} catch (Throwable ex) {
+				subscribeStates.remove(info.getServiceName()); // rollback
+				throw ex;
+			}
 		}
 		return subState;
 	}
