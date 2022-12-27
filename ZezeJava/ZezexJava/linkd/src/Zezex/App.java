@@ -45,12 +45,14 @@ public final class App extends Zeze.AppBase {
 				break;
 			}
 		}
-		Start(linkPort, providerPort);
+		Start(-1, linkPort, providerPort);
 	}
 
-	public void Start(int linkPort, int providerPort) throws Throwable {
+	public void Start(int serverId, int linkPort, int providerPort) throws Throwable {
 		// Create
 		var config = Config.load("linkd.xml");
+		if (serverId != -1)
+			config.setServerId(serverId);
 		if (linkPort != -1) {
 			config.getServiceConfMap().get("LinkdService").ForEachAcceptor((a) -> a.setPort(linkPort));
 		}

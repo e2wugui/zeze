@@ -4,6 +4,7 @@
 	GlobalCacheManagerPort="5555"
 	CheckpointPeriod="0"
 	ServerId="-1"
+	ServiceManager="raft"
 	>
 	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/> linkd现在不需要数据库，但是验证可能要，先占个坑。
 
@@ -14,6 +15,8 @@
 	<ServiceConf Name="ProviderService" InputBufferMaxProtocolSize="2097152" SocketLogLevel="Trace">
 		<Acceptor Ip="" Port="20000"/> 如果linkd运行在双网（内外网）机器上，这里可以配置Ip为内部网络的地址，不允许外部连接。
 	</ServiceConf>
+
+	<ServiceManagerConf raftXml="servicemanager.raft.xml"/>
 
 	<ServiceConf Name="Zeze.Services.ServiceManager.Agent">
 		<Connector HostNameOrAddress="127.0.0.1" Port="5001"/>

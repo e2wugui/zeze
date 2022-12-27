@@ -522,7 +522,7 @@ public final class Config {
 	public static final class ServiceManagerConf {
 		private String sessionName;
 		private String raftXml;
-		private long loginTimeout = 8000;
+		private long loginTimeout = 12000;
 
 		public ServiceManagerConf(Config conf, Element self) {
 			sessionName = self.getAttribute("sessionName").trim();

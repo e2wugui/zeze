@@ -35,7 +35,7 @@ public class TestOnline extends TestCase {
 
 	private void start() throws Throwable {
 		for (int i = 0; i < LinkCount; ++i)
-			links.get(i).Start(10000 + i, 15000 + i);
+			links.get(i).Start(-(i+1), 10000 + i, 15000 + i);
 		for (int i = 0; i < ServerCount; ++i)
 			servers.get(i).Start(i, 20000 + i);
 		Thread.sleep(2000); // wait server ready

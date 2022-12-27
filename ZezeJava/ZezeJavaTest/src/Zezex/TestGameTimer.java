@@ -35,7 +35,7 @@ public class TestGameTimer {
 			servers.add(new Game.App());
 
 		for (int i = 0; i < linkCount; ++i)
-			links.get(i).Start(10000 + i, 15000 + i);
+			links.get(i).Start(-(i+1), 10000 + i, 15000 + i);
 		for (int i = 0; i < serverCount; ++i)
 			servers.get(i).Start(i, 20000 + i);
 		Thread.sleep(2000);
