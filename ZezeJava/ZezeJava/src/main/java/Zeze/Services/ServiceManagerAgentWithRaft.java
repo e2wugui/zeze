@@ -61,7 +61,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 
 		var future = startNewLogin();
 		var login = new Login();
-		login.Argument.setSessionName(zeze.getConfig().getServiceManagerConf().getSessionName());
+		login.Argument.setSessionName(config.getServiceManagerConf().getSessionName());
 
 		agent.send(login, p -> {
 			var rpc = (Login)p;

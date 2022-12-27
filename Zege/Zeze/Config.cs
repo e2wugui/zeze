@@ -221,7 +221,7 @@ namespace Zeze
 
             CheckpointPeriod = int.Parse(self.GetAttribute("CheckpointPeriod"));
             ServerId = int.Parse(self.GetAttribute("ServerId"));
-            NoDatabase = self.GetAttribute("NoDatabase").Equals("false");
+            NoDatabase = self.GetAttribute("NoDatabase").Equals("true");
 
             GlobalCacheManagerHostNameOrAddress = self.GetAttribute("GlobalCacheManagerHostNameOrAddress");
             attr = self.GetAttribute("GlobalCacheManagerPort");

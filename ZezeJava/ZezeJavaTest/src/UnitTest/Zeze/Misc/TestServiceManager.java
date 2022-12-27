@@ -43,7 +43,7 @@ public class TestServiceManager {
 			return; // disable
 
 		var serviceName = "TestServiceManager";
-		future = new TaskCompletionSource<Integer>();
+		future = new TaskCompletionSource<>();
 
 		var agent = App.Instance.Zeze.getServiceManager();
 		agent.registerService(serviceName, "1", "127.0.0.1", 1234);
@@ -59,33 +59,38 @@ public class TestServiceManager {
 				}
 			}
 		});
-		agent.setOnSetServerLoad((load) -> { this.future.setResult(0); });
+		agent.setOnSetServerLoad((load) -> {
+			this.future.setResult(0);
+			System.out.println("OnSetLoad " + load);
+		});
 		agent.subscribeService(serviceName, BSubscribeInfo.SubscribeTypeSimple);
 		var load = new BServerLoad();
 		load.ip = "127.0.0.1";
 		load.port = 1234;
-
+		System.out.println("WaitOnSetLoad");
 		agent.setServerLoad(load);
-		System.out.println("ConnectNow");
 		future.await();
 
-		future = new TaskCompletionSource<Integer>();
+		future = new TaskCompletionSource<>();
 		agent.setOnUpdate((state, info) -> {
 			System.out.println("OnUpdate: " + info.getExtraInfo());
 			this.future.setResult(0);
 		});
+		System.out.println("WaitOnUpdate");
 		agent.updateService(serviceName, "1", "1.1.1.1", 1, new Binary("extra info".getBytes(StandardCharsets.UTF_8)));
 		future.await();
 
 		System.out.println("RegisterService 2");
-		future = new TaskCompletionSource<Integer>();
+		future = new TaskCompletionSource<>();
+		System.out.println("WaitOnChanged 2");
 		agent.registerService(serviceName, "2");
 		future.await();
 
 		// 改变订阅类型
 		System.out.println("Change Subscribe type");
 		agent.unSubscribeService(serviceName);
-		future = new TaskCompletionSource<Integer>();
+		future = new TaskCompletionSource<>();
+		System.out.println("WaitOnChanged When Re-SubscribeService");
 		agent.subscribeService(serviceName, BSubscribeInfo.SubscribeTypeReadyCommit);
 		future.await();
 
@@ -96,7 +101,8 @@ public class TestServiceManager {
 		state.setServiceIdentityReadyState("3", anyState);
 
 		System.out.println("RegisterService 3");
-		future = new TaskCompletionSource<Integer>();
+		future = new TaskCompletionSource<>();
+		System.out.println("WaitOnChanged 3");
 		agent.registerService(serviceName, "3");
 		future.await();
 	}

@@ -93,6 +93,9 @@ public final class Application {
 
 		switch (conf.getServiceManager()) {
 		case "raft":
+			if (conf.getServiceManagerConf().getSessionName().isEmpty()) {
+				conf.getServiceManagerConf().setSessionName(projectName + "#" + conf.getServerId());
+			}
 			serviceManager = new ServiceManagerAgentWithRaft(this);
 			break;
 

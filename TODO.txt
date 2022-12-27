@@ -53,7 +53,7 @@ ServiceManagerWithRaft 测试
 	   确定是否需要替换，什么时候启动？不替换就是永久不启动了。
 
 ------------------------------------------------------------------------------------------------------------------------------
-v1.1.4  
+v1.1.4 ProviderDirectService.WaitDirectServerReady; Timer cancelAlways; 
 ------------------------------------------------------------------------------------------------------------------------------
 Timer.cancel 无法redirect时，直接从db中cancel掉。
 ProviderDirectService.WaitDirectServerReady
