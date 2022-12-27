@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
@@ -915,10 +916,13 @@ public final class ServiceManagerServer implements Closeable {
 			}
 		} else if (raftName.equals("RunAllNodes")) {
 			logger.info("Start Raft=RunAllNodes");
+			var smconf = new ServiceManagerServer.Conf();
+			smconf.startNotifyDelay = 0;
+			var config = new Config().addCustomize(smconf).loadAndParse();
 			//noinspection unused
-			try (var raft1 = new ServiceManagerWithRaft("127.0.0.1:6556", RaftConfig.load(raftConf));
-				 var raft2 = new ServiceManagerWithRaft("127.0.0.1:6557", RaftConfig.load(raftConf));
-				 var raft3 = new ServiceManagerWithRaft("127.0.0.1:6558", RaftConfig.load(raftConf))) {
+			try (var raft1 = new ServiceManagerWithRaft("127.0.0.1:6556", RaftConfig.load(raftConf), config, false);
+				 var raft2 = new ServiceManagerWithRaft("127.0.0.1:6557", RaftConfig.load(raftConf), config, false);
+				 var raft3 = new ServiceManagerWithRaft("127.0.0.1:6558", RaftConfig.load(raftConf), config, false)) {
 				synchronized (Thread.currentThread()) {
 					Thread.currentThread().wait();
 				}

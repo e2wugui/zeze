@@ -12,8 +12,7 @@ public final class BServiceInfos extends Bean {
 	private static final Comparator<BServiceInfo> Comparer = (si1, si2) -> {
 		String id1 = si1.getServiceIdentity();
 		String id2 = si2.getServiceIdentity();
-		int c = Integer.compare(id1.length(), id2.length());
-		return c != 0 ? c : id1.compareTo(id2);
+		return id1.compareTo(id2);
 	};
 
 	// ServiceList maybe empty. need a ServiceName

@@ -73,7 +73,7 @@ public class TestServiceManager {
 
 		future = new TaskCompletionSource<>();
 		agent.setOnUpdate((state, info) -> {
-			System.out.println("OnUpdate: " + info.getExtraInfo());
+			System.out.println("OnUpdate: " + info);
 			this.future.setResult(0);
 		});
 		System.out.println("WaitOnUpdate");

@@ -101,7 +101,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 		@Override
 		public synchronized <P extends Protocol<?>> void dispatchRaftRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
 																ProtocolFactoryHandle<?> factoryHandle) {
-			System.out.println("dispatchRaftRpcResponse: " + rpc.getClass().getName());
+			logger.info("dispatchRaftRpcResponse: " + rpc.getClass().getName() + rpc);
 			var procedure = rocks.newProcedure(() -> responseHandle.handle(rpc));
 			Task.call(procedure::call, rpc);
 		}
@@ -111,7 +111,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 
 			var netSession = (Session)p.getSender().getUserState();
 			var ssName = null != netSession ? netSession.name : "";
-			System.out.println("dispatchRaftRequest: " + p.getClass().getName() + "@" + ssName);
+			logger.info("dispatchRaftRequest: " + p.getClass().getName() + "@" + ssName + p);
 			var procedure = new Procedure(rocks, func::call);
 			Task.call(procedure::call, p, Protocol::SendResultCode);
 		}
@@ -368,6 +368,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 		// 允许重复登录，断线重连Agent不好原子实现重发。
 		session.getRegisters().put(toRocksKey(r.Argument), toRocks(r.Argument, netSession.name));
 		var state = tableServerState.getOrAdd(r.Argument.getServiceName());
+		state.setServiceName(r.Argument.getServiceName());
 		// AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
 		state.getServiceInfos().put(r.Argument.getServiceIdentity(), toRocks(r.Argument, netSession.name));
 		startReadyCommitNotify(state);
@@ -405,6 +406,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 		var session = tableSession.get(netSession.name);
 		session.getSubscribes().put(r.Argument.getServiceName(), toRocks(r.Argument));
 		var state = tableServerState.getOrAdd(r.Argument.getServiceName());
+		state.setServiceName(r.Argument.getServiceName());
 		return subscribeAndSend(state, r, netSession.name);
 	}
 
@@ -595,7 +597,6 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 		state.setSerialId(state.getSerialId() + 1);
 		var notify = new NotifyServiceList(newSortedBServiceInfos(state));
 
-		var notifyBytes = notify.encode();
 		var sb = new StringBuilder();
 
 		if (notifySimple) {
@@ -603,7 +604,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 				var session = tableSession.get(it.getKey());
 				if (null != session) {
 					var s = rocks.getRaft().getServer().GetSocket(session.getSessionId());
-					if (s != null && s.Send(notifyBytes))
+					if (s != null && notify.Send(s))
 						sb.append(s.getSessionId()).append(',');
 				}
 			}
@@ -620,7 +621,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 			var session = tableSession.get(it.getKey());
 			if (null != session) {
 				var s = rocks.getRaft().getServer().GetSocket(session.getSessionId());
-				if (s != null && s.Send(notifyBytes))
+				if (s != null && notify.Send(s))
 					sb.append(s.getSessionId()).append(',');
 			}
 		}
@@ -651,6 +652,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 	protected long ProcessReadyServiceListRequest(ReadyServiceList r) {
 		var netSession = (Session)r.getSender().getUserState();
 		var state = tableServerState.getOrAdd(r.Argument.serviceName);
+		state.setServiceName(r.Argument.serviceName);
 		setReady(state, r, netSession.name);
 		r.SendResult();
 		return 0;
