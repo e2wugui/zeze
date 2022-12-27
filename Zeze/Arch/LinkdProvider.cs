@@ -48,7 +48,7 @@ namespace Zeze.Arch
                     var providerModuleState = new ProviderModuleState(providerSession.SessionId,
                         module.Key, module.Value.ChoiceType, module.Value.ConfigType);
                     var serviceName = ProviderDistribute.MakeServiceName(providerSession.Info.ServiceNamePrefix, module.Key);
-                    var subState = await LinkdApp.Zeze.ServiceManagerAgent.SubscribeService(serviceName,
+                    var subState = await LinkdApp.Zeze.ServiceManager.SubscribeService(serviceName,
                         SubscribeInfo.SubscribeTypeSimple, providerModuleState);
                     // 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
                     // 即使 SubscribeTypeSimple 也需要设置 Ready，因为 providerModuleState 需要设置到ServiceInfo中，以后Choice的时候需要用。
@@ -139,7 +139,7 @@ namespace Zeze.Arch
                 var providerModuleState = new ProviderModuleState(ps.SessionId,
                         module.Key, module.Value.ChoiceType, module.Value.ConfigType);
                 var serviceName = ProviderDistribute.MakeServiceName(ps.Info.ServiceNamePrefix, module.Key);
-                var subState = await LinkdApp.Zeze.ServiceManagerAgent.SubscribeService(
+                var subState = await LinkdApp.Zeze.ServiceManager.SubscribeService(
                         serviceName, module.Value.SubscribeType, providerModuleState);
                 // 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
                 // 即使 SubscribeTypeSimple 也需要设置 Ready，因为 providerModuleState 需要设置到ServiceInfo中，以后Choice的时候需要用。
@@ -158,7 +158,7 @@ namespace Zeze.Arch
                 if (false == isOnProviderClose)
                     ps.StaticBinds.TryRemove(moduleId, out var _);
                 var serviceName = ProviderDistribute.MakeServiceName(ps.Info.ServiceNamePrefix, moduleId);
-                if (false == LinkdApp.Zeze.ServiceManagerAgent.SubscribeStates.TryGetValue(
+                if (false == LinkdApp.Zeze.ServiceManager.SubscribeStates.TryGetValue(
                     serviceName, out var volatileProviders))
                 {
                     continue;
@@ -199,7 +199,7 @@ namespace Zeze.Arch
 
         public ProviderModuleState GetProviderModuleState(int moduleId)
         {
-            if (false == Distribute.Zeze.ServiceManagerAgent.SubscribeStates.TryGetValue(MakeServiceName(moduleId), out var providers))
+            if (false == Distribute.Zeze.ServiceManager.SubscribeStates.TryGetValue(MakeServiceName(moduleId), out var providers))
                 return null;
             return (ProviderModuleState)providers.SubscribeInfo.LocalState;
         }
@@ -211,7 +211,7 @@ namespace Zeze.Arch
             var linkSession = link.UserState as LinkdUserSession;
 
             provider = 0;
-            if (false == LinkdApp.Zeze.ServiceManagerAgent.SubscribeStates.TryGetValue(serviceName, out var providers))
+            if (false == LinkdApp.Zeze.ServiceManager.SubscribeStates.TryGetValue(serviceName, out var providers))
                 return false;
 
             // 这里保存的 ProviderModuleState 是该moduleId的第一个bind请求去订阅时记录下来的，

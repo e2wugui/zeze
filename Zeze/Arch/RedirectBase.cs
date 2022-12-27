@@ -50,7 +50,7 @@ namespace Zeze.Arch
 
 		public AsyncSocket ChoiceHash(IModule module, int hash, int dataConcurrentLevel = 1)
 		{
-			var subscribes = ProviderApp.Zeze.ServiceManagerAgent.SubscribeStates;
+			var subscribes = ProviderApp.Zeze.ServiceManager.SubscribeStates;
 			var serviceName = ProviderDistribute.MakeServiceName(ProviderApp.ServerServiceNamePrefix, module.Id);
 
 			if (!subscribes.TryGetValue(serviceName, out var providers))

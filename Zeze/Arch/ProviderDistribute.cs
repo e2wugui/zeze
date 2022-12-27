@@ -237,14 +237,14 @@ namespace Zeze.Arch
         public bool TryGetProviders(string prefix, int moduleId, out Agent.SubscribeState providers)
         {
             var serviceName = MakeServiceName(prefix, moduleId);
-            return Zeze.ServiceManagerAgent.SubscribeStates.TryGetValue(serviceName, out providers);
+            return Zeze.ServiceManager.SubscribeStates.TryGetValue(serviceName, out providers);
         }
 
         public bool ChoiceProviderByServerId(string serviceNamePrefix, int moduleId, int serverId, out long provider)
         {
             provider = 0;
             var serviceName = MakeServiceName(serviceNamePrefix, moduleId);
-            if (false == Zeze.ServiceManagerAgent.SubscribeStates.TryGetValue(serviceName, out var providers))
+            if (false == Zeze.ServiceManager.SubscribeStates.TryGetValue(serviceName, out var providers))
                 return false;
 
             var serviceInfo = providers.ServiceInfos.Find(serverId);

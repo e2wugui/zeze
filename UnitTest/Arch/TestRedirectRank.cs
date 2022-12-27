@@ -24,10 +24,10 @@ namespace Arch
 			Console.WriteLine("Begin Thread.sleep");
 			await Task.Delay(2000); // wait connected
 			var app1subs = new StringBuilder();
-			Str.BuildString(app1subs, app1.Zeze.ServiceManagerAgent.SubscribeStates.Values);
+			Str.BuildString(app1subs, app1.Zeze.ServiceManager.SubscribeStates.Values);
 			Console.WriteLine("End Thread.sleep app1 " + app1subs.ToString());
 			var app2subs = new StringBuilder();
-			Str.BuildString(app2subs, app2.Zeze.ServiceManagerAgent.SubscribeStates.Values);
+			Str.BuildString(app2subs, app2.Zeze.ServiceManager.SubscribeStates.Values);
 			Console.WriteLine("End Thread.sleep app2 " + app2subs.ToString());
 
 			try

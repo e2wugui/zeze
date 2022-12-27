@@ -50,7 +50,7 @@ namespace Zeze.Arch
          */
         public async Task RegisterModulesAndSubscribeLinkd()
         {
-            var sm = ProviderApp.Zeze.ServiceManagerAgent;
+            var sm = ProviderApp.Zeze.ServiceManager;
             var services = new Dictionary<string, BModule>();
 
             // 注册本provider的静态服务

@@ -186,7 +186,7 @@ namespace Zeze.Arch
 				ProviderByServerId[ps.ServerId] = ps;
 
 				// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
-				foreach (var ss in Zeze.ServiceManagerAgent.SubscribeStates.Values)
+				foreach (var ss in Zeze.ServiceManager.SubscribeStates.Values)
 				{
 					if (ss.ServiceName.StartsWith(ProviderApp.ServerServiceNamePrefix))
 					{
@@ -226,7 +226,7 @@ namespace Zeze.Arch
 			{
 				foreach (var service in ps.ServiceReadyStates)
 				{
-					if (Zeze.ServiceManagerAgent.SubscribeStates.TryGetValue(service.Key, out var subs))
+					if (Zeze.ServiceManager.SubscribeStates.TryGetValue(service.Key, out var subs))
                     {
 						foreach (var identity in service.Value.Keys)
 						{

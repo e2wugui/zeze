@@ -39,11 +39,11 @@ namespace Zeze.Arch
 
             LinkdProvider.RegisterProtocols(LinkdProviderService);
 
-			Zeze.ServiceManagerAgent.OnChanged = LinkdProvider.Distribute.ApplyServers;
-			Zeze.ServiceManagerAgent.OnUpdate = LinkdProvider.Distribute.AddServer;
-			Zeze.ServiceManagerAgent.OnRemove = LinkdProvider.Distribute.RemoveServer;
+			Zeze.ServiceManager.OnChanged = LinkdProvider.Distribute.ApplyServers;
+			Zeze.ServiceManager.OnUpdate = LinkdProvider.Distribute.AddServer;
+			Zeze.ServiceManager.OnRemove = LinkdProvider.Distribute.RemoveServer;
 
-			Zeze.ServiceManagerAgent.OnSetServerLoad = (serverLoad) =>
+			Zeze.ServiceManager.OnSetServerLoad = (serverLoad) =>
 			{
 				if (this.LinkdProviderService.ProviderSessions.TryGetValue(serverLoad.Name, out var ps))
 				{ 
@@ -65,7 +65,7 @@ namespace Zeze.Arch
 		public async Task RegisterService(Zeze.Net.Binary extra)
 		{
 			var identity = "@" + ProviderIp + ":" + ProviderPort;
-			await Zeze.ServiceManagerAgent.RegisterService(LinkdServiceName, identity, ProviderIp, ProviderPort, extra);
+			await Zeze.ServiceManager.RegisterService(LinkdServiceName, identity, ProviderIp, ProviderPort, extra);
 		}
 	}
 }

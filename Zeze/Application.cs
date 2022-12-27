@@ -18,7 +18,7 @@ namespace Zeze
         public Dictionary<string, Database> Databases { get; private set; } = new Dictionary<string, Database>();
         public Config Config { get; private set; }
         public bool IsStart { get; private set; }
-        public Agent ServiceManagerAgent { get; private set; }
+        public Agent ServiceManager { get; private set; }
         public Zeze.Arch.RedirectBase Redirect { get; set; }
         internal IGlobalAgent GlobalAgent { get; private set; }
         public AchillesHeelDaemon AchillesHeelDaemon { get; private set; }
@@ -85,7 +85,7 @@ namespace Zeze
 
             Config.CreateDatabase(this, Databases);
             _checkpoint = new Checkpoint(this, Config.CheckpointMode, Databases.Values);
-            ServiceManagerAgent = new Agent(this);
+            ServiceManager = new Agent(this);
         }
 
         private readonly ConcurrentDictionary<int, Table> Tables = new();
@@ -190,8 +190,8 @@ namespace Zeze
             // Start ServiceManager
             var serviceConf = Config.GetServiceConf(Agent.DefaultServiceName);
             if (null != serviceConf) {
-                ServiceManagerAgent.Client.Start();
-                await ServiceManagerAgent.WaitConnectorReadyAsync();
+                ServiceManager.Client.Start();
+                await ServiceManager.WaitConnectorReadyAsync();
             }
 
             if (false == noDatabase)
@@ -281,7 +281,7 @@ namespace Zeze
                 _checkpoint?.StopAndJoin();
                 _checkpoint = null;
                 Databases.Clear();
-                ServiceManagerAgent.Stop();
+                ServiceManager.Stop();
                 Locks = null;
                 Config = null;
 

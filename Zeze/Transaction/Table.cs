@@ -557,7 +557,7 @@ namespace Zeze.Transaction
             Zeze = app;
             Database = database;
             if (this.IsAutoKey)
-                AutoKey = app.ServiceManagerAgent.GetAutoKey(Name);
+                AutoKey = app.ServiceManager.GetAutoKey(Name);
 
             base.TableConf = app.Config.GetTableConf(Name);
             Cache = new TableCache<K, V>(app, this);

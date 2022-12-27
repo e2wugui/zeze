@@ -101,7 +101,7 @@ namespace Zeze.Arch
 			loadServer.Port = GetProviderPort();
 			loadServer.Param = new Binary(bb);
 
-			Zeze.ServiceManagerAgent.SetServerLoad(loadServer);
+			Zeze.ServiceManager.SetServerLoad(loadServer);
 		}
 	}
 }
