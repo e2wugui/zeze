@@ -368,7 +368,8 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 		// 允许重复登录，断线重连Agent不好原子实现重发。
 		session.getRegisters().put(toRocksKey(r.Argument), toRocks(r.Argument, netSession.name));
 		var state = tableServerState.getOrAdd(r.Argument.getServiceName());
-		state.setServiceName(r.Argument.getServiceName());
+		if (!state.getServiceName().equals(r.Argument.getServiceName()))
+			state.setServiceName(r.Argument.getServiceName());
 		// AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
 		state.getServiceInfos().put(r.Argument.getServiceIdentity(), toRocks(r.Argument, netSession.name));
 		startReadyCommitNotify(state);
@@ -406,7 +407,8 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 		var session = tableSession.get(netSession.name);
 		session.getSubscribes().put(r.Argument.getServiceName(), toRocks(r.Argument));
 		var state = tableServerState.getOrAdd(r.Argument.getServiceName());
-		state.setServiceName(r.Argument.getServiceName());
+		if (!state.getServiceName().equals(r.Argument.getServiceName()))
+			state.setServiceName(r.Argument.getServiceName());
 		return subscribeAndSend(state, r, netSession.name);
 	}
 
@@ -652,7 +654,8 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 	protected long ProcessReadyServiceListRequest(ReadyServiceList r) {
 		var netSession = (Session)r.getSender().getUserState();
 		var state = tableServerState.getOrAdd(r.Argument.serviceName);
-		state.setServiceName(r.Argument.serviceName);
+		if (!state.getServiceName().equals(r.Argument.serviceName))
+			state.setServiceName(r.Argument.serviceName);
 		setReady(state, r, netSession.name);
 		r.SendResult();
 		return 0;
