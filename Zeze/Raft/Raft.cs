@@ -133,6 +133,17 @@ namespace Zeze.Raft
             Zeze.Config config = null,
             string name = "Zeze.Raft.Server")
         {
+            return await OpenAsync((_raft, _name, _config) => new Server(_raft, _name, _config),
+                RaftName, raftconf, config, name);
+        }
+
+        public async Task<Raft> OpenAsync(
+            Func<Raft, string, Config, Server> serverFactory,
+            string RaftName = null,
+            RaftConfig raftconf = null,
+            Zeze.Config config = null,
+            string name = "Zeze.Raft.Server")
+        {
             using (await Monitor.EnterAsync())
             {
                 // 打开互斥保护一下。
@@ -158,7 +169,7 @@ namespace Zeze.Raft
             if (null == config)
                 config = Zeze.Config.Load();
 
-            Server = new Server(this, name, config);
+            Server = serverFactory(this, name, config);
             if (Server.Config.AcceptorCount() != 0)
                 throw new Exception("Acceptor Found!");
             if (Server.Config.ConnectorCount() != 0)

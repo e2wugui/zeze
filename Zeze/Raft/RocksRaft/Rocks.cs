@@ -114,12 +114,22 @@ namespace Zeze.Raft.RocksRaft
             Config config = null // "zeze.xml"
             )
         {
+            return await OpenAsync((_raft, _name, _config) => new Server(_raft, _name, _config), raftName, raftConfig, config);
+        }
+
+        public async Task<Rocks> OpenAsync(
+            Func<Raft, string, Config, Server> serverFactory,
+            string raftName = null, // 这个参数会覆盖RaftConfig.Name，这样应用可以共享同一个配置文件。
+            RaftConfig raftConfig = null, // "raft.xml"
+            Config config = null // "zeze.xml"
+            )
+        {
             if (null != base.Raft)
                 throw new InvalidOperationException($"{raftName} Has Opened.");
 
             // 这个赋值是不必要的，new Raft(...)内部会赋值。有点奇怪。
             base.Raft = new Raft(this);
-            await base.Raft.OpenAsync(raftName, raftConfig, config);
+            await base.Raft.OpenAsync(serverFactory, raftName, raftConfig, config);
             base.Raft.AtFatalKills += () => Storage?.RocksDb.Dispose();
             base.Raft.LogSequence.WriteOptions = WriteOptions;
 

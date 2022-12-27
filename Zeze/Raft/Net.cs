@@ -21,7 +21,7 @@ namespace Zeze.Raft
     /// 【注意】
     /// 为了简化配置，应用可以注册协议到Server，使用同一个Acceptor进行连接。
     /// </summary>
-    public sealed class Server : Services.HandshakeBoth
+    public class Server : Services.HandshakeBoth
     {
         public Raft Raft { get; }
 
@@ -127,6 +127,11 @@ namespace Zeze.Raft
             Func<Protocol, Task<long>> responseHandle,
             ProtocolFactoryHandle factoryHandle)
         {
+            DispatchRaftRpcResponse(p, responseHandle, factoryHandle);
+        }
+
+        public virtual void DispatchRaftRpcResponse(Protocol p, Func<Protocol, Task<long>> responseHandle, ProtocolFactoryHandle factoryHandle)
+        {
             // 覆盖基类方法，不支持存储过程。
             // 按收到顺序处理，不并发。这样也避免线程切换。
             _ = Util.Mission.CallAsync(responseHandle, p, null);
@@ -179,10 +184,10 @@ namespace Zeze.Raft
                     return;
                 }
 
-                //【防止重复的请求】
-                // see Log.cs::LogSequence.TryApply
-                TaskOneByOne.Execute(iraftrpc.Unique, async (p) => await ProcessReqeust(p, factoryHandle),
-                    p, (p, code) => p.TrySendResultCode(code), () => p.TrySendResultCode(ResultCode.RaftRetry));
+                DispatchRaftRequest(p, async (p) => await ProcessReqeust(p, factoryHandle),
+                    (p, code) => p.TrySendResultCode(code), () => p.TrySendResultCode(ResultCode.RaftRetry));
+                //TaskOneByOne.Execute(iraftrpc.Unique, async (p) => await ProcessReqeust(p, factoryHandle),
+                //    p, (p, code) => p.TrySendResultCode(code), () => p.TrySendResultCode(ResultCode.RaftRetry));
                 return;
             }
 
@@ -191,6 +196,14 @@ namespace Zeze.Raft
             // 选举中
             // DONOT process application request.
         }
+
+        public virtual void DispatchRaftRequest(Protocol p, Func<Protocol, Task<long>> func,
+            Action<Net.Protocol, long> actionWhenError, Action cancel)
+        {
+            //【防止重复的请求】
+            // see Log.cs::LogSequence.TryApply
+            TaskOneByOne.Execute(((IRaftRpc) p).Unique, func, p, actionWhenError, cancel);
+	    }
 
         private void TrySendLeaderIs(AsyncSocket sender)
         {

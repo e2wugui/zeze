@@ -525,9 +525,9 @@ public final class Config {
 		private long loginTimeout = 8000;
 
 		public ServiceManagerConf(Config conf, Element self) {
-			sessionName = self.getAttribute("sessionName");
-			raftXml = self.getAttribute("raftXml");
-			String attr = self.getAttribute("loginTimeout");
+			sessionName = self.getAttribute("sessionName").trim();
+			raftXml = self.getAttribute("raftXml").trim();
+			String attr = self.getAttribute("loginTimeout").trim();
 			if (!attr.isEmpty())
 				loginTimeout = Long.parseLong(attr);
 
