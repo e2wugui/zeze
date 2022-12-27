@@ -60,8 +60,8 @@ public class TestServiceManager {
 			}
 		});
 		agent.setOnSetServerLoad((load) -> {
-			this.future.setResult(0);
 			System.out.println("OnSetLoad " + load);
+			this.future.setResult(0);
 		});
 		agent.subscribeService(serviceName, BSubscribeInfo.SubscribeTypeSimple);
 		var load = new BServerLoad();
