@@ -45,7 +45,6 @@ public class ConditionReachPosition extends TaskConditionBase<BTConditionReachPo
 			var reachPositionEventBean = (BTConditionReachPositionEvent)eventBean;
 			if (distance3D(bean.getX(), bean.getY(), bean.getZ(), reachPositionEventBean.getX(), reachPositionEventBean.getY(), reachPositionEventBean.getZ()) <= bean.getRadius()) {
 				bean.setReached(true);
-//				onComplete();
 				return true;
 			}
 		}

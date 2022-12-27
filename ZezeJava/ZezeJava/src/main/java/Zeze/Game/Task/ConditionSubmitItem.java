@@ -22,9 +22,6 @@ public class ConditionSubmitItem extends TaskConditionBase<BTConditionSubmitItem
 		for (var item : submitItemEventBean.getItems()) {
 			bean.getItemsSubmitted().put(item.getKey(), item.getValue());
 		}
-
-//		if (isCompleted())
-//			onComplete();
 		return true;
 	}
 

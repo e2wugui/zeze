@@ -29,8 +29,7 @@ public class ConditionNPCTalk extends TaskConditionBase<BTConditionNPCTalk, BTCo
 		if (!(eventBean instanceof BTConditionNPCTalkEvent))
 			return false;
 
-//		if (isCompleted())
-//			onComplete();
+		// 处理对话选项，以及触发什么事件
 		return true;
 	}
 

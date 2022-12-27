@@ -100,14 +100,8 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	 * - 当满足任务推进情况时，会自动推进任务
 	 */
 	public boolean accept(Bean eventBean) throws Throwable {
-
 		if (!currentPhase.accept(eventBean))
 			return false;
-
-		/*
-		 * 当Event被接受后，意味着当前Phase有可能已经完成了。
-		 * 当前一个Phase完成之后
-		 */
 		tryToProceedPhase();
 		return true;
 	}
@@ -174,10 +168,10 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	 * Task Module：承担TaskGraphics的功能
 	 */
 	public static class Module extends AbstractTaskBase {
-		private final ConcurrentHashMap<String, Constructor<?>> constructors = new ConcurrentHashMap<>();
-		public final ConcurrentHashMap<String, Constructor<?>> conditionConstructors = new ConcurrentHashMap<>();
 		public final ConcurrentHashMap<Long, TaskBase<?>> taskNodes = new ConcurrentHashMap<>();
 		private final DirectedAcyclicGraph<Long, DefaultEdge> taskGraph = new DirectedAcyclicGraph<>(DefaultEdge.class);
+		private final ConcurrentHashMap<String, Constructor<?>> constructors = new ConcurrentHashMap<>();
+		public final ConcurrentHashMap<String, Constructor<?>> conditionConstructors = new ConcurrentHashMap<>();
 		public final ProviderApp providerApp;
 		public final Application zeze;
 
