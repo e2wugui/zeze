@@ -24,8 +24,6 @@ public class ConditionExploreWorld extends TaskConditionBase<BTConditionExploreW
 			return true;
 		}
 
-//		if (isCompleted())
-//			onComplete();
 		return true;
 	}
 

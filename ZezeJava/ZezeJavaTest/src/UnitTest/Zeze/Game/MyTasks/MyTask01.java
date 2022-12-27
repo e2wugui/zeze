@@ -33,7 +33,7 @@ public class MyTask01 extends TaskBase<BMyTask01> {
 
 	@Override
 	protected boolean isAbleToStartTask() {
-		return false;
+		return true;
 	}
 
 	@Override
