@@ -39,13 +39,8 @@ c# fresh 有bug？
 DatabaseDynamoDb 还需测试。
 负载均衡；全面审核。
 过载保护；更多。
-ServiceManagerWithRaft 测试
 
 【全面】升级Zeze到serverdev
-	2. 全面升级Arch。@张路
-	   主要流程测试。
-	   比如，linkd的Netty【可选的】换成Zeze.Netty（gs.online可能需要点改动。
-	   下周开始启动？
 	3. 升级Online。
 	   全面回归测试。
 	   online在serverdev中做了哪些改变？@左尧。
@@ -55,6 +50,12 @@ ServiceManagerWithRaft 测试
 ------------------------------------------------------------------------------------------------------------------------------
 v1.1.4 ProviderDirectService.WaitDirectServerReady; Timer cancelAlways; 
 ------------------------------------------------------------------------------------------------------------------------------
+【全面】升级Zeze到serverdev
+	2. 全面升级Arch。@张路
+	   主要流程测试。
+	   比如，linkd的Netty【可选的】换成Zeze.Netty（gs.online可能需要点改动。
+	   下周开始启动？
+ServiceManagerWithRaft 测试
 Timer.cancel 无法redirect时，直接从db中cancel掉。
 ProviderDirectService.WaitDirectServerReady
 
