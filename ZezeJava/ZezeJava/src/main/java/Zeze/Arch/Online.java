@@ -921,6 +921,12 @@ public class Online extends AbstractOnline {
 		tryRemoveLocal(account);
 	}
 
+	private void tryRedirectNotify(int serverId, String account) throws Throwable {
+		if (providerApp.zeze.getConfig().getServerId() != serverId
+				&& providerApp.providerDirectService.providerByServerId.containsKey(serverId))
+			redirectNotify(serverId, account);
+	}
+
 	@Override
 	protected long ProcessLoginRequest(Zeze.Builtin.Online.Login rpc) throws Throwable {
 		var session = ProviderUserSession.get(rpc);
@@ -937,9 +943,7 @@ public class Online extends AbstractOnline {
 			// login exist
 			logoutTriggerExtra(session.getAccount(), rpc.Argument.getClientId());
 			if (loginVersion.getLoginVersion() != loginLocal.getLoginVersion()) {
-				// not local
-				if (providerApp.providerDirectService.providerByServerId.containsKey(loginVersion.getServerId()))
-					redirectNotify(loginVersion.getServerId(), session.getAccount());
+				tryRedirectNotify(loginVersion.getServerId(), session.getAccount());
 			}
 		}
 		var loginVersionSerialId = account.getLastLoginVersion() + 1;
@@ -1011,9 +1015,7 @@ public class Online extends AbstractOnline {
 			// relogin 不需要补充 Logout？
 			// LogoutTriggerExtra(session.getAccount(), rpc.Argument.getClientId());
 			if (loginVersion.getLoginVersion() != loginLocal.getLoginVersion()) {
-				// not local
-				if (providerApp.providerDirectService.providerByServerId.containsKey(loginVersion.getServerId()))
-					redirectNotify(loginVersion.getServerId(), session.getAccount());
+				tryRedirectNotify(loginVersion.getServerId(), session.getAccount());
 			}
 		}
 		var loginVersionSerialId = account.getLastLoginVersion() + 1;
@@ -1069,8 +1071,7 @@ public class Online extends AbstractOnline {
 		var loginVersion = version.getLogins().getOrAdd(clientId);
 		// 登录在其他机器上。
 		if (local == null && online != null) {
-			if (providerApp.providerDirectService.providerByServerId.containsKey(loginVersion.getServerId()))
-				redirectNotify(loginVersion.getServerId(), session.getAccount()); // nowait
+			tryRedirectNotify(loginVersion.getServerId(), session.getAccount()); // nowait
 		}
 		if (local != null)
 			removeLocalAndTrigger(session.getAccount(), clientId);

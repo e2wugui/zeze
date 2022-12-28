@@ -774,6 +774,12 @@ public class Online extends AbstractOnline {
 		return RedirectFuture.finish(0L);
 	}
 
+	private void tryRedirectNotify(int serverId, long roleId) throws Throwable {
+		if (providerApp.zeze.getConfig().getServerId() != serverId
+				&& providerApp.providerDirectService.providerByServerId.containsKey(serverId))
+			redirectNotify(serverId, roleId);
+	}
+
 	@Override
 	protected long ProcessLoginRequest(Zeze.Builtin.Game.Online.Login rpc) throws Throwable {
 		var session = ProviderUserSession.get(rpc);
@@ -791,9 +797,7 @@ public class Online extends AbstractOnline {
 			// login exist
 			logoutTriggerExtra(rpc.Argument.getRoleId());
 			if (version.getLoginVersion() != local.getLoginVersion()) {
-				// not local
-				if (providerApp.providerDirectService.providerByServerId.containsKey(version.getServerId()))
-					redirectNotify(version.getServerId(), rpc.Argument.getRoleId());
+				tryRedirectNotify(version.getServerId(), rpc.Argument.getRoleId());
 			}
 		}
 		var loginVersion = account.getLastLoginVersion() + 1;
@@ -854,9 +858,7 @@ public class Online extends AbstractOnline {
 			// relogin 不需要补充 Logout？
 			// logoutTriggerExtra(rpc.Argument.getRoleId());
 			if (version.getLoginVersion() != local.getLoginVersion()) {
-				// not local
-				if (providerApp.providerDirectService.providerByServerId.containsKey(version.getServerId()))
-					redirectNotify(version.getServerId(), rpc.Argument.getRoleId());
+				tryRedirectNotify(version.getServerId(), rpc.Argument.getRoleId());
 			}
 		}
 		var loginVersion = account.getLastLoginVersion() + 1;
@@ -905,8 +907,7 @@ public class Online extends AbstractOnline {
 
 		// 登录在其他机器上。
 		if (local == null && online != null) {
-			if (providerApp.providerDirectService.providerByServerId.containsKey(version.getServerId()))
-				redirectNotify(version.getServerId(), session.getRoleId());
+			tryRedirectNotify(version.getServerId(), session.getRoleId());
 		}
 		if (null != local)
 			removeLocalAndTrigger(session.getRoleId());

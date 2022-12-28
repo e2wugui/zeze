@@ -738,6 +738,15 @@ namespace Zeze.Game
             await TryRemoveLocal(roleId);
         }
 
+        private async Task TryRedirectNotify(int serverId, long roleId)
+        {
+            if (ProviderApp.Zeze.Config.ServerId != serverId
+                && ProviderApp.ProviderDirectService.ProviderByServerId.ContainsKey(serverId))
+            {
+                await RedirectNotify(serverId, roleId);
+            }
+        }
+
         protected override async Task<long> ProcessLoginRequest(Zeze.Net.Protocol p)
         {
             var rpc = p as Login;
@@ -759,9 +768,7 @@ namespace Zeze.Game
                 await LogoutTriggerExtra(rpc.Argument.RoleId);
                 if (version.LoginVersion != local.LoginVersion)
                 {
-                    // not local
-                    if (ProviderApp.ProviderDirectService.ProviderByServerId.ContainsKey(version.ServerId))
-                        _ = RedirectNotify(version.ServerId, rpc.Argument.RoleId);
+                    _ = TryRedirectNotify(version.ServerId, rpc.Argument.RoleId);
                 }
             }
             var loginVersion = account.LastLoginVersion + 1;
@@ -838,9 +845,7 @@ namespace Zeze.Game
                 // await LogoutTriggerExtra(rpc.Argument.RoleId);
                 if (version.LoginVersion != local.LoginVersion)
                 {
-                    // not local
-                    if (ProviderApp.ProviderDirectService.ProviderByServerId.ContainsKey(version.ServerId))
-                        _ = RedirectNotify(version.ServerId, rpc.Argument.RoleId);
+                    _ = TryRedirectNotify(version.ServerId, rpc.Argument.RoleId);
                 }
             }
             var loginVersion = account.LastLoginVersion + 1;
@@ -895,8 +900,7 @@ namespace Zeze.Game
             // 登录在其他机器上。
             if (local == null && online != null)
             {
-                if (ProviderApp.ProviderDirectService.ProviderByServerId.ContainsKey(version.ServerId))
-                    _ = RedirectNotify(version.ServerId, session.RoleId.Value); // nowait
+                _ = TryRedirectNotify(version.ServerId, session.RoleId.Value); // nowait
             }
             if (null != local)
                 await RemoveLocalAndTrigger(session.RoleId.Value);

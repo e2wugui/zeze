@@ -934,6 +934,15 @@ namespace Zeze.Arch
             await TryRemoveLocal(account);
         }
 
+        private async Task TryRedirectNotify(int serverId, string account)
+        {
+            if (ProviderApp.Zeze.Config.ServerId != serverId
+                && ProviderApp.ProviderDirectService.ProviderByServerId.ContainsKey(serverId))
+            {
+                await RedirectNotify(serverId, account);
+            }
+        }
+
         protected override async Task<long> ProcessLoginRequest(Zeze.Net.Protocol p)
         {
             var rpc = p as Login;
@@ -953,9 +962,7 @@ namespace Zeze.Arch
                 await LogoutTriggerExtra(session.Account, rpc.Argument.ClientId);
                 if (loginVersion.LoginVersion != loginLocal.LoginVersion)
                 {
-                    // not local
-                    if (ProviderApp.ProviderDirectService.ProviderByServerId.ContainsKey(loginVersion.ServerId))
-                        _ = RedirectNotify(loginVersion.ServerId, session.Account);
+                    _ = TryRedirectNotify(loginVersion.ServerId, session.Account);
                 }
             }
             var loginVersionSerialId = account.LastLoginVersion + 1;
@@ -1030,9 +1037,7 @@ namespace Zeze.Arch
                 // await LogoutTriggerExtra(session.Account, rpc.Argument.ClientId);
                 if (loginVersion.LoginVersion != loginLocal.LoginVersion)
                 {
-                    // not local
-                    if (ProviderApp.ProviderDirectService.ProviderByServerId.ContainsKey(loginVersion.ServerId))
-                        _ = RedirectNotify(loginVersion.ServerId, session.Account);
+                    _ = TryRedirectNotify(loginVersion.ServerId, session.Account);
                 }
             }
             var loginVersionSerialId = account.LastLoginVersion + 1;
@@ -1091,8 +1096,7 @@ namespace Zeze.Arch
             // 登录在其他机器上。
             if (local == null && online != null)
             {
-                if (ProviderApp.ProviderDirectService.ProviderByServerId.ContainsKey(loginVersion.ServerId))
-                    _ = RedirectNotify(loginVersion.ServerId, session.Account); // nowait
+                _ = TryRedirectNotify(loginVersion.ServerId, session.Account); // nowait
             }
             if (null != local)
                 await RemoveLocalAndTrigger(session.Account, clientId);
