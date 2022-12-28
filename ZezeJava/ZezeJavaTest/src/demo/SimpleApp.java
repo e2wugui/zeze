@@ -27,21 +27,13 @@ public class SimpleApp extends AppBase {
 	public Rank rank;
 
 	public SimpleApp(int serverId) throws Throwable {
-		this(serverId, 20000 + serverId, "127.0.0.1", 5001, "127.0.0.1", 5555, 20000);
+		this(serverId, 20000 + serverId + 1, 20000);
 	}
 
-	public SimpleApp(int serverId, int providerPort, String serviceManagerIp, int serviceManagerPort,
-					 String globalServerIp, int globalServerPort, int cacheSize) throws Throwable {
-		var config = new Config();
-		var serviceConf = new ServiceConf();
-		serviceConf.addConnector(new Connector(serviceManagerIp, serviceManagerPort)); // 连接本地ServiceManager
-		config.getServiceConfMap().put("Zeze.Services.ServiceManager.Agent", serviceConf);
-		serviceConf = new ServiceConf();
-		serviceConf.addAcceptor(new Acceptor(providerPort, null));
-		config.getServiceConfMap().put("ServerDirect", serviceConf); // 提供Provider之间直连服务
-		config.setGlobalCacheManagerHostNameOrAddress(globalServerIp); // 连接本地GlobalServer
-		config.setGlobalCacheManagerPort(globalServerPort);
-		config.getDatabaseConfMap().put("", new Config.DatabaseConf()); // 默认内存数据库配置
+	public SimpleApp(int serverId, int directPort, int cacheSize) throws Throwable {
+		var config = Config.load("server.xml");
+		var directConf = config.getServiceConfMap().get("ServerDirect");
+		directConf.forEachAcceptor2((a) -> { a.setPort(directPort); a.setIp("127.0.0.1"); return false; });
 		var tableConf = new Config.TableConf();
 		tableConf.setCacheCapacity(cacheSize);
 		config.setDefaultTableConf(tableConf);

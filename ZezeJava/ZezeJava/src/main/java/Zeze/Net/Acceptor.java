@@ -4,7 +4,7 @@ import java.net.InetSocketAddress;
 import org.w3c.dom.Element;
 
 public class Acceptor {
-	private final String Ip;
+	private String Ip;
 	private int Port;
 	private Service Service;
 	private AsyncSocket Socket;
@@ -22,6 +22,10 @@ public class Acceptor {
 
 	public final String getIp() {
 		return Ip;
+	}
+
+	public final void setIp(String ip) {
+		Ip = ip;
 	}
 
 	public final int getPort() {

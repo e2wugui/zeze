@@ -101,7 +101,8 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 		@Override
 		public synchronized <P extends Protocol<?>> void dispatchRaftRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
 																ProtocolFactoryHandle<?> factoryHandle) {
-			logger.info("dispatchRaftRpcResponse: " + rpc.getClass().getName() + rpc);
+			if (logger.isDebugEnabled())
+				logger.debug("dispatchRaftRpcResponse: " + rpc.getClass().getName() + rpc);
 			var procedure = rocks.newProcedure(() -> responseHandle.handle(rpc));
 			Task.call(procedure::call, rpc);
 		}
@@ -109,9 +110,11 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 		@Override
 		public synchronized void dispatchRaftRequest(Protocol<?> p, Func0<Long> func, String name, Action0 cancel, DispatchMode mode) {
 
-			var netSession = (Session)p.getSender().getUserState();
-			var ssName = null != netSession ? netSession.name : "";
-			logger.info("dispatchRaftRequest: " + p.getClass().getName() + "@" + ssName + p);
+			if (logger.isDebugEnabled()) {
+				var netSession = (Session)p.getSender().getUserState();
+				var ssName = null != netSession ? netSession.name : "";
+				logger.debug("dispatchRaftRequest: " + p.getClass().getName() + "@" + ssName + p);
+			}
 			var procedure = new Procedure(rocks, func::call);
 			Task.call(procedure::call, p, Protocol::SendResultCode);
 		}
@@ -120,7 +123,8 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 		public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
 			var netSession = (Session)so.getUserState();
 			if (null != netSession) {
-				System.out.println("OnSocketClose: " + netSession.name);
+				if (logger.isDebugEnabled())
+					logger.info("OnSocketClose: " + netSession.name);
 				synchronized (this) {
 					var procedure = rocks.newProcedure(() -> { netSession.onClose(); return 0; });
 					procedure.call();
@@ -196,6 +200,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 					Task.run(() -> offlineNotify(session, false), "offlineNotifyImmediately");
 				}
 			}
+			tableSession.remove(name);
 		}
 
 		private void tryNotifyOffline(OfflineNotify notify, BSession session, BOfflineNotifyRocks notifyId, HashSet<Session> skips) {

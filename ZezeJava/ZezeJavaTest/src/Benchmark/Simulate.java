@@ -159,8 +159,7 @@ public class Simulate {
 		Task.initThreadPool(Task.newFixedThreadPool(taskThreadCount, "ZezeTaskPool"),
 				Executors.newScheduledThreadPool(schdThreadCount, new ThreadFactory("ZezeScheduledPool")));
 
-		var app = new SimpleApp(serverId, 20000 + serverId,
-				serviceManagerIp, serviceManagerPort, globalServerIp, globalServerPort, 20000);
+		var app = new SimpleApp(serverId, 20000 + serverId + 1, 20000);
 		app.getZeze().addTable("", table5 = new Table5());
 		app.start();
 
