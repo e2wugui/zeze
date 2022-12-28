@@ -48,7 +48,7 @@ DatabaseDynamoDb 还需测试。
 	   确定是否需要替换，什么时候启动？不替换就是永久不启动了。
 
 ------------------------------------------------------------------------------------------------------------------------------
-v1.1.4 ProviderDirectService.WaitDirectServerReady; Timer cancelAlways; 
+v1.1.4 ProviderDirectService.WaitDirectServerReady; Timer cancelAlways; ServiceManagerWithRaft; 
 ------------------------------------------------------------------------------------------------------------------------------
 【全面】升级Zeze到serverdev
 	2. 全面升级Arch。@张路
