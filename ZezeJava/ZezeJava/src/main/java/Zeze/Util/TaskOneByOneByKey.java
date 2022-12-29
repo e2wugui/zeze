@@ -1,7 +1,6 @@
 package Zeze.Util;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.Executor;
 import java.util.concurrent.locks.Condition;
@@ -363,7 +362,7 @@ public final class TaskOneByOneByKey {
 		private final Condition cond = lock.newCondition();
 		private ArrayDeque<Task> queue = new ArrayDeque<>();
 		private boolean isShutdown;
-		private BatchTask batch = new BatchTask();
+		private final BatchTask batch = new BatchTask();
 
 		void execute(Action0 action, String name, Action0 cancel, DispatchMode mode) {
 			execute(new TaskAction(action, name, cancel, mode));
@@ -373,7 +372,7 @@ public final class TaskOneByOneByKey {
 			execute(new TaskFunc(func, name, cancel, mode));
 		}
 
-		class BatchTask implements Runnable {
+		final class BatchTask implements Runnable {
 			Task[] tasks;
 			int count;
 			DispatchMode mode;
@@ -388,8 +387,7 @@ public final class TaskOneByOneByKey {
 					for (var task : queue) {
 						if (mode != task.mode)
 							break;
-						tasks[i] = task;
-						++i;
+						tasks[i++] = task;
 						if (i >= max)
 							break;
 					}
@@ -419,8 +417,8 @@ public final class TaskOneByOneByKey {
 					if (queue.size() != 1)
 						return;
 					submit = true;
+					batch.prepare();
 				}
-				batch.prepare();
 			} finally {
 				lock.unlock();
 			}
@@ -445,8 +443,8 @@ public final class TaskOneByOneByKey {
 		private void runNext(int count) {
 			lock.lock();
 			try {
-				for (int i = 0; i < count; ++i)
-					queue.removeFirst();
+				while (count-- > 0)
+					queue.pollFirst();
 				if (queue.isEmpty()) {
 					if (isShutdown)
 						cond.signalAll();
