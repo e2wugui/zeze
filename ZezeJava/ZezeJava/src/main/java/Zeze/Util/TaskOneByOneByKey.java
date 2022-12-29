@@ -363,6 +363,7 @@ public final class TaskOneByOneByKey {
 		private final Condition cond = lock.newCondition();
 		private ArrayDeque<Task> queue = new ArrayDeque<>();
 		private boolean isShutdown;
+		private BatchTask batch = new BatchTask();
 
 		void execute(Action0 action, String name, Action0 cancel, DispatchMode mode) {
 			execute(new TaskAction(action, name, cancel, mode));
@@ -375,12 +376,13 @@ public final class TaskOneByOneByKey {
 		class BatchTask implements Runnable {
 			Task[] tasks;
 			int count;
-			DispatchMode mode = DispatchMode.Normal;
+			DispatchMode mode;
 
-			BatchTask() {
+			void prepare() {
 				if (!queue.isEmpty()) {
 					var max = Math.min(queue.size(), 1000);
-					tasks = new Task[max];
+					if (null == tasks || max > tasks.length)
+						tasks = new Task[max];
 					mode = queue.peekFirst().mode;
 					var i = 0;
 					for (var task : queue) {
@@ -392,6 +394,9 @@ public final class TaskOneByOneByKey {
 							break;
 					}
 					count = i;
+				} else {
+					mode = DispatchMode.Normal;
+					count = 0;
 				}
 			}
 
@@ -417,7 +422,7 @@ public final class TaskOneByOneByKey {
 				lock.unlock();
 			}
 			if (submit) {
-				var batch = new BatchTask();
+				batch.prepare();
 				if (executor != null) {
 					executor.execute(batch);
 				} else {
@@ -436,7 +441,6 @@ public final class TaskOneByOneByKey {
 		}
 
 		private void runNext(int count) {
-			BatchTask batch;
 			lock.lock();
 			try {
 				for (int i = 0; i < count; ++i)
@@ -446,7 +450,7 @@ public final class TaskOneByOneByKey {
 						cond.signalAll();
 					return;
 				}
-				batch = new BatchTask();
+				batch.prepare();
 			} finally {
 				lock.unlock();
 			}
