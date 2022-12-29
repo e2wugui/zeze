@@ -402,8 +402,10 @@ public final class TaskOneByOneByKey {
 
 			@Override
 			public void run() {
-				for (int i = 0; i < count; ++i)
+				for (int i = 0; i < count; ++i) {
 					tasks[i].run();
+					tasks[i] = null; // gc
+				}
 				runNext(count);
 			}
 		}
@@ -418,11 +420,11 @@ public final class TaskOneByOneByKey {
 						return;
 					submit = true;
 				}
+				batch.prepare();
 			} finally {
 				lock.unlock();
 			}
 			if (submit) {
-				batch.prepare();
 				if (executor != null) {
 					executor.execute(batch);
 				} else {
