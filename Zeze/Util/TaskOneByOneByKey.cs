@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using static Zeze.Util.TaskOneByOneByKey;
 
 namespace Zeze.Util
 {
@@ -392,39 +393,49 @@ namespace Zeze.Util
 
 					if (Queue.Count == 1)
 					{
-						Run(Queue.First.Value);
+						Run();
 					}
 				}
 			}
 
-			private void Run(Job job)
+			private void Run()
 			{
 				ExecutionContext.SuppressFlow();
+				var batch = new List<Job>(Queue.Count);
+				foreach (var job in Queue)
+					batch.Add(job);
 				Task.Run(async () =>
 				{
 					try
-                    {
-						await job.ProcessAsync();
-					}
-					catch (Exception ex)
-                    {
-						logger.Error(ex, job.Name);
+					{
+						foreach (var job in batch)
+						{
+                            try
+                            {
+                                await job.ProcessAsync();
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.Error(ex, job.Name);
+                            }
+                        }
                     }
-					finally
+                    finally
                     {
-						RunNext();
+						RunNext(batch.Count);
                     }
 				});
 				ExecutionContext.RestoreFlow();
 			}
 
-			private void RunNext()
+			private void RunNext(int count)
 			{
 				lock (this)
 				{
 					if (Queue.Count > 0)
 					{
-						Queue.RemoveFirst();
+						for (int i = 0; i < count; i++)
+							Queue.RemoveFirst();
 						if (IsShutdown && Queue.Count == 0)
                         {
 							Monitor.PulseAll(this);
@@ -433,7 +444,7 @@ namespace Zeze.Util
 					}
 					if (Queue.Count > 0)
 					{
-						Run(Queue.First.Value);
+						Run();
 					}
 				}
 			}
