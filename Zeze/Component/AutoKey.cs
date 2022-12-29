@@ -95,6 +95,41 @@ namespace Zeze.Component
             return bb;
         }
 
+        public async Task<bool> SetSeed(long seed)
+        {
+            var seedKey = new BSeedKey(module.Zeze.Config.ServerId, name);
+            var key = await module._tAutoKeys.GetOrAddAsync(seedKey);
+            if (seed > key.NextId)
+            {
+                key.NextId = seed;
+                return true;
+            }
+            return false;
+        }
+
+        public async Task<bool> IncreaseSeed(long delta)
+        {
+            if (delta <= 0)
+                return false;
+            var seedKey = new BSeedKey(module.Zeze.Config.ServerId, name);
+            var key = await module._tAutoKeys.GetOrAddAsync(seedKey);
+            var newSeed = key.NextId + delta;
+            if (newSeed > 0)
+            {
+                key.NextId = newSeed;
+                return true;
+            }
+            // 溢出
+            return false;
+        }
+
+        public async Task<long> GetSeed()
+        {
+            var seedKey = new BSeedKey(module.Zeze.Config.ServerId, name);
+            var key = await module._tAutoKeys.GetOrAddAsync(seedKey);
+            return key.NextId;
+        }
+
         private async Task<long> NextSeedAsync()
         {
             if (null != range)
