@@ -1,6 +1,7 @@
 package Zeze.Util;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.Executor;
 import java.util.concurrent.locks.Condition;
@@ -336,8 +337,6 @@ public final class TaskOneByOneByKey {
 					action.run();
 				} catch (Throwable e) {
 					logger.error("TaskOneByOne: {}", name, e);
-				} finally {
-					runNext();
 				}
 			}
 		}
@@ -356,8 +355,6 @@ public final class TaskOneByOneByKey {
 					func.call();
 				} catch (Throwable e) {
 					logger.error("TaskOneByOne: {}", name, e);
-				} finally {
-					runNext();
 				}
 			}
 		}
@@ -375,6 +372,30 @@ public final class TaskOneByOneByKey {
 			execute(new TaskFunc(func, name, cancel, mode));
 		}
 
+		class BatchTask implements Runnable {
+			ArrayList<Task> tasks;
+			DispatchMode mode = DispatchMode.Normal;
+
+			BatchTask() {
+				if (!queue.isEmpty()) {
+					tasks = new ArrayList<>(queue.size());
+					mode = queue.peekFirst().mode;
+					for (var task : queue) {
+						if (mode != task.mode)
+							break;
+						tasks.add(task);
+					}
+				}
+			}
+
+			@Override
+			public void run() {
+				for (var task : tasks)
+					task.run();
+				runNext(tasks.size());
+			}
+		}
+
 		private void execute(Task task) {
 			boolean submit = false;
 			lock.lock();
@@ -389,13 +410,14 @@ public final class TaskOneByOneByKey {
 				lock.unlock();
 			}
 			if (submit) {
+				var batch = new BatchTask();
 				if (executor != null) {
-					executor.execute(task);
+					executor.execute(batch);
 				} else {
-					var threadPool = task.mode == DispatchMode.Critical
+					var threadPool = batch.mode == DispatchMode.Critical
 							? Zeze.Util.Task.getCriticalThreadPool()
 							: Zeze.Util.Task.getThreadPool();
-					threadPool.submit(task);
+					threadPool.submit(batch);
 				}
 			} else if (task.cancel != null) {
 				try {
@@ -406,27 +428,27 @@ public final class TaskOneByOneByKey {
 			}
 		}
 
-		private void runNext() {
-			Task task;
+		private void runNext(int count) {
 			lock.lock();
 			try {
-				queue.removeFirst();
+				for (int i = 0; i < count; ++i)
+					queue.removeFirst();
 				if (queue.isEmpty()) {
 					if (isShutdown)
 						cond.signalAll();
 					return;
 				}
-				task = queue.peekFirst();
 			} finally {
 				lock.unlock();
 			}
+			var batch = new BatchTask();
 			if (executor != null) {
-				executor.execute(task);
+				executor.execute(batch);
 			} else {
-				var threadPool = task.mode == DispatchMode.Critical
+				var threadPool = batch.mode == DispatchMode.Critical
 						? Zeze.Util.Task.getCriticalThreadPool()
 						: Zeze.Util.Task.getThreadPool();
-				threadPool.submit(task);
+				threadPool.submit(batch);
 			}
 		}
 

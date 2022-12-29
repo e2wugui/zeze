@@ -39,6 +39,8 @@ DatabaseDynamoDb 还需测试。
 负载均衡；全面审核。
 过载保护；更多。
 
+TaskOneByOneByKey 一次提交一批给Executor执行。减少锁的开销。
+
 【全面】升级Zeze到serverdev
 	3. 升级Online。
 	   全面回归测试。
