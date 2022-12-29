@@ -145,7 +145,7 @@ namespace Zeze.Gen
             Name = self.GetAttribute("name").Trim();
             Program.CheckReserveName(Name);
             DefaultTransactionLevel = self.GetAttribute("DefaultTransactionLevel").Trim();
-            Equalable = parent.Equalable || self.GetAttribute("equals") == "true";
+            Equalable = parent != null && parent.Equalable || self.GetAttribute("equals") == "true";
 
             if (hasId)
             {
