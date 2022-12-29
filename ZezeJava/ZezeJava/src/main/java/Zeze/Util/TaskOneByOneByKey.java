@@ -373,26 +373,33 @@ public final class TaskOneByOneByKey {
 		}
 
 		class BatchTask implements Runnable {
-			ArrayList<Task> tasks;
+			Task[] tasks;
+			int count;
 			DispatchMode mode = DispatchMode.Normal;
 
 			BatchTask() {
 				if (!queue.isEmpty()) {
-					tasks = new ArrayList<>(queue.size());
+					var max = Math.min(queue.size(), 1000);
+					tasks = new Task[max];
 					mode = queue.peekFirst().mode;
+					var i = 0;
 					for (var task : queue) {
 						if (mode != task.mode)
 							break;
-						tasks.add(task);
+						tasks[i] = task;
+						++i;
+						if (i >= max)
+							break;
 					}
+					count = i;
 				}
 			}
 
 			@Override
 			public void run() {
-				for (var task : tasks)
-					task.run();
-				runNext(tasks.size());
+				for (int i = 0; i < count; ++i)
+					tasks[i].run();
+				runNext(count);
 			}
 		}
 
