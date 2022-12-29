@@ -165,7 +165,7 @@ namespace Zeze.Gen.Types
 
 			string attr = self.GetAttribute("TypeId");
 			Extendable = self.GetAttribute("extendable") == "true";
-			Equalable = self.GetAttribute("equals") == "true";
+			Equalable = space.Equalable || self.GetAttribute("equals") == "true";
 			Base = self.GetAttribute("base");
 			if (Base != "" && !Base.Contains('.'))
 				Base = Space.Path(".", Base);
