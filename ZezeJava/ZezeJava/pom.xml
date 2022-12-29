@@ -93,8 +93,8 @@
 		<log4j-core.version>2.19.0</log4j-core.version>
 		<annotations.version>23.1.0</annotations.version>
 		<pcollectons.version>4.0.1</pcollectons.version>
-		<rocksdbjni.version>7.7.3</rocksdbjni.version>
-		<netty.version>4.1.85.Final</netty.version>
+		<rocksdbjni.version>7.8.3</rocksdbjni.version>
+		<netty.version>4.1.86.Final</netty.version>
 		<tikv.version>3.3.0</tikv.version>
 		<druid.version>1.2.15</druid.version>
 		<mysql-conncetor-java.version>8.0.31</mysql-conncetor-java.version>

@@ -227,9 +227,9 @@ public class Timer extends AbstractTimer {
 					timer.getCustomData().setBean(customData);
 				}
 
-				Transaction.whileCommit(() -> scheduleSimple(serverId, timerId,
+				scheduleSimple(serverId, timerId,
 						simpleTimer.getExpectedTime() - System.currentTimeMillis(),
-						timer.getConcurrentFireSerialNo()));
+						timer.getConcurrentFireSerialNo());
 				return timerId;
 			}
 			nodeId = nodeIdAutoKey.nextId();
@@ -395,7 +395,7 @@ public class Timer extends AbstractTimer {
 					timer.getCustomData().setBean(customData);
 				}
 
-				Transaction.whileCommit(() -> scheduleCron(serverId, timerId, cronTimer, timer.getConcurrentFireSerialNo()));
+				scheduleCron(serverId, timerId, cronTimer, timer.getConcurrentFireSerialNo());
 				return timerId;
 			}
 			nodeId = nodeIdAutoKey.nextId();

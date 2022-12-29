@@ -82,7 +82,7 @@ public class ModuleRedirectRank extends TestCase {
 		}).await();
 
 		// RedirectHash
-		var hash11 = Zeze.Serialize.ByteBuffer.calc_hashnr(127364);
+		var hash11 = Zeze.Serialize.ByteBuffer.calc_hashnr(127366);
 		System.out.println("11--->" + hash11);
 		app1.Game_Rank.TestHash(hash11, 555).then(result -> {
 			assertEquals(hash11, result.hash);
@@ -100,7 +100,7 @@ public class ModuleRedirectRank extends TestCase {
 			assertEquals(0, result.serverId);
 		}).await();
 
-		var hash21 = Zeze.Serialize.ByteBuffer.calc_hashnr(127364);
+		var hash21 = Zeze.Serialize.ByteBuffer.calc_hashnr(127366);
 		System.out.println("21--->" + hash21);
 		app2.Game_Rank.TestHash(hash21, 777).then(result -> {
 			assertEquals(hash21, result.hash);

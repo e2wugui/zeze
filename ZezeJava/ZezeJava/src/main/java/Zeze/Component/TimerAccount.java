@@ -87,7 +87,7 @@ public class TimerAccount {
 		var timerIds = online.getOrAddLocalBean(account, clientId, eOnlineTimers, new BOnlineTimers());
 		timerIds.getTimerIds().getOrAdd(timerId).getCustomData().setBean(customData);
 
-		Transaction.whileCommit(() -> scheduleSimple(timerId, simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), name));
+		scheduleSimple(timerId, simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), name);
 		return timerId;
 	}
 
@@ -113,7 +113,7 @@ public class TimerAccount {
 		var timerIds = online.getOrAddLocalBean(account, clientId, eOnlineTimers, new BOnlineTimers());
 		timerIds.getTimerIds().getOrAdd(timerId).getCustomData().setBean(customData);
 
-		Transaction.whileCommit(() -> scheduleCron(timerId, cronTimer, name));
+		scheduleCron(timerId, cronTimer, name);
 		return timerId;
 	}
 

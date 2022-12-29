@@ -6,14 +6,14 @@ dependencies {
     implementation 'org.apache.logging.log4j:log4j-core:2.19.0'
     implementation 'org.jetbrains:annotations:23.1.0'
     implementation 'org.pcollections:pcollections:4.0.1'
-    implementation 'org.rocksdb:rocksdbjni:7.7.3'
-    implementation 'io.netty:netty-codec-http:4.1.85.Final'
-    implementation 'io.netty:netty-transport-native-epoll:4.1.85.Final:linux-x86_64'
+    implementation 'org.rocksdb:rocksdbjni:7.8.3'
+    implementation 'io.netty:netty-codec-http:4.1.86.Final'
+    implementation 'io.netty:netty-transport-native-epoll:4.1.86.Final:linux-x86_64'
 
     // optional dependencies
     // for tikv
     compileOnly 'org.tikv:tikv-client-java:3.3.0'
-    // runtimeOnly 'org.slf4j:slf4j-api:2.0.5'
+    // runtimeOnly 'org.slf4j:slf4j-api:2.0.6'
     // runtimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl:2.19.0'
 
     // for jdbc(mysql,sqlserver,tidb)
