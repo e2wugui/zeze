@@ -10,29 +10,26 @@ public class ProviderLoad extends ProviderLoadBase {
 
 	@Override
 	public int getOnlineLocalCount() {
-		return this.online.getLocalCount();
+		return online.getLocalCount();
 	}
 
 	@Override
 	public long getOnlineLoginTimes() {
-		return this.online.getLoginTimes();
+		return online.getLoginTimes();
 	}
 
 	@Override
 	public LoadConfig getLoadConfig() {
-		assert this.online.providerApp != null;
-		return this.online.providerApp.distribute.loadConfig;
+		return online.providerApp.distribute.loadConfig;
 	}
 
 	@Override
 	public String getProviderIp() {
-		assert this.online.providerApp != null;
-		return this.online.providerApp.directIp;
+		return online.providerApp.directIp;
 	}
 
 	@Override
 	public int getProviderPort() {
-		assert this.online.providerApp != null;
-		return this.online.providerApp.directPort;
+		return online.providerApp.directPort;
 	}
 }

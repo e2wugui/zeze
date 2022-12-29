@@ -101,8 +101,8 @@ public class TaskPhase {
 	}
 
 	public static class SubPhase {
-		public static String COMPLETE_ALL = "ALL";
-		public static String COMPLETE_ANY = "ANY";
+		public static final String COMPLETE_ALL = "ALL";
+		public static final String COMPLETE_ANY = "ANY";
 		private BSubPhase bean;
 		public BSubPhase getBean() { return bean; }
 		private final TaskPhase phase;

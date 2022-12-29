@@ -1,13 +1,10 @@
 package Zeze.Game;
 
-import java.lang.invoke.MethodHandle;
 import java.lang.reflect.ParameterizedType;
 import javax.json.JsonObject;
-import Zeze.Builtin.Game.TaskBase.BTask;
 import Zeze.Builtin.Game.TaskBase.BTaskCondition;
 import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
-import Zeze.Util.Action1;
 
 public abstract class TaskConditionBase<ConditionBean extends Bean, EventBean extends Bean> {
 

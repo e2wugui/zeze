@@ -12,7 +12,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
-import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;

@@ -16,8 +16,6 @@ import Zeze.Builtin.Game.Rank.BConcurrentKey;
 import Zeze.Builtin.Game.Rank.BRankList;
 import Zeze.Builtin.Game.Rank.BRankValue;
 import Zeze.Net.Binary;
-import Zeze.Util.RedirectGenMain;
-import Zeze.Util.Reflect;
 
 public class Rank extends AbstractRank {
 	private final AppBase app;
