@@ -663,8 +663,9 @@ public class Timer extends AbstractTimer {
 	}
 
 	private void scheduleSimple(int serverId, String timerId, long delay, long concurrentSerialNo) {
-		timersFuture.put(timerId, Task.scheduleUnsafe(delay,
-				() -> fireSimple(serverId, timerId, concurrentSerialNo, false)));
+		Transaction.whileCommit(
+				() -> timersFuture.put(timerId, Task.scheduleUnsafe(delay,
+						() -> fireSimple(serverId, timerId, concurrentSerialNo, false))));
 	}
 
 	public static void initSimpleTimer(BSimpleTimer simpleTimer, long delay, long period, long times, long endTime) {
@@ -787,8 +788,9 @@ public class Timer extends AbstractTimer {
 	}
 
 	private void scheduleCronNext(int serverId, String timerName, long delay, long concurrentSerialNo) {
-		timersFuture.put(timerName, Task.scheduleUnsafe(delay,
-				() -> fireCron(serverId, timerName, concurrentSerialNo, false)));
+		Transaction.whileCommit(
+				() -> timersFuture.put(timerName, Task.scheduleUnsafe(delay,
+						() -> fireCron(serverId, timerName, concurrentSerialNo, false))));
 	}
 
 	public static long cronNextTime(String cron, long time) throws ParseException {

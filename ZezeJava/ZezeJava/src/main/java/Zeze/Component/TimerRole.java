@@ -269,7 +269,9 @@ public class TimerRole {
 	// 再次调度 cron 定时器，真正安装到ThreadPool中。
 	private void scheduleCronNext(String timerId, long delay, TimerHandle name) {
 		var timer = online.providerApp.zeze.getTimer();
-		timer.timersFuture.put(timerId, Task.scheduleUnsafe(delay, () -> fireCron(timerId, name)));
+		Transaction.whileCommit(
+				() -> timer.timersFuture.put(timerId, Task.scheduleUnsafe(delay,
+						() -> fireCron(timerId, name))));
 	}
 
 	private void fireCron(String timerId, TimerHandle handle) throws Throwable {
@@ -324,7 +326,9 @@ public class TimerRole {
 	// 调度 Simple 定时器到ThreadPool中。
 	private void scheduleSimple(String timerId, long delay, TimerHandle name) {
 		var timer = online.providerApp.zeze.getTimer();
-		timer.timersFuture.put(timerId, Task.scheduleUnsafe(delay, () -> fireOnlineSimpleTimer(timerId, name)));
+		Transaction.whileCommit(
+				() -> timer.timersFuture.put(timerId, Task.scheduleUnsafe(delay,
+						() -> fireOnlineSimpleTimer(timerId, name))));
 	}
 
 	// Timer发生，执行回调。
