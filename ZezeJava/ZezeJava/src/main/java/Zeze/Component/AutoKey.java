@@ -87,6 +87,50 @@ public final class AutoKey {
 		return bb;
 	}
 
+	/**
+	 * 设置当前serverId的种子，新种子必须比当前值大。
+	 * @param seed new seed.
+	 * @return true if success.
+	 */
+	public boolean setSeed(long seed) {
+		var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
+		var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
+		if (seed > bAutoKey.getNextId()) {
+			bAutoKey.setNextId(seed);
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * 增加当前serverId的种子。只能增加，如果溢出，返回失败。
+	 * @param delta delta
+	 * @return true if success.
+	 */
+	public boolean increaseSeed(long delta) {
+		if (delta <= 0)
+			return false;
+		var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
+		var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
+		var newSeed = bAutoKey.getNextId() + delta;
+		if (newSeed > 0) {
+			bAutoKey.setNextId(newSeed);
+			return true;
+		}
+		// 溢出
+		return false;
+	}
+
+	/**
+	 * 返回当前serverId的种子。
+	 * @return seed
+	 */
+	public long getSeed() {
+		var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
+		var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
+		return bAutoKey.getNextId();
+	}
+
 	private long nextSeed() {
 		if (null != range) {
 			var next = range.tryNextId();
