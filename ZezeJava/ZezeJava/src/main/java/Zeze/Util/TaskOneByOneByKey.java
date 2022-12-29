@@ -436,6 +436,7 @@ public final class TaskOneByOneByKey {
 		}
 
 		private void runNext(int count) {
+			BatchTask batch;
 			lock.lock();
 			try {
 				for (int i = 0; i < count; ++i)
@@ -445,10 +446,10 @@ public final class TaskOneByOneByKey {
 						cond.signalAll();
 					return;
 				}
+				batch = new BatchTask();
 			} finally {
 				lock.unlock();
 			}
-			var batch = new BatchTask();
 			if (executor != null) {
 				executor.execute(batch);
 			} else {
