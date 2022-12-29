@@ -142,19 +142,21 @@ Zeze漫谈
 	上代码。
 
 	public long perform(Procedure procedure) {
-		try {
+		try { // 【7.】 try 1. 释放记录锁
 			var checkpoint = procedure.getZeze().getCheckpoint();
 			if (checkpoint == null)
 				return Procedure.Closed;
-			for (int tryCount = 0; tryCount < 256; ++tryCount) { // 最多尝试次数
+			for (int tryCount = 0; tryCount < 256; ++tryCount) { // 【6.】 最多尝试次数
 				// 默认在锁内重复尝试，除非CheckResult.RedoAndReleaseLock，否则由于CheckResult.Redo保持锁会导致死锁。
-				checkpoint.enterFlushReadLock();
-				try {
-					for (; tryCount < 256; ++tryCount) { // 最多尝试次数
+				checkpoint.enterFlushReadLock(); // 【8.】 对于启用了Global的分布式事务，这个函数是空的。
+				try { // 【7.】 try 2. 释放checkpoint读锁，当发生RedoAndReleaseLock时，需要全部释放锁，包括这把锁。
+					for (; tryCount < 256; ++tryCount) { // 【6.】 最多尝试次数
 						CheckResult checkResult = CheckResult.Redo; // 用来决定是否释放锁，除非 _lock_and_check_ 明确返回需要释放锁，否则都不释放。
-						try {
+						try { // 【7.】 try 3. 锁和重做
 							var result = procedure.call();
-							switch (state) {
+							switch (state) { // 【11.】state 控制事务的执行状态，当重要的状态变化的时候，马上会在触发点修改state，并最终在这里检查。
+							// 避免逻辑流程捕捉了重要异常，而丢失掉状态。这是以前xdb不能捕捉Error的原因。现在有了这个状态，即使逻辑流程吃掉了一些异常，
+							// 执行流程仍然不会丢失状态控制。
 							case Running:
 								var saveSize = savepoints.size();
 								if ((result == Procedure.Success && saveSize != 1)
@@ -164,10 +166,10 @@ Zeze漫谈
 									finalRollback(procedure);
 									return Procedure.ErrorSavepoint;
 								}
-								checkResult = lockAndCheck(procedure.getTransactionLevel());
+								checkResult = lockAndCheck(procedure.getTransactionLevel()); // 【10.】不管procedure.call返回什么都需要加锁检查冲突，参见上面的第5点。
 								if (checkResult == CheckResult.Success) {
 									if (result == Procedure.Success) {
-										finalCommit(procedure);
+										finalCommit(procedure); // 【9.】事务成功最终提交处理。
 										// 正常一次成功的不统计，用来观察redo多不多。
 										// 失败在 Procedure.cs 中的统计。
 										if (tryCount > 0) {
@@ -198,7 +200,7 @@ Zeze漫谈
 							// retry clear in finally
 							if (alwaysReleaseLockWhenRedo && checkResult == CheckResult.Redo)
 								checkResult = CheckResult.RedoAndReleaseLock;
-							triggerRedoActions();
+							triggerRedoActions(); // 【11.】触发Redo。
 						} catch (Throwable e) {
 							// Procedure.Call 里面已经处理了异常。只有 unit test 或者重做或者内部错误会到达这里。
 							// 在 unit test 下，异常日志会被记录两次。
@@ -216,7 +218,7 @@ Zeze漫谈
 									finalRollback(procedure);
 									throw (AssertionError)e;
 								}
-								checkResult = lockAndCheck(procedure.getTransactionLevel());
+								checkResult = lockAndCheck(procedure.getTransactionLevel()); // 【10.】异常也需要检查冲突，参见上面的第5点。
 								if (checkResult == CheckResult.Success) {
 									finalRollback(procedure, true);
 									return Procedure.Exception;
@@ -261,14 +263,14 @@ Zeze漫谈
 
 						if (checkResult == CheckResult.RedoAndReleaseLock) {
 							// logger.debug("CheckResult.RedoAndReleaseLock break {}", procedure);
-							break;
+							break; // 【12.】需要释放锁重做，跳出这一层循环。
 						}
 					}
 				} finally {
 					checkpoint.exitFlushReadLock();
 				}
 				//logger.Debug("Checkpoint.WaitRun {0}", procedure);
-				// 实现Fresh队列以后删除Sleep。
+				// 实现Fresh队列以后删除Sleep。// 【13.】避免忙等。
 				try {
 					Thread.sleep(Zeze.Util.Random.getInstance().nextInt(80) + 20);
 				} catch (InterruptedException e) {
@@ -290,6 +292,7 @@ Zeze漫谈
 		if (saveSize > 0) {
 			// 全部 Rollback 时 Count 为 0；最后提交时 Count 必须为 1；
 			// 其他情况属于Begin,Commit,Rollback不匹配。外面检查。
+			// 【扫描修改日志，设置记录Dirty标志，控制读写锁】
 			var it = savepoints.get(saveSize - 1).logIterator();
 			if (it != null) {
 				while (it.moveToNext()) {
@@ -317,6 +320,7 @@ Zeze漫谈
 
 		boolean conflict = false; // 冲突了，也继续加锁，为重做做准备！！！
 		if (holdLocks.isEmpty()) {
+			// 【优化】第一次加锁，按顺序即可。
 			for (var e : accessedRecords.entrySet()) {
 				var r = lockAndCheck(e);
 				switch (r) {
@@ -332,6 +336,7 @@ Zeze漫谈
 			return conflict ? CheckResult.Redo : CheckResult.Success;
 		}
 
+		// 【两个排序好的队列：A. 访问的记录，B. 已经持有的锁，】
 		int index = 0;
 		int n = holdLocks.size();
 		final var ite = accessedRecords.entrySet().iterator();
@@ -481,7 +486,17 @@ Zeze漫谈
 	互斥规则完成锁的分配管理。
 	对于不同的记录，申请执行是并发的。互相不会影响。
 
-	4. 并发实现伪码
+	4. 死锁
+	由于每个服务器都采取了排序加锁（乐观锁），所以多个记录间已经不会死锁了。
+	但Global对同一个记录的访问，即使只有一个记录也是有可能死锁的。比如：
+	ServerA 拥有记录1的读锁，然后去申请写锁。
+	ServerB 也拥有记录1的读锁，然后去申请写锁。
+	当Global在处理ServerA的请求时需要通知ServerB降级，但ServerB此时也在等待写锁申请，
+	此时ServerB等待记录1的Global写锁时，已经在本进程占有了记录1的锁，降级请求得不到执行。
+	如果没有一个检测机制打破这个循环，就死锁了。
+	这个叫一个记录的死锁。
+
+	5. 并发实现伪码
 	int acquireShare(Acquire rpc) {
 		while (true) {
 			// 查询得到记录。
@@ -505,8 +520,8 @@ Zeze漫谈
 					}
 					cs.wait(); //await 等通知！这个CacheState有进行中的请求。等待完成。这里就是并发排队。
 					// 为什么这里的并发访问不能简单的通过synchronized (cs)就是先互斥和等待，而要用cs.wait()呢？
-					// 这是为了上面的死锁检测，如果仅仅通过锁互斥，那么等待的请求进不来，而进行总的请求有在等待
-					// 正在申请的，就无法完不成死锁检查，那么死锁发生的时候，就没法解锁了。使用cs.wait()，后面
+					// 这是为了上面的死锁检测，如果仅仅通过锁互斥，那么等待的请求进不来，而进行总的请求又在等待
+					// 正在申请的，就无法完成死锁检查，那么死锁发生的时候，就没法解锁了。使用cs.wait()，后面
 					// 进行中的请求在等待操作的时候，也会进行cs.wait()，这样就能开门放狗，把当前所有的请求者都
 					// 放进来进行死锁检测，最终死锁才可能被打断。
 				}
@@ -589,6 +604,11 @@ Zeze漫谈
 	提取出来的可以并发保存，竖线上叠起来的按时序保存。这个思路的并发保存方案不是很好的实现。实际上我还没想过是否存在一个
 	简洁的方法实现这个思路。说这个仅仅是，这个还有点意思。
 
+	| | | | | |
+	| +-+-+ | |
+	| | | +-+-+
+	1 2 3 4 5 6
+
 	3. 重新考虑这个需求时，按照新的暴力原则，在事务提交的时候，马上把有交集的关联记录集合合并起来，这样存在的
 	关联记录集合都是没有交集的，并发保存变得非常简单，结构也清晰。这就是Zeze的当前方案，这个方案事务提交会慢一些。
 
@@ -628,4 +648,4 @@ Listener
 
 RocksDb 误打误撞
 	接入Java RocksDb时，时间紧迫，不熟悉包装，沿用了c#的FamilyColumn的机制来在一个Db内实现多张表。
-	带来的好处是整个应用一个RocksDb实例，使用Batch，没有使用事务。作为不需要扩展的系统，凑合能用吧。
+	带来的好处是整个应用一个RocksDb实例，使用Batch，没有使用事务。作为不需要扩展的系统，凑合了。
