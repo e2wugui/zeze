@@ -50,7 +50,7 @@ DatabaseDynamoDb 还需测试。
 2023/1/13 v1.1.5 TaskOneByOneByKey Performance; 
 ------------------------------------------------------------------------------------------------------------------------------
 TaskOneByOneByKey 一次提交一批给Executor执行。减少锁的开销。
-
+Benchmark Encrypt/Decrypt 250M/250M Compress/Decompress 90M/100M
 
 【2022/12/28】
 

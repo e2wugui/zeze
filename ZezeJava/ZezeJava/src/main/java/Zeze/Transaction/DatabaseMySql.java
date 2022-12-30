@@ -392,7 +392,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					cmd.executeUpdate();
 				}
 			} catch (SQLException e) {
-				throw new RuntimeException(e);
+				if (!e.getMessage().contains("already exist"))
+					throw new RuntimeException(e);
 			}
 		}
 
