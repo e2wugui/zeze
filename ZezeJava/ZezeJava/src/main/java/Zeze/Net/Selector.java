@@ -17,6 +17,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	public static final int DEFAULT_BBPOOL_LOCAL_CAPACITY = 1000; // 本地池的最大保留buffer数量
 	public static final int DEFAULT_BBPOOL_MOVE_COUNT = 1000; // 本地池和全局池之间移动一次的buffer数量
 	public static final int DEFAULT_BBPOOL_GLOBAL_CAPACITY = 100 * DEFAULT_BBPOOL_MOVE_COUNT; // 全局池的最大buffer数量
+	public static final int DEFAULT_SELECT_TIMEOUT = 0; // 0表示无超时,>0表示每次select的超时毫秒数
 	private static final Logger logger = LogManager.getLogger(Selector.class);
 	private static final ArrayList<ByteBuffer> bbGlobalPool = new ArrayList<>(); // 全局池
 	private static final Lock bbGlobalPoolLock = new ReentrantLock(); // 全局池的锁
@@ -29,6 +30,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	private final int bufferSize;
 	private final int bbPoolLocalCapacity;
 	private final int bbPoolMoveCount;
+	private final int selectTimeout;
 	private ArrayList<Action0> operates = new ArrayList<>(); // 用于跟AsyncSocket交换
 	private boolean firstAction;
 	private volatile boolean running = true;
@@ -39,10 +41,16 @@ public class Selector extends Thread implements ByteBufferAllocator {
 //	public long lastTime;
 
 	public Selector(String threadName) throws IOException {
-		this(threadName, DEFAULT_BUFFER_SIZE, DEFAULT_BBPOOL_LOCAL_CAPACITY, DEFAULT_BBPOOL_MOVE_COUNT);
+		this(threadName, DEFAULT_BUFFER_SIZE, DEFAULT_BBPOOL_LOCAL_CAPACITY, DEFAULT_BBPOOL_MOVE_COUNT,
+				DEFAULT_SELECT_TIMEOUT);
 	}
 
 	public Selector(String threadName, int bufferSize, int bbPoolLocalCapacity, int bbPoolMoveCount)
+			throws IOException {
+		this(threadName, bufferSize, bbPoolLocalCapacity, bbPoolMoveCount, DEFAULT_SELECT_TIMEOUT);
+	}
+
+	public Selector(String threadName, int bufferSize, int bbPoolLocalCapacity, int bbPoolMoveCount, int selectTimeout)
 			throws IOException {
 		super(threadName);
 		if (bufferSize <= 0)
@@ -51,9 +59,12 @@ public class Selector extends Thread implements ByteBufferAllocator {
 			throw new IllegalArgumentException("bbPoolLocalCapacity < 0: " + bbPoolLocalCapacity);
 		if (bbPoolMoveCount <= 0)
 			throw new IllegalArgumentException("bbPoolMoveCount <= 0: " + bbPoolMoveCount);
+		if (selectTimeout < 0)
+			throw new IllegalArgumentException("selectTimeout < 0: " + selectTimeout);
 		this.bufferSize = bufferSize;
 		this.bbPoolLocalCapacity = bbPoolLocalCapacity;
 		this.bbPoolMoveCount = bbPoolMoveCount;
+		this.selectTimeout = selectTimeout;
 		setDaemon(true);
 		selector = java.nio.channels.Selector.open();
 	}
@@ -166,7 +177,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	}
 
 	public void wakeup() {
-		if (Thread.currentThread() != this && wakeupNotified.compareAndSet(0, 1)) {
+		if (selectTimeout == 0 && Thread.currentThread() != this && wakeupNotified.compareAndSet(0, 1)) {
 //			wakeupCount1.incrementAndGet();
 //			long t = System.nanoTime();
 			selector.wakeup();
@@ -220,7 +231,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 							logger.error("SocketChannel.close", e2);
 						}
 					}
-				});
+				}, selectTimeout);
 			} catch (Throwable e) {
 				logger.error("Selector.run", e);
 			}
