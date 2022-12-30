@@ -21,6 +21,7 @@ public abstract class DatabaseJdbc extends Database {
 
 		// always on
 		pool.setPoolPreparedStatements(true);
+		pool.setKillWhenSocketReadTimeout(true); // 总是设置，防止错误连接的结果被下一个查询得到。
 
 		// options
 		if (druidConf.initialSize != null)
