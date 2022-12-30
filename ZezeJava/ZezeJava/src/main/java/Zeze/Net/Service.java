@@ -29,7 +29,7 @@ import org.apache.logging.log4j.Logger;
 public class Service {
 	protected static final Logger logger = LogManager.getLogger(Service.class);
 	private static final AtomicLong staticSessionIdAtomicLong = new AtomicLong(1);
-	private static final VarHandle closedRecvSizeHandle, closedSendSizeHandle;
+	private static final VarHandle closedRecvSizeHandle, closedSendSizeHandle, closedSendRawSizeHandle;
 	protected static final VarHandle overflowSizeHandle, overflowCountHandle;
 
 	static {
@@ -37,6 +37,7 @@ public class Service {
 		try {
 			closedRecvSizeHandle = l.findVarHandle(Service.class, "closedRecvSize", long.class);
 			closedSendSizeHandle = l.findVarHandle(Service.class, "closedSendSize", long.class);
+			closedSendRawSizeHandle = l.findVarHandle(Service.class, "closedSendRawSize", long.class);
 			overflowSizeHandle = l.findVarHandle(Service.class, "overflowSize", long.class);
 			overflowCountHandle = l.findVarHandle(Service.class, "overflowCount", int.class);
 		} catch (ReflectiveOperationException e) {
@@ -54,8 +55,8 @@ public class Service {
 	private final LongConcurrentHashMap<Protocol<?>> rpcContexts = new LongConcurrentHashMap<>();
 	private final LongConcurrentHashMap<ManualContext> manualContexts = new LongConcurrentHashMap<>();
 	@SuppressWarnings("unused")
-	private volatile long closedRecvSize, closedSendSize; // 已关闭连接的从socket接收/发送数据的总字节数
-	private volatile long recvSize, sendSize; // 当前已统计的从socket接收/发送数据的总字节数
+	private volatile long closedRecvSize, closedSendSize, closedSendRawSize; // 已关闭连接的从socket接收/已发送数据/准备发送数据的总字节数
+	private volatile long recvSize, sendSize, sendRawSize; // 当前已统计的从socket接收/已发送数据/准备发送数据的总字节数
 	@SuppressWarnings("unused")
 	protected volatile long overflowSize;
 	@SuppressWarnings("unused")
@@ -158,6 +159,7 @@ public class Service {
 			if (socketMap.putIfAbsent(oldSessionId, so) != null) { // rollback
 				closedRecvSizeHandle.getAndAdd(this, so.getRecvSize());
 				closedSendSizeHandle.getAndAdd(this, so.getSendSize());
+				closedSendRawSizeHandle.getAndAdd(this, so.getSendRawSize());
 			}
 			throw new IllegalStateException("duplicate sessionId: " + so);
 		}
@@ -166,13 +168,15 @@ public class Service {
 	}
 
 	public final void updateRecvSendSize() {
-		long r = 0, s = 0;
+		long r = 0, s = 0, sr = 0;
 		for (var socket : socketMap) {
 			r += socket.getRecvSize();
 			s += socket.getSendSize();
+			sr += socket.getSendRawSize();
 		}
 		recvSize = closedRecvSize + r;
 		sendSize = closedSendSize + s;
+		sendRawSize = closedSendRawSize + sr;
 	}
 
 	public final long getRecvSize() {
@@ -181,6 +185,10 @@ public class Service {
 
 	public final long getSendSize() {
 		return sendSize;
+	}
+
+	public final long getSendRawSize() {
+		return sendRawSize;
 	}
 
 	/**
@@ -246,6 +254,7 @@ public class Service {
 		if (socketMap.remove(so.getSessionId(), so)) {
 			closedRecvSizeHandle.getAndAdd(this, so.getRecvSize());
 			closedSendSizeHandle.getAndAdd(this, so.getSendSize());
+			closedSendRawSizeHandle.getAndAdd(this, so.getSendRawSize());
 		}
 	}
 

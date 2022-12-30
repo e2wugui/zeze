@@ -79,8 +79,9 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	@SuppressWarnings("unused")
 	private volatile byte closed;
 	private boolean closePending;
-	private long recvSize; // 从socket接收数据的统计总字节数
-	private long sendSize; // 向socket发送数据的统计总字节数
+	private long recvSize; // 已从socket接收数据的统计总字节数
+	private long sendSize; // 已向socket发送数据的统计总字节数
+	private long sendRawSize; // 准备发送数据的统计总字节数(只在SetOutputSecurityCodec后统计,压缩加密之前的大小)
 
 	public long getSessionId() {
 		return sessionId;
@@ -169,6 +170,10 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 	public long getSendSize() {
 		return sendSize;
+	}
+
+	public long getSendRawSize() {
+		return sendRawSize;
 	}
 
 	/**
@@ -417,15 +422,16 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				logger.error("Send to closed socket: {} len={}", this, length);
 			return false;
 		}
+		var newSize = (long)outputBufferSizeHandle.getAndAdd(this, (long)length) + length;
 		try {
-			if (!service.checkOverflow(this, (long)outputBufferSizeHandle.getAndAdd(this, (long)length) + length,
-					bytes, offset, length)) {
+			if (!service.checkOverflow(this, newSize, bytes, offset, length)) {
 				outputBufferSizeHandle.getAndAdd(this, (long)-length);
 				return false;
 			}
 			if (SubmitAction(() -> { // 进selector线程调用
 				Codec codec = outputCodecChain;
 				if (codec != null) {
+					sendRawSize += length;
 					// 压缩加密等 codec 链操作。
 					int oldSize = outputBuffer.size();
 					codec.update(bytes, offset, length);
