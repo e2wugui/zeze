@@ -202,8 +202,10 @@ public class Selector extends Thread implements ByteBufferAllocator {
 //			}
 			try {
 				// 如果在这个时间窗口 wakeup，下面的 select 会马上返回。wakeup 不会丢失。
-				firstAction = true;
-				wakeupNotified.set(0);
+				if (selectTimeout == 0) {
+					firstAction = true;
+					wakeupNotified.set(0);
+				}
 				selector.select(key -> {
 					if (firstAction) {
 						firstAction = false;

@@ -376,27 +376,30 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	public boolean SubmitAction(Action0 callback) {
+		boolean needWakeup;
 		lock.lock();
 		try {
 			if (closed != 0)
 				return false;
 			var operates = this.operates;
 			operates.add(callback);
-			if (operates.size() == 1)
-				interestOps(0, SelectionKey.OP_WRITE); // try
-			return true;
+			needWakeup = operates.size() == 1 && interestOps(0, SelectionKey.OP_WRITE);
 		} finally {
 			lock.unlock();
 		}
+		if (needWakeup)
+			selector.wakeup();
+		return true;
 	}
 
-	private void interestOps(int remove, int add) {
+	// 返回是否实际修改过,需要后续wakeup
+	private boolean interestOps(int remove, int add) {
 		int ops = selectionKey.interestOps();
 		int opsNew = (ops & ~remove) | add;
-		if (ops != opsNew) {
-			selectionKey.interestOps(opsNew);
-			selector.wakeup();
-		}
+		if (ops == opsNew)
+			return false;
+		selectionKey.interestOps(opsNew);
+		return true;
 	}
 
 	/**
@@ -445,14 +448,18 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public boolean Send(Protocol<?> protocol) {
 		if (ENABLE_PROTOCOL_LOG) {
 			if (protocol.isRequest()) {
-				if (protocol instanceof Rpc)
-					logger.log(LEVEL_PROTOCOL_LOG, "SEND[{}] {}({}): {}", sessionId, protocol.getClass().getSimpleName(),
+				if (protocol instanceof Rpc) {
+					logger.log(LEVEL_PROTOCOL_LOG, "SEND[{}] {}({}): {}", sessionId,
+							protocol.getClass().getSimpleName(),
 							((Rpc<?, ?>)protocol).getSessionId(), protocol.Argument);
-				else
-					logger.log(LEVEL_PROTOCOL_LOG, "SEND[{}] {}: {}", sessionId, protocol.getClass().getSimpleName(), protocol.Argument);
-			} else
+				} else {
+					logger.log(LEVEL_PROTOCOL_LOG, "SEND[{}] {}: {}", sessionId, protocol.getClass().getSimpleName(),
+							protocol.Argument);
+				}
+			} else {
 				logger.log(LEVEL_PROTOCOL_LOG, "SEND[{}] {}({})> {}", sessionId, protocol.getClass().getSimpleName(),
 						((Rpc<?, ?>)protocol).getSessionId(), protocol.getResultBean());
+			}
 		}
 		return Send(protocol.encode());
 	}
@@ -611,13 +618,16 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 
 		if (gracefully) {
+			boolean needWakeup;
 			lock.lock();
 			try {
 				closePending = true;
-				interestOps(0, SelectionKey.OP_WRITE); // try
+				needWakeup = interestOps(0, SelectionKey.OP_WRITE); // try
 			} finally {
 				lock.unlock();
 			}
+			if (needWakeup)
+				selector.wakeup();
 			Task.schedule(120 * 1000, this::realClose); // 最多给2分钟清空输出队列。
 		} else
 			realClose();

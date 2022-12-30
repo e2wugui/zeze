@@ -30,7 +30,7 @@ public class Service {
 	protected static final Logger logger = LogManager.getLogger(Service.class);
 	private static final AtomicLong staticSessionIdAtomicLong = new AtomicLong(1);
 	private static final VarHandle closedRecvSizeHandle, closedSendSizeHandle;
-	private static final VarHandle overflowSizeHandle, overflowCountHandle;
+	protected static final VarHandle overflowSizeHandle, overflowCountHandle;
 
 	static {
 		var l = MethodHandles.lookup();
@@ -49,7 +49,7 @@ public class Service {
 	private SocketOptions socketOptions; // 同一个 Service 下的所有连接都是用相同配置。
 	private ServiceConf config;
 	private LongSupplier sessionIdGenerator;
-	private final LongConcurrentHashMap<AsyncSocket> socketMap = new LongConcurrentHashMap<>();
+	protected final LongConcurrentHashMap<AsyncSocket> socketMap = new LongConcurrentHashMap<>();
 	private final LongConcurrentHashMap<ProtocolFactoryHandle<? extends Protocol<?>>> factorys = new LongConcurrentHashMap<>();
 	private final LongConcurrentHashMap<Protocol<?>> rpcContexts = new LongConcurrentHashMap<>();
 	private final LongConcurrentHashMap<ManualContext> manualContexts = new LongConcurrentHashMap<>();
@@ -57,9 +57,9 @@ public class Service {
 	private volatile long closedRecvSize, closedSendSize; // 已关闭连接的从socket接收/发送数据的总字节数
 	private volatile long recvSize, sendSize; // 当前已统计的从socket接收/发送数据的总字节数
 	@SuppressWarnings("unused")
-	private volatile long overflowSize;
+	protected volatile long overflowSize;
 	@SuppressWarnings("unused")
-	private volatile int overflowCount;
+	protected volatile int overflowCount;
 
 	private Selectors selectors;
 
@@ -413,9 +413,8 @@ public class Service {
 			return true;
 		overflowSizeHandle.getAndAdd(this, (long)length);
 		if ((int)overflowCountHandle.getAndAdd(this, 1) == 0) {
-			Task.scheduleUnsafe(1000, () -> logger.error("Send overflow: {} {}/{} > {}",
-					this, overflowSizeHandle.getAndSet(this, 0L), overflowCountHandle.getAndSet(this, 0), maxSize,
-					new Exception()));
+			Task.scheduleUnsafe(1000, () -> logger.error("Send overflow(>{}): {} dropped {}/{}",
+					this, maxSize, overflowSizeHandle.getAndSet(this, 0L), overflowCountHandle.getAndSet(this, 0)));
 		}
 		return false;
 	}
