@@ -398,18 +398,33 @@ namespace Zeze.Util
 				}
 			}
 
+			Job[] Batch;
+			int BatchCount;
+
 			private void Run()
 			{
 				ExecutionContext.SuppressFlow();
-				var batch = new List<Job>(Queue.Count);
+
+				var max = Math.Min(Queue.Count, 1000);
+				if (Batch == null || max > Batch.Length)
+					Batch = new Job[max];
+
+				var i = 0;
 				foreach (var job in Queue)
-					batch.Add(job);
-				Task.Run(async () =>
+				{
+					Batch[i++] = job;
+					if (i >= max)
+						break;
+                }
+				BatchCount = i;
+
+                Task.Run(async () =>
 				{
 					try
 					{
-						foreach (var job in batch)
+						for (var i = 0; i < BatchCount; ++i)
 						{
+							var job = Batch[i];
                             try
                             {
                                 await job.ProcessAsync();
@@ -418,11 +433,12 @@ namespace Zeze.Util
                             {
                                 logger.Error(ex, job.Name);
                             }
+							Batch[i] = null;
                         }
                     }
                     finally
                     {
-						RunNext(batch.Count);
+						RunNext(BatchCount);
                     }
 				});
 				ExecutionContext.RestoreFlow();
