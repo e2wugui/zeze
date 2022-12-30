@@ -34,7 +34,7 @@ public class BenchSocket {
 			{
 				var bValue = new BValue();
 				for (long i = 0; i < 100; ++i) {
-					bValue.getMap15().put(rand.nextLong(), rand.nextLong());
+					bValue.getMap15().put(i, rand.nextLong(20));
 				}
 				var bb = ByteBuffer.Allocate();
 				bValue.encode(bb);
@@ -45,7 +45,7 @@ public class BenchSocket {
 			{
 				var bValue = new BValue();
 				for (long i = 0; i < 100; ++i) {
-					bValue.getArray29().add((float)rand.nextInt());
+					bValue.getArray29().add((float)rand.nextInt(20));
 				}
 				var bb = ByteBuffer.Allocate();
 				bValue.encode(bb);
@@ -56,7 +56,7 @@ public class BenchSocket {
 			{
 				var bValue = new BValue();
 				for (int i = 0; i < 100; ++i) {
-					bValue.getSet10().add(rand.nextInt());
+					bValue.getSet10().add(rand.nextInt(20));
 				}
 				var bb = ByteBuffer.Allocate();
 				bValue.encode(bb);
@@ -72,7 +72,7 @@ public class BenchSocket {
 	public void testCompressDecompress() {
 		var count = 90_0000;
 		var max = new OutInt(0);
-		var src = prepareDatas(count/30, max);
+		var src = prepareDatas(count/3_0000, max);
 
 		System.out.println("benchmark ...");
 		BufferCodec bufcp = new BufferCodec(ByteBuffer.Allocate(count * max.value));
@@ -89,7 +89,8 @@ public class BenchSocket {
 				sum += bb.size();
 			}
 			var seconds = b.report("compress", count);
-			System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
+			var cpsize = bufcp.getBuffer().size();
+			System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s " + (double)cpsize / sum);
 		}
 		{
 			var b = new Zeze.Util.Benchmark();
