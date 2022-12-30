@@ -13,17 +13,131 @@ import Zeze.Net.BufferCodec;
 import Zeze.Net.Codec;
 import Zeze.Net.Compress;
 import Zeze.Net.Connector;
+import Zeze.Net.Decompress;
+import Zeze.Net.Decrypt;
 import Zeze.Net.Encrypt;
 import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
+import Zeze.Util.OutInt;
 import demo.Module1.BValue;
 import org.junit.Test;
 
 @SuppressWarnings({"unused", "NewClassNamingConvention"})
 public class BenchSocket {
+	private ArrayList<ByteBuffer> prepareDatas(int steps, OutInt max) {
+		var src = new ArrayList<ByteBuffer>();
+		var rand = new java.util.Random(2); // 固定随机种子
+		for (int step = 0; step < steps; ++step) {
+			{
+				var bValue = new BValue();
+				for (long i = 0; i < 100; ++i) {
+					bValue.getMap15().put(rand.nextLong(), rand.nextLong());
+				}
+				var bb = ByteBuffer.Allocate();
+				bValue.encode(bb);
+				src.add(bb);
+				if (bb.size() > max.value)
+					max.value = bb.size();
+			}
+			{
+				var bValue = new BValue();
+				for (long i = 0; i < 100; ++i) {
+					bValue.getArray29().add((float)rand.nextInt());
+				}
+				var bb = ByteBuffer.Allocate();
+				bValue.encode(bb);
+				src.add(bb);
+				if (bb.size() > max.value)
+					max.value = bb.size();
+			}
+			{
+				var bValue = new BValue();
+				for (int i = 0; i < 100; ++i) {
+					bValue.getSet10().add(rand.nextInt());
+				}
+				var bb = ByteBuffer.Allocate();
+				bValue.encode(bb);
+				src.add(bb);
+				if (bb.size() > max.value)
+					max.value = bb.size();
+			}
+		}
+		return src;
+	}
+
+	@Test
+	public void testCompressDecompress() {
+		var count = 90_0000;
+		var max = new OutInt(0);
+		var src = prepareDatas(count/30, max);
+
+		System.out.println("benchmark ...");
+		BufferCodec bufcp = new BufferCodec(ByteBuffer.Allocate(count * max.value));
+		{
+			var b = new Zeze.Util.Benchmark();
+			Compress cp = new Compress(bufcp);
+			var rand = new java.util.Random(1); // 固定的随机种子。
+			var sum = 0L;
+			for (int i = 0; i < count; ++i) {
+				var index = rand.nextInt(src.size());
+				var bb = src.get(index);
+				cp.update(bb.Bytes, bb.ReadIndex, bb.size());
+				cp.flush();
+				sum += bb.size();
+			}
+			var seconds = b.report("compress", count);
+			System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
+		}
+		{
+			var b = new Zeze.Util.Benchmark();
+			BufferCodec bufdp = new BufferCodec(ByteBuffer.Allocate(count * max.value));
+			Decompress dp = new Decompress(bufdp);
+			dp.update(bufcp.getBuffer().Bytes, bufcp.getBuffer().ReadIndex, bufcp.getBuffer().size());
+			dp.flush();
+			var seconds = b.report("decompress", count);
+			var sum = bufdp.getBuffer().size();
+			System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
+		}
+	}
+
+	@Test
+	public void testEncryptDecrypt() {
+		var max = new OutInt(0);
+		var src = prepareDatas(1, max);
+		var count = 100_0000;
+
+		BufferCodec encrypt = new BufferCodec(ByteBuffer.Allocate(count * max.value));
+		{
+			var b = new Zeze.Util.Benchmark();
+			byte[] key = {1, 2, 3, 4, 5};
+			Encrypt en = new Encrypt(encrypt, key);
+			var rand = new java.util.Random(1); // 固定的随机种子。
+			for (int i = 0; i < count; ++i) {
+				var index = rand.nextInt(src.size());
+				var bb = src.get(index);
+				en.update(bb.Bytes, bb.ReadIndex, bb.Size());
+				en.flush();
+			}
+			var seconds = b.report("encrypt", count);
+			var sum = encrypt.getBuffer().size();
+			System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
+		}
+		{
+			BufferCodec decrypt = new BufferCodec(ByteBuffer.Allocate(count * max.value));
+			var b = new Zeze.Util.Benchmark();
+			byte[] key = {1, 2, 3, 4, 5};
+			var de = new Decrypt(decrypt, key);
+			de.update(encrypt.getBuffer().Bytes, encrypt.getBuffer().ReadIndex, encrypt.getBuffer().size());
+			de.flush();
+			var seconds = b.report("decrypt", count);
+			var sum = decrypt.getBuffer().size();
+			System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
+		}
+	}
+
 	static class ServerService extends Zeze.Services.HandshakeServer {
 		public ServerService(String name, Config config) throws Throwable {
 			super(name, config);
