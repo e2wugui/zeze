@@ -3,6 +3,7 @@ package Benchmark;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Config;
@@ -16,6 +17,7 @@ import Zeze.Net.Connector;
 import Zeze.Net.Decompress;
 import Zeze.Net.Decrypt;
 import Zeze.Net.Encrypt;
+import Zeze.Net.Encrypt2;
 import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
@@ -27,7 +29,7 @@ import org.junit.Test;
 
 @SuppressWarnings({"unused", "NewClassNamingConvention"})
 public class BenchSocket {
-	private ArrayList<ByteBuffer> prepareDatas(int steps, OutInt max) {
+	private static ArrayList<ByteBuffer> prepareDatas(int steps, OutInt max) {
 		var src = new ArrayList<ByteBuffer>();
 		var rand = new java.util.Random(2); // 固定随机种子
 		for (int step = 0; step < steps; ++step) {
@@ -72,7 +74,7 @@ public class BenchSocket {
 	public void testCompressDecompress() {
 		var count = 90_0000;
 		var max = new OutInt(0);
-		var src = prepareDatas(count/3_0000, max);
+		var src = prepareDatas(count / 3_0000, max);
 
 		System.out.println("benchmark ...");
 		BufferCodec bufcp = new BufferCodec(ByteBuffer.Allocate(count * max.value));
@@ -136,6 +138,49 @@ public class BenchSocket {
 			var seconds = b.report("decrypt", count);
 			var sum = decrypt.getBuffer().size();
 			System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
+		}
+	}
+
+	@Test
+	public void testEncrypt2() {
+		var max = new OutInt(0);
+		var src = prepareDatas(1, max);
+		var count = 100_0000;
+		var rand = new Random();
+		byte[] key = {1, 2, 3, 4, 5};
+
+		BufferCodec encrypt = new BufferCodec(ByteBuffer.Allocate(count * max.value));
+		{
+			var b = new Zeze.Util.Benchmark();
+			Encrypt en = new Encrypt(encrypt, key);
+			rand.setSeed(1); // 固定的随机种子。
+			for (int i = 0; i < count; ++i) {
+				var index = rand.nextInt(src.size());
+				var bb = src.get(index);
+				en.update(bb.Bytes, bb.ReadIndex, bb.Size());
+				en.flush();
+			}
+			var seconds = b.report("encrypt", count);
+			var sum = encrypt.getBuffer().size();
+			System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
+			System.out.println("hash=" + encrypt.getBuffer().hashCode());
+		}
+
+		encrypt = new BufferCodec(ByteBuffer.Allocate(count * max.value));
+		{
+			var b = new Zeze.Util.Benchmark();
+			Encrypt2 en = new Encrypt2(encrypt, key);
+			rand.setSeed(1); // 固定的随机种子。
+			for (int i = 0; i < count; ++i) {
+				var index = rand.nextInt(src.size());
+				var bb = src.get(index);
+				en.update(bb.Bytes, bb.ReadIndex, bb.Size());
+				en.flush();
+			}
+			var seconds = b.report("encrypt2", count);
+			var sum = encrypt.getBuffer().size();
+			System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
+			System.out.println("hash=" + encrypt.getBuffer().hashCode());
 		}
 	}
 
