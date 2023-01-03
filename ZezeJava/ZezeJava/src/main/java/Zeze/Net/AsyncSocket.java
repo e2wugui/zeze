@@ -539,18 +539,28 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	 * interestOps remove write保持一样的逻辑。
 	 * 根据上面原则进行如下修改：
 	 * 1. operates 重新改成 ConcurrentLinkedQueue
-	 * 2. 锁外
+	 * 2. 锁外执行
 	 *    for (var op = operates.poll(); op != null && outputBuffer.getBufferSize() < 3; op = operates.poll())
 	 *        op.run();
 	 * 3. interestOps 保持不变。
+	 * 4. 并发性
+	 *    高并发完全由ConcurrentLinkedQueue决定，在忙碌的情况下，完全不需要lock(Submit的锁)。
+	 *    仅在outputBuffer清空时尝试去remove interest时才需要lock。
 	 * 问题：
 	 * 1. 现在Socket.SendBufferSize是按Service配置的，但是OutputBuffer的Buffer.BlockSize是固定的，
 	 *    对于大的SendBufferSize，无法发挥最佳性能。
+	 *    解决方法？
+	 *    Service.start的时候把自己的SendBufferSize配置设置Max到相应的Selectors中，其中所有的Selector都采用这个Max。
+	 *    这样的话基本上整个系统还是一个OutputBuffer.BlockSize。如果需要对特别的Service设置特别的BlockSize，让这个
+	 *    Service使用独立的Selectors。
 	 * 2. doWrite while (true)
 	 *    outputBuffer全部刷出后，马上重复检查一次operates是否必要，或者等到下一次doWrite更好。
 	 *    因为刚写完，如果此时operates也是繁忙的，有数据，导致一次导入，但是马上write(socket)可能是失败的，
 	 *    存在浪费一次write(socket)的调用，当然这个比较罕见，因为对于原来的逻辑，outputBuffer全部刷完
 	 *    对于繁忙连接是比较罕见的，但是存在抖动的可能。
+	 *    考虑清楚以后去掉while(true)？
+	 * 3. outputBuffer没有写完，if (outputBuffer.size() > 0)重新尝试添加WriteFlag的问题。
+	 *    注释写了这个是不必要的，考虑清楚以后删除掉？
 	 */
 	private void doWrite(SocketChannel sc) throws Throwable { // 只在selector线程调用
 		while (true) {
