@@ -79,3 +79,38 @@ client                                                                          
    bool s2c -> int s2c，系列化兼容。
    bool c2s -> int c2s，系列化兼容。
    int encryptType，新增var。旧版客户端忽略并且看成初版加密类型来处理。
+
+4. 压缩服务器强制要求的逻辑
+
+路:
+那样的话客户端可以发一个支持算法的列表，还是由服务器决定两边各用什么算法。
+
+路:
+客户端决定感觉不太妥当，服务器又不能完全信任客户端的选择
+
+李成华:
+压缩没有安全问题，可以让客户端选择把
+
+李成华:
+如果服务器真要完全决定，
+
+李成华:
+那就把客户端送上来的当作推荐，服务器根据自己的配置，决定是否采用。另外为了兼容（新增压缩），把最早的压缩算法看成客户端必须支持，就能选到能工作的压缩算法。
+
+李成华:
+服务器选择的逻辑：
+
+李成华:
+client send CHandshake( s2c建议, c2s 建议）建议包括不压缩。
+server check 
+realS2c = realByConfigS2c(argument.s2c);
+realC2s = realByConfigC2s(argument.c2s)；// 这里处理所有逻辑。
+
+李成华:
+realByConfigS2c(client_s2c)
+   if (s2cNeedCompress) {
+         if (client_s2c != 0 && issupport) return client_s2c;
+         return 1; // default.  
+   }
+   return client_s2c； // 服务器不强制时，直接采用客户端建议。
+}

@@ -207,10 +207,13 @@ namespace Zeze.Net
 					Protocol p = factoryHandle.Factory();
 					p.Service = service;
 					p.Decode(pBuffer);
+                    // 协议必须完整的解码，为了方便应用某些时候设计出兼容的协议。去掉这个检查。
+					/*
 					if (pBuffer.ReadIndex != pBuffer.WriteIndex)
                     {
 						throw new Exception($"p=({moduleId},{protocoId}) size={size} too many data");
                     }
+					*/
 					p.Sender = so;
 					p.UserState = so.UserState;
 					p.Dispatch(service, factoryHandle);
