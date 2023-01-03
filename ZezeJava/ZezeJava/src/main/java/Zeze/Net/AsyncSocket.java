@@ -531,6 +531,27 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			close(); // 对方正常关闭连接时的处理, 不设置异常; 连接被对方RESET的话read会抛异常
 	}
 
+	/*
+	 * OutputBuffer 流式写入。
+	 * 核心原则
+	 * 保持它满载。由于OutputBuffer每次写2个Buffer，所以每次从operates导入时，使得operates为空或者
+	 * OutputBuffer.getBufferSize() > 2；这样既能保持OutputBuffer满载writeTo，又能使得
+	 * interestOps remove write保持一样的逻辑。
+	 * 根据上面原则进行如下修改：
+	 * 1. operates 重新改成 ConcurrentLinkedQueue
+	 * 2. 锁外
+	 *    for (var op = operates.poll(); op != null && outputBuffer.getBufferSize() < 3; op = operates.poll())
+	 *        op.run();
+	 * 3. interestOps 保持不变。
+	 * 问题：
+	 * 1. 现在Socket.SendBufferSize是按Service配置的，但是OutputBuffer的Buffer.BlockSize是固定的，
+	 *    对于大的SendBufferSize，无法发挥最佳性能。
+	 * 2. doWrite while (true)
+	 *    outputBuffer全部刷出后，马上重复检查一次operates是否必要，或者等到下一次doWrite更好。
+	 *    因为刚写完，如果此时operates也是繁忙的，有数据，导致一次导入，但是马上write(socket)可能是失败的，
+	 *    存在浪费一次write(socket)的调用，当然这个比较罕见，因为对于原来的逻辑，outputBuffer全部刷完
+	 *    对于繁忙连接是比较罕见的，但是存在抖动的可能。
+	 */
 	private void doWrite(SocketChannel sc) throws Throwable { // 只在selector线程调用
 		while (true) {
 			var operates = this.operates;

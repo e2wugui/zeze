@@ -19,6 +19,10 @@ public final class OutputBuffer implements Codec, Closeable {
 		this.allocator = allocator;
 	}
 
+	public int getBufferSize() {
+		return buffers.size();
+	}
+
 	@Override
 	public void close() {
 		if (head != null) {
