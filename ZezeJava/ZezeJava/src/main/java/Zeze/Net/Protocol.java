@@ -170,22 +170,29 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 
 	/**
 	 * 单个协议解码。输入是一个完整的协议包，返回解出的协议。如果没有找到解码存根，返回null。
-	 * @param service 服务，用来查找协议存根。
+	 *
+	 * @param service               服务，用来查找协议存根。
 	 * @param singleEncodedProtocol 单个完整的协议包。
 	 * @return decoded protocol instance. if decode fail return null.
 	 */
 	public static Protocol<?> decode(Service service, ByteBuffer singleEncodedProtocol) {
-		var moduleId = singleEncodedProtocol.ReadInt4();
-		var protocolId = singleEncodedProtocol.ReadInt4();
-		var size = singleEncodedProtocol.ReadInt4();
+		int moduleId = singleEncodedProtocol.ReadInt4();
+		int protocolId = singleEncodedProtocol.ReadInt4();
+		int size = singleEncodedProtocol.ReadInt4();
+		int beginReadIndex = singleEncodedProtocol.ReadIndex;
+		int endReadIndex = beginReadIndex + size;
+		int savedWriteIndex = singleEncodedProtocol.WriteIndex;
+		singleEncodedProtocol.WriteIndex = endReadIndex;
 
+		Protocol<?> p = null;
 		var factoryHandle = service.findProtocolFactoryHandle(makeTypeId(moduleId, protocolId));
 		if (factoryHandle != null && factoryHandle.Factory != null) {
-			var p = factoryHandle.Factory.create();
+			p = factoryHandle.Factory.create();
 			p.decode(singleEncodedProtocol);
-			return p;
 		}
-		return null;
+		singleEncodedProtocol.ReadIndex = endReadIndex;
+		singleEncodedProtocol.WriteIndex = savedWriteIndex;
+		return p;
 	}
 
 	/**
@@ -220,6 +227,8 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 			}
 			bb.ReadIndex = beginReadIndex += HEADER_SIZE;
 			int endReadIndex = beginReadIndex + size;
+			int savedWriteIndex = bb.WriteIndex;
+			bb.WriteIndex = endReadIndex;
 
 			var factoryHandle = service.findProtocolFactoryHandle(makeTypeId(moduleId, protocolId));
 			if (factoryHandle != null && factoryHandle.Factory != null) {
@@ -253,12 +262,10 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RECV[{}] {}:{} [{}]",
 							so.getSessionId(), moduleId, protocolId, bb.Size());
 				}
-				int savedWriteIndex = bb.WriteIndex;
-				bb.WriteIndex = endReadIndex;
 				service.dispatchUnknownProtocol(so, moduleId, protocolId, bb); // 这里只能临时读bb,不能持有Bytes引用
-				bb.ReadIndex = endReadIndex;
-				bb.WriteIndex = savedWriteIndex;
 			}
+			bb.ReadIndex = endReadIndex;
+			bb.WriteIndex = savedWriteIndex;
 		}
 	}
 

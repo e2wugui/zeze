@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading.Tasks;
 using Zeze.Serialize;
 
 namespace Zeze.Net
@@ -110,7 +109,7 @@ namespace Zeze.Net
 		// 用于Rpc自动发送结果。
 		// Rpc会重载实现。
 		public virtual void SendResult(Binary result = null)
-		{ 
+		{
 		}
 
 		public void SendResultCode(long code, Binary result = null)
@@ -138,20 +137,26 @@ namespace Zeze.Net
         /// <returns>decoded protocol instance. if decode fail return null.</returns>
         public static Protocol Decode(Service service, ByteBuffer singleEncodedProtocol)
         {
-            var moduleId = singleEncodedProtocol.ReadInt4();
-            var protocolId = singleEncodedProtocol.ReadInt4();
-            var size = singleEncodedProtocol.ReadInt4();
+            int moduleId = singleEncodedProtocol.ReadInt4();
+            int protocolId = singleEncodedProtocol.ReadInt4();
+            int size = singleEncodedProtocol.ReadInt4();
+            int beginReadIndex = singleEncodedProtocol.ReadIndex;
+            int endReadIndex = beginReadIndex + size;
+            int savedWriteIndex = singleEncodedProtocol.WriteIndex;
+            singleEncodedProtocol.WriteIndex = endReadIndex;
 
+            Protocol p = null;
             var factoryHandle = service.FindProtocolFactoryHandle(MakeTypeId(moduleId, protocolId));
             if (factoryHandle != null && factoryHandle.Factory != null)
             {
-                var p = factoryHandle.Factory();
+                p = factoryHandle.Factory();
                 p.Decode(singleEncodedProtocol);
-                return p;
             }
-            return null;
+            singleEncodedProtocol.ReadIndex = endReadIndex;
+            singleEncodedProtocol.WriteIndex = savedWriteIndex;
+            return p;
         }
-        
+
 		/// <summary>
         /// Id + size + protocol.bytes
         /// </summary>
@@ -164,14 +169,14 @@ namespace Zeze.Net
 			{
 				// 尝试读取协议类型和大小
 				int moduleId;
-				int protocoId;
+				int protocolId;
 				int size;
 				int readIndexSaved = os.ReadIndex;
 
 				if (os.Size >= 12) // protocl header size.
 				{
 					moduleId = os.ReadInt4();
-					protocoId = os.ReadInt4();
+					protocolId = os.ReadInt4();
 					size = os.ReadInt4();
 				}
 				else
@@ -183,7 +188,7 @@ namespace Zeze.Net
 				// 以前写过的实现在数据不够之前会根据type检查size是否太大。
 				// 现在去掉协议的最大大小的配置了.由总的参数 SocketOptions.InputBufferMaxProtocolSize 限制。
 				// 参考 AsyncSocket
-				long type = MakeTypeId(moduleId, protocoId);
+				long type = MakeTypeId(moduleId, protocolId);
 				if (size < 0 || size > os.Size)
                 {
 					// 数据不够时检查。这个检测不需要严格的。如果数据够，那就优先处理。
@@ -198,12 +203,11 @@ namespace Zeze.Net
 					return;
 				}
 
+				var pBuffer = ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size);
+				os.ReadIndex += size;
 				var factoryHandle = service.FindProtocolFactoryHandle(type);
 				if (null != factoryHandle)
 				{
-					var pBuffer = ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size);
-					os.ReadIndex += size;
-
 					Protocol p = factoryHandle.Factory();
 					p.Service = service;
 					p.Decode(pBuffer);
@@ -211,7 +215,7 @@ namespace Zeze.Net
 					/*
 					if (pBuffer.ReadIndex != pBuffer.WriteIndex)
                     {
-						throw new Exception($"p=({moduleId},{protocoId}) size={size} too many data");
+						throw new Exception($"p=({moduleId},{protocolId}) size={size} too many data");
                     }
 					*/
 					p.Sender = so;
@@ -223,19 +227,19 @@ namespace Zeze.Net
 				// 优先派发c#实现，然后尝试lua实现，最后UnknownProtocol。
 				if (null != toLua)
 				{
-					var pBuffer = ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size);
 					if (toLua.DecodeAndDispatch(service, so.SessionId, type, pBuffer))
                     {
+	                    // 协议必须完整的解码，为了方便应用某些时候设计出兼容的协议。去掉这个检查。
+						/*
 						if (pBuffer.ReadIndex != pBuffer.WriteIndex)
 						{
-							throw new Exception($"toLua p=({moduleId},{protocoId}) size={size} too many data");
+							throw new Exception($"toLua p=({moduleId},{protocolId}) size={size} too many data");
 						}
-						os.ReadIndex += size;
+						*/
 						continue;
 					}
 				}
-				service.DispatchUnknownProtocol(so, moduleId, protocoId, ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size));
-				os.ReadIndex += size;
+				service.DispatchUnknownProtocol(so, moduleId, protocolId, pBuffer);
 			}
 			bb.ReadIndex = os.ReadIndex;
 		}
