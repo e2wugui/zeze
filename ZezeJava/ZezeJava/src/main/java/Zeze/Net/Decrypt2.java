@@ -1,40 +1,19 @@
 package Zeze.Net;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
-import Zeze.Util.Json;
+import static Zeze.Net.Encrypt2.BLOCK_SIZE;
+import static Zeze.Net.Encrypt2.aesCryptCtor;
+import static Zeze.Net.Encrypt2.mAesCryptInit;
+import static Zeze.Net.Encrypt2.mhEncrypt;
 
-public final class Encrypt2 implements Codec {
-	static final int BLOCK_SIZE = 16;
-	static final Constructor<?> aesCryptCtor;
-	static final Method mAesCryptInit;
-	static final MethodHandle mhEncrypt;
-
+public final class Decrypt2 implements Codec {
 	private final Codec sink;
 	private final Object aesCrypt;
+	private final byte[] in = new byte[BLOCK_SIZE];
 	private final byte[] out;
 	private int sinkIndex;
 	private int writeIndex;
 
-	static {
-		try {
-			var clsAESCrypt = Class.forName("com.sun.crypto.provider.AESCrypt");
-			aesCryptCtor = clsAESCrypt.getDeclaredConstructor();
-			mAesCryptInit = clsAESCrypt.getDeclaredMethod("init", boolean.class, String.class, byte[].class);
-			var methodEncrypt = clsAESCrypt.getDeclaredMethod("encryptBlock",
-					byte[].class, int.class, byte[].class, int.class);
-			Json.setAccessible(aesCryptCtor);
-			Json.setAccessible(mAesCryptInit);
-			Json.setAccessible(methodEncrypt);
-			mhEncrypt = MethodHandles.lookup().unreflect(methodEncrypt);
-		} catch (ReflectiveOperationException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	public Encrypt2(Codec sink, byte[] key) throws CodecException {
+	public Decrypt2(Codec sink, byte[] key) throws CodecException {
 		this.sink = sink;
 		out = Digest.md5(key);
 		try {
@@ -48,13 +27,14 @@ public final class Encrypt2 implements Codec {
 
 	@Override
 	public void update(byte c) throws CodecException {
+		in[writeIndex] = c;
 		out[writeIndex++] ^= c;
 		if (writeIndex == BLOCK_SIZE) {
 			writeIndex = 0;
 			sink.update(out, sinkIndex, BLOCK_SIZE - sinkIndex);
 			sinkIndex = 0;
 			try {
-				mhEncrypt.invoke(aesCrypt, out, 0, out, 0);
+				mhEncrypt.invoke(aesCrypt, in, 0, out, 0);
 			} catch (Throwable e) {
 				throw new CodecException(e);
 			}
@@ -67,25 +47,33 @@ public final class Encrypt2 implements Codec {
 			int wi = writeIndex, end = off + len;
 			if (wi > 0) {
 				while (off < end) {
-					out[wi++] ^= data[off++];
+					var c = data[off++];
+					in[wi] = c;
+					out[wi++] ^= c;
 					if (wi == BLOCK_SIZE) {
 						wi = 0;
 						sink.update(out, sinkIndex, BLOCK_SIZE - sinkIndex);
 						sinkIndex = 0;
-						mhEncrypt.invoke(aesCrypt, out, 0, out, 0);
+						mhEncrypt.invoke(aesCrypt, in, 0, out, 0);
 						break;
 					}
 				}
 			}
 			while (off + BLOCK_SIZE <= end) {
-				for (int i = 0; i < BLOCK_SIZE; i++)
-					out[wi + i] ^= data[off + i];
+				for (int i = 0; i < BLOCK_SIZE; i++) {
+					var c = data[off + i];
+					in[wi + i] = c;
+					out[wi + i] ^= c;
+				}
 				off += BLOCK_SIZE;
 				sink.update(out, 0, BLOCK_SIZE);
-				mhEncrypt.invoke(aesCrypt, out, 0, out, 0);
+				mhEncrypt.invoke(aesCrypt, in, 0, out, 0);
 			}
-			while (off < end)
-				out[wi++] ^= data[off++];
+			while (off < end) {
+				var c = data[off++];
+				in[wi] = c;
+				out[wi++] ^= c;
+			}
 			writeIndex = wi;
 		} catch (Throwable e) {
 			throw new CodecException(e);
