@@ -1,10 +1,11 @@
 package Zeze.Net;
 
 import static Zeze.Net.Encrypt2.BLOCK_SIZE;
-import static Zeze.Net.Encrypt2.aesCryptCtor;
-import static Zeze.Net.Encrypt2.mAesCryptInit;
-import static Zeze.Net.Encrypt2.mhEncrypt;
+import static Zeze.Net.Encrypt2.mhCryptCtor;
+import static Zeze.Net.Encrypt2.mhCryptEncrypt;
+import static Zeze.Net.Encrypt2.mhCryptInit;
 
+// AES(CFB) Decrypt
 public final class Decrypt2 implements Codec {
 	private final Codec sink;
 	private final Object aesCrypt;
@@ -17,9 +18,9 @@ public final class Decrypt2 implements Codec {
 		this.sink = sink;
 		out = Digest.md5(key);
 		try {
-			aesCrypt = aesCryptCtor.newInstance();
-			mAesCryptInit.invoke(aesCrypt, false, "AES", out);
-			mhEncrypt.invoke(aesCrypt, out, 0, out, 0);
+			aesCrypt = mhCryptCtor.invoke();
+			mhCryptInit.invoke(aesCrypt, false, "AES", out);
+			mhCryptEncrypt.invoke(aesCrypt, out, 0, out, 0);
 		} catch (Throwable e) {
 			throw new CodecException(e);
 		}
@@ -34,7 +35,7 @@ public final class Decrypt2 implements Codec {
 			sink.update(out, sinkIndex, BLOCK_SIZE - sinkIndex);
 			sinkIndex = 0;
 			try {
-				mhEncrypt.invoke(aesCrypt, in, 0, out, 0);
+				mhCryptEncrypt.invoke(aesCrypt, in, 0, out, 0);
 			} catch (Throwable e) {
 				throw new CodecException(e);
 			}
@@ -54,7 +55,7 @@ public final class Decrypt2 implements Codec {
 						wi = 0;
 						sink.update(out, sinkIndex, BLOCK_SIZE - sinkIndex);
 						sinkIndex = 0;
-						mhEncrypt.invoke(aesCrypt, in, 0, out, 0);
+						mhCryptEncrypt.invoke(aesCrypt, in, 0, out, 0);
 						break;
 					}
 				}
@@ -67,7 +68,7 @@ public final class Decrypt2 implements Codec {
 				}
 				off += BLOCK_SIZE;
 				sink.update(out, 0, BLOCK_SIZE);
-				mhEncrypt.invoke(aesCrypt, in, 0, out, 0);
+				mhCryptEncrypt.invoke(aesCrypt, in, 0, out, 0);
 			}
 			while (off < end) {
 				var c = data[off++];
