@@ -12,6 +12,13 @@ import org.apache.logging.log4j.Logger;
 public class Selector extends Thread implements ByteBufferAllocator {
 	private static final Logger logger = LogManager.getLogger(Selector.class);
 
+	// 以下常量为临时兼容,以后会去掉,应该改用Selectors里的
+	public static final int DEFAULT_BUFFER_SIZE = 32 * 1024; // 单个buffer的字节容量
+	public static final int DEFAULT_BBPOOL_LOCAL_CAPACITY = 1000; // 本地池的最大保留buffer数量
+	public static final int DEFAULT_BBPOOL_MOVE_COUNT = 1000; // 本地池和全局池之间移动一次的buffer数量
+	public static final int DEFAULT_BBPOOL_GLOBAL_CAPACITY = 100 * DEFAULT_BBPOOL_MOVE_COUNT; // 全局池的最大buffer数量
+	public static final int DEFAULT_SELECT_TIMEOUT = 0; // 0表示无超时,>0表示每次select的超时毫秒数
+
 	private final Selectors selectors;
 	private final java.nio.channels.Selector selector;
 	private final ByteBuffer readBuffer = ByteBuffer.allocate(32 * 1024); // 此线程共享的buffer,只能临时使用
