@@ -26,6 +26,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Util.OutInt;
 import demo.Module1.BValue;
+import org.junit.Assert;
 import org.junit.Test;
 
 @SuppressWarnings({"unused", "NewClassNamingConvention"})
@@ -152,6 +153,7 @@ public class BenchSocket {
 
 		var encrypt = new BufferCodec(ByteBuffer.Allocate(count * max.value));
 		var decrypt = new BufferCodec(ByteBuffer.Allocate(count * max.value));
+		int enHashCode, deHashCode;
 		{
 			var b = new Zeze.Util.Benchmark();
 			var en = new Encrypt(encrypt, key);
@@ -164,8 +166,8 @@ public class BenchSocket {
 			}
 			var seconds = b.report("encrypt", count);
 			var sum = encrypt.getBuffer().size();
-			System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s hash="
-					+ encrypt.getBuffer().hashCode());
+			enHashCode = encrypt.getBuffer().hashCode();
+			System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s; hash=" + enHashCode);
 		}
 		{
 			var b = new Zeze.Util.Benchmark();
@@ -174,12 +176,13 @@ public class BenchSocket {
 			de.flush();
 			var seconds = b.report("decrypt", count);
 			var sum = decrypt.getBuffer().size();
-			System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s hash="
-					+ decrypt.getBuffer().hashCode());
+			deHashCode = decrypt.getBuffer().hashCode();
+			System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s; hash=" + deHashCode);
 		}
 
 		encrypt = new BufferCodec(ByteBuffer.Allocate(count * max.value));
 		decrypt = new BufferCodec(ByteBuffer.Allocate(count * max.value));
+		int en2HashCode, de2HashCode;
 		{
 			var b = new Zeze.Util.Benchmark();
 			var en = new Encrypt2(encrypt, key);
@@ -192,8 +195,8 @@ public class BenchSocket {
 			}
 			var seconds = b.report("encrypt2", count);
 			var sum = encrypt.getBuffer().size();
-			System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s hash="
-					+ encrypt.getBuffer().hashCode());
+			en2HashCode = encrypt.getBuffer().hashCode();
+			System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s; hash=" + en2HashCode);
 		}
 		{
 			var b = new Zeze.Util.Benchmark();
@@ -202,9 +205,12 @@ public class BenchSocket {
 			de.flush();
 			var seconds = b.report("decrypt2", count);
 			var sum = decrypt.getBuffer().size();
-			System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s hash="
-					+ decrypt.getBuffer().hashCode());
+			de2HashCode = decrypt.getBuffer().hashCode();
+			System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s; hash=" + de2HashCode);
 		}
+
+		Assert.assertEquals(enHashCode, en2HashCode);
+		Assert.assertEquals(deHashCode, de2HashCode);
 	}
 
 	static class ServerService extends Zeze.Services.HandshakeServer {

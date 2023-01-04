@@ -14,9 +14,8 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.LongSupplier;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Action0;
@@ -56,7 +55,6 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		return genFunc != null ? genFunc.getAsLong() : sessionIdGen.getAndIncrement();
 	}
 
-	private final ReentrantLock lock = new ReentrantLock();
 	private long sessionId = nextSessionId(); // 只在setSessionId里修改
 	private final Service service;
 	private final Object acceptorOrConnector;
@@ -67,7 +65,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 	@SuppressWarnings("unused")
 	private volatile long outputBufferSize;
-	private ArrayList<Action0> operates = new ArrayList<>();
+	private final ConcurrentLinkedQueue<Action0> operates = new ConcurrentLinkedQueue<>();
 	private final OutputBuffer outputBuffer;
 
 	private final BufferCodec inputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer. 只在selector线程访问
@@ -78,7 +76,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private volatile boolean isHandshakeDone;
 	@SuppressWarnings("unused")
 	private volatile byte closed;
-	private boolean closePending;
+	private volatile boolean closePending;
 	private long recvSize; // 已从socket接收数据的统计总字节数
 	private long sendSize; // 已向socket发送数据的统计总字节数
 	private long sendRawSize; // 准备发送数据的统计总字节数(只在SetOutputSecurityCodec后统计,压缩加密之前的大小)
@@ -360,7 +358,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			if (compress)
 				chain = new Decompress(chain);
 			if (key != null)
-				chain = new Decrypt(chain, key);
+				chain = new Decrypt2(chain, key);
 			inputCodecChain = chain;
 			//noinspection NonAtomicOperationOnVolatileField
 			security |= 1;
@@ -371,7 +369,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		SubmitAction(() -> { // 进selector线程调用
 			Codec chain = outputBuffer;
 			if (key != null)
-				chain = new Encrypt(chain, key);
+				chain = new Encrypt2(chain, key);
 			if (compress)
 				chain = new Compress(chain);
 			outputCodecChain = chain;
@@ -381,18 +379,10 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	public boolean SubmitAction(Action0 callback) {
-		boolean needWakeup;
-		lock.lock();
-		try {
-			if (closed != 0)
-				return false;
-			var operates = this.operates;
-			operates.add(callback);
-			needWakeup = operates.size() == 1 && interestOps(0, SelectionKey.OP_WRITE);
-		} finally {
-			lock.unlock();
-		}
-		if (needWakeup)
+		if (closed != 0)
+			return false;
+		operates.offer(callback);
+		if (interestOps(0, SelectionKey.OP_WRITE))
 			selector.wakeup();
 		return true;
 	}
@@ -564,31 +554,21 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	 */
 	private void doWrite(SocketChannel sc) throws Throwable { // 只在selector线程调用
 		while (true) {
-			var operates = this.operates;
-			var newOperates = selector.swapOperates(operates);
-			lock.lock();
-			this.operates = newOperates;
-			lock.unlock();
-			//noinspection ForLoopReplaceableByForEach
-			for (int i = 0, n = operates.size(); i < n; i++)
-				operates.get(i).run();
-			operates.clear();
+			for (Action0 op; (op = operates.poll()) != null; )
+				op.run();
 
 			int bufSize = outputBuffer.size();
 			if (bufSize <= 0) {
 				// 时间窗口
 				// 必须和把Operate加入队列同步！否则可能会出现，刚加入操作没有被处理，但是OP_WRITE又被Remove的问题。
-				lock.lock();
-				try {
-					if (this.operates.isEmpty()) {
-						// 真的没有等待处理的操作了，去掉事件，返回。以后新的操作在下一次doWrite时处理。
-						interestOps(SelectionKey.OP_WRITE, 0);
-						if (closePending)
-							realClose();
-						return;
-					}
-				} finally {
-					lock.unlock();
+				if (operates.isEmpty()) {
+					// 真的没有等待处理的操作了，去掉事件，返回。以后新的操作在下一次doWrite时处理。
+					interestOps(SelectionKey.OP_WRITE, 0);
+					if (!operates.isEmpty()) // 再判断一次,避免跟SubmitAction的并发竞争问题
+						continue;
+					if (closePending)
+						realClose();
+					return;
 				}
 				// 发现数据，继续尝试处理。
 			} else {
@@ -655,15 +635,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 
 		if (gracefully) {
-			boolean needWakeup;
-			lock.lock();
-			try {
-				closePending = true;
-				needWakeup = interestOps(0, SelectionKey.OP_WRITE); // try
-			} finally {
-				lock.unlock();
-			}
-			if (needWakeup)
+			closePending = true;
+			if (interestOps(0, SelectionKey.OP_WRITE))
 				selector.wakeup();
 			Task.schedule(120 * 1000, this::realClose); // 最多给2分钟清空输出队列。
 		} else
