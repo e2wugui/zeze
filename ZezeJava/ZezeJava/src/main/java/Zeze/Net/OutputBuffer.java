@@ -19,10 +19,6 @@ public final class OutputBuffer implements Codec, Closeable {
 		this.allocator = allocator;
 	}
 
-	public int getBufferSize() {
-		return buffers.size();
-	}
-
 	@Override
 	public void close() {
 		if (head != null) {
@@ -36,6 +32,17 @@ public final class OutputBuffer implements Codec, Closeable {
 			tail = null;
 			tailPos = 0;
 		}
+	}
+
+	public int getBufferCount() {
+		int bufCount = buffers.size();
+		if (bufCount > 0)
+			bufCount++; // add tail
+		else if (tail != null)
+			bufCount = 1;
+		if (head != null)
+			bufCount++;
+		return bufCount;
 	}
 
 	public int size() {

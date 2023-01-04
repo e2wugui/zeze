@@ -558,21 +558,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				op.run();
 
 			int bufSize = outputBuffer.size();
-			if (bufSize <= 0) {
-				// 时间窗口
-				// 必须和把Operate加入队列同步！否则可能会出现，刚加入操作没有被处理，但是OP_WRITE又被Remove的问题。
-				if (operates.isEmpty()) {
-					// 真的没有等待处理的操作了，去掉事件，返回。以后新的操作在下一次doWrite时处理。
-					interestOps(SelectionKey.OP_WRITE, 0);
-					if (!operates.isEmpty()) // 再判断一次,避免跟SubmitAction的并发竞争问题
-						continue;
-					if (closePending)
-						realClose();
-					return;
-				}
-				// 发现数据，继续尝试处理。
-			} else {
-				long rc = outputBuffer.writeTo(sc);
+			if (bufSize > 0) {
+				var rc = outputBuffer.writeTo(sc);
 				if (rc < 0) {
 					close(); // 很罕见的正常关闭, 不设置异常, 其实write抛异常的可能性更大
 					return;
@@ -582,11 +569,23 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				if (outputBuffer.size() > 0) {
 					// 有数据正在发送，此时可以安全退出执行，写完以后Selector会再次触发doWrite。
 					// add write event，里面判断了事件没有变化时不做操作，严格来说，再次注册事件是不需要的。
-					interestOps(0, SelectionKey.OP_WRITE);
 					return;
 				}
 				// 全部都写出去了，继续尝试看看有没有新的操作。
 			}
+			// 时间窗口
+			// 必须和把Operate加入队列同步！否则可能会出现，刚加入操作没有被处理，但是OP_WRITE又被Remove的问题。
+			if (operates.isEmpty()) {
+				// 真的没有等待处理的操作了，去掉事件，返回。以后新的操作在下一次doWrite时处理。
+				interestOps(SelectionKey.OP_WRITE, 0);
+				if (operates.isEmpty()) { // 再判断一次,避免跟SubmitAction的并发竞争问题
+					if (closePending)
+						realClose();
+					return;
+				}
+				interestOps(0, SelectionKey.OP_WRITE);
+			}
+			// 发现数据，继续尝试处理。
 		}
 	}
 
