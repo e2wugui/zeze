@@ -6,30 +6,17 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class Selector extends Thread implements ByteBufferAllocator {
-	public static final int DEFAULT_BUFFER_SIZE = 32 * 1024; // 单个buffer的字节容量
-	public static final int DEFAULT_BBPOOL_LOCAL_CAPACITY = 1000; // 本地池的最大保留buffer数量
-	public static final int DEFAULT_BBPOOL_MOVE_COUNT = 1000; // 本地池和全局池之间移动一次的buffer数量
-	public static final int DEFAULT_BBPOOL_GLOBAL_CAPACITY = 100 * DEFAULT_BBPOOL_MOVE_COUNT; // 全局池的最大buffer数量
-	public static final int DEFAULT_SELECT_TIMEOUT = 0; // 0表示无超时,>0表示每次select的超时毫秒数
 	private static final Logger logger = LogManager.getLogger(Selector.class);
-	private static final ArrayList<ByteBuffer> bbGlobalPool = new ArrayList<>(); // 全局池
-	private static final Lock bbGlobalPoolLock = new ReentrantLock(); // 全局池的锁
-	private static int bbPoolGlobalCapacity = DEFAULT_BBPOOL_GLOBAL_CAPACITY;
 
+	private final Selectors selectors;
 	private final java.nio.channels.Selector selector;
 	private final ByteBuffer readBuffer = ByteBuffer.allocate(32 * 1024); // 此线程共享的buffer,只能临时使用
 	private final AtomicInteger wakeupNotified = new AtomicInteger();
 	private final ArrayList<ByteBuffer> bbPool = new ArrayList<>();
-	private final int bufferSize;
-	private final int bbPoolLocalCapacity;
-	private final int bbPoolMoveCount;
-	private final int selectTimeout;
 	private boolean firstAction;
 	private volatile boolean running = true;
 
@@ -38,68 +25,27 @@ public class Selector extends Thread implements ByteBufferAllocator {
 //	public final AtomicLong wakeupTime = new AtomicLong();
 //	public long lastTime;
 
-	public Selector(String threadName) throws IOException {
-		this(threadName, DEFAULT_BUFFER_SIZE, DEFAULT_BBPOOL_LOCAL_CAPACITY, DEFAULT_BBPOOL_MOVE_COUNT,
-				DEFAULT_SELECT_TIMEOUT);
-	}
-
-	public Selector(String threadName, int bufferSize, int bbPoolLocalCapacity, int bbPoolMoveCount)
-			throws IOException {
-		this(threadName, bufferSize, bbPoolLocalCapacity, bbPoolMoveCount, DEFAULT_SELECT_TIMEOUT);
-	}
-
-	public Selector(String threadName, int bufferSize, int bbPoolLocalCapacity, int bbPoolMoveCount, int selectTimeout)
-			throws IOException {
+	public Selector(Selectors selectors, String threadName) throws IOException {
 		super(threadName);
-		if (bufferSize <= 0)
-			throw new IllegalArgumentException("bufferSize <= 0: " + bufferSize);
-		if (bbPoolLocalCapacity < 0)
-			throw new IllegalArgumentException("bbPoolLocalCapacity < 0: " + bbPoolLocalCapacity);
-		if (bbPoolMoveCount <= 0)
-			throw new IllegalArgumentException("bbPoolMoveCount <= 0: " + bbPoolMoveCount);
-		if (selectTimeout < 0)
-			throw new IllegalArgumentException("selectTimeout < 0: " + selectTimeout);
-		this.bufferSize = bufferSize;
-		this.bbPoolLocalCapacity = bbPoolLocalCapacity;
-		this.bbPoolMoveCount = bbPoolMoveCount;
-		this.selectTimeout = selectTimeout;
 		setDaemon(true);
+		this.selectors = selectors;
 		selector = java.nio.channels.Selector.open();
-	}
-
-	public static int getBbPoolGlobalCapacity() {
-		return bbPoolGlobalCapacity;
-	}
-
-	public static void setBbPoolGlobalCapacity(int bbPoolGlobalCapacity) {
-		if (bbPoolGlobalCapacity < 0)
-			throw new IllegalArgumentException("bbPoolGlobalCapacity < 0: " + bbPoolGlobalCapacity);
-		Selector.bbPoolGlobalCapacity = bbPoolGlobalCapacity;
 	}
 
 	ByteBuffer getReadBuffer() {
 		return readBuffer;
 	}
 
-	public int getBufferSize() {
-		return bufferSize;
-	}
-
-	public int getBbPoolLocalCapacity() {
-		return bbPoolLocalCapacity;
-	}
-
-	public int getBbPoolMoveCount() {
-		return bbPoolMoveCount;
-	}
-
 	@Override
 	public ByteBuffer alloc() {
 		int n = bbPool.size();
 		if (n <= 0) {
+			var bbGlobalPoolLock = selectors.getBbGlobalPoolLock();
 			bbGlobalPoolLock.lock();
 			try {
-				var gn = bbGlobalPool.size();
+				var bbGlobalPool = selectors.getBbGlobalPool();
+				int bbPoolMoveCount = selectors.getBbPoolMoveCount();
+				int gn = bbGlobalPool.size();
 				if (gn >= bbPoolMoveCount) {
 					var bbMoves = bbGlobalPool.subList(gn - bbPoolMoveCount, gn);
 					bbPool.addAll(bbMoves);
@@ -110,14 +56,19 @@ public class Selector extends Thread implements ByteBufferAllocator {
 			}
 			n = bbPool.size();
 		}
-		return n > 0 ? bbPool.remove(n - 1) : ByteBuffer.allocateDirect(bufferSize);
+		return n > 0 ? bbPool.remove(n - 1) : ByteBuffer.allocateDirect(selectors.getBufferSize());
 	}
 
 	@Override
 	public void free(ByteBuffer bb) {
+		int bbPoolLocalCapacity = selectors.getBbPoolLocalCapacity();
+		int bbPoolMoveCount = selectors.getBbPoolMoveCount();
 		int n = bbPool.size();
 		if (n >= bbPoolLocalCapacity + bbPoolMoveCount) { // 可以释放一批
 			var bbMoves = bbPool.subList(n - bbPoolMoveCount, n);
+			var bbGlobalPool = selectors.getBbGlobalPool();
+			var bbGlobalPoolLock = selectors.getBbGlobalPoolLock();
+			var bbPoolGlobalCapacity = selectors.getBbPoolGlobalCapacity();
 			bbGlobalPoolLock.lock();
 			try {
 				if (bbGlobalPool.size() >= bbPoolGlobalCapacity) // 全局池也放不下就丢弃这个bb
@@ -169,7 +120,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	}
 
 	public void wakeup() {
-		if (selectTimeout == 0 && Thread.currentThread() != this && wakeupNotified.compareAndSet(0, 1)) {
+		if (selectors.getSelectTimeout() == 0 && Thread.currentThread() != this && wakeupNotified.compareAndSet(0, 1)) {
 //			wakeupCount1.incrementAndGet();
 //			long t = System.nanoTime();
 			selector.wakeup();
@@ -181,6 +132,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	@Override
 	public void run() {
 //		lastTime = System.nanoTime();
+		int selectTimeout = selectors.getSelectTimeout();
 		while (running) {
 //			var t = System.nanoTime();
 //			if (t - lastTime >= 1_000_000_000L) {

@@ -289,16 +289,17 @@ public class BenchSocket {
 
 	@Test
 	public void testOutputBufferCodec() throws IOException {
-		var selector = new Zeze.Net.Selector("dummySelector");
+		var selectors = new Zeze.Net.Selectors("dummySelector");
+		var selector = selectors.choice();
 		var count = 200_0000;
 		var key = new byte[16];
 		Zeze.Util.Random.getInstance().nextBytes(key);
 
 		var dataPieceLength = 100;
 		// 预先分配足够的内存池，避免后面性能测试时，两次由于这个产生波动。
-		var bufCount = (dataPieceLength * count) / selector.getBufferSize() + 1;
+		var bufCount = (dataPieceLength * count) / selectors.getBufferSize() + 1;
 		for (int i = 0; i < bufCount; ++i)
-			selector.free(java.nio.ByteBuffer.allocateDirect(selector.getBufferSize()));
+			selector.free(java.nio.ByteBuffer.allocateDirect(selectors.getBufferSize()));
 		var datas = new byte[count][];
 		for (var i = 0; i < count; ++i) {
 			datas[i] = new byte[dataPieceLength];
