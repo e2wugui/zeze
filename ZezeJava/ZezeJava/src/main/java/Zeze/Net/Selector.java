@@ -39,6 +39,10 @@ public class Selector extends Thread implements ByteBufferAllocator {
 		selector = java.nio.channels.Selector.open();
 	}
 
+	public Selectors getSelectors() {
+		return selectors;
+	}
+
 	ByteBuffer getReadBuffer() {
 		return readBuffer;
 	}

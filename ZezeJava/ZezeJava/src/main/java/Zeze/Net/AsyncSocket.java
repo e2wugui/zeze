@@ -284,13 +284,13 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	/**
 	 * for client socket. connect
 	 */
-	private void doConnectSuccess(SocketChannel sc) throws Throwable {
+	private boolean doConnectSuccess(SocketChannel sc) throws Throwable {
 		remoteAddress = sc.socket().getRemoteSocketAddress();
 		logger.info("Connect: {} for {}:{}", this, service.getClass().getName(), service.getName());
 		if (acceptorOrConnector instanceof Connector)
 			((Connector)acceptorOrConnector).OnSocketConnected(this);
 		service.OnSocketConnected(this);
-		interestOps(SelectionKey.OP_CONNECT, SelectionKey.OP_READ);
+		return interestOps(SelectionKey.OP_CONNECT, SelectionKey.OP_READ);
 	}
 
 	public AsyncSocket(Service service, String hostNameOrAddress, int port, Object userState, Connector connector) {
@@ -320,7 +320,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			// 必须在connect前设置，否则selectionKey没初始化，有可能事件丢失？（现象好像是doHandle触发了）。
 			if (sc.connect(new InetSocketAddress(address, port))) { // 马上成功时，还没有注册到Selector中。
 				selector.register(sc, SelectionKey.OP_READ, this);
-				doConnectSuccess(sc);
+				if (doConnectSuccess(sc))
+					selector.wakeup();
 			} else
 				selector.register(sc, SelectionKey.OP_CONNECT, this);
 		} catch (Throwable e) {
@@ -553,11 +554,14 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	 *    注释写了这个是不必要的，考虑清楚以后删除掉？
 	 */
 	private void doWrite(SocketChannel sc) throws Throwable { // 只在selector线程调用
+		// int blockSize = selector.getSelectors().getBufferSize();
+		int bufSize = outputBuffer.size();
 		while (true) {
-			for (Action0 op; (op = operates.poll()) != null; )
+			for (Action0 op; /*bufSize < blockSize * 2 &&*/ (op = operates.poll()) != null; ) {
 				op.run();
+				bufSize = outputBuffer.size();
+			}
 
-			int bufSize = outputBuffer.size();
 			if (bufSize > 0) {
 				var rc = outputBuffer.writeTo(sc);
 				if (rc < 0) {
@@ -566,7 +570,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				}
 				sendSize += rc;
 				outputBufferSizeHandle.getAndAdd(this, -rc);
-				if (outputBuffer.size() > 0) {
+				bufSize = outputBuffer.size();
+				if (bufSize > 0) {
 					// 有数据正在发送，此时可以安全退出执行，写完以后Selector会再次触发doWrite。
 					// add write event，里面判断了事件没有变化时不做操作，严格来说，再次注册事件是不需要的。
 					return;

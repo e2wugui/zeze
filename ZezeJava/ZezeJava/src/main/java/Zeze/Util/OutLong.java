@@ -11,6 +11,16 @@ public class OutLong {
 	}
 
 	@Override
+	public int hashCode() {
+		return Long.hashCode(value);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		return obj instanceof OutLong && value == ((OutLong)obj).value;
+	}
+
+	@Override
 	public String toString() {
 		return String.valueOf(value);
 	}
