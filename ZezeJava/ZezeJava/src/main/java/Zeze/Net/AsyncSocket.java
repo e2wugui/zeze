@@ -531,8 +531,11 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	 * 根据上面原则进行如下修改：
 	 * 1. operates 重新改成 ConcurrentLinkedQueue
 	 * 2. 锁外执行
-	 *    for (var op = operates.poll(); op != null && outputBuffer.getBufferSize() < 3; op = operates.poll())
-	 *        op.run();
+	 *		int blockSize = selector.getSelectors().getBufferSize();
+	 *		for (Action0 op; bufSize < blockSize * 2 && (op = operates.poll()) != null; ) {
+	 *			op.run();
+	 *			bufSize = outputBuffer.size();
+	 *		}
 	 * 3. interestOps 保持不变。
 	 * 4. 并发性
 	 *    高并发完全由ConcurrentLinkedQueue决定，在忙碌的情况下，完全不需要lock(Submit的锁)。
