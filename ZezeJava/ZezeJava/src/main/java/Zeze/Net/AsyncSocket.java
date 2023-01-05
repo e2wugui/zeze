@@ -426,7 +426,6 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 					// 压缩加密等 codec 链操作。
 					int oldSize = outputBuffer.size();
 					codec.update(bytes, offset, length);
-					codec.flush();
 					int deltaLen = outputBuffer.size() - oldSize - length;
 					if (deltaLen != 0)
 						outputBufferSizeHandle.getAndAdd(this, (long)deltaLen);
@@ -563,6 +562,16 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			for (Action0 op; /*bufSize < blockSize * 2 &&*/ (op = operates.poll()) != null; ) {
 				op.run();
 				bufSize = outputBuffer.size();
+			}
+			var codec = outputCodecChain;
+			if (codec != null) {
+				codec.flush();
+				int newBufSize = outputBuffer.size();
+				int deltaLen = newBufSize - bufSize;
+				if (deltaLen != 0) {
+					bufSize = newBufSize;
+					outputBufferSizeHandle.getAndAdd(this, (long)deltaLen);
+				}
 			}
 
 			if (bufSize > 0) {
