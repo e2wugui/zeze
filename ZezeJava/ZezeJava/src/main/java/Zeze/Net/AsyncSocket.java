@@ -538,7 +538,6 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	 * 3. interestOps 保持不变。
 	 * 4. 并发性
 	 *    高并发完全由ConcurrentLinkedQueue决定，在忙碌的情况下，完全不需要lock(Submit的锁)。
-	 *    仅在outputBuffer清空时尝试去remove interest时才需要lock。
 	 * 问题：
 	 * 1. 现在Socket.SendBufferSize是按Service配置的，但是OutputBuffer的Buffer.BlockSize是固定的，
 	 *    对于大的SendBufferSize，无法发挥最佳性能。
@@ -552,8 +551,6 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	 *    存在浪费一次write(socket)的调用，当然这个比较罕见，因为对于原来的逻辑，outputBuffer全部刷完
 	 *    对于繁忙连接是比较罕见的，但是存在抖动的可能。
 	 *    考虑清楚以后去掉while(true)？
-	 * 3. outputBuffer没有写完，if (outputBuffer.size() > 0)重新尝试添加WriteFlag的问题。
-	 *    注释写了这个是不必要的，考虑清楚以后删除掉？
 	 */
 	private void doWrite(SocketChannel sc) throws Throwable { // 只在selector线程调用
 		// int blockSize = selector.getSelectors().getBufferSize();
