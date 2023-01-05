@@ -82,7 +82,8 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		var compress = bb.ReadInt();
 		var familyClass = compress & FamilyClass.FamilyClassMask;
 		var isRequest = familyClass == FamilyClass.Request;
-		if (isRequest) {
+		var so = GetSocket(dispatch.Argument.getLinkSid());
+		if (isRequest && so != null) {
 			if ((compress & FamilyClass.BitResultCode) != 0)
 				bb.ReadLong();
 			var sessionId = bb.ReadLong();
@@ -90,16 +91,12 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 
 			// 开始响应rpc.response.
 			// 【注意】复用了上面的变量 bb，compress。
-			compress = FamilyClass.Response;
-			compress |= FamilyClass.BitResultCode;
-			bb = ByteBuffer.Allocate();
-			bb.WriteInt(compress);
+			bb = ByteBuffer.Allocate(12);
+			bb.WriteInt(FamilyClass.Response | FamilyClass.BitResultCode);
 			bb.WriteLong(Procedure.Busy);
 			bb.WriteLong(sessionId);
 			EmptyBean.instance.encode(bb); // emptyBean对应任意bean的默认值状态。
-			var so = GetSocket(dispatch.Argument.getLinkSid());
-			if (null != so)
-				so.Send(bb.Bytes, bb.ReadIndex, bb.Size());
+			so.Send(bb);
 		}
 		// 报告服务器繁忙，但不关闭连接。
 		reportError(dispatch.Argument.getLinkSid(), BReportError.FromLink, BReportError.CodeProviderBusy, "provider is busy.", false);

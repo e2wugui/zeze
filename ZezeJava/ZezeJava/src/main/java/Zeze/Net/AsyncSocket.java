@@ -464,7 +464,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		return Send(protocol.encode());
 	}
 
-	public boolean Send(ByteBuffer bb) { // 返回true则bb不能再修改了
+	public boolean Send(ByteBuffer bb) { // 返回true则bb的Bytes不能再修改了
 		return Send(bb.Bytes, bb.ReadIndex, bb.Size());
 	}
 

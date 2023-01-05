@@ -1,5 +1,7 @@
 package Zeze.Arch;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Provider.AnnounceLinkInfo;
 import Zeze.Builtin.Provider.Bind;
@@ -8,18 +10,39 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Service;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 	private static final Logger logger = LogManager.getLogger(LinkdProviderService.class);
+	private static final String dumpFilename = System.getProperty("dumpProviderInput");
+	private static final boolean enableDump = dumpFilename != null;
 
 	protected LinkdApp linkdApp;
 	protected final ConcurrentHashMap<String, ProviderSession> providerSessions = new ConcurrentHashMap<>();
+	protected FileOutputStream dumpFile;
+	protected AsyncSocket dumpSocket;
 
 	public LinkdProviderService(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);
+	}
+
+	protected void tryDump(AsyncSocket s, ByteBuffer input) throws IOException {
+		if (dumpFile == null) {
+			dumpFile = new FileOutputStream(dumpFilename);
+			dumpSocket = s;
+		}
+		if (dumpSocket == s)
+			dumpFile.write(input.Bytes, input.ReadIndex, input.size());
+	}
+
+	@Override
+	public void OnSocketProcessInputBuffer(AsyncSocket s, ByteBuffer input) throws Throwable {
+		if (enableDump)
+			tryDump(s, input);
+		super.OnSocketProcessInputBuffer(s, input);
 	}
 
 	@Override

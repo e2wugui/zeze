@@ -1,9 +1,21 @@
 package Zeze.Arch;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.function.Predicate;
 import Zeze.Builtin.LinkdBase.BReportError;
-import Zeze.Builtin.Provider.*;
+import Zeze.Builtin.Provider.AnnounceProviderInfo;
+import Zeze.Builtin.Provider.BBind;
+import Zeze.Builtin.Provider.BModule;
+import Zeze.Builtin.Provider.Bind;
+import Zeze.Builtin.Provider.Broadcast;
+import Zeze.Builtin.Provider.Kick;
+import Zeze.Builtin.Provider.Send;
+import Zeze.Builtin.Provider.SetUserState;
+import Zeze.Builtin.Provider.Subscribe;
+import Zeze.Builtin.Provider.UnBind;
 import Zeze.Net.AsyncSocket;
+import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
@@ -15,7 +27,9 @@ import Zeze.Util.OutLong;
  * Linkd上处理Provider协议的模块。
  */
 public class LinkdProvider extends AbstractLinkdProvider {
-//	private static final Logger logger = LogManager.getLogger(LinkdProvider.class);
+	// private static final Logger logger = LogManager.getLogger(LinkdProvider.class);
+	protected static final String dumpFilename = System.getProperty("dumpLinkdOutput");
+	protected static final boolean enableDump = dumpFilename != null;
 
 	protected LinkdApp linkdApp;
 	protected ProviderDistribute distribute;
@@ -26,6 +40,9 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	// 内部的Provider可以支持完全不同的solution，不过这个仅仅保留给未来扩展用，
 	// 不建议在一个项目里面使用多个Prefix。
 	private String serverServiceNamePrefix = "";
+
+	protected FileOutputStream dumpFile;
+	protected AsyncSocket dumpSocket;
 
 	public ProviderDistribute getDistribute() {
 		return distribute;
@@ -233,8 +250,17 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		return Procedure.Success;
 	}
 
+	protected void tryDump(AsyncSocket s, Binary pdata) throws IOException {
+		if (dumpFile == null) {
+			dumpFile = new FileOutputStream(dumpFilename);
+			dumpSocket = s;
+		}
+		if (dumpSocket == s)
+			dumpFile.write(pdata.bytesUnsafe(), pdata.getOffset(), pdata.size());
+	}
+
 	@Override
-	protected long ProcessSendRequest(Send r) {
+	protected long ProcessSendRequest(Send r) throws IOException {
 		var ptype = r.Argument.getProtocolType();
 		var pdata = r.Argument.getProtocolWholeData();
 		var linkSids = r.Argument.getLinkSids();
@@ -249,6 +275,8 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			if (link != null) {
 				if (!link.Send(pdata))
 					link.close();
+				if (enableDump)
+					tryDump(link, pdata);
 			} else
 				r.Result.getErrorLinkSids().add(linkSid);
 		}
@@ -270,8 +298,11 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			// 如果要实现 role.login 才允许，Provider 增加 SetLogin 协议给内部server调用。
 			// 这些广播一般是重要通告，只要登录客户端就允许收到，然后进入世界的时候才显示。这样处理就不用这个状态了。
 			var linkSession = (LinkdUserSession)socket.getUserState();
-			if (linkSession != null && linkSession.getAccount() == null && !linkSession.getContext().isEmpty())
+			if (linkSession != null && linkSession.getAccount() == null && !linkSession.getContext().isEmpty()) {
 				socket.Send(pdata);
+				if (enableDump)
+					tryDump(socket, pdata);
+			}
 		});
 		return Procedure.Success;
 	}
