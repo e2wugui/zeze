@@ -15,6 +15,7 @@ import Zeze.Net.ProtocolErrorHandle;
 import Zeze.Net.Service;
 import Zeze.Raft.RaftRetryException;
 import Zeze.Transaction.DispatchMode;
+import Zeze.Transaction.GoBackZeze;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.ProcedureStatistics;
 import Zeze.Transaction.Transaction;
@@ -120,7 +121,7 @@ public final class Task {
 	public static void call(Action0 action, String name) {
 		try {
 			action.run();
-		} catch (AssertionError e) {
+		} catch (AssertionError | GoBackZeze e) {
 			throw e;
 		} catch (Throwable ex) {
 			logger.error("{}", name != null ? name : action != null ? action.getClass().getName() : "", ex);
@@ -130,7 +131,7 @@ public final class Task {
 	public static long call(FuncLong func, String name) {
 		try {
 			return func.call();
-		} catch (AssertionError e) {
+		} catch (AssertionError | GoBackZeze e) {
 			throw e;
 		} catch (Throwable ex) {
 			logger.error("{}", name != null ? name : func != null ? func.getClass().getName() : "", ex);
@@ -165,7 +166,7 @@ public final class Task {
 			try {
 				action.run();
 				future.setResult(0L);
-			} catch (AssertionError e) {
+			} catch (AssertionError | GoBackZeze e) {
 				throw e;
 			} catch (Throwable ex) {
 				future.setException(ex);
@@ -318,7 +319,7 @@ public final class Task {
 		if (tmpVolatile != null) {
 			try {
 				tmpVolatile.run(ex, result, p, actionName);
-			} catch (AssertionError e) {
+			} catch (AssertionError | GoBackZeze e) {
 				throw e;
 			} catch (Throwable e) {
 				logger.error("LogAndStatistics Exception", e);
@@ -354,7 +355,7 @@ public final class Task {
 				actionWhenError.handle(p, result);
 			logAndStatistics(null, result, p, IsRequestSaved, aName);
 			return result;
-		} catch (AssertionError e) {
+		} catch (AssertionError | GoBackZeze e) {
 			throw e;
 		} catch (Throwable ex) {
 			long errorCode;
@@ -369,7 +370,7 @@ public final class Task {
 			if (IsRequestSaved && actionWhenError != null) {
 				try {
 					actionWhenError.handle(p, errorCode);
-				} catch (AssertionError e) {
+				} catch (AssertionError | GoBackZeze e) {
 					throw e;
 				} catch (Throwable e) {
 					logger.error("", e);
@@ -458,14 +459,14 @@ public final class Task {
 				actionWhenError.run(from, result);
 			logAndStatistics(null, result, from, isRequestSaved, procedure.getActionName());
 			return result;
-		} catch (AssertionError e) {
+		} catch (AssertionError | GoBackZeze e) {
 			throw e;
 		} catch (Throwable ex) {
 			// Procedure.Call处理了所有错误。应该不会到这里。除非内部错误。
 			if (isRequestSaved && actionWhenError != null) {
 				try {
 					actionWhenError.run(from, Procedure.Exception);
-				} catch (AssertionError e) {
+				} catch (AssertionError | GoBackZeze e) {
 					throw e;
 				} catch (Throwable e) {
 					logger.error("ActionWhenError Exception", e);

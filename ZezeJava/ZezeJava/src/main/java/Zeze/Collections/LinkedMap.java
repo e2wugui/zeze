@@ -261,13 +261,12 @@ public class LinkedMap<V extends Bean> {
 
 	public void removeNode(long nodeId) {
 		BLinkedMapNode node = getNode(nodeId);
-		for (var e : node.getValues()) {
+		for (var e : node.getValues())
 			module._tValueIdToNodeId.remove(new BLinkedMapKey(name, e.getId()));
-			var root = getRoot();
-			root.setCount(root.getCount() - node.getValues().size());
-			node.getValues().clear();
-			removeNodeUnsafe(nodeId, node);
-		}
+		var root = getRoot();
+		root.setCount(root.getCount() - node.getValues().size());
+		node.getValues().clear();
+		removeNodeUnsafe(nodeId, node);
 		// 没有马上删除，启动gc延迟删除。
 		module._tLinkedMapNodes.delayRemove(new BLinkedMapNodeKey(name, nodeId));
 	}
