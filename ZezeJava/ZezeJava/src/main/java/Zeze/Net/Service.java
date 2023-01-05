@@ -206,12 +206,22 @@ public class Service {
 		return sockets.hasNext() ? sockets.next() : null;
 	}
 
-	public void Start() throws Throwable {
+	public void start() throws Throwable {
 		if (config != null)
 			config.start();
 	}
 
+	@Deprecated
+	public void Start() throws Throwable {
+		start();
+	}
+
+	@Deprecated
 	public void Stop() throws Throwable {
+		stop();
+	}
+
+	public void stop() throws Throwable {
 		if (config != null)
 			config.stop();
 

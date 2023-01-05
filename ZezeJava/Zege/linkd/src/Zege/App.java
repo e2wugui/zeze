@@ -13,6 +13,7 @@ import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Service;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.CommandConsole;
 import Zeze.Util.JsonReader;
 import Zeze.Util.PersistentAtomicLong;
 
@@ -74,6 +75,12 @@ public class App extends Zeze.AppBase {
         }
         AsyncSocket.setSessionIdGenFunc(PersistentAtomicLong.getOrAdd(LinkdApp.getName())::next);
         startService(); // 启动网络
+        {
+            var cc = new CommandConsole();
+            cc.register("echo", (sender, args) -> sender.Send(args.toString() + "\r\n"));
+            cc.register("options", (sender, args) -> sender.Send(CommandConsole.Options.parse(args) + "\r\n"));
+            LinkdApp.commandConsoleService.setCommandConsole(cc);
+        }
         LinkdApp.registerService(null);
 
         // 基于linkd转发的Web服务，考虑移除，需要在Server实现Web请使用基于Netty-Http的Web。
