@@ -30,7 +30,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public static final Level LEVEL_PROTOCOL_LOG = Level.toLevel(System.getProperty("protocolLog"), Level.OFF);
 	public static final boolean ENABLE_PROTOCOL_LOG = LEVEL_PROTOCOL_LOG != Level.OFF;
 	private static final VarHandle closedHandle, outputBufferSizeHandle;
-	private static final byte SEND_CLOSE_DETAIL_MAX = 100; // 必须小于REAL_CLOSED
+	private static final byte SEND_CLOSE_DETAIL_MAX = 20; // 必须小于REAL_CLOSED
 	private static final byte REAL_CLOSED = Byte.MAX_VALUE;
 	private static final AtomicLong sessionIdGen = new AtomicLong(1);
 	private static LongSupplier sessionIdGenFunc;
@@ -39,7 +39,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		try {
 			var lookup = MethodHandles.lookup();
 			closedHandle = lookup.findVarHandle(AsyncSocket.class, "closed", byte.class);
-			outputBufferSizeHandle = lookup.findVarHandle(AsyncSocket.class, "outputBufferSize", long.class);
+			outputBufferSizeHandle = lookup.findVarHandle(AsyncSocket.class, "outputBufferSize", int.class);
 		} catch (ReflectiveOperationException e) {
 			throw new RuntimeException(e);
 		}
@@ -64,11 +64,11 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private volatile Object userState;
 
 	@SuppressWarnings("unused")
-	private volatile long outputBufferSize;
-	private final ConcurrentLinkedQueue<Action0> operates = new ConcurrentLinkedQueue<>();
-	private final OutputBuffer outputBuffer;
+	private volatile int outputBufferSize;
+	private final ConcurrentLinkedQueue<Action0> operates;
 
-	private final BufferCodec inputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer. 只在selector线程访问
+	private final BufferCodec inputBuffer; // 记录这个变量用来操作buffer. 只在selector线程访问
+	private final OutputBuffer outputBuffer;
 	private Codec inputCodecChain; // 只在selector线程访问
 	private Codec outputCodecChain; // 只在selector线程访问
 	private volatile byte security; // 1:Input; 2:Output; 1|2:Input+Output
@@ -195,6 +195,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			logger.info("Listen: {} for {}:{}", localEP, service.getClass().getName(), service.getName());
 
 			selector = service.getSelectors().choice();
+			operates = null;
+			inputBuffer = null;
 			outputBuffer = null;
 			selectionKey = selector.register(ssc, 0, this); // 先获取key,因为有小概率出现事件处理比赋值更先执行
 			selector.register(ssc, SelectionKey.OP_ACCEPT, this);
@@ -275,6 +277,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			so.setTcpNoDelay(noDelay);
 
 		selector = service.getSelectors().choice();
+		operates = new ConcurrentLinkedQueue<>();
+		inputBuffer = new BufferCodec();
 		outputBuffer = new OutputBuffer(selector);
 		selectionKey = selector.register(sc, 0, this); // 先获取key,因为有小概率出现事件处理比赋值更先执行
 		selector.register(sc, SelectionKey.OP_READ, this);
@@ -314,6 +318,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				so.setTcpNoDelay(noDelay);
 
 			selector = service.getSelectors().choice();
+			operates = new ConcurrentLinkedQueue<>();
+			inputBuffer = new BufferCodec();
 			outputBuffer = new OutputBuffer(selector);
 			InetAddress address = InetAddress.getByName(hostNameOrAddress); // TODO async dns lookup
 			selectionKey = selector.register(sc, 0, this); // 先获取key,因为有小概率出现事件处理比赋值更先执行
@@ -355,7 +361,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 	public void SetInputSecurityCodec(byte[] key, boolean compress) {
 		SubmitAction(() -> { // 进selector线程调用
-			Codec chain = inputCodecBuffer;
+			Codec chain = inputBuffer;
 			if (compress)
 				chain = new Decompress(chain);
 			if (key != null)
@@ -380,8 +386,15 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	public boolean SubmitAction(Action0 callback) {
-		if (closed != 0)
+		var c = closed;
+		if (c != 0) {
+			if (c < SEND_CLOSE_DETAIL_MAX) {
+				closedHandle.compareAndSet(this, (byte)c, (byte)(c + 1));
+				logger.error("SubmitAction to closed socket: {}", this, new Exception());
+			} else
+				logger.error("SubmitAction to closed socket: {}", this);
 			return false;
+		}
 		operates.offer(callback);
 		if (interestOps(0, SelectionKey.OP_WRITE))
 			selector.wakeup();
@@ -404,23 +417,14 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public boolean Send(byte[] bytes, int offset, int length) {
 		ByteBuffer.VerifyArrayIndex(bytes, offset, length);
 
-		byte c = closed;
-		if (c != 0) {
-			if (c < SEND_CLOSE_DETAIL_MAX) {
-				closedHandle.compareAndSet(this, (byte)c, (byte)(c + 1));
-				logger.error("Send to closed socket: {} len={}", this, length, new Exception());
-			} else
-				logger.error("Send to closed socket: {} len={}", this, length);
-			return false;
-		}
-		var newSize = (long)outputBufferSizeHandle.getAndAdd(this, (long)length) + length;
+		var newSize = (int)outputBufferSizeHandle.getAndAdd(this, length) + length;
 		try {
 			if (!service.checkOverflow(this, newSize, bytes, offset, length)) {
-				outputBufferSizeHandle.getAndAdd(this, (long)-length);
+				outputBufferSizeHandle.getAndAdd(this, -length);
 				return false;
 			}
 			if (SubmitAction(() -> { // 进selector线程调用
-				Codec codec = outputCodecChain;
+				var codec = outputCodecChain;
 				if (codec != null) {
 					sendRawSize += length;
 					// 压缩加密等 codec 链操作。
@@ -428,14 +432,14 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 					codec.update(bytes, offset, length);
 					int deltaLen = outputBuffer.size() - oldSize - length;
 					if (deltaLen != 0)
-						outputBufferSizeHandle.getAndAdd(this, (long)deltaLen);
+						outputBufferSizeHandle.getAndAdd(this, deltaLen);
 				} else
 					outputBuffer.put(bytes, offset, length);
 			}))
 				return true;
 			logger.error("Send to closed socket: {} len={}", this, length, new Exception());
 		} catch (Throwable ex) {
-			outputBufferSizeHandle.getAndAdd(this, (long)-length);
+			outputBufferSizeHandle.getAndAdd(this, -length);
 			close(ex);
 		}
 		return false;
@@ -482,7 +486,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		int bytesTransferred = sc.read(buffer);
 		if (bytesTransferred > 0) {
 			recvSize += bytesTransferred;
-			ByteBuffer codecBuf = inputCodecBuffer.getBuffer(); // codec对buffer的引用一定是不可变的
+			ByteBuffer codecBuf = inputBuffer.getBuffer(); // codec对buffer的引用一定是不可变的
 			Codec codec = inputCodecChain;
 			if (codec != null) {
 				// 解密解压处理，处理结果直接加入 inputCodecBuffer。
@@ -567,7 +571,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				int deltaLen = newBufSize - bufSize;
 				if (deltaLen != 0) {
 					bufSize = newBufSize;
-					outputBufferSizeHandle.getAndAdd(this, (long)deltaLen);
+					outputBufferSizeHandle.getAndAdd(this, deltaLen);
 				}
 			}
 
@@ -578,7 +582,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 					return;
 				}
 				sendSize += rc;
-				outputBufferSizeHandle.getAndAdd(this, -rc);
+				outputBufferSizeHandle.getAndAdd(this, (int)-rc);
 				bufSize = outputBuffer.size();
 				if (bufSize > 0) {
 					// 有数据正在发送，此时可以安全退出执行，写完以后Selector会再次触发doWrite。
@@ -604,7 +608,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	private void realClose() {
-		if ((byte)closedHandle.getAndSet(this, REAL_CLOSED) == REAL_CLOSED) // 阻止递归关闭
+		if ((byte)closedHandle.getAndSet(this, (byte)REAL_CLOSED) == REAL_CLOSED) // 阻止递归关闭
 			return;
 		try {
 			selectionKey.channel().close();
