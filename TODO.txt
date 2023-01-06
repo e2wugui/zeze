@@ -24,7 +24,8 @@ Zege
 	GMT 时间。
 	好友列表也保存关注对象，可以接收通知。
 
-zekv?
+zekv
+	或者叫dbh2，不依赖db.h，这个名字有纪念意义。
 	rocksdb桶：部分表，部分key。
 	桶的管理和分配。关键！
 	桶的raft。
@@ -33,7 +34,6 @@ zekv?
 	raft c++？
 	c++ net？wepoll
 ts log?
-task 才一个月，再一个月考虑接收？
 c# fresh 有bug？
 DatabaseDynamoDb 还需测试。
 负载均衡；全面审核。
@@ -49,11 +49,12 @@ DatabaseDynamoDb 还需测试。
 新的Handshake协商流程。doc/handshake.txt
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/1/13 v1.1.5 TaskOneByOneByKey Performance; CommandConsole
+2023/1/13 v1.1.5 TaskOneByOneByKey Performance; CommandConsole; Task
 ------------------------------------------------------------------------------------------------------------------------------
 TaskOneByOneByKey 一次提交一批给Executor执行。减少锁的开销。
 Benchmark Encrypt/Decrypt 250M/250M Compress/Decompress 90M/100M
 CommandConsole
+Task
 
 【2022/12/28】
 
