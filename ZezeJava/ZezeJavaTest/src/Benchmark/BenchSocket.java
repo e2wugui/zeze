@@ -31,6 +31,33 @@ import org.junit.Test;
 
 @SuppressWarnings({"unused", "NewClassNamingConvention"})
 public class BenchSocket {
+	@Test
+	public void testCompressRate() {
+		var rand = new java.util.Random(1); // 固定的随机种子。
+		var count = 20 * 1024;
+		for (var block = 2048; block <= 4096 + 1024; block += 1024) {
+			var src = new byte[4][];
+			for (int i = 0; i < src.length; ++i) {
+				src[i] = new byte[block];
+				rand.nextBytes(src[i]);
+			}
+			var b = new Zeze.Util.Benchmark();
+			BufferCodec bufcp = new BufferCodec(ByteBuffer.Allocate(count * block));
+			Compress cp = new Compress(bufcp);
+			var sum = 0L;
+			for (int i = 0; i < count; ++i) {
+				var index = rand.nextInt(src.length);
+				var bb = src[index];
+				cp.update(bb);
+				cp.flush();
+				sum += bb.length;
+			}
+			var seconds = b.report("compress " + block, count);
+			var cpsize = bufcp.getBuffer().size();
+			System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s " + (double)cpsize / sum);
+		}
+	}
+
 	private static ArrayList<ByteBuffer> prepareDatas(int steps, OutInt max) {
 		var src = new ArrayList<ByteBuffer>();
 		var rand = new java.util.Random(2); // 固定随机种子
