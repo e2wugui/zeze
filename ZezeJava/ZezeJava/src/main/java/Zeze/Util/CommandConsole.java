@@ -22,45 +22,41 @@ public class CommandConsole {
 	}
 
 	public static class Options {
-		public HashMap<String, List<String>> options = new HashMap<>();
+		public HashMap<String, String> properties = new HashMap<>();
+		public List<String> others = new ArrayList<>();
 
-		public List<String> options(String name) {
-			return options.get(name);
+		public String property(String name) {
+			return properties.get(name);
 		}
 
-		public String option(String name) {
-			var ops = options.get(name);
-			if (null == ops)
-				return null;
-			if (ops.size() != 1)
-				throw new RuntimeException("options not only one.");
-			return ops.get(0);
+		public List<String> others() {
+			return others;
 		}
 
 		public boolean contains(String name) {
-			return options.get(name) != null;
+			return properties.containsKey(name);
+		}
+
+		private void build(String property) {
+			var i = property.indexOf('=');
+			if (i >= 0)
+				properties.put(property.substring(0, i), property.substring(i + 1));
+			else
+				properties.put(property, null);
 		}
 
 		public void build(List<String> args) {
-			var opBegin = -1;
-			for (int i = 0; i < args.size(); ++i) {
-				var arg = args.get(i);
-				if (arg.startsWith("-")) {
-					if (opBegin != -1) {
-						options.putIfAbsent(args.get(opBegin), args.subList(opBegin + 1, i));
-						opBegin = i + 1;
-					}
-					opBegin = i;
-				}
-			}
-			if (opBegin != -1) {
-				options.putIfAbsent(args.get(opBegin), args.subList(opBegin + 1, args.size()));
+			for (String arg : args) {
+				if (arg.startsWith("-D"))
+					build(arg.substring(2));
+				else
+					others.add(arg);
 			}
 		}
 
 		@Override
 		public String toString() {
-			return options.toString();
+			return properties.toString() + others.toString();
 		}
 
 		public static Options parse(List<String> args) {
@@ -118,11 +114,18 @@ public class CommandConsole {
 				if (quotBegin == -1)
 					quotBegin = i + 1;
 				else {
-					words.add(line.substring(quotBegin, i));
+					var w = "";
+					if (line.charAt(wordBegin) == '"')
+						 wordBegin += 1;
+					var wordEnd = quotBegin - 1;
+					if (wordEnd > wordBegin)
+						w = line.substring(wordBegin, wordEnd);
+					w += line.substring(quotBegin, i);
+					words.add(w);
 					quotBegin = -1;
 					wordBegin = i + 1;
 				}
-			} else {
+			} else if (quotBegin == -1){
 				if (Character.isWhitespace(c)) {
 					if (i > wordBegin) {
 						words.add(line.substring(wordBegin, i));
@@ -141,6 +144,7 @@ public class CommandConsole {
 	}
 
 	private static void dump(AsyncSocket sender, List<String> args) {
+		System.out.println(args);
 		System.out.println(Options.parse(args));
 	}
 
@@ -150,8 +154,7 @@ public class CommandConsole {
 		cc.register("2", CommandConsole::dump);
 		cc.register("3", CommandConsole::dump);
 
-		cc.input(null, "a -b c d -d \"xx\"");
-		cc.input(null, "\n");
-		cc.input(null, "2  xx  -b\t-c cc\n3 -4\n");
+		cc.input(null, "a -Dn1=v c d -Dn2=\"v v\" \"x x\"\n");
+		//cc.input(null, "2  xx  -b\t-c cc\n3 -4\n");
 	}
 }
