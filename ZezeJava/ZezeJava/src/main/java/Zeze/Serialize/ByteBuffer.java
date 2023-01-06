@@ -16,7 +16,7 @@ import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashMap;
 import org.jetbrains.annotations.NotNull;
 
-public final class ByteBuffer implements Comparable<ByteBuffer> {
+public class ByteBuffer implements Comparable<ByteBuffer> {
 	public static final boolean IGNORE_INCOMPATIBLE_FIELD = false; // 不忽略兼容字段则会抛异常
 	public static final byte[] Empty = new byte[0];
 
@@ -71,11 +71,11 @@ public final class ByteBuffer implements Comparable<ByteBuffer> {
 		return new ByteBuffer(capacity);
 	}
 
-	private ByteBuffer(int capacity) {
+	protected ByteBuffer(int capacity) {
 		Bytes = capacity == 0 ? Empty : new byte[capacity]; // ToPower2(capacity)
 	}
 
-	private ByteBuffer(byte[] bytes, int readIndex, int writeIndex) {
+	protected ByteBuffer(byte[] bytes, int readIndex, int writeIndex) {
 		Bytes = bytes;
 		ReadIndex = readIndex;
 		WriteIndex = writeIndex;
@@ -263,7 +263,7 @@ public final class ByteBuffer implements Comparable<ByteBuffer> {
 		WriteIndex = 0;
 	}
 
-	private static int toPower2(int needSize) {
+	protected static int toPower2(int needSize) {
 		int size = 16;
 		while (size < needSize)
 			size <<= 1;
@@ -280,7 +280,7 @@ public final class ByteBuffer implements Comparable<ByteBuffer> {
 		}
 	}
 
-	private void ensureRead(int size) {
+	protected void ensureRead(int size) {
 		if (ReadIndex + size > WriteIndex)
 			throw new IllegalStateException("EnsureRead " + ReadIndex + '+' + size + " > " + WriteIndex);
 	}

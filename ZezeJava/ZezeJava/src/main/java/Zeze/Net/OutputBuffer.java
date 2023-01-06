@@ -169,8 +169,4 @@ public final class OutputBuffer implements Codec, Closeable {
 	public void update(byte[] data, int off, int len) {
 		put(data, off, len);
 	}
-
-	@Override
-	public void flush() {
-	}
 }

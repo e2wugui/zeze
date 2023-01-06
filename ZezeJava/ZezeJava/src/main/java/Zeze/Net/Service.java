@@ -211,12 +211,10 @@ public class Service {
 			config.start();
 	}
 
-	@Deprecated
 	public void Start() throws Throwable {
 		start();
 	}
 
-	@Deprecated
 	public void Stop() throws Throwable {
 		stop();
 	}
