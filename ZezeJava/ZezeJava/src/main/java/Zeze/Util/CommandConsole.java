@@ -3,6 +3,7 @@ package Zeze.Util;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import Zeze.Net.AsyncSocket;
 
@@ -22,7 +23,7 @@ public class CommandConsole {
 	}
 
 	public static class Options {
-		public HashMap<String, String> properties = new HashMap<>();
+		public LinkedHashMap<String, String> properties = new LinkedHashMap<>();
 		public List<String> others = new ArrayList<>();
 
 		public String property(String name) {
@@ -37,7 +38,7 @@ public class CommandConsole {
 			return properties.containsKey(name);
 		}
 
-		private void build(String property) {
+		private void buildProperty(String property) {
 			var i = property.indexOf('=');
 			if (i >= 0)
 				properties.put(property.substring(0, i), property.substring(i + 1));
@@ -45,10 +46,10 @@ public class CommandConsole {
 				properties.put(property, null);
 		}
 
-		public void build(List<String> args) {
+		public void buildJvm(List<String> args) {
 			for (String arg : args) {
 				if (arg.startsWith("-D"))
-					build(arg.substring(2));
+					buildProperty(arg.substring(2));
 				else
 					others.add(arg);
 			}
@@ -59,9 +60,16 @@ public class CommandConsole {
 			return properties.toString() + others.toString();
 		}
 
-		public static Options parse(List<String> args) {
+		public static Options parseJvm(List<String> args) {
 			var options = new Options();
-			options.build(args);
+			options.buildJvm(args);
+			return options;
+		}
+
+		public static Options parseProperty(List<String> args) {
+			var options = new Options();
+			for (var arg : args)
+				options.buildProperty(arg);
 			return options;
 		}
 	}
@@ -145,7 +153,8 @@ public class CommandConsole {
 
 	private static void dump(AsyncSocket sender, List<String> args) {
 		System.out.println(args);
-		System.out.println(Options.parse(args));
+		System.out.println(Options.parseJvm(args));
+		System.out.println(Options.parseProperty(args));
 	}
 
 	public static void main(String args[]) {
@@ -154,7 +163,7 @@ public class CommandConsole {
 		cc.register("2", CommandConsole::dump);
 		cc.register("3", CommandConsole::dump);
 
-		cc.input(null, "a -Dn1=v c d -Dn2=\"v v\" \"x x\"\n");
+		cc.input(null, "a -Dn1=v -D\"n3=v v\" d -Dn2=\"v v\" \"x x\"\n");
 		//cc.input(null, "2  xx  -b\t-c cc\n3 -4\n");
 	}
 }

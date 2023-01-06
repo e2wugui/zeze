@@ -78,7 +78,7 @@ public class App extends Zeze.AppBase {
         {
             var cc = new CommandConsole();
             cc.register("echo", (sender, args) -> sender.Send(args.toString() + "\r\n"));
-            cc.register("options", (sender, args) -> sender.Send(CommandConsole.Options.parse(args) + "\r\n"));
+            cc.register("options", (sender, args) -> sender.Send(CommandConsole.Options.parseJvm(args) + "\r\n"));
             LinkdApp.commandConsoleService.setCommandConsole(cc);
         }
         LinkdApp.registerService(null);
