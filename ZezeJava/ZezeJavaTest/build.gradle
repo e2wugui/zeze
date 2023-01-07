@@ -32,6 +32,9 @@ dependencies {
     implementation 'org.jgrapht:jgrapht-core:1.5.1'
     implementation 'com.opencsv:opencsv:5.7.1'
     implementation 'org.glassfish:javax.json:1.0.4'
+
+    // for new Compress/Decompress Codec in Zeze.Net
+    implementation 'com.github.luben:zstd-jni:1.5.2-5'
 }
 
 sourceSets {
