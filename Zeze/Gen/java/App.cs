@@ -207,14 +207,14 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             sw.WriteLine("    public synchronized void startService() throws Throwable {");
             foreach (Service m in project.Services.Values)
-                sw.WriteLine("        " + m.Name + ".Start();");
+                sw.WriteLine("        " + m.Name + ".start();");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    public synchronized void stopService() throws Throwable {");
             foreach (Service m in project.Services.Values)
             {
                 sw.WriteLine("        if (" + m.Name + " != null)");
-                sw.WriteLine("            " + m.Name + ".Stop();");
+                sw.WriteLine("            " + m.Name + ".stop();");
             }
             sw.WriteLine("    }");
         }
