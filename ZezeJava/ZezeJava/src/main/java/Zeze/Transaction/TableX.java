@@ -676,6 +676,27 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return lastKey != null ? decodeKey(lastKey) : null;
 	}
 
+	public final K walkDesc(K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback) {
+		return walkDesc(exclusiveStartKey, proposeLimit, callback, null);
+	}
+
+	public final K walkDesc(K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback, Runnable afterLock) {
+		if (Transaction.getCurrent() != null)
+			throw new IllegalStateException("must be called without transaction");
+
+		var encodedExclusiveStartKey = exclusiveStartKey != null ? encodeKey(exclusiveStartKey) : null;
+		var lastKey = storage.getDatabaseTable().walkDesc(encodedExclusiveStartKey, proposeLimit, (key, value) -> {
+			if (invokeCallback(key, value, callback)) {
+				if (afterLock != null)
+					afterLock.run();
+				return true;
+			}
+			return false;
+		});
+
+		return lastKey != null ? decodeKey(lastKey) : null;
+	}
+
 	public final K walkKey(K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) {
 		return walkKey(exclusiveStartKey, proposeLimit, callback, null);
 	}
@@ -686,6 +707,27 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 		var encodedExclusiveStartKey = exclusiveStartKey != null ? encodeKey(exclusiveStartKey) : null;
 		var lastKey = storage.getDatabaseTable().walkKey(encodedExclusiveStartKey, proposeLimit, key -> {
+			if (invokeCallback(key, callback)) {
+				if (afterLock != null)
+					afterLock.run();
+				return true;
+			}
+			return false;
+		});
+
+		return lastKey != null ? decodeKey(lastKey) : null;
+	}
+
+	public final K walkKeyDesc(K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) {
+		return walkKeyDesc(exclusiveStartKey, proposeLimit, callback, null);
+	}
+
+	public final K walkKeyDesc(K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback, Runnable afterLock) {
+		if (Transaction.getCurrent() != null)
+			throw new IllegalStateException("must be called without transaction");
+
+		var encodedExclusiveStartKey = exclusiveStartKey != null ? encodeKey(exclusiveStartKey) : null;
+		var lastKey = storage.getDatabaseTable().walkKeyDesc(encodedExclusiveStartKey, proposeLimit, key -> {
 			if (invokeCallback(key, callback)) {
 				if (afterLock != null)
 					afterLock.run();
@@ -771,6 +813,24 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		});
 	}
 
+	public final long walkDesc(TableWalkHandle<K, V> callback) {
+		return walkDesc(callback, null);
+	}
+
+	public final long walkDesc(TableWalkHandle<K, V> callback, Runnable afterLock) {
+		if (Transaction.getCurrent() != null)
+			throw new IllegalStateException("must be called without transaction");
+
+		return storage.getDatabaseTable().walkDesc((key, value) -> {
+			if (invokeCallback(key, value, callback)) {
+				if (afterLock != null)
+					afterLock.run();
+				return true;
+			}
+			return false;
+		});
+	}
+
 	@Deprecated
 	public final long WalkCacheKey(TableWalkKey<K> callback) {
 		return walkCacheKey(callback);
@@ -799,6 +859,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return storage.getDatabaseTable().walk(callback);
 	}
 
+	public final long walkDatabaseDesc(TableWalkHandleRaw callback) {
+		return storage.getDatabaseTable().walkDesc(callback);
+	}
+
 	@Deprecated
 	public final long WalkDatabase(TableWalkHandleRaw callback) {
 		return walkDatabase(callback);
@@ -813,6 +877,14 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 */
 	public final long walkDatabase(TableWalkHandle<K, V> callback) {
 		return storage.getDatabaseTable().walk((key, value) -> {
+			K k = decodeKey(ByteBuffer.Wrap(key));
+			V v = decodeValue(ByteBuffer.Wrap(value));
+			return callback.handle(k, v);
+		});
+	}
+
+	public final long walkDatabaseDesc(TableWalkHandle<K, V> callback) {
+		return storage.getDatabaseTable().walkDesc((key, value) -> {
 			K k = decodeKey(ByteBuffer.Wrap(key));
 			V v = decodeValue(ByteBuffer.Wrap(value));
 			return callback.handle(k, v);

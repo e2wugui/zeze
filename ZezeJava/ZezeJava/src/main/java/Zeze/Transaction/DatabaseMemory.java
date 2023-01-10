@@ -278,6 +278,50 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		}
 
 		@Override
+		public long walkDesc(TableWalkHandleRaw callback) {
+			ByteBuffer[] keys;
+			byte[][] values;
+			int i = 0, n;
+			lock.readLock().lock();
+			try {
+				n = map.size();
+				keys = new ByteBuffer[n];
+				values = new byte[n][];
+				for (var e : map.descendingMap().entrySet()) {
+					keys[i] = e.getKey();
+					values[i++] = e.getValue();
+				}
+			} finally {
+				lock.readLock().unlock();
+			}
+			long count = 0;
+			for (i = 0; i < n; i++) {
+				count++;
+				if (!callback.handle(keys[i].Copy(), values[i].clone()))
+					break;
+			}
+			return count;
+		}
+
+		@Override
+		public long walkKeyDesc(TableWalkKeyRaw callback) {
+			ByteBuffer[] keys;
+			lock.readLock().lock();
+			try {
+				keys = map.descendingKeySet().toArray(new ByteBuffer[map.size()]);
+			} finally {
+				lock.readLock().unlock();
+			}
+			long count = 0;
+			for (var key : keys) {
+				count++;
+				if (!callback.handle(key.Copy()))
+					break;
+			}
+			return count;
+		}
+
+		@Override
 		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
 			if (proposeLimit <= 0)
 				return null;
@@ -323,6 +367,73 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 				var it = exclusiveStartKey == null
 						? map.keySet().iterator()
 						: map.tailMap(exclusiveStartKey).keySet().iterator();
+				if (it.hasNext()) {
+					var key = it.next();
+					if (!key.equals(exclusiveStartKey)) { // 第一个Item可能需要忽略
+						keys.add(key);
+						proposeLimit--;
+					}
+					while (proposeLimit-- > 0 && it.hasNext())
+						keys.add(it.next());
+				}
+			} finally {
+				lock.readLock().unlock();
+			}
+			byte[] lastKey = null;
+			for (var key : keys) {
+				lastKey = key.Copy();
+				if (!callback.handle(lastKey))
+					break;
+			}
+			return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
+		}
+
+		@Override
+		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
+			if (proposeLimit <= 0)
+				return null;
+			final var keys = new ArrayList<ByteBuffer>();
+			final var values = new ArrayList<byte[]>();
+			lock.readLock().lock();
+			try {
+				var it = exclusiveStartKey == null
+						? map.descendingMap().entrySet().iterator()
+						: map.descendingMap().tailMap(exclusiveStartKey).entrySet().iterator();
+				if (it.hasNext()) {
+					var next = it.next();
+					if (!next.getKey().equals(exclusiveStartKey)) { // 第一个Item可能需要忽略
+						keys.add(next.getKey());
+						values.add(next.getValue());
+						proposeLimit--;
+					}
+					while (proposeLimit-- > 0 && it.hasNext()) {
+						next = it.next();
+						keys.add(next.getKey());
+						values.add(next.getValue());
+					}
+				}
+			} finally {
+				lock.readLock().unlock();
+			}
+			byte[] lastKey = null;
+			for (int i = 0, n = keys.size(); i < n; i++) {
+				lastKey = keys.get(i).Copy();
+				if (!callback.handle(lastKey, values.get(i).clone()))
+					break;
+			}
+			return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
+		}
+
+		@Override
+		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
+			if (proposeLimit <= 0)
+				return null;
+			final var keys = new ArrayList<ByteBuffer>();
+			lock.readLock().lock();
+			try {
+				var it = exclusiveStartKey == null
+						? map.descendingMap().keySet().iterator()
+						: map.descendingMap().tailMap(exclusiveStartKey).keySet().iterator();
 				if (it.hasNext()) {
 					var key = it.next();
 					if (!key.equals(exclusiveStartKey)) { // 第一个Item可能需要忽略

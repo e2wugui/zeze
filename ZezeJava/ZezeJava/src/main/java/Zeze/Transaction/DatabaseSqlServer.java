@@ -396,10 +396,33 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 
 		@Override
 		public long walk(TableWalkHandleRaw callback) {
+			return walk(callback, true);
+		}
+
+		@Override
+		public long walkKey(TableWalkKeyRaw callback) {
+			return walkKey(callback, true);
+		}
+
+		@Override
+		public long walkDesc(TableWalkHandleRaw callback) {
+			return walk(callback, false);
+		}
+
+		@Override
+		public long walkKeyDesc(TableWalkKeyRaw callback) {
+			return walkKey(callback, false);
+		}
+
+
+		private long walk(TableWalkHandleRaw callback, boolean asc) {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
 				String sql = "SELECT id,value FROM " + getName();
+				if (!asc)
+					sql += " ORDER BY id DESC";
+
 				try (var cmd = connection.prepareStatement(sql)) {
 					long count = 0;
 					try (var reader = cmd.executeQuery()) {
@@ -419,12 +442,13 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			}
 		}
 
-		@Override
-		public long walkKey(TableWalkKeyRaw callback) {
+		private long walkKey(TableWalkKeyRaw callback, boolean asc) {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
 				String sql = "SELECT id FROM " + getName();
+				if (!asc)
+					sql += " ORDER BY id DESC";
 				try (var cmd = connection.prepareStatement(sql)) {
 					long count = 0;
 					try (var reader = cmd.executeQuery()) {
@@ -502,5 +526,68 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				throw new RuntimeException(e);
 			}
 		}
+
+		@Override
+		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
+			if (proposeLimit <= 0)
+				return null;
+
+			try (var connection = dataSource.getConnection()) {
+				connection.setAutoCommit(true);
+
+				String sql = "SELECT top ? id,value FROM " + getName()
+						+ (exclusiveStartKey != null ? " WHERE id < ?" : "")
+						+ " ORDER BY id DESC";
+				try (var cmd = connection.prepareStatement(sql)) {
+					cmd.setInt(1, proposeLimit);
+					if (exclusiveStartKey != null)
+						cmd.setBytes(2, copyIf(exclusiveStartKey));
+
+					byte[] lastKey = null;
+					try (var reader = cmd.executeQuery()) {
+						while (reader.next()) {
+							lastKey = reader.getBytes(1);
+							if (!callback.handle(lastKey, reader.getBytes(2)))
+								break;
+						}
+					}
+					return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
+				}
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		@Override
+		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
+			if (proposeLimit <= 0)
+				return null;
+
+			try (var connection = dataSource.getConnection()) {
+				connection.setAutoCommit(true);
+
+				String sql = "SELECT top ? id FROM " + getName()
+						+ (exclusiveStartKey != null ? " WHERE id < ?" : "")
+						+ " ORDER BY id DESC";
+				try (var cmd = connection.prepareStatement(sql)) {
+					cmd.setInt(1, proposeLimit);
+					if (exclusiveStartKey != null)
+						cmd.setBytes(2, copyIf(exclusiveStartKey));
+
+					byte[] lastKey = null;
+					try (var reader = cmd.executeQuery()) {
+						while (reader.next()) {
+							lastKey = reader.getBytes(1);
+							if (!callback.handle(lastKey))
+								break;
+						}
+					}
+					return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
+				}
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
 	}
 }

@@ -145,30 +145,38 @@ public abstract class Database {
 	}
 
 	public interface Table {
-		boolean isNew();
+		public boolean isNew();
 
-		Database getDatabase();
+		public Database getDatabase();
 
-		ByteBuffer find(ByteBuffer key);
+		public ByteBuffer find(ByteBuffer key);
 
-		void replace(Transaction t, ByteBuffer key, ByteBuffer value);
+		public void replace(Transaction t, ByteBuffer key, ByteBuffer value);
 
-		void remove(Transaction t, ByteBuffer key);
+		public void remove(Transaction t, ByteBuffer key);
 
 		/**
 		 * 每一条记录回调。回调返回true继续遍历，false中断遍历。
 		 *
 		 * @return 返回已经遍历的数量
 		 */
-		long walk(TableWalkHandleRaw callback);
+		public long walk(TableWalkHandleRaw callback);
 
-		long walkKey(TableWalkKeyRaw callback);
+		public long walkKey(TableWalkKeyRaw callback);
 
-		ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback);
+		public long walkDesc(TableWalkHandleRaw callback);
 
-		ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback);
+		public long walkKeyDesc(TableWalkKeyRaw callback);
 
-		void close();
+		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback);
+
+		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback);
+
+		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback);
+
+		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback);
+
+		public void close();
 	}
 
 	public abstract Transaction beginTransaction();

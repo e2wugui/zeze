@@ -243,6 +243,26 @@ public class DatabaseDynamoDb extends Database {
 		}
 
 		@Override
+		public long walkDesc(TableWalkHandleRaw callback) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public long walkKeyDesc(TableWalkKeyRaw callback) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
 		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
 			if (proposeLimit <= 0)
 				return null;

@@ -270,6 +270,32 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
+		public long walkDesc(TableWalkHandleRaw callback) {
+			try (var it = rocksDb.newIterator(columnFamily, defaultReadOptions)) {
+				long countWalked = 0;
+				for (it.seekToLast(); it.isValid(); it.prev()) {
+					countWalked++;
+					if (!callback.handle(it.key(), it.value()))
+						break;
+				}
+				return countWalked;
+			}
+		}
+
+		@Override
+		public long walkKeyDesc(TableWalkKeyRaw callback) {
+			try (var it = rocksDb.newIterator(columnFamily, defaultReadOptions)) {
+				long countWalked = 0;
+				for (it.seekToLast(); it.isValid(); it.prev()) {
+					countWalked++;
+					if (!callback.handle(it.key()))
+						break;
+				}
+				return countWalked;
+			}
+		}
+
+		@Override
 		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
 			if (proposeLimit <= 0)
 				return null;
@@ -319,6 +345,64 @@ public class DatabaseRocksDb extends Database {
 					it.next();
 				}
 				for (; proposeLimit-- > 0 && it.isValid(); it.next()) {
+					lastKey = it.key();
+					if (!callback.handle(lastKey))
+						break;
+				}
+				return ByteBuffer.Wrap(lastKey);
+			}
+		}
+
+		@Override
+		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
+			if (proposeLimit <= 0)
+				return null;
+			try (var it = rocksDb.newIterator(columnFamily, defaultReadOptions)) {
+				if (exclusiveStartKey == null)
+					it.seekToLast();
+				else
+					it.seek(copyIf(exclusiveStartKey));
+				if (!it.isValid())
+					return null;
+
+				var lastKey = it.key();
+				//noinspection EqualsBetweenInconvertibleTypes
+				if (exclusiveStartKey != null && exclusiveStartKey.equals(lastKey)) { // 第一个item可能为exclusiveStartKey时需要忽略。
+					if (!callback.handle(lastKey, it.value()))
+						return ByteBuffer.Wrap(lastKey);
+					proposeLimit--;
+					it.prev();
+				}
+				for (; proposeLimit-- > 0 && it.isValid(); it.prev()) {
+					lastKey = it.key();
+					if (!callback.handle(lastKey, it.value()))
+						break;
+				}
+				return ByteBuffer.Wrap(lastKey);
+			}
+		}
+
+		@Override
+		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
+			if (proposeLimit <= 0)
+				return null;
+			try (var it = rocksDb.newIterator(columnFamily, defaultReadOptions)) {
+				if (exclusiveStartKey == null)
+					it.seekToLast();
+				else
+					it.seek(copyIf(exclusiveStartKey));
+				if (!it.isValid())
+					return null;
+
+				var lastKey = it.key();
+				//noinspection EqualsBetweenInconvertibleTypes
+				if (exclusiveStartKey != null && exclusiveStartKey.equals(lastKey)) { // 第一个item可能为exclusiveStartKey时需要忽略。
+					if (!callback.handle(lastKey))
+						return ByteBuffer.Wrap(lastKey);
+					proposeLimit--;
+					it.prev();
+				}
+				for (; proposeLimit-- > 0 && it.isValid(); it.prev()) {
 					lastKey = it.key();
 					if (!callback.handle(lastKey))
 						break;
