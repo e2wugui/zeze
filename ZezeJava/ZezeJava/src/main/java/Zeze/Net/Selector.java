@@ -21,7 +21,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 
 	private final Selectors selectors;
 	private final java.nio.channels.Selector selector;
-	private final ByteBuffer readBuffer = ByteBuffer.allocate(32 * 1024); // 此线程共享的buffer,只能临时使用
+	private final ByteBuffer readBuffer; // 此线程共享的buffer,只能临时使用
 	private final AtomicInteger wakeupNotified = new AtomicInteger();
 	private final ArrayList<ByteBuffer> bbPool = new ArrayList<>();
 	private boolean firstAction;
@@ -37,6 +37,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 		setDaemon(true);
 		this.selectors = selectors;
 		selector = java.nio.channels.Selector.open();
+		readBuffer = ByteBuffer.allocate(selectors.getReadBufferSize());
 	}
 
 	public Selectors getSelectors() {
