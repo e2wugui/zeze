@@ -190,12 +190,11 @@ public class HandshakeBase extends Service {
 					logger.debug("{} remoteIp={}", p.getSender().getSessionId(), Arrays.toString(key));
 
 					int half = material.length / 2;
-
-				byte[] hmacMd5 = Digest.hmacMd5(key, material, 0, half);
-				p.getSender().SetOutputSecurityCodec(Constant.eEncryptTypeAes, hmacMd5, p.Argument.compressC2s);
-				hmacMd5 = Digest.hmacMd5(key, material, half, material.length - half);
-
-				p.getSender().SetInputSecurityCodec(Constant.eEncryptTypeAes, hmacMd5, p.Argument.compressS2c);
+					outputKey = Digest.hmacMd5(key, material, 0, half);
+					inputKey = Digest.hmacMd5(key, material, half, material.length - half);
+				}
+				p.getSender().SetOutputSecurityCodec(p.Argument.encryptType, outputKey, p.Argument.compressC2s);
+				p.getSender().SetInputSecurityCodec(p.Argument.encryptType, inputKey, p.Argument.compressS2c);
 				(new Zeze.Services.Handshake.CHandshakeDone()).Send(p.getSender());
 				p.getSender().SubmitAction(() -> OnHandshakeDone(p.getSender())); // must after SetInputSecurityCodec and SetOutputSecurityCodec
 				return 0;
