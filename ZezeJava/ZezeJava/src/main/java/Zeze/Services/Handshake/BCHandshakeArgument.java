@@ -6,7 +6,7 @@ import Zeze.Transaction.Record;
 
 public final class BCHandshakeArgument extends Bean {
 	public int encryptType;
-	public byte[] encryptParam;
+	public byte[] encryptParam = ByteBuffer.Empty;
 
 	public int compressS2c = Constant.eCompressTypeDisable; // 默认的时候由服务器决定是否压缩。
 	public int compressC2s = Constant.eCompressTypeDisable; // 默认的时候由服务器决定是否压缩。
@@ -16,10 +16,13 @@ public final class BCHandshakeArgument extends Bean {
 		encryptType = bb.ReadInt();
 		encryptParam = bb.ReadBytes();
 
-		// 兼容旧版客户端
+		// 兼容旧版
 		if (bb.size() > 0) {
 			compressS2c = bb.ReadInt();
 			compressC2s = bb.ReadInt();
+		} else {
+			compressS2c = encryptType != Constant.eEncryptTypeDisable ? Constant.eCompressTypeMppc : Constant.eCompressTypeDisable;
+			compressC2s = compressS2c;
 		}
 	}
 

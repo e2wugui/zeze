@@ -5,7 +5,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
 public final class BSHandshakeArgument extends Bean {
-	public byte[] encryptParam;
+	public byte[] encryptParam = ByteBuffer.Empty;
 	public int compressS2c;
 	public int compressC2s;
 	public int encryptType;
@@ -15,7 +15,12 @@ public final class BSHandshakeArgument extends Bean {
 		encryptParam = bb.ReadBytes();
 		compressS2c = bb.ReadInt();
 		compressC2s = bb.ReadInt();
-		encryptType = bb.ReadInt();
+
+		// 兼容旧版
+		if (bb.size() > 0)
+			encryptType = bb.ReadInt();
+		else
+			encryptType = encryptParam.length != 0 ? Constant.eEncryptTypeAes : Constant.eEncryptTypeDisable;
 	}
 
 	@Override

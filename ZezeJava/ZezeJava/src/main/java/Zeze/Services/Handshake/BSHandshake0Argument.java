@@ -28,12 +28,21 @@ public class BSHandshake0Argument extends Bean {
 	@Override
 	public void decode(ByteBuffer bb) {
 		encryptType = bb.ReadInt();
-		for (int count = bb.ReadInt(); count > 0; --count)
-			supportedEncryptList.add(bb.ReadInt());
-		compressS2c = bb.ReadInt();
-		compressC2s = bb.ReadInt();
-		for (int count = bb.ReadInt(); count > 0; --count)
-			supportedCompressList.add(bb.ReadInt());
+		supportedEncryptList.clear();
+		supportedCompressList.clear();
+
+		// 兼容旧版
+		if (bb.size() > 0) {
+			for (int count = bb.ReadInt(); count > 0; --count)
+				supportedEncryptList.add(bb.ReadInt());
+			compressS2c = bb.ReadInt();
+			compressC2s = bb.ReadInt();
+			for (int count = bb.ReadInt(); count > 0; --count)
+				supportedCompressList.add(bb.ReadInt());
+		} else {
+			compressS2c = encryptType != Constant.eEncryptTypeDisable ? Constant.eCompressTypeMppc : Constant.eCompressTypeDisable;
+			compressC2s = compressS2c;
+		}
 	}
 
 	private static int _PRE_ALLOC_SIZE_ = 32;
