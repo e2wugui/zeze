@@ -1,15 +1,15 @@
 package Zeze.Net;
 
 // RFC2118
-public final class Decompress implements Codec {
-	private final Codec sink;
-	private int rem;
-	private int pos;
-	private int off = -1;
+public class Decompress implements Codec {
+	protected final Codec sink;
+	protected int rem;
+	protected int pos;
+	protected int off = -1;
 	private final byte[] hist = new byte[8192 * 3];
 	private int hpos;
 
-	public static class UncompressException extends CodecException {
+	public static class DecompressException extends CodecException {
 	}
 
 	public Decompress(Codec sink) {
@@ -35,7 +35,7 @@ public final class Decompress implements Codec {
 
 	private void output(int off, int len) throws CodecException {
 		if (hpos < off)
-			throw new UncompressException();
+			throw new DecompressException();
 		copy(hpos, hpos - off, len);
 		sink.update(hist, hpos, len);
 		hpos += len;
@@ -142,7 +142,7 @@ public final class Decompress implements Codec {
 				len = 0x1000 | (((int)val >> 8) & 0xfff);
 				pos -= 24;
 			} else
-				throw new UncompressException();
+				throw new DecompressException();
 			output(off, len);
 			off = -1;
 		}

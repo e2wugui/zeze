@@ -3,7 +3,7 @@ package Zeze.Net;
 import java.util.Arrays;
 
 // RFC2118
-public final class Compress implements Codec {
+public class Compress implements Codec {
 	private final Codec sink;
 	private int pos;
 	private int rem;
@@ -20,7 +20,11 @@ public final class Compress implements Codec {
 		Arrays.fill(hash, (short)-1);
 	}
 
-	private void putBits(int val, int nbits) throws CodecException {
+	protected int getPos() {
+		return pos;
+	}
+
+	protected void putBits(int val, int nbits) throws CodecException {
 		pos += nbits;
 		rem |= val << (32 - pos);
 		while (pos > 7) {

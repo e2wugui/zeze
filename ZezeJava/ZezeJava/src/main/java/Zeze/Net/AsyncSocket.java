@@ -362,8 +362,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 	@Deprecated
 	public void SetInputSecurityCodec(byte[] key, boolean compress) {
-		SetInputSecurityCodec(key != null ? Constant.eEncryptTypeAes : Constant.eEncryptTypeDisable, key,
-				compress ? Constant.eCompressTypeMppc : Constant.eCompressTypeDisable);
+		SetInputSecurityCodec(key != null && key.length > 0 ? Constant.eEncryptTypeAes : Constant.eEncryptTypeDisable,
+				key, compress ? Constant.eCompressTypeMppc : Constant.eCompressTypeDisable);
 	}
 
 	public void SetInputSecurityCodec(int encryptType, byte[] encryptParam, int compressType) {
@@ -398,8 +398,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 	@Deprecated
 	public void SetOutputSecurityCodec(byte[] key, boolean compress) {
-		SetOutputSecurityCodec(key != null ? Constant.eEncryptTypeAes : Constant.eEncryptTypeDisable, key,
-				compress ? Constant.eCompressTypeMppc : Constant.eCompressTypeDisable);
+		SetOutputSecurityCodec(key != null && key.length > 0 ? Constant.eEncryptTypeAes : Constant.eEncryptTypeDisable,
+				key, compress ? Constant.eCompressTypeMppc : Constant.eCompressTypeDisable);
 	}
 
 	public void SetOutputSecurityCodec(int encryptType, byte[] encryptParam, int compressType) {

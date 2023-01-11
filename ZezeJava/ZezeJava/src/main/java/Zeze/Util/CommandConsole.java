@@ -9,7 +9,7 @@ import Zeze.Net.AsyncSocket;
 
 public class CommandConsole {
 	private String buffer = "";
-	private HashMap<String, Command> commands = new HashMap<>();
+	private final HashMap<String, Command> commands = new HashMap<>();
 
 	static CommandConsole dup(CommandConsole cc) {
 		var dup = new CommandConsole();
@@ -23,8 +23,8 @@ public class CommandConsole {
 	}
 
 	public static class Options {
-		public LinkedHashMap<String, String> properties = new LinkedHashMap<>();
-		public List<String> others = new ArrayList<>();
+		public final LinkedHashMap<String, String> properties = new LinkedHashMap<>();
+		public final List<String> others = new ArrayList<>();
 
 		public String property(String name) {
 			return properties.get(name);
@@ -124,7 +124,7 @@ public class CommandConsole {
 				else {
 					var w = "";
 					if (line.charAt(wordBegin) == '"')
-						 wordBegin += 1;
+						wordBegin += 1;
 					var wordEnd = quotBegin - 1;
 					if (wordEnd > wordBegin)
 						w = line.substring(wordBegin, wordEnd);
@@ -133,7 +133,7 @@ public class CommandConsole {
 					quotBegin = -1;
 					wordBegin = i + 1;
 				}
-			} else if (quotBegin == -1){
+			} else if (quotBegin == -1) {
 				if (Character.isWhitespace(c)) {
 					if (i > wordBegin) {
 						words.add(line.substring(wordBegin, i));
@@ -157,7 +157,7 @@ public class CommandConsole {
 		System.out.println(Options.parseProperty(args));
 	}
 
-	public static void main(String args[]) {
+	public static void main(String[] args) {
 		var cc = new CommandConsole();
 		cc.register("a", CommandConsole::dump);
 		cc.register("2", CommandConsole::dump);
