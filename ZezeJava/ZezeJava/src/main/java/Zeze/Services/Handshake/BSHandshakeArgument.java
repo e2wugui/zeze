@@ -50,7 +50,7 @@ public final class BSHandshakeArgument extends Bean {
 
 	@Override
 	public String toString() {
-		return "BSHandshakeArgument{" + "encryptParam=[" + (encryptParam != null ? encryptParam.length : -1) +
-				"], CompressS2c=" + compressS2c + ", CompressC2s=" + compressC2s + " encryptType=" + encryptType + '}';
+		return "BSHandshakeArgument {encryptParam=[" + (encryptParam != null ? encryptParam.length : -1) +
+				"], compressS2c=" + compressS2c + ", compressC2s=" + compressC2s + ", encryptType=" + encryptType + '}';
 	}
 }

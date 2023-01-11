@@ -360,31 +360,73 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			throw new IllegalStateException(service.getName() + " !isSecurity");
 	}
 
-	public void SetInputSecurityCodec(byte[] key, int compress) {
+	public void SetInputSecurityCodec(byte[] key, boolean compress) {
+		SetInputSecurityCodec(key != null ? Constant.eEncryptTypeAes : Constant.eEncryptTypeDisable, key,
+				compress ? Constant.eCompressTypeMppc : Constant.eCompressTypeDisable);
+	}
+
+	public void SetInputSecurityCodec(int encryptType, byte[] encryptParam, int compressType) {
 		SubmitAction(() -> { // 进selector线程调用
 			Codec chain = inputBuffer;
-			if (compress != Constant.eCompressTypeDisable) // todo 新增压缩算法支持这里改switch
+			switch (compressType) {
+			case Constant.eCompressTypeDisable:
+				break;
+			case Constant.eCompressTypeMppc:
 				chain = new Decompress(chain);
-			if (key != null) // 加密支持更多方法的话，修改key参数为int encryptType, byte[] param
-				chain = new Decrypt2(chain, key);
+				break;
+			//TODO: 新增压缩算法支持这里加case
+			default:
+				throw new UnsupportedOperationException("SetInputSecurityCodec: unknown compressType=" + compressType);
+			}
+			switch (encryptType) {
+			case Constant.eEncryptTypeDisable:
+				break;
+			case Constant.eEncryptTypeAes:
+				chain = new Decrypt2(chain, encryptParam);
+				break;
+			//TODO: 新增加密算法支持这里加case
+			default:
+				throw new UnsupportedOperationException("SetInputSecurityCodec: unknown encryptType=" + encryptType);
+			}
 			inputCodecChain = chain;
 			//noinspection NonAtomicOperationOnVolatileField
 			security |= 1;
-			logger.info("Input encrypt=" + (null != key ? "Yes" : "No") + " compress=" + compress + this);
+			logger.info("SetInputSecurityCodec: {} decrypt={} decompress={}", this, encryptType, compressType);
 		});
 	}
 
-	public void SetOutputSecurityCodec(byte[] key, int compress) {
+	public void SetOutputSecurityCodec(byte[] key, boolean compress) {
+		SetOutputSecurityCodec(key != null ? Constant.eEncryptTypeAes : Constant.eEncryptTypeDisable, key,
+				compress ? Constant.eCompressTypeMppc : Constant.eCompressTypeDisable);
+	}
+
+	public void SetOutputSecurityCodec(int encryptType, byte[] encryptParam, int compressType) {
 		SubmitAction(() -> { // 进selector线程调用
 			Codec chain = outputBuffer;
-			if (key != null) // 加密支持更多方法的话，修改key参数为int encryptType, byte[] param
-				chain = new Encrypt2(chain, key);
-			if (compress != Constant.eCompressTypeDisable) // todo 新增压缩算法支持这里改switch,
+			switch (encryptType) {
+			case Constant.eEncryptTypeDisable:
+				break;
+			case Constant.eEncryptTypeAes:
+				chain = new Encrypt2(chain, encryptParam);
+				break;
+			//TODO: 新增加密算法支持这里加case
+			default:
+				throw new UnsupportedOperationException("SetOutputSecurityCodec: unknown encryptType=" + encryptType);
+			}
+			switch (compressType) {
+			case Constant.eCompressTypeDisable:
+				break;
+			case Constant.eCompressTypeMppc:
 				chain = new Compress(chain);
+				break;
+			//TODO: 新增压缩算法支持这里加case
+			default:
+				throw new UnsupportedOperationException("SetOutputSecurityCodec: unknown compress=" + compressType);
+			}
 			outputCodecChain = chain;
 			//noinspection NonAtomicOperationOnVolatileField
 			security |= 2;
-			logger.info("Output encrypt=" + (null != key ? "Yes" : "No") + " compress=" + compress + this);
+			logger.info("SetOutputSecurityCodec: {} compress={} encrypt={}", this, compressType, encryptType);
 		});
 	}
 

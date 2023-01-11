@@ -17,7 +17,7 @@ public final class BCHandshakeArgument extends Bean {
 		encryptParam = bb.ReadBytes();
 
 		// 兼容旧版客户端
-		if (bb.WriteIndex > bb.ReadIndex) {
+		if (bb.size() > 0) {
 			compressS2c = bb.ReadInt();
 			compressC2s = bb.ReadInt();
 		}
@@ -55,8 +55,8 @@ public final class BCHandshakeArgument extends Bean {
 
 	@Override
 	public String toString() {
-		return "BCHandshakeArgument { EncryptType=" + encryptType
-				+ ", EncryptParam=[" + (encryptParam != null ? encryptParam.length : -1)
-				+ "] compress S2c/C2s=" + compressS2c + "/"+ compressC2s + "}";
+		return "BCHandshakeArgument {encryptType=" + encryptType
+				+ ", encryptParam=[" + (encryptParam != null ? encryptParam.length : -1)
+				+ "], compress S2c/C2s=" + compressS2c + "/" + compressC2s + "}";
 	}
 }

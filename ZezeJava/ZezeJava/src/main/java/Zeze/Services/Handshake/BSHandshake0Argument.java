@@ -60,11 +60,10 @@ public class BSHandshake0Argument extends Bean {
 
 	@Override
 	public String toString() {
-		return "BSHandshake0Argument {"
-				+ " EncryptType=" + encryptType
-				+ " EncryptList=" + supportedEncryptList
-				+ " Compres S2c/C2s" + compressS2c + "/" + compressC2s
-				+ " CompressList=" + supportedCompressList
-				+ " }";
+		return "BSHandshake0Argument {encryptType=" + encryptType
+				+ ", supportedEncryptList=" + supportedEncryptList
+				+ ", compress S2c/C2s" + compressS2c + "/" + compressC2s
+				+ ", supportedCompressList=" + supportedCompressList
+				+ "}";
 	}
 }
