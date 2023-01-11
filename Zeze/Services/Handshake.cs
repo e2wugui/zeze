@@ -8,6 +8,7 @@ using Zeze.Net;
 using Zeze.Serialize;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
+using System.Reflection.Metadata;
 
 /// <summary>
 /// 使用dh算法交换密匙把连接加密。
@@ -17,6 +18,16 @@ using System.Threading.Tasks;
 
 namespace Zeze.Services
 {
+    public class Constant
+    {
+        public const int eEncryptTypeDisable = 0;
+        public const int eEncryptTypeAes = 1;
+
+        public const int eCompressTypeDisable = 0;
+        public const int eCompressTypeMppc = 1;
+        public const int eCompressTypeZstd = 2;
+    }
+
     /// <summary>
     /// 服务器客户端定义在一起
     /// </summary>
@@ -25,18 +36,45 @@ namespace Zeze.Services
         // for HandshakeServer
         public HashSet<int> DhGroups { get; set; } = new HashSet<int>();
         public byte[] SecureIp { get; set; } = null;
-        public bool S2cNeedCompress { get; set; } = true;
-        public bool C2sNeedCompress { get; set; } = true;
+        public int CompressS2c { get; set; } = Constant.eCompressTypeDisable;
+        public int CompressC2s { get; set; } = Constant.eCompressTypeDisable;
 
         // for HandshakeClient
-        public byte DhGroup { get; set; } = 1;
-        public bool EnableEncrypt { get; set; } = false;
+        public int EncryptType { get; set; } = Constant.eEncryptTypeDisable;
+
+        public List<int> SupportedEncrypt { get; } = new();
+        public List<int> SupportedCompress { get; } = new();
 
         public HandshakeOptions()
         {
             AddDhGroup(1);
             AddDhGroup(2);
             AddDhGroup(5);
+
+            AddSupportedCompress(Constant.eCompressTypeMppc);
+            AddSupportedCompress(Constant.eCompressTypeZstd);
+
+            AddSupportedEncrypt(Constant.eEncryptTypeAes);
+        }
+
+        public void AddSupportedCompress(int c)
+        {
+            SupportedCompress.Add(c);
+        }
+
+        public void AddSupportedEncrypt(int e)
+        {
+            SupportedEncrypt.Add(e);
+        }
+
+        public bool IsSupportedCompress(int c)
+        {
+            return SupportedCompress.Contains(c);
+        }
+
+        public bool IsSupportedEncrypt(int e)
+        {
+            return SupportedEncrypt.Contains(e);
         }
 
         public void AddDhGroup(int group)
@@ -113,40 +151,87 @@ namespace Zeze.Services
             return Task.FromResult(0L);
         }
 
+        private int ServerCompressS2c(int s2cHint)
+        {
+            var options = Config.HandshakeOptions;
+            if (options.CompressS2c != 0)
+            {
+                if (s2cHint != Constant.eCompressTypeDisable && options.IsSupportedCompress(s2cHint))
+                    return s2cHint;
+                return Constant.eCompressTypeMppc;
+            }
+            if (s2cHint == 0)
+                return 0;
+            if (options.IsSupportedCompress(s2cHint))
+                return s2cHint;
+            return Constant.eCompressTypeMppc;
+        }
+
+        private int ServerCompressC2s(int c2sHint)
+        {
+            var options = Config.HandshakeOptions;
+            if (options.CompressC2s != 0)
+            {
+                if (c2sHint != Constant.eCompressTypeDisable && options.IsSupportedCompress(c2sHint))
+                    return c2sHint;
+                return Constant.eCompressTypeMppc;
+            }
+            if (c2sHint == 0)
+                return 0;
+            if (options.IsSupportedCompress(c2sHint))
+                return c2sHint;
+            return Constant.eCompressTypeMppc;
+        }
+
         private Task<long> ProcessCHandshake(Protocol _p)
         {
             try
             {
+                byte[] inputKey = null;
+                byte[] outputKey = null;
+                byte[] response = Array.Empty<byte>();
+                int group = 1;
+
                 Handshake.CHandshake p = (Handshake.CHandshake)_p;
-                int group = p.Argument.dh_group;
-                if (false == Config.HandshakeOptions.DhGroups.Contains(group))
+                if (p.Argument.EncryptType == Constant.eEncryptTypeAes)
                 {
-                    p.Sender.Close(new Exception("dhGroup Not Supported"));
-                    return Task.FromResult(0L);
-                }
-                Array.Reverse(p.Argument.dh_data);
-                var data = new BigInteger(p.Argument.dh_data);
-                var rand = Handshake.Helper.MakeDHRandom();
-                byte[] material = Handshake.Helper.ComputeDHKey(group, data, rand).ToByteArray();
-                Array.Reverse(material);
-                IPAddress ipaddress = ((IPEndPoint)p.Sender.Socket.LocalEndPoint).Address;
-                //logger.Debug(ipaddress);
-                if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
-                byte[] key = Config.HandshakeOptions.SecureIp ?? ipaddress.GetAddressBytes();
+                    // 当group采用客户端参数时需要检查参数正确性，现在统一采用了1，不需要检查了。
+                    /*
+                    if (false == Config.HandshakeOptions.DhGroups.Contains(group))
+                    {
+                        p.Sender.Close(new Exception("dhGroup Not Supported"));
+                        return Task.FromResult(0L);
+                    }
+                    */
+                    Array.Reverse(p.Argument.EncryptParam);
+                    var data = new BigInteger(p.Argument.EncryptParam);
+                    var rand = Handshake.Helper.MakeDHRandom();
+                    byte[] material = Handshake.Helper.ComputeDHKey(group, data, rand).ToByteArray();
+                    Array.Reverse(material);
+                    IPAddress ipaddress = ((IPEndPoint)p.Sender.Socket.LocalEndPoint).Address;
+                    //logger.Debug(ipaddress);
+                    if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
+                    byte[] key = Config.HandshakeOptions.SecureIp ?? ipaddress.GetAddressBytes();
 #if HAS_NLOG || HAS_MYLOG
-                logger.Debug("{0} localip={1}", p.Sender.SessionId, BitConverter.ToString(key));
+                    logger.Debug("{0} localip={1}", p.Sender.SessionId, BitConverter.ToString(key));
 #endif
-                int half = material.Length / 2;
-                byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
-                p.Sender.SetInputSecurityCodec(hmacMd5, Config.HandshakeOptions.C2sNeedCompress);
-                byte[] response = Handshake.Helper.GenerateDHResponse(group, rand).ToByteArray();
-                Array.Reverse(response);
-                new Handshake.SHandshake(response,
-                    Config.HandshakeOptions.S2cNeedCompress,
-                    Config.HandshakeOptions.C2sNeedCompress)
-                    .Send(p.Sender);
-                hmacMd5 = Digest.HmacMd5(key, material, half, material.Length - half);
-                p.Sender.SetOutputSecurityCodec(hmacMd5, Config.HandshakeOptions.S2cNeedCompress);
+                    int half = material.Length / 2;
+                    inputKey = Digest.HmacMd5(key, material, 0, half);
+                    response = Handshake.Helper.GenerateDHResponse(group, rand).ToByteArray();
+                    Array.Reverse(response);
+                    outputKey = Digest.HmacMd5(key, material, half, material.Length - half);
+                }
+                var s2c = ServerCompressS2c(p.Argument.CompressS2c);
+                var c2s = ServerCompressC2s(p.Argument.CompressC2s);
+                p.Sender.SetInputSecurityCodec(inputKey, c2s);
+
+                var sHandshake = new Handshake.SHandshake();
+                sHandshake.Argument.EncryptParam = response;
+                sHandshake.Argument.CompressS2c = s2c;
+                sHandshake.Argument.CompressC2s = c2s;
+                sHandshake.Argument.EncryptType = p.Argument.EncryptType;
+                sHandshake.Send(p.Sender);
+                p.Sender.SetOutputSecurityCodec(outputKey, s2c);
 
                 // 为了防止服务器在Handshake以后马上发送数据，
                 // 导致未加密数据和加密数据一起到达Client，这种情况很难处理。
@@ -192,9 +277,9 @@ namespace Zeze.Services
             try
             {
                 var p = (Handshake.SHandshake0)_p;
-                if (p.Argument.EnableEncrypt)
+                if (p.Argument.EncryptType != 0 || p.Argument.CompressS2c != 0 || p.Argument.CompressC2s != 0)
                 {
-                    StartHandshake(p.Sender);
+                    StartHandshake(p.Argument, p.Sender);
                 }
                 else
                 {
@@ -218,23 +303,29 @@ namespace Zeze.Services
                 {
                     try
                     {
-                        Array.Reverse(p.Argument.dh_data);
-                        byte[] material = Handshake.Helper.ComputeDHKey(
-                            Config.HandshakeOptions.DhGroup,
-                            new BigInteger(p.Argument.dh_data),
-                            ctx.DhRandom).ToByteArray();
-                        Array.Reverse(material);
-                        IPAddress ipaddress = ((IPEndPoint)p.Sender.Socket.RemoteEndPoint).Address;
-                        if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
-                        byte[] key = ipaddress.GetAddressBytes();
+                        byte[] inputKey = null;
+                        byte[] outputKey = null;
+                        if (p.Argument.EncryptType == Constant.eEncryptTypeAes)
+                        {
+                            Array.Reverse(p.Argument.EncryptParam);
+                            byte[] material = Handshake.Helper.ComputeDHKey(
+                                1,
+                                new BigInteger(p.Argument.EncryptParam),
+                                ctx.DhRandom).ToByteArray();
+                            Array.Reverse(material);
+                            IPAddress ipaddress = ((IPEndPoint)p.Sender.Socket.RemoteEndPoint).Address;
+                            if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
+                            byte[] key = ipaddress.GetAddressBytes();
 #if HAS_NLOG || HAS_MYLOG
-                        logger.Debug("{0} remoteip={1}", p.Sender.SessionId, BitConverter.ToString(key));
+                            logger.Debug("{0} remoteip={1}", p.Sender.SessionId, BitConverter.ToString(key));
 #endif
-                        int half = material.Length / 2;
-                        byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
-                        p.Sender.SetOutputSecurityCodec(hmacMd5, p.Argument.c2sneedcompress);
-                        hmacMd5 = Digest.HmacMd5(key, material, half, material.Length - half);
-                        p.Sender.SetInputSecurityCodec(hmacMd5, p.Argument.s2cneedcompress);
+                            int half = material.Length / 2;
+                            outputKey = Digest.HmacMd5(key, material, 0, half);
+                            inputKey = Digest.HmacMd5(key, material, half, material.Length - half);
+                        }
+
+                        p.Sender.SetOutputSecurityCodec(outputKey, p.Argument.CompressC2s);
+                        p.Sender.SetInputSecurityCodec(inputKey, p.Argument.CompressS2c);
 
                         new Handshake.CHandshakeDone().Send(p.Sender);
                         OnHandshakeDone(p.Sender);
@@ -254,17 +345,40 @@ namespace Zeze.Services
             return Task.FromResult(0L);
         }
 
-        protected void StartHandshake(AsyncSocket so)
+        private int ClientChoiceCompress(int c)
+        {
+            // 客户端检查一下当前版本是否支持推荐的压缩算法。
+            // 如果不支持则统一使用最老的。
+            // 这样当服务器新增了压缩算法，并且推荐了新的，客户端可以兼容它。
+            if (c == Constant.eCompressTypeDisable)
+                return c; // 推荐关闭压缩就关闭
+            var options = Config.HandshakeOptions;
+            if (options.IsSupportedCompress(c))
+                return c; // 支持的压缩，直接使用推荐的。
+            return Constant.eCompressTypeMppc; // 使用最老的压缩。
+        }
+
+
+        protected void StartHandshake(Handshake.SHandshake0Argument arg, AsyncSocket so)
         {
             try
             {
                 var ctx = new Context(Handshake.Helper.MakeDHRandom());
                 if (!DHContext.TryAdd(so.SessionId, ctx))
                     throw new Exception("handshake duplicate context for same session.");
-                byte[] response = Handshake.Helper.GenerateDHResponse(
-                    Config.HandshakeOptions.DhGroup, ctx.DhRandom).ToByteArray();
-                Array.Reverse(response);
-                new Handshake.CHandshake(Config.HandshakeOptions.DhGroup, response).Send(so);
+                var cHandshake = new Handshake.CHandshake();
+                cHandshake.Argument.EncryptType = arg.EncryptType;
+                if (arg.EncryptType == Constant.eEncryptTypeAes)
+                {
+                    byte[] response = Handshake.Helper.GenerateDHResponse(1, ctx.DhRandom).ToByteArray();
+                    Array.Reverse(response);
+                    cHandshake.Argument.EncryptParam = response;
+                }
+                else
+                    cHandshake.Argument.EncryptParam = Array.Empty<byte>();
+                cHandshake.Argument.CompressS2c = ClientChoiceCompress(arg.CompressS2c);
+                cHandshake.Argument.CompressC2s = ClientChoiceCompress(arg.CompressC2s);
+                cHandshake.Send(so);
                 ctx.TimeoutTask = Util.Scheduler.Schedule((thisTask) =>
                 {
                     if (DHContext.TryRemove(so.SessionId, out var ctx))
@@ -298,7 +412,12 @@ namespace Zeze.Services
             SocketMap.TryAdd(so.SessionId, so);
 
             var hand0 = new Handshake.SHandshake0();
-            hand0.Argument.EnableEncrypt = Config.HandshakeOptions.EnableEncrypt;
+            var options = Config.HandshakeOptions;
+            hand0.Argument.EncryptType = options.EncryptType;
+            hand0.Argument.SupportedEncryptList = options.SupportedEncrypt;
+            hand0.Argument.CompressS2c = options.CompressS2c;
+            hand0.Argument.CompressC2s = options.CompressC2s;
+            hand0.Argument.SupportedCompressList = options.SupportedCompress;
             hand0.Send(so);
         }
     }
@@ -348,7 +467,12 @@ namespace Zeze.Services
             SocketMap.TryAdd(so.SessionId, so);
 
             var hand0 = new Handshake.SHandshake0();
-            hand0.Argument.EnableEncrypt = Config.HandshakeOptions.EnableEncrypt;
+            var options = Config.HandshakeOptions;
+            hand0.Argument.EncryptType = options.EncryptType;
+            hand0.Argument.SupportedEncryptList = options.SupportedEncrypt;
+            hand0.Argument.CompressS2c = options.CompressS2c;
+            hand0.Argument.CompressC2s = options.CompressC2s;
+            hand0.Argument.SupportedCompressList = options.SupportedCompress;
             hand0.Send(so);
         }
 
@@ -438,19 +562,30 @@ namespace Zeze.Services.Handshake
     public sealed class CHandshakeArgument : Transaction.Bean
     {
 #endif
-        public byte dh_group;
-        public byte[] dh_data;
+        public int EncryptType;
+        public byte[] EncryptParam;
+        public int CompressS2c;
+        public int CompressC2s;
 
         public override void Decode(ByteBuffer bb)
         {
-            dh_group = bb.ReadByte();
-            dh_data = bb.ReadBytes();
+            EncryptType = bb.ReadInt();
+            EncryptParam = bb.ReadBytes();
+
+            // 兼容旧版客户端
+            if (bb.WriteIndex > bb.ReadIndex)
+            {
+                CompressS2c = bb.ReadInt();
+                CompressC2s = bb.ReadInt();
+            }
         }
 
         public override void Encode(ByteBuffer bb)
         {
-            bb.WriteByte(dh_group);
-            bb.WriteBytes(dh_data);
+            bb.WriteByte(EncryptType);
+            bb.WriteBytes(EncryptParam);
+            bb.WriteInt(CompressS2c);
+            bb.WriteInt(CompressC2s);
         }
 
 #if !USE_CONFCS
@@ -474,22 +609,25 @@ namespace Zeze.Services.Handshake
     public sealed class SHandshakeArgument : Transaction.Bean
     {
 #endif
-        public byte[] dh_data;
-        public bool s2cneedcompress;
-        public bool c2sneedcompress;
+        public byte[] EncryptParam;
+        public int CompressS2c;
+        public int CompressC2s;
+        public int EncryptType;
 
         public override void Decode(ByteBuffer bb)
         {
-            dh_data = bb.ReadBytes();
-            s2cneedcompress = bb.ReadBool();
-            c2sneedcompress = bb.ReadBool();
+            EncryptParam = bb.ReadBytes();
+            CompressS2c = bb.ReadInt();
+            CompressC2s = bb.ReadInt();
+            EncryptType = bb.ReadInt();
         }
 
         public override void Encode(ByteBuffer bb)
         {
-            bb.WriteBytes(dh_data);
-            bb.WriteBool(s2cneedcompress);
-            bb.WriteBool(c2sneedcompress);
+            bb.WriteBytes(EncryptParam);
+            bb.WriteInt(CompressS2c);
+            bb.WriteInt(CompressC2s);
+            bb.WriteInt(EncryptType);
         }
 
 #if !USE_CONFCS
@@ -511,17 +649,6 @@ namespace Zeze.Services.Handshake
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
-
-        public CHandshake()
-        {
-
-        }
-
-        public CHandshake(byte dh_group, byte[] dh_data)
-        {
-            Argument.dh_group = dh_group;
-            Argument.dh_data = dh_data;
-        }
     }
 
     public sealed class SHandshake : Protocol<SHandshakeArgument>
@@ -530,17 +657,6 @@ namespace Zeze.Services.Handshake
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
-
-        public SHandshake()
-        {
-        }
-
-        public SHandshake(byte[] dh_data, bool s2cneedcompress, bool c2sneedcompress)
-        {
-            Argument.dh_data = dh_data;
-            Argument.s2cneedcompress = s2cneedcompress;
-            Argument.c2sneedcompress = c2sneedcompress;
-        }
     }
 
 #if USE_CONFCS
@@ -563,17 +679,41 @@ namespace Zeze.Services.Handshake
     public sealed class SHandshake0Argument : Transaction.Bean
     {
 #endif
-        public bool EnableEncrypt { get; set; }
+        public int EncryptType { get; set; }
+        public List<int> SupportedEncryptList { get; set; } = new();
+        public int CompressS2c { get; set; }
+        public int CompressC2s { get; set; }
+        public List<int> SupportedCompressList { get; set; } = new();
+
 
         public override void Decode(ByteBuffer bb)
         {
-            EnableEncrypt = bb.ReadBool();
+            EncryptType = bb.ReadInt();
+            for (int count = bb.ReadInt(); count > 0; count--)
+            {
+                SupportedEncryptList.Add(bb.ReadInt());
+            }
+            CompressS2c = bb.ReadInt();
+            CompressC2s = bb.ReadInt();
+            for (int count = bb.ReadInt(); count > 0; count--)
+            {
+                SupportedCompressList.Add(bb.ReadInt());
+            }
         }
 
         public override void Encode(ByteBuffer bb)
         {
-            bb.WriteBool(EnableEncrypt);
+            bb.WriteInt(EncryptType);
+            bb.WriteInt(SupportedEncryptList.Count);
+            foreach (var e in SupportedEncryptList)
+                bb.WriteInt(e);
+            bb.WriteInt(CompressS2c);
+            bb.WriteInt(CompressC2s);
+            bb.WriteInt(SupportedCompressList.Count);
+            foreach (var c in SupportedCompressList)
+                bb.WriteInt(c);
         }
+
 #if !USE_CONFCS
         protected override void InitChildrenRootInfo(Transaction.Record.RootInfo root)
         {

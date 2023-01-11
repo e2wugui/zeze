@@ -192,14 +192,12 @@ namespace Zeze.Net
             }
             attr = self.GetAttribute("SecureIp");
             if (attr.Length > 0) HandshakeOptions.SecureIp = System.Net.IPAddress.Parse(attr).GetAddressBytes();
-            attr = self.GetAttribute("S2cNeedCompress");
-            if (attr.Length > 0) HandshakeOptions.S2cNeedCompress = bool.Parse(attr);
-            attr = self.GetAttribute("C2sNeedCompress");
-            if (attr.Length > 0) HandshakeOptions.C2sNeedCompress = bool.Parse(attr);
-            attr = self.GetAttribute("DhGroup");
-            if (attr.Length > 0) HandshakeOptions.DhGroup = byte.Parse(attr);
-            attr = self.GetAttribute("EnableEncrypt");
-            if (attr.Length > 0) HandshakeOptions.EnableEncrypt = bool.Parse(attr);
+            attr = self.GetAttribute("CompressS2c");
+            if (attr.Length > 0) HandshakeOptions.CompressS2c = int.Parse(attr);
+            attr = self.GetAttribute("CompressC2s");
+            if (attr.Length > 0) HandshakeOptions.CompressC2s = int.Parse(attr);
+            attr = self.GetAttribute("EncryptType");
+            if (attr.Length > 0) HandshakeOptions.EncryptType = int.Parse(attr);
 
             if (string.IsNullOrEmpty(Name))
             {

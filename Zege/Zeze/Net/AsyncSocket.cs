@@ -151,14 +151,14 @@ namespace Zeze.Net
             System.Net.Dns.BeginGetHostAddresses(hostNameOrAddress, OnAsyncGetHostAddresses, port);
         }
 
-        public void SetOutputSecurityCodec(byte[] key, bool compress)
+        public void SetOutputSecurityCodec(byte[] key, int compress)
         {
             lock (this)
             {
                 Codec chain = outputCodecBuffer;
                 if (null != key)
                     chain = new Encrypt(chain, key);
-                if (compress)
+                if (compress != 0)
                     chain = new Compress(chain);
                 outputCodecChain?.Dispose();
                 outputCodecChain = chain;
@@ -172,16 +172,16 @@ namespace Zeze.Net
 
         public void VerifySecurity()
         {
-            if (Service.Config.HandshakeOptions.EnableEncrypt && !IsSecurity)
+            if (Service.Config.HandshakeOptions.EncryptType != 0 && !IsSecurity)
                 throw new Exception($"{Service.Name} !IsSecurity");
         }
 
-        public void SetInputSecurityCodec(byte[] key, bool compress)
+        public void SetInputSecurityCodec(byte[] key, int compress)
         {
             lock (this)
             {
                 Codec chain = inputCodecBuffer;
-                if (compress)
+                if (compress != 0)
                     chain = new Decompress(chain);
                 if (null != key)
                     chain = new Decrypt(chain, key);

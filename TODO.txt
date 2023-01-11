@@ -39,13 +39,6 @@ DatabaseDynamoDb 还需测试。
 负载均衡；全面审核。
 过载保护；更多。
 
-【全面】升级Zeze到serverdev
-	3. 升级Online。
-	   全面回归测试。
-	   online在serverdev中做了哪些改变？@左尧。
-	   online事件使用的地方修改。
-	   确定是否需要替换，什么时候启动？不替换就是永久不启动了。
-
 ------------------------------------------------------------------------------------------------------------------------------
 2023/1/13 v1.1.5 TaskOneByOneByKey Performance; CommandConsole; Task; Table.walkDesc; New Handshake;
 ------------------------------------------------------------------------------------------------------------------------------
@@ -57,7 +50,9 @@ Table.walkDesc descendingMap.tailMap是什么。
 新的Handshake协商流程。doc/handshake.txt
 	1. new java-new java Ok
 	2. old c# - new java Ok
-	3. 需要确认确实启用了加密，压缩之类的。OK
+	3. 需要确认确实启用了加密，压缩之类的。Ok
+	4. new c# - new java Ok
+	5. encrypt no; compress mppc Ok
 
 【2022/12/28】
 

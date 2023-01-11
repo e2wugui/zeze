@@ -74,7 +74,11 @@ public class HandshakeBase extends Service {
 				return s2cHint;
 			return Constant.eCompressTypeMppc;
 		}
-		return s2cHint;
+		if (s2cHint == 0)
+			return 0;
+		if (options.isSupportedCompress(s2cHint))
+			return s2cHint;
+		return Constant.eCompressTypeMppc;
 	}
 
 	private int serverCompressC2s(int c2sHint) {
@@ -84,7 +88,11 @@ public class HandshakeBase extends Service {
 				return c2sHint;
 			return Constant.eCompressTypeMppc;
 		}
-		return c2sHint;
+		if (c2sHint == 0)
+			return 0;
+		if (options.isSupportedCompress(c2sHint))
+			return c2sHint;
+		return Constant.eCompressTypeMppc;
 	}
 
 	private long processCHandshake(CHandshake p) {
@@ -171,14 +179,17 @@ public class HandshakeBase extends Service {
 		try {
 			ctx = dhContext.remove(p.getSender().getSessionId());
 			if (ctx != null) {
-				byte[] material = Helper.computeDHKey(1,
-						new BigInteger(p.Argument.encryptParam), ctx.dhRandom).toByteArray();
-				var remoteAddress = p.getSender().getRemoteInetAddress();
+				byte[] inputKey = null;
+				byte[] outputKey = null;
+				if (p.Argument.encryptType == Constant.eEncryptTypeAes) {
+					byte[] material = Helper.computeDHKey(1,
+							new BigInteger(p.Argument.encryptParam), ctx.dhRandom).toByteArray();
+					var remoteAddress = p.getSender().getRemoteInetAddress();
 
-				byte[] key = remoteAddress != null ? remoteAddress.getAddress() : ByteBuffer.Empty;
-				logger.debug("{} remoteIp={}", p.getSender().getSessionId(), Arrays.toString(key));
+					byte[] key = remoteAddress != null ? remoteAddress.getAddress() : ByteBuffer.Empty;
+					logger.debug("{} remoteIp={}", p.getSender().getSessionId(), Arrays.toString(key));
 
-				int half = material.length / 2;
+					int half = material.length / 2;
 
 				byte[] hmacMd5 = Digest.hmacMd5(key, material, 0, half);
 				p.getSender().SetOutputSecurityCodec(Constant.eEncryptTypeAes, hmacMd5, p.Argument.compressC2s);
