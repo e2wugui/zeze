@@ -76,7 +76,6 @@ public abstract class Bean implements Serializable {
 
 	public final void initRootInfoWithRedo(Record.RootInfo rootInfo, Bean parent) {
 		initRootInfo(rootInfo, parent);
-		Transaction.whileRedo(this::resetRootInfo);
 	}
 
 	public final void initRootInfo(Record.RootInfo rootInfo, Bean parent) {
@@ -84,15 +83,17 @@ public abstract class Bean implements Serializable {
 			throw new HasManagedException();
 		this.rootInfo = rootInfo;
 		this.parent = parent;
+		if (parent != null)
+			Transaction.whileRedo(this);
 		initChildrenRootInfo(rootInfo);
 	}
 
-	public void resetRootInfo() {
+	public final void resetRootInfo() {
 		rootInfo = null;
 		parent = null;
-		resetChildrenRootInfo();
 	}
 
+	@Deprecated
 	protected abstract void resetChildrenRootInfo();
 
 	// 用在第一次加载Bean时，需要初始化它的root

@@ -142,12 +142,12 @@ namespace Zeze.Transaction
         }
 
         private List<Action> LastRollbackActions;
-        private readonly List<Action> RedoActions = new();
+        private readonly List<Bean> RedoBeans = new();
 
         private void TriggerRedoActions()
         {
-            foreach (var a in RedoActions)
-                a(); // redo action 的回调不处理异常。向外面抛出并中断事务。
+            foreach (var b in RedoBeans)
+                b.ResetRootInfo();
         }
 
         public static void WhileRollback(Action action)
@@ -160,9 +160,9 @@ namespace Zeze.Transaction
             Current.RunWhileCommit(action);
         }
 
-        internal static void WhileRedo(Action action)
+        internal static void WhileRedo(Bean b)
         {
-            Current.RedoActions.Add(action);
+            Current.RedoBeans.Add(b);
         }
 
         public void RunWhileCommit(Action action)
@@ -318,7 +318,7 @@ namespace Zeze.Transaction
                                 // retry 可能保持已有的锁，清除记录和保存点。
                                 AccessedRecords.Clear();
                                 Savepoints.Clear();
-                                 RedoActions.Clear();
+                                RedoBeans.Clear();
 
                                 State = TransactionState.Running; // prepare to retry
                             }

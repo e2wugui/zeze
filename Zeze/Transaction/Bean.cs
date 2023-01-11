@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Runtime.Serialization;
 using Zeze.Serialize;
 using Zeze.Transaction.Collections;
 
@@ -66,7 +65,6 @@ namespace Zeze.Transaction
         public void InitRootInfoWithRedo(Record.RootInfo rootInfo, Bean parent)
         {
             InitRootInfo(rootInfo, parent);
-            Transaction.WhileRedo(ResetRootInfo);
         }
 
         public void InitRootInfo(Record.RootInfo rootInfo, Bean parent)
@@ -77,6 +75,8 @@ namespace Zeze.Transaction
             }
             this.RootInfo = rootInfo;
             this.Parent = parent;
+            if (parent != null)
+                Transaction.WhileRedo(this);
             InitChildrenRootInfo(rootInfo);
         }
 
@@ -84,9 +84,9 @@ namespace Zeze.Transaction
         {
             RootInfo = null;
             Parent = null;
-            ResetChildrenRootInfo();
         }
 
+        // [Obsolete]
         protected abstract void ResetChildrenRootInfo();
 
         // 用在第一次加载Bean时，需要初始化它的root
@@ -338,6 +338,7 @@ namespace Zeze.Transaction
             Bean_.InitRootInfo(root, this);
         }
 
+        // [Obsolete]
         protected override void ResetChildrenRootInfo()
         {
             Bean_.ResetRootInfo();

@@ -53,7 +53,7 @@ public final class Transaction {
 	private TransactionState state = TransactionState.Running;
 	private boolean created;
 	private boolean alwaysReleaseLockWhenRedo;
-	private final ArrayList<Runnable> redoActions = new ArrayList<>();
+	private final ArrayList<Bean> redoBeans = new ArrayList<>();
 
 	private Transaction() {
 	}
@@ -80,7 +80,7 @@ public final class Transaction {
 		procedureStack.clear();
 		savepoints.clear();
 		actions.clear();
-		redoActions.clear();
+		redoBeans.clear();
 		accessedRecords.clear();
 		locks = null;
 		state = TransactionState.Running;
@@ -130,16 +130,15 @@ public final class Transaction {
 	}
 
 	private void triggerRedoActions() {
-		for (var a : redoActions)
-			a.run(); // redo action 的回调不处理异常。向外面抛出并中断事务。
+		redoBeans.forEach(Bean::resetRootInfo);
 	}
 
-	static void whileRedo(Runnable action) {
+	static void whileRedo(Bean b) {
 		// 这个目前仅用来重置Bean.RootInfo。
 		// 而RootInfo的设置可能在事务外使用，此时忽略action的执行。
 		var current = getCurrent();
 		if (null != current) {
-			current.redoActions.add(action);
+			current.redoBeans.add(b);
 		}
 	}
 
@@ -287,7 +286,7 @@ public final class Transaction {
 							accessedRecords.clear();
 							savepoints.clear();
 							actions.clear();
-							redoActions.clear();
+							redoBeans.clear();
 
 							state = TransactionState.Running; // prepare to retry
 						}

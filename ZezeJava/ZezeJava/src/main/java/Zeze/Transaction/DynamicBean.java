@@ -142,6 +142,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		bean.initRootInfo(root, this);
 	}
 
+	@Deprecated
 	@Override
 	protected void resetChildrenRootInfo() {
 		bean.resetChildrenRootInfo();
