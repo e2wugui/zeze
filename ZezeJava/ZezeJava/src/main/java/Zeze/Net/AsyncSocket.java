@@ -360,6 +360,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			throw new IllegalStateException(service.getName() + " !isSecurity");
 	}
 
+	@Deprecated
 	public void SetInputSecurityCodec(byte[] key, boolean compress) {
 		SetInputSecurityCodec(key != null ? Constant.eEncryptTypeAes : Constant.eEncryptTypeDisable, key,
 				compress ? Constant.eCompressTypeMppc : Constant.eCompressTypeDisable);
@@ -395,6 +396,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		});
 	}
 
+	@Deprecated
 	public void SetOutputSecurityCodec(byte[] key, boolean compress) {
 		SetOutputSecurityCodec(key != null ? Constant.eEncryptTypeAes : Constant.eEncryptTypeDisable, key,
 				compress ? Constant.eCompressTypeMppc : Constant.eCompressTypeDisable);

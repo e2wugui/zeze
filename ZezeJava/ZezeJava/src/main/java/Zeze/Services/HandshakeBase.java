@@ -118,7 +118,7 @@ public class HandshakeBase extends Service {
 			}
 			var s2c = serverCompressS2c(p.Argument.compressS2c);
 			var c2s = serverCompressC2s(p.Argument.compressC2s);
-			p.getSender().SetInputSecurityCodec(inputKey, c2s);
+			p.getSender().SetInputSecurityCodec(p.Argument.encryptType, inputKey, c2s);
 
 			var sHandshake = new Zeze.Services.Handshake.SHandshake();
 			sHandshake.Argument.encryptParam = response;
@@ -126,7 +126,7 @@ public class HandshakeBase extends Service {
 			sHandshake.Argument.compressC2s = c2s;
 			sHandshake.Argument.encryptType = p.Argument.encryptType;
 			sHandshake.Send(p.getSender());
-			p.getSender().SetOutputSecurityCodec(outputKey, s2c);
+			p.getSender().SetOutputSecurityCodec(p.Argument.encryptType, outputKey, s2c);
 
 			// 为了防止服务器在Handshake以后马上发送数据，
 			// 导致未加密数据和加密数据一起到达Client，这种情况很难处理。
@@ -153,8 +153,8 @@ public class HandshakeBase extends Service {
 	private long processSHandshake0(SHandshake0 p) {
 		try {
 			if (p.Argument.encryptType != Constant.eEncryptTypeDisable
-				|| p.Argument.compressS2c != Constant.eCompressTypeDisable
-				|| p.Argument.compressC2s != Constant.eCompressTypeDisable) {
+					|| p.Argument.compressS2c != Constant.eCompressTypeDisable
+					|| p.Argument.compressC2s != Constant.eCompressTypeDisable) {
 				startHandshake(p.Argument, p.getSender());
 			} else {
 				new CHandshakeDone().Send(p.getSender());
@@ -181,10 +181,10 @@ public class HandshakeBase extends Service {
 				int half = material.length / 2;
 
 				byte[] hmacMd5 = Digest.hmacMd5(key, material, 0, half);
-				p.getSender().SetOutputSecurityCodec(hmacMd5, p.Argument.compressC2s);
+				p.getSender().SetOutputSecurityCodec(Constant.eEncryptTypeAes, hmacMd5, p.Argument.compressC2s);
 				hmacMd5 = Digest.hmacMd5(key, material, half, material.length - half);
 
-				p.getSender().SetInputSecurityCodec(hmacMd5, p.Argument.compressS2c);
+				p.getSender().SetInputSecurityCodec(Constant.eEncryptTypeAes, hmacMd5, p.Argument.compressS2c);
 				(new Zeze.Services.Handshake.CHandshakeDone()).Send(p.getSender());
 				p.getSender().SubmitAction(() -> OnHandshakeDone(p.getSender())); // must after SetInputSecurityCodec and SetOutputSecurityCodec
 				return 0;
