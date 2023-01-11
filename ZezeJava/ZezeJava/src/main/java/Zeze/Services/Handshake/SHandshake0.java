@@ -20,9 +20,4 @@ public class SHandshake0 extends Protocol<BSHandshake0Argument> {
 	public SHandshake0() {
 		Argument = new BSHandshake0Argument();
 	}
-
-	public SHandshake0(boolean encrypt) {
-		Argument = new BSHandshake0Argument();
-		Argument.enableEncrypt = encrypt;
-	}
 }

@@ -229,21 +229,17 @@ public final class ServiceConf {
 				throw new IllegalStateException(ex);
 			}
 		}
-		attr = self.getAttribute("S2cNeedCompress");
+		attr = self.getAttribute("CompressS2c");
 		if (attr.length() > 0) {
-			getHandshakeOptions().setS2cNeedCompress(Boolean.parseBoolean(attr));
+			getHandshakeOptions().setCompressS2c(Integer.parseInt(attr));
 		}
-		attr = self.getAttribute("C2sNeedCompress");
+		attr = self.getAttribute("CompressC2s");
 		if (attr.length() > 0) {
-			getHandshakeOptions().setC2sNeedCompress(Boolean.parseBoolean(attr));
+			getHandshakeOptions().setCompressC2s(Integer.parseInt(attr));
 		}
-		attr = self.getAttribute("DhGroup");
+		attr = self.getAttribute("EncryptType");
 		if (attr.length() > 0) {
-			getHandshakeOptions().setDhGroup(Byte.parseByte(attr));
-		}
-		attr = self.getAttribute("EnableEncrypt");
-		if (attr.length() > 0) {
-			getHandshakeOptions().setEnableEncrypt(Boolean.parseBoolean(attr));
+			getHandshakeOptions().setEncryptType(Integer.parseInt(attr));
 		}
 		attr = self.getAttribute("maxConnections");
 		if (!attr.isEmpty())

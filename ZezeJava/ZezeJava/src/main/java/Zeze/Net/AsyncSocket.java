@@ -18,6 +18,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Services.Handshake.Constant;
 import Zeze.Util.Action0;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
@@ -355,33 +356,35 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	public void VerifySecurity() {
-		if (service.getConfig().getHandshakeOptions().getEnableEncrypt() && !isSecurity())
+		if (service.getConfig().getHandshakeOptions().getEncryptType() != 0 && !isSecurity())
 			throw new IllegalStateException(service.getName() + " !isSecurity");
 	}
 
-	public void SetInputSecurityCodec(byte[] key, boolean compress) {
+	public void SetInputSecurityCodec(byte[] key, int compress) {
 		SubmitAction(() -> { // 进selector线程调用
 			Codec chain = inputBuffer;
-			if (compress)
+			if (compress != Constant.eCompressTypeDisable) // todo 新增压缩算法支持这里改switch
 				chain = new Decompress(chain);
-			if (key != null)
+			if (key != null) // 加密支持更多方法的话，修改key参数为int encryptType, byte[] param
 				chain = new Decrypt2(chain, key);
 			inputCodecChain = chain;
 			//noinspection NonAtomicOperationOnVolatileField
 			security |= 1;
+			logger.info("Input encrypt=" + (null != key ? "Yes" : "No") + " compress=" + compress + this);
 		});
 	}
 
-	public void SetOutputSecurityCodec(byte[] key, boolean compress) {
+	public void SetOutputSecurityCodec(byte[] key, int compress) {
 		SubmitAction(() -> { // 进selector线程调用
 			Codec chain = outputBuffer;
-			if (key != null)
+			if (key != null) // 加密支持更多方法的话，修改key参数为int encryptType, byte[] param
 				chain = new Encrypt2(chain, key);
-			if (compress)
+			if (compress != Constant.eCompressTypeDisable) // todo 新增压缩算法支持这里改switch,
 				chain = new Compress(chain);
 			outputCodecChain = chain;
 			//noinspection NonAtomicOperationOnVolatileField
 			security |= 2;
+			logger.info("Output encrypt=" + (null != key ? "Yes" : "No") + " compress=" + compress + this);
 		});
 	}
 

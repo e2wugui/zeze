@@ -5,19 +5,30 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
 public final class BCHandshakeArgument extends Bean {
-	public byte dh_group;
-	public byte[] dh_data;
+	public int encryptType;
+	public byte[] encryptParam;
+
+	public int compressS2c = Constant.eCompressTypeDisable; // 默认的时候由服务器决定是否压缩。
+	public int compressC2s = Constant.eCompressTypeDisable; // 默认的时候由服务器决定是否压缩。
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		dh_group = bb.ReadByte();
-		dh_data = bb.ReadBytes();
+		encryptType = bb.ReadInt();
+		encryptParam = bb.ReadBytes();
+
+		// 兼容旧版客户端
+		if (bb.WriteIndex > bb.ReadIndex) {
+			compressS2c = bb.ReadInt();
+			compressC2s = bb.ReadInt();
+		}
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteByte(dh_group);
-		bb.WriteBytes(dh_data);
+		bb.WriteInt(encryptType);
+		bb.WriteBytes(encryptParam);
+		bb.WriteInt(compressS2c);
+		bb.WriteInt(compressC2s);
 	}
 
 	@Override
@@ -44,7 +55,8 @@ public final class BCHandshakeArgument extends Bean {
 
 	@Override
 	public String toString() {
-		return "BCHandshakeArgument{dh_group=" + dh_group + ", dh_data=["
-				+ (dh_data != null ? dh_data.length : -1) + "]}";
+		return "BCHandshakeArgument { EncryptType=" + encryptType
+				+ ", EncryptParam=[" + (encryptParam != null ? encryptParam.length : -1)
+				+ "] compress S2c/C2s=" + compressS2c + "/"+ compressC2s + "}";
 	}
 }

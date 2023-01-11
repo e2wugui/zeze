@@ -22,6 +22,7 @@ import Zeze.Net.Encrypt2;
 import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Services.Handshake.Constant;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Util.OutInt;
@@ -538,7 +539,7 @@ public class BenchSocket {
 		var serverConfig = new Config();
 		var server = new ServerService("benchServer", serverConfig);
 		server.getConfig().addAcceptor(new Acceptor(9797, "127.0.0.1"));
-		server.getConfig().getHandshakeOptions().setEnableEncrypt(encrypt);
+		server.getConfig().getHandshakeOptions().setEncryptType(encrypt ? Constant.eEncryptTypeAes : 0);
 
 		// create client and connector
 		var clientConfig = new Config();

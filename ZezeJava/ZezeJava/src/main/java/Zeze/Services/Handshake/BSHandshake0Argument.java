@@ -1,23 +1,42 @@
 package Zeze.Services.Handshake;
 
+import java.util.ArrayList;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
 public class BSHandshake0Argument extends Bean {
-	public boolean enableEncrypt;
+	public int encryptType; // 推荐的加密算法。旧版是boolean
+	public ArrayList<Integer> supportedEncryptList = new ArrayList<>();
+	public int compressS2c; // 推荐的压缩算法。
+	public int compressC2s; // 推荐的压缩算法。
+	public ArrayList<Integer> supportedCompressList = new ArrayList<>();
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteBool(enableEncrypt);
+		bb.WriteInt(encryptType);
+		bb.WriteInt(supportedEncryptList.size());
+		for (var e : supportedEncryptList)
+			bb.WriteInt(e);
+		bb.WriteInt(compressS2c);
+		bb.WriteInt(compressC2s);
+		bb.WriteInt(supportedCompressList.size());
+		for (var e : supportedCompressList)
+			bb.WriteInt(e);
 	}
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		enableEncrypt = bb.ReadBool();
+		encryptType = bb.ReadInt();
+		for (int count = bb.ReadInt(); count > 0; --count)
+			supportedEncryptList.add(bb.ReadInt());
+		compressS2c = bb.ReadInt();
+		compressC2s = bb.ReadInt();
+		for (int count = bb.ReadInt(); count > 0; --count)
+			supportedCompressList.add(bb.ReadInt());
 	}
 
-	private static int _PRE_ALLOC_SIZE_ = 16;
+	private static int _PRE_ALLOC_SIZE_ = 32;
 
 	@Override
 	public int preAllocSize() {
@@ -41,6 +60,11 @@ public class BSHandshake0Argument extends Bean {
 
 	@Override
 	public String toString() {
-		return "BSHandshake0Argument{" + "EnableEncrypt=" + enableEncrypt + '}';
+		return "BSHandshake0Argument {"
+				+ " EncryptType=" + encryptType
+				+ " EncryptList=" + supportedEncryptList
+				+ " Compres S2c/C2s" + compressS2c + "/" + compressC2s
+				+ " CompressList=" + supportedCompressList
+				+ " }";
 	}
 }

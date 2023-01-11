@@ -20,11 +20,4 @@ public final class SHandshake extends Protocol<BSHandshakeArgument> {
 	public SHandshake() {
 		Argument = new BSHandshakeArgument();
 	}
-
-	public SHandshake(byte[] dh_data, boolean s2cNeedCompress, boolean c2sNeedCompress) {
-		Argument = new BSHandshakeArgument();
-		Argument.dh_data = dh_data;
-		Argument.s2cNeedCompress = s2cNeedCompress;
-		Argument.c2sNeedCompress = c2sNeedCompress;
-	}
 }

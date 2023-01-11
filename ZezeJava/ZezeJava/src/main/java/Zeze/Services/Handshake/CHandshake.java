@@ -20,10 +20,4 @@ public final class CHandshake extends Protocol<BCHandshakeArgument> {
 	public CHandshake() {
 		Argument = new BCHandshakeArgument();
 	}
-
-	public CHandshake(byte dh_group, byte[] dh_data) {
-		Argument = new BCHandshakeArgument();
-		Argument.dh_group = dh_group;
-		Argument.dh_data = dh_data;
-	}
 }

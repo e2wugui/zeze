@@ -46,16 +46,18 @@ DatabaseDynamoDb 还需测试。
 	   online事件使用的地方修改。
 	   确定是否需要替换，什么时候启动？不替换就是永久不启动了。
 
-新的Handshake协商流程。doc/handshake.txt
-
 ------------------------------------------------------------------------------------------------------------------------------
-2023/1/13 v1.1.5 TaskOneByOneByKey Performance; CommandConsole; Task; Table.walkDesc
+2023/1/13 v1.1.5 TaskOneByOneByKey Performance; CommandConsole; Task; Table.walkDesc; New Handshake;
 ------------------------------------------------------------------------------------------------------------------------------
 TaskOneByOneByKey 一次提交一批给Executor执行。减少锁的开销。
 Benchmark Encrypt/Decrypt 250M/250M Compress/Decompress 90M/100M
 CommandConsole
 Task
 Table.walkDesc descendingMap.tailMap是什么。
+新的Handshake协商流程。doc/handshake.txt
+	1. new java-new java Ok
+	2. old c# - new java Ok
+	3. 需要确认确实启用了加密，压缩之类的。OK
 
 【2022/12/28】
 

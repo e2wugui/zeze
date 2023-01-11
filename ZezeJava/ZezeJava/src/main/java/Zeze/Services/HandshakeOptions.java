@@ -1,5 +1,8 @@
 package Zeze.Services;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import Zeze.Services.Handshake.Constant;
 import Zeze.Services.Handshake.Helper;
 import Zeze.Util.IntHashSet;
 
@@ -12,19 +15,50 @@ import Zeze.Util.IntHashSet;
 public class HandshakeOptions {
 	private IntHashSet dhGroups = new IntHashSet(); // for HandshakeServer
 	private byte[] secureIp;
-	private boolean s2cNeedCompress = true;
-	private boolean c2sNeedCompress = true;
-	private byte dhGroup = 1; // for HandshakeClient
-	private boolean enableEncrypt = false;
+	private int compressS2c = Constant.eCompressTypeDisable;
+	private int compressC2s = Constant.eCompressTypeDisable;
+	private int encryptType = Constant.eEncryptTypeDisable;
+
+	private final ArrayList<Integer> supportedCompress = new ArrayList<>(); // empty 表示支持所有内建的。
+	private final ArrayList<Integer> supportedEncrypt = new ArrayList<>(); // empty 表示支持所有内建的。
 
 	public HandshakeOptions() {
 		addDhGroup(1);
 		addDhGroup(2);
 		addDhGroup(5);
+
+		addSupportedCompress(Constant.eCompressTypeZstd);
+		addSupportedCompress(Constant.eCompressTypeMppc);
+
+		addSupportedEncrypt(Constant.eEncryptTypeAes);
 	}
 
 	public final IntHashSet getDhGroups() {
 		return dhGroups;
+	}
+
+	public ArrayList<Integer> getSupportedCompress() {
+		return supportedCompress;
+	}
+
+	public ArrayList<Integer> getSupportedEncrypt() {
+		return supportedEncrypt;
+	}
+
+	public boolean isSupportedCompress(int c) {
+		return supportedCompress.contains(c);
+	}
+
+	public boolean isSupportedEncrypt(int e) {
+		return supportedEncrypt.contains(e);
+	}
+
+	public void addSupportedEncrypt(int e) {
+		supportedEncrypt.add(e);
+	}
+
+	public void addSupportedCompress(int c) {
+		supportedCompress.add(c);
 	}
 
 	public final void setDhGroups(IntHashSet value) {
@@ -34,12 +68,12 @@ public class HandshakeOptions {
 			dhGroups.clear();
 	}
 
-	public final boolean getEnableEncrypt() {
-		return enableEncrypt;
+	public final int getEncryptType() {
+		return encryptType;
 	}
 
-	public final void setEnableEncrypt(boolean value) {
-		enableEncrypt = value;
+	public final void setEncryptType(int value) {
+		encryptType = value;
 	}
 
 	public final byte[] getSecureIp() {
@@ -50,28 +84,20 @@ public class HandshakeOptions {
 		secureIp = value;
 	}
 
-	public final boolean getS2cNeedCompress() {
-		return s2cNeedCompress;
+	public final int getCompressS2c() {
+		return compressS2c;
 	}
 
-	public final void setS2cNeedCompress(boolean value) {
-		s2cNeedCompress = value;
+	public final void setCompressS2c(int value) {
+		compressS2c = value;
 	}
 
-	public final boolean getC2sNeedCompress() {
-		return c2sNeedCompress;
+	public final int getCompressC2s() {
+		return compressC2s;
 	}
 
-	public final void setC2sNeedCompress(boolean value) {
-		c2sNeedCompress = value;
-	}
-
-	public final byte getDhGroup() {
-		return dhGroup;
-	}
-
-	public final void setDhGroup(byte value) {
-		dhGroup = value;
+	public final void setCompressC2s(int value) {
+		compressC2s = value;
 	}
 
 	public final void addDhGroup(int group) {

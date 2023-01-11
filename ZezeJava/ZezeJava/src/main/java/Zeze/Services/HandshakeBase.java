@@ -8,8 +8,10 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Digest;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Services.Handshake.BSHandshake0Argument;
 import Zeze.Services.Handshake.CHandshake;
 import Zeze.Services.Handshake.CHandshakeDone;
+import Zeze.Services.Handshake.Constant;
 import Zeze.Services.Handshake.Helper;
 import Zeze.Services.Handshake.SHandshake;
 import Zeze.Services.Handshake.SHandshake0;
@@ -65,34 +67,66 @@ public class HandshakeBase extends Service {
 		return 0L;
 	}
 
+	private int serverCompressS2c(int s2cHint) {
+		var options = getConfig().getHandshakeOptions();
+		if (options.getCompressS2c() != 0) {
+			if (s2cHint != Constant.eCompressTypeDisable && options.isSupportedCompress(s2cHint))
+				return s2cHint;
+			return Constant.eCompressTypeMppc;
+		}
+		return s2cHint;
+	}
+
+	private int serverCompressC2s(int c2sHint) {
+		var options = getConfig().getHandshakeOptions();
+		if (options.getCompressC2s() != 0) {
+			if (c2sHint != Constant.eCompressTypeDisable && options.isSupportedCompress(c2sHint))
+				return c2sHint;
+			return Constant.eCompressTypeMppc;
+		}
+		return c2sHint;
+	}
+
 	private long processCHandshake(CHandshake p) {
 		try {
-			int group = p.Argument.dh_group;
-			if (!getConfig().getHandshakeOptions().getDhGroups().contains(group)) {
-				p.getSender().close(new UnsupportedOperationException("dhGroup Not Supported"));
-				return 0L;
+			byte[] inputKey = null;
+			byte[] outputKey = null;
+			byte[] response = new byte[0];
+			int group = 1;
+			if (p.Argument.encryptType == Constant.eEncryptTypeAes) {
+				// 当group采用客户端参数时需要检查参数正确性，现在统一采用了1，不需要检查了。
+				/*
+				if (!getConfig().getHandshakeOptions().getDhGroups().contains(group)) {
+					p.getSender().close(new UnsupportedOperationException("dhGroup Not Supported"));
+					return 0L;
+				}
+				*/
+
+				BigInteger data = new BigInteger(p.Argument.encryptParam);
+				BigInteger rand = Helper.makeDHRandom();
+				byte[] material = Helper.computeDHKey(group, data, rand).toByteArray();
+				var localAddress = p.getSender().getLocalInetAddress();
+				byte[] key = getConfig().getHandshakeOptions().getSecureIp() != null
+						? getConfig().getHandshakeOptions().getSecureIp()
+						: (localAddress != null ? localAddress.getAddress() : ByteBuffer.Empty);
+				logger.debug("{} localIp={}", p.getSender().getSessionId(), Arrays.toString(key));
+				int half = material.length / 2;
+
+				inputKey = Digest.hmacMd5(key, material, 0, half);
+				response = Helper.generateDHResponse(group, rand).toByteArray();
+				outputKey = Digest.hmacMd5(key, material, half, material.length - half);
 			}
+			var s2c = serverCompressS2c(p.Argument.compressS2c);
+			var c2s = serverCompressC2s(p.Argument.compressC2s);
+			p.getSender().SetInputSecurityCodec(inputKey, c2s);
 
-			BigInteger data = new BigInteger(p.Argument.dh_data);
-			BigInteger rand = Helper.makeDHRandom();
-			byte[] material = Helper.computeDHKey(group, data, rand).toByteArray();
-			var localAddress = p.getSender().getLocalInetAddress();
-			byte[] key = getConfig().getHandshakeOptions().getSecureIp() != null
-					? getConfig().getHandshakeOptions().getSecureIp()
-					: (localAddress != null ? localAddress.getAddress() : ByteBuffer.Empty);
-			logger.debug("{} localIp={}", p.getSender().getSessionId(), Arrays.toString(key));
-			int half = material.length / 2;
-
-			byte[] hmacMd5 = Digest.hmacMd5(key, material, 0, half);
-			p.getSender().SetInputSecurityCodec(hmacMd5, getConfig().getHandshakeOptions().getC2sNeedCompress());
-
-			byte[] response = Helper.generateDHResponse(group, rand).toByteArray();
-
-			(new Zeze.Services.Handshake.SHandshake(response,
-					getConfig().getHandshakeOptions().getS2cNeedCompress(),
-					getConfig().getHandshakeOptions().getC2sNeedCompress())).Send(p.getSender());
-			hmacMd5 = Digest.hmacMd5(key, material, half, material.length - half);
-			p.getSender().SetOutputSecurityCodec(hmacMd5, getConfig().getHandshakeOptions().getS2cNeedCompress());
+			var sHandshake = new Zeze.Services.Handshake.SHandshake();
+			sHandshake.Argument.encryptParam = response;
+			sHandshake.Argument.compressS2c = s2c;
+			sHandshake.Argument.compressC2s = c2s;
+			sHandshake.Argument.encryptType = p.Argument.encryptType;
+			sHandshake.Send(p.getSender());
+			p.getSender().SetOutputSecurityCodec(outputKey, s2c);
 
 			// 为了防止服务器在Handshake以后马上发送数据，
 			// 导致未加密数据和加密数据一起到达Client，这种情况很难处理。
@@ -118,8 +152,10 @@ public class HandshakeBase extends Service {
 
 	private long processSHandshake0(SHandshake0 p) {
 		try {
-			if (p.Argument.enableEncrypt) {
-				startHandshake(p.getSender());
+			if (p.Argument.encryptType != Constant.eEncryptTypeDisable
+				|| p.Argument.compressS2c != Constant.eCompressTypeDisable
+				|| p.Argument.compressC2s != Constant.eCompressTypeDisable) {
+				startHandshake(p.Argument, p.getSender());
 			} else {
 				new CHandshakeDone().Send(p.getSender());
 				OnHandshakeDone(p.getSender());
@@ -135,8 +171,8 @@ public class HandshakeBase extends Service {
 		try {
 			ctx = dhContext.remove(p.getSender().getSessionId());
 			if (ctx != null) {
-				byte[] material = Helper.computeDHKey(getConfig().getHandshakeOptions().getDhGroup(),
-						new BigInteger(p.Argument.dh_data), ctx.dhRandom).toByteArray();
+				byte[] material = Helper.computeDHKey(1,
+						new BigInteger(p.Argument.encryptParam), ctx.dhRandom).toByteArray();
 				var remoteAddress = p.getSender().getRemoteInetAddress();
 
 				byte[] key = remoteAddress != null ? remoteAddress.getAddress() : ByteBuffer.Empty;
@@ -145,10 +181,10 @@ public class HandshakeBase extends Service {
 				int half = material.length / 2;
 
 				byte[] hmacMd5 = Digest.hmacMd5(key, material, 0, half);
-				p.getSender().SetOutputSecurityCodec(hmacMd5, p.Argument.c2sNeedCompress);
+				p.getSender().SetOutputSecurityCodec(hmacMd5, p.Argument.compressC2s);
 				hmacMd5 = Digest.hmacMd5(key, material, half, material.length - half);
 
-				p.getSender().SetInputSecurityCodec(hmacMd5, p.Argument.s2cNeedCompress);
+				p.getSender().SetInputSecurityCodec(hmacMd5, p.Argument.compressS2c);
 				(new Zeze.Services.Handshake.CHandshakeDone()).Send(p.getSender());
 				p.getSender().SubmitAction(() -> OnHandshakeDone(p.getSender())); // must after SetInputSecurityCodec and SetOutputSecurityCodec
 				return 0;
@@ -163,15 +199,35 @@ public class HandshakeBase extends Service {
 		return 0;
 	}
 
-	protected final void startHandshake(AsyncSocket so) {
+	private int clientChoiceCompress(int c) {
+		// 客户端检查一下当前版本是否支持推荐的压缩算法。
+		// 如果不支持则统一使用最老的。
+		// 这样当服务器新增了压缩算法，并且推荐了新的，客户端可以兼容它。
+		if (c == Constant.eCompressTypeDisable)
+			return c; // 推荐关闭压缩就关闭
+		var options = getConfig().getHandshakeOptions();
+		if (options.isSupportedCompress(c))
+			return c; // 支持的压缩，直接使用推荐的。
+		return Constant.eCompressTypeMppc; // 使用最老的压缩。
+	}
+
+	protected final void startHandshake(BSHandshake0Argument arg, AsyncSocket so) {
 		try {
 			var ctx = new Context(Helper.makeDHRandom());
 			if (null != dhContext.putIfAbsent(so.getSessionId(), ctx)) {
 				throw new IllegalStateException("handshake duplicate context for same session.");
 			}
 
-			byte[] response = Helper.generateDHResponse(getConfig().getHandshakeOptions().getDhGroup(), ctx.dhRandom).toByteArray();
-			(new Zeze.Services.Handshake.CHandshake(getConfig().getHandshakeOptions().getDhGroup(), response)).Send(so);
+			var cHandShake = new Zeze.Services.Handshake.CHandshake();
+			// 默认加密压缩尽量都有服务器决定，不进行选择。
+			cHandShake.Argument.encryptType = arg.encryptType;
+			cHandShake.Argument.encryptParam = arg.encryptType == Constant.eEncryptTypeAes
+					? Helper.generateDHResponse(1, ctx.dhRandom).toByteArray()
+					: new byte[0];
+			cHandShake.Argument.compressS2c = clientChoiceCompress(arg.compressS2c);
+			cHandShake.Argument.compressC2s = clientChoiceCompress(arg.compressC2s);
+			cHandShake.Send(so);
+
 			ctx.timeoutTask = Zeze.Util.Task.scheduleUnsafe(5000, () -> {
 				if (null != dhContext.remove(so.getSessionId())) {
 					so.close(new Exception("Handshake Timeout"));

@@ -5,22 +5,25 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
 public final class BSHandshakeArgument extends Bean {
-	public byte[] dh_data;
-	public boolean s2cNeedCompress;
-	public boolean c2sNeedCompress;
+	public byte[] encryptParam;
+	public int compressS2c;
+	public int compressC2s;
+	public int encryptType;
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		dh_data = bb.ReadBytes();
-		s2cNeedCompress = bb.ReadBool();
-		c2sNeedCompress = bb.ReadBool();
+		encryptParam = bb.ReadBytes();
+		compressS2c = bb.ReadInt();
+		compressC2s = bb.ReadInt();
+		encryptType = bb.ReadInt();
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteBytes(dh_data);
-		bb.WriteBool(s2cNeedCompress);
-		bb.WriteBool(c2sNeedCompress);
+		bb.WriteBytes(encryptParam);
+		bb.WriteInt(compressS2c);
+		bb.WriteInt(compressC2s);
+		bb.WriteInt(encryptType);
 	}
 
 	@Override
@@ -33,7 +36,7 @@ public final class BSHandshakeArgument extends Bean {
 		throw new UnsupportedOperationException();
 	}
 
-	private static int _PRE_ALLOC_SIZE_ = 16;
+	private static int _PRE_ALLOC_SIZE_ = 128;
 
 	@Override
 	public int preAllocSize() {
@@ -47,7 +50,7 @@ public final class BSHandshakeArgument extends Bean {
 
 	@Override
 	public String toString() {
-		return "BSHandshakeArgument{" + "dh_data=[" + (dh_data != null ? dh_data.length : -1) +
-				"], s2cNeedCompress=" + s2cNeedCompress + ", c2sNeedCompress=" + c2sNeedCompress + '}';
+		return "BSHandshakeArgument{" + "encryptParam=[" + (encryptParam != null ? encryptParam.length : -1) +
+				"], CompressS2c=" + compressS2c + ", CompressC2s=" + compressC2s + " encryptType=" + encryptType + '}';
 	}
 }

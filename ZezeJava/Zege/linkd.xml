@@ -7,7 +7,7 @@
 	>
 	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/> linkd现在不需要数据库，但是验证可能要，先占个坑。
 
-	<ServiceConf Name="LinkdService" InputBufferMaxProtocolSize="2097152" SocketLogLevel="Trace">
+	<ServiceConf Name="LinkdService" InputBufferMaxProtocolSize="2097152" SocketLogLevel="Trace" EncryptType="1" CompressS2c="1">
 		<Acceptor Port="5100"/>
 	</ServiceConf>
 
