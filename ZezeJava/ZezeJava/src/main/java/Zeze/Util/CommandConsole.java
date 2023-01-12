@@ -57,7 +57,7 @@ public class CommandConsole {
 
 		@Override
 		public String toString() {
-			return properties.toString() + others.toString();
+			return properties.toString() + others;
 		}
 
 		public static Options parseJvm(List<String> args) {

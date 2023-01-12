@@ -375,6 +375,9 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			case Constant.eCompressTypeMppc:
 				chain = new Decompress(chain);
 				break;
+			case Constant.eCompressTypeZstd:
+				chain = new DecompressZstd(chain, 128 * 1024, 128 * 1024);
+				break;
 			//TODO: 新增压缩算法支持这里加case
 			default:
 				throw new UnsupportedOperationException("SetInputSecurityCodec: unknown compressType=" + compressType);
@@ -420,6 +423,9 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				break;
 			case Constant.eCompressTypeMppc:
 				chain = new Compress(chain);
+				break;
+			case Constant.eCompressTypeZstd:
+				chain = new CompressZstd(chain);
 				break;
 			//TODO: 新增压缩算法支持这里加case
 			default:

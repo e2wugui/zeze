@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Record;
 
 final class BAppendEntriesArgument extends Bean {
 	private long term;
