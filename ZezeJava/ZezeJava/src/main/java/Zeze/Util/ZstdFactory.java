@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
+import Zeze.Net.Codec;
 import Zeze.Serialize.ByteBuffer;
 import com.github.luben.zstd.BufferPool;
 import com.github.luben.zstd.Zstd;
@@ -84,7 +85,7 @@ public final class ZstdFactory {
 		}
 	}
 
-	public static class CompressStream extends ZstdOutputStreamNoFinalizer {
+	public static class ZstdCompressStream extends ZstdOutputStreamNoFinalizer {
 		public static final int DEFAULT_DST_BUF_SIZE = (int)ZstdOutputStreamNoFinalizer.recommendedCOutSize();
 		public static final int DEFAULT_COMPRESS_LEVEL = Zstd.defaultCompressionLevel();
 		public static final int DEFAULT_WINDOW_LOG = -1;
@@ -92,11 +93,11 @@ public final class ZstdFactory {
 		private long ctxPtr;
 		private final byte[] dstBuf;
 
-		public CompressStream() throws IOException {
+		public ZstdCompressStream() throws IOException {
 			this(DEFAULT_DST_BUF_SIZE, DEFAULT_COMPRESS_LEVEL, DEFAULT_WINDOW_LOG);
 		}
 
-		public CompressStream(int dstBufSize, int compressLevel, int windowLog) throws IOException {
+		public ZstdCompressStream(int dstBufSize, int compressLevel, int windowLog) throws IOException {
 			super(DummyOutputStream.instance, DummyBufferPool.instance);
 			try {
 				ctxPtr = fCStream.getLong(this);
@@ -131,6 +132,23 @@ public final class ZstdFactory {
 			}
 		}
 
+		public void compress(byte[] src, int srcPos, int srcEnd, Codec dst) {
+			if (ctxPtr == 0)
+				throw new IllegalStateException("ctxPtr = 0");
+			try {
+				fCSrcPos.set(this, srcPos);
+				while (srcPos < srcEnd) {
+					int r = (int)mhCompressStream.invoke(this, ctxPtr, dstBuf, dstBuf.length, src, srcEnd);
+					if (r < 0)
+						throw new IllegalStateException("mhCompressStream = " + r);
+					dst.update(dstBuf, 0, (int)fCDstPos.getLong(this));
+					srcPos = (int)fCSrcPos.getLong(this);
+				}
+			} catch (Throwable e) {
+				throw e instanceof RuntimeException ? (RuntimeException)e : new RuntimeException(e);
+			}
+		}
+
 		public void flush(ByteBuffer dst) {
 			if (ctxPtr == 0)
 				throw new IllegalStateException("ctxPtr = 0");
@@ -147,6 +165,23 @@ public final class ZstdFactory {
 			}
 		}
 
+		public void flush(Codec dst) {
+			if (ctxPtr == 0)
+				throw new IllegalStateException("ctxPtr = 0");
+			try {
+				int r;
+				do {
+					r = (int)mhFlushStream.invoke(this, ctxPtr, dstBuf, dstBuf.length);
+					if (r < 0)
+						throw new IllegalStateException("mhFlushStream = " + r);
+					dst.update(dstBuf, 0, (int)fCDstPos.getLong(this));
+				} while (r > 0);
+				dst.flush();
+			} catch (Throwable e) {
+				throw e instanceof RuntimeException ? (RuntimeException)e : new RuntimeException(e);
+			}
+		}
+
 		@Override
 		public void close() {
 			ctxPtr = 0;
@@ -158,13 +193,22 @@ public final class ZstdFactory {
 		}
 	}
 
-	public static class DecompressStream extends ZstdInputStreamNoFinalizer {
-		private long ctxPtr;
+	public static class ZstdDecompressStream extends ZstdInputStreamNoFinalizer {
+		public static final int DEFAULT_DST_BUF_SIZE = (int)ZstdInputStreamNoFinalizer.recommendedDOutSize();
 
-		public DecompressStream() throws IOException {
+		private long ctxPtr;
+		private byte[] dstBuf;
+
+		public ZstdDecompressStream() throws IOException {
+			this(0);
+		}
+
+		public ZstdDecompressStream(int dstBufSize) throws IOException {
 			super(DummyInputStream.instance, DummyBufferPool.instance);
 			try {
 				ctxPtr = fDStream.getLong(this);
+				if (dstBufSize > 0)
+					dstBuf = new byte[dstBufSize];
 			} catch (IllegalAccessException e) {
 				throw new RuntimeException(e);
 			}
@@ -202,6 +246,26 @@ public final class ZstdFactory {
 			}
 		}
 
+		public void decompress(byte[] src, int srcPos, int srcEnd, Codec dst) {
+			if (ctxPtr == 0)
+				throw new IllegalStateException("ctxPtr = 0");
+			if (dstBuf == null)
+				dstBuf = new byte[DEFAULT_DST_BUF_SIZE];
+			try {
+				fDSrcPos.set(this, srcPos);
+				while (srcPos < srcEnd) {
+					fDDstPos.set(this, 0);
+					int r = (int)mhDecompressStream.invoke(this, ctxPtr, dstBuf, dstBuf.length, src, srcEnd);
+					if (r < 0)
+						throw new IllegalStateException("mhDecompressStream = " + r);
+					dst.update(dstBuf, 0, (int)fDDstPos.getLong(this));
+					srcPos = (int)fDSrcPos.getLong(this);
+				}
+			} catch (Throwable e) {
+				throw e instanceof RuntimeException ? (RuntimeException)e : new RuntimeException(e);
+			}
+		}
+
 		@Override
 		public void close() {
 			ctxPtr = 0;
@@ -213,25 +277,33 @@ public final class ZstdFactory {
 		}
 	}
 
-	public static CompressStream newCompressStream() {
+	public static ZstdCompressStream newCompressStream() {
 		try {
-			return new CompressStream();
+			return new ZstdCompressStream();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	public static CompressStream newCompressStream(int dstBufSize, int compressLevel, int windowLog) {
+	public static ZstdCompressStream newCompressStream(int dstBufSize, int compressLevel, int windowLog) {
 		try {
-			return new CompressStream(dstBufSize, compressLevel, windowLog);
+			return new ZstdCompressStream(dstBufSize, compressLevel, windowLog);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	public static DecompressStream newDecompressStream() {
+	public static ZstdDecompressStream newDecompressStream() {
 		try {
-			return new DecompressStream();
+			return new ZstdDecompressStream();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public static ZstdDecompressStream newDecompressStream(int dstBufSize) {
+		try {
+			return new ZstdDecompressStream(dstBufSize);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
