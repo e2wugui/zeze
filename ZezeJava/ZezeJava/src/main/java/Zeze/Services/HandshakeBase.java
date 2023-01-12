@@ -209,7 +209,7 @@ public class HandshakeBase extends Service {
 		return 0;
 	}
 
-	private int clientChoiceCompress(int c) {
+	private int clientCompress(int c) {
 		// 客户端检查一下当前版本是否支持推荐的压缩算法。
 		// 如果不支持则统一使用最老的。
 		// 这样当服务器新增了压缩算法，并且推荐了新的，客户端可以兼容它。
@@ -234,8 +234,8 @@ public class HandshakeBase extends Service {
 			cHandShake.Argument.encryptParam = arg.encryptType == Constant.eEncryptTypeAes
 					? Helper.generateDHResponse(1, ctx.dhRandom).toByteArray()
 					: new byte[0];
-			cHandShake.Argument.compressS2c = clientChoiceCompress(arg.compressS2c);
-			cHandShake.Argument.compressC2s = clientChoiceCompress(arg.compressC2s);
+			cHandShake.Argument.compressS2c = clientCompress(arg.compressS2c);
+			cHandShake.Argument.compressC2s = clientCompress(arg.compressC2s);
 			cHandShake.Send(so);
 
 			ctx.timeoutTask = Zeze.Util.Task.scheduleUnsafe(5000, () -> {
