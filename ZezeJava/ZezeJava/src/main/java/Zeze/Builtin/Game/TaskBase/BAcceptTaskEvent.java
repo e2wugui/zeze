@@ -137,14 +137,6 @@ public final class BAcceptTaskEvent extends Zeze.Transaction.Bean implements BAc
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-    }
-
-    @Override
-    protected void resetChildrenRootInfo() {
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getTaskId() < 0)
             return true;

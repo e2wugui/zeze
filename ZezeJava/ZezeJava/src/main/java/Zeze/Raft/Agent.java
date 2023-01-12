@@ -232,7 +232,7 @@ public final class Agent {
 			if (client == null)
 				return;
 
-			client.Stop();
+			client.stop();
 			client = null;
 
 			leader = null;

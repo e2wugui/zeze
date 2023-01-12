@@ -423,13 +423,13 @@ public final class Test {
 			for (var rr : rocksList)
 				rr.registerTableTemplate("tRocksRaft", Integer.class, Bean1.class);
 
-			rocks1.getRaft().getServer().Start();
-			rocks2.getRaft().getServer().Start();
-			rocks3.getRaft().getServer().Start();
+			rocks1.getRaft().getServer().start();
+			rocks2.getRaft().getServer().start();
+			rocks3.getRaft().getServer().start();
 
 			var leader = getLeader(rocksList, null);
 			runLeader(leader);
-			leader.getRaft().getServer().Stop();
+			leader.getRaft().getServer().stop();
 
 			// 只简单验证一下最新的数据。
 			var newLeader = getLeader(rocksList, leader);

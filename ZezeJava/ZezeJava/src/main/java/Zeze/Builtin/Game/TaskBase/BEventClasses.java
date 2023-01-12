@@ -141,11 +141,6 @@ public final class BEventClasses extends Zeze.Transaction.Bean implements BEvent
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _EventClasses.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         return false;
     }

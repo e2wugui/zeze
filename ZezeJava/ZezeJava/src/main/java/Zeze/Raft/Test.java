@@ -22,7 +22,6 @@ import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
-import Zeze.Transaction.Record;
 import Zeze.Util.Action0;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.Random;
@@ -122,13 +121,13 @@ public class Test {
 		}
 
 		for (var raft : rafts.values())
-			raft.raft.getServer().Start();
+			raft.raft.getServer().start();
 
 		agent = new Agent("Zeze.Raft.Agent.Test", raftConfigStart);
 		Zeze.Raft.Agent.NetClient client = agent.getClient();
 		client.AddFactoryHandle(AddCount.TypeId_, new Service.ProtocolFactoryHandle<>(AddCount::new));
 		client.AddFactoryHandle(GetCount.TypeId_, new Service.ProtocolFactoryHandle<>(GetCount::new));
-		client.Start();
+		client.start();
 
 		Task.run(() -> {
 			//noinspection InfiniteLoopStatement
@@ -160,7 +159,7 @@ public class Test {
 		try {
 			runTrace();
 		} finally {
-			client.Stop();
+			client.stop();
 			if (snapshotTimer != null)
 				snapshotTimer.cancel(false);
 			for (var raft : rafts.values())
@@ -329,8 +328,8 @@ public class Test {
 		logger.debug("Leader节点重启网络，【选举】");
 		{
 			var leader = getLeader();
-			leader.raft.getServer().Stop();
-			Task.schedule(leader.raft.getRaftConfig().getElectionTimeoutMax(), leader.raft.getServer()::Start);
+			leader.raft.getServer().stop();
+			Task.schedule(leader.raft.getRaftConfig().getElectionTimeoutMax(), leader.raft.getServer()::start);
 		}
 		testConcurrent("TestLeaderNodeRestartNet_NewVote", 1);
 
@@ -402,10 +401,10 @@ public class Test {
 		failActions.add(new FailAction("RestartLeaderNetForVote", () ->
 		{
 			var leader = getLeader();
-			leader.raft.getServer().Stop();
+			leader.raft.getServer().stop();
 			// delay for vote
 			Thread.sleep(leader.raft.getRaftConfig().getElectionTimeoutMax());
-			leader.raft.getServer().Start();
+			leader.raft.getServer().start();
 		}));
 		failActions.add(new FailAction("RestartRaft1", () ->
 		{
@@ -615,16 +614,6 @@ public class Test {
 		}
 
 		@Override
-		protected void initChildrenRootInfo(Record.RootInfo root) {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		protected void resetChildrenRootInfo() {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
 		public String toString() {
 			return "Count=" + count;
 		}
@@ -771,11 +760,11 @@ public class Test {
 			logger.debug("Raft.Net {} Restart ...", raftName);
 			try {
 				if (raft != null)
-					raft.getServer().Stop();
+					raft.getServer().stop();
 				if (raft != null) {
 					for (int i = 0; ; ) {
 						try {
-							raft.getServer().Start();
+							raft.getServer().start();
 							break;
 						} catch (BindException | RuntimeException be) {
 							if (!(be instanceof BindException) && !(be.getCause() instanceof BindException) || ++i > 30)
@@ -807,7 +796,7 @@ public class Test {
 
 		public synchronized void startRaft(boolean resetLog) throws Throwable {
 			if (raft != null) {
-				raft.getServer().Start();
+				raft.getServer().start();
 				return;
 			}
 			logger.debug("Raft {} Start ...", raftName);
@@ -833,7 +822,7 @@ public class Test {
 					new Service.ProtocolFactoryHandle<>(AddCount::new, this::processAddCount));
 			raft.getServer().AddFactoryHandle(GetCount.TypeId_,
 					new Service.ProtocolFactoryHandle<>(GetCount::new, this::processGetCount));
-			raft.getServer().Start();
+			raft.getServer().start();
 		}
 
 		private long processAddCount(AddCount r) {

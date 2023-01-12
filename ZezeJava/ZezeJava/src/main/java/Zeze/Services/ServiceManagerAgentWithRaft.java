@@ -321,7 +321,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 
 	@Override
 	public void start() throws Throwable {
-		raftClient.getClient().Start();
+		raftClient.getClient().start();
 	}
 
 	@Override

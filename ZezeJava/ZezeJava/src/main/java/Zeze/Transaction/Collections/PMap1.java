@@ -4,7 +4,6 @@ import java.util.Map;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Log;
-import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Reflect;
 
@@ -121,14 +120,6 @@ public class PMap1<K, V> extends PMap<K, V> {
 		log.setVariableId(variableId());
 		log.setValue(map);
 		return log;
-	}
-
-	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
-	}
-
-	@Override
-	protected void resetChildrenRootInfo() {
 	}
 
 	@Override

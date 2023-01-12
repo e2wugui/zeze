@@ -148,11 +148,6 @@ public final class BTConditionKillMonsterEvent extends Zeze.Transaction.Bean imp
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _monsters.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         for (var _v_ : _monsters.values()) {
             if (_v_ < 0)

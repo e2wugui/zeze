@@ -326,14 +326,6 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-    }
-
-    @Override
-    protected void resetChildrenRootInfo() {
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getLinkSid() < 0)
             return true;

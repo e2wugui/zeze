@@ -91,11 +91,6 @@ public class CollOne<V extends Bean> extends Collection {
 	}
 
 	@Override
-	protected void resetChildrenRootInfo() {
-		getValue().resetRootInfo();
-	}
-
-	@Override
 	public void followerApply(Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogOne<V>)_log;

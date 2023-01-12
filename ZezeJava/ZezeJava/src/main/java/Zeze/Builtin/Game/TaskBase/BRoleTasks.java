@@ -198,12 +198,6 @@ public final class BRoleTasks extends Zeze.Transaction.Bean implements BRoleTask
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _processingTasks.resetRootInfo();
-        _finishedTaskIds.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         for (var _v_ : _processingTasks.values()) {
             if (_v_.negativeCheck())

@@ -226,14 +226,6 @@ public final class BRankValue extends Zeze.Transaction.Bean implements BRankValu
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-    }
-
-    @Override
-    protected void resetChildrenRootInfo() {
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getRoleId() < 0)
             return true;

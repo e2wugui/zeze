@@ -56,16 +56,6 @@ public class LinkdService extends LinkdServiceBase {
         }
 
         @Override
-        protected void initChildrenRootInfo(Record.RootInfo root) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        protected void resetChildrenRootInfo() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
         public int hashCode() {
             final int _prime_ = 31;
             int _h_ = 0;

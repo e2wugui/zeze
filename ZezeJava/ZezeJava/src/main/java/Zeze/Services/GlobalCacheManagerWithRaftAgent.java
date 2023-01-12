@@ -43,7 +43,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 
 	public final synchronized void start() throws Throwable {
 		for (var agent : agents)
-			agent.getRaftClient().getClient().Start();
+			agent.getRaftClient().getClient().start();
 
 		for (var agent : agents) {
 			try {

@@ -233,14 +233,6 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-    }
-
-    @Override
-    protected void resetChildrenRootInfo() {
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getFrom() < 0)
             return true;

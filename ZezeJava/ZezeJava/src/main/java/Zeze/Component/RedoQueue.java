@@ -53,7 +53,7 @@ public class RedoQueue extends Zeze.Services.HandshakeClient {
 	}
 
 	@Override
-	public synchronized void Start() throws Throwable {
+	public synchronized void start() throws Throwable {
 		if (db != null)
 			return;
 
@@ -82,12 +82,12 @@ public class RedoQueue extends Zeze.Services.HandshakeClient {
 		var done = db.get(familyLastDoneTaskId, DatabaseRocksDb.getDefaultReadOptions(), lastDoneTaskIdKey);
 		if (done != null)
 			lastDoneTaskId = ByteBuffer.Wrap(done).ReadLong();
-		super.Start();
+		super.start();
 	}
 
 	@Override
-	public synchronized void Stop() throws Throwable {
-		super.Stop();
+	public synchronized void stop() throws Throwable {
+		super.stop();
 		db.close();
 		db = null;
 	}

@@ -763,7 +763,7 @@ public final class ServiceManagerServer implements Closeable {
 
 		// 允许配置多个acceptor，如果有冲突，通过日志查看。
 		serverSocket = server.newServerSocket(ipaddress, port, null);
-		server.Start();
+		server.start();
 	}
 
 	public static final class AutoKey {
@@ -826,7 +826,7 @@ public final class ServiceManagerServer implements Closeable {
 		if (startNotifyDelayTask != null)
 			startNotifyDelayTask.cancel(false);
 		serverSocket.close();
-		server.Stop();
+		server.stop();
 		server = null;
 		serverStates.values().forEach(ServerState::close);
 		if (autoKeysDb != null)

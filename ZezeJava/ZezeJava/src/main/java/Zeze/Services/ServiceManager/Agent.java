@@ -31,7 +31,7 @@ public final class Agent extends AbstractAgent {
 
 	@Override
 	public void start() throws Throwable {
-		client.Start();
+		client.start();
 	}
 
 	@Override
@@ -328,7 +328,7 @@ public final class Agent extends AbstractAgent {
 
 	public synchronized void stop() throws Throwable {
 		if (client != null) {
-			client.Stop();
+			client.stop();
 			client = null;
 		}
 	}

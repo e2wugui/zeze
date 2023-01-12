@@ -152,11 +152,6 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean implements BOnlin
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _TimerIds.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         return false;
     }

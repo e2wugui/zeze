@@ -192,11 +192,6 @@ public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTa
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _changedTasks.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getResultCode() < 0)
             return true;

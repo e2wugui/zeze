@@ -63,7 +63,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 		rocks = new Rocks(raftName, RocksMode.Pessimism, raftConf, config, RocksDbWriteOptionSync, SMServer::new);
 		RegisterRocksTables(rocks);
 		RegisterProtocols(rocks.getRaft().getServer());
-		rocks.getRaft().getServer().Start();
+		rocks.getRaft().getServer().start();
 
 		tableAutoKey = rocks.<String, BAutoKey>getTableTemplate("tAutoKey").openTable();
 		tableSession = rocks.<String, BSession>getTableTemplate("tSession").openTable();

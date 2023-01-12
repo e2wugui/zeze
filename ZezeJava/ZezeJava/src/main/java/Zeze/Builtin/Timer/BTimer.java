@@ -368,12 +368,6 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _TimerObj.resetRootInfo();
-        _CustomData.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (_TimerObj.negativeCheck())
             return true;

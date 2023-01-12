@@ -99,16 +99,6 @@ final class BAppendEntriesArgument extends Bean {
 	}
 
 	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	protected void resetChildrenRootInfo() {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
 	public String toString() {
 		return String.format("(Term=%d LeaderId=%s PrevLogIndex=%d PrevLogTerm=%d LeaderCommit=%d)",
 				term, leaderId, prevLogIndex, prevLogTerm, leaderCommit);

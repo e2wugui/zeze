@@ -226,14 +226,6 @@ public final class BProviderInfo extends Zeze.Transaction.Bean implements BProvi
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-    }
-
-    @Override
-    protected void resetChildrenRootInfo() {
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getPort() < 0)
             return true;

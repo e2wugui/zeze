@@ -3,7 +3,6 @@ package Zeze.Services.Handshake;
 import java.util.ArrayList;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Record;
 
 public class BSHandshake0Argument extends Bean {
 	public int encryptType; // 推荐的加密算法。旧版是boolean
@@ -55,16 +54,6 @@ public class BSHandshake0Argument extends Bean {
 	@Override
 	public void preAllocSize(int size) {
 		_PRE_ALLOC_SIZE_ = size;
-	}
-
-	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	protected void resetChildrenRootInfo() {
-		throw new UnsupportedOperationException();
 	}
 
 	@Override

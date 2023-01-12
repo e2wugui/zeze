@@ -184,12 +184,6 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	}
 
 	@Override
-	protected void resetChildrenRootInfo() {
-		for (var v : map.values())
-			v.resetRootInfo();
-	}
-
-	@Override
 	public PMap2<K, V> copy() {
 		var copy = new PMap2<K, V>(logTypeId, keyCodecFuncs, valueFactory);
 		copy.map = map;

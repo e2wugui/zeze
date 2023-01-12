@@ -3,7 +3,6 @@ package Zeze.Raft;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Record;
 
 final class BInstallSnapshotArgument extends Bean {
 	private long term;
@@ -107,16 +106,6 @@ final class BInstallSnapshotArgument extends Bean {
 		done = bb.ReadBool();
 
 		lastIncludedLog = bb.ReadBinary();
-	}
-
-	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	protected void resetChildrenRootInfo() {
-		throw new UnsupportedOperationException();
 	}
 
 	@Override

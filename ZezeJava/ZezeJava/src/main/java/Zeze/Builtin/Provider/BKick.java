@@ -232,14 +232,6 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-    }
-
-    @Override
-    protected void resetChildrenRootInfo() {
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getLinksid() < 0)
             return true;

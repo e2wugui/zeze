@@ -210,7 +210,7 @@ namespace Zeze.Gen.java
                 HashCode.Make(bean, sw, "    ");
             }
             InitChildrenTableKey.Make(bean, sw, "    ");
-            InitChildrenTableKey.MakeReset(bean, sw, "    ");
+            // InitChildrenTableKey.MakeReset(bean, sw, "    ");
             NegativeCheck.Make(bean, sw, "    ");
             FollowerApply.Make(bean, sw, "    ");
         }

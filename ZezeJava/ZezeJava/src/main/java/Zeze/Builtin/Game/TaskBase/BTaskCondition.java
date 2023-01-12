@@ -191,11 +191,6 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _extendedData.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         return false;
     }

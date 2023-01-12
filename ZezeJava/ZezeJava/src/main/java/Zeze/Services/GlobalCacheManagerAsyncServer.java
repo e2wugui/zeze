@@ -156,7 +156,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			return;
 		serverSocket.close();
 		serverSocket = null;
-		server.Stop();
+		server.stop();
 		server = null;
 	}
 

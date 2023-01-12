@@ -515,14 +515,6 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-    }
-
-    @Override
-    protected void resetChildrenRootInfo() {
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getDelay() < 0)
             return true;

@@ -148,11 +148,6 @@ public final class BOfflineTimers extends Zeze.Transaction.Bean implements BOffl
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _OfflineTimers.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         for (var _v_ : _OfflineTimers.values()) {
             if (_v_ < 0)

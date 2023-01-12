@@ -141,11 +141,6 @@ public final class BItemClasses extends Zeze.Transaction.Bean implements BItemCl
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _ItemClasses.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         return false;
     }

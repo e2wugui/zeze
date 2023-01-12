@@ -236,7 +236,7 @@ public final class Raft {
 			unlock();
 		}
 		ShutdownHook.remove(this);
-		server.Stop();
+		server.stop();
 
 		var removeLogBeforeFuture = logSequence.removeLogBeforeFuture;
 		if (removeLogBeforeFuture != null)

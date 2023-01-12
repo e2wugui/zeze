@@ -442,12 +442,6 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _prePhaseIds.resetRootInfo();
-        _subPhases.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getPhaseId() < 0)
             return true;

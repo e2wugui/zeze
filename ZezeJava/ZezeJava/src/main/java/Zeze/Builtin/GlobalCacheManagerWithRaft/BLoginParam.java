@@ -221,14 +221,6 @@ public final class BLoginParam extends Zeze.Transaction.Bean implements BLoginPa
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-    }
-
-    @Override
-    protected void resetChildrenRootInfo() {
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getServerId() < 0)
             return true;

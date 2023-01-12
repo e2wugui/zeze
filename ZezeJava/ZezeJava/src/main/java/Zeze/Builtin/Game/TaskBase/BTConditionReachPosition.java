@@ -348,14 +348,6 @@ public final class BTConditionReachPosition extends Zeze.Transaction.Bean implem
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-    }
-
-    @Override
-    protected void resetChildrenRootInfo() {
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getDimension() < 0)
             return true;

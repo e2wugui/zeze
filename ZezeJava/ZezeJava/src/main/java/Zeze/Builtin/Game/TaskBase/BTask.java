@@ -566,13 +566,6 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _preTaskIds.resetRootInfo();
-        _taskPhases.resetRootInfo();
-        _extendedData.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getRoleId() < 0)
             return true;

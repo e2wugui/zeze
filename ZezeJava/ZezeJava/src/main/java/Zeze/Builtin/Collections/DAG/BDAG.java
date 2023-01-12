@@ -273,14 +273,6 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-    }
-
-    @Override
-    protected void resetChildrenRootInfo() {
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getNodeSum() < 0)
             return true;

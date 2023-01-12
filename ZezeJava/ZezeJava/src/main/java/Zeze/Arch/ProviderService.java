@@ -54,10 +54,10 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 	}
 
 	@Override
-	public void Start() throws Throwable {
+	public void start() throws Throwable {
 		// copy Config.Connector to Links
 		getConfig().ForEachConnector(c -> links.putIfAbsent(c.getName(), c));
-		super.Start();
+		super.start();
 	}
 
 	public void apply(BServiceInfos serviceInfos) {

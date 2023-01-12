@@ -256,12 +256,6 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _dialogOptions.resetRootInfo();
-        _dialogSelected.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getNpcId() < 0)
             return true;

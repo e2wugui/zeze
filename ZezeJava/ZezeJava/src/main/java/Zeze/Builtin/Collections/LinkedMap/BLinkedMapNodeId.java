@@ -137,14 +137,6 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean implements BLi
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-    }
-
-    @Override
-    protected void resetChildrenRootInfo() {
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getNodeId() < 0)
             return true;

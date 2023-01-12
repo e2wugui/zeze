@@ -137,14 +137,6 @@ public final class BAutoKey extends Zeze.Transaction.Bean implements BAutoKeyRea
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-    }
-
-    @Override
-    protected void resetChildrenRootInfo() {
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getNextId() < 0)
             return true;

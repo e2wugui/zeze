@@ -185,7 +185,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			return;
 		serverSocket.close();
 		serverSocket = null;
-		server.Stop();
+		server.stop();
 		server = null;
 	}
 

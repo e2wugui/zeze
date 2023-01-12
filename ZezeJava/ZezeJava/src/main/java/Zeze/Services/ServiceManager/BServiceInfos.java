@@ -113,11 +113,6 @@ public final class BServiceInfos extends Bean {
 	}
 
 	@Override
-	protected void resetChildrenRootInfo() {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
 	public String toString() {
 		var sb = new StringBuilder();
 		sb.append(serviceName).append(" Version=").append(serialId);

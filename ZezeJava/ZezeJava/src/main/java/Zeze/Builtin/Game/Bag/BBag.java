@@ -199,11 +199,6 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _Items.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getCapacity() < 0)
             return true;

@@ -184,14 +184,6 @@ public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyRea
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-    }
-
-    @Override
-    protected void resetChildrenRootInfo() {
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getPosition() < 0)
             return true;

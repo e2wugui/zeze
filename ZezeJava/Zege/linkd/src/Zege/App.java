@@ -204,15 +204,15 @@ public class App extends Zeze.AppBase {
     }
 
     public synchronized void startService() throws Throwable {
-        LinkdService.Start();
-        ProviderService.Start();
+        LinkdService.start();
+        ProviderService.start();
     }
 
     public synchronized void stopService() throws Throwable {
         if (LinkdService != null)
-            LinkdService.Stop();
+            LinkdService.stop();
         if (ProviderService != null)
-            ProviderService.Stop();
+            ProviderService.stop();
     }
     // ZEZE_FILE_CHUNK }}} GEN APP @formatter:on
 }

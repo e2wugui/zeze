@@ -17,14 +17,6 @@ public class BMyBean extends Bean {
 		bb.WriteInt(_i);
 	}
 
-	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
-	}
-
-	@Override
-	protected void resetChildrenRootInfo() {
-	}
-
 	public int _i;
 
 	private static class MyLog extends Zeze.Transaction.Logs.LogInt {

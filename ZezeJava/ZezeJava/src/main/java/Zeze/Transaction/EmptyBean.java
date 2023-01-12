@@ -23,14 +23,6 @@ public class EmptyBean extends Bean {
 	}
 
 	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
-	}
-
-	@Override
-	protected void resetChildrenRootInfo() {
-	}
-
-	@Override
 	public EmptyBean copy() {
 		return new EmptyBean();
 	}

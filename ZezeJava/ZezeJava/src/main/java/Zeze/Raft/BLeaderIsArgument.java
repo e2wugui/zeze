@@ -2,7 +2,6 @@ package Zeze.Raft;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Record;
 
 /**
  * 下面是非标准的Raft-Rpc，辅助Agent用的。
@@ -48,16 +47,6 @@ final class BLeaderIsArgument extends Bean {
 		term = bb.ReadLong();
 		leaderId = bb.ReadString();
 		isLeader = bb.ReadBool();
-	}
-
-	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	protected void resetChildrenRootInfo() {
-		throw new UnsupportedOperationException();
 	}
 
 	@Override

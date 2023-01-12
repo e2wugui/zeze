@@ -4,7 +4,6 @@ import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Log;
-import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Reflect;
 
@@ -111,14 +110,6 @@ public class PSet1<V> extends PSet<V> {
 		@SuppressWarnings("unchecked")
 		var log = (LogSet1<V>)_log;
 		set = set.plusAll(log.getAdded()).minusAll(log.getRemoved());
-	}
-
-	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
-	}
-
-	@Override
-	protected void resetChildrenRootInfo() {
 	}
 
 	@Override

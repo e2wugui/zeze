@@ -236,11 +236,6 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _linkSids.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         for (var _v_ : _linkSids) {
             if (_v_ < 0)

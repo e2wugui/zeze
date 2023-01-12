@@ -28,11 +28,11 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 	}
 
 	public void start() throws Throwable {
-		server.Start();
+		server.start();
 	}
 
 	public void stop() throws Throwable {
-		server.Stop();
+		server.stop();
 	}
 
 	/**

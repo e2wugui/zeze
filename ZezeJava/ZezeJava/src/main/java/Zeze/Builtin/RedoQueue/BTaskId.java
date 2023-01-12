@@ -137,14 +137,6 @@ public final class BTaskId extends Zeze.Transaction.Bean implements BTaskIdReadO
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-    }
-
-    @Override
-    protected void resetChildrenRootInfo() {
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getTaskId() < 0)
             return true;

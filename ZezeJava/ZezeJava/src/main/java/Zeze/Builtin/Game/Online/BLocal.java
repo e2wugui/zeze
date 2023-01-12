@@ -199,11 +199,6 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _Datas.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getLoginVersion() < 0)
             return true;

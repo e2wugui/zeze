@@ -2,7 +2,6 @@ package Zeze.Raft;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Record;
 
 final class BAppendEntriesResult extends Bean {
 	private long term;
@@ -45,16 +44,6 @@ final class BAppendEntriesResult extends Bean {
 		term = bb.ReadLong();
 		success = bb.ReadBool();
 		nextIndex = bb.ReadLong();
-	}
-
-	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	protected void resetChildrenRootInfo() {
-		throw new UnsupportedOperationException();
 	}
 
 	@Override

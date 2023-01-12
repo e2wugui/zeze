@@ -327,11 +327,6 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _ReliableNotifyMark.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getLoginVersion() < 0)
             return true;

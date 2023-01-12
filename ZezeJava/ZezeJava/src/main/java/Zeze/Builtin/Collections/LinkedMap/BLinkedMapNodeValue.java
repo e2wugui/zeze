@@ -186,11 +186,6 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean implements 
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _Value.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         return false;
     }

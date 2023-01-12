@@ -221,15 +221,15 @@ public class App extends Zeze.AppBase {
     }
 
     public synchronized void startService() throws Throwable {
-        Server.Start();
-        ServerDirect.Start();
+        Server.start();
+        ServerDirect.start();
     }
 
     public synchronized void stopService() throws Throwable {
         if (Server != null)
-            Server.Stop();
+            Server.stop();
         if (ServerDirect != null)
-            ServerDirect.Stop();
+            ServerDirect.stop();
     }
     // ZEZE_FILE_CHUNK }}} GEN APP @formatter:on
 }

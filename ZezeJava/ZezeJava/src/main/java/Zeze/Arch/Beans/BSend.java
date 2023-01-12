@@ -163,14 +163,4 @@ public class BSend extends Zeze.Transaction.Bean {
 			_o_.ReadTagSize(_t_ = _o_.ReadByte());
 		}
 	}
-
-	@Override
-	protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	protected void resetChildrenRootInfo() {
-		throw new UnsupportedOperationException();
-	}
 }

@@ -3,36 +3,52 @@ using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
 {
-    public class InitChildrenTableKey
+    public static class InitChildrenTableKey
     {
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {");
+            var genBegin = false;
             foreach (Variable v in bean.Variables)
             {
-                if (v.VariableType.IsNormalBean || v.VariableType.IsCollection)
+                if (v.VariableType.IsNormalBean || v.VariableType.IsCollection || v.VariableType is TypeDynamic)
+                {
+                    if (!genBegin)
+                    {
+                        genBegin = true;
+                        sw.WriteLine(prefix + "@Override");
+                        sw.WriteLine(prefix + "protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {");
+                    }
                     sw.WriteLine(prefix + "    " + v.NamePrivate + ".initRootInfo(root, this);");
-                else if (v.VariableType is TypeDynamic)
-                    sw.WriteLine(prefix + "    " + v.NamePrivate + ".initRootInfo(root, this);");
+                }
             }
-            sw.WriteLine(prefix + "}");
-            sw.WriteLine();
+            if (genBegin)
+            {
+                sw.WriteLine(prefix + "}");
+                sw.WriteLine();
+            }
         }
 
         public static void MakeReset(Bean bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "protected void resetChildrenRootInfo() {");
+            var genBegin = false;
             foreach (Variable v in bean.Variables)
             {
-                if (v.VariableType.IsNormalBean || v.VariableType.IsCollection)
+                if (v.VariableType.IsNormalBean || v.VariableType.IsCollection || v.VariableType is TypeDynamic)
+                {
+                    if (!genBegin)
+                    {
+                        genBegin = true;
+                        sw.WriteLine(prefix + "@Override");
+                        sw.WriteLine(prefix + "protected void resetChildrenRootInfo() {");
+                    }
                     sw.WriteLine(prefix + "    " + v.NamePrivate + ".resetRootInfo();");
-                else if (v.VariableType is TypeDynamic)
-                    sw.WriteLine(prefix + "    " + v.NamePrivate + ".resetRootInfo();");
+                }
             }
-            sw.WriteLine(prefix + "}");
-            sw.WriteLine();
+            if (genBegin)
+            {
+                sw.WriteLine(prefix + "}");
+                sw.WriteLine();
+            }
         }
     }
 }

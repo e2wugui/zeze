@@ -150,11 +150,6 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean implements BOnlin
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _CustomData.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         return false;
     }

@@ -318,11 +318,6 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _CustomData.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getRoleId() < 0)
             return true;

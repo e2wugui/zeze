@@ -2,7 +2,6 @@ package Zeze.Services.ServiceManager;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Record;
 
 public final class BAllocateIdArgument extends Bean {
 	private String name;
@@ -34,16 +33,6 @@ public final class BAllocateIdArgument extends Bean {
 	public void encode(ByteBuffer bb) {
 		bb.WriteString(getName());
 		bb.WriteInt(getCount());
-	}
-
-	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	protected void resetChildrenRootInfo() {
-		throw new UnsupportedOperationException();
 	}
 
 	private static int _PRE_ALLOC_SIZE_ = 16;

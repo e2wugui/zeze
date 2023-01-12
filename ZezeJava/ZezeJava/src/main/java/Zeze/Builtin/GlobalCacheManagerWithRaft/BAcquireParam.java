@@ -185,14 +185,6 @@ public final class BAcquireParam extends Zeze.Transaction.Bean implements BAcqui
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-    }
-
-    @Override
-    protected void resetChildrenRootInfo() {
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getState() < 0)
             return true;

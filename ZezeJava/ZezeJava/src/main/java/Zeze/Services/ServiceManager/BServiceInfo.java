@@ -3,7 +3,6 @@ package Zeze.Services.ServiceManager;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Record;
 
 public final class BServiceInfo extends Bean implements Comparable<BServiceInfo> {
 	/**
@@ -114,16 +113,6 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 	@Override
 	public void preAllocSize(int size) {
 		_PRE_ALLOC_SIZE_ = size;
-	}
-
-	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	protected void resetChildrenRootInfo() {
-		throw new UnsupportedOperationException();
 	}
 
 	@Override

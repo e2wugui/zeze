@@ -2,7 +2,6 @@ package Zeze.Services.GlobalCacheManager;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Record;
 
 public class BAchillesHeel extends Bean {
 	public int serverId; // 必须的。
@@ -21,16 +20,6 @@ public class BAchillesHeel extends Bean {
 		bb.WriteInt(serverId);
 		bb.WriteString(secureKey);
 		bb.WriteInt(globalCacheManagerHashIndex);
-	}
-
-	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	protected void resetChildrenRootInfo() {
-		throw new UnsupportedOperationException();
 	}
 
 	private static int _PRE_ALLOC_SIZE_ = 16;

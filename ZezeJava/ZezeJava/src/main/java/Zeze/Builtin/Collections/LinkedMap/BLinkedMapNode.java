@@ -235,11 +235,6 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean implements BLink
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _Values.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getPrevNodeId() < 0)
             return true;

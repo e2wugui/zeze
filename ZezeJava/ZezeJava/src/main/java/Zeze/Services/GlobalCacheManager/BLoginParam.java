@@ -2,7 +2,6 @@ package Zeze.Services.GlobalCacheManager;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Record;
 
 public class BLoginParam extends Bean {
 	public int serverId;
@@ -26,16 +25,6 @@ public class BLoginParam extends Bean {
 		bb.WriteInt(serverId);
 		bb.WriteInt(globalCacheManagerHashIndex);
 		bb.WriteBool(debugMode);
-	}
-
-	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	protected void resetChildrenRootInfo() {
-		throw new UnsupportedOperationException();
 	}
 
 	@Override

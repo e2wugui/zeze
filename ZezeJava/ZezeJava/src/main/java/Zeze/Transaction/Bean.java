@@ -93,11 +93,9 @@ public abstract class Bean implements Serializable {
 		parent = null;
 	}
 
-	@Deprecated
-	protected abstract void resetChildrenRootInfo();
-
 	// 用在第一次加载Bean时，需要初始化它的root
-	protected abstract void initChildrenRootInfo(Record.RootInfo root);
+	protected void initChildrenRootInfo(Record.RootInfo root) {
+	}
 
 	public boolean negativeCheck() {
 		return false;

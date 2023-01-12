@@ -212,12 +212,6 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
-	protected void resetChildrenRootInfo() {
-		for (var v : list)
-			v.resetRootInfo();
-	}
-
-	@Override
 	public PList2<V> copy() {
 		var copy = new PList2<V>(logTypeId, valueFactory);
 		copy.list = list;

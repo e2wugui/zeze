@@ -141,11 +141,6 @@ public final class BCustomClasses extends Zeze.Transaction.Bean implements BCust
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _CustomClasses.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         return false;
     }

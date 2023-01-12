@@ -200,14 +200,6 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-    }
-
-    @Override
-    protected void resetChildrenRootInfo() {
-    }
-
-    @Override
     public boolean negativeCheck() {
         return false;
     }

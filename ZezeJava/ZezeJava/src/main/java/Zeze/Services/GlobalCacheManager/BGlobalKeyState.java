@@ -3,7 +3,6 @@ package Zeze.Services.GlobalCacheManager;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Record;
 
 public class BGlobalKeyState extends Bean {
 	public Binary globalKey; // 没有初始化，使用时注意
@@ -19,16 +18,6 @@ public class BGlobalKeyState extends Bean {
 	public void encode(ByteBuffer bb) {
 		bb.WriteBinary(globalKey);
 		bb.WriteInt(state);
-	}
-
-	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	protected void resetChildrenRootInfo() {
-		throw new UnsupportedOperationException();
 	}
 
 	@Override

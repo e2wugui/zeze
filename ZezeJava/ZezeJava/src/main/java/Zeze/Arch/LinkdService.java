@@ -70,9 +70,9 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 	}
 
 	@Override
-	public void Start() throws Throwable {
+	public void start() throws Throwable {
 		stableLinkSids = new ConcurrentLruLike<>(getName(), 1_000_000, this::tryLruRemove);
-		super.Start();
+		super.start();
 	}
 
 	private void reportError(Dispatch dispatch) {

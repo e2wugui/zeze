@@ -2,7 +2,6 @@ package Zeze.Raft;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Record;
 
 final class BRequestVoteResult extends Bean {
 	private long term;
@@ -34,16 +33,6 @@ final class BRequestVoteResult extends Bean {
 	public void decode(ByteBuffer bb) {
 		term = bb.ReadLong();
 		voteGranted = bb.ReadBool();
-	}
-
-	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	protected void resetChildrenRootInfo() {
-		throw new UnsupportedOperationException();
 	}
 
 	@Override

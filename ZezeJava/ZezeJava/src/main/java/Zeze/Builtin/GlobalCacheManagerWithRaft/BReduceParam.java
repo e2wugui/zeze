@@ -184,14 +184,6 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-    }
-
-    @Override
-    protected void resetChildrenRootInfo() {
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getState() < 0)
             return true;

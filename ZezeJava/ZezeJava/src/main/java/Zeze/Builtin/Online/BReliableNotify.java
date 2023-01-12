@@ -189,11 +189,6 @@ public final class BReliableNotify extends Zeze.Transaction.Bean implements BRel
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _Notifies.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getReliableNotifyIndex() < 0)
             return true;

@@ -283,11 +283,6 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _Roles.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         for (var _v_ : _Roles) {
             if (_v_ < 0)

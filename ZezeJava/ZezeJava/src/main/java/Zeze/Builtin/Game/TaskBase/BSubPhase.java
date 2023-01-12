@@ -293,11 +293,6 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _conditions.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getSubPhaseId() < 0)
             return true;

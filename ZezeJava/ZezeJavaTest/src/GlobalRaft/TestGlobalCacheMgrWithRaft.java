@@ -476,14 +476,14 @@ public class TestGlobalCacheMgrWithRaft {
 			try {
 				if (GlobalCacheManagerWithRaft != null) {
 //					getRaft().getServer().Stop();
-					GlobalCacheManagerWithRaft.getRocks().getRaft().getServer().Stop();
+					GlobalCacheManagerWithRaft.getRocks().getRaft().getServer().stop();
 				}
 
 				if (GlobalCacheManagerWithRaft != null) {
 					for (int i = 0; ; ) {
 						try {
 //							getRaft().getServer().Start();
-							GlobalCacheManagerWithRaft.getRocks().getRaft().getServer().Start();
+							GlobalCacheManagerWithRaft.getRocks().getRaft().getServer().start();
 							break;
 						}  catch (BindException | RuntimeException be) {
 							if (!(be instanceof BindException) && !(be.getCause() instanceof BindException) || ++i > 30)

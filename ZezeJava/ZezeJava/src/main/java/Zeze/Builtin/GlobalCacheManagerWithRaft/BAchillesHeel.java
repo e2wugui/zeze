@@ -226,14 +226,6 @@ public final class BAchillesHeel extends Zeze.Transaction.Bean implements BAchil
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-    }
-
-    @Override
-    protected void resetChildrenRootInfo() {
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getServerId() < 0)
             return true;

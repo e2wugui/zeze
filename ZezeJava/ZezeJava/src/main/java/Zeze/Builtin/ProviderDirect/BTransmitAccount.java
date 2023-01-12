@@ -335,11 +335,6 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _TargetAccounts.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         return false;
     }

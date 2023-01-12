@@ -264,11 +264,6 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _TimerObj.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getRoleId() < 0)
             return true;

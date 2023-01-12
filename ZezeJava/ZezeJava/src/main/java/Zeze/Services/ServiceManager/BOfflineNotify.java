@@ -3,7 +3,6 @@ package Zeze.Services.ServiceManager;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Record;
 
 public class BOfflineNotify extends Bean {
 	public int serverId;
@@ -25,15 +24,5 @@ public class BOfflineNotify extends Bean {
 		notifyId = bb.ReadString();
 		notifySerialId = bb.ReadLong();
 		notifyContext = bb.ReadBinary();
-	}
-
-	@Override
-	protected void resetChildrenRootInfo() {
-
-	}
-
-	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
-
 	}
 }

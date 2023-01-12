@@ -148,11 +148,6 @@ public final class BTConditionSubmitItemEvent extends Zeze.Transaction.Bean impl
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _items.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         for (var _v_ : _items.values()) {
             if (_v_ < 0)

@@ -2,7 +2,6 @@ package Zeze.Services.Handshake;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Record;
 
 public final class BSHandshakeArgument extends Bean {
 	public byte[] encryptParam = ByteBuffer.Empty;
@@ -29,16 +28,6 @@ public final class BSHandshakeArgument extends Bean {
 		bb.WriteInt(compressS2c);
 		bb.WriteInt(compressC2s);
 		bb.WriteInt(encryptType);
-	}
-
-	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	protected void resetChildrenRootInfo() {
-		throw new UnsupportedOperationException();
 	}
 
 	private static int _PRE_ALLOC_SIZE_ = 128;

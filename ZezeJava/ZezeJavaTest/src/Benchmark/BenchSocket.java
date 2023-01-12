@@ -561,8 +561,8 @@ public class BenchSocket {
 			bValue.setBytes8(new Binary(bytes));
 		}
 
-		server.Start();
-		client.Start();
+		server.start();
+		client.start();
 		try {
 			connector.WaitReady();
 			var socket = connector.getSocket();
@@ -586,8 +586,8 @@ public class BenchSocket {
 			var seconds = b.report("BenchSocket", count);
 			System.out.println("sum=" + sum + " bytes, speed=" + sum / seconds / 1024 / 1024 + "M");
 		} finally {
-			client.Stop();
-			server.Stop();
+			client.stop();
+			server.stop();
 		}
 	}
 }

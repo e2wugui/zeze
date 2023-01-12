@@ -2,7 +2,6 @@ package Zeze.Services.ServiceManager;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Record;
 
 public final class BSubscribeInfo extends Bean {
 	public static final int SubscribeTypeSimple = 0;
@@ -46,16 +45,6 @@ public final class BSubscribeInfo extends Bean {
 	public void encode(ByteBuffer bb) {
 		bb.WriteString(getServiceName());
 		bb.WriteInt(getSubscribeType());
-	}
-
-	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	protected void resetChildrenRootInfo() {
-		throw new UnsupportedOperationException();
 	}
 
 	@Override

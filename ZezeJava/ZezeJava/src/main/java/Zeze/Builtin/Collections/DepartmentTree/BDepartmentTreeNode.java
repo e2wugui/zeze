@@ -355,13 +355,6 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _Childs.resetRootInfo();
-        _Managers.resetRootInfo();
-        _Data.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getParentDepartment() < 0)
             return true;

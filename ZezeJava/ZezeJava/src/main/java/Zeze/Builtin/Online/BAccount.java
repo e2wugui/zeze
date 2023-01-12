@@ -137,14 +137,6 @@ public final class BAccount extends Zeze.Transaction.Bean implements BAccountRea
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-    }
-
-    @Override
-    protected void resetChildrenRootInfo() {
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getLastLoginVersion() < 0)
             return true;

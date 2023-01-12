@@ -226,14 +226,6 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-    }
-
-    @Override
-    protected void resetChildrenRootInfo() {
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getProtocolType() < 0)
             return true;

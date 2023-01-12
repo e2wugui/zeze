@@ -135,11 +135,6 @@ public final class BDAGNode extends Zeze.Transaction.Bean implements BDAGNodeRea
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _Value.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         return false;
     }

@@ -254,7 +254,7 @@ public final class GlobalAgent implements IGlobalAgent {
 	}
 
 	public synchronized void start() throws Throwable {
-		client.Start();
+		client.start();
 
 		for (var agent : agents) {
 			try {
@@ -269,6 +269,6 @@ public final class GlobalAgent implements IGlobalAgent {
 	public synchronized void stop() throws Throwable {
 		for (var agent : agents)
 			agent.close();
-		client.Stop();
+		client.stop();
 	}
 }

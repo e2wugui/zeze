@@ -241,11 +241,6 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _Timers.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getPrevNodeId() < 0)
             return true;

@@ -263,14 +263,6 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-    }
-
-    @Override
-    protected void resetChildrenRootInfo() {
-    }
-
-    @Override
     public boolean negativeCheck() {
         if (getHeadNodeId() < 0)
             return true;

@@ -146,11 +146,6 @@ public final class BAny extends Zeze.Transaction.Bean implements BAnyReadOnly {
     }
 
     @Override
-    protected void resetChildrenRootInfo() {
-        _Any.resetRootInfo();
-    }
-
-    @Override
     public boolean negativeCheck() {
         return false;
     }

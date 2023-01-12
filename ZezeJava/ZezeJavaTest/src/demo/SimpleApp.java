@@ -72,8 +72,8 @@ public class SimpleApp extends AppBase {
 
 		zeze.start();
 		((ProviderImplementWithOnline)providerApp.providerImplement).online.start();
-		providerApp.providerService.Start();
-		providerApp.providerDirectService.Start();
+		providerApp.providerService.start();
+		providerApp.providerDirectService.start();
 		providerApp.startLast(ProviderModuleBinds.load(""), modules);
 	}
 
@@ -84,8 +84,8 @@ public class SimpleApp extends AppBase {
 				if (online != null)
 					online.stop();
 			}
-			providerApp.providerDirectService.Stop();
-			providerApp.providerService.Stop();
+			providerApp.providerDirectService.stop();
+			providerApp.providerService.stop();
 			providerApp = null;
 		}
 		if (rank != null) {
