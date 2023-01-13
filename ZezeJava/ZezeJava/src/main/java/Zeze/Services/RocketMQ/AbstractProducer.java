@@ -11,6 +11,8 @@ public abstract class AbstractProducer implements Zeze.IModule {
     @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
 
+    protected final Zeze.Builtin.RocketMQ.Producer.tSent _tSent = new Zeze.Builtin.RocketMQ.Producer.tSent();
+
     public void RegisterProtocols(Zeze.Net.Service service) {
     }
 
@@ -18,9 +20,11 @@ public abstract class AbstractProducer implements Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
+        zeze.addTable(zeze.getConfig().getTableConf(_tSent.getName()).getDatabaseName(), _tSent);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
+        zeze.removeTable(zeze.getConfig().getTableConf(_tSent.getName()).getDatabaseName(), _tSent);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

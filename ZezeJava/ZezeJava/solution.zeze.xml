@@ -1234,6 +1234,11 @@
 
 		<module name="RocketMQ" id="11023">
 			<module name="Producer" id="11024">
+				<bean name="BTransactionMessageResult">
+					<variable id="1" name="Result" type="bool"/>
+					<variable id="2" name="Timestamp" type="long"/>
+				</bean>
+				<table name="tSent" key="string" value="BTransactionMessageResult"/>
 			</module>
 		</module>
 		<!--
