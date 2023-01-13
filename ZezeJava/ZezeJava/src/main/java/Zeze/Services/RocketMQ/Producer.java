@@ -1,6 +1,5 @@
 package Zeze.Services.RocketMQ;
 
-import javax.ejb.Local;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.OutInt;
 import Zeze.Util.TaskCompletionSource;
@@ -47,8 +46,6 @@ public class Producer extends AbstractProducer implements org.apache.rocketmq.cl
 	@Override
 	public LocalTransactionState executeLocalTransaction(Message msg, Object futureObj) {
 		try {
-			// 警告求助！
-			// 这个转换有个警告，我点击了一下它的提示，这里就不警告了，但是build会有警告，我就加上，然后就这样了。
 			@SuppressWarnings("unchecked")
 			var future = (TaskCompletionSource<Boolean>)futureObj;
 			return future.get() ? LocalTransactionState.COMMIT_MESSAGE : LocalTransactionState.ROLLBACK_MESSAGE;
