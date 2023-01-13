@@ -162,7 +162,7 @@ namespace Zeze.Transaction
 
         internal static void WhileRedo(Bean b)
         {
-            Current.RedoBeans.Add(b);
+            Current?.RedoBeans.Add(b);
         }
 
         public void RunWhileCommit(Action action)

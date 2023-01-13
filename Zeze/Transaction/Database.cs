@@ -1057,7 +1057,8 @@ namespace Zeze.Transaction
                             return 3
                         end
 
-                        insert IGNORE into _ZezeDataWithVersion_ values(@id,@data,@version)
+insert into _ZezeDataWithVersion_ values(@id,@data,@version) select id,data,version from _ZezeDataWithVersion_ where NOT EXISTS (select id where id=@id)
+
                         if @@rowcount = 1
                         begin
                             set @ReturnValue=0
@@ -1091,7 +1092,7 @@ namespace Zeze.Transaction
                             ROLLBACK TRANSACTION
                             return 2
                         end
-                        insert IGNORE into _ZezeInstances_ values(@localid)
+insert into _ZezeInstances_ values(@localid) select localid from _ZezeInstances_ where NOT EXISTS (select localid from _ZezeInstances_ where localid=@localid)
                         if @@rowcount = 0
                         begin
                             set @ReturnValue=3
@@ -1113,7 +1114,7 @@ namespace Zeze.Transaction
                         end
                         else
                         begin
-                            insert IGNORE into _ZezeDataWithVersion_ values(@emptybinary, @global, 0)
+insert into _ZezeDataWithVersion_ values(@emptybinary,@global,0) select id,data,version from _ZezeDataWithVersion_ where NOT EXISTS (select id where id=@emptybinary)
                         end
                         DECLARE @InstanceCount int
                         set @InstanceCount=0
