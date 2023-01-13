@@ -31,7 +31,8 @@ public class Producer extends AbstractProducer {
 	}
 
 	public void stop() {
-		producer.shutdown();
+		if (null != producer)
+			producer.shutdown();
 	}
 
 	public void sendMessageInTransaction(Message msg) throws MQClientException {
