@@ -7,11 +7,13 @@ import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.rocketmq.client.ClientConfig;
+import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.client.producer.TransactionMQProducer;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 
 public class Producer extends AbstractProducer {
 
@@ -47,6 +49,14 @@ public class Producer extends AbstractProducer {
 		Transaction.whileCommit(() -> future.setResult(true));
 		Transaction.whileRollback(() -> future.setResult(false));
 		producer.sendMessageInTransaction(msg, future);
+	}
+
+	public void sendMessage(Message msg) throws MQBrokerException, RemotingException, InterruptedException, MQClientException {
+		producer.send(msg);
+	}
+
+	public TransactionMQProducer getProducer() {
+		return producer;
 	}
 
 	class MQListener implements org.apache.rocketmq.client.producer.TransactionListener {

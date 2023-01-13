@@ -5,10 +5,11 @@ import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;
 
 public class Consumer {
+	public Zeze.Application Zeze;
 	private DefaultMQPushConsumer consumer;
 
-	public Consumer() {
-
+	public Consumer(Zeze.Application zeze) {
+		Zeze = zeze; // 保持一致的构造，先记住，以后可能有用。
 	}
 
 	public void start(String consumerGroup, ClientConfig clientConfig) throws MQClientException {
