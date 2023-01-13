@@ -1,5 +1,6 @@
 package Zeze.Services.RocketMQ;
 
+import Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResult;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.OutInt;
 import Zeze.Util.TaskCompletionSource;
@@ -37,9 +38,10 @@ public class Producer extends AbstractProducer {
 
 	public void sendMessageInTransaction(Message msg) throws MQClientException {
 		String transactionId = msg.getTransactionId();
-		var result = _tSent.getOrAdd(transactionId);
+		var result = new BTransactionMessageResult();
 		result.setResult(true);
 		result.setTimestamp(System.currentTimeMillis());
+		_tSent.insert(transactionId, result);
 
 		var future = new TaskCompletionSource<Boolean>();
 		Transaction.whileCommit(() -> future.setResult(true));
