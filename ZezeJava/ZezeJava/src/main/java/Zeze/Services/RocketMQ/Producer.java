@@ -5,6 +5,7 @@ import Zeze.Util.OutInt;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.client.producer.TransactionMQProducer;
@@ -22,13 +23,15 @@ public class Producer extends AbstractProducer {
 		RegisterZezeTables(zeze);
 	}
 
-	public void start() {
-		// todo 这里创建 producer，并建立连接。
+	public void start(String producerGroup, ClientConfig clientConfig) throws MQClientException {
+		producer = new TransactionMQProducer(producerGroup);
+		producer.setNamesrvAddr(clientConfig.getNamesrvAddr());
 		producer.setTransactionListener(new MQListener());
+		producer.start();
 	}
 
 	public void stop() {
-		// todo 停止 producer.
+		producer.shutdown();
 	}
 
 	public void sendMessageInTransaction(Message msg) throws MQClientException {
