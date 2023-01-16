@@ -5,7 +5,7 @@ import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;
 
 public class Consumer {
-	public Zeze.Application Zeze;
+	public final Zeze.Application Zeze;
 	private DefaultMQPushConsumer consumer;
 
 	public Consumer(Zeze.Application zeze) {

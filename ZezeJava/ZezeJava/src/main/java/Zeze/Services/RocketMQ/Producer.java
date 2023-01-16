@@ -18,7 +18,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 public class Producer extends AbstractProducer {
 
 	private static final Logger logger = LogManager.getLogger(Producer.class);
-	public Zeze.Application Zeze;
+	public final Zeze.Application Zeze;
 	private TransactionMQProducer producer;
 
 	public Producer(Zeze.Application zeze) {

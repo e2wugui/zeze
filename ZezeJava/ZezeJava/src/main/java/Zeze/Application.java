@@ -108,8 +108,8 @@ public final class Application {
 			break;
 		}
 
-		var serverId = conf != null ? conf.getServerId() : -1;
-		var noDatabase = conf == null || conf.isNoDatabase() || serverId < 0;
+		var serverId = conf.getServerId();
+		var noDatabase = conf.isNoDatabase() || serverId < 0;
 		if (!noDatabase) {
 			// 自动初始化的组件。
 			autoKey = new AutoKey.Module(this);

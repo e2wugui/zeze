@@ -71,7 +71,7 @@ public class DelayRemove extends AbstractDelayRemove {
 		public void process(DelayRemove delayRemove, String jobId, Binary jobState) throws Throwable;
 	}
 
-	private ConcurrentHashMap<String, JobHandle> jobHandles = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, JobHandle> jobHandles = new ConcurrentHashMap<>();
 
 	public void register(String handleName, JobHandle handle) {
 		if (jobHandles.putIfAbsent(handleName, handle) != null)

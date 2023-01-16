@@ -35,10 +35,21 @@ public final class DecompressZstd implements Codec, Closeable {
 	@Override
 	public void update(byte[] data, int off, int len) throws CodecException {
 		if (srcBufLen > 0) {
-			ds.decompress(srcBuf, 0, srcBufLen, sink);
-			srcBufLen = 0;
+			int n = Math.min(srcBuf.length - srcBufLen, len);
+			System.arraycopy(data, off, srcBuf, srcBufLen, n);
+			if ((srcBufLen += n) >= srcBuf.length) {
+				ds.decompress(srcBuf, 0, srcBufLen, sink);
+				srcBufLen = 0;
+			}
+			if ((len -= n) <= 0)
+				return;
+			off += n;
 		}
-		ds.decompress(data, off, off + len, sink);
+		if (len < srcBuf.length) {
+			System.arraycopy(data, off, srcBuf, 0, len);
+			srcBufLen = len;
+		} else
+			ds.decompress(data, off, off + len, sink);
 	}
 
 	@Override
