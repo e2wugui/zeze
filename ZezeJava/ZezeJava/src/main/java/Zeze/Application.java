@@ -54,7 +54,7 @@ public final class Application {
 	private AutoKey.Module autoKey;
 	private Timer timer;
 	private Zeze.Collections.Queue.Module queueModule;
-	private Zeze.Component.DelayRemove delayRemove;
+	private DelayRemove delayRemove;
 	private IGlobalAgent globalAgent;
 	private Zeze.Transaction.AchillesHeelDaemon achillesHeelDaemon;
 	private Checkpoint checkpoint;
@@ -228,7 +228,7 @@ public final class Application {
 		return queueModule;
 	}
 
-	public Zeze.Component.DelayRemove getDelayRemove() {
+	public DelayRemove getDelayRemove() {
 		return delayRemove;
 	}
 
@@ -421,7 +421,6 @@ public final class Application {
 		if (serviceManager != null)
 			serviceManager.close();
 
-		delayRemove = null;
 		if (queueModule != null) {
 			queueModule.UnRegisterZezeTables(this);
 			queueModule = null;

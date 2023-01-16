@@ -8,6 +8,7 @@ import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeId;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue;
+import Zeze.Component.DelayRemove;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.ChangeListener;
@@ -273,6 +274,16 @@ public class LinkedMap<V extends Bean> {
 
 	// foreach
 	public void clear() {
+		var root = module._tLinkedMaps.get(name);
+		if (null == root)
+			return;
+		var headerNodeId = root.getHeadNodeId();
+		var tailNodeId = root.getTailNodeId();
+		root.setHeadNodeId(0);
+		root.setTailNodeId(0);
+		root.setCount(0);
+		//DelayRemove.remove();
+		/*
 		Zeze.Util.Task.run(() -> {
 			var root = module._tLinkedMaps.selectDirty(name);
 			if (null == root)
@@ -293,6 +304,7 @@ public class LinkedMap<V extends Bean> {
 				return 0;
 			}, name + ".clear.root").call();
 		}, name + ".clear", DispatchMode.Normal);
+		*/
 	}
 
 	@SuppressWarnings("unchecked")

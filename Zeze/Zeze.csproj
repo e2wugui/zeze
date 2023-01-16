@@ -24,6 +24,11 @@
     <DefineConstants>$(DefineConstants);TRACE;USE_DATABASE;USE_DIAGNOSTICS;ENABLE_STATISTICS;HAS_NLOG</DefineConstants>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+	<DebugType>full</DebugType>
+	<DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Remove="Dummy\**" />
     <EmbeddedResource Remove="Dummy\**" />

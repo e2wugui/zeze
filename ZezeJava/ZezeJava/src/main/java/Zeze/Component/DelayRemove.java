@@ -9,21 +9,16 @@ import Zeze.Transaction.TableX;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 
+/**
+ * 每个ServerId分配一个独立的GC队列。Server之间不会争抢。如果一个Server一直没有起来，那么它的GC就一直不会执行。
+ */
 public class DelayRemove extends AbstractDelayRemove {
-	/**
-	 * 每个ServerId分配一个独立的GC队列。Server之间不会争抢。如果一个Server一直没有起来，那么它的GC就一直不会执行。
-	 */
-	private final ConcurrentHashMap<Integer, DelayRemove> delays = new ConcurrentHashMap<>();
-
 	public <K extends Comparable<K>> void remove(TableX<K, ?> table, K key) {
-		var zz = table.getZeze();
-		var serverId = zz.getConfig().getServerId();
-		var delay = delays.computeIfAbsent(serverId, (_key_) -> new DelayRemove(zz));
 		var value = new BTableKey();
 		value.setTableName(table.getName());
 		value.setEncodedKey(new Binary(table.encodeKey(key)));
 		value.setEnqueueTime(System.currentTimeMillis());
-		delay.queue.add(value);
+		queue.add(value);
 	}
 
 	private final Zeze.Collections.Queue<BTableKey> queue;
@@ -70,6 +65,7 @@ public class DelayRemove extends AbstractDelayRemove {
 			timer = null;
 		}
 	}
+
 	private void onTimer() throws Throwable {
 		// delayRemove可能需要删除很多记录，不能在一个事务内完成全部删除。
 		// 这里按每个节点的记录的删除在一个事务中执行，节点间用不同的事务。

@@ -18,6 +18,11 @@
     <DefineConstants>$(DefineConstants);TRACE;USE_DATABASE</DefineConstants>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Remove="tikv.dll" />
   </ItemGroup>
