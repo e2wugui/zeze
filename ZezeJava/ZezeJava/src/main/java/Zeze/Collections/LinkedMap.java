@@ -2,6 +2,7 @@ package Zeze.Collections;
 
 import java.lang.invoke.MethodHandle;
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Builtin.Collections.LinkedMap.BClearJobState;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMap;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode;
@@ -9,11 +10,11 @@ import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeId;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue;
 import Zeze.Component.DelayRemove;
+import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.ChangeListener;
 import Zeze.Transaction.Changes;
-import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Util.OutLong;
 
@@ -30,16 +31,19 @@ public class LinkedMap<V extends Bean> {
 
 	public static class Module extends AbstractLinkedMap {
 		private final ConcurrentHashMap<String, LinkedMap<?>> LinkedMaps = new ConcurrentHashMap<>();
-		public final Zeze.Application Zeze;
+		public final Zeze.Application zeze;
+		public static final String eClearJobHandleName = "Zeze.Collections.LinkedMap.Clear";
 
 		public Module(Zeze.Application zeze) {
-			Zeze = zeze;
+			this.zeze = zeze;
 			RegisterZezeTables(zeze);
 
 			// 总是监听，但不直接开放。
 			// 监听回调按LinkedMap.Name的后缀名进行回调，不支持广播。
 			_tLinkedMapNodes.getChangeListenerMap().addListener(this::OnLinkedMapNodeChange);
 			_tLinkedMaps.getChangeListenerMap().addListener(this::OnLinkedMapRootChange);
+
+			this.zeze.getDelayRemove().register(eClearJobHandleName, this::delayClearJob);
 		}
 
 		public ByteBuffer encodeChangeListenerWithSpecialName(String specialName, Object key, Changes.Record r) {
@@ -71,7 +75,7 @@ public class LinkedMap<V extends Bean> {
 
 		@Override
 		public void UnRegister() {
-			UnRegisterZezeTables(Zeze);
+			UnRegisterZezeTables(zeze);
 		}
 
 		@SuppressWarnings("unchecked")
@@ -86,6 +90,33 @@ public class LinkedMap<V extends Bean> {
 
 		public final ConcurrentHashMap<String, ChangeListener> NodeListeners = new ConcurrentHashMap<>();
 		public final ConcurrentHashMap<String, ChangeListener> RootListeners = new ConcurrentHashMap<>();
+
+		private void delayClearJob(DelayRemove delayRemove, String jobId, Binary jobState) throws Throwable {
+			var state = new BClearJobState();
+			state.decode(ByteBuffer.Wrap(jobState));
+			while (state.getHeadNodeId() != 0) {
+				zeze.newProcedure(() -> {
+					var node = _tLinkedMapNodes.get(new BLinkedMapNodeKey(state.getLinkedMapName(), state.getHeadNodeId()));
+					if (null == node) {
+						state.setHeadNodeId(0);
+						delayRemove.setJobState(jobId, null); // remove job
+						return 0;
+					}
+
+					// removeNode 必须另写，不能直接使用LinkedMap.removeNode。
+					for (var e : node.getValues())
+						_tValueIdToNodeId.remove(new BLinkedMapKey(state.getLinkedMapName(), e.getId()));
+					node.getValues().clear(); // gc
+					// clear中的删除节点，马上删除，不需要delayRemove。
+					_tLinkedMapNodes.remove(new BLinkedMapNodeKey(state.getLinkedMapName(), state.getHeadNodeId()));
+
+					// save state in this procedure
+					state.setHeadNodeId(node.getNextNodeId());
+					delayRemove.setJobState(jobId, state);
+					return 0;
+				}, "clearNode").call();
+			}
+		}
 	}
 
 	private final Module module;
@@ -268,43 +299,19 @@ public class LinkedMap<V extends Bean> {
 		root.setCount(root.getCount() - node.getValues().size());
 		node.getValues().clear();
 		removeNodeUnsafe(nodeId, node);
-		// 没有马上删除，启动gc延迟删除。
-		module._tLinkedMapNodes.delayRemove(new BLinkedMapNodeKey(name, nodeId));
 	}
 
 	// foreach
 	public void clear() {
 		var root = module._tLinkedMaps.get(name);
-		if (null == root)
-			return;
-		var headerNodeId = root.getHeadNodeId();
-		var tailNodeId = root.getTailNodeId();
-		root.setHeadNodeId(0);
-		root.setTailNodeId(0);
-		root.setCount(0);
-		//DelayRemove.remove();
-		/*
-		Zeze.Util.Task.run(() -> {
-			var root = module._tLinkedMaps.selectDirty(name);
-			if (null == root)
-				return;
-
-			var nodeId = root.getTailNodeId();
-			while (nodeId != 0) {
-				var node = module._tLinkedMapNodes.selectDirty(new BLinkedMapNodeKey(name, nodeId));
-				final var finalNodeId = nodeId;
-				module.Zeze.newProcedure(() -> {
-					removeNode(finalNodeId);
-					return 0;
-				}, name + ".clear.node").call();
-				nodeId = node.getPrevNodeId();
-			}
-			module.Zeze.newProcedure(() -> {
-				module._tLinkedMaps.remove(name);
-				return 0;
-			}, name + ".clear.root").call();
-		}, name + ".clear", DispatchMode.Normal);
-		*/
+		if (null != root) {
+			var headerNodeId = root.getHeadNodeId();
+			var tailNodeId = root.getTailNodeId();
+			root.setHeadNodeId(0);
+			root.setTailNodeId(0);
+			root.setCount(0);
+			module.zeze.getDelayRemove().addJob(Module.eClearJobHandleName, new BClearJobState(headerNodeId, tailNodeId, name));
+		}
 	}
 
 	@SuppressWarnings("unchecked")

@@ -11,6 +11,8 @@ public abstract class AbstractDelayRemove implements Zeze.IModule {
     @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
 
+    protected final Zeze.Builtin.DelayRemove.tJobs _tJobs = new Zeze.Builtin.DelayRemove.tJobs();
+
     public void RegisterProtocols(Zeze.Net.Service service) {
     }
 
@@ -18,9 +20,11 @@ public abstract class AbstractDelayRemove implements Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
+        zeze.addTable(zeze.getConfig().getTableConf(_tJobs.getName()).getDatabaseName(), _tJobs);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
+        zeze.removeTable(zeze.getConfig().getTableConf(_tJobs.getName()).getDatabaseName(), _tJobs);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

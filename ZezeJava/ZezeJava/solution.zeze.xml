@@ -141,6 +141,12 @@
 					<variable id="3" name="Values" type="list" value="BLinkedMapNodeValue" /> 多个KeyValue对,容量由LinkedMap构造时的nodeSize决定
 				</bean>
 				<table name="tLinkedMapNodes" key="BLinkedMapNodeKey" value="BLinkedMapNode"/>
+
+				<bean name="BClearJobState">
+					<variable id="1" name="HeadNodeId" type="long" />
+					<variable id="2" name="TailNodeId" type="long" />
+					<variable id="3" name="LinkedMapName" type="string" />
+				</bean>
 			</module>
 
 			<!-- 一个简单的大容量单向链表，可按Stack方式使用 -->
@@ -269,6 +275,11 @@
 				<variable id="2" name="EncodedKey" type="binary" />
 				<variable id="3" name="EnqueueTime" type="long" />
 			</bean>
+			<bean name="BJob">
+				<variable id="1" name="JobHandleName" type="string" />
+				<variable id="2" name="JobState" type="binary" />
+			</bean>
+			<table name="tJobs" key="string" value="BJob" />
 		</module>
 
 		<!--

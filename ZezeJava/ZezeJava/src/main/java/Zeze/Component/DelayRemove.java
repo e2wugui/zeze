@@ -3,9 +3,13 @@ package Zeze.Component;
 import java.util.Calendar;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import Zeze.Builtin.DelayRemove.BJob;
 import Zeze.Builtin.DelayRemove.BTableKey;
 import Zeze.Net.Binary;
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.TableX;
+import Zeze.Transaction.Transaction;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 
@@ -22,14 +26,16 @@ public class DelayRemove extends AbstractDelayRemove {
 	}
 
 	private final Zeze.Collections.Queue<BTableKey> queue;
-	private final Zeze.Application zeze;
+	public final Zeze.Application zeze;
 	private Future<?> timer;
+	private AutoKey jobIdAutoKey;
 
 	public DelayRemove(Zeze.Application zz) {
 		this.zeze = zz;
 
 		var serverId = zz.getConfig().getServerId();
 		queue = zz.getQueueModule().open("__GCTableQueue#" + serverId, BTableKey.class);
+		RegisterZezeTables(zeze);
 	}
 
 	public void start() {
@@ -57,6 +63,62 @@ public class DelayRemove extends AbstractDelayRemove {
 		var delay = firstTime.getTime().getTime() - System.currentTimeMillis();
 		var period = 24 * 3600 * 1000; // 24 hours
 		timer = Task.scheduleUnsafe(delay, period, this::onTimer);
+		jobIdAutoKey = zeze.getAutoKey("__GCTableJobIdAutoKey");
+	}
+
+	@FunctionalInterface
+	public interface JobHandle {
+		public void process(DelayRemove delayRemove, String jobId, Binary jobState) throws Throwable;
+	}
+
+	private ConcurrentHashMap<String, JobHandle> jobHandles = new ConcurrentHashMap<>();
+
+	public void register(String handleName, JobHandle handle) {
+		if (jobHandles.putIfAbsent(handleName, handle) != null)
+			throw new RuntimeException("duplicate JobHandle Name = " + handleName);
+	}
+
+	public void addJob(String handleName, Bean state) {
+		var bJob = new BJob();
+		var jobId = jobIdAutoKey.nextString();
+		bJob.setJobHandleName(handleName);
+		var bb = ByteBuffer.Allocate();
+		state.encode(bb);
+		bJob.setJobState(new Binary(bb));
+		_tJobs.insert(jobId, bJob);
+
+		Transaction.whileCommit(() -> startJob(jobId, bJob));
+	}
+
+	/**
+	 * set job state
+	 * @param jobId jobId
+	 * @param state state, null means job is done.
+	 */
+	public void setJobState(String jobId, Bean state) {
+		if (null != state) {
+			// 修改数据表中的状态。
+			var bJob = _tJobs.get(jobId);
+			var bb = ByteBuffer.Allocate();
+			state.encode(bb);
+			bJob.setJobState(new Binary(bb));
+			return;
+		}
+
+		_tJobs.remove(jobId);
+	}
+
+	// 装载还没有完成的Job。需要在所有模块都start之后调用。
+	public void continueJobs() {
+		_tJobs.walk(this::startJob);
+	}
+
+	private boolean startJob(String jobId, BJob job) {
+		Task.run(() -> {
+			var handle = jobHandles.get(job.getJobHandleName());
+			handle.process(this, jobId, job.getJobState());
+		}, "startJob");
+		return true;
 	}
 
 	public void stop() {
