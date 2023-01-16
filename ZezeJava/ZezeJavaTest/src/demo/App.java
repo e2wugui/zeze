@@ -65,6 +65,7 @@ public class App extends Zeze.AppBase {
 		BagModule = new Bag.Module(Zeze);
 		Zeze.start(); // 启动数据库
 		startModules(); // 启动模块，装载配置什么的。
+		Zeze.endStart();
 		startService(); // 启动网络
 	}
 

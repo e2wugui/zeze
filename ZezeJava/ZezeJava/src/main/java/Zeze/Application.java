@@ -276,6 +276,10 @@ public final class Application {
 		}
 	}
 
+	public synchronized void endStart() {
+		delayRemove.continueJobs();
+	}
+
 	public synchronized void start() throws Throwable {
 		if (isStart)
 			return;
