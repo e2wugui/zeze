@@ -26,7 +26,7 @@ namespace Zeze
         public Component.AutoKey.Module AutoKeys { get; private set; }
         public Collections.Queue.Module Queues { get; private set; }
         public Zeze.Component.DelayRemove DelayRemove { get; private set; }
-        internal Locks Locks { get; private set; }
+        internal Locks Locks { get; } = new();
 
         public Component.AutoKey GetAutoKey(string name)
         {
@@ -86,6 +86,15 @@ namespace Zeze
             Config.CreateDatabase(this, Databases);
             _checkpoint = new Checkpoint(this, Config.CheckpointMode, Databases.Values);
             ServiceManager = new Agent(this);
+
+            var noDatabase = Config.NoDatabase || Config.ServerId < 0;
+            if (false == noDatabase)
+            {
+                // Initialize Component
+                AutoKeys = new(this);
+                Queues = new(this);
+                DelayRemove = new(this);
+            }
         }
 
         private readonly ConcurrentDictionary<int, Table> Tables = new();
@@ -177,14 +186,6 @@ namespace Zeze
                 {
                     db.DirectOperates.SetInUse(Config.ServerId, Config.GlobalCacheManagerHostNameOrAddress);
                 }
-
-                // Create Locks
-                Locks = new Locks();
-
-                // Initialize Component
-                AutoKeys = new(this);
-                Queues = new(this);
-                DelayRemove = new(this);
             }
 
             // Start ServiceManager
@@ -282,7 +283,6 @@ namespace Zeze
                 _checkpoint = null;
                 Databases.Clear();
                 ServiceManager.Stop();
-                Locks = null;
                 Config = null;
 
                 Config?.ClearInUseAndIAmSureAppStopped(this, Databases);
