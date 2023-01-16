@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 import UnitTest.Zeze.BMyBean;
 import Zeze.Transaction.Procedure;
+import demo.App;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -52,7 +53,7 @@ public class TestLinkedMap {
 	}
 
 	@Test
-	public final void test3_LinkedMapWalk() {
+	public final void test3_LinkedMapWalk() throws Throwable {
 		var map = demo.App.getInstance().LinkedMapModule.open("test1", BMyBean.class);
 		var i = new AtomicInteger(0);
 		var arr = Arrays.asList(100, 101, 102, 103, 104, 105, 106, 107, 108, 109);
@@ -77,5 +78,26 @@ public class TestLinkedMap {
 			return Procedure.Success;
 		}, "test2_LinkedMapRemove").call();
 		Assert.assertEquals(ret, Procedure.Success);
+	}
+
+	@Test
+	public void test5_PutAndClear() throws Throwable {
+		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
+			var map = demo.App.getInstance().LinkedMapModule.open("test1", BMyBean.class);
+			for (int i = 100; i < 110; i++) {
+				var bean = new BMyBean();
+				bean.setI(i);
+				map.put(i, bean);
+			}
+			return Procedure.Success;
+		}, "test1_LinkedMapPut").call();
+		Assert.assertEquals(ret, Procedure.Success);
+
+		Assert.assertEquals(App.Instance.Zeze.newProcedure(() -> {
+			App.Instance.LinkedMapModule.open("test1", BMyBean.class).clear();
+			return 0;
+		}, "clear").call(), 0);
+
+		Thread.sleep(2000);
 	}
 }
