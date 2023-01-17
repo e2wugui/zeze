@@ -279,7 +279,10 @@
 				<variable id="1" name="JobHandleName" type="string" />
 				<variable id="2" name="JobState" type="binary" />
 			</bean>
-			<table name="tJobs" key="string" value="BJob" />
+			<bean name="BJobs">
+				<variable id="1" name="Jobs" type="map[string, BJob]" />
+			</bean>
+			<table name="tJobs" key="int" value="BJobs" />
 		</module>
 
 		<!--

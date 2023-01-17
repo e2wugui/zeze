@@ -276,7 +276,7 @@ public final class Application {
 		}
 	}
 
-	public synchronized void endStart() {
+	public void endStart() throws Throwable {
 		delayRemove.continueJobs();
 	}
 

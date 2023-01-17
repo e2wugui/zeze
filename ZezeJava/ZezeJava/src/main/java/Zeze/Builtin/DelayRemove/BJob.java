@@ -10,6 +10,18 @@ public final class BJob extends Zeze.Transaction.Bean implements BJobReadOnly {
     private String _JobHandleName;
     private Zeze.Net.Binary _JobState;
 
+    private transient Object __zeze_map_key__;
+
+    @Override
+    public Object mapKey() {
+        return __zeze_map_key__;
+    }
+
+    @Override
+    public void mapKey(Object value) {
+        __zeze_map_key__ = value;
+    }
+
     @Override
     public String getJobHandleName() {
         if (!isManaged())

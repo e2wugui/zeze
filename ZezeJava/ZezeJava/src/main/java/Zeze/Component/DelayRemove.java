@@ -85,7 +85,8 @@ public class DelayRemove extends AbstractDelayRemove {
 		var bb = ByteBuffer.Allocate();
 		state.encode(bb);
 		bJob.setJobState(new Binary(bb));
-		_tJobs.insert(jobId, bJob);
+		var jobs = _tJobs.getOrAdd(zeze.getConfig().getServerId());
+		jobs.getJobs().put(jobId, bJob);
 
 		Transaction.whileCommit(() -> startJob(jobId, bJob));
 	}
@@ -98,27 +99,33 @@ public class DelayRemove extends AbstractDelayRemove {
 	public void setJobState(String jobId, Bean state) {
 		if (null != state) {
 			// 修改数据表中的状态。
-			var bJob = _tJobs.get(jobId);
+			var jobs = _tJobs.getOrAdd(zeze.getConfig().getServerId());
+			var bJob = jobs.getJobs().get(jobId);
 			var bb = ByteBuffer.Allocate();
 			state.encode(bb);
 			bJob.setJobState(new Binary(bb));
 			return;
 		}
 
-		_tJobs.remove(jobId);
+		var jobs = _tJobs.getOrAdd(zeze.getConfig().getServerId());
+		jobs.getJobs().remove(jobId);
 	}
 
 	// 装载还没有完成的Job。需要在所有模块都start之后调用。
-	public void continueJobs() {
-		_tJobs.walk(this::startJob);
+	public void continueJobs() throws Throwable {
+		zeze.newProcedure(() -> {
+			var jobs = _tJobs.getOrAdd(zeze.getConfig().getServerId());
+			for (var e : jobs.getJobs())
+				startJob(e.getKey(), e.getValue());
+			return 0;
+		}, "continueJobs").call();
 	}
 
-	private boolean startJob(String jobId, BJob job) {
+	private void startJob(String jobId, BJob job) {
 		Task.run(() -> {
 			var handle = jobHandles.get(job.getJobHandleName());
 			handle.process(this, jobId, job.getJobState());
 		}, "startJob");
-		return true;
 	}
 
 	public void stop() {

@@ -6,8 +6,8 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tJobs extends TableX<String, Zeze.Builtin.DelayRemove.BJob>
-        implements TableReadOnly<String, Zeze.Builtin.DelayRemove.BJob, Zeze.Builtin.DelayRemove.BJobReadOnly> {
+public final class tJobs extends TableX<Integer, Zeze.Builtin.DelayRemove.BJobs>
+        implements TableReadOnly<Integer, Zeze.Builtin.DelayRemove.BJobs, Zeze.Builtin.DelayRemove.BJobsReadOnly> {
     public tJobs() {
         super("Zeze_Builtin_DelayRemove_tJobs");
     }
@@ -27,30 +27,29 @@ public final class tJobs extends TableX<String, Zeze.Builtin.DelayRemove.BJob>
         return false;
     }
 
-    public static final int VAR_JobHandleName = 1;
-    public static final int VAR_JobState = 2;
+    public static final int VAR_Jobs = 1;
 
     @Override
-    public String decodeKey(ByteBuffer _os_) {
-        String _v_;
-        _v_ = _os_.ReadString();
+    public Integer decodeKey(ByteBuffer _os_) {
+        int _v_;
+        _v_ = _os_.ReadInt();
         return _v_;
     }
 
     @Override
-    public ByteBuffer encodeKey(String _v_) {
+    public ByteBuffer encodeKey(Integer _v_) {
         ByteBuffer _os_ = ByteBuffer.Allocate(16);
-        _os_.WriteString(_v_);
+        _os_.WriteInt(_v_);
         return _os_;
     }
 
     @Override
-    public Zeze.Builtin.DelayRemove.BJob newValue() {
-        return new Zeze.Builtin.DelayRemove.BJob();
+    public Zeze.Builtin.DelayRemove.BJobs newValue() {
+        return new Zeze.Builtin.DelayRemove.BJobs();
     }
 
     @Override
-    public Zeze.Builtin.DelayRemove.BJobReadOnly getReadOnly(String key) {
+    public Zeze.Builtin.DelayRemove.BJobsReadOnly getReadOnly(Integer key) {
         return get(key);
     }
 }
