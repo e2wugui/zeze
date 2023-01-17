@@ -16,6 +16,11 @@ public class LinkBroken extends Zeze.Net.Protocol<Zeze.Builtin.Provider.BLinkBro
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public LinkBroken() {
         Argument = new Zeze.Builtin.Provider.BLinkBroken();
     }

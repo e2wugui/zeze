@@ -16,6 +16,11 @@ public class AllocateId extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceManager.B
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public AllocateId() {
         Argument = new Zeze.Services.ServiceManager.BAllocateIdArgument();
         Result = new Zeze.Services.ServiceManager.BAllocateIdResult();

@@ -17,6 +17,11 @@ public class Logout extends Zeze.Net.Rpc<Zeze.Transaction.EmptyBean, Zeze.Transa
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public Logout() {
         Argument = Zeze.Transaction.EmptyBean.instance;
         Result = Zeze.Transaction.EmptyBean.instance;

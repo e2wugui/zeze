@@ -16,6 +16,11 @@ public class Destroy extends Zeze.Net.Rpc<Zeze.Builtin.Game.Bag.BDestroy, Zeze.T
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public Destroy() {
         Argument = new Zeze.Builtin.Game.Bag.BDestroy();
         Result = Zeze.Transaction.EmptyBean.instance;

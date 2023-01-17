@@ -261,14 +261,15 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			dumpFile.write(pdata.bytesUnsafe(), pdata.getOffset(), pdata.size());
 	}
 
-	private final TaskOneByOneByKey oneByOnesender = new TaskOneByOneByKey();
+	private static final boolean canLogSend = AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(Send.TypeId_);
+	private final TaskOneByOneByKey oneByOneSender = new TaskOneByOneByKey();
 
 	@Override
-	protected long ProcessSendRequest(Send r) throws IOException {
-		var ptype = r.Argument.getProtocolType();
+	protected long ProcessSendRequest(Send r) {
 		var pdata = r.Argument.getProtocolWholeData();
 		var linkSids = r.Argument.getLinkSids();
-		if (AsyncSocket.ENABLE_PROTOCOL_LOG) {
+		if (canLogSend) {
+			var ptype = r.Argument.getProtocolType();
 			AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "SENT[{}]: {}:{} [{}]", linkSids.dump(),
 					Protocol.getModuleId(ptype), Protocol.getProtocolId(ptype), pdata.size());
 		}
@@ -287,7 +288,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		}
 		r.SendResult();
 		/*/
-		oneByOnesender.executeBatch(linkSids, (linkSid) -> {
+		oneByOneSender.executeBatch(linkSids, (linkSid) -> {
 			var link = linkdApp.linkdService.GetSocket(linkSid);
 			// ProtocolId现在是hash值，显示出来也不好看，以后加配置换成名字。
 			if (link != null) {
@@ -305,11 +306,13 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		return Procedure.Success;
 	}
 
+	private static final boolean canLogBroadcast = AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(Broadcast.TypeId_);
+
 	@Override
 	protected long ProcessBroadcast(Broadcast protocol) throws Throwable {
-		var ptype = protocol.Argument.getProtocolType();
 		var pdata = protocol.Argument.getProtocolWholeData();
-		if (AsyncSocket.ENABLE_PROTOCOL_LOG) {
+		if (canLogBroadcast) {
+			var ptype = protocol.Argument.getProtocolType();
 			AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "BROC[{}]: {}:{} [{}]",
 					linkdApp.linkdService.getSocketCount(), Protocol.getModuleId(ptype), Protocol.getProtocolId(ptype),
 					pdata.size());

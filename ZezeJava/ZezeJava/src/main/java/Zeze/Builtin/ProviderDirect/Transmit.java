@@ -17,6 +17,11 @@ public class Transmit extends Zeze.Net.Protocol<Zeze.Builtin.ProviderDirect.BTra
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public Transmit() {
         Argument = new Zeze.Builtin.ProviderDirect.BTransmit();
     }

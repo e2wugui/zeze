@@ -16,6 +16,11 @@ public class Dispatch extends Zeze.Net.Protocol<Zeze.Builtin.Provider.BDispatch>
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public Dispatch() {
         Argument = new Zeze.Builtin.Provider.BDispatch();
     }

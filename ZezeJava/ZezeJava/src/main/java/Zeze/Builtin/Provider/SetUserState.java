@@ -16,6 +16,11 @@ public class SetUserState extends Zeze.Net.Protocol<Zeze.Builtin.Provider.BSetUs
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public SetUserState() {
         Argument = new Zeze.Builtin.Provider.BSetUserState();
     }

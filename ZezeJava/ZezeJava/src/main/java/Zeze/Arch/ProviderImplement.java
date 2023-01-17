@@ -80,7 +80,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		var sender = p.getSender();
 		var linkSid = p.Argument.getLinkSid();
 		try {
-			var factoryHandle = providerApp.providerService.findProtocolFactoryHandle(p.Argument.getProtocolType());
+			var typeId = p.Argument.getProtocolType();
+			var factoryHandle = providerApp.providerService.findProtocolFactoryHandle(typeId);
 			if (factoryHandle == null) {
 				sendKick(sender, linkSid, BKick.ErrorProtocolUnknown, "unknown protocol");
 				return Procedure.LogicError;
@@ -95,7 +96,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			var session = new ProviderUserSession(p);
 			p2.setUserState(session);
 
-			if (AsyncSocket.ENABLE_PROTOCOL_LOG) {
+			if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
 				if (p2.isRequest()) {
 					if (p2 instanceof Rpc)
 						AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "DISP[{}] {}({}): {}", linkSid,

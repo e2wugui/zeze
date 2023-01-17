@@ -20,6 +20,7 @@ import java.util.function.LongSupplier;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.Handshake.Constant;
 import Zeze.Util.Action0;
+import Zeze.Util.LongHashSet;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.Level;
@@ -30,6 +31,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public static final Logger logger = LogManager.getLogger(AsyncSocket.class);
 	public static final Level LEVEL_PROTOCOL_LOG = Level.toLevel(System.getProperty("protocolLog"), Level.OFF);
 	public static final boolean ENABLE_PROTOCOL_LOG = LEVEL_PROTOCOL_LOG != Level.OFF;
+	private static final LongHashSet protocolLogExcept = new LongHashSet();
 	private static final VarHandle closedHandle, outputBufferSizeHandle;
 	private static final byte SEND_CLOSE_DETAIL_MAX = 20; // 必须小于REAL_CLOSED
 	private static final byte REAL_CLOSED = Byte.MAX_VALUE;
@@ -44,7 +46,20 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		} catch (ReflectiveOperationException e) {
 			throw new RuntimeException(e);
 		}
+
+		var str = System.getProperty("protocolLogExcept");
+		if (str != null) {
+			for (var numStr : str.split("[^\\d\\-]")) {
+				if (!numStr.isBlank())
+					protocolLogExcept.add(Long.parseLong(numStr));
+			}
+		}
+
 		ShutdownHook.init();
+	}
+
+	public static boolean canLogProtocol(long protocolTypeId) {
+		return !protocolLogExcept.contains(protocolTypeId);
 	}
 
 	public static void setSessionIdGenFunc(LongSupplier seed) {
@@ -499,7 +514,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	public boolean Send(Protocol<?> protocol) {
-		if (ENABLE_PROTOCOL_LOG) {
+		if (ENABLE_PROTOCOL_LOG && canLogProtocol(protocol.getTypeId())) {
 			if (protocol.isRequest()) {
 				if (protocol instanceof Rpc) {
 					logger.log(LEVEL_PROTOCOL_LOG, "SEND[{}] {}({}): {}", sessionId,

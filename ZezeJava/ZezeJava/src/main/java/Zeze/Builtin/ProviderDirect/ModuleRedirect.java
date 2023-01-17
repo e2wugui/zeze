@@ -17,6 +17,11 @@ public class ModuleRedirect extends Zeze.Net.Rpc<Zeze.Builtin.ProviderDirect.BMo
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public static final int RedirectTypeWithHash = 0;
     public static final int RedirectTypeToServer = 1;
     public static final int ResultCodeSuccess = 0;

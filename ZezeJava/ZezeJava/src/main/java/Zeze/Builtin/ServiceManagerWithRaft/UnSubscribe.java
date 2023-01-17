@@ -16,6 +16,11 @@ public class UnSubscribe extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceManager.
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public static final int Success = 0;
     public static final int NotExist = 1;
 

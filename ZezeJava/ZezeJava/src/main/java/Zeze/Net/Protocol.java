@@ -64,7 +64,7 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 
 	public abstract int getProtocolId();
 
-	public final long getTypeId() {
+	public long getTypeId() {
 		return makeTypeId(getModuleId(), getProtocolId());
 	}
 
@@ -230,7 +230,8 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 			int savedWriteIndex = bb.WriteIndex;
 			bb.WriteIndex = endReadIndex;
 
-			var factoryHandle = service.findProtocolFactoryHandle(makeTypeId(moduleId, protocolId));
+			var typeId = makeTypeId(moduleId, protocolId);
+			var factoryHandle = service.findProtocolFactoryHandle(typeId);
 			if (factoryHandle != null && factoryHandle.Factory != null) {
 				var p = factoryHandle.Factory.create();
 				p.decode(bb);
@@ -244,7 +245,7 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 			 	*/
 				p.sender = so;
 				p.userState = so.getUserState();
-				if (AsyncSocket.ENABLE_PROTOCOL_LOG) {
+				if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
 					if (p.isRequest()) {
 						if (p instanceof Rpc)
 							AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RECV[{}] {}({}): {}", so.getSessionId(),
@@ -258,7 +259,7 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 				}
 				p.dispatch(service, factoryHandle);
 			} else {
-				if (AsyncSocket.ENABLE_PROTOCOL_LOG) {
+				if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
 					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RECV[{}] {}:{} [{}]",
 							so.getSessionId(), moduleId, protocolId, bb.Size());
 				}

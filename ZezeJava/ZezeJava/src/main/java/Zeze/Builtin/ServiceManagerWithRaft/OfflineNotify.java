@@ -16,6 +16,11 @@ public class OfflineNotify extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceManage
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public OfflineNotify() {
         Argument = new Zeze.Services.ServiceManager.BOfflineNotify();
         Result = Zeze.Transaction.EmptyBean.instance;

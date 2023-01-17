@@ -17,6 +17,11 @@ public class Login extends Zeze.Net.Rpc<Zeze.Builtin.Online.BLogin, Zeze.Transac
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public Login() {
         Argument = new Zeze.Builtin.Online.BLogin();
         Result = Zeze.Transaction.EmptyBean.instance;

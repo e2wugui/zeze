@@ -16,6 +16,11 @@ public class Acquire extends Zeze.Raft.RaftRpc<Zeze.Builtin.GlobalCacheManagerWi
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public Acquire() {
         Argument = new Zeze.Builtin.GlobalCacheManagerWithRaft.BAcquireParam();
         Result = new Zeze.Builtin.GlobalCacheManagerWithRaft.BReduceParam();

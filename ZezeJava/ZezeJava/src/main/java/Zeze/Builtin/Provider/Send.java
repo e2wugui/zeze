@@ -16,6 +16,11 @@ public class Send extends Zeze.Net.Rpc<Zeze.Arch.Beans.BSend, Zeze.Arch.Beans.BS
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public Send() {
         Argument = new Zeze.Arch.Beans.BSend();
         Result = new Zeze.Arch.Beans.BSendResult();

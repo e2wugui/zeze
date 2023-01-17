@@ -16,6 +16,11 @@ public class Broadcast extends Zeze.Net.Protocol<Zeze.Builtin.Provider.BBroadcas
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public Broadcast() {
         Argument = new Zeze.Builtin.Provider.BBroadcast();
     }

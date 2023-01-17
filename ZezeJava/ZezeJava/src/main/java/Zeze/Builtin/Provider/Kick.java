@@ -16,6 +16,11 @@ public class Kick extends Zeze.Net.Protocol<Zeze.Builtin.Provider.BKick> {
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public Kick() {
         Argument = new Zeze.Builtin.Provider.BKick();
     }

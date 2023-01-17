@@ -16,6 +16,11 @@ public class Bind extends Zeze.Net.Rpc<Zeze.Builtin.Provider.BBind, Zeze.Transac
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public Bind() {
         Argument = new Zeze.Builtin.Provider.BBind();
         Result = Zeze.Transaction.EmptyBean.instance;

@@ -16,6 +16,11 @@ public class Login extends Zeze.Raft.RaftRpc<Zeze.Builtin.GlobalCacheManagerWith
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public Login() {
         Argument = new Zeze.Builtin.GlobalCacheManagerWithRaft.BLoginParam();
         Result = new Zeze.Builtin.GlobalCacheManagerWithRaft.BAchillesHeelConfig();

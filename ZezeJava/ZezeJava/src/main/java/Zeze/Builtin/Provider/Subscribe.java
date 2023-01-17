@@ -17,6 +17,11 @@ public class Subscribe extends Zeze.Net.Rpc<Zeze.Builtin.Provider.BSubscribe, Ze
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public Subscribe() {
         Argument = new Zeze.Builtin.Provider.BSubscribe();
         Result = Zeze.Transaction.EmptyBean.instance;

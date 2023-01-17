@@ -16,6 +16,11 @@ public class AnnounceProviderInfo extends Zeze.Net.Rpc<Zeze.Builtin.ProviderDire
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public AnnounceProviderInfo() {
         Argument = new Zeze.Builtin.ProviderDirect.BProviderInfo();
         Result = Zeze.Transaction.EmptyBean.instance;

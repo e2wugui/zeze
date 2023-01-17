@@ -16,6 +16,11 @@ public class ModuleRedirectAllResult extends Zeze.Net.Protocol<Zeze.Builtin.Prov
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public ModuleRedirectAllResult() {
         Argument = new Zeze.Builtin.ProviderDirect.BModuleRedirectAllResult();
     }

@@ -16,6 +16,11 @@ public class UnBind extends Zeze.Net.Rpc<Zeze.Builtin.Provider.BBind, Zeze.Trans
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public UnBind() {
         Argument = new Zeze.Builtin.Provider.BBind();
         Result = Zeze.Transaction.EmptyBean.instance;

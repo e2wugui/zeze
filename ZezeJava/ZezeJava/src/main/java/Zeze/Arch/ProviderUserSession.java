@@ -101,7 +101,8 @@ public class ProviderUserSession {
 
 	public final void sendResponse(Protocol<?> p) {
 		p.setRequest(false);
-		if (AsyncSocket.ENABLE_PROTOCOL_LOG) {
+		var typeId = p.getTypeId();
+		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
 			var linkSid = getLinkSid();
 			var className = p.getClass().getSimpleName();
 			if (p.isRequest()) {
@@ -115,7 +116,7 @@ public class ProviderUserSession {
 				AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RESP[{}] {}({})> {}", linkSid,
 						className, ((Rpc<?, ?>)p).getSessionId(), p.getResultBean());
 		}
-		sendResponse(p.getTypeId(), new Binary(p.encode()));
+		sendResponse(typeId, new Binary(p.encode()));
 	}
 
 	public final void sendResponseWhileCommit(long typeId, Binary fullEncodedProtocol) {

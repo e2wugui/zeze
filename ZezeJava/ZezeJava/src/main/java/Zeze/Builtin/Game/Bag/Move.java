@@ -30,6 +30,11 @@ public class Move extends Zeze.Net.Rpc<Zeze.Builtin.Game.Bag.BMove, Zeze.Transac
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public Move() {
         Argument = new Zeze.Builtin.Game.Bag.BMove();
         Result = Zeze.Transaction.EmptyBean.instance;

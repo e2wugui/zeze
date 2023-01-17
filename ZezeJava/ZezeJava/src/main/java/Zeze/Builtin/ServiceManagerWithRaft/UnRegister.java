@@ -16,6 +16,11 @@ public class UnRegister extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceManager.B
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public UnRegister() {
         Argument = new Zeze.Services.ServiceManager.BServiceInfo();
         Result = Zeze.Transaction.EmptyBean.instance;

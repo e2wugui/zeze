@@ -17,6 +17,11 @@ public class ReLogin extends Zeze.Net.Rpc<Zeze.Builtin.Game.Online.BReLogin, Zez
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public ReLogin() {
         Argument = new Zeze.Builtin.Game.Online.BReLogin();
         Result = Zeze.Transaction.EmptyBean.instance;

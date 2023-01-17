@@ -649,14 +649,14 @@ public final class Transaction {
 
 	public void throwAbort(String msg, Throwable cause) {
 		if (state != TransactionState.Running)
-			throw new IllegalStateException("Abort: State Is Not Running.");
+			throw new IllegalStateException("Abort: State Is Not Running: " + state);
 		state = TransactionState.Abort;
 		GoBackZeze.Throw(msg, cause);
 	}
 
 	public void throwRedoAndReleaseLock(String msg, Throwable cause) {
 		if (state != TransactionState.Running)
-			throw new IllegalStateException("RedoAndReleaseLock: State Is Not Running.");
+			throw new IllegalStateException("RedoAndReleaseLock: State Is Not Running: " + state);
 		state = TransactionState.RedoAndReleaseLock;
 		if (Macro.enableStatistics) {
 			//noinspection ConstantConditions
@@ -667,18 +667,18 @@ public final class Transaction {
 
 	public void throwRedo() {
 		if (state != TransactionState.Running)
-			throw new IllegalStateException("RedoAndReleaseLock: State Is Not Running.");
+			throw new IllegalStateException("RedoAndReleaseLock: State Is Not Running: " + state);
 		state = TransactionState.Redo;
 		GoBackZeze.Throw("Redo", null);
 	}
 
 	public void verifyRunning() {
 		if (state != TransactionState.Running)
-			throw new IllegalStateException("State Is Not Running");
+			throw new IllegalStateException("State Is Not Running: " + state);
 	}
 
 	public void verifyRunningOrCompleted() {
 		if (state != TransactionState.Running && state != TransactionState.Completed)
-			throw new IllegalStateException("State Is Not RunningOrCompleted");
+			throw new IllegalStateException("State Is Not RunningOrCompleted: " + state);
 	}
 }

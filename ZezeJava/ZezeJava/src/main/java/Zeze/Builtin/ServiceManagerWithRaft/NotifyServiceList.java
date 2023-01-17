@@ -16,6 +16,11 @@ public class NotifyServiceList extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceMa
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public NotifyServiceList() {
         Argument = new Zeze.Services.ServiceManager.BServiceInfos();
         Result = Zeze.Transaction.EmptyBean.instance;

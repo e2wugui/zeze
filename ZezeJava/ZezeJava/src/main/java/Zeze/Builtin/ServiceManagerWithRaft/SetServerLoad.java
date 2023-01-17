@@ -16,6 +16,11 @@ public class SetServerLoad extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceManage
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public SetServerLoad() {
         Argument = new Zeze.Services.ServiceManager.BServerLoad();
         Result = Zeze.Transaction.EmptyBean.instance;

@@ -16,6 +16,11 @@ public class Cleanup extends Zeze.Raft.RaftRpc<Zeze.Builtin.GlobalCacheManagerWi
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public Cleanup() {
         Argument = new Zeze.Builtin.GlobalCacheManagerWithRaft.BAchillesHeel();
         Result = Zeze.Transaction.EmptyBean.instance;

@@ -16,6 +16,11 @@ public class Update extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceManager.BServ
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public static final int Success = 0;
     public static final int ServiceNotRegister = 1;
     public static final int ServerStateError = 2;

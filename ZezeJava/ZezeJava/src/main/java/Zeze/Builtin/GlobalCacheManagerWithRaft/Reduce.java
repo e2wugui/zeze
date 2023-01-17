@@ -16,6 +16,11 @@ public class Reduce extends Zeze.Raft.RaftRpc<Zeze.Builtin.GlobalCacheManagerWit
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public Reduce() {
         Argument = new Zeze.Builtin.GlobalCacheManagerWithRaft.BReduceParam();
         Result = new Zeze.Builtin.GlobalCacheManagerWithRaft.BReduceParam();

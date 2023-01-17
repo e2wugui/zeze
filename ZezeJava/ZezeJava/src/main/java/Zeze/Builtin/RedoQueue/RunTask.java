@@ -16,6 +16,11 @@ public class RunTask extends Zeze.Net.Rpc<Zeze.Builtin.RedoQueue.BQueueTask, Zez
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public RunTask() {
         Argument = new Zeze.Builtin.RedoQueue.BQueueTask();
         Result = new Zeze.Builtin.RedoQueue.BTaskId();

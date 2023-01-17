@@ -16,6 +16,11 @@ public class AnnounceLinkInfo extends Zeze.Net.Protocol<Zeze.Builtin.Provider.BA
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public AnnounceLinkInfo() {
         Argument = new Zeze.Builtin.Provider.BAnnounceLinkInfo();
     }

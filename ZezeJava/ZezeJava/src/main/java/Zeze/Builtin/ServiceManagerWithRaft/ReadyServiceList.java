@@ -16,6 +16,11 @@ public class ReadyServiceList extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceMan
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public ReadyServiceList() {
         Argument = new Zeze.Services.ServiceManager.BServiceListVersion();
         Result = Zeze.Transaction.EmptyBean.instance;

@@ -16,6 +16,11 @@ public class SReliableNotify extends Zeze.Net.Protocol<Zeze.Builtin.Online.BReli
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public SReliableNotify() {
         Argument = new Zeze.Builtin.Online.BReliableNotify();
     }

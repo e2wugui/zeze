@@ -35,6 +35,11 @@ namespace Zeze.Gen.java
             sw.WriteLine("        return ProtocolId_;");
             sw.WriteLine("    }");
             sw.WriteLine();
+            sw.WriteLine("    @Override");
+            sw.WriteLine("    public long getTypeId() {");
+            sw.WriteLine("        return TypeId_;");
+            sw.WriteLine("    }");
+            sw.WriteLine();
             // declare enums
             foreach (Types.Enum e in p.Enums)
             {

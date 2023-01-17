@@ -16,6 +16,11 @@ public class CommitServiceList extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceMa
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public CommitServiceList() {
         Argument = new Zeze.Services.ServiceManager.BServiceListVersion();
         Result = Zeze.Transaction.EmptyBean.instance;

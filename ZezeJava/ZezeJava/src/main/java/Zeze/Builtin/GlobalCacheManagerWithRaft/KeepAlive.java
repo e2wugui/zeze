@@ -16,6 +16,11 @@ public class KeepAlive extends Zeze.Raft.RaftRpc<Zeze.Transaction.EmptyBean, Zez
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public KeepAlive() {
         Argument = Zeze.Transaction.EmptyBean.instance;
         Result = Zeze.Transaction.EmptyBean.instance;

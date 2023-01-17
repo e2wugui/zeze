@@ -16,6 +16,11 @@ public class ReliableNotifyConfirm extends Zeze.Net.Rpc<Zeze.Builtin.Online.BRel
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public ReliableNotifyConfirm() {
         Argument = new Zeze.Builtin.Online.BReliableNotifyConfirm();
         Result = Zeze.Transaction.EmptyBean.instance;

@@ -16,6 +16,11 @@ public class SubscribeFirstCommit extends Zeze.Raft.RaftRpc<Zeze.Services.Servic
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public SubscribeFirstCommit() {
         Argument = new Zeze.Services.ServiceManager.BServiceInfos();
         Result = Zeze.Transaction.EmptyBean.instance;

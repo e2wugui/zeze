@@ -16,6 +16,11 @@ public class SReliableNotify extends Zeze.Net.Protocol<Zeze.Builtin.Game.Online.
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public SReliableNotify() {
         Argument = new Zeze.Builtin.Game.Online.BReliableNotify();
     }

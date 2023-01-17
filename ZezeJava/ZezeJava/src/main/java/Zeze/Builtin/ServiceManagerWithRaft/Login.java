@@ -16,6 +16,11 @@ public class Login extends Zeze.Raft.RaftRpc<Zeze.Builtin.ServiceManagerWithRaft
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public Login() {
         Argument = new Zeze.Builtin.ServiceManagerWithRaft.BLogin();
         Result = Zeze.Transaction.EmptyBean.instance;

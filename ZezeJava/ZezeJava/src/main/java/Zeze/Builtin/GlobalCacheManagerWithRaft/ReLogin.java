@@ -16,6 +16,11 @@ public class ReLogin extends Zeze.Raft.RaftRpc<Zeze.Builtin.GlobalCacheManagerWi
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public ReLogin() {
         Argument = new Zeze.Builtin.GlobalCacheManagerWithRaft.BLoginParam();
         Result = Zeze.Transaction.EmptyBean.instance;

@@ -17,6 +17,11 @@ public class TransmitAccount extends Zeze.Net.Protocol<Zeze.Builtin.ProviderDire
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public TransmitAccount() {
         Argument = new Zeze.Builtin.ProviderDirect.BTransmitAccount();
     }

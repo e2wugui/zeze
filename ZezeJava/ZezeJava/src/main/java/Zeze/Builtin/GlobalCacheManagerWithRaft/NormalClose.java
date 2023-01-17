@@ -16,6 +16,11 @@ public class NormalClose extends Zeze.Raft.RaftRpc<Zeze.Transaction.EmptyBean, Z
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public NormalClose() {
         Argument = Zeze.Transaction.EmptyBean.instance;
         Result = Zeze.Transaction.EmptyBean.instance;

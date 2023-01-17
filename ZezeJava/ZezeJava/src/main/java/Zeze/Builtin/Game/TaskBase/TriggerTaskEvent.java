@@ -16,6 +16,11 @@ public class TriggerTaskEvent extends Zeze.Net.Rpc<Zeze.Builtin.Game.TaskBase.BT
         return ProtocolId_;
     }
 
+    @Override
+    public long getTypeId() {
+        return TypeId_;
+    }
+
     public TriggerTaskEvent() {
         Argument = new Zeze.Builtin.Game.TaskBase.BTaskEvent();
         Result = new Zeze.Builtin.Game.TaskBase.BTaskEventResult();
