@@ -1,9 +1,9 @@
 package Zeze.Services.RocketMQ;
 
 import Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResult;
-import Zeze.Transaction.Transaction;
+import Zeze.Util.FuncLong;
 import Zeze.Util.OutInt;
-import Zeze.Util.TaskCompletionSource;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.rocketmq.client.ClientConfig;
@@ -38,17 +38,8 @@ public class Producer extends AbstractProducer {
 			producer.shutdown();
 	}
 
-	public void sendMessageInTransaction(Message msg) throws MQClientException {
-		String transactionId = msg.getTransactionId();
-		var result = new BTransactionMessageResult();
-		result.setResult(true);
-		result.setTimestamp(System.currentTimeMillis());
-		_tSent.insert(transactionId, result);
-
-		var future = new TaskCompletionSource<Boolean>();
-		Transaction.whileCommit(() -> future.setResult(true));
-		Transaction.whileRollback(() -> future.setResult(false));
-		producer.sendMessageInTransaction(msg, future);
+	public void sendMessageWithTransaction(Message msg, FuncLong procedureAction) throws MQClientException {
+		producer.sendMessageInTransaction(msg, procedureAction);
 	}
 
 	public void sendMessage(Message msg) throws MQBrokerException, RemotingException, InterruptedException, MQClientException {
@@ -61,15 +52,18 @@ public class Producer extends AbstractProducer {
 
 	class MQListener implements org.apache.rocketmq.client.producer.TransactionListener {
 		@Override
-		public LocalTransactionState executeLocalTransaction(Message msg, Object futureObj) {
-			try {
-				@SuppressWarnings("unchecked")
-				var future = (TaskCompletionSource<Boolean>)futureObj;
-				return future.get() ? LocalTransactionState.COMMIT_MESSAGE : LocalTransactionState.ROLLBACK_MESSAGE;
-			} catch (Throwable ex) {
-				logger.error("", ex);
-				return LocalTransactionState.ROLLBACK_MESSAGE;
-			}
+		public LocalTransactionState executeLocalTransaction(Message msg, Object procedureObj) {
+			@SuppressWarnings("unchecked")
+			var procedureAction = (FuncLong)procedureObj;
+			var ret = Task.call(zeze.newProcedure(() -> {
+				String transactionId = msg.getTransactionId();
+				var result = new BTransactionMessageResult();
+				result.setResult(true);
+				result.setTimestamp(System.currentTimeMillis());
+				_tSent.insert(transactionId, result);
+				return procedureAction.call();
+			}, "RocketMQ.LocalTransaction"));
+			return ret == 0 ? LocalTransactionState.COMMIT_MESSAGE : LocalTransactionState.ROLLBACK_MESSAGE;
 		}
 
 		@Override

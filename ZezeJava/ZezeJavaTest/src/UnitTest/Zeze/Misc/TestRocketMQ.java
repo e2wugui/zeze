@@ -3,10 +3,6 @@ package UnitTest.Zeze.Misc;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import Zeze.Services.RocketMQ.Consumer;
-import Zeze.Services.RocketMQ.Message;
-import Zeze.Services.RocketMQ.MessageListenerConcurrently;
-import Zeze.Services.RocketMQ.Producer;
-import Zeze.Services.RocketMQ.TransactionListener;
 import demo.App;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
@@ -50,7 +46,6 @@ public class TestRocketMQ {
 				return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
 			}
 		});
-//		consumer.getConsumer().subscribe("topic", "*");
 		consumer.getConsumer().subscribe("topic2", "*");
 		consumer.start();
 
@@ -60,21 +55,21 @@ public class TestRocketMQ {
 				var msg = new org.apache.rocketmq.common.message.Message();
 				msg.setBody("body".getBytes(StandardCharsets.UTF_8));
 				msg.setTransactionId("1");
-				msg.setTopic("topic");
+				msg.setTopic("topic2");
 
 				App.Instance.RocketMQProducer.sendMessage(msg);
 			}
 			// 发送事务消息
 			{
-				App.Instance.Zeze.newProcedure(() -> {
-					var msg = new org.apache.rocketmq.common.message.Message();
-					msg.setBody("body2".getBytes(StandardCharsets.UTF_8));
-					msg.setTransactionId("2");
-					msg.setTopic("topic2");
+				var msg = new org.apache.rocketmq.common.message.Message();
+				msg.setBody("body2".getBytes(StandardCharsets.UTF_8));
+				msg.setTransactionId("2");
+				msg.setTopic("topic2");
 
-					App.Instance.RocketMQProducer.sendMessageInTransaction(msg);
+				App.Instance.RocketMQProducer.sendMessageWithTransaction(msg, () -> {
+					/* local transaction bind to this message */
 					return 0;
-				}, "").call();
+				});
 			}
 		} finally {
 			consumer.stop();
