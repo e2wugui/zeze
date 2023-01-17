@@ -5,6 +5,9 @@ import Benchmark.CBasicSimpleAddConcurrent;
 import Zeze.Collections.LinkedMap;
 import Zeze.Config;
 import Zeze.Game.Bag;
+import Zeze.Services.RocketMQ.Consumer;
+import Zeze.Services.RocketMQ.Producer;
+import org.apache.rocketmq.client.ClientConfig;
 
 public class App extends Zeze.AppBase {
 	public static void main(String[] args) throws Throwable {
@@ -36,6 +39,8 @@ public class App extends Zeze.AppBase {
 
 	public LinkedMap.Module LinkedMapModule;
 	public Bag.Module BagModule;
+	public Producer RocketMQProducer;
+	public Consumer RocketMQConsumer;
 
 	public void Start() throws Throwable {
 		Start(Config.load("./zeze.xml"));
@@ -63,8 +68,10 @@ public class App extends Zeze.AppBase {
 		createModules();
 		LinkedMapModule = new LinkedMap.Module(Zeze);
 		BagModule = new Bag.Module(Zeze);
+		RocketMQProducer = new Producer(Zeze);
+		RocketMQConsumer = new Consumer(Zeze);
 		Zeze.start(); // 启动数据库
-		startModules(); // 启动模块，装载配置什么的。
+		startModules(); // 启动模块，装载配置什么的
 		Zeze.endStart();
 		startService(); // 启动网络
 	}
@@ -81,6 +88,14 @@ public class App extends Zeze.AppBase {
 			if (BagModule != null) {
 				BagModule.UnRegisterZezeTables(Zeze);
 				BagModule = null;
+			}
+			if (null != RocketMQProducer) {
+				RocketMQProducer.stop();
+				RocketMQProducer = null;
+			}
+			if (null != RocketMQConsumer) {
+				RocketMQConsumer.stop();
+				RocketMQConsumer = null;
 			}
 		}
 		destroyModules();
