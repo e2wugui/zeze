@@ -23,6 +23,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutLong;
+import Zeze.Util.TaskOneByOneByKey;
 
 /**
  * Linkd上处理Provider协议的模块。
@@ -260,7 +261,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			dumpFile.write(pdata.bytesUnsafe(), pdata.getOffset(), pdata.size());
 	}
 
-	private TaskOneByOneByKey oneByOnesender = new TaskOneByOneByKey();
+	private final TaskOneByOneByKey oneByOnesender = new TaskOneByOneByKey();
 
 	@Override
 	protected long ProcessSendRequest(Send r) throws IOException {
