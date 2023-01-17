@@ -34,7 +34,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	public final LongConcurrentHashMap<ProviderSession> providerByServerId = new LongConcurrentHashMap<>();
 	private final LongConcurrentHashMap<ConcurrentHashSet<Action0>> serverReadyEvents = new LongConcurrentHashMap<>();
 
-	public ProviderDirectService(String name, Zeze.Application zeze) throws Throwable {
+	public ProviderDirectService(String name, Zeze.Application zeze) throws Exception {
 		super(name, zeze);
 	}
 
@@ -42,7 +42,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		var connName = pm.getPassiveIp() + ":" + pm.getPassivePort();
 		var conn = getConfig().findConnector(connName);
 		if (conn != null) {
-			conn.Stop();
+			conn.stop();
 			providerByLoadName.remove(connName);
 			var serverId = Integer.parseInt(pm.getServiceIdentity());
 			providerByServerId.remove(serverId);
@@ -78,11 +78,11 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			var peerPs = new ProviderSession();
 			peerPs.serverId = serverId;
 			out.value.userState = peerPs;
-			out.value.Start();
+			out.value.start();
 		}
 	}
 
-	public void tryConnectAndSetReady(Agent.SubscribeState ss, BServiceInfos infos) throws Throwable {
+	public void tryConnectAndSetReady(Agent.SubscribeState ss, BServiceInfos infos) throws Exception {
 		var current = new HashMap<String, BServiceInfo>();
 		for (var pm : infos.getServiceInfoListSortedByIdentity()) {
 			addServer(ss, pm);
@@ -107,7 +107,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	}
 
 	@Override
-	public void OnHandshakeDone(AsyncSocket socket) throws Throwable {
+	public void OnHandshakeDone(AsyncSocket socket) throws Exception {
 		// call base
 		super.OnHandshakeDone(socket);
 
@@ -150,7 +150,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		}
 		try {
 			callback.run(); // 锁外回调，避免死锁风险。
-		} catch (Throwable e) {
+		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
@@ -191,7 +191,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		for (var w : watchers) {
 			try {
 				w.run();
-			} catch (Throwable ex) {
+			} catch (Exception ex) {
 				logger.error("", ex);
 			}
 		}
@@ -234,7 +234,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	}
 
 	@Override
-	public void OnSocketClose(AsyncSocket socket, Throwable ex) throws Throwable {
+	public void OnSocketClose(AsyncSocket socket, Throwable ex) throws Exception {
 		var ps = (ProviderSession)socket.getUserState();
 		if (ps != null) {
 			for (var service : ps.ServiceReadyStates.entrySet()) {

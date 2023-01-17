@@ -3,10 +3,10 @@ package Zeze.Builtin.Online;
 import Zeze.Util.TaskCompletionSource;
 
 public class ModuleOnline extends AbstractModule {
-    public void Start(Zege.App app) throws Throwable {
+    public void Start(Zege.App app) throws Exception {
     }
 
-    public void Stop(Zege.App app) throws Throwable {
+    public void Stop(Zege.App app) throws Exception {
     }
 
     @Override

@@ -41,11 +41,11 @@ public class App {
 		return config.getServerId();
 	}
 
-	public void Start() throws Throwable {
+	public void Start() throws Exception {
 		app.Start(config);
 	}
 
-	public void Stop() throws Throwable {
+	public void Stop() throws Exception {
 		for (var task : RunningTasks) {
 			task.cancel(false);
 		}

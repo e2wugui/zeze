@@ -25,7 +25,7 @@ public abstract class TaskConditionBase<ConditionBean extends Bean, EventBean ex
 	public abstract String getType();
 	protected abstract void loadJsonExtended(JsonObject json);
 	protected abstract void loadBeanExtended(BTaskCondition bean);
-	public abstract boolean accept(Bean eventBean) throws Throwable;
+	public abstract boolean accept(Bean eventBean) throws Exception;
 	public abstract boolean isCompleted();
 
 

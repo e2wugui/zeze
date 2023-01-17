@@ -39,11 +39,11 @@ public class HandshakeBase extends Service {
 	// For Client Only
 	private final LongConcurrentHashMap<Context> dhContext = new LongConcurrentHashMap<>();
 
-	public HandshakeBase(String name, Zeze.Config config) throws Throwable {
+	public HandshakeBase(String name, Zeze.Config config) throws Exception {
 		super(name, config);
 	}
 
-	public HandshakeBase(String name, Application app) throws Throwable {
+	public HandshakeBase(String name, Application app) throws Exception {
 		super(name, app);
 	}
 
@@ -61,7 +61,7 @@ public class HandshakeBase extends Service {
 				CHandshakeDone::new, this::processCHandshakeDone, TransactionLevel.None, DispatchMode.Normal));
 	}
 
-	private long processCHandshakeDone(CHandshakeDone p) throws Throwable {
+	private long processCHandshakeDone(CHandshakeDone p) throws Exception {
 		p.getSender().VerifySecurity();
 		OnHandshakeDone(p.getSender());
 		return 0L;

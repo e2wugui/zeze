@@ -41,7 +41,7 @@ public final class App extends Zeze.AppBase {
 		return new LoadConfig();
 	}
 
-	public void Start(String[] args) throws Throwable {
+	public void Start(String[] args) throws Exception {
 		int serverId = -1;
 		int providerDirectPort = -1;
 		for (int i = 0; i < args.length; ++i) {
@@ -60,7 +60,7 @@ public final class App extends Zeze.AppBase {
 		Start(serverId, providerDirectPort);
 	}
 
-	public void Start(int serverId, int providerDirectPort) throws Throwable {
+	public void Start(int serverId, int providerDirectPort) throws Exception {
 
 		var config = Config.load("server.xml");
 		if (serverId != -1) {
@@ -101,7 +101,7 @@ public final class App extends Zeze.AppBase {
 		ProviderApp.startLast(ProviderModuleBinds.load(), modules);
 	}
 
-	public void Stop() throws Throwable {
+	public void Stop() throws Exception {
 		if (Provider != null && Provider.online != null)
 			Provider.online.stop();
 		stopService(); // 关闭网络
@@ -138,18 +138,18 @@ public final class App extends Zeze.AppBase {
         return Zeze;
     }
 
-    public void createZeze() throws Throwable {
+    public void createZeze() throws Exception {
         createZeze(null);
     }
 
-    public synchronized void createZeze(Zeze.Config config) throws Throwable {
+    public synchronized void createZeze(Zeze.Config config) throws Exception {
         if (Zeze != null)
             throw new RuntimeException("Zeze Has Created!");
 
         Zeze = new Zeze.Application("server", config);
     }
 
-    public synchronized void createService() throws Throwable {
+    public synchronized void createService() throws Exception {
         Server = new Game.Server(Zeze);
         ServerDirect = new Game.ServerDirect(Zeze);
     }
@@ -246,7 +246,7 @@ public final class App extends Zeze.AppBase {
         Zeze = null;
     }
 
-    public synchronized void startModules() throws Throwable {
+    public synchronized void startModules() throws Exception {
         Game_Login.Start(this);
         Game_Item.Start(this);
         Game_Fight.Start(this);
@@ -259,7 +259,7 @@ public final class App extends Zeze.AppBase {
         Game_LongSet.Start(this);
     }
 
-    public synchronized void stopModules() throws Throwable {
+    public synchronized void stopModules() throws Exception {
         if (Game_LongSet != null)
             Game_LongSet.Stop(this);
         if (Game_Timer != null)
@@ -282,12 +282,12 @@ public final class App extends Zeze.AppBase {
             Game_Login.Stop(this);
     }
 
-    public synchronized void startService() throws Throwable {
+    public synchronized void startService() throws Exception {
         Server.start();
         ServerDirect.start();
     }
 
-    public synchronized void stopService() throws Throwable {
+    public synchronized void stopService() throws Exception {
         if (Server != null)
             Server.stop();
         if (ServerDirect != null)

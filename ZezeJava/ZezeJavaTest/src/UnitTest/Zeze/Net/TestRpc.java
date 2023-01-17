@@ -13,7 +13,7 @@ import org.junit.Assert;
 public class TestRpc extends TestCase {
 	final Zeze.Util.TaskCompletionSource<AsyncSocket> connected = new Zeze.Util.TaskCompletionSource<>();
 
-	public final void testRpcSimple() throws Throwable {
+	public final void testRpcSimple() throws Exception {
 		Service server = new Service("TestRpc.Server");
 		Zeze.Util.Task.tryInitThreadPool(null, null, null);
 		FirstRpc first = new FirstRpc();
@@ -70,7 +70,7 @@ public class TestRpc extends TestCase {
 		}
 
 		@Override
-		public void OnSocketConnected(AsyncSocket so) throws Throwable {
+		public void OnSocketConnected(AsyncSocket so) throws Exception {
 			super.OnSocketConnected(so);
 			test.connected.setResult(so);
 		}

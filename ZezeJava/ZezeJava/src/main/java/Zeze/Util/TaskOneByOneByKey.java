@@ -79,7 +79,7 @@ public final class TaskOneByOneByKey {
 				else {
 					try {
 						procedure.call();
-					} catch (Throwable ex) {
+					} catch (Exception ex) {
 						logger.error("{} Run", procedure.getActionName(), ex);
 					} finally {
 						cond.signalAll();
@@ -100,7 +100,7 @@ public final class TaskOneByOneByKey {
 				try {
 					if (null != cancelAction)
 						cancelAction.run();
-				} catch (Throwable ex) {
+				} catch (Exception ex) {
 					logger.error("{} Canceled", procedure.getActionName(), ex);
 				} finally {
 					cond.signalAll();
@@ -131,7 +131,7 @@ public final class TaskOneByOneByKey {
 			this.batchEnd = batchEnd;
 		}
 
-		public void run(T key) throws Throwable {
+		public void run(T key) throws Exception {
 			action.run(key);
 			if (keysCount.decrementAndGet() == 0)
 				batchEnd.run();
@@ -364,7 +364,7 @@ public final class TaskOneByOneByKey {
 			public void run() {
 				try {
 					action.run();
-				} catch (Throwable e) {
+				} catch (Exception e) {
 					logger.error("TaskOneByOne: {}", name, e);
 				}
 			}
@@ -382,7 +382,7 @@ public final class TaskOneByOneByKey {
 			public void run() {
 				try {
 					func.call();
-				} catch (Throwable e) {
+				} catch (Exception e) {
 					logger.error("TaskOneByOne: {}", name, e);
 				}
 			}
@@ -464,7 +464,7 @@ public final class TaskOneByOneByKey {
 			} else if (task.cancel != null) {
 				try {
 					task.cancel.run();
-				} catch (Throwable e) {
+				} catch (Exception e) {
 					logger.error("CancelAction={}", task.name, e);
 				}
 			}
@@ -513,7 +513,7 @@ public final class TaskOneByOneByKey {
 				if (task.cancel != null) {
 					try {
 						task.cancel.run();
-					} catch (Throwable e) {
+					} catch (Exception e) {
 						logger.error("CancelAction={}", task.name, e);
 					}
 				}

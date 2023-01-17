@@ -8,14 +8,14 @@ import org.junit.Test;
 public class TestConcurrentStartServer {
 
 	@Test
-	public void testConcurrentStartServer() throws Throwable {
+	public void testConcurrentStartServer() throws Exception {
 		//var config = Config.load("zeze.xml");
 		//config.dropMysqlOperatesProcedures();
 		for (var i = 0; i < 10; ++i)
 			start2();
 	}
 
-	private void start2() throws Throwable {
+	private void start2() throws Exception {
 		// 【注意】这个测试停止的非常快，会导致启动过程其他线程任务执行失败，不用管。
 		demo.App app1 = demo.App.getInstance();
 		demo.App app2 = new demo.App();

@@ -33,7 +33,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	static final Logger logger = LogManager.getLogger(ServiceManagerAgentWithRaft.class);
 	private final Zeze.Raft.Agent raftClient;
 
-	public ServiceManagerAgentWithRaft(Zeze.Application zeze) throws Throwable {
+	public ServiceManagerAgentWithRaft(Zeze.Application zeze) throws Exception {
 		super.zeze = zeze;
 
 		var config = zeze.getConfig();
@@ -78,7 +78,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 
 	////////////////////////////////////////////////////////////////////////
 	@Override
-	protected long ProcessCommitServiceListRequest(CommitServiceList r) throws Throwable {
+	protected long ProcessCommitServiceListRequest(CommitServiceList r) throws Exception {
 		var state = subscribeStates.get(r.Argument.serviceName);
 		if (state != null)
 			state.onCommit(r.Argument);
@@ -89,7 +89,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	protected long ProcessKeepAliveRequest(KeepAlive r) throws Throwable {
+	protected long ProcessKeepAliveRequest(KeepAlive r) throws Exception {
 		if (onKeepAlive != null)
 			Task.getCriticalThreadPool().execute(onKeepAlive);
 		r.SendResult();
@@ -97,7 +97,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	protected long ProcessNotifyServiceListRequest(NotifyServiceList r) throws Throwable {
+	protected long ProcessNotifyServiceListRequest(NotifyServiceList r) throws Exception {
 		var state = subscribeStates.get(r.Argument.getServiceName());
 		if (state != null)
 			state.onNotify(r.Argument);
@@ -108,7 +108,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	protected long ProcessOfflineNotifyRequest(OfflineNotify r) throws Throwable {
+	protected long ProcessOfflineNotifyRequest(OfflineNotify r) throws Exception {
 		if (onOfflineNotify == null) {
 			r.trySendResultCode(1);
 			return 0;
@@ -126,7 +126,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	protected long ProcessRegisterRequest(Register r) throws Throwable {
+	protected long ProcessRegisterRequest(Register r) throws Exception {
 		var state = subscribeStates.get(r.Argument.getServiceName());
 		if (state == null)
 			return Update.ServiceNotSubscribe;
@@ -136,7 +136,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	protected long ProcessSetServerLoadRequest(SetServerLoad r) throws Throwable {
+	protected long ProcessSetServerLoadRequest(SetServerLoad r) throws Exception {
 		loads.put(r.Argument.getName(), r.Argument);
 		if (onSetServerLoad != null) {
 			Task.getCriticalThreadPool().execute(() -> {
@@ -152,7 +152,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	protected long ProcessSubscribeFirstCommitRequest(SubscribeFirstCommit r) throws Throwable {
+	protected long ProcessSubscribeFirstCommitRequest(SubscribeFirstCommit r) throws Exception {
 		var state = subscribeStates.get(r.Argument.getServiceName());
 		if (state != null)
 			state.onFirstCommit(r.Argument);
@@ -161,7 +161,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	protected long ProcessUnRegisterRequest(UnRegister r) throws Throwable {
+	protected long ProcessUnRegisterRequest(UnRegister r) throws Exception {
 		var state = subscribeStates.get(r.Argument.getServiceName());
 		if (state == null)
 			return Update.ServiceNotSubscribe;
@@ -171,7 +171,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	protected long ProcessUpdateRequest(Update r) throws Throwable {
+	protected long ProcessUpdateRequest(Update r) throws Exception {
 		var state = subscribeStates.get(r.Argument.getServiceName());
 		if (state == null)
 			return Update.ServiceNotSubscribe;
@@ -320,7 +320,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	public void start() throws Throwable {
+	public void start() throws Exception {
 		raftClient.getClient().start();
 	}
 

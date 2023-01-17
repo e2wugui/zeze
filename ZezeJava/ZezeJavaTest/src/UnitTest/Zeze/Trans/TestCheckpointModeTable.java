@@ -11,16 +11,16 @@ import Zeze.Transaction.Procedure;
 public class TestCheckpointModeTable{
 
 	@Before
-	public final void testInit() throws Throwable {
+	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
 	}
 
 	@After
-	public final void testCleanup() throws Throwable {
+	public final void testCleanup() throws Exception {
 		demo.App.getInstance().Stop();
 	}
 
-	private static void Check(int expect) throws Throwable {
+	private static void Check(int expect) throws Exception {
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 					var value = demo.App.getInstance().demo_Module1.getTableImportant().getOrAdd(1L);
 					return value.getInt1() == expect ? Procedure.Success : Procedure.LogicError;
@@ -28,7 +28,7 @@ public class TestCheckpointModeTable{
 	}
 
 	@Test
-	public final void test1() throws Throwable {
+	public final void test1() throws Exception {
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 					var value = demo.App.getInstance().demo_Module1.getTableImportant().getOrAdd(1L);
 					value.setInt1(0);

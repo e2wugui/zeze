@@ -28,13 +28,13 @@ public class ModuleFriend extends AbstractModule {
 		App.Provider.online.sendAccount(account, notify, null); // TODO online sender
 	}
 
-	public void Start(Zege.App app) throws Throwable {
+	public void Start(Zege.App app) throws Exception {
 		GroupIdAutoKey = app.getZeze().getAutoKey("Zege.GroupId");
 		App.LinkedMaps.NodeListeners.put(eFriendsLinkedMapNameEndsWith, this::onChangeListener);
 		App.LinkedMaps.NodeListeners.put(eTopmostLinkedMapNameEndsWith, this::onChangeListener);
 	}
 
-	public void Stop(Zege.App app) throws Throwable {
+	public void Stop(Zege.App app) throws Exception {
 		App.LinkedMaps.NodeListeners.remove(eFriendsLinkedMapNameEndsWith);
 		App.LinkedMaps.NodeListeners.remove(eTopmostLinkedMapNameEndsWith);
 	}

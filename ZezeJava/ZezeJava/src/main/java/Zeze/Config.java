@@ -381,7 +381,7 @@ public final class Config {
 			try {
 				Document doc = db.newDocumentBuilder().parse(xmlFile);
 				parse(doc.getDocumentElement());
-			} catch (Throwable ex) {
+			} catch (Exception ex) {
 				throw new RuntimeException(ex);
 			}
 		}

@@ -7,10 +7,10 @@ import Zeze.Transaction.Procedure;
 import Zeze.Util.TaskCompletionSource;
 
 public class ModuleMessage extends AbstractModule {
-    public void Start(Zege.App app) throws Throwable {
+    public void Start(Zege.App app) throws Exception {
     }
 
-    public void Stop(Zege.App app) throws Throwable {
+    public void Stop(Zege.App app) throws Exception {
     }
 
     public TaskCompletionSource<?> send(String target, String message, long departmentId) {

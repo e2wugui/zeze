@@ -51,7 +51,7 @@ public class ThreadFactoryWithName implements ThreadFactory {
 			if (t.getPriority() != Thread.NORM_PRIORITY)
 				t.setPriority(Thread.NORM_PRIORITY);
 		}
-		t.setUncaughtExceptionHandler((t2, e) -> Task.logger.error("fatal exception", e));
+		t.setUncaughtExceptionHandler((__, e) -> Task.logger.error("fatal exception", e));
 		return t;
 	}
 }

@@ -11,7 +11,7 @@ public class EventDispatcher {
 
 	@FunctionalInterface
 	public interface EventHandle {
-		long invoke(Object sender, EventArgument arg) throws Throwable;
+		long invoke(Object sender, EventArgument arg) throws Exception;
 	}
 
 	public interface EventArgument {
@@ -85,7 +85,7 @@ public class EventDispatcher {
 	}
 
 	// 嵌入当前线程执行，所有错误都报告出去，如果需要对错误进行特别处理，需要自己遍历Handles手动触发。
-	public void triggerEmbed(Object sender, EventArgument arg) throws Throwable {
+	public void triggerEmbed(Object sender, EventArgument arg) throws Exception {
 		for (EventHandle handle : runEmbedEvents)
 			handle.invoke(sender, arg);
 	}
@@ -106,7 +106,7 @@ public class EventDispatcher {
 	}
 
 	// 在当前线程中，创建新的存储过程并执行，所有错误都报告出去，如果需要对错误进行特别处理，需要自己遍历Handles手动触发。
-	public void triggerProcedure(Application app, Object sender, EventArgument arg) throws Throwable {
+	public void triggerProcedure(Application app, Object sender, EventArgument arg) {
 		for (EventHandle handle : runProcedureEvents) {
 			var result = app.newProcedure(() -> {
 				handle.invoke(sender, arg);

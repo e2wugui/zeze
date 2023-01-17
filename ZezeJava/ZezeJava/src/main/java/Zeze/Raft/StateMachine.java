@@ -72,7 +72,7 @@ public abstract class StateMachine {
 	// return true;
 	//
 	// 这样在保存数据到文件的过程中，服务可以继续进行。
-	public abstract SnapshotResult snapshot(String path) throws Throwable;
+	public abstract SnapshotResult snapshot(String path) throws Exception;
 
 	public static final class SnapshotResult {
 		public boolean success;
@@ -89,5 +89,5 @@ public abstract class StateMachine {
 	 * Raft 处理 InstallSnapshot 到达最后一个数据时，调用这个方法。
 	 * 然后 Raft 会从 LastIncludedIndex 后面开始复制日志。进入正常的模式。
 	 */
-	public abstract void loadSnapshot(String path) throws Throwable;
+	public abstract void loadSnapshot(String path) throws Exception;
 }

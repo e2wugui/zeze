@@ -73,7 +73,7 @@ public class TaskPhase {
 	 * - 用于接收事件，改变数据库的数据
 	 * - 当满足任务Phase推进情况时，会自动推进任务Phase
 	 */
-	public boolean accept(Bean eventBean) throws Throwable {
+	public boolean accept(Bean eventBean) throws Exception {
 		if (!currentSubPhase.accept(eventBean))
 			return false;
 
@@ -114,7 +114,7 @@ public class TaskPhase {
 		/**
 		 * Runtime方法：accept
 		 */
-		public boolean accept(Bean eventBean) throws Throwable {
+		public boolean accept(Bean eventBean) throws Exception {
 			boolean res = false;
 			for (var condition : conditions) {
 				if (condition.accept(eventBean)) {

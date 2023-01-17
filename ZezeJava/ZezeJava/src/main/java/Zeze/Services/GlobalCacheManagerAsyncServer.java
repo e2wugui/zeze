@@ -83,11 +83,11 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		return config;
 	}
 
-	public void start(InetAddress ipaddress, int port) throws Throwable {
+	public void start(InetAddress ipaddress, int port) throws Exception {
 		start(ipaddress, port, null);
 	}
 
-	public synchronized void start(InetAddress ipaddress, int port, Zeze.Config config) throws Throwable {
+	public synchronized void start(InetAddress ipaddress, int port, Zeze.Config config) throws Exception {
 		if (server != null)
 			return;
 
@@ -151,7 +151,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		});
 	}
 
-	public synchronized void stop() throws Throwable {
+	public synchronized void stop() throws Exception {
 		if (server == null)
 			return;
 		serverSocket.close();
@@ -206,7 +206,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		return 0;
 	}
 
-	private long processLogin(Login rpc) throws Throwable {
+	private long processLogin(Login rpc) throws Exception {
 		logger.info("ProcessLogin: {} RequestId={} {}", rpc.getSender(), rpc.getSessionId(), rpc.Argument);
 		var session = sessions.computeIfAbsent(rpc.Argument.serverId, __ -> new CacheHolder());
 		if (!session.tryBindSocket(rpc.getSender(), rpc.Argument.globalCacheManagerHashIndex, true)) {
@@ -241,7 +241,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		return 0;
 	}
 
-	private long processNormalClose(NormalClose rpc) throws Throwable {
+	private long processNormalClose(NormalClose rpc) throws Exception {
 		logger.info("ProcessNormalClose: {} RequestId={}", rpc.getSender(), rpc.getSessionId());
 		var session = (CacheHolder)rpc.getSender().getUserState();
 		if (session == null) {
@@ -331,7 +331,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		}
 
 		@Override
-		public RedirectFuture<Object> then(Action1<Object> onResult) throws Throwable {
+		public RedirectFuture<Object> then(Action1<Object> onResult) throws Exception {
 			finishOne();
 			return super.then(onResult);
 		}
@@ -1022,19 +1022,19 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	}
 
 	private static final class ServerService extends Service {
-		ServerService(Zeze.Config config) throws Throwable {
+		ServerService(Zeze.Config config) throws Exception {
 			super("GlobalCacheManager", config);
 		}
 
 		@Override
-		public void OnSocketAccept(AsyncSocket so) throws Throwable {
+		public void OnSocketAccept(AsyncSocket so) throws Exception {
 			logger.info("OnSocketAccept {}", so);
 			// so.UserState = new CacheHolder(so.SessionId); // Login ReLogin 的时候初始化。
 			super.OnSocketAccept(so);
 		}
 
 		@Override
-		public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
+		public void OnSocketClose(AsyncSocket so, Throwable e) throws Exception {
 			logger.info("OnSocketClose {}", so);
 			var session = (CacheHolder)so.getUserState();
 			if (session != null)
@@ -1066,7 +1066,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		}
 	}
 
-	public static void main(String[] args) throws Throwable {
+	public static void main(String[] args) throws Exception {
 		Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
 			e.printStackTrace();
 			logger.fatal("uncaught exception in {}:", t, e);

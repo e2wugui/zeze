@@ -15,7 +15,7 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 	private final ConcurrentHashMap<String, LongConcurrentHashMap<Predicate<Binary>>> handles = new ConcurrentHashMap<>();
 	private final Server server;
 
-	public RedoQueueServer(Zeze.Application zeze) throws Throwable {
+	public RedoQueueServer(Zeze.Application zeze) throws Exception {
 		server = new Server(zeze);
 		RegisterProtocols(server);
 		RegisterZezeTables(zeze);
@@ -27,11 +27,11 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 		UnRegisterZezeTables(server.getZeze());
 	}
 
-	public void start() throws Throwable {
+	public void start() throws Exception {
 		server.start();
 	}
 
-	public void stop() throws Throwable {
+	public void stop() throws Exception {
 		server.stop();
 	}
 
@@ -63,7 +63,7 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 	}
 
 	public static class Server extends Zeze.Services.HandshakeServer {
-		public Server(Zeze.Application zeze) throws Throwable {
+		public Server(Zeze.Application zeze) throws Exception {
 			super("RedoQueueServer", zeze);
 		}
 

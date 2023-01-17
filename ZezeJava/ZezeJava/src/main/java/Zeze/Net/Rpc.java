@@ -228,7 +228,7 @@ public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends 
 
 	@Override
 	public <P extends Protocol<?>> void dispatch(Service service, Service.ProtocolFactoryHandle<P> factoryHandle)
-			throws Throwable {
+			throws Exception {
 		if (isRequest) {
 			@SuppressWarnings("unchecked") P proto = (P)this;
 			service.DispatchProtocol(proto, factoryHandle);

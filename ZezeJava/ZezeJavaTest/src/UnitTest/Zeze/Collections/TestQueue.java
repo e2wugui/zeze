@@ -14,17 +14,17 @@ import org.junit.runners.MethodSorters;
 public class TestQueue {
 
 	@Before
-	public final void testInit() throws Throwable {
+	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
 	}
 
 	@After
-	public final void testCleanup() throws Throwable {
+	public final void testCleanup() throws Exception {
 		demo.App.getInstance().Stop();
 	}
 
 	@Test
-	public final void test1_QueueAdd() throws Throwable {
+	public final void test1_QueueAdd() throws Exception {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
 			var queue = queueModule.open("test1", BMyBean.class);
@@ -55,7 +55,7 @@ public class TestQueue {
 	}
 
 	@Test
-	public final void test3_QueuePop() throws Throwable {
+	public final void test3_QueuePop() throws Exception {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
 			var queue = queueModule.open("test1", BMyBean.class);
@@ -70,7 +70,7 @@ public class TestQueue {
 	}
 
 	@Test
-	public final void test4_QueuePush() throws Throwable {
+	public final void test4_QueuePush() throws Exception {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
 			var queue = queueModule.open("test1", BMyBean.class);
@@ -101,7 +101,7 @@ public class TestQueue {
 	}
 
 	@Test
-	public final void test6_QueuePop() throws Throwable {
+	public final void test6_QueuePop() throws Exception {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
 			var queue = queueModule.open("test1", BMyBean.class);

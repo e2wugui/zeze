@@ -184,7 +184,7 @@ public class Online extends AbstractOnline {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T extends Bean> T getOrAddLocalBean(long roleId, String key, T defaultHint) throws Throwable {
+	public <T extends Bean> T getOrAddLocalBean(long roleId, String key, T defaultHint) throws Exception {
 		var bLocal = _tlocal.getOrAdd(roleId);
 		var data = bLocal.getDatas().getOrAdd(key);
 		if (data.getAny().getBean().typeId() == defaultHint.typeId())
@@ -221,7 +221,7 @@ public class Online extends AbstractOnline {
 		return Procedure.Success;
 	}
 
-	private void removeLocalAndTrigger(long roleId) throws Throwable {
+	private void removeLocalAndTrigger(long roleId) throws Exception {
 		var arg = new LocalRemoveEventArgument();
 		arg.roleId = roleId;
 		arg.localData = _tlocal.get(roleId).copy();
@@ -261,7 +261,7 @@ public class Online extends AbstractOnline {
 		return null != _tonline.get(roleId);
 	}
 
-	private void logoutTriggerExtra(long roleId) throws Throwable {
+	private void logoutTriggerExtra(long roleId) throws Exception {
 		var arg = new LogoutEventArgument();
 		arg.roleId = roleId;
 		arg.onlineData = _tonline.get(roleId).copy();
@@ -271,7 +271,7 @@ public class Online extends AbstractOnline {
 		Transaction.whileCommit(() -> logoutEvents.triggerThread(this, arg));
 	}
 
-	private void logoutTrigger(long roleId) throws Throwable {
+	private void logoutTrigger(long roleId) throws Exception {
 		var arg = new LogoutEventArgument();
 		arg.roleId = roleId;
 		arg.onlineData = _tonline.get(roleId).copy();
@@ -283,7 +283,7 @@ public class Online extends AbstractOnline {
 		Transaction.whileCommit(() -> logoutEvents.triggerThread(this, arg));
 	}
 
-	private void loginTrigger(long roleId) throws Throwable {
+	private void loginTrigger(long roleId) throws Exception {
 		var arg = new LoginArgument();
 		arg.roleId = roleId;
 
@@ -293,7 +293,7 @@ public class Online extends AbstractOnline {
 		Transaction.whileCommit(() -> loginEvents.triggerThread(this, arg));
 	}
 
-	private void reloginTrigger(long roleId) throws Throwable {
+	private void reloginTrigger(long roleId) throws Exception {
 		var arg = new LoginArgument();
 		arg.roleId = roleId;
 
@@ -303,7 +303,7 @@ public class Online extends AbstractOnline {
 		Transaction.whileCommit(() -> reloginEvents.triggerThread(this, arg));
 	}
 
-	public final void onLinkBroken(long roleId, String linkName, long linkSid) throws Throwable {
+	public final void onLinkBroken(long roleId, String linkName, long linkSid) throws Exception {
 		long currentLoginVersion;
 		{
 			var online = _tonline.get(roleId);
@@ -395,8 +395,7 @@ public class Online extends AbstractOnline {
 		}, "Game.Online.send"), null, null, DispatchMode.Normal);
 	}
 
-	private long triggerLinkBroken(String linkName, LongList errorSids, Map<Long, Long> context)
-			throws Throwable {
+	private long triggerLinkBroken(String linkName, LongList errorSids, Map<Long, Long> context) throws Exception {
 		for (int i = 0, n = errorSids.size(); i < n; i++) {
 			var sid = errorSids.get(i);
 			var roleId = context.get(sid);
@@ -746,7 +745,7 @@ public class Online extends AbstractOnline {
 					tryRemoveLocal(roleId.value);
 					return 0L;
 				}, "VerifyLocal:" + roleId.value).call();
-			} catch (Throwable e) {
+			} catch (Exception e) {
 				logger.error("", e);
 			}
 		});
@@ -754,7 +753,7 @@ public class Online extends AbstractOnline {
 		verifyLocalTimer = Task.scheduleAtUnsafe(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
 	}
 
-	private void tryRemoveLocal(long roleId) throws Throwable {
+	private void tryRemoveLocal(long roleId) throws Exception {
 		var online = _tonline.get(roleId);
 		var local = _tlocal.get(roleId);
 
@@ -769,19 +768,19 @@ public class Online extends AbstractOnline {
 	}
 
 	@RedirectToServer
-	protected RedirectFuture<Long> redirectNotify(int serverId, long roleId) throws Throwable {
+	protected RedirectFuture<Long> redirectNotify(int serverId, long roleId) throws Exception {
 		tryRemoveLocal(roleId);
 		return RedirectFuture.finish(0L);
 	}
 
-	private void tryRedirectNotify(int serverId, long roleId) throws Throwable {
+	private void tryRedirectNotify(int serverId, long roleId) throws Exception {
 		if (providerApp.zeze.getConfig().getServerId() != serverId
 				&& providerApp.providerDirectService.providerByServerId.containsKey(serverId))
 			redirectNotify(serverId, roleId);
 	}
 
 	@Override
-	protected long ProcessLoginRequest(Zeze.Builtin.Game.Online.Login rpc) throws Throwable {
+	protected long ProcessLoginRequest(Zeze.Builtin.Game.Online.Login rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 
 		var account = _taccount.getOrAdd(session.getAccount());
@@ -837,7 +836,7 @@ public class Online extends AbstractOnline {
 	}
 
 	@Override
-	protected long ProcessReLoginRequest(Zeze.Builtin.Game.Online.ReLogin rpc) throws Throwable {
+	protected long ProcessReLoginRequest(Zeze.Builtin.Game.Online.ReLogin rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 
 		BAccount account = _taccount.get(session.getAccount());
@@ -896,7 +895,7 @@ public class Online extends AbstractOnline {
 	}
 
 	@Override
-	protected long ProcessLogoutRequest(Zeze.Builtin.Game.Online.Logout rpc) throws Throwable {
+	protected long ProcessLogoutRequest(Zeze.Builtin.Game.Online.Logout rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 		if (session.getRoleId() == null)
 			return errorCode(ResultCodeNotLogin);

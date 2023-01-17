@@ -27,7 +27,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	private final Zeze.Application zz;
 	public final RaftAgent[] agents;
 
-	public GlobalCacheManagerWithRaftAgent(Zeze.Application zeze, String[] hosts) throws Throwable {
+	public GlobalCacheManagerWithRaftAgent(Zeze.Application zeze, String[] hosts) throws Exception {
 		zz = zeze;
 
 		agents = new RaftAgent[hosts.length];
@@ -41,7 +41,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		return zz;
 	}
 
-	public final synchronized void start() throws Throwable {
+	public final synchronized void start() throws Exception {
 		for (var agent : agents)
 			agent.getRaftClient().getClient().start();
 
@@ -66,7 +66,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		}
 	}
 
-	public final synchronized void stop() throws Throwable {
+	public final synchronized void stop() throws Exception {
 		for (var agent : agents)
 			agent.close();
 	}
@@ -237,7 +237,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		}
 
 		public RaftAgent(GlobalCacheManagerWithRaftAgent global, Zeze.Application zeze,
-						 int _GlobalCacheManagerHashIndex) throws Throwable {
+						 int _GlobalCacheManagerHashIndex) throws Exception {
 			this(global, zeze, _GlobalCacheManagerHashIndex, null);
 		}
 
@@ -264,7 +264,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		}
 
 		public RaftAgent(GlobalCacheManagerWithRaftAgent global, Zeze.Application zeze,
-						 int _GlobalCacheManagerHashIndex, Zeze.Raft.RaftConfig raftConf) throws Throwable {
+						 int _GlobalCacheManagerHashIndex, Zeze.Raft.RaftConfig raftConf) throws Exception {
 			super(zeze);
 			globalCacheManagerWithRaftAgent = global;
 			super.globalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
@@ -294,7 +294,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			return activeClose;
 		}
 
-		public final void close() throws Throwable {
+		public final void close() throws Exception {
 			synchronized (this) {
 				// 简单保护一下，Close 正常程序退出的时候才调用这个，应该不用保护。
 				if (activeClose)

@@ -32,7 +32,7 @@ public final class App extends Zeze.AppBase {
 
 	public LinkdApp LinkdApp;
 
-	public void Start(String[] args) throws Throwable {
+	public void Start(String[] args) throws Exception {
 		int linkPort = -1;
 		int providerPort = -1;
 		for (int i = 0; i < args.length; ++i) {
@@ -48,7 +48,7 @@ public final class App extends Zeze.AppBase {
 		Start(-1, linkPort, providerPort);
 	}
 
-	public void Start(int serverId, int linkPort, int providerPort) throws Throwable {
+	public void Start(int serverId, int linkPort, int providerPort) throws Exception {
 		// Create
 		var config = Config.load("linkd.xml");
 		if (serverId != -1)
@@ -72,7 +72,7 @@ public final class App extends Zeze.AppBase {
 		LinkdApp.registerService(null);
 	}
 
-	public void Stop() throws Throwable {
+	public void Stop() throws Exception {
 		stopService(); // 关闭网络
 		if (Zeze != null)
 			Zeze.stop(); // 关闭数据库
@@ -96,18 +96,18 @@ public final class App extends Zeze.AppBase {
         return Zeze;
     }
 
-    public void createZeze() throws Throwable {
+    public void createZeze() throws Exception {
         createZeze(null);
     }
 
-    public synchronized void createZeze(Zeze.Config config) throws Throwable {
+    public synchronized void createZeze(Zeze.Config config) throws Exception {
         if (Zeze != null)
             throw new RuntimeException("Zeze Has Created!");
 
         Zeze = new Zeze.Application("linkd", config);
     }
 
-    public synchronized void createService() throws Throwable {
+    public synchronized void createService() throws Exception {
         LinkdService = new Zezex.LinkdService(Zeze);
         ProviderService = new Zezex.ProviderService(Zeze);
     }
@@ -141,21 +141,21 @@ public final class App extends Zeze.AppBase {
         Zeze = null;
     }
 
-    public synchronized void startModules() throws Throwable {
+    public synchronized void startModules() throws Exception {
         Zezex_Linkd.Start(this);
     }
 
-    public synchronized void stopModules() throws Throwable {
+    public synchronized void stopModules() throws Exception {
         if (Zezex_Linkd != null)
             Zezex_Linkd.Stop(this);
     }
 
-    public synchronized void startService() throws Throwable {
+    public synchronized void startService() throws Exception {
         LinkdService.start();
         ProviderService.start();
     }
 
-    public synchronized void stopService() throws Throwable {
+    public synchronized void stopService() throws Exception {
         if (LinkdService != null)
             LinkdService.stop();
         if (ProviderService != null)

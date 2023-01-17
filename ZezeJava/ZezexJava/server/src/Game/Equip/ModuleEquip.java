@@ -71,7 +71,7 @@ public final class ModuleEquip extends AbstractModule {
 	// 装备只有装上取下两个操作，没有公开的需求，先不提供包装类了。
 
 	@Override
-	protected long ProcessEquipementRequest(Equipement rpc) throws Throwable {
+	protected long ProcessEquipementRequest(Equipement rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 		/*
 		Game.Bag.Bag bag = App.Game_Bag.GetBag(session.getRoleId().longValue());
@@ -114,7 +114,7 @@ public final class ModuleEquip extends AbstractModule {
 	}
 
 	@Override
-	protected long ProcessUnequipementRequest(Unequipement rpc) throws Throwable {
+	protected long ProcessUnequipementRequest(Unequipement rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 		/*
 		BEquips equips = _tequip.getOrAdd(session.getRoleId().longValue());

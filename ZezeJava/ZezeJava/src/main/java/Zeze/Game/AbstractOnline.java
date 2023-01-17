@@ -89,8 +89,8 @@ public abstract class AbstractOnline implements Zeze.IModule {
     }
 
 
-    protected abstract long ProcessLoginRequest(Zeze.Builtin.Game.Online.Login r) throws Throwable;
-    protected abstract long ProcessLogoutRequest(Zeze.Builtin.Game.Online.Logout r) throws Throwable;
-    protected abstract long ProcessReliableNotifyConfirmRequest(Zeze.Builtin.Game.Online.ReliableNotifyConfirm r) throws Throwable;
-    protected abstract long ProcessReLoginRequest(Zeze.Builtin.Game.Online.ReLogin r) throws Throwable;
+    protected abstract long ProcessLoginRequest(Zeze.Builtin.Game.Online.Login r) throws Exception;
+    protected abstract long ProcessLogoutRequest(Zeze.Builtin.Game.Online.Logout r) throws Exception;
+    protected abstract long ProcessReliableNotifyConfirmRequest(Zeze.Builtin.Game.Online.ReliableNotifyConfirm r) throws Exception;
+    protected abstract long ProcessReLoginRequest(Zeze.Builtin.Game.Online.ReLogin r) throws Exception;
 }

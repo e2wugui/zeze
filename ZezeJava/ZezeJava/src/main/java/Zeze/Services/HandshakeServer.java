@@ -5,18 +5,18 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Services.Handshake.SHandshake0;
 
 public class HandshakeServer extends HandshakeBase {
-	public HandshakeServer(String name, Zeze.Config config) throws Throwable {
+	public HandshakeServer(String name, Zeze.Config config) throws Exception {
 		super(name, config);
 		addHandshakeServerFactoryHandle();
 	}
 
-	public HandshakeServer(String name, Application app) throws Throwable {
+	public HandshakeServer(String name, Application app) throws Exception {
 		super(name, app);
 		addHandshakeServerFactoryHandle();
 	}
 
 	@Override
-	public void OnSocketAccept(AsyncSocket so) throws Throwable {
+	public void OnSocketAccept(AsyncSocket so) throws Exception {
 		// 重载这个方法，推迟OnHandshakeDone调用
 		addSocket(so);
 		var hand0 = new SHandshake0();

@@ -25,7 +25,7 @@ public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 	protected FileOutputStream dumpFile;
 	protected AsyncSocket dumpSocket;
 
-	public LinkdProviderService(String name, Zeze.Application zeze) throws Throwable {
+	public LinkdProviderService(String name, Zeze.Application zeze) throws Exception {
 		super(name, zeze);
 	}
 
@@ -39,7 +39,7 @@ public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 	}
 
 	@Override
-	public void OnSocketProcessInputBuffer(AsyncSocket s, ByteBuffer input) throws Throwable {
+	public void OnSocketProcessInputBuffer(AsyncSocket s, ByteBuffer input) throws Exception {
 		if (enableDump)
 			tryDump(s, input);
 		super.OnSocketProcessInputBuffer(s, input);
@@ -66,7 +66,7 @@ public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 					var isRequestSaved = p.isRequest();
 					var result = factoryHandle.Handle.handle(p);
 					Task.logAndStatistics(null, result, p, isRequestSaved);
-				} catch (Throwable ex) {
+				} catch (Exception ex) {
 					logger.error("Protocol.Handle Exception: {}", p, ex);
 				}
 			}
@@ -75,13 +75,13 @@ public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 	}
 
 	@Override
-	public void OnSocketAccept(AsyncSocket sender) throws Throwable {
+	public void OnSocketAccept(AsyncSocket sender) throws Exception {
 		sender.setUserState(new LinkdProviderSession(sender.getSessionId()));
 		super.OnSocketAccept(sender);
 	}
 
 	@Override
-	public void OnHandshakeDone(AsyncSocket sender) throws Throwable {
+	public void OnHandshakeDone(AsyncSocket sender) throws Exception {
 		super.OnHandshakeDone(sender);
 
 		var announce = new AnnounceLinkInfo();
@@ -89,7 +89,7 @@ public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 	}
 
 	@Override
-	public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
+	public void OnSocketClose(AsyncSocket so, Throwable e) throws Exception {
 		// 先unbind。这样避免有时间窗口。
 		linkdApp.linkdProvider.onProviderClose(so);
 		super.OnSocketClose(so, e);

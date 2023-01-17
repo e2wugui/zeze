@@ -515,7 +515,7 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	@RedirectAll // 广播请求并获取所有回复结果
-	public RedirectAllFuture<TestToAllResult> TestToAll(int hash, int in) throws Throwable { // 首个参数hash在发起方是hash总数,处理方是当前hash,后面是自定义参数列表
+	public RedirectAllFuture<TestToAllResult> TestToAll(int hash, int in) throws Exception { // 首个参数hash在发起方是hash总数,处理方是当前hash,后面是自定义参数列表
 		System.out.println("TestToAll hash=" + hash + ", in=" + in);
 		switch (hash) {
 		case 0: // local sync

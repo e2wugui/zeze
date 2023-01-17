@@ -59,7 +59,7 @@ public class ModuleRedirectRank extends TestCase {
 		System.out.println("End Stop");
 	}
 
-	public void testRedirect() throws Throwable {
+	public void testRedirect() throws Exception {
 		// RedirectToServer
 		app1.Game_Rank.TestToServer(0, 111).then(result -> {
 			assertEquals(111, result.out);

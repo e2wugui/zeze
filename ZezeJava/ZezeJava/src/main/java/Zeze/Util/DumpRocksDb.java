@@ -36,7 +36,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 二者都整理log文件到sst中, 后者还会把0级文件整理合并到1级文件
 */
 public final class DumpRocksDb {
-	public static void main(String[] args) throws Throwable {
+	public static void main(String[] args) throws Exception {
 		int argCount = args.length;
 		for (; argCount > 0; argCount--) {
 			var arg = args[argCount - 1];
@@ -253,7 +253,7 @@ public final class DumpRocksDb {
 		dumpVar(os, bb, ByteBuffer.BEAN);
 	}
 
-	private static void dumpRaftLog(OutputStream os, ByteBuffer bb) throws Throwable {
+	private static void dumpRaftLog(OutputStream os, ByteBuffer bb) throws Exception {
 		dump(os, "{term:%d, index:%d, log:", bb.ReadLong(), bb.ReadLong());
 		var logType = bb.ReadInt4();
 		if (logType == logTypeChanges) {

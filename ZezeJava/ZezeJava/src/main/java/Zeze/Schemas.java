@@ -93,7 +93,7 @@ public class Schemas implements Serializable {
 			}
 		}
 
-		public final void update() throws Throwable {
+		public final void update() throws Exception {
 			for (var update : getUpdates()) {
 				update.run(getBean());
 			}
@@ -167,7 +167,7 @@ public class Schemas implements Serializable {
 				throw new IllegalStateException("duplicate bean in CopyBeanIfRemoved Map");
 		}
 
-		public final void update() throws Throwable {
+		public final void update() throws Exception {
 			for (var result : getChecked().values())
 				result.update();
 			for (var result : getCopyBeanIfRemoved().values())
@@ -619,7 +619,7 @@ public class Schemas implements Serializable {
 	public final HashMap<String, Bean> beans = new HashMap<>();
 	private final HashMap<String, Type> basicTypes = new HashMap<>();
 
-	public void checkCompatible(Schemas other, Zeze.Application app) throws Throwable {
+	public void checkCompatible(Schemas other, Zeze.Application app) throws Exception {
 		if (other == null)
 			return;
 

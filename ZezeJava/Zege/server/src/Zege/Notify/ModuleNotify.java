@@ -21,11 +21,11 @@ public class ModuleNotify extends AbstractModule {
         App.Provider.online.sendAccount(account, notify, null); // TODO online sender
     }
 
-    public void Start(Zege.App app) throws Throwable {
+    public void Start(Zege.App app) throws Exception {
         App.LinkedMaps.NodeListeners.put(eNotifyLinkedMapNameEndsWith, this::onChangeListener);
     }
 
-    public void Stop(Zege.App app) throws Throwable {
+    public void Stop(Zege.App app) throws Exception {
         App.LinkedMaps.NodeListeners.remove(eNotifyLinkedMapNameEndsWith);
     }
 

@@ -581,7 +581,7 @@ public class LogSequence {
 		}
 	}
 
-	private void tryCommit(AppendEntries rpc, Server.ConnectorEx connector) throws Throwable {
+	private void tryCommit(AppendEntries rpc, Server.ConnectorEx connector) throws Exception {
 		connector.setNextIndex(rpc.Argument.getLastEntryIndex() + 1);
 		connector.setMatchIndex(rpc.Argument.getLastEntryIndex());
 
@@ -616,7 +616,7 @@ public class LogSequence {
 	}
 
 	// under lock (Raft)
-	private void tryStartApplyTask(RaftLog lastApplicableLog) throws Throwable {
+	private void tryStartApplyTask(RaftLog lastApplicableLog) throws Exception {
 		if (applyFuture == null && !raft.isShutdown) {
 			// 仅在没有 apply 进行中才尝试进行处理。
 			if (commitIndex - lastApplied < raft.getRaftConfig().getBackgroundApplyCount()) {
@@ -636,7 +636,7 @@ public class LogSequence {
 		}
 	}
 
-	private long backgroundApply() throws Throwable {
+	private long backgroundApply() throws Exception {
 		while (!raft.isShutdown) {
 			raft.lock();
 			try {
@@ -653,7 +653,7 @@ public class LogSequence {
 		return Procedure.CancelException;
 	}
 
-	private void tryApply(RaftLog lastApplicableLog, long count) throws Throwable {
+	private void tryApply(RaftLog lastApplicableLog, long count) throws Exception {
 		if (lastApplicableLog == null) {
 			logger.error("lastApplicableLog is null.");
 			return;
@@ -747,7 +747,7 @@ public class LogSequence {
 		}
 	}
 
-	public void appendLog(Log log, boolean WaitApply) throws Throwable {
+	public void appendLog(Log log, boolean WaitApply) throws Exception {
 		appendLog(log, WaitApply, null);
 	}
 
@@ -756,7 +756,7 @@ public class LogSequence {
 		public long index;
 	}
 
-	public void appendLog(Log log, boolean WaitApply, AppendLogResult result) throws Throwable {
+	public void appendLog(Log log, boolean WaitApply, AppendLogResult result) throws Exception {
 		TaskCompletionSource<Integer> future = null;
 		raft.lock();
 		try {
@@ -818,7 +818,7 @@ public class LogSequence {
 		return Paths.get(raft.getRaftConfig().getDbHome(), snapshotFileName).toString();
 	}
 
-	public void endReceiveInstallSnapshot(String path, InstallSnapshot r) throws Throwable {
+	public void endReceiveInstallSnapshot(String path, InstallSnapshot r) throws Exception {
 		logsAvailable = false; // cancel RemoveLogBefore
 		var removeLogBeforeFuture = this.removeLogBeforeFuture;
 		if (removeLogBeforeFuture != null)
@@ -873,7 +873,7 @@ public class LogSequence {
 		}
 	}
 
-	public void snapshot() throws Throwable {
+	public void snapshot() throws Exception {
 		raft.lock();
 		try {
 			if (getSnapshotting() || !getInstallSnapshotting().isEmpty())
@@ -904,12 +904,12 @@ public class LogSequence {
 		}
 	}
 
-	public void cancelAllInstallSnapshot() throws Throwable {
+	public void cancelAllInstallSnapshot() throws Exception {
 		for (var installing : getInstallSnapshotting().values())
 			endInstallSnapshot(installing);
 	}
 
-	public void endInstallSnapshot(Server.ConnectorEx c) throws Throwable {
+	public void endInstallSnapshot(Server.ConnectorEx c) throws Exception {
 		var cex = getInstallSnapshotting().remove(c.getName());
 		if (cex != null) {
 			var state = cex.getInstallSnapshotState();
@@ -929,7 +929,7 @@ public class LogSequence {
 		c.setInstallSnapshotState(null);
 	}
 
-	private void startInstallSnapshot(Server.ConnectorEx c) throws Throwable {
+	private void startInstallSnapshot(Server.ConnectorEx c) throws Exception {
 		if (getInstallSnapshotting().containsKey(c.getName()))
 			return;
 		var path = getSnapshotFullName();
@@ -959,7 +959,7 @@ public class LogSequence {
 	}
 
 	@SuppressWarnings("SameReturnValue")
-	private long processAppendEntriesResult(Server.ConnectorEx connector, Protocol<?> p) throws Throwable {
+	private long processAppendEntriesResult(Server.ConnectorEx connector, Protocol<?> p) throws Exception {
 		// 这个rpc处理流程总是返回 Success，需要统计观察不同的分支的发生情况，再来定义不同的返回值。
 		var r = (AppendEntries)p;
 		raft.lock();
@@ -1013,7 +1013,7 @@ public class LogSequence {
 		}
 	}
 
-	public void trySendAppendEntries(Server.ConnectorEx connector, AppendEntries pending) throws Throwable {
+	public void trySendAppendEntries(Server.ConnectorEx connector, AppendEntries pending) throws Exception {
 		// Pending 处理必须完成。
 		connector.setAppendLogActiveTime(System.currentTimeMillis());
 		if (connector.getPending() != pending)
@@ -1109,7 +1109,7 @@ public class LogSequence {
 		}
 	}
 
-	public long followerOnAppendEntries(AppendEntries r) throws Throwable {
+	public long followerOnAppendEntries(AppendEntries r) throws Exception {
 		setLeaderActiveTime(System.currentTimeMillis());
 		r.Result.setTerm(term); // maybe rewrite later
 		r.Result.setSuccess(false); // set default false

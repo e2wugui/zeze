@@ -15,7 +15,7 @@ import org.apache.logging.log4j.Logger;
 public class ResetDB {
 	public static final Logger logger = LogManager.getLogger(ResetDB.class);
 
-	public static void checkAndRemoveTable(Schemas other, Application app) throws Throwable {
+	public static void checkAndRemoveTable(Schemas other, Application app) throws Exception {
 		if (null == other)
 			return;
 

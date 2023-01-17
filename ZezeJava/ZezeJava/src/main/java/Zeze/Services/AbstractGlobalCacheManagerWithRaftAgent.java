@@ -88,5 +88,5 @@ public abstract class AbstractGlobalCacheManagerWithRaftAgent implements Zeze.IM
     }
 
 
-    protected abstract long ProcessReduceRequest(Zeze.Builtin.GlobalCacheManagerWithRaft.Reduce r) throws Throwable;
+    protected abstract long ProcessReduceRequest(Zeze.Builtin.GlobalCacheManagerWithRaft.Reduce r) throws Exception;
 }

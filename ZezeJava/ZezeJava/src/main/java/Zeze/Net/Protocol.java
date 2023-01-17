@@ -164,7 +164,7 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 
 	@SuppressWarnings("unchecked")
 	public <P extends Protocol<?>> void dispatch(Service service, Service.ProtocolFactoryHandle<P> factoryHandle)
-			throws Throwable {
+			throws Exception {
 		service.DispatchProtocol((P)this, factoryHandle);
 	}
 
@@ -198,7 +198,7 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 	/**
 	 * moduleId[4] + protocolId[4] + size[4] + protocol.bytes[size]
 	 */
-	public static void decode(Service service, AsyncSocket so, ByteBuffer bb) throws Throwable {
+	public static void decode(Service service, AsyncSocket so, ByteBuffer bb) throws Exception {
 		while (bb.Size() >= HEADER_SIZE) { // 只有协议发送被分成很小的包，协议头都不够的时候才会发生这个异常。几乎不可能发生。
 			// 读取协议类型和大小
 			var bytes = bb.Bytes;

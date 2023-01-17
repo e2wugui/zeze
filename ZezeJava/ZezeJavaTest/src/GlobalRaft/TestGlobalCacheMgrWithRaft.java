@@ -57,7 +57,7 @@ public class TestGlobalCacheMgrWithRaft {
 		}
 	}
 
-	private void _Run(String[] args) throws Throwable {
+	private void _Run(String[] args) throws Exception {
 		for (int i = 0; i < args.length; i++) {
 			if (args[i].equals("-Config"))
 				ConfigFileName = args[++i];
@@ -118,7 +118,7 @@ public class TestGlobalCacheMgrWithRaft {
 		}
 	}
 
-	public void RunTrace() throws Throwable {
+	public void RunTrace() throws Exception {
 		// 并发测试
 		System.out.println("Global Raft Test Start!");
 		logger.debug("并发测试");
@@ -243,7 +243,7 @@ public class TestGlobalCacheMgrWithRaft {
 		CheckCurrentCount("GlobalRaft Final Check!!!");
 	}
 
-	private boolean Check(String testName) throws Throwable {
+	private boolean Check(String testName) throws Exception {
 		int tryCount = 3;
 		for (int i = 0; i < tryCount; i++) {
 			boolean check = CheckCurrentCount(testName, false);
@@ -274,12 +274,12 @@ public class TestGlobalCacheMgrWithRaft {
 		return sb.toString();
 	}
 
-	private void TestConcurrent(String testName, int count) throws Throwable {
+	private void TestConcurrent(String testName, int count) throws Exception {
 		ExpectCount.addAndGet(ConcurrentAddCount(testName, count));
 		CheckCurrentCount(testName);
 	}
 
-	private long ConcurrentAddCount(String testName, int count) throws Throwable {
+	private long ConcurrentAddCount(String testName, int count) throws Exception {
 		Future<?>[] task2 = new Future[2];
 
 		AtomicInteger finalCount1 = new AtomicInteger();
@@ -346,7 +346,7 @@ public class TestGlobalCacheMgrWithRaft {
 		return finalCount;
 	}
 
-	private long GetCurrentCount() throws Throwable {
+	private long GetCurrentCount() throws Exception {
 		AtomicLong count = new AtomicLong();
 		int tryCount = 30;
 		for (int i = 0; i < tryCount; i++) {
@@ -377,11 +377,11 @@ public class TestGlobalCacheMgrWithRaft {
 	}
 
 	@SuppressWarnings("UnusedReturnValue")
-	private boolean CheckCurrentCount(String testName) throws Throwable {
+	private boolean CheckCurrentCount(String testName) throws Exception {
 		return CheckCurrentCount(testName, true);
 	}
 
-	private boolean CheckCurrentCount(String testName, boolean resetFlag) throws Throwable {
+	private boolean CheckCurrentCount(String testName, boolean resetFlag) throws Exception {
 		var currentCount = GetCurrentCount();
 		var expectCount = this.ExpectCount.get();
 		if (currentCount != expectCount) {
@@ -453,7 +453,7 @@ public class TestGlobalCacheMgrWithRaft {
 			GlobalRaftConfigFileName = configFileName;
 		}
 
-		public void Start() throws Throwable {
+		public void Start() throws Exception {
 			synchronized (this) {
 				logger.debug("GlobalCacheManagerWithRaft {} Start ...", RaftName);
 				var GlobalRaftConfig = Zeze.Raft.RaftConfig.load(GlobalRaftConfigFileName);
@@ -471,7 +471,7 @@ public class TestGlobalCacheMgrWithRaft {
 			}
 		}
 
-		public void RestartNet() throws Throwable {
+		public void RestartNet() throws Exception {
 			logger.debug("GlobalRaft {} RestartNet", RaftName);
 			try {
 				if (GlobalCacheManagerWithRaft != null) {
@@ -526,7 +526,7 @@ public class TestGlobalCacheMgrWithRaft {
 		}
 	}
 
-	public static void main(String[] args) throws Throwable {
+	public static void main(String[] args) throws Exception {
 		for (int i = 0; i < args.length; i++) {
 			if (args[i].equals("-Config"))
 				ConfigFileName = args[++i];

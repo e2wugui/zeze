@@ -11,17 +11,17 @@ import Zeze.Transaction.Procedure;
 
 public class TestTable {
 	@Before
-	public final void testInit() throws Throwable {
+	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
 	}
 
 	@After
-	public final void testCleanup() throws Throwable {
+	public final void testCleanup() throws Exception {
 		demo.App.getInstance().Stop();
 	}
 
 	@Test
-	public final void TestUpdate() throws Throwable {
+	public final void TestUpdate() throws Exception {
 		demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
 			demo.App.getInstance().demo_Module1.getTable2().remove(new demo.Module1.Key((short)1));
@@ -72,7 +72,7 @@ public class TestTable {
 	}
 
 	@Test
-	public final void testGetOrAdd() throws Throwable {
+	public final void testGetOrAdd() throws Exception {
 		demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
 			demo.App.getInstance().demo_Module1.getTable2().remove(new demo.Module1.Key((short)1));
@@ -125,7 +125,7 @@ public class TestTable {
 	}
 
 	@Test
-	public final void test1TableGetPut() throws Throwable {
+	public final void test1TableGetPut() throws Exception {
 		demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
 			demo.App.getInstance().demo_Module1.getTable2().remove(new demo.Module1.Key((short)1));
@@ -137,7 +137,7 @@ public class TestTable {
 	}
 
 	@Test
-	public final void test2TableGetPut() throws Throwable {
+	public final void test2TableGetPut() throws Exception {
 		demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
 			demo.App.getInstance().demo_Module1.getTable2().remove(new demo.Module1.Key((short)1));

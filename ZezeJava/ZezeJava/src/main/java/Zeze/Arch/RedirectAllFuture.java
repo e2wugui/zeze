@@ -26,7 +26,7 @@ public interface RedirectAllFuture<R extends RedirectResult> {
 	}
 
 	// 只用于RedirectAll方法返回的future, 同一future的情况下,此方法不会跟其它的onResult和onAllDone并发,每个结果回调一次
-	default RedirectAllFuture<R> onResult(Action1<R> onResult) throws Throwable {
+	default RedirectAllFuture<R> onResult(Action1<R> onResult) throws Exception {
 		throw new IllegalStateException();
 	}
 
@@ -35,7 +35,7 @@ public interface RedirectAllFuture<R extends RedirectResult> {
 	}
 
 	// 只用于RedirectAll方法返回的future. 同一future的情况下,此方法不会跟onResult并发,只会回调一次
-	default RedirectAllFuture<R> onAllDone(Action1<RedirectAllContext<R>> onAllDone) throws Throwable {
+	default RedirectAllFuture<R> onAllDone(Action1<RedirectAllContext<R>> onAllDone) throws Exception {
 		throw new IllegalStateException();
 	}
 
@@ -84,7 +84,7 @@ final class RedirectAllFutureAsync<R extends RedirectResult> implements Redirect
 				throw new IllegalStateException();
 			try {
 				((Action1<R>)a).run(r);
-			} catch (Throwable e) {
+			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
 		}
@@ -92,7 +92,7 @@ final class RedirectAllFutureAsync<R extends RedirectResult> implements Redirect
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public RedirectAllFuture<R> onResult(Action1<R> onResult) throws Throwable {
+	public RedirectAllFuture<R> onResult(Action1<R> onResult) throws Exception {
 		Object r = RESULT.getAndSet(this, onResult);
 		if (r != null) {
 			if (r instanceof RedirectResult)
@@ -137,7 +137,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 		return hashes;
 	}
 
-	void result(RedirectAllContext<R> ctx, R result) throws Throwable {
+	void result(RedirectAllContext<R> ctx, R result) throws Exception {
 		if (this.ctx == null)
 			this.ctx = ctx;
 		if (onResult == null)
@@ -155,7 +155,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 	}
 
 	@Override
-	public RedirectAllFuture<R> onResult(Action1<R> onResult) throws Throwable {
+	public RedirectAllFuture<R> onResult(Action1<R> onResult) throws Exception {
 		if (onResult == null)
 			throw new IllegalArgumentException("null onResult");
 		this.onResult = onResult;
@@ -187,14 +187,12 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 	public RedirectAllFuture<R> OnResult(Action1<R> onResult) {
 		try {
 			return onResult(onResult);
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Throwable e) {
+		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	void allDone(RedirectAllContext<R> ctx) throws Throwable {
+	void allDone(RedirectAllContext<R> ctx) {
 		if (this.ctx == null)
 			this.ctx = ctx;
 		@SuppressWarnings("unchecked")
@@ -214,7 +212,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 	}
 
 	@Override
-	public RedirectAllFuture<R> onAllDone(Action1<RedirectAllContext<R>> onAllDone) throws Throwable {
+	public RedirectAllFuture<R> onAllDone(Action1<RedirectAllContext<R>> onAllDone) {
 		if (onAllDone == null)
 			throw new IllegalArgumentException("null onAllDone");
 		var c = ctx;
@@ -235,9 +233,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 	public RedirectAllFuture<R> OnAllDone(Action1<RedirectAllContext<R>> onAllDone) {
 		try {
 			return onAllDone(onAllDone);
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Throwable e) {
+		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}

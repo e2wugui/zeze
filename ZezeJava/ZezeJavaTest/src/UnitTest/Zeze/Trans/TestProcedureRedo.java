@@ -18,18 +18,18 @@ public class TestProcedureRedo {
 
 
     @Before
-    public final void testInit() throws Throwable {
+    public final void testInit() throws Exception {
         App.getInstance().Start();
     }
 
     @After
-    public final void testCleanup() throws Throwable {
+    public final void testCleanup() throws Exception {
         App.getInstance().Stop();
     }
 
     private static int counter = 0;
     @Test
-    public final void testProcedureRedo() throws Throwable{
+    public final void testProcedureRedo() throws Exception {
         App.getInstance().Zeze.newProcedure(()  -> {
 
             var v =  App.getInstance().demo_Module1.getTable1().getOrAdd(6785L);

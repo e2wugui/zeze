@@ -23,7 +23,7 @@ public class TestAsyncSocket extends TestCase {
 		}
 
 		@Override
-		public void OnSocketConnected(AsyncSocket so) throws Throwable {
+		public void OnSocketConnected(AsyncSocket so) throws Exception {
 			super.OnSocketConnected(so);
 			System.out.println("OnSocketConnected: " + so.getSessionId());
 			String head = "GET http://www.163.com/\r\nHost: www.163.com\r\nAccept:*/*\r\n\r\n";

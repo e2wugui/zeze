@@ -120,14 +120,14 @@ public class Selector extends Thread implements ByteBufferAllocator {
 			try {
 				join();
 				break;
-			} catch (Throwable ex) {
+			} catch (Exception ex) {
 				logger.error("{} close skip.", getClass().getName(), ex);
 			}
 		}
 
 		try {
 			selector.close();
-		} catch (Throwable e) {
+		} catch (Exception e) {
 			logger.error("{} selector.close skip.", getClass().getName(), e);
 		}
 	}
@@ -149,6 +149,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 				}
 			};
 			thread.setDaemon(true);
+			thread.setUncaughtExceptionHandler((__, e) -> logger.error("fatal exception", e));
 			thread.start();
 		}
 

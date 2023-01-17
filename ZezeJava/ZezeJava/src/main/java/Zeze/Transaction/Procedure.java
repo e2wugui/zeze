@@ -116,18 +116,13 @@ public class Procedure {
 		userState = value;
 	}
 
-	@Deprecated
-	public final long Call() throws Throwable {
-		return call();
-	}
-
 	/**
 	 * 创建 Savepoint 并执行。
 	 * 嵌套 Procedure 实现，
 	 *
 	 * @return 0 success; other means error.
 	 */
-	public final long call() throws Throwable {
+	public final long call() {
 		Transaction currentT = Transaction.getCurrent();
 		if (currentT == null) {
 			try {
@@ -182,7 +177,7 @@ public class Procedure {
 			currentT.verifyRunning();
 			// 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
 			if (e instanceof AssertionError)
-				throw e;
+				throw (AssertionError)e;
 			// 回滚当前存储过程，不中断事务，外层存储过程判断结果自己决定是否继续。
 			return e instanceof TaskCanceledException ? CancelException : Exception;
 		} finally {
@@ -190,7 +185,7 @@ public class Procedure {
 		}
 	}
 
-	protected long process() throws Throwable {
+	protected long process() throws Exception {
 		return action != null ? action.call() : NotImplement;
 	}
 

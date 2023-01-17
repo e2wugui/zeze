@@ -15,13 +15,13 @@ import org.junit.runners.MethodSorters;
 public class TestTimer {
 
 	@Before
-	public final void testInit() throws Throwable {
+	public final void testInit() throws Exception {
 		System.out.println("Timer Test Init");
 		demo.App.getInstance().Start();
 	}
 
 	@After
-	public final void testCleanup() throws Throwable {
+	public final void testCleanup() throws Exception {
 		System.out.println("Timer Test Cleanup");
 		demo.App.getInstance().Stop();
 	}
@@ -57,7 +57,7 @@ public class TestTimer {
 	}
 
 	@Test
-	public final void test1BasicTimer() throws Throwable {
+	public final void test1BasicTimer() throws Exception {
 		System.out.println("========== Testing Basic Timer ==========");
 		var timer = App.getInstance().Zeze.getTimer();
 

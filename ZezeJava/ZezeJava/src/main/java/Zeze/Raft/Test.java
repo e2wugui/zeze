@@ -85,7 +85,7 @@ public class Test {
 		}
 	}
 
-	private void _run(String command, String[] args) throws Throwable {
+	private void _run(String command, String[] args) throws Exception {
 		for (int i = 0; i < args.length; i++) {
 			if (args[i].equals("-Config"))
 				raftConfigFileName = args[++i];
@@ -279,7 +279,7 @@ public class Test {
 		checkCurrentCount(testName);
 	}
 
-	private void randomSnapshotTimer() throws Throwable {
+	private void randomSnapshotTimer() throws Exception {
 		var randIndex = Random.getInstance().nextInt(rafts.size());
 		var index = 0;
 		for (var test : rafts.values()) {
@@ -291,7 +291,7 @@ public class Test {
 		}
 	}
 
-	public void runTrace() throws Throwable {
+	public void runTrace() throws Exception {
 		// 基本测试
 		logger.debug("基本测试");
 		agent.sendForWait(new AddCount()).await();
@@ -756,7 +756,7 @@ public class Test {
 			return raftName;
 		}
 
-		public void restartNet() throws Throwable {
+		public void restartNet() throws Exception {
 			logger.debug("Raft.Net {} Restart ...", raftName);
 			try {
 				if (raft != null)
@@ -780,7 +780,7 @@ public class Test {
 			}
 		}
 
-		public synchronized void stopRaft() throws Throwable {
+		public synchronized void stopRaft() throws Exception {
 			logger.debug("Raft {} Stop ...", raftName);
 			// 在同一个进程中，没法模拟进程退出，
 			// 此时RocksDb应该需要关闭，否则重启会失败吧。
@@ -790,11 +790,11 @@ public class Test {
 			}
 		}
 
-		public void startRaft() throws Throwable {
+		public void startRaft() throws Exception {
 			startRaft(false);
 		}
 
-		public synchronized void startRaft(boolean resetLog) throws Throwable {
+		public synchronized void startRaft(boolean resetLog) throws Exception {
 			if (raft != null) {
 				raft.getServer().start();
 				return;

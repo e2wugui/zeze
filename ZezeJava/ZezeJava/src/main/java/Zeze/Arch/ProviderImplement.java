@@ -22,7 +22,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 
 	protected ProviderApp providerApp;
 
-	void applyOnChanged(Agent.SubscribeState subState) throws Throwable {
+	void applyOnChanged(Agent.SubscribeState subState) throws Exception {
 		if (subState.getServiceName().equals(providerApp.linkdServiceName)) {
 			// Linkd info
 			providerApp.providerService.apply(subState.getServiceInfos());
@@ -35,7 +35,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		}
 	}
 
-	void applyOnPrepare(Agent.SubscribeState subState) throws Throwable {
+	void applyOnPrepare(Agent.SubscribeState subState) throws Exception {
 		var pending = subState.getServiceInfosPending();
 		if (pending != null && pending.getServiceName().startsWith(providerApp.serverServiceNamePrefix))
 			providerApp.providerDirectService.tryConnectAndSetReady(subState, pending);
@@ -139,9 +139,9 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 						p3.setResultCode(code);
 						session.sendResponse(p3);
 					});
-		} catch (Throwable ex) {
-			sendKick(sender, linkSid, BKick.ErrorProtocolException, ex.toString());
+		} catch (Exception ex) {
 			logger.error("", ex);
+			sendKick(sender, linkSid, BKick.ErrorProtocolException, ex.toString());
 			return Procedure.Success;
 		}
 	}

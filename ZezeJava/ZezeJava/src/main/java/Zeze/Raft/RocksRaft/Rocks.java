@@ -88,29 +88,29 @@ public final class Rocks extends StateMachine implements Closeable {
 	private ColumnFamilyHandle atomicLongsColumnFamily;
 	private final Lock mutex = new ReentrantLock();
 
-	public Rocks() throws Throwable {
+	public Rocks() throws Exception {
 		this(null, RocksMode.Pessimism, null, null, false);
 	}
 
-	public Rocks(String raftName) throws Throwable {
+	public Rocks(String raftName) throws Exception {
 		this(raftName, RocksMode.Pessimism, null, null, false);
 	}
 
-	public Rocks(String raftName, RaftConfig raftConfig) throws Throwable {
+	public Rocks(String raftName, RaftConfig raftConfig) throws Exception {
 		this(raftName, RocksMode.Pessimism, raftConfig, null, false);
 	}
 
-	public Rocks(String raftName, RaftConfig raftConfig, Zeze.Config config) throws Throwable {
+	public Rocks(String raftName, RaftConfig raftConfig, Zeze.Config config) throws Exception {
 		this(raftName, RocksMode.Pessimism, raftConfig, config, false);
 	}
 
 	public Rocks(String raftName, RocksMode mode, RaftConfig raftConfig, Zeze.Config config,
-				 boolean RocksDbWriteOptionSync) throws Throwable {
+				 boolean RocksDbWriteOptionSync) throws Exception {
 		this(raftName, mode, raftConfig, config, RocksDbWriteOptionSync, Server::new);
 	}
 
 	public Rocks(String raftName, RocksMode mode, RaftConfig raftConfig, Zeze.Config config,
-				 boolean RocksDbWriteOptionSync, Func3<Raft, String, Config, Server> serverFactory) throws Throwable {
+				 boolean RocksDbWriteOptionSync, Func3<Raft, String, Config, Server> serverFactory) throws Exception {
 		rocksMode = mode;
 
 		addFactory(new Changes(this).getTypeId(), () -> new Changes(this));

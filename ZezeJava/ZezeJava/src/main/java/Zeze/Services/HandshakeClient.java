@@ -5,12 +5,12 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 
 public class HandshakeClient extends HandshakeBase {
-	public HandshakeClient(String name, Zeze.Config config) throws Throwable {
+	public HandshakeClient(String name, Zeze.Config config) throws Exception {
 		super(name, config);
 		addHandshakeClientFactoryHandle();
 	}
 
-	public HandshakeClient(String name, Application app) throws Throwable {
+	public HandshakeClient(String name, Application app) throws Exception {
 		super(name, app);
 		addHandshakeClientFactoryHandle();
 	}
@@ -22,7 +22,7 @@ public class HandshakeClient extends HandshakeBase {
 	public final void connect(String hostNameOrAddress, int port, boolean autoReconnect) {
 		var c = new Zeze.Util.OutObject<Connector>();
 		getConfig().tryGetOrAddConnector(hostNameOrAddress, port, autoReconnect, c);
-		c.value.Start();
+		c.value.start();
 	}
 
 	@Override

@@ -715,12 +715,12 @@ public final class ServiceManagerServer implements Closeable {
 		}
 	}
 
-	public ServiceManagerServer(InetAddress ipaddress, int port, Zeze.Config config) throws Throwable {
-		this(ipaddress, port, config, -1);
+	public ServiceManagerServer(InetAddress ipaddress, int port, Zeze.Config config) throws Exception {
+		 this(ipaddress, port, config, -1);
 	}
 
 	public ServiceManagerServer(InetAddress ipaddress, int port, Zeze.Config config, int startNotifyDelay)
-			throws Throwable {
+			throws Exception {
 		this.config = config.getCustomize(new Conf());
 
 		if (startNotifyDelay >= 0)
@@ -819,7 +819,7 @@ public final class ServiceManagerServer implements Closeable {
 		return 0;
 	}
 
-	public synchronized void stop() throws Throwable {
+	public synchronized void stop() throws Exception {
 		if (server == null)
 			return;
 		var startNotifyDelayTask = this.startNotifyDelayTask;
@@ -837,20 +837,20 @@ public final class ServiceManagerServer implements Closeable {
 		private final ServiceManagerServer serviceManager;
 		private final TaskOneByOneByKey oneByOneByKey = new TaskOneByOneByKey();
 
-		public NetServer(ServiceManagerServer sm, Zeze.Config config) throws Throwable {
+		public NetServer(ServiceManagerServer sm, Zeze.Config config) throws Exception {
 			super("Zeze.Services.ServiceManager", config);
 			serviceManager = sm;
 		}
 
 		@Override
-		public void OnSocketAccept(AsyncSocket so) throws Throwable {
+		public void OnSocketAccept(AsyncSocket so) throws Exception {
 			logger.info("OnSocketAccept: {} sessionId={}", so, so.getSessionId());
 			so.setUserState(new Session(serviceManager, so.getSessionId()));
 			super.OnSocketAccept(so);
 		}
 
 		@Override
-		public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
+		public void OnSocketClose(AsyncSocket so, Throwable e) throws Exception {
 			logger.info("OnSocketClose: {} sessionId={}", so, so.getSessionId());
 			var session = (Session)so.getUserState();
 			if (session != null)
@@ -868,7 +868,7 @@ public final class ServiceManagerServer implements Closeable {
 		}
 	}
 
-	public static void main(String[] args) throws Throwable {
+	public static void main(String[] args) throws Exception {
 		Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
 			e.printStackTrace();
 			logger.fatal("uncaught exception in {}:", t, e);

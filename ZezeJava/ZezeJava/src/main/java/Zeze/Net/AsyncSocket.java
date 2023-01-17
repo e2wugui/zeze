@@ -221,7 +221,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			if (ssc != null) {
 				try {
 					ssc.close();
-				} catch (Throwable ex) {
+				} catch (Exception ex) {
 					logger.error("ServerSocketChannel.close", ex);
 				}
 			}
@@ -230,7 +230,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	@Override
-	public void doHandle(SelectionKey key) throws Throwable {
+	public void doHandle(SelectionKey key) throws Exception {
 		SelectableChannel channel = key.channel();
 		int ops = key.readyOps();
 		if ((ops & SelectionKey.OP_READ) != 0)
@@ -244,7 +244,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				sc = ((ServerSocketChannel)channel).accept();
 				if (sc != null)
 					service.OnSocketAccept(new AsyncSocket(service, sc, (Acceptor)acceptorOrConnector));
-			} catch (Throwable e) {
+			} catch (Exception e) {
 				if (sc != null)
 					sc.close();
 				service.OnSocketAcceptError(this, e);
@@ -259,11 +259,11 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 					doConnectSuccess(sc);
 					return;
 				}
-			} catch (Throwable ex) {
+			} catch (Exception ex) {
 				e = ex;
 			}
-			service.OnSocketConnectError(this, e);
 			close(e); // if OnSocketConnectError throw Exception, this will close in doException
+			service.OnSocketConnectError(this, e);
 		}
 	}
 
@@ -307,7 +307,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	/**
 	 * for client socket. connect
 	 */
-	private boolean doConnectSuccess(SocketChannel sc) throws Throwable {
+	private boolean doConnectSuccess(SocketChannel sc) throws Exception {
 		var socket = sc.socket();
 		remoteAddress = socket.getRemoteSocketAddress();
 		logger.info("Connect: {} for {}:{}", this, service.getClass().getName(), service.getName());
@@ -352,11 +352,11 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 					selector.wakeup();
 			} else
 				selector.register(sc, SelectionKey.OP_CONNECT, this);
-		} catch (Throwable e) {
+		} catch (Exception e) {
 			if (sc != null) {
 				try {
 					sc.close();
-				} catch (Throwable ex) {
+				} catch (Exception ex) {
 					logger.error("SocketChannel.close", ex);
 				}
 			}
@@ -512,7 +512,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			}))
 				return true;
 			logger.error("Send to closed socket: {} len={}", this, length, new Exception());
-		} catch (Throwable ex) {
+		} catch (Exception ex) {
 			outputBufferSizeHandle.getAndAdd(this, -length);
 			close(ex);
 		}
@@ -554,7 +554,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		return Send(bytes, 0, bytes.length);
 	}
 
-	private void ProcessReceive(SocketChannel sc) throws Throwable { // 只在selector线程调用
+	private void ProcessReceive(SocketChannel sc) throws Exception { // 只在selector线程调用
 		java.nio.ByteBuffer buffer = selector.getReadBuffer(); // 线程共享的buffer,只能本方法内临时使用
 		buffer.clear();
 		int bytesTransferred = sc.read(buffer);
@@ -630,7 +630,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	 *    对于繁忙连接是比较罕见的，但是存在抖动的可能。
 	 *    考虑清楚以后去掉while(true)？
 	 */
-	private void doWrite(SocketChannel sc) throws Throwable { // 只在selector线程调用
+	private void doWrite(SocketChannel sc) throws Exception { // 只在selector线程调用
 		int blockSize = selector.getSelectors().getBbPoolBlockSize();
 		int bufSize = outputBuffer.size();
 		while (true) {
@@ -691,12 +691,12 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			return;
 		try {
 			selectionKey.channel().close();
-		} catch (Throwable e) {
+		} catch (Exception e) {
 			logger.error("SocketChannel.close", e);
 		}
 		try {
 			service.OnSocketDisposed(this);
-		} catch (Throwable e) {
+		} catch (Exception e) {
 			logger.error("Service.OnSocketDisposed", e);
 		}
 		if (acceptorOrConnector instanceof Acceptor)
@@ -720,13 +720,13 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		if (acceptorOrConnector instanceof Connector) {
 			try {
 				((Connector)acceptorOrConnector).OnSocketClose(this, ex);
-			} catch (Throwable e) {
+			} catch (Exception e) {
 				logger.error("Connector.OnSocketClose", e);
 			}
 		}
 		try {
 			service.OnSocketClose(this, ex);
-		} catch (Throwable e) {
+		} catch (Exception e) {
 			logger.error("Service.OnSocketClose", e);
 		}
 

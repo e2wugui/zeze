@@ -310,7 +310,7 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 	}
 
 	@Override
-	public void doHandle(SelectionKey key) throws Throwable {
+	public void doHandle(SelectionKey key) throws Exception {
 		if (key.isReadable()) {
 			var buffer = java.nio.ByteBuffer.allocate(MaxPacketLength);
 			var source = datagramChannel.receive(buffer);

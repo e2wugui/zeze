@@ -106,7 +106,7 @@ public final class GlobalAgent implements IGlobalAgent {
 				if (ready != null)
 					new NormalClose().SendForWait(ready).await();
 			} finally {
-				connector.Stop(); // 正常关闭，先设置这个，以后 OnSocketClose 的时候判断做不同的处理。
+				connector.stop(); // 正常关闭，先设置这个，以后 OnSocketClose 的时候判断做不同的处理。
 			}
 		}
 	}
@@ -115,7 +115,7 @@ public final class GlobalAgent implements IGlobalAgent {
 	private final GlobalClient client;
 	public Agent[] agents;
 
-	public GlobalAgent(Application app, String[] hostNameOrAddress, int port) throws Throwable {
+	public GlobalAgent(Application app, String[] hostNameOrAddress, int port) throws Exception {
 		zeze = app;
 
 		client = new GlobalClient(this, zeze);
@@ -253,7 +253,7 @@ public final class GlobalAgent implements IGlobalAgent {
 		}
 	}
 
-	public synchronized void start() throws Throwable {
+	public synchronized void start() throws Exception {
 		client.start();
 
 		for (var agent : agents) {
@@ -266,7 +266,7 @@ public final class GlobalAgent implements IGlobalAgent {
 		}
 	}
 
-	public synchronized void stop() throws Throwable {
+	public synchronized void stop() throws Exception {
 		for (var agent : agents)
 			agent.close();
 		client.stop();

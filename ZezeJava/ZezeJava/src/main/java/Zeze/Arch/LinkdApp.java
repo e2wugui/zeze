@@ -32,7 +32,7 @@ public class LinkdApp {
 	public final CommandConsoleService commandConsoleService;
 
 	public LinkdApp(String linkdServiceName, Zeze.Application zeze, LinkdProvider linkdProvider,
-					LinkdProviderService linkdProviderService, LinkdService linkdService, LoadConfig loadConfig) throws Throwable {
+					LinkdProviderService linkdProviderService, LinkdService linkdService, LoadConfig loadConfig) throws Exception {
 		this.linkdServiceName = linkdServiceName;
 		this.zeze = zeze;
 		this.linkdProvider = linkdProvider;
@@ -73,7 +73,7 @@ public class LinkdApp {
 		return linkdServiceName + "." + providerIp + ":" + providerPort;
 	}
 
-	public void registerService(Binary extra) throws Throwable {
+	public void registerService(Binary extra) throws Exception {
 		this.commandConsoleService.start();
 
 		var identity = "@" + providerIp + ":" + providerPort;

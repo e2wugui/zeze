@@ -56,7 +56,7 @@ public final class ServiceConf {
 		handshakeOptions = value;
 	}
 
-	public synchronized void SetService(Service service) throws Throwable {
+	public synchronized void SetService(Service service) throws Exception {
 		if (getService() != null) {
 			throw new IllegalStateException(String.format("ServiceConf of '%s' Service != null", getName()));
 		}
@@ -108,7 +108,7 @@ public final class ServiceConf {
 		connectors.remove(c.getName(), c);
 	}
 
-	public void ForEachConnector(Action1<Connector> action) throws Throwable {
+	public void ForEachConnector(Action1<Connector> action) throws Exception {
 		for (var c : connectors.values()) {
 			action.run(c);
 		}
@@ -143,7 +143,7 @@ public final class ServiceConf {
 		acceptors.remove(a.getName(), a);
 	}
 
-	public void ForEachAcceptor(Action1<Acceptor> action) throws Throwable {
+	public void ForEachAcceptor(Action1<Acceptor> action) throws Exception {
 		for (var a : acceptors.values()) {
 			action.run(a);
 		}
@@ -269,12 +269,12 @@ public final class ServiceConf {
 
 	public void start() {
 		forEachAcceptor(Acceptor::Start);
-		forEachConnector(Connector::Start);
+		forEachConnector(Connector::start);
 	}
 
 	public void stop() {
 		forEachAcceptor(Acceptor::Stop);
-		forEachConnector(Connector::Stop);
+		forEachConnector(Connector::stop);
 	}
 
 	public void stopListen() {

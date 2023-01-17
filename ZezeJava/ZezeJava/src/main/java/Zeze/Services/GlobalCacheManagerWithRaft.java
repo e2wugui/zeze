@@ -83,20 +83,20 @@ public class GlobalCacheManagerWithRaft
 		return config;
 	}
 
-	public GlobalCacheManagerWithRaft(String raftName) throws Throwable {
+	public GlobalCacheManagerWithRaft(String raftName) throws Exception {
 		this(raftName, null, null, false);
 	}
 
-	public GlobalCacheManagerWithRaft(String raftName, RaftConfig raftConf) throws Throwable {
+	public GlobalCacheManagerWithRaft(String raftName, RaftConfig raftConf) throws Exception {
 		this(raftName, raftConf, null, false);
 	}
 
-	public GlobalCacheManagerWithRaft(String raftName, RaftConfig raftConf, Zeze.Config config) throws Throwable {
+	public GlobalCacheManagerWithRaft(String raftName, RaftConfig raftConf, Zeze.Config config) throws Exception {
 		this(raftName, raftConf, config, false);
 	}
 
 	public GlobalCacheManagerWithRaft(String raftName, RaftConfig raftConf, Zeze.Config config,
-									  boolean RocksDbWriteOptionSync) throws Throwable {
+									  boolean RocksDbWriteOptionSync) throws Exception {
 		if (config == null)
 			config = new Zeze.Config().addCustomize(this.config).loadAndParse();
 		rocks = new Rocks(raftName, RocksMode.Pessimism, raftConf, config, RocksDbWriteOptionSync);
@@ -169,7 +169,7 @@ public class GlobalCacheManagerWithRaft
 	}
 
 	@Override
-	protected long ProcessAcquireRequest(Acquire rpc) throws Throwable {
+	protected long ProcessAcquireRequest(Acquire rpc) throws Exception {
 		var acquireState = rpc.Argument.getState();
 		if (ENABLE_PERF)
 			perf.onAcquireBegin(rpc, acquireState);
@@ -617,7 +617,7 @@ public class GlobalCacheManagerWithRaft
 		}
 	}
 
-	private void release(CacheHolder sender, Binary gkey) throws Throwable {
+	private void release(CacheHolder sender, Binary gkey) throws Exception {
 		rocks.newProcedure(() -> {
 			release(sender, gkey, false);
 			return 0L;
@@ -676,7 +676,7 @@ public class GlobalCacheManagerWithRaft
 	}
 
 	@Override
-	protected long ProcessLoginRequest(Login rpc) throws Throwable {
+	protected long ProcessLoginRequest(Login rpc) throws Exception {
 		var session = sessions.computeIfAbsent(rpc.Argument.getServerId(), serverId -> new CacheHolder(this, (int)serverId));
 		if (!session.tryBindSocket(rpc.getSender(), rpc.Argument.getGlobalCacheManagerHashIndex())) {
 			rpc.SendResultCode(LoginBindSocketFail);
@@ -715,7 +715,7 @@ public class GlobalCacheManagerWithRaft
 	}
 
 	@Override
-	protected long ProcessNormalCloseRequest(NormalClose rpc) throws Throwable {
+	protected long ProcessNormalCloseRequest(NormalClose rpc) throws Exception {
 		Object userState = rpc.getSender().getUserState();
 		if (!(userState instanceof CacheHolder)) {
 			rpc.SendResultCode(AcquireNotLogin);

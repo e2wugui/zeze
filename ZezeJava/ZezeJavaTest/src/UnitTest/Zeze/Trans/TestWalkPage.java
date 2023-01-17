@@ -12,17 +12,17 @@ import org.junit.Test;
 
 public class TestWalkPage {
 	@Before
-	public final void testInit() throws Throwable {
+	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
 	}
 
 	@After
-	public final void testCleanup() throws Throwable {
+	public final void testCleanup() throws Exception {
 		demo.App.getInstance().Stop();
 	}
 
 	@Test
-	public void testWalkPage() throws Throwable {
+	public void testWalkPage() throws Exception {
 		var t = App.getInstance().demo_Module1.tWalkPage();
 		App.getInstance().Zeze.newProcedure(() -> {
 			t.put(1, new Bean1());

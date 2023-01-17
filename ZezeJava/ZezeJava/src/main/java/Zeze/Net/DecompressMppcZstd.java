@@ -17,12 +17,12 @@ public final class DecompressMppcZstd extends Decompress implements Closeable {
 		}
 
 		@Override
-		public int read() throws IOException {
+		public int read() {
 			return buffer.size() > 0 ? buffer.ReadByte() : -1;
 		}
 
 		@Override
-		public int read(byte[] b, int off, int len) throws IOException {
+		public int read(byte[] b, int off, int len) {
 			int size = buffer.size();
 			if (size <= 0)
 				return -1;

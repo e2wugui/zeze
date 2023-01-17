@@ -99,7 +99,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 	 * - 用于接收事件，改变数据库的数据
 	 * - 当满足任务推进情况时，会自动推进任务
 	 */
-	public boolean accept(Bean eventBean) throws Throwable {
+	public boolean accept(Bean eventBean) throws Exception {
 		if (!currentPhase.accept(eventBean))
 			return false;
 		tryToProceedPhase();
@@ -274,7 +274,7 @@ public abstract class TaskBase<ExtendedBean extends Bean> {
 		 * 所有任务的Trigger Rpc，负责中转所有请求
 		 */
 		@Override
-		protected long ProcessTriggerTaskEventRequest(TriggerTaskEvent r) throws Throwable {
+		protected long ProcessTriggerTaskEventRequest(TriggerTaskEvent r) throws Exception {
 			int resultCode = 0;
 
 			var roleId = r.Argument.getRoleId();

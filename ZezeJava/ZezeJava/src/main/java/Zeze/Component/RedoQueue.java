@@ -37,7 +37,7 @@ public class RedoQueue extends Zeze.Services.HandshakeClient {
 		RocksDB.loadLibrary();
 	}
 
-	public RedoQueue(String name, Zeze.Config config) throws Throwable {
+	public RedoQueue(String name, Zeze.Config config) throws Exception {
 		super(name, config);
 	}
 
@@ -53,7 +53,7 @@ public class RedoQueue extends Zeze.Services.HandshakeClient {
 	}
 
 	@Override
-	public synchronized void start() throws Throwable {
+	public synchronized void start() throws Exception {
 		if (db != null)
 			return;
 
@@ -86,7 +86,7 @@ public class RedoQueue extends Zeze.Services.HandshakeClient {
 	}
 
 	@Override
-	public synchronized void stop() throws Throwable {
+	public synchronized void stop() throws Exception {
 		super.stop();
 		db.close();
 		db = null;
@@ -146,7 +146,7 @@ public class RedoQueue extends Zeze.Services.HandshakeClient {
 		}
 	}
 
-	private synchronized long processRunTaskResult(Rpc<BQueueTask, BTaskId> rpc) throws Throwable {
+	private synchronized long processRunTaskResult(Rpc<BQueueTask, BTaskId> rpc) throws Exception {
 		if (pending != rpc)
 			return Procedure.LogicError;
 
@@ -165,7 +165,7 @@ public class RedoQueue extends Zeze.Services.HandshakeClient {
 	}
 
 	@Override
-	public void OnHandshakeDone(AsyncSocket sender) throws Throwable {
+	public void OnHandshakeDone(AsyncSocket sender) throws Exception {
 		super.OnHandshakeDone(sender);
 		synchronized (this) {
 			tryStartSendNextTask(null, sender);
@@ -173,7 +173,7 @@ public class RedoQueue extends Zeze.Services.HandshakeClient {
 	}
 
 	@Override
-	public void OnSocketClose(AsyncSocket socket, Throwable ex) throws Throwable {
+	public void OnSocketClose(AsyncSocket socket, Throwable ex) throws Exception {
 		super.OnSocketClose(socket, ex);
 		synchronized (this) {
 			if (this.socket == socket)

@@ -3,10 +3,10 @@ package Zeze.Builtin.LinkdBase;
 import Zeze.Transaction.Procedure;
 
 public class ModuleLinkdBase extends AbstractModule {
-    public void Start(ClientGame.App app) throws Throwable {
+    public void Start(ClientGame.App app) throws Exception {
     }
 
-    public void Stop(ClientGame.App app) throws Throwable {
+    public void Stop(ClientGame.App app) throws Exception {
     }
 
     @Override

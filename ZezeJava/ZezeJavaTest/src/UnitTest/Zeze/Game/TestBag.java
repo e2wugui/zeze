@@ -20,19 +20,19 @@ public class TestBag {
 	public static final int MAX_BAG_CAPACITY = 100; // 背包容量
 
 	@Before
-	public final void testInit() throws Throwable {
+	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
 		// 设置下可堆叠个数
 		Bag.funcItemPileMax = itemId -> MAX_GRID_CAPACITY;
 	}
 
 	@After
-	public final void testCleanup() throws Throwable {
+	public final void testCleanup() throws Exception {
 		demo.App.getInstance().Stop();
 	}
 
 	@Test
-	public final void test1_Add() throws Throwable {
+	public final void test1_Add() throws Exception {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var bag = App.getInstance().BagModule.open("test1");
 			bag.setCapacity(MAX_BAG_CAPACITY);
@@ -50,7 +50,7 @@ public class TestBag {
 	}
 
 	@Test
-	public final void test2_Move() throws Throwable {
+	public final void test2_Move() throws Exception {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var bag = demo.App.getInstance().BagModule.open("test1");
 			Assert.assertEquals(bag.getBean().getItems().size(), ADD_PILE_NUM * 2);
@@ -67,7 +67,7 @@ public class TestBag {
 	}
 
 	@Test
-	public final void test3_Remove() throws Throwable {
+	public final void test3_Remove() throws Exception {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var bag = demo.App.getInstance().BagModule.open("test1");
 			Assert.assertEquals(bag.getBean().getItems().size(), ADD_PILE_NUM * 2);
@@ -89,7 +89,7 @@ public class TestBag {
 	}
 
 	@Test
-	public final void test4_Move() throws Throwable {
+	public final void test4_Move() throws Exception {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var bag = demo.App.getInstance().BagModule.open("test1");
 			Assert.assertEquals(bag.getBean().getItems().size(), ADD_PILE_NUM);

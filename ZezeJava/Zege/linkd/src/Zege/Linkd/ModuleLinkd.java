@@ -9,10 +9,10 @@ import Zeze.Transaction.Procedure;
 import Zeze.Util.OutLong;
 
 public class ModuleLinkd extends AbstractModule {
-    public void Start(Zege.App app) throws Throwable {
+    public void Start(Zege.App app) throws Exception {
     }
 
-    public void Stop(Zege.App app) throws Throwable {
+    public void Stop(Zege.App app) throws Exception {
     }
 
     @Override
@@ -29,7 +29,7 @@ public class ModuleLinkd extends AbstractModule {
         return Zeze.Transaction.Procedure.Success;
     }
 
-    private void verifyChallengeResult(Challenge c) throws Throwable {
+    private void verifyChallengeResult(Challenge c) throws Exception {
         var v = new VerifyChallengeResult();
         v.Argument.setAccount(c.Result.getAccount());
         v.Argument.setRandomData(c.Argument.getRandomData());

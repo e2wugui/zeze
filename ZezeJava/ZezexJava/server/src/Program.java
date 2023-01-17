@@ -1,5 +1,5 @@
 public class Program {
-	public static void main(String[] args) throws Throwable {
+	public static void main(String[] args) throws Exception {
 		Game.App.getInstance().Start(args);
 		try {
 			//noinspection InfiniteLoopStatement

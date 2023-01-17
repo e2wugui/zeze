@@ -39,7 +39,7 @@ class InstallSnapshotState {
 		offset = value;
 	}
 
-	public void trySend(LogSequence ls, Server.ConnectorEx c) throws Throwable {
+	public void trySend(LogSequence ls, Server.ConnectorEx c) throws Exception {
 		ls.getRaft().lock();
 		try {
 			if (!ls.getInstallSnapshotting().containsKey(c.getName()))
@@ -71,7 +71,7 @@ class InstallSnapshotState {
 	}
 
 	@SuppressWarnings("SameReturnValue")
-	private long processResult(LogSequence ls, Server.ConnectorEx c, Protocol<?> p) throws Throwable {
+	private long processResult(LogSequence ls, Server.ConnectorEx c, Protocol<?> p) throws Exception {
 		var r = (InstallSnapshot)p;
 
 		ls.getRaft().lock();

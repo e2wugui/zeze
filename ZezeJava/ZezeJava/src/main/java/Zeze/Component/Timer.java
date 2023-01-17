@@ -61,9 +61,9 @@ public class Timer extends AbstractTimer {
 
 	/**
 	 * 非事务环境调用。用于启动Timer服务。
-	 * @throws Throwable 可能抛出任何异常。一般框架处理。调用者不需要捕捉。
+	 * @throws Exception 可能抛出任何异常。一般框架处理。调用者不需要捕捉。
 	 */
-	public void start() throws Throwable {
+	public void start() throws Exception {
 		nodeIdAutoKey = zeze.getAutoKey("Zeze.Component.Timer.NodeId");
 		timerIdAutoKey = zeze.getAutoKey("Zeze.Component.Timer.TimerId");
 		if (0L != zeze.newProcedure(this::loadCustomClass, "").call()) {
@@ -88,9 +88,9 @@ public class Timer extends AbstractTimer {
 
 	/**
 	 * 停止Timer服务。
-	 * @throws Throwable 抛出任何异常。
+	 * @throws Exception 抛出任何异常。
 	 */
-	public void stop() throws Throwable {
+	public void stop() throws Exception {
 		UnRegisterZezeTables(this.zeze);
 	}
 
@@ -555,7 +555,7 @@ public class Timer extends AbstractTimer {
 			if (null != timerAccount && timerAccount.cancel(timerId))
 				return; // done
 
-		} catch (Throwable ex) {
+		} catch (Exception ex) {
 			logger.error("ignore cancel error.", ex);
 			return; // done;
 		}

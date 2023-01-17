@@ -15,7 +15,7 @@ import Zeze.Util.OutLong;
 import Zeze.Util.Random;
 
 public class LinkdService extends LinkdServiceBase {
-    public LinkdService(Zeze.Application zeze) throws Throwable {
+    public LinkdService(Zeze.Application zeze) throws Exception {
         super(zeze);
     }
 

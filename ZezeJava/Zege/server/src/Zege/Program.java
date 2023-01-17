@@ -6,7 +6,7 @@ import Zeze.Util.Counters;
 public class Program {
 	public static final Counters counters = new Counters();
 
-	public synchronized static void main(String[] args) throws Throwable {
+	public synchronized static void main(String[] args) throws Exception {
 		var conf = "server.xml";
 		for (int i = 0; i < args.length; ++i) {
 			switch (args[i]) {

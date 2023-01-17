@@ -16,17 +16,17 @@ import org.junit.Test;
 @Ignore
 public class TestRocketMQ {
 	@Before
-	public void before() throws Throwable {
+	public void before() throws Exception {
 		App.Instance.Start();
 	}
 
 	@After
-	public void after() throws Throwable {
+	public void after() throws Exception {
 		App.Instance.Stop();
 	}
 
 	@Test
-	public void testProducer() throws Throwable {
+	public void testProducer() throws Exception {
 		var clientConfig = new ClientConfig();
 		App.Instance.RocketMQProducer.start("testRocketMQ", clientConfig);
 		var consumer = new Consumer(App.Instance.Zeze, "testRocketMQ", clientConfig);

@@ -25,7 +25,7 @@ public class ConditionNPCTalk extends TaskConditionBase<BTConditionNPCTalk, BTCo
 	}
 
 	@Override
-	public boolean accept(Bean eventBean) throws Throwable {
+	public boolean accept(Bean eventBean) throws Exception {
 		if (!(eventBean instanceof BTConditionNPCTalkEvent))
 			return false;
 

@@ -13,13 +13,13 @@ import org.junit.runners.MethodSorters;
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class TestAutoKey {
 	@Before
-	public final void testInit() throws Throwable {
+	public final void testInit() throws Exception {
 		System.out.println("testInit");
 		demo.App.getInstance().Start();
 	}
 
 	@After
-	public final void testCleanup() throws Throwable {
+	public final void testCleanup() throws Exception {
 		System.out.println("testCleanup");
 		demo.App.getInstance().Stop();
 	}
@@ -34,7 +34,7 @@ public class TestAutoKey {
 	}
 
 	@Test
-	public final void test1_AutoKey() throws Throwable {
+	public final void test1_AutoKey() throws Exception {
 		System.out.println("testAutoKey1");
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			var autoKey = demo.App.getInstance().Zeze.getAutoKey("test1");
@@ -51,7 +51,7 @@ public class TestAutoKey {
 	}
 
 	@Test
-	public final void test2_AutoKey() throws Throwable {
+	public final void test2_AutoKey() throws Exception {
 		System.out.println("testAutoKey2");
 		var allocCount = demo.App.getInstance().Zeze.getAutoKey("test1").getAllocateCount();
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
@@ -69,7 +69,7 @@ public class TestAutoKey {
 	}
 
 	@Test
-	public final void test3_AutoKey() throws Throwable {
+	public final void test3_AutoKey() throws Exception {
 		System.out.println("testAutoKey2");
 		var allocCount = demo.App.getInstance().Zeze.getAutoKey("test1").getAllocateCount();
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {

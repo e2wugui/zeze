@@ -12,10 +12,10 @@ import org.apache.logging.log4j.Logger;
 public class ModuleMessage extends AbstractModule {
     private static final Logger logger = LogManager.getLogger(ModuleMessage.class);
 
-    public void Start(Zege.App app) throws Throwable {
+    public void Start(Zege.App app) throws Exception {
     }
 
-    public void Stop(Zege.App app) throws Throwable {
+    public void Stop(Zege.App app) throws Exception {
     }
 
     @Override

@@ -26,7 +26,7 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 	public final TaskCompletionSource<Boolean> providerStaticBindCompleted = new TaskCompletionSource<>();
 	public final TaskCompletionSource<Boolean> providerDynamicSubscribeCompleted = new TaskCompletionSource<>();
 
-	public ProviderService(String name, Zeze.Application zeze) throws Throwable {
+	public ProviderService(String name, Zeze.Application zeze) throws Exception {
 		super(name, zeze);
 	}
 
@@ -54,7 +54,7 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 	}
 
 	@Override
-	public void start() throws Throwable {
+	public void start() throws Exception {
 		// copy Config.Connector to Links
 		getConfig().ForEachConnector(c -> links.putIfAbsent(c.getName(), c));
 		super.start();
@@ -68,8 +68,8 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 				var outC = new OutObject<Connector>();
 				if (getConfig().tryGetOrAddConnector(link.getPassiveIp(), link.getPassivePort(), true, outC)) {
 					try {
-						outC.value.Start();
-					} catch (Throwable e) {
+						outC.value.start();
+					} catch (Exception e) {
 						throw new RuntimeException(e);
 					}
 				}
@@ -85,7 +85,7 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 			var removed = links.remove(linkName);
 			if (removed != null) {
 				getConfig().removeConnector(removed);
-				removed.Stop();
+				removed.stop();
 			}
 		}
 		linkConnectors = links.values().toArray(new Connector[links.size()]);
@@ -118,7 +118,7 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 	}
 
 	@Override
-	public void OnHandshakeDone(AsyncSocket sender) throws Throwable {
+	public void OnHandshakeDone(AsyncSocket sender) throws Exception {
 		super.OnHandshakeDone(sender);
 		sender.setUserState(new LinkSession(getLinkName(sender), sender.getSessionId()));
 

@@ -160,13 +160,13 @@ public abstract class AbstractServiceManagerAgentWithRaft extends Zeze.Services.
     }
 
 
-    protected abstract long ProcessCommitServiceListRequest(Zeze.Builtin.ServiceManagerWithRaft.CommitServiceList r) throws Throwable;
-    protected abstract long ProcessKeepAliveRequest(Zeze.Builtin.ServiceManagerWithRaft.KeepAlive r) throws Throwable;
-    protected abstract long ProcessNotifyServiceListRequest(Zeze.Builtin.ServiceManagerWithRaft.NotifyServiceList r) throws Throwable;
-    protected abstract long ProcessOfflineNotifyRequest(Zeze.Builtin.ServiceManagerWithRaft.OfflineNotify r) throws Throwable;
-    protected abstract long ProcessRegisterRequest(Zeze.Builtin.ServiceManagerWithRaft.Register r) throws Throwable;
-    protected abstract long ProcessSetServerLoadRequest(Zeze.Builtin.ServiceManagerWithRaft.SetServerLoad r) throws Throwable;
-    protected abstract long ProcessSubscribeFirstCommitRequest(Zeze.Builtin.ServiceManagerWithRaft.SubscribeFirstCommit r) throws Throwable;
-    protected abstract long ProcessUnRegisterRequest(Zeze.Builtin.ServiceManagerWithRaft.UnRegister r) throws Throwable;
-    protected abstract long ProcessUpdateRequest(Zeze.Builtin.ServiceManagerWithRaft.Update r) throws Throwable;
+    protected abstract long ProcessCommitServiceListRequest(Zeze.Builtin.ServiceManagerWithRaft.CommitServiceList r) throws Exception;
+    protected abstract long ProcessKeepAliveRequest(Zeze.Builtin.ServiceManagerWithRaft.KeepAlive r) throws Exception;
+    protected abstract long ProcessNotifyServiceListRequest(Zeze.Builtin.ServiceManagerWithRaft.NotifyServiceList r) throws Exception;
+    protected abstract long ProcessOfflineNotifyRequest(Zeze.Builtin.ServiceManagerWithRaft.OfflineNotify r) throws Exception;
+    protected abstract long ProcessRegisterRequest(Zeze.Builtin.ServiceManagerWithRaft.Register r) throws Exception;
+    protected abstract long ProcessSetServerLoadRequest(Zeze.Builtin.ServiceManagerWithRaft.SetServerLoad r) throws Exception;
+    protected abstract long ProcessSubscribeFirstCommitRequest(Zeze.Builtin.ServiceManagerWithRaft.SubscribeFirstCommit r) throws Exception;
+    protected abstract long ProcessUnRegisterRequest(Zeze.Builtin.ServiceManagerWithRaft.UnRegister r) throws Exception;
+    protected abstract long ProcessUpdateRequest(Zeze.Builtin.ServiceManagerWithRaft.Update r) throws Exception;
 }

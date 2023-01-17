@@ -13,6 +13,8 @@ public final class BeanFactory {
 	public static <T extends Bean> T invoke(MethodHandle methodHandle) {
 		try {
 			return (T)methodHandle.invoke();
+		} catch (RuntimeException | Error e) {
+			throw e;
 		} catch (Throwable e) {
 			throw new RuntimeException(e);
 		}
@@ -23,7 +25,7 @@ public final class BeanFactory {
 		Bean bean;
 		try {
 			bean = (Bean)beanCtor.invoke();
-		} catch (RuntimeException e) {
+		} catch (RuntimeException | Error e) {
 			throw e;
 		} catch (Throwable e) {
 			throw new RuntimeException(e);
@@ -53,7 +55,7 @@ public final class BeanFactory {
 			if (beanCtor == null)
 				throw new UnsupportedOperationException("Unknown Bean TypeId=" + typeId);
 			return (Bean)beanCtor.invoke();
-		} catch (RuntimeException e) {
+		} catch (RuntimeException | Error e) {
 			throw e;
 		} catch (Throwable e) {
 			throw new RuntimeException(e);

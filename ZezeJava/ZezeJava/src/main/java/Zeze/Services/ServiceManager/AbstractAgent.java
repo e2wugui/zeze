@@ -97,7 +97,7 @@ public abstract class AbstractAgent implements Closeable {
 
 	protected abstract void allocate(AutoKey autoKey);
 
-	public abstract void start() throws Throwable;
+	public abstract void start() throws Exception;
 
 	public abstract void waitReady();
 

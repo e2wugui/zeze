@@ -35,7 +35,7 @@ public class Server extends HandshakeBoth {
 	}
 
 	// 多个Raft实例才需要自定义配置名字，否则使用默认名字就可以了。
-	public Server(Raft raft, String name, Zeze.Config config) throws Throwable {
+	public Server(Raft raft, String name, Zeze.Config config) throws Exception {
 		super(name, config);
 		this.raft = raft;
 	}
@@ -101,7 +101,7 @@ public class Server extends HandshakeBoth {
 		}
 
 		@Override
-		public void OnSocketClose(AsyncSocket closed, Throwable e) throws Throwable {
+		public void OnSocketClose(AsyncSocket closed, Throwable e) throws Exception {
 			Raft raft = ((Server)closed.getService()).getRaft();
 			raft.getImportantThreadPool().execute(() -> {
 				// avoid deadlock: lock(socket), lock (Raft).
@@ -161,7 +161,7 @@ public class Server extends HandshakeBoth {
 
 	@Override
 	public <P extends Protocol<?>> void DispatchRpcResponse(P p, ProtocolHandle<P> responseHandle,
-															ProtocolFactoryHandle<?> factoryHandle) throws Throwable {
+															ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		if (isImportantProtocol(p.getTypeId())) {
 			// 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
 			try {
@@ -175,7 +175,7 @@ public class Server extends HandshakeBoth {
 	}
 
 	public <P extends Protocol<?>> void dispatchRaftRpcResponse(P p, ProtocolHandle<P> responseHandle,
-																ProtocolFactoryHandle<?> factoryHandle) throws Throwable {
+																ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		super.DispatchRpcResponse(p, responseHandle, factoryHandle);
 	}
 
@@ -205,7 +205,7 @@ public class Server extends HandshakeBoth {
 	}
 
 	@Override
-	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) throws Throwable {
+	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) throws Exception {
 		if (isImportantProtocol(p.getTypeId())) {
 			// 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
 			// 内部协议总是使用明确返回值或者超时，不使用框架的错误时自动发送结果。
@@ -233,7 +233,7 @@ public class Server extends HandshakeBoth {
 		// DO NOT process application request.
 	}
 
-	public void dispatchRaftRequest(Protocol<?> p, Func0<Long> func, String name, Action0 cancel, DispatchMode mode) throws Throwable {
+	public void dispatchRaftRequest(Protocol<?> p, Func0<Long> func, String name, Action0 cancel, DispatchMode mode) throws Exception {
 		taskOneByOne.Execute(((IRaftRpc)p).getUnique(), func, name, cancel, mode);
 	}
 
@@ -252,7 +252,7 @@ public class Server extends HandshakeBoth {
 	}
 
 	@Override
-	public void OnHandshakeDone(AsyncSocket so) throws Throwable {
+	public void OnHandshakeDone(AsyncSocket so) throws Exception {
 		super.OnHandshakeDone(so);
 
 		// 没有判断是否和其他Raft-Node的连接。

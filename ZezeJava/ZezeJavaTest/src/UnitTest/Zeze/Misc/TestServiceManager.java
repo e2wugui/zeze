@@ -26,12 +26,12 @@ public class TestServiceManager {
 	}
 
 	@Before
-	public void before() throws Throwable {
+	public void before() throws Exception {
 		App.Instance.Start();
 	}
 
 	@After
-	public void after() throws Throwable {
+	public void after() throws Exception {
 		App.Instance.Stop();
 	}
 

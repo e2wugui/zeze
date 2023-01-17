@@ -103,12 +103,12 @@ public abstract class AbstractLinkdProvider implements Zeze.IModule {
     }
 
 
-    protected abstract long ProcessAnnounceProviderInfo(Zeze.Builtin.Provider.AnnounceProviderInfo p) throws Throwable;
-    protected abstract long ProcessBindRequest(Zeze.Builtin.Provider.Bind r) throws Throwable;
-    protected abstract long ProcessBroadcast(Zeze.Builtin.Provider.Broadcast p) throws Throwable;
-    protected abstract long ProcessKick(Zeze.Builtin.Provider.Kick p) throws Throwable;
-    protected abstract long ProcessSendRequest(Zeze.Builtin.Provider.Send r) throws Throwable;
-    protected abstract long ProcessSetUserState(Zeze.Builtin.Provider.SetUserState p) throws Throwable;
-    protected abstract long ProcessSubscribeRequest(Zeze.Builtin.Provider.Subscribe r) throws Throwable;
-    protected abstract long ProcessUnBindRequest(Zeze.Builtin.Provider.UnBind r) throws Throwable;
+    protected abstract long ProcessAnnounceProviderInfo(Zeze.Builtin.Provider.AnnounceProviderInfo p) throws Exception;
+    protected abstract long ProcessBindRequest(Zeze.Builtin.Provider.Bind r) throws Exception;
+    protected abstract long ProcessBroadcast(Zeze.Builtin.Provider.Broadcast p) throws Exception;
+    protected abstract long ProcessKick(Zeze.Builtin.Provider.Kick p) throws Exception;
+    protected abstract long ProcessSendRequest(Zeze.Builtin.Provider.Send r) throws Exception;
+    protected abstract long ProcessSetUserState(Zeze.Builtin.Provider.SetUserState p) throws Exception;
+    protected abstract long ProcessSubscribeRequest(Zeze.Builtin.Provider.Subscribe r) throws Exception;
+    protected abstract long ProcessUnBindRequest(Zeze.Builtin.Provider.UnBind r) throws Exception;
 }

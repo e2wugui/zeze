@@ -225,7 +225,7 @@ public final class Raft {
 		}
 	}
 
-	public void shutdown() throws Throwable {
+	public void shutdown() throws Exception {
 		lock();
 		try {
 			// shutdown 只做一次。
@@ -262,29 +262,29 @@ public final class Raft {
 		importantThreadPool.shutdown(); // 需要停止线程。
 	}
 
-	public Raft(StateMachine sm) throws Throwable {
+	public Raft(StateMachine sm) throws Exception {
 		this(sm, null, null, null, "Zeze.Raft.Server");
 	}
 
-	public Raft(StateMachine sm, String RaftName) throws Throwable {
+	public Raft(StateMachine sm, String RaftName) throws Exception {
 		this(sm, RaftName, null, null, "Zeze.Raft.Server");
 	}
 
-	public Raft(StateMachine sm, String RaftName, RaftConfig raftConf) throws Throwable {
+	public Raft(StateMachine sm, String RaftName, RaftConfig raftConf) throws Exception {
 		this(sm, RaftName, raftConf, null, "Zeze.Raft.Server");
 	}
 
-	public Raft(StateMachine sm, String RaftName, RaftConfig raftConf, Zeze.Config config) throws Throwable {
+	public Raft(StateMachine sm, String RaftName, RaftConfig raftConf, Zeze.Config config) throws Exception {
 		this(sm, RaftName, raftConf, config, "Zeze.Raft.Server");
 	}
 
 	public Raft(StateMachine sm, String RaftName, RaftConfig raftConf, Zeze.Config config, String name)
-			throws Throwable {
+			throws Exception {
 		this(sm, RaftName, raftConf, config, name, Server::new);
 	}
 
 	public Raft(StateMachine sm, String RaftName, RaftConfig raftConf, Zeze.Config config, String name,
-				Func3<Raft, String, Config, Server> serverFactory) throws Throwable {
+				Func3<Raft, String, Config, Server> serverFactory) throws Exception {
 		if (raftConf == null)
 			raftConf = Zeze.Raft.RaftConfig.load();
 		raftConf.verify();
@@ -337,7 +337,7 @@ public final class Raft {
 		timerTask = Task.scheduleUnsafe(10, this::onTimer);
 	}
 
-	private long processAppendEntries(AppendEntries r) throws Throwable {
+	private long processAppendEntries(AppendEntries r) throws Exception {
 		lock();
 		try {
 			return logSequence.followerOnAppendEntries(r);
@@ -346,7 +346,7 @@ public final class Raft {
 		}
 	}
 
-	private long processInstallSnapshot(InstallSnapshot r) throws Throwable {
+	private long processInstallSnapshot(InstallSnapshot r) throws Exception {
 		lock();
 		try {
 			r.Result.setTerm(logSequence.getTerm());
@@ -460,7 +460,7 @@ public final class Raft {
 	}
 
 	// 重置 OnTimer 需要的所有时间。
-	private void resetTimerTime() throws Throwable {
+	private void resetTimerTime() throws Exception {
 		var now = System.currentTimeMillis();
 		logSequence.setLeaderActiveTime(now);
 		server.getConfig().ForEachConnector(c -> ((Server.ConnectorEx)c).setAppendLogActiveTime(now));
@@ -470,7 +470,7 @@ public final class Raft {
 	 * 每个Raft使用一个固定Timer，根据不同的状态执行相应操作。
 	 * 【简化】不同状态下不管维护管理不同的Timer了。
 	 */
-	private void onTimer() throws Throwable {
+	private void onTimer() throws Exception {
 		lock();
 		try {
 			if (isShutdown)
@@ -506,8 +506,8 @@ public final class Raft {
 		}
 	}
 
-	private void onLowPrecisionTimer() throws Throwable {
-		server.getConfig().ForEachConnector(Connector::Start); // Connector Reconnect Bug?
+	private void onLowPrecisionTimer() throws Exception {
+		server.getConfig().ForEachConnector(Connector::start); // Connector Reconnect Bug?
 		logSequence.removeExpiredUniqueRequestSet();
 	}
 
@@ -546,7 +546,7 @@ public final class Raft {
 		signalAll(); // has under lock(this)
 	}
 
-	void setLeaderReady(RaftLog heart) throws Throwable {
+	void setLeaderReady(RaftLog heart) throws Exception {
 		if (isLeader()) {
 			// 是否过期First-Heartbeat。
 			// 使用 LeaderReadyFuture 可以更加精确的识别。
@@ -610,7 +610,7 @@ public final class Raft {
 	}
 
 	@SuppressWarnings("SameReturnValue")
-	private long processRequestVote(RequestVote r) throws Throwable {
+	private long processRequestVote(RequestVote r) throws Exception {
 		lock();
 		try {
 			// 不管任何状态重置下一次时间，使得每个node从大概一个时刻开始。
@@ -650,7 +650,7 @@ public final class Raft {
 		return Procedure.Success;
 	}
 
-	private long processRequestVoteResult(RequestVote rpc, @SuppressWarnings("unused") Connector c) throws Throwable {
+	private long processRequestVoteResult(RequestVote rpc, @SuppressWarnings("unused") Connector c) throws Exception {
 		if (rpc.isTimeout() || rpc.getResultCode() != 0)
 			return 0; // skip error. re-vote later.
 
@@ -689,7 +689,7 @@ public final class Raft {
 		return Procedure.Success;
 	}
 
-	private void sendRequestVote() throws Throwable {
+	private void sendRequestVote() throws Exception {
 		requestVotes.clear(); // 每次选举开始清除。
 		// LogSequence.SetVoteFor(Name); // 先收集结果，达到 RaftConfig.HalfCount 才判断是否给自己投票。
 		logSequence.trySetTerm(logSequence.getTerm() + 1);
@@ -713,7 +713,7 @@ public final class Raft {
 		});
 	}
 
-	private void convertStateFromFollowerTo(RaftState newState) throws Throwable {
+	private void convertStateFromFollowerTo(RaftState newState) throws Exception {
 		switch (newState) {
 		case Follower:
 			logger.info("RaftState {}: Follower->Follower", getName());
@@ -731,7 +731,7 @@ public final class Raft {
 		}
 	}
 
-	private void convertStateFromCandidateTo(RaftState newState) throws Throwable {
+	private void convertStateFromCandidateTo(RaftState newState) throws Exception {
 		switch (newState) {
 		case Follower:
 			logger.info("RaftState {}: Candidate->Follower", getName());
@@ -756,7 +756,7 @@ public final class Raft {
 
 			server.getConfig().ForEachConnector(c -> {
 				var cex = (Server.ConnectorEx)c;
-				cex.Start(); // 马上尝试连接。
+				cex.start(); // 马上尝试连接。
 				cex.setNextIndex(nextIndex);
 				cex.setMatchIndex(0);
 			});
@@ -772,7 +772,7 @@ public final class Raft {
 		}
 	}
 
-	private void convertStateFromLeaderTo(RaftState newState) throws Throwable {
+	private void convertStateFromLeaderTo(RaftState newState) throws Exception {
 		// 本来 Leader -> Follower 需要，为了健壮性，全部改变都重置。
 		resetLeaderReadyAfterChangeState();
 		logSequence.cancelAllInstallSnapshot();
@@ -792,7 +792,7 @@ public final class Raft {
 		}
 	}
 
-	public void convertStateTo(RaftState newState) throws Throwable {
+	public void convertStateTo(RaftState newState) throws Exception {
 		resetTimerTime();
 		// 按真值表处理所有情况。
 		switch (getState()) {

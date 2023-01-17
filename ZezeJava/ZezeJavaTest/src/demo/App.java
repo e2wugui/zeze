@@ -8,7 +8,7 @@ import Zeze.Game.Bag;
 import Zeze.Services.RocketMQ.Producer;
 
 public class App extends Zeze.AppBase {
-	public static void main(String[] args) throws Throwable {
+	public static void main(String[] args) throws Exception {
 		System.err.println(System.getProperties().get("user.dir"));
 		Instance.Start();
 		int i = 0;
@@ -39,7 +39,7 @@ public class App extends Zeze.AppBase {
 	public Bag.Module BagModule;
 	public Producer RocketMQProducer;
 
-	public void Start() throws Throwable {
+	public void Start() throws Exception {
 		Start(Config.load("./zeze.xml"));
 	}
 
@@ -54,7 +54,7 @@ public class App extends Zeze.AppBase {
 		}
 	}
 
-	public void Start(Config config) throws Throwable {
+	public void Start(Config config) throws Exception {
 		System.setProperty("log4j.configurationFile", "log4j2.xml");
 		// 测试本地事务性能需要容量大一点
 		adjustTableConf(config.getDefaultTableConf());
@@ -72,7 +72,7 @@ public class App extends Zeze.AppBase {
 		startService(); // 启动网络
 	}
 
-	public void Stop() throws Throwable {
+	public void Stop() throws Exception {
 		stopService(); // 关闭网络
 		stopModules(); // 关闭模块，卸载配置什么的。
 		if (Zeze != null) {
@@ -112,18 +112,18 @@ public class App extends Zeze.AppBase {
         return Zeze;
     }
 
-    public void createZeze() throws Throwable {
+    public void createZeze() throws Exception {
         createZeze(null);
     }
 
-    public synchronized void createZeze(Zeze.Config config) throws Throwable {
+    public synchronized void createZeze(Zeze.Config config) throws Exception {
         if (Zeze != null)
             throw new RuntimeException("Zeze Has Created!");
 
         Zeze = new Zeze.Application("ZezeJavaTest", config);
     }
 
-    public synchronized void createService() throws Throwable {
+    public synchronized void createService() throws Exception {
         Server = new demo.Server(Zeze);
     }
 
@@ -183,7 +183,7 @@ public class App extends Zeze.AppBase {
         Zeze = null;
     }
 
-    public synchronized void startModules() throws Throwable {
+    public synchronized void startModules() throws Exception {
         demo_Module1.Start(this);
         demo_Module1_Module11.Start(this);
         demo_M6.Start(this);
@@ -191,7 +191,7 @@ public class App extends Zeze.AppBase {
         TaskTest_TaskExt.Start(this);
     }
 
-    public synchronized void stopModules() throws Throwable {
+    public synchronized void stopModules() throws Exception {
         if (TaskTest_TaskExt != null)
             TaskTest_TaskExt.Stop(this);
         if (demo_M6_M7 != null)
@@ -204,11 +204,11 @@ public class App extends Zeze.AppBase {
             demo_Module1.Stop(this);
     }
 
-    public synchronized void startService() throws Throwable {
+    public synchronized void startService() throws Exception {
         Server.start();
     }
 
-    public synchronized void stopService() throws Throwable {
+    public synchronized void stopService() throws Exception {
         if (Server != null)
             Server.stop();
     }

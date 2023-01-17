@@ -47,14 +47,14 @@ public class Procedure {
 		func = value;
 	}
 
-	protected long process() throws Throwable {
+	protected long process() throws Exception {
 		var func = this.func;
 		if (func != null)
 			return func.call();
 		return Zeze.Transaction.Procedure.NotImplement;
 	}
 
-	public final long call() throws Throwable {
+	public final long call() throws Exception {
 		var currentT = Transaction.getCurrent();
 		if (currentT == null) {
 			try {

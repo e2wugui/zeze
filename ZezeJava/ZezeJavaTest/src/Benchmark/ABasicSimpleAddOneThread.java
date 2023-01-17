@@ -8,7 +8,7 @@ import org.junit.Assert;
 public class ABasicSimpleAddOneThread extends TestCase {
 	public final static int AddCount = 10_000_000;
 
-	public void testBenchmark() throws Throwable {
+	public void testBenchmark() throws Exception {
 		App.Instance.Start();
 		try {
 			App.Instance.Zeze.newProcedure(ABasicSimpleAddOneThread::Remove, "remove").call();

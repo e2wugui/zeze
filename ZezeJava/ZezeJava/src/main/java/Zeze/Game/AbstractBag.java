@@ -61,6 +61,6 @@ public abstract class AbstractBag implements Zeze.IModule {
     }
 
 
-    protected abstract long ProcessDestroyRequest(Zeze.Builtin.Game.Bag.Destroy r) throws Throwable;
-    protected abstract long ProcessMoveRequest(Zeze.Builtin.Game.Bag.Move r) throws Throwable;
+    protected abstract long ProcessDestroyRequest(Zeze.Builtin.Game.Bag.Destroy r) throws Exception;
+    protected abstract long ProcessMoveRequest(Zeze.Builtin.Game.Bag.Move r) throws Exception;
 }

@@ -24,7 +24,7 @@ public class Program {
 		return addr.getHostName();
 	}
 
-	public synchronized static void main(String[] args) throws Throwable {
+	public synchronized static void main(String[] args) throws Exception {
 		for (int i = 0; i < args.length; ++i) {
 			switch (args[i]) {
 			case "-perf":
@@ -40,7 +40,7 @@ public class Program {
 	private MainWindow Main;
 	public String Self;
 
-	public void run(String[] args) throws Throwable {
+	public void run(String[] args) throws Exception {
 		Zeze.Collections.LinkedMap.beanFactory.register(BFriend.class);
 
 		var app = App.Instance;

@@ -154,7 +154,7 @@ final class Gen {
 	}
 
 	@SuppressWarnings("SameParameterValue")
-	void genLocalVariable(StringBuilderCs sb, String prefix, Parameter param) throws Throwable {
+	void genLocalVariable(StringBuilderCs sb, String prefix, Parameter param) throws Exception {
 		var type = param.getType();
 		var name = param.getName();
 		var kn = serializer.get(type);
@@ -166,7 +166,7 @@ final class Gen {
 			sb.appendLine("{}{} {};", prefix, getTypeName(param.getParameterizedType()), name);
 	}
 
-	void genEncode(StringBuilderCs sb, String prefix, String bbName, Class<?> type, String varName) throws Throwable {
+	void genEncode(StringBuilderCs sb, String prefix, String bbName, Class<?> type, String varName) throws Exception {
 		var kn = serializer.get(type);
 		if (kn != null)
 			kn.encoder.run(sb, prefix, varName, bbName);
@@ -183,7 +183,7 @@ final class Gen {
 		}
 	}
 
-	void genDecode(StringBuilderCs sb, String prefix, String bbName, Class<?> type, Type paramType, String varName) throws Throwable {
+	void genDecode(StringBuilderCs sb, String prefix, String bbName, Class<?> type, Type paramType, String varName) throws Exception {
 		var kn = serializer.get(type);
 		if (kn != null)
 			kn.decoder.run(sb, prefix, varName, bbName);
@@ -206,13 +206,13 @@ final class Gen {
 	}
 
 	@SuppressWarnings("SameParameterValue")
-	void genEncode(StringBuilderCs sb, String prefix, String bbName, List<Parameter> parameters) throws Throwable {
+	void genEncode(StringBuilderCs sb, String prefix, String bbName, List<Parameter> parameters) throws Exception {
 		for (Parameter p : parameters)
 			genEncode(sb, prefix, bbName, p.getType(), p.getName());
 	}
 
 	@SuppressWarnings("SameParameterValue")
-	void genDecode(StringBuilderCs sb, String prefix, String bbName, List<Parameter> parameters) throws Throwable {
+	void genDecode(StringBuilderCs sb, String prefix, String bbName, List<Parameter> parameters) throws Exception {
 		for (Parameter p : parameters)
 			genDecode(sb, prefix, bbName, p.getType(), p.getParameterizedType(), p.getName());
 	}

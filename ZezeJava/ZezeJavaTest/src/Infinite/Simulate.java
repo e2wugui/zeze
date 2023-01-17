@@ -45,7 +45,7 @@ public final class Simulate {
 	}
 
 	@Before
-	public void Before() throws Throwable {
+	public void Before() throws Exception {
 		After();
 		for (int serverId = 0; serverId < AppCount; serverId++)
 			Apps.add(new App(serverId));
@@ -66,7 +66,7 @@ public final class Simulate {
 	}
 
 	@After
-	public void After() throws Throwable {
+	public void After() throws Exception {
 		logger.fatal("After");
 		for (var app : Apps) {
 			app.app.demo_Module1.getTflush().getSimulateTables = null;
@@ -78,7 +78,7 @@ public final class Simulate {
 	}
 
 	@Test
-	public void testMain() throws Throwable {
+	public void testMain() throws Exception {
 		logger.fatal("Prepare");
 		try {
 			Tasks.prepare();
@@ -104,7 +104,7 @@ public final class Simulate {
 		logger.fatal("Done!!!!!!");
 	}
 
-	public static void main(String[] args) throws Throwable {
+	public static void main(String[] args) throws Exception {
 		var simulate = new Simulate();
 		simulate.Infinite = true;
 		simulate.Before();

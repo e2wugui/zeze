@@ -309,7 +309,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	private static final boolean canLogBroadcast = AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(Broadcast.TypeId_);
 
 	@Override
-	protected long ProcessBroadcast(Broadcast protocol) throws Throwable {
+	protected long ProcessBroadcast(Broadcast protocol) throws Exception {
 		var pdata = protocol.Argument.getProtocolWholeData();
 		if (canLogBroadcast) {
 			var ptype = protocol.Argument.getProtocolType();

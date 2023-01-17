@@ -27,13 +27,13 @@ public class ModuleTimer extends AbstractModule {
 	private AutoKey NodeIdGenerator;
 	private AutoKey TimerIdGenerator;
 
-	public void Start(Game.App app) throws Throwable {
+	public void Start(Game.App app) throws Exception {
 		NodeIdGenerator = app.Zeze.getAutoKey("Game.Timer.NodeIdGenerator");
 		TimerIdGenerator = app.Zeze.getAutoKey("Game.Timer.TimerIdGenerator");
 		Task.run(this::LoadTimerLocal, "LoadTimerLocal", DispatchMode.Normal);
 	}
 
-	public void Stop(Game.App app) throws Throwable {
+	public void Stop(Game.App app) throws Exception {
 	}
 
 	// 保存所有可用的timer处理回调，由于可能需要把timer的触发派发到其他服务器执行，必须静态注册。

@@ -33,7 +33,7 @@ public class TestOnline extends TestCase {
 	final static int ServerCount = 2;
 	final static int RoleCount = 2;
 
-	private void start() throws Throwable {
+	private void start() throws Exception {
 		for (int i = 0; i < LinkCount; ++i)
 			links.get(i).Start(-(i+1), 10000 + i, 15000 + i);
 		for (int i = 0; i < ServerCount; ++i)
@@ -48,7 +48,7 @@ public class TestOnline extends TestCase {
 		}
 	}
 
-	private void stop() throws Throwable {
+	private void stop() throws Exception {
 		logger.info("Begin Stop");
 		for (var client : clients)
 			client.Stop();
@@ -59,7 +59,7 @@ public class TestOnline extends TestCase {
 		logger.info("End Stop");
 	}
 
-	public void test3() throws Throwable {
+	public void test3() throws Exception {
 		Task.tryInitThreadPool(null, null, null);
 
 		for (int i = 0; i < ClientCount; ++i) {
@@ -150,7 +150,7 @@ public class TestOnline extends TestCase {
 		return get.Result.getRoleList().get(0);
 	}
 
-//	public void testLoginXyz() throws Throwable {
+//	public void testLoginXyz() throws Exception {
 	// 理解 client-linkd-server 之间的关系，
 	// 做好【准备工作】，分别做以下测试，并【验证结果】。
 	// 【准备工作】

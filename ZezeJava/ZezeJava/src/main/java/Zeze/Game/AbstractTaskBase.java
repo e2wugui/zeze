@@ -68,5 +68,5 @@ public abstract class AbstractTaskBase implements Zeze.IModule {
     }
 
 
-    protected abstract long ProcessTriggerTaskEventRequest(Zeze.Builtin.Game.TaskBase.TriggerTaskEvent r) throws Throwable;
+    protected abstract long ProcessTriggerTaskEventRequest(Zeze.Builtin.Game.TaskBase.TriggerTaskEvent r) throws Exception;
 }

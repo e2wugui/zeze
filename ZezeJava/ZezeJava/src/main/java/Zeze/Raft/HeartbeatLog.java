@@ -23,7 +23,7 @@ final class HeartbeatLog extends Log {
 	}
 
 	@Override
-	public void apply(RaftLog holder, StateMachine stateMachine) throws Throwable {
+	public void apply(RaftLog holder, StateMachine stateMachine) throws Exception {
 		//noinspection SwitchStatementWithTooFewBranches
 		switch (operate) {
 		case SetLeaderReadyEvent:

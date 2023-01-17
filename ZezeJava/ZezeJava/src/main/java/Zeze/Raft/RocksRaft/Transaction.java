@@ -172,7 +172,7 @@ public final class Transaction {
 			lastRollbackActions = last.getRollbackActions(); // 最后一个Savepoint Rollback的时候需要保存一下，用来触发回调。ugly。
 	}
 
-	public long perform(Procedure procedure) throws Throwable {
+	public long perform(Procedure procedure) throws Exception {
 		try {
 			var rc = procedure.call();
 			if (_lock_and_check_(TransactionLevel.Serializable)) {

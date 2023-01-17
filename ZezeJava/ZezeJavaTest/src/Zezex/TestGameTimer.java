@@ -22,7 +22,7 @@ public class TestGameTimer {
 	final ArrayList<Zezex.App> links = new ArrayList<>();
 	final ArrayList<Game.App> servers = new ArrayList<>();
 
-	private void prepareNewEnvironment(int clientCount, int linkCount, int serverCount, int roleCount) throws Throwable {
+	private void prepareNewEnvironment(int clientCount, int linkCount, int serverCount, int roleCount) throws Exception {
 		clients.clear();
 		links.clear();
 		servers.clear();
@@ -47,7 +47,7 @@ public class TestGameTimer {
 		}
 	}
 
-	private void stopAll() throws Throwable {
+	private void stopAll() throws Exception {
 		for (var client : clients)
 			client.Stop();
 		for (var server : servers)
@@ -56,7 +56,7 @@ public class TestGameTimer {
 			link.Stop();
 	}
 
-	private static void testContent(TimerContext context) throws Throwable {
+	private static void testContent(TimerContext context) throws Exception {
 		TestBean bean = (TestBean)context.customData;
 		if (bean.checkLiving())
 			bean.addValue();
@@ -65,13 +65,13 @@ public class TestGameTimer {
 
 	public static class TestOnlineTimerHandle extends TimerHandle {
 		@Override
-		public void onTimer(TimerContext context) throws Throwable {
+		public void onTimer(TimerContext context) throws Exception {
 			testContent(context);
 		}
 	}
 
 	@Test
-	public void testRoleTimer1() throws Throwable {
+	public void testRoleTimer1() throws Exception {
 		Task.tryInitThreadPool(null, null, null);
 
 		try {
@@ -143,13 +143,13 @@ public class TestGameTimer {
 
 	public static class TestOfflineTimerHandle extends TimerHandle {
 		@Override
-		public void onTimer(TimerContext context) throws Throwable {
+		public void onTimer(TimerContext context) throws Exception {
 			testContent(context);
 		}
 	}
 
 	@Test
-	public void testRoleTimer2() throws Throwable {
+	public void testRoleTimer2() throws Exception {
 		Task.tryInitThreadPool(null, null, null);
 
 		try {

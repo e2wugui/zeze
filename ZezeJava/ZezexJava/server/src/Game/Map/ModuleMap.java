@@ -15,7 +15,7 @@ public final class ModuleMap extends AbstractModule {
 	}
 
 	@Override
-    protected long ProcessCEnterWorld(CEnterWorld protocol) throws Throwable {
+    protected long ProcessCEnterWorld(CEnterWorld protocol) throws Exception {
 		var session = ProviderUserSession.get(protocol);
 		if (session.getRoleId() == null) {
 			return Procedure.LogicError;
@@ -26,7 +26,7 @@ public final class ModuleMap extends AbstractModule {
 	}
 
 	@Override
-    protected long ProcessCEnterWorldDone(CEnterWorldDone protocol) throws Throwable {
+    protected long ProcessCEnterWorldDone(CEnterWorldDone protocol) throws Exception {
 		// TODO map
 		return Procedure.NotImplement;
 	}

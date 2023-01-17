@@ -44,5 +44,5 @@ public abstract class AbstractRedoQueueServer implements Zeze.IModule {
     }
 
 
-    protected abstract long ProcessRunTaskRequest(Zeze.Builtin.RedoQueue.RunTask r) throws Throwable;
+    protected abstract long ProcessRunTaskRequest(Zeze.Builtin.RedoQueue.RunTask r) throws Exception;
 }

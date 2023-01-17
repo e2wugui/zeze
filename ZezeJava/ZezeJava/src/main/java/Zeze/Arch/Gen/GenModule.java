@@ -173,7 +173,7 @@ public final class GenModule {
 		}
 	}
 
-	private static String genModuleCode(String genClassName, Class<?> moduleClass, List<MethodOverride> overrides, AppBase userApp) throws Throwable {
+	private static String genModuleCode(String genClassName, Class<?> moduleClass, List<MethodOverride> overrides, AppBase userApp) throws Exception {
 		var sb = new StringBuilderCs();
 		sb.appendLine("// auto-generated @" + "formatter:off");
 		sb.appendLine("public final class {} extends {} {", genClassName, moduleClass.getName());
@@ -379,7 +379,7 @@ public final class GenModule {
 	}
 
 	private static void genRedirectAll(StringBuilderCs sb, StringBuilderCs sbHandles,
-									   int moduleId, String moduleFullName, MethodOverride m) throws Throwable {
+									   int moduleId, String moduleFullName, MethodOverride m) throws Exception {
 		sb.append("        var _c_ = new Zeze.Arch.RedirectAllContext<>({}, ", m.hashOrServerIdParameter.getName());
 		if (m.resultTypeName != null) {
 			sb.appendLine("_params_ -> {");

@@ -89,10 +89,10 @@ namespace Zeze.Gen.java
             // sw.WriteLine("        super(app);");
             // sw.WriteLine("    }");
             // sw.WriteLine();
-            sw.WriteLine("    public void Start(" + project.Solution.Name + ".App app) throws Throwable {");
+            sw.WriteLine("    public void Start(" + project.Solution.Name + ".App app) throws Exception {");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public void Stop(" + project.Solution.Name + ".App app) throws Throwable {");
+            sw.WriteLine("    public void Stop(" + project.Solution.Name + ".App app) throws Exception {");
             sw.WriteLine("    }");
             sw.WriteLine();
             if (GenEmptyProtocolHandles(sw))
@@ -484,9 +484,9 @@ namespace Zeze.Gen.java
             foreach (Protocol p in protocols)
             {
                 if (p is Rpc rpc)
-                    sw.WriteLine($"    protected abstract long Process{rpc.Name}Request({rpc.Space.Path(".", rpc.Name)} r) throws Throwable;");
+                    sw.WriteLine($"    protected abstract long Process{rpc.Name}Request({rpc.Space.Path(".", rpc.Name)} r) throws Exception;");
                 else
-                    sw.WriteLine($"    protected abstract long Process{p.Name}({p.Space.Path(".", p.Name)} p) throws Throwable;");
+                    sw.WriteLine($"    protected abstract long Process{p.Name}({p.Space.Path(".", p.Name)} p) throws Exception;");
             }
             if (postBlankLine && protocols.Count > 0)
                 sw.WriteLine();

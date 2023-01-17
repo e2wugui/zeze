@@ -10,7 +10,7 @@ import Zeze.Util.Reflect;
 import Zeze.Util.Task;
 
 public final class GlobalClient extends Service {
-	public GlobalClient(GlobalAgent agent, Application zeze) throws Throwable {
+	public GlobalClient(GlobalAgent agent, Application zeze) throws Exception {
 		super(agent.getZeze().getProjectName() + ".GlobalClient", zeze);
 	}
 
@@ -34,13 +34,13 @@ public final class GlobalClient extends Service {
 					// 1. 关闭网络。下面两行有点重复，就这样了。
 					so.close(new Exception("GlobalAgent.ReLogin Fail code=" + reLogin.getResultCode()));
 					//noinspection DataFlowIssue
-					so.getConnector().Stop();
+					so.getConnector().stop();
 					// 2. 开始清理，由守护线程保护，必须成功。
 					agent.startRelease(getZeze(), () -> {
 						// 3. 重置登录次数，下一次连接成功，会发送Login。
 						agent.getLoginTimes().getAndSet(0);
 						// 4. 开始网络连接。
-						so.getConnector().Start();
+						so.getConnector().start();
 					});
 				} else {
 					agent.getLoginTimes().getAndIncrement();

@@ -11,7 +11,7 @@ public class App extends Zeze.AppBase {
     }
     public Zeze.Net.Connector Connector;
 
-    public void Start(String ip, int port) throws Throwable {
+    public void Start(String ip, int port) throws Exception {
         var config = Config.load("client.xml");
         createZeze(config);
         createService();
@@ -31,7 +31,7 @@ public class App extends Zeze.AppBase {
         startService(); // 启动网络
     }
 
-    public void Stop() throws Throwable {
+    public void Stop() throws Exception {
         stopService(); // 关闭网络
         stopModules(); // 关闭模块，卸载配置什么的。
         if (Zeze != null)
@@ -59,18 +59,18 @@ public class App extends Zeze.AppBase {
         return Zeze;
     }
 
-    public void createZeze() throws Throwable {
+    public void createZeze() throws Exception {
         createZeze(null);
     }
 
-    public synchronized void createZeze(Zeze.Config config) throws Throwable {
+    public synchronized void createZeze(Zeze.Config config) throws Exception {
         if (Zeze != null)
             throw new RuntimeException("Zeze Has Created!");
 
         Zeze = new Zeze.Application("client", config);
     }
 
-    public synchronized void createService() throws Throwable {
+    public synchronized void createService() throws Exception {
         ClientService = new Zege.ClientService(Zeze);
     }
 
@@ -137,7 +137,7 @@ public class App extends Zeze.AppBase {
         Zeze = null;
     }
 
-    public synchronized void startModules() throws Throwable {
+    public synchronized void startModules() throws Exception {
         Zeze_Builtin_Online.Start(this);
         Zeze_Builtin_LinkdBase.Start(this);
         Zege_Linkd.Start(this);
@@ -146,7 +146,7 @@ public class App extends Zeze.AppBase {
         Zege_User.Start(this);
     }
 
-    public synchronized void stopModules() throws Throwable {
+    public synchronized void stopModules() throws Exception {
         if (Zege_User != null)
             Zege_User.Stop(this);
         if (Zege_Message != null)
@@ -161,11 +161,11 @@ public class App extends Zeze.AppBase {
             Zeze_Builtin_Online.Stop(this);
     }
 
-    public synchronized void startService() throws Throwable {
+    public synchronized void startService() throws Exception {
         ClientService.start();
     }
 
-    public synchronized void stopService() throws Throwable {
+    public synchronized void stopService() throws Exception {
         if (ClientService != null)
             ClientService.stop();
     }

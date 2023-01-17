@@ -11,17 +11,17 @@ public class ModuleModule1 extends AbstractModule {
     }
 
     @Override
-    protected long ProcessProtocol3(Protocol3 p) throws Throwable {
+    protected long ProcessProtocol3(Protocol3 p) throws Exception {
         return Zeze.Transaction.Procedure.NotImplement;
     }
 
     @Override
-    protected long ProcessProtocol4(Protocol4 p) throws Throwable {
+    protected long ProcessProtocol4(Protocol4 p) throws Exception {
         return Zeze.Transaction.Procedure.NotImplement;
     }
 
     @Override
-    protected long ProcessRpc1Request(Rpc1 r) throws Throwable {
+    protected long ProcessRpc1Request(Rpc1 r) throws Exception {
         return Zeze.Transaction.Procedure.NotImplement;
     }
 

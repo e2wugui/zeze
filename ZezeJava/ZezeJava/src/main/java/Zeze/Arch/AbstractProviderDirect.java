@@ -87,10 +87,10 @@ public abstract class AbstractProviderDirect implements Zeze.IModule {
     }
 
 
-    protected abstract long ProcessAnnounceProviderInfoRequest(Zeze.Builtin.ProviderDirect.AnnounceProviderInfo r) throws Throwable;
-    protected abstract long ProcessModuleRedirectRequest(Zeze.Builtin.ProviderDirect.ModuleRedirect r) throws Throwable;
-    protected abstract long ProcessModuleRedirectAllRequest(Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest p) throws Throwable;
-    protected abstract long ProcessModuleRedirectAllResult(Zeze.Builtin.ProviderDirect.ModuleRedirectAllResult p) throws Throwable;
-    protected abstract long ProcessTransmit(Zeze.Builtin.ProviderDirect.Transmit p) throws Throwable;
-    protected abstract long ProcessTransmitAccount(Zeze.Builtin.ProviderDirect.TransmitAccount p) throws Throwable;
+    protected abstract long ProcessAnnounceProviderInfoRequest(Zeze.Builtin.ProviderDirect.AnnounceProviderInfo r) throws Exception;
+    protected abstract long ProcessModuleRedirectRequest(Zeze.Builtin.ProviderDirect.ModuleRedirect r) throws Exception;
+    protected abstract long ProcessModuleRedirectAllRequest(Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest p) throws Exception;
+    protected abstract long ProcessModuleRedirectAllResult(Zeze.Builtin.ProviderDirect.ModuleRedirectAllResult p) throws Exception;
+    protected abstract long ProcessTransmit(Zeze.Builtin.ProviderDirect.Transmit p) throws Exception;
+    protected abstract long ProcessTransmitAccount(Zeze.Builtin.ProviderDirect.TransmitAccount p) throws Exception;
 }

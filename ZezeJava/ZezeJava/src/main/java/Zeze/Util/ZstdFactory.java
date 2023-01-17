@@ -110,8 +110,10 @@ public final class ZstdFactory {
 				int r = (int)mhResetCStream.invoke(this, ctxPtr);
 				if (r != 0)
 					throw new IllegalStateException("mhResetCStream = " + r);
+			} catch (RuntimeException | Error e) {
+				throw e;
 			} catch (Throwable e) {
-				throw e instanceof RuntimeException ? (RuntimeException)e : new RuntimeException(e);
+				throw new RuntimeException(e);
 			}
 		}
 
@@ -127,8 +129,10 @@ public final class ZstdFactory {
 					dst.Append(dstBuf, 0, (int)fCDstPos.getLong(this));
 					srcPos = (int)fCSrcPos.getLong(this);
 				}
+			} catch (RuntimeException | Error e) {
+				throw e;
 			} catch (Throwable e) {
-				throw e instanceof RuntimeException ? (RuntimeException)e : new RuntimeException(e);
+				throw new RuntimeException(e);
 			}
 		}
 
@@ -144,8 +148,10 @@ public final class ZstdFactory {
 					dst.update(dstBuf, 0, (int)fCDstPos.getLong(this));
 					srcPos = (int)fCSrcPos.getLong(this);
 				}
+			} catch (RuntimeException | Error e) {
+				throw e;
 			} catch (Throwable e) {
-				throw e instanceof RuntimeException ? (RuntimeException)e : new RuntimeException(e);
+				throw new RuntimeException(e);
 			}
 		}
 
@@ -160,8 +166,10 @@ public final class ZstdFactory {
 						throw new IllegalStateException("mhFlushStream = " + r);
 					dst.Append(dstBuf, 0, (int)fCDstPos.getLong(this));
 				} while (r > 0);
+			} catch (RuntimeException | Error e) {
+				throw e;
 			} catch (Throwable e) {
-				throw e instanceof RuntimeException ? (RuntimeException)e : new RuntimeException(e);
+				throw new RuntimeException(e);
 			}
 		}
 
@@ -177,8 +185,10 @@ public final class ZstdFactory {
 					dst.update(dstBuf, 0, (int)fCDstPos.getLong(this));
 				} while (r > 0);
 				dst.flush();
+			} catch (RuntimeException | Error e) {
+				throw e;
 			} catch (Throwable e) {
-				throw e instanceof RuntimeException ? (RuntimeException)e : new RuntimeException(e);
+				throw new RuntimeException(e);
 			}
 		}
 
@@ -241,8 +251,10 @@ public final class ZstdFactory {
 					dstPos = (int)fDDstPos.getLong(this);
 				}
 				dst.WriteIndex = dstPos;
+			} catch (RuntimeException | Error e) {
+				throw e;
 			} catch (Throwable e) {
-				throw e instanceof RuntimeException ? (RuntimeException)e : new RuntimeException(e);
+				throw new RuntimeException(e);
 			}
 		}
 
@@ -261,8 +273,10 @@ public final class ZstdFactory {
 					dst.update(dstBuf, 0, (int)fDDstPos.getLong(this));
 					srcPos = (int)fDSrcPos.getLong(this);
 				}
+			} catch (RuntimeException | Error e) {
+				throw e;
 			} catch (Throwable e) {
-				throw e instanceof RuntimeException ? (RuntimeException)e : new RuntimeException(e);
+				throw new RuntimeException(e);
 			}
 		}
 

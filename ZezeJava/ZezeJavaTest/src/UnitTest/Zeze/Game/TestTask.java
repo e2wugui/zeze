@@ -30,7 +30,7 @@ public class TestTask extends TestCase {
 	final static int ServerCount = 1;
 	final static int RoleCount = 1;
 
-	private void start() throws Throwable {
+	private void start() throws Exception {
 		for (int i = 0; i < ClientCount; ++i) {
 			var client = new ClientGame.App();
 			clients.add(client);
@@ -54,7 +54,7 @@ public class TestTask extends TestCase {
 		}
 	}
 
-	private void stop() throws Throwable {
+	private void stop() throws Exception {
 		for (var client : clients)
 			client.Stop();
 		for (var server : servers)
@@ -71,7 +71,7 @@ public class TestTask extends TestCase {
 	}
 	static ConcurrentHashSet<TaskClient> tasksInfoClient = new ConcurrentHashSet<>(); // 模拟一份在客户端的任务数据
 
-	public void test1() throws Throwable {
+	public void test1() throws Exception {
 		Zeze.Util.Task.tryInitThreadPool(null, null, null);
 
 		try {

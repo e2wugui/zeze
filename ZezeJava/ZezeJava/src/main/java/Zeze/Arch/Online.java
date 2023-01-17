@@ -186,7 +186,7 @@ public class Online extends AbstractOnline {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T extends Bean> T getOrAddLocalBean(String account, String clientId, String key, T defaultHint) throws Throwable {
+	public <T extends Bean> T getOrAddLocalBean(String account, String clientId, String key, T defaultHint) throws Exception {
 		var bLocals = _tlocal.getOrAdd(account);
 		var login = bLocals.getLogins().getOrAdd(clientId);
 		var bAny = login.getDatas().getOrAdd(key);
@@ -196,7 +196,7 @@ public class Online extends AbstractOnline {
 		return defaultHint;
 	}
 
-	private void removeLocalAndTrigger(String account, String clientId) throws Throwable {
+	private void removeLocalAndTrigger(String account, String clientId) throws Exception {
 		var bLocals = _tlocal.get(account);
 		var localData = bLocals.getLogins().remove(clientId);
 		var arg = new LocalRemoveEventArgument(account, clientId, localData != null ? localData.copy() : null);
@@ -209,7 +209,7 @@ public class Online extends AbstractOnline {
 		Transaction.whileCommit(() -> localRemoveEvents.triggerThread(this, arg));
 	}
 
-	private void logoutTriggerExtra(String account, String clientId) throws Throwable {
+	private void logoutTriggerExtra(String account, String clientId) throws Exception {
 		var bOnline = _tonline.get(account);
 		var onlineData = bOnline.getLogins().get(clientId);
 		var arg = new LogoutEventArgument(account, clientId, onlineData != null ? onlineData.copy() : null);
@@ -219,7 +219,7 @@ public class Online extends AbstractOnline {
 		Transaction.whileCommit(() -> logoutEvents.triggerThread(this, arg));
 	}
 
-	private void logoutTrigger(String account, String clientId) throws Throwable {
+	private void logoutTrigger(String account, String clientId) throws Exception {
 		var bOnline = _tonline.get(account);
 		var onlineData = bOnline.getLogins().remove(clientId);
 		var arg = new LogoutEventArgument(account, clientId, onlineData != null ? onlineData.copy() : null);
@@ -232,7 +232,7 @@ public class Online extends AbstractOnline {
 		Transaction.whileCommit(() -> logoutEvents.triggerThread(this, arg));
 	}
 
-	private void loginTrigger(String account, String clientId) throws Throwable {
+	private void loginTrigger(String account, String clientId) throws Exception {
 		var arg = new LoginArgument(account, clientId);
 		loginEvents.triggerEmbed(this, arg);
 		loginEvents.triggerProcedure(providerApp.zeze, this, arg);
@@ -240,7 +240,7 @@ public class Online extends AbstractOnline {
 		loginTimes.incrementAndGet();
 	}
 
-	private void reloginTrigger(String account, String clientId) throws Throwable {
+	private void reloginTrigger(String account, String clientId) throws Exception {
 		var arg = new LoginArgument(account, clientId);
 		reloginEvents.triggerEmbed(this, arg);
 		reloginEvents.triggerProcedure(providerApp.zeze, this, arg);
@@ -248,7 +248,7 @@ public class Online extends AbstractOnline {
 		loginTimes.incrementAndGet();
 	}
 
-	public void onLinkBroken(String account, String clientId, String linkName, long linkSid) throws Throwable {
+	public void onLinkBroken(String account, String clientId, String linkName, long linkSid) throws Exception {
 		long currentLoginVersion;
 		{
 			var online = _tonline.get(account);
@@ -296,7 +296,7 @@ public class Online extends AbstractOnline {
 		}));
 	}
 
-	public void addReliableNotifyMark(String account, String clientId, String listenerName) throws Throwable {
+	public void addReliableNotifyMark(String account, String clientId, String listenerName) throws Exception {
 		var online = _tonline.get(account);
 		if (online == null)
 			throw new IllegalStateException("Not Online. AddReliableNotifyMark: " + listenerName);
@@ -426,7 +426,7 @@ public class Online extends AbstractOnline {
 		return online.getLogins().size();
 	}
 
-	public Collection<LoginOnLink> groupByLink(Collection<LoginKey> logins) throws Throwable {
+	public Collection<LoginOnLink> groupByLink(Collection<LoginKey> logins) throws Exception {
 		var groups = new HashMap<String, LoginOnLink>();
 		var groupNotOnline = new LoginOnLink(); // LinkName is Empty And Socket is null.
 		groups.put(groupNotOnline.linkName, groupNotOnline);
@@ -468,7 +468,7 @@ public class Online extends AbstractOnline {
 	}
 
 	private long triggerLinkBroken(String linkName, LongList errorSids, Map<Long, KV<String, String>> contexts)
-			throws Throwable {
+			throws Exception {
 		for (int i = 0, n = errorSids.size(); i < n; i++) {
 			var sid = errorSids.get(i);
 			var ctx = contexts.get(sid);
@@ -483,7 +483,7 @@ public class Online extends AbstractOnline {
 				send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
 	}
 
-	private void sendEmbed(Collection<LoginKey> logins, long typeId, Binary fullEncodedProtocol) throws Throwable {
+	private void sendEmbed(Collection<LoginKey> logins, long typeId, Binary fullEncodedProtocol) throws Exception {
 		var groups = groupByLink(logins);
 		Transaction.whileCommit(() -> {
 			for (var group : groups) {
@@ -575,7 +575,7 @@ public class Online extends AbstractOnline {
 		Transaction.whileRollback(() -> send(logins, p));
 	}
 
-	public Collection<LoginOnLink> groupAccountsByLink(Collection<String> accounts) throws Throwable {
+	public Collection<LoginOnLink> groupAccountsByLink(Collection<String> accounts) throws Exception {
 		var groups = new HashMap<String, LoginOnLink>();
 		var groupNotOnline = new LoginOnLink(); // LinkName is Empty And Socket is null.
 		groups.put(groupNotOnline.linkName, groupNotOnline);
@@ -615,7 +615,7 @@ public class Online extends AbstractOnline {
 	}
 
 	public void sendAccountsEmbed(Collection<String> accounts, long typeId, Binary fullEncodedProtocol,
-								  OnlineSend sender) throws Throwable {
+								  OnlineSend sender) throws Exception {
 		var groups = groupAccountsByLink(accounts);
 		Transaction.whileCommit(() -> {
 			if (sender == null) {
@@ -686,13 +686,12 @@ public class Online extends AbstractOnline {
 	 * @param actionName 查询处理的实现
 	 * @param target     目标角色
 	 */
-	public void transmit(String account, String clientId, String actionName, String target, Serializable parameter)
-			throws Throwable {
+	public void transmit(String account, String clientId, String actionName, String target, Serializable parameter) {
 		transmit(account, clientId, actionName, List.of(target), parameter);
 	}
 
 	public void processTransmit(String account, String clientId, String actionName, Collection<String> accounts,
-								Binary parameter) throws Throwable {
+								Binary parameter) {
 		var handle = transmitActions.get(actionName);
 		if (handle != null) {
 			for (var target : accounts) {
@@ -750,7 +749,7 @@ public class Online extends AbstractOnline {
 	}
 
 	private void transmitInProcedure(String account, String clientId, String actionName, Collection<String> accounts,
-									 Binary parameter) throws Throwable {
+									 Binary parameter) throws Exception {
 		if (providerApp.zeze.getConfig().getGlobalCacheManagerHostNameOrAddress().isEmpty()) {
 			// 没有启用cache-sync，马上触发本地任务。
 			processTransmit(account, clientId, actionName, accounts, parameter);
@@ -796,7 +795,7 @@ public class Online extends AbstractOnline {
 	}
 
 	public void transmit(String account, String clientId, String actionName, Collection<String> targets,
-						 Serializable parameter) throws Throwable {
+						 Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 
@@ -812,52 +811,28 @@ public class Online extends AbstractOnline {
 									Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
-		Transaction.whileCommit(() -> {
-			try {
-				transmit(account, clientId, actionName, target, parameter);
-			} catch (Throwable e) {
-				logger.error("", e);
-			}
-		});
+		Transaction.whileCommit(() -> transmit(account, clientId, actionName, target, parameter));
 	}
 
 	public void transmitWhileCommit(String account, String clientId, String actionName, Collection<String> targets,
 									Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
-		Transaction.whileCommit(() -> {
-			try {
-				transmit(account, clientId, actionName, targets, parameter);
-			} catch (Throwable e) {
-				logger.error("", e);
-			}
-		});
+		Transaction.whileCommit(() -> transmit(account, clientId, actionName, targets, parameter));
 	}
 
 	public void transmitWhileRollback(String account, String clientId, String actionName, String target,
 									  Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
-		Transaction.whileCommit(() -> {
-			try {
-				transmit(account, clientId, actionName, target, parameter);
-			} catch (Throwable e) {
-				logger.error("", e);
-			}
-		});
+		Transaction.whileCommit(() -> transmit(account, clientId, actionName, target, parameter));
 	}
 
 	public void transmitWhileRollback(String account, String clientId, String actionName, Collection<String> targets,
 									  Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
-		Transaction.whileCommit(() -> {
-			try {
-				transmit(account, clientId, actionName, targets, parameter);
-			} catch (Throwable e) {
-				logger.error("", e);
-			}
-		});
+		Transaction.whileCommit(() -> transmit(account, clientId, actionName, targets, parameter));
 	}
 
 	private void broadcast(long typeId, Binary fullEncodedProtocol, int time) {
@@ -885,7 +860,7 @@ public class Online extends AbstractOnline {
 					tryRemoveLocal(account.value);
 					return 0L;
 				}, "VerifyLocal:" + account).call();
-			} catch (Throwable e) {
+			} catch (Exception e) {
 				logger.error("", e);
 			}
 		});
@@ -893,7 +868,7 @@ public class Online extends AbstractOnline {
 		verifyLocalTimer = Task.scheduleAtUnsafe(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal); // at 3:10 - 6:10
 	}
 
-	private void tryRemoveLocal(String account) throws Throwable {
+	private void tryRemoveLocal(String account) throws Exception {
 		var version = _tversion.getOrAdd(account);
 		var local = _tlocal.get(account);
 		if (local == null)
@@ -917,18 +892,18 @@ public class Online extends AbstractOnline {
 	}
 
 	@RedirectToServer
-	protected void redirectNotify(int serverId, String account) throws Throwable {
+	protected void redirectNotify(int serverId, String account) throws Exception {
 		tryRemoveLocal(account);
 	}
 
-	private void tryRedirectNotify(int serverId, String account) throws Throwable {
+	private void tryRedirectNotify(int serverId, String account) throws Exception {
 		if (providerApp.zeze.getConfig().getServerId() != serverId
 				&& providerApp.providerDirectService.providerByServerId.containsKey(serverId))
 			redirectNotify(serverId, account);
 	}
 
 	@Override
-	protected long ProcessLoginRequest(Zeze.Builtin.Online.Login rpc) throws Throwable {
+	protected long ProcessLoginRequest(Zeze.Builtin.Online.Login rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 
 		var account = _taccount.getOrAdd(session.getAccount());
@@ -993,7 +968,7 @@ public class Online extends AbstractOnline {
 	}
 
 	@Override
-	protected long ProcessReLoginRequest(Zeze.Builtin.Online.ReLogin rpc) throws Throwable {
+	protected long ProcessReLoginRequest(Zeze.Builtin.Online.ReLogin rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 
 		var account = _taccount.get(session.getAccount());
@@ -1057,7 +1032,7 @@ public class Online extends AbstractOnline {
 	}
 
 	@Override
-	protected long ProcessLogoutRequest(Zeze.Builtin.Online.Logout rpc) throws Throwable {
+	protected long ProcessLogoutRequest(Zeze.Builtin.Online.Logout rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 
 		if (!session.isLogin())
@@ -1091,7 +1066,7 @@ public class Online extends AbstractOnline {
 	}
 
 	private int reliableNotifySync(String account, String clientId,
-								   ProviderUserSession session, long index, boolean sync) throws Throwable {
+								   ProviderUserSession session, long index, boolean sync) throws Exception {
 		var online = _tversion.getOrAdd(account);
 		var queue = openQueue(account, clientId);
 		var loginOnline = online.getLogins().getOrAdd(clientId);
@@ -1118,7 +1093,7 @@ public class Online extends AbstractOnline {
 	}
 
 	@Override
-	protected long ProcessReliableNotifyConfirmRequest(Zeze.Builtin.Online.ReliableNotifyConfirm rpc) throws Throwable {
+	protected long ProcessReliableNotifyConfirmRequest(Zeze.Builtin.Online.ReliableNotifyConfirm rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 
 		var clientId = session.getContext();

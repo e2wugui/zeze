@@ -15,7 +15,6 @@ import Zeze.Net.ProtocolErrorHandle;
 import Zeze.Net.Service;
 import Zeze.Raft.RaftRetryException;
 import Zeze.Transaction.DispatchMode;
-import Zeze.Transaction.GoBackZeze;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.ProcedureStatistics;
 import Zeze.Transaction.Transaction;
@@ -121,9 +120,7 @@ public final class Task {
 	public static void call(Action0 action, String name) {
 		try {
 			action.run();
-		} catch (AssertionError | GoBackZeze e) {
-			throw e;
-		} catch (Throwable ex) {
+		} catch (Exception ex) {
 			logger.error("{}", name != null ? name : action != null ? action.getClass().getName() : "", ex);
 		}
 	}
@@ -131,9 +128,7 @@ public final class Task {
 	public static long call(FuncLong func, String name) {
 		try {
 			return func.call();
-		} catch (AssertionError | GoBackZeze e) {
-			throw e;
-		} catch (Throwable ex) {
+		} catch (Exception ex) {
 			logger.error("{}", name != null ? name : func != null ? func.getClass().getName() : "", ex);
 			return Procedure.Exception;
 		}
@@ -166,11 +161,9 @@ public final class Task {
 			try {
 				action.run();
 				future.setResult(0L);
-			} catch (AssertionError | GoBackZeze e) {
-				throw e;
-			} catch (Throwable ex) {
-				future.setException(ex);
-				logger.error("{}", name != null ? name : action != null ? action.getClass().getName() : "", ex);
+			} catch (Exception e) {
+				logger.error("{}", name != null ? name : action != null ? action.getClass().getName() : "", e);
+				future.setException(e);
 			}
 			return future;
 		}
@@ -179,9 +172,7 @@ public final class Task {
 		return pool.submit(() -> {
 			try {
 				action.run();
-			} catch (AssertionError e) {
-				throw e;
-			} catch (Throwable ex) {
+			} catch (Exception ex) {
 				logger.error("{}", name != null ? name : action != null ? action.getClass().getName() : "", ex);
 			}
 		});
@@ -199,9 +190,7 @@ public final class Task {
 		return threadPoolScheduled.schedule(() -> {
 			try {
 				action.run();
-			} catch (AssertionError e) {
-				throw e;
-			} catch (Throwable e) {
+			} catch (Exception e) {
 				logger.error("schedule", e);
 			}
 		}, initialDelay, TimeUnit.MILLISECONDS);
@@ -211,14 +200,9 @@ public final class Task {
 		return threadPoolScheduled.schedule(() -> {
 			try {
 				return func.call();
-			} catch (AssertionError e) {
-				throw e;
-			} catch (Exception | Error e) {
+			} catch (Exception e) {
 				logger.error("schedule", e);
-				throw e;
-			} catch (Throwable e) {
-				logger.error("schedule", e);
-				throw new RuntimeException(e);
+				throw e instanceof RuntimeException ? (RuntimeException)e : new RuntimeException(e);
 			}
 		}, initialDelay, TimeUnit.MILLISECONDS);
 	}
@@ -265,9 +249,7 @@ public final class Task {
 		return threadPoolScheduled.scheduleWithFixedDelay(() -> {
 			try {
 				action.run();
-			} catch (AssertionError e) {
-				throw e;
-			} catch (Throwable e) {
+			} catch (Exception e) {
 				logger.error("schedule", e);
 			}
 		}, initialDelay, period, TimeUnit.MILLISECONDS);
@@ -319,15 +301,12 @@ public final class Task {
 		if (tmpVolatile != null) {
 			try {
 				tmpVolatile.run(ex, result, p, actionName);
-			} catch (AssertionError | GoBackZeze e) {
-				throw e;
-			} catch (Throwable e) {
+			} catch (Exception e) {
 				logger.error("LogAndStatistics Exception", e);
 			}
 		}
-		if (Macro.enableStatistics) {
+		if (Macro.enableStatistics)
 			ProcedureStatistics.getInstance().getOrAdd(actionName).getOrAdd(result).increment();
-		}
 	}
 
 	public static long call(FuncLong func, Protocol<?> p) {
@@ -355,9 +334,7 @@ public final class Task {
 				actionWhenError.handle(p, result);
 			logAndStatistics(null, result, p, IsRequestSaved, aName);
 			return result;
-		} catch (AssertionError | GoBackZeze e) {
-			throw e;
-		} catch (Throwable ex) {
+		} catch (Exception ex) {
 			long errorCode;
 			var rootEx = getRootCause(ex);
 			if (rootEx instanceof TaskCanceledException)
@@ -370,9 +347,7 @@ public final class Task {
 			if (IsRequestSaved && actionWhenError != null) {
 				try {
 					actionWhenError.handle(p, errorCode);
-				} catch (AssertionError | GoBackZeze e) {
-					throw e;
-				} catch (Throwable e) {
+				} catch (Exception e) {
 					logger.error("", e);
 				}
 			}
@@ -459,16 +434,12 @@ public final class Task {
 				actionWhenError.run(from, result);
 			logAndStatistics(null, result, from, isRequestSaved, procedure.getActionName());
 			return result;
-		} catch (AssertionError | GoBackZeze e) {
-			throw e;
-		} catch (Throwable ex) {
+		} catch (Exception ex) {
 			// Procedure.Call处理了所有错误。应该不会到这里。除非内部错误。
 			if (isRequestSaved && actionWhenError != null) {
 				try {
 					actionWhenError.run(from, Procedure.Exception);
-				} catch (AssertionError | GoBackZeze e) {
-					throw e;
-				} catch (Throwable e) {
+				} catch (Exception e) {
 					logger.error("ActionWhenError Exception", e);
 				}
 			}

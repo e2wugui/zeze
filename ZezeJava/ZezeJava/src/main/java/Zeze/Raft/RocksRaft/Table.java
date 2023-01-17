@@ -262,7 +262,7 @@ public final class Table<K, V extends Bean> {
 		currentT.addRecordAccessed(r.createRootInfoIfNeed(tkey), cr);
 	}
 
-	public boolean walk(Func2<K, V, Boolean> callback) throws Throwable {
+	public boolean walk(Func2<K, V, Boolean> callback) throws Exception {
 		try (var it = rocks.getStorage().newIterator(columnFamily, DatabaseRocksDb.getDefaultReadOptions())) {
 			for (it.seekToFirst(); it.isValid(); it.next()) {
 				var key = keyDecodeFunc.apply(ByteBuffer.Wrap(it.key()));
@@ -275,7 +275,7 @@ public final class Table<K, V extends Bean> {
 		}
 	}
 
-	public boolean walkKey(Func1<K, Boolean> callback) throws Throwable {
+	public boolean walkKey(Func1<K, Boolean> callback) throws Exception {
 		try (var it = rocks.getStorage().newIterator(columnFamily, DatabaseRocksDb.getDefaultReadOptions())) {
 			for (it.seekToFirst(); it.isValid(); it.next()) {
 				var key = keyDecodeFunc.apply(ByteBuffer.Wrap(it.key()));

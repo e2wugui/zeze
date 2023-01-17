@@ -64,7 +64,7 @@ public abstract class Log implements Serializable {
 	/**
 	 * 最主要的实现接口。
 	 */
-	public abstract void apply(RaftLog holder, StateMachine stateMachine) throws Throwable;
+	public abstract void apply(RaftLog holder, StateMachine stateMachine) throws Exception;
 
 	@Override
 	public void encode(ByteBuffer bb) {

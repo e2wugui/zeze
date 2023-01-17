@@ -79,11 +79,11 @@ public final class Application {
 		return LocalRocksCacheDb;
 	}
 
-	public Application(String solutionName) throws Throwable {
+	public Application(String solutionName) throws Exception {
 		this(solutionName, null);
 	}
 
-	public Application(String projectName, Config config) throws Throwable {
+	public Application(String projectName, Config config) throws Exception {
 		this.projectName = projectName;
 		conf = config != null ? config : Config.load();
 		conf.createDatabase(this, databases);
@@ -276,11 +276,11 @@ public final class Application {
 		}
 	}
 
-	public void endStart() throws Throwable {
+	public void endStart() throws Exception {
 		delayRemove.continueJobs();
 	}
 
-	public synchronized void start() throws Throwable {
+	public synchronized void start() throws Exception {
 		if (isStart)
 			return;
 		var serverId = conf != null ? conf.getServerId() : -1;
@@ -312,7 +312,7 @@ public final class Application {
 			serviceManager.start();
 			try {
 				serviceManager.waitReady();
-			} catch (Throwable ignored) {
+			} catch (Exception ignored) {
 				// raft 版第一次等待由于选择leader原因肯定会失败一次。
 				serviceManager.waitReady();
 			}
@@ -359,7 +359,7 @@ public final class Application {
 						try {
 							SchemasPrevious.decode(dataVersion.data);
 							SchemasPrevious.compile();
-						} catch (Throwable ex) {
+						} catch (Exception ex) {
 							SchemasPrevious = null;
 							logger.error("Schemas Implement Changed?", ex);
 						}
@@ -383,7 +383,7 @@ public final class Application {
 		}
 	}
 
-	public synchronized void stop() throws Throwable {
+	public synchronized void stop() throws Exception {
 		if (!isStart)
 			return;
 		isStart = false;

@@ -26,7 +26,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 	protected ProviderApp providerApp;
 
 	@Override
-	protected long ProcessModuleRedirectRequest(ModuleRedirect rpc) throws Throwable {
+	protected long ProcessModuleRedirectRequest(ModuleRedirect rpc) throws Exception {
 		var zeze = providerApp.zeze;
 		var rpcArg = rpc.Argument;
 		rpc.Result.setModuleId(rpcArg.getModuleId());
@@ -55,7 +55,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 		default:
 			try {
 				result = handle.requestHandle.call(rpcArg.getHashCode(), rpcArg.getParams());
-			} catch (Throwable e) {
+			} catch (Exception e) {
 				logger.error("call exception:", e);
 				rpc.SendResultCode(Procedure.Exception);
 				return Procedure.Exception;
@@ -85,7 +85,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 		return Procedure.Success;
 	}
 
-	private void sendResult(AsyncSocket sender, Protocol<?> p) throws Throwable {
+	private void sendResult(AsyncSocket sender, Protocol<?> p) throws Exception {
 		if (sender == null) {
 			var service = providerApp.providerDirectService;
 			p.dispatch(service, service.findProtocolFactoryHandle(p.getTypeId()));
@@ -93,7 +93,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 		p.Send(sender);
 	}
 
-	private void sendResultIfSizeExceed(AsyncSocket sender, ModuleRedirectAllResult result) throws Throwable {
+	private void sendResultIfSizeExceed(AsyncSocket sender, ModuleRedirectAllResult result) throws Exception {
 		int size = 0;
 		for (var hashResult : result.Argument.getHashs().values())
 			size += hashResult.getParams().size();
@@ -104,7 +104,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 	}
 
 	private void sendResultForAsync(ModuleRedirectAllRequest p, int hash, RedirectResult result,
-									RedirectHandle handle) throws Throwable {
+									RedirectHandle handle) throws Exception {
 		var pa = p.Argument;
 		var res = new ModuleRedirectAllResult();
 		var resArg = res.Argument;
@@ -125,7 +125,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 	}
 
 	@Override
-	protected long ProcessModuleRedirectAllRequest(ModuleRedirectAllRequest p) throws Throwable {
+	protected long ProcessModuleRedirectAllRequest(ModuleRedirectAllRequest p) throws Exception {
 		var pa = p.Argument;
 		var res = new ModuleRedirectAllResult();
 		var resArg = res.Argument;
@@ -167,7 +167,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 				try {
 					future = (RedirectAllFuture<?>)handle.requestHandle.call(hash, pa.getParams());
 					hashResult.setReturnCode(Procedure.Success);
-				} catch (Throwable e) {
+				} catch (Exception e) {
 					logger.error("RequestHandle.call exception:", e);
 					hashResult.setReturnCode(Procedure.Exception);
 					future = null;
@@ -194,7 +194,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 	}
 
 	@Override
-	protected long ProcessModuleRedirectAllResult(ModuleRedirectAllResult protocol) throws Throwable {
+	protected long ProcessModuleRedirectAllResult(ModuleRedirectAllResult protocol) throws Exception {
 		var ctx = providerApp.providerDirectService.
 				<RedirectAllContext<?>>tryGetManualContext(protocol.Argument.getSessionId());
 		if (ctx != null)

@@ -5,13 +5,13 @@ import Zeze.Net.ProtocolHandle;
 import Zeze.Util.Task;
 
 public class ClientService extends ClientServiceBase {
-    public ClientService(Zeze.Application zeze) throws Throwable {
+    public ClientService(Zeze.Application zeze) throws Exception {
         super(zeze);
     }
     // 重载需要的方法。
     @Override
     public <P extends Protocol<?>> void DispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
-                                                            ProtocolFactoryHandle<?> factoryHandle) throws Throwable {
+                                                            ProtocolFactoryHandle<?> factoryHandle) throws Exception {
         Task.runRpcResponse(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
     }
 
@@ -23,7 +23,7 @@ public class ClientService extends ClientServiceBase {
     }
 
     @Override
-    public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) throws Throwable {
+    public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) throws Exception {
         ProtocolHandle<P> handle = factoryHandle.Handle;
         Task.run(() -> handle.handle(p), p, null, null, factoryHandle.Mode);
     }

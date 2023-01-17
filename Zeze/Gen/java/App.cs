@@ -43,7 +43,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("        return Instance;");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public void Start() throws Throwable {");
+            sw.WriteLine("    public void Start() throws Exception {");
             sw.WriteLine("        createZeze();");
             sw.WriteLine("        createService();");
             sw.WriteLine("        createModules();");
@@ -52,7 +52,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("        startService(); // 启动网络");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public void Stop() throws Throwable {");
+            sw.WriteLine("    public void Stop() throws Exception {");
             sw.WriteLine("        stopService(); // 关闭网络");
             sw.WriteLine("        stopModules(); // 关闭模块，卸载配置什么的。");
             sw.WriteLine("        Zeze.stop(); // 关闭数据库");
@@ -115,18 +115,18 @@ namespace Zeze.Gen.java
             sw.WriteLine("        return Zeze;");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public void createZeze() throws Throwable {");
+            sw.WriteLine("    public void createZeze() throws Exception {");
             sw.WriteLine("        createZeze(null);");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void createZeze(Zeze.Config config) throws Throwable {");
+            sw.WriteLine("    public synchronized void createZeze(Zeze.Config config) throws Exception {");
             sw.WriteLine("        if (Zeze != null)");
             sw.WriteLine("            throw new RuntimeException(\"Zeze Has Created!\");");
             sw.WriteLine();
             sw.WriteLine($"        Zeze = new Zeze.Application(\"{project.Name}\", config);");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void createService() throws Throwable {");
+            sw.WriteLine("    public synchronized void createService() throws Exception {");
             foreach (Service m in project.Services.Values)
                 sw.WriteLine("        " + m.Name + " = new " + m.FullName + "(Zeze);");
             sw.WriteLine("    }");
@@ -176,7 +176,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("        Zeze = null;");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void startModules() throws Throwable {");
+            sw.WriteLine("    public synchronized void startModules() throws Exception {");
             foreach (var m in project.ModuleStartOrder)
                 sw.WriteLine("        " + m.Path("_") + ".Start(this);");
             foreach (Module m in project.AllOrderDefineModules)
@@ -186,7 +186,7 @@ namespace Zeze.Gen.java
             }
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void stopModules() throws Throwable {");
+            sw.WriteLine("    public synchronized void stopModules() throws Exception {");
             for (int i = project.AllOrderDefineModules.Count - 1; i >= 0; --i)
             {
                 var m = project.AllOrderDefineModules[i];
@@ -205,12 +205,12 @@ namespace Zeze.Gen.java
             }
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void startService() throws Throwable {");
+            sw.WriteLine("    public synchronized void startService() throws Exception {");
             foreach (Service m in project.Services.Values)
                 sw.WriteLine("        " + m.Name + ".start();");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void stopService() throws Throwable {");
+            sw.WriteLine("    public synchronized void stopService() throws Exception {");
             foreach (Service m in project.Services.Values)
             {
                 sw.WriteLine("        if (" + m.Name + " != null)");

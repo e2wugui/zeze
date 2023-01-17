@@ -30,13 +30,13 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 			return false;
 		try {
 			tryOnResult(r);
-		} catch (Throwable e) {
+		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 		return true;
 	}
 
-	private void tryOnResult(R r) throws Throwable {
+	private void tryOnResult(R r) throws Exception {
 		@SuppressWarnings("unchecked")
 		var onR = (Action1<R>)ON_RESULT.getAndSet(this, null);
 		if (onR != null)
@@ -44,7 +44,7 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 	}
 
 	// 不支持同时叠多个onResult,否则可能覆盖之前没执行过的
-	public RedirectFuture<R> then(Action1<R> onResult) throws Throwable {
+	public RedirectFuture<R> then(Action1<R> onResult) throws Exception {
 		Object result = getRawResult();
 		if (result != null)
 			onResult.run(toResult(result));
@@ -59,9 +59,7 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 	public RedirectFuture<R> Then(Action1<R> onResult) {
 		try {
 			return then(onResult);
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Throwable e) {
+		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}

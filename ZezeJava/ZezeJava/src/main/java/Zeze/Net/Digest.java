@@ -14,7 +14,7 @@ public final class Digest {
 			var md5 = MessageDigest.getInstance("MD5");
 			md5.update(message, offset, len);
 			return md5.digest();
-		} catch (Throwable ex) {
+		} catch (Exception ex) {
 			throw new RuntimeException(ex);
 		}
 	}
@@ -25,7 +25,7 @@ public final class Digest {
 			mac.init(new SecretKeySpec(key, 0, key.length, "HmacMD5"));
 			mac.update(data, offset, length);
 			return mac.doFinal();
-		} catch (Throwable ex) {
+		} catch (Exception ex) {
 			throw new RuntimeException(ex);
 		}
 	}

@@ -144,7 +144,7 @@ public class RedirectBase {
 					try {
 						var service = providerApp.providerDirectService;
 						request.dispatch(service, service.findProtocolFactoryHandle(request.getTypeId()));
-					} catch (Throwable e) {
+					} catch (Exception e) {
 						logger.error("", e);
 					}
 				} else {
@@ -168,7 +168,7 @@ public class RedirectBase {
 			try {
 				var service = providerApp.providerDirectService;
 				miss.dispatch(service, service.findProtocolFactoryHandle(miss.getTypeId()));
-			} catch (Throwable e) {
+			} catch (Exception e) {
 				logger.error("", e);
 			}
 		}
@@ -180,7 +180,7 @@ public class RedirectBase {
 		if (level == TransactionLevel.None || (t = Transaction.getCurrent()) != null && t.isRunning()) {
 			try {
 				return func.call();
-			} catch (Throwable e) {
+			} catch (Exception e) {
 				var f = new RedirectFuture<T>();
 				f.setException(e);
 				return f;
@@ -201,7 +201,7 @@ public class RedirectBase {
 		if (level == TransactionLevel.None || (t = Transaction.getCurrent()) != null && t.isRunning()) {
 			try {
 				action.run();
-			} catch (Throwable e) {
+			} catch (Exception e) {
 				logger.error("", e);
 			}
 			return;

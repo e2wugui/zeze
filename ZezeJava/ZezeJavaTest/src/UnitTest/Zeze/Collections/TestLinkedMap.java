@@ -16,17 +16,17 @@ import org.junit.runners.MethodSorters;
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class TestLinkedMap {
 	@Before
-	public final void testInit() throws Throwable {
+	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
 	}
 
 	@After
-	public final void testCleanup() throws Throwable {
+	public final void testCleanup() throws Exception {
 		demo.App.getInstance().Stop();
 	}
 
 	@Test
-	public final void test1_LinkedMapPut() throws Throwable {
+	public final void test1_LinkedMapPut() throws Exception {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var map = demo.App.getInstance().LinkedMapModule.open("test1", BMyBean.class);
 			for (int i = 100; i < 110; i++) {
@@ -40,7 +40,7 @@ public class TestLinkedMap {
 	}
 
 	@Test
-	public final void test2_LinkedMapGet() throws Throwable {
+	public final void test2_LinkedMapGet() throws Exception {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var map = demo.App.getInstance().LinkedMapModule.open("test1", BMyBean.class);
 			for (int i = 100; i < 110; i++) {
@@ -53,7 +53,7 @@ public class TestLinkedMap {
 	}
 
 	@Test
-	public final void test3_LinkedMapWalk() throws Throwable {
+	public final void test3_LinkedMapWalk() throws Exception {
 		var map = demo.App.getInstance().LinkedMapModule.open("test1", BMyBean.class);
 		var i = new AtomicInteger(0);
 		var arr = Arrays.asList(100, 101, 102, 103, 104, 105, 106, 107, 108, 109);
@@ -67,7 +67,7 @@ public class TestLinkedMap {
 	}
 
 	@Test
-	public final void test4_LinkedMapRemove() throws Throwable {
+	public final void test4_LinkedMapRemove() throws Exception {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var map = demo.App.getInstance().LinkedMapModule.open("test1", BMyBean.class);
 			for (int i = 100; i < 110; i++) {
@@ -81,7 +81,7 @@ public class TestLinkedMap {
 	}
 
 	@Test
-	public void test5_PutAndClear() throws Throwable {
+	public void test5_PutAndClear() throws Exception {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var map = demo.App.getInstance().LinkedMapModule.open("test1", BMyBean.class);
 			for (int i = 100; i < 110; i++) {

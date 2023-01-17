@@ -11,19 +11,19 @@ import org.junit.Test;
 
 public class TestTransactionLevelSerialiable {
 	@Before
-	public final void testInit() throws Throwable {
+	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
 	}
 
 	@After
-	public final void testCleanup() throws Throwable {
+	public final void testCleanup() throws Exception {
 		demo.App.getInstance().Stop();
 	}
 
 	private volatile boolean InTest = true;
 
 	@Test
-	public final void Test2() throws Throwable {
+	public final void Test2() throws Exception {
 		App.Instance.Zeze.newProcedure(TestTransactionLevelSerialiable::init, "test_init").call();
 		Zeze.Util.Task.run(this::verify_task, "verify_task", DispatchMode.Normal);
 		try {
@@ -37,7 +37,7 @@ public class TestTransactionLevelSerialiable {
 		}
 	}
 
-	private void verify_task() throws Throwable {
+	private void verify_task() throws Exception {
 		while (InTest) {
 			App.Instance.Zeze.newProcedure(TestTransactionLevelSerialiable::verify, "test_verify").call();
 		}

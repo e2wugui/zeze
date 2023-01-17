@@ -71,7 +71,7 @@ public class App extends Zeze.AppBase {
 
 	public ZegeConfig ZegeConfig = new ZegeConfig();
 
-	public void Start(String conf) throws Throwable {
+	public void Start(String conf) throws Exception {
 		var config = new Config().addCustomize(ZegeConfig);
 		config.loadAndParse(conf);
 
@@ -107,7 +107,7 @@ public class App extends Zeze.AppBase {
 		ProviderApp.startLast(ProviderModuleBinds.load(), modules);
 	}
 
-	public void Stop() throws Throwable {
+	public void Stop() throws Exception {
 		if (Provider != null && Provider.online != null)
 			Provider.online.stop();
 		stopService(); // 关闭网络
@@ -136,18 +136,18 @@ public class App extends Zeze.AppBase {
         return Zeze;
     }
 
-    public void createZeze() throws Throwable {
+    public void createZeze() throws Exception {
         createZeze(null);
     }
 
-    public synchronized void createZeze(Zeze.Config config) throws Throwable {
+    public synchronized void createZeze(Zeze.Config config) throws Exception {
         if (Zeze != null)
             throw new RuntimeException("Zeze Has Created!");
 
         Zeze = new Zeze.Application("server", config);
     }
 
-    public synchronized void createService() throws Throwable {
+    public synchronized void createService() throws Exception {
         Server = new Zege.Server(Zeze);
         ServerDirect = new Zege.ServerDirect(Zeze);
     }
@@ -202,14 +202,14 @@ public class App extends Zeze.AppBase {
         Zeze = null;
     }
 
-    public synchronized void startModules() throws Throwable {
+    public synchronized void startModules() throws Exception {
         Zege_User.Start(this);
         Zege_Friend.Start(this);
         Zege_Message.Start(this);
         Zege_Notify.Start(this);
     }
 
-    public synchronized void stopModules() throws Throwable {
+    public synchronized void stopModules() throws Exception {
         if (Zege_Notify != null)
             Zege_Notify.Stop(this);
         if (Zege_Message != null)
@@ -220,12 +220,12 @@ public class App extends Zeze.AppBase {
             Zege_User.Stop(this);
     }
 
-    public synchronized void startService() throws Throwable {
+    public synchronized void startService() throws Exception {
         Server.start();
         ServerDirect.start();
     }
 
-    public synchronized void stopService() throws Throwable {
+    public synchronized void stopService() throws Exception {
         if (Server != null)
             Server.stop();
         if (ServerDirect != null)

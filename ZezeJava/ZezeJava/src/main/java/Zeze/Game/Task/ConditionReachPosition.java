@@ -25,7 +25,7 @@ public class ConditionReachPosition extends TaskConditionBase<BTConditionReachPo
 	}
 
 	@Override
-	public boolean accept(Bean eventBean) throws Throwable {
+	public boolean accept(Bean eventBean) throws Exception {
 		if (!(eventBean instanceof BTConditionReachPositionEvent))
 			return false;
 

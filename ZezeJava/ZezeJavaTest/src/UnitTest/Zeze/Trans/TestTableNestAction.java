@@ -10,18 +10,18 @@ import org.junit.Test;
 
 public class TestTableNestAction {
 	@Before
-	public final void testInit() throws Throwable {
+	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
 	}
 
 	@After
-	public final void testCleanup() throws Throwable {
+	public final void testCleanup() throws Exception {
 		demo.App.getInstance().Stop();
 	}
 
 	@SuppressWarnings("ConstantConditions")
 	@Test
-	public final void testNestProcedure() throws Throwable {
+	public final void testNestProcedure() throws Exception {
 		var value1 = new OutInt();
 		var value2 = new OutInt();
 		demo.App.getInstance().Zeze.newProcedure(() -> {
@@ -75,7 +75,7 @@ public class TestTableNestAction {
 	}
 
 	@Test
-	public final void testNestProcedure2() throws Throwable {
+	public final void testNestProcedure2() throws Exception {
 		var zeze = demo.App.getInstance().Zeze;
 		var sb = new StringBuilder();
 

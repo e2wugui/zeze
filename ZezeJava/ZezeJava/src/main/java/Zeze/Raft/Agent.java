@@ -226,7 +226,7 @@ public final class Agent {
 		}
 	}
 
-	public void stop() throws Throwable {
+	public void stop() throws Exception {
 		mutex.lock();
 		try {
 			if (client == null)
@@ -243,20 +243,20 @@ public final class Agent {
 		}
 	}
 
-	public Agent(String name, Application zeze) throws Throwable {
+	public Agent(String name, Application zeze) throws Exception {
 		this(name, zeze, null);
 	}
 
-	public Agent(String name, Application zeze, RaftConfig raftConf) throws Throwable {
+	public Agent(String name, Application zeze, RaftConfig raftConf) throws Exception {
 		uniqueRequestIdGenerator = PersistentAtomicLong.getOrAdd(name + '.' + zeze.getConfig().getServerId());
 		init(new NetClient(this, name, zeze), raftConf);
 	}
 
-	public Agent(String name, RaftConfig raftConf) throws Throwable {
+	public Agent(String name, RaftConfig raftConf) throws Exception {
 		this(name, raftConf, null);
 	}
 
-	public Agent(String name, RaftConfig raftConf, Zeze.Config config) throws Throwable {
+	public Agent(String name, RaftConfig raftConf, Zeze.Config config) throws Exception {
 		if (config == null)
 			config = Config.load();
 
@@ -286,7 +286,7 @@ public final class Agent {
 		Task.schedule(1000, 1000, this::resend);
 	}
 
-	private Connector getRandomConnector(Connector except) throws Throwable {
+	private Connector getRandomConnector(Connector except) throws Exception {
 		var notMe = new ArrayList<Connector>(client.getConfig().connectorCount());
 		client.getConfig().ForEachConnector(c -> {
 			if (c != except)
@@ -295,7 +295,7 @@ public final class Agent {
 		return notMe.isEmpty() ? null : notMe.get(Random.getInstance().nextInt(notMe.size()));
 	}
 
-	private long processLeaderIs(LeaderIs r) throws Throwable {
+	private long processLeaderIs(LeaderIs r) throws Exception {
 		ConnectorEx leader = this.leader;
 		logger.info("=============== LEADERIS Old={} New={} From={}",
 				leader != null ? leader.getName() : null, r.Argument.getLeaderId(), r.getSender());
@@ -311,7 +311,7 @@ public final class Agent {
 
 			OutObject<Connector> outNode = new OutObject<>();
 			if (client.getConfig().tryGetOrAddConnector(address[0], Integer.parseInt(address[1]), true, outNode))
-				outNode.value.Start();
+				outNode.value.start();
 		} else //noinspection DataFlowIssue
 			if (!r.Argument.isLeader() && r.Argument.getLeaderId().equals(r.getSender().getConnector().getName())) {
 			// 【错误处理】用来观察。
@@ -354,7 +354,7 @@ public final class Agent {
 	private void resend(boolean immediately) {
 		ConnectorEx leader = this.leader;
 		if (leader != null)
-			leader.Start();
+			leader.start();
 		// ReSendPendingRpc
 		var leaderSocket = leader != null ? leader.TryGetReadySocket() : null;
 		ArrayList<RaftRpc<?, ?>> removed = null;
@@ -434,7 +434,7 @@ public final class Agent {
 		}
 	}
 
-	public boolean setLeader(LeaderIs r, ConnectorEx newLeader) throws Throwable {
+	public boolean setLeader(LeaderIs r, ConnectorEx newLeader) throws Exception {
 		mutex.lock();
 		try {
 			if (r.Argument.getTerm() < term) {
@@ -445,7 +445,7 @@ public final class Agent {
 			leader = newLeader; // change current Leader
 			term = r.Argument.getTerm();
 			if (newLeader != null)
-				newLeader.Start(); // try connect immediately
+				newLeader.start(); // try connect immediately
 			Action1<Agent> onSetLeader = this.onSetLeader;
 			if (onSetLeader != null)
 				onSetLeader.run(this);
@@ -458,12 +458,12 @@ public final class Agent {
 	public static final class NetClient extends HandshakeClient {
 		private final Agent agent;
 
-		public NetClient(Agent agent, String name, Application zeze) throws Throwable {
+		public NetClient(Agent agent, String name, Application zeze) throws Exception {
 			super(name, zeze);
 			this.agent = agent;
 		}
 
-		public NetClient(Agent agent, String name, Zeze.Config config) throws Throwable {
+		public NetClient(Agent agent, String name, Zeze.Config config) throws Exception {
 			super(name, config);
 			this.agent = agent;
 		}

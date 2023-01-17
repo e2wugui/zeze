@@ -68,7 +68,7 @@ public class TestRank extends TestCase {
 		System.out.println("------ tearDown end");
 	}
 
-	public void testRank() throws Throwable {
+	public void testRank() throws Exception {
 		if (disableTest)
 			return;
 
@@ -153,7 +153,7 @@ public class TestRank extends TestCase {
 	}
 
 	// 用于生成Redirect代码
-	public static void main(String[] args) throws Throwable {
+	public static void main(String[] args) throws Exception {
 		TestRank testRank = new TestRank();
 		try {
 			testRank.setUp();

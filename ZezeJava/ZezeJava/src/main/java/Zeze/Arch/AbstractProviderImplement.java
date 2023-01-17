@@ -90,7 +90,7 @@ public abstract class AbstractProviderImplement implements Zeze.IModule {
     }
 
 
-    protected abstract long ProcessAnnounceLinkInfo(Zeze.Builtin.Provider.AnnounceLinkInfo p) throws Throwable;
-    protected abstract long ProcessDispatch(Zeze.Builtin.Provider.Dispatch p) throws Throwable;
-    protected abstract long ProcessLinkBroken(Zeze.Builtin.Provider.LinkBroken p) throws Throwable;
+    protected abstract long ProcessAnnounceLinkInfo(Zeze.Builtin.Provider.AnnounceLinkInfo p) throws Exception;
+    protected abstract long ProcessDispatch(Zeze.Builtin.Provider.Dispatch p) throws Exception;
+    protected abstract long ProcessLinkBroken(Zeze.Builtin.Provider.LinkBroken p) throws Exception;
 }

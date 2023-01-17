@@ -91,7 +91,7 @@ public class LinkedMap<V extends Bean> {
 		public final ConcurrentHashMap<String, ChangeListener> NodeListeners = new ConcurrentHashMap<>();
 		public final ConcurrentHashMap<String, ChangeListener> RootListeners = new ConcurrentHashMap<>();
 
-		private void delayClearJob(DelayRemove delayRemove, String jobId, Binary jobState) throws Throwable {
+		private void delayClearJob(DelayRemove delayRemove, String jobId, Binary jobState) throws Exception {
 			var state = new BClearJobState();
 			state.decode(ByteBuffer.Wrap(jobState));
 			while (state.getHeadNodeId() != 0) {

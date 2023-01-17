@@ -65,12 +65,12 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 	protected LinkdApp linkdApp;
 	protected ConcurrentLruLike<StableLinkSidKey, StableLinkSid> stableLinkSids;
 
-	public LinkdService(String name, Zeze.Application zeze) throws Throwable {
+	public LinkdService(String name, Zeze.Application zeze) throws Exception {
 		super(name, zeze);
 	}
 
 	@Override
-	public void start() throws Throwable {
+	public void start() throws Exception {
 		stableLinkSids = new ConcurrentLruLike<>(getName(), 1_000_000, this::tryLruRemove);
 		super.start();
 	}
@@ -284,7 +284,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 				var isRequestSaved = p.isRequest();
 				var result = factoryHandle.Handle.handle(p); // 不启用新的Task，直接在io-thread里面执行。
 				Task.logAndStatistics(null, result, p, isRequestSaved);
-			} catch (Throwable ex) {
+			} catch (Exception ex) {
 				p.getSender().close(ex); // link 在异常时关闭连接。
 			}
 		} else {
@@ -295,18 +295,18 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 
 	@Override
 	public <P extends Protocol<?>> void DispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
-															ProtocolFactoryHandle<?> factoryHandle) throws Throwable {
+															ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		Task.runRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
 	}
 
 	@Override
-	public void OnSocketAccept(AsyncSocket sender) throws Throwable {
+	public void OnSocketAccept(AsyncSocket sender) throws Exception {
 		sender.setUserState(new LinkdUserSession(sender.getSessionId()));
 		super.OnSocketAccept(sender);
 	}
 
 	@Override
-	public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
+	public void OnSocketClose(AsyncSocket so, Throwable e) throws Exception {
 		super.OnSocketClose(so, e);
 		if (so.getUserState() != null)
 			((LinkdUserSession)so.getUserState()).onClose(linkdApp.linkdProviderService);

@@ -50,12 +50,12 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 	// 需要从配置文件中读取，把这个引用加入：Zeze.Config.AddCustomize
 	private final ServiceManagerServer.Conf config;
 
-	public ServiceManagerWithRaft(String raftName, RaftConfig raftConf) throws Throwable {
+	public ServiceManagerWithRaft(String raftName, RaftConfig raftConf) throws Exception {
 		this(raftName, raftConf, Config.load(), false);
 	}
 
 	public ServiceManagerWithRaft(String raftName, RaftConfig raftConf, Zeze.Config config,
-								  boolean RocksDbWriteOptionSync) throws Throwable {
+								  boolean RocksDbWriteOptionSync) throws Exception {
 		if (null == config)
 			config = Zeze.Config.load();
 		this.config = config.getCustomize(new ServiceManagerServer.Conf());
@@ -94,7 +94,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 	 * 这样整个程序就单线程化了。
 	 */
 	public class SMServer extends Zeze.Raft.Server {
-		public SMServer(Zeze.Raft.Raft raft, String name, Zeze.Config config) throws Throwable {
+		public SMServer(Zeze.Raft.Raft raft, String name, Zeze.Config config) throws Exception {
 			super(raft, name, config);
 		}
 
@@ -120,7 +120,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 		}
 
 		@Override
-		public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
+		public void OnSocketClose(AsyncSocket so, Throwable e) throws Exception {
 			var netSession = (Session)so.getUserState();
 			if (null != netSession) {
 				if (logger.isDebugEnabled())

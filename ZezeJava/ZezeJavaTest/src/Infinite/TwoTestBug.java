@@ -3,7 +3,7 @@ package Infinite;
 import Benchmark.CBasicSimpleAddConcurrent;
 
 public class TwoTestBug {
-	public static void main(String[] args) throws Throwable {
+	public static void main(String[] args) throws Exception {
 		int i = 0;
 		try {
 			//noinspection InfiniteLoopStatement

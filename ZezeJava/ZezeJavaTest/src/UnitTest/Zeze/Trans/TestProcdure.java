@@ -27,7 +27,7 @@ public class TestProcdure {
 		return Procedure.Unknown;
 	}
 
-	public final long ProcNest() throws Throwable {
+	public final long ProcNest() throws Exception {
 		Assert.assertEquals(bean.getI(), 0);
 		bean.setI(1);
 		Assert.assertEquals(bean.getI(), 1);
@@ -47,17 +47,17 @@ public class TestProcdure {
 	}
 
 	@Before
-	public final void testInit() throws Throwable {
+	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
 	}
 
 	@After
-	public final void testCleanup() throws Throwable {
+	public final void testCleanup() throws Exception {
 		demo.App.getInstance().Stop();
 	}
 
 	@Test
-	public final void test1() throws Throwable {
+	public final void test1() throws Exception {
 		TableKey root = new TableKey(1, 1);
 		// 特殊测试，拼凑一个record用来提供需要的信息。
 		var r = new Record1<>(null, 1L, bean);
@@ -69,7 +69,7 @@ public class TestProcdure {
 	}
 
 	@Test
-	public final void testVector() throws Throwable {
+	public final void testVector() throws Exception {
 		App.getInstance().Zeze.newProcedure(() -> {
 			var v = App.getInstance().demo_Module1.getTable1().getOrAdd(999L);
 			v.setVector2(new Vector2(1, 2));
@@ -94,7 +94,7 @@ public class TestProcdure {
 	}
 
 	@Test
-	public void testNestLogOneLogDynamic() throws Throwable {
+	public void testNestLogOneLogDynamic() throws Exception {
 		Assert.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
 			var value = App.Instance.demo_Module1.getTable1().getOrAdd(18989L);
 			value.setBean12(new BSimple());

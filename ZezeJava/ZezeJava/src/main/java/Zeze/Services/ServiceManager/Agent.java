@@ -30,7 +30,7 @@ public final class Agent extends AbstractAgent {
 	}
 
 	@Override
-	public void start() throws Throwable {
+	public void start() throws Exception {
 		client.start();
 	}
 
@@ -281,11 +281,11 @@ public final class Agent extends AbstractAgent {
 		return 0;
 	}
 
-	public Agent(Zeze.Application zeze) throws Throwable {
+	public Agent(Zeze.Application zeze) throws Exception {
 		this(zeze, null);
 	}
 
-	public Agent(Zeze.Application zeze, String netServiceName) throws Throwable {
+	public Agent(Zeze.Application zeze, String netServiceName) throws Exception {
 		super.zeze = zeze;
 
 		var config = zeze.getConfig();
@@ -326,7 +326,7 @@ public final class Agent extends AbstractAgent {
 				OfflineRegister::new, null, TransactionLevel.None, DispatchMode.Normal));
 	}
 
-	public synchronized void stop() throws Throwable {
+	public synchronized void stop() throws Exception {
 		if (client != null) {
 			client.stop();
 			client = null;

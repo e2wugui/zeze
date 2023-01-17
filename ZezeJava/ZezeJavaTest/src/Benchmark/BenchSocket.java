@@ -242,7 +242,7 @@ public class BenchSocket {
 	}
 
 	static class ServerService extends Zeze.Services.HandshakeServer {
-		public ServerService(String name, Config config) throws Throwable {
+		public ServerService(String name, Config config) throws Exception {
 			super(name, config);
 			//AddFactoryHandle(new BenchProtocol().getTypeId(), new ProtocolFactoryHandle<>(BenchProtocol::new, this::ProcessBenchProtocol));
 			AddFactoryHandle(new BenchEnd().getTypeId(), new ProtocolFactoryHandle<>(BenchEnd::new, this::ProcessBenchEnd));
@@ -258,7 +258,7 @@ public class BenchSocket {
 		}
 
 		@Override
-		public void dispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId, ByteBuffer data) throws Throwable {
+		public void dispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId, ByteBuffer data) throws Exception {
 			if (moduleId == 0 && protocolId == BenchProtocol.ProtocolId_)
 				return; // 忽略压测协议，不进行decode，增加流量。
 
@@ -268,7 +268,7 @@ public class BenchSocket {
 
 	static class ClientService extends Zeze.Services.HandshakeClient {
 
-		public ClientService(String name, Config config) throws Throwable {
+		public ClientService(String name, Config config) throws Exception {
 			super(name, config);
 			AddFactoryHandle(new BenchEnd().getTypeId(), new ProtocolFactoryHandle<>(BenchEnd::new));
 		}
@@ -528,13 +528,13 @@ public class BenchSocket {
 	}
 
 	@Test
-	public void testBench() throws Throwable {
+	public void testBench() throws Exception {
 		testBench(false);
 		System.out.println("Encrypt");
 		testBench(true);
 	}
 
-	public static void testBench(boolean encrypt) throws Throwable {
+	public static void testBench(boolean encrypt) throws Exception {
 		// create server
 		var serverConfig = new Config();
 		var server = new ServerService("benchServer", serverConfig);

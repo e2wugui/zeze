@@ -70,19 +70,19 @@ public class Service {
 		socketOptions = new SocketOptions();
 	}
 
-	public Service(String name, Config config) throws Throwable {
+	public Service(String name, Config config) throws Exception {
 		this.name = name;
 		zeze = null;
 		initConfig(config);
 	}
 
-	public Service(String name, Application app) throws Throwable {
+	public Service(String name, Application app) throws Exception {
 		this.name = name;
 		zeze = app;
 		initConfig(app != null ? app.getConfig() : null);
 	}
 
-	private void initConfig(Config config) throws Throwable {
+	private void initConfig(Config config) throws Exception {
 		this.config = config != null ? config.getServiceConf(name) : null;
 		if (this.config == null) {
 			// setup program default
@@ -206,20 +206,20 @@ public class Service {
 		return sockets.hasNext() ? sockets.next() : null;
 	}
 
-	public void start() throws Throwable {
+	public void start() throws Exception {
 		if (config != null)
 			config.start();
 	}
 
-	public void Start() throws Throwable {
+	public void Start() throws Exception {
 		start();
 	}
 
-	public void Stop() throws Throwable {
+	public void Stop() throws Exception {
 		stop();
 	}
 
-	public void stop() throws Throwable {
+	public void stop() throws Exception {
 		if (config != null)
 			config.stop();
 
@@ -258,7 +258,7 @@ public class Service {
 	 * @param so closing socket
 	 * @param e  caught exception, null for none.
 	 */
-	public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
+	public void OnSocketClose(AsyncSocket so, Throwable e) throws Exception {
 		if (socketMap.remove(so.getSessionId(), so)) {
 			closedRecvSizeHandle.getAndAdd(this, so.getRecvSize());
 			closedSendSizeHandle.getAndAdd(this, so.getSendSize());
@@ -276,7 +276,7 @@ public class Service {
 	 * @param so after socket closed. last callback.
 	 */
 	@SuppressWarnings("RedundantThrows")
-	public void OnSocketDisposed(@SuppressWarnings("unused") AsyncSocket so) throws Throwable {
+	public void OnSocketDisposed(@SuppressWarnings("unused") AsyncSocket so) throws Exception {
 		// 一般实现：遍历RpcContexts，
 		/*
 		var ctxSends = GetRpcContextsToSender(so);
@@ -303,7 +303,7 @@ public class Service {
 	 *
 	 * @param so new socket accepted.
 	 */
-	public void OnSocketAccept(AsyncSocket so) throws Throwable {
+	public void OnSocketAccept(AsyncSocket so) throws Exception {
 		if (null != config && socketMap.size() > config.getMaxConnections()) {
 			throw new RuntimeException("too many connections");
 		}
@@ -312,7 +312,7 @@ public class Service {
 	}
 
 	@SuppressWarnings({"RedundantThrows", "MethodMayBeStatic"})
-	public void OnSocketAcceptError(AsyncSocket listener, Throwable e) throws Throwable {
+	public void OnSocketAcceptError(AsyncSocket listener, Throwable e) throws Exception {
 		logger.error("OnSocketAcceptError: {}", listener, e);
 	}
 
@@ -322,7 +322,7 @@ public class Service {
 	 * 加密压缩的连接在相应的方法中调用（see Services\Handshake.cs）。
 	 * 注意：修改OnHandshakeDone的时机，需要重载OnSocketAccept OnSocketConnected，并且不再调用Service的默认实现。
 	 */
-	public void OnHandshakeDone(AsyncSocket sender) throws Throwable {
+	public void OnHandshakeDone(AsyncSocket sender) throws Exception {
 		sender.setHandshakeDone(true);
 		if (sender.getConnector() != null)
 			sender.getConnector().OnSocketHandshakeDone(sender);
@@ -335,7 +335,7 @@ public class Service {
 	 * @param e  exception caught
 	 */
 	@SuppressWarnings("RedundantThrows")
-	public void OnSocketConnectError(AsyncSocket so, Throwable e) throws Throwable {
+	public void OnSocketConnectError(AsyncSocket so, Throwable e) throws Exception {
 		socketMap.remove(so.getSessionId(), so);
 	}
 
@@ -344,7 +344,7 @@ public class Service {
 	 *
 	 * @param so connect succeed
 	 */
-	public void OnSocketConnected(AsyncSocket so) throws Throwable {
+	public void OnSocketConnected(AsyncSocket so) throws Exception {
 		addSocket(so);
 		OnHandshakeDone(so);
 	}
@@ -357,14 +357,14 @@ public class Service {
 	 * @param input 方法外绝对不能持有input.Bytes的引用! 也就是只能在方法内读input.
 	 *              处理了多少要体现在input.ReadIndex上,剩下的等下次收到数据后会继续在此处理.
 	 */
-	public void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input) throws Throwable {
+	public void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input) throws Exception {
 		Protocol.decode(this, so, input);
 	}
 
 	// 用来派发异步rpc回调。
 	@SuppressWarnings("RedundantThrows")
 	public <P extends Protocol<?>> void DispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
-															ProtocolFactoryHandle<?> factoryHandle) throws Throwable {
+															ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		if (zeze != null && factoryHandle.Level != TransactionLevel.None) {
 			Task.runRpcResponseUnsafe(zeze.newProcedure(
 					() -> responseHandle.handle(rpc), rpc.getClass().getName() + ":Response",
@@ -393,7 +393,7 @@ public class Service {
 		return false;
 	}
 
-	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) throws Throwable {
+	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) throws Exception {
 		ProtocolHandle<P> handle = factoryHandle.Handle;
 		if (handle != null) {
 			if (isHandshakeProtocol(p.getTypeId())) {
@@ -419,12 +419,12 @@ public class Service {
 	 * @param data 方法外绝对不能持有data.Bytes的引用! 也就是只能在方法内读data, 只能处理data.ReadIndex到data.WriteIndex范围内
 	 */
 	@SuppressWarnings("RedundantThrows")
-	public void dispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId, ByteBuffer data) throws Throwable {
+	public void dispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId, ByteBuffer data) throws Exception {
 		throw new UnsupportedOperationException("Unknown Protocol (" + moduleId + ", " + protocolId + ") size=" + data.Size());
 	}
 
 	@SuppressWarnings("RedundantThrows")
-	public boolean checkOverflow(AsyncSocket so, long newSize, byte[] bytes, int offset, int length) throws Throwable {
+	public boolean checkOverflow(AsyncSocket so, long newSize, byte[] bytes, int offset, int length) throws Exception {
 		var maxSize = getSocketOptions().getOutputBufferMaxSize();
 		if (newSize <= maxSize)
 			return true;
@@ -566,7 +566,7 @@ public class Service {
 			this.service = service;
 		}
 
-		public void onRemoved() throws Throwable {
+		public void onRemoved() throws Exception {
 		}
 	}
 
@@ -602,8 +602,8 @@ public class Service {
 			try {
 				r.setIsTimeout(isTimeout);
 				r.onRemoved();
-			} catch (Throwable skip) {
-				logger.error("ManualContext.OnRemoved", skip);
+			} catch (Throwable e) {
+				logger.error("ManualContext.OnRemoved", e);
 			}
 		}
 		return r;
@@ -611,7 +611,7 @@ public class Service {
 
 	// 还是不直接暴露内部的容器。提供这个方法给外面用。以后如果有问题，可以改这里。
 
-	public final void foreach(Action1<AsyncSocket> action) throws Throwable {
+	public final void foreach(Action1<AsyncSocket> action) throws Exception {
 		for (var socket : socketMap)
 			action.run(socket);
 	}

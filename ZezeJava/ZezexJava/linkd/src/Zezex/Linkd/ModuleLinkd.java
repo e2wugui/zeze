@@ -7,11 +7,11 @@ import org.apache.logging.log4j.Logger;
 public final class ModuleLinkd extends AbstractModule {
 	public static final Logger logger = LogManager.getLogger(ModuleLinkd.class);
 	@SuppressWarnings("RedundantThrows")
-	public void Start(@SuppressWarnings("unused") Zezex.App app) throws Throwable {
+	public void Start(@SuppressWarnings("unused") Zezex.App app) throws Exception {
 	}
 
 	@SuppressWarnings("RedundantThrows")
-	public void Stop(@SuppressWarnings("unused") Zezex.App app) throws Throwable {
+	public void Stop(@SuppressWarnings("unused") Zezex.App app) throws Exception {
 	}
 
 	@Override

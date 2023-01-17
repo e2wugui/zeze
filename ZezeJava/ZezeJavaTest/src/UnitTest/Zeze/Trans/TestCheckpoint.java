@@ -13,17 +13,17 @@ import org.junit.Test;
 public class TestCheckpoint{
 
 	@Before
-	public final void testInit() throws Throwable {
+	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
 	}
 
 	@After
-	public final void testCleanup() throws Throwable {
+	public final void testCleanup() throws Exception {
 		demo.App.getInstance().Stop();
 	}
 
 	@Test
-	public final void testModeTable() throws Throwable {
+	public final void testModeTable() throws Exception {
 		/*
 		Assert.assertEquals(Procedure.Success, App.Instance.Zeze.NewProcedure(() -> {
 			App.Instance.demo_Module1.getTable1().remove(1L);
@@ -71,7 +71,7 @@ public class TestCheckpoint{
 	}
 
 	@Test
-	public final void testCp() throws Throwable {
+	public final void testCp() throws Exception {
 		Assert.assertEquals(demo.App.getInstance().Zeze.newProcedure(TestCheckpoint::ProcClear, "ProcClear").call(), Procedure.Success);
 		Assert.assertEquals(demo.App.getInstance().Zeze.newProcedure(this::ProcChange, "ProcChange").call(), Procedure.Success);
 		demo.App.getInstance().Zeze.checkpointRun();

@@ -33,7 +33,7 @@ public class ConditionKillMonster extends TaskConditionBase<BTConditionKillMonst
 	}
 
 	@Override
-	public boolean accept(Bean eventBean) throws Throwable {
+	public boolean accept(Bean eventBean) throws Exception {
 		if (!(eventBean instanceof BTConditionKillMonsterEvent))
 			return false;
 

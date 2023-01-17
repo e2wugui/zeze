@@ -118,7 +118,7 @@ public class Simulate {
 		}
 	}
 
-	public static void main(String[] args) throws Throwable {
+	public static void main(String[] args) throws Exception {
 		var lookup = MethodHandles.lookup();
 		for (var arg : args) {
 			var kv = arg.split("=");
@@ -181,7 +181,15 @@ public class Simulate {
 							}
 						}
 						var proc0 = proc;
-						app.getZeze().newProcedure(() -> (long)proc0.mh.invoke(), proc.name).call();
+						app.getZeze().newProcedure(() -> {
+							try {
+								return (long)proc0.mh.invoke();
+							} catch (RuntimeException | Error e) {
+								throw e;
+							} catch (Throwable e) {
+								throw new RuntimeException(e);
+							}
+						}, proc.name).call();
 
 						var tc = totalCount.incrementAndGet();
 						if (tc % procsEveryWindowMove == 0) {

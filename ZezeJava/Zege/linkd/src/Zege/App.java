@@ -37,7 +37,7 @@ public class App extends Zeze.AppBase {
         return new LoadConfig();
     }
 
-    public void Start(String conf) throws Throwable {
+    public void Start(String conf) throws Exception {
         var config = Config.load(conf);
         createZeze(config);
         createService();
@@ -92,7 +92,7 @@ public class App extends Zeze.AppBase {
         */
     }
 
-    public void Stop() throws Throwable {
+    public void Stop() throws Exception {
         stopService(); // 关闭网络
         stopModules(); // 关闭模块，卸载配置什么的。
         if (Zeze != null)
@@ -119,18 +119,18 @@ public class App extends Zeze.AppBase {
         return Zeze;
     }
 
-    public void createZeze() throws Throwable {
+    public void createZeze() throws Exception {
         createZeze(null);
     }
 
-    public synchronized void createZeze(Zeze.Config config) throws Throwable {
+    public synchronized void createZeze(Zeze.Config config) throws Exception {
         if (Zeze != null)
             throw new RuntimeException("Zeze Has Created!");
 
         Zeze = new Zeze.Application("linkd", config);
     }
 
-    public synchronized void createService() throws Throwable {
+    public synchronized void createService() throws Exception {
         LinkdService = new Zege.LinkdService(Zeze);
         ProviderService = new Zege.ProviderService(Zeze);
     }
@@ -185,14 +185,14 @@ public class App extends Zeze.AppBase {
         Zeze = null;
     }
 
-    public synchronized void startModules() throws Throwable {
+    public synchronized void startModules() throws Exception {
         Zege_Friend.Start(this);
         Zege_Message.Start(this);
         Zege_Linkd.Start(this);
         Zege_User.Start(this);
     }
 
-    public synchronized void stopModules() throws Throwable {
+    public synchronized void stopModules() throws Exception {
         if (Zege_User != null)
             Zege_User.Stop(this);
         if (Zege_Linkd != null)
@@ -203,12 +203,12 @@ public class App extends Zeze.AppBase {
             Zege_Friend.Stop(this);
     }
 
-    public synchronized void startService() throws Throwable {
+    public synchronized void startService() throws Exception {
         LinkdService.start();
         ProviderService.start();
     }
 
-    public synchronized void stopService() throws Throwable {
+    public synchronized void stopService() throws Exception {
         if (LinkdService != null)
             LinkdService.stop();
         if (ProviderService != null)

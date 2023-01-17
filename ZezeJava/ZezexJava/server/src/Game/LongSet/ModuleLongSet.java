@@ -13,11 +13,11 @@ public class ModuleLongSet extends AbstractModule {
 	public static final int CountPerNode = 500;
 	private AutoKey NodeIdGenerator;
 
-	public void Start(Game.App app) throws Throwable {
+	public void Start(Game.App app) throws Exception {
 		NodeIdGenerator = app.Zeze.getAutoKey("Game.LongSet.NodeIdGenerator");
 	}
 
-	public void Stop(Game.App app) throws Throwable {
+	public void Stop(Game.App app) throws Exception {
 	}
 
 	public static boolean add(String name, NameValue value) {

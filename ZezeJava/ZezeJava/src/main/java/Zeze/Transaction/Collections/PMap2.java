@@ -43,16 +43,17 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	public V createValue() {
 		try {
 			return (V)valueFactory.invoke();
+		} catch (RuntimeException | Error e) {
+			throw e;
 		} catch (Throwable e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	public V getOrAdd(K key) throws Throwable {
+	public V getOrAdd(K key) {
 		var exist = get(key);
 		if (exist == null) {
-			exist = (V)valueFactory.invoke();
+			exist = createValue();
 			put(key, exist);
 		}
 		return exist;

@@ -11,7 +11,7 @@ public class RedirectHandle {
 		 * @param encodedParams 输入参数的序列化
 		 * @return RedirectFuture(用于非All模式); RedirectAllFuture(用于All模式); null(用于没有结果返回或异常)
 		 */
-		Object call(int hash, Binary encodedParams) throws Throwable;
+		Object call(int hash, Binary encodedParams) throws Exception;
 	}
 
 	public final TransactionLevel requestTransactionLevel;

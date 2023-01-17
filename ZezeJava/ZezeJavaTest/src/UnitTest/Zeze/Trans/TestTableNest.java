@@ -10,17 +10,17 @@ import Zeze.Transaction.*;
 
 public class TestTableNest {
 	@Before
-	public final void testInit() throws Throwable {
+	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
 	}
 
 	@After
-	public final void testCleanup() throws Throwable {
+	public final void testCleanup() throws Exception {
 		demo.App.getInstance().Stop();
 	}
 
 	@Test
-	public final void testNest() throws Throwable {
+	public final void testNest() throws Exception {
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTableNest::ProcTableRemove, "ProcTableRemove").call());
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTableNest::ProcTableAdd, "ProcTableAdd").call());
 	}
@@ -30,7 +30,7 @@ public class TestTableNest {
 		return Procedure.Success;
 	}
 
-	private static long ProcTableAdd() throws Throwable {
+	private static long ProcTableAdd() throws Exception {
 		BValue v1 = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(4321L);
 		Assert.assertNotNull(v1);
 		Assert.assertNotEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTableNest::ProcTablePutNestAndRollback, "ProcTablePutNestAndRollback").call());

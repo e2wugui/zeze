@@ -72,7 +72,7 @@ public final class Tasks {
 			Simulate.getInstance().randApp().Run(this);
 		}
 
-		void prepare() throws Throwable {
+		void prepare() throws Exception {
 		}
 
 		abstract long process();
@@ -149,7 +149,7 @@ public final class Tasks {
 		throw new RuntimeException("impossible!");
 	}
 
-	static void prepare() throws Throwable {
+	static void prepare() throws Exception {
 		for (var tf : taskFactorys)
 			tf.Factory.get().prepare();
 	}
@@ -166,7 +166,7 @@ public final class Tasks {
 
 	static class Table1Long2Add1 extends Task {
 		@Override
-		void prepare() throws Throwable {
+		void prepare() throws Exception {
 			// 所有使用 Table1 的测试都可以依赖这个 prepare，不需要单独写了。
 			var app = Simulate.getInstance().randApp().app;
 			app.Zeze.newProcedure(() -> {

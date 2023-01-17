@@ -11,7 +11,7 @@ import org.junit.Assert;
 public class BBasicSimpleAddConcurrentWithConflict extends TestCase {
 	public static final int AddCount = 1_000_000;
 
-	public void testBenchmark() throws Throwable {
+	public void testBenchmark() throws Exception {
 		App.Instance.Start();
 		try {
 			App.Instance.Zeze.newProcedure(BBasicSimpleAddConcurrentWithConflict::Remove, "remove").call();

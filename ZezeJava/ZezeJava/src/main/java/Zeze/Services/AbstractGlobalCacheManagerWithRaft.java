@@ -96,10 +96,10 @@ public abstract class AbstractGlobalCacheManagerWithRaft implements Zeze.IModule
     }
 
 
-    protected abstract long ProcessAcquireRequest(Zeze.Builtin.GlobalCacheManagerWithRaft.Acquire r) throws Throwable;
-    protected abstract long ProcessCleanupRequest(Zeze.Builtin.GlobalCacheManagerWithRaft.Cleanup r) throws Throwable;
-    protected abstract long ProcessKeepAliveRequest(Zeze.Builtin.GlobalCacheManagerWithRaft.KeepAlive r) throws Throwable;
-    protected abstract long ProcessLoginRequest(Zeze.Builtin.GlobalCacheManagerWithRaft.Login r) throws Throwable;
-    protected abstract long ProcessNormalCloseRequest(Zeze.Builtin.GlobalCacheManagerWithRaft.NormalClose r) throws Throwable;
-    protected abstract long ProcessReLoginRequest(Zeze.Builtin.GlobalCacheManagerWithRaft.ReLogin r) throws Throwable;
+    protected abstract long ProcessAcquireRequest(Zeze.Builtin.GlobalCacheManagerWithRaft.Acquire r) throws Exception;
+    protected abstract long ProcessCleanupRequest(Zeze.Builtin.GlobalCacheManagerWithRaft.Cleanup r) throws Exception;
+    protected abstract long ProcessKeepAliveRequest(Zeze.Builtin.GlobalCacheManagerWithRaft.KeepAlive r) throws Exception;
+    protected abstract long ProcessLoginRequest(Zeze.Builtin.GlobalCacheManagerWithRaft.Login r) throws Exception;
+    protected abstract long ProcessNormalCloseRequest(Zeze.Builtin.GlobalCacheManagerWithRaft.NormalClose r) throws Exception;
+    protected abstract long ProcessReLoginRequest(Zeze.Builtin.GlobalCacheManagerWithRaft.ReLogin r) throws Exception;
 }

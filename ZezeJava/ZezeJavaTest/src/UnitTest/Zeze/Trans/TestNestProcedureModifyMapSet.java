@@ -8,17 +8,17 @@ import org.junit.Test;
 
 public class TestNestProcedureModifyMapSet {
 	@Before
-	public final void testInit() throws Throwable {
+	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
 	}
 
 	@After
-	public final void testCleanup() throws Throwable {
+	public final void testCleanup() throws Exception {
 		demo.App.getInstance().Stop();
 	}
 
 	@Test
-	public void testNestModifyMap() throws Throwable {
+	public void testNestModifyMap() throws Exception {
 		Assert.assertEquals(Procedure.Success, demo.App.Instance.Zeze.newProcedure(() -> {
 			demo.App.Instance.demo_Module1.getTable1().remove(1L);
 			return 0L;
@@ -42,7 +42,7 @@ public class TestNestProcedureModifyMapSet {
 	}
 
 	@Test
-	public void TestNestModifySet() throws Throwable {
+	public void TestNestModifySet() throws Exception {
 		Assert.assertEquals(Procedure.Success, demo.App.Instance.Zeze.newProcedure(() -> {
 			demo.App.Instance.demo_Module1.getTable1().remove(1L);
 			return 0L;

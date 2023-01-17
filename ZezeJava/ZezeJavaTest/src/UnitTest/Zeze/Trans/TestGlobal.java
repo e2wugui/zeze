@@ -56,7 +56,7 @@ public class TestGlobal extends TestCase {
 		System.out.println(i);
 	}
 
-	public final void test2App() throws Throwable {
+	public final void test2App() throws Exception {
 		demo.App app1 = demo.App.getInstance();
 		demo.App app2 = new demo.App();
 		var config1 = Config.load("zeze.xml");

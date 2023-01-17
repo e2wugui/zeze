@@ -26,11 +26,11 @@ public class SimpleApp extends AppBase {
 	// public Bag.Module bag;
 	public Rank rank;
 
-	public SimpleApp(int serverId) throws Throwable {
+	public SimpleApp(int serverId) throws Exception {
 		this(serverId, 20000 + serverId + 1, 20000);
 	}
 
-	public SimpleApp(int serverId, int directPort, int cacheSize) throws Throwable {
+	public SimpleApp(int serverId, int directPort, int cacheSize) throws Exception {
 		var config = Config.load("server.xml");
 		var directConf = config.getServiceConfMap().get("ServerDirect");
 		directConf.forEachAcceptor2((a) -> { a.setPort(directPort); a.setIp("127.0.0.1"); return false; });
@@ -46,7 +46,7 @@ public class SimpleApp extends AppBase {
 		return zeze;
 	}
 
-	public void start() throws Throwable {
+	public void start() throws Exception {
 		var provider = new ProviderImplementWithOnline();
 		providerApp = new ProviderApp(zeze, provider,
 				new ProviderService("Server", zeze), "SimpleApp#", new ProviderDirectWithTransmit(),
@@ -77,7 +77,7 @@ public class SimpleApp extends AppBase {
 		providerApp.startLast(ProviderModuleBinds.load(""), modules);
 	}
 
-	public void stop() throws Throwable {
+	public void stop() throws Exception {
 		if (providerApp != null) {
 			if (providerApp.providerImplement != null) {
 				var online = ((ProviderImplementWithOnline)providerApp.providerImplement).online;

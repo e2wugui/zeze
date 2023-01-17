@@ -352,7 +352,7 @@ public class Bag {
 		}
 
 		@SuppressWarnings("unchecked")
-		public void start(Zeze.Application zeze) throws Throwable {
+		public void start(Zeze.Application zeze) throws Exception {
 			providerApp.builtinModules.put(this.getFullName(), this);
 			if (0L != zeze.newProcedure(() -> {
 				var classes = _tItemClasses.getOrAdd(1);

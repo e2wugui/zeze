@@ -1,10 +1,10 @@
 package Zeze.Builtin.Game.Online;
 
 public class ModuleOnline extends AbstractModule {
-    public void Start(ClientGame.App app) throws Throwable {
+    public void Start(ClientGame.App app) throws Exception {
     }
 
-    public void Stop(ClientGame.App app) throws Throwable {
+    public void Stop(ClientGame.App app) throws Exception {
     }
 
     @Override

@@ -15,7 +15,7 @@ public class ConditionExploreWorld extends TaskConditionBase<BTConditionExploreW
 	}
 
 	@Override
-	public boolean accept(Bean eventBean) throws Throwable {
+	public boolean accept(Bean eventBean) throws Exception {
 		if (!(eventBean instanceof BTConditionExploreWorld))
 			return false;
 

@@ -7,14 +7,14 @@ import Zeze.Transaction.Bean;
 import Zeze.Util.OutLong;
 
 public class ModuleUser extends AbstractModule {
-    public void Start(Zege.App app) throws Throwable {
+    public void Start(Zege.App app) throws Exception {
     }
 
-    public void Stop(Zege.App app) throws Throwable {
+    public void Stop(Zege.App app) throws Exception {
     }
 
 
-    private  <A extends Bean, R extends Bean> long proxy(int hash, Rpc<A, R> r) throws Throwable {
+    private  <A extends Bean, R extends Bean> long proxy(int hash, Rpc<A, R> r) throws Exception {
         var originSender = r.getSender();
         var originSessionId = r.getSessionId();
         var provider = new OutLong();
@@ -39,12 +39,12 @@ public class ModuleUser extends AbstractModule {
     }
 
     @Override
-    protected long ProcessCreateRequest(Zege.User.Create r) throws Throwable {
+    protected long ProcessCreateRequest(Zege.User.Create r) throws Exception {
         return proxy(ByteBuffer.calc_hashnr(r.Argument.getAccount()), r);
     }
 
     @Override
-    protected long ProcessCreateWithCertRequest(Zege.User.CreateWithCert r) throws Throwable {
+    protected long ProcessCreateWithCertRequest(Zege.User.CreateWithCert r) throws Exception {
         return proxy(ByteBuffer.calc_hashnr(r.Argument.getAccount()), r);
     }
 
@@ -55,7 +55,7 @@ public class ModuleUser extends AbstractModule {
     }
 
     @Override
-    protected long ProcessPrepareRequest(Zege.User.Prepare r) throws Throwable {
+    protected long ProcessPrepareRequest(Zege.User.Prepare r) throws Exception {
         return proxy(ByteBuffer.calc_hashnr(r.Argument.getAccount()), r);
     }
 

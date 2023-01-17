@@ -40,7 +40,7 @@ public class Connector {
 		try {
 			Class<?> ccls = Class.forName(className);
 			return (Connector)ccls.getConstructor(Element.class).newInstance(e);
-		} catch (Throwable ex) {
+		} catch (Exception ex) {
 			throw new RuntimeException(ex);
 		}
 	}
@@ -148,9 +148,9 @@ public class Connector {
 		}
 	}
 
-	public synchronized void OnSocketClose(AsyncSocket closed, Throwable e) throws Throwable {
+	public synchronized void OnSocketClose(AsyncSocket closed, Throwable e) throws Exception {
 		if (socket == closed) {
-			Stop(e);
+			stop(e);
 			TryReconnect();
 		}
 	}
@@ -165,7 +165,7 @@ public class Connector {
 			return;
 
 		reConnectDelay = reConnectDelay > 0 ? Math.min(reConnectDelay * 2, maxReconnectDelay) : 1000;
-		reconnectTask = Zeze.Util.Task.scheduleUnsafe(reConnectDelay, this::Start);
+		reconnectTask = Zeze.Util.Task.scheduleUnsafe(reConnectDelay, this::start);
 	}
 
 	// 需要逻辑相关的握手行为时，重载这个方法。
@@ -180,7 +180,7 @@ public class Connector {
 		so.close(new Exception("not owner?"));
 	}
 
-	public synchronized void Start() {
+	public synchronized void start() {
 		// always try cancel reconnect task
 		if (reconnectTask != null) {
 			reconnectTask.cancel(false);
@@ -190,11 +190,11 @@ public class Connector {
 			socket = service.newClientSocket(hostNameOrAddress, port, userState, this);
 	}
 
-	public void Stop() {
-		Stop(null);
+	public void stop() {
+		stop(null);
 	}
 
-	public void Stop(Throwable e) {
+	public void stop(Throwable e) {
 		AsyncSocket as;
 		synchronized (this) {
 			// always try cancel reconnect task

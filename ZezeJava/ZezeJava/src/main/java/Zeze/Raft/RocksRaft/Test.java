@@ -249,7 +249,7 @@ public final class Test {
 		}
 	}
 
-	private static void remove1(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
+	private static void remove1(Rocks rocks, Table<Integer, Bean1> table) throws Exception {
 		rocks.newProcedure(() -> {
 			table.remove(1);
 
@@ -302,7 +302,7 @@ public final class Test {
 		});
 	}
 
-	private static void verifyData(Rocks rocks, Table<Integer, Bean1> table, String expected) throws Throwable {
+	private static void verifyData(Rocks rocks, Table<Integer, Bean1> table, String expected) throws Exception {
 		rocks.newProcedure(() -> {
 			var value = table.getOrAdd(1);
 			var current = value.toString();
@@ -314,7 +314,7 @@ public final class Test {
 		}).call();
 	}
 
-	private static void putAndEdit(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
+	private static void putAndEdit(Rocks rocks, Table<Integer, Bean1> table) throws Exception {
 		rocks.newProcedure(() -> {
 			update(table, 0);
 			verifyChanges("{(tRocksRaft#0,1):State=1 PutValue=Bean1(0 I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})\n" +
@@ -324,7 +324,7 @@ public final class Test {
 		}).call();
 	}
 
-	private static void edit(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
+	private static void edit(Rocks rocks, Table<Integer, Bean1> table) throws Exception {
 		rocks.newProcedure(() -> {
 			update(table, 10);
 			verifyChanges("{(tRocksRaft#0,1):State=2 PutValue=null\n" +
@@ -334,7 +334,7 @@ public final class Test {
 		}).call();
 	}
 
-	private static void editAndPut(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
+	private static void editAndPut(Rocks rocks, Table<Integer, Bean1> table) throws Exception {
 		rocks.newProcedure(() -> {
 			update(table, 20);
 			// 重新put，将会让上面的修改树作废。但所有的日志树都可以从All中看到。
@@ -347,7 +347,7 @@ public final class Test {
 		}).call();
 	}
 
-	private static void editInContainer(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
+	private static void editInContainer(Rocks rocks, Table<Integer, Bean1> table) throws Exception {
 		rocks.newProcedure(() -> {
 			var value = table.getOrAdd(1);
 			var edit = value.getMap2().get(14);
@@ -359,7 +359,7 @@ public final class Test {
 		}).call();
 	}
 
-	private static void nestProcedure(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
+	private static void nestProcedure(Rocks rocks, Table<Integer, Bean1> table) throws Exception {
 		rocks.newProcedure(() -> {
 			var value = table.get(1);
 			value.getBean2().setI(3333);
@@ -379,7 +379,7 @@ public final class Test {
 		}).call();
 	}
 
-	private static void nestProcedureContainer(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
+	private static void nestProcedureContainer(Rocks rocks, Table<Integer, Bean1> table) throws Exception {
 		rocks.newProcedure(() -> {
 			rocks.newProcedure(() -> {
 				var value = table.get(1);
@@ -408,7 +408,7 @@ public final class Test {
 		}
 	}
 
-	public static void test_1() throws Throwable {
+	public static void test_1() throws Exception {
 		LogSequence.deletedDirectoryAndCheck(new File("127.0.0.1_6000"));
 		LogSequence.deletedDirectoryAndCheck(new File("127.0.0.1_6001"));
 		LogSequence.deletedDirectoryAndCheck(new File("127.0.0.1_6002"));
@@ -438,7 +438,7 @@ public final class Test {
 		}
 	}
 
-	private static void runLeader(Rocks rocks) throws Throwable {
+	private static void runLeader(Rocks rocks) throws Exception {
 		var table = rocks.<Integer, Bean1>getTableTemplate("tRocksRaft").openTable(0);
 		remove1(rocks, table);
 
@@ -464,7 +464,7 @@ public final class Test {
 		// rocks.getRaft().getLogSequence().Snapshot(true);
 	}
 
-	public static void main(String[] args) throws Throwable {
+	public static void main(String[] args) throws Exception {
 		Task.initThreadPool(Task.newFixedThreadPool(5, "test"),
 				Executors.newScheduledThreadPool(3, new ThreadFactoryWithName("test-sch")));
 		test_1();

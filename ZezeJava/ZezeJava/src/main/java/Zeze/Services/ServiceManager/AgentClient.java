@@ -12,12 +12,12 @@ public final class AgentClient extends Zeze.Services.HandshakeClient {
 	 */
 	private AsyncSocket socket;
 
-	public AgentClient(Agent agent, Zeze.Config config) throws Throwable {
+	public AgentClient(Agent agent, Zeze.Config config) throws Exception {
 		super(Agent.defaultServiceName, config);
 		this.agent = agent;
 	}
 
-	public AgentClient(Agent agent, Zeze.Config config, String name) throws Throwable {
+	public AgentClient(Agent agent, Zeze.Config config, String name) throws Exception {
 		super(name, config);
 		this.agent = agent;
 	}
@@ -31,7 +31,7 @@ public final class AgentClient extends Zeze.Services.HandshakeClient {
 	}
 
 	@Override
-	public void OnHandshakeDone(AsyncSocket sender) throws Throwable {
+	public void OnHandshakeDone(AsyncSocket sender) throws Exception {
 		super.OnHandshakeDone(sender);
 		if (socket == null) {
 			socket = sender;
@@ -42,7 +42,7 @@ public final class AgentClient extends Zeze.Services.HandshakeClient {
 	}
 
 	@Override
-	public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
+	public void OnSocketClose(AsyncSocket so, Throwable e) throws Exception {
 		if (socket == so) {
 			socket = null;
 		}
