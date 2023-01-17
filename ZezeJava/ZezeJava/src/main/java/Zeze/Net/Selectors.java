@@ -25,7 +25,7 @@ public class Selectors {
 		public int selectTimeout; // 0表示无超时,>0表示每次select的超时毫秒数,-1表示无超时且异步wakeup
 		public int readBufferSize = 32 * 1024; // 读buffer的字节容量
 
-		void check() {
+		public void check() {
 			if (bbPoolBlockSize <= 0)
 				throw new IllegalArgumentException("bbPoolBlockSize <= 0: " + bbPoolBlockSize);
 			if (bbPoolLocalCapacity < 0)

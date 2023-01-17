@@ -31,6 +31,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public static final Logger logger = LogManager.getLogger(AsyncSocket.class);
 	public static final Level LEVEL_PROTOCOL_LOG = Level.toLevel(System.getProperty("protocolLog"), Level.OFF);
 	public static final boolean ENABLE_PROTOCOL_LOG = LEVEL_PROTOCOL_LOG != Level.OFF;
+	public static final boolean ENABLE_DEBUG_LOG = logger.isDebugEnabled();
 	private static final LongHashSet protocolLogExcept = new LongHashSet();
 	private static final VarHandle closedHandle, outputBufferSizeHandle;
 	private static final byte SEND_CLOSE_DETAIL_MAX = 20; // 必须小于REAL_CLOSED
@@ -299,14 +300,19 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		selectionKey = selector.register(sc, 0, this); // 先获取key,因为有小概率出现事件处理比赋值更先执行
 		selector.register(sc, SelectionKey.OP_READ, this);
 		logger.info("Accept: {} for {}:{}", this, service.getClass().getName(), service.getName());
+		if (ENABLE_DEBUG_LOG)
+			logger.debug("{}: recvBuf={}, sendBuf={}", this, so.getReceiveBufferSize(), so.getSendBufferSize());
 	}
 
 	/**
 	 * for client socket. connect
 	 */
 	private boolean doConnectSuccess(SocketChannel sc) throws Throwable {
-		remoteAddress = sc.socket().getRemoteSocketAddress();
+		var socket = sc.socket();
+		remoteAddress = socket.getRemoteSocketAddress();
 		logger.info("Connect: {} for {}:{}", this, service.getClass().getName(), service.getName());
+		if (ENABLE_DEBUG_LOG)
+			logger.debug("{}: recvBuf={}, sendBuf={}", this, socket.getReceiveBufferSize(), socket.getSendBufferSize());
 		if (acceptorOrConnector instanceof Connector)
 			((Connector)acceptorOrConnector).OnSocketConnected(this);
 		service.OnSocketConnected(this);
@@ -708,7 +714,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				logger.info("close: {} {}", this, ex);
 			else
 				logger.warn("close: {}", this, ex);
-		} else
+		} else if (ENABLE_DEBUG_LOG)
 			logger.debug("close{}: {}", gracefully ? " gracefully" : "", this);
 
 		if (acceptorOrConnector instanceof Connector) {
