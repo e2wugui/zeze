@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -131,11 +132,41 @@ public class Selector extends Thread implements ByteBufferAllocator {
 		}
 	}
 
+	private static final class WakeupThread {
+		private static final ArrayBlockingQueue<java.nio.channels.Selector> wakeupQueue = new ArrayBlockingQueue<>(256);
+
+		static {
+			var thread = new Thread("WakeupThread") {
+				@Override
+				public void run() {
+					try {
+						//noinspection InfiniteLoopStatement
+						for (; ; )
+							wakeupQueue.take().wakeup();
+					} catch (InterruptedException e) {
+						logger.error("WakeupThread interrupted:", e);
+					}
+				}
+			};
+			thread.setDaemon(true);
+			thread.start();
+		}
+
+		public static void postWakeup(java.nio.channels.Selector selector) {
+			if (!wakeupQueue.offer(selector))
+				selector.wakeup();
+		}
+	}
+
 	public void wakeup() {
-		if (selectors.getSelectTimeout() == 0 && Thread.currentThread() != this && wakeupNotified.compareAndSet(0, 1)) {
+		int selectTimeout = selectors.getSelectTimeout();
+		if (selectTimeout <= 0 && Thread.currentThread() != this && wakeupNotified.compareAndSet(0, 1)) {
 //			wakeupCount1.incrementAndGet();
 //			long t = System.nanoTime();
-			selector.wakeup();
+			if (selectTimeout == 0)
+				selector.wakeup();
+			else
+				WakeupThread.postWakeup(selector);
 //			wakeupTime.addAndGet(System.nanoTime() - t);
 		}// else
 //			wakeupCount0.incrementAndGet();
@@ -144,7 +175,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	@Override
 	public void run() {
 //		lastTime = System.nanoTime();
-		int selectTimeout = selectors.getSelectTimeout();
+		int selectTimeout = Math.max(selectors.getSelectTimeout(), 0);
 		while (running) {
 //			var t = System.nanoTime();
 //			if (t - lastTime >= 1_000_000_000L) {

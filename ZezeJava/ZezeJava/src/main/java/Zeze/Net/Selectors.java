@@ -68,8 +68,8 @@ public class Selectors {
 			throw new IllegalArgumentException("bbPoolMoveCount <= 0: " + bbPoolMoveCount);
 		if (bbPoolGlobalCapacity < 0)
 			throw new IllegalArgumentException("bbPoolGlobalCapacity < 0: " + bbPoolGlobalCapacity);
-		if (selectTimeout < 0)
-			throw new IllegalArgumentException("selectTimeout < 0: " + selectTimeout);
+		if (selectTimeout < -1)
+			throw new IllegalArgumentException("selectTimeout < -1: " + selectTimeout);
 		if (readBufferSize <= 0)
 			throw new IllegalArgumentException("readBufferSize <= 0: " + readBufferSize);
 		this.name = name;
