@@ -1,9 +1,17 @@
 package UnitTest.Zeze.Misc;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import Zeze.Services.RocketMQ.Consumer;
+import Zeze.Services.RocketMQ.Message;
+import Zeze.Services.RocketMQ.MessageListenerConcurrently;
+import Zeze.Services.RocketMQ.Producer;
+import Zeze.Services.RocketMQ.TransactionListener;
 import demo.App;
 import org.apache.rocketmq.client.ClientConfig;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -28,6 +36,24 @@ public class TestRocketMQ {
 		App.Instance.RocketMQProducer.start("testRocketMQ", clientConfig);
 		var consumer = new Consumer(App.Instance.Zeze, "testRocketMQ", clientConfig);
 
+		consumer.setMessageListener(new org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently() {
+			@Override
+			public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
+				for (MessageExt msg : msgs) {
+					System.out.println("Receive: ");
+					System.out.println("\tBody: " + new String(msg.getBody()));
+					System.out.println("\tTags: " + msg.getTags());
+					System.out.println("\tKeys: " + msg.getKeys());
+					System.out.println("\tTopic: " + msg.getTopic());
+					System.out.println("\tMsgId: " + msg.getMsgId());
+				}
+				return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+			}
+		});
+//		consumer.getConsumer().subscribe("topic", "*");
+		consumer.getConsumer().subscribe("topic2", "*");
+		consumer.start();
+
 		try {
 			// 发送普通消息
 			{
@@ -37,8 +63,6 @@ public class TestRocketMQ {
 				msg.setTopic("topic");
 
 				App.Instance.RocketMQProducer.sendMessage(msg);
-				// todo, @项洋呈 订阅消息，验证消息收到。
-				//consumer.setMessageListener();
 			}
 			// 发送事务消息
 			{
@@ -47,11 +71,10 @@ public class TestRocketMQ {
 					msg.setBody("body2".getBytes(StandardCharsets.UTF_8));
 					msg.setTransactionId("2");
 					msg.setTopic("topic2");
+
 					App.Instance.RocketMQProducer.sendMessageInTransaction(msg);
 					return 0;
 				}, "").call();
-				// todo, @项洋呈 订阅消息，验证消息收到。
-				// App.Instance.RocketMQConsumer.getConsumer().
 			}
 		} finally {
 			consumer.stop();
