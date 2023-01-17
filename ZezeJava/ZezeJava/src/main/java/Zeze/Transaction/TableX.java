@@ -175,6 +175,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 									lct.commit();
 									t.commit();
 								} catch (Throwable ex) {
+									// rollback.
 									lct.rollback();
 									t.rollback();
 								} finally {

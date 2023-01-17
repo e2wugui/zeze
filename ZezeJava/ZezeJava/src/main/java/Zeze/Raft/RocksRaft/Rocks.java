@@ -426,7 +426,7 @@ public final class Rocks extends StateMachine implements Closeable {
 				Raft raft = getRaft();
 				if (raft != null)
 					raft.shutdown();
-			} catch (Throwable e) {
+			} catch (Exception e) {
 				throw new RuntimeException(e);
 			} finally {
 				setRaft(null);

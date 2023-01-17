@@ -403,6 +403,8 @@ public final class Json {
 	static Field[] getDeclaredFields(Class<?> klass) {
 		try {
 			return (Field[])getDeclaredFields0MH.invokeExact(klass, false);
+		} catch (RuntimeException | Error e) {
+			throw e;
 		} catch (Throwable e) {
 			throw new RuntimeException(e);
 		}

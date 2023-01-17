@@ -23,6 +23,7 @@ import Zeze.Util.PersistentAtomicLong;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
+import com.alibaba.fastjson.asm.MethodWriter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -428,6 +429,7 @@ public final class Agent {
 				try {
 					r.handle.applyAsLong(r);
 				} catch (Throwable e) {
+					// run handle. 必须捕捉所有异常。
 					logger.error("", e);
 				}
 			}
@@ -479,6 +481,7 @@ public final class Agent {
 			try {
 				responseHandle.handle(rpc);
 			} catch (Throwable e) {
+				// run handle. 必须捕捉所有异常。
 				logger.error("Agent.NetClient.DispatchRpcResponse", e);
 			}
 		}

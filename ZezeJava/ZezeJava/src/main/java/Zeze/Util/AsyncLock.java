@@ -48,6 +48,7 @@ public final class AsyncLock {
 				current = onEnter;
 				onEnter.run();
 			} catch (Throwable e) {
+				// print stacktrace.
 				Task.logger.error("AsyncLock.enter exception:", e);
 			} finally {
 				leave();
@@ -82,6 +83,7 @@ public final class AsyncLock {
 					current = onReady;
 					onReady.run();
 				} catch (Throwable e) {
+					// print stacktrace.
 					Task.logger.error("AsyncLock.tryNext exception:", e);
 				} finally {
 					leave();
@@ -104,6 +106,7 @@ public final class AsyncLock {
 						current = onReady;
 						onReady.run();
 					} catch (Throwable e) {
+						// print stacktrace.
 						Task.logger.error("AsyncLock.tryNext exception:", e);
 					} finally {
 						leave();

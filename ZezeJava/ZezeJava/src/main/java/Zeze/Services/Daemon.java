@@ -66,6 +66,7 @@ public class Daemon {
 				restart = true;
 			}
 		} catch (Throwable ex) {
+			// print stacktrace.
 			logger.error("Daemon.main", ex);
 		} finally {
 			// 退出的时候，确保销毁服务进程。
@@ -117,6 +118,7 @@ public class Daemon {
 				if (subprocess.waitFor(0, TimeUnit.MILLISECONDS))
 					return subprocess.exitValue();
 			} catch (Throwable ex) {
+				// print stacktrace.
 				logger.fatal("Daemon.mainRun", ex);
 				fatalExit();
 				return -1; // never get here
@@ -281,6 +283,7 @@ public class Daemon {
 					}
 				}
 			} catch (Throwable ex) {
+				// print stacktrace.
 				logger.fatal("Monitor.run", ex);
 				fatalExit();
 			}

@@ -48,7 +48,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		for (var agent : agents) {
 			try {
 				agent.waitLoginSuccess();
-			} catch (Throwable ignored) {
+			} catch (Exception ignored) {
 				// raft 登录需要选择leader，所以总是会起新的登录，第一次等待会失败，所以下面尝试两次。
 				agent.waitLoginSuccess();
 			}
@@ -61,7 +61,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			stop();
 		} catch (IOException | RuntimeException e) {
 			throw e;
-		} catch (Throwable e) {
+		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
@@ -151,6 +151,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		try {
 			agent.waitLoginSuccess();
 		} catch (Throwable e) {
+			// abort need catch all. will re throw another exception.
 			agent.setFastFail();
 			Transaction trans = Transaction.getCurrent();
 			if (trans == null)
@@ -174,6 +175,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 				return null;
 			future.await();
 		} catch (Throwable e) {
+			// abort need catch all. will re throw another exception.
 			agent.setFastFail();
 			Transaction trans = Transaction.getCurrent();
 			if (trans == null)

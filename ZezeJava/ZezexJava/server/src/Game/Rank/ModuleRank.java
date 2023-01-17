@@ -218,6 +218,7 @@ public class ModuleRank extends AbstractModule {
 					keyHint.getTimeType(), keyHint.getYear(), keyHint.getOffset());
 			result.rankList = _trank.getOrAdd(concurrentKey);
 		} catch (Throwable e) {
+			// rpc response.
 			logger.error("", e);
 		}
 		return RedirectAllFuture.result(result);

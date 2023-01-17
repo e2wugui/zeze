@@ -140,6 +140,7 @@ public final class ServiceManagerServer implements Closeable {
 					if (set.Send(serviceManager.server.GetSocket(observer)))
 						continue;
 				} catch (Throwable ignored) {
+					// ignored
 				}
 				if (removed == null)
 					removed = new LongList();
@@ -437,7 +438,7 @@ public final class ServiceManagerServer implements Closeable {
 								s = serviceManager.server.GetSocket(sessionId);
 								var r = new KeepAlive();
 								r.SendAndWaitCheckResultCode(s);
-							} catch (Throwable ex) {
+							} catch (Exception ex) {
 								if (s != null)
 									s.close();
 								logger.error("ServiceManager.KeepAlive", ex);
@@ -506,6 +507,7 @@ public final class ServiceManagerServer implements Closeable {
 						if (notify.getResultCode() == 0)
 							break; // 成功通知。done
 					} catch (Throwable ignored) {
+						// ignored
 					}
 					// 保存这一次通知失败session，下一次尝试选择的时候忽略。
 					skips.add(selected.getKey());
@@ -529,7 +531,7 @@ public final class ServiceManagerServer implements Closeable {
 							sessions.add(KV.create(session, socket));
 					}
 				});
-			} catch (Throwable e) {
+			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
 			if (sessions.isEmpty())

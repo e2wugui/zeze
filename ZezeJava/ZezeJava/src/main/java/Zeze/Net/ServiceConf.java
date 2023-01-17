@@ -216,7 +216,7 @@ public final class ServiceConf {
 		if (attr.length() > 0) {
 			try {
 				getHandshakeOptions().setSecureIp(InetAddress.getByName(attr).getAddress());
-			} catch (Throwable ex) {
+			} catch (Exception ex) {
 				throw new IllegalStateException(ex);
 			}
 		}

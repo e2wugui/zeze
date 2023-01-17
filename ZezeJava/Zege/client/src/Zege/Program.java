@@ -89,7 +89,7 @@ public class Program {
 				try {
 					if (!Windows.get(Windows.size() - 1).process(line))
 						System.out.println("Unknown Command!");
-				} catch (Throwable e) {
+				} catch (Exception e) {
 					e.printStackTrace();
 				}
 			} while (!line.equals("exit"));

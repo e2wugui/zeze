@@ -166,7 +166,7 @@ public final class GenModule {
 				modules[i] = newModule(className != null ? genClassMap.get(className) : moduleClasses[i], userApp);
 			}
 			return modules;
-		} catch (Throwable e) {
+		} catch (Exception e) {
 			if (i < n)
 				throw new RuntimeException("module class: " + moduleClasses[i].getName(), e);
 			throw new RuntimeException(e);

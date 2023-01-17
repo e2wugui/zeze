@@ -197,6 +197,7 @@ public final class Transaction {
 			_final_rollback_(procedure);
 			return Zeze.Transaction.Procedure.RaftRetry;
 		} catch (Throwable e) {
+			// rollback. 必须捕捉所有异常。
 			procedure.setAutoResponseResultCode(Zeze.Transaction.Procedure.Exception);
 			logger.error("RocksRaft Call Exception", e);
 			if (e instanceof AssertionError) {
@@ -315,6 +316,7 @@ public final class Transaction {
 				try {
 					action.run();
 				} catch (Throwable ex) {
+					// run handle. 必须捕捉所有异常。
 					logger.error("Commit Procedure {} Action {}", procedure, action.getClass().getName(), ex);
 				}
 			}
@@ -329,6 +331,7 @@ public final class Transaction {
 				try {
 					action.run();
 				} catch (Throwable ex) {
+					// run handle. 必须捕捉所有异常。
 					logger.error("Commit Procedure {} Action {}", procedure, action.getClass().getName(), ex);
 				}
 			}

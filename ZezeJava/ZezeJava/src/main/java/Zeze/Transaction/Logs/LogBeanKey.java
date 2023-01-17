@@ -1,5 +1,6 @@
 package Zeze.Transaction.Logs;
 
+import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
@@ -34,6 +35,8 @@ public abstract class LogBeanKey<T extends Serializable> extends Log {
 	public void decode(ByteBuffer bb) {
 		try {
 			value = (T)valueFactory.invoke();
+		} catch (RuntimeException | Error e) {
+			throw e;
 		} catch (Throwable e) {
 			throw new RuntimeException(e);
 		}

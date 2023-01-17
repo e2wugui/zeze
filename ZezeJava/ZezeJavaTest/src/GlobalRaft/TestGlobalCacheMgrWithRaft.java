@@ -42,7 +42,7 @@ public class TestGlobalCacheMgrWithRaft {
 	public void Run(String[] args) throws InterruptedException {
 		try {
 			_Run(args);
-		} catch (Throwable ex) {
+		} catch (Exception ex) {
 			logger.error("Run", ex);
 		}
 		System.out.println("___________________________________________");
@@ -66,13 +66,7 @@ public class TestGlobalCacheMgrWithRaft {
 		logger.debug("Start.");
 
 		Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
-			try {
-				logger.error("uncaught fatal exception for thread: {}", t.getName(), e);
-			} catch (Throwable ex) {
-				ex.printStackTrace();
-			} finally {
-				e.printStackTrace();
-			}
+			logger.error("uncaught fatal exception for thread: {}", t.getName(), e);
 		});
 
 		Task.tryInitThreadPool(null, null, null);
@@ -371,7 +365,7 @@ public class TestGlobalCacheMgrWithRaft {
 				}
 				return Procedure.Success;
 			}, "ClearData").call();
-		} catch (Throwable e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
@@ -412,7 +406,7 @@ public class TestGlobalCacheMgrWithRaft {
 			try {
 				fa.Action.run();
 				fa.Count++;
-			} catch (Throwable e) {
+			} catch (Exception e) {
 				logger.error("FailAction {}", fa.Name, e);
 				System.out.println("___________________________________________");
 				System.out.println("___________________________________________");
@@ -493,7 +487,7 @@ public class TestGlobalCacheMgrWithRaft {
 						}
 					}
 				}
-			} catch (Throwable e) {
+			} catch (Exception e) {
 				logger.error("GlobalRaft RestartNet error", e);
 				throw e;
 			}

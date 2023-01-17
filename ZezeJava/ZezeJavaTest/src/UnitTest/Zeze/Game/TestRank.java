@@ -47,7 +47,7 @@ public class TestRank extends TestCase {
 					state.localStates.forEach((k, v) -> System.out.format("    { %s, %s }%n", k, v));
 				});
 			}
-		} catch (Throwable e) {
+		} catch (Exception e) {
 			throw new RuntimeException(e);
 		} finally {
 			System.out.println("------ setUp end");
@@ -62,7 +62,7 @@ public class TestRank extends TestCase {
 		try {
 			for (int i = 0; i < APP_COUNT; i++)
 				apps[i].stop();
-		} catch (Throwable e) {
+		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 		System.out.println("------ tearDown end");
@@ -144,7 +144,7 @@ public class TestRank extends TestCase {
 			}, "getRankAll").call();
 			assertEquals(concLevel, hashSet1.size());
 			assertEquals(concLevel, hashSet2.size());
-		} catch (Throwable e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			throw e;
 		} finally {

@@ -333,6 +333,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					break;
 				}
 			} catch (Throwable ex) {
+				// rpc response
 				logger.error("ProcessAcquireRequest", ex);
 				rpc.Result.state = StateInvalid;
 				rpc.SendResultCode(AcquireException);
@@ -690,6 +691,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 									break;
 								}
 							} catch (Throwable ex) {
+								// exception to result
 								reduce.getKey().setError();
 								// 等待失败不再看作成功。
 								if (Task.getRootCause(ex) instanceof RpcTimeoutException) {

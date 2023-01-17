@@ -204,6 +204,7 @@ public final class Changes {
 					try {
 						l.OnChanged(k.getKey(), v);
 					} catch (Throwable ex) {
+						// run handle.
 						logger.error("NotifyListener exception:", ex);
 					}
 				}

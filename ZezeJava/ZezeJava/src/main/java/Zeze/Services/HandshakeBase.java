@@ -143,7 +143,7 @@ public class HandshakeBase extends Service {
 			// OnHandshakeDone(p.Sender);
 
 			return 0L;
-		} catch (Throwable ex) {
+		} catch (Exception ex) {
 			p.getSender().close(ex);
 			return 0L;
 		}
@@ -168,7 +168,7 @@ public class HandshakeBase extends Service {
 				new CHandshakeDone().Send(p.getSender());
 				OnHandshakeDone(p.getSender());
 			}
-		} catch (Throwable ex) {
+		} catch (Exception ex) {
 			p.getSender().close(ex);
 		}
 		return 0L;
@@ -200,7 +200,7 @@ public class HandshakeBase extends Service {
 				return 0;
 			}
 			p.getSender().close(new IllegalStateException("handshake lost context."));
-		} catch (Throwable ex) {
+		} catch (Exception ex) {
 			p.getSender().close(ex);
 		} finally {
 			if (null != ctx && null != ctx.timeoutTask)
@@ -243,7 +243,7 @@ public class HandshakeBase extends Service {
 					so.close(new Exception("Handshake Timeout"));
 				}
 			});
-		} catch (Throwable ex) {
+		} catch (Exception ex) {
 			so.close(ex);
 		}
 	}

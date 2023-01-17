@@ -107,13 +107,11 @@ public class Server extends HandshakeBoth {
 				// avoid deadlock: lock(socket), lock (Raft).
 				raft.lock();
 				try {
-					if (getSocket() == closed) { // check is owner
-						try {
-							raft.getLogSequence().endInstallSnapshot(this);
-						} catch (Throwable ex) {
-							logger.error("Server.ConnectorEx.OnSocketClose", ex);
-						}
-					}
+					if (getSocket() == closed) // check is owner
+						raft.getLogSequence().endInstallSnapshot(this);
+				} catch (Throwable ex) {
+					// thread runner.
+					logger.error("Server.ConnectorEx.OnSocketClose", ex);
 				} finally {
 					raft.unlock();
 				}

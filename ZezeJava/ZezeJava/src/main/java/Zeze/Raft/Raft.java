@@ -182,6 +182,7 @@ public final class Raft {
 				try {
 					action.run();
 				} catch (Throwable e) {
+					// kill self. 必须捕捉所有异常。
 					logger.error("FatalKill", e);
 				}
 			}

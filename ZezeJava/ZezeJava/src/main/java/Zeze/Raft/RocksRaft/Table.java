@@ -100,6 +100,8 @@ public final class Table<K, V extends Bean> {
 	public V newValue() {
 		try {
 			return (V)valueFactory.invoke();
+		} catch (RuntimeException | Error e) {
+			throw e;
 		} catch (Throwable e) {
 			throw new RuntimeException(e);
 		}

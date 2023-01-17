@@ -100,6 +100,7 @@ public class EventDispatcher {
 				}, "EventDispatcher.triggerProcedureIgnoreError").call();
 				// 返回错误码时是逻辑错误，这里不需要记录日志。内部已经记录了。
 			} catch (Throwable ex) {
+				// print stacktrace.
 				logger.error("EventDispatcher.triggerProcedureIgnoreError", ex); // 除了框架错误，一般情况下，错误不会到达这里。
 			}
 		}

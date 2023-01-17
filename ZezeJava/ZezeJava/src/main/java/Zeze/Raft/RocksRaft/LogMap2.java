@@ -90,6 +90,8 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 			V value;
 			try {
 				value = (V)valueFactory.invoke();
+			} catch (RuntimeException | Error e) {
+				throw e;
 			} catch (Throwable e) {
 				throw new RuntimeException(e);
 			}

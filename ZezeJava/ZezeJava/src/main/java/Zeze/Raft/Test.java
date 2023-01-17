@@ -70,7 +70,7 @@ public class Test {
 		System.out.println(command);
 		try {
 			_run(command, args);
-		} catch (Throwable ex) {
+		} catch (Exception ex) {
 			logger.error("Run", ex);
 		}
 		System.out.println("___________________________________________");
@@ -94,13 +94,7 @@ public class Test {
 		logger.debug("Start.");
 
 		Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
-			try {
-				logger.error("uncaught fatal exception for thread: {}", t.getName(), e);
-			} catch (Throwable ex) {
-				ex.printStackTrace();
-			} finally {
-				e.printStackTrace();
-			}
+			logger.error("uncaught fatal exception for thread: {}", t.getName(), e);
 		});
 
 		Task.initThreadPool(Task.newFixedThreadPool(10, "test"),
@@ -517,7 +511,7 @@ public class Test {
 				try {
 					fa.action.run();
 					fa.count++;
-				} catch (Throwable ex) {
+				} catch (Exception ex) {
 					logger.error("FailAction {}", fa.name, ex);
 					System.out.println("___________________________________________");
 					System.out.println("___________________________________________");
@@ -735,7 +729,7 @@ public class Test {
 			this.raftConfigFileName = raftConfigFileName;
 			try {
 				startRaft(true);
-			} catch (Throwable e) {
+			} catch (Exception e) {
 				logger.error("TestRaft.TestRaft", e);
 			}
 		}
@@ -774,7 +768,7 @@ public class Test {
 						}
 					}
 				}
-			} catch (Throwable e) {
+			} catch (Exception e) {
 				logger.error("RestartNet exception", e);
 				throw e;
 			}

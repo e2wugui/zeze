@@ -161,6 +161,7 @@ public final class Checkpoint {
 					lock.unlock();
 				}
 			} catch (Throwable ex) {
+				// thread worker.
 				logger.error("Run Exception", ex);
 			}
 		}

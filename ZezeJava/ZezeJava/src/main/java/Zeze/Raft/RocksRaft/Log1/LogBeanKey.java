@@ -34,6 +34,8 @@ public class LogBeanKey<T extends Serializable> extends Log {
 	public void decode(ByteBuffer bb) {
 		try {
 			value = (T)valueFactory.invoke();
+		} catch (RuntimeException | Error e) {
+			throw e;
 		} catch (Throwable e) {
 			throw new RuntimeException(e);
 		}

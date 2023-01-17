@@ -307,6 +307,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					break;
 				}
 			} catch (Throwable ex) {
+				// rpc response.
 				logger.error("ProcessAcquireRequest", ex);
 				rpc.Result.state = StateInvalid;
 				rpc.SendResultCode(AcquireException);

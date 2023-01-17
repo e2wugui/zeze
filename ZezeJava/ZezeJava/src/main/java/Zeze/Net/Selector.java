@@ -206,10 +206,12 @@ public class Selector extends Thread implements ByteBufferAllocator {
 						handle = (SelectorHandle)key.attachment();
 						handle.doHandle(key);
 					} catch (Throwable e) {
+						// Run Handle. 必须捕捉所有异常。
 						if (handle != null) {
 							try {
 								handle.doException(key, e);
 							} catch (Throwable e3) {
+								// Skip. 必须捕捉所有异常。
 								logger.error("Selector.run", e);
 								logger.error("SelectorHandle.doException: {}", e, e3);
 							}
@@ -218,11 +220,13 @@ public class Selector extends Thread implements ByteBufferAllocator {
 						try {
 							key.channel().close();
 						} catch (Throwable e2) {
+							// Skip. 必须捕捉所有异常。
 							logger.error("SocketChannel.close", e2);
 						}
 					}
 				}, selectTimeout);
 			} catch (Throwable e) {
+				// ??? 必须捕捉所有异常。
 				logger.error("Selector.run", e);
 			}
 		}

@@ -76,6 +76,7 @@ public class Procedure {
 			currentT.rollback();
 			throw e;
 		} catch (Throwable e) {
+			// procedure . exception to return.
 			currentT.rollback();
 			if (e instanceof AssertionError)
 				throw e;

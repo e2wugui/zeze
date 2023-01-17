@@ -76,6 +76,7 @@ public final class Agent extends AbstractAgent {
 				new Register(info).SendAndWaitCheckResultCode(client.getSocket());
 				logger.debug("RegisterService {}", info);
 			} catch (Throwable e) {
+				// rollback.
 				registers.remove(info, info); // rollback
 				throw e;
 			}
@@ -92,6 +93,7 @@ public final class Agent extends AbstractAgent {
 			try {
 				new UnRegister(info).SendAndWaitCheckResultCode(client.getSocket());
 			} catch (Throwable e) {
+				// rollback.
 				registers.putIfAbsent(exist, exist); // rollback
 				throw e;
 			}
@@ -115,6 +117,7 @@ public final class Agent extends AbstractAgent {
 				r.SendAndWaitCheckResultCode(client.getSocket());
 				logger.debug("SubscribeService {}", info);
 			} catch (Throwable ex) {
+				// rollback.
 				subscribeStates.remove(info.getServiceName()); // rollback
 				throw ex;
 			}
@@ -133,6 +136,7 @@ public final class Agent extends AbstractAgent {
 				r.SendAndWaitCheckResultCode(client.getSocket());
 				logger.debug("UnSubscribeService {}", state.subscribeInfo);
 			} catch (Throwable e) {
+				// rollback.
 				subscribeStates.putIfAbsent(serviceName, state); // rollback
 				throw e;
 			}
@@ -175,7 +179,8 @@ public final class Agent extends AbstractAgent {
 		for (var e : registers.keySet()) {
 			try {
 				new Register(e).SendAndWaitCheckResultCode(client.getSocket());
-			} catch (Throwable ex) {
+			} catch (Exception ex) {
+				// skip and continue.
 				logger.debug("OnConnected.Register={}", e, ex);
 			}
 		}
@@ -185,7 +190,8 @@ public final class Agent extends AbstractAgent {
 				var r = new Subscribe();
 				r.Argument = e.subscribeInfo;
 				r.SendAndWaitCheckResultCode(client.getSocket());
-			} catch (Throwable ex) {
+			} catch (Exception ex) {
+				// skip and continue.
 				logger.debug("OnConnected.Subscribe={}", e.subscribeInfo, ex);
 			}
 		}
@@ -257,6 +263,7 @@ public final class Agent extends AbstractAgent {
 				try {
 					onSetServerLoad.run(setServerLoad.Argument);
 				} catch (Throwable e) {
+					// run handle.
 					logger.error("", e);
 				}
 			});
@@ -276,6 +283,7 @@ public final class Agent extends AbstractAgent {
 			}
 			r.trySendResultCode(2);
 		} catch (Throwable ignored) {
+			// rpc response any.
 			r.trySendResultCode(3);
 		}
 		return 0;
@@ -337,7 +345,7 @@ public final class Agent extends AbstractAgent {
 	public void close() throws IOException {
 		try {
 			stop();
-		} catch (Throwable e) {
+		} catch (Exception e) {
 			throw new IOException(e);
 		}
 	}

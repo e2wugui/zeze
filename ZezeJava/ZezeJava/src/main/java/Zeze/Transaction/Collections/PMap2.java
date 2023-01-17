@@ -214,6 +214,8 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 				value.decode(bb);
 				put(key, value);
 			}
+		} catch (RuntimeException | Error e) {
+			throw e;
 		} catch (Throwable e) {
 			throw new RuntimeException(e);
 		}

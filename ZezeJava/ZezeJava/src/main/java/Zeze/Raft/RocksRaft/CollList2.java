@@ -181,6 +181,8 @@ public class CollList2<V extends Bean> extends CollList<V> {
 			V value;
 			try {
 				value = (V)valueFactory.invoke();
+			} catch (RuntimeException | Error e) {
+				throw e;
 			} catch (Throwable e) {
 				throw new RuntimeException(e);
 			}
