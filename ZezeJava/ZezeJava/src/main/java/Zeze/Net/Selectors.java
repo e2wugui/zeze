@@ -17,18 +17,35 @@ public class Selectors {
 		return InstanceHolder.instance;
 	}
 
-	public static final int DEFAULT_BBPOOL_BLOCK_SIZE = 32 * 1024; // 单个buffer的字节容量,推荐等于Socket.getSendBufferSize()
-	public static final int DEFAULT_BBPOOL_LOCAL_CAPACITY = 1000; // 本地池的最大保留buffer数量
-	public static final int DEFAULT_BBPOOL_MOVE_COUNT = 1000; // 本地池和全局池之间移动一次的buffer数量
-	public static final int DEFAULT_BBPOOL_GLOBAL_CAPACITY = 100 * DEFAULT_BBPOOL_MOVE_COUNT; // 全局池的最大buffer数量
-	public static final int DEFAULT_SELECT_TIMEOUT = 0; // 0表示无超时,>0表示每次select的超时毫秒数
-	public static final int DEFAULT_READ_BUFFER_SIZE = 32 * 1024; // 读buffer的字节容量
+	public static final class Config {
+		public int bbPoolBlockSize = 32 * 1024; // 单个buffer的字节容量,推荐等于Socket.getSendBufferSize()
+		public int bbPoolLocalCapacity = 1000; // 本地池的最大保留buffer数量
+		public int bbPoolMoveCount = 1000; // 本地池和全局池之间移动一次的buffer数量
+		public int bbPoolGlobalCapacity = 100 * bbPoolMoveCount; // 全局池的最大buffer数量
+		public int selectTimeout; // 0表示无超时,>0表示每次select的超时毫秒数,-1表示无超时且异步wakeup
+		public int readBufferSize = 32 * 1024; // 读buffer的字节容量
+
+		void check() {
+			if (bbPoolBlockSize <= 0)
+				throw new IllegalArgumentException("bbPoolBlockSize <= 0: " + bbPoolBlockSize);
+			if (bbPoolLocalCapacity < 0)
+				throw new IllegalArgumentException("bbPoolLocalCapacity < 0: " + bbPoolLocalCapacity);
+			if (bbPoolMoveCount <= 0)
+				throw new IllegalArgumentException("bbPoolMoveCount <= 0: " + bbPoolMoveCount);
+			if (bbPoolGlobalCapacity < 0)
+				throw new IllegalArgumentException("bbPoolGlobalCapacity < 0: " + bbPoolGlobalCapacity);
+			if (selectTimeout < -1)
+				throw new IllegalArgumentException("selectTimeout < -1: " + selectTimeout);
+			if (readBufferSize <= 0)
+				throw new IllegalArgumentException("readBufferSize <= 0: " + readBufferSize);
+		}
+	}
 
 	private final String name;
 	private final int bbPoolBlockSize;
-	private final int bbPoolGlobalCapacity;
 	private final int bbPoolLocalCapacity;
 	private final int bbPoolMoveCount;
+	private final int bbPoolGlobalCapacity;
 	private final int selectTimeout;
 	private final int readBufferSize;
 	private final ArrayList<ByteBuffer> bbGlobalPool = new ArrayList<>(); // 全局池
@@ -37,48 +54,24 @@ public class Selectors {
 	private final AtomicLong choiceCount = new AtomicLong();
 
 	public Selectors(String name) {
-		this(name, 1, DEFAULT_BBPOOL_BLOCK_SIZE, DEFAULT_BBPOOL_LOCAL_CAPACITY, DEFAULT_BBPOOL_MOVE_COUNT,
-				DEFAULT_BBPOOL_GLOBAL_CAPACITY, DEFAULT_SELECT_TIMEOUT, DEFAULT_READ_BUFFER_SIZE);
+		this(name, 1, null);
 	}
 
-	public Selectors(String name, int count, int bbPoolBlockSize, int bbPoolLocalCapacity, int bbPoolMoveCount) {
-		this(name, count, bbPoolBlockSize, bbPoolLocalCapacity, bbPoolMoveCount, DEFAULT_BBPOOL_GLOBAL_CAPACITY,
-				DEFAULT_SELECT_TIMEOUT, DEFAULT_READ_BUFFER_SIZE);
+	public Selectors(String name, int count) {
+		this(name, count, null);
 	}
 
-	public Selectors(String name, int count, int bbPoolBlockSize, int bbPoolLocalCapacity, int bbPoolMoveCount,
-					 int selectTimeout) {
-		this(name, count, bbPoolBlockSize, bbPoolLocalCapacity, bbPoolMoveCount, DEFAULT_BBPOOL_GLOBAL_CAPACITY,
-				selectTimeout, DEFAULT_READ_BUFFER_SIZE);
-	}
-
-	public Selectors(String name, int count, int bbPoolBlockSize, int bbPoolLocalCapacity, int bbPoolMoveCount,
-					 int bbPoolGlobalCapacity, int selectTimeout) {
-		this(name, count, bbPoolBlockSize, bbPoolLocalCapacity, bbPoolMoveCount, bbPoolGlobalCapacity,
-				selectTimeout, DEFAULT_READ_BUFFER_SIZE);
-	}
-
-	public Selectors(String name, int count, int bbPoolBlockSize, int bbPoolLocalCapacity, int bbPoolMoveCount,
-					 int bbPoolGlobalCapacity, int selectTimeout, int readBufferSize) {
-		if (bbPoolBlockSize <= 0)
-			throw new IllegalArgumentException("bbPoolBlockSize <= 0: " + bbPoolBlockSize);
-		if (bbPoolLocalCapacity < 0)
-			throw new IllegalArgumentException("bbPoolLocalCapacity < 0: " + bbPoolLocalCapacity);
-		if (bbPoolMoveCount <= 0)
-			throw new IllegalArgumentException("bbPoolMoveCount <= 0: " + bbPoolMoveCount);
-		if (bbPoolGlobalCapacity < 0)
-			throw new IllegalArgumentException("bbPoolGlobalCapacity < 0: " + bbPoolGlobalCapacity);
-		if (selectTimeout < -1)
-			throw new IllegalArgumentException("selectTimeout < -1: " + selectTimeout);
-		if (readBufferSize <= 0)
-			throw new IllegalArgumentException("readBufferSize <= 0: " + readBufferSize);
+	public Selectors(String name, int count, Config config) {
 		this.name = name;
-		this.bbPoolBlockSize = bbPoolBlockSize;
-		this.bbPoolLocalCapacity = bbPoolLocalCapacity;
-		this.bbPoolMoveCount = bbPoolMoveCount;
-		this.bbPoolGlobalCapacity = bbPoolGlobalCapacity;
-		this.selectTimeout = selectTimeout;
-		this.readBufferSize = readBufferSize;
+		if (config == null)
+			config = new Config();
+		config.check();
+		bbPoolBlockSize = config.bbPoolBlockSize;
+		bbPoolLocalCapacity = config.bbPoolLocalCapacity;
+		bbPoolMoveCount = config.bbPoolMoveCount;
+		bbPoolGlobalCapacity = config.bbPoolGlobalCapacity;
+		selectTimeout = config.selectTimeout;
+		readBufferSize = config.readBufferSize;
 		add(count);
 	}
 
@@ -121,7 +114,7 @@ public class Selectors {
 	public Selectors add(int count) {
 		try {
 			Selector[] tmp = selectorList;
-			tmp = tmp == null ? new Selector[count] : Arrays.copyOf(tmp, tmp.length + count);
+			tmp = tmp == null ? new Selector[count = Math.max(count, 0)] : Arrays.copyOf(tmp, tmp.length + count);
 			for (int i = tmp.length - count; i < tmp.length; i++) {
 				tmp[i] = new Selector(this, name + '-' + i);
 				tmp[i].start();
