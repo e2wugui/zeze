@@ -40,7 +40,7 @@ DatabaseDynamoDb 还需测试。
 过载保护；更多。
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/1/27 v1.1.6 DelayRemove; LinkedMap; TaskOneByOneByKey; LinkdProvider.ProcessSendRequest Async;
+2023/1/28 v1.1.6 DelayRemove; LinkedMap; TaskOneByOneByKey; LinkdProvider.ProcessSendRequest Async;
 ------------------------------------------------------------------------------------------------------------------------------
 BUG DelayRemove 每个Application只需要创建本ServerId的实例。
 DelayRemove 增加延迟立即执行任务；
