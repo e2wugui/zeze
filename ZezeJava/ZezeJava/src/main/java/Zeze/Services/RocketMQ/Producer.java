@@ -18,11 +18,11 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 public class Producer extends AbstractProducer {
 
 	private static final Logger logger = LogManager.getLogger(Producer.class);
-	public final Zeze.Application Zeze;
+	public final Zeze.Application zeze;
 	private TransactionMQProducer producer;
 
 	public Producer(Zeze.Application zeze) {
-		Zeze = zeze;
+		this.zeze = zeze;
 		RegisterZezeTables(zeze);
 	}
 
@@ -76,7 +76,7 @@ public class Producer extends AbstractProducer {
 		public LocalTransactionState checkLocalTransaction(MessageExt msg) {
 			var checkResult = new OutInt(0);
 			try {
-				Zeze.newProcedure(() -> {
+				zeze.newProcedure(() -> {
 					String transactionId = msg.getTransactionId();
 					var result = _tSent.get(transactionId);
 					if (null != result && result.isResult())
