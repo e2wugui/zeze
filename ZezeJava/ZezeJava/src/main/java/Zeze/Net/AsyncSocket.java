@@ -610,7 +610,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	 *    考虑清楚以后去掉while(true)？
 	 */
 	private void doWrite(SocketChannel sc) throws Throwable { // 只在selector线程调用
-		int blockSize = selector.getSelectors().getBufferSize();
+		int blockSize = selector.getSelectors().getBbPoolBlockSize();
 		int bufSize = outputBuffer.size();
 		while (true) {
 			for (Action0 op; /*bufSize < blockSize * 2 &&*/ (op = operates.poll()) != null; ) {
@@ -622,7 +622,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				// 减慢flush频率，
 				// 在保持底层outputBuffer.writeTo能满载的情况下，尽量缓冲住Chain里面的数据。
 				// 这使得某些Chain算法比如Zstd能大块的工作，具有更高的效率。
-				if (outputBuffer.size() <= blockSize) {
+				if (bufSize < blockSize) {
 					codec.flush();
 					int newBufSize = outputBuffer.size();
 					int deltaLen = newBufSize - bufSize;

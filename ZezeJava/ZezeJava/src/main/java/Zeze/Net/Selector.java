@@ -68,7 +68,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 			}
 			n = bbPool.size();
 		}
-		return n > 0 ? bbPool.remove(n - 1) : ByteBuffer.allocateDirect(selectors.getBufferSize());
+		return n > 0 ? bbPool.remove(n - 1) : ByteBuffer.allocateDirect(selectors.getBbPoolBlockSize());
 	}
 
 	@Override

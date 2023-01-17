@@ -17,7 +17,7 @@ public class Selectors {
 		return InstanceHolder.instance;
 	}
 
-	public static final int DEFAULT_BUFFER_SIZE = 32 * 1024; // 单个buffer的字节容量
+	public static final int DEFAULT_BBPOOL_BLOCK_SIZE = 32 * 1024; // 单个buffer的字节容量,推荐等于Socket.getSendBufferSize()
 	public static final int DEFAULT_BBPOOL_LOCAL_CAPACITY = 1000; // 本地池的最大保留buffer数量
 	public static final int DEFAULT_BBPOOL_MOVE_COUNT = 1000; // 本地池和全局池之间移动一次的buffer数量
 	public static final int DEFAULT_BBPOOL_GLOBAL_CAPACITY = 100 * DEFAULT_BBPOOL_MOVE_COUNT; // 全局池的最大buffer数量
@@ -25,7 +25,7 @@ public class Selectors {
 	public static final int DEFAULT_READ_BUFFER_SIZE = 32 * 1024; // 读buffer的字节容量
 
 	private final String name;
-	private final int bufferSize;
+	private final int bbPoolBlockSize;
 	private final int bbPoolGlobalCapacity;
 	private final int bbPoolLocalCapacity;
 	private final int bbPoolMoveCount;
@@ -37,31 +37,31 @@ public class Selectors {
 	private final AtomicLong choiceCount = new AtomicLong();
 
 	public Selectors(String name) {
-		this(name, 1, DEFAULT_BUFFER_SIZE, DEFAULT_BBPOOL_LOCAL_CAPACITY, DEFAULT_BBPOOL_MOVE_COUNT,
+		this(name, 1, DEFAULT_BBPOOL_BLOCK_SIZE, DEFAULT_BBPOOL_LOCAL_CAPACITY, DEFAULT_BBPOOL_MOVE_COUNT,
 				DEFAULT_BBPOOL_GLOBAL_CAPACITY, DEFAULT_SELECT_TIMEOUT, DEFAULT_READ_BUFFER_SIZE);
 	}
 
-	public Selectors(String name, int count, int bufferSize, int bbPoolLocalCapacity, int bbPoolMoveCount) {
-		this(name, count, bufferSize, bbPoolLocalCapacity, bbPoolMoveCount, DEFAULT_BBPOOL_GLOBAL_CAPACITY,
+	public Selectors(String name, int count, int bbPoolBlockSize, int bbPoolLocalCapacity, int bbPoolMoveCount) {
+		this(name, count, bbPoolBlockSize, bbPoolLocalCapacity, bbPoolMoveCount, DEFAULT_BBPOOL_GLOBAL_CAPACITY,
 				DEFAULT_SELECT_TIMEOUT, DEFAULT_READ_BUFFER_SIZE);
 	}
 
-	public Selectors(String name, int count, int bufferSize, int bbPoolLocalCapacity, int bbPoolMoveCount,
+	public Selectors(String name, int count, int bbPoolBlockSize, int bbPoolLocalCapacity, int bbPoolMoveCount,
 					 int selectTimeout) {
-		this(name, count, bufferSize, bbPoolLocalCapacity, bbPoolMoveCount, DEFAULT_BBPOOL_GLOBAL_CAPACITY,
+		this(name, count, bbPoolBlockSize, bbPoolLocalCapacity, bbPoolMoveCount, DEFAULT_BBPOOL_GLOBAL_CAPACITY,
 				selectTimeout, DEFAULT_READ_BUFFER_SIZE);
 	}
 
-	public Selectors(String name, int count, int bufferSize, int bbPoolLocalCapacity, int bbPoolMoveCount,
+	public Selectors(String name, int count, int bbPoolBlockSize, int bbPoolLocalCapacity, int bbPoolMoveCount,
 					 int bbPoolGlobalCapacity, int selectTimeout) {
-		this(name, count, bufferSize, bbPoolLocalCapacity, bbPoolMoveCount, bbPoolGlobalCapacity,
+		this(name, count, bbPoolBlockSize, bbPoolLocalCapacity, bbPoolMoveCount, bbPoolGlobalCapacity,
 				selectTimeout, DEFAULT_READ_BUFFER_SIZE);
 	}
 
-	public Selectors(String name, int count, int bufferSize, int bbPoolLocalCapacity, int bbPoolMoveCount,
+	public Selectors(String name, int count, int bbPoolBlockSize, int bbPoolLocalCapacity, int bbPoolMoveCount,
 					 int bbPoolGlobalCapacity, int selectTimeout, int readBufferSize) {
-		if (bufferSize <= 0)
-			throw new IllegalArgumentException("bufferSize <= 0: " + bufferSize);
+		if (bbPoolBlockSize <= 0)
+			throw new IllegalArgumentException("bbPoolBlockSize <= 0: " + bbPoolBlockSize);
 		if (bbPoolLocalCapacity < 0)
 			throw new IllegalArgumentException("bbPoolLocalCapacity < 0: " + bbPoolLocalCapacity);
 		if (bbPoolMoveCount <= 0)
@@ -73,7 +73,7 @@ public class Selectors {
 		if (readBufferSize <= 0)
 			throw new IllegalArgumentException("readBufferSize <= 0: " + readBufferSize);
 		this.name = name;
-		this.bufferSize = bufferSize;
+		this.bbPoolBlockSize = bbPoolBlockSize;
 		this.bbPoolLocalCapacity = bbPoolLocalCapacity;
 		this.bbPoolMoveCount = bbPoolMoveCount;
 		this.bbPoolGlobalCapacity = bbPoolGlobalCapacity;
@@ -82,8 +82,8 @@ public class Selectors {
 		add(count);
 	}
 
-	public int getBufferSize() {
-		return bufferSize;
+	public int getBbPoolBlockSize() {
+		return bbPoolBlockSize;
 	}
 
 	public int getBbPoolLocalCapacity() {

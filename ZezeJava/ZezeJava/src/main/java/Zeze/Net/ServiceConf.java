@@ -10,7 +10,6 @@ import Zeze.Services.HandshakeOptions;
 import Zeze.Util.Action1;
 import Zeze.Util.IntHashSet;
 import Zeze.Util.OutObject;
-import org.apache.logging.log4j.Level;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -189,10 +188,6 @@ public final class ServiceConf {
 		if (attr.length() > 0) {
 			getSocketOptions().setReceiveBuffer(Integer.parseInt(attr));
 		}
-		attr = self.getAttribute("InputBufferSize");
-		if (attr.length() > 0) {
-			getSocketOptions().setInputBufferSize(Integer.parseInt(attr));
-		}
 		attr = self.getAttribute("InputBufferMaxProtocolSize");
 		if (attr.length() > 0) {
 			getSocketOptions().setInputBufferMaxProtocolSize(Integer.parseInt(attr));
@@ -204,10 +199,6 @@ public final class ServiceConf {
 		attr = self.getAttribute("Backlog");
 		if (attr.length() > 0) {
 			getSocketOptions().setBacklog(Integer.parseInt(attr));
-		}
-		attr = self.getAttribute("SocketLogLevel");
-		if (attr.length() > 0) {
-			getSocketOptions().setSocketLogLevel(Level.toLevel(attr));
 		}
 		// HandshakeOptions
 		attr = self.getAttribute("DhGroups");
