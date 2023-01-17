@@ -20,6 +20,11 @@ public class Consumer {
 		consumer.setMessageListener(messageListener);
 	}
 
+	// 需要在start之前注册监听器。
+	public void subscribe(String topic, String subExpression) throws MQClientException {
+		consumer.subscribe(topic, subExpression);
+	}
+
 	public void start() throws MQClientException {
 		consumer.start();
 	}

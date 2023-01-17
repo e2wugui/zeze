@@ -27,7 +27,6 @@ public class TestRocketMQ {
 
 	@Test
 	public void testProducer() throws Throwable {
-		// todo，@项洋呈 自动读取配置还是可以手动在代码里配置一下。
 		var clientConfig = new ClientConfig();
 		App.Instance.RocketMQProducer.start("testRocketMQ", clientConfig);
 		var consumer = new Consumer(App.Instance.Zeze, "testRocketMQ", clientConfig);
@@ -46,7 +45,7 @@ public class TestRocketMQ {
 				return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
 			}
 		});
-		consumer.getConsumer().subscribe("topic2", "*");
+		consumer.subscribe("topic2", "*");
 		consumer.start();
 
 		try {
