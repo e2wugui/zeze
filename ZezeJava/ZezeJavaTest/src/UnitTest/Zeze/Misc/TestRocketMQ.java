@@ -1,6 +1,7 @@
 package UnitTest.Zeze.Misc;
 
 import java.nio.charset.StandardCharsets;
+import Zeze.Services.RocketMQ.Consumer;
 import demo.App;
 import org.apache.rocketmq.client.ClientConfig;
 import org.junit.After;
@@ -25,31 +26,35 @@ public class TestRocketMQ {
 		// todo，@项洋呈 自动读取配置还是可以手动在代码里配置一下。
 		var clientConfig = new ClientConfig();
 		App.Instance.RocketMQProducer.start("testRocketMQ", clientConfig);
-		App.Instance.RocketMQConsumer.start("testRocketMQ", clientConfig);
+		var consumer = new Consumer(App.Instance.Zeze, "testRocketMQ", clientConfig);
 
-		// 发送普通消息
-		{
-			var msg = new org.apache.rocketmq.common.message.Message();
-			msg.setBody("body".getBytes(StandardCharsets.UTF_8));
-			msg.setTransactionId("1");
-			msg.setTopic("topic");
-
-			App.Instance.RocketMQProducer.sendMessage(msg);
-			// todo, @项洋呈 订阅消息，验证消息收到。
-			// App.Instance.RocketMQConsumer.getConsumer().
-		}
-		// 发送事务消息
-		{
-			App.Instance.Zeze.newProcedure(() -> {
+		try {
+			// 发送普通消息
+			{
 				var msg = new org.apache.rocketmq.common.message.Message();
-				msg.setBody("body2".getBytes(StandardCharsets.UTF_8));
-				msg.setTransactionId("2");
-				msg.setTopic("topic2");
-				App.Instance.RocketMQProducer.sendMessageInTransaction(msg);
-				return 0;
-			}, "").call();
-			// todo, @项洋呈 订阅消息，验证消息收到。
-			// App.Instance.RocketMQConsumer.getConsumer().
+				msg.setBody("body".getBytes(StandardCharsets.UTF_8));
+				msg.setTransactionId("1");
+				msg.setTopic("topic");
+
+				App.Instance.RocketMQProducer.sendMessage(msg);
+				// todo, @项洋呈 订阅消息，验证消息收到。
+				//consumer.setMessageListener();
+			}
+			// 发送事务消息
+			{
+				App.Instance.Zeze.newProcedure(() -> {
+					var msg = new org.apache.rocketmq.common.message.Message();
+					msg.setBody("body2".getBytes(StandardCharsets.UTF_8));
+					msg.setTransactionId("2");
+					msg.setTopic("topic2");
+					App.Instance.RocketMQProducer.sendMessageInTransaction(msg);
+					return 0;
+				}, "").call();
+				// todo, @项洋呈 订阅消息，验证消息收到。
+				// App.Instance.RocketMQConsumer.getConsumer().
+			}
+		} finally {
+			consumer.stop();
 		}
 	}
 }

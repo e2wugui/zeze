@@ -2,19 +2,25 @@ package Zeze.Services.RocketMQ;
 
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
+import org.apache.rocketmq.client.consumer.listener.MessageListener;
 import org.apache.rocketmq.client.exception.MQClientException;
 
 public class Consumer {
 	public final Zeze.Application zeze;
-	private DefaultMQPushConsumer consumer;
+	private final DefaultMQPushConsumer consumer;
 
-	public Consumer(Zeze.Application zeze) {
+	public Consumer(Zeze.Application zeze, String consumerGroup, ClientConfig clientConfig) {
 		this.zeze = zeze; // 保持一致的构造，先记住，以后可能有用。
-	}
-
-	public void start(String consumerGroup, ClientConfig clientConfig) throws MQClientException {
 		consumer = new DefaultMQPushConsumer(consumerGroup);
 		consumer.setNamesrvAddr(clientConfig.getNamesrvAddr());
+	}
+
+	// 需要在start之前注册监听器。
+	public void setMessageListener(MessageListener messageListener) {
+		consumer.setMessageListener(messageListener);
+	}
+
+	public void start() throws MQClientException {
 		consumer.start();
 	}
 
