@@ -27,27 +27,29 @@ public class TestRocketMQ {
 		App.Instance.RocketMQProducer.start("testRocketMQ", clientConfig);
 		App.Instance.RocketMQConsumer.start("testRocketMQ", clientConfig);
 
-		var msg = new org.apache.rocketmq.common.message.Message();
-		msg.setBody("body".getBytes(StandardCharsets.UTF_8));
-		msg.setTransactionId("1");
-		msg.setTopic("topic");
-
 		// 发送普通消息
-		App.Instance.RocketMQProducer.sendMessage(msg);
-		// todo, @项洋呈 订阅消息，验证消息收到。
-		// App.Instance.RocketMQConsumer.getConsumer().
+		{
+			var msg = new org.apache.rocketmq.common.message.Message();
+			msg.setBody("body".getBytes(StandardCharsets.UTF_8));
+			msg.setTransactionId("1");
+			msg.setTopic("topic");
 
+			App.Instance.RocketMQProducer.sendMessage(msg);
+			// todo, @项洋呈 订阅消息，验证消息收到。
+			// App.Instance.RocketMQConsumer.getConsumer().
+		}
 		// 发送事务消息
-		App.Instance.Zeze.newProcedure(() -> {
-			var msg2 = new org.apache.rocketmq.common.message.Message();
-			msg2.setBody("body2".getBytes(StandardCharsets.UTF_8));
-			msg2.setTransactionId("2");
-			msg2.setTopic("topic2");
-			App.Instance.RocketMQProducer.sendMessageInTransaction(msg2);
-			return 0;
-		}, "").call();
-
-		// todo, @项洋呈 订阅消息，验证消息收到。
-		// App.Instance.RocketMQConsumer.getConsumer().
+		{
+			App.Instance.Zeze.newProcedure(() -> {
+				var msg = new org.apache.rocketmq.common.message.Message();
+				msg.setBody("body2".getBytes(StandardCharsets.UTF_8));
+				msg.setTransactionId("2");
+				msg.setTopic("topic2");
+				App.Instance.RocketMQProducer.sendMessageInTransaction(msg);
+				return 0;
+			}, "").call();
+			// todo, @项洋呈 订阅消息，验证消息收到。
+			// App.Instance.RocketMQConsumer.getConsumer().
+		}
 	}
 }
