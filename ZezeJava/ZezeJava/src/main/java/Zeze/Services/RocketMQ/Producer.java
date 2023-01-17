@@ -38,10 +38,24 @@ public class Producer extends AbstractProducer {
 			producer.shutdown();
 	}
 
+	/**
+	 * 发送消息，并且把消息跟一个事务绑定起来。仅当事务执行成功时，消息才会被发送。如果事务回滚，消息将被取消。
+	 * @param msg message
+	 * @param procedureAction procedure action
+	 * @throws MQClientException send exception
+	 */
 	public void sendMessageWithTransaction(Message msg, FuncLong procedureAction) throws MQClientException {
 		producer.sendMessageInTransaction(msg, procedureAction);
 	}
 
+	/**
+	 * 发送普通消息。没有相关事务。
+	 * @param msg message
+	 * @throws MQBrokerException send exception
+	 * @throws RemotingException send exception
+	 * @throws InterruptedException send exception
+	 * @throws MQClientException send exception
+	 */
 	public void sendMessage(Message msg) throws MQBrokerException, RemotingException, InterruptedException, MQClientException {
 		producer.send(msg);
 	}

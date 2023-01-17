@@ -40,7 +40,7 @@ DatabaseDynamoDb 还需测试。
 过载保护；更多。
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/1/28 v1.1.6 DelayRemove; LinkedMap; TaskOneByOneByKey; LinkdProvider.ProcessSendRequest Async;
+2023/1/28 v1.1.6 DelayRemove; LinkedMap; TaskOneByOneByKey; LinkdProvider.ProcessSendRequest Async; RocketMQ;
 ------------------------------------------------------------------------------------------------------------------------------
 BUG DelayRemove 每个Application只需要创建本ServerId的实例。
 DelayRemove 增加延迟立即执行任务；
@@ -54,6 +54,7 @@ TaskOneByOneByKey.executeBatch
 	2. 整体操作复杂了，但是cpu交给了其他线程执行。
 二、AsyncSocket.send.wakeup 放到其他线程执行。【不实现】
 	1. 增加了整体复杂读，减轻直接调用者的开销。增加了一次线程唤醒的开销。
+RocketMQ;
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/1/13 v1.1.5 TaskOneByOneByKey Performance; CommandConsole; Task; Table.walkDesc; New Handshake;

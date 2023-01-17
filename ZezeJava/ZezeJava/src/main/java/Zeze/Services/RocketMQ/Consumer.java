@@ -15,12 +15,22 @@ public class Consumer {
 		consumer.setNamesrvAddr(clientConfig.getNamesrvAddr());
 	}
 
-	// 需要在start之前注册监听器。
+	/**
+	 * 注册消息处理器。
+	 * 需要在start之前注册监听器。
+	 * @param messageListener listener
+	 */
 	public void setMessageListener(MessageListener messageListener) {
 		consumer.setMessageListener(messageListener);
 	}
 
-	// 需要在start之前注册监听器。
+	/**
+	 * 订阅消息。
+	 * 需要在start之前调用。
+	 * @param topic 主题
+	 * @param subExpression 过滤器
+	 * @throws MQClientException exception
+	 */
 	public void subscribe(String topic, String subExpression) throws MQClientException {
 		consumer.subscribe(topic, subExpression);
 	}
