@@ -3,6 +3,8 @@ package Zeze.Util;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Transaction.DispatchMode;
@@ -117,6 +119,30 @@ public final class TaskOneByOneByKey {
 		var barrier = new Barrier(procedure, keys.size(), cancel);
 		for (var key : keys)
 			Execute(key, barrier::reach, barrier.procedure.getActionName(), barrier::cancel, mode);
+	}
+
+	public static class Batch<T> {
+		private final AtomicInteger keysCount;
+		private final Action1<T> action;
+		private final Action0 batchEnd;
+
+		public Batch(Collection<T> keys, Action1<T> action, Action0 batchEnd) {
+			this.keysCount = new AtomicInteger(keys.size());
+			this.action = action;
+			this.batchEnd = batchEnd;
+		}
+
+		public void run(T key) throws Throwable {
+			action.run(key);
+			if (keysCount.decrementAndGet() == 0)
+				batchEnd.run();
+		}
+	}
+
+	public <T> void executeBatch(Collection<T> keys, Action1<T> action, Action0 batchEnd, DispatchMode mode) {
+		var batch = new Batch<T>(keys, action, batchEnd);
+		for (var key : keys)
+			Execute(key, () -> batch.run(key), mode);
 	}
 
 	public void Execute(Object key, Action0 action) {

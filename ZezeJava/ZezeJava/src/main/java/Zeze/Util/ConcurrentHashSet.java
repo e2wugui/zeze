@@ -1,5 +1,6 @@
 package Zeze.Util;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -23,5 +24,10 @@ public class ConcurrentHashSet<T> extends ConcurrentHashMap<T, Object> implement
 	@Override
 	public String toString() {
 		return keySet().toString();
+	}
+
+	public void addAll(Collection<T> colls) {
+		for (var e : colls)
+			add(e);
 	}
 }
