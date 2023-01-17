@@ -295,9 +295,12 @@ public class LinkdProvider extends AbstractLinkdProvider {
 					link.close();
 				if (enableDump)
 					tryDump(link, pdata);
-			} else
-				r.Result.getErrorLinkSids().add(linkSid);
-		}, () -> r.SendResult(), DispatchMode.Normal);
+			} else {
+				synchronized (r) {
+					r.Result.getErrorLinkSids().add(linkSid);
+				}
+			}
+		}, r::SendResult, DispatchMode.Normal);
 		return Procedure.Success;
 	}
 
