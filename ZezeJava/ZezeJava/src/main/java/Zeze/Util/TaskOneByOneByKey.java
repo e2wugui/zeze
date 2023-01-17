@@ -126,8 +126,8 @@ public final class TaskOneByOneByKey {
 		private final Action1<T> action;
 		private final Action0 batchEnd;
 
-		public Batch(Collection<T> keys, Action1<T> action, Action0 batchEnd) {
-			this.keysCount = new AtomicInteger(keys.size());
+		public Batch(int keysSize, Action1<T> action, Action0 batchEnd) {
+			this.keysCount = new AtomicInteger(keysSize);
 			this.action = action;
 			this.batchEnd = batchEnd;
 		}
@@ -140,9 +140,14 @@ public final class TaskOneByOneByKey {
 	}
 
 	public <T> void executeBatch(Collection<T> keys, Action1<T> action, Action0 batchEnd, DispatchMode mode) {
-		var batch = new Batch<T>(keys, action, batchEnd);
+		var batch = new Batch<>(keys.size(), action, batchEnd);
 		for (var key : keys)
 			Execute(key, () -> batch.run(key), mode);
+	}
+
+	public void executeBatch(LongList keys, Action1<Long> action, Action0 batchEnd, DispatchMode mode) {
+		var batch = new Batch<>(keys.size(), action, batchEnd);
+		keys.foreach((key) -> Execute(key, () -> batch.run(key), mode));
 	}
 
 	public void Execute(Object key, Action0 action) {

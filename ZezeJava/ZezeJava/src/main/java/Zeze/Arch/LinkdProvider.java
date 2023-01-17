@@ -20,6 +20,7 @@ import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutLong;
 
@@ -259,6 +260,8 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			dumpFile.write(pdata.bytesUnsafe(), pdata.getOffset(), pdata.size());
 	}
 
+	private TaskOneByOneByKey oneByOnesender = new TaskOneByOneByKey();
+
 	@Override
 	protected long ProcessSendRequest(Send r) throws IOException {
 		var ptype = r.Argument.getProtocolType();
@@ -268,6 +271,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "SENT[{}]: {}:{} [{}]", linkSids.dump(),
 					Protocol.getModuleId(ptype), Protocol.getProtocolId(ptype), pdata.size());
 		}
+		/*
 		for (int i = 0, n = linkSids.size(); i < n; i++) {
 			var linkSid = linkSids.get(i);
 			var link = linkdApp.linkdService.GetSocket(linkSid);
@@ -281,6 +285,18 @@ public class LinkdProvider extends AbstractLinkdProvider {
 				r.Result.getErrorLinkSids().add(linkSid);
 		}
 		r.SendResult();
+		/*/
+		oneByOnesender.executeBatch(linkSids, (linkSid) -> {
+			var link = linkdApp.linkdService.GetSocket(linkSid);
+			// ProtocolId现在是hash值，显示出来也不好看，以后加配置换成名字。
+			if (link != null) {
+				if (!link.Send(pdata))
+					link.close();
+				if (enableDump)
+					tryDump(link, pdata);
+			} else
+				r.Result.getErrorLinkSids().add(linkSid);
+		}, () -> r.SendResult(), DispatchMode.Normal);
 		return Procedure.Success;
 	}
 
