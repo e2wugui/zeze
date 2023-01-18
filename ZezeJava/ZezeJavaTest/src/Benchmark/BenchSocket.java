@@ -548,6 +548,7 @@ public class BenchSocket {
 		client.getConfig().addConnector(connector);
 		int maxOutputBufferSize = 200 * 1024 * 1024;
 		client.getSocketOptions().setOutputBufferMaxSize(maxOutputBufferSize);
+		maxOutputBufferSize -= 1024;
 
 		Zeze.Util.Task.tryInitThreadPool(null, null, null);
 
