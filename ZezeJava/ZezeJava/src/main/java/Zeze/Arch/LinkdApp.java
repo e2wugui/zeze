@@ -24,18 +24,19 @@ public class LinkdApp {
 	 * 自动创建，自动启动。
 	 * 真正要能工作，
 	 * 1. 需要配置 ServiceConf，如下：
+	 * <pre>
 	 * <ServiceConf Name="Zeze.Arch.CommandConsole">
 	 *     <Acceptor Ip="" Port="#PortNumber"/>
 	 * </ServiceConf>
-	 *
+	 * </pre>
 	 * 2. 需要调用 commandConsoleService.setCommandConsole 设置一个命令处理器进去。
-	 *    这个在最好在调用 LinkdApp.registerService 之前设置，这样命令行服务就准备好。
-	 *    也可以任意时候设置，但是新设置的命令处理仅在新接受的连接中生效。
+	 * 这个在最好在调用 LinkdApp.registerService 之前设置，这样命令行服务就准备好。
+	 * 也可以任意时候设置，但是新设置的命令处理仅在新接受的连接中生效。
 	 */
 	public final CommandConsoleService commandConsoleService;
 
 	public LinkdApp(String linkdServiceName, Zeze.Application zeze, LinkdProvider linkdProvider,
-					LinkdProviderService linkdProviderService, LinkdService linkdService, LoadConfig loadConfig) throws Exception {
+					LinkdProviderService linkdProviderService, LinkdService linkdService, LoadConfig loadConfig) {
 		this.linkdServiceName = linkdServiceName;
 		this.zeze = zeze;
 		this.linkdProvider = linkdProvider;

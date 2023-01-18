@@ -147,7 +147,7 @@ public class App extends Zeze.AppBase {
         Zeze = new Zeze.Application("server", config);
     }
 
-    public synchronized void createService() throws Exception {
+    public synchronized void createService() {
         Server = new Zege.Server(Zeze);
         ServerDirect = new Zege.ServerDirect(Zeze);
     }

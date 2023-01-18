@@ -26,7 +26,7 @@ public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 	protected FileOutputStream dumpFile;
 	protected AsyncSocket dumpSocket;
 
-	public LinkdProviderService(String name, Zeze.Application zeze) throws Exception {
+	public LinkdProviderService(String name, Zeze.Application zeze) {
 		super(name, zeze);
 	}
 

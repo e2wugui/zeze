@@ -26,7 +26,7 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 	public final TaskCompletionSource<Boolean> providerStaticBindCompleted = new TaskCompletionSource<>();
 	public final TaskCompletionSource<Boolean> providerDynamicSubscribeCompleted = new TaskCompletionSource<>();
 
-	public ProviderService(String name, Zeze.Application zeze) throws Exception {
+	public ProviderService(String name, Zeze.Application zeze) {
 		super(name, zeze);
 	}
 
@@ -56,7 +56,7 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 	@Override
 	public void start() throws Exception {
 		// copy Config.Connector to Links
-		getConfig().ForEachConnector(c -> links.putIfAbsent(c.getName(), c));
+		getConfig().forEachConnector(c -> links.putIfAbsent(c.getName(), c));
 		super.start();
 	}
 

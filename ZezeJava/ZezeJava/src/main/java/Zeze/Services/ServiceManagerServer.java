@@ -837,7 +837,7 @@ public final class ServiceManagerServer implements Closeable {
 		private final ServiceManagerServer serviceManager;
 		private final TaskOneByOneByKey oneByOneByKey = new TaskOneByOneByKey();
 
-		public NetServer(ServiceManagerServer sm, Zeze.Config config) throws Exception {
+		public NetServer(ServiceManagerServer sm, Zeze.Config config) {
 			super("Zeze.Services.ServiceManager", config);
 			serviceManager = sm;
 		}

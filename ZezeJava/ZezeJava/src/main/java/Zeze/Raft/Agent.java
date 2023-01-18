@@ -286,9 +286,9 @@ public final class Agent {
 		Task.schedule(1000, 1000, this::resend);
 	}
 
-	private Connector getRandomConnector(Connector except) throws Exception {
+	private Connector getRandomConnector(Connector except) {
 		var notMe = new ArrayList<Connector>(client.getConfig().connectorCount());
-		client.getConfig().ForEachConnector(c -> {
+		client.getConfig().forEachConnector(c -> {
 			if (c != except)
 				notMe.add(c);
 		});
@@ -460,12 +460,12 @@ public final class Agent {
 	public static final class NetClient extends HandshakeClient {
 		private final Agent agent;
 
-		public NetClient(Agent agent, String name, Application zeze) throws Exception {
+		public NetClient(Agent agent, String name, Application zeze) {
 			super(name, zeze);
 			this.agent = agent;
 		}
 
-		public NetClient(Agent agent, String name, Zeze.Config config) throws Exception {
+		public NetClient(Agent agent, String name, Zeze.Config config) {
 			super(name, config);
 			this.agent = agent;
 		}

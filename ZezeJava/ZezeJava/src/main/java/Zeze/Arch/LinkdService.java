@@ -66,7 +66,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 	protected LinkdApp linkdApp;
 	protected ConcurrentLruLike<StableLinkSidKey, StableLinkSid> stableLinkSids;
 
-	public LinkdService(String name, Zeze.Application zeze) throws Exception {
+	public LinkdService(String name, Zeze.Application zeze) {
 		super(name, zeze);
 	}
 

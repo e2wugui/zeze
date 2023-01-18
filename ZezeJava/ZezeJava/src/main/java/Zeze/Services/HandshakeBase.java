@@ -39,11 +39,11 @@ public class HandshakeBase extends Service {
 	// For Client Only
 	private final LongConcurrentHashMap<Context> dhContext = new LongConcurrentHashMap<>();
 
-	public HandshakeBase(String name, Zeze.Config config) throws Exception {
+	public HandshakeBase(String name, Zeze.Config config) {
 		super(name, config);
 	}
 
-	public HandshakeBase(String name, Application app) throws Exception {
+	public HandshakeBase(String name, Application app) {
 		super(name, app);
 	}
 
@@ -62,7 +62,7 @@ public class HandshakeBase extends Service {
 	}
 
 	private long processCHandshakeDone(CHandshakeDone p) throws Exception {
-		p.getSender().VerifySecurity();
+		p.getSender().verifySecurity();
 		OnHandshakeDone(p.getSender());
 		return 0L;
 	}
@@ -126,7 +126,7 @@ public class HandshakeBase extends Service {
 			}
 			var s2c = serverCompressS2c(p.Argument.compressS2c);
 			var c2s = serverCompressC2s(p.Argument.compressC2s);
-			p.getSender().SetInputSecurityCodec(p.Argument.encryptType, inputKey, c2s);
+			p.getSender().setInputSecurityCodec(p.Argument.encryptType, inputKey, c2s);
 
 			var sHandshake = new Zeze.Services.Handshake.SHandshake();
 			sHandshake.Argument.encryptParam = response;
@@ -134,7 +134,7 @@ public class HandshakeBase extends Service {
 			sHandshake.Argument.compressC2s = c2s;
 			sHandshake.Argument.encryptType = p.Argument.encryptType;
 			sHandshake.Send(p.getSender());
-			p.getSender().SetOutputSecurityCodec(p.Argument.encryptType, outputKey, s2c);
+			p.getSender().setOutputSecurityCodec(p.Argument.encryptType, outputKey, s2c);
 
 			// 为了防止服务器在Handshake以后马上发送数据，
 			// 导致未加密数据和加密数据一起到达Client，这种情况很难处理。
@@ -193,10 +193,10 @@ public class HandshakeBase extends Service {
 					outputKey = Digest.hmacMd5(key, material, 0, half);
 					inputKey = Digest.hmacMd5(key, material, half, material.length - half);
 				}
-				p.getSender().SetOutputSecurityCodec(p.Argument.encryptType, outputKey, p.Argument.compressC2s);
-				p.getSender().SetInputSecurityCodec(p.Argument.encryptType, inputKey, p.Argument.compressS2c);
+				p.getSender().setOutputSecurityCodec(p.Argument.encryptType, outputKey, p.Argument.compressC2s);
+				p.getSender().setInputSecurityCodec(p.Argument.encryptType, inputKey, p.Argument.compressS2c);
 				(new Zeze.Services.Handshake.CHandshakeDone()).Send(p.getSender());
-				p.getSender().SubmitAction(() -> OnHandshakeDone(p.getSender())); // must after SetInputSecurityCodec and SetOutputSecurityCodec
+				p.getSender().submitAction(() -> OnHandshakeDone(p.getSender())); // must after SetInputSecurityCodec and SetOutputSecurityCodec
 				return 0;
 			}
 			p.getSender().close(new IllegalStateException("handshake lost context."));

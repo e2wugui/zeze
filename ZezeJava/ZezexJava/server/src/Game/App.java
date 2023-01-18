@@ -68,7 +68,7 @@ public final class App extends Zeze.AppBase {
 		}
 		if (providerDirectPort != -1) {
 			final int port = providerDirectPort;
-			config.getServiceConfMap().get("ServerDirect").ForEachAcceptor((a) -> a.setPort(port));
+			config.getServiceConfMap().get("ServerDirect").forEachAcceptor((a) -> a.setPort(port));
 		}
 		// create
 		createZeze(config);
@@ -149,7 +149,7 @@ public final class App extends Zeze.AppBase {
         Zeze = new Zeze.Application("server", config);
     }
 
-    public synchronized void createService() throws Exception {
+    public synchronized void createService() {
         Server = new Game.Server(Zeze);
         ServerDirect = new Game.ServerDirect(Zeze);
     }

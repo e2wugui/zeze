@@ -130,7 +130,7 @@ public class App extends Zeze.AppBase {
         Zeze = new Zeze.Application("linkd", config);
     }
 
-    public synchronized void createService() throws Exception {
+    public synchronized void createService() {
         LinkdService = new Zege.LinkdService(Zeze);
         ProviderService = new Zege.ProviderService(Zeze);
     }

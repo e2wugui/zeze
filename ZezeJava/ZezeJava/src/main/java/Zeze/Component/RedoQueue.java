@@ -37,7 +37,7 @@ public class RedoQueue extends Zeze.Services.HandshakeClient {
 		RocksDB.loadLibrary();
 	}
 
-	public RedoQueue(String name, Zeze.Config config) throws Exception {
+	public RedoQueue(String name, Zeze.Config config) {
 		super(name, config);
 	}
 

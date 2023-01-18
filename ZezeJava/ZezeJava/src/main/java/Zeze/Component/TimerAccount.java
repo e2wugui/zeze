@@ -19,8 +19,8 @@ import Zeze.Util.Task;
 /**
  * 1. schedule，scheduleNamed 完全重新实现一套基于内存表和内存的。
  * 2. 不直接使用 Timer.schedule。但有如下关联。
- *    直接使用 Timer.timerIdAutoKey，使得返回的timerId共享一个名字空间。
- *    直接使用 Timer.timersFuture，从 ThreadPool 返回的future保存在这里。
+ * 直接使用 Timer.timerIdAutoKey，使得返回的timerId共享一个名字空间。
+ * 直接使用 Timer.timersFuture，从 ThreadPool 返回的future保存在这里。
  */
 public class TimerAccount {
 	final Online online;
@@ -40,7 +40,7 @@ public class TimerAccount {
 	// 本进程内的有名字定时器，名字仅在本进程内唯一。
 	public boolean scheduleOnlineNamed(String account, String clientId, String timerName,
 									   long delay, long period, long times, long endTime,
-									   TimerHandle handle, Bean customData) throws Exception {
+									   TimerHandle handle, Bean customData) {
 		var timer = online.providerApp.zeze.getTimer();
 		var bTimer = timer.tAccountTimers().get(timerName);
 		if (null != bTimer)
@@ -66,7 +66,7 @@ public class TimerAccount {
 	}
 
 	public String scheduleOnline(String account, String clientId, long delay, long period, long times, long endTime,
-								 TimerHandle name, Bean customData) throws Exception {
+								 TimerHandle name, Bean customData) {
 		var simpleTimer = new BSimpleTimer();
 		Timer.initSimpleTimer(simpleTimer, delay, period, times, endTime);
 		var timer = online.providerApp.zeze.getTimer();
@@ -74,7 +74,7 @@ public class TimerAccount {
 	}
 
 	private String scheduleOnline(String account, String clientId, String timerId, BSimpleTimer simpleTimer,
-								  TimerHandle name, Bean customData) throws Exception {
+								  TimerHandle name, Bean customData) {
 		var loginVersion = online.getLocalLoginVersion(account, clientId);
 		if (null == loginVersion)
 			throw new IllegalStateException("not login. account=" + account + " clientId=" + clientId);
@@ -100,7 +100,7 @@ public class TimerAccount {
 	}
 
 	private String scheduleOnline(String account, String clientId, String timerId, BCronTimer cronTimer,
-								  TimerHandle name, Bean customData) throws Exception {
+								  TimerHandle name, Bean customData) {
 		var loginVersion = online.getLocalLoginVersion(account, clientId);
 		if (null == loginVersion)
 			throw new IllegalStateException("not login. account=" + account + " clientId=" + clientId);
@@ -117,7 +117,7 @@ public class TimerAccount {
 		return timerId;
 	}
 
-	public boolean cancel(String timerId) throws Exception {
+	public boolean cancel(String timerId) {
 		var timer = online.providerApp.zeze.getTimer();
 		// remove online timer
 		var bTimer = timer.tAccountTimers().get(timerId);
@@ -136,7 +136,7 @@ public class TimerAccount {
 	}
 
 	public String scheduleOffline(String account, String clientId, long delay, long period, long times, long endTime,
-										Class<? extends TimerHandle> handleClassName, Bean customData) {
+								  Class<? extends TimerHandle> handleClassName, Bean customData) {
 		var loginVersion = online.getOfflineLoginVersion(account, clientId);
 		if (null == loginVersion)
 			throw new IllegalStateException("not logout. account=" + account + " clientId=" + clientId);
@@ -161,7 +161,7 @@ public class TimerAccount {
 	}
 
 	public String scheduleOffline(String account, String clientId, String cron, long times, long endTime,
-										Class<? extends TimerHandle> handleClassName, Bean customData) throws ParseException {
+								  Class<? extends TimerHandle> handleClassName, Bean customData) throws ParseException {
 		var loginVersion = online.getOfflineLoginVersion(account, clientId);
 		if (null == loginVersion)
 			throw new IllegalStateException("not logout. account=" + account + " clientId=" + clientId);
@@ -231,7 +231,7 @@ public class TimerAccount {
 	}
 
 	// Online.Local 删除事件，取消这个用户所有的在线定时器。
-	private long onLocalRemoveEvent(Object sender, EventDispatcher.EventArgument arg) throws Exception {
+	private long onLocalRemoveEvent(Object sender, EventDispatcher.EventArgument arg) {
 		var local = (LocalRemoveEventArgument)arg;
 		if (null != local.localData) {
 			var bAny = local.localData.getDatas().get(eOnlineTimers);
@@ -266,7 +266,7 @@ public class TimerAccount {
 	private void scheduleCron(String timerId, BCronTimer cron, TimerHandle handle) {
 		try {
 			long delay = cron.getNextExpectedTime() - System.currentTimeMillis();
-			scheduleCronNext( timerId, delay, handle);
+			scheduleCronNext(timerId, delay, handle);
 		} catch (Exception ex) {
 			Timer.logger.error("", ex);
 		}
@@ -280,7 +280,7 @@ public class TimerAccount {
 						() -> fireCron(timerId, handle))));
 	}
 
-	private void fireCron(String timerId, TimerHandle handle) throws Exception {
+	private void fireCron(String timerId, TimerHandle handle) {
 		var timer = online.providerApp.zeze.getTimer();
 		var ret = Task.call(online.providerApp.zeze.newProcedure(() -> {
 			if (null == handle) {
@@ -338,7 +338,7 @@ public class TimerAccount {
 	}
 
 	// Timer发生，执行回调。
-	private void fireSimple(String timerId, TimerHandle handle) throws Exception {
+	private void fireSimple(String timerId, TimerHandle handle) {
 		var timer = online.providerApp.zeze.getTimer();
 		var ret = Task.call(online.providerApp.zeze.newProcedure(() -> {
 			if (null == handle) {

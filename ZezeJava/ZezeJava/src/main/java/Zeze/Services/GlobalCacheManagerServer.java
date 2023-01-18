@@ -110,11 +110,11 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	private GlobalCacheManagerServer() {
 	}
 
-	public void start(InetAddress ipaddress, int port) throws Exception {
+	public void start(InetAddress ipaddress, int port) {
 		start(ipaddress, port, null);
 	}
 
-	public synchronized void start(InetAddress ipaddress, int port, Zeze.Config config) throws Exception {
+	public synchronized void start(InetAddress ipaddress, int port, Zeze.Config config) {
 		if (server != null)
 			return;
 
@@ -920,7 +920,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	}
 
 	private static final class ServerService extends Service {
-		ServerService(Zeze.Config config) throws Exception {
+		ServerService(Zeze.Config config) {
 			super("GlobalCacheManager", config);
 		}
 

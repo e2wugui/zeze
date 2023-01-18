@@ -5,12 +5,12 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Services.Handshake.SHandshake0;
 
 public class HandshakeServer extends HandshakeBase {
-	public HandshakeServer(String name, Zeze.Config config) throws Exception {
+	public HandshakeServer(String name, Zeze.Config config) {
 		super(name, config);
 		addHandshakeServerFactoryHandle();
 	}
 
-	public HandshakeServer(String name, Application app) throws Exception {
+	public HandshakeServer(String name, Application app) {
 		super(name, app);
 		addHandshakeServerFactoryHandle();
 	}

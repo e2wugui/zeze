@@ -126,7 +126,7 @@ namespace Zeze.Gen.java
             sw.WriteLine($"        Zeze = new Zeze.Application(\"{project.Name}\", config);");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void createService() throws Exception {");
+            sw.WriteLine("    public synchronized void createService() {");
             foreach (Service m in project.Services.Values)
                 sw.WriteLine("        " + m.Name + " = new " + m.FullName + "(Zeze);");
             sw.WriteLine("    }");

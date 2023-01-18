@@ -193,6 +193,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 		return Procedure.Success;
 	}
 
+	@SuppressWarnings("RedundantThrows")
 	@Override
 	protected long ProcessModuleRedirectAllResult(ModuleRedirectAllResult protocol) throws Exception {
 		var ctx = providerApp.providerDirectService.

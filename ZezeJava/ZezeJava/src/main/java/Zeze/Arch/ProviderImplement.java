@@ -22,7 +22,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 
 	protected ProviderApp providerApp;
 
-	void applyOnChanged(Agent.SubscribeState subState) throws Exception {
+	void applyOnChanged(Agent.SubscribeState subState) {
 		if (subState.getServiceName().equals(providerApp.linkdServiceName)) {
 			// Linkd info
 			providerApp.providerService.apply(subState.getServiceInfos());
@@ -35,7 +35,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		}
 	}
 
-	void applyOnPrepare(Agent.SubscribeState subState) throws Exception {
+	void applyOnPrepare(Agent.SubscribeState subState) {
 		var pending = subState.getServiceInfosPending();
 		if (pending != null && pending.getServiceName().startsWith(providerApp.serverServiceNamePrefix))
 			providerApp.providerDirectService.tryConnectAndSetReady(subState, pending);

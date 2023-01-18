@@ -62,7 +62,7 @@ public class App extends Zeze.AppBase {
         Zeze = new Zeze.Application("client", config);
     }
 
-    public synchronized void createService() throws Exception {
+    public synchronized void createService() {
         ClientService = new ClientGame.ClientService(Zeze);
     }
 

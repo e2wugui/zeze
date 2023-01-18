@@ -5,13 +5,13 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Services.Handshake.SHandshake0;
 
 public class HandshakeBoth extends HandshakeBase {
-	public HandshakeBoth(String name, Zeze.Config config) throws Exception {
+	public HandshakeBoth(String name, Zeze.Config config) {
 		super(name, config);
 		addHandshakeClientFactoryHandle();
 		addHandshakeServerFactoryHandle();
 	}
 
-	public HandshakeBoth(String name, Application app) throws Exception {
+	public HandshakeBoth(String name, Application app) {
 		super(name, app);
 		addHandshakeClientFactoryHandle();
 		addHandshakeServerFactoryHandle();

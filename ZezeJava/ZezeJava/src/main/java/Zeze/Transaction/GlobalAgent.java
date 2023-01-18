@@ -113,9 +113,9 @@ public final class GlobalAgent implements IGlobalAgent {
 
 	private final Application zeze;
 	private final GlobalClient client;
-	public Agent[] agents;
+	public final Agent[] agents;
 
-	public GlobalAgent(Application app, String[] hostNameOrAddress, int port) throws Exception {
+	public GlobalAgent(Application app, String[] hostNameOrAddress, int port) {
 		zeze = app;
 
 		client = new GlobalClient(this, zeze);

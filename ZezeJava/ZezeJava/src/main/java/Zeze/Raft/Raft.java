@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
@@ -460,10 +461,10 @@ public final class Raft {
 	}
 
 	// 重置 OnTimer 需要的所有时间。
-	private void resetTimerTime() throws Exception {
+	private void resetTimerTime() {
 		var now = System.currentTimeMillis();
 		logSequence.setLeaderActiveTime(now);
-		server.getConfig().ForEachConnector(c -> ((Server.ConnectorEx)c).setAppendLogActiveTime(now));
+		server.getConfig().forEachConnector(c -> ((Server.ConnectorEx)c).setAppendLogActiveTime(now));
 	}
 
 	/**
@@ -488,11 +489,10 @@ public final class Raft {
 					convertStateTo(RaftState.Candidate); // vote timeout. restart
 				break;
 			case Leader:
-				server.getConfig().ForEachConnector(c -> {
+				server.getConfig().forEachConnector(c -> {
 					var cex = (Server.ConnectorEx)c;
-					if (now - cex.getAppendLogActiveTime() > raftConfig.getLeaderHeartbeatTimer()) {
+					if (now - cex.getAppendLogActiveTime() > raftConfig.getLeaderHeartbeatTimer())
 						logSequence.sendHeartbeatTo(cex);
-					}
 				});
 				break;
 			}
@@ -506,8 +506,8 @@ public final class Raft {
 		}
 	}
 
-	private void onLowPrecisionTimer() throws Exception {
-		server.getConfig().ForEachConnector(Connector::start); // Connector Reconnect Bug?
+	private void onLowPrecisionTimer() throws ParseException {
+		server.getConfig().forEachConnector(Connector::start); // Connector Reconnect Bug?
 		logSequence.removeExpiredUniqueRequestSet();
 	}
 
@@ -689,7 +689,7 @@ public final class Raft {
 		return Procedure.Success;
 	}
 
-	private void sendRequestVote() throws Exception {
+	private void sendRequestVote() throws RocksDBException {
 		requestVotes.clear(); // 每次选举开始清除。
 		// LogSequence.SetVoteFor(Name); // 先收集结果，达到 RaftConfig.HalfCount 才判断是否给自己投票。
 		logSequence.trySetTerm(logSequence.getTerm() + 1);
@@ -703,7 +703,7 @@ public final class Raft {
 		arg.setNodeReady(logSequence.getNodeReady());
 
 		nextVoteTime = System.currentTimeMillis() + raftConfig.getElectionTimeout();
-		server.getConfig().ForEachConnector(c -> {
+		server.getConfig().forEachConnector(c -> {
 			var rpc = new RequestVote();
 			rpc.Argument = arg;
 			requestVotes.add(rpc);
@@ -713,7 +713,7 @@ public final class Raft {
 		});
 	}
 
-	private void convertStateFromFollowerTo(RaftState newState) throws Exception {
+	private void convertStateFromFollowerTo(RaftState newState) throws RocksDBException {
 		switch (newState) {
 		case Follower:
 			logger.info("RaftState {}: Follower->Follower", getName());
@@ -754,7 +754,7 @@ public final class Raft {
 			// (Reinitialized after election)
 			var nextIndex = logSequence.getLastIndex() + 1;
 
-			server.getConfig().ForEachConnector(c -> {
+			server.getConfig().forEachConnector(c -> {
 				var cex = (Server.ConnectorEx)c;
 				cex.start(); // 马上尝试连接。
 				cex.setNextIndex(nextIndex);

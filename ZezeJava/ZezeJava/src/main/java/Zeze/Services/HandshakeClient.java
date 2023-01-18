@@ -5,12 +5,12 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 
 public class HandshakeClient extends HandshakeBase {
-	public HandshakeClient(String name, Zeze.Config config) throws Exception {
+	public HandshakeClient(String name, Zeze.Config config) {
 		super(name, config);
 		addHandshakeClientFactoryHandle();
 	}
 
-	public HandshakeClient(String name, Application app) throws Exception {
+	public HandshakeClient(String name, Application app) {
 		super(name, app);
 		addHandshakeClientFactoryHandle();
 	}

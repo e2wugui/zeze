@@ -35,7 +35,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	public final LongConcurrentHashMap<ProviderSession> providerByServerId = new LongConcurrentHashMap<>();
 	private final LongConcurrentHashMap<ConcurrentHashSet<Action0>> serverReadyEvents = new LongConcurrentHashMap<>();
 
-	public ProviderDirectService(String name, Zeze.Application zeze) throws Exception {
+	public ProviderDirectService(String name, Zeze.Application zeze) {
 		super(name, zeze);
 	}
 
@@ -83,13 +83,13 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		}
 	}
 
-	public void tryConnectAndSetReady(Agent.SubscribeState ss, BServiceInfos infos) throws Exception {
+	public void tryConnectAndSetReady(Agent.SubscribeState ss, BServiceInfos infos) {
 		var current = new HashMap<String, BServiceInfo>();
 		for (var pm : infos.getServiceInfoListSortedByIdentity()) {
 			addServer(ss, pm);
 			current.put(pm.getPassiveIp() + ":" + pm.getPassivePort(), pm);
 		}
-		getConfig().ForEachConnector((c) -> current.remove(c.getName()));
+		getConfig().forEachConnector(c -> current.remove(c.getName()));
 		for (var pm : current.values()) {
 			removeServer(ss, pm);
 		}

@@ -94,7 +94,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	 * 这样整个程序就单线程化了。
 	 */
 	public class SMServer extends Zeze.Raft.Server {
-		public SMServer(Zeze.Raft.Raft raft, String name, Zeze.Config config) throws Exception {
+		public SMServer(Zeze.Raft.Raft raft, String name, Zeze.Config config) {
 			super(raft, name, config);
 		}
 
@@ -108,8 +108,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		}
 
 		@Override
-		public synchronized void dispatchRaftRequest(Protocol<?> p, Func0<Long> func, String name, Action0 cancel, DispatchMode mode) {
-
+		public synchronized void dispatchRaftRequest(Protocol<?> p, Func0<Long> func, String name, Action0 cancel,
+													 DispatchMode mode) {
 			if (logger.isDebugEnabled()) {
 				var netSession = (Session)p.getSender().getUserState();
 				var ssName = null != netSession ? netSession.name : "";

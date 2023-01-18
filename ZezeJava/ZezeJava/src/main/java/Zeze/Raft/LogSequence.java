@@ -596,7 +596,7 @@ public class LogSequence {
 		// of matchIndex[i] ≥ N, and log[N].term == currentTerm:
 		// set commitIndex = N(§5.3, §5.4).
 		var followers = new ArrayList<Server.ConnectorEx>();
-		raft.getServer().getConfig().ForEachConnector(c ->
+		raft.getServer().getConfig().forEachConnector(c ->
 				followers.add(c instanceof Server.ConnectorEx ? (Server.ConnectorEx)c : null));
 		followers.sort((a, b) -> Long.compare(b.getMatchIndex(), a.getMatchIndex()));
 		var maxMajorityLogIndex = followers.get(raft.getRaftConfig().getHalfCount() - 1).getMatchIndex();

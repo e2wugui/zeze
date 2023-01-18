@@ -12,12 +12,12 @@ public final class AgentClient extends Zeze.Services.HandshakeClient {
 	 */
 	private AsyncSocket socket;
 
-	public AgentClient(Agent agent, Zeze.Config config) throws Exception {
+	public AgentClient(Agent agent, Zeze.Config config) {
 		super(Agent.defaultServiceName, config);
 		this.agent = agent;
 	}
 
-	public AgentClient(Agent agent, Zeze.Config config, String name) throws Exception {
+	public AgentClient(Agent agent, Zeze.Config config, String name) {
 		super(name, config);
 		this.agent = agent;
 	}

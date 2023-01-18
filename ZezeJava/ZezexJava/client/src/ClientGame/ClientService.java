@@ -5,7 +5,7 @@ import Zeze.Net.ProtocolHandle;
 import Zeze.Util.Task;
 
 public class ClientService extends ClientServiceBase {
-    public ClientService(Zeze.Application zeze) throws Exception {
+    public ClientService(Zeze.Application zeze) {
         super(zeze);
     }
     // 重载需要的方法。

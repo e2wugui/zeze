@@ -15,7 +15,7 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 	private final ConcurrentHashMap<String, LongConcurrentHashMap<Predicate<Binary>>> handles = new ConcurrentHashMap<>();
 	private final Server server;
 
-	public RedoQueueServer(Zeze.Application zeze) throws Exception {
+	public RedoQueueServer(Zeze.Application zeze) {
 		server = new Server(zeze);
 		RegisterProtocols(server);
 		RegisterZezeTables(zeze);
@@ -63,7 +63,7 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 	}
 
 	public static class Server extends Zeze.Services.HandshakeServer {
-		public Server(Zeze.Application zeze) throws Exception {
+		public Server(Zeze.Application zeze) {
 			super("RedoQueueServer", zeze);
 		}
 

@@ -12,7 +12,7 @@ public class CommandConsoleService extends Service {
 		this.cc = cc;
 	}
 
-	public CommandConsoleService(String name, Config config) throws Exception {
+	public CommandConsoleService(String name, Config config) {
 		super(name, config);
 	}
 

@@ -289,11 +289,11 @@ public final class Agent extends AbstractAgent {
 		return 0;
 	}
 
-	public Agent(Zeze.Application zeze) throws Exception {
+	public Agent(Zeze.Application zeze) {
 		this(zeze, null);
 	}
 
-	public Agent(Zeze.Application zeze, String netServiceName) throws Exception {
+	public Agent(Zeze.Application zeze, String netServiceName) {
 		super.zeze = zeze;
 
 		var config = zeze.getConfig();

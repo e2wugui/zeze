@@ -483,7 +483,7 @@ public class Online extends AbstractOnline {
 				send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
 	}
 
-	private void sendEmbed(Collection<LoginKey> logins, long typeId, Binary fullEncodedProtocol) throws Exception {
+	private void sendEmbed(Collection<LoginKey> logins, long typeId, Binary fullEncodedProtocol) {
 		var groups = groupByLink(logins);
 		Transaction.whileCommit(() -> {
 			for (var group : groups) {
@@ -615,7 +615,7 @@ public class Online extends AbstractOnline {
 	}
 
 	public void sendAccountsEmbed(Collection<String> accounts, long typeId, Binary fullEncodedProtocol,
-								  OnlineSend sender) throws Exception {
+								  OnlineSend sender) {
 		var groups = groupAccountsByLink(accounts);
 		Transaction.whileCommit(() -> {
 			if (sender == null) {
@@ -1083,8 +1083,8 @@ public class Online extends AbstractOnline {
 
 		if (sync) {
 			var notify = new SReliableNotify(new BReliableNotify(index));
-			queue.walk((node, bNofity) -> {
-				notify.Argument.getNotifies().add(bNofity.getFullEncodedProtocol());
+			queue.walk((node, bNotify) -> {
+				notify.Argument.getNotifies().add(bNotify.getFullEncodedProtocol());
 				return true;
 			});
 			session.sendResponseWhileCommit(notify);
@@ -1092,6 +1092,7 @@ public class Online extends AbstractOnline {
 		return ResultCodeSuccess;
 	}
 
+	@SuppressWarnings("RedundantThrows")
 	@Override
 	protected long ProcessReliableNotifyConfirmRequest(Zeze.Builtin.Online.ReliableNotifyConfirm rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);

@@ -27,10 +27,6 @@ public final class ServiceConf {
 		return service;
 	}
 
-	private void setService(Service value) {
-		service = value;
-	}
-
 	public String getName() {
 		return name;
 	}
@@ -56,20 +52,20 @@ public final class ServiceConf {
 		handshakeOptions = value;
 	}
 
-	public synchronized void SetService(Service service) throws Exception {
-		if (getService() != null) {
+	public synchronized void setService(Service service) {
+		if (this.service != null) {
 			throw new IllegalStateException(String.format("ServiceConf of '%s' Service != null", getName()));
 		}
-		setService(service);
-		ForEachAcceptor((a) -> a.SetService(service));
-		ForEachConnector((c) -> c.SetService(service));
+		this.service = service;
+		forEachAcceptor(a -> a.SetService(service));
+		forEachConnector(c -> c.SetService(service));
 	}
 
 	public void addConnector(Connector connector) {
 		if (null != connectors.putIfAbsent(connector.getName(), connector)) {
 			throw new IllegalStateException("Duplicate Connector=" + connector.getName());
 		}
-		connector.SetService(getService());
+		connector.SetService(service);
 	}
 
 	public Connector findConnector(String name) {
@@ -92,14 +88,13 @@ public final class ServiceConf {
 	public boolean tryGetOrAddConnector(String host, int port, boolean autoReconnect, OutObject<Connector> getOrAdd) {
 		var name = host + ":" + port;
 		final var addNew = new OutObject<Connector>();
-		var c = connectors.computeIfAbsent(name,
-				(key) -> {
-					Connector add = new Connector(host, port, autoReconnect);
-					add.SetService(getService());
-					addNew.value = add;
-					return add;
-				});
-		if (null != getOrAdd)
+		var c = connectors.computeIfAbsent(name, key -> {
+			Connector add = new Connector(host, port, autoReconnect);
+			add.SetService(service);
+			addNew.value = add;
+			return add;
+		});
+		if (getOrAdd != null)
 			getOrAdd.value = c;
 		return addNew.value != null;
 	}
@@ -125,9 +120,8 @@ public final class ServiceConf {
 
 	public boolean forEachConnector2(Predicate<Connector> func) {
 		for (var c : connectors.values()) {
-			if (!func.test(c)) {
+			if (!func.test(c))
 				return false;
-			}
 		}
 		return true;
 	}
@@ -136,7 +130,7 @@ public final class ServiceConf {
 		if (null != acceptors.putIfAbsent(a.getName(), a)) {
 			throw new IllegalStateException("Duplicate Acceptor=" + a.getName());
 		}
-		a.SetService(getService());
+		a.SetService(service);
 	}
 
 	public void removeAcceptor(Acceptor a) {
@@ -144,9 +138,8 @@ public final class ServiceConf {
 	}
 
 	public void ForEachAcceptor(Action1<Acceptor> action) throws Exception {
-		for (var a : acceptors.values()) {
+		for (var a : acceptors.values())
 			action.run(a);
-		}
 	}
 
 	public void forEachAcceptor(Consumer<Acceptor> action) {

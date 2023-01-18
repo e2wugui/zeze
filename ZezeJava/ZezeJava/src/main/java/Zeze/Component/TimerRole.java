@@ -39,7 +39,7 @@ public class TimerRole {
 	// 本进程内的有名字定时器，名字仅在本进程内唯一。
 	public boolean scheduleOnlineNamed(long roleId, String timerName,
 									   long delay, long period, long times, long endTime,
-									   TimerHandle handleName, Bean customData) throws Exception {
+									   TimerHandle handleName, Bean customData) {
 		var timer = online.providerApp.zeze.getTimer();
 		var timerId = timer.tRoleTimers().get(timerName);
 		if (null != timerId)
@@ -65,7 +65,7 @@ public class TimerRole {
 	}
 
 	public String scheduleOnline(long roleId, long delay, long period, long times, long endTime,
-								 TimerHandle name, Bean customData) throws Exception {
+								 TimerHandle name, Bean customData) {
 		var simpleTimer = new BSimpleTimer();
 		Timer.initSimpleTimer(simpleTimer, delay, period, times, endTime);
 		var timer = online.providerApp.zeze.getTimer();
@@ -73,7 +73,7 @@ public class TimerRole {
 	}
 
 	private String scheduleOnline(long roleId, String timerId, BSimpleTimer simpleTimer,
-								  TimerHandle name, Bean customData) throws Exception {
+								  TimerHandle name, Bean customData) {
 		// 去掉下面两行，不允许在非登录状态注册timer。现在允许。
 		var loginVersion = online.getLocalLoginVersion(roleId);
 		if (null == loginVersion)
@@ -100,7 +100,7 @@ public class TimerRole {
 	}
 
 	private String scheduleOnline(long roleId, String timerId, BCronTimer cronTimer,
-								  TimerHandle name, Bean customData) throws Exception {
+								  TimerHandle name, Bean customData) {
 		var loginVersion = online.getLocalLoginVersion(roleId);
 		if (null == loginVersion)
 			throw new IllegalStateException("not login. roleId=" + roleId);
@@ -117,7 +117,7 @@ public class TimerRole {
 		return timerId;
 	}
 
-	public boolean cancel(String timerId) throws Exception {
+	public boolean cancel(String timerId) {
 		var timer = online.providerApp.zeze.getTimer();
 
 		// remove online timer
@@ -225,7 +225,7 @@ public class TimerRole {
 	}
 
 	// Online.Local 删除事件，取消这个用户所有的在线定时器。
-	private long onLocalRemoveEvent(Object sender, EventDispatcher.EventArgument arg) throws Exception {
+	private long onLocalRemoveEvent(Object sender, EventDispatcher.EventArgument arg) {
 		var local = (LocalRemoveEventArgument)arg;
 		if (null != local.localData) {
 			var bAny = local.localData.getDatas().get(eOnlineTimers);
@@ -274,7 +274,7 @@ public class TimerRole {
 						() -> fireCron(timerId, name))));
 	}
 
-	private void fireCron(String timerId, TimerHandle handle) throws Exception {
+	private void fireCron(String timerId, TimerHandle handle) {
 		var timer = online.providerApp.zeze.getTimer();
 		var ret = Task.call(online.providerApp.zeze.newProcedure(() -> {
 			if (null == handle) {
@@ -332,7 +332,7 @@ public class TimerRole {
 	}
 
 	// Timer发生，执行回调。
-	private void fireOnlineSimpleTimer(String timerId, TimerHandle handle) throws Exception {
+	private void fireOnlineSimpleTimer(String timerId, TimerHandle handle) {
 		var timer = online.providerApp.zeze.getTimer();
 		var ret = Task.call(online.providerApp.zeze.newProcedure(() -> {
 			if (null == handle) {

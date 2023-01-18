@@ -35,7 +35,7 @@ public class Server extends HandshakeBoth {
 	}
 
 	// 多个Raft实例才需要自定义配置名字，否则使用默认名字就可以了。
-	public Server(Raft raft, String name, Zeze.Config config) throws Exception {
+	public Server(Raft raft, String name, Zeze.Config config) {
 		super(name, config);
 		this.raft = raft;
 	}
@@ -230,7 +230,9 @@ public class Server extends HandshakeBoth {
 		// DO NOT process application request.
 	}
 
-	public void dispatchRaftRequest(Protocol<?> p, Func0<Long> func, String name, Action0 cancel, DispatchMode mode) throws Exception {
+	@SuppressWarnings("RedundantThrows")
+	public void dispatchRaftRequest(Protocol<?> p, Func0<Long> func, String name, Action0 cancel, DispatchMode mode)
+			throws Exception {
 		taskOneByOne.Execute(((IRaftRpc)p).getUnique(), func, name, cancel, mode);
 	}
 

@@ -235,7 +235,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		SelectableChannel channel = key.channel();
 		int ops = key.readyOps();
 		if ((ops & SelectionKey.OP_READ) != 0)
-			ProcessReceive((SocketChannel)channel);
+			processReceive((SocketChannel)channel);
 		if ((ops & SelectionKey.OP_WRITE) != 0)
 			doWrite((SocketChannel)channel);
 
@@ -377,19 +377,13 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		return security == (1 | 2);
 	}
 
-	public void VerifySecurity() {
+	public void verifySecurity() {
 		if (service.getConfig().getHandshakeOptions().getEncryptType() != 0 && !isSecurity())
 			throw new IllegalStateException(service.getName() + " !isSecurity");
 	}
 
-	@Deprecated
-	public void SetInputSecurityCodec(byte[] key, boolean compress) {
-		SetInputSecurityCodec(key != null && key.length > 0 ? Constant.eEncryptTypeAes : Constant.eEncryptTypeDisable,
-				key, compress ? Constant.eCompressTypeMppc : Constant.eCompressTypeDisable);
-	}
-
-	public void SetInputSecurityCodec(int encryptType, byte[] encryptParam, int compressType) {
-		SubmitAction(() -> { // 进selector线程调用
+	public void setInputSecurityCodec(int encryptType, byte[] encryptParam, int compressType) {
+		submitAction(() -> { // 进selector线程调用
 			Codec chain = inputBuffer;
 			switch (compressType) {
 			case Constant.eCompressTypeDisable:
@@ -421,14 +415,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		});
 	}
 
-	@Deprecated
-	public void SetOutputSecurityCodec(byte[] key, boolean compress) {
-		SetOutputSecurityCodec(key != null && key.length > 0 ? Constant.eEncryptTypeAes : Constant.eEncryptTypeDisable,
-				key, compress ? Constant.eCompressTypeMppc : Constant.eCompressTypeDisable);
-	}
-
-	public void SetOutputSecurityCodec(int encryptType, byte[] encryptParam, int compressType) {
-		SubmitAction(() -> { // 进selector线程调用
+	public void setOutputSecurityCodec(int encryptType, byte[] encryptParam, int compressType) {
+		submitAction(() -> { // 进selector线程调用
 			Codec chain = outputBuffer;
 			switch (encryptType) {
 			case Constant.eEncryptTypeDisable:
@@ -460,14 +448,14 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		});
 	}
 
-	public boolean SubmitAction(Action0 callback) {
+	public boolean submitAction(Action0 callback) {
 		var c = closed;
 		if (c != 0) {
 			if (c < SEND_CLOSE_DETAIL_MAX) {
 				closedHandle.compareAndSet(this, (byte)c, (byte)(c + 1));
-				logger.error("SubmitAction to closed socket: {}", this, new Exception());
+				logger.error("submitAction to closed socket: {}", this, new Exception());
 			} else
-				logger.error("SubmitAction to closed socket: {}", this);
+				logger.error("submitAction to closed socket: {}", this);
 			return false;
 		}
 		operates.offer(callback);
@@ -498,7 +486,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				outputBufferSizeHandle.getAndAdd(this, -length);
 				return false;
 			}
-			if (SubmitAction(() -> { // 进selector线程调用
+			if (submitAction(() -> { // 进selector线程调用
 				var codec = outputCodecChain;
 				if (codec != null) {
 					sendRawSize += length;
@@ -555,7 +543,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		return Send(bytes, 0, bytes.length);
 	}
 
-	private void ProcessReceive(SocketChannel sc) throws Exception { // 只在selector线程调用
+	private void processReceive(SocketChannel sc) throws Exception { // 只在selector线程调用
 		java.nio.ByteBuffer buffer = selector.getReadBuffer(); // 线程共享的buffer,只能本方法内临时使用
 		buffer.clear();
 		int bytesTransferred = sc.read(buffer);
@@ -675,12 +663,10 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			}
 			// 时间窗口
 			// 必须和把Operate加入队列同步！否则可能会出现，刚加入操作没有被处理，但是OP_WRITE又被Remove的问题。
-			if (operates.isEmpty()) {
-				if (!flushed)
-					continue; // 此时bufSize=0,下次循环会触发flush
+			if (operates.isEmpty() && flushed) { // 此时bufSize=0,下次循环会触发flush
 				// 真的没有等待处理的操作了，去掉事件，返回。以后新的操作在下一次doWrite时处理。
 				interestOps(SelectionKey.OP_WRITE, 0);
-				if (operates.isEmpty()) { // 再判断一次,避免跟SubmitAction的并发竞争问题
+				if (operates.isEmpty()) { // 再判断一次,避免跟submitAction的并发竞争问题
 					if (closePending)
 						realClose();
 					return;

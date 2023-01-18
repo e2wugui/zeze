@@ -69,19 +69,19 @@ public class Service {
 		socketOptions = new SocketOptions();
 	}
 
-	public Service(String name, Config config) throws Exception {
+	public Service(String name, Config config) {
 		this.name = name;
 		zeze = null;
 		initConfig(config);
 	}
 
-	public Service(String name, Application app) throws Exception {
+	public Service(String name, Application app) {
 		this.name = name;
 		zeze = app;
 		initConfig(app != null ? app.getConfig() : null);
 	}
 
-	private void initConfig(Config config) throws Exception {
+	private void initConfig(Config config) {
 		this.config = config != null ? config.getServiceConf(name) : null;
 		if (this.config == null) {
 			// setup program default
@@ -92,7 +92,7 @@ public class Service {
 				this.config.setHandshakeOptions(config.getDefaultServiceConf().getHandshakeOptions());
 			}
 		}
-		this.config.SetService(this);
+		this.config.setService(this);
 		socketOptions = this.config.getSocketOptions();
 	}
 
@@ -565,6 +565,7 @@ public class Service {
 			this.service = service;
 		}
 
+		@SuppressWarnings("RedundantThrows")
 		public void onRemoved() throws Exception {
 		}
 	}

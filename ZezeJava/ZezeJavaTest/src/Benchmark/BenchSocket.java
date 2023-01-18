@@ -242,16 +242,18 @@ public class BenchSocket {
 	}
 
 	static class ServerService extends Zeze.Services.HandshakeServer {
-		public ServerService(String name, Config config) throws Exception {
+		public ServerService(String name, Config config) {
 			super(name, config);
 			//AddFactoryHandle(new BenchProtocol().getTypeId(), new ProtocolFactoryHandle<>(BenchProtocol::new, this::ProcessBenchProtocol));
 			AddFactoryHandle(new BenchEnd().getTypeId(), new ProtocolFactoryHandle<>(BenchEnd::new, this::ProcessBenchEnd));
 		}
 
+		@SuppressWarnings("MethodMayBeStatic")
 		public long ProcessBenchProtocol(BenchProtocol p) {
 			return 0;
 		}
 
+		@SuppressWarnings("MethodMayBeStatic")
 		public long ProcessBenchEnd(BenchEnd r) {
 			r.SendResult();
 			return 0;

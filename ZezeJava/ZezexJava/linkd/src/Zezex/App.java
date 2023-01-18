@@ -54,10 +54,10 @@ public final class App extends Zeze.AppBase {
 		if (serverId != -1)
 			config.setServerId(serverId);
 		if (linkPort != -1) {
-			config.getServiceConfMap().get("LinkdService").ForEachAcceptor((a) -> a.setPort(linkPort));
+			config.getServiceConfMap().get("LinkdService").forEachAcceptor((a) -> a.setPort(linkPort));
 		}
 		if (linkPort != -1) {
-			config.getServiceConfMap().get("ProviderService").ForEachAcceptor((a) -> a.setPort(providerPort));
+			config.getServiceConfMap().get("ProviderService").forEachAcceptor((a) -> a.setPort(providerPort));
 		}
 		createZeze(config);
 		createService();
@@ -107,7 +107,7 @@ public final class App extends Zeze.AppBase {
         Zeze = new Zeze.Application("linkd", config);
     }
 
-    public synchronized void createService() throws Exception {
+    public synchronized void createService() {
         LinkdService = new Zezex.LinkdService(Zeze);
         ProviderService = new Zezex.ProviderService(Zeze);
     }

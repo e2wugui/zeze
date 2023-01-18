@@ -276,7 +276,7 @@ public final class Application {
 		}
 	}
 
-	public void endStart() throws Exception {
+	public void endStart() {
 		delayRemove.continueJobs();
 	}
 
