@@ -179,7 +179,7 @@ public final class Agent extends AbstractAgent {
 		for (var e : registers.keySet()) {
 			try {
 				new Register(e).SendAndWaitCheckResultCode(client.getSocket());
-			} catch (Exception ex) {
+			} catch (Throwable ex) {
 				// skip and continue.
 				logger.debug("OnConnected.Register={}", e, ex);
 			}
@@ -190,7 +190,7 @@ public final class Agent extends AbstractAgent {
 				var r = new Subscribe();
 				r.Argument = e.subscribeInfo;
 				r.SendAndWaitCheckResultCode(client.getSocket());
-			} catch (Exception ex) {
+			} catch (Throwable ex) {
 				// skip and continue.
 				logger.debug("OnConnected.Subscribe={}", e.subscribeInfo, ex);
 			}

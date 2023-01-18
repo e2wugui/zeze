@@ -22,7 +22,7 @@ public class ModuleRedirectRank extends TestCase {
 			System.out.println("Begin Thread.sleep");
 			Thread.sleep(2000); // wait connected
 			System.out.println("End Thread.sleep app1 " + app1.Zeze.getServiceManager().getSubscribeStates().values());
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			try {
 				app1.Stop();
 			} catch (Exception ex) {
@@ -37,7 +37,7 @@ public class ModuleRedirectRank extends TestCase {
 			System.out.println("Begin Thread.sleep");
 			Thread.sleep(2000); // wait connected
 			System.out.println("End Thread.sleep app2 " + app2.Zeze.getServiceManager().getSubscribeStates().values());
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			try {
 				app2.Stop();
 			} catch (Exception ex) {

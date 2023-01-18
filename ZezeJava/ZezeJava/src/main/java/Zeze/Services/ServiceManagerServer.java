@@ -438,7 +438,8 @@ public final class ServiceManagerServer implements Closeable {
 								s = serviceManager.server.GetSocket(sessionId);
 								var r = new KeepAlive();
 								r.SendAndWaitCheckResultCode(s);
-							} catch (Exception ex) {
+							} catch (Throwable ex) {
+								// resource close.
 								if (s != null)
 									s.close();
 								logger.error("ServiceManager.KeepAlive", ex);

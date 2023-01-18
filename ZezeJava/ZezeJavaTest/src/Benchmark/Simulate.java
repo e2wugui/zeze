@@ -207,7 +207,7 @@ public class Simulate {
 							state.lastCount = tc;
 						}
 					}
-				} catch (Exception e) {
+				} catch (Throwable e) {
 					logger.fatal("proc thread fatal exception:", e);
 				}
 			}, String.format("proc%04d", i));

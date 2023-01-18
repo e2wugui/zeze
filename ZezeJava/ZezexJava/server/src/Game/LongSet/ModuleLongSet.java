@@ -120,7 +120,7 @@ public class ModuleLongSet extends AbstractModule {
 	private void _clear(String name) {
 		try {
 			_foreach(name, (e) -> _remove(name, e.getKey()));
-		} catch (Exception ex) {
+		} catch (Throwable ex) {
 			logger.error("_clear", ex);
 		}
 	}
