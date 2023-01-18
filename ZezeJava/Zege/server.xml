@@ -20,6 +20,6 @@ AutoKeyLocalStep: 自增长步长。server 实例数量上限。
 	</ServiceConf>
 
 	<ServiceConf Name="ServerDirect" InputBufferMaxProtocolSize="2097152" SocketLogLevel="Trace">
-		<Acceptor Ip="" Port="5102"/>
+		<Acceptor Ip="" Port="0"/>
 	</ServiceConf>
 </zeze>

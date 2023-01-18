@@ -4,8 +4,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
+import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -636,8 +635,9 @@ public class Service {
 
 	public KV<String, Integer> getOnePassiveAddress() {
 		var ipPort = getOneAcceptorAddress();
-		if (ipPort.getValue() == 0)
-			throw new IllegalStateException("Acceptor: No Config.");
+		// 允许系统来选择端口。
+		//if (ipPort.getValue() == 0)
+		//	throw new IllegalStateException("Acceptor: No Config.");
 
 		if (ipPort.getKey().equals("@internal")) {
 			ipPort.setKey(Helper.getOnePrivateNetworkInterfaceIpAddress());
@@ -657,4 +657,7 @@ public class Service {
 		return ipPort;
 	}
 
+	public void onServerSocketBind(ServerSocket port) {
+
+	}
 }

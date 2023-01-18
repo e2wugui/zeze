@@ -14,7 +14,7 @@ public class LinkdApp {
 	public final LinkdService linkdService;
 	// 现在内部可以自动设置两个参数，但有点不够可靠，生产环境最好手动设置。
 	public final String providerIp;
-	public final int providerPort;
+	public int providerPort;
 	public final Selectors selectors;
 
 	/**

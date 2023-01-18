@@ -39,7 +39,7 @@ DatabaseDynamoDb 还需测试。
 过载保护；更多。
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/1/28 v1.1.6 DelayRemove; LinkedMap; TaskOneByOneByKey; LinkdProvider.ProcessSendRequest Async; RocketMQ; throws Throwable; Acceptor @internal @external
+2023/1/19 v1.1.6 DelayRemove; LinkedMap; TaskOneByOneByKey; LinkdProvider.ProcessSendRequest Async; RocketMQ; throws Throwable; Acceptor @internal @external Port=0
 ------------------------------------------------------------------------------------------------------------------------------
 BUG DelayRemove 每个Application只需要创建本ServerId的实例。
 DelayRemove 增加延迟立即执行任务；
@@ -56,6 +56,7 @@ TaskOneByOneByKey.executeBatch
 RocketMQ;
 throws Exception 替换 throws Throwable。部分catch(Throwable)修改为catch(Exception)
 ServiceConf.Acceptor ip="@internal" "@external"
+Acceptor.Port == 0 允许随机选择端口。需要改动：等到bind之后，读出正确的端口，并修改外面的需要注册到ServiceManager的配置。
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/1/13 v1.1.5 TaskOneByOneByKey Performance; CommandConsole; Task; Table.walkDesc; New Handshake;

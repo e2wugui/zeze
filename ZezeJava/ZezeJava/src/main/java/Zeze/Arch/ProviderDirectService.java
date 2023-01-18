@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import java.net.ServerSocket;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Provider.BModule;
@@ -294,5 +295,10 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		Task.runUnsafe(() -> Task.call(() -> responseHandle.handle(rpc), rpc),
 				"ProviderDirectService.DispatchRpcResponse", factoryHandle.Mode);
 		//super.DispatchRpcResponse(rpc, responseHandle, factoryHandle);
+	}
+
+	@Override
+	public void onServerSocketBind(ServerSocket ss) {
+		providerApp.directPort = ss.getLocalPort();
 	}
 }

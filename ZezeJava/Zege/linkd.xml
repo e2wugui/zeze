@@ -12,7 +12,7 @@
 	</ServiceConf>
 
 	<ServiceConf Name="ProviderService" InputBufferMaxProtocolSize="2097152" SocketLogLevel="Trace">
-		<Acceptor Ip="" Port="5101"/> 如果linkd运行在双网（内外网）机器上，这里可以配置Ip为内部网络的地址，不允许外部连接。
+		<Acceptor Ip="" Port="0"/> 如果linkd运行在双网（内外网）机器上，这里可以配置Ip为内部网络的地址，不允许外部连接。
 	</ServiceConf>
 
 	<ServiceConf Name="Zeze.Services.ServiceManager.Agent">

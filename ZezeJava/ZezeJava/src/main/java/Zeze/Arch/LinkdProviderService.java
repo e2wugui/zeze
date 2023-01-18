@@ -2,6 +2,8 @@ package Zeze.Arch;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.SocketAddress;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Provider.AnnounceLinkInfo;
 import Zeze.Builtin.Provider.Bind;
@@ -93,5 +95,10 @@ public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 		// 先unbind。这样避免有时间窗口。
 		linkdApp.linkdProvider.onProviderClose(so);
 		super.OnSocketClose(so, e);
+	}
+
+	@Override
+	public void onServerSocketBind(ServerSocket ss) {
+		linkdApp.providerPort = ss.getLocalPort();
 	}
 }

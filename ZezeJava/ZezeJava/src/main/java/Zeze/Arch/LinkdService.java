@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import java.net.ServerSocket;
 import Zeze.Builtin.LinkdBase.BReportError;
 import Zeze.Builtin.LinkdBase.ReportError;
 import Zeze.Builtin.Provider.BDispatch;
@@ -310,5 +311,11 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		super.OnSocketClose(so, e);
 		if (so.getUserState() != null)
 			((LinkdUserSession)so.getUserState()).onClose(linkdApp.linkdProviderService);
+	}
+
+	@Override
+	public void onServerSocketBind(ServerSocket ss) {
+		// todo 需要LinkdService实现自己的查询服务器，在这里把实际绑定的地址和端口注册到名字服务器。
+		// ss.getLocalPort();
 	}
 }
