@@ -103,7 +103,7 @@ public class CommandConsole {
 				var cmd = commands.get(words.get(0));
 				try {
 					cmd.run(sender, words.subList(1, words.size()));
-				} catch (Throwable ex) {
+				} catch (Throwable ex) { // print stacktrace.
 					sender.Send(Str.stacktrace(ex));
 					sender.Send("\r\n" + line + "\r\n");
 				}

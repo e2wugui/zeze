@@ -21,7 +21,9 @@ public final class Decrypt2 implements Codec {
 			aesCrypt = mhCryptCtor.invoke();
 			mhCryptInit.invoke(aesCrypt, false, "AES", out);
 			mhCryptEncrypt.invoke(aesCrypt, out, 0, out, 0);
-		} catch (Throwable e) {
+		} catch (RuntimeException | Error e) {
+			throw e;
+		} catch (Throwable e) { // MethodHandle.invoke
 			throw new CodecException(e);
 		}
 	}
@@ -36,7 +38,9 @@ public final class Decrypt2 implements Codec {
 			sinkIndex = 0;
 			try {
 				mhCryptEncrypt.invoke(aesCrypt, in, 0, out, 0);
-			} catch (Throwable e) {
+			} catch (RuntimeException | Error e) {
+				throw e;
+			} catch (Throwable e) { // MethodHandle.invoke
 				throw new CodecException(e);
 			}
 		}
@@ -76,7 +80,9 @@ public final class Decrypt2 implements Codec {
 				out[wi++] ^= c;
 			}
 			writeIndex = wi;
-		} catch (Throwable e) {
+		} catch (RuntimeException | Error e) {
+			throw e;
+		} catch (Throwable e) { // MethodHandle.invoke
 			throw new CodecException(e);
 		}
 	}

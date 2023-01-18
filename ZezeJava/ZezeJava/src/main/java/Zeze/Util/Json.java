@@ -405,7 +405,7 @@ public final class Json {
 			return (Field[])getDeclaredFields0MH.invokeExact(klass, false);
 		} catch (RuntimeException | Error e) {
 			throw e;
-		} catch (Throwable e) {
+		} catch (Throwable e) { // MethodHandle.invoke
 			throw new RuntimeException(e);
 		}
 	}

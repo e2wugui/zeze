@@ -112,7 +112,7 @@ public final class ZstdFactory {
 					throw new IllegalStateException("mhResetCStream = " + r);
 			} catch (RuntimeException | Error e) {
 				throw e;
-			} catch (Throwable e) {
+			} catch (Throwable e) { // MethodHandle.invoke
 				throw new RuntimeException(e);
 			}
 		}
@@ -131,7 +131,7 @@ public final class ZstdFactory {
 				}
 			} catch (RuntimeException | Error e) {
 				throw e;
-			} catch (Throwable e) {
+			} catch (Throwable e) { // MethodHandle.invoke
 				throw new RuntimeException(e);
 			}
 		}
@@ -150,7 +150,7 @@ public final class ZstdFactory {
 				}
 			} catch (RuntimeException | Error e) {
 				throw e;
-			} catch (Throwable e) {
+			} catch (Throwable e) { // MethodHandle.invoke
 				throw new RuntimeException(e);
 			}
 		}
@@ -168,7 +168,7 @@ public final class ZstdFactory {
 				} while (r > 0);
 			} catch (RuntimeException | Error e) {
 				throw e;
-			} catch (Throwable e) {
+			} catch (Throwable e) { // MethodHandle.invoke
 				throw new RuntimeException(e);
 			}
 		}
@@ -187,7 +187,7 @@ public final class ZstdFactory {
 				dst.flush();
 			} catch (RuntimeException | Error e) {
 				throw e;
-			} catch (Throwable e) {
+			} catch (Throwable e) { // MethodHandle.invoke
 				throw new RuntimeException(e);
 			}
 		}
@@ -253,7 +253,7 @@ public final class ZstdFactory {
 				dst.WriteIndex = dstPos;
 			} catch (RuntimeException | Error e) {
 				throw e;
-			} catch (Throwable e) {
+			} catch (Throwable e) { // MethodHandle.invoke
 				throw new RuntimeException(e);
 			}
 		}
@@ -275,7 +275,7 @@ public final class ZstdFactory {
 				}
 			} catch (RuntimeException | Error e) {
 				throw e;
-			} catch (Throwable e) {
+			} catch (Throwable e) { // MethodHandle.invoke
 				throw new RuntimeException(e);
 			}
 		}

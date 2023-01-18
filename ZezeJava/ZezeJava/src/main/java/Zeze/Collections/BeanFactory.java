@@ -15,7 +15,7 @@ public final class BeanFactory {
 			return (T)methodHandle.invoke();
 		} catch (RuntimeException | Error e) {
 			throw e;
-		} catch (Throwable e) {
+		} catch (Throwable e) { // MethodHandle.invoke
 			throw new RuntimeException(e);
 		}
 	}
@@ -27,7 +27,7 @@ public final class BeanFactory {
 			bean = (Bean)beanCtor.invoke();
 		} catch (RuntimeException | Error e) {
 			throw e;
-		} catch (Throwable e) {
+		} catch (Throwable e) { // MethodHandle.invoke
 			throw new RuntimeException(e);
 		}
 		synchronized (writingFactory) {
@@ -57,7 +57,7 @@ public final class BeanFactory {
 			return (Bean)beanCtor.invoke();
 		} catch (RuntimeException | Error e) {
 			throw e;
-		} catch (Throwable e) {
+		} catch (Throwable e) { // MethodHandle.invoke
 			throw new RuntimeException(e);
 		}
 	}

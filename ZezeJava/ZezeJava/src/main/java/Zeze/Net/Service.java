@@ -602,8 +602,7 @@ public class Service {
 			try {
 				r.setIsTimeout(isTimeout);
 				r.onRemoved();
-			} catch (Throwable e) {
-				// run handle. 必须捕捉所有异常。
+			} catch (Throwable e) { // run handle. 必须捕捉所有异常。
 				logger.error("ManualContext.OnRemoved", e);
 			}
 		}

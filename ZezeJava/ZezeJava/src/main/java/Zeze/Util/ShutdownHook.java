@@ -23,8 +23,7 @@ public final class ShutdownHook {
 					var entry = entries[i];
 					try {
 						entry.getValue().run();
-					} catch (Throwable e) {
-						// run handle.
+					} catch (Throwable e) { // run handle.
 						logger.error("action({}).run exception:", entry.getKey(), e);
 					}
 				}

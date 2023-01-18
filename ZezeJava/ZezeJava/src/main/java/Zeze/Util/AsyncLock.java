@@ -47,8 +47,7 @@ public final class AsyncLock {
 				ownerThread = Thread.currentThread();
 				current = onEnter;
 				onEnter.run();
-			} catch (Throwable e) {
-				// print stacktrace.
+			} catch (Throwable e) { // print stacktrace.
 				Task.logger.error("AsyncLock.enter exception:", e);
 			} finally {
 				leave();
@@ -82,8 +81,7 @@ public final class AsyncLock {
 					ownerThread = Thread.currentThread();
 					current = onReady;
 					onReady.run();
-				} catch (Throwable e) {
-					// print stacktrace.
+				} catch (Throwable e) { // print stacktrace.
 					Task.logger.error("AsyncLock.tryNext exception:", e);
 				} finally {
 					leave();
@@ -105,8 +103,7 @@ public final class AsyncLock {
 						ownerThread = Thread.currentThread();
 						current = onReady;
 						onReady.run();
-					} catch (Throwable e) {
-						// print stacktrace.
+					} catch (Throwable e) { // print stacktrace.
 						Task.logger.error("AsyncLock.tryNext exception:", e);
 					} finally {
 						leave();

@@ -24,7 +24,7 @@ public class ProviderDirectWithTransmit extends ProviderDirect {
 					throw new RuntimeException(e);
 				}
 			}).invoke();
-		} catch (Throwable e) {
+		} catch (Throwable e) { // MethodHandle.invoke
 			logger.error("createObject failed: " + className, e);
 			return null;
 		}

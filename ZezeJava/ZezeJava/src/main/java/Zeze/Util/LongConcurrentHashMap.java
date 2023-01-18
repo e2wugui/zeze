@@ -763,7 +763,6 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 				Node<V>[] nt = (Node<V>[])new Node<?>[n << 1];
 				nextTab = nt;
 			} catch (Throwable ex) { // try to cope with OOME
-				// ???
 				sizeCtl = Integer.MAX_VALUE;
 				return;
 			}
