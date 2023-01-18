@@ -84,6 +84,8 @@ final class RedirectAllFutureAsync<R extends RedirectResult> implements Redirect
 				throw new IllegalStateException();
 			try {
 				((Action1<R>)a).run(r);
+			} catch (RuntimeException e) {
+				throw e;
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
@@ -137,7 +139,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 		return hashes;
 	}
 
-	void result(RedirectAllContext<R> ctx, R result) throws Exception {
+	void result(RedirectAllContext<R> ctx, R result) {
 		if (this.ctx == null)
 			this.ctx = ctx;
 		if (onResult == null)
@@ -154,6 +156,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 		}, "RedirectAllFutureImpl.result").call();
 	}
 
+	@SuppressWarnings("RedundantThrows")
 	@Override
 	public RedirectAllFuture<R> onResult(Action1<R> onResult) throws Exception {
 		if (onResult == null)
@@ -187,6 +190,8 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 	public RedirectAllFuture<R> OnResult(Action1<R> onResult) {
 		try {
 			return onResult(onResult);
+		} catch (RuntimeException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -211,8 +216,9 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 		}
 	}
 
+	@SuppressWarnings("RedundantThrows")
 	@Override
-	public RedirectAllFuture<R> onAllDone(Action1<RedirectAllContext<R>> onAllDone) {
+	public RedirectAllFuture<R> onAllDone(Action1<RedirectAllContext<R>> onAllDone) throws Exception {
 		if (onAllDone == null)
 			throw new IllegalArgumentException("null onAllDone");
 		var c = ctx;
@@ -233,6 +239,8 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 	public RedirectAllFuture<R> OnAllDone(Action1<RedirectAllContext<R>> onAllDone) {
 		try {
 			return onAllDone(onAllDone);
+		} catch (RuntimeException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

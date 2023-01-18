@@ -24,19 +24,16 @@ public class ProviderLoad extends ProviderLoadBase {
 
 	@Override
 	public LoadConfig getLoadConfig() {
-		assert this.online.providerApp != null;
 		return this.online.providerApp.distribute.loadConfig;
 	}
 
 	@Override
 	public String getProviderIp() {
-		assert this.online.providerApp != null;
 		return this.online.providerApp.directIp;
 	}
 
 	@Override
 	public int getProviderPort() {
-		assert this.online.providerApp != null;
 		return this.online.providerApp.directPort;
 	}
 }

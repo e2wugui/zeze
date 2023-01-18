@@ -53,21 +53,24 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	public ByteBuffer alloc() {
 		int n = bbPool.size();
 		if (n <= 0) {
-			var bbGlobalPoolLock = selectors.getBbGlobalPoolLock();
-			bbGlobalPoolLock.lock();
-			try {
-				var bbGlobalPool = selectors.getBbGlobalPool();
-				int bbPoolMoveCount = selectors.getBbPoolMoveCount();
-				int gn = bbGlobalPool.size();
-				if (gn >= bbPoolMoveCount) {
-					var bbMoves = bbGlobalPool.subList(gn - bbPoolMoveCount, gn);
-					bbPool.addAll(bbMoves);
-					bbMoves.clear();
+			var bbPoolGlobalCapacity = selectors.getBbPoolGlobalCapacity();
+			if (bbPoolGlobalCapacity > 0) {
+				var bbGlobalPoolLock = selectors.getBbGlobalPoolLock();
+				bbGlobalPoolLock.lock();
+				try {
+					var bbGlobalPool = selectors.getBbGlobalPool();
+					int bbPoolMoveCount = selectors.getBbPoolMoveCount();
+					int gn = bbGlobalPool.size();
+					if (gn >= bbPoolMoveCount) {
+						var bbMoves = bbGlobalPool.subList(gn - bbPoolMoveCount, gn);
+						bbPool.addAll(bbMoves);
+						bbMoves.clear();
+					}
+				} finally {
+					bbGlobalPoolLock.unlock();
 				}
-			} finally {
-				bbGlobalPoolLock.unlock();
+				n = bbPool.size();
 			}
-			n = bbPool.size();
 		}
 		return n > 0 ? bbPool.remove(n - 1) : ByteBuffer.allocateDirect(selectors.getBbPoolBlockSize());
 	}
@@ -78,19 +81,20 @@ public class Selector extends Thread implements ByteBufferAllocator {
 		int bbPoolMoveCount = selectors.getBbPoolMoveCount();
 		int n = bbPool.size();
 		if (n >= bbPoolLocalCapacity + bbPoolMoveCount) { // 可以释放一批
-			var bbMoves = bbPool.subList(n - bbPoolMoveCount, n);
-			var bbGlobalPool = selectors.getBbGlobalPool();
-			var bbGlobalPoolLock = selectors.getBbGlobalPoolLock();
 			var bbPoolGlobalCapacity = selectors.getBbPoolGlobalCapacity();
-			bbGlobalPoolLock.lock();
-			try {
-				if (bbGlobalPool.size() >= bbPoolGlobalCapacity) // 全局池也放不下就丢弃这个bb
-					return;
-				bbGlobalPool.addAll(bbMoves);
-			} finally {
-				bbGlobalPoolLock.unlock();
+			if (bbPoolGlobalCapacity > 0) {
+				var bbGlobalPool = selectors.getBbGlobalPool();
+				var bbMoves = bbPool.subList(n - bbPoolMoveCount, n);
+				var bbGlobalPoolLock = selectors.getBbGlobalPoolLock();
+				bbGlobalPoolLock.lock();
+				try {
+					if (bbGlobalPool.size() < bbPoolGlobalCapacity) // 全局池也放不下就丢弃这次搬移的buffers
+						bbGlobalPool.addAll(bbMoves);
+				} finally {
+					bbGlobalPoolLock.unlock();
+					bbMoves.clear();
+				}
 			}
-			bbMoves.clear();
 		}
 		bb.position(0);
 		bb.limit(bb.capacity());
@@ -149,7 +153,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 				}
 			};
 			thread.setDaemon(true);
-			thread.setUncaughtExceptionHandler((__, e) -> logger.error("fatal exception", e));
+			thread.setUncaughtExceptionHandler((__, e) -> logger.error("uncaught exception", e));
 			thread.start();
 		}
 

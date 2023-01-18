@@ -112,7 +112,7 @@ public class DelayRemove extends AbstractDelayRemove {
 	}
 
 	// 装载还没有完成的Job。需要在所有模块都start之后调用。
-	public void continueJobs() throws Exception {
+	public void continueJobs() {
 		zeze.newProcedure(() -> {
 			var jobs = _tJobs.getOrAdd(zeze.getConfig().getServerId());
 			for (var e : jobs.getJobs())
@@ -135,7 +135,7 @@ public class DelayRemove extends AbstractDelayRemove {
 		}
 	}
 
-	private void onTimer() throws Exception {
+	private void onTimer() {
 		// delayRemove可能需要删除很多记录，不能在一个事务内完成全部删除。
 		// 这里按每个节点的记录的删除在一个事务中执行，节点间用不同的事务。
 		var days = zeze.getConfig().getDelayRemoveDays();

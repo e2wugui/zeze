@@ -37,7 +37,7 @@ public final class RedirectAllContext<R extends RedirectResult> extends Service.
 	}
 
 	@Override
-	public synchronized void onRemoved() throws Exception {
+	public synchronized void onRemoved() {
 		if (isCompleted() && future != null)
 			future.allDone(this);
 	}

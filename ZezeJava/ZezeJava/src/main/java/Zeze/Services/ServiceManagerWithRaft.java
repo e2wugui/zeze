@@ -30,7 +30,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
 
-public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft implements AutoCloseable {
+public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft implements AutoCloseable {
 	static {
 		System.getProperties().putIfAbsent("log4j.configurationFile", "log4j2.xml");
 		var level = Level.toLevel(System.getProperty("logLevel"), Level.INFO);
@@ -85,7 +85,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 	}
 
 	@Override
-	public void close() throws Exception {
+	public void close() {
 		rocks.close();
 	}
 
@@ -100,7 +100,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 
 		@Override
 		public synchronized <P extends Protocol<?>> void dispatchRaftRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
-																ProtocolFactoryHandle<?> factoryHandle) {
+																				 ProtocolFactoryHandle<?> factoryHandle) {
 			if (logger.isDebugEnabled())
 				logger.debug("dispatchRaftRpcResponse: " + rpc.getClass().getName() + rpc);
 			var procedure = rocks.newProcedure(() -> responseHandle.handle(rpc));
@@ -126,7 +126,10 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 				if (logger.isDebugEnabled())
 					logger.info("OnSocketClose: " + netSession.name);
 				synchronized (this) {
-					var procedure = rocks.newProcedure(() -> { netSession.onClose(); return 0; });
+					var procedure = rocks.newProcedure(() -> {
+						netSession.onClose();
+						return 0;
+					});
 					procedure.call();
 				}
 			}
@@ -195,7 +198,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 				if (serverId >= 0) {
 					if (!offlineNotifyFutures.containsKey(serverId))
 						offlineNotifyFutures.put(serverId, Task.scheduleUnsafe(eOfflineNotifyDelay,
-								() -> offlineNotify(session,true)));
+								() -> offlineNotify(session, true)));
 				} else {
 					Task.run(() -> offlineNotify(session, false), "offlineNotifyImmediately");
 				}
@@ -642,8 +645,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 			// 只有两段公告模式需要回应处理。
 			if (notifyTimeoutTask != null)
 				notifyTimeoutTask.cancel(false);
-			notifyTimeoutTasks.put(state.getServiceName(),
-					Task.scheduleUnsafe(config.retryNotifyDelayWhenNotAllReady,
+			notifyTimeoutTasks.put(state.getServiceName(), Task.scheduleUnsafe(config.retryNotifyDelayWhenNotAllReady,
 					() -> {
 						// NotifyTimeoutTask 会在下面两种情况下被修改：
 						// 1. 在 Notify.ReadyCommit 完成以后会被清空。
@@ -730,5 +732,4 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 		r.SendResultCode(Zeze.Services.ServiceManager.Subscribe.Success);
 		return 0;
 	}
-
 }

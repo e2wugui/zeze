@@ -94,11 +94,8 @@ public class DatabaseDynamoDb extends Database {
 		}
 	}
 
-	private class TransDynamoDb implements Transaction {
+	private final class TransDynamoDb implements Transaction {
 		private final ArrayList<TransactWriteItem> writes = new ArrayList<>();
-
-		public TransDynamoDb() {
-		}
 
 		@Override
 		public void commit() {
@@ -112,7 +109,7 @@ public class DatabaseDynamoDb extends Database {
 		}
 
 		@Override
-		public void close() throws Exception {
+		public void close() {
 			writes.clear();
 		}
 

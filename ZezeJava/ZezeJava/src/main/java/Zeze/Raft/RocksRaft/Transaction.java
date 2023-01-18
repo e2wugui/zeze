@@ -196,8 +196,7 @@ public final class Transaction {
 			logger.info("RocksRaft Retry", e);
 			_final_rollback_(procedure);
 			return Zeze.Transaction.Procedure.RaftRetry;
-		} catch (Throwable e) {
-			// rollback. 必须捕捉所有异常。
+		} catch (Throwable e) { // // rollback. 必须捕捉所有异常。logger.error, rethrow AssertionError
 			procedure.setAutoResponseResultCode(Zeze.Transaction.Procedure.Exception);
 			logger.error("RocksRaft Call Exception", e);
 			if (e instanceof AssertionError) {
@@ -263,7 +262,7 @@ public final class Transaction {
 						record.setDirty(true);
 						allRead = false;
 					} else
-						logger.fatal("impossible! record not found."); // 只有测试代码会把非 Managed 的 Bean 的日志加进来。
+						logger.error("impossible! record not found."); // 只有测试代码会把非 Managed 的 Bean 的日志加进来。
 				}
 			}
 		}
@@ -315,8 +314,7 @@ public final class Transaction {
 			for (var action : commitActions) {
 				try {
 					action.run();
-				} catch (Throwable ex) {
-					// run handle. 必须捕捉所有异常。
+				} catch (Throwable ex) { // run handle. 必须捕捉所有异常。logger.error
 					logger.error("Commit Procedure {} Action {}", procedure, action.getClass().getName(), ex);
 				}
 			}
@@ -330,8 +328,7 @@ public final class Transaction {
 			for (var action : rollbackActions) {
 				try {
 					action.run();
-				} catch (Throwable ex) {
-					// run handle. 必须捕捉所有异常。
+				} catch (Throwable ex) { // run handle. 必须捕捉所有异常。logger.error
 					logger.error("Commit Procedure {} Action {}", procedure, action.getClass().getName(), ex);
 				}
 			}

@@ -186,7 +186,7 @@ public class Online extends AbstractOnline {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T extends Bean> T getOrAddLocalBean(String account, String clientId, String key, T defaultHint) throws Exception {
+	public <T extends Bean> T getOrAddLocalBean(String account, String clientId, String key, T defaultHint) {
 		var bLocals = _tlocal.getOrAdd(account);
 		var login = bLocals.getLogins().getOrAdd(clientId);
 		var bAny = login.getDatas().getOrAdd(key);
@@ -296,7 +296,7 @@ public class Online extends AbstractOnline {
 		}));
 	}
 
-	public void addReliableNotifyMark(String account, String clientId, String listenerName) throws Exception {
+	public void addReliableNotifyMark(String account, String clientId, String listenerName) {
 		var online = _tonline.get(account);
 		if (online == null)
 			throw new IllegalStateException("Not Online. AddReliableNotifyMark: " + listenerName);
@@ -426,7 +426,7 @@ public class Online extends AbstractOnline {
 		return online.getLogins().size();
 	}
 
-	public Collection<LoginOnLink> groupByLink(Collection<LoginKey> logins) throws Exception {
+	public Collection<LoginOnLink> groupByLink(Collection<LoginKey> logins) {
 		var groups = new HashMap<String, LoginOnLink>();
 		var groupNotOnline = new LoginOnLink(); // LinkName is Empty And Socket is null.
 		groups.put(groupNotOnline.linkName, groupNotOnline);
@@ -575,7 +575,7 @@ public class Online extends AbstractOnline {
 		Transaction.whileRollback(() -> send(logins, p));
 	}
 
-	public Collection<LoginOnLink> groupAccountsByLink(Collection<String> accounts) throws Exception {
+	public Collection<LoginOnLink> groupAccountsByLink(Collection<String> accounts) {
 		var groups = new HashMap<String, LoginOnLink>();
 		var groupNotOnline = new LoginOnLink(); // LinkName is Empty And Socket is null.
 		groups.put(groupNotOnline.linkName, groupNotOnline);
@@ -749,7 +749,7 @@ public class Online extends AbstractOnline {
 	}
 
 	private void transmitInProcedure(String account, String clientId, String actionName, Collection<String> accounts,
-									 Binary parameter) throws Exception {
+									 Binary parameter) {
 		if (providerApp.zeze.getConfig().getGlobalCacheManagerHostNameOrAddress().isEmpty()) {
 			// 没有启用cache-sync，马上触发本地任务。
 			processTransmit(account, clientId, actionName, accounts, parameter);
@@ -1066,7 +1066,7 @@ public class Online extends AbstractOnline {
 	}
 
 	private int reliableNotifySync(String account, String clientId,
-								   ProviderUserSession session, long index, boolean sync) throws Exception {
+								   ProviderUserSession session, long index, boolean sync) {
 		var online = _tversion.getOrAdd(account);
 		var queue = openQueue(account, clientId);
 		var loginOnline = online.getLogins().getOrAdd(clientId);

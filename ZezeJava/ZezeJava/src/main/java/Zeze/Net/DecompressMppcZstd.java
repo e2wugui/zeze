@@ -1,7 +1,6 @@
 package Zeze.Net;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.io.InputStream;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.ZstdFactory;

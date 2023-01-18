@@ -110,8 +110,7 @@ public final class Simulate {
 		simulate.Before();
 		try {
 			simulate.testMain();
-		} catch (Throwable e) {
-			// print stacktrace.
+		} catch (Throwable e) { // print stacktrace. rethrow
 			logger.fatal("main exception:", e);
 			throw e;
 		} finally {

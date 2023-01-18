@@ -954,7 +954,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	public static void main(String[] args) throws Exception {
 		Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
 			e.printStackTrace();
-			logger.fatal("uncaught exception in {}:", t, e);
+			logger.error("uncaught exception in {}:", t, e);
 		});
 
 		String ip = null;

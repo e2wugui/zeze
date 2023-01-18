@@ -23,7 +23,6 @@ import Zeze.Util.PersistentAtomicLong;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
-import com.alibaba.fastjson.asm.MethodWriter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -313,12 +312,14 @@ public final class Agent {
 			OutObject<Connector> outNode = new OutObject<>();
 			if (client.getConfig().tryGetOrAddConnector(address[0], Integer.parseInt(address[1]), true, outNode))
 				outNode.value.start();
-		} else //noinspection DataFlowIssue
+		} else {
+			//noinspection DataFlowIssue
 			if (!r.Argument.isLeader() && r.Argument.getLeaderId().equals(r.getSender().getConnector().getName())) {
-			// 【错误处理】用来观察。
-			logger.warn("New Leader Is Not A Leader.");
-			// 发送者不是Leader，但它的发送的LeaderId又是自己，【尝试选择另外一个Node】。
-			node = getRandomConnector(node);
+				// 【错误处理】用来观察。
+				logger.warn("New Leader Is Not A Leader.");
+				// 发送者不是Leader，但它的发送的LeaderId又是自己，【尝试选择另外一个Node】。
+				node = getRandomConnector(node);
+			}
 		}
 
 		if (setLeader(r, node instanceof ConnectorEx ? (ConnectorEx)node : null))
@@ -428,8 +429,7 @@ public final class Agent {
 			} else {
 				try {
 					r.handle.applyAsLong(r);
-				} catch (Throwable e) {
-					// run handle. 必须捕捉所有异常。
+				} catch (Throwable e) { // run handle. 必须捕捉所有异常。logger.error
 					logger.error("", e);
 				}
 			}
@@ -480,8 +480,7 @@ public final class Agent {
 			// Raft RPC 的回复处理应该都不是block的,直接在IO线程处理,避免线程池堆满等待又无法唤醒导致死锁
 			try {
 				responseHandle.handle(rpc);
-			} catch (Throwable e) {
-				// run handle. 必须捕捉所有异常。
+			} catch (Throwable e) { // run handle. 必须捕捉所有异常。logger.error
 				logger.error("Agent.NetClient.DispatchRpcResponse", e);
 			}
 		}

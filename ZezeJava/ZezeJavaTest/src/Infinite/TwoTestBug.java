@@ -12,8 +12,7 @@ public class TwoTestBug {
 				var test1 = new CBasicSimpleAddConcurrent();
 				try {
 					test1.testBenchmark();
-				} catch (Throwable ex) {
-					// print stacktrace.
+				} catch (Throwable ex) { // print stacktrace.
 					Simulate.logger.fatal("CBasicSimpleAddConcurrent", ex);
 				}
 				Simulate.logger.fatal("----------- Simulate " + i + " -----------");
@@ -23,8 +22,7 @@ public class TwoTestBug {
 				simulate.Before();
 				try {
 					simulate.testMain();
-				} catch (Throwable e) {
-					// print stacktrace.
+				} catch (Throwable e) { // print stacktrace. rethrow
 					Simulate.logger.fatal("main exception:", e);
 					throw e;
 				} finally {

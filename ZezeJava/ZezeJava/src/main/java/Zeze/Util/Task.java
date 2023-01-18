@@ -77,7 +77,7 @@ public final class Task {
 				var t = new Thread(null, r, namePrefix + threadNumber.getAndIncrement(), 0);
 				t.setDaemon(true);
 				t.setPriority(Thread.NORM_PRIORITY + 2);
-				t.setUncaughtExceptionHandler((__, e) -> logger.error("fatal exception", e));
+				t.setUncaughtExceptionHandler((__, e) -> logger.error("uncaught exception", e));
 				return t;
 			}
 		});

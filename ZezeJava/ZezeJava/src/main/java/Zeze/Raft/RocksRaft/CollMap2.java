@@ -135,7 +135,7 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 				value = (V)valueFactory.invoke();
 			} catch (RuntimeException | Error e) {
 				throw e;
-			} catch (Throwable e) {
+			} catch (Throwable e) { // MethodHandle.invoke
 				throw new RuntimeException(e);
 			}
 			value.decode(bb);

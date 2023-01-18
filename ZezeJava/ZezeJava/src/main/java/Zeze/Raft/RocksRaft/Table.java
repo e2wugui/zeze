@@ -102,7 +102,7 @@ public final class Table<K, V extends Bean> {
 			return (V)valueFactory.invoke();
 		} catch (RuntimeException | Error e) {
 			throw e;
-		} catch (Throwable e) {
+		} catch (Throwable e) { // MethodHandle.invoke
 			throw new RuntimeException(e);
 		}
 	}

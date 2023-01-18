@@ -17,13 +17,14 @@ public class Selectors {
 		return InstanceHolder.instance;
 	}
 
+	@SuppressWarnings("CanBeFinal")
 	public static final class Config {
-		public int bbPoolBlockSize = 32 * 1024; // 单个buffer的字节容量,推荐等于Socket.getSendBufferSize()
-		public int bbPoolLocalCapacity = 1000; // 本地池的最大保留buffer数量
-		public int bbPoolMoveCount = 1000; // 本地池和全局池之间移动一次的buffer数量
-		public int bbPoolGlobalCapacity = 100 * bbPoolMoveCount; // 全局池的最大buffer数量
+		public int bbPoolBlockSize = 64 * 1024; // 单个buffer的字节容量,推荐等于Socket.getSendBufferSize()
+		public int bbPoolLocalCapacity = 1024; // 本地池的最大保留buffer数量
+		public int bbPoolMoveCount = 1024; // 本地池和全局池之间移动一次的buffer数量
+		public int bbPoolGlobalCapacity = 64 * bbPoolMoveCount; // 全局池的最大buffer数量
 		public int selectTimeout; // 0表示无超时,>0表示每次select的超时毫秒数,-1表示无超时且异步wakeup
-		public int readBufferSize = 32 * 1024; // 读buffer的字节容量
+		public int readBufferSize = 64 * 1024; // 读buffer的字节容量
 
 		public void check() {
 			if (bbPoolBlockSize <= 0)

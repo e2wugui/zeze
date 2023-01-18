@@ -192,7 +192,7 @@ public final class Transaction {
 								if ((result == Procedure.Success && saveSize != 1)
 										|| (result != Procedure.Success && saveSize > 0)) {
 									// 这个错误不应该重做
-									logger.fatal("Transaction.Perform:{}. savepoints.Count != 1.", procedure);
+									logger.error("Transaction.Perform:{}. savepoints.Count != 1.", procedure);
 									finalRollback(procedure);
 									return Procedure.ErrorSavepoint;
 								}
@@ -239,7 +239,7 @@ public final class Transaction {
 								logger.error("Transaction.Perform:{} exception. run count:{}", procedure, tryCount, e);
 								if (!savepoints.isEmpty()) {
 									// 这个错误不应该重做
-									logger.fatal("Transaction.Perform:{}. exception. savepoints.Count != 0.", procedure, e);
+									logger.error("Transaction.Perform:{}. exception. savepoints.Count != 0.", procedure, e);
 									finalRollback(procedure);
 									return Procedure.ErrorSavepoint;
 								}
@@ -538,7 +538,7 @@ public final class Transaction {
 						allRead = false;
 					} else {
 						// 只有测试代码会把非 Managed 的 Bean 的日志加进来。
-						logger.fatal("impossible! record not found.");
+						logger.error("impossible! record not found.");
 					}
 				}
 			}

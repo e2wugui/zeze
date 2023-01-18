@@ -184,7 +184,7 @@ public class Online extends AbstractOnline {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T extends Bean> T getOrAddLocalBean(long roleId, String key, T defaultHint) throws Exception {
+	public <T extends Bean> T getOrAddLocalBean(long roleId, String key, T defaultHint) {
 		var bLocal = _tlocal.getOrAdd(roleId);
 		var data = bLocal.getDatas().getOrAdd(key);
 		if (data.getAny().getBean().typeId() == defaultHint.typeId())

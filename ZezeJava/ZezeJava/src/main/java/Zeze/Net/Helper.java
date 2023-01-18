@@ -115,7 +115,7 @@ public final class Helper {
 		return InetAddress.getByName(hostOrAddress);
 	}
 
-	public static boolean isPrivateAddress(InetAddress address) throws UnknownHostException {
+	public static boolean isPrivateAddress(InetAddress address) {
 		if (isIp4(address)) {
 			return isPrivateIPv4(address.toString());
 		}

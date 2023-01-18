@@ -75,8 +75,7 @@ public class Procedure {
 		} catch (ThrowAgainException | RaftRetryException e) {
 			currentT.rollback();
 			throw e;
-		} catch (Throwable e) {
-			// procedure . exception to return.
+		} catch (Throwable e) { // procedure . exception to return. rethrow AssertionError, logger.error
 			currentT.rollback();
 			if (e instanceof AssertionError)
 				throw e;

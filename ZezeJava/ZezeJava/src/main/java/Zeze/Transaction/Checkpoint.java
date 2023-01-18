@@ -48,7 +48,7 @@ public final class Checkpoint {
 		checkpointThread = new Thread(() -> Task.call(this::run, "Checkpoint.Run"), "Checkpoint-" + serverId);
 		checkpointThread.setDaemon(true);
 		checkpointThread.setPriority(Thread.NORM_PRIORITY + 2);
-		checkpointThread.setUncaughtExceptionHandler((__, e) -> logger.error("fatal exception", e));
+		checkpointThread.setUncaughtExceptionHandler((__, e) -> logger.error("uncaught exception", e));
 	}
 
 	public CheckpointMode getCheckpointMode() {

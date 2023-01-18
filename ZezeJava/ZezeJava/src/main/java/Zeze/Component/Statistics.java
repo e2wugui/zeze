@@ -6,6 +6,7 @@ import Zeze.Transaction.TableStatistics;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class Statistics extends AbstractStatistics {
+	@SuppressWarnings("RedundantThrows")
 	@Override
 	protected void OnServletQuery(HttpExchange x) throws Exception {
 		var sb = new StringBuilder();

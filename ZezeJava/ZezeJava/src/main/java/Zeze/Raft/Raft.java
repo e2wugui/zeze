@@ -181,8 +181,7 @@ public final class Raft {
 			for (Action0 action : atFatalKills) {
 				try {
 					action.run();
-				} catch (Throwable e) {
-					// kill self. 必须捕捉所有异常。
+				} catch (Throwable e) { // kill self. 必须捕捉所有异常。logger.error
 					logger.error("FatalKill", e);
 				}
 			}
@@ -205,7 +204,7 @@ public final class Raft {
 			logSequence.appendLog(log, true);
 		} catch (RaftRetryException | TaskCanceledException er) {
 			throw er;
-		} catch (Throwable ex) {
+		} catch (Throwable ex) { // rethrow RaftRetryException
 			throw new RaftRetryException("Inner Exception", ex);
 		}
 	}

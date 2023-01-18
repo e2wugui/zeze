@@ -93,9 +93,8 @@ public class Test {
 
 		logger.debug("Start.");
 
-		Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
-			logger.error("uncaught fatal exception for thread: {}", t.getName(), e);
-		});
+		Thread.setDefaultUncaughtExceptionHandler(
+				(t, e) -> logger.fatal("uncaught fatal exception for thread: {}", t.getName(), e));
 
 		Task.initThreadPool(Task.newFixedThreadPool(10, "test"),
 				Executors.newScheduledThreadPool(3, new ThreadFactoryWithName("test-sch")));

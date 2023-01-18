@@ -781,8 +781,7 @@ public class LogSequence {
 			// 广播给followers并异步等待多数确认
 			try {
 				raft.getServer().getConfig().ForEachConnector(c -> trySendAppendEntries((Server.ConnectorEx)c, null));
-			} catch (Throwable e) {
-				// rollback. 必须捕捉所有异常。
+			} catch (Throwable e) { // rollback. 必须捕捉所有异常。rethrow
 				lastIndex--;
 				// 只有下面这个需要回滚，日志(SaveLog, OpenUniqueRequests(...).Save)以后根据LastIndex覆盖。
 				if (WaitApply)

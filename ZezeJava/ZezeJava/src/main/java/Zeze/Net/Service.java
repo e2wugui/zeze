@@ -658,6 +658,5 @@ public class Service {
 	}
 
 	public void onServerSocketBind(ServerSocket port) {
-
 	}
 }

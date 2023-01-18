@@ -18,9 +18,7 @@ public class ConditionNPCTalk extends TaskConditionBase<BTConditionNPCTalk, BTCo
 		BTConditionNPCTalk bean = new BTConditionNPCTalk();
 		bean.setNpcId(json.getInt("npcId"));
 		var options = json.getJsonObject("dialogOptions");
-		options.keySet().forEach(key -> {
-			bean.getDialogOptions().put(key, options.getInt(key));
-		});
+		options.keySet().forEach(key -> bean.getDialogOptions().put(key, options.getInt(key)));
 		getBean().getExtendedData().setBean(bean);
 	}
 

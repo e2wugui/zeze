@@ -1,11 +1,10 @@
 package Zeze.Transaction.Logs;
 
-import java.io.IOException;
 import java.lang.invoke.MethodHandle;
-import Zeze.Transaction.Bean;
-import Zeze.Transaction.Log;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
+import Zeze.Transaction.Bean;
+import Zeze.Transaction.Log;
 import Zeze.Util.Reflect;
 
 public abstract class LogBeanKey<T extends Serializable> extends Log {

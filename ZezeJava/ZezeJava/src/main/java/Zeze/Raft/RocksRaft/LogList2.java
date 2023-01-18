@@ -89,7 +89,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 					value = (V)valueFactory.invoke();
 				} catch (RuntimeException | Error e) {
 					throw e;
-				} catch (Throwable e) {
+				} catch (Throwable e) { // MethodHandle.invoke
 					throw new RuntimeException(e);
 				}
 				value.decode(bb);
