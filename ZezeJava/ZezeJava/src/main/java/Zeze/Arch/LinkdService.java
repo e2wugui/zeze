@@ -16,6 +16,7 @@ import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.Action1;
 import Zeze.Util.ConcurrentLruLike;
 import Zeze.Util.OutLong;
 import Zeze.Util.Task;
@@ -313,9 +314,15 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 			((LinkdUserSession)so.getUserState()).onClose(linkdApp.linkdProviderService);
 	}
 
+	public Action1<ServerSocket> onServerSocketBindAction;
+
 	@Override
 	public void onServerSocketBind(ServerSocket ss) {
-		// todo 需要LinkdService实现自己的查询服务器，在这里把实际绑定的地址和端口注册到名字服务器。
-		// ss.getLocalPort();
+		// 需要LinkdService实现自己的查询服务器，在这里把实际绑定的地址和端口注册到名字服务器。
+		try {
+			onServerSocketBindAction.run(ss);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 }
