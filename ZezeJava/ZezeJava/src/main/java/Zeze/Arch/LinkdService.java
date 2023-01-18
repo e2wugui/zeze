@@ -317,7 +317,8 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 	public void onServerSocketBind(ServerSocket ss) {
 		// 需要LinkdService实现自己的查询服务器，在这里把实际绑定的地址和端口注册到名字服务器。
 		try {
-			linkdApp.onServerSocketBindAction.run(ss);
+			if (linkdApp.onServerSocketBindAction != null)
+				linkdApp.onServerSocketBindAction.run(ss);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
