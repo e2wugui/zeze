@@ -617,20 +617,6 @@ public class Service {
 			action.run(socket);
 	}
 
-	public static String getOneNetworkInterfaceIpAddress() {
-		try {
-			var interfaces = NetworkInterface.getNetworkInterfaces();
-			while (interfaces.hasMoreElements()) {
-				var inetAddresses = interfaces.nextElement().getInetAddresses();
-				if (inetAddresses.hasMoreElements())
-					return inetAddresses.nextElement().getHostAddress();
-			}
-			return "";
-		} catch (SocketException ex) {
-			throw new RuntimeException(ex);
-		}
-	}
-
 	public KV<String, Integer> getOneAcceptorAddress() {
 		var ipPort = KV.create("", 0);
 
@@ -654,9 +640,13 @@ public class Service {
 		if (ipPort.getValue() == 0)
 			throw new IllegalStateException("Acceptor: No Config.");
 
-		if (ipPort.getKey().isEmpty()) {
+		if (ipPort.getKey().equals("@internal")) {
+			ipPort.setKey(Helper.getOnePrivateNetworkInterfaceIpAddress());
+		} else if (ipPort.getKey().equals("@external")) {
+			ipPort.setKey(Helper.getOnePublicNetworkInterfaceIpAddress());
+		} else if (ipPort.getKey().isEmpty()) {
 			// 可能绑定在任意地址上。尝试获得网卡的地址。
-			ipPort.setKey(getOneNetworkInterfaceIpAddress());
+			ipPort.setKey(Helper.getOneNetworkInterfaceIpAddress());
 			if (ipPort.getKey().isEmpty()) {
 				// 实在找不到ip地址，就设置成loopback。
 				logger.warn("PassiveAddress No Config. set ip to 127.0.0.1");
@@ -665,4 +655,5 @@ public class Service {
 		}
 		return ipPort;
 	}
+
 }

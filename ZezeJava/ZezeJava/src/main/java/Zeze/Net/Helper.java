@@ -1,5 +1,9 @@
 package Zeze.Net;
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 
@@ -62,8 +66,8 @@ public final class Helper {
 	/**
 	 * 把整数形式保存的 IpAddress 和 port 转换成 InetSocketAddress。
 	 */
-	public static java.net.InetSocketAddress inetSocketAddress(int address, int port) {
-		return new java.net.InetSocketAddress(inetAddress(address), port);
+	public static InetSocketAddress inetSocketAddress(int address, int port) {
+		return new InetSocketAddress(inetAddress(address), port);
 	}
 
 	/**
@@ -71,7 +75,7 @@ public final class Helper {
 	 *
 	 * @throws RuntimeException if addr is not a ip4 address
 	 */
-	public static int ip4(java.net.InetAddress addr) {
+	public static int ip4(InetAddress addr) {
 		int ip = 0;
 		byte[] addrs = addr.getAddress();
 		if (addrs.length != 4)
@@ -86,16 +90,128 @@ public final class Helper {
 	/**
 	 * 把整数形式保存的 IpAddress 转换成 InetAddress。
 	 */
-	public static java.net.InetAddress inetAddress(int address) {
+	public static InetAddress inetAddress(int address) {
 		try {
 			byte[] addr = new byte[4];
 			addr[0] = (byte)((address >>> 24) & 0xFF);
 			addr[1] = (byte)((address >>> 16) & 0xFF);
 			addr[2] = (byte)((address >>> 8) & 0xFF);
 			addr[3] = (byte)(address & 0xFF);
-			return java.net.InetAddress.getByAddress(addr);
+			return InetAddress.getByAddress(addr);
 		} catch (UnknownHostException e) {
 			throw new RuntimeException(e);
+		}
+	}
+
+	public static boolean isIp4(InetAddress address) {
+		return address.getAddress().length == 4;
+	}
+
+	public static boolean isIp6(InetAddress address) {
+		return address.getAddress().length == 16;
+	}
+
+	public static InetAddress toInetAddress(String hostOrAddress) throws UnknownHostException {
+		return InetAddress.getByName(hostOrAddress);
+	}
+
+	public static boolean isPrivateAddress(InetAddress address) throws UnknownHostException {
+		if (isIp4(address)) {
+			return isPrivateIPv4(address.toString());
+		}
+		if (isIp6(address)) {
+			return isPrivateIPv6(address.toString());
+		}
+		throw new RuntimeException("Unknown InetAddress! address=" + address);
+	}
+
+	public static boolean isPrivateIPv4(String ipAddress) {
+		try {
+			String[] ipAddressArray = ipAddress.split("\\.");
+			int[] ipParts = new int[ipAddressArray.length];
+			for (int i = 0; i < ipAddressArray.length; i++) {
+				ipParts[i] = Integer.parseInt(ipAddressArray[i].trim());
+			}
+
+			switch (ipParts[0]) {
+			case 10:
+			case 127:
+				return true;
+			case 172:
+				return (ipParts[1] >= 16) && (ipParts[1] < 32);
+			case 192:
+				return (ipParts[1] == 168);
+			case 169:
+				return (ipParts[1] == 254);
+			}
+		} catch (Exception ignored) {
+		}
+
+		return false;
+	}
+
+	public static boolean isPrivateIPv6(String ipAddress) {
+		boolean isPrivateIPv6 = false;
+		String[] ipParts = ipAddress.trim().split(":");
+		if (ipParts.length > 0) {
+			String firstBlock = ipParts[0];
+			String prefix = firstBlock.substring(0, 2);
+
+			if (firstBlock.equalsIgnoreCase("fe80")
+					|| firstBlock.equalsIgnoreCase("100")
+					|| ((prefix.equalsIgnoreCase("fc") && firstBlock.length() >= 4))
+					|| ((prefix.equalsIgnoreCase("fd") && firstBlock.length() >= 4))) {
+				isPrivateIPv6 = true;
+			}
+		}
+		return isPrivateIPv6;
+	}
+
+	public static String getOneNetworkInterfaceIpAddress() {
+		try {
+			var interfaces = NetworkInterface.getNetworkInterfaces();
+			while (interfaces.hasMoreElements()) {
+				var inetAddresses = interfaces.nextElement().getInetAddresses();
+				if (inetAddresses.hasMoreElements())
+					return inetAddresses.nextElement().getHostAddress();
+			}
+			return "";
+		} catch (SocketException ex) {
+			throw new RuntimeException(ex);
+		}
+	}
+
+	public static String getOnePrivateNetworkInterfaceIpAddress() {
+		try {
+			var interfaces = NetworkInterface.getNetworkInterfaces();
+			while (interfaces.hasMoreElements()) {
+				var inetAddresses = interfaces.nextElement().getInetAddresses();
+				if (inetAddresses.hasMoreElements()) {
+					var address = inetAddresses.nextElement();
+					if (isPrivateAddress(address))
+						return address.getHostAddress();
+				}
+			}
+			return "";
+		} catch (Exception ex) {
+			throw new RuntimeException(ex);
+		}
+	}
+
+	public static String getOnePublicNetworkInterfaceIpAddress() {
+		try {
+			var interfaces = NetworkInterface.getNetworkInterfaces();
+			while (interfaces.hasMoreElements()) {
+				var inetAddresses = interfaces.nextElement().getInetAddresses();
+				if (inetAddresses.hasMoreElements()) {
+					var address = inetAddresses.nextElement();
+					if (!isPrivateAddress(address))
+						return address.getHostAddress();
+				}
+			}
+			return "";
+		} catch (Exception ex) {
+			throw new RuntimeException(ex);
 		}
 	}
 }
