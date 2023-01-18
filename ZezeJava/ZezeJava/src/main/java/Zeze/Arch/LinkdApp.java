@@ -1,9 +1,11 @@
 package Zeze.Arch;
 
+import java.net.ServerSocket;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Net.Binary;
 import Zeze.Net.Selectors;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Util.Action1;
 import Zeze.Util.CommandConsoleService;
 
 public class LinkdApp {
@@ -16,6 +18,7 @@ public class LinkdApp {
 	public final String providerIp;
 	public int providerPort;
 	public final Selectors selectors;
+	public Action1<ServerSocket> onServerSocketBindAction;
 
 	/**
 	 * 自动创建，自动启动。
