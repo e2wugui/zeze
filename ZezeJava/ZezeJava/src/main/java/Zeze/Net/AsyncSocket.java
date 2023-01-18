@@ -639,6 +639,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				op.run();
 				bufSize = outputBuffer.size();
 			}
+			var flushed = true;
 			var codec = outputCodecChain;
 			if (codec != null) {
 				// 减慢flush频率，
@@ -652,7 +653,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 						bufSize = newBufSize;
 						outputBufferSizeHandle.getAndAdd(this, deltaLen);
 					}
-				}
+				} else
+					flushed = false;
 			}
 
 			if (bufSize > 0) {
@@ -674,6 +676,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			// 时间窗口
 			// 必须和把Operate加入队列同步！否则可能会出现，刚加入操作没有被处理，但是OP_WRITE又被Remove的问题。
 			if (operates.isEmpty()) {
+				if (!flushed)
+					continue; // 此时bufSize=0,下次循环会触发flush
 				// 真的没有等待处理的操作了，去掉事件，返回。以后新的操作在下一次doWrite时处理。
 				interestOps(SelectionKey.OP_WRITE, 0);
 				if (operates.isEmpty()) { // 再判断一次,避免跟SubmitAction的并发竞争问题
