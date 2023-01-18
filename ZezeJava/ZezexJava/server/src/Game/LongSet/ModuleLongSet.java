@@ -121,6 +121,7 @@ public class ModuleLongSet extends AbstractModule {
 		try {
 			_foreach(name, (e) -> _remove(name, e.getKey()));
 		} catch (Throwable ex) {
+			// print stacktrace.
 			logger.error("_clear", ex);
 		}
 	}

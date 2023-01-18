@@ -145,6 +145,7 @@ public class TestRank extends TestCase {
 			assertEquals(concLevel, hashSet1.size());
 			assertEquals(concLevel, hashSet2.size());
 		} catch (Throwable e) {
+			// print stacktrace.
 			e.printStackTrace();
 			throw e;
 		} finally {

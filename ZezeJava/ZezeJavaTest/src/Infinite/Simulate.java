@@ -111,6 +111,7 @@ public final class Simulate {
 		try {
 			simulate.testMain();
 		} catch (Throwable e) {
+			// print stacktrace.
 			logger.fatal("main exception:", e);
 			throw e;
 		} finally {

@@ -45,6 +45,7 @@ public class TestCheckpointModeTable{
 				try {
 					task.get();
 				} catch (Throwable e) {
+					// print stacktrace.
 					e.printStackTrace();
 				}
 			}

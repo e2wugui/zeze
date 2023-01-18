@@ -13,6 +13,7 @@ public class TwoTestBug {
 				try {
 					test1.testBenchmark();
 				} catch (Throwable ex) {
+					// print stacktrace.
 					Simulate.logger.fatal("CBasicSimpleAddConcurrent", ex);
 				}
 				Simulate.logger.fatal("----------- Simulate " + i + " -----------");
@@ -23,6 +24,7 @@ public class TwoTestBug {
 				try {
 					simulate.testMain();
 				} catch (Throwable e) {
+					// print stacktrace.
 					Simulate.logger.fatal("main exception:", e);
 					throw e;
 				} finally {

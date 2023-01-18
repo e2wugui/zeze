@@ -144,6 +144,7 @@ public class HandshakeBase extends Service {
 
 			return 0L;
 		} catch (Throwable ex) {
+			// 这是普通协议，而Service.Dispach可能会被重载成忽略协议处理错误，但是这个握手错误不能忽略。
 			p.getSender().close(ex);
 			return 0L;
 		}
@@ -169,6 +170,7 @@ public class HandshakeBase extends Service {
 				OnHandshakeDone(p.getSender());
 			}
 		} catch (Throwable ex) {
+			// 这是普通协议，而Service.Dispach可能会被重载成忽略协议处理错误，但是这个握手错误不能忽略。
 			p.getSender().close(ex);
 		}
 		return 0L;
@@ -201,6 +203,7 @@ public class HandshakeBase extends Service {
 			}
 			p.getSender().close(new IllegalStateException("handshake lost context."));
 		} catch (Throwable ex) {
+			// 这是普通协议，而Service.Dispach可能会被重载成忽略协议处理错误，但是这个握手错误不能忽略。
 			p.getSender().close(ex);
 		} finally {
 			if (null != ctx && null != ctx.timeoutTask)
@@ -244,6 +247,7 @@ public class HandshakeBase extends Service {
 				}
 			});
 		} catch (Throwable ex) {
+			// 这是普通协议，而Service.Dispach可能会被重载成忽略协议处理错误，但是这个握手错误不能忽略。
 			so.close(ex);
 		}
 	}

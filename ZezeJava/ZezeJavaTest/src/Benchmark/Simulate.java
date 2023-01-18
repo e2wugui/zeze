@@ -208,6 +208,7 @@ public class Simulate {
 						}
 					}
 				} catch (Throwable e) {
+					// print stacktrace.
 					logger.fatal("proc thread fatal exception:", e);
 				}
 			}, String.format("proc%04d", i));
