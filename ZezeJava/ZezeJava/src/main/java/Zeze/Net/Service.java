@@ -643,7 +643,9 @@ public class Service {
 			ipPort.setKey(Helper.getOnePrivateNetworkInterfaceIpAddress());
 		} else if (ipPort.getKey().equals("@external")) {
 			ipPort.setKey(Helper.getOnePublicNetworkInterfaceIpAddress());
-		} else if (ipPort.getKey().isEmpty()) {
+		}
+
+		if (ipPort.getKey().isEmpty()) {
 			// 可能绑定在任意地址上。尝试获得网卡的地址。
 			ipPort.setKey(Helper.getOneNetworkInterfaceIpAddress());
 			if (ipPort.getKey().isEmpty()) {
