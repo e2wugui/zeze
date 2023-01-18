@@ -95,7 +95,9 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 			if (op < OpLog.OP_REMOVE) {
 				try {
 					value = (V)valueFactory.invoke();
-				} catch (Throwable e) {
+				} catch (RuntimeException | Error e) {
+					throw e;
+				} catch (Throwable e) { // MethodHandle.invoke
 					throw new RuntimeException(e);
 				}
 				value.decode(bb);

@@ -37,7 +37,9 @@ public class PList2<V extends Bean> extends PList<V> {
 	public V createValue() {
 		try {
 			return (V)valueFactory.invoke();
-		} catch (Throwable e) {
+		} catch (RuntimeException | Error e) {
+			throw e;
+		} catch (Throwable e) { // MethodHandle.invoke
 			throw new RuntimeException(e);
 		}
 	}
@@ -236,7 +238,9 @@ public class PList2<V extends Bean> extends PList<V> {
 				value.decode(bb);
 				add(value);
 			}
-		} catch (Throwable e) {
+		} catch (RuntimeException | Error e) {
+			throw e;
+		} catch (Throwable e) { // MethodHandle.invoke
 			throw new RuntimeException(e);
 		}
 	}

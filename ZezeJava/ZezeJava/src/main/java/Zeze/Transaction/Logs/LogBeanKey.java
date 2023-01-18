@@ -37,7 +37,7 @@ public abstract class LogBeanKey<T extends Serializable> extends Log {
 			value = (T)valueFactory.invoke();
 		} catch (RuntimeException | Error e) {
 			throw e;
-		} catch (Throwable e) {
+		} catch (Throwable e) { // MethodHandle.invoke
 			throw new RuntimeException(e);
 		}
 		value.decode(bb);

@@ -150,8 +150,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		agent.verifyFastFail();
 		try {
 			agent.waitLoginSuccess();
-		} catch (Throwable e) {
-			// abort need catch all. will re throw another exception.
+		} catch (Throwable e) { // abort need catch all. will re throw another exception.
 			agent.setFastFail();
 			Transaction trans = Transaction.getCurrent();
 			if (trans == null)
@@ -174,8 +173,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			if (noWait)
 				return null;
 			future.await();
-		} catch (Throwable e) {
-			// abort need catch all. will re throw another exception.
+		} catch (Throwable e) { // abort need catch all. will re throw another exception.
 			agent.setFastFail();
 			Transaction trans = Transaction.getCurrent();
 			if (trans == null)

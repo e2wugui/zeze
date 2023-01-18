@@ -45,7 +45,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 			return (V)valueFactory.invoke();
 		} catch (RuntimeException | Error e) {
 			throw e;
-		} catch (Throwable e) {
+		} catch (Throwable e) { // MethodHandle.invoke
 			throw new RuntimeException(e);
 		}
 	}
@@ -216,7 +216,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 			}
 		} catch (RuntimeException | Error e) {
 			throw e;
-		} catch (Throwable e) {
+		} catch (Throwable e) { // MethodHandle.invoke
 			throw new RuntimeException(e);
 		}
 	}

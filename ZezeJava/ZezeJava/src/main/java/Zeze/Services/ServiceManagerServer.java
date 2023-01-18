@@ -139,8 +139,7 @@ public final class ServiceManagerServer implements Closeable {
 				try {
 					if (set.Send(serviceManager.server.GetSocket(observer)))
 						continue;
-				} catch (Throwable ignored) {
-					// ignored
+				} catch (Throwable ignored) { // ignored
 				}
 				if (removed == null)
 					removed = new LongList();
@@ -438,8 +437,7 @@ public final class ServiceManagerServer implements Closeable {
 								s = serviceManager.server.GetSocket(sessionId);
 								var r = new KeepAlive();
 								r.SendAndWaitCheckResultCode(s);
-							} catch (Throwable ex) {
-								// resource close.
+							} catch (Throwable ex) { // resource close. logger.error
 								if (s != null)
 									s.close();
 								logger.error("ServiceManager.KeepAlive", ex);
@@ -507,8 +505,7 @@ public final class ServiceManagerServer implements Closeable {
 								offlineRegisterServerId, notifyId, selected.getKey().sessionId, notify.getResultCode());
 						if (notify.getResultCode() == 0)
 							break; // 成功通知。done
-					} catch (Throwable ignored) {
-						// ignored
+					} catch (Throwable ignored) { // ignored
 					}
 					// 保存这一次通知失败session，下一次尝试选择的时候忽略。
 					skips.add(selected.getKey());
@@ -713,13 +710,13 @@ public final class ServiceManagerServer implements Closeable {
 			stop();
 		} catch (RuntimeException | IOException e) {
 			throw e;
-		} catch (Throwable e) {
+		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
 
 	public ServiceManagerServer(InetAddress ipaddress, int port, Zeze.Config config) throws Exception {
-		 this(ipaddress, port, config, -1);
+		this(ipaddress, port, config, -1);
 	}
 
 	public ServiceManagerServer(InetAddress ipaddress, int port, Zeze.Config config, int startNotifyDelay)

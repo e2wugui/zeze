@@ -144,8 +144,7 @@ public class GlobalCacheManagerWithRaft
 							session.setActiveTime(System.currentTimeMillis());
 							if (releaseCount.value > 0)
 								logger.info("AchillesHeelDaemon.Release session={} count={}", session, releaseCount.value);
-						} catch (Throwable e) {
-							// print stack trace.
+						} catch (Throwable e) { // print stack trace.
 							logger.error("AchillesHeelDaemon.Release {} exception", session, e);
 						} finally {
 							// server一直没有恢复，这个减少一点Release。
@@ -545,8 +544,7 @@ public class GlobalCacheManagerWithRaft
 							}
 							if (ENABLE_PERF)
 								perf.onReduceEnd(reduce);
-						} catch (Throwable ex) {
-							// exception to result.
+						} catch (Throwable ex) { // exception to result.
 							if (ENABLE_PERF) {
 								if (reduce.isTimeout())
 									perf.onReduceEnd(reduce);

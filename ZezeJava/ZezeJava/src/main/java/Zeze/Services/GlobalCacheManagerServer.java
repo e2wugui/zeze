@@ -332,8 +332,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					rpc.SendResultCode(AcquireErrorState);
 					break;
 				}
-			} catch (Throwable ex) {
-				// rpc response
+			} catch (Throwable ex) { // rpc response
 				logger.error("ProcessAcquireRequest", ex);
 				rpc.Result.state = StateInvalid;
 				rpc.SendResultCode(AcquireException);
@@ -690,8 +689,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 									logger.error("Reduce result state={}", reduce.getValue().Result.state);
 									break;
 								}
-							} catch (Throwable ex) {
-								// exception to result
+							} catch (Throwable ex) { // exception to result
 								reduce.getKey().setError();
 								// 等待失败不再看作成功。
 								if (Task.getRootCause(ex) instanceof RpcTimeoutException) {
@@ -913,8 +911,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					return reduce;
 				}
 				logger.warn("Send Reduce failed. SessionId={}, gkey={}", sessionId, gkey);
-			} catch (Throwable ex) {
-				// 这里的异常只应该是网络发送异常。
+			} catch (Throwable ex) { // 这里的异常只应该是网络发送异常。
 				logger.error("ReduceWaitLater Exception {}", gkey, ex);
 			}
 			setError();
@@ -948,7 +945,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 																ProtocolFactoryHandle<?> factoryHandle) {
 			try {
 				responseHandle.handle(rpc);
-			} catch (Throwable e) {
+			} catch (Throwable e) { // logger.error
 				logger.error("DispatchRpcResponse exception:", e);
 			}
 		}

@@ -203,7 +203,7 @@ public final class Changes {
 				for (var l : listeners) {
 					try {
 						l.OnChanged(k.getKey(), v);
-					} catch (Throwable ex) {
+					} catch (Throwable ex) { // logger.error
 						// run handle.
 						logger.error("NotifyListener exception:", ex);
 					}

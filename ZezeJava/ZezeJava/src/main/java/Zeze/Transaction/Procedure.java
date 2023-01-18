@@ -165,7 +165,7 @@ public class Procedure {
 			currentT.rollback();
 			logger.debug("", gobackzeze);
 			throw gobackzeze;
-		} catch (Throwable e) {
+		} catch (Throwable e) { // logger, rethrow AssertionError
 			// rollback.
 			currentT.rollback();
 			var tmpLogAction = logAction;

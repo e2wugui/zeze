@@ -250,7 +250,7 @@ class TableCache<K extends Comparable<K>, V extends Bean> {
 				// noWait=true时只能连接async版GlobalServer, 而连sync和raft版会出现VerifyGlobalRecordState验证失败
 				// 可能原因是lockey特别容易乱序, sync和raft版需要用队列保证顺序
 				record.acquire(StateInvalid, false, false);
-			} catch (Throwable e) {
+			} catch (Throwable e) { // logger.error
 				// critical .
 				logger.error("Acquire({}:{}) exception:", record.getTable().getName(), record.getObjectKey(), e);
 				// 此时GlobalServer可能已经改成StateInvalid了, 无论如何还是当成已经Invalid保证安全

@@ -174,7 +174,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 									localRocksCacheTable.replace(lct, ekey, old);
 									lct.commit();
 									t.commit();
-								} catch (Throwable ex) {
+								} catch (Throwable ex) { // logger.error
+									logger.error("", ex);
 									// rollback.
 									lct.rollback();
 									t.rollback();
@@ -182,12 +183,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 									try {
 										lct.close();
 									} catch (Exception e) {
-										logger.error(e);
+										logger.error("", e);
 									}
 									try {
 										t.close();
 									} catch (Exception e) {
-										logger.error(e);
+										logger.error("", e);
 									}
 								}
 							}

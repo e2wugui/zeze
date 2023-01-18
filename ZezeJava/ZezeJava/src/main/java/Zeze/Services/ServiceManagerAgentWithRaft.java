@@ -119,7 +119,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 				return 0;
 			}
 			r.trySendResultCode(2);
-		} catch (Throwable ignored) {
+		} catch (Throwable ignored) { // ignored
 			r.trySendResultCode(3);
 		}
 		return 0;
@@ -142,7 +142,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			Task.getCriticalThreadPool().execute(() -> {
 				try {
 					onSetServerLoad.run(r.Argument);
-				} catch (Throwable e) {
+				} catch (Throwable e) { // logger.error
 					logger.error("", e);
 				}
 			});
@@ -267,7 +267,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			try {
 				raftClient.sendForWait(new Subscribe(info)).await();
 				logger.debug("SubscribeService {}", info);
-			} catch (Throwable ex) {
+			} catch (Throwable ex) { // rethrow
 				// 【警告】这里没有原子化执行请求和处理结果。
 				// 由于上面是computeIfAbsent，仅第一个请求会发送，不会并发发送相同的订阅，所以，
 				// 可以在这里rollback处理一下。
@@ -287,7 +287,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			try {
 				raftClient.sendForWait(new UnSubscribe(state.subscribeInfo)).await();
 				logger.debug("UnSubscribeService {}", state.subscribeInfo);
-			} catch (Throwable e) {
+			} catch (Throwable e) { // rethrow
 				subscribeStates.putIfAbsent(serviceName, state); // rollback
 				throw e;
 			}
@@ -314,7 +314,9 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 				tmp.cancel(true);
 			}
 			raftClient.stop();
-		} catch (Throwable e) {
+		} catch (RuntimeException | Error e) {
+			throw e;
+		} catch (Throwable e) { // rethrow RuntimeException
 			throw new RuntimeException(e);
 		}
 	}

@@ -180,7 +180,7 @@ public abstract class AbstractAgent implements Closeable {
 				Task.getCriticalThreadPool().execute(() -> {
 					try {
 						onChanged.run(this);
-					} catch (Throwable e) {
+					} catch (Throwable e) { // logger.error
 						logger.error("", e);
 					}
 				});
@@ -193,7 +193,7 @@ public abstract class AbstractAgent implements Closeable {
 				Task.getCriticalThreadPool().execute(() -> {
 					try {
 						onUpdate.run(this, info);
-					} catch (Throwable e) {
+					} catch (Throwable e) { // logger.error
 						logger.error("", e);
 					}
 				});
@@ -201,7 +201,7 @@ public abstract class AbstractAgent implements Closeable {
 				Task.getCriticalThreadPool().execute(() -> {
 					try {
 						onChanged.run(this);
-					} catch (Throwable e) {
+					} catch (Throwable e) { // logger.error
 						logger.error("", e);
 					}
 				});
@@ -216,7 +216,7 @@ public abstract class AbstractAgent implements Closeable {
 				Task.getCriticalThreadPool().execute(() -> {
 					try {
 						onRemove.run(this, removed);
-					} catch (Throwable e) {
+					} catch (Throwable e) { // logger.error
 						logger.error("", e);
 					}
 				});
@@ -224,7 +224,7 @@ public abstract class AbstractAgent implements Closeable {
 				Task.getCriticalThreadPool().execute(() -> {
 					try {
 						onChanged.run(this);
-					} catch (Throwable e) {
+					} catch (Throwable e) { // logger.error
 						logger.error("", e);
 					}
 				});
@@ -243,7 +243,7 @@ public abstract class AbstractAgent implements Closeable {
 				Task.getCriticalThreadPool().execute(() -> {
 					try {
 						onUpdate.run(this, exist);
-					} catch (Throwable e) {
+					} catch (Throwable e) { // logger.error
 						logger.error("", e);
 					}
 				});
@@ -251,7 +251,7 @@ public abstract class AbstractAgent implements Closeable {
 				Task.getCriticalThreadPool().execute(() -> {
 					try {
 						onChanged.run(this);
-					} catch (Throwable e) {
+					} catch (Throwable e) { // logger.error
 						logger.error("", e);
 					}
 				});
@@ -273,7 +273,7 @@ public abstract class AbstractAgent implements Closeable {
 						Task.getCriticalThreadPool().execute(() -> {
 							try {
 								onPrepare.run(this);
-							} catch (Throwable e) {
+							} catch (Throwable e) { // logger.error
 								logger.error("", e);
 							}
 						});

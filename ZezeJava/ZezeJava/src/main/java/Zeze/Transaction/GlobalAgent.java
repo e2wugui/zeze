@@ -87,7 +87,7 @@ public final class GlobalAgent implements IGlobalAgent {
 					return so;
 
 				return connector.WaitReady();
-			} catch (Throwable abort) {
+			} catch (Throwable abort) { // rethrow RuntimeException
 				setFastFail();
 				throwException("GlobalAgent Login Failed", abort);
 			}
@@ -157,7 +157,9 @@ public final class GlobalAgent implements IGlobalAgent {
 	public void close() {
 		try {
 			stop();
-		} catch (Throwable e) {
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
@@ -185,7 +187,7 @@ public final class GlobalAgent implements IGlobalAgent {
 				return null;
 			}
 			rpc.SendForWait(socket, agent.getConfig().acquireTimeout).get();
-		} catch (Throwable e) {
+		} catch (Throwable e) { // rethrow Error or RuntimeException
 			agent.setFastFail(); // 一般是超时失败，此时必须进入快速失败模式。
 			var trans = Transaction.getCurrent();
 			if (trans == null)
@@ -259,7 +261,7 @@ public final class GlobalAgent implements IGlobalAgent {
 		for (var agent : agents) {
 			try {
 				agent.connect();
-			} catch (Throwable ex) {
+			} catch (Throwable ex) { // logger.error
 				// 允许部分GlobalCacheManager连接错误时，继续启动程序，虽然后续相关事务都会失败。
 				logger.error("GlobalAgent.Connect", ex);
 			}

@@ -79,7 +79,7 @@ public final class ProcedureStatistics {
 				if ((total - last) / CheckPeriod >= reach) {
 					try {
 						reachHandle.run();
-					} catch (Throwable e) {
+					} catch (Throwable e) { // logger.error
 						logger.error("ProcedureStatistics.Watcher", e);
 					}
 				}

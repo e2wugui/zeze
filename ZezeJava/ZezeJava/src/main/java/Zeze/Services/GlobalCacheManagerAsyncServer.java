@@ -306,8 +306,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					rpc.SendResultCode(AcquireErrorState);
 					break;
 				}
-			} catch (Throwable ex) {
-				// rpc response.
+			} catch (Throwable ex) { // rpc response.
 				logger.error("ProcessAcquireRequest", ex);
 				rpc.Result.state = StateInvalid;
 				rpc.SendResultCode(AcquireException);
@@ -1013,8 +1012,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 						instance.perf.onReduceCancel(reduce);
 				}
 				logger.warn("Send Reduce failed. SessionId={}, peer={}, gkey={}", sessionId, peer, gkey);
-			} catch (Throwable ex) {
-				// 这里的异常只应该是网络发送异常。
+			} catch (Throwable ex) { // 这里的异常只应该是网络发送异常。
 				logger.error("ReduceWaitLater Exception {}", gkey, ex);
 			}
 			setError();
@@ -1049,7 +1047,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			if (handle != null) {
 				try {
 					handle.handle(p); // 所有协议处理几乎无阻塞,可放心直接跑在IO线程上
-				} catch (Throwable e) {
+				} catch (Throwable e) { // logger.error
 					logger.error("DispatchProtocol exception:", e);
 				}
 			} else
@@ -1061,7 +1059,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 																ProtocolFactoryHandle<?> factoryHandle) {
 			try {
 				responseHandle.handle(rpc);
-			} catch (Throwable e) {
+			} catch (Throwable e) { // logger.error
 				logger.error("DispatchRpcResponse exception:", e);
 			}
 		}

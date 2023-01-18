@@ -75,7 +75,7 @@ public final class Agent extends AbstractAgent {
 			try {
 				new Register(info).SendAndWaitCheckResultCode(client.getSocket());
 				logger.debug("RegisterService {}", info);
-			} catch (Throwable e) {
+			} catch (Throwable e) { // rethrow
 				// rollback.
 				registers.remove(info, info); // rollback
 				throw e;
@@ -92,7 +92,7 @@ public final class Agent extends AbstractAgent {
 		if (exist != null) {
 			try {
 				new UnRegister(info).SendAndWaitCheckResultCode(client.getSocket());
-			} catch (Throwable e) {
+			} catch (Throwable e) { // rethrow
 				// rollback.
 				registers.putIfAbsent(exist, exist); // rollback
 				throw e;
@@ -116,7 +116,7 @@ public final class Agent extends AbstractAgent {
 				var r = new Subscribe(info);
 				r.SendAndWaitCheckResultCode(client.getSocket());
 				logger.debug("SubscribeService {}", info);
-			} catch (Throwable ex) {
+			} catch (Throwable ex) { // rethrow
 				// rollback.
 				subscribeStates.remove(info.getServiceName()); // rollback
 				throw ex;
@@ -135,7 +135,7 @@ public final class Agent extends AbstractAgent {
 				var r = new UnSubscribe(state.subscribeInfo);
 				r.SendAndWaitCheckResultCode(client.getSocket());
 				logger.debug("UnSubscribeService {}", state.subscribeInfo);
-			} catch (Throwable e) {
+			} catch (Throwable e) { // rethrow
 				// rollback.
 				subscribeStates.putIfAbsent(serviceName, state); // rollback
 				throw e;
@@ -179,7 +179,7 @@ public final class Agent extends AbstractAgent {
 		for (var e : registers.keySet()) {
 			try {
 				new Register(e).SendAndWaitCheckResultCode(client.getSocket());
-			} catch (Throwable ex) {
+			} catch (Throwable ex) { // logger.debug
 				// skip and continue.
 				logger.debug("OnConnected.Register={}", e, ex);
 			}
@@ -190,7 +190,7 @@ public final class Agent extends AbstractAgent {
 				var r = new Subscribe();
 				r.Argument = e.subscribeInfo;
 				r.SendAndWaitCheckResultCode(client.getSocket());
-			} catch (Throwable ex) {
+			} catch (Throwable ex) { // logger.debug
 				// skip and continue.
 				logger.debug("OnConnected.Subscribe={}", e.subscribeInfo, ex);
 			}
@@ -262,7 +262,7 @@ public final class Agent extends AbstractAgent {
 			Task.getCriticalThreadPool().execute(() -> {
 				try {
 					onSetServerLoad.run(setServerLoad.Argument);
-				} catch (Throwable e) {
+				} catch (Throwable e) { // logger.error
 					// run handle.
 					logger.error("", e);
 				}
@@ -282,7 +282,7 @@ public final class Agent extends AbstractAgent {
 				return 0;
 			}
 			r.trySendResultCode(2);
-		} catch (Throwable ignored) {
+		} catch (Throwable ignored) { // ignored
 			// rpc response any.
 			r.trySendResultCode(3);
 		}

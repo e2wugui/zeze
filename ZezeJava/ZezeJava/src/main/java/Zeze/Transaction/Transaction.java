@@ -231,7 +231,7 @@ public final class Transaction {
 							if (alwaysReleaseLockWhenRedo && checkResult == CheckResult.Redo)
 								checkResult = CheckResult.RedoAndReleaseLock;
 							triggerRedoActions();
-						} catch (Throwable e) {
+						} catch (Throwable e) { // logger.error, logger.warn, rethrow AssertionError, ignored
 							// Procedure.Call 里面已经处理了异常。只有 unit test 或者重做或者内部错误会到达这里。
 							// 在 unit test 下，异常日志会被记录两次。
 							switch (state) {
@@ -322,7 +322,7 @@ public final class Transaction {
 				action.action.run();
 			} catch (AssertionError e) {
 				throw e;
-			} catch (Throwable e) {
+			} catch (Throwable e) { // logger.error
 				String typeStr;
 				if (action.actionType == Savepoint.ActionType.COMMIT) {
 					typeStr = "commit";
@@ -365,7 +365,7 @@ public final class Transaction {
 						}
 					}
 				}
-			} catch (Throwable e) {
+			} catch (Throwable e) { // halt
 				logger.fatal("Transaction.finalCommit {}", procedure, e);
 				LogManager.shutdown();
 				Runtime.getRuntime().halt(54321);
@@ -398,7 +398,7 @@ public final class Transaction {
 					cc.collectRecord(ar);
 			}
 			cc.notifyListener();
-		} catch (Throwable ex) {
+		} catch (Throwable ex) { // logger.error
 			logger.error("", ex);
 		}
 

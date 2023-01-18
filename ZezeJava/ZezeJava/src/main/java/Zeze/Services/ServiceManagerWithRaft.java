@@ -161,7 +161,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 								s = rocks.getRaft().getServer().GetSocket(sessionId);
 								var r = new KeepAlive();
 								r.SendAndWaitCheckResultCode(s);
-							} catch (Throwable ex) {
+							} catch (Throwable ex) { // logger.error
 								if (s != null)
 									s.close();
 								logger.error("ServiceManager.KeepAlive", ex);
@@ -253,7 +253,9 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 							sessions.add(KV.create(netSession, socket));
 					}
 				});
-			} catch (Throwable e) {
+			} catch (RuntimeException e) {
+				throw e;
+			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
 			if (sessions.isEmpty())
@@ -338,7 +340,7 @@ public class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft imple
 				var session = tableSession.get(observer);
 				if (null != session && set.Send(rocks.getRaft().getServer().GetSocket(session.getSessionId())))
 					continue;
-			} catch (Throwable ignored) {
+			} catch (Throwable ignored) { // ignored
 			}
 			if (removed == null)
 				removed = new ArrayList<>();

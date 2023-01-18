@@ -200,7 +200,7 @@ public class AchillesHeelDaemon {
 				try (var ignored = channel.lock()) {
 					mmap.position(agent.globalCacheManagerHashIndex * 8);
 					mmap.put(bb.Bytes, 0, 8);
-				} catch (Throwable ex) {
+				} catch (Throwable ex) { // logger.error
 					logger.error("setActiveTime", ex);
 				}
 			}
@@ -253,7 +253,7 @@ public class AchillesHeelDaemon {
 						}
 					}
 				}
-			} catch (Throwable ex) {
+			} catch (Throwable ex) { // halt
 				// 这个线程不准出错。除了里面应该忽略的。
 				logger.fatal("ProcessDaemon.AchillesHeelDaemon ", ex);
 				LogManager.shutdown();
@@ -341,7 +341,7 @@ public class AchillesHeelDaemon {
 						logger.warn("sleep", e);
 					}
 				}
-			} catch (Throwable ex) {
+			} catch (Throwable ex) { // halt
 				// 这个线程不准出错。
 				logger.fatal("AchillesHeelDaemon", ex);
 				LogManager.shutdown();

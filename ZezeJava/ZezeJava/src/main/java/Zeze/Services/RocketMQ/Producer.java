@@ -91,7 +91,7 @@ public class Producer extends AbstractProducer {
 						checkResult.value = 1;
 					return 0;
 				}, "checkLocalTransaction").call();
-			} catch (Throwable ignored) {
+			} catch (Throwable ignored) { // ignored
 			}
 			return checkResult.value == 1 ? LocalTransactionState.COMMIT_MESSAGE : LocalTransactionState.ROLLBACK_MESSAGE;
 		}
