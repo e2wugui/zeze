@@ -14,7 +14,7 @@
 	-->
 	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
 
-	<ServiceConf Name="ClientService" InputBufferMaxProtocolSize="2097152" SocketLogLevel="Trace">
+	<ServiceConf Name="ClientService" InputBufferMaxProtocolSize="2M">
 	</ServiceConf>
 
 </zeze>

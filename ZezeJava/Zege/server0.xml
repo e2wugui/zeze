@@ -17,14 +17,14 @@ AutoKeyLocalStep: 自增长步长。server 实例数量上限。
 		DatabaseUrl="jdbc:mysql://localhost:3307/devtest?user=root&amp;password=devtest12345&amp;useSSL=false&amp;serverTimezone=UTC&amp;allowPublicKeyRetrieval=true"
 	/>
 
-	<ServiceConf Name="Server" InputBufferMaxProtocolSize="2097152" SocketLogLevel="Trace">
+	<ServiceConf Name="Server" InputBufferMaxProtocolSize="2M">
 	</ServiceConf>
 
 	<ServiceConf Name="Zeze.Services.ServiceManager.Agent">
 		<Connector HostNameOrAddress="127.0.0.1" Port="5001"/>
 	</ServiceConf>
 
-	<ServiceConf Name="ServerDirect" InputBufferMaxProtocolSize="2097152" SocketLogLevel="Trace">
+	<ServiceConf Name="ServerDirect" InputBufferMaxProtocolSize="2M">
 		<Acceptor Ip="" Port="5102"/>
 	</ServiceConf>
 </zeze>

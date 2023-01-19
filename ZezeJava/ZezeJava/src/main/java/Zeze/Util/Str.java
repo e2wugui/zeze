@@ -64,4 +64,54 @@ public final class Str {
 	public static String fromBinary(Binary b) {
 		return new String(b.bytesUnsafe(), b.getOffset(), b.size(), StandardCharsets.UTF_8);
 	}
+
+	public static int parseIntSize(String s) {
+		long r = parseLongSize(s);
+		int i = (int)r;
+		if (i != r)
+			throw new NumberFormatException("int overflow for '" + s + "'");
+		return i;
+	}
+
+	public static long parseLongSize(String s) {
+		long r = 0;
+		for (int i = 0, n = s.length(); i < n; i++) {
+			int c = s.charAt(i);
+			switch (c) {
+			//@formatter:off
+			case '0': case '1': case '2': case '3': case '4':
+			case '5': case '6': case '7': case '8': case '9':
+				r = Math.addExact(Math.multiplyExact(r, 10), c - '0');
+				break;
+			//@formatter:on
+			case 'K':
+			case 'k':
+				return Math.multiplyExact(r, 1 << 10);
+			case 'M':
+			case 'm':
+				return Math.multiplyExact(r, 1 << 20);
+			case 'G':
+			case 'g':
+				return Math.multiplyExact(r, 1 << 30);
+			case 'T':
+			case 't':
+				return Math.multiplyExact(r, 1L << 40);
+			case 'P':
+			case 'p':
+				return Math.multiplyExact(r, 1L << 50);
+			case 'E':
+			case 'e':
+				return Math.multiplyExact(r, 1L << 60);
+			case '\t':
+			case ' ':
+			case '_':
+			case ',':
+			case '\'':
+				continue; // 允许用的间隔符
+			default:
+				throw new NumberFormatException("invalid format for '" + s + "'");
+			}
+		}
+		return r;
+	}
 }

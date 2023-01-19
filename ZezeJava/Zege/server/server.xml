@@ -12,14 +12,14 @@ AutoKeyLocalStep: 自增长步长。server 实例数量上限。
 	>
 	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/> 先配一个内存数据库，调试。
 
-	<ServiceConf Name="Server" InputBufferMaxProtocolSize="2097152" SocketLogLevel="Trace">
+	<ServiceConf Name="Server" InputBufferMaxProtocolSize="2M">
 	</ServiceConf>
 
 	<ServiceConf Name="Zeze.Services.ServiceManager.Agent">
 		<Connector HostNameOrAddress="127.0.0.1" Port="5001"/>
 	</ServiceConf>
 
-	<ServiceConf Name="ServerDirect" InputBufferMaxProtocolSize="2097152" SocketLogLevel="Trace">
+	<ServiceConf Name="ServerDirect" InputBufferMaxProtocolSize="2M">
 		<Acceptor Ip="" Port="5102"/>
 	</ServiceConf>
 </zeze>

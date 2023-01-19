@@ -500,7 +500,6 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 					outputBuffer.put(bytes, offset, length);
 			}))
 				return true;
-			logger.error("Send to closed socket: {} len={}", this, length, new Exception());
 		} catch (Exception ex) {
 			outputBufferSizeHandle.getAndAdd(this, -length);
 			close(ex);

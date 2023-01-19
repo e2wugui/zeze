@@ -7,11 +7,11 @@
 	>
 	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/> linkd现在不需要数据库，但是验证可能要，先占个坑。
 
-	<ServiceConf Name="LinkdService" InputBufferMaxProtocolSize="2097152" SocketLogLevel="Trace">
+	<ServiceConf Name="LinkdService" InputBufferMaxProtocolSize="2M">
 		<Acceptor Port="10000"/>
 	</ServiceConf>
 
-	<ServiceConf Name="ProviderService" InputBufferMaxProtocolSize="2097152" SocketLogLevel="Trace">
+	<ServiceConf Name="ProviderService" InputBufferMaxProtocolSize="2M">
 		<Acceptor Ip="" Port="20000"/> 如果linkd运行在双网（内外网）机器上，这里可以配置Ip为内部网络的地址，不允许外部连接。
 	</ServiceConf>
 </zeze>

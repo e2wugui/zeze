@@ -9,7 +9,7 @@ public final class SocketOptions {
 
 	// 应用选项
 	private int inputBufferMaxProtocolSize = 2 * 1024 * 1024; // 最大协议包的大小。协议需要完整收到才解析和处理，所以需要缓存。这是个安全选项。防止出现攻击占用大量内存。
-	private int outputBufferMaxSize = 2 * 1024 * 1024; // 最大发送协议堆积大小. 用于Service.checkOverflow
+	private long outputBufferMaxSize = 2 * 1024 * 1024; // 最大发送协议堆积大小. 用于Service.checkOverflow
 
 	public Boolean getNoDelay() {
 		return noDelay;
@@ -51,11 +51,11 @@ public final class SocketOptions {
 		inputBufferMaxProtocolSize = value;
 	}
 
-	public int getOutputBufferMaxSize() {
+	public long getOutputBufferMaxSize() {
 		return outputBufferMaxSize;
 	}
 
-	public void setOutputBufferMaxSize(int value) {
+	public void setOutputBufferMaxSize(long value) {
 		outputBufferMaxSize = value;
 	}
 }

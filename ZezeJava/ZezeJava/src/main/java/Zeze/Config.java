@@ -206,7 +206,9 @@ public final class Config {
 		return globalCacheManagers;
 	}
 
-	public ServiceManagerConf getServiceManagerConf() { return serviceManagerConf; }
+	public ServiceManagerConf getServiceManagerConf() {
+		return serviceManagerConf;
+	}
 
 	public int getGlobalCacheManagerPort() {
 		return globalCacheManagerPort;
@@ -301,7 +303,7 @@ public final class Config {
 		case Tikv:
 			return new DatabaseTikv(conf);
 		case RocksDb:
-			if (!zeze.getConfig().getGlobalCacheManagerHostNameOrAddress().isEmpty())
+			if (!zeze.getConfig().getGlobalCacheManagerHostNameOrAddress().isBlank())
 				throw new IllegalStateException("RocksDb Can Not Work With GlobalCacheManager.");
 			return new DatabaseRocksDb(conf);
 		default:
@@ -398,54 +400,54 @@ public final class Config {
 		if (!self.getNodeName().equals("zeze"))
 			throw new IllegalStateException("is it a zeze config?");
 		String name = self.getAttribute("name");
-		if (name.length() > 0)
+		if (!name.isBlank())
 			this.name = name;
 
 		setCheckpointPeriod(Integer.parseInt(self.getAttribute("CheckpointPeriod")));
 		setServerId(Integer.parseInt(self.getAttribute("ServerId")));
-		noDatabase = self.getAttribute("NoDatabase").equals("true");
+		noDatabase = self.getAttribute("NoDatabase").trim().equalsIgnoreCase("true");
 
-		setGlobalCacheManagerHostNameOrAddress(self.getAttribute("GlobalCacheManagerHostNameOrAddress"));
+		setGlobalCacheManagerHostNameOrAddress(self.getAttribute("GlobalCacheManagerHostNameOrAddress").trim());
 		String attr = self.getAttribute("GlobalCacheManagerPort");
-		setGlobalCacheManagerPort(attr.length() > 0 ? Integer.parseInt(attr) : 0);
+		setGlobalCacheManagerPort(attr.isBlank() ? 0 : Integer.parseInt(attr));
 
 		attr = self.getAttribute("OnlineLogoutDelay");
-		if (!attr.isEmpty())
+		if (!attr.isBlank())
 			onlineLogoutDelay = Integer.parseInt(attr);
 
 		attr = self.getAttribute("CheckpointModeTableFlushConcurrent");
-		if (!attr.isEmpty())
+		if (!attr.isBlank())
 			checkpointModeTableFlushConcurrent = Integer.parseInt(attr);
 
 		attr = self.getAttribute("CheckpointModeTableFlushSetCount");
-		if (!attr.isEmpty())
+		if (!attr.isBlank())
 			checkpointModeTableFlushSetCount = Integer.parseInt(attr);
 
 		attr = self.getAttribute("ProcessReturnErrorLogLevel");
-		if (!attr.isEmpty())
+		if (!attr.isBlank())
 			setProcessReturnErrorLogLevel(Level.toLevel(attr));
 
 		attr = self.getAttribute("WorkerThreads");
-		setWorkerThreads(attr.length() > 0 ? Integer.parseInt(attr) : -1);
+		setWorkerThreads(attr.isBlank() ? -1 : Integer.parseInt(attr));
 
 		attr = self.getAttribute("ScheduledThreads");
-		scheduledThreads = attr.length() > 0 ? Integer.parseInt(attr) : -1;
+		scheduledThreads = attr.isBlank() ? -1 : Integer.parseInt(attr);
 
 		attr = self.getAttribute("CompletionPortThreads");
-		setCompletionPortThreads(attr.length() > 0 ? Integer.parseInt(attr) : -1);
+		setCompletionPortThreads(attr.isBlank() ? -1 : Integer.parseInt(attr));
 
 		attr = self.getAttribute("AllowReadWhenRecordNotAccessed");
-		setAllowReadWhenRecordNotAccessed(attr.length() <= 0 || Boolean.parseBoolean(attr));
+		setAllowReadWhenRecordNotAccessed(attr.isBlank() || Boolean.parseBoolean(attr));
 		attr = self.getAttribute("AllowSchemasReuseVariableIdWithSameType");
-		setAllowSchemasReuseVariableIdWithSameType(attr.length() <= 0 || Boolean.parseBoolean(attr));
+		setAllowSchemasReuseVariableIdWithSameType(attr.isBlank() || Boolean.parseBoolean(attr));
 
 		attr = self.getAttribute("FastRedoWhenConflict");
-		setFastRedoWhenConflict((attr.length() <= 0 || Boolean.parseBoolean(attr)));
+		setFastRedoWhenConflict(attr.isBlank() || Boolean.parseBoolean(attr));
 
 		attr = self.getAttribute("CheckpointMode");
-		if (!attr.isEmpty())
+		if (!attr.isBlank())
 			setCheckpointMode(CheckpointMode.valueOf(attr));
-		if (checkpointMode == CheckpointMode.Period && !globalCacheManagerHostNameOrAddress.isEmpty()) {
+		if (checkpointMode == CheckpointMode.Period && !globalCacheManagerHostNameOrAddress.isBlank()) {
 			Application.logger.warn("CheckpointMode.Period Cannot Work With Global. Change To CheckpointMode.Table Now.");
 			checkpointMode = CheckpointMode.Table;
 		}
@@ -453,26 +455,26 @@ public final class Config {
 			throw new UnsupportedOperationException();
 
 		attr = self.getAttribute("AutoResetTable");
-		if (!attr.isEmpty())
+		if (!attr.isBlank())
 			autoResetTable = Boolean.parseBoolean(attr);
 
 		attr = self.getAttribute("DelayRemoveHourStart");
-		if (!attr.isEmpty())
+		if (!attr.isBlank())
 			delayRemoveHourStart = Integer.parseInt(attr);
 
 		attr = self.getAttribute("DelayRemoveHourEnd");
-		if (!attr.isEmpty())
+		if (!attr.isBlank())
 			delayRemoveHourEnd = Integer.parseInt(attr);
 
 		attr = self.getAttribute("DelayRemoveDays");
-		if (!attr.isEmpty())
+		if (!attr.isBlank())
 			delayRemoveDays = Integer.parseInt(attr);
 
 		attr = self.getAttribute("OfflineTimerLimit");
-		if (!attr.isEmpty())
+		if (!attr.isBlank())
 			offlineTimerLimit = Integer.parseInt(attr);
 
-		serviceManager = self.getAttribute("ServiceManager");
+		serviceManager = self.getAttribute("ServiceManager").trim();
 
 		NodeList childNodes = self.getChildNodes();
 		for (int i = 0; i < childNodes.getLength(); i++) {
@@ -503,7 +505,7 @@ public final class Config {
 				break;
 
 			case "CustomizeConf":
-				var cname = e.getAttribute("Name");
+				var cname = e.getAttribute("Name").trim();
 				var customizeConf = getCustomize().get(cname);
 				if (null == customizeConf)
 					throw new UnsupportedOperationException("Unknown CustomizeConf Name='" + cname + "'");
@@ -528,7 +530,7 @@ public final class Config {
 			sessionName = self.getAttribute("sessionName").trim();
 			raftXml = self.getAttribute("raftXml").trim();
 			String attr = self.getAttribute("loginTimeout").trim();
-			if (!attr.isEmpty())
+			if (!attr.isBlank())
 				loginTimeout = Long.parseLong(attr);
 
 			conf.serviceManagerConf = this;
@@ -608,7 +610,7 @@ public final class Config {
 
 		public DynamoConf(Element self) {
 			var attr = self.getAttribute("region");
-			if (!attr.isEmpty())
+			if (!attr.isBlank())
 				region = Regions.valueOf(attr);
 		}
 	}
@@ -630,7 +632,7 @@ public final class Config {
 
 		private static String EmptyToNullString(String attr) {
 			var trim = attr.trim();
-			return trim.isEmpty() ? null : trim;
+			return trim.isBlank() ? null : trim;
 		}
 
 		private static Integer EmptyToNullInteger(String attr) {
@@ -714,6 +716,7 @@ public final class Config {
 		public boolean isDistTxn() {
 			return distTxn;
 		}
+
 		public boolean isDisableOperates() {
 			return disableOperates;
 		}
@@ -721,6 +724,7 @@ public final class Config {
 		public void setDistTxn(boolean distTxn) {
 			this.distTxn = distTxn;
 		}
+
 		public void setDisableOperates(boolean disableOperates) {
 			this.disableOperates = disableOperates;
 		}
@@ -729,8 +733,8 @@ public final class Config {
 		}
 
 		public DatabaseConf(Config conf, Element self) {
-			name = self.getAttribute("Name");
-			switch (self.getAttribute("DatabaseType")) {
+			name = self.getAttribute("Name").trim();
+			switch (self.getAttribute("DatabaseType").trim()) {
 			case "Memory":
 				// DatabaseType = DbType.Memory;
 				break;
@@ -759,9 +763,9 @@ public final class Config {
 			default:
 				throw new UnsupportedOperationException("unknown database type.");
 			}
-			databaseUrl = self.getAttribute("DatabaseUrl");
-			distTxn = "true".equalsIgnoreCase(self.getAttribute("distTxn"));
-			disableOperates = "true".equalsIgnoreCase(self.getAttribute("DisableOperates"));
+			databaseUrl = self.getAttribute("DatabaseUrl").trim();
+			distTxn = "true".equalsIgnoreCase(self.getAttribute("distTxn").trim());
+			disableOperates = "true".equalsIgnoreCase(self.getAttribute("DisableOperates").trim());
 
 			if (conf.getDatabaseConfMap().putIfAbsent(getName(), this) != null)
 				throw new IllegalStateException("Duplicate Database '" + getName() + "'");
@@ -892,40 +896,40 @@ public final class Config {
 		}
 
 		public TableConf(Config conf, Element self) {
-			name = self.getAttribute("Name");
+			name = self.getAttribute("Name").trim();
 
 			String attr = self.getAttribute("CacheCapacity");
-			if (!attr.isEmpty())
+			if (!attr.isBlank())
 				setCacheCapacity(Integer.parseInt(attr));
 			attr = self.getAttribute("CacheCleanPeriod");
-			if (!attr.isEmpty())
+			if (!attr.isBlank())
 				setCacheCleanPeriod(Integer.parseInt(attr));
 			attr = self.getAttribute("CacheFactor");
-			if (!attr.isEmpty())
+			if (!attr.isBlank())
 				setCacheFactor(Float.parseFloat(attr));
 
-			databaseName = self.getAttribute("DatabaseName");
-			databaseOldName = self.getAttribute("DatabaseOldName");
+			databaseName = self.getAttribute("DatabaseName").trim();
+			databaseOldName = self.getAttribute("DatabaseOldName").trim();
 			attr = self.getAttribute("DatabaseOldMode");
-			databaseOldMode = attr.length() > 0 ? Integer.parseInt(attr) : 0;
+			databaseOldMode = attr.isBlank() ? 0 : Integer.parseInt(attr);
 
 			attr = self.getAttribute("CheckpointWhenCommit");
-			if (!attr.isEmpty())
+			if (!attr.isBlank())
 				setCheckpointWhenCommit(Boolean.parseBoolean(attr));
 			attr = self.getAttribute("CacheConcurrencyLevel");
-			if (!attr.isEmpty())
+			if (!attr.isBlank())
 				setCacheConcurrencyLevel(Integer.parseInt(attr));
 			attr = self.getAttribute("CacheInitialCapacity");
-			if (!attr.isEmpty())
+			if (!attr.isBlank())
 				setCacheInitialCapacity(Integer.parseInt(attr));
 			attr = self.getAttribute("CacheNewAccessHotThreshold");
-			if (!attr.isEmpty())
+			if (!attr.isBlank())
 				setCacheNewAccessHotThreshold(Integer.parseInt(attr));
 			attr = self.getAttribute("CacheCleanPeriodWhenExceedCapacity");
-			if (!attr.isEmpty())
+			if (!attr.isBlank())
 				setCacheCleanPeriodWhenExceedCapacity(Integer.parseInt(attr));
 			attr = self.getAttribute("CacheMaxLruInitialCapacity");
-			if (!attr.isEmpty())
+			if (!attr.isBlank())
 				setCacheMaxLruInitialCapacity(Integer.parseInt(attr));
 
 			if (getName().length() > 0) {
@@ -937,5 +941,4 @@ public final class Config {
 				throw new IllegalStateException("too many DefaultTableConf.");
 		}
 	}
-
 }

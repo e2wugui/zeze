@@ -10,6 +10,7 @@ import Zeze.Services.HandshakeOptions;
 import Zeze.Util.Action1;
 import Zeze.Util.IntHashSet;
 import Zeze.Util.OutObject;
+import Zeze.Util.Str;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -164,38 +165,38 @@ public final class ServiceConf {
 	}
 
 	public ServiceConf(Config conf, Element self) {
-		name = self.getAttribute("Name");
+		name = self.getAttribute("Name").trim();
 
 		String attr;
 
 		// SocketOptions
 		attr = self.getAttribute("NoDelay");
-		if (attr.length() > 0) {
+		if (!attr.isBlank())
 			getSocketOptions().setNoDelay(Boolean.parseBoolean(attr));
-		}
+
 		attr = self.getAttribute("SendBuffer");
-		if (attr.length() > 0) {
-			getSocketOptions().setSendBuffer(Integer.parseInt(attr));
-		}
+		if (!attr.isBlank())
+			getSocketOptions().setSendBuffer(Str.parseIntSize(attr));
+
 		attr = self.getAttribute("ReceiveBuffer");
-		if (attr.length() > 0) {
-			getSocketOptions().setReceiveBuffer(Integer.parseInt(attr));
-		}
+		if (!attr.isBlank())
+			getSocketOptions().setReceiveBuffer(Str.parseIntSize(attr));
+
 		attr = self.getAttribute("InputBufferMaxProtocolSize");
-		if (attr.length() > 0) {
-			getSocketOptions().setInputBufferMaxProtocolSize(Integer.parseInt(attr));
-		}
+		if (!attr.isBlank())
+			getSocketOptions().setInputBufferMaxProtocolSize(Str.parseIntSize(attr));
+
 		attr = self.getAttribute("OutputBufferMaxSize");
-		if (attr.length() > 0) {
-			getSocketOptions().setOutputBufferMaxSize(Integer.parseInt(attr));
-		}
+		if (!attr.isBlank())
+			getSocketOptions().setOutputBufferMaxSize(Str.parseLongSize(attr));
+
 		attr = self.getAttribute("Backlog");
-		if (attr.length() > 0) {
+		if (!attr.isBlank())
 			getSocketOptions().setBacklog(Integer.parseInt(attr));
-		}
+
 		// HandshakeOptions
 		attr = self.getAttribute("DhGroups");
-		if (attr.length() > 0) {
+		if (!attr.isBlank()) {
 			getHandshakeOptions().setDhGroups(new IntHashSet());
 			for (String dg : attr.split(",", -1)) {
 				String dgTmp = dg.strip();
@@ -206,7 +207,7 @@ public final class ServiceConf {
 			}
 		}
 		attr = self.getAttribute("SecureIp");
-		if (attr.length() > 0) {
+		if (!attr.isBlank()) {
 			try {
 				getHandshakeOptions().setSecureIp(InetAddress.getByName(attr).getAddress());
 			} catch (Exception ex) {
@@ -214,24 +215,24 @@ public final class ServiceConf {
 			}
 		}
 		attr = self.getAttribute("CompressS2c");
-		if (attr.length() > 0) {
+		if (!attr.isBlank())
 			getHandshakeOptions().setCompressS2c(Integer.parseInt(attr));
-		}
+
 		attr = self.getAttribute("CompressC2s");
-		if (attr.length() > 0) {
+		if (!attr.isBlank())
 			getHandshakeOptions().setCompressC2s(Integer.parseInt(attr));
-		}
+
 		attr = self.getAttribute("EncryptType");
-		if (attr.length() > 0) {
+		if (!attr.isBlank())
 			getHandshakeOptions().setEncryptType(Integer.parseInt(attr));
-		}
+
 		attr = self.getAttribute("maxConnections");
-		if (!attr.isEmpty())
+		if (!attr.isBlank())
 			maxConnections = Integer.parseInt(attr);
 
 		{
 			String name = getName();
-			if (name.isEmpty()) {
+			if (name.isBlank()) {
 				conf.setDefaultServiceConf(this);
 			} else if (null != conf.getServiceConfMap().putIfAbsent(name, this)) {
 				throw new IllegalStateException("Duplicate ServiceConf " + getName());
