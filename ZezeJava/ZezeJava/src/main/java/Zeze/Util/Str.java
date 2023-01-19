@@ -66,42 +66,54 @@ public final class Str {
 	}
 
 	public static int parseIntSize(String s) {
-		long r = parseLongSize(s);
-		int i = (int)r;
-		if (i != r)
+		if ((s = s.trim()).equalsIgnoreCase("max"))
+			return Integer.MAX_VALUE;
+		long v = parseLongSize(s);
+		if (v > Integer.MAX_VALUE)
 			throw new NumberFormatException("int overflow for '" + s + "'");
-		return i;
+		return (int)v;
 	}
 
 	public static long parseLongSize(String s) {
-		long r = 0;
+		if ((s = s.trim()).equalsIgnoreCase("max"))
+			return Long.MAX_VALUE;
+		byte[] buf = new byte[s.length() + 1];
+		int pos = 0;
+		long scale = 1;
+		loop:
 		for (int i = 0, n = s.length(); i < n; i++) {
-			int c = s.charAt(i);
+			char c = s.charAt(i);
 			switch (c) {
 			//@formatter:off
 			case '0': case '1': case '2': case '3': case '4':
-			case '5': case '6': case '7': case '8': case '9':
-				r = Math.addExact(Math.multiplyExact(r, 10), c - '0');
+			case '5': case '6': case '7': case '8': case '9': case '.':
+				buf[pos++] = (byte)c;
 				break;
 			//@formatter:on
 			case 'K':
 			case 'k':
-				return Math.multiplyExact(r, 1 << 10);
+				scale = 1 << 10;
+				break loop;
 			case 'M':
 			case 'm':
-				return Math.multiplyExact(r, 1 << 20);
+				scale = 1 << 20;
+				break loop;
 			case 'G':
 			case 'g':
-				return Math.multiplyExact(r, 1 << 30);
+				scale = 1 << 30;
+				break loop;
 			case 'T':
 			case 't':
-				return Math.multiplyExact(r, 1L << 40);
+				scale = 1L << 40;
+				break loop;
 			case 'P':
 			case 'p':
-				return Math.multiplyExact(r, 1L << 50);
+				scale = 1L << 50;
+				break loop;
 			case 'E':
 			case 'e':
-				return Math.multiplyExact(r, 1L << 60);
+				scale = 1L << 60;
+				break loop;
 			case '\t':
 			case ' ':
 			case '_':
@@ -109,9 +121,23 @@ public final class Str {
 			case '\'':
 				continue; // 允许用的间隔符
 			default:
-				throw new NumberFormatException("invalid format for '" + s + "'");
+				throw new NumberFormatException("invalid char '" + c + "' in '" + s + "'");
 			}
 		}
-		return r;
+		buf[pos] = ' ';
+		Number num;
+		try {
+			num = (Number)JsonReader.local().buf(buf).parseNumber();
+			if (num instanceof Long || num instanceof Integer)
+				return Math.multiplyExact(num.longValue(), scale);
+		} catch (Exception e) {
+			throw new IllegalStateException("long overflow for '" + s + "'", e);
+		}
+		double v = num.doubleValue() * scale;
+		if (!Double.isFinite(v))
+			throw new IllegalStateException("double overflow for '" + s + "'");
+		if (v < 0 || v > Long.MAX_VALUE)
+			throw new IllegalStateException("long overflow for '" + s + "'");
+		return (long)v;
 	}
 }
