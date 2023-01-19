@@ -1,0 +1,65 @@
+zekv
+	或者叫dbh2，不依赖db.h，这个名字有纪念意义。
+	rocksdb桶：部分表，部分key。
+	桶的管理和分配。关键！
+	桶的raft。
+	并发：zeze专用，无需复杂并发控制。或者几乎不需要？
+	使用c++？
+	raft c++？
+	c++ net？wepoll
+
+Database
+	每个Database包含多张表。
+
+Table
+	kv表
+
+Bucket
+	每个kv表按一定规则分到不同的桶里面。
+	每个桶由raft节点组成。
+
+Bucket-Route
+	kv划分规则：1. sort；2. hash
+
+Bucket-Route-Sort
+	需要一个有顺序按段划分byte[]的算法。关键问题是划分段多大。下面的方法能工作。
+	现在考虑到的方法是动态规划路由：一开始一个桶，容量超过了，就从现有的记录数量中间拆分成两个。
+	然后两个桶来用。等到其中一个桶又超出了，再拆分。暂不考虑合并桶（删除是少见的）。
+
+Bucket-Route-Hash（第一版不实现）
+	一致性hash算法。
+	当桶增加时，需要能感知需要迁移的桶。
+	现在Zeze采用的一个最常用的算法，可以继续采用，但是由于感知迁移桶的需求，
+	不能使用虚拟节点。暂时考虑的策略是，一开始就建立足够数量桶（节点）。
+
+Bucket-Hot-Split(Sort)
+	热点桶二分法拆分，规则和Bucket-Route-Sort一样。
+
+Bucket-Split需求
+	记录级别并发拆分：正在迁移的记录的访问需要等待。其他并发。
+	问题要点：
+	已经迁移完成的正常访问，迁移未完成按老的方式访问，这两种是否存在什么问题。
+	算法思路要点：
+	[1,2,3,4,5,6,7,8,9]
+	[1,2,3,4,5] [6之后并发迁移到新的桶。]
+	            [6,7*] 假设当前迁移记录是7.
+	void access(key)
+	{
+		var bucket = route(key);
+		if (bucket.moving)
+		{
+			// 【实际上下面没有考虑真正的锁定关系，纯伪码】
+			var movingkey; // 7
+			if (key < movingkey)
+				bucket.normalAccess;
+			if (key == movingkey) {
+				wait;
+				bucket.normalAccess;
+			}
+			bucket.oldbucket.normalAccess; // oldbucket 是拆分前的旧桶。
+		}
+		else
+		{
+			bucket.normalAccess;
+		}
+	}
