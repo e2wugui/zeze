@@ -12,12 +12,13 @@ namespace Zeze.Arch
     {
         public ProviderApp ProviderApp { get; set; }
 
-        private void SendProtocol(AsyncSocket target, Protocol p)
+        private void SendResult(AsyncSocket target, Protocol p)
         {
             if (target == null)
             {
                 var service = ProviderApp.ProviderDirectService;
                 p.Dispatch(service, service.FindProtocolFactoryHandle(p.TypeId));
+                return;
             }
             p.Send(target);
         }
@@ -63,7 +64,7 @@ namespace Zeze.Arch
             }
             if (size > 2 * 1024 * 1024) // 2M
             {
-                SendProtocol(sender, result);
+                SendResult(sender, result);
                 result.Argument.Hashs.Clear();
             }
         }
@@ -91,7 +92,7 @@ namespace Zeze.Arch
                         ReturnCode = ResultCode.NotImplement
                     });
                 }
-                SendProtocol(p.Sender, result);
+                SendResult(p.Sender, result);
                 return ResultCode.LogicError;
             }
             result.ResultCode = ModuleRedirect.ResultCodeSuccess;
@@ -127,7 +128,7 @@ namespace Zeze.Arch
             // send remain
             if (result.Argument.Hashs.Count > 0)
             {
-                SendProtocol(p.Sender, result);
+                SendResult(p.Sender, result);
             }
             return ResultCode.Success;
         }

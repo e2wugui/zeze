@@ -52,6 +52,15 @@ namespace Zeze.Net
 
 		internal virtual void Dispatch(Service service, Service.ProtocolFactoryHandle factoryHandle)
 		{
+			if (null != Sender)
+			{
+				var throttle = Sender.TimeThrottle;
+				if (null != throttle && false == throttle.MarkNow())
+				{
+                    // TrySendResultCode(Zeze.Util.ResultCode.Busy); // 超过速度限制，不报告错误。因为可能是一种攻击。
+                    return; // 超过速度控制，丢弃这条协议。
+                }
+            }
 			service.DispatchProtocol(this, factoryHandle);
 		}
 

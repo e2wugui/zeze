@@ -34,6 +34,7 @@ namespace Zeze.Net
         public Exception LastException { get; private set; }
         public long SessionId { get; private set; }
         public Socket Socket { get; private set; } // 这个给出去真的好吗？
+        internal readonly TimeThrottle TimeThrottle;
 
         /// <summary>
         /// 保存需要存储在Socket中的状态。
@@ -87,6 +88,7 @@ namespace Zeze.Net
             Socket.Listen(service.SocketOptions.Backlog);
 
             this.SessionId = NextSessionId();
+            TimeThrottle = null;
 
             eventArgsAccept = new SocketAsyncEventArgs();
             eventArgsAccept.Completed += OnAsyncIOCompleted;
@@ -115,7 +117,9 @@ namespace Zeze.Net
                 Socket.NoDelay = service.SocketOptions.NoDelay.Value;
 
             this.SessionId = NextSessionId();
-
+            TimeThrottle = null != service.SocketOptions.TimeThrottleSeconds
+                ? new TimeThrottle(service.SocketOptions.TimeThrottleSeconds.Value, service.SocketOptions.TimeThrottleLimit.Value)
+                : null;
             this._inputBuffer = new byte[service.SocketOptions.InputBufferSize];
 
             RemoteAddress = (Socket.RemoteEndPoint as IPEndPoint).Address.ToString();
@@ -147,6 +151,9 @@ namespace Zeze.Net
                 Socket.NoDelay = service.SocketOptions.NoDelay.Value;
 
             this.SessionId = NextSessionId();
+            TimeThrottle = null != service.SocketOptions.TimeThrottleSeconds
+                ? new TimeThrottle(service.SocketOptions.TimeThrottleSeconds.Value, service.SocketOptions.TimeThrottleLimit.Value)
+                : null;
 
             System.Net.Dns.BeginGetHostAddresses(hostNameOrAddress, OnAsyncGetHostAddresses, port);
         }
