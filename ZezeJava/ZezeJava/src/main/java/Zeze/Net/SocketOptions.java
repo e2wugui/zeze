@@ -11,6 +11,25 @@ public final class SocketOptions {
 	private int inputBufferMaxProtocolSize = 2 * 1024 * 1024; // 最大协议包的大小。协议需要完整收到才解析和处理，所以需要缓存。这是个安全选项。防止出现攻击占用大量内存。
 	private long outputBufferMaxSize = 2 * 1024 * 1024; // 最大发送协议堆积大小. 用于Service.checkOverflow
 
+	private Integer timeThrottleSeconds;
+	private Integer timeThrottleLimit;
+
+	public Integer getTimeThrottleSeconds() {
+		return timeThrottleSeconds;
+	}
+
+	public Integer getTimeThrottleLimit() {
+		return timeThrottleLimit;
+	}
+
+	public void setTimeThrottleSeconds(int seconds) {
+		timeThrottleSeconds = seconds;
+	}
+
+	public void setTimeThrottleLimit(int limit) {
+		timeThrottleLimit = limit;
+	}
+
 	public Boolean getNoDelay() {
 		return noDelay;
 	}

@@ -3,6 +3,7 @@ package Zeze.Net;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.Procedure;
 
 public abstract class Protocol<TArgument extends Bean> implements Serializable {
 	private static final int HEADER_SIZE = 12; // moduleId[4] + protocolId[4] + size[4]
@@ -165,6 +166,13 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 	@SuppressWarnings("unchecked")
 	public <P extends Protocol<?>> void dispatch(Service service, Service.ProtocolFactoryHandle<P> factoryHandle)
 			throws Exception {
+		if (sender != null) {
+			var throttle = sender.getTimeThrottle();
+			if (null != throttle && !throttle.markNow()) {
+				// trySendResultCode(Procedure.Busy); // 超过速度限制，不报告错误。因为可能是一种攻击。
+				return; // 超过速度控制，丢弃这条协议。
+			}
+		}
 		service.DispatchProtocol((P)this, factoryHandle);
 	}
 

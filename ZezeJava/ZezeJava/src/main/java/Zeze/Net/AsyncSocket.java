@@ -23,6 +23,7 @@ import Zeze.Util.Action0;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
+import Zeze.Util.TimeThrottle;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -97,6 +98,11 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private long recvSize; // 已从socket接收数据的统计总字节数
 	private long sendSize; // 已向socket发送数据的统计总字节数
 	private long sendRawSize; // 准备发送数据的统计总字节数(只在SetOutputSecurityCodec后统计,压缩加密之前的大小)
+	private final TimeThrottle timeThrottle;
+
+	TimeThrottle getTimeThrottle() {
+		return timeThrottle;
+	}
 
 	public long getSessionId() {
 		return sessionId;
@@ -212,6 +218,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			service.onServerSocketBind(ss);
 			logger.info("Listen: {} for {}:{}", localEP, service.getClass().getName(), service.getName());
 
+			timeThrottle = null;
 			selector = service.getSelectors().choice();
 			operates = null;
 			inputBuffer = null;
@@ -294,6 +301,10 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		if (noDelay != null)
 			so.setTcpNoDelay(noDelay);
 
+		timeThrottle = this.service.getSocketOptions().getTimeThrottleSeconds() != null
+				? new TimeThrottle(this.service.getSocketOptions().getTimeThrottleSeconds(),
+				this.service.getSocketOptions().getTimeThrottleLimit())
+				: null;
 		selector = service.getSelectors().choice();
 		operates = new ConcurrentLinkedQueue<>();
 		inputBuffer = new BufferCodec();
@@ -340,6 +351,10 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			if (noDelay != null)
 				so.setTcpNoDelay(noDelay);
 
+			timeThrottle = this.service.getSocketOptions().getTimeThrottleSeconds() != null
+					? new TimeThrottle(this.service.getSocketOptions().getTimeThrottleSeconds(),
+						this.service.getSocketOptions().getTimeThrottleLimit())
+					: null;
 			selector = service.getSelectors().choice();
 			operates = new ConcurrentLinkedQueue<>();
 			inputBuffer = new BufferCodec();

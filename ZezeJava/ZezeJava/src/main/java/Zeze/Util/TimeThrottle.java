@@ -26,7 +26,7 @@ public class TimeThrottle {
 	 * mark with current time
 	 * @return false if overflow
 	 */
-	public boolean mark() {
+	public boolean markNow() {
 		var now = System.currentTimeMillis();
 		var start = now - expire;
 		for (var t = marks.peek(); null != t; t = marks.peek()) {
@@ -37,6 +37,6 @@ public class TimeThrottle {
 		if (marks.size() > eMaxMarksSize)
 			return false; // 防止客户端发送大量请求，造成marks过大，此时不加入mark。
 		marks.offer(now); // 不重新读取now了。
-		return marks.size() > limit;
+		return marks.size() <= limit;
 	}
 }

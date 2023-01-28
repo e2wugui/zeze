@@ -89,6 +89,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 		if (sender == null) {
 			var service = providerApp.providerDirectService;
 			p.dispatch(service, service.findProtocolFactoryHandle(p.getTypeId()));
+			return;
 		}
 		p.Send(sender);
 	}

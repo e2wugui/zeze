@@ -194,6 +194,14 @@ public final class ServiceConf {
 		if (!attr.isBlank())
 			getSocketOptions().setBacklog(Integer.parseInt(attr));
 
+		attr = self.getAttribute("TimeThrottleSeconds");
+		if (!attr.isBlank())
+			getSocketOptions().setTimeThrottleSeconds(Integer.parseInt(attr));
+
+		attr = self.getAttribute("TimeThrottleLimit");
+		if (!attr.isBlank())
+			getSocketOptions().setTimeThrottleLimit(Integer.parseInt(attr));
+
 		// HandshakeOptions
 		attr = self.getAttribute("DhGroups");
 		if (!attr.isBlank()) {
