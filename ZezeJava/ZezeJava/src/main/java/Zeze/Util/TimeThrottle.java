@@ -8,6 +8,11 @@ public class TimeThrottle {
 	private final int expire;
 	private final int limit;
 
+	/**
+	 * seconds 秒内限制 limit 个 mark。
+	 * @param seconds 限制时间范围。
+	 * @param limit 限制数量。
+	 */
 	public TimeThrottle(int seconds, int limit) {
 		if (seconds < 1)
 			throw new IllegalArgumentException();
