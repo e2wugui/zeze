@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using Zeze.Serialize;
 
 namespace Zeze.Net
@@ -205,7 +206,7 @@ namespace Zeze.Net
 
 				var pBuffer = ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size);
 				os.ReadIndex += size;
-				if (service.CheckThrottle(so, moduleId, protocolId, size))
+				if (service.CheckThrottle(so, moduleId, protocolId, size) && false == service.Discard(moduleId, protocolId))
 				{
                     var factoryHandle = service.FindProtocolFactoryHandle(type);
                     if (null != factoryHandle)

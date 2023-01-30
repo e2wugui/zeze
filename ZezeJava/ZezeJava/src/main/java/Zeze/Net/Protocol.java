@@ -3,7 +3,6 @@ package Zeze.Net;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Procedure;
 
 public abstract class Protocol<TArgument extends Bean> implements Serializable {
 	private static final int HEADER_SIZE = 12; // moduleId[4] + protocolId[4] + size[4]
@@ -231,7 +230,8 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 			int savedWriteIndex = bb.WriteIndex;
 			bb.WriteIndex = endReadIndex;
 
-			if (service.checkThrottle(so, moduleId, protocolId, size)) { // 默认超速是丢弃请求，
+			if (service.checkThrottle(so, moduleId, protocolId, size)
+					&& !service.discard(moduleId, protocolId)) { // 默认超速是丢弃请求，
 				var typeId = makeTypeId(moduleId, protocolId);
 				var factoryHandle = service.findProtocolFactoryHandle(typeId);
 				if (factoryHandle != null && factoryHandle.Factory != null) {

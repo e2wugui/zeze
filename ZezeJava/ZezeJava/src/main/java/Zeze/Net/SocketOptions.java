@@ -15,6 +15,15 @@ public final class SocketOptions {
 	private Integer timeThrottleSeconds;
 	private Integer timeThrottleLimit;
 	private Integer timeThrottleBandwidth;
+	private Long overBandwidth;
+
+	public Long getOverBandwidth() {
+		return overBandwidth;
+	}
+
+	public void setOverBandwidth(long value) {
+		overBandwidth = value;
+	}
 
 	public String getTimeThrottle() {
 		return timeThrottle;

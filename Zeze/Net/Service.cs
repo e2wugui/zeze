@@ -602,5 +602,10 @@ namespace Zeze.Net
 #endif
             return true;
         }
+
+        public virtual bool Discard(int moduleId, int protocolId)
+        {
+            return false;
+        }
     }
 }

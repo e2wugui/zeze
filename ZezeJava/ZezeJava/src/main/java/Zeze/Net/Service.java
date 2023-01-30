@@ -670,4 +670,8 @@ public class Service {
 		}
 		return true;
 	}
+
+	public boolean discard(int moduleId, int protocolId) throws Exception {
+		return false;
+	}
 }

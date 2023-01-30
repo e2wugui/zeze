@@ -7,6 +7,7 @@ import Zeze.Net.Selectors;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Action1;
 import Zeze.Util.CommandConsoleService;
+import Zeze.Util.Func3;
 
 public class LinkdApp {
 	public final String linkdServiceName;
@@ -19,6 +20,7 @@ public class LinkdApp {
 	public int providerPort;
 	public final Selectors selectors;
 	public Action1<ServerSocket> onServerSocketBindAction;
+	public Func3<Integer, Integer, Double, Boolean> discardAction;
 
 	/**
 	 * 自动创建，自动启动。

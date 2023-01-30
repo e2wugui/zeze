@@ -206,7 +206,11 @@ public final class ServiceConf {
 
 		attr = self.getAttribute("TimeThrottleBandwidth");
 		if (!attr.isBlank())
-			getSocketOptions().setTimeThrottleBandwidth(Integer.parseInt(attr));
+			getSocketOptions().setTimeThrottleBandwidth(Str.parseIntSize(attr));
+
+		attr = self.getAttribute("OverBandwidth");
+		if (!attr.isBlank())
+			getSocketOptions().setOverBandwidth(Str.parseLongSize(attr));
 
 		// HandshakeOptions
 		attr = self.getAttribute("DhGroups");

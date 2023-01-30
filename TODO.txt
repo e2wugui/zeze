@@ -28,14 +28,47 @@ DatabaseDynamoDb 还需测试。
 过载保护；更多。
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/2/10 
+2023/2/10 TimeThrottle; Linkd.OverBandwidth; 
 ------------------------------------------------------------------------------------------------------------------------------
 过载保护；更多。--- linkd流量过载保护。
 	统计LinkdService出入？
 	统计ProviderService出入？
 	根据配置，达到80%以后就限制某些地方（哪里）？达到90%就更严格限制？
-	linkd对客户端应该限速，比如，限制5秒内最多25个包，这个算法是允许突发。
+	思路：
+	ProviderService的总输入或者LinkdService的总输出达到各自配置值
+		80%开始限制客户端部分请求（如Move）,
+		90%开始限制所有客户端请求。
+	ProviderService,LinkdService统计以后，加拦截点。
+	丢弃高层接口：限制丢弃策略接口定义在LinkdApp中。
+	丢弃底层接口：丢弃实现必须是底层，怎么让Linkd控制这个丢弃。
+	设计：
+	a) Service带宽统计，可以得到每秒的速率。getBandwidth();
+	b) Service.discard(int moduleId, int protocolId) return true discard protocol，default false。
+	c) override LinkdService.discard(int moduleId, int protocolId) {
+		//【新修订：实现成忽略ProviderService的带宽过载配置，因为ProviderService的输入最终也会反映到LinkdService的输出。否则这里应该是max(LinkdService.Rate, ProviderService.Rate)】
+		var opt = options.getOverBandwidth();
+		if (null == opt)
+			return false; // disable
+		var rate = (double)getBandwitch() / opt;
+
+		// 总控
+		if (rate > 0.9)
+			return true; // 熔断: discard all，其他级别在回调中处理。
+		if (rate < 0.6)
+			return false; // 整体负载小于0.6,全部不丢弃
+
+		/*
+		对于游戏可以针对【Move协议】使用下面的策略.
+		if (moduleId == Map.ModuleId && protocolId == Map.Move.ProtocolId)
+			return Zeze.Util.Random.getInstance().nextInt(100) < (int)((rate - 0.6) / 0.3 * 100);
+		return false; // 其他协议全部不丢弃，除非达到熔断。
+		*/
+		if (linkdApp.discardAction != null)
+			return linkdApp.discardAction.call(moduleId, protocolId, rate);
+	}
+
 TimeThrottle Queue | Counter 限制请求数量和带宽
+	linkd对客户端应该限速，比如，限制5秒内最多25个包，这个算法是允许突发。
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/1/19 v1.1.6 DelayRemove; LinkedMap; TaskOneByOneByKey; LinkdProvider.ProcessSendRequest Async; RocketMQ; throws Throwable; Acceptor @internal @external Port=0
