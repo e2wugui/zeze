@@ -16,6 +16,24 @@ public final class SocketOptions {
 	private Integer timeThrottleLimit;
 	private Integer timeThrottleBandwidth;
 	private Long overBandwidth;
+	private double overBandwidthFusingRate = 1.0;
+	private double overBandwidthNormalRate = 0.7;
+
+	public double getOverBandwidthFusingRate() {
+		return overBandwidthFusingRate;
+	}
+
+	public double getOverBandwidthNormalRate() {
+		return overBandwidthNormalRate;
+	}
+
+	public void setOverBandwidthFusingRate(double value) {
+		overBandwidthFusingRate = value;
+	}
+
+	public void setOverBandwidthNormalRate(double value) {
+		overBandwidthNormalRate = value;
+	}
 
 	public Long getOverBandwidth() {
 		return overBandwidth;

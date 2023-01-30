@@ -337,15 +337,15 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		var rate = 1.0; // (double)this.getBandwitch() / opt;
 
 		// 总控
-		if (rate > 0.9)
+		if (rate > getSocketOptions().getOverBandwidthFusingRate()) // 1.0
 			return true; // 熔断: discard all，其他级别在回调中处理。
-		if (rate < 0.6)
+		if (rate < getSocketOptions().getOverBandwidthNormalRate()) // 0.7
 			return false; // 整体负载小于0.6,全部不丢弃
 
 		/*
 		对于游戏可以针对【Move协议】使用下面的策略.
 		if (moduleId == Map.ModuleId && protocolId == Map.Move.ProtocolId)
-			return Zeze.Util.Random.getInstance().nextInt(100) < (int)((rate - 0.6) / 0.3 * 100);
+			return Zeze.Util.Random.getInstance().nextInt(100) < (int)((rate - 0.7) / (1.0 - 0.7) * 100);
 		return false; // 其他协议全部不丢弃，除非达到熔断。
 		*/
 		if (linkdApp.discardAction != null)

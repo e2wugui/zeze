@@ -212,6 +212,13 @@ public final class ServiceConf {
 		if (!attr.isBlank())
 			getSocketOptions().setOverBandwidth(Str.parseLongSize(attr));
 
+		attr = self.getAttribute("OverBandwidthFusingRate");
+		if (!attr.isBlank())
+			getSocketOptions().setOverBandwidthFusingRate(Double.parseDouble(attr));
+		attr = self.getAttribute("OverBandwidthNormalRate");
+		if (!attr.isBlank())
+			getSocketOptions().setOverBandwidthNormalRate(Double.parseDouble(attr));
+
 		// HandshakeOptions
 		attr = self.getAttribute("DhGroups");
 		if (!attr.isBlank()) {
