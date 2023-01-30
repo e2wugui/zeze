@@ -194,6 +194,8 @@ public final class ServiceConf {
 		if (!attr.isBlank())
 			getSocketOptions().setBacklog(Integer.parseInt(attr));
 
+		getSocketOptions().setTimeThrottle(self.getAttribute("TimeThrottle"));
+
 		attr = self.getAttribute("TimeThrottleSeconds");
 		if (!attr.isBlank())
 			getSocketOptions().setTimeThrottleSeconds(Integer.parseInt(attr));

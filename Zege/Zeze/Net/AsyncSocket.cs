@@ -34,7 +34,9 @@ namespace Zeze.Net
         public Exception LastException { get; private set; }
         public long SessionId { get; private set; }
         public Socket Socket { get; private set; } // 这个给出去真的好吗？
-
+#if !USE_CONFCS
+        internal readonly TimeThrottle TimeThrottle;
+#endif
         /// <summary>
         /// 保存需要存储在Socket中的状态。
         /// 简单变量，没有考虑线程安全问题。
@@ -87,7 +89,9 @@ namespace Zeze.Net
             Socket.Listen(service.SocketOptions.Backlog);
 
             this.SessionId = NextSessionId();
-
+#if !USE_CONFCS
+            TimeThrottle = null;
+#endif
             eventArgsAccept = new SocketAsyncEventArgs();
             eventArgsAccept.Completed += OnAsyncIOCompleted;
 
@@ -115,7 +119,9 @@ namespace Zeze.Net
                 Socket.NoDelay = service.SocketOptions.NoDelay.Value;
 
             this.SessionId = NextSessionId();
-
+#if !USE_CONFCS
+            TimeThrottle = TimeThrottle.Create(service.SocketOptions);
+#endif
             this._inputBuffer = new byte[service.SocketOptions.InputBufferSize];
 
             RemoteAddress = (Socket.RemoteEndPoint as IPEndPoint).Address.ToString();
@@ -147,7 +153,9 @@ namespace Zeze.Net
                 Socket.NoDelay = service.SocketOptions.NoDelay.Value;
 
             this.SessionId = NextSessionId();
-
+#if !USE_CONFCS
+            TimeThrottle = TimeThrottle.Create(service.SocketOptions);
+#endif
             System.Net.Dns.BeginGetHostAddresses(hostNameOrAddress, OnAsyncGetHostAddresses, port);
         }
 
@@ -662,6 +670,9 @@ namespace Zeze.Net
                 logger.Error(e);
 #endif
             }
+#if !USE_CONFCS
+            TimeThrottle?.Close();
+#endif
         }
 
         public void Dispose()

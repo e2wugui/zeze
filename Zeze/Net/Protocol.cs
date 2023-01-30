@@ -52,7 +52,8 @@ namespace Zeze.Net
 
 		internal virtual void Dispatch(Service service, Service.ProtocolFactoryHandle factoryHandle)
 		{
-			if (null != Sender)
+#if !USE_CONFCS
+            if (null != Sender)
 			{
 				var throttle = Sender.TimeThrottle;
 				if (null != throttle && false == throttle.MarkNow())
@@ -61,6 +62,7 @@ namespace Zeze.Net
                     return; // 超过速度控制，丢弃这条协议。
                 }
             }
+#endif
 			service.DispatchProtocol(this, factoryHandle);
 		}
 

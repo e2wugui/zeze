@@ -345,7 +345,7 @@ namespace Zeze.Services
             return Task.FromResult(0L);
         }
 
-        private int ClientChoiceCompress(int c)
+        private int ClientCompress(int c)
         {
             // 客户端检查一下当前版本是否支持推荐的压缩算法。
             // 如果不支持则统一使用最老的。
@@ -376,8 +376,8 @@ namespace Zeze.Services
                 }
                 else
                     cHandshake.Argument.EncryptParam = Array.Empty<byte>();
-                cHandshake.Argument.CompressS2c = ClientChoiceCompress(arg.CompressS2c);
-                cHandshake.Argument.CompressC2s = ClientChoiceCompress(arg.CompressC2s);
+                cHandshake.Argument.CompressS2c = ClientCompress(arg.CompressS2c);
+                cHandshake.Argument.CompressC2s = ClientCompress(arg.CompressC2s);
                 cHandshake.Send(so);
                 ctx.TimeoutTask = Util.Scheduler.Schedule((thisTask) =>
                 {

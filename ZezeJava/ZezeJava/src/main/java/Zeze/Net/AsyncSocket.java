@@ -24,6 +24,7 @@ import Zeze.Util.LongHashSet;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import Zeze.Util.TimeThrottle;
+import Zeze.Util.TimeThrottleQueue;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -301,10 +302,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		if (noDelay != null)
 			so.setTcpNoDelay(noDelay);
 
-		timeThrottle = this.service.getSocketOptions().getTimeThrottleSeconds() != null
-				? new TimeThrottle(this.service.getSocketOptions().getTimeThrottleSeconds(),
-				this.service.getSocketOptions().getTimeThrottleLimit())
-				: null;
+		timeThrottle = TimeThrottle.create(this.service.getSocketOptions());
 		selector = service.getSelectors().choice();
 		operates = new ConcurrentLinkedQueue<>();
 		inputBuffer = new BufferCodec();
@@ -351,10 +349,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			if (noDelay != null)
 				so.setTcpNoDelay(noDelay);
 
-			timeThrottle = this.service.getSocketOptions().getTimeThrottleSeconds() != null
-					? new TimeThrottle(this.service.getSocketOptions().getTimeThrottleSeconds(),
-						this.service.getSocketOptions().getTimeThrottleLimit())
-					: null;
+			timeThrottle = TimeThrottle.create(this.service.getSocketOptions());
 			selector = service.getSelectors().choice();
 			operates = new ConcurrentLinkedQueue<>();
 			inputBuffer = new BufferCodec();
@@ -708,6 +703,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			selector.wakeup(); // Acceptor的socket需要selector在select开始时执行,所以wakeup一下尽早触发下次select
 		if (outputBuffer != null)
 			outputBuffer.close();
+		if (null != timeThrottle)
+			timeThrottle.close();
 	}
 
 	private boolean close(Throwable ex, boolean gracefully) {

@@ -21,6 +21,7 @@ namespace Zeze.Net
 
         // 其他杂项
         public Config.LogLevel SocketLogLevel { get; set; }
+        public string TimeThrottle { get; set; }
         public int? TimeThrottleSeconds { get; set; }
         public int? TimeThrottleLimit { get; set; }
 
