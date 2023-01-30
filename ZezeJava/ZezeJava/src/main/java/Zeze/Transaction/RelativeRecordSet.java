@@ -393,7 +393,7 @@ public final class RelativeRecordSet {
 				sortedRrs.clear();
 			} finally {
 				locks.forEach(RelativeRecordSet::unLock);
-				Checkpoint.logger.info("flush: {} rrs, {} ns", n, System.nanoTime() - timeBegin);
+				Checkpoint.logger.debug("flush: {} rrs, {} ns", n, System.nanoTime() - timeBegin);
 			}
 		}
 	}

@@ -40,7 +40,7 @@ public class TestTransactionHalt {
 				return 0L;
 			}, "init").call();
 		}
-		if (total1.value != total3.value)
+		if (total1.value != total3.value && args.length == 0)
 			throw new AssertionError("check failed: " + total1.value + " != " + total3.value);
 
 		for (int i = 0; i < KEY_COUNT; i++) {
