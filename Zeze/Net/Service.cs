@@ -589,7 +589,7 @@ namespace Zeze.Net
             return (ip, port);
         }
 
-        public virtual bool CheckThrottle(AsyncSocket sender, int size)
+        public virtual bool CheckThrottle(AsyncSocket sender, int moduleId, int protocolId, int size)
         {
 #if !USE_CONFCS
             var throttle = sender.TimeThrottle;

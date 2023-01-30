@@ -231,7 +231,7 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 			int savedWriteIndex = bb.WriteIndex;
 			bb.WriteIndex = endReadIndex;
 
-			if (service.checkThrottle(so, size)) { // 默认超速是丢弃请求，
+			if (service.checkThrottle(so, moduleId, protocolId, size)) { // 默认超速是丢弃请求，
 				var typeId = makeTypeId(moduleId, protocolId);
 				var factoryHandle = service.findProtocolFactoryHandle(typeId);
 				if (factoryHandle != null && factoryHandle.Factory != null) {

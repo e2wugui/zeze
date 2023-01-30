@@ -661,7 +661,7 @@ public class Service {
 	public void onServerSocketBind(ServerSocket port) {
 	}
 
-	public boolean checkThrottle(AsyncSocket sender, int size) {
+	public boolean checkThrottle(AsyncSocket sender, int moduleId, int protocolId, int size) {
 		var throttle = sender.getTimeThrottle();
 		if (null != throttle && !throttle.checkNow(size)) {
 			// trySendResultCode(Procedure.Busy); // 超过速度限制，不报告错误。因为可能是一种攻击。
