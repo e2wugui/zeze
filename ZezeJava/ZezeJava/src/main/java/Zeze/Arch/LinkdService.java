@@ -362,8 +362,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		if (linkdApp.discardAction != null)
 			return linkdApp.discardAction.call(sender, moduleId, protocolId, size, rate);
 
-		// 默认的丢弃策略。所有的请求固定概率0.3丢弃。
-		return Zeze.Util.Random.getInstance().nextInt(100) < 30;
 		// 应用没有定制丢弃策略，那么熔断前都不丢弃。
+		return false;
 	}
 }
