@@ -375,7 +375,9 @@ public final class RelativeRecordSet {
 		}
 
 		private void flush() {
-			var locks = new ArrayList<RelativeRecordSet>(sortedRrs.size());
+			var timeBegin = System.nanoTime();
+			var n = sortedRrs.size();
+			var locks = new ArrayList<RelativeRecordSet>(n);
 			try {
 				for (var rrs : sortedRrs.values()) {
 					rrs.lock();
@@ -391,6 +393,7 @@ public final class RelativeRecordSet {
 				sortedRrs.clear();
 			} finally {
 				locks.forEach(RelativeRecordSet::unLock);
+				Checkpoint.logger.info("flush: {} rrs, {} ns", n, System.nanoTime() - timeBegin);
 			}
 		}
 	}

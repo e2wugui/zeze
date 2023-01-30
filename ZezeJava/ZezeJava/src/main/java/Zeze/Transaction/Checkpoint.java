@@ -17,7 +17,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public final class Checkpoint {
-	private static final Logger logger = LogManager.getLogger(Checkpoint.class);
+	static final Logger logger = LogManager.getLogger(Checkpoint.class);
 
 	private final ArrayList<Database> databases = new ArrayList<>();
 	private final ReentrantReadWriteLock flushReadWriteLock = new ReentrantReadWriteLock();
