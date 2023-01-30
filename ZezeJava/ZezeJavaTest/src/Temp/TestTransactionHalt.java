@@ -52,10 +52,14 @@ public class TestTransactionHalt {
 			}, "init").call();
 		}
 
+		while (!App.Instance.Zeze.getCheckpoint().debugOnlyRelativeRecordSetMap().isEmpty()) {
+			Thread.sleep(10);
+		}
+
 		for (int i = 0; i < PROC_CONC; i++)
 			Task.run(App.Instance.Zeze.newProcedure(TestTransactionHalt::add, "add"));
 
-		Task.scheduleUnsafe(200, () -> {
+		Task.scheduleUnsafe(50, () -> {
 			System.out.println("transactions: " + counter.sum());
 			Runtime.getRuntime().halt(0);
 		});

@@ -68,6 +68,7 @@ public class DatabaseRocksDb extends Database {
 							   List<ColumnFamilyHandle> columnFamilyHandles) throws RocksDBException {
 		for (int i = 0; ; ) {
 			try {
+				//options.setAtomicFlush(true); // atomic batch 独立于这个选项？
 				return RocksDB.open(options, path, columnFamilyDescriptors, columnFamilyHandles);
 			} catch (RocksDBException e) {
 				logger.warn("RocksDB.open {} failed:", path, e);

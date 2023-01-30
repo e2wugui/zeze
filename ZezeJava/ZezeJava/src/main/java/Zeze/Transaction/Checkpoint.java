@@ -33,6 +33,10 @@ public final class Checkpoint {
 	final ExecutorService flushThreadPool;
 	final ConcurrentHashSet<RelativeRecordSet> relativeRecordSetMap = new ConcurrentHashSet<>();
 
+	public ConcurrentHashSet<RelativeRecordSet> debugOnlyRelativeRecordSetMap() {
+		return relativeRecordSetMap;
+	}
+
 	public Checkpoint(Zeze.Application zeze, CheckpointMode mode, int serverId) {
 		this(zeze, mode, null, serverId);
 	}

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <zeze
-	GlobalCacheManagerHostNameOrAddress="127.0.0.1" GlobalCacheManagerPort="5555"
+	GlobalCacheManagerHostNameOrAddress="" GlobalCacheManagerPort="5555"
 	CheckpointPeriod="60000" ServerId="0" CheckpointMode="Table"
 	ServiceManager=""
 	>
@@ -24,12 +24,7 @@
 		/>
 	<DatabaseConf Name="" DatabaseType="Tikv" DatabaseUrl="172.21.15.68:2379"/>
 	-->
-
-	<DatabaseConf
-		Name=""
-		DatabaseType="MySql"
-		DatabaseUrl="jdbc:mysql://localhost:3306/devtest?user=dev&amp;password=devtest12345&amp;useSSL=false&amp;serverTimezone=UTC&amp;allowPublicKeyRetrieval=true"
-		/>
+	<DatabaseConf Name="" DatabaseType="RocksDB" DatabaseUrl="RocksDB"/>
 
 	<TableConf CacheCapacity="20000"/> <!-- 不指定名字，表示默认的 TableConf -->
 	<TableConf Name="demo_Module1_tflush" CacheCapacity="1000"/>
