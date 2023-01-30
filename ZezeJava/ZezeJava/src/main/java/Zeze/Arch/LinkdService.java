@@ -65,9 +65,20 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 
 	protected LinkdApp linkdApp;
 	protected ConcurrentLruLike<StableLinkSidKey, StableLinkSid> stableLinkSids;
+	protected long curSendSpeed; // bytes/sec
 
 	public LinkdService(String name, Zeze.Application zeze) {
 		super(name, zeze);
+
+		if (getSocketOptions().getOverBandwidth() != null) {
+			var lastSendSize = new OutLong();
+			Task.scheduleUnsafe(1000, 1000, () -> {
+				updateRecvSendSize();
+				long sendSize = getSendSize();
+				curSendSpeed = sendSize - lastSendSize.value;
+				lastSendSize.value = sendSize;
+			});
+		}
 	}
 
 	@Override
@@ -334,7 +345,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		var opt = getSocketOptions().getOverBandwidth();
 		if (opt == null)
 			return false;
-		var rate = 1.0; // (double)this.getBandwitch() / opt;
+		var rate = (double)(curSendSpeed * 8) / opt;
 
 		// 总控
 		if (rate > getSocketOptions().getOverBandwidthFusingRate()) // 1.0

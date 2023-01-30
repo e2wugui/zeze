@@ -661,6 +661,12 @@ public class Service {
 	public void onServerSocketBind(ServerSocket port) {
 	}
 
+	/**
+	 * 接收一个协议(尚未处理)时,判断单个socket是否接收超限
+	 *
+	 * @return 是否检查通过, false则丢弃该协议(也可以同时关闭连接)
+	 */
+	@SuppressWarnings("MethodMayBeStatic")
 	public boolean checkThrottle(AsyncSocket sender, int moduleId, int protocolId, int size) {
 		var throttle = sender.getTimeThrottle();
 		if (null != throttle && !throttle.checkNow(size)) {
@@ -671,6 +677,11 @@ public class Service {
 		return true;
 	}
 
+	/**
+	 * 接收一个协议(尚未处理)时,判断该service的带宽是否超限
+	 *
+	 * @return true则丢弃该协议
+	 */
 	public boolean discard(int moduleId, int protocolId) throws Exception {
 		return false;
 	}

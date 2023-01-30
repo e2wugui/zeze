@@ -238,13 +238,13 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 					var p = factoryHandle.Factory.create();
 					p.decode(bb);
 					// 协议必须完整的解码，为了方便应用某些时候设计出兼容的协议。去掉这个检查。
-				/*
-				if (bb.ReadIndex != endReadIndex)
-					throw new IllegalStateException(
-							String.format("protocol '%s' in '%s' module=%d protocol=%d size=%d!=%d decode error!",
-									p.getClass().getName(), service.getName(), moduleId, protocolId,
-									bb.ReadIndex - beginReadIndex, size));
-			 	*/
+					/*
+					if (bb.ReadIndex != endReadIndex)
+						throw new IllegalStateException(
+								String.format("protocol '%s' in '%s' module=%d protocol=%d size=%d!=%d decode error!",
+										p.getClass().getName(), service.getName(), moduleId, protocolId,
+										bb.ReadIndex - beginReadIndex, size));
+					*/
 					p.sender = so;
 					p.userState = so.getUserState();
 					if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
