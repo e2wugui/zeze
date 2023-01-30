@@ -2,12 +2,13 @@ package Zeze.Arch;
 
 import java.net.ServerSocket;
 import Zeze.Builtin.Provider.BLoad;
+import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Selectors;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Action1;
 import Zeze.Util.CommandConsoleService;
-import Zeze.Util.Func3;
+import Zeze.Util.Func5;
 
 public class LinkdApp {
 	public final String linkdServiceName;
@@ -20,7 +21,7 @@ public class LinkdApp {
 	public int providerPort;
 	public final Selectors selectors;
 	public Action1<ServerSocket> onServerSocketBindAction;
-	public Func3<Integer, Integer, Double, Boolean> discardAction;
+	public Func5<AsyncSocket, Integer, Integer, Integer, Double, Boolean> discardAction;
 
 	/**
 	 * 自动创建，自动启动。

@@ -336,7 +336,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 	}
 
 	@Override
-	public boolean discard(int moduleId, int protocolId) throws Exception {
+	public boolean discard(AsyncSocket sender, int moduleId, int protocolId, int size) throws Exception {
 		/*
 		【新修订：实现成忽略ProviderService的带宽过载配置，
 		因为ProviderService的输入最终也会反映到LinkdService的输出。
@@ -360,7 +360,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		return false; // 其他协议全部不丢弃，除非达到熔断。
 		*/
 		if (linkdApp.discardAction != null)
-			return linkdApp.discardAction.call(moduleId, protocolId, rate);
+			return linkdApp.discardAction.call(sender, moduleId, protocolId, size, rate);
 		return false; // 应用没有定制丢弃策略，那么熔断前都不丢弃。
 	}
 }

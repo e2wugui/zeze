@@ -603,7 +603,7 @@ namespace Zeze.Net
             return true;
         }
 
-        public virtual bool Discard(int moduleId, int protocolId)
+        public virtual bool Discard(AsyncSocket sender, int moduleId, int protocolId, int size)
         {
             return false;
         }

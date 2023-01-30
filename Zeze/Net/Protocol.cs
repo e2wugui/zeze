@@ -206,7 +206,7 @@ namespace Zeze.Net
 
 				var pBuffer = ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size);
 				os.ReadIndex += size;
-				if (service.CheckThrottle(so, moduleId, protocolId, size) && false == service.Discard(moduleId, protocolId))
+				if (service.CheckThrottle(so, moduleId, protocolId, size) && false == service.Discard(so, moduleId, protocolId, size))
 				{
                     var factoryHandle = service.FindProtocolFactoryHandle(type);
                     if (null != factoryHandle)

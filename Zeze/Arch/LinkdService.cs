@@ -297,7 +297,7 @@ namespace Zeze.Arch
             linkSession?.OnClose(LinkdApp.LinkdProviderService);
         }
 
-        public override bool Discard(int moduleId, int protocolId)
+        public override bool Discard(AsyncSocket sender, int moduleId, int protocolId, int size)
         {
             /*
             【新修订：实现成忽略ProviderService的带宽过载配置，
@@ -306,8 +306,8 @@ namespace Zeze.Arch
             */
             var opt = SocketOptions.OverBandwidth;
             if (opt == null)
-                return false;
-            var rate = 0.0; // todo 统计得到带宽。(double)this.getBandwitch() / opt;
+                return false; // disable
+            var rate = 0.0; // todo 统计得到带宽。(double)this.getBandwidth() / opt;
 
             // 总控
             if (rate > SocketOptions.OverBandwidthFusingRate) // 1.0
@@ -322,7 +322,7 @@ namespace Zeze.Arch
             return false; // 其他协议全部不丢弃，除非达到熔断。
             */
             if (LinkdApp.DiscardAction != null)
-                return LinkdApp.DiscardAction(moduleId, protocolId, rate);
+                return LinkdApp.DiscardAction(sender, moduleId, protocolId, size, rate);
             return false; // 应用没有定制丢弃策略，那么熔断前都不丢弃。
         }
     }

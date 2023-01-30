@@ -677,12 +677,7 @@ public class Service {
 		return true;
 	}
 
-	/**
-	 * 接收一个协议(尚未处理)时,判断该service的带宽是否超限
-	 *
-	 * @return true则丢弃该协议
-	 */
-	public boolean discard(int moduleId, int protocolId) throws Exception {
+	public boolean discard(AsyncSocket sender, int moduleId, int protocolId, int size) throws Exception {
 		return false;
 	}
 }
