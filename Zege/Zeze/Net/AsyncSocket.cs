@@ -35,7 +35,7 @@ namespace Zeze.Net
         public long SessionId { get; private set; }
         public Socket Socket { get; private set; } // 这个给出去真的好吗？
 #if !USE_CONFCS
-        internal readonly TimeThrottle TimeThrottle;
+        public TimeThrottle TimeThrottle { get; }
 #endif
         /// <summary>
         /// 保存需要存储在Socket中的状态。

@@ -14,9 +14,18 @@ public final class SocketOptions {
 	private String timeThrottle;
 	private Integer timeThrottleSeconds;
 	private Integer timeThrottleLimit;
+	private Integer timeThrottleBandwidth;
 
 	public String getTimeThrottle() {
 		return timeThrottle;
+	}
+
+	public Integer getTimeThrottleBandwidth() {
+		return timeThrottleBandwidth;
+	}
+
+	public void setTimeThrottleBandwidth(int band) {
+		timeThrottleBandwidth = band;
 	}
 
 	public void setTimeThrottle(String name) {

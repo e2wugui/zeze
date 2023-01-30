@@ -588,5 +588,19 @@ namespace Zeze.Net
             }
             return (ip, port);
         }
+
+        public bool CheckThrottle(AsyncSocket sender, int size)
+        {
+#if !USE_CONFCS
+            var throttle = sender.TimeThrottle;
+            if (null != throttle && false == throttle.CheckNow(size))
+            {
+                // TrySendResultCode(Zeze.Util.ResultCode.Busy); // 超过速度限制，不报告错误。因为可能是一种攻击。
+                sender.Dispose();
+                return false; // 超过速度控制，丢弃这条协议。
+            }
+#endif
+            return true;
+        }
     }
 }

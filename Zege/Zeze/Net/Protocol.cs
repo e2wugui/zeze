@@ -52,17 +52,6 @@ namespace Zeze.Net
 
 		internal virtual void Dispatch(Service service, Service.ProtocolFactoryHandle factoryHandle)
 		{
-#if !USE_CONFCS
-            if (null != Sender)
-			{
-				var throttle = Sender.TimeThrottle;
-				if (null != throttle && false == throttle.MarkNow())
-				{
-                    // TrySendResultCode(Zeze.Util.ResultCode.Busy); // 超过速度限制，不报告错误。因为可能是一种攻击。
-                    return; // 超过速度控制，丢弃这条协议。
-                }
-            }
-#endif
 			service.DispatchProtocol(this, factoryHandle);
 		}
 
@@ -216,42 +205,45 @@ namespace Zeze.Net
 
 				var pBuffer = ByteBuffer.Wrap(os.Bytes, os.ReadIndex, size);
 				os.ReadIndex += size;
-				var factoryHandle = service.FindProtocolFactoryHandle(type);
-				if (null != factoryHandle)
+				if (service.CheckThrottle(so, size))
 				{
-					Protocol p = factoryHandle.Factory();
-					p.Service = service;
-					p.Decode(pBuffer);
-                    // 协议必须完整的解码，为了方便应用某些时候设计出兼容的协议。去掉这个检查。
-					/*
-					if (pBuffer.ReadIndex != pBuffer.WriteIndex)
+                    var factoryHandle = service.FindProtocolFactoryHandle(type);
+                    if (null != factoryHandle)
                     {
-						throw new Exception($"p=({moduleId},{protocolId}) size={size} too many data");
+                        Protocol p = factoryHandle.Factory();
+                        p.Service = service;
+                        p.Decode(pBuffer);
+                        // 协议必须完整的解码，为了方便应用某些时候设计出兼容的协议。去掉这个检查。
+                        /*
+                        if (pBuffer.ReadIndex != pBuffer.WriteIndex)
+                        {
+                            throw new Exception($"p=({moduleId},{protocolId}) size={size} too many data");
+                        }
+                        */
+                        p.Sender = so;
+                        p.UserState = so.UserState;
+                        p.Dispatch(service, factoryHandle);
+                        continue;
                     }
-					*/
-					p.Sender = so;
-					p.UserState = so.UserState;
-					p.Dispatch(service, factoryHandle);
-					continue;
-				}
 
-				// 优先派发c#实现，然后尝试lua实现，最后UnknownProtocol。
-				if (null != toLua)
-				{
-					if (toLua.DecodeAndDispatch(service, so.SessionId, type, pBuffer))
+                    // 优先派发c#实现，然后尝试lua实现，最后UnknownProtocol。
+                    if (null != toLua)
                     {
-	                    // 协议必须完整的解码，为了方便应用某些时候设计出兼容的协议。去掉这个检查。
-						/*
-						if (pBuffer.ReadIndex != pBuffer.WriteIndex)
-						{
-							throw new Exception($"toLua p=({moduleId},{protocolId}) size={size} too many data");
-						}
-						*/
-						continue;
-					}
-				}
-				service.DispatchUnknownProtocol(so, moduleId, protocolId, pBuffer);
-			}
+                        if (toLua.DecodeAndDispatch(service, so.SessionId, type, pBuffer))
+                        {
+                            // 协议必须完整的解码，为了方便应用某些时候设计出兼容的协议。去掉这个检查。
+                            /*
+                            if (pBuffer.ReadIndex != pBuffer.WriteIndex)
+                            {
+                                throw new Exception($"toLua p=({moduleId},{protocolId}) size={size} too many data");
+                            }
+                            */
+                            continue;
+                        }
+                    }
+                    service.DispatchUnknownProtocol(so, moduleId, protocolId, pBuffer);
+                }
+            }
 			bb.ReadIndex = os.ReadIndex;
 		}
 

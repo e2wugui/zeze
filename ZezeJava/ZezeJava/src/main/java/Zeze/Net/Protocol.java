@@ -166,13 +166,6 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 	@SuppressWarnings("unchecked")
 	public <P extends Protocol<?>> void dispatch(Service service, Service.ProtocolFactoryHandle<P> factoryHandle)
 			throws Exception {
-		if (sender != null) {
-			var throttle = sender.getTimeThrottle();
-			if (null != throttle && !throttle.markNow()) {
-				// trySendResultCode(Procedure.Busy); // 超过速度限制，不报告错误。因为可能是一种攻击。
-				return; // 超过速度控制，丢弃这条协议。
-			}
-		}
 		service.DispatchProtocol((P)this, factoryHandle);
 	}
 
@@ -238,12 +231,13 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 			int savedWriteIndex = bb.WriteIndex;
 			bb.WriteIndex = endReadIndex;
 
-			var typeId = makeTypeId(moduleId, protocolId);
-			var factoryHandle = service.findProtocolFactoryHandle(typeId);
-			if (factoryHandle != null && factoryHandle.Factory != null) {
-				var p = factoryHandle.Factory.create();
-				p.decode(bb);
-				// 协议必须完整的解码，为了方便应用某些时候设计出兼容的协议。去掉这个检查。
+			if (service.checkThrottle(so, size)) { // 默认超速是丢弃请求，
+				var typeId = makeTypeId(moduleId, protocolId);
+				var factoryHandle = service.findProtocolFactoryHandle(typeId);
+				if (factoryHandle != null && factoryHandle.Factory != null) {
+					var p = factoryHandle.Factory.create();
+					p.decode(bb);
+					// 协议必须完整的解码，为了方便应用某些时候设计出兼容的协议。去掉这个检查。
 				/*
 				if (bb.ReadIndex != endReadIndex)
 					throw new IllegalStateException(
@@ -251,27 +245,28 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 									p.getClass().getName(), service.getName(), moduleId, protocolId,
 									bb.ReadIndex - beginReadIndex, size));
 			 	*/
-				p.sender = so;
-				p.userState = so.getUserState();
-				if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
-					if (p.isRequest()) {
-						if (p instanceof Rpc)
-							AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RECV[{}] {}({}): {}", so.getSessionId(),
-									p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.Argument);
-						else
-							AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RECV[{}] {}: {}", so.getSessionId(),
-									p.getClass().getSimpleName(), p.Argument);
-					} else
-						AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RECV[{}] {}({})>{} {}", so.getSessionId(),
-								p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.resultCode, p.getResultBean());
+					p.sender = so;
+					p.userState = so.getUserState();
+					if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
+						if (p.isRequest()) {
+							if (p instanceof Rpc)
+								AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RECV[{}] {}({}): {}", so.getSessionId(),
+										p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.Argument);
+							else
+								AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RECV[{}] {}: {}", so.getSessionId(),
+										p.getClass().getSimpleName(), p.Argument);
+						} else
+							AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RECV[{}] {}({})>{} {}", so.getSessionId(),
+									p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.resultCode, p.getResultBean());
+					}
+					p.dispatch(service, factoryHandle);
+				} else {
+					if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
+						AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RECV[{}] {}:{} [{}]",
+								so.getSessionId(), moduleId, protocolId, bb.Size());
+					}
+					service.dispatchUnknownProtocol(so, moduleId, protocolId, bb); // 这里只能临时读bb,不能持有Bytes引用
 				}
-				p.dispatch(service, factoryHandle);
-			} else {
-				if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
-					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RECV[{}] {}:{} [{}]",
-							so.getSessionId(), moduleId, protocolId, bb.Size());
-				}
-				service.dispatchUnknownProtocol(so, moduleId, protocolId, bb); // 这里只能临时读bb,不能持有Bytes引用
 			}
 			bb.ReadIndex = endReadIndex;
 			bb.WriteIndex = savedWriteIndex;

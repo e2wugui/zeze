@@ -101,7 +101,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private long sendRawSize; // 准备发送数据的统计总字节数(只在SetOutputSecurityCodec后统计,压缩加密之前的大小)
 	private final TimeThrottle timeThrottle;
 
-	TimeThrottle getTimeThrottle() {
+	public TimeThrottle getTimeThrottle() {
 		return timeThrottle;
 	}
 

@@ -660,4 +660,14 @@ public class Service {
 
 	public void onServerSocketBind(ServerSocket port) {
 	}
+
+	public boolean checkThrottle(AsyncSocket sender, int size) {
+		var throttle = sender.getTimeThrottle();
+		if (null != throttle && !throttle.checkNow(size)) {
+			// trySendResultCode(Procedure.Busy); // 超过速度限制，不报告错误。因为可能是一种攻击。
+			sender.close(); // 默认关闭连接。
+			return false; // 超过速度控制，丢弃这条协议。
+		}
+		return true;
+	}
 }

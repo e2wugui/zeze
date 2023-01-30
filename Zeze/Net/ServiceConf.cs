@@ -180,6 +180,8 @@ namespace Zeze.Net
             if (attr.Length > 0) SocketOptions.TimeThrottleSeconds = int.Parse(attr);
             attr = self.GetAttribute("TimeThrottleLimit");
             if (attr.Length > 0) SocketOptions.TimeThrottleLimit = int.Parse(attr);
+            attr = self.GetAttribute("TimeThrottleBandwitdh");
+            if (attr.Length > 0) SocketOptions.TimeThrottleBandwitdh =  int.Parse(attr);
 
             // HandshakeOptions
             attr = self.GetAttribute("DhGroups");

@@ -24,6 +24,7 @@ namespace Zeze.Net
         public string TimeThrottle { get; set; }
         public int? TimeThrottleSeconds { get; set; }
         public int? TimeThrottleLimit { get; set; }
+        public int? TimeThrottleBandwitdh { get; set; }
 
         public SocketOptions()
         {

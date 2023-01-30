@@ -7,7 +7,8 @@
 	>
 	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/> linkd现在不需要数据库，但是验证可能要，先占个坑。
 
-	<ServiceConf Name="LinkdService" InputBufferMaxProtocolSize="2M" EncryptType="0" CompressS2c="1">
+	<ServiceConf Name="LinkdService" InputBufferMaxProtocolSize="2M" EncryptType="0" CompressS2c="1"
+		TimeThrottle="queue" TimeThrottleSeconds="5" TimeThrottleLimit="6" TimeThrottleBandwidth="2097152">
 		<Acceptor Port="5100"/>
 	</ServiceConf>
 
