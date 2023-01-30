@@ -35,7 +35,7 @@ DatabaseDynamoDb 还需测试。
 	统计ProviderService出入？
 	根据配置，达到80%以后就限制某些地方（哪里）？达到90%就更严格限制？
 	linkd对客户端应该限速，比如，限制5秒内最多25个包，这个算法是允许突发。
-TimeThrottle Queue | Counter
+TimeThrottle Queue | Counter 限制请求数量和带宽
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/1/19 v1.1.6 DelayRemove; LinkedMap; TaskOneByOneByKey; LinkdProvider.ProcessSendRequest Async; RocketMQ; throws Throwable; Acceptor @internal @external Port=0
