@@ -25,6 +25,9 @@ namespace Zeze.Net
         public int? TimeThrottleSeconds { get; set; }
         public int? TimeThrottleLimit { get; set; }
         public int? TimeThrottleBandwitdh { get; set; }
+        public long? OverBandwidth { get; set; }
+        public double OverBandwidthFusingRate { get; set; } = 1.0;
+        public double OverBandwidthNormalRate { get; set; } = 0.7;
 
         public SocketOptions()
         {

@@ -1,4 +1,5 @@
 
+using System;
 using System.Threading.Tasks;
 using Zeze.Builtin.Provider;
 using Zeze.Serialize;
@@ -15,6 +16,7 @@ namespace Zeze.Arch
 		// 现在内部可以自动设置两个参数，但有点不够可靠，生产环境最好手动设置。
 		public string ProviderIp;
 		public int ProviderPort;
+		public Func<int, int, double, bool> DiscardAction;
 
 		public LinkdApp(string linkdServiceName,
 						Zeze.Application zeze, LinkdProvider linkdProvider,

@@ -296,5 +296,34 @@ namespace Zeze.Arch
             var linkSession = so.UserState as LinkdUserSession;
             linkSession?.OnClose(LinkdApp.LinkdProviderService);
         }
+
+        public override bool Discard(int moduleId, int protocolId)
+        {
+            /*
+            【新修订：实现成忽略ProviderService的带宽过载配置，
+            因为ProviderService的输入最终也会反映到LinkdService的输出。
+            否则这里应该是max(LinkdService.Rate, ProviderService.Rate)】
+            */
+            var opt = SocketOptions.OverBandwidth;
+            if (opt == null)
+                return false;
+            var rate = 0.0; // todo 统计得到带宽。(double)this.getBandwitch() / opt;
+
+            // 总控
+            if (rate > SocketOptions.OverBandwidthFusingRate) // 1.0
+                return true; // 熔断: discard all，其他级别在回调中处理。
+            if (rate < SocketOptions.OverBandwidthNormalRate) // 0.7
+                return false; // 整体负载小于0.6,全部不丢弃
+
+            /*
+            对于游戏可以针对【Move协议】使用下面的策略.
+            if (moduleId == Map.ModuleId && protocolId == Map.Move.ProtocolId)
+                return Zeze.Util.Random.getInstance().nextInt(100) < (int)((rate - 0.7) / (1.0 - 0.7) * 100);
+            return false; // 其他协议全部不丢弃，除非达到熔断。
+            */
+            if (LinkdApp.DiscardAction != null)
+                return LinkdApp.DiscardAction(moduleId, protocolId, rate);
+            return false; // 应用没有定制丢弃策略，那么熔断前都不丢弃。
+        }
     }
 }
