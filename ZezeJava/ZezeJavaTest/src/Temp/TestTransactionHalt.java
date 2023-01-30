@@ -11,7 +11,7 @@ import demo.App;
 public class TestTransactionHalt {
 	private static final int KEY_COUNT = 100;
 	private static final int PROC_CONC = 100;
-	private static final int CHECKPOINT_PERIOD = 200;
+	private static final int CHECKPOINT_PERIOD = 0;
 	private static final LongAdder counter = new LongAdder();
 
 	private static long add() {
@@ -55,7 +55,7 @@ public class TestTransactionHalt {
 		for (int i = 0; i < PROC_CONC; i++)
 			Task.run(App.Instance.Zeze.newProcedure(TestTransactionHalt::add, "add"));
 
-		Task.scheduleUnsafe(1000, () -> {
+		Task.scheduleUnsafe(200, () -> {
 			System.out.println("transactions: " + counter.sum());
 			Runtime.getRuntime().halt(0);
 		});
