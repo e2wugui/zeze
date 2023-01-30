@@ -35,6 +35,10 @@ public final class SocketOptions {
 		overBandwidthNormalRate = value;
 	}
 
+	/**
+	 * Service最大熔断输出带宽（字节）。当达到时会熔断（拒绝所有的请求）
+	 * @return 熔断输出带宽。
+	 */
 	public Long getOverBandwidth() {
 		return overBandwidth;
 	}

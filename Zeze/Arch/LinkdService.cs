@@ -323,7 +323,10 @@ namespace Zeze.Arch
             */
             if (LinkdApp.DiscardAction != null)
                 return LinkdApp.DiscardAction(sender, moduleId, protocolId, size, rate);
-            return false; // 应用没有定制丢弃策略，那么熔断前都不丢弃。
+
+            // 默认的丢弃策略。所有的请求固定概率丢弃。30%
+            return Util.Random.Instance.Next(100) < 30;
+            // 应用没有定制丢弃策略，那么熔断前都不丢弃。
         }
     }
 }
