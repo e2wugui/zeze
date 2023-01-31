@@ -14,9 +14,11 @@ IF %ERRORLEVEL% NEQ 0 (
   echo _____________________________________
   goto end
 )
+
 rem start /b java -cp .;build\libs\*;lib\* Temp.TestTransactionHalt
 rem ping 127.1 -n 3 >nul
 rem for /f "tokens=1" %%i in ('jps.exe^|find /i "TestTransactionHalt"') do taskkill /f /pid %%i
 
 goto begin
 :end
+pause

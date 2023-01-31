@@ -2,6 +2,8 @@
 127.0.0.1_*/
 build/
 classes/
+db/
+RocksDB/
 dbhome/
 Gen/
 lib/
