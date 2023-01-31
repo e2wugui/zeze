@@ -57,9 +57,7 @@ public class TestTransactionHalt {
 		}
 
 		// 基本不可能会发生这个情况：setLong2(0) 全部 flush 前就halt了。保险起见判断一下。
-		while (!App.Instance.Zeze.getCheckpoint().debugOnlyRelativeRecordSetMap().isEmpty()) {
-			Thread.sleep(1);
-		}
+		App.Instance.Zeze.checkpointRun();
 
 		for (int i = 0; i < PROC_CONC; i++)
 			Task.run(App.Instance.Zeze.newProcedure(TestTransactionHalt::add, "add"));

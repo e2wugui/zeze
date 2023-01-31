@@ -297,8 +297,7 @@ public final class RelativeRecordSet {
 				for (var r : transAccessRecords) {
 					if (rrs.recordSet.contains(r)) {
 						var volatileTmp = r.getRelativeRecordSet();
-						if (volatileTmp != rrs)
-							all.putIfAbsent(volatileTmp.id, volatileTmp);
+						all.putIfAbsent(volatileTmp.id, volatileTmp);
 					}
 				}
 				return false;
