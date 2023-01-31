@@ -130,7 +130,7 @@ public final class RelativeRecordSet {
 			// 读写都需要收集。
 			transAccessRecords.add(record);
 			var volatileRrs = record.getRelativeRecordSet();
-			relativeRecordSets.put(volatileRrs.id, volatileRrs);
+			relativeRecordSets.putIfAbsent(volatileRrs.id, volatileRrs);
 		}
 
 		if (allCheckpointWhenCommit) {
@@ -293,11 +293,12 @@ public final class RelativeRecordSet {
 			if (mergeTo == deleted) {
 				// flush 后进入这个状态。此时表示旧的关联集合的checkpoint点已经完成。
 				// 但仍然需要重新获得当前事务中访问的记录的rrs。
-				for (var r : rrs.recordSet) {
-					// Deleted 的 rrs 不会再发生变化，在锁外处理 RecordSet。
-					if (transAccessRecords.contains(r)) {
+				// 进入 deleted 以后，rrs.recordSet 不再发生变化。只读，锁外使用。
+				for (var r : transAccessRecords) {
+					if (rrs.recordSet.contains(r)) {
 						var volatileTmp = r.getRelativeRecordSet();
-						all.put(volatileTmp.id, volatileTmp);
+						if (volatileTmp != rrs)
+							all.putIfAbsent(volatileTmp.id, volatileTmp);
 					}
 				}
 				return false;
@@ -413,7 +414,7 @@ public final class RelativeRecordSet {
 		/*/
 		var flushSet = new FlushSet(checkpoint);
 		var flushLimit = checkpoint.getZeze().getConfig().getCheckpointModeTableFlushSetCount();
-		if (pool == null) {
+		if (pool == null || true) {
 			for (var rrs : checkpoint.relativeRecordSetMap) {
 				if (flushSet.add(rrs) >= flushLimit)
 					flushSet.flush();
