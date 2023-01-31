@@ -27,6 +27,10 @@ public class TestTransactionHalt {
 
 	public static void main(String[] args) throws Exception {
 		var cfg = Config.load("zeze.xml");
+		// 不要ServiceManager.Agent。
+		var sm = cfg.getServiceConf("Zeze.Services.ServiceManager.Agent");
+		sm.forEachConnector(sm::removeConnector);
+
 		cfg.setCheckpointPeriod(CHECKPOINT_PERIOD);
 		demo.App.getInstance().Start(cfg);
 
@@ -52,8 +56,9 @@ public class TestTransactionHalt {
 			}, "init").call();
 		}
 
+		// 基本不可能会发生这个情况：setLong2(0) 全部 flush 前就halt了。保险起见判断一下。
 		while (!App.Instance.Zeze.getCheckpoint().debugOnlyRelativeRecordSetMap().isEmpty()) {
-			Thread.sleep(10);
+			Thread.sleep(1);
 		}
 
 		for (int i = 0; i < PROC_CONC; i++)
