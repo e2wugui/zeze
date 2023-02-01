@@ -532,6 +532,8 @@ public final class Transaction {
 						continue;
 
 					TableKey tkey = log.getBean().tableKey();
+					if (tkey == null)
+						logger.error("impossible! log bean({}): {}", log.getBean().getClass().getName(), log.getBean());
 					var record = accessedRecords.get(tkey);
 					if (record != null) {
 						record.dirty = true;
