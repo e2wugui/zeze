@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.Task;
@@ -63,19 +64,45 @@ public class TestLostRedo {
 
 	@Test
 	public void testAutoKeyConflict() throws ExecutionException, InterruptedException {
+		runTimes.set(0);
 		var futures = new ArrayList<Future<?>>();
 		for (int i = 0; i < 100_0000; ++i)
 			futures.add(Task.runUnsafe(App.Instance.Zeze.newProcedure(this::autoKeyConflict, "write")));
 		for (var future : futures)
 			future.get();
+		System.out.println("runTimes=" + runTimes.get());
 	}
 
-	private ConcurrentHashMap<Long, Long> autos = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Long, Long> autos = new ConcurrentHashMap<>();
+	private final AtomicLong runTimes = new AtomicLong();
 	private long autoKeyConflict() {
+		runTimes.incrementAndGet();
 		var key = App.Instance.Zeze.getAutoKey("conflict.autokey").nextId();
 		Transaction.whileCommit(() -> {
-			Assert.assertEquals(null, autos.putIfAbsent(key, key));
+			Assert.assertNull(autos.putIfAbsent(key, key));
 		});
+		return 0;
+	}
+
+	@Test
+	public void teatAutoKeyWithInsert() throws ExecutionException, InterruptedException {
+		runTimes.set(0);
+		var futures = new ArrayList<Future<?>>();
+		for (int i = 0; i < 10_0000; ++i)
+			futures.add(Task.runUnsafe(App.Instance.Zeze.newProcedure(this::autoKeyWithInsert, "write")));
+		for (var future : futures)
+			future.get();
+
+		Assert.assertEquals(insertOks.get(), 10_0000);
+		System.out.println("insert funTimes=" + runTimes.get());
+	}
+
+	private final AtomicLong insertOks = new AtomicLong();
+	private long autoKeyWithInsert() {
+		runTimes.incrementAndGet();
+		var key = App.Instance.Zeze.getAutoKey("insert.autokey").nextId();
+		App.Instance.demo_Module1.getTable1().insert(key, new BValue());
+		Transaction.whileCommit(insertOks::incrementAndGet);
 		return 0;
 	}
 }
