@@ -27,12 +27,13 @@ DatabaseDynamoDb 还需测试。
 负载均衡；全面审核。
 过载保护；更多。
 
-Checkpoint halt program before commit and rollback:
-	Druid 换 Apache Dbcp，验证连接池问题。
-
 ------------------------------------------------------------------------------------------------------------------------------
-2023/2/10 TimeThrottle; Linkd.OverBandwidth; 
+2023/2/10 TimeThrottle; Linkd.OverBandwidth; CheckpintFlushMode;
 ------------------------------------------------------------------------------------------------------------------------------
+BUG FlushSet 没有setDirty(false)【已解决】
+BUG FLushSet 会出现破坏acid的现象【===============未解决===============】
+CheckpintFlushMode 以及相关性能测试。
+Mysql halt 程序在没有提交和回滚的情况下，服务器的行为。
 过载保护；更多。--- linkd流量过载保护。
 	统计LinkdService出入？
 	统计ProviderService出入？
