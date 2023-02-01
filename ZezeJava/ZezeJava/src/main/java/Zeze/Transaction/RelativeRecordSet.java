@@ -416,13 +416,13 @@ public final class RelativeRecordSet {
 				*/
 
 				checkpoint.flush(rs);
+				for (var r : rs)
+					r.setDirty(false);
 				for (var rrs : sortedRrs.values()) {
 					if (rrs.mergeTo == null)
 						rrs.delete(); // normal rrs: not merged and not deleted.
 					checkpoint.relativeRecordSetMap.remove(rrs);
 				}
-				for (var r : rs)
-					r.setDirty(false);
 				sortedRrs.clear();
 
 				// verify
