@@ -45,7 +45,7 @@ public final class Config {
 	private int checkpointPeriod = 60000;
 	private CheckpointFlushMode checkpointFlushMode = CheckpointFlushMode.SingleThread;
 	private int checkpointModeTableFlushConcurrent = 2;
-	private int checkpointModeTableFlushSetCount = 100;
+	private int checkpointModeTableFlushSetCount = 50;
 	private CheckpointMode checkpointMode = CheckpointMode.Table;
 	private Level processReturnErrorLogLevel = Level.INFO;
 	private int serverId;
