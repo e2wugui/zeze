@@ -2,7 +2,10 @@ package Zeze.Transaction;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
@@ -69,6 +72,7 @@ public class DatabaseRocksDb extends Database {
 		for (int i = 0; ; ) {
 			try {
 				//options.setAtomicFlush(true); // atomic batch 独立于这个选项？
+				options.setMaxWriteBatchGroupSizeBytes(100 * 1024 * 1024);
 				return RocksDB.open(options, path, columnFamilyDescriptors, columnFamilyHandles);
 			} catch (RocksDBException e) {
 				logger.warn("RocksDB.open {} failed:", path, e);
@@ -128,6 +132,36 @@ public class DatabaseRocksDb extends Database {
 		return new RocksDbTrans();
 	}
 
+	public static Runnable verifyAction;
+
+	// 多表原子查询。
+	public HashMap<String, Map<ByteBuffer, ByteBuffer>> finds(Map<String, Set<ByteBuffer>> tableKeys) {
+		if (null == verifyAction)
+			throw new RuntimeException("only work with flushAtomicTest=true");
+
+		var result = new HashMap<String, Map<ByteBuffer, ByteBuffer>>(tableKeys.size());
+		for (var tks : tableKeys.entrySet())
+			result.put(tks.getKey(), new HashMap<>(tks.getValue().size()));
+
+		synchronized (rocksDb) {
+			for (var tks : tableKeys.entrySet()) {
+				var tableName = tks.getKey();
+				var table = getTable(tableName);
+				var rocksTable = null != table ? table.getStorage().getDatabaseTable() : null;
+				if (null != rocksTable) {
+					for (var key : tks.getValue()) {
+						var value = rocksTable.find(key);
+						if (null != value) {
+							var resultTable = result.computeIfAbsent(tableName, _tname_ -> new HashMap<>());
+							resultTable.put(key, value);
+						}
+					}
+				}
+			}
+		}
+		return result;
+	}
+
 	private final class RocksDbTrans implements Transaction {
 		private WriteBatch batch;
 
@@ -158,10 +192,22 @@ public class DatabaseRocksDb extends Database {
 		public void commit() {
 			if (batch == null)
 				return;
-			try {
-				rocksDb.write(defaultWriteOptions, batch);
-			} catch (RocksDBException e) {
-				throw new RuntimeException(e);
+
+			if (null != verifyAction) {
+				synchronized (rocksDb) {
+					try {
+						rocksDb.write(defaultWriteOptions, batch);
+					} catch (RocksDBException e) {
+						throw new RuntimeException(e);
+					}
+				}
+			} else {
+				try {
+					rocksDb.write(defaultWriteOptions, batch);
+				} catch (RocksDBException e) {
+					throw new RuntimeException(e);
+				}
+
 			}
 		}
 

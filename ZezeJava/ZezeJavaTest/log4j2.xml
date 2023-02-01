@@ -34,9 +34,12 @@
 		<Logger name="io.netty" level="INFO" />
 
 		<Root level="INFO" includeLocation="false">
+			<!--
+			<AppenderRef ref="ErrorLog" />
+			<AppenderRef ref="Console" />
+			-->
 			<AppenderRef ref="Console" />
 			<AppenderRef ref="AllLog" />
-			<AppenderRef ref="ErrorLog" />
 		</Root>
 	</Loggers>
 </Configuration>

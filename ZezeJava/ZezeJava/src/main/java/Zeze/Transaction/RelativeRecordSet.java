@@ -1,8 +1,8 @@
 package Zeze.Transaction;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
@@ -111,7 +111,7 @@ public final class RelativeRecordSet {
 		boolean needFlushNow = false;
 		boolean allCheckpointWhenCommit = true;
 
-		var relativeRecordSets = new TreeMap<Long, RelativeRecordSet>();
+		var all = new TreeMap<Long, RelativeRecordSet>();
 		var transAccessRecords = new HashSet<Record>();
 		boolean allRead = true;
 		for (var ar : trans.getAccessedRecords().values()) {
@@ -130,7 +130,7 @@ public final class RelativeRecordSet {
 			// 读写都需要收集。
 			transAccessRecords.add(record);
 			var volatileRrs = record.getRelativeRecordSet();
-			relativeRecordSets.putIfAbsent(volatileRrs.id, volatileRrs);
+			all.putIfAbsent(volatileRrs.id, volatileRrs);
 		}
 
 		if (allCheckpointWhenCommit) {
@@ -144,42 +144,11 @@ public final class RelativeRecordSet {
 			return;
 		}
 
-		var lockedRelativeRecordSets = new ArrayList<RelativeRecordSet>();
+		var locked = new ArrayList<RelativeRecordSet>();
 		try {
-			_lock_(lockedRelativeRecordSets, relativeRecordSets, transAccessRecords);
-			if (!lockedRelativeRecordSets.isEmpty()) {
-				/*
-				// 锁住以后重新检查是否可以不用合并，直接提交。
-				//【这个算优化吗？】效果应该不明显，而且正确性还要仔细分析，先不实现了。
-				var allCheckpointWhenCommit2 = true;
-				foreach (var ar in trans.AccessedRecords.Values)
-				{
-				    // CheckpointWhenCommit Dirty Isolated NeedMerge
-				    // false                false false    Yes
-				    // false                false true     No
-				    // false                true  false    Yes
-				    // false                true  true     No
-				    // true                 false false!   No !马上提交的记录不会有关联集合
-				    // true                 false true     No
-				    // true                 true  false!   No !马上提交的记录不会有关联集合
-				    // true                 true  true     No
-				    if (false == ar.OriginRecord.Table.TableConf.CheckpointWhenCommit
-				        && ar.OriginRecord.RelativeRecordSet.RecordSet != null)
-				    {
-				        allCheckpointWhenCommit2 = false;
-				        break;
-				    }
-				}
-				if (allCheckpointWhenCommit2)
-				{
-				    commit();
-				    procedure.Zeze.Checkpoint.Flush(trans);
-				    // 这种情况下 RelativeRecordSet 都是空的。
-				    //logger.Debug($"allCheckpointWhenCommit2 AccessedCount={trans.AccessedRecords.Count}");
-				    return;
-				}
-				*/
-				var mergedSet = _merge_(lockedRelativeRecordSets, trans, allRead);
+			_lock_(locked, all, transAccessRecords);
+			if (!locked.isEmpty()) {
+				var mergedSet = _merge_(locked, trans, allRead);
 				commit.run(); // 必须在锁获得并且合并完集合以后才提交修改。
 				if (needFlushNow) {
 					procedure.getZeze().getCheckpoint().flush(mergedSet);
@@ -194,24 +163,87 @@ public final class RelativeRecordSet {
 			// else
 			// 本次事务没有访问任何数据。
 		} finally {
-			lockedRelativeRecordSets.forEach(RelativeRecordSet::unLock);
+			locked.forEach(RelativeRecordSet::unLock);
+		}
+	}
+
+	private static void verify(TreeMap<String, ArrayList<Object>> group, TreeMap<String, ArrayList<Object>> result) {
+		for (var g : group.entrySet()) {
+			for (var value : g.getValue()) {
+				var keys = result.get(g.getKey());
+				if (keys != null) {
+					keys.remove(value);
+					if (keys.isEmpty())
+						result.remove(g.getKey());
+				}
+			}
+		}
+	}
+
+	private static void verify(ArrayList<TreeMap<String, ArrayList<Object>>> groupLocked,
+							   TreeMap<String, ArrayList<Object>> groupTrans,
+							   RelativeRecordSet result) {
+
+		var groupResult = new TreeMap<String, ArrayList<Object>>();
+		if (null != result.recordSet) {
+			for (var r : result.recordSet) {
+				groupResult.computeIfAbsent(r.getTable().getName(), key -> new ArrayList<>()).add(r.getObjectKey());
+			}
+		}
+		for (var locked : groupLocked) {
+			verify(locked, groupResult);
+		}
+		verify(groupTrans, groupResult);
+		if (!groupResult.isEmpty()) {
+			groupResult.clear(); // reuse this var
+			if (null != result.recordSet) {
+				for (var r : result.recordSet) {
+					groupResult.computeIfAbsent(r.getTable().getName(), key -> new ArrayList<>()).add(r.getObjectKey());
+				}
+			}
+			Checkpoint.logger.info("locked.size=" + groupLocked.size() + " trans.size=" + groupTrans.size()
+				+ "\nlocked:" + groupLocked + "\ntrans:" + groupTrans + "\nresult:" + groupResult);
+		}
+	}
+
+	private static void build(Transaction trans, TreeMap<String, ArrayList<Object>> groupTrans) {
+		for (var ar : trans.getAccessedRecords().values()) {
+			groupTrans.computeIfAbsent(ar.atomicTupleRecord.record.getTable().getName(), key -> new ArrayList<>())
+					.add(ar.atomicTupleRecord.record.getObjectKey());
+		}
+	}
+
+	private static void build(ArrayList<RelativeRecordSet> locked, ArrayList<TreeMap<String, ArrayList<Object>>> groupLocked) {
+		for (var rrs : locked) {
+			var group = new TreeMap<String, ArrayList<Object>>();
+			if (rrs.recordSet != null) {
+				for (var r : rrs.recordSet) {
+					group.computeIfAbsent(r.getTable().getName(), key -> new ArrayList<>()).add(r.getObjectKey());
+				}
+			}
+			groupLocked.add(group);
 		}
 	}
 
 	private static RelativeRecordSet _merge_(
-			ArrayList<RelativeRecordSet> LockedRelativeRecordSets, Transaction trans, boolean allRead) {
+			ArrayList<RelativeRecordSet> locked, Transaction trans, boolean allRead) {
 		// find largest
-		var largest = LockedRelativeRecordSets.get(0);
-		for (int index = 1; index < LockedRelativeRecordSets.size(); ++index) {
-			var r = LockedRelativeRecordSets.get(index);
-			var cur = largest.recordSet == null ? 1 : largest.recordSet.size();
+		var largest = locked.get(0);
+		for (int index = 1; index < locked.size(); ++index) {
+			var r = locked.get(index);
+			var cur = largest.recordSet == null ? 0 : largest.recordSet.size();
 			if (r.recordSet != null && r.recordSet.size() > cur) {
 				largest = r;
 			}
 		}
 
+		var groupLocked = new ArrayList<TreeMap<String, ArrayList<Object>>>();
+		var groupTrans = new TreeMap<String, ArrayList<Object>>();
+		build(locked, groupLocked);
+		build(trans, groupTrans);
+
 		// merge all other set to largest
-		for (var r : LockedRelativeRecordSets) {
+		for (var r : locked) {
 			if (r != largest) // skip self
 				largest.merge(r);
 		}
@@ -226,29 +258,29 @@ public final class RelativeRecordSet {
 					largest.merge(record); // 合并孤立记录。这里包含largest是孤立记录的情况。
 			}
 		}
-
+		verify(groupLocked, groupTrans, largest);
 		return largest;
 	}
 
-	private static void _lock_(ArrayList<RelativeRecordSet> LockedRelativeRecordSets,
-							   TreeMap<Long, RelativeRecordSet> RelativeRecordSets,
+	private static void _lock_(ArrayList<RelativeRecordSet> locked,
+							   TreeMap<Long, RelativeRecordSet> all,
 							   HashSet<Record> transAccessRecords) {
 		while (true) {
 			var GotoLabelLockRelativeRecordSets = false;
 			int index = 0;
-			int n = LockedRelativeRecordSets.size();
-			final var itRrs = RelativeRecordSets.values().iterator();
+			int n = locked.size();
+			final var itRrs = all.values().iterator();
 			var rrs = itRrs.hasNext() ? itRrs.next() : null;
 			while (null != rrs) {
 				if (index >= n) {
-					if (_lock_and_check_(LockedRelativeRecordSets, RelativeRecordSets, rrs, transAccessRecords)) {
+					if (_lock_and_check_(locked, all, rrs, transAccessRecords)) {
 						rrs = itRrs.hasNext() ? itRrs.next() : null;
 						continue;
 					}
 					GotoLabelLockRelativeRecordSets = true;
 					break;
 				}
-				var curSet = LockedRelativeRecordSets.get(index);
+				var curSet = locked.get(index);
 				int c = Long.compare(curSet.id, rrs.id);
 				if (c == 0) {
 					++index;
@@ -258,22 +290,22 @@ public final class RelativeRecordSet {
 				if (c < 0) {
 					// 释放掉不需要的锁（已经被Delete了，Has Flush）。
 					int unlockEndIndex = index;
-					for (; unlockEndIndex < n && LockedRelativeRecordSets.get(unlockEndIndex).id < rrs.id;
+					for (; unlockEndIndex < n && locked.get(unlockEndIndex).id < rrs.id;
 						 ++unlockEndIndex) {
-						LockedRelativeRecordSets.get(unlockEndIndex).unLock();
+						locked.get(unlockEndIndex).unLock();
 					}
-					LockedRelativeRecordSets.subList(index, unlockEndIndex).clear();
-					n = LockedRelativeRecordSets.size();
+					locked.subList(index, unlockEndIndex).clear();
+					n = locked.size();
 					// 重新从当前 rrs 继续锁。
 					continue;
 				}
 				// RelativeRecordSets发生了变化，并且出现排在当前已经锁住对象前面的集合。
 				// 从当前位置释放锁，再次尝试。
 				for (int i = index; i < n; ++i) {
-					LockedRelativeRecordSets.get(i).unLock();
+					locked.get(i).unLock();
 				}
-				LockedRelativeRecordSets.subList(index, n).clear();
-				n = LockedRelativeRecordSets.size();
+				locked.subList(index, n).clear();
+				n = locked.size();
 				// 重新从当前 rrs 继续锁。
 			}
 			if (!GotoLabelLockRelativeRecordSets)
@@ -294,15 +326,18 @@ public final class RelativeRecordSet {
 				// flush 后进入这个状态。此时表示旧的关联集合的checkpoint点已经完成。
 				// 但仍然需要重新获得当前事务中访问的记录的rrs。
 				// 进入 deleted 以后，rrs.recordSet 不再发生变化。只读，锁外使用。
+				//Checkpoint.logger.info("deleted rrs=" + rrs.id);
 				for (var r : transAccessRecords) {
 					if (rrs.recordSet.contains(r)) {
 						var volatileTmp = r.getRelativeRecordSet();
 						all.putIfAbsent(volatileTmp.id, volatileTmp);
+						//if (null == all.putIfAbsent(volatileTmp.id, volatileTmp))
+						//	Checkpoint.logger.info("deleted rrs=" + rrs.id + " get rrs=" + volatileTmp.id);
 					}
 				}
 				return false;
 			}
-			all.put(mergeTo.id, mergeTo);
+			all.putIfAbsent(mergeTo.id, mergeTo);
 			return false;
 		}
 		locked.add(rrs);
@@ -370,11 +405,12 @@ public final class RelativeRecordSet {
 						continue; // merged or deleted
 					rs.addAll(rrs.recordSet);
 				}
-
+				/*
 				var debug = new java.util.HashMap<String, ArrayList<Object>>();
 				for (var r : rs)
 					debug.computeIfAbsent(r.getTable().getName(), (_key_) -> new ArrayList<>()).add(r.getObjectKey());
 				Checkpoint.logger.info(debug.toString() + sortedRrs.keySet());
+				*/
 
 				checkpoint.flush(rs);
 				for (var rrs : sortedRrs.values()) {
@@ -385,6 +421,10 @@ public final class RelativeRecordSet {
 				for (var r : rs)
 					r.setDirty(false);
 				sortedRrs.clear();
+
+				// verify
+				if (null != DatabaseRocksDb.verifyAction)
+					DatabaseRocksDb.verifyAction.run();
 			} finally {
 				locks.forEach(RelativeRecordSet::unLock);
 				Checkpoint.logger.debug("flush: {} rrs, {} ns", n, System.nanoTime() - timeBegin);
@@ -397,7 +437,7 @@ public final class RelativeRecordSet {
 	}
 
 	static void flushWhenCheckpoint(Checkpoint checkpoint, ExecutorService pool) {
-		//*
+		/*
 		for (var rrs : checkpoint.relativeRecordSetMap) {
 			rrs.lock();
 			try {
@@ -406,6 +446,8 @@ public final class RelativeRecordSet {
 					rrs.delete();
 				}
 				checkpoint.relativeRecordSetMap.remove(rrs);
+				if (DatabaseRocksDb.verifyAction != null)
+					DatabaseRocksDb.verifyAction.run();
 			} finally {
 				rrs.unLock();
 			}

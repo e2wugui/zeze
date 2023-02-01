@@ -1,12 +1,21 @@
 package Temp;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.LongAdder;
 import Zeze.Config;
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Checkpoint;
+import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.OutLong;
 import Zeze.Util.Task;
 import demo.App;
+import demo.Module1.BValue;
+import org.apache.logging.log4j.LogManager;
 
 public class TestTransactionHalt {
 	private static final int KEY_COUNT = 100;
@@ -18,10 +27,12 @@ public class TestTransactionHalt {
 		var rand = ThreadLocalRandom.current();
 		var r1 = App.Instance.demo_Module1.getTable1().getOrAdd(rand.nextLong(KEY_COUNT));
 		var r3 = App.Instance.demo_Module1.getTable3().getOrAdd(rand.nextLong(KEY_COUNT));
-		r1.setLong2(r1.getLong2() + 1);
-		r3.setLong2(r3.getLong2() + 1);
-		counter.increment();
-		Transaction.whileCommit(() -> Task.run(App.Instance.Zeze.newProcedure(TestTransactionHalt::add, "add")));
+		r1.setInt1(r1.getInt1() + 1);
+		r3.setInt1(r3.getInt1() + 1);
+		Transaction.whileCommit(() -> {
+			counter.increment();
+			Task.run(App.Instance.Zeze.newProcedure(TestTransactionHalt::add, "add"));
+		});
 		return 0L;
 	}
 
@@ -39,8 +50,8 @@ public class TestTransactionHalt {
 		for (int i = 0; i < KEY_COUNT; i++) {
 			long k = i;
 			App.Instance.Zeze.newProcedure(() -> {
-				total1.value += App.Instance.demo_Module1.getTable1().getOrAdd(k).getLong2();
-				total3.value += App.Instance.demo_Module1.getTable3().getOrAdd(k).getLong2();
+				total1.value += App.Instance.demo_Module1.getTable1().getOrAdd(k).getInt1();
+				total3.value += App.Instance.demo_Module1.getTable3().getOrAdd(k).getInt1();
 				return 0L;
 			}, "init").call();
 		}
@@ -50,8 +61,8 @@ public class TestTransactionHalt {
 		for (int i = 0; i < KEY_COUNT; i++) {
 			long k = i;
 			App.Instance.Zeze.newProcedure(() -> {
-				App.Instance.demo_Module1.getTable1().getOrAdd(k).setLong2(0);
-				App.Instance.demo_Module1.getTable3().getOrAdd(k).setLong2(0);
+				App.Instance.demo_Module1.getTable1().getOrAdd(k).setInt1(0);
+				App.Instance.demo_Module1.getTable3().getOrAdd(k).setInt1(0);
 				return 0L;
 			}, "init").call();
 		}
@@ -59,14 +70,56 @@ public class TestTransactionHalt {
 		// 基本不可能会发生这个情况：setLong2(0) 全部 flush 前就halt了。保险起见判断一下。
 		App.Instance.Zeze.checkpointRun();
 
+		if (App.Instance.demo_Module1.getTable1().getDatabase() instanceof DatabaseRocksDb) {
+			DatabaseRocksDb.verifyAction = () -> {
+				var rocksDb = (DatabaseRocksDb)App.Instance.demo_Module1.getTable1().getDatabase();
+				var table1 = App.Instance.demo_Module1.getTable1().getName();
+				var table3 = App.Instance.demo_Module1.getTable3().getName();
+				var query = new HashMap<String, Set<ByteBuffer>>();
+				var keys1 = query.computeIfAbsent(table1, key -> new HashSet<>());
+				var keys2 = query.computeIfAbsent(table3, key -> new HashSet<>());
+				for (long key = 0; key < KEY_COUNT; ++key) {
+					var bbKey1 = ByteBuffer.Allocate();
+					bbKey1.WriteLong(key);
+					keys1.add(bbKey1);
+					var bbKey2 = ByteBuffer.Allocate();
+					bbKey2.WriteLong(key);
+					keys2.add(bbKey2);
+				}
+				var result = rocksDb.finds(query);
+				var sum1 = sum(result.get(table1));
+				var sum3 = sum(result.get(table3));
+				if (sum1 != sum3)
+					System.out.print("+" + sum1 + "!=" + sum3);
+				else
+					System.out.print(".");
+			};
+		}
 		for (int i = 0; i < PROC_CONC; i++)
 			Task.run(App.Instance.Zeze.newProcedure(TestTransactionHalt::add, "add"));
 
-		Task.scheduleUnsafe(50, () -> {
+		Task.scheduleUnsafe(1000, () -> {
 			System.out.println("transactions: " + counter.sum());
+			LogManager.shutdown();
 			Runtime.getRuntime().halt(0);
 		});
 
 		Thread.sleep(Integer.MAX_VALUE);
+	}
+
+	public static long sum(Map<ByteBuffer, ByteBuffer> rs) {
+		var sum = 0;
+		if (null != rs) {
+			//var sb = new StringBuilder(); sb.append("{");
+			for (var e : rs.entrySet()) {
+				//var key = e.getKey().ReadLong();
+				var value = new BValue();
+				value.decode(e.getValue());
+				sum += value.getInt1();
+				//sb.append(key).append("=").append(value.getLong2()).append(",");
+			}
+			//sb.append("}"); System.out.println(sb);
+		}
+		return sum;
 	}
 }
