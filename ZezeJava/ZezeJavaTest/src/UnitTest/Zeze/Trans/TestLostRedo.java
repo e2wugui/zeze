@@ -1,0 +1,81 @@
+package UnitTest.Zeze.Trans;
+
+import java.util.ArrayList;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import Zeze.Transaction.Transaction;
+import Zeze.Util.ConcurrentHashSet;
+import Zeze.Util.Task;
+import demo.App;
+import demo.Module1.BValue;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
+public class TestLostRedo {
+	@Before
+	public void before() throws Exception {
+		App.Instance.Start();
+	}
+
+	@After
+	public void after() throws Exception {
+		App.Instance.Stop();
+	}
+
+	ConcurrentHashSet<Long> keys = new ConcurrentHashSet<>();
+
+	@Test
+	public void test() throws ExecutionException, InterruptedException {
+		App.Instance.Zeze.newProcedure(this::clear, "clear").call();
+		var futures = new ArrayList<Future<?>>();
+		for (int i = 0; i < 1_0000; ++i)
+			futures.add(Task.runUnsafe(App.Instance.Zeze.newProcedure(this::write, "write")));
+		for (var future : futures)
+			future.get();
+		for (var key : keys)
+			App.Instance.Zeze.newProcedure(() -> verify(key), "verify").call();
+	}
+
+	private long clear() {
+		return 0; // 使用了内存表了。
+	}
+
+	private long verify(long key) {
+		var v1 = App.Instance.demo_Module1.getTable1().get(key);
+		if (null != v1) {
+			for (var lkey : v1.getLongList())
+				Assert.assertNotEquals(null, App.Instance.demo_Module1.getTable3().get(lkey));
+		}
+		return 0;
+	}
+
+	private long write() {
+		var key = App.Instance.Zeze.getAutoKey("lostredo.autokey").nextId();
+		var mkey = key % 1000;
+		keys.add(mkey);
+		App.Instance.demo_Module1.getTable1().getOrAdd(mkey).getLongList().add(key);
+		App.Instance.demo_Module1.getTable3().insert(key, new BValue());
+		return 0;
+	}
+
+	@Test
+	public void testAutoKeyConflict() throws ExecutionException, InterruptedException {
+		var futures = new ArrayList<Future<?>>();
+		for (int i = 0; i < 100_0000; ++i)
+			futures.add(Task.runUnsafe(App.Instance.Zeze.newProcedure(this::autoKeyConflict, "write")));
+		for (var future : futures)
+			future.get();
+	}
+
+	private ConcurrentHashMap<Long, Long> autos = new ConcurrentHashMap<>();
+	private long autoKeyConflict() {
+		var key = App.Instance.Zeze.getAutoKey("conflict.autokey").nextId();
+		Transaction.whileCommit(() -> {
+			Assert.assertEquals(null, autos.putIfAbsent(key, key));
+		});
+		return 0;
+	}
+}

@@ -91,6 +91,8 @@
 			<variable id="29" name="array29" type="array[float]"/>
 
 			<variable id="30" name="version" type="long"/>
+
+			<variable id="31" name="LongList" type="list[long]"/>
 		</bean>
 		<beankey name="Key" comment="beankey的注释">
 			<enum name="Enum1" value="4" description="enum的注释"/>
