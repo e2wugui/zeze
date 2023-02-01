@@ -8,6 +8,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Services.GlobalCacheManagerConst;
+import Zeze.Util.TaskCompletionSource;
 
 /**
  * see zeze/README.md -> 18) 事务提交模式
@@ -237,10 +238,12 @@ public final class RelativeRecordSet {
 			}
 		}
 
+		/*
 		var groupLocked = new ArrayList<TreeMap<String, ArrayList<Object>>>();
 		var groupTrans = new TreeMap<String, ArrayList<Object>>();
 		build(locked, groupLocked);
 		build(trans, groupTrans);
+		*/
 
 		// merge all other set to largest
 		for (var r : locked) {
@@ -258,7 +261,7 @@ public final class RelativeRecordSet {
 					largest.merge(record); // 合并孤立记录。这里包含largest是孤立记录的情况。
 			}
 		}
-		verify(groupLocked, groupTrans, largest);
+		//verify(groupLocked, groupTrans, largest);
 		return largest;
 	}
 
@@ -436,50 +439,92 @@ public final class RelativeRecordSet {
 		}
 	}
 
-	static void flushWhenCheckpoint(Checkpoint checkpoint, ExecutorService pool) {
-		/*
-		for (var rrs : checkpoint.relativeRecordSetMap) {
-			rrs.lock();
-			try {
-				if (rrs.mergeTo == null) {
-					checkpoint.flush(rrs);
-					rrs.delete();
-				}
-				checkpoint.relativeRecordSetMap.remove(rrs);
-				if (DatabaseRocksDb.verifyAction != null)
-					DatabaseRocksDb.verifyAction.run();
-			} finally {
-				rrs.unLock();
+	static void flush(Checkpoint checkpoint, RelativeRecordSet rrs) {
+		rrs.lock();
+		try {
+			if (rrs.mergeTo == null) {
+				checkpoint.flush(rrs);
+				rrs.delete();
+			}
+			checkpoint.relativeRecordSetMap.remove(rrs);
+			if (DatabaseRocksDb.verifyAction != null)
+				DatabaseRocksDb.verifyAction.run();
+		} finally {
+			rrs.unLock();
+		}
+	}
+
+	static void flushWhenCheckpoint(Checkpoint checkpoint) {
+		var mode = checkpoint.zeze.getConfig().getCheckpointFlushMode();
+		// 没有配置线程池，修订一下选项。
+		if (null == checkpoint.flushThreadPool) {
+			switch (mode) {
+			case MultiThread:
+				mode = CheckpointFlushMode.SingleThread;
+				break;
+			case MultiThreadMerge:
+				mode = CheckpointFlushMode.SingleThreadMerge;
 			}
 		}
-		/*/
-		var flushSet = new FlushSet(checkpoint);
-		var flushLimit = checkpoint.getZeze().getConfig().getCheckpointModeTableFlushSetCount();
-		if (pool == null || true) {
+
+		// 根据选项执行不同的flush模式。
+		switch (mode) {
+		case SingleThread:
+			for (var rrs : checkpoint.relativeRecordSetMap) {
+				flush(checkpoint, rrs);
+			}
+			break;
+
+		case MultiThread: {
+			var futures = new ArrayList<TaskCompletionSource<Boolean>>(checkpoint.relativeRecordSetMap.size());
+			for (var rrs : checkpoint.relativeRecordSetMap) {
+				var future = new TaskCompletionSource<Boolean>();
+				futures.add(future);
+				checkpoint.flushThreadPool.execute(() -> {
+					try {
+						flush(checkpoint, rrs);
+					} finally {
+						future.setResult(true);
+					}
+				});
+			}
+			for (var future : futures)
+				future.await();
+			}
+			break;
+
+		case SingleThreadMerge: {
+			var flushSet = new FlushSet(checkpoint);
+			var flushLimit = checkpoint.getZeze().getConfig().getCheckpointModeTableFlushSetCount();
 			for (var rrs : checkpoint.relativeRecordSetMap) {
 				if (flushSet.add(rrs) >= flushLimit)
 					flushSet.flush();
 			}
 			if (flushSet.size() > 0)
 				flushSet.flush();
-		} else {
-			// concurrent flush
+			}
+			break;
+
+		case MultiThreadMerge: {
 			var flushSets = new ArrayList<FlushSet>();
+			var flushSet = new FlushSet(checkpoint);
+			var flushLimit = checkpoint.getZeze().getConfig().getCheckpointModeTableFlushSetCount();
 			for (var rrs : checkpoint.relativeRecordSetMap) {
 				if (flushSet.add(rrs) >= flushLimit) {
 					flushSets.add(flushSet);
-					pool.execute(flushSet::flush);
+					checkpoint.flushThreadPool.execute(flushSet::flush);
 					flushSet = new FlushSet(checkpoint);
 				}
 			}
 			if (flushSet.size() > 0) {
 				flushSets.add(flushSet);
-				pool.execute(flushSet::flush);
+				checkpoint.flushThreadPool.execute(flushSet::flush);
 			}
 			for (var fs : flushSets)
 				fs.waitDone();
+			}
+			break;
 		}
-		// */
 	}
 
 	static void flushWhenReduce(Record r, Checkpoint checkpoint) {

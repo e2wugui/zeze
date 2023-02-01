@@ -23,7 +23,7 @@ public final class Checkpoint {
 	private final ReentrantReadWriteLock flushReadWriteLock = new ReentrantReadWriteLock();
 	private final CheckpointMode mode;
 	private final Thread checkpointThread;
-	private final Zeze.Application zeze;
+	final Zeze.Application zeze;
 	private final ReentrantLock lock = new ReentrantLock();
 	private final Condition cond = lock.newCondition();
 	private int period;
@@ -122,7 +122,7 @@ public final class Checkpoint {
 			break;
 
 		case Table:
-			RelativeRecordSet.flushWhenCheckpoint(this, null);
+			RelativeRecordSet.flushWhenCheckpoint(this);
 			break;
 		}
 	}
@@ -147,7 +147,7 @@ public final class Checkpoint {
 					break;
 
 				case Table:
-					RelativeRecordSet.flushWhenCheckpoint(this, flushThreadPool);
+					RelativeRecordSet.flushWhenCheckpoint(this);
 					break;
 
 				default:
@@ -172,7 +172,7 @@ public final class Checkpoint {
 			break;
 
 		case Table:
-			RelativeRecordSet.flushWhenCheckpoint(this, flushThreadPool);
+			RelativeRecordSet.flushWhenCheckpoint(this);
 			break;
 		}
 		if (null != flushThreadPool) {

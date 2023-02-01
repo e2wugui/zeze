@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.xml.parsers.DocumentBuilderFactory;
 import Zeze.Net.ServiceConf;
+import Zeze.Transaction.CheckpointFlushMode;
 import Zeze.Transaction.CheckpointMode;
 import Zeze.Transaction.Database;
 import Zeze.Transaction.DatabaseMemory;
@@ -42,6 +43,7 @@ public final class Config {
 	private int workerThreads;
 	private int completionPortThreads;
 	private int checkpointPeriod = 60000;
+	private CheckpointFlushMode checkpointFlushMode = CheckpointFlushMode.SingleThread;
 	private int checkpointModeTableFlushConcurrent = 2;
 	private int checkpointModeTableFlushSetCount = 100;
 	private CheckpointMode checkpointMode = CheckpointMode.Table;
@@ -144,6 +146,14 @@ public final class Config {
 
 	public void setCheckpointPeriod(int value) {
 		checkpointPeriod = value;
+	}
+
+	public CheckpointFlushMode getCheckpointFlushMode() {
+		return checkpointFlushMode;
+	}
+
+	public void setCheckpointFlushMode(CheckpointFlushMode value) {
+		checkpointFlushMode = value;
 	}
 
 	public int getCheckpointModeTableFlushConcurrent() {
@@ -447,6 +457,10 @@ public final class Config {
 		attr = self.getAttribute("CheckpointMode");
 		if (!attr.isBlank())
 			setCheckpointMode(CheckpointMode.valueOf(attr));
+		attr = self.getAttribute("CheckpointFlushMode");
+		if (!attr.isBlank())
+			setCheckpointFlushMode(CheckpointFlushMode.valueOf(attr));
+
 		if (checkpointMode == CheckpointMode.Period && !globalCacheManagerHostNameOrAddress.isBlank()) {
 			Application.logger.warn("CheckpointMode.Period Cannot Work With Global. Change To CheckpointMode.Table Now.");
 			checkpointMode = CheckpointMode.Table;

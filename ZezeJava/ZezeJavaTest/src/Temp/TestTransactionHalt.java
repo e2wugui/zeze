@@ -8,10 +8,9 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.LongAdder;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.Checkpoint;
 import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Transaction.Transaction;
-import Zeze.Util.OutLong;
+import Zeze.Util.OutInt;
 import Zeze.Util.Task;
 import demo.App;
 import demo.Module1.BValue;
@@ -45,27 +44,25 @@ public class TestTransactionHalt {
 		cfg.setCheckpointPeriod(CHECKPOINT_PERIOD);
 		demo.App.getInstance().Start(cfg);
 
-		var total1 = new OutLong();
-		var total3 = new OutLong();
-		for (int i = 0; i < KEY_COUNT; i++) {
-			long k = i;
-			App.Instance.Zeze.newProcedure(() -> {
+		var total1 = new OutInt();
+		var total3 = new OutInt();
+		App.Instance.Zeze.newProcedure(() -> {
+			for (long k = 0; k < KEY_COUNT; k++) {
 				total1.value += App.Instance.demo_Module1.getTable1().getOrAdd(k).getInt1();
 				total3.value += App.Instance.demo_Module1.getTable3().getOrAdd(k).getInt1();
-				return 0L;
-			}, "init").call();
-		}
+			}
+			return 0L;
+		}, "init").call();
 		if (total1.value != total3.value && args.length == 0)
 			throw new AssertionError("check failed: " + total1.value + " != " + total3.value);
 
-		for (int i = 0; i < KEY_COUNT; i++) {
-			long k = i;
-			App.Instance.Zeze.newProcedure(() -> {
+		App.Instance.Zeze.newProcedure(() -> {
+			for (long k = 0; k < KEY_COUNT; k++) {
 				App.Instance.demo_Module1.getTable1().getOrAdd(k).setInt1(0);
 				App.Instance.demo_Module1.getTable3().getOrAdd(k).setInt1(0);
-				return 0L;
-			}, "init").call();
-		}
+			}
+			return 0L;
+		}, "init").call();
 
 		// 基本不可能会发生这个情况：setLong2(0) 全部 flush 前就halt了。保险起见判断一下。
 		App.Instance.Zeze.checkpointRun();
@@ -107,7 +104,7 @@ public class TestTransactionHalt {
 		Thread.sleep(Integer.MAX_VALUE);
 	}
 
-	public static long sum(Map<ByteBuffer, ByteBuffer> rs) {
+	public static int sum(Map<ByteBuffer, ByteBuffer> rs) {
 		var sum = 0;
 		if (null != rs) {
 			//var sb = new StringBuilder(); sb.append("{");
@@ -116,7 +113,7 @@ public class TestTransactionHalt {
 				var value = new BValue();
 				value.decode(e.getValue());
 				sum += value.getInt1();
-				//sb.append(key).append("=").append(value.getLong2()).append(",");
+				//sb.append(key).append("=").append(value.getInt1()).append(",");
 			}
 			//sb.append("}"); System.out.println(sb);
 		}
