@@ -168,10 +168,11 @@ public class Procedure {
 		} catch (Throwable e) { // logger, rethrow AssertionError
 			// rollback.
 			currentT.rollback();
-			// todo 在当前事务种记住 ProcedureExceptions，记录日志交给事务类，事务Redo时不记录异常。
-			var tmpLogAction = logAction;
-			if (tmpLogAction != null)
-				tmpLogAction.run(e, Exception, this, "");
+			currentT.logActions.add(() -> {
+				var tmpLogAction = logAction;
+				if (tmpLogAction != null)
+					tmpLogAction.run(e, Exception, this, "");
+			});
 			if (Macro.enableStatistics) {
 				ProcedureStatistics.getInstance().getOrAdd(actionName).getOrAdd(Exception).increment();
 			}

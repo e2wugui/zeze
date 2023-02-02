@@ -89,12 +89,13 @@ public class TestLostRedo {
 		runTimes.set(0);
 
 		var keys = new ArrayList<Long>();
+		App.Instance.Zeze.checkpointRun();
 		App.Instance.demo_Module1.getTable1().walk((key, value) -> keys.add(key));
 		App.Instance.Zeze.newProcedure(() -> {
 			for (var key : keys)
 				App.Instance.demo_Module1.getTable1().remove(key);
 			return 0;
-		}, "clear");
+		}, "clear").call();
 
 		var futures = new ArrayList<Future<?>>();
 		for (int i = 0; i < 10_0000; ++i)

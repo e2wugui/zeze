@@ -46,6 +46,7 @@ public final class Transaction {
 
 	private final ArrayList<Lockey> holdLocks = new ArrayList<>(); // 读写锁的话需要一个包装类，用来记录当前维持的是哪个锁。
 	private final ArrayList<Procedure> procedureStack = new ArrayList<>(); // 嵌套存储过程栈。
+	final ArrayList<Runnable> logActions = new ArrayList<>();
 	private final ArrayList<Savepoint> savepoints = new ArrayList<>();
 	private final ArrayList<Savepoint.Action> actions = new ArrayList<>();
 	private final TreeMap<TableKey, RecordAccessed> accessedRecords = new TreeMap<>();
@@ -56,6 +57,11 @@ public final class Transaction {
 	private final ArrayList<Bean> redoBeans = new ArrayList<>();
 
 	private Transaction() {
+	}
+
+	private void triggerLogActions() {
+		for (var act : logActions)
+			act.run();
 	}
 
 	public ArrayList<Procedure> getProcedureStack() {
@@ -193,6 +199,7 @@ public final class Transaction {
 										|| (result != Procedure.Success && saveSize > 0)) {
 									// 这个错误不应该重做
 									logger.error("Transaction.Perform:{}. savepoints.Count != 1.", procedure);
+									triggerLogActions();
 									finalRollback(procedure);
 									return Procedure.ErrorSavepoint;
 								}
@@ -209,6 +216,7 @@ public final class Transaction {
 										}
 										return Procedure.Success;
 									}
+									triggerLogActions();
 									finalRollback(procedure, true);
 									return result;
 								}
@@ -216,6 +224,7 @@ public final class Transaction {
 
 							case Abort:
 								logger.warn("Transaction.Perform: Abort");
+								triggerLogActions();
 								finalRollback(procedure);
 								return Procedure.AbortException;
 
@@ -240,16 +249,19 @@ public final class Transaction {
 								if (!savepoints.isEmpty()) {
 									// 这个错误不应该重做
 									logger.error("Transaction.Perform:{}. exception. savepoints.Count != 0.", procedure, e);
+									triggerLogActions();
 									finalRollback(procedure);
 									return Procedure.ErrorSavepoint;
 								}
 								// 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
 								if (e instanceof AssertionError) {
+									triggerLogActions();
 									finalRollback(procedure);
 									throw (AssertionError)e;
 								}
 								checkResult = lockAndCheck(procedure.getTransactionLevel());
 								if (checkResult == CheckResult.Success) {
+									triggerLogActions();
 									finalRollback(procedure, true);
 									return Procedure.Exception;
 								}
@@ -260,6 +272,7 @@ public final class Transaction {
 								if (!"GlobalAgent.Acquire Failed".equals(e.getMessage()) &&
 										!"GlobalAgent In FastErrorPeriod".equals(e.getMessage()))
 									logger.warn("Transaction.Perform: Abort", e);
+								triggerLogActions();
 								finalRollback(procedure);
 								return Procedure.AbortException;
 
@@ -308,6 +321,7 @@ public final class Transaction {
 				}
 			}
 			logger.error("Transaction.Perform:{}. too many try.", procedure);
+			triggerLogActions();
 			finalRollback(procedure);
 			return Procedure.TooManyTry;
 		} finally {

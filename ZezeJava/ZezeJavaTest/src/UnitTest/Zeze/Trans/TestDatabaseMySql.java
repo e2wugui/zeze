@@ -13,7 +13,6 @@ import org.junit.Ignore;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-@Ignore
 public class TestDatabaseMySql extends TestCase {
 
 	public static boolean checkDriverClassExist(String driverClassName) {
@@ -30,8 +29,7 @@ public class TestDatabaseMySql extends TestCase {
 		var hostName = InetAddress.getLocalHost().getHostName();
 		System.out.println("hostName=" + hostName);
 		switch (hostName) {
-		case "DESKTOP-DVFC8AI": // lichenghua's computer 1 & 2
-		case "DESKTOP-L17H5QD": // lichenghua's computer 2
+		case "doudouwang": // lichenghua's computer 2
 			return "jdbc:mysql://localhost/devtest?user=dev&password=devtest12345&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
 		case "DESKTOP-VVU42V2":
 		case "DESKTOP-48A4UQ1":
