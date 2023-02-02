@@ -59,11 +59,6 @@ public final class Transaction {
 	private Transaction() {
 	}
 
-	private void triggerLogActions() {
-		for (var act : logActions)
-			act.run();
-	}
-
 	public ArrayList<Procedure> getProcedureStack() {
 		return procedureStack;
 	}
@@ -199,7 +194,6 @@ public final class Transaction {
 										|| (result != Procedure.Success && saveSize > 0)) {
 									// 这个错误不应该重做
 									logger.error("Transaction.Perform:{}. savepoints.Count != 1.", procedure);
-									triggerLogActions();
 									finalRollback(procedure);
 									return Procedure.ErrorSavepoint;
 								}
@@ -216,7 +210,6 @@ public final class Transaction {
 										}
 										return Procedure.Success;
 									}
-									triggerLogActions();
 									finalRollback(procedure, true);
 									return result;
 								}
@@ -224,7 +217,6 @@ public final class Transaction {
 
 							case Abort:
 								logger.warn("Transaction.Perform: Abort");
-								triggerLogActions();
 								finalRollback(procedure);
 								return Procedure.AbortException;
 
@@ -249,19 +241,16 @@ public final class Transaction {
 								if (!savepoints.isEmpty()) {
 									// 这个错误不应该重做
 									logger.error("Transaction.Perform:{}. exception. savepoints.Count != 0.", procedure, e);
-									triggerLogActions();
 									finalRollback(procedure);
 									return Procedure.ErrorSavepoint;
 								}
 								// 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
 								if (e instanceof AssertionError) {
-									triggerLogActions();
 									finalRollback(procedure);
 									throw (AssertionError)e;
 								}
 								checkResult = lockAndCheck(procedure.getTransactionLevel());
 								if (checkResult == CheckResult.Success) {
-									triggerLogActions();
 									finalRollback(procedure, true);
 									return Procedure.Exception;
 								}
@@ -272,7 +261,6 @@ public final class Transaction {
 								if (!"GlobalAgent.Acquire Failed".equals(e.getMessage()) &&
 										!"GlobalAgent In FastErrorPeriod".equals(e.getMessage()))
 									logger.warn("Transaction.Perform: Abort", e);
-								triggerLogActions();
 								finalRollback(procedure);
 								return Procedure.AbortException;
 
@@ -321,7 +309,6 @@ public final class Transaction {
 				}
 			}
 			logger.error("Transaction.Perform:{}. too many try.", procedure);
-			triggerLogActions();
 			finalRollback(procedure);
 			return Procedure.TooManyTry;
 		} finally {
@@ -350,11 +337,11 @@ public final class Transaction {
 		}
 	}
 
-	private void _trigger_commit_actions_(Procedure procedure) {
+	private void triggerCommitActions(Procedure procedure) {
 		triggerActions(procedure);
 	}
 
-	private void _trigger_rollback_actions_(Procedure procedure) {
+	private void triggerRollbackActions(Procedure procedure) {
 		triggerActions(procedure);
 	}
 
@@ -416,7 +403,7 @@ public final class Transaction {
 			logger.error("", ex);
 		}
 
-		_trigger_commit_actions_(procedure);
+		triggerCommitActions(procedure);
 	}
 
 	private void finalRollback(Procedure procedure) {
@@ -429,8 +416,10 @@ public final class Transaction {
 		}
 		savepoints.clear(); // 这里可以安全的清除日志，这样如果 rollback_action 需要读取数据，将读到原始的。
 		state = TransactionState.Completed;
+		for (var act : logActions)
+			act.run();
 		if (executeRollbackAction) {
-			_trigger_rollback_actions_(procedure);
+			triggerRollbackActions(procedure);
 		}
 	}
 
