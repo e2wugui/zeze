@@ -256,6 +256,12 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _dialogOptions.initRootInfoWithRedo(root, this);
+        _dialogSelected.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getNpcId() < 0)
             return true;

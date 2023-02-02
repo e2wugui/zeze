@@ -316,6 +316,11 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _ReliableNotifyMark.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getLoginVersion() < 0)
             return true;

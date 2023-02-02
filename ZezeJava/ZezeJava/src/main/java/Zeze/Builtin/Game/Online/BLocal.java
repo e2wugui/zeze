@@ -199,6 +199,11 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _Datas.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getLoginVersion() < 0)
             return true;

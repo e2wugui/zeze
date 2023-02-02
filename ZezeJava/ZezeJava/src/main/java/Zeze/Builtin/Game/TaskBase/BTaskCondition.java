@@ -191,6 +191,11 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _extendedData.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         return false;
     }

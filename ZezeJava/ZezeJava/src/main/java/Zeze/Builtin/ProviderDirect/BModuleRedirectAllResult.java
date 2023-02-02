@@ -372,6 +372,11 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _Hashs.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getModuleId() < 0)
             return true;

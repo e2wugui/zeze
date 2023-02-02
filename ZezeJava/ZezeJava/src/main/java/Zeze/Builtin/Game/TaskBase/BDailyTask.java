@@ -231,6 +231,11 @@ public final class BDailyTask extends Zeze.Transaction.Bean implements BDailyTas
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _todayTaskPhaseIds.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getEverydayTaskCount() < 0)
             return true;

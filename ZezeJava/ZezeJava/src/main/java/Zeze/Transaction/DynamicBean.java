@@ -143,6 +143,11 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	@Override
+	protected void initChildrenRootInfoWithRedo(Record.RootInfo root) {
+		bean.initRootInfoWithRedo(root, this);
+	}
+
+	@Override
 	public void mapKey(Object mapKey) {
 		bean.mapKey(mapKey);
 	}

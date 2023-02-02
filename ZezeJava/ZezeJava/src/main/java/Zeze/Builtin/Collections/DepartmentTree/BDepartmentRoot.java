@@ -355,6 +355,13 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _Managers.initRootInfoWithRedo(root, this);
+        _Childs.initRootInfoWithRedo(root, this);
+        _Data.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getNextDepartmentId() < 0)
             return true;

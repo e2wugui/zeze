@@ -152,6 +152,11 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean implements BOnlin
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _TimerIds.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         return false;
     }

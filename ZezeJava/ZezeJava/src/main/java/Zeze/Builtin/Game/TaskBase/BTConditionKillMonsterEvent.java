@@ -148,6 +148,11 @@ public final class BTConditionKillMonsterEvent extends Zeze.Transaction.Bean imp
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _monsters.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         for (var _v_ : _monsters.values()) {
             if (_v_ < 0)

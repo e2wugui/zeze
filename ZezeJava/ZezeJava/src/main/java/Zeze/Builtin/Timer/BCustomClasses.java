@@ -141,6 +141,11 @@ public final class BCustomClasses extends Zeze.Transaction.Bean implements BCust
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _CustomClasses.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         return false;
     }

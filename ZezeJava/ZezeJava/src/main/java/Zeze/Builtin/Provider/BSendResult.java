@@ -141,6 +141,11 @@ public final class BSendResult extends Zeze.Transaction.Bean implements BSendRes
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _ErrorLinkSids.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         for (var _v_ : _ErrorLinkSids) {
             if (_v_ < 0)

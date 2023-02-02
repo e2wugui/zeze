@@ -151,6 +151,11 @@ public final class BVersions extends Zeze.Transaction.Bean implements BVersionsR
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _Logins.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         for (var _v_ : _Logins.values()) {
             if (_v_.negativeCheck())

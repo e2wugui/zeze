@@ -193,6 +193,11 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _Values.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getNextNodeId() < 0)
             return true;

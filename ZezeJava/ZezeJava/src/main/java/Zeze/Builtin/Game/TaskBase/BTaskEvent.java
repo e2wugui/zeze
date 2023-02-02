@@ -302,6 +302,12 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _eventType.initRootInfoWithRedo(root, this);
+        _eventBean.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getRoleId() < 0)
             return true;

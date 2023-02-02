@@ -141,6 +141,11 @@ public final class BEventClasses extends Zeze.Transaction.Bean implements BEvent
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _EventClasses.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         return false;
     }

@@ -318,6 +318,11 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _CustomData.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getRoleId() < 0)
             return true;

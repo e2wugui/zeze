@@ -241,6 +241,11 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _Timers.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getPrevNodeId() < 0)
             return true;

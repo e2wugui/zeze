@@ -150,6 +150,11 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean implements BOnlin
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _CustomData.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         return false;
     }

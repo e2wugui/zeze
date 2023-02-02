@@ -456,6 +456,11 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _HashCodes.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getModuleId() < 0)
             return true;

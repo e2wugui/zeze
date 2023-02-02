@@ -198,6 +198,12 @@ public final class BRoleTasks extends Zeze.Transaction.Bean implements BRoleTask
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _processingTasks.initRootInfoWithRedo(root, this);
+        _finishedTaskIds.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         for (var _v_ : _processingTasks.values()) {
             if (_v_.negativeCheck())

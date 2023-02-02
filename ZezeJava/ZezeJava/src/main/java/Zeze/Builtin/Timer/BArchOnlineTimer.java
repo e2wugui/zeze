@@ -316,6 +316,11 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _TimerObj.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (_TimerObj.negativeCheck())
             return true;

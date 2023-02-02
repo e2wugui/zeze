@@ -293,6 +293,11 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _conditions.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getSubPhaseId() < 0)
             return true;

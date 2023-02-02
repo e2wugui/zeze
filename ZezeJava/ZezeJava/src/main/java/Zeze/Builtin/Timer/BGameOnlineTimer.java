@@ -264,6 +264,11 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _TimerObj.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getRoleId() < 0)
             return true;

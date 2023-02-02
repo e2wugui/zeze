@@ -141,6 +141,11 @@ public final class BItemClasses extends Zeze.Transaction.Bean implements BItemCl
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _ItemClasses.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         return false;
     }

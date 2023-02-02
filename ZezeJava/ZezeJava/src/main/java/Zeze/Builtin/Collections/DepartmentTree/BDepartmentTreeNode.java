@@ -355,6 +355,13 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _Childs.initRootInfoWithRedo(root, this);
+        _Managers.initRootInfoWithRedo(root, this);
+        _Data.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getParentDepartment() < 0)
             return true;

@@ -185,6 +185,12 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	}
 
 	@Override
+	protected void initChildrenRootInfoWithRedo(Record.RootInfo root) {
+		for (var v : map.values())
+			v.initRootInfoWithRedo(root, this);
+	}
+
+	@Override
 	public PMap2<K, V> copy() {
 		var copy = new PMap2<K, V>(logTypeId, keyCodecFuncs, valueFactory);
 		copy.map = map;

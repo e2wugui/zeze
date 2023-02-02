@@ -10,6 +10,12 @@ public class EmptyBean extends Bean {
 			resetRootInfo();
 			throw new UnsupportedOperationException();
 		}
+
+		@Override
+		protected void initChildrenRootInfoWithRedo(Record.RootInfo root) {
+			resetRootInfo();
+			throw new UnsupportedOperationException();
+		}
 	};
 
 	@Override

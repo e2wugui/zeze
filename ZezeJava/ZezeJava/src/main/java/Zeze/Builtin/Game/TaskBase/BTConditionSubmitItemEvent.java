@@ -148,6 +148,11 @@ public final class BTConditionSubmitItemEvent extends Zeze.Transaction.Bean impl
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _items.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         for (var _v_ : _items.values()) {
             if (_v_ < 0)

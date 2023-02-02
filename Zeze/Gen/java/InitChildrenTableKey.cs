@@ -26,6 +26,26 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "}");
                 sw.WriteLine();
             }
+
+            genBegin = false;
+            foreach (Variable v in bean.Variables)
+            {
+                if (v.VariableType.IsNormalBean || v.VariableType.IsCollection || v.VariableType is TypeDynamic)
+                {
+                    if (!genBegin)
+                    {
+                        genBegin = true;
+                        sw.WriteLine(prefix + "@Override");
+                        sw.WriteLine(prefix + "protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {");
+                    }
+                    sw.WriteLine(prefix + "    " + v.NamePrivate + ".initRootInfoWithRedo(root, this);");
+                }
+            }
+            if (genBegin)
+            {
+                sw.WriteLine(prefix + "}");
+                sw.WriteLine();
+            }
         }
 
         public static void MakeReset(Bean bean, StreamWriter sw, string prefix)

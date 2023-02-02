@@ -192,6 +192,11 @@ public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTa
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _changedTasks.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getResultCode() < 0)
             return true;

@@ -186,6 +186,11 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean implements 
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _Value.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         return false;
     }

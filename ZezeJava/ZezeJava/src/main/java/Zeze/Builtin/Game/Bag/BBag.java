@@ -199,6 +199,11 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _Items.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getCapacity() < 0)
             return true;

@@ -371,6 +371,11 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _CustomData.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getLoginVersion() < 0)
             return true;

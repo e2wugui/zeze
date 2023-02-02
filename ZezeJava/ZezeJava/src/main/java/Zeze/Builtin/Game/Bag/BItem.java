@@ -235,6 +235,11 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _Item.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getId() < 0)
             return true;

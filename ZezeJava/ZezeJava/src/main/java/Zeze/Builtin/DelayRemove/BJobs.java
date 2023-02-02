@@ -151,6 +151,11 @@ public final class BJobs extends Zeze.Transaction.Bean implements BJobsReadOnly 
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _Jobs.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         return false;
     }

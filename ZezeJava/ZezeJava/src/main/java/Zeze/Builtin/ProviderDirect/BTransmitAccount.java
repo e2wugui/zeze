@@ -335,6 +335,11 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _TargetAccounts.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         return false;
     }

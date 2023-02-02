@@ -214,6 +214,12 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
+	protected void initChildrenRootInfoWithRedo(Record.RootInfo root) {
+		for (var v : list)
+			v.initRootInfoWithRedo(root, this);
+	}
+
+	@Override
 	public PList2<V> copy() {
 		var copy = new PList2<V>(logTypeId, valueFactory);
 		copy.list = list;

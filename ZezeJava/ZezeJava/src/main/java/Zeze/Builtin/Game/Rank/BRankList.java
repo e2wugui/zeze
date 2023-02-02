@@ -144,6 +144,11 @@ public final class BRankList extends Zeze.Transaction.Bean implements BRankListR
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _RankList.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         for (var _v_ : _RankList) {
             if (_v_.negativeCheck())

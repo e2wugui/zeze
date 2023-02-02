@@ -189,6 +189,11 @@ public final class BReliableNotify extends Zeze.Transaction.Bean implements BRel
     }
 
     @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
+        _Notifies.initRootInfoWithRedo(root, this);
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getReliableNotifyIndex() < 0)
             return true;
