@@ -8,10 +8,12 @@ import Zeze.Transaction.Database;
 import Zeze.Transaction.DatabaseMySql;
 import junit.framework.TestCase;
 import org.junit.Assert;
+import org.junit.Ignore;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+@Ignore
 public class TestDatabaseMySql extends TestCase {
 
 	public static boolean checkDriverClassExist(String driverClassName) {

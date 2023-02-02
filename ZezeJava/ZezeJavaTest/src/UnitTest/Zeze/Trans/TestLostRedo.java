@@ -87,6 +87,15 @@ public class TestLostRedo {
 	@Test
 	public void teatAutoKeyWithInsert() throws ExecutionException, InterruptedException {
 		runTimes.set(0);
+
+		var keys = new ArrayList<Long>();
+		App.Instance.demo_Module1.getTable1().walk((key, value) -> keys.add(key));
+		App.Instance.Zeze.newProcedure(() -> {
+			for (var key : keys)
+				App.Instance.demo_Module1.getTable1().remove(key);
+			return 0;
+		}, "clear");
+
 		var futures = new ArrayList<Future<?>>();
 		for (int i = 0; i < 10_0000; ++i)
 			futures.add(Task.runUnsafe(App.Instance.Zeze.newProcedure(this::autoKeyWithInsert, "write")));
