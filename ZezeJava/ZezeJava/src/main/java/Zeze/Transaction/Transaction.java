@@ -83,6 +83,7 @@ public final class Transaction {
 		actions.clear();
 		redoBeans.clear();
 		accessedRecords.clear();
+		logActions.clear();
 		locks = null;
 		state = TransactionState.Running;
 		created = false;
