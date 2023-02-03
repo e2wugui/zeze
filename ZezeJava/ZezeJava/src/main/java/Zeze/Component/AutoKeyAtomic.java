@@ -42,7 +42,7 @@ public class AutoKeyAtomic {
 
 	private final Module module;
 	private final String name;
-	private volatile AutoKeyAtomic.Range range;
+	private volatile Range range;
 
 	private int allocateCount = ALLOCATE_COUNT_MIN;
 	private long lastAllocateTime = System.currentTimeMillis();
@@ -89,12 +89,13 @@ public class AutoKeyAtomic {
 
 	/**
 	 * 设置当前serverId的种子，新种子必须比当前值大。
+	 *
 	 * @param seed new seed.
 	 * @return true if success.
 	 */
 	public boolean setSeed(long seed) {
 		try {
-			return 0 == Task.runUnsafe(module.zeze.newProcedure(() -> {
+			return Procedure.Success == Task.runUnsafe(module.zeze.newProcedure(() -> {
 				var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
 				var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
 				if (seed > bAutoKey.getNextId()) {
@@ -110,6 +111,7 @@ public class AutoKeyAtomic {
 
 	/**
 	 * 增加当前serverId的种子。只能增加，如果溢出，返回失败。
+	 *
 	 * @param delta delta
 	 * @return true if success.
 	 */
@@ -117,7 +119,7 @@ public class AutoKeyAtomic {
 		if (delta <= 0)
 			return false;
 		try {
-			return 0 == Task.runUnsafe(module.zeze.newProcedure(() -> {
+			return Procedure.Success == Task.runUnsafe(module.zeze.newProcedure(() -> {
 				var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
 				var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
 				var newSeed = bAutoKey.getNextId() + delta;
@@ -135,39 +137,41 @@ public class AutoKeyAtomic {
 
 	/**
 	 * 返回当前serverId的种子。
+	 *
 	 * @return seed
 	 */
 	public long getSeed() {
-		long ret = 0;
-		var result = new OutLong();
 		try {
-			ret = Task.runUnsafe(module.zeze.newProcedure(() -> {
+			var result = new OutLong();
+			if (Procedure.Success == Task.runUnsafe(module.zeze.newProcedure(() -> {
 				var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
 				var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
 				result.value = bAutoKey.getNextId();
 				return 0;
-			}, "get")).get();
+			}, "get")).get())
+				return result.value;
 		} catch (InterruptedException | ExecutionException e) {
 			throw new RuntimeException(e);
 		}
-		if (ret == 0)
-			return result.value;
 		throw new RuntimeException("get seed error.");
 	}
 
 	private long nextSeed() {
 		while (true) {
-			if (null != range) {
-				var next = range.tryNextId();
+			var localRange = range;
+			if (localRange != null) {
+				var next = localRange.tryNextId();
 				if (next != 0)
 					return next; // allocate in range success
 			}
 
 			synchronized (this) {
-				long ret = 0;
-				var newRange = new OutObject<Range>();
+				//noinspection NumberEquality
+				if (range != localRange)
+					continue;
 				try {
-					ret = Task.runUnsafe(module.zeze.newProcedure(() -> {
+					var newRange = new OutObject<Range>();
+					var ret = Task.runUnsafe(module.zeze.newProcedure(() -> {
 						Transaction.whileCommit(() -> {
 							// 不能在重做时重复计算，一次事务重新计算一次，下一次生效。
 							// 这里可能有并发问题, 不过影响可以忽略
@@ -192,19 +196,19 @@ public class AutoKeyAtomic {
 						newRange.value = new Range(start, end);
 						return 0;
 					}, "allocate")).get();
+					if (ret == Procedure.Success) {
+						range = newRange.value;
+						continue;
+					}
 				} catch (InterruptedException | ExecutionException e) {
 					throw new RuntimeException(e);
-				}
-				if (0 == ret) {
-					range = newRange.value;
-					continue;
 				}
 				throw new RuntimeException("allocate range error.");
 			}
 		}
 	}
 
-	private static class Range extends AtomicLong {
+	private static final class Range extends AtomicLong {
 		private final long max;
 
 		public long tryNextId() {
