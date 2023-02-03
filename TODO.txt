@@ -28,11 +28,12 @@ DatabaseDynamoDb 还需测试。
 过载保护；更多。
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/2/10 TimeThrottle; Linkd.OverBandwidth; CheckpintFlushMode;
+2023/2/10 TimeThrottle; Linkd.OverBandwidth; CheckpintFlushMode; AutoKeyAtomic;
 ------------------------------------------------------------------------------------------------------------------------------
-AutoKey2
+AutoKeyAtomic
 	使用ImportantTable记录种子，
 	使用另外一个线程执行事务递增种子。
+BUG initRootInfoWithRedo 导致isManager失败，最终数据没有保护到。
 BUG FlushSet 没有setDirty(false)【已解决】
 BUG FLushSet 会出现破坏acid的现象【===============未解决===============】
 CheckpintFlushMode 以及相关性能测试。
