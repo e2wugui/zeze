@@ -2,6 +2,7 @@ package Zeze.Util;
 
 public interface TimeThrottle {
 	public boolean checkNow(int size);
+
 	public void close();
 
 	public static TimeThrottle create(Zeze.Net.SocketOptions options) {
@@ -13,8 +14,7 @@ public interface TimeThrottle {
 		if (null == name || name.isBlank() || null == seconds || null == limit || null == bandwidth)
 			return null;
 
-		switch (name)
-		{
+		switch (name) {
 		case "queue":
 			return new TimeThrottleQueue(seconds, limit, bandwidth);
 		case "counter":

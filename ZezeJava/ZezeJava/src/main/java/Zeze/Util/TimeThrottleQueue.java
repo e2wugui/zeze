@@ -4,16 +4,16 @@ import java.util.ArrayDeque;
 
 public class TimeThrottleQueue implements TimeThrottle {
 	public static final int eMaxMarksSize = 4096;
+
 	private final ArrayDeque<Packet> marks = new ArrayDeque<>();
 	private final int expire;
 	private final int limit;
 	private final int bandwidthLimit;
-
 	private int bandwidth;
 
-	public static class Packet {
-		public long timestamp;
-		public int size;
+	public static final class Packet {
+		public final long timestamp;
+		public final int size;
 
 		public Packet(long t, int s) {
 			timestamp = t;
@@ -23,8 +23,9 @@ public class TimeThrottleQueue implements TimeThrottle {
 
 	/**
 	 * seconds 秒内限制 limit 个 mark。
+	 *
 	 * @param seconds 限制时间范围。
-	 * @param limit 限制数量。
+	 * @param limit   限制数量。
 	 */
 	public TimeThrottleQueue(int seconds, int limit, int bandwidthLimit) {
 		if (seconds < 1 || limit < 1 || bandwidthLimit < 1)
@@ -36,6 +37,7 @@ public class TimeThrottleQueue implements TimeThrottle {
 
 	/**
 	 * mark with current time
+	 *
 	 * @return false if overflow
 	 */
 	@Override
@@ -57,6 +59,5 @@ public class TimeThrottleQueue implements TimeThrottle {
 
 	@Override
 	public void close() {
-
 	}
 }

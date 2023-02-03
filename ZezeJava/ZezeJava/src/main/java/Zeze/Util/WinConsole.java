@@ -10,8 +10,8 @@ public final class WinConsole {
 	public static final int CTRL_SHUTDOWN_EVENT = 6; // 系统关机时自动关闭命令行窗口
 
 	static {
-		// 需要在当前目录存在: WinConsole.dll
-		System.loadLibrary("WinConsole");
+		// if (System.getProperty("os.name").startsWith("Windows"))
+		System.loadLibrary("WinConsole"); // 需要在当前目录存在: WinConsole.dll
 	}
 
 	/**
@@ -30,7 +30,11 @@ public final class WinConsole {
 	 */
 	public static native int getCloseConsoleTimeout(int event);
 
+	private WinConsole() {
+	}
+
 	public static void main(String[] args) throws InterruptedException {
+		System.out.println(System.getProperty("os.name"));
 		System.out.println("CTRL_CLOSE_EVENT timeout: " + getCloseConsoleTimeout(CTRL_CLOSE_EVENT));
 		System.out.println("CTRL_LOGOFF_EVENT timeout: " + getCloseConsoleTimeout(CTRL_LOGOFF_EVENT));
 		System.out.println("CTRL_SHUTDOWN_EVENT timeout: " + getCloseConsoleTimeout(CTRL_SHUTDOWN_EVENT));

@@ -1,10 +1,8 @@
 package Zeze.Transaction;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.TreeMap;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Services.GlobalCacheManagerConst;
@@ -184,7 +182,6 @@ public final class RelativeRecordSet {
 	private static void verify(ArrayList<TreeMap<String, ArrayList<Object>>> groupLocked,
 							   TreeMap<String, ArrayList<Object>> groupTrans,
 							   RelativeRecordSet result) {
-
 		var groupResult = new TreeMap<String, ArrayList<Object>>();
 		if (null != result.recordSet) {
 			for (var r : result.recordSet) {
@@ -203,7 +200,7 @@ public final class RelativeRecordSet {
 				}
 			}
 			Checkpoint.logger.info("locked.size=" + groupLocked.size() + " trans.size=" + groupTrans.size()
-				+ "\nlocked:" + groupLocked + "\ntrans:" + groupTrans + "\nresult:" + groupResult);
+					+ "\nlocked:" + groupLocked + "\ntrans:" + groupTrans + "\nresult:" + groupResult);
 		}
 	}
 
@@ -381,6 +378,7 @@ public final class RelativeRecordSet {
 		}
 
 		private boolean done = false;
+
 		private synchronized void waitDone() {
 			while (!done) {
 				try {
@@ -490,8 +488,8 @@ public final class RelativeRecordSet {
 			}
 			for (var future : futures)
 				future.await();
-			}
-			break;
+		}
+		break;
 
 		case SingleThreadMerge: {
 			var flushSet = new FlushSet(checkpoint);
@@ -502,8 +500,8 @@ public final class RelativeRecordSet {
 			}
 			if (flushSet.size() > 0)
 				flushSet.flush();
-			}
-			break;
+		}
+		break;
 
 		case MultiThreadMerge: {
 			var flushSets = new ArrayList<FlushSet>();
@@ -522,8 +520,8 @@ public final class RelativeRecordSet {
 			}
 			for (var fs : flushSets)
 				fs.waitDone();
-			}
-			break;
+		}
+		break;
 		}
 	}
 
