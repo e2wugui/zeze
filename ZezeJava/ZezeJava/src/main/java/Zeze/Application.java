@@ -10,6 +10,7 @@ import java.util.concurrent.Future;
 import Zeze.Arch.RedirectBase;
 import Zeze.Collections.Queue;
 import Zeze.Component.AutoKey;
+import Zeze.Component.AutoKeyAtomic;
 import Zeze.Component.DelayRemove;
 import Zeze.Component.Timer;
 import Zeze.Serialize.ByteBuffer;
@@ -52,6 +53,7 @@ public final class Application {
 	private final Locks locks = new Locks();
 	private final AbstractAgent serviceManager;
 	private AutoKey.Module autoKey;
+	private AutoKeyAtomic.Module autoKeyAtomic;
 	private Timer timer;
 	private Zeze.Collections.Queue.Module queueModule;
 	private DelayRemove delayRemove;
@@ -113,6 +115,7 @@ public final class Application {
 		if (!noDatabase) {
 			// 自动初始化的组件。
 			autoKey = new AutoKey.Module(this);
+			autoKeyAtomic = new AutoKeyAtomic.Module(this);
 			queueModule = new Queue.Module(this);
 			delayRemove = new DelayRemove(this);
 			timer = new Timer(this);
@@ -228,6 +231,10 @@ public final class Application {
 
 	public AutoKey getAutoKey(String name) {
 		return autoKey.getOrAdd(name);
+	}
+
+	public AutoKeyAtomic getAutoKeyAtomic(String name) {
+		return autoKeyAtomic.zeze.getAutoKeyAtomic(name);
 	}
 
 	public Timer getTimer() {
@@ -433,8 +440,12 @@ public final class Application {
 			queueModule.UnRegisterZezeTables(this);
 			queueModule = null;
 		}
+		if (autoKeyAtomic != null) {
+			autoKeyAtomic.UnRegister();
+			autoKeyAtomic = null;
+		}
 		if (autoKey != null) {
-			autoKey.UnRegisterZezeTables(this);
+			autoKey.UnRegister();
 			autoKey = null;
 		}
 
