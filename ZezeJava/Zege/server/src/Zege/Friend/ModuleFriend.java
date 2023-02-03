@@ -6,14 +6,14 @@ import Zeze.Arch.ProviderUserSession;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey;
 import Zeze.Collections.DepartmentTree;
 import Zeze.Collections.LinkedMap;
-import Zeze.Component.AutoKey;
+import Zeze.Component.AutoKeyAtomic;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutLong;
 
 public class ModuleFriend extends AbstractModule {
-	private AutoKey GroupIdAutoKey;
+	private AutoKeyAtomic GroupIdAutoKey;
 
 	public static final String eFriendsLinkedMapNameEndsWith = "@Zege.Friend";
 	public static final String eTopmostLinkedMapNameEndsWith = "@Zege.Topmost";
@@ -29,7 +29,7 @@ public class ModuleFriend extends AbstractModule {
 	}
 
 	public void Start(Zege.App app) throws Exception {
-		GroupIdAutoKey = app.getZeze().getAutoKey("Zege.GroupId");
+		GroupIdAutoKey = app.getZeze().getAutoKeyAtomic("Zege.GroupId");
 		App.LinkedMaps.NodeListeners.put(eFriendsLinkedMapNameEndsWith, this::onChangeListener);
 		App.LinkedMaps.NodeListeners.put(eTopmostLinkedMapNameEndsWith, this::onChangeListener);
 	}

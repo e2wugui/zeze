@@ -35,8 +35,8 @@ public class Timer extends AbstractTimer {
 
 	static final Logger logger = LogManager.getLogger(Timer.class);
 	public final Zeze.Application zeze;
-	private AutoKey nodeIdAutoKey;
-	AutoKey timerIdAutoKey;
+	private AutoKeyAtomic nodeIdAutoKey;
+	AutoKeyAtomic timerIdAutoKey;
 	// 在这台服务器进程内调度的所有Timer。key是timerId，value是ThreadPool.schedule的返回值。
 	final ConcurrentHashMap<String, Future<?>> timersFuture = new ConcurrentHashMap<>();
 
@@ -63,8 +63,8 @@ public class Timer extends AbstractTimer {
 	 * 非事务环境调用。用于启动Timer服务。
 	 */
 	public void start() {
-		nodeIdAutoKey = zeze.getAutoKey("Zeze.Component.Timer.NodeId");
-		timerIdAutoKey = zeze.getAutoKey("Zeze.Component.Timer.TimerId");
+		nodeIdAutoKey = zeze.getAutoKeyAtomic("Zeze.Component.Timer.NodeId");
+		timerIdAutoKey = zeze.getAutoKeyAtomic("Zeze.Component.Timer.TimerId");
 		if (0L != zeze.newProcedure(this::loadCustomClass, "").call()) {
 			throw new IllegalStateException("Load Item Classes Failed.");
 		}

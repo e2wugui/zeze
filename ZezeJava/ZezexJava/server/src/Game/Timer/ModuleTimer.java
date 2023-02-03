@@ -5,7 +5,7 @@ import java.util.concurrent.Future;
 import Game.LongSet.ModuleLongSet;
 import Game.LongSet.NameValue;
 import Zeze.Arch.RedirectToServer;
-import Zeze.Component.AutoKey;
+import Zeze.Component.AutoKeyAtomic;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Action2;
@@ -24,12 +24,12 @@ public class ModuleTimer extends AbstractModule {
 
 	public static final int TimerCountPerNode = 200;
 
-	private AutoKey NodeIdGenerator;
-	private AutoKey TimerIdGenerator;
+	private AutoKeyAtomic NodeIdGenerator;
+	private AutoKeyAtomic TimerIdGenerator;
 
 	public void Start(Game.App app) throws Exception {
-		NodeIdGenerator = app.Zeze.getAutoKey("Game.Timer.NodeIdGenerator");
-		TimerIdGenerator = app.Zeze.getAutoKey("Game.Timer.TimerIdGenerator");
+		NodeIdGenerator = app.Zeze.getAutoKeyAtomic("Game.Timer.NodeIdGenerator");
+		TimerIdGenerator = app.Zeze.getAutoKeyAtomic("Game.Timer.TimerIdGenerator");
 		Task.run(this::LoadTimerLocal, "LoadTimerLocal", DispatchMode.Normal);
 	}
 

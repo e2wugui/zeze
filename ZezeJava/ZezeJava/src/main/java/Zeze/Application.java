@@ -234,7 +234,7 @@ public final class Application {
 	}
 
 	public AutoKeyAtomic getAutoKeyAtomic(String name) {
-		return autoKeyAtomic.zeze.getAutoKeyAtomic(name);
+		return autoKeyAtomic.getOrAdd(name);
 	}
 
 	public Timer getTimer() {

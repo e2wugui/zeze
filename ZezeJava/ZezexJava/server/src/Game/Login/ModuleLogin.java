@@ -6,10 +6,10 @@ import Zeze.Transaction.Procedure;
 
 public final class ModuleLogin extends AbstractModule {
 
-	private Zeze.Component.AutoKey autoKey;
+	private Zeze.Component.AutoKeyAtomic autoKey;
 
 	public void Start(App app) {
-		autoKey = app.Zeze.getAutoKey("roleId");
+		autoKey = app.Zeze.getAutoKeyAtomic("roleId");
 	}
 
 	public void Stop(App app) {
