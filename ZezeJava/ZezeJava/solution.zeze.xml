@@ -1255,13 +1255,31 @@
 				<table name="tSent" key="string" value="BTransactionMessageResult"/>
 			</module>
 		</module>
+
+		<module name="AutoKeyAtomic" id="11025">
+			<beankey name="BSeedKey">
+				<variable id="1" name="ServerId" type="int"/>
+				<variable id="2" name="KeyName"  type="string"/>
+			</beankey>
+			<bean name="BAutoKey">
+				<variable id="1" name="NextId" type="long"/>
+			</bean>
+			<table name="tAutoKeys" key="BSeedKey" value="BAutoKey" CheckpointWhenCommit="true" />
+		</module>
+
 		<!--
-		可用id范围 [11025, 11100) [11102, 12000]
+		可用id范围 [11026, 11100) [11102, 12000]
 		-->
 
 	</module> Builtin
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+
+	<component name="AutoKeyAtomic" gendir="src/main/java" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.AutoKeyAtomic"/>
+		</service>
+	</component>
 
 	<component name="Producer" gendir="src/main/java" genrelativedir="Zeze/Services/RocketMQ" platform="zeze+java">
 		<service name="" handle="server">
