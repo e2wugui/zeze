@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.AutoKeyAtomic.BSeedKey;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
@@ -92,24 +93,19 @@ public class AutoKeyAtomic {
 	 * @return true if success.
 	 */
 	public boolean setSeed(long seed) {
-		var result = new OutObject<>(false);
-		long ret = 0;
 		try {
-			ret = Task.runUnsafe(module.zeze.newProcedure(() -> {
+			return 0 == Task.runUnsafe(module.zeze.newProcedure(() -> {
 				var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
 				var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
 				if (seed > bAutoKey.getNextId()) {
 					bAutoKey.setNextId(seed);
-					result.value = true;
+					return 0;
 				}
-				return 0;
+				return Procedure.LogicError;
 			}, "")).get();
 		} catch (InterruptedException | ExecutionException e) {
 			throw new RuntimeException(e);
 		}
-		if (ret == 0)
-			return result.value;
-		throw new RuntimeException("set seed error.");
 	}
 
 	/**
@@ -120,26 +116,21 @@ public class AutoKeyAtomic {
 	public boolean increaseSeed(long delta) {
 		if (delta <= 0)
 			return false;
-		var result = new OutObject<>(false);
-		long ret = 0;
 		try {
-			ret = Task.runUnsafe(module.zeze.newProcedure(() -> {
+			return 0 == Task.runUnsafe(module.zeze.newProcedure(() -> {
 				var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
 				var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
 				var newSeed = bAutoKey.getNextId() + delta;
 				if (newSeed > 0) {
 					bAutoKey.setNextId(newSeed);
-					result.value = true;
+					return 0;
 				}
 				// 溢出
-				return 0;
+				return Procedure.LogicError;
 			}, "increase seed")).get();
 		} catch (InterruptedException | ExecutionException e) {
 			throw new RuntimeException(e);
 		}
-		if (ret == 0)
-			return result.value;
-		throw new RuntimeException("increase seed error.");
 	}
 
 	/**
