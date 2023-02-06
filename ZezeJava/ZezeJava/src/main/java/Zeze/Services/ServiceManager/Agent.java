@@ -330,6 +330,8 @@ public final class Agent extends AbstractAgent {
 				OfflineNotify::new, this::processOfflineNotify, TransactionLevel.None, DispatchMode.Critical));
 		client.AddFactoryHandle(OfflineRegister.TypeId_, new ProtocolFactoryHandle<>(
 				OfflineRegister::new, null, TransactionLevel.None, DispatchMode.Normal));
+		client.AddFactoryHandle(NormalClose.TypeId_, new ProtocolFactoryHandle<>(
+				NormalClose::new, null, TransactionLevel.None, DispatchMode.Critical));
 	}
 
 	public synchronized void stop() throws Exception {
