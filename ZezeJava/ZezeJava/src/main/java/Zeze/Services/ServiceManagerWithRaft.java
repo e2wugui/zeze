@@ -322,6 +322,16 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		return 0;
 	}
 
+	@Override
+	protected long ProcessNormalCloseRequest(NormalClose r) {
+		var netSession = (Session)r.getSender().getUserState();
+		var session = tableSession.get(netSession.name);
+		// 正常不关闭不执行异常下线通知。
+		session.getOfflineRegisterNotifies().clear();
+		r.SendResult();
+		return 0;
+	}
+
 	private void addLoadObserver(String ip, int port, String sessionName) {
 		if (!ip.isEmpty() && port != 0) {
 			var loadObservers = tableLoadObservers.getOrAdd(ip + ":" + port);

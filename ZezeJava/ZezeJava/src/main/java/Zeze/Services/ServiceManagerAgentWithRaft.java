@@ -6,6 +6,7 @@ import Zeze.Builtin.ServiceManagerWithRaft.AllocateId;
 import Zeze.Builtin.ServiceManagerWithRaft.CommitServiceList;
 import Zeze.Builtin.ServiceManagerWithRaft.KeepAlive;
 import Zeze.Builtin.ServiceManagerWithRaft.Login;
+import Zeze.Builtin.ServiceManagerWithRaft.NormalClose;
 import Zeze.Builtin.ServiceManagerWithRaft.NotifyServiceList;
 import Zeze.Builtin.ServiceManagerWithRaft.OfflineNotify;
 import Zeze.Builtin.ServiceManagerWithRaft.OfflineRegister;
@@ -311,6 +312,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			if (null != tmp) {
 				tmp.cancel(true);
 			}
+			raftClient.sendForWait(new NormalClose()).await();
 			raftClient.stop();
 		} catch (RuntimeException | Error e) {
 			throw e;

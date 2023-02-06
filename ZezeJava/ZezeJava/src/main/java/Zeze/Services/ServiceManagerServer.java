@@ -17,25 +17,7 @@ import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Services.ServiceManager.AllocateId;
-import Zeze.Services.ServiceManager.BOfflineNotify;
-import Zeze.Services.ServiceManager.BServerLoad;
-import Zeze.Services.ServiceManager.BServiceInfo;
-import Zeze.Services.ServiceManager.BServiceInfos;
-import Zeze.Services.ServiceManager.BSubscribeInfo;
-import Zeze.Services.ServiceManager.CommitServiceList;
-import Zeze.Services.ServiceManager.KeepAlive;
-import Zeze.Services.ServiceManager.NotifyServiceList;
-import Zeze.Services.ServiceManager.OfflineNotify;
-import Zeze.Services.ServiceManager.OfflineRegister;
-import Zeze.Services.ServiceManager.ReadyServiceList;
-import Zeze.Services.ServiceManager.Register;
-import Zeze.Services.ServiceManager.SetServerLoad;
-import Zeze.Services.ServiceManager.Subscribe;
-import Zeze.Services.ServiceManager.SubscribeFirstCommit;
-import Zeze.Services.ServiceManager.UnRegister;
-import Zeze.Services.ServiceManager.UnSubscribe;
-import Zeze.Services.ServiceManager.Update;
+import Zeze.Services.ServiceManager.*;
 import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
@@ -704,6 +686,16 @@ public final class ServiceManagerServer implements Closeable {
 		return 0;
 	}
 
+	private long processNormalClose(NormalClose r) {
+		var session = (Session)r.getSender().getUserState();
+		synchronized (session.offlineRegisterNotifies) {
+			// 正常关闭，不做异常下线通知。
+			session.offlineRegisterNotifies.clear();
+		}
+		r.SendResult();
+		return 0;
+	}
+
 	@Override
 	public void close() throws IOException {
 		try {
@@ -750,7 +742,8 @@ public final class ServiceManagerServer implements Closeable {
 				OfflineRegister::new, this::processOfflineRegister, TransactionLevel.None, DispatchMode.Critical));
 		server.AddFactoryHandle(OfflineNotify.TypeId_, new Service.ProtocolFactoryHandle<>(
 				OfflineNotify::new, null, TransactionLevel.None, DispatchMode.Direct));
-
+		server.AddFactoryHandle(NormalClose.TypeId_, new Service.ProtocolFactoryHandle<>(
+				NormalClose::new, this::processNormalClose, TransactionLevel.None, DispatchMode.Critical));
 		if (this.config.startNotifyDelay > 0) {
 			//noinspection NonAtomicOperationOnVolatileField
 			startNotifyDelayTask = Task.scheduleUnsafe(this.config.startNotifyDelay, () -> {

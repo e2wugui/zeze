@@ -334,6 +334,7 @@ public final class Agent extends AbstractAgent {
 
 	public synchronized void stop() throws Exception {
 		if (client != null) {
+			new NormalClose().SendAndWaitCheckResultCode(client.getSocket());
 			client.stop();
 			client = null;
 		}

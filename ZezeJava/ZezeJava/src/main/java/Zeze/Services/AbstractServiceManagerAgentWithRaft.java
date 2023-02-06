@@ -44,6 +44,13 @@ public abstract class AbstractServiceManagerAgentWithRaft extends Zeze.Services.
             service.AddFactoryHandle(47339747890828L, factoryHandle); // 11022, 618354316
         }
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.ServiceManagerWithRaft.NormalClose>();
+            factoryHandle.Factory = Zeze.Builtin.ServiceManagerWithRaft.NormalClose::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessNormalCloseResponse", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessNormalCloseResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47342647871189L, factoryHandle); // 11022, -776632619
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.ServiceManagerWithRaft.NotifyServiceList>();
             factoryHandle.Factory = Zeze.Builtin.ServiceManagerWithRaft.NotifyServiceList::new;
             factoryHandle.Handle = this::ProcessNotifyServiceListRequest;
@@ -134,6 +141,7 @@ public abstract class AbstractServiceManagerAgentWithRaft extends Zeze.Services.
         service.getFactorys().remove(47340049712890L);
         service.getFactorys().remove(47341226054794L);
         service.getFactorys().remove(47339747890828L);
+        service.getFactorys().remove(47342647871189L);
         service.getFactorys().remove(47339587192283L);
         service.getFactorys().remove(47340558537840L);
         service.getFactorys().remove(47340511174741L);

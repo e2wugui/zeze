@@ -1187,6 +1187,7 @@
 				<enum name="ServiceIdentityNotExist" value="3"/>
 				<enum name="ServiceNotSubscribe" value="4"/>
 			</rpc>
+			<rpc name="NormalClose" base="Zeze.Raft.RaftRpc" handle="server"/>
 
 			<!-- autokey -->
 			<bean name="BAutoKey" kind="rocks">
