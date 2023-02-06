@@ -143,9 +143,9 @@ namespace Zeze.Builtin.Provider
             _modules.InitRootInfo(root, this);
         }
 
-        protected override void ResetChildrenRootInfo()
+        protected override void InitChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root)
         {
-            _modules.ResetRootInfo();
+            _modules.InitRootInfoWithRedo(root, this);
         }
 
         public override bool NegativeCheck()

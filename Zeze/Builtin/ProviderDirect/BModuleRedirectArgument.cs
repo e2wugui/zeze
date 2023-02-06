@@ -377,14 +377,6 @@ namespace Zeze.Builtin.ProviderDirect
             }
         }
 
-        protected override void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root)
-        {
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-        }
-
         public override bool NegativeCheck()
         {
             if (ModuleId < 0) return true;

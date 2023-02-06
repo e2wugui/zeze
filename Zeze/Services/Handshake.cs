@@ -587,18 +587,6 @@ namespace Zeze.Services.Handshake
             bb.WriteInt(CompressS2c);
             bb.WriteInt(CompressC2s);
         }
-
-#if !USE_CONFCS
-        protected override void InitChildrenRootInfo(Transaction.Record.RootInfo root)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-            throw new NotImplementedException();
-        }
-#endif
     }
 
 #if USE_CONFCS
@@ -629,18 +617,6 @@ namespace Zeze.Services.Handshake
             bb.WriteInt(CompressC2s);
             bb.WriteInt(EncryptType);
         }
-
-#if !USE_CONFCS
-        protected override void InitChildrenRootInfo(Transaction.Record.RootInfo root)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-            throw new NotImplementedException();
-        }
-#endif
     }
 
     public sealed class CHandshake : Protocol<CHandshakeArgument>
@@ -713,18 +689,6 @@ namespace Zeze.Services.Handshake
             foreach (var c in SupportedCompressList)
                 bb.WriteInt(c);
         }
-
-#if !USE_CONFCS
-        protected override void InitChildrenRootInfo(Transaction.Record.RootInfo root)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-            throw new NotImplementedException();
-        }
-#endif
     }
 
     public sealed class SHandshake0 : Protocol<SHandshake0Argument>

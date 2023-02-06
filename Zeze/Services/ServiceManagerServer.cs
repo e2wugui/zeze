@@ -877,15 +877,6 @@ namespace Zeze.Services
                     NotifyContext = bb.Copy();
                 }
             }
-            protected override void ResetChildrenRootInfo()
-            {
-                throw new NotImplementedException();
-            }
-
-            protected override void InitChildrenRootInfo(Record.RootInfo root)
-            {
-                throw new NotImplementedException();
-            }
 
             public override void Decode(ByteBuffer bb)
             {
@@ -1774,16 +1765,6 @@ namespace Zeze.Services.ServiceManager
             bb.WriteBinary(Param);
         }
 
-        protected override void InitChildrenRootInfo(Record.RootInfo root)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-            throw new NotImplementedException();
-        }
-
         public override string ToString()
         {
             return $"Ip={Ip} Port={Port} Param={BitConverter.ToString(Param.Bytes, Param.Offset, Param.Count)}";
@@ -1850,16 +1831,6 @@ namespace Zeze.Services.ServiceManager
             bb.WriteString(PassiveIp);
             bb.WriteInt(PassivePort);
             bb.WriteBinary(ExtraInfo);
-        }
-
-        protected override void InitChildrenRootInfo(Record.RootInfo root)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-            throw new NotImplementedException();
         }
 
         public override int GetHashCode()
@@ -1955,16 +1926,6 @@ namespace Zeze.Services.ServiceManager
         {
             bb.WriteString(ServiceName);
             bb.WriteInt(SubscribeType);
-        }
-
-        protected override void InitChildrenRootInfo(Record.RootInfo root)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-            throw new NotImplementedException();
         }
 
         public override string ToString()
@@ -2101,16 +2062,6 @@ namespace Zeze.Services.ServiceManager
             bb.WriteLong(SerialId);
         }
 
-        protected override void InitChildrenRootInfo(Record.RootInfo root)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-            throw new NotImplementedException();
-        }
-
         public override string ToString()
         {
             var sb = new StringBuilder();
@@ -2149,16 +2100,6 @@ namespace Zeze.Services.ServiceManager
         {
             bb.WriteString(ServiceName);
             bb.WriteLong(SerialId);
-        }
-
-        protected override void InitChildrenRootInfo(Record.RootInfo root)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-            throw new NotImplementedException();
         }
     }
 
@@ -2245,16 +2186,6 @@ namespace Zeze.Services.ServiceManager
             bb.WriteString(Name);
             bb.WriteInt(Count);
         }
-
-        protected override void InitChildrenRootInfo(Record.RootInfo root)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-            throw new NotImplementedException();
-        }
     }
 
     public sealed class AllocateIdResult : Bean
@@ -2275,16 +2206,6 @@ namespace Zeze.Services.ServiceManager
             bb.WriteString(Name);
             bb.WriteLong(StartId);
             bb.WriteInt(Count);
-        }
-
-        protected override void InitChildrenRootInfo(Record.RootInfo root)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-            throw new NotImplementedException();
         }
     }
 

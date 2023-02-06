@@ -90,9 +90,9 @@ namespace Zeze.Transaction.Collections
             Value.InitRootInfo(root, this);
         }
 
-        protected override void ResetChildrenRootInfo()
+        protected override void InitChildrenRootInfoWithRedo(Record.RootInfo root)
         {
-            Value.ResetRootInfo();
+            Value.InitRootInfoWithRedo(root, this);
         }
 
         public override void FollowerApply(Log _log)

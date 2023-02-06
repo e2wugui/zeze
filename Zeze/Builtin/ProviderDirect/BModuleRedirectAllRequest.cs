@@ -477,9 +477,9 @@ namespace Zeze.Builtin.ProviderDirect
             _HashCodes.InitRootInfo(root, this);
         }
 
-        protected override void ResetChildrenRootInfo()
+        protected override void InitChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root)
         {
-            _HashCodes.ResetRootInfo();
+            _HashCodes.InitRootInfoWithRedo(root, this);
         }
 
         public override bool NegativeCheck()

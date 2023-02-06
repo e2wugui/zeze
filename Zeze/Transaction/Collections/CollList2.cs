@@ -214,11 +214,11 @@ namespace Zeze.Transaction.Collections
 			}
 		}
 
-		protected override void ResetChildrenRootInfo()
+		protected override void InitChildrenRootInfoWithRedo(Record.RootInfo root)
 		{
 			foreach (var v in _list)
 			{
-				v.ResetRootInfo();
+				v.InitRootInfoWithRedo(root, this);
 			}
 		}
 

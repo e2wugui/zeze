@@ -280,14 +280,6 @@ namespace Zeze.Builtin.Collections.Queue
             }
         }
 
-        protected override void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root)
-        {
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-        }
-
         public override bool NegativeCheck()
         {
             if (HeadNodeId < 0) return true;

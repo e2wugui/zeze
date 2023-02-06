@@ -323,10 +323,10 @@ namespace Zeze.Builtin.Collections.DepartmentTree
             _Managers.InitRootInfo(root, this);
         }
 
-        protected override void ResetChildrenRootInfo()
+        protected override void InitChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root)
         {
-            _Childs.ResetRootInfo();
-            _Managers.ResetRootInfo();
+            _Childs.InitRootInfoWithRedo(root, this);
+            _Managers.InitRootInfoWithRedo(root, this);
         }
 
         public override bool NegativeCheck()

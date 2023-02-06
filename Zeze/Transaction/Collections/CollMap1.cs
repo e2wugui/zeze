@@ -125,14 +125,6 @@ namespace Zeze.Transaction.Collections
 			return log;
 		}
 
-		protected override void InitChildrenRootInfo(Record.RootInfo root)
-		{ 
-		}
-
-		protected override void ResetChildrenRootInfo()
-		{
-		}
-
 		public override CollMap1<K, V> Copy()
 		{
 			var copy = new CollMap1<K, V>();

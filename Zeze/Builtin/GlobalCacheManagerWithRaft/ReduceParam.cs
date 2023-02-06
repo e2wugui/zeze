@@ -181,14 +181,6 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             }
         }
 
-        protected override void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root)
-        {
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-        }
-
         public override bool NegativeCheck()
         {
             if (State < 0) return true;

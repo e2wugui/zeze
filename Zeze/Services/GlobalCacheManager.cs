@@ -1085,16 +1085,6 @@ namespace Zeze.Services.GlobalCacheManager
             bb.WriteInt(State);
         }
 
-        protected override void InitChildrenRootInfo(Record.RootInfo root)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-            throw new NotImplementedException();
-        }
-
         public override string ToString()
         {
             return GlobalKey + ":" + State;
@@ -1161,17 +1151,6 @@ namespace Zeze.Services.GlobalCacheManager
             bb.WriteInt(GlobalCacheManagerHashIndex);
             bb.WriteBool(DebugMode);
         }
-
-        protected override void InitChildrenRootInfo(Record.RootInfo root)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-            throw new NotImplementedException();
-        }
-
     }
 
     public sealed class AchillesHeelConfigFromGlobal : Bean
@@ -1193,17 +1172,6 @@ namespace Zeze.Services.GlobalCacheManager
             bb.WriteInt(ServerProcessTime);
             bb.WriteInt(ServerReleaseTimeout);
         }
-
-        protected override void InitChildrenRootInfo(Record.RootInfo root)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-            throw new NotImplementedException();
-        }
-
     }
 
     public sealed class Login : Rpc<LoginParam, AchillesHeelConfigFromGlobal>
@@ -1267,16 +1235,6 @@ namespace Zeze.Services.GlobalCacheManager
             bb.WriteInt(ServerId);
             bb.WriteString(SecureKey);
             bb.WriteInt(GlobalCacheManagerHashIndex);
-        }
-
-        protected override void InitChildrenRootInfo(Record.RootInfo root)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-            throw new NotImplementedException();
         }
     }
 

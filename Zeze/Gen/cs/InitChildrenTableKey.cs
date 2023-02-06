@@ -7,17 +7,45 @@ namespace Zeze.Gen.cs
     {
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "protected override void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root)");
-            sw.WriteLine(prefix + "{");
+            var genBegin = false;
             foreach (Variable v in bean.Variables)
             {
-                if (v.VariableType.IsNormalBean || v.VariableType.IsCollection)
+                if (v.VariableType.IsNormalBean || v.VariableType.IsCollection || v.VariableType is TypeDynamic)
+                {
+                    if (!genBegin)
+                    {
+                        genBegin = true;
+                        sw.WriteLine(prefix + "protected override void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root)");
+                        sw.WriteLine(prefix + "{");
+                    }
                     sw.WriteLine(prefix + "    " + v.NamePrivate + ".InitRootInfo(root, this);");
-                else if (v.VariableType is TypeDynamic)
-                    sw.WriteLine(prefix + "    " + v.NamePrivate + ".InitRootInfo(root, this);");
+                }
             }
-            sw.WriteLine(prefix + "}");
-            sw.WriteLine();
+            if (genBegin)
+            {
+                sw.WriteLine(prefix + "}");
+                sw.WriteLine();
+            }
+
+            genBegin = false;
+            foreach (Variable v in bean.Variables)
+            {
+                if (v.VariableType.IsNormalBean || v.VariableType.IsCollection || v.VariableType is TypeDynamic)
+                {
+                    if (!genBegin)
+                    {
+                        genBegin = true;
+                        sw.WriteLine(prefix + "protected override void InitChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root)");
+                        sw.WriteLine(prefix + "{");
+                    }
+                    sw.WriteLine(prefix + "    " + v.NamePrivate + ".InitRootInfoWithRedo(root, this);");
+                }
+            }
+            if (genBegin)
+            {
+                sw.WriteLine(prefix + "}");
+                sw.WriteLine();
+            }
         }
 
         public static void MakeReset(Bean bean, StreamWriter sw, string prefix)
@@ -26,9 +54,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "{");
             foreach (Variable v in bean.Variables)
             {
-                if (v.VariableType.IsNormalBean || v.VariableType.IsCollection)
-                    sw.WriteLine(prefix + "    " + v.NamePrivate + ".ResetRootInfo();");
-                else if (v.VariableType is TypeDynamic)
+                if (v.VariableType.IsNormalBean || v.VariableType.IsCollection || v.VariableType is TypeDynamic)
                     sw.WriteLine(prefix + "    " + v.NamePrivate + ".ResetRootInfo();");
             }
             sw.WriteLine(prefix + "}");

@@ -919,16 +919,6 @@ namespace Zeze.Raft
             bb.WriteBool(NodeReady);
         }
 
-        protected override void InitChildrenRootInfo(Record.RootInfo root)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-            throw new NotImplementedException();
-        }
-
         public override string ToString()
         {
             return $"(Term={Term} CandidateId={CandidateId} LastLogIndex={LastLogIndex} LastLogTerm={LastLogTerm})";
@@ -950,16 +940,6 @@ namespace Zeze.Raft
         {
             bb.WriteLong(Term);
             bb.WriteBool(VoteGranted);
-        }
-
-        protected override void InitChildrenRootInfo(Record.RootInfo root)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-            throw new NotImplementedException();
         }
 
         public override string ToString()
@@ -1022,16 +1002,6 @@ namespace Zeze.Raft
             bb.WriteLong(LeaderCommit);
         }
 
-        protected override void InitChildrenRootInfo(Record.RootInfo root)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-            throw new NotImplementedException();
-        }
-
         public override string ToString()
         {
             return $"(Term={Term} LeaderId={LeaderId} PrevLogIndex={PrevLogIndex} PrevLogTerm={PrevLogTerm} LeaderCommit={LeaderCommit})";
@@ -1056,16 +1026,6 @@ namespace Zeze.Raft
             bb.WriteLong(Term);
             bb.WriteBool(Success);
             bb.WriteLong(NextIndex);
-        }
-
-        protected override void InitChildrenRootInfo(Record.RootInfo root)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-            throw new NotImplementedException();
         }
 
         public override string ToString()
@@ -1124,16 +1084,6 @@ namespace Zeze.Raft
             bb.WriteBinary(LastIncludedLog);
         }
 
-        protected override void InitChildrenRootInfo(Record.RootInfo root)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-            throw new NotImplementedException();
-        }
-
         public override string ToString()
         {
             return $"(Term={Term} LeaderId={LeaderId} LastIncludedIndex={LastIncludedIndex} LastIncludedTerm={LastIncludedTerm} Offset={Offset} Done={Done})";
@@ -1158,16 +1108,6 @@ namespace Zeze.Raft
         {
             bb.WriteLong(Term);
             bb.WriteLong(Offset);
-        }
-
-        protected override void InitChildrenRootInfo(Record.RootInfo root)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-            throw new NotImplementedException();
         }
 
         public override string ToString()
@@ -1210,16 +1150,6 @@ namespace Zeze.Raft
             bb.WriteLong(Term);
             bb.WriteString(LeaderId);
             bb.WriteBool(IsLeader);
-        }
-
-        protected override void InitChildrenRootInfo(Record.RootInfo root)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-            throw new NotImplementedException();
         }
 
         public override string ToString()

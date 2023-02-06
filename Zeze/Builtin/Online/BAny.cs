@@ -126,9 +126,9 @@ namespace Zeze.Builtin.Online
             _Any.InitRootInfo(root, this);
         }
 
-        protected override void ResetChildrenRootInfo()
+        protected override void InitChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root)
         {
-            _Any.ResetRootInfo();
+            _Any.InitRootInfoWithRedo(root, this);
         }
 
         public override bool NegativeCheck()

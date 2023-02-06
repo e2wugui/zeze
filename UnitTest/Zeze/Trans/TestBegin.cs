@@ -23,14 +23,6 @@ namespace UnitTest.Zeze.Trans
                 throw new NotImplementedException();
             }
 
-            protected override void InitChildrenRootInfo(Record.RootInfo root)
-            {
-            }
-
-            protected override void ResetChildrenRootInfo()
-            {
-            }
-
             public int _i;
 
             class MyLog : Log<int>

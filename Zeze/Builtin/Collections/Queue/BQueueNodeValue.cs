@@ -177,9 +177,9 @@ namespace Zeze.Builtin.Collections.Queue
             _Value.InitRootInfo(root, this);
         }
 
-        protected override void ResetChildrenRootInfo()
+        protected override void InitChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root)
         {
-            _Value.ResetRootInfo();
+            _Value.InitRootInfoWithRedo(root, this);
         }
 
         public override bool NegativeCheck()

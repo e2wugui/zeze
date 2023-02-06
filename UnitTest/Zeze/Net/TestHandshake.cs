@@ -70,14 +70,6 @@ namespace UnitTest.Zeze.Net
             {
                 bb.WriteString(Name);
             }
-
-            protected override void InitChildrenRootInfo(Record.RootInfo root)
-            {
-            }
-
-            protected override void ResetChildrenRootInfo()
-            {
-            }
         }
         public class Hello : Rpc<Param, Param>
         {

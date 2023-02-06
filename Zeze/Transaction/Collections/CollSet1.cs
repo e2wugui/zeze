@@ -86,14 +86,6 @@ namespace Zeze.Transaction.Collections
 			_set = tmp;
 		}
 
-        protected override void InitChildrenRootInfo(Record.RootInfo root)
-        {
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-        }
-
         public override CollSet1<V> Copy()
 		{
             var copy = new CollSet1<V>

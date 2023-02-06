@@ -391,9 +391,9 @@ namespace Zeze.Builtin.ProviderDirect
             _Hashs.InitRootInfo(root, this);
         }
 
-        protected override void ResetChildrenRootInfo()
+        protected override void InitChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root)
         {
-            _Hashs.ResetRootInfo();
+            _Hashs.InitRootInfoWithRedo(root, this);
         }
 
         public override bool NegativeCheck()

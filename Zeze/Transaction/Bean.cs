@@ -64,7 +64,14 @@ namespace Zeze.Transaction
 
         public void InitRootInfoWithRedo(Record.RootInfo rootInfo, Bean parent)
         {
-            InitRootInfo(rootInfo, parent);
+            if (IsManaged)
+            {
+                throw new HasManagedException();
+            }
+            this.RootInfo = rootInfo;
+            this.Parent = parent;
+            Transaction.WhileRedo(this);
+            InitChildrenRootInfoWithRedo(rootInfo);
         }
 
         public void InitRootInfo(Record.RootInfo rootInfo, Bean parent)
@@ -75,8 +82,6 @@ namespace Zeze.Transaction
             }
             this.RootInfo = rootInfo;
             this.Parent = parent;
-            if (parent != null)
-                Transaction.WhileRedo(this);
             InitChildrenRootInfo(rootInfo);
         }
 
@@ -86,11 +91,14 @@ namespace Zeze.Transaction
             Parent = null;
         }
 
-        // [Obsolete]
-        protected abstract void ResetChildrenRootInfo();
-
         // 用在第一次加载Bean时，需要初始化它的root
-        protected abstract void InitChildrenRootInfo(Record.RootInfo root);
+        protected virtual void InitChildrenRootInfo(Record.RootInfo root)
+        {
+        }
+
+        protected virtual void InitChildrenRootInfoWithRedo(Record.RootInfo root)
+        {
+        }
 
         public abstract void Decode(global::Zeze.Serialize.ByteBuffer bb);
         public abstract void Encode(global::Zeze.Serialize.ByteBuffer bb);
@@ -152,14 +160,6 @@ namespace Zeze.Transaction
         public override void Encode(ByteBuffer bb)
         {
             bb.WriteByte(0);
-        }
-
-        protected override void InitChildrenRootInfo(Record.RootInfo root)
-        {
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
         }
 
         public override EmptyBean Copy()
@@ -338,10 +338,9 @@ namespace Zeze.Transaction
             Bean_.InitRootInfo(root, this);
         }
 
-        // [Obsolete]
-        protected override void ResetChildrenRootInfo()
+        protected override void InitChildrenRootInfoWithRedo(Record.RootInfo root)
         {
-            Bean_.ResetRootInfo();
+            Bean_.InitRootInfoWithRedo(root, this);
         }
 
         public override void FollowerApply(Zeze.Transaction.Log log)

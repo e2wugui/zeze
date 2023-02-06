@@ -234,9 +234,9 @@ namespace Zeze.Builtin.Collections.LinkedMap
             _Values.InitRootInfo(root, this);
         }
 
-        protected override void ResetChildrenRootInfo()
+        protected override void InitChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root)
         {
-            _Values.ResetRootInfo();
+            _Values.InitRootInfoWithRedo(root, this);
         }
 
         public override bool NegativeCheck()

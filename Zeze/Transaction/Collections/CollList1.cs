@@ -180,14 +180,6 @@ namespace Zeze.Transaction.Collections
 			}
 		}
 
-		protected override void InitChildrenRootInfo(Record.RootInfo root)
-		{
-		}
-
-		protected override void ResetChildrenRootInfo()
-		{
-		}
-
 		public override CollList1<E> Copy()
 		{
             var copy = new CollList1<E>

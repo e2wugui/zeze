@@ -179,14 +179,6 @@ namespace Zeze.Builtin.Game.Online
             }
         }
 
-        protected override void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root)
-        {
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-        }
-
         public override bool NegativeCheck()
         {
             if (ReliableNotifyConfirmIndex < 0) return true;

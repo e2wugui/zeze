@@ -183,9 +183,9 @@ namespace Zeze.Builtin.Game.Online
             _Notifies.InitRootInfo(root, this);
         }
 
-        protected override void ResetChildrenRootInfo()
+        protected override void InitChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root)
         {
-            _Notifies.ResetRootInfo();
+            _Notifies.InitRootInfoWithRedo(root, this);
         }
 
         public override bool NegativeCheck()

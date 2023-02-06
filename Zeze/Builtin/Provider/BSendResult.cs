@@ -130,9 +130,9 @@ namespace Zeze.Builtin.Provider
             _ErrorLinkSids.InitRootInfo(root, this);
         }
 
-        protected override void ResetChildrenRootInfo()
+        protected override void InitChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root)
         {
-            _ErrorLinkSids.ResetRootInfo();
+            _ErrorLinkSids.InitRootInfoWithRedo(root, this);
         }
 
         public override bool NegativeCheck()

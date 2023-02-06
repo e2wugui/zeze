@@ -227,9 +227,9 @@ namespace Zeze.Builtin.Game.Bag
             _Item.InitRootInfo(root, this);
         }
 
-        protected override void ResetChildrenRootInfo()
+        protected override void InitChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root)
         {
-            _Item.ResetRootInfo();
+            _Item.InitRootInfoWithRedo(root, this);
         }
 
         public override bool NegativeCheck()

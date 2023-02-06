@@ -515,14 +515,6 @@ namespace Zeze.Transaction
                 Put(current, null);
             }
 
-            protected override void InitChildrenRootInfo(Record.RootInfo root)
-            {
-            }
-
-            protected override void ResetChildrenRootInfo()
-            {
-            }
-
             public override void Decode(ByteBuffer bb)
             {
             }

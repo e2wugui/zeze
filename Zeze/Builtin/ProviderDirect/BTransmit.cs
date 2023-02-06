@@ -283,9 +283,9 @@ namespace Zeze.Builtin.ProviderDirect
             _Roles.InitRootInfo(root, this);
         }
 
-        protected override void ResetChildrenRootInfo()
+        protected override void InitChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root)
         {
-            _Roles.ResetRootInfo();
+            _Roles.InitRootInfoWithRedo(root, this);
         }
 
         public override bool NegativeCheck()

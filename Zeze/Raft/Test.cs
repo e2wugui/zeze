@@ -730,16 +730,6 @@ namespace Zeze.Raft
                 bb.WriteLong(Count);
             }
 
-            protected override void InitChildrenRootInfo(Record.RootInfo root)
-            {
-                throw new NotImplementedException();
-            }
-
-            protected override void ResetChildrenRootInfo()
-            {
-                throw new NotImplementedException();
-            }
-
             public override string ToString()
             {
                 return $"Count={Count}";

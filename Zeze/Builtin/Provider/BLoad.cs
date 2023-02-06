@@ -279,14 +279,6 @@ namespace Zeze.Builtin.Provider
             }
         }
 
-        protected override void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root)
-        {
-        }
-
-        protected override void ResetChildrenRootInfo()
-        {
-        }
-
         public override bool NegativeCheck()
         {
             if (Online < 0) return true;
