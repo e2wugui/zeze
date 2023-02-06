@@ -404,7 +404,7 @@ public final class ServiceManagerServer implements Closeable {
 		// 如果是负数，将不会进行延迟通知，即这种情况下，通知马上发出。
 
 		private final HashMap<String, BOfflineNotify> offlineRegisterNotifies = new HashMap<>(); // 使用的时候加锁保护。value:notifyId
-		public static final long eOfflineNotifyDelay = 60 * 1000;
+		public static final long eOfflineNotifyDelay = 600 * 1000;
 
 		public Session(ServiceManagerServer sm, long sid) {
 			serviceManager = sm;

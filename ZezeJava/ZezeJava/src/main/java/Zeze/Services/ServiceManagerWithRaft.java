@@ -148,7 +148,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		private final String name;
 		private final long sessionId;
 		private final Future<?> keepAliveTimerTask;
-		public static final long eOfflineNotifyDelay = 60 * 1000;
+		public static final long eOfflineNotifyDelay = 600 * 1000;
 
 		public Session(String name, long sessionId) {
 			this.name = name;
