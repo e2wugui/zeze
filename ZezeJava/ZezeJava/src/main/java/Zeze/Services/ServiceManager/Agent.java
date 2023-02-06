@@ -7,6 +7,7 @@ import Zeze.Net.Service.ProtocolFactoryHandle;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.Action1;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
@@ -144,8 +145,9 @@ public final class Agent extends AbstractAgent {
 	}
 
 	@Override
-	public void offlineRegister(BOfflineNotify argument) {
+	public void offlineRegister(BOfflineNotify argument, Action1<BOfflineNotify> handle) {
 		waitConnectorReady();
+		onOfflineNotifys.putIfAbsent(argument.notifyId, handle);
 		new OfflineRegister(argument).SendAndWaitCheckResultCode(client.getSocket());
 	}
 
@@ -272,12 +274,8 @@ public final class Agent extends AbstractAgent {
 	}
 
 	private long processOfflineNotify(OfflineNotify r) {
-		if (onOfflineNotify == null) {
-			r.trySendResultCode(1);
-			return 0;
-		}
 		try {
-			if (onOfflineNotify.call(r.Argument)) {
+			if (triggerOfflineNotify(r.Argument)) {
 				r.SendResult();
 				return 0;
 			}

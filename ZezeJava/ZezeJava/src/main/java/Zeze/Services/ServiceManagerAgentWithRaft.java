@@ -23,6 +23,7 @@ import Zeze.Services.ServiceManager.BServerLoad;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.Action1;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
@@ -109,12 +110,8 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 
 	@Override
 	protected long ProcessOfflineNotifyRequest(OfflineNotify r) throws Exception {
-		if (onOfflineNotify == null) {
-			r.trySendResultCode(1);
-			return 0;
-		}
 		try {
-			if (onOfflineNotify.call(r.Argument)) {
+			if (triggerOfflineNotify(r.Argument)) {
 				r.SendResult();
 				return 0;
 			}
@@ -301,8 +298,9 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	public void offlineRegister(BOfflineNotify argument) {
+	public void offlineRegister(BOfflineNotify argument, Action1<BOfflineNotify> handle) {
 		waitLoginReady();
+		onOfflineNotifys.putIfAbsent(argument.notifyId, handle);
 		raftClient.sendForWait(new OfflineRegister(argument)).await();
 	}
 

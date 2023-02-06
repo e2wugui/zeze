@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Net.Binary;
 import Zeze.Util.Action1;
 import Zeze.Util.Action2;
+import Zeze.Util.FewModifyList;
 import Zeze.Util.Func1;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
@@ -27,7 +28,9 @@ public abstract class AbstractAgent implements Closeable {
 	protected Action2<Agent.SubscribeState, BServiceInfo> onRemove; // Simple (UnRegister)
 	protected Action1<Agent.SubscribeState> onPrepare; // ReadyCommit 的第一步回调。
 	protected Action1<BServerLoad> onSetServerLoad;
-	protected Func1<BOfflineNotify, Boolean> onOfflineNotify; // 返回是否处理成功且不需要其它notifier继续处理
+
+	// 返回是否处理成功且不需要其它notifier继续处理
+	protected ConcurrentHashMap<String, Action1<BOfflineNotify>> onOfflineNotifys = new ConcurrentHashMap<>();
 
 	// 应用可以在这个Action内起一个测试事务并执行一次。也可以实现其他检测。
 	// ServiceManager 定时发送KeepAlive给Agent，并等待结果。超时则认为服务失效。
@@ -57,12 +60,18 @@ public abstract class AbstractAgent implements Closeable {
 		onSetServerLoad = value;
 	}
 
-	public void setOnOfflineNotify(Func1<BOfflineNotify, Boolean> value) {
-		onOfflineNotify = value;
-	}
+	protected boolean triggerOfflineNotify(BOfflineNotify notify) {
+		var handle = onOfflineNotifys.get(notify.notifyId);
+		if (null == handle)
+			return false;
 
-	public Func1<BOfflineNotify, Boolean> getOnOfflineNotify() {
-		return onOfflineNotify;
+		try {
+			handle.run(notify);
+			return true;
+		} catch (Exception ex) {
+			logger.error(ex);
+			return false;
+		}
 	}
 
 	public void setOnPrepare(Action1<Agent.SubscribeState> value) {
@@ -368,7 +377,7 @@ public abstract class AbstractAgent implements Closeable {
 
 	public abstract boolean setServerLoad(BServerLoad load);
 
-	public abstract void offlineRegister(BOfflineNotify argument);
+	public abstract void offlineRegister(BOfflineNotify argument, Action1<BOfflineNotify> handle);
 
 	protected static void setCurrentAndCount(AutoKey autoKey, long current, int count) {
 		autoKey.setCurrentAndCount(current, count);

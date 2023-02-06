@@ -8,7 +8,7 @@ public class BOfflineNotify extends Bean {
 	public int serverId;
 	public String notifyId;
 	public long notifySerialId; // context 如果够用就直接用这个，
-	public Binary notifyContext; // context 扩展context。
+	public Binary notifyContext = Binary.Empty; // context 扩展context。
 
 	@Override
 	public void encode(ByteBuffer bb) {

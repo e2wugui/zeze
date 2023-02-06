@@ -10,6 +10,7 @@ import Zeze.Arch.ProviderWithOnline;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Builtin.Timer.*;
 import Zeze.Collections.BeanFactory;
+import Zeze.Services.ServiceManager.BOfflineNotify;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
@@ -926,6 +927,12 @@ public class Timer extends AbstractTimer {
 			return 0L;
 		}, "LoadTimerLocal"))) {
 			var root = out.value;
+			var offlineNotify = new BOfflineNotify();
+			offlineNotify.serverId = zeze.getConfig().getServerId();
+			offlineNotify.notifySerialId = root.getLoadSerialNo();
+			offlineNotify.notifyId = "Zeze.Component.Timer.OfflineNotify";
+			zeze.getServiceManager().offlineRegister(offlineNotify,
+					(notify) -> spliceLoadTimer(notify.serverId, notify.notifySerialId));
 			loadTimer(root.getHeadNodeId(), root.getHeadNodeId(), serverId);
 		}
 	}
