@@ -10,7 +10,6 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 	private static final int HEADER_SIZE = 12; // moduleId[4] + protocolId[4] + size[4]
 
 	public DatagramSession DatagramSession;
-	public InetSocketAddress Remote;
 
 	private AsyncSocket sender;
 	private Object userState;
@@ -117,18 +116,23 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 
 	public final ByteBuffer encode() {
 		int preAllocSize = preAllocSize();
-
 		ByteBuffer bb = ByteBuffer.Allocate(Math.min(HEADER_SIZE + preAllocSize, 65536));
+		encodeWithHead(bb);
+		return bb;
+	}
+
+	public final void encodeWithHead(ByteBuffer bb) {
+		int oldSize = bb.size();
+
 		bb.WriteInt4(getModuleId());
 		bb.WriteInt4(getProtocolId());
 		int saveSize = bb.BeginWriteWithSize4();
 		this.encode(bb);
 		bb.EndWriteWithSize4(saveSize);
 
-		int size = bb.Size() - saveSize - 4;
-		if (size > preAllocSize)
+		int size = bb.size() - oldSize - saveSize - 4;
+		if (size > preAllocSize())
 			preAllocSize(size);
-		return bb;
 	}
 
 	public boolean Send(AsyncSocket so) {

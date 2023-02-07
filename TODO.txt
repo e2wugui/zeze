@@ -34,8 +34,11 @@ DatagramChannel java
 5. 加密，SessionId不加密+加密（递增SerialId+Data），SerialId使得相同的数据也加密出不一样的结果。
 6. 加密重放防止：Session记录当前最大的SerialId和时间，允许比当前SerialId大的包和一小段时间之前的未收到的包。
    一小段时间之前的未收到的包：记录当前时间之前3秒之间的所有SerialId，不处理收到的重复的，小于记录的最小时间的也丢弃。
+  加密数据最后加上SessionId用于简单解密验证。
    【这策略有必要吗？】
 7. 可靠Udp和加密，【不实现可靠Udp】，实现的话，使用流加密即可。
+8. a) 乱序丢弃，这种策略，第6点不需要复杂控制，只需要记录最大的serialId即可。
+    b) 允许乱序，
 initRootInfoWithRedo c#; @张路
 Time.OfflineNotify
 

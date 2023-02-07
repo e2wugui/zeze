@@ -92,12 +92,10 @@ public class DatagramService {
 		return new DatagramSocket(this, inetAddress);
 	}
 
-	public DatagramSession openSession(InetSocketAddress local, InetSocketAddress remote, long sessionId) throws IOException {
-		return bind(local).openSession(remote, sessionId);
-	}
-
-	public DatagramSession createSession(DatagramSocket sender, InetSocketAddress remote, long sessionId) {
-		return new DatagramSession(sender, remote, sessionId);
+	public DatagramSession createSession(InetSocketAddress local, InetSocketAddress remote,
+										 long sessionId, byte[] securityKey,
+										 DatagramSession.ReplayAttackPolicy replayAttackPolicy) throws IOException {
+		return bind(local).createSession(remote, sessionId, securityKey, replayAttackPolicy);
 	}
 
 	public final int getSocketCount() {
@@ -112,13 +110,11 @@ public class DatagramService {
 		return socketMap.get(sessionId);
 	}
 
-	public void onProcessDatagram(DatagramSession sender, InetSocketAddress source, ByteBuffer input) throws Exception {
+	public void onProcessDatagram(DatagramSession sender, ByteBuffer input) throws Exception {
 		// 由于参数不同，需要重新实现一个。
-		var single = input.ReadByteBuffer();
-		var p = Protocol.decode(this, single);
+		var p = Protocol.decode(this, input);
 		if (null != p) {
 			p.DatagramSession = sender;
-			p.Remote = source;
 			p.dispatch(this, findProtocolFactoryHandle(p.getTypeId()));
 		}
 	}

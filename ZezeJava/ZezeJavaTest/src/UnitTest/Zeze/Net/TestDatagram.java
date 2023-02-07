@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Net.DatagramService;
+import Zeze.Net.DatagramSession;
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import Zeze.Transaction.Bean;
@@ -23,10 +24,15 @@ public class TestDatagram {
 				ProtoValue::new, this::processServerPValue, TransactionLevel.None, DispatchMode.Normal
 				));
 
+		byte[] securityKey = new byte[] {1, 2, 3, 4};
 		// server
-		service.bind(new InetSocketAddress(4000));
+		var server = service.bind(new InetSocketAddress(4000));
+		server.createSession(null, 1, securityKey, DatagramSession.ReplayAttackPolicy.AllowDisorder);
 		// client
-		var session = service.openSession(new InetSocketAddress(0), new InetSocketAddress("127.0.0.1", 4000), 1);
+		var session = service.createSession(
+				new InetSocketAddress(0),
+				new InetSocketAddress("127.0.0.1", 4000),
+				1, securityKey, DatagramSession.ReplayAttackPolicy.AllowDisorder);
 		var p = new ProtoValue();
 		p.Argument.setString3("hello");
 		session.send(p);
@@ -38,7 +44,7 @@ public class TestDatagram {
 
 	private long processServerPValue(ProtoValue p) throws Exception {
 		helloNumber.incrementAndGet();
-		p.DatagramSession.send(p.Remote, p);
+		p.DatagramSession.send(p);
 		System.out.println(p.Argument.getString3());
 		return 0;
 	}

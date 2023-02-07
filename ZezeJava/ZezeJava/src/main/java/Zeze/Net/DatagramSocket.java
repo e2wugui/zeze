@@ -56,8 +56,13 @@ public class DatagramSocket implements SelectorHandle, Closeable {
 		datagramChannel.send(java.nio.ByteBuffer.wrap(bb.Bytes, bb.ReadIndex, bb.size()), peer);
 	}
 
-	public DatagramSession openSession(InetSocketAddress remote, long sessionId) {
-		return sessions.computeIfAbsent(sessionId, key -> new DatagramSession(this, remote, sessionId));
+	public DatagramSession createSession(InetSocketAddress remote,
+										 long sessionId, byte[] securityKey,
+										 DatagramSession.ReplayAttackPolicy replayAttackPolicy) {
+		var session = new DatagramSession(this, remote, sessionId, securityKey, replayAttackPolicy);
+		if (null == sessions.putIfAbsent(sessionId, session))
+			return session;
+		return null;
 	}
 
 	@Override
@@ -69,10 +74,6 @@ public class DatagramSocket implements SelectorHandle, Closeable {
 				var bb = ByteBuffer.Wrap(buffer.array(), 0, buffer.position());
 				var ssid = bb.ReadLong();
 				var ss = sessions.get(ssid);
-				if (null == ss) {
-					ss = service.createSession(this, (InetSocketAddress)source, ssid);
-					sessions.putIfAbsent(ssid, ss);
-				}
 				if (null != ss)
 					ss.onProcessDatagram((InetSocketAddress)source, bb);
 			}
