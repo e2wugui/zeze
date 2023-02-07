@@ -9,7 +9,7 @@ public class DatagramSession {
 	private final DatagramSocket socket;
 	InetSocketAddress remote;
 	private final long sessionId;
-	private AtomicLong serialId = new AtomicLong();
+	private final AtomicLong serialId = new AtomicLong();
 	private final byte[] securityKey;
 	private ReplayAttackPolicy replayAttackPolicy = ReplayAttackPolicy.IncreasingOnly;
 
