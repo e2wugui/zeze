@@ -110,6 +110,9 @@ public class DatagramService {
 		return socketMap.get(sessionId);
 	}
 
+	/**
+	 * @param input 方法外绝对不能持有bb.Bytes的引用! 也就是只能在方法内读input.
+	 */
 	public void onProcessDatagram(DatagramSession sender, ByteBuffer input) throws Exception {
 		// 由于参数不同，需要重新实现一个。
 		var p = Protocol.decode(this, input);
@@ -119,10 +122,12 @@ public class DatagramService {
 		}
 	}
 
+	@SuppressWarnings("MethodMayBeStatic")
 	public void onSocketException(DatagramSocket sender, Throwable e) {
 		logger.error(sender, e);
 	}
 
+	@SuppressWarnings("RedundantThrows")
 	public void onSocketClose(DatagramSocket sender) throws Exception {
 		socketMap.remove(sender.getSessionId());
 	}
@@ -141,7 +146,9 @@ public class DatagramService {
 		return factorys.get(type);
 	}
 
-	public <P extends Protocol<?>> void dispatchProtocol(P p, Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
+	@SuppressWarnings("RedundantThrows")
+	public <P extends Protocol<?>> void dispatchProtocol(P p, Service.ProtocolFactoryHandle<P> factoryHandle)
+			throws Exception {
 		ProtocolHandle<P> handle = factoryHandle.Handle;
 		if (handle != null) {
 			TransactionLevel level = factoryHandle.Level;

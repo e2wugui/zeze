@@ -16,6 +16,7 @@ import org.apache.logging.log4j.Logger;
 public class DatagramSocket implements SelectorHandle, Closeable {
 	private static final Logger logger = LogManager.getLogger(DatagramSocket.class);
 	private final DatagramChannel datagramChannel;
+	private final Selector selector;
 	private SelectionKey selectionKey;
 	private final InetSocketAddress local;
 	private final DatagramService service;
@@ -33,8 +34,8 @@ public class DatagramSocket implements SelectorHandle, Closeable {
 		datagramChannel.configureBlocking(false);
 		datagramChannel.bind(local);
 		this.local = (InetSocketAddress)datagramChannel.getLocalAddress();
-		var selector = service.getSelectors().choice();
-		selector.register(datagramChannel, SelectionKey.OP_READ, this);
+		selector = service.getSelectors().choice();
+		selectionKey = selector.register(datagramChannel, SelectionKey.OP_READ, this);
 		service.addSocket(this); // ??? 最后加入 ???
 	}
 
@@ -46,14 +47,22 @@ public class DatagramSocket implements SelectorHandle, Closeable {
 		return local;
 	}
 
+	public void sendTo(SocketAddress peer, java.nio.ByteBuffer bb) throws IOException {
+		datagramChannel.send(bb, peer);
+	}
+
 	public void sendTo(SocketAddress peer, byte[] packet, int offset, int size) throws IOException {
 		datagramChannel.send(java.nio.ByteBuffer.wrap(packet, offset, size), peer);
 	}
 
 	public void sendTo(SocketAddress peer, Serializable p) throws IOException {
-		var bb = ByteBuffer.Allocate(512);
+		int preAllocSize = p.preAllocSize();
+		var bb = ByteBuffer.Allocate(Math.min(preAllocSize, 65536));
 		p.encode(bb);
-		datagramChannel.send(java.nio.ByteBuffer.wrap(bb.Bytes, bb.ReadIndex, bb.size()), peer);
+		int size = bb.WriteIndex;
+		if (size > preAllocSize)
+			p.preAllocSize(size);
+		datagramChannel.send(java.nio.ByteBuffer.wrap(bb.Bytes, 0, size), peer);
 	}
 
 	public DatagramSession createSession(InetSocketAddress remote,
@@ -68,11 +77,12 @@ public class DatagramSocket implements SelectorHandle, Closeable {
 	@Override
 	public void doHandle(SelectionKey key) throws Exception {
 		if (key.isReadable()) {
-			var buffer = java.nio.ByteBuffer.allocate(64 * 1024); // todo 记住复用。
+			var buffer = selector.getReadBuffer(); // 线程共享的buffer,只能本方法内临时使用
+			buffer.clear();
 			var source = datagramChannel.receive(buffer);
 			if (source != null) {
 				var bb = ByteBuffer.Wrap(buffer.array(), 0, buffer.position());
-				var ssid = bb.ReadLong();
+				var ssid = bb.ReadLong8();
 				var ss = sessions.get(ssid);
 				if (null != ss)
 					ss.onProcessDatagram((InetSocketAddress)source, bb);

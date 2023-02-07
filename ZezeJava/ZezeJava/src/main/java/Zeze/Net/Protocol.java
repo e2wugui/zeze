@@ -1,13 +1,12 @@
 package Zeze.Net;
 
-import java.net.InetSocketAddress;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Util.ProtocolFactoryFinder;
 
 public abstract class Protocol<TArgument extends Bean> implements Serializable {
-	private static final int HEADER_SIZE = 12; // moduleId[4] + protocolId[4] + size[4]
+	public static final int HEADER_SIZE = 12; // moduleId[4] + protocolId[4] + size[4]
 
 	public DatagramSession DatagramSession;
 
@@ -116,21 +115,19 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 
 	public final ByteBuffer encode() {
 		int preAllocSize = preAllocSize();
-		ByteBuffer bb = ByteBuffer.Allocate(Math.min(HEADER_SIZE + preAllocSize, 65536));
+		var bb = ByteBuffer.Allocate(Math.min(HEADER_SIZE + preAllocSize, 65536));
 		encodeWithHead(bb);
 		return bb;
 	}
 
 	public final void encodeWithHead(ByteBuffer bb) {
-		int oldSize = bb.size();
-
 		bb.WriteInt4(getModuleId());
 		bb.WriteInt4(getProtocolId());
 		int saveSize = bb.BeginWriteWithSize4();
-		this.encode(bb);
+		encode(bb);
 		bb.EndWriteWithSize4(saveSize);
 
-		int size = bb.size() - oldSize - saveSize - 4;
+		int size = bb.size() - saveSize - 4;
 		if (size > preAllocSize())
 			preAllocSize(size);
 	}

@@ -7,11 +7,11 @@ import Zeze.Serialize.ByteBuffer;
 
 public class DatagramSession {
 	private final DatagramSocket socket;
-	InetSocketAddress remote;
+	private InetSocketAddress remote;
 	private final long sessionId;
 	private final AtomicLong serialId = new AtomicLong();
 	private final byte[] securityKey;
-	private ReplayAttackPolicy replayAttackPolicy = ReplayAttackPolicy.IncreasingOnly;
+	private final ReplayAttackPolicy replayAttackPolicy; // = ReplayAttackPolicy.IncreasingOnly;
 
 	public enum ReplayAttackPolicy {
 		IncreasingOnly,
@@ -45,57 +45,56 @@ public class DatagramSession {
 	}
 
 	public void send(byte[] packet, int offset, int size) throws IOException {
-		var bb = ByteBuffer.Allocate();
-		bb.WriteLong(sessionId);
+		var bb = new BufferCodec(ByteBuffer.Allocate(8 + 9 + size));
+		bb.WriteLong8(sessionId);
 
 		// 下面这块数据加密
 		if (null == securityKey) {
 			bb.WriteLong(serialId.incrementAndGet());
 			bb.Append(packet, offset, size);
 		} else {
-			var securityBb = ByteBuffer.Allocate();
+			var securityBb = ByteBuffer.Allocate(9);
 			securityBb.WriteLong(serialId.incrementAndGet());
-			securityBb.Append(packet, offset, size);
-
-			var encryptedBuffer = new BufferCodec();
-			var encrypt = new Encrypt2(encryptedBuffer, securityKey);
-			encrypt.update(securityBb.Bytes, securityBb.ReadIndex, securityBb.size());
+			var encrypt = new Encrypt2(bb, securityKey);
+			encrypt.update(securityBb.Bytes, 0, securityBb.WriteIndex);
+			encrypt.update(packet, offset, size);
 			encrypt.flush();
-			bb.Append(encryptedBuffer.Bytes, encryptedBuffer.ReadIndex, encryptedBuffer.size());
 		}
 		// serialId 和 sendTo 之间有窗口，可能大的 serialId 后发送。这是udp，不解决这个问题了。
-		socket.sendTo(remote, bb.Bytes, bb.ReadIndex, bb.size());
+		socket.sendTo(remote, bb.Bytes, 0, bb.WriteIndex);
 	}
 
 	public void send(Protocol<?> p) throws IOException {
-		var bb = ByteBuffer.Allocate();
-		bb.WriteLong(sessionId);
+		int preAllocSize = p.preAllocSize();
+		var bb = new BufferCodec(ByteBuffer.Allocate(8 + 9 + Protocol.HEADER_SIZE + preAllocSize));
+		bb.WriteLong8(sessionId);
 
 		// 下面这块数据加密
 		if (null == securityKey) {
 			bb.WriteLong(serialId.incrementAndGet());
 			p.encodeWithHead(bb);
 		} else {
-			var securityBb = ByteBuffer.Allocate();
+			var securityBb = ByteBuffer.Allocate(9 + Protocol.HEADER_SIZE + preAllocSize);
 			securityBb.WriteLong(serialId.incrementAndGet());
 			p.encodeWithHead(securityBb);
-			var encryptedBuffer = new BufferCodec();
-			var encrypt = new Encrypt2(encryptedBuffer, securityKey);
-			encrypt.update(securityBb.Bytes, securityBb.ReadIndex, securityBb.size());
+			var encrypt = new Encrypt2(bb, securityKey);
+			encrypt.update(securityBb.Bytes, 0, securityBb.WriteIndex);
 			encrypt.flush();
-			bb.Append(encryptedBuffer.Bytes, encryptedBuffer.ReadIndex, encryptedBuffer.size());
 		}
 
 		// serialId 和 sendTo 之间有窗口，可能大的 serialId 后发送。这是udp，不解决这个问题了。
-		socket.sendTo(remote, bb.Bytes, bb.ReadIndex, bb.size());
+		socket.sendTo(remote, bb.Bytes, 0, bb.WriteIndex);
 	}
 
+	/**
+	 * @param bb 方法外绝对不能持有bb.Bytes的引用! 也就是只能在方法内读bb.
+	 */
 	public void onProcessDatagram(InetSocketAddress remote, ByteBuffer bb) throws Exception {
 		this.remote = remote;
 
 		// 解密
 		if (null != securityKey) {
-			var decryptBuffer = new BufferCodec();
+			var decryptBuffer = new BufferCodec(ByteBuffer.Allocate(bb.size()));
 			var decrypt = new Decrypt2(decryptBuffer, securityKey);
 			decrypt.update(bb.Bytes, bb.ReadIndex, bb.size());
 			decrypt.flush();
