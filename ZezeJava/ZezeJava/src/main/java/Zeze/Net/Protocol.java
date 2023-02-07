@@ -1,11 +1,16 @@
 package Zeze.Net;
 
+import java.net.InetSocketAddress;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
+import Zeze.Util.ProtocolFactoryFinder;
 
 public abstract class Protocol<TArgument extends Bean> implements Serializable {
 	private static final int HEADER_SIZE = 12; // moduleId[4] + protocolId[4] + size[4]
+
+	public DatagramSession DatagramSession;
+	public InetSocketAddress Remote;
 
 	private AsyncSocket sender;
 	private Object userState;
@@ -168,6 +173,12 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 		service.DispatchProtocol((P)this, factoryHandle);
 	}
 
+	@SuppressWarnings("unchecked")
+	public <P extends Protocol<?>> void dispatch(DatagramService service, Service.ProtocolFactoryHandle<P> factoryHandle)
+			throws Exception {
+		service.dispatchProtocol((P)this, factoryHandle);
+	}
+
 	/**
 	 * 单个协议解码。输入是一个完整的协议包，返回解出的协议。如果没有找到解码存根，返回null。
 	 *
@@ -175,7 +186,7 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 	 * @param singleEncodedProtocol 单个完整的协议包。
 	 * @return decoded protocol instance. if decode fail return null.
 	 */
-	public static Protocol<?> decode(Service service, ByteBuffer singleEncodedProtocol) {
+	public static Protocol<?> decode(ProtocolFactoryFinder service, ByteBuffer singleEncodedProtocol) {
 		int moduleId = singleEncodedProtocol.ReadInt4();
 		int protocolId = singleEncodedProtocol.ReadInt4();
 		int size = singleEncodedProtocol.ReadInt4();
@@ -185,7 +196,7 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 		singleEncodedProtocol.WriteIndex = endReadIndex;
 
 		Protocol<?> p = null;
-		var factoryHandle = service.findProtocolFactoryHandle(makeTypeId(moduleId, protocolId));
+		var factoryHandle = service.find(makeTypeId(moduleId, protocolId));
 		if (factoryHandle != null && factoryHandle.Factory != null) {
 			p = factoryHandle.Factory.create();
 			p.decode(singleEncodedProtocol);
@@ -193,6 +204,14 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 		singleEncodedProtocol.ReadIndex = endReadIndex;
 		singleEncodedProtocol.WriteIndex = savedWriteIndex;
 		return p;
+	}
+
+	public static Protocol<?> decode(Service service, ByteBuffer singleEncodedProtocol) {
+		return decode(service::findProtocolFactoryHandle, singleEncodedProtocol);
+	}
+
+	public static Protocol<?> decode(DatagramService service, ByteBuffer singleEncodedProtocol) {
+		return decode(service::findProtocolFactoryHandle, singleEncodedProtocol);
 	}
 
 	/**
