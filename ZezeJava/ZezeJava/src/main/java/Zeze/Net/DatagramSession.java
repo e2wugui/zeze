@@ -145,6 +145,7 @@ public class DatagramSession {
 			if (maxBitPosition > replayAttack.length * 8)
 				maxBitPosition %= replayAttack.length * 8;
 
+			maxReceiveSerialId = serialId;
 			return false; // allow
 		}
 		if (increase <= -replayAttack.length)
