@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import java.util.Arrays;
+
 public class ReplayAttackGrowRange implements ReplayAttack {
 	private long max;
 	private final byte[] range;
@@ -30,18 +32,24 @@ public class ReplayAttackGrowRange implements ReplayAttack {
 
 	@Override
 	public boolean replay(long serialId) {
+		if (serialId <= 0)
+			return true; // invalid id
 		long grow = serialId - max;
-		if (grow > range.length * 8L)
+		if (grow > Integer.MAX_VALUE)
 			return true; // 跳的太远，拒绝掉。
-
 		int increase = (int)grow;
 		if (increase > 0) { // grow clear
-			for (var i = 1; i < increase; ++i) {
-				// clear bit
-				var pos = (this.position + i) % (range.length * 8);
-				var index = pos / 8;
-				var bit = 1 << (pos % 8);
-				range[index] &= ~bit;
+			if (increase >= range.length * 8) {
+				// clear all
+				Arrays.fill(range, (byte)0);
+			} else {
+				// clear bit(还可以优化）
+				for (var i = 1; i < increase; ++i) {
+					var pos = (this.position + i) % (range.length * 8);
+					var index = pos / 8;
+					var bit = 1 << (pos % 8);
+					range[index] &= ~bit;
+				}
 			}
 			position += increase;
 			if (position >= range.length * 8)
