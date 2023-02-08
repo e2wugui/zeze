@@ -31,11 +31,9 @@ public class TestDatabaseMySql extends TestCase {
 		switch (hostName) {
 		case "doudouwang": // lichenghua's computer 2
 			return "jdbc:mysql://localhost/devtest?user=dev&password=devtest12345&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
-		case "DESKTOP-VVU42V2":
-		case "DESKTOP-48A4UQ1":
-			return null;
 		default:
-			return "jdbc:mysql://localhost:3306/mysql?user=root&password=123&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
+			return null; // 默认不测试mysql。
+			//return "jdbc:mysql://localhost:3306/mysql?user=root&password=123&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
 		}
 	}
 

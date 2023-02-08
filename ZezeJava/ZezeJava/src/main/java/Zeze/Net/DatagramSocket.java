@@ -75,6 +75,10 @@ public class DatagramSocket implements SelectorHandle, Closeable {
 		return null;
 	}
 
+	public void removeSession(DatagramSession session) {
+		sessions.remove(session.getSessionId());
+	}
+
 	@Override
 	public void doHandle(SelectionKey key) throws Exception {
 		if (key.isReadable()) {

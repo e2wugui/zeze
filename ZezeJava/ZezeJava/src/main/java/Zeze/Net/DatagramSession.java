@@ -119,4 +119,8 @@ public class DatagramSession {
 		}
 		socket.getService().onProcessDatagram(this, bb);
 	}
+
+	public void close() {
+		socket.removeSession(this);
+	}
 }

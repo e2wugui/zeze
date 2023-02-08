@@ -41,6 +41,7 @@ public class TestDatagram {
 		session.send(p);
 		while (helloNumber.get() < 3)
 			Thread.sleep(1);
+		service.stop();
 	}
 
 	AtomicLong helloNumber = new AtomicLong();

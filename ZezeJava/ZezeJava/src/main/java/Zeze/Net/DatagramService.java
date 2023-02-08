@@ -99,6 +99,20 @@ public class DatagramService {
 		return bind(local).createSession(remote, sessionId, securityKey, policy);
 	}
 
+	public void start() {
+
+	}
+
+	public void stop() {
+		socketMap.forEach(socket -> {
+			try {
+				socket.close();
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		});
+	}
+
 	public final int getSocketCount() {
 		return socketMap.size();
 	}
