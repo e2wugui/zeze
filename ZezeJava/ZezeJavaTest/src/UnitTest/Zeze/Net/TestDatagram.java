@@ -56,12 +56,15 @@ public class TestDatagram {
 	public void testReplay() {
 		var r = new ReplayAttackGrowRange(2);
 		Assert.assertFalse(r.replay(1));
+		Assert.assertEquals("010 pos=1 max=1", r.toString());
 		System.out.println(r);
 
 		Assert.assertFalse(r.replay(3));
+		Assert.assertEquals("01010 pos=3 max=3", r.toString());
 		System.out.println(r);
 
 		Assert.assertFalse(r.replay(2));
+		Assert.assertEquals("01110 pos=3 max=3", r.toString());
 		System.out.println(r);
 
 		Assert.assertTrue(r.replay(2));
@@ -70,15 +73,21 @@ public class TestDatagram {
 		Assert.assertFalse(r.replay(5));
 		Assert.assertFalse(r.replay(6));
 		Assert.assertFalse(r.replay(7));
+		Assert.assertEquals("011111110 pos=7 max=7", r.toString());
 		System.out.println(r);
 		Assert.assertFalse(r.replay(8));
+		Assert.assertEquals("011111111 pos=8 max=8", r.toString());
 		System.out.println(r);
 		Assert.assertFalse(r.replay(15));
+		Assert.assertEquals("0111111110000001 pos=15 max=15", r.toString());
 		System.out.println(r);
 		Assert.assertFalse(r.replay(16));
+		Assert.assertEquals("1111111110000001 pos=0 max=16", r.toString());
 		System.out.println(r);
 		Assert.assertFalse(r.replay(19));
+		Assert.assertEquals("1001111110000001 pos=3 max=19", r.toString());
 		System.out.println(r);
+		Assert.assertTrue(r.replay(3));
 	}
 
 	@Test
