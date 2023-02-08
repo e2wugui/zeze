@@ -1,21 +1,19 @@
 package Zeze.Util;
 
-import java.math.BigInteger;
-
 public class ReplayAttackGrowRange implements ReplayAttack {
-	private long maxReceiveSerialId;
-	private final byte[] replayAttack;
-	private int maxBitPosition;
+	private long max;
+	private final byte[] range;
+	private int position;
 
 	@Override
 	public String toString() {
 		var sb = new StringBuilder();
-		for (var b : replayAttack) {
+		for (var b : range) {
 			var bs = Integer.toBinaryString(b & 0xff);
 			for (var i = bs.length() - 1; i >= 0; --i)
 				sb.append(bs.charAt(i));
 		}
-		sb.append(" pos=").append(maxBitPosition).append(" max=").append(maxReceiveSerialId);
+		sb.append(" pos=").append(position).append(" max=").append(max);
 		return sb.toString();
 	}
 
@@ -27,49 +25,49 @@ public class ReplayAttackGrowRange implements ReplayAttack {
 		int capacity = 1;
 		while (limit > capacity)
 			capacity <<= 1;
-		replayAttack = new byte[capacity];
+		range = new byte[capacity];
 	}
 
 	@Override
 	public boolean replay(long serialId) {
-		long grow = serialId - maxReceiveSerialId;
-		if (grow > replayAttack.length * 8L)
+		long grow = serialId - max;
+		if (grow > range.length * 8L)
 			return true; // 跳的太远，拒绝掉。
 
 		int increase = (int)grow;
 		if (increase > 0) { // grow clear
 			for (var i = 1; i < increase; ++i) {
 				// clear bit
-				var pos = (maxBitPosition + i) % (replayAttack.length * 8);
+				var pos = (this.position + i) % (range.length * 8);
 				var index = pos / 8;
 				var bit = 1 << (pos % 8);
-				replayAttack[index] &= ~bit;
+				range[index] &= ~bit;
 			}
-			maxBitPosition += increase;
-			if (maxBitPosition >= replayAttack.length * 8)
-				maxBitPosition %= replayAttack.length * 8;
+			position += increase;
+			if (position >= range.length * 8)
+				position %= range.length * 8;
 
 			// set last bit
 			{
-				var index = maxBitPosition / 8;
-				var bit = 1 << (maxBitPosition % 8);
-				replayAttack[index] |= bit;
-				maxReceiveSerialId = serialId;
+				var index = position / 8;
+				var bit = 1 << (position % 8);
+				range[index] |= bit;
+				max = serialId;
 			}
 			return false; // allow
 		}
-		if (increase <= -replayAttack.length)
+		if (increase <= -range.length)
 			return true; // 过期的，拒绝掉。
 
-		var pos = maxBitPosition + increase;
+		var pos = this.position + increase;
 		if (pos < 0) // 有范围检查，只需要加一次，否则用while
-			pos += replayAttack.length;
+			pos += range.length;
 
 		var index = pos / 8;
 		var bit = 1 << (pos % 8);
-		if ((replayAttack[index] & bit) != 0)
+		if ((range[index] & bit) != 0)
 			return true; // duplicate
-		replayAttack[index] |= bit;
+		range[index] |= bit;
 		return false;
 	}
 
