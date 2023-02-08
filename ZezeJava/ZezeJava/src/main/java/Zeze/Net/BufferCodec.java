@@ -10,6 +10,10 @@ public final class BufferCodec extends ByteBuffer implements Codec {
 		super(1024);
 	}
 
+	public BufferCodec(int capacity) {
+		super(capacity);
+	}
+
 	public BufferCodec(ByteBuffer buffer) {
 		super(buffer.Bytes, buffer.ReadIndex, buffer.WriteIndex);
 	}

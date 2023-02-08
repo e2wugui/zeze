@@ -21,7 +21,6 @@ public class DatagramSocket implements SelectorHandle, Closeable {
 	private final DatagramChannel datagramChannel;
 	private final Selector selector;
 	private SelectionKey selectionKey;
-	private final InetSocketAddress local;
 	private final DatagramService service;
 	private final long sessionId = sessionIdGen.incrementAndGet(); // 注意这是DatagramSocket的sessionId, 跟DatagramSession的sessionId的意义不同
 	private final LongConcurrentHashMap<DatagramSession> sessions = new LongConcurrentHashMap<>(); // key: DatagramSession的sessionId
@@ -29,12 +28,31 @@ public class DatagramSocket implements SelectorHandle, Closeable {
 	DatagramSocket(DatagramService service, InetSocketAddress local) throws IOException {
 		this.service = service;
 		datagramChannel = DatagramChannel.open();
-		datagramChannel.configureBlocking(false);
-		datagramChannel.bind(local);
-		this.local = (InetSocketAddress)datagramChannel.getLocalAddress();
-		selector = service.getSelectors().choice();
-		selectionKey = selector.register(datagramChannel, SelectionKey.OP_READ, this);
-		service.addSocket(this); // ??? 最后加入 ???
+		try {
+			datagramChannel.configureBlocking(false);
+			var so = datagramChannel.socket();
+			Integer recvBufSize = service.getSocketOptions().getReceiveBuffer();
+			if (recvBufSize != null)
+				so.setReceiveBufferSize(recvBufSize);
+			Integer sendBufSize = service.getSocketOptions().getSendBuffer();
+			if (sendBufSize != null)
+				so.setSendBufferSize(sendBufSize);
+			datagramChannel.bind(local);
+			selector = service.getSelectors().choice();
+			selectionKey = selector.register(datagramChannel, 0, this); // 先获取key,因为有小概率出现事件处理比赋值更先执行
+			service.addSocket(this);
+			selector.register(datagramChannel, SelectionKey.OP_READ, this);
+		} catch (Throwable e) { // rethrow
+			try {
+				if (selectionKey != null)
+					close();
+				else
+					datagramChannel.close();
+			} catch (Exception ex) {
+				logger.error("close channel({}) exception:", this, ex);
+			}
+			throw e;
+		}
 	}
 
 	public DatagramService getService() {
@@ -45,8 +63,12 @@ public class DatagramSocket implements SelectorHandle, Closeable {
 		return sessionId;
 	}
 
-	public InetSocketAddress getLocal() {
-		return local;
+	public InetSocketAddress getLocal() { // 已经close的情况下返回null
+		try {
+			return (InetSocketAddress)datagramChannel.getLocalAddress();
+		} catch (IOException ignored) {
+			return null;
+		}
 	}
 
 	public void sendTo(SocketAddress peer, java.nio.ByteBuffer bb) throws IOException {
@@ -97,12 +119,12 @@ public class DatagramSocket implements SelectorHandle, Closeable {
 	}
 
 	@Override
-	public void doException(SelectionKey key, Throwable e) throws Exception {
+	public void doException(SelectionKey key, Throwable e) {
 		service.onSocketException(this, e);
 	}
 
 	@Override
-	public void close() throws IOException {
+	public void close() {
 		SelectionKey key;
 		synchronized (this) {
 			if (selectionKey == null)
@@ -112,13 +134,19 @@ public class DatagramSocket implements SelectorHandle, Closeable {
 		}
 		try {
 			service.onSocketClose(this);
-		} catch (Throwable e) {
-			logger.error("", e);
+		} catch (Exception e) {
+			logger.error("onSocketClose({}) exception:", this, e);
 		}
 		try {
 			key.channel().close();
-		} catch (IOException skip) {
-			logger.error("", skip);
+		} catch (IOException e) {
+			logger.error("close channel({}) exception:", this, e);
 		}
+	}
+
+	@Override
+	public String toString() {
+		var localAddress = getLocal();
+		return "[" + sessionId + ']' + (localAddress != null ? localAddress : "-"); // 如果有localAddress则表示还没close
 	}
 }

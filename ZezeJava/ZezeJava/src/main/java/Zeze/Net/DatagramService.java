@@ -24,9 +24,7 @@ public class DatagramService {
 	private Selectors selectors;
 
 	public DatagramService(String name) {
-		this.name = name;
-		zeze = null;
-		socketOptions = new SocketOptions();
+		this(name, (Config)null);
 	}
 
 	public DatagramService(String name, Config config) {
@@ -93,9 +91,8 @@ public class DatagramService {
 		return new DatagramSocket(this, inetAddress);
 	}
 
-	public DatagramSession createSession(InetSocketAddress local, InetSocketAddress remote,
-										 long sessionId, byte[] securityKey,
-										 ReplayAttackPolicy policy) throws IOException {
+	public DatagramSession createSession(InetSocketAddress local, InetSocketAddress remote, long sessionId,
+										 byte[] securityKey, ReplayAttackPolicy policy) throws IOException {
 		return bind(local).createSession(remote, sessionId, securityKey, policy);
 	}
 
@@ -106,8 +103,8 @@ public class DatagramService {
 		socketMap.forEach(socket -> {
 			try {
 				socket.close();
-			} catch (IOException e) {
-				throw new RuntimeException(e);
+			} catch (Exception e) {
+				logger.error("socket.close({}) exception:", socket, e);
 			}
 		});
 	}
@@ -138,8 +135,8 @@ public class DatagramService {
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
-	public void onSocketException(DatagramSocket sender, Throwable e) throws Exception {
-		logger.error(sender, e);
+	public void onSocketException(DatagramSocket sender, Throwable e) {
+		logger.error("onSocketException({})", sender, e);
 		sender.close();
 	}
 
@@ -153,9 +150,10 @@ public class DatagramService {
 	}
 
 	public final void addFactoryHandle(long type, Service.ProtocolFactoryHandle<? extends Protocol<?>> factory) {
-		if (factorys.putIfAbsent(type, factory) != null)
+		if (factorys.putIfAbsent(type, factory) != null) {
 			throw new IllegalStateException(String.format("duplicate factory type=%d moduleId=%d id=%d",
 					type, type >>> 32, type & 0xffff_ffffL));
+		}
 	}
 
 	public final Service.ProtocolFactoryHandle<? extends Protocol<?>> findProtocolFactoryHandle(long type) {
@@ -170,14 +168,15 @@ public class DatagramService {
 			TransactionLevel level = factoryHandle.Level;
 			Application zeze = this.zeze;
 			// 为了避免redirect时死锁,这里一律不在whileCommit时执行
-			if (zeze != null && level != TransactionLevel.None)
+			if (zeze != null && level != TransactionLevel.None) {
 				Task.runUnsafe(zeze.newProcedure(() -> handle.handle(p),
 								p.getClass().getName(), level, p.getUserState()), p,
 						Protocol::trySendResultCode, factoryHandle.Mode);
-			else
+			} else {
 				Task.runUnsafe(() -> handle.handle(p), p,
 						Protocol::trySendResultCode, null, factoryHandle.Mode);
+			}
 		} else
-			logger.warn("dispatchProtocol: Protocol Handle Not Found: {}", p);
+			logger.warn("dispatchProtocol({}): Protocol Handle Not Found: {}", p.getSender(), p);
 	}
 }

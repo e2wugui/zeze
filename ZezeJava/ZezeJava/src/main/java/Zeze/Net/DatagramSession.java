@@ -35,8 +35,7 @@ public class DatagramSession {
 		return sessionId;
 	}
 
-	public DatagramSession(DatagramSocket socket, InetSocketAddress remote,
-						   long sessionId, byte[] securityKey,
+	public DatagramSession(DatagramSocket socket, InetSocketAddress remote, long sessionId, byte[] securityKey,
 						   ReplayAttackPolicy policy) {
 		this.socket = socket;
 		this.remote = remote;
@@ -71,7 +70,7 @@ public class DatagramSession {
 			bb.WriteLong8(serialId);
 			bb.Append(packet, offset, size);
 		} else {
-			var bc = new BufferCodec(ByteBuffer.Allocate(8 + 8 + 8 + size));
+			var bc = new BufferCodec(8 + 8 + 8 + size);
 			bc.WriteLong8(sessionId);
 			bc.WriteLong8(serialId);
 			// 下面的数据需要加密
@@ -96,7 +95,7 @@ public class DatagramSession {
 			bb.WriteLong8(serialId);
 			p.encodeWithHead(bb);
 		} else {
-			var bc = new BufferCodec(ByteBuffer.Allocate(8 + 8 + 8 + Protocol.HEADER_SIZE + preAllocSize));
+			var bc = new BufferCodec(8 + 8 + 8 + Protocol.HEADER_SIZE + preAllocSize);
 			bc.WriteLong8(sessionId);
 			bc.WriteLong8(serialId);
 			// 下面的数据需要加密

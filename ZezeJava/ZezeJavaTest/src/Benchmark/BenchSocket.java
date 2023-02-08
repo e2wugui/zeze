@@ -43,7 +43,7 @@ public class BenchSocket {
 				rand.nextBytes(src[i]);
 			}
 			var b = new Zeze.Util.Benchmark();
-			BufferCodec bufcp = new BufferCodec(ByteBuffer.Allocate(count * block));
+			BufferCodec bufcp = new BufferCodec(count * block);
 			Compress cp = new Compress(bufcp);
 			var sum = 0L;
 			for (int i = 0; i < count; ++i) {
@@ -107,7 +107,7 @@ public class BenchSocket {
 		var src = prepareDatas(count / 3_0000, max);
 
 		System.out.println("benchmark ...");
-		BufferCodec bufcp = new BufferCodec(ByteBuffer.Allocate(count * max.value));
+		BufferCodec bufcp = new BufferCodec(count * max.value);
 		{
 			var b = new Zeze.Util.Benchmark();
 			Compress cp = new Compress(bufcp);
@@ -126,7 +126,7 @@ public class BenchSocket {
 		}
 		{
 			var b = new Zeze.Util.Benchmark();
-			BufferCodec bufdp = new BufferCodec(ByteBuffer.Allocate(count * max.value));
+			BufferCodec bufdp = new BufferCodec(count * max.value);
 			Decompress dp = new Decompress(bufdp);
 			dp.update(bufcp.getBuffer().Bytes, bufcp.getBuffer().ReadIndex, bufcp.getBuffer().size());
 			dp.flush();
@@ -142,7 +142,7 @@ public class BenchSocket {
 		var src = prepareDatas(1, max);
 		var count = 100_0000;
 
-		BufferCodec encrypt = new BufferCodec(ByteBuffer.Allocate(count * max.value));
+		BufferCodec encrypt = new BufferCodec(count * max.value);
 		{
 			var b = new Zeze.Util.Benchmark();
 			byte[] key = {1, 2, 3, 4, 5};
@@ -159,7 +159,7 @@ public class BenchSocket {
 			System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
 		}
 		{
-			BufferCodec decrypt = new BufferCodec(ByteBuffer.Allocate(count * max.value));
+			BufferCodec decrypt = new BufferCodec(count * max.value);
 			var b = new Zeze.Util.Benchmark();
 			byte[] key = {1, 2, 3, 4, 5};
 			var de = new Decrypt(decrypt, key);
@@ -179,8 +179,8 @@ public class BenchSocket {
 		var rand = new Random();
 		byte[] key = {1, 2, 3, 4, 5};
 
-		var encrypt = new BufferCodec(ByteBuffer.Allocate(count * max.value));
-		var decrypt = new BufferCodec(ByteBuffer.Allocate(count * max.value));
+		var encrypt = new BufferCodec(count * max.value);
+		var decrypt = new BufferCodec(count * max.value);
 		int enHashCode, deHashCode;
 		{
 			var b = new Zeze.Util.Benchmark();
@@ -208,8 +208,8 @@ public class BenchSocket {
 			System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s; hash=" + deHashCode);
 		}
 
-		encrypt = new BufferCodec(ByteBuffer.Allocate(count * max.value));
-		decrypt = new BufferCodec(ByteBuffer.Allocate(count * max.value));
+		encrypt = new BufferCodec(count * max.value);
+		decrypt = new BufferCodec(count * max.value);
 		int en2HashCode, de2HashCode;
 		{
 			var b = new Zeze.Util.Benchmark();
