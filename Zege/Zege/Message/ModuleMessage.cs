@@ -19,12 +19,12 @@ namespace Zege.Message
         }
 
         [DispatchMode(Mode = DispatchMode.UIThread)]
-        protected override Task<long> ProcessNotifyMessageRequest(Zeze.Net.Protocol _p)
+        protected override async Task<long> ProcessNotifyMessageRequest(Zeze.Net.Protocol _p)
         {
             var p = _p as NotifyMessage;
             var friend = Friends.GetOrAdd(p.Argument.From, (key) => new MessageFriend(this, key));
-            friend.OnNotifyMessage(p);
-            return Task.FromResult(0L);
+            await friend.OnNotifyMessage(p);
+            return 0;
         }
 
         [DispatchMode(Mode = DispatchMode.UIThread)]

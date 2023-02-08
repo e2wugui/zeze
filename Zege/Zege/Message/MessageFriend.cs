@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Zeze.Net;
 using Zeze.Serialize;
+using Zeze.Util;
 
 namespace Zege.Message
 {
@@ -34,11 +36,16 @@ namespace Zege.Message
             rpc.Send(Module.App.ClientService.GetSocket(), Module.ProcessGetFriendMessageResponse);
         }
 
-        public void OnNotifyMessage(NotifyMessage p)
+        public async Task OnNotifyMessage(NotifyMessage p)
         {
             if (false == ReachEnd)
                 return; // 本地消息历史没有包含最后一条消息，忽略新消息。等待用户翻页。
 
+            if (p.Argument.SecureKeyIndex >= 0)
+            {
+                var cert = await Module.App.Zege_User.LoadCertificate(p.Argument.SecureKeyIndex);
+                p.Argument.SecureMessage = new Binary(Cert.DecryptRsa(cert, p.Argument.SecureMessage.GetBytesUnsafe()));
+            }
             // 处理最新的消息。
             if (Messages.TryAdd(p.Argument.MessageId, p.Argument))
                 View.AddTail(p.Argument);
@@ -106,7 +113,8 @@ namespace Zege.Message
             rpc.Argument.Friend = Friend;
             rpc.Argument.Message.Type = BMessage.eTypeText;
             var textMessage = new BTextMessage() { Message = message };
-            rpc.Argument.Message.SecureMessage = new Zeze.Net.Binary(ByteBuffer.Encode(textMessage));
+            // 
+            rpc.Argument.Message.SecureMessage = new Binary(ByteBuffer.Encode(textMessage));
 
             await rpc.SendAsync(Module.App.ClientService.GetSocket());
             if (0 == rpc.ResultCode)

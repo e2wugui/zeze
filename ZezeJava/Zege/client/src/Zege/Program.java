@@ -1,6 +1,7 @@
 package Zege;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -10,6 +11,7 @@ import java.util.Locale;
 import Zege.Friend.*;
 import Zege.Message.*;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Util.Cert;
 import Zeze.Util.Counters;
 
 public class Program {
@@ -112,12 +114,12 @@ public class Program {
 				return -1L;
 			}
 		}
-		public void back() {
+		public void back() throws Exception {
 			Windows.remove(Windows.size() - 1);
 			Program.this.refresh();
 		}
 
-		public boolean process(String line) {
+		public boolean process(String line) throws Exception {
 			if (line.isEmpty()) {
 				Program.this.refresh();
 				return true;
@@ -162,15 +164,15 @@ public class Program {
 			return false;
 		}
 
-		public void refresh() {
+		public void refresh() throws Exception {
 		}
 
-		public boolean processNotifyMessage(BMessage notify) {
+		public boolean processNotifyMessage(BMessage notify) throws Exception {
 			return false;
 		}
 	}
 
-	public void OnMessage(NotifyMessage r) {
+	public void OnMessage(NotifyMessage r) throws Exception {
 		if (r.Argument.getGroup().isEmpty())
 			Program.counters.increment("RecvFriendMessage");
 		else
@@ -201,7 +203,7 @@ public class Program {
 		}
 
 		@Override
-		public boolean process(String line) {
+		public boolean process(String line) throws Exception {
 			// 聊天消息先处理基本命令。
 			if (super.process(line))
 				return true;
@@ -311,7 +313,7 @@ public class Program {
 		}
 
 		@Override
-		public boolean process(String line) {
+		public boolean process(String line) throws Exception {
 			// 聊天消息先处理基本命令。
 			if (super.process(line))
 				return true;
@@ -411,7 +413,7 @@ public class Program {
 		}
 
 		@Override
-		public boolean process(String line) {
+		public boolean process(String line) throws Exception {
 			// 聊天消息先处理基本命令。
 			if (super.process(line))
 				return true;
@@ -422,12 +424,23 @@ public class Program {
 		}
 
 		@Override
-		public boolean processNotifyMessage(BMessage notify) {
+		public boolean processNotifyMessage(BMessage notify) throws Exception {
 			if (notify.getGroup().isEmpty() && notify.getFrom().equals(Target)) {
-				if (notify.getSecureKeyIndex() == -1) {
-					System.out.println(notify.getFrom() + ": This Is A Encrypted Message.");
-				} else {
+				if (notify.getSecureKeyIndex() < 0) {
 					var bb = ByteBuffer.Wrap(notify.getSecureMessage());
+					var bMsg = new BTextMessage();
+					bMsg.decode(bb);
+					System.out.println(bMsg.getMessage());
+				} else {
+					var file = Instance.Self + ".pkcs12";
+					var passwd = "123";
+					var keyStore = Cert.loadKeyStore(new FileInputStream(file), passwd);
+					var privateKey = Cert.getPrivateKey(keyStore, passwd, Instance.Self + "." + notify.getSecureKeyIndex());
+					var origin = Cert.decryptRsa(privateKey,
+							notify.getSecureMessage().bytesUnsafe(),
+							notify.getSecureMessage().getOffset(),
+							notify.getSecureMessage().size());
+					var bb = ByteBuffer.Wrap(origin);
 					var bMsg = new BTextMessage();
 					bMsg.decode(bb);
 					System.out.println(bMsg.getMessage());
@@ -438,7 +451,7 @@ public class Program {
 		}
 
 		@Override
-		public void refresh() {
+		public void refresh() throws Exception {
 			var list = Main.ReceivedMessages.remove(new MessageTarget(Target, 0));
 			if (null != list) {
 				for (var notify : list)
@@ -490,10 +503,9 @@ public class Program {
 		}
 
 		@Override
-		public boolean process(String line) {
+		public boolean process(String line) throws Exception {
 			var cmd = line.split(" ");
-			switch (cmd[0])
-			{
+			switch (cmd[0]) {
 			case "open":
 				if (cmd.length > 1) {
 					var target = cmd[1];
@@ -534,12 +546,12 @@ public class Program {
 		}
 	}
 
-	private void addWindow(Window layer) {
+	private void addWindow(Window layer) throws Exception {
 		Windows.add(layer);
 		refresh();
 	}
 
-	private void refresh() {
+	private void refresh() throws Exception {
 		System.out.print("You Are '" + Self + "' Window=");
 		for (var layer : Windows) {
 			System.out.print("/");

@@ -31,6 +31,7 @@ public class ModuleMessage extends AbstractModule {
         if (null != message) {
             var bMsg = new BTextMessage();
             bMsg.setMessage(message);
+            req.Argument.getMessage().setSecureKeyIndex(-1);
             req.Argument.getMessage().setSecureMessage(new Binary(ByteBuffer.encode(bMsg)));
         }
         Program.counters.increment("SendFriendMessage");
@@ -38,7 +39,7 @@ public class ModuleMessage extends AbstractModule {
     }
 
     @Override
-    protected long ProcessNotifyMessageRequest(Zege.Message.NotifyMessage r) {
+    protected long ProcessNotifyMessageRequest(Zege.Message.NotifyMessage r) throws Exception {
         Zege.Program.Instance.OnMessage(r);
         return Procedure.Success;
     }

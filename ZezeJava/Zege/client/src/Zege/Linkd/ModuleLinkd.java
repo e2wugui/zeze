@@ -72,6 +72,7 @@ public class ModuleLinkd extends AbstractModule {
         var cert = Cert.loadCertificate(c.Result.getCert().bytesUnsafe());
         var passwd = "123".toCharArray();
         keyStore.setKeyEntry(account, rsa.getPrivate(), passwd, new Certificate[] { cert });
+        keyStore.setKeyEntry(account + "." + c.Result.getLastCertIndex(), rsa.getPrivate(), passwd, new Certificate[] { cert });
         keyStore.store(new FileOutputStream(fileName), passwd);
 
         // skip result

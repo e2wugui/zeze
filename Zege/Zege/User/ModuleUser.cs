@@ -1,4 +1,5 @@
 
+using System.Collections.Concurrent;
 using System.Security.Cryptography.X509Certificates;
 using Zeze.Net;
 using Zeze.Util;
@@ -17,9 +18,21 @@ namespace Zege.User
 
         public string Account { get; private set; }
         public X509Certificate2 Certificate { get; private set; }
+        private readonly Dictionary<long, X509Certificate2> CertificatesByIndex = new();
+        private string savedPasswd;
 
         public int ServerId;
         public String NotifyId;
+
+        public async Task<X509Certificate2> LoadCertificate(long certIndex)
+        {
+            if (CertificatesByIndex.TryGetValue(certIndex, out var cert))
+                return cert;
+            var pkcs12 = await SecureStorage.Default.GetAsync(Account + "." + certIndex + ".pkcs12");
+            cert = Cert.CreateFromPkcs12(pkcs12, savedPasswd);
+            CertificatesByIndex.Add(certIndex, cert);
+            return cert;
+        }
 
         public async Task<int> OpenCertAsync(string account, string passwd, bool save)
         {
@@ -33,6 +46,7 @@ namespace Zege.User
             var pkcs12 = Convert.FromBase64String(certSaved);
             if (null == passwd)
                 passwd = await SecureStorage.Default.GetAsync(account + ".password");
+            savedPasswd = passwd;
             Certificate = Cert.CreateFromPkcs12(pkcs12, passwd);
 
             // 证书打开成功以后，才进行密码修改或者删除。
@@ -76,7 +90,9 @@ namespace Zege.User
             if (savedPasswd)
                 await SecureStorage.Default.SetAsync(account + ".password", passwd);
             var pkcs12 = cert.Export(X509ContentType.Pkcs12, passwd);
-            await SecureStorage.Default.SetAsync(account + ".pkcs12", Convert.ToBase64String(pkcs12));
+            var base64 = Convert.ToBase64String(pkcs12);
+            await SecureStorage.Default.SetAsync(account + "." + c.Result.LastCertIndex + ".pkcs12", base64);
+            await SecureStorage.Default.SetAsync(account + ".pkcs12", base64);
             return 0;
         }
 
