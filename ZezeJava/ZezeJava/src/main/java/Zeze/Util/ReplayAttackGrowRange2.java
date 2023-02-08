@@ -9,7 +9,7 @@ public class ReplayAttackGrowRange2 implements ReplayAttack {
 	private final long[] bits;
 	private final int indexMask;
 	private final int windowSize;
-	private long maxSerialId;
+	private long maxSerialId = -1;
 
 	public ReplayAttackGrowRange2() {
 		this(1024 - BITS_MASK);
@@ -26,7 +26,7 @@ public class ReplayAttackGrowRange2 implements ReplayAttack {
 
 	@Override
 	public boolean replay(long serialId) {
-		if (serialId <= 0)
+		if (serialId < 0)
 			return true; // invalid
 		long delta = maxSerialId - serialId;
 		if (delta < 0) { // forward
@@ -36,7 +36,7 @@ public class ReplayAttackGrowRange2 implements ReplayAttack {
 					Arrays.fill(bits, 0); // 向前跳得太远,就全部清掉
 				else {
 					do
-						bits[(int)(++i & indexMask)] = 0;
+						bits[((int)++i & indexMask)] = 0;
 					while (i < j);
 				}
 			}
@@ -57,10 +57,13 @@ public class ReplayAttackGrowRange2 implements ReplayAttack {
 
 	@Override
 	public String toString() {
-		int n = (int)Math.min(maxSerialId, windowSize);
-		var sb = new StringBuilder(n);
-		for (int i = (int)maxSerialId; n > 0; i--, n--)
-			sb.append((bits[(i >> BITS_SHIFT) & indexMask] >> (i & BITS_MASK)) & 1);
-		return sb.append(" pos=").append(maxSerialId).append(" win=").append(windowSize).toString();
+		int n = maxSerialId < windowSize ? (int)(maxSerialId + 1) : windowSize;
+		var sb = new StringBuilder(n + 40);
+		for (int i = (int)maxSerialId - n + 1; n > 0; i++, n--)
+			sb.append((int)(bits[(i >> BITS_SHIFT) & indexMask] >> (i & BITS_MASK)) & 1);
+		return sb.append(" max=").append(maxSerialId)
+				.append(" win=").append(windowSize)
+				.append(" bits=[").append(bits.length).append(']')
+				.toString();
 	}
 }

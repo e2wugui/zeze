@@ -20,10 +20,10 @@ import Zeze.Util.LongHashMap;
 import org.jetbrains.annotations.NotNull;
 
 public class ByteBuffer implements Comparable<ByteBuffer> {
-	private static final VarHandle intLeHandler = MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.LITTLE_ENDIAN);
-	private static final VarHandle intBeHandler = MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.BIG_ENDIAN);
-	private static final VarHandle longLeHandler = MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.LITTLE_ENDIAN);
-	private static final VarHandle longBeHandler = MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.BIG_ENDIAN);
+	public static final VarHandle intLeHandler = MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.LITTLE_ENDIAN);
+	public static final VarHandle intBeHandler = MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.BIG_ENDIAN);
+	public static final VarHandle longLeHandler = MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.LITTLE_ENDIAN);
+	public static final VarHandle longBeHandler = MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.BIG_ENDIAN);
 	public static final boolean IGNORE_INCOMPATIBLE_FIELD = false; // 不忽略兼容字段则会抛异常
 	public static final byte[] Empty = new byte[0];
 

@@ -1,6 +1,5 @@
 package Benchmark;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -17,6 +16,7 @@ import Zeze.Net.Connector;
 import Zeze.Net.Decompress;
 import Zeze.Net.Decrypt;
 import Zeze.Net.Decrypt2;
+import Zeze.Net.Digest;
 import Zeze.Net.Encrypt;
 import Zeze.Net.Encrypt2;
 import Zeze.Net.Protocol;
@@ -213,7 +213,8 @@ public class BenchSocket {
 		int en2HashCode, de2HashCode;
 		{
 			var b = new Zeze.Util.Benchmark();
-			var en = new Encrypt2(encrypt, key);
+			var keyMd5 = Digest.md5(key);
+			var en = new Encrypt2(encrypt, keyMd5, keyMd5);
 			rand.setSeed(1); // 固定的随机种子。
 			for (int i = 0; i < count; ++i) {
 				var index = rand.nextInt(src.size());
@@ -228,7 +229,8 @@ public class BenchSocket {
 		}
 		{
 			var b = new Zeze.Util.Benchmark();
-			var de = new Decrypt2(decrypt, key);
+			var keyMd5 = Digest.md5(key);
+			var de = new Decrypt2(decrypt, keyMd5, keyMd5);
 			de.update(encrypt.getBuffer().Bytes, encrypt.getBuffer().ReadIndex, encrypt.getBuffer().size());
 			de.flush();
 			var seconds = b.report("decrypt2", count);
@@ -270,7 +272,7 @@ public class BenchSocket {
 
 	static class ClientService extends Zeze.Services.HandshakeClient {
 
-		public ClientService(String name, Config config) throws Exception {
+		public ClientService(String name, Config config) {
 			super(name, config);
 			AddFactoryHandle(new BenchEnd().getTypeId(), new ProtocolFactoryHandle<>(BenchEnd::new));
 		}
@@ -318,7 +320,7 @@ public class BenchSocket {
 	}
 
 	@Test
-	public void testOutputBufferCodec() throws IOException {
+	public void testOutputBufferCodec() {
 		var selectors = new Zeze.Net.Selectors("dummySelector");
 		var selector = selectors.choice();
 		var count = 200_0000;

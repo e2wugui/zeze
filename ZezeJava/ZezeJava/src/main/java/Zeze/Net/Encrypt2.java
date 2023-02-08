@@ -6,14 +6,15 @@ import Zeze.Util.Json;
 
 // AES(CFB) Encrypt
 public final class Encrypt2 implements Codec {
+	static final int KEY_SIZE = 16;
 	static final int BLOCK_SIZE = 16;
 	static final MethodHandle mhCryptCtor;
 	static final MethodHandle mhCryptInit;
 	static final MethodHandle mhCryptEncrypt;
 
-	private final Codec sink;
 	private final Object aesCrypt;
-	private final byte[] out;
+	private final byte[] out = new byte[BLOCK_SIZE];
+	private Codec sink;
 	private int sinkIndex;
 	private int writeIndex;
 
@@ -36,12 +37,37 @@ public final class Encrypt2 implements Codec {
 		}
 	}
 
-	public Encrypt2(Codec sink, byte[] key) throws CodecException {
+	/**
+	 * @param sink 如果为null,则需要reset才能开始加密
+	 * @param key  长度必须至少KEY_SIZE. 不能为null
+	 * @param iv   长度必须至少BLOCK_SIZE. 如果为null,则需要reset才能开始加密
+	 */
+	public Encrypt2(Codec sink, byte[] key, byte[] iv) throws CodecException {
 		this.sink = sink;
-		out = Digest.md5(key);
 		try {
 			aesCrypt = mhCryptCtor.invoke();
-			mhCryptInit.invoke(aesCrypt, false, "AES", out);
+			mhCryptInit.invoke(aesCrypt, false, "AES", key);
+			if (iv != null) {
+				System.arraycopy(iv, 0, out, 0, BLOCK_SIZE);
+				mhCryptEncrypt.invoke(aesCrypt, out, 0, out, 0);
+			}
+		} catch (RuntimeException | Error e) {
+			throw e;
+		} catch (Throwable e) { // MethodHandle.invoke
+			throw new CodecException(e);
+		}
+	}
+
+	/**
+	 * @param sink 不能为null
+	 * @param iv   长度必须至少BLOCK_SIZE. 不能为null
+	 */
+	public void reset(Codec sink, byte[] iv) {
+		System.arraycopy(iv, 0, out, 0, BLOCK_SIZE);
+		this.sink = sink;
+		sinkIndex = 0;
+		writeIndex = 0;
+		try {
 			mhCryptEncrypt.invoke(aesCrypt, out, 0, out, 0);
 		} catch (RuntimeException | Error e) {
 			throw e;

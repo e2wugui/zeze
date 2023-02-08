@@ -39,8 +39,10 @@ public class TestDatagram {
 		var p = new ProtoValue();
 		p.Argument.setString3("hello");
 		session.send(p);
-		while (helloNumber.get() < 3)
+		while (helloNumber.get() < 3) {
+			//noinspection BusyWait
 			Thread.sleep(1);
+		}
 		service.stop();
 	}
 
@@ -96,12 +98,15 @@ public class TestDatagram {
 		var r = new ReplayAttackGrowRange2(16);
 		Assert.assertFalse(r.replay(1));
 		System.out.println(r);
+		Assert.assertEquals("01 max=1 win=16 bits=[2]", r.toString());
 
 		Assert.assertFalse(r.replay(3));
 		System.out.println(r);
+		Assert.assertEquals("0101 max=3 win=16 bits=[2]", r.toString());
 
 		Assert.assertFalse(r.replay(2));
 		System.out.println(r);
+		Assert.assertEquals("0111 max=3 win=16 bits=[2]", r.toString());
 
 		Assert.assertTrue(r.replay(2));
 
@@ -110,14 +115,30 @@ public class TestDatagram {
 		Assert.assertFalse(r.replay(6));
 		Assert.assertFalse(r.replay(7));
 		System.out.println(r);
+		Assert.assertEquals("01111111 max=7 win=16 bits=[2]", r.toString());
 		Assert.assertFalse(r.replay(8));
 		System.out.println(r);
+		Assert.assertEquals("011111111 max=8 win=16 bits=[2]", r.toString());
 		Assert.assertFalse(r.replay(15));
 		System.out.println(r);
+		Assert.assertEquals("0111111110000001 max=15 win=16 bits=[2]", r.toString());
 		Assert.assertFalse(r.replay(16));
 		System.out.println(r);
+		Assert.assertEquals("1111111100000011 max=16 win=16 bits=[2]", r.toString());
 		Assert.assertFalse(r.replay(19));
 		System.out.println(r);
+		Assert.assertEquals("1111100000011001 max=19 win=16 bits=[2]", r.toString());
+		Assert.assertFalse(r.replay(20));
+		System.out.println(r);
+		Assert.assertEquals("1111000000110011 max=20 win=16 bits=[2]", r.toString());
+		Assert.assertFalse(r.replay(35));
+		System.out.println(r);
+		Assert.assertEquals("1000000000000001 max=35 win=16 bits=[2]", r.toString());
+		Assert.assertTrue(r.replay(18));
+		Assert.assertTrue(r.replay(20));
+		Assert.assertFalse(r.replay(100));
+		System.out.println(r);
+		Assert.assertEquals("0000000000000001 max=100 win=16 bits=[2]", r.toString());
 	}
 }
 

@@ -7,19 +7,44 @@ import static Zeze.Net.Encrypt2.mhCryptInit;
 
 // AES(CFB) Decrypt
 public final class Decrypt2 implements Codec {
-	private final Codec sink;
 	private final Object aesCrypt;
 	private final byte[] in = new byte[BLOCK_SIZE];
-	private final byte[] out;
+	private final byte[] out = new byte[BLOCK_SIZE];
+	private Codec sink;
 	private int sinkIndex;
 	private int writeIndex;
 
-	public Decrypt2(Codec sink, byte[] key) throws CodecException {
+	/**
+	 * @param sink 如果为null,则需要reset才能开始解密
+	 * @param key  长度必须至少Encrypt2.KEY_SIZE. 不能为null
+	 * @param iv   长度必须至少Encrypt2.BLOCK_SIZE. 如果为null,则需要reset才能开始解密
+	 */
+	public Decrypt2(Codec sink, byte[] key, byte[] iv) throws CodecException {
 		this.sink = sink;
-		out = Digest.md5(key);
 		try {
 			aesCrypt = mhCryptCtor.invoke();
-			mhCryptInit.invoke(aesCrypt, false, "AES", out);
+			mhCryptInit.invoke(aesCrypt, false, "AES", key);
+			if (iv != null) {
+				System.arraycopy(iv, 0, out, 0, BLOCK_SIZE);
+				mhCryptEncrypt.invoke(aesCrypt, out, 0, out, 0);
+			}
+		} catch (RuntimeException | Error e) {
+			throw e;
+		} catch (Throwable e) { // MethodHandle.invoke
+			throw new CodecException(e);
+		}
+	}
+
+	/**
+	 * @param sink 不能为null
+	 * @param iv   长度必须至少Encrypt2.BLOCK_SIZE. 不能为null
+	 */
+	public void reset(Codec sink, byte[] iv) {
+		System.arraycopy(iv, 0, out, 0, BLOCK_SIZE);
+		this.sink = sink;
+		sinkIndex = 0;
+		writeIndex = 0;
+		try {
 			mhCryptEncrypt.invoke(aesCrypt, out, 0, out, 0);
 		} catch (RuntimeException | Error e) {
 			throw e;

@@ -411,7 +411,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			case Constant.eEncryptTypeDisable:
 				break;
 			case Constant.eEncryptTypeAes:
-				chain = new Decrypt2(chain, encryptParam);
+				var keyMd5 = Digest.md5(encryptParam);
+				chain = new Decrypt2(chain, keyMd5, keyMd5);
 				break;
 			//TODO: 新增加密算法支持这里加case
 			default:
@@ -431,7 +432,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			case Constant.eEncryptTypeDisable:
 				break;
 			case Constant.eEncryptTypeAes:
-				chain = new Encrypt2(chain, encryptParam);
+				var keyMd5 = Digest.md5(encryptParam);
+				chain = new Encrypt2(chain, keyMd5, keyMd5);
 				break;
 			//TODO: 新增加密算法支持这里加case
 			default:

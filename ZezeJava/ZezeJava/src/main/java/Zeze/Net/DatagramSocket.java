@@ -6,28 +6,25 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
+import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.ReplayAttackPolicy;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class DatagramSocket implements SelectorHandle, Closeable {
 	private static final Logger logger = LogManager.getLogger(DatagramSocket.class);
+	private static final AtomicLong sessionIdGen = new AtomicLong(); // 只用于分配DatagramSocket的sessionId
+
 	private final DatagramChannel datagramChannel;
 	private final Selector selector;
 	private SelectionKey selectionKey;
 	private final InetSocketAddress local;
 	private final DatagramService service;
-	private final static AtomicLong sessionIdGen = new AtomicLong();
-	private final long sessionId = sessionIdGen.incrementAndGet();
-	private final ConcurrentHashMap<Long, DatagramSession> sessions = new ConcurrentHashMap<>();
-
-	public DatagramService getService() {
-		return service;
-	}
+	private final long sessionId = sessionIdGen.incrementAndGet(); // 注意这是DatagramSocket的sessionId, 跟DatagramSession的sessionId的意义不同
+	private final LongConcurrentHashMap<DatagramSession> sessions = new LongConcurrentHashMap<>(); // key: DatagramSession的sessionId
 
 	DatagramSocket(DatagramService service, InetSocketAddress local) throws IOException {
 		this.service = service;
@@ -38,6 +35,10 @@ public class DatagramSocket implements SelectorHandle, Closeable {
 		selector = service.getSelectors().choice();
 		selectionKey = selector.register(datagramChannel, SelectionKey.OP_READ, this);
 		service.addSocket(this); // ??? 最后加入 ???
+	}
+
+	public DatagramService getService() {
+		return service;
 	}
 
 	public long getSessionId() {
@@ -66,8 +67,7 @@ public class DatagramSocket implements SelectorHandle, Closeable {
 		datagramChannel.send(java.nio.ByteBuffer.wrap(bb.Bytes, 0, size), peer);
 	}
 
-	public DatagramSession createSession(InetSocketAddress remote,
-										 long sessionId, byte[] securityKey,
+	public DatagramSession createSession(InetSocketAddress remote, long sessionId, byte[] securityKey,
 										 ReplayAttackPolicy policy) {
 		var session = new DatagramSession(this, remote, sessionId, securityKey, policy);
 		if (null == sessions.putIfAbsent(sessionId, session))
@@ -87,21 +87,18 @@ public class DatagramSocket implements SelectorHandle, Closeable {
 			var source = datagramChannel.receive(buffer);
 			if (source != null) {
 				var bb = ByteBuffer.Wrap(buffer.array(), 0, buffer.position());
-				var ssid = bb.ReadLong8();
+				var ssid = ByteBuffer.ToLong(bb.Bytes, 0);
 				var ss = sessions.get(ssid);
 				if (null != ss)
 					ss.onProcessDatagram((InetSocketAddress)source, bb);
 			}
-			return;
-		}
-
-		throw new IllegalStateException();
+		} else
+			throw new IllegalStateException();
 	}
 
 	@Override
 	public void doException(SelectionKey key, Throwable e) throws Exception {
 		service.onSocketException(this, e);
-		close();
 	}
 
 	@Override

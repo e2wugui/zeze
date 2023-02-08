@@ -18,8 +18,8 @@ public class DatagramService {
 	private final Application zeze;
 	private SocketOptions socketOptions; // 同一个 Service 下的所有连接都是用相同配置。
 	private ServiceConf config;
-	protected final LongConcurrentHashMap<DatagramSocket> socketMap = new LongConcurrentHashMap<>();
-	private final LongConcurrentHashMap<Service.ProtocolFactoryHandle<? extends Protocol<?>>> factorys = new LongConcurrentHashMap<>();
+	protected final LongConcurrentHashMap<DatagramSocket> socketMap = new LongConcurrentHashMap<>(); // key: DatagramSocket的sessionId
+	private final LongConcurrentHashMap<Service.ProtocolFactoryHandle<? extends Protocol<?>>> factorys = new LongConcurrentHashMap<>(); // key: 协议type
 
 	private Selectors selectors;
 
@@ -100,7 +100,6 @@ public class DatagramService {
 	}
 
 	public void start() {
-
 	}
 
 	public void stop() {
@@ -128,18 +127,20 @@ public class DatagramService {
 	/**
 	 * @param input 方法外绝对不能持有bb.Bytes的引用! 也就是只能在方法内读input.
 	 */
-	public void onProcessDatagram(DatagramSession sender, ByteBuffer input) throws Exception {
+	public void onProcessDatagram(DatagramSession sender, ByteBuffer input, long serialId) throws Exception {
 		// 由于参数不同，需要重新实现一个。
 		var p = Protocol.decode(this, input);
 		if (null != p) {
 			p.DatagramSession = sender;
+			p.setUserState(serialId); // 把serialId设置到userState里,上层应用可能需要
 			p.dispatch(this, findProtocolFactoryHandle(p.getTypeId()));
 		}
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
-	public void onSocketException(DatagramSocket sender, Throwable e) {
+	public void onSocketException(DatagramSocket sender, Throwable e) throws Exception {
 		logger.error(sender, e);
+		sender.close();
 	}
 
 	@SuppressWarnings("RedundantThrows")
@@ -177,6 +178,6 @@ public class DatagramService {
 				Task.runUnsafe(() -> handle.handle(p), p,
 						Protocol::trySendResultCode, null, factoryHandle.Mode);
 		} else
-			logger.warn("DispatchProtocol: Protocol Handle Not Found: {}", p);
+			logger.warn("dispatchProtocol: Protocol Handle Not Found: {}", p);
 	}
 }
