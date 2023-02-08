@@ -4,6 +4,10 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Util.ReplayAttack;
+import Zeze.Util.ReplayAttackGrowRange;
+import Zeze.Util.ReplayAttackMax;
+import Zeze.Util.ReplayAttackPolicy;
 
 public class DatagramSession {
 	private final DatagramSocket socket;
@@ -11,12 +15,7 @@ public class DatagramSession {
 	private final long sessionId;
 	private final AtomicLong serialId = new AtomicLong();
 	private final byte[] securityKey;
-	private final ReplayAttackPolicy replayAttackPolicy; // = ReplayAttackPolicy.IncreasingOnly;
-
-	public enum ReplayAttackPolicy {
-		IncreasingOnly,
-		AllowDisorder,
-	}
+	private ReplayAttack replayAttack;
 
 	public DatagramSocket getSocket() {
 		return socket;
@@ -36,12 +35,21 @@ public class DatagramSession {
 
 	public DatagramSession(DatagramSocket socket, InetSocketAddress remote,
 						   long sessionId, byte[] securityKey,
-						   ReplayAttackPolicy replayAttackPolicy) {
+						   ReplayAttackPolicy policy) {
 		this.socket = socket;
 		this.remote = remote;
 		this.sessionId = sessionId;
 		this.securityKey = securityKey;
-		this.replayAttackPolicy = replayAttackPolicy;
+		switch (policy) {
+		case IncreasingOnly:
+				this.replayAttack = new ReplayAttackMax();
+				break;
+		case AllowDisorder:
+				this.replayAttack = new ReplayAttackGrowRange();
+				break;
+		default:
+			throw new RuntimeException("unknown policy.");
+		}
 	}
 
 	public void send(byte[] packet, int offset, int size) throws IOException {
@@ -102,63 +110,13 @@ public class DatagramSession {
 
 			// 防重放处理。只有加密才支持防重放。
 			var serialId = bb.ReadLong();
-			switch (replayAttackPolicy) {
-			case IncreasingOnly:
-				synchronized (this) {
-					if (serialId <= maxReceiveSerialId)
-						return;
-					maxReceiveSerialId = serialId;
-				}
-				break;
-
-			case AllowDisorder:
-				if (replayAttack(serialId))
+			synchronized (this) {
+				if (replayAttack.replay(serialId))
 					return;
-				break;
 			}
 		} else {
 			bb.ReadLong(); // discard serialId;
 		}
 		socket.getService().onProcessDatagram(this, bb);
-	}
-
-	private long maxReceiveSerialId;
-	private final byte[] replayAttack = new byte[128];
-	private int maxBitPosition;
-
-	private synchronized boolean replayAttack(long serialId) {
-		long grow = serialId - maxReceiveSerialId;
-		if (grow > replayAttack.length * 8L)
-			return true; // 跳的太远，拒绝掉。
-
-		int increase = (int)grow;
-		if (increase > 0) { // grow clear
-			for (var i = 0; i < increase; ++i) {
-				// clear bit
-				var pos = (maxBitPosition + i) % (replayAttack.length * 8);
-				var index = pos / 8;
-				var bit = 1 << pos % 8;
-				replayAttack[index] &= ~bit;
-			}
-			maxBitPosition += increase;
-			if (maxBitPosition > replayAttack.length * 8)
-				maxBitPosition %= replayAttack.length * 8;
-
-			maxReceiveSerialId = serialId;
-			return false; // allow
-		}
-		if (increase <= -replayAttack.length)
-			return true; // 过期的，拒绝掉。
-
-		var pos = maxBitPosition + increase;
-		if (pos < 0) // 有范围检查，只需要加一次，否则用while
-			pos += replayAttack.length;
-
-		var index = pos / 8;
-		var bit = 1 << pos % 8;
-		if ((replayAttack[index] & bit) != 0)
-			return true; // duplicate
-		replayAttack[index] |= bit;
-		return false;
 	}
 }

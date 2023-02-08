@@ -7,6 +7,7 @@ import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.LongConcurrentHashMap;
+import Zeze.Util.ReplayAttackPolicy;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -94,8 +95,8 @@ public class DatagramService {
 
 	public DatagramSession createSession(InetSocketAddress local, InetSocketAddress remote,
 										 long sessionId, byte[] securityKey,
-										 DatagramSession.ReplayAttackPolicy replayAttackPolicy) throws IOException {
-		return bind(local).createSession(remote, sessionId, securityKey, replayAttackPolicy);
+										 ReplayAttackPolicy policy) throws IOException {
+		return bind(local).createSession(remote, sessionId, securityKey, policy);
 	}
 
 	public final int getSocketCount() {

@@ -4,14 +4,16 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Net.DatagramService;
-import Zeze.Net.DatagramSession;
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.ReplayAttackGrowRange;
+import Zeze.Util.ReplayAttackPolicy;
 import Zeze.Util.Task;
 import demo.Module1.BValue;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class TestDatagram {
@@ -27,12 +29,12 @@ public class TestDatagram {
 		byte[] securityKey = new byte[] {1, 2, 3, 4};
 		// server
 		var server = service.bind(new InetSocketAddress(4000));
-		server.createSession(null, 1, securityKey, DatagramSession.ReplayAttackPolicy.AllowDisorder);
+		server.createSession(null, 1, securityKey, ReplayAttackPolicy.AllowDisorder);
 		// client
 		var session = service.createSession(
 				new InetSocketAddress(0),
 				new InetSocketAddress("127.0.0.1", 4000),
-				1, securityKey, DatagramSession.ReplayAttackPolicy.AllowDisorder);
+				1, securityKey, ReplayAttackPolicy.AllowDisorder);
 		var p = new ProtoValue();
 		p.Argument.setString3("hello");
 		session.send(p);
@@ -47,6 +49,35 @@ public class TestDatagram {
 		p.DatagramSession.send(p);
 		System.out.println(p.Argument.getString3());
 		return 0;
+	}
+
+	@Test
+	public void testReplay() {
+		var r = new ReplayAttackGrowRange(2);
+		Assert.assertFalse(r.replay(1));
+		System.out.println(r);
+
+		Assert.assertFalse(r.replay(3));
+		System.out.println(r);
+
+		Assert.assertFalse(r.replay(2));
+		System.out.println(r);
+
+		Assert.assertTrue(r.replay(2));
+
+		Assert.assertFalse(r.replay(4));
+		Assert.assertFalse(r.replay(5));
+		Assert.assertFalse(r.replay(6));
+		Assert.assertFalse(r.replay(7));
+		System.out.println(r);
+		Assert.assertFalse(r.replay(8));
+		System.out.println(r);
+		Assert.assertFalse(r.replay(15));
+		System.out.println(r);
+		Assert.assertFalse(r.replay(16));
+		System.out.println(r);
+		Assert.assertFalse(r.replay(19));
+		System.out.println(r);
 	}
 }
 

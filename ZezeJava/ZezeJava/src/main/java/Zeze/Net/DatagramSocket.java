@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
+import Zeze.Util.ReplayAttackPolicy;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -67,8 +68,8 @@ public class DatagramSocket implements SelectorHandle, Closeable {
 
 	public DatagramSession createSession(InetSocketAddress remote,
 										 long sessionId, byte[] securityKey,
-										 DatagramSession.ReplayAttackPolicy replayAttackPolicy) {
-		var session = new DatagramSession(this, remote, sessionId, securityKey, replayAttackPolicy);
+										 ReplayAttackPolicy policy) {
+		var session = new DatagramSession(this, remote, sessionId, securityKey, policy);
 		if (null == sessions.putIfAbsent(sessionId, session))
 			return session;
 		return null;
