@@ -10,6 +10,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ReplayAttackGrowRange;
+import Zeze.Util.ReplayAttackGrowRange2;
 import Zeze.Util.ReplayAttackPolicy;
 import Zeze.Util.Task;
 import demo.Module1.BValue;
@@ -24,9 +25,9 @@ public class TestDatagram {
 		var service = new TestDatagramService();
 		service.addFactoryHandle(ProtoValue.TypeId_, new Service.ProtocolFactoryHandle<>(
 				ProtoValue::new, this::processServerPValue, TransactionLevel.None, DispatchMode.Normal
-				));
+		));
 
-		byte[] securityKey = new byte[] {1, 2, 3, 4};
+		byte[] securityKey = new byte[]{1, 2, 3, 4};
 		// server
 		var server = service.bind(new InetSocketAddress(4000));
 		server.createSession(null, 1, securityKey, ReplayAttackPolicy.AllowDisorder);
@@ -54,6 +55,35 @@ public class TestDatagram {
 	@Test
 	public void testReplay() {
 		var r = new ReplayAttackGrowRange(2);
+		Assert.assertFalse(r.replay(1));
+		System.out.println(r);
+
+		Assert.assertFalse(r.replay(3));
+		System.out.println(r);
+
+		Assert.assertFalse(r.replay(2));
+		System.out.println(r);
+
+		Assert.assertTrue(r.replay(2));
+
+		Assert.assertFalse(r.replay(4));
+		Assert.assertFalse(r.replay(5));
+		Assert.assertFalse(r.replay(6));
+		Assert.assertFalse(r.replay(7));
+		System.out.println(r);
+		Assert.assertFalse(r.replay(8));
+		System.out.println(r);
+		Assert.assertFalse(r.replay(15));
+		System.out.println(r);
+		Assert.assertFalse(r.replay(16));
+		System.out.println(r);
+		Assert.assertFalse(r.replay(19));
+		System.out.println(r);
+	}
+
+	@Test
+	public void testReplay2() {
+		var r = new ReplayAttackGrowRange2(16);
 		Assert.assertFalse(r.replay(1));
 		System.out.println(r);
 
