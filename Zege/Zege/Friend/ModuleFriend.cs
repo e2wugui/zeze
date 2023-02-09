@@ -1,4 +1,5 @@
 
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using Zeze.Builtin.Collections.LinkedMap;
 using Zeze.Net;
@@ -10,10 +11,25 @@ namespace Zege.Friend
 {
     public partial class ModuleFriend : AbstractModule
     {
+        private readonly ConcurrentDictionary<string, BPublicUserInfo> PublicUserInfos = new();
+
         public void Start(global::Zege.App app)
         {
             Topmosts = new FriendNodes(this, "@Zege.Topmost", true);
             Friends = new FriendNodes(this, "@Zege.Friend", false);
+        }
+
+        public async Task<BPublicUserInfo> GetPublicUserInfo(string account)
+        {
+            if (PublicUserInfos.TryGetValue(account, out var info))
+                return info;
+
+            // 并发执行的时候，可能会发起多个远程调用。【先不保护了。】
+            var rpc = new GetPublicUserInfo();
+            rpc.Argument.Account = account;
+            await rpc.SendAndCheckResultCodeAsync(App.ClientService.GetSocket());
+            PublicUserInfos[account] = rpc.Result; // put
+            return rpc.Result;
         }
 
         public void Stop(global::Zege.App app)

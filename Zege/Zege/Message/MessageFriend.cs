@@ -113,10 +113,15 @@ namespace Zege.Message
             rpc.Argument.Friend = Friend;
             rpc.Argument.Message.Type = BMessage.eTypeText;
             var textMessage = new BTextMessage() { Message = message };
-            // 
-            rpc.Argument.Message.SecureMessage = new Binary(ByteBuffer.Encode(textMessage));
+            var info = await Module.App.Zege_Friend.GetPublicUserInfo(Friend);
+            rpc.Argument.Message.SecureKeyIndex = info.LastCertIndex;
+            var encodedMessage = ByteBuffer.Encode(textMessage);
+            var cert = Cert.CreateFromPkcs12(info.Cert.GetBytesUnsafe(), "");
+            var encryptedMessage = Cert.EncryptRsa(cert, encodedMessage.Bytes, encodedMessage.ReadIndex, encodedMessage.Size);
+            rpc.Argument.Message.SecureMessage = new Binary(encryptedMessage);
 
             await rpc.SendAsync(Module.App.ClientService.GetSocket());
+            rpc.Argument.Message.SecureMessage = new Binary(encodedMessage); // 给本地用之前恢复成不加密的。
             if (0 == rpc.ResultCode)
             {
                 // 自己发送的消息的这些变量是本地的，需要自己填写。

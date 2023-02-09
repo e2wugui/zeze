@@ -15,7 +15,6 @@ Zege 换证书
     切换完成。
 Zege 电脑登录
     第一次必须手机端扫码。细节暂不考虑。
-Zege c# GetPublickUserInfo & encrypt message;
 Zege c# group department;
 Zege c# group message (no encrypt);
 Zege c# group cert-key transfer(p2p);
@@ -33,6 +32,7 @@ DatabaseDynamoDb 还需测试。
 ------------------------------------------------------------------------------------------------------------------------------
 2023/2/17 v1.1.8 initRootInfoWithRedo c#; Timer.OfflineNotify; DatagramChannel;
 ------------------------------------------------------------------------------------------------------------------------------
+Zege c# GetPublickUserInfo & encrypt message;
 DatagramChannel java
 1. UdpServer：DatagramService 1--* DatagramSocket 绑定多个Socket，防止单个Socket超量。
 2. UdpClient：DatagramService  1--1 DatagramSession 一一对应。
