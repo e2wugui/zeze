@@ -7,23 +7,6 @@ war？一个module集合。定义export？private？App.Instance？生成代码�
 DatabaseTikv.OperatesTikv
 Universe Planet Star
 ServiceManager::OfflineNotify 选择目标遍历优化。
-Zege 换证书
-    当前证书对新public-key加密并签字；
-    服务器用当前public-key解密并验证；
-    服务器通过验证，保存解密出来的新的public-key，切换成功递增并返回LastCertIndex；
-    客户端保存新证书（包含private-key）到account.pkcs12中；保存一个备份到account.LastCertIndex.pkcs12中；
-    切换完成。
-Zege 电脑登录
-    第一次必须手机端扫码。细节暂不考虑。
-Zege c# group department;
-Zege c# group message (no encrypt);
-Zege c# group cert-key transfer(p2p);
-Zege c# group encrypt message;
-Zege 公开群不加密，公开私有可以切换，切换不会重新加密解密消息历史。
-Zege 项目管理。
-Zege 文档，批注，多人编辑。
-Zege GMT 时间。
-Zege 好友列表也保存关注对象，可以接收通知。
 ts log?
 c# fresh 有bug？
 DatabaseDynamoDb 还需测试。
