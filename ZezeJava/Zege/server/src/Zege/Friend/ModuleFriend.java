@@ -328,22 +328,9 @@ public class ModuleFriend extends AbstractModule {
 		if (null == node)
 			return errorCode(eMemberNodeNotFound);
 
-		r.Result.setNextNodeId(node.getNextNodeId());
-		r.Result.setPrevNodeId(node.getPrevNodeId());
 		r.Result.setNodeId(nodeId.value);
-		for (var member : node.getValues()) {
-			var get = new BGetDepartmentMember();
-			get.setAccount(member.getId());
+		r.Result.setNode(node);
 
-			var data = (BDepartmentMember)member.getValue().getBean();
-			var account = App.Zege_User.get(get.getAccount());
-
-			get.setNick(data.getNick());
-			get.setLastCertIndex(account.getLastCertIndex());
-			get.setCert(account.getCert());
-
-			r.Result.getDepartmentMembers().add(get);
-		}
 		session.sendResponseWhileCommit(r);
 		return Procedure.Success;
 	}
@@ -362,21 +349,10 @@ public class ModuleFriend extends AbstractModule {
 				: group.getGroupMembers().getNode(r.Argument.getNodeId());
 		if (null == node)
 			return errorCode(eMemberNodeNotFound);
-		r.Result.setNextNodeId(node.getNextNodeId());
-		r.Result.setPrevNodeId(node.getPrevNodeId());
-		r.Result.setNextNodeId(nodeId.value);
-		for (var member : node.getValues()) {
-			var get = new BGetMember();
-			get.setAccount(member.getId());
 
-			var data = (BGroupMember)member.getValue().getBean();
-			var account = App.Zege_User.get(get.getAccount());
-			get.setNick(data.getNick());
-			get.setLastCertIndex(account.getLastCertIndex());
-			get.setCert(account.getCert());
+		r.Result.setNodeId(nodeId.value);
+		r.Result.setNode(node);
 
-			r.Result.getMembers().add(get);
-		}
 		session.sendResponseWhileCommit(r);
 		return Procedure.Success;
 	}

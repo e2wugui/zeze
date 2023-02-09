@@ -67,8 +67,8 @@ public class ModuleUser extends AbstractModule {
         var cert = Cert.generate(account, publicKey, "ZegeFakeCa", privateKey, 10000);
         var certEncoded = new Binary(cert.getEncoded());
         user.setCert(certEncoded);
-        r.Result.setLastCertIndex(user.getLastCertIndex());
         user.setLastCertIndex(user.getLastCertIndex() + 1);
+        r.Result.setLastCertIndex(user.getLastCertIndex());
         r.Result.setCert(certEncoded);
 
         Transaction.whileCommit(r::SendResult);

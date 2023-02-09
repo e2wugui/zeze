@@ -44,6 +44,8 @@ public class Program {
 
 	public void run(String[] args) throws Exception {
 		Zeze.Collections.LinkedMap.beanFactory.register(BFriend.class);
+		Zeze.Collections.LinkedMap.beanFactory.register(BGroupMember.class);
+		Zeze.Collections.LinkedMap.beanFactory.register(BDepartmentMember.class);
 
 		var app = App.Instance;
 		var linkIp = "127.0.0.1";
@@ -240,9 +242,9 @@ public class Program {
 					addWindow(new DepartmentWindow(Group, child, cmd[1]));
 					return true;
 				}
-				for (var m : MemberNode.getDepartmentMembers()) {
-					if (m.getAccount().equals(cmd[1])) {
-						addWindow(new ChatWindow(m.getAccount()));
+				for (var m : MemberNode.getNode().getValues()) {
+					if (m.getId().equals(cmd[1])) {
+						addWindow(new ChatWindow(m.getId()));
 						return true;
 					}
 				}
@@ -289,8 +291,8 @@ public class Program {
 				System.out.println("[" + child.getKey() + "(" + child.getValue() + ")]");
 			}
 			MemberNode = App.Instance.Zege_Friend.getDepartmentMemberNode(Group, DepartmentId, MemberNodeId);
-			for (var member : MemberNode.getDepartmentMembers()) {
-				System.out.println(member.getAccount());
+			for (var member : MemberNode.getNode().getValues()) {
+				System.out.println(member.getId());
 			}
 
 			var list = Main.ReceivedMessages.remove(new MessageTarget(Group, DepartmentId));
@@ -344,9 +346,9 @@ public class Program {
 					return true;
 				}
 
-				for (var m : MemberNode.getMembers()) {
-					if (m.getAccount().equals(cmd[1])) {
-						addWindow(new ChatWindow(m.getAccount()));
+				for (var m : MemberNode.getNode().getValues()) {
+					if (m.getId().equals(cmd[1])) {
+						addWindow(new ChatWindow(m.getId()));
 						return true;
 					}
 				}
@@ -393,8 +395,8 @@ public class Program {
 				System.out.println("[" + child.getKey() + "(" + child.getValue() + ")]");
 			}
 			MemberNode = App.Instance.Zege_Friend.getGroupMemberNode(Group, MemberNodeId);
-			for (var member : MemberNode.getMembers()) {
-				System.out.println(member.getAccount());
+			for (var member : MemberNode.getNode().getValues()) {
+				System.out.println(member.getId());
 			}
 
 			var list = Main.ReceivedMessages.remove(new MessageTarget(Group, 0));

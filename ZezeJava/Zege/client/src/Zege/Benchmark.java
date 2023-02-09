@@ -1,6 +1,7 @@
 package Zege;
 
 import Zege.Friend.BGetFriendNode;
+import Zege.Friend.BGroupMember;
 
 public class Benchmark extends Thread {
 	private BGetFriendNode friendNode;
@@ -38,8 +39,8 @@ public class Benchmark extends Thread {
 
 	private void addFriendsInWanmeiGroup() {
 		var groupMemberNode = App.Instance.Zege_Friend.getGroupMemberNode("wanmei@group", 0);
-		for (var member : groupMemberNode.getMembers()) {
-			App.Instance.Zege_Friend.addFriend(member.getAccount()).await();
+		for (var member : groupMemberNode.getNode().getValues()) {
+			App.Instance.Zege_Friend.addFriend(member.getId()).await();
 		}
 		friendNode = App.Instance.Zege_Friend.getFriendNode(0);
 	}

@@ -30,6 +30,7 @@ public class ModuleFriend extends AbstractModule {
         req.Argument.setGroup(group);
         req.Argument.setNodeId(nodeId);
         req.SendForWait(App.Connector.TryGetReadySocket()).await();
+        //System.out.println(req.Result.getNode());
         return req.getResultCode() == 0 ? req.Result : new BGetGroupMemberNode();
     }
 
