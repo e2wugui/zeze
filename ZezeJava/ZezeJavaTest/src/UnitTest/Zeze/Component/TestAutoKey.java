@@ -30,6 +30,7 @@ public class TestAutoKey {
 		if (serverId > 0)
 			bb.WriteUInt(serverId);
 		bb.WriteULong(index);
+		Assert.assertTrue(bb.size() <= 8);
 		return ByteBuffer.ToLongBE(bb.Bytes, bb.ReadIndex, bb.Size());
 	}
 

@@ -24,8 +24,9 @@ namespace UnitTest.Zeze.Component
 			var bb = ByteBuffer.Allocate(8);
 			var serverId = demo.App.Instance.Zeze.Config.ServerId;
 			if (serverId > 0)
-				bb.WriteInt(serverId);
-			bb.WriteLong(index);
+				bb.WriteUInt(serverId);
+			bb.WriteULong(index);
+			Assert.IsTrue(bb.Size <= 8);
 			return ByteBuffer.ToLongBE(bb.Bytes, bb.ReadIndex, bb.Size);
 		}
 
