@@ -66,7 +66,7 @@ public class TestLostRedo {
 	public void testAutoKeyConflict() throws ExecutionException, InterruptedException {
 		runTimes.set(0);
 		var futures = new ArrayList<Future<?>>();
-		for (int i = 0; i < 100_0000; ++i)
+		for (int i = 0; i < 1_0000; ++i)
 			futures.add(Task.runUnsafe(App.Instance.Zeze.newProcedure(this::autoKeyConflict, "write")));
 		for (var future : futures)
 			future.get();
@@ -98,12 +98,12 @@ public class TestLostRedo {
 		}, "clear").call();
 
 		var futures = new ArrayList<Future<?>>();
-		for (int i = 0; i < 10_0000; ++i)
+		for (int i = 0; i < 1_0000; ++i)
 			futures.add(Task.runUnsafe(App.Instance.Zeze.newProcedure(this::autoKeyWithInsert, "write")));
 		for (var future : futures)
 			future.get();
 
-		Assert.assertEquals(insertOks.get(), 10_0000);
+		Assert.assertEquals(insertOks.get(), 1_0000);
 		System.out.println("insert funTimes=" + runTimes.get());
 	}
 

@@ -85,35 +85,23 @@ public class EventDispatcher {
 	}
 
 	// 嵌入当前线程执行，所有错误都报告出去，如果需要对错误进行特别处理，需要自己遍历Handles手动触发。
-	public void triggerEmbed(Object sender, EventArgument arg) throws Exception {
-		for (EventHandle handle : runEmbedEvents)
-			handle.invoke(sender, arg);
-	}
-
-	// 在当前线程中，创建新的存储过程并执行，忽略所有错误。
-	public void triggerProcedureIgnoreError(Application app, Object sender, EventArgument arg) {
-		for (EventHandle handle : runProcedureEvents) {
-			try {
-				app.newProcedure(() -> {
-					handle.invoke(sender, arg);
-					return 0L;
-				}, "EventDispatcher.triggerProcedureIgnoreError").call();
-				// 返回错误码时是逻辑错误，这里不需要记录日志。内部已经记录了。
-			} catch (Throwable ex) { // print stacktrace.
-				logger.error("EventDispatcher.triggerProcedureIgnoreError", ex); // 除了框架错误，一般情况下，错误不会到达这里。
-			}
+	public long triggerEmbed(Object sender, EventArgument arg) throws Exception {
+		for (EventHandle handle : runEmbedEvents) {
+			var ret = handle.invoke(sender, arg);
+			if (ret != 0)
+				return ret;
 		}
+		return 0;
 	}
 
-	// 在当前线程中，创建新的存储过程并执行，所有错误都报告出去，如果需要对错误进行特别处理，需要自己遍历Handles手动触发。
+	// 在当前线程中，创建新的存储过程并嵌套执行，所有错误都报告出去，如果需要对错误进行特别处理，需要自己遍历Handles手动触发。
 	public void triggerProcedure(Application app, Object sender, EventArgument arg) {
 		for (EventHandle handle : runProcedureEvents) {
-			var result = app.newProcedure(() -> {
+			// 忽略嵌套的存储的执行。
+			Task.call(app.newProcedure(() -> {
 				handle.invoke(sender, arg);
 				return 0L;
-			}, "EventDispatcher.triggerProcedure").call();
-			if (result != 0)
-				throw new IllegalStateException("Nest Call Fail: " + result);
+			}, "EventDispatcher.triggerProcedure"));
 		}
 	}
 }

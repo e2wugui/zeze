@@ -221,16 +221,19 @@ public class Online extends AbstractOnline {
 		return Procedure.Success;
 	}
 
-	private void removeLocalAndTrigger(long roleId) throws Exception {
+	private long removeLocalAndTrigger(long roleId) throws Exception {
 		var arg = new LocalRemoveEventArgument();
 		arg.roleId = roleId;
 		arg.localData = _tlocal.get(roleId).copy();
 
 		_tlocal.remove(roleId); // remove first
 
-		localRemoveEvents.triggerEmbed(this, arg);
+		var ret = localRemoveEvents.triggerEmbed(this, arg);
+		if (0 != ret)
+			return ret;
 		localRemoveEvents.triggerProcedure(providerApp.zeze, this, arg);
 		Transaction.whileCommit(() -> localRemoveEvents.triggerThread(this, arg));
+		return 0;
 	}
 
 	public Long getOfflineLoginVersion(long roleId) {
@@ -261,63 +264,78 @@ public class Online extends AbstractOnline {
 		return null != _tonline.get(roleId);
 	}
 
-	private void logoutTriggerExtra(long roleId) throws Exception {
+	private long logoutTriggerExtra(long roleId) throws Exception {
 		var arg = new LogoutEventArgument();
 		arg.roleId = roleId;
 		arg.onlineData = _tonline.get(roleId).copy();
 
-		logoutEvents.triggerEmbed(this, arg);
+		var ret = logoutEvents.triggerEmbed(this, arg);
+		if (0 != ret)
+			return ret;
 		logoutEvents.triggerProcedure(providerApp.zeze, this, arg);
 		Transaction.whileCommit(() -> logoutEvents.triggerThread(this, arg));
+		return 0;
 	}
 
-	private void logoutTrigger(long roleId) throws Exception {
+	private long logoutTrigger(long roleId) throws Exception {
 		var arg = new LogoutEventArgument();
 		arg.roleId = roleId;
 		arg.onlineData = _tonline.get(roleId).copy();
 
 		_tonline.remove(roleId); // remove first
 
-		logoutEvents.triggerEmbed(this, arg);
+		var ret = logoutEvents.triggerEmbed(this, arg);
+		if (0 != ret)
+			return ret;
 		logoutEvents.triggerProcedure(providerApp.zeze, this, arg);
 		Transaction.whileCommit(() -> logoutEvents.triggerThread(this, arg));
+		return 0;
 	}
 
-	private void loginTrigger(long roleId) throws Exception {
+	private long loginTrigger(long roleId) throws Exception {
 		var arg = new LoginArgument();
 		arg.roleId = roleId;
 
 		loginTimes.incrementAndGet();
-		loginEvents.triggerEmbed(this, arg);
+		var ret = loginEvents.triggerEmbed(this, arg);
+		if (0 != ret)
+			return ret;
 		loginEvents.triggerProcedure(providerApp.zeze, this, arg);
 		Transaction.whileCommit(() -> loginEvents.triggerThread(this, arg));
+		return 0;
 	}
 
-	private void reloginTrigger(long roleId) throws Exception {
+	private long reloginTrigger(long roleId) throws Exception {
 		var arg = new LoginArgument();
 		arg.roleId = roleId;
 
 		loginTimes.incrementAndGet();
-		reloginEvents.triggerEmbed(this, arg);
+		var ret = reloginEvents.triggerEmbed(this, arg);
+		if (0 != ret)
+			return ret;
 		reloginEvents.triggerProcedure(providerApp.zeze, this, arg);
 		Transaction.whileCommit(() -> reloginEvents.triggerThread(this, arg));
+		return 0;
 	}
 
-	public final void onLinkBroken(long roleId, String linkName, long linkSid) throws Exception {
+	public final long linkBroken(long roleId, String linkName, long linkSid) throws Exception {
 		long currentLoginVersion;
 		{
 			var online = _tonline.get(roleId);
 			// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
 			if (online == null || !online.getLinkName().equals(linkName) || online.getLinkSid() != linkSid)
-				return;
+				return 0;
 			var version = _tversion.getOrAdd(roleId);
 			var local = _tlocal.get(roleId);
 			if (local == null)
-				return; // 不在本机登录。
+				return 0; // 不在本机登录。
 
 			currentLoginVersion = local.getLoginVersion();
-			if (version.getLoginVersion() != currentLoginVersion)
-				removeLocalAndTrigger(roleId); // 本机数据已经过时，马上删除。
+			if (version.getLoginVersion() != currentLoginVersion) {
+				var ret = removeLocalAndTrigger(roleId); // 本机数据已经过时，马上删除。
+				if (0 != ret)
+					return ret;
+			}
 		}
 		Transaction.whileCommit(() -> {
 			// delay for real logout
@@ -326,17 +344,22 @@ public class Online extends AbstractOnline {
 						// local online 独立判断version分别尝试删除。
 						var local = _tlocal.get(roleId);
 						if (null != local && local.getLoginVersion() == currentLoginVersion) {
-							removeLocalAndTrigger(roleId);
+							var ret = removeLocalAndTrigger(roleId);
+							if (0 != ret)
+								return ret;
 						}
 						// 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
 						var online = _tonline.get(roleId);
 						var version = _tversion.getOrAdd(roleId);
 						if (null != online && version.getLoginVersion() == currentLoginVersion) {
-							logoutTrigger(roleId);
+							var ret = logoutTrigger(roleId);
+							if (0 != ret)
+								return ret;
 						}
 						return Procedure.Success;
 					}, "Game.Online.onLinkBroken").call());
 		});
+		return 0;
 	}
 
 	public final void send(long roleId, Protocol<?> p) {
@@ -395,14 +418,19 @@ public class Online extends AbstractOnline {
 		}, "Game.Online.send"), null, null, DispatchMode.Normal);
 	}
 
-	private long triggerLinkBroken(String linkName, LongList errorSids, Map<Long, Long> context) throws Exception {
-		for (int i = 0, n = errorSids.size(); i < n; i++) {
-			var sid = errorSids.get(i);
-			var roleId = context.get(sid);
-			if (roleId != null)
-				onLinkBroken(roleId, linkName, sid);
-		}
-		return 0;
+	private long triggerLinkBroken(String linkName, LongList errorSids, Map<Long, Long> context) {
+		return providerApp.zeze.newProcedure(() -> {
+			for (int i = 0, n = errorSids.size(); i < n; i++) {
+				var sid = errorSids.get(i);
+				var roleId = context.get(sid);
+				if (roleId != null) {
+					var ret = linkBroken(roleId, linkName, sid);
+					if (0 != ret)
+						return ret;
+				}
+			}
+			return 0;
+		}, "triggerLinkBroken").call();
 	}
 
 	public void send(AsyncSocket to, Map<Long, Long> contexts, Send send) {
@@ -753,24 +781,27 @@ public class Online extends AbstractOnline {
 		verifyLocalTimer = Task.scheduleAtUnsafe(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
 	}
 
-	private void tryRemoveLocal(long roleId) throws Exception {
+	private long tryRemoveLocal(long roleId) throws Exception {
 		var online = _tonline.get(roleId);
 		var local = _tlocal.get(roleId);
 
 		if (null == local)
-			return;
+			return 0;
 		// null == online && null == local -> do nothing
 		// null != online && null == local -> do nothing
 
 		var version = _tversion.getOrAdd(roleId);
 		if ((null == online) || (version.getLoginVersion() != local.getLoginVersion()))
-			removeLocalAndTrigger(roleId);
+			return removeLocalAndTrigger(roleId);
+		return 0;
 	}
 
 	@RedirectToServer
-	protected RedirectFuture<Long> redirectNotify(int serverId, long roleId) throws Exception {
-		tryRemoveLocal(roleId);
-		return RedirectFuture.finish(0L);
+	protected void redirectNotify(int serverId, long roleId) throws Exception {
+		// redirect 事务回滚只能抛出异常。
+		var ret = tryRemoveLocal(roleId);
+		if (0 != ret)
+			throw new RuntimeException("tryRemoveLocal fail. ret=" + ret);
 	}
 
 	private void tryRedirectNotify(int serverId, long roleId) throws Exception {
@@ -794,7 +825,9 @@ public class Online extends AbstractOnline {
 
 		if (version.getLoginVersion() != 0) {
 			// login exist
-			logoutTriggerExtra(rpc.Argument.getRoleId());
+			var ret = logoutTriggerExtra(rpc.Argument.getRoleId());
+			if (0 != ret)
+				return ret;
 			if (version.getLoginVersion() != local.getLoginVersion()) {
 				tryRedirectNotify(version.getServerId(), rpc.Argument.getRoleId());
 			}
@@ -821,7 +854,9 @@ public class Online extends AbstractOnline {
 		// var linkSession = (ProviderService.LinkSession)session.getLink().getUserState();
 		version.setServerId(providerApp.zeze.getConfig().getServerId());
 
-		loginTrigger(rpc.Argument.getRoleId());
+		var ret = loginTrigger(rpc.Argument.getRoleId());
+		if (0 != ret)
+			return ret;
 
 		// 先提交结果再设置状态。
 		// see linkd::Zezex.Provider.ModuleProvider。ProcessBroadcast
@@ -855,7 +890,9 @@ public class Online extends AbstractOnline {
 		if (version.getLoginVersion() != 0) {
 			// login exist
 			// relogin 不需要补充 Logout？
-			// logoutTriggerExtra(rpc.Argument.getRoleId());
+			// var ret = logoutTriggerExtra(rpc.Argument.getRoleId());
+			//if (0 != ret)
+			//	return ret;
 			if (version.getLoginVersion() != local.getLoginVersion()) {
 				tryRedirectNotify(version.getServerId(), rpc.Argument.getRoleId());
 			}
@@ -874,7 +911,9 @@ public class Online extends AbstractOnline {
 		if (online.getLinkSid() != session.getLinkSid())
 			online.setLinkSid(session.getLinkSid());
 
-		reloginTrigger(rpc.Argument.getRoleId());
+		var ret = reloginTrigger(rpc.Argument.getRoleId());
+		if (0 != ret)
+			return ret;
 
 		// 先发结果，再发送同步数据（ReliableNotifySync）。
 		// 都使用 WhileCommit，如果成功，按提交的顺序发送，失败全部不会发送。
@@ -908,11 +947,16 @@ public class Online extends AbstractOnline {
 		if (local == null && online != null) {
 			tryRedirectNotify(version.getServerId(), session.getRoleId());
 		}
-		if (null != local)
-			removeLocalAndTrigger(session.getRoleId());
-		if (null != online)
-			logoutTrigger(session.getRoleId());
-
+		if (null != local) {
+			var ret = removeLocalAndTrigger(session.getRoleId());
+			if (0 != ret)
+				return ret;
+		}
+		if (null != online) {
+			var ret = logoutTrigger(session.getRoleId());
+			if (0 != ret)
+				return ret;
+		}
 		// 先设置状态，再发送Logout结果。
 		Transaction.whileCommit(() -> {
 			var setUserState = new SetUserState();

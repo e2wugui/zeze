@@ -3,11 +3,12 @@ public final class Redirect_Zeze_Game_Online extends Zeze.Game.Online {
     private final Zeze.Arch.RedirectBase _redirect_;
 
     @Override
-    protected Zeze.Arch.RedirectFuture<Long> redirectNotify(int serverId, long roleId) {
+    protected void redirectNotify(int serverId, long roleId) {
         var _t_ = _redirect_.choiceServer(this, serverId);
         if (_t_ == null) { // local: loop-back
-            return _redirect_.runFuture(Zeze.Transaction.TransactionLevel.Serializable,
+            _redirect_.runVoid(Zeze.Transaction.TransactionLevel.Serializable,
                 () -> super.redirectNotify(serverId, roleId));
+            return;
         }
 
         var _p_ = new Zeze.Builtin.ProviderDirect.ModuleRedirect();
@@ -21,14 +22,7 @@ public final class Redirect_Zeze_Game_Online extends Zeze.Game.Online {
         _b_.WriteLong(roleId);
         _a_.setParams(new Zeze.Net.Binary(_b_));
 
-        var _f_ = new Zeze.Arch.RedirectFuture<Long>();
-        if (!_p_.Send(_t_, _rpc_ -> {
-            _f_.setResult(_rpc_.isTimeout() ? Zeze.Transaction.Procedure.Timeout : _rpc_.getResultCode());
-            return Zeze.Transaction.Procedure.Success;
-        }, 5000)) {
-            _f_.setResult(Zeze.Transaction.Procedure.ErrorSendFail);
-        }
-        return _f_;
+        _p_.Send(_t_, null);
     }
 
     @SuppressWarnings({"unchecked", "RedundantSuppression"})
@@ -41,7 +35,8 @@ public final class Redirect_Zeze_Game_Online extends Zeze.Game.Online {
                 long roleId;
                 var _b_ = _params_.Wrap();
                 roleId = _b_.ReadLong();
-                return super.redirectNotify(_hash_, roleId);
+                super.redirectNotify(_hash_, roleId);
+                return null;
             }, null));
     }
 }
