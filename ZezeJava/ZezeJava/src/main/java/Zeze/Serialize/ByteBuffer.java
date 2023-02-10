@@ -338,31 +338,31 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 
 	public void WriteUInt(int v) {
 		long u = v & 0xffff_ffffL;
-		if (u < 0x80) {
-			EnsureWrite(1); // 0xxx xxxx
+		if (u < 0x80) { // 0xxx xxxx
+			EnsureWrite(1);
 			Bytes[WriteIndex++] = (byte)u;
-		} else if (u < 0x4000) {
-			EnsureWrite(2); // 10xx xxxx +1B
+		} else if (u < 0x4000) { // 10xx xxxx +1B
+			EnsureWrite(2);
 			byte[] bytes = Bytes;
 			int writeIndex = WriteIndex;
 			bytes[writeIndex] = (byte)((u >> 8) + 0x80);
 			bytes[writeIndex + 1] = (byte)u;
 			WriteIndex = writeIndex + 2;
-		} else if (u < 0x20_0000) {
-			EnsureWrite(3); // 110x xxxx +2B
+		} else if (u < 0x20_0000) { // 110x xxxx +2B
+			EnsureWrite(3);
 			byte[] bytes = Bytes;
 			int writeIndex = WriteIndex;
 			bytes[writeIndex] = (byte)((u >> 16) + 0xc0);
 			bytes[writeIndex + 1] = (byte)(u >> 8);
 			bytes[writeIndex + 2] = (byte)u;
 			WriteIndex = writeIndex + 3;
-		} else if (u < 0x1000_0000) {
-			EnsureWrite(4); // 1110 xxxx +3B
+		} else if (u < 0x1000_0000) { // 1110 xxxx +3B
+			EnsureWrite(4);
 			int writeIndex = WriteIndex;
 			intBeHandler.set(Bytes, writeIndex, v + 0xe000_0000);
 			WriteIndex = writeIndex + 4;
-		} else {
-			EnsureWrite(5); // 1111 0000 +4B
+		} else { // 1111 0000 +4B
+			EnsureWrite(5);
 			byte[] bytes = Bytes;
 			int writeIndex = WriteIndex;
 			bytes[writeIndex] = (byte)0xf0;
@@ -428,46 +428,46 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 
 	public void WriteLong(long v) {
 		if (v >= 0) {
-			if (v < 0x40) {
-				EnsureWrite(1); // 00xx xxxx
+			if (v < 0x40) { // 00xx xxxx
+				EnsureWrite(1);
 				Bytes[WriteIndex++] = (byte)v;
-			} else if (v < 0x2000) {
-				EnsureWrite(2); // 010x xxxx +1B
+			} else if (v < 0x2000) { // 010x xxxx +1B
+				EnsureWrite(2);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
 				bytes[writeIndex] = (byte)((v >> 8) + 0x40);
 				bytes[writeIndex + 1] = (byte)v;
 				WriteIndex = writeIndex + 2;
-			} else if (v < 0x10_0000) {
-				EnsureWrite(3); // 0110 xxxx +2B
+			} else if (v < 0x10_0000) { // 0110 xxxx +2B
+				EnsureWrite(3);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
 				bytes[writeIndex] = (byte)((v >> 16) + 0x60);
 				bytes[writeIndex + 1] = (byte)(v >> 8);
 				bytes[writeIndex + 2] = (byte)v;
 				WriteIndex = writeIndex + 3;
-			} else if (v < 0x800_0000) {
-				EnsureWrite(4); // 0111 0xxx +3B
+			} else if (v < 0x800_0000) { // 0111 0xxx +3B
+				EnsureWrite(4);
 				int writeIndex = WriteIndex;
 				intBeHandler.set(Bytes, writeIndex, (int)v + 0x7000_0000);
 				WriteIndex = writeIndex + 4;
-			} else if (v < 0x4_0000_0000L) {
-				EnsureWrite(5); // 0111 10xx +4B
+			} else if (v < 0x4_0000_0000L) { // 0111 10xx +4B
+				EnsureWrite(5);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
 				bytes[writeIndex] = (byte)((v >> 32) + 0x78);
 				intBeHandler.set(bytes, writeIndex + 1, (int)v);
 				WriteIndex = writeIndex + 5;
-			} else if (v < 0x200_0000_0000L) {
-				EnsureWrite(6); // 0111 110x +5B
+			} else if (v < 0x200_0000_0000L) { // 0111 110x +5B
+				EnsureWrite(6);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
 				bytes[writeIndex] = (byte)((v >> 40) + 0x7c);
 				bytes[writeIndex + 1] = (byte)(v >> 32);
 				intBeHandler.set(bytes, writeIndex + 2, (int)v);
 				WriteIndex = writeIndex + 6;
-			} else if (v < 0x1_0000_0000_0000L) {
-				EnsureWrite(7); // 0111 1110 +6B
+			} else if (v < 0x1_0000_0000_0000L) { // 0111 1110 +6B
+				EnsureWrite(7);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
 				bytes[writeIndex] = (byte)0x7e;
@@ -475,13 +475,13 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 				bytes[writeIndex + 2] = (byte)(v >> 32);
 				intBeHandler.set(bytes, writeIndex + 3, (int)v);
 				WriteIndex = writeIndex + 7;
-			} else if (v < 0x80_0000_0000_0000L) {
-				EnsureWrite(8); // 0111 1111 0 +7B
+			} else if (v < 0x80_0000_0000_0000L) { // 0111 1111 0 +7B
+				EnsureWrite(8);
 				int writeIndex = WriteIndex;
 				longBeHandler.set(Bytes, writeIndex, v + 0x7f00_0000_0000_0000L);
 				WriteIndex = writeIndex + 8;
-			} else {
-				EnsureWrite(9); // 0111 1111 1 +8B
+			} else { // 0111 1111 1 +8B
+				EnsureWrite(9);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
 				bytes[writeIndex] = (byte)0x7f;
@@ -489,46 +489,46 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 				WriteIndex = writeIndex + 9;
 			}
 		} else {
-			if (v >= -0x40) {
-				EnsureWrite(1); // 11xx xxxx
+			if (v >= -0x40) { // 11xx xxxx
+				EnsureWrite(1);
 				Bytes[WriteIndex++] = (byte)v;
-			} else if (v >= -0x2000) {
-				EnsureWrite(2); // 101x xxxx +1B
+			} else if (v >= -0x2000) { // 101x xxxx +1B
+				EnsureWrite(2);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
 				bytes[writeIndex] = (byte)((v >> 8) - 0x40);
 				bytes[writeIndex + 1] = (byte)v;
 				WriteIndex = writeIndex + 2;
-			} else if (v >= -0x10_0000) {
-				EnsureWrite(3); // 1001 xxxx +2B
+			} else if (v >= -0x10_0000) { // 1001 xxxx +2B
+				EnsureWrite(3);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
 				bytes[writeIndex] = (byte)((v >> 16) - 0x60);
 				bytes[writeIndex + 1] = (byte)(v >> 8);
 				bytes[writeIndex + 2] = (byte)v;
 				WriteIndex = writeIndex + 3;
-			} else if (v >= -0x800_0000) {
-				EnsureWrite(4); // 1000 1xxx +3B
+			} else if (v >= -0x800_0000) { // 1000 1xxx +3B
+				EnsureWrite(4);
 				int writeIndex = WriteIndex;
 				intBeHandler.set(Bytes, writeIndex, (int)v - 0x7000_0000);
 				WriteIndex = writeIndex + 4;
-			} else if (v >= -0x4_0000_0000L) {
-				EnsureWrite(5); // 1000 01xx +4B
+			} else if (v >= -0x4_0000_0000L) { // 1000 01xx +4B
+				EnsureWrite(5);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
 				bytes[writeIndex] = (byte)((v >> 32) - 0x78);
 				intBeHandler.set(bytes, writeIndex + 1, (int)v);
 				WriteIndex = writeIndex + 5;
-			} else if (v >= -0x200_0000_0000L) {
-				EnsureWrite(6); // 1000 001x +5B
+			} else if (v >= -0x200_0000_0000L) { // 1000 001x +5B
+				EnsureWrite(6);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
 				bytes[writeIndex] = (byte)((v >> 40) - 0x7c);
 				bytes[writeIndex + 1] = (byte)(v >> 32);
 				intBeHandler.set(bytes, writeIndex + 2, (int)v);
 				WriteIndex = writeIndex + 6;
-			} else if (v >= -0x1_0000_0000_0000L) {
-				EnsureWrite(7); // 1000 0001 +6B
+			} else if (v >= -0x1_0000_0000_0000L) { // 1000 0001 +6B
+				EnsureWrite(7);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
 				bytes[writeIndex] = (byte)0x81;
@@ -536,19 +536,122 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 				bytes[writeIndex + 2] = (byte)(v >> 32);
 				intBeHandler.set(bytes, writeIndex + 3, (int)v);
 				WriteIndex = writeIndex + 7;
-			} else if (v >= -0x80_0000_0000_0000L) {
-				EnsureWrite(8); // 1000 0000 1 +7B
+			} else if (v >= -0x80_0000_0000_0000L) { // 1000 0000 1 +7B
+				EnsureWrite(8);
 				int writeIndex = WriteIndex;
 				longBeHandler.set(Bytes, writeIndex, v - 0x7f00_0000_0000_0000L);
 				WriteIndex = writeIndex + 8;
-			} else {
-				EnsureWrite(9); // 1000 0000 0 +8B
+			} else { // 1000 0000 0 +8B
+				EnsureWrite(9);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
 				bytes[writeIndex] = (byte)0x80;
 				longBeHandler.set(bytes, writeIndex + 1, v - 0x8000_0000_0000_0000L);
 				WriteIndex = writeIndex + 9;
 			}
+		}
+	}
+
+	// 参数v被看作是无符号64位整数
+	public void WriteULong(long v) {
+		if (v < 0x80) {
+			if (v >= 0) { // 0xxx xxxx
+				EnsureWrite(1);
+				Bytes[WriteIndex++] = (byte)v;
+				return;
+			}
+		} else {
+			if (v < 0x4000) { // 10xx xxxx +1B
+				EnsureWrite(2);
+				byte[] bytes = Bytes;
+				int writeIndex = WriteIndex;
+				bytes[writeIndex] = (byte)((v >> 8) + 0x80);
+				bytes[writeIndex + 1] = (byte)v;
+				WriteIndex = writeIndex + 2;
+				return;
+			}
+			if (v < 0x20_0000) { // 110x xxxx +2B
+				EnsureWrite(3);
+				byte[] bytes = Bytes;
+				int writeIndex = WriteIndex;
+				bytes[writeIndex] = (byte)((v >> 16) + 0xc0);
+				bytes[writeIndex + 1] = (byte)(v >> 8);
+				bytes[writeIndex + 2] = (byte)v;
+				WriteIndex = writeIndex + 3;
+				return;
+			}
+			if (v < 0x1000_0000) { // 1110 xxxx +3B
+				EnsureWrite(4);
+				int writeIndex = WriteIndex;
+				intBeHandler.set(Bytes, writeIndex, (int)v + 0xe000_0000);
+				WriteIndex = writeIndex + 4;
+				return;
+			}
+			if (v < 0x8_0000_0000L) { // 1111 0xxx +4B
+				EnsureWrite(5);
+				byte[] bytes = Bytes;
+				int writeIndex = WriteIndex;
+				bytes[writeIndex] = (byte)((v >> 32) + 0xf0);
+				intBeHandler.set(bytes, writeIndex + 1, (int)v);
+				WriteIndex = writeIndex + 5;
+				return;
+			}
+			if (v < 0x400_0000_0000L) { // 1111 10xx +5B
+				EnsureWrite(6);
+				byte[] bytes = Bytes;
+				int writeIndex = WriteIndex;
+				bytes[writeIndex] = (byte)((v >> 40) + 0xf8);
+				bytes[writeIndex + 1] = (byte)(v >> 32);
+				intBeHandler.set(bytes, writeIndex + 2, (int)v);
+				WriteIndex = writeIndex + 6;
+				return;
+			}
+			if (v < 0x2_0000_0000_0000L) { // 1111 110x +6B
+				EnsureWrite(7);
+				byte[] bytes = Bytes;
+				int writeIndex = WriteIndex;
+				bytes[writeIndex] = (byte)((v >> 48) + 0xfc);
+				bytes[writeIndex + 1] = (byte)(v >> 40);
+				bytes[writeIndex + 2] = (byte)(v >> 32);
+				intBeHandler.set(bytes, writeIndex + 3, (int)v);
+				WriteIndex = writeIndex + 7;
+				return;
+			}
+			if (v < 0x100_0000_0000_0000L) { // 1111 1110 +7B
+				EnsureWrite(8);
+				int writeIndex = WriteIndex;
+				longBeHandler.set(Bytes, writeIndex, v + 0xfe00_0000_0000_0000L);
+				WriteIndex = writeIndex + 8;
+				return;
+			}
+		}
+		EnsureWrite(9); // 1111 1111 +8B
+		byte[] bytes = Bytes;
+		int writeIndex = WriteIndex;
+		bytes[writeIndex] = (byte)0xff;
+		longBeHandler.set(bytes, writeIndex + 1, v);
+		WriteIndex = writeIndex + 9;
+	}
+
+	// 返回值应被看作是无符号64位整数
+	public long ReadULong() {
+		int b = ReadByte();
+		switch ((b >> 4) & 0xf) {
+		//@formatter:off
+		case  0: case  1: case  2: case  3: case 4: case 5: case 6: case 7: return b;
+		case  8: case  9: case 10: case 11: return ((b & 0x3f) <<  8) + ReadLong1();
+		case 12: case 13:                   return ((b & 0x1f) << 16) + ReadLong2BE();
+		case 14:                            return ((b & 0x0f) << 24) + ReadLong3BE();
+		default:
+			switch (b & 0xf) {
+			case  0: case  1: case  2: case  3: case 4: case 5: case 6: case 7:
+				return ((long)(b & 7) << 32) + ReadLong4BE();
+			case  8: case  9: case 10: case 11: return ((long)(b & 3) << 40) + ReadLong5BE();
+			case 12: case 13:                   return ((long)(b & 1) << 48) + ReadLong6BE();
+			case 14:                            return ReadLong7BE();
+			default:                            return ReadLong8BE();
+			}
+			//@formatter:on
 		}
 	}
 
@@ -656,6 +759,13 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 				((long)(bytes[readIndex + 1] & 0xff) << 40) +
 				((long)(bytes[readIndex + 2] & 0xff) << 32) +
 				((int)intBeHandler.get(bytes, readIndex + 3) & 0xffff_ffffL);
+	}
+
+	public long ReadLong8BE() {
+		ensureRead(8);
+		int readIndex = ReadIndex;
+		ReadIndex = readIndex + 8;
+		return (long)longBeHandler.get(Bytes, readIndex);
 	}
 
 	public long ReadLong() {

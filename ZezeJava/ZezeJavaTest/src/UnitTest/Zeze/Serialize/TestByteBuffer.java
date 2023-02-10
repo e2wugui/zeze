@@ -281,6 +281,14 @@ public class TestByteBuffer extends TestCase {
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
 	}
 
+	private static void testULong(long x) {
+		ByteBuffer bb = ByteBuffer.Allocate();
+		bb.WriteULong(x);
+		long y = bb.ReadULong();
+		assertEquals(x, y);
+		assertEquals(bb.ReadIndex, bb.WriteIndex);
+	}
+
 	private static void testAll(long x) {
 		testInt((int)x);
 		testInt((int)-x);
@@ -288,6 +296,8 @@ public class TestByteBuffer extends TestCase {
 		testUInt((int)-x);
 		testLong(x);
 		testLong(-x);
+		testULong(x);
+		testULong(-x);
 	}
 
 	public void testInteger() {
@@ -303,7 +313,12 @@ public class TestByteBuffer extends TestCase {
 		testLong(Integer.MAX_VALUE);
 		testLong(Long.MIN_VALUE);
 		testLong(Long.MAX_VALUE);
+		testUInt(Integer.MIN_VALUE);
 		testUInt(Integer.MAX_VALUE);
+		testULong(Integer.MIN_VALUE);
+		testULong(Integer.MAX_VALUE);
+		testULong(Long.MIN_VALUE);
+		testULong(Long.MAX_VALUE);
 	}
 
 	public void testBean() {

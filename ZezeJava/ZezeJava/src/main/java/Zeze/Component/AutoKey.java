@@ -10,6 +10,7 @@ import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 import Zeze.Transaction.Transaction;
 
+@Deprecated
 public final class AutoKey {
 	public static class Module extends AbstractAutoKey {
 		private final ConcurrentHashMap<String, AutoKey> map = new ConcurrentHashMap<>();
@@ -44,7 +45,6 @@ public final class AutoKey {
 	private int allocateCount = ALLOCATE_COUNT_MIN;
 	private long lastAllocateTime = System.currentTimeMillis();
 
-	@SuppressWarnings("deprecation")
 	private AutoKey(Module module, String name) {
 		this.module = module;
 		this.name = name;
@@ -80,15 +80,16 @@ public final class AutoKey {
 		var serverId = module.zeze.getConfig().getServerId();
 		var bb = ByteBuffer.Allocate(8);
 		if (serverId > 0) // 如果serverId==0,写1个字节0不会影响ToLongBE的结果,但会多占1个字节,所以只在serverId>0时写ByteBuffer
-			bb.WriteInt(serverId);
+			bb.WriteUInt(serverId);
 		else if (serverId < 0) // serverId不应该<0,因为会导致nextId返回负值
 			throw new IllegalStateException("serverId(" + serverId + ") < 0");
-		bb.WriteLong(nextSeed());
+		bb.WriteULong(nextSeed());
 		return bb;
 	}
 
 	/**
 	 * 设置当前serverId的种子，新种子必须比当前值大。
+	 *
 	 * @param seed new seed.
 	 * @return true if success.
 	 */
@@ -104,6 +105,7 @@ public final class AutoKey {
 
 	/**
 	 * 增加当前serverId的种子。只能增加，如果溢出，返回失败。
+	 *
 	 * @param delta delta
 	 * @return true if success.
 	 */
@@ -123,6 +125,7 @@ public final class AutoKey {
 
 	/**
 	 * 返回当前serverId的种子。
+	 *
 	 * @return seed
 	 */
 	public long getSeed() {

@@ -190,7 +190,12 @@ public class RedirectBase {
 		var future = new RedirectFuture<T>();
 		// 由于返回的future暴露出来,很可能await同步等待,所以这里不能whileCommit时执行,否则会死锁等待
 		Task.runUnsafe(providerApp.zeze.newProcedure(() -> {
-			func.call().then(future::setResult);
+			try {
+				func.call().then(future::setResult);
+			} catch (Exception e) {
+				future.setException(e);
+				throw e;
+			}
 			return Procedure.Success;
 		}, "Redirect Loop Back", level, null), null, null, DispatchMode.Normal);
 		return future;

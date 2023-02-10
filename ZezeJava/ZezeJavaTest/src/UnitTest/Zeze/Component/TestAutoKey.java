@@ -28,8 +28,8 @@ public class TestAutoKey {
 		var bb = ByteBuffer.Allocate(8);
 		var serverId = App.getInstance().Zeze.getConfig().getServerId();
 		if (serverId > 0)
-			bb.WriteInt(serverId);
-		bb.WriteLong(index);
+			bb.WriteUInt(serverId);
+		bb.WriteULong(index);
 		return ByteBuffer.ToLongBE(bb.Bytes, bb.ReadIndex, bb.Size());
 	}
 

@@ -52,6 +52,7 @@ public final class Application {
 	private final TaskOneByOneByKey taskOneByOneByKey = new TaskOneByOneByKey();
 	private final Locks locks = new Locks();
 	private final AbstractAgent serviceManager;
+	@Deprecated
 	private AutoKey.Module autoKey;
 	private AutoKeyAtomic.Module autoKeyAtomic;
 	private Timer timer;
@@ -85,6 +86,7 @@ public final class Application {
 		this(solutionName, null);
 	}
 
+	@SuppressWarnings("deprecation")
 	public Application(String projectName, Config config) throws Exception {
 		this.projectName = projectName;
 		conf = config != null ? config : Config.load();
@@ -229,6 +231,7 @@ public final class Application {
 		return db;
 	}
 
+	@Deprecated
 	public AutoKey getAutoKey(String name) {
 		return autoKey.getOrAdd(name);
 	}
