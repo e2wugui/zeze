@@ -5,5 +5,5 @@ import Zeze.Util.EventDispatcher;
 
 public class LocalRemoveEventArgument implements EventDispatcher.EventArgument {
 	public long roleId;
-	public BLocal localData;
+	public BLocal local;
 }

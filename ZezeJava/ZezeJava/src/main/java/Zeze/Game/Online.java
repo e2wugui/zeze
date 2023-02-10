@@ -14,7 +14,6 @@ import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderService;
 import Zeze.Arch.ProviderUserSession;
-import Zeze.Arch.RedirectFuture;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Builtin.Game.Online.BAccount;
 import Zeze.Builtin.Game.Online.BAny;
@@ -226,7 +225,7 @@ public class Online extends AbstractOnline {
 	private long removeLocalAndTrigger(long roleId) throws Exception {
 		var arg = new LocalRemoveEventArgument();
 		arg.roleId = roleId;
-		arg.localData = _tlocal.get(roleId).copy();
+		arg.local = _tlocal.get(roleId);
 
 		_tlocal.remove(roleId); // remove first
 
@@ -269,7 +268,7 @@ public class Online extends AbstractOnline {
 	private long logoutTriggerExtra(long roleId) throws Exception {
 		var arg = new LogoutEventArgument();
 		arg.roleId = roleId;
-		arg.onlineData = _tonline.get(roleId).copy();
+		arg.online = _tonline.get(roleId);
 
 		var ret = logoutEvents.triggerEmbed(this, arg);
 		if (0 != ret)
@@ -282,7 +281,8 @@ public class Online extends AbstractOnline {
 	private long logoutTrigger(long roleId) throws Exception {
 		var arg = new LogoutEventArgument();
 		arg.roleId = roleId;
-		arg.onlineData = _tonline.get(roleId).copy();
+		arg.online = _tonline.get(roleId);
+		arg.version = _tversion.get(roleId);
 
 		_tonline.remove(roleId); // remove first
 
@@ -294,9 +294,11 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	private long loginTrigger(long roleId) throws Exception {
+	private long loginTrigger(String account, long roleId) throws Exception {
 		var arg = new LoginArgument();
 		arg.roleId = roleId;
+		arg.account = account;
+		arg.online = _tonline.get(roleId);
 
 		loginTimes.incrementAndGet();
 		var ret = loginEvents.triggerEmbed(this, arg);
@@ -854,7 +856,7 @@ public class Online extends AbstractOnline {
 		// var linkSession = (ProviderService.LinkSession)session.getLink().getUserState();
 		version.setServerId(providerApp.zeze.getConfig().getServerId());
 
-		var ret = loginTrigger(rpc.Argument.getRoleId());
+		var ret = loginTrigger(session.getAccount(), rpc.Argument.getRoleId());
 		if (0 != ret)
 			return ret;
 

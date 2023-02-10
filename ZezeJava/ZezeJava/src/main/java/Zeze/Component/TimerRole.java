@@ -227,8 +227,8 @@ public class TimerRole {
 	// Online.Local 删除事件，取消这个用户所有的在线定时器。
 	private long onLocalRemoveEvent(Object sender, EventDispatcher.EventArgument arg) {
 		var local = (LocalRemoveEventArgument)arg;
-		if (null != local.localData) {
-			var bAny = local.localData.getDatas().get(eOnlineTimers);
+		if (null != local.local) {
+			var bAny = local.local.getDatas().get(eOnlineTimers);
 			if (null != bAny) {
 				var timers = (BOnlineTimers)bAny.getAny().getBean();
 				for (var timerId : timers.getTimerIds().keySet())

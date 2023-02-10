@@ -201,7 +201,7 @@ public class Online extends AbstractOnline {
 	private long removeLocalAndTrigger(String account, String clientId) throws Exception {
 		var bLocals = _tlocal.get(account);
 		var localData = bLocals.getLogins().remove(clientId);
-		var arg = new LocalRemoveEventArgument(account, clientId, localData != null ? localData.copy() : null);
+		var arg = new LocalRemoveEventArgument(account, clientId, localData);
 
 		if (bLocals.getLogins().isEmpty())
 			_tlocal.remove(account); // remove first
@@ -217,7 +217,7 @@ public class Online extends AbstractOnline {
 	private long logoutTriggerExtra(String account, String clientId) throws Exception {
 		var bOnline = _tonline.get(account);
 		var onlineData = bOnline.getLogins().get(clientId);
-		var arg = new LogoutEventArgument(account, clientId, onlineData != null ? onlineData.copy() : null);
+		var arg = new LogoutEventArgument(account, clientId, onlineData);
 
 		var ret = logoutEvents.triggerEmbed(this, arg);
 		if (0 != ret)
@@ -230,7 +230,7 @@ public class Online extends AbstractOnline {
 	private long logoutTrigger(String account, String clientId) throws Exception {
 		var bOnline = _tonline.get(account);
 		var onlineData = bOnline.getLogins().remove(clientId);
-		var arg = new LogoutEventArgument(account, clientId, onlineData != null ? onlineData.copy() : null);
+		var arg = new LogoutEventArgument(account, clientId, onlineData);
 
 		if (bOnline.getLogins().isEmpty())
 			_tonline.remove(account); // remove first
