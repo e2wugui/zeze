@@ -350,6 +350,21 @@ namespace UnitTest.Zeze.Serialize
         }
 
         [TestMethod]
+        public void TestToLong()
+        {
+            var b = new byte[8];
+            long vbe = 0, vle = 0;
+            for (int n = 1; n <= 8; n++)
+            {
+                b[n - 1] = (byte)n;
+                vbe = (vbe << 8) + n;
+                vle += (long)n << ((n - 1) * 8);
+                Assert.AreEqual(vbe, ByteBuffer.ToLongBE(b, 0, n));
+                Assert.AreEqual(vle, ByteBuffer.ToLong(b, 0, n));
+            }
+        }
+
+        [TestMethod]
         public void TestBean()
         {
             Value v = new();

@@ -165,7 +165,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		//@formatter:off
 		switch (length) {
 		default: return (long)longLeHandler.get(bytes, offset);
-		case 7:	v += ((long)(bytes[offset + 6] & 0xff) << 48);
+		case 7:	v = ((long)(bytes[offset + 6] & 0xff) << 48);
 		case 6: v += ((long)(bytes[offset + 5] & 0xff) << 40);
 		case 5: v += ((long)(bytes[offset + 4] & 0xff) << 32);
 		case 4: v += ((int)intLeHandler.get(bytes, offset) & 0xffff_ffffL); break;
@@ -181,16 +181,17 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 	@SuppressWarnings("fallthrough")
 	public static long ToLongBE(byte[] bytes, int offset, int length) {
 		long v = 0;
+		int s = 0;
 		//@formatter:off
 		switch (length) {
 		default: return (long)longBeHandler.get(bytes, offset);
-		case 7:	v = (bytes[offset + 6] & 0xff);
-		case 6: v = (v << 8) + (bytes[offset + 5] & 0xff);
-		case 5: v = (v << 8) + (bytes[offset + 4] & 0xff);
-		case 4: v = (v << 32) + ((int)intBeHandler.get(bytes, offset) & 0xffff_ffffL); break;
-		case 3: v = (bytes[offset + 2] & 0xff);
-		case 2: v = (v << 8) + (bytes[offset + 1] & 0xff);
-		case 1: v = (v << 8) + (bytes[offset] & 0xff);
+		case 7:	v = (bytes[offset + 6] & 0xff); s = 8;
+		case 6: v += (bytes[offset + 5] & 0xff) << s; s += 8;
+		case 5: v += (bytes[offset + 4] & 0xff) << s; s += 8;
+		case 4: v += ((int)intBeHandler.get(bytes, offset) & 0xffff_ffffL) << s; break;
+		case 3: v += (bytes[offset + 2] & 0xff); s = 8;
+		case 2: v += (bytes[offset + 1] & 0xff) << s; s += 8;
+		case 1: v += (bytes[offset] & 0xff) << s;
 		case 0:
 		}
 		//@formatter:on

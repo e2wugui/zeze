@@ -321,6 +321,18 @@ public class TestByteBuffer extends TestCase {
 		testULong(Long.MAX_VALUE);
 	}
 
+	public void testToLong() {
+		var b = new byte[8];
+		long vbe = 0, vle = 0;
+		for (int n = 1; n <= 8; n++) {
+			b[n - 1] = (byte)n;
+			vbe = (vbe << 8) + n;
+			vle += (long)n << ((n - 1) * 8);
+			assertEquals(vbe, ByteBuffer.ToLongBE(b, 0, n));
+			assertEquals(vle, ByteBuffer.ToLong(b, 0, n));
+		}
+	}
+
 	public void testBean() {
 		BValue v = new BValue();
 		v.setString3("abc");

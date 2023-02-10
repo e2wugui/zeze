@@ -78,13 +78,36 @@ public class AutoKeyAtomic {
 
 	public ByteBuffer nextByteBuffer() {
 		var serverId = module.zeze.getConfig().getServerId();
+		if (serverId < 0) // serverId不应该<0,因为会导致nextId返回负值
+			throw new IllegalStateException("serverId(" + serverId + ") < 0");
 		var bb = ByteBuffer.Allocate(8);
 		if (serverId > 0) // 如果serverId==0,写1个字节0不会影响ToLongBE的结果,但会多占1个字节,所以只在serverId>0时写ByteBuffer
 			bb.WriteUInt(serverId);
-		else if (serverId < 0) // serverId不应该<0,因为会导致nextId返回负值
-			throw new IllegalStateException("serverId(" + serverId + ") < 0");
 		bb.WriteULong(nextSeed());
 		return bb;
+	}
+
+	/**
+	 * 设置最小的ID值, 使下次nextId()的结果不小于此值
+	 */
+	public boolean setMinId(long minId) {
+		var serverId = module.zeze.getConfig().getServerId();
+		if (serverId < 0) // serverId不应该<0,因为会导致nextId返回负值
+			throw new IllegalStateException("serverId(" + serverId + ") < 0");
+		if (serverId == 0)
+			return setSeed(minId);
+		var bb = ByteBuffer.Allocate(8);
+		bb.WriteUInt(serverId);
+		bb.WriteULong(0);
+		long id = ByteBuffer.ToLongBE(bb.Bytes, 0, bb.WriteIndex);
+		long seed = 0;
+		while (id < minId) {
+			id <<= 8;
+			if ((id & 0xff80_0000_0000_0000L) != 0)
+				throw new IllegalStateException("minId(" + minId + ") is too large for serverId(" + serverId + ')');
+			seed = seed == 0 ? 0x80 : seed << 7;
+		}
+		return setSeed(seed);
 	}
 
 	/**

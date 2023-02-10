@@ -1046,17 +1046,18 @@ namespace Zeze.Serialize
         public static long ToLongBE(byte[] bytes, int offset, int length)
         {
             long v = 0;
+            int s = 0;
             //@formatter:off
             switch (length)
             {
-                default: v = bytes[offset + 7]; goto case 7;
-                case 7: v = (v << 8) + bytes[offset + 6]; goto case 6;
-                case 6: v = (v << 8) + bytes[offset + 5]; goto case 5;
-                case 5: v = (v << 8) + bytes[offset + 4]; goto case 4;
-                case 4: v = (v << 8) + bytes[offset + 3]; goto case 3;
-                case 3: v = (v << 8) + bytes[offset + 2]; goto case 2;
-                case 2: v = (v << 8) + bytes[offset + 1]; goto case 1;
-                case 1: v = (v << 8) + bytes[offset]; break;
+                default: v = bytes[offset + 7]; s = 8; goto case 7;
+                case 7: v += bytes[offset + 6] << s; s += 8; goto case 6;
+                case 6: v += bytes[offset + 5] << s; s += 8; goto case 5;
+                case 5: v += bytes[offset + 4] << s; s += 8; goto case 4;
+                case 4: v += (long)bytes[offset + 3] << s; s += 8; goto case 3;
+                case 3: v += (long)bytes[offset + 2] << s; s += 8; goto case 2;
+                case 2: v += (long)bytes[offset + 1] << s; s += 8; goto case 1;
+                case 1: v += (long)bytes[offset] << s; break;
                 case 0: break;
             }
             //@formatter:on
@@ -1628,12 +1629,12 @@ namespace Zeze.Serialize
 
         public static void BuildString<T>(StringBuilder sb, IEnumerable<T> c)
         {
-            Util.Str.BuildString(sb, c);
+            Str.BuildString(sb, c);
         }
 
         public static void BuildString<TK, TV>(StringBuilder sb, IDictionary<TK, TV> dic, IComparer<TK> comparer = null)
         {
-            Util.Str.BuildString(sb, dic, comparer);
+            Str.BuildString(sb, dic, comparer);
         }
 
         public static bool Equals(byte[] left, byte[] right)
