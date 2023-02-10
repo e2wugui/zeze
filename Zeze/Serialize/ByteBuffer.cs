@@ -16,7 +16,7 @@ namespace Zeze.Serialize
     public sealed class ByteBuffer
     {
         public const bool IGNORE_INCOMPATIBLE_FIELD = false;
-        
+
         public byte[] Bytes { get; private set; }
         public int ReadIndex { get; set; }
         public int WriteIndex { get; set; }
@@ -597,6 +597,142 @@ namespace Zeze.Serialize
                 }
             }
         }
+
+        public void WriteULong(long x)
+        {
+            ulong u = (ulong)x;
+            if (u < 0x80) // 0xxx xxxx
+            {
+                EnsureWrite(1);
+                Bytes[WriteIndex++] = (byte)u;
+            }
+            else if (u < 0x4000)
+            { // 10xx xxxx +1B
+                EnsureWrite(2);
+                byte[] bytes = Bytes;
+                int writeIndex = WriteIndex;
+                bytes[writeIndex] = (byte)((u >> 8) + 0x80);
+                bytes[writeIndex + 1] = (byte)u;
+                WriteIndex = writeIndex + 2;
+            }
+            else if (u < 0x20_0000) // 110x xxxx +2B
+            {
+                EnsureWrite(3);
+                byte[] bytes = Bytes;
+                int writeIndex = WriteIndex;
+                bytes[writeIndex] = (byte)((u >> 16) + 0xc0);
+                bytes[writeIndex + 1] = (byte)(u >> 8);
+                bytes[writeIndex + 2] = (byte)u;
+                WriteIndex = writeIndex + 3;
+            }
+            else if (u < 0x1000_0000) // 1110 xxxx +3B
+            {
+                EnsureWrite(4);
+                byte[] bytes = Bytes;
+                int writeIndex = WriteIndex;
+                bytes[writeIndex] = (byte)((u >> 24) + 0xe0);
+                bytes[writeIndex + 1] = (byte)(u >> 16);
+                bytes[writeIndex + 2] = (byte)(u >> 8);
+                bytes[writeIndex + 3] = (byte)u;
+                WriteIndex = writeIndex + 4;
+            }
+            else if (u < 0x8_0000_0000L) // 1111 0xxx +4B
+            {
+                EnsureWrite(5);
+                byte[] bytes = Bytes;
+                int writeIndex = WriteIndex;
+                bytes[writeIndex] = (byte)((u >> 32) + 0xf0);
+                bytes[writeIndex + 1] = (byte)(u >> 24);
+                bytes[writeIndex + 2] = (byte)(u >> 16);
+                bytes[writeIndex + 3] = (byte)(u >> 8);
+                bytes[writeIndex + 4] = (byte)u;
+                WriteIndex = writeIndex + 5;
+            }
+            else if (u < 0x400_0000_0000L) // 1111 10xx +5B
+            {
+                EnsureWrite(6);
+                byte[] bytes = Bytes;
+                int writeIndex = WriteIndex;
+                bytes[writeIndex] = (byte)((u >> 40) + 0xf8);
+                bytes[writeIndex + 1] = (byte)(u >> 32);
+                bytes[writeIndex + 2] = (byte)(u >> 24);
+                bytes[writeIndex + 3] = (byte)(u >> 16);
+                bytes[writeIndex + 4] = (byte)(u >> 8);
+                bytes[writeIndex + 5] = (byte)u;
+                WriteIndex = writeIndex + 6;
+            }
+            else if (u < 0x2_0000_0000_0000L) // 1111 110x +6B
+            {
+                EnsureWrite(7);
+                byte[] bytes = Bytes;
+                int writeIndex = WriteIndex;
+                bytes[writeIndex] = (byte)((u >> 48) + 0xfc);
+                bytes[writeIndex + 1] = (byte)(u >> 40);
+                bytes[writeIndex + 2] = (byte)(u >> 32);
+                bytes[writeIndex + 3] = (byte)(u >> 24);
+                bytes[writeIndex + 4] = (byte)(u >> 16);
+                bytes[writeIndex + 5] = (byte)(u >> 8);
+                bytes[writeIndex + 6] = (byte)u;
+                WriteIndex = writeIndex + 7;
+            }
+            else if (u < 0x100_0000_0000_0000L) // 1111 1110 +7B
+            {
+                EnsureWrite(8);
+                byte[] bytes = Bytes;
+                int writeIndex = WriteIndex;
+                bytes[writeIndex] = 0xfe;
+                bytes[writeIndex + 1] = (byte)(u >> 48);
+                bytes[writeIndex + 2] = (byte)(u >> 40);
+                bytes[writeIndex + 3] = (byte)(u >> 32);
+                bytes[writeIndex + 4] = (byte)(u >> 24);
+                bytes[writeIndex + 5] = (byte)(u >> 16);
+                bytes[writeIndex + 6] = (byte)(u >> 8);
+                bytes[writeIndex + 7] = (byte)u;
+                WriteIndex = writeIndex + 8;
+            }
+            else // 1111 1111 +8B
+            {
+                EnsureWrite(9);
+                byte[] bytes = Bytes;
+                int writeIndex = WriteIndex;
+                bytes[writeIndex] = 0xff;
+                bytes[writeIndex + 1] = (byte)(u >> 56);
+                bytes[writeIndex + 2] = (byte)(u >> 48);
+                bytes[writeIndex + 3] = (byte)(u >> 40);
+                bytes[writeIndex + 4] = (byte)(u >> 32);
+                bytes[writeIndex + 5] = (byte)(u >> 24);
+                bytes[writeIndex + 6] = (byte)(u >> 16);
+                bytes[writeIndex + 7] = (byte)(u >> 8);
+                bytes[writeIndex + 8] = (byte)u;
+                WriteIndex = writeIndex + 9;
+            }
+        }
+
+        // 返回值应被看作是无符号64位整数
+        public long ReadULong()
+        {
+            int b = ReadByte();
+            switch (b >> 4)
+            {
+            //@formatter:off
+            case  0: case  1: case  2: case  3: case 4: case 5: case 6: case 7: return b;
+            case  8: case  9: case 10: case 11: return ((b & 0x3f) <<  8) + ReadLong1();
+            case 12: case 13:                   return ((b & 0x1f) << 16) + ReadLong2BE();
+            case 14:                            return ((b & 0x0f) << 24) + ReadLong3BE();
+            default:
+                switch (b & 0xf)
+                {
+                case  0: case  1: case  2: case  3: case 4: case 5: case 6: case 7:
+                    return ((long)(b & 7) << 32) + ReadLong4BE();
+                case  8: case  9: case 10: case 11: return ((long)(b & 3) << 40) + ReadLong5BE();
+                case 12: case 13:                   return ((long)(b & 1) << 48) + ReadLong6BE();
+                case 14:                            return ReadLong7BE();
+                default:                            return ReadLong8BE();
+                }
+                //@formatter:on
+            }
+        }
+
         public long ReadLong1()
         {
             EnsureRead(1);
@@ -676,6 +812,22 @@ namespace Zeze.Serialize
                     (bytes[readIndex + 4] << 16) +
                     (bytes[readIndex + 5] << 8) +
                     bytes[readIndex + 6];
+        }
+
+        public long ReadLong8BE()
+        {
+            EnsureRead(8);
+            byte[] bytes = Bytes;
+            int readIndex = ReadIndex;
+            ReadIndex = readIndex + 8;
+            return ((long)bytes[readIndex] << 56) +
+                   ((long)bytes[readIndex + 1] << 48) +
+                   ((long)bytes[readIndex + 2] << 40) +
+                   ((long)bytes[readIndex + 3] << 32) +
+                   ((long)bytes[readIndex + 4] << 24) +
+                   (bytes[readIndex + 5] << 16) +
+                   (bytes[readIndex + 6] << 8) +
+                   bytes[readIndex + 7];
         }
 
         public long ReadLong()
@@ -898,7 +1050,7 @@ namespace Zeze.Serialize
             switch (length)
             {
                 default: v = bytes[offset + 7]; goto case 7;
-                case 7:	v = (v << 8) + bytes[offset + 6]; goto case 6;
+                case 7: v = (v << 8) + bytes[offset + 6]; goto case 6;
                 case 6: v = (v << 8) + bytes[offset + 5]; goto case 5;
                 case 5: v = (v << 8) + bytes[offset + 4]; goto case 4;
                 case 4: v = (v << 8) + bytes[offset + 3]; goto case 3;

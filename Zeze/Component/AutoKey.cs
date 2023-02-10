@@ -88,10 +88,10 @@ namespace Zeze.Component
             var serverId = module.Zeze.Config.ServerId;
             var bb = ByteBuffer.Allocate(8);
             if (serverId > 0) // 如果serverId==0,写1个字节0不会影响ToLongBE的结果,但会多占1个字节,所以只在serverId>0时写ByteBuffer
-                bb.WriteInt(serverId);
+                bb.WriteUInt(serverId);
             else if (serverId < 0) // serverId不应该<0,因为会导致nextId返回负值
                 throw new Exception("serverId(" + serverId + ") < 0");
-            bb.WriteLong(await NextSeedAsync());
+            bb.WriteULong(await NextSeedAsync());
             return bb;
         }
 

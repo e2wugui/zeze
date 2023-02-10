@@ -301,6 +301,15 @@ namespace UnitTest.Zeze.Serialize
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
         }
 
+        static void TestULong(long x)
+        {
+            ByteBuffer bb = ByteBuffer.Allocate();
+            bb.WriteULong(x);
+            long y = bb.ReadULong();
+            Assert.AreEqual(x, y);
+            Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
+        }
+
         static void TestAll(long x)
         {
             TestInt((int)x);
@@ -309,6 +318,8 @@ namespace UnitTest.Zeze.Serialize
             TestUInt((int)-x);
             TestLong(x);
             TestLong(-x);
+            TestULong(x);
+            TestULong(-x);
         }
 
         [TestMethod]
@@ -330,7 +341,12 @@ namespace UnitTest.Zeze.Serialize
             TestLong(int.MaxValue);
             TestLong(long.MinValue);
             TestLong(long.MaxValue);
+            TestUInt(int.MinValue);
             TestUInt(int.MaxValue);
+            TestULong(int.MinValue);
+            TestULong(int.MaxValue);
+            TestULong(long.MinValue);
+            TestULong(long.MaxValue);
         }
 
         [TestMethod]
