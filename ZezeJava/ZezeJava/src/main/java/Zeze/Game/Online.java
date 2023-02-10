@@ -40,12 +40,14 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.Transaction;
+import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongList;
 import Zeze.Util.OutLong;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
+import Zeze.Util.TransactionLevelAnnotation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -797,11 +799,9 @@ public class Online extends AbstractOnline {
 	}
 
 	@RedirectToServer
+	@TransactionLevelAnnotation(Level= TransactionLevel.None)
 	protected void redirectNotify(int serverId, long roleId) throws Exception {
-		// redirect 事务回滚只能抛出异常。
-		var ret = tryRemoveLocal(roleId);
-		if (0 != ret)
-			throw new RuntimeException("tryRemoveLocal fail. ret=" + ret);
+		providerApp.zeze.newProcedure(() -> tryRemoveLocal(roleId), "redirectNotify").call();
 	}
 
 	private void tryRedirectNotify(int serverId, long roleId) throws Exception {
