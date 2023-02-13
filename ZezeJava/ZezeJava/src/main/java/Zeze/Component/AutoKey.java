@@ -52,6 +52,10 @@ public class AutoKey {
 		this.name = name;
 	}
 
+	public String getName() {
+		return name;
+	}
+
 	public int getAllocateCount() {
 		return allocateCount;
 	}
