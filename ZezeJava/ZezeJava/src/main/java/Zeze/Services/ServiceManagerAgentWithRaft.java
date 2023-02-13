@@ -301,7 +301,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	@Override
 	public void offlineRegister(BOfflineNotify argument, Action1<BOfflineNotify> handle) {
 		waitLoginReady();
-		onOfflineNotifys.putIfAbsent(argument.notifyId, handle);
+		onOfflineNotifies.putIfAbsent(argument.notifyId, handle);
 		raftClient.sendForWait(new OfflineRegister(argument)).await();
 	}
 

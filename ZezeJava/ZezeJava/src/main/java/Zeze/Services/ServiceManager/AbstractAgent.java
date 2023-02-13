@@ -5,8 +5,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Net.Binary;
 import Zeze.Util.Action1;
 import Zeze.Util.Action2;
-import Zeze.Util.FewModifyList;
-import Zeze.Util.Func1;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -30,7 +28,7 @@ public abstract class AbstractAgent implements Closeable {
 	protected Action1<BServerLoad> onSetServerLoad;
 
 	// 返回是否处理成功且不需要其它notifier继续处理
-	protected ConcurrentHashMap<String, Action1<BOfflineNotify>> onOfflineNotifys = new ConcurrentHashMap<>();
+	protected final ConcurrentHashMap<String, Action1<BOfflineNotify>> onOfflineNotifies = new ConcurrentHashMap<>();
 
 	// 应用可以在这个Action内起一个测试事务并执行一次。也可以实现其他检测。
 	// ServiceManager 定时发送KeepAlive给Agent，并等待结果。超时则认为服务失效。
@@ -61,7 +59,7 @@ public abstract class AbstractAgent implements Closeable {
 	}
 
 	protected boolean triggerOfflineNotify(BOfflineNotify notify) {
-		var handle = onOfflineNotifys.get(notify.notifyId);
+		var handle = onOfflineNotifies.get(notify.notifyId);
 		if (null == handle)
 			return false;
 
@@ -337,6 +335,7 @@ public abstract class AbstractAgent implements Closeable {
 	}
 
 	public abstract BServiceInfo registerService(BServiceInfo info);
+
 	public abstract BServiceInfo updateService(BServiceInfo info);
 
 	protected static void verify(String identity) {

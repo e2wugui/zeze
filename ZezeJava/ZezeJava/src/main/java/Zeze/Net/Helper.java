@@ -8,16 +8,16 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 
 public final class Helper {
-	public static final int MAX_BUFFER_SIZE = 0x40000000; // 1G
+	public static final int MAX_BUFFER_SIZE = 0x4000_0000; // 1G
 
 	/**
 	 * @param size size
 	 * @return 符合 2^n 并且不小于size
-	 * @throws IllegalArgumentException if size < 0 || size >= 0x40000000
+	 * @throws IllegalArgumentException if size < 0 || size > 0x4000_0000
 	 */
-	public static int roudup(int size) {
+	public static int roundup(int size) {
 		if (size < 0 || size > MAX_BUFFER_SIZE)
-			throw new IllegalArgumentException("xio.Helper.roundup size=" + size);
+			throw new IllegalArgumentException("Helper.roundup size=" + size);
 		int capacity = 16;
 		while (size > capacity)
 			capacity <<= 1;
@@ -33,12 +33,12 @@ public final class Helper {
 	 */
 	public static ByteBuffer realloc(ByteBuffer buffer, int increment) {
 		if (null == buffer) {
-			return ByteBuffer.allocate(roudup(increment));
+			return ByteBuffer.allocate(roundup(increment));
 		}
 
 		if (buffer.remaining() < increment) {
 			buffer.flip(); // prepare to read
-			return ByteBuffer.allocate(roudup(buffer.limit() + increment)).put(buffer);
+			return ByteBuffer.allocate(roundup(buffer.limit() + increment)).put(buffer);
 		}
 
 		return buffer;
@@ -71,32 +71,24 @@ public final class Helper {
 	}
 
 	/**
-	 * 把 InetAddress 转换保存在 int 中。
+	 * 把 InetAddress 转换保存在 int(大端) 中。
 	 *
 	 * @throws RuntimeException if addr is not a ip4 address
 	 */
 	public static int ip4(InetAddress addr) {
-		int ip = 0;
 		byte[] addrs = addr.getAddress();
 		if (addrs.length != 4)
 			throw new RuntimeException(addr + " is not a ip4 address");
-		ip |= (addrs[3] << 24) & 0xff000000;
-		ip |= (addrs[2] << 16) & 0x00ff0000;
-		ip |= (addrs[1] << 8) & 0x0000ff00;
-		ip |= (addrs[0]) & 0x000000ff;
-		return ip;
+		return (int)Zeze.Serialize.ByteBuffer.intBeHandler.get(addrs, 0);
 	}
 
 	/**
-	 * 把整数形式保存的 IpAddress 转换成 InetAddress。
+	 * 把整数(大端)形式保存的 IpAddress 转换成 InetAddress。
 	 */
 	public static InetAddress inetAddress(int address) {
 		try {
 			byte[] addr = new byte[4];
-			addr[0] = (byte)((address >>> 24) & 0xFF);
-			addr[1] = (byte)((address >>> 16) & 0xFF);
-			addr[2] = (byte)((address >>> 8) & 0xFF);
-			addr[3] = (byte)(address & 0xFF);
+			Zeze.Serialize.ByteBuffer.intBeHandler.set(addr, 0, address);
 			return InetAddress.getByAddress(addr);
 		} catch (UnknownHostException e) {
 			throw new RuntimeException(e);

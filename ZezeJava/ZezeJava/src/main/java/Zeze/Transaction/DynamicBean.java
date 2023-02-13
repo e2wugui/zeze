@@ -129,12 +129,12 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 
 	@Override
 	public int preAllocSize() {
-		return 9 + getBean().preAllocSize();
+		return 9 + getBean().preAllocSize(); // [9]typeId
 	}
 
 	@Override
 	public void preAllocSize(int size) {
-		getBean().preAllocSize(size - 1);
+		getBean().preAllocSize(size - 1); // [1]typeId
 	}
 
 	@Override

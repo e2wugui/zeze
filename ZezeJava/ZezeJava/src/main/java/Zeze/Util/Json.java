@@ -485,7 +485,7 @@ public final class Json {
 			final byte[] data = reader.parseByteString();
 			if (obj == null)
 				return ByteBuffer.Wrap(data);
-			obj.wraps(data);
+			obj.wraps(data != null ? data : ByteBuffer.Empty);
 			return obj;
 		});
 		Json.getClassMeta(ByteBuffer.class).setWriter((writer, classMeta, obj) -> {

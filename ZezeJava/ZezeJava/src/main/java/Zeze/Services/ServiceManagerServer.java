@@ -686,6 +686,7 @@ public final class ServiceManagerServer implements Closeable {
 		return 0;
 	}
 
+	@SuppressWarnings("MethodMayBeStatic")
 	private long processNormalClose(NormalClose r) {
 		var session = (Session)r.getSender().getUserState();
 		synchronized (session.offlineRegisterNotifies) {

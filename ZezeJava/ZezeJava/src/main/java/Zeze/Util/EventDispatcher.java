@@ -3,11 +3,9 @@ package Zeze.Util;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import Zeze.Application;
 import Zeze.Transaction.DispatchMode;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public class EventDispatcher {
-	private static final Logger logger = LogManager.getLogger(EventDispatcher.class);
+	// private static final Logger logger = LogManager.getLogger(EventDispatcher.class);
 
 	@FunctionalInterface
 	public interface EventHandle {

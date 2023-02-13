@@ -147,7 +147,7 @@ public final class Agent extends AbstractAgent {
 	@Override
 	public void offlineRegister(BOfflineNotify argument, Action1<BOfflineNotify> handle) {
 		waitConnectorReady();
-		onOfflineNotifys.putIfAbsent(argument.notifyId, handle);
+		onOfflineNotifies.putIfAbsent(argument.notifyId, handle);
 		new OfflineRegister(argument).SendAndWaitCheckResultCode(client.getSocket());
 	}
 

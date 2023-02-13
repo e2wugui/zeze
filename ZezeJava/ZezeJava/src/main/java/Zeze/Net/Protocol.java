@@ -105,12 +105,12 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 
 	@Override
 	public int preAllocSize() {
-		return 9 + Argument.preAllocSize();
+		return 10 + Argument.preAllocSize(); // [1]familyClass + [9]resultCode
 	}
 
 	@Override
 	public void preAllocSize(int size) {
-		Argument.preAllocSize(size - 1);
+		Argument.preAllocSize(size - 1); // [1]familyClass
 	}
 
 	public final ByteBuffer encode() {
