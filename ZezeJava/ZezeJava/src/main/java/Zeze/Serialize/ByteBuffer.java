@@ -94,7 +94,9 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 	}
 
 	public void wraps(byte[] bytes) {
-		wraps(bytes, 0, bytes.length);
+		Bytes = bytes;
+		ReadIndex = 0;
+		WriteIndex = bytes.length;
 	}
 
 	public void wraps(byte[] bytes, int offset, int length) {
@@ -551,6 +553,20 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 				WriteIndex = writeIndex + 9;
 			}
 		}
+	}
+
+	public static int writeULongSize(long v) {
+		//@formatter:off
+		if (v <                 0x80 ) return v >= 0 ? 1 : 9;
+		if (v <               0x4000 ) return 2;
+		if (v <            0x20_0000 ) return 3;
+		if (v <          0x1000_0000 ) return 4;
+		if (v <        0x8_0000_0000L) return 5;
+		if (v <      0x400_0000_0000L) return 6;
+		if (v <   0x2_0000_0000_0000L) return 7;
+		if (v < 0x100_0000_0000_0000L) return 8;
+		return 9;
+		//@formatter:on
 	}
 
 	// 参数v被看作是无符号64位整数

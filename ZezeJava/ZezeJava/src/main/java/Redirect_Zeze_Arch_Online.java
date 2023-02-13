@@ -6,7 +6,7 @@ public final class Redirect_Zeze_Arch_Online extends Zeze.Arch.Online {
     protected void redirectNotify(int serverId, String account) {
         var _t_ = _redirect_.choiceServer(this, serverId);
         if (_t_ == null) { // local: loop-back
-            _redirect_.runVoid(Zeze.Transaction.TransactionLevel.Serializable,
+            _redirect_.runVoid(Zeze.Transaction.TransactionLevel.None,
                 () -> super.redirectNotify(serverId, account));
             return;
         }
@@ -31,7 +31,7 @@ public final class Redirect_Zeze_Arch_Online extends Zeze.Arch.Online {
         _redirect_ = _app_.getZeze().redirect;
 
         _app_.getZeze().redirect.handles.put("Zeze.Arch.Online:redirectNotify", new Zeze.Arch.RedirectHandle(
-            Zeze.Transaction.TransactionLevel.Serializable, (_hash_, _params_) -> {
+            Zeze.Transaction.TransactionLevel.None, (_hash_, _params_) -> {
                 String account;
                 var _b_ = _params_.Wrap();
                 account = _b_.ReadString();

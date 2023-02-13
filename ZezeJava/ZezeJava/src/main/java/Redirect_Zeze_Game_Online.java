@@ -6,7 +6,7 @@ public final class Redirect_Zeze_Game_Online extends Zeze.Game.Online {
     protected void redirectNotify(int serverId, long roleId) {
         var _t_ = _redirect_.choiceServer(this, serverId);
         if (_t_ == null) { // local: loop-back
-            _redirect_.runVoid(Zeze.Transaction.TransactionLevel.Serializable,
+            _redirect_.runVoid(Zeze.Transaction.TransactionLevel.None,
                 () -> super.redirectNotify(serverId, roleId));
             return;
         }
@@ -31,7 +31,7 @@ public final class Redirect_Zeze_Game_Online extends Zeze.Game.Online {
         _redirect_ = _app_.getZeze().redirect;
 
         _app_.getZeze().redirect.handles.put("Zeze.Game.Online:redirectNotify", new Zeze.Arch.RedirectHandle(
-            Zeze.Transaction.TransactionLevel.Serializable, (_hash_, _params_) -> {
+            Zeze.Transaction.TransactionLevel.None, (_hash_, _params_) -> {
                 long roleId;
                 var _b_ = _params_.Wrap();
                 roleId = _b_.ReadLong();

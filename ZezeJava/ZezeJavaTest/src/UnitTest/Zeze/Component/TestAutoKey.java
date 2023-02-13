@@ -27,6 +27,7 @@ public class TestAutoKey {
 	private static long makeId(long index) {
 		var bb = ByteBuffer.Allocate(8);
 		var serverId = App.getInstance().Zeze.getConfig().getServerId();
+		Assert.assertTrue(serverId >= 0);
 		if (serverId > 0)
 			bb.WriteUInt(serverId);
 		bb.WriteULong(index);
@@ -35,7 +36,7 @@ public class TestAutoKey {
 	}
 
 	@Test
-	public final void test1_AutoKey() throws Exception {
+	public final void test1_AutoKey() {
 		System.out.println("testAutoKey1");
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			var autoKey = demo.App.getInstance().Zeze.getAutoKeyAtomic("test1");
@@ -52,7 +53,7 @@ public class TestAutoKey {
 	}
 
 	@Test
-	public final void test2_AutoKey() throws Exception {
+	public final void test2_AutoKey() {
 		System.out.println("testAutoKey2");
 		var allocCount = demo.App.getInstance().Zeze.getAutoKeyAtomic("test1").getAllocateCount();
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
@@ -70,7 +71,7 @@ public class TestAutoKey {
 	}
 
 	@Test
-	public final void test3_AutoKey() throws Exception {
+	public final void test3_AutoKey() {
 		System.out.println("testAutoKey2");
 		var allocCount = demo.App.getInstance().Zeze.getAutoKeyAtomic("test1").getAllocateCount();
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {

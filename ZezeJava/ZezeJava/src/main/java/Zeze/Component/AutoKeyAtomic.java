@@ -58,32 +58,40 @@ public class AutoKeyAtomic {
 
 	public long nextId() {
 		var bb = nextByteBuffer();
-		if (bb.Size() > 8)
-			throw new IllegalStateException("out of range: serverId=" + module.zeze.getConfig().getServerId()
-					+ ", nextId=" + bb);
-		return ByteBuffer.ToLongBE(bb.Bytes, bb.ReadIndex, bb.Size()); // 这里用BE(大端)是为了保证返回值一定为正
+		if (bb.Size() > 8) {
+			throw new IllegalStateException("AutoKeyAtomic.nextId overflow: serverId="
+					+ module.zeze.getConfig().getServerId() + ", nextId=" + bb);
+		}
+		return ByteBuffer.ToLongBE(bb.Bytes, 0, bb.WriteIndex); // 这里用BE(大端)是为了保证返回值一定为正,且保证ID值随seed的增长而增长
 	}
 
 	public byte[] nextBytes() {
-		return nextByteBuffer().Copy();
+		return nextByteBuffer().Bytes; // nextByteBuffer的Bytes一定是正好大小的数组
 	}
 
 	public Binary nextBinary() {
 		return new Binary(nextByteBuffer());
 	}
 
+	/**
+	 * @return base64编码的ID
+	 */
 	public String nextString() {
 		return Base64.getEncoder().encodeToString(nextBytes());
 	}
 
 	public ByteBuffer nextByteBuffer() {
-		var serverId = module.zeze.getConfig().getServerId();
+		int serverId = module.zeze.getConfig().getServerId();
 		if (serverId < 0) // serverId不应该<0,因为会导致nextId返回负值
-			throw new IllegalStateException("serverId(" + serverId + ") < 0");
-		var bb = ByteBuffer.Allocate(8);
+			throw new IllegalStateException("AutoKeyAtomic.nextByteBuffer: serverId(" + serverId + ") < 0");
+		var seed = nextSeed();
+		int size = ByteBuffer.writeULongSize(seed);
+		if (serverId > 0)
+			size += ByteBuffer.writeUIntSize(serverId);
+		var bb = ByteBuffer.Allocate(size);
 		if (serverId > 0) // 如果serverId==0,写1个字节0不会影响ToLongBE的结果,但会多占1个字节,所以只在serverId>0时写ByteBuffer
 			bb.WriteUInt(serverId);
-		bb.WriteULong(nextSeed());
+		bb.WriteULong(seed);
 		return bb;
 	}
 
@@ -91,21 +99,23 @@ public class AutoKeyAtomic {
 	 * 设置最小的ID值, 使下次nextId()的结果不小于此值
 	 */
 	public boolean setMinId(long minId) {
-		var serverId = module.zeze.getConfig().getServerId();
+		int serverId = module.zeze.getConfig().getServerId();
 		if (serverId < 0) // serverId不应该<0,因为会导致nextId返回负值
-			throw new IllegalStateException("serverId(" + serverId + ") < 0");
+			throw new IllegalStateException("AutoKeyAtomic.setMinId: serverId(" + serverId + ") < 0");
 		if (serverId == 0)
-			return setSeed(minId);
+			return setSeed(minId); // WriteULong(minId)再ToLongBE得到的值一定不小于minId,其实还能再选出符合条件的更小seed值,但serverId极少=0,所以不考虑那么多了
 		var bb = ByteBuffer.Allocate(8);
 		bb.WriteUInt(serverId);
 		bb.WriteULong(0);
 		long id = ByteBuffer.ToLongBE(bb.Bytes, 0, bb.WriteIndex);
 		long seed = 0;
 		while (id < minId) {
+			if ((id & 0xff80_0000_0000_0000L) != 0) {
+				throw new IllegalStateException("AutoKeyAtomic.setMinId: minId(" + minId
+						+ ") is too large for serverId(" + serverId + ')');
+			}
 			id <<= 8;
-			if ((id & 0xff80_0000_0000_0000L) != 0)
-				throw new IllegalStateException("minId(" + minId + ") is too large for serverId(" + serverId + ')');
-			seed = seed == 0 ? 0x80 : seed << 7;
+			seed = seed == 0 ? 0x80 : seed << 7; // 每多7位,WriteULong序列化就要多1字节
 		}
 		return setSeed(seed);
 	}
@@ -126,7 +136,7 @@ public class AutoKeyAtomic {
 					return 0;
 				}
 				return Procedure.LogicError;
-			}, "")).get();
+			}, "AutoKeyAtomic.setSeed")).get();
 		} catch (InterruptedException | ExecutionException e) {
 			throw new RuntimeException(e);
 		}
@@ -152,7 +162,7 @@ public class AutoKeyAtomic {
 				}
 				// 溢出
 				return Procedure.LogicError;
-			}, "increase seed")).get();
+			}, "AutoKeyAtomic.increaseSeed")).get();
 		} catch (InterruptedException | ExecutionException e) {
 			throw new RuntimeException(e);
 		}
@@ -164,19 +174,21 @@ public class AutoKeyAtomic {
 	 * @return seed
 	 */
 	public long getSeed() {
+		long ret;
 		try {
 			var result = new OutLong();
-			if (Procedure.Success == Task.runUnsafe(module.zeze.newProcedure(() -> {
+			ret = Task.runUnsafe(module.zeze.newProcedure(() -> {
 				var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
 				var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
 				result.value = bAutoKey.getNextId();
 				return 0;
-			}, "get")).get())
+			}, "AutoKeyAtomic.getSeed")).get();
+			if (ret == Procedure.Success)
 				return result.value;
 		} catch (InterruptedException | ExecutionException e) {
 			throw new RuntimeException(e);
 		}
-		throw new RuntimeException("get seed error.");
+		throw new RuntimeException("AutoKeyAtomic.getSeed failed: " + ret);
 	}
 
 	private long nextSeed() {
@@ -192,9 +204,10 @@ public class AutoKeyAtomic {
 				//noinspection NumberEquality
 				if (range != localRange)
 					continue;
+				long ret;
 				try {
 					var newRange = new OutObject<Range>();
-					var ret = Task.runUnsafe(module.zeze.newProcedure(() -> {
+					ret = Task.runUnsafe(module.zeze.newProcedure(() -> {
 						Transaction.whileCommit(() -> {
 							// 不能在重做时重复计算，一次事务重新计算一次，下一次生效。
 							// 这里可能有并发问题, 不过影响可以忽略
@@ -218,7 +231,7 @@ public class AutoKeyAtomic {
 						key.setNextId(end);
 						newRange.value = new Range(start, end);
 						return 0;
-					}, "allocate")).get();
+					}, "AutoKeyAtomic.allocateSeeds")).get();
 					if (ret == Procedure.Success) {
 						range = newRange.value;
 						continue;
@@ -226,7 +239,7 @@ public class AutoKeyAtomic {
 				} catch (InterruptedException | ExecutionException e) {
 					throw new RuntimeException(e);
 				}
-				throw new RuntimeException("allocate range error.");
+				throw new RuntimeException("AutoKeyAtomic.nextSeed failed: " + ret);
 			}
 		}
 	}
