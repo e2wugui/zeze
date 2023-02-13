@@ -3,7 +3,7 @@ package Game.LongSet;
 import java.util.Map;
 import java.util.function.Predicate;
 import Game.Timer.ModuleTimer;
-import Zeze.Component.AutoKeyAtomic;
+import Zeze.Component.AutoKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -11,10 +11,10 @@ public class ModuleLongSet extends AbstractModule {
 	private static final Logger logger = LogManager.getLogger(ModuleLongSet.class);
 
 	public static final int CountPerNode = 500;
-	private AutoKeyAtomic NodeIdGenerator;
+	private AutoKey NodeIdGenerator;
 
 	public void Start(Game.App app) throws Exception {
-		NodeIdGenerator = app.Zeze.getAutoKeyAtomic("Game.LongSet.NodeIdGenerator");
+		NodeIdGenerator = app.Zeze.getAutoKey("Game.LongSet.NodeIdGenerator");
 	}
 
 	public void Stop(Game.App app) throws Exception {

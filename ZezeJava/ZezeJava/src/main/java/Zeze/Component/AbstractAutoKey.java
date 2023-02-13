@@ -2,7 +2,7 @@
 package Zeze.Component;
 
 public abstract class AbstractAutoKey implements Zeze.IModule {
-    public static final int ModuleId = 11003;
+    public static final int ModuleId = 11025;
     public static final String ModuleName = "AutoKey";
     public static final String ModuleFullName = "Zeze.Component.AutoKey";
 

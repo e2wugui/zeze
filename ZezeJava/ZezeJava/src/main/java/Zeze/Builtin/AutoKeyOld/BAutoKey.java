@@ -1,11 +1,11 @@
 // auto-generated @formatter:off
-package Zeze.Builtin.AutoKeyAtomic;
+package Zeze.Builtin.AutoKeyOld;
 
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BAutoKey extends Zeze.Transaction.Bean implements BAutoKeyReadOnly {
-    public static final long TYPEID = -4894896313398493227L;
+    public static final long TYPEID = 1874176782463244405L;
 
     private long _NextId;
 
@@ -90,7 +90,7 @@ public final class BAutoKey extends Zeze.Transaction.Bean implements BAutoKeyRea
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.AutoKeyAtomic.BAutoKey: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.AutoKeyOld.BAutoKey: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("NextId=").append(getNextId()).append(System.lineSeparator());
         level -= 4;

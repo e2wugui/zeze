@@ -2,16 +2,18 @@ package Zeze.Component;
 
 import java.util.Base64;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.AutoKey.BSeedKey;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.Log;
-import Zeze.Transaction.Savepoint;
+import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
+import Zeze.Util.OutLong;
+import Zeze.Util.OutObject;
+import Zeze.Util.Task;
 
-@Deprecated
-public final class AutoKey {
+public class AutoKey {
 	public static class Module extends AbstractAutoKey {
 		private final ConcurrentHashMap<String, AutoKey> map = new ConcurrentHashMap<>();
 		public final Zeze.Application zeze;
@@ -40,16 +42,14 @@ public final class AutoKey {
 
 	private final Module module;
 	private final String name;
-	private final long logKey;
 	private volatile Range range;
+
 	private int allocateCount = ALLOCATE_COUNT_MIN;
 	private long lastAllocateTime = System.currentTimeMillis();
 
 	private AutoKey(Module module, String name) {
 		this.module = module;
 		this.name = name;
-		// 详细参考Bean的Log的用法。这里只有一个variable。
-		logKey = Zeze.Transaction.Bean.nextObjectId();
 	}
 
 	public int getAllocateCount() {
@@ -58,33 +58,66 @@ public final class AutoKey {
 
 	public long nextId() {
 		var bb = nextByteBuffer();
-		if (bb.Size() > 8)
-			throw new IllegalStateException("out of range: serverId=" + module.zeze.getConfig().getServerId()
-					+ ", nextId=" + bb);
-		return ByteBuffer.ToLongBE(bb.Bytes, bb.ReadIndex, bb.Size()); // 这里用BE(大端)是为了保证返回值一定为正
+		if (bb.Size() > 8) {
+			throw new IllegalStateException("AutoKey.nextId overflow: serverId="
+					+ module.zeze.getConfig().getServerId() + ", nextId=" + bb);
+		}
+		return ByteBuffer.ToLongBE(bb.Bytes, 0, bb.WriteIndex); // 这里用BE(大端)是为了保证返回值一定为正,且保证ID值随seed的增长而增长
 	}
 
 	public byte[] nextBytes() {
-		return nextByteBuffer().Copy();
+		return nextByteBuffer().Bytes; // nextByteBuffer的Bytes一定是正好大小的数组
 	}
 
 	public Binary nextBinary() {
 		return new Binary(nextByteBuffer());
 	}
 
+	/**
+	 * @return base64编码的ID
+	 */
 	public String nextString() {
 		return Base64.getEncoder().encodeToString(nextBytes());
 	}
 
 	public ByteBuffer nextByteBuffer() {
-		var serverId = module.zeze.getConfig().getServerId();
-		var bb = ByteBuffer.Allocate(8);
+		int serverId = module.zeze.getConfig().getServerId();
+		if (serverId < 0) // serverId不应该<0,因为会导致nextId返回负值
+			throw new IllegalStateException("AutoKey.nextByteBuffer: serverId(" + serverId + ") < 0");
+		var seed = nextSeed();
+		int size = ByteBuffer.writeULongSize(seed);
+		if (serverId > 0)
+			size += ByteBuffer.writeUIntSize(serverId);
+		var bb = ByteBuffer.Allocate(size);
 		if (serverId > 0) // 如果serverId==0,写1个字节0不会影响ToLongBE的结果,但会多占1个字节,所以只在serverId>0时写ByteBuffer
 			bb.WriteUInt(serverId);
-		else if (serverId < 0) // serverId不应该<0,因为会导致nextId返回负值
-			throw new IllegalStateException("serverId(" + serverId + ") < 0");
-		bb.WriteULong(nextSeed());
+		bb.WriteULong(seed);
 		return bb;
+	}
+
+	/**
+	 * 设置最小的ID值, 使下次nextId()的结果不小于此值
+	 */
+	public boolean setMinId(long minId) {
+		int serverId = module.zeze.getConfig().getServerId();
+		if (serverId < 0) // serverId不应该<0,因为会导致nextId返回负值
+			throw new IllegalStateException("AutoKey.setMinId: serverId(" + serverId + ") < 0");
+		if (serverId == 0)
+			return setSeed(minId); // WriteULong(minId)再ToLongBE得到的值一定不小于minId,其实还能再选出符合条件的更小seed值,但serverId极少=0,所以不考虑那么多了
+		var bb = ByteBuffer.Allocate(8);
+		bb.WriteUInt(serverId);
+		bb.WriteULong(0);
+		long id = ByteBuffer.ToLongBE(bb.Bytes, 0, bb.WriteIndex);
+		long seed = 0;
+		while (id < minId) {
+			if ((id & 0xff80_0000_0000_0000L) != 0) {
+				throw new IllegalStateException("AutoKey.setMinId: minId(" + minId
+						+ ") is too large for serverId(" + serverId + ')');
+			}
+			id <<= 8;
+			seed = seed == 0 ? 0x80 : seed << 7; // 每多7位,WriteULong序列化就要多1字节
+		}
+		return setSeed(seed);
 	}
 
 	/**
@@ -94,13 +127,19 @@ public final class AutoKey {
 	 * @return true if success.
 	 */
 	public boolean setSeed(long seed) {
-		var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
-		var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
-		if (seed > bAutoKey.getNextId()) {
-			bAutoKey.setNextId(seed);
-			return true;
+		try {
+			return Procedure.Success == Task.runUnsafe(module.zeze.newProcedure(() -> {
+				var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
+				var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
+				if (seed > bAutoKey.getNextId()) {
+					bAutoKey.setNextId(seed);
+					return 0;
+				}
+				return Procedure.LogicError;
+			}, "AutoKey.setSeed")).get();
+		} catch (InterruptedException | ExecutionException e) {
+			throw new RuntimeException(e);
 		}
-		return false;
 	}
 
 	/**
@@ -112,15 +151,21 @@ public final class AutoKey {
 	public boolean increaseSeed(long delta) {
 		if (delta <= 0)
 			return false;
-		var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
-		var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
-		var newSeed = bAutoKey.getNextId() + delta;
-		if (newSeed > 0) {
-			bAutoKey.setNextId(newSeed);
-			return true;
+		try {
+			return Procedure.Success == Task.runUnsafe(module.zeze.newProcedure(() -> {
+				var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
+				var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
+				var newSeed = bAutoKey.getNextId() + delta;
+				if (newSeed > 0) {
+					bAutoKey.setNextId(newSeed);
+					return 0;
+				}
+				// 溢出
+				return Procedure.LogicError;
+			}, "AutoKey.increaseSeed")).get();
+		} catch (InterruptedException | ExecutionException e) {
+			throw new RuntimeException(e);
 		}
-		// 溢出
-		return false;
 	}
 
 	/**
@@ -129,61 +174,77 @@ public final class AutoKey {
 	 * @return seed
 	 */
 	public long getSeed() {
-		var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
-		var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
-		return bAutoKey.getNextId();
+		long ret;
+		try {
+			var result = new OutLong();
+			ret = Task.runUnsafe(module.zeze.newProcedure(() -> {
+				var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
+				var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
+				result.value = bAutoKey.getNextId();
+				return 0;
+			}, "AutoKey.getSeed")).get();
+			if (ret == Procedure.Success)
+				return result.value;
+		} catch (InterruptedException | ExecutionException e) {
+			throw new RuntimeException(e);
+		}
+		throw new RuntimeException("AutoKey.getSeed failed: " + ret);
 	}
 
 	private long nextSeed() {
-		if (null != range) {
-			var next = range.tryNextId();
-			if (next != 0)
-				return next; // allocate in range success
-		}
-
-		Transaction.whileCommit(() -> {
-			// 不能在重做时重复计算，一次事务重新计算一次，下一次生效。
-			// 这里可能有并发问题, 不过影响可以忽略
-			var now = System.currentTimeMillis();
-			var diff = now - lastAllocateTime;
-			lastAllocateTime = now;
-			long newCount = allocateCount;
-			if (diff < 30 * 1000) // 30 seconds
-				newCount <<= 1;
-			else if (diff > 120 * 1000) // 120 seconds
-				newCount >>= 1;
-			else
-				return;
-			allocateCount = (int)Math.min(Math.max(newCount, ALLOCATE_COUNT_MIN), ALLOCATE_COUNT_MAX);
-		});
-
-		var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
-		var txn = Transaction.getCurrent();
-		assert txn != null;
-		var log = (RangeLog)txn.getLog(logKey);
 		while (true) {
-			if (null == log) {
-				// allocate: 多线程，多事务，多服务器（缓存同步）由zeze保证。
-				var key = module._tAutoKeys.getOrAdd(seedKey);
-				var start = key.getNextId();
-				var end = start + allocateCount; // allocateCount == 0 会死循环。
-				key.setNextId(end);
-				// create log，本事务可见，
-				log = new RangeLog(new Range(start, end));
-				txn.putLog(log);
+			var localRange = range;
+			if (localRange != null) {
+				var next = localRange.tryNextId();
+				if (next != 0)
+					return next; // allocate in range success
 			}
-			var tryNext = log.range.tryNextId();
-			if (tryNext != 0)
-				return tryNext;
 
-			// 事务内分配了超出Range范围的id，再次allocate。
-			// 覆盖RangeLog是可以的。就像事务内多次改变变量。最后面的Log里面的数据是最新的。
-			// 已分配的范围保存在_AutoKeys表内，事务内可以继续分配。
-			log = null;
+			synchronized (this) {
+				//noinspection NumberEquality
+				if (range != localRange)
+					continue;
+				long ret;
+				try {
+					var newRange = new OutObject<Range>();
+					ret = Task.runUnsafe(module.zeze.newProcedure(() -> {
+						Transaction.whileCommit(() -> {
+							// 不能在重做时重复计算，一次事务重新计算一次，下一次生效。
+							// 这里可能有并发问题, 不过影响可以忽略
+							var now = System.currentTimeMillis();
+							var diff = now - lastAllocateTime;
+							lastAllocateTime = now;
+							long newCount = allocateCount;
+							if (diff < 30 * 1000) // 30 seconds
+								newCount <<= 1;
+							else if (diff > 120 * 1000) // 120 seconds
+								newCount >>= 1;
+							else
+								return;
+							allocateCount = (int)Math.min(Math.max(newCount, ALLOCATE_COUNT_MIN), ALLOCATE_COUNT_MAX);
+						});
+
+						var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
+						var key = module._tAutoKeys.getOrAdd(seedKey);
+						var start = key.getNextId();
+						var end = start + allocateCount; // allocateCount == 0 会死循环。
+						key.setNextId(end);
+						newRange.value = new Range(start, end);
+						return 0;
+					}, "AutoKey.allocateSeeds")).get();
+					if (ret == Procedure.Success) {
+						range = newRange.value;
+						continue;
+					}
+				} catch (InterruptedException | ExecutionException e) {
+					throw new RuntimeException(e);
+				}
+				throw new RuntimeException("AutoKey.nextSeed failed: " + ret);
+			}
 		}
 	}
 
-	private static class Range extends AtomicLong {
+	private static final class Range extends AtomicLong {
 		private final long max;
 
 		public long tryNextId() {
@@ -195,47 +256,6 @@ public final class AutoKey {
 		public Range(long start, long end) {
 			super(start);
 			max = end;
-		}
-	}
-
-	private class RangeLog extends Zeze.Transaction.Log {
-		private final Range range;
-
-		public RangeLog(Range range) {
-			super(0); // null: 特殊日志，不关联Bean。
-			this.range = range;
-		}
-
-		@Override
-		public void commit() {
-			// 这里直接修改拥有者的引用，开放出去，以后其他事务就能看到新的Range了。
-			// 并发：多线程实际上由 _autokeys 表的锁来达到互斥，commit的时候，是互斥锁。
-			AutoKey.this.range = range;
-		}
-
-		@Override
-		public long getLogKey() {
-			return AutoKey.this.logKey;
-		}
-
-		@Override
-		public void endSavepoint(Savepoint currentSp) {
-			currentSp.putLog(this);
-		}
-
-		@Override
-		public Log beginSavepoint() {
-			return this;
-		}
-
-		@Override
-		public void encode(ByteBuffer bb) {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public void decode(ByteBuffer bb) {
-			throw new UnsupportedOperationException();
 		}
 	}
 }

@@ -28,7 +28,7 @@ public class DelayRemove extends AbstractDelayRemove {
 	private final Zeze.Collections.Queue<BTableKey> queue;
 	public final Zeze.Application zeze;
 	private Future<?> timer;
-	private AutoKeyAtomic jobIdAutoKey;
+	private AutoKey jobIdAutoKey;
 
 	public DelayRemove(Zeze.Application zz) {
 		this.zeze = zz;
@@ -63,7 +63,7 @@ public class DelayRemove extends AbstractDelayRemove {
 		var delay = firstTime.getTime().getTime() - System.currentTimeMillis();
 		var period = 24 * 3600 * 1000; // 24 hours
 		timer = Task.scheduleUnsafe(delay, period, this::onTimer);
-		jobIdAutoKey = zeze.getAutoKeyAtomic("__GCTableJobIdAutoKey");
+		jobIdAutoKey = zeze.getAutoKey("__GCTableJobIdAutoKey");
 	}
 
 	@FunctionalInterface

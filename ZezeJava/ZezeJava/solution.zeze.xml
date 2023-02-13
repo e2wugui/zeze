@@ -93,7 +93,7 @@
 		</module>
 
 		<!-- 应用内部唯一ID生成器，仅支持long类型。-->
-		<module name="AutoKey" id="11003">
+		<module name="AutoKeyOld" id="11003">
 			<beankey name="BSeedKey">
 				<variable id="1" name="ServerId" type="int"/>
 				<variable id="2" name="KeyName"  type="string"/>
@@ -1257,7 +1257,7 @@
 			</module>
 		</module>
 
-		<module name="AutoKeyAtomic" id="11025">
+		<module name="AutoKey" id="11025">
 			<beankey name="BSeedKey">
 				<variable id="1" name="ServerId" type="int"/>
 				<variable id="2" name="KeyName"  type="string"/>
@@ -1276,9 +1276,9 @@
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
 
-	<component name="AutoKeyAtomic" gendir="src/main/java" platform="zeze+java">
+	<component name="AutoKey" gendir="src/main/java" platform="zeze+java">
 		<service name="" handle="server">
-			<module ref="Zeze.Builtin.AutoKeyAtomic"/>
+			<module ref="Zeze.Builtin.AutoKey"/>
 		</service>
 	</component>
 
@@ -1414,9 +1414,9 @@
 		</service>
 	</component>
 
-	<component name="AutoKey" gendir="src/main/java" platform="zeze+java">
+	<component name="AutoKeyOld" gendir="src/main/java" platform="zeze+java">
 		<service name="" handle="server">
-			<module ref="Zeze.Builtin.AutoKey"/>
+			<module ref="Zeze.Builtin.AutoKeyOld"/>
 		</service>
 	</component>
 

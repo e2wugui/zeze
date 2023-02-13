@@ -1,5 +1,5 @@
 // auto-generated @formatter:off
-package Zeze.Builtin.AutoKeyAtomic;
+package Zeze.Builtin.AutoKeyOld;
 
 public interface BAutoKeyReadOnly {
     public long typeId();

@@ -2,14 +2,14 @@ package Game.Login;
 
 import Game.App;
 import Zeze.Arch.ProviderUserSession;
+import Zeze.Component.AutoKey;
 import Zeze.Transaction.Procedure;
 
 public final class ModuleLogin extends AbstractModule {
-
-	private Zeze.Component.AutoKeyAtomic autoKey;
+	private AutoKey autoKey;
 
 	public void Start(App app) {
-		autoKey = app.Zeze.getAutoKeyAtomic("roleId");
+		autoKey = app.Zeze.getAutoKey("roleId");
 	}
 
 	public void Stop(App app) {
