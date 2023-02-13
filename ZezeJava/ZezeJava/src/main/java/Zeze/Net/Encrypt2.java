@@ -6,7 +6,6 @@ import Zeze.Util.Json;
 
 // AES(CFB) Encrypt
 public final class Encrypt2 implements Codec {
-	static final int KEY_SIZE = 16;
 	static final int BLOCK_SIZE = 16;
 	static final MethodHandle mhCryptCtor;
 	static final MethodHandle mhCryptInit;
@@ -39,7 +38,7 @@ public final class Encrypt2 implements Codec {
 
 	/**
 	 * @param sink 如果为null,则需要reset才能开始加密
-	 * @param key  长度必须至少KEY_SIZE. 不能为null
+	 * @param key  长度只支持16,24,32字节. 不能为null
 	 * @param iv   长度必须至少BLOCK_SIZE. 如果为null,则需要reset才能开始加密
 	 */
 	public Encrypt2(Codec sink, byte[] key, byte[] iv) throws CodecException {

@@ -16,7 +16,7 @@ public final class Decrypt2 implements Codec {
 
 	/**
 	 * @param sink 如果为null,则需要reset才能开始解密
-	 * @param key  长度必须至少Encrypt2.KEY_SIZE. 不能为null
+	 * @param key  长度只支持16,24,32字节. 不能为null
 	 * @param iv   长度必须至少Encrypt2.BLOCK_SIZE. 如果为null,则需要reset才能开始解密
 	 */
 	public Decrypt2(Codec sink, byte[] key, byte[] iv) throws CodecException {

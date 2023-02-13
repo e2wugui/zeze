@@ -60,7 +60,8 @@ public class DatagramSession {
 		}
 	}
 
-	// [8]sessionId | [8]serialId | encrypt{ [8]sessionId | packet }
+	// [8]sessionId | [8]serialId | packet
+	// [8]sessionId | [8]serialId | encrypt{ packet | [8]sessionId | [8]serialId }
 	public void send(byte[] packet, int offset, int size) throws IOException {
 		var serialId = serialIdGen.incrementAndGet();
 		ByteBuffer bb;
@@ -75,8 +76,8 @@ public class DatagramSession {
 			bc.WriteLong8(serialId);
 			// 下面的数据需要加密
 			encrypt.reset(bc, bc.Bytes);
-			encrypt.update(bc.Bytes, 0, 8); // sessionId
 			encrypt.update(packet, offset, size);
+			encrypt.update(bc.Bytes, 0, 16); // [8]sessionId | [8]serialId
 			encrypt.flush();
 			bb = bc;
 		}
@@ -84,7 +85,8 @@ public class DatagramSession {
 		socket.sendTo(remote, bb.Bytes, 0, bb.WriteIndex);
 	}
 
-	// [8]sessionId | [8]serialId | encrypt{ [8]sessionId | [4]moduleId | [4]protocolId | [4]size | protocolData }
+	// [8]sessionId | [8]serialId | [4]moduleId | [4]protocolId | [4]size | protocolData
+	// [8]sessionId | [8]serialId | encrypt{ [4]moduleId | [4]protocolId | [4]size | protocolData | [8]sessionId | [8]serialId }
 	public void send(Protocol<?> p) throws IOException {
 		int preAllocSize = p.preAllocSize();
 		var serialId = serialIdGen.incrementAndGet();
@@ -100,10 +102,10 @@ public class DatagramSession {
 			bc.WriteLong8(serialId);
 			// 下面的数据需要加密
 			encrypt.reset(bc, bc.Bytes);
-			encrypt.update(bc.Bytes, 0, 8); // sessionId
 			var tmp = ByteBuffer.Allocate(Protocol.HEADER_SIZE + preAllocSize);
 			p.encodeWithHead(tmp);
 			encrypt.update(tmp.Bytes, 0, tmp.WriteIndex);
+			encrypt.update(bc.Bytes, 0, 16); // [8]sessionId | [8]serialId
 			encrypt.flush();
 			bb = bc;
 		}
@@ -112,25 +114,25 @@ public class DatagramSession {
 	}
 
 	/**
-	 * @param bb 方法外绝对不能持有bb.Bytes的引用! 也就是只能在方法内访问bb.
+	 * @param bb 有效数据范围:[0,WriteIndex]. 方法外绝对不能持有bb.Bytes的引用! 也就是只能在方法内访问bb.
 	 */
 	public void onProcessDatagram(InetSocketAddress remote, ByteBuffer bb) throws Exception {
-		if (bb.WriteIndex < 24) // minimal packet size
-			return;
-		var serialId = ByteBuffer.ToLong(bb.Bytes, 8);
+		int endPos = bb.WriteIndex;
 		if (decrypt != null) {
-			int size = bb.WriteIndex - 16;
-			bb.WriteIndex = 16;
-			var bc = new BufferCodec(bb);
-			decrypt.reset(bc, bb.Bytes); // Decrypt2支持原地解密
-			decrypt.update(bb.Bytes, 16, size);
-			decrypt.flush();
-			if (!Arrays.equals(bb.Bytes, 0, 8, bb.Bytes, 16, 24)) // check decrypted data (sessionId)
+			if (endPos < 32) // minimal packet size ([8]sessionId + [8]serialId + [8]sessionId + [8]serialId)
 				return;
-			bb.ReadIndex = 24;
-			bb.WriteIndex = bc.WriteIndex;
-		} else
-			bb.ReadIndex = 16;
+			var bc = new BufferCodec(bb);
+			bc.WriteIndex = 16; // 重置到加密数据的起始位置,准备覆写解密数据
+			decrypt.reset(bc, bb.Bytes); // Decrypt2支持原地解密
+			decrypt.update(bb.Bytes, 16, endPos - 16);
+			decrypt.flush();
+			if (!Arrays.equals(bb.Bytes, 0, 16, bb.Bytes, endPos - 16, endPos)) // check decrypted data (sessionId)
+				return;
+			bb.WriteIndex = endPos - 16; // 数据尾部位置向前跳过验证过的"[8]sessionId + [8]serialId"
+		} else if (endPos < 16) // minimal packet size([8]sessionId + [8]serialId)
+			return;
+		bb.ReadIndex = 16; // 跳过头部的sessionId和serialId
+		var serialId = ByteBuffer.ToLong(bb.Bytes, 8);
 		synchronized (replayAttack) {
 			if (replayAttack.replay(serialId))
 				return;

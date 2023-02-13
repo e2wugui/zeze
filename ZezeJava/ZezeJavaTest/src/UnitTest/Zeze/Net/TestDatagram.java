@@ -46,11 +46,11 @@ public class TestDatagram {
 		service.stop();
 	}
 
-	AtomicLong helloNumber = new AtomicLong();
+	private final AtomicLong helloNumber = new AtomicLong();
 
 	private long processServerPValue(ProtoValue p) throws Exception {
-		helloNumber.incrementAndGet();
-		p.DatagramSession.send(p);
+		if (helloNumber.incrementAndGet() < 3)
+			p.DatagramSession.send(p);
 		System.out.println(p.Argument.getString3());
 		return 0;
 	}
