@@ -495,18 +495,18 @@ public class Online extends AbstractOnline {
 	}
 
 	private long triggerLinkBroken(String linkName, LongList errorSids, Map<Long, KV<String, String>> contexts) {
-		return providerApp.zeze.newProcedure(() -> {
-			for (int i = 0, n = errorSids.size(); i < n; i++) {
-				var sid = errorSids.get(i);
+		errorSids.foreach((sid) -> {
+			providerApp.zeze.newProcedure(() -> {
 				var ctx = contexts.get(sid);
 				if (ctx != null) {
 					var ret = linkBroken(ctx.getKey(), ctx.getValue(), linkName, sid);
 					if (ret != 0)
 						return ret;
 				}
-			}
-			return 0;
-		}, "triggerLinkBroken").call();
+				return 0;
+			}, "triggerLinkBroken").call();
+		});
+		return 0;
 	}
 
 	public void send(AsyncSocket to, Map<Long, KV<String, String>> contexts, Send send) {
@@ -928,14 +928,14 @@ public class Online extends AbstractOnline {
 
 	@RedirectToServer
 	@TransactionLevelAnnotation(Level= TransactionLevel.None)
-	protected void redirectNotify(int serverId, String account) throws Exception {
+	protected void redirectRemoveLocal(int serverId, String account) throws Exception {
 		providerApp.zeze.newProcedure(() -> tryRemoveLocal(account), "redirectNotify").call();
 	}
 
-	private void tryRedirectNotify(int serverId, String account) throws Exception {
+	private void tryRedirectRemoveLocal(int serverId, String account) throws Exception {
 		if (providerApp.zeze.getConfig().getServerId() != serverId
 				&& providerApp.providerDirectService.providerByServerId.containsKey(serverId))
-			redirectNotify(serverId, account);
+			redirectRemoveLocal(serverId, account);
 	}
 
 	@Override
@@ -956,7 +956,7 @@ public class Online extends AbstractOnline {
 			if (0 != ret)
 				return ret;
 			if (loginVersion.getLoginVersion() != loginLocal.getLoginVersion()) {
-				tryRedirectNotify(loginVersion.getServerId(), session.getAccount());
+				tryRedirectRemoveLocal(loginVersion.getServerId(), session.getAccount());
 			}
 		}
 		var loginVersionSerialId = account.getLastLoginVersion() + 1;
@@ -1032,7 +1032,7 @@ public class Online extends AbstractOnline {
 			// if (0 != ret)
 			//	return ret;
 			if (loginVersion.getLoginVersion() != loginLocal.getLoginVersion()) {
-				tryRedirectNotify(loginVersion.getServerId(), session.getAccount());
+				tryRedirectRemoveLocal(loginVersion.getServerId(), session.getAccount());
 			}
 		}
 		var loginVersionSerialId = account.getLastLoginVersion() + 1;
@@ -1090,7 +1090,7 @@ public class Online extends AbstractOnline {
 		var loginVersion = version.getLogins().getOrAdd(clientId);
 		// 登录在其他机器上。
 		if (local == null && online != null) {
-			tryRedirectNotify(loginVersion.getServerId(), session.getAccount()); // nowait
+			tryRedirectRemoveLocal(loginVersion.getServerId(), session.getAccount()); // nowait
 		}
 		if (local != null) {
 			var ret = removeLocalAndTrigger(session.getAccount(), clientId);
