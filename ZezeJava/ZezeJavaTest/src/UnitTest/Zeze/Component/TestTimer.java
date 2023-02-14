@@ -26,23 +26,33 @@ public class TestTimer {
 		demo.App.getInstance().Stop();
 	}
 
-	public static class TestTimerHandle1 extends TimerHandle {
+	public static class TestTimerHandle1 implements TimerHandle {
 		@Override
 		public void onTimer(TimerContext timerContext) {
 			System.out.println(">> Name: " + timerContext.timerName + " ID: " + timerContext.timerId + " Now: " + timerContext.curTimeMills + " Expected: " + timerContext.expectedTimeMills + " Next: " + timerContext.nextExpectedTimeMills);
 		}
+
+		@Override
+		public void onTimerCancel() throws Exception {
+
+		}
 	}
 
-	public static class TestTimerHandle2 extends TimerHandle {
+	public static class TestTimerHandle2 implements TimerHandle {
 		@Override
 		public void onTimer(TimerContext timerContext) {
 			TestBean bean = (TestBean)timerContext.customData;
 			bean.addValue();
 			System.out.println(">> Name: " + timerContext.timerName + " ID: " + timerContext.timerId + " Now: " + timerContext.curTimeMills + " Expected: " + timerContext.expectedTimeMills + " Next: " + timerContext.nextExpectedTimeMills + " Bean Value: " + bean.getTestValue());
 		}
+
+		@Override
+		public void onTimerCancel() throws Exception {
+
+		}
 	}
 
-	public static class TestTimerHandle3 extends TimerHandle {
+	public static class TestTimerHandle3 implements TimerHandle {
 		@Override
 		public void onTimer(TimerContext timerContext) {
 			TestBean bean = (TestBean)timerContext.customData;
@@ -53,6 +63,11 @@ public class TestTimer {
 				timerContext.timer.cancel("3");
 				System.out.println(">> Schedule Canceled");
 			}
+		}
+
+		@Override
+		public void onTimerCancel() throws Exception {
+
 		}
 	}
 

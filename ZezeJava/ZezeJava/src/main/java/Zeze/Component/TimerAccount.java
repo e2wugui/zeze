@@ -187,7 +187,7 @@ public class TimerAccount {
 
 	//////////////////////////////////////////////////////////////////////////////////////////
 	// 内部实现
-	private static class OfflineHandle extends TimerHandle {
+	private static class OfflineHandle implements TimerHandle {
 		@Override
 		public void onTimer(TimerContext context) throws Exception {
 			var offlineCustom = (BOfflineAccountCustom)context.customData;
@@ -208,6 +208,11 @@ public class TimerAccount {
 						.get(new BAccountClientId(offlineCustom.getAccount(), offlineCustom.getClientId()));
 				offlineTimers.getOfflineTimers().remove(offlineCustom.getTimerName());
 			}
+		}
+
+		@Override
+		public void onTimerCancel() throws Exception {
+
 		}
 	}
 

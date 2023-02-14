@@ -66,10 +66,15 @@ public class TestRoleTimer {
 		System.out.println(">> Name: " + context.timerName + " ID: " + context.timerId + " Now: " + context.curTimeMills + " Expected: " + context.expectedTimeMills + " Next: " + context.nextExpectedTimeMills);
 	}
 
-	public static class TestOnlineTimerHandle extends TimerHandle {
+	public static class TestOnlineTimerHandle implements TimerHandle {
 		@Override
 		public void onTimer(TimerContext context) throws Exception {
 			testContent(context);
+		}
+
+		@Override
+		public void onTimerCancel() throws Exception {
+
 		}
 	}
 
@@ -211,10 +216,15 @@ public class TestRoleTimer {
 		}
 	}
 
-	public static class TestOfflineTimerHandle extends TimerHandle {
+	public static class TestOfflineTimerHandle implements TimerHandle {
 		@Override
 		public void onTimer(TimerContext context) throws Exception {
 			testContent(context);
+		}
+
+		@Override
+		public void onTimerCancel() throws Exception {
+
 		}
 	}
 

@@ -136,7 +136,7 @@ public class TimerRole {
 	}
 
 	public String scheduleOffline(long roleId, long delay, long period, long times, long endTime,
-										Class<? extends TimerHandle> handleClassName, Bean customData) {
+								  Class<? extends TimerHandle> handleClassName, Bean customData) {
 		var loginVersion = online.getOfflineLoginVersion(roleId);
 		if (null == loginVersion)
 			throw new IllegalStateException("not logout. roleId=" + roleId);
@@ -160,7 +160,7 @@ public class TimerRole {
 	}
 
 	public String scheduleOffline(long roleId, String cron, long times, long endTime,
-										Class<? extends TimerHandle> handleClassName, Bean customData) throws ParseException {
+								  Class<? extends TimerHandle> handleClassName, Bean customData) throws ParseException {
 		var loginVersion = online.getOfflineLoginVersion(roleId);
 		if (null == loginVersion)
 			throw new IllegalStateException("not logout. roleId=" + roleId);
@@ -185,7 +185,7 @@ public class TimerRole {
 
 	//////////////////////////////////////////////////////////////////////////////////////////
 	// 内部实现
-	public static class OfflineHandle extends TimerHandle {
+	public static class OfflineHandle implements TimerHandle {
 		@Override
 		public void onTimer(TimerContext context) throws Exception {
 			var offlineCustom = (BOfflineRoleCustom)context.customData;
@@ -203,6 +203,11 @@ public class TimerRole {
 				var offlineTimers = context.timer.tRoleOfflineTimers().get(offlineCustom.getRoleId());
 				offlineTimers.getOfflineTimers().remove(offlineCustom.getTimerName());
 			}
+		}
+
+		@Override
+		public void onTimerCancel() throws Exception {
+
 		}
 	}
 
