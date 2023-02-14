@@ -13,6 +13,19 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
     private long _ReliableNotifyConfirmIndex;
     private long _ReliableNotifyIndex;
     private int _ServerId;
+    private final Zeze.Transaction.DynamicBean _UserData;
+
+    public static Zeze.Transaction.DynamicBean newDynamicBean_UserData() {
+        return new Zeze.Transaction.DynamicBean(6, Zeze.Game.Online::getSpecialTypeIdFromBean, Zeze.Game.Online::createBeanFromSpecialTypeId);
+    }
+
+    public static long getSpecialTypeIdFromBean_6(Zeze.Transaction.Bean bean) {
+        return Zeze.Game.Online.getSpecialTypeIdFromBean(bean);
+    }
+
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_6(long typeId) {
+        return Zeze.Game.Online.createBeanFromSpecialTypeId(typeId);
+    }
 
     @Override
     public long getLoginVersion() {
@@ -103,10 +116,20 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
         txn.putLog(new Log__ServerId(this, 5, value));
     }
 
+    public Zeze.Transaction.DynamicBean getUserData() {
+        return _UserData;
+    }
+
+    @Override
+    public Zeze.Transaction.DynamicBeanReadOnly getUserDataReadOnly() {
+        return _UserData;
+    }
+
     @SuppressWarnings("deprecation")
     public BVersion() {
         _ReliableNotifyMark = new Zeze.Transaction.Collections.PSet1<>(String.class);
         _ReliableNotifyMark.variableId(2);
+        _UserData = newDynamicBean_UserData();
     }
 
     @SuppressWarnings("deprecation")
@@ -117,6 +140,7 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
         _ReliableNotifyConfirmIndex = _ReliableNotifyConfirmIndex_;
         _ReliableNotifyIndex = _ReliableNotifyIndex_;
         _ServerId = _ServerId_;
+        _UserData = newDynamicBean_UserData();
     }
 
     public void assign(BVersion other) {
@@ -126,6 +150,7 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
         setReliableNotifyConfirmIndex(other.getReliableNotifyConfirmIndex());
         setReliableNotifyIndex(other.getReliableNotifyIndex());
         setServerId(other.getServerId());
+        _UserData.assign(other._UserData);
     }
 
     @Deprecated
@@ -213,7 +238,10 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
         sb.append('}').append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("ReliableNotifyConfirmIndex=").append(getReliableNotifyConfirmIndex()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("ReliableNotifyIndex=").append(getReliableNotifyIndex()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ServerId=").append(getServerId()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ServerId=").append(getServerId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("UserData=").append(System.lineSeparator());
+        _UserData.getBean().buildString(sb, level + 4);
+        sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -271,6 +299,13 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
                 _o_.WriteInt(_x_);
             }
         }
+        {
+            var _x_ = _UserData;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.DYNAMIC);
+                _x_.encode(_o_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -304,6 +339,10 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
             setServerId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 6) {
+            _o_.ReadDynamic(_UserData, _t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -313,11 +352,13 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
     @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _ReliableNotifyMark.initRootInfo(root, this);
+        _UserData.initRootInfo(root, this);
     }
 
     @Override
     protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
         _ReliableNotifyMark.initRootInfoWithRedo(root, this);
+        _UserData.initRootInfoWithRedo(root, this);
     }
 
     @Override
@@ -347,6 +388,7 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
                 case 3: _ReliableNotifyConfirmIndex = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 4: _ReliableNotifyIndex = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 5: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 6: _UserData.followerApply(vlog); break;
             }
         }
     }

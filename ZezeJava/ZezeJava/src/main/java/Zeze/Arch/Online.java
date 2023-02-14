@@ -23,6 +23,7 @@ import Zeze.Builtin.Provider.Broadcast;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Builtin.Provider.SetUserState;
 import Zeze.Builtin.ProviderDirect.TransmitAccount;
+import Zeze.Collections.BeanFactory;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
@@ -81,8 +82,14 @@ public class Online extends AbstractOnline {
 		return bean.typeId();
 	}
 
+	public static final BeanFactory beanFactory = new BeanFactory();
+
 	public static Bean createBeanFromSpecialTypeId(long typeId) {
-		throw new UnsupportedOperationException("Online Memory Table Dynamic Only.");
+		return beanFactory.createBeanFromSpecialTypeId(typeId);
+	}
+
+	public static void register(Class<? extends Bean> cls) {
+		beanFactory.register(cls);
 	}
 
 	protected Online(AppBase app) {
@@ -114,6 +121,20 @@ public class Online extends AbstractOnline {
 
 	public taccount getTableAccount() {
 		return _taccount;
+	}
+
+	public Bean getUserData(String account, String clientId) {
+		var versions = _tversion.get(account);
+		if (null == versions)
+			return null;
+		var version = versions.getLogins().get(clientId);
+		if (null == version)
+			return null;
+		return version.getUserData().getBean();
+	}
+
+	public void setUserData(String account, String clientId, Bean data) {
+		_tversion.getOrAdd(account).getLogins().getOrAdd(clientId).getUserData().setBean(data);
 	}
 
 	public int getLocalCount() {

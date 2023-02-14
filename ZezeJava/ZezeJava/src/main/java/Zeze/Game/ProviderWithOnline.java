@@ -4,6 +4,7 @@ import Zeze.AppBase;
 import Zeze.Arch.ProviderImplement;
 import Zeze.Arch.ProviderService;
 import Zeze.Builtin.Provider.LinkBroken;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 
 public class ProviderWithOnline extends ProviderImplement {
@@ -26,6 +27,11 @@ public class ProviderWithOnline extends ProviderImplement {
 	public void create(AppBase app) {
 		online = Online.create(app);
 		online.Initialize(app);
+	}
+
+	public void create(AppBase app, Class<? extends Bean> userDataClass) {
+		create(app);
+		Online.register(userDataClass);
 	}
 
 	public void start() {

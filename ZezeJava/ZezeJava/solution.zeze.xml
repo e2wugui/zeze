@@ -624,6 +624,10 @@
 					<variable id="3" name="ReliableNotifyConfirmIndex" type="long"/>
 					<variable id="4" name="ReliableNotifyIndex"        type="long"/>
 					<variable id="5" name="ServerId" type="int"/>
+					<variable id="6" name="UserData" type="dynamic">
+						<GetSpecialTypeIdFromBean value="Zeze.Game.Online::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.Online::createBeanFromSpecialTypeId"/>
+					</variable>
 				</bean>
 				<bean name="BAccount">
 					<variable id="1" name="Name"  type="string"/>
@@ -969,6 +973,10 @@
 				<variable id="3" name="ReliableNotifyIndex"        type="long"/>
 				<variable id="4" name="ReliableNotifyConfirmIndex" type="long"/>
 				<variable id="5" name="ServerId"                   type="int"/>
+				<variable id="6" name="UserData" type="dynamic">
+					<GetSpecialTypeIdFromBean value="Zeze.Arch.Online::getSpecialTypeIdFromBean"/>
+					<CreateBeanFromSpecialTypeId value="Zeze.Arch.Online::createBeanFromSpecialTypeId"/>
+				</variable>
 			</bean>
 			<bean name="BAccount">
 				<variable id="1" name="LastLoginVersion" type="long"/> 用来生成 role 登录版本号。每次递增。
