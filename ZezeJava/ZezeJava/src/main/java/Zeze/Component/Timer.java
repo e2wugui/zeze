@@ -81,9 +81,9 @@ public class Timer extends AbstractTimer {
 		ProviderImplement impl;
 		if (null != providerApp && null != (impl = providerApp.providerImplement)) {
 			if (impl instanceof ProviderWithOnline)
-				timerAccount = new TimerAccount(((ProviderWithOnline)impl).online);
-			else if (impl instanceof Zeze.Game.ProviderImplementWithOnline)
-				timerRole = new TimerRole(((Zeze.Game.ProviderImplementWithOnline)impl).online);
+				timerAccount = new TimerAccount(((ProviderWithOnline)impl).getOnline());
+			else if (impl instanceof Zeze.Game.ProviderWithOnline)
+				timerRole = new TimerRole(((Zeze.Game.ProviderWithOnline)impl).getOnline());
 		}
 	}
 

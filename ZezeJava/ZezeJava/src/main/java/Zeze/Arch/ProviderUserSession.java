@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Builtin.Provider.Send;
-import Zeze.Game.ProviderImplementWithOnline;
+import Zeze.Game.ProviderWithOnline;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
@@ -71,13 +71,13 @@ public class ProviderUserSession {
 
 	private void sendOnline(AsyncSocket link, Send send) {
 		var providerImpl = getService().providerApp.providerImplement;
-		if (providerImpl instanceof ProviderWithOnline) {
-			((ProviderWithOnline)providerImpl).online.send(
+		if (providerImpl instanceof Zeze.Arch.ProviderWithOnline) {
+			((Zeze.Arch.ProviderWithOnline)providerImpl).getOnline().send(
 					link, Map.of(getLinkSid(), KV.create(getAccount(), getContext())), send);
-		} else if (providerImpl instanceof ProviderImplementWithOnline) {
+		} else if (providerImpl instanceof ProviderWithOnline) {
 			var contexts = new TreeMap<Long, Long>();
 			contexts.put(getLinkSid(), getRoleId());
-			((ProviderImplementWithOnline)providerImpl).online.send(link, contexts, send);
+			((ProviderWithOnline)providerImpl).getOnline().send(link, contexts, send);
 		} else
 			link.Send(send);
 	}

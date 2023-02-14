@@ -11,12 +11,9 @@ import Zeze.Arch.ProviderService;
 import Zeze.Config;
 import Zeze.Game.Online;
 import Zeze.Game.ProviderDirectWithTransmit;
-import Zeze.Game.ProviderImplementWithOnline;
+import Zeze.Game.ProviderWithOnline;
 import Zeze.Game.Rank;
 import Zeze.IModule;
-import Zeze.Net.Acceptor;
-import Zeze.Net.Connector;
-import Zeze.Net.ServiceConf;
 
 // 简单的无需读配置文件的App
 public class SimpleApp extends AppBase {
@@ -47,12 +44,11 @@ public class SimpleApp extends AppBase {
 	}
 
 	public void start() throws Exception {
-		var provider = new ProviderImplementWithOnline();
+		var provider = new ProviderWithOnline();
 		providerApp = new ProviderApp(zeze, provider,
 				new ProviderService("Server", zeze), "SimpleApp#", new ProviderDirectWithTransmit(),
 				new ProviderDirectService("ServerDirect", zeze), "SimpleLinkd", new LoadConfig());
-		provider.online = Online.create(this);
-		provider.online.Initialize(this);
+		provider.create(this);
 
 		var modules = new HashMap<String, IModule>();
 
@@ -71,7 +67,7 @@ public class SimpleApp extends AppBase {
 //		}
 
 		zeze.start();
-		((ProviderImplementWithOnline)providerApp.providerImplement).online.start();
+		((ProviderWithOnline)providerApp.providerImplement).start();
 		providerApp.providerService.start();
 		providerApp.providerDirectService.start();
 		providerApp.startLast(ProviderModuleBinds.load(""), modules);
@@ -80,9 +76,7 @@ public class SimpleApp extends AppBase {
 	public void stop() throws Exception {
 		if (providerApp != null) {
 			if (providerApp.providerImplement != null) {
-				var online = ((ProviderImplementWithOnline)providerApp.providerImplement).online;
-				if (online != null)
-					online.stop();
+				((ProviderWithOnline)providerApp.providerImplement).stop();
 			}
 			providerApp.providerDirectService.stop();
 			providerApp.providerService.stop();

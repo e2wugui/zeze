@@ -299,6 +299,7 @@ public class Online extends AbstractOnline {
 		arg.roleId = roleId;
 		arg.account = account;
 		arg.online = _tonline.get(roleId);
+		arg.version = _tversion.get(roleId);
 
 		loginTimes.incrementAndGet();
 		var ret = loginEvents.triggerEmbed(this, arg);

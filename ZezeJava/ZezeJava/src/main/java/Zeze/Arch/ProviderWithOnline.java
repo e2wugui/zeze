@@ -1,10 +1,16 @@
 package Zeze.Arch;
 
+import Zeze.AppBase;
+import Zeze.Arch.Gen.GenModule;
 import Zeze.Builtin.Provider.LinkBroken;
 import Zeze.Transaction.Procedure;
 
 public class ProviderWithOnline extends ProviderImplement {
-	public Online online; // 需要外面初始化。App.Start.
+	private Online online; // 需要外面初始化。App.Start.
+
+	public Online getOnline() {
+		return online;
+	}
 
 	@Override
 	protected long ProcessLinkBroken(LinkBroken p) throws Exception {
@@ -14,5 +20,19 @@ public class ProviderWithOnline extends ProviderImplement {
 					ProviderService.getLinkName(p.getSender()), p.Argument.getLinkSid());
 		}
 		return Procedure.Success;
+	}
+
+	public void create(AppBase app) {
+		online = Online.create(app);
+		online.Initialize(app);
+	}
+
+	public void start() {
+		online.start();
+	}
+
+	public void stop() {
+		if (online != null)
+			online.stop();
 	}
 }

@@ -9,7 +9,7 @@ import Zeze.Arch.ProviderModuleBinds;
 import Zeze.Config;
 import Zeze.Game.Online;
 import Zeze.Game.ProviderDirectWithTransmit;
-import Zeze.Game.ProviderImplementWithOnline;
+import Zeze.Game.ProviderWithOnline;
 import Zeze.Game.TaskBase;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.JsonReader;
@@ -22,11 +22,11 @@ public final class App extends Zeze.AppBase {
 		return Instance;
 	}
 
-	public ProviderImplementWithOnline Provider;
+	public ProviderWithOnline Provider;
 	public ProviderApp ProviderApp;
 	public ProviderDirectWithTransmit ProviderDirect;
 
-	public ProviderImplementWithOnline getProvider() {
+	public ProviderWithOnline getProvider() {
 		return Provider;
 	}
 
@@ -73,13 +73,12 @@ public final class App extends Zeze.AppBase {
 		// create
 		createZeze(config);
 		createService();
-		Provider = new ProviderImplementWithOnline();
+		Provider = new ProviderWithOnline();
 		ProviderDirect = new ProviderDirectWithTransmit();
 		ProviderApp = new ProviderApp(Zeze, Provider, Server,
 				"Game.Server.Module#",
 				ProviderDirect, ServerDirect, "Game.Linkd", LoadConfig());
-		Provider.online = Online.create(this);
-		Provider.online.Initialize(this);
+		Provider.create(this);
 
 		createModules();
 		if (GenModule.instance.genFileSrcRoot != null) {
@@ -92,7 +91,7 @@ public final class App extends Zeze.AppBase {
 		// start
 		Zeze.start(); // 启动数据库
 		startModules(); // 启动模块，装载配置什么的。
-		Provider.online.start();
+		Provider.start();
 
 		PersistentAtomicLong socketSessionIdGen = PersistentAtomicLong.getOrAdd("Game.Server." + config.getServerId());
 		AsyncSocket.setSessionIdGenFunc(socketSessionIdGen::next);
@@ -102,8 +101,8 @@ public final class App extends Zeze.AppBase {
 	}
 
 	public void Stop() throws Exception {
-		if (Provider != null && Provider.online != null)
-			Provider.online.stop();
+		if (Provider != null)
+			Provider.stop();
 		stopService(); // 关闭网络
 		stopModules(); // 关闭模块，卸载配置什么的。
 		if (Zeze != null)

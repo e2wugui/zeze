@@ -89,14 +89,14 @@ public class App extends Zeze.AppBase {
 		ProviderApp = new ProviderApp(Zeze, Provider, Server,
 				"Zege.Server.Module#",
 				ProviderDirect, ServerDirect, "Zege.Linkd", LoadConfig());
-		Provider.online = (Online)GenModule.instance.createRedirectModules(this, new Class[]{Online.class})[0];
+		Provider.create(this);
 		LinkedMaps = new LinkedMap.Module(Zeze);
 		DepartmentTrees = new DepartmentTree.Module(Zeze, LinkedMaps);
 
 		createModules();
 		Zeze.start(); // 启动数据库
 		startModules(); // 启动模块，装载配置什么的。
-		Provider.online.start();
+		Provider.start();
 		HttpServer.start(new Netty(1), 80); //TODO: 从配置里读线程数和端口
 
 		createFakeCa();
@@ -108,8 +108,8 @@ public class App extends Zeze.AppBase {
 	}
 
 	public void Stop() throws Exception {
-		if (Provider != null && Provider.online != null)
-			Provider.online.stop();
+		if (Provider != null)
+			Provider.stop();
 		stopService(); // 关闭网络
 		stopModules(); // 关闭模块，卸载配置什么的。
 		if (Zeze != null)

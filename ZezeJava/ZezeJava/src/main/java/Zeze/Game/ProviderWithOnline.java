@@ -1,12 +1,18 @@
 package Zeze.Game;
 
+import Zeze.AppBase;
+import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.ProviderImplement;
 import Zeze.Arch.ProviderService;
 import Zeze.Builtin.Provider.LinkBroken;
 import Zeze.Transaction.Procedure;
 
-public class ProviderImplementWithOnline extends ProviderImplement {
-	public Online online; // 需要外面初始化。App.Start.
+public class ProviderWithOnline extends ProviderImplement {
+	private Online online; // 需要外面初始化。App.Start.
+
+	public Online getOnline() {
+		return online;
+	}
 
 	@Override
 	protected long ProcessLinkBroken(LinkBroken p) throws Exception {
@@ -16,5 +22,19 @@ public class ProviderImplementWithOnline extends ProviderImplement {
 			online.linkBroken(roleId, ProviderService.getLinkName(p.getSender()), p.Argument.getLinkSid());
 		}
 		return Procedure.Success;
+	}
+
+	public void create(AppBase app) {
+		online = Online.create(app);
+		online.Initialize(app);
+	}
+
+	public void start() {
+		online.start();
+	}
+
+	public void stop() {
+		if (online != null)
+			online.stop();
 	}
 }
