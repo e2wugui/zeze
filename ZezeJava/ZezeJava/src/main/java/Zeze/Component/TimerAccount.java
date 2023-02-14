@@ -211,8 +211,7 @@ public class TimerAccount {
 		}
 
 		@Override
-		public void onTimerCancel() throws Exception {
-
+		public void onTimerCancel() {
 		}
 	}
 

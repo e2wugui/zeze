@@ -1,7 +1,6 @@
 package Zeze.Arch;
 
 import Zeze.AppBase;
-import Zeze.Arch.Gen.GenModule;
 import Zeze.Builtin.Provider.LinkBroken;
 import Zeze.Transaction.Procedure;
 

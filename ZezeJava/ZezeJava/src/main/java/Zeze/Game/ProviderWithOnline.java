@@ -1,7 +1,6 @@
 package Zeze.Game;
 
 import Zeze.AppBase;
-import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.ProviderImplement;
 import Zeze.Arch.ProviderService;
 import Zeze.Builtin.Provider.LinkBroken;
