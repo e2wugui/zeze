@@ -242,6 +242,17 @@ public class LinkedMap<V extends Bean> {
 		throw new IllegalStateException("NodeId Exist. But Value Not Found.");
 	}
 
+	public Long getNodeId(String id) {
+		var nodeId = module._tValueIdToNodeId.get(new BLinkedMapKey(name, id));
+		if (nodeId == null)
+			return null;
+		return nodeId.getNodeId();
+	}
+
+	public Long getNodeId(long id) {
+		return getNodeId(String.valueOf(id));
+	}
+
 	public V get(long id) {
 		return get(String.valueOf(id));
 	}
