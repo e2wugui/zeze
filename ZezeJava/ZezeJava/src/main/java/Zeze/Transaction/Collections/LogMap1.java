@@ -8,7 +8,6 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
-import Zeze.Util.Reflect;
 
 public class LogMap1<K, V> extends LogMap<K, V> {
 	protected final SerializeHelper.CodecFuncs<K> keyCodecFuncs;
@@ -17,13 +16,14 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	private final HashMap<K, V> replaced = new HashMap<>();
 	private final Set<K> removed = new HashSet<>();
 
+	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Transaction.Collections.LogMap1<");
+
 	public LogMap1(Class<K> keyClass, Class<V> valueClass) {
-		this("Zeze.Transaction.Collections.LogMap1<" + Reflect.getStableName(keyClass) + ", "
-				+ Reflect.getStableName(valueClass) + '>', keyClass, valueClass);
+		this(Zeze.Transaction.Bean.hashLog(logTypeIdHead, keyClass, valueClass), keyClass, valueClass);
 	}
 
-	LogMap1(String typeName, Class<K> keyClass, Class<V> valueClass) {
-		super(typeName);
+	LogMap1(int logTypeId, Class<K> keyClass, Class<V> valueClass) {
+		super(logTypeId);
 		keyCodecFuncs = SerializeHelper.createCodec(keyClass);
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
 	}

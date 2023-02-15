@@ -13,8 +13,13 @@ DatabaseDynamoDb 还需测试。
 负载均衡；全面审核。
 过载保护；更多。
 ------------------------------------------------------------------------------------------------------------------------------
-2023/2/17 v1.1.8 initRootInfoWithRedo c#; Timer.OfflineNotify; DatagramChannel;
+2023/2/17 v1.1.8 initRootInfoWithRedo c#; Timer.OfflineNotify; DatagramChannel; Log.TypeId;
 ------------------------------------------------------------------------------------------------------------------------------
+Log.TypeId 方案，主要是模板类型。
+	-- Bean增加hashLogMap hashLog专门用来生成模板类型的LogTypeId。
+	-- 使用可以继续的hash64方法，和原来的hash32方式【兼容】。
+	-- 修改方案，改一个地方算一个：PMap1, 改完！
+	-- RocksRaft 改完！
 Zege c# GetPublickUserInfo & encrypt message;
 DatagramChannel java
 1. UdpServer：DatagramService 1--* DatagramSocket 绑定多个Socket，防止单个Socket超量。

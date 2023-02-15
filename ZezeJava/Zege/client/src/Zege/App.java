@@ -53,6 +53,7 @@ public class App extends Zeze.AppBase {
     public Zege.Friend.ModuleFriend Zege_Friend;
     public Zege.Message.ModuleMessage Zege_Message;
     public Zege.User.ModuleUser Zege_User;
+    public Zege.Notify.ModuleNotify Zege_Notify;
 
     @Override
     public Zeze.Application getZeze() {
@@ -82,6 +83,7 @@ public class App extends Zeze.AppBase {
             Zege.Friend.ModuleFriend.class,
             Zege.Message.ModuleMessage.class,
             Zege.User.ModuleUser.class,
+            Zege.Notify.ModuleNotify.class,
         });
         if (_modules_ == null)
             return;
@@ -116,10 +118,16 @@ public class App extends Zeze.AppBase {
         if (modules.put(Zege_User.getFullName(), Zege_User) != null)
             throw new RuntimeException("duplicate module name: Zege_User");
 
+        Zege_Notify = (Zege.Notify.ModuleNotify)_modules_[6];
+        Zege_Notify.Initialize(this);
+        if (modules.put(Zege_Notify.getFullName(), Zege_Notify) != null)
+            throw new RuntimeException("duplicate module name: Zege_Notify");
+
         Zeze.setSchemas(new Zege.Schemas());
     }
 
     public synchronized void destroyModules() {
+        Zege_Notify = null;
         Zege_User = null;
         Zege_Message = null;
         Zege_Friend = null;
@@ -144,9 +152,12 @@ public class App extends Zeze.AppBase {
         Zege_Friend.Start(this);
         Zege_Message.Start(this);
         Zege_User.Start(this);
+        Zege_Notify.Start(this);
     }
 
     public synchronized void stopModules() throws Exception {
+        if (Zege_Notify != null)
+            Zege_Notify.Stop(this);
         if (Zege_User != null)
             Zege_User.Stop(this);
         if (Zege_Message != null)

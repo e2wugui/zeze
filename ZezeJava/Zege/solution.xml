@@ -510,6 +510,7 @@
 			<module ref="Friend"/>
 			<module ref="Message"/>
 			<module ref="User"/>
+			<module ref="Notify"/>
 		</service>
 	</project>
 

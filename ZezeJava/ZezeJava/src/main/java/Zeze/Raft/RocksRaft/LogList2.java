@@ -3,6 +3,7 @@ package Zeze.Raft.RocksRaft;
 import java.lang.invoke.MethodHandle;
 import java.util.HashMap;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.SerializeHelper;
 import Zeze.Util.OutInt;
 import Zeze.Util.Reflect;
 
@@ -10,8 +11,9 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	private final HashMap<LogBean, OutInt> changed = new HashMap<>(); // changed V logs. using in collect.
 	private final MethodHandle valueFactory;
 
+	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogList2<");
 	public LogList2(Class<V> valueClass) {
-		super("Zeze.Raft.RocksRaft.LogList2<" + Reflect.getStableName(valueClass) + '>', valueClass);
+		super( Zeze.Transaction.Bean.hashLog(logTypeIdHead, valueClass), SerializeHelper.createCodec(valueClass));
 		valueFactory = Reflect.getDefaultConstructor(valueClass);
 	}
 

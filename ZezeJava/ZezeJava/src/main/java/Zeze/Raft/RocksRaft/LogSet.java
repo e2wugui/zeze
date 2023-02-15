@@ -7,10 +7,6 @@ public abstract class LogSet<V> extends LogBean {
 		super(typeId);
 	}
 
-	public LogSet(String typeName) {
-		super(typeName);
-	}
-
 	public final org.pcollections.PSet<V> getValue() {
 		return value;
 	}

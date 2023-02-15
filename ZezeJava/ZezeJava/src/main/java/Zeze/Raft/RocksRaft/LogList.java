@@ -9,10 +9,6 @@ public abstract class LogList<V> extends LogBean {
 		super(typeId);
 	}
 
-	public LogList(String typeName) {
-		super(typeName);
-	}
-
 	final PVector<V> getValue() {
 		return value;
 	}

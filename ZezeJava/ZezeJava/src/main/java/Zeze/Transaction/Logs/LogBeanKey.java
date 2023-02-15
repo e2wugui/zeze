@@ -11,8 +11,9 @@ public abstract class LogBeanKey<T extends Serializable> extends Log {
 	public T value;
 	private final MethodHandle valueFactory;
 
+	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Transaction.Log<");
 	public LogBeanKey(Class<T> valueClass) {
-		super("Zeze.Transaction.Log<" + Reflect.getStableName(valueClass) + '>');
+		super( Zeze.Transaction.Bean.hashLog(logTypeIdHead, valueClass));
 		valueFactory = Reflect.getDefaultConstructor(valueClass);
 	}
 

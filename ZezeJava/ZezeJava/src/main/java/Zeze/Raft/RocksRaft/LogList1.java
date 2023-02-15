@@ -33,13 +33,9 @@ public class LogList1<V> extends LogList<V> {
 		}
 	}
 
+	private static long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogList1<");
 	public LogList1(Class<V> valueClass) {
-		super("Zeze.Raft.RocksRaft.LogList1<" + Reflect.getStableName(valueClass) + '>');
-		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
-	}
-
-	LogList1(String typeName, Class<V> valueClass) {
-		super(typeName);
+		super(Zeze.Transaction.Bean.hashLog(logTypeIdHead, valueClass));
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
 	}
 

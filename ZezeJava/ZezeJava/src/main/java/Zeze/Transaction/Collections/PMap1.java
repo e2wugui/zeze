@@ -5,18 +5,18 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
-import Zeze.Util.Reflect;
 
 public class PMap1<K, V> extends PMap<K, V> {
 	protected final SerializeHelper.CodecFuncs<K> keyCodecFuncs;
 	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
 	private final int logTypeId;
 
+	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Transaction.Collections.LogMap1<");
+
 	public PMap1(Class<K> keyClass, Class<V> valueClass) {
 		keyCodecFuncs = SerializeHelper.createCodec(keyClass);
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
-		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Transaction.Collections.LogMap1<"
-				+ Reflect.getStableName(keyClass) + ", " + Reflect.getStableName(valueClass) + '>');
+		logTypeId = Zeze.Transaction.Bean.hashLog(logTypeIdHead, keyClass, keyClass);
 	}
 
 	private PMap1(int logTypeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs,

@@ -10,10 +10,6 @@ public abstract class LogMap<K, V> extends LogBean {
 		super(typeId);
 	}
 
-	public LogMap(String typeName) {
-		super(typeName);
-	}
-
 	public final org.pcollections.PMap<K, V> getValue() {
 		return value;
 	}

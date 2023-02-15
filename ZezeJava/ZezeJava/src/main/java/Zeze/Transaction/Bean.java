@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Collections.LogBean;
 import Zeze.Util.KV;
+import Zeze.Util.Reflect;
 import Zeze.Util.Str;
 
 public abstract class Bean implements Serializable {
@@ -136,8 +137,44 @@ public abstract class Bean implements Serializable {
 		return hashedValue;
 	}
 
+	public static long hash64(long initial, String name) {
+		// This is a Knuth hash
+		long hashedValue = initial;
+		for (int i = 0; i < name.length(); i++) {
+			hashedValue += name.charAt(i);
+			hashedValue *= 3074457345618258799L;
+		}
+		return hashedValue;
+	}
+
 	public static int hash32(String name) {
 		long hash64 = hash64(name);
+		return (int)(hash64 ^ (hash64 >> 32));
+	}
+
+	// PMap<K, V>
+	public static int hashLog(long initial, Class<?> key, Class<?> value) {
+		return hashLog(initial, Reflect.getStableName(key), Reflect.getStableName(value));
+	}
+
+	// PMap<K, V>
+	public static int hashLog(long initial, String key, String value) {
+		var hash64 = hash64(initial, key);
+		hash64 = hash64(hash64, ", ");
+		hash64 = hash64(hash64, value);
+		hash64 = hash64(hash64, ">");
+		return (int)(hash64 ^ (hash64 >> 32));
+	}
+
+	// PList<V>
+	public static int hashLog(long initial, Class<?> value) {
+		return hashLog(initial, Reflect.getStableName(value));
+	}
+
+	// PList<V>
+	public static int hashLog(long initial, String value) {
+		var hash64 = hash64(initial, value);
+		hash64 = hash64(hash64, ">");
 		return (int)(hash64 ^ (hash64 >> 32));
 	}
 

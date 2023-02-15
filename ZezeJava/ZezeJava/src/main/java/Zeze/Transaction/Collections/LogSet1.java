@@ -17,8 +17,9 @@ public class LogSet1<V> extends LogSet<V> {
 	private final Set<V> added = new HashSet<>();
 	private final Set<V> removed = new HashSet<>();
 
+	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Transaction.Collections.LogSet1<");
 	public LogSet1(Class<V> valueClass) {
-		super("Zeze.Transaction.Collections.LogSet1<" + Reflect.getStableName(valueClass) + '>');
+		super( Zeze.Transaction.Bean.hashLog(logTypeIdHead, valueClass));
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
 	}
 

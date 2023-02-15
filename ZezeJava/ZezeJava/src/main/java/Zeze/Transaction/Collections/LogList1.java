@@ -5,9 +5,11 @@ import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Changes;
+import Zeze.Transaction.GoBackZeze;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 import Zeze.Util.Reflect;
+import Zeze.Util.ZstdFactory;
 import org.pcollections.Empty;
 
 public class LogList1<V> extends LogList<V> {
@@ -37,13 +39,10 @@ public class LogList1<V> extends LogList<V> {
 
 	protected final ArrayList<OpLog<V>> opLogs = new ArrayList<>();
 
-	public LogList1(Class<V> valueClass) {
-		super("Zeze.Transaction.Collections.LogList1<" + Reflect.getStableName(valueClass) + '>');
-		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
-	}
+	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Transaction.Collections.LogList1<");
 
-	LogList1(String typeName, Class<V> valueClass) {
-		super(typeName);
+	public LogList1(Class<V> valueClass) {
+		super(Zeze.Transaction.Bean.hashLog(logTypeIdHead, valueClass));
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
 	}
 

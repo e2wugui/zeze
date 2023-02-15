@@ -17,9 +17,9 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	private final MethodHandle valueFactory;
 	private boolean built = false;
 
+	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Transaction.Collections.LogMap2<");
 	public LogMap2(Class<K> keyClass, Class<V> valueClass) {
-		super("Zeze.Transaction.Collections.LogMap2<" + Reflect.getStableName(keyClass) + ", "
-				+ Reflect.getStableName(valueClass) + '>', keyClass, valueClass);
+		super(Zeze.Transaction.Bean.hashLog(logTypeIdHead, keyClass, valueClass), keyClass, valueClass);
 		valueFactory = Reflect.getDefaultConstructor(valueClass);
 	}
 

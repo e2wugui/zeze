@@ -17,10 +17,6 @@ public class LogBean extends Log {
 		super(typeId);
 	}
 
-	public LogBean(String typeName) {
-		super(typeName);
-	}
-
 	public final IntHashMap<Log> getVariables() {
 		return variables;
 	}

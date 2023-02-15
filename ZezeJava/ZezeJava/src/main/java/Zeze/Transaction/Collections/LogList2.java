@@ -3,6 +3,7 @@ package Zeze.Transaction.Collections;
 import java.lang.invoke.MethodHandle;
 import java.util.HashMap;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
@@ -13,8 +14,9 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	private final HashMap<LogBean, OutInt> changed = new HashMap<>(); // changed V logs. using in collect.
 	private final MethodHandle valueFactory;
 
+	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Transaction.Collections.LogList2<");
 	public LogList2(Class<V> valueClass) {
-		super("Zeze.Transaction.Collections.LogList2<" + Reflect.getStableName(valueClass) + '>', valueClass);
+		super( Zeze.Transaction.Bean.hashLog(logTypeIdHead, valueClass), SerializeHelper.createCodec(valueClass));
 		valueFactory = Reflect.getDefaultConstructor(valueClass);
 	}
 
