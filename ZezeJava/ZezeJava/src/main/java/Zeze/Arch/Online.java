@@ -14,7 +14,9 @@ import Zeze.Builtin.Online.BAny;
 import Zeze.Builtin.Online.BLocal;
 import Zeze.Builtin.Online.BLocals;
 import Zeze.Builtin.Online.BNotify;
+import Zeze.Builtin.Online.BOnlines;
 import Zeze.Builtin.Online.BReliableNotify;
+import Zeze.Builtin.Online.BVersions;
 import Zeze.Builtin.Online.SReliableNotify;
 import Zeze.Builtin.Online.taccount;
 import Zeze.Builtin.Provider.BBroadcast;
@@ -135,6 +137,14 @@ public class Online extends AbstractOnline {
 
 	public void setUserData(String account, String clientId, Bean data) {
 		_tversion.getOrAdd(account).getLogins().getOrAdd(clientId).getUserData().setBean(data);
+	}
+
+	public BOnlines getOnline(String account) {
+		 return _tonline.get(account);
+	}
+
+	public BVersions getData(String account) {
+		return _tversion.get(account);
 	}
 
 	public int getLocalCount() {

@@ -18,6 +18,7 @@ public class TestTimer {
 	public final void testInit() throws Exception {
 		System.out.println("Timer Test Init");
 		demo.App.getInstance().Start();
+		App.Instance.Zeze.getTimer().start();
 	}
 
 	@After

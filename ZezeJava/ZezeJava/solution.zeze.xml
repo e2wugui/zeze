@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<solution name="Zeze" ModuleIdAllowRanges="11000-12000">
+<solution name="Zeze" ModuleIdAllowRanges="11000-11999">
 	<external bean="Zeze.Arch.Beans.BSend"/>
 	<external bean="Zeze.Arch.Beans.BSendResult"/>
 

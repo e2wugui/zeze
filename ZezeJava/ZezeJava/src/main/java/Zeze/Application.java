@@ -388,7 +388,6 @@ public final class Application {
 				achillesHeelDaemon.start();
 			isStart = true;
 
-			timer.start();
 			delayRemove.start();
 		}
 	}

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<solution name="Zeze" ModuleIdAllowRanges="11000-12000">
+<solution name="Zeze" ModuleIdAllowRanges="11000-11999">
 	<module name="Builtin" id="11000">
 		<!-- Global With Raft 模块 -->
 		<module name="GlobalCacheManagerWithRaft" id="11001">

@@ -21,6 +21,7 @@ import Zeze.Builtin.Game.Online.BLocal;
 import Zeze.Builtin.Game.Online.BNotify;
 import Zeze.Builtin.Game.Online.BOnline;
 import Zeze.Builtin.Game.Online.BReliableNotify;
+import Zeze.Builtin.Game.Online.BVersion;
 import Zeze.Builtin.Game.Online.SReliableNotify;
 import Zeze.Builtin.Game.Online.taccount;
 import Zeze.Builtin.Provider.BBroadcast;
@@ -128,11 +129,22 @@ public class Online extends AbstractOnline {
 		return _taccount;
 	}
 
+	// 用户数据
 	public Bean getUserData(long roleId) {
 		var version = _tversion.get(roleId);
 		if (null == version)
 			return null;
 		return version.getUserData().getBean();
+	}
+
+	// 在线状态
+	public BOnline getOnline(long roleId) {
+		return _tonline.get(roleId);
+	}
+
+	// 在线异变数据
+	public BVersion getData(long roleId) {
+		return _tversion.get(roleId);
 	}
 
 	public void setUserData(long roleId, Bean data) {
