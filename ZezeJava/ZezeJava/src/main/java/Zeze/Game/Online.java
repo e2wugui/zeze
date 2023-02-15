@@ -130,11 +130,12 @@ public class Online extends AbstractOnline {
 	}
 
 	// 用户数据
-	public Bean getUserData(long roleId) {
+	@SuppressWarnings("unchecked")
+	public <T extends Bean> T getUserData(long roleId) {
 		var version = _tversion.get(roleId);
 		if (null == version)
 			return null;
-		return version.getUserData().getBean();
+		return (T)version.getUserData().getBean();
 	}
 
 	// 在线状态
@@ -147,7 +148,7 @@ public class Online extends AbstractOnline {
 		return _tversion.get(roleId);
 	}
 
-	public void setUserData(long roleId, Bean data) {
+	public <T extends Bean> void setUserData(long roleId, T data) {
 		_tversion.getOrAdd(roleId).getUserData().setBean(data);
 	}
 
@@ -187,7 +188,7 @@ public class Online extends AbstractOnline {
 		return transmitActions;
 	}
 
-	public void setLocalBean(long roleId, String key, Bean bean) {
+	public <T extends Bean> void setLocalBean(long roleId, String key, T bean) {
 		var bLocal = _tlocal.get(roleId);
 		if (null == bLocal)
 			throw new IllegalStateException("roleId not online. " + roleId);
