@@ -270,11 +270,27 @@ namespace Zeze.Gen
                 foreach (var e in saved)
                     e.Key.Name = SolutionName + e.Key.Name;
             }
+
+            DeleteBuiltinIf(AllBeanKeys);
+            DeleteBuiltinIf(AllBeans);
+            DeleteBuiltinIf(AllProtocols);
+            DeleteBuiltinIf(AllTables);
+
             MakePlatform();
 
             // rollback
             foreach (var e in saved)
                 e.Key.Name = e.Value;
+        }
+
+        private void DeleteBuiltinIf<T>(SortedDictionary<string, T> all)
+        {
+            var collect = new List<string>();
+            foreach (var key in all.Keys)
+                if (key.StartsWith("Zeze.Bultin.") && BuiltinNotGen)
+                    collect.Add(key);
+            foreach (var key in collect)
+                all.Remove(key);
         }
 
         public bool IsTableValueType(Bean bean)
