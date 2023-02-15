@@ -253,6 +253,17 @@ public class LinkedMap<V extends Bean> {
 		return getNodeId(String.valueOf(id));
 	}
 
+	public BLinkedMapNode getNodeById(String id) {
+		var nodeId = module._tValueIdToNodeId.get(new BLinkedMapKey(name, id));
+		if (nodeId == null)
+			return null;
+		return getNode(nodeId.getNodeId());
+	}
+
+	public BLinkedMapNode getNodeById(long id) {
+		return getNodeById(String.valueOf(id));
+	}
+
 	public V get(long id) {
 		return get(String.valueOf(id));
 	}
