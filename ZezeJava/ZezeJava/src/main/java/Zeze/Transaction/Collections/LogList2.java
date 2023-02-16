@@ -11,12 +11,13 @@ import Zeze.Util.OutInt;
 import Zeze.Util.Reflect;
 
 public class LogList2<V extends Bean> extends LogList1<V> {
+	private static final long logTypeIdHead = Bean.hash64("Zeze.Transaction.Collections.LogList2<");
+
 	private final HashMap<LogBean, OutInt> changed = new HashMap<>(); // changed V logs. using in collect.
 	private final MethodHandle valueFactory;
 
-	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Transaction.Collections.LogList2<");
 	public LogList2(Class<V> valueClass) {
-		super( Zeze.Transaction.Bean.hashLog(logTypeIdHead, valueClass), SerializeHelper.createCodec(valueClass));
+		super(Bean.hashLog(logTypeIdHead, valueClass), SerializeHelper.createCodec(valueClass));
 		valueFactory = Reflect.getDefaultConstructor(valueClass);
 	}
 

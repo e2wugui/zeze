@@ -8,12 +8,13 @@ import Zeze.Serialize.Serializable;
 import Zeze.Util.Reflect;
 
 public class LogBeanKey<T extends Serializable> extends Log {
+	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.Log<");
+
 	public T value;
 	private final MethodHandle valueFactory;
 
-	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.Log<");
 	public LogBeanKey(Class<T> valueClass) {
-		super( Zeze.Transaction.Bean.hashLog(logTypeIdHead, valueClass));
+		super(Zeze.Transaction.Bean.hashLog(logTypeIdHead, valueClass));
 		valueFactory = Reflect.getDefaultConstructor(valueClass);
 	}
 

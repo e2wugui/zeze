@@ -4,10 +4,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
-import Zeze.Util.Reflect;
 import org.pcollections.Empty;
 
 public class LogList1<V> extends LogList<V> {
+	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogList1<");
+
 	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
 	protected final ArrayList<OpLog<V>> opLogs = new ArrayList<>();
 
@@ -33,7 +34,6 @@ public class LogList1<V> extends LogList<V> {
 		}
 	}
 
-	private static long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogList1<");
 	public LogList1(Class<V> valueClass) {
 		super(Zeze.Transaction.Bean.hashLog(logTypeIdHead, valueClass));
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);

@@ -9,11 +9,12 @@ import Zeze.Serialize.SerializeHelper;
 import Zeze.Util.Reflect;
 
 public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
+	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogMap2<");
+
 	private final Set<LogBean> changed = new HashSet<>(); // changed V logs. using in collect.
 	private final HashMap<K, LogBean> changedWithKey = new HashMap<>(); // changed with key. using in encode/decode followerApply
 	private final MethodHandle valueFactory;
 
-	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogMap2<");
 	public LogMap2(Class<K> keyClass, Class<V> valueClass) {
 		super(Zeze.Transaction.Bean.hashLog(logTypeIdHead, keyClass, valueClass), keyClass, valueClass);
 		valueFactory = Reflect.getDefaultConstructor(valueClass);

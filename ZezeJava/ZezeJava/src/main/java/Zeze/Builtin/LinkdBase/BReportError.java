@@ -10,6 +10,7 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
 
     public static final int FromLink = 0;
     public static final int FromProvider = 1;
+    public static final int CodeMuteKick = 0; // 只断客户端连接，不发送消息给客户端，用于重连时确保旧的连接快速断开
     public static final int CodeNotAuthed = 1;
     public static final int CodeNoProvider = 2;
     public static final int CodeProviderBusy = 3;

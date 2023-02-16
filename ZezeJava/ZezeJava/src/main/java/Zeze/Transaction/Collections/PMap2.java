@@ -15,6 +15,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class PMap2<K, V extends Bean> extends PMap<K, V> {
+	private static final long logTypeIdHead = Bean.hash64("Zeze.Transaction.Collections.LogMap2<");
+
 	protected final SerializeHelper.CodecFuncs<K> keyCodecFuncs;
 	private final MethodHandle valueFactory;
 	private final int logTypeId;
@@ -22,15 +24,13 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	public PMap2(Class<K> keyClass, Class<V> valueClass) {
 		keyCodecFuncs = SerializeHelper.createCodec(keyClass);
 		valueFactory = Reflect.getDefaultConstructor(valueClass);
-		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Transaction.Collections.LogMap2<"
-				+ Reflect.getStableName(keyClass) + ", " + Reflect.getStableName(valueClass) + '>');
+		logTypeId = Bean.hashLog(logTypeIdHead, keyClass, valueClass);
 	}
 
 	public PMap2(Class<K> keyClass, ToLongFunction<Bean> get, LongFunction<Bean> create) { // only for DynamicBean value
 		keyCodecFuncs = SerializeHelper.createCodec(keyClass);
 		valueFactory = SerializeHelper.createDynamicFactory(get, create);
-		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Transaction.Collections.LogMap2<"
-				+ Reflect.getStableName(keyClass) + ", Zeze.Transaction.DynamicBean>");
+		logTypeId = Bean.hashLog(logTypeIdHead, Reflect.getStableName(keyClass), "Zeze.Transaction.DynamicBean");
 	}
 
 	private PMap2(int logTypeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs, MethodHandle valueFactory) {

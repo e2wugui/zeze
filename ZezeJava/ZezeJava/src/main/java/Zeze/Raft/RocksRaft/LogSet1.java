@@ -4,16 +4,16 @@ import java.util.HashSet;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
-import Zeze.Util.Reflect;
 import org.pcollections.Empty;
 
 public class LogSet1<V> extends LogSet<V> {
+	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogSet1<");
+
 	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
 
 	private final Set<V> added = new HashSet<>();
 	private final Set<V> removed = new HashSet<>();
 
-	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogSet1<");
 	public LogSet1(Class<V> valueClass) {
 		super(Zeze.Transaction.Bean.hashLog(logTypeIdHead, valueClass));
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);

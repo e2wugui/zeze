@@ -6,20 +6,21 @@ import java.util.Map;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 
 public class LogMap1<K, V> extends LogMap<K, V> {
+	private static final long logTypeIdHead = Bean.hash64("Zeze.Transaction.Collections.LogMap1<");
+
 	protected final SerializeHelper.CodecFuncs<K> keyCodecFuncs;
 	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
 
 	private final HashMap<K, V> replaced = new HashMap<>();
 	private final Set<K> removed = new HashSet<>();
 
-	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Transaction.Collections.LogMap1<");
-
 	public LogMap1(Class<K> keyClass, Class<V> valueClass) {
-		this(Zeze.Transaction.Bean.hashLog(logTypeIdHead, keyClass, valueClass), keyClass, valueClass);
+		this(Bean.hashLog(logTypeIdHead, keyClass, valueClass), keyClass, valueClass);
 	}
 
 	LogMap1(int logTypeId, Class<K> keyClass, Class<V> valueClass) {
@@ -59,9 +60,9 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	}
 
 	public final void putAll(Map<? extends K, ? extends V> m) {
-		var newmap = getValue().plusAll(m);
-		if (newmap != getValue()) {
-			setValue(newmap);
+		var newMap = getValue().plusAll(m);
+		if (newMap != getValue()) {
+			setValue(newMap);
 			for (var e : m.entrySet()) {
 				replaced.put(e.getKey(), e.getValue());
 				removed.remove(e.getKey());

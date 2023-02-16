@@ -4,15 +4,15 @@ import java.util.ArrayList;
 import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
-import Zeze.Transaction.GoBackZeze;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
-import Zeze.Util.Reflect;
-import Zeze.Util.ZstdFactory;
 import org.pcollections.Empty;
 
 public class LogList1<V> extends LogList<V> {
+	private static final long logTypeIdHead = Bean.hash64("Zeze.Transaction.Collections.LogList1<");
+
 	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
 
 	static final class OpLog<V> {
@@ -39,10 +39,8 @@ public class LogList1<V> extends LogList<V> {
 
 	protected final ArrayList<OpLog<V>> opLogs = new ArrayList<>();
 
-	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Transaction.Collections.LogList1<");
-
 	public LogList1(Class<V> valueClass) {
-		super(Zeze.Transaction.Bean.hashLog(logTypeIdHead, valueClass));
+		super(Bean.hashLog(logTypeIdHead, valueClass));
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
 	}
 
@@ -56,7 +54,7 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	@Override
-	public void collect(Changes changes, Zeze.Transaction.Bean recent, Log vlog) {
+	public void collect(Changes changes, Bean recent, Log vlog) {
 		throw new UnsupportedOperationException("Collect Not Implement.");
 	}
 

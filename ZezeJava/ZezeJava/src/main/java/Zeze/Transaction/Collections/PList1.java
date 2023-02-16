@@ -3,18 +3,20 @@ package Zeze.Transaction.Collections;
 import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
-import Zeze.Util.Reflect;
 import org.pcollections.Empty;
 
 public class PList1<V> extends PList<V> {
+	private static final long logTypeIdHead = Bean.hash64("Zeze.Transaction.Collections.LogList1<");
+
 	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
 	private final int logTypeId;
 
 	public PList1(Class<V> valueClass) {
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
-		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Transaction.Collections.LogList1<" + Reflect.getStableName(valueClass) + '>');
+		logTypeId = Bean.hashLog(logTypeIdHead, valueClass);
 	}
 
 	private PList1(int logTypeId, SerializeHelper.CodecFuncs<V> valueCodecFuncs) {

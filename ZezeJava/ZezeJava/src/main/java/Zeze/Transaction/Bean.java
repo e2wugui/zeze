@@ -147,6 +147,11 @@ public abstract class Bean implements Serializable {
 		return hashedValue;
 	}
 
+	public static long hash64(long initial, char c) {
+		// This is a Knuth hash
+		return (initial + c) * 3074457345618258799L;
+	}
+
 	public static int hash32(String name) {
 		long hash64 = hash64(name);
 		return (int)(hash64 ^ (hash64 >> 32));
@@ -160,9 +165,9 @@ public abstract class Bean implements Serializable {
 	// PMap<K, V>
 	public static int hashLog(long initial, String key, String value) {
 		var hash64 = hash64(initial, key);
-		hash64 = hash64(hash64, ", ");
+		hash64 = hash64(hash64(hash64, ','), ' ');
 		hash64 = hash64(hash64, value);
-		hash64 = hash64(hash64, ">");
+		hash64 = hash64(hash64, '>');
 		return (int)(hash64 ^ (hash64 >> 32));
 	}
 
@@ -174,7 +179,7 @@ public abstract class Bean implements Serializable {
 	// PList<V>
 	public static int hashLog(long initial, String value) {
 		var hash64 = hash64(initial, value);
-		hash64 = hash64(hash64, ">");
+		hash64 = hash64(hash64, '>');
 		return (int)(hash64 ^ (hash64 >> 32));
 	}
 

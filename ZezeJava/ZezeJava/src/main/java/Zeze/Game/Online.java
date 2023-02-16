@@ -455,17 +455,10 @@ public class Online extends AbstractOnline {
 	}
 
 	private long triggerLinkBroken(String linkName, LongList errorSids, Map<Long, Long> context) {
-		errorSids.foreach((sid) -> {
-			providerApp.zeze.newProcedure(() -> {
-				var roleId = context.get(sid);
-				if (roleId != null) {
-					var ret = linkBroken(roleId, linkName, sid);
-					if (0 != ret)
-						return ret;
-				}
-				return 0;
-			}, "triggerLinkBroken").call();
-		});
+		errorSids.foreach(sid -> providerApp.zeze.newProcedure(() -> {
+			var roleId = context.get(sid);
+			return roleId != null ? linkBroken(roleId, linkName, sid) : 0;
+		}, "triggerLinkBroken").call());
 		return 0;
 	}
 
@@ -833,7 +826,7 @@ public class Online extends AbstractOnline {
 	}
 
 	@RedirectToServer
-	@TransactionLevelAnnotation(Level= TransactionLevel.None)
+	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	protected void redirectRemoveLocal(int serverId, long roleId) throws Exception {
 		providerApp.zeze.newProcedure(() -> tryRemoveLocal(roleId), "redirectNotify").call();
 	}

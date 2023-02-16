@@ -5,21 +5,22 @@ import java.util.HashSet;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
-import Zeze.Util.Reflect;
 import org.pcollections.Empty;
 
 public class LogSet1<V> extends LogSet<V> {
+	private static final long logTypeIdHead = Bean.hash64("Zeze.Transaction.Collections.LogSet1<");
+
 	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
 
 	private final Set<V> added = new HashSet<>();
 	private final Set<V> removed = new HashSet<>();
 
-	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Transaction.Collections.LogSet1<");
 	public LogSet1(Class<V> valueClass) {
-		super( Zeze.Transaction.Bean.hashLog(logTypeIdHead, valueClass));
+		super(Bean.hashLog(logTypeIdHead, valueClass));
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
 	}
 
@@ -37,7 +38,7 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	@Override
-	public void collect(Changes changes, Zeze.Transaction.Bean recent, Log vlog) {
+	public void collect(Changes changes, Bean recent, Log vlog) {
 		throw new UnsupportedOperationException("Collect Not Implement.");
 	}
 

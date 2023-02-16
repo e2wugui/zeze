@@ -15,17 +15,20 @@ import Zeze.Util.Reflect;
 import org.pcollections.Empty;
 
 public class PList2<V extends Bean> extends PList<V> {
+	private static final long logTypeIdHead = Bean.hash64("Zeze.Transaction.Collections.LogList2<");
+	private static final int logTypeIdDynamicBean = Bean.hash32("Zeze.Transaction.Collections.LogList2<Zeze.Transaction.DynamicBean>");
+
 	private final MethodHandle valueFactory;
 	private final int logTypeId;
 
 	public PList2(Class<V> valueClass) {
 		valueFactory = Reflect.getDefaultConstructor(valueClass);
-		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Transaction.Collections.LogList2<" + Reflect.getStableName(valueClass) + '>');
+		logTypeId = Bean.hashLog(logTypeIdHead, valueClass);
 	}
 
 	public PList2(ToLongFunction<Bean> get, LongFunction<Bean> create) { // only for DynamicBean value
 		valueFactory = SerializeHelper.createDynamicFactory(get, create);
-		logTypeId = Zeze.Transaction.Bean.hash32("Zeze.Transaction.Collections.LogList2<Zeze.Transaction.DynamicBean>");
+		logTypeId = logTypeIdDynamicBean;
 	}
 
 	private PList2(int logTypeId, MethodHandle valueFactory) {

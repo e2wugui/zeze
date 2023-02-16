@@ -7,15 +7,16 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 
 public class LogMap1<K, V> extends LogMap<K, V> {
+	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogMap1<");
+
 	protected final SerializeHelper.CodecFuncs<K> keyCodecFuncs;
 	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
 
 	private final HashMap<K, V> putted = new HashMap<>();
 	private final Set<K> removed = new HashSet<>();
 
-	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogMap1<");
 	public LogMap1(Class<K> keyClass, Class<V> valueClass) {
-		this( Zeze.Transaction.Bean.hashLog(logTypeIdHead, keyClass, valueClass), keyClass, valueClass);
+		this(Zeze.Transaction.Bean.hashLog(logTypeIdHead, keyClass, valueClass), keyClass, valueClass);
 	}
 
 	LogMap1(int typeId, Class<K> keyClass, Class<V> valueClass) {

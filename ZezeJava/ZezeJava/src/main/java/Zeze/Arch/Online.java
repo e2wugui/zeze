@@ -140,7 +140,7 @@ public class Online extends AbstractOnline {
 	}
 
 	public BOnlines getOnline(String account) {
-		 return _tonline.get(account);
+		return _tonline.get(account);
 	}
 
 	public BVersions getData(String account) {
@@ -526,17 +526,10 @@ public class Online extends AbstractOnline {
 	}
 
 	private long triggerLinkBroken(String linkName, LongList errorSids, Map<Long, KV<String, String>> contexts) {
-		errorSids.foreach((sid) -> {
-			providerApp.zeze.newProcedure(() -> {
-				var ctx = contexts.get(sid);
-				if (ctx != null) {
-					var ret = linkBroken(ctx.getKey(), ctx.getValue(), linkName, sid);
-					if (ret != 0)
-						return ret;
-				}
-				return 0;
-			}, "triggerLinkBroken").call();
-		});
+		errorSids.foreach(sid -> providerApp.zeze.newProcedure(() -> {
+			var ctx = contexts.get(sid);
+			return ctx != null ? linkBroken(ctx.getKey(), ctx.getValue(), linkName, sid) : 0;
+		}, "triggerLinkBroken").call());
 		return 0;
 	}
 
@@ -958,7 +951,7 @@ public class Online extends AbstractOnline {
 	}
 
 	@RedirectToServer
-	@TransactionLevelAnnotation(Level= TransactionLevel.None)
+	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	protected void redirectRemoveLocal(int serverId, String account) throws Exception {
 		providerApp.zeze.newProcedure(() -> tryRemoveLocal(account), "redirectNotify").call();
 	}
