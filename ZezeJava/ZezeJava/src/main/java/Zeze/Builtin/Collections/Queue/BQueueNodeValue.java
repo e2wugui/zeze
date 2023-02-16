@@ -64,7 +64,7 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean implements BQue
 
     public void assign(BQueueNodeValue other) {
         setTimestamp(other.getTimestamp());
-        _Value.assign(other._Value);
+        _Value.assign(other.getValue());
     }
 
     @Deprecated

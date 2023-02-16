@@ -67,7 +67,7 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
     public void assign(BLocal other) {
         setLoginVersion(other.getLoginVersion());
         _Datas.clear();
-        for (var e : other._Datas.entrySet())
+        for (var e : other.getDatas().entrySet())
             _Datas.put(e.getKey(), e.getValue().copy());
     }
 

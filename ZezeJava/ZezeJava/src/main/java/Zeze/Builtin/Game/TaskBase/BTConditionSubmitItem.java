@@ -39,9 +39,9 @@ public final class BTConditionSubmitItem extends Zeze.Transaction.Bean implement
 
     public void assign(BTConditionSubmitItem other) {
         _items.clear();
-        _items.putAll(other._items);
+        _items.putAll(other.getItems());
         _itemsSubmitted.clear();
-        _itemsSubmitted.putAll(other._itemsSubmitted);
+        _itemsSubmitted.putAll(other.getItemsSubmitted());
     }
 
     @Deprecated

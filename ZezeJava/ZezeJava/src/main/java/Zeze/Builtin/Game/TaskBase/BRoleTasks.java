@@ -39,10 +39,10 @@ public final class BRoleTasks extends Zeze.Transaction.Bean implements BRoleTask
 
     public void assign(BRoleTasks other) {
         _processingTasks.clear();
-        for (var e : other._processingTasks.entrySet())
+        for (var e : other.getProcessingTasks().entrySet())
             _processingTasks.put(e.getKey(), e.getValue().copy());
         _finishedTaskIds.clear();
-        _finishedTaskIds.addAll(other._finishedTaskIds);
+        _finishedTaskIds.addAll(other.getFinishedTaskIds());
     }
 
     @Deprecated

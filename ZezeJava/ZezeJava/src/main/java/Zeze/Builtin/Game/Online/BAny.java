@@ -48,7 +48,7 @@ public final class BAny extends Zeze.Transaction.Bean implements BAnyReadOnly {
     }
 
     public void assign(BAny other) {
-        _Any.assign(other._Any);
+        _Any.assign(other.getAny());
     }
 
     @Deprecated

@@ -127,7 +127,7 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
 
     public void assign(BGameOnlineTimer other) {
         setRoleId(other.getRoleId());
-        _TimerObj.assign(other._TimerObj);
+        _TimerObj.assign(other.getTimerObj());
         setLoginVersion(other.getLoginVersion());
     }
 

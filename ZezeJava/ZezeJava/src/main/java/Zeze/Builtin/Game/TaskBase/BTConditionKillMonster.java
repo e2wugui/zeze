@@ -39,9 +39,9 @@ public final class BTConditionKillMonster extends Zeze.Transaction.Bean implemen
 
     public void assign(BTConditionKillMonster other) {
         _monsters.clear();
-        _monsters.putAll(other._monsters);
+        _monsters.putAll(other.getMonsters());
         _monstersKilled.clear();
-        _monstersKilled.putAll(other._monstersKilled);
+        _monstersKilled.putAll(other.getMonstersKilled());
     }
 
     @Deprecated

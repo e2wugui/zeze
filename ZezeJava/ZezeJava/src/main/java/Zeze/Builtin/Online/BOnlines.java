@@ -26,7 +26,7 @@ public final class BOnlines extends Zeze.Transaction.Bean implements BOnlinesRea
 
     public void assign(BOnlines other) {
         _Logins.clear();
-        for (var e : other._Logins.entrySet())
+        for (var e : other.getLogins().entrySet())
             _Logins.put(e.getKey(), e.getValue().copy());
     }
 

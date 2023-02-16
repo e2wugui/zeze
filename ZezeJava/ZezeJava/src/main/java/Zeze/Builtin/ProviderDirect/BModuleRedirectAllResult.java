@@ -152,7 +152,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         setMethodFullName(other.getMethodFullName());
         setSessionId(other.getSessionId());
         _Hashs.clear();
-        for (var e : other._Hashs.entrySet())
+        for (var e : other.getHashs().entrySet())
             _Hashs.put(e.getKey(), e.getValue().copy());
     }
 

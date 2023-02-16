@@ -133,12 +133,12 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
     public void assign(BDepartmentTreeNode other) {
         setParentDepartment(other.getParentDepartment());
         _Childs.clear();
-        _Childs.putAll(other._Childs);
+        _Childs.putAll(other.getChilds());
         setName(other.getName());
         _Managers.clear();
-        for (var e : other._Managers.entrySet())
+        for (var e : other.getManagers().entrySet())
             _Managers.put(e.getKey(), e.getValue().copy());
-        _Data.assign(other._Data);
+        _Data.assign(other.getData());
     }
 
     @Deprecated

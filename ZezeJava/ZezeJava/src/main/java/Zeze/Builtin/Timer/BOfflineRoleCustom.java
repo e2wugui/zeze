@@ -144,7 +144,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         setRoleId(other.getRoleId());
         setLoginVersion(other.getLoginVersion());
         setHandleName(other.getHandleName());
-        _CustomData.assign(other._CustomData);
+        _CustomData.assign(other.getCustomData());
     }
 
     @Deprecated

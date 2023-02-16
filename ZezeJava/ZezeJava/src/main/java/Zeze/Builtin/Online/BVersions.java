@@ -26,7 +26,7 @@ public final class BVersions extends Zeze.Transaction.Bean implements BVersionsR
 
     public void assign(BVersions other) {
         _Logins.clear();
-        for (var e : other._Logins.entrySet())
+        for (var e : other.getLogins().entrySet())
             _Logins.put(e.getKey(), e.getValue().copy());
     }
 

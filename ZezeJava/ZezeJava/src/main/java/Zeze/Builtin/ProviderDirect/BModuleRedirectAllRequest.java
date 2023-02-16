@@ -203,7 +203,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
         setModuleId(other.getModuleId());
         setHashCodeConcurrentLevel(other.getHashCodeConcurrentLevel());
         _HashCodes.clear();
-        _HashCodes.addAll(other._HashCodes);
+        _HashCodes.addAll(other.getHashCodes());
         setSourceProvider(other.getSourceProvider());
         setSessionId(other.getSessionId());
         setMethodFullName(other.getMethodFullName());

@@ -55,7 +55,7 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
     public void assign(BBag other) {
         setCapacity(other.getCapacity());
         _Items.clear();
-        for (var e : other._Items.entrySet())
+        for (var e : other.getItems().entrySet())
             _Items.put(e.getKey(), e.getValue().copy());
     }
 

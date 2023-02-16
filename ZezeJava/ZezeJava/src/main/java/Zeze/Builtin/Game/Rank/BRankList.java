@@ -26,7 +26,7 @@ public final class BRankList extends Zeze.Transaction.Bean implements BRankListR
 
     public void assign(BRankList other) {
         _RankList.clear();
-        for (var e : other._RankList)
+        for (var e : other.getRankList())
             _RankList.add(e.copy());
     }
 

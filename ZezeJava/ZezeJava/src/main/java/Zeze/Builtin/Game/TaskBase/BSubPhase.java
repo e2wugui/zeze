@@ -118,7 +118,7 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
         setCompleteType(other.getCompleteType());
         setNextSubPhaseId(other.getNextSubPhaseId());
         _conditions.clear();
-        for (var e : other._conditions)
+        for (var e : other.getConditions())
             _conditions.add(e.copy());
     }
 

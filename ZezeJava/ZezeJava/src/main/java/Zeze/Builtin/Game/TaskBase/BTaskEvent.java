@@ -169,8 +169,8 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
 
     public void assign(BTaskEvent other) {
         setRoleId(other.getRoleId());
-        _eventType.assign(other._eventType);
-        _eventBean.assign(other._eventBean);
+        _eventType.assign(other.getEventType());
+        _eventBean.assign(other.getEventBean());
     }
 
     @Deprecated

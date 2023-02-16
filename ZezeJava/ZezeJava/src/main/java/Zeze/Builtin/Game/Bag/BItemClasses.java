@@ -26,7 +26,7 @@ public final class BItemClasses extends Zeze.Transaction.Bean implements BItemCl
 
     public void assign(BItemClasses other) {
         _ItemClasses.clear();
-        _ItemClasses.addAll(other._ItemClasses);
+        _ItemClasses.addAll(other.getItemClasses());
     }
 
     @Deprecated

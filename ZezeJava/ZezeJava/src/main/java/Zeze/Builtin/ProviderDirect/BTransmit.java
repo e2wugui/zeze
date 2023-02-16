@@ -109,7 +109,7 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
     public void assign(BTransmit other) {
         setActionName(other.getActionName());
         _Roles.clear();
-        _Roles.addAll(other._Roles);
+        _Roles.addAll(other.getRoles());
         setSender(other.getSender());
         setParameter(other.getParameter());
     }

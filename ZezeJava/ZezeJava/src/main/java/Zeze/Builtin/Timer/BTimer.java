@@ -196,8 +196,8 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
     public void assign(BTimer other) {
         setTimerName(other.getTimerName());
         setHandleName(other.getHandleName());
-        _TimerObj.assign(other._TimerObj);
-        _CustomData.assign(other._CustomData);
+        _TimerObj.assign(other.getTimerObj());
+        _CustomData.assign(other.getCustomData());
         setConcurrentFireSerialNo(other.getConcurrentFireSerialNo());
     }
 

@@ -160,7 +160,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
     public void assign(BArchOnlineTimer other) {
         setAccount(other.getAccount());
         setClientId(other.getClientId());
-        _TimerObj.assign(other._TimerObj);
+        _TimerObj.assign(other.getTimerObj());
         setLoginVersion(other.getLoginVersion());
     }
 

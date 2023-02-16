@@ -26,7 +26,7 @@ public final class BOfflineTimers extends Zeze.Transaction.Bean implements BOffl
 
     public void assign(BOfflineTimers other) {
         _OfflineTimers.clear();
-        _OfflineTimers.putAll(other._OfflineTimers);
+        _OfflineTimers.putAll(other.getOfflineTimers());
     }
 
     @Deprecated

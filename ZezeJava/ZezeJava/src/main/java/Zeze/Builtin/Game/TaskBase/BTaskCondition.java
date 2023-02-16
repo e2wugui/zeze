@@ -70,7 +70,7 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
 
     public void assign(BTaskCondition other) {
         setConditionType(other.getConditionType());
-        _extendedData.assign(other._extendedData);
+        _extendedData.assign(other.getExtendedData());
     }
 
     @Deprecated

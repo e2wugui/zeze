@@ -30,10 +30,15 @@ namespace Zeze.Gen.java
             foreach (Bean bean in Project.AllBeans.Values)
             {
                 new BeanFormatter(bean).Make(genCommonDir);
-                new javadata.BeanFormatter(bean).Make(genCommonDir);
+                if (Project.isData(bean))
+                    new javadata.BeanFormatter(bean).Make(genCommonDir);
             }
             foreach (BeanKey beanKey in Project.AllBeanKeys.Values)
+            {
                 new BeanKeyFormatter(beanKey).Make(genCommonDir);
+                //if (Project.isData(beanKey))
+                //    new javadata.BeanKeyFormatter(beanKey).Make(genCommonDir);
+            }
             foreach (Protocol protocol in Project.AllProtocols.Values)
             {
                 if (protocol is Rpc rpc)

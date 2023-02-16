@@ -26,7 +26,7 @@ public final class BCustomClasses extends Zeze.Transaction.Bean implements BCust
 
     public void assign(BCustomClasses other) {
         _CustomClasses.clear();
-        _CustomClasses.addAll(other._CustomClasses);
+        _CustomClasses.addAll(other.getCustomClasses());
     }
 
     @Deprecated

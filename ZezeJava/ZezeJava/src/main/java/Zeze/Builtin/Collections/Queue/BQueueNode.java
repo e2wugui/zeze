@@ -56,7 +56,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
     public void assign(BQueueNode other) {
         setNextNodeId(other.getNextNodeId());
         _Values.clear();
-        for (var e : other._Values)
+        for (var e : other.getValues())
             _Values.add(e.copy());
     }
 

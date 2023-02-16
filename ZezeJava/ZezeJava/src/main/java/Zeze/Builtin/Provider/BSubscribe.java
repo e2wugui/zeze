@@ -26,7 +26,7 @@ public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscrib
 
     public void assign(BSubscribe other) {
         _modules.clear();
-        for (var e : other._modules.entrySet())
+        for (var e : other.getModules().entrySet())
             _modules.put(e.getKey(), e.getValue().copy());
     }
 

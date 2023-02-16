@@ -69,7 +69,7 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean implements 
 
     public void assign(BLinkedMapNodeValue other) {
         setId(other.getId());
-        _Value.assign(other._Value);
+        _Value.assign(other.getValue());
     }
 
     @Deprecated

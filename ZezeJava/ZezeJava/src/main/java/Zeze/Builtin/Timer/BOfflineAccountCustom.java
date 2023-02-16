@@ -178,7 +178,7 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
         setClientId(other.getClientId());
         setLoginVersion(other.getLoginVersion());
         setHandleName(other.getHandleName());
-        _CustomData.assign(other._CustomData);
+        _CustomData.assign(other.getCustomData());
     }
 
     @Deprecated

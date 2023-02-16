@@ -27,7 +27,7 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean implements BOnlin
 
     public void assign(BOnlineTimers other) {
         _TimerIds.clear();
-        for (var e : other._TimerIds.entrySet())
+        for (var e : other.getTimerIds().entrySet())
             _TimerIds.put(e.getKey(), e.getValue().copy());
     }
 

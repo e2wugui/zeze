@@ -99,7 +99,7 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
     public void assign(BItem other) {
         setId(other.getId());
         setNumber(other.getNumber());
-        _Item.assign(other._Item);
+        _Item.assign(other.getItem());
     }
 
     @Deprecated

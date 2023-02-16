@@ -52,7 +52,7 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean implements BOnlin
     }
 
     public void assign(BOnlineCustom other) {
-        _CustomData.assign(other._CustomData);
+        _CustomData.assign(other.getCustomData());
     }
 
     @Deprecated

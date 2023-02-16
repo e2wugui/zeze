@@ -157,11 +157,11 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
     public void assign(BVersion other) {
         setLoginVersion(other.getLoginVersion());
         _ReliableNotifyMark.clear();
-        _ReliableNotifyMark.addAll(other._ReliableNotifyMark);
+        _ReliableNotifyMark.addAll(other.getReliableNotifyMark());
         setReliableNotifyIndex(other.getReliableNotifyIndex());
         setReliableNotifyConfirmIndex(other.getReliableNotifyConfirmIndex());
         setServerId(other.getServerId());
-        _UserData.assign(other._UserData);
+        _UserData.assign(other.getUserData());
     }
 
     @Deprecated

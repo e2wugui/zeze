@@ -26,7 +26,7 @@ public final class BJobs extends Zeze.Transaction.Bean implements BJobsReadOnly 
 
     public void assign(BJobs other) {
         _Jobs.clear();
-        for (var e : other._Jobs.entrySet())
+        for (var e : other.getJobs().entrySet())
             _Jobs.put(e.getKey(), e.getValue().copy());
     }
 

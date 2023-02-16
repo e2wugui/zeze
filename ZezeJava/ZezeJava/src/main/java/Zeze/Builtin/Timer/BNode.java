@@ -78,7 +78,7 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
         setPrevNodeId(other.getPrevNodeId());
         setNextNodeId(other.getNextNodeId());
         _Timers.clear();
-        for (var e : other._Timers.entrySet())
+        for (var e : other.getTimers().entrySet())
             _Timers.put(e.getKey(), e.getValue().copy());
     }
 

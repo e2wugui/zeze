@@ -26,7 +26,7 @@ public final class BEventClasses extends Zeze.Transaction.Bean implements BEvent
 
     public void assign(BEventClasses other) {
         _EventClasses.clear();
-        _EventClasses.addAll(other._EventClasses);
+        _EventClasses.addAll(other.getEventClasses());
     }
 
     @Deprecated

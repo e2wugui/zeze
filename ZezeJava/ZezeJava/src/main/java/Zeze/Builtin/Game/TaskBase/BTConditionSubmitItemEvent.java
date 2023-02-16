@@ -26,7 +26,7 @@ public final class BTConditionSubmitItemEvent extends Zeze.Transaction.Bean impl
 
     public void assign(BTConditionSubmitItemEvent other) {
         _items.clear();
-        _items.putAll(other._items);
+        _items.putAll(other.getItems());
     }
 
     @Deprecated

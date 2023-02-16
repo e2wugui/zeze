@@ -37,7 +37,7 @@ public final class BDAGNode extends Zeze.Transaction.Bean implements BDAGNodeRea
     }
 
     public void assign(BDAGNode other) {
-        _Value.assign(other._Value);
+        _Value.assign(other.getValue());
     }
 
     @Deprecated

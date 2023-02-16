@@ -41,10 +41,10 @@ public final class BBind extends Zeze.Transaction.Bean implements BBindReadOnly 
 
     public void assign(BBind other) {
         _modules.clear();
-        for (var e : other._modules.entrySet())
+        for (var e : other.getModules().entrySet())
             _modules.put(e.getKey(), e.getValue().copy());
         _linkSids.clear();
-        _linkSids.addAll(other._linkSids);
+        _linkSids.addAll(other.getLinkSids());
     }
 
     @Deprecated

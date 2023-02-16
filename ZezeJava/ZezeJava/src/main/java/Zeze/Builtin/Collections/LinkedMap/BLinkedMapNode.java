@@ -79,7 +79,7 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean implements BLink
         setPrevNodeId(other.getPrevNodeId());
         setNextNodeId(other.getNextNodeId());
         _Values.clear();
-        for (var e : other._Values)
+        for (var e : other.getValues())
             _Values.add(e.copy());
     }
 

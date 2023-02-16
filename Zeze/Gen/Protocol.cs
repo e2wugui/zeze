@@ -25,7 +25,8 @@ namespace Zeze.Gen
         public List<Types.Enum> Enums { get; private set; } = new List<Types.Enum>();
         public string FullName => Space.Path(".", Name);
         public string Comment { get; private set; }
-
+        public bool UseData { get; private set; } = false;
+ 
         // setup in compile
         public Types.Type ArgumentType { get; private set; }
 
@@ -61,6 +62,10 @@ namespace Zeze.Gen
                 else if (false == string.IsNullOrEmpty(space.DefaultTransactionLevel))
                     TransactionLevel = (TransactionLevel)Enum.Parse(typeof(TransactionLevel), space.DefaultTransactionLevel);
             }
+
+            attr = self.GetAttribute("UseData");
+            if (false == string.IsNullOrEmpty(attr))
+                UseData = bool.Parse(attr);
 
             Comment = Types.Bean.GetComment(self);
 
