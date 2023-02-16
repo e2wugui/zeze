@@ -2,7 +2,6 @@ package Zeze.Net;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
-import Zeze.Transaction.Bean;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;

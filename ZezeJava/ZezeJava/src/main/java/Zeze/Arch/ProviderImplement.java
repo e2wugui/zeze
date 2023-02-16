@@ -75,6 +75,11 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		new Kick(new BKick(linkSid, code, desc)).Send(sender);
 	}
 
+	@SuppressWarnings("MethodMayBeStatic")
+	public ProviderUserSession newSession(Dispatch p) {
+		return new ProviderUserSession(p);
+	}
+
 	@Override
 	protected long ProcessDispatch(Dispatch p) {
 		var sender = p.getSender();
@@ -91,9 +96,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			p2.setSender(sender);
 			// 以下字段不再需要读了,避免ProviderUserSession引用太久,置空
 			p.Argument.setProtocolData(Binary.Empty);
-			p.Argument.setContextx(Binary.Empty);
 
-			var session = new ProviderUserSession(p);
+			var session = newSession(p);
 			p2.setUserState(session);
 
 			if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {

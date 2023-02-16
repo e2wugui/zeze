@@ -165,18 +165,18 @@ public class RedoQueue extends Zeze.Services.HandshakeClient {
 	}
 
 	@Override
-	public void OnHandshakeDone(AsyncSocket sender) throws Exception {
-		super.OnHandshakeDone(sender);
+	public void OnHandshakeDone(AsyncSocket so) throws Exception {
+		super.OnHandshakeDone(so);
 		synchronized (this) {
-			tryStartSendNextTask(null, sender);
+			tryStartSendNextTask(null, so);
 		}
 	}
 
 	@Override
-	public void OnSocketClose(AsyncSocket socket, Throwable ex) throws Exception {
-		super.OnSocketClose(socket, ex);
+	public void OnSocketClose(AsyncSocket so, Throwable ex) throws Exception {
+		super.OnSocketClose(so, ex);
 		synchronized (this) {
-			if (this.socket == socket)
+			if (this.socket == so)
 				this.socket = null;
 		}
 	}

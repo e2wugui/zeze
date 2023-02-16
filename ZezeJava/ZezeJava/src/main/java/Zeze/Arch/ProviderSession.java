@@ -4,17 +4,17 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Provider.BLoad;
 
 public class ProviderSession {
-	volatile BLoad load = new BLoad();
-	int serverId;
-	long sessionId;
-	String serverLoadIp = "";
-	int serverLoadPort;
+	protected volatile BLoad load = new BLoad();
+	protected int serverId;
+	protected long sessionId;
+	protected String serverLoadIp = "";
+	protected int serverLoadPort;
 
 	/**
 	 * 下面维护和本Session相关的订阅Ready状态。在Session关闭时需要取消Ready状态。
 	 * 【仅用于ProviderApp】
 	 */
-	final ConcurrentHashMap<String, ConcurrentHashMap<String, ProviderModuleState>> ServiceReadyStates = new ConcurrentHashMap<>();
+	protected final ConcurrentHashMap<String, ConcurrentHashMap<String, ProviderModuleState>> ServiceReadyStates = new ConcurrentHashMap<>();
 
 	public String getServerLoadName() {
 		return serverLoadIp + ":" + serverLoadPort;
@@ -25,11 +25,11 @@ public class ProviderSession {
 		return serverLoadIp + ":" + serverLoadPort + "@" + sessionId;
 	}
 
-	public final long getSessionId() {
+	public long getSessionId() {
 		return sessionId;
 	}
 
-	public final int getServerId() {
+	public int getServerId() {
 		return serverId;
 	}
 

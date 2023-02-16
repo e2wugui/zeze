@@ -127,24 +127,24 @@ public abstract class Bean implements Serializable {
 
 	// 使用自己的hash算法，因为 TypeId 会持久化，不能因为算法改变导致值变化。
 	// XXX: 这个算法定好之后，就不能变了。
-	public static long hash64(String name) {
+	public static long hash64(long initial, String name, int n) {
 		// This is a Knuth hash
-		long hashedValue = 3074457345618258791L;
-		for (int i = 0; i < name.length(); i++) {
-			hashedValue += name.charAt(i);
-			hashedValue *= 3074457345618258799L;
-		}
+		long hashedValue = initial;
+		for (int i = 0; i < n; i++)
+			hashedValue = (hashedValue + name.charAt(i)) * 3074457345618258799L;
 		return hashedValue;
 	}
 
+	public static long hash64(String name, int n) {
+		return hash64(3074457345618258791L, name, n);
+	}
+
+	public static long hash64(String name) {
+		return hash64(name, name.length());
+	}
+
 	public static long hash64(long initial, String name) {
-		// This is a Knuth hash
-		long hashedValue = initial;
-		for (int i = 0; i < name.length(); i++) {
-			hashedValue += name.charAt(i);
-			hashedValue *= 3074457345618258799L;
-		}
-		return hashedValue;
+		return hash64(initial, name, name.length());
 	}
 
 	public static long hash64(long initial, char c) {

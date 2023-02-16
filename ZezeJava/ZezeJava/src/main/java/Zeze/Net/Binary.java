@@ -2,6 +2,7 @@ package Zeze.Net;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import Zeze.Serialize.ByteBuffer;
@@ -90,6 +91,10 @@ public final class Binary implements Comparable<Binary> {
 
 	public void decode(Serializable _s_) {
 		_s_.decode(ByteBuffer.Wrap(bytes, offset, count));
+	}
+
+	public String toString(Charset charset) {
+		return new String(bytes, offset, count, charset);
 	}
 
 	@Override

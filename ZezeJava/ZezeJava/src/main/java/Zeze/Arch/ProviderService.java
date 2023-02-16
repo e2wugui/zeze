@@ -95,9 +95,9 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 		public final String name;
 		public final long sessionId;
 
-		public LinkSession(String name, long sid) {
-			this.name = name;
-			sessionId = sid;
+		public LinkSession(AsyncSocket so) {
+			name = getLinkName(so);
+			sessionId = so.getSessionId();
 		}
 	}
 
@@ -117,25 +117,30 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 		return connector.GetReadySocket();
 	}
 
+	@SuppressWarnings("MethodMayBeStatic")
+	public LinkSession newSession(AsyncSocket so) {
+		return new LinkSession(so);
+	}
+
 	@Override
-	public void OnHandshakeDone(AsyncSocket sender) throws Exception {
-		super.OnHandshakeDone(sender);
-		sender.setUserState(new LinkSession(getLinkName(sender), sender.getSessionId()));
+	public void OnHandshakeDone(AsyncSocket so) throws Exception {
+		super.OnHandshakeDone(so);
+		so.setUserState(newSession(so));
 
 		var announce = new AnnounceProviderInfo(new BAnnounceProviderInfo(providerApp.serverServiceNamePrefix,
 				String.valueOf(getZeze().getConfig().getServerId()), providerApp.directIp, providerApp.directPort));
-		announce.Send(sender);
+		announce.Send(so);
 
 		// static binds
 		var bind = new Bind();
 		providerApp.staticBinds.foreach(bind.Argument.getModules()::put);
-		bind.Send(sender, rpc -> {
+		bind.Send(so, rpc -> {
 			providerStaticBindCompleted.setResult(true);
 			return 0;
 		});
 		var sub = new Subscribe();
 		providerApp.dynamicModules.foreach(sub.Argument.getModules()::put);
-		sub.Send(sender, rpc -> {
+		sub.Send(so, rpc -> {
 			providerDynamicSubscribeCompleted.setResult(true);
 			return 0;
 		});

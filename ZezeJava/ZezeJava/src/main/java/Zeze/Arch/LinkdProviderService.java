@@ -75,18 +75,23 @@ public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 			logger.warn("Protocol Handle Not Found: {}", p);
 	}
 
-	@Override
-	public void OnSocketAccept(AsyncSocket sender) throws Exception {
-		sender.setUserState(new LinkdProviderSession(sender.getSessionId()));
-		super.OnSocketAccept(sender);
+	@SuppressWarnings("MethodMayBeStatic")
+	public LinkdProviderSession newSession(AsyncSocket so) {
+		return new LinkdProviderSession(so.getSessionId());
 	}
 
 	@Override
-	public void OnHandshakeDone(AsyncSocket sender) throws Exception {
-		super.OnHandshakeDone(sender);
+	public void OnSocketAccept(AsyncSocket so) throws Exception {
+		so.setUserState(newSession(so));
+		super.OnSocketAccept(so);
+	}
+
+	@Override
+	public void OnHandshakeDone(AsyncSocket so) throws Exception {
+		super.OnHandshakeDone(so);
 
 		var announce = new AnnounceLinkInfo();
-		sender.Send(announce);
+		so.Send(announce);
 	}
 
 	@Override

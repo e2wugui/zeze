@@ -18,7 +18,7 @@ import Zeze.Util.KV;
  * 记录账号，roleId，LinkName，SessionId等信息。
  */
 public class ProviderUserSession {
-	private final Dispatch dispatch;
+	protected final Dispatch dispatch;
 
 	public ProviderUserSession(Dispatch dispatch) {
 		this.dispatch = dispatch;
@@ -28,40 +28,40 @@ public class ProviderUserSession {
 		ProviderImplement.sendKick(getLink(), getLinkSid(), code, desc);
 	}
 
-	public final ProviderService getService() {
+	public ProviderService getService() {
 		return (ProviderService)dispatch.getSender().getService();
 	}
 
-	public final String getAccount() {
+	public String getAccount() {
 		return dispatch.Argument.getAccount();
 	}
 
-	public final String getContext() {
+	public String getContext() {
 		return dispatch.Argument.getContext();
 	}
 
-	public final boolean isLogin() {
+	public boolean isLogin() {
 		return getContext().isEmpty();
 	}
 
-	public final Long getRoleId() {
+	public Long getRoleId() {
 		var context = getContext();
 		return context.isEmpty() ? null : Long.parseLong(context);
 	}
 
-	public final long getLinkSid() {
+	public long getLinkSid() {
 		return dispatch.Argument.getLinkSid();
 	}
 
-	public final String getLinkName() {
+	public String getLinkName() {
 		return ProviderService.getLinkName(getLink());
 	}
 
-	public final AsyncSocket getLink() {
+	public AsyncSocket getLink() {
 		return dispatch.getSender();
 	}
 
-	public final void sendResponse(Binary fullEncodedProtocol) {
+	public void sendResponse(Binary fullEncodedProtocol) {
 		var bytes = fullEncodedProtocol.bytesUnsafe();
 		var offset = fullEncodedProtocol.getOffset();
 		var moduleId = ByteBuffer.ToInt(bytes, offset);
@@ -69,7 +69,7 @@ public class ProviderUserSession {
 		sendResponse(Protocol.makeTypeId(moduleId, protocolId), fullEncodedProtocol);
 	}
 
-	private void sendOnline(AsyncSocket link, Send send) {
+	protected void sendOnline(AsyncSocket link, Send send) {
 		var providerImpl = getService().providerApp.providerImplement;
 		if (providerImpl instanceof Zeze.Arch.ProviderWithOnline) {
 			((Zeze.Arch.ProviderWithOnline)providerImpl).getOnline().send(
@@ -82,7 +82,7 @@ public class ProviderUserSession {
 			link.Send(send);
 	}
 
-	public final void sendResponse(long typeId, Binary fullEncodedProtocol) {
+	public void sendResponse(long typeId, Binary fullEncodedProtocol) {
 		var send = new Send(new Zeze.Arch.Beans.BSend(typeId, fullEncodedProtocol));
 		send.Argument.getLinkSids().add(getLinkSid());
 
@@ -99,7 +99,7 @@ public class ProviderUserSession {
 		}
 	}
 
-	public final void sendResponse(Protocol<?> p) {
+	public void sendResponse(Protocol<?> p) {
 		p.setRequest(false);
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
@@ -119,30 +119,30 @@ public class ProviderUserSession {
 		sendResponse(typeId, new Binary(p.encode()));
 	}
 
-	public final void sendResponseWhileCommit(long typeId, Binary fullEncodedProtocol) {
+	public void sendResponseWhileCommit(long typeId, Binary fullEncodedProtocol) {
 		Transaction.whileCommit(() -> sendResponse(typeId, fullEncodedProtocol));
 	}
 
-	public final void sendResponseWhileCommit(Binary fullEncodedProtocol) {
+	public void sendResponseWhileCommit(Binary fullEncodedProtocol) {
 		Transaction.whileCommit(() -> sendResponse(fullEncodedProtocol));
 	}
 
-	public final void sendResponseWhileCommit(Protocol<?> p) {
+	public void sendResponseWhileCommit(Protocol<?> p) {
 		Transaction.whileCommit(() -> sendResponse(p));
 	}
 
 	// 这个方法用来优化广播协议。不能用于Rpc，先隐藏。
 	@SuppressWarnings("unused")
-	private void sendResponseWhileRollback(long typeId, Binary fullEncodedProtocol) {
+	protected void sendResponseWhileRollback(long typeId, Binary fullEncodedProtocol) {
 		Transaction.whileCommit(() -> sendResponse(typeId, fullEncodedProtocol));
 	}
 
 	@SuppressWarnings("unused")
-	private void sendResponseWhileRollback(Binary fullEncodedProtocol) {
+	protected void sendResponseWhileRollback(Binary fullEncodedProtocol) {
 		Transaction.whileCommit(() -> sendResponse(fullEncodedProtocol));
 	}
 
-	public final void sendResponseWhileRollback(Protocol<?> p) {
+	public void sendResponseWhileRollback(Protocol<?> p) {
 		Transaction.whileCommit(() -> sendResponse(p));
 	}
 

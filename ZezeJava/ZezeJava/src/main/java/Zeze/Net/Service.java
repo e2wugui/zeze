@@ -321,10 +321,10 @@ public class Service {
 	 * 加密压缩的连接在相应的方法中调用（see Services\Handshake.cs）。
 	 * 注意：修改OnHandshakeDone的时机，需要重载OnSocketAccept OnSocketConnected，并且不再调用Service的默认实现。
 	 */
-	public void OnHandshakeDone(AsyncSocket sender) throws Exception {
-		sender.setHandshakeDone(true);
-		if (sender.getConnector() != null)
-			sender.getConnector().OnSocketHandshakeDone(sender);
+	public void OnHandshakeDone(AsyncSocket so) throws Exception {
+		so.setHandshakeDone(true);
+		if (so.getConnector() != null)
+			so.getConnector().OnSocketHandshakeDone(so);
 	}
 
 	/**

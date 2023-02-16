@@ -68,17 +68,13 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		if (serverId < getZeze().getConfig().getServerId())
 			return;
 		if (serverId == getZeze().getConfig().getServerId()) {
-			var localPs = new ProviderSession();
-			localPs.serverId = serverId;
-			setRelativeServiceReady(localPs, providerApp.directIp, providerApp.directPort);
+			setRelativeServiceReady(newSession(serverId), providerApp.directIp, providerApp.directPort);
 			return;
 		}
 		var out = new OutObject<Connector>();
 		if (getConfig().tryGetOrAddConnector(pm.getPassiveIp(), pm.getPassivePort(), true, out)) {
 			// 新建的Connector。开始连接。
-			var peerPs = new ProviderSession();
-			peerPs.serverId = serverId;
-			out.value.userState = peerPs;
+			out.value.userState = newSession(serverId);
 			out.value.start();
 		}
 	}
@@ -95,35 +91,47 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		}
 	}
 
-	@Override
-	public void OnSocketAccept(AsyncSocket sender) {
-		if (sender.getConnector() == null) {
-			// 被动连接等待对方报告信息时再处理。
-			// passive connection continue process in ProviderDirect.ProcessAnnounceProviderInfoRequest.
-			var ps = new ProviderSession();
-			ps.sessionId = sender.getSessionId();
-			sender.setUserState(ps); // acceptor
-		}
-		super.OnSocketAccept(sender);
+	@SuppressWarnings("MethodMayBeStatic")
+	public ProviderSession newSession(int serverId) {
+		var session = new ProviderSession();
+		session.serverId = serverId;
+		return session;
+	}
+
+	@SuppressWarnings("MethodMayBeStatic")
+	public ProviderSession newSession(AsyncSocket so) {
+		var session = new ProviderSession();
+		session.sessionId = so.getSessionId();
+		return session;
 	}
 
 	@Override
-	public void OnHandshakeDone(AsyncSocket socket) throws Exception {
-		// call base
-		super.OnHandshakeDone(socket);
+	public void OnSocketAccept(AsyncSocket so) {
+		if (so.getConnector() == null) {
+			// 被动连接等待对方报告信息时再处理。
+			// passive connection continue process in ProviderDirect.ProcessAnnounceProviderInfoRequest.
+			so.setUserState(newSession(so)); // acceptor
+		}
+		super.OnSocketAccept(so);
+	}
 
-		var c = socket.getConnector();
+	@Override
+	public void OnHandshakeDone(AsyncSocket so) throws Exception {
+		// call base
+		super.OnHandshakeDone(so);
+
+		var c = so.getConnector();
 		if (c != null) {
 			// 主动连接。
-			var ps = (ProviderSession)socket.getUserState();
-			ps.sessionId = socket.getSessionId();
+			var ps = (ProviderSession)so.getUserState();
+			ps.sessionId = so.getSessionId();
 			setRelativeServiceReady(ps, c.getHostNameOrAddress(), c.getPort());
 
 			var r = new AnnounceProviderInfo();
 			r.Argument.setIp(providerApp.directIp);
 			r.Argument.setPort(providerApp.directPort);
 			r.Argument.setServerId(providerApp.zeze.getConfig().getServerId());
-			r.Send(socket, (_r) -> 0L); // skip result
+			r.Send(so, (_r) -> 0L); // skip result
 		}
 	}
 

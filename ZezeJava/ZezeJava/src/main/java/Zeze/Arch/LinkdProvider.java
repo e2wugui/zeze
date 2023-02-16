@@ -20,10 +20,8 @@ import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutLong;
-import Zeze.Util.TaskOneByOneByKey;
 
 /**
  * Linkd上处理Provider协议的模块。
@@ -48,6 +46,10 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 	public ProviderDistribute getDistribute() {
 		return distribute;
+	}
+
+	public String getServerServiceNamePrefix() {
+		return serverServiceNamePrefix;
 	}
 
 	public boolean choiceProvider(AsyncSocket link, int moduleId, Predicate<AsyncSocket> onSend) {
@@ -262,18 +264,18 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	}
 
 	private static final boolean canLogSend = AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(Send.TypeId_);
-	private final TaskOneByOneByKey oneByOneSender = new TaskOneByOneByKey();
+//	private final TaskOneByOneByKey oneByOneSender = new TaskOneByOneByKey();
 
 	@Override
-	protected long ProcessSendRequest(Send r) {
+	protected long ProcessSendRequest(Send r) throws Exception {
 		var pdata = r.Argument.getProtocolWholeData();
 		var linkSids = r.Argument.getLinkSids();
 		if (canLogSend) {
 			var ptype = r.Argument.getProtocolType();
-			AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "SENT[{}]: {}:{} [{}]", linkSids.dump(),
+			AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "SENT[{}]: {}:{} [{}]", linkSids.size(),
 					Protocol.getModuleId(ptype), Protocol.getProtocolId(ptype), pdata.size());
 		}
-		/*
+		//*
 		for (int i = 0, n = linkSids.size(); i < n; i++) {
 			var linkSid = linkSids.get(i);
 			var link = linkdApp.linkdService.GetSocket(linkSid);

@@ -6,14 +6,14 @@ import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashSet;
 
 public class LinkdProviderSession extends ProviderSession {
-	private BAnnounceProviderInfo info;
+	protected BAnnounceProviderInfo info;
 
 	/**
 	 * 维护此Provider上绑定的LinkSession，用来在Provider关闭的时候，进行 UnBind。
 	 * moduleId -> LinkSids
 	 * 多线程：主要由LinkSession回调.  需要保护。
 	 */
-	private final IntHashMap<LongHashSet> linkSessionIds = new IntHashMap<>();
+	protected final IntHashMap<LongHashSet> linkSessionIds = new IntHashMap<>();
 
 	/**
 	 * 维护此Provider上绑定的StaticBinds，用来在Provider关闭的时候，进行 UnBind。
@@ -21,35 +21,35 @@ public class LinkdProviderSession extends ProviderSession {
 	 * 多线程：这里面的数据访问都处于 lock (Zezex.App.Instance.gnet_Provider_Module.StaticBinds) 下
 	 * see Zezex.Provider.ModuleProvider
 	 */
-	private final ConcurrentHashSet<Integer> staticBinds = new ConcurrentHashSet<>(); // <moduleId>
+	protected final ConcurrentHashSet<Integer> staticBinds = new ConcurrentHashSet<>(); // <moduleId>
 
 	public LinkdProviderSession(long ssid) {
 		super.sessionId = ssid;
 	}
 
-	public final BAnnounceProviderInfo getInfo() {
+	public BAnnounceProviderInfo getInfo() {
 		return info;
 	}
 
-	public final void setInfo(BAnnounceProviderInfo value) {
+	public void setInfo(BAnnounceProviderInfo value) {
 		info = value;
 	}
 
-	public final IntHashMap<LongHashSet> getLinkSessionIds() {
+	public IntHashMap<LongHashSet> getLinkSessionIds() {
 		return linkSessionIds;
 	}
 
-	public final ConcurrentHashSet<Integer> getStaticBinds() {
+	public ConcurrentHashSet<Integer> getStaticBinds() {
 		return staticBinds;
 	}
 
-	public final void addLinkSession(int moduleId, long linkSessionId) {
+	public void addLinkSession(int moduleId, long linkSessionId) {
 		synchronized (linkSessionIds) {
 			linkSessionIds.computeIfAbsent(moduleId, __ -> new LongHashSet()).add(linkSessionId);
 		}
 	}
 
-	public final void removeLinkSession(int moduleId, long linkSessionId) {
+	public void removeLinkSession(int moduleId, long linkSessionId) {
 		synchronized (linkSessionIds) {
 			var linkSids = linkSessionIds.get(moduleId);
 			if (linkSids != null) {

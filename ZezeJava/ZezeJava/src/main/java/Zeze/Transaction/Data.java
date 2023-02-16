@@ -3,15 +3,14 @@ package Zeze.Transaction;
 import Zeze.Serialize.Serializable;
 
 public abstract class Data implements Serializable {
-	// 必须兼容旧的Bean，
-	public long typeId() {
-		var clsName = getClass().getName();
-		return Bean.hash64(clsName.substring(0, clsName.length() - 4));
+	private transient int variableId;
+
+	public Data() {
 	}
 
-	public abstract Data copy();
-
-	private transient int variableId;
+	public Data(int varId) {
+		variableId = varId;
+	}
 
 	public final int variableId() {
 		return variableId;
@@ -22,17 +21,16 @@ public abstract class Data implements Serializable {
 		variableId = value;
 	}
 
-	public Data() {
-
-	}
-
-	public Data(int varId) {
-		variableId = varId;
-	}
-
-	public void buildString(StringBuilder sb, int level) {
-
+	// 必须兼容旧的Bean，
+	public long typeId() {
+		var clsName = getClass().getName();
+		return Bean.hash64(clsName, clsName.length() - 4); // 4 == "Data".length()
 	}
 
 	public abstract void assign(Bean b); // 用于DynamicBeanData.assign(DynamicBean);
+
+	public abstract Data copy();
+
+	public void buildString(StringBuilder sb, int level) {
+	}
 }

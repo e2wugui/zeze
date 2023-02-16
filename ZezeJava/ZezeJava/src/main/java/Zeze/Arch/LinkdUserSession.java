@@ -15,30 +15,30 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class LinkdUserSession {
-	private static final Logger logger = LogManager.getLogger(LinkdUserSession.class);
+	protected static final Logger logger = LogManager.getLogger(LinkdUserSession.class);
 
-	private String account;
-	private String context = "";
-	private Binary contextx = Binary.Empty;
-	private final ReentrantReadWriteLock bindsLock = new ReentrantReadWriteLock();
-	private IntHashMap<Long> binds = new IntHashMap<>(); // 动态绑定(也会混合静态绑定) <moduleId,providerSessionId>
-	private final long sessionId; // Linkd.SessionId
-	private Future<?> keepAliveTask; // 仅在网络线程中回调，并且一个时候，只会有一个回调，不线程保护了。
-	private volatile boolean authed;
+	protected String account;
+	protected String context = "";
+	protected Binary contextx = Binary.Empty;
+	protected final ReentrantReadWriteLock bindsLock = new ReentrantReadWriteLock();
+	protected IntHashMap<Long> binds = new IntHashMap<>(); // 动态绑定(也会混合静态绑定) <moduleId,providerSessionId>
+	protected final long sessionId; // Linkd.SessionId
+	protected Future<?> keepAliveTask; // 仅在网络线程中回调，并且一个时候，只会有一个回调，不线程保护了。
+	protected volatile boolean authed;
 
 	public LinkdUserSession(long sessionId) {
 		this.sessionId = sessionId;
 	}
 
-	public final String getAccount() {
+	public String getAccount() {
 		return account;
 	}
 
-	public final void setAccount(String value) {
+	public void setAccount(String value) {
 		account = value;
 	}
 
-	public final boolean trySetAccount(String newAccount) {
+	public boolean trySetAccount(String newAccount) {
 		if (account == null || account.isEmpty()) {
 			account = newAccount;
 			return true;
@@ -47,36 +47,36 @@ public class LinkdUserSession {
 		return account.equals(newAccount);
 	}
 
-	public final String getContext() {
+	public String getContext() {
 		return context;
 	}
 
-	public final Binary getContextx() {
+	public Binary getContextx() {
 		return contextx;
 	}
 
-	public final void setUserState(String context, Binary contextx) {
+	public void setUserState(String context, Binary contextx) {
 		this.context = context != null ? context : "";
 		this.contextx = contextx != null ? contextx : Binary.Empty;
 	}
 
-	public final Long getRoleId() {
+	public Long getRoleId() {
 		return context.isEmpty() ? null : Long.parseLong(context);
 	}
 
-	public final long getSessionId() {
+	public long getSessionId() {
 		return sessionId;
 	}
 
-	public final boolean isAuthed() {
+	public boolean isAuthed() {
 		return authed;
 	}
 
-	public final void setAuthed() {
+	public void setAuthed() {
 		authed = true;
 	}
 
-	public final Long tryGetProvider(int moduleId) {
+	public Long tryGetProvider(int moduleId) {
 		var readLock = bindsLock.readLock();
 		readLock.lock();
 		try {
@@ -86,8 +86,8 @@ public class LinkdUserSession {
 		}
 	}
 
-	public final void bind(LinkdProviderService linkdProviderService, AsyncSocket link,
-						   Iterable<Integer> moduleIds, AsyncSocket provider) {
+	public void bind(LinkdProviderService linkdProviderService, AsyncSocket link,
+					 Iterable<Integer> moduleIds, AsyncSocket provider) {
 		var providerSessionId = Long.valueOf(provider.getSessionId());
 		var writeLock = bindsLock.writeLock();
 		writeLock.lock();
@@ -108,23 +108,23 @@ public class LinkdUserSession {
 		}
 	}
 
-	public final void unbind(LinkdProviderService linkdProviderService, AsyncSocket link,
-							 int moduleId, AsyncSocket provider) {
+	public void unbind(LinkdProviderService linkdProviderService, AsyncSocket link,
+					   int moduleId, AsyncSocket provider) {
 		unbind(linkdProviderService, link, moduleId, provider, false);
 	}
 
-	public final void unbind(LinkdProviderService linkdProviderService, AsyncSocket link,
-							 int moduleId, AsyncSocket provider, boolean isOnProviderClose) {
+	public void unbind(LinkdProviderService linkdProviderService, AsyncSocket link,
+					   int moduleId, AsyncSocket provider, boolean isOnProviderClose) {
 		unbind(linkdProviderService, link, List.of(moduleId), provider, isOnProviderClose);
 	}
 
-	public final void unbind(LinkdProviderService linkdProviderService, AsyncSocket link,
-							 Iterable<Integer> moduleIds, AsyncSocket provider) {
+	public void unbind(LinkdProviderService linkdProviderService, AsyncSocket link,
+					   Iterable<Integer> moduleIds, AsyncSocket provider) {
 		unbind(linkdProviderService, link, moduleIds, provider, false);
 	}
 
-	public final void unbind(LinkdProviderService linkdProviderService, AsyncSocket link,
-							 Iterable<Integer> moduleIds, AsyncSocket provider, boolean isOnProviderClose) {
+	public void unbind(LinkdProviderService linkdProviderService, AsyncSocket link,
+					   Iterable<Integer> moduleIds, AsyncSocket provider, boolean isOnProviderClose) {
 		var writeLock = bindsLock.writeLock();
 		writeLock.lock();
 		try {
@@ -149,17 +149,19 @@ public class LinkdUserSession {
 		}
 	}
 
-	public final void keepAlive(Service linkdService) {
+	public void keepAlive(Service linkdService) {
 		if (keepAliveTask != null)
 			keepAliveTask.cancel(false);
 		keepAliveTask = Task.scheduleUnsafe(3000_000, () -> {
 			var link = linkdService.GetSocket(sessionId);
-			if (link != null)
+			if (link != null) {
+				logger.warn("KeepAlive timeout: {}", link);
 				link.close();
+			}
 		});
 	}
 
-	public final void onClose(LinkdProviderService linkdProviderService) {
+	public void onClose(LinkdProviderService linkdProviderService) {
 		if (keepAliveTask != null)
 			keepAliveTask.cancel(false);
 

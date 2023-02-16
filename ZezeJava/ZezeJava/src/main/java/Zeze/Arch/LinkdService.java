@@ -279,6 +279,8 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 	@Override
 	public void dispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId, ByteBuffer data) {
 		var linkSession = getAuthedSession(so);
+		if (linkSession == null)
+			return;
 		setStableLinkSid(linkSession, so, moduleId, protocolId, data);
 		var dispatch = createDispatch(linkSession, so, moduleId, protocolId, data);
 		if (findSend(linkSession, moduleId, dispatch))
@@ -311,10 +313,15 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		Task.runRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
 	}
 
+	@SuppressWarnings("MethodMayBeStatic")
+	public LinkdUserSession newSession(AsyncSocket so) {
+		return new LinkdUserSession(so.getSessionId());
+	}
+
 	@Override
-	public void OnSocketAccept(AsyncSocket sender) throws Exception {
-		sender.setUserState(new LinkdUserSession(sender.getSessionId()));
-		super.OnSocketAccept(sender);
+	public void OnSocketAccept(AsyncSocket so) throws Exception {
+		so.setUserState(newSession(so));
+		super.OnSocketAccept(so);
 	}
 
 	@Override
