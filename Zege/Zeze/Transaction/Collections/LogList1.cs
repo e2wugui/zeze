@@ -9,7 +9,12 @@ namespace Zeze.Transaction.Collections
 
 	public class LogList1<E> : LogList<E>
 	{
-		public class OpLog
+        public readonly static new string StableName = Util.Reflect.GetStableName(typeof(LogList1<E>));
+        public readonly static new int TypeId_ = Util.FixedHash.Hash32(StableName);
+
+        public override int TypeId => TypeId_;
+
+        public class OpLog
 		{
 			public const int OP_MODIFY = 0;
 			public const int OP_ADD = 1;

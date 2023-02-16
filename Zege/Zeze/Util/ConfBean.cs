@@ -184,6 +184,11 @@ namespace Zeze.Util
     // see Zeze.Transaction.Bean.cs::LogDynamic
     public class LogConfDynamic : LogBean
     {
+        public readonly static new string StableName = Util.Reflect.GetStableName(typeof(LogConfDynamic));
+        public readonly static new int TypeId_ = Util.FixedHash.Hash32(StableName);
+
+        public override int TypeId => TypeId_;
+
         public long SpecialTypeId { get; private set; }
         public ConfBean Value { get; private set; }
         public LogBean LogBean { get; private set; }

@@ -392,6 +392,11 @@ namespace Zeze.Transaction
     // see Zeze.Util.ConfBean.cs::LogConfDynamic
     public class LogDynamic : LogBean
     {
+        public readonly static new string StableName = Util.Reflect.GetStableName(typeof(LogDynamic));
+        public readonly static new int TypeId_ = Util.FixedHash.Hash32(StableName);
+
+        public override int TypeId => TypeId_;
+
         public long SpecialTypeId { get; private set; }
         public Bean Value { get; private set; }
         public LogBean LogBean { get; private set; }

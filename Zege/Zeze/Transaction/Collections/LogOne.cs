@@ -15,6 +15,11 @@ namespace Zeze.Transaction.Collections
         where V : Util.ConfBean, new()
 #endif
     {
+        public readonly static new string StableName = Util.Reflect.GetStableName(typeof(LogOne<V>));
+        public readonly static new int TypeId_ = Util.FixedHash.Hash32(StableName);
+
+        public override int TypeId => TypeId_;
+
         public V Value { get; internal set; }
         public LogBean LogBean { get; private set; }
 

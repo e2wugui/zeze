@@ -9,7 +9,12 @@ namespace Zeze.Transaction.Collections
 {
 	public class LogMap1<K, V> : LogMap<K, V>
 	{
-		public Dictionary<K, V> Replaced { get; } = new Dictionary<K, V>();
+        public readonly static new string StableName = Util.Reflect.GetStableName(typeof(LogMap1<K, V>));
+        public readonly static new int TypeId_ = Util.FixedHash.Hash32(StableName);
+
+        public override int TypeId => TypeId_;
+
+        public Dictionary<K, V> Replaced { get; } = new Dictionary<K, V>();
 		public ISet<K> Removed { get; } = new HashSet<K>();
 
 #if !USE_CONFCS

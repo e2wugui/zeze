@@ -9,7 +9,12 @@ namespace Zeze.Transaction.Collections
 {
 	public class LogBean : Log
 	{
-		public Dictionary<int, Log> Variables { get; } = new Dictionary<int, Log>();
+        public readonly static string StableName = Util.Reflect.GetStableName(typeof(LogBean));
+        public readonly static int TypeId_ = Util.FixedHash.Hash32(StableName);
+
+        public override int TypeId => TypeId_;
+
+        public Dictionary<int, Log> Variables { get; } = new Dictionary<int, Log>();
 
 #if !USE_CONFCS
 		public Bean This { get; set; }

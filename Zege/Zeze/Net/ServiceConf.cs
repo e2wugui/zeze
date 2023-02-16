@@ -182,6 +182,12 @@ namespace Zeze.Net
             if (attr.Length > 0) SocketOptions.TimeThrottleLimit = int.Parse(attr);
             attr = self.GetAttribute("TimeThrottleBandwitdh");
             if (attr.Length > 0) SocketOptions.TimeThrottleBandwitdh =  int.Parse(attr);
+            attr = self.GetAttribute("OverBandwidth");
+            if (attr.Length > 0) SocketOptions.OverBandwidth = long.Parse(attr);
+            attr = self.GetAttribute("OverBandwidthFusingRate");
+            if (attr.Length > 0) SocketOptions.OverBandwidthFusingRate = double.Parse(attr);
+            attr = self.GetAttribute("OverBandwidthNormalRate");
+            if (attr.Length > 0) SocketOptions.OverBandwidthNormalRate = double.Parse(attr);
 
             // HandshakeOptions
             attr = self.GetAttribute("DhGroups");

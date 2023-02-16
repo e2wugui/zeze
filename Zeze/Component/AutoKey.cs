@@ -204,6 +204,11 @@ namespace Zeze.Component
 
         private class RangeLog : Log
         {
+            public readonly static string StableName = "Zeze.Component.AutoKey.RangeLog";
+            public readonly static int TypeId_ = Util.FixedHash.Hash32(StableName);
+
+            public override int TypeId => TypeId_;
+
             private readonly AutoKey AutoKey;
             internal readonly Range range;
 

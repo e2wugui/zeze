@@ -30,14 +30,8 @@ namespace Zeze.Transaction
 
 #endif
         // 会被系列化，实际上由LogBean管理。
-        private readonly int _TypeId;
-        public virtual int TypeId => _TypeId;
+        public abstract int TypeId { get; }
         public int VariableId { get; set; }
-
-        public Log()
-        {
-            _TypeId = Util.FixedHash.Hash32(Util.Reflect.GetStableName(GetType()));
-        }
 
         public abstract void Encode(ByteBuffer bb);
         public abstract void Decode(ByteBuffer bb);
@@ -59,7 +53,12 @@ namespace Zeze.Transaction
 
     public class Log<T> : Log
     {
+        public readonly static string StableName = Util.Reflect.GetStableName(typeof(Log<T>));
+        public readonly static int TypeId_ = Util.FixedHash.Hash32(StableName);
+
         public T Value { get; set; }
+
+        public override int TypeId => TypeId_;
 
         public override void Encode(ByteBuffer bb)
         {

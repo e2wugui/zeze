@@ -589,11 +589,11 @@ namespace Zeze.Net
             return (ip, port);
         }
 
-        public bool CheckThrottle(AsyncSocket sender, int size)
+        public virtual bool CheckThrottle(AsyncSocket sender, int moduleId, int protocolId, int size)
         {
 #if !USE_CONFCS
             var throttle = sender.TimeThrottle;
-            if (null != throttle && false == throttle.MarkNow(size))
+            if (null != throttle && false == throttle.CheckNow(size))
             {
                 // TrySendResultCode(Zeze.Util.ResultCode.Busy); // 超过速度限制，不报告错误。因为可能是一种攻击。
                 sender.Dispose();
@@ -601,6 +601,11 @@ namespace Zeze.Net
             }
 #endif
             return true;
+        }
+
+        public virtual bool Discard(AsyncSocket sender, int moduleId, int protocolId, int size)
+        {
+            return false;
         }
     }
 }

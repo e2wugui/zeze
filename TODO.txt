@@ -12,6 +12,12 @@ c# fresh 有bug？
 DatabaseDynamoDb 还需测试。
 负载均衡；全面审核。
 过载保护；更多。
+
+c# 并发比冲突还慢
+Benchmark.ABasicSimpleAddOneThread tasks/s=209874.71 time=4.76 cpu=0.00 concurrent=0.00
+Benchmark.BBasicSimpleAddConcurrentWithConflict tasks/s=217785.84 time=4.59 cpu=0.00 concurrent=0.00
+Benchmark.CBasicSimpleAddConcurrent tasks/s=96997.63 time=10.31 cpu=100.00 concurrent=9.70
+
 ------------------------------------------------------------------------------------------------------------------------------
 2023/2/17 v1.1.8 initRootInfoWithRedo c#; Timer.OfflineNotify; DatagramChannel; Log.TypeId;
 ------------------------------------------------------------------------------------------------------------------------------
@@ -20,6 +26,7 @@ Log.TypeId 方案，主要是模板类型。
 	-- 使用可以继续的hash64方法，和原来的hash32方式【兼容】。
 	-- 修改方案，改一个地方算一个：PMap1, 改完！
 	-- RocksRaft 改完！
+	-- c# 改完。
 Zege c# GetPublickUserInfo & encrypt message;
 DatagramChannel java
 1. UdpServer：DatagramService 1--* DatagramSocket 绑定多个Socket，防止单个Socket超量。
