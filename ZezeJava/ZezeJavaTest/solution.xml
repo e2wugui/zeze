@@ -124,6 +124,8 @@
 		<module name="Module11" id="3" comment=""/> module的注释
 
 		<table name="tWalkPage" key="int" value="demo.Bean1" memory="false"/>
+		
+		<protocol name="ProtocolUseData" argument="BValue" UseData="true" handle="server"/>
 	</module>
 
 	<!-- module的注释 -->

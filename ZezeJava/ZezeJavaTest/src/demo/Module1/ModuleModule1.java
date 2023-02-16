@@ -52,6 +52,11 @@ public class ModuleModule1 extends AbstractModule {
         return Zeze.Transaction.Procedure.NotImplement;
     }
 
+    @Override
+    protected long ProcessProtocolUseData(demo.Module1.ProtocolUseData p) {
+        return Zeze.Transaction.Procedure.NotImplement;
+    }
+
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE
     public ModuleModule1(demo.App app) {
         super(app);

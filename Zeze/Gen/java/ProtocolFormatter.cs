@@ -20,6 +20,9 @@ namespace Zeze.Gen.java
             if (p.Comment.Length > 0)
                 sw.WriteLine(p.Comment);
             string argument = p.ArgumentType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(p.ArgumentType);
+            if (p.UseData)
+                argument += "Data";
+
             sw.WriteLine("public class " + p.Name + " extends Zeze.Net.Protocol<" + argument + "> {");
             sw.WriteLine("    public static final int ModuleId_ = " + p.Space.Id + ";");
             sw.WriteLine("    public static final int ProtocolId_ = " + p.Id + ";" + (p.Id < 0 ? " // " + (uint)p.Id : ""));

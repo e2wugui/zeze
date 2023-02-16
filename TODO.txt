@@ -23,8 +23,10 @@ Benchmark.CBasicSimpleAddConcurrent tasks/s=96997.63 time=10.31 cpu=100.00 concu
 ------------------------------------------------------------------------------------------------------------------------------
 Zeze.Transaction.Data Bean的无事务版本。
 	-- 没有选择，全部Bean生成完成。
-	-- 根据协议配置选择协议依赖的Bean生成Data。TODO
-	-- 协议相关生成。TODO
+	-- 根据协议配置选择协议依赖的Bean生成Data。
+	-- 协议相关生成。
+	-- BeanKey. TODO
+	-- Bean.assign(Data data). TODO
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/2/16 v1.1.8 initRootInfoWithRedo c#; Timer.OfflineNotify; DatagramChannel; Log.TypeId;
