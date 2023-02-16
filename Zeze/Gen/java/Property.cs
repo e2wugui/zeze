@@ -32,7 +32,7 @@ namespace Zeze.Gen.java
                 if (bean.Version.Equals(var.Name))
                 {
                     // 版本变量生成特殊 private getter、setter，仅给Encode，Decode用。
-                    sw.WriteLine($"{prefix}private long get{var.NameUpper1}() {{");
+                    sw.WriteLine($"{prefix}long get{var.NameUpper1}() {{");
                     sw.WriteLine($"{prefix}    return {var.NamePrivate};");
                     sw.WriteLine($"{prefix}}}");
                     sw.WriteLine();

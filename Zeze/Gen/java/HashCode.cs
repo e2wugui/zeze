@@ -37,6 +37,8 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "    int _h_ = 0;");
                 foreach (Variable var in bean.Variables)
                 {
+                    if (bean.Version.Equals(var.Name))
+                        continue;
                     HashCode e = new HashCode(var.NamePrivate);
                     var.VariableType.Accept(e);
                     sw.WriteLine(prefix + "    _h_ = _h_ * _p_ + " + e.text + ";");

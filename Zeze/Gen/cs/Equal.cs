@@ -47,6 +47,8 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    {");
             foreach (Variable var in bean.Variables)
             {
+                if (bean.Version.Equals(var.Name))
+                    continue;
                 var v = new Equal(var, "_b_", false);
                 var.VariableType.Accept(v);
                 sw.WriteLine(prefix + "        if (" + v.text + ") return false;");

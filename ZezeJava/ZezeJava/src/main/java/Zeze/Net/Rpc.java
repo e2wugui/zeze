@@ -1,6 +1,7 @@
 package Zeze.Net;
 
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
@@ -8,7 +9,7 @@ import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends Protocol<TArgument> {
+public abstract class Rpc<TArgument extends Serializable, TResult extends Serializable> extends Protocol<TArgument> {
 	private static final Logger logger = LogManager.getLogger(Rpc.class);
 
 	public TResult Result;

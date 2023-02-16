@@ -19,7 +19,15 @@ Benchmark.BBasicSimpleAddConcurrentWithConflict tasks/s=217785.84 time=4.59 cpu=
 Benchmark.CBasicSimpleAddConcurrent tasks/s=96997.63 time=10.31 cpu=100.00 concurrent=9.70
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/2/17 v1.1.8 initRootInfoWithRedo c#; Timer.OfflineNotify; DatagramChannel; Log.TypeId;
+2023/3/3 v1.1.9 Zeze.Transaction.Data; 
+------------------------------------------------------------------------------------------------------------------------------
+Zeze.Transaction.Data Bean的无事务版本。
+	-- 没有选择，全部Bean生成完成。
+	-- 根据协议配置选择协议依赖的Bean生成Data。TODO
+	-- 协议相关生成。TODO
+
+------------------------------------------------------------------------------------------------------------------------------
+2023/2/16 v1.1.8 initRootInfoWithRedo c#; Timer.OfflineNotify; DatagramChannel; Log.TypeId;
 ------------------------------------------------------------------------------------------------------------------------------
 Log.TypeId 方案，主要是模板类型。
 	-- Bean增加hashLogMap hashLog专门用来生成模板类型的LogTypeId。

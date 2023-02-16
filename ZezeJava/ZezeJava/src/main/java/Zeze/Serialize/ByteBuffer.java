@@ -13,6 +13,7 @@ import java.util.function.Supplier;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DynamicBean;
+import Zeze.Transaction.DynamicBeanData;
 import Zeze.Util.BitConverter;
 import Zeze.Util.IdentityHashSet;
 import Zeze.Util.IntHashMap;
@@ -1440,6 +1441,26 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		}
 		if (type == BEAN) {
 			Bean bean = dynBean.getCreateBeanFromSpecialTypeId().apply(0);
+			if (bean != null) {
+				bean.decode(this);
+				return dynBean;
+			}
+		}
+		if (IGNORE_INCOMPATIBLE_FIELD) {
+			SkipUnknownField(type);
+			return dynBean;
+		}
+		throw new IllegalStateException("can not ReadDynamic for type=" + type);
+	}
+
+	public DynamicBeanData ReadDynamic(DynamicBeanData dynBean, int type) {
+		type &= TAG_MASK;
+		if (type == DYNAMIC) {
+			dynBean.decode(this);
+			return dynBean;
+		}
+		if (type == BEAN) {
+			var bean = dynBean.getCreateBeanFromSpecialTypeId().apply(0);
 			if (bean != null) {
 				bean.decode(this);
 				return dynBean;

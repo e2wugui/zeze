@@ -29,6 +29,8 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    int _h_ = 0;");
             foreach (Variable var in bean.Variables)
             {
+                if (bean.Version.Equals(var.Name))
+                    continue;
                 HashCode e = new HashCode(sw, prefix + "    ", var.NamePrivate);
                 var.VariableType.Accept(e);
             }

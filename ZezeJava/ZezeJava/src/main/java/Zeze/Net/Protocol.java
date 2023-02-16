@@ -5,7 +5,7 @@ import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Util.ProtocolFactoryFinder;
 
-public abstract class Protocol<TArgument extends Bean> implements Serializable {
+public abstract class Protocol<TArgument extends Serializable> implements Serializable {
 	public static final int HEADER_SIZE = 12; // moduleId[4] + protocolId[4] + size[4]
 
 	public DatagramSession DatagramSession;
@@ -59,7 +59,7 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 		return Argument;
 	}
 
-	public Bean getResultBean() {
+	public Serializable getResultBean() {
 		return null;
 	}
 
