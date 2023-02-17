@@ -262,27 +262,23 @@ public class Online extends AbstractOnline {
 		return null != _tonline.get(roleId);
 	}
 
-	private long logoutTriggerExtra(long roleId) throws Exception {
-		var arg = new LogoutEventArgument();
-		arg.roleId = roleId;
-		arg.online = _tonline.get(roleId);
-
-		var ret = logoutEvents.triggerEmbed(this, arg);
-		if (0 != ret)
-			return ret;
-		logoutEvents.triggerProcedure(providerApp.zeze, this, arg);
-		Transaction.whileCommit(() -> logoutEvents.triggerThread(this, arg));
-		return 0;
+	private static boolean assignLogoutVersion(BVersion version) {
+		if (version.getLoginVersion() == version.getLogoutVersion()) {
+			return false;
+		}
+		version.setLogoutVersion(version.getLoginVersion());
+		return true;
 	}
 
-	private long logoutTrigger(long roleId) throws Exception {
+	private long logoutTrigger(long roleId, LogoutReason logoutReason) throws Exception {
 		var arg = new LogoutEventArgument();
 		arg.roleId = roleId;
 		arg.online = _tonline.get(roleId);
-		arg.version = _tversion.get(roleId);
-
-		_tonline.remove(roleId); // remove first
-
+		arg.logoutReason = logoutReason;
+		if (logoutReason == LogoutReason.LOGOUT) {
+			arg.version = _tversion.get(roleId);
+			_tonline.remove(roleId); // remove first
+		}
 		var ret = logoutEvents.triggerEmbed(this, arg);
 		if (0 != ret)
 			return ret;
@@ -353,8 +349,8 @@ public class Online extends AbstractOnline {
 						// 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
 						var online = _tonline.get(roleId);
 						var version = _tversion.getOrAdd(roleId);
-						if (null != online && version.getLoginVersion() == currentLoginVersion) {
-							var ret = logoutTrigger(roleId);
+						if (null != online && version.getLoginVersion() == currentLoginVersion && assignLogoutVersion(version)) {
+							var ret = logoutTrigger(roleId, LogoutReason.LOGOUT);
 							if (0 != ret)
 								return ret;
 						}
@@ -807,9 +803,11 @@ public class Online extends AbstractOnline {
 
 		if (version.getLoginVersion() != 0) {
 			// login exist
-			var ret = logoutTriggerExtra(rpc.Argument.getRoleId());
-			if (0 != ret)
-				return ret;
+			if (assignLogoutVersion(version)) {
+				var ret = logoutTrigger(rpc.Argument.getRoleId(), LogoutReason.LOGIN);
+				if (0 != ret)
+					return ret;
+			}
 			if (version.getLoginVersion() != local.getLoginVersion()) {
 				tryRedirectRemoveLocal(version.getServerId(), rpc.Argument.getRoleId());
 			}
@@ -864,10 +862,11 @@ public class Online extends AbstractOnline {
 
 		if (version.getLoginVersion() != 0) {
 			// login exist
-			// relogin 不需要补充 Logout？
-			// var ret = logoutTriggerExtra(rpc.Argument.getRoleId());
-			//if (0 != ret)
-			//	return ret;
+			if (assignLogoutVersion(version)) {
+				var ret = logoutTrigger(rpc.Argument.getRoleId(), LogoutReason.RE_LOGIN);
+				if (0 != ret)
+					return ret;
+			}
 			if (version.getLoginVersion() != local.getLoginVersion()) {
 				tryRedirectRemoveLocal(version.getServerId(), rpc.Argument.getRoleId());
 			}
@@ -927,9 +926,11 @@ public class Online extends AbstractOnline {
 				return ret;
 		}
 		if (null != online) {
-			var ret = logoutTrigger(session.getRoleId());
-			if (0 != ret)
-				return ret;
+			if (assignLogoutVersion(version)) {
+				var ret = logoutTrigger(session.getRoleId(), LogoutReason.LOGOUT);
+				if (0 != ret)
+					return ret;
+			}
 		}
 		// 先设置状态，再发送Logout结果。
 		Transaction.whileCommit(() -> {
