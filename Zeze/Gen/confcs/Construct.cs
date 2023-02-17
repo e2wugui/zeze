@@ -46,7 +46,7 @@ namespace Zeze.Gen.confcs
             string value = variable.Initial;
 			if (value.Length > 0)
 			{
-                string varname = variable.Name;
+                string varname = variable.NameUpper1;
 				sw.WriteLine(prefix + varname + " = " + value + ";");
 			}
 		}

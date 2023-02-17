@@ -116,33 +116,7 @@ namespace Zeze.Gen.cs
 
         public void Visit(BeanKey type)
         {
-            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1);
-            sw.WriteLine(prefix + "{");
-            sw.WriteLine(prefix + "    get");
-            sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        if (!IsManaged)");
-            sw.WriteLine(prefix + "            return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.Current;");
-            sw.WriteLine(prefix + "        if (txn == null) return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "        txn.VerifyRecordAccessed(this, true);");
-            sw.WriteLine(prefix + "        var log = (Log_" + var.NamePrivate + ")txn.GetLog(ObjectId + " + var.Id + ");");
-            sw.WriteLine(prefix + "        return log != null ? log.Value : " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "    set");
-            sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        if (value == null)");
-            sw.WriteLine(prefix + "            throw new System.ArgumentNullException(nameof(value));");
-            sw.WriteLine(prefix + "        if (!IsManaged)");
-            sw.WriteLine(prefix + "        {");
-            sw.WriteLine(prefix + "            " + var.NamePrivate + " = value;");
-            sw.WriteLine(prefix + "            return;");
-            sw.WriteLine(prefix + "        }");
-            sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.Current;");
-            sw.WriteLine(prefix + "        txn.VerifyRecordAccessed(this);");
-            sw.WriteLine(prefix + $"        txn.PutLog(new Log_{var.NamePrivate}() {{ Belong = this, VariableId = {var.Id}, Value = value }});"); // 
-            sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "}");
-            sw.WriteLine();
+            WriteProperty(type, true);
         }
 
         public void Visit(TypeByte type)
@@ -301,32 +275,32 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeQuaternion type)
         {
-            throw new System.NotImplementedException();
+            WriteProperty(type, true);
         }
 
         public void Visit(TypeVector2 type)
         {
-            throw new System.NotImplementedException();
+            WriteProperty(type, true);
         }
 
         public void Visit(TypeVector2Int type)
         {
-            throw new System.NotImplementedException();
+            WriteProperty(type, true);
         }
 
         public void Visit(TypeVector3 type)
         {
-            throw new System.NotImplementedException();
+            WriteProperty(type, true);
         }
 
         public void Visit(TypeVector3Int type)
         {
-            throw new System.NotImplementedException();
+            WriteProperty(type, true);
         }
 
         public void Visit(TypeVector4 type)
         {
-            throw new System.NotImplementedException();
+            WriteProperty(type, true);
         }
     }
 }

@@ -399,7 +399,7 @@ namespace Zeze.Gen.cs
                 var tmpName = id > 0 ? "_x_" : "_y_";
                 sw.WriteLine($"{prefix}if (({typeVarName} & ByteBuffer.TAG_MASK) == ByteBuffer.DYNAMIC)");
                 sw.WriteLine($"{prefix}{{");
-                sw.WriteLine($"{prefix}    var {tmpName} = CreateBeanFromSpecialTypeId_{id}({bufname}.ReadLong());");
+                sw.WriteLine($"{prefix}    var {tmpName} = CreateBeanFromSpecialTypeId_{type.Variable.Id}({bufname}.ReadLong());");
                 sw.WriteLine($"{prefix}    {tmpName}.Decode({bufname});");
                 sw.WriteLine($"{prefix}    {varname} = {tmpName};");
                 sw.WriteLine($"{prefix}}}");

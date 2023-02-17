@@ -7,6 +7,9 @@
 	<module name="Login" id="1">
 		<enum name="ResultCodeCreateRoleDuplicateRoleName" value="1"/>
 
+		<bean name="BVector3">
+			<variable id="1" name="Vector3" type="vector3"/>
+		</bean>
 		<bean name="BRole">
 			<variable id="1" name="Id" type="long"/>
 			<variable id="2" name="Name" type="string"/>
