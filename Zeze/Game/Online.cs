@@ -222,6 +222,7 @@ namespace Zeze.Game
                         var version = await _tversion.GetOrAddAsync(roleId);
                         if (null != online && version.LoginVersion == currentLoginVersion)
                         {
+                            version.LogoutVersion = version.LoginVersion;
                             await LogoutTrigger(roleId);
                         }
                         return ResultCode.Success;
@@ -726,9 +727,10 @@ namespace Zeze.Game
             var local = await _tlocal.GetOrAddAsync(rpc.Argument.RoleId);
             var version = await _tversion.GetOrAddAsync(rpc.Argument.RoleId);
 
-            if (version.LoginVersion != 0)
+            if (version.LoginVersion != version.LogoutVersion)
             {
                 // login exist
+                version.LogoutVersion = version.LoginVersion;
                 await LogoutTriggerExtra(rpc.Argument.RoleId);
                 if (version.LoginVersion != local.LoginVersion)
                 {
@@ -792,16 +794,19 @@ namespace Zeze.Game
             var local = await _tlocal.GetOrAddAsync(rpc.Argument.RoleId);
             var version = await _tversion.GetOrAddAsync(rpc.Argument.RoleId);
 
-            if (version.LoginVersion != 0)
+            if (version.LoginVersion != local.LoginVersion)
             {
+                _ = TryRedirectNotify(version.ServerId, rpc.Argument.RoleId);
+            }
+            /*
+            if (version.LoginVersion != version.LogoutVersion)
+            {
+                version.LogoutVersion = version.LoginVersion;
                 // login exist
                 // relogin 不需要补充 Logout？
                 // await LogoutTriggerExtra(rpc.Argument.RoleId);
-                if (version.LoginVersion != local.LoginVersion)
-                {
-                    _ = TryRedirectNotify(version.ServerId, rpc.Argument.RoleId);
-                }
             }
+            */
             var loginVersion = version.LoginVersion + 1;
             version.LoginVersion = loginVersion;
             version.LoginVersion = loginVersion;
@@ -859,7 +864,10 @@ namespace Zeze.Game
             if (null != local)
                 await RemoveLocalAndTrigger(session.RoleId.Value);
             if (null != online)
+            {
+                version.LogoutVersion = version.LoginVersion;
                 await LogoutTrigger(session.RoleId.Value);
+            }
 
             // 先设置状态，再发送Logout结果。
             Transaction.Transaction.Current.RunWhileCommit(() =>

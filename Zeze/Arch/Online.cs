@@ -247,6 +247,7 @@ namespace Zeze.Arch
                             && version.Logins.TryGetValue(clientId, out var loginVersion)
                             && loginVersion.LoginVersion == currentLoginVersion)
                         {
+                            loginVersion.LogoutVersion = loginVersion.LoginVersion;
                             await LogoutTrigger(account, clientId);
                         }
                         return ResultCode.Success;
@@ -953,14 +954,15 @@ namespace Zeze.Arch
             var loginLocal = local.Logins.GetOrAdd(rpc.Argument.ClientId);
             var loginVersion = version.Logins.GetOrAdd(rpc.Argument.ClientId);
 
-            if (loginVersion.LoginVersion != 0)
+            if (loginVersion.LoginVersion != loginVersion.LogoutVersion)
             {
                 // login exist
+                loginVersion.LogoutVersion = loginVersion.LoginVersion;
                 await LogoutTriggerExtra(session.Account, rpc.Argument.ClientId);
-                if (loginVersion.LoginVersion != loginLocal.LoginVersion)
-                {
-                    _ = TryRedirectNotify(loginVersion.ServerId, session.Account);
-                }
+            }
+            if (loginVersion.LoginVersion != loginLocal.LoginVersion)
+            {
+                _ = TryRedirectNotify(loginVersion.ServerId, session.Account);
             }
             var loginVersionSerialId = version.LastLoginVersion + 1;
             version.LastLoginVersion = loginVersionSerialId;
@@ -1023,15 +1025,18 @@ namespace Zeze.Arch
             var loginLocal = local.Logins.GetOrAdd(rpc.Argument.ClientId);
             var loginVersion = version.Logins.GetOrAdd(rpc.Argument.ClientId);
 
-            if (loginVersion.LoginVersion != 0)
+            /*
+            if (loginVersion.LoginVersion != loginVersion.LogoutVersion)
             {
                 // login exist
                 // relogin 不需要补充 Logout？
+                // loginVersion.LogoutVersion = loginVersion.LoginVersion;
                 // await LogoutTriggerExtra(session.Account, rpc.Argument.ClientId);
-                if (loginVersion.LoginVersion != loginLocal.LoginVersion)
-                {
-                    _ = TryRedirectNotify(loginVersion.ServerId, session.Account);
-                }
+            }
+            */
+            if (loginVersion.LoginVersion != loginLocal.LoginVersion)
+            {
+                _ = TryRedirectNotify(loginVersion.ServerId, session.Account);
             }
             var loginVersionSerialId = version.LastLoginVersion + 1;
             version.LastLoginVersion = loginVersionSerialId;
@@ -1094,7 +1099,10 @@ namespace Zeze.Arch
             if (null != local)
                 await RemoveLocalAndTrigger(session.Account, clientId);
             if (null != online)
+            {
+                loginVersion.LogoutVersion = loginVersion.LoginVersion;
                 await LogoutTrigger(session.Account, clientId);
+            }
 
             // 先设置状态，再发送Logout结果。
             Transaction.Transaction.Current.RunWhileCommit(() =>
