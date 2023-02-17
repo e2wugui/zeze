@@ -10,15 +10,15 @@ public abstract class LogBinary extends Log {
 
 	public Binary value;
 
-	public LogBinary() {
-		super(TYPE_ID);
-	}
-
 	public LogBinary(Bean belong, int varId, Binary value) {
-		this();
 		setBelong(belong);
 		setVariableId(varId);
 		this.value = value;
+	}
+
+	@Override
+	public int getTypeId() {
+		return TYPE_ID;
 	}
 
 	@Override

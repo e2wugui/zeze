@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
@@ -12,21 +11,21 @@ import Zeze.Transaction.Savepoint;
 import org.pcollections.Empty;
 
 public class LogSet1<V> extends LogSet<V> {
-	private static final long logTypeIdHead = Bean.hash64("Zeze.Transaction.Collections.LogSet1<");
-
-	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
-
+	protected final Meta1<V> meta;
 	private final Set<V> added = new HashSet<>();
 	private final Set<V> removed = new HashSet<>();
 
 	public LogSet1(Class<V> valueClass) {
-		super(Bean.hashLog(logTypeIdHead, valueClass));
-		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
+		meta = Meta1.getSet1Meta(valueClass);
 	}
 
-	LogSet1(int typeId, SerializeHelper.CodecFuncs<V> valueCodecFuncs) {
-		super(typeId);
-		this.valueCodecFuncs = valueCodecFuncs;
+	LogSet1(Meta1<V> meta) {
+		this.meta = meta;
+	}
+
+	@Override
+	public int getTypeId() {
+		return meta.logTypeId;
 	}
 
 	public final Set<V> getAdded() {
@@ -98,7 +97,7 @@ public class LogSet1<V> extends LogSet<V> {
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		var encoder = valueCodecFuncs.encoder;
+		var encoder = meta.valueEncoder;
 
 		bb.WriteUInt(added.size());
 		for (var e : added)
@@ -111,7 +110,7 @@ public class LogSet1<V> extends LogSet<V> {
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		var decoder = valueCodecFuncs.decoder;
+		var decoder = meta.valueDecoder;
 
 		added.clear();
 		for (int i = bb.ReadUInt(); i > 0; i--)
@@ -145,7 +144,7 @@ public class LogSet1<V> extends LogSet<V> {
 
 	@Override
 	public Log beginSavepoint() {
-		var dup = new LogSet1<>(getTypeId(), valueCodecFuncs);
+		var dup = new LogSet1<>(meta);
 		dup.setThis(getThis());
 		dup.setBelong(getBelong());
 		dup.setVariableId(getVariableId());

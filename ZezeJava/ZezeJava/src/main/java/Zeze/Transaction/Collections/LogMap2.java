@@ -1,32 +1,24 @@
 package Zeze.Transaction.Collections;
 
-import java.lang.invoke.MethodHandle;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
-import Zeze.Util.Reflect;
 
 public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
-	private static final long logTypeIdHead = Bean.hash64("Zeze.Transaction.Collections.LogMap2<");
-
 	private final Set<LogBean> changed = new HashSet<>(); // changed V logs. using in collect.
 	private final HashMap<K, LogBean> changedWithKey = new HashMap<>(); // changed with key. using in encode/decode followerApply
-	private final MethodHandle valueFactory;
-	private boolean built = false;
+	private boolean built;
 
 	public LogMap2(Class<K> keyClass, Class<V> valueClass) {
-		super(Bean.hashLog(logTypeIdHead, keyClass, valueClass), keyClass, valueClass);
-		valueFactory = Reflect.getDefaultConstructor(valueClass);
+		super(Meta2.getMap2Meta(keyClass, valueClass));
 	}
 
-	LogMap2(int typeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs, MethodHandle valueFactory) {
-		super(typeId, keyCodecFuncs, null);
-		this.valueFactory = valueFactory;
+	LogMap2(Meta2<K, V> meta) {
+		super(meta);
 	}
 
 	public final Set<LogBean> getChanged() {
@@ -39,7 +31,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 
 	@Override
 	public Log beginSavepoint() {
-		var dup = new LogMap2<K, V>(getTypeId(), keyCodecFuncs, valueFactory);
+		var dup = new LogMap2<>(meta);
 		dup.setThis(getThis());
 		dup.setBelong(getBelong());
 		dup.setVariableId(getVariableId());
@@ -75,7 +67,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 		buildChangedWithKey();
 
 		bb.WriteUInt(changedWithKey.size());
-		var keyEncoder = keyCodecFuncs.encoder;
+		var keyEncoder = meta.keyEncoder;
 		for (var e : changedWithKey.entrySet()) {
 			keyEncoder.accept(bb, e.getKey());
 			e.getValue().encode(bb);
@@ -96,7 +88,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	@Override
 	public void decode(ByteBuffer bb) {
 		changedWithKey.clear();
-		var keyDecoder = keyCodecFuncs.decoder;
+		var keyDecoder = meta.keyDecoder;
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var key = keyDecoder.apply(bb);
 			var value = new LogBean();
@@ -110,7 +102,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 			var key = keyDecoder.apply(bb);
 			V value;
 			try {
-				value = (V)valueFactory.invoke();
+				value = (V)meta.valueFactory.invoke();
 			} catch (RuntimeException | Error e) {
 				throw e;
 			} catch (Throwable e) { // MethodHandle.invoke

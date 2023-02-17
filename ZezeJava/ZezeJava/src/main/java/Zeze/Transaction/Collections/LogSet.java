@@ -6,9 +6,8 @@ import Zeze.Transaction.Log;
 public abstract class LogSet<V> extends LogBean {
 	private org.pcollections.PSet<V> value;
 
-	public LogSet(int typeId) {
-		super(typeId);
-	}
+	@Override
+	public abstract int getTypeId();
 
 	public final org.pcollections.PSet<V> getValue() {
 		return value;

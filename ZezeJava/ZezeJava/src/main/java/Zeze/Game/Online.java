@@ -1,6 +1,5 @@
 package Zeze.Game;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -783,11 +782,11 @@ public class Online extends AbstractOnline {
 
 	@RedirectToServer
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
-	protected void redirectRemoveLocal(int serverId, long roleId) throws Exception {
+	protected void redirectRemoveLocal(int serverId, long roleId) {
 		providerApp.zeze.newProcedure(() -> tryRemoveLocal(roleId), "redirectNotify").call();
 	}
 
-	private void tryRedirectRemoveLocal(int serverId, long roleId) throws Exception {
+	private void tryRedirectRemoveLocal(int serverId, long roleId) {
 		if (providerApp.zeze.getConfig().getServerId() != serverId
 				&& providerApp.providerDirectService.providerByServerId.containsKey(serverId))
 			redirectRemoveLocal(serverId, roleId);

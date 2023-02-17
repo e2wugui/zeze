@@ -1,48 +1,35 @@
 package Zeze.Transaction.Collections;
 
-import java.lang.invoke.MethodHandle;
 import java.util.Map;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
-import Zeze.Util.Reflect;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class PMap2<K, V extends Bean> extends PMap<K, V> {
-	private static final long logTypeIdHead = Bean.hash64("Zeze.Transaction.Collections.LogMap2<");
-
-	protected final SerializeHelper.CodecFuncs<K> keyCodecFuncs;
-	private final MethodHandle valueFactory;
-	private final int logTypeId;
+	protected final Meta2<K, V> meta;
 
 	public PMap2(Class<K> keyClass, Class<V> valueClass) {
-		keyCodecFuncs = SerializeHelper.createCodec(keyClass);
-		valueFactory = Reflect.getDefaultConstructor(valueClass);
-		logTypeId = Bean.hashLog(logTypeIdHead, keyClass, valueClass);
+		meta = Meta2.getMap2Meta(keyClass, valueClass);
 	}
 
 	public PMap2(Class<K> keyClass, ToLongFunction<Bean> get, LongFunction<Bean> create) { // only for DynamicBean value
-		keyCodecFuncs = SerializeHelper.createCodec(keyClass);
-		valueFactory = SerializeHelper.createDynamicFactory(get, create);
-		logTypeId = Bean.hashLog(logTypeIdHead, Reflect.getStableName(keyClass), "Zeze.Transaction.DynamicBean");
+		meta = Meta2.createDynamicMapMeta(keyClass, get, create);
 	}
 
-	private PMap2(int logTypeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs, MethodHandle valueFactory) {
-		this.keyCodecFuncs = keyCodecFuncs;
-		this.valueFactory = valueFactory;
-		this.logTypeId = logTypeId;
+	private PMap2(Meta2<K, V> meta) {
+		this.meta = meta;
 	}
 
 	@SuppressWarnings("unchecked")
 	public V createValue() {
 		try {
-			return (V)valueFactory.invoke();
+			return (V)meta.valueFactory.invoke();
 		} catch (RuntimeException | Error e) {
 			throw e;
 		} catch (Throwable e) { // MethodHandle.invoke
@@ -170,7 +157,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 	@Override
 	public LogBean createLogBean() {
-		var log = new LogMap2<K, V>(logTypeId, keyCodecFuncs, valueFactory);
+		var log = new LogMap2<>(meta);
 		log.setBelong(parent());
 		log.setThis(this);
 		log.setVariableId(variableId());
@@ -192,7 +179,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 	@Override
 	public PMap2<K, V> copy() {
-		var copy = new PMap2<K, V>(logTypeId, keyCodecFuncs, valueFactory);
+		var copy = new PMap2<>(meta);
 		copy.map = map;
 		return copy;
 	}
@@ -201,7 +188,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	public void encode(ByteBuffer bb) {
 		var tmp = getMap();
 		bb.WriteUInt(tmp.size());
-		var encoder = keyCodecFuncs.encoder;
+		var encoder = meta.keyEncoder;
 		for (var e : tmp.entrySet()) {
 			encoder.accept(bb, e.getKey());
 			e.getValue().encode(bb);
@@ -212,11 +199,11 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	@Override
 	public void decode(ByteBuffer bb) {
 		clear();
-		var decoder = keyCodecFuncs.decoder;
+		var decoder = meta.keyDecoder;
 		try {
 			for (int i = bb.ReadUInt(); i > 0; i--) {
 				var key = decoder.apply(bb);
-				V value = (V)valueFactory.invoke();
+				V value = (V)meta.valueFactory.invoke();
 				value.decode(bb);
 				put(key, value);
 			}

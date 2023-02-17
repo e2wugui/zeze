@@ -9,15 +9,15 @@ public abstract class LogFloat extends Log {
 
 	public float value;
 
-	public LogFloat() {
-		super(TYPE_ID);
-	}
-
 	public LogFloat(Bean belong, int varId, float value) {
-		this();
 		setBelong(belong);
 		setVariableId(varId);
 		this.value = value;
+	}
+
+	@Override
+	public int getTypeId() {
+		return TYPE_ID;
 	}
 
 	@Override

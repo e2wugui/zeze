@@ -24,17 +24,10 @@ public abstract class Log implements Serializable {
 		throw new UnsupportedOperationException("unknown log typeId=" + typeId);
 	}
 
-	private final int typeId; // 会被序列化，实际上由LogBean管理。
 	private Bean bean;
 	private int variableId;
 
-	public Log(int typeId) {
-		this.typeId = typeId;
-	}
-
-	public int getTypeId() {
-		return typeId;
-	}
+	public abstract int getTypeId();
 
 	public long getLogKey() {
 		return bean.objectId() + getVariableId();

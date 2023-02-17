@@ -10,15 +10,15 @@ public abstract class LogQuaternion extends Log {
 
 	public Quaternion value;
 
-	public LogQuaternion() {
-		super(TYPE_ID);
-	}
-
 	public LogQuaternion(Bean belong, int varId, Quaternion value) {
-		super(TYPE_ID);
 		setBelong(belong);
 		setVariableId(varId);
 		this.value = value;
+	}
+
+	@Override
+	public int getTypeId() {
+		return TYPE_ID;
 	}
 
 	@Override

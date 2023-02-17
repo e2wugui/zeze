@@ -10,8 +10,9 @@ public class LogDynamic extends LogBean {
 	public Bean value;
 	public LogBean logBean;
 
-	public LogDynamic() {
-		super(TYPE_ID);
+	@Override
+	public int getTypeId() {
+		return TYPE_ID;
 	}
 
 	@Override

@@ -13,17 +13,9 @@ public class LogBean extends Log {
 	private IntHashMap<Log> variables;
 	private Zeze.Transaction.Bean self;
 
-	public LogBean() {
-		super(TYPE_ID);
-	}
-
 	@Override
-	public void commit() {
-		throw new UnsupportedOperationException();
-	}
-
-	public LogBean(int typeId) {
-		super(typeId);
+	public int getTypeId() {
+		return TYPE_ID;
 	}
 
 	public final IntHashMap<Log> getVariables() {
@@ -43,6 +35,11 @@ public class LogBean extends Log {
 
 	public final void setThis(Bean value) {
 		self = value;
+	}
+
+	@Override
+	public void commit() {
+		throw new UnsupportedOperationException();
 	}
 
 	// LogBean仅在_final_commit的Collect过程中创建，不会参与Savepoint。

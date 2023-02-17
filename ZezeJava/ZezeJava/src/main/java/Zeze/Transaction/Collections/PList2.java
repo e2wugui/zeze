@@ -1,45 +1,35 @@
 package Zeze.Transaction.Collections;
 
-import java.lang.invoke.MethodHandle;
 import java.util.Collection;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.IntHashSet;
-import Zeze.Util.Reflect;
 import org.pcollections.Empty;
 
 public class PList2<V extends Bean> extends PList<V> {
-	private static final long logTypeIdHead = Bean.hash64("Zeze.Transaction.Collections.LogList2<");
-	private static final int logTypeIdDynamicBean = Bean.hash32("Zeze.Transaction.Collections.LogList2<Zeze.Transaction.DynamicBean>");
-
-	private final MethodHandle valueFactory;
-	private final int logTypeId;
+	protected final Meta1<V> meta;
 
 	public PList2(Class<V> valueClass) {
-		valueFactory = Reflect.getDefaultConstructor(valueClass);
-		logTypeId = Bean.hashLog(logTypeIdHead, valueClass);
+		meta = Meta1.getList2Meta(valueClass);
 	}
 
 	public PList2(ToLongFunction<Bean> get, LongFunction<Bean> create) { // only for DynamicBean value
-		valueFactory = SerializeHelper.createDynamicFactory(get, create);
-		logTypeId = logTypeIdDynamicBean;
+		meta = Meta1.createDynamicListMeta(get, create);
 	}
 
-	private PList2(int logTypeId, MethodHandle valueFactory) {
-		this.valueFactory = valueFactory;
-		this.logTypeId = logTypeId;
+	private PList2(Meta1<V> meta) {
+		this.meta = meta;
 	}
 
 	@SuppressWarnings("unchecked")
 	public V createValue() {
 		try {
-			return (V)valueFactory.invoke();
+			return (V)meta.valueFactory.invoke();
 		} catch (RuntimeException | Error e) {
 			throw e;
 		} catch (Throwable e) { // MethodHandle.invoke
@@ -167,7 +157,7 @@ public class PList2<V extends Bean> extends PList<V> {
 
 	@Override
 	public LogBean createLogBean() {
-		var log = new LogList2<V>(logTypeId, valueFactory);
+		var log = new LogList2<>(meta);
 		log.setBelong(parent());
 		log.setThis(this);
 		log.setVariableId(variableId());
@@ -224,7 +214,7 @@ public class PList2<V extends Bean> extends PList<V> {
 
 	@Override
 	public PList2<V> copy() {
-		var copy = new PList2<V>(logTypeId, valueFactory);
+		var copy = new PList2<>(meta);
 		copy.list = list;
 		return copy;
 	}
@@ -243,7 +233,7 @@ public class PList2<V extends Bean> extends PList<V> {
 		clear();
 		try {
 			for (int i = bb.ReadUInt(); i > 0; i--) {
-				V value = (V)valueFactory.invoke();
+				V value = (V)meta.valueFactory.invoke();
 				value.decode(bb);
 				add(value);
 			}

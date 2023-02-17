@@ -9,15 +9,15 @@ public abstract class LogDouble extends Log {
 
 	public double value;
 
-	public LogDouble() {
-		super(TYPE_ID);
-	}
-
 	public LogDouble(Bean belong, int varId, double value) {
-		this();
 		setBelong(belong);
 		setVariableId(varId);
 		this.value = value;
+	}
+
+	@Override
+	public int getTypeId() {
+		return TYPE_ID;
 	}
 
 	@Override

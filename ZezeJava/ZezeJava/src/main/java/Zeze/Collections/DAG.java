@@ -84,6 +84,7 @@ public class DAG<V extends Bean> {
 	private boolean isValid() {
 		return isNoCycle();
 	}
+	@SuppressWarnings("MethodMayBeStatic")
 	private boolean isNoCycle() {
 		return true;
 	}

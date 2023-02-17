@@ -3,7 +3,6 @@ package Zeze.Transaction.Collections;
 import java.util.ArrayList;
 import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
@@ -11,10 +10,6 @@ import Zeze.Transaction.Savepoint;
 import org.pcollections.Empty;
 
 public class LogList1<V> extends LogList<V> {
-	private static final long logTypeIdHead = Bean.hash64("Zeze.Transaction.Collections.LogList1<");
-
-	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
-
 	static final class OpLog<V> {
 		static final int OP_MODIFY = 0;
 		static final int OP_ADD = 1;
@@ -37,16 +32,16 @@ public class LogList1<V> extends LogList<V> {
 		}
 	}
 
+	protected final Meta1<V> meta;
 	protected final ArrayList<OpLog<V>> opLogs = new ArrayList<>();
 
-	public LogList1(Class<V> valueClass) {
-		super(Bean.hashLog(logTypeIdHead, valueClass));
-		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
+	LogList1(Meta1<V> meta) {
+		this.meta = meta;
 	}
 
-	LogList1(int typeId, SerializeHelper.CodecFuncs<V> valueCodecFuncs) {
-		super(typeId);
-		this.valueCodecFuncs = valueCodecFuncs;
+	@Override
+	public int getTypeId() {
+		return meta.logTypeId;
 	}
 
 	public final ArrayList<OpLog<V>> getOpLogs() {
@@ -125,25 +120,28 @@ public class LogList1<V> extends LogList<V> {
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		var encoder = valueCodecFuncs.encoder;
+		var encoder = meta.valueEncoder;
 		bb.WriteUInt(opLogs.size());
 		for (var opLog : opLogs) {
 			bb.WriteUInt(opLog.op);
 			if (opLog.op < OpLog.OP_CLEAR) {
 				bb.WriteUInt(opLog.index);
-				if (opLog.op < OpLog.OP_REMOVE)
+				if (opLog.op < OpLog.OP_REMOVE) {
+					//noinspection DataFlowIssue
 					encoder.accept(bb, opLog.value);
+				}
 			}
 		}
 	}
 
 	@Override
 	public void decode(ByteBuffer bb) {
-		var decoder = valueCodecFuncs.decoder;
+		var decoder = meta.valueDecoder;
 		opLogs.clear();
 		for (var logSize = bb.ReadUInt(); --logSize >= 0; ) {
 			int op = bb.ReadUInt();
 			int index = op < OpLog.OP_CLEAR ? bb.ReadUInt() : 0;
+			//noinspection DataFlowIssue
 			opLogs.add(new OpLog<>(op, index, op < OpLog.OP_REMOVE ? decoder.apply(bb) : null));
 		}
 	}
@@ -170,7 +168,7 @@ public class LogList1<V> extends LogList<V> {
 
 	@Override
 	public Log beginSavepoint() {
-		var dup = new LogList1<>(getTypeId(), valueCodecFuncs);
+		var dup = new LogList1<>(meta);
 		dup.setThis(getThis());
 		dup.setBelong(getBelong());
 		dup.setVariableId(getVariableId());

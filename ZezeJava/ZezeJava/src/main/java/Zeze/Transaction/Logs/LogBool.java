@@ -9,15 +9,15 @@ public abstract class LogBool extends Log {
 
 	public boolean value;
 
-	public LogBool() {
-		super(TYPE_ID);
-	}
-
 	public LogBool(Bean belong, int varId, boolean value) {
-		this();
 		setBelong(belong);
 		setVariableId(varId);
 		this.value = value;
+	}
+
+	@Override
+	public int getTypeId() {
+		return TYPE_ID;
 	}
 
 	@Override

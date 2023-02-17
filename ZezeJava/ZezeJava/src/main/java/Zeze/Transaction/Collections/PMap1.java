@@ -2,29 +2,18 @@ package Zeze.Transaction.Collections;
 
 import java.util.Map;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Serialize.SerializeHelper;
-import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
 
 public class PMap1<K, V> extends PMap<K, V> {
-	private static final long logTypeIdHead = Bean.hash64("Zeze.Transaction.Collections.LogMap1<");
-
-	protected final SerializeHelper.CodecFuncs<K> keyCodecFuncs;
-	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
-	private final int logTypeId;
+	protected final Meta2<K, V> meta;
 
 	public PMap1(Class<K> keyClass, Class<V> valueClass) {
-		keyCodecFuncs = SerializeHelper.createCodec(keyClass);
-		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
-		logTypeId = Bean.hashLog(logTypeIdHead, keyClass, valueClass);
+		meta = Meta2.getMap1Meta(keyClass, valueClass);
 	}
 
-	private PMap1(int logTypeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs,
-				  SerializeHelper.CodecFuncs<V> valueCodecFuncs) {
-		this.keyCodecFuncs = keyCodecFuncs;
-		this.valueCodecFuncs = valueCodecFuncs;
-		this.logTypeId = logTypeId;
+	private PMap1(Meta2<K, V> meta) {
+		this.meta = meta;
 	}
 
 	@Override
@@ -115,7 +104,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 
 	@Override
 	public LogBean createLogBean() {
-		var log = new LogMap1<>(logTypeId, keyCodecFuncs, valueCodecFuncs);
+		var log = new LogMap1<>(meta);
 		log.setBelong(parent());
 		log.setThis(this);
 		log.setVariableId(variableId());
@@ -125,7 +114,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 
 	@Override
 	public PMap1<K, V> copy() {
-		var copy = new PMap1<>(logTypeId, keyCodecFuncs, valueCodecFuncs);
+		var copy = new PMap1<>(meta);
 		copy.map = map;
 		return copy;
 	}
@@ -134,8 +123,8 @@ public class PMap1<K, V> extends PMap<K, V> {
 	public void encode(ByteBuffer bb) {
 		var tmp = getMap();
 		bb.WriteUInt(tmp.size());
-		var keyEncoder = keyCodecFuncs.encoder;
-		var valueEncoder = valueCodecFuncs.encoder;
+		var keyEncoder = meta.keyEncoder;
+		var valueEncoder = meta.valueEncoder;
 		for (var e : tmp.entrySet()) {
 			keyEncoder.accept(bb, e.getKey());
 			valueEncoder.accept(bb, e.getValue());
@@ -145,8 +134,8 @@ public class PMap1<K, V> extends PMap<K, V> {
 	@Override
 	public void decode(ByteBuffer bb) {
 		clear();
-		var keyDecoder = keyCodecFuncs.decoder;
-		var valueDecoder = valueCodecFuncs.decoder;
+		var keyDecoder = meta.keyDecoder;
+		var valueDecoder = meta.valueDecoder;
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var key = keyDecoder.apply(bb);
 			var value = valueDecoder.apply(bb);

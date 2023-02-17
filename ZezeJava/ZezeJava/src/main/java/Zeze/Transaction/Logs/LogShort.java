@@ -9,15 +9,15 @@ public abstract class LogShort extends Log {
 
 	public short value;
 
-	public LogShort() {
-		super(TYPE_ID);
-	}
-
 	public LogShort(Bean belong, int varId, short value) {
-		this();
 		setBelong(belong);
 		setVariableId(varId);
 		this.value = value;
+	}
+
+	@Override
+	public int getTypeId() {
+		return TYPE_ID;
 	}
 
 	@Override

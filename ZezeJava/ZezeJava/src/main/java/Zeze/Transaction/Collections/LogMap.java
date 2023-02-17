@@ -6,9 +6,8 @@ import Zeze.Transaction.Log;
 public abstract class LogMap<K, V> extends LogBean {
 	private org.pcollections.PMap<K, V> value;
 
-	public LogMap(int typeId) {
-		super(typeId);
-	}
+	@Override
+	public abstract int getTypeId();
 
 	public final org.pcollections.PMap<K, V> getValue() {
 		return value;

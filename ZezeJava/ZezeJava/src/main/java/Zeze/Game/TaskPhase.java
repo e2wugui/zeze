@@ -105,9 +105,9 @@ public class TaskPhase {
 		public static final String COMPLETE_ANY = "ANY";
 		private BSubPhase bean;
 		public BSubPhase getBean() { return bean; }
-		private final TaskPhase phase;
+//		private final TaskPhase phase;
 		public SubPhase(TaskPhase phase) {
-			this.phase = phase;
+//			this.phase = phase;
 		}
 		public final ConcurrentHashSet<TaskConditionBase<?,?>> conditions = new ConcurrentHashSet<>();
 

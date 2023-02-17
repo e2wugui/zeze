@@ -10,13 +10,12 @@ import Zeze.Transaction.Bean;
 
 public class ConditionKillMonster extends TaskConditionBase<BTConditionKillMonster, BTConditionKillMonsterEvent> {
 	// @formatter:off
-	private BTConditionKillMonster bean;
 	public ConditionKillMonster(TaskPhase phase) {
 		super(phase);
 	}
 	@Override
 	protected void loadJsonExtended(JsonObject json) {
-		bean = new BTConditionKillMonster();
+		var bean = new BTConditionKillMonster();
 		var monsters = json.getJsonArray("monsters");
 		for (var monster : monsters) {
 			long monsterId = monster.asJsonObject().getInt("monsterId");
@@ -38,6 +37,7 @@ public class ConditionKillMonster extends TaskConditionBase<BTConditionKillMonst
 			return false;
 
 		var bean = getExtendedBean();
+		//noinspection PatternVariableCanBeUsed
 		var killMonsterEventBean = (BTConditionKillMonsterEvent)eventBean;
 		for (var monster : killMonsterEventBean.getMonsters()) {
 			bean.getMonstersKilled().put(monster.getKey(), monster.getValue());

@@ -9,6 +9,11 @@ public final class RecordAccessed extends Bean {
 		}
 
 		@Override
+		public int getTypeId() {
+			return 0; // 现在Log1仅用于特殊目的，不支持相关日志系列化。
+		}
+
+		@Override
 		public long getLogKey() {
 			return getBean().objectId();
 		}

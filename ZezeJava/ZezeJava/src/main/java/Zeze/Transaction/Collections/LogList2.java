@@ -1,29 +1,21 @@
 package Zeze.Transaction.Collections;
 
-import java.lang.invoke.MethodHandle;
 import java.util.HashMap;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
 import Zeze.Util.OutInt;
-import Zeze.Util.Reflect;
 
 public class LogList2<V extends Bean> extends LogList1<V> {
-	private static final long logTypeIdHead = Bean.hash64("Zeze.Transaction.Collections.LogList2<");
-
 	private final HashMap<LogBean, OutInt> changed = new HashMap<>(); // changed V logs. using in collect.
-	private final MethodHandle valueFactory;
 
 	public LogList2(Class<V> valueClass) {
-		super(Bean.hashLog(logTypeIdHead, valueClass), SerializeHelper.createCodec(valueClass));
-		valueFactory = Reflect.getDefaultConstructor(valueClass);
+		super(Meta1.getList2Meta(valueClass));
 	}
 
-	public LogList2(int typeId, MethodHandle valueFactory) {
-		super(typeId, null);
-		this.valueFactory = valueFactory;
+	public LogList2(Meta1<V> meta) {
+		super(meta);
 	}
 
 	public final HashMap<LogBean, OutInt> getChanged() {
@@ -32,7 +24,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 
 	@Override
 	public Log beginSavepoint() {
-		var dup = new LogList2<V>(getTypeId(), valueFactory);
+		var dup = new LogList2<>(meta);
 		dup.setThis(getThis());
 		dup.setBelong(getBelong());
 		dup.setVariableId(getVariableId());
@@ -97,7 +89,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 			V value = null;
 			if (op < OpLog.OP_REMOVE) {
 				try {
-					value = (V)valueFactory.invoke();
+					value = (V)meta.valueFactory.invoke();
 				} catch (RuntimeException | Error e) {
 					throw e;
 				} catch (Throwable e) { // MethodHandle.invoke

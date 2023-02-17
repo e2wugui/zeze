@@ -9,15 +9,15 @@ public abstract class LogString extends Log {
 
 	public String value;
 
-	public LogString() {
-		super(TYPE_ID);
-	}
-
 	public LogString(Bean belong, int varId, String value) {
-		this();
 		setBelong(belong);
 		setVariableId(varId);
 		this.value = value;
+	}
+
+	@Override
+	public int getTypeId() {
+		return TYPE_ID;
 	}
 
 	@Override

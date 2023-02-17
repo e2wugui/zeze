@@ -202,8 +202,12 @@ public final class AutoKeyOld {
 		private final Range range;
 
 		public RangeLog(Range range) {
-			super(0); // null: 特殊日志，不关联Bean。
 			this.range = range;
+		}
+
+		@Override
+		public int getTypeId() {
+			return 0; // null: 特殊日志，不关联Bean。
 		}
 
 		@Override

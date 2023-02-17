@@ -9,15 +9,15 @@ public abstract class LogByte extends Log {
 
 	public byte value;
 
-	public LogByte() {
-		super(TYPE_ID);
-	}
-
 	public LogByte(Bean belong, int varId, byte value) {
-		this();
 		setBelong(belong);
 		setVariableId(varId);
 		this.value = value;
+	}
+
+	@Override
+	public int getTypeId() {
+		return TYPE_ID;
 	}
 
 	@Override

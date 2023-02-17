@@ -5,34 +5,25 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Serialize.SerializeHelper;
-import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 
 public class LogMap1<K, V> extends LogMap<K, V> {
-	private static final long logTypeIdHead = Bean.hash64("Zeze.Transaction.Collections.LogMap1<");
-
-	protected final SerializeHelper.CodecFuncs<K> keyCodecFuncs;
-	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
-
+	protected final Meta2<K, V> meta;
 	private final HashMap<K, V> replaced = new HashMap<>();
 	private final Set<K> removed = new HashSet<>();
 
 	public LogMap1(Class<K> keyClass, Class<V> valueClass) {
-		this(Bean.hashLog(logTypeIdHead, keyClass, valueClass), keyClass, valueClass);
+		meta = Meta2.getMap1Meta(keyClass, valueClass);
 	}
 
-	LogMap1(int logTypeId, Class<K> keyClass, Class<V> valueClass) {
-		super(logTypeId);
-		keyCodecFuncs = SerializeHelper.createCodec(keyClass);
-		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
+	LogMap1(Meta2<K, V> meta) {
+		this.meta = meta;
 	}
 
-	LogMap1(int typeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs, SerializeHelper.CodecFuncs<V> valueCodecFuncs) {
-		super(typeId);
-		this.keyCodecFuncs = keyCodecFuncs;
-		this.valueCodecFuncs = valueCodecFuncs;
+	@Override
+	public int getTypeId() {
+		return meta.logTypeId;
 	}
 
 	public final HashMap<K, V> getReplaced() {
@@ -100,8 +91,8 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	@Override
 	public void encode(ByteBuffer bb) {
 		bb.WriteUInt(replaced.size());
-		var keyEncoder = keyCodecFuncs.encoder;
-		var valueEncoder = valueCodecFuncs.encoder;
+		var keyEncoder = meta.keyEncoder;
+		var valueEncoder = meta.valueEncoder;
 		for (var p : replaced.entrySet()) {
 			keyEncoder.accept(bb, p.getKey());
 			valueEncoder.accept(bb, p.getValue());
@@ -115,8 +106,8 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	@Override
 	public void decode(ByteBuffer bb) {
 		replaced.clear();
-		var keyDecoder = keyCodecFuncs.decoder;
-		var valueDecoder = valueCodecFuncs.decoder;
+		var keyDecoder = meta.keyDecoder;
+		var valueDecoder = meta.valueDecoder;
 		for (int i = bb.ReadUInt(); i > 0; --i) {
 			var key = keyDecoder.apply(bb);
 			var value = valueDecoder.apply(bb);
@@ -157,7 +148,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 
 	@Override
 	public Log beginSavepoint() {
-		var dup = new LogMap1<>(getTypeId(), keyCodecFuncs, valueCodecFuncs);
+		var dup = new LogMap1<>(meta);
 		dup.setThis(getThis());
 		dup.setBelong(getBelong());
 		dup.setVariableId(getVariableId());

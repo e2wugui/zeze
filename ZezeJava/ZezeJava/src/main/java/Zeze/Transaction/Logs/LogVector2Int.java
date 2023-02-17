@@ -10,15 +10,15 @@ public abstract class LogVector2Int extends Log {
 
 	public Vector2Int value;
 
-	public LogVector2Int() {
-		super(TYPE_ID);
-	}
-
 	public LogVector2Int(Bean belong, int varId, Vector2Int value) {
-		super(TYPE_ID);
 		setBelong(belong);
 		setVariableId(varId);
 		this.value = value;
+	}
+
+	@Override
+	public int getTypeId() {
+		return TYPE_ID;
 	}
 
 	@Override

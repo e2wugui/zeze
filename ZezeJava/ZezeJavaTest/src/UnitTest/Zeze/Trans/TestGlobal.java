@@ -31,6 +31,11 @@ public class TestGlobal extends TestCase {
 		}
 
 		@Override
+		public int getTypeId() {
+			return 0; // 现在Log1仅用于特殊目的，不支持相关日志系列化。
+		}
+
+		@Override
 		public long getLogKey() {
 			return this.getBean().objectId() + 100;
 		}
@@ -108,6 +113,7 @@ public class TestGlobal extends TestCase {
 				BValue b = app.demo_Module1.getTable1().getOrAdd(6785L);
 				b.setInt1(b.getInt1() + 1);
 				PrintLog log = new PrintLog(b, b, appId);
+				//noinspection DataFlowIssue
 				Transaction.getCurrent().putLog(log);
 				return Procedure.Success;
 			}, "ConcurrentAdd" + appId), null, null);

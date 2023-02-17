@@ -2,26 +2,19 @@ package Zeze.Transaction.Collections;
 
 import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Serialize.SerializeHelper;
-import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
 import org.pcollections.Empty;
 
 public class PList1<V> extends PList<V> {
-	private static final long logTypeIdHead = Bean.hash64("Zeze.Transaction.Collections.LogList1<");
-
-	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
-	private final int logTypeId;
+	protected final Meta1<V> meta;
 
 	public PList1(Class<V> valueClass) {
-		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
-		logTypeId = Bean.hashLog(logTypeIdHead, valueClass);
+		meta = Meta1.getList1Meta(valueClass);
 	}
 
-	private PList1(int logTypeId, SerializeHelper.CodecFuncs<V> valueCodecFuncs) {
-		this.valueCodecFuncs = valueCodecFuncs;
-		this.logTypeId = logTypeId;
+	private PList1(Meta1<V> meta) {
+		this.meta = meta;
 	}
 
 	@Override
@@ -144,7 +137,7 @@ public class PList1<V> extends PList<V> {
 
 	@Override
 	public LogBean createLogBean() {
-		var log = new LogList1<>(logTypeId, valueCodecFuncs);
+		var log = new LogList1<>(meta);
 		log.setBelong(parent());
 		log.setThis(this);
 		log.setVariableId(variableId());
@@ -176,7 +169,7 @@ public class PList1<V> extends PList<V> {
 
 	@Override
 	public PList1<V> copy() {
-		var copy = new PList1<>(logTypeId, valueCodecFuncs);
+		var copy = new PList1<>(meta);
 		copy.list = list;
 		return copy;
 	}
@@ -185,7 +178,7 @@ public class PList1<V> extends PList<V> {
 	public void encode(ByteBuffer bb) {
 		var tmp = getList();
 		bb.WriteUInt(tmp.size());
-		var encoder = valueCodecFuncs.encoder;
+		var encoder = meta.valueEncoder;
 		for (var e : tmp)
 			encoder.accept(bb, e);
 	}
@@ -193,7 +186,7 @@ public class PList1<V> extends PList<V> {
 	@Override
 	public void decode(ByteBuffer bb) {
 		clear();
-		var decoder = valueCodecFuncs.decoder;
+		var decoder = meta.valueDecoder;
 		for (int i = bb.ReadUInt(); i > 0; i--)
 			add(decoder.apply(bb));
 	}

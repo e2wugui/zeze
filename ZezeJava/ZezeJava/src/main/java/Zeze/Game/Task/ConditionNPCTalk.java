@@ -24,11 +24,8 @@ public class ConditionNPCTalk extends TaskConditionBase<BTConditionNPCTalk, BTCo
 
 	@Override
 	public boolean accept(Bean eventBean) throws Exception {
-		if (!(eventBean instanceof BTConditionNPCTalkEvent))
-			return false;
-
 		// 处理对话选项，以及触发什么事件
-		return true;
+		return eventBean instanceof BTConditionNPCTalkEvent;
 	}
 
 	@Override

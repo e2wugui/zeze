@@ -7,9 +7,8 @@ import org.pcollections.PVector;
 public abstract class LogList<V> extends LogBean {
 	private PVector<V> value;
 
-	public LogList(int typeId) {
-		super(typeId);
-	}
+	@Override
+	public abstract int getTypeId();
 
 	final PVector<V> getValue() {
 		return value;

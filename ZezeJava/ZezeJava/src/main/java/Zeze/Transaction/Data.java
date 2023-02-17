@@ -29,10 +29,10 @@ public abstract class Data implements Serializable {
 
 	public abstract void assign(Bean b); // 用于DynamicBeanData.assign(DynamicBean);
 
+	public abstract Bean toBean();
+
 	public abstract Data copy();
 
 	public void buildString(StringBuilder sb, int level) {
 	}
-
-	public abstract Bean toBean();
 }

@@ -1,21 +1,17 @@
 package Zeze.Transaction.Logs;
 
-import java.lang.invoke.MethodHandle;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.Collections.Meta1;
 import Zeze.Transaction.Log;
-import Zeze.Util.Reflect;
 
 public abstract class LogBeanKey<T extends Serializable> extends Log {
-	private static final long logTypeIdHead = Bean.hash64("Zeze.Transaction.Log<");
-
+	protected final Meta1<T> meta;
 	public T value;
-	private final MethodHandle valueFactory;
 
-	public LogBeanKey(Class<T> valueClass) {
-		super(Bean.hashLog(logTypeIdHead, valueClass));
-		valueFactory = Reflect.getDefaultConstructor(valueClass);
+	public LogBeanKey(Class<T> beanClass) {
+		meta = Meta1.getBeanMeta(beanClass);
 	}
 
 	// 事务修改过程中不需要Factory。
@@ -27,6 +23,11 @@ public abstract class LogBeanKey<T extends Serializable> extends Log {
 	}
 
 	@Override
+	public int getTypeId() {
+		return meta.logTypeId;
+	}
+
+	@Override
 	public void encode(ByteBuffer bb) {
 		value.encode(bb);
 	}
@@ -35,7 +36,7 @@ public abstract class LogBeanKey<T extends Serializable> extends Log {
 	@Override
 	public void decode(ByteBuffer bb) {
 		try {
-			value = (T)valueFactory.invoke();
+			value = (T)meta.valueFactory.invoke();
 		} catch (RuntimeException | Error e) {
 			throw e;
 		} catch (Throwable e) { // MethodHandle.invoke

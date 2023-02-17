@@ -10,15 +10,15 @@ public abstract class LogVector3 extends Log {
 
 	public Vector3 value;
 
-	public LogVector3() {
-		super(TYPE_ID);
-	}
-
 	public LogVector3(Bean belong, int varId, Vector3 value) {
-		super(TYPE_ID);
 		setBelong(belong);
 		setVariableId(varId);
 		this.value = value;
+	}
+
+	@Override
+	public int getTypeId() {
+		return TYPE_ID;
 	}
 
 	@Override
