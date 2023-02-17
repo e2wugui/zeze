@@ -79,7 +79,7 @@ public class ProviderUserSession {
 			contexts.put(getLinkSid(), getRoleId());
 			((ProviderWithOnline)providerImpl).getOnline().send(link, contexts, send);
 		} else
-			link.Send(send);
+			send.Send(link);
 	}
 
 	public void sendResponse(long typeId, Binary fullEncodedProtocol) {
