@@ -2,7 +2,6 @@ package Zeze.Arch;
 
 import Zeze.AppBase;
 import Zeze.Builtin.Provider.LinkBroken;
-import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 
 public class ProviderWithOnline extends ProviderImplement {

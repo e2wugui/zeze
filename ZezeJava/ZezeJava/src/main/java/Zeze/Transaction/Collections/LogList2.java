@@ -10,11 +10,7 @@ import Zeze.Util.OutInt;
 public class LogList2<V extends Bean> extends LogList1<V> {
 	private final HashMap<LogBean, OutInt> changed = new HashMap<>(); // changed V logs. using in collect.
 
-	public LogList2(Class<V> valueClass) {
-		super(Meta1.getList2Meta(valueClass));
-	}
-
-	public LogList2(Meta1<V> meta) {
+	LogList2(Meta1<V> meta) {
 		super(meta);
 	}
 

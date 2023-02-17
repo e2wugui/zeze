@@ -13,10 +13,6 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	private final HashMap<K, LogBean> changedWithKey = new HashMap<>(); // changed with key. using in encode/decode followerApply
 	private boolean built;
 
-	public LogMap2(Class<K> keyClass, Class<V> valueClass) {
-		super(Meta2.getMap2Meta(keyClass, valueClass));
-	}
-
 	LogMap2(Meta2<K, V> meta) {
 		super(meta);
 	}

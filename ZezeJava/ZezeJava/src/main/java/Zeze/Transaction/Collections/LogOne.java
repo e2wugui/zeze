@@ -10,6 +10,9 @@ public class LogOne<V extends Bean> extends LogBean {
 	public V value;
 	public LogBean logBean;
 
+	LogOne() {
+	}
+
 	public void setValue(V value) {
 		this.value = value;
 	}

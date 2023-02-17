@@ -13,10 +13,6 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	private final HashMap<K, V> replaced = new HashMap<>();
 	private final Set<K> removed = new HashSet<>();
 
-	public LogMap1(Class<K> keyClass, Class<V> valueClass) {
-		meta = Meta2.getMap1Meta(keyClass, valueClass);
-	}
-
 	LogMap1(Meta2<K, V> meta) {
 		this.meta = meta;
 	}
@@ -95,6 +91,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 		var valueEncoder = meta.valueEncoder;
 		for (var p : replaced.entrySet()) {
 			keyEncoder.accept(bb, p.getKey());
+			//noinspection DataFlowIssue
 			valueEncoder.accept(bb, p.getValue());
 		}
 
@@ -110,6 +107,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 		var valueDecoder = meta.valueDecoder;
 		for (int i = bb.ReadUInt(); i > 0; --i) {
 			var key = keyDecoder.apply(bb);
+			//noinspection DataFlowIssue
 			var value = valueDecoder.apply(bb);
 			replaced.put(key, value);
 		}

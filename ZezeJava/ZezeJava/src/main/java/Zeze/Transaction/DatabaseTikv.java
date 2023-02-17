@@ -266,6 +266,7 @@ public class DatabaseTikv extends Database {
 				if (!callback.handle(kv.getKey().substring(keyPrefixSize).toByteArray(), value.toByteArray()))
 					break;
 			}
+			//noinspection ConstantValue
 			return null == lastKey ? null : ByteBuffer.Wrap(lastKey);
 		}
 

@@ -15,10 +15,6 @@ public class LogSet1<V> extends LogSet<V> {
 	private final Set<V> added = new HashSet<>();
 	private final Set<V> removed = new HashSet<>();
 
-	public LogSet1(Class<V> valueClass) {
-		meta = Meta1.getSet1Meta(valueClass);
-	}
-
 	LogSet1(Meta1<V> meta) {
 		this.meta = meta;
 	}
@@ -95,6 +91,7 @@ public class LogSet1<V> extends LogSet<V> {
 		setValue(Empty.set());
 	}
 
+	@SuppressWarnings("DataFlowIssue")
 	@Override
 	public void encode(ByteBuffer bb) {
 		var encoder = meta.valueEncoder;
@@ -108,6 +105,7 @@ public class LogSet1<V> extends LogSet<V> {
 			encoder.accept(bb, e);
 	}
 
+	@SuppressWarnings("DataFlowIssue")
 	@Override
 	public void decode(ByteBuffer bb) {
 		var decoder = meta.valueDecoder;

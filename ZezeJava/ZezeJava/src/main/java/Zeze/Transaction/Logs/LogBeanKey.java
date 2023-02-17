@@ -10,15 +10,11 @@ public abstract class LogBeanKey<T extends Serializable> extends Log {
 	protected final Meta1<T> meta;
 	public T value;
 
-	public LogBeanKey(Class<T> beanClass) {
-		meta = Meta1.getBeanMeta(beanClass);
-	}
-
 	// 事务修改过程中不需要Factory。
-	public LogBeanKey(Class<T> cls, Bean belong, int varId, T value) {
-		this(cls);
+	public LogBeanKey(Class<T> beanClass, Bean belong, int varId, T value) {
 		setBelong(belong);
 		setVariableId(varId);
+		meta = Meta1.getBeanMeta(beanClass);
 		this.value = value;
 	}
 

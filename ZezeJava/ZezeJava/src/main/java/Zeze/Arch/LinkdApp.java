@@ -8,7 +8,6 @@ import Zeze.Net.Selectors;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Action1;
 import Zeze.Util.CommandConsoleService;
-import Zeze.Util.Func5;
 
 public class LinkdApp {
 	public final String linkdServiceName;
@@ -21,7 +20,12 @@ public class LinkdApp {
 	public int providerPort;
 	public final Selectors selectors;
 	public Action1<ServerSocket> onServerSocketBindAction;
-	public Func5<AsyncSocket, Integer, Integer, Integer, Double, Boolean> discardAction;
+
+	public interface DiscardAction {
+		boolean call(AsyncSocket sender, int moduleId, int protocolId, int size, double rate);
+	}
+
+	public DiscardAction discardAction;
 
 	/**
 	 * 自动创建，自动启动。

@@ -29,7 +29,7 @@ public class DAG<V extends Bean> {
 	final DirectedAcyclicGraph<BDAGNodeKey, DefaultEdge> graph = new DirectedAcyclicGraph<>(DefaultEdge.class);
 
 	public boolean addNode(long id, V value) throws Exception {
-		var nodeIdKey = new BDAGNodeKey(name, Long.toString(id));
+//		var nodeIdKey = new BDAGNodeKey(name, Long.toString(id));
 		var nodeNode = new BDAGNode();
 		nodeNode.getValue().setBean(value);
 		checkValid();
