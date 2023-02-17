@@ -19,7 +19,7 @@ Benchmark.BBasicSimpleAddConcurrentWithConflict tasks/s=217785.84 time=4.59 cpu=
 Benchmark.CBasicSimpleAddConcurrent tasks/s=96997.63 time=10.31 cpu=100.00 concurrent=9.70
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/3/3 v1.1.9 Zeze.Transaction.Data; 
+2023/2/24 v1.1.9 Zeze.Transaction.Data; 
 ------------------------------------------------------------------------------------------------------------------------------
 Zeze.Transaction.Data Bean的无事务版本。
 	-- 没有选择，全部Bean生成完成。
