@@ -18,7 +18,6 @@ import Zeze.Builtin.Online.BOnlines;
 import Zeze.Builtin.Online.BReliableNotify;
 import Zeze.Builtin.Online.BVersions;
 import Zeze.Builtin.Online.SReliableNotify;
-import Zeze.Builtin.Online.taccount;
 import Zeze.Builtin.Provider.BBroadcast;
 import Zeze.Builtin.Provider.BKick;
 import Zeze.Builtin.Provider.Broadcast;
@@ -119,10 +118,6 @@ public class Online extends AbstractOnline {
 			UnRegisterZezeTables(providerApp.zeze);
 			UnRegisterProtocols(providerApp.providerService);
 		}
-	}
-
-	public taccount getTableAccount() {
-		return _taccount;
 	}
 
 	public Bean getUserData(String account, String clientId) {
@@ -966,7 +961,6 @@ public class Online extends AbstractOnline {
 	protected long ProcessLoginRequest(Zeze.Builtin.Online.Login rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 
-		var account = _taccount.getOrAdd(session.getAccount());
 		var online = _tonline.getOrAdd(session.getAccount());
 		var local = _tlocal.getOrAdd(session.getAccount());
 		var version = _tversion.getOrAdd(session.getAccount());
@@ -983,8 +977,8 @@ public class Online extends AbstractOnline {
 				tryRedirectRemoveLocal(loginVersion.getServerId(), session.getAccount());
 			}
 		}
-		var loginVersionSerialId = account.getLastLoginVersion() + 1;
-		account.setLastLoginVersion(loginVersionSerialId);
+		var loginVersionSerialId = version.getLastLoginVersion() + 1;
+		version.setLastLoginVersion(loginVersionSerialId);
 		loginVersion.setLoginVersion(loginVersionSerialId);
 		loginLocal.setLoginVersion(loginVersionSerialId);
 
@@ -1035,10 +1029,6 @@ public class Online extends AbstractOnline {
 	protected long ProcessReLoginRequest(Zeze.Builtin.Online.ReLogin rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 
-		var account = _taccount.get(session.getAccount());
-		if (account == null)
-			return errorCode(ResultCodeAccountNotExist);
-
 		var online = _tonline.get(session.getAccount());
 		if (online == null)
 			return errorCode(ResultCodeOnlineDataNotFound);
@@ -1059,8 +1049,8 @@ public class Online extends AbstractOnline {
 				tryRedirectRemoveLocal(loginVersion.getServerId(), session.getAccount());
 			}
 		}
-		var loginVersionSerialId = account.getLastLoginVersion() + 1;
-		account.setLastLoginVersion(loginVersionSerialId);
+		var loginVersionSerialId = version.getLastLoginVersion() + 1;
+		version.setLastLoginVersion(loginVersionSerialId);
 		loginVersion.setLoginVersion(loginVersionSerialId);
 		loginLocal.setLoginVersion(loginVersionSerialId);
 

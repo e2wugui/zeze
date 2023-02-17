@@ -20,7 +20,6 @@ public abstract class AbstractOnline implements Zeze.IModule {
     public static final int ResultCodeReliableNotifyConfirmIndexOutOfRange = 6;
     public static final int ResultCodeNotLogin = 7;
 
-    protected final Zeze.Builtin.Game.Online.taccount _taccount = new Zeze.Builtin.Game.Online.taccount();
     protected final Zeze.Builtin.Game.Online.tlocal _tlocal = new Zeze.Builtin.Game.Online.tlocal();
     protected final Zeze.Builtin.Game.Online.tonline _tonline = new Zeze.Builtin.Game.Online.tonline();
     protected final Zeze.Builtin.Game.Online.tversion _tversion = new Zeze.Builtin.Game.Online.tversion();
@@ -69,14 +68,12 @@ public abstract class AbstractOnline implements Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
-        zeze.addTable(zeze.getConfig().getTableConf(_taccount.getName()).getDatabaseName(), _taccount);
         zeze.addTable(zeze.getConfig().getTableConf(_tlocal.getName()).getDatabaseName(), _tlocal);
         zeze.addTable(zeze.getConfig().getTableConf(_tonline.getName()).getDatabaseName(), _tonline);
         zeze.addTable(zeze.getConfig().getTableConf(_tversion.getName()).getDatabaseName(), _tversion);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
-        zeze.removeTable(zeze.getConfig().getTableConf(_taccount.getName()).getDatabaseName(), _taccount);
         zeze.removeTable(zeze.getConfig().getTableConf(_tlocal.getName()).getDatabaseName(), _tlocal);
         zeze.removeTable(zeze.getConfig().getTableConf(_tonline.getName()).getDatabaseName(), _tonline);
         zeze.removeTable(zeze.getConfig().getTableConf(_tversion.getName()).getDatabaseName(), _tversion);

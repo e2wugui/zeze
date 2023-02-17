@@ -31,7 +31,6 @@ namespace Zeze.Game
         public ProviderApp ProviderApp { get; }
         public AppBase App { get; }
         public ProviderLoad LoadReporter { get; }
-        public taccount TableAccount => _taccount;
 
         public static Online Create(AppBase app)
         {
@@ -118,35 +117,6 @@ namespace Zeze.Game
         private readonly Util.AtomicLong _LoginTimes = new();
 
         public long LoginTimes => _LoginTimes.Get();
-
-        public async Task<bool> AddRole(string account, long roleId)
-        {
-            BAccount bAccount = await _taccount.GetOrAddAsync(account);
-            if (!bAccount.Name.Equals(account)) // 优化写，相同的时候不修改数据。
-                bAccount.Name = account;
-            if (bAccount.Roles.Contains(roleId))
-                return false;
-            bAccount.Roles.Add(roleId);
-            return true;
-        }
-
-        public async Task RemoveRole(String account, long roleId)
-        {
-            BAccount bAccount = await _taccount.GetAsync(account);
-            bAccount?.Roles.Remove(roleId);
-        }
-
-        public async Task<bool> SetLastLoginRoleId(String account, long roleId)
-        {
-            BAccount bAccount = await _taccount.GetAsync(account);
-            if (bAccount == null)
-                return false;
-            if (!bAccount.Roles.Contains(roleId))
-                return false;
-            bAccount.LastLoginRoleId = roleId;
-            return true;
-        }
-
         private async Task RemoveLocalAndTrigger(long roleId)
         {
             var arg = new LocalRemoveEventArgument()
@@ -752,12 +722,6 @@ namespace Zeze.Game
             var rpc = p as Login;
             var session = ProviderUserSession.Get(rpc);
 
-            var account = await _taccount.GetOrAddAsync(session.Account);
-            if (!account.Roles.Contains(rpc.Argument.RoleId))
-                return ErrorCode(ResultCodeRoleNotExist);
-
-            account.LastLoginRoleId = rpc.Argument.RoleId;
-
             var online = await _tonline.GetOrAddAsync(rpc.Argument.RoleId);
             var local = await _tlocal.GetOrAddAsync(rpc.Argument.RoleId);
             var version = await _tversion.GetOrAddAsync(rpc.Argument.RoleId);
@@ -771,8 +735,8 @@ namespace Zeze.Game
                     _ = TryRedirectNotify(version.ServerId, rpc.Argument.RoleId);
                 }
             }
-            var loginVersion = account.LastLoginVersion + 1;
-            account.LastLoginVersion = loginVersion;
+            var loginVersion = version.LoginVersion + 1;
+            version.LoginVersion = loginVersion;
             version.LoginVersion = loginVersion;
             local.LoginVersion = loginVersion;
 
@@ -821,16 +785,6 @@ namespace Zeze.Game
             var rpc = p as ReLogin;
             var session = ProviderUserSession.Get(rpc);
 
-            BAccount account = await _taccount.GetAsync(session.Account);
-            if (null == account)
-                return ErrorCode(ResultCodeAccountNotExist);
-
-            if (account.LastLoginRoleId != rpc.Argument.RoleId)
-                return ErrorCode(ResultCodeNotLastLoginRoleId);
-
-            if (!account.Roles.Contains(rpc.Argument.RoleId))
-                return ErrorCode(ResultCodeRoleNotExist);
-
             BOnline online = await _tonline.GetAsync(rpc.Argument.RoleId);
             if (null == online)
                 return ErrorCode(ResultCodeOnlineDataNotFound);
@@ -848,8 +802,8 @@ namespace Zeze.Game
                     _ = TryRedirectNotify(version.ServerId, rpc.Argument.RoleId);
                 }
             }
-            var loginVersion = account.LastLoginVersion + 1;
-            account.LastLoginVersion = loginVersion;
+            var loginVersion = version.LoginVersion + 1;
+            version.LoginVersion = loginVersion;
             version.LoginVersion = loginVersion;
             local.LoginVersion = loginVersion;
 

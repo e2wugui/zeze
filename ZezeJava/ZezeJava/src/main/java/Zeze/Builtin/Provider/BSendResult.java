@@ -26,7 +26,7 @@ public final class BSendResult extends Zeze.Transaction.Bean implements BSendRes
 
     public void assign(BSendResult other) {
         _ErrorLinkSids.clear();
-        _ErrorLinkSids.addAll(other._ErrorLinkSids);
+        _ErrorLinkSids.addAll(other.getErrorLinkSids());
     }
 
     @Deprecated

@@ -257,7 +257,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         setTaskName(other.getTaskName());
         setTaskDescription(other.getTaskDescription());
         _preTaskIds.clear();
-        _preTaskIds.addAll(other._preTaskIds);
+        _preTaskIds.addAll(other.getPreTaskIds());
         setCurrentPhaseId(other.getCurrentPhaseId());
         _taskPhases.clear();
         for (var e : other.getTaskPhases().entrySet())

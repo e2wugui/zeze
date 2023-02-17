@@ -8,4 +8,5 @@ public interface BVersionsReadOnly {
     public BVersions copy();
 
     public Zeze.Transaction.Collections.PMap2ReadOnly<String, Zeze.Builtin.Online.BVersion, Zeze.Builtin.Online.BVersionReadOnly> getLoginsReadOnly();
+    public long getLastLoginVersion();
 }

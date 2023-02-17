@@ -3,7 +3,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Zeze.Arch;
 using Zeze.Arch.Gen;
 using Zeze.Builtin.Online;
 using Zeze.Builtin.Provider;
@@ -31,7 +30,6 @@ namespace Zeze.Arch
         public ProviderApp ProviderApp { get; }
         public AppBase App { get; }
         public ProviderLoad Load { get; }
-        public taccount TableAccount => _taccount;
 
         public static Online Create(AppBase app)
         {
@@ -948,7 +946,6 @@ namespace Zeze.Arch
             var rpc = p as Login;
             var session = ProviderUserSession.Get(rpc);
 
-            var account = await _taccount.GetOrAddAsync(session.Account);
             var online = await _tonline.GetOrAddAsync(session.Account);
             var local = await _tlocal.GetOrAddAsync(session.Account);
             var version = await _tversion.GetOrAddAsync(session.Account);
@@ -965,8 +962,8 @@ namespace Zeze.Arch
                     _ = TryRedirectNotify(loginVersion.ServerId, session.Account);
                 }
             }
-            var loginVersionSerialId = account.LastLoginVersion + 1;
-            account.LastLoginVersion = loginVersionSerialId;
+            var loginVersionSerialId = version.LastLoginVersion + 1;
+            version.LastLoginVersion = loginVersionSerialId;
             loginVersion.LoginVersion = loginVersionSerialId;
             loginLocal.LoginVersion = loginVersionSerialId;
 
@@ -1016,10 +1013,6 @@ namespace Zeze.Arch
             var rpc = p as ReLogin;
             var session = ProviderUserSession.Get(rpc);
 
-            var account = await _taccount.GetAsync(session.Account);
-            if (null == account)
-                return ErrorCode(ResultCodeAccountNotExist);
-
             var online = await _tonline.GetAsync(session.Account);
             if (null == online)
                 return ErrorCode(ResultCodeOnlineDataNotFound);
@@ -1040,8 +1033,8 @@ namespace Zeze.Arch
                     _ = TryRedirectNotify(loginVersion.ServerId, session.Account);
                 }
             }
-            var loginVersionSerialId = account.LastLoginVersion + 1;
-            account.LastLoginVersion = loginVersionSerialId;
+            var loginVersionSerialId = version.LastLoginVersion + 1;
+            version.LastLoginVersion = loginVersionSerialId;
             loginVersion.LoginVersion = loginVersionSerialId;
             loginLocal.LoginVersion = loginVersionSerialId;
 

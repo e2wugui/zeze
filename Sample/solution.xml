@@ -26,6 +26,11 @@
 			<variable id="1" name="Id" type="long"/>
 		</bean>
 
+		<bean name="BAccount">
+			<variable id="1" name="Roles" type="set[long]"/>
+			<variable id="2" name="LastLoginRoleId" type="long"/>
+		</bean>
+		<table name="taccount" key="string" value="BAccount"/>
 		<table name="trole" key="long" value="BRoleData" autokey="true"/>
 		<table name="trolename" key="string" value="BRoleId"/> rolename to roleid. duplicate name check
 	</module>

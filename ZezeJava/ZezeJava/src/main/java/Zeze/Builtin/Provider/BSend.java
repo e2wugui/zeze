@@ -81,7 +81,7 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
 
     public void assign(BSend other) {
         _linkSids.clear();
-        _linkSids.addAll(other._linkSids);
+        _linkSids.addAll(other.getLinkSids());
         setProtocolType(other.getProtocolType());
         setProtocolWholeData(other.getProtocolWholeData());
     }

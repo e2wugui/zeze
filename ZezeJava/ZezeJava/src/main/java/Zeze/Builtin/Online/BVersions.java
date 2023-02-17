@@ -8,6 +8,7 @@ public final class BVersions extends Zeze.Transaction.Bean implements BVersionsR
     public static final long TYPEID = 3480529937760660740L;
 
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Online.BVersion> _Logins; // key is ClientId
+    private long _LastLoginVersion; // 用来生成 account 登录版本号。每次递增。
 
     public Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Online.BVersion> getLogins() {
         return _Logins;
@@ -18,16 +19,44 @@ public final class BVersions extends Zeze.Transaction.Bean implements BVersionsR
         return new Zeze.Transaction.Collections.PMap2ReadOnly<>(_Logins);
     }
 
+    @Override
+    public long getLastLoginVersion() {
+        if (!isManaged())
+            return _LastLoginVersion;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _LastLoginVersion;
+        var log = (Log__LastLoginVersion)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _LastLoginVersion;
+    }
+
+    public void setLastLoginVersion(long value) {
+        if (!isManaged()) {
+            _LastLoginVersion = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__LastLoginVersion(this, 2, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BVersions() {
         _Logins = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Online.BVersion.class);
         _Logins.variableId(1);
     }
 
+    @SuppressWarnings("deprecation")
+    public BVersions(long _LastLoginVersion_) {
+        _Logins = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Online.BVersion.class);
+        _Logins.variableId(1);
+        _LastLoginVersion = _LastLoginVersion_;
+    }
+
     public void assign(BVersions other) {
         _Logins.clear();
         for (var e : other.getLogins().entrySet())
             _Logins.put(e.getKey(), e.getValue().copy());
+        setLastLoginVersion(other.getLastLoginVersion());
     }
 
     @Deprecated
@@ -62,6 +91,13 @@ public final class BVersions extends Zeze.Transaction.Bean implements BVersionsR
         return TYPEID;
     }
 
+    private static final class Log__LastLoginVersion extends Zeze.Transaction.Logs.LogLong {
+        public Log__LastLoginVersion(BVersions bean, int varId, long value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BVersions)getBelong())._LastLoginVersion = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -86,7 +122,8 @@ public final class BVersions extends Zeze.Transaction.Bean implements BVersionsR
             level -= 4;
             sb.append(Zeze.Util.Str.indent(level));
         }
-        sb.append('}').append(System.lineSeparator());
+        sb.append('}').append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("LastLoginVersion=").append(getLastLoginVersion()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -118,6 +155,13 @@ public final class BVersions extends Zeze.Transaction.Bean implements BVersionsR
                 }
             }
         }
+        {
+            long _x_ = getLastLoginVersion();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -137,6 +181,10 @@ public final class BVersions extends Zeze.Transaction.Bean implements BVersionsR
                 }
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            setLastLoginVersion(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -161,6 +209,8 @@ public final class BVersions extends Zeze.Transaction.Bean implements BVersionsR
             if (_v_.negativeCheck())
                 return true;
         }
+        if (getLastLoginVersion() < 0)
+            return true;
         return false;
     }
 
@@ -174,6 +224,7 @@ public final class BVersions extends Zeze.Transaction.Bean implements BVersionsR
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _Logins.followerApply(vlog); break;
+                case 2: _LastLoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }

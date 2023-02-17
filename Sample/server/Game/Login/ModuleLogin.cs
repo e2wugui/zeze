@@ -37,7 +37,7 @@ namespace Game.Login
             if (false == await _trolename.TryAddAsync(rpc.Argument.Name, new BRoleId() { Id = roleid }))
                 return ErrorCode(ResultCodeCreateRoleDuplicateRoleName);
 
-            var account = await App.ProviderImplementWithOnline.Online.TableAccount.GetOrAddAsync(session.Account);
+            var account = await _taccount.GetOrAddAsync(session.Account);
             account.Roles.Add(roleid);
 
             // initialize role data
@@ -52,7 +52,7 @@ namespace Game.Login
             var rpc = p as GetRoleList;
             var session = ProviderUserSession.Get(rpc);
 
-            var account = await App.ProviderImplementWithOnline.Online.TableAccount.GetAsync(session.Account);
+            var account = await _taccount.GetAsync(session.Account);
             if (null != account)
             {
                 foreach (var roleId in account.Roles)

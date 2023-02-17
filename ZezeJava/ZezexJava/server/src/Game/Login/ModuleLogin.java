@@ -34,9 +34,8 @@ public final class ModuleLogin extends AbstractModule {
 			return errorCode(ResultCodeCreateRoleDuplicateRoleName);
 		}
 
-		var account = App.getProvider().getOnline().getTableAccount().getOrAdd(session.getAccount());
+		var account = _taccount.getOrAdd(session.getAccount());
 		account.getRoles().add(roleId);
-		App.getProvider().getOnline().addRole(session.getAccount(), roleId);
 
 		// initialize role data
 		// ...
@@ -50,7 +49,7 @@ public final class ModuleLogin extends AbstractModule {
 	protected long ProcessGetRoleListRequest(GetRoleList rpc) {
 		var session = ProviderUserSession.get(rpc);
 
-		var account = App.getProvider().getOnline().getTableAccount().get(session.getAccount());
+		var account = _taccount.get(session.getAccount());
 		if (null != account) {
 			for (var roleId : account.getRoles()) {
 				BRole role = _trole.get(roleId);

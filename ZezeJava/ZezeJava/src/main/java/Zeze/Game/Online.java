@@ -15,7 +15,6 @@ import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderService;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Arch.RedirectToServer;
-import Zeze.Builtin.Game.Online.BAccount;
 import Zeze.Builtin.Game.Online.BAny;
 import Zeze.Builtin.Game.Online.BLocal;
 import Zeze.Builtin.Game.Online.BNotify;
@@ -23,7 +22,6 @@ import Zeze.Builtin.Game.Online.BOnline;
 import Zeze.Builtin.Game.Online.BReliableNotify;
 import Zeze.Builtin.Game.Online.BVersion;
 import Zeze.Builtin.Game.Online.SReliableNotify;
-import Zeze.Builtin.Game.Online.taccount;
 import Zeze.Builtin.Provider.BBroadcast;
 import Zeze.Builtin.Provider.BKick;
 import Zeze.Builtin.Provider.Broadcast;
@@ -125,10 +123,6 @@ public class Online extends AbstractOnline {
 		}
 	}
 
-	public taccount getTableAccount() {
-		return _taccount;
-	}
-
 	// 用户数据
 	@SuppressWarnings("unchecked")
 	public <T extends Bean> T getUserData(long roleId) {
@@ -223,34 +217,6 @@ public class Online extends AbstractOnline {
 			return (T)data.getAny().getBean();
 		data.getAny().setBean(defaultHint);
 		return defaultHint;
-	}
-
-	public long addRole(String account, long roleId) {
-		BAccount bAccount = _taccount.getOrAdd(account);
-		if (bAccount.getName().isEmpty())
-			bAccount.setName(account);
-		if (!bAccount.getRoles().contains(roleId))
-			bAccount.getRoles().add(roleId);
-		return Procedure.Success;
-	}
-
-	public long removeRole(String account, long roleId) {
-		BAccount bAccount = _taccount.get(account);
-		if (bAccount == null)
-			return ResultCodeAccountNotExist;
-		if (!bAccount.getRoles().remove(roleId))
-			return ResultCodeRoleNotExist;
-		return Procedure.Success;
-	}
-
-	public long setLastLoginRoleId(String account, long roleId) {
-		BAccount bAccount = _taccount.get(account);
-		if (bAccount == null)
-			return ResultCodeAccountNotExist;
-		if (!bAccount.getRoles().contains(roleId))
-			return ResultCodeRoleNotExist;
-		bAccount.setLastLoginRoleId(roleId);
-		return Procedure.Success;
 	}
 
 	private long removeLocalAndTrigger(long roleId) throws Exception {
@@ -404,12 +370,6 @@ public class Online extends AbstractOnline {
 
 	public final void send(Iterable<Long> roleIds, Protocol<?> p) {
 		send(roleIds, p.getTypeId(), new Binary(p.encode()));
-	}
-
-	public final void sendAccount(String account, Protocol<?> p) {
-		BAccount bAccount = _taccount.get(account);
-		if (bAccount != null)
-			send(new ArrayList<>(bAccount.getRoles()), p);
 	}
 
 	public final void sendWhileCommit(long roleId, Protocol<?> p) {
@@ -841,11 +801,6 @@ public class Online extends AbstractOnline {
 	protected long ProcessLoginRequest(Zeze.Builtin.Game.Online.Login rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 
-		var account = _taccount.getOrAdd(session.getAccount());
-		if (!account.getRoles().contains(rpc.Argument.getRoleId()))
-			return errorCode(ResultCodeRoleNotExist);
-		account.setLastLoginRoleId(rpc.Argument.getRoleId());
-
 		var online = _tonline.getOrAdd(rpc.Argument.getRoleId());
 		var local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
 		var version = _tversion.getOrAdd(rpc.Argument.getRoleId());
@@ -859,8 +814,7 @@ public class Online extends AbstractOnline {
 				tryRedirectRemoveLocal(version.getServerId(), rpc.Argument.getRoleId());
 			}
 		}
-		var loginVersion = account.getLastLoginVersion() + 1;
-		account.setLastLoginVersion(loginVersion);
+		var loginVersion = version.getLoginVersion() + 1;
 		version.setLoginVersion(loginVersion);
 		local.setLoginVersion(loginVersion);
 
@@ -901,12 +855,6 @@ public class Online extends AbstractOnline {
 	protected long ProcessReLoginRequest(Zeze.Builtin.Game.Online.ReLogin rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 
-		BAccount account = _taccount.get(session.getAccount());
-		if (account == null)
-			return errorCode(ResultCodeAccountNotExist);
-		if (account.getLastLoginRoleId() != rpc.Argument.getRoleId())
-			return errorCode(ResultCodeNotLastLoginRoleId);
-
 		BOnline online = _tonline.get(rpc.Argument.getRoleId());
 		if (online == null)
 			return errorCode(ResultCodeOnlineDataNotFound);
@@ -924,8 +872,7 @@ public class Online extends AbstractOnline {
 				tryRedirectRemoveLocal(version.getServerId(), rpc.Argument.getRoleId());
 			}
 		}
-		var loginVersion = account.getLastLoginVersion() + 1;
-		account.setLastLoginVersion(loginVersion);
+		var loginVersion = version.getLoginVersion() + 1;
 		version.setLoginVersion(loginVersion);
 		local.setLoginVersion(loginVersion);
 

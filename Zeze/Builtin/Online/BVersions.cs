@@ -12,15 +12,42 @@ namespace Zeze.Builtin.Online
         public BVersions Copy();
 
         public System.Collections.Generic.IReadOnlyDictionary<string,Zeze.Builtin.Online.BVersionReadOnly> Logins { get; }
+        public long LastLoginVersion { get; }
     }
 
     public sealed class BVersions : Zeze.Transaction.Bean, BVersionsReadOnly
     {
         readonly Zeze.Transaction.Collections.CollMap2<string, Zeze.Builtin.Online.BVersion> _Logins; // key is ClientId
         Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Builtin.Online.BVersionReadOnly,Zeze.Builtin.Online.BVersion> _LoginsReadOnly;
+        long _LastLoginVersion; // 用来生成 account 登录版本号。每次递增。
 
         public Zeze.Transaction.Collections.CollMap2<string, Zeze.Builtin.Online.BVersion> Logins => _Logins;
         System.Collections.Generic.IReadOnlyDictionary<string,Zeze.Builtin.Online.BVersionReadOnly> Zeze.Builtin.Online.BVersionsReadOnly.Logins => _LoginsReadOnly;
+
+        public long LastLoginVersion
+        {
+            get
+            {
+                if (!IsManaged)
+                    return _LastLoginVersion;
+                var txn = Zeze.Transaction.Transaction.Current;
+                if (txn == null) return _LastLoginVersion;
+                txn.VerifyRecordAccessed(this, true);
+                var log = (Log__LastLoginVersion)txn.GetLog(ObjectId + 2);
+                return log != null ? log.Value : _LastLoginVersion;
+            }
+            set
+            {
+                if (!IsManaged)
+                {
+                    _LastLoginVersion = value;
+                    return;
+                }
+                var txn = Zeze.Transaction.Transaction.Current;
+                txn.VerifyRecordAccessed(this);
+                txn.PutLog(new Log__LastLoginVersion() { Belong = this, VariableId = 2, Value = value });
+            }
+        }
 
         public BVersions()
         {
@@ -28,11 +55,19 @@ namespace Zeze.Builtin.Online
             _LoginsReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Builtin.Online.BVersionReadOnly,Zeze.Builtin.Online.BVersion>(_Logins);
         }
 
+        public BVersions(long _LastLoginVersion_)
+        {
+            _Logins = new Zeze.Transaction.Collections.CollMap2<string, Zeze.Builtin.Online.BVersion>() { VariableId = 1 };
+            _LoginsReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Builtin.Online.BVersionReadOnly,Zeze.Builtin.Online.BVersion>(_Logins);
+            _LastLoginVersion = _LastLoginVersion_;
+        }
+
         public void Assign(BVersions other)
         {
             Logins.Clear();
             foreach (var e in other.Logins)
                 Logins.Add(e.Key, e.Value.Copy());
+            LastLoginVersion = other.LastLoginVersion;
         }
 
         public BVersions CopyIfManaged()
@@ -57,6 +92,11 @@ namespace Zeze.Builtin.Online
         public const long TYPEID = 3480529937760660740;
         public override long TypeId => TYPEID;
 
+
+        sealed class Log__LastLoginVersion : Zeze.Transaction.Log<long>
+        {
+            public override void Commit() { ((BVersions)Belong)._LastLoginVersion = this.Value; }
+        }
 
         public override string ToString()
         {
@@ -84,7 +124,8 @@ namespace Zeze.Builtin.Online
                 sb.Append(Zeze.Util.Str.Indent(level)).Append(')').Append(Environment.NewLine);
             }
             level -= 4;
-            sb.Append(Zeze.Util.Str.Indent(level)).Append(']').Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append(']').Append(',').Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("LastLoginVersion").Append('=').Append(LastLoginVersion).Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
         }
@@ -104,6 +145,14 @@ namespace Zeze.Builtin.Online
                         _o_.WriteString(_e_.Key);
                         _e_.Value.Encode(_o_);
                     }
+                }
+            }
+            {
+                long _x_ = LastLoginVersion;
+                if (_x_ != 0)
+                {
+                    _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                    _o_.WriteLong(_x_);
                 }
             }
             _o_.WriteByte(0);
@@ -131,6 +180,11 @@ namespace Zeze.Builtin.Online
                     _o_.SkipUnknownFieldOrThrow(_t_, "Map");
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
+            if (_i_ == 2)
+            {
+                LastLoginVersion = _o_.ReadLong(_t_);
+                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+            }
             while (_t_ != 0)
             {
                 _o_.SkipUnknownField(_t_);
@@ -154,6 +208,7 @@ namespace Zeze.Builtin.Online
             {
                 if (_v_.NegativeCheck()) return true;
             }
+            if (LastLoginVersion < 0) return true;
             return false;
         }
 
@@ -165,6 +220,7 @@ namespace Zeze.Builtin.Online
                 switch (vlog.VariableId)
                 {
                     case 1: _Logins.FollowerApply(vlog); break;
+                    case 2: _LastLoginVersion = ((Zeze.Transaction.Log<long>)vlog).Value; break;
                 }
             }
         }

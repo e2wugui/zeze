@@ -78,7 +78,7 @@ public final class BDailyTask extends Zeze.Transaction.Bean implements BDailyTas
         setEverydayTaskCount(other.getEverydayTaskCount());
         setFlushTime(other.getFlushTime());
         _todayTaskPhaseIds.clear();
-        _todayTaskPhaseIds.addAll(other._todayTaskPhaseIds);
+        _todayTaskPhaseIds.addAll(other.getTodayTaskPhaseIds());
     }
 
     @Deprecated

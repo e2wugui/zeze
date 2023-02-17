@@ -548,13 +548,6 @@
 					<variable id="4" name="ReliableNotifyIndex"        type="long"/>
 					<variable id="5" name="ServerId" type="int"/>
 				</bean>
-				<bean name="BAccount">
-					<variable id="1" name="Name"  type="string"/>
-					<variable id="2" name="Roles" type="list" value="long"/> roleid list
-					<variable id="3" name="LastLoginRoleId" type="long"/>
-					<variable id="4" name="LastLoginVersion" type="long"/> 用来生成 role 登录版本号。每次递增。
-				</bean>
-				<table name="taccount" key="string" value="BAccount"/>
 				<table name="tonline" key="long" value="BOnline"/>
 				<table name="tversion" key="long" value="BVersion"/>
 
@@ -730,17 +723,14 @@
 				<variable id="4" name="ReliableNotifyConfirmIndex" type="long"/>
 				<variable id="5" name="ServerId"                   type="int"/>
 			</bean>
-			<bean name="BAccount">
-				<variable id="1" name="LastLoginVersion" type="long"/> 用来生成 role 登录版本号。每次递增。
-			</bean>
 			<bean name="BOnlines">
 				<variable id="1" name="Logins" type="map" key="string" value="BOnline"/> key is ClientId
 			</bean>
 			<bean name="BVersions">
 				<variable id="1" name="Logins" type="map" key="string" value="BVersion"/> key is ClientId
+				<variable id="2" name="LastLoginVersion" type="long"/> 用来生成 account 登录版本号。每次递增。
 			</bean>
 
-			<table name="taccount" key="string" value="BAccount"/>
 			<table name="tonline"  key="string" value="BOnlines"/>
 			<table name="tversion" key="string" value="BVersions"/>
 

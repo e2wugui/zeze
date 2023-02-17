@@ -16,6 +16,7 @@ namespace Zeze.Builtin.Online
         public override bool IsAutoKey => false;
 
         public const int VAR_Logins = 1;
+        public const int VAR_LastLoginVersion = 2;
 
         public override string DecodeKey(ByteBuffer _os_)
         {
