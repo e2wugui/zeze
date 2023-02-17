@@ -13,17 +13,18 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
     private long _ReliableNotifyConfirmIndex;
     private long _ReliableNotifyIndex;
     private int _ServerId;
+    private long _LogoutVersion;
     private final Zeze.Transaction.DynamicBean _UserData;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_UserData() {
-        return new Zeze.Transaction.DynamicBean(6, Zeze.Game.Online::getSpecialTypeIdFromBean, Zeze.Game.Online::createBeanFromSpecialTypeId);
+        return new Zeze.Transaction.DynamicBean(7, Zeze.Game.Online::getSpecialTypeIdFromBean, Zeze.Game.Online::createBeanFromSpecialTypeId);
     }
 
-    public static long getSpecialTypeIdFromBean_6(Zeze.Transaction.Bean bean) {
+    public static long getSpecialTypeIdFromBean_7(Zeze.Transaction.Bean bean) {
         return Zeze.Game.Online.getSpecialTypeIdFromBean(bean);
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_6(long typeId) {
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_7(long typeId) {
         return Zeze.Game.Online.createBeanFromSpecialTypeId(typeId);
     }
 
@@ -116,6 +117,26 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
         txn.putLog(new Log__ServerId(this, 5, value));
     }
 
+    @Override
+    public long getLogoutVersion() {
+        if (!isManaged())
+            return _LogoutVersion;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _LogoutVersion;
+        var log = (Log__LogoutVersion)txn.getLog(objectId() + 6);
+        return log != null ? log.value : _LogoutVersion;
+    }
+
+    public void setLogoutVersion(long value) {
+        if (!isManaged()) {
+            _LogoutVersion = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__LogoutVersion(this, 6, value));
+    }
+
     public Zeze.Transaction.DynamicBean getUserData() {
         return _UserData;
     }
@@ -133,13 +154,14 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
     }
 
     @SuppressWarnings("deprecation")
-    public BVersion(long _LoginVersion_, long _ReliableNotifyConfirmIndex_, long _ReliableNotifyIndex_, int _ServerId_) {
+    public BVersion(long _LoginVersion_, long _ReliableNotifyConfirmIndex_, long _ReliableNotifyIndex_, int _ServerId_, long _LogoutVersion_) {
         _LoginVersion = _LoginVersion_;
         _ReliableNotifyMark = new Zeze.Transaction.Collections.PSet1<>(String.class);
         _ReliableNotifyMark.variableId(2);
         _ReliableNotifyConfirmIndex = _ReliableNotifyConfirmIndex_;
         _ReliableNotifyIndex = _ReliableNotifyIndex_;
         _ServerId = _ServerId_;
+        _LogoutVersion = _LogoutVersion_;
         _UserData = newDynamicBean_UserData();
     }
 
@@ -150,6 +172,7 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
         setReliableNotifyConfirmIndex(other.getReliableNotifyConfirmIndex());
         setReliableNotifyIndex(other.getReliableNotifyIndex());
         setServerId(other.getServerId());
+        setLogoutVersion(other.getLogoutVersion());
         _UserData.assign(other.getUserData());
     }
 
@@ -213,6 +236,13 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
         public void commit() { ((BVersion)getBelong())._ServerId = value; }
     }
 
+    private static final class Log__LogoutVersion extends Zeze.Transaction.Logs.LogLong {
+        public Log__LogoutVersion(BVersion bean, int varId, long value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BVersion)getBelong())._LogoutVersion = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -239,6 +269,7 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
         sb.append(Zeze.Util.Str.indent(level)).append("ReliableNotifyConfirmIndex=").append(getReliableNotifyConfirmIndex()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("ReliableNotifyIndex=").append(getReliableNotifyIndex()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("ServerId=").append(getServerId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("LogoutVersion=").append(getLogoutVersion()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("UserData=").append(System.lineSeparator());
         _UserData.getBean().buildString(sb, level + 4);
         sb.append(System.lineSeparator());
@@ -300,9 +331,16 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
             }
         }
         {
+            long _x_ = getLogoutVersion();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
+        {
             var _x_ = _UserData;
             if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.DYNAMIC);
+                _i_ = _o_.WriteTag(_i_, 7, ByteBuffer.DYNAMIC);
                 _x_.encode(_o_);
             }
         }
@@ -340,6 +378,10 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 6) {
+            setLogoutVersion(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 7) {
             _o_.ReadDynamic(_UserData, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
@@ -371,6 +413,8 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
             return true;
         if (getServerId() < 0)
             return true;
+        if (getLogoutVersion() < 0)
+            return true;
         return false;
     }
 
@@ -388,7 +432,8 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
                 case 3: _ReliableNotifyConfirmIndex = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 4: _ReliableNotifyIndex = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 5: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 6: _UserData.followerApply(vlog); break;
+                case 6: _LogoutVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 7: _UserData.followerApply(vlog); break;
             }
         }
     }

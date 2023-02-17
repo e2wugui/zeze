@@ -20,6 +20,7 @@ namespace Zeze.Builtin.Game.Online
         public const int VAR_ReliableNotifyConfirmIndex = 3;
         public const int VAR_ReliableNotifyIndex = 4;
         public const int VAR_ServerId = 5;
+        public const int VAR_LogoutVersion = 6;
 
         public override long DecodeKey(ByteBuffer _os_)
         {

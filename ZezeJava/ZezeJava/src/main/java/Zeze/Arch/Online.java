@@ -120,25 +120,11 @@ public class Online extends AbstractOnline {
 		}
 	}
 
-	public Bean getUserData(String account, String clientId) {
-		var versions = _tversion.get(account);
-		if (null == versions)
-			return null;
-		var version = versions.getLogins().get(clientId);
-		if (null == version)
-			return null;
-		return version.getUserData().getBean();
-	}
-
-	public void setUserData(String account, String clientId, Bean data) {
-		_tversion.getOrAdd(account).getLogins().getOrAdd(clientId).getUserData().setBean(data);
-	}
-
 	public BOnlines getOnline(String account) {
 		return _tonline.get(account);
 	}
 
-	public BVersions getData(String account) {
+	public BVersions getVersion(String account) {
 		return _tversion.get(account);
 	}
 
@@ -338,6 +324,7 @@ public class Online extends AbstractOnline {
 				if (online != null) {
 					var loginVersion = version.getLogins().get(clientId);
 					if (loginVersion != null && loginVersion.getLoginVersion() == currentLoginVersion) {
+						loginVersion.setLogoutVersion(loginVersion.getLoginVersion());
 						var ret = logoutTrigger(account, clientId);
 						if (0 != ret)
 							return ret;
@@ -968,8 +955,9 @@ public class Online extends AbstractOnline {
 		var loginLocal = local.getLogins().getOrAdd(rpc.Argument.getClientId());
 		var loginVersion = version.getLogins().getOrAdd(rpc.Argument.getClientId());
 
-		if (loginVersion.getLoginVersion() != 0) {
+		if (loginVersion.getLoginVersion() != loginVersion.getLogoutVersion()) {
 			// login exist
+			loginVersion.setLogoutVersion(loginVersion.getLoginVersion());
 			var ret = logoutTriggerExtra(session.getAccount(), rpc.Argument.getClientId());
 			if (0 != ret)
 				return ret;
@@ -1112,6 +1100,7 @@ public class Online extends AbstractOnline {
 				return ret;
 		}
 		if (online != null) {
+			loginVersion.setLogoutVersion(loginVersion.getLoginVersion());
 			var ret = logoutTrigger(session.getAccount(), clientId);
 			if (0 != ret)
 				return ret;

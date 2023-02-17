@@ -620,12 +620,12 @@
 				<!-- tables -->
 				<bean name="BVersion">
 					<variable id="1" name="LoginVersion" type="long"/>
-					<variable id="2" name="LogoutVersion" type="long"/>
 					<!-- 下面的定义用来实现可靠的协议通告。 -->
-					<variable id="3" name="ReliableNotifyMark"         type="set" value="string"/>
-					<variable id="4" name="ReliableNotifyConfirmIndex" type="long"/>
-					<variable id="5" name="ReliableNotifyIndex"        type="long"/>
-					<variable id="6" name="ServerId" type="int"/>
+					<variable id="2" name="ReliableNotifyMark"         type="set" value="string"/>
+					<variable id="3" name="ReliableNotifyConfirmIndex" type="long"/>
+					<variable id="4" name="ReliableNotifyIndex"        type="long"/>
+					<variable id="5" name="ServerId" type="int"/>
+					<variable id="6" name="LogoutVersion" type="long"/>
 					<variable id="7" name="UserData" type="dynamic">
 						<GetSpecialTypeIdFromBean value="Zeze.Game.Online::getSpecialTypeIdFromBean"/>
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.Online::createBeanFromSpecialTypeId"/>
@@ -968,10 +968,7 @@
 				<variable id="3" name="ReliableNotifyIndex"        type="long"/>
 				<variable id="4" name="ReliableNotifyConfirmIndex" type="long"/>
 				<variable id="5" name="ServerId"                   type="int"/>
-				<variable id="6" name="UserData" type="dynamic">
-					<GetSpecialTypeIdFromBean value="Zeze.Arch.Online::getSpecialTypeIdFromBean"/>
-					<CreateBeanFromSpecialTypeId value="Zeze.Arch.Online::createBeanFromSpecialTypeId"/>
-				</variable>
+				<variable id="6" name="LogoutVersion" type="long"/>
 			</bean>
 			<bean name="BOnlines">
 				<variable id="1" name="Logins" type="map" key="string" value="BOnline"/> key is ClientId

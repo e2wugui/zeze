@@ -27,11 +27,6 @@ public class ProviderWithOnline extends ProviderImplement {
 		online.Initialize(app);
 	}
 
-	public void create(AppBase app, Class<? extends Bean> userDataClass) {
-		create(app);
-		Online.register(userDataClass);
-	}
-
 	public void start() {
 		online.start();
 	}

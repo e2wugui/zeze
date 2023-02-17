@@ -32,7 +32,8 @@ public final class tversion extends TableX<Long, Zeze.Builtin.Game.Online.BVersi
     public static final int VAR_ReliableNotifyConfirmIndex = 3;
     public static final int VAR_ReliableNotifyIndex = 4;
     public static final int VAR_ServerId = 5;
-    public static final int VAR_UserData = 6;
+    public static final int VAR_LogoutVersion = 6;
+    public static final int VAR_UserData = 7;
 
     @Override
     public Long decodeKey(ByteBuffer _os_) {

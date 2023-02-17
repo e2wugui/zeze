@@ -16,6 +16,7 @@ namespace Zeze.Builtin.Online
         public long ReliableNotifyIndex { get; }
         public long ReliableNotifyConfirmIndex { get; }
         public int ServerId { get; }
+        public long LogoutVersion { get; }
     }
 
     public sealed class BVersion : Zeze.Transaction.Bean, BVersionReadOnly
@@ -25,6 +26,7 @@ namespace Zeze.Builtin.Online
         long _ReliableNotifyIndex;
         long _ReliableNotifyConfirmIndex;
         int _ServerId;
+        long _LogoutVersion;
 
         public string _zeze_map_key_string_ { get; set; }
 
@@ -131,18 +133,44 @@ namespace Zeze.Builtin.Online
             }
         }
 
+        public long LogoutVersion
+        {
+            get
+            {
+                if (!IsManaged)
+                    return _LogoutVersion;
+                var txn = Zeze.Transaction.Transaction.Current;
+                if (txn == null) return _LogoutVersion;
+                txn.VerifyRecordAccessed(this, true);
+                var log = (Log__LogoutVersion)txn.GetLog(ObjectId + 6);
+                return log != null ? log.Value : _LogoutVersion;
+            }
+            set
+            {
+                if (!IsManaged)
+                {
+                    _LogoutVersion = value;
+                    return;
+                }
+                var txn = Zeze.Transaction.Transaction.Current;
+                txn.VerifyRecordAccessed(this);
+                txn.PutLog(new Log__LogoutVersion() { Belong = this, VariableId = 6, Value = value });
+            }
+        }
+
         public BVersion()
         {
             _ReliableNotifyMark = new Zeze.Transaction.Collections.CollSet1<string>() { VariableId = 2 };
         }
 
-        public BVersion(long _LoginVersion_, long _ReliableNotifyIndex_, long _ReliableNotifyConfirmIndex_, int _ServerId_)
+        public BVersion(long _LoginVersion_, long _ReliableNotifyIndex_, long _ReliableNotifyConfirmIndex_, int _ServerId_, long _LogoutVersion_)
         {
             _LoginVersion = _LoginVersion_;
             _ReliableNotifyMark = new Zeze.Transaction.Collections.CollSet1<string>() { VariableId = 2 };
             _ReliableNotifyIndex = _ReliableNotifyIndex_;
             _ReliableNotifyConfirmIndex = _ReliableNotifyConfirmIndex_;
             _ServerId = _ServerId_;
+            _LogoutVersion = _LogoutVersion_;
         }
 
         public void Assign(BVersion other)
@@ -154,6 +182,7 @@ namespace Zeze.Builtin.Online
             ReliableNotifyIndex = other.ReliableNotifyIndex;
             ReliableNotifyConfirmIndex = other.ReliableNotifyConfirmIndex;
             ServerId = other.ServerId;
+            LogoutVersion = other.LogoutVersion;
         }
 
         public BVersion CopyIfManaged()
@@ -199,6 +228,11 @@ namespace Zeze.Builtin.Online
             public override void Commit() { ((BVersion)Belong)._ServerId = this.Value; }
         }
 
+        sealed class Log__LogoutVersion : Zeze.Transaction.Log<long>
+        {
+            public override void Commit() { ((BVersion)Belong)._LogoutVersion = this.Value; }
+        }
+
         public override string ToString()
         {
             var sb = new System.Text.StringBuilder();
@@ -222,7 +256,8 @@ namespace Zeze.Builtin.Online
             sb.Append(Zeze.Util.Str.Indent(level)).Append(']').Append(',').Append(Environment.NewLine);
             sb.Append(Zeze.Util.Str.Indent(level)).Append("ReliableNotifyIndex").Append('=').Append(ReliableNotifyIndex).Append(',').Append(Environment.NewLine);
             sb.Append(Zeze.Util.Str.Indent(level)).Append("ReliableNotifyConfirmIndex").Append('=').Append(ReliableNotifyConfirmIndex).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("ServerId").Append('=').Append(ServerId).Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("ServerId").Append('=').Append(ServerId).Append(',').Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("LogoutVersion").Append('=').Append(LogoutVersion).Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
         }
@@ -275,6 +310,14 @@ namespace Zeze.Builtin.Online
                     _o_.WriteInt(_x_);
                 }
             }
+            {
+                long _x_ = LogoutVersion;
+                if (_x_ != 0)
+                {
+                    _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.INTEGER);
+                    _o_.WriteLong(_x_);
+                }
+            }
             _o_.WriteByte(0);
         }
 
@@ -317,6 +360,11 @@ namespace Zeze.Builtin.Online
                 ServerId = _o_.ReadInt(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
+            if (_i_ == 6)
+            {
+                LogoutVersion = _o_.ReadLong(_t_);
+                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+            }
             while (_t_ != 0)
             {
                 _o_.SkipUnknownField(_t_);
@@ -340,6 +388,7 @@ namespace Zeze.Builtin.Online
             if (ReliableNotifyIndex < 0) return true;
             if (ReliableNotifyConfirmIndex < 0) return true;
             if (ServerId < 0) return true;
+            if (LogoutVersion < 0) return true;
             return false;
         }
 
@@ -355,6 +404,7 @@ namespace Zeze.Builtin.Online
                     case 3: _ReliableNotifyIndex = ((Zeze.Transaction.Log<long>)vlog).Value; break;
                     case 4: _ReliableNotifyConfirmIndex = ((Zeze.Transaction.Log<long>)vlog).Value; break;
                     case 5: _ServerId = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                    case 6: _LogoutVersion = ((Zeze.Transaction.Log<long>)vlog).Value; break;
                 }
             }
         }

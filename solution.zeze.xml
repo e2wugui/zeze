@@ -547,6 +547,7 @@
 					<variable id="3" name="ReliableNotifyConfirmIndex" type="long"/>
 					<variable id="4" name="ReliableNotifyIndex"        type="long"/>
 					<variable id="5" name="ServerId" type="int"/>
+					<variable id="6" name="LogoutVersion" type="long"/>
 				</bean>
 				<table name="tonline" key="long" value="BOnline"/>
 				<table name="tversion" key="long" value="BVersion"/>
@@ -722,6 +723,7 @@
 				<variable id="3" name="ReliableNotifyIndex"        type="long"/>
 				<variable id="4" name="ReliableNotifyConfirmIndex" type="long"/>
 				<variable id="5" name="ServerId"                   type="int"/>
+				<variable id="6" name="LogoutVersion" type="long"/>
 			</bean>
 			<bean name="BOnlines">
 				<variable id="1" name="Logins" type="map" key="string" value="BOnline"/> key is ClientId

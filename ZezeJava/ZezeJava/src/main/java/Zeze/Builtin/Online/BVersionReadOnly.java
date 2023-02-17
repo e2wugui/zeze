@@ -12,6 +12,5 @@ public interface BVersionReadOnly {
     public long getReliableNotifyIndex();
     public long getReliableNotifyConfirmIndex();
     public int getServerId();
-    public Zeze.Transaction.DynamicBeanReadOnly getUserDataReadOnly();
-
+    public long getLogoutVersion();
 }
