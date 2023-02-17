@@ -7,6 +7,5 @@ import Zeze.Util.EventDispatcher;
 public class LogoutEventArgument implements EventDispatcher.EventArgument {
 	public long roleId;
 	public BOnline online;
-	public BVersion version;
 	public LogoutReason logoutReason;
 }

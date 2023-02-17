@@ -274,7 +274,6 @@ public class Online extends AbstractOnline {
 		arg.roleId = roleId;
 		arg.online = _tonline.get(roleId);
 		arg.logoutReason = logoutReason;
-		arg.version = _tversion.get(roleId);
 
 		if (logoutReason == LogoutReason.LOGOUT) {
 			_tonline.remove(roleId); // remove first
@@ -291,8 +290,6 @@ public class Online extends AbstractOnline {
 		var arg = new LoginArgument();
 		arg.roleId = roleId;
 		arg.account = account;
-		arg.online = _tonline.get(roleId);
-		arg.version = _tversion.get(roleId);
 
 		loginTimes.incrementAndGet();
 		var ret = loginEvents.triggerEmbed(this, arg);
@@ -303,9 +300,10 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	private long reloginTrigger(long roleId) throws Exception {
+	private long reloginTrigger(String account, long roleId) throws Exception {
 		var arg = new LoginArgument();
 		arg.roleId = roleId;
+		arg.account = account;
 
 		loginTimes.incrementAndGet();
 		var ret = reloginEvents.triggerEmbed(this, arg);
@@ -882,7 +880,7 @@ public class Online extends AbstractOnline {
 		if (online.getLinkSid() != session.getLinkSid())
 			online.setLinkSid(session.getLinkSid());
 
-		var ret = reloginTrigger(rpc.Argument.getRoleId());
+		var ret = reloginTrigger(session.getAccount(), rpc.Argument.getRoleId());
 		if (0 != ret)
 			return ret;
 
