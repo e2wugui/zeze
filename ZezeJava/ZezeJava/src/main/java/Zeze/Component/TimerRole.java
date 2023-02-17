@@ -85,8 +85,10 @@ public class TimerRole {
 		onlineTimer.getTimerObj().setBean(simpleTimer);
 
 		var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
-		timerIds.getTimerIds().getOrAdd(timerId).getCustomData().setBean(customData);
-
+		if (null != customData) {
+			timer.register(customData.getClass());
+			timerIds.getTimerIds().getOrAdd(timerId).getCustomData().setBean(customData);
+		}
 		scheduleSimple(timerId, simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), name);
 		return timerId;
 	}
@@ -111,8 +113,10 @@ public class TimerRole {
 		timer.tRoleTimers().insert(timerId, onlineTimer);
 
 		var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
-		timerIds.getTimerIds().getOrAdd(timerId).getCustomData().setBean(customData);
-
+		if (null != customData) {
+			timer.register(customData.getClass());
+			timerIds.getTimerIds().getOrAdd(timerId).getCustomData().setBean(customData);
+		}
 		scheduleCron(timerId, cronTimer, name);
 		return timerId;
 	}

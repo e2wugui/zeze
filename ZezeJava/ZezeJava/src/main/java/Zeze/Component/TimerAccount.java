@@ -84,9 +84,11 @@ public class TimerAccount {
 		timer.tAccountTimers().insert(timerId, onlineTimer);
 		onlineTimer.getTimerObj().setBean(simpleTimer);
 
-		var timerIds = online.getOrAddLocalBean(account, clientId, eOnlineTimers, new BOnlineTimers());
-		timerIds.getTimerIds().getOrAdd(timerId).getCustomData().setBean(customData);
-
+		if (null != customData) {
+			timer.register(customData.getClass());
+			var timerIds = online.getOrAddLocalBean(account, clientId, eOnlineTimers, new BOnlineTimers());
+			timerIds.getTimerIds().getOrAdd(timerId).getCustomData().setBean(customData);
+		}
 		scheduleSimple(timerId, simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), name);
 		return timerId;
 	}
@@ -110,9 +112,11 @@ public class TimerAccount {
 		timer.tAccountTimers().insert(timerId, onlineTimer);
 		onlineTimer.getTimerObj().setBean(cronTimer);
 
-		var timerIds = online.getOrAddLocalBean(account, clientId, eOnlineTimers, new BOnlineTimers());
-		timerIds.getTimerIds().getOrAdd(timerId).getCustomData().setBean(customData);
-
+		if (null != customData) {
+			timer.register(customData.getClass());
+			var timerIds = online.getOrAddLocalBean(account, clientId, eOnlineTimers, new BOnlineTimers());
+			timerIds.getTimerIds().getOrAdd(timerId).getCustomData().setBean(customData);
+		}
 		scheduleCron(timerId, cronTimer, name);
 		return timerId;
 	}
