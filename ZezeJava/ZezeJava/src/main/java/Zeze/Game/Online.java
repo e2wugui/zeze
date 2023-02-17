@@ -272,17 +272,17 @@ public class Online extends AbstractOnline {
 	private long logoutTrigger(long roleId, LogoutReason logoutReason) throws Exception {
 		var arg = new LogoutEventArgument();
 		arg.roleId = roleId;
-		arg.online = _tonline.get(roleId);
 		arg.logoutReason = logoutReason;
 
-		if (logoutReason == LogoutReason.LOGOUT) {
-			_tonline.remove(roleId); // remove first
-		}
 		var ret = logoutEvents.triggerEmbed(this, arg);
 		if (0 != ret)
 			return ret;
 		logoutEvents.triggerProcedure(providerApp.zeze, this, arg);
 		Transaction.whileCommit(() -> logoutEvents.triggerThread(this, arg));
+		// 最后删除，可能事件里面需要访问旧数据。
+		if (logoutReason == LogoutReason.LOGOUT) {
+			_tonline.remove(roleId); // remove first
+		}
 		return 0;
 	}
 
