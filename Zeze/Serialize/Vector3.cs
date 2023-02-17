@@ -4,8 +4,8 @@ namespace Zeze.Serialize
 {
     public class Vector2 : Serializable
     {
-        public float x { get; internal set; }
-        public float y { get; internal set; }
+        public float x { get; private set; }
+        public float y { get; private set; }
 
         public Vector2()
         { 
@@ -51,7 +51,7 @@ namespace Zeze.Serialize
 
     public class Vector3 : Vector2
     {
-        public float z { get; internal set; }
+        public float z { get; private set; }
 
         public Vector3()
         {
@@ -102,7 +102,7 @@ namespace Zeze.Serialize
 
     public class Vector4 : Vector3
     { 
-        public float w { get; internal set; }
+        public float w { get; private set; }
 
         public Vector4()
         {
@@ -185,8 +185,8 @@ namespace Zeze.Serialize
 
     public class Vector2Int : Serializable
     {
-        public int x { get; internal set; }
-        public int y { get; internal set; }
+        public int x { get; private set; }
+        public int y { get; private set; }
 
         public Vector2Int()
         { 
@@ -232,7 +232,7 @@ namespace Zeze.Serialize
 
     public class Vector3Int : Vector2Int
     {
-        public int z { get; internal set; }
+        public int z { get; private set; }
 
         public Vector3Int()
         { 

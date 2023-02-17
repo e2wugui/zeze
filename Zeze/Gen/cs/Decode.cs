@@ -414,7 +414,7 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeQuaternion type)
         {
-            if (id > 0)
+            if (Project.MakingInstance.IsUnity)
             {
                 sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadFloat();");
                 sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadFloat();");
@@ -423,44 +423,39 @@ namespace Zeze.Gen.cs
             }
             else
             {
-                sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadFloat();");
-                sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadFloat();");
-                sw.WriteLine($"{prefix}{varname}.z = {bufname}.ReadFloat();");
-                sw.WriteLine($"{prefix}{varname}.w = {bufname}.ReadFloat();");
+                sw.WriteLine($"{prefix}{varname}.Decode({bufname});");
             }
         }
 
         public void Visit(TypeVector2 type)
         {
-            if (id > 0)
+            if (Project.MakingInstance.IsUnity)
             {
                 sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadFloat();");
                 sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadFloat();");
             }
             else
             {
-                sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadFloat();");
-                sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadFloat();");
+                sw.WriteLine($"{prefix}{varname}.Decode({bufname});");
             }
         }
 
         public void Visit(TypeVector2Int type)
         {
-            if (id > 0)
+            if (Project.MakingInstance.IsUnity)
             {
                 sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadInt4();");
                 sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadInt4();");
             }
             else
             {
-                sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadInt4();");
-                sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadInt4();");
+                sw.WriteLine($"{prefix}{varname}.Decode({bufname});");
             }
         }
 
         public void Visit(TypeVector3 type)
         {
-            if (id > 0)
+            if (Project.MakingInstance.IsUnity)
             {
                 sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadFloat();");
                 sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadFloat();");
@@ -468,15 +463,13 @@ namespace Zeze.Gen.cs
             }
             else
             {
-                sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadFloat();");
-                sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadFloat();");
-                sw.WriteLine($"{prefix}{varname}.z = {bufname}.ReadFloat();");
+                sw.WriteLine($"{prefix}{varname}.Decode({bufname});");
             }
         }
 
         public void Visit(TypeVector3Int type)
         {
-            if (id > 0)
+            if (Project.MakingInstance.IsUnity)
             {
                 sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadInt4();");
                 sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadInt4();");
@@ -484,15 +477,13 @@ namespace Zeze.Gen.cs
             }
             else
             {
-                sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadInt4();");
-                sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadInt4();");
-                sw.WriteLine($"{prefix}{varname}.z = {bufname}.ReadInt4();");
+                sw.WriteLine($"{prefix}{varname}.Decode({bufname});");
             }
         }
 
         public void Visit(TypeVector4 type)
         {
-            if (id > 0)
+            if (Project.MakingInstance.IsUnity)
             {
                 sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadFloat();");
                 sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadFloat();");
@@ -501,10 +492,7 @@ namespace Zeze.Gen.cs
             }
             else
             {
-                sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadFloat();");
-                sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadFloat();");
-                sw.WriteLine($"{prefix}{varname}.z = {bufname}.ReadFloat();");
-                sw.WriteLine($"{prefix}{varname}.w = {bufname}.ReadFloat();");
+                sw.WriteLine($"{prefix}{varname}.Decode({bufname});");
             }
         }
     }
