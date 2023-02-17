@@ -514,7 +514,7 @@ public final class Json {
 			if (obj != null) {
 				int p = reader.pos();
 				reader.parse0(obj, classMeta);
-				Bean bean = obj.getCreateBeanFromSpecialTypeId().apply(obj.getTypeId());
+				Bean bean = obj.getCreateBean().apply(obj.getTypeId());
 				obj.setBean(bean != null ? bean : new EmptyBean());
 				reader.pos(p).parse0(obj, classMeta);
 			}

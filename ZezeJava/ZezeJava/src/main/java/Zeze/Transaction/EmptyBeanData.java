@@ -26,6 +26,11 @@ public class EmptyBeanData extends Data {
 
 	}
 
+	@Override
+	public EmptyBean toBean() {
+		return new EmptyBean();
+	}
+
 	// 必须和EmptyBean.TYPEID一样。
 	public static final long TYPEID = 0; // 用0，而不是Bean.Hash("")，可能0更好吧。
 

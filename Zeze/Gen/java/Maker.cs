@@ -29,7 +29,7 @@ namespace Zeze.Gen.java
             // gen common
             foreach (Bean bean in Project.AllBeans.Values)
             {
-                new BeanFormatter(bean).Make(genCommonDir);
+                new BeanFormatter(bean).Make(genCommonDir, Project);
                 if (Project.isData(bean))
                     new javadata.BeanFormatter(bean).Make(genCommonDir);
             }

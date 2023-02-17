@@ -33,4 +33,6 @@ public abstract class Data implements Serializable {
 
 	public void buildString(StringBuilder sb, int level) {
 	}
+
+	public abstract Bean toBean();
 }

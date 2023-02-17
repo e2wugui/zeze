@@ -7,15 +7,15 @@ import Zeze.Serialize.ByteBuffer;
 public class DynamicBeanData extends Data {
 	Data bean;
 	long typeId;
-	transient final ToLongFunction<Data> getSpecialTypeIdFromBean;
-	transient final LongFunction<Data> createBeanFromSpecialTypeId;
+	transient final ToLongFunction<Data> getData;
+	transient final LongFunction<Data> createData;
 
 	public DynamicBeanData(int variableId, ToLongFunction<Data> get, LongFunction<Data> create) {
 		super(variableId);
 		bean = new EmptyBeanData();
 		typeId = EmptyBeanData.TYPEID;
-		getSpecialTypeIdFromBean = get;
-		createBeanFromSpecialTypeId = create;
+		getData = get;
+		createData = create;
 	}
 
 	public final Data getBean() {
@@ -25,7 +25,7 @@ public class DynamicBeanData extends Data {
 	public final void setBean(Data value) {
 		if (value == null)
 			throw new IllegalArgumentException("null value");
-		typeId = getSpecialTypeIdFromBean.applyAsLong(value);
+		typeId = getData.applyAsLong(value);
 		bean = value;
 	}
 
@@ -38,12 +38,12 @@ public class DynamicBeanData extends Data {
 		return getTypeId();
 	}
 
-	public final ToLongFunction<Data> getGetSpecialTypeIdFromBean() {
-		return getSpecialTypeIdFromBean;
+	public final ToLongFunction<Data> getGetData() {
+		return getData;
 	}
 
-	public final LongFunction<Data> getCreateBeanFromSpecialTypeId() {
-		return createBeanFromSpecialTypeId;
+	public final LongFunction<Data> getCreateData() {
+		return createData;
 	}
 
 	public final void assign(DynamicBeanData other) {
@@ -51,7 +51,7 @@ public class DynamicBeanData extends Data {
 	}
 
 	public final void assign(DynamicBean other) {
-		var data = createBeanFromSpecialTypeId.apply(other.typeId());
+		var data = createData.apply(other.typeId());
 		data.assign(other.getBean());
 		setBean(data);
 	}
@@ -61,13 +61,18 @@ public class DynamicBeanData extends Data {
 		assign((DynamicBean)o);
 	}
 
+	@Override
+	public DynamicBean toBean() {
+		throw new UnsupportedOperationException();
+	}
+
 	public final boolean isEmpty() {
 		return typeId == EmptyBean.TYPEID && bean.getClass() == EmptyBeanData.class;
 	}
 
 	@Override
 	public DynamicBeanData copy() {
-		var copy = new DynamicBeanData(variableId(), getSpecialTypeIdFromBean, createBeanFromSpecialTypeId);
+		var copy = new DynamicBeanData(variableId(), getData, createData);
 		copy.bean = getBean().copy();
 		copy.typeId = getTypeId();
 		return copy;
@@ -83,7 +88,7 @@ public class DynamicBeanData extends Data {
 		// 由于可能在事务中执行，这里仅修改Bean
 		// TypeId 在 Bean 提交时才修改，但是要在事务中读到最新值，参见 TypeId 的 getter 实现。
 		long typeId = bb.ReadLong();
-		var real = createBeanFromSpecialTypeId.apply(typeId);
+		var real = createData.apply(typeId);
 		if (real != null) {
 			real.decode(bb);
 			setBeanWithSpecialTypeId(typeId, real);

@@ -28,7 +28,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("}");
         }
 
-        public void Make(string baseDir)
+        public void Make(string baseDir, Project project)
         {
             MakeReadOnly(baseDir);
 
@@ -44,7 +44,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("@SuppressWarnings({\"UnusedAssignment\", \"RedundantIfStatement\", \"SwitchStatementWithTooFewBranches\", \"RedundantSuppression\"})");
             var final = bean.Extendable ? "" : "final ";
             sw.WriteLine($"public {final}class {bean.Name} extends Zeze.Transaction.Bean implements {bean.Name}ReadOnly {{");
-            WriteDefine(sw);
+            WriteDefine(sw, project);
             sw.WriteLine("}");
         }
 
@@ -107,7 +107,7 @@ namespace Zeze.Gen.java
             sw.WriteLine();
         }
 
-        public void WriteDefine(StreamWriter sw)
+        public void WriteDefine(StreamWriter sw, Project project)
         {
             sw.WriteLine("    public static final long TYPEID = " + bean.TypeId + "L;");
             sw.WriteLine();
@@ -171,7 +171,7 @@ namespace Zeze.Gen.java
 
             Property.Make(bean, sw, "    ");
             Construct.Make(bean, sw, "    ");
-            Assign.Make(bean, sw, "    ");
+            Assign.Make(bean, sw, "    ", project);
             // Copy
             sw.WriteLine("    public " + bean.Name + " copyIfManaged() {");
             sw.WriteLine("        return isManaged() ? copy() : this;");

@@ -52,7 +52,7 @@ public class LogDynamic extends LogBean {
 	public void setValue(Bean bean) {
 		value = bean;
 		var self = (DynamicBean)getThis();
-		specialTypeId = self.getSpecialTypeIdFromBean.applyAsLong(bean);
+		specialTypeId = self.getBean.applyAsLong(bean);
 	}
 
 	@Override

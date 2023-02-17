@@ -112,6 +112,14 @@ public abstract class Bean implements Serializable {
 		throw new UnsupportedOperationException();
 	}
 
+	public void assign(Data data) {
+		throw new UnsupportedOperationException();
+	}
+
+	public Data toData() {
+		throw new UnsupportedOperationException();
+	}
+
 	public void buildString(StringBuilder sb, int level) {
 		sb.append(Str.indent(level)).append('{').append(this).append('}');
 	}

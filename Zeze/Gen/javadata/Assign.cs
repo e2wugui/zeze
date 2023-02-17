@@ -12,6 +12,14 @@ namespace Zeze.Gen.javadata
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
+            sw.WriteLine(prefix + "@Override");
+            sw.WriteLine(prefix + $"public {bean.FullName} toBean() {{");
+            sw.WriteLine(prefix + $"    var bean = new {bean.FullName}();");
+            sw.WriteLine(prefix + $"    bean.assign(this);");
+            sw.WriteLine(prefix + $"    return bean;");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine();
+
             sw.WriteLine(prefix + "public void assign(Zeze.Transaction.Bean other) {");
             sw.WriteLine(prefix + $"    assign(({bean.Name})other);");
             sw.WriteLine(prefix + "}");

@@ -33,6 +33,11 @@ public class EmptyBean extends Bean {
 		return new EmptyBean();
 	}
 
+	@Override
+	public EmptyBeanData toData() {
+		return EmptyBeanData.instance;
+	}
+
 	public static final long TYPEID = 0; // 用0，而不是Bean.Hash("")，可能0更好吧。
 
 	@Override

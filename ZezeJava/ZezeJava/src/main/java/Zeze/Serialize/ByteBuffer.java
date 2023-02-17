@@ -1440,7 +1440,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			return dynBean;
 		}
 		if (type == BEAN) {
-			Bean bean = dynBean.getCreateBeanFromSpecialTypeId().apply(0);
+			Bean bean = dynBean.getCreateBean().apply(0);
 			if (bean != null) {
 				bean.decode(this);
 				return dynBean;
@@ -1460,7 +1460,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			return dynBean;
 		}
 		if (type == BEAN) {
-			var bean = dynBean.getCreateBeanFromSpecialTypeId().apply(0);
+			var bean = dynBean.getCreateData().apply(0);
 			if (bean != null) {
 				bean.decode(this);
 				return dynBean;

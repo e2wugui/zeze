@@ -8,15 +8,15 @@ import Zeze.Transaction.Collections.LogBean;
 public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	Bean bean;
 	long typeId;
-	transient final ToLongFunction<Bean> getSpecialTypeIdFromBean;
-	transient final LongFunction<Bean> createBeanFromSpecialTypeId;
+	transient final ToLongFunction<Bean> getBean;
+	transient final LongFunction<Bean> createBean;
 
 	public DynamicBean(int variableId, ToLongFunction<Bean> get, LongFunction<Bean> create) {
 		super(variableId);
 		bean = new EmptyBean();
 		typeId = EmptyBean.TYPEID;
-		getSpecialTypeIdFromBean = get;
-		createBeanFromSpecialTypeId = create;
+		this.getBean = get;
+		this.createBean = create;
 	}
 
 	@Override
@@ -35,7 +35,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		if (value == null)
 			throw new IllegalArgumentException("null value");
 		if (!isManaged()) {
-			typeId = getSpecialTypeIdFromBean.applyAsLong(value);
+			typeId = getBean.applyAsLong(value);
 			bean = value;
 			return;
 		}
@@ -63,12 +63,12 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		return getTypeId();
 	}
 
-	public final ToLongFunction<Bean> getGetSpecialTypeIdFromBean() {
-		return getSpecialTypeIdFromBean;
+	public final ToLongFunction<Bean> getGetBean() {
+		return getBean;
 	}
 
-	public final LongFunction<Bean> getCreateBeanFromSpecialTypeId() {
-		return createBeanFromSpecialTypeId;
+	public final LongFunction<Bean> getCreateBean() {
+		return createBean;
 	}
 
 	public final void assign(DynamicBean other) {
@@ -86,10 +86,16 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 
 	@Override
 	public DynamicBean copy() {
-		var copy = new DynamicBean(variableId(), getSpecialTypeIdFromBean, createBeanFromSpecialTypeId);
+		var copy = new DynamicBean(variableId(), getBean, createBean);
 		copy.bean = getBean().copy();
 		copy.typeId = getTypeId();
 		return copy;
+	}
+
+	public void assign(DynamicBeanData other) {
+		var bean = createBean.apply(other.typeId());
+		bean.assign(other.getBean());
+		setBean(bean);
 	}
 
 	@SuppressWarnings("deprecation")
@@ -111,7 +117,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		// 由于可能在事务中执行，这里仅修改Bean
 		// TypeId 在 Bean 提交时才修改，但是要在事务中读到最新值，参见 TypeId 的 getter 实现。
 		long typeId = bb.ReadLong();
-		Bean real = createBeanFromSpecialTypeId.apply(typeId);
+		Bean real = createBean.apply(typeId);
 		if (real != null) {
 			real.decode(bb);
 			setBeanWithSpecialTypeId(typeId, real);
