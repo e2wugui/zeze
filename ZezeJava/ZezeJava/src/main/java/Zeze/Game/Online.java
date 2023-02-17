@@ -274,8 +274,9 @@ public class Online extends AbstractOnline {
 		arg.roleId = roleId;
 		arg.online = _tonline.get(roleId);
 		arg.logoutReason = logoutReason;
+		arg.version = _tversion.get(roleId);
+
 		if (logoutReason == LogoutReason.LOGOUT) {
-			arg.version = _tversion.get(roleId);
 			_tonline.remove(roleId); // remove first
 		}
 		var ret = logoutEvents.triggerEmbed(this, arg);
@@ -800,17 +801,16 @@ public class Online extends AbstractOnline {
 		var local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
 		var version = _tversion.getOrAdd(rpc.Argument.getRoleId());
 
-		if (version.getLoginVersion() != 0) {
-			// login exist
-			if (assignLogoutVersion(version)) {
-				var ret = logoutTrigger(rpc.Argument.getRoleId(), LogoutReason.LOGIN);
-				if (0 != ret)
-					return ret;
-			}
-			if (version.getLoginVersion() != local.getLoginVersion()) {
-				tryRedirectRemoveLocal(version.getServerId(), rpc.Argument.getRoleId());
-			}
+		// login exist
+		if (assignLogoutVersion(version)) {
+			var ret = logoutTrigger(rpc.Argument.getRoleId(), LogoutReason.LOGIN);
+			if (0 != ret)
+				return ret;
 		}
+		if (version.getLoginVersion() != local.getLoginVersion()) {
+			tryRedirectRemoveLocal(version.getServerId(), rpc.Argument.getRoleId());
+		}
+
 		var loginVersion = version.getLoginVersion() + 1;
 		version.setLoginVersion(loginVersion);
 		local.setLoginVersion(loginVersion);
@@ -859,17 +859,16 @@ public class Online extends AbstractOnline {
 		var local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
 		var version = _tversion.getOrAdd(rpc.Argument.getRoleId());
 
-		if (version.getLoginVersion() != 0) {
-			// login exist
-			if (assignLogoutVersion(version)) {
-				var ret = logoutTrigger(rpc.Argument.getRoleId(), LogoutReason.RE_LOGIN);
-				if (0 != ret)
-					return ret;
-			}
-			if (version.getLoginVersion() != local.getLoginVersion()) {
-				tryRedirectRemoveLocal(version.getServerId(), rpc.Argument.getRoleId());
-			}
+		// login exist
+		if (assignLogoutVersion(version)) {
+			var ret = logoutTrigger(rpc.Argument.getRoleId(), LogoutReason.RE_LOGIN);
+			if (0 != ret)
+				return ret;
 		}
+		if (version.getLoginVersion() != local.getLoginVersion()) {
+			tryRedirectRemoveLocal(version.getServerId(), rpc.Argument.getRoleId());
+		}
+
 		var loginVersion = version.getLoginVersion() + 1;
 		version.setLoginVersion(loginVersion);
 		local.setLoginVersion(loginVersion);
