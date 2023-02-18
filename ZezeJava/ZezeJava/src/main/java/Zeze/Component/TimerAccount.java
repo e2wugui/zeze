@@ -309,9 +309,13 @@ public class TimerAccount {
 				return 0; // done
 			}
 
+			Bean customData = null;
+			{
+				var onlineTimers = online.<BOnlineTimers>getLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers);
+				if (null != onlineTimers)
+					customData = onlineTimers.getTimerIds().get(timerId).getCustomData().getBean();
+			}
 			var cronTimer = bTimer.getTimerObj_Zeze_Builtin_Timer_BCronTimer();
-			var onlineTimers = online.<BOnlineTimers>getLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers);
-			var customData = onlineTimers.getTimerIds().get(timerId).getCustomData().getBean();
 			var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
 					cronTimer.getHappenTime(), cronTimer.getNextExpectedTime(), cronTimer.getExpectedTime());
 			context.account = bTimer.getAccount();
@@ -375,9 +379,12 @@ public class TimerAccount {
 
 			var simpleTimer = bTimer.getTimerObj_Zeze_Builtin_Timer_BSimpleTimer();
 			var retNest = Task.call(online.providerApp.zeze.newProcedure(() -> {
-				var onlineTimers = online.<BOnlineTimers>getLocalBean(
-						bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers);
-				var customData = onlineTimers.getTimerIds().get(timerId).getCustomData().getBean();
+				Bean customData = null;
+				{
+					var onlineTimers = online.<BOnlineTimers>getLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers);
+					if (null != onlineTimers)
+						customData = onlineTimers.getTimerIds().get(timerId).getCustomData().getBean();
+				}
 				var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
 						simpleTimer.getHappenTimes(), simpleTimer.getNextExpectedTime(),
 						simpleTimer.getExpectedTime());

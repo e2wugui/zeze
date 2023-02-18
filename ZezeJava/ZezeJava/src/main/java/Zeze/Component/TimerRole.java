@@ -84,9 +84,9 @@ public class TimerRole {
 		timer.tRoleTimers().put(timerId, onlineTimer);
 		onlineTimer.getTimerObj().setBean(simpleTimer);
 
-		var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
 		if (null != customData) {
 			timer.register(customData.getClass());
+			var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
 			timerIds.getTimerIds().getOrAdd(timerId).getCustomData().setBean(customData);
 		}
 		scheduleSimple(timerId, simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), name);
@@ -112,9 +112,9 @@ public class TimerRole {
 		onlineTimer.getTimerObj().setBean(cronTimer);
 		timer.tRoleTimers().insert(timerId, onlineTimer);
 
-		var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
 		if (null != customData) {
 			timer.register(customData.getClass());
+			var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
 			timerIds.getTimerIds().getOrAdd(timerId).getCustomData().setBean(customData);
 		}
 		scheduleCron(timerId, cronTimer, name);
@@ -304,8 +304,12 @@ public class TimerRole {
 			}
 
 			var cronTimer = bTimer.getTimerObj_Zeze_Builtin_Timer_BCronTimer();
-			var onlineTimers = online.<BOnlineTimers>getLocalBean(bTimer.getRoleId(), eOnlineTimers);
-			var customData = onlineTimers.getTimerIds().get(timerId).getCustomData().getBean();
+			Bean customData = null;
+			{
+				var onlineTimers = online.<BOnlineTimers>getLocalBean(bTimer.getRoleId(), eOnlineTimers);
+				if (null != onlineTimers)
+					customData = onlineTimers.getTimerIds().get(timerId).getCustomData().getBean();
+			}
 			var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
 					cronTimer.getHappenTime(), cronTimer.getNextExpectedTime(),
 					cronTimer.getExpectedTime());
@@ -370,8 +374,12 @@ public class TimerRole {
 
 			var simpleTimer = bTimer.getTimerObj_Zeze_Builtin_Timer_BSimpleTimer();
 			var retNest = Task.call(online.providerApp.zeze.newProcedure(() -> {
-				var onlineTimers = online.<BOnlineTimers>getLocalBean(bTimer.getRoleId(), eOnlineTimers);
-				var customData = onlineTimers.getTimerIds().get(timerId).getCustomData().getBean();
+				Bean customData = null;
+				{
+					var onlineTimers = online.<BOnlineTimers>getLocalBean(bTimer.getRoleId(), eOnlineTimers);
+					if (null != onlineTimers)
+						customData = onlineTimers.getTimerIds().get(timerId).getCustomData().getBean();
+				}
 				var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
 						simpleTimer.getHappenTimes(), simpleTimer.getNextExpectedTime(),
 						simpleTimer.getExpectedTime());
