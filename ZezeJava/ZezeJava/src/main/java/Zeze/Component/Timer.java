@@ -57,18 +57,20 @@ public class Timer extends AbstractTimer {
 		for (var cls : classes.getCustomClasses()) {
 			beanFactory.register((Class<? extends Bean>)Class.forName(cls));
 		}
-		return 0L;
+		return 0;
+	}
+
+	public void loadCustomClassAnd() {
+		nodeIdAutoKey = zeze.getAutoKey("Zeze.Component.Timer.NodeId");
+		timerIdAutoKey = zeze.getAutoKey("Zeze.Component.Timer.TimerId");
+		if (0 != zeze.newProcedure(this::loadCustomClass, "loadCustomClass").call())
+			throw new IllegalStateException("loadCustomClassAnd Fail.");
 	}
 
 	/**
 	 * 非事务环境调用。用于启动Timer服务。
 	 */
 	public void start() {
-		nodeIdAutoKey = zeze.getAutoKey("Zeze.Component.Timer.NodeId");
-		timerIdAutoKey = zeze.getAutoKey("Zeze.Component.Timer.TimerId");
-		if (0L != zeze.newProcedure(this::loadCustomClass, "").call()) {
-			throw new IllegalStateException("Load Item Classes Failed.");
-		}
 		Task.run(this::loadTimer, "LoadTimerLocal");
 	}
 

@@ -314,8 +314,10 @@ public class TimerRole {
 				handle.onTimer(context);
 				return Procedure.Success;
 			}, "fireOnlineLocalHandle"));
-			if (retNest == Procedure.Exception)
-				return retNest;
+			if (retNest == Procedure.Exception) {
+				cancel(timerId); // 异常错误不忽略。
+				return 0;
+			}
 			// skip other error
 
 			if (!Timer.nextCronTimer(cronTimer, false)) {
@@ -328,8 +330,13 @@ public class TimerRole {
 			scheduleCronNext(timerId, delay, handle);
 			return 0;
 		}, "fireOnlineSimpleTimer"));
-		if (ret != 0)
-			cancel(timerId);
+		// 上面的存储过程几乎处理了所有错误，正常情况下总是返回0（成功），下面这个作为最终保护。
+		if (ret != 0) {
+			Task.call(online.providerApp.zeze.newProcedure(() -> {
+				cancel(timerId);
+				return 0;
+			}, "TimerRole finally cancel impossible!"));
+		}
 	}
 
 	// 调度 Simple 定时器到ThreadPool中。
@@ -372,8 +379,10 @@ public class TimerRole {
 				handle.onTimer(context);
 				return Procedure.Success;
 			}, "fireOnlineLocalHandle"));
-			if (retNest == Procedure.Exception)
-				return retNest;
+			if (retNest == Procedure.Exception) {
+				cancel(timerId); // 异常错误不忽略。
+				return 0;
+			}
 			// 其他错误忽略
 
 			// 准备下一个间隔
@@ -387,7 +396,12 @@ public class TimerRole {
 			scheduleSimple(timerId, delay, handle);
 			return 0;
 		}, "fireOnlineSimpleTimer"));
-		if (ret != 0)
-			cancel(timerId);
+		// 上面的存储过程几乎处理了所有错误，正常情况下总是返回0（成功），下面这个作为最终保护。
+		if (ret != 0) {
+			Task.call(online.providerApp.zeze.newProcedure(() -> {
+				cancel(timerId);
+				return 0;
+			}, "TimerRole finally cancel impossible!"));
+		}
 	}
 }

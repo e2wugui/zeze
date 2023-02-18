@@ -389,6 +389,7 @@ public final class Application {
 			isStart = true;
 
 			delayRemove.start();
+			timer.loadCustomClassAnd();
 		}
 	}
 
