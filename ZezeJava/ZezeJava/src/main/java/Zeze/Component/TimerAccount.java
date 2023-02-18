@@ -312,8 +312,11 @@ public class TimerAccount {
 			Bean customData = null;
 			{
 				var onlineTimers = online.<BOnlineTimers>getLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers);
-				if (null != onlineTimers)
-					customData = onlineTimers.getTimerIds().get(timerId).getCustomData().getBean();
+				if (null != onlineTimers) {
+					var cTimer = onlineTimers.getTimerIds().get(timerId);
+					if (null != cTimer)
+						customData = cTimer.getCustomData().getBean();
+				}
 			}
 			var cronTimer = bTimer.getTimerObj_Zeze_Builtin_Timer_BCronTimer();
 			var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
@@ -382,8 +385,11 @@ public class TimerAccount {
 				Bean customData = null;
 				{
 					var onlineTimers = online.<BOnlineTimers>getLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers);
-					if (null != onlineTimers)
-						customData = onlineTimers.getTimerIds().get(timerId).getCustomData().getBean();
+					if (null != onlineTimers) {
+						var cTimer = onlineTimers.getTimerIds().get(timerId);
+						if (null != cTimer)
+							customData = cTimer.getCustomData().getBean();
+					}
 				}
 				var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
 						simpleTimer.getHappenTimes(), simpleTimer.getNextExpectedTime(),

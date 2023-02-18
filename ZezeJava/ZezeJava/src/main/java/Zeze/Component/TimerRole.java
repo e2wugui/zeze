@@ -307,8 +307,11 @@ public class TimerRole {
 			Bean customData = null;
 			{
 				var onlineTimers = online.<BOnlineTimers>getLocalBean(bTimer.getRoleId(), eOnlineTimers);
-				if (null != onlineTimers)
-					customData = onlineTimers.getTimerIds().get(timerId).getCustomData().getBean();
+				if (null != onlineTimers) {
+					var cTimer = onlineTimers.getTimerIds().get(timerId);
+					if (null != cTimer)
+						customData = cTimer.getCustomData().getBean();
+				}
 			}
 			var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
 					cronTimer.getHappenTime(), cronTimer.getNextExpectedTime(),
@@ -377,8 +380,11 @@ public class TimerRole {
 				Bean customData = null;
 				{
 					var onlineTimers = online.<BOnlineTimers>getLocalBean(bTimer.getRoleId(), eOnlineTimers);
-					if (null != onlineTimers)
-						customData = onlineTimers.getTimerIds().get(timerId).getCustomData().getBean();
+					if (null != onlineTimers) {
+						var cTimer = onlineTimers.getTimerIds().get(timerId);
+						if (null != cTimer)
+							customData = cTimer.getCustomData().getBean();
+					}
 				}
 				var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
 						simpleTimer.getHappenTimes(), simpleTimer.getNextExpectedTime(),
