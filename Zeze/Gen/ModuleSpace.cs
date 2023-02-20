@@ -93,6 +93,8 @@ namespace Zeze.Gen
         public SortedDictionary<string, ServletStream> ServletStreams { get; private set; } = new();
         public List<Types.Enum> Enums { get; private set; } = new();
         public HashSet<Types.Bean> MappingClassBeans { get; } = new();
+        // 从其他项目引入的协议，这个协议仅仅生成相关代码，但不会注册到Service也不会在Module中生成Handle。
+        public SortedDictionary<string, Protocol> ProtocolsImport { get; private set; } = new();
 
         public void AddMappingClassBean(Types.Bean bean)
         {
@@ -184,6 +186,11 @@ namespace Zeze.Gen
             {
                 ProtocolIdRanges.CheckAdd(p.Id);
                 Protocols.Add(p.Name, p);
+            }
+            foreach (var p in Program.CompileProtocolRef(Program.Refs(Self, "protocolref", "import")))
+            {
+                ProtocolIdRanges.CheckAdd(p.Id);
+                ProtocolsImport.Add(p.Name, p);
             }
         }
     }

@@ -126,14 +126,17 @@ namespace Zeze.Gen
                 module.Depends(unique, ordered);
             }
         }
-        
+
         public void Depends(HashSet<Protocol> depends)
         {
             foreach (Protocol p in Protocols.Values)
             {
                 depends.Add(p);
             }
-
+            foreach (var p in ProtocolsImport.Values)
+            {
+                depends.Add(p);
+            }
             foreach (Module module in Modules.Values)
             {
                 module.Depends(depends);

@@ -18,6 +18,17 @@ Benchmark.ABasicSimpleAddOneThread tasks/s=209874.71 time=4.76 cpu=0.00 concurre
 Benchmark.BBasicSimpleAddConcurrentWithConflict tasks/s=217785.84 time=4.59 cpu=0.00 concurrent=0.00
 Benchmark.CBasicSimpleAddConcurrent tasks/s=96997.63 time=10.31 cpu=100.00 concurrent=9.70
 
+linkd提供给gs查询接口；以及自定义查询-linkd重载的provider service可以增加自定义模块？
+	UserIp 传给gs的问题。方案：
+	1. ProviderService 自定义模块协议中gs提供保存ip功能，linkd-auth的时候调用并保存。
+	2. 在需要访问UserIp的客户端协议中定义变量，linkd拦截这条协议并且填上。
+	   需要在linkd引入这条协议，现有的protocolref除了引入还注册进Service。需要选项仅仅引入而不注册。
+	   serverdev的linkd知道所有的gs协议，刚好不需要protocolref，但这个方式是几个project生成到common目录达到目的的。有点特殊。
+	3. linkd提供ProviderService自定义模块提供查询能力，让gs主动查询。缺点是查询跨进程，延迟较高。
+	看看，有什么zeze要做的，
+	1. protocolref新参数或者新增protocolimport来表达是一个点。
+	2. 其他的都是项目自定义就行了。
+
 ------------------------------------------------------------------------------------------------------------------------------
 2023/2/24 v1.1.9 Zeze.Transaction.Data; 
 ------------------------------------------------------------------------------------------------------------------------------
