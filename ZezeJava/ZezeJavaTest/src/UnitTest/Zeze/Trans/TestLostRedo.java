@@ -54,6 +54,7 @@ public class TestLostRedo {
 	}
 
 	private long write() {
+		@SuppressWarnings("deprecation")
 		var key = App.Instance.Zeze.getAutoKeyOld("lostredo.autokey").nextId();
 		var mkey = key % 1000;
 		keys.add(mkey);
@@ -77,6 +78,7 @@ public class TestLostRedo {
 	private final AtomicLong runTimes = new AtomicLong();
 	private long autoKeyConflict() {
 		runTimes.incrementAndGet();
+		@SuppressWarnings("deprecation")
 		var key = App.Instance.Zeze.getAutoKeyOld("conflict.autokey").nextId();
 		Transaction.whileCommit(() -> {
 			Assert.assertNull(autos.putIfAbsent(key, key));
@@ -110,6 +112,7 @@ public class TestLostRedo {
 	private final AtomicLong insertOks = new AtomicLong();
 	private long autoKeyWithInsert() {
 		runTimes.incrementAndGet();
+		@SuppressWarnings("deprecation")
 		var key = App.Instance.Zeze.getAutoKeyOld("insert.autokey").nextId();
 		App.Instance.demo_Module1.getTable1().insert(key, new BValue());
 		Transaction.whileCommit(insertOks::incrementAndGet);
