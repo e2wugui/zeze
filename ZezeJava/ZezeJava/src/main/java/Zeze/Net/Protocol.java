@@ -268,20 +268,27 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 					p.userState = so.getUserState();
 					if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
 						if (p.isRequest()) {
-							if (p instanceof Rpc)
-								AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RECV[{}] {}({}): {}", so.getSessionId(),
-										p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.Argument);
-							else
-								AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RECV[{}] {}: {}", so.getSessionId(),
-										p.getClass().getSimpleName(), p.Argument);
-						} else
-							AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RECV[{}] {}({})>{} {}", so.getSessionId(),
-									p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.resultCode, p.getResultBean());
+							if (p instanceof Rpc) {
+								AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "{}.RECV {}({}): {}",
+										so.getSessionId(), p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(),
+										p.Argument);
+							} else if (p.resultCode == 0) {
+								AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "{}.RECV {}: {}",
+										so.getSessionId(), p.getClass().getSimpleName(), p.Argument);
+							} else {
+								AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "{}.RECV {}<{}>: {}",
+										so.getSessionId(), p.getClass().getSimpleName(), p.resultCode, p.Argument);
+							}
+						} else {
+							AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "{}.RECV {}({})<{}>: {}",
+									so.getSessionId(), p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(),
+									p.resultCode, p.getResultBean());
+						}
 					}
 					p.dispatch(service, factoryHandle);
 				} else {
 					if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
-						AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RECV[{}] {}:{} [{}]",
+						AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "{}.RECV {}:{} [{}]",
 								so.getSessionId(), moduleId, protocolId, bb.Size());
 					}
 					service.dispatchUnknownProtocol(so, moduleId, protocolId, bb); // 这里只能临时读bb,不能持有Bytes引用

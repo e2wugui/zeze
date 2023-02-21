@@ -106,15 +106,20 @@ public class ProviderUserSession {
 			var linkSid = getLinkSid();
 			var className = p.getClass().getSimpleName();
 			if (p.isRequest()) {
-				if (p instanceof Rpc)
-					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RESP[{}] {}({}): {}", linkSid,
+				if (p instanceof Rpc) {
+					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "{}.RESP {}({}): {}", linkSid,
 							className, ((Rpc<?, ?>)p).getSessionId(), p.Argument);
-				else
-					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RESP[{}] {}: {}", linkSid,
+				} else if (p.getResultCode() == 0) {
+					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "{}.RESP {}: {}", linkSid,
 							className, p.Argument);
-			} else
-				AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RESP[{}] {}({})> {}", linkSid,
-						className, ((Rpc<?, ?>)p).getSessionId(), p.getResultBean());
+				} else {
+					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "{}.RESP {}<{}>: {}", linkSid,
+							className, p.getResultCode(), p.Argument);
+				}
+			} else {
+				AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "{}.RESP {}({})<{}>: {}", linkSid,
+						className, ((Rpc<?, ?>)p).getSessionId(), p.getResultCode(), p.getResultBean());
+			}
 		}
 		sendResponse(typeId, new Binary(p.encode()));
 	}

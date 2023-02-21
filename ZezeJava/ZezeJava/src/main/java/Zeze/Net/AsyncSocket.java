@@ -522,16 +522,19 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		if (ENABLE_PROTOCOL_LOG && canLogProtocol(protocol.getTypeId())) {
 			if (protocol.isRequest()) {
 				if (protocol instanceof Rpc) {
-					logger.log(LEVEL_PROTOCOL_LOG, "SEND[{}] {}({}): {}", sessionId,
+					logger.log(LEVEL_PROTOCOL_LOG, "{}.SEND {}({}): {}", sessionId,
 							protocol.getClass().getSimpleName(),
 							((Rpc<?, ?>)protocol).getSessionId(), protocol.Argument);
-				} else {
-					logger.log(LEVEL_PROTOCOL_LOG, "SEND[{}] {}: {}", sessionId, protocol.getClass().getSimpleName(),
+				} else if (protocol.resultCode == 0) {
+					logger.log(LEVEL_PROTOCOL_LOG, "{}.SEND {}: {}", sessionId, protocol.getClass().getSimpleName(),
 							protocol.Argument);
+				} else {
+					logger.log(LEVEL_PROTOCOL_LOG, "{}.SEND {}<{}>: {}", sessionId, protocol.getClass().getSimpleName(),
+							protocol.resultCode, protocol.Argument);
 				}
 			} else {
-				logger.log(LEVEL_PROTOCOL_LOG, "SEND[{}] {}({})> {}", sessionId, protocol.getClass().getSimpleName(),
-						((Rpc<?, ?>)protocol).getSessionId(), protocol.getResultBean());
+				logger.log(LEVEL_PROTOCOL_LOG, "{}.SEND {}({})<{}>: {}", sessionId, protocol.getClass().getSimpleName(),
+						((Rpc<?, ?>)protocol).getSessionId(), protocol.resultCode, protocol.getResultBean());
 			}
 		}
 		return Send(protocol.encode());

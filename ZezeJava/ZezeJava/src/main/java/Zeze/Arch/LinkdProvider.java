@@ -272,7 +272,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		var linkSids = r.Argument.getLinkSids();
 		if (canLogSend) {
 			var ptype = r.Argument.getProtocolType();
-			AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "SENT[{}]: {}:{} [{}]", linkSids.size(),
+			AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "SEND[{}]: {}:{} [{}]", linkSids.size(),
 					Protocol.getModuleId(ptype), Protocol.getProtocolId(ptype), pdata.size());
 		}
 		//*
