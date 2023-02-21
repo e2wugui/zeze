@@ -324,7 +324,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			// 如果要实现 role.login 才允许，Provider 增加 SetLogin 协议给内部server调用。
 			// 这些广播一般是重要通告，只要登录客户端就允许收到，然后进入世界的时候才显示。这样处理就不用这个状态了。
 			var linkSession = (LinkdUserSession)socket.getUserState();
-			if (linkSession != null && linkSession.getAccount() == null && !linkSession.getContext().isEmpty()) {
+			if (linkSession != null && linkSession.getAccount() != null && !linkSession.getContext().isEmpty()) {
 				socket.Send(pdata);
 				if (enableDump)
 					tryDump(socket, pdata);
