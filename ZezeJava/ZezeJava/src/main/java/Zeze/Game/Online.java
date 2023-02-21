@@ -233,10 +233,14 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	public Long getOfflineLoginVersion(long roleId) {
-		var online = _tonline.get(roleId);
-		if (null != online)
-			return null; // is not online
+	public Long getLogoutVersion(long roleId) {
+		var version = _tversion.get(roleId);
+		if (null == version)
+			return null; // no version
+		return version.getLogoutVersion();
+	}
+
+	public Long getLoginVersion(long roleId) {
 		var version = _tversion.get(roleId);
 		if (null == version)
 			return null; // no version
@@ -274,15 +278,15 @@ public class Online extends AbstractOnline {
 		arg.roleId = roleId;
 		arg.logoutReason = logoutReason;
 
+		// 提前删除，可能事件里面需要使用这个判断已经登出。
+		if (logoutReason == LogoutReason.LOGOUT) {
+			_tonline.remove(roleId); // remove first
+		}
 		var ret = logoutEvents.triggerEmbed(this, arg);
 		if (0 != ret)
 			return ret;
 		logoutEvents.triggerProcedure(providerApp.zeze, this, arg);
 		Transaction.whileCommit(() -> logoutEvents.triggerThread(this, arg));
-		// 最后删除，可能事件里面需要访问旧数据。
-		if (logoutReason == LogoutReason.LOGOUT) {
-			_tonline.remove(roleId); // remove first
-		}
 		return 0;
 	}
 

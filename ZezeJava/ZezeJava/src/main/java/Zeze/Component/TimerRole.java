@@ -141,7 +141,7 @@ public class TimerRole {
 
 	public String scheduleOffline(long roleId, long delay, long period, long times, long endTime,
 								  Class<? extends TimerHandle> handleClassName, Bean customData) {
-		var loginVersion = online.getOfflineLoginVersion(roleId);
+		var loginVersion = online.getLogoutVersion(roleId);
 		if (null == loginVersion)
 			throw new IllegalStateException("not logout. roleId=" + roleId);
 
@@ -165,7 +165,7 @@ public class TimerRole {
 
 	public String scheduleOffline(long roleId, String cron, long times, long endTime,
 								  Class<? extends TimerHandle> handleClassName, Bean customData) throws ParseException {
-		var loginVersion = online.getOfflineLoginVersion(roleId);
+		var loginVersion = online.getLogoutVersion(roleId);
 		if (null == loginVersion)
 			throw new IllegalStateException("not logout. roleId=" + roleId);
 
@@ -193,7 +193,7 @@ public class TimerRole {
 		@Override
 		public void onTimer(TimerContext context) throws Exception {
 			var offlineCustom = (BOfflineRoleCustom)context.customData;
-			var loginVersion = context.timer.getRoleTimer().online.getOfflineLoginVersion(offlineCustom.getRoleId());
+			var loginVersion = context.timer.getRoleTimer().online.getLoginVersion(offlineCustom.getRoleId());
 			// 检查版本号，不正确的登录版本号表示过期的timer，取消掉即可。
 			if (null != loginVersion && loginVersion == offlineCustom.getLoginVersion()) {
 				@SuppressWarnings("unchecked")
