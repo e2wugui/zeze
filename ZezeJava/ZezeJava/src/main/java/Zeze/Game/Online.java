@@ -284,9 +284,9 @@ public class Online extends AbstractOnline {
 		arg.logoutReason = logoutReason;
 
 		// 提前删除，可能事件里面需要使用这个判断已经登出。
-		if (logoutReason == LogoutReason.LOGOUT) {
-			_tonline.remove(roleId); // remove first
-		}
+		// 外面补发logoutTrigger之后需要重新getOrAdd一次。
+		_tonline.remove(roleId); // remove first
+
 		var ret = logoutEvents.triggerEmbed(this, arg);
 		if (0 != ret)
 			return ret;
@@ -813,6 +813,8 @@ public class Online extends AbstractOnline {
 			var ret = logoutTrigger(rpc.Argument.getRoleId(), LogoutReason.LOGIN);
 			if (0 != ret)
 				return ret;
+			// trigger remove; new record
+			online = _tonline.getOrAdd(rpc.Argument.getRoleId());
 		}
 		if (version.getLoginVersion() != local.getLoginVersion()) {
 			tryRedirectRemoveLocal(version.getServerId(), rpc.Argument.getRoleId());
@@ -859,10 +861,7 @@ public class Online extends AbstractOnline {
 	protected long ProcessReLoginRequest(Zeze.Builtin.Game.Online.ReLogin rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 
-		BOnline online = _tonline.get(rpc.Argument.getRoleId());
-		if (online == null)
-			return errorCode(ResultCodeOnlineDataNotFound);
-
+		var online = _tonline.getOrAdd(rpc.Argument.getRoleId());
 		var local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
 		var version = _tversion.getOrAdd(rpc.Argument.getRoleId());
 
@@ -871,6 +870,8 @@ public class Online extends AbstractOnline {
 			var ret = logoutTrigger(rpc.Argument.getRoleId(), LogoutReason.RE_LOGIN);
 			if (0 != ret)
 				return ret;
+			// trigger remove; new record
+			online = _tonline.getOrAdd(rpc.Argument.getRoleId());
 		}
 		if (version.getLoginVersion() != local.getLoginVersion()) {
 			tryRedirectRemoveLocal(version.getServerId(), rpc.Argument.getRoleId());
@@ -935,6 +936,7 @@ public class Online extends AbstractOnline {
 				var ret = logoutTrigger(session.getRoleId(), LogoutReason.LOGOUT);
 				if (0 != ret)
 					return ret;
+				// 到这里online被删除了。
 			}
 		}
 		// 先设置状态，再发送Logout结果。

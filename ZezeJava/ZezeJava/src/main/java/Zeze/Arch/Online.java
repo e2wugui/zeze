@@ -226,23 +226,10 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	private long logoutTriggerExtra(String account, String clientId) throws Exception {
-		var bOnline = _tonline.get(account);
-		var onlineData = bOnline.getLogins().get(clientId);
-		var arg = new LogoutEventArgument(account, clientId, onlineData);
-
-		var ret = logoutEvents.triggerEmbed(this, arg);
-		if (0 != ret)
-			return ret;
-		logoutEvents.triggerProcedure(providerApp.zeze, this, arg);
-		Transaction.whileCommit(() -> logoutEvents.triggerThread(this, arg));
-		return 0;
-	}
-
 	private long logoutTrigger(String account, String clientId) throws Exception {
 		var bOnline = _tonline.get(account);
-		var onlineData = bOnline.getLogins().remove(clientId);
-		var arg = new LogoutEventArgument(account, clientId, onlineData);
+		bOnline.getLogins().remove(clientId);
+		var arg = new LogoutEventArgument(account, clientId);
 
 		if (bOnline.getLogins().isEmpty())
 			_tonline.remove(account); // remove first
@@ -970,9 +957,10 @@ public class Online extends AbstractOnline {
 		if (loginVersion.getLoginVersion() != loginVersion.getLogoutVersion()) {
 			// login exist
 			loginVersion.setLogoutVersion(loginVersion.getLoginVersion());
-			var ret = logoutTriggerExtra(session.getAccount(), rpc.Argument.getClientId());
+			var ret = logoutTrigger(session.getAccount(), rpc.Argument.getClientId());
 			if (0 != ret)
 				return ret;
+			online = _tonline.getOrAdd(session.getAccount());
 			if (loginVersion.getLoginVersion() != loginLocal.getLoginVersion()) {
 				tryRedirectRemoveLocal(loginVersion.getServerId(), session.getAccount());
 			}
@@ -1029,10 +1017,7 @@ public class Online extends AbstractOnline {
 	protected long ProcessReLoginRequest(Zeze.Builtin.Online.ReLogin rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 
-		var online = _tonline.get(session.getAccount());
-		if (online == null)
-			return errorCode(ResultCodeOnlineDataNotFound);
-
+		var online = _tonline.getOrAdd(session.getAccount());
 		var local = _tlocal.getOrAdd(session.getAccount());
 		var version = _tversion.getOrAdd(session.getAccount());
 
@@ -1041,10 +1026,10 @@ public class Online extends AbstractOnline {
 
 		if (loginVersion.getLoginVersion() != 0) {
 			// login exist
-			// relogin 不需要补充 Logout？
-			// var ret = LogoutTriggerExtra(session.getAccount(), rpc.Argument.getClientId());
-			// if (0 != ret)
-			//	return ret;
+			var ret = logoutTrigger(session.getAccount(), rpc.Argument.getClientId());
+			if (0 != ret)
+				return ret;
+			online = _tonline.getOrAdd(session.getAccount());
 			if (loginVersion.getLoginVersion() != loginLocal.getLoginVersion()) {
 				tryRedirectRemoveLocal(loginVersion.getServerId(), session.getAccount());
 			}
@@ -1116,6 +1101,7 @@ public class Online extends AbstractOnline {
 			var ret = logoutTrigger(session.getAccount(), clientId);
 			if (0 != ret)
 				return ret;
+			// online 被删除
 		}
 		// 先设置状态，再发送Logout结果。
 		Transaction.whileCommit(() -> {
