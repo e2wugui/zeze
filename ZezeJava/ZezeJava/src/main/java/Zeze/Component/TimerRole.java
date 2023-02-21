@@ -141,12 +141,12 @@ public class TimerRole {
 
 	public String scheduleOffline(long roleId, long delay, long period, long times, long endTime,
 								  Class<? extends TimerHandle> handleClassName, Bean customData) {
-		var loginVersion = online.getLogoutVersion(roleId);
-		if (null == loginVersion)
+		var logoutVersion = online.getLogoutVersion(roleId);
+		if (null == logoutVersion)
 			throw new IllegalStateException("not logout. roleId=" + roleId);
 
 		var timer = online.providerApp.zeze.getTimer();
-		var custom = new BOfflineRoleCustom("", roleId, loginVersion, handleClassName.getName());
+		var custom = new BOfflineRoleCustom("", roleId, logoutVersion, handleClassName.getName());
 		var timerName = timer.schedule(delay, period, times, endTime,
 				Timer.eMissfirePolicyNothing, OfflineHandle.class, custom);
 		custom.setTimerName(timerName); // 没办法，循环依赖了，只能在这里设置。
@@ -165,12 +165,12 @@ public class TimerRole {
 
 	public String scheduleOffline(long roleId, String cron, long times, long endTime,
 								  Class<? extends TimerHandle> handleClassName, Bean customData) throws ParseException {
-		var loginVersion = online.getLogoutVersion(roleId);
-		if (null == loginVersion)
+		var logoutVersion = online.getLogoutVersion(roleId);
+		if (null == logoutVersion)
 			throw new IllegalStateException("not logout. roleId=" + roleId);
 
 		var timer = online.providerApp.zeze.getTimer();
-		var custom = new BOfflineRoleCustom("", roleId, loginVersion, handleClassName.getName());
+		var custom = new BOfflineRoleCustom("", roleId, logoutVersion, handleClassName.getName());
 		var timerName = timer.schedule(cron, times, endTime,
 				Timer.eMissfirePolicyNothing, OfflineHandle.class, custom);
 		custom.setTimerName(timerName); // 没办法，循环依赖了，只能在这里设置。

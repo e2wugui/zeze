@@ -141,12 +141,12 @@ public class TimerAccount {
 
 	public String scheduleOffline(String account, String clientId, long delay, long period, long times, long endTime,
 								  Class<? extends TimerHandle> handleClassName, Bean customData) {
-		var loginVersion = online.getLogoutVersion(account, clientId);
-		if (null == loginVersion)
+		var logoutVersion = online.getLogoutVersion(account, clientId);
+		if (null == logoutVersion)
 			throw new IllegalStateException("not logout. account=" + account + " clientId=" + clientId);
 
 		var timer = online.providerApp.zeze.getTimer();
-		var custom = new BOfflineAccountCustom("", account, clientId, loginVersion, handleClassName.getName());
+		var custom = new BOfflineAccountCustom("", account, clientId, logoutVersion, handleClassName.getName());
 		var timerName = timer.schedule(delay, period, times, endTime,
 				Timer.eMissfirePolicyNothing, OfflineHandle.class, custom);
 		custom.setTimerName(timerName); // 没办法，循环依赖了，只能在这里设置。
@@ -166,12 +166,12 @@ public class TimerAccount {
 
 	public String scheduleOffline(String account, String clientId, String cron, long times, long endTime,
 								  Class<? extends TimerHandle> handleClassName, Bean customData) throws ParseException {
-		var loginVersion = online.getLogoutVersion(account, clientId);
-		if (null == loginVersion)
+		var logoutVersion = online.getLogoutVersion(account, clientId);
+		if (null == logoutVersion)
 			throw new IllegalStateException("not logout. account=" + account + " clientId=" + clientId);
 
 		var timer = online.providerApp.zeze.getTimer();
-		var custom = new BOfflineAccountCustom("", account, clientId, loginVersion, handleClassName.getName());
+		var custom = new BOfflineAccountCustom("", account, clientId, logoutVersion, handleClassName.getName());
 		var timerName = timer.schedule(cron, times, endTime,
 				Timer.eMissfirePolicyNothing, OfflineHandle.class, custom);
 		custom.setTimerName(timerName); // 没办法，循环依赖了，只能在这里设置。
