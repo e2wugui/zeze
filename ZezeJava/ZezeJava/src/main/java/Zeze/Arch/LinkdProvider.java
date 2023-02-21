@@ -272,7 +272,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		var linkSids = r.Argument.getLinkSids();
 		if (canLogSend) {
 			var ptype = r.Argument.getProtocolType();
-			AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "SEND[{}]: {}:{} [{}]", linkSids.size(),
+			AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Send[{}]: {}:{} [{}]", linkSids.size(),
 					Protocol.getModuleId(ptype), Protocol.getProtocolId(ptype), pdata.size());
 		}
 		//*
@@ -315,7 +315,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		var pdata = protocol.Argument.getProtocolWholeData();
 		if (canLogBroadcast) {
 			var ptype = protocol.Argument.getProtocolType();
-			AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "BROC[{}]: {}:{} [{}]",
+			AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Broc[{}]: {}:{} [{}]",
 					linkdApp.linkdService.getSocketCount(), Protocol.getModuleId(ptype), Protocol.getProtocolId(ptype),
 					pdata.size());
 		}

@@ -31,6 +31,7 @@ import Zeze.Collections.BeanFactory;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
+import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
@@ -300,7 +301,8 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	private long linkBrokenTrigger(String account, long roleId) throws Exception {
+	@SuppressWarnings("UnusedReturnValue")
+	private long linkBrokenTrigger(@SuppressWarnings("unused") String account, long roleId) throws Exception {
 		var arg = new LinkBrokenArgument();
 		arg.roleId = roleId;
 
@@ -387,10 +389,53 @@ public class Online extends AbstractOnline {
 	}
 
 	public final void send(long roleId, Protocol<?> p) {
+		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p.getTypeId())) {
+			if (p.isRequest()) {
+				if (p instanceof Rpc) {
+					logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Send({}) {}({}): {}",
+							roleId, p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.Argument);
+				} else if (p.getResultCode() == 0) {
+					logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Send({}) {}: {}",
+							roleId, p.getClass().getSimpleName(), p.Argument);
+				} else {
+					logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Send({}) {}<{}>: {}",
+							roleId, p.getClass().getSimpleName(), p.getResultCode(), p.Argument);
+				}
+			} else {
+				logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Send({}) {}({})<{}>: {}",
+						roleId, p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.getResultCode(),
+						p.getResultBean());
+			}
+		}
 		send(roleId, p.getTypeId(), new Binary(p.encode()));
 	}
 
 	public final void send(Iterable<Long> roleIds, Protocol<?> p) {
+		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p.getTypeId())) {
+			var sb = new StringBuilder();
+			for (var roleId : roleIds)
+				sb.append(roleId).append(',');
+			int n = sb.length();
+			if (n > 0)
+				sb.setLength(n - 1);
+			var idsStr = sb.toString();
+			if (p.isRequest()) {
+				if (p instanceof Rpc) {
+					logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Send[{}] {}({}): {}",
+							idsStr, p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.Argument);
+				} else if (p.getResultCode() == 0) {
+					logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Send[{}] {}: {}",
+							idsStr, p.getClass().getSimpleName(), p.Argument);
+				} else {
+					logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Send[{}] {}<{}>: {}",
+							idsStr, p.getClass().getSimpleName(), p.getResultCode(), p.Argument);
+				}
+			} else {
+				logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Send[{}] {}({})<{}>: {}",
+						idsStr, p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.getResultCode(),
+						p.getResultBean());
+			}
+		}
 		send(roleIds, p.getTypeId(), new Binary(p.encode()));
 	}
 
@@ -544,6 +589,25 @@ public class Online extends AbstractOnline {
 	}
 
 	public final void sendReliableNotify(long roleId, String listenerName, Protocol<?> p) {
+		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p.getTypeId())) {
+			if (p.isRequest()) {
+				if (p instanceof Rpc) {
+					logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "ReNo({},{}) {}({}): {}",
+							roleId, listenerName, p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(),
+							p.Argument);
+				} else if (p.getResultCode() == 0) {
+					logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "ReNo({},{}) {}: {}",
+							roleId, listenerName, p.getClass().getSimpleName(), p.Argument);
+				} else {
+					logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "ReNo({},{}) {}<{}>: {}",
+							roleId, listenerName, p.getClass().getSimpleName(), p.getResultCode(), p.Argument);
+				}
+			} else {
+				logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "ReNo({},{}) {}({})<{}>: {}",
+						roleId, listenerName, p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(),
+						p.getResultCode(), p.getResultBean());
+			}
+		}
 		sendReliableNotify(roleId, listenerName, p.getTypeId(), new Binary(p.encode()));
 	}
 

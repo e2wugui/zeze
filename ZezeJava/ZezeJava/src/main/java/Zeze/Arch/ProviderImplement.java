@@ -103,18 +103,18 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
 				if (p2.isRequest()) {
 					if (p2 instanceof Rpc) {
-						AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "{}.DISP {}({}): {}", linkSid,
-								p2.getClass().getSimpleName(), ((Rpc<?, ?>)p2).getSessionId(), p2.Argument);
+						AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Disp({}) {}({}): {}",
+								linkSid, p2.getClass().getSimpleName(), ((Rpc<?, ?>)p2).getSessionId(), p2.Argument);
 					} else if (p2.getResultCode() == 0) {
-						AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "{}.DISP {}: {}", linkSid,
-								p2.getClass().getSimpleName(), p2.Argument);
+						AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Disp({}) {}: {}",
+								linkSid, p2.getClass().getSimpleName(), p2.Argument);
 					} else {
-						AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "{}.DISP {}<{}>: {}", linkSid,
-								p2.getClass().getSimpleName(), p2.getResultCode(), p2.Argument);
+						AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Disp({}) {}<{}>: {}",
+								linkSid, p2.getClass().getSimpleName(), p2.getResultCode(), p2.Argument);
 					}
 				} else {
-					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "{}.DISP {}({})<{}>: {}", linkSid,
-							p2.getClass().getSimpleName(), ((Rpc<?, ?>)p2).getSessionId(), p2.getResultCode(),
+					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Disp({}) {}({})<{}>: {}",
+							linkSid, p2.getClass().getSimpleName(), ((Rpc<?, ?>)p2).getSessionId(), p2.getResultCode(),
 							p2.getResultBean());
 				}
 			}
