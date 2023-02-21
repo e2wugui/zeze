@@ -135,7 +135,7 @@ public class Bag {
 			throw new IllegalArgumentException();
 		}
 		// 自动注册加入的BItem.Item的class。
-		module.register(itemAdd.getItem().getBean().getClass());
+		module.register(itemAdd.getItem().getBean());
 
 		int pileMax = getItemPileMax(itemAdd.getId());
 
@@ -346,9 +346,9 @@ public class Bag {
 			return bags.computeIfAbsent(bagName, key -> new Bag(this, bagName));
 		}
 
-		public void register(Class<? extends Bean> cls) {
-			beanFactory.register(cls);
-			_tItemClasses.getOrAdd(1).getItemClasses().add(cls.getName());
+		public void register(Bean bean) {
+			beanFactory.register(bean);
+			_tItemClasses.getOrAdd(1).getItemClasses().add(bean.getClass().getName());
 		}
 
 		@SuppressWarnings("unchecked")

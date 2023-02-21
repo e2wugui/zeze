@@ -185,7 +185,7 @@ public class Online extends AbstractOnline {
 		var bLocal = _tlocal.get(roleId);
 		if (null == bLocal)
 			throw new IllegalStateException("roleId not online. " + roleId);
-		beanFactory.register(bean.getClass());
+		beanFactory.register(bean);
 		var bAny = new BAny();
 		bAny.getAny().setBean(bean);
 		bLocal.getDatas().put(key, bAny);

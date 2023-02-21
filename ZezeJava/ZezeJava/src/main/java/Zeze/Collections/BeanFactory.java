@@ -31,9 +31,18 @@ public final class BeanFactory {
 			throw new RuntimeException(e);
 		}
 		synchronized (writingFactory) {
-			writingFactory.putIfAbsent(bean.typeId(), beanCtor);
+			if (null == writingFactory.putIfAbsent(bean.typeId(), beanCtor))
+				readingFactory = null;
 		}
-		readingFactory = null;
+		return beanCtor;
+	}
+
+	public MethodHandle register(Bean bean) {
+		MethodHandle beanCtor = Reflect.getDefaultConstructor(bean.getClass());
+		synchronized (writingFactory) {
+			if (null == writingFactory.putIfAbsent(bean.typeId(), beanCtor))
+				readingFactory = null;
+		}
 		return beanCtor;
 	}
 
