@@ -141,7 +141,7 @@ public class TimerRole {
 
 	public String scheduleOffline(long roleId, long delay, long period, long times, long endTime,
 								  Class<? extends TimerHandle> handleClassName, Bean customData) {
-		var loginVersion = online.getOfflineLogoutVersion(roleId);
+		var loginVersion = online.getLogoutVersion(roleId);
 		if (null == loginVersion)
 			throw new IllegalStateException("not logout. roleId=" + roleId);
 
@@ -165,7 +165,7 @@ public class TimerRole {
 
 	public String scheduleOffline(long roleId, String cron, long times, long endTime,
 								  Class<? extends TimerHandle> handleClassName, Bean customData) throws ParseException {
-		var loginVersion = online.getOfflineLogoutVersion(roleId);
+		var loginVersion = online.getLogoutVersion(roleId);
 		if (null == loginVersion)
 			throw new IllegalStateException("not logout. roleId=" + roleId);
 

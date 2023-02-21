@@ -234,9 +234,11 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	public Long getOfflineLogoutVersion(long roleId) {
+	public Long getLogoutVersion(long roleId) {
+		/*
 		if (_tonline.get(roleId) != null)
 			return null; // is online
+		*/
 		var version = _tversion.get(roleId);
 		if (null == version)
 			return null; // no version
