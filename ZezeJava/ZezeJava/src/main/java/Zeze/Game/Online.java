@@ -60,6 +60,7 @@ public class Online extends AbstractOnline {
 	private final EventDispatcher reloginEvents = new EventDispatcher("Online.Relogin");
 	private final EventDispatcher logoutEvents = new EventDispatcher("Online.Logout");
 	private final EventDispatcher localRemoveEvents = new EventDispatcher("Online.Local.Remove");
+	private final EventDispatcher linkBrokenEvents = new EventDispatcher("Online.LinkBroken");
 
 	public interface TransmitAction {
 		/**
@@ -160,6 +161,10 @@ public class Online extends AbstractOnline {
 	// 登录事件
 	public EventDispatcher getLoginEvents() {
 		return loginEvents;
+	}
+
+	public EventDispatcher getLinkBrokenEvents() {
+		return linkBrokenEvents;
 	}
 
 	// 断线重连事件
@@ -295,6 +300,19 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
+	private long linkBrokenTrigger(String account, long roleId) throws Exception {
+		var arg = new LinkBrokenArgument();
+		arg.roleId = roleId;
+
+		// 由于account可能没有，这里就不传递这个参数了。
+		var ret = linkBrokenEvents.triggerEmbed(this, arg);
+		if (0 != ret)
+			return ret;
+		linkBrokenEvents.triggerProcedure(providerApp.zeze, this, arg);
+		Transaction.whileCommit(() -> linkBrokenEvents.triggerThread(this, arg));
+		return 0;
+	}
+
 	private long loginTrigger(String account, long roleId) throws Exception {
 		var arg = new LoginArgument();
 		arg.roleId = roleId;
@@ -323,7 +341,7 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	public final long linkBroken(long roleId, String linkName, long linkSid) throws Exception {
+	public final long linkBroken(String account, long roleId, String linkName, long linkSid) throws Exception {
 		long currentLoginVersion;
 		{
 			var online = _tonline.get(roleId);
@@ -342,6 +360,7 @@ public class Online extends AbstractOnline {
 					return ret;
 			}
 		}
+		linkBrokenTrigger(account, roleId);
 		Transaction.whileCommit(() -> {
 			// delay for real logout
 			Task.schedule(providerApp.zeze.getConfig().getOnlineLogoutDelay(), () ->
@@ -420,7 +439,8 @@ public class Online extends AbstractOnline {
 	private long triggerLinkBroken(String linkName, LongList errorSids, Map<Long, Long> context) {
 		errorSids.foreach(sid -> providerApp.zeze.newProcedure(() -> {
 			var roleId = context.get(sid);
-			return roleId != null ? linkBroken(roleId, linkName, sid) : 0;
+			// 补发的linkBroken没有account上下文。
+			return roleId != null ? linkBroken("", roleId, linkName, sid) : 0;
 		}, "triggerLinkBroken").call());
 		return 0;
 	}
