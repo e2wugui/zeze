@@ -63,3 +63,38 @@ Bucket-Split需求
 			bucket.normalAccess;
 		}
 	}
+
+	并发写？
+	beginTransaction();
+	Transaction { buckets; }
+	put(transaction, key, value)
+	{
+		var bucket = route(key);
+		transaction.add(bucket); // 第一次加入Rocks.beginTransaction
+		bucket.put(); // 迁移中的参考上面一段。
+	}
+	delete(key)
+	{
+		var bucket = route(key);
+		transaction.add(bucket); // 第一次加入Rocks.beginTransaction
+		bucket.delete(); // 迁移中的参考上面一段。
+	}
+
+	Transaction.commit()
+	{
+		for (var bucket : buckets)
+			bucket.commit();
+	}
+
+	Bucket
+	{
+		void put();
+		void delete();
+		void get();
+	}
+
+	并发还是需要锁，模型待定！！！
+	? get总是允许读取，由zeze保证系列化。
+	？put，delete在事务中，rocks保护get可见性，由zeze保证系列化。
+	？剩下的就是迁移中等待（采用bucket本地锁，本地迁移保护，迁移中的记录）
+	总的并发：单个记录级别锁定，get访问结束即可释放锁，事务中的等待事务提交才释放锁。

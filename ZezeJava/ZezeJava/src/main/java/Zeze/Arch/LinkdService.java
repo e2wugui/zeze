@@ -4,6 +4,7 @@ import java.net.ServerSocket;
 import Zeze.Builtin.LinkdBase.BReportError;
 import Zeze.Builtin.LinkdBase.ReportError;
 import Zeze.Builtin.Provider.BDispatch;
+import Zeze.Builtin.Provider.BKick;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.Builtin.Provider.Dispatch;
@@ -168,8 +169,14 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 					return;
 
 				// Must Close Before Reuse LinkSid
-				if (stable.authedSocket != null)
+				if (stable.authedSocket != null) {
+					linkdApp.linkdService.reportError(
+							stable.authedSocket.getSessionId(),
+							BReportError.FromLink,
+							BKick.ErrorDuplicateLogin,
+							"kick");
 					stable.authedSocket.close();
+				}
 				if (stable.linkSid != 0) {
 					// Reuse Old LinkSid
 					client.setSessionId(stable.linkSid);
