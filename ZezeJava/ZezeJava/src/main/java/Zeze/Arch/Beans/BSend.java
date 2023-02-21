@@ -142,8 +142,10 @@ public class BSend extends Zeze.Transaction.Bean {
 			_x_.clear();
 			if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
 				int n = _o_.ReadTagSize(_t_ = _o_.ReadByte());
-				if (_x_.capacity() < n)
+				if (_x_.capacity() < n) {
 					_x_.wraps(new long[Math.min(n, 0x10000)]);
+					_x_.clear();
+				}
 				for (; n > 0; n--)
 					_x_.add(_o_.ReadLong(_t_));
 			} else

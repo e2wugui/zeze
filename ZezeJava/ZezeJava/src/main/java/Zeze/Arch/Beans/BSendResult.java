@@ -96,8 +96,10 @@ public final class BSendResult extends Zeze.Transaction.Bean {
 			_x_.clear();
 			if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
 				int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte());
-				if (_x_.capacity() < _n_)
+				if (_x_.capacity() < _n_) {
 					_x_.wraps(new long[Math.min(_n_, 0x10000)]);
+					_x_.clear();
+				}
 				for (; _n_ > 0; _n_--)
 					_x_.add(_o_.ReadLong(_t_));
 			} else
