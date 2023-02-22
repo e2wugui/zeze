@@ -123,7 +123,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("        if (Zeze != null)");
             sw.WriteLine("            throw new RuntimeException(\"Zeze Has Created!\");");
             sw.WriteLine();
-            sw.WriteLine($"        Zeze = new Zeze.Application(\"{project.Name}\", config);");
+            sw.WriteLine($"        Zeze = new Zeze.Application(\"{project.Name}\", config, this);");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    public synchronized void createService() {");

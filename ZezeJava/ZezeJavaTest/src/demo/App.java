@@ -120,7 +120,7 @@ public class App extends Zeze.AppBase {
         if (Zeze != null)
             throw new RuntimeException("Zeze Has Created!");
 
-        Zeze = new Zeze.Application("ZezeJavaTest", config);
+        Zeze = new Zeze.Application("ZezeJavaTest", config, this);
     }
 
     public synchronized void createService() {

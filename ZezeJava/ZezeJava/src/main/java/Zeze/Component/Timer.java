@@ -4,6 +4,8 @@ import java.text.ParseException;
 import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import Zeze.AppBase;
+import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderImplement;
 import Zeze.Arch.ProviderWithOnline;
@@ -41,8 +43,12 @@ public class Timer extends AbstractTimer {
 	// 在这台服务器进程内调度的所有Timer。key是timerId，value是ThreadPool.schedule的返回值。
 	final ConcurrentHashMap<String, Future<?>> timersFuture = new ConcurrentHashMap<>();
 
-	public Timer(Zeze.Application zeze) {
-		this.zeze = zeze;
+	public static Timer create(AppBase app) {
+		return GenModule.createRedirectModule(Timer.class, app);
+	}
+
+	protected Timer(AppBase app) {
+		this.zeze = app.getZeze();
 		RegisterZezeTables(zeze);
 	}
 

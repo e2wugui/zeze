@@ -82,12 +82,12 @@ public final class Application {
 		return LocalRocksCacheDb;
 	}
 
-	public Application(String solutionName) throws Exception {
-		this(solutionName, null);
+	public Application(String solutionName, AppBase app) throws Exception {
+		this(solutionName, null, app);
 	}
 
 	@SuppressWarnings("deprecation")
-	public Application(String projectName, Config config) throws Exception {
+	public Application(String projectName, Config config, AppBase app) throws Exception {
 		this.projectName = projectName;
 		conf = config != null ? config : Config.load();
 		conf.createDatabase(this, databases);
@@ -120,7 +120,7 @@ public final class Application {
 			autoKeyOld = new AutoKeyOld.Module(this);
 			queueModule = new Queue.Module(this);
 			delayRemove = new DelayRemove(this);
-			timer = new Timer(this);
+			timer = Timer.create(app);
 		}
 
 		ShutdownHook.add(this, () -> {

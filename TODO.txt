@@ -17,7 +17,9 @@ c# 并发比冲突还慢
 Benchmark.ABasicSimpleAddOneThread tasks/s=209874.71 time=4.76 cpu=0.00 concurrent=0.00
 Benchmark.BBasicSimpleAddConcurrentWithConflict tasks/s=217785.84 time=4.59 cpu=0.00 concurrent=0.00
 Benchmark.CBasicSimpleAddConcurrent tasks/s=96997.63 time=10.31 cpu=100.00 concurrent=9.70
-
+public static Timer create(AppBase app) {
+	return GenModule.createRedirectModule(Timer.class, app);
+}
 ------------------------------------------------------------------------------------------------------------------------------
 2023/2/24 v1.1.9 Zeze.Transaction.Data; protocolref import; 
 ------------------------------------------------------------------------------------------------------------------------------

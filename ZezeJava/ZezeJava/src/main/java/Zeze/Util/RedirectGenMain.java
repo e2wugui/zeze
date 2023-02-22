@@ -3,6 +3,7 @@ package Zeze.Util;
 import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Arch.Gen.GenModule;
+import Zeze.Component.Timer;
 import Zeze.Game.Rank;
 
 /**
@@ -32,6 +33,7 @@ public final class RedirectGenMain {
 				Zeze.Arch.Online.class,
 				Zeze.Game.Online.class,
 				Rank.class,
+				Timer.class,
 		});
 
 		System.out.println("==================");

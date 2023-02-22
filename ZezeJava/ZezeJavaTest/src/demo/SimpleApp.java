@@ -35,7 +35,7 @@ public class SimpleApp extends AppBase {
 		tableConf.setCacheCapacity(cacheSize);
 		config.setDefaultTableConf(tableConf);
 		config.setServerId(serverId); // 设置Provider服务器ID
-		zeze = new Application("SimpleApp", config);
+		zeze = new Application("SimpleApp", config, this);
 	}
 
 	@Override
