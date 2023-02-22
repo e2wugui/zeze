@@ -67,6 +67,7 @@ public class App extends Zeze.AppBase {
     }
 
     public synchronized void createModules() {
+        Zeze.initialize(this);
         var _modules_ = createRedirectModules(new Class[] {
             Zeze.Builtin.Game.Online.ModuleOnline.class,
             Zeze.Builtin.Game.Bag.ModuleBag.class,

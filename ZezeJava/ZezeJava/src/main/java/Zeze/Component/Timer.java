@@ -48,8 +48,9 @@ public class Timer extends AbstractTimer {
 	}
 
 	protected Timer(AppBase app) {
-		this.zeze = app.getZeze();
-		RegisterZezeTables(zeze);
+		zeze = app.getZeze();
+		if (zeze != null) // 只生成Redirect代码时zeze可能为null
+			RegisterZezeTables(zeze);
 	}
 
 	void register(Class<? extends Bean> cls) {

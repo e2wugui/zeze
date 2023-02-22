@@ -129,13 +129,13 @@ public final class Application {
 		});
 	}
 
-	public boolean isNoDatabase() {
-		return conf == null || conf.isNoDatabase() || conf.getServerId() < 0;
+	public void initialize(AppBase app) {
+		if (!isNoDatabase())
+			timer = Timer.create(app);
 	}
 
-	public synchronized void create(AppBase app) {
-		if (timer == null && !isNoDatabase())
-			timer = Timer.create(app);
+	public boolean isNoDatabase() {
+		return conf == null || conf.isNoDatabase() || conf.getServerId() < 0;
 	}
 
 	public HashMap<String, Database> getDatabases() {

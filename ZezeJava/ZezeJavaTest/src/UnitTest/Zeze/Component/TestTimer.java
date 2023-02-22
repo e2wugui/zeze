@@ -18,7 +18,6 @@ public class TestTimer {
 	public final void testInit() throws Exception {
 		System.out.println("Timer Test Init");
 		demo.App.getInstance().Start();
-		demo.App.getInstance().Zeze.create(demo.App.getInstance());
 		App.Instance.Zeze.getTimer().start();
 	}
 
@@ -35,8 +34,7 @@ public class TestTimer {
 		}
 
 		@Override
-		public void onTimerCancel() throws Exception {
-
+		public void onTimerCancel() {
 		}
 	}
 
@@ -49,8 +47,7 @@ public class TestTimer {
 		}
 
 		@Override
-		public void onTimerCancel() throws Exception {
-
+		public void onTimerCancel() {
 		}
 	}
 
@@ -68,8 +65,7 @@ public class TestTimer {
 		}
 
 		@Override
-		public void onTimerCancel() throws Exception {
-
+		public void onTimerCancel() {
 		}
 	}
 

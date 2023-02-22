@@ -113,6 +113,7 @@ public final class App extends Zeze.AppBase {
     }
 
     public synchronized void createModules() {
+        Zeze.initialize(this);
         var _modules_ = createRedirectModules(new Class[] {
             Zezex.Linkd.ModuleLinkd.class,
         });

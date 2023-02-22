@@ -9,9 +9,7 @@ import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
-import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.LoadConfig;
-import Zeze.Arch.Online;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderDirect;
 import Zeze.Arch.ProviderModuleBinds;
@@ -153,6 +151,7 @@ public class App extends Zeze.AppBase {
     }
 
     public synchronized void createModules() {
+        Zeze.initialize(this);
         var _modules_ = createRedirectModules(new Class[] {
             Zege.User.ModuleUser.class,
             Zege.Friend.ModuleFriend.class,

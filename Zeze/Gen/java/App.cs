@@ -132,6 +132,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    public synchronized void createModules() {");
+            sw.WriteLine("        Zeze.initialize(this);");
             if (project.AllOrderDefineModules.Count > 0)
             {
                 sw.WriteLine("        var _modules_ = createRedirectModules(new Class[] {");

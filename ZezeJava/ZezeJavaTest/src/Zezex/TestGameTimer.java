@@ -38,7 +38,6 @@ public class TestGameTimer {
 			links.get(i).Start(-(i+1), 10000 + i, 15000 + i);
 		for (int i = 0; i < serverCount; ++i) {
 			servers.get(i).Start(i, 20000 + i);
-			servers.get(i).Zeze.create(servers.get(i));
 			servers.get(i).getZeze().getTimer().start();
 		}
 		Thread.sleep(2000);

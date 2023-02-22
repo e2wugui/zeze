@@ -9,7 +9,6 @@ import Zeze.Arch.ProviderDirectService;
 import Zeze.Arch.ProviderModuleBinds;
 import Zeze.Arch.ProviderService;
 import Zeze.Config;
-import Zeze.Game.Online;
 import Zeze.Game.ProviderDirectWithTransmit;
 import Zeze.Game.ProviderWithOnline;
 import Zeze.Game.Rank;
@@ -30,7 +29,11 @@ public class SimpleApp extends AppBase {
 	public SimpleApp(int serverId, int directPort, int cacheSize) throws Exception {
 		var config = Config.load("server.xml");
 		var directConf = config.getServiceConfMap().get("ServerDirect");
-		directConf.forEachAcceptor2((a) -> { a.setPort(directPort); a.setIp("127.0.0.1"); return false; });
+		directConf.forEachAcceptor2((a) -> {
+			a.setPort(directPort);
+			a.setIp("127.0.0.1");
+			return false;
+		});
 		var tableConf = new Config.TableConf();
 		tableConf.setCacheCapacity(cacheSize);
 		config.setDefaultTableConf(tableConf);
@@ -49,6 +52,7 @@ public class SimpleApp extends AppBase {
 				new ProviderService("Server", zeze), "SimpleApp#", new ProviderDirectWithTransmit(),
 				new ProviderDirectService("ServerDirect", zeze), "SimpleLinkd", new LoadConfig());
 		provider.create(this);
+		zeze.initialize(this);
 
 		var modules = new HashMap<String, IModule>();
 
