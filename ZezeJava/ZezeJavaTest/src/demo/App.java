@@ -2,9 +2,15 @@ package demo;
 
 import Benchmark.ABasicSimpleAddOneThread;
 import Benchmark.CBasicSimpleAddConcurrent;
+import Zeze.Arch.LoadConfig;
+import Zeze.Arch.ProviderApp;
+import Zeze.Arch.ProviderDirectService;
+import Zeze.Arch.ProviderService;
 import Zeze.Collections.LinkedMap;
 import Zeze.Config;
 import Zeze.Game.Bag;
+import Zeze.Game.ProviderDirectWithTransmit;
+import Zeze.Game.ProviderWithOnline;
 import Zeze.Services.RocketMQ.Producer;
 
 public class App extends Zeze.AppBase {
@@ -62,6 +68,11 @@ public class App extends Zeze.AppBase {
 
 		createZeze(config);
 		createService();
+		var provider = new ProviderWithOnline();
+		new ProviderApp(Zeze, provider,
+				new ProviderService("Server", Zeze), "DemoApp#", new ProviderDirectWithTransmit(),
+				new ProviderDirectService("ServerDirect", Zeze), "DemoLinkd", new LoadConfig());
+		provider.create(this);
 		createModules();
 		LinkedMapModule = new LinkedMap.Module(Zeze);
 		BagModule = new Bag.Module(Zeze);
