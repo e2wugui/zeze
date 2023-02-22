@@ -101,22 +101,23 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			p2.setUserState(session);
 
 			if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
-				if (p2.isRequest()) {
-					if (p2 instanceof Rpc) {
-						AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Disp({}) {}({}): {}",
-								linkSid, p2.getClass().getSimpleName(), ((Rpc<?, ?>)p2).getSessionId(), p2.Argument);
-					} else if (p2.getResultCode() == 0) {
-						AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Disp({}) {}: {}",
-								linkSid, p2.getClass().getSimpleName(), p2.Argument);
-					} else {
-						AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Disp({}) {}<{}>: {}",
-								linkSid, p2.getClass().getSimpleName(), p2.getResultCode(), p2.Argument);
+				var log = AsyncSocket.logger;
+				var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
+				var roleId = session.getRoleId();
+				var className = p.getClass().getSimpleName();
+				if (p2 instanceof Rpc) {
+					var rpc = ((Rpc<?, ?>)p2);
+					var rpcSessionId = rpc.getSessionId();
+					if (p.isRequest())
+						log.log(level, "Recv:{} {}:{} {}", roleId, className, rpcSessionId, p2.Argument);
+					else {
+						log.log(level, "Recv:{} {}:{}>{} {}", roleId, className, rpcSessionId,
+								p2.getResultCode(), rpc.Result);
 					}
-				} else {
-					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Disp({}) {}({})<{}>: {}",
-							linkSid, p2.getClass().getSimpleName(), ((Rpc<?, ?>)p2).getSessionId(), p2.getResultCode(),
-							p2.getResultBean());
-				}
+				} else if (p2.getResultCode() == 0)
+					log.log(level, "Recv:{} {} {}", roleId, className, p2.Argument);
+				else
+					log.log(level, "Recv:{} {}>{} {}", roleId, className, p2.getResultCode(), p2.Argument);
 			}
 
 			Transaction txn = Transaction.getCurrent();

@@ -267,29 +267,59 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 					p.sender = so;
 					p.userState = so.getUserState();
 					if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
-						if (p.isRequest()) {
-							if (p instanceof Rpc) {
-								AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "{}.RECV {}({}): {}",
-										so.getSessionId(), p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(),
-										p.Argument);
-							} else if (p.resultCode == 0) {
-								AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "{}.RECV {}: {}",
-										so.getSessionId(), p.getClass().getSimpleName(), p.Argument);
-							} else {
-								AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "{}.RECV {}<{}>: {}",
-										so.getSessionId(), p.getClass().getSimpleName(), p.resultCode, p.Argument);
+						var logger = AsyncSocket.logger;
+						var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
+						var sessionId = so.getSessionId();
+						var className = p.getClass().getSimpleName();
+						if (p instanceof Rpc) {
+							var rpc = ((Rpc<?, ?>)p);
+							var rpcSessionId = rpc.getSessionId();
+							if (p.isRequest())
+								logger.log(level, "RECV:{} {}:{} {}", sessionId, className, rpcSessionId, p.Argument);
+							else {
+								logger.log(level, "RECV:{} {}:{}>{} {}", sessionId, className, rpcSessionId,
+										p.resultCode, rpc.Result);
 							}
-						} else {
-							AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "{}.RECV {}({})<{}>: {}",
-									so.getSessionId(), p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(),
-									p.resultCode, p.getResultBean());
-						}
+						} else if (p.resultCode == 0)
+							logger.log(level, "RECV:{} {} {}", sessionId, className, p.Argument);
+						else
+							logger.log(level, "RECV:{} {}>{} {}", sessionId, className, p.resultCode, p.Argument);
 					}
 					p.dispatch(service, factoryHandle);
 				} else {
 					if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
-						AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "{}.RECV {}:{} [{}]",
-								so.getSessionId(), moduleId, protocolId, bb.Size());
+						var logger = AsyncSocket.logger;
+						var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
+						var sessionId = so.getSessionId();
+						int header = -1;
+						var resultCode = 0L;
+						var rpcSessionId = 0L;
+						try {
+							header = bb.ReadInt();
+							if ((header & FamilyClass.BitResultCode) != 0)
+								resultCode = bb.ReadLong();
+							int familyClass = header & FamilyClass.FamilyClassMask;
+							if (familyClass == FamilyClass.Request || familyClass == FamilyClass.Response)
+								rpcSessionId = bb.ReadLong();
+						} catch (Exception ignored) {
+						}
+						size = bb.size();
+						if (rpcSessionId == 0) {
+							if (resultCode == 0) {
+								logger.log(level, "RECV:{} {}:{} {}[{}]", sessionId, moduleId, protocolId,
+										header, size);
+							} else {
+								logger.log(level, "RECV:{} {}:{}>{} {}[{}]", sessionId, moduleId, protocolId,
+										resultCode, header, size);
+							}
+						} else if (resultCode == 0) {
+							logger.log(level, "RECV:{} {}:{}:{} {}[{}]", sessionId, moduleId, protocolId,
+									rpcSessionId, header, size);
+						} else {
+							logger.log(level, "RECV:{} {}:{}:{}>{} {}[{}]", sessionId, moduleId, protocolId,
+									rpcSessionId, resultCode, header, size);
+						}
+						bb.ReadIndex = beginReadIndex;
 					}
 					service.dispatchUnknownProtocol(so, moduleId, protocolId, bb); // 这里只能临时读bb,不能持有Bytes引用
 				}

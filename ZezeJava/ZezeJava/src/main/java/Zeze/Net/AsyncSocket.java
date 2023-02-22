@@ -30,8 +30,8 @@ import org.apache.logging.log4j.Logger;
 
 public final class AsyncSocket implements SelectorHandle, Closeable {
 	public static final Logger logger = LogManager.getLogger(AsyncSocket.class);
-	public static final Level LEVEL_PROTOCOL_LOG = Level.toLevel(System.getProperty("protocolLog"), Level.OFF);
-	public static final boolean ENABLE_PROTOCOL_LOG = LEVEL_PROTOCOL_LOG != Level.OFF;
+	public static final Level PROTOCOL_LOG_LEVEL = Level.toLevel(System.getProperty("protocolLog"), Level.OFF);
+	public static final boolean ENABLE_PROTOCOL_LOG = PROTOCOL_LOG_LEVEL != Level.OFF;
 	public static final boolean ENABLE_DEBUG_LOG = logger.isDebugEnabled();
 	private static final LongHashSet protocolLogExcept = new LongHashSet();
 	private static final VarHandle closedHandle, outputBufferSizeHandle;
@@ -518,26 +518,24 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		return false;
 	}
 
-	public boolean Send(Protocol<?> protocol) {
-		if (ENABLE_PROTOCOL_LOG && canLogProtocol(protocol.getTypeId())) {
-			if (protocol.isRequest()) {
-				if (protocol instanceof Rpc) {
-					logger.log(LEVEL_PROTOCOL_LOG, "{}.SEND {}({}): {}", sessionId,
-							protocol.getClass().getSimpleName(),
-							((Rpc<?, ?>)protocol).getSessionId(), protocol.Argument);
-				} else if (protocol.resultCode == 0) {
-					logger.log(LEVEL_PROTOCOL_LOG, "{}.SEND {}: {}", sessionId, protocol.getClass().getSimpleName(),
-							protocol.Argument);
-				} else {
-					logger.log(LEVEL_PROTOCOL_LOG, "{}.SEND {}<{}>: {}", sessionId, protocol.getClass().getSimpleName(),
-							protocol.resultCode, protocol.Argument);
+	public boolean Send(Protocol<?> p) {
+		if (ENABLE_PROTOCOL_LOG && canLogProtocol(p.getTypeId())) {
+			var className = p.getClass().getSimpleName();
+			if (p instanceof Rpc) {
+				var rpc = ((Rpc<?, ?>)p);
+				var rpcSessionId = rpc.getSessionId();
+				if (p.isRequest())
+					logger.log(PROTOCOL_LOG_LEVEL, "SEND:{} {}:{} {}", sessionId, className, rpcSessionId, p.Argument);
+				else {
+					logger.log(PROTOCOL_LOG_LEVEL, "SEND:{} {}:{}>{} {}", sessionId, className, rpcSessionId,
+							p.resultCode, rpc.Result);
 				}
-			} else {
-				logger.log(LEVEL_PROTOCOL_LOG, "{}.SEND {}({})<{}>: {}", sessionId, protocol.getClass().getSimpleName(),
-						((Rpc<?, ?>)protocol).getSessionId(), protocol.resultCode, protocol.getResultBean());
-			}
+			} else if (p.resultCode == 0)
+				logger.log(PROTOCOL_LOG_LEVEL, "SEND:{} {} {}", sessionId, className, p.Argument);
+			else
+				logger.log(PROTOCOL_LOG_LEVEL, "SEND:{} {}>{} {}", sessionId, className, p.resultCode, p.Argument);
 		}
-		return Send(protocol.encode());
+		return Send(p.encode());
 	}
 
 	public boolean Send(ByteBuffer bb) { // 返回true则bb的Bytes不能再修改了

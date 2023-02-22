@@ -103,23 +103,23 @@ public class ProviderUserSession {
 		p.setRequest(false);
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
-			var linkSid = getLinkSid();
+			var log = AsyncSocket.logger;
+			var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
+			var roleId = getRoleId();
 			var className = p.getClass().getSimpleName();
-			if (p.isRequest()) {
-				if (p instanceof Rpc) {
-					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Send({}) {}({}): {}",
-							linkSid, className, ((Rpc<?, ?>)p).getSessionId(), p.Argument);
-				} else if (p.getResultCode() == 0) {
-					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Send({}) {}: {}",
-							linkSid, className, p.Argument);
-				} else {
-					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Send({}) {}<{}>: {}",
-							linkSid, className, p.getResultCode(), p.Argument);
+			if (p instanceof Rpc) {
+				var rpc = ((Rpc<?, ?>)p);
+				var rpcSessionId = rpc.getSessionId();
+				if (p.isRequest())
+					log.log(level, "Send:{} {}:{} {}", roleId, className, rpcSessionId, p.Argument);
+				else {
+					log.log(level, "Send:{} {}:{}>{} {}", roleId, className, rpcSessionId,
+							p.getResultCode(), rpc.Result);
 				}
-			} else {
-				AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Send({}) {}({})<{}>: {}",
-						linkSid, className, ((Rpc<?, ?>)p).getSessionId(), p.getResultCode(), p.getResultBean());
-			}
+			} else if (p.getResultCode() == 0)
+				log.log(level, "Send:{} {} {}", roleId, className, p.Argument);
+			else
+				log.log(level, "Send:{} {}>{} {}", roleId, className, p.getResultCode(), p.Argument);
 		}
 		sendResponse(typeId, new Binary(p.encode()));
 	}

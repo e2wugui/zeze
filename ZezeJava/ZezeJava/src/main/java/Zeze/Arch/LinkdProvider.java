@@ -16,6 +16,7 @@ import Zeze.Builtin.Provider.Subscribe;
 import Zeze.Builtin.Provider.UnBind;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
+import Zeze.Net.FamilyClass;
 import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
@@ -270,13 +271,54 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	protected long ProcessSendRequest(Send r) throws Exception {
 		var pdata = r.Argument.getProtocolWholeData();
 		var linkSids = r.Argument.getLinkSids();
+		int sidCount = linkSids.size();
 		if (canLogSend) {
 			var ptype = r.Argument.getProtocolType();
-			AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Send[{}]: {}:{} [{}]", linkSids.size(),
-					Protocol.getModuleId(ptype), Protocol.getProtocolId(ptype), pdata.size());
+			String sidStr;
+			if (sidCount == 1)
+				sidStr = String.valueOf(linkSids.get(0));
+			else if (sidCount <= 10) {
+				var sb = new StringBuilder();
+				for (int i = 0; i < sidCount; i++)
+					sb.append(linkSids.get(i)).append(',');
+				if (sidCount > 0)
+					sb.setLength(sb.length() - 1);
+				sidStr = sb.toString();
+			} else
+				sidStr = "[" + sidCount + ']';
+			var log = AsyncSocket.logger;
+			var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
+			int header = -1;
+			var resultCode = 0L;
+			var rpcSessionId = 0L;
+			try {
+				var bb = ByteBuffer.Wrap(pdata);
+				bb.ReadIndex += 12; // moduleId[4] + protocolId[4] + size[4]
+				header = bb.ReadInt();
+				if ((header & FamilyClass.BitResultCode) != 0)
+					resultCode = bb.ReadLong();
+				var familyClass = header & FamilyClass.FamilyClassMask;
+				if (familyClass == FamilyClass.Request || familyClass == FamilyClass.Response)
+					rpcSessionId = bb.ReadLong();
+			} catch (Exception ignored) {
+			}
+			int moduleId = Protocol.getModuleId(ptype);
+			int protocolId = Protocol.getProtocolId(ptype);
+			int size = pdata.size();
+			if (rpcSessionId == 0) {
+				if (resultCode == 0)
+					log.log(level, "Send:{} {}:{} {}[{}]", sidStr, moduleId, protocolId, header, size);
+				else
+					log.log(level, "Send:{} {}:{}>{} {}[{}]", sidStr, moduleId, protocolId, resultCode, header, size);
+			} else if (resultCode == 0)
+				log.log(level, "Send:{} {}:{}:{} {}[{}]", sidStr, moduleId, protocolId, rpcSessionId, header, size);
+			else {
+				log.log(level, "Send:{} {}:{}:{}>{} {}[{}]", sidStr, moduleId, protocolId, rpcSessionId, resultCode,
+						header, size);
+			}
 		}
 		//*
-		for (int i = 0, n = linkSids.size(); i < n; i++) {
+		for (int i = 0; i < sidCount; i++) {
 			var linkSid = linkSids.get(i);
 			var link = linkdApp.linkdService.GetSocket(linkSid);
 			// ProtocolId现在是hash值，显示出来也不好看，以后加配置换成名字。
@@ -315,9 +357,37 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		var pdata = protocol.Argument.getProtocolWholeData();
 		if (canLogBroadcast) {
 			var ptype = protocol.Argument.getProtocolType();
-			AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Broc[{}]: {}:{} [{}]",
-					linkdApp.linkdService.getSocketCount(), Protocol.getModuleId(ptype), Protocol.getProtocolId(ptype),
-					pdata.size());
+			var log = AsyncSocket.logger;
+			var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
+			int header = -1;
+			var resultCode = 0L;
+			var rpcSessionId = 0L;
+			try {
+				var bb = ByteBuffer.Wrap(pdata);
+				bb.ReadIndex += 12; // moduleId[4] + protocolId[4] + size[4]
+				header = bb.ReadInt();
+				if ((header & FamilyClass.BitResultCode) != 0)
+					resultCode = bb.ReadLong();
+				var familyClass = header & FamilyClass.FamilyClassMask;
+				if (familyClass == FamilyClass.Request || familyClass == FamilyClass.Response)
+					rpcSessionId = bb.ReadLong();
+			} catch (Exception ignored) {
+			}
+			int sidCount = linkdApp.linkdService.getSocketCount();
+			int moduleId = Protocol.getModuleId(ptype);
+			int protocolId = Protocol.getProtocolId(ptype);
+			int size = pdata.size();
+			if (rpcSessionId == 0) {
+				if (resultCode == 0)
+					log.log(level, "Send[{}] {}:{} {}[{}]", sidCount, moduleId, protocolId, header, size);
+				else
+					log.log(level, "Send[{}] {}:{}>{} {}[{}]", sidCount, moduleId, protocolId, resultCode, header, size);
+			} else if (resultCode == 0)
+				log.log(level, "Send[{}] {}:{}:{} {}[{}]", sidCount, moduleId, protocolId, rpcSessionId, header, size);
+			else {
+				log.log(level, "Send[{}] {}:{}:{}>{} {}[{}]", sidCount, moduleId, protocolId, rpcSessionId, resultCode,
+						header, size);
+			}
 		}
 		linkdApp.linkdService.foreach((socket) -> {
 			// auth 通过就允许发送广播。

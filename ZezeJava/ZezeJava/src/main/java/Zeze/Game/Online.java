@@ -389,29 +389,33 @@ public class Online extends AbstractOnline {
 	}
 
 	public final void send(long roleId, Protocol<?> p) {
-		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p.getTypeId())) {
-			if (p.isRequest()) {
-				if (p instanceof Rpc) {
-					logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Send({}) {}({}): {}",
-							roleId, p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.Argument);
-				} else if (p.getResultCode() == 0) {
-					logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Send({}) {}: {}",
-							roleId, p.getClass().getSimpleName(), p.Argument);
-				} else {
-					logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Send({}) {}<{}>: {}",
-							roleId, p.getClass().getSimpleName(), p.getResultCode(), p.Argument);
+		var typeId = p.getTypeId();
+		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
+			var log = AsyncSocket.logger;
+			var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
+			var className = p.getClass().getSimpleName();
+			if (p instanceof Rpc) {
+				var rpc = ((Rpc<?, ?>)p);
+				var rpcSessionId = rpc.getSessionId();
+				if (p.isRequest())
+					log.log(level, "Send:{} {}:{} {}", roleId, className, rpcSessionId, p.Argument);
+				else {
+					log.log(level, "Send:{} {}:{}>{} {}", roleId, className, rpcSessionId,
+							p.getResultCode(), rpc.Result);
 				}
-			} else {
-				logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Send({}) {}({})<{}>: {}",
-						roleId, p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.getResultCode(),
-						p.getResultBean());
-			}
+			} else if (p.getResultCode() == 0)
+				log.log(level, "Send:{} {} {}", roleId, className, p.Argument);
+			else
+				log.log(level, "Send:{} {}>{} {}", roleId, className, p.getResultCode(), p.Argument);
 		}
-		send(roleId, p.getTypeId(), new Binary(p.encode()));
+		send(roleId, typeId, new Binary(p.encode()));
 	}
 
-	public final void send(Iterable<Long> roleIds, Protocol<?> p) {
-		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p.getTypeId())) {
+	public final void send(Collection<Long> roleIds, Protocol<?> p) {
+		if (roleIds.size() <= 0)
+			return;
+		var typeId = p.getTypeId();
+		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
 			var sb = new StringBuilder();
 			for (var roleId : roleIds)
 				sb.append(roleId).append(',');
@@ -419,31 +423,31 @@ public class Online extends AbstractOnline {
 			if (n > 0)
 				sb.setLength(n - 1);
 			var idsStr = sb.toString();
-			if (p.isRequest()) {
-				if (p instanceof Rpc) {
-					logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Send[{}] {}({}): {}",
-							idsStr, p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.Argument);
-				} else if (p.getResultCode() == 0) {
-					logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Send[{}] {}: {}",
-							idsStr, p.getClass().getSimpleName(), p.Argument);
-				} else {
-					logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Send[{}] {}<{}>: {}",
-							idsStr, p.getClass().getSimpleName(), p.getResultCode(), p.Argument);
+			var log = AsyncSocket.logger;
+			var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
+			var className = p.getClass().getSimpleName();
+			if (p instanceof Rpc) {
+				var rpc = ((Rpc<?, ?>)p);
+				var rpcSessionId = rpc.getSessionId();
+				if (p.isRequest())
+					log.log(level, "Send:{} {}:{} {}", idsStr, className, rpcSessionId, p.Argument);
+				else {
+					log.log(level, "Send:{} {}:{}>{} {}", idsStr, className, rpcSessionId,
+							p.getResultCode(), rpc.Result);
 				}
-			} else {
-				logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "Send[{}] {}({})<{}>: {}",
-						idsStr, p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.getResultCode(),
-						p.getResultBean());
-			}
+			} else if (p.getResultCode() == 0)
+				log.log(level, "Send:{} {} {}", idsStr, className, p.Argument);
+			else
+				log.log(level, "Send:{} {}>{} {}", idsStr, className, p.getResultCode(), p.Argument);
 		}
-		send(roleIds, p.getTypeId(), new Binary(p.encode()));
+		send(roleIds, typeId, new Binary(p.encode()));
 	}
 
 	public final void sendWhileCommit(long roleId, Protocol<?> p) {
 		Transaction.whileCommit(() -> send(roleId, p));
 	}
 
-	public final void sendWhileCommit(Iterable<Long> roleIds, Protocol<?> p) {
+	public final void sendWhileCommit(Collection<Long> roleIds, Protocol<?> p) {
 		Transaction.whileCommit(() -> send(roleIds, p));
 	}
 
@@ -451,7 +455,7 @@ public class Online extends AbstractOnline {
 		Transaction.whileRollback(() -> send(roleId, p));
 	}
 
-	public final void sendWhileRollback(Iterable<Long> roleIds, Protocol<?> p) {
+	public final void sendWhileRollback(Collection<Long> roleIds, Protocol<?> p) {
 		Transaction.whileRollback(() -> send(roleIds, p));
 	}
 
@@ -589,26 +593,26 @@ public class Online extends AbstractOnline {
 	}
 
 	public final void sendReliableNotify(long roleId, String listenerName, Protocol<?> p) {
-		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p.getTypeId())) {
-			if (p.isRequest()) {
-				if (p instanceof Rpc) {
-					logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "ReNo({},{}) {}({}): {}",
-							roleId, listenerName, p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(),
-							p.Argument);
-				} else if (p.getResultCode() == 0) {
-					logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "ReNo({},{}) {}: {}",
-							roleId, listenerName, p.getClass().getSimpleName(), p.Argument);
-				} else {
-					logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "ReNo({},{}) {}<{}>: {}",
-							roleId, listenerName, p.getClass().getSimpleName(), p.getResultCode(), p.Argument);
+		var typeId = p.getTypeId();
+		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
+			var log = AsyncSocket.logger;
+			var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
+			var className = p.getClass().getSimpleName();
+			if (p instanceof Rpc) {
+				var rpc = ((Rpc<?, ?>)p);
+				var rpcSessionId = rpc.getSessionId();
+				if (p.isRequest())
+					log.log(level, "Send:{}:{} {}:{} {}", roleId, listenerName, className, rpcSessionId, p.Argument);
+				else {
+					log.log(level, "Send:{}:{} {}:{}>{} {}", roleId, listenerName, className, rpcSessionId,
+							p.getResultCode(), rpc.Result);
 				}
-			} else {
-				logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "ReNo({},{}) {}({})<{}>: {}",
-						roleId, listenerName, p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(),
-						p.getResultCode(), p.getResultBean());
-			}
+			} else if (p.getResultCode() == 0)
+				log.log(level, "Send:{}:{} {} {}", roleId, listenerName, className, p.Argument);
+			else
+				log.log(level, "Send:{}:{} {}>{} {}", roleId, listenerName, className, p.getResultCode(), p.Argument);
 		}
-		sendReliableNotify(roleId, listenerName, p.getTypeId(), new Binary(p.encode()));
+		sendReliableNotify(roleId, listenerName, typeId, new Binary(p.encode()));
 	}
 
 	private Zeze.Collections.Queue<BNotify> openQueue(long roleId) {
@@ -833,7 +837,27 @@ public class Online extends AbstractOnline {
 	}
 
 	public final void broadcast(Protocol<?> p, int time) {
-		broadcast(p.getTypeId(), new Binary(p.encode()), time);
+		var typeId = p.getTypeId();
+		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
+			var log = AsyncSocket.logger;
+			var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
+			int linkCount = providerApp.providerService.getLinks().size();
+			var className = p.getClass().getSimpleName();
+			if (p instanceof Rpc) {
+				var rpc = ((Rpc<?, ?>)p);
+				var rpcSessionId = rpc.getSessionId();
+				if (p.isRequest())
+					log.log(level, "Send[{}] {}:{} {}", linkCount, className, rpcSessionId, p.Argument);
+				else {
+					log.log(level, "Send[{}] {}:{}>{} {}", linkCount, className, rpcSessionId,
+							p.getResultCode(), rpc.Result);
+				}
+			} else if (p.getResultCode() == 0)
+				log.log(level, "Send[{}] {} {}", linkCount, className, p.Argument);
+			else
+				log.log(level, "Send[{}] {}>{} {}", linkCount, className, p.getResultCode(), p.Argument);
+		}
+		broadcast(typeId, new Binary(p.encode()), time);
 	}
 
 	private void verifyLocal() {
