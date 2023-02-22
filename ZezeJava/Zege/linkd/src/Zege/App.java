@@ -127,7 +127,7 @@ public class App extends Zeze.AppBase {
         if (Zeze != null)
             throw new RuntimeException("Zeze Has Created!");
 
-        Zeze = new Zeze.Application("linkd", config, this);
+        Zeze = new Zeze.Application("linkd", config);
     }
 
     public synchronized void createService() {
