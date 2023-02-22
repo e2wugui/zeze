@@ -1,5 +1,5 @@
 // auto-generated @formatter:off
-public final class Redirect_Zeze_Arch_Online extends Zeze.Arch.Online {
+public class Redirect_Zeze_Arch_Online extends Zeze.Arch.Online {
     private final Zeze.Arch.RedirectBase _redirect_;
 
     @Override

@@ -1,5 +1,5 @@
 // auto-generated @formatter:off
-public final class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
+public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
     private final Zeze.Arch.RedirectBase _redirect_;
 
     @Override

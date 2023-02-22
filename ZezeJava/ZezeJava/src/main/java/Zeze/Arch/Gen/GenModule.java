@@ -176,7 +176,7 @@ public final class GenModule {
 	private static String genModuleCode(String genClassName, Class<?> moduleClass, List<MethodOverride> overrides, AppBase userApp) throws Exception {
 		var sb = new StringBuilderCs();
 		sb.appendLine("// auto-generated @" + "formatter:off");
-		sb.appendLine("public final class {} extends {} {", genClassName, moduleClass.getName());
+		sb.appendLine("public class {} extends {} {", genClassName, moduleClass.getName());
 		sb.appendLine("    private final Zeze.Arch.RedirectBase _redirect_;");
 		sb.appendLine();
 
