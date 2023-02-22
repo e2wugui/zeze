@@ -22,11 +22,16 @@ public class LinkdUserSession {
 	protected Binary contextx = Binary.Empty;
 	protected final ReentrantReadWriteLock bindsLock = new ReentrantReadWriteLock();
 	protected IntHashMap<Long> binds = new IntHashMap<>(); // 动态绑定(也会混合静态绑定) <moduleId,providerSessionId>
-	protected final long sessionId; // Linkd.SessionId
+	protected long sessionId; // Linkd.SessionId
 	protected Future<?> keepAliveTask; // 仅在网络线程中回调，并且一个时候，只会有一个回调，不线程保护了。
 	protected volatile boolean authed;
 
 	public LinkdUserSession(long sessionId) {
+		this.sessionId = sessionId;
+	}
+
+	public void setSessionId(LinkdProviderService linkdProviderService, long sessionId) {
+		updateLinkSessionId(linkdProviderService, sessionId);
 		this.sessionId = sessionId;
 	}
 
@@ -159,6 +164,24 @@ public class LinkdUserSession {
 				link.close();
 			}
 		});
+	}
+
+	private void updateLinkSessionId(LinkdProviderService linkdProviderService, long newSessionId) {
+		var writeLock = bindsLock.writeLock();
+		writeLock.lock();
+		try {
+			for (var it = binds.iterator(); it.moveToNext(); ) {
+				var provider = linkdProviderService.GetSocket(it.value());
+				if (provider == null)
+					continue;
+				var providerSession = (LinkdProviderSession)provider.getUserState();
+				if (providerSession == null)
+					continue;
+				providerSession.updateLinkSessionId(it.key(), sessionId, newSessionId);
+			}
+		} finally {
+			writeLock.unlock();
+		}
 	}
 
 	public void onClose(LinkdProviderService linkdProviderService) {

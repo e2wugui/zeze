@@ -63,4 +63,14 @@ public class LinkdProviderSession extends ProviderSession {
 			}
 		}
 	}
+
+	public void updateLinkSessionId(int moduleId, long oldLinkSessionId, long newLinkSessionId) {
+		synchronized (linkSessionIds) {
+			var linkSids = linkSessionIds.get(moduleId);
+			if (linkSids != null) {
+				linkSids.remove(oldLinkSessionId);
+				linkSids.add(newLinkSessionId);
+			}
+		}
+	}
 }

@@ -179,6 +179,8 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 				}
 				if (stable.linkSid != 0) {
 					// Reuse Old LinkSid
+					var linkedUserSession = (LinkdUserSession)client.getUserState();
+					linkedUserSession.setSessionId(linkdApp.linkdProviderService, stable.linkSid);
 					client.setSessionId(stable.linkSid);
 				} else {
 					// first client
