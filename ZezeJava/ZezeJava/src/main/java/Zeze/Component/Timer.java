@@ -667,6 +667,7 @@ public class Timer extends AbstractTimer {
 
 		var timers = node.getTimers();
 		timers.remove(timerName);
+		_tIndexs.remove(timerName);
 
 		if (timers.isEmpty()) {
 			var prev = _tNodes.get(node.getPrevNodeId());
