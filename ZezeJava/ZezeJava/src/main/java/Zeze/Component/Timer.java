@@ -667,7 +667,6 @@ public class Timer extends AbstractTimer {
 
 		var timers = node.getTimers();
 		timers.remove(timerName);
-		_tIndexs.remove(timerName);
 
 		if (timers.isEmpty()) {
 			var prev = _tNodes.get(node.getPrevNodeId());
@@ -691,6 +690,8 @@ public class Timer extends AbstractTimer {
 			// 不删除的话就会在数据库留下垃圾。
 			_tNodes.delayRemove(index.getNodeId());
 		}
+
+		_tIndexs.remove(timerName);
 	}
 
 	private void scheduleSimple(int serverId, String timerId, long delay, long concurrentSerialNo) {
