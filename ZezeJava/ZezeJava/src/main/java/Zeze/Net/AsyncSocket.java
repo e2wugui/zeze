@@ -31,7 +31,7 @@ import org.apache.logging.log4j.Logger;
 public final class AsyncSocket implements SelectorHandle, Closeable {
 	public static final Logger logger = LogManager.getLogger(AsyncSocket.class);
 	public static final Level PROTOCOL_LOG_LEVEL = Level.toLevel(System.getProperty("protocolLog"), Level.OFF);
-	public static final boolean ENABLE_PROTOCOL_LOG = logger.isEnabled(PROTOCOL_LOG_LEVEL);
+	public static final boolean ENABLE_PROTOCOL_LOG = PROTOCOL_LOG_LEVEL != Level.OFF && logger.isEnabled(PROTOCOL_LOG_LEVEL);
 	public static final boolean ENABLE_DEBUG_LOG = logger.isDebugEnabled();
 	private static final LongHashSet protocolLogExcept = new LongHashSet();
 	private static final VarHandle closedHandle, outputBufferSizeHandle;
