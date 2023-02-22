@@ -129,8 +129,8 @@ public final class Application {
 		});
 	}
 
-	public void initialize(AppBase app) {
-		if (!isNoDatabase())
+	public synchronized void initialize(AppBase app) {
+		if (timer == null && !isNoDatabase())
 			timer = Timer.create(app);
 	}
 
