@@ -8,7 +8,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 
 public class ProviderWithOnline extends ProviderImplement {
-	private Online online; // 需要外面初始化。App.Start.
+	protected Online online; // 需要外面初始化。App.Start.
 
 	public Online getOnline() {
 		return online;

@@ -49,10 +49,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class Online extends AbstractOnline {
-	private static final Logger logger = LogManager.getLogger(Online.class);
+	protected static final Logger logger = LogManager.getLogger(Online.class);
 
 	public final ProviderApp providerApp;
-	public final ProviderLoad load;
+	private final ProviderLoad load;
 	private final AtomicLong loginTimes = new AtomicLong();
 
 	private final EventDispatcher loginEvents = new EventDispatcher("Online.Login");

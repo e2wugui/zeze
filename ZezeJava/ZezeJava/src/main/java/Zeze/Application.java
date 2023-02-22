@@ -65,11 +65,6 @@ public final class Application {
 	private Schemas schemas;
 	private boolean isStart;
 	public RedirectBase redirect;
-
-	public Zeze.Transaction.AchillesHeelDaemon getAchillesHeelDaemon() {
-		return achillesHeelDaemon;
-	}
-
 	/**
 	 * 本地Rocks缓存数据库虽然也用了Database接口，但它不给用户提供事务操作的表。
 	 * 1. 不需要加入到Databases里面。
@@ -78,8 +73,15 @@ public final class Application {
 	 */
 	private DatabaseRocksDb LocalRocksCacheDb;
 
-	public DatabaseRocksDb getLocalRocksCacheDb() {
-		return LocalRocksCacheDb;
+	public Application() {
+		projectName = "";
+		conf = null;
+		serviceManager = null;
+		ShutdownHook.add(this, () -> {
+			logger.info("zeze ShutdownHook begin");
+			stop();
+			logger.info("zeze ShutdownHook end");
+		});
 	}
 
 	public Application(String solutionName) throws Exception {
@@ -112,9 +114,7 @@ public final class Application {
 			break;
 		}
 
-		var serverId = conf.getServerId();
-		var noDatabase = conf.isNoDatabase() || serverId < 0;
-		if (!noDatabase) {
+		if (!isNoDatabase()) {
 			// 自动初始化的组件。
 			autoKey = new AutoKey.Module(this);
 			autoKeyOld = new AutoKeyOld.Module(this);
@@ -129,19 +129,13 @@ public final class Application {
 		});
 	}
 
-	public void create(AppBase app) {
-		timer = Timer.create(app);
+	public boolean isNoDatabase() {
+		return conf == null || conf.isNoDatabase() || conf.getServerId() < 0;
 	}
 
-	public Application() {
-		projectName = "";
-		conf = null;
-		serviceManager = null;
-		ShutdownHook.add(this, () -> {
-			logger.info("zeze ShutdownHook begin");
-			stop();
-			logger.info("zeze ShutdownHook end");
-		});
+	public synchronized void create(AppBase app) {
+		if (timer == null && !isNoDatabase())
+			timer = Timer.create(app);
 	}
 
 	public HashMap<String, Database> getDatabases() {
@@ -192,6 +186,14 @@ public final class Application {
 
 	public String getProjectName() {
 		return projectName;
+	}
+
+	public Zeze.Transaction.AchillesHeelDaemon getAchillesHeelDaemon() {
+		return achillesHeelDaemon;
+	}
+
+	public DatabaseRocksDb getLocalRocksCacheDb() {
+		return LocalRocksCacheDb;
 	}
 
 	public Database addTable(String dbName, Table table) {
@@ -297,11 +299,11 @@ public final class Application {
 		if (isStart)
 			return;
 		var serverId = conf != null ? conf.getServerId() : -1;
-		var noDatabase = conf == null || conf.isNoDatabase() || serverId < 0;
-
 		logger.info("Start ServerId={}", serverId);
 
+		var noDatabase = isNoDatabase();
 		if (!noDatabase) {
+			assert conf != null;
 			if ("true".equals(System.getProperty(Daemon.propertyNameClearInUse)))
 				conf.clearInUseAndIAmSureAppStopped(this, databases);
 
@@ -402,19 +404,19 @@ public final class Application {
 		isStart = false;
 		logger.info("Stop ServerId={}", conf != null ? conf.getServerId() : -1);
 
-		if (null != delayRemove) {
+		if (delayRemove != null) {
 			delayRemove.stop();
 			delayRemove = null;
 		}
 
-		if (null != timer) {
+		if (timer != null) {
 			timer.stop();
 			timer = null;
 		}
 
 		ShutdownHook.remove(this);
 
-		if (null != achillesHeelDaemon) {
+		if (achillesHeelDaemon != null) {
 			achillesHeelDaemon.stopAndJoin();
 		}
 

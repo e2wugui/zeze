@@ -1,5 +1,5 @@
 协议日志通过加JVM参数来开启,如: -DprotocolLog=DEBUG
-可通过加JVM参数来排除不需要输出日志的协议类型(TypeId),如: -DprotocolLogExcept=47281226998238
+可通过加JVM参数来排除不需要输出日志的协议类型(TypeId),如: -DprotocolLogExcept=3504939016,42955910777365
 以上参考Zeze.Net.AsyncSocket的定义
 
 以下是所有协议日志的格式:
