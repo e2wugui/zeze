@@ -624,7 +624,9 @@ public class Timer extends AbstractTimer {
 	/////////////////////////////////////////////////////////////
 	// 内部实现
 	void cancelTryRedirect(int serverId, String timerId) {
-		if (zeze.redirect.providerApp.providerDirectService.providerByServerId.containsKey(serverId))
+		if (serverId == zeze.getConfig().getServerId())
+			cancelAlways(serverId, timerId); // 本地定时器，马上cancel，不需要redirect。
+		else if (zeze.redirect.providerApp.providerDirectService.providerByServerId.containsKey(serverId))
 			redirectCancel(serverId, timerId);
 		else
 			// 远程服务联系不上时，直接强制从数据库cancel掉。
