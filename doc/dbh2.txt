@@ -38,32 +38,42 @@ Bucket-Hot-Split(Sort)
 
 进程
 	MasterService，DatabaseService，Agent（嵌入到客户端内执行）
-
+===============================================================
 问题
-	1. 两段式事务。
-	根本支持来自RocksDb；下面的逻辑在Agent中执行。
-	var transList = new list(); // 维护当前事务需要访问的所有Database的事务实例。
-	foreach (var key in keys)
-	{
-		var dbInfo = Master.Query(key); // 为了性能，需要cache，问题？cache更新以及最终用目标Database主动报错。
-		var conn = Dababase.getOrAdd(out maybe transList, dbInfo); // 查询或新建连接，第一次建立链接需要创建事务。
-		conn.executeUpdate(key, value);
-	}
-	foreach (var trans in transList)
-	{
-		trans.commit();
-	}
+===============================================================
+1. 两段式事务。
+根本支持来自RocksDb；下面的逻辑在Agent中执行。
+var transList = new list(); // 维护当前事务需要访问的所有Database的事务实例。
+foreach (var key in keys)
+{
+	var dbInfo = Master.Query(key); // 为了性能，需要cache，问题？cache更新以及最终用目标Database主动报错。
+	var conn = Dababase.getOrAdd(out maybe transList, dbInfo); // 查询或新建连接，第一次建立链接需要创建事务。
+	conn.executeUpdate(key, value);
+}
+foreach (var trans in transList)
+{
+	trans.commit();
+}
 
-	2. 事务并发。
-	上面的事务是多记录写，读取总是一个事务读取一条记录。对于读写并发，RocksDb已经保证了基本的并发。
-	其他多记录写的事务并发由Zeze解决。Zeze保证所有的写事务之间没有交集。
-	所以！本系统不需要任何并发控制。【桶的迁移是一个需要锁并且等待的操作，这个待定】
+2. 事务并发。
+上面的事务是多记录写，读取总是一个事务读取一条记录。对于读写并发，RocksDb已经保证了基本的并发。
+其他多记录写的事务并发由Zeze解决。Zeze保证所有的写事务之间没有交集。
+所以！本系统不需要任何并发控制。【桶的迁移是一个需要锁并且等待的操作，这个待定】
 
-	3.Raft怎么接入
-	a) RocksDb的事务提交的时候，发送整个事务的OperateLog给Raft。正确性，安全性？
-	b) RaftLog采用CreateTransaction,Put,Delete等需要的执行，事务过程中，就同步操作，感觉比较复杂。正确性，安全性？
+3.Raft怎么接入
+a) RocksDb的事务提交的时候，发送整个事务的OperateLog给Raft。正确性，安全性？
+    已知问题，提交的时候才接入raft，如果此时raft不可用，由于2段提交，已经无法回滚，只能等raft恢复，
+    这种模式只能相信raft群总是可靠的。
+b) RaftLog采用CreateTransaction,Put,Delete,CommitTransaction等需要的执行，事务过程中，就同步操作，感觉比较复杂。正确性，安全性？
 
-Bucket-Split需求
+4. 桶按key排序分段，写入是怎么提高并发。
+。。。。靠，闪过一个问题，想不起来了，休息休息。。。。。
+
+5.并发walk，同时向不同的DatabaseService发送walk请求。归并（按顺序？）
+
+6.MapReduce。
+
+7. Bucket-Split需求
 	记录级别并发拆分：正在迁移的记录的访问需要等待。其他并发。
 	问题要点：
 	已经迁移完成的正常访问，迁移未完成按老的方式访问，这两种是否存在什么问题。
@@ -91,6 +101,8 @@ Bucket-Split需求
 			bucket.normalAccess;
 		}
 	}
+
+其他细节，不看。
 
 	并发写？
 	beginTransaction();
