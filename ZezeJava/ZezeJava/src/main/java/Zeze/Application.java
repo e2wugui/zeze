@@ -130,7 +130,7 @@ public final class Application {
 	}
 
 	public synchronized void initialize(AppBase app) {
-		if (timer == null && !isNoDatabase())
+		if (timer == null && !isNoDatabase() && redirect != null)
 			timer = Timer.create(app);
 	}
 
@@ -394,7 +394,8 @@ public final class Application {
 			isStart = true;
 
 			delayRemove.start();
-			timer.loadCustomClassAnd();
+			if (timer != null)
+				timer.loadCustomClassAnd();
 		}
 	}
 
