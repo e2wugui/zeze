@@ -6,6 +6,7 @@ import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Builtin.Provider.Kick;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
+import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.Agent;
@@ -84,14 +85,16 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	protected long ProcessDispatch(Dispatch p) {
 		var sender = p.getSender();
 		var linkSid = p.Argument.getLinkSid();
+		var typeId = 0L;
+		Protocol<?> p2 = null;
 		try {
-			var typeId = p.Argument.getProtocolType();
+			typeId = p.Argument.getProtocolType();
 			var factoryHandle = providerApp.providerService.findProtocolFactoryHandle(typeId);
 			if (factoryHandle == null) {
-				sendKick(sender, linkSid, BKick.ErrorProtocolUnknown, "unknown protocol");
+				sendKick(sender, linkSid, BKick.ErrorProtocolUnknown, "unknown protocol: " + typeId);
 				return Procedure.LogicError;
 			}
-			var p2 = factoryHandle.Factory.create();
+			p2 = factoryHandle.Factory.create();
 			p2.decode(ByteBuffer.Wrap(p.Argument.getProtocolData()));
 			p2.setSender(sender);
 			// 以下字段不再需要读了,避免ProviderUserSession引用太久,置空
@@ -122,38 +125,39 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 					log.log(level, "Recv:{} {}>{} {}", roleId, className, p2.getResultCode(), p2.Argument);
 			}
 
-			Transaction txn = Transaction.getCurrent();
+			var p3 = p2;
+			var txn = Transaction.getCurrent();
 			if (txn != null) {
-				// 已经在事务中，嵌入执行。此时忽略p2的NoProcedure配置。
-				Procedure proc = txn.getTopProcedure();
+				// 已经在事务中，嵌入执行。此时忽略p3的NoProcedure配置。
+				var proc = txn.getTopProcedure();
 				//noinspection ConstantConditions
-				proc.setActionName(p2.getClass().getName());
-				proc.setUserState(p2.getUserState());
-				return Task.call(() -> factoryHandle.Handle.handleProtocol(p2), p2, (p3, code) -> {
-					p3.setResultCode(code);
-					session.sendResponse(p3);
+				proc.setActionName(p3.getClass().getName());
+				proc.setUserState(session);
+				return Task.call(() -> factoryHandle.Handle.handleProtocol(p3), p3, (p4, code) -> {
+					p4.setResultCode(code);
+					session.sendResponse(p4);
 				});
 			}
 
-			if (p2.getSender().getService().getZeze() == null || factoryHandle.Level == TransactionLevel.None) {
+			var zeze = sender.getService().getZeze();
+			if (zeze == null || factoryHandle.Level == TransactionLevel.None) {
 				// 应用框架不支持事务或者协议配置了"不需要事务”
-				return Task.call(() -> factoryHandle.Handle.handleProtocol(p2), p2, (p3, code) -> {
-					p3.setResultCode(code);
-					session.sendResponse(p3);
+				return Task.call(() -> factoryHandle.Handle.handleProtocol(p3), p3, (p4, code) -> {
+					p4.setResultCode(code);
+					session.sendResponse(p4);
 				});
 			}
 
 			// 创建存储过程并且在当前线程中调用。
-			return Task.call(
-					p2.getSender().getService().getZeze().newProcedure(() -> factoryHandle.Handle.handleProtocol(p2),
-							p2.getClass().getName(), factoryHandle.Level, p2.getUserState()),
-					p2, (p3, code) -> {
-						p3.setResultCode(code);
-						session.sendResponse(p3);
-					});
+			return Task.call(zeze.newProcedure(() -> factoryHandle.Handle.handleProtocol(p3),
+					p3.getClass().getName(), factoryHandle.Level, session), p3, (p4, code) -> {
+				p4.setResultCode(code);
+				session.sendResponse(p4);
+			});
 		} catch (Exception ex) {
-			logger.error("", ex);
-			sendKick(sender, linkSid, BKick.ErrorProtocolException, ex.toString());
+			var desc = "ProcessDispatch(" + (p2 != null ? p2.getClass().getName() : typeId) + ") exception:";
+			logger.error("{}", desc, ex);
+			sendKick(sender, linkSid, BKick.ErrorProtocolException, desc + ' ' + ex);
 			return Procedure.Success;
 		}
 	}
