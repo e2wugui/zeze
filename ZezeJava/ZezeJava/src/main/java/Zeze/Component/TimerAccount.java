@@ -11,6 +11,7 @@ import Zeze.Builtin.Timer.BOfflineAccountCustom;
 import Zeze.Builtin.Timer.BOnlineTimers;
 import Zeze.Builtin.Timer.BSimpleTimer;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.EventDispatcher;
@@ -84,10 +85,11 @@ public class TimerAccount {
 		timer.tAccountTimers().insert(timerId, onlineTimer);
 		onlineTimer.getTimerObj().setBean(simpleTimer);
 
+		var timerIds = online.getOrAddLocalBean(account, clientId, eOnlineTimers, new BOnlineTimers());
+		var timerLocal = timerIds.getTimerIds().getOrAdd(timerId);
 		if (null != customData) {
 			timer.register(customData.getClass());
-			var timerIds = online.getOrAddLocalBean(account, clientId, eOnlineTimers, new BOnlineTimers());
-			timerIds.getTimerIds().getOrAdd(timerId).getCustomData().setBean(customData);
+			timerLocal.getCustomData().setBean(customData);
 		}
 		scheduleSimple(timerId, simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), name);
 		return timerId;
@@ -112,10 +114,11 @@ public class TimerAccount {
 		timer.tAccountTimers().insert(timerId, onlineTimer);
 		onlineTimer.getTimerObj().setBean(cronTimer);
 
+		var timerIds = online.getOrAddLocalBean(account, clientId, eOnlineTimers, new BOnlineTimers());
+		var timerLocal = timerIds.getTimerIds().getOrAdd(timerId);
 		if (null != customData) {
 			timer.register(customData.getClass());
-			var timerIds = online.getOrAddLocalBean(account, clientId, eOnlineTimers, new BOnlineTimers());
-			timerIds.getTimerIds().getOrAdd(timerId).getCustomData().setBean(customData);
+			timerLocal.getCustomData().setBean(customData);
 		}
 		scheduleCron(timerId, cronTimer, name);
 		return timerId;
@@ -309,15 +312,10 @@ public class TimerAccount {
 				return 0; // done
 			}
 
-			Bean customData = null;
-			{
-				var onlineTimers = online.<BOnlineTimers>getLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers);
-				if (null != onlineTimers) {
-					var cTimer = onlineTimers.getTimerIds().get(timerId);
-					if (null != cTimer)
-						customData = cTimer.getCustomData().getBean();
-				}
-			}
+			var customData = online.<BOnlineTimers>getLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers)
+					.getTimerIds().get(timerId).getCustomData().getBean();
+			if (customData.typeId() == EmptyBean.TYPEID)
+				customData = null;
 			var cronTimer = bTimer.getTimerObj_Zeze_Builtin_Timer_BCronTimer();
 			var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
 					cronTimer.getHappenTime(), cronTimer.getNextExpectedTime(), cronTimer.getExpectedTime());
@@ -382,15 +380,10 @@ public class TimerAccount {
 
 			var simpleTimer = bTimer.getTimerObj_Zeze_Builtin_Timer_BSimpleTimer();
 			var retNest = Task.call(online.providerApp.zeze.newProcedure(() -> {
-				Bean customData = null;
-				{
-					var onlineTimers = online.<BOnlineTimers>getLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers);
-					if (null != onlineTimers) {
-						var cTimer = onlineTimers.getTimerIds().get(timerId);
-						if (null != cTimer)
-							customData = cTimer.getCustomData().getBean();
-					}
-				}
+				var customData = online.<BOnlineTimers>getLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers)
+						.getTimerIds().get(timerId).getCustomData().getBean();
+				if (customData.typeId() == EmptyBean.TYPEID)
+					customData = null;
 				var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
 						simpleTimer.getHappenTimes(), simpleTimer.getNextExpectedTime(),
 						simpleTimer.getExpectedTime());

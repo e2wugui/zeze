@@ -10,6 +10,7 @@ import Zeze.Builtin.Timer.BGameOnlineTimer;
 import Zeze.Builtin.Timer.BOnlineTimers;
 import Zeze.Builtin.Timer.BSimpleTimer;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.EventDispatcher;
@@ -84,10 +85,11 @@ public class TimerRole {
 		timer.tRoleTimers().put(timerId, onlineTimer);
 		onlineTimer.getTimerObj().setBean(simpleTimer);
 
+		var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
+		var timerLocal = timerIds.getTimerIds().getOrAdd(timerId);
 		if (null != customData) {
 			timer.register(customData.getClass());
-			var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
-			timerIds.getTimerIds().getOrAdd(timerId).getCustomData().setBean(customData);
+			timerLocal.getCustomData().setBean(customData);
 		}
 		scheduleSimple(timerId, simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), name);
 		return timerId;
@@ -112,10 +114,11 @@ public class TimerRole {
 		onlineTimer.getTimerObj().setBean(cronTimer);
 		timer.tRoleTimers().insert(timerId, onlineTimer);
 
+		var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
+		var timerLocal = timerIds.getTimerIds().getOrAdd(timerId);
 		if (null != customData) {
 			timer.register(customData.getClass());
-			var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
-			timerIds.getTimerIds().getOrAdd(timerId).getCustomData().setBean(customData);
+			timerLocal.getCustomData().setBean(customData);
 		}
 		scheduleCron(timerId, cronTimer, name);
 		return timerId;
@@ -253,15 +256,13 @@ public class TimerRole {
 
 		var loginVersion = online.getGlobalLoginVersion(user.roleId);
 		var timers = online.<BOnlineTimers>getLocalBean(user.roleId, eOnlineTimers);
-		if (null != timers) {
-			// XXX
-			// 这里有个问题，如果在线定时器很多，这个嵌到relogin-procedure中的事务需要更新很多记录。
-			// 如果启动新的事务执行更新，又会破坏原子性。
-			// 先整体在一个事务内更新，这样更安全。
-			// 由于Online Timer是本进程的，用户也不会修改，所以整体更新目前看来还可接受。
-			for (var tid : timers.getTimerIds().keySet()) {
-				timer.tRoleTimers().get(tid).setLoginVersion(loginVersion);
-			}
+		// XXX
+		// 这里有个问题，如果在线定时器很多，这个嵌到relogin-procedure中的事务需要更新很多记录。
+		// 如果启动新的事务执行更新，又会破坏原子性。
+		// 先整体在一个事务内更新，这样更安全。
+		// 由于Online Timer是本进程的，用户也不会修改，所以整体更新目前看来还可接受。
+		for (var tid : timers.getTimerIds().keySet()) {
+			timer.tRoleTimers().get(tid).setLoginVersion(loginVersion);
 		}
 		return 0;
 	}
@@ -305,15 +306,10 @@ public class TimerRole {
 			}
 
 			var cronTimer = bTimer.getTimerObj_Zeze_Builtin_Timer_BCronTimer();
-			Bean customData = null;
-			{
-				var onlineTimers = online.<BOnlineTimers>getLocalBean(bTimer.getRoleId(), eOnlineTimers);
-				if (null != onlineTimers) {
-					var cTimer = onlineTimers.getTimerIds().get(timerId);
-					if (null != cTimer)
-						customData = cTimer.getCustomData().getBean();
-				}
-			}
+			var customData = online.<BOnlineTimers>getLocalBean(bTimer.getRoleId(), eOnlineTimers)
+					.getTimerIds().get(timerId).getCustomData().getBean();
+			if (customData.typeId() == EmptyBean.TYPEID)
+				customData = null;
 			var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
 					cronTimer.getHappenTime(), cronTimer.getNextExpectedTime(),
 					cronTimer.getExpectedTime());
@@ -378,15 +374,10 @@ public class TimerRole {
 
 			var simpleTimer = bTimer.getTimerObj_Zeze_Builtin_Timer_BSimpleTimer();
 			var retNest = Task.call(online.providerApp.zeze.newProcedure(() -> {
-				Bean customData = null;
-				{
-					var onlineTimers = online.<BOnlineTimers>getLocalBean(bTimer.getRoleId(), eOnlineTimers);
-					if (null != onlineTimers) {
-						var cTimer = onlineTimers.getTimerIds().get(timerId);
-						if (null != cTimer)
-							customData = cTimer.getCustomData().getBean();
-					}
-				}
+				var customData = online.<BOnlineTimers>getLocalBean(bTimer.getRoleId(), eOnlineTimers)
+						.getTimerIds().get(timerId).getCustomData().getBean();
+				if (customData.typeId() == EmptyBean.TYPEID)
+					customData = null;
 				var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
 						simpleTimer.getHappenTimes(), simpleTimer.getNextExpectedTime(),
 						simpleTimer.getExpectedTime());

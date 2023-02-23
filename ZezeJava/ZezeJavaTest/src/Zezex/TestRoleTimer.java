@@ -1,6 +1,8 @@
 package Zezex;
 
 import java.util.ArrayList;
+import java.util.concurrent.Future;
+import javax.ejb.Timer;
 import ClientGame.Login.BRole;
 import ClientGame.Login.CreateRole;
 import ClientGame.Login.GetRoleList;
@@ -9,6 +11,7 @@ import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Task;
+import Zeze.Util.TaskCompletionSource;
 import Zezex.Linkd.Auth;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
@@ -80,6 +83,21 @@ public class TestRoleTimer {
 		}
 	}
 
+	TaskCompletionSource<Boolean> timerFuture = new TaskCompletionSource<>();
+
+	public class NullCustomDataHandle implements TimerHandle {
+
+		@Override
+		public void onTimer(TimerContext context) throws Exception {
+			timerFuture.setResult(true);
+		}
+
+		@Override
+		public void onTimerCancel() throws Exception {
+
+		}
+	}
+
 	@Test
 	public void testRoleTimer1() throws Exception {
 		Task.tryInitThreadPool(null, null, null);
@@ -104,7 +122,12 @@ public class TestRoleTimer {
 			login(client0, roleId);
 
 			var timerRole0 = timer0.getRoleTimer();
-
+			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
+				timerRole0.scheduleOnline(roleId, 1, -1, -1, -1, new NullCustomDataHandle(), null);
+				return Procedure.Success;
+			}, "testOnlineWithBean").call());
+			timerFuture.get();
+			System.out.println("NullCustomDataHandle Done!");
 			TestBean bean = new TestBean();
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
 				timerRole0.scheduleOnline(roleId, 200, 200, 15, System.currentTimeMillis() + 5000, new TestOnlineTimerHandle(), bean);
