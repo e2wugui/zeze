@@ -47,7 +47,6 @@ import Zeze.Util.OutLong;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 import Zeze.Util.TransactionLevelAnnotation;
-import com.amazonaws.services.dynamodbv2.model.DeleteGlobalSecondaryIndexAction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
