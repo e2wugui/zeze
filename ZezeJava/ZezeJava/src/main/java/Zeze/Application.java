@@ -396,7 +396,8 @@ public final class Application {
 			delayRemove.start();
 			if (timer != null)
 				timer.loadCustomClassAnd();
-		}
+		} else
+			isStart = true;
 	}
 
 	public synchronized void stop() throws Exception {
