@@ -67,7 +67,8 @@ a) RocksDb的事务提交的时候，发送整个事务的OperateLog给Raft。正确性，安全性？
 b) RaftLog采用CreateTransaction,Put,Delete,CommitTransaction等需要的执行，事务过程中，就同步操作，感觉比较复杂。正确性，安全性？
 
 4. 桶按key排序分段，写入是怎么提高并发。
-。。。。靠，闪过一个问题，想不起来了，休息休息。。。。。
+    hash方式看起来具有极大的并发写入速度。
+    。。。。靠，闪过一个问题，想不起来了，休息休息。。。。。
 
 5.并发walk，同时向不同的DatabaseService发送walk请求。归并（按顺序？）
 
