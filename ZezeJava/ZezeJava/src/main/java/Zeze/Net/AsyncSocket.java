@@ -524,7 +524,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			if (p instanceof Rpc) {
 				var rpc = ((Rpc<?, ?>)p);
 				var rpcSessionId = rpc.getSessionId();
-				if (p.isRequest())
+				if (rpc.isRequest())
 					logger.log(PROTOCOL_LOG_LEVEL, "SEND:{} {}:{} {}", sessionId, className, rpcSessionId, p.Argument);
 				else {
 					logger.log(PROTOCOL_LOG_LEVEL, "SEND:{} {}:{}>{} {}", sessionId, className, rpcSessionId,

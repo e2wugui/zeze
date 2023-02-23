@@ -95,7 +95,7 @@ public abstract class RaftRpc<TArgument extends Bean, TResult extends Bean> exte
 	public void decode(ByteBuffer bb) {
 		var header = bb.ReadInt();
 		var familyClass = header & FamilyClass.FamilyClassMask;
-		if (familyClass != FamilyClass.RaftRequest && familyClass != FamilyClass.RaftResponse)
+		if (!FamilyClass.isRaftRpc(familyClass))
 			throw new IllegalStateException("invalid header(" + header + ") for decoding raft rpc " + getClass());
 		setRequest(familyClass == FamilyClass.RaftRequest);
 		resultCode = (header & FamilyClass.BitResultCode) != 0 ? bb.ReadLong() : 0;

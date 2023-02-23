@@ -35,12 +35,14 @@ Recv:roleId RPC类名:RPC的sessionId 请求Bean内容 // 发送RPC请求
 Recv:roleId RPC类名:RPC的sessionId>resultCode 回复Bean内容 // 发送RPC回复
 Recv:roleId 协议类名 协议Bean内容 // 发送协议
 Recv:roleId 协议类名>resultCode 协议Bean内容 // 发送带resultCode的协议
+如果当前roleId无效,则用负的linkSid代替
 
 gs通过Zeze.Arch.ProviderUserSession.sendResponse(Protocol)发封装成Send的协议:
 Send:roleId RPC类名:RPC的sessionId 请求Bean内容 // 发送RPC请求
 Send:roleId RPC类名:RPC的sessionId>resultCode 回复Bean内容 // 发送RPC回复
 Send:roleId 协议类名 协议Bean内容 // 发送协议
 Send:roleId 协议类名>resultCode 协议Bean内容 // 发送带resultCode的协议
+如果当前roleId无效,则用负的linkSid代替
 
 gs通过Zeze.Game.Online.send发封装成Send的协议:
 Send:roleId RPC类名:RPC的sessionId 请求Bean内容 // 发送RPC请求

@@ -289,24 +289,26 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			var log = AsyncSocket.logger;
 			var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
 			int header = -1;
+			int familyClass = 0;
 			var resultCode = 0L;
 			var rpcSessionId = 0L;
 			try {
 				var bb = ByteBuffer.Wrap(pdata);
 				bb.ReadIndex += 12; // moduleId[4] + protocolId[4] + size[4]
 				header = bb.ReadInt();
+				familyClass = header & FamilyClass.FamilyClassMask;
 				if ((header & FamilyClass.BitResultCode) != 0)
 					resultCode = bb.ReadLong();
-				var familyClass = header & FamilyClass.FamilyClassMask;
-				if (familyClass == FamilyClass.Request || familyClass == FamilyClass.Response)
+				if (FamilyClass.isRpc(familyClass))
 					rpcSessionId = bb.ReadLong();
-			} catch (Exception ignored) {
+			} catch (Exception e) {
+				log.error("decode Send.protocolWholeData failed", e);
 			}
 			int moduleId = Protocol.getModuleId(ptype);
 			int protocolId = Protocol.getProtocolId(ptype);
 			int size = pdata.size();
-			if (rpcSessionId == 0) {
-				if (resultCode == 0)
+			if (FamilyClass.isRpc(familyClass)) {
+				if (familyClass == FamilyClass.Request)
 					log.log(level, "Send:{} {}:{} {}[{}]", sidStr, moduleId, protocolId, header, size);
 				else
 					log.log(level, "Send:{} {}:{}>{} {}[{}]", sidStr, moduleId, protocolId, resultCode, header, size);
@@ -320,13 +322,13 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		//*
 		for (int i = 0; i < sidCount; i++) {
 			var linkSid = linkSids.get(i);
-			var link = linkdApp.linkdService.GetSocket(linkSid);
+			var socket = linkdApp.linkdService.GetSocket(linkSid);
 			// ProtocolId现在是hash值，显示出来也不好看，以后加配置换成名字。
-			if (link != null) {
-				if (!link.Send(pdata))
-					link.close();
+			if (socket != null) {
+				if (!socket.Send(pdata))
+					socket.close();
 				if (enableDump)
-					tryDump(link, pdata);
+					tryDump(socket, pdata);
 			} else
 				r.Result.getErrorLinkSids().add(linkSid);
 		}
@@ -360,28 +362,32 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			var log = AsyncSocket.logger;
 			var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
 			int header = -1;
+			int familyClass = 0;
 			var resultCode = 0L;
 			var rpcSessionId = 0L;
 			try {
 				var bb = ByteBuffer.Wrap(pdata);
 				bb.ReadIndex += 12; // moduleId[4] + protocolId[4] + size[4]
 				header = bb.ReadInt();
+				familyClass = header & FamilyClass.FamilyClassMask;
 				if ((header & FamilyClass.BitResultCode) != 0)
 					resultCode = bb.ReadLong();
-				var familyClass = header & FamilyClass.FamilyClassMask;
-				if (familyClass == FamilyClass.Request || familyClass == FamilyClass.Response)
+				if (FamilyClass.isRpc(familyClass))
 					rpcSessionId = bb.ReadLong();
-			} catch (Exception ignored) {
+			} catch (Exception e) {
+				log.error("decode Broadcast.protocolWholeData failed", e);
 			}
 			int sidCount = linkdApp.linkdService.getSocketCount();
 			int moduleId = Protocol.getModuleId(ptype);
 			int protocolId = Protocol.getProtocolId(ptype);
 			int size = pdata.size();
-			if (rpcSessionId == 0) {
-				if (resultCode == 0)
+			if (FamilyClass.isRpc(familyClass)) {
+				if (familyClass == FamilyClass.Request)
 					log.log(level, "Send[{}] {}:{} {}[{}]", sidCount, moduleId, protocolId, header, size);
-				else
-					log.log(level, "Send[{}] {}:{}>{} {}[{}]", sidCount, moduleId, protocolId, resultCode, header, size);
+				else {
+					log.log(level, "Send[{}] {}:{}>{} {}[{}]", sidCount, moduleId, protocolId, resultCode,
+							header, size);
+				}
 			} else if (resultCode == 0)
 				log.log(level, "Send[{}] {}:{}:{} {}[{}]", sidCount, moduleId, protocolId, rpcSessionId, header, size);
 			else {
@@ -389,7 +395,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 						header, size);
 			}
 		}
-		linkdApp.linkdService.foreach((socket) -> {
+		linkdApp.linkdService.foreach(socket -> {
 			// auth 通过就允许发送广播。
 			// 如果要实现 role.login 才允许，Provider 增加 SetLogin 协议给内部server调用。
 			// 这些广播一般是重要通告，只要登录客户端就允许收到，然后进入世界的时候才显示。这样处理就不用这个状态了。

@@ -367,7 +367,7 @@ public class Online extends AbstractOnline {
 			if (p instanceof Rpc) {
 				var rpc = ((Rpc<?, ?>)p);
 				var rpcSessionId = rpc.getSessionId();
-				if (p.isRequest()) {
+				if (rpc.isRequest()) {
 					log.log(level, "Send:{},{}:{} {}:{} {}", account, clientId, listenerName, className,
 							rpcSessionId, p.Argument);
 				} else {
@@ -619,7 +619,7 @@ public class Online extends AbstractOnline {
 			if (p instanceof Rpc) {
 				var rpc = ((Rpc<?, ?>)p);
 				var rpcSessionId = rpc.getSessionId();
-				if (p.isRequest())
+				if (rpc.isRequest())
 					log.log(level, "Send:{},{} {}:{} {}", account, clientId, className, rpcSessionId, p.Argument);
 				else {
 					log.log(level, "Send:{},{} {}:{}>{} {}", account, clientId, className, rpcSessionId,
@@ -651,7 +651,7 @@ public class Online extends AbstractOnline {
 			if (p instanceof Rpc) {
 				var rpc = ((Rpc<?, ?>)p);
 				var rpcSessionId = rpc.getSessionId();
-				if (p.isRequest())
+				if (rpc.isRequest())
 					log.log(level, "Send:{} {}:{} {}", idsStr, className, rpcSessionId, p.Argument);
 				else {
 					log.log(level, "Send:{} {}:{}>{} {}", idsStr, className, rpcSessionId,
@@ -767,7 +767,7 @@ public class Online extends AbstractOnline {
 			if (p instanceof Rpc) {
 				var rpc = ((Rpc<?, ?>)p);
 				var rpcSessionId = rpc.getSessionId();
-				if (p.isRequest())
+				if (rpc.isRequest())
 					log.log(level, "Send:{} {}:{} {}", account, className, rpcSessionId, p.Argument);
 				else {
 					log.log(level, "Send:{} {}:{}>{} {}", account, className, rpcSessionId,
@@ -802,7 +802,7 @@ public class Online extends AbstractOnline {
 			if (p instanceof Rpc) {
 				var rpc = ((Rpc<?, ?>)p);
 				var rpcSessionId = rpc.getSessionId();
-				if (p.isRequest())
+				if (rpc.isRequest())
 					log.log(level, "Send:{} {}:{} {}", idsStr, className, rpcSessionId, p.Argument);
 				else {
 					log.log(level, "Send:{} {}:{}>{} {}", idsStr, className, rpcSessionId,
@@ -1006,7 +1006,7 @@ public class Online extends AbstractOnline {
 			if (p instanceof Rpc) {
 				var rpc = ((Rpc<?, ?>)p);
 				var rpcSessionId = rpc.getSessionId();
-				if (p.isRequest())
+				if (rpc.isRequest())
 					log.log(level, "Send[{}] {}:{} {}", linkCount, className, rpcSessionId, p.Argument);
 				else {
 					log.log(level, "Send[{}] {}:{}>{} {}", linkCount, className, rpcSessionId,

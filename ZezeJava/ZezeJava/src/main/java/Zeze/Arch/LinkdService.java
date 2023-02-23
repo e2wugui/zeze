@@ -92,12 +92,11 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		// 如果是 rpc.request 直接返回Procedure.Busy错误。
 		// see Zeze.Net.Rpc.decode/encode
 		var bb = ByteBuffer.Wrap(dispatch.Argument.getProtocolData());
-		var compress = bb.ReadInt();
-		var familyClass = compress & FamilyClass.FamilyClassMask;
-		var isRequest = familyClass == FamilyClass.Request;
-		var so = GetSocket(dispatch.Argument.getLinkSid());
-		if (isRequest && so != null) {
-			if ((compress & FamilyClass.BitResultCode) != 0)
+		var header = bb.ReadInt();
+		AsyncSocket so;
+		if ((header & FamilyClass.FamilyClassMask) == FamilyClass.Request
+				&& (so = GetSocket(dispatch.Argument.getLinkSid())) != null) {
+			if ((header & FamilyClass.BitResultCode) != 0)
 				bb.ReadLong();
 			var sessionId = bb.ReadLong();
 			// argument 忽略，必须要解析出来，也不知道是什么。
@@ -112,7 +111,8 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 			so.Send(bb);
 		}
 		// 报告服务器繁忙，但不关闭连接。
-		reportError(dispatch.Argument.getLinkSid(), BReportError.FromLink, BReportError.CodeProviderBusy, "provider is busy.", false);
+		reportError(dispatch.Argument.getLinkSid(), BReportError.FromLink, BReportError.CodeProviderBusy,
+				"provider is busy.", false);
 	}
 
 	public void reportError(long linkSid, int from, int code, String desc) {

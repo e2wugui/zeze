@@ -267,57 +267,58 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 					p.sender = so;
 					p.userState = so.getUserState();
 					if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
-						var logger = AsyncSocket.logger;
+						var log = AsyncSocket.logger;
 						var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
 						var sessionId = so.getSessionId();
 						var className = p.getClass().getSimpleName();
 						if (p instanceof Rpc) {
 							var rpc = ((Rpc<?, ?>)p);
 							var rpcSessionId = rpc.getSessionId();
-							if (p.isRequest())
-								logger.log(level, "RECV:{} {}:{} {}", sessionId, className, rpcSessionId, p.Argument);
+							if (rpc.isRequest())
+								log.log(level, "RECV:{} {}:{} {}", sessionId, className, rpcSessionId, p.Argument);
 							else {
-								logger.log(level, "RECV:{} {}:{}>{} {}", sessionId, className, rpcSessionId,
+								log.log(level, "RECV:{} {}:{}>{} {}", sessionId, className, rpcSessionId,
 										p.resultCode, rpc.Result);
 							}
 						} else if (p.resultCode == 0)
-							logger.log(level, "RECV:{} {} {}", sessionId, className, p.Argument);
+							log.log(level, "RECV:{} {} {}", sessionId, className, p.Argument);
 						else
-							logger.log(level, "RECV:{} {}>{} {}", sessionId, className, p.resultCode, p.Argument);
+							log.log(level, "RECV:{} {}>{} {}", sessionId, className, p.resultCode, p.Argument);
 					}
 					p.dispatch(service, factoryHandle);
 				} else {
 					if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
-						var logger = AsyncSocket.logger;
+						var log = AsyncSocket.logger;
 						var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
 						var sessionId = so.getSessionId();
 						int header = -1;
+						int familyClass = 0;
 						var resultCode = 0L;
 						var rpcSessionId = 0L;
 						try {
 							header = bb.ReadInt();
+							familyClass = header & FamilyClass.FamilyClassMask;
 							if ((header & FamilyClass.BitResultCode) != 0)
 								resultCode = bb.ReadLong();
-							int familyClass = header & FamilyClass.FamilyClassMask;
-							if (familyClass == FamilyClass.Request || familyClass == FamilyClass.Response)
+							if (FamilyClass.isRpc(familyClass))
 								rpcSessionId = bb.ReadLong();
-						} catch (Exception ignored) {
+						} catch (Exception e) {
+							log.error("decode Send.protocolWholeData failed", e);
 						}
 						size = bb.size();
-						if (rpcSessionId == 0) {
-							if (resultCode == 0) {
-								logger.log(level, "RECV:{} {}:{} {}[{}]", sessionId, moduleId, protocolId,
+						if (FamilyClass.isRpc(familyClass)) {
+							if (familyClass == FamilyClass.Request)
+								log.log(level, "RECV:{} {}:{} {}[{}]", sessionId, moduleId, protocolId, header, size);
+							else {
+								log.log(level, "RECV:{} {}:{}>{} {}[{}]", sessionId, moduleId, protocolId, resultCode,
 										header, size);
-							} else {
-								logger.log(level, "RECV:{} {}:{}>{} {}[{}]", sessionId, moduleId, protocolId,
-										resultCode, header, size);
 							}
 						} else if (resultCode == 0) {
-							logger.log(level, "RECV:{} {}:{}:{} {}[{}]", sessionId, moduleId, protocolId,
-									rpcSessionId, header, size);
+							log.log(level, "RECV:{} {}:{}:{} {}[{}]", sessionId, moduleId, protocolId, rpcSessionId,
+									header, size);
 						} else {
-							logger.log(level, "RECV:{} {}:{}:{}>{} {}[{}]", sessionId, moduleId, protocolId,
-									rpcSessionId, resultCode, header, size);
+							log.log(level, "RECV:{} {}:{}:{}>{} {}[{}]", sessionId, moduleId, protocolId, rpcSessionId,
+									resultCode, header, size);
 						}
 						bb.ReadIndex = beginReadIndex;
 					}

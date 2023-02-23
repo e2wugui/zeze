@@ -397,7 +397,7 @@ public class Online extends AbstractOnline {
 			if (p instanceof Rpc) {
 				var rpc = ((Rpc<?, ?>)p);
 				var rpcSessionId = rpc.getSessionId();
-				if (p.isRequest())
+				if (rpc.isRequest())
 					log.log(level, "Send:{} {}:{} {}", roleId, className, rpcSessionId, p.Argument);
 				else {
 					log.log(level, "Send:{} {}:{}>{} {}", roleId, className, rpcSessionId,
@@ -429,7 +429,7 @@ public class Online extends AbstractOnline {
 			if (p instanceof Rpc) {
 				var rpc = ((Rpc<?, ?>)p);
 				var rpcSessionId = rpc.getSessionId();
-				if (p.isRequest())
+				if (rpc.isRequest())
 					log.log(level, "Send:{} {}:{} {}", idsStr, className, rpcSessionId, p.Argument);
 				else {
 					log.log(level, "Send:{} {}:{}>{} {}", idsStr, className, rpcSessionId,
@@ -601,7 +601,7 @@ public class Online extends AbstractOnline {
 			if (p instanceof Rpc) {
 				var rpc = ((Rpc<?, ?>)p);
 				var rpcSessionId = rpc.getSessionId();
-				if (p.isRequest())
+				if (rpc.isRequest())
 					log.log(level, "Send:{}:{} {}:{} {}", roleId, listenerName, className, rpcSessionId, p.Argument);
 				else {
 					log.log(level, "Send:{}:{} {}:{}>{} {}", roleId, listenerName, className, rpcSessionId,
@@ -846,7 +846,7 @@ public class Online extends AbstractOnline {
 			if (p instanceof Rpc) {
 				var rpc = ((Rpc<?, ?>)p);
 				var rpcSessionId = rpc.getSessionId();
-				if (p.isRequest())
+				if (rpc.isRequest())
 					log.log(level, "Send[{}] {}:{} {}", linkCount, className, rpcSessionId, p.Argument);
 				else {
 					log.log(level, "Send[{}] {}:{}>{} {}", linkCount, className, rpcSessionId,

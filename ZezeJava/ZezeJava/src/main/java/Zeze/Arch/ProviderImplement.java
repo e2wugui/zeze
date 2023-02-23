@@ -104,6 +104,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				var log = AsyncSocket.logger;
 				var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
 				var roleId = session.getRoleId();
+				if (roleId == null)
+					roleId = -linkSid;
 				var className = p2.getClass().getSimpleName();
 				if (p2 instanceof Rpc) {
 					var rpc = ((Rpc<?, ?>)p2);

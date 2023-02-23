@@ -106,11 +106,13 @@ public class ProviderUserSession {
 			var log = AsyncSocket.logger;
 			var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
 			var roleId = getRoleId();
+			if (roleId == null)
+				roleId = -getLinkSid();
 			var className = p.getClass().getSimpleName();
 			if (p instanceof Rpc) {
 				var rpc = ((Rpc<?, ?>)p);
 				var rpcSessionId = rpc.getSessionId();
-				if (p.isRequest())
+				if (rpc.isRequest())
 					log.log(level, "Send:{} {}:{} {}", roleId, className, rpcSessionId, p.Argument);
 				else {
 					log.log(level, "Send:{} {}:{}>{} {}", roleId, className, rpcSessionId,

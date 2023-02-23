@@ -277,7 +277,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	public void decode(ByteBuffer bb) {
 		var header = bb.ReadInt();
 		var familyClass = header & FamilyClass.FamilyClassMask;
-		if (familyClass != FamilyClass.Request && familyClass != FamilyClass.Response)
+		if (!FamilyClass.isRpc(familyClass))
 			throw new IllegalStateException("invalid header(" + header + ") for decoding rpc " + getClass());
 		isRequest = familyClass == FamilyClass.Request;
 		resultCode = (header & FamilyClass.BitResultCode) != 0 ? bb.ReadLong() : 0;
