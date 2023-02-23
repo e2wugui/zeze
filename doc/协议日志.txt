@@ -82,3 +82,21 @@ Send:account,clientId:listenerName RPC类名:RPC的sessionId 请求Bean内容 //
 Send:account,clientId:listenerName RPC类名:RPC的sessionId>resultCode 回复Bean内容 // 发送RPC回复
 Send:account,clientId:listenerName 协议类名 协议Bean内容 // 发送协议
 Send:account,clientId:listenerName 协议类名>resultCode 协议Bean内容 // 发送带resultCode的协议
+
+
+开启协议日志需要加JVM参数, 推荐的设置方法:
+linkd: -DprotocolLog=DEBUG
+gs: -DprotocolLog=DEBUG -DprotocolLogExcept=47280285301785,47281226998238
+上面两组数字是需要排除的两个协议ID分别是Dispatch和Send, 因为只需要输出里面包装的协议日志就够了
+
+link协议日志举例:
+AsyncSocket: RECV:115004 1:291877964:2 1[1] 收到客户端发来的协议,网络sessionId是115004,moduleId=1,protocolId=291877964,RPC的sessionId=2
+AsyncSocket: SEND:115003 Dispatch Zeze.Builtin.Provider.BDispatch: {... 包装这个协议成Dispatch发给gs(网络sessionId=115003)
+AsyncSocket: RECV:115003 Send:135 Zeze.Builtin.Provider.BSend: {... 收到gs的Send协议(RPC的sessionId=135)
+AsyncSocket: Send:115004 1:291877964:2 0[179] 发给客户端Send里包装的协议,协议类型和sessionId跟客户端发来的一样
+AsyncSocket: SEND:115003 Send:135>0 Zeze.Builtin.Provider.BSendResult: {... 给gs回复Send协议,resultCode=0
+
+gs协议日志的举例:
+AsyncSocket: Recv:257 GetMapLiveList:26 ()
+AsyncSocket: Send:257 GetMapLiveList:26>0 wm.Map.BLiveList: {...
+上面的257是角色ID, 26是RPC的sessionId, >0表示返回的resultCode=0.
