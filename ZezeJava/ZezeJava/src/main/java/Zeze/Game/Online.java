@@ -47,6 +47,7 @@ import Zeze.Util.OutLong;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 import Zeze.Util.TransactionLevelAnnotation;
+import com.amazonaws.services.dynamodbv2.model.DeleteGlobalSecondaryIndexAction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -230,13 +231,16 @@ public class Online extends AbstractOnline {
 		arg.roleId = roleId;
 		arg.local = _tlocal.get(roleId);
 
-		_tlocal.remove(roleId); // remove first
+		// local 没有数据不触发事件？
+		if (null != arg.local) {
+			_tlocal.remove(roleId); // remove first
 
-		var ret = localRemoveEvents.triggerEmbed(this, arg);
-		if (0 != ret)
-			return ret;
-		localRemoveEvents.triggerProcedure(providerApp.zeze, this, arg);
-		Transaction.whileCommit(() -> localRemoveEvents.triggerThread(this, arg));
+			var ret = localRemoveEvents.triggerEmbed(this, arg);
+			if (0 != ret)
+				return ret;
+			localRemoveEvents.triggerProcedure(providerApp.zeze, this, arg);
+			Transaction.whileCommit(() -> localRemoveEvents.triggerThread(this, arg));
+		}
 		return 0;
 	}
 
@@ -289,9 +293,16 @@ public class Online extends AbstractOnline {
 		arg.roleId = roleId;
 		arg.logoutReason = logoutReason;
 
+		var version = _tversion.get(roleId);
+
 		// 提前删除，可能事件里面需要使用这个判断已经登出。
 		// 外面补发logoutTrigger之后需要重新getOrAdd一次。
 		_tonline.remove(roleId); // remove first
+
+		// 总是尝试通知上一次登录的服务器，里面会忽略本机。
+		tryRedirectRemoveLocal(version.getServerId(), roleId);
+		// 总是删除
+		removeLocalAndTrigger(roleId);
 
 		var ret = logoutEvents.triggerEmbed(this, arg);
 		if (0 != ret)
@@ -923,9 +934,7 @@ public class Online extends AbstractOnline {
 				return ret;
 			// trigger remove; new record
 			online = _tonline.getOrAdd(rpc.Argument.getRoleId());
-		}
-		if (version.getLoginVersion() != local.getLoginVersion()) {
-			tryRedirectRemoveLocal(version.getServerId(), rpc.Argument.getRoleId());
+			local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
 		}
 
 		var loginVersion = version.getLoginVersion() + 1;
@@ -980,9 +989,7 @@ public class Online extends AbstractOnline {
 				return ret;
 			// trigger remove; new record
 			online = _tonline.getOrAdd(rpc.Argument.getRoleId());
-		}
-		if (version.getLoginVersion() != local.getLoginVersion()) {
-			tryRedirectRemoveLocal(version.getServerId(), rpc.Argument.getRoleId());
+			local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
 		}
 
 		var loginVersion = version.getLoginVersion() + 1;
@@ -1026,19 +1033,10 @@ public class Online extends AbstractOnline {
 		if (session.getRoleId() == null)
 			return errorCode(ResultCodeNotLogin);
 
-		var local = _tlocal.get(session.getRoleId());
+		//var local = _tlocal.get(session.getRoleId());
 		var online = _tonline.get(session.getRoleId());
 		var version = _tversion.getOrAdd(session.getRoleId());
 
-		// 登录在其他机器上。
-		if (local == null && online != null) {
-			tryRedirectRemoveLocal(version.getServerId(), session.getRoleId());
-		}
-		if (null != local) {
-			var ret = removeLocalAndTrigger(session.getRoleId());
-			if (0 != ret)
-				return ret;
-		}
 		if (null != online) {
 			if (assignLogoutVersion(version)) {
 				var ret = logoutTrigger(session.getRoleId(), LogoutReason.LOGOUT);
