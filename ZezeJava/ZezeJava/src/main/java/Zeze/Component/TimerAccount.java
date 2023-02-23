@@ -34,7 +34,6 @@ public class TimerAccount {
 
 		// online timer 生命期和 Online.Local 一致。
 		online.getLocalRemoveEvents().getRunEmbedEvents().offer(this::onLocalRemoveEvent);
-		online.getReloginEvents().getRunEmbedEvents().offer(this::onReloginEvent);
 		online.getLoginEvents().getRunEmbedEvents().offer(this::onLoginEvent);
 	}
 
@@ -251,24 +250,6 @@ public class TimerAccount {
 				for (var timerId : timers.getTimerIds().keySet())
 					cancel(timerId);
 			}
-		}
-		return 0;
-	}
-
-	// relogin 时需要更新已经注册的定时器的版本号。
-	private long onReloginEvent(Object sender, EventDispatcher.EventArgument arg) {
-		var user = (LoginArgument)arg;
-		var timer = online.providerApp.zeze.getTimer();
-
-		var loginVersion = online.getGlobalLoginVersion(user.account, user.clientId);
-		var timers = online.<BOnlineTimers>getLocalBean(user.account, user.clientId, eOnlineTimers);
-		// XXX
-		// 这里有个问题，如果在线定时器很多，这个嵌到relogin-procedure中的事务需要更新很多记录。
-		// 如果启动新的事务执行更新，又会破坏原子性。
-		// 先整体在一个事务内更新，这样更安全。
-		// 由于Online Timer是本进程的，用户也不会修改，所以整体更新目前看来还可接受。
-		for (var tid : timers.getTimerIds().keySet()) {
-			timer.tAccountTimers().get(tid).setLoginVersion(loginVersion);
 		}
 		return 0;
 	}

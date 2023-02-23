@@ -214,16 +214,18 @@ public class Online extends AbstractOnline {
 	private long removeLocalAndTrigger(String account, String clientId) throws Exception {
 		var bLocals = _tlocal.get(account);
 		var localData = bLocals.getLogins().remove(clientId);
-		var arg = new LocalRemoveEventArgument(account, clientId, localData);
-
 		if (bLocals.getLogins().isEmpty())
 			_tlocal.remove(account); // remove first
 
-		var ret = localRemoveEvents.triggerEmbed(this, arg);
-		if (ret != 0)
-			return ret;
-		localRemoveEvents.triggerProcedure(providerApp.zeze, this, arg);
-		Transaction.whileCommit(() -> localRemoveEvents.triggerThread(this, arg));
+		if (localData != null) {
+			var arg = new LocalRemoveEventArgument(account, clientId, localData);
+
+			var ret = localRemoveEvents.triggerEmbed(this, arg);
+			if (ret != 0)
+				return ret;
+			localRemoveEvents.triggerProcedure(providerApp.zeze, this, arg);
+			Transaction.whileCommit(() -> localRemoveEvents.triggerThread(this, arg));
+		}
 		return 0;
 	}
 
@@ -232,8 +234,16 @@ public class Online extends AbstractOnline {
 		bOnline.getLogins().remove(clientId);
 		var arg = new LogoutEventArgument(account, clientId);
 
+		var version = _tversion.get(account);
+		var loginVersion = version.getLogins().get(clientId);
+
 		if (bOnline.getLogins().isEmpty())
 			_tonline.remove(account); // remove first
+
+		// 总是尝试通知上一次登录的服务器，里面会忽略本机。
+		tryRedirectRemoveLocal(loginVersion.getServerId(), account);
+		// 总是删除
+		removeLocalAndTrigger(account, clientId);
 
 		var ret = logoutEvents.triggerEmbed(this, arg);
 		if (0 != ret)
@@ -1098,9 +1108,8 @@ public class Online extends AbstractOnline {
 			if (0 != ret)
 				return ret;
 			online = _tonline.getOrAdd(session.getAccount());
-			if (loginVersion.getLoginVersion() != loginLocal.getLoginVersion()) {
-				tryRedirectRemoveLocal(loginVersion.getServerId(), session.getAccount());
-			}
+			local = _tlocal.getOrAdd(session.getAccount());
+			loginLocal = local.getLogins().getOrAdd(rpc.Argument.getClientId());
 		}
 		var loginVersionSerialId = version.getLastLoginVersion() + 1;
 		version.setLastLoginVersion(loginVersionSerialId);
@@ -1167,9 +1176,8 @@ public class Online extends AbstractOnline {
 			if (0 != ret)
 				return ret;
 			online = _tonline.getOrAdd(session.getAccount());
-			if (loginVersion.getLoginVersion() != loginLocal.getLoginVersion()) {
-				tryRedirectRemoveLocal(loginVersion.getServerId(), session.getAccount());
-			}
+			local = _tlocal.getOrAdd(session.getAccount());
+			loginLocal = local.getLogins().getOrAdd(rpc.Argument.getClientId());
 		}
 		var loginVersionSerialId = version.getLastLoginVersion() + 1;
 		version.setLastLoginVersion(loginVersionSerialId);
@@ -1218,21 +1226,12 @@ public class Online extends AbstractOnline {
 		if (!session.isLogin())
 			return errorCode(ResultCodeNotLogin);
 
-		var local = _tlocal.get(session.getAccount());
+		//var local = _tlocal.get(session.getAccount());
 		var online = _tonline.get(session.getAccount());
 		var version = _tversion.getOrAdd(session.getAccount());
 
 		var clientId = session.getContext();
 		var loginVersion = version.getLogins().getOrAdd(clientId);
-		// 登录在其他机器上。
-		if (local == null && online != null) {
-			tryRedirectRemoveLocal(loginVersion.getServerId(), session.getAccount()); // nowait
-		}
-		if (local != null) {
-			var ret = removeLocalAndTrigger(session.getAccount(), clientId);
-			if (ret != 0)
-				return ret;
-		}
 		if (online != null) {
 			loginVersion.setLogoutVersion(loginVersion.getLoginVersion());
 			var ret = logoutTrigger(session.getAccount(), clientId);
