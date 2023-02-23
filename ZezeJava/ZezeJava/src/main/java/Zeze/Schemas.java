@@ -2,6 +2,7 @@ package Zeze;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.Action1;
@@ -187,6 +188,37 @@ public class Schemas implements Serializable {
 		public Type key;
 		public Type value;
 
+		private static final Map<String, Integer> compatibleTable = new HashMap<>();
+
+		static {
+			compatibleTable.put("bool", 1);
+			compatibleTable.put("boolean", 1);
+			compatibleTable.put("byte", 1);
+			compatibleTable.put("short", 1);
+			compatibleTable.put("int", 1);
+			compatibleTable.put("long", 1);
+			compatibleTable.put("float", 1);
+			compatibleTable.put("double", 1);
+			compatibleTable.put("binary", 2);
+			compatibleTable.put("string", 2);
+			compatibleTable.put("list", 3);
+			compatibleTable.put("set", 3);
+			compatibleTable.put("map", 4);
+			compatibleTable.put("vector2", 5);
+			compatibleTable.put("vector2int", 5);
+			compatibleTable.put("vector3", 5);
+			compatibleTable.put("vector3int", 5);
+			compatibleTable.put("vector4", 5);
+		}
+
+		private static boolean isTypeNameCompatible(String typeName0, String typeName1) {
+			if (typeName0.equals(typeName1))
+				return true;
+			var t0 = compatibleTable.get(typeName0);
+			var t1 = compatibleTable.get(typeName1);
+			return t0 != null && t0.equals(t1);
+		}
+
 		public boolean isCompatible(Type other, Context context,
 									Action1<Bean> Update,
 									Action1<Bean> UpdateVariable) {
@@ -194,7 +226,7 @@ public class Schemas implements Serializable {
 				return true;
 			if (other == null)
 				return false;
-			if (!name.equals(other.name))
+			if (!isTypeNameCompatible(name, other.name))
 				return false;
 
 			// Name 相同的情况下，下面的 Key Value 仅在 Collection 时有值。
