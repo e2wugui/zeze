@@ -32,9 +32,11 @@ public final class AgentClient extends Zeze.Services.HandshakeClient {
 
 	@Override
 	public void OnHandshakeDone(AsyncSocket so) throws Exception {
+		var firstConnected = socket == null;
+		if (firstConnected)
+			socket = so; // 下面这行可能导致等待future的其它线程开始执行,所以先给socket赋值
 		super.OnHandshakeDone(so);
-		if (socket == null) {
-			socket = so;
+		if (firstConnected) {
 			Task.runUnsafe(agent::onConnected, "ServiceManager.Agent.OnConnected", DispatchMode.Normal);
 		} else {
 			Agent.logger.error("Has Connected.");

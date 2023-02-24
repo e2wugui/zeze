@@ -147,6 +147,6 @@ public class DatagramSocket implements SelectorHandle, Closeable {
 	@Override
 	public String toString() {
 		var localAddress = getLocal();
-		return "[" + sessionId + ']' + (localAddress != null ? localAddress : "-"); // 如果有localAddress则表示还没close
+		return "[" + sessionId + ']' + (localAddress != null ? localAddress : ""); // 如果有localAddress则表示还没close
 	}
 }

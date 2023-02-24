@@ -336,7 +336,9 @@ public final class Agent extends AbstractAgent {
 
 	public synchronized void stop() throws Exception {
 		if (client != null) {
-			new NormalClose().SendAndWaitCheckResultCode(client.getSocket());
+			var so = client.getSocket();
+			if (so != null) // 有可能提前关闭,so==null时执行下面这行会抛异常
+				new NormalClose().SendAndWaitCheckResultCode(so);
 			client.stop();
 			client = null;
 		}

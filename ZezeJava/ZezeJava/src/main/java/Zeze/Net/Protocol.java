@@ -7,20 +7,17 @@ import Zeze.Util.ProtocolFactoryFinder;
 public abstract class Protocol<TArgument extends Serializable> implements Serializable {
 	public static final int HEADER_SIZE = 12; // moduleId[4] + protocolId[4] + size[4]
 
-	public DatagramSession DatagramSession;
-
-	private AsyncSocket sender;
+	private Object sender; // AsyncSocket or DatagramSession
 	private Object userState;
+	public TArgument Argument;
+	protected long resultCode;
 
 	public int getFamilyClass() {
 		return FamilyClass.Protocol;
 	}
 
-	protected long resultCode;
-	public TArgument Argument;
-
 	public AsyncSocket getSender() {
-		return sender;
+		return (AsyncSocket)sender;
 	}
 
 	public void setSender(AsyncSocket sender) {
@@ -28,7 +25,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	}
 
 	public Service getService() {
-		return sender != null ? sender.getService() : null;
+		return sender instanceof AsyncSocket ? ((AsyncSocket)sender).getService() : null;
 	}
 
 	public Object getUserState() {
@@ -37,6 +34,14 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 
 	public void setUserState(Object userState) {
 		this.userState = userState;
+	}
+
+	public DatagramSession getDatagramSession() {
+		return (DatagramSession)sender;
+	}
+
+	public void setDatagramSession(DatagramSession datagramSession) {
+		sender = datagramSession;
 	}
 
 	public final long getResultCode() {
@@ -163,7 +168,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	}
 
 	public final void SendResultCode(long code, @SuppressWarnings("unused") Binary result) {
-		setResultCode(code);
+		resultCode = code;
 		SendResult(result);
 	}
 
@@ -303,7 +308,8 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 							if (FamilyClass.isRpc(familyClass))
 								rpcSessionId = bb.ReadLong();
 						} catch (Exception e) {
-							log.error("decode Send.protocolWholeData failed", e);
+							log.error("decode unknown protocol failed: moduleId={}, protocolId={}, size={}",
+									moduleId, protocolId, size, e);
 						}
 						size = bb.size();
 						if (FamilyClass.isRpc(familyClass)) {
@@ -332,6 +338,6 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 
 	@Override
 	public String toString() {
-		return String.format("%s ResultCode=%d%n\tArgument=%s", getClass().getName(), getResultCode(), Argument);
+		return String.format("%s ResultCode=%d%n\tArgument=%s", getClass().getName(), resultCode, Argument);
 	}
 }

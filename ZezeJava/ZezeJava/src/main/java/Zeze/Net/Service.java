@@ -403,13 +403,11 @@ public class Service {
 			TransactionLevel level = factoryHandle.Level;
 			Application zeze = this.zeze;
 			// 为了避免redirect时死锁,这里一律不在whileCommit时执行
-			if (zeze != null && level != TransactionLevel.None)
-				Task.runUnsafe(zeze.newProcedure(() -> handle.handle(p),
-								p.getClass().getName(), level, p.getUserState()), p,
-						Protocol::trySendResultCode, factoryHandle.Mode);
-			else
-				Task.runUnsafe(() -> handle.handle(p), p,
-						Protocol::trySendResultCode, null, factoryHandle.Mode);
+			if (zeze != null && level != TransactionLevel.None) {
+				Task.runUnsafe(zeze.newProcedure(() -> handle.handle(p), p.getClass().getName(), level,
+						p.getUserState()), p, Protocol::trySendResultCode, factoryHandle.Mode);
+			} else
+				Task.runUnsafe(() -> handle.handle(p), p, Protocol::trySendResultCode, null, factoryHandle.Mode);
 		} else
 			logger.warn("DispatchProtocol: Protocol Handle Not Found: {}", p);
 	}

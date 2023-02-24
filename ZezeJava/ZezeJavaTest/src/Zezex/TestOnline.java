@@ -100,6 +100,9 @@ public class TestOnline extends TestCase {
 			// logout client1: client0 被踢了
 			logger.info("=== test3 - 4");
 			logout(client1, roleId);
+		} catch (Throwable e) { // rethrow
+			logger.error("", e);
+			throw e;
 		} finally {
 			logger.info("=== test3 - stop");
 			stop();

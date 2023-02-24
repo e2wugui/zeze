@@ -144,4 +144,9 @@ public class DatagramSession {
 	public void close() {
 		socket.removeSession(this);
 	}
+
+	@Override
+	public String toString() {
+		return socket.toString() + '-' + (remote != null ? remote : "") + '[' + sessionId + ']';
+	}
 }

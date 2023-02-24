@@ -128,7 +128,7 @@ public class DatagramService {
 		// 由于参数不同，需要重新实现一个。
 		var p = Protocol.decode(this, input);
 		if (null != p) {
-			p.DatagramSession = sender;
+			p.setDatagramSession(sender);
 			p.setUserState(serialId); // 把serialId设置到userState里,上层应用可能需要
 			p.dispatch(this, findProtocolFactoryHandle(p.getTypeId()));
 		}
@@ -163,8 +163,8 @@ public class DatagramService {
 	@SuppressWarnings("RedundantThrows")
 	public <P extends Protocol<?>> void dispatchProtocol(P p, Service.ProtocolFactoryHandle<P> factoryHandle)
 			throws Exception {
-		ProtocolHandle<P> handle = factoryHandle.Handle;
-		if (handle != null) {
+		ProtocolHandle<P> handle;
+		if (factoryHandle != null && (handle = factoryHandle.Handle) != null) {
 			TransactionLevel level = factoryHandle.Level;
 			Application zeze = this.zeze;
 			// 为了避免redirect时死锁,这里一律不在whileCommit时执行
@@ -177,6 +177,6 @@ public class DatagramService {
 						Protocol::trySendResultCode, null, factoryHandle.Mode);
 			}
 		} else
-			logger.warn("dispatchProtocol({}): Protocol Handle Not Found: {}", p.getSender(), p);
+			logger.warn("dispatchProtocol({}): Protocol Handle Not Found: {}", p.getDatagramSession(), p);
 	}
 }

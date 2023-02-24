@@ -50,7 +50,7 @@ public class TestDatagram {
 
 	private long processServerPValue(ProtoValue p) throws Exception {
 		if (helloNumber.incrementAndGet() < 3)
-			p.DatagramSession.send(p);
+			p.getDatagramSession().send(p);
 		System.out.println(p.Argument.getString3());
 		return 0;
 	}

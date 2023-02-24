@@ -15,6 +15,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
+import Zeze.Util.TransactionLevelAnnotation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -81,14 +82,14 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		return new ProviderUserSession(p);
 	}
 
+	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@Override
 	protected long ProcessDispatch(Dispatch p) {
 		var sender = p.getSender();
 		var linkSid = p.Argument.getLinkSid();
-		var typeId = 0L;
+		var typeId = p.Argument.getProtocolType();
 		Protocol<?> p2 = null;
 		try {
-			typeId = p.Argument.getProtocolType();
 			var factoryHandle = providerApp.providerService.findProtocolFactoryHandle(typeId);
 			if (factoryHandle == null) {
 				sendKick(sender, linkSid, BKick.ErrorProtocolUnknown, "unknown protocol: " + typeId);
@@ -97,9 +98,6 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			p2 = factoryHandle.Factory.create();
 			p2.decode(ByteBuffer.Wrap(p.Argument.getProtocolData()));
 			p2.setSender(sender);
-			// 以下字段不再需要读了,避免ProviderUserSession引用太久,置空
-			p.Argument.setProtocolData(Binary.Empty);
-
 			var session = newSession(p);
 			p2.setUserState(session);
 
@@ -128,6 +126,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			var p3 = p2;
 			var txn = Transaction.getCurrent();
 			if (txn != null) {
+				txn.runWhileCommit(() -> p.Argument.setProtocolData(Binary.Empty)); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空
 				// 已经在事务中，嵌入执行。此时忽略p3的NoProcedure配置。
 				var proc = txn.getTopProcedure();
 				//noinspection ConstantConditions
@@ -138,6 +137,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 					session.sendResponse(p4);
 				});
 			}
+			// 以下字段不再需要读了,避免ProviderUserSession引用太久,置空
+			p.Argument.setProtocolData(Binary.Empty);
 
 			var zeze = sender.getService().getZeze();
 			if (zeze == null || factoryHandle.Level == TransactionLevel.None) {
