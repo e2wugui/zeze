@@ -183,7 +183,7 @@ public class Online extends AbstractOnline {
 		return localRemoveEvents;
 	}
 
-	public final ConcurrentHashMap<String, TransmitAction> getTransmitActions() {
+	public ConcurrentHashMap<String, TransmitAction> getTransmitActions() {
 		return transmitActions;
 	}
 
@@ -353,7 +353,7 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	public final long linkBroken(String account, long roleId, String linkName, long linkSid) throws Exception {
+	public long linkBroken(String account, long roleId, String linkName, long linkSid) throws Exception {
 		long currentLoginVersion;
 		{
 			var online = _tonline.get(roleId);
@@ -398,7 +398,7 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	public final void send(long roleId, Protocol<?> p) {
+	public void send(long roleId, Protocol<?> p) {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
 			var log = AsyncSocket.logger;
@@ -421,7 +421,7 @@ public class Online extends AbstractOnline {
 		send(roleId, typeId, new Binary(p.encode()));
 	}
 
-	public final void send(Collection<Long> roleIds, Protocol<?> p) {
+	public void send(Collection<Long> roleIds, Protocol<?> p) {
 		if (roleIds.size() <= 0)
 			return;
 		var typeId = p.getTypeId();
@@ -453,19 +453,24 @@ public class Online extends AbstractOnline {
 		send(roleIds, typeId, new Binary(p.encode()));
 	}
 
-	public final void sendWhileCommit(long roleId, Protocol<?> p) {
+	public void sendWhileCommit(long roleId, Protocol<?> p) {
 		Transaction.whileCommit(() -> send(roleId, p));
 	}
 
-	public final void sendWhileCommit(Collection<Long> roleIds, Protocol<?> p) {
+	public void sendWhileCommit(Collection<Long> roleIds, Protocol<?> p) {
 		Transaction.whileCommit(() -> send(roleIds, p));
 	}
 
-	public final void sendWhileRollback(long roleId, Protocol<?> p) {
+	public void sendResponseWhileCommit(long roleId, Protocol<?> p) {
+		p.setRequest(false);
+		Transaction.whileCommit(() -> send(roleId, p));
+	}
+
+	public void sendWhileRollback(long roleId, Protocol<?> p) {
 		Transaction.whileRollback(() -> send(roleId, p));
 	}
 
-	public final void sendWhileRollback(Collection<Long> roleIds, Protocol<?> p) {
+	public void sendWhileRollback(Collection<Long> roleIds, Protocol<?> p) {
 		Transaction.whileRollback(() -> send(roleIds, p));
 	}
 
@@ -533,7 +538,7 @@ public class Online extends AbstractOnline {
 		final HashMap<Long, Long> contexts = new HashMap<>(); // linksid -> roleid
 	}
 
-	public final Collection<RoleOnLink> groupByLink(Iterable<Long> roleIds) {
+	public Collection<RoleOnLink> groupByLink(Iterable<Long> roleIds) {
 		var groups = new HashMap<String, RoleOnLink>();
 		var groupNotOnline = new RoleOnLink(); // LinkName is Empty And Socket is null.
 		groups.put(groupNotOnline.linkName, groupNotOnline);
@@ -570,7 +575,7 @@ public class Online extends AbstractOnline {
 		return groups.values();
 	}
 
-	public final void addReliableNotifyMark(long roleId, String listenerName) {
+	public void addReliableNotifyMark(long roleId, String listenerName) {
 		var online = _tonline.get(roleId);
 		if (online == null)
 			throw new IllegalStateException("Not Online. AddReliableNotifyMark: " + listenerName);
@@ -578,31 +583,31 @@ public class Online extends AbstractOnline {
 		version.getReliableNotifyMark().add(listenerName);
 	}
 
-	public final void removeReliableNotifyMark(long roleId, String listenerName) {
+	public void removeReliableNotifyMark(long roleId, String listenerName) {
 		// 移除尽量通过，不做任何判断。
 		var version = _tversion.getOrAdd(roleId);
 		version.getReliableNotifyMark().remove(listenerName);
 	}
 
-	public final void sendReliableNotifyWhileCommit(long roleId, String listenerName, Protocol<?> p) {
+	public void sendReliableNotifyWhileCommit(long roleId, String listenerName, Protocol<?> p) {
 		Transaction.whileCommit(() -> sendReliableNotify(roleId, listenerName, p));
 	}
 
-	public final void sendReliableNotifyWhileCommit(long roleId, String listenerName, int typeId,
-													Binary fullEncodedProtocol) {
+	public void sendReliableNotifyWhileCommit(long roleId, String listenerName, int typeId,
+											  Binary fullEncodedProtocol) {
 		Transaction.whileCommit(() -> sendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol));
 	}
 
-	public final void sendReliableNotifyWhileRollback(long roleId, String listenerName, Protocol<?> p) {
+	public void sendReliableNotifyWhileRollback(long roleId, String listenerName, Protocol<?> p) {
 		Transaction.whileRollback(() -> sendReliableNotify(roleId, listenerName, p));
 	}
 
-	public final void sendReliableNotifyWhileRollback(long roleId, String listenerName, int typeId,
-													  Binary fullEncodedProtocol) {
+	public void sendReliableNotifyWhileRollback(long roleId, String listenerName, int typeId,
+												Binary fullEncodedProtocol) {
 		Transaction.whileRollback(() -> sendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol));
 	}
 
-	public final void sendReliableNotify(long roleId, String listenerName, Protocol<?> p) {
+	public void sendReliableNotify(long roleId, String listenerName, Protocol<?> p) {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
 			var log = AsyncSocket.logger;
@@ -634,7 +639,7 @@ public class Online extends AbstractOnline {
 	 *
 	 * @param fullEncodedProtocol 协议必须先编码，因为会跨事务。
 	 */
-	public final void sendReliableNotify(long roleId, String listenerName, long typeId, Binary fullEncodedProtocol) {
+	public void sendReliableNotify(long roleId, String listenerName, long typeId, Binary fullEncodedProtocol) {
 		providerApp.zeze.runTaskOneByOneByKey(listenerName, "Game.Online.sendReliableNotify." + listenerName, () -> {
 			BOnline online = _tonline.get(roleId);
 			if (online == null) {
@@ -669,15 +674,15 @@ public class Online extends AbstractOnline {
 	 * @param actionName 查询处理的实现
 	 * @param roleId     目标角色
 	 */
-	public final void transmit(long sender, String actionName, long roleId, Serializable parameter) {
+	public void transmit(long sender, String actionName, long roleId, Serializable parameter) {
 		transmit(sender, actionName, List.of(roleId), parameter);
 	}
 
-	public final void transmit(long sender, String actionName, long roleId) {
+	public void transmit(long sender, String actionName, long roleId) {
 		transmit(sender, actionName, roleId, null);
 	}
 
-	public final void processTransmit(long sender, String actionName, Iterable<Long> roleIds, Binary parameter) {
+	public void processTransmit(long sender, String actionName, Iterable<Long> roleIds, Binary parameter) {
 		var handle = transmitActions.get(actionName);
 		if (handle != null) {
 			for (var target : roleIds) {
@@ -692,7 +697,7 @@ public class Online extends AbstractOnline {
 		final HashSet<Long> roles = new HashSet<>();
 	}
 
-	public final IntHashMap<RoleOnServer> groupByServerId(Iterable<Long> roleIds) {
+	public IntHashMap<RoleOnServer> groupByServerId(Iterable<Long> roleIds) {
 		var groups = new IntHashMap<RoleOnServer>();
 		var groupNotOnline = new RoleOnServer(); // LinkName is Empty And Socket is null.
 		groups.put(-1, groupNotOnline);
@@ -765,11 +770,11 @@ public class Online extends AbstractOnline {
 			processTransmit(sender, actionName, groupLocal.roles, parameter);
 	}
 
-	public final void transmit(long sender, String actionName, Iterable<Long> roleIds) {
+	public void transmit(long sender, String actionName, Iterable<Long> roleIds) {
 		transmit(sender, actionName, roleIds, null);
 	}
 
-	public final void transmit(long sender, String actionName, Iterable<Long> roleIds, Serializable parameter) {
+	public void transmit(long sender, String actionName, Iterable<Long> roleIds, Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 		ByteBuffer bb;
@@ -788,43 +793,43 @@ public class Online extends AbstractOnline {
 		}, "Game.Online.transmit"), null, null, DispatchMode.Normal);
 	}
 
-	public final void transmitWhileCommit(long sender, String actionName, long roleId) {
+	public void transmitWhileCommit(long sender, String actionName, long roleId) {
 		transmitWhileCommit(sender, actionName, roleId, null);
 	}
 
-	public final void transmitWhileCommit(long sender, String actionName, long roleId, Serializable parameter) {
+	public void transmitWhileCommit(long sender, String actionName, long roleId, Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 		Transaction.whileCommit(() -> transmit(sender, actionName, roleId, parameter));
 	}
 
-	public final void transmitWhileCommit(long sender, String actionName, Iterable<Long> roleIds) {
+	public void transmitWhileCommit(long sender, String actionName, Iterable<Long> roleIds) {
 		transmitWhileCommit(sender, actionName, roleIds, null);
 	}
 
-	public final void transmitWhileCommit(long sender, String actionName, Iterable<Long> roleIds,
-										  Serializable parameter) {
+	public void transmitWhileCommit(long sender, String actionName, Iterable<Long> roleIds,
+									Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 		Transaction.whileCommit(() -> transmit(sender, actionName, roleIds, parameter));
 	}
 
-	public final void transmitWhileRollback(long sender, String actionName, long roleId) {
+	public void transmitWhileRollback(long sender, String actionName, long roleId) {
 		transmitWhileRollback(sender, actionName, roleId, null);
 	}
 
-	public final void transmitWhileRollback(long sender, String actionName, long roleId, Serializable parameter) {
+	public void transmitWhileRollback(long sender, String actionName, long roleId, Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 		Transaction.whileRollback(() -> transmit(sender, actionName, roleId, parameter));
 	}
 
-	public final void transmitWhileRollback(long sender, String actionName, Iterable<Long> roleIds) {
+	public void transmitWhileRollback(long sender, String actionName, Iterable<Long> roleIds) {
 		transmitWhileRollback(sender, actionName, roleIds, null);
 	}
 
-	public final void transmitWhileRollback(long sender, String actionName, Iterable<Long> roleIds,
-											Serializable parameter) {
+	public void transmitWhileRollback(long sender, String actionName, Iterable<Long> roleIds,
+									  Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 		Transaction.whileRollback(() -> transmit(sender, actionName, roleIds, parameter));
@@ -842,11 +847,11 @@ public class Online extends AbstractOnline {
 //			future.await();
 	}
 
-	public final void broadcast(Protocol<?> p) {
+	public void broadcast(Protocol<?> p) {
 		broadcast(p, 60 * 1000);
 	}
 
-	public final void broadcast(Protocol<?> p, int time) {
+	public void broadcast(Protocol<?> p, int time) {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
 			var log = AsyncSocket.logger;
