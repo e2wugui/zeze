@@ -688,6 +688,13 @@ public class Online extends AbstractOnline {
 		Transaction.whileCommit(() -> send(logins, p));
 	}
 
+	public void sendResponseWhileCommit(String account, String clientId, Rpc<?, ?> r) {
+		Transaction.whileCommit(() -> {
+			r.setRequest(false);
+			send(account, clientId, r);
+		});
+	}
+
 	public void sendWhileRollback(String account, String clientId, Protocol<?> p) {
 		Transaction.whileRollback(() -> send(account, clientId, p));
 	}
