@@ -120,7 +120,7 @@ public class IdentityHashSet<T> implements Cloneable {
 		if (size == 0)
 			return;
 		size = 0;
-		Arrays.fill(keyTable, 0);
+		Arrays.fill(keyTable, null);
 	}
 
 	public void clear(int maxCap) {

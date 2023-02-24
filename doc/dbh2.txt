@@ -37,7 +37,10 @@ Bucket-Hot-Split(Sort)
 	热点桶二分法拆分，规则和Bucket-Route-Sort一样。
 
 进程
-	MasterService，DatabaseService，Agent（嵌入到客户端内执行）
+	MasterService，
+	DatabaseService，
+	Agent，嵌入到dbh2的客户端内执行，
+	AgentService，把Agent的功能包装成服务，无状态的dbh2链接机器，用来提高事务安全性，因为嵌入式受应用影响，可能不够安全。
 ===============================================================
 问题
 ===============================================================
@@ -64,11 +67,10 @@ foreach (var trans in transList)
 a) RocksDb的事务提交的时候，发送整个事务的OperateLog给Raft。正确性，安全性？
     已知问题，提交的时候才接入raft，如果此时raft不可用，由于2段提交，已经无法回滚，只能等raft恢复，
     这种模式只能相信raft群总是可靠的。
-b) RaftLog采用CreateTransaction,Put,Delete,CommitTransaction等需要的执行，事务过程中，就同步操作，感觉比较复杂。正确性，安全性？
+b) RaftLog采用CreateTransaction,Put,Delete,CommitTransaction等需要执行的操作，事务执行过程中，就同步操作，感觉比较复杂。正确性，安全性？
 
 4. 桶按key排序分段，写入是怎么提高并发。
     hash方式看起来具有极大的并发写入速度。
-    。。。。靠，闪过一个问题，想不起来了，休息休息。。。。。
 
 5.并发walk，同时向不同的DatabaseService发送walk请求。归并（按顺序？）
 

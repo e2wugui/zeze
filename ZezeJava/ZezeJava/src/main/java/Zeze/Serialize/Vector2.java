@@ -23,7 +23,7 @@ public class Vector2 implements Comparable, Cloneable {
 	}
 
 	public boolean isZero() {
-		return x == 0 & y == 0;
+		return x == 0 && y == 0;
 	}
 
 	@Override

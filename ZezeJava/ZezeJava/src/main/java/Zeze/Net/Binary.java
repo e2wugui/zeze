@@ -114,7 +114,7 @@ public final class Binary implements Comparable<Binary> {
 			return equals((Binary)other);
 		if (other instanceof byte[]) {
 			var bytes = (byte[])other;
-			return Arrays.equals(bytes, offset, offset + count, bytes, 0, bytes.length);
+			return Arrays.equals(this.bytes, offset, offset + count, bytes, 0, bytes.length);
 		}
 		if (other instanceof ByteBuffer) {
 			var bb = (ByteBuffer)other;

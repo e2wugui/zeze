@@ -37,7 +37,7 @@ public class Vector4 extends Vector3 {
 
 	@Override
 	public boolean isZero() {
-		return x == 0 & y == 0 & z == 0 & w == 0;
+		return x == 0 && y == 0 && z == 0 && w == 0;
 	}
 
 	@Override
