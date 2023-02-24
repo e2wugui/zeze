@@ -643,6 +643,11 @@ public class Online extends AbstractOnline {
 		send(account, clientId, typeId, new Binary(p.encode()));
 	}
 
+	public void sendResponse(String account, String clientId, Rpc<?, ?> r) {
+		r.setRequest(false);
+		send(account, clientId, r);
+	}
+
 	public void send(Collection<LoginKey> logins, Protocol<?> p) {
 		if (logins.size() <= 0)
 			return;
@@ -681,11 +686,6 @@ public class Online extends AbstractOnline {
 
 	public void sendWhileCommit(Collection<LoginKey> logins, Protocol<?> p) {
 		Transaction.whileCommit(() -> send(logins, p));
-	}
-
-	public void sendResponseWhileCommit(String account, String clientId, Protocol<?> p) {
-		p.setRequest(false);
-		Transaction.whileCommit(() -> send(account, clientId, p));
 	}
 
 	public void sendWhileRollback(String account, String clientId, Protocol<?> p) {

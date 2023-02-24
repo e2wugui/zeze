@@ -421,6 +421,11 @@ public class Online extends AbstractOnline {
 		send(roleId, typeId, new Binary(p.encode()));
 	}
 
+	public void sendResponse(long roleId, Rpc<?, ?> r) {
+		r.setRequest(false);
+		send(roleId, r);
+	}
+
 	public void send(Collection<Long> roleIds, Protocol<?> p) {
 		if (roleIds.size() <= 0)
 			return;
@@ -459,11 +464,6 @@ public class Online extends AbstractOnline {
 
 	public void sendWhileCommit(Collection<Long> roleIds, Protocol<?> p) {
 		Transaction.whileCommit(() -> send(roleIds, p));
-	}
-
-	public void sendResponseWhileCommit(long roleId, Protocol<?> p) {
-		p.setRequest(false);
-		Transaction.whileCommit(() -> send(roleId, p));
 	}
 
 	public void sendWhileRollback(long roleId, Protocol<?> p) {
