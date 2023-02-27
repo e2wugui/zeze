@@ -7,6 +7,7 @@ import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Service;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.HandshakeBoth;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
@@ -177,7 +178,7 @@ public class Server extends HandshakeBoth {
 	}
 
 	@SuppressWarnings("UnusedReturnValue")
-	private <P extends Protocol<?>> long processRequest(P p, ProtocolFactoryHandle<P> factoryHandle) {
+	private long processRequest(Protocol<?> p, ProtocolFactoryHandle<?> factoryHandle) {
 		return Task.call(() -> {
 			if (raft.waitLeaderReady()) {
 				UniqueRequestState state = raft.getLogSequence().tryGetRequestState(p);
@@ -191,7 +192,7 @@ public class Server extends HandshakeBoth {
 						p.SendResultCode(Procedure.DuplicateRequest);
 						return 0L;
 					}
-					return factoryHandle.Handle.handle(p);
+					return p.handle(this, factoryHandle);
 				}
 				p.SendResultCode(Procedure.RaftExpired);
 				return 0L;
@@ -202,12 +203,13 @@ public class Server extends HandshakeBoth {
 	}
 
 	@Override
-	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) throws Exception {
+	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) throws Exception {
+		var p = decodeProtocol(typeId, bb, factoryHandle, so);
 		if (isImportantProtocol(p.getTypeId())) {
 			// 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
 			// 内部协议总是使用明确返回值或者超时，不使用框架的错误时自动发送结果。
 			raft.getImportantThreadPool().execute(() ->
-					Task.call(() -> factoryHandle.Handle.handle(p), p, null));
+					Task.call(() -> p.handle(this, factoryHandle), p, null));
 			return;
 		}
 		// User Request

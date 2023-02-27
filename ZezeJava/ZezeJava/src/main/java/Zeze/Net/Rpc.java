@@ -2,6 +2,7 @@ package Zeze.Net;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
+import Zeze.Transaction.Transaction;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
@@ -227,21 +228,33 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	}
 
 	@Override
-	public <P extends Protocol<?>> void dispatch(Service service, Service.ProtocolFactoryHandle<P> factoryHandle)
-			throws Exception {
+	public <P extends Protocol<?>> long handle(DatagramService service, Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
+		// udp 不支持rpc。
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public <P extends Protocol<?>> long handle(Service service, Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
 		if (isRequest) {
 			@SuppressWarnings("unchecked") P proto = (P)this;
-			service.DispatchProtocol(proto, factoryHandle);
-			return;
+			if (null != factoryHandle.Handle)
+				return factoryHandle.Handle.handle(proto);
+			if (service.getSocketOptions().isCloseWhenMissHandle() && sender != null)
+				((AsyncSocket)sender).close();
+			return 0;
 		}
 
 		// response, 从上下文中查找原来发送的rpc对象，并派发该对象。
 		Rpc<TArgument, TResult> context = service.removeRpcContext(sessionId);
 		if (context == null) {
 			logger.warn("rpc response: lost context, maybe timeout. {}", this);
-			return;
+			return 0;
 		}
-
+		/*
+		var txn = Transaction.getCurrent();
+		if (null != txn)
+			txn.whileRedo(() -> service.addRpcContext(sessionId, context));
+		*/
 		context.setSender(getSender());
 		context.setUserState(getUserState());
 		context.setResultCode(getResultCode());
@@ -252,7 +265,8 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		if (context.future != null)
 			context.future.setResult(context.Result); // SendForWait，设置结果唤醒等待者。
 		else if (context.responseHandle != null)
-			service.DispatchRpcResponse(context, context.responseHandle, factoryHandle);
+			context.responseHandle.handle(this);
+		return 0;
 	}
 
 	@Override

@@ -219,6 +219,10 @@ public final class ServiceConf {
 		if (!attr.isBlank())
 			getSocketOptions().setOverBandwidthNormalRate(Double.parseDouble(attr));
 
+		attr = self.getAttribute("CloseWhenMissHandle");
+		if (!attr.isBlank())
+			getSocketOptions().setCloseWhenMissHandle(Boolean.parseBoolean(attr));
+
 		// HandshakeOptions
 		attr = self.getAttribute("DhGroups");
 		if (!attr.isBlank()) {

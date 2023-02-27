@@ -5,6 +5,7 @@ import java.net.InetSocketAddress;
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.ReplayAttackPolicy;
@@ -126,12 +127,11 @@ public class DatagramService {
 	 */
 	public void onProcessDatagram(DatagramSession sender, ByteBuffer input, long serialId) throws Exception {
 		// 由于参数不同，需要重新实现一个。
-		var p = Protocol.decode(this, input);
-		if (null != p) {
-			p.setDatagramSession(sender);
-			p.setUserState(serialId); // 把serialId设置到userState里,上层应用可能需要
-			p.dispatch(this, findProtocolFactoryHandle(p.getTypeId()));
-		}
+		var moduleId = input.ReadInt4();
+		var protocolId = input.ReadInt4();
+		var size = input.ReadInt4();
+		var typeId = Protocol.makeTypeId(moduleId, protocolId);
+		this.dispatchProtocol(typeId, input, findProtocolFactoryHandle(typeId), sender, serialId);
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
@@ -160,23 +160,40 @@ public class DatagramService {
 		return factorys.get(type);
 	}
 
+	public Protocol<?> decodeProtocol(long typeId, ByteBuffer bb,
+									  Service.ProtocolFactoryHandle<?> factoryHandle,
+									  DatagramSession sender, long serialId) {
+		var p = factoryHandle.Factory.create();
+		p.decode(bb);
+		p.setDatagramSession(sender);
+		p.setUserState(serialId);
+		return p;
+	}
+
 	@SuppressWarnings("RedundantThrows")
-	public <P extends Protocol<?>> void dispatchProtocol(P p, Service.ProtocolFactoryHandle<P> factoryHandle)
+	public void dispatchProtocol(long typeId, ByteBuffer bb,
+								 Service.ProtocolFactoryHandle<?> factoryHandle,
+								 DatagramSession sender, long serialId)
 			throws Exception {
-		ProtocolHandle<P> handle;
-		if (factoryHandle != null && (handle = factoryHandle.Handle) != null) {
-			TransactionLevel level = factoryHandle.Level;
-			Application zeze = this.zeze;
-			// 为了避免redirect时死锁,这里一律不在whileCommit时执行
-			if (zeze != null && level != TransactionLevel.None) {
-				Task.runUnsafe(zeze.newProcedure(() -> handle.handle(p),
-								p.getClass().getName(), level, p.getUserState()), p,
-						Protocol::trySendResultCode, factoryHandle.Mode);
-			} else {
-				Task.runUnsafe(() -> handle.handle(p), p,
-						Protocol::trySendResultCode, null, factoryHandle.Mode);
-			}
-		} else
-			logger.warn("dispatchProtocol({}): Protocol Handle Not Found: {}", p.getDatagramSession(), p);
+		TransactionLevel level = factoryHandle.Level;
+		Application zeze = this.zeze;
+		// 为了避免redirect时死锁,这里一律不在whileCommit时执行
+		if (zeze != null && level != TransactionLevel.None) {
+			var bbCopy = ByteBuffer.Wrap(bb.Copy()); // 传给事务的buffer可能重做需要重新decode，不能直接引用网络层的buffer，需要copy一次。
+			Task.runUnsafe(
+					zeze.newProcedure(
+							() -> {
+								var p = decodeProtocol(typeId, bbCopy, factoryHandle, sender, serialId);
+								Transaction.getCurrent().getTopProcedure().setFromProtocol(p);
+								return p.handle(this, factoryHandle);
+							},
+							// todo 下面为了得到协议的名字创建了一个空协议，有点点浪费，怎么优化。
+							factoryHandle.Factory.create().getClass().getName(), level, serialId),
+					Protocol::trySendResultCode, factoryHandle.Mode);
+		} else {
+			var p = decodeProtocol(typeId, bb, factoryHandle, sender, serialId);
+			Task.runUnsafe(() -> p.handle(this, factoryHandle), p,
+					Protocol::trySendResultCode, null, factoryHandle.Mode);
+		}
 	}
 }

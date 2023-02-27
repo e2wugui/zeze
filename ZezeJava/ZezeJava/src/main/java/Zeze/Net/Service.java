@@ -15,6 +15,7 @@ import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DispatchMode;
+import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action1;
 import Zeze.Util.Factory;
@@ -24,6 +25,7 @@ import Zeze.Util.LongHashMap;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Async;
 
 public class Service {
 	protected static final Logger logger = LogManager.getLogger(Service.class);
@@ -392,6 +394,91 @@ public class Service {
 		return false;
 	}
 
+	public Protocol<?> decodeProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
+		var p = factoryHandle.Factory.create();
+		p.decode(bb);
+		// 协议必须完整的解码，为了方便应用某些时候设计出兼容的协议。去掉这个检查。
+		/*
+		if (bb.ReadIndex != endReadIndex)
+			throw new IllegalStateException(
+					String.format("protocol '%s' in '%s' module=%d protocol=%d size=%d!=%d decode error!",
+							p.getClass().getName(), service.getName(), moduleId, protocolId,
+							bb.ReadIndex - beginReadIndex, size));
+		*/
+		p.sender = so;
+		if (null != so)
+			p.userState = so.getUserState();
+		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
+			var log = AsyncSocket.logger;
+			var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
+			var sessionId = null == so ? 0 : so.getSessionId();
+			var className = p.getClass().getSimpleName();
+			if (p instanceof Rpc) {
+				var rpc = ((Rpc<?, ?>)p);
+				var rpcSessionId = rpc.getSessionId();
+				if (rpc.isRequest())
+					log.log(level, "RECV:{} {}:{} {}", sessionId, className, rpcSessionId, p.Argument);
+				else {
+					log.log(level, "RECV:{} {}:{}>{} {}", sessionId, className, rpcSessionId,
+							p.resultCode, rpc.Result);
+				}
+			} else if (p.resultCode == 0)
+				log.log(level, "RECV:{} {} {}", sessionId, className, p.Argument);
+			else
+				log.log(level, "RECV:{} {}>{} {}", sessionId, className, p.resultCode, p.Argument);
+		}
+		return p;
+	}
+
+	// 用来派发已经decode的协议，不支持事务重做时重置协议参数。
+	public void dispatchProtocol(Protocol<?> p) throws Exception {
+		var factoryHandle = findProtocolFactoryHandle(p.getTypeId());
+		TransactionLevel level = factoryHandle.Level;
+		Application zeze = this.zeze;
+		// 为了避免redirect时死锁,这里一律不在whileCommit时执行
+		if (zeze != null && level != TransactionLevel.None) {
+			Task.runUnsafe(
+					zeze.newProcedure(() -> p.handle(this, factoryHandle),
+							p.getClass().getName(), level, p.getUserState()),
+					p, Protocol::trySendResultCode, factoryHandle.Mode);
+		} else {
+			Task.runUnsafe(
+					() -> p.handle(this, factoryHandle),
+					p, Protocol::trySendResultCode,
+					null, factoryHandle.Mode);
+		}
+	}
+
+	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) throws Exception {
+		if (isHandshakeProtocol(typeId)) {
+			// handshake protocol call direct in io-thread.
+			var p = decodeProtocol(typeId, bb, factoryHandle, so);
+			Task.call(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode);
+			return;
+		}
+		TransactionLevel level = factoryHandle.Level;
+		Application zeze = this.zeze;
+		// 为了避免redirect时死锁,这里一律不在whileCommit时执行
+		if (zeze != null && level != TransactionLevel.None) {
+			var bbCopy = ByteBuffer.Wrap(bb.Copy()); // 传给事务的buffer可能重做需要重新decode，不能直接引用网络层的buffer，需要copy一次。
+			Task.runUnsafe(
+					zeze.newProcedure(() -> {
+						var p = decodeProtocol(typeId, bbCopy, factoryHandle, so);
+						Transaction.getCurrent().getTopProcedure().setFromProtocol(p);
+						return p.handle(this, factoryHandle);
+						// todo 下面为了得到协议的名字创建了一个空协议，有点点浪费，怎么优化。
+					}, factoryHandle.Factory.create().getClass().getName(), level, so.getUserState()),
+					Protocol::trySendResultCode, factoryHandle.Mode);
+		} else {
+			var p = decodeProtocol(typeId, bb, factoryHandle, so);
+			Task.runUnsafe(
+					() -> p.handle(this, factoryHandle),
+					p, Protocol::trySendResultCode,
+					null, factoryHandle.Mode);
+		}
+	}
+
+	/*
 	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) throws Exception {
 		ProtocolHandle<P> handle = factoryHandle.Handle;
 		if (handle != null) {
@@ -411,7 +498,7 @@ public class Service {
 		} else
 			logger.warn("DispatchProtocol: Protocol Handle Not Found: {}", p);
 	}
-
+	*/
 	/**
 	 * @param data 方法外绝对不能持有data.Bytes的引用! 也就是只能在方法内读data, 只能处理data.ReadIndex到data.WriteIndex范围内
 	 */

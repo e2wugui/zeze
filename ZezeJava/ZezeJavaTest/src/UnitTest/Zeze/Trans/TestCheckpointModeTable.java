@@ -1,6 +1,7 @@
 package UnitTest.Zeze.Trans;
 
 import java.util.concurrent.Future;
+import Zeze.Transaction.DispatchMode;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -39,7 +40,9 @@ public class TestCheckpointModeTable{
 		int sum = 0; {
 			Future<?>[] tasks = new Future[1000];
 			for (int i = 0; i < tasks.length; ++i) {
-				tasks[i] = Zeze.Util.Task.runUnsafe(demo.App.getInstance().Zeze.newProcedure(TestCheckpointModeTable::Add, "TestCheckpointModeTable.Add"), null, null);
+				tasks[i] = Zeze.Util.Task.runUnsafe(
+						demo.App.getInstance().Zeze.newProcedure(TestCheckpointModeTable::Add, "TestCheckpointModeTable.Add"),
+						null, null, DispatchMode.Normal);
 			}
 			for (Future<?> task : tasks) {
 				try {
@@ -56,7 +59,9 @@ public class TestCheckpointModeTable{
 		{
 			Future<?>[] tasks = new Future[1000];
 			for (int i = 0; i < tasks.length; ++i) {
-				tasks[i] = Zeze.Util.Task.runUnsafe(demo.App.getInstance().Zeze.newProcedure(TestCheckpointModeTable::Add2, "TestCheckpointModeTable.Add2"), null, null);
+				tasks[i] = Zeze.Util.Task.runUnsafe(
+						demo.App.getInstance().Zeze.newProcedure(TestCheckpointModeTable::Add2, "TestCheckpointModeTable.Add2"),
+						null, null, DispatchMode.Normal);
 			}
 			for (Future<?> task : tasks) {
 				try {

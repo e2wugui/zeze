@@ -1042,16 +1042,9 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		}
 
 		@Override
-		public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) {
-			var handle = factoryHandle.Handle;
-			if (handle != null) {
-				try {
-					handle.handle(p); // 所有协议处理几乎无阻塞,可放心直接跑在IO线程上
-				} catch (Throwable e) { // logger.error
-					logger.error("DispatchProtocol exception:", e);
-				}
-			} else
-				logger.warn("DispatchProtocol: Protocol Handle Not Found: {}", p);
+		public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) throws Exception {
+			var p = decodeProtocol(typeId, bb, factoryHandle, so);
+			p.handle(this, factoryHandle); // 所有协议处理几乎无阻塞,可放心直接跑在IO线程上
 		}
 
 		@Override

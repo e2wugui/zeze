@@ -448,6 +448,31 @@ public final class Task {
 		}
 	}
 
+	public static long call(Procedure procedure, Action2<Protocol<?>, Long> actionWhenError) {
+		var from = procedure.getFromProtocol();
+		boolean isRequestSaved = from != null && from.isRequest();
+		try {
+			// 日志在Call里面记录。因为要支持嵌套。
+			// 统计在Call里面实现。
+			long result = procedure.call();
+			if (result != 0 && isRequestSaved && actionWhenError != null)
+				actionWhenError.run(from, result);
+			logAndStatistics(null, result, from, isRequestSaved, procedure.getActionName());
+			return result;
+		} catch (Exception ex) {
+			// Procedure.Call处理了所有错误。应该不会到这里。除非内部错误。
+			if (isRequestSaved && actionWhenError != null) {
+				try {
+					actionWhenError.run(from, Procedure.Exception);
+				} catch (Exception e) {
+					logger.error("ActionWhenError Exception", e);
+				}
+			}
+			logger.error("{}", procedure.getActionName(), ex);
+			return Procedure.Exception;
+		}
+	}
+
 	public static void run(Procedure procedure) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
@@ -501,6 +526,17 @@ public final class Task {
 
 		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
 		return pool.submit(() -> call(procedure, from, actionWhenError));
+	}
+
+	public static Future<Long> runUnsafe(Procedure procedure, Action2<Protocol<?>, Long> actionWhenError, DispatchMode mode) {
+		if (mode == DispatchMode.Direct) {
+			final var future = new TaskCompletionSource<Long>();
+			future.setResult(call(procedure, actionWhenError));
+			return future;
+		}
+
+		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
+		return pool.submit(() -> call(procedure, actionWhenError));
 	}
 
 	public static void runRpcResponse(Procedure procedure) {

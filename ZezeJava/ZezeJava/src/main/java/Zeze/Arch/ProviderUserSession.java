@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import Zeze.Builtin.Provider.Dispatch;
@@ -72,12 +73,24 @@ public class ProviderUserSession {
 	protected void sendOnline(AsyncSocket link, Send send) {
 		var providerImpl = getService().providerApp.providerImplement;
 		if (providerImpl instanceof Zeze.Arch.ProviderWithOnline) {
-			((Zeze.Arch.ProviderWithOnline)providerImpl).getOnline().send(
-					link, Map.of(getLinkSid(), KV.create(getAccount(), getContext())), send);
+			if (getContext() != null) {
+				var loginKey = new Online.LoginKey(getAccount(), getContext());
+				((Zeze.Arch.ProviderWithOnline)providerImpl).getOnline().sendOneByOne(
+						List.of(loginKey), link, Map.of(getLinkSid(), loginKey), send);
+			} else {
+				var loginKey = new Online.LoginKey(getAccount(), getContext());
+				((Zeze.Arch.ProviderWithOnline)providerImpl).getOnline().send(link, Map.of(getLinkSid(), loginKey), send);
+			}
 		} else if (providerImpl instanceof ProviderWithOnline) {
+			var roleId = getRoleId();
 			var contexts = new TreeMap<Long, Long>();
-			contexts.put(getLinkSid(), getRoleId());
-			((ProviderWithOnline)providerImpl).getOnline().send(link, contexts, send);
+			if (null != roleId) {
+				contexts.put(getLinkSid(), roleId);
+				((ProviderWithOnline)providerImpl).getOnline().sendOneByOne(List.of(roleId), link, contexts, send);
+			} else {
+				contexts.put(getLinkSid(), null);
+				((ProviderWithOnline)providerImpl).getOnline().send(link, contexts, send);
+			}
 		} else
 			send.Send(link);
 	}

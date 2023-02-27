@@ -301,18 +301,14 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 	}
 
 	@Override
-	public <P extends Protocol<?>> void DispatchProtocol(P p, Service.ProtocolFactoryHandle<P> factoryHandle) {
-		if (factoryHandle.Handle != null) {
-			try {
-				var isRequestSaved = p.isRequest();
-				var result = factoryHandle.Handle.handle(p); // 不启用新的Task，直接在io-thread里面执行。
-				Task.logAndStatistics(null, result, p, isRequestSaved);
-			} catch (Exception ex) {
-				p.getSender().close(ex); // link 在异常时关闭连接。
-			}
-		} else {
-			logger.warn("Protocol Handle Not Found: {}", p);
-			p.getSender().close();
+	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
+		var p = decodeProtocol(typeId, bb, factoryHandle, so);
+		try {
+			var isRequestSaved = p.isRequest();
+			var result = p.handle(this, factoryHandle); // 不启用新的Task，直接在io-thread里面执行。
+			Task.logAndStatistics(null, result, p, isRequestSaved);
+		} catch (Exception ex) {
+			p.getSender().close(ex); // link 在异常时关闭连接。
 		}
 	}
 

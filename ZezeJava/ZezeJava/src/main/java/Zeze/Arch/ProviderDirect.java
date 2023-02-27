@@ -88,7 +88,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 	private void sendResult(AsyncSocket sender, Protocol<?> p) throws Exception {
 		if (sender == null) {
 			var service = providerApp.providerDirectService;
-			p.dispatch(service, service.findProtocolFactoryHandle(p.getTypeId()));
+			service.dispatchProtocol(p);
 			return;
 		}
 		p.Send(sender);

@@ -6,11 +6,13 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.ToLongFunction;
 import Zeze.Application;
 import Zeze.Config;
+import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Net.Service;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.HandshakeClient;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DispatchMode;
@@ -486,12 +488,13 @@ public final class Agent {
 		}
 
 		@Override
-		public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> pfh) {
+		public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
+			var p = decodeProtocol(typeId, bb, factoryHandle, so);
 			// 虚拟线程创建太多Critical线程反而容易卡,以后考虑跑另个虚拟线程池里
 			if (p.getTypeId() == LeaderIs.TypeId_ || agent.dispatchProtocolToInternalThreadPool)
-				Task.getCriticalThreadPool().execute(() -> Task.call(() -> pfh.Handle.handle(p), "InternalRequest"));
+				Task.getCriticalThreadPool().execute(() -> Task.call(() -> p.handle(this, factoryHandle), "InternalRequest"));
 			else
-				Task.runUnsafe(() -> pfh.Handle.handle(p), p, null, null, DispatchMode.Normal);
+				Task.runUnsafe(() -> p.handle(this, factoryHandle), p, null, null, DispatchMode.Normal);
 		}
 	}
 }

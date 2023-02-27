@@ -853,12 +853,10 @@ public final class ServiceManagerServer implements Closeable {
 		}
 
 		@Override
-		public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) {
-			if (factoryHandle.Handle != null) {
-				oneByOneByKey.Execute(p.getSender(),
-						() -> Task.call(() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode),
-						factoryHandle.Mode);
-			}
+		public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
+			var p = decodeProtocol(typeId, bb, factoryHandle, so);
+			oneByOneByKey.Execute(p.getSender(),
+					() -> Task.call(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode), factoryHandle.Mode);
 		}
 	}
 

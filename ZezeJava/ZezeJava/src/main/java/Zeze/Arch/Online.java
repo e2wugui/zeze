@@ -539,17 +539,24 @@ public class Online extends AbstractOnline {
 		return groups.values();
 	}
 
-	private long triggerLinkBroken(String linkName, LongList errorSids, Map<Long, KV<String, String>> contexts) {
+	private long triggerLinkBroken(String linkName, LongList errorSids, Map<Long, LoginKey> contexts) {
 		errorSids.foreach(sid -> providerApp.zeze.newProcedure(() -> {
 			var ctx = contexts.get(sid);
-			return ctx != null ? linkBroken(ctx.getKey(), ctx.getValue(), linkName, sid) : 0;
+			return ctx != null ? linkBroken(ctx.account, ctx.clientId, linkName, sid) : 0;
 		}, "triggerLinkBroken").call());
 		return 0;
 	}
 
-	public void send(AsyncSocket to, Map<Long, KV<String, String>> contexts, Send send) {
+	public void send(AsyncSocket to, Map<Long, LoginKey> contexts, Send send) {
 		send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
 				send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
+	}
+
+	public void sendOneByOne(Collection<LoginKey> keys, AsyncSocket to, Map<Long, LoginKey> contexts, Send send) {
+		providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(keys, "sendOneByOne", () -> {
+			send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
+					send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
+		}, null, DispatchMode.Normal);
 	}
 
 	private void sendEmbed(Collection<LoginKey> logins, long typeId, Binary fullEncodedProtocol) {
@@ -572,7 +579,7 @@ public class Online extends AbstractOnline {
 		public int serverId = -1;
 		public long providerSessionId;
 		public final HashMap<LoginKey, Long> logins = new HashMap<>();
-		public final HashMap<Long, KV<String, String>> contexts = new HashMap<>();
+		public final HashMap<Long, LoginKey> contexts = new HashMap<>();
 	}
 
 	public static class LoginKey {
@@ -614,10 +621,11 @@ public class Online extends AbstractOnline {
 	}
 
 	public void send(Collection<LoginKey> logins, long typeId, Binary fullEncodedProtocol) {
-		providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(logins, providerApp.zeze.newProcedure(() -> {
-			sendEmbed(logins, typeId, fullEncodedProtocol);
-			return Procedure.Success;
-		}, "Online.send"), null, DispatchMode.Normal);
+		providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(logins,
+				providerApp.zeze.newProcedure(() -> {
+					sendEmbed(logins, typeId, fullEncodedProtocol);
+					return Procedure.Success;
+				}, "Online.send"), null, DispatchMode.Normal);
 	}
 
 	public void send(String account, String clientId, Protocol<?> p) {
@@ -736,7 +744,7 @@ public class Online extends AbstractOnline {
 					groups.putIfAbsent(group.linkName, group);
 				}
 				group.logins.putIfAbsent(login, e.getValue().getLinkSid());
-				group.contexts.putIfAbsent(e.getValue().getLinkSid(), KV.create(login.account, login.clientId));
+				group.contexts.putIfAbsent(e.getValue().getLinkSid(), login);
 			}
 		}
 		return groups.values();

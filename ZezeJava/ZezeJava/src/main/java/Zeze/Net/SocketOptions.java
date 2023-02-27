@@ -18,6 +18,15 @@ public final class SocketOptions {
 	private Long overBandwidth;
 	private double overBandwidthFusingRate = 1.0;
 	private double overBandwidthNormalRate = 0.7;
+	private boolean closeWhenMissHandle = false;
+
+	public boolean isCloseWhenMissHandle() {
+		return closeWhenMissHandle;
+	}
+
+	public void setCloseWhenMissHandle(boolean value) {
+		closeWhenMissHandle = value;
+	}
 
 	public double getOverBandwidthFusingRate() {
 		return overBandwidthFusingRate;

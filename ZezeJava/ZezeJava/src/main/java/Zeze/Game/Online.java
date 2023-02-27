@@ -49,6 +49,7 @@ import Zeze.Util.Task;
 import Zeze.Util.TransactionLevelAnnotation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Async;
 
 public class Online extends AbstractOnline {
 	protected static final Logger logger = LogManager.getLogger(Online.class);
@@ -516,9 +517,22 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
+	/**
+	 * 直接通过Link链接发送Send协议。
+	 * @param to link
+	 * @param contexts context
+	 * @param send protocol
+	 */
 	public void send(AsyncSocket to, Map<Long, Long> contexts, Send send) {
 		send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
 				send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
+	}
+
+	public void sendOneByOne(Collection<Long> keys, AsyncSocket to, Map<Long, Long> contexts, Send send) {
+		providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(keys, "sendOneByOne", () -> {
+			send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
+					send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
+		}, null, DispatchMode.Normal);
 	}
 
 	public void sendEmbed(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {

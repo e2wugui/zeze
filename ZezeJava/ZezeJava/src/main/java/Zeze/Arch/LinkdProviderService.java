@@ -54,25 +54,23 @@ public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 
 	// 重载需要的方法。
 	@Override
-	public <P extends Protocol<?>> void DispatchProtocol(P p, Service.ProtocolFactoryHandle<P> factoryHandle) {
-		if (factoryHandle.Handle != null) {
-			if (p.getTypeId() == Bind.TypeId_ || p.getTypeId() == Subscribe.TypeId_) {
-				// Bind 的处理需要同步等待ServiceManager的订阅成功，时间比较长，
-				// 不要直接在io-thread里面执行。
-				Task.runUnsafe(() -> factoryHandle.Handle.handle(p), p, null, null, factoryHandle.Mode);
-			} else {
-				// 不启用新的Task，直接在io-thread里面执行。因为其他协议都是立即处理的，
-				// 直接执行，少一次线程切换。
-				try {
-					var isRequestSaved = p.isRequest();
-					var result = factoryHandle.Handle.handle(p);
-					Task.logAndStatistics(null, result, p, isRequestSaved);
-				} catch (Exception ex) {
-					logger.error("Protocol.Handle Exception: {}", p, ex);
-				}
+	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
+		var p = decodeProtocol(typeId, bb, factoryHandle, so);
+		if (p.getTypeId() == Bind.TypeId_ || p.getTypeId() == Subscribe.TypeId_) {
+			// Bind 的处理需要同步等待ServiceManager的订阅成功，时间比较长，
+			// 不要直接在io-thread里面执行。
+			Task.runUnsafe(() -> p.handle(this, factoryHandle), p, null, null, factoryHandle.Mode);
+		} else {
+			// 不启用新的Task，直接在io-thread里面执行。因为其他协议都是立即处理的，
+			// 直接执行，少一次线程切换。
+			try {
+				var isRequestSaved = p.isRequest();
+				var result = p.handle(this, factoryHandle);
+				Task.logAndStatistics(null, result, p, isRequestSaved);
+			} catch (Exception ex) {
+				logger.error("Protocol.Handle Exception: {}", p, ex);
 			}
-		} else
-			logger.warn("Protocol Handle Not Found: {}", p);
+		}
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")

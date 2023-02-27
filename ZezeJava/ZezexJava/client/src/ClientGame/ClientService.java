@@ -1,7 +1,9 @@
 package ClientGame;
 
+import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Task;
 
 public class ClientService extends ClientServiceBase {
@@ -23,8 +25,8 @@ public class ClientService extends ClientServiceBase {
     }
 
     @Override
-    public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) throws Exception {
-        ProtocolHandle<P> handle = factoryHandle.Handle;
-        Task.run(() -> handle.handle(p), p, null, null, factoryHandle.Mode);
+    public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
+        var p = decodeProtocol(typeId, bb, factoryHandle, so);
+        Task.run(() -> p.handle(this, factoryHandle), p, null, null, factoryHandle.Mode);
     }
 }

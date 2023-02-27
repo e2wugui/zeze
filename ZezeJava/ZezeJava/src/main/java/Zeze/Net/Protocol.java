@@ -7,8 +7,8 @@ import Zeze.Util.ProtocolFactoryFinder;
 public abstract class Protocol<TArgument extends Serializable> implements Serializable {
 	public static final int HEADER_SIZE = 12; // moduleId[4] + protocolId[4] + size[4]
 
-	private Object sender; // AsyncSocket or DatagramSession
-	private Object userState;
+	Object sender; // AsyncSocket or DatagramSession
+	Object userState;
 	public TArgument Argument;
 	protected long resultCode;
 
@@ -172,16 +172,20 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		SendResult(result);
 	}
 
-	@SuppressWarnings("unchecked")
-	public <P extends Protocol<?>> void dispatch(Service service, Service.ProtocolFactoryHandle<P> factoryHandle)
-			throws Exception {
-		service.DispatchProtocol((P)this, factoryHandle);
+	public <P extends Protocol<?>> long handle(Service service, Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
+		if (null != factoryHandle.Handle)
+			return factoryHandle.Handle.handleProtocol(this);
+		if (service.getSocketOptions().isCloseWhenMissHandle() && sender != null)
+			((AsyncSocket)sender).close();
+		return 0;
 	}
 
-	@SuppressWarnings("unchecked")
-	public <P extends Protocol<?>> void dispatch(DatagramService service, Service.ProtocolFactoryHandle<P> factoryHandle)
-			throws Exception {
-		service.dispatchProtocol((P)this, factoryHandle);
+	public <P extends Protocol<?>> long handle(DatagramService service, Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
+		if (null != factoryHandle.Handle)
+			return factoryHandle.Handle.handleProtocol(this);
+		if (service.getSocketOptions().isCloseWhenMissHandle() && sender != null)
+			((DatagramSession)sender).close();
+		return 0;
 	}
 
 	/**
@@ -259,38 +263,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 				var typeId = makeTypeId(moduleId, protocolId);
 				var factoryHandle = service.findProtocolFactoryHandle(typeId);
 				if (factoryHandle != null && factoryHandle.Factory != null) {
-					var p = factoryHandle.Factory.create();
-					p.decode(bb);
-					// 协议必须完整的解码，为了方便应用某些时候设计出兼容的协议。去掉这个检查。
-					/*
-					if (bb.ReadIndex != endReadIndex)
-						throw new IllegalStateException(
-								String.format("protocol '%s' in '%s' module=%d protocol=%d size=%d!=%d decode error!",
-										p.getClass().getName(), service.getName(), moduleId, protocolId,
-										bb.ReadIndex - beginReadIndex, size));
-					*/
-					p.sender = so;
-					p.userState = so.getUserState();
-					if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
-						var log = AsyncSocket.logger;
-						var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
-						var sessionId = so.getSessionId();
-						var className = p.getClass().getSimpleName();
-						if (p instanceof Rpc) {
-							var rpc = ((Rpc<?, ?>)p);
-							var rpcSessionId = rpc.getSessionId();
-							if (rpc.isRequest())
-								log.log(level, "RECV:{} {}:{} {}", sessionId, className, rpcSessionId, p.Argument);
-							else {
-								log.log(level, "RECV:{} {}:{}>{} {}", sessionId, className, rpcSessionId,
-										p.resultCode, rpc.Result);
-							}
-						} else if (p.resultCode == 0)
-							log.log(level, "RECV:{} {} {}", sessionId, className, p.Argument);
-						else
-							log.log(level, "RECV:{} {}>{} {}", sessionId, className, p.resultCode, p.Argument);
-					}
-					p.dispatch(service, factoryHandle);
+					service.dispatchProtocol(typeId, bb, factoryHandle, so);
 				} else {
 					if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
 						var log = AsyncSocket.logger;

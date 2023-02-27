@@ -11,6 +11,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BServiceInfos;
@@ -259,31 +260,26 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	}
 
 	@Override
-	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) {
+	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
+		var p = decodeProtocol(typeId, bb, factoryHandle, so);
 		if (p.getTypeId() == ModuleRedirect.TypeId_) {
-			if (factoryHandle.Handle != null) {
-				var r = (ModuleRedirect)p;
-				// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
-				getZeze().getTaskOneByOneByKey().Execute(r.Argument.getHashCode(),
-						() -> Task.call(() -> factoryHandle.Handle.handle(p), p,
-								Protocol::trySendResultCode, r.Argument.getMethodFullName()),
-						factoryHandle.Mode);
-			} else
-				logger.warn("Protocol Handle Not Found: {}", p);
+			var r = (ModuleRedirect)p;
+			// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
+			getZeze().getTaskOneByOneByKey().Execute(r.Argument.getHashCode(),
+					() -> Task.call(() -> p.handle(this, factoryHandle), p,
+							Protocol::trySendResultCode, r.Argument.getMethodFullName()),
+					factoryHandle.Mode);
 			return;
 		}
 		if (p.getTypeId() == ModuleRedirectAllResult.TypeId_) {
-			if (factoryHandle.Handle != null) {
-				var r = (ModuleRedirectAllResult)p;
-				// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
-				Task.runUnsafe(() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode,
-						r.Argument.getMethodFullName(), factoryHandle.Mode);
-			} else
-				logger.warn("Protocol Handle Not Found: {}", p);
+			var r = (ModuleRedirectAllResult)p;
+			// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
+			Task.runUnsafe(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode,
+					r.Argument.getMethodFullName(), factoryHandle.Mode);
 			return;
 		}
 		// 所有的Direct都不启用存储过程。
-		Task.runUnsafe(() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode, null, factoryHandle.Mode);
+		Task.runUnsafe(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode, null, factoryHandle.Mode);
 		//super.DispatchProtocol(p, factoryHandle);
 	}
 

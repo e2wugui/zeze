@@ -5,6 +5,7 @@ import Zeze.IModule;
 import Zeze.Util.FuncLong;
 import Zeze.Util.Macro;
 import Zeze.Util.TaskCanceledException;
+import com.amazonaws.Protocol;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -60,6 +61,16 @@ public class Procedure {
 	private String actionName;
 	private Object userState;
 //	public Runnable runWhileCommit;
+
+	private Zeze.Net.Protocol<?> fromProtocol;
+
+	public Zeze.Net.Protocol<?> getFromProtocol() {
+		return fromProtocol;
+	}
+
+	public void setFromProtocol(Zeze.Net.Protocol<?> from) {
+		fromProtocol = from;
+	}
 
 	// 用于继承方式实现 Procedure。
 	public Procedure(Application app) {

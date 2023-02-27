@@ -7,6 +7,7 @@ import Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest;
 import Zeze.Builtin.ProviderDirect.ModuleRedirectAllResult;
 import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
@@ -143,7 +144,12 @@ public class RedirectBase {
 				if (sessionId == 0) { // loop-back. sessionId=0应该不可能是有效的socket session,代表自己
 					try {
 						var service = providerApp.providerDirectService;
-						request.dispatch(service, service.findProtocolFactoryHandle(request.getTypeId()));
+						// todo 为了完整支持事务重置传入的协议，这里需要编码一次。
+						var bb = ByteBuffer.Allocate();
+						request.encode(bb);
+						service.dispatchProtocol(request.getTypeId(), bb,
+								service.findProtocolFactoryHandle(request.getTypeId()),
+								null);
 					} catch (Exception e) {
 						logger.error("", e);
 					}
@@ -167,7 +173,11 @@ public class RedirectBase {
 			miss.setResultCode(ModuleRedirect.ResultCodeLinkdNoProvider);
 			try {
 				var service = providerApp.providerDirectService;
-				miss.dispatch(service, service.findProtocolFactoryHandle(miss.getTypeId()));
+				var bb = ByteBuffer.Allocate();
+				miss.encode(bb);
+				service.dispatchProtocol(miss.getTypeId(), bb,
+						service.findProtocolFactoryHandle(miss.getTypeId()),
+						null);
 			} catch (Exception e) {
 				logger.error("", e);
 			}

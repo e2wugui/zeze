@@ -60,7 +60,7 @@ public final class TaskOneByOneByKey {
 		private final ReentrantLock lock = new ReentrantLock();
 		private final Condition cond = lock.newCondition();
 		private int count;
-		private boolean canceled;
+		private boolean canceled = false;
 
 		public Barrier(Procedure action, int count, Action0 cancel) {
 			procedure = action;
@@ -118,6 +118,74 @@ public final class TaskOneByOneByKey {
 		var barrier = new Barrier(procedure, keys.size(), cancel);
 		for (var key : keys)
 			Execute(key, barrier::reach, barrier.procedure.getActionName(), barrier::cancel, mode);
+	}
+
+	public static class BarrierAction {
+		private final String actionName;
+		private final Action0 action;
+		private final ReentrantLock lock = new ReentrantLock();
+		private final Condition cond = lock.newCondition();
+		private int count;
+		private final Action0 cancel;
+		private boolean canceled = false;
+
+		public BarrierAction(String actionName, Action0 action, int count, Action0 cancel) {
+			this.actionName = actionName;
+			this.action = action;
+			this.count = count;
+			this.cancel = cancel;
+		}
+
+		public void reach() throws InterruptedException {
+			lock.lock();
+			try {
+				if (canceled)
+					return;
+
+				if (--count > 0)
+					cond.await();
+				else {
+					try {
+						action.run();
+					} catch (Exception ex) {
+						logger.error("{} Run", actionName, ex);
+					} finally {
+						cond.signalAll();
+					}
+				}
+			} finally {
+				lock.unlock();
+			}
+		}
+
+		public void cancel() {
+			lock.lock();
+			try {
+				if (canceled)
+					return;
+
+				canceled = true;
+				try {
+					if (null != cancel)
+						cancel.run();
+				} catch (Exception ex) {
+					logger.error("{} Canceled", actionName, ex);
+				} finally {
+					cond.signalAll();
+				}
+			} finally {
+				lock.unlock();
+			}
+		}
+	}
+
+	public <T> void executeCyclicBarrier(Collection<T> keys, String actionName, Action0 action, Action0 cancel, DispatchMode mode) {
+		if (keys.isEmpty())
+			throw new IllegalArgumentException("CyclicBarrier keys is empty.");
+
+		var barrier = new BarrierAction(actionName, action, keys.size(), cancel);
+		for (var key : keys)
+			Execute(key, barrier::reach, actionName, barrier::cancel, mode);
 	}
 
 	public static class Batch<T> {

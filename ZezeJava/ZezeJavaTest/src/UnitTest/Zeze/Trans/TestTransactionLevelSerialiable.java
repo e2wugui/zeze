@@ -29,7 +29,9 @@ public class TestTransactionLevelSerialiable {
 		try {
 			Future<?>[] tasks = new Future[200000];
 			for (int i = 0; i < tasks.length; ++i) {
-				tasks[i] = Zeze.Util.Task.runUnsafe(App.Instance.Zeze.newProcedure(TestTransactionLevelSerialiable::trade, "test_trade"), null, null);
+				tasks[i] = Zeze.Util.Task.runUnsafe(
+						App.Instance.Zeze.newProcedure(TestTransactionLevelSerialiable::trade, "test_trade"),
+						null, null, DispatchMode.Normal);
 			}
 			Zeze.Util.Task.waitAll(tasks);
 		} finally {

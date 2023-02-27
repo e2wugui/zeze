@@ -3,6 +3,7 @@ package Zeze.Transaction;
 import Zeze.Application;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Login;
 import Zeze.Services.GlobalCacheManager.ReLogin;
 import Zeze.Net.Service;
@@ -72,10 +73,9 @@ public final class GlobalClient extends Service {
 	}
 
 	@Override
-	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) {
+	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
+		var p = decodeProtocol(typeId, bb, factoryHandle, so);
 		// Reduce 很重要。必须得到执行，不能使用默认线程池(Task.Run),防止饥饿。
-		if (null != factoryHandle.Handle) {
-			Task.getCriticalThreadPool().execute(() -> Zeze.Util.Task.call(() -> factoryHandle.Handle.handle(p), p));
-		}
+		Task.getCriticalThreadPool().execute(() -> Zeze.Util.Task.call(() -> p.handle(this, factoryHandle), p));
 	}
 }

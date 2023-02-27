@@ -2,6 +2,7 @@ package Zeze.Services.ServiceManager;
 
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Util.Task;
 
@@ -52,7 +53,8 @@ public final class AgentClient extends Zeze.Services.HandshakeClient {
 	}
 
 	@Override
-	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) {
-		Task.call(() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode);
+	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
+		var p = decodeProtocol(typeId, bb, factoryHandle, so);
+		Task.call(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode);
 	}
 }
