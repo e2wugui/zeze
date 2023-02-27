@@ -519,12 +519,12 @@ public class Online extends AbstractOnline {
 
 	/**
 	 * 直接通过Link链接发送Send协议。
-	 * @param to link
+	 * @param link link
 	 * @param contexts context
 	 * @param send protocol
 	 */
-	public void send(AsyncSocket to, Map<Long, Long> contexts, Send send) {
-		send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
+	public void send(AsyncSocket link, Map<Long, Long> contexts, Send send) {
+		send.Send(link, rpc -> triggerLinkBroken(ProviderService.getLinkName(link),
 				send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
 	}
 

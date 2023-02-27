@@ -62,6 +62,10 @@ public class ProviderUserSession {
 		return dispatch.getSender();
 	}
 
+	public void sendResponseDirect(Rpc<?, ?> rpc) {
+		// todo 专门不排队发送rpc结果。自动适应事务环境。
+	}
+
 	public void sendResponse(Binary fullEncodedProtocol) {
 		var bytes = fullEncodedProtocol.bytesUnsafe();
 		var offset = fullEncodedProtocol.getOffset();
@@ -70,10 +74,10 @@ public class ProviderUserSession {
 		sendResponse(Protocol.makeTypeId(moduleId, protocolId), fullEncodedProtocol);
 	}
 
-	protected void sendOnline(AsyncSocket link, Send send) {
+	protected void sendOnline(AsyncSocket link, Send send, boolean direct) {
 		var providerImpl = getService().providerApp.providerImplement;
 		if (providerImpl instanceof Zeze.Arch.ProviderWithOnline) {
-			if (getContext() != null) {
+			if (getContext() != null && !getContext().isEmpty() && !direct) {
 				var loginKey = new Online.LoginKey(getAccount(), getContext());
 				((Zeze.Arch.ProviderWithOnline)providerImpl).getOnline().sendOneByOne(
 						List.of(loginKey), link, Map.of(getLinkSid(), loginKey), send);
@@ -84,7 +88,7 @@ public class ProviderUserSession {
 		} else if (providerImpl instanceof ProviderWithOnline) {
 			var roleId = getRoleId();
 			var contexts = new TreeMap<Long, Long>();
-			if (null != roleId) {
+			if (null != roleId && !direct) {
 				contexts.put(getLinkSid(), roleId);
 				((ProviderWithOnline)providerImpl).getOnline().sendOneByOne(List.of(roleId), link, contexts, send);
 			} else {
@@ -101,14 +105,14 @@ public class ProviderUserSession {
 
 		var link = getLink();
 		if (link != null && !link.isClosed()) {
-			sendOnline(link, send);
+			sendOnline(link, send, false);
 			return;
 		}
 		// 可能发生了重连，尝试再次查找发送。网络断开以后，linkSid已经不可靠了，先这样写着吧。
 		var connector = getService().getLinks().get(getLinkName());
 		if (connector != null && connector.isHandshakeDone()) {
 			dispatch.setSender(link = connector.getSocket());
-			sendOnline(link, send);
+			sendOnline(link, send, false);
 		}
 	}
 

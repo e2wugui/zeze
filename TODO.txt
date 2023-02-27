@@ -29,6 +29,8 @@ Online.sendResponse TaskOneByOne 的问题。【如果已经登录则按RoleId�
 	旧流程Dispatch在网络线程中执行，对于Rpc.Client很友好。
 	新流程Rpc.Handle已经是新的线程了。有一点浪费。
 	Find Usage ProtocolFactoryHandle.Handel 检查是否有多余的null判断（新的流程不能判断这个）
+	DispatchRpcResponse 不再需要。
+	DispatchProtocol2 看看？？
 Timer BUG
 Arch BUG
 linkd提供给gs查询接口；以及自定义查询-linkd重载的provider service可以增加自定义模块？
