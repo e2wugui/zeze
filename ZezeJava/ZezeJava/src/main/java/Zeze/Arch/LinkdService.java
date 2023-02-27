@@ -312,12 +312,6 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		}
 	}
 
-	@Override
-	public <P extends Protocol<?>> void DispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
-															ProtocolFactoryHandle<?> factoryHandle) throws Exception {
-		Task.runRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
-	}
-
 	@SuppressWarnings("MethodMayBeStatic")
 	public LinkdUserSession newSession(AsyncSocket so) {
 		return new LinkdUserSession(so.getSessionId());

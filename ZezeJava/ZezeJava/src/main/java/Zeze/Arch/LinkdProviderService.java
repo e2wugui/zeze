@@ -46,11 +46,6 @@ public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 		super.OnSocketProcessInputBuffer(s, input);
 	}
 
-	@Override
-	public <P extends Protocol<?>> void DispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
-															ProtocolFactoryHandle<?> factoryHandle) {
-		Task.runRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
-	}
 
 	// 重载需要的方法。
 	@Override

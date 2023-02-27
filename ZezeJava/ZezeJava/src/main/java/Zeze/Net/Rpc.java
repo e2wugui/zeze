@@ -99,7 +99,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 				// Timeout 应该是少的，先这样了。
 				var factoryHandle = service.findProtocolFactoryHandle(context.getTypeId());
 				if (factoryHandle != null)
-					service.DispatchRpcResponse(context, context.responseHandle, factoryHandle);
+					service.dispatchRpcResponse(context, context.responseHandle, factoryHandle);
 			}
 		});
 	}
@@ -234,27 +234,20 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	}
 
 	@Override
-	public <P extends Protocol<?>> long handle(Service service, Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
+	public <P extends Protocol<?>> void dispatch(Service service, Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
 		if (isRequest) {
 			@SuppressWarnings("unchecked") P proto = (P)this;
-			if (null != factoryHandle.Handle)
-				return factoryHandle.Handle.handle(proto);
-			if (service.getSocketOptions().isCloseWhenMissHandle() && sender != null)
-				((AsyncSocket)sender).close();
-			return 0;
+			super.dispatch(service, factoryHandle);
+			return;
 		}
 
 		// response, 从上下文中查找原来发送的rpc对象，并派发该对象。
 		Rpc<TArgument, TResult> context = service.removeRpcContext(sessionId);
 		if (context == null) {
 			logger.warn("rpc response: lost context, maybe timeout. {}", this);
-			return 0;
+			return;
 		}
-		/*
-		var txn = Transaction.getCurrent();
-		if (null != txn)
-			txn.whileRedo(() -> service.addRpcContext(sessionId, context));
-		*/
+
 		context.setSender(getSender());
 		context.setUserState(getUserState());
 		context.setResultCode(getResultCode());
@@ -265,7 +258,37 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		if (context.future != null)
 			context.future.setResult(context.Result); // SendForWait，设置结果唤醒等待者。
 		else if (context.responseHandle != null)
-			context.responseHandle.handle(this);
+			service.dispatchRpcResponse(this, responseHandle, factoryHandle);
+	}
+
+	@Override
+	public <P extends Protocol<?>> long handle(Service service, Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
+		if (isRequest) {
+			@SuppressWarnings("unchecked") P proto = (P)this;
+			return super.handle(service, factoryHandle);
+		}
+
+		// response, 从上下文中查找原来发送的rpc对象，并派发该对象。
+		Rpc<TArgument, TResult> context = service.removeRpcContext(sessionId);
+		if (context == null) {
+			logger.warn("rpc response: lost context, maybe timeout. {}", this);
+			return 0;
+		}
+
+		Transaction.tryWhileRedo(() -> service.addRpcContext(context));
+
+		context.setSender(getSender());
+		context.setUserState(getUserState());
+		context.setResultCode(getResultCode());
+		context.Result = Result;
+		context.isTimeout = false; // not need
+		context.isRequest = false;
+
+		if (context.future != null)
+			context.future.setResult(context.Result); // SendForWait，设置结果唤醒等待者。
+		else if (context.responseHandle != null)
+			return context.responseHandle.handleProtocol(this);
+
 		return 0;
 	}
 

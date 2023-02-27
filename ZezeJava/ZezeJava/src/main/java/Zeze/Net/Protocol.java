@@ -3,7 +3,6 @@ package Zeze.Net;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.ProtocolFactoryFinder;
-
 public abstract class Protocol<TArgument extends Serializable> implements Serializable {
 	public static final int HEADER_SIZE = 12; // moduleId[4] + protocolId[4] + size[4]
 
@@ -172,19 +171,27 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		SendResult(result);
 	}
 
+	public <P extends Protocol<?>> void dispatch(Service service, Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
+		service.dispatchProtocol(this, factoryHandle);
+	}
+
 	public <P extends Protocol<?>> long handle(Service service, Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
 		if (null != factoryHandle.Handle)
 			return factoryHandle.Handle.handleProtocol(this);
+
 		if (service.getSocketOptions().isCloseWhenMissHandle() && sender != null)
 			((AsyncSocket)sender).close();
+
 		return 0;
 	}
 
 	public <P extends Protocol<?>> long handle(DatagramService service, Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
 		if (null != factoryHandle.Handle)
 			return factoryHandle.Handle.handleProtocol(this);
+
 		if (service.getSocketOptions().isCloseWhenMissHandle() && sender != null)
 			((DatagramSession)sender).close();
+
 		return 0;
 	}
 

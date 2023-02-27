@@ -88,6 +88,7 @@ public final class Transaction {
 		state = TransactionState.Running;
 		created = false;
 		alwaysReleaseLockWhenRedo = false;
+		redoActions.clear();
 	}
 
 	public void begin() {
@@ -131,8 +132,23 @@ public final class Transaction {
 		savepoints.get(savepoints.size() - 1).putLog(log);
 	}
 
+	private final ArrayList<Runnable> redoActions = new ArrayList<>();
+
 	private void triggerRedoActions() {
 		redoBeans.forEach(Bean::resetRootInfo);
+		// todo 确认问题：
+		//  1. triggerRedoActions 上面两个分支调用，第一个分支异常，会导致catch里面再次执行。是不是应该吧两个调回统一到下面的for循环继续的地方？
+		//  2. redo不跟savepoint打交道，总是事务级别的，这个定义应该是正确的吧。
+		//  3. 现在下面的tryWhileRedo只有Rpc使用了，确认使用方式是否正确。
+		for (var action : redoActions) {
+			action.run(); // redo action 不能抛出异常，否则终止事务。
+		}
+	}
+
+	public static void tryWhileRedo(Runnable action) {
+		var txn = getCurrent();
+		if (null != txn)
+			txn.redoActions.add(action);
 	}
 
 	static void whileRedo(Bean b) {

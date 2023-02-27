@@ -284,7 +284,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	}
 
 	@Override
-	public <P extends Protocol<?>> void DispatchRpcResponse(
+	public <P extends Protocol<?>> void dispatchRpcResponse(
 			P rpc, ProtocolHandle<P> responseHandle, ProtocolFactoryHandle<?> factoryHandle) {
 
 		if (rpc.getTypeId() == ModuleRedirect.TypeId_) {
