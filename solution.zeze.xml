@@ -529,6 +529,10 @@
 				<rpc name="ReliableNotifyConfirm" argument="BReliableNotifyConfirm" handle="server"/>
 				<protocol name="SReliableNotify" argument="BReliableNotify" handle="client"/>
 
+				<bean name="BDelayLogoutCustom">
+					<variable id="1" name="RoleId" type="long"/>
+					<variable id="2" name="LoginVersion" type="long"/>
+				</bean>
 				<!-- tables -->
 				<bean name="BOnline">
 					<variable id="1" name="LinkName" type="string"/>
@@ -708,6 +712,11 @@
 			<rpc name="ReliableNotifyConfirm" argument="BReliableNotifyConfirm" handle="server"/>
 			<protocol name="SReliableNotify" argument="BReliableNotify" handle="client"/>
 
+			<bean name="BDelayLogoutCustom">
+				<variable id="1" name="Account" type="string"/>
+				<variable id="2" name="ClientId" type="string"/>
+				<variable id="3" name="LoginVersion" type="long"/>
+			</bean>
 			<!-- tables -->
 			<bean name="BOnline">
 				<variable id="1" name="LinkName" type="string"/>

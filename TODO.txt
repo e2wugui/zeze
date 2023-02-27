@@ -19,11 +19,11 @@ Benchmark.BBasicSimpleAddConcurrentWithConflict tasks/s=217785.84 time=4.59 cpu=
 Benchmark.CBasicSimpleAddConcurrent tasks/s=96997.63 time=10.31 cpu=100.00 concurrent=9.70
 
 Dispatch 也是传参数给事务，需要考虑重置参数问题。
-LinkBroken.Delay 使用Timer（持久化的），防止Logout丢失。Timer中记录LoginVersion。
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/3/2 v1.1.9 Zeze.Transaction.Data; protocolref import; Dispatch Protocol; Online.sendOneByOne
+2023/3/2 v1.1.9 Zeze.Transaction.Data; protocolref import; New Dispatch Protocol For Procedure; Online.sendOneByOne
 ------------------------------------------------------------------------------------------------------------------------------
+LinkBroken.Delay 使用Timer（持久化的），防止Logout丢失。Timer中记录LoginVersion。
 Online.sendResponse TaskOneByOne 的问题。【如果已经登录则按RoleId排队，没有登录直接发送】
 协议处理流程修改：当协议在事务中处理时，重新Decode，达到重置参数的目的。
 	旧流程Dispatch在网络线程中执行，对于Rpc.Client很友好。

@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import Zeze.AppBase;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Builtin.Online.BAny;
+import Zeze.Builtin.Online.BDelayLogoutCustom;
 import Zeze.Builtin.Online.BLocal;
 import Zeze.Builtin.Online.BLocals;
 import Zeze.Builtin.Online.BNotify;
@@ -25,6 +26,8 @@ import Zeze.Builtin.Provider.Send;
 import Zeze.Builtin.Provider.SetUserState;
 import Zeze.Builtin.ProviderDirect.TransmitAccount;
 import Zeze.Collections.BeanFactory;
+import Zeze.Component.TimerContext;
+import Zeze.Component.TimerHandle;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
@@ -108,6 +111,7 @@ public class Online extends AbstractOnline {
 	}
 
 	public void stop() {
+		instance = null;
 		load.stop();
 		if (verifyLocalTimer != null)
 			verifyLocalTimer.cancel(false);
@@ -275,6 +279,54 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
+	private long tryLogout(BDelayLogoutCustom custom) throws Exception {
+		var account = custom.getAccount();
+		var clientId = custom.getClientId();
+		var currentLoginVersion = custom.getLoginVersion();
+
+		// local online 独立判断version分别尝试删除。
+		var local = _tlocal.get(account);
+		if (local != null) {
+			var loginLocal = local.getLogins().get(clientId);
+			if (loginLocal != null && loginLocal.getLoginVersion() == currentLoginVersion) {
+				var ret = removeLocalAndTrigger(account, clientId);
+				if (ret != 0)
+					return ret;
+			}
+		}
+		// 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
+		var online = _tonline.get(account);
+		var version = _tversion.getOrAdd(account);
+		if (online != null) {
+			var loginVersion = version.getLogins().get(clientId);
+			if (loginVersion != null && loginVersion.getLoginVersion() == currentLoginVersion) {
+				loginVersion.setLogoutVersion(loginVersion.getLoginVersion());
+				var ret = logoutTrigger(account, clientId);
+				if (0 != ret)
+					return ret;
+			}
+		}
+		return Procedure.Success;
+	}
+
+	static Online instance;
+	static class DelayLogout implements TimerHandle {
+
+		@Override
+		public void onTimer(TimerContext context) throws Exception {
+			if (null != instance) {
+				var ret = instance.tryLogout((BDelayLogoutCustom)context.customData);
+				if (ret != 0)
+					Online.logger.error("tryLogout fail. {}", ret);
+			}
+		}
+
+		@Override
+		public void onTimerCancel() throws Exception {
+
+		}
+	}
+
 	public long linkBroken(String account, String clientId, String linkName, long linkSid) throws Exception {
 		long currentLoginVersion;
 		{
@@ -303,34 +355,10 @@ public class Online extends AbstractOnline {
 					return ret;
 			}
 		}
-		Transaction.whileCommit(() -> Task.schedule(providerApp.zeze.getConfig().getOnlineLogoutDelay(), () -> {
-			// TryRemove
-			providerApp.zeze.newProcedure(() -> {
-				// local online 独立判断version分别尝试删除。
-				var local = _tlocal.get(account);
-				if (local != null) {
-					var loginLocal = local.getLogins().get(clientId);
-					if (loginLocal != null && loginLocal.getLoginVersion() == currentLoginVersion) {
-						var ret = removeLocalAndTrigger(account, clientId);
-						if (ret != 0)
-							return ret;
-					}
-				}
-				// 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
-				var online = _tonline.get(account);
-				var version = _tversion.getOrAdd(account);
-				if (online != null) {
-					var loginVersion = version.getLogins().get(clientId);
-					if (loginVersion != null && loginVersion.getLoginVersion() == currentLoginVersion) {
-						loginVersion.setLogoutVersion(loginVersion.getLoginVersion());
-						var ret = logoutTrigger(account, clientId);
-						if (0 != ret)
-							return ret;
-					}
-				}
-				return Procedure.Success;
-			}, "Onlines.OnLinkBroken").call();
-		}));
+		// shorter use
+		var zeze = providerApp.zeze;
+		var delay = zeze.getConfig().getOnlineLogoutDelay();
+		zeze.getTimer().schedule(delay, DelayLogout.class, new BDelayLogoutCustom(account, clientId, currentLoginVersion));
 		return 0;
 	}
 

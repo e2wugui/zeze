@@ -15,6 +15,7 @@ import Zeze.Arch.ProviderService;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Builtin.Game.Online.BAny;
+import Zeze.Builtin.Game.Online.BDelayLogoutCustom;
 import Zeze.Builtin.Game.Online.BLocal;
 import Zeze.Builtin.Game.Online.BNotify;
 import Zeze.Builtin.Game.Online.BOnline;
@@ -28,6 +29,8 @@ import Zeze.Builtin.Provider.Send;
 import Zeze.Builtin.Provider.SetUserState;
 import Zeze.Builtin.ProviderDirect.Transmit;
 import Zeze.Collections.BeanFactory;
+import Zeze.Component.TimerContext;
+import Zeze.Component.TimerHandle;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
@@ -49,7 +52,6 @@ import Zeze.Util.Task;
 import Zeze.Util.TransactionLevelAnnotation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.Async;
 
 public class Online extends AbstractOnline {
 	protected static final Logger logger = LogManager.getLogger(Online.class);
@@ -103,6 +105,7 @@ public class Online extends AbstractOnline {
 		RegisterProtocols(providerApp.providerService);
 		RegisterZezeTables(providerApp.zeze);
 		load = new ProviderLoad(this);
+		instance = this;
 	}
 
 	public void start() {
@@ -112,6 +115,7 @@ public class Online extends AbstractOnline {
 	}
 
 	public void stop() {
+		instance = null;
 		load.stop();
 		if (null != verifyLocalTimer)
 			verifyLocalTimer.cancel(false);
@@ -354,6 +358,45 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
+	private long tryLogout(BDelayLogoutCustom custom) throws Exception {
+		var roleId = custom.getRoleId();
+		var currentLoginVersion = custom.getLoginVersion();
+		// local online 独立判断version分别尝试删除。
+		var local = _tlocal.get(roleId);
+		if (null != local && local.getLoginVersion() == currentLoginVersion) {
+			var ret = removeLocalAndTrigger(roleId);
+			if (0 != ret)
+				return ret;
+		}
+		// 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
+		var online = _tonline.get(roleId);
+		var version = _tversion.getOrAdd(roleId);
+		if (null != online && version.getLoginVersion() == currentLoginVersion && assignLogoutVersion(version)) {
+			var ret = logoutTrigger(roleId, LogoutReason.LOGOUT);
+			if (0 != ret)
+				return ret;
+		}
+		return Procedure.Success;
+	}
+
+	static Online instance;
+
+	static class DelayLogout implements TimerHandle {
+
+		@Override
+		public void onTimer(TimerContext context) throws Exception {
+			if (null != instance) {
+				var ret = instance.tryLogout((BDelayLogoutCustom)context.customData);
+				if (ret != 0)
+					Online.logger.error("tryLogout fail. {}", ret);
+			}
+		}
+
+		@Override
+		public void onTimerCancel() throws Exception {
+
+		}
+	}
 	public long linkBroken(String account, long roleId, String linkName, long linkSid) throws Exception {
 		long currentLoginVersion;
 		{
@@ -374,28 +417,10 @@ public class Online extends AbstractOnline {
 			}
 		}
 		linkBrokenTrigger(account, roleId);
-		Transaction.whileCommit(() -> {
-			// delay for real logout
-			Task.schedule(providerApp.zeze.getConfig().getOnlineLogoutDelay(), () ->
-					providerApp.zeze.newProcedure(() -> {
-						// local online 独立判断version分别尝试删除。
-						var local = _tlocal.get(roleId);
-						if (null != local && local.getLoginVersion() == currentLoginVersion) {
-							var ret = removeLocalAndTrigger(roleId);
-							if (0 != ret)
-								return ret;
-						}
-						// 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
-						var online = _tonline.get(roleId);
-						var version = _tversion.getOrAdd(roleId);
-						if (null != online && version.getLoginVersion() == currentLoginVersion && assignLogoutVersion(version)) {
-							var ret = logoutTrigger(roleId, LogoutReason.LOGOUT);
-							if (0 != ret)
-								return ret;
-						}
-						return Procedure.Success;
-					}, "Game.Online.onLinkBroken").call());
-		});
+		// for shorter use
+		var zeze = providerApp.zeze;
+		var delay = zeze.getConfig().getOnlineLogoutDelay();
+		zeze.getTimer().schedule(delay, DelayLogout.class, new BDelayLogoutCustom(roleId, currentLoginVersion));
 		return 0;
 	}
 

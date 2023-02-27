@@ -227,6 +227,7 @@ namespace Zeze.Arch
             }
             Transaction.Transaction.Current.RunWhileCommit(() =>
             {
+                // TODO 实现Timer以后，这里改成使用它，利用它的持久化特性达到不丢失Logout的目的。
                 Util.Scheduler.Schedule(async (ThisTask) =>
                 {
                     // TryRemove
