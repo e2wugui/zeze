@@ -277,7 +277,7 @@ namespace Zeze.Gen.java
                         // rpc 可能作为客户端发送也需要factory，所以总是注册factory。
                         string fullName = rpc.Space.Path(".", rpc.Name);
                         sw.WriteLine("        {");
-                        sw.WriteLine($"            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<{fullName}>();");
+                        sw.WriteLine($"            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>({fullName}.class, {fullName}.TypeId_);");
                         sw.WriteLine($"            factoryHandle.Factory = {fullName}::new;");
                         if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
                         {
@@ -303,7 +303,7 @@ namespace Zeze.Gen.java
                         }
                         string fullName = p.Space.Path(".", p.Name);
                         sw.WriteLine("        {");
-                        sw.WriteLine($"            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<{fullName}>();");
+                        sw.WriteLine($"            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>({fullName}.class, {fullName}.TypeId_);");
                         sw.WriteLine($"            factoryHandle.Factory = {fullName}::new;");
                         sw.WriteLine($"            factoryHandle.Handle = this::Process{p.Name};");
                         sw.WriteLine($"            factoryHandle.Level = _reflect.getTransactionLevel(\"Process{p.Name}\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel});");

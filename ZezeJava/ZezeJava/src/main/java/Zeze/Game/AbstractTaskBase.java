@@ -36,7 +36,7 @@ public abstract class AbstractTaskBase implements Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Game.TaskBase.TriggerTaskEvent>();
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Game.TaskBase.TriggerTaskEvent.class, Zeze.Builtin.Game.TaskBase.TriggerTaskEvent.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Game.TaskBase.TriggerTaskEvent::new;
             factoryHandle.Handle = this::ProcessTriggerTaskEventRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessTriggerTaskEventRequest", Zeze.Transaction.TransactionLevel.Serializable);

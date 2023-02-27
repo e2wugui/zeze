@@ -14,7 +14,7 @@ public abstract class AbstractProviderImplement implements Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(this.getClass());
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Provider.AnnounceLinkInfo>();
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Provider.AnnounceLinkInfo.class, Zeze.Builtin.Provider.AnnounceLinkInfo.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Provider.AnnounceLinkInfo::new;
             factoryHandle.Handle = this::ProcessAnnounceLinkInfo;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessAnnounceLinkInfo", Zeze.Transaction.TransactionLevel.None);
@@ -22,14 +22,14 @@ public abstract class AbstractProviderImplement implements Zeze.IModule {
             service.AddFactoryHandle(47281374674071L, factoryHandle); // 11008, -1920287593
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Provider.Bind>();
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Provider.Bind.class, Zeze.Builtin.Provider.Bind.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Provider.Bind::new;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessBindResponse", Zeze.Transaction.TransactionLevel.Serializable);
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessBindResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47279114253990L, factoryHandle); // 11008, 114259622
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Provider.Dispatch>();
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Provider.Dispatch.class, Zeze.Builtin.Provider.Dispatch.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Provider.Dispatch::new;
             factoryHandle.Handle = this::ProcessDispatch;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessDispatch", Zeze.Transaction.TransactionLevel.Serializable);
@@ -37,7 +37,7 @@ public abstract class AbstractProviderImplement implements Zeze.IModule {
             service.AddFactoryHandle(47280285301785L, factoryHandle); // 11008, 1285307417
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Provider.LinkBroken>();
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Provider.LinkBroken.class, Zeze.Builtin.Provider.LinkBroken.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Provider.LinkBroken::new;
             factoryHandle.Handle = this::ProcessLinkBroken;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessLinkBroken", Zeze.Transaction.TransactionLevel.Serializable);
@@ -45,21 +45,21 @@ public abstract class AbstractProviderImplement implements Zeze.IModule {
             service.AddFactoryHandle(47281652939086L, factoryHandle); // 11008, -1642022578
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Provider.Send>();
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Provider.Send.class, Zeze.Builtin.Provider.Send.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Provider.Send::new;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessSendResponse", Zeze.Transaction.TransactionLevel.Serializable);
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessSendResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47281226998238L, factoryHandle); // 11008, -2067963426
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Provider.Subscribe>();
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Provider.Subscribe.class, Zeze.Builtin.Provider.Subscribe.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Provider.Subscribe::new;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessSubscribeResponse", Zeze.Transaction.TransactionLevel.Serializable);
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessSubscribeResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47280110454586L, factoryHandle); // 11008, 1110460218
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Provider.UnBind>();
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Provider.UnBind.class, Zeze.Builtin.Provider.UnBind.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Provider.UnBind::new;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessUnBindResponse", Zeze.Transaction.TransactionLevel.Serializable);
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessUnBindResponse", Zeze.Transaction.DispatchMode.Normal);

@@ -22,7 +22,7 @@ public abstract class AbstractBag implements Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Game.Bag.Destroy>();
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Game.Bag.Destroy.class, Zeze.Builtin.Game.Bag.Destroy.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Game.Bag.Destroy::new;
             factoryHandle.Handle = this::ProcessDestroyRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessDestroyRequest", Zeze.Transaction.TransactionLevel.Serializable);
@@ -30,7 +30,7 @@ public abstract class AbstractBag implements Zeze.IModule {
             service.AddFactoryHandle(47307869964755L, factoryHandle); // 11014, -1194800685
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Game.Bag.Move>();
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Game.Bag.Move.class, Zeze.Builtin.Game.Bag.Move.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Game.Bag.Move::new;
             factoryHandle.Handle = this::ProcessMoveRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessMoveRequest", Zeze.Transaction.TransactionLevel.Serializable);

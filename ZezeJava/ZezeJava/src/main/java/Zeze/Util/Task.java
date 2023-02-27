@@ -296,7 +296,8 @@ public final class Task {
 	}
 
 	public static void logAndStatistics(Throwable ex, long result, Protocol<?> p, boolean IsRequestSaved, String aName) {
-		var actionName = null != aName ? aName : IsRequestSaved ? p.getClass().getName() : p.getClass().getName() + ":Response";
+		var protocolName = p != null ? p.getClass().getName() : "?";
+		var actionName = null != aName ? aName : IsRequestSaved ? protocolName : protocolName + ":Response";
 		var tmpVolatile = logAction;
 		if (tmpVolatile != null) {
 			try {
@@ -327,12 +328,12 @@ public final class Task {
 	}
 
 	public static long call(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String aName) {
-		boolean IsRequestSaved = p.isRequest(); // 记住这个，以后可能会被改变。
+		boolean isRequestSaved = p != null && p.isRequest(); // 记住这个，以后可能会被改变。
 		try {
 			var result = func.call();
-			if (result != 0 && IsRequestSaved && actionWhenError != null)
+			if (result != 0 && isRequestSaved && actionWhenError != null)
 				actionWhenError.handle(p, result);
-			logAndStatistics(null, result, p, IsRequestSaved, aName);
+			logAndStatistics(null, result, p, p == null || isRequestSaved, aName);
 			return result;
 		} catch (Exception ex) {
 			long errorCode;
@@ -344,14 +345,14 @@ public final class Task {
 			else
 				errorCode = Procedure.Exception;
 
-			if (IsRequestSaved && actionWhenError != null) {
+			if (isRequestSaved && actionWhenError != null) {
 				try {
 					actionWhenError.handle(p, errorCode);
 				} catch (Exception e) {
 					logger.error("", e);
 				}
 			}
-			logAndStatistics(ex, errorCode, p, IsRequestSaved, aName);
+			logAndStatistics(ex, errorCode, p, p == null || isRequestSaved, aName);
 			return errorCode;
 		}
 	}
@@ -417,7 +418,7 @@ public final class Task {
 	}
 
 	public static long call(Procedure procedure) {
-		return call(procedure, null, null);
+		return call(procedure, (Protocol<?>)null, null);
 	}
 
 	public static long call(Procedure procedure, Protocol<?> from) {
@@ -432,7 +433,7 @@ public final class Task {
 			long result = procedure.call();
 			if (result != 0 && isRequestSaved && actionWhenError != null)
 				actionWhenError.run(from, result);
-			logAndStatistics(null, result, from, isRequestSaved, procedure.getActionName());
+			logAndStatistics(null, result, from, from == null || isRequestSaved, procedure.getActionName());
 			return result;
 		} catch (Exception ex) {
 			// Procedure.Call处理了所有错误。应该不会到这里。除非内部错误。
@@ -448,20 +449,21 @@ public final class Task {
 		}
 	}
 
-	public static long call(Procedure procedure, Action2<Protocol<?>, Long> actionWhenError) {
-		var from = procedure.getFromProtocol();
-		boolean isRequestSaved = from != null && from.isRequest();
+	public static long call(Procedure procedure, OutObject<Protocol<?>> outProtocol,
+							Action2<Protocol<?>, Long> actionWhenError) {
+		Protocol<?> from = null;
 		try {
 			// 日志在Call里面记录。因为要支持嵌套。
 			// 统计在Call里面实现。
 			long result = procedure.call();
-			if (result != 0 && isRequestSaved && actionWhenError != null)
+			from = outProtocol.value;
+			if (result != 0 && from != null && from.isRequest() && actionWhenError != null)
 				actionWhenError.run(from, result);
-			logAndStatistics(null, result, from, isRequestSaved, procedure.getActionName());
+			logAndStatistics(null, result, from, from == null || from.isRequest(), procedure.getActionName());
 			return result;
 		} catch (Exception ex) {
 			// Procedure.Call处理了所有错误。应该不会到这里。除非内部错误。
-			if (isRequestSaved && actionWhenError != null) {
+			if (from != null && from.isRequest() && actionWhenError != null) {
 				try {
 					actionWhenError.run(from, Procedure.Exception);
 				} catch (Exception e) {
@@ -482,7 +484,7 @@ public final class Task {
 	}
 
 	public static Future<Long> runUnsafe(Procedure procedure) {
-		return runUnsafe(procedure, null, null, DispatchMode.Normal);
+		return runUnsafe(procedure, DispatchMode.Normal);
 	}
 
 	public static void run(Procedure procedure, Protocol<?> from) {
@@ -517,6 +519,10 @@ public final class Task {
 			runUnsafe(procedure, from, actionWhenError, mode);
 	}
 
+	public static Future<Long> runUnsafe(Procedure procedure, DispatchMode mode) {
+		return runUnsafe(procedure, (Protocol<?>)null, null, mode);
+	}
+
 	public static Future<Long> runUnsafe(Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError, DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			final var future = new TaskCompletionSource<Long>();
@@ -528,15 +534,16 @@ public final class Task {
 		return pool.submit(() -> call(procedure, from, actionWhenError));
 	}
 
-	public static Future<Long> runUnsafe(Procedure procedure, Action2<Protocol<?>, Long> actionWhenError, DispatchMode mode) {
+	public static Future<Long> runUnsafe(Procedure procedure, OutObject<Protocol<?>> outProtocol, Action2<Protocol<?>, Long> actionWhenError,
+										 DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			final var future = new TaskCompletionSource<Long>();
-			future.setResult(call(procedure, actionWhenError));
+			future.setResult(call(procedure, outProtocol, actionWhenError));
 			return future;
 		}
 
 		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
-		return pool.submit(() -> call(procedure, actionWhenError));
+		return pool.submit(() -> call(procedure, outProtocol, actionWhenError));
 	}
 
 	public static void runRpcResponse(Procedure procedure) {
@@ -562,12 +569,12 @@ public final class Task {
 	public static Future<Long> runRpcResponseUnsafe(Procedure procedure, DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			final var future = new TaskCompletionSource<Long>();
-			future.setResult(call(procedure, null, null));
+			future.setResult(call(procedure));
 			return future;
 		}
 
 		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
-		return pool.submit(() -> call(procedure, null, null)); // rpcResponseThreadPool
+		return pool.submit(() -> call(procedure)); // rpcResponseThreadPool
 	}
 
 	public static void runRpcResponse(FuncLong func, Protocol<?> p) {
@@ -593,12 +600,12 @@ public final class Task {
 	public static Future<Long> runRpcResponseUnsafe(FuncLong func, Protocol<?> p, DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			final var future = new TaskCompletionSource<Long>();
-			future.setResult(call(func, p, null, null));
+			future.setResult(call(func, p));
 			return future;
 		}
 
 		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
-		return pool.submit(() -> call(func, p, null, null)); // rpcResponseThreadPool
+		return pool.submit(() -> call(func, p)); // rpcResponseThreadPool
 	}
 
 	public static void waitAll(Collection<Future<?>> tasks) {

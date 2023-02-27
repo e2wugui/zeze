@@ -2,11 +2,10 @@ package Zeze.Transaction;
 
 import Zeze.Application;
 import Zeze.Net.AsyncSocket;
-import Zeze.Net.Protocol;
+import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Login;
 import Zeze.Services.GlobalCacheManager.ReLogin;
-import Zeze.Net.Service;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
 

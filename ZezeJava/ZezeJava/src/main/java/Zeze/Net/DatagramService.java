@@ -5,9 +5,9 @@ import java.net.InetSocketAddress;
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.LongConcurrentHashMap;
+import Zeze.Util.OutObject;
 import Zeze.Util.ReplayAttackPolicy;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
@@ -129,9 +129,9 @@ public class DatagramService {
 		// 由于参数不同，需要重新实现一个。
 		var moduleId = input.ReadInt4();
 		var protocolId = input.ReadInt4();
-		var size = input.ReadInt4();
+		input.ReadInt4(); // size, 对UDP帧来说没什么用
 		var typeId = Protocol.makeTypeId(moduleId, protocolId);
-		this.dispatchProtocol(typeId, input, findProtocolFactoryHandle(typeId), sender, serialId);
+		dispatchProtocol(input, findProtocolFactoryHandle(typeId), sender, serialId);
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
@@ -160,38 +160,52 @@ public class DatagramService {
 		return factorys.get(type);
 	}
 
-	public Protocol<?> decodeProtocol(long typeId, ByteBuffer bb,
-									  Service.ProtocolFactoryHandle<?> factoryHandle,
+	@SuppressWarnings("MethodMayBeStatic")
+	public Protocol<?> decodeProtocol(ByteBuffer bb, Service.ProtocolFactoryHandle<?> factoryHandle,
 									  DatagramSession sender, long serialId) {
 		var p = factoryHandle.Factory.create();
 		p.decode(bb);
 		p.setDatagramSession(sender);
 		p.setUserState(serialId);
+		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p.getTypeId())) {
+			var log = AsyncSocket.logger;
+			var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
+			var sessionId = sender != null ? sender.getSessionId() : 0;
+			var className = p.getClass().getSimpleName();
+			if (p instanceof Rpc) {
+				var rpc = ((Rpc<?, ?>)p);
+				var rpcSessionId = rpc.getSessionId();
+				if (rpc.isRequest())
+					log.log(level, "RECV:{} {}:{} {}", sessionId, className, rpcSessionId, p.Argument);
+				else {
+					log.log(level, "RECV:{} {}:{}>{} {}", sessionId, className, rpcSessionId,
+							p.resultCode, rpc.Result);
+				}
+			} else if (p.resultCode == 0)
+				log.log(level, "RECV:{} {} {}", sessionId, className, p.Argument);
+			else
+				log.log(level, "RECV:{} {}>{} {}", sessionId, className, p.resultCode, p.Argument);
+		}
 		return p;
 	}
 
-	@SuppressWarnings("RedundantThrows")
-	public void dispatchProtocol(long typeId, ByteBuffer bb,
-								 Service.ProtocolFactoryHandle<?> factoryHandle,
-								 DatagramSession sender, long serialId)
-			throws Exception {
-		TransactionLevel level = factoryHandle.Level;
-		Application zeze = this.zeze;
+	public void dispatchProtocol(ByteBuffer bb, Service.ProtocolFactoryHandle<?> factoryHandle,
+								 DatagramSession sender, long serialId) throws Exception {
+		var level = factoryHandle.Level;
+		var zeze = this.zeze;
 		// 为了避免redirect时死锁,这里一律不在whileCommit时执行
 		if (zeze != null && level != TransactionLevel.None) {
 			var bbCopy = ByteBuffer.Wrap(bb.Copy()); // 传给事务的buffer可能重做需要重新decode，不能直接引用网络层的buffer，需要copy一次。
-			Task.runUnsafe(
-					zeze.newProcedure(
-							() -> {
-								var p = decodeProtocol(typeId, bbCopy, factoryHandle, sender, serialId);
-								Transaction.getCurrent().getTopProcedure().setFromProtocol(p);
-								return p.handle(this, factoryHandle);
-							},
-							// todo 下面为了得到协议的名字创建了一个空协议，有点点浪费，怎么优化。
-							factoryHandle.Factory.create().getClass().getName(), level, serialId),
-					Protocol::trySendResultCode, factoryHandle.Mode);
+			var outProtocol = new OutObject<Protocol<?>>();
+			Task.runUnsafe(zeze.newProcedure(() -> {
+						bbCopy.ReadIndex = 0; // 考虑redo,要重置读指针
+						var p = decodeProtocol(bbCopy, factoryHandle, sender, serialId);
+						outProtocol.value = p;
+						return p.handle(this, factoryHandle);
+					}, factoryHandle.Class.getName(), level, serialId),
+					outProtocol, Protocol::trySendResultCode, factoryHandle.Mode);
 		} else {
-			var p = decodeProtocol(typeId, bb, factoryHandle, sender, serialId);
+			var p = decodeProtocol(bb, factoryHandle, sender, serialId);
 			Task.runUnsafe(() -> p.handle(this, factoryHandle), p,
 					Protocol::trySendResultCode, null, factoryHandle.Mode);
 		}

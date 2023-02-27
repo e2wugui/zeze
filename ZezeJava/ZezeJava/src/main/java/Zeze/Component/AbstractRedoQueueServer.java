@@ -16,7 +16,7 @@ public abstract class AbstractRedoQueueServer implements Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.RedoQueue.RunTask>();
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.RedoQueue.RunTask.class, Zeze.Builtin.RedoQueue.RunTask.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.RedoQueue.RunTask::new;
             factoryHandle.Handle = this::ProcessRunTaskRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessRunTaskRequest", Zeze.Transaction.TransactionLevel.Serializable);

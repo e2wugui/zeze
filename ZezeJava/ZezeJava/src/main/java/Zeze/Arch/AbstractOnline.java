@@ -27,7 +27,7 @@ public abstract class AbstractOnline implements Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Online.Login>();
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Online.Login.class, Zeze.Builtin.Online.Login.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Online.Login::new;
             factoryHandle.Handle = this::ProcessLoginRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessLoginRequest", Zeze.Transaction.TransactionLevel.Serializable);
@@ -35,7 +35,7 @@ public abstract class AbstractOnline implements Zeze.IModule {
             service.AddFactoryHandle(47676933001134L, factoryHandle); // 11100, -1498951762
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Online.Logout>();
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Online.Logout.class, Zeze.Builtin.Online.Logout.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Online.Logout::new;
             factoryHandle.Handle = this::ProcessLogoutRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessLogoutRequest", Zeze.Transaction.TransactionLevel.Serializable);
@@ -43,7 +43,7 @@ public abstract class AbstractOnline implements Zeze.IModule {
             service.AddFactoryHandle(47676519983553L, factoryHandle); // 11100, -1911969343
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Online.ReliableNotifyConfirm>();
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Online.ReliableNotifyConfirm.class, Zeze.Builtin.Online.ReliableNotifyConfirm.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Online.ReliableNotifyConfirm::new;
             factoryHandle.Handle = this::ProcessReliableNotifyConfirmRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessReliableNotifyConfirmRequest", Zeze.Transaction.TransactionLevel.Serializable);
@@ -51,7 +51,7 @@ public abstract class AbstractOnline implements Zeze.IModule {
             service.AddFactoryHandle(47678187220010L, factoryHandle); // 11100, -244732886
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Online.ReLogin>();
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Online.ReLogin.class, Zeze.Builtin.Online.ReLogin.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Online.ReLogin::new;
             factoryHandle.Handle = this::ProcessReLoginRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessReLoginRequest", Zeze.Transaction.TransactionLevel.Serializable);

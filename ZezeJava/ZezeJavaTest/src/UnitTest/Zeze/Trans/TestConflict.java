@@ -30,7 +30,7 @@ public class TestConflict {
 		for (int i = 0; i < 2000; ++i) {
 			tasks[i]=Zeze.Util.Task.runUnsafe(
 					demo.App.getInstance().Zeze.newProcedure(this::ProcAdd, "ProcAdd"),
-					null, null, DispatchMode.Normal);
+					DispatchMode.Normal);
 		}
 		for (Future<?> task : tasks) {
 			try {

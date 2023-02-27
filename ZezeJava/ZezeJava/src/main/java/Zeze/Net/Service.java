@@ -15,17 +15,16 @@ import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DispatchMode;
-import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action1;
 import Zeze.Util.Factory;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.LongHashMap;
+import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.Async;
 
 public class Service {
 	protected static final Logger logger = LogManager.getLogger(Service.class);
@@ -373,6 +372,7 @@ public class Service {
 		return false;
 	}
 
+	@SuppressWarnings("MethodMayBeStatic")
 	public Protocol<?> decodeProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
 		var p = factoryHandle.Factory.create();
 		p.decode(bb);
@@ -384,9 +384,9 @@ public class Service {
 							p.getClass().getName(), service.getName(), moduleId, protocolId,
 							bb.ReadIndex - beginReadIndex, size));
 		*/
-		p.sender = so;
+		p.setSender(so);
 		if (null != so)
-			p.userState = so.getUserState();
+			p.setUserState(so.getUserState());
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
 			var log = AsyncSocket.logger;
 			var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
@@ -434,25 +434,26 @@ public class Service {
 		}
 	}
 
-	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) throws Exception {
+	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so)
+			throws Exception {
 		if (isHandshakeProtocol(typeId)) {
 			// handshake protocol call direct in io-thread.
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
 			Task.call(() -> p.handle(this, factoryHandle), "handle handshake protocol");
 			return;
 		}
-		if (zeze != null && factoryHandle.Level != TransactionLevel.None) {
+		var level = factoryHandle.Level;
+		if (zeze != null && level != TransactionLevel.None) {
 			// 事务模式，需要从decode重启。
 			// 传给事务的buffer可能重做需要重新decode，不能直接引用网络层的buffer，需要copy一次。
 			var bbCopy = ByteBuffer.Wrap(bb.Copy());
-			Task.runUnsafe(
-					zeze.newProcedure(() -> {
+			var outProtocol = new OutObject<Protocol<?>>();
+			Task.runUnsafe(zeze.newProcedure(() -> {
+						bbCopy.ReadIndex = 0; // 考虑redo,要重置读指针
 						var p = decodeProtocol(typeId, bbCopy, factoryHandle, so);
-						Transaction.getCurrent().getTopProcedure().setFromProtocol(p);
 						return p.handle(this, factoryHandle);
-						// todo 下面为了得到协议的名字创建了一个空协议，有点点浪费，怎么优化。
-					}, factoryHandle.Factory.create().getClass().getName(), factoryHandle.Level, so.getUserState()),
-					Protocol::trySendResultCode, factoryHandle.Mode);
+					}, factoryHandle.Class.getName(), level, so.getUserState()),
+					outProtocol, Protocol::trySendResultCode, factoryHandle.Mode);
 		} else {
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
 			// 其他协议或者rpc，马上在io线程继续派发。
@@ -482,6 +483,7 @@ public class Service {
 			logger.warn("DispatchProtocol: Protocol Handle Not Found: {}", p);
 	}
 	*/
+
 	/**
 	 * @param data 方法外绝对不能持有data.Bytes的引用! 也就是只能在方法内读data, 只能处理data.ReadIndex到data.WriteIndex范围内
 	 */
@@ -509,37 +511,38 @@ public class Service {
 	 * 协议工厂
 	 */
 	public static class ProtocolFactoryHandle<P extends Protocol<?>> {
+		public final Class<P> Class;
+		public final long TypeId;
 		public Factory<P> Factory;
 		public ProtocolHandle<P> Handle;
 		public TransactionLevel Level;
 		public DispatchMode Mode;
 
-		public ProtocolFactoryHandle() {
+		public ProtocolFactoryHandle(Class<P> protocolClass, long typeId) {
+			Class = protocolClass;
+			TypeId = typeId;
 			Level = TransactionLevel.Serializable;
 			Mode = DispatchMode.Normal;
 		}
 
 		public ProtocolFactoryHandle(Factory<P> factory) {
-			Factory = factory;
-			Level = TransactionLevel.Serializable;
-			Mode = DispatchMode.Normal;
+			this(factory, null, TransactionLevel.Serializable, DispatchMode.Normal);
 		}
 
 		public ProtocolFactoryHandle(Factory<P> factory, ProtocolHandle<P> handle) {
-			Factory = factory;
-			Handle = handle;
-			Level = TransactionLevel.Serializable;
-			Mode = DispatchMode.Normal;
+			this(factory, handle, TransactionLevel.Serializable, DispatchMode.Normal);
 		}
 
 		public ProtocolFactoryHandle(Factory<P> factory, ProtocolHandle<P> handle, TransactionLevel level) {
-			Factory = factory;
-			Handle = handle;
-			Level = level;
-			Mode = DispatchMode.Normal;
+			this(factory, handle, level, DispatchMode.Normal);
 		}
 
-		public ProtocolFactoryHandle(Factory<P> factory, ProtocolHandle<P> handle, TransactionLevel level, DispatchMode mode) {
+		@SuppressWarnings("unchecked")
+		public ProtocolFactoryHandle(Factory<P> factory, ProtocolHandle<P> handle, TransactionLevel level,
+									 DispatchMode mode) {
+			P p = factory.create();
+			Class = (Class<P>)p.getClass();
+			TypeId = p.getTypeId();
 			Factory = factory;
 			Handle = handle;
 			Level = level;

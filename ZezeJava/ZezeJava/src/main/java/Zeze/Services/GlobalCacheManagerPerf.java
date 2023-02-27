@@ -100,11 +100,17 @@ public class GlobalCacheManagerPerf {
 		long curSerialId = serialIdGenerator.get();
 		long serialIds = curSerialId - lastSerialId;
 		lastSerialId = curSerialId;
+		long totalReduceCountSum = totalReduceCount.sumThenReset();
+		long acquiresSize = acquires.size();
+		long reducesSize = reduces.size();
+		long[] totalAcquireCounts0 = new long[ACQUIRE_STATE_COUNT];
+		for (int i = 0; i < ACQUIRE_STATE_COUNT; i++)
+			totalAcquireCounts0[i] = totalAcquireCounts[i].sumThenReset();
 
-		if ((serialIds | totalReduceCount.sum() | acquires.size() | reduces.size()) == 0) {
+		if ((serialIds | totalReduceCountSum | acquiresSize | reducesSize) == 0) {
 			int i = 0;
 			for (; i < ACQUIRE_STATE_COUNT; i++) {
-				if (totalAcquireCounts[i].sum() != 0)
+				if (totalAcquireCounts0[i] != 0)
 					break;
 			}
 			if (i == ACQUIRE_STATE_COUNT)
@@ -113,28 +119,29 @@ public class GlobalCacheManagerPerf {
 
 		var sb = new StringBuilder().append("SerialIds = ").append(serialIds).append('\n');
 		for (int i = 0; i < ACQUIRE_STATE_COUNT; i++) {
-			long count = totalAcquireCounts[i].sum();
+			long count = totalAcquireCounts0[i];
 			sb.append("Acquires[").append(i).append("] = ").append(count);
 			if (count > 0) {
-				sb.append(", ").append(totalAcquireTimes[i].sum() / count / 1_000).append(" us/acquire, max: ")
-						.append(maxAcquireTimes[i].get() / 1_000_000).append(" ms");
+				sb.append(", ").append(totalAcquireTimes[i].sumThenReset() / count / 1_000).append(" us/acquire, max: ")
+						.append(maxAcquireTimes[i].getAndSet(0) / 1_000_000).append(" ms");
 			}
 			for (var e : totalAcquireResults[i].entrySet())
 				sb.append(", r=").append(e.getKey()).append(':').append(e.getValue().sum());
+			totalAcquireResults[i].clear();
 			sb.append('\n');
 		}
-		long count = totalReduceCount.sum();
-		sb.append("Reduces = ").append(count);
-		if (count > 0) {
-			sb.append(", ").append(totalReduceTime.sum() / count / 1_000).append(" us/reduce, max: ")
-					.append(maxReduceTime.get() / 1_000_000).append(" ms");
+		sb.append("Reduces = ").append(totalReduceCountSum);
+		if (totalReduceCountSum > 0) {
+			sb.append(", ").append(totalReduceTime.sumThenReset() / totalReduceCountSum / 1_000)
+					.append(" us/reduce, max: ").append(maxReduceTime.getAndSet(0) / 1_000_000).append(" ms");
 			for (var e : totalReduceResults.entrySet())
 				sb.append(", r=").append(e.getKey()).append(':').append(e.getValue().sum());
+			totalReduceResults.clear();
 		}
-		sb.append("\nAcquire/Reduce Pendings = ").append(acquires.size()).append(" / ")
-				.append(reduces.size()).append('\n');
+		sb.append("\nAcquire/Reduce Pendings = ").append(acquiresSize).append(" / ").append(reducesSize).append('\n');
 		for (var e : others.entrySet())
 			sb.append(e.getKey()).append(" = ").append(e.getValue().sum()).append('\n');
+		others.clear();
 		var es = Task.getThreadPool();
 		if (es instanceof ThreadPoolExecutor) {
 			var queueSize = ((ThreadPoolExecutor)es).getQueue().size();
@@ -142,17 +149,5 @@ public class GlobalCacheManagerPerf {
 				sb.append("ThreadPoolQueueSize = ").append(queueSize).append('\n');
 		}
 		logger.info("{}\n{}", perfName, sb.toString());
-
-		for (int i = 0; i < ACQUIRE_STATE_COUNT; i++) {
-			totalAcquireCounts[i].reset();
-			totalAcquireTimes[i].reset();
-			maxAcquireTimes[i].set(0);
-			totalAcquireResults[i].clear();
-		}
-		totalReduceCount.reset();
-		totalReduceTime.reset();
-		maxReduceTime.set(0);
-		totalReduceResults.clear();
-		others.clear();
 	}
 }

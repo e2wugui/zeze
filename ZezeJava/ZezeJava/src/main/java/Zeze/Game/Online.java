@@ -397,6 +397,7 @@ public class Online extends AbstractOnline {
 
 		}
 	}
+
 	public long linkBroken(String account, long roleId, String linkName, long linkSid) throws Exception {
 		long currentLoginVersion;
 		{
@@ -512,7 +513,7 @@ public class Online extends AbstractOnline {
 		providerApp.zeze.getTaskOneByOneByKey().Execute(roleId, () -> Task.call(providerApp.zeze.newProcedure(() -> {
 			sendEmbed(List.of(roleId), typeId, fullEncodedProtocol);
 			return Procedure.Success;
-		}, "Game.Online.send"), null, null), DispatchMode.Normal);
+		}, "Game.Online.send")), DispatchMode.Normal);
 	}
 
 	@SuppressWarnings("unused")
@@ -544,9 +545,10 @@ public class Online extends AbstractOnline {
 
 	/**
 	 * 直接通过Link链接发送Send协议。
-	 * @param link link
+	 *
+	 * @param link     link
 	 * @param contexts context
-	 * @param send protocol
+	 * @param send     protocol
 	 */
 	public void send(AsyncSocket link, Map<Long, Long> contexts, Send send) {
 		send.Send(link, rpc -> triggerLinkBroken(ProviderService.getLinkName(link),
@@ -554,6 +556,7 @@ public class Online extends AbstractOnline {
 	}
 
 	public void sendOneByOne(Collection<Long> keys, AsyncSocket to, Map<Long, Long> contexts, Send send) {
+		//noinspection CodeBlock2Expr
 		providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(keys, "sendOneByOne", () -> {
 			send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
 					send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
@@ -733,7 +736,7 @@ public class Online extends AbstractOnline {
 		if (handle != null) {
 			for (var target : roleIds) {
 				Task.call(providerApp.zeze.newProcedure(() -> handle.call(sender, target, parameter),
-						"Game.Online.transmit: " + actionName), null, null);
+						"Game.Online.transmit: " + actionName));
 			}
 		}
 	}

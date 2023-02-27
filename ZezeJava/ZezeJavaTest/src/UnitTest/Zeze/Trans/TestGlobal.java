@@ -116,7 +116,7 @@ public class TestGlobal extends TestCase {
 				//noinspection DataFlowIssue
 				Transaction.getCurrent().putLog(log);
 				return Procedure.Success;
-			}, "ConcurrentAdd" + appId), null, null, DispatchMode.Normal);
+			}, "ConcurrentAdd" + appId), DispatchMode.Normal);
 		}
 		for (Future<?> task : tasks) {
 			try {

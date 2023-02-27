@@ -207,7 +207,7 @@ public class RedirectBase {
 				throw e;
 			}
 			return Procedure.Success;
-		}, "Redirect Loop Back", level, null), null, null, DispatchMode.Normal);
+		}, "Redirect Loop Back", level, null), DispatchMode.Normal);
 		return future;
 	}
 
@@ -226,6 +226,6 @@ public class RedirectBase {
 		Task.runUnsafe(providerApp.zeze.newProcedure(() -> {
 			action.run();
 			return Procedure.Success;
-		}, "Redirect Loop Back", level, null), null, null, DispatchMode.Normal);
+		}, "Redirect Loop Back", level, null), DispatchMode.Normal);
 	}
 }

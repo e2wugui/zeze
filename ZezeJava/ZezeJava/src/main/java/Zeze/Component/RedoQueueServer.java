@@ -11,6 +11,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.LongConcurrentHashMap;
+import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 
 public class RedoQueueServer extends AbstractRedoQueueServer {
@@ -71,14 +72,16 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 
 		@Override
 		public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
+			var outProtocol = new OutObject<Protocol<?>>();
 			Task.runUnsafe(getZeze().newProcedure(() -> {
+						bb.ReadIndex = 0; // 考虑redo,要重置读指针
 						var p = decodeProtocol(typeId, bb, factoryHandle, so);
-						Transaction.getCurrent().getTopProcedure().setFromProtocol(p);
+						outProtocol.value = p;
 						Transaction.whileCommit(() -> p.SendResultCode(p.getResultCode()));
 						return p.handle(this, factoryHandle);
 						// todo 下面这个create怎么优化掉。
-					}, factoryHandle.Factory.create().getClass().getName(), TransactionLevel.Serializable, so.getUserState()),
-					Protocol::trySendResultCode, DispatchMode.Normal);
+					}, factoryHandle.Class.getName(), TransactionLevel.Serializable, so.getUserState()),
+					outProtocol, Protocol::trySendResultCode, DispatchMode.Normal);
 		}
 	}
 }

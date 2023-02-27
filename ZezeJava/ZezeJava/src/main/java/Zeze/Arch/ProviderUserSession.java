@@ -2,7 +2,7 @@ package Zeze.Arch;
 
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
+import Zeze.Arch.Beans.BSend;
 import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Game.ProviderWithOnline;
@@ -12,7 +12,6 @@ import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Transaction;
-import Zeze.Util.KV;
 
 /**
  * 用户登录会话。
@@ -62,8 +61,31 @@ public class ProviderUserSession {
 		return dispatch.getSender();
 	}
 
+	private void sendResponseDirectReal(Rpc<?, ?> rpc) {
+		rpc.setRequest(false);
+		protocolLogSend(rpc);
+		var send = new Send(new BSend(rpc.getTypeId(), new Binary(rpc.encode())));
+		send.Argument.getLinkSids().add(getLinkSid());
+
+		var link = getLink();
+		if (link != null && !link.isClosed()) {
+			send.Send(link);
+			return;
+		}
+		// 可能发生了重连，尝试再次查找发送。网络断开以后，linkSid已经不可靠了，先这样写着吧。
+		var connector = getService().getLinks().get(getLinkName());
+		if (connector != null && connector.isHandshakeDone()) {
+			dispatch.setSender(link = connector.getSocket());
+			send.Send(link);
+		}
+	}
+
 	public void sendResponseDirect(Rpc<?, ?> rpc) {
-		// todo 专门不排队发送rpc结果。自动适应事务环境。
+		var t = Transaction.getCurrent();
+		if (t != null)
+			t.runWhileCommit(() -> sendResponseDirectReal(rpc));
+		else
+			sendResponseDirectReal(rpc);
 	}
 
 	public void sendResponse(Binary fullEncodedProtocol) {
@@ -74,52 +96,46 @@ public class ProviderUserSession {
 		sendResponse(Protocol.makeTypeId(moduleId, protocolId), fullEncodedProtocol);
 	}
 
-	protected void sendOnline(AsyncSocket link, Send send, boolean direct) {
+	protected void sendOnline(AsyncSocket link, Send send) {
 		var providerImpl = getService().providerApp.providerImplement;
-		if (providerImpl instanceof Zeze.Arch.ProviderWithOnline) {
-			if (getContext() != null && !getContext().isEmpty() && !direct) {
-				var loginKey = new Online.LoginKey(getAccount(), getContext());
-				((Zeze.Arch.ProviderWithOnline)providerImpl).getOnline().sendOneByOne(
-						List.of(loginKey), link, Map.of(getLinkSid(), loginKey), send);
-			} else {
-				var loginKey = new Online.LoginKey(getAccount(), getContext());
-				((Zeze.Arch.ProviderWithOnline)providerImpl).getOnline().send(link, Map.of(getLinkSid(), loginKey), send);
-			}
-		} else if (providerImpl instanceof ProviderWithOnline) {
+		if (providerImpl instanceof ProviderWithOnline) {
+			var online = ((ProviderWithOnline)providerImpl).getOnline();
 			var roleId = getRoleId();
-			var contexts = new TreeMap<Long, Long>();
-			if (null != roleId && !direct) {
-				contexts.put(getLinkSid(), roleId);
-				((ProviderWithOnline)providerImpl).getOnline().sendOneByOne(List.of(roleId), link, contexts, send);
-			} else {
-				contexts.put(getLinkSid(), null);
-				((ProviderWithOnline)providerImpl).getOnline().send(link, contexts, send);
-			}
+			if (roleId != null)
+				online.sendOneByOne(List.of(roleId), link, Map.of(getLinkSid(), roleId), send);
+			else
+				online.send(link, Map.of(), send);
+		} else if (providerImpl instanceof Zeze.Arch.ProviderWithOnline) {
+			var online = ((Zeze.Arch.ProviderWithOnline)providerImpl).getOnline();
+			var context = getContext();
+			var loginKey = new Online.LoginKey(getAccount(), context);
+			if (context != null && !context.isEmpty())
+				online.sendOneByOne(List.of(loginKey), link, Map.of(getLinkSid(), loginKey), send);
+			else
+				online.send(link, Map.of(getLinkSid(), loginKey), send);
 		} else
 			send.Send(link);
 	}
 
 	public void sendResponse(long typeId, Binary fullEncodedProtocol) {
-		var send = new Send(new Zeze.Arch.Beans.BSend(typeId, fullEncodedProtocol));
+		var send = new Send(new BSend(typeId, fullEncodedProtocol));
 		send.Argument.getLinkSids().add(getLinkSid());
 
 		var link = getLink();
 		if (link != null && !link.isClosed()) {
-			sendOnline(link, send, false);
+			sendOnline(link, send);
 			return;
 		}
 		// 可能发生了重连，尝试再次查找发送。网络断开以后，linkSid已经不可靠了，先这样写着吧。
 		var connector = getService().getLinks().get(getLinkName());
 		if (connector != null && connector.isHandshakeDone()) {
 			dispatch.setSender(link = connector.getSocket());
-			sendOnline(link, send, false);
+			sendOnline(link, send);
 		}
 	}
 
-	public void sendResponse(Protocol<?> p) {
-		p.setRequest(false);
-		var typeId = p.getTypeId();
-		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
+	private void protocolLogSend(Protocol<?> p) {
+		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p.getTypeId())) {
 			var log = AsyncSocket.logger;
 			var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
 			var roleId = getRoleId();
@@ -140,7 +156,12 @@ public class ProviderUserSession {
 			else
 				log.log(level, "Send:{} {}>{} {}", roleId, className, p.getResultCode(), p.Argument);
 		}
-		sendResponse(typeId, new Binary(p.encode()));
+	}
+
+	public void sendResponse(Protocol<?> p) {
+		p.setRequest(false);
+		protocolLogSend(p);
+		sendResponse(p.getTypeId(), new Binary(p.encode()));
 	}
 
 	public void sendResponseWhileCommit(long typeId, Binary fullEncodedProtocol) {

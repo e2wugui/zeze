@@ -65,7 +65,7 @@ public class App {
 		}
 		Tasks.getRunCounter(name).increment();
 		RunningTasks.add(task.IsProcedure()
-				? Task.runUnsafe(app.Zeze.newProcedure(task, name), null, null, DispatchMode.Normal)
+				? Task.runUnsafe(app.Zeze.newProcedure(task, name), DispatchMode.Normal)
 				: Task.runUnsafe(task::call, name, DispatchMode.Normal));
 	}
 

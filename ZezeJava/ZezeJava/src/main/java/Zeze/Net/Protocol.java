@@ -3,11 +3,12 @@ package Zeze.Net;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.ProtocolFactoryFinder;
+
 public abstract class Protocol<TArgument extends Serializable> implements Serializable {
 	public static final int HEADER_SIZE = 12; // moduleId[4] + protocolId[4] + size[4]
 
-	Object sender; // AsyncSocket or DatagramSession
-	Object userState;
+	private Object sender; // AsyncSocket or DatagramSession
+	private Object userState;
 	public TArgument Argument;
 	protected long resultCode;
 
@@ -171,24 +172,31 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		SendResult(result);
 	}
 
-	public <P extends Protocol<?>> void dispatch(Service service, Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
+	public <P extends Protocol<?>> void dispatch(Service service, Service.ProtocolFactoryHandle<P> factoryHandle)
+			throws Exception {
 		service.dispatchProtocol(this, factoryHandle);
 	}
 
-	public <P extends Protocol<?>> long handle(Service service, Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
-		if (null != factoryHandle.Handle)
-			return factoryHandle.Handle.handleProtocol(this);
+	public <P extends Protocol<?>> long handle(Service service, Service.ProtocolFactoryHandle<P> factoryHandle)
+			throws Exception {
+		var handle = factoryHandle.Handle;
+		if (handle != null)
+			return handle.handleProtocol(this);
 
+		Service.logger.warn("Protocol.handle({}): Protocol Handle Not Found: {}", service.getName(), this);
 		if (service.getSocketOptions().isCloseWhenMissHandle() && sender != null)
 			((AsyncSocket)sender).close();
 
 		return 0;
 	}
 
-	public <P extends Protocol<?>> long handle(DatagramService service, Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
-		if (null != factoryHandle.Handle)
-			return factoryHandle.Handle.handleProtocol(this);
+	public <P extends Protocol<?>> long handle(DatagramService service, Service.ProtocolFactoryHandle<P> factoryHandle)
+			throws Exception {
+		var handle = factoryHandle.Handle;
+		if (handle != null)
+			return handle.handleProtocol(this);
 
+		Service.logger.warn("Protocol.handle({}): Protocol Handle Not Found: {}", service.getName(), this);
 		if (service.getSocketOptions().isCloseWhenMissHandle() && sender != null)
 			((DatagramSession)sender).close();
 

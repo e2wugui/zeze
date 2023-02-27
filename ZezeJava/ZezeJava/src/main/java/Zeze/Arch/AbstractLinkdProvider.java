@@ -14,7 +14,7 @@ public abstract class AbstractLinkdProvider implements Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(this.getClass());
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Provider.AnnounceProviderInfo>();
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Provider.AnnounceProviderInfo.class, Zeze.Builtin.Provider.AnnounceProviderInfo.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Provider.AnnounceProviderInfo::new;
             factoryHandle.Handle = this::ProcessAnnounceProviderInfo;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessAnnounceProviderInfo", Zeze.Transaction.TransactionLevel.None);
@@ -22,7 +22,7 @@ public abstract class AbstractLinkdProvider implements Zeze.IModule {
             service.AddFactoryHandle(47279202608226L, factoryHandle); // 11008, 202613858
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Provider.Bind>();
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Provider.Bind.class, Zeze.Builtin.Provider.Bind.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Provider.Bind::new;
             factoryHandle.Handle = this::ProcessBindRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessBindRequest", Zeze.Transaction.TransactionLevel.Serializable);
@@ -30,7 +30,7 @@ public abstract class AbstractLinkdProvider implements Zeze.IModule {
             service.AddFactoryHandle(47279114253990L, factoryHandle); // 11008, 114259622
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Provider.Broadcast>();
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Provider.Broadcast.class, Zeze.Builtin.Provider.Broadcast.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Provider.Broadcast::new;
             factoryHandle.Handle = this::ProcessBroadcast;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessBroadcast", Zeze.Transaction.TransactionLevel.Serializable);
@@ -38,7 +38,7 @@ public abstract class AbstractLinkdProvider implements Zeze.IModule {
             service.AddFactoryHandle(47282408036866L, factoryHandle); // 11008, -886924798
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Provider.Kick>();
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Provider.Kick.class, Zeze.Builtin.Provider.Kick.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Provider.Kick::new;
             factoryHandle.Handle = this::ProcessKick;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessKick", Zeze.Transaction.TransactionLevel.Serializable);
@@ -46,7 +46,7 @@ public abstract class AbstractLinkdProvider implements Zeze.IModule {
             service.AddFactoryHandle(47283221887522L, factoryHandle); // 11008, -73074142
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Provider.Send>();
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Provider.Send.class, Zeze.Builtin.Provider.Send.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Provider.Send::new;
             factoryHandle.Handle = this::ProcessSendRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessSendRequest", Zeze.Transaction.TransactionLevel.Serializable);
@@ -54,7 +54,7 @@ public abstract class AbstractLinkdProvider implements Zeze.IModule {
             service.AddFactoryHandle(47281226998238L, factoryHandle); // 11008, -2067963426
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Provider.SetUserState>();
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Provider.SetUserState.class, Zeze.Builtin.Provider.SetUserState.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Provider.SetUserState::new;
             factoryHandle.Handle = this::ProcessSetUserState;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessSetUserState", Zeze.Transaction.TransactionLevel.Serializable);
@@ -62,7 +62,7 @@ public abstract class AbstractLinkdProvider implements Zeze.IModule {
             service.AddFactoryHandle(47281569047175L, factoryHandle); // 11008, -1725914489
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Provider.Subscribe>();
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Provider.Subscribe.class, Zeze.Builtin.Provider.Subscribe.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Provider.Subscribe::new;
             factoryHandle.Handle = this::ProcessSubscribeRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessSubscribeRequest", Zeze.Transaction.TransactionLevel.Serializable);
@@ -70,7 +70,7 @@ public abstract class AbstractLinkdProvider implements Zeze.IModule {
             service.AddFactoryHandle(47280110454586L, factoryHandle); // 11008, 1110460218
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Provider.UnBind>();
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Provider.UnBind.class, Zeze.Builtin.Provider.UnBind.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Provider.UnBind::new;
             factoryHandle.Handle = this::ProcessUnBindRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessUnBindRequest", Zeze.Transaction.TransactionLevel.Serializable);

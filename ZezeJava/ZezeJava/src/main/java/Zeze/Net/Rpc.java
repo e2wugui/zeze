@@ -228,15 +228,16 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	}
 
 	@Override
-	public <P extends Protocol<?>> long handle(DatagramService service, Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
+	public <P extends Protocol<?>> long handle(DatagramService service, Service.ProtocolFactoryHandle<P> factoryHandle)
+			throws Exception {
 		// udp 不支持rpc。
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public <P extends Protocol<?>> void dispatch(Service service, Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
+	public <P extends Protocol<?>> void dispatch(Service service, Service.ProtocolFactoryHandle<P> factoryHandle)
+			throws Exception {
 		if (isRequest) {
-			@SuppressWarnings("unchecked") P proto = (P)this;
 			super.dispatch(service, factoryHandle);
 			return;
 		}
@@ -262,11 +263,10 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	}
 
 	@Override
-	public <P extends Protocol<?>> long handle(Service service, Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
-		if (isRequest) {
-			@SuppressWarnings("unchecked") P proto = (P)this;
+	public <P extends Protocol<?>> long handle(Service service, Service.ProtocolFactoryHandle<P> factoryHandle)
+			throws Exception {
+		if (isRequest)
 			return super.handle(service, factoryHandle);
-		}
 
 		// response, 从上下文中查找原来发送的rpc对象，并派发该对象。
 		Rpc<TArgument, TResult> context = service.removeRpcContext(sessionId);

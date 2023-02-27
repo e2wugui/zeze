@@ -57,7 +57,7 @@ public class TestProcedureRedo {
             });
             return Procedure.Success;
 
-        }, "TestProcedureRedoTask1"), null, null, DispatchMode.Normal);
+        }, "TestProcedureRedoTask1"), DispatchMode.Normal);
 
         var ftask2 = Task.runUnsafe(App.getInstance().Zeze.newProcedure(()  -> {
 
@@ -73,7 +73,7 @@ public class TestProcedureRedo {
             Transaction.whileCommit(() -> System.out.println("task2 suss"));
             return Procedure.Success;
 
-        }, "TestProcedureRedoTask2"), null, null, DispatchMode.Normal);
+        }, "TestProcedureRedoTask2"), DispatchMode.Normal);
 
         ftask2.get();
         ftask1.get();

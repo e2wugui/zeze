@@ -42,7 +42,7 @@ public class TestCheckpointModeTable{
 			for (int i = 0; i < tasks.length; ++i) {
 				tasks[i] = Zeze.Util.Task.runUnsafe(
 						demo.App.getInstance().Zeze.newProcedure(TestCheckpointModeTable::Add, "TestCheckpointModeTable.Add"),
-						null, null, DispatchMode.Normal);
+						DispatchMode.Normal);
 			}
 			for (Future<?> task : tasks) {
 				try {
@@ -61,7 +61,7 @@ public class TestCheckpointModeTable{
 			for (int i = 0; i < tasks.length; ++i) {
 				tasks[i] = Zeze.Util.Task.runUnsafe(
 						demo.App.getInstance().Zeze.newProcedure(TestCheckpointModeTable::Add2, "TestCheckpointModeTable.Add2"),
-						null, null, DispatchMode.Normal);
+						DispatchMode.Normal);
 			}
 			for (Future<?> task : tasks) {
 				try {
