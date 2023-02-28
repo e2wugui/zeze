@@ -17,10 +17,23 @@ c# 并发比冲突还慢
 Benchmark.ABasicSimpleAddOneThread tasks/s=209874.71 time=4.76 cpu=0.00 concurrent=0.00
 Benchmark.BBasicSimpleAddConcurrentWithConflict tasks/s=217785.84 time=4.59 cpu=0.00 concurrent=0.00
 Benchmark.CBasicSimpleAddConcurrent tasks/s=96997.63 time=10.31 cpu=100.00 concurrent=9.70
+Focus Document
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/3/2 v1.1.9 Zeze.Transaction.Data; protocolref import; New Dispatch Protocol For Procedure; Online.sendOneByOne
+2023/3/2 v1.1.9 Zeze.Transaction.Data; protocolref import; New Dispatch Protocol For Procedure; Online.sendOneByOne；AutoKeyRandom
 ------------------------------------------------------------------------------------------------------------------------------
+AutoKeyRandom -> Uuid? 或者纯粹随机？
+	考虑冲突的可能，Table增加辅助函数
+	Binary insertWithRandomKey(T value) {
+		var rKey = randomKey();
+		while (!add(rKey, value))
+			rKey = randomKey();
+		return rKey；
+	}
+	randomkey 类型选择。
+		1. Binary 弄个16字节或更长之类的。减少冲突。
+		2. long 8个字节凑合着用？
+		3. String 如果用uuid，需要这个类型。否则内部还是long或binary。
 Dispatch 也是传参数给事务，需要考虑重置参数问题。@张路
 Timer 允许在事件回调里面直接取消。
 LinkBroken.Delay 使用Timer（持久化的），防止Logout丢失。Timer中记录LoginVersion。

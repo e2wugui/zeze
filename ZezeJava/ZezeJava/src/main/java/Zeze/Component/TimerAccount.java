@@ -193,7 +193,7 @@ public class TimerAccount {
 
 	//////////////////////////////////////////////////////////////////////////////////////////
 	// 内部实现
-	private static class OfflineHandle implements TimerHandle {
+	public static class OfflineHandle implements TimerHandle {
 		@Override
 		public void onTimer(TimerContext context) throws Exception {
 			var offlineCustom = (BOfflineAccountCustom)context.customData;

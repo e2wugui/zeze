@@ -381,7 +381,7 @@ public class Online extends AbstractOnline {
 
 	static Online instance;
 
-	static class DelayLogout implements TimerHandle {
+	public static class DelayLogout implements TimerHandle {
 
 		@Override
 		public void onTimer(TimerContext context) throws Exception {
