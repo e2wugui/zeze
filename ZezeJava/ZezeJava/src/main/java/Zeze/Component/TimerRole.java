@@ -299,6 +299,10 @@ public class TimerRole {
 				handle.onTimer(context);
 				return Procedure.Success;
 			}, "fireOnlineLocalHandle"));
+
+			if (timer.tRoleTimers().get(timerId) == null)
+				return 0; // canceled in onTimer
+
 			if (retNest == Procedure.Exception) {
 				cancel(timerId); // 异常错误不忽略。
 				return 0;
@@ -329,11 +333,11 @@ public class TimerRole {
 		var timer = online.providerApp.zeze.getTimer();
 		Transaction.whileCommit(
 				() -> timer.timersFuture.put(timerId, Task.scheduleUnsafe(delay,
-						() -> fireOnlineSimpleTimer(timerId, name))));
+						() -> fireSimple(timerId, name))));
 	}
 
 	// Timer发生，执行回调。
-	private void fireOnlineSimpleTimer(String timerId, TimerHandle handle) {
+	private void fireSimple(String timerId, TimerHandle handle) {
 		var timer = online.providerApp.zeze.getTimer();
 		var ret = Task.call(online.providerApp.zeze.newProcedure(() -> {
 			if (null == handle) {
@@ -366,6 +370,10 @@ public class TimerRole {
 				handle.onTimer(context);
 				return Procedure.Success;
 			}, "fireOnlineLocalHandle"));
+
+			if (timer.tRoleTimers().get(timerId) == null)
+				return 0; // canceled in onTimer
+
 			if (retNest == Procedure.Exception) {
 				cancel(timerId); // 异常错误不忽略。
 				return 0;

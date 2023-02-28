@@ -783,6 +783,10 @@ public class Timer extends AbstractTimer {
 					handle.onTimer(context);
 					return 0;
 				}, "fireSimpleUser"));
+
+				if (_tIndexs.get(timerId) == null)
+					return 0; // canceled in onTimer.
+
 				if (ret == Procedure.Exception) {
 					// 用户处理不允许异常，其他错误记录忽略，日志已经记录。
 					cancel(serverId, timerId, index, node);
@@ -903,6 +907,10 @@ public class Timer extends AbstractTimer {
 					handle.onTimer(context);
 					return 0;
 				}, "fireCronUser"));
+
+				if (_tIndexs.get(timerId) == null)
+					return 0; // canceled in onTimer.
+
 				if (ret == Procedure.Exception) {
 					// 用户处理不允许异常，其他错误记录忽略，日志已经记录。
 					cancel(serverId, timerId, index, node);

@@ -306,6 +306,10 @@ public class TimerAccount {
 				handle.onTimer(context);
 				return Procedure.Success;
 			}, "fireOnlineLocalHandle"));
+
+			if (timer.tAccountTimers().get(timerId) == null)
+				return 0; // canceled in onTimer
+
 			if (retNest == Procedure.Exception) {
 				cancel(timerId); // 异常错误不忽略。
 				return 0;
@@ -373,6 +377,10 @@ public class TimerAccount {
 				handle.onTimer(context);
 				return Procedure.Success;
 			}, "fireOnlineLocalHandle"));
+
+			if (timer.tAccountTimers().get(timerId) == null)
+				return 0; // canceled in onTimer
+
 			if (retNest == Procedure.Exception) {
 				cancel(timerId); // 异常错误不忽略。
 				return 0;
