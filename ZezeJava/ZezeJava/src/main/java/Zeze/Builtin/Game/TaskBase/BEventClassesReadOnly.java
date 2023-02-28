@@ -2,10 +2,10 @@
 package Zeze.Builtin.Game.TaskBase;
 
 public interface BEventClassesReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BEventClasses copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BEventClasses copy();
 
-    public Zeze.Transaction.Collections.PSet1ReadOnly<String> getEventClassesReadOnly();
+    Zeze.Transaction.Collections.PSet1ReadOnly<String> getEventClassesReadOnly();
 }

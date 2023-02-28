@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import Zeze.Arch.RedirectBase;
-import Zeze.Collections.Queue;
 import Zeze.Component.AutoKey;
 import Zeze.Component.AutoKeyOld;
 import Zeze.Component.DelayRemove;
@@ -59,7 +58,7 @@ public final class Application {
 	private Zeze.Collections.Queue.Module queueModule;
 	private DelayRemove delayRemove;
 	private IGlobalAgent globalAgent;
-	private Zeze.Transaction.AchillesHeelDaemon achillesHeelDaemon;
+	private AchillesHeelDaemon achillesHeelDaemon;
 	private Checkpoint checkpoint;
 	private Future<?> flushWhenReduceTimerTask;
 	private Schemas schemas;
@@ -118,7 +117,7 @@ public final class Application {
 			// 自动初始化的组件。
 			autoKey = new AutoKey.Module(this);
 			autoKeyOld = new AutoKeyOld.Module(this);
-			queueModule = new Queue.Module(this);
+			queueModule = new Zeze.Collections.Queue.Module(this);
 			delayRemove = new DelayRemove(this);
 		}
 
@@ -188,7 +187,7 @@ public final class Application {
 		return projectName;
 	}
 
-	public Zeze.Transaction.AchillesHeelDaemon getAchillesHeelDaemon() {
+	public AchillesHeelDaemon getAchillesHeelDaemon() {
 		return achillesHeelDaemon;
 	}
 

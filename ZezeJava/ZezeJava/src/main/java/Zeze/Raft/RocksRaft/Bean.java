@@ -3,6 +3,7 @@ package Zeze.Raft.RocksRaft;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
+import Zeze.Transaction.HasManagedException;
 import Zeze.Util.Str;
 
 public abstract class Bean implements Serializable {
@@ -60,7 +61,7 @@ public abstract class Bean implements Serializable {
 
 	public final void initRootInfo(Record.RootInfo rootInfo, Bean parent) {
 		if (isManaged())
-			throw new Zeze.Transaction.HasManagedException();
+			throw new HasManagedException();
 		this.rootInfo = rootInfo;
 		this.parent = parent;
 		initChildrenRootInfo(rootInfo);

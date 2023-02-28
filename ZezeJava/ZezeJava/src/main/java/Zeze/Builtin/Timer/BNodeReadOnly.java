@@ -2,12 +2,12 @@
 package Zeze.Builtin.Timer;
 
 public interface BNodeReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BNode copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BNode copy();
 
-    public long getPrevNodeId();
-    public long getNextNodeId();
-    public Zeze.Transaction.Collections.PMap2ReadOnly<String, Zeze.Builtin.Timer.BTimer, Zeze.Builtin.Timer.BTimerReadOnly> getTimersReadOnly();
+    long getPrevNodeId();
+    long getNextNodeId();
+    Zeze.Transaction.Collections.PMap2ReadOnly<String, Zeze.Builtin.Timer.BTimer, Zeze.Builtin.Timer.BTimerReadOnly> getTimersReadOnly();
 }

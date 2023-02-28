@@ -5,9 +5,10 @@ import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
+import org.pcollections.Empty;
 
 public abstract class PSet<V> extends Collection implements Set<V> {
-	public org.pcollections.PSet<V> set = org.pcollections.Empty.set();
+	public org.pcollections.PSet<V> set = Empty.set();
 
 	@Override
 	public abstract boolean add(V item);

@@ -308,7 +308,7 @@ public class Bag {
 
 	public static class Module extends AbstractBag {
 		private final ConcurrentHashMap<String, Bag> bags = new ConcurrentHashMap<>();
-		public Zeze.Arch.ProviderApp providerApp;
+		public ProviderApp providerApp;
 		public final Application zeze;
 
 		// 用于UserApp服务，可以处理客户端发送的协议。
@@ -331,7 +331,7 @@ public class Bag {
 		}
 
 		// 用于数据测试，测试不支持协议。
-		public Module(Zeze.Application zeze) {
+		public Module(Application zeze) {
 			this.zeze = zeze;
 			RegisterZezeTables(zeze);
 		}
@@ -352,7 +352,7 @@ public class Bag {
 		}
 
 		@SuppressWarnings("unchecked")
-		public void start(Zeze.Application zeze) {
+		public void start(Application zeze) {
 			providerApp.builtinModules.put(this.getFullName(), this);
 			if (0L != zeze.newProcedure(() -> {
 				var classes = _tItemClasses.getOrAdd(1);

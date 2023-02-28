@@ -27,7 +27,7 @@ public final class GlobalAgent implements IGlobalAgent {
 		private boolean activeClose;
 		private volatile long lastErrorTime;
 
-		public Agent(Zeze.Application zeze, GlobalClient client, String host, int port, int _GlobalCacheManagerHashIndex) {
+		public Agent(Application zeze, GlobalClient client, String host, int port, int _GlobalCacheManagerHashIndex) {
 			super(zeze);
 			connector = new Connector(host, port, true);
 			connector.userState = this;

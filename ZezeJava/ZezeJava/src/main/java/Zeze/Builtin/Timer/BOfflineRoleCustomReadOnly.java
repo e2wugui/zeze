@@ -2,15 +2,14 @@
 package Zeze.Builtin.Timer;
 
 public interface BOfflineRoleCustomReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BOfflineRoleCustom copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BOfflineRoleCustom copy();
 
-    public String getTimerName();
-    public long getRoleId();
-    public long getLoginVersion();
-    public String getHandleName();
-    public Zeze.Transaction.DynamicBeanReadOnly getCustomDataReadOnly();
-
+    String getTimerName();
+    long getRoleId();
+    long getLoginVersion();
+    String getHandleName();
+    Zeze.Transaction.DynamicBeanReadOnly getCustomDataReadOnly();
 }

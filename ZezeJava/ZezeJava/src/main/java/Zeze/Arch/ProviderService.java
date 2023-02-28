@@ -3,18 +3,20 @@ package Zeze.Arch;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import Zeze.Application;
 import Zeze.Builtin.Provider.AnnounceProviderInfo;
 import Zeze.Builtin.Provider.BAnnounceProviderInfo;
 import Zeze.Builtin.Provider.Bind;
 import Zeze.Builtin.Provider.Subscribe;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
+import Zeze.Services.HandshakeClient;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BServiceInfos;
 import Zeze.Util.OutObject;
 import Zeze.Util.TaskCompletionSource;
 
-public class ProviderService extends Zeze.Services.HandshakeClient {
+public class ProviderService extends HandshakeClient {
 	// private static final Logger logger = LogManager.getLogger(ProviderService.class);
 
 	protected ProviderApp providerApp;
@@ -26,7 +28,7 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 	public final TaskCompletionSource<Boolean> providerStaticBindCompleted = new TaskCompletionSource<>();
 	public final TaskCompletionSource<Boolean> providerDynamicSubscribeCompleted = new TaskCompletionSource<>();
 
-	public ProviderService(String name, Zeze.Application zeze) {
+	public ProviderService(String name, Application zeze) {
 		super(name, zeze);
 	}
 

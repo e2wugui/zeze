@@ -3,17 +3,16 @@ package Zeze.Builtin.Game.Online;
 
 // tables
 public interface BVersionReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BVersion copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BVersion copy();
 
-    public long getLoginVersion();
-    public Zeze.Transaction.Collections.PSet1ReadOnly<String> getReliableNotifyMarkReadOnly();
-    public long getReliableNotifyConfirmIndex();
-    public long getReliableNotifyIndex();
-    public int getServerId();
-    public long getLogoutVersion();
-    public Zeze.Transaction.DynamicBeanReadOnly getUserDataReadOnly();
-
+    long getLoginVersion();
+    Zeze.Transaction.Collections.PSet1ReadOnly<String> getReliableNotifyMarkReadOnly();
+    long getReliableNotifyConfirmIndex();
+    long getReliableNotifyIndex();
+    int getServerId();
+    long getLogoutVersion();
+    Zeze.Transaction.DynamicBeanReadOnly getUserDataReadOnly();
 }

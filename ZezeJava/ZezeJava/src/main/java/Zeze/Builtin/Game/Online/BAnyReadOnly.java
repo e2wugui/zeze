@@ -2,11 +2,10 @@
 package Zeze.Builtin.Game.Online;
 
 public interface BAnyReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BAny copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BAny copy();
 
-    public Zeze.Transaction.DynamicBeanReadOnly getAnyReadOnly();
-
+    Zeze.Transaction.DynamicBeanReadOnly getAnyReadOnly();
 }

@@ -2,11 +2,11 @@
 package Zeze.Builtin.Online;
 
 public interface BReLoginReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BReLogin copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BReLogin copy();
 
-    public String getClientId();
-    public long getReliableNotifyConfirmIndex();
+    String getClientId();
+    long getReliableNotifyConfirmIndex();
 }

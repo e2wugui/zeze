@@ -2,12 +2,12 @@
 package Zeze.Builtin.Game.Rank;
 
 public interface BRankValueReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BRankValue copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BRankValue copy();
 
-    public long getRoleId();
-    public long getValue();
-    public Zeze.Net.Binary getValueEx();
+    long getRoleId();
+    long getValue();
+    Zeze.Net.Binary getValueEx();
 }

@@ -2,14 +2,14 @@
 package Zeze.Builtin.ProviderDirect;
 
 public interface BTransmitAccountReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BTransmitAccount copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BTransmitAccount copy();
 
-    public String getActionName();
-    public Zeze.Net.Binary getParameter();
-    public Zeze.Transaction.Collections.PSet1ReadOnly<String> getTargetAccountsReadOnly();
-    public String getSenderAccount();
-    public String getSenderClientId();
+    String getActionName();
+    Zeze.Net.Binary getParameter();
+    Zeze.Transaction.Collections.PSet1ReadOnly<String> getTargetAccountsReadOnly();
+    String getSenderAccount();
+    String getSenderClientId();
 }

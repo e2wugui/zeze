@@ -2,12 +2,12 @@
 package Zeze.Builtin.Provider;
 
 public interface BKickReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BKick copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BKick copy();
 
-    public long getLinksid();
-    public int getCode();
-    public String getDesc();
+    long getLinksid();
+    int getCode();
+    String getDesc();
 }

@@ -2,17 +2,17 @@
 package Zeze.Builtin.ProviderDirect;
 
 public interface BModuleRedirectAllRequestReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BModuleRedirectAllRequest copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BModuleRedirectAllRequest copy();
 
-    public int getModuleId();
-    public int getHashCodeConcurrentLevel();
-    public Zeze.Transaction.Collections.PSet1ReadOnly<Integer> getHashCodesReadOnly();
-    public long getSourceProvider();
-    public long getSessionId();
-    public String getMethodFullName();
-    public Zeze.Net.Binary getParams();
-    public String getServiceNamePrefix();
+    int getModuleId();
+    int getHashCodeConcurrentLevel();
+    Zeze.Transaction.Collections.PSet1ReadOnly<Integer> getHashCodesReadOnly();
+    long getSourceProvider();
+    long getSessionId();
+    String getMethodFullName();
+    Zeze.Net.Binary getParams();
+    String getServiceNamePrefix();
 }

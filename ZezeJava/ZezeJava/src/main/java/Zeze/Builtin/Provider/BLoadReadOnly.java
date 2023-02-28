@@ -2,13 +2,13 @@
 package Zeze.Builtin.Provider;
 
 public interface BLoadReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BLoad copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BLoad copy();
 
-    public int getOnline();
-    public int getProposeMaxOnline();
-    public int getOnlineNew();
-    public int getOverload();
+    int getOnline();
+    int getProposeMaxOnline();
+    int getOnlineNew();
+    int getOverload();
 }

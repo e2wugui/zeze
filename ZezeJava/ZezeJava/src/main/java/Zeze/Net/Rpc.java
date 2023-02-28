@@ -2,6 +2,7 @@ package Zeze.Net;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
+import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
@@ -89,7 +90,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 				return;
 
 			context.isTimeout = true;
-			context.setResultCode(Zeze.Transaction.Procedure.Timeout);
+			context.setResultCode(Procedure.Timeout);
 
 			if (context.future != null)
 				context.future.trySetException(RpcTimeoutException.getInstance());

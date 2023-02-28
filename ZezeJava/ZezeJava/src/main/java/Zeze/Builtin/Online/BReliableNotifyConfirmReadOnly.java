@@ -2,12 +2,12 @@
 package Zeze.Builtin.Online;
 
 public interface BReliableNotifyConfirmReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BReliableNotifyConfirm copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BReliableNotifyConfirm copy();
 
-    public String getClientId();
-    public long getReliableNotifyConfirmIndex();
-    public boolean isSync();
+    String getClientId();
+    long getReliableNotifyConfirmIndex();
+    boolean isSync();
 }

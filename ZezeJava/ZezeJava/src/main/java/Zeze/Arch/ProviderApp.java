@@ -1,8 +1,10 @@
 package Zeze.Arch;
 
 import java.util.HashMap;
+import Zeze.Application;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Builtin.Provider.BModule;
+import Zeze.IModule;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Util.IntHashMap;
 
@@ -12,7 +14,7 @@ import Zeze.Util.IntHashMap;
  * 初始化。
  */
 public class ProviderApp {
-	public final Zeze.Application zeze;
+	public final Application zeze;
 
 	public final ProviderImplement providerImplement;
 	public final ProviderService providerService;
@@ -32,17 +34,16 @@ public class ProviderApp {
 	public final IntHashMap<BModule> staticBinds = new IntHashMap<>();
 	public final IntHashMap<BModule> dynamicModules = new IntHashMap<>();
 	public final IntHashMap<BModule> modules = new IntHashMap<>();
-	public final HashMap<String, Zeze.IModule> builtinModules = new HashMap<>();
+	public final HashMap<String, IModule> builtinModules = new HashMap<>();
 
-	public ProviderApp(Zeze.Application zeze,
+	public ProviderApp(Application zeze,
 					   ProviderImplement server,
 					   ProviderService toLinkdService,
 					   String providerModulePrefixNameOnServiceManager,
 					   ProviderDirect direct,
 					   ProviderDirectService toOtherProviderService,
 					   String linkdNameOnServiceManager,
-					   LoadConfig loadConfig
-	) {
+					   LoadConfig loadConfig) {
 		this.zeze = zeze;
 		this.zeze.redirect = new RedirectBase(this);
 
@@ -93,7 +94,7 @@ public class ProviderApp {
 		this.providerDirect.RegisterProtocols(providerDirectService);
 	}
 
-	public void startLast(ProviderModuleBinds binds, HashMap<String, Zeze.IModule> modules) {
+	public void startLast(ProviderModuleBinds binds, HashMap<String, IModule> modules) {
 		for (var builtin : builtinModules.values())
 			modules.put(builtin.getFullName(), builtin);
 		binds.buildStaticBinds(modules, zeze.getConfig().getServerId(), staticBinds);

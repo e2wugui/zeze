@@ -2,10 +2,10 @@
 package Zeze.Builtin.Game.TaskBase;
 
 public interface BAcceptTaskEventReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BAcceptTaskEvent copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BAcceptTaskEvent copy();
 
-    public long getTaskId();
+    long getTaskId();
 }

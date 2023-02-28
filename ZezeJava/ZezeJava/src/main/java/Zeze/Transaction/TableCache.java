@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 import Zeze.Application;
+import Zeze.Util.Factory;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -80,7 +81,7 @@ class TableCache<K extends Comparable<K>, V extends Bean> {
 		lruQueue.add(newLru);
 	}
 
-	final Record1<K, V> getOrAdd(K key, Zeze.Util.Factory<Record1<K, V>> valueFactory) {
+	final Record1<K, V> getOrAdd(K key, Factory<Record1<K, V>> valueFactory) {
 		var lruHot = this.lruHot;
 		var result = dataMap.get(key);
 		if (result == null) { // slow-path

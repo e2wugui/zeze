@@ -10,12 +10,14 @@ import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
+import Zeze.Raft.Raft;
 import Zeze.Raft.RaftConfig;
 import Zeze.Raft.RocksRaft.CollMap2;
 import Zeze.Raft.RocksRaft.Procedure;
 import Zeze.Raft.RocksRaft.Rocks;
 import Zeze.Raft.RocksRaft.RocksMode;
 import Zeze.Raft.RocksRaft.Table;
+import Zeze.Raft.Server;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BServiceInfos;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
@@ -54,10 +56,10 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		this(raftName, raftConf, Config.load(), false);
 	}
 
-	public ServiceManagerWithRaft(String raftName, RaftConfig raftConf, Zeze.Config config,
+	public ServiceManagerWithRaft(String raftName, RaftConfig raftConf, Config config,
 								  boolean RocksDbWriteOptionSync) throws Exception {
 		if (null == config)
-			config = Zeze.Config.load();
+			config = Config.load();
 		this.config = config.getCustomize(new ServiceManagerServer.Conf());
 
 		rocks = new Rocks(raftName, RocksMode.Pessimism, raftConf, config, RocksDbWriteOptionSync, SMServer::new);
@@ -93,8 +95,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	 * 所有Raft网络层收到的请求和Rpc的结果，全部加锁，直接运行。
 	 * 这样整个程序就单线程化了。
 	 */
-	public class SMServer extends Zeze.Raft.Server {
-		public SMServer(Zeze.Raft.Raft raft, String name, Zeze.Config config) {
+	public class SMServer extends Server {
+		public SMServer(Raft raft, String name, Config config) {
 			super(raft, name, config);
 		}
 

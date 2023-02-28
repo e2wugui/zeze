@@ -2,10 +2,10 @@
 package Zeze.Builtin.Provider;
 
 public interface BSendResultReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BSendResult copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BSendResult copy();
 
-    public Zeze.Transaction.Collections.PList1ReadOnly<Long> getErrorLinkSidsReadOnly();
+    Zeze.Transaction.Collections.PList1ReadOnly<Long> getErrorLinkSidsReadOnly();
 }

@@ -3,6 +3,7 @@ package Zeze.Component;
 import java.util.Calendar;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import Zeze.Application;
 import Zeze.Builtin.DelayRemove.BJob;
 import Zeze.Builtin.DelayRemove.BTableKey;
 import Zeze.Net.Binary;
@@ -10,6 +11,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.Transaction;
+import Zeze.Util.OutObject;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 
@@ -26,11 +28,11 @@ public class DelayRemove extends AbstractDelayRemove {
 	}
 
 	private final Zeze.Collections.Queue<BTableKey> queue;
-	public final Zeze.Application zeze;
+	public final Application zeze;
 	private Future<?> timer;
 	private AutoKey jobIdAutoKey;
 
-	public DelayRemove(Zeze.Application zz) {
+	public DelayRemove(Application zz) {
 		this.zeze = zz;
 
 		var serverId = zz.getConfig().getServerId();
@@ -68,7 +70,7 @@ public class DelayRemove extends AbstractDelayRemove {
 
 	@FunctionalInterface
 	public interface JobHandle {
-		public void process(DelayRemove delayRemove, String jobId, Binary jobState) throws Exception;
+		void process(DelayRemove delayRemove, String jobId, Binary jobState) throws Exception;
 	}
 
 	private final ConcurrentHashMap<String, JobHandle> jobHandles = new ConcurrentHashMap<>();
@@ -93,6 +95,7 @@ public class DelayRemove extends AbstractDelayRemove {
 
 	/**
 	 * set job state
+	 *
 	 * @param jobId jobId
 	 * @param state state, null means job is done.
 	 */
@@ -142,7 +145,7 @@ public class DelayRemove extends AbstractDelayRemove {
 		if (days < 7)
 			days = 7; // xxx 至少保留7天。
 		var diffMills = days * 24 * 3600 * 1000;
-		var removing = new Zeze.Util.OutObject<>(true);
+		var removing = new OutObject<>(true);
 		while (removing.value) {
 			zeze.newProcedure(() -> {
 				var node = queue.pollNode();

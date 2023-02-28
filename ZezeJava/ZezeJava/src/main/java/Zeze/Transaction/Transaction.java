@@ -6,6 +6,7 @@ import java.util.TreeMap;
 import java.util.function.Supplier;
 import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Util.Macro;
+import Zeze.Util.Random;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -320,7 +321,7 @@ public final class Transaction {
 				//logger.Debug("Checkpoint.WaitRun {0}", procedure);
 				// 实现Fresh队列以后删除Sleep。
 				try {
-					Thread.sleep(Zeze.Util.Random.getInstance().nextInt(80) + 20);
+					Thread.sleep(Random.getInstance().nextInt(80) + 20);
 				} catch (InterruptedException e) {
 					logger.error("", e);
 				}

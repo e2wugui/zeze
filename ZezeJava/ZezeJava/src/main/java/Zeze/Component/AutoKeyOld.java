@@ -3,9 +3,11 @@ package Zeze.Component;
 import java.util.Base64;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import Zeze.Application;
 import Zeze.Builtin.AutoKeyOld.BSeedKey;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 import Zeze.Transaction.Transaction;
@@ -14,10 +16,10 @@ import Zeze.Transaction.Transaction;
 public final class AutoKeyOld {
 	public static class Module extends AbstractAutoKeyOld {
 		private final ConcurrentHashMap<String, AutoKeyOld> map = new ConcurrentHashMap<>();
-		public final Zeze.Application zeze;
+		public final Application zeze;
 
 		// 这个组件Zeze.Application会自动初始化，不需要应用初始化。
-		public Module(Zeze.Application zeze) {
+		public Module(Application zeze) {
 			this.zeze = zeze;
 			RegisterZezeTables(zeze);
 		}
@@ -49,7 +51,7 @@ public final class AutoKeyOld {
 		this.module = module;
 		this.name = name;
 		// 详细参考Bean的Log的用法。这里只有一个variable。
-		logKey = Zeze.Transaction.Bean.nextObjectId();
+		logKey = Bean.nextObjectId();
 	}
 
 	public int getAllocateCount() {
@@ -198,7 +200,7 @@ public final class AutoKeyOld {
 		}
 	}
 
-	private class RangeLog extends Zeze.Transaction.Log {
+	private class RangeLog extends Log {
 		private final Range range;
 
 		public RangeLog(Range range) {

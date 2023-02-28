@@ -79,7 +79,7 @@ public class PList2<V extends Bean> extends PList<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.clear();
 		} else
-			list = org.pcollections.Empty.vector();
+			list = Empty.vector();
 	}
 
 	@Override

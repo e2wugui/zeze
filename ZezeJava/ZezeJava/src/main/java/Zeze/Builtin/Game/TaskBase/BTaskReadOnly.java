@@ -2,20 +2,19 @@
 package Zeze.Builtin.Game.TaskBase;
 
 public interface BTaskReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BTask copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BTask copy();
 
-    public long getRoleId();
-    public long getTaskId();
-    public String getTaskType();
-    public int getTaskState();
-    public String getTaskName();
-    public String getTaskDescription();
-    public Zeze.Transaction.Collections.PList1ReadOnly<Long> getPreTaskIdsReadOnly();
-    public long getCurrentPhaseId();
-    public Zeze.Transaction.Collections.PMap2ReadOnly<Long, Zeze.Builtin.Game.TaskBase.BTaskPhase, Zeze.Builtin.Game.TaskBase.BTaskPhaseReadOnly> getTaskPhasesReadOnly();
-    public Zeze.Transaction.DynamicBeanReadOnly getExtendedDataReadOnly();
-
+    long getRoleId();
+    long getTaskId();
+    String getTaskType();
+    int getTaskState();
+    String getTaskName();
+    String getTaskDescription();
+    Zeze.Transaction.Collections.PList1ReadOnly<Long> getPreTaskIdsReadOnly();
+    long getCurrentPhaseId();
+    Zeze.Transaction.Collections.PMap2ReadOnly<Long, Zeze.Builtin.Game.TaskBase.BTaskPhase, Zeze.Builtin.Game.TaskBase.BTaskPhaseReadOnly> getTaskPhasesReadOnly();
+    Zeze.Transaction.DynamicBeanReadOnly getExtendedDataReadOnly();
 }

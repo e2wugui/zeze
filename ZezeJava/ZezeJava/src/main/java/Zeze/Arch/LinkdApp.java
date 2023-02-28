@@ -1,6 +1,7 @@
 package Zeze.Arch;
 
 import java.net.ServerSocket;
+import Zeze.Application;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
@@ -11,7 +12,7 @@ import Zeze.Util.CommandConsoleService;
 
 public class LinkdApp {
 	public final String linkdServiceName;
-	public final Zeze.Application zeze;
+	public final Application zeze;
 	public final LinkdProvider linkdProvider;
 	public final LinkdProviderService linkdProviderService;
 	public final LinkdService linkdService;
@@ -42,7 +43,7 @@ public class LinkdApp {
 	 */
 	public final CommandConsoleService commandConsoleService;
 
-	public LinkdApp(String linkdServiceName, Zeze.Application zeze, LinkdProvider linkdProvider,
+	public LinkdApp(String linkdServiceName, Application zeze, LinkdProvider linkdProvider,
 					LinkdProviderService linkdProviderService, LinkdService linkdService, LoadConfig loadConfig) {
 		this.linkdServiceName = linkdServiceName;
 		this.zeze = zeze;

@@ -6,9 +6,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.RedoQueue.BQueueTask;
 import Zeze.Builtin.RedoQueue.BTaskId;
 import Zeze.Builtin.RedoQueue.RunTask;
+import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.Serializable;
+import Zeze.Services.HandshakeClient;
 import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Transaction.Procedure;
 import org.rocksdb.ColumnFamilyDescriptor;
@@ -22,7 +25,7 @@ import org.rocksdb.RocksDBException;
  * 2.可以从可用的zeze-server中选择部分，配置到zeze.xml中。
  * 3.【可选】使用ServiceManager动态发现zeze-server。感觉没有必要。
  */
-public class RedoQueue extends Zeze.Services.HandshakeClient {
+public class RedoQueue extends HandshakeClient {
 	private RocksDB db;
 	private final ConcurrentHashMap<String, ColumnFamilyHandle> families = new ConcurrentHashMap<>();
 	private ColumnFamilyHandle familyLastDoneTaskId;
@@ -37,7 +40,7 @@ public class RedoQueue extends Zeze.Services.HandshakeClient {
 		RocksDB.loadLibrary();
 	}
 
-	public RedoQueue(String name, Zeze.Config config) {
+	public RedoQueue(String name, Config config) {
 		super(name, config);
 	}
 
@@ -92,7 +95,7 @@ public class RedoQueue extends Zeze.Services.HandshakeClient {
 		db = null;
 	}
 
-	public synchronized void add(int taskType, Zeze.Serialize.Serializable taskParam) {
+	public synchronized void add(int taskType, Serializable taskParam) {
 		try {
 			var key = ByteBuffer.Allocate(16);
 			key.WriteLong(++lastTaskId);

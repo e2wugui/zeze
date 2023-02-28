@@ -2,10 +2,10 @@
 package Zeze.Builtin.Timer;
 
 public interface BCustomClassesReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BCustomClasses copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BCustomClasses copy();
 
-    public Zeze.Transaction.Collections.PSet1ReadOnly<String> getCustomClassesReadOnly();
+    Zeze.Transaction.Collections.PSet1ReadOnly<String> getCustomClassesReadOnly();
 }

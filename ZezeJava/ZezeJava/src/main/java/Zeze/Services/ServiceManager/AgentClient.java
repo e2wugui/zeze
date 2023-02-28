@@ -1,24 +1,26 @@
 package Zeze.Services.ServiceManager;
 
+import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Services.HandshakeClient;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Util.Task;
 
-public final class AgentClient extends Zeze.Services.HandshakeClient {
+public final class AgentClient extends HandshakeClient {
 	private final Agent agent;
 	/**
 	 * 和注册服务器之间只保持一个连接。并且不处理任何协议状态。
 	 */
 	private AsyncSocket socket;
 
-	public AgentClient(Agent agent, Zeze.Config config) {
+	public AgentClient(Agent agent, Config config) {
 		super(Agent.defaultServiceName, config);
 		this.agent = agent;
 	}
 
-	public AgentClient(Agent agent, Zeze.Config config, String name) {
+	public AgentClient(Agent agent, Config config, String name) {
 		super(name, config);
 		this.agent = agent;
 	}

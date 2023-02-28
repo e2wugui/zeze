@@ -3,11 +3,11 @@ package Zeze.Builtin.Game.Online;
 
 // tables
 public interface BOnlineReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BOnline copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BOnline copy();
 
-    public String getLinkName();
-    public long getLinkSid();
+    String getLinkName();
+    long getLinkSid();
 }

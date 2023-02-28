@@ -5,7 +5,7 @@ import Zeze.Transaction.Log;
 import Zeze.Serialize.ByteBuffer;
 
 public abstract class LogFloat extends Log {
-	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Transaction.Log<float>");
+	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<float>");
 
 	public float value;
 

@@ -2,12 +2,12 @@
 package Zeze.Builtin.Timer;
 
 public interface BNodeRootReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BNodeRoot copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BNodeRoot copy();
 
-    public long getHeadNodeId();
-    public long getTailNodeId();
-    public long getLoadSerialNo();
+    long getHeadNodeId();
+    long getTailNodeId();
+    long getLoadSerialNo();
 }

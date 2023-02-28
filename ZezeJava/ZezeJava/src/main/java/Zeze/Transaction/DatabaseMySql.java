@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.sql.Types;
 import Zeze.Config.DatabaseConf;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Util.KV;
 
 public final class DatabaseMySql extends DatabaseJdbc {
 	public DatabaseMySql(DatabaseConf conf) {
@@ -128,7 +129,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 
 		@Override
-		public Zeze.Util.KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
+		public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
 			if (key.Size() == 0) {
 				throw new IllegalArgumentException("key is empty.");
 			}
@@ -144,9 +145,9 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					cmd.executeUpdate();
 					switch (cmd.getInt(4)) {
 					case 0:
-						return Zeze.Util.KV.create(cmd.getLong(3), true);
+						return KV.create(cmd.getLong(3), true);
 					case 2:
-						return Zeze.Util.KV.create(0L, false);
+						return KV.create(0L, false);
 					default:
 						throw new IllegalStateException("Procedure SaveDataWithSameVersion Exec Error.");
 					}

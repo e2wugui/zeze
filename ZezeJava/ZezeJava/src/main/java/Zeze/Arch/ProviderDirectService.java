@@ -3,6 +3,7 @@ package Zeze.Arch;
 import java.net.ServerSocket;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Application;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.Builtin.ProviderDirect.AnnounceProviderInfo;
 import Zeze.Builtin.ProviderDirect.ModuleRedirect;
@@ -12,6 +13,7 @@ import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Services.HandshakeBoth;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BServiceInfos;
@@ -28,7 +30,7 @@ import org.apache.logging.log4j.Logger;
 /**
  * Provider之间直连网络管理服务。
  */
-public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
+public class ProviderDirectService extends HandshakeBoth {
 	private static final Logger logger = LogManager.getLogger(ProviderDirectService.class);
 
 	protected ProviderApp providerApp;
@@ -36,7 +38,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	public final LongConcurrentHashMap<ProviderSession> providerByServerId = new LongConcurrentHashMap<>();
 	private final LongConcurrentHashMap<ConcurrentHashSet<Action0>> serverReadyEvents = new LongConcurrentHashMap<>();
 
-	public ProviderDirectService(String name, Zeze.Application zeze) {
+	public ProviderDirectService(String name, Application zeze) {
 		super(name, zeze);
 	}
 

@@ -4,6 +4,7 @@ import java.io.Closeable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import Zeze.Application;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.FewModifyMap;
@@ -24,7 +25,7 @@ import io.netty.util.ReferenceCountUtil;
 public class HttpServer extends ChannelInitializer<SocketChannel> implements Closeable {
 	private static final int WRITE_PENDING_LIMIT = 64 * 1024; // 写缓冲区的限制大小,超过会立即断开连接,写大量内容需要考虑分片
 
-	final Zeze.Application zeze;
+	final Application zeze;
 	final String fileHome;
 	final int fileCacheSeconds;
 	final FewModifyMap<String, HttpHandler> handlers = new FewModifyMap<>();
@@ -36,7 +37,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		this(null, null, 10 * 60);
 	}
 
-	public HttpServer(Zeze.Application zeze, String fileHome, int fileCacheSeconds) {
+	public HttpServer(Application zeze, String fileHome, int fileCacheSeconds) {
 		this.zeze = zeze;
 		this.fileHome = fileHome;
 		this.fileCacheSeconds = fileCacheSeconds;

@@ -75,6 +75,6 @@ public final class GlobalClient extends Service {
 	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
 		var p = decodeProtocol(typeId, bb, factoryHandle, so);
 		// Reduce 很重要。必须得到执行，不能使用默认线程池(Task.Run),防止饥饿。
-		Task.getCriticalThreadPool().execute(() -> Zeze.Util.Task.call(() -> p.handle(this, factoryHandle), p));
+		Task.getCriticalThreadPool().execute(() -> Task.call(() -> p.handle(this, factoryHandle), p));
 	}
 }

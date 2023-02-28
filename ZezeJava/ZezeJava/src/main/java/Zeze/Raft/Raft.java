@@ -275,19 +275,19 @@ public final class Raft {
 		this(sm, RaftName, raftConf, null, "Zeze.Raft.Server");
 	}
 
-	public Raft(StateMachine sm, String RaftName, RaftConfig raftConf, Zeze.Config config) throws Exception {
+	public Raft(StateMachine sm, String RaftName, RaftConfig raftConf, Config config) throws Exception {
 		this(sm, RaftName, raftConf, config, "Zeze.Raft.Server");
 	}
 
-	public Raft(StateMachine sm, String RaftName, RaftConfig raftConf, Zeze.Config config, String name)
+	public Raft(StateMachine sm, String RaftName, RaftConfig raftConf, Config config, String name)
 			throws Exception {
 		this(sm, RaftName, raftConf, config, name, Server::new);
 	}
 
-	public Raft(StateMachine sm, String RaftName, RaftConfig raftConf, Zeze.Config config, String name,
+	public Raft(StateMachine sm, String RaftName, RaftConfig raftConf, Config config, String name,
 				Func3<Raft, String, Config, Server> serverFactory) throws Exception {
 		if (raftConf == null)
-			raftConf = Zeze.Raft.RaftConfig.load();
+			raftConf = RaftConfig.load();
 		raftConf.verify();
 
 		raftConfig = raftConf;
@@ -303,7 +303,7 @@ public final class Raft {
 		}
 
 		if (config == null)
-			config = Zeze.Config.load();
+			config = Config.load();
 		server = serverFactory.call(this, name, config);
 		if (server.getConfig().acceptorCount() != 0)
 			throw new IllegalStateException("Acceptor Found!");
@@ -313,8 +313,8 @@ public final class Raft {
 			throw new IllegalStateException("Startup Nodes.Count Must >= 3.");
 
 		importantThreadPool = Task.newCriticalThreadPool("Raft-" + threadPoolCounter.incrementAndGet());
-		Zeze.Raft.Server.createAcceptor(server, raftConf);
-		Zeze.Raft.Server.createConnector(server, raftConf);
+		Server.createAcceptor(server, raftConf);
+		Server.createConnector(server, raftConf);
 
 		Files.createDirectories(Paths.get(raftConfig.getDbHome()));
 

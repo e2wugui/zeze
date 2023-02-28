@@ -3,16 +3,15 @@ package Zeze.Builtin.Timer;
 
 // Offline Timer
 public interface BOfflineAccountCustomReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BOfflineAccountCustom copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BOfflineAccountCustom copy();
 
-    public String getTimerName();
-    public String getAccount();
-    public String getClientId();
-    public long getLoginVersion();
-    public String getHandleName();
-    public Zeze.Transaction.DynamicBeanReadOnly getCustomDataReadOnly();
-
+    String getTimerName();
+    String getAccount();
+    String getClientId();
+    long getLoginVersion();
+    String getHandleName();
+    Zeze.Transaction.DynamicBeanReadOnly getCustomDataReadOnly();
 }

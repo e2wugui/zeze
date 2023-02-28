@@ -7,10 +7,11 @@ import java.util.function.UnaryOperator;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
+import org.pcollections.Empty;
 import org.pcollections.PVector;
 
 public abstract class PList<V> extends Collection implements List<V> {
-	public PVector<V> list = org.pcollections.Empty.vector();
+	public PVector<V> list = Empty.vector();
 
 	@Override
 	public abstract boolean add(V item);

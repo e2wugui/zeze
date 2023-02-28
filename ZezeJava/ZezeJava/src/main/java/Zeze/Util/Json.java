@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Collections.CollOne;
 import Zeze.Transaction.Collections.PList2;
@@ -473,9 +474,9 @@ public final class Json {
 		ClassMeta.fieldNameFilter = (klass, field) -> {
 			final String fn = field.getName();
 			if (fn.charAt(0) == '_' &&
-					(Zeze.Transaction.Bean.class.isAssignableFrom(klass) // bean
+					(Bean.class.isAssignableFrom(klass) // bean
 							|| Zeze.Raft.RocksRaft.Bean.class.isAssignableFrom(klass) // RocksRaft bean
-							|| (Zeze.Serialize.Serializable.class.isAssignableFrom(klass)
+							|| (Serializable.class.isAssignableFrom(klass)
 							&& Comparable.class.isAssignableFrom(klass)))) // beankey
 				return fn.substring(1); // 特殊规则: 忽略字段前的下划线前缀
 			return fn;

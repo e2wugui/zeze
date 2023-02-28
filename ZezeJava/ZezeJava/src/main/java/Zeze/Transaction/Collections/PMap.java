@@ -7,9 +7,10 @@ import java.util.Map;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Transaction;
+import org.pcollections.Empty;
 
 public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterable<Map.Entry<K, V>> {
-	public org.pcollections.PMap<K, V> map = org.pcollections.Empty.map();
+	public org.pcollections.PMap<K, V> map = Empty.map();
 
 	@Override
 	public final V get(Object key) {

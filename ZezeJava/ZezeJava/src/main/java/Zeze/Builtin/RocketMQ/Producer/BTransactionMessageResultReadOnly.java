@@ -2,11 +2,11 @@
 package Zeze.Builtin.RocketMQ.Producer;
 
 public interface BTransactionMessageResultReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BTransactionMessageResult copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BTransactionMessageResult copy();
 
-    public boolean isResult();
-    public long getTimestamp();
+    boolean isResult();
+    long getTimestamp();
 }

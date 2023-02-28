@@ -288,8 +288,7 @@ public class LogSequence {
 						Files.createDirectories(Paths.get(dir));
 					} catch (FileAlreadyExistsException ignored) {
 					}
-					db = Zeze.Raft.LogSequence.openDb(DatabaseRocksDb.getCommonOptions(),
-							Paths.get(dir, dbName).toString());
+					db = LogSequence.openDb(DatabaseRocksDb.getCommonOptions(), Paths.get(dir, dbName).toString());
 				}
 				return db;
 			} finally {
@@ -734,7 +733,7 @@ public class LogSequence {
 				try {
 					if (raft.getLogSequence().trySetTerm(heartbeat.Result.getTerm()) == SetTermResult.Newer) {
 						// new term found.
-						raft.convertStateTo(Zeze.Raft.Raft.RaftState.Follower);
+						raft.convertStateTo(Raft.RaftState.Follower);
 						return Procedure.Success;
 					}
 				} finally {
@@ -971,7 +970,7 @@ public class LogSequence {
 
 			if (raft.getLogSequence().trySetTerm(r.Result.getTerm()) == SetTermResult.Newer) {
 				// new term found.
-				raft.convertStateTo(Zeze.Raft.Raft.RaftState.Follower);
+				raft.convertStateTo(Raft.RaftState.Follower);
 				// 发现新的 Term，已经不是Leader，不能继续处理了。
 				// 直接返回。
 				connector.setPending(null);
@@ -1124,7 +1123,7 @@ public class LogSequence {
 
 		switch (trySetTerm(r.Argument.getTerm())) {
 		case Newer:
-			raft.convertStateTo(Zeze.Raft.Raft.RaftState.Follower);
+			raft.convertStateTo(Raft.RaftState.Follower);
 			r.Result.setTerm(term); // new term
 			break;
 
@@ -1132,7 +1131,7 @@ public class LogSequence {
 			switch (raft.getState()) {
 			case Candidate:
 				// see raft.pdf 文档. 仅在 Candidate 才转。【找不到在文档哪里了，需要确认这点】
-				raft.convertStateTo(Zeze.Raft.Raft.RaftState.Follower);
+				raft.convertStateTo(Raft.RaftState.Follower);
 				break;
 			case Leader:
 				logger.fatal("Receive AppendEntries from another leader={} with same term={}, there must be a bug. this={}",

@@ -19,7 +19,7 @@ public class EventDispatcher {
 		void cancel();
 	}
 
-	public static enum Mode {
+	public enum Mode {
 		RunEmbed,
 		RunProcedure,
 		RunThread,

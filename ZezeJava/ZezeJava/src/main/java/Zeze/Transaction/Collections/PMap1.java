@@ -4,6 +4,7 @@ import java.util.Map;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
+import org.pcollections.Empty;
 
 public class PMap1<K, V> extends PMap<K, V> {
 	protected final Meta2<K, V> meta;
@@ -92,7 +93,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.clear();
 		} else
-			map = org.pcollections.Empty.map();
+			map = Empty.map();
 	}
 
 	@Override

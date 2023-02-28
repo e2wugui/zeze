@@ -2,6 +2,7 @@ package Zeze.Services.ServiceManager;
 
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Application;
 import Zeze.Net.Connector;
 import Zeze.Net.Service.ProtocolFactoryHandle;
 import Zeze.Transaction.DispatchMode;
@@ -287,11 +288,11 @@ public final class Agent extends AbstractAgent {
 		return 0;
 	}
 
-	public Agent(Zeze.Application zeze) {
+	public Agent(Application zeze) {
 		this(zeze, null);
 	}
 
-	public Agent(Zeze.Application zeze, String netServiceName) {
+	public Agent(Application zeze, String netServiceName) {
 		super.zeze = zeze;
 
 		var config = zeze.getConfig();

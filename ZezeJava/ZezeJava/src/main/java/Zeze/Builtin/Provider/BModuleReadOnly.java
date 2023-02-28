@@ -3,12 +3,12 @@ package Zeze.Builtin.Provider;
 
 // gs to link
 public interface BModuleReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BModule copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BModule copy();
 
-    public int getChoiceType();
-    public int getConfigType();
-    public int getSubscribeType();
+    int getChoiceType();
+    int getConfigType();
+    int getSubscribeType();
 }

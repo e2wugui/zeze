@@ -1,6 +1,7 @@
 package Zeze.Arch;
 
 import java.net.ServerSocket;
+import Zeze.Application;
 import Zeze.Builtin.LinkdBase.BReportError;
 import Zeze.Builtin.LinkdBase.ReportError;
 import Zeze.Builtin.Provider.BDispatch;
@@ -13,16 +14,15 @@ import Zeze.Net.Binary;
 import Zeze.Net.FamilyClass;
 import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Services.HandshakeServer;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.ConcurrentLruLike;
 import Zeze.Util.OutLong;
 import Zeze.Util.Task;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
-public class LinkdService extends Zeze.Services.HandshakeServer {
-	private static final Logger logger = LogManager.getLogger(LinkdService.class);
+public class LinkdService extends HandshakeServer {
+	// private static final Logger logger = LogManager.getLogger(LinkdService.class);
 
 	private static final class StableLinkSidKey {
 		// 同一个账号同一个ClientId只允许一个登录。
@@ -66,7 +66,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 	protected ConcurrentLruLike<StableLinkSidKey, StableLinkSid> stableLinkSids;
 	protected long curSendSpeed; // bytes/sec
 
-	public LinkdService(String name, Zeze.Application zeze) {
+	public LinkdService(String name, Application zeze) {
 		super(name, zeze);
 
 		if (getSocketOptions().getOverBandwidth() != null) {

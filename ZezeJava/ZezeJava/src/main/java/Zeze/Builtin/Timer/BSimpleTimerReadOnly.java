@@ -2,19 +2,19 @@
 package Zeze.Builtin.Timer;
 
 public interface BSimpleTimerReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BSimpleTimer copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BSimpleTimer copy();
 
-    public long getDelay();
-    public long getPeriod();
-    public long getRemainTimes();
-    public long getHappenTimes();
-    public long getStartTime();
-    public long getEndTime();
-    public long getNextExpectedTime();
-    public long getExpectedTime();
-    public long getHappenTime();
-    public int getMissfirePolicy();
+    long getDelay();
+    long getPeriod();
+    long getRemainTimes();
+    long getHappenTimes();
+    long getStartTime();
+    long getEndTime();
+    long getNextExpectedTime();
+    long getExpectedTime();
+    long getHappenTime();
+    int getMissfirePolicy();
 }

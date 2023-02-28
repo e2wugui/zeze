@@ -1,11 +1,13 @@
 package Zeze.Services;
 
 import Zeze.Application;
+import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
+import Zeze.Util.OutObject;
 
 public class HandshakeClient extends HandshakeBase {
-	public HandshakeClient(String name, Zeze.Config config) {
+	public HandshakeClient(String name, Config config) {
 		super(name, config);
 		addHandshakeClientFactoryHandle();
 	}
@@ -20,7 +22,7 @@ public class HandshakeClient extends HandshakeBase {
 	}
 
 	public final void connect(String hostNameOrAddress, int port, boolean autoReconnect) {
-		var c = new Zeze.Util.OutObject<Connector>();
+		var c = new OutObject<Connector>();
 		getConfig().tryGetOrAddConnector(hostNameOrAddress, port, autoReconnect, c);
 		c.value.start();
 	}

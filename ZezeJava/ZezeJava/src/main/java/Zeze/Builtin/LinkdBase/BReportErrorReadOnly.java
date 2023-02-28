@@ -3,12 +3,12 @@ package Zeze.Builtin.LinkdBase;
 
 // linkd to client
 public interface BReportErrorReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BReportError copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BReportError copy();
 
-    public int getFrom();
-    public int getCode();
-    public String getDesc();
+    int getFrom();
+    int getCode();
+    String getDesc();
 }

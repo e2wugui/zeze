@@ -2,15 +2,15 @@
 package Zeze.Builtin.Online;
 
 public interface BVersionReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BVersion copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BVersion copy();
 
-    public long getLoginVersion();
-    public Zeze.Transaction.Collections.PSet1ReadOnly<String> getReliableNotifyMarkReadOnly();
-    public long getReliableNotifyIndex();
-    public long getReliableNotifyConfirmIndex();
-    public int getServerId();
-    public long getLogoutVersion();
+    long getLoginVersion();
+    Zeze.Transaction.Collections.PSet1ReadOnly<String> getReliableNotifyMarkReadOnly();
+    long getReliableNotifyIndex();
+    long getReliableNotifyConfirmIndex();
+    int getServerId();
+    long getLogoutVersion();
 }

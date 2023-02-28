@@ -2,10 +2,10 @@
 package Zeze.Builtin.Online;
 
 public interface BNotifyReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BNotify copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BNotify copy();
 
-    public Zeze.Net.Binary getFullEncodedProtocol();
+    Zeze.Net.Binary getFullEncodedProtocol();
 }

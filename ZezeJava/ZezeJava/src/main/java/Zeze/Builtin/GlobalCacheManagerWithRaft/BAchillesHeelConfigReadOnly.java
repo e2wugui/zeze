@@ -2,12 +2,12 @@
 package Zeze.Builtin.GlobalCacheManagerWithRaft;
 
 public interface BAchillesHeelConfigReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BAchillesHeelConfig copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BAchillesHeelConfig copy();
 
-    public int getMaxNetPing();
-    public int getServerProcessTime();
-    public int getServerReleaseTimeout();
+    int getMaxNetPing();
+    int getServerProcessTime();
+    int getServerReleaseTimeout();
 }

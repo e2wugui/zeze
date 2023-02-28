@@ -5,6 +5,7 @@ import Zeze.IModule;
 import Zeze.Util.FuncLong;
 import Zeze.Util.Macro;
 import Zeze.Util.TaskCanceledException;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -40,13 +41,13 @@ public class Procedure {
 	public static ILogAction logAction = Procedure::defaultLogAction;
 
 	public static void defaultLogAction(Throwable ex, long result, Procedure p, String message) {
-		org.apache.logging.log4j.Level level;
+		Level level;
 		if (ex != null)
-			level = org.apache.logging.log4j.Level.ERROR;
+			level = Level.ERROR;
 		else if (result != 0)
 			level = p.zeze.getConfig().getProcessReturnErrorLogLevel();
 		else if (logger.isTraceEnabled())
-			level = org.apache.logging.log4j.Level.TRACE;
+			level = Level.TRACE;
 		else
 			return;
 

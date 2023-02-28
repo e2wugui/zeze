@@ -2,16 +2,16 @@
 package Zeze.Builtin.Timer;
 
 public interface BCronTimerReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BCronTimer copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BCronTimer copy();
 
-    public String getCronExpression();
-    public long getNextExpectedTime();
-    public long getExpectedTime();
-    public long getHappenTime();
-    public long getRemainTimes();
-    public long getEndTime();
-    public int getMissfirePolicy();
+    String getCronExpression();
+    long getNextExpectedTime();
+    long getExpectedTime();
+    long getHappenTime();
+    long getRemainTimes();
+    long getEndTime();
+    int getMissfirePolicy();
 }

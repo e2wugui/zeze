@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import Zeze.AppBase;
+import Zeze.Application;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderImplement;
@@ -37,7 +38,7 @@ public class Timer extends AbstractTimer {
 	public static final int CountPerNode = 200;
 
 	static final Logger logger = LogManager.getLogger(Timer.class);
-	public final Zeze.Application zeze;
+	public final Application zeze;
 	private AutoKey nodeIdAutoKey;
 	AutoKey timerIdAutoKey;
 	// 在这台服务器进程内调度的所有Timer。key是timerId，value是ThreadPool.schedule的返回值。

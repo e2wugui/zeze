@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Config.DatabaseConf;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.Serializable;
 import Zeze.Util.KV;
 import Zeze.Util.ShutdownHook;
 import org.apache.logging.log4j.LogManager;
@@ -145,38 +146,38 @@ public abstract class Database {
 	}
 
 	public interface Table {
-		public boolean isNew();
+		boolean isNew();
 
-		public Database getDatabase();
+		Database getDatabase();
 
-		public ByteBuffer find(ByteBuffer key);
+		ByteBuffer find(ByteBuffer key);
 
-		public void replace(Transaction t, ByteBuffer key, ByteBuffer value);
+		void replace(Transaction t, ByteBuffer key, ByteBuffer value);
 
-		public void remove(Transaction t, ByteBuffer key);
+		void remove(Transaction t, ByteBuffer key);
 
 		/**
 		 * 每一条记录回调。回调返回true继续遍历，false中断遍历。
 		 *
 		 * @return 返回已经遍历的数量
 		 */
-		public long walk(TableWalkHandleRaw callback);
+		long walk(TableWalkHandleRaw callback);
 
-		public long walkKey(TableWalkKeyRaw callback);
+		long walkKey(TableWalkKeyRaw callback);
 
-		public long walkDesc(TableWalkHandleRaw callback);
+		long walkDesc(TableWalkHandleRaw callback);
 
-		public long walkKeyDesc(TableWalkKeyRaw callback);
+		long walkKeyDesc(TableWalkKeyRaw callback);
 
-		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback);
+		ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback);
 
-		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback);
+		ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback);
 
-		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback);
+		ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback);
 
-		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback);
+		ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback);
 
-		public void close();
+		void close();
 	}
 
 	public abstract Transaction beginTransaction();
@@ -187,7 +188,7 @@ public abstract class Database {
 		void rollback();
 	}
 
-	public static class DataWithVersion implements Zeze.Serialize.Serializable {
+	public static class DataWithVersion implements Serializable {
 		public ByteBuffer data;
 		public long version;
 

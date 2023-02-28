@@ -4,6 +4,7 @@ import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
+import org.pcollections.Empty;
 
 public class PSet1<V> extends PSet<V> {
 	protected final Meta1<V> meta;
@@ -87,7 +88,7 @@ public class PSet1<V> extends PSet<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			setLog.clear();
 		} else
-			set = org.pcollections.Empty.set();
+			set = Empty.set();
 	}
 
 	@Override

@@ -1,6 +1,7 @@
 package Zeze.Arch;
 
 import java.util.function.Function;
+import Zeze.Application;
 import Zeze.Builtin.ProviderDirect.ModuleRedirectAllResult;
 import Zeze.Net.Binary;
 import Zeze.Net.Service;
@@ -43,7 +44,7 @@ public final class RedirectAllContext<R extends RedirectResult> extends Service.
 	}
 
 	// 这里处理真正redirect发生时，从远程返回的结果。
-	public synchronized void processResult(Zeze.Application zeze, ModuleRedirectAllResult res) {
+	public synchronized void processResult(Application zeze, ModuleRedirectAllResult res) {
 		if (isCompleted())
 			return; // 如果已经超时,那就只能忽略后续的结果了
 		for (var e : res.Argument.getHashs().entrySet()) {

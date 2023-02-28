@@ -1,11 +1,12 @@
 package Zeze.Services;
 
 import Zeze.Application;
+import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Services.Handshake.SHandshake0;
 
 public class HandshakeServer extends HandshakeBase {
-	public HandshakeServer(String name, Zeze.Config config) {
+	public HandshakeServer(String name, Config config) {
 		super(name, config);
 		addHandshakeServerFactoryHandle();
 	}

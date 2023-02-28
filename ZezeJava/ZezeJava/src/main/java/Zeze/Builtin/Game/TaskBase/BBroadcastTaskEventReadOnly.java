@@ -2,10 +2,10 @@
 package Zeze.Builtin.Game.TaskBase;
 
 public interface BBroadcastTaskEventReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BBroadcastTaskEvent copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BBroadcastTaskEvent copy();
 
-    public boolean isIsBreakIfAccepted();
+    boolean isIsBreakIfAccepted();
 }

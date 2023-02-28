@@ -2,10 +2,10 @@
 package Zeze.Builtin.Collections.LinkedMap;
 
 public interface BLinkedMapNodeIdReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BLinkedMapNodeId copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BLinkedMapNodeId copy();
 
-    public long getNodeId();
+    long getNodeId();
 }

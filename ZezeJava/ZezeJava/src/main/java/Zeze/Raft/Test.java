@@ -117,7 +117,7 @@ public class Test {
 			raft.raft.getServer().start();
 
 		agent = new Agent("Zeze.Raft.Agent.Test", raftConfigStart);
-		Zeze.Raft.Agent.NetClient client = agent.getClient();
+		Agent.NetClient client = agent.getClient();
 		client.AddFactoryHandle(AddCount.TypeId_, new Service.ProtocolFactoryHandle<>(AddCount::new));
 		client.AddFactoryHandle(GetCount.TypeId_, new Service.ProtocolFactoryHandle<>(GetCount::new));
 		client.start();

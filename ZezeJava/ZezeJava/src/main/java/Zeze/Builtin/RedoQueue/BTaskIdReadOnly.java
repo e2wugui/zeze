@@ -2,10 +2,10 @@
 package Zeze.Builtin.RedoQueue;
 
 public interface BTaskIdReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BTaskId copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BTaskId copy();
 
-    public long getTaskId();
+    long getTaskId();
 }

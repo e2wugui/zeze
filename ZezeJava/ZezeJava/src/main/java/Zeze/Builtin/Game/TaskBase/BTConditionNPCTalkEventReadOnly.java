@@ -2,12 +2,12 @@
 package Zeze.Builtin.Game.TaskBase;
 
 public interface BTConditionNPCTalkEventReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BTConditionNPCTalkEvent copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BTConditionNPCTalkEvent copy();
 
-    public boolean isFinished();
-    public String getDialogId();
-    public int getDialogOption();
+    boolean isFinished();
+    String getDialogId();
+    int getDialogOption();
 }

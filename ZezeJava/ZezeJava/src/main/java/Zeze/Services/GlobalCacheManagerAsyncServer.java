@@ -7,6 +7,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Arch.RedirectFuture;
+import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
@@ -87,7 +88,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		start(ipaddress, port, null);
 	}
 
-	public synchronized void start(InetAddress ipaddress, int port, Zeze.Config config) {
+	public synchronized void start(InetAddress ipaddress, int port, Config config) {
 		if (server != null)
 			return;
 
@@ -95,7 +96,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			perf = new GlobalCacheManagerPerf("", serialIdGenerator);
 
 		if (config == null)
-			config = new Zeze.Config().addCustomize(this.config).loadAndParse();
+			config = new Config().addCustomize(this.config).loadAndParse();
 
 		sessions = new LongConcurrentHashMap<>(4096);
 		global = new ConcurrentHashMap<>(this.config.initialCapacity);
@@ -1021,7 +1022,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	}
 
 	private static final class ServerService extends Service {
-		ServerService(Zeze.Config config) {
+		ServerService(Config config) {
 			super("GlobalCacheManager", config);
 		}
 

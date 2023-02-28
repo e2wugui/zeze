@@ -19,7 +19,7 @@ public class CommandConsole {
 
 	@FunctionalInterface
 	public interface Command {
-		public void run(AsyncSocket sender, List<String> arguments);
+		void run(AsyncSocket sender, List<String> arguments);
 	}
 
 	public static class Options {

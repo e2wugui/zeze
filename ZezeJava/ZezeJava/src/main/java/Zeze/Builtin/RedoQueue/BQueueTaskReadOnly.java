@@ -2,14 +2,14 @@
 package Zeze.Builtin.RedoQueue;
 
 public interface BQueueTaskReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BQueueTask copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BQueueTask copy();
 
-    public String getQueueName();
-    public int getTaskType();
-    public long getTaskId();
-    public Zeze.Net.Binary getTaskParam();
-    public long getPrevTaskId();
+    String getQueueName();
+    int getTaskType();
+    long getTaskId();
+    Zeze.Net.Binary getTaskParam();
+    long getPrevTaskId();
 }

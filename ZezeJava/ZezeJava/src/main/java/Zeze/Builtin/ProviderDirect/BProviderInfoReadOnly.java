@@ -2,12 +2,12 @@
 package Zeze.Builtin.ProviderDirect;
 
 public interface BProviderInfoReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BProviderInfo copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BProviderInfo copy();
 
-    public String getIp();
-    public int getPort();
-    public int getServerId();
+    String getIp();
+    int getPort();
+    int getServerId();
 }

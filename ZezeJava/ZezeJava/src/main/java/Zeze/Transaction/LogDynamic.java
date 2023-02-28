@@ -4,7 +4,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Collections.LogBean;
 
 public class LogDynamic extends LogBean {
-	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Transaction.LogDynamic");
+	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.LogDynamic");
 
 	public long specialTypeId;
 	public Bean value;

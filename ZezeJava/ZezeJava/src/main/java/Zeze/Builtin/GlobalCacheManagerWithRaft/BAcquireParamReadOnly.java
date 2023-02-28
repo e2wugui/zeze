@@ -3,11 +3,11 @@ package Zeze.Builtin.GlobalCacheManagerWithRaft;
 
 // rpc
 public interface BAcquireParamReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BAcquireParam copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BAcquireParam copy();
 
-    public Zeze.Net.Binary getGlobalKey();
-    public int getState();
+    Zeze.Net.Binary getGlobalKey();
+    int getState();
 }

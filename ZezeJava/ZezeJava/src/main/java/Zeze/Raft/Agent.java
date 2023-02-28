@@ -258,7 +258,7 @@ public final class Agent {
 		this(name, raftConf, null);
 	}
 
-	public Agent(String name, RaftConfig raftConf, Zeze.Config config) throws Exception {
+	public Agent(String name, RaftConfig raftConf, Config config) throws Exception {
 		if (config == null)
 			config = Config.load();
 
@@ -268,7 +268,7 @@ public final class Agent {
 
 	private void init(NetClient client, RaftConfig raftConf) throws Exception {
 		if (raftConf == null)
-			raftConf = Zeze.Raft.RaftConfig.load();
+			raftConf = RaftConfig.load();
 
 		raftConfig = raftConf;
 		this.client = client;
@@ -467,7 +467,7 @@ public final class Agent {
 			this.agent = agent;
 		}
 
-		public NetClient(Agent agent, String name, Zeze.Config config) {
+		public NetClient(Agent agent, String name, Config config) {
 			super(name, config);
 			this.agent = agent;
 		}

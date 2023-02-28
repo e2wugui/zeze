@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
@@ -140,7 +141,7 @@ public final class ServiceManagerServer implements Closeable {
 	private final ConcurrentHashMap<String, AutoKey> autoKeys = new ConcurrentHashMap<>();
 	private volatile Future<?> startNotifyDelayTask;
 
-	public static final class Conf implements Zeze.Config.ICustomize {
+	public static final class Conf implements Config.ICustomize {
 		public int keepAlivePeriod = -1;
 		/**
 		 * 启动以后接收注册和订阅，一段时间内不进行通知。
@@ -708,11 +709,11 @@ public final class ServiceManagerServer implements Closeable {
 		}
 	}
 
-	public ServiceManagerServer(InetAddress ipaddress, int port, Zeze.Config config) throws Exception {
+	public ServiceManagerServer(InetAddress ipaddress, int port, Config config) throws Exception {
 		this(ipaddress, port, config, -1);
 	}
 
-	public ServiceManagerServer(InetAddress ipaddress, int port, Zeze.Config config, int startNotifyDelay)
+	public ServiceManagerServer(InetAddress ipaddress, int port, Config config, int startNotifyDelay)
 			throws Exception {
 		this.config = config.getCustomize(new Conf());
 
@@ -831,7 +832,7 @@ public final class ServiceManagerServer implements Closeable {
 		private final ServiceManagerServer serviceManager;
 		private final TaskOneByOneByKey oneByOneByKey = new TaskOneByOneByKey();
 
-		public NetServer(ServiceManagerServer sm, Zeze.Config config) {
+		public NetServer(ServiceManagerServer sm, Config config) {
 			super("Zeze.Services.ServiceManager", config);
 			serviceManager = sm;
 		}
@@ -899,7 +900,7 @@ public final class ServiceManagerServer implements Closeable {
 		if (raftName == null || raftName.isEmpty()) {
 			logger.info("Start {}:{}", ip != null ? ip : "any", port);
 			InetAddress address = (ip != null && !ip.isBlank()) ? InetAddress.getByName(ip) : null;
-			var config = new Zeze.Config().addCustomize(new ServiceManagerServer.Conf()).loadAndParse();
+			var config = new Config().addCustomize(new ServiceManagerServer.Conf()).loadAndParse();
 			try (var ignored = new ServiceManagerServer(address, port, config)) {
 				synchronized (Thread.currentThread()) {
 					Thread.currentThread().wait();

@@ -2,12 +2,12 @@
 package Zeze.Builtin.GlobalCacheManagerWithRaft;
 
 public interface BLoginParamReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BLoginParam copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BLoginParam copy();
 
-    public int getServerId();
-    public int getGlobalCacheManagerHashIndex();
-    public boolean isDebugMode();
+    int getServerId();
+    int getGlobalCacheManagerHashIndex();
+    boolean isDebugMode();
 }

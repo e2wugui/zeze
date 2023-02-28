@@ -2,15 +2,14 @@
 package Zeze.Builtin.Collections.DepartmentTree;
 
 public interface BDepartmentRootReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BDepartmentRoot copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BDepartmentRoot copy();
 
-    public String getRoot();
-    public Zeze.Transaction.Collections.PMap2ReadOnly<String, Zeze.Transaction.DynamicBean, Zeze.Transaction.DynamicBeanReadOnly> getManagersReadOnly();
-    public long getNextDepartmentId();
-    public Zeze.Transaction.Collections.PMap1ReadOnly<String, Long> getChildsReadOnly();
-    public Zeze.Transaction.DynamicBeanReadOnly getDataReadOnly();
-
+    String getRoot();
+    Zeze.Transaction.Collections.PMap2ReadOnly<String, Zeze.Transaction.DynamicBean, Zeze.Transaction.DynamicBeanReadOnly> getManagersReadOnly();
+    long getNextDepartmentId();
+    Zeze.Transaction.Collections.PMap1ReadOnly<String, Long> getChildsReadOnly();
+    Zeze.Transaction.DynamicBeanReadOnly getDataReadOnly();
 }

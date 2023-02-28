@@ -2,11 +2,11 @@
 package Zeze.Builtin.GlobalCacheManagerWithRaft;
 
 public interface BReduceParamReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BReduceParam copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BReduceParam copy();
 
-    public Zeze.Net.Binary getGlobalKey();
-    public int getState();
+    Zeze.Net.Binary getGlobalKey();
+    int getState();
 }

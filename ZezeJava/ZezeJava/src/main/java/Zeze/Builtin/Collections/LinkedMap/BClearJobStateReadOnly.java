@@ -2,12 +2,12 @@
 package Zeze.Builtin.Collections.LinkedMap;
 
 public interface BClearJobStateReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BClearJobState copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BClearJobState copy();
 
-    public long getHeadNodeId();
-    public long getTailNodeId();
-    public String getLinkedMapName();
+    long getHeadNodeId();
+    long getTailNodeId();
+    String getLinkedMapName();
 }

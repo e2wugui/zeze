@@ -7,6 +7,7 @@ import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
+import org.pcollections.Empty;
 
 public class LogMap1<K, V> extends LogMap<K, V> {
 	protected final Meta2<K, V> meta;
@@ -81,7 +82,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	public final void clear() {
 		for (var key : getValue().keySet())
 			remove(key);
-		setValue(org.pcollections.Empty.map());
+		setValue(Empty.map());
 	}
 
 	@Override

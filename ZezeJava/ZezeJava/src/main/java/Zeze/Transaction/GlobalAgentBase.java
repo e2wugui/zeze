@@ -7,13 +7,13 @@ import Zeze.Services.AchillesHeelConfig;
 import Zeze.Util.Task;
 
 public abstract class GlobalAgentBase {
-	public final Zeze.Application zeze;
+	public final Application zeze;
 	private AchillesHeelConfig config;
 	private volatile long activeTime = System.currentTimeMillis();
 	protected int globalCacheManagerHashIndex;
 	private volatile Releaser releaser;
 
-	public GlobalAgentBase(Zeze.Application zeze) {
+	public GlobalAgentBase(Application zeze) {
 		this.zeze = zeze;
 		config = new AchillesHeelConfig(1500, 1000, 10 * 1000);
 	}

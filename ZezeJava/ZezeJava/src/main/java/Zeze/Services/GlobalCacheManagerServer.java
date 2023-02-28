@@ -4,6 +4,7 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
@@ -70,7 +71,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	private AchillesHeelConfig achillesHeelConfig;
 	private GlobalCacheManagerPerf perf;
 
-	public static final class GCMConfig implements Zeze.Config.ICustomize {
+	public static final class GCMConfig implements Config.ICustomize {
 		// 设置了这么大，开始使用后，大概会占用700M的内存，作为全局服务器，先这么大吧。
 		// 尽量不重新调整ConcurrentHashMap。
 		int initialCapacity = 10_000_000;
@@ -114,7 +115,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		start(ipaddress, port, null);
 	}
 
-	public synchronized void start(InetAddress ipaddress, int port, Zeze.Config config) {
+	public synchronized void start(InetAddress ipaddress, int port, Config config) {
 		if (server != null)
 			return;
 
@@ -122,7 +123,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			perf = new GlobalCacheManagerPerf("", serialIdGenerator);
 
 		if (config == null)
-			config = new Zeze.Config().addCustomize(this.config).loadAndParse();
+			config = new Config().addCustomize(this.config).loadAndParse();
 
 		sessions = new LongConcurrentHashMap<>(4096);
 		global = new ConcurrentHashMap<>(this.config.initialCapacity);
@@ -920,7 +921,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	}
 
 	private static final class ServerService extends Service {
-		ServerService(Zeze.Config config) {
+		ServerService(Config config) {
 			super("GlobalCacheManager", config);
 		}
 

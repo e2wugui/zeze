@@ -2,11 +2,11 @@
 package Zeze.Builtin.Timer;
 
 public interface BIndexReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BIndex copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BIndex copy();
 
-    public int getServerId();
-    public long getNodeId();
+    int getServerId();
+    long getNodeId();
 }

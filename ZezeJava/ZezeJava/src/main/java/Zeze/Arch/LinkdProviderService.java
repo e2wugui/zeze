@@ -4,16 +4,18 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Application;
 import Zeze.Builtin.Provider.AnnounceLinkInfo;
 import Zeze.Builtin.Provider.Bind;
 import Zeze.Builtin.Provider.Subscribe;
 import Zeze.Net.AsyncSocket;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Services.HandshakeServer;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class LinkdProviderService extends Zeze.Services.HandshakeServer {
+public class LinkdProviderService extends HandshakeServer {
 	private static final Logger logger = LogManager.getLogger(LinkdProviderService.class);
 	private static final String dumpFilename = System.getProperty("dumpProviderInput");
 	private static final boolean enableDump = dumpFilename != null;
@@ -23,7 +25,7 @@ public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 	protected FileOutputStream dumpFile;
 	protected AsyncSocket dumpSocket;
 
-	public LinkdProviderService(String name, Zeze.Application zeze) {
+	public LinkdProviderService(String name, Application zeze) {
 		super(name, zeze);
 	}
 
@@ -42,7 +44,6 @@ public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 			tryDump(s, input);
 		super.OnSocketProcessInputBuffer(s, input);
 	}
-
 
 	// 重载需要的方法。
 	@Override

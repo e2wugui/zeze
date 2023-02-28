@@ -16,6 +16,7 @@ import Zeze.Serialize.Serializable;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.LongHashSet;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -174,7 +175,7 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 			sendWindow.put(packet.serialId, packet);
 
 			// start auto resend timer.
-			packet.resendTimerTask = Zeze.Util.Task.scheduleUnsafe(3000, 3000, () -> sendTo(peer, packet));
+			packet.resendTimerTask = Task.scheduleUnsafe(3000, 3000, () -> sendTo(peer, packet));
 			sendTo(peer, packet);
 			return true;
 		}
@@ -201,7 +202,7 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 	// 如果执行的操作没有阻塞，可以直接在网络线程中执行。
 	// 重载当然也可以实现其他模式，加到自己的队列什么的。
 	public void dispatch(Session session, Packet packet) {
-		Zeze.Util.Task.runUnsafe(() -> session.handle.handle(session, packet), "ReliableUdp.DefaultDispatch", DispatchMode.Normal);
+		Task.runUnsafe(() -> session.handle.handle(session, packet), "ReliableUdp.DefaultDispatch", DispatchMode.Normal);
 		// session.Handle.handle(session, packet); // 直接在网络线程中执行。
 	}
 

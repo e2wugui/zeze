@@ -4,6 +4,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.w3c.dom.Element;
 
@@ -165,7 +166,7 @@ public class Connector {
 			return;
 
 		reConnectDelay = reConnectDelay > 0 ? Math.min(reConnectDelay * 2, maxReconnectDelay) : 1000;
-		reconnectTask = Zeze.Util.Task.scheduleUnsafe(reConnectDelay, this::start);
+		reconnectTask = Task.scheduleUnsafe(reConnectDelay, this::start);
 	}
 
 	// 需要逻辑相关的握手行为时，重载这个方法。

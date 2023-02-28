@@ -3,15 +3,15 @@ package Zeze.Builtin.Game.TaskBase;
 
 // 内置条件类型：到达位置
 public interface BTConditionReachPositionReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BTConditionReachPosition copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BTConditionReachPosition copy();
 
-    public int getDimension();
-    public double getX();
-    public double getY();
-    public double getZ();
-    public double getRadius();
-    public boolean isReached();
+    int getDimension();
+    double getX();
+    double getY();
+    double getZ();
+    double getRadius();
+    boolean isReached();
 }

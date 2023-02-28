@@ -1,5 +1,6 @@
 package Zeze.Transaction.Collections;
 
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
 import org.pcollections.PVector;
@@ -19,7 +20,7 @@ public abstract class LogList<V> extends LogBean {
 	}
 
 	@Override
-	public void collect(Changes changes, Zeze.Transaction.Bean recent, Log vlog) {
+	public void collect(Changes changes, Bean recent, Log vlog) {
 		throw new UnsupportedOperationException("Collect Not Implement.");
 	}
 

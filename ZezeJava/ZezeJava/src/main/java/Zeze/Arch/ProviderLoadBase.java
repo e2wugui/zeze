@@ -1,20 +1,22 @@
 package Zeze.Arch;
 
 import java.util.concurrent.Future;
+import Zeze.Application;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.BServerLoad;
+import Zeze.Util.Task;
 
 public abstract class ProviderLoadBase {
 	private long lastLoginTime;
 	private int reportDelaySeconds;
 	private int timeoutDelaySeconds;
 	private Future<?> timerTask;
-	private final Zeze.Application zeze;
+	private final Application zeze;
 	private final ProviderOverload overload = new ProviderOverload();
 
-	public ProviderLoadBase(Zeze.Application zeze) {
+	public ProviderLoadBase(Application zeze) {
 		this.zeze = zeze;
 	}
 
@@ -30,7 +32,7 @@ public abstract class ProviderLoadBase {
 		timeoutDelaySeconds = delaySeconds;
 		if (null != timerTask)
 			timerTask.cancel(false);
-		timerTask = Zeze.Util.Task.scheduleUnsafe(timeoutDelaySeconds * 1000L, this::onTimerTask);
+		timerTask = Task.scheduleUnsafe(timeoutDelaySeconds * 1000L, this::onTimerTask);
 	}
 
 	public final void stop() {
@@ -41,11 +43,13 @@ public abstract class ProviderLoadBase {
 	}
 
 	public abstract int getOnlineLocalCount();
+
 	public abstract long getOnlineLoginTimes();
 
 	public abstract LoadConfig getLoadConfig();
 
 	public abstract String getProviderIp();
+
 	public abstract int getProviderPort();
 
 	private void onTimerTask() {

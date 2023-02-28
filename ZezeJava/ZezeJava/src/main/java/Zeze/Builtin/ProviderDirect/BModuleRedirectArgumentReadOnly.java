@@ -2,15 +2,15 @@
 package Zeze.Builtin.ProviderDirect;
 
 public interface BModuleRedirectArgumentReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BModuleRedirectArgument copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BModuleRedirectArgument copy();
 
-    public int getModuleId();
-    public int getHashCode();
-    public int getRedirectType();
-    public String getMethodFullName();
-    public Zeze.Net.Binary getParams();
-    public String getServiceNamePrefix();
+    int getModuleId();
+    int getHashCode();
+    int getRedirectType();
+    String getMethodFullName();
+    Zeze.Net.Binary getParams();
+    String getServiceNamePrefix();
 }

@@ -58,7 +58,7 @@ public class PList1<V> extends PList<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.clear();
 		} else
-			list = org.pcollections.Empty.vector();
+			list = Empty.vector();
 	}
 
 	@Override

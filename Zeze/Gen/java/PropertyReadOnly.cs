@@ -11,15 +11,15 @@ namespace Zeze.Gen.java
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine($"{prefix}public long typeId();");
-            sw.WriteLine($"{prefix}public void encode(Zeze.Serialize.ByteBuffer _o_);");
-            sw.WriteLine($"{prefix}public boolean negativeCheck();");
-            sw.WriteLine($"{prefix}public {bean.Name} copy();");
+            sw.WriteLine($"{prefix}long typeId();");
+            sw.WriteLine($"{prefix}void encode(Zeze.Serialize.ByteBuffer _o_);");
+            sw.WriteLine($"{prefix}boolean negativeCheck();");
+            sw.WriteLine($"{prefix}{bean.Name} copy();");
             sw.WriteLine();
             foreach (Variable var in bean.Variables)
             {
                 if (bean.Version.Equals(var.Name))
-                    sw.WriteLine($"{prefix}public long version();");
+                    sw.WriteLine($"{prefix}long version();");
                 else
                     var.VariableType.Accept(new PropertyReadOnly(sw, var, prefix));
             }
@@ -34,7 +34,7 @@ namespace Zeze.Gen.java
 
         void WriteProperty(Type type)
         {
-            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.Getter + ";");
+            sw.WriteLine(prefix + TypeName.GetName(type) + " " + var.Getter + ";");
         }
 
         public void Visit(TypeBool type)
@@ -86,14 +86,14 @@ namespace Zeze.Gen.java
         {
             var v = BoxingName.GetBoxingName(type.ValueType);
             var t = type.ValueType.IsNormalBean ? $"PList2ReadOnly<{v}, {v}ReadOnly>" : $"PList1ReadOnly<{v}>";
-            sw.WriteLine($"{prefix}public Zeze.Transaction.Collections.{t} get{var.NameUpper1}ReadOnly();");
+            sw.WriteLine($"{prefix}Zeze.Transaction.Collections.{t} get{var.NameUpper1}ReadOnly();");
         }
 
         public void Visit(TypeSet type)
         {
             var v = BoxingName.GetBoxingName(type.ValueType);
             var t = $"Zeze.Transaction.Collections.PSet1ReadOnly<{v}>";
-            sw.WriteLine($"{prefix}public {t} get{var.NameUpper1}ReadOnly();");
+            sw.WriteLine($"{prefix}{t} get{var.NameUpper1}ReadOnly();");
         }
 
         public void Visit(TypeMap type)
@@ -101,12 +101,12 @@ namespace Zeze.Gen.java
             var k = BoxingName.GetBoxingName(type.KeyType);
             var v = BoxingName.GetBoxingName(type.ValueType);
             var t = type.ValueType.IsNormalBean ? $"PMap2ReadOnly<{k}, {v}, {v}ReadOnly>" : $"PMap1ReadOnly<{k}, {v}>";
-            sw.WriteLine($"{prefix}public Zeze.Transaction.Collections.{t} get{var.NameUpper1}ReadOnly();");
+            sw.WriteLine($"{prefix}Zeze.Transaction.Collections.{t} get{var.NameUpper1}ReadOnly();");
         }
 
         public void Visit(Bean type)
         {
-            sw.WriteLine($"{prefix}public {TypeName.GetName(type)}ReadOnly get{var.NameUpper1}ReadOnly();");
+            sw.WriteLine($"{prefix}{TypeName.GetName(type)}ReadOnly get{var.NameUpper1}ReadOnly();");
         }
 
         public void Visit(BeanKey type)
@@ -116,12 +116,11 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeDynamic type)
         {
-            sw.WriteLine($"{prefix}public {TypeName.GetName(type)}ReadOnly get{var.NameUpper1}ReadOnly();");
-            sw.WriteLine();
+            sw.WriteLine($"{prefix}{TypeName.GetName(type)}ReadOnly get{var.NameUpper1}ReadOnly();");
             foreach (Bean real in type.RealBeans.Values)
             {
                 string rname = TypeName.GetName(real);
-                sw.WriteLine($"{prefix}public {rname}ReadOnly get{var.NameUpper1}_{real.Space.Path("_", real.Name)}ReadOnly();");
+                sw.WriteLine($"{prefix}{rname}ReadOnly get{var.NameUpper1}_{real.Space.Path("_", real.Name)}ReadOnly();");
             }
         }
 

@@ -2,10 +2,10 @@
 package Zeze.Builtin.Game.TaskBase;
 
 public interface BTConditionSubmitItemEventReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BTConditionSubmitItemEvent copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BTConditionSubmitItemEvent copy();
 
-    public Zeze.Transaction.Collections.PMap1ReadOnly<Long, Integer> getItemsReadOnly();
+    Zeze.Transaction.Collections.PMap1ReadOnly<Long, Integer> getItemsReadOnly();
 }

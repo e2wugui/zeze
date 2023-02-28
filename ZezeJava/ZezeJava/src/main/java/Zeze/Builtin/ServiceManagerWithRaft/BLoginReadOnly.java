@@ -2,10 +2,10 @@
 package Zeze.Builtin.ServiceManagerWithRaft;
 
 public interface BLoginReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BLogin copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BLogin copy();
 
-    public String getSessionName();
+    String getSessionName();
 }

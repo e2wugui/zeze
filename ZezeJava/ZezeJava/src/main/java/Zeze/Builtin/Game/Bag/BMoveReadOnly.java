@@ -2,13 +2,13 @@
 package Zeze.Builtin.Game.Bag;
 
 public interface BMoveReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BMove copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BMove copy();
 
-    public String getBagName();
-    public int getPositionFrom();
-    public int getPositionTo();
-    public int getNumber();
+    String getBagName();
+    int getPositionFrom();
+    int getPositionTo();
+    int getNumber();
 }

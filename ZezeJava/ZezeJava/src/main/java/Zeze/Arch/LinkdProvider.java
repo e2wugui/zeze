@@ -377,6 +377,6 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		session.serverLoadPort = protocol.Argument.getProviderDirectPort();
 		linkdApp.linkdProviderService.providerSessions.put(session.getServerLoadName(), session);
 
-		return Zeze.Transaction.Procedure.Success;
+		return Procedure.Success;
 	}
 }

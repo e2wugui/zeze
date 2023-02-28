@@ -2,12 +2,12 @@
 package Zeze.Builtin.DelayRemove;
 
 public interface BTableKeyReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BTableKey copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BTableKey copy();
 
-    public String getTableName();
-    public Zeze.Net.Binary getEncodedKey();
-    public long getEnqueueTime();
+    String getTableName();
+    Zeze.Net.Binary getEncodedKey();
+    long getEnqueueTime();
 }

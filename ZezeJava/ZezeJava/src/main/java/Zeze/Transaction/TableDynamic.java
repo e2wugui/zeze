@@ -1,6 +1,7 @@
 package Zeze.Transaction;
 
 import java.util.function.Function;
+import Zeze.Application;
 import Zeze.Util.Factory;
 import Zeze.Serialize.ByteBuffer;
 
@@ -15,20 +16,20 @@ public class TableDynamic<K extends Comparable<K>, V extends Bean> extends Table
 	 * 创建动态表。
 	 * 创建之后就能使用。
 	 * 动态表的 schemas 检查由母表完成。具体做法是正常定义母表，然后动态表使用相同的K,V创建。
-	 * @param zeze zeze
-	 * @param tableName table name
-	 * @param keyEncoder table key encoder
-	 * @param keyDecoder table key decoder
-	 * @param valueFactory table value factory
+	 *
+	 * @param zeze          zeze
+	 * @param tableName     table name
+	 * @param keyEncoder    table key encoder
+	 * @param keyDecoder    table key decoder
+	 * @param valueFactory  table value factory
 	 * @param confTableName table conf name, 如果为null，则使用name作为配置名。
 	 */
-	public TableDynamic(Zeze.Application zeze, String tableName,
+	public TableDynamic(Application zeze, String tableName,
 						Function<K, ByteBuffer> keyEncoder,
 						Function<ByteBuffer, K> keyDecoder,
 						Factory<V> valueFactory,
 						boolean isAutoKey,
-						String confTableName
-	) {
+						String confTableName) {
 		super(tableName);
 
 		id = Bean.hash32(tableName);

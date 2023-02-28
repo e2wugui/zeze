@@ -5,7 +5,7 @@ import Zeze.Transaction.Log;
 import Zeze.Serialize.ByteBuffer;
 
 public abstract class LogBool extends Log {
-	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Transaction.Log<bool>");
+	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<bool>");
 
 	public boolean value;
 

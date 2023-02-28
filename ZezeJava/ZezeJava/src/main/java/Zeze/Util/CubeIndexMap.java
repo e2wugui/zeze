@@ -199,15 +199,15 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 	 * 可以遍历返回的Cube的所有角色，进一步进行精确的距离判断。
 	 */
 
-	public final java.util.ArrayList<TCube> getCubes(double centerX, double centerY, double centerZ, int rangeX, int rangeY) {
+	public final ArrayList<TCube> getCubes(double centerX, double centerY, double centerZ, int rangeX, int rangeY) {
 		return getCubes(centerX, centerY, centerZ, rangeX, rangeY, 4);
 	}
 
-	public final java.util.ArrayList<TCube> getCubes(double centerX, double centerY, double centerZ, int rangeX) {
+	public final ArrayList<TCube> getCubes(double centerX, double centerY, double centerZ, int rangeX) {
 		return getCubes(centerX, centerY, centerZ, rangeX, 4, 4);
 	}
 
-	public final java.util.ArrayList<TCube> getCubes(double centerX, double centerY, double centerZ) {
+	public final ArrayList<TCube> getCubes(double centerX, double centerY, double centerZ) {
 		return getCubes(centerX, centerY, centerZ, 4, 4, 4);
 	}
 
@@ -215,15 +215,15 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 		return getCubes(toIndex(centerX, centerY, centerZ), rangeX, rangeY, rangeZ);
 	}
 
-	public final java.util.ArrayList<TCube> getCubes(float centerX, float centerY, float centerZ, int rangeX, int rangeY) {
+	public final ArrayList<TCube> getCubes(float centerX, float centerY, float centerZ, int rangeX, int rangeY) {
 		return getCubes(centerX, centerY, centerZ, rangeX, rangeY, 4);
 	}
 
-	public final java.util.ArrayList<TCube> getCubes(float centerX, float centerY, float centerZ, int rangeX) {
+	public final ArrayList<TCube> getCubes(float centerX, float centerY, float centerZ, int rangeX) {
 		return getCubes(centerX, centerY, centerZ, rangeX, 4, 4);
 	}
 
-	public final java.util.ArrayList<TCube> getCubes(float centerX, float centerY, float centerZ) {
+	public final ArrayList<TCube> getCubes(float centerX, float centerY, float centerZ) {
 		return getCubes(centerX, centerY, centerZ, 4, 4, 4);
 	}
 
@@ -231,15 +231,15 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 		return getCubes(toIndex(centerX, centerY, centerZ), rangeX, rangeY, rangeZ);
 	}
 
-	public final java.util.ArrayList<TCube> getCubes(long centerX, long centerY, long centerZ, int rangeX, int rangeY) {
+	public final ArrayList<TCube> getCubes(long centerX, long centerY, long centerZ, int rangeX, int rangeY) {
 		return getCubes(centerX, centerY, centerZ, rangeX, rangeY, 4);
 	}
 
-	public final java.util.ArrayList<TCube> getCubes(long centerX, long centerY, long centerZ, int rangeX) {
+	public final ArrayList<TCube> getCubes(long centerX, long centerY, long centerZ, int rangeX) {
 		return getCubes(centerX, centerY, centerZ, rangeX, 4, 4);
 	}
 
-	public final java.util.ArrayList<TCube> getCubes(long centerX, long centerY, long centerZ) {
+	public final ArrayList<TCube> getCubes(long centerX, long centerY, long centerZ) {
 		return getCubes(centerX, centerY, centerZ, 4, 4, 4);
 	}
 

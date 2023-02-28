@@ -109,7 +109,7 @@ public class Schemas implements Serializable {
 		private Schemas previous;
 		private final HashMap<Checked, CheckResult> checked = new HashMap<>();
 		private final HashMap<Bean, CheckResult> copyBeanIfRemoved = new HashMap<>();
-		private Zeze.Config config;
+		private Config config;
 		private long renameCount;
 
 		public final Schemas getCurrent() {
@@ -136,11 +136,11 @@ public class Schemas implements Serializable {
 			return copyBeanIfRemoved;
 		}
 
-		public final Zeze.Config getConfig() {
+		public final Config getConfig() {
 			return config;
 		}
 
-		public final void setConfig(Zeze.Config value) {
+		public final void setConfig(Config value) {
 			config = value;
 		}
 
@@ -651,7 +651,7 @@ public class Schemas implements Serializable {
 	public final HashMap<String, Bean> beans = new HashMap<>();
 	private final HashMap<String, Type> basicTypes = new HashMap<>();
 
-	public void checkCompatible(Schemas other, Zeze.Application app) throws Exception {
+	public void checkCompatible(Schemas other, Application app) throws Exception {
 		if (other == null)
 			return;
 

@@ -2,12 +2,12 @@
 package Zeze.Builtin.GlobalCacheManagerWithRaft;
 
 public interface BAchillesHeelReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BAchillesHeel copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BAchillesHeel copy();
 
-    public int getServerId();
-    public String getSecureKey();
-    public int getGlobalCacheManagerHashIndex();
+    int getServerId();
+    String getSecureKey();
+    int getGlobalCacheManagerHashIndex();
 }

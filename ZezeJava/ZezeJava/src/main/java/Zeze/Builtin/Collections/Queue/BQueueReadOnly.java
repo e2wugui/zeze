@@ -7,13 +7,13 @@ package Zeze.Builtin.Collections.Queue;
 				第一个用户是Table.GC，延迟删除记录。
 */
 public interface BQueueReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BQueue copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BQueue copy();
 
-    public long getHeadNodeId();
-    public long getTailNodeId();
-    public long getCount();
-    public long getLastNodeId();
+    long getHeadNodeId();
+    long getTailNodeId();
+    long getCount();
+    long getLastNodeId();
 }

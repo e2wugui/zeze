@@ -11,12 +11,12 @@ import Zeze.Util.IntHashSet;
 
 public interface RedirectAllFuture<R extends RedirectResult> {
 	// 返回的future不能调用下面的接口方法,只用于给框架提供结果
-	public static <R extends RedirectResult> RedirectAllFuture<R> result(R r) {
+	static <R extends RedirectResult> RedirectAllFuture<R> result(R r) {
 		return new RedirectAllFutureFinished<>(r);
 	}
 
 	// 返回的future只能调用下面的asyncResult方法
-	public static <R extends RedirectResult> RedirectAllFuture<R> async() {
+	static <R extends RedirectResult> RedirectAllFuture<R> async() {
 		return new RedirectAllFutureAsync<>();
 	}
 

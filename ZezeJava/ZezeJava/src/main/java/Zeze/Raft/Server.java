@@ -1,6 +1,7 @@
 package Zeze.Raft;
 
 import java.util.concurrent.RejectedExecutionException;
+import Zeze.Config;
 import Zeze.Net.Acceptor;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
@@ -36,7 +37,7 @@ public class Server extends HandshakeBoth {
 	}
 
 	// 多个Raft实例才需要自定义配置名字，否则使用默认名字就可以了。
-	public Server(Raft raft, String name, Zeze.Config config) {
+	public Server(Raft raft, String name, Config config) {
 		super(name, config);
 		this.raft = raft;
 	}

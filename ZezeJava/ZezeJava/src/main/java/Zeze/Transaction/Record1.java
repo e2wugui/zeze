@@ -103,7 +103,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	}
 
 	@Override
-	public void commit(Zeze.Transaction.RecordAccessed accessed) {
+	public void commit(RecordAccessed accessed) {
 		if (null != accessed.committedPutLog) {
 			setSoftValue(accessed.committedPutLog.getValue());
 		}

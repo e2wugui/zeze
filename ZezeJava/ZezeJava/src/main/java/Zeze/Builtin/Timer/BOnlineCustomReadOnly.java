@@ -3,11 +3,10 @@ package Zeze.Builtin.Timer;
 
 // 保存真正的用户自定义数据
 public interface BOnlineCustomReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BOnlineCustom copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BOnlineCustom copy();
 
-    public Zeze.Transaction.DynamicBeanReadOnly getCustomDataReadOnly();
-
+    Zeze.Transaction.DynamicBeanReadOnly getCustomDataReadOnly();
 }

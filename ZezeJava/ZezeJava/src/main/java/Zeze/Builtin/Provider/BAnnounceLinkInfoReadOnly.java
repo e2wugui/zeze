@@ -2,9 +2,9 @@
 package Zeze.Builtin.Provider;
 
 public interface BAnnounceLinkInfoReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BAnnounceLinkInfo copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BAnnounceLinkInfo copy();
 
 }

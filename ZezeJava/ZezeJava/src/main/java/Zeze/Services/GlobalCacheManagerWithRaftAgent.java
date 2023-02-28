@@ -3,6 +3,7 @@ package Zeze.Services;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
+import Zeze.Application;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Acquire;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.KeepAlive;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Login;
@@ -10,6 +11,8 @@ import Zeze.Builtin.GlobalCacheManagerWithRaft.NormalClose;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.ReLogin;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Reduce;
 import Zeze.Net.Binary;
+import Zeze.Raft.Agent;
+import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.GlobalAgentBase;
 import Zeze.Transaction.GoBackZeze;
@@ -24,20 +27,20 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	private static final Logger logger = LogManager.getLogger(GlobalCacheManagerWithRaftAgent.class);
 	// private static final boolean isDebugEnabled = logger.isDebugEnabled();
 
-	private final Zeze.Application zz;
+	private final Application zz;
 	public final RaftAgent[] agents;
 
-	public GlobalCacheManagerWithRaftAgent(Zeze.Application zeze, String[] hosts) throws Exception {
+	public GlobalCacheManagerWithRaftAgent(Application zeze, String[] hosts) throws Exception {
 		zz = zeze;
 
 		agents = new RaftAgent[hosts.length];
 		for (int i = 0; i < hosts.length; ++i) {
-			var raftConf = Zeze.Raft.RaftConfig.load(hosts[i]);
+			var raftConf = RaftConfig.load(hosts[i]);
 			agents[i] = new RaftAgent(this, zz, i, raftConf);
 		}
 	}
 
-	public final Zeze.Application getZeze() {
+	public final Application getZeze() {
 		return zz;
 	}
 
@@ -210,7 +213,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	// 4. Raft 高可用性，所以认为服务器永远不会关闭，就不需要处理服务器关闭时清理本地状态。
 	public static class RaftAgent extends GlobalAgentBase {
 		private final GlobalCacheManagerWithRaftAgent globalCacheManagerWithRaftAgent;
-		private final Zeze.Raft.Agent raftClient;
+		private final Agent raftClient;
 		private final AtomicLong loginTimes = new AtomicLong();
 		private volatile TaskCompletionSource<Boolean> loginFuture = new TaskCompletionSource<>();
 		private boolean activeClose;
@@ -236,7 +239,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			throw new RuntimeException(msg, cause);
 		}
 
-		public RaftAgent(GlobalCacheManagerWithRaftAgent global, Zeze.Application zeze,
+		public RaftAgent(GlobalCacheManagerWithRaftAgent global, Application zeze,
 						 int _GlobalCacheManagerHashIndex) throws Exception {
 			this(global, zeze, _GlobalCacheManagerHashIndex, null);
 		}
@@ -263,12 +266,12 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			});
 		}
 
-		public RaftAgent(GlobalCacheManagerWithRaftAgent global, Zeze.Application zeze,
-						 int _GlobalCacheManagerHashIndex, Zeze.Raft.RaftConfig raftConf) throws Exception {
+		public RaftAgent(GlobalCacheManagerWithRaftAgent global, Application zeze,
+						 int _GlobalCacheManagerHashIndex, RaftConfig raftConf) throws Exception {
 			super(zeze);
 			globalCacheManagerWithRaftAgent = global;
 			super.globalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
-			raftClient = new Zeze.Raft.Agent("global.raft", zeze, raftConf);
+			raftClient = new Agent("global.raft", zeze, raftConf);
 			raftClient.setOnSetLeader(this::raftOnSetLeader);
 			raftClient.dispatchProtocolToInternalThreadPool = true;
 			getGlobalCacheManagerWithRaftAgent().RegisterProtocols(raftClient.getClient());
@@ -282,7 +285,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			return globalCacheManagerHashIndex;
 		}
 
-		public final Zeze.Raft.Agent getRaftClient() {
+		public final Agent getRaftClient() {
 			return raftClient;
 		}
 
@@ -327,7 +330,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			return loginFuture = new TaskCompletionSource<>();
 		}
 
-		private void raftOnSetLeader(Zeze.Raft.Agent agent) {
+		private void raftOnSetLeader(Agent agent) {
 			var client = agent.getClient();
 			if (client == null)
 				return;

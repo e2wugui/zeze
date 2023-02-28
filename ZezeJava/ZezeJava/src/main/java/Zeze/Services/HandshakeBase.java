@@ -4,6 +4,7 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.concurrent.Future;
 import Zeze.Application;
+import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Digest;
 import Zeze.Net.Service;
@@ -19,6 +20,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.LongHashSet;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -39,7 +41,7 @@ public class HandshakeBase extends Service {
 	// For Client Only
 	private final LongConcurrentHashMap<Context> dhContext = new LongConcurrentHashMap<>();
 
-	public HandshakeBase(String name, Zeze.Config config) {
+	public HandshakeBase(String name, Config config) {
 		super(name, config);
 	}
 
@@ -128,7 +130,7 @@ public class HandshakeBase extends Service {
 			var c2s = serverCompressC2s(p.Argument.compressC2s);
 			p.getSender().setInputSecurityCodec(p.Argument.encryptType, inputKey, c2s);
 
-			var sHandshake = new Zeze.Services.Handshake.SHandshake();
+			var sHandshake = new SHandshake();
 			sHandshake.Argument.encryptParam = response;
 			sHandshake.Argument.compressS2c = s2c;
 			sHandshake.Argument.compressC2s = c2s;
@@ -195,7 +197,7 @@ public class HandshakeBase extends Service {
 				}
 				p.getSender().setOutputSecurityCodec(p.Argument.encryptType, outputKey, p.Argument.compressC2s);
 				p.getSender().setInputSecurityCodec(p.Argument.encryptType, inputKey, p.Argument.compressS2c);
-				(new Zeze.Services.Handshake.CHandshakeDone()).Send(p.getSender());
+				(new CHandshakeDone()).Send(p.getSender());
 				p.getSender().submitAction(() -> OnHandshakeDone(p.getSender())); // must after SetInputSecurityCodec and SetOutputSecurityCodec
 				return 0;
 			}
@@ -228,7 +230,7 @@ public class HandshakeBase extends Service {
 				throw new IllegalStateException("handshake duplicate context for same session.");
 			}
 
-			var cHandShake = new Zeze.Services.Handshake.CHandshake();
+			var cHandShake = new CHandshake();
 			// 默认加密压缩尽量都有服务器决定，不进行选择。
 			cHandShake.Argument.encryptType = arg.encryptType;
 			cHandShake.Argument.encryptParam = arg.encryptType == Constant.eEncryptTypeAes
@@ -238,7 +240,7 @@ public class HandshakeBase extends Service {
 			cHandShake.Argument.compressC2s = clientCompress(arg.compressC2s);
 			cHandShake.Send(so);
 
-			ctx.timeoutTask = Zeze.Util.Task.scheduleUnsafe(5000, () -> {
+			ctx.timeoutTask = Task.scheduleUnsafe(5000, () -> {
 				if (null != dhContext.remove(so.getSessionId())) {
 					so.close(new Exception("Handshake Timeout"));
 				}

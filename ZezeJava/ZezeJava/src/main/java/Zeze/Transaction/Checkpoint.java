@@ -23,7 +23,7 @@ public final class Checkpoint {
 	private final ReentrantReadWriteLock flushReadWriteLock = new ReentrantReadWriteLock();
 	private final CheckpointMode mode;
 	private final Thread checkpointThread;
-	final Zeze.Application zeze;
+	final Application zeze;
 	private final ReentrantLock lock = new ReentrantLock();
 	private final Condition cond = lock.newCondition();
 	private int period;
@@ -33,11 +33,11 @@ public final class Checkpoint {
 	final ExecutorService flushThreadPool;
 	final ConcurrentHashSet<RelativeRecordSet> relativeRecordSetMap = new ConcurrentHashSet<>();
 
-	public Checkpoint(Zeze.Application zeze, CheckpointMode mode, int serverId) {
+	public Checkpoint(Application zeze, CheckpointMode mode, int serverId) {
 		this(zeze, mode, null, serverId);
 	}
 
-	public Checkpoint(Zeze.Application zeze, CheckpointMode mode, Iterable<Database> dbs, int serverId) {
+	public Checkpoint(Application zeze, CheckpointMode mode, Iterable<Database> dbs, int serverId) {
 		this.zeze = zeze;
 		var concurrent = this.zeze.getConfig().getCheckpointModeTableFlushConcurrent();
 		flushThreadPool = concurrent > 1 ? Executors.newFixedThreadPool(concurrent) : null;

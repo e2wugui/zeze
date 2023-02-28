@@ -13,6 +13,7 @@ import Zeze.Builtin.GlobalCacheManagerWithRaft.NormalClose;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.ReLogin;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Reduce;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.BReduceParam;
+import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.ProtocolHandle;
@@ -91,14 +92,14 @@ public class GlobalCacheManagerWithRaft
 		this(raftName, raftConf, null, false);
 	}
 
-	public GlobalCacheManagerWithRaft(String raftName, RaftConfig raftConf, Zeze.Config config) throws Exception {
+	public GlobalCacheManagerWithRaft(String raftName, RaftConfig raftConf, Config config) throws Exception {
 		this(raftName, raftConf, config, false);
 	}
 
-	public GlobalCacheManagerWithRaft(String raftName, RaftConfig raftConf, Zeze.Config config,
+	public GlobalCacheManagerWithRaft(String raftName, RaftConfig raftConf, Config config,
 									  boolean RocksDbWriteOptionSync) throws Exception {
 		if (config == null)
-			config = new Zeze.Config().addCustomize(this.config).loadAndParse();
+			config = new Config().addCustomize(this.config).loadAndParse();
 		rocks = new Rocks(raftName, RocksMode.Pessimism, raftConf, config, RocksDbWriteOptionSync);
 
 		RegisterRocksTables(rocks);
@@ -136,7 +137,7 @@ public class GlobalCacheManagerWithRaft
 //									logger.info("AchillesHeelDaemon.Release table={} key={} session={}",
 //											Acquired.getName(), key, session);
 									release(session, key);
-									++ releaseCount.value;
+									++releaseCount.value;
 									return true;
 								}
 								return false;

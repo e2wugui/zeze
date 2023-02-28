@@ -4,6 +4,7 @@ import java.util.Base64;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
+import Zeze.Application;
 import Zeze.Builtin.AutoKey.BSeedKey;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
@@ -16,10 +17,10 @@ import Zeze.Util.Task;
 public class AutoKey {
 	public static class Module extends AbstractAutoKey {
 		private final ConcurrentHashMap<String, AutoKey> map = new ConcurrentHashMap<>();
-		public final Zeze.Application zeze;
+		public final Application zeze;
 
 		// 这个组件Zeze.Application会自动初始化，不需要应用初始化。
-		public Module(Zeze.Application zeze) {
+		public Module(Application zeze) {
 			this.zeze = zeze;
 			RegisterZezeTables(zeze);
 		}

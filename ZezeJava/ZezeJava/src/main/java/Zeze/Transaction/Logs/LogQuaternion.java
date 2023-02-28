@@ -6,7 +6,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 
 public abstract class LogQuaternion extends Log {
-	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Transaction.Log<quaternion>");
+	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<quaternion>");
 
 	public Quaternion value;
 

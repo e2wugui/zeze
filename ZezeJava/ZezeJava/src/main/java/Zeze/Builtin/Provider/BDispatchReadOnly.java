@@ -3,15 +3,15 @@ package Zeze.Builtin.Provider;
 
 // link to gs
 public interface BDispatchReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BDispatch copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BDispatch copy();
 
-    public long getLinkSid();
-    public String getAccount();
-    public long getProtocolType();
-    public Zeze.Net.Binary getProtocolData();
-    public String getContext();
-    public Zeze.Net.Binary getContextx();
+    long getLinkSid();
+    String getAccount();
+    long getProtocolType();
+    Zeze.Net.Binary getProtocolData();
+    String getContext();
+    Zeze.Net.Binary getContextx();
 }

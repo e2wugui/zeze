@@ -2,13 +2,13 @@
 package Zeze.Builtin.Collections.DAG;
 
 public interface BDAGReadOnly {
-    public long typeId();
-    public void encode(Zeze.Serialize.ByteBuffer _o_);
-    public boolean negativeCheck();
-    public BDAG copy();
+    long typeId();
+    void encode(Zeze.Serialize.ByteBuffer _o_);
+    boolean negativeCheck();
+    BDAG copy();
 
-    public long getNodeSum();
-    public long getEdgeSum();
-    public String getStartNode();
-    public String getEndNode();
+    long getNodeSum();
+    long getEdgeSum();
+    String getStartNode();
+    String getEndNode();
 }

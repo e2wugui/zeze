@@ -2,6 +2,7 @@ package Zeze.Services;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
+import Zeze.Application;
 import Zeze.Builtin.ServiceManagerWithRaft.AllocateId;
 import Zeze.Builtin.ServiceManagerWithRaft.CommitServiceList;
 import Zeze.Builtin.ServiceManagerWithRaft.KeepAlive;
@@ -18,6 +19,8 @@ import Zeze.Builtin.ServiceManagerWithRaft.SubscribeFirstCommit;
 import Zeze.Builtin.ServiceManagerWithRaft.UnRegister;
 import Zeze.Builtin.ServiceManagerWithRaft.UnSubscribe;
 import Zeze.Builtin.ServiceManagerWithRaft.Update;
+import Zeze.Raft.Agent;
+import Zeze.Raft.RaftConfig;
 import Zeze.Services.ServiceManager.AutoKey;
 import Zeze.Services.ServiceManager.BOfflineNotify;
 import Zeze.Services.ServiceManager.BServerLoad;
@@ -33,9 +36,9 @@ import org.apache.logging.log4j.Logger;
 
 public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWithRaft {
 	static final Logger logger = LogManager.getLogger(ServiceManagerAgentWithRaft.class);
-	private final Zeze.Raft.Agent raftClient;
+	private final Agent raftClient;
 
-	public ServiceManagerAgentWithRaft(Zeze.Application zeze) throws Exception {
+	public ServiceManagerAgentWithRaft(Application zeze) throws Exception {
 		super.zeze = zeze;
 
 		var config = zeze.getConfig();
@@ -43,14 +46,14 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			throw new IllegalStateException("Config is null");
 		}
 
-		var raftConf = Zeze.Raft.RaftConfig.load(config.getServiceManagerConf().getRaftXml());
-		raftClient = new Zeze.Raft.Agent("servicemanager.raft", zeze, raftConf);
+		var raftConf = RaftConfig.load(config.getServiceManagerConf().getRaftXml());
+		raftClient = new Agent("servicemanager.raft", zeze, raftConf);
 		raftClient.setOnSetLeader(this::raftOnSetLeader);
 		raftClient.dispatchProtocolToInternalThreadPool = true;
 		RegisterProtocols(raftClient.getClient());
 	}
 
-	private void raftOnSetLeader(Zeze.Raft.Agent agent) {
+	private void raftOnSetLeader(Agent agent) {
 		var client = agent.getClient();
 		if (client == null)
 			return;
