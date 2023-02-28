@@ -451,6 +451,7 @@ public class Service {
 			Task.runUnsafe(zeze.newProcedure(() -> {
 						bbCopy.ReadIndex = 0; // 考虑redo,要重置读指针
 						var p = decodeProtocol(typeId, bbCopy, factoryHandle, so);
+						outProtocol.value = p;
 						return p.handle(this, factoryHandle);
 					}, factoryHandle.Class.getName(), level, so.getUserState()),
 					outProtocol, Protocol::trySendResultCode, factoryHandle.Mode);
