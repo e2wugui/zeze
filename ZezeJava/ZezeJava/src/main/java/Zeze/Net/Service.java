@@ -365,7 +365,17 @@ public class Service {
 	@SuppressWarnings("RedundantThrows")
 	public <P extends Protocol<?>> void dispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
 															ProtocolFactoryHandle<?> factoryHandle) throws Exception {
-		Task.runRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
+		// 一般来说到达这个函数，肯定执行非事务分支了，事务分支在下面的dispatchProtocol中就被拦截。
+		// 但为了更具适应性，就是有人重载了下面的dispatchProtocol，然后没有处理事务，直接派发到这里，
+		// 这里还是处理了存储过程的创建。但这里处理的存储过程没有redo时重置协议参数的能力。
+		if (zeze != null && factoryHandle.Level != TransactionLevel.None) {
+			Task.runRpcResponseUnsafe(
+					zeze.newProcedure(
+							() -> responseHandle.handle(rpc), rpc.getClass().getName() + ":Response",
+							factoryHandle.Level, rpc.getUserState()),
+					factoryHandle.Mode);
+		} else
+			Task.runRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
 	}
 
 	public boolean isHandshakeProtocol(long typeId) {
@@ -401,9 +411,9 @@ public class Service {
 	public void dispatchProtocol(Protocol<?> p, ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		var level = factoryHandle.Level;
 		var zeze = this.zeze;
-		// 一般来说到达这个函数，肯定执行这个分支了，事务分支在下面的dispatchProtocol中就被拦截。
-		// 但为了更具适应性，这里还是处理了存储过程的创建。
-		// 为了避免redirect时死锁,这里一律不在whileCommit时执行
+		// 一般来说到达这个函数，肯定执行非事务分支了，事务分支在下面的dispatchProtocol中就被拦截。
+		// 但为了更具适应性，就是有人重载了下面的dispatchProtocol，然后没有处理事务，直接派发到这里，
+		// 这里还是处理了存储过程的创建。但这里处理的存储过程没有redo时重置协议参数的能力。
 		if (zeze != null && level != TransactionLevel.None) {
 			Task.runUnsafe(zeze.newProcedure(() -> p.handle(this, factoryHandle), p.getClass().getName(), level,
 					p.getUserState()), p, Protocol::trySendResultCode, factoryHandle.Mode);
@@ -442,28 +452,6 @@ public class Service {
 			p.dispatch(this, factoryHandle);
 		}
 	}
-
-	/*
-	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) throws Exception {
-		ProtocolHandle<P> handle = factoryHandle.Handle;
-		if (handle != null) {
-			if (isHandshakeProtocol(p.getTypeId())) {
-				// handshake protocol call direct in io-thread.
-				Task.call(() -> handle.handle(p), p, Protocol::trySendResultCode);
-				return;
-			}
-			TransactionLevel level = factoryHandle.Level;
-			Application zeze = this.zeze;
-			// 为了避免redirect时死锁,这里一律不在whileCommit时执行
-			if (zeze != null && level != TransactionLevel.None) {
-				Task.runUnsafe(zeze.newProcedure(() -> handle.handle(p), p.getClass().getName(), level,
-						p.getUserState()), p, Protocol::trySendResultCode, factoryHandle.Mode);
-			} else
-				Task.runUnsafe(() -> handle.handle(p), p, Protocol::trySendResultCode, null, factoryHandle.Mode);
-		} else
-			logger.warn("DispatchProtocol: Protocol Handle Not Found: {}", p);
-	}
-	*/
 
 	/**
 	 * @param data 方法外绝对不能持有data.Bytes的引用! 也就是只能在方法内读data, 只能处理data.ReadIndex到data.WriteIndex范围内
