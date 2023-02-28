@@ -136,25 +136,10 @@ public class ProviderUserSession {
 
 	private void protocolLogSend(Protocol<?> p) {
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p.getTypeId())) {
-			var log = AsyncSocket.logger;
-			var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
 			var roleId = getRoleId();
 			if (roleId == null)
 				roleId = -getLinkSid();
-			var className = p.getClass().getSimpleName();
-			if (p instanceof Rpc) {
-				var rpc = ((Rpc<?, ?>)p);
-				var rpcSessionId = rpc.getSessionId();
-				if (rpc.isRequest())
-					log.log(level, "Send:{} {}:{} {}", roleId, className, rpcSessionId, p.Argument);
-				else {
-					log.log(level, "Send:{} {}:{}>{} {}", roleId, className, rpcSessionId,
-							p.getResultCode(), rpc.Result);
-				}
-			} else if (p.getResultCode() == 0)
-				log.log(level, "Send:{} {} {}", roleId, className, p.Argument);
-			else
-				log.log(level, "Send:{} {}>{} {}", roleId, className, p.getResultCode(), p.Argument);
+			AsyncSocket.log("Send", roleId, p);
 		}
 	}
 

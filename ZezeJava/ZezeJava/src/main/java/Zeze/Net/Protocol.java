@@ -280,42 +280,8 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 				if (factoryHandle != null && factoryHandle.Factory != null) {
 					service.dispatchProtocol(typeId, bb, factoryHandle, so);
 				} else {
-					if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
-						var log = AsyncSocket.logger;
-						var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
-						var sessionId = so.getSessionId();
-						int header = -1;
-						int familyClass = 0;
-						var resultCode = 0L;
-						var rpcSessionId = 0L;
-						try {
-							header = bb.ReadInt();
-							familyClass = header & FamilyClass.FamilyClassMask;
-							if ((header & FamilyClass.BitResultCode) != 0)
-								resultCode = bb.ReadLong();
-							if (FamilyClass.isRpc(familyClass))
-								rpcSessionId = bb.ReadLong();
-						} catch (Exception e) {
-							log.error("decode unknown protocol failed: moduleId={}, protocolId={}, size={}",
-									moduleId, protocolId, size, e);
-						}
-						size = bb.size();
-						if (FamilyClass.isRpc(familyClass)) {
-							if (familyClass == FamilyClass.Request)
-								log.log(level, "RECV:{} {}:{} {}[{}]", sessionId, moduleId, protocolId, header, size);
-							else {
-								log.log(level, "RECV:{} {}:{}>{} {}[{}]", sessionId, moduleId, protocolId, resultCode,
-										header, size);
-							}
-						} else if (resultCode == 0) {
-							log.log(level, "RECV:{} {}:{}:{} {}[{}]", sessionId, moduleId, protocolId, rpcSessionId,
-									header, size);
-						} else {
-							log.log(level, "RECV:{} {}:{}:{}>{} {}[{}]", sessionId, moduleId, protocolId, rpcSessionId,
-									resultCode, header, size);
-						}
-						bb.ReadIndex = beginReadIndex;
-					}
+					if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
+						AsyncSocket.log("RECV", so.getSessionId(), moduleId, protocolId, bb);
 					service.dispatchUnknownProtocol(so, moduleId, protocolId, bb); // 这里只能临时读bb,不能持有Bytes引用
 				}
 			}

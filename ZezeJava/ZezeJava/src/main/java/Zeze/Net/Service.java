@@ -385,27 +385,10 @@ public class Service {
 							bb.ReadIndex - beginReadIndex, size));
 		*/
 		p.setSender(so);
-		if (null != so)
+		if (so != null)
 			p.setUserState(so.getUserState());
-		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
-			var log = AsyncSocket.logger;
-			var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
-			var sessionId = null == so ? 0 : so.getSessionId();
-			var className = p.getClass().getSimpleName();
-			if (p instanceof Rpc) {
-				var rpc = ((Rpc<?, ?>)p);
-				var rpcSessionId = rpc.getSessionId();
-				if (rpc.isRequest())
-					log.log(level, "RECV:{} {}:{} {}", sessionId, className, rpcSessionId, p.Argument);
-				else {
-					log.log(level, "RECV:{} {}:{}>{} {}", sessionId, className, rpcSessionId,
-							p.resultCode, rpc.Result);
-				}
-			} else if (p.resultCode == 0)
-				log.log(level, "RECV:{} {} {}", sessionId, className, p.Argument);
-			else
-				log.log(level, "RECV:{} {}>{} {}", sessionId, className, p.resultCode, p.Argument);
-		}
+		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
+			AsyncSocket.log("RECV", so == null ? 0 : so.getSessionId(), p);
 		return p;
 	}
 
@@ -416,21 +399,17 @@ public class Service {
 	}
 
 	public void dispatchProtocol(Protocol<?> p, ProtocolFactoryHandle<?> factoryHandle) throws Exception {
-		TransactionLevel level = factoryHandle.Level;
-		Application zeze = this.zeze;
+		var level = factoryHandle.Level;
+		var zeze = this.zeze;
 		// 一般来说到达这个函数，肯定执行这个分支了，事务分支在下面的dispatchProtocol中就被拦截。
 		// 但为了更具适应性，这里还是处理了存储过程的创建。
 		// 为了避免redirect时死锁,这里一律不在whileCommit时执行
 		if (zeze != null && level != TransactionLevel.None) {
-			Task.runUnsafe(
-					zeze.newProcedure(() -> p.handle(this, factoryHandle),
-							p.getClass().getName(), level, p.getUserState()),
-					p, Protocol::trySendResultCode, factoryHandle.Mode);
+			Task.runUnsafe(zeze.newProcedure(() -> p.handle(this, factoryHandle), p.getClass().getName(), level,
+					p.getUserState()), p, Protocol::trySendResultCode, factoryHandle.Mode);
 		} else {
-			Task.runUnsafe(
-					() -> p.handle(this, factoryHandle),
-					p, Protocol::trySendResultCode,
-					null, factoryHandle.Mode);
+			Task.runUnsafe(() -> p.handle(this, factoryHandle),
+					p, Protocol::trySendResultCode, null, factoryHandle.Mode);
 		}
 	}
 
@@ -443,6 +422,7 @@ public class Service {
 			return;
 		}
 		var level = factoryHandle.Level;
+		var zeze = this.zeze;
 		if (zeze != null && level != TransactionLevel.None) {
 			// 事务模式，需要从decode重启。
 			// 传给事务的buffer可能重做需要重新decode，不能直接引用网络层的buffer，需要copy一次。

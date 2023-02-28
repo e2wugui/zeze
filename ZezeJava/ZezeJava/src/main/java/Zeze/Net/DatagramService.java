@@ -167,25 +167,8 @@ public class DatagramService {
 		p.decode(bb);
 		p.setDatagramSession(sender);
 		p.setUserState(serialId);
-		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p.getTypeId())) {
-			var log = AsyncSocket.logger;
-			var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
-			var sessionId = sender != null ? sender.getSessionId() : 0;
-			var className = p.getClass().getSimpleName();
-			if (p instanceof Rpc) {
-				var rpc = ((Rpc<?, ?>)p);
-				var rpcSessionId = rpc.getSessionId();
-				if (rpc.isRequest())
-					log.log(level, "RECV:{} {}:{} {}", sessionId, className, rpcSessionId, p.Argument);
-				else {
-					log.log(level, "RECV:{} {}:{}>{} {}", sessionId, className, rpcSessionId,
-							p.resultCode, rpc.Result);
-				}
-			} else if (p.resultCode == 0)
-				log.log(level, "RECV:{} {} {}", sessionId, className, p.Argument);
-			else
-				log.log(level, "RECV:{} {}>{} {}", sessionId, className, p.resultCode, p.Argument);
-		}
+		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p.getTypeId()))
+			AsyncSocket.log("RECV", sender != null ? sender.getSessionId() : 0, p);
 		return p;
 	}
 

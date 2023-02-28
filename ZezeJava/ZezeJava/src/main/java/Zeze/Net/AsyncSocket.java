@@ -518,23 +518,107 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		return false;
 	}
 
-	public boolean Send(Protocol<?> p) {
-		if (ENABLE_PROTOCOL_LOG && canLogProtocol(p.getTypeId())) {
-			var className = p.getClass().getSimpleName();
-			if (p instanceof Rpc) {
-				var rpc = ((Rpc<?, ?>)p);
-				var rpcSessionId = rpc.getSessionId();
-				if (rpc.isRequest())
-					logger.log(PROTOCOL_LOG_LEVEL, "SEND:{} {}:{} {}", sessionId, className, rpcSessionId, p.Argument);
-				else {
-					logger.log(PROTOCOL_LOG_LEVEL, "SEND:{} {}:{}>{} {}", sessionId, className, rpcSessionId,
-							p.resultCode, rpc.Result);
-				}
-			} else if (p.resultCode == 0)
-				logger.log(PROTOCOL_LOG_LEVEL, "SEND:{} {} {}", sessionId, className, p.Argument);
+	public static void log(String action, long id, Protocol<?> p) {
+		var sb = new StringBuilder(64);
+		sb.append(action).append(':').append(id).append(' ').append(p.getClass().getSimpleName());
+		if (p instanceof Rpc) {
+			var rpc = ((Rpc<?, ?>)p);
+			sb.append(':').append(rpc.getSessionId());
+			if (rpc.isRequest())
+				sb.append(' ').append(rpc.Argument);
 			else
-				logger.log(PROTOCOL_LOG_LEVEL, "SEND:{} {}>{} {}", sessionId, className, p.resultCode, p.Argument);
+				sb.append('>').append(rpc.resultCode).append(' ').append(rpc.Result);
+		} else {
+			if (p.resultCode != 0)
+				sb.append('>').append(p.resultCode);
+			sb.append(' ').append(p.Argument);
 		}
+		logger.log(PROTOCOL_LOG_LEVEL, sb);
+	}
+
+	public static void log(String action, String id, Protocol<?> p) {
+		var sb = new StringBuilder(64);
+		sb.append(action).append(':').append(id).append(' ').append(p.getClass().getSimpleName());
+		if (p instanceof Rpc) {
+			var rpc = ((Rpc<?, ?>)p);
+			sb.append(':').append(rpc.getSessionId());
+			if (rpc.isRequest())
+				sb.append(' ').append(rpc.Argument);
+			else
+				sb.append('>').append(rpc.resultCode).append(' ').append(rpc.Result);
+		} else {
+			if (p.resultCode != 0)
+				sb.append('>').append(p.resultCode);
+			sb.append(' ').append(p.Argument);
+		}
+		logger.log(PROTOCOL_LOG_LEVEL, sb);
+	}
+
+	public static void log(String action, long sessionId, int moduleId, int protocolId, ByteBuffer bb) {
+		int beginReadIndex = bb.ReadIndex;
+		int header = -1;
+		int familyClass = 0;
+		var resultCode = 0L;
+		var rpcSessionId = 0L;
+		try {
+			header = bb.ReadInt();
+			familyClass = header & FamilyClass.FamilyClassMask;
+			if ((header & FamilyClass.BitResultCode) != 0)
+				resultCode = bb.ReadLong();
+			if (FamilyClass.isRpc(familyClass))
+				rpcSessionId = bb.ReadLong();
+		} catch (Exception e) {
+			logger.error("decode protocol failed: moduleId={}, protocolId={}, size={}",
+					moduleId, protocolId, bb.WriteIndex - beginReadIndex, e);
+		}
+		var sb = new StringBuilder();
+		sb.append(action).append(':').append(sessionId).append(' ').append(moduleId).append(':').append(protocolId);
+		if (FamilyClass.isRpc(familyClass)) {
+			sb.append(':').append(rpcSessionId);
+			if (familyClass == FamilyClass.Response)
+				sb.append('>').append(resultCode);
+		} else if (resultCode != 0)
+			sb.append('>').append(resultCode);
+		sb.append(' ').append(header).append('[').append(bb.size()).append(']');
+		bb.ReadIndex = beginReadIndex;
+		logger.log(PROTOCOL_LOG_LEVEL, sb);
+	}
+
+	public static void log(String action, Object idStr, long typeId, ByteBuffer bb) {
+		int moduleId = Protocol.getModuleId(typeId);
+		int protocolId = Protocol.getProtocolId(typeId);
+		int beginReadIndex = bb.ReadIndex;
+		int header = -1;
+		int familyClass = 0;
+		var resultCode = 0L;
+		var rpcSessionId = 0L;
+		try {
+			header = bb.ReadInt();
+			familyClass = header & FamilyClass.FamilyClassMask;
+			if ((header & FamilyClass.BitResultCode) != 0)
+				resultCode = bb.ReadLong();
+			if (FamilyClass.isRpc(familyClass))
+				rpcSessionId = bb.ReadLong();
+		} catch (Exception e) {
+			logger.error("decode protocol failed: moduleId={}, protocolId={}, size={}",
+					moduleId, protocolId, bb.WriteIndex - beginReadIndex, e);
+		}
+		var sb = new StringBuilder();
+		sb.append(action).append(':').append(idStr).append(' ').append(moduleId).append(':').append(protocolId);
+		if (FamilyClass.isRpc(familyClass)) {
+			sb.append(':').append(rpcSessionId);
+			if (familyClass == FamilyClass.Response)
+				sb.append('>').append(resultCode);
+		} else if (resultCode != 0)
+			sb.append('>').append(resultCode);
+		sb.append(' ').append(header).append('[').append(bb.size()).append(']');
+		bb.ReadIndex = beginReadIndex;
+		logger.log(PROTOCOL_LOG_LEVEL, sb);
+	}
+
+	public boolean Send(Protocol<?> p) {
+		if (ENABLE_PROTOCOL_LOG && canLogProtocol(p.getTypeId()))
+			log("SEND", sessionId, p);
 		return Send(p.encode());
 	}
 

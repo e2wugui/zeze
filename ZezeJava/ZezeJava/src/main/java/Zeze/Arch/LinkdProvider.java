@@ -16,7 +16,6 @@ import Zeze.Builtin.Provider.Subscribe;
 import Zeze.Builtin.Provider.UnBind;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
-import Zeze.Net.FamilyClass;
 import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
@@ -273,7 +272,6 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		var linkSids = r.Argument.getLinkSids();
 		int sidCount = linkSids.size();
 		if (canLogSend) {
-			var ptype = r.Argument.getProtocolType();
 			String sidStr;
 			if (sidCount == 1)
 				sidStr = String.valueOf(linkSids.get(0));
@@ -286,38 +284,9 @@ public class LinkdProvider extends AbstractLinkdProvider {
 				sidStr = sb.toString();
 			} else
 				sidStr = "[" + sidCount + ']';
-			var log = AsyncSocket.logger;
-			var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
-			int header = -1;
-			int familyClass = 0;
-			var resultCode = 0L;
-			var rpcSessionId = 0L;
-			try {
-				var bb = ByteBuffer.Wrap(pdata);
-				bb.ReadIndex += 12; // moduleId[4] + protocolId[4] + size[4]
-				header = bb.ReadInt();
-				familyClass = header & FamilyClass.FamilyClassMask;
-				if ((header & FamilyClass.BitResultCode) != 0)
-					resultCode = bb.ReadLong();
-				if (FamilyClass.isRpc(familyClass))
-					rpcSessionId = bb.ReadLong();
-			} catch (Exception e) {
-				log.error("decode Send.protocolWholeData failed", e);
-			}
-			int moduleId = Protocol.getModuleId(ptype);
-			int protocolId = Protocol.getProtocolId(ptype);
-			int size = pdata.size();
-			if (FamilyClass.isRpc(familyClass)) {
-				if (familyClass == FamilyClass.Request)
-					log.log(level, "Send:{} {}:{} {}[{}]", sidStr, moduleId, protocolId, header, size);
-				else
-					log.log(level, "Send:{} {}:{}>{} {}[{}]", sidStr, moduleId, protocolId, resultCode, header, size);
-			} else if (resultCode == 0)
-				log.log(level, "Send:{} {}:{}:{} {}[{}]", sidStr, moduleId, protocolId, rpcSessionId, header, size);
-			else {
-				log.log(level, "Send:{} {}:{}:{}>{} {}[{}]", sidStr, moduleId, protocolId, rpcSessionId, resultCode,
-						header, size);
-			}
+			var bb = ByteBuffer.Wrap(pdata);
+			bb.ReadIndex += Protocol.HEADER_SIZE;
+			AsyncSocket.log("Send", sidStr, r.Argument.getProtocolType(), bb);
 		}
 		//*
 		for (int i = 0; i < sidCount; i++) {
@@ -358,42 +327,9 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	protected long ProcessBroadcast(Broadcast protocol) throws Exception {
 		var pdata = protocol.Argument.getProtocolWholeData();
 		if (canLogBroadcast) {
-			var ptype = protocol.Argument.getProtocolType();
-			var log = AsyncSocket.logger;
-			var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
-			int header = -1;
-			int familyClass = 0;
-			var resultCode = 0L;
-			var rpcSessionId = 0L;
-			try {
-				var bb = ByteBuffer.Wrap(pdata);
-				bb.ReadIndex += 12; // moduleId[4] + protocolId[4] + size[4]
-				header = bb.ReadInt();
-				familyClass = header & FamilyClass.FamilyClassMask;
-				if ((header & FamilyClass.BitResultCode) != 0)
-					resultCode = bb.ReadLong();
-				if (FamilyClass.isRpc(familyClass))
-					rpcSessionId = bb.ReadLong();
-			} catch (Exception e) {
-				log.error("decode Broadcast.protocolWholeData failed", e);
-			}
-			int sidCount = linkdApp.linkdService.getSocketCount();
-			int moduleId = Protocol.getModuleId(ptype);
-			int protocolId = Protocol.getProtocolId(ptype);
-			int size = pdata.size();
-			if (FamilyClass.isRpc(familyClass)) {
-				if (familyClass == FamilyClass.Request)
-					log.log(level, "Send[{}] {}:{} {}[{}]", sidCount, moduleId, protocolId, header, size);
-				else {
-					log.log(level, "Send[{}] {}:{}>{} {}[{}]", sidCount, moduleId, protocolId, resultCode,
-							header, size);
-				}
-			} else if (resultCode == 0)
-				log.log(level, "Send[{}] {}:{}:{} {}[{}]", sidCount, moduleId, protocolId, rpcSessionId, header, size);
-			else {
-				log.log(level, "Send[{}] {}:{}:{}>{} {}[{}]", sidCount, moduleId, protocolId, rpcSessionId, resultCode,
-						header, size);
-			}
+			var bb = ByteBuffer.Wrap(pdata);
+			bb.ReadIndex += Protocol.HEADER_SIZE;
+			AsyncSocket.log("Broc", linkdApp.linkdService.getSocketCount(), protocol.Argument.getProtocolType(), bb);
 		}
 		linkdApp.linkdService.foreach(socket -> {
 			// auth 通过就允许发送广播。

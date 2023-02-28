@@ -25,10 +25,10 @@ Send:连接sessionId 协议类名>resultCode 协议Bean内容 // 发送带result
 多组"连接sessionId"会以"sessionId,sessionId,..."方式输出,多于10个sessionId会以"[sessionId数量]"方式输出
 
 link通过Zeze.Arch.LinkdProvider.ProcessBroadcast处理gs发来的Broadcast协议并广播里面的协议给客户端:
-Send[客户端连接数] RPC类名:RPC的sessionId 请求Bean内容 // 发送RPC请求
-Send[客户端连接数] RPC类名:RPC的sessionId>resultCode 回复Bean内容 // 发送RPC回复
-Send[客户端连接数] 协议类名 协议Bean内容 // 发送协议
-Send[客户端连接数] 协议类名>resultCode 协议Bean内容 // 发送带resultCode的协议
+Broc:客户端连接数 RPC类名:RPC的sessionId 请求Bean内容 // 发送RPC请求
+Broc:客户端连接数 RPC类名:RPC的sessionId>resultCode 回复Bean内容 // 发送RPC回复
+Broc:客户端连接数 协议类名 协议Bean内容 // 发送协议
+Broc:客户端连接数 协议类名>resultCode 协议Bean内容 // 发送带resultCode的协议
 
 gs通过Zeze.Arch.ProviderImplement.ProcessDispatch接收封装成Dispatch的协议:
 Recv:roleId RPC类名:RPC的sessionId 请求Bean内容 // 发送RPC请求
@@ -58,10 +58,10 @@ Send:roleId:listenerName 协议类名 协议Bean内容 // 发送协议
 Send:roleId:listenerName 协议类名>resultCode 协议Bean内容 // 发送带resultCode的协议
 
 gs通过Zeze.Arch/Game.Online.broadcast(Protocol)发封装成Broadcast的协议:
-Send[link连接数] RPC类名:RPC的sessionId 请求Bean内容 // 发送RPC请求
-Send[link连接数] RPC类名:RPC的sessionId>resultCode 回复Bean内容 // 发送RPC回复
-Send[link连接数] 协议类名 协议Bean内容 // 发送协议
-Send[link连接数] 协议类名>resultCode 协议Bean内容 // 发送带resultCode的协议
+Broc:link连接数 RPC类名:RPC的sessionId 请求Bean内容 // 发送RPC请求
+Broc:link连接数 RPC类名:RPC的sessionId>resultCode 回复Bean内容 // 发送RPC回复
+Broc:link连接数 协议类名 协议Bean内容 // 发送协议
+Broc:link连接数 协议类名>resultCode 协议Bean内容 // 发送带resultCode的协议
 
 gs通过Zeze.Arch.Online.send发封装成Send的协议:
 Send:account,clientId RPC类名:RPC的sessionId 请求Bean内容 // 发送RPC请求

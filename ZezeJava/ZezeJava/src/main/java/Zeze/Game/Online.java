@@ -427,24 +427,8 @@ public class Online extends AbstractOnline {
 
 	public void send(long roleId, Protocol<?> p) {
 		var typeId = p.getTypeId();
-		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
-			var log = AsyncSocket.logger;
-			var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
-			var className = p.getClass().getSimpleName();
-			if (p instanceof Rpc) {
-				var rpc = ((Rpc<?, ?>)p);
-				var rpcSessionId = rpc.getSessionId();
-				if (rpc.isRequest())
-					log.log(level, "Send:{} {}:{} {}", roleId, className, rpcSessionId, p.Argument);
-				else {
-					log.log(level, "Send:{} {}:{}>{} {}", roleId, className, rpcSessionId,
-							p.getResultCode(), rpc.Result);
-				}
-			} else if (p.getResultCode() == 0)
-				log.log(level, "Send:{} {} {}", roleId, className, p.Argument);
-			else
-				log.log(level, "Send:{} {}>{} {}", roleId, className, p.getResultCode(), p.Argument);
-		}
+		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
+			AsyncSocket.log("Send", roleId, p);
 		send(roleId, typeId, new Binary(p.encode()));
 	}
 
@@ -465,22 +449,7 @@ public class Online extends AbstractOnline {
 			if (n > 0)
 				sb.setLength(n - 1);
 			var idsStr = sb.toString();
-			var log = AsyncSocket.logger;
-			var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
-			var className = p.getClass().getSimpleName();
-			if (p instanceof Rpc) {
-				var rpc = ((Rpc<?, ?>)p);
-				var rpcSessionId = rpc.getSessionId();
-				if (rpc.isRequest())
-					log.log(level, "Send:{} {}:{} {}", idsStr, className, rpcSessionId, p.Argument);
-				else {
-					log.log(level, "Send:{} {}:{}>{} {}", idsStr, className, rpcSessionId,
-							p.getResultCode(), rpc.Result);
-				}
-			} else if (p.getResultCode() == 0)
-				log.log(level, "Send:{} {} {}", idsStr, className, p.Argument);
-			else
-				log.log(level, "Send:{} {}>{} {}", idsStr, className, p.getResultCode(), p.Argument);
+			AsyncSocket.log("Send", idsStr, p);
 		}
 		send(roleIds, typeId, new Binary(p.encode()));
 	}
@@ -658,24 +627,8 @@ public class Online extends AbstractOnline {
 
 	public void sendReliableNotify(long roleId, String listenerName, Protocol<?> p) {
 		var typeId = p.getTypeId();
-		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
-			var log = AsyncSocket.logger;
-			var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
-			var className = p.getClass().getSimpleName();
-			if (p instanceof Rpc) {
-				var rpc = ((Rpc<?, ?>)p);
-				var rpcSessionId = rpc.getSessionId();
-				if (rpc.isRequest())
-					log.log(level, "Send:{}:{} {}:{} {}", roleId, listenerName, className, rpcSessionId, p.Argument);
-				else {
-					log.log(level, "Send:{}:{} {}:{}>{} {}", roleId, listenerName, className, rpcSessionId,
-							p.getResultCode(), rpc.Result);
-				}
-			} else if (p.getResultCode() == 0)
-				log.log(level, "Send:{}:{} {} {}", roleId, listenerName, className, p.Argument);
-			else
-				log.log(level, "Send:{}:{} {}>{} {}", roleId, listenerName, className, p.getResultCode(), p.Argument);
-		}
+		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
+			AsyncSocket.log("Send", roleId + ":" + listenerName, p);
 		sendReliableNotify(roleId, listenerName, typeId, new Binary(p.encode()));
 	}
 
@@ -902,25 +855,8 @@ public class Online extends AbstractOnline {
 
 	public void broadcast(Protocol<?> p, int time) {
 		var typeId = p.getTypeId();
-		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
-			var log = AsyncSocket.logger;
-			var level = AsyncSocket.PROTOCOL_LOG_LEVEL;
-			int linkCount = providerApp.providerService.getLinks().size();
-			var className = p.getClass().getSimpleName();
-			if (p instanceof Rpc) {
-				var rpc = ((Rpc<?, ?>)p);
-				var rpcSessionId = rpc.getSessionId();
-				if (rpc.isRequest())
-					log.log(level, "Send[{}] {}:{} {}", linkCount, className, rpcSessionId, p.Argument);
-				else {
-					log.log(level, "Send[{}] {}:{}>{} {}", linkCount, className, rpcSessionId,
-							p.getResultCode(), rpc.Result);
-				}
-			} else if (p.getResultCode() == 0)
-				log.log(level, "Send[{}] {} {}", linkCount, className, p.Argument);
-			else
-				log.log(level, "Send[{}] {}>{} {}", linkCount, className, p.getResultCode(), p.Argument);
-		}
+		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
+			AsyncSocket.log("Broc", providerApp.providerService.getLinks().size(), p);
 		broadcast(typeId, new Binary(p.encode()), time);
 	}
 
