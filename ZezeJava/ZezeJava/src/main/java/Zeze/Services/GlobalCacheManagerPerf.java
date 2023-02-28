@@ -70,11 +70,12 @@ public class GlobalCacheManagerPerf {
 
 	void onReduceBegin(Protocol<?> rpc) {
 		if (reduces.put(rpc, System.nanoTime()) != null)
-			logger.warn("onReduceBegin again");
+			logger.warn("already onReduceBegin: {}", rpc);
 	}
 
 	void onReduceCancel(Protocol<?> rpc) {
-		reduces.remove(rpc);
+		if (reduces.remove(rpc) == null)
+			logger.warn("already onReduceCancel: {}", rpc);
 	}
 
 	void onReduceEnd(Protocol<?> rpc) {
@@ -89,7 +90,8 @@ public class GlobalCacheManagerPerf {
 			while (time > maxTime && !maxReduceTime.compareAndSet(maxTime, time));
 			if (rpc.getResultCode() != 0)
 				totalReduceResults.computeIfAbsent(rpc.getResultCode(), __ -> new LongAdder()).increment();
-		}
+		} else
+			logger.warn("already onReduceEnd: {}", rpc);
 	}
 
 	void onOthers(String info) {

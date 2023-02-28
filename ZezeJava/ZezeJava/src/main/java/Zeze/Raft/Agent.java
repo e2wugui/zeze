@@ -483,7 +483,7 @@ public final class Agent {
 			try {
 				responseHandle.handle(rpc);
 			} catch (Throwable e) { // run handle. 必须捕捉所有异常。logger.error
-				logger.error("Agent.NetClient.DispatchRpcResponse", e);
+				logger.error("Agent.NetClient.dispatchRpcResponse", e);
 			}
 		}
 

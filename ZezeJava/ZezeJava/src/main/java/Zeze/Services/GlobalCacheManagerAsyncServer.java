@@ -139,7 +139,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 						for (var k : session.acquired.keySet()) {
 							// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
 							releaseAsync(session, k, allReleaseFuture.createOne());
-							++ releaseCount;
+							++releaseCount;
 						}
 						session.setActiveTime(System.currentTimeMillis());
 						if (releaseCount > 0)
@@ -1042,7 +1042,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		}
 
 		@Override
-		public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) throws Exception {
+		public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so)
+				throws Exception {
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
 			p.handle(this, factoryHandle); // 所有协议处理几乎无阻塞,可放心直接跑在IO线程上
 		}
@@ -1053,7 +1054,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			try {
 				responseHandle.handle(rpc);
 			} catch (Throwable e) { // logger.error
-				logger.error("DispatchRpcResponse exception:", e);
+				logger.error("dispatchRpcResponse exception:", e);
 			}
 		}
 	}

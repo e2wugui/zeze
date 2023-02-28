@@ -251,7 +251,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 
 		context.setSender(getSender());
 		context.setUserState(getUserState());
-		context.setResultCode(getResultCode());
+		context.resultCode = resultCode;
 		context.Result = Result;
 		context.isTimeout = false; // not need
 		context.isRequest = false;
@@ -259,7 +259,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		if (context.future != null)
 			context.future.setResult(context.Result); // SendForWait，设置结果唤醒等待者。
 		else if (context.responseHandle != null)
-			service.dispatchRpcResponse(this, responseHandle, factoryHandle);
+			service.dispatchRpcResponse(context, responseHandle, factoryHandle);
 	}
 
 	@Override
@@ -275,11 +275,11 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 			return 0;
 		}
 
-		Transaction.tryWhileRedo(() -> service.addRpcContext(context));
+		Transaction.tryWhileRedo(() -> service.addRpcContext(sessionId, context));
 
 		context.setSender(getSender());
 		context.setUserState(getUserState());
-		context.setResultCode(getResultCode());
+		context.resultCode = resultCode;
 		context.Result = Result;
 		context.isTimeout = false; // not need
 		context.isRequest = false;
@@ -287,7 +287,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		if (context.future != null)
 			context.future.setResult(context.Result); // SendForWait，设置结果唤醒等待者。
 		else if (context.responseHandle != null)
-			return context.responseHandle.handleProtocol(this);
+			return context.responseHandle.handleProtocol(context);
 
 		return 0;
 	}

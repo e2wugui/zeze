@@ -382,8 +382,14 @@ public class Service {
 		return false;
 	}
 
+	public final Protocol<?> decodeProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle,
+											AsyncSocket so) {
+		return decodeProtocol(typeId, bb, factoryHandle, so, true);
+	}
+
 	@SuppressWarnings("MethodMayBeStatic")
-	public Protocol<?> decodeProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
+	public Protocol<?> decodeProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle,
+									  AsyncSocket so, boolean needLog) {
 		var p = factoryHandle.Factory.create();
 		p.decode(bb);
 		// 协议必须完整的解码，为了方便应用某些时候设计出兼容的协议。去掉这个检查。
@@ -397,7 +403,7 @@ public class Service {
 		p.setSender(so);
 		if (so != null)
 			p.setUserState(so.getUserState());
-		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
+		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId) && needLog)
 			AsyncSocket.log("RECV", so == null ? 0 : so.getSessionId(), p);
 		return p;
 	}
@@ -439,8 +445,9 @@ public class Service {
 			var bbCopy = ByteBuffer.Wrap(bb.Copy());
 			var outProtocol = new OutObject<Protocol<?>>();
 			Task.runUnsafe(zeze.newProcedure(() -> {
+						var needLog = bbCopy.ReadIndex == 0;
 						bbCopy.ReadIndex = 0; // 考虑redo,要重置读指针
-						var p = decodeProtocol(typeId, bbCopy, factoryHandle, so);
+						var p = decodeProtocol(typeId, bbCopy, factoryHandle, so, needLog);
 						outProtocol.value = p;
 						return p.handle(this, factoryHandle);
 					}, factoryHandle.Class.getName(), level, so.getUserState()),
@@ -542,6 +549,10 @@ public class Service {
 			if (rpcContexts.putIfAbsent(sessionId, p) == null)
 				return sessionId;
 		}
+	}
+
+	void addRpcContext(long sessionId, Protocol<?> p) {
+		rpcContexts.putIfAbsent(sessionId, p);
 	}
 
 	@SuppressWarnings("unchecked")

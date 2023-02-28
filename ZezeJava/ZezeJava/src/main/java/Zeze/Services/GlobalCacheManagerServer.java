@@ -166,7 +166,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 							// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
 							try {
 								release(session, k, false);
-								++ releaseCount;
+								++releaseCount;
 							} catch (InterruptedException ex) {
 								logger.error("", ex);
 							}
@@ -946,7 +946,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			try {
 				responseHandle.handle(rpc);
 			} catch (Throwable e) { // logger.error
-				logger.error("DispatchRpcResponse exception:", e);
+				logger.error("dispatchRpcResponse exception:", e);
 			}
 		}
 	}
