@@ -14,7 +14,9 @@ namespace Zeze.Gen
         public string Value { get; }
         public string Gen { get; }
         public bool IsMemory { get; }
-        public bool IsAutoKey { get; }
+        public string AutoKey { get; }
+        public bool IsAutoKey => "true".Equals(AutoKey);
+        public bool IsAutoKeyRandom => "random".Equals(AutoKey);
 
         // setup in compile
         public Types.Type KeyType { get; private set; }
@@ -38,8 +40,8 @@ namespace Zeze.Gen
 
             string attr = self.GetAttribute("memory");
             IsMemory = attr.Length > 0 && bool.Parse(attr);
-            attr = self.GetAttribute("autokey");
-            IsAutoKey = attr.Length > 0 && bool.Parse(attr);
+            AutoKey = self.GetAttribute("autokey");
+
             Kind = self.GetAttribute("kind");
 
             attr = self.GetAttribute("id");
@@ -65,6 +67,11 @@ namespace Zeze.Gen
             {
                 if (!ValueType.IsNormalBean) // is normal bean, exclude beankey
                     throw new Exception("zeze table need a normal bean. table=" + Space.Path(".", Name));
+            }
+            if (IsAutoKeyRandom)
+            {
+                if (KeyType is not Types.TypeBinary)
+                    throw new Exception("autokey random need a binary key type.");
             }
         }
 

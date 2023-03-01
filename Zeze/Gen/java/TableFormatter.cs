@@ -63,6 +63,16 @@ namespace Zeze.Gen.java
                 sw.WriteLine("    }");
                 sw.WriteLine();
             }
+            if (table.IsAutoKeyRandom)
+            {
+                sw.WriteLine("    public Zeze.Net.Binary insert(" + value + " value) {");
+                sw.WriteLine("        var key = Zeze.Util.Random.nextBinary(16);");
+                sw.WriteLine("        while (!tryAdd(key, value))");
+                sw.WriteLine("            key = Zeze.Util.Random.nextBinary(16);");
+                sw.WriteLine("        return key;");
+                sw.WriteLine("    }");
+                sw.WriteLine();
+            }
             sw.WriteLine("    @Override");
             sw.WriteLine("    public " + keyboxing + " decodeKey(ByteBuffer _os_) {");
             table.KeyType.Accept(new Define("_v_", sw, "        "));

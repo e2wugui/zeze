@@ -126,6 +126,8 @@
 		<table name="tWalkPage" key="int" value="demo.Bean1" memory="false"/>
 		
 		<protocol name="ProtocolUseData" argument="BValue" UseData="true" handle="server"/>
+		
+		<table name="tAutoKeyRandom" key="binary" value="demo.Bean1" autokey="random"/>
 	</module>
 
 	<!-- module的注释 -->
