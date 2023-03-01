@@ -84,5 +84,5 @@ public abstract class Table {
 
 	abstract void reduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex);
 
-	public abstract void remove(Binary encodedKey);
+	public abstract void removeEncodedKey(Binary encodedKey);
 }

@@ -175,7 +175,7 @@ public class DelayRemove extends AbstractDelayRemove {
 					maxTime = tableKey.getEnqueueTime();
 					var table = zeze.getTable(tableKey.getTableName());
 					if (null != table)
-						table.remove(tableKey.getEncodedKey());
+						table.removeEncodedKey(tableKey.getEncodedKey());
 				}
 				removing.value = diffMills < System.currentTimeMillis() - maxTime;
 				return 0;

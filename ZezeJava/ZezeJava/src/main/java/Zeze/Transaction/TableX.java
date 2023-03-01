@@ -560,7 +560,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@Override
-	public void remove(Binary encodedKey) {
+	public void removeEncodedKey(Binary encodedKey) {
 		var key = decodeKey(ByteBuffer.Wrap(encodedKey));
 		remove(key);
 	}
