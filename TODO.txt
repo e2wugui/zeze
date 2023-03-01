@@ -20,7 +20,7 @@ Benchmark.CBasicSimpleAddConcurrent tasks/s=96997.63 time=10.31 cpu=100.00 concu
 Focus Document
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/3/2 v1.1.9 Zeze.Transaction.Data; protocolref import; New Dispatch Protocol For Procedure; Online.sendOneByOne；AutoKey Random
+2023/3/1 v1.1.9 Zeze.Transaction.Data; protocolref import; New Dispatch Protocol For Procedure; Online.sendOneByOne；AutoKey Random
 ------------------------------------------------------------------------------------------------------------------------------
 AutoKeyRandom -> Uuid? 或者纯粹随机？
 	考虑冲突的可能，Table增加辅助函数

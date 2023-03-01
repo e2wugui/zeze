@@ -105,6 +105,43 @@ b) RaftLog采用CreateTransaction,Put,Delete,CommitTransaction等需要执行的操作，事
 		}
 	}
 
+8. 并发分桶
+    a) Master维护所有的桶信息，分桶完成之前，不会route的目标桶。
+    b) Master拥有正在进行分桶的信息，目前看来，仅仅用来监控。
+    c) 正在进行分桶的服务器维护记录锁（本进程即可）。
+    d) 所有桶数据操作使用锁如下：
+    Bucket.Get() {
+	lock();
+	return data.copy();
+	unlock();
+    }
+    Bucket.Transaction(): 
+	putOrDelete() {
+		lockAndAddTo(trans); // 事务中操作的key锁住，此时分桶操作等待事务完成。
+		rocksdb.putOrDelete();
+	}
+	commit() {
+		rocksdb.commit();
+		unlockAllLockInTrans();
+	}
+    Bucket.ConcurrentSplit()	
+	{
+		var last = srcBucket.last();
+		while (last != first) {
+			last.lock(); // 一次迁移一条记录。
+			moveRecordToDstBucket();
+			last.unlock();
+		}
+	}
+     e) Bucket.RouteRedirect()
+	上面第7点的补充说明。
+	i. 分桶完成之前，master都是返回srcBucket。
+	ii. srcBucket判断已经分走，redirect到dst桶。dst桶按上面第d)点执行锁操作
+	   虽然目标桶没完全准备好之前，不可能再次被分开，但是锁操作还是统一。
+	iii. srcBucket判断的时候需要锁住，对于正在moving的，会等待锁，然后发现已经被moved，然后被redirect。
+	iiii. srcBucket判断不会分走的，src桶按上面第d)点执行所操作。
+	*. 对于正在moving的记录，有两个事务，会锁柱两个锁。src的，dst的。其中src锁在redirect时可以提前释放掉。
+
 其他细节，不看。
 
 	并发写？
