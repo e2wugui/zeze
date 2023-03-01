@@ -61,10 +61,10 @@ public class Reflect {
 	private final HashMap<String, Method> methods = new HashMap<>();
 
 	public Reflect(Class<?> cls) {
-		for (var method : cls.getDeclaredMethods()) {
-			if (method.getName().startsWith("Process")) { // 只有协议处理函数能配置TransactionLevel
-				if (null != methods.putIfAbsent(method.getName(), method))
-					throw new IllegalStateException("Duplicate Method Name Of Protocol Handle: " + method.getName());
+		for (var c = cls; c != null; c = c.getSuperclass()) {
+			for (var method : c.getDeclaredMethods()) {
+				if (method.getName().startsWith("Process")) // 只有协议处理函数能配置TransactionLevel
+					methods.putIfAbsent(method.getName(), method);
 			}
 		}
 	}

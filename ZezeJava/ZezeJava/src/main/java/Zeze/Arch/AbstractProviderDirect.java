@@ -83,10 +83,6 @@ public abstract class AbstractProviderDirect implements Zeze.IModule {
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
-    public void RegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {
-    }
-
-
     protected abstract long ProcessAnnounceProviderInfoRequest(Zeze.Builtin.ProviderDirect.AnnounceProviderInfo r) throws Exception;
     protected abstract long ProcessModuleRedirectRequest(Zeze.Builtin.ProviderDirect.ModuleRedirect r) throws Exception;
     protected abstract long ProcessModuleRedirectAllRequest(Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest p) throws Exception;

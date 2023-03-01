@@ -99,10 +99,6 @@ public abstract class AbstractLinkdProvider implements Zeze.IModule {
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
-    public void RegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {
-    }
-
-
     protected abstract long ProcessAnnounceProviderInfo(Zeze.Builtin.Provider.AnnounceProviderInfo p) throws Exception;
     protected abstract long ProcessBindRequest(Zeze.Builtin.Provider.Bind r) throws Exception;
     protected abstract long ProcessBroadcast(Zeze.Builtin.Provider.Broadcast p) throws Exception;

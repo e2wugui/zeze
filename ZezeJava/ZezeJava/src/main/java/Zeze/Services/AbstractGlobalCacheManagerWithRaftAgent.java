@@ -84,9 +84,5 @@ public abstract class AbstractGlobalCacheManagerWithRaftAgent implements Zeze.IM
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
-    public void RegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {
-    }
-
-
     protected abstract long ProcessReduceRequest(Zeze.Builtin.GlobalCacheManagerWithRaft.Reduce r) throws Exception;
 }

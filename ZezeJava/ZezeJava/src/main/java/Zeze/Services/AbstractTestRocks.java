@@ -31,8 +31,4 @@ public abstract class AbstractTestRocks implements Zeze.IModule {
         Zeze.Raft.RocksRaft.Rocks.registerLog(() -> new Zeze.Raft.RocksRaft.LogMap1<>(Integer.class, Integer.class));
         Zeze.Raft.RocksRaft.Rocks.registerLog(() -> new Zeze.Raft.RocksRaft.LogMap2<>(Integer.class, Zeze.Builtin.TestRocks.BValue.class));
     }
-
-    public void RegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {
-    }
-
 }

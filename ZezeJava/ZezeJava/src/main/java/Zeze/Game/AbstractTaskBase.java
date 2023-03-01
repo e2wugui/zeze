@@ -64,9 +64,5 @@ public abstract class AbstractTaskBase implements Zeze.IModule {
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
-    public void RegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {
-    }
-
-
     protected abstract long ProcessTriggerTaskEventRequest(Zeze.Builtin.Game.TaskBase.TriggerTaskEvent r) throws Exception;
 }

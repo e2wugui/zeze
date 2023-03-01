@@ -177,10 +177,6 @@ public abstract class AbstractServiceManagerWithRaft implements Zeze.IModule {
         Zeze.Raft.RocksRaft.Rocks.registerLog(() -> new Zeze.Raft.RocksRaft.LogMap2<>(String.class, Zeze.Builtin.ServiceManagerWithRaft.BSubscribeInfoRocks.class));
     }
 
-    public void RegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {
-    }
-
-
     protected abstract long ProcessAllocateIdRequest(Zeze.Builtin.ServiceManagerWithRaft.AllocateId r) throws Exception;
     protected abstract long ProcessLoginRequest(Zeze.Builtin.ServiceManagerWithRaft.Login r) throws Exception;
     protected abstract long ProcessNormalCloseRequest(Zeze.Builtin.ServiceManagerWithRaft.NormalClose r) throws Exception;

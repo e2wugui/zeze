@@ -164,10 +164,6 @@ public abstract class AbstractServiceManagerAgentWithRaft extends Zeze.Services.
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
-    public void RegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {
-    }
-
-
     protected abstract long ProcessCommitServiceListRequest(Zeze.Builtin.ServiceManagerWithRaft.CommitServiceList r) throws Exception;
     protected abstract long ProcessKeepAliveRequest(Zeze.Builtin.ServiceManagerWithRaft.KeepAlive r) throws Exception;
     protected abstract long ProcessNotifyServiceListRequest(Zeze.Builtin.ServiceManagerWithRaft.NotifyServiceList r) throws Exception;

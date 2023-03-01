@@ -98,44 +98,43 @@ namespace Zeze.Gen.java
                 sw.WriteLine($"    @Override public String getName() {{ return ModuleName; }}");
                 sw.WriteLine($"    @Override public String getFullName() {{ return ModuleFullName; }}");
                 sw.WriteLine($"    @Override public boolean isBuiltin() {{ return true; }}");
-                sw.WriteLine();
 
                 foreach (var mf in mfs) mf.GenEnums(sw);
                 foreach (var mf in mfs) mf.DefineZezeTables(sw);
 
+                sw.WriteLine();
                 sw.WriteLine("    public void RegisterProtocols(Zeze.Net.Service service) {");
                 for (var i = 0; i < mfs.Count; ++i) mfs[i].RegisterProtocols(sw, i == 0, "service");
                 sw.WriteLine("    }");
-                sw.WriteLine();
 
+                sw.WriteLine();
                 sw.WriteLine("    public static void UnRegisterProtocols(Zeze.Net.Service service) {");
                 foreach (var mf in mfs) mf.UnRegisterProtocols(sw, "service");
                 sw.WriteLine("    }");
+ 
                 sw.WriteLine();
-
                 sw.WriteLine("    public void RegisterZezeTables(Zeze.Application zeze) {");
                 foreach (var mf in mfs) mf.RegisterZezeTables(sw, "zeze");
                 sw.WriteLine("    }");
-                sw.WriteLine();
 
+                sw.WriteLine();
                 sw.WriteLine("    public void UnRegisterZezeTables(Zeze.Application zeze) {");
                 foreach (var mf in mfs) mf.UnRegisterZezeTables(sw, "zeze");
                 sw.WriteLine("    }");
-                sw.WriteLine();
 
+                sw.WriteLine();
                 sw.WriteLine("    public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {");
                 foreach (var mf in mfs) mf.RegisterRocksTables(sw);
                 sw.WriteLine("    }");
-                sw.WriteLine();
 
-                sw.WriteLine("    public void RegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {");
-                foreach (var mf in mfs) mf.RegisterHttpServlet(sw, "httpServer");
-                sw.WriteLine("    }");
-                sw.WriteLine();
+                bool writtenHeader = false; // 不需要HttpServlet时不需要依赖Netty
+                foreach (var mf in mfs) mf.RegisterHttpServlet(sw, ref writtenHeader);
+                if (writtenHeader)
+                    sw.WriteLine("    }");
 
                 // gen abstract protocol handles
                 // 如果模块嵌套，仅传入Module.Name不够。但一般够用了。
-                foreach (var mf in mfs) mf.GenAbstractProtocolHandles(sw, false);
+                foreach (var mf in mfs) mf.GenAbstractProtocolHandles(sw);
 
                 foreach (var mf in mfs) mf.GenAbstractHttpHandles(sw);
 

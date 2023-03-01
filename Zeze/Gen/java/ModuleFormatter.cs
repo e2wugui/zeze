@@ -423,18 +423,21 @@ namespace Zeze.Gen.java
             {
                 if (project.GenTables.Contains(table.Gen) && false == table.IsRocks)
                 {
+                    if (!written)
+                    {
+                        written = true;
+                        sw.WriteLine();
+                    }
                     sw.WriteLine("    protected final " + table.FullName + " _" + table.Name + " = new " + table.FullName + "();");
-                    written = true;
                 }
             }
-            if (written)
-                sw.WriteLine();
         }
 
         void ModuleGen(StreamWriter sw)
         {
             DefineZezeTables(sw);
 
+            sw.WriteLine();
             sw.WriteLine($"    public final {project.Solution.Name}.App App;");
             sw.WriteLine();
 
@@ -445,7 +448,8 @@ namespace Zeze.Gen.java
             sw.WriteLine("        // register table");
             RegisterZezeTables(sw);
             sw.WriteLine("        // register servlet");
-            RegisterHttpServlet(sw);
+            bool writtenHeader = true;
+            RegisterHttpServlet(sw, ref writtenHeader);
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    @Override");
@@ -470,16 +474,16 @@ namespace Zeze.Gen.java
 
         public void GenEnums(StreamWriter sw)
         {
-            foreach (Types.Enum e in module.Enums)
-                sw.WriteLine($"    public static final {TypeName.GetName(Types.Type.Compile(e.Type))} " + e.Name + " = " + e.Value + ";" + e.Comment);
             if (module.Enums.Count > 0)
                 sw.WriteLine();
+            foreach (Types.Enum e in module.Enums)
+                sw.WriteLine($"    public static final {TypeName.GetName(Types.Type.Compile(e.Type))} " + e.Name + " = " + e.Value + ";" + e.Comment);
         }
 
-        public void GenAbstractProtocolHandles(StreamWriter sw, bool postBlankLine = true)
+        public void GenAbstractProtocolHandles(StreamWriter sw)
         {
             var protocols = GetProcessProtocols();
-            if (!postBlankLine && protocols.Count > 0)
+            if (protocols.Count > 0)
                 sw.WriteLine();
             foreach (Protocol p in protocols)
             {
@@ -488,8 +492,6 @@ namespace Zeze.Gen.java
                 else
                     sw.WriteLine($"    protected abstract long Process{p.Name}({p.Space.Path(".", p.Name)} p) throws Exception;");
             }
-            if (postBlankLine && protocols.Count > 0)
-                sw.WriteLine();
         }
 
         public void MakeInterface()
@@ -511,7 +513,6 @@ namespace Zeze.Gen.java
             sw.WriteLine($"    @Override public String getName() {{ return ModuleName; }}");
             sw.WriteLine($"    @Override public String getFullName() {{ return ModuleFullName; }}");
             sw.WriteLine($"    @Override public String getWebPathBase() {{ return \"{module.WebPathBase}\";}}");
-            sw.WriteLine();
             // declare enums
             GenEnums(sw);
             GenAbstractProtocolHandles(sw);
@@ -529,32 +530,46 @@ namespace Zeze.Gen.java
             if ((serv.HandleFlags & Program.HandleServletFlag) == 0)
                 return;
 
+            var written = false;
             foreach (var s in module.Servlets.Values)
             {
+                if (!written)
+                {
+                    written = true;
+                    sw.WriteLine();
+                }
                 sw.WriteLine($"    protected abstract void OnServlet{s.Name}(Zeze.Netty.HttpExchange x) throws Exception;");
             }
 
             foreach (var s in module.ServletStreams.Values)
             {
+                if (!written)
+                {
+                    written = true;
+                    sw.WriteLine();
+                }
                 sw.WriteLine($"    protected abstract void OnServletBeginStream{s.Name}(Zeze.Netty.HttpExchange x, long from, long to, long size) throws Exception;");
                 sw.WriteLine($"    protected abstract void OnServletStreamContent{s.Name}(Zeze.Netty.HttpExchange x, io.netty.handler.codec.http.HttpContent c) throws Exception;");
                 sw.WriteLine($"    protected abstract void OnServletEndStream{s.Name}(Zeze.Netty.HttpExchange x) throws Exception;");
             }
         }
 
-        public void RegisterHttpServlet(StreamWriter sw, string httpServer = null)
+        public void RegisterHttpServlet(StreamWriter sw, ref bool writtenHeader)
         {
             Service serv = module.ReferenceService;
-            if (serv == null)
+            if (serv == null || (serv.HandleFlags & Program.HandleServletFlag) == 0)
                 return;
 
-            if ((serv.HandleFlags & Program.HandleServletFlag) == 0)
-                return;
-            if (false == string.IsNullOrEmpty(httpServer))
-                sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(getClass());");
-            var httpVar = string.IsNullOrEmpty(httpServer) ? "App.HttpServer" : httpServer;
+            var httpVar = writtenHeader ? "App.HttpServer" : "httpServer";
             foreach (var s in module.Servlets.Values)
             {
+                if (!writtenHeader)
+                {
+                    writtenHeader = true;
+                    sw.WriteLine();
+                    sw.WriteLine("    public void RegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {");
+                    sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(getClass());");
+                }
                 var path = module.WebPathBase.Length > 0 ? module.WebPathBase + s.Name : "/" + module.Path("/", s.Name);
                 sw.WriteLine($"        {httpVar}.addHandler(\"{path}\", {s.MaxContentLength},");
                 sw.WriteLine($"                _reflect.getTransactionLevel(\"OnServlet{s.Name}\", Zeze.Transaction.TransactionLevel.{s.TransactionLevel}),");

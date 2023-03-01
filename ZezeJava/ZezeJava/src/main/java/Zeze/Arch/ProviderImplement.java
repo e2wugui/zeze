@@ -134,7 +134,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 					roleId = -linkSid;
 				AsyncSocket.log("Recv", roleId, p2);
 			}
-			if (txn != null) { // 已经在事务中，嵌入执行。此时忽略p3的NoProcedure配置。
+			if (txn != null) { // 已经在事务中，嵌入执行。此时忽略p2的NoProcedure配置。
 				var proc = txn.getTopProcedure();
 				//noinspection ConstantConditions
 				proc.setActionName(p2.getClass().getName());

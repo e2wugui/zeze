@@ -57,10 +57,6 @@ public abstract class AbstractBag implements Zeze.IModule {
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
-    public void RegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {
-    }
-
-
     protected abstract long ProcessDestroyRequest(Zeze.Builtin.Game.Bag.Destroy r) throws Exception;
     protected abstract long ProcessMoveRequest(Zeze.Builtin.Game.Bag.Move r) throws Exception;
 }
