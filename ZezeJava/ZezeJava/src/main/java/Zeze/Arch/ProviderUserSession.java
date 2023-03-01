@@ -164,16 +164,16 @@ public class ProviderUserSession {
 	// 这个方法用来优化广播协议。不能用于Rpc，先隐藏。
 	@SuppressWarnings("unused")
 	protected void sendResponseWhileRollback(long typeId, Binary fullEncodedProtocol) {
-		Transaction.whileCommit(() -> sendResponse(typeId, fullEncodedProtocol));
+		Transaction.whileRollback(() -> sendResponse(typeId, fullEncodedProtocol));
 	}
 
 	@SuppressWarnings("unused")
 	protected void sendResponseWhileRollback(Binary fullEncodedProtocol) {
-		Transaction.whileCommit(() -> sendResponse(fullEncodedProtocol));
+		Transaction.whileRollback(() -> sendResponse(fullEncodedProtocol));
 	}
 
 	public void sendResponseWhileRollback(Protocol<?> p) {
-		Transaction.whileCommit(() -> sendResponse(p));
+		Transaction.whileRollback(() -> sendResponse(p));
 	}
 
 	public static ProviderUserSession get(Protocol<?> context) {
