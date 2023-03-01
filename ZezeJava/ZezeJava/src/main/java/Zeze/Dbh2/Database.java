@@ -3,12 +3,28 @@ package Zeze.Dbh2;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 管理表
+ * 管理桶（即部分表内容）
  */
 public class Database {
-	private ConcurrentHashMap<String, Table> tables = new ConcurrentHashMap<>();
+	private final String name;
+	private final int serverId;
 
-	public boolean createTable(String tableName) {
-		return null == tables.putIfAbsent(tableName, new Table(tableName));
+	private final ConcurrentHashMap<String, Bucket> buckets = new ConcurrentHashMap<>();
+
+	public Database(int serverId, String name) {
+		this.serverId = serverId;
+		this.name = name;
+	}
+
+	public Bucket getOrAdd(String tableName) {
+		return buckets.computeIfAbsent(tableName, (key) -> new Bucket(this, tableName));
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public int getServerId() {
+		return serverId;
 	}
 }

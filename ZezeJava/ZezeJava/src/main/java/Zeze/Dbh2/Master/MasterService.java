@@ -1,4 +1,4 @@
-package Zeze.Dbh2;
+package Zeze.Dbh2.Master;
 
 /**
  * 根据key查询桶(bucket)
