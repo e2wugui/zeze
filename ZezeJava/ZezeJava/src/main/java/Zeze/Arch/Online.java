@@ -956,14 +956,14 @@ public class Online extends AbstractOnline {
 									  Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
-		Transaction.whileCommit(() -> transmit(account, clientId, actionName, target, parameter));
+		Transaction.whileRollback(() -> transmit(account, clientId, actionName, target, parameter));
 	}
 
 	public void transmitWhileRollback(String account, String clientId, String actionName, Collection<String> targets,
 									  Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
-		Transaction.whileCommit(() -> transmit(account, clientId, actionName, targets, parameter));
+		Transaction.whileRollback(() -> transmit(account, clientId, actionName, targets, parameter));
 	}
 
 	private void broadcast(long typeId, Binary fullEncodedProtocol, int time) {
