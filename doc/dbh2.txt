@@ -64,10 +64,60 @@ foreach (var trans in transList)
 所以！本系统不需要任何并发控制。【桶的迁移是一个需要锁并且等待的操作，这个待定】
 
 3.Raft怎么接入
-a) RocksDb的事务提交的时候，发送整个事务的OperateLog给Raft。正确性，安全性？
-    已知问题，提交的时候才接入raft，如果此时raft不可用，由于2段提交，已经无法回滚，只能等raft恢复，
-    这种模式只能相信raft群总是可靠的。
-b) RaftLog采用CreateTransaction,Put,Delete,CommitTransaction等需要执行的操作，事务执行过程中，就同步操作，感觉比较复杂。正确性，安全性？
+a) RocksDb+Batch
+    事务操作记录在Batch里面，提交的时候，发送整个Batch给Raft。
+    已经是提交步骤，此时Raft.AppendLog，RocksDb.WriteBatch两步都不能失败。
+    可靠性感觉差一点。
+    还有个缺点，Batch搜集操作的机器宕机，事务将直接失败，没有利用上Raft集群提供的高可靠能力。
+
+b) OptimisticTransactionDB+Transaction
+    事务从开始到结束都同时进行Raft同步。如：BeginTransactionLog, PutLog, DeleteLog, RollbackTransactionLog, CommitTransactionLog。
+    当事务提交时，也要求Transaction.Commit, Raft.AppendLog(CommitTransactionLog)这两步不能失败。
+    相比a)版本的两步，这两步感觉可靠性稍好些。
+    另外没有Leader宕机，事务即失败的问题。可以利用上Raft高可靠集群能力。
+    AutoRollback：当事务操作日志系列没有正常结束(Rollback,Commit)，超时以后自动Rollback。
+    这个能解决Raft.AppendLog(RollbackLog)丢失问题。
+    但是还存在一个问题，即上面提交时要求Commit不能丢失(没有达到多数)问题。如果这个Commit没有回退，
+    即一般情况下，没有得到多数票的日志在系统恢复时，存在最新的日志的节点被选为Leader，Commit最终会被正确处理。
+    但是，例子：3个节点，Leader1.Append, Node2.Down, Node3.Down，系统恢复，Leader1.Down, Node2 Or Node3 被选为新Leader。
+    此时Leader1最后写的日志会被回滚（忘了名词了）。这种情况最危险，会被AutoRollback认为事务回滚，但其他桶是Commit模式。
+    看看这个问题怎么解决？
+    raft.beginTransaction();
+    raft.put ...
+    raft.delete ...
+    prepareCommit(); // 此时持久化一个日志。带上全局唯一（可以弱一些，还没细想）transactionId
+    raft.commit // 此时这个可以丢失了。
+    AutoRollback的时候检查prepareCommit日志集合，发现存在变成AutoCommit。
+    还有个问题：autorollback对于rollback，设置超时没问题，对于autocommit，超时是不行的，
+    此时后续的transaction可能已经commit，事务操作的记录的相关性在zeze内处理，但是时序是
+    需要保证的，autocommit导致时序错乱是个问题
+    继续补丁：raft系统恢复的时候，被选为leader的节点准备阶段（有这个）增加一个步骤，对于log.apply好以后
+    还存在的transaction马上做preparecommit判断，马上决定好该怎么处理。都处理完了以后，才开始服务。
+    prepare commit有好处，但还是带来一个问题，因为查询虽然简单，但还是涉及系统可用性问题，就是
+    把raft已经解决的问题换了一个。有价值但还要看怎么处理
+    【error commit】
+    preparecommit由于查询问题，看来基本废弃了。可以参考这个思路，换个做法。先回到commit必须成功这个定义。
+    commit失败肯定由于某个桶的raft发生了多数宕机。改成此时记录失败的commit的事务，这样记录的就很小。然后
+    再考虑这个记录怎么给新恢复的raft桶选出leader时用来继续commit。由于新的方法记录会很小，更容易分发和使用。
+    不过有点换汤不换药的感觉。
+    【error commit 分发】
+    agent：
+         foreach (var t in trans)
+              t.CommitAsync();
+         foreach (var tt in commit_timeout_trans)
+              tt.BroadcastToCurrentAliveRaftNode();
+     raft new leader:
+         foreach (var t in transNotClosed)
+              if (t is commit_timeout_trans)
+                  t.commit(); // 继续commit；
+              else
+                   t.rollbackDelay(); // 其他没有closed的事务默认都是延迟一定时间以后rollback，就是AutoRollback，这个处理的情况比较多。
+      question: 
+          broadcast 比 new leader 晚到。
+          需要设置发现事务commit超时小于选举的时间。小的多些，上面的分发就比较可靠了。
+          这个做法有点raft机制的味道。
+          灾难：broadcast没有送达。
+      分发问题可以继续，暂停一下。
 
 4. 桶按key排序分段，写入是怎么提高并发。
     hash方式看起来具有极大的并发写入速度。

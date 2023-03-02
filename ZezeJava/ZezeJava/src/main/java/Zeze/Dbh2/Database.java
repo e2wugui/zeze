@@ -7,7 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class Database {
 	private final String name;
-	private final int serverId;
+	private final int serverId; // todo 移到父类去
 
 	private final ConcurrentHashMap<String, Bucket> buckets = new ConcurrentHashMap<>();
 
