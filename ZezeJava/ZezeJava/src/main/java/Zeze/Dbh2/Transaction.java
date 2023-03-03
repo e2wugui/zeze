@@ -43,7 +43,7 @@ public class Transaction {
 	}
 
 	public void close() {
-		unlockAll();
 		transaction.close();
+		unlockAll();
 	}
 }

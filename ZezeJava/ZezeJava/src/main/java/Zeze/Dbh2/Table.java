@@ -9,16 +9,16 @@ import org.rocksdb.WriteOptions;
 /**
  * 桶管理一张表的局部范围的记录。
  */
-public class Bucket {
+public class Table {
 	private final OptimisticTransactionDB db;
 	private final String path;
 	private final Database database;
-	private final String tableName;
+	private final String name;
 	private final WriteOptions writeOptions = new WriteOptions();
 
-	public Bucket(Database database, String tableName) {
+	public Table(Database database, String tableName) {
 		this.database = database;
-		this.tableName = tableName;
+		this.name = tableName;
 		this.path = Path.of(database.getName(), tableName).toAbsolutePath().toString();
 		var options = new Options().setCreateIfMissing(true);
 		try {
@@ -50,8 +50,8 @@ public class Bucket {
 		return database;
 	}
 
-	public String getTableName() {
-		return tableName;
+	public String getName() {
+		return name;
 	}
 
 	public String getPath() {

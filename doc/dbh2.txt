@@ -41,6 +41,10 @@ Bucket-Hot-Split(Sort)
 	DatabaseService，
 	Agent，嵌入到dbh2的客户端内执行，
 	AgentService，把Agent的功能包装成服务，无状态的dbh2链接机器，用来提高事务安全性，因为嵌入式受应用影响，可能不够安全。
+		AgentService 可以解决commit中途挂掉。RocksDb Sync。先Commit，后在事务Id的相关桶里面记录。
+		DatabaseService需要能识别出重复的Commit并忽略。
+		有了事务提交中途落地状态，AgentService可以省掉。
+
 ===============================================================
 问题
 ===============================================================

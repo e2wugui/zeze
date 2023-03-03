@@ -9,15 +9,15 @@ public class Database {
 	private final String name;
 	private final int serverId; // todo 移到父类去
 
-	private final ConcurrentHashMap<String, Bucket> buckets = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, Table> buckets = new ConcurrentHashMap<>();
 
 	public Database(int serverId, String name) {
 		this.serverId = serverId;
 		this.name = name;
 	}
 
-	public Bucket getOrAdd(String tableName) {
-		return buckets.computeIfAbsent(tableName, (key) -> new Bucket(this, tableName));
+	public Table getOrAdd(String tableName) {
+		return buckets.computeIfAbsent(tableName, (key) -> new Table(this, tableName));
 	}
 
 	public String getName() {
