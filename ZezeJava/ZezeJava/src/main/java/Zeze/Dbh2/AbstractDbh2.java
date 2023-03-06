@@ -22,6 +22,14 @@ public abstract class AbstractDbh2 implements Zeze.IModule {
             service.AddFactoryHandle(47360124156483L, factoryHandle); // 11026, -480216509
         }
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.CommitTransaction.class, Zeze.Builtin.Dbh2.CommitTransaction.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.CommitTransaction::new;
+            factoryHandle.Handle = this::ProcessCommitTransactionRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCommitTransactionRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCommitTransactionRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47359122130965L, factoryHandle); // 11026, -1482242027
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Delete.class, Zeze.Builtin.Dbh2.Delete.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Dbh2.Delete::new;
             factoryHandle.Handle = this::ProcessDeleteRequest;
@@ -45,13 +53,23 @@ public abstract class AbstractDbh2 implements Zeze.IModule {
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessPutRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47359688675419L, factoryHandle); // 11026, -915697573
         }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.RollbackTransaction.class, Zeze.Builtin.Dbh2.RollbackTransaction.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.RollbackTransaction::new;
+            factoryHandle.Handle = this::ProcessRollbackTransactionRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessRollbackTransactionRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessRollbackTransactionRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47360280866090L, factoryHandle); // 11026, -323506902
+        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47360124156483L);
+        service.getFactorys().remove(47359122130965L);
         service.getFactorys().remove(47360236597486L);
         service.getFactorys().remove(47356839198180L);
         service.getFactorys().remove(47359688675419L);
+        service.getFactorys().remove(47360280866090L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
@@ -64,7 +82,9 @@ public abstract class AbstractDbh2 implements Zeze.IModule {
     }
 
     protected abstract long ProcessBeginTransactionRequest(Zeze.Builtin.Dbh2.BeginTransaction r) throws Exception;
+    protected abstract long ProcessCommitTransactionRequest(Zeze.Builtin.Dbh2.CommitTransaction r) throws Exception;
     protected abstract long ProcessDeleteRequest(Zeze.Builtin.Dbh2.Delete r) throws Exception;
     protected abstract long ProcessGetRequest(Zeze.Builtin.Dbh2.Get r) throws Exception;
     protected abstract long ProcessPutRequest(Zeze.Builtin.Dbh2.Put r) throws Exception;
+    protected abstract long ProcessRollbackTransactionRequest(Zeze.Builtin.Dbh2.RollbackTransaction r) throws Exception;
 }

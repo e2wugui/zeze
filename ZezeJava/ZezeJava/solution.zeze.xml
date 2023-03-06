@@ -1285,14 +1285,28 @@
 				<variable id="1" name="Null" type="bool"/>
 				<variable id="2" name="Value" type="binary"/>
 			</bean>
-			<rpc name="Get" argument="BGetArgument" result="BGetResult" UseData="true" handle="server"/>
+			<rpc name="Get" argument="BGetArgument" result="BGetResult" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 
 			<bean name="BBeginTransactionArgument">
 			</bean>
 			<bean name="BBeginTransactionResult">
 				<variable id="1" name="TransactionId" type="long"/>
 			</bean>
-			<rpc name="BeginTransaction" argument="BBeginTransactionArgument" result="BBeginTransactionResult" UseData="true" handle="server"/>
+			<rpc name="BeginTransaction" argument="BBeginTransactionArgument" result="BBeginTransactionResult" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
+
+			<bean name="BCommitTransactionArgument">
+				<variable id="1" name="TransactionId" type="long"/>
+			</bean>
+			<bean name="BCommitTransactionResult">
+			</bean>
+			<rpc name="CommitTransaction" argument="BCommitTransactionArgument" result="BCommitTransactionResult" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
+
+			<bean name="BRollbackTransactionArgument">
+				<variable id="1" name="TransactionId" type="long"/>
+			</bean>
+			<bean name="BRollbackTransactionResult">
+			</bean>
+			<rpc name="RollbackTransaction" argument="BRollbackTransactionArgument" result="BRollbackTransactionResult" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 
 			<bean name="BPutArgument">
 				<variable id="1" name="TransactionId" type="long"/>
@@ -1303,7 +1317,7 @@
 			</bean>
 			<bean name="BPutResult">
 			</bean>
-			<rpc name="Put" argument="BPutArgument" result="BPutResult" UseData="true" handle="server"/>
+			<rpc name="Put" argument="BPutArgument" result="BPutResult" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 
 			<bean name="BDeleteArgument">
 				<variable id="1" name="TransactionId" type="long"/>
@@ -1313,7 +1327,7 @@
 			</bean>
 			<bean name="BDeleteResult">
 			</bean>
-			<rpc name="Delete" argument="BDeleteArgument" result="BDeleteResult" UseData="true" handle="server"/>
+			<rpc name="Delete" argument="BDeleteArgument" result="BDeleteResult" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 		</module>
 
 		<!--
