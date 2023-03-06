@@ -6,10 +6,11 @@ import Zeze.Net.FamilyClass;
 import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Util.TaskCompletionSource;
 
-public abstract class RaftRpc<TArgument extends Bean, TResult extends Bean> extends Rpc<TArgument, TResult> implements IRaftRpc {
+public abstract class RaftRpc<TArgument extends Serializable, TResult extends Serializable> extends Rpc<TArgument, TResult> implements IRaftRpc {
 	private long createTime;
 	private UniqueRequestId unique = new UniqueRequestId();
 	private long sendTime;

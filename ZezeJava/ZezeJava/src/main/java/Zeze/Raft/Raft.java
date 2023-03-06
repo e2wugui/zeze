@@ -20,6 +20,7 @@ import Zeze.Net.Binary;
 import Zeze.Net.Connector;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
@@ -198,7 +199,7 @@ public final class Raft {
 		appendLog(log, null);
 	}
 
-	public void appendLog(Log log, Bean result) {
+	public void appendLog(Log log, Serializable result) {
 		if (result != null)
 			log.setRpcResult(new Binary(ByteBuffer.encode(result)));
 		try {

@@ -22,6 +22,12 @@ namespace Zeze.Gen.java
             string argument = rpc.ArgumentType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(rpc.ArgumentType);
             string result = rpc.ResultType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(rpc.ResultType);
             string baseclass = string.IsNullOrEmpty(rpc.Base) ? "Zeze.Net.Rpc" : rpc.Base;
+            if (rpc.UseData)
+            {
+                argument += "Data";
+                result += "Data";
+            }
+
             sw.WriteLine($"public class {rpc.Name} extends {baseclass}<{argument}, {result}> {{");
             sw.WriteLine("    public static final int ModuleId_ = " + rpc.Space.Id + ";");
             sw.WriteLine("    public static final int ProtocolId_ = " + rpc.Id + ";" + (rpc.Id < 0 ? " // " + (uint)rpc.Id : ""));

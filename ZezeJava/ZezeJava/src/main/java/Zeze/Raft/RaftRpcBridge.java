@@ -1,8 +1,9 @@
 package Zeze.Raft;
 
+import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 
-final class RaftRpcBridge<TArgument extends Bean, TResult extends Bean> extends RaftRpc<TArgument, TResult> {
+final class RaftRpcBridge<TArgument extends Serializable, TResult extends Serializable> extends RaftRpc<TArgument, TResult> {
 	private final RaftRpc<TArgument, TResult> real;
 
 	public RaftRpcBridge(RaftRpc<TArgument, TResult> real) {
