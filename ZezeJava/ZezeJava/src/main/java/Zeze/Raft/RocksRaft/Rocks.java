@@ -113,7 +113,7 @@ public final class Rocks extends StateMachine implements Closeable {
 				 boolean RocksDbWriteOptionSync, Func3<Raft, String, Config, Server> serverFactory) throws Exception {
 		rocksMode = mode;
 
-		addFactory(new Changes(this).getTypeId(), () -> new Changes(this));
+		addFactory(new Changes(this).typeId(), () -> new Changes(this));
 
 		writeOptions = RocksDbWriteOptionSync
 				? DatabaseRocksDb.getSyncWriteOptions()

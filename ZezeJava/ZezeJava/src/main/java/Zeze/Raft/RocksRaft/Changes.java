@@ -17,6 +17,12 @@ public final class Changes extends Zeze.Raft.Log {
 	private final HashMap<TableKey, Record> records = new HashMap<>(); // 收集记录的修改,以后需要序列化传输.
 	private final IntHashMap<Long> atomicLongs = new IntHashMap<>();
 	private Transaction transaction;
+	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(Changes.class.getName());
+
+	@Override
+	public int typeId() {
+		return TypeId_;
+	}
 
 	public Changes(Rocks r) {
 		super(null);

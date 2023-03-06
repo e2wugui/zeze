@@ -3,7 +3,6 @@ package Zeze.Raft;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
-import Zeze.Transaction.Bean;
 
 /**
  * 用户接口。
@@ -18,7 +17,7 @@ public abstract class Log implements Serializable {
 	 * 如果实现类的FullName发生了改变，需要更新所有的Raft-Node。
 	 * 如果不想跟名字相关，重载并提供一个编号。
 	 */
-	private final int typeId;
+	public abstract int typeId();
 
 	// 当前这个Log是哪个应用的Rpc请求引起的。
 	// 【Raft用来检测重复的请求】。
@@ -34,11 +33,6 @@ public abstract class Log implements Serializable {
 			unique = req.getUnique();
 			setCreateTime(req.getCreateTime());
 		}
-		typeId = Bean.hash32(getClass().getName());
-	}
-
-	public int getTypeId() {
-		return typeId;
 	}
 
 	public UniqueRequestId getUnique() {

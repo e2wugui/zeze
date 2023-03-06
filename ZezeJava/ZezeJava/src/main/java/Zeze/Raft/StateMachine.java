@@ -12,7 +12,7 @@ public abstract class StateMachine {
 	private final LongConcurrentHashMap<Supplier<Log>> logFactorys = new LongConcurrentHashMap<>();
 
 	public StateMachine() {
-		addFactory(new HeartbeatLog().getTypeId(), HeartbeatLog::new);
+		addFactory(new HeartbeatLog().typeId(), HeartbeatLog::new);
 	}
 
 	public Raft getRaft() {

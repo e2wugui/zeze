@@ -52,7 +52,7 @@ public final class RaftLog implements Serializable {
 	public void encode(ByteBuffer bb) {
 		bb.WriteLong(term);
 		bb.WriteLong(index);
-		bb.WriteInt4(log.getTypeId());
+		bb.WriteInt4(log.typeId());
 		log.encode(bb);
 	}
 
