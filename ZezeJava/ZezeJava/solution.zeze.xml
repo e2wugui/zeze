@@ -1274,13 +1274,66 @@
 			<table name="tAutoKeys" key="BSeedKey" value="BAutoKey" CheckpointWhenCommit="true" />
 		</module>
 
+		<module name="Dbh2" id="11026" DefaultTransactionLevel="None">
+			<bean name="BGetArgument">
+				<variable id="1" name="TransactionId" type="long"/>
+				<variable id="2" name="Database" type="string"/>
+				<variable id="3" name="Table" type="string"/>
+				<variable id="4" name="Key" type="binary"/>
+			</bean>
+			<bean name="BGetResult">
+				<variable id="1" name="Null" type="bool"/>
+				<variable id="2" name="Value" type="binary"/>
+			</bean>
+			<rpc name="Get" argument="BGetArgument" result="BGetResult" UseData="true" handle="server"/>
+
+			<bean name="BBeginTransactionArgument">
+			</bean>
+			<bean name="BBeginTransactionResult">
+				<variable id="1" name="TransactionId" type="long"/>
+			</bean>
+			<rpc name="BeginTransaction" argument="BBeginTransactionArgument" result="BBeginTransactionResult" UseData="true" handle="server"/>
+
+			<bean name="BPutArgument">
+				<variable id="1" name="TransactionId" type="long"/>
+				<variable id="2" name="Database" type="string"/>
+				<variable id="3" name="Table" type="string"/>
+				<variable id="4" name="Key" type="binary"/>
+				<variable id="5" name="Value" type="binary"/>
+			</bean>
+			<bean name="BPutResult">
+			</bean>
+			<rpc name="Put" argument="BPutArgument" result="BPutResult" UseData="true" handle="server"/>
+
+			<bean name="BDeleteArgument">
+				<variable id="1" name="TransactionId" type="long"/>
+				<variable id="2" name="Database" type="string"/>
+				<variable id="3" name="Table" type="string"/>
+				<variable id="4" name="Key" type="binary"/>
+			</bean>
+			<bean name="BDeleteResult">
+			</bean>
+			<rpc name="Delete" argument="BDeleteArgument" result="BDeleteResult" UseData="true" handle="server"/>
+		</module>
+
 		<!--
-		可用id范围 [11026, 11100) [11102, 12000]
+		可用id范围 [11027, 11100) [11102, 11999]
 		-->
 
 	</module> Builtin
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+	<component name="Dbh2" gendir="src/main/java" genrelativedir="Zeze/Dbh2" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Dbh2"/>
+		</service>
+	</component>
+
+	<component name="Dbh2Agent" gendir="src/main/java" genrelativedir="Zeze/Dbh2" platform="zeze+java" GenTables="client">
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.Dbh2"/>
+		</service>
+	</component>
 
 	<component name="AutoKey" gendir="src/main/java" platform="zeze+java">
 		<service name="" handle="server">

@@ -36,8 +36,6 @@ namespace Zeze.Gen.java
             foreach (BeanKey beanKey in Project.AllBeanKeys.Values)
             {
                 new BeanKeyFormatter(beanKey).Make(genCommonDir);
-                //if (Project.isData(beanKey))
-                //    new javadata.BeanKeyFormatter(beanKey).Make(genCommonDir);
             }
             foreach (Protocol protocol in Project.AllProtocols.Values)
             {

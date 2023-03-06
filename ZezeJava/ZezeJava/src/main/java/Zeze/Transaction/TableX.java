@@ -934,7 +934,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						break;
 				}
 			} finally {
-				lockey.exitLock();
+				lockey.exitReadLock();
 			}
 			if (afterLock != null)
 				afterLock.run();
