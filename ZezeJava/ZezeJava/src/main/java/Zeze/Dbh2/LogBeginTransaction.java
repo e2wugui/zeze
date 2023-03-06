@@ -18,7 +18,8 @@ public class LogBeginTransaction extends Log {
 
 	public LogBeginTransaction(BeginTransaction req) {
 		super(req);
-		this.argument = req.Argument;
+		if (null != req)
+			this.argument = req.Argument;
 	}
 
 	@Override
