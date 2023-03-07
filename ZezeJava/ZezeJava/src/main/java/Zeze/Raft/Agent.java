@@ -13,6 +13,7 @@ import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.Serializable;
 import Zeze.Services.HandshakeClient;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DispatchMode;
@@ -84,15 +85,15 @@ public final class Agent {
 		this.onSetLeader = onSetLeader;
 	}
 
-	public <TArgument extends Bean, TResult extends Bean> void send(RaftRpc<TArgument, TResult> rpc,
-																	ToLongFunction<Protocol<?>> handle) {
+	public <TArgument extends Serializable, TResult extends Serializable> void send(RaftRpc<TArgument, TResult> rpc,
+																			ToLongFunction<Protocol<?>> handle) {
 		send(rpc, handle, false);
 	}
 
 	/**
 	 * 发送Rpc请求。
 	 */
-	public <TArgument extends Bean, TResult extends Bean> void send(RaftRpc<TArgument, TResult> rpc,
+	public <TArgument extends Serializable, TResult extends Serializable> void send(RaftRpc<TArgument, TResult> rpc,
 																	ToLongFunction<Protocol<?>> handle,
 																	boolean urgent) {
 		if (handle == null)
@@ -126,7 +127,7 @@ public final class Agent {
 			logger.warn("Send failed: leader={}, rpc={}", leader, rpc);
 	}
 
-	private <TArgument extends Bean, TResult extends Bean> long sendHandle(Rpc<TArgument, TResult> p,
+	private <TArgument extends Serializable, TResult extends Serializable> long sendHandle(Rpc<TArgument, TResult> p,
 																		   RaftRpc<TArgument, TResult> rpc) {
 		var net = (RaftRpc<TArgument, TResult>)p;
 		if (net.isTimeout() || isRetryError(net.getResultCode()))

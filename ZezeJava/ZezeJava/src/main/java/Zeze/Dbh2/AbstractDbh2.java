@@ -46,6 +46,14 @@ public abstract class AbstractDbh2 implements Zeze.IModule {
             service.AddFactoryHandle(47356839198180L, factoryHandle); // 11026, 529792484
         }
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.KeepAlive.class, Zeze.Builtin.Dbh2.KeepAlive.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.KeepAlive::new;
+            factoryHandle.Handle = this::ProcessKeepAliveRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessKeepAliveRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessKeepAliveRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47358800944088L, factoryHandle); // 11026, -1803428904
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Put.class, Zeze.Builtin.Dbh2.Put.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Dbh2.Put::new;
             factoryHandle.Handle = this::ProcessPutRequest;
@@ -76,6 +84,7 @@ public abstract class AbstractDbh2 implements Zeze.IModule {
         service.getFactorys().remove(47359122130965L);
         service.getFactorys().remove(47360236597486L);
         service.getFactorys().remove(47356839198180L);
+        service.getFactorys().remove(47358800944088L);
         service.getFactorys().remove(47359688675419L);
         service.getFactorys().remove(47360280866090L);
         service.getFactorys().remove(47357107631101L);
@@ -94,6 +103,7 @@ public abstract class AbstractDbh2 implements Zeze.IModule {
     protected abstract long ProcessCommitTransactionRequest(Zeze.Builtin.Dbh2.CommitTransaction r) throws Exception;
     protected abstract long ProcessDeleteRequest(Zeze.Builtin.Dbh2.Delete r) throws Exception;
     protected abstract long ProcessGetRequest(Zeze.Builtin.Dbh2.Get r) throws Exception;
+    protected abstract long ProcessKeepAliveRequest(Zeze.Builtin.Dbh2.KeepAlive r) throws Exception;
     protected abstract long ProcessPutRequest(Zeze.Builtin.Dbh2.Put r) throws Exception;
     protected abstract long ProcessRollbackTransactionRequest(Zeze.Builtin.Dbh2.RollbackTransaction r) throws Exception;
     protected abstract long ProcessUseDataRefDummy(Zeze.Builtin.Dbh2.UseDataRefDummy p) throws Exception;

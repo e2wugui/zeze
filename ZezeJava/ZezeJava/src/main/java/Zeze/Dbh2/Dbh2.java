@@ -4,6 +4,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import Zeze.Builtin.Dbh2.BLogBeginTransactionData;
 import Zeze.Builtin.Dbh2.CommitTransaction;
+import Zeze.Builtin.Dbh2.KeepAlive;
 import Zeze.Builtin.Dbh2.RollbackTransaction;
 import Zeze.Builtin.Dbh2.UseDataRefDummy;
 import Zeze.Config;
@@ -93,6 +94,12 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
             r.Result.setNull(true);
         else
             r.Result.setValue(new Binary(value));
+        r.SendResult();
+        return 0;
+    }
+
+    @Override
+    protected long ProcessKeepAliveRequest(KeepAlive r) throws Exception {
         r.SendResult();
         return 0;
     }

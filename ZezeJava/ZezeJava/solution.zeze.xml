@@ -1282,6 +1282,8 @@
 				<variable id="4" name="KeyLast" type="binary"/>
 			</bean>
 
+			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
+
 			<bean name="BGetArgument">
 				<variable id="1" name="TransactionId" type="long"/>
 				<variable id="2" name="Database" type="string"/>
