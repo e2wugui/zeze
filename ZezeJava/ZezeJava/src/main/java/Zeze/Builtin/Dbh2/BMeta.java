@@ -124,6 +124,25 @@ public final class BMeta extends Zeze.Transaction.Bean implements BMetaReadOnly 
         _KeyLast = _KeyLast_;
     }
 
+    @Override
+    public Zeze.Builtin.Dbh2.BMetaData toData() {
+        var data = new Zeze.Builtin.Dbh2.BMetaData();
+        data.assign(this);
+        return data;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Data other) {
+        assign((Zeze.Builtin.Dbh2.BMetaData)other);
+    }
+
+    public void assign(BMetaData other) {
+        setDatabaseName(other.getDatabaseName());
+        setTableName(other.getTableName());
+        setKeyFirst(other.getKeyFirst());
+        setKeyLast(other.getKeyLast());
+    }
+
     public void assign(BMeta other) {
         setDatabaseName(other.getDatabaseName());
         setTableName(other.getTableName());

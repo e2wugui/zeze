@@ -29,7 +29,8 @@ public class LogCommitTransaction extends Log {
 
 	@Override
 	public void apply(RaftLog holder, StateMachine stateMachine) throws Exception {
-
+		var sm = (Dbh2StateMachine)stateMachine;
+		sm.commitTransaction(argument);
 	}
 
 	@Override

@@ -29,7 +29,8 @@ public class LogDelete extends Log {
 
 	@Override
 	public void apply(RaftLog holder, StateMachine stateMachine) throws Exception {
-
+		var sm = (Dbh2StateMachine)stateMachine;
+		sm.delete(argument);
 	}
 
 	@Override

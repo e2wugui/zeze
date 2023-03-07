@@ -1302,6 +1302,9 @@
 				<variable id="1" name="TransactionId" type="long"/>
 			</bean>
 			<rpc name="BeginTransaction" argument="BBeginTransactionArgument" result="BBeginTransactionResult" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
+			<bean name="BLogBeginTransaction">
+				<variable id="1" name="TransactionId" type="long"/>
+			</bean>
 
 			<bean name="BCommitTransactionArgument">
 				<variable id="1" name="TransactionId" type="long"/>
@@ -1337,6 +1340,14 @@
 			<bean name="BDeleteResult">
 			</bean>
 			<rpc name="Delete" argument="BDeleteArgument" result="BDeleteResult" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
+
+			<!-- 用来生成Data数据结构，没有实际功能 -->
+			<bean name="BUseDataRef">
+				<variable id="1" name="Ref1" type="BLogBeginTransaction"/>
+				<variable id="2" name="Ref2" type="BMeta"/>
+			</bean>
+			<protocol name="UseDataRefDummy" argument="BUseDataRef" UseData="true" handle="server"/>
+
 		</module>
 
 		<!--

@@ -3,8 +3,10 @@ package Zeze.Dbh2;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import Zeze.Builtin.Dbh2.BMeta;
+import java.util.HashMap;
+import Zeze.Builtin.Dbh2.BMetaData;
 import Zeze.Net.Binary;
+import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
@@ -12,6 +14,7 @@ import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.DBOptions;
 import org.rocksdb.OptimisticTransactionDB;
 import org.rocksdb.Options;
+import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.WriteOptions;
 
@@ -19,40 +22,91 @@ import org.rocksdb.WriteOptions;
  * 桶管理一张表的局部范围的记录。
  */
 public class Bucket {
-	private final OptimisticTransactionDB db;
-	private BMeta meta = new BMeta();
-	private final ColumnFamilyHandle cfMeta;
-	private final WriteOptions writeOptions = new WriteOptions();
+	private static final Options commonOptions = new Options()
+			.setCreateIfMissing(true)
+			.setDbWriteBufferSize(64 << 20) // total write buffer bytes, include all the columns
+			.setKeepLogFileNum(5); // reserve "LOG.old.*" file count
+	private static final DBOptions commonDbOptions = new DBOptions()
+			.setCreateIfMissing(true)
+			.setDbWriteBufferSize(64 << 20) // total write buffer bytes, include all the columns
+			.setKeepLogFileNum(5); // reserve "LOG.old.*" file count
+	private static final ColumnFamilyOptions defaultCfOptions = new ColumnFamilyOptions();
+	private static final ReadOptions defaultReadOptions = new ReadOptions();
+	private static final WriteOptions defaultWriteOptions = new WriteOptions();
+	private static final WriteOptions syncWriteOptions = new WriteOptions().setSync(true);
 
-	private static ColumnFamilyHandle cfMeta(OptimisticTransactionDB db,
-											 ArrayList<ColumnFamilyDescriptor> columnFamilies,
-											 ArrayList<ColumnFamilyHandle> cfHandles) throws RocksDBException {
-		for (var i = 0; i < columnFamilies.size(); ++i) {
-			var cfName = new String(columnFamilies.get(i).getName(), StandardCharsets.UTF_8);
-			if (cfName.equals("meta")) {
-				return cfHandles.get(i);
-			}
-		}
-		return db.createColumnFamily(new ColumnFamilyDescriptor(
-				"meta".getBytes(StandardCharsets.UTF_8),
-				new ColumnFamilyOptions()));
+	public static Options getCommonOptions() {
+		return commonOptions;
 	}
-	public Bucket(String raftName) {
+
+	public static DBOptions getCommonDbOptions() {
+		return commonDbOptions;
+	}
+
+	public static ColumnFamilyOptions getDefaultCfOptions() {
+		return defaultCfOptions;
+	}
+
+	public static ReadOptions getDefaultReadOptions() {
+		return defaultReadOptions;
+	}
+
+	public static WriteOptions getDefaultWriteOptions() {
+		return defaultWriteOptions;
+	}
+
+	public static WriteOptions getSyncWriteOptions() {
+		return syncWriteOptions;
+	}
+
+	private final OptimisticTransactionDB db;
+	private final HashMap<String, ColumnFamilyHandle> cfHandles = new HashMap<>();
+	private final WriteOptions writeOptions = new WriteOptions();
+	private BMetaData meta;
+	private long tid;
+	private final ColumnFamilyHandle cfMeta;
+	private final byte[] metaKey = new byte[] { 1 };
+	private final byte[] metaTid = new byte[0];
+
+	private ColumnFamilyHandle cfOpen(String name) {
+		return cfHandles.computeIfAbsent(name, (_name) -> {
+			try {
+				return db.createColumnFamily(
+						new ColumnFamilyDescriptor(name.getBytes(StandardCharsets.UTF_8), defaultCfOptions));
+			} catch (RocksDBException e) {
+				throw new RuntimeException(e);
+			}
+		});
+	}
+
+	public OptimisticTransactionDB getDb() {
+		return db;
+	}
+
+	public Bucket(RaftConfig raftConfig) {
 		try {
 			// 读取meta，meta创建在Bucket创建流程中写入。
-			var path = Path.of(raftName).toAbsolutePath().toString();
-			var cfOptions = new ColumnFamilyOptions();
+			var path = Path.of(raftConfig.getDbHome(), "statemachine").toAbsolutePath().toString();
 			var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
 			for (var cf : OptimisticTransactionDB.listColumnFamilies(new Options(), path))
-				columnFamilies.add(new ColumnFamilyDescriptor(cf, cfOptions));
-			var options = new DBOptions();
-			var outHandles = new ArrayList<ColumnFamilyHandle>();
-			this.db = OptimisticTransactionDB.open(options, path, columnFamilies, outHandles);
-			cfMeta = cfMeta(db, columnFamilies, outHandles);
-			var metaValue = db.get(cfMeta, new byte[0]);
+				columnFamilies.add(new ColumnFamilyDescriptor(cf, defaultCfOptions));
+			var dbOptions = new DBOptions();
+			var cfHandlesOut = new ArrayList<ColumnFamilyHandle>();
+			this.db = OptimisticTransactionDB.open(dbOptions, path, columnFamilies, cfHandlesOut);
+			for (var i = 0; i < columnFamilies.size(); ++i) {
+				var cfName = new String(columnFamilies.get(i).getName(), StandardCharsets.UTF_8);
+				this.cfHandles.put(cfName, cfHandlesOut.get(i));
+			}
+			this.cfMeta = cfOpen("meta");
+			var metaValue = db.get(cfMeta, metaKey);
 			if (null != metaValue) {
 				var bb = ByteBuffer.Wrap(metaValue);
 				this.meta.decode(bb);
+			}
+			var tidValue = db.get(cfMeta, metaTid);
+			if (null != tidValue) {
+				var bb = ByteBuffer.Wrap(metaValue);
+				tid = bb.ReadLong();
 			}
 		} catch (RocksDBException ex) {
 			throw new RuntimeException(ex);
@@ -60,12 +114,22 @@ public class Bucket {
 		throw new RuntimeException("meta record not found");
 	}
 
-	public void setMeta(BMeta meta) throws RocksDBException {
-		var bbMeta = ByteBuffer.Allocate();
-		meta.encode(bbMeta);
-		var key = new byte[0];
-		db.put(cfMeta, writeOptions, key, 0, 0, bbMeta.Bytes, bbMeta.ReadIndex, bbMeta.size());
+	public void setMeta(BMetaData meta) throws RocksDBException {
+		var bb = ByteBuffer.Allocate();
+		meta.encode(bb);
+		db.put(cfMeta, writeOptions, metaKey, 0, metaKey.length, bb.Bytes, bb.ReadIndex, bb.size());
 		this.meta = meta;
+	}
+
+	public void setTid(long tid) throws RocksDBException {
+		var bb = ByteBuffer.Allocate();
+		bb.WriteLong(tid);
+		db.put(cfMeta, writeOptions, metaTid, 0, metaTid.length, bb.Bytes, bb.ReadIndex, bb.size());
+		this.tid = tid;
+	}
+
+	public long getTid() {
+		return tid;
 	}
 
 	public Transaction beginTransaction() {
@@ -96,7 +160,7 @@ public class Bucket {
 		db.close();
 	}
 
-	public BMeta getMeta() {
+	public BMetaData getMeta() {
 		return meta;
 	}
 }

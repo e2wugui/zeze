@@ -29,7 +29,8 @@ public class LogPut extends Log {
 
 	@Override
 	public void apply(RaftLog holder, StateMachine stateMachine) throws Exception {
-
+		var sm = (Dbh2StateMachine)stateMachine;
+		sm.put(argument);
 	}
 
 	@Override
