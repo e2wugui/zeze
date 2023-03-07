@@ -7,8 +7,43 @@ import Zeze.Serialize.ByteBuffer;
 public final class BBeginTransactionArgumentData extends Zeze.Transaction.Data {
     public static final long TYPEID = -7619569472530558952L;
 
+    private String _Database;
+    private String _Table;
+
+    public String getDatabase() {
+        return _Database;
+    }
+
+    public void setDatabase(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _Database = value;
+    }
+
+    public String getTable() {
+        return _Table;
+    }
+
+    public void setTable(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _Table = value;
+    }
+
     @SuppressWarnings("deprecation")
     public BBeginTransactionArgumentData() {
+        _Database = "";
+        _Table = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public BBeginTransactionArgumentData(String _Database_, String _Table_) {
+        if (_Database_ == null)
+            throw new IllegalArgumentException();
+        _Database = _Database_;
+        if (_Table_ == null)
+            throw new IllegalArgumentException();
+        _Table = _Table_;
     }
 
     @Override
@@ -23,9 +58,13 @@ public final class BBeginTransactionArgumentData extends Zeze.Transaction.Data {
     }
 
     public void assign(BBeginTransactionArgument other) {
+        setDatabase(other.getDatabase());
+        setTable(other.getTable());
     }
 
     public void assign(BBeginTransactionArgumentData other) {
+        setDatabase(other.getDatabase());
+        setTable(other.getTable());
     }
 
     @Override
@@ -57,6 +96,8 @@ public final class BBeginTransactionArgumentData extends Zeze.Transaction.Data {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BBeginTransactionArgument: {").append(System.lineSeparator());
         level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("Database=").append(getDatabase()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Table=").append(getTable()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -75,13 +116,36 @@ public final class BBeginTransactionArgumentData extends Zeze.Transaction.Data {
 
     @Override
     public void encode(ByteBuffer _o_) {
+        int _i_ = 0;
+        {
+            String _x_ = getDatabase();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        {
+            String _x_ = getTable();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
     @Override
     public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
-        _o_.ReadTagSize(_t_);
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            setDatabase(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            setTable(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

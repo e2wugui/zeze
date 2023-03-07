@@ -1275,6 +1275,13 @@
 		</module>
 
 		<module name="Dbh2" id="11026" DefaultTransactionLevel="None">
+			<bean name="BMeta">
+				<variable id="1" name="DatabaseName" type="string"/>
+				<variable id="2" name="TableName" type="string"/>
+				<variable id="3" name="KeyFirst" type="binary"/>
+				<variable id="4" name="KeyLast" type="binary"/>
+			</bean>
+
 			<bean name="BGetArgument">
 				<variable id="1" name="TransactionId" type="long"/>
 				<variable id="2" name="Database" type="string"/>
@@ -1288,6 +1295,8 @@
 			<rpc name="Get" argument="BGetArgument" result="BGetResult" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 
 			<bean name="BBeginTransactionArgument">
+				<variable id="1" name="Database" type="string"/>
+				<variable id="2" name="Table" type="string"/>
 			</bean>
 			<bean name="BBeginTransactionResult">
 				<variable id="1" name="TransactionId" type="long"/>

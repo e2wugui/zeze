@@ -7,8 +7,67 @@ import Zeze.Serialize.ByteBuffer;
 public final class BBeginTransactionArgument extends Zeze.Transaction.Bean implements BBeginTransactionArgumentReadOnly {
     public static final long TYPEID = -7619569472530558952L;
 
+    private String _Database;
+    private String _Table;
+
+    @Override
+    public String getDatabase() {
+        if (!isManaged())
+            return _Database;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _Database;
+        var log = (Log__Database)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _Database;
+    }
+
+    public void setDatabase(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _Database = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__Database(this, 1, value));
+    }
+
+    @Override
+    public String getTable() {
+        if (!isManaged())
+            return _Table;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _Table;
+        var log = (Log__Table)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _Table;
+    }
+
+    public void setTable(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _Table = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__Table(this, 2, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BBeginTransactionArgument() {
+        _Database = "";
+        _Table = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public BBeginTransactionArgument(String _Database_, String _Table_) {
+        if (_Database_ == null)
+            throw new IllegalArgumentException();
+        _Database = _Database_;
+        if (_Table_ == null)
+            throw new IllegalArgumentException();
+        _Table = _Table_;
     }
 
     @Override
@@ -24,9 +83,13 @@ public final class BBeginTransactionArgument extends Zeze.Transaction.Bean imple
     }
 
     public void assign(BBeginTransactionArgumentData other) {
+        setDatabase(other.getDatabase());
+        setTable(other.getTable());
     }
 
     public void assign(BBeginTransactionArgument other) {
+        setDatabase(other.getDatabase());
+        setTable(other.getTable());
     }
 
     @Deprecated
@@ -61,6 +124,20 @@ public final class BBeginTransactionArgument extends Zeze.Transaction.Bean imple
         return TYPEID;
     }
 
+    private static final class Log__Database extends Zeze.Transaction.Logs.LogString {
+        public Log__Database(BBeginTransactionArgument bean, int varId, String value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BBeginTransactionArgument)getBelong())._Database = value; }
+    }
+
+    private static final class Log__Table extends Zeze.Transaction.Logs.LogString {
+        public Log__Table(BBeginTransactionArgument bean, int varId, String value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BBeginTransactionArgument)getBelong())._Table = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -72,6 +149,8 @@ public final class BBeginTransactionArgument extends Zeze.Transaction.Bean imple
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BBeginTransactionArgument: {").append(System.lineSeparator());
         level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("Database=").append(getDatabase()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Table=").append(getTable()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -90,13 +169,36 @@ public final class BBeginTransactionArgument extends Zeze.Transaction.Bean imple
 
     @Override
     public void encode(ByteBuffer _o_) {
+        int _i_ = 0;
+        {
+            String _x_ = getDatabase();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        {
+            String _x_ = getTable();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
     @Override
     public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
-        _o_.ReadTagSize(_t_);
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            setDatabase(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            setTable(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -111,5 +213,15 @@ public final class BBeginTransactionArgument extends Zeze.Transaction.Bean imple
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {
+        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+        if (vars == null)
+            return;
+        for (var it = vars.iterator(); it.moveToNext(); ) {
+            var vlog = it.value();
+            switch (vlog.getVariableId()) {
+                case 1: _Database = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 2: _Table = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+            }
+        }
     }
 }

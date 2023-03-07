@@ -17,7 +17,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
     private static final Logger logger = LogManager.getLogger(Dbh2.class);
     private final Dbh2Config config = new Dbh2Config();
     private final Raft raft;
-    private final StateMachine stateMachine;
+    private final Dbh2StateMachine stateMachine;
 
     static {
         System.setProperty("log4j.configurationFile", "log4j2.xml");
@@ -29,7 +29,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
         if (config == null)
             config = new Config().addCustomize(this.config).loadAndParse();
 
-        stateMachine = new StateMachine();
+        stateMachine = new Dbh2StateMachine(raftName);
         raft = new Raft(stateMachine, raftName, raftConf, config, "Zeze.Dbh2.Server", Zeze.Raft.Server::new);
         var writeOptions = writeOptionSync ? new WriteOptions().setSync(true) : new WriteOptions();
         raft.getLogSequence().setWriteOptions(writeOptions);

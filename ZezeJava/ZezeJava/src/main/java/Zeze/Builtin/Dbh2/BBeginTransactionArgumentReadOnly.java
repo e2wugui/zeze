@@ -7,4 +7,6 @@ public interface BBeginTransactionArgumentReadOnly {
     boolean negativeCheck();
     BBeginTransactionArgument copy();
 
+    String getDatabase();
+    String getTable();
 }
