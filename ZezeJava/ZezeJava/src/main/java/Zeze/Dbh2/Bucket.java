@@ -4,7 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
-import Zeze.Builtin.Dbh2.BMetaData;
+import Zeze.Builtin.Dbh2.BBucketMetaData;
 import Zeze.Net.Binary;
 import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
@@ -62,7 +62,7 @@ public class Bucket {
 	private final OptimisticTransactionDB db;
 	private final HashMap<String, ColumnFamilyHandle> cfHandles = new HashMap<>();
 	private final WriteOptions writeOptions = new WriteOptions();
-	private BMetaData meta;
+	private BBucketMetaData meta;
 	private long tid;
 	private final ColumnFamilyHandle cfMeta;
 	private final byte[] metaKey = new byte[] { 1 };
@@ -114,7 +114,7 @@ public class Bucket {
 		throw new RuntimeException("meta record not found");
 	}
 
-	public void setMeta(BMetaData meta) throws RocksDBException {
+	public void setMeta(BBucketMetaData meta) throws RocksDBException {
 		var bb = ByteBuffer.Allocate();
 		meta.encode(bb);
 		db.put(cfMeta, writeOptions, metaKey, 0, metaKey.length, bb.Bytes, bb.ReadIndex, bb.size());
@@ -132,8 +132,8 @@ public class Bucket {
 		return tid;
 	}
 
-	public Transaction beginTransaction() {
-		return new Transaction(db.beginTransaction(writeOptions));
+	public Dbh2Transaction beginTransaction() {
+		return new Dbh2Transaction(db.beginTransaction(writeOptions));
 	}
 
 	public byte[] get(byte[] key) throws RocksDBException {
@@ -153,14 +153,14 @@ public class Bucket {
 	public boolean inBucket(String databaseName, String tableName, Binary key) {
 		return inBucket(databaseName, tableName)
 				&& key.compareTo(meta.getKeyFirst()) >= 0
-				&& key.compareTo(meta.getKeyLast()) < 0;
+				&& (meta.getKeyLast().size() == 0 || key.compareTo(meta.getKeyLast()) < 0);
 	}
 
 	public void close() {
 		db.close();
 	}
 
-	public BMetaData getMeta() {
+	public BBucketMetaData getMeta() {
 		return meta;
 	}
 }

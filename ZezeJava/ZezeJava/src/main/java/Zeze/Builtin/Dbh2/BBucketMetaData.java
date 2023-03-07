@@ -4,13 +4,14 @@ package Zeze.Builtin.Dbh2;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BMetaData extends Zeze.Transaction.Data {
-    public static final long TYPEID = 7699603239757108357L;
+public final class BBucketMetaData extends Zeze.Transaction.Data {
+    public static final long TYPEID = 8589859502117192635L;
 
     private String _DatabaseName;
     private String _TableName;
     private Zeze.Net.Binary _KeyFirst;
     private Zeze.Net.Binary _KeyLast;
+    private String _RaftConfig;
 
     public String getDatabaseName() {
         return _DatabaseName;
@@ -52,16 +53,27 @@ public final class BMetaData extends Zeze.Transaction.Data {
         _KeyLast = value;
     }
 
+    public String getRaftConfig() {
+        return _RaftConfig;
+    }
+
+    public void setRaftConfig(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _RaftConfig = value;
+    }
+
     @SuppressWarnings("deprecation")
-    public BMetaData() {
+    public BBucketMetaData() {
         _DatabaseName = "";
         _TableName = "";
         _KeyFirst = Zeze.Net.Binary.Empty;
         _KeyLast = Zeze.Net.Binary.Empty;
+        _RaftConfig = "";
     }
 
     @SuppressWarnings("deprecation")
-    public BMetaData(String _DatabaseName_, String _TableName_, Zeze.Net.Binary _KeyFirst_, Zeze.Net.Binary _KeyLast_) {
+    public BBucketMetaData(String _DatabaseName_, String _TableName_, Zeze.Net.Binary _KeyFirst_, Zeze.Net.Binary _KeyLast_, String _RaftConfig_) {
         if (_DatabaseName_ == null)
             throw new IllegalArgumentException();
         _DatabaseName = _DatabaseName_;
@@ -74,41 +86,46 @@ public final class BMetaData extends Zeze.Transaction.Data {
         if (_KeyLast_ == null)
             throw new IllegalArgumentException();
         _KeyLast = _KeyLast_;
+        if (_RaftConfig_ == null)
+            throw new IllegalArgumentException();
+        _RaftConfig = _RaftConfig_;
     }
 
     @Override
-    public Zeze.Builtin.Dbh2.BMeta toBean() {
-        var bean = new Zeze.Builtin.Dbh2.BMeta();
+    public Zeze.Builtin.Dbh2.BBucketMeta toBean() {
+        var bean = new Zeze.Builtin.Dbh2.BBucketMeta();
         bean.assign(this);
         return bean;
     }
 
     public void assign(Zeze.Transaction.Bean other) {
-        assign((BMeta)other);
+        assign((BBucketMeta)other);
     }
 
-    public void assign(BMeta other) {
+    public void assign(BBucketMeta other) {
         setDatabaseName(other.getDatabaseName());
         setTableName(other.getTableName());
         setKeyFirst(other.getKeyFirst());
         setKeyLast(other.getKeyLast());
+        setRaftConfig(other.getRaftConfig());
     }
 
-    public void assign(BMetaData other) {
+    public void assign(BBucketMetaData other) {
         setDatabaseName(other.getDatabaseName());
         setTableName(other.getTableName());
         setKeyFirst(other.getKeyFirst());
         setKeyLast(other.getKeyLast());
+        setRaftConfig(other.getRaftConfig());
     }
 
     @Override
-    public BMetaData copy() {
-        var copy = new BMetaData();
+    public BBucketMetaData copy() {
+        var copy = new BBucketMetaData();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BMetaData a, BMetaData b) {
+    public static void swap(BBucketMetaData a, BBucketMetaData b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);
@@ -128,12 +145,13 @@ public final class BMetaData extends Zeze.Transaction.Data {
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BMeta: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BBucketMeta: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("DatabaseName=").append(getDatabaseName()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("TableName=").append(getTableName()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("KeyFirst=").append(getKeyFirst()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("KeyLast=").append(getKeyLast()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("KeyLast=").append(getKeyLast()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("RaftConfig=").append(getRaftConfig()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -181,6 +199,13 @@ public final class BMetaData extends Zeze.Transaction.Data {
                 _o_.WriteBinary(_x_);
             }
         }
+        {
+            String _x_ = getRaftConfig();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -202,6 +227,10 @@ public final class BMetaData extends Zeze.Transaction.Data {
         }
         if (_i_ == 4) {
             setKeyLast(_o_.ReadBinary(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 5) {
+            setRaftConfig(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

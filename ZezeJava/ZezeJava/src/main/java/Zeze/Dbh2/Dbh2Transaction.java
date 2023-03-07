@@ -3,11 +3,11 @@ package Zeze.Dbh2;
 import java.util.concurrent.ConcurrentHashMap;
 import org.rocksdb.RocksDBException;
 
-public class Transaction {
+public class Dbh2Transaction {
 	private final org.rocksdb.Transaction transaction;
 	private final ConcurrentHashMap<Lock, Lock> locks = new ConcurrentHashMap<>();
 
-	public Transaction(org.rocksdb.Transaction transaction) {
+	public Dbh2Transaction(org.rocksdb.Transaction transaction) {
 		this.transaction = transaction;
 	}
 

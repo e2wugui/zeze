@@ -9,5 +9,5 @@ public interface BUseDataRefReadOnly {
     BUseDataRef copy();
 
     Zeze.Builtin.Dbh2.BLogBeginTransactionReadOnly getRef1ReadOnly();
-    Zeze.Builtin.Dbh2.BMetaReadOnly getRef2ReadOnly();
+    Zeze.Builtin.Dbh2.BBucketMetaReadOnly getRef2ReadOnly();
 }

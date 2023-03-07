@@ -4,13 +4,14 @@ package Zeze.Builtin.Dbh2;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BMeta extends Zeze.Transaction.Bean implements BMetaReadOnly {
-    public static final long TYPEID = 7699603239757108357L;
+public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketMetaReadOnly {
+    public static final long TYPEID = 8589859502117192635L;
 
     private String _DatabaseName;
     private String _TableName;
     private Zeze.Net.Binary _KeyFirst;
     private Zeze.Net.Binary _KeyLast;
+    private String _RaftConfig;
 
     @Override
     public String getDatabaseName() {
@@ -100,16 +101,39 @@ public final class BMeta extends Zeze.Transaction.Bean implements BMetaReadOnly 
         txn.putLog(new Log__KeyLast(this, 4, value));
     }
 
+    @Override
+    public String getRaftConfig() {
+        if (!isManaged())
+            return _RaftConfig;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _RaftConfig;
+        var log = (Log__RaftConfig)txn.getLog(objectId() + 5);
+        return log != null ? log.value : _RaftConfig;
+    }
+
+    public void setRaftConfig(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _RaftConfig = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__RaftConfig(this, 5, value));
+    }
+
     @SuppressWarnings("deprecation")
-    public BMeta() {
+    public BBucketMeta() {
         _DatabaseName = "";
         _TableName = "";
         _KeyFirst = Zeze.Net.Binary.Empty;
         _KeyLast = Zeze.Net.Binary.Empty;
+        _RaftConfig = "";
     }
 
     @SuppressWarnings("deprecation")
-    public BMeta(String _DatabaseName_, String _TableName_, Zeze.Net.Binary _KeyFirst_, Zeze.Net.Binary _KeyLast_) {
+    public BBucketMeta(String _DatabaseName_, String _TableName_, Zeze.Net.Binary _KeyFirst_, Zeze.Net.Binary _KeyLast_, String _RaftConfig_) {
         if (_DatabaseName_ == null)
             throw new IllegalArgumentException();
         _DatabaseName = _DatabaseName_;
@@ -122,57 +146,62 @@ public final class BMeta extends Zeze.Transaction.Bean implements BMetaReadOnly 
         if (_KeyLast_ == null)
             throw new IllegalArgumentException();
         _KeyLast = _KeyLast_;
+        if (_RaftConfig_ == null)
+            throw new IllegalArgumentException();
+        _RaftConfig = _RaftConfig_;
     }
 
     @Override
-    public Zeze.Builtin.Dbh2.BMetaData toData() {
-        var data = new Zeze.Builtin.Dbh2.BMetaData();
+    public Zeze.Builtin.Dbh2.BBucketMetaData toData() {
+        var data = new Zeze.Builtin.Dbh2.BBucketMetaData();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.BMetaData)other);
+        assign((Zeze.Builtin.Dbh2.BBucketMetaData)other);
     }
 
-    public void assign(BMetaData other) {
+    public void assign(BBucketMetaData other) {
         setDatabaseName(other.getDatabaseName());
         setTableName(other.getTableName());
         setKeyFirst(other.getKeyFirst());
         setKeyLast(other.getKeyLast());
+        setRaftConfig(other.getRaftConfig());
     }
 
-    public void assign(BMeta other) {
+    public void assign(BBucketMeta other) {
         setDatabaseName(other.getDatabaseName());
         setTableName(other.getTableName());
         setKeyFirst(other.getKeyFirst());
         setKeyLast(other.getKeyLast());
+        setRaftConfig(other.getRaftConfig());
     }
 
     @Deprecated
-    public void Assign(BMeta other) {
+    public void Assign(BBucketMeta other) {
         assign(other);
     }
 
-    public BMeta copyIfManaged() {
+    public BBucketMeta copyIfManaged() {
         return isManaged() ? copy() : this;
     }
 
     @Override
-    public BMeta copy() {
-        var copy = new BMeta();
+    public BBucketMeta copy() {
+        var copy = new BBucketMeta();
         copy.assign(this);
         return copy;
     }
 
     @Deprecated
-    public BMeta Copy() {
+    public BBucketMeta Copy() {
         return copy();
     }
 
-    public static void swap(BMeta a, BMeta b) {
-        BMeta save = a.copy();
+    public static void swap(BBucketMeta a, BBucketMeta b) {
+        BBucketMeta save = a.copy();
         a.assign(b);
         b.assign(save);
     }
@@ -183,31 +212,38 @@ public final class BMeta extends Zeze.Transaction.Bean implements BMetaReadOnly 
     }
 
     private static final class Log__DatabaseName extends Zeze.Transaction.Logs.LogString {
-        public Log__DatabaseName(BMeta bean, int varId, String value) { super(bean, varId, value); }
+        public Log__DatabaseName(BBucketMeta bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BMeta)getBelong())._DatabaseName = value; }
+        public void commit() { ((BBucketMeta)getBelong())._DatabaseName = value; }
     }
 
     private static final class Log__TableName extends Zeze.Transaction.Logs.LogString {
-        public Log__TableName(BMeta bean, int varId, String value) { super(bean, varId, value); }
+        public Log__TableName(BBucketMeta bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BMeta)getBelong())._TableName = value; }
+        public void commit() { ((BBucketMeta)getBelong())._TableName = value; }
     }
 
     private static final class Log__KeyFirst extends Zeze.Transaction.Logs.LogBinary {
-        public Log__KeyFirst(BMeta bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__KeyFirst(BBucketMeta bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BMeta)getBelong())._KeyFirst = value; }
+        public void commit() { ((BBucketMeta)getBelong())._KeyFirst = value; }
     }
 
     private static final class Log__KeyLast extends Zeze.Transaction.Logs.LogBinary {
-        public Log__KeyLast(BMeta bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__KeyLast(BBucketMeta bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void commit() { ((BMeta)getBelong())._KeyLast = value; }
+        public void commit() { ((BBucketMeta)getBelong())._KeyLast = value; }
+    }
+
+    private static final class Log__RaftConfig extends Zeze.Transaction.Logs.LogString {
+        public Log__RaftConfig(BBucketMeta bean, int varId, String value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BBucketMeta)getBelong())._RaftConfig = value; }
     }
 
     @Override
@@ -219,12 +255,13 @@ public final class BMeta extends Zeze.Transaction.Bean implements BMetaReadOnly 
 
     @Override
     public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BMeta: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BBucketMeta: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("DatabaseName=").append(getDatabaseName()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("TableName=").append(getTableName()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("KeyFirst=").append(getKeyFirst()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("KeyLast=").append(getKeyLast()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("KeyLast=").append(getKeyLast()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("RaftConfig=").append(getRaftConfig()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -272,6 +309,13 @@ public final class BMeta extends Zeze.Transaction.Bean implements BMetaReadOnly 
                 _o_.WriteBinary(_x_);
             }
         }
+        {
+            String _x_ = getRaftConfig();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -293,6 +337,10 @@ public final class BMeta extends Zeze.Transaction.Bean implements BMetaReadOnly 
         }
         if (_i_ == 4) {
             setKeyLast(_o_.ReadBinary(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 5) {
+            setRaftConfig(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -319,6 +367,7 @@ public final class BMeta extends Zeze.Transaction.Bean implements BMetaReadOnly 
                 case 2: _TableName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 3: _KeyFirst = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
                 case 4: _KeyLast = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 5: _RaftConfig = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
             }
         }
     }

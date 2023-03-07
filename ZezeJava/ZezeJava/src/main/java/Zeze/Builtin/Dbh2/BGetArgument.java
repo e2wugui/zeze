@@ -7,30 +7,9 @@ import Zeze.Serialize.ByteBuffer;
 public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArgumentReadOnly {
     public static final long TYPEID = 4922212073054736979L;
 
-    private long _TransactionId;
     private String _Database;
     private String _Table;
     private Zeze.Net.Binary _Key;
-
-    @Override
-    public long getTransactionId() {
-        if (!isManaged())
-            return _TransactionId;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
-            return _TransactionId;
-        var log = (Log__TransactionId)txn.getLog(objectId() + 1);
-        return log != null ? log.value : _TransactionId;
-    }
-
-    public void setTransactionId(long value) {
-        if (!isManaged()) {
-            _TransactionId = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__TransactionId(this, 1, value));
-    }
 
     @Override
     public String getDatabase() {
@@ -39,7 +18,7 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Database;
-        var log = (Log__Database)txn.getLog(objectId() + 2);
+        var log = (Log__Database)txn.getLog(objectId() + 1);
         return log != null ? log.value : _Database;
     }
 
@@ -51,7 +30,7 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Database(this, 2, value));
+        txn.putLog(new Log__Database(this, 1, value));
     }
 
     @Override
@@ -61,7 +40,7 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Table;
-        var log = (Log__Table)txn.getLog(objectId() + 3);
+        var log = (Log__Table)txn.getLog(objectId() + 2);
         return log != null ? log.value : _Table;
     }
 
@@ -73,7 +52,7 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Table(this, 3, value));
+        txn.putLog(new Log__Table(this, 2, value));
     }
 
     @Override
@@ -83,7 +62,7 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Key;
-        var log = (Log__Key)txn.getLog(objectId() + 4);
+        var log = (Log__Key)txn.getLog(objectId() + 3);
         return log != null ? log.value : _Key;
     }
 
@@ -95,7 +74,7 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Key(this, 4, value));
+        txn.putLog(new Log__Key(this, 3, value));
     }
 
     @SuppressWarnings("deprecation")
@@ -106,8 +85,7 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
     }
 
     @SuppressWarnings("deprecation")
-    public BGetArgument(long _TransactionId_, String _Database_, String _Table_, Zeze.Net.Binary _Key_) {
-        _TransactionId = _TransactionId_;
+    public BGetArgument(String _Database_, String _Table_, Zeze.Net.Binary _Key_) {
         if (_Database_ == null)
             throw new IllegalArgumentException();
         _Database = _Database_;
@@ -132,14 +110,12 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
     }
 
     public void assign(BGetArgumentData other) {
-        setTransactionId(other.getTransactionId());
         setDatabase(other.getDatabase());
         setTable(other.getTable());
         setKey(other.getKey());
     }
 
     public void assign(BGetArgument other) {
-        setTransactionId(other.getTransactionId());
         setDatabase(other.getDatabase());
         setTable(other.getTable());
         setKey(other.getKey());
@@ -177,13 +153,6 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
         return TYPEID;
     }
 
-    private static final class Log__TransactionId extends Zeze.Transaction.Logs.LogLong {
-        public Log__TransactionId(BGetArgument bean, int varId, long value) { super(bean, varId, value); }
-
-        @Override
-        public void commit() { ((BGetArgument)getBelong())._TransactionId = value; }
-    }
-
     private static final class Log__Database extends Zeze.Transaction.Logs.LogString {
         public Log__Database(BGetArgument bean, int varId, String value) { super(bean, varId, value); }
 
@@ -216,7 +185,6 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BGetArgument: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("TransactionId=").append(getTransactionId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Database=").append(getDatabase()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Table=").append(getTable()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(getKey()).append(System.lineSeparator());
@@ -240,30 +208,23 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            long _x_ = getTransactionId();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
-                _o_.WriteLong(_x_);
-            }
-        }
-        {
             String _x_ = getDatabase();
             if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
             String _x_ = getTable();
             if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
             var _x_ = getKey();
             if (_x_.size() != 0) {
-                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
             }
         }
@@ -275,18 +236,14 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setTransactionId(_o_.ReadLong(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 2) {
             setDatabase(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        if (_i_ == 3) {
+        if (_i_ == 2) {
             setTable(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        if (_i_ == 4) {
+        if (_i_ == 3) {
             setKey(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
@@ -298,8 +255,6 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
 
     @Override
     public boolean negativeCheck() {
-        if (getTransactionId() < 0)
-            return true;
         return false;
     }
 
@@ -312,10 +267,9 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _TransactionId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _Database = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 3: _Table = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 4: _Key = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 1: _Database = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 2: _Table = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 3: _Key = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
             }
         }
     }

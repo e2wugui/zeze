@@ -9,7 +9,7 @@ public final class BUseDataRefData extends Zeze.Transaction.Data {
     public static final long TYPEID = -8788076056876784776L;
 
     private Zeze.Builtin.Dbh2.BLogBeginTransactionData _Ref1;
-    private Zeze.Builtin.Dbh2.BMetaData _Ref2;
+    private Zeze.Builtin.Dbh2.BBucketMetaData _Ref2;
 
     public Zeze.Builtin.Dbh2.BLogBeginTransactionData getRef1() {
         return _Ref1;
@@ -21,11 +21,11 @@ public final class BUseDataRefData extends Zeze.Transaction.Data {
         _Ref1 = value;
     }
 
-    public Zeze.Builtin.Dbh2.BMetaData getRef2() {
+    public Zeze.Builtin.Dbh2.BBucketMetaData getRef2() {
         return _Ref2;
     }
 
-    public void setRef2(Zeze.Builtin.Dbh2.BMetaData value) {
+    public void setRef2(Zeze.Builtin.Dbh2.BBucketMetaData value) {
         if (value == null)
             throw new IllegalArgumentException();
         _Ref2 = value;
@@ -35,7 +35,7 @@ public final class BUseDataRefData extends Zeze.Transaction.Data {
     public BUseDataRefData() {
         _Ref1 = new Zeze.Builtin.Dbh2.BLogBeginTransactionData();
         _Ref1.variableId(1);
-        _Ref2 = new Zeze.Builtin.Dbh2.BMetaData();
+        _Ref2 = new Zeze.Builtin.Dbh2.BBucketMetaData();
         _Ref2.variableId(2);
     }
 

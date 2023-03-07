@@ -7,18 +7,9 @@ import Zeze.Serialize.ByteBuffer;
 public final class BGetArgumentData extends Zeze.Transaction.Data {
     public static final long TYPEID = 4922212073054736979L;
 
-    private long _TransactionId;
     private String _Database;
     private String _Table;
     private Zeze.Net.Binary _Key;
-
-    public long getTransactionId() {
-        return _TransactionId;
-    }
-
-    public void setTransactionId(long value) {
-        _TransactionId = value;
-    }
 
     public String getDatabase() {
         return _Database;
@@ -58,8 +49,7 @@ public final class BGetArgumentData extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public BGetArgumentData(long _TransactionId_, String _Database_, String _Table_, Zeze.Net.Binary _Key_) {
-        _TransactionId = _TransactionId_;
+    public BGetArgumentData(String _Database_, String _Table_, Zeze.Net.Binary _Key_) {
         if (_Database_ == null)
             throw new IllegalArgumentException();
         _Database = _Database_;
@@ -83,14 +73,12 @@ public final class BGetArgumentData extends Zeze.Transaction.Data {
     }
 
     public void assign(BGetArgument other) {
-        setTransactionId(other.getTransactionId());
         setDatabase(other.getDatabase());
         setTable(other.getTable());
         setKey(other.getKey());
     }
 
     public void assign(BGetArgumentData other) {
-        setTransactionId(other.getTransactionId());
         setDatabase(other.getDatabase());
         setTable(other.getTable());
         setKey(other.getKey());
@@ -125,7 +113,6 @@ public final class BGetArgumentData extends Zeze.Transaction.Data {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BGetArgument: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("TransactionId=").append(getTransactionId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Database=").append(getDatabase()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Table=").append(getTable()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(getKey()).append(System.lineSeparator());
@@ -149,30 +136,23 @@ public final class BGetArgumentData extends Zeze.Transaction.Data {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            long _x_ = getTransactionId();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
-                _o_.WriteLong(_x_);
-            }
-        }
-        {
             String _x_ = getDatabase();
             if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
             String _x_ = getTable();
             if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
             var _x_ = getKey();
             if (_x_.size() != 0) {
-                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
             }
         }
@@ -184,18 +164,14 @@ public final class BGetArgumentData extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setTransactionId(_o_.ReadLong(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 2) {
             setDatabase(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        if (_i_ == 3) {
+        if (_i_ == 2) {
             setTable(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        if (_i_ == 4) {
+        if (_i_ == 3) {
             setKey(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }

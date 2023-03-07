@@ -1275,20 +1275,20 @@
 		</module>
 
 		<module name="Dbh2" id="11026" DefaultTransactionLevel="None">
-			<bean name="BMeta">
+			<bean name="BBucketMeta">
 				<variable id="1" name="DatabaseName" type="string"/>
 				<variable id="2" name="TableName" type="string"/>
 				<variable id="3" name="KeyFirst" type="binary"/>
 				<variable id="4" name="KeyLast" type="binary"/>
+				<variable id="5" name="RaftConfig" type="string"/>
 			</bean>
 
 			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 
 			<bean name="BGetArgument">
-				<variable id="1" name="TransactionId" type="long"/>
-				<variable id="2" name="Database" type="string"/>
-				<variable id="3" name="Table" type="string"/>
-				<variable id="4" name="Key" type="binary"/>
+				<variable id="1" name="Database" type="string"/>
+				<variable id="2" name="Table" type="string"/>
+				<variable id="3" name="Key" type="binary"/>
 			</bean>
 			<bean name="BGetResult">
 				<variable id="1" name="Null" type="bool"/>
@@ -1346,7 +1346,7 @@
 			<!-- 用来生成Data数据结构，没有实际功能 -->
 			<bean name="BUseDataRef">
 				<variable id="1" name="Ref1" type="BLogBeginTransaction"/>
-				<variable id="2" name="Ref2" type="BMeta"/>
+				<variable id="2" name="Ref2" type="BBucketMeta"/>
 			</bean>
 			<protocol name="UseDataRefDummy" argument="BUseDataRef" UseData="true" handle="server"/>
 

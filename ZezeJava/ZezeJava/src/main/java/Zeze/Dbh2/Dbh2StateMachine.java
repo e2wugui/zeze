@@ -25,7 +25,7 @@ import org.rocksdb.RocksDBException;
 
 public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	private static final Logger logger = LogManager.getLogger(Dbh2StateMachine.class);
-	private final HashMap<Long, Transaction> transactionMap = new HashMap<>();
+	private final HashMap<Long, Dbh2Transaction> transactionMap = new HashMap<>();
 	private Bucket bucket;
 
 	public Dbh2StateMachine() {

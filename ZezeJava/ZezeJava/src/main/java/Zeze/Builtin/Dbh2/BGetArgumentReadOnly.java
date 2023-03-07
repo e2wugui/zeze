@@ -7,7 +7,6 @@ public interface BGetArgumentReadOnly {
     boolean negativeCheck();
     BGetArgument copy();
 
-    long getTransactionId();
     String getDatabase();
     String getTable();
     Zeze.Net.Binary getKey();

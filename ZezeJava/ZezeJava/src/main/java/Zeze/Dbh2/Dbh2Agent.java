@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import Zeze.Builtin.Dbh2.Get;
 import Zeze.Builtin.Dbh2.KeepAlive;
 import Zeze.Net.Binary;
 import Zeze.Raft.Agent;
@@ -17,8 +18,13 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 	private final Dbh2Config config = new Dbh2Config();
 	private volatile long activeTime = System.currentTimeMillis();
 
-	public Binary get(String databaseName, String tableName, Binary key) {
-		return null;
+	public byte[] get(String databaseName, String tableName, Binary key) {
+		var r = new Get();
+		r.Argument.setDatabase(databaseName);
+		r.Argument.setTable(tableName);
+		r.Argument.setKey(key);
+		raftClient.sendForWait(r).await();
+		return r.Result.isNull() ? null : r.Result.getValue().bytesUnsafe();
 	}
 
 	public void beginTransaction() {

@@ -9,7 +9,7 @@ public final class BUseDataRef extends Zeze.Transaction.Bean implements BUseData
     public static final long TYPEID = -8788076056876784776L;
 
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Dbh2.BLogBeginTransaction> _Ref1;
-    private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Dbh2.BMeta> _Ref2;
+    private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Dbh2.BBucketMeta> _Ref2;
 
     public Zeze.Builtin.Dbh2.BLogBeginTransaction getRef1() {
         return _Ref1.getValue();
@@ -24,16 +24,16 @@ public final class BUseDataRef extends Zeze.Transaction.Bean implements BUseData
         return _Ref1.getValue();
     }
 
-    public Zeze.Builtin.Dbh2.BMeta getRef2() {
+    public Zeze.Builtin.Dbh2.BBucketMeta getRef2() {
         return _Ref2.getValue();
     }
 
-    public void setRef2(Zeze.Builtin.Dbh2.BMeta value) {
+    public void setRef2(Zeze.Builtin.Dbh2.BBucketMeta value) {
         _Ref2.setValue(value);
     }
 
     @Override
-    public Zeze.Builtin.Dbh2.BMetaReadOnly getRef2ReadOnly() {
+    public Zeze.Builtin.Dbh2.BBucketMetaReadOnly getRef2ReadOnly() {
         return _Ref2.getValue();
     }
 
@@ -41,7 +41,7 @@ public final class BUseDataRef extends Zeze.Transaction.Bean implements BUseData
     public BUseDataRef() {
         _Ref1 = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Dbh2.BLogBeginTransaction(), Zeze.Builtin.Dbh2.BLogBeginTransaction.class);
         _Ref1.variableId(1);
-        _Ref2 = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Dbh2.BMeta(), Zeze.Builtin.Dbh2.BMeta.class);
+        _Ref2 = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Dbh2.BBucketMeta(), Zeze.Builtin.Dbh2.BBucketMeta.class);
         _Ref2.variableId(2);
     }
 
@@ -61,7 +61,7 @@ public final class BUseDataRef extends Zeze.Transaction.Bean implements BUseData
         Zeze.Builtin.Dbh2.BLogBeginTransaction data_Ref1 = new Zeze.Builtin.Dbh2.BLogBeginTransaction();
         data_Ref1.assign(other.getRef1());
         _Ref1.setValue(data_Ref1);
-        Zeze.Builtin.Dbh2.BMeta data_Ref2 = new Zeze.Builtin.Dbh2.BMeta();
+        Zeze.Builtin.Dbh2.BBucketMeta data_Ref2 = new Zeze.Builtin.Dbh2.BBucketMeta();
         data_Ref2.assign(other.getRef2());
         _Ref2.setValue(data_Ref2);
     }

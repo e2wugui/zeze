@@ -158,7 +158,7 @@ public final class Agent {
 	}
 
 	@SuppressWarnings("SameReturnValue")
-	private <TArgument extends Bean, TResult extends Bean> long sendForWaitHandle(Rpc<TArgument, TResult> p,
+	private <TArgument extends Serializable, TResult extends Serializable> long sendForWaitHandle(Rpc<TArgument, TResult> p,
 																				  RaftRpc<TArgument, TResult> rpc) {
 		var net = (RaftRpc<TArgument, TResult>)p;
 		if (net.isTimeout() || isRetryError(net.getResultCode()))
@@ -182,12 +182,12 @@ public final class Agent {
 		return Procedure.Success;
 	}
 
-	public <TArgument extends Bean, TResult extends Bean> TaskCompletionSource<RaftRpc<TArgument, TResult>> sendForWait(
+	public <TArgument extends Serializable, TResult extends Serializable> TaskCompletionSource<RaftRpc<TArgument, TResult>> sendForWait(
 			RaftRpc<TArgument, TResult> rpc) {
 		return sendForWait(rpc, false);
 	}
 
-	public <TArgument extends Bean, TResult extends Bean> TaskCompletionSource<RaftRpc<TArgument, TResult>> sendForWait(
+	public <TArgument extends Serializable, TResult extends Serializable> TaskCompletionSource<RaftRpc<TArgument, TResult>> sendForWait(
 			RaftRpc<TArgument, TResult> rpc, boolean urgent) {
 		if (pendingLimit > 0 && pending.size() > pendingLimit) // UrgentPending不限制。
 			throw new IllegalStateException("too many pending");
