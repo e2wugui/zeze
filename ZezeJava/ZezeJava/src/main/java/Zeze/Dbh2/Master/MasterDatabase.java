@@ -11,7 +11,7 @@ import org.rocksdb.RocksDBException;
 
 public class MasterDatabase {
 	private final String databaseName;
-	private final ConcurrentHashMap<String, MasterTable> tables = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, MasterTableData> tables = new ConcurrentHashMap<>();
 	private final RocksDB db;
 
 	public MasterDatabase(String databaseName) throws RocksDBException {
@@ -21,7 +21,7 @@ public class MasterDatabase {
 		try (var it = this.db.newIterator(Bucket.getDefaultReadOptions())) {
 			while (it.isValid()) {
 				var tableName = new String(it.key(), StandardCharsets.UTF_8);
-				var bTable = new MasterTable();
+				var bTable = new MasterTableData();
 				var bb = ByteBuffer.Wrap(it.value());
 				bTable.decode(bb);
 				tables.put(tableName, bTable);
@@ -34,7 +34,7 @@ public class MasterDatabase {
 		return databaseName;
 	}
 
-	public MasterTable getTable(String tableName) {
+	public MasterTableData getTable(String tableName) {
 		return tables.get(tableName);
 	}
 
@@ -50,7 +50,7 @@ public class MasterDatabase {
 		if (this.db.get(key) != null)
 			return false; // table exist
 
-		var table = new MasterTable();
+		var table = new MasterTableData();
 		var bucket = new BBucketMetaData();
 		// todo allocate first bucket service and setup table
 
