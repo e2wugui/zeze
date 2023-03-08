@@ -105,6 +105,9 @@ namespace Zeze.Gen
                     case "servletstream":
                         new ServletStream(this, e);
                         break;
+                    case "external":
+                        new Types.External(this, e);
+                        break;
                     default:
                         throw new Exception("unknown nodename=" + e.Name + " in module=" + Path());
                 }

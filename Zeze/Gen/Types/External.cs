@@ -14,7 +14,7 @@ namespace Zeze.Gen.Types
     {
         public override string FullName => _name;
 
-        public External(Solution sol, XmlElement self)
+        public External(ModuleSpace sol, XmlElement self)
         {
             Space = sol;
             _name = self.GetAttribute("bean");

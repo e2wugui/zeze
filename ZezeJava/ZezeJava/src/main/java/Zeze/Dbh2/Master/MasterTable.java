@@ -6,7 +6,7 @@ import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 
-public class BMasterTable implements Serializable {
+public class MasterTable implements Serializable {
 	final TreeMap<Binary, BBucketMetaData> buckets = new TreeMap<>(); // key is meta.first
 
 	public BBucketMetaData locate(Binary key) {
@@ -25,6 +25,7 @@ public class BMasterTable implements Serializable {
 
 	@Override
 	public void decode(ByteBuffer bb) {
+		buckets.clear();
 		for (var size = bb.ReadInt(); size > 0; --size) {
 			var key = bb.ReadBinary();
 			var value = new BBucketMetaData();

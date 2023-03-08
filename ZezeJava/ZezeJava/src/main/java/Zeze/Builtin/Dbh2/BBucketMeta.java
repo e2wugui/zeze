@@ -12,6 +12,8 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
     private Zeze.Net.Binary _KeyFirst;
     private Zeze.Net.Binary _KeyLast;
     private String _RaftConfig;
+    private boolean _Moving; // 正在迁移中
+    private Zeze.Net.Binary _KeyMoving; // 正在迁移中的key
 
     @Override
     public String getDatabaseName() {
@@ -123,6 +125,48 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         txn.putLog(new Log__RaftConfig(this, 5, value));
     }
 
+    @Override
+    public boolean isMoving() {
+        if (!isManaged())
+            return _Moving;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _Moving;
+        var log = (Log__Moving)txn.getLog(objectId() + 6);
+        return log != null ? log.value : _Moving;
+    }
+
+    public void setMoving(boolean value) {
+        if (!isManaged()) {
+            _Moving = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__Moving(this, 6, value));
+    }
+
+    @Override
+    public Zeze.Net.Binary getKeyMoving() {
+        if (!isManaged())
+            return _KeyMoving;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _KeyMoving;
+        var log = (Log__KeyMoving)txn.getLog(objectId() + 7);
+        return log != null ? log.value : _KeyMoving;
+    }
+
+    public void setKeyMoving(Zeze.Net.Binary value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _KeyMoving = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__KeyMoving(this, 7, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BBucketMeta() {
         _DatabaseName = "";
@@ -130,10 +174,11 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         _KeyFirst = Zeze.Net.Binary.Empty;
         _KeyLast = Zeze.Net.Binary.Empty;
         _RaftConfig = "";
+        _KeyMoving = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public BBucketMeta(String _DatabaseName_, String _TableName_, Zeze.Net.Binary _KeyFirst_, Zeze.Net.Binary _KeyLast_, String _RaftConfig_) {
+    public BBucketMeta(String _DatabaseName_, String _TableName_, Zeze.Net.Binary _KeyFirst_, Zeze.Net.Binary _KeyLast_, String _RaftConfig_, boolean _Moving_, Zeze.Net.Binary _KeyMoving_) {
         if (_DatabaseName_ == null)
             throw new IllegalArgumentException();
         _DatabaseName = _DatabaseName_;
@@ -149,6 +194,10 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         if (_RaftConfig_ == null)
             throw new IllegalArgumentException();
         _RaftConfig = _RaftConfig_;
+        _Moving = _Moving_;
+        if (_KeyMoving_ == null)
+            throw new IllegalArgumentException();
+        _KeyMoving = _KeyMoving_;
     }
 
     @Override
@@ -169,6 +218,8 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         setKeyFirst(other.getKeyFirst());
         setKeyLast(other.getKeyLast());
         setRaftConfig(other.getRaftConfig());
+        setMoving(other.isMoving());
+        setKeyMoving(other.getKeyMoving());
     }
 
     public void assign(BBucketMeta other) {
@@ -177,6 +228,8 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         setKeyFirst(other.getKeyFirst());
         setKeyLast(other.getKeyLast());
         setRaftConfig(other.getRaftConfig());
+        setMoving(other.isMoving());
+        setKeyMoving(other.getKeyMoving());
     }
 
     @Deprecated
@@ -246,6 +299,20 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         public void commit() { ((BBucketMeta)getBelong())._RaftConfig = value; }
     }
 
+    private static final class Log__Moving extends Zeze.Transaction.Logs.LogBool {
+        public Log__Moving(BBucketMeta bean, int varId, boolean value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BBucketMeta)getBelong())._Moving = value; }
+    }
+
+    private static final class Log__KeyMoving extends Zeze.Transaction.Logs.LogBinary {
+        public Log__KeyMoving(BBucketMeta bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BBucketMeta)getBelong())._KeyMoving = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -261,7 +328,9 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         sb.append(Zeze.Util.Str.indent(level)).append("TableName=").append(getTableName()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("KeyFirst=").append(getKeyFirst()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("KeyLast=").append(getKeyLast()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("RaftConfig=").append(getRaftConfig()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("RaftConfig=").append(getRaftConfig()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Moving=").append(isMoving()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("KeyMoving=").append(getKeyMoving()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -316,6 +385,20 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
                 _o_.WriteString(_x_);
             }
         }
+        {
+            boolean _x_ = isMoving();
+            if (_x_) {
+                _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.INTEGER);
+                _o_.WriteByte(1);
+            }
+        }
+        {
+            var _x_ = getKeyMoving();
+            if (_x_.size() != 0) {
+                _i_ = _o_.WriteTag(_i_, 7, ByteBuffer.BYTES);
+                _o_.WriteBinary(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -343,6 +426,14 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
             setRaftConfig(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 6) {
+            setMoving(_o_.ReadBool(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 7) {
+            setKeyMoving(_o_.ReadBinary(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -368,6 +459,8 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
                 case 3: _KeyFirst = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
                 case 4: _KeyLast = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
                 case 5: _RaftConfig = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 6: _Moving = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
+                case 7: _KeyMoving = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
             }
         }
     }

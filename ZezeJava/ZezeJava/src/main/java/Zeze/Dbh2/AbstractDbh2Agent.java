@@ -62,6 +62,20 @@ public abstract class AbstractDbh2Agent implements Zeze.IModule {
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessRollbackTransactionResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47360280866090L, factoryHandle); // 11026, -323506902
         }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.GetBuckets.class, Zeze.Builtin.Dbh2.Master.GetBuckets.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.GetBuckets::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessGetBucketsResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessGetBucketsResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47363118214025L, factoryHandle); // 11027, -1781126263
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.LocateBucket.class, Zeze.Builtin.Dbh2.Master.LocateBucket.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.LocateBucket::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessLocateBucketResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessLocateBucketResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47363709711447L, factoryHandle); // 11027, -1189628841
+        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
@@ -72,6 +86,8 @@ public abstract class AbstractDbh2Agent implements Zeze.IModule {
         service.getFactorys().remove(47358800944088L);
         service.getFactorys().remove(47359688675419L);
         service.getFactorys().remove(47360280866090L);
+        service.getFactorys().remove(47363118214025L);
+        service.getFactorys().remove(47363709711447L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {

@@ -1275,12 +1275,29 @@
 		</module>
 
 		<module name="Dbh2" id="11026" DefaultTransactionLevel="None">
+			<module name="Master" id="11027" DefaultTransactionLevel="None">
+				<bean name="BLocateBucket">
+					<variable id="1" name="Database" type="string"/>
+					<variable id="2" name="Table" type="string"/>
+					<variable id="3" name="Key" type="binary"/>
+				</bean>
+				<rpc name="LocateBucket" argument="BLocateBucket" result="Zeze.Builtin.Dbh2.BBucketMeta" UseData="true" handle="server"/>
+				<bean name="BGetBuckets">
+					<variable id="1" name="Database" type="string"/>
+					<variable id="2" name="Table" type="string"/>
+				</bean>
+				<external bean="Zeze.Dbh2.Master.MasterTable" />
+				<rpc name="GetBuckets" argument="BGetBuckets" result="Zeze.Dbh2.Master.MasterTable" UseData="true" handle="server"/>
+			</module>
+
 			<bean name="BBucketMeta">
 				<variable id="1" name="DatabaseName" type="string"/>
 				<variable id="2" name="TableName" type="string"/>
 				<variable id="3" name="KeyFirst" type="binary"/>
 				<variable id="4" name="KeyLast" type="binary"/>
 				<variable id="5" name="RaftConfig" type="string"/>
+				<variable id="6" name="Moving" type="bool"/> 正在迁移中
+				<variable id="7" name="KeyMoving" type="binary"/> 正在迁移中的key
 			</bean>
 
 			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
@@ -1353,19 +1370,31 @@
 		</module>
 
 		<!--
-		可用id范围 [11027, 11100) [11102, 11999]
+		可用id范围 [11028, 11100) [11102, 11999]
 		-->
 
 	</module> Builtin
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
-	<component name="Dbh2" gendir="src/main/java" genrelativedir="Zeze/Dbh2" platform="zeze+java">
+	<component name="Master" gendir="src/main/java" genrelativedir="Zeze/Dbh2/Master" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Dbh2.Master"/>
+		</service>
+	</component>
+
+	<component name="MasterAgent" gendir="src/main/java" genrelativedir="Zeze/Dbh2/Master" platform="zeze+java" GenTables="client">
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.Dbh2.Master"/>
+		</service>
+	</component>
+
+	<component name="Dbh2" gendir="src/main/java" genrelativedir="Zeze/Dbh2" PresentModuleFullName="Zeze.Builtin.Dbh2" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Dbh2"/>
 		</service>
 	</component>
 
-	<component name="Dbh2Agent" gendir="src/main/java" genrelativedir="Zeze/Dbh2" platform="zeze+java" GenTables="client">
+	<component name="Dbh2Agent" gendir="src/main/java" genrelativedir="Zeze/Dbh2" PresentModuleFullName="Zeze.Builtin.Dbh2" platform="zeze+java" GenTables="client">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.Dbh2"/>
 		</service>

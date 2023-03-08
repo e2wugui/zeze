@@ -12,4 +12,6 @@ public interface BBucketMetaReadOnly {
     Zeze.Net.Binary getKeyFirst();
     Zeze.Net.Binary getKeyLast();
     String getRaftConfig();
+    boolean isMoving();
+    Zeze.Net.Binary getKeyMoving();
 }

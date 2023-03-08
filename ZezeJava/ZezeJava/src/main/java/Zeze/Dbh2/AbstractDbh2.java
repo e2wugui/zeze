@@ -77,6 +77,22 @@ public abstract class AbstractDbh2 implements Zeze.IModule {
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessUseDataRefDummy", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47357107631101L, factoryHandle); // 11026, 798225405
         }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.GetBuckets.class, Zeze.Builtin.Dbh2.Master.GetBuckets.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.GetBuckets::new;
+            factoryHandle.Handle = this::ProcessGetBucketsRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessGetBucketsRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessGetBucketsRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47363118214025L, factoryHandle); // 11027, -1781126263
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.LocateBucket.class, Zeze.Builtin.Dbh2.Master.LocateBucket.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.LocateBucket::new;
+            factoryHandle.Handle = this::ProcessLocateBucketRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessLocateBucketRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessLocateBucketRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47363709711447L, factoryHandle); // 11027, -1189628841
+        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
@@ -88,6 +104,8 @@ public abstract class AbstractDbh2 implements Zeze.IModule {
         service.getFactorys().remove(47359688675419L);
         service.getFactorys().remove(47360280866090L);
         service.getFactorys().remove(47357107631101L);
+        service.getFactorys().remove(47363118214025L);
+        service.getFactorys().remove(47363709711447L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
@@ -107,4 +125,7 @@ public abstract class AbstractDbh2 implements Zeze.IModule {
     protected abstract long ProcessPutRequest(Zeze.Builtin.Dbh2.Put r) throws Exception;
     protected abstract long ProcessRollbackTransactionRequest(Zeze.Builtin.Dbh2.RollbackTransaction r) throws Exception;
     protected abstract long ProcessUseDataRefDummy(Zeze.Builtin.Dbh2.UseDataRefDummy p) throws Exception;
+
+    protected abstract long ProcessGetBucketsRequest(Zeze.Builtin.Dbh2.Master.GetBuckets r) throws Exception;
+    protected abstract long ProcessLocateBucketRequest(Zeze.Builtin.Dbh2.Master.LocateBucket r) throws Exception;
 }
