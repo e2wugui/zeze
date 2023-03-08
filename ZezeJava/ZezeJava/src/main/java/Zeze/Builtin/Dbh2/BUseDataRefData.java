@@ -155,4 +155,28 @@ public final class BUseDataRefData extends Zeze.Transaction.Data {
         }
     }
 
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BUseDataRef))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BUseDataRef)_o_;
+        if (!getRef1().equals(_b_.getRef1()))
+            return false;
+        if (!getRef2().equals(_b_.getRef2()))
+            return false;
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        final int _p_ = 31;
+        int _h_ = 0;
+        _h_ = _h_ * _p_ + _Ref1.hashCode();
+        _h_ = _h_ * _p_ + _Ref2.hashCode();
+        return _h_;
+    }
+
 }

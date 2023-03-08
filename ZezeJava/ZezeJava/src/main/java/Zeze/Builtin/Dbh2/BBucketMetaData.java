@@ -239,4 +239,37 @@ public final class BBucketMetaData extends Zeze.Transaction.Data {
         }
     }
 
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BBucketMeta))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BBucketMeta)_o_;
+        if (!getDatabaseName().equals(_b_.getDatabaseName()))
+            return false;
+        if (!getTableName().equals(_b_.getTableName()))
+            return false;
+        if (!getKeyFirst().equals(_b_.getKeyFirst()))
+            return false;
+        if (!getKeyLast().equals(_b_.getKeyLast()))
+            return false;
+        if (!getRaftConfig().equals(_b_.getRaftConfig()))
+            return false;
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        final int _p_ = 31;
+        int _h_ = 0;
+        _h_ = _h_ * _p_ + _DatabaseName.hashCode();
+        _h_ = _h_ * _p_ + _TableName.hashCode();
+        _h_ = _h_ * _p_ + _KeyFirst.hashCode();
+        _h_ = _h_ * _p_ + _KeyLast.hashCode();
+        _h_ = _h_ * _p_ + _RaftConfig.hashCode();
+        return _h_;
+    }
+
 }

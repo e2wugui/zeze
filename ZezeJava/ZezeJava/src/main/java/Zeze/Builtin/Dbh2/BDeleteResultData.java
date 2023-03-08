@@ -88,4 +88,14 @@ public final class BDeleteResultData extends Zeze.Transaction.Data {
         }
     }
 
+    @Override
+    public boolean equals(Object _o_) {
+        return _o_ instanceof BDeleteResult;
+    }
+
+    @Override
+    public int hashCode() {
+        return 0;
+    }
+
 }

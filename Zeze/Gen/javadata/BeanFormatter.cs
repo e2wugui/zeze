@@ -151,6 +151,8 @@ namespace Zeze.Gen.javadata
             java.Tostring.Make(bean, sw, "    ");
             Encode.Make(bean, sw, "    ");
             Decode.Make(bean, sw, "    ");
+            java.Equal.Make(bean, sw, "    ");
+            java.HashCode.Make(bean, sw, "    ");
             if (bean.Equalable)
             {
                 java.Equal.Make(bean, sw, "    ");

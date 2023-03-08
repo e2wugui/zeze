@@ -234,4 +234,37 @@ public final class BPutArgumentData extends Zeze.Transaction.Data {
         }
     }
 
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BPutArgument))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BPutArgument)_o_;
+        if (getTransactionId() != _b_.getTransactionId())
+            return false;
+        if (!getDatabase().equals(_b_.getDatabase()))
+            return false;
+        if (!getTable().equals(_b_.getTable()))
+            return false;
+        if (!getKey().equals(_b_.getKey()))
+            return false;
+        if (!getValue().equals(_b_.getValue()))
+            return false;
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        final int _p_ = 31;
+        int _h_ = 0;
+        _h_ = _h_ * _p_ + Long.hashCode(_TransactionId);
+        _h_ = _h_ * _p_ + _Database.hashCode();
+        _h_ = _h_ * _p_ + _Table.hashCode();
+        _h_ = _h_ * _p_ + _Key.hashCode();
+        _h_ = _h_ * _p_ + _Value.hashCode();
+        return _h_;
+    }
+
 }

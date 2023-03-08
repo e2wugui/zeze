@@ -118,4 +118,25 @@ public final class BBeginTransactionResultData extends Zeze.Transaction.Data {
         }
     }
 
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BBeginTransactionResult))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BBeginTransactionResult)_o_;
+        if (getTransactionId() != _b_.getTransactionId())
+            return false;
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        final int _p_ = 31;
+        int _h_ = 0;
+        _h_ = _h_ * _p_ + Long.hashCode(_TransactionId);
+        return _h_;
+    }
+
 }
