@@ -5,6 +5,7 @@ import Zeze.Builtin.Dbh2.Master.CreateDatabase;
 import Zeze.Builtin.Dbh2.Master.CreateTable;
 import Zeze.Builtin.Dbh2.Master.GetBuckets;
 import Zeze.Builtin.Dbh2.Master.LocateBucket;
+import Zeze.Builtin.Dbh2.Master.Register;
 
 public class Master extends AbstractMaster {
 	private final ConcurrentHashMap<String, MasterDatabase> databases = new ConcurrentHashMap<>();
@@ -25,7 +26,10 @@ public class Master extends AbstractMaster {
 		var database = databases.get(r.Argument.getDatabase());
 		if (null == database)
 			return errorCode(eDatabaseNotFound);
-		r.Result = database.createTable(r.Argument.getTable());
+		var table = database.createTable(r.Argument.getTable());
+		if (null == table)
+			return errorCode(eTableNotFound);
+		r.Result = table;
 		r.SendResult();
 		return 0;
 	}
@@ -53,6 +57,12 @@ public class Master extends AbstractMaster {
 			return errorCode(eTableNotFound);
 		r.Result = table.locate(r.Argument.getKey()); // 初始桶保证肯定找得到。
 		r.SendResult();
+		return 0;
+	}
+
+	@Override
+	protected long ProcessRegisterRequest(Register r) throws Exception {
+		// todo 注册dbh2Manager
 		return 0;
 	}
 }

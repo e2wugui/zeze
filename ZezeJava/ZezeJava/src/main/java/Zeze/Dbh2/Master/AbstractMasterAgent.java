@@ -17,6 +17,14 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.CreateBucket.class, Zeze.Builtin.Dbh2.Master.CreateBucket.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.CreateBucket::new;
+            factoryHandle.Handle = this::ProcessCreateBucketRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCreateBucketRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCreateBucketRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47364327162209L, factoryHandle); // 11027, -572178079
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.CreateDatabase.class, Zeze.Builtin.Dbh2.Master.CreateDatabase.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.CreateDatabase::new;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessCreateDatabaseResponse", Zeze.Transaction.TransactionLevel.None);
@@ -44,13 +52,22 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessLocateBucketResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47363709711447L, factoryHandle); // 11027, -1189628841
         }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.Register.class, Zeze.Builtin.Dbh2.Master.Register.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.Register::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessRegisterResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessRegisterResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47364347310157L, factoryHandle); // 11027, -552030131
+        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
+        service.getFactorys().remove(47364327162209L);
         service.getFactorys().remove(47361973054464L);
         service.getFactorys().remove(47363344664675L);
         service.getFactorys().remove(47363118214025L);
         service.getFactorys().remove(47363709711447L);
+        service.getFactorys().remove(47364347310157L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
@@ -61,4 +78,6 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
+
+    protected abstract long ProcessCreateBucketRequest(Zeze.Builtin.Dbh2.Master.CreateBucket r) throws Exception;
 }

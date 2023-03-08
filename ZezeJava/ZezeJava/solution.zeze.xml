@@ -1309,6 +1309,14 @@
 					<variable id="2" name="Table" type="string"/>
 				</bean>
 				<rpc name="CreateTable" argument="BCreateTable" result="Zeze.Dbh2.Master.MasterTable" UseData="true" handle="server"/>
+
+				<!-- 下面是Master跟Dbh2Service服务通讯的协议，也包装在MasterAgent中 -->
+				<rpc name="CreateBucket" argument="Zeze.Builtin.Dbh2.BBucketMeta" UseData="true" handle="client"/>
+
+				<bean name="BRegister">
+					<variable id="1" name="Dbh2RaftAcceptorName" type="string"/>
+				</bean>
+				<rpc name="Register" argument="BRegister" UseData="true" handle="server"/>
 			</module>
 
 			<enum name="eBucketNotFound" value="1"/>
