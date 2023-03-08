@@ -114,7 +114,7 @@ namespace Zeze.Gen
             }
         }
 
-        public void Depends(HashSet<Module> unique, List<Module> ordered)
+        public void Depends(HashSet<Module> unique, List<Module> ordered, bool noRecursive)
         {
             if (false == unique.Add(this))
             {
@@ -124,9 +124,12 @@ namespace Zeze.Gen
 
             ordered.Add(this);
 
-            foreach (Module module in this.Modules.Values)
+            if (false == noRecursive)
             {
-                module.Depends(unique, ordered);
+                foreach (Module module in this.Modules.Values)
+                {
+                    module.Depends(unique, ordered, noRecursive);
+                }
             }
         }
 

@@ -1388,13 +1388,13 @@
 		</service>
 	</component>
 
-	<component name="Dbh2" gendir="src/main/java" genrelativedir="Zeze/Dbh2" PresentModuleFullName="Zeze.Builtin.Dbh2" platform="zeze+java">
+	<component name="Dbh2" gendir="src/main/java" genrelativedir="Zeze/Dbh2" NoRecursiveModule="true" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Dbh2"/>
 		</service>
 	</component>
 
-	<component name="Dbh2Agent" gendir="src/main/java" genrelativedir="Zeze/Dbh2" PresentModuleFullName="Zeze.Builtin.Dbh2" platform="zeze+java" GenTables="client">
+	<component name="Dbh2Agent" gendir="src/main/java" genrelativedir="Zeze/Dbh2" NoRecursiveModule="true" platform="zeze+java" GenTables="client">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.Dbh2"/>
 		</service>

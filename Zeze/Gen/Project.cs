@@ -38,6 +38,7 @@ namespace Zeze.Gen
         public string SolutionName { get; set; }
         public bool MappingClass { get; set; }
         public bool IsUnity { get; private set; } = false;
+        public bool NoRecursiveModule { get; private set; } = false;
 
         public List<Module> GetAllOrderdRefModules()
         {
@@ -45,13 +46,13 @@ namespace Zeze.Gen
             List<Module> modules = new List<Module>();
             foreach (Module m in Modules)
             {
-                m.Depends(unique, modules);
+                m.Depends(unique, modules, NoRecursiveModule);
             }
             foreach (Service service in Services.Values)
             {
                 foreach (Module m in service.Modules)
                 {
-                    m.Depends(unique, modules);
+                    m.Depends(unique, modules, NoRecursiveModule);
                 }
             }
             return modules;
@@ -63,7 +64,7 @@ namespace Zeze.Gen
             List<Module> modules = new List<Module>();
             foreach (var m in Solution.Modules.Values)
             { 
-                m.Depends(unique, modules);
+                m.Depends(unique, modules, false);
             }
             return modules;
         }
@@ -90,6 +91,7 @@ namespace Zeze.Gen
             MappingClass = self.GetAttribute("MappingClass").Equals("true");
             IsUnity = self.GetAttribute("IsUnity").Equals("true");
             EnableBase = self.GetAttribute("EnableBase").Equals("true");
+            NoRecursiveModule = self.GetAttribute("NoRecursiveModule").Equals("true");
             //Program.AddNamedObject(FullName, this);
 
             Self = self; // 保存，在编译的时候使用。
