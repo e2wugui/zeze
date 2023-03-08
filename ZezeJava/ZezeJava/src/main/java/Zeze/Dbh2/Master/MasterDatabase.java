@@ -14,19 +14,23 @@ public class MasterDatabase {
 	private final ConcurrentHashMap<String, MasterTableData> tables = new ConcurrentHashMap<>();
 	private final RocksDB db;
 
-	public MasterDatabase(String databaseName) throws RocksDBException {
-		this.databaseName = databaseName;
-		this.db = RocksDB.open(databaseName);
+	public MasterDatabase(String databaseName) {
+		try {
+			this.databaseName = databaseName;
+			this.db = RocksDB.open(databaseName);
 
-		try (var it = this.db.newIterator(Bucket.getDefaultReadOptions())) {
-			while (it.isValid()) {
-				var tableName = new String(it.key(), StandardCharsets.UTF_8);
-				var bTable = new MasterTableData();
-				var bb = ByteBuffer.Wrap(it.value());
-				bTable.decode(bb);
-				tables.put(tableName, bTable);
-				it.next();
+			try (var it = this.db.newIterator(Bucket.getDefaultReadOptions())) {
+				while (it.isValid()) {
+					var tableName = new String(it.key(), StandardCharsets.UTF_8);
+					var bTable = new MasterTableData();
+					var bb = ByteBuffer.Wrap(it.value());
+					bTable.decode(bb);
+					tables.put(tableName, bTable);
+					it.next();
+				}
 			}
+		} catch (RocksDBException ex) {
+			throw new RuntimeException(ex);
 		}
 	}
 
@@ -45,12 +49,12 @@ public class MasterDatabase {
 		return bTable.locate(key);
 	}
 
-	public boolean createTable(String tableName) throws RocksDBException {
-		var key = tableName.getBytes(StandardCharsets.UTF_8);
-		if (this.db.get(key) != null)
-			return false; // table exist
+	public MasterTableData createTable(String tableName) throws RocksDBException {
+		var table = tables.get(tableName);
+		if (table != null)
+			return table; // table exist
 
-		var table = new MasterTableData();
+		table = new MasterTableData();
 		var bucket = new BBucketMetaData();
 		// todo allocate first bucket service and setup table
 
@@ -61,10 +65,11 @@ public class MasterDatabase {
 		// master数据马上存数据库。
 		var bbValue = ByteBuffer.Allocate();
 		table.encode(bbValue);
+		var key = tableName.getBytes(StandardCharsets.UTF_8);
 		this.db.put(Bucket.getDefaultWriteOptions(), key, 0, key.length, bbValue.Bytes, bbValue.ReadIndex, bbValue.size());
 
 		// 保存在内存中，用来快速查询。
 		this.tables.put(tableName, table);
-		return true;
+		return table;
 	}
 }

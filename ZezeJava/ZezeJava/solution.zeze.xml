@@ -1276,19 +1276,42 @@
 
 		<module name="Dbh2" id="11026" DefaultTransactionLevel="None">
 			<module name="Master" id="11027" DefaultTransactionLevel="None">
+				<enum name="eDatabaseNotFound" value="1"/>
+				<enum name="eTableNotFound" value="2"/>
+				
+				<!--
+				Dbh2发现桶没找到错误时，使用GetBuckets得到完整的信息。
+				因为只LocateBucket最新的桶信息虽然能用，但是出现桶没找到错误时，通常意味着前一个桶的信息也需要更新。
+				不更新旧桶，桶的定位方法可以工作（只依赖桶的KeyFrist），但感觉不好。
+				所以LocateBucket核心先不用，仅使用GetBuckets。
+				-->
 				<bean name="BLocateBucket">
 					<variable id="1" name="Database" type="string"/>
 					<variable id="2" name="Table" type="string"/>
 					<variable id="3" name="Key" type="binary"/>
 				</bean>
 				<rpc name="LocateBucket" argument="BLocateBucket" result="Zeze.Builtin.Dbh2.BBucketMeta" UseData="true" handle="server"/>
+
 				<bean name="BGetBuckets">
 					<variable id="1" name="Database" type="string"/>
 					<variable id="2" name="Table" type="string"/>
 				</bean>
 				<external bean="Zeze.Dbh2.Master.MasterTable" />
 				<rpc name="GetBuckets" argument="BGetBuckets" result="Zeze.Dbh2.Master.MasterTable" UseData="true" handle="server"/>
+				
+				<bean name="BCreateDatabase">
+					<variable id="1" name="Database" type="string"/>
+				</bean>
+				<rpc name="CreateDatabase" argument="BCreateDatabase" UseData="true" handle="server"/>
+
+				<bean name="BCreateTable">
+					<variable id="1" name="Database" type="string"/>
+					<variable id="2" name="Table" type="string"/>
+				</bean>
+				<rpc name="CreateTable" argument="BCreateTable" result="Zeze.Dbh2.Master.MasterTable" UseData="true" handle="server"/>
 			</module>
+
+			<enum name="eBucketNotFound" value="1"/>
 
 			<bean name="BBucketMeta">
 				<variable id="1" name="DatabaseName" type="string"/>

@@ -11,6 +11,8 @@ public abstract class AbstractDbh2 implements Zeze.IModule {
     @Override public String getFullName() { return ModuleFullName; }
     @Override public boolean isBuiltin() { return true; }
 
+    public static final int eBucketNotFound = 1;
+
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
