@@ -7,14 +7,14 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class TestLocateBucket {
-	TreeMap<Binary, BBucketMetaData> buckets = new TreeMap<>(); // key is meta.first
-	public BBucketMetaData locate(Binary key) {
-		var lower = buckets.lowerEntry(key);
+	public static BBucketMetaData locate(TreeMap<Binary, BBucketMetaData> buckets, Binary key) {
+		var lower = buckets.floorEntry(key);
 		return lower.getValue();
 	}
 
 	@Test
-	public void test() {
+	public void testLocate() {
+		TreeMap<Binary, BBucketMetaData> buckets = new TreeMap<>(); // key is meta.first
 
 		var keyEmpty = new Binary(new byte[]{ });
 		var key00 = new Binary(new byte[]{ 0, 0, 0, 0 });
@@ -32,14 +32,14 @@ public class TestLocateBucket {
 			meta.setKeyFirst(Binary.Empty);
 			meta.setKeyLast(Binary.Empty);
 			buckets.put(meta.getKeyFirst(), meta);
-			Assert.assertEquals(locate(keyEmpty), meta);
-			Assert.assertEquals(locate(key00), meta);
-			Assert.assertEquals(locate(key10), meta);
-			Assert.assertEquals(locate(key11), meta);
-			Assert.assertEquals(locate(key20), meta);
-			Assert.assertEquals(locate(key22), meta);
-			Assert.assertEquals(locate(key30), meta);
-			Assert.assertEquals(locate(key33), meta);
+			Assert.assertTrue(locate(buckets, keyEmpty) == meta);
+			Assert.assertTrue(locate(buckets, key00) == meta);
+			Assert.assertTrue(locate(buckets, key10) == meta);
+			Assert.assertTrue(locate(buckets, key11) == meta);
+			Assert.assertTrue(locate(buckets, key20) == meta);
+			Assert.assertTrue(locate(buckets, key22) == meta);
+			Assert.assertTrue(locate(buckets, key30) == meta);
+			Assert.assertTrue(locate(buckets, key33) == meta);
 		}
 		buckets.clear();
 
@@ -75,13 +75,13 @@ public class TestLocateBucket {
 		metaKey30.setKeyLast(Binary.Empty);
 		buckets.put(metaKey30.getKeyFirst(), metaKey30);
 
-		Assert.assertEquals(locate(keyEmpty), metaEmpty);
-		Assert.assertEquals(locate(key00), metaEmpty);
-		Assert.assertEquals(locate(key10), metaKey10);
-		Assert.assertEquals(locate(key11), metaKey10);
-		Assert.assertEquals(locate(key20), metaKey20);
-		Assert.assertEquals(locate(key22), metaKey20);
-		Assert.assertEquals(locate(key30), metaKey30);
-		Assert.assertEquals(locate(key33), metaKey30);
+		Assert.assertTrue(locate(buckets, keyEmpty) == metaEmpty);
+		Assert.assertTrue(locate(buckets, key00) == metaEmpty);
+		Assert.assertTrue(locate(buckets, key10) == metaKey10);
+		Assert.assertTrue(locate(buckets, key11) == metaKey10);
+		Assert.assertTrue(locate(buckets, key20) == metaKey20);
+		Assert.assertTrue(locate(buckets, key22) == metaKey20);
+		Assert.assertTrue(locate(buckets, key30) == metaKey30);
+		Assert.assertTrue(locate(buckets, key33) == metaKey30);
 	}
 }

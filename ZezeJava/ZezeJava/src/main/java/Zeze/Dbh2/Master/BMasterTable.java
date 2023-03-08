@@ -10,9 +10,7 @@ public class BMasterTable implements Serializable {
 	final TreeMap<Binary, BBucketMetaData> buckets = new TreeMap<>(); // key is meta.first
 
 	public BBucketMetaData locate(Binary key) {
-		var lower = buckets.lowerEntry(key);
-		if (null == lower)
-			return null;
+		var lower = buckets.floorEntry(key);
 		return lower.getValue();
 	}
 
