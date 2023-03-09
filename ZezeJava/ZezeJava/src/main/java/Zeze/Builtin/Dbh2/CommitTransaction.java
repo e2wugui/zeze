@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Dbh2;
 
-public class CommitTransaction extends Zeze.Raft.RaftRpc<Zeze.Builtin.Dbh2.BCommitTransactionArgumentData, Zeze.Builtin.Dbh2.BCommitTransactionResultData> {
+public class CommitTransaction extends Zeze.Raft.RaftRpc<Zeze.Builtin.Dbh2.BCommitTransactionArgumentDaTa, Zeze.Builtin.Dbh2.BCommitTransactionResultDaTa> {
     public static final int ModuleId_ = 11026;
     public static final int ProtocolId_ = -1482242027; // 2812725269
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47359122130965
@@ -22,12 +22,12 @@ public class CommitTransaction extends Zeze.Raft.RaftRpc<Zeze.Builtin.Dbh2.BComm
     }
 
     public CommitTransaction() {
-        Argument = new Zeze.Builtin.Dbh2.BCommitTransactionArgumentData();
-        Result = new Zeze.Builtin.Dbh2.BCommitTransactionResultData();
+        Argument = new Zeze.Builtin.Dbh2.BCommitTransactionArgumentDaTa();
+        Result = new Zeze.Builtin.Dbh2.BCommitTransactionResultDaTa();
     }
 
-    public CommitTransaction(Zeze.Builtin.Dbh2.BCommitTransactionArgumentData arg) {
+    public CommitTransaction(Zeze.Builtin.Dbh2.BCommitTransactionArgumentDaTa arg) {
         Argument = arg;
-        Result = new Zeze.Builtin.Dbh2.BCommitTransactionResultData();
+        Result = new Zeze.Builtin.Dbh2.BCommitTransactionResultDaTa();
     }
 }

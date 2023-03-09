@@ -71,18 +71,18 @@ public final class BGetBuckets extends Zeze.Transaction.Bean implements BGetBuck
     }
 
     @Override
-    public Zeze.Builtin.Dbh2.Master.BGetBucketsData toData() {
-        var data = new Zeze.Builtin.Dbh2.Master.BGetBucketsData();
+    public Zeze.Builtin.Dbh2.Master.BGetBucketsDaTa toData() {
+        var data = new Zeze.Builtin.Dbh2.Master.BGetBucketsDaTa();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.Master.BGetBucketsData)other);
+        assign((Zeze.Builtin.Dbh2.Master.BGetBucketsDaTa)other);
     }
 
-    public void assign(BGetBucketsData other) {
+    public void assign(BGetBucketsDaTa other) {
         setDatabase(other.getDatabase());
         setTable(other.getTable());
     }

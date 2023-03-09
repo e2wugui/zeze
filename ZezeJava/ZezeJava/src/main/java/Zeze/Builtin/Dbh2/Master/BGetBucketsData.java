@@ -4,7 +4,7 @@ package Zeze.Builtin.Dbh2.Master;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BGetBucketsData extends Zeze.Transaction.Data {
+public final class BGetBucketsDaTa extends Zeze.Transaction.Data {
     public static final long TYPEID = 2441476428484688763L;
 
     private String _Database;
@@ -31,13 +31,13 @@ public final class BGetBucketsData extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public BGetBucketsData() {
+    public BGetBucketsDaTa() {
         _Database = "";
         _Table = "";
     }
 
     @SuppressWarnings("deprecation")
-    public BGetBucketsData(String _Database_, String _Table_) {
+    public BGetBucketsDaTa(String _Database_, String _Table_) {
         if (_Database_ == null)
             throw new IllegalArgumentException();
         _Database = _Database_;
@@ -62,19 +62,19 @@ public final class BGetBucketsData extends Zeze.Transaction.Data {
         setTable(other.getTable());
     }
 
-    public void assign(BGetBucketsData other) {
+    public void assign(BGetBucketsDaTa other) {
         setDatabase(other.getDatabase());
         setTable(other.getTable());
     }
 
     @Override
-    public BGetBucketsData copy() {
-        var copy = new BGetBucketsData();
+    public BGetBucketsDaTa copy() {
+        var copy = new BGetBucketsDaTa();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BGetBucketsData a, BGetBucketsData b) {
+    public static void swap(BGetBucketsDaTa a, BGetBucketsDaTa b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);

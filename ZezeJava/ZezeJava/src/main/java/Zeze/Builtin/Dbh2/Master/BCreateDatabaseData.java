@@ -4,7 +4,7 @@ package Zeze.Builtin.Dbh2.Master;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BCreateDatabaseData extends Zeze.Transaction.Data {
+public final class BCreateDatabaseDaTa extends Zeze.Transaction.Data {
     public static final long TYPEID = -4068258744708449065L;
 
     private String _Database;
@@ -20,12 +20,12 @@ public final class BCreateDatabaseData extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public BCreateDatabaseData() {
+    public BCreateDatabaseDaTa() {
         _Database = "";
     }
 
     @SuppressWarnings("deprecation")
-    public BCreateDatabaseData(String _Database_) {
+    public BCreateDatabaseDaTa(String _Database_) {
         if (_Database_ == null)
             throw new IllegalArgumentException();
         _Database = _Database_;
@@ -46,18 +46,18 @@ public final class BCreateDatabaseData extends Zeze.Transaction.Data {
         setDatabase(other.getDatabase());
     }
 
-    public void assign(BCreateDatabaseData other) {
+    public void assign(BCreateDatabaseDaTa other) {
         setDatabase(other.getDatabase());
     }
 
     @Override
-    public BCreateDatabaseData copy() {
-        var copy = new BCreateDatabaseData();
+    public BCreateDatabaseDaTa copy() {
+        var copy = new BCreateDatabaseDaTa();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BCreateDatabaseData a, BCreateDatabaseData b) {
+    public static void swap(BCreateDatabaseDaTa a, BCreateDatabaseDaTa b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);

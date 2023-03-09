@@ -1,20 +1,20 @@
 package Dbh2;
 
 import java.util.TreeMap;
-import Zeze.Builtin.Dbh2.BBucketMetaData;
+import Zeze.Builtin.Dbh2.BBucketMetaDaTa;
 import Zeze.Net.Binary;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class TestLocateBucket {
-	public static BBucketMetaData locate(TreeMap<Binary, BBucketMetaData> buckets, Binary key) {
+	public static BBucketMetaDaTa locate(TreeMap<Binary, BBucketMetaDaTa> buckets, Binary key) {
 		var lower = buckets.floorEntry(key);
 		return lower.getValue();
 	}
 
 	@Test
 	public void testLocate() {
-		TreeMap<Binary, BBucketMetaData> buckets = new TreeMap<>(); // key is meta.first
+		TreeMap<Binary, BBucketMetaDaTa> buckets = new TreeMap<>(); // key is meta.first
 
 		var keyEmpty = new Binary(new byte[]{ });
 		var key00 = new Binary(new byte[]{ 0, 0, 0, 0 });
@@ -25,7 +25,7 @@ public class TestLocateBucket {
 		var key30 = new Binary(new byte[]{ 3, 0, 0, 0 });
 		var key33 = new Binary(new byte[]{ 3, 3, 0, 0 });
 		{
-			var meta = new BBucketMetaData();
+			var meta = new BBucketMetaDaTa();
 			meta.setDatabaseName("database");
 			meta.setTableName("table");
 			meta.setRaftConfig("raft config");
@@ -43,7 +43,7 @@ public class TestLocateBucket {
 		}
 		buckets.clear();
 
-		var metaEmpty = new BBucketMetaData();
+		var metaEmpty = new BBucketMetaDaTa();
 		metaEmpty.setDatabaseName("database");
 		metaEmpty.setTableName("table");
 		metaEmpty.setRaftConfig("raft config");
@@ -51,7 +51,7 @@ public class TestLocateBucket {
 		metaEmpty.setKeyLast(key10);
 		buckets.put(metaEmpty.getKeyFirst(), metaEmpty);
 
-		var metaKey10 = new BBucketMetaData();
+		var metaKey10 = new BBucketMetaDaTa();
 		metaKey10.setDatabaseName("database");
 		metaKey10.setTableName("table");
 		metaKey10.setRaftConfig("raft config");
@@ -59,7 +59,7 @@ public class TestLocateBucket {
 		metaKey10.setKeyLast(key20);
 		buckets.put(metaKey10.getKeyFirst(), metaKey10);
 
-		var metaKey20 = new BBucketMetaData();
+		var metaKey20 = new BBucketMetaDaTa();
 		metaKey20.setDatabaseName("database");
 		metaKey20.setTableName("table");
 		metaKey20.setRaftConfig("raft config");
@@ -67,7 +67,7 @@ public class TestLocateBucket {
 		metaKey20.setKeyLast(key30);
 		buckets.put(metaKey20.getKeyFirst(), metaKey20);
 
-		var metaKey30 = new BBucketMetaData();
+		var metaKey30 = new BBucketMetaDaTa();
 		metaKey30.setDatabaseName("database");
 		metaKey30.setTableName("table");
 		metaKey30.setRaftConfig("raft config");

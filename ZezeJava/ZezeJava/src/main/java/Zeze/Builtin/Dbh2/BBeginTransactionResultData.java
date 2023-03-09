@@ -4,7 +4,7 @@ package Zeze.Builtin.Dbh2;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BBeginTransactionResultData extends Zeze.Transaction.Data {
+public final class BBeginTransactionResultDaTa extends Zeze.Transaction.Data {
     public static final long TYPEID = 2362617513595826008L;
 
     private long _TransactionId;
@@ -18,11 +18,11 @@ public final class BBeginTransactionResultData extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public BBeginTransactionResultData() {
+    public BBeginTransactionResultDaTa() {
     }
 
     @SuppressWarnings("deprecation")
-    public BBeginTransactionResultData(long _TransactionId_) {
+    public BBeginTransactionResultDaTa(long _TransactionId_) {
         _TransactionId = _TransactionId_;
     }
 
@@ -41,18 +41,18 @@ public final class BBeginTransactionResultData extends Zeze.Transaction.Data {
         setTransactionId(other.getTransactionId());
     }
 
-    public void assign(BBeginTransactionResultData other) {
+    public void assign(BBeginTransactionResultDaTa other) {
         setTransactionId(other.getTransactionId());
     }
 
     @Override
-    public BBeginTransactionResultData copy() {
-        var copy = new BBeginTransactionResultData();
+    public BBeginTransactionResultDaTa copy() {
+        var copy = new BBeginTransactionResultDaTa();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BBeginTransactionResultData a, BBeginTransactionResultData b) {
+    public static void swap(BBeginTransactionResultDaTa a, BBeginTransactionResultDaTa b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);

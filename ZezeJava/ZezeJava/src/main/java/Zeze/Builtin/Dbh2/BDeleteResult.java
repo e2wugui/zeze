@@ -12,18 +12,18 @@ public final class BDeleteResult extends Zeze.Transaction.Bean implements BDelet
     }
 
     @Override
-    public Zeze.Builtin.Dbh2.BDeleteResultData toData() {
-        var data = new Zeze.Builtin.Dbh2.BDeleteResultData();
+    public Zeze.Builtin.Dbh2.BDeleteResultDaTa toData() {
+        var data = new Zeze.Builtin.Dbh2.BDeleteResultDaTa();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.BDeleteResultData)other);
+        assign((Zeze.Builtin.Dbh2.BDeleteResultDaTa)other);
     }
 
-    public void assign(BDeleteResultData other) {
+    public void assign(BDeleteResultDaTa other) {
     }
 
     public void assign(BDeleteResult other) {

@@ -12,18 +12,18 @@ public final class BCommitTransactionResult extends Zeze.Transaction.Bean implem
     }
 
     @Override
-    public Zeze.Builtin.Dbh2.BCommitTransactionResultData toData() {
-        var data = new Zeze.Builtin.Dbh2.BCommitTransactionResultData();
+    public Zeze.Builtin.Dbh2.BCommitTransactionResultDaTa toData() {
+        var data = new Zeze.Builtin.Dbh2.BCommitTransactionResultDaTa();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.BCommitTransactionResultData)other);
+        assign((Zeze.Builtin.Dbh2.BCommitTransactionResultDaTa)other);
     }
 
-    public void assign(BCommitTransactionResultData other) {
+    public void assign(BCommitTransactionResultDaTa other) {
     }
 
     public void assign(BCommitTransactionResult other) {

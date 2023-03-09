@@ -4,7 +4,7 @@ package Zeze.Builtin.Dbh2;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BGetResultData extends Zeze.Transaction.Data {
+public final class BGetResultDaTa extends Zeze.Transaction.Data {
     public static final long TYPEID = -3248537090181056461L;
 
     private boolean _Null;
@@ -29,12 +29,12 @@ public final class BGetResultData extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public BGetResultData() {
+    public BGetResultDaTa() {
         _Value = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public BGetResultData(boolean _Null_, Zeze.Net.Binary _Value_) {
+    public BGetResultDaTa(boolean _Null_, Zeze.Net.Binary _Value_) {
         _Null = _Null_;
         if (_Value_ == null)
             throw new IllegalArgumentException();
@@ -57,19 +57,19 @@ public final class BGetResultData extends Zeze.Transaction.Data {
         setValue(other.getValue());
     }
 
-    public void assign(BGetResultData other) {
+    public void assign(BGetResultDaTa other) {
         setNull(other.isNull());
         setValue(other.getValue());
     }
 
     @Override
-    public BGetResultData copy() {
-        var copy = new BGetResultData();
+    public BGetResultDaTa copy() {
+        var copy = new BGetResultDaTa();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BGetResultData a, BGetResultData b) {
+    public static void swap(BGetResultDaTa a, BGetResultDaTa b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);

@@ -4,11 +4,11 @@ package Zeze.Builtin.Dbh2;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BRollbackTransactionResultData extends Zeze.Transaction.Data {
+public final class BRollbackTransactionResultDaTa extends Zeze.Transaction.Data {
     public static final long TYPEID = 39403420976946383L;
 
     @SuppressWarnings("deprecation")
-    public BRollbackTransactionResultData() {
+    public BRollbackTransactionResultDaTa() {
     }
 
     @Override
@@ -25,17 +25,17 @@ public final class BRollbackTransactionResultData extends Zeze.Transaction.Data 
     public void assign(BRollbackTransactionResult other) {
     }
 
-    public void assign(BRollbackTransactionResultData other) {
+    public void assign(BRollbackTransactionResultDaTa other) {
     }
 
     @Override
-    public BRollbackTransactionResultData copy() {
-        var copy = new BRollbackTransactionResultData();
+    public BRollbackTransactionResultDaTa copy() {
+        var copy = new BRollbackTransactionResultDaTa();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BRollbackTransactionResultData a, BRollbackTransactionResultData b) {
+    public static void swap(BRollbackTransactionResultDaTa a, BRollbackTransactionResultDaTa b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);

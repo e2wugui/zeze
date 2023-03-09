@@ -71,18 +71,18 @@ public final class BCreateTable extends Zeze.Transaction.Bean implements BCreate
     }
 
     @Override
-    public Zeze.Builtin.Dbh2.Master.BCreateTableData toData() {
-        var data = new Zeze.Builtin.Dbh2.Master.BCreateTableData();
+    public Zeze.Builtin.Dbh2.Master.BCreateTableDaTa toData() {
+        var data = new Zeze.Builtin.Dbh2.Master.BCreateTableDaTa();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.Master.BCreateTableData)other);
+        assign((Zeze.Builtin.Dbh2.Master.BCreateTableDaTa)other);
     }
 
-    public void assign(BCreateTableData other) {
+    public void assign(BCreateTableDaTa other) {
         setDatabase(other.getDatabase());
         setTable(other.getTable());
     }

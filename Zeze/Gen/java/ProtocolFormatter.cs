@@ -21,7 +21,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine(p.Comment);
             string argument = p.ArgumentType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(p.ArgumentType);
             if (p.UseData)
-                argument += "Data";
+                argument += "DaTa";
 
             sw.WriteLine("public class " + p.Name + " extends Zeze.Net.Protocol<" + argument + "> {");
             sw.WriteLine("    public static final int ModuleId_ = " + p.Space.Id + ";");

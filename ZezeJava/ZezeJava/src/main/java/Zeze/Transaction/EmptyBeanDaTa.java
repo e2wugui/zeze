@@ -2,9 +2,9 @@ package Zeze.Transaction;
 
 import Zeze.Serialize.ByteBuffer;
 
-public class EmptyBeanData extends Data {
+public class EmptyBeanDaTa extends Data {
 	// 只用于协议/RPC的不可修改的共享单例,不能放入数据库中
-	public static final EmptyBeanData instance = new EmptyBeanData();
+	public static final EmptyBeanDaTa instance = new EmptyBeanDaTa();
 
 	@Override
 	public void decode(ByteBuffer bb) {
@@ -17,7 +17,7 @@ public class EmptyBeanData extends Data {
 	}
 
 	@Override
-	public EmptyBeanData copy() {
+	public EmptyBeanDaTa copy() {
 		return instance; // data 不可能放入数据库，返回共享的引用是可以的。
 	}
 

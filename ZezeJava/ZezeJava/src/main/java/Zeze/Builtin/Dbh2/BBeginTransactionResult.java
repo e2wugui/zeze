@@ -39,18 +39,18 @@ public final class BBeginTransactionResult extends Zeze.Transaction.Bean impleme
     }
 
     @Override
-    public Zeze.Builtin.Dbh2.BBeginTransactionResultData toData() {
-        var data = new Zeze.Builtin.Dbh2.BBeginTransactionResultData();
+    public Zeze.Builtin.Dbh2.BBeginTransactionResultDaTa toData() {
+        var data = new Zeze.Builtin.Dbh2.BBeginTransactionResultDaTa();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.BBeginTransactionResultData)other);
+        assign((Zeze.Builtin.Dbh2.BBeginTransactionResultDaTa)other);
     }
 
-    public void assign(BBeginTransactionResultData other) {
+    public void assign(BBeginTransactionResultDaTa other) {
         setTransactionId(other.getTransactionId());
     }
 

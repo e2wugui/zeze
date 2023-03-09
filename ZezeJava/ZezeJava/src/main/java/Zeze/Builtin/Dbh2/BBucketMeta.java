@@ -201,18 +201,18 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
     }
 
     @Override
-    public Zeze.Builtin.Dbh2.BBucketMetaData toData() {
-        var data = new Zeze.Builtin.Dbh2.BBucketMetaData();
+    public Zeze.Builtin.Dbh2.BBucketMetaDaTa toData() {
+        var data = new Zeze.Builtin.Dbh2.BBucketMetaDaTa();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.BBucketMetaData)other);
+        assign((Zeze.Builtin.Dbh2.BBucketMetaDaTa)other);
     }
 
-    public void assign(BBucketMetaData other) {
+    public void assign(BBucketMetaDaTa other) {
         setDatabaseName(other.getDatabaseName());
         setTableName(other.getTableName());
         setKeyFirst(other.getKeyFirst());

@@ -4,7 +4,7 @@ package Zeze.Builtin.Dbh2.Master;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BRegisterData extends Zeze.Transaction.Data {
+public final class BRegisterDaTa extends Zeze.Transaction.Data {
     public static final long TYPEID = -3200018963971290421L;
 
     private String _Dbh2RaftAcceptorName;
@@ -20,12 +20,12 @@ public final class BRegisterData extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public BRegisterData() {
+    public BRegisterDaTa() {
         _Dbh2RaftAcceptorName = "";
     }
 
     @SuppressWarnings("deprecation")
-    public BRegisterData(String _Dbh2RaftAcceptorName_) {
+    public BRegisterDaTa(String _Dbh2RaftAcceptorName_) {
         if (_Dbh2RaftAcceptorName_ == null)
             throw new IllegalArgumentException();
         _Dbh2RaftAcceptorName = _Dbh2RaftAcceptorName_;
@@ -46,18 +46,18 @@ public final class BRegisterData extends Zeze.Transaction.Data {
         setDbh2RaftAcceptorName(other.getDbh2RaftAcceptorName());
     }
 
-    public void assign(BRegisterData other) {
+    public void assign(BRegisterDaTa other) {
         setDbh2RaftAcceptorName(other.getDbh2RaftAcceptorName());
     }
 
     @Override
-    public BRegisterData copy() {
-        var copy = new BRegisterData();
+    public BRegisterDaTa copy() {
+        var copy = new BRegisterDaTa();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BRegisterData a, BRegisterData b) {
+    public static void swap(BRegisterDaTa a, BRegisterDaTa b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);

@@ -39,18 +39,18 @@ public final class BRollbackTransactionArgument extends Zeze.Transaction.Bean im
     }
 
     @Override
-    public Zeze.Builtin.Dbh2.BRollbackTransactionArgumentData toData() {
-        var data = new Zeze.Builtin.Dbh2.BRollbackTransactionArgumentData();
+    public Zeze.Builtin.Dbh2.BRollbackTransactionArgumentDaTa toData() {
+        var data = new Zeze.Builtin.Dbh2.BRollbackTransactionArgumentDaTa();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.BRollbackTransactionArgumentData)other);
+        assign((Zeze.Builtin.Dbh2.BRollbackTransactionArgumentDaTa)other);
     }
 
-    public void assign(BRollbackTransactionArgumentData other) {
+    public void assign(BRollbackTransactionArgumentDaTa other) {
         setTransactionId(other.getTransactionId());
     }
 

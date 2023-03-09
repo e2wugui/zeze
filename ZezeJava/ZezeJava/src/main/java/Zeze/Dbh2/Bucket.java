@@ -4,7 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
-import Zeze.Builtin.Dbh2.BBucketMetaData;
+import Zeze.Builtin.Dbh2.BBucketMetaDaTa;
 import Zeze.Net.Binary;
 import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
@@ -62,7 +62,7 @@ public class Bucket {
 	private final OptimisticTransactionDB db;
 	private final HashMap<String, ColumnFamilyHandle> cfHandles = new HashMap<>();
 	private final WriteOptions writeOptions = new WriteOptions();
-	private volatile BBucketMetaData meta;
+	private volatile BBucketMetaDaTa meta;
 	private long tid;
 	private final ColumnFamilyHandle cfMeta;
 	private final byte[] metaKey = new byte[] { 1 };
@@ -114,7 +114,7 @@ public class Bucket {
 		throw new RuntimeException("meta record not found");
 	}
 
-	public void setMeta(BBucketMetaData meta) throws RocksDBException {
+	public void setMeta(BBucketMetaDaTa meta) throws RocksDBException {
 		var bb = ByteBuffer.Allocate();
 		meta.encode(bb);
 		db.put(cfMeta, writeOptions, metaKey, 0, metaKey.length, bb.Bytes, bb.ReadIndex, bb.size());
@@ -160,7 +160,7 @@ public class Bucket {
 		db.close();
 	}
 
-	public BBucketMetaData getMeta() {
+	public BBucketMetaDaTa getMeta() {
 		return meta;
 	}
 }

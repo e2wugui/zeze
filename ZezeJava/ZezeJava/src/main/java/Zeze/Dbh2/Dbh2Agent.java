@@ -1,6 +1,6 @@
 package Zeze.Dbh2;
 
-import Zeze.Builtin.Dbh2.BBucketMetaData;
+import Zeze.Builtin.Dbh2.BBucketMetaDaTa;
 import Zeze.Builtin.Dbh2.Get;
 import Zeze.Builtin.Dbh2.KeepAlive;
 import Zeze.Builtin.Dbh2.SetBucketMeta;
@@ -24,7 +24,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 	private final String tableName;
 
 
-	public void setBucketMeta(BBucketMetaData meta) {
+	public void setBucketMeta(BBucketMetaDaTa meta) {
 		var r = new SetBucketMeta();
 		r.Argument = meta;
 		raftClient.sendForWait(r).await();

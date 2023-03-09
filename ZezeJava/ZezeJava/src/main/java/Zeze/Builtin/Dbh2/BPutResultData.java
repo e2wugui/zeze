@@ -4,11 +4,11 @@ package Zeze.Builtin.Dbh2;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BPutResultData extends Zeze.Transaction.Data {
+public final class BPutResultDaTa extends Zeze.Transaction.Data {
     public static final long TYPEID = 2501510166579002026L;
 
     @SuppressWarnings("deprecation")
-    public BPutResultData() {
+    public BPutResultDaTa() {
     }
 
     @Override
@@ -25,17 +25,17 @@ public final class BPutResultData extends Zeze.Transaction.Data {
     public void assign(BPutResult other) {
     }
 
-    public void assign(BPutResultData other) {
+    public void assign(BPutResultDaTa other) {
     }
 
     @Override
-    public BPutResultData copy() {
-        var copy = new BPutResultData();
+    public BPutResultDaTa copy() {
+        var copy = new BPutResultDaTa();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BPutResultData a, BPutResultData b) {
+    public static void swap(BPutResultDaTa a, BPutResultDaTa b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);

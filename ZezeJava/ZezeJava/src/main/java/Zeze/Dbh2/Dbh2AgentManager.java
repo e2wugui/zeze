@@ -2,11 +2,10 @@ package Zeze.Dbh2;
 
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Builtin.Dbh2.BBucketMetaData;
-import Zeze.Builtin.Dbh2.Master.CreateTable;
+import Zeze.Builtin.Dbh2.BBucketMetaDaTa;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
-import Zeze.Dbh2.Master.MasterTableData;
+import Zeze.Dbh2.Master.MasterTableDaTa;
 import Zeze.Net.Binary;
 import Zeze.Raft.RaftConfig;
 
@@ -16,7 +15,7 @@ import Zeze.Raft.RaftConfig;
  */
 public class Dbh2AgentManager {
 	private final MasterAgent masterAgent;
-	private final ConcurrentHashMap<String, ConcurrentHashMap<String, MasterTableData>> buckets = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, ConcurrentHashMap<String, MasterTableDaTa>> buckets = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, Dbh2Agent> agents = new ConcurrentHashMap<>();
 
 	public Dbh2AgentManager(Config config) {

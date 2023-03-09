@@ -4,7 +4,7 @@ package Zeze.Builtin.Dbh2;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BRollbackTransactionArgumentData extends Zeze.Transaction.Data {
+public final class BRollbackTransactionArgumentDaTa extends Zeze.Transaction.Data {
     public static final long TYPEID = -3144088224662789521L;
 
     private long _TransactionId;
@@ -18,11 +18,11 @@ public final class BRollbackTransactionArgumentData extends Zeze.Transaction.Dat
     }
 
     @SuppressWarnings("deprecation")
-    public BRollbackTransactionArgumentData() {
+    public BRollbackTransactionArgumentDaTa() {
     }
 
     @SuppressWarnings("deprecation")
-    public BRollbackTransactionArgumentData(long _TransactionId_) {
+    public BRollbackTransactionArgumentDaTa(long _TransactionId_) {
         _TransactionId = _TransactionId_;
     }
 
@@ -41,18 +41,18 @@ public final class BRollbackTransactionArgumentData extends Zeze.Transaction.Dat
         setTransactionId(other.getTransactionId());
     }
 
-    public void assign(BRollbackTransactionArgumentData other) {
+    public void assign(BRollbackTransactionArgumentDaTa other) {
         setTransactionId(other.getTransactionId());
     }
 
     @Override
-    public BRollbackTransactionArgumentData copy() {
-        var copy = new BRollbackTransactionArgumentData();
+    public BRollbackTransactionArgumentDaTa copy() {
+        var copy = new BRollbackTransactionArgumentDaTa();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BRollbackTransactionArgumentData a, BRollbackTransactionArgumentData b) {
+    public static void swap(BRollbackTransactionArgumentDaTa a, BRollbackTransactionArgumentDaTa b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);

@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Dbh2;
 
-public class Get extends Zeze.Raft.RaftRpc<Zeze.Builtin.Dbh2.BGetArgumentData, Zeze.Builtin.Dbh2.BGetResultData> {
+public class Get extends Zeze.Raft.RaftRpc<Zeze.Builtin.Dbh2.BGetArgumentDaTa, Zeze.Builtin.Dbh2.BGetResultDaTa> {
     public static final int ModuleId_ = 11026;
     public static final int ProtocolId_ = 529792484;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47356839198180
@@ -22,12 +22,12 @@ public class Get extends Zeze.Raft.RaftRpc<Zeze.Builtin.Dbh2.BGetArgumentData, Z
     }
 
     public Get() {
-        Argument = new Zeze.Builtin.Dbh2.BGetArgumentData();
-        Result = new Zeze.Builtin.Dbh2.BGetResultData();
+        Argument = new Zeze.Builtin.Dbh2.BGetArgumentDaTa();
+        Result = new Zeze.Builtin.Dbh2.BGetResultDaTa();
     }
 
-    public Get(Zeze.Builtin.Dbh2.BGetArgumentData arg) {
+    public Get(Zeze.Builtin.Dbh2.BGetArgumentDaTa arg) {
         Argument = arg;
-        Result = new Zeze.Builtin.Dbh2.BGetResultData();
+        Result = new Zeze.Builtin.Dbh2.BGetResultDaTa();
     }
 }

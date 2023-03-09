@@ -1,6 +1,6 @@
 package Zeze.Dbh2;
 
-import Zeze.Builtin.Dbh2.BCommitTransactionArgumentData;
+import Zeze.Builtin.Dbh2.BCommitTransactionArgumentDaTa;
 import Zeze.Builtin.Dbh2.CommitTransaction;
 import Zeze.Raft.Log;
 import Zeze.Raft.RaftLog;
@@ -10,7 +10,7 @@ import Zeze.Serialize.ByteBuffer;
 public class LogCommitTransaction extends Log {
 	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(LogCommitTransaction.class.getName());
 
-	private BCommitTransactionArgumentData argument;
+	private BCommitTransactionArgumentDaTa argument;
 
 	public LogCommitTransaction() {
 		this(null);
@@ -42,7 +42,7 @@ public class LogCommitTransaction extends Log {
 	@Override
 	public void decode(ByteBuffer bb) {
 		super.decode(bb);
-		argument = new BCommitTransactionArgumentData();
+		argument = new BCommitTransactionArgumentDaTa();
 		argument.decode(bb);
 	}
 }

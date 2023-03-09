@@ -98,18 +98,18 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
     }
 
     @Override
-    public Zeze.Builtin.Dbh2.BGetArgumentData toData() {
-        var data = new Zeze.Builtin.Dbh2.BGetArgumentData();
+    public Zeze.Builtin.Dbh2.BGetArgumentDaTa toData() {
+        var data = new Zeze.Builtin.Dbh2.BGetArgumentDaTa();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.BGetArgumentData)other);
+        assign((Zeze.Builtin.Dbh2.BGetArgumentDaTa)other);
     }
 
-    public void assign(BGetArgumentData other) {
+    public void assign(BGetArgumentDaTa other) {
         setDatabase(other.getDatabase());
         setTable(other.getTable());
         setKey(other.getKey());

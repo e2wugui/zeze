@@ -4,7 +4,7 @@ package Zeze.Builtin.Dbh2;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BGetArgumentData extends Zeze.Transaction.Data {
+public final class BGetArgumentDaTa extends Zeze.Transaction.Data {
     public static final long TYPEID = 4922212073054736979L;
 
     private String _Database;
@@ -42,14 +42,14 @@ public final class BGetArgumentData extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public BGetArgumentData() {
+    public BGetArgumentDaTa() {
         _Database = "";
         _Table = "";
         _Key = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public BGetArgumentData(String _Database_, String _Table_, Zeze.Net.Binary _Key_) {
+    public BGetArgumentDaTa(String _Database_, String _Table_, Zeze.Net.Binary _Key_) {
         if (_Database_ == null)
             throw new IllegalArgumentException();
         _Database = _Database_;
@@ -78,20 +78,20 @@ public final class BGetArgumentData extends Zeze.Transaction.Data {
         setKey(other.getKey());
     }
 
-    public void assign(BGetArgumentData other) {
+    public void assign(BGetArgumentDaTa other) {
         setDatabase(other.getDatabase());
         setTable(other.getTable());
         setKey(other.getKey());
     }
 
     @Override
-    public BGetArgumentData copy() {
-        var copy = new BGetArgumentData();
+    public BGetArgumentDaTa copy() {
+        var copy = new BGetArgumentDaTa();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BGetArgumentData a, BGetArgumentData b) {
+    public static void swap(BGetArgumentDaTa a, BGetArgumentDaTa b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);

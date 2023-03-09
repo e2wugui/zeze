@@ -2,7 +2,7 @@
 package Zeze.Builtin.Dbh2.Master;
 
 // 下面是Master跟Dbh2Manager通讯的协议，也包装在MasterAgent中
-public class CreateBucket extends Zeze.Net.Rpc<Zeze.Builtin.Dbh2.BBucketMetaData, Zeze.Transaction.EmptyBeanData> {
+public class CreateBucket extends Zeze.Net.Rpc<Zeze.Builtin.Dbh2.BBucketMetaDaTa, Zeze.Transaction.EmptyBeanDaTa> {
     public static final int ModuleId_ = 11027;
     public static final int ProtocolId_ = -572178079; // 3722789217
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47364327162209
@@ -23,12 +23,12 @@ public class CreateBucket extends Zeze.Net.Rpc<Zeze.Builtin.Dbh2.BBucketMetaData
     }
 
     public CreateBucket() {
-        Argument = new Zeze.Builtin.Dbh2.BBucketMetaData();
-        Result = Zeze.Transaction.EmptyBeanData.instance;
+        Argument = new Zeze.Builtin.Dbh2.BBucketMetaDaTa();
+        Result = Zeze.Transaction.EmptyBeanDaTa.instance;
     }
 
-    public CreateBucket(Zeze.Builtin.Dbh2.BBucketMetaData arg) {
+    public CreateBucket(Zeze.Builtin.Dbh2.BBucketMetaDaTa arg) {
         Argument = arg;
-        Result = Zeze.Transaction.EmptyBeanData.instance;
+        Result = Zeze.Transaction.EmptyBeanDaTa.instance;
     }
 }

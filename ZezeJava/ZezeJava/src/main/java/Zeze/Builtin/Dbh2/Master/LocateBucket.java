@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Dbh2.Master;
 
-public class LocateBucket extends Zeze.Net.Rpc<Zeze.Builtin.Dbh2.Master.BLocateBucketData, Zeze.Builtin.Dbh2.BBucketMetaData> {
+public class LocateBucket extends Zeze.Net.Rpc<Zeze.Builtin.Dbh2.Master.BLocateBucketDaTa, Zeze.Builtin.Dbh2.BBucketMetaDaTa> {
     public static final int ModuleId_ = 11027;
     public static final int ProtocolId_ = -1189628841; // 3105338455
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47363709711447
@@ -22,12 +22,12 @@ public class LocateBucket extends Zeze.Net.Rpc<Zeze.Builtin.Dbh2.Master.BLocateB
     }
 
     public LocateBucket() {
-        Argument = new Zeze.Builtin.Dbh2.Master.BLocateBucketData();
-        Result = new Zeze.Builtin.Dbh2.BBucketMetaData();
+        Argument = new Zeze.Builtin.Dbh2.Master.BLocateBucketDaTa();
+        Result = new Zeze.Builtin.Dbh2.BBucketMetaDaTa();
     }
 
-    public LocateBucket(Zeze.Builtin.Dbh2.Master.BLocateBucketData arg) {
+    public LocateBucket(Zeze.Builtin.Dbh2.Master.BLocateBucketDaTa arg) {
         Argument = arg;
-        Result = new Zeze.Builtin.Dbh2.BBucketMetaData();
+        Result = new Zeze.Builtin.Dbh2.BBucketMetaDaTa();
     }
 }

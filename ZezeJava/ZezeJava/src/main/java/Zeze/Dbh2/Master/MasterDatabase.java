@@ -2,7 +2,7 @@ package Zeze.Dbh2.Master;
 
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Builtin.Dbh2.BBucketMetaData;
+import Zeze.Builtin.Dbh2.BBucketMetaDaTa;
 import Zeze.Dbh2.Bucket;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
@@ -11,7 +11,7 @@ import org.rocksdb.RocksDBException;
 
 public class MasterDatabase {
 	private final String databaseName;
-	private final ConcurrentHashMap<String, MasterTableData> tables = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, MasterTableDaTa> tables = new ConcurrentHashMap<>();
 	private final RocksDB db;
 
 	public MasterDatabase(String databaseName) {
@@ -22,7 +22,7 @@ public class MasterDatabase {
 			try (var it = this.db.newIterator(Bucket.getDefaultReadOptions())) {
 				while (it.isValid()) {
 					var tableName = new String(it.key(), StandardCharsets.UTF_8);
-					var bTable = new MasterTableData();
+					var bTable = new MasterTableDaTa();
 					var bb = ByteBuffer.Wrap(it.value());
 					bTable.decode(bb);
 					tables.put(tableName, bTable);
@@ -38,24 +38,24 @@ public class MasterDatabase {
 		return databaseName;
 	}
 
-	public MasterTableData getTable(String tableName) {
+	public MasterTableDaTa getTable(String tableName) {
 		return tables.get(tableName);
 	}
 
-	public BBucketMetaData locateBucket(String tableName, Binary key) {
+	public BBucketMetaDaTa locateBucket(String tableName, Binary key) {
 		var bTable = getTable(tableName);
 		if (null == bTable)
 			return null;
 		return bTable.locate(key);
 	}
 
-	public MasterTableData createTable(String tableName) throws RocksDBException {
+	public MasterTableDaTa createTable(String tableName) throws RocksDBException {
 		var table = tables.get(tableName);
 		if (table != null)
 			return table; // table exist
 
-		table = new MasterTableData();
-		var bucket = new BBucketMetaData();
+		table = new MasterTableDaTa();
+		var bucket = new BBucketMetaDaTa();
 		// todo allocate first bucket service and setup table
 
 		bucket.setKeyFirst(Binary.Empty);

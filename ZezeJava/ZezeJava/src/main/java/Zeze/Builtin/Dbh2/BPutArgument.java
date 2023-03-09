@@ -147,18 +147,18 @@ public final class BPutArgument extends Zeze.Transaction.Bean implements BPutArg
     }
 
     @Override
-    public Zeze.Builtin.Dbh2.BPutArgumentData toData() {
-        var data = new Zeze.Builtin.Dbh2.BPutArgumentData();
+    public Zeze.Builtin.Dbh2.BPutArgumentDaTa toData() {
+        var data = new Zeze.Builtin.Dbh2.BPutArgumentDaTa();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.BPutArgumentData)other);
+        assign((Zeze.Builtin.Dbh2.BPutArgumentDaTa)other);
     }
 
-    public void assign(BPutArgumentData other) {
+    public void assign(BPutArgumentDaTa other) {
         setTransactionId(other.getTransactionId());
         setDatabase(other.getDatabase());
         setTable(other.getTable());

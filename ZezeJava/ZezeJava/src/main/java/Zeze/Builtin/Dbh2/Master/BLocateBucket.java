@@ -104,18 +104,18 @@ public final class BLocateBucket extends Zeze.Transaction.Bean implements BLocat
     }
 
     @Override
-    public Zeze.Builtin.Dbh2.Master.BLocateBucketData toData() {
-        var data = new Zeze.Builtin.Dbh2.Master.BLocateBucketData();
+    public Zeze.Builtin.Dbh2.Master.BLocateBucketDaTa toData() {
+        var data = new Zeze.Builtin.Dbh2.Master.BLocateBucketDaTa();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.Master.BLocateBucketData)other);
+        assign((Zeze.Builtin.Dbh2.Master.BLocateBucketDaTa)other);
     }
 
-    public void assign(BLocateBucketData other) {
+    public void assign(BLocateBucketDaTa other) {
         setDatabase(other.getDatabase());
         setTable(other.getTable());
         setKey(other.getKey());

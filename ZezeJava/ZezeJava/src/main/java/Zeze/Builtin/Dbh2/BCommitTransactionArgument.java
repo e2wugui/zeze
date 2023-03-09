@@ -39,18 +39,18 @@ public final class BCommitTransactionArgument extends Zeze.Transaction.Bean impl
     }
 
     @Override
-    public Zeze.Builtin.Dbh2.BCommitTransactionArgumentData toData() {
-        var data = new Zeze.Builtin.Dbh2.BCommitTransactionArgumentData();
+    public Zeze.Builtin.Dbh2.BCommitTransactionArgumentDaTa toData() {
+        var data = new Zeze.Builtin.Dbh2.BCommitTransactionArgumentDaTa();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.BCommitTransactionArgumentData)other);
+        assign((Zeze.Builtin.Dbh2.BCommitTransactionArgumentDaTa)other);
     }
 
-    public void assign(BCommitTransactionArgumentData other) {
+    public void assign(BCommitTransactionArgumentDaTa other) {
         setTransactionId(other.getTransactionId());
     }
 

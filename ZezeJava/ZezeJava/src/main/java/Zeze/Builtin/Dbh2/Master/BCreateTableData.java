@@ -4,7 +4,7 @@ package Zeze.Builtin.Dbh2.Master;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BCreateTableData extends Zeze.Transaction.Data {
+public final class BCreateTableDaTa extends Zeze.Transaction.Data {
     public static final long TYPEID = 4850419110709483952L;
 
     private String _Database;
@@ -31,13 +31,13 @@ public final class BCreateTableData extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public BCreateTableData() {
+    public BCreateTableDaTa() {
         _Database = "";
         _Table = "";
     }
 
     @SuppressWarnings("deprecation")
-    public BCreateTableData(String _Database_, String _Table_) {
+    public BCreateTableDaTa(String _Database_, String _Table_) {
         if (_Database_ == null)
             throw new IllegalArgumentException();
         _Database = _Database_;
@@ -62,19 +62,19 @@ public final class BCreateTableData extends Zeze.Transaction.Data {
         setTable(other.getTable());
     }
 
-    public void assign(BCreateTableData other) {
+    public void assign(BCreateTableDaTa other) {
         setDatabase(other.getDatabase());
         setTable(other.getTable());
     }
 
     @Override
-    public BCreateTableData copy() {
-        var copy = new BCreateTableData();
+    public BCreateTableDaTa copy() {
+        var copy = new BCreateTableDaTa();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BCreateTableData a, BCreateTableData b) {
+    public static void swap(BCreateTableDaTa a, BCreateTableDaTa b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);

@@ -120,18 +120,18 @@ public final class BDeleteArgument extends Zeze.Transaction.Bean implements BDel
     }
 
     @Override
-    public Zeze.Builtin.Dbh2.BDeleteArgumentData toData() {
-        var data = new Zeze.Builtin.Dbh2.BDeleteArgumentData();
+    public Zeze.Builtin.Dbh2.BDeleteArgumentDaTa toData() {
+        var data = new Zeze.Builtin.Dbh2.BDeleteArgumentDaTa();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.BDeleteArgumentData)other);
+        assign((Zeze.Builtin.Dbh2.BDeleteArgumentDaTa)other);
     }
 
-    public void assign(BDeleteArgumentData other) {
+    public void assign(BDeleteArgumentDaTa other) {
         setTransactionId(other.getTransactionId());
         setDatabase(other.getDatabase());
         setTable(other.getTable());

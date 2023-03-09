@@ -4,7 +4,7 @@ package Zeze.Builtin.Dbh2;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BPutArgumentData extends Zeze.Transaction.Data {
+public final class BPutArgumentDaTa extends Zeze.Transaction.Data {
     public static final long TYPEID = 2837793351425694122L;
 
     private long _TransactionId;
@@ -62,7 +62,7 @@ public final class BPutArgumentData extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public BPutArgumentData() {
+    public BPutArgumentDaTa() {
         _Database = "";
         _Table = "";
         _Key = Zeze.Net.Binary.Empty;
@@ -70,7 +70,7 @@ public final class BPutArgumentData extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public BPutArgumentData(long _TransactionId_, String _Database_, String _Table_, Zeze.Net.Binary _Key_, Zeze.Net.Binary _Value_) {
+    public BPutArgumentDaTa(long _TransactionId_, String _Database_, String _Table_, Zeze.Net.Binary _Key_, Zeze.Net.Binary _Value_) {
         _TransactionId = _TransactionId_;
         if (_Database_ == null)
             throw new IllegalArgumentException();
@@ -105,7 +105,7 @@ public final class BPutArgumentData extends Zeze.Transaction.Data {
         setValue(other.getValue());
     }
 
-    public void assign(BPutArgumentData other) {
+    public void assign(BPutArgumentDaTa other) {
         setTransactionId(other.getTransactionId());
         setDatabase(other.getDatabase());
         setTable(other.getTable());
@@ -114,13 +114,13 @@ public final class BPutArgumentData extends Zeze.Transaction.Data {
     }
 
     @Override
-    public BPutArgumentData copy() {
-        var copy = new BPutArgumentData();
+    public BPutArgumentDaTa copy() {
+        var copy = new BPutArgumentDaTa();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BPutArgumentData a, BPutArgumentData b) {
+    public static void swap(BPutArgumentDaTa a, BPutArgumentDaTa b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);

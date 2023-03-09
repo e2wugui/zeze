@@ -12,18 +12,18 @@ public final class BPutResult extends Zeze.Transaction.Bean implements BPutResul
     }
 
     @Override
-    public Zeze.Builtin.Dbh2.BPutResultData toData() {
-        var data = new Zeze.Builtin.Dbh2.BPutResultData();
+    public Zeze.Builtin.Dbh2.BPutResultDaTa toData() {
+        var data = new Zeze.Builtin.Dbh2.BPutResultDaTa();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.BPutResultData)other);
+        assign((Zeze.Builtin.Dbh2.BPutResultDaTa)other);
     }
 
-    public void assign(BPutResultData other) {
+    public void assign(BPutResultDaTa other) {
     }
 
     public void assign(BPutResult other) {

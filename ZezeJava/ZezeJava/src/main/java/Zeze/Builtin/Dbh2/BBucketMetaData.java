@@ -4,7 +4,7 @@ package Zeze.Builtin.Dbh2;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BBucketMetaData extends Zeze.Transaction.Data {
+public final class BBucketMetaDaTa extends Zeze.Transaction.Data {
     public static final long TYPEID = 8589859502117192635L;
 
     private String _DatabaseName;
@@ -84,7 +84,7 @@ public final class BBucketMetaData extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public BBucketMetaData() {
+    public BBucketMetaDaTa() {
         _DatabaseName = "";
         _TableName = "";
         _KeyFirst = Zeze.Net.Binary.Empty;
@@ -94,7 +94,7 @@ public final class BBucketMetaData extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public BBucketMetaData(String _DatabaseName_, String _TableName_, Zeze.Net.Binary _KeyFirst_, Zeze.Net.Binary _KeyLast_, String _RaftConfig_, boolean _Moving_, Zeze.Net.Binary _KeyMoving_) {
+    public BBucketMetaDaTa(String _DatabaseName_, String _TableName_, Zeze.Net.Binary _KeyFirst_, Zeze.Net.Binary _KeyLast_, String _RaftConfig_, boolean _Moving_, Zeze.Net.Binary _KeyMoving_) {
         if (_DatabaseName_ == null)
             throw new IllegalArgumentException();
         _DatabaseName = _DatabaseName_;
@@ -137,7 +137,7 @@ public final class BBucketMetaData extends Zeze.Transaction.Data {
         setKeyMoving(other.getKeyMoving());
     }
 
-    public void assign(BBucketMetaData other) {
+    public void assign(BBucketMetaDaTa other) {
         setDatabaseName(other.getDatabaseName());
         setTableName(other.getTableName());
         setKeyFirst(other.getKeyFirst());
@@ -148,13 +148,13 @@ public final class BBucketMetaData extends Zeze.Transaction.Data {
     }
 
     @Override
-    public BBucketMetaData copy() {
-        var copy = new BBucketMetaData();
+    public BBucketMetaDaTa copy() {
+        var copy = new BBucketMetaDaTa();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BBucketMetaData a, BBucketMetaData b) {
+    public static void swap(BBucketMetaDaTa a, BBucketMetaDaTa b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);

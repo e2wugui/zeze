@@ -24,8 +24,8 @@ namespace Zeze.Gen.java
             string baseclass = string.IsNullOrEmpty(rpc.Base) ? "Zeze.Net.Rpc" : rpc.Base;
             if (rpc.UseData)
             {
-                argument += "Data";
-                result += "Data";
+                argument += "DaTa";
+                result += "DaTa";
             }
 
             sw.WriteLine($"public class {rpc.Name} extends {baseclass}<{argument}, {result}> {{");

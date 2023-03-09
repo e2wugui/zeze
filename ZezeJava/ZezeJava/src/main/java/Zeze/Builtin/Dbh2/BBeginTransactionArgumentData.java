@@ -4,7 +4,7 @@ package Zeze.Builtin.Dbh2;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BBeginTransactionArgumentData extends Zeze.Transaction.Data {
+public final class BBeginTransactionArgumentDaTa extends Zeze.Transaction.Data {
     public static final long TYPEID = -7619569472530558952L;
 
     private String _Database; // 用来纠错
@@ -40,13 +40,13 @@ public final class BBeginTransactionArgumentData extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public BBeginTransactionArgumentData() {
+    public BBeginTransactionArgumentDaTa() {
         _Database = "";
         _Table = "";
     }
 
     @SuppressWarnings("deprecation")
-    public BBeginTransactionArgumentData(String _Database_, String _Table_, long _TransactionId_) {
+    public BBeginTransactionArgumentDaTa(String _Database_, String _Table_, long _TransactionId_) {
         if (_Database_ == null)
             throw new IllegalArgumentException();
         _Database = _Database_;
@@ -73,20 +73,20 @@ public final class BBeginTransactionArgumentData extends Zeze.Transaction.Data {
         setTransactionId(other.getTransactionId());
     }
 
-    public void assign(BBeginTransactionArgumentData other) {
+    public void assign(BBeginTransactionArgumentDaTa other) {
         setDatabase(other.getDatabase());
         setTable(other.getTable());
         setTransactionId(other.getTransactionId());
     }
 
     @Override
-    public BBeginTransactionArgumentData copy() {
-        var copy = new BBeginTransactionArgumentData();
+    public BBeginTransactionArgumentDaTa copy() {
+        var copy = new BBeginTransactionArgumentDaTa();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BBeginTransactionArgumentData a, BBeginTransactionArgumentData b) {
+    public static void swap(BBeginTransactionArgumentDaTa a, BBeginTransactionArgumentDaTa b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);

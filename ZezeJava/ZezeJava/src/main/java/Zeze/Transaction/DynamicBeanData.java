@@ -12,8 +12,8 @@ public class DynamicBeanData extends Data {
 
 	public DynamicBeanData(int variableId, ToLongFunction<Data> get, LongFunction<Data> create) {
 		super(variableId);
-		bean = new EmptyBeanData();
-		typeId = EmptyBeanData.TYPEID;
+		bean = new EmptyBeanDaTa();
+		typeId = EmptyBeanDaTa.TYPEID;
 		getData = get;
 		createData = create;
 	}
@@ -67,7 +67,7 @@ public class DynamicBeanData extends Data {
 	}
 
 	public final boolean isEmpty() {
-		return typeId == EmptyBean.TYPEID && bean.getClass() == EmptyBeanData.class;
+		return typeId == EmptyBean.TYPEID && bean.getClass() == EmptyBeanDaTa.class;
 	}
 
 	@Override
@@ -94,7 +94,7 @@ public class DynamicBeanData extends Data {
 			setBeanWithSpecialTypeId(typeId, real);
 		} else {
 			bb.SkipUnknownField(ByteBuffer.BEAN);
-			setBeanWithSpecialTypeId(EmptyBean.TYPEID, new EmptyBeanData());
+			setBeanWithSpecialTypeId(EmptyBean.TYPEID, new EmptyBeanDaTa());
 		}
 	}
 

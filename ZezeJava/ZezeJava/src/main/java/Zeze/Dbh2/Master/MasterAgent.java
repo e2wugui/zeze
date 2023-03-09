@@ -38,7 +38,7 @@ public class MasterAgent extends AbstractMasterAgent {
 		r.SendForWait(service.GetSocket()).await();
 	}
 
-	public MasterTableData createTable(String database, String table) {
+	public MasterTableDaTa createTable(String database, String table) {
 		var r = new CreateTable();
 		r.Argument.setDatabase(database);
 		r.Argument.setTable(table);
@@ -46,7 +46,7 @@ public class MasterAgent extends AbstractMasterAgent {
 		return r.Result;
 	}
 
-	public MasterTableData getBuckets(String database, String table) {
+	public MasterTableDaTa getBuckets(String database, String table) {
 		var r = new GetBuckets();
 		r.Argument.setDatabase(database);
 		r.Argument.setTable(table);

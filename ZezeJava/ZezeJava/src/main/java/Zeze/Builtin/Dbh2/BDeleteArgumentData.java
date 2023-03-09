@@ -4,7 +4,7 @@ package Zeze.Builtin.Dbh2;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BDeleteArgumentData extends Zeze.Transaction.Data {
+public final class BDeleteArgumentDaTa extends Zeze.Transaction.Data {
     public static final long TYPEID = 3113412576231487346L;
 
     private long _TransactionId;
@@ -51,14 +51,14 @@ public final class BDeleteArgumentData extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public BDeleteArgumentData() {
+    public BDeleteArgumentDaTa() {
         _Database = "";
         _Table = "";
         _Key = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public BDeleteArgumentData(long _TransactionId_, String _Database_, String _Table_, Zeze.Net.Binary _Key_) {
+    public BDeleteArgumentDaTa(long _TransactionId_, String _Database_, String _Table_, Zeze.Net.Binary _Key_) {
         _TransactionId = _TransactionId_;
         if (_Database_ == null)
             throw new IllegalArgumentException();
@@ -89,7 +89,7 @@ public final class BDeleteArgumentData extends Zeze.Transaction.Data {
         setKey(other.getKey());
     }
 
-    public void assign(BDeleteArgumentData other) {
+    public void assign(BDeleteArgumentDaTa other) {
         setTransactionId(other.getTransactionId());
         setDatabase(other.getDatabase());
         setTable(other.getTable());
@@ -97,13 +97,13 @@ public final class BDeleteArgumentData extends Zeze.Transaction.Data {
     }
 
     @Override
-    public BDeleteArgumentData copy() {
-        var copy = new BDeleteArgumentData();
+    public BDeleteArgumentDaTa copy() {
+        var copy = new BDeleteArgumentDaTa();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BDeleteArgumentData a, BDeleteArgumentData b) {
+    public static void swap(BDeleteArgumentDaTa a, BDeleteArgumentDaTa b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);

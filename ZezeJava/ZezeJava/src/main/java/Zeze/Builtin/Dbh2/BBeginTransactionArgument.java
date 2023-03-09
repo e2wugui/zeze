@@ -93,18 +93,18 @@ public final class BBeginTransactionArgument extends Zeze.Transaction.Bean imple
     }
 
     @Override
-    public Zeze.Builtin.Dbh2.BBeginTransactionArgumentData toData() {
-        var data = new Zeze.Builtin.Dbh2.BBeginTransactionArgumentData();
+    public Zeze.Builtin.Dbh2.BBeginTransactionArgumentDaTa toData() {
+        var data = new Zeze.Builtin.Dbh2.BBeginTransactionArgumentDaTa();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.BBeginTransactionArgumentData)other);
+        assign((Zeze.Builtin.Dbh2.BBeginTransactionArgumentDaTa)other);
     }
 
-    public void assign(BBeginTransactionArgumentData other) {
+    public void assign(BBeginTransactionArgumentDaTa other) {
         setDatabase(other.getDatabase());
         setTable(other.getTable());
         setTransactionId(other.getTransactionId());

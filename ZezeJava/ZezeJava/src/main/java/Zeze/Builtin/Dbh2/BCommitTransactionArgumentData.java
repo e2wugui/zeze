@@ -4,7 +4,7 @@ package Zeze.Builtin.Dbh2;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BCommitTransactionArgumentData extends Zeze.Transaction.Data {
+public final class BCommitTransactionArgumentDaTa extends Zeze.Transaction.Data {
     public static final long TYPEID = -3031238775854345886L;
 
     private long _TransactionId;
@@ -18,11 +18,11 @@ public final class BCommitTransactionArgumentData extends Zeze.Transaction.Data 
     }
 
     @SuppressWarnings("deprecation")
-    public BCommitTransactionArgumentData() {
+    public BCommitTransactionArgumentDaTa() {
     }
 
     @SuppressWarnings("deprecation")
-    public BCommitTransactionArgumentData(long _TransactionId_) {
+    public BCommitTransactionArgumentDaTa(long _TransactionId_) {
         _TransactionId = _TransactionId_;
     }
 
@@ -41,18 +41,18 @@ public final class BCommitTransactionArgumentData extends Zeze.Transaction.Data 
         setTransactionId(other.getTransactionId());
     }
 
-    public void assign(BCommitTransactionArgumentData other) {
+    public void assign(BCommitTransactionArgumentDaTa other) {
         setTransactionId(other.getTransactionId());
     }
 
     @Override
-    public BCommitTransactionArgumentData copy() {
-        var copy = new BCommitTransactionArgumentData();
+    public BCommitTransactionArgumentDaTa copy() {
+        var copy = new BCommitTransactionArgumentDaTa();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BCommitTransactionArgumentData a, BCommitTransactionArgumentData b) {
+    public static void swap(BCommitTransactionArgumentDaTa a, BCommitTransactionArgumentDaTa b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);

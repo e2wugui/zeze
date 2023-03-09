@@ -5,12 +5,12 @@ import Zeze.Raft.Log;
 import Zeze.Raft.RaftLog;
 import Zeze.Raft.StateMachine;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Builtin.Dbh2.BDeleteArgumentData;
+import Zeze.Builtin.Dbh2.BDeleteArgumentDaTa;
 
 public class LogDelete extends Log {
 	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(LogDelete.class.getName());
 
-	private BDeleteArgumentData argument;
+	private BDeleteArgumentDaTa argument;
 
 	public LogDelete() {
 		this(null);
@@ -42,7 +42,7 @@ public class LogDelete extends Log {
 	@Override
 	public void decode(ByteBuffer bb) {
 		super.decode(bb);
-		argument = new BDeleteArgumentData();
+		argument = new BDeleteArgumentDaTa();
 		argument.decode(bb);
 	}
 }

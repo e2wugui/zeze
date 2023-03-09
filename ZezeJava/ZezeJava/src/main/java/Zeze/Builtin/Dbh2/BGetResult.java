@@ -66,18 +66,18 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
     }
 
     @Override
-    public Zeze.Builtin.Dbh2.BGetResultData toData() {
-        var data = new Zeze.Builtin.Dbh2.BGetResultData();
+    public Zeze.Builtin.Dbh2.BGetResultDaTa toData() {
+        var data = new Zeze.Builtin.Dbh2.BGetResultDaTa();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.BGetResultData)other);
+        assign((Zeze.Builtin.Dbh2.BGetResultDaTa)other);
     }
 
-    public void assign(BGetResultData other) {
+    public void assign(BGetResultDaTa other) {
         setNull(other.isNull());
         setValue(other.getValue());
     }

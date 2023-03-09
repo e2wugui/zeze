@@ -13,7 +13,7 @@ namespace Zeze.Gen.javadata
 		public static void Make(Bean bean, StreamWriter sw, string prefix)
 		{
 			sw.WriteLine(prefix + "@SuppressWarnings(\"deprecation\")");
-			sw.WriteLine(prefix + "public " + bean.Name + "Data() {");
+			sw.WriteLine(prefix + "public " + bean.Name + "DaTa() {");
             var hasImmutable = false;
             foreach (var var in bean.Variables)
             {
@@ -26,7 +26,7 @@ namespace Zeze.Gen.javadata
             if (hasImmutable)
             {
                 sw.WriteLine(prefix + "@SuppressWarnings(\"deprecation\")");
-                sw.Write(prefix + "public " + bean.Name + "Data(");
+                sw.Write(prefix + "public " + bean.Name + "DaTa(");
                 var first = true;
                 foreach (var var in bean.Variables)
                 {

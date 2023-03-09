@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Dbh2.Master;
 
-public class Register extends Zeze.Net.Rpc<Zeze.Builtin.Dbh2.Master.BRegisterData, Zeze.Transaction.EmptyBeanData> {
+public class Register extends Zeze.Net.Rpc<Zeze.Builtin.Dbh2.Master.BRegisterDaTa, Zeze.Transaction.EmptyBeanDaTa> {
     public static final int ModuleId_ = 11027;
     public static final int ProtocolId_ = -552030131; // 3742937165
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47364347310157
@@ -22,12 +22,12 @@ public class Register extends Zeze.Net.Rpc<Zeze.Builtin.Dbh2.Master.BRegisterDat
     }
 
     public Register() {
-        Argument = new Zeze.Builtin.Dbh2.Master.BRegisterData();
-        Result = Zeze.Transaction.EmptyBeanData.instance;
+        Argument = new Zeze.Builtin.Dbh2.Master.BRegisterDaTa();
+        Result = Zeze.Transaction.EmptyBeanDaTa.instance;
     }
 
-    public Register(Zeze.Builtin.Dbh2.Master.BRegisterData arg) {
+    public Register(Zeze.Builtin.Dbh2.Master.BRegisterDaTa arg) {
         Argument = arg;
-        Result = Zeze.Transaction.EmptyBeanData.instance;
+        Result = Zeze.Transaction.EmptyBeanDaTa.instance;
     }
 }

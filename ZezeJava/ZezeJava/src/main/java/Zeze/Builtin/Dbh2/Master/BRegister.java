@@ -44,18 +44,18 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
     }
 
     @Override
-    public Zeze.Builtin.Dbh2.Master.BRegisterData toData() {
-        var data = new Zeze.Builtin.Dbh2.Master.BRegisterData();
+    public Zeze.Builtin.Dbh2.Master.BRegisterDaTa toData() {
+        var data = new Zeze.Builtin.Dbh2.Master.BRegisterDaTa();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.Master.BRegisterData)other);
+        assign((Zeze.Builtin.Dbh2.Master.BRegisterDaTa)other);
     }
 
-    public void assign(BRegisterData other) {
+    public void assign(BRegisterDaTa other) {
         setDbh2RaftAcceptorName(other.getDbh2RaftAcceptorName());
     }
 

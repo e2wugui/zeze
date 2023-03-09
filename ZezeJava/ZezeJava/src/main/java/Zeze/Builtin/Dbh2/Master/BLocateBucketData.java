@@ -10,7 +10,7 @@ import Zeze.Serialize.ByteBuffer;
 				所以LocateBucket核心先不用，仅使用GetBuckets。
 */
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BLocateBucketData extends Zeze.Transaction.Data {
+public final class BLocateBucketDaTa extends Zeze.Transaction.Data {
     public static final long TYPEID = 8564400157292168322L;
 
     private String _Database;
@@ -48,14 +48,14 @@ public final class BLocateBucketData extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public BLocateBucketData() {
+    public BLocateBucketDaTa() {
         _Database = "";
         _Table = "";
         _Key = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public BLocateBucketData(String _Database_, String _Table_, Zeze.Net.Binary _Key_) {
+    public BLocateBucketDaTa(String _Database_, String _Table_, Zeze.Net.Binary _Key_) {
         if (_Database_ == null)
             throw new IllegalArgumentException();
         _Database = _Database_;
@@ -84,20 +84,20 @@ public final class BLocateBucketData extends Zeze.Transaction.Data {
         setKey(other.getKey());
     }
 
-    public void assign(BLocateBucketData other) {
+    public void assign(BLocateBucketDaTa other) {
         setDatabase(other.getDatabase());
         setTable(other.getTable());
         setKey(other.getKey());
     }
 
     @Override
-    public BLocateBucketData copy() {
-        var copy = new BLocateBucketData();
+    public BLocateBucketDaTa copy() {
+        var copy = new BLocateBucketDaTa();
         copy.assign(this);
         return copy;
     }
 
-    public static void swap(BLocateBucketData a, BLocateBucketData b) {
+    public static void swap(BLocateBucketDaTa a, BLocateBucketDaTa b) {
         var save = a.copy();
         a.assign(b);
         b.assign(save);
