@@ -9,6 +9,7 @@ import Zeze.Serialize.Serializable;
 
 public class MasterTableDaTa implements Serializable {
 	final TreeMap<Binary, BBucketMetaDaTa> buckets = new TreeMap<>(); // key is meta.first
+	volatile boolean created = false;
 
 	public Collection<BBucketMetaDaTa> buckets() {
 		return buckets.values();

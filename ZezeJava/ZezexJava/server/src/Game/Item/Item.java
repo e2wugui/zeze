@@ -13,7 +13,7 @@ public abstract class Item {
 
 	public abstract boolean Use();
 
-	// 物品提示信息格式化。TODO 需要定义通用的 Tip 结构
+	// 物品提示信息格式化。需要定义通用的 Tip 结构
 	public String FormatTip() {
 		return "";
 	}

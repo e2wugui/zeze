@@ -31,7 +31,7 @@ public final class Helper {
 
 	public static byte[] makeRandValues(int bytes) {
 		byte[] v = new byte[bytes];
-		random.nextBytes(v); // TODO whf nonzero??
+		random.nextBytes(v); // whf nonzero??
 		return v;
 	}
 

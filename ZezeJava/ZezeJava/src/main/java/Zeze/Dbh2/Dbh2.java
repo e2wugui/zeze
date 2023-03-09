@@ -20,18 +20,22 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
     private final Raft raft;
     private final Dbh2StateMachine stateMachine;
 
-    public Dbh2(String raftName, RaftConfig raftConf, Config config, boolean writeOptionSync) throws Exception {
+    public Dbh2(String raftName, RaftConfig raftConf, Config config, boolean writeOptionSync) {
         if (config == null)
             config = new Config().addCustomize(this.config).loadAndParse();
 
-        stateMachine = new Dbh2StateMachine();
-        raft = new Raft(stateMachine, raftName, raftConf, config, "Zeze.Dbh2.Server", Zeze.Raft.Server::new);
-        stateMachine.openBucket();
-        var writeOptions = writeOptionSync ? Bucket.getSyncWriteOptions() : Bucket.getDefaultWriteOptions();
-        raft.getLogSequence().setWriteOptions(writeOptions);
+        try {
+            stateMachine = new Dbh2StateMachine();
+            raft = new Raft(stateMachine, raftName, raftConf, config, "Zeze.Dbh2.Server", Zeze.Raft.Server::new);
+            stateMachine.openBucket();
+            var writeOptions = writeOptionSync ? Bucket.getSyncWriteOptions() : Bucket.getDefaultWriteOptions();
+            raft.getLogSequence().setWriteOptions(writeOptions);
 
-        RegisterProtocols(raft.getServer());
-        raft.getServer().start();
+            RegisterProtocols(raft.getServer());
+            raft.getServer().start();
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
     @Override

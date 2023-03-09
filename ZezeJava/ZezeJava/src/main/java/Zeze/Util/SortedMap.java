@@ -141,7 +141,6 @@ public class SortedMap<K extends Comparable<K>, V> {
 	}
 
 	public int add(K key, V value) {
-		// todo 随便写写先
 		var index = lowerBoundIndex(key);
 		if (index >= 0) {
 			if (index < elements.size() && getAt(index).key.compareTo(key) == 0)

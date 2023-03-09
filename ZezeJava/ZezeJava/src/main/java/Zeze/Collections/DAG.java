@@ -41,7 +41,7 @@ public class DAG<V extends Bean> {
 	}
 	public void checkValid() throws Exception {
 		if (!isValid())
-			throw new Exception("DAG is invalid."); // TODO: 让异常提示更加智能
+			throw new Exception("DAG is invalid."); // 让异常提示更加智能
 	}
 	public boolean isEmpty() {
 		return graph.vertexSet().isEmpty();

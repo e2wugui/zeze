@@ -21,13 +21,13 @@ public final class ModuleMap extends AbstractModule {
 			return Procedure.LogicError;
 		}
 
-		// TODO map
+		// map
 		return Procedure.NotImplement;
 	}
 
 	@Override
     protected long ProcessCEnterWorldDone(CEnterWorldDone protocol) throws Exception {
-		// TODO map
+		// map
 		return Procedure.NotImplement;
 	}
 

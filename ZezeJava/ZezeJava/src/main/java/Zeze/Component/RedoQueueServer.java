@@ -81,7 +81,6 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 						outProtocol.value = p;
 						Transaction.whileCommit(() -> p.SendResultCode(p.getResultCode()));
 						return p.handle(this, factoryHandle);
-						// todo 下面这个create怎么优化掉。
 					}, factoryHandle.Class.getName(), TransactionLevel.Serializable, so.getUserState()),
 					outProtocol, Protocol::trySendResultCode, DispatchMode.Normal);
 		}

@@ -62,7 +62,7 @@ public class ConsistentHash<E> {
 			var virtual = nodes.remove(node);
 			if (null == virtual)
 				return;
-			// todo 批量remove？
+			// 批量remove？
 			// virtual是排序的，反向遍历，然后删除效率更高。
 			for (var i = virtual.length - 1; i >= 0; --i) {
 				var hash = virtual[i];
@@ -77,7 +77,7 @@ public class ConsistentHash<E> {
 		hash = ByteBuffer.calc_hashnr(((long)hash << 32) ^ hash);
 		lock.lock();
 		try {
-			// todo 换成新的SortedMap的方法。原来是ceilingEntry，对不对。
+			// 换成新的SortedMap的方法。原来是ceilingEntry，对不对。
 			var e = circle.upperBound(hash);
 			if (e == null) {
 				e = circle.first();

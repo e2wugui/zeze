@@ -138,7 +138,7 @@ public final class Transaction {
 
 	private void triggerRedoActions() {
 		redoBeans.forEach(Bean::resetRootInfo);
-		// todo 确认问题：
+		// 确认问题：
 		//  1. triggerRedoActions 上面两个分支调用，第一个分支异常，会导致catch里面再次执行。是不是应该吧两个调回统一到下面的for循环继续的地方？
 		//  2. redo不跟savepoint打交道，总是事务级别的，这个定义应该是正确的吧。
 		//  3. 现在下面的tryWhileRedo只有Rpc使用了，确认使用方式是否正确。

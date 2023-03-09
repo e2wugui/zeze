@@ -195,7 +195,7 @@ public class AchillesHeelDaemon {
 			var bb = ByteBuffer.Allocate(8);
 			bb.WriteLong8(value);
 
-			// TODO 不同的GlobalAgent能并发起来。由于上面的低频率报告优化，这个不是很必要了。
+			// 不同的GlobalAgent能并发起来。由于上面的低频率报告优化，这个不是很必要了。
 			synchronized (channel) {
 				try (var ignored = channel.lock()) {
 					mmap.position(agent.globalCacheManagerHashIndex * 8);

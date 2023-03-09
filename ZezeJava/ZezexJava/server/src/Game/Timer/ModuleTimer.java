@@ -17,7 +17,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class ModuleTimer extends AbstractModule {
-	// TODO 需要一个全局Timer（所有服务器只有一个）执行逻辑。
+	// 需要一个全局Timer（所有服务器只有一个）执行逻辑。
 	public final static String GC_LinkedNodesName = "Zezex.GcLinkedNodesName";
 
 	private static final Logger logger = LogManager.getLogger(ModuleTimer.class);
@@ -248,8 +248,8 @@ public class ModuleTimer extends AbstractModule {
 		return LoadTimerLocal(root.getHeadNodeId(), root.getHeadNodeId(), serverId);
 	}
 
-	// TODO 当ServiceManager发现某台GameServer宕机，
-	// TODO 它应该随机选择一台可用的GameServer把原来的Timer接管过来。
+	// 当ServiceManager发现某台GameServer宕机，
+	// 它应该随机选择一台可用的GameServer把原来的Timer接管过来。
 	// 收到接管通知的服务器调用这个函数进行接管处理。
 	// @serverId 需要接管的服务器Id。
 	@SuppressWarnings("unused")

@@ -160,7 +160,6 @@ public abstract class PList<V> extends Collection implements List<V> {
 
 	@Override
 	public ListIterator<V> listIterator() {
-		//TODO
 		throw new UnsupportedOperationException();
 	}
 

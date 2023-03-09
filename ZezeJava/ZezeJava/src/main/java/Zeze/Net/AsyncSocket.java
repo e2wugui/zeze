@@ -403,7 +403,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			case Constant.eCompressTypeZstd:
 				chain = new DecompressZstd(chain, 128 * 1024, 128 * 1024);
 				break;
-			//TODO: 新增压缩算法支持这里加case
+			// TODO: 新增压缩算法支持这里加case
 			default:
 				throw new UnsupportedOperationException("SetInputSecurityCodec: unknown compressType=" + compressType);
 			}

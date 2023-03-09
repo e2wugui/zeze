@@ -33,7 +33,7 @@ public class Bufs {
 	}
 
 	public final void Attach(int id) {
-		// TODO config: create Buf by id.
+		// config: create Buf by id.
 		BBuf buf = new BBuf();
 		buf.setId(id);
 		buf.setAttachTime(System.currentTimeMillis());
@@ -44,7 +44,7 @@ public class Bufs {
 	}
 
 	public final void Attach(Buf buf) {
-		// TODO config: conflict 等
+		// config: conflict 等
 		bean.getBufs().put(buf.getId(), buf.getBean());
 
 		Zeze.Util.Task.schedule(buf.getContinueTime(), () -> Detach(buf.getId()));

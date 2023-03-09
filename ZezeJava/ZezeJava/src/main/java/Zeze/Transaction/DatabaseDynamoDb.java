@@ -31,7 +31,7 @@ public class DatabaseDynamoDb extends Database {
 
 		var dynamoConf = conf.getDynamoConf();
 		// 这里验证证书是通过配置文件指定的。
-		// todo 增加参数指定endpoint，用来支持明确的服务器，便于测试。
+		// 增加参数指定endpoint，用来支持明确的服务器，便于测试。
 		dynamoDbClient = AmazonDynamoDBClientBuilder.standard()
 				.withRegion(dynamoConf.region)
 				.enableEndpointDiscovery()

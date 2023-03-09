@@ -144,7 +144,7 @@ public class RedirectBase {
 				if (sessionId == 0) { // loop-back. sessionId=0应该不可能是有效的socket session,代表自己
 					try {
 						var service = providerApp.providerDirectService;
-						// todo 为了完整支持事务重置传入的协议，这里需要编码一次。
+						// 为了完整支持事务重置传入的协议，这里需要编码一次。
 						var bb = ByteBuffer.Allocate();
 						request.encode(bb);
 						service.dispatchProtocol(request.getTypeId(), bb,
