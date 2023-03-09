@@ -1,13 +1,20 @@
 package Zeze.Dbh2.Master;
 
+import java.util.Collection;
 import java.util.TreeMap;
 import Zeze.Builtin.Dbh2.BBucketMetaData;
+import Zeze.Dbh2.Dbh2Agent;
 import Zeze.Net.Binary;
+import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 
 public class MasterTableData implements Serializable {
 	final TreeMap<Binary, BBucketMetaData> buckets = new TreeMap<>(); // key is meta.first
+
+	public Collection<BBucketMetaData> buckets() {
+		return buckets.values();
+	}
 
 	public BBucketMetaData locate(Binary key) {
 		var lower = buckets.floorEntry(key);

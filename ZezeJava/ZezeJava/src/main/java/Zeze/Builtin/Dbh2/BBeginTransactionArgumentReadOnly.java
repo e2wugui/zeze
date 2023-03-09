@@ -9,4 +9,5 @@ public interface BBeginTransactionArgumentReadOnly {
 
     String getDatabase();
     String getTable();
+    long getTransactionId();
 }

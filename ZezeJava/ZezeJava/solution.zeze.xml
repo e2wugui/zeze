@@ -1348,16 +1348,14 @@
 			<rpc name="Get" argument="BGetArgument" result="BGetResult" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 
 			<bean name="BBeginTransactionArgument">
-				<variable id="1" name="Database" type="string"/>
-				<variable id="2" name="Table" type="string"/>
+				<variable id="1" name="Database" type="string"/> 用来纠错
+				<variable id="2" name="Table" type="string"/> 用来纠错
+				<variable id="3" name="TransactionId" type="long"/> 发送请求不用填写，Raft内部用
 			</bean>
 			<bean name="BBeginTransactionResult">
 				<variable id="1" name="TransactionId" type="long"/>
 			</bean>
 			<rpc name="BeginTransaction" argument="BBeginTransactionArgument" result="BBeginTransactionResult" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
-			<bean name="BLogBeginTransaction">
-				<variable id="1" name="TransactionId" type="long"/>
-			</bean>
 
 			<bean name="BCommitTransactionArgument">
 				<variable id="1" name="TransactionId" type="long"/>
@@ -1393,13 +1391,6 @@
 			<bean name="BDeleteResult">
 			</bean>
 			<rpc name="Delete" argument="BDeleteArgument" result="BDeleteResult" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
-
-			<!-- 用来生成Data数据结构，没有实际功能 -->
-			<bean name="BUseDataRef">
-				<variable id="1" name="Ref1" type="BLogBeginTransaction"/>
-			</bean>
-			<protocol name="UseDataRefDummy" argument="BUseDataRef" UseData="true" handle="server"/>
-
 		</module>
 
 		<!--

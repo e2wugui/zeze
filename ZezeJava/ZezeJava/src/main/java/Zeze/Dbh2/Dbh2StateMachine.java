@@ -4,10 +4,10 @@ import java.io.File;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import Zeze.Builtin.Dbh2.BBeginTransactionArgumentData;
 import Zeze.Builtin.Dbh2.BBucketMetaData;
 import Zeze.Builtin.Dbh2.BCommitTransactionArgumentData;
 import Zeze.Builtin.Dbh2.BDeleteArgumentData;
-import Zeze.Builtin.Dbh2.BLogBeginTransactionData;
 import Zeze.Builtin.Dbh2.BPutArgumentData;
 import Zeze.Builtin.Dbh2.BRollbackTransactionArgumentData;
 import Zeze.Raft.LogSequence;
@@ -56,7 +56,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	/////////////////////////////////////////////////////////////////////
 	// 下面这些方法用于Log.apply，不能失败，失败将停止程序。
-	public void beginTransaction(BLogBeginTransactionData argument) {
+	public void beginTransaction(BBeginTransactionArgumentData argument) {
 		var transaction = bucket.beginTransaction();
 		if (null != transactionMap.putIfAbsent(argument.getTransactionId(), transaction))
 			getRaft().fatalKill();

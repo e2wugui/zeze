@@ -1,7 +1,6 @@
 package Zeze.Dbh2;
 
 import Zeze.Builtin.Dbh2.BBeginTransactionArgumentData;
-import Zeze.Builtin.Dbh2.BLogBeginTransactionData;
 import Zeze.Builtin.Dbh2.BeginTransaction;
 import Zeze.Raft.Log;
 import Zeze.Raft.RaftLog;
@@ -11,15 +10,16 @@ import Zeze.Serialize.ByteBuffer;
 public class LogBeginTransaction extends Log {
 	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(LogBeginTransaction.class.getName());
 
-	private BLogBeginTransactionData argument;
+	private BBeginTransactionArgumentData argument;
 
 	public LogBeginTransaction() {
-		this(null, null);
+		this(null);
 	}
 
-	public LogBeginTransaction(BeginTransaction req, BLogBeginTransactionData argument) {
+	public LogBeginTransaction(BeginTransaction req) {
 		super(req);
-		this.argument = argument;
+		if (null != req)
+			this.argument = req.Argument;
 	}
 
 	@Override
@@ -42,7 +42,7 @@ public class LogBeginTransaction extends Log {
 	@Override
 	public void decode(ByteBuffer bb) {
 		super.decode(bb);
-		argument = new BLogBeginTransactionData();
+		argument = new BBeginTransactionArgumentData();
 		argument.decode(bb);
 	}
 }

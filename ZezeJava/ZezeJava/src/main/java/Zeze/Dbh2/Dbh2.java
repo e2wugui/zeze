@@ -2,12 +2,10 @@ package Zeze.Dbh2;
 
 import java.io.Closeable;
 import java.io.IOException;
-import Zeze.Builtin.Dbh2.BLogBeginTransactionData;
 import Zeze.Builtin.Dbh2.CommitTransaction;
 import Zeze.Builtin.Dbh2.KeepAlive;
 import Zeze.Builtin.Dbh2.RollbackTransaction;
 import Zeze.Builtin.Dbh2.SetBucketMeta;
-import Zeze.Builtin.Dbh2.UseDataRefDummy;
 import Zeze.Config;
 import Zeze.Net.Binary;
 import Zeze.Raft.Raft;
@@ -60,10 +58,9 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
         // allocate tid
         var tid = 0; // todo allocate
-        var argument = new BLogBeginTransactionData();
-        argument.setTransactionId(tid);
-        var log = new LogBeginTransaction(r, argument);
-        r.Result.setTransactionId(tid); // prepare result before appendLog
+        r.Argument.setTransactionId(tid); // setup first
+        var log = new LogBeginTransaction(r);
+        r.Result.setTransactionId(tid); // prepare result before appendLog,
         raft.appendLog(log, r.Result);
         r.SendResult();
         return 0;
@@ -126,10 +123,4 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
         r.SendResult();
         return 0;
     }
-
-    @Override
-    protected long ProcessUseDataRefDummy(UseDataRefDummy p) throws Exception {
-        return 0;
-    }
-
 }

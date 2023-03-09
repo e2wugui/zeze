@@ -1,9 +1,13 @@
 package Zeze.Raft;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
@@ -12,6 +16,7 @@ import Zeze.Util.Random;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 public final class RaftConfig {
 	public static final int DefaultAppendEntriesTimeout = 2000;
@@ -199,8 +204,10 @@ public final class RaftConfig {
 		for (var node : nodes.values())
 			node.save(xmlDocument, self);
 
-		TransformerFactory.newInstance().newTransformer().transform(
-				new DOMSource(xmlDocument), new StreamResult(new File(xmlFileName)));
+		if (null != xmlFileName) {
+			TransformerFactory.newInstance().newTransformer().transform(
+					new DOMSource(xmlDocument), new StreamResult(new File(xmlFileName)));
+		}
 	}
 
 	public static RaftConfig load() throws Exception {
@@ -214,6 +221,12 @@ public final class RaftConfig {
 		}
 
 		throw new FileNotFoundException(String.format("Raft.Config: '%s' not exists.", xmlFile));
+	}
+
+	public static RaftConfig loadFromString(String content) throws Exception {
+		var is = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+		var doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(is);
+		return new RaftConfig(doc, null, doc.getDocumentElement());
 	}
 
 	private void addNode(Node node) {

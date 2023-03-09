@@ -20,6 +20,10 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 	private final Dbh2Config config = new Dbh2Config();
 	private volatile long activeTime = System.currentTimeMillis();
 
+	private final String databaseName;
+	private final String tableName;
+
+
 	public void setBucketMeta(BBucketMetaData meta) {
 		var r = new SetBucketMeta();
 		r.Argument = meta;
@@ -28,7 +32,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 			throw new RuntimeException("fail! code=" + r.getResultCode());
 	}
 
-	public byte[] get(String databaseName, String tableName, Binary key) {
+	public byte[] get(Binary key) {
 		var r = new Get();
 		r.Argument.setDatabase(databaseName);
 		r.Argument.setTable(tableName);
@@ -65,9 +69,12 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		});
 	}
 
-	public Dbh2Agent(RaftConfig raftConf) throws Exception {
+	public Dbh2Agent(String databaseName, String tableName, RaftConfig raftConf) throws Exception {
+		this.databaseName = databaseName;
+		this.tableName = tableName;
 		raftClient = new Agent("dbh2.raft", raftConf);
 		raftClient.setOnSetLeader(this::raftOnSetLeader);
+		raftClient.getClient().start();
 	}
 
 	private void raftOnSetLeader(Agent agent) {

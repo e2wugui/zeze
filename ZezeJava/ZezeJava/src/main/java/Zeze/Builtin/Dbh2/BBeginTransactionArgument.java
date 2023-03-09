@@ -7,8 +7,9 @@ import Zeze.Serialize.ByteBuffer;
 public final class BBeginTransactionArgument extends Zeze.Transaction.Bean implements BBeginTransactionArgumentReadOnly {
     public static final long TYPEID = -7619569472530558952L;
 
-    private String _Database;
-    private String _Table;
+    private String _Database; // 用来纠错
+    private String _Table; // 用来纠错
+    private long _TransactionId; // 发送请求不用填写，Raft内部用
 
     @Override
     public String getDatabase() {
@@ -54,6 +55,26 @@ public final class BBeginTransactionArgument extends Zeze.Transaction.Bean imple
         txn.putLog(new Log__Table(this, 2, value));
     }
 
+    @Override
+    public long getTransactionId() {
+        if (!isManaged())
+            return _TransactionId;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _TransactionId;
+        var log = (Log__TransactionId)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _TransactionId;
+    }
+
+    public void setTransactionId(long value) {
+        if (!isManaged()) {
+            _TransactionId = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__TransactionId(this, 3, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BBeginTransactionArgument() {
         _Database = "";
@@ -61,13 +82,14 @@ public final class BBeginTransactionArgument extends Zeze.Transaction.Bean imple
     }
 
     @SuppressWarnings("deprecation")
-    public BBeginTransactionArgument(String _Database_, String _Table_) {
+    public BBeginTransactionArgument(String _Database_, String _Table_, long _TransactionId_) {
         if (_Database_ == null)
             throw new IllegalArgumentException();
         _Database = _Database_;
         if (_Table_ == null)
             throw new IllegalArgumentException();
         _Table = _Table_;
+        _TransactionId = _TransactionId_;
     }
 
     @Override
@@ -85,11 +107,13 @@ public final class BBeginTransactionArgument extends Zeze.Transaction.Bean imple
     public void assign(BBeginTransactionArgumentData other) {
         setDatabase(other.getDatabase());
         setTable(other.getTable());
+        setTransactionId(other.getTransactionId());
     }
 
     public void assign(BBeginTransactionArgument other) {
         setDatabase(other.getDatabase());
         setTable(other.getTable());
+        setTransactionId(other.getTransactionId());
     }
 
     @Deprecated
@@ -138,6 +162,13 @@ public final class BBeginTransactionArgument extends Zeze.Transaction.Bean imple
         public void commit() { ((BBeginTransactionArgument)getBelong())._Table = value; }
     }
 
+    private static final class Log__TransactionId extends Zeze.Transaction.Logs.LogLong {
+        public Log__TransactionId(BBeginTransactionArgument bean, int varId, long value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BBeginTransactionArgument)getBelong())._TransactionId = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -150,7 +181,8 @@ public final class BBeginTransactionArgument extends Zeze.Transaction.Bean imple
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BBeginTransactionArgument: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Database=").append(getDatabase()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Table=").append(getTable()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Table=").append(getTable()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("TransactionId=").append(getTransactionId()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -184,6 +216,13 @@ public final class BBeginTransactionArgument extends Zeze.Transaction.Bean imple
                 _o_.WriteString(_x_);
             }
         }
+        {
+            long _x_ = getTransactionId();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -199,6 +238,10 @@ public final class BBeginTransactionArgument extends Zeze.Transaction.Bean imple
             setTable(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 3) {
+            setTransactionId(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -207,6 +250,8 @@ public final class BBeginTransactionArgument extends Zeze.Transaction.Bean imple
 
     @Override
     public boolean negativeCheck() {
+        if (getTransactionId() < 0)
+            return true;
         return false;
     }
 
@@ -221,6 +266,7 @@ public final class BBeginTransactionArgument extends Zeze.Transaction.Bean imple
             switch (vlog.getVariableId()) {
                 case 1: _Database = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 2: _Table = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 3: _TransactionId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }
