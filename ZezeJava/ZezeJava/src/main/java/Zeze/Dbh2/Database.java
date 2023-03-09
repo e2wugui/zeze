@@ -2,13 +2,11 @@ package Zeze.Dbh2;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.HashMap;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.Net.Binary;
-import Zeze.Netty.HttpExchange;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.Data;
 import Zeze.Transaction.TableWalkHandleRaw;
 import Zeze.Transaction.TableWalkKeyRaw;
 import Zeze.Util.KV;
@@ -17,11 +15,8 @@ import Zeze.Util.KV;
  * 适配zeze-Database
  */
 public class Database extends Zeze.Transaction.Database {
-	private final ConcurrentHashMap<String, Dbh2Agent> agents = new ConcurrentHashMap<>();
 	private final String masterName;
 	private final String databaseName;
-	private final String user;
-	private final String passwd;
 	private final MasterAgent masterAgent;
 
 	public Database(Config.DatabaseConf conf) {
@@ -31,17 +26,18 @@ public class Database extends Zeze.Transaction.Database {
 			var url = new URL(getDatabaseUrl());
 			masterName = url.getHost() + ":" + url.getPort();
 			databaseName = url.getFile();
-
+			/*
 			var query = HttpExchange.parseQuery(url.getQuery());
 			user = query.get("user");
 			passwd = query.get("passwd");
+			*/
 		} catch (MalformedURLException e) {
 			throw new RuntimeException(e);
 		}
 		setDirectOperates(new NullOperates()); // todo operates
 
 		// todo 构造的时候创建Database可行？
-		masterAgent = Dbh2AgentManager.getInstance().openDatabase(masterName, databaseName, user, passwd);
+		masterAgent = Dbh2AgentManager.getInstance().openDatabase(masterName, databaseName);
 	}
 
 	@Override
@@ -56,27 +52,103 @@ public class Database extends Zeze.Transaction.Database {
 
 	public class Dbh2Transaction implements Zeze.Transaction.Database.Transaction {
 
+		private final HashMap<Dbh2Agent, Long> transactions = new HashMap<>();
+		private boolean rollBacked = false;
+
 		@Override
 		public void commit() {
-
+			for (var e : transactions.entrySet()) {
+				e.getKey().commitTransaction(e.getValue());
+			}
 		}
 
 		public void replace(String tableName, ByteBuffer key, ByteBuffer value) {
+			var manager = Dbh2AgentManager.getInstance();
+			var bKey = new Binary(key.Bytes, key.ReadIndex, key.size());
+			var bValue = new Binary(value.Bytes, value.ReadIndex, value.size());
+			// 最多执行两次。
+			Long tid;
+			var agent = manager.open(
+					Database.this.masterAgent, Database.this.masterName,
+					Database.this.databaseName, tableName,
+					bKey);
+			tid = transactions.get(agent);
+			if (null == tid)
+				tid = agent.beginTransaction();
+			if (null == tid) // begin 检查 database & table，不能失败。
+				throw new RuntimeException("begin transaction fail");
+			transactions.put(agent, tid);
+			// 迁移中的桶，数据已经被迁移到新的节点。
+			var raftNew = agent.put(tid, bKey, bValue);
+			if (raftNew.isEmpty())
+				return; // done success
 
+			// 直接打开目标，建立新的事务执行put。
+			for (int i = 0; i < 2; ++i) {
+				agent = manager.open(Database.this.databaseName, tableName, raftNew);
+				tid = transactions.get(agent);
+				if (null == tid)
+					tid = agent.beginTransaction();
+				if (null == tid) // begin 检查 database & table，不能失败。
+					throw new RuntimeException("begin transaction fail");
+				transactions.put(agent, tid);
+				raftNew = agent.put(tid, bKey, bValue);
+				if (raftNew.isEmpty())
+					return; // done success
+			}
+			throw new RuntimeException("put too many try.");
 		}
 
-		public void remove(String talbeName, ByteBuffer key) {
+		// todo 这个流程和put完全一样，等完整的算法确定下来以后，实现成lambda.action模式。共享同一个流程。
+		public void remove(String tableName, ByteBuffer key) {
+			var manager = Dbh2AgentManager.getInstance();
+			var bKey = new Binary(key.Bytes, key.ReadIndex, key.size());
+			// 最多执行两次。
+			Long tid;
+			var agent = manager.open(
+					Database.this.masterAgent, Database.this.masterName,
+					Database.this.databaseName, tableName,
+					bKey);
+			tid = transactions.get(agent);
+			if (null == tid)
+				tid = agent.beginTransaction();
+			if (null == tid) // begin 检查 database & table，不能失败。
+				throw new RuntimeException("begin transaction fail");
+			transactions.put(agent, tid);
+			// 迁移中的桶，数据已经被迁移到新的节点。
+			var raftNew = agent.delete(tid, bKey);
+			if (raftNew.isEmpty())
+				return; // done success
 
+			// 直接打开目标，建立新的事务执行put。
+			for (int i = 0; i < 2; ++i) {
+				agent = manager.open(Database.this.databaseName, tableName, raftNew);
+				tid = transactions.get(agent);
+				if (null == tid)
+					tid = agent.beginTransaction();
+				transactions.put(agent, tid);
+				if (null == tid) // begin 检查 database & table，不能失败。
+					throw new RuntimeException("begin transaction fail");
+				raftNew = agent.delete(tid, bKey);
+				if (raftNew.isEmpty())
+					return; // done success
+			}
+			throw new RuntimeException("too many try.");
 		}
 
 		@Override
 		public void rollback() {
-
+			if (rollBacked)
+				return;
+			rollBacked = true;
+			for (var e : transactions.entrySet()) {
+				e.getKey().rollbackTransaction(e.getValue());
+			}
 		}
 
 		@Override
 		public void close() throws Exception {
-
+			rollback();
 		}
 	}
 
@@ -107,14 +179,24 @@ public class Database extends Zeze.Transaction.Database {
 
 		@Override
 		public ByteBuffer find(ByteBuffer key) {
+			var manager = Dbh2AgentManager.getInstance();
 			var bKey = new Binary(key.Bytes, key.ReadIndex, key.size());
-			var agent = Dbh2AgentManager.getInstance().open(
-					Database.this.masterAgent, Database.this.masterName, Database.this.databaseName, name,
-					bKey);
-			var value = agent.get(bKey);
-			if (null == value)
-				return null;
-			return ByteBuffer.Wrap(value);
+			// 最多执行两次。
+			for (int i = 0; i < 2; ++i) {
+				var agent = manager.open(
+						Database.this.masterAgent, Database.this.masterName,
+						Database.this.databaseName, name,
+						bKey);
+				var kv = agent.get(bKey);
+				if (kv.getKey())
+					return kv.getValue();
+
+				// miss match bucket
+				manager.reload(
+						Database.this.masterAgent, Database.this.masterName,
+						Database.this.databaseName, name);
+			}
+			throw new RuntimeException("fail too many try.");
 		}
 
 		@Override

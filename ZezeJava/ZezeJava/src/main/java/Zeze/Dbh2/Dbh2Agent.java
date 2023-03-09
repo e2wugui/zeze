@@ -1,13 +1,20 @@
 package Zeze.Dbh2;
 
 import Zeze.Builtin.Dbh2.BBucketMetaDaTa;
+import Zeze.Builtin.Dbh2.BeginTransaction;
+import Zeze.Builtin.Dbh2.CommitTransaction;
+import Zeze.Builtin.Dbh2.Delete;
 import Zeze.Builtin.Dbh2.Get;
 import Zeze.Builtin.Dbh2.KeepAlive;
+import Zeze.Builtin.Dbh2.Put;
+import Zeze.Builtin.Dbh2.RollbackTransaction;
 import Zeze.Builtin.Dbh2.SetBucketMeta;
 import Zeze.Net.Binary;
 import Zeze.Raft.Agent;
 import Zeze.Raft.RaftConfig;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.KV;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -32,18 +39,76 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 			throw new RuntimeException("fail! code=" + r.getResultCode());
 	}
 
-	public byte[] get(Binary key) {
+	public KV<Boolean, ByteBuffer> get(Binary key) {
 		var r = new Get();
 		r.Argument.setDatabase(databaseName);
 		r.Argument.setTable(tableName);
 		r.Argument.setKey(key);
 		raftClient.sendForWait(r).await();
+
+		if (r.getResultCode() == errorCode(eBucketMissmatch))
+			return KV.create(false, null);
+
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("fail! code=" + r.getResultCode());
-		return r.Result.isNull() ? null : r.Result.getValue().bytesUnsafe();
+
+		var bb = r.Result.isNull()
+				? null
+				: ByteBuffer.Wrap(
+						r.Result.getValue().bytesUnsafe(),
+						r.Result.getValue().getOffset(),
+						r.Result.getValue().size());
+		return KV.create(true, bb);
 	}
 
-	public void beginTransaction() {
+	public Long beginTransaction() {
+		var r = new BeginTransaction();
+		r.Argument.setDatabase(databaseName);
+		r.Argument.setTable(tableName);
+		raftClient.sendForWait(r).await();
+
+		if (r.getResultCode() == errorCode(eBucketMissmatch))
+			return null;
+
+		if (r.getResultCode() != 0)
+			throw new RuntimeException("fail! code=" + r.getResultCode());
+
+		return r.Result.getTransactionId();
+	}
+
+	public void commitTransaction(long tid) {
+		var r = new CommitTransaction();
+		r.Argument.setTransactionId(tid);
+		raftClient.sendForWait(r).await();
+	}
+
+	public void rollbackTransaction(long tid) {
+		var r = new RollbackTransaction();
+		r.Argument.setTransactionId(tid);
+		raftClient.sendForWait(r).await();
+	}
+
+	public String put(long tid, Binary key, Binary value) {
+		var r = new Put();
+		r.Argument.setTransactionId(tid);
+		r.Argument.setKey(key);
+		r.Argument.setValue(value);
+		raftClient.sendForWait(r).await();
+
+		if (r.getResultCode() != 0)
+			throw new RuntimeException("fail! code=" + r.getResultCode());
+		return r.Result.getRaftConfig();
+	}
+
+	public String delete(long tid, Binary key) {
+		var r = new Delete();
+		r.Argument.setTransactionId(tid);
+		r.Argument.setKey(key);
+		raftClient.sendForWait(r).await();
+
+		if (r.getResultCode() != 0)
+			throw new RuntimeException("fail! code=" + r.getResultCode());
+		return r.Result.getRaftConfig();
 	}
 
 	private void verifyFastFail() {

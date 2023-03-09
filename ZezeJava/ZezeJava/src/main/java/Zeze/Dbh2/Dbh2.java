@@ -20,12 +20,6 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
     private final Raft raft;
     private final Dbh2StateMachine stateMachine;
 
-    static {
-        System.setProperty("log4j.configurationFile", "log4j2.xml");
-        var level = Level.toLevel(System.getProperty("logLevel"), Level.INFO);
-        ((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
-    }
-
     public Dbh2(String raftName, RaftConfig raftConf, Config config, boolean writeOptionSync) throws Exception {
         if (config == null)
             config = new Config().addCustomize(this.config).loadAndParse();
@@ -52,8 +46,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
     @Override
     protected long ProcessBeginTransactionRequest(Zeze.Builtin.Dbh2.BeginTransaction r) {
         // 错误检查，防止访问桶错乱。
-        var meta = stateMachine.getBucket().getMeta();
-        if (!r.Argument.getDatabase().equals(meta.getDatabaseName()) || !r.Argument.getTable().equals(meta.getTableName()))
+        if (!stateMachine.getBucket().inBucket(r.Argument.getDatabase(), r.Argument.getTable()))
             return errorCode(eBucketMissmatch);
 
         // allocate tid
@@ -101,7 +94,10 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
     @Override
     protected long ProcessGetRequest(Zeze.Builtin.Dbh2.Get r) throws RocksDBException {
         // 直接读取数据库。是否可以读取由raft控制。raft启动时有准备阶段。
-        var value = stateMachine.getBucket().get(r.Argument.getKey().bytesUnsafe());
+        var bucket = stateMachine.getBucket();
+        if (!bucket.inBucket(r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey()))
+            return errorCode(eBucketMissmatch);
+        var value = bucket.get(r.Argument.getKey());
         if (null == value)
             r.Result.setNull(true);
         else

@@ -7,4 +7,5 @@ public interface BPutResultReadOnly {
     boolean negativeCheck();
     BPutResult copy();
 
+    String getRaftConfig();
 }

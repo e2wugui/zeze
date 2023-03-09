@@ -8,6 +8,7 @@ import Zeze.Builtin.Dbh2.BBucketMetaDaTa;
 import Zeze.Net.Binary;
 import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
+import com.alibaba.druid.sql.visitor.functions.Bin;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
@@ -136,11 +137,11 @@ public class Bucket {
 		return new Dbh2Transaction(db.beginTransaction(writeOptions));
 	}
 
-	public byte[] get(byte[] key) throws RocksDBException {
-		var lock = Lock.get(key);
+	public byte[] get(Binary key) throws RocksDBException {
+		var lock = Lock.get(key.bytesUnsafe());
 		lock.lock();
 		try {
-			return db.get(key);
+			return db.get(getDefaultReadOptions(), key.bytesUnsafe(), key.getOffset(), key.size());
 		} finally {
 			lock.unlock();
 		}
@@ -150,10 +151,13 @@ public class Bucket {
 		return databaseName.equals(meta.getDatabaseName()) && tableName.equals(meta.getTableName());
 	}
 
-	public boolean inBucket(String databaseName, String tableName, Binary key) {
-		return inBucket(databaseName, tableName)
-				&& key.compareTo(meta.getKeyFirst()) >= 0
+	public boolean inBucket(Binary key) {
+		return key.compareTo(meta.getKeyFirst()) >= 0
 				&& (meta.getKeyLast().size() == 0 || key.compareTo(meta.getKeyLast()) < 0);
+	}
+
+	public boolean inBucket(String databaseName, String tableName, Binary key) {
+		return inBucket(databaseName, tableName) && inBucket(key);
 	}
 
 	public void close() {

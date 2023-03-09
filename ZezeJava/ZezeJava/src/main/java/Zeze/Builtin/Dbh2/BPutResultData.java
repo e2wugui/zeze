@@ -7,8 +7,28 @@ import Zeze.Serialize.ByteBuffer;
 public final class BPutResultDaTa extends Zeze.Transaction.Data {
     public static final long TYPEID = 2501510166579002026L;
 
+    private String _RaftConfig;
+
+    public String getRaftConfig() {
+        return _RaftConfig;
+    }
+
+    public void setRaftConfig(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _RaftConfig = value;
+    }
+
     @SuppressWarnings("deprecation")
     public BPutResultDaTa() {
+        _RaftConfig = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public BPutResultDaTa(String _RaftConfig_) {
+        if (_RaftConfig_ == null)
+            throw new IllegalArgumentException();
+        _RaftConfig = _RaftConfig_;
     }
 
     @Override
@@ -23,9 +43,11 @@ public final class BPutResultDaTa extends Zeze.Transaction.Data {
     }
 
     public void assign(BPutResult other) {
+        setRaftConfig(other.getRaftConfig());
     }
 
     public void assign(BPutResultDaTa other) {
+        setRaftConfig(other.getRaftConfig());
     }
 
     @Override
@@ -57,6 +79,7 @@ public final class BPutResultDaTa extends Zeze.Transaction.Data {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BPutResult: {").append(System.lineSeparator());
         level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("RaftConfig=").append(getRaftConfig()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -75,13 +98,25 @@ public final class BPutResultDaTa extends Zeze.Transaction.Data {
 
     @Override
     public void encode(ByteBuffer _o_) {
+        int _i_ = 0;
+        {
+            String _x_ = getRaftConfig();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
     @Override
     public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
-        _o_.ReadTagSize(_t_);
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            setRaftConfig(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());

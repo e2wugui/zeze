@@ -1374,22 +1374,20 @@
 
 			<bean name="BPutArgument">
 				<variable id="1" name="TransactionId" type="long"/>
-				<variable id="2" name="Database" type="string"/>
-				<variable id="3" name="Table" type="string"/>
-				<variable id="4" name="Key" type="binary"/>
-				<variable id="5" name="Value" type="binary"/>
+				<variable id="2" name="Key" type="binary"/>
+				<variable id="3" name="Value" type="binary"/>
 			</bean>
 			<bean name="BPutResult">
+				<variable id="1" name="RaftConfig" type="string"/>
 			</bean>
 			<rpc name="Put" argument="BPutArgument" result="BPutResult" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 
 			<bean name="BDeleteArgument">
 				<variable id="1" name="TransactionId" type="long"/>
-				<variable id="2" name="Database" type="string"/>
-				<variable id="3" name="Table" type="string"/>
-				<variable id="4" name="Key" type="binary"/>
+				<variable id="2" name="Key" type="binary"/>
 			</bean>
 			<bean name="BDeleteResult">
+				<variable id="1" name="RaftConfig" type="string"/>
 			</bean>
 			<rpc name="Delete" argument="BDeleteArgument" result="BDeleteResult" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 		</module>

@@ -7,8 +7,40 @@ import Zeze.Serialize.ByteBuffer;
 public final class BDeleteResult extends Zeze.Transaction.Bean implements BDeleteResultReadOnly {
     public static final long TYPEID = 8209931211572490098L;
 
+    private String _RaftConfig;
+
+    @Override
+    public String getRaftConfig() {
+        if (!isManaged())
+            return _RaftConfig;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _RaftConfig;
+        var log = (Log__RaftConfig)txn.getLog(objectId() + 1);
+        return log != null ? log.value : _RaftConfig;
+    }
+
+    public void setRaftConfig(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _RaftConfig = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__RaftConfig(this, 1, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BDeleteResult() {
+        _RaftConfig = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public BDeleteResult(String _RaftConfig_) {
+        if (_RaftConfig_ == null)
+            throw new IllegalArgumentException();
+        _RaftConfig = _RaftConfig_;
     }
 
     @Override
@@ -24,9 +56,11 @@ public final class BDeleteResult extends Zeze.Transaction.Bean implements BDelet
     }
 
     public void assign(BDeleteResultDaTa other) {
+        setRaftConfig(other.getRaftConfig());
     }
 
     public void assign(BDeleteResult other) {
+        setRaftConfig(other.getRaftConfig());
     }
 
     @Deprecated
@@ -61,6 +95,13 @@ public final class BDeleteResult extends Zeze.Transaction.Bean implements BDelet
         return TYPEID;
     }
 
+    private static final class Log__RaftConfig extends Zeze.Transaction.Logs.LogString {
+        public Log__RaftConfig(BDeleteResult bean, int varId, String value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BDeleteResult)getBelong())._RaftConfig = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -72,6 +113,7 @@ public final class BDeleteResult extends Zeze.Transaction.Bean implements BDelet
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BDeleteResult: {").append(System.lineSeparator());
         level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("RaftConfig=").append(getRaftConfig()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -90,13 +132,25 @@ public final class BDeleteResult extends Zeze.Transaction.Bean implements BDelet
 
     @Override
     public void encode(ByteBuffer _o_) {
+        int _i_ = 0;
+        {
+            String _x_ = getRaftConfig();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
     @Override
     public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
-        _o_.ReadTagSize(_t_);
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            setRaftConfig(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -111,5 +165,14 @@ public final class BDeleteResult extends Zeze.Transaction.Bean implements BDelet
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {
+        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+        if (vars == null)
+            return;
+        for (var it = vars.iterator(); it.moveToNext(); ) {
+            var vlog = it.value();
+            switch (vlog.getVariableId()) {
+                case 1: _RaftConfig = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+            }
+        }
     }
 }

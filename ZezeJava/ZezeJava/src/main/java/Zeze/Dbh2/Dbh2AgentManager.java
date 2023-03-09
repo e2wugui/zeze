@@ -21,7 +21,8 @@ public class Dbh2AgentManager {
 	// 多master支持
 	private final ConcurrentHashMap<String, MasterAgent> masterAgent = new ConcurrentHashMap<>();
 	// master->database->tableBuckets
-	private final ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, MasterTableDaTa>>> buckets = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, MasterTableDaTa>>>
+			buckets = new ConcurrentHashMap<>();
 	// agent 不同 master 也装在一起。
 	private final ConcurrentHashMap<String, Dbh2Agent> agents = new ConcurrentHashMap<>();
 
@@ -34,7 +35,9 @@ public class Dbh2AgentManager {
 	public Dbh2AgentManager() {
 	}
 
-	public MasterAgent openDatabase(String masterName, String databaseName, String user, String passwd) {
+	public MasterAgent openDatabase(
+			String masterName,
+			String databaseName) {
 		var master = masterAgent.computeIfAbsent(masterName, (_masterName) -> {
 			var config = new Config();
 			var serviceConf = new ServiceConf();
@@ -49,14 +52,21 @@ public class Dbh2AgentManager {
 		return master;
 	}
 
-	public boolean createTable(MasterAgent masterAgent, String masterName, String databaseName, String tableName) {
+	public boolean createTable(
+			MasterAgent masterAgent, String masterName,
+			String databaseName, String tableName) {
 		var out = new OutObject<MasterTableDaTa>();
-		boolean isNew = masterAgent.createTable(databaseName, tableName, out);
+		var isNew = masterAgent.createTable(databaseName, tableName, out);
 		putBuckets(out.value, masterName, databaseName, tableName);
 		return isNew;
 	}
 
-	public Dbh2Agent open(MasterAgent masterAgent, String masterName, String databaseName, String tableName, Binary key) {
+	// todo Database.Table中缓存MasterTableDaTa，减少map查找。
+	//  难点是信息发生了变更需要刷新Table中缓存的数据。
+	public Dbh2Agent open(
+			MasterAgent masterAgent, String masterName,
+			String databaseName, String tableName,
+			Binary key) {
 		var master = buckets.computeIfAbsent(masterName, (mName) -> new ConcurrentHashMap<>());
 		var database = master.computeIfAbsent(databaseName, (dbName) -> new ConcurrentHashMap<>());
 		var table = database.computeIfAbsent(tableName, (tbName) -> masterAgent.getBuckets(databaseName, tableName));
@@ -64,7 +74,9 @@ public class Dbh2AgentManager {
 		return open(databaseName, tableName, bucket.getRaftConfig());
 	}
 
-	private Dbh2Agent open(String databaseName, String tableName, String raft) {
+	public Dbh2Agent open(
+			String databaseName, String tableName,
+			String raft) {
 		return agents.computeIfAbsent(raft, (_raft) -> {
 			try {
 				var raftConfig = RaftConfig.loadFromString(raft);
@@ -75,11 +87,17 @@ public class Dbh2AgentManager {
 		});
 	}
 
-	public synchronized void reload(MasterAgent masterAgent, String masterName, String databaseName, String tableName) {
+	public synchronized void reload(
+			MasterAgent masterAgent, String masterName,
+			String databaseName, String tableName) {
 		putBuckets(masterAgent.getBuckets(databaseName, tableName), masterName, databaseName, tableName);
 	}
 
-	public synchronized void putBuckets(MasterTableDaTa buckets, String masterName, String databaseName, String tableName) {
+	public synchronized void putBuckets(
+			MasterTableDaTa buckets,
+			String masterName,
+			String databaseName,
+			String tableName) {
 		var master = this.buckets.computeIfAbsent(masterName, (mName) -> new ConcurrentHashMap<>());
 		var database = master.computeIfAbsent(databaseName, (dbName) -> new ConcurrentHashMap<>());
 		var table = database.get(tableName);

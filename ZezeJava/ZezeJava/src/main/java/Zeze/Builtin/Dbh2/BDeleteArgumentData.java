@@ -8,8 +8,6 @@ public final class BDeleteArgumentDaTa extends Zeze.Transaction.Data {
     public static final long TYPEID = 3113412576231487346L;
 
     private long _TransactionId;
-    private String _Database;
-    private String _Table;
     private Zeze.Net.Binary _Key;
 
     public long getTransactionId() {
@@ -18,26 +16,6 @@ public final class BDeleteArgumentDaTa extends Zeze.Transaction.Data {
 
     public void setTransactionId(long value) {
         _TransactionId = value;
-    }
-
-    public String getDatabase() {
-        return _Database;
-    }
-
-    public void setDatabase(String value) {
-        if (value == null)
-            throw new IllegalArgumentException();
-        _Database = value;
-    }
-
-    public String getTable() {
-        return _Table;
-    }
-
-    public void setTable(String value) {
-        if (value == null)
-            throw new IllegalArgumentException();
-        _Table = value;
     }
 
     public Zeze.Net.Binary getKey() {
@@ -52,20 +30,12 @@ public final class BDeleteArgumentDaTa extends Zeze.Transaction.Data {
 
     @SuppressWarnings("deprecation")
     public BDeleteArgumentDaTa() {
-        _Database = "";
-        _Table = "";
         _Key = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public BDeleteArgumentDaTa(long _TransactionId_, String _Database_, String _Table_, Zeze.Net.Binary _Key_) {
+    public BDeleteArgumentDaTa(long _TransactionId_, Zeze.Net.Binary _Key_) {
         _TransactionId = _TransactionId_;
-        if (_Database_ == null)
-            throw new IllegalArgumentException();
-        _Database = _Database_;
-        if (_Table_ == null)
-            throw new IllegalArgumentException();
-        _Table = _Table_;
         if (_Key_ == null)
             throw new IllegalArgumentException();
         _Key = _Key_;
@@ -84,15 +54,11 @@ public final class BDeleteArgumentDaTa extends Zeze.Transaction.Data {
 
     public void assign(BDeleteArgument other) {
         setTransactionId(other.getTransactionId());
-        setDatabase(other.getDatabase());
-        setTable(other.getTable());
         setKey(other.getKey());
     }
 
     public void assign(BDeleteArgumentDaTa other) {
         setTransactionId(other.getTransactionId());
-        setDatabase(other.getDatabase());
-        setTable(other.getTable());
         setKey(other.getKey());
     }
 
@@ -126,8 +92,6 @@ public final class BDeleteArgumentDaTa extends Zeze.Transaction.Data {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BDeleteArgument: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("TransactionId=").append(getTransactionId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Database=").append(getDatabase()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Table=").append(getTable()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(getKey()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -156,23 +120,9 @@ public final class BDeleteArgumentDaTa extends Zeze.Transaction.Data {
             }
         }
         {
-            String _x_ = getDatabase();
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
-                _o_.WriteString(_x_);
-            }
-        }
-        {
-            String _x_ = getTable();
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
-                _o_.WriteString(_x_);
-            }
-        }
-        {
             var _x_ = getKey();
             if (_x_.size() != 0) {
-                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
             }
         }
@@ -188,14 +138,6 @@ public final class BDeleteArgumentDaTa extends Zeze.Transaction.Data {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            setDatabase(_o_.ReadString(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 3) {
-            setTable(_o_.ReadString(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 4) {
             setKey(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }

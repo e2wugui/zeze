@@ -4,6 +4,9 @@ import Zeze.Builtin.Dbh2.Master.CreateBucket;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.Net.AsyncSocket;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LoggerContext;
 
 /**
  * Dbh2管理器，管理Dbh2(Raft桶)的创建。
@@ -11,6 +14,11 @@ import Zeze.Net.AsyncSocket;
  */
 public class Dbh2Manager {
 	private final MasterAgent masterAgent;
+	static {
+		System.setProperty("log4j.configurationFile", "log4j2.xml");
+		var level = Level.toLevel(System.getProperty("logLevel"), Level.INFO);
+		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
+	}
 
 	void register() {
 		masterAgent.register(""); // todo get name

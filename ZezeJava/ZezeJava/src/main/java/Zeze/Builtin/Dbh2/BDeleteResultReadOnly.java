@@ -7,4 +7,5 @@ public interface BDeleteResultReadOnly {
     boolean negativeCheck();
     BDeleteResult copy();
 
+    String getRaftConfig();
 }
