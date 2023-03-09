@@ -6,6 +6,7 @@ import Zeze.Builtin.Dbh2.BBucketMetaDaTa;
 import Zeze.Dbh2.Bucket;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Util.OutObject;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
@@ -49,11 +50,13 @@ public class MasterDatabase {
 		return bTable.locate(key);
 	}
 
-	public MasterTableDaTa createTable(String tableName) throws RocksDBException {
+	public MasterTableDaTa createTable(String tableName, OutObject<Boolean> outIsNew) throws RocksDBException {
+		outIsNew.value = false;
 		var table = tables.get(tableName);
 		if (table != null)
 			return table; // table exist
 
+		outIsNew.value = true;
 		table = new MasterTableDaTa();
 		var bucket = new BBucketMetaDaTa();
 		// todo allocate first bucket service and setup table

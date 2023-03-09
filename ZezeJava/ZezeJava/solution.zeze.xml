@@ -1278,6 +1278,7 @@
 			<module name="Master" id="11027" DefaultTransactionLevel="None">
 				<enum name="eDatabaseNotFound" value="1"/>
 				<enum name="eTableNotFound" value="2"/>
+				<enum name="eTableIsNew" value="3"/>
 				
 				<!--
 				Dbh2发现桶没找到错误时，使用GetBuckets得到完整的信息。

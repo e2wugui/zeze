@@ -6,10 +6,13 @@ import Zeze.Builtin.Dbh2.Master.CreateTable;
 import Zeze.Builtin.Dbh2.Master.GetBuckets;
 import Zeze.Builtin.Dbh2.Master.Register;
 import Zeze.Config;
+import Zeze.IModule;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.OutObject;
 
 public class MasterAgent extends AbstractMasterAgent {
+	public static final String eServiceName = "Zeze.Dbh2.MasterAgent";
 	private final Service service;
 	private ProtocolHandle<CreateBucket> createBucketHandle;
 
@@ -24,12 +27,21 @@ public class MasterAgent extends AbstractMasterAgent {
 		RegisterProtocols(this.service);
 	}
 
-	public void start() throws Exception {
-		service.start();;
+	public void start() {
+		try {
+			service.start();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+		;
 	}
 
-	public void stop() throws Exception {
-		service.stop();
+	public void stop() {
+		try {
+			service.stop();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	public void createDatabase(String database) {
@@ -38,12 +50,16 @@ public class MasterAgent extends AbstractMasterAgent {
 		r.SendForWait(service.GetSocket()).await();
 	}
 
-	public MasterTableDaTa createTable(String database, String table) {
+	public boolean createTable(String database, String table, OutObject<MasterTableDaTa> out) {
 		var r = new CreateTable();
 		r.Argument.setDatabase(database);
 		r.Argument.setTable(table);
 		r.SendForWait(service.GetSocket()).await();
-		return r.Result;
+		out.value = r.Result;
+		var rc = r.getResultCode();
+		if (rc != 0 && rc != errorCode(eTableIsNew))
+			throw new RuntimeException("fail module=" + IModule.getModuleId(rc) + " code=" + IModule.getErrorCode(rc));
+		return IModule.getErrorCode(rc) == eTableIsNew;
 	}
 
 	public MasterTableDaTa getBuckets(String database, String table) {
@@ -69,7 +85,7 @@ public class MasterAgent extends AbstractMasterAgent {
 
 	public static class Service extends Zeze.Net.Service {
 		public Service(Config config) {
-			super("Zeze.Dbh2.MasterAgent", config);
+			super(eServiceName, config);
 		}
 	}
 }

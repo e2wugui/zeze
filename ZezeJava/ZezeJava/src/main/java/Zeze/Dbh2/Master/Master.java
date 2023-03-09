@@ -6,6 +6,7 @@ import Zeze.Builtin.Dbh2.Master.CreateTable;
 import Zeze.Builtin.Dbh2.Master.GetBuckets;
 import Zeze.Builtin.Dbh2.Master.LocateBucket;
 import Zeze.Builtin.Dbh2.Master.Register;
+import Zeze.Util.OutObject;
 
 public class Master extends AbstractMaster {
 	private final ConcurrentHashMap<String, MasterDatabase> databases = new ConcurrentHashMap<>();
@@ -26,10 +27,13 @@ public class Master extends AbstractMaster {
 		var database = databases.get(r.Argument.getDatabase());
 		if (null == database)
 			return errorCode(eDatabaseNotFound);
-		var table = database.createTable(r.Argument.getTable());
+		var outIsNew = new OutObject<Boolean>();
+		var table = database.createTable(r.Argument.getTable(), outIsNew);
 		if (null == table)
 			return errorCode(eTableNotFound);
 		r.Result = table;
+		if (outIsNew.value)
+			r.setResultCode(errorCode(eTableIsNew));
 		r.SendResult();
 		return 0;
 	}

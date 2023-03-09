@@ -2,46 +2,69 @@ package Zeze.Dbh2;
 
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Builtin.Dbh2.BBucketMetaDaTa;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.Dbh2.Master.MasterTableDaTa;
 import Zeze.Net.Binary;
+import Zeze.Net.ServiceConf;
 import Zeze.Raft.RaftConfig;
+import Zeze.Util.OutObject;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * 这个类管理到桶的raft-client-agent。
  * 实际上不能算池子，一个桶目前考虑只建立一个实例，多线程使用时共享同一个实例。
  */
 public class Dbh2AgentManager {
-	private final MasterAgent masterAgent;
-	private final ConcurrentHashMap<String, ConcurrentHashMap<String, MasterTableDaTa>> buckets = new ConcurrentHashMap<>();
+	private static final Logger logger = LogManager.getLogger(Dbh2AgentManager.class);
+	// 多master支持
+	private final ConcurrentHashMap<String, MasterAgent> masterAgent = new ConcurrentHashMap<>();
+	// master->database->tableBuckets
+	private final ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, MasterTableDaTa>>> buckets = new ConcurrentHashMap<>();
+	// agent 不同 master 也装在一起。
 	private final ConcurrentHashMap<String, Dbh2Agent> agents = new ConcurrentHashMap<>();
 
-	public Dbh2AgentManager(Config config) {
-		masterAgent = new MasterAgent(config);
+	private static final Dbh2AgentManager instance = new Dbh2AgentManager();
+
+	public static Dbh2AgentManager getInstance() {
+		return instance;
 	}
 
-	public void start() throws Exception {
-		masterAgent.start();
+	public Dbh2AgentManager() {
 	}
 
-	public void stop() throws Exception {
-		masterAgent.stop();
+	public MasterAgent openDatabase(String masterName, String databaseName, String user, String passwd) {
+		var master = masterAgent.computeIfAbsent(masterName, (_masterName) -> {
+			var config = new Config();
+			var serviceConf = new ServiceConf();
+			var ipPort = masterName.split(":");
+			serviceConf.tryGetOrAddConnector(ipPort[0], Integer.parseInt(ipPort[1]), true, null);
+			config.getServiceConfMap().put(MasterAgent.eServiceName, serviceConf);
+			var m = new MasterAgent(config);
+			m.start();
+			return m;
+		});
+		master.createDatabase(databaseName);
+		return master;
 	}
 
-	public void createTable(String databaseName, String tableName) {
-		masterAgent.createTable(databaseName, tableName);
+	public boolean createTable(MasterAgent masterAgent, String masterName, String databaseName, String tableName) {
+		var out = new OutObject<MasterTableDaTa>();
+		boolean isNew = masterAgent.createTable(databaseName, tableName, out);
+		putBuckets(out.value, masterName, databaseName, tableName);
+		return isNew;
 	}
 
-	public Dbh2Agent locate(String databaseName, String tableName, Binary key) {
-		var database = buckets.computeIfAbsent(databaseName, (dbName) -> new ConcurrentHashMap<>());
+	public Dbh2Agent open(MasterAgent masterAgent, String masterName, String databaseName, String tableName, Binary key) {
+		var master = buckets.computeIfAbsent(masterName, (mName) -> new ConcurrentHashMap<>());
+		var database = master.computeIfAbsent(databaseName, (dbName) -> new ConcurrentHashMap<>());
 		var table = database.computeIfAbsent(tableName, (tbName) -> masterAgent.getBuckets(databaseName, tableName));
 		var bucket = table.locate(key);
 		return open(databaseName, tableName, bucket.getRaftConfig());
 	}
 
-	public Dbh2Agent open(String databaseName, String tableName, String raft) {
+	private Dbh2Agent open(String databaseName, String tableName, String raft) {
 		return agents.computeIfAbsent(raft, (_raft) -> {
 			try {
 				var raftConfig = RaftConfig.loadFromString(raft);
@@ -52,10 +75,14 @@ public class Dbh2AgentManager {
 		});
 	}
 
-	public synchronized void reloadBuckets(String databaseName, String tableName) {
-		var database = buckets.computeIfAbsent(databaseName, (dbName) -> new ConcurrentHashMap<>());
+	public synchronized void reload(MasterAgent masterAgent, String masterName, String databaseName, String tableName) {
+		putBuckets(masterAgent.getBuckets(databaseName, tableName), masterName, databaseName, tableName);
+	}
+
+	public synchronized void putBuckets(MasterTableDaTa buckets, String masterName, String databaseName, String tableName) {
+		var master = this.buckets.computeIfAbsent(masterName, (mName) -> new ConcurrentHashMap<>());
+		var database = master.computeIfAbsent(databaseName, (dbName) -> new ConcurrentHashMap<>());
 		var table = database.get(tableName);
-		var buckets = masterAgent.getBuckets(databaseName, tableName);
 		if (table == null) {
 			database.put(tableName, buckets);
 			return;
@@ -71,9 +98,10 @@ public class Dbh2AgentManager {
 				try {
 					agent.close();
 				} catch (Exception e) {
-					throw new RuntimeException(e);
+					logger.error("", e);
 				}
 			}
 		}
+		database.put(tableName, buckets);
 	}
 }
