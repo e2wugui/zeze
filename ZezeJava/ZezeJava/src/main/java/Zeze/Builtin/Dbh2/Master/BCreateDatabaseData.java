@@ -123,25 +123,4 @@ public final class BCreateDatabaseData extends Zeze.Transaction.Data {
         }
     }
 
-    @Override
-    public boolean equals(Object _o_) {
-        if (_o_ == this)
-            return true;
-        if (!(_o_ instanceof BCreateDatabase))
-            return false;
-        //noinspection PatternVariableCanBeUsed
-        var _b_ = (BCreateDatabase)_o_;
-        if (!getDatabase().equals(_b_.getDatabase()))
-            return false;
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        final int _p_ = 31;
-        int _h_ = 0;
-        _h_ = _h_ * _p_ + _Database.hashCode();
-        return _h_;
-    }
-
 }

@@ -9,7 +9,6 @@ public final class BUseDataRefData extends Zeze.Transaction.Data {
     public static final long TYPEID = -8788076056876784776L;
 
     private Zeze.Builtin.Dbh2.BLogBeginTransactionData _Ref1;
-    private Zeze.Builtin.Dbh2.BBucketMetaData _Ref2;
 
     public Zeze.Builtin.Dbh2.BLogBeginTransactionData getRef1() {
         return _Ref1;
@@ -21,22 +20,10 @@ public final class BUseDataRefData extends Zeze.Transaction.Data {
         _Ref1 = value;
     }
 
-    public Zeze.Builtin.Dbh2.BBucketMetaData getRef2() {
-        return _Ref2;
-    }
-
-    public void setRef2(Zeze.Builtin.Dbh2.BBucketMetaData value) {
-        if (value == null)
-            throw new IllegalArgumentException();
-        _Ref2 = value;
-    }
-
     @SuppressWarnings("deprecation")
     public BUseDataRefData() {
         _Ref1 = new Zeze.Builtin.Dbh2.BLogBeginTransactionData();
         _Ref1.variableId(1);
-        _Ref2 = new Zeze.Builtin.Dbh2.BBucketMetaData();
-        _Ref2.variableId(2);
     }
 
     @Override
@@ -52,12 +39,10 @@ public final class BUseDataRefData extends Zeze.Transaction.Data {
 
     public void assign(BUseDataRef other) {
         _Ref1.assign(other.getRef1());
-        _Ref2.assign(other.getRef2());
     }
 
     public void assign(BUseDataRefData other) {
         _Ref1.assign(other.getRef1());
-        _Ref2.assign(other.getRef2());
     }
 
     @Override
@@ -91,9 +76,6 @@ public final class BUseDataRefData extends Zeze.Transaction.Data {
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Ref1=").append(System.lineSeparator());
         _Ref1.buildString(sb, level + 4);
-        sb.append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Ref2=").append(System.lineSeparator());
-        _Ref2.buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -124,16 +106,6 @@ public final class BUseDataRefData extends Zeze.Transaction.Data {
             else
                 _i_ = _j_;
         }
-        {
-            int _a_ = _o_.WriteIndex;
-            int _j_ = _o_.WriteTag(_i_, 2, ByteBuffer.BEAN);
-            int _b_ = _o_.WriteIndex;
-            _Ref2.encode(_o_);
-            if (_b_ + 1 == _o_.WriteIndex)
-                _o_.WriteIndex = _a_;
-            else
-                _i_ = _j_;
-        }
         _o_.WriteByte(0);
     }
 
@@ -145,38 +117,10 @@ public final class BUseDataRefData extends Zeze.Transaction.Data {
             _o_.ReadBean(_Ref1, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        if (_i_ == 2) {
-            _o_.ReadBean(_Ref2, _t_);
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-    }
-
-    @Override
-    public boolean equals(Object _o_) {
-        if (_o_ == this)
-            return true;
-        if (!(_o_ instanceof BUseDataRef))
-            return false;
-        //noinspection PatternVariableCanBeUsed
-        var _b_ = (BUseDataRef)_o_;
-        if (!getRef1().equals(_b_.getRef1()))
-            return false;
-        if (!getRef2().equals(_b_.getRef2()))
-            return false;
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        final int _p_ = 31;
-        int _h_ = 0;
-        _h_ = _h_ * _p_ + _Ref1.hashCode();
-        _h_ = _h_ * _p_ + _Ref2.hashCode();
-        return _h_;
     }
 
 }

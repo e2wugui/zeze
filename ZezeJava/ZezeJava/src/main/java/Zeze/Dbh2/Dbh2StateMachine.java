@@ -4,6 +4,7 @@ import java.io.File;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import Zeze.Builtin.Dbh2.BBucketMetaData;
 import Zeze.Builtin.Dbh2.BCommitTransactionArgumentData;
 import Zeze.Builtin.Dbh2.BDeleteArgumentData;
 import Zeze.Builtin.Dbh2.BLogBeginTransactionData;
@@ -42,6 +43,15 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	public void openBucket() {
 		bucket = new Bucket(getRaft().getRaftConfig());
+	}
+
+	public void setBucketMeta(BBucketMetaData argument) {
+		try {
+			bucket.setMeta(argument);
+		} catch (RocksDBException e) {
+			logger.error("", e);
+			getRaft().fatalKill();
+		}
 	}
 
 	/////////////////////////////////////////////////////////////////////

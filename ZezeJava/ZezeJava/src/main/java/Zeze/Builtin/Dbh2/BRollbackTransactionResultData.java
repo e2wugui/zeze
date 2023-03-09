@@ -88,14 +88,4 @@ public final class BRollbackTransactionResultData extends Zeze.Transaction.Data 
         }
     }
 
-    @Override
-    public boolean equals(Object _o_) {
-        return _o_ instanceof BRollbackTransactionResult;
-    }
-
-    @Override
-    public int hashCode() {
-        return 0;
-    }
-
 }

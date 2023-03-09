@@ -88,14 +88,4 @@ public final class BCommitTransactionResultData extends Zeze.Transaction.Data {
         }
     }
 
-    @Override
-    public boolean equals(Object _o_) {
-        return _o_ instanceof BCommitTransactionResult;
-    }
-
-    @Override
-    public int hashCode() {
-        return 0;
-    }
-
 }

@@ -9,7 +9,6 @@ public final class BUseDataRef extends Zeze.Transaction.Bean implements BUseData
     public static final long TYPEID = -8788076056876784776L;
 
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Dbh2.BLogBeginTransaction> _Ref1;
-    private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Dbh2.BBucketMeta> _Ref2;
 
     public Zeze.Builtin.Dbh2.BLogBeginTransaction getRef1() {
         return _Ref1.getValue();
@@ -24,25 +23,10 @@ public final class BUseDataRef extends Zeze.Transaction.Bean implements BUseData
         return _Ref1.getValue();
     }
 
-    public Zeze.Builtin.Dbh2.BBucketMeta getRef2() {
-        return _Ref2.getValue();
-    }
-
-    public void setRef2(Zeze.Builtin.Dbh2.BBucketMeta value) {
-        _Ref2.setValue(value);
-    }
-
-    @Override
-    public Zeze.Builtin.Dbh2.BBucketMetaReadOnly getRef2ReadOnly() {
-        return _Ref2.getValue();
-    }
-
     @SuppressWarnings("deprecation")
     public BUseDataRef() {
         _Ref1 = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Dbh2.BLogBeginTransaction(), Zeze.Builtin.Dbh2.BLogBeginTransaction.class);
         _Ref1.variableId(1);
-        _Ref2 = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Dbh2.BBucketMeta(), Zeze.Builtin.Dbh2.BBucketMeta.class);
-        _Ref2.variableId(2);
     }
 
     @Override
@@ -61,14 +45,10 @@ public final class BUseDataRef extends Zeze.Transaction.Bean implements BUseData
         Zeze.Builtin.Dbh2.BLogBeginTransaction data_Ref1 = new Zeze.Builtin.Dbh2.BLogBeginTransaction();
         data_Ref1.assign(other.getRef1());
         _Ref1.setValue(data_Ref1);
-        Zeze.Builtin.Dbh2.BBucketMeta data_Ref2 = new Zeze.Builtin.Dbh2.BBucketMeta();
-        data_Ref2.assign(other.getRef2());
-        _Ref2.setValue(data_Ref2);
     }
 
     public void assign(BUseDataRef other) {
         _Ref1.assign(other._Ref1);
-        _Ref2.assign(other._Ref2);
     }
 
     @Deprecated
@@ -116,9 +96,6 @@ public final class BUseDataRef extends Zeze.Transaction.Bean implements BUseData
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Ref1=").append(System.lineSeparator());
         _Ref1.buildString(sb, level + 4);
-        sb.append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Ref2=").append(System.lineSeparator());
-        _Ref2.buildString(sb, level + 4);
         sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -149,16 +126,6 @@ public final class BUseDataRef extends Zeze.Transaction.Bean implements BUseData
             else
                 _i_ = _j_;
         }
-        {
-            int _a_ = _o_.WriteIndex;
-            int _j_ = _o_.WriteTag(_i_, 2, ByteBuffer.BEAN);
-            int _b_ = _o_.WriteIndex;
-            _Ref2.encode(_o_);
-            if (_b_ + 1 == _o_.WriteIndex)
-                _o_.WriteIndex = _a_;
-            else
-                _i_ = _j_;
-        }
         _o_.WriteByte(0);
     }
 
@@ -170,10 +137,6 @@ public final class BUseDataRef extends Zeze.Transaction.Bean implements BUseData
             _o_.ReadBean(_Ref1, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        if (_i_ == 2) {
-            _o_.ReadBean(_Ref2, _t_);
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -183,13 +146,11 @@ public final class BUseDataRef extends Zeze.Transaction.Bean implements BUseData
     @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Ref1.initRootInfo(root, this);
-        _Ref2.initRootInfo(root, this);
     }
 
     @Override
     protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
         _Ref1.initRootInfoWithRedo(root, this);
-        _Ref2.initRootInfoWithRedo(root, this);
     }
 
     @Override
@@ -209,7 +170,6 @@ public final class BUseDataRef extends Zeze.Transaction.Bean implements BUseData
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _Ref1.followerApply(vlog); break;
-                case 2: _Ref2.followerApply(vlog); break;
             }
         }
     }

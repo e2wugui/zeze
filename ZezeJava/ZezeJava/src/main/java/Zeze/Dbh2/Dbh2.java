@@ -6,6 +6,7 @@ import Zeze.Builtin.Dbh2.BLogBeginTransactionData;
 import Zeze.Builtin.Dbh2.CommitTransaction;
 import Zeze.Builtin.Dbh2.KeepAlive;
 import Zeze.Builtin.Dbh2.RollbackTransaction;
+import Zeze.Builtin.Dbh2.SetBucketMeta;
 import Zeze.Builtin.Dbh2.UseDataRefDummy;
 import Zeze.Config;
 import Zeze.Net.Binary;
@@ -52,6 +53,12 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
     @Override
     protected long ProcessBeginTransactionRequest(Zeze.Builtin.Dbh2.BeginTransaction r) {
+        // 错误检查，防止访问桶错乱。
+        var meta = stateMachine.getBucket().getMeta();
+        if (!r.Argument.getDatabase().equals(meta.getDatabaseName()) || !r.Argument.getTable().equals(meta.getTableName()))
+            return errorCode(eBucketMissmatch);
+
+        // allocate tid
         var tid = 0; // todo allocate
         var argument = new BLogBeginTransactionData();
         argument.setTransactionId(tid);
@@ -73,6 +80,14 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
     @Override
     protected long ProcessRollbackTransactionRequest(RollbackTransaction r) throws Exception {
         var log = new LogRollbackTransaction(r);
+        raft.appendLog(log, r.Result); // result is empty
+        r.SendResult();
+        return 0;
+    }
+
+    @Override
+    protected long ProcessSetBucketMetaRequest(SetBucketMeta r) throws Exception {
+        var log = new LogSetBucketMeta(r);
         raft.appendLog(log, r.Result); // result is empty
         r.SendResult();
         return 0;

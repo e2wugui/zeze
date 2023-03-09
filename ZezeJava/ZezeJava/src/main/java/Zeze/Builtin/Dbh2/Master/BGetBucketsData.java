@@ -152,28 +152,4 @@ public final class BGetBucketsData extends Zeze.Transaction.Data {
         }
     }
 
-    @Override
-    public boolean equals(Object _o_) {
-        if (_o_ == this)
-            return true;
-        if (!(_o_ instanceof BGetBuckets))
-            return false;
-        //noinspection PatternVariableCanBeUsed
-        var _b_ = (BGetBuckets)_o_;
-        if (!getDatabase().equals(_b_.getDatabase()))
-            return false;
-        if (!getTable().equals(_b_.getTable()))
-            return false;
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        final int _p_ = 31;
-        int _h_ = 0;
-        _h_ = _h_ * _p_ + _Database.hashCode();
-        _h_ = _h_ * _p_ + _Table.hashCode();
-        return _h_;
-    }
-
 }

@@ -12,6 +12,7 @@ public abstract class AbstractDbh2Agent implements Zeze.IModule {
     @Override public boolean isBuiltin() { return true; }
 
     public static final int eBucketNotFound = 1;
+    public static final int eBucketMissmatch = 2;
 
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
@@ -64,6 +65,13 @@ public abstract class AbstractDbh2Agent implements Zeze.IModule {
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessRollbackTransactionResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47360280866090L, factoryHandle); // 11026, -323506902
         }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.SetBucketMeta.class, Zeze.Builtin.Dbh2.SetBucketMeta.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.SetBucketMeta::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSetBucketMetaResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessSetBucketMetaResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47356909547647L, factoryHandle); // 11026, 600141951
+        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
@@ -74,6 +82,7 @@ public abstract class AbstractDbh2Agent implements Zeze.IModule {
         service.getFactorys().remove(47358800944088L);
         service.getFactorys().remove(47359688675419L);
         service.getFactorys().remove(47360280866090L);
+        service.getFactorys().remove(47356909547647L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {

@@ -62,7 +62,7 @@ public class Bucket {
 	private final OptimisticTransactionDB db;
 	private final HashMap<String, ColumnFamilyHandle> cfHandles = new HashMap<>();
 	private final WriteOptions writeOptions = new WriteOptions();
-	private BBucketMetaData meta;
+	private volatile BBucketMetaData meta;
 	private long tid;
 	private final ColumnFamilyHandle cfMeta;
 	private final byte[] metaKey = new byte[] { 1 };

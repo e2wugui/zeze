@@ -1310,7 +1310,7 @@
 				</bean>
 				<rpc name="CreateTable" argument="BCreateTable" result="Zeze.Dbh2.Master.MasterTable" UseData="true" handle="server"/>
 
-				<!-- 下面是Master跟Dbh2Service服务通讯的协议，也包装在MasterAgent中 -->
+				<!-- 下面是Master跟Dbh2Manager通讯的协议，也包装在MasterAgent中 -->
 				<rpc name="CreateBucket" argument="Zeze.Builtin.Dbh2.BBucketMeta" UseData="true" handle="client"/>
 
 				<bean name="BRegister">
@@ -1320,6 +1320,7 @@
 			</module>
 
 			<enum name="eBucketNotFound" value="1"/>
+			<enum name="eBucketMissmatch" value="2"/>
 
 			<bean name="BBucketMeta">
 				<variable id="1" name="DatabaseName" type="string"/>
@@ -1331,6 +1332,8 @@
 				<variable id="7" name="KeyMoving" type="binary"/> 正在迁移中的key
 			</bean>
 
+			<!-- 桶(raftNode)创建出来的第一条操作，以后分桶时也需要重新设置 -->
+			<rpc name="SetBucketMeta" argument="BBucketMeta" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 
 			<bean name="BGetArgument">
@@ -1394,7 +1397,6 @@
 			<!-- 用来生成Data数据结构，没有实际功能 -->
 			<bean name="BUseDataRef">
 				<variable id="1" name="Ref1" type="BLogBeginTransaction"/>
-				<variable id="2" name="Ref2" type="BBucketMeta"/>
 			</bean>
 			<protocol name="UseDataRefDummy" argument="BUseDataRef" UseData="true" handle="server"/>
 

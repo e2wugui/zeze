@@ -123,25 +123,4 @@ public final class BRegisterData extends Zeze.Transaction.Data {
         }
     }
 
-    @Override
-    public boolean equals(Object _o_) {
-        if (_o_ == this)
-            return true;
-        if (!(_o_ instanceof BRegister))
-            return false;
-        //noinspection PatternVariableCanBeUsed
-        var _b_ = (BRegister)_o_;
-        if (!getDbh2RaftAcceptorName().equals(_b_.getDbh2RaftAcceptorName()))
-            return false;
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        final int _p_ = 31;
-        int _h_ = 0;
-        _h_ = _h_ * _p_ + _Dbh2RaftAcceptorName.hashCode();
-        return _h_;
-    }
-
 }

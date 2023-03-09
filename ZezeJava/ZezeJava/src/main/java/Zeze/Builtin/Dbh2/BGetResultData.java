@@ -147,28 +147,4 @@ public final class BGetResultData extends Zeze.Transaction.Data {
         }
     }
 
-    @Override
-    public boolean equals(Object _o_) {
-        if (_o_ == this)
-            return true;
-        if (!(_o_ instanceof BGetResult))
-            return false;
-        //noinspection PatternVariableCanBeUsed
-        var _b_ = (BGetResult)_o_;
-        if (isNull() != _b_.isNull())
-            return false;
-        if (!getValue().equals(_b_.getValue()))
-            return false;
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        final int _p_ = 31;
-        int _h_ = 0;
-        _h_ = _h_ * _p_ + Boolean.hashCode(_Null);
-        _h_ = _h_ * _p_ + _Value.hashCode();
-        return _h_;
-    }
-
 }

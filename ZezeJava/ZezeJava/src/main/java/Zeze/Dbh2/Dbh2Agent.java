@@ -1,7 +1,9 @@
 package Zeze.Dbh2;
 
+import Zeze.Builtin.Dbh2.BBucketMetaData;
 import Zeze.Builtin.Dbh2.Get;
 import Zeze.Builtin.Dbh2.KeepAlive;
+import Zeze.Builtin.Dbh2.SetBucketMeta;
 import Zeze.Net.Binary;
 import Zeze.Raft.Agent;
 import Zeze.Raft.RaftConfig;
@@ -18,12 +20,22 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 	private final Dbh2Config config = new Dbh2Config();
 	private volatile long activeTime = System.currentTimeMillis();
 
+	public void setBucketMeta(BBucketMetaData meta) {
+		var r = new SetBucketMeta();
+		r.Argument = meta;
+		raftClient.sendForWait(r).await();
+		if (r.getResultCode() != 0)
+			throw new RuntimeException("fail! code=" + r.getResultCode());
+	}
+
 	public byte[] get(String databaseName, String tableName, Binary key) {
 		var r = new Get();
 		r.Argument.setDatabase(databaseName);
 		r.Argument.setTable(tableName);
 		r.Argument.setKey(key);
 		raftClient.sendForWait(r).await();
+		if (r.getResultCode() != 0)
+			throw new RuntimeException("fail! code=" + r.getResultCode());
 		return r.Result.isNull() ? null : r.Result.getValue().bytesUnsafe();
 	}
 
