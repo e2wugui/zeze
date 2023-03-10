@@ -29,10 +29,12 @@ public class Dbh2Test {
 		var raftConfig = RaftConfig.loadFromString(raftConfigString);
 		var agent = new Dbh2Agent(raftConfig);
 
+		final var db = "database";
+		final var tb = "table";
 		try {
 			var meta = new BBucketMetaDaTa();
-			meta.setDatabaseName("database");
-			meta.setTableName("table");
+			meta.setDatabaseName(db);
+			meta.setTableName(tb);
 			meta.setRaftConfig(raftConfigString);
 			meta.setMoving(false);
 			meta.setKeyFirst(Binary.Empty);
@@ -42,12 +44,12 @@ public class Dbh2Test {
 			var key = new Binary(new byte[] { 1 });
 			var value = new Binary(new byte[] { 1 });
 
-			var tid = agent.beginTransaction("database", "table");
+			var tid = agent.beginTransaction(db, tb);
 			Assert.assertNotNull(tid);
-			agent.put("database", "table", tid, key, value);
+			agent.put(db, tb, tid, key, value);
 			agent.commitTransaction(tid);
 
-			var kv = agent.get("database", "table", key);
+			var kv = agent.get(db, tb, key);
 			Assert.assertTrue(kv.getKey());
 			Assert.assertNotNull(kv.getValue());
 			Assert.assertEquals(value, new Binary(kv.getValue().Bytes, kv.getValue().ReadIndex, kv.getValue().size()));
