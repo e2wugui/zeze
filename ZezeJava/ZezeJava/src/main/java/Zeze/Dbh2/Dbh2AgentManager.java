@@ -71,16 +71,14 @@ public class Dbh2AgentManager {
 		var database = master.computeIfAbsent(databaseName, (dbName) -> new ConcurrentHashMap<>());
 		var table = database.computeIfAbsent(tableName, (tbName) -> masterAgent.getBuckets(databaseName, tableName));
 		var bucket = table.locate(key);
-		return open(databaseName, tableName, bucket.getRaftConfig());
+		return open(bucket.getRaftConfig());
 	}
 
-	public Dbh2Agent open(
-			String databaseName, String tableName,
-			String raft) {
+	public Dbh2Agent open(String raft) {
 		return agents.computeIfAbsent(raft, (_raft) -> {
 			try {
 				var raftConfig = RaftConfig.loadFromString(raft);
-				return new Dbh2Agent(databaseName, tableName, raftConfig);
+				return new Dbh2Agent(raftConfig);
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}

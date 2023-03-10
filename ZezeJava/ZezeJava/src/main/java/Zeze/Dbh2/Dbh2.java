@@ -81,6 +81,9 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
     @Override
     protected long ProcessSetBucketMetaRequest(SetBucketMeta r) throws Exception {
+        if (!stateMachine.getBucket().inBucket(r.Argument.getDatabaseName(), r.Argument.getTableName()))
+            return errorCode(eBucketMissmatch);
+
         var log = new LogSetBucketMeta(r);
         raft.appendLog(log, r.Result); // result is empty
         r.SendResult();
@@ -89,6 +92,9 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
     @Override
     protected long ProcessDeleteRequest(Zeze.Builtin.Dbh2.Delete r) {
+        if (!stateMachine.getBucket().inBucket(r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey()))
+            return errorCode(eBucketMissmatch);
+
         var log = new LogDelete(r);
         raft.appendLog(log, r.Result); // result is empty
         r.SendResult();
@@ -118,6 +124,9 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
     @Override
     protected long ProcessPutRequest(Zeze.Builtin.Dbh2.Put r) {
+        if (!stateMachine.getBucket().inBucket(r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey()))
+            return errorCode(eBucketMissmatch);
+
         var log = new LogPut(r);
         raft.appendLog(log, r.Result); // result is empty
         r.SendResult();

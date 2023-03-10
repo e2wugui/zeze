@@ -1339,8 +1339,8 @@
 			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
 
 			<bean name="BGetArgument">
-				<variable id="1" name="Database" type="string"/>
-				<variable id="2" name="Table" type="string"/>
+				<variable id="1" name="Database" type="string"/> 用来纠错
+				<variable id="2" name="Table" type="string"/> 用来纠错
 				<variable id="3" name="Key" type="binary"/>
 			</bean>
 			<bean name="BGetResult">
@@ -1375,8 +1375,10 @@
 
 			<bean name="BPutArgument">
 				<variable id="1" name="TransactionId" type="long"/>
-				<variable id="2" name="Key" type="binary"/>
-				<variable id="3" name="Value" type="binary"/>
+				<variable id="2" name="Database" type="string"/> 用来纠错
+				<variable id="3" name="Table" type="string"/> 用来纠错
+				<variable id="4" name="Key" type="binary"/>
+				<variable id="5" name="Value" type="binary"/>
 			</bean>
 			<bean name="BPutResult">
 				<variable id="1" name="RaftConfig" type="string"/>
@@ -1385,7 +1387,9 @@
 
 			<bean name="BDeleteArgument">
 				<variable id="1" name="TransactionId" type="long"/>
-				<variable id="2" name="Key" type="binary"/>
+				<variable id="2" name="Database" type="string"/> 用来纠错
+				<variable id="3" name="Table" type="string"/> 用来纠错
+				<variable id="4" name="Key" type="binary"/>
 			</bean>
 			<bean name="BDeleteResult">
 				<variable id="1" name="RaftConfig" type="string"/>

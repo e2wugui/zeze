@@ -8,5 +8,7 @@ public interface BDeleteArgumentReadOnly {
     BDeleteArgument copy();
 
     long getTransactionId();
+    String getDatabase();
+    String getTable();
     Zeze.Net.Binary getKey();
 }

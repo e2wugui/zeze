@@ -9,6 +9,7 @@ import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableWalkHandleRaw;
 import Zeze.Transaction.TableWalkKeyRaw;
+import Zeze.Util.Func2;
 import Zeze.Util.KV;
 
 /**
@@ -62,78 +63,77 @@ public class Database extends Zeze.Transaction.Database {
 			}
 		}
 
-		public void replace(String tableName, ByteBuffer key, ByteBuffer value) {
+		private KV<Long, Dbh2Agent> beginTransactionIf(String tableName, Binary bKey) {
 			var manager = Dbh2AgentManager.getInstance();
-			var bKey = new Binary(key.Bytes, key.ReadIndex, key.size());
-			var bValue = new Binary(value.Bytes, value.ReadIndex, value.size());
-			// 最多执行两次。
-			Long tid;
-			var agent = manager.open(
-					Database.this.masterAgent, Database.this.masterName,
-					Database.this.databaseName, tableName,
-					bKey);
-			tid = transactions.get(agent);
-			if (null == tid)
-				tid = agent.beginTransaction();
-			if (null == tid) // begin 检查 database & table，不能失败。
-				throw new RuntimeException("begin transaction fail");
-			transactions.put(agent, tid);
-			// 迁移中的桶，数据已经被迁移到新的节点。
-			var raftNew = agent.put(tid, bKey, bValue);
-			if (raftNew.isEmpty())
-				return; // done success
-
-			// 直接打开目标，建立新的事务执行put。
 			for (int i = 0; i < 2; ++i) {
-				agent = manager.open(Database.this.databaseName, tableName, raftNew);
-				tid = transactions.get(agent);
+				var agent = manager.open(
+						masterAgent, masterName,
+						databaseName, tableName,
+						bKey);
+				var tid = transactions.get(agent);
 				if (null == tid)
-					tid = agent.beginTransaction();
-				if (null == tid) // begin 检查 database & table，不能失败。
-					throw new RuntimeException("begin transaction fail");
+					tid = agent.beginTransaction(databaseName, tableName);
+				if (null != tid) {
+					transactions.put(agent, tid);
+					return KV.create(tid, agent);
+				}
+				manager.reload(masterAgent, masterName, databaseName, tableName);
+			}
+			throw new RuntimeException("begin transaction fail.");
+		}
+
+		private long beginTransactionIf(Dbh2Agent agent, String tableName) {
+			var tid = transactions.get(agent);
+			if (null == tid)
+				tid = agent.beginTransaction(databaseName, tableName);
+			if (null != tid) {
 				transactions.put(agent, tid);
-				raftNew = agent.put(tid, bKey, bValue);
+				return tid;
+			}
+			throw new RuntimeException("begin transaction 2 fail.");
+		}
+
+		private void operate(String tableName,
+							 Binary bKey,
+							 Func2<Long, Dbh2Agent, String> action) throws Exception {
+			var manager = Dbh2AgentManager.getInstance();
+			String raftNew = null;
+			for (int i = 0; i < 2; ++i) {
+				var kv = beginTransactionIf(tableName, bKey); // KV<tid, Dbh2Agent>
+				raftNew = action.call(kv.getKey(), kv.getValue());
+				if (raftNew == null) {
+					// miss match bucket
+					manager.reload(masterAgent, masterName, databaseName, tableName);
+					continue;
+				}
 				if (raftNew.isEmpty())
 					return; // done success
+
+				// 迁移中的桶，数据已经被迁移到新的节点。
+				break;
 			}
+			var agent = manager.open(raftNew);
+			var tid = beginTransactionIf(agent, tableName);
+			raftNew = action.call(tid, agent);
+			if (raftNew == null)
+				throw new RuntimeException("moving bucket target miss.");
+			if (raftNew.isEmpty())
+				return; // done success
+			// 直接打开目标，建立新的事务执行put。
 			throw new RuntimeException("put too many try.");
 		}
 
-		// todo 这个流程和put完全一样，等完整的算法确定下来以后，实现成lambda.action模式。共享同一个流程。
-		public void remove(String tableName, ByteBuffer key) {
-			var manager = Dbh2AgentManager.getInstance();
+		public void replace(String tableName, ByteBuffer key, ByteBuffer value) throws Exception {
 			var bKey = new Binary(key.Bytes, key.ReadIndex, key.size());
-			// 最多执行两次。
-			Long tid;
-			var agent = manager.open(
-					Database.this.masterAgent, Database.this.masterName,
-					Database.this.databaseName, tableName,
-					bKey);
-			tid = transactions.get(agent);
-			if (null == tid)
-				tid = agent.beginTransaction();
-			if (null == tid) // begin 检查 database & table，不能失败。
-				throw new RuntimeException("begin transaction fail");
-			transactions.put(agent, tid);
-			// 迁移中的桶，数据已经被迁移到新的节点。
-			var raftNew = agent.delete(tid, bKey);
-			if (raftNew.isEmpty())
-				return; // done success
+			var bValue = new Binary(value.Bytes, value.ReadIndex, value.size());
+			operate(tableName, bKey, (tid, agent)
+					-> agent.put(databaseName, tableName, tid, bKey, bValue));
+		}
 
-			// 直接打开目标，建立新的事务执行put。
-			for (int i = 0; i < 2; ++i) {
-				agent = manager.open(Database.this.databaseName, tableName, raftNew);
-				tid = transactions.get(agent);
-				if (null == tid)
-					tid = agent.beginTransaction();
-				transactions.put(agent, tid);
-				if (null == tid) // begin 检查 database & table，不能失败。
-					throw new RuntimeException("begin transaction fail");
-				raftNew = agent.delete(tid, bKey);
-				if (raftNew.isEmpty())
-					return; // done success
-			}
-			throw new RuntimeException("too many try.");
+		public void remove(String tableName, ByteBuffer key) throws Exception {
+			var bKey = new Binary(key.Bytes, key.ReadIndex, key.size());
+			operate(tableName, bKey, (tid, agent)
+					-> agent.delete(databaseName, tableName, tid, bKey));
 		}
 
 		@Override
@@ -187,7 +187,7 @@ public class Database extends Zeze.Transaction.Database {
 						Database.this.masterAgent, Database.this.masterName,
 						Database.this.databaseName, name,
 						bKey);
-				var kv = agent.get(bKey);
+				var kv = agent.get(Database.this.databaseName, name, bKey);
 				if (kv.getKey())
 					return kv.getValue();
 
@@ -202,13 +202,21 @@ public class Database extends Zeze.Transaction.Database {
 		@Override
 		public void replace(Transaction t, ByteBuffer key, ByteBuffer value) {
 			var txn = (Dbh2Transaction)t;
-			txn.replace(name, key, value);
+			try {
+				txn.replace(name, key, value);
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		@Override
 		public void remove(Transaction t, ByteBuffer key) {
 			var txn = (Dbh2Transaction)t;
-			txn.remove(name, key);
+			try {
+				txn.remove(name, key);
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		@Override

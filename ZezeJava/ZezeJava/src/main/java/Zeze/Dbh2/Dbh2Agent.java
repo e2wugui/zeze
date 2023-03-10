@@ -27,10 +27,6 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 	private final Dbh2Config config = new Dbh2Config();
 	private volatile long activeTime = System.currentTimeMillis();
 
-	private final String databaseName;
-	private final String tableName;
-
-
 	public void setBucketMeta(BBucketMetaDaTa meta) {
 		var r = new SetBucketMeta();
 		r.Argument = meta;
@@ -39,7 +35,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 			throw new RuntimeException("fail! code=" + r.getResultCode());
 	}
 
-	public KV<Boolean, ByteBuffer> get(Binary key) {
+	public KV<Boolean, ByteBuffer> get(String databaseName, String tableName, Binary key) {
 		var r = new Get();
 		r.Argument.setDatabase(databaseName);
 		r.Argument.setTable(tableName);
@@ -61,7 +57,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		return KV.create(true, bb);
 	}
 
-	public Long beginTransaction() {
+	public Long beginTransaction(String databaseName, String tableName) {
 		var r = new BeginTransaction();
 		r.Argument.setDatabase(databaseName);
 		r.Argument.setTable(tableName);
@@ -88,26 +84,38 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		raftClient.sendForWait(r).await();
 	}
 
-	public String put(long tid, Binary key, Binary value) {
+	public String put(String databaseName, String tableName, long tid, Binary key, Binary value) {
 		var r = new Put();
 		r.Argument.setTransactionId(tid);
+		r.Argument.setDatabase(databaseName);
+		r.Argument.setTable(tableName);
 		r.Argument.setKey(key);
 		r.Argument.setValue(value);
 		raftClient.sendForWait(r).await();
 
+		if (r.getResultCode() == errorCode(eBucketMissmatch))
+			return null;
+
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("fail! code=" + r.getResultCode());
+
 		return r.Result.getRaftConfig();
 	}
 
-	public String delete(long tid, Binary key) {
+	public String delete(String databaseName, String tableName, long tid, Binary key) {
 		var r = new Delete();
 		r.Argument.setTransactionId(tid);
+		r.Argument.setDatabase(databaseName);
+		r.Argument.setTable(tableName);
 		r.Argument.setKey(key);
 		raftClient.sendForWait(r).await();
 
+		if (r.getResultCode() == errorCode(eBucketMissmatch))
+			return null;
+
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("fail! code=" + r.getResultCode());
+
 		return r.Result.getRaftConfig();
 	}
 
@@ -134,9 +142,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		});
 	}
 
-	public Dbh2Agent(String databaseName, String tableName, RaftConfig raftConf) throws Exception {
-		this.databaseName = databaseName;
-		this.tableName = tableName;
+	public Dbh2Agent(RaftConfig raftConf) throws Exception {
 		raftClient = new Agent("dbh2.raft", raftConf);
 		raftClient.setOnSetLeader(this::raftOnSetLeader);
 		raftClient.getClient().start();

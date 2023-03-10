@@ -7,8 +7,8 @@ import Zeze.Serialize.ByteBuffer;
 public final class BGetArgumentDaTa extends Zeze.Transaction.Data {
     public static final long TYPEID = 4922212073054736979L;
 
-    private String _Database;
-    private String _Table;
+    private String _Database; // 用来纠错
+    private String _Table; // 用来纠错
     private Zeze.Net.Binary _Key;
 
     public String getDatabase() {

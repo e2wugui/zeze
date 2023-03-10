@@ -8,6 +8,8 @@ public final class BPutArgument extends Zeze.Transaction.Bean implements BPutArg
     public static final long TYPEID = 2837793351425694122L;
 
     private long _TransactionId;
+    private String _Database; // 用来纠错
+    private String _Table; // 用来纠错
     private Zeze.Net.Binary _Key;
     private Zeze.Net.Binary _Value;
 
@@ -32,13 +34,57 @@ public final class BPutArgument extends Zeze.Transaction.Bean implements BPutArg
     }
 
     @Override
+    public String getDatabase() {
+        if (!isManaged())
+            return _Database;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _Database;
+        var log = (Log__Database)txn.getLog(objectId() + 2);
+        return log != null ? log.value : _Database;
+    }
+
+    public void setDatabase(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _Database = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__Database(this, 2, value));
+    }
+
+    @Override
+    public String getTable() {
+        if (!isManaged())
+            return _Table;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _Table;
+        var log = (Log__Table)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _Table;
+    }
+
+    public void setTable(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _Table = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__Table(this, 3, value));
+    }
+
+    @Override
     public Zeze.Net.Binary getKey() {
         if (!isManaged())
             return _Key;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Key;
-        var log = (Log__Key)txn.getLog(objectId() + 2);
+        var log = (Log__Key)txn.getLog(objectId() + 4);
         return log != null ? log.value : _Key;
     }
 
@@ -50,7 +96,7 @@ public final class BPutArgument extends Zeze.Transaction.Bean implements BPutArg
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Key(this, 2, value));
+        txn.putLog(new Log__Key(this, 4, value));
     }
 
     @Override
@@ -60,7 +106,7 @@ public final class BPutArgument extends Zeze.Transaction.Bean implements BPutArg
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Value;
-        var log = (Log__Value)txn.getLog(objectId() + 3);
+        var log = (Log__Value)txn.getLog(objectId() + 5);
         return log != null ? log.value : _Value;
     }
 
@@ -72,18 +118,26 @@ public final class BPutArgument extends Zeze.Transaction.Bean implements BPutArg
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Value(this, 3, value));
+        txn.putLog(new Log__Value(this, 5, value));
     }
 
     @SuppressWarnings("deprecation")
     public BPutArgument() {
+        _Database = "";
+        _Table = "";
         _Key = Zeze.Net.Binary.Empty;
         _Value = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public BPutArgument(long _TransactionId_, Zeze.Net.Binary _Key_, Zeze.Net.Binary _Value_) {
+    public BPutArgument(long _TransactionId_, String _Database_, String _Table_, Zeze.Net.Binary _Key_, Zeze.Net.Binary _Value_) {
         _TransactionId = _TransactionId_;
+        if (_Database_ == null)
+            throw new IllegalArgumentException();
+        _Database = _Database_;
+        if (_Table_ == null)
+            throw new IllegalArgumentException();
+        _Table = _Table_;
         if (_Key_ == null)
             throw new IllegalArgumentException();
         _Key = _Key_;
@@ -106,12 +160,16 @@ public final class BPutArgument extends Zeze.Transaction.Bean implements BPutArg
 
     public void assign(BPutArgumentDaTa other) {
         setTransactionId(other.getTransactionId());
+        setDatabase(other.getDatabase());
+        setTable(other.getTable());
         setKey(other.getKey());
         setValue(other.getValue());
     }
 
     public void assign(BPutArgument other) {
         setTransactionId(other.getTransactionId());
+        setDatabase(other.getDatabase());
+        setTable(other.getTable());
         setKey(other.getKey());
         setValue(other.getValue());
     }
@@ -155,6 +213,20 @@ public final class BPutArgument extends Zeze.Transaction.Bean implements BPutArg
         public void commit() { ((BPutArgument)getBelong())._TransactionId = value; }
     }
 
+    private static final class Log__Database extends Zeze.Transaction.Logs.LogString {
+        public Log__Database(BPutArgument bean, int varId, String value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BPutArgument)getBelong())._Database = value; }
+    }
+
+    private static final class Log__Table extends Zeze.Transaction.Logs.LogString {
+        public Log__Table(BPutArgument bean, int varId, String value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BPutArgument)getBelong())._Table = value; }
+    }
+
     private static final class Log__Key extends Zeze.Transaction.Logs.LogBinary {
         public Log__Key(BPutArgument bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
@@ -181,6 +253,8 @@ public final class BPutArgument extends Zeze.Transaction.Bean implements BPutArg
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BPutArgument: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("TransactionId=").append(getTransactionId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Database=").append(getDatabase()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Table=").append(getTable()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(getKey()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(getValue()).append(System.lineSeparator());
         level -= 4;
@@ -210,16 +284,30 @@ public final class BPutArgument extends Zeze.Transaction.Bean implements BPutArg
             }
         }
         {
+            String _x_ = getDatabase();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        {
+            String _x_ = getTable();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        {
             var _x_ = getKey();
             if (_x_.size() != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
             }
         }
         {
             var _x_ = getValue();
             if (_x_.size() != 0) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
             }
         }
@@ -235,10 +323,18 @@ public final class BPutArgument extends Zeze.Transaction.Bean implements BPutArg
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            setKey(_o_.ReadBinary(_t_));
+            setDatabase(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
+            setTable(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            setKey(_o_.ReadBinary(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 5) {
             setValue(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
@@ -265,8 +361,10 @@ public final class BPutArgument extends Zeze.Transaction.Bean implements BPutArg
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _TransactionId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _Key = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
-                case 3: _Value = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 2: _Database = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 3: _Table = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 4: _Key = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 5: _Value = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
             }
         }
     }

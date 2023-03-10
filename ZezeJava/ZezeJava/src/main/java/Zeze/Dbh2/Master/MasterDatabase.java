@@ -6,7 +6,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Dbh2.BBucketMetaDaTa;
 import Zeze.Builtin.Dbh2.Master.CreateBucket;
 import Zeze.Dbh2.Bucket;
+import Zeze.Dbh2.Dbh2Agent;
 import Zeze.Net.Binary;
+import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.OutObject;
 import Zeze.Util.TaskCompletionSource;
@@ -55,7 +57,7 @@ public class MasterDatabase {
 		return bTable.locate(key);
 	}
 
-	public MasterTableDaTa createTable(String tableName, OutObject<Boolean> outIsNew) throws RocksDBException {
+	public MasterTableDaTa createTable(String tableName, OutObject<Boolean> outIsNew) throws Exception {
 		outIsNew.value = false;
 		var table = tables.computeIfAbsent(tableName, (tbName) -> new MasterTableDaTa());
 		if (table.created)
@@ -107,6 +109,14 @@ public class MasterDatabase {
 			for (var future : futures)
 				future.await();
 
+			// 第一条Dbh2桶协议，桶必须初始化以后才能使用。
+			var raftConfig = RaftConfig.loadFromString(bucket.getRaftConfig());
+			var agent = new Dbh2Agent(raftConfig);
+			try {
+				agent.setBucketMeta(bucket);
+			} finally {
+				agent.close();
+			}
 			// master数据马上存数据库。
 			var bbValue = ByteBuffer.Allocate();
 			table.encode(bbValue);

@@ -8,6 +8,8 @@ public interface BPutArgumentReadOnly {
     BPutArgument copy();
 
     long getTransactionId();
+    String getDatabase();
+    String getTable();
     Zeze.Net.Binary getKey();
     Zeze.Net.Binary getValue();
 }
