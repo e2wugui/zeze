@@ -356,9 +356,11 @@ public class Service {
 	 * @param so    current socket
 	 * @param input 方法外绝对不能持有input.Bytes的引用! 也就是只能在方法内读input.
 	 *              处理了多少要体现在input.ReadIndex上,剩下的等下次收到数据后会继续在此处理.
+	 * @return 是否可以立即再次从socket接收数据(如果缓冲区还有数据的话), 否则会等下次select循环再处理
 	 */
-	public void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input) throws Exception {
+	public boolean OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input) throws Exception {
 		Protocol.decode(this, so, input);
+		return false;
 	}
 
 	// 用来派发异步rpc回调。

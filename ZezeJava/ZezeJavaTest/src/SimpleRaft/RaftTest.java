@@ -16,9 +16,9 @@ public final class RaftTest {
 		private final StringBuffer strBuf = new StringBuffer();
 		private final ArrayDeque<Object> events = new ArrayDeque<>(16);
 		private final ArrayDeque<Object> clientEvents = new ArrayDeque<>(16);
-		private Raft.Log[] logs = new Raft.Log[4];
 		private final HashMap<Long, Raft.Log> logMap = new HashMap<>();
-		private long logCount;
+		private Raft.Log[] logs = new Raft.Log[4]; // 初始容量
+		private long logCount; // logs的有效数量
 		private long randSeed;
 		private final int id;
 		private final Raft raft;
@@ -118,7 +118,8 @@ public final class RaftTest {
 			long newCount = index + appendCount;
 			int n = this.logs.length;
 			if (newCount > n) {
-				do n *= 2;
+				do
+					n *= 2;
 				while (newCount > n);
 				this.logs = Arrays.copyOf(this.logs, n);
 			}

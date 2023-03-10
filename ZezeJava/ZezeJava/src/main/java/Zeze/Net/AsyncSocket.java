@@ -640,47 +640,50 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 	private void processReceive(SocketChannel sc) throws Exception { // 只在selector线程调用
 		java.nio.ByteBuffer buffer = selector.getReadBuffer(); // 线程共享的buffer,只能本方法内临时使用
-		buffer.clear();
-		int bytesTransferred = sc.read(buffer);
-		if (bytesTransferred > 0) {
-			recvSize += bytesTransferred;
-			ByteBuffer codecBuf = inputBuffer.getBuffer(); // codec对buffer的引用一定是不可变的
-			Codec codec = inputCodecChain;
-			if (codec != null) {
-				// 解密解压处理，处理结果直接加入 inputCodecBuffer。
-				codecBuf.EnsureWrite(bytesTransferred);
-				codec.update(buffer.array(), 0, bytesTransferred);
-				codec.flush();
-				service.OnSocketProcessInputBuffer(this, codecBuf);
-			} else if (codecBuf.Size() > 0) {
-				// 上次解析有剩余数据（不完整的协议），把新数据加入。
-				codecBuf.Append(buffer.array(), 0, bytesTransferred);
+		boolean readAgain;
+		do {
+			buffer.clear();
+			int bytesTransferred = sc.read(buffer);
+			if (bytesTransferred > 0) {
+				recvSize += bytesTransferred;
+				readAgain = bytesTransferred == buffer.limit();
+				ByteBuffer codecBuf = inputBuffer.getBuffer(); // codec对buffer的引用一定是不可变的
+				Codec codec = inputCodecChain;
+				if (codec != null) {
+					// 解密解压处理，处理结果直接加入 inputCodecBuffer。
+					codecBuf.EnsureWrite(bytesTransferred);
+					codec.update(buffer.array(), 0, bytesTransferred);
+					codec.flush();
+					readAgain &= service.OnSocketProcessInputBuffer(this, codecBuf);
+				} else if (codecBuf.Size() > 0) {
+					// 上次解析有剩余数据（不完整的协议），把新数据加入。
+					codecBuf.Append(buffer.array(), 0, bytesTransferred);
+					readAgain &= service.OnSocketProcessInputBuffer(this, codecBuf);
+				} else {
+					ByteBuffer avoidCopy = ByteBuffer.Wrap(buffer.array(), 0, bytesTransferred);
+					readAgain &= service.OnSocketProcessInputBuffer(this, avoidCopy);
+					if (avoidCopy.Size() > 0) // 有剩余数据（不完整的协议），加入 inputCodecBuffer 等待新的数据。
+						codecBuf.Append(avoidCopy.Bytes, avoidCopy.ReadIndex, avoidCopy.Size());
+				}
 
-				service.OnSocketProcessInputBuffer(this, codecBuf);
+				// 1 检测 buffer 是否满，2 剩余数据 Compact，3 需要的话，释放buffer内存。
+				int remain = codecBuf.Size();
+				if (remain <= 0) {
+					if (codecBuf.Capacity() <= 32 * 1024)
+						codecBuf.Reset();
+					else
+						codecBuf.FreeInternalBuffer(); // 只在过大的缓冲区时释放内部bytes[], 避免频繁分配
+				} else {
+					int max = service.getSocketOptions().getInputBufferMaxProtocolSize();
+					if (remain >= max)
+						throw new IllegalStateException("InputBufferMaxProtocolSize " + remain + " >= " + max);
+					codecBuf.Compact();
+				}
 			} else {
-				ByteBuffer avoidCopy = ByteBuffer.Wrap(buffer.array(), 0, bytesTransferred);
-
-				service.OnSocketProcessInputBuffer(this, avoidCopy);
-
-				if (avoidCopy.Size() > 0) // 有剩余数据（不完整的协议），加入 inputCodecBuffer 等待新的数据。
-					codecBuf.Append(avoidCopy.Bytes, avoidCopy.ReadIndex, avoidCopy.Size());
+				close(); // 对方正常关闭连接时的处理, 不设置异常; 连接被对方RESET的话read会抛异常
+				readAgain = false;
 			}
-
-			// 1 检测 buffer 是否满，2 剩余数据 Compact，3 需要的话，释放buffer内存。
-			int remain = codecBuf.Size();
-			if (remain <= 0) {
-				if (codecBuf.Capacity() <= 32 * 1024)
-					codecBuf.Reset();
-				else
-					codecBuf.FreeInternalBuffer(); // 只在过大的缓冲区时释放内部bytes[], 避免频繁分配
-			} else {
-				int max = service.getSocketOptions().getInputBufferMaxProtocolSize();
-				if (remain >= max)
-					throw new IllegalStateException("InputBufferMaxProtocolSize " + remain + " >= " + max);
-				codecBuf.Compact();
-			}
-		} else
-			close(); // 对方正常关闭连接时的处理, 不设置异常; 连接被对方RESET的话read会抛异常
+		} while (readAgain);
 	}
 
 	/*

@@ -138,7 +138,7 @@ public class Raft {
 		}
 	}
 
-	public static final class AddLog { // 客户端发起增加Log请求. 客户端通过Env.sendEvent发送
+	public static final class AddLog { // 客户端发起AddLog请求. 客户端通过Env.sendEvent发送,服务器通过Env.recvEvent接收处理
 		final long serial; // 请求的序列号,每次请求应该都不同,便于与AddLogRe对应
 		final Log log; // 准备增加的Log,可以是子类对象,不能为null
 
@@ -153,9 +153,9 @@ public class Raft {
 		}
 	}
 
-	public static final class AddLogRe { // 服务器回复客户端AddLog的请求. 服务器通过Env.sendClientEvent发送
+	public static final class AddLogRe { // 服务器回复客户端的AddLog. 服务器通过Env.sendClientEvent发送,客户端通过Env.recvClientEvent接收
 		final long serial; // 同AddLog请求的serial
-		final int result; // 0表示新增成功,1表示已经成功过; <0表示失败,但跟超时一样不确定是否增加
+		final int result; // 0表示新增成功,1表示已经成功过; <0表示失败,但跟超时一样不确定是否增加,可重试AddLog
 		final int leaderId; // 当前的leader. success=false时需要检查leader,下次请求发到该leader. 如果<0则表示尚未选出leader
 
 		AddLogRe(long serial, int result, int leaderId) {

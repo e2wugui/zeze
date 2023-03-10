@@ -653,7 +653,7 @@ public class Test {
 		}
 
 		public static final class AddCount extends Log {
-			public static final int TypeId_ = Bean.hash32(AddCount.class.getName());;
+			public static final int TypeId_ = Bean.hash32(AddCount.class.getName());
 
 			@Override
 			public int typeId() {

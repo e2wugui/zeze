@@ -32,11 +32,12 @@ public class TestAsyncSocket extends TestCase {
 		}
 
 		@Override
-		public void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input) {
+		public boolean OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input) {
 			System.out.println("input size=" + input.Size());
 			System.out.println(input.ReadString());
 			input.ReadIndex = input.WriteIndex;
 			Future.setResult(true);
+			return false;
 		}
 	}
 

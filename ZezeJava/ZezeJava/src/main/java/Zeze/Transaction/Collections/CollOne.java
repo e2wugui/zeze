@@ -31,7 +31,7 @@ public class CollOne<V extends Bean> extends Collection {
 
 	public void setValue(V value) {
 		if (null == value)
-			throw new IllegalArgumentException("value");
+			throw new NullPointerException("value");
 
 		if (isManaged()) {
 			value.initRootInfoWithRedo(rootInfo, this);

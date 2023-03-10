@@ -5,7 +5,7 @@ import Zeze.Transaction.Bean;
 
 final class HeartbeatLog extends Log {
 	public static final int SetLeaderReadyEvent = 1;
-	public static final int TypeId_ = Bean.hash32(HeartbeatLog.class.getName());;
+	public static final int TypeId_ = Bean.hash32(HeartbeatLog.class.getName());
 
 	@Override
 	public int typeId() {

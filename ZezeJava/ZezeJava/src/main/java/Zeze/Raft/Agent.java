@@ -15,7 +15,6 @@ import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Services.HandshakeClient;
-import Zeze.Transaction.Bean;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
@@ -86,7 +85,7 @@ public final class Agent {
 	}
 
 	public <TArgument extends Serializable, TResult extends Serializable> void send(RaftRpc<TArgument, TResult> rpc,
-																			ToLongFunction<Protocol<?>> handle) {
+																					ToLongFunction<Protocol<?>> handle) {
 		send(rpc, handle, false);
 	}
 
@@ -94,8 +93,8 @@ public final class Agent {
 	 * 发送Rpc请求。
 	 */
 	public <TArgument extends Serializable, TResult extends Serializable> void send(RaftRpc<TArgument, TResult> rpc,
-																	ToLongFunction<Protocol<?>> handle,
-																	boolean urgent) {
+																					ToLongFunction<Protocol<?>> handle,
+																					boolean urgent) {
 		if (handle == null)
 			throw new IllegalArgumentException("null handle");
 		if (pendingLimit > 0 && pending.size() > pendingLimit) // UrgentPending不限制。
@@ -128,7 +127,7 @@ public final class Agent {
 	}
 
 	private <TArgument extends Serializable, TResult extends Serializable> long sendHandle(Rpc<TArgument, TResult> p,
-																		   RaftRpc<TArgument, TResult> rpc) {
+																						   RaftRpc<TArgument, TResult> rpc) {
 		var net = (RaftRpc<TArgument, TResult>)p;
 		if (net.isTimeout() || isRetryError(net.getResultCode()))
 			return Procedure.Success; // Pending Will Resend.
@@ -159,7 +158,7 @@ public final class Agent {
 
 	@SuppressWarnings("SameReturnValue")
 	private <TArgument extends Serializable, TResult extends Serializable> long sendForWaitHandle(Rpc<TArgument, TResult> p,
-																				  RaftRpc<TArgument, TResult> rpc) {
+																								  RaftRpc<TArgument, TResult> rpc) {
 		var net = (RaftRpc<TArgument, TResult>)p;
 		if (net.isTimeout() || isRetryError(net.getResultCode()))
 			return Procedure.Success; // Pending Will Resend.

@@ -38,6 +38,7 @@ public final class BCreateDatabaseDaTa extends Zeze.Transaction.Data {
         return bean;
     }
 
+    @Override
     public void assign(Zeze.Transaction.Bean other) {
         assign((BCreateDatabase)other);
     }
@@ -122,5 +123,4 @@ public final class BCreateDatabaseDaTa extends Zeze.Transaction.Data {
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
     }
-
 }

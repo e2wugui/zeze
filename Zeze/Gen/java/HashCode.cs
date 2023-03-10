@@ -48,7 +48,7 @@ namespace Zeze.Gen.java
             else
                 sw.WriteLine(prefix + "    return 0;");
             sw.WriteLine(prefix + "}");
-            sw.WriteLine();
+            // sw.WriteLine();
         }
 
         readonly string varname;

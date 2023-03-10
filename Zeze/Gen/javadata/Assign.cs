@@ -20,6 +20,7 @@ namespace Zeze.Gen.javadata
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
 
+            sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public void assign(Zeze.Transaction.Bean other) {");
             sw.WriteLine(prefix + $"    assign(({bean.Name})other);");
             sw.WriteLine(prefix + "}");

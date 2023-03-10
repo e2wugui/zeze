@@ -39,10 +39,10 @@ public class LinkdProviderService extends HandshakeServer {
 	}
 
 	@Override
-	public void OnSocketProcessInputBuffer(AsyncSocket s, ByteBuffer input) throws Exception {
+	public boolean OnSocketProcessInputBuffer(AsyncSocket s, ByteBuffer input) throws Exception {
 		if (enableDump)
 			tryDump(s, input);
-		super.OnSocketProcessInputBuffer(s, input);
+		return super.OnSocketProcessInputBuffer(s, input);
 	}
 
 	// 重载需要的方法。

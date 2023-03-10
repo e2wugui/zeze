@@ -52,8 +52,8 @@ namespace Zeze.Gen.javadata
             {
                 // 根据配置的实际类型生成switch。
                 sw.WriteLine($"{prefix}    var _typeId_ = bean.typeId();");
-                sw.WriteLine($"{prefix}    if (_typeId_ == Zeze.Transaction.EmptyBeanData.TYPEID)");
-                sw.WriteLine($"{prefix}        return Zeze.Transaction.EmptyBeanData.TYPEID;");
+                sw.WriteLine($"{prefix}    if (_typeId_ == Zeze.Transaction.EmptyBeanDaTa.TYPEID)");
+                sw.WriteLine($"{prefix}        return Zeze.Transaction.EmptyBeanDaTa.TYPEID;");
                 foreach (var real in type.RealBeans)
                 {
                     sw.WriteLine($"{prefix}    if (_typeId_ == {real.Value.TypeId}L)");
@@ -153,7 +153,8 @@ namespace Zeze.Gen.javadata
             Decode.Make(bean, sw, "    ");
             if (bean.Equalable)
             {
-                java.Equal.Make(bean, sw, "    ");
+                sw.WriteLine();
+                java.Equal.Make(bean, sw, "    ", true);
                 java.HashCode.Make(bean, sw, "    ");
             }
             //NegativeCheck.Make(bean, sw, "    ");

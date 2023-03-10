@@ -2,7 +2,7 @@ package Benchmark;
 
 import Zeze.Serialize.ByteBuffer;
 import demo.Module1.BValue;
-import demo.Module1.BValueData;
+import demo.Module1.BValueDaTa;
 import org.junit.Test;
 
 public class TestToData {
@@ -19,7 +19,7 @@ public class TestToData {
 		}
 		{
 			System.out.println("BValueData PMap");
-			var bValueData = new BValueData();
+			var bValueData = new BValueDaTa();
 			for (long i = 0; i < 100; ++i) {
 				bValueData.getMap15().put(i, i);
 			}
@@ -35,7 +35,7 @@ public class TestToData {
 		}
 		{
 			System.out.println("BValueData PList");
-			var bValueData = new BValueData();
+			var bValueData = new BValueDaTa();
 			for (long i = 0; i < 100; ++i) {
 				bValueData.getArray29().add((float)i);
 			}
@@ -51,7 +51,7 @@ public class TestToData {
 		}
 		{
 			System.out.println("BValueData PSet");
-			var bValueData = new BValueData();
+			var bValueData = new BValueDaTa();
 			for (int i = 0; i < 100; ++i) {
 				bValueData.getSet10().add(i);
 			}
@@ -87,7 +87,7 @@ public class TestToData {
 		System.out.println("dummy=" + dummy);
 	}
 
-	public static void testCodec(BValueData bValueData) {
+	public static void testCodec(BValueDaTa bValueData) {
 		long sum = 0;
 		var count = 100_0000;
 		var b = new Zeze.Util.Benchmark();

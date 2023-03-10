@@ -45,18 +45,19 @@ namespace Zeze.Gen.java
             sw.WriteLine();
         }
 
-        public static void Make(Bean bean, StreamWriter sw, string prefix)
+        public static void Make(Bean bean, StreamWriter sw, string prefix, bool isData)
         {
+            var className = isData ? bean.Name + "DaTa" : bean.Name;
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public boolean equals(Object _o_) {");
             if (bean.Variables.Count > 0)
             {
                 sw.WriteLine(prefix + "    if (_o_ == this)");
                 sw.WriteLine(prefix + "        return true;");
-                sw.WriteLine(prefix + "    if (!(_o_ instanceof " + bean.Name + "))");
+                sw.WriteLine(prefix + "    if (!(_o_ instanceof " + className + "))");
                 sw.WriteLine(prefix + "        return false;");
                 sw.WriteLine(prefix + "    //noinspection PatternVariableCanBeUsed");
-                sw.WriteLine(prefix + $"    var _b_ = ({bean.Name})_o_;");
+                sw.WriteLine(prefix + $"    var _b_ = ({className})_o_;");
                 foreach (Variable var in bean.Variables)
                 {
                     if (bean.Version.Equals(var.Name))
@@ -70,7 +71,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "    return true;");
             }
             else
-                sw.WriteLine(prefix + "    return _o_ instanceof " + bean.Name + ';');
+                sw.WriteLine(prefix + "    return _o_ instanceof " + className + ';');
 
             sw.WriteLine(prefix + "}");
             sw.WriteLine();

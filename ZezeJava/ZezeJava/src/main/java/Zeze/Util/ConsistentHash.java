@@ -5,6 +5,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Serialize.ByteBuffer;
@@ -24,41 +25,39 @@ public class ConsistentHash<E> {
 	}
 
 	public void add(String nodeKey, E node) {
-		lock.lock();
+		if (node == null)
+			throw new NullPointerException("node");
+		var virtual = new Integer[160];
 		try {
-			if (null == node)
-				throw new IllegalArgumentException();
-
-			var virtual = new Integer[160];
-			if (nodes.putIfAbsent(node, virtual) != null)
-				return; // 忽略重复加入的node。不报告这个错误，简化外面的使用。
-
 			nodeKey = nodeKey != null ? nodeKey + '-' : "-";
 			var md5 = MessageDigest.getInstance("MD5");
-			var half = virtual.length >> 2;
-			for (int i = 0; i < half; ++i) {
+			for (int i = 0, half = virtual.length / 4; i < half; ++i) {
 				var hash4 = md5.digest((nodeKey + i).getBytes(StandardCharsets.UTF_8));
-				for (int j = 0; j < 4; ++j) {
+				for (int j = 0; j < 4; ++j)
 					virtual[i * 4 + j] = ByteBuffer.ToInt(hash4, j * 4);
-				}
 			}
-			var conflicts = circle.addAll(virtual, node);
-			for (var conflict : conflicts) {
-				//System.out.println("+++++++++++++++++++++++++++++++++++++");
-				logger.warn("hash conflict! key={} node={}", conflict.key, conflict.value);
-			}
-		} catch (NoSuchAlgorithmException ex) {
-			throw new RuntimeException(ex);
+		} catch (NoSuchAlgorithmException e) {
+			throw new RuntimeException(e);
+		}
+
+		List<SortedMap.Entry<Integer, E>> conflicts;
+		lock.lock();
+		try {
+			if (nodes.putIfAbsent(node, virtual) != null)
+				return; // 忽略重复加入的node。不报告这个错误，简化外面的使用。
+			conflicts = circle.addAll(virtual, node);
 		} finally {
 			lock.unlock();
 		}
+		for (var conflict : conflicts)
+			logger.warn("hash conflict! key={} node={}", conflict.key, conflict.value);
 	}
 
 	public void remove(E node) {
+		if (node == null)
+			throw new NullPointerException("node");
 		lock.lock();
 		try {
-			if (node == null)
-				throw new IllegalArgumentException();
 			var virtual = nodes.remove(node);
 			if (null == virtual)
 				return;

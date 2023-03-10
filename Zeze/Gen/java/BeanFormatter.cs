@@ -206,7 +206,7 @@ namespace Zeze.Gen.java
             Decode.Make(bean, sw, "    ");
             if (bean.Equalable)
             {
-                Equal.Make(bean, sw, "    ");
+                Equal.Make(bean, sw, "    ", false);
                 HashCode.Make(bean, sw, "    ");
             }
             InitChildrenTableKey.Make(bean, sw, "    ");

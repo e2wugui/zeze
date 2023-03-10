@@ -18,6 +18,7 @@ public final class BCommitTransactionResultDaTa extends Zeze.Transaction.Data {
         return bean;
     }
 
+    @Override
     public void assign(Zeze.Transaction.Bean other) {
         assign((BCommitTransactionResult)other);
     }
@@ -87,5 +88,4 @@ public final class BCommitTransactionResultDaTa extends Zeze.Transaction.Data {
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
     }
-
 }

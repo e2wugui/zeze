@@ -24,11 +24,12 @@ public class CommandConsoleService extends Service {
 	}
 
 	@Override
-	public void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input) {
+	public boolean OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input) {
 		var cc = (CommandConsole)so.getUserState();
 		if (null != cc)
 			cc.input(so, input.Bytes, input.ReadIndex, input.size());
 
 		input.ReadIndex = input.WriteIndex; // all processed
+		return true;
 	}
 }
