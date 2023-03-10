@@ -310,9 +310,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		outputBuffer = new OutputBuffer(selector);
 		selectionKey = selector.register(sc, 0, this); // 先获取key,因为有小概率出现事件处理比赋值更先执行
 		selector.register(sc, SelectionKey.OP_READ, this);
-		logger.info("Accept: {} for {}:{}", this, service.getClass().getName(), service.getName());
-		if (ENABLE_DEBUG_LOG)
-			logger.debug("{}: recvBuf={}, sendBuf={}", this, so.getReceiveBufferSize(), so.getSendBufferSize());
+		logger.info("Accept: {} for {}:{} recvBuf={}, sendBuf={}", this, service.getClass().getName(),
+				service.getName(), so.getReceiveBufferSize(), so.getSendBufferSize());
 	}
 
 	/**
@@ -321,9 +320,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private boolean doConnectSuccess(SocketChannel sc) throws Exception {
 		var socket = sc.socket();
 		remoteAddress = socket.getRemoteSocketAddress();
-		logger.info("Connect: {} for {}:{}", this, service.getClass().getName(), service.getName());
-		if (ENABLE_DEBUG_LOG)
-			logger.debug("{}: recvBuf={}, sendBuf={}", this, socket.getReceiveBufferSize(), socket.getSendBufferSize());
+		logger.info("Connect: {} for {}:{} recvBuf={}, sendBuf={}", this, service.getClass().getName(),
+				service.getName(), socket.getReceiveBufferSize(), socket.getSendBufferSize());
 		if (acceptorOrConnector instanceof Connector)
 			((Connector)acceptorOrConnector).OnSocketConnected(this);
 		service.OnSocketConnected(this);
@@ -813,8 +811,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				logger.info("close: {} {}", this, ex);
 			else
 				logger.warn("close: {}", this, ex);
-		} else if (ENABLE_DEBUG_LOG)
-			logger.debug("close{}: {}", gracefully ? " gracefully" : "", this);
+		} else
+			logger.info("close: {} {}", this, gracefully ? " gracefully" : "");
 
 		if (acceptorOrConnector instanceof Connector) {
 			try {

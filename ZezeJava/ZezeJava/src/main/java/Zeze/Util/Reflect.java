@@ -19,7 +19,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 
 public class Reflect {
-	public static final boolean inDebugMode = !"true".equals(System.getProperty("noDebugMode")) &&
+	public static final boolean inDebugMode = !"true".equalsIgnoreCase(System.getProperty("noDebugMode")) &&
 			ManagementFactory.getRuntimeMXBean().getInputArguments().toString().indexOf("-agentlib:jdwp") > 0;
 	public static final StackWalker stackWalker = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
 	public static final MethodHandle supplierMH;

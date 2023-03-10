@@ -298,7 +298,7 @@ public final class Application {
 		var noDatabase = isNoDatabase();
 		if (!noDatabase) {
 			assert conf != null;
-			if ("true".equals(System.getProperty(Daemon.propertyNameClearInUse)))
+			if ("true".equalsIgnoreCase(System.getProperty(Daemon.propertyNameClearInUse)))
 				conf.clearInUseAndIAmSureAppStopped(this, databases);
 
 			// Set Database InUse
