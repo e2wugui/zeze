@@ -59,17 +59,18 @@ public class MasterDatabase {
 
 	public MasterTableDaTa createTable(String tableName, OutObject<Boolean> outIsNew) throws Exception {
 		outIsNew.value = false;
-		var table = tables.computeIfAbsent(tableName, (tbName) -> new MasterTableDaTa());
+		var table = this.tables.computeIfAbsent(tableName, (tbName) -> new MasterTableDaTa());
 		if (table.created)
 			return table;
 
+		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (table) {
 			// 加锁后再次检查一次。
 			if (table.created)
 				return table;
 
 			outIsNew.value = true;
-			table = new MasterTableDaTa();
+
 			var bucket = new BBucketMetaDaTa();
 			bucket.setDatabaseName(databaseName);
 			bucket.setTableName(tableName);
