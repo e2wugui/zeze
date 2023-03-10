@@ -85,6 +85,7 @@ public class ProviderApp {
 		this.zeze.getServiceManager().setOnUpdate((ss, si) -> {
 			distribute.addServer(ss, si);
 			providerDirectService.addServer(ss, si);
+			providerImplement.addServer(ss, si);
 		});
 		this.zeze.getServiceManager().setOnRemoved((ss, si) -> {
 			distribute.removeServer(ss, si);

@@ -9,6 +9,7 @@ import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.Agent;
+import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
@@ -23,6 +24,11 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	private static final Logger logger = LogManager.getLogger(ProviderImplement.class);
 
 	protected ProviderApp providerApp;
+
+	void addServer(Agent.SubscribeState ss, BServiceInfo pm) {
+		if (ss.getServiceName().equals(providerApp.linkdServiceName))
+			providerApp.providerService.apply(pm);
+	}
 
 	void applyOnChanged(Agent.SubscribeState subState) {
 		if (subState.getServiceName().equals(providerApp.linkdServiceName)) {

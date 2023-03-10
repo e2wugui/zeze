@@ -62,21 +62,25 @@ public class ProviderService extends HandshakeClient {
 		super.start();
 	}
 
+	public Connector apply(BServiceInfo link) {
+		var linkName = getLinkName(link);
+		return links.computeIfAbsent(linkName, __ -> {
+			var outC = new OutObject<Connector>();
+			if (getConfig().tryGetOrAddConnector(link.getPassiveIp(), link.getPassivePort(), true, outC)) {
+				try {
+					outC.value.start();
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			}
+			return outC.value;
+		});
+	}
+
 	public void apply(BServiceInfos serviceInfos) {
 		var current = new HashSet<String>();
 		for (var link : serviceInfos.getServiceInfoListSortedByIdentity()) {
-			var linkName = getLinkName(link);
-			var connector = links.computeIfAbsent(linkName, __ -> {
-				var outC = new OutObject<Connector>();
-				if (getConfig().tryGetOrAddConnector(link.getPassiveIp(), link.getPassivePort(), true, outC)) {
-					try {
-						outC.value.start();
-					} catch (Exception e) {
-						throw new RuntimeException(e);
-					}
-				}
-				return outC.value;
-			});
+			var connector = apply(link);
 			if (connector != null)
 				current.add(connector.getName());
 		}

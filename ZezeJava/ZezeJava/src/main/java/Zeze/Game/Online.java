@@ -479,10 +479,11 @@ public class Online extends AbstractOnline {
 
 	public void send(long roleId, long typeId, Binary fullEncodedProtocol) {
 		// 发送协议请求在另外的事务中执行。
-		providerApp.zeze.getTaskOneByOneByKey().Execute(roleId, () -> Task.call(providerApp.zeze.newProcedure(() -> {
-			sendEmbed(List.of(roleId), typeId, fullEncodedProtocol);
-			return Procedure.Success;
-		}, "Game.Online.send")), DispatchMode.Normal);
+		providerApp.zeze.getTaskOneByOneByKey().Execute(roleId,
+				() -> Task.call(providerApp.zeze.newProcedure(() -> {
+					sendEmbed(List.of(roleId), typeId, fullEncodedProtocol);
+					return Procedure.Success;
+				}, "Game.Online.send")), DispatchMode.Normal);
 	}
 
 	@SuppressWarnings("unused")
@@ -533,7 +534,6 @@ public class Online extends AbstractOnline {
 	}
 
 	public void sendEmbed(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
-		// 发送消息为了用上TaskOneByOne，只能一个一个发送，为了少改代码，先使用旧的GroupByLink接口。
 		var groups = groupByLink(roleIds);
 		Transaction.whileCommit(() -> {
 			for (var group : groups) {
