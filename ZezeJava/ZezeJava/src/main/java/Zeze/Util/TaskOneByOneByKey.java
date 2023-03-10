@@ -155,7 +155,8 @@ public final class TaskOneByOneByKey {
 				if (canceled)
 					return;
 
-				if (--count > 0)
+				count -= sum;
+				if (count > 0)
 					cond.await();
 				else {
 					try {
