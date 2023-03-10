@@ -28,6 +28,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	private static final Logger logger = LogManager.getLogger(Dbh2StateMachine.class);
 	private final HashMap<Long, Dbh2Transaction> transactionMap = new HashMap<>();
 	private Bucket bucket;
+	private TidAllocator tidAllocator;
 
 	public Dbh2StateMachine() {
 		super.addFactory(LogBeginTransaction.TypeId_, LogBeginTransaction::new);
@@ -41,8 +42,13 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		return bucket;
 	}
 
+	public TidAllocator getTidAllocator() {
+		return tidAllocator;
+	}
+
 	public void openBucket() {
 		bucket = new Bucket(getRaft().getRaftConfig());
+		tidAllocator = new TidAllocator();
 	}
 
 	public void setBucketMeta(BBucketMetaDaTa argument) {
@@ -56,6 +62,18 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	/////////////////////////////////////////////////////////////////////
 	// 下面这些方法用于Log.apply，不能失败，失败将停止程序。
+	public void allocateTid(long range) {
+		try {
+			var start = bucket.getTid();
+			var end = start + range;
+			bucket.setTid(end);
+			tidAllocator.setRange(start, end);
+		} catch (RocksDBException ex) {
+			logger.error("", ex);
+			getRaft().fatalKill();
+		}
+	}
+
 	public void beginTransaction(BBeginTransactionArgumentDaTa argument) {
 		var transaction = bucket.beginTransaction();
 		if (null != transactionMap.putIfAbsent(argument.getTransactionId(), transaction))

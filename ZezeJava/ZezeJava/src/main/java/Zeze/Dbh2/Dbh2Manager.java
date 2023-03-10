@@ -11,6 +11,7 @@ import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.Net.AsyncSocket;
 import Zeze.Raft.RaftConfig;
 import Zeze.Util.BitConverter;
+import Zeze.Util.OutObject;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -30,8 +31,8 @@ public class Dbh2Manager {
 
 	private final ConcurrentHashMap<String, Dbh2> dbh2s = new ConcurrentHashMap<>();
 
-	void register() {
-		masterAgent.register(""); // todo get name
+	void register(String acceptor) {
+		masterAgent.register(acceptor);
 	}
 
 	protected long ProcessCreateBucketRequest(CreateBucket r) throws Exception {
@@ -54,10 +55,18 @@ public class Dbh2Manager {
 			super(config);
 		}
 
+		private String getOneAcceptorIp() {
+			var outIp = new OutObject<String>(null);
+			getConfig().forEachAcceptor2((a) -> { outIp.value = a.getIp(); return false; } );
+			if (null == outIp.value)
+				throw new RuntimeException("acceptor not found");
+			return outIp.value;
+		}
+
 		@Override
 		public void OnHandshakeDone(AsyncSocket so) throws Exception {
 			super.OnHandshakeDone(so);
-			Dbh2Manager.this.register();
+			Dbh2Manager.this.register(getOneAcceptorIp());
 		}
 
 	}

@@ -54,7 +54,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
             return errorCode(eBucketMissmatch);
 
         // allocate tid
-        var tid = 0; // todo allocate
+        var tid = stateMachine.getTidAllocator().next(stateMachine);
+
         r.Argument.setTransactionId(tid); // setup first
         var log = new LogBeginTransaction(r);
         r.Result.setTransactionId(tid); // prepare result before appendLog,
