@@ -47,7 +47,7 @@ namespace Zeze.Gen.java
 
         public static void Make(Bean bean, StreamWriter sw, string prefix, bool isData)
         {
-            var className = isData ? bean.Name + "DaTa" : bean.Name;
+            var className = isData ? bean.Name + ".Data" : bean.Name;
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public boolean equals(Object _o_) {");
             if (bean.Variables.Count > 0)

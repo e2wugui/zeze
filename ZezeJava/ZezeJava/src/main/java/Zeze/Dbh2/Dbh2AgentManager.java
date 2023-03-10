@@ -4,7 +4,7 @@ import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
-import Zeze.Dbh2.Master.MasterTableDaTa;
+import Zeze.Dbh2.Master.MasterTable;
 import Zeze.Net.Binary;
 import Zeze.Net.ServiceConf;
 import Zeze.Raft.RaftConfig;
@@ -21,7 +21,7 @@ public class Dbh2AgentManager {
 	// 多master支持
 	private final ConcurrentHashMap<String, MasterAgent> masterAgent = new ConcurrentHashMap<>();
 	// master->database->tableBuckets
-	private final ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, MasterTableDaTa>>>
+	private final ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, MasterTable.Data>>>
 			buckets = new ConcurrentHashMap<>();
 	// agent 不同 master 也装在一起。
 	private final ConcurrentHashMap<String, Dbh2Agent> agents = new ConcurrentHashMap<>();
@@ -55,7 +55,7 @@ public class Dbh2AgentManager {
 	public boolean createTable(
 			MasterAgent masterAgent, String masterName,
 			String databaseName, String tableName) {
-		var out = new OutObject<MasterTableDaTa>();
+		var out = new OutObject<MasterTable.Data>();
 		var isNew = masterAgent.createTable(databaseName, tableName, out);
 		putBuckets(out.value, masterName, databaseName, tableName);
 		return isNew;
@@ -92,7 +92,7 @@ public class Dbh2AgentManager {
 	}
 
 	public synchronized void putBuckets(
-			MasterTableDaTa buckets,
+			MasterTable.Data buckets,
 			String masterName,
 			String databaseName,
 			String tableName) {

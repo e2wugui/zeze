@@ -50,7 +50,7 @@ public class MasterAgent extends AbstractMasterAgent {
 		r.SendForWait(service.GetSocket()).await();
 	}
 
-	public boolean createTable(String database, String table, OutObject<MasterTableDaTa> out) {
+	public boolean createTable(String database, String table, OutObject<MasterTable.Data> out) {
 		var r = new CreateTable();
 		r.Argument.setDatabase(database);
 		r.Argument.setTable(table);
@@ -62,7 +62,7 @@ public class MasterAgent extends AbstractMasterAgent {
 		return IModule.getErrorCode(rc) == eTableIsNew;
 	}
 
-	public MasterTableDaTa getBuckets(String database, String table) {
+	public MasterTable.Data getBuckets(String database, String table) {
 		var r = new GetBuckets();
 		r.Argument.setDatabase(database);
 		r.Argument.setTable(table);

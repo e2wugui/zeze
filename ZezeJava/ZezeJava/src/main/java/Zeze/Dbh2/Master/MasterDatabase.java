@@ -3,7 +3,7 @@ package Zeze.Dbh2.Master;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Builtin.Dbh2.BBucketMetaDaTa;
+import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.Master.CreateBucket;
 import Zeze.Dbh2.Bucket;
 import Zeze.Dbh2.Dbh2Agent;
@@ -17,7 +17,7 @@ import org.rocksdb.RocksDBException;
 
 public class MasterDatabase {
 	private final String databaseName;
-	private final ConcurrentHashMap<String, MasterTableDaTa> tables = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, MasterTable.Data> tables = new ConcurrentHashMap<>();
 	private final RocksDB db;
 	private final Master master;
 
@@ -30,7 +30,7 @@ public class MasterDatabase {
 			try (var it = this.db.newIterator(Bucket.getDefaultReadOptions())) {
 				while (it.isValid()) {
 					var tableName = new String(it.key(), StandardCharsets.UTF_8);
-					var bTable = new MasterTableDaTa();
+					var bTable = new MasterTable.Data();
 					var bb = ByteBuffer.Wrap(it.value());
 					bTable.decode(bb);
 					tables.put(tableName, bTable);
@@ -46,20 +46,20 @@ public class MasterDatabase {
 		return databaseName;
 	}
 
-	public MasterTableDaTa getTable(String tableName) {
+	public MasterTable.Data getTable(String tableName) {
 		return tables.get(tableName);
 	}
 
-	public BBucketMetaDaTa locateBucket(String tableName, Binary key) {
+	public BBucketMeta.Data locateBucket(String tableName, Binary key) {
 		var bTable = getTable(tableName);
 		if (null == bTable)
 			return null;
 		return bTable.locate(key);
 	}
 
-	public MasterTableDaTa createTable(String tableName, OutObject<Boolean> outIsNew) throws Exception {
+	public MasterTable.Data createTable(String tableName, OutObject<Boolean> outIsNew) throws Exception {
 		outIsNew.value = false;
-		var table = this.tables.computeIfAbsent(tableName, (tbName) -> new MasterTableDaTa());
+		var table = this.tables.computeIfAbsent(tableName, (tbName) -> new MasterTable.Data());
 		if (table.created)
 			return table;
 
@@ -71,7 +71,7 @@ public class MasterDatabase {
 
 			outIsNew.value = true;
 
-			var bucket = new BBucketMetaDaTa();
+			var bucket = new BBucketMeta.Data();
 			bucket.setDatabaseName(databaseName);
 			bucket.setTableName(tableName);
 			bucket.setMoving(false);

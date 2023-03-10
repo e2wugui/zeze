@@ -5,12 +5,12 @@ import Zeze.Raft.Log;
 import Zeze.Raft.RaftLog;
 import Zeze.Raft.StateMachine;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Builtin.Dbh2.BPutArgumentDaTa;
+import Zeze.Builtin.Dbh2.BPutArgument;
 
 public class LogPut extends Log {
 	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(LogPut.class.getName());
 
-	private BPutArgumentDaTa argument;
+	private BPutArgument.Data argument;
 
 	public LogPut() {
 		this(null);
@@ -42,7 +42,7 @@ public class LogPut extends Log {
 	@Override
 	public void decode(ByteBuffer bb) {
 		super.decode(bb);
-		argument = new BPutArgumentDaTa();
+		argument = new BPutArgument.Data();
 		argument.decode(bb);
 	}
 }

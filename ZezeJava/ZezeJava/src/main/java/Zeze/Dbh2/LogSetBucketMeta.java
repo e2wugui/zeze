@@ -1,6 +1,6 @@
 package Zeze.Dbh2;
 
-import Zeze.Builtin.Dbh2.BBucketMetaDaTa;
+import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.SetBucketMeta;
 import Zeze.Raft.Log;
 import Zeze.Raft.RaftLog;
@@ -10,7 +10,7 @@ import Zeze.Serialize.ByteBuffer;
 public class LogSetBucketMeta extends Log {
 	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(LogSetBucketMeta.class.getName());
 
-	private BBucketMetaDaTa argument;
+	private BBucketMeta.Data argument;
 
 	public LogSetBucketMeta() {
 		this(null);
@@ -42,7 +42,7 @@ public class LogSetBucketMeta extends Log {
 	@Override
 	public void decode(ByteBuffer bb) {
 		super.decode(bb);
-		argument = new BBucketMetaDaTa();
+		argument = new BBucketMeta.Data();
 		argument.decode(bb);
 	}
 }

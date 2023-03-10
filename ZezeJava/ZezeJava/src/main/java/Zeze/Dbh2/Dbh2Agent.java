@@ -1,6 +1,6 @@
 package Zeze.Dbh2;
 
-import Zeze.Builtin.Dbh2.BBucketMetaDaTa;
+import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.BeginTransaction;
 import Zeze.Builtin.Dbh2.CommitTransaction;
 import Zeze.Builtin.Dbh2.Delete;
@@ -27,7 +27,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 	private final Dbh2Config config = new Dbh2Config();
 	private volatile long activeTime = System.currentTimeMillis();
 
-	public void setBucketMeta(BBucketMetaDaTa meta) {
+	public void setBucketMeta(BBucketMeta.Data meta) {
 		var r = new SetBucketMeta();
 		r.Argument = meta;
 		raftClient.sendForWait(r).await();

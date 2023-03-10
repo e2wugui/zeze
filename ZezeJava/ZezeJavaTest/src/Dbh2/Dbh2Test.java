@@ -1,7 +1,7 @@
 package Dbh2;
 
 import java.io.File;
-import Zeze.Builtin.Dbh2.BBucketMetaDaTa;
+import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Dbh2.Dbh2Agent;
 import Zeze.Net.Binary;
 import Zeze.Raft.LogSequence;
@@ -32,7 +32,7 @@ public class Dbh2Test {
 		final var db = "database";
 		final var tb = "table";
 		try {
-			var meta = new BBucketMetaDaTa();
+			var meta = new BBucketMeta.Data();
 			meta.setDatabaseName(db);
 			meta.setTableName(tb);
 			meta.setRaftConfig(raftConfigString);

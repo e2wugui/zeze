@@ -5,12 +5,12 @@ import Zeze.Raft.Log;
 import Zeze.Raft.RaftLog;
 import Zeze.Raft.StateMachine;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Builtin.Dbh2.BRollbackTransactionArgumentDaTa;
+import Zeze.Builtin.Dbh2.BRollbackTransactionArgument;
 
 public class LogRollbackTransaction extends Log {
 	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(LogRollbackTransaction.class.getName());
 
-	private BRollbackTransactionArgumentDaTa argument;
+	private BRollbackTransactionArgument.Data argument;
 
 	public LogRollbackTransaction() {
 		this(null);
@@ -42,7 +42,7 @@ public class LogRollbackTransaction extends Log {
 	@Override
 	public void decode(ByteBuffer bb) {
 		super.decode(bb);
-		argument = new BRollbackTransactionArgumentDaTa();
+		argument = new BRollbackTransactionArgument.Data();
 		argument.decode(bb);
 	}
 }

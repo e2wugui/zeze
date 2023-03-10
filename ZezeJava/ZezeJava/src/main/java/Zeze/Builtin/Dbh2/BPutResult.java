@@ -44,18 +44,18 @@ public final class BPutResult extends Zeze.Transaction.Bean implements BPutResul
     }
 
     @Override
-    public Zeze.Builtin.Dbh2.BPutResultDaTa toData() {
-        var data = new Zeze.Builtin.Dbh2.BPutResultDaTa();
+    public Zeze.Builtin.Dbh2.BPutResult.Data toData() {
+        var data = new Zeze.Builtin.Dbh2.BPutResult.Data();
         data.assign(this);
         return data;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.BPutResultDaTa)other);
+        assign((Zeze.Builtin.Dbh2.BPutResult.Data)other);
     }
 
-    public void assign(BPutResultDaTa other) {
+    public void assign(BPutResult.Data other) {
         setRaftConfig(other.getRaftConfig());
     }
 
@@ -165,4 +165,126 @@ public final class BPutResult extends Zeze.Transaction.Bean implements BPutResul
             }
         }
     }
+
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
+public static final class Data extends Zeze.Transaction.Data {
+    public static final long TYPEID = 2501510166579002026L;
+
+    private String _RaftConfig;
+
+    public String getRaftConfig() {
+        return _RaftConfig;
+    }
+
+    public void setRaftConfig(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _RaftConfig = value;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data() {
+        _RaftConfig = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(String _RaftConfig_) {
+        if (_RaftConfig_ == null)
+            throw new IllegalArgumentException();
+        _RaftConfig = _RaftConfig_;
+    }
+
+    @Override
+    public Zeze.Builtin.Dbh2.BPutResult toBean() {
+        var bean = new Zeze.Builtin.Dbh2.BPutResult();
+        bean.assign(this);
+        return bean;
+    }
+
+    @Override
+    public void assign(Zeze.Transaction.Bean other) {
+        assign((BPutResult)other);
+    }
+
+    public void assign(BPutResult other) {
+        setRaftConfig(other.getRaftConfig());
+    }
+
+    public void assign(BPutResult.Data other) {
+        setRaftConfig(other.getRaftConfig());
+    }
+
+    @Override
+    public BPutResult.Data copy() {
+        var copy = new BPutResult.Data();
+        copy.assign(this);
+        return copy;
+    }
+
+    public static void swap(BPutResult.Data a, BPutResult.Data b) {
+        var save = a.copy();
+        a.assign(b);
+        b.assign(save);
+    }
+
+    @Override
+    public long typeId() {
+        return TYPEID;
+    }
+
+    @Override
+    public String toString() {
+        var sb = new StringBuilder();
+        buildString(sb, 0);
+        return sb.append(System.lineSeparator()).toString();
+    }
+
+    @Override
+    public void buildString(StringBuilder sb, int level) {
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BPutResult: {").append(System.lineSeparator());
+        level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("RaftConfig=").append(getRaftConfig()).append(System.lineSeparator());
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    }
+
+    private static int _PRE_ALLOC_SIZE_ = 16;
+
+    @Override
+    public int preAllocSize() {
+        return _PRE_ALLOC_SIZE_;
+    }
+
+    @Override
+    public void preAllocSize(int size) {
+        _PRE_ALLOC_SIZE_ = size;
+    }
+
+    @Override
+    public void encode(ByteBuffer _o_) {
+        int _i_ = 0;
+        {
+            String _x_ = getRaftConfig();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        _o_.WriteByte(0);
+    }
+
+    @Override
+    public void decode(ByteBuffer _o_) {
+        int _t_ = _o_.ReadByte();
+        int _i_ = _o_.ReadTagSize(_t_);
+        if (_i_ == 1) {
+            setRaftConfig(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        while (_t_ != 0) {
+            _o_.SkipUnknownField(_t_);
+            _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+    }
+}
 }

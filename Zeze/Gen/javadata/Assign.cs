@@ -32,7 +32,7 @@ namespace Zeze.Gen.javadata
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
 
-            sw.WriteLine(prefix + "public void assign(" + bean.Name + "DaTa other) {");
+            sw.WriteLine(prefix + "public void assign(" + bean.Name + ".Data other) {");
             foreach (Variable var in bean.Variables)
                 var.VariableType.Accept(new Assign(var, sw, prefix + "    ", false));
             sw.WriteLine(prefix + "}");

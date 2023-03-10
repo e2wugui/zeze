@@ -1,10 +1,8 @@
 package Zeze.Dbh2.Master;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Builtin.Dbh2.Master.BRegisterDaTa;
+import Zeze.Builtin.Dbh2.Master.BRegister;
 import Zeze.Builtin.Dbh2.Master.CreateDatabase;
 import Zeze.Builtin.Dbh2.Master.CreateTable;
 import Zeze.Builtin.Dbh2.Master.GetBuckets;
@@ -17,15 +15,15 @@ public class Master extends AbstractMaster {
 	private final ConcurrentHashMap<String, MasterDatabase> databases = new ConcurrentHashMap<>();
 
 	// todo 可用Dbh2Manager的数据结构。
-	private final HashMap<AsyncSocket, BRegisterDaTa> managers = new HashMap<>();
+	private final HashMap<AsyncSocket, BRegister.Data> managers = new HashMap<>();
 
 	public Master() {
 
 	}
 
-	public HashMap<AsyncSocket, BRegisterDaTa> choiceManagers() {
+	public HashMap<AsyncSocket, BRegister.Data> choiceManagers() {
 		// todo 选择规则。。。大大的。
-		var result = new HashMap<AsyncSocket, BRegisterDaTa>();
+		var result = new HashMap<AsyncSocket, BRegister.Data>();
 		int i = 0;
 		for (var e : managers.entrySet()) {
 			result.put(e.getKey(), e.getValue());

@@ -4,11 +4,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
-import Zeze.Builtin.Dbh2.BBucketMetaDaTa;
+import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Net.Binary;
 import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
-import com.alibaba.druid.sql.visitor.functions.Bin;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
@@ -63,7 +62,7 @@ public class Bucket {
 	private final OptimisticTransactionDB db;
 	private final HashMap<String, ColumnFamilyHandle> cfHandles = new HashMap<>();
 	private final WriteOptions writeOptions = new WriteOptions();
-	private volatile BBucketMetaDaTa meta;
+	private volatile BBucketMeta.Data meta;
 	private long tid;
 	private final ColumnFamilyHandle cfMeta;
 	private final byte[] metaKey = new byte[] { 1 };
@@ -115,7 +114,7 @@ public class Bucket {
 		throw new RuntimeException("meta record not found");
 	}
 
-	public void setMeta(BBucketMetaDaTa meta) throws RocksDBException {
+	public void setMeta(BBucketMeta.Data meta) throws RocksDBException {
 		var bb = ByteBuffer.Allocate();
 		meta.encode(bb);
 		db.put(cfMeta, writeOptions, metaKey, 0, metaKey.length, bb.Bytes, bb.ReadIndex, bb.size());
@@ -164,7 +163,7 @@ public class Bucket {
 		db.close();
 	}
 
-	public BBucketMetaDaTa getMeta() {
+	public BBucketMeta.Data getMeta() {
 		return meta;
 	}
 }

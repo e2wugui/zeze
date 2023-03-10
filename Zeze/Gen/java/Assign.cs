@@ -16,18 +16,18 @@ namespace Zeze.Gen.java
             if (project.isData(bean))
             {
                 sw.WriteLine(prefix + "@Override");
-                sw.WriteLine(prefix + $"public {bean.FullName}DaTa toData() {{");
-                sw.WriteLine(prefix + $"    var data = new {bean.FullName}DaTa();");
+                sw.WriteLine(prefix + $"public {bean.FullName}.Data toData() {{");
+                sw.WriteLine(prefix + $"    var data = new {bean.FullName}.Data();");
                 sw.WriteLine(prefix + $"    data.assign(this);");
                 sw.WriteLine(prefix + $"    return data;");
                 sw.WriteLine(prefix + "}");
                 sw.WriteLine();
                 sw.WriteLine(prefix + "@Override");
                 sw.WriteLine(prefix + "public void assign(Zeze.Transaction.Data other) {");
-                sw.WriteLine(prefix + $"    assign(({bean.FullName}DaTa)other);");
+                sw.WriteLine(prefix + $"    assign(({bean.FullName}.Data)other);");
                 sw.WriteLine(prefix + "}");
                 sw.WriteLine();
-                sw.WriteLine(prefix + "public void assign(" + bean.Name + "DaTa other) {");
+                sw.WriteLine(prefix + "public void assign(" + bean.Name + ".Data other) {");
                 foreach (Variable var in bean.Variables)
                     var.VariableType.Accept(new Assign(var, sw, prefix + "    ", true));
                 sw.WriteLine(prefix + "}");

@@ -12,20 +12,14 @@ namespace Zeze.Gen.javadata
             this.bean = bean;
         }
 
-        public void Make(string baseDir)
+        public void Make(StreamWriter sw)
         {
-            using StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + "DaTa.java");
-
-            sw.WriteLine("// auto-generated @formatter:off");
-            sw.WriteLine("package " + bean.Space.Path() + ";");
-            sw.WriteLine();
-            sw.WriteLine("import Zeze.Serialize.ByteBuffer;");
             sw.WriteLine();
             if (bean.Comment.Length > 0)
                 sw.WriteLine(bean.Comment);
             sw.WriteLine("@SuppressWarnings({\"UnusedAssignment\", \"RedundantIfStatement\", \"SwitchStatementWithTooFewBranches\", \"RedundantSuppression\"})");
             var final = bean.Extendable ? "" : "final ";
-            sw.WriteLine($"public {final}class {bean.Name}DaTa extends Zeze.Transaction.Data {{");
+            sw.WriteLine($"public static {final}class Data extends Zeze.Transaction.Data {{");
             WriteDefine(sw);
             sw.WriteLine("}");
         }
@@ -42,7 +36,7 @@ namespace Zeze.Gen.javadata
             sw.WriteLine();
             sw.WriteLine($"{prefix}public static Zeze.Transaction.DynamicBeanData newDynamicBean_{var.NameUpper1}() {{");
             if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
-                sw.WriteLine($"{prefix}    return new Zeze.Transaction.DynamicBeanData({var.Id}, {bean.Name}DaTa::getSpecialTypeIdFromBean_{var.Id}, {bean.Name}DaTa::createBeanFromSpecialTypeId_{var.Id});");
+                sw.WriteLine($"{prefix}    return new Zeze.Transaction.DynamicBeanData({var.Id}, {bean.Name}.Data::getSpecialTypeIdFromBean_{var.Id}, {bean.Name}.Data::createBeanFromSpecialTypeId_{var.Id});");
             else
                 sw.WriteLine($"{prefix}    return new Zeze.Transaction.DynamicBeanData({var.Id}, {type.DynamicParams.GetSpecialTypeIdFromBean}, {type.DynamicParams.CreateBeanFromSpecialTypeId});");
             sw.WriteLine($"{prefix}}}");
@@ -52,8 +46,8 @@ namespace Zeze.Gen.javadata
             {
                 // 根据配置的实际类型生成switch。
                 sw.WriteLine($"{prefix}    var _typeId_ = bean.typeId();");
-                sw.WriteLine($"{prefix}    if (_typeId_ == Zeze.Transaction.EmptyBeanDaTa.TYPEID)");
-                sw.WriteLine($"{prefix}        return Zeze.Transaction.EmptyBeanDaTa.TYPEID;");
+                sw.WriteLine($"{prefix}    if (_typeId_ == Zeze.Transaction.EmptyBean.Data.TYPEID)");
+                sw.WriteLine($"{prefix}        return Zeze.Transaction.EmptyBean.Data.TYPEID;");
                 foreach (var real in type.RealBeans)
                 {
                     sw.WriteLine($"{prefix}    if (_typeId_ == {real.Value.TypeId}L)");
@@ -76,7 +70,7 @@ namespace Zeze.Gen.javadata
                 foreach (var real in type.RealBeans)
                 {
                     sw.WriteLine($"{prefix}    if (typeId == {real.Key}L)");
-                    sw.WriteLine($"{prefix}        return new {real.Value.FullName}DaTa();");
+                    sw.WriteLine($"{prefix}        return new {real.Value.FullName}.Data();");
                 }
                 sw.WriteLine($"{prefix}    return null;");
             }
@@ -131,13 +125,13 @@ namespace Zeze.Gen.javadata
             Assign.Make(bean, sw, "    ");
             // Copy
             sw.WriteLine("    @Override");
-            sw.WriteLine("    public " + bean.Name + "DaTa copy() {");
-            sw.WriteLine("        var copy = new " + bean.Name + "DaTa();");
+            sw.WriteLine("    public " + bean.Name + ".Data copy() {");
+            sw.WriteLine("        var copy = new " + bean.Name + ".Data();");
             sw.WriteLine("        copy.assign(this);");
             sw.WriteLine("        return copy;");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine($"    public static void swap({bean.Name}DaTa a, {bean.Name}DaTa b) {{");
+            sw.WriteLine($"    public static void swap({bean.Name}.Data a, {bean.Name}.Data b) {{");
             sw.WriteLine($"        var save = a.copy();");
             sw.WriteLine("        a.assign(b);");
             sw.WriteLine("        b.assign(save);");

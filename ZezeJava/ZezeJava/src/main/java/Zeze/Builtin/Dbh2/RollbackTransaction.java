@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Dbh2;
 
-public class RollbackTransaction extends Zeze.Raft.RaftRpc<Zeze.Builtin.Dbh2.BRollbackTransactionArgumentDaTa, Zeze.Builtin.Dbh2.BRollbackTransactionResultDaTa> {
+public class RollbackTransaction extends Zeze.Raft.RaftRpc<Zeze.Builtin.Dbh2.BRollbackTransactionArgument.Data, Zeze.Builtin.Dbh2.BRollbackTransactionResult.Data> {
     public static final int ModuleId_ = 11026;
     public static final int ProtocolId_ = -323506902; // 3971460394
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47360280866090
@@ -22,12 +22,12 @@ public class RollbackTransaction extends Zeze.Raft.RaftRpc<Zeze.Builtin.Dbh2.BRo
     }
 
     public RollbackTransaction() {
-        Argument = new Zeze.Builtin.Dbh2.BRollbackTransactionArgumentDaTa();
-        Result = new Zeze.Builtin.Dbh2.BRollbackTransactionResultDaTa();
+        Argument = new Zeze.Builtin.Dbh2.BRollbackTransactionArgument.Data();
+        Result = new Zeze.Builtin.Dbh2.BRollbackTransactionResult.Data();
     }
 
-    public RollbackTransaction(Zeze.Builtin.Dbh2.BRollbackTransactionArgumentDaTa arg) {
+    public RollbackTransaction(Zeze.Builtin.Dbh2.BRollbackTransactionArgument.Data arg) {
         Argument = arg;
-        Result = new Zeze.Builtin.Dbh2.BRollbackTransactionResultDaTa();
+        Result = new Zeze.Builtin.Dbh2.BRollbackTransactionResult.Data();
     }
 }

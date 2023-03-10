@@ -46,8 +46,6 @@ namespace Zeze.Gen.java
                     new rrjava.BeanFormatter(bean).Make(genDir);
                 else
                     new BeanFormatter(bean).Make(genDir, Project);
-                if (Project.isData(bean))
-                    new javadata.BeanFormatter(bean).Make(genDir);
             }
             foreach (Types.BeanKey beanKey in Project.AllBeanKeys.Values)
                 new BeanKeyFormatter(beanKey).Make(genDir);

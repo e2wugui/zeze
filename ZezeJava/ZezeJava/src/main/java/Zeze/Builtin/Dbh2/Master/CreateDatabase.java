@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Dbh2.Master;
 
-public class CreateDatabase extends Zeze.Net.Rpc<Zeze.Builtin.Dbh2.Master.BCreateDatabaseDaTa, Zeze.Transaction.EmptyBeanDaTa> {
+public class CreateDatabase extends Zeze.Net.Rpc<Zeze.Builtin.Dbh2.Master.BCreateDatabase.Data, Zeze.Transaction.EmptyBean.Data> {
     public static final int ModuleId_ = 11027;
     public static final int ProtocolId_ = 1368681472;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47361973054464
@@ -22,12 +22,12 @@ public class CreateDatabase extends Zeze.Net.Rpc<Zeze.Builtin.Dbh2.Master.BCreat
     }
 
     public CreateDatabase() {
-        Argument = new Zeze.Builtin.Dbh2.Master.BCreateDatabaseDaTa();
-        Result = Zeze.Transaction.EmptyBeanDaTa.instance;
+        Argument = new Zeze.Builtin.Dbh2.Master.BCreateDatabase.Data();
+        Result = Zeze.Transaction.EmptyBean.Data.instance;
     }
 
-    public CreateDatabase(Zeze.Builtin.Dbh2.Master.BCreateDatabaseDaTa arg) {
+    public CreateDatabase(Zeze.Builtin.Dbh2.Master.BCreateDatabase.Data arg) {
         Argument = arg;
-        Result = Zeze.Transaction.EmptyBeanDaTa.instance;
+        Result = Zeze.Transaction.EmptyBean.Data.instance;
     }
 }

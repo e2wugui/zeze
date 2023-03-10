@@ -4,12 +4,12 @@ import java.io.File;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
-import Zeze.Builtin.Dbh2.BBeginTransactionArgumentDaTa;
-import Zeze.Builtin.Dbh2.BBucketMetaDaTa;
-import Zeze.Builtin.Dbh2.BCommitTransactionArgumentDaTa;
-import Zeze.Builtin.Dbh2.BDeleteArgumentDaTa;
-import Zeze.Builtin.Dbh2.BPutArgumentDaTa;
-import Zeze.Builtin.Dbh2.BRollbackTransactionArgumentDaTa;
+import Zeze.Builtin.Dbh2.BBeginTransactionArgument;
+import Zeze.Builtin.Dbh2.BBucketMeta;
+import Zeze.Builtin.Dbh2.BCommitTransactionArgument;
+import Zeze.Builtin.Dbh2.BDeleteArgument;
+import Zeze.Builtin.Dbh2.BPutArgument;
+import Zeze.Builtin.Dbh2.BRollbackTransactionArgument;
 import Zeze.Raft.LogSequence;
 import Zeze.Raft.Raft;
 import org.apache.logging.log4j.LogManager;
@@ -51,7 +51,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		tidAllocator = new TidAllocator();
 	}
 
-	public void setBucketMeta(BBucketMetaDaTa argument) {
+	public void setBucketMeta(BBucketMeta.Data argument) {
 		try {
 			bucket.setMeta(argument);
 		} catch (RocksDBException e) {
@@ -74,13 +74,13 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	public void beginTransaction(BBeginTransactionArgumentDaTa argument) {
+	public void beginTransaction(BBeginTransactionArgument.Data argument) {
 		var transaction = bucket.beginTransaction();
 		if (null != transactionMap.putIfAbsent(argument.getTransactionId(), transaction))
 			getRaft().fatalKill();
 	}
 
-	public void commitTransaction(BCommitTransactionArgumentDaTa argument) {
+	public void commitTransaction(BCommitTransactionArgument.Data argument) {
 		try {
 			var transaction = transactionMap.get(argument.getTransactionId());
 			transaction.commit();
@@ -90,7 +90,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	public void rollbackTransaction(BRollbackTransactionArgumentDaTa argument) {
+	public void rollbackTransaction(BRollbackTransactionArgument.Data argument) {
 		try {
 			var transaction = transactionMap.get(argument.getTransactionId());
 			transaction.rollback();
@@ -100,7 +100,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	public void put(BPutArgumentDaTa argument) {
+	public void put(BPutArgument.Data argument) {
 		try {
 			var transaction = transactionMap.get(argument.getTransactionId());
 			transaction.put(argument.getKey().bytesUnsafe(), argument.getValue().bytesUnsafe());
@@ -110,7 +110,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	public void delete(BDeleteArgumentDaTa argument) {
+	public void delete(BDeleteArgument.Data argument) {
 		try {
 			var transaction = transactionMap.get(argument.getTransactionId());
 			transaction.delete(argument.getKey().bytesUnsafe());
