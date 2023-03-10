@@ -492,8 +492,12 @@ public final class Json {
 		Json.getClassMeta(ByteBuffer.class).setWriter((writer, classMeta, obj) -> {
 			if (obj == null)
 				writer.write(null);
-			else
-				writer.write(obj.Bytes, obj.ReadIndex, obj.Size(), false);
+			else {
+				writer.ensure(15);
+				writer.write("[" + obj.size() + ']', false);
+				// writer.ensure(obj.size() * 6 + 2);
+				// writer.write(obj.Bytes, obj.ReadIndex, obj.Size(), false);
+			}
 		});
 
 		Json.getClassMeta(Binary.class).setParser((reader, classMeta, obj, parent) ->
@@ -501,8 +505,12 @@ public final class Json {
 		Json.getClassMeta(Binary.class).setWriter((writer, classMeta, obj) -> {
 			if (obj == null)
 				writer.write(null);
-			else
-				writer.write(obj.bytesUnsafe(), obj.getOffset(), obj.size(), false);
+			else {
+				writer.ensure(15);
+				writer.write("[" + obj.size() + ']', false);
+				// writer.ensure(obj.size() * 6 + 2);
+				// writer.write(obj.bytesUnsafe(), obj.getOffset(), obj.size(), false);
+			}
 		});
 
 		Json.getClassMeta(DynamicBean.class).setParser((reader, classMeta, obj, parent) -> {
