@@ -2,6 +2,7 @@ package Zeze.Util;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
@@ -68,13 +69,14 @@ public final class TaskOneByOneByKey {
 			this.count = count;
 		}
 
-		public void reach() throws InterruptedException {
+		public void reach(int sum) throws InterruptedException {
 			lock.lock();
 			try {
 				if (canceled)
 					return;
 
-				if (--count > 0)
+				count -= sum;
+				if (count > 0)
 					cond.await();
 				else {
 					try {
@@ -116,8 +118,19 @@ public final class TaskOneByOneByKey {
 			throw new IllegalArgumentException("CyclicBarrier keys is empty.");
 
 		var barrier = new Barrier(procedure, keys.size(), cancel);
-		for (var key : keys)
-			Execute(key, barrier::reach, barrier.procedure.getActionName(), barrier::cancel, mode);
+		var group = new HashMap<TaskOneByOne, OutInt>();
+		for (var key : keys) {
+			var count = group.computeIfAbsent(bucket(key), (_key_) -> new OutInt(0));
+			count.value += 1;
+		}
+		for (var e : group.entrySet()) {
+			var sum = e.getValue().value;
+			e.getKey().execute(
+					() -> barrier.reach(sum),
+					barrier.procedure.getActionName(),
+					barrier::cancel,
+					mode);
+		}
 	}
 
 	public static class BarrierAction {
@@ -136,7 +149,7 @@ public final class TaskOneByOneByKey {
 			this.cancel = cancel;
 		}
 
-		public void reach() throws InterruptedException {
+		public void reach(int sum) throws InterruptedException {
 			lock.lock();
 			try {
 				if (canceled)
@@ -179,13 +192,26 @@ public final class TaskOneByOneByKey {
 		}
 	}
 
-	public <T> void executeCyclicBarrier(Collection<T> keys, String actionName, Action0 action, Action0 cancel, DispatchMode mode) {
+	public <T> void executeCyclicBarrier(
+			Collection<T> keys,
+			String actionName,
+			Action0 action,
+			Action0 cancel,
+			DispatchMode mode) {
+
 		if (keys.isEmpty())
 			throw new IllegalArgumentException("CyclicBarrier keys is empty.");
 
 		var barrier = new BarrierAction(actionName, action, keys.size(), cancel);
-		for (var key : keys)
-			Execute(key, barrier::reach, actionName, barrier::cancel, mode);
+		var group = new HashMap<TaskOneByOne, OutInt>();
+		for (var key : keys) {
+			var count = group.computeIfAbsent(bucket(key), (_key_) -> new OutInt(0));
+			count.value += 1;
+		}
+		for (var e : group.entrySet()) {
+			var sum = e.getValue().value;
+			e.getKey().execute(() -> barrier.reach(sum), actionName, barrier::cancel, mode);
+		}
 	}
 
 	public static class Batch<T> {
@@ -289,6 +315,10 @@ public final class TaskOneByOneByKey {
 		if (action == null)
 			throw new IllegalArgumentException("null action");
 		concurrency[hash(key) & hashMask].execute(action, name, cancel, mode);
+	}
+
+	private final TaskOneByOne bucket(Object key) {
+		return concurrency[hash(key.hashCode()) & hashMask];
 	}
 
 	public void Execute(int key, Func0<?> func) {
