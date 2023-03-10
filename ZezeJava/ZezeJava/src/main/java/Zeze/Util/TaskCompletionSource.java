@@ -55,11 +55,6 @@ public class TaskCompletionSource<R> implements Future<R> {
 		return setRawResult(r);
 	}
 
-	@Deprecated //use setResult
-	public boolean SetResult(R r) {
-		return setResult(r);
-	}
-
 	public boolean trySetException(Throwable e) {
 		return setRawResult(new ExecutionException(e));
 	}

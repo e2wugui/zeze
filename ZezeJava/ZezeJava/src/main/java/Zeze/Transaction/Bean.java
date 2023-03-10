@@ -13,8 +13,7 @@ public abstract class Bean implements Serializable {
 	public static final int MAX_VARIABLE_ID = OBJECT_ID_STEP - 1;
 	private static final AtomicLong objectIdGen = new AtomicLong();
 
-	// 这个方法应该仅用于内部。
-	@Deprecated
+	@Deprecated // 这个方法应该仅用于内部。
 	public static long nextObjectId() {
 		return objectIdGen.addAndGet(OBJECT_ID_STEP);
 	}
@@ -55,8 +54,7 @@ public abstract class Bean implements Serializable {
 		return variableId;
 	}
 
-	// 这个方法应该仅用于内部。
-	@Deprecated
+	@Deprecated // 这个方法应该仅用于内部。
 	public final void variableId(int value) {
 		variableId = value;
 	}

@@ -1092,7 +1092,7 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 		}
 
 		@SuppressWarnings("static-method")
-		@Deprecated
+		@Deprecated // unsupported
 		public final void remove() {
 			throw new UnsupportedOperationException();
 		}

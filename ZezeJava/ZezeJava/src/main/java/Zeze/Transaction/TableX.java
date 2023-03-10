@@ -741,11 +741,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return lastKey != null ? decodeKey(lastKey) : null;
 	}
 
-	@Deprecated
-	public final long Walk(TableWalkHandle<K, V> callback) {
-		return walk(callback, null);
-	}
-
 	private boolean invokeCallback(byte[] key, byte[] value, TableWalkHandle<K, V> callback) {
 		K k = decodeKey(ByteBuffer.Wrap(key));
 		var lockey = getZeze().getLocks().get(new TableKey(getId(), k));
@@ -796,11 +791,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return callback.handle(k);
 	}
 
-	@Deprecated
-	public final long Walk(TableWalkHandle<K, V> callback, Runnable afterLock) {
-		return walk(callback, afterLock);
-	}
-
 	public final long walk(TableWalkHandle<K, V> callback, Runnable afterLock) {
 		if (Transaction.getCurrent() != null)
 			throw new IllegalStateException("must be called without transaction");
@@ -833,11 +823,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		});
 	}
 
-	@Deprecated
-	public final long WalkCacheKey(TableWalkKey<K> callback) {
-		return walkCacheKey(callback);
-	}
-
 	public final long walkCacheKey(TableWalkKey<K> callback) {
 		return cache.walkKey(callback);
 	}
@@ -865,11 +850,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return storage.getDatabaseTable().walkDesc(callback);
 	}
 
-	@Deprecated
-	public final long WalkDatabase(TableWalkHandleRaw callback) {
-		return walkDatabase(callback);
-	}
-
 	/**
 	 * 遍历数据库中的表。看不到本地缓存中的数据。
 	 * 【并发】后台数据库处理并发。
@@ -893,11 +873,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		});
 	}
 
-	@Deprecated
-	public final long WalkDatabase(TableWalkHandle<K, V> callback) {
-		return walkDatabase(callback);
-	}
-
 	/**
 	 * 事务外调用
 	 * 遍历缓存
@@ -906,11 +881,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 */
 	public final long walkCache(TableWalkHandle<K, V> callback) {
 		return walkCache(callback, null);
-	}
-
-	@Deprecated
-	public final long WalkCache(TableWalkHandle<K, V> callback) {
-		return walkCache(callback);
 	}
 
 	public final long walkCache(TableWalkHandle<K, V> callback, Runnable afterLock) {
@@ -940,11 +910,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				afterLock.run();
 		}
 		return count;
-	}
-
-	@Deprecated
-	public final long WalkCache(TableWalkHandle<K, V> callback, Runnable afterLock) {
-		return walkCache(callback, afterLock);
 	}
 
 	/**

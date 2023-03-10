@@ -52,7 +52,7 @@ public final class Application {
 	private final Locks locks = new Locks();
 	private final AbstractAgent serviceManager;
 	private AutoKey.Module autoKey;
-	@Deprecated
+	@Deprecated // 暂时保留
 	private AutoKeyOld.Module autoKeyOld;
 	private Timer timer;
 	private Zeze.Collections.Queue.Module queueModule;
@@ -239,7 +239,7 @@ public final class Application {
 		return autoKey.getOrAdd(name);
 	}
 
-	@Deprecated
+	@Deprecated // 暂时保留
 	public AutoKeyOld getAutoKeyOld(String name) {
 		return autoKeyOld.getOrAdd(name);
 	}
@@ -254,11 +254,6 @@ public final class Application {
 
 	public DelayRemove getDelayRemove() {
 		return delayRemove;
-	}
-
-	@Deprecated //use newProcedure
-	public Procedure NewProcedure(FuncLong action, String actionName) {
-		return newProcedure(action, actionName);
 	}
 
 	public Procedure newProcedure(FuncLong action, String actionName) {

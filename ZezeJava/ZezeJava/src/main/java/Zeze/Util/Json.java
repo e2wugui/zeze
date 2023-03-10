@@ -321,7 +321,7 @@ public final class Json {
 		}
 
 		@SuppressWarnings("unchecked")
-		@Deprecated
+		@Deprecated // unsafe
 		public void setParserUnsafe(@Nullable Parser<?> p) { // DANGEROUS! only for special purpose
 			parser = (Parser<T>)p;
 		}

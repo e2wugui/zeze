@@ -23,11 +23,6 @@ public interface IModule {
 	default void UnRegister() { // 为了重新装载 Module 的补丁。注册在构造函数里面进行。
 	}
 
-	@Deprecated //use errorCode
-	default long ErrorCode(int code) {
-		return errorCode(code);
-	}
-
 	default long errorCode(int code) {
 		return errorCode(getId(), code);
 	}

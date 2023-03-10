@@ -12,7 +12,7 @@ import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 import Zeze.Transaction.Transaction;
 
-@Deprecated
+@Deprecated // 暂时保留
 public final class AutoKeyOld {
 	public static class Module extends AbstractAutoKeyOld {
 		private final ConcurrentHashMap<String, AutoKeyOld> map = new ConcurrentHashMap<>();

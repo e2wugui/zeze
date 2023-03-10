@@ -5,16 +5,6 @@ public interface Serializable {
 
 	void decode(ByteBuffer bb);
 
-	@Deprecated //use encode 暂时兼容
-	default void Encode(ByteBuffer bb) {
-		encode(bb);
-	}
-
-	@Deprecated //use decode 暂时兼容
-	default void Decode(ByteBuffer bb) {
-		decode(bb);
-	}
-
 	default int preAllocSize() {
 		return 16;
 	}
