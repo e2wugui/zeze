@@ -1,8 +1,10 @@
 package Dbh2;
 
+import java.io.File;
 import Zeze.Builtin.Dbh2.BBucketMetaDaTa;
 import Zeze.Dbh2.Dbh2Agent;
 import Zeze.Net.Binary;
+import Zeze.Raft.LogSequence;
 import Zeze.Raft.RaftConfig;
 import org.junit.Assert;
 import org.junit.Test;
@@ -55,6 +57,11 @@ public class Dbh2Test {
 			dbh2_3.close();
 			dbh2_2.close();
 			dbh2_1.close();
+
+			// 这个测试不持久化，为了不影响其他测试（可能使用相同的配置），运行结束删除持久化的目录。
+			LogSequence.deleteDirectory(new File(dbh2_3.getRaft().getRaftConfig().getDbHome()));
+			LogSequence.deleteDirectory(new File(dbh2_2.getRaft().getRaftConfig().getDbHome()));
+			LogSequence.deleteDirectory(new File(dbh2_1.getRaft().getRaftConfig().getDbHome()));
 		}
 	}
 

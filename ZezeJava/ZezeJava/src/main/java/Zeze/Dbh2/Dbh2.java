@@ -20,6 +20,10 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
     private final Raft raft;
     private final Dbh2StateMachine stateMachine;
 
+    public Raft getRaft() {
+        return raft;
+    }
+
     public Dbh2(String raftName, RaftConfig raftConf, Config config, boolean writeOptionSync) {
         if (config == null)
             config = new Config().addCustomize(this.config).loadAndParse();
