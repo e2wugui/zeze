@@ -18,11 +18,15 @@ Benchmark.BBasicSimpleAddConcurrentWithConflict tasks/s=217785.84 time=4.59 cpu=
 Benchmark.CBasicSimpleAddConcurrent tasks/s=96997.63 time=10.31 cpu=100.00 concurrent=9.70
 Focus Document
 
+Gen 第二次运行才生成 Data
+Dbh2 麻雀版跑起来
+
 ------------------------------------------------------------------------------------------------------------------------------
 2023/3/15 v1.2.0 
 ------------------------------------------------------------------------------------------------------------------------------
+Dbh2 麻雀版完成 【待测试】
 RocksDb Test key+commit_ts 的查询。
-Transaction.Undo ?
+Transaction.Undo ? 【还是没确定方案】
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/3/1 v1.1.9 Zeze.Transaction.Data; protocolref import; New Dispatch Protocol For Procedure; Online.sendOneByOne；AutoKey Random
