@@ -33,6 +33,7 @@ public final class BRollbackTransactionArgumentDaTa extends Zeze.Transaction.Dat
         return bean;
     }
 
+    @Override
     public void assign(Zeze.Transaction.Bean other) {
         assign((BRollbackTransactionArgument)other);
     }
@@ -117,5 +118,4 @@ public final class BRollbackTransactionArgumentDaTa extends Zeze.Transaction.Dat
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
     }
-
 }

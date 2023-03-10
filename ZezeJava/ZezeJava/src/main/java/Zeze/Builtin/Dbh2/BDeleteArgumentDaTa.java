@@ -78,6 +78,7 @@ public final class BDeleteArgumentDaTa extends Zeze.Transaction.Data {
         return bean;
     }
 
+    @Override
     public void assign(Zeze.Transaction.Bean other) {
         assign((BDeleteArgument)other);
     }
@@ -204,5 +205,4 @@ public final class BDeleteArgumentDaTa extends Zeze.Transaction.Data {
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
     }
-
 }
