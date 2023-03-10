@@ -160,7 +160,7 @@ public class DelayRemove extends AbstractDelayRemove {
 				// 这是个不精确的删除过期的方法。
 				if (!node.getValues().isEmpty()) {
 					var first = (BTableKey)node.getValues().get(0).getValue().getBean();
-					if (diffMills < System.currentTimeMillis() - first.getEnqueueTime()) {
+					if (diffMills > System.currentTimeMillis() - first.getEnqueueTime()) {
 						removing.value = false;
 						return 0;
 					}
