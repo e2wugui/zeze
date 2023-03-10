@@ -122,6 +122,17 @@ b) OptimisticTransactionDB+Transaction
           这个做法有点raft机制的味道。
           灾难：broadcast没有送达。
       分发问题可以继续，暂停一下。
+今天在几位同事提示下，对Commit的两个问题（张路新提了一个）重新定个方案。
+1. commit 执行中断（张路新问题）。这个问题参考完整的2段提交协议即可。
+    https://blog.csdn.net/lengxiao1993/article/details/88290514，最简单的
+    说明就是，agent开始调用commit前在本地落地一个事务准备好提交的记录。
+    如果中断，重启后继续commit。这个问题复杂点还涉及server端的记录（还没细想）。
+    但是由于zeze事务要求串行化，当GameServer宕机以后，必须在短时间内重启并继续
+    提交事务，否则宕机以后超时会被Global踢出（释放锁），其他的Gs会得到锁继续访问
+    数据，但此时数据是不完整的。暂时结论：这个问题先放放。
+2. Commit失败的处理（昨天的问题的另一个方案）。让dbh2的事务支持undo。简单说明一下做法。
+    a) dbh2.table.putOrDelete 总是加入新的记录，实际key为 key + commit_ts，这样就有了多个版本。
+    b) commit发现失败以后，把已经提交的undo掉，就是把last=key+commit_ts删除即回复了。*）这个方案也有时效性，需要定时删除oldkey。
 
 4. 桶按key排序分段，写入是怎么提高并发。
     hash方式看起来具有极大的并发写入速度。

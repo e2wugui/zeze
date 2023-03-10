@@ -550,7 +550,6 @@ public class Online extends AbstractOnline {
 	public static final class RoleOnLink {
 		String linkName = "";
 		AsyncSocket linkSocket;
-		int serverId = -1;
 		// long providerSessionId;
 		final HashMap<Long, Long> roles = new HashMap<>(); // roleid -> linksid
 		final HashMap<Long, Long> contexts = new HashMap<>(); // linksid -> roleid
@@ -579,12 +578,10 @@ public class Online extends AbstractOnline {
 			}
 			// 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
 			var group = groups.get(online.getLinkName());
-			var version = _tversion.getOrAdd(roleId);
 			if (group == null) {
 				group = new RoleOnLink();
 				group.linkName = online.getLinkName();
 				group.linkSocket = connector.getSocket();
-				group.serverId = version.getServerId();
 				groups.put(group.linkName, group);
 			}
 			group.roles.putIfAbsent(roleId, online.getLinkSid());

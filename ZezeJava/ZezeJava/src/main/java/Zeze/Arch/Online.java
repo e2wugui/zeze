@@ -539,8 +539,6 @@ public class Online extends AbstractOnline {
 				group = new LoginOnLink();
 				group.linkName = login.getLinkName();
 				group.linkSocket = connector.getSocket();
-				// 上面online存在Login的时，下面version也肯定存在相应的Login。
-				group.serverId = _tversion.getOrAdd(alogin.account).getLogins().getOrAdd(alogin.clientId).getServerId();
 				groups.putIfAbsent(group.linkName, group);
 			}
 			group.logins.putIfAbsent(alogin, login.getLinkSid());
@@ -586,7 +584,6 @@ public class Online extends AbstractOnline {
 	public static class LoginOnLink {
 		public String linkName = ""; // empty when not online
 		public AsyncSocket linkSocket; // null if not online
-		public int serverId = -1;
 		public long providerSessionId;
 		public final HashMap<LoginKey, Long> logins = new HashMap<>();
 		public final HashMap<Long, LoginKey> contexts = new HashMap<>();
@@ -718,8 +715,6 @@ public class Online extends AbstractOnline {
 					group = new LoginOnLink();
 					group.linkName = e.getValue().getLinkName();
 					group.linkSocket = connector.getSocket();
-					// 上面online存在Login的时，下面version也肯定存在相应的Login。
-					group.serverId = (_tversion.getOrAdd(account)).getLogins().getOrAdd(e.getKey()).getServerId();
 					groups.putIfAbsent(group.linkName, group);
 				}
 				group.logins.putIfAbsent(login, e.getValue().getLinkSid());
