@@ -131,11 +131,6 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
         setLoginVersion(other.getLoginVersion());
     }
 
-    @Deprecated
-    public void Assign(BGameOnlineTimer other) {
-        assign(other);
-    }
-
     public BGameOnlineTimer copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -145,11 +140,6 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
         var copy = new BGameOnlineTimer();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BGameOnlineTimer Copy() {
-        return copy();
     }
 
     public static void swap(BGameOnlineTimer a, BGameOnlineTimer b) {

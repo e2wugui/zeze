@@ -93,11 +93,6 @@ public final class BRankValue extends Zeze.Transaction.Bean implements BRankValu
         setValueEx(other.getValueEx());
     }
 
-    @Deprecated
-    public void Assign(BRankValue other) {
-        assign(other);
-    }
-
     public BRankValue copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -107,11 +102,6 @@ public final class BRankValue extends Zeze.Transaction.Bean implements BRankValu
         var copy = new BRankValue();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BRankValue Copy() {
-        return copy();
     }
 
     public static void swap(BRankValue a, BRankValue b) {

@@ -29,11 +29,6 @@ public final class BSendResult extends Zeze.Transaction.Bean implements BSendRes
         _ErrorLinkSids.addAll(other.getErrorLinkSids());
     }
 
-    @Deprecated
-    public void Assign(BSendResult other) {
-        assign(other);
-    }
-
     public BSendResult copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -43,11 +38,6 @@ public final class BSendResult extends Zeze.Transaction.Bean implements BSendRes
         var copy = new BSendResult();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BSendResult Copy() {
-        return copy();
     }
 
     public static void swap(BSendResult a, BSendResult b) {

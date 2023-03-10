@@ -58,11 +58,6 @@ public final class BRollbackTransactionArgument extends Zeze.Transaction.Bean im
         setTransactionId(other.getTransactionId());
     }
 
-    @Deprecated
-    public void Assign(BRollbackTransactionArgument other) {
-        assign(other);
-    }
-
     public BRollbackTransactionArgument copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -72,11 +67,6 @@ public final class BRollbackTransactionArgument extends Zeze.Transaction.Bean im
         var copy = new BRollbackTransactionArgument();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BRollbackTransactionArgument Copy() {
-        return copy();
     }
 
     public static void swap(BRollbackTransactionArgument a, BRollbackTransactionArgument b) {

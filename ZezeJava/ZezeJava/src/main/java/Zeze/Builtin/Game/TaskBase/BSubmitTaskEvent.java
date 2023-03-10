@@ -42,11 +42,6 @@ public final class BSubmitTaskEvent extends Zeze.Transaction.Bean implements BSu
         setTaskId(other.getTaskId());
     }
 
-    @Deprecated
-    public void Assign(BSubmitTaskEvent other) {
-        assign(other);
-    }
-
     public BSubmitTaskEvent copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -56,11 +51,6 @@ public final class BSubmitTaskEvent extends Zeze.Transaction.Bean implements BSu
         var copy = new BSubmitTaskEvent();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BSubmitTaskEvent Copy() {
-        return copy();
     }
 
     public static void swap(BSubmitTaskEvent a, BSubmitTaskEvent b) {

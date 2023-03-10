@@ -66,11 +66,6 @@ public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
             _Share.add(e);
     }
 
-    @Deprecated
-    public void Assign(BCacheState other) {
-        assign(other);
-    }
-
     public BCacheState copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -80,11 +75,6 @@ public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
         var copy = new BCacheState();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BCacheState Copy() {
-        return copy();
     }
 
     public static void swap(BCacheState a, BCacheState b) {

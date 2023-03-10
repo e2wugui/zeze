@@ -42,11 +42,6 @@ public final class BAcceptTaskEvent extends Zeze.Transaction.Bean implements BAc
         setTaskId(other.getTaskId());
     }
 
-    @Deprecated
-    public void Assign(BAcceptTaskEvent other) {
-        assign(other);
-    }
-
     public BAcceptTaskEvent copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -56,11 +51,6 @@ public final class BAcceptTaskEvent extends Zeze.Transaction.Bean implements BAc
         var copy = new BAcceptTaskEvent();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BAcceptTaskEvent Copy() {
-        return copy();
     }
 
     public static void swap(BAcceptTaskEvent a, BAcceptTaskEvent b) {

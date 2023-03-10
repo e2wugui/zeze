@@ -190,11 +190,6 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
         setCurrentSubPhaseId(other.getCurrentSubPhaseId());
     }
 
-    @Deprecated
-    public void Assign(BTaskPhase other) {
-        assign(other);
-    }
-
     public BTaskPhase copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -204,11 +199,6 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
         var copy = new BTaskPhase();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BTaskPhase Copy() {
-        return copy();
     }
 
     public static void swap(BTaskPhase a, BTaskPhase b) {

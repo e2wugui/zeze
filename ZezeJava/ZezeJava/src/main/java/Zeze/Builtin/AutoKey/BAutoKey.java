@@ -42,11 +42,6 @@ public final class BAutoKey extends Zeze.Transaction.Bean implements BAutoKeyRea
         setNextId(other.getNextId());
     }
 
-    @Deprecated
-    public void Assign(BAutoKey other) {
-        assign(other);
-    }
-
     public BAutoKey copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -56,11 +51,6 @@ public final class BAutoKey extends Zeze.Transaction.Bean implements BAutoKeyRea
         var copy = new BAutoKey();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BAutoKey Copy() {
-        return copy();
     }
 
     public static void swap(BAutoKey a, BAutoKey b) {

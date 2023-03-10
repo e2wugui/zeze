@@ -30,11 +30,6 @@ public final class BOnlines extends Zeze.Transaction.Bean implements BOnlinesRea
             _Logins.put(e.getKey(), e.getValue().copy());
     }
 
-    @Deprecated
-    public void Assign(BOnlines other) {
-        assign(other);
-    }
-
     public BOnlines copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -44,11 +39,6 @@ public final class BOnlines extends Zeze.Transaction.Bean implements BOnlinesRea
         var copy = new BOnlines();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BOnlines Copy() {
-        return copy();
     }
 
     public static void swap(BOnlines a, BOnlines b) {

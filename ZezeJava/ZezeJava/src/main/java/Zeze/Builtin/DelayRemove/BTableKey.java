@@ -98,11 +98,6 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
         setEnqueueTime(other.getEnqueueTime());
     }
 
-    @Deprecated
-    public void Assign(BTableKey other) {
-        assign(other);
-    }
-
     public BTableKey copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -112,11 +107,6 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
         var copy = new BTableKey();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BTableKey Copy() {
-        return copy();
     }
 
     public static void swap(BTableKey a, BTableKey b) {

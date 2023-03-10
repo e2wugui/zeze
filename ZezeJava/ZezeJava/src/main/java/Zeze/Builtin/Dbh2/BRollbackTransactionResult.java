@@ -29,11 +29,6 @@ public final class BRollbackTransactionResult extends Zeze.Transaction.Bean impl
     public void assign(BRollbackTransactionResult other) {
     }
 
-    @Deprecated
-    public void Assign(BRollbackTransactionResult other) {
-        assign(other);
-    }
-
     public BRollbackTransactionResult copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -43,11 +38,6 @@ public final class BRollbackTransactionResult extends Zeze.Transaction.Bean impl
         var copy = new BRollbackTransactionResult();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BRollbackTransactionResult Copy() {
-        return copy();
     }
 
     public static void swap(BRollbackTransactionResult a, BRollbackTransactionResult b) {

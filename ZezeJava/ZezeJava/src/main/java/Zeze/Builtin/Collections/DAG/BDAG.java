@@ -121,11 +121,6 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
         setEndNode(other.getEndNode());
     }
 
-    @Deprecated
-    public void Assign(BDAG other) {
-        assign(other);
-    }
-
     public BDAG copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -135,11 +130,6 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
         var copy = new BDAG();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BDAG Copy() {
-        return copy();
     }
 
     public static void swap(BDAG a, BDAG b) {

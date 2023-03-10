@@ -109,11 +109,6 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
         setSubscribeType(other.getSubscribeType());
     }
 
-    @Deprecated
-    public void Assign(BModule other) {
-        assign(other);
-    }
-
     public BModule copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -123,11 +118,6 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
         var copy = new BModule();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BModule Copy() {
-        return copy();
     }
 
     public static void swap(BModule a, BModule b) {

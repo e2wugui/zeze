@@ -29,11 +29,6 @@ public final class BOfflineTimers extends Zeze.Transaction.Bean implements BOffl
         _OfflineTimers.putAll(other.getOfflineTimers());
     }
 
-    @Deprecated
-    public void Assign(BOfflineTimers other) {
-        assign(other);
-    }
-
     public BOfflineTimers copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -43,11 +38,6 @@ public final class BOfflineTimers extends Zeze.Transaction.Bean implements BOffl
         var copy = new BOfflineTimers();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BOfflineTimers Copy() {
-        return copy();
     }
 
     public static void swap(BOfflineTimers a, BOfflineTimers b) {

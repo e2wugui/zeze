@@ -116,11 +116,6 @@ public final class BBeginTransactionArgument extends Zeze.Transaction.Bean imple
         setTransactionId(other.getTransactionId());
     }
 
-    @Deprecated
-    public void Assign(BBeginTransactionArgument other) {
-        assign(other);
-    }
-
     public BBeginTransactionArgument copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -130,11 +125,6 @@ public final class BBeginTransactionArgument extends Zeze.Transaction.Bean imple
         var copy = new BBeginTransactionArgument();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BBeginTransactionArgument Copy() {
-        return copy();
     }
 
     public static void swap(BBeginTransactionArgument a, BBeginTransactionArgument b) {

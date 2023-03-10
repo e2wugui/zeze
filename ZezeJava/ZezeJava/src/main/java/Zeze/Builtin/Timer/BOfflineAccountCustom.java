@@ -181,11 +181,6 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
         _CustomData.assign(other.getCustomData());
     }
 
-    @Deprecated
-    public void Assign(BOfflineAccountCustom other) {
-        assign(other);
-    }
-
     public BOfflineAccountCustom copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -195,11 +190,6 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
         var copy = new BOfflineAccountCustom();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BOfflineAccountCustom Copy() {
-        return copy();
     }
 
     public static void swap(BOfflineAccountCustom a, BOfflineAccountCustom b) {

@@ -141,11 +141,6 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
         _Data.assign(other.getData());
     }
 
-    @Deprecated
-    public void Assign(BDepartmentTreeNode other) {
-        assign(other);
-    }
-
     public BDepartmentTreeNode copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -155,11 +150,6 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
         var copy = new BDepartmentTreeNode();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BDepartmentTreeNode Copy() {
-        return copy();
     }
 
     public static void swap(BDepartmentTreeNode a, BDepartmentTreeNode b) {

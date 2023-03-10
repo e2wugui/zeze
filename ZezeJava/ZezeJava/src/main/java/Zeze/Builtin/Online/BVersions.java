@@ -59,11 +59,6 @@ public final class BVersions extends Zeze.Transaction.Bean implements BVersionsR
         setLastLoginVersion(other.getLastLoginVersion());
     }
 
-    @Deprecated
-    public void Assign(BVersions other) {
-        assign(other);
-    }
-
     public BVersions copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -73,11 +68,6 @@ public final class BVersions extends Zeze.Transaction.Bean implements BVersionsR
         var copy = new BVersions();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BVersions Copy() {
-        return copy();
     }
 
     public static void swap(BVersions a, BVersions b) {

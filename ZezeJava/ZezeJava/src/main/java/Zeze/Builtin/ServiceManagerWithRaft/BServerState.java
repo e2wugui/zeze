@@ -107,11 +107,6 @@ public final class BServerState extends Zeze.Raft.RocksRaft.Bean {
         setSerialId(other.getSerialId());
     }
 
-    @Deprecated
-    public void Assign(BServerState other) {
-        assign(other);
-    }
-
     public BServerState copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -121,11 +116,6 @@ public final class BServerState extends Zeze.Raft.RocksRaft.Bean {
         var copy = new BServerState();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BServerState Copy() {
-        return copy();
     }
 
     public static void swap(BServerState a, BServerState b) {

@@ -63,11 +63,6 @@ public final class BPutResult extends Zeze.Transaction.Bean implements BPutResul
         setRaftConfig(other.getRaftConfig());
     }
 
-    @Deprecated
-    public void Assign(BPutResult other) {
-        assign(other);
-    }
-
     public BPutResult copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -77,11 +72,6 @@ public final class BPutResult extends Zeze.Transaction.Bean implements BPutResul
         var copy = new BPutResult();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BPutResult Copy() {
-        return copy();
     }
 
     public static void swap(BPutResult a, BPutResult b) {

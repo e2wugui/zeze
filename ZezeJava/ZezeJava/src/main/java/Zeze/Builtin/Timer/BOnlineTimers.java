@@ -31,11 +31,6 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean implements BOnlin
             _TimerIds.put(e.getKey(), e.getValue().copy());
     }
 
-    @Deprecated
-    public void Assign(BOnlineTimers other) {
-        assign(other);
-    }
-
     public BOnlineTimers copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -45,11 +40,6 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean implements BOnlin
         var copy = new BOnlineTimers();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BOnlineTimers Copy() {
-        return copy();
     }
 
     public static void swap(BOnlineTimers a, BOnlineTimers b) {

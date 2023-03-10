@@ -45,11 +45,6 @@ public final class BRoleTasks extends Zeze.Transaction.Bean implements BRoleTask
         _finishedTaskIds.addAll(other.getFinishedTaskIds());
     }
 
-    @Deprecated
-    public void Assign(BRoleTasks other) {
-        assign(other);
-    }
-
     public BRoleTasks copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -59,11 +54,6 @@ public final class BRoleTasks extends Zeze.Transaction.Bean implements BRoleTask
         var copy = new BRoleTasks();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BRoleTasks Copy() {
-        return copy();
     }
 
     public static void swap(BRoleTasks a, BRoleTasks b) {

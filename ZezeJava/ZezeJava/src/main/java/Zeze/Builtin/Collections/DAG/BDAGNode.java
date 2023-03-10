@@ -40,11 +40,6 @@ public final class BDAGNode extends Zeze.Transaction.Bean implements BDAGNodeRea
         _Value.assign(other.getValue());
     }
 
-    @Deprecated
-    public void Assign(BDAGNode other) {
-        assign(other);
-    }
-
     public BDAGNode copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -54,11 +49,6 @@ public final class BDAGNode extends Zeze.Transaction.Bean implements BDAGNodeRea
         var copy = new BDAGNode();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BDAGNode Copy() {
-        return copy();
     }
 
     public static void swap(BDAGNode a, BDAGNode b) {

@@ -30,11 +30,6 @@ public final class BLocals extends Zeze.Transaction.Bean implements BLocalsReadO
             _Logins.put(e.getKey(), e.getValue().copy());
     }
 
-    @Deprecated
-    public void Assign(BLocals other) {
-        assign(other);
-    }
-
     public BLocals copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -44,11 +39,6 @@ public final class BLocals extends Zeze.Transaction.Bean implements BLocalsReadO
         var copy = new BLocals();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BLocals Copy() {
-        return copy();
     }
 
     public static void swap(BLocals a, BLocals b) {

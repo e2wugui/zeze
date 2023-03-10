@@ -88,11 +88,6 @@ public final class BTConditionReachPositionEvent extends Zeze.Transaction.Bean i
         setZ(other.getZ());
     }
 
-    @Deprecated
-    public void Assign(BTConditionReachPositionEvent other) {
-        assign(other);
-    }
-
     public BTConditionReachPositionEvent copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -102,11 +97,6 @@ public final class BTConditionReachPositionEvent extends Zeze.Transaction.Bean i
         var copy = new BTConditionReachPositionEvent();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BTConditionReachPositionEvent Copy() {
-        return copy();
     }
 
     public static void swap(BTConditionReachPositionEvent a, BTConditionReachPositionEvent b) {

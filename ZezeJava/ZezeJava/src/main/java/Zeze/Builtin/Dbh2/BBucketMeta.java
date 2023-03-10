@@ -232,11 +232,6 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         setKeyMoving(other.getKeyMoving());
     }
 
-    @Deprecated
-    public void Assign(BBucketMeta other) {
-        assign(other);
-    }
-
     public BBucketMeta copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -246,11 +241,6 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         var copy = new BBucketMeta();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BBucketMeta Copy() {
-        return copy();
     }
 
     public static void swap(BBucketMeta a, BBucketMeta b) {

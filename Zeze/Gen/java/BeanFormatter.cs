@@ -184,11 +184,6 @@ namespace Zeze.Gen.java
             sw.WriteLine("        return copy;");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    @Deprecated");
-            sw.WriteLine("    public " + bean.Name + " Copy() {");
-            sw.WriteLine("        return copy();");
-            sw.WriteLine("    }");
-            sw.WriteLine();
             sw.WriteLine($"    public static void swap({bean.Name} a, {bean.Name} b) {{");
             sw.WriteLine($"        {bean.Name} save = a.copy();");
             sw.WriteLine("        a.assign(b);");

@@ -29,11 +29,6 @@ public final class BCustomClasses extends Zeze.Transaction.Bean implements BCust
         _CustomClasses.addAll(other.getCustomClasses());
     }
 
-    @Deprecated
-    public void Assign(BCustomClasses other) {
-        assign(other);
-    }
-
     public BCustomClasses copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -43,11 +38,6 @@ public final class BCustomClasses extends Zeze.Transaction.Bean implements BCust
         var copy = new BCustomClasses();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BCustomClasses Copy() {
-        return copy();
     }
 
     public static void swap(BCustomClasses a, BCustomClasses b) {

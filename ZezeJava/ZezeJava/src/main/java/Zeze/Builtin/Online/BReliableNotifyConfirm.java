@@ -93,11 +93,6 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean implemen
         setSync(other.isSync());
     }
 
-    @Deprecated
-    public void Assign(BReliableNotifyConfirm other) {
-        assign(other);
-    }
-
     public BReliableNotifyConfirm copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -107,11 +102,6 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean implemen
         var copy = new BReliableNotifyConfirm();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BReliableNotifyConfirm Copy() {
-        return copy();
     }
 
     public static void swap(BReliableNotifyConfirm a, BReliableNotifyConfirm b) {

@@ -151,11 +151,6 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
         setContextx(other.getContextx());
     }
 
-    @Deprecated
-    public void Assign(BLinkBroken other) {
-        assign(other);
-    }
-
     public BLinkBroken copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -165,11 +160,6 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
         var copy = new BLinkBroken();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BLinkBroken Copy() {
-        return copy();
     }
 
     public static void swap(BLinkBroken a, BLinkBroken b) {

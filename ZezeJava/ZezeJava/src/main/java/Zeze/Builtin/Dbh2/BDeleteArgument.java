@@ -145,11 +145,6 @@ public final class BDeleteArgument extends Zeze.Transaction.Bean implements BDel
         setKey(other.getKey());
     }
 
-    @Deprecated
-    public void Assign(BDeleteArgument other) {
-        assign(other);
-    }
-
     public BDeleteArgument copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -159,11 +154,6 @@ public final class BDeleteArgument extends Zeze.Transaction.Bean implements BDel
         var copy = new BDeleteArgument();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BDeleteArgument Copy() {
-        return copy();
     }
 
     public static void swap(BDeleteArgument a, BDeleteArgument b) {

@@ -116,11 +116,6 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         setNumber(other.getNumber());
     }
 
-    @Deprecated
-    public void Assign(BMove other) {
-        assign(other);
-    }
-
     public BMove copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -130,11 +125,6 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         var copy = new BMove();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BMove Copy() {
-        return copy();
     }
 
     public static void swap(BMove a, BMove b) {

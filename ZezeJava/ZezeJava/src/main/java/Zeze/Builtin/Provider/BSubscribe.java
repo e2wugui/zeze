@@ -30,11 +30,6 @@ public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscrib
             _modules.put(e.getKey(), e.getValue().copy());
     }
 
-    @Deprecated
-    public void Assign(BSubscribe other) {
-        assign(other);
-    }
-
     public BSubscribe copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -44,11 +39,6 @@ public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscrib
         var copy = new BSubscribe();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BSubscribe Copy() {
-        return copy();
     }
 
     public static void swap(BSubscribe a, BSubscribe b) {

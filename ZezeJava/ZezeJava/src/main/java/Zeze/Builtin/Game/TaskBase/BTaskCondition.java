@@ -73,11 +73,6 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
         _extendedData.assign(other.getExtendedData());
     }
 
-    @Deprecated
-    public void Assign(BTaskCondition other) {
-        assign(other);
-    }
-
     public BTaskCondition copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -87,11 +82,6 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
         var copy = new BTaskCondition();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BTaskCondition Copy() {
-        return copy();
     }
 
     public static void swap(BTaskCondition a, BTaskCondition b) {

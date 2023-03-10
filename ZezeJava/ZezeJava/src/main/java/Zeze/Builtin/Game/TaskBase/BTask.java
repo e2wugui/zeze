@@ -265,11 +265,6 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         _extendedData.assign(other.getExtendedData());
     }
 
-    @Deprecated
-    public void Assign(BTask other) {
-        assign(other);
-    }
-
     public BTask copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -279,11 +274,6 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         var copy = new BTask();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BTask Copy() {
-        return copy();
     }
 
     public static void swap(BTask a, BTask b) {

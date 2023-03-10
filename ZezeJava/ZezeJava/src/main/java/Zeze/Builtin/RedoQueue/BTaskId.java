@@ -42,11 +42,6 @@ public final class BTaskId extends Zeze.Transaction.Bean implements BTaskIdReadO
         setTaskId(other.getTaskId());
     }
 
-    @Deprecated
-    public void Assign(BTaskId other) {
-        assign(other);
-    }
-
     public BTaskId copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -56,11 +51,6 @@ public final class BTaskId extends Zeze.Transaction.Bean implements BTaskIdReadO
         var copy = new BTaskId();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BTaskId Copy() {
-        return copy();
     }
 
     public static void swap(BTaskId a, BTaskId b) {

@@ -147,11 +147,6 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         _CustomData.assign(other.getCustomData());
     }
 
-    @Deprecated
-    public void Assign(BOfflineRoleCustom other) {
-        assign(other);
-    }
-
     public BOfflineRoleCustom copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -161,11 +156,6 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         var copy = new BOfflineRoleCustom();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BOfflineRoleCustom Copy() {
-        return copy();
     }
 
     public static void swap(BOfflineRoleCustom a, BOfflineRoleCustom b) {

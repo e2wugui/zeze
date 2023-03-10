@@ -93,11 +93,6 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean implement
         setParams(other.getParams());
     }
 
-    @Deprecated
-    public void Assign(BModuleRedirectResult other) {
-        assign(other);
-    }
-
     public BModuleRedirectResult copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -107,11 +102,6 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean implement
         var copy = new BModuleRedirectResult();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BModuleRedirectResult Copy() {
-        return copy();
     }
 
     public static void swap(BModuleRedirectResult a, BModuleRedirectResult b) {

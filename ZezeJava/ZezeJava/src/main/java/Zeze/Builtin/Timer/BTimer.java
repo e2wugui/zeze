@@ -201,11 +201,6 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
         setConcurrentFireSerialNo(other.getConcurrentFireSerialNo());
     }
 
-    @Deprecated
-    public void Assign(BTimer other) {
-        assign(other);
-    }
-
     public BTimer copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -215,11 +210,6 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
         var copy = new BTimer();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BTimer Copy() {
-        return copy();
     }
 
     public static void swap(BTimer a, BTimer b) {

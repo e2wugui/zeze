@@ -81,11 +81,6 @@ public final class BDailyTask extends Zeze.Transaction.Bean implements BDailyTas
         _todayTaskPhaseIds.addAll(other.getTodayTaskPhaseIds());
     }
 
-    @Deprecated
-    public void Assign(BDailyTask other) {
-        assign(other);
-    }
-
     public BDailyTask copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -95,11 +90,6 @@ public final class BDailyTask extends Zeze.Transaction.Bean implements BDailyTas
         var copy = new BDailyTask();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BDailyTask Copy() {
-        return copy();
     }
 
     public static void swap(BDailyTask a, BDailyTask b) {

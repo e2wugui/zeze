@@ -82,11 +82,6 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
             _Timers.put(e.getKey(), e.getValue().copy());
     }
 
-    @Deprecated
-    public void Assign(BNode other) {
-        assign(other);
-    }
-
     public BNode copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -96,11 +91,6 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
         var copy = new BNode();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BNode Copy() {
-        return copy();
     }
 
     public static void swap(BNode a, BNode b) {

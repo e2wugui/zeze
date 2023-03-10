@@ -178,11 +178,6 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         setContextx(other.getContextx());
     }
 
-    @Deprecated
-    public void Assign(BDispatch other) {
-        assign(other);
-    }
-
     public BDispatch copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -192,11 +187,6 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         var copy = new BDispatch();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BDispatch Copy() {
-        return copy();
     }
 
     public static void swap(BDispatch a, BDispatch b) {

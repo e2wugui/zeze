@@ -87,11 +87,6 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
         setNextPort(other.getNextPort());
     }
 
-    @Deprecated
-    public void Assign(BRegister other) {
-        assign(other);
-    }
-
     public BRegister copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -101,11 +96,6 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
         var copy = new BRegister();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BRegister Copy() {
-        return copy();
     }
 
     public static void swap(BRegister a, BRegister b) {

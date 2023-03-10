@@ -30,11 +30,6 @@ public final class BRankList extends Zeze.Transaction.Bean implements BRankListR
             _RankList.add(e.copy());
     }
 
-    @Deprecated
-    public void Assign(BRankList other) {
-        assign(other);
-    }
-
     public BRankList copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -44,11 +39,6 @@ public final class BRankList extends Zeze.Transaction.Bean implements BRankListR
         var copy = new BRankList();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BRankList Copy() {
-        return copy();
     }
 
     public static void swap(BRankList a, BRankList b) {

@@ -42,11 +42,6 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean implements BLi
         setNodeId(other.getNodeId());
     }
 
-    @Deprecated
-    public void Assign(BLinkedMapNodeId other) {
-        assign(other);
-    }
-
     public BLinkedMapNodeId copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -56,11 +51,6 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean implements BLi
         var copy = new BLinkedMapNodeId();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BLinkedMapNodeId Copy() {
-        return copy();
     }
 
     public static void swap(BLinkedMapNodeId a, BLinkedMapNodeId b) {

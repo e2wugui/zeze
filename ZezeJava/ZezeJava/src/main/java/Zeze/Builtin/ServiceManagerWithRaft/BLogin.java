@@ -47,11 +47,6 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
         setSessionName(other.getSessionName());
     }
 
-    @Deprecated
-    public void Assign(BLogin other) {
-        assign(other);
-    }
-
     public BLogin copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -61,11 +56,6 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
         var copy = new BLogin();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BLogin Copy() {
-        return copy();
     }
 
     public static void swap(BLogin a, BLogin b) {

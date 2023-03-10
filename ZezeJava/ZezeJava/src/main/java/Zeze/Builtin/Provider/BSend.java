@@ -86,11 +86,6 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
         setProtocolWholeData(other.getProtocolWholeData());
     }
 
-    @Deprecated
-    public void Assign(BSend other) {
-        assign(other);
-    }
-
     public BSend copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -100,11 +95,6 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
         var copy = new BSend();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BSend Copy() {
-        return copy();
     }
 
     public static void swap(BSend a, BSend b) {

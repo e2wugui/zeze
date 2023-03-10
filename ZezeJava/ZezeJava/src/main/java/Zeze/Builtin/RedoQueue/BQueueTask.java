@@ -144,11 +144,6 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
         setPrevTaskId(other.getPrevTaskId());
     }
 
-    @Deprecated
-    public void Assign(BQueueTask other) {
-        assign(other);
-    }
-
     public BQueueTask copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -158,11 +153,6 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
         var copy = new BQueueTask();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BQueueTask Copy() {
-        return copy();
     }
 
     public static void swap(BQueueTask a, BQueueTask b) {

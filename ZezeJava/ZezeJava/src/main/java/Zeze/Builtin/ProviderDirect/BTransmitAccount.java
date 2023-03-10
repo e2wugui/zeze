@@ -147,11 +147,6 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
         setSenderClientId(other.getSenderClientId());
     }
 
-    @Deprecated
-    public void Assign(BTransmitAccount other) {
-        assign(other);
-    }
-
     public BTransmitAccount copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -161,11 +156,6 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
         var copy = new BTransmitAccount();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BTransmitAccount Copy() {
-        return copy();
     }
 
     public static void swap(BTransmitAccount a, BTransmitAccount b) {

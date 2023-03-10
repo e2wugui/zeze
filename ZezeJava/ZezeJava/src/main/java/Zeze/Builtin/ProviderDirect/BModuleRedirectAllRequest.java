@@ -211,11 +211,6 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
         setServiceNamePrefix(other.getServiceNamePrefix());
     }
 
-    @Deprecated
-    public void Assign(BModuleRedirectAllRequest other) {
-        assign(other);
-    }
-
     public BModuleRedirectAllRequest copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -225,11 +220,6 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
         var copy = new BModuleRedirectAllRequest();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BModuleRedirectAllRequest Copy() {
-        return copy();
     }
 
     public static void swap(BModuleRedirectAllRequest a, BModuleRedirectAllRequest b) {

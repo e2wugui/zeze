@@ -60,11 +60,6 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
             _Values.add(e.copy());
     }
 
-    @Deprecated
-    public void Assign(BQueueNode other) {
-        assign(other);
-    }
-
     public BQueueNode copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -74,11 +69,6 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
         var copy = new BQueueNode();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BQueueNode Copy() {
-        return copy();
     }
 
     public static void swap(BQueueNode a, BQueueNode b) {

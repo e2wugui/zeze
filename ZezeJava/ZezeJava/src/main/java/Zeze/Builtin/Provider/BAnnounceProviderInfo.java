@@ -127,11 +127,6 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
         setProviderDirectPort(other.getProviderDirectPort());
     }
 
-    @Deprecated
-    public void Assign(BAnnounceProviderInfo other) {
-        assign(other);
-    }
-
     public BAnnounceProviderInfo copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -141,11 +136,6 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
         var copy = new BAnnounceProviderInfo();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BAnnounceProviderInfo Copy() {
-        return copy();
     }
 
     public static void swap(BAnnounceProviderInfo a, BAnnounceProviderInfo b) {

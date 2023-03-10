@@ -55,11 +55,6 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean implements BOnlin
         _CustomData.assign(other.getCustomData());
     }
 
-    @Deprecated
-    public void Assign(BOnlineCustom other) {
-        assign(other);
-    }
-
     public BOnlineCustom copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -69,11 +64,6 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean implements BOnlin
         var copy = new BOnlineCustom();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BOnlineCustom Copy() {
-        return copy();
     }
 
     public static void swap(BOnlineCustom a, BOnlineCustom b) {

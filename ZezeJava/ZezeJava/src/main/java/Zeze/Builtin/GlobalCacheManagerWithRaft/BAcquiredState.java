@@ -41,11 +41,6 @@ public final class BAcquiredState extends Zeze.Raft.RocksRaft.Bean {
         setState(other.getState());
     }
 
-    @Deprecated
-    public void Assign(BAcquiredState other) {
-        assign(other);
-    }
-
     public BAcquiredState copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -55,11 +50,6 @@ public final class BAcquiredState extends Zeze.Raft.RocksRaft.Bean {
         var copy = new BAcquiredState();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BAcquiredState Copy() {
-        return copy();
     }
 
     public static void swap(BAcquiredState a, BAcquiredState b) {

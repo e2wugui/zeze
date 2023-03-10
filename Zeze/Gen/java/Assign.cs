@@ -38,11 +38,6 @@ namespace Zeze.Gen.java
                 var.VariableType.Accept(new Assign(var, sw, prefix + "    ", false));
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
-            sw.WriteLine(prefix + "@Deprecated");
-            sw.WriteLine(prefix + "public void Assign(" + bean.Name + " other) {");
-            sw.WriteLine(prefix + "    assign(other);");
-            sw.WriteLine(prefix + "}");
-            sw.WriteLine();
         }
 
         public Assign(Variable var, StreamWriter sw, string prefix, bool isdata)

@@ -65,11 +65,6 @@ public final class BTransactionMessageResult extends Zeze.Transaction.Bean imple
         setTimestamp(other.getTimestamp());
     }
 
-    @Deprecated
-    public void Assign(BTransactionMessageResult other) {
-        assign(other);
-    }
-
     public BTransactionMessageResult copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -79,11 +74,6 @@ public final class BTransactionMessageResult extends Zeze.Transaction.Bean imple
         var copy = new BTransactionMessageResult();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BTransactionMessageResult Copy() {
-        return copy();
     }
 
     public static void swap(BTransactionMessageResult a, BTransactionMessageResult b) {

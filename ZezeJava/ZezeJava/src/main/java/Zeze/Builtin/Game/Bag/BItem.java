@@ -102,11 +102,6 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
         _Item.assign(other.getItem());
     }
 
-    @Deprecated
-    public void Assign(BItem other) {
-        assign(other);
-    }
-
     public BItem copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -116,11 +111,6 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
         var copy = new BItem();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BItem Copy() {
-        return copy();
     }
 
     public static void swap(BItem a, BItem b) {

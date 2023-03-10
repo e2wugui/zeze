@@ -42,11 +42,6 @@ public final class BBroadcastTaskEvent extends Zeze.Transaction.Bean implements 
         setIsBreakIfAccepted(other.isIsBreakIfAccepted());
     }
 
-    @Deprecated
-    public void Assign(BBroadcastTaskEvent other) {
-        assign(other);
-    }
-
     public BBroadcastTaskEvent copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -56,11 +51,6 @@ public final class BBroadcastTaskEvent extends Zeze.Transaction.Bean implements 
         var copy = new BBroadcastTaskEvent();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BBroadcastTaskEvent Copy() {
-        return copy();
     }
 
     public static void swap(BBroadcastTaskEvent a, BBroadcastTaskEvent b) {

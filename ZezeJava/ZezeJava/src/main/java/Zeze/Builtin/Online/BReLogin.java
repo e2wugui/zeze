@@ -70,11 +70,6 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
         setReliableNotifyConfirmIndex(other.getReliableNotifyConfirmIndex());
     }
 
-    @Deprecated
-    public void Assign(BReLogin other) {
-        assign(other);
-    }
-
     public BReLogin copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -84,11 +79,6 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
         var copy = new BReLogin();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BReLogin Copy() {
-        return copy();
     }
 
     public static void swap(BReLogin a, BReLogin b) {

@@ -93,11 +93,6 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
         setTime(other.getTime());
     }
 
-    @Deprecated
-    public void Assign(BBroadcast other) {
-        assign(other);
-    }
-
     public BBroadcast copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -107,11 +102,6 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
         var copy = new BBroadcast();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BBroadcast Copy() {
-        return copy();
     }
 
     public static void swap(BBroadcast a, BBroadcast b) {

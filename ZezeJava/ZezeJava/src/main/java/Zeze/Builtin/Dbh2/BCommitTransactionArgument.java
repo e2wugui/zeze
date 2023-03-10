@@ -58,11 +58,6 @@ public final class BCommitTransactionArgument extends Zeze.Transaction.Bean impl
         setTransactionId(other.getTransactionId());
     }
 
-    @Deprecated
-    public void Assign(BCommitTransactionArgument other) {
-        assign(other);
-    }
-
     public BCommitTransactionArgument copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -72,11 +67,6 @@ public final class BCommitTransactionArgument extends Zeze.Transaction.Bean impl
         var copy = new BCommitTransactionArgument();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BCommitTransactionArgument Copy() {
-        return copy();
     }
 
     public static void swap(BCommitTransactionArgument a, BCommitTransactionArgument b) {

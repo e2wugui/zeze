@@ -29,11 +29,6 @@ public final class BItemClasses extends Zeze.Transaction.Bean implements BItemCl
         _ItemClasses.addAll(other.getItemClasses());
     }
 
-    @Deprecated
-    public void Assign(BItemClasses other) {
-        assign(other);
-    }
-
     public BItemClasses copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -43,11 +38,6 @@ public final class BItemClasses extends Zeze.Transaction.Bean implements BItemCl
         var copy = new BItemClasses();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BItemClasses Copy() {
-        return copy();
     }
 
     public static void swap(BItemClasses a, BItemClasses b) {

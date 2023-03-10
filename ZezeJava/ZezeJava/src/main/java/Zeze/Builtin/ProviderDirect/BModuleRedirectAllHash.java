@@ -82,11 +82,6 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
         setParams(other.getParams());
     }
 
-    @Deprecated
-    public void Assign(BModuleRedirectAllHash other) {
-        assign(other);
-    }
-
     public BModuleRedirectAllHash copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -96,11 +91,6 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
         var copy = new BModuleRedirectAllHash();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BModuleRedirectAllHash Copy() {
-        return copy();
     }
 
     public static void swap(BModuleRedirectAllHash a, BModuleRedirectAllHash b) {

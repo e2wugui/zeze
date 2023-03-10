@@ -29,11 +29,6 @@ public final class BTConditionKillMonsterEvent extends Zeze.Transaction.Bean imp
         _monsters.putAll(other.getMonsters());
     }
 
-    @Deprecated
-    public void Assign(BTConditionKillMonsterEvent other) {
-        assign(other);
-    }
-
     public BTConditionKillMonsterEvent copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -43,11 +38,6 @@ public final class BTConditionKillMonsterEvent extends Zeze.Transaction.Bean imp
         var copy = new BTConditionKillMonsterEvent();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BTConditionKillMonsterEvent Copy() {
-        return copy();
     }
 
     public static void swap(BTConditionKillMonsterEvent a, BTConditionKillMonsterEvent b) {

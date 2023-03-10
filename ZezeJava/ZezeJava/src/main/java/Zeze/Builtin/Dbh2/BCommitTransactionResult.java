@@ -29,11 +29,6 @@ public final class BCommitTransactionResult extends Zeze.Transaction.Bean implem
     public void assign(BCommitTransactionResult other) {
     }
 
-    @Deprecated
-    public void Assign(BCommitTransactionResult other) {
-        assign(other);
-    }
-
     public BCommitTransactionResult copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -43,11 +38,6 @@ public final class BCommitTransactionResult extends Zeze.Transaction.Bean implem
         var copy = new BCommitTransactionResult();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BCommitTransactionResult Copy() {
-        return copy();
     }
 
     public static void swap(BCommitTransactionResult a, BCommitTransactionResult b) {

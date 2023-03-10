@@ -83,11 +83,6 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean implements BLink
             _Values.add(e.copy());
     }
 
-    @Deprecated
-    public void Assign(BLinkedMapNode other) {
-        assign(other);
-    }
-
     public BLinkedMapNode copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -97,11 +92,6 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean implements BLink
         var copy = new BLinkedMapNode();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BLinkedMapNode Copy() {
-        return copy();
     }
 
     public static void swap(BLinkedMapNode a, BLinkedMapNode b) {

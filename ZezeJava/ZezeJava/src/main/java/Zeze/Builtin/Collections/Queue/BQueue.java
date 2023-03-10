@@ -116,11 +116,6 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         setLastNodeId(other.getLastNodeId());
     }
 
-    @Deprecated
-    public void Assign(BQueue other) {
-        assign(other);
-    }
-
     public BQueue copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -130,11 +125,6 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         var copy = new BQueue();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BQueue Copy() {
-        return copy();
     }
 
     public static void swap(BQueue a, BQueue b) {

@@ -92,11 +92,6 @@ public final class BGetBuckets extends Zeze.Transaction.Bean implements BGetBuck
         setTable(other.getTable());
     }
 
-    @Deprecated
-    public void Assign(BGetBuckets other) {
-        assign(other);
-    }
-
     public BGetBuckets copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -106,11 +101,6 @@ public final class BGetBuckets extends Zeze.Transaction.Bean implements BGetBuck
         var copy = new BGetBuckets();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BGetBuckets Copy() {
-        return copy();
     }
 
     public static void swap(BGetBuckets a, BGetBuckets b) {

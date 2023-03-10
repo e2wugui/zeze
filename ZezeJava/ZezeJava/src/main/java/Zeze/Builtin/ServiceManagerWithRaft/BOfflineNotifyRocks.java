@@ -136,11 +136,6 @@ public final class BOfflineNotifyRocks extends Zeze.Raft.RocksRaft.Bean {
         setNotifyContext(other.getNotifyContext());
     }
 
-    @Deprecated
-    public void Assign(BOfflineNotifyRocks other) {
-        assign(other);
-    }
-
     public BOfflineNotifyRocks copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -150,11 +145,6 @@ public final class BOfflineNotifyRocks extends Zeze.Raft.RocksRaft.Bean {
         var copy = new BOfflineNotifyRocks();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BOfflineNotifyRocks Copy() {
-        return copy();
     }
 
     public static void swap(BOfflineNotifyRocks a, BOfflineNotifyRocks b) {

@@ -122,11 +122,6 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
             _conditions.add(e.copy());
     }
 
-    @Deprecated
-    public void Assign(BSubPhase other) {
-        assign(other);
-    }
-
     public BSubPhase copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -136,11 +131,6 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
         var copy = new BSubPhase();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BSubPhase Copy() {
-        return copy();
     }
 
     public static void swap(BSubPhase a, BSubPhase b) {

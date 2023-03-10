@@ -93,11 +93,6 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
         setLinkedMapName(other.getLinkedMapName());
     }
 
-    @Deprecated
-    public void Assign(BClearJobState other) {
-        assign(other);
-    }
-
     public BClearJobState copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -107,11 +102,6 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
         var copy = new BClearJobState();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BClearJobState Copy() {
-        return copy();
     }
 
     public static void swap(BClearJobState a, BClearJobState b) {

@@ -59,11 +59,6 @@ public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTa
             _changedTasks.add(e.copy());
     }
 
-    @Deprecated
-    public void Assign(BTaskEventResult other) {
-        assign(other);
-    }
-
     public BTaskEventResult copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -73,11 +68,6 @@ public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTa
         var copy = new BTaskEventResult();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BTaskEventResult Copy() {
-        return copy();
     }
 
     public static void swap(BTaskEventResult a, BTaskEventResult b) {

@@ -93,11 +93,6 @@ public final class BProviderInfo extends Zeze.Transaction.Bean implements BProvi
         setServerId(other.getServerId());
     }
 
-    @Deprecated
-    public void Assign(BProviderInfo other) {
-        assign(other);
-    }
-
     public BProviderInfo copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -107,11 +102,6 @@ public final class BProviderInfo extends Zeze.Transaction.Bean implements BProvi
         var copy = new BProviderInfo();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BProviderInfo Copy() {
-        return copy();
     }
 
     public static void swap(BProviderInfo a, BProviderInfo b) {

@@ -88,11 +88,6 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
         setLoadSerialNo(other.getLoadSerialNo());
     }
 
-    @Deprecated
-    public void Assign(BNodeRoot other) {
-        assign(other);
-    }
-
     public BNodeRoot copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -102,11 +97,6 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
         var copy = new BNodeRoot();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BNodeRoot Copy() {
-        return copy();
     }
 
     public static void swap(BNodeRoot a, BNodeRoot b) {

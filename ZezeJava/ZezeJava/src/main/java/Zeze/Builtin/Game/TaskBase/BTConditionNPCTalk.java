@@ -75,11 +75,6 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
         _dialogSelected.putAll(other.getDialogSelected());
     }
 
-    @Deprecated
-    public void Assign(BTConditionNPCTalk other) {
-        assign(other);
-    }
-
     public BTConditionNPCTalk copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -89,11 +84,6 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
         var copy = new BTConditionNPCTalk();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BTConditionNPCTalk Copy() {
-        return copy();
     }
 
     public static void swap(BTConditionNPCTalk a, BTConditionNPCTalk b) {

@@ -51,11 +51,6 @@ public final class BAny extends Zeze.Transaction.Bean implements BAnyReadOnly {
         _Any.assign(other.getAny());
     }
 
-    @Deprecated
-    public void Assign(BAny other) {
-        assign(other);
-    }
-
     public BAny copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -65,11 +60,6 @@ public final class BAny extends Zeze.Transaction.Bean implements BAnyReadOnly {
         var copy = new BAny();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BAny Copy() {
-        return copy();
     }
 
     public static void swap(BAny a, BAny b) {

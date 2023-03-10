@@ -87,11 +87,6 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
         setValue(other.getValue());
     }
 
-    @Deprecated
-    public void Assign(BGetResult other) {
-        assign(other);
-    }
-
     public BGetResult copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -101,11 +96,6 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
         var copy = new BGetResult();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BGetResult Copy() {
-        return copy();
     }
 
     public static void swap(BGetResult a, BGetResult b) {

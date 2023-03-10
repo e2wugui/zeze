@@ -261,11 +261,6 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
         setBeankey(other.getBeankey());
     }
 
-    @Deprecated
-    public void Assign(BValue other) {
-        assign(other);
-    }
-
     public BValue copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -275,11 +270,6 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
         var copy = new BValue();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BValue Copy() {
-        return copy();
     }
 
     public static void swap(BValue a, BValue b) {

@@ -47,11 +47,6 @@ public final class BBind extends Zeze.Transaction.Bean implements BBindReadOnly 
         _linkSids.addAll(other.getLinkSids());
     }
 
-    @Deprecated
-    public void Assign(BBind other) {
-        assign(other);
-    }
-
     public BBind copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -61,11 +56,6 @@ public final class BBind extends Zeze.Transaction.Bean implements BBindReadOnly 
         var copy = new BBind();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BBind Copy() {
-        return copy();
     }
 
     public static void swap(BBind a, BBind b) {

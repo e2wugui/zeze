@@ -88,11 +88,6 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean implements 
         setServerReleaseTimeout(other.getServerReleaseTimeout());
     }
 
-    @Deprecated
-    public void Assign(BAchillesHeelConfig other) {
-        assign(other);
-    }
-
     public BAchillesHeelConfig copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -102,11 +97,6 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean implements 
         var copy = new BAchillesHeelConfig();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BAchillesHeelConfig Copy() {
-        return copy();
     }
 
     public static void swap(BAchillesHeelConfig a, BAchillesHeelConfig b) {

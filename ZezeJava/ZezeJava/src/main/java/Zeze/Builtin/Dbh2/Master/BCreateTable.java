@@ -92,11 +92,6 @@ public final class BCreateTable extends Zeze.Transaction.Bean implements BCreate
         setTable(other.getTable());
     }
 
-    @Deprecated
-    public void Assign(BCreateTable other) {
-        assign(other);
-    }
-
     public BCreateTable copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -106,11 +101,6 @@ public final class BCreateTable extends Zeze.Transaction.Bean implements BCreate
         var copy = new BCreateTable();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BCreateTable Copy() {
-        return copy();
     }
 
     public static void swap(BCreateTable a, BCreateTable b) {

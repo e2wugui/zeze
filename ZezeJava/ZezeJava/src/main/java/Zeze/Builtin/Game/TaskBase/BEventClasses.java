@@ -29,11 +29,6 @@ public final class BEventClasses extends Zeze.Transaction.Bean implements BEvent
         _EventClasses.addAll(other.getEventClasses());
     }
 
-    @Deprecated
-    public void Assign(BEventClasses other) {
-        assign(other);
-    }
-
     public BEventClasses copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -43,11 +38,6 @@ public final class BEventClasses extends Zeze.Transaction.Bean implements BEvent
         var copy = new BEventClasses();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BEventClasses Copy() {
-        return copy();
     }
 
     public static void swap(BEventClasses a, BEventClasses b) {

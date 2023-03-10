@@ -58,11 +58,6 @@ public final class BBeginTransactionResult extends Zeze.Transaction.Bean impleme
         setTransactionId(other.getTransactionId());
     }
 
-    @Deprecated
-    public void Assign(BBeginTransactionResult other) {
-        assign(other);
-    }
-
     public BBeginTransactionResult copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -72,11 +67,6 @@ public final class BBeginTransactionResult extends Zeze.Transaction.Bean impleme
         var copy = new BBeginTransactionResult();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BBeginTransactionResult Copy() {
-        return copy();
     }
 
     public static void swap(BBeginTransactionResult a, BBeginTransactionResult b) {

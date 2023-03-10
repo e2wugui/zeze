@@ -63,11 +63,6 @@ public final class BDeleteResult extends Zeze.Transaction.Bean implements BDelet
         setRaftConfig(other.getRaftConfig());
     }
 
-    @Deprecated
-    public void Assign(BDeleteResult other) {
-        assign(other);
-    }
-
     public BDeleteResult copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -77,11 +72,6 @@ public final class BDeleteResult extends Zeze.Transaction.Bean implements BDelet
         var copy = new BDeleteResult();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BDeleteResult Copy() {
-        return copy();
     }
 
     public static void swap(BDeleteResult a, BDeleteResult b) {

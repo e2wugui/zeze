@@ -173,11 +173,6 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
         _eventBean.assign(other.getEventBean());
     }
 
-    @Deprecated
-    public void Assign(BTaskEvent other) {
-        assign(other);
-    }
-
     public BTaskEvent copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -187,11 +182,6 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
         var copy = new BTaskEvent();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BTaskEvent Copy() {
-        return copy();
     }
 
     public static void swap(BTaskEvent a, BTaskEvent b) {

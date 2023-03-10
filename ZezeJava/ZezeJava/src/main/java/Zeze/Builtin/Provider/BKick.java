@@ -99,11 +99,6 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
         setDesc(other.getDesc());
     }
 
-    @Deprecated
-    public void Assign(BKick other) {
-        assign(other);
-    }
-
     public BKick copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -113,11 +108,6 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
         var copy = new BKick();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BKick Copy() {
-        return copy();
     }
 
     public static void swap(BKick a, BKick b) {

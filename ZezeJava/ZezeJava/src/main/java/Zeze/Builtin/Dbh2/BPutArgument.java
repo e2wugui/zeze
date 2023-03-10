@@ -174,11 +174,6 @@ public final class BPutArgument extends Zeze.Transaction.Bean implements BPutArg
         setValue(other.getValue());
     }
 
-    @Deprecated
-    public void Assign(BPutArgument other) {
-        assign(other);
-    }
-
     public BPutArgument copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -188,11 +183,6 @@ public final class BPutArgument extends Zeze.Transaction.Bean implements BPutArg
         var copy = new BPutArgument();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BPutArgument Copy() {
-        return copy();
     }
 
     public static void swap(BPutArgument a, BPutArgument b) {

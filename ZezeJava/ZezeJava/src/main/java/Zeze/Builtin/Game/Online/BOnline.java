@@ -71,11 +71,6 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         setLinkSid(other.getLinkSid());
     }
 
-    @Deprecated
-    public void Assign(BOnline other) {
-        assign(other);
-    }
-
     public BOnline copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -85,11 +80,6 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         var copy = new BOnline();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BOnline Copy() {
-        return copy();
     }
 
     public static void swap(BOnline a, BOnline b) {

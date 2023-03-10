@@ -172,11 +172,6 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
         setServiceNamePrefix(other.getServiceNamePrefix());
     }
 
-    @Deprecated
-    public void Assign(BModuleRedirectArgument other) {
-        assign(other);
-    }
-
     public BModuleRedirectArgument copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -186,11 +181,6 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
         var copy = new BModuleRedirectArgument();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BModuleRedirectArgument Copy() {
-        return copy();
     }
 
     public static void swap(BModuleRedirectArgument a, BModuleRedirectArgument b) {

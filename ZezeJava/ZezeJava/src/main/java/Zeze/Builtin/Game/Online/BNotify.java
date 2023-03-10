@@ -47,11 +47,6 @@ public final class BNotify extends Zeze.Transaction.Bean implements BNotifyReadO
         setFullEncodedProtocol(other.getFullEncodedProtocol());
     }
 
-    @Deprecated
-    public void Assign(BNotify other) {
-        assign(other);
-    }
-
     public BNotify copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -61,11 +56,6 @@ public final class BNotify extends Zeze.Transaction.Bean implements BNotifyReadO
         var copy = new BNotify();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BNotify Copy() {
-        return copy();
     }
 
     public static void swap(BNotify a, BNotify b) {

@@ -70,11 +70,6 @@ public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyRea
         setPosition(other.getPosition());
     }
 
-    @Deprecated
-    public void Assign(BDestroy other) {
-        assign(other);
-    }
-
     public BDestroy copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -84,11 +79,6 @@ public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyRea
         var copy = new BDestroy();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BDestroy Copy() {
-        return copy();
     }
 
     public static void swap(BDestroy a, BDestroy b) {

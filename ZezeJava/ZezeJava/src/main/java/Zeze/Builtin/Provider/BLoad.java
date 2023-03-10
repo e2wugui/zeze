@@ -115,11 +115,6 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
         setOverload(other.getOverload());
     }
 
-    @Deprecated
-    public void Assign(BLoad other) {
-        assign(other);
-    }
-
     public BLoad copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -129,11 +124,6 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
         var copy = new BLoad();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BLoad Copy() {
-        return copy();
     }
 
     public static void swap(BLoad a, BLoad b) {

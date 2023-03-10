@@ -14,11 +14,6 @@ public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean implements BA
     public void assign(BAnnounceLinkInfo other) {
     }
 
-    @Deprecated
-    public void Assign(BAnnounceLinkInfo other) {
-        assign(other);
-    }
-
     public BAnnounceLinkInfo copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -28,11 +23,6 @@ public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean implements BA
         var copy = new BAnnounceLinkInfo();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BAnnounceLinkInfo Copy() {
-        return copy();
     }
 
     public static void swap(BAnnounceLinkInfo a, BAnnounceLinkInfo b) {

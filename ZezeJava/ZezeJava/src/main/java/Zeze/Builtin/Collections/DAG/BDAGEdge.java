@@ -76,11 +76,6 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
         setTo(other.getTo());
     }
 
-    @Deprecated
-    public void Assign(BDAGEdge other) {
-        assign(other);
-    }
-
     public BDAGEdge copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -90,11 +85,6 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
         var copy = new BDAGEdge();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BDAGEdge Copy() {
-        return copy();
     }
 
     public static void swap(BDAGEdge a, BDAGEdge b) {

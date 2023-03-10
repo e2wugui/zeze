@@ -114,11 +114,6 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
         setParameter(other.getParameter());
     }
 
-    @Deprecated
-    public void Assign(BTransmit other) {
-        assign(other);
-    }
-
     public BTransmit copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -128,11 +123,6 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
         var copy = new BTransmit();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BTransmit Copy() {
-        return copy();
     }
 
     public static void swap(BTransmit a, BTransmit b) {

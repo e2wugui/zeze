@@ -164,11 +164,6 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
         setLoginVersion(other.getLoginVersion());
     }
 
-    @Deprecated
-    public void Assign(BArchOnlineTimer other) {
-        assign(other);
-    }
-
     public BArchOnlineTimer copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -178,11 +173,6 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
         var copy = new BArchOnlineTimer();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BArchOnlineTimer Copy() {
-        return copy();
     }
 
     public static void swap(BArchOnlineTimer a, BArchOnlineTimer b) {

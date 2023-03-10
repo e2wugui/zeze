@@ -121,11 +121,6 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
         setKey(other.getKey());
     }
 
-    @Deprecated
-    public void Assign(BGetArgument other) {
-        assign(other);
-    }
-
     public BGetArgument copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -135,11 +130,6 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
         var copy = new BGetArgument();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BGetArgument Copy() {
-        return copy();
     }
 
     public static void swap(BGetArgument a, BGetArgument b) {

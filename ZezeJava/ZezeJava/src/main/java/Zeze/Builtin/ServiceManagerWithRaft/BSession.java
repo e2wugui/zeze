@@ -101,11 +101,6 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
             _Subscribes.put(e.getKey(), e.getValue());
     }
 
-    @Deprecated
-    public void Assign(BSession other) {
-        assign(other);
-    }
-
     public BSession copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -115,11 +110,6 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
         var copy = new BSession();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BSession Copy() {
-        return copy();
     }
 
     public static void swap(BSession a, BSession b) {

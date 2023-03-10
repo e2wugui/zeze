@@ -65,11 +65,6 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
         setNodeId(other.getNodeId());
     }
 
-    @Deprecated
-    public void Assign(BIndex other) {
-        assign(other);
-    }
-
     public BIndex copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -79,11 +74,6 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
         var copy = new BIndex();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BIndex Copy() {
-        return copy();
     }
 
     public static void swap(BIndex a, BIndex b) {

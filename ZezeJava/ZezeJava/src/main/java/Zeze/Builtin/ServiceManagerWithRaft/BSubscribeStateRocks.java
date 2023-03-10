@@ -53,11 +53,6 @@ public final class BSubscribeStateRocks extends Zeze.Raft.RocksRaft.Bean {
         setReady(other.isReady());
     }
 
-    @Deprecated
-    public void Assign(BSubscribeStateRocks other) {
-        assign(other);
-    }
-
     public BSubscribeStateRocks copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -67,11 +62,6 @@ public final class BSubscribeStateRocks extends Zeze.Raft.RocksRaft.Bean {
         var copy = new BSubscribeStateRocks();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BSubscribeStateRocks Copy() {
-        return copy();
     }
 
     public static void swap(BSubscribeStateRocks a, BSubscribeStateRocks b) {

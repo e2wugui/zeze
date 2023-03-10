@@ -101,11 +101,6 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
         setDesc(other.getDesc());
     }
 
-    @Deprecated
-    public void Assign(BReportError other) {
-        assign(other);
-    }
-
     public BReportError copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -115,11 +110,6 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
         var copy = new BReportError();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BReportError Copy() {
-        return copy();
     }
 
     public static void swap(BReportError a, BReportError b) {

@@ -98,11 +98,6 @@ public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUs
         setContextx(other.getContextx());
     }
 
-    @Deprecated
-    public void Assign(BSetUserState other) {
-        assign(other);
-    }
-
     public BSetUserState copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -112,11 +107,6 @@ public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUs
         var copy = new BSetUserState();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BSetUserState Copy() {
-        return copy();
     }
 
     public static void swap(BSetUserState a, BSetUserState b) {

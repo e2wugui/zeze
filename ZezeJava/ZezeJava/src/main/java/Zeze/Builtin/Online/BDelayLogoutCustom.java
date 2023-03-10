@@ -98,11 +98,6 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
         setLoginVersion(other.getLoginVersion());
     }
 
-    @Deprecated
-    public void Assign(BDelayLogoutCustom other) {
-        assign(other);
-    }
-
     public BDelayLogoutCustom copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -112,11 +107,6 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
         var copy = new BDelayLogoutCustom();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BDelayLogoutCustom Copy() {
-        return copy();
     }
 
     public static void swap(BDelayLogoutCustom a, BDelayLogoutCustom b) {

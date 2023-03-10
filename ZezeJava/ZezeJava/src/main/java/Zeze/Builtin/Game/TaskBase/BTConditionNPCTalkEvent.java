@@ -93,11 +93,6 @@ public final class BTConditionNPCTalkEvent extends Zeze.Transaction.Bean impleme
         setDialogOption(other.getDialogOption());
     }
 
-    @Deprecated
-    public void Assign(BTConditionNPCTalkEvent other) {
-        assign(other);
-    }
-
     public BTConditionNPCTalkEvent copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -107,11 +102,6 @@ public final class BTConditionNPCTalkEvent extends Zeze.Transaction.Bean impleme
         var copy = new BTConditionNPCTalkEvent();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BTConditionNPCTalkEvent Copy() {
-        return copy();
     }
 
     public static void swap(BTConditionNPCTalkEvent a, BTConditionNPCTalkEvent b) {

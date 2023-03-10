@@ -185,11 +185,6 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         setMissfirePolicy(other.getMissfirePolicy());
     }
 
-    @Deprecated
-    public void Assign(BCronTimer other) {
-        assign(other);
-    }
-
     public BCronTimer copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -199,11 +194,6 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         var copy = new BCronTimer();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BCronTimer Copy() {
-        return copy();
     }
 
     public static void swap(BCronTimer a, BCronTimer b) {

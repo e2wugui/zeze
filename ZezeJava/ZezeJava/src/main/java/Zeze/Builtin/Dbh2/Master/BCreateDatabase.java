@@ -63,11 +63,6 @@ public final class BCreateDatabase extends Zeze.Transaction.Bean implements BCre
         setDatabase(other.getDatabase());
     }
 
-    @Deprecated
-    public void Assign(BCreateDatabase other) {
-        assign(other);
-    }
-
     public BCreateDatabase copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -77,11 +72,6 @@ public final class BCreateDatabase extends Zeze.Transaction.Bean implements BCre
         var copy = new BCreateDatabase();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BCreateDatabase Copy() {
-        return copy();
     }
 
     public static void swap(BCreateDatabase a, BCreateDatabase b) {

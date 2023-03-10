@@ -127,11 +127,6 @@ public final class BLocateBucket extends Zeze.Transaction.Bean implements BLocat
         setKey(other.getKey());
     }
 
-    @Deprecated
-    public void Assign(BLocateBucket other) {
-        assign(other);
-    }
-
     public BLocateBucket copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -141,11 +136,6 @@ public final class BLocateBucket extends Zeze.Transaction.Bean implements BLocat
         var copy = new BLocateBucket();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BLocateBucket Copy() {
-        return copy();
     }
 
     public static void swap(BLocateBucket a, BLocateBucket b) {

@@ -59,11 +59,6 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
             _Items.put(e.getKey(), e.getValue().copy());
     }
 
-    @Deprecated
-    public void Assign(BBag other) {
-        assign(other);
-    }
-
     public BBag copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -73,11 +68,6 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
         var copy = new BBag();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BBag Copy() {
-        return copy();
     }
 
     public static void swap(BBag a, BBag b) {

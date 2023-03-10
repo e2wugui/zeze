@@ -93,11 +93,6 @@ public final class BAchillesHeel extends Zeze.Transaction.Bean implements BAchil
         setGlobalCacheManagerHashIndex(other.getGlobalCacheManagerHashIndex());
     }
 
-    @Deprecated
-    public void Assign(BAchillesHeel other) {
-        assign(other);
-    }
-
     public BAchillesHeel copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -107,11 +102,6 @@ public final class BAchillesHeel extends Zeze.Transaction.Bean implements BAchil
         var copy = new BAchillesHeel();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BAchillesHeel Copy() {
-        return copy();
     }
 
     public static void swap(BAchillesHeel a, BAchillesHeel b) {

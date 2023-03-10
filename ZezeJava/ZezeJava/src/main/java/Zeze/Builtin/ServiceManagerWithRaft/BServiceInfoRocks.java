@@ -198,11 +198,6 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
         setSessionName(other.getSessionName());
     }
 
-    @Deprecated
-    public void Assign(BServiceInfoRocks other) {
-        assign(other);
-    }
-
     public BServiceInfoRocks copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -212,11 +207,6 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
         var copy = new BServiceInfoRocks();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BServiceInfoRocks Copy() {
-        return copy();
     }
 
     public static void swap(BServiceInfoRocks a, BServiceInfoRocks b) {

@@ -25,11 +25,6 @@ public final class BLoadObservers extends Zeze.Raft.RocksRaft.Bean {
             _Observers.add(e);
     }
 
-    @Deprecated
-    public void Assign(BLoadObservers other) {
-        assign(other);
-    }
-
     public BLoadObservers copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -39,11 +34,6 @@ public final class BLoadObservers extends Zeze.Raft.RocksRaft.Bean {
         var copy = new BLoadObservers();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BLoadObservers Copy() {
-        return copy();
     }
 
     public static void swap(BLoadObservers a, BLoadObservers b) {

@@ -71,11 +71,6 @@ public final class BAcquireParam extends Zeze.Transaction.Bean implements BAcqui
         setState(other.getState());
     }
 
-    @Deprecated
-    public void Assign(BAcquireParam other) {
-        assign(other);
-    }
-
     public BAcquireParam copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -85,11 +80,6 @@ public final class BAcquireParam extends Zeze.Transaction.Bean implements BAcqui
         var copy = new BAcquireParam();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BAcquireParam Copy() {
-        return copy();
     }
 
     public static void swap(BAcquireParam a, BAcquireParam b) {

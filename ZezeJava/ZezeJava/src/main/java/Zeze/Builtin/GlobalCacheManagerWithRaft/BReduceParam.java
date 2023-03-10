@@ -70,11 +70,6 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
         setState(other.getState());
     }
 
-    @Deprecated
-    public void Assign(BReduceParam other) {
-        assign(other);
-    }
-
     public BReduceParam copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -84,11 +79,6 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
         var copy = new BReduceParam();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BReduceParam Copy() {
-        return copy();
     }
 
     public static void swap(BReduceParam a, BReduceParam b) {

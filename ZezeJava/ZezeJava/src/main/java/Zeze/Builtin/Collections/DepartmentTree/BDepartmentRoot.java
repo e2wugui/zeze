@@ -141,11 +141,6 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         _Data.assign(other.getData());
     }
 
-    @Deprecated
-    public void Assign(BDepartmentRoot other) {
-        assign(other);
-    }
-
     public BDepartmentRoot copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -155,11 +150,6 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         var copy = new BDepartmentRoot();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BDepartmentRoot Copy() {
-        return copy();
     }
 
     public static void swap(BDepartmentRoot a, BDepartmentRoot b) {

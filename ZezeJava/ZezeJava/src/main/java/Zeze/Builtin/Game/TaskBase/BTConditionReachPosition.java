@@ -158,11 +158,6 @@ public final class BTConditionReachPosition extends Zeze.Transaction.Bean implem
         setReached(other.isReached());
     }
 
-    @Deprecated
-    public void Assign(BTConditionReachPosition other) {
-        assign(other);
-    }
-
     public BTConditionReachPosition copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -172,11 +167,6 @@ public final class BTConditionReachPosition extends Zeze.Transaction.Bean implem
         var copy = new BTConditionReachPosition();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BTConditionReachPosition Copy() {
-        return copy();
     }
 
     public static void swap(BTConditionReachPosition a, BTConditionReachPosition b) {

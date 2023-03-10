@@ -29,11 +29,6 @@ public final class BTConditionSubmitItemEvent extends Zeze.Transaction.Bean impl
         _items.putAll(other.getItems());
     }
 
-    @Deprecated
-    public void Assign(BTConditionSubmitItemEvent other) {
-        assign(other);
-    }
-
     public BTConditionSubmitItemEvent copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -43,11 +38,6 @@ public final class BTConditionSubmitItemEvent extends Zeze.Transaction.Bean impl
         var copy = new BTConditionSubmitItemEvent();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BTConditionSubmitItemEvent Copy() {
-        return copy();
     }
 
     public static void swap(BTConditionSubmitItemEvent a, BTConditionSubmitItemEvent b) {

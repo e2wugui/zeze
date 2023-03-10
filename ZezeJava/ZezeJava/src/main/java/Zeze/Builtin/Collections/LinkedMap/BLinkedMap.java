@@ -111,11 +111,6 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
         setLastNodeId(other.getLastNodeId());
     }
 
-    @Deprecated
-    public void Assign(BLinkedMap other) {
-        assign(other);
-    }
-
     public BLinkedMap copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -125,11 +120,6 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
         var copy = new BLinkedMap();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BLinkedMap Copy() {
-        return copy();
     }
 
     public static void swap(BLinkedMap a, BLinkedMap b) {

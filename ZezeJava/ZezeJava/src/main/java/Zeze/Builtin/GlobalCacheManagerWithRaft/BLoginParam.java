@@ -88,11 +88,6 @@ public final class BLoginParam extends Zeze.Transaction.Bean implements BLoginPa
         setDebugMode(other.isDebugMode());
     }
 
-    @Deprecated
-    public void Assign(BLoginParam other) {
-        assign(other);
-    }
-
     public BLoginParam copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -102,11 +97,6 @@ public final class BLoginParam extends Zeze.Transaction.Bean implements BLoginPa
         var copy = new BLoginParam();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BLoginParam Copy() {
-        return copy();
     }
 
     public static void swap(BLoginParam a, BLoginParam b) {

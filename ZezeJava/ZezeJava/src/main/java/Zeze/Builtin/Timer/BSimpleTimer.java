@@ -249,11 +249,6 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         setMissfirePolicy(other.getMissfirePolicy());
     }
 
-    @Deprecated
-    public void Assign(BSimpleTimer other) {
-        assign(other);
-    }
-
     public BSimpleTimer copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -263,11 +258,6 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         var copy = new BSimpleTimer();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BSimpleTimer Copy() {
-        return copy();
     }
 
     public static void swap(BSimpleTimer a, BSimpleTimer b) {

@@ -156,11 +156,6 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
             _Hashs.put(e.getKey(), e.getValue().copy());
     }
 
-    @Deprecated
-    public void Assign(BModuleRedirectAllResult other) {
-        assign(other);
-    }
-
     public BModuleRedirectAllResult copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -170,11 +165,6 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         var copy = new BModuleRedirectAllResult();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BModuleRedirectAllResult Copy() {
-        return copy();
     }
 
     public static void swap(BModuleRedirectAllResult a, BModuleRedirectAllResult b) {

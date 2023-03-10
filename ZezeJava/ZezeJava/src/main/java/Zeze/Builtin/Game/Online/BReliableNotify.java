@@ -58,11 +58,6 @@ public final class BReliableNotify extends Zeze.Transaction.Bean implements BRel
         setReliableNotifyIndex(other.getReliableNotifyIndex());
     }
 
-    @Deprecated
-    public void Assign(BReliableNotify other) {
-        assign(other);
-    }
-
     public BReliableNotify copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -72,11 +67,6 @@ public final class BReliableNotify extends Zeze.Transaction.Bean implements BRel
         var copy = new BReliableNotify();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BReliableNotify Copy() {
-        return copy();
     }
 
     public static void swap(BReliableNotify a, BReliableNotify b) {

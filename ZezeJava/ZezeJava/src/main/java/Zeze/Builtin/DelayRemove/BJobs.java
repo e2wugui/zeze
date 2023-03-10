@@ -30,11 +30,6 @@ public final class BJobs extends Zeze.Transaction.Bean implements BJobsReadOnly 
             _Jobs.put(e.getKey(), e.getValue().copy());
     }
 
-    @Deprecated
-    public void Assign(BJobs other) {
-        assign(other);
-    }
-
     public BJobs copyIfManaged() {
         return isManaged() ? copy() : this;
     }
@@ -44,11 +39,6 @@ public final class BJobs extends Zeze.Transaction.Bean implements BJobsReadOnly 
         var copy = new BJobs();
         copy.assign(this);
         return copy;
-    }
-
-    @Deprecated
-    public BJobs Copy() {
-        return copy();
     }
 
     public static void swap(BJobs a, BJobs b) {
