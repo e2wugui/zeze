@@ -148,7 +148,7 @@ public final class JsonWriter {
 	}
 
 	public @NotNull JsonWriter setDepthLimit(int depth) {
-		flags = (flags & 0xffff) | (depth << 16);
+		flags = (flags & FLAG_ALL) | (depth << 16);
 		return this;
 	}
 
@@ -158,6 +158,11 @@ public final class JsonWriter {
 
 	public @NotNull JsonWriter setFlags(int flags) {
 		this.flags = this.flags & ~FLAG_ALL | flags & FLAG_ALL;
+		return this;
+	}
+
+	public @NotNull JsonWriter setFlagsAndDepthLimit(int flags, int depth) {
+		this.flags = (flags & FLAG_ALL) | (depth << 16);
 		return this;
 	}
 

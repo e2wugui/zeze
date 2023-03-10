@@ -20,6 +20,7 @@ import java.util.function.LongSupplier;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.Handshake.Constant;
 import Zeze.Util.Action0;
+import Zeze.Util.JsonWriter;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
@@ -33,6 +34,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public static final Level PROTOCOL_LOG_LEVEL = Level.toLevel(System.getProperty("protocolLog"), Level.OFF);
 	public static final boolean ENABLE_PROTOCOL_LOG = PROTOCOL_LOG_LEVEL != Level.OFF && logger.isEnabled(PROTOCOL_LOG_LEVEL);
 	public static final boolean ENABLE_DEBUG_LOG = logger.isDebugEnabled();
+	public static final boolean ENABLE_PROTOCOL_LOG_JSON = "true".equalsIgnoreCase(System.getProperty("protocolLogJson"));
 	private static final LongHashSet protocolLogExcept = new LongHashSet();
 	private static final VarHandle closedHandle, outputBufferSizeHandle;
 	private static final byte SEND_CLOSE_DETAIL_MAX = 20; // 必须小于REAL_CLOSED
@@ -518,6 +520,12 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		return false;
 	}
 
+	private static String toStr(Object obj) {
+		return ENABLE_PROTOCOL_LOG_JSON
+				? JsonWriter.local().clear().setFlagsAndDepthLimit(JsonWriter.FLAG_NO_QUOTE_KEY, 16).write(obj).toString()
+				: String.valueOf(obj);
+	}
+
 	public static void log(String action, long id, Protocol<?> p) {
 		var sb = new StringBuilder(64);
 		sb.append(action).append(':').append(id).append(' ').append(p.getClass().getSimpleName());
@@ -525,13 +533,13 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			var rpc = ((Rpc<?, ?>)p);
 			sb.append(':').append(rpc.getSessionId());
 			if (rpc.isRequest())
-				sb.append(' ').append(rpc.Argument);
+				sb.append(' ').append(toStr(rpc.Argument));
 			else
-				sb.append('>').append(rpc.resultCode).append(' ').append(rpc.Result);
+				sb.append('>').append(rpc.resultCode).append(' ').append(toStr(rpc.Result));
 		} else {
 			if (p.resultCode != 0)
 				sb.append('>').append(p.resultCode);
-			sb.append(' ').append(p.Argument);
+			sb.append(' ').append(toStr(p.Argument));
 		}
 		logger.log(PROTOCOL_LOG_LEVEL, sb);
 	}
@@ -543,13 +551,13 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			var rpc = ((Rpc<?, ?>)p);
 			sb.append(':').append(rpc.getSessionId());
 			if (rpc.isRequest())
-				sb.append(' ').append(rpc.Argument);
+				sb.append(' ').append(toStr(rpc.Argument));
 			else
-				sb.append('>').append(rpc.resultCode).append(' ').append(rpc.Result);
+				sb.append('>').append(rpc.resultCode).append(' ').append(toStr(rpc.Result));
 		} else {
 			if (p.resultCode != 0)
 				sb.append('>').append(p.resultCode);
-			sb.append(' ').append(p.Argument);
+			sb.append(' ').append(toStr(p.Argument));
 		}
 		logger.log(PROTOCOL_LOG_LEVEL, sb);
 	}
