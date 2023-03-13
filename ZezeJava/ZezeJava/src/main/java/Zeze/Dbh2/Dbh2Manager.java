@@ -2,6 +2,7 @@ package Zeze.Dbh2;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,10 +38,11 @@ public class Dbh2Manager {
 	protected long ProcessCreateBucketRequest(CreateBucket r) throws Exception {
 		var raftConfig = RaftConfig.loadFromString(r.Argument.getRaftConfig());
 		var portId = Integer.parseInt(raftConfig.getName().split(":")[1]);
-		var bucketDir = r.Argument.getDatabaseName() + "@" + r.Argument.getTableName() + "@" + portId;
+		var bucketDir = Path.of(r.Argument.getDatabaseName(), r.Argument.getTableName(), String.valueOf(portId));
 		var nodeDirPart = raftConfig.getName().replace(":", "_");
-		raftConfig.setDbHome(new File(bucketDir, nodeDirPart).toString());
-		new File(raftConfig.getDbHome()).mkdirs();
+		var dbHome = new File(bucketDir.toFile(), nodeDirPart);
+		dbHome.mkdirs();
+		raftConfig.setDbHome(dbHome.toString());
 		var file = new File(raftConfig.getDbHome(), "raft.xml");
 		java.nio.file.Files.write(file.toPath(),
 				r.Argument.getRaftConfig().getBytes(StandardCharsets.UTF_8),

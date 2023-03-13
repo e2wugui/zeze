@@ -44,16 +44,28 @@ public class Dbh2FullTest {
 			try (var trans = database.beginTransaction()) {
 				table1.replace(trans, key, value);
 				table1.replace(trans, key1, value);
+				table2.replace(trans, key, value);
+				table2.replace(trans, key1, value);
 				trans.commit();
 			}
+			{
+				var valueFindKey = table1.find(key);
+				Assert.assertNotNull(valueFindKey);
+				Assert.assertEquals(valueFindKey, value);
 
-			var valueFindKey = table1.find(key);
-			Assert.assertNotNull(valueFindKey);
-			Assert.assertEquals(valueFindKey, value);
+				var valueFindKey1 = table1.find(key1);
+				Assert.assertNotNull(valueFindKey1);
+				Assert.assertEquals(valueFindKey1, value);
+			}
+			{
+				var valueFindKey = table2.find(key);
+				Assert.assertNotNull(valueFindKey);
+				Assert.assertEquals(valueFindKey, value);
 
-			var valueFindKey1 = table1.find(key1);
-			Assert.assertNotNull(valueFindKey1);
-			Assert.assertEquals(valueFindKey1, value);
+				var valueFindKey1 = table2.find(key1);
+				Assert.assertNotNull(valueFindKey1);
+				Assert.assertEquals(valueFindKey1, value);
+			}
 
 		} finally {
 			master.stop();
