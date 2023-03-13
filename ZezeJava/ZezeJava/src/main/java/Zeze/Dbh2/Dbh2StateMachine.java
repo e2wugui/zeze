@@ -36,6 +36,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		super.addFactory(LogRollbackTransaction.TypeId_, LogRollbackTransaction::new);
 		super.addFactory(LogPut.TypeId_, LogPut::new);
 		super.addFactory(LogDelete.TypeId_, LogDelete::new);
+		super.addFactory(LogSetBucketMeta.TypeId_, LogSetBucketMeta::new);
+		super.addFactory(LogAllocateTid.TypeId_, LogAllocateTid::new);
 	}
 
 	public Bucket getBucket() {

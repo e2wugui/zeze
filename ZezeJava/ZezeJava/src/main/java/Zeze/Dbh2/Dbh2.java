@@ -10,9 +10,6 @@ import Zeze.Config;
 import Zeze.Net.Binary;
 import Zeze.Raft.Raft;
 import Zeze.Raft.RaftConfig;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.core.LoggerContext;
 import org.rocksdb.RocksDBException;
 
 public class Dbh2 extends AbstractDbh2 implements Closeable {
@@ -86,9 +83,6 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
     @Override
     protected long ProcessSetBucketMetaRequest(SetBucketMeta r) throws Exception {
-        if (!stateMachine.getBucket().inBucket(r.Argument.getDatabaseName(), r.Argument.getTableName()))
-            return errorCode(eBucketMissmatch);
-
         var log = new LogSetBucketMeta(r);
         raft.appendLog(log, r.Result); // result is empty
         r.SendResult();

@@ -90,7 +90,9 @@ public class Bucket {
 			var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
 			for (var cf : OptimisticTransactionDB.listColumnFamilies(new Options(), path))
 				columnFamilies.add(new ColumnFamilyDescriptor(cf, defaultCfOptions));
-			var dbOptions = new DBOptions();
+			if (columnFamilies.isEmpty())
+				columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(StandardCharsets.UTF_8), defaultCfOptions));
+			var dbOptions = new DBOptions().setCreateIfMissing(true);
 			var cfHandlesOut = new ArrayList<ColumnFamilyHandle>();
 			this.db = OptimisticTransactionDB.open(dbOptions, path, columnFamilies, cfHandlesOut);
 			for (var i = 0; i < columnFamilies.size(); ++i) {
@@ -111,7 +113,6 @@ public class Bucket {
 		} catch (RocksDBException ex) {
 			throw new RuntimeException(ex);
 		}
-		throw new RuntimeException("meta record not found");
 	}
 
 	public void setMeta(BBucketMeta.Data meta) throws RocksDBException {

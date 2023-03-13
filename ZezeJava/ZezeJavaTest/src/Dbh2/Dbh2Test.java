@@ -6,6 +6,7 @@ import Zeze.Dbh2.Dbh2Agent;
 import Zeze.Net.Binary;
 import Zeze.Raft.LogSequence;
 import Zeze.Raft.RaftConfig;
+import Zeze.Util.Task;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -13,6 +14,7 @@ import org.junit.Test;
 public class Dbh2Test {
 	@Test
 	public void testDbh2() throws Exception {
+		Task.tryInitThreadPool(null, null, null);
 		var raftConfigString = """
 <?xml version="1.0" encoding="utf-8"?>
 
