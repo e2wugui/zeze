@@ -23,6 +23,7 @@ public class MasterTable {
 
 		@Override
 		public void encode(ByteBuffer bb) {
+			bb.WriteBool(created);
 			bb.WriteInt(buckets.size());
 			for (var e : buckets.entrySet()) {
 				bb.WriteBinary(e.getKey());
@@ -32,6 +33,7 @@ public class MasterTable {
 
 		@Override
 		public void decode(ByteBuffer bb) {
+			created = bb.ReadBool();
 			buckets.clear();
 			for (var size = bb.ReadInt(); size > 0; --size) {
 				var key = bb.ReadBinary();

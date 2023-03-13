@@ -129,6 +129,9 @@ public class MasterDatabase {
 			} finally {
 				agent.close();
 			}
+
+			table.created = true;
+
 			// master数据马上存数据库。
 			var bbValue = ByteBuffer.Allocate();
 			table.encode(bbValue);
@@ -137,7 +140,7 @@ public class MasterDatabase {
 
 			// 保存在内存中，用来快速查询。
 			this.tables.put(tableName, table);
-			table.created = true;
+
 		}
 		return table;
 	}
