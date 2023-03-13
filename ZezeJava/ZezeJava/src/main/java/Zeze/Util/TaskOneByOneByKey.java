@@ -128,8 +128,7 @@ public final class TaskOneByOneByKey {
 		var barrier = new Barrier(procedure, keys.size(), cancel);
 		var group = new HashMap<TaskOneByOne, OutInt>();
 		for (var key : keys) {
-			var count = group.computeIfAbsent(bucket(key), (_key_) -> new OutInt(0));
-			count.value += 1;
+			group.computeIfAbsent(bucket(key), __ -> new OutInt()).value++;
 		}
 		for (var e : group.entrySet()) {
 			var sum = e.getValue().value;
@@ -214,8 +213,7 @@ public final class TaskOneByOneByKey {
 		var barrier = new BarrierAction(actionName, action, keys.size(), cancel);
 		var group = new HashMap<TaskOneByOne, OutInt>();
 		for (var key : keys) {
-			var count = group.computeIfAbsent(bucket(key), (_key_) -> new OutInt(0));
-			count.value += 1;
+			group.computeIfAbsent(bucket(key), __ -> new OutInt()).value++;
 		}
 		for (var e : group.entrySet()) {
 			var sum = e.getValue().value;
@@ -326,7 +324,7 @@ public final class TaskOneByOneByKey {
 		concurrency[hash(key) & hashMask].execute(action, name, cancel, mode);
 	}
 
-	private final TaskOneByOne bucket(Object key) {
+	private TaskOneByOne bucket(Object key) {
 		return concurrency[hash(key.hashCode()) & hashMask];
 	}
 

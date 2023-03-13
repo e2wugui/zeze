@@ -528,36 +528,40 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public static void log(String action, long id, Protocol<?> p) {
 		var sb = new StringBuilder(64);
 		sb.append(action).append(':').append(id).append(' ').append(p.getClass().getSimpleName());
+		boolean logResultCode;
+		Object bean;
 		if (p instanceof Rpc) {
 			var rpc = ((Rpc<?, ?>)p);
 			sb.append(':').append(rpc.getSessionId());
-			if (rpc.isRequest())
-				sb.append(' ').append(toStr(rpc.Argument));
-			else
-				sb.append('>').append(rpc.resultCode).append(' ').append(toStr(rpc.Result));
+			logResultCode = !rpc.isRequest();
+			bean = logResultCode ? rpc.Result : rpc.Argument;
 		} else {
-			if (p.resultCode != 0)
-				sb.append('>').append(p.resultCode);
-			sb.append(' ').append(toStr(p.Argument));
+			logResultCode = p.resultCode != 0;
+			bean = p.Argument;
 		}
+		if (logResultCode)
+			sb.append('>').append(p.resultCode);
+		sb.append(' ').append(toStr(bean));
 		logger.log(PROTOCOL_LOG_LEVEL, sb);
 	}
 
 	public static void log(String action, String id, Protocol<?> p) {
 		var sb = new StringBuilder(64);
 		sb.append(action).append(':').append(id).append(' ').append(p.getClass().getSimpleName());
+		boolean logResultCode;
+		Object bean;
 		if (p instanceof Rpc) {
 			var rpc = ((Rpc<?, ?>)p);
 			sb.append(':').append(rpc.getSessionId());
-			if (rpc.isRequest())
-				sb.append(' ').append(toStr(rpc.Argument));
-			else
-				sb.append('>').append(rpc.resultCode).append(' ').append(toStr(rpc.Result));
+			logResultCode = !rpc.isRequest();
+			bean = logResultCode ? rpc.Result : rpc.Argument;
 		} else {
-			if (p.resultCode != 0)
-				sb.append('>').append(p.resultCode);
-			sb.append(' ').append(toStr(p.Argument));
+			logResultCode = p.resultCode != 0;
+			bean = p.Argument;
 		}
+		if (logResultCode)
+			sb.append('>').append(p.resultCode);
+		sb.append(' ').append(toStr(bean));
 		logger.log(PROTOCOL_LOG_LEVEL, sb);
 	}
 
@@ -580,11 +584,9 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 		var sb = new StringBuilder();
 		sb.append(action).append(':').append(sessionId).append(' ').append(moduleId).append(':').append(protocolId);
-		if (FamilyClass.isRpc(familyClass)) {
+		if (FamilyClass.isRpc(familyClass))
 			sb.append(':').append(rpcSessionId);
-			if (familyClass == FamilyClass.Response)
-				sb.append('>').append(resultCode);
-		} else if (resultCode != 0)
+		if (familyClass == FamilyClass.Response || resultCode != 0)
 			sb.append('>').append(resultCode);
 		sb.append(' ').append(header).append('[').append(bb.size()).append(']');
 		bb.ReadIndex = beginReadIndex;
@@ -612,11 +614,9 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 		var sb = new StringBuilder();
 		sb.append(action).append(':').append(idStr).append(' ').append(moduleId).append(':').append(protocolId);
-		if (FamilyClass.isRpc(familyClass)) {
+		if (FamilyClass.isRpc(familyClass))
 			sb.append(':').append(rpcSessionId);
-			if (familyClass == FamilyClass.Response)
-				sb.append('>').append(resultCode);
-		} else if (resultCode != 0)
+		if (familyClass == FamilyClass.Response || resultCode != 0)
 			sb.append('>').append(resultCode);
 		sb.append(' ').append(header).append('[').append(bb.size()).append(']');
 		bb.ReadIndex = beginReadIndex;

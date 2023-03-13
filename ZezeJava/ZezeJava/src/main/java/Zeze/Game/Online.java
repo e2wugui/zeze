@@ -486,11 +486,13 @@ public class Online extends AbstractOnline {
 				}, "Game.Online.send")), DispatchMode.Normal);
 	}
 
-	@SuppressWarnings("unused")
-	public void send(Collection<Long> roles, long typeId, Binary fullEncodedProtocol) {
-		if (roles.size() > 0) {
-			providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(roles, providerApp.zeze.newProcedure(() -> {
-				sendEmbed(roles, typeId, fullEncodedProtocol);
+	public void send(Collection<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
+		int roleCount = roleIds.size();
+		if (roleCount == 1)
+			send(roleIds.iterator().next(), typeId, fullEncodedProtocol);
+		else if (roleCount > 0) {
+			providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(roleIds, providerApp.zeze.newProcedure(() -> {
+				sendEmbed(roleIds, typeId, fullEncodedProtocol);
 				return Procedure.Success;
 			}, "Game.Online.send"), null, DispatchMode.Normal);
 		}
