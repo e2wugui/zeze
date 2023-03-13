@@ -38,7 +38,10 @@ public class Dbh2Manager {
 	protected long ProcessCreateBucketRequest(CreateBucket r) throws Exception {
 		var raftConfig = RaftConfig.loadFromString(r.Argument.getRaftConfig());
 		var portId = Integer.parseInt(raftConfig.getName().split(":")[1]);
-		var bucketDir = Path.of(r.Argument.getDatabaseName(), r.Argument.getTableName(), String.valueOf(portId));
+		var bucketDir = Path.of(
+				r.Argument.getDatabaseName(),
+				r.Argument.getTableName(),
+				String.valueOf(portId));
 		var nodeDirPart = raftConfig.getName().replace(":", "_");
 		var dbHome = new File(bucketDir.toFile(), nodeDirPart);
 		dbHome.mkdirs();
@@ -71,8 +74,8 @@ public class Dbh2Manager {
 			super.OnHandshakeDone(so);
 			Dbh2Manager.this.register(getOneAcceptorIp());
 		}
-
 	}
+
 	public Dbh2Manager() {
 		var config = Config.load();
 		masterAgent = new MasterAgent(config, this::ProcessCreateBucketRequest, new Service(config));

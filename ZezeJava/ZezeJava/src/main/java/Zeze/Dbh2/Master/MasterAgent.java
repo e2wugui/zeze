@@ -75,7 +75,7 @@ public class MasterAgent extends AbstractMasterAgent {
 	public void register(String dbh2RaftAcceptorName) {
 		var r = new Register();
 		r.Argument.setDbh2RaftAcceptorName(dbh2RaftAcceptorName);
-		r.SendForWait(service.GetSocket());
+		r.SendForWait(service.GetSocket()); // 这里不能等待，现在直接在网络线程中运行。
 	}
 
 	@Override
