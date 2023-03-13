@@ -1,6 +1,6 @@
 allprojects {
     group 'com.zezeno'
-    version '1.1.18-SNAPSHOT'
+    version '1.1.19-SNAPSHOT'
     apply plugin: 'java'
     apply plugin: 'idea'
 
