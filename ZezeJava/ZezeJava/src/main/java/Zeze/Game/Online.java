@@ -564,15 +564,18 @@ public class Online extends AbstractOnline {
 			var online = _tonline.get(roleId);
 			if (online == null) {
 				groupNotOnline.roles.putIfAbsent(roleId, null);
+				logger.warn("groupByLink: not found roleId={} in _tonline", roleId);
 				continue;
 			}
 
 			var connector = providerApp.providerService.getLinks().get(online.getLinkName());
 			if (connector == null) {
+				logger.warn("groupByLink: not found connector for linkName={} roleId={}", online.getLinkName(), roleId);
 				groupNotOnline.roles.putIfAbsent(roleId, null);
 				continue;
 			}
 			if (!connector.isHandshakeDone()) {
+				logger.warn("groupByLink: not isHandshakeDone for linkName={} roleId={}", online.getLinkName(), roleId);
 				groupNotOnline.roles.putIfAbsent(roleId, null);
 				continue;
 			}

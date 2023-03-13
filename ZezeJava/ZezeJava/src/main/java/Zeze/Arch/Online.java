@@ -507,7 +507,7 @@ public class Online extends AbstractOnline {
 		return online.getLogins().size();
 	}
 
-	public Collection<LoginOnLink> groupByLink(Collection<LoginKey> logins) {
+	public Collection<LoginOnLink> groupByLink(Iterable<LoginKey> logins) {
 		var groups = new HashMap<String, LoginOnLink>();
 		var groupNotOnline = new LoginOnLink(); // LinkName is Empty And Socket is null.
 		groups.put(groupNotOnline.linkName, groupNotOnline);
@@ -516,20 +516,26 @@ public class Online extends AbstractOnline {
 			var online = _tonline.get(alogin.account);
 			if (online == null) {
 				groupNotOnline.logins.putIfAbsent(alogin, 0L);
+				logger.warn("groupByLink: not found account={} in _tonline", alogin.account);
 				continue;
 			}
 			var login = online.getLogins().get(alogin.clientId);
 			if (login == null) {
+				logger.warn("groupByLink: not found login for clientId={} account={}", alogin.clientId, alogin.account);
 				groupNotOnline.logins.putIfAbsent(alogin, 0L);
 				continue;
 			}
 			var connector = providerApp.providerService.getLinks().get(login.getLinkName());
 			if (connector == null) {
+				logger.warn("groupByLink: not found connector for linkName={} account={}",
+						login.getLinkName(), alogin.account);
 				groupNotOnline.logins.putIfAbsent(alogin, 0L);
 				continue;
 			}
 
 			if (!connector.isHandshakeDone()) {
+				logger.warn("groupByLink: not isHandshakeDone for linkName={} account={}",
+						login.getLinkName(), alogin.account);
 				groupNotOnline.logins.putIfAbsent(alogin, 0L);
 				continue;
 			}

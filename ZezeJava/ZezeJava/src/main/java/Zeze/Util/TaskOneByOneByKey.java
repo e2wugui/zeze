@@ -55,6 +55,14 @@ public final class TaskOneByOneByKey {
 		hashMask = capacity - 1;
 	}
 
+	public int getConcurrencyLevel() {
+		return concurrency.length;
+	}
+
+	public int getQueueSize(int index) {
+		return index >= 0 && index < concurrency.length ? concurrency[index].queue.size() : -1; // 可能有并发问题导致结果不准确,但通常问题不大
+	}
+
 	public static class Barrier {
 		private final Procedure procedure;
 		private final Action0 cancelAction;
