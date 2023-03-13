@@ -13,16 +13,20 @@ import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.OutObject;
 import Zeze.Util.TaskCompletionSource;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
 public class MasterDatabase {
+	private static final Logger logger = LogManager.getLogger(MasterDatabase.class);
 	private final String databaseName;
 	private final ConcurrentHashMap<String, MasterTable.Data> tables = new ConcurrentHashMap<>();
 	private final RocksDB db;
 	private final Master master;
 
 	public MasterDatabase(Master master, String databaseName) {
+		logger.info("openDb: {}, {}", master.getHome(), databaseName);
 		try {
 			this.master = master;
 			this.databaseName = databaseName;
@@ -31,12 +35,14 @@ public class MasterDatabase {
 			this.db = RocksDB.open(dbHome.toString());
 
 			try (var it = this.db.newIterator(Bucket.getDefaultReadOptions())) {
+				it.seekToFirst();
 				while (it.isValid()) {
 					var tableName = new String(it.key(), StandardCharsets.UTF_8);
 					var bTable = new MasterTable.Data();
 					var bb = ByteBuffer.Wrap(it.value());
 					bTable.decode(bb);
 					tables.put(tableName, bTable);
+					logger.info("addTable: {}", tableName);
 					it.next();
 				}
 			}
@@ -61,6 +67,7 @@ public class MasterDatabase {
 	}
 
 	public void close() {
+		logger.info("closeDb: {}, {}", master.getHome(), databaseName);
 		db.close();
 	}
 

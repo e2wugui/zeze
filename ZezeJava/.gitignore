@@ -17,3 +17,6 @@ Redirect_*.java
 /raft.xml
 /zeze.xml
 /ZezeJavaTest/test.ks
+/ZezeJavaTest/RocksDB
+/ZezeJavaTest/manager*
+/ZezeJavaTest/master

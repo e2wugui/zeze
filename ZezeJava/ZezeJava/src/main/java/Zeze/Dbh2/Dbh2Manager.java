@@ -53,7 +53,7 @@ public class Dbh2Manager {
 		var file = new File(raftConfig.getDbHome(), "raft.xml");
 		java.nio.file.Files.write(file.toPath(),
 				r.Argument.getRaftConfig().getBytes(StandardCharsets.UTF_8),
-				StandardOpenOption.CREATE_NEW);
+				StandardOpenOption.CREATE);
 		dbh2s.computeIfAbsent(r.Argument.getRaftConfig(),
 				(key) -> new Dbh2(raftConfig.getName(), raftConfig, null, false));
 		r.SendResult();

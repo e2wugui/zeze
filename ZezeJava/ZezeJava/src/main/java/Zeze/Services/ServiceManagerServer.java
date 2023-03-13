@@ -754,6 +754,7 @@ public final class ServiceManagerServer implements Closeable {
 			});
 		}
 
+		logger.info("openDb: {}, autokeys", this.config.dbHome);
 		autoKeysDb = RocksDB.open(DatabaseRocksDb.getCommonOptions(), Paths.get(this.config.dbHome, "autokeys").toString());
 
 		// 允许配置多个acceptor，如果有冲突，通过日志查看。
@@ -824,8 +825,10 @@ public final class ServiceManagerServer implements Closeable {
 		server.stop();
 		server = null;
 		serverStates.values().forEach(ServerState::close);
-		if (autoKeysDb != null)
+		if (autoKeysDb != null) {
+			logger.info("closeDb: {}, autokeys", this.config.dbHome);
 			autoKeysDb.close();
+		}
 	}
 
 	public static final class NetServer extends HandshakeServer {

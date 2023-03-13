@@ -10,9 +10,12 @@ import Zeze.Config;
 import Zeze.Net.Binary;
 import Zeze.Raft.Raft;
 import Zeze.Raft.RaftConfig;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
 
 public class Dbh2 extends AbstractDbh2 implements Closeable {
+    private static final Logger logger = LogManager.getLogger(Dbh2.class);
     private final Dbh2Config config = new Dbh2Config();
     private final Raft raft;
     private final Dbh2StateMachine stateMachine;
@@ -28,6 +31,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
         try {
             stateMachine = new Dbh2StateMachine();
             raft = new Raft(stateMachine, raftName, raftConf, config, "Zeze.Dbh2.Server", Zeze.Raft.Server::new);
+            logger.info("newRaft: {}", raft.getName());
             stateMachine.openBucket();
             var writeOptions = writeOptionSync ? Bucket.getSyncWriteOptions() : Bucket.getDefaultWriteOptions();
             raft.getLogSequence().setWriteOptions(writeOptions);
@@ -41,6 +45,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
     @Override
     public void close() throws IOException {
+        logger.info("closeRaft: " + raft.getName());
         try {
             raft.shutdown();
             stateMachine.close();

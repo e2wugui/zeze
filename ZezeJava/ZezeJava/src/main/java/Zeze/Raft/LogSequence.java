@@ -205,11 +205,12 @@ public class LogSequence {
 
 	public static RocksDB openDb(Options options, String path) throws RocksDBException {
 		RocksDBException lastE = null;
+		logger.info("openDb: {}", path);
 		for (int i = 0; i < 10; ++i) {
 			try {
 				return RocksDB.open(options, path);
 			} catch (RocksDBException e) {
-				logger.info("RocksDB.open {}", path, e);
+				logger.warn("RocksDB.open failed: {}", path, e);
 				lastE = e;
 				try {
 					Thread.sleep(1000);
@@ -300,6 +301,7 @@ public class LogSequence {
 			mutex.lock();
 			try {
 				if (db != null) {
+					logger.info("closeDb: {}", dbName);
 					db.close();
 					db = null;
 				}
@@ -381,10 +383,12 @@ public class LogSequence {
 		raft.lock();
 		try {
 			if (logs != null) {
+				logger.info("closeDb: {}, logs", raft.getRaftConfig().getDbHome());
 				logs.close();
 				logs = null;
 			}
 			if (rafts != null) {
+				logger.info("closeDb: {}, rafts", raft.getRaftConfig().getDbHome());
 				rafts.close();
 				rafts = null;
 			}
@@ -840,6 +844,7 @@ public class LogSequence {
 				// 我的想法是，InstallSnapshot 最后一个 trunk 带上 LastIncludedLog，
 				// 接收者清除log，并把这条日志插入（这个和系统初始化时插入的Index=0的日志道理差不多）。
 				// 【除了快照最后包含的日志，其他都删除。】
+				logger.info("closeDb: {}, logs", raft.getRaftConfig().getDbHome());
 				logs.close();
 				logs = null;
 				cancelPendingAppendLogFutures();
