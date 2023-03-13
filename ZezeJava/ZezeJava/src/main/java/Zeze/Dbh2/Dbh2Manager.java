@@ -44,6 +44,7 @@ public class Dbh2Manager {
 		var file = new File(dir, "raft.xml");
 		Files.write(r.Argument.getRaftConfig().getBytes(StandardCharsets.UTF_8), file);
 		var raftConfig = RaftConfig.loadFromString(r.Argument.getRaftConfig());
+		raftConfig.setDbHome(dir.toString()); // todo 这个路径对吗？ 需要调试一下。
 		dbh2s.computeIfAbsent(r.Argument.getRaftConfig(),
 				(key) -> new Dbh2(raftConfig.getName(), raftConfig, null, false));
 		r.SendResult();
@@ -90,6 +91,7 @@ public class Dbh2Manager {
 		for (var raftXml : raftXmlFiles) {
 			var raftStr = "";
 			var raftConfig = RaftConfig.loadFromString(raftStr);
+			raftConfig.setDbHome(raftXml.getParent()); // todo 这个路径对吗？ 需要调试一下。
 			dbh2s.computeIfAbsent(raftStr,
 					(key) -> new Dbh2(raftConfig.getName(), raftConfig, null, false));
 		}
