@@ -28,7 +28,7 @@ public class Dbh2FullTest {
 		master.start();
 		var managers = new ArrayList<Dbh2Manager>();
 		for (int i = 0; i < 3; ++i)
-			managers.add(new Zeze.Dbh2.Dbh2Manager());
+			managers.add(new Zeze.Dbh2.Dbh2Manager("manager" + i));
 		for (var manager : managers)
 			manager.start();
 

@@ -29,6 +29,8 @@ public class Dbh2Manager {
 		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
 	}
 
+	private final String home;
+
 	private final ConcurrentHashMap<String, Dbh2> dbh2s = new ConcurrentHashMap<>();
 
 	void register(String acceptor) {
@@ -39,9 +41,11 @@ public class Dbh2Manager {
 		var raftConfig = RaftConfig.loadFromString(r.Argument.getRaftConfig());
 		var portId = Integer.parseInt(raftConfig.getName().split(":")[1]);
 		var bucketDir = Path.of(
+				home,
 				r.Argument.getDatabaseName(),
 				r.Argument.getTableName(),
 				String.valueOf(portId));
+
 		var nodeDirPart = raftConfig.getName().replace(":", "_");
 		var dbHome = new File(bucketDir.toFile(), nodeDirPart);
 		dbHome.mkdirs();
@@ -76,13 +80,18 @@ public class Dbh2Manager {
 		}
 	}
 
-	public Dbh2Manager() {
+	public Dbh2Manager(String home) {
+		this.home = home;
 		var config = Config.load();
 		masterAgent = new MasterAgent(config, this::ProcessCreateBucketRequest, new Service(config));
 	}
 
 	private static void listRaftXmlFiles(File dir, ArrayList<File> out) {
-		for (var file : dir.listFiles()) {
+		var listFile = dir.listFiles();
+		if (null == listFile)
+			return;
+
+		for (var file : listFile) {
 			if (file.isDirectory())
 				listRaftXmlFiles(file, out);
 			else if (file.isFile() && file.getName().equals("raft.xml"))
@@ -93,7 +102,7 @@ public class Dbh2Manager {
 	public void start() throws Exception {
 		ShutdownHook.add(this, this::stop);
 		var raftXmlFiles = new ArrayList<File>();
-		listRaftXmlFiles(new File("."), raftXmlFiles);
+		listRaftXmlFiles(new File(home), raftXmlFiles);
 		for (var raftXml : raftXmlFiles) {
 			var bytes = java.nio.file.Files.readAllBytes(raftXml.toPath());
 			var raftStr = new String(bytes, StandardCharsets.UTF_8);
@@ -113,7 +122,7 @@ public class Dbh2Manager {
 	}
 
 	public static void main(String [] args) throws Exception {
-		var manager = new Dbh2Manager();
+		var manager = new Dbh2Manager("manager");
 		manager.start();
 		synchronized (Thread.currentThread()) {
 			Thread.currentThread().wait();
