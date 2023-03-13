@@ -493,8 +493,9 @@ public final class Json {
 			if (obj == null)
 				writer.write(null);
 			else {
-				writer.ensure(15);
-				writer.write("[" + obj.size() + ']', false);
+				var s = obj.toString();
+				writer.ensure(s.length() + 2);
+				writer.write(s, false);
 				// writer.ensure(obj.size() * 6 + 2);
 				// writer.write(obj.Bytes, obj.ReadIndex, obj.Size(), false);
 			}
@@ -506,8 +507,9 @@ public final class Json {
 			if (obj == null)
 				writer.write(null);
 			else {
-				writer.ensure(15);
-				writer.write("[" + obj.size() + ']', false);
+				var s = obj.toString();
+				writer.ensure(s.length() + 2);
+				writer.write(s, false);
 				// writer.ensure(obj.size() * 6 + 2);
 				// writer.write(obj.bytesUnsafe(), obj.getOffset(), obj.size(), false);
 			}

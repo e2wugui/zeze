@@ -34,7 +34,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public static final Level PROTOCOL_LOG_LEVEL = Level.toLevel(System.getProperty("protocolLog"), Level.OFF);
 	public static final boolean ENABLE_PROTOCOL_LOG = PROTOCOL_LOG_LEVEL != Level.OFF && logger.isEnabled(PROTOCOL_LOG_LEVEL);
 	public static final boolean ENABLE_DEBUG_LOG = logger.isDebugEnabled();
-	public static final boolean ENABLE_PROTOCOL_LOG_JSON = "true".equalsIgnoreCase(System.getProperty("protocolLogJson"));
+	public static final boolean ENABLE_PROTOCOL_LOG_OLD = "true".equalsIgnoreCase(System.getProperty("protocolLogOld"));
 	private static final LongHashSet protocolLogExcept = new LongHashSet();
 	private static final VarHandle closedHandle, outputBufferSizeHandle;
 	private static final byte SEND_CLOSE_DETAIL_MAX = 20; // 必须小于REAL_CLOSED
@@ -519,9 +519,10 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	private static String toStr(Object obj) {
-		return ENABLE_PROTOCOL_LOG_JSON
-				? JsonWriter.local().clear().setFlagsAndDepthLimit(JsonWriter.FLAG_NO_QUOTE_KEY, 16).write(obj).toString()
-				: String.valueOf(obj);
+		return ENABLE_PROTOCOL_LOG_OLD
+				? String.valueOf(obj)
+				: JsonWriter.local().clear().setFlagsAndDepthLimit(JsonWriter.FLAG_NO_QUOTE_KEY, 16)
+				.write(obj).toString();
 	}
 
 	public static void log(String action, long id, Protocol<?> p) {
