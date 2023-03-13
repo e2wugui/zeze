@@ -43,6 +43,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
     public void close() throws IOException {
         try {
             raft.shutdown();
+            stateMachine.close();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

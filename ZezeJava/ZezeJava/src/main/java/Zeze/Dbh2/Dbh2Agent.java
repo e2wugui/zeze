@@ -145,6 +145,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 	public Dbh2Agent(RaftConfig raftConf) throws Exception {
 		raftClient = new Agent("dbh2.raft", raftConf);
 		raftClient.setOnSetLeader(this::raftOnSetLeader);
+		RegisterProtocols(raftClient.getClient());
 		raftClient.getClient().start();
 	}
 

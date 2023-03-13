@@ -38,7 +38,7 @@ public final class RaftConfig {
 		return xmlFileName;
 	}
 
-	ConcurrentHashMap<String, Node> getNodes() {
+	public ConcurrentHashMap<String, Node> getNodes() {
 		return nodes;
 	}
 
@@ -231,7 +231,7 @@ public final class RaftConfig {
 			throw new IllegalStateException(String.format("duplicate node '%s'", node.getName()));
 	}
 
-	static final class Node {
+	public static final class Node {
 		private final String host;
 		private final int port;
 		private Element self;
@@ -242,15 +242,15 @@ public final class RaftConfig {
 			port = Integer.parseInt(self.getAttribute("Port"));
 		}
 
-		String getHost() {
+		public String getHost() {
 			return host;
 		}
 
-		int getPort() {
+		public int getPort() {
 			return port;
 		}
 
-		String getName() {
+		public String getName() {
 			return host + ':' + port;
 		}
 

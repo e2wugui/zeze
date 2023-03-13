@@ -156,6 +156,10 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		return result;
 	}
 
+	public void close() {
+		bucket.close();
+	}
+
 	@Override
 	public void loadSnapshot(String path) throws Exception {
 		var backupDir = Paths.get(getDbHome(), "backup").toString();
