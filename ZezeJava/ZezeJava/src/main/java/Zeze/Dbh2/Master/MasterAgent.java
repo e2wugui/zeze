@@ -7,12 +7,13 @@ import Zeze.Builtin.Dbh2.Master.GetBuckets;
 import Zeze.Builtin.Dbh2.Master.Register;
 import Zeze.Config;
 import Zeze.IModule;
+import Zeze.Net.Connector;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutObject;
 
 public class MasterAgent extends AbstractMasterAgent {
-	public static final String eServiceName = "Zeze.Dbh2.MasterAgent";
+	public static final String eServiceName = "Zeze.Dbh2.Master.Agent";
 	private final Service service;
 	private ProtocolHandle<CreateBucket> createBucketHandle;
 
@@ -27,9 +28,10 @@ public class MasterAgent extends AbstractMasterAgent {
 		RegisterProtocols(this.service);
 	}
 
-	public void start() {
+	public void startAndWaitConnectionReady() {
 		try {
 			service.start();
+			service.getConfig().forEachConnector(Connector::WaitReady);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -73,7 +75,7 @@ public class MasterAgent extends AbstractMasterAgent {
 	public void register(String dbh2RaftAcceptorName) {
 		var r = new Register();
 		r.Argument.setDbh2RaftAcceptorName(dbh2RaftAcceptorName);
-		r.SendForWait(service.GetSocket()).await();
+		r.SendForWait(service.GetSocket());
 	}
 
 	@Override

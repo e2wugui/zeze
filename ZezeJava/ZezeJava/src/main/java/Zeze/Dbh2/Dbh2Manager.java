@@ -2,7 +2,7 @@ package Zeze.Dbh2;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Dbh2.Master.CreateBucket;
@@ -10,12 +10,11 @@ import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.Net.AsyncSocket;
 import Zeze.Raft.RaftConfig;
-import Zeze.Util.BitConverter;
 import Zeze.Util.OutObject;
+import Zeze.Util.ShutdownHook;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
-import org.tikv.shade.com.google.common.io.Files;
 
 /**
  * Dbh2管理器，管理Dbh2(Raft桶)的创建。
@@ -36,15 +35,16 @@ public class Dbh2Manager {
 	}
 
 	protected long ProcessCreateBucketRequest(CreateBucket r) throws Exception {
-		var first = r.Argument.getKeyFirst();
-		var path = Path.of(r.Argument.getDatabaseName(), r.Argument.getTableName(),
-				BitConverter.toString(first.bytesUnsafe(), first.getOffset(), first.size()));
-		var dir = path.toFile();
-		dir.mkdirs(); // ignore result
-		var file = new File(dir, "raft.xml");
-		Files.write(r.Argument.getRaftConfig().getBytes(StandardCharsets.UTF_8), file);
 		var raftConfig = RaftConfig.loadFromString(r.Argument.getRaftConfig());
-		raftConfig.setDbHome(dir.toString()); // todo 这个路径对吗？ 需要调试一下。
+		var portId = Integer.parseInt(raftConfig.getName().split(":")[1]);
+		var bucketDir = r.Argument.getDatabaseName() + "@" + r.Argument.getTableName() + "@" + portId;
+		var nodeDirPart = raftConfig.getName().replace(":", "_");
+		raftConfig.setDbHome(new File(bucketDir, nodeDirPart).toString());
+		new File(raftConfig.getDbHome()).mkdirs();
+		var file = new File(raftConfig.getDbHome(), "raft.xml");
+		java.nio.file.Files.write(file.toPath(),
+				r.Argument.getRaftConfig().getBytes(StandardCharsets.UTF_8),
+				StandardOpenOption.CREATE_NEW);
 		dbh2s.computeIfAbsent(r.Argument.getRaftConfig(),
 				(key) -> new Dbh2(raftConfig.getName(), raftConfig, null, false));
 		r.SendResult();
@@ -86,20 +86,25 @@ public class Dbh2Manager {
 	}
 
 	public void start() throws Exception {
+		ShutdownHook.add(this, this::stop);
 		var raftXmlFiles = new ArrayList<File>();
 		listRaftXmlFiles(new File("."), raftXmlFiles);
 		for (var raftXml : raftXmlFiles) {
-			var raftStr = "";
+			var bytes = java.nio.file.Files.readAllBytes(raftXml.toPath());
+			var raftStr = new String(bytes, StandardCharsets.UTF_8);
 			var raftConfig = RaftConfig.loadFromString(raftStr);
 			raftConfig.setDbHome(raftXml.getParent()); // todo 这个路径对吗？ 需要调试一下。
 			dbh2s.computeIfAbsent(raftStr,
 					(key) -> new Dbh2(raftConfig.getName(), raftConfig, null, false));
 		}
-		masterAgent.start();
+		masterAgent.startAndWaitConnectionReady();
 	}
 
 	public void stop() throws Exception {
 		masterAgent.stop();
+		for (var dbh2 : dbh2s.values())
+			dbh2.close();
+		dbh2s.clear();
 	}
 
 	public static void main(String [] args) throws Exception {

@@ -1316,7 +1316,6 @@
 
 				<bean name="BRegister">
 					<variable id="1" name="Dbh2RaftAcceptorName" type="string"/>
-					<variable id="2" name="NextPort" type="int"/> Master用于维护已分配的端口，固定从10000开始，manager不用填写
 				</bean>
 				<rpc name="Register" argument="BRegister" UseData="true" handle="server"/>
 			</module>

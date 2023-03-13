@@ -1,7 +1,6 @@
 package Zeze.Dbh2;
 
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.util.HashMap;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
@@ -24,15 +23,17 @@ public class Database extends Zeze.Transaction.Database {
 		super(conf);
 		// dbh2://ip:port/databaseName?user=xxx&passwd=xxx
 		try {
-			var url = new URL(getDatabaseUrl());
+			var url = new URI(getDatabaseUrl());
 			masterName = url.getHost() + ":" + url.getPort();
-			databaseName = url.getFile();
+			databaseName = new java.io.File(url.getPath()).getName();
+			if (databaseName.contains("@"))
+				throw new RuntimeException("'@' is reserve.");
 			/*
 			var query = HttpExchange.parseQuery(url.getQuery());
 			user = query.get("user");
 			passwd = query.get("passwd");
 			*/
-		} catch (MalformedURLException e) {
+		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 		setDirectOperates(new NullOperates()); // todo operates
@@ -43,6 +44,8 @@ public class Database extends Zeze.Transaction.Database {
 
 	@Override
 	public Table openTable(String name) {
+		if (name.contains("@"))
+			throw new RuntimeException("'@' is reserve.");
 		return new Dbh2Table(name);
 	}
 

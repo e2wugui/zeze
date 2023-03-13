@@ -2,6 +2,7 @@ package Zeze.Dbh2.Master;
 
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Builtin.Dbh2.Master.BRegister;
 import Zeze.Builtin.Dbh2.Master.CreateDatabase;
 import Zeze.Builtin.Dbh2.Master.CreateTable;
@@ -16,9 +17,20 @@ public class Master extends AbstractMaster {
 
 	// todo 可用Dbh2Manager的数据结构。
 	private final HashMap<AsyncSocket, BRegister.Data> managers = new HashMap<>();
+	private final AtomicInteger atomicBucketPortId = new AtomicInteger(10000);
 
 	public Master() {
 
+	}
+
+	public void close() {
+		for (var db : databases.values())
+			db.close();
+		databases.clear();
+	}
+
+	public int nextBucketPortId() {
+		return atomicBucketPortId.incrementAndGet();
 	}
 
 	public HashMap<AsyncSocket, BRegister.Data> choiceManagers() {

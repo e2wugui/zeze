@@ -36,6 +36,7 @@ public final class Config {
 		Tikv,
 		RocksDb,
 		DynamoDb,
+		Dbh2,
 	}
 
 	private String name = "";

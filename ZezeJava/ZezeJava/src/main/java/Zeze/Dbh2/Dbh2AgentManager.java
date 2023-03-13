@@ -42,10 +42,10 @@ public class Dbh2AgentManager {
 			var config = new Config();
 			var serviceConf = new ServiceConf();
 			var ipPort = masterName.split(":");
-			serviceConf.tryGetOrAddConnector(ipPort[0], Integer.parseInt(ipPort[1]), true, null);
 			config.getServiceConfMap().put(MasterAgent.eServiceName, serviceConf);
+			serviceConf.tryGetOrAddConnector(ipPort[0], Integer.parseInt(ipPort[1]), true, null);
 			var m = new MasterAgent(config);
-			m.start();
+			m.startAndWaitConnectionReady();
 			return m;
 		});
 		master.createDatabase(databaseName);

@@ -57,6 +57,10 @@ public class MasterDatabase {
 		return bTable.locate(key);
 	}
 
+	public void close() {
+		db.close();
+	}
+
 	public MasterTable.Data createTable(String tableName, OutObject<Boolean> outIsNew) throws Exception {
 		outIsNew.value = false;
 		var table = this.tables.computeIfAbsent(tableName, (tbName) -> new MasterTable.Data());
@@ -86,25 +90,29 @@ public class MasterDatabase {
 			var sbRaft = new StringBuilder();
 			sbRaft.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
 			sbRaft.append("\n");
-			sbRaft.append("<raft Name=\"RaftName\">");
+			sbRaft.append("<raft Name=\"RaftName\">\n");
+			var raftNames = new ArrayList<String>(managers.size());
 			for (var e : managers.entrySet()) {
 				sbRaft.append("    <node Host=\"");
 				sbRaft.append(e.getValue().getDbh2RaftAcceptorName());
 				sbRaft.append("\" Port=\"");
-				sbRaft.append(e.getValue().getNextPort());
-				e.getValue().setNextPort(e.getValue().getNextPort() + 1); // todo 线程安全
+				var portId = master.nextBucketPortId();
+				sbRaft.append(portId);
 				sbRaft.append("\"/>\n");
+				raftNames.add(e.getValue().getDbh2RaftAcceptorName() + ":" + portId);
 			}
 			sbRaft.append("</raft>");
 			bucket.setRaftConfig(sbRaft.toString());
+			//System.out.println(bucket.getRaftConfig());
 
 			var futures = new ArrayList<TaskCompletionSource<?>>();
+			var i = 0;
 			for (var e : managers.entrySet()) {
 				var r = new CreateBucket();
 				r.Argument.assign(bucket);
 				// 用于manager服务器的需要replace RaftName.
-				r.Argument.setRaftConfig(r.Argument.getRaftConfig().replaceAll(
-						"RaftName", e.getValue().getDbh2RaftAcceptorName()));
+				r.Argument.setRaftConfig(r.Argument.getRaftConfig().replaceAll("RaftName", raftNames.get(i++)));
+				//System.out.println(r.Argument.getRaftConfig());
 				futures.add(r.SendForWait(e.getKey()));
 			}
 			for (var future : futures)

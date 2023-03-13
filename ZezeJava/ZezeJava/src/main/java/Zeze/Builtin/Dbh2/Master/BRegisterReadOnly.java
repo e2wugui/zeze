@@ -8,5 +8,4 @@ public interface BRegisterReadOnly {
     BRegister copy();
 
     String getDbh2RaftAcceptorName();
-    int getNextPort();
 }

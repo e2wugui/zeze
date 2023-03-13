@@ -103,6 +103,7 @@ public class Bucket {
 			var metaValue = db.get(cfMeta, metaKey);
 			if (null != metaValue) {
 				var bb = ByteBuffer.Wrap(metaValue);
+				this.meta = new BBucketMeta.Data();
 				this.meta.decode(bb);
 			}
 			var tidValue = db.get(cfMeta, metaTid);
