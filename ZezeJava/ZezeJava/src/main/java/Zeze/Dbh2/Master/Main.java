@@ -10,7 +10,7 @@ public class Main {
 	public Main() {
 		var config = Config.load();
 		service = new MasterService(config);
-		master = new Master();
+		master = new Master("master");
 	}
 
 	public void start() throws Exception {

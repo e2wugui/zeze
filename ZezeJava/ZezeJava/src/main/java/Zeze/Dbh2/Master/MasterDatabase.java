@@ -1,6 +1,7 @@
 package Zeze.Dbh2.Master;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Dbh2.BBucketMeta;
@@ -25,7 +26,9 @@ public class MasterDatabase {
 		try {
 			this.master = master;
 			this.databaseName = databaseName;
-			this.db = RocksDB.open(databaseName);
+			var dbHome = Path.of(master.getHome(), databaseName);
+			dbHome.toFile().mkdirs();
+			this.db = RocksDB.open(dbHome.toString());
 
 			try (var it = this.db.newIterator(Bucket.getDefaultReadOptions())) {
 				while (it.isValid()) {

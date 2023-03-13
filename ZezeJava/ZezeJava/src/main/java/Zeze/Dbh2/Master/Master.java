@@ -1,5 +1,6 @@
 package Zeze.Dbh2.Master;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -14,13 +15,26 @@ import Zeze.Util.OutObject;
 
 public class Master extends AbstractMaster {
 	private final ConcurrentHashMap<String, MasterDatabase> databases = new ConcurrentHashMap<>();
+	private final String home;
 
 	// todo 可用Dbh2Manager的数据结构。
 	private final HashMap<AsyncSocket, BRegister.Data> managers = new HashMap<>();
 	private final AtomicInteger atomicBucketPortId = new AtomicInteger(10000);
 
-	public Master() {
+	public Master(String home) {
+		this.home = home;
+		var dbs = new File(home).listFiles();
+		if (null != dbs) {
+			for (var db : dbs) {
+				if (!db.isDirectory())
+					continue;
+				databases.computeIfAbsent(db.getName(), (dbName) -> new MasterDatabase(this, dbName));
+			}
+		}
+	}
 
+	public String getHome() {
+		return home;
 	}
 
 	public void close() {
