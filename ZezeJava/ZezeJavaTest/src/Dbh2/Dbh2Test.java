@@ -7,11 +7,20 @@ import Zeze.Net.Binary;
 import Zeze.Raft.LogSequence;
 import Zeze.Raft.RaftConfig;
 import Zeze.Util.Task;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LoggerContext;
 import org.junit.Assert;
 import org.junit.Test;
 
 // 测试桶(raft)，在同一个进程内构建3个桶，通过Dbh2Agent访问。
 public class Dbh2Test {
+	static {
+		System.setProperty("log4j.configurationFile", "log4j2.xml");
+		var level = Level.toLevel(System.getProperty("logLevel"), Level.INFO);
+		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
+	}
+
 	@Test
 	public void testDbh2() throws Exception {
 		Task.tryInitThreadPool(null, null, null);
