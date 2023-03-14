@@ -110,12 +110,12 @@ public final class Json {
 	public static final class ClassMeta<T> {
 		private static final @NotNull HashMap<Class<?>, Integer> typeMap = new HashMap<>(32);
 		private static final @NotNull HashMap<Type, KeyReader> keyReaderMap = new HashMap<>(16);
-		public static BiFunction<Class<?>, Field, String> fieldNameFilter;
-		private final FieldMeta[] valueTable;
-		final FieldMeta[] fieldMetas;
+
+		final @NotNull Json json;
 		final @NotNull Class<T> klass;
 		final @NotNull Creator<T> ctor;
-		final boolean isAbstract;
+		private final FieldMeta[] valueTable;
+		final FieldMeta[] fieldMetas;
 		transient @Nullable Parser<T> parser; // user custom parser
 		transient @Nullable Writer<T> writer; // user custom writer
 
@@ -217,7 +217,10 @@ public final class Json {
 			return null;
 		}
 
-		ClassMeta(final @NotNull Class<T> klass) {
+		ClassMeta(final @NotNull Json json, final @NotNull Class<T> klass) {
+			this.json = json;
+			this.klass = klass;
+			ctor = getDefCtor(klass);
 			int size = 0;
 			for (Class<?> c = klass; c != null; c = c.getSuperclass())
 				for (Field field : getDeclaredFields(c))
@@ -225,9 +228,6 @@ public final class Json {
 						size++;
 			valueTable = new FieldMeta[1 << (32 - Integer.numberOfLeadingZeros(size * 2 - 1))];
 			fieldMetas = new FieldMeta[size];
-			this.klass = klass;
-			isAbstract = isAbstract(klass);
-			ctor = getDefCtor(klass);
 			ArrayList<Class<? super T>> classes = new ArrayList<>(2);
 			for (Class<? super T> c = klass; c != null; c = c.getSuperclass())
 				classes.add(c);
@@ -300,6 +300,7 @@ public final class Json {
 					if (offset != (int)offset)
 						throw new IllegalStateException("unexpected offset(" + offset + ") from field: "
 								+ fieldName + " in " + klass.getName());
+					final var fieldNameFilter = json.fieldNameFilter;
 					final String fn = fieldNameFilter != null ? fieldNameFilter.apply(c, field) : fieldName;
 					put(j++, new FieldMeta(type, (int)offset, fn != null ? fn : fieldName, fieldClass, fieldCtor,
 							keyReader));
@@ -367,12 +368,15 @@ public final class Json {
 	}
 
 	static final @NotNull Unsafe unsafe;
-	static final @NotNull MethodHandle getDeclaredFields0MH;
-	static final long OVERRIDE_OFFSET;
+	private static final @NotNull MethodHandle getDeclaredFields0MH;
+	private static final long OVERRIDE_OFFSET;
 	static final long STRING_VALUE_OFFSET;
 	static final boolean BYTE_STRING;
-	private static final @NotNull ConcurrentHashMap<Class<?>, ClassMeta<?>> classMetas = new ConcurrentHashMap<>();
 	static final int keyHashMultiplier = 0x100_0193; // 1677_7619 can be changed to another prime number
+	public static final Json instance = new Json();
+
+	private final @NotNull ConcurrentHashMap<Class<?>, ClassMeta<?>> classMetas = new ConcurrentHashMap<>();
+	public BiFunction<Class<?>, Field, String> fieldNameFilter;
 
 	static {
 		try {
@@ -401,6 +405,10 @@ public final class Json {
 		}
 	}
 
+	public static @NotNull Unsafe getUnsafe() {
+		return unsafe;
+	}
+
 	static Field[] getDeclaredFields(Class<?> klass) {
 		try {
 			return (Field[])getDeclaredFields0MH.invokeExact(klass, false);
@@ -424,23 +432,9 @@ public final class Json {
 		return ao;
 	}
 
-	@SuppressWarnings("null")
 	public static <T> @NotNull T ensureNotNull(@Nullable T obj) {
 		assert obj != null;
 		return obj;
-	}
-
-	public static @NotNull Unsafe getUnsafe() {
-		return unsafe;
-	}
-
-	@SuppressWarnings({"unchecked", "null"})
-	public static <T> @NotNull ClassMeta<T> getClassMeta(@NotNull Class<T> klass) {
-		return (ClassMeta<T>)classMetas.computeIfAbsent(klass, ClassMeta::new);
-	}
-
-	public static void clearClassMetas() {
-		classMetas.clear();
 	}
 
 //	public static void setKeyHashMultiplier(int multiplier) { // must be set before any other access
@@ -467,11 +461,22 @@ public final class Json {
 		return str;
 	}
 
-	private Json() {
+	@SuppressWarnings("unchecked")
+	public <T> @NotNull ClassMeta<T> getClassMeta(@NotNull Class<T> klass) {
+		var cm = classMetas.get(klass);
+		if (cm == null)
+			cm = classMetas.computeIfAbsent(klass, c -> new ClassMeta<>(this, c));
+		return (ClassMeta<T>)cm;
+	}
+
+	public void clearClassMetas() {
+		classMetas.clear();
 	}
 
 	static {
-		ClassMeta.fieldNameFilter = (klass, field) -> {
+		var json = instance;
+
+		json.fieldNameFilter = (klass, field) -> {
 			final String fn = field.getName();
 			if (fn.charAt(0) == '_' &&
 					(Bean.class.isAssignableFrom(klass) // bean
@@ -482,14 +487,14 @@ public final class Json {
 			return fn;
 		};
 
-		Json.getClassMeta(ByteBuffer.class).setParser((reader, classMeta, obj, parent) -> {
+		json.getClassMeta(ByteBuffer.class).setParser((reader, classMeta, obj, parent) -> {
 			final byte[] data = reader.parseByteString();
 			if (obj == null)
 				return ByteBuffer.Wrap(data);
 			obj.wraps(data != null ? data : ByteBuffer.Empty);
 			return obj;
 		});
-		Json.getClassMeta(ByteBuffer.class).setWriter((writer, classMeta, obj) -> {
+		json.getClassMeta(ByteBuffer.class).setWriter((writer, classMeta, obj) -> {
 			if (obj == null)
 				writer.write(null);
 			else {
@@ -501,9 +506,9 @@ public final class Json {
 			}
 		});
 
-		Json.getClassMeta(Binary.class).setParser((reader, classMeta, obj, parent) ->
+		json.getClassMeta(Binary.class).setParser((reader, classMeta, obj, parent) ->
 				new Binary(reader.parseByteString()));
-		Json.getClassMeta(Binary.class).setWriter((writer, classMeta, obj) -> {
+		json.getClassMeta(Binary.class).setWriter((writer, classMeta, obj) -> {
 			if (obj == null)
 				writer.write(null);
 			else {
@@ -515,7 +520,7 @@ public final class Json {
 			}
 		});
 
-		Json.getClassMeta(DynamicBean.class).setParser((reader, classMeta, obj, parent) -> {
+		json.getClassMeta(DynamicBean.class).setParser((reader, classMeta, obj, parent) -> {
 			if (obj == null) {
 				if (parent instanceof PList2)
 					obj = (DynamicBean)((PList2<?>)parent).createValue();
@@ -532,13 +537,13 @@ public final class Json {
 			return obj;
 		});
 
-		Json.getClassMeta(CollOne.class).setParser((reader, classMeta, obj, parent) -> {
+		json.getClassMeta(CollOne.class).setParser((reader, classMeta, obj, parent) -> {
 			if (obj == null)
 				throw new UnsupportedOperationException();
 			reader.parse(obj.getValue());
 			return obj;
 		});
-		Json.getClassMeta(CollOne.class).setWriter((writer, classMeta, obj) -> {
+		json.getClassMeta(CollOne.class).setWriter((writer, classMeta, obj) -> {
 			if (obj == null)
 				throw new UnsupportedOperationException();
 			writer.write(obj.getValue());

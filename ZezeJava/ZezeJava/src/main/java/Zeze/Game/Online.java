@@ -490,7 +490,7 @@ public class Online extends AbstractOnline {
 		int roleCount = roleIds.size();
 		if (roleCount == 1)
 			send(roleIds.iterator().next(), typeId, fullEncodedProtocol);
-		else if (roleCount > 0) {
+		else if (roleCount > 1) {
 			providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(roleIds, providerApp.zeze.newProcedure(() -> {
 				sendEmbed(roleIds, typeId, fullEncodedProtocol);
 				return Procedure.Success;
@@ -498,7 +498,7 @@ public class Online extends AbstractOnline {
 		}
 	}
 
-	public void send(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
+	public void sendNoBarrier(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
 		// 发送协议请求在另外的事务中执行。
 		Task.run(providerApp.zeze.newProcedure(() -> {
 			sendEmbed(roleIds, typeId, fullEncodedProtocol);

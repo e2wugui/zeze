@@ -60,7 +60,7 @@ public final class TestJson extends TestCase {
 		assertEquals(A.class, c.a.getClass());
 		assertEquals(5, c.a.a);
 
-		Json.getClassMeta(A.class).setParser((Json, __, ___, ____) -> Json.parse(B.class));
+		Json.instance.getClassMeta(A.class).setParser((Json, __, ___, ____) -> Json.parse(B.class));
 		c.a = null;
 		c = JsonReader.local().buf("{a:{a:7,b:8}}").parse(c);
 		assertNotNull(c);
@@ -108,7 +108,7 @@ public final class TestJson extends TestCase {
 
 	public void test7() {
 		System.out.println(System.getProperty("java.version"));
-		System.out.println(Json.getClassMeta(Inet4Address.class));
+		System.out.println(Json.instance.getClassMeta(Inet4Address.class));
 	}
 
 	static class D {
@@ -160,7 +160,6 @@ public final class TestJson extends TestCase {
 		F2 f2;
 	}
 
-	@SuppressWarnings("null")
 	public void testA() throws ReflectiveOperationException {
 		G g = JsonReader.local().buf("{\"set1\":[123,456],\"set2\":[789],\"set3\":[],\"e1\":{\"1\":[]},\"f2\":[222]}")
 				.parse(G.class);

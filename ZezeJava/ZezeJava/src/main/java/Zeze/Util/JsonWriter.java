@@ -227,7 +227,6 @@ public final class JsonWriter {
 		return this;
 	}
 
-	@SuppressWarnings("null")
 	public @NotNull JsonWriter free() { // can be reused by ensure()
 		for (Block block = tail.next; ; block = block.next) {
 			allocator.free(ensureNotNull(block));
@@ -322,6 +321,10 @@ public final class JsonWriter {
 	}
 
 	public @NotNull JsonWriter write(@Nullable Object obj) {
+		return write(Json.instance, obj);
+	}
+
+	public @NotNull JsonWriter write(@NotNull Json json, @Nullable Object obj) {
 		if (obj == null) {
 			ensure(5);
 			buf[pos++] = 'n';
@@ -519,7 +522,7 @@ public final class JsonWriter {
 				buf[pos++] = '}';
 				break;
 			}
-			ClassMeta<?> classMeta = getClassMeta(klass);
+			ClassMeta<?> classMeta = json.getClassMeta(klass);
 			Writer<?> writer = classMeta.writer;
 			if (writer != null) {
 				writer.write0(this, classMeta, obj);

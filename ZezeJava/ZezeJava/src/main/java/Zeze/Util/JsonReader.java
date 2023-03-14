@@ -336,20 +336,24 @@ public final class JsonReader {
 		return c;
 	}
 
-	@SuppressWarnings("null")
 	public <T> @Nullable Collection<T> parseArray(@Nullable Collection<T> c, @NotNull Class<T> elemClass)
 			throws ReflectiveOperationException {
+		return parseArray(Json.instance, c, elemClass);
+	}
+
+	public <T> @Nullable Collection<T> parseArray(@NotNull Json json, @Nullable Collection<T> c,
+												  @NotNull Class<T> elemClass) throws ReflectiveOperationException {
 		if (next() != '[')
 			return c;
 		if (c == null)
 			c = new ArrayList<>();
-		ClassMeta<T> classMeta = getClassMeta(elemClass);
+		ClassMeta<T> classMeta = json.getClassMeta(elemClass);
 		Parser<T> parser = classMeta.parser;
 		if (parser != null) {
 			for (int b = skipNext(); b != ']'; b = skipVar(']'))
 				c.add(parser.parse(this, classMeta, null, null));
 		} else {
-			if (classMeta.isAbstract)
+			if (ClassMeta.isAbstract(elemClass))
 				throw new InstantiationException("abstract element class: " + elemClass.getName());
 			for (int b = skipNext(); b != ']'; b = skipVar(']'))
 				c.add(parse0(classMeta.ctor.create(), classMeta));
@@ -375,7 +379,11 @@ public final class JsonReader {
 	}
 
 	public <T> @Nullable T parse(@Nullable Class<T> klass) throws ReflectiveOperationException {
-		return klass != null ? parse(null, getClassMeta(klass)) : null;
+		return klass != null ? parse(null, Json.instance.getClassMeta(klass)) : null;
+	}
+
+	public <T> @Nullable T parse(@NotNull Json json, @Nullable Class<T> klass) throws ReflectiveOperationException {
+		return klass != null ? parse(null, json.getClassMeta(klass)) : null;
 	}
 
 	public <T> @Nullable T parse(@Nullable ClassMeta<T> classMeta) throws ReflectiveOperationException {
@@ -388,23 +396,33 @@ public final class JsonReader {
 
 	public <T> @Nullable T parse(@Nullable T obj, @Nullable Class<? super T> klass)
 			throws ReflectiveOperationException {
-		return parse(obj, klass != null ? getClassMeta(klass) : null);
+		return parse(obj, klass != null ? Json.instance.getClassMeta(klass) : null);
+	}
+
+	public <T> @Nullable T parse(@NotNull Json json, @Nullable T obj, @Nullable Class<? super T> klass)
+			throws ReflectiveOperationException {
+		return parse(obj, klass != null ? json.getClassMeta(klass) : null);
+	}
+
+	public <T> @Nullable T parse(@Nullable T obj, @Nullable ClassMeta<? super T> classMeta)
+			throws ReflectiveOperationException {
+		return parse(Json.instance, obj, classMeta);
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T> @Nullable T parse(@Nullable T obj, @Nullable ClassMeta<? super T> classMeta)
+	public <T> @Nullable T parse(@NotNull Json json, @Nullable T obj, @Nullable ClassMeta<? super T> classMeta)
 			throws ReflectiveOperationException {
 		if (classMeta == null) {
 			if (obj == null)
 				return null;
-			classMeta = getClassMeta((Class<T>)obj.getClass());
+			classMeta = json.getClassMeta((Class<T>)obj.getClass());
 		}
 		Parser<? super T> parser = classMeta.parser;
 		if (parser != null)
 			return (T)parser.parse0(this, classMeta, obj, null);
 		if (obj != null)
 			return parse0(obj, classMeta);
-		if (classMeta.isAbstract)
+		if (ClassMeta.isAbstract(classMeta.klass))
 			throw new InstantiationException("abstract class: " + classMeta.klass.getName());
 		return parse0((T)classMeta.ctor.create(), classMeta);
 	}
@@ -464,9 +482,9 @@ public final class JsonReader {
 					if (subClass == fm.klass) {
 						subClassMeta = fm.classMeta;
 						if (subClassMeta == null)
-							fm.classMeta = subClassMeta = getClassMeta(subClass);
+							fm.classMeta = subClassMeta = classMeta.json.getClassMeta(subClass);
 					} else
-						subClassMeta = getClassMeta(subClass);
+						subClassMeta = classMeta.json.getClassMeta(subClass);
 					Parser<?> parser = subClassMeta.parser;
 					if (parser != null) {
 						Object newSubObj = parser.parse0(this, subClassMeta, subObj, obj);
@@ -481,12 +499,12 @@ public final class JsonReader {
 				} else {
 					ClassMeta<?> subClassMeta = fm.classMeta;
 					if (subClassMeta == null)
-						fm.classMeta = subClassMeta = getClassMeta(fm.klass);
+						fm.classMeta = subClassMeta = classMeta.json.getClassMeta(fm.klass);
 					Parser<?> parser = subClassMeta.parser;
 					if (parser != null)
 						subObj = parser.parse0(this, subClassMeta, null, obj);
 					else {
-						if (subClassMeta.isAbstract)
+						if (ClassMeta.isAbstract(subClassMeta.klass))
 							throw new InstantiationException(
 									"abstract field: " + fm.getName() + " in " + classMeta.klass.getName());
 						subObj = parse0(subClassMeta.ctor.create(), subClassMeta);
@@ -534,7 +552,7 @@ public final class JsonReader {
 							Collection<Object> c2 = ensureNotNull((Collection<Object>)ctor.create());
 							unsafe.putObject(obj, offset, c = c2);
 						} else {
-							ClassMeta<?> cm = getClassMeta(fm.klass);
+							ClassMeta<?> cm = classMeta.json.getClassMeta(fm.klass);
 							Parser<?> parser = cm.parser;
 							if (parser == null)
 								throw new InstantiationException("abstract Collection field: " + fm.getName() + " in "
@@ -598,13 +616,13 @@ public final class JsonReader {
 					case TYPE_CUSTOM:
 						ClassMeta<?> subClassMeta = fm.classMeta;
 						if (subClassMeta == null)
-							fm.classMeta = subClassMeta = getClassMeta(fm.klass);
+							fm.classMeta = subClassMeta = classMeta.json.getClassMeta(fm.klass);
 						Parser<?> parser = subClassMeta.parser;
 						if (parser != null) {
 							for (; b != ']'; b = skipVar(']'))
 								c.add(parser.parse0(this, subClassMeta, null, c));
 						} else {
-							if (subClassMeta.isAbstract)
+							if (ClassMeta.isAbstract(subClassMeta.klass))
 								throw new InstantiationException(
 										"abstract element class: " + fm.getName() + " in " + classMeta.klass.getName());
 							for (; b != ']'; b = skipVar(']'))
@@ -627,7 +645,7 @@ public final class JsonReader {
 							Map<Object, Object> m2 = ensureNotNull((Map<Object, Object>)ctor.create());
 							unsafe.putObject(obj, offset, m = m2);
 						} else {
-							ClassMeta<?> cm = getClassMeta(fm.klass);
+							ClassMeta<?> cm = classMeta.json.getClassMeta(fm.klass);
 							Parser<?> parser = cm.parser;
 							if (parser == null)
 								throw new InstantiationException(
@@ -715,7 +733,7 @@ public final class JsonReader {
 					case TYPE_CUSTOM:
 						ClassMeta<?> subClassMeta = fm.classMeta;
 						if (subClassMeta == null)
-							fm.classMeta = subClassMeta = getClassMeta(fm.klass);
+							fm.classMeta = subClassMeta = classMeta.json.getClassMeta(fm.klass);
 						Parser<?> parser = subClassMeta.parser;
 						if (parser != null) {
 							for (; b != '}'; b = skipVar('}')) {
@@ -724,7 +742,7 @@ public final class JsonReader {
 								m.put(k, parser.parse0(this, subClassMeta, null, m));
 							}
 						} else {
-							if (subClassMeta.isAbstract)
+							if (ClassMeta.isAbstract(subClassMeta.klass))
 								throw new InstantiationException(
 										"abstract value class: " + fm.getName() + " in " + classMeta.klass.getName());
 							for (; b != '}'; b = skipVar('}')) {
