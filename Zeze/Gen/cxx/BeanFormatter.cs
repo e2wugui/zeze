@@ -15,36 +15,51 @@ namespace Zeze.Gen.cxx
         public void Make(string baseDir)
         {
             using StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + ".hpp");
+            sw.WriteLine("#pragma once");
             sw.WriteLine();
+            sw.WriteLine("#include <cstdint>");
+            sw.WriteLine("#include <string>");
+            sw.WriteLine("#include \"zeze/cxx/ByteBuffer.h\"");
+            sw.WriteLine("#include \"zeze/cxx/Bean.h\"");
+            sw.WriteLine();
+            var paths = bean.Space.Paths();
+            foreach (var path in paths)
+            {
+                sw.WriteLine($"namespace {path} {{");
+            }
             if (bean.Comment.Length > 0)
                 sw.WriteLine(bean.Comment);
-            sw.WriteLine($"class {bean.Name} : Zeze::Transaction::Bean {{");
+            sw.WriteLine($"class {bean.Name} : Zeze::Bean {{");
+            sw.WriteLine($"public:");
             WriteDefine(sw);
-            sw.WriteLine("}");
+            sw.WriteLine("};");
+            foreach (var path in paths)
+            {
+                sw.WriteLine("}");
+            }
         }
 
         private void GenDynamicSpecialMethod(StreamWriter sw, string prefix, Variable var, TypeDynamic type, bool isCollection)
         {
             if (false == isCollection)
             {
-                sw.WriteLine($"{prefix}public:");
                 foreach (var real in type.RealBeans)
                 {
                     sw.WriteLine($"{prefix}const int64_t DynamicTypeId_{var.NameUpper1}_{real.Value.Space.Path("_", real.Value.Name)} = {real.Key}L;");
                 }
             }
             sw.WriteLine();
-            sw.WriteLine($"{prefix}public static long getSpecialTypeIdFromBean_{var.Id}(Zeze.Transaction.Bean bean) {{");
+            sw.WriteLine($"{prefix}static int64_t getSpecialTypeIdFromBean_{var.Id}(const Zeze::Bean& bean) {{");
             if (string.IsNullOrEmpty(type.DynamicParams.GetSpecialTypeIdFromBean)) 
             {
                 // 根据配置的实际类型生成switch。
                 sw.WriteLine($"{prefix}    var _typeId_ = bean.typeId();");
-                sw.WriteLine($"{prefix}    if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)");
-                sw.WriteLine($"{prefix}        return Zeze.Transaction.EmptyBean.TYPEID;");
+                sw.WriteLine($"{prefix}    if (_typeId_ == Zeze::EmptyBean::TYPEID)");
+                sw.WriteLine($"{prefix}        return Zeze::EmptyBean::TYPEID;");
                 foreach (var real in type.RealBeans)
                 {
                     sw.WriteLine($"{prefix}    if (_typeId_ == {real.Value.TypeId}L)");
-                    sw.WriteLine($"{prefix}        return {real.Key}L; // {real.Value.FullName}");
+                    sw.WriteLine($"{prefix}        return {real.Key}LL; // {real.Value.FullName}");
                 }
                 sw.WriteLine($"{prefix}    throw Exception(\"Unknown Bean! dynamic@{((Bean)var.Bean).FullName}:{var.Name}\");");
             }
@@ -55,14 +70,14 @@ namespace Zeze.Gen.cxx
             }
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
-            sw.WriteLine($"{prefix}public static Zeze.Transaction.Bean * createBeanFromSpecialTypeId_{var.Id}(int64_t typeId) {{");
+            sw.WriteLine($"{prefix}static Zeze::Bean * createBeanFromSpecialTypeId_{var.Id}(int64_t typeId) {{");
             //sw.WriteLine($"{prefix}    case Zeze.Transaction.EmptyBean.TYPEID: return new Zeze.Transaction.EmptyBean();");
             if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId))
             {
                 // 根据配置的实际类型生成switch。
                 foreach (var real in type.RealBeans)
                 {
-                    sw.WriteLine($"{prefix}    if (typeId == {real.Key}L)");
+                    sw.WriteLine($"{prefix}    if (typeId == {real.Key}LL)");
                     sw.WriteLine($"{prefix}        return new {real.Value.FullName}();");
                 }
                 sw.WriteLine($"{prefix}    return null;");
@@ -78,12 +93,12 @@ namespace Zeze.Gen.cxx
 
         public void WriteDefine(StreamWriter sw)
         {
-            sw.WriteLine("    public static final int64_t TYPEID = " + bean.TypeId + "LL;");
+            sw.WriteLine("    static const int64_t TYPEID = " + bean.TypeId + "LL;");
             sw.WriteLine();
             // declare enums
             foreach (Enum e in bean.Enums)
             {
-                sw.WriteLine($"    public static final {TypeName.GetName(Type.Compile(e.Type))} " + e.Name + " = " + e.Value + ";" + e.Comment);
+                sw.WriteLine($"    const {TypeName.GetName(Type.Compile(e.Type))} " + e.Name + " = " + e.Value + ";" + e.Comment);
             }
             if (bean.Enums.Count > 0)
             {
@@ -93,7 +108,6 @@ namespace Zeze.Gen.cxx
             // declare variables
             bean.Variables.Sort((a, b) => a.Id - b.Id);
             bool addBlankLine = false;
-            sw.WriteLine($"    public:");
             foreach (Variable v in bean.Variables)
             {
                 Type vt = v.VariableType;
@@ -116,7 +130,7 @@ namespace Zeze.Gen.cxx
             Property.Make(bean, sw, "    ");
             Construct.Make(bean, sw, "    ");
             Assign.Make(bean, sw, "    ");
-            sw.WriteLine("    virtual long typeId() override {");
+            sw.WriteLine("    virtual int64_t TypeId() override {");
             sw.WriteLine("        return TYPEID;");
             sw.WriteLine("    }");
             sw.WriteLine();

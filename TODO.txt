@@ -18,12 +18,14 @@ Benchmark.BBasicSimpleAddConcurrentWithConflict tasks/s=217785.84 time=4.59 cpu=
 Benchmark.CBasicSimpleAddConcurrent tasks/s=96997.63 time=10.31 cpu=100.00 concurrent=9.70
 Focus Document
 
-cxx Bean
+cxx Bean 1. ByteBuffer &; 2. Binary-std::string; 3. Bean, DynamicBean;
 cxx Net
 
 Dbh2 创建表选择负载低的服务器的策略。
 Dbh2 根据负载或什么策略并发拆分桶。
 Dbh2 Commit 的两个问题。Transaction.Undo ? 【还是没确定方案】
+
+Online BeanKey(LinkName, LinkSid)可以原子的设置；Send 使用 selectDirty 查询。
 
 ------------------------------------------------------------------------------------------------------------------------------
 2023/3/15 v1.2.0 Dbh2; TaskOneByOneByKey Dead-Lock-Bug;

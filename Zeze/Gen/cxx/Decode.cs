@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using Zeze.Gen.java;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cxx
@@ -15,13 +14,11 @@ namespace Zeze.Gen.cxx
         readonly string prefix;
         readonly string typeVarName;
 
-        string Getter => var != null ? var.Getter : tmpvarname;
-        string NamePrivate => var != null ? var.NamePrivate : tmpvarname;
+        string NameUpper1OrTmp => var != null ? var.NameUpper1 : tmpvarname;
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "public:");
-            sw.WriteLine(prefix + "virtual void decode(ByteBuffer _o_) override {");
+            sw.WriteLine(prefix + "virtual void Decode(Zeze::ByteBuffer& _o_) override {");
             sw.WriteLine(prefix + "    int _t_ = _o_.ReadByte();");
             if (bean.Variables.Count > 0)
                 sw.WriteLine(prefix + "    int _i_ = _o_.ReadTagSize(_t_);");
@@ -72,8 +69,7 @@ namespace Zeze.Gen.cxx
 
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "public:");
-            sw.WriteLine(prefix + "virtual void decode(ByteBuffer _o_) override {");
+            sw.WriteLine(prefix + "virtual void Decode(Zeze::ByteBuffer& _o_) override {");
             sw.WriteLine(prefix + "    int _t_ = _o_.ReadByte();");
             if (bean.Variables.Count > 0)
                 sw.WriteLine(prefix + "    int _i_ = _o_.ReadTagSize(_t_);");
@@ -271,7 +267,7 @@ namespace Zeze.Gen.cxx
             if (id > 0)
                 sw.WriteLine(prefix + bufname + ".ReadBean(" + var.NameUpper1 + ", _t_);");
             else
-                sw.WriteLine(prefix + var.NameUpper1 + ".decode(" + bufname + ");");
+                sw.WriteLine(prefix + NameUpper1OrTmp + ".decode(" + bufname + ");");
         }
 
         public void Visit(BeanKey type)
@@ -279,12 +275,12 @@ namespace Zeze.Gen.cxx
             if (id > 0)
                 sw.WriteLine(prefix + bufname + ".ReadBean(" + var.NameUpper1 + ", _t_);");
             else
-                sw.WriteLine(prefix + var.NameUpper1 + ".decode(" + bufname + ");");
+                sw.WriteLine(prefix + NameUpper1OrTmp + ".decode(" + bufname + ");");
         }
 
         public void Visit(TypeDynamic type)
         {
-            sw.WriteLine(prefix + bufname + ".ReadDynamic(" + var.NameUpper1 + ", " + typeVarName + ");");
+            sw.WriteLine(prefix + bufname + ".ReadDynamic(" + NameUpper1OrTmp + ", " + typeVarName + ");");
         }
 
         public void Visit(TypeQuaternion type)

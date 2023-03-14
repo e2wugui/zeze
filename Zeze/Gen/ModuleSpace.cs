@@ -36,6 +36,15 @@ namespace Zeze.Gen
             return depth;
         }
 
+        public List<string> Paths()
+        {
+            var path = new List<string>();
+            path.Add(Name);
+            for (ModuleSpace p = Parent; p != null; p = p.Parent)
+                path.Add(p.Name);
+            return path;
+        }
+
         public string Path(string sep = ".", string ObjectName = null)
         {
             string path = Name;

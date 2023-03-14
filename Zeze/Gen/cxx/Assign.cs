@@ -12,19 +12,16 @@ namespace Zeze.Gen.cxx
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "public:");
-            sw.WriteLine(prefix + "virtual void assign(Zeze.Transaction.Bean other) override {");
-            sw.WriteLine(prefix + $"    assign(({bean.Name})other);");
+            sw.WriteLine(prefix + "virtual void Assign(const Zeze::Bean& other) override {");
+            sw.WriteLine(prefix + $"    Assign((const {bean.Name}&)other);");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
 
-            sw.WriteLine(prefix + "public void assign(" + bean.Name + " other) {");
+            sw.WriteLine(prefix + "void Assign(const " + bean.Name + "& other) {");
             foreach (Variable var in bean.Variables)
                 var.VariableType.Accept(new Assign(var, sw, prefix + "    ", true));
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
-
-            sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }
 

@@ -12,7 +12,7 @@ namespace Zeze.Gen.cxx
 
 		public static void Make(Bean bean, StreamWriter sw, string prefix)
 		{
-			sw.WriteLine(prefix + $"public {bean.Name}() {{");
+			sw.WriteLine(prefix + $"{bean.Name}() {{");
             var hasImmutable = false;
             foreach (var var in bean.Variables)
             {
@@ -24,8 +24,7 @@ namespace Zeze.Gen.cxx
 			sw.WriteLine();
             if (hasImmutable)
             {
-                sw.WriteLine(prefix + "@SuppressWarnings(\"deprecation\")");
-                sw.Write(prefix + $"public {bean.Name}(");
+                sw.Write(prefix + $"{bean.Name}(");
                 var first = true;
                 foreach (var var in bean.Variables)
                 {
@@ -61,7 +60,7 @@ namespace Zeze.Gen.cxx
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "// for decode only");
-            sw.WriteLine(prefix + "public " + bean.Name + "() {");
+            sw.WriteLine(prefix + bean.Name + "() {");
             foreach (Variable var in bean.Variables)
                 var.VariableType.Accept(new Construct(sw, var, prefix + "    ", bean.Name));
             sw.WriteLine(prefix + "}");

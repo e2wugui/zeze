@@ -6,8 +6,6 @@
 
 namespace Zeze
 {
-namespace Serialize
-{
 	class ByteBuffer;
 
 	class Serializable
@@ -959,5 +957,4 @@ namespace Serialize
 			}
 		}
 	};
-} // namespace Serialize
 } // namespace Zeze
