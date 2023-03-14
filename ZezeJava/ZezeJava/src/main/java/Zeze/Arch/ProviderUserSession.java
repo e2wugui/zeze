@@ -102,7 +102,7 @@ public class ProviderUserSession {
 			var online = ((ProviderWithOnline)providerImpl).getOnline();
 			var roleId = getRoleId();
 			if (roleId != null)
-				online.sendOneByOne(List.of(roleId), link, Map.of(getLinkSid(), roleId), send);
+				online.send(List.of(roleId), link, Map.of(getLinkSid(), roleId), send);
 			else
 				online.send(link, Map.of(), send);
 		} else if (providerImpl instanceof Zeze.Arch.ProviderWithOnline) {
@@ -110,7 +110,7 @@ public class ProviderUserSession {
 			var context = getContext();
 			var loginKey = new Online.LoginKey(getAccount(), context);
 			if (context != null && !context.isEmpty())
-				online.sendOneByOne(List.of(loginKey), link, Map.of(getLinkSid(), loginKey), send);
+				online.send(List.of(loginKey), link, Map.of(getLinkSid(), loginKey), send);
 			else
 				online.send(link, Map.of(getLinkSid(), loginKey), send);
 		} else

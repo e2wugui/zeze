@@ -527,12 +527,17 @@ public class Online extends AbstractOnline {
 				send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
 	}
 
-	public void sendOneByOne(Collection<Long> keys, AsyncSocket to, Map<Long, Long> contexts, Send send) {
-		//noinspection CodeBlock2Expr
-		providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(keys, "sendOneByOne", () -> {
+	public void send(Collection<Long> keys, AsyncSocket to, Map<Long, Long> contexts, Send send) {
+		if (keys.size() > 1) {
 			send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
 					send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
-		}, null, DispatchMode.Normal);
+		} else {
+			//noinspection CodeBlock2Expr
+			providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(keys, "sendOneByOne", () -> {
+				send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
+						send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
+			}, null, DispatchMode.Normal);
+		}
 	}
 
 	public void sendEmbed(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {

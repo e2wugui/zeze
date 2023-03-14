@@ -20,7 +20,18 @@ namespace Zeze.Gen.cxx
         {
             string projectBasedir = Project.GenDir;
             string projectDir = Path.Combine(projectBasedir, Project.Name);
-            string genDir = projectDir;
+            string genDir = Path.Combine(projectDir, Project.GenRelativeDir, "Gen");
+            string srcDir = Project.ScriptDir.Length > 0
+                ? Path.Combine(projectDir, Project.ScriptDir) : projectDir;
+
+            foreach (var bean in Project.AllBeans.Values)
+            {
+                new BeanFormatter(bean).Make(genDir);
+            }
+            foreach (var beanKey in Project.AllBeanKeys.Values)
+            {
+                //new BeanKeyFormatter(beanKey).Make(genDir);
+            }
 
             {
                 using StreamWriter sw = Project.Solution.OpenWriter(genDir, "App.h");
@@ -44,7 +55,7 @@ namespace Zeze.Gen.cxx
 
             foreach (var m in Project.Services.Values)
             {
-                using StreamWriter sw = Project.Solution.OpenWriter(genDir, $"{m.Name}.h", false);
+                using StreamWriter sw = Project.Solution.OpenWriter(srcDir, $"{m.Name}.h", false);
                 if (sw == null)
                     continue;
                 //sw.WriteLine("// auto-generated");

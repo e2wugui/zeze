@@ -565,12 +565,17 @@ public class Online extends AbstractOnline {
 				send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
 	}
 
-	public void sendOneByOne(Collection<LoginKey> keys, AsyncSocket to, Map<Long, LoginKey> contexts, Send send) {
-		//noinspection CodeBlock2Expr
-		providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(keys, "sendOneByOne", () -> {
+	public void send(Collection<LoginKey> keys, AsyncSocket to, Map<Long, LoginKey> contexts, Send send) {
+		if (keys.size() > 1) {
 			send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
 					send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
-		}, null, DispatchMode.Normal);
+		} else {
+			//noinspection CodeBlock2Expr
+			providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(keys, "sendOneByOne", () -> {
+				send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
+						send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
+			}, null, DispatchMode.Normal);
+		}
 	}
 
 	private void sendEmbed(Collection<LoginKey> logins, long typeId, Binary fullEncodedProtocol) {
@@ -634,11 +639,16 @@ public class Online extends AbstractOnline {
 	}
 
 	public void send(Collection<LoginKey> logins, long typeId, Binary fullEncodedProtocol) {
-		providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(logins,
-				providerApp.zeze.newProcedure(() -> {
-					sendEmbed(logins, typeId, fullEncodedProtocol);
-					return Procedure.Success;
-				}, "Online.send"), null, DispatchMode.Normal);
+		var p = providerApp.zeze.newProcedure(() -> {
+			sendEmbed(logins, typeId, fullEncodedProtocol);
+			return Procedure.Success;
+		}, "Online.send");
+
+		if (logins.size() > 1) {
+			Task.runUnsafe(p);
+		} else {
+			providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(logins, p, null, DispatchMode.Normal);
+		}
 	}
 
 	public void send(String account, String clientId, Protocol<?> p) {
@@ -759,10 +769,16 @@ public class Online extends AbstractOnline {
 	}
 
 	public void sendAccounts(Collection<String> accounts, long typeId, Binary fullEncodedProtocol, OnlineSend sender) {
-		providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(accounts, providerApp.zeze.newProcedure(() -> {
+		var p = providerApp.zeze.newProcedure(() -> {
 			sendAccountsEmbed(accounts, typeId, fullEncodedProtocol, sender);
 			return Procedure.Success;
-		}, "Online.sendAccounts"), null, DispatchMode.Normal);
+		}, "Online.sendAccounts");
+
+		if (accounts.size() > 1) {
+			Task.runUnsafe(p);
+		} else {
+			providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(accounts, p, null, DispatchMode.Normal);
+		}
 	}
 
 	/**

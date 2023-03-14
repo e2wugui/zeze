@@ -121,7 +121,7 @@ public final class TaskOneByOneByKey {
 		}
 	}
 
-	public <T> void executeCyclicBarrier(Collection<T> keys, Procedure procedure, Action0 cancel, DispatchMode mode) {
+	public synchronized <T> void executeCyclicBarrier(Collection<T> keys, Procedure procedure, Action0 cancel, DispatchMode mode) {
 		if (keys.isEmpty())
 			throw new IllegalArgumentException("CyclicBarrier keys is empty.");
 
@@ -200,7 +200,7 @@ public final class TaskOneByOneByKey {
 		}
 	}
 
-	public <T> void executeCyclicBarrier(
+	public synchronized <T> void executeCyclicBarrier(
 			Collection<T> keys,
 			String actionName,
 			Action0 action,

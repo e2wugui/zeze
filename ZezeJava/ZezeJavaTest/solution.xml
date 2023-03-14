@@ -156,4 +156,12 @@
 		</service>
 	</project>
 
+	<project name="CxxTest" gendir="../../" platform="cxx" GenTables="">
+		<service name="Server" handle="server" base="Zeze.Services.HandshakeServer">
+			<module ref="Module1"/>
+			<module ref="M6"/>
+			<module ref="demo.M6.M7"/>
+			<module ref="TaskTest.TaskExt"/>
+		</service>
+	</project>
 </solution>
