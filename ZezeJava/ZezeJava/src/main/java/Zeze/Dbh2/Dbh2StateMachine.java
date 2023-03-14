@@ -78,8 +78,10 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	public void beginTransaction(BBeginTransactionArgument.Data argument) {
 		var transaction = bucket.beginTransaction();
-		if (null != transactionMap.putIfAbsent(argument.getTransactionId(), transaction))
+		if (null != transactionMap.putIfAbsent(argument.getTransactionId(), transaction)) {
+			logger.error("duplicate tid=" + argument.getTransactionId());
 			getRaft().fatalKill();
+		}
 	}
 
 	public void commitTransaction(BCommitTransactionArgument.Data argument) {

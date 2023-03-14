@@ -108,7 +108,7 @@ public class Bucket {
 			}
 			var tidValue = db.get(cfMeta, metaTid);
 			if (null != tidValue) {
-				var bb = ByteBuffer.Wrap(metaValue);
+				var bb = ByteBuffer.Wrap(tidValue);
 				tid = bb.ReadLong();
 			}
 		} catch (RocksDBException ex) {
