@@ -2,26 +2,26 @@ apply from: '../build.gradle'
 
 dependencies {
     // required dependencies
-    implementation 'org.apache.logging.log4j:log4j-api:2.19.0'
-    implementation 'org.apache.logging.log4j:log4j-core:2.19.0'
-    implementation 'org.jetbrains:annotations:23.1.0'
+    implementation 'org.apache.logging.log4j:log4j-api:2.20.0'
+    implementation 'org.apache.logging.log4j:log4j-core:2.20.0'
+    implementation 'org.jetbrains:annotations:24.0.1'
     implementation 'org.pcollections:pcollections:4.0.1'
-    implementation 'org.rocksdb:rocksdbjni:7.8.3'
-    implementation 'io.netty:netty-codec-http:4.1.86.Final'
-    implementation 'io.netty:netty-transport-native-epoll:4.1.86.Final:linux-x86_64'
+    implementation 'org.rocksdb:rocksdbjni:7.10.2'
+    implementation 'io.netty:netty-codec-http:4.1.89.Final'
+    implementation 'io.netty:netty-transport-native-epoll:4.1.89.Final:linux-x86_64'
 
     // optional dependencies
     // for tikv
-    compileOnly 'org.tikv:tikv-client-java:3.3.0'
+    compileOnly 'org.tikv:tikv-client-java:3.3.3'
     // runtimeOnly 'org.slf4j:slf4j-api:2.0.6'
-    // runtimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl:2.19.0'
+    // runtimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl:2.20.0'
 
     // for jdbc(mysql,sqlserver,tidb)
-    compileOnly 'com.alibaba:druid:1.2.15'
-    compileOnly 'mysql:mysql-connector-java:8.0.31'
+    compileOnly 'com.alibaba:druid:1.2.16'
+    compileOnly 'com.mysql:mysql-connector-j:8.0.32'
 
     // dynamodb
-    compileOnly 'com.amazonaws:aws-java-sdk-dynamodb:1.12.342'
+    compileOnly 'com.amazonaws:aws-java-sdk-dynamodb:1.12.425'
 
     // for rocketmq
     compileOnly 'org.apache.rocketmq:rocketmq-client:4.9.4'
@@ -32,7 +32,7 @@ dependencies {
     compileOnly 'com.opencsv:opencsv:5.7.1'
 
     // for new Compress/Decompress Codec in Zeze.Net
-    compileOnly 'com.github.luben:zstd-jni:1.5.2-5'
+    compileOnly 'com.github.luben:zstd-jni:1.5.4-2'
 }
 
 tasks.withType(JavaCompile) {

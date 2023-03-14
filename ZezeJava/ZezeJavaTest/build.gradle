@@ -10,13 +10,13 @@ dependencies {
     implementation 'junit:junit:4.13.2'
 
     // for tikv
-    implementation 'org.tikv:tikv-client-java:3.3.0'
+    implementation 'org.tikv:tikv-client-java:3.3.3'
     runtimeOnly 'org.slf4j:slf4j-api:2.0.6'
-    runtimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl:2.19.0'
+    runtimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl:2.20.0'
 
     // for jdbc(mysql,sqlserver,tidb)
-    implementation 'com.alibaba:druid:1.2.15'
-    implementation 'mysql:mysql-connector-java:8.0.31'
+    implementation 'com.alibaba:druid:1.2.16'
+    implementation 'com.mysql:mysql-connector-j:8.0.32'
 
     // for websocket
     implementation 'org.java-websocket:Java-WebSocket:1.5.3'
@@ -34,7 +34,7 @@ dependencies {
     implementation 'org.glassfish:javax.json:1.0.4'
 
     // for new Compress/Decompress Codec in Zeze.Net
-    implementation 'com.github.luben:zstd-jni:1.5.2-5'
+    implementation 'com.github.luben:zstd-jni:1.5.4-2'
 }
 
 sourceSets {
