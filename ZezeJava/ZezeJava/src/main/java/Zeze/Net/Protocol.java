@@ -282,7 +282,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 				} else {
 					if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 						AsyncSocket.log("RECV", so.getSessionId(), moduleId, protocolId, bb);
-					service.dispatchUnknownProtocol(so, moduleId, protocolId, bb); // 这里只能临时读bb,不能持有Bytes引用
+					service.dispatchUnknownProtocol(so, moduleId, protocolId, bb);
 				}
 			}
 			bb.ReadIndex = endReadIndex;

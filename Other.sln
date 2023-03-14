@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "csharp", "lua\csharp\csharp
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cxx", "lua\cxx\cxx.vcxproj", "{BAE40A04-CDB1-4E1B-BD4E-EC820F843F43}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZezeNoDatabaseUseKeraLua", "Zeze\ZezeNoDatabaseUseKeraLua.csproj", "{D6A2117D-C08D-422C-85E6-EC3CCDA65CD2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZezeLightUseKeraLua", "Zeze\ZezeLightUseKeraLua.csproj", "{D6A2117D-C08D-422C-85E6-EC3CCDA65CD2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

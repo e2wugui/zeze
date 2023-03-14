@@ -354,7 +354,7 @@ public class Service {
 	 * 在异步线程中回调，要注意线程安全。
 	 *
 	 * @param so    current socket
-	 * @param input 方法外绝对不能持有input.Bytes的引用! 也就是只能在方法内读input.
+	 * @param input 方法外绝对不能持有input及其Bytes的引用! 也就是只能在方法内读input.
 	 *              处理了多少要体现在input.ReadIndex上,剩下的等下次收到数据后会继续在此处理.
 	 * @return 是否可以立即再次从socket接收数据(如果缓冲区还有数据的话), 否则会等下次select循环再处理
 	 */
@@ -463,7 +463,7 @@ public class Service {
 	}
 
 	/**
-	 * @param data 方法外绝对不能持有data.Bytes的引用! 也就是只能在方法内读data, 只能处理data.ReadIndex到data.WriteIndex范围内
+	 * @param data 方法外绝对不能持有data及其Bytes的引用! 也就是只能在方法内读data, 只能处理data.ReadIndex到data.WriteIndex范围内
 	 */
 	@SuppressWarnings("RedundantThrows")
 	public void dispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId, ByteBuffer data) throws Exception {

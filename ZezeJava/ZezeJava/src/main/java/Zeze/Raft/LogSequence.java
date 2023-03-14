@@ -301,7 +301,7 @@ public class LogSequence {
 			mutex.lock();
 			try {
 				if (db != null) {
-					logger.info("closeDb: {}", dbName);
+					logger.info("closeDb: {}, unique, {}", logSequence.raft.getRaftConfig().getDbHome(), dbName);
 					db.close();
 					db = null;
 				}
