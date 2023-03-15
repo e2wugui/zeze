@@ -45,18 +45,7 @@ namespace Zeze.Gen.cxx
 
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "private static int _PRE_ALLOC_SIZE_ = 16;");
-            sw.WriteLine();
-            sw.WriteLine(prefix + "public:");
-            sw.WriteLine(prefix + "virtual int preAllocSize() override {");
-            sw.WriteLine(prefix + "    return _PRE_ALLOC_SIZE_;");
-            sw.WriteLine(prefix + "}");
-            sw.WriteLine();
-            sw.WriteLine(prefix + "virtual void preAllocSize(int size) override {");
-            sw.WriteLine(prefix + "    _PRE_ALLOC_SIZE_ = size;");
-            sw.WriteLine(prefix + "}");
-            sw.WriteLine();
-            sw.WriteLine(prefix + "virtual void encode(ByteBuffer _o_) override {");
+            sw.WriteLine(prefix + "virtual void Encode(Zeze::ByteBuffer& _o_) const override {");
             if (bean.Variables.Count > 0)
                 sw.WriteLine(prefix + "    int _i_ = 0;");
 
@@ -221,8 +210,8 @@ namespace Zeze.Gen.cxx
             sw.WriteLine(prefix + "if (_n_ != 0) {");
             sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
             sw.WriteLine(prefix + "    " + bufname + ".WriteListType(_n_, " + TypeTagName.GetName(vt) + ");");
-            sw.WriteLine(prefix + "    for (var _v_ : _x_) {");
-            vt.Accept(new Encode(null, "_v_", 0, bufname, sw, prefix + "        "));
+            sw.WriteLine(prefix + "    for (auto it = _x_.begin(); it != _x_.end(); ++it) {");
+            vt.Accept(new Encode(null, "*it", 0, bufname, sw, prefix + "        "));
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
         }
@@ -248,9 +237,9 @@ namespace Zeze.Gen.cxx
             sw.WriteLine(prefix + "if (_n_ != 0) {");
             sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
             sw.WriteLine(prefix + "    " + bufname + ".WriteMapType(_n_, " + TypeTagName.GetName(kt) + ", " + TypeTagName.GetName(vt) + ");");
-            sw.WriteLine(prefix + "    for (var _e_ : _x_.entrySet()) {");
-            vt.Accept(new Encode(null, "_e_.getKey()", 0, bufname, sw, prefix + "        "));
-            vt.Accept(new Encode(null, "_e_.getValue()", 0, bufname, sw, prefix + "        "));
+            sw.WriteLine(prefix + "    for (auto it = _x_.begin(); it != _x_.end(); ++it) {");
+            vt.Accept(new Encode(null, "it->first", 0, bufname, sw, prefix + "        "));
+            vt.Accept(new Encode(null, "it->second", 0, bufname, sw, prefix + "        "));
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
         }
@@ -262,14 +251,14 @@ namespace Zeze.Gen.cxx
                 sw.WriteLine(prefix + "int _a_ = " + bufname + ".WriteIndex;");
                 sw.WriteLine(prefix + "int _j_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "int _b_ = " + bufname + ".WriteIndex;");
-                sw.WriteLine(prefix + var.NameUpper1 + ".encode(" + bufname + ");");
+                sw.WriteLine(prefix + var.NameUpper1 + ".Encode(" + bufname + ");");
                 sw.WriteLine(prefix + "if (_b_ + 1 == " + bufname + ".WriteIndex)");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteIndex = _a_;");
                 sw.WriteLine(prefix + "else");
                 sw.WriteLine(prefix + "    _i_ = _j_;");
             }
             else
-                sw.WriteLine(prefix + varname + ".encode(" + bufname + ");");
+                sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
         }
 
         public void Visit(BeanKey type)
@@ -279,14 +268,14 @@ namespace Zeze.Gen.cxx
                 sw.WriteLine(prefix + "int _a_ = " + bufname + ".WriteIndex;");
                 sw.WriteLine(prefix + "int _j_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "int _b_ = " + bufname + ".WriteIndex;");
-                sw.WriteLine(prefix + var.NameUpper1 + ".encode(" + bufname + ");");
+                sw.WriteLine(prefix + var.NameUpper1 + ".Encode(" + bufname + ");");
                 sw.WriteLine(prefix + "if (_b_ + 1 == " + bufname + ".WriteIndex)");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteIndex = _a_;");
                 sw.WriteLine(prefix + "else");
                 sw.WriteLine(prefix + "    _i_ = _j_;");
             }
             else
-                sw.WriteLine(prefix + varname + ".encode(" + bufname + ");");
+                sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
         }
 
         public void Visit(TypeDynamic type)
@@ -294,14 +283,14 @@ namespace Zeze.Gen.cxx
             if (id > 0)
             {
                 sw.WriteLine(prefix + "auto& _x_ = " + var.NameUpper1 + ';');
-                sw.WriteLine(prefix + "if (!_x_.empty()) {");
+                sw.WriteLine(prefix + "if (!_x_.Empty()) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
-                sw.WriteLine(prefix + "    _x_.encode(" + bufname + ");");
+                sw.WriteLine(prefix + "    _x_.Encode(" + bufname + ");");
                 sw.WriteLine(prefix + "}");
             }
             else
             {
-                sw.WriteLine(prefix + varname + ".encode(" + bufname + ");");
+                sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
             }
         }
 

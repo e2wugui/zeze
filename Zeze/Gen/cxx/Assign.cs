@@ -95,7 +95,7 @@ namespace Zeze.Gen.cxx
 
         public void Visit(Bean type)
         {
-            sw.WriteLine(prefix + var.NameUpper1 + ".assign(other." + var.NameUpper1 + ");");
+            sw.WriteLine(prefix + var.NameUpper1 + ".Assign(other." + var.NameUpper1 + ");");
         }
 
         public void Visit(BeanKey type)
@@ -105,7 +105,7 @@ namespace Zeze.Gen.cxx
 
         public void Visit(TypeDynamic type)
         {
-            sw.WriteLine(prefix + var.NameUpper1 + ".assign(other." + var.NameUpper1 + ");");
+            sw.WriteLine(prefix + var.NameUpper1 + ".Assign(other." + var.NameUpper1 + ");");
         }
 
         public void Visit(TypeQuaternion type)

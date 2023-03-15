@@ -36,38 +36,58 @@ namespace Zeze.Gen.Types
 			circle.Remove(this);
         }
 
+		public void DependsInitial(Variable var, HashSet<Type> includes)
+		{
+            // 常量初始化引用到的Bean也加入depends中。 BeanName.ConstStaticVarName
+            //
+            string[] initial = var.Initial.Split('.');
+            string beanNameMabe = "";
+            for (int i = 0; i < initial.Length - 1; ++i)
+            {
+                if (i > 0)
+                    beanNameMabe += '.';
+                beanNameMabe += initial[i];
+            }
+            if (beanNameMabe.Length == 0)
+                return; // done
+            try
+            {
+                Type type = Type.Compile(Space, beanNameMabe);
+                if (type != null)
+                    includes.Add(type); // 不需要调用DependsXXX，肯定是Bean，直接加入。
+            }
+            catch (Exception ex)
+            {
+                // 这里为什么try-catch了，需要确认。
+                Console.WriteLine(ex.ToString());
+            }
+        }
+
+		public void DependsVariables(HashSet<Type> includes)
+		{
+            foreach (Variable var in Variables)
+            {
+                var.VariableType.DependsIncludesNoRecursive(includes);
+                DependsInitial(var, includes);
+            }
+        }
+
+        public override void DependsIncludesNoRecursive(HashSet<Type> includes)
+		{
+			includes.Add(this);
+        }
+
         public override void Depends(HashSet<Type> includes)
 		{
 			if (includes.Add(this))
-				foreach (Variable var in Variables)
-				{
-					var.VariableType.Depends(includes);
-
-                    // 常量初始化引用到的Bean也加入depends中。 BeanName.ConstStaticVarName
-                    //
-                    string[] initial = var.Initial.Split('.');
-                    string beanNameMabe = "";
-					for (int i = 0; i < initial.Length - 1; ++i)
-					{
-						if (i > 0)
-							beanNameMabe += '.';
-						beanNameMabe += initial[i];
-					}
-					if (beanNameMabe.Length == 0)
-						continue;
-					try
-					{
-						Type type = Type.Compile(Space, beanNameMabe);
-						if (type != null)
-							includes.Add(type); // type.depends(type); 肯定是 Bean，不需要递归包含。
-					}
-					catch (Exception ex)
-					{
-						// 这里为什么try-catch了，需要确认。
-						Console.WriteLine(ex.ToString());
-					}
-				}
-		}
+			{
+                foreach (Variable var in Variables)
+                {
+                    var.VariableType.Depends(includes);
+                    DependsInitial(var, includes);
+                }
+            }
+        }
 
 		// 当这个Bean作为Map.Value定义时，把Map.KeyType加到这里。
 		// RocksRaft 自动生成改KeyType的属性，用来保存Bean被加入Map时的Key的值。
@@ -119,6 +139,7 @@ namespace Zeze.Gen.Types
 		public List<Enum> Enums { get; private set; } = new List<Enum>();
 		public string Comment { get; private set; }
 		public virtual string FullName => Space.Path(".", Name);
+		public virtual string FullCxxName => Space.Path("::", Name);
 		public long TypeId { get; private set; }
 		public bool Extendable { get; private set; }
 		public bool Equalable { get; private set; }

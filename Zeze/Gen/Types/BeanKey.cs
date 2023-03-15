@@ -48,7 +48,48 @@ namespace Zeze.Gen.Types
 			}
 		}
 
-		public void Add(Variable var)
+        public override void DependsIncludesNoRecursive(HashSet<Type> includes)
+        {
+			includes.Add(this);
+        }
+
+        public void DependsVariables(HashSet<Type> includes)
+        {
+            foreach (Variable var in Variables)
+            {
+                var.VariableType.DependsIncludesNoRecursive(includes);
+                DependsInitial(var, includes);
+            }
+        }
+
+        public void DependsInitial(Variable var, HashSet<Type> includes)
+        {
+            // 常量初始化引用到的Bean也加入depends中。 BeanName.ConstStaticVarName
+            //
+            string[] initial = var.Initial.Split('.');
+            string beanNameMabe = "";
+            for (int i = 0; i < initial.Length - 1; ++i)
+            {
+                if (i > 0)
+                    beanNameMabe += '.';
+                beanNameMabe += initial[i];
+            }
+            if (beanNameMabe.Length == 0)
+                return; // done
+            try
+            {
+                Type type = Type.Compile(Space, beanNameMabe);
+                if (type != null)
+                    includes.Add(type); // 不需要调用DependsXXX，肯定是Bean，直接加入。
+            }
+            catch (Exception ex)
+            {
+                // 这里为什么try-catch了，需要确认。
+                Console.WriteLine(ex.ToString());
+            }
+        }
+
+        public void Add(Variable var)
 		{
 			foreach (var vv in Variables)
 			{
@@ -77,6 +118,8 @@ namespace Zeze.Gen.Types
 		public override bool IsKeyable => true;
 		public override string Name => _name;
 		public string NamePinyin => Program.ToPinyin(Name);
+        public virtual string FullCxxName => Space.Path("::", Name);
+        
 		private string _name;
 		public override bool IsNeedNegativeCheck
 		{

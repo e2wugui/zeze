@@ -27,9 +27,14 @@ namespace Zeze.Gen.Types
 		public override void Depends(HashSet<Type> includes)
 		{
 			includes.Add(this);
-		}
+        }
 
-		public override string Name => "float";
+        public override void DependsIncludesNoRecursive(HashSet<Type> includes)
+        {
+            includes.Add(this);
+        }
+
+        public override string Name => "float";
 
 		internal TypeFloat(SortedDictionary<string, Type> types)
 		{

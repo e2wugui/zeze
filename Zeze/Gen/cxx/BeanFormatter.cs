@@ -1,4 +1,6 @@
-﻿using System.IO;
+﻿using Org.BouncyCastle.Utilities.Collections;
+using System.Collections.Generic;
+using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cxx
@@ -21,6 +23,19 @@ namespace Zeze.Gen.cxx
             sw.WriteLine("#include <string>");
             sw.WriteLine("#include \"zeze/cxx/ByteBuffer.h\"");
             sw.WriteLine("#include \"zeze/cxx/Bean.h\"");
+            var includes = new HashSet<Type>();
+            bean.DependsVariables(includes);
+            foreach (var inc in includes)
+            {
+                if (inc is Bean b)
+                {
+                    sw.WriteLine($"#include \"Gen/{b.Space.Path("/", b.Name + ".hpp")}\"");
+                }
+                else if (inc is BeanKey k)
+                {
+                    sw.WriteLine($"#include \"Gen/{k.Space.Path("/", k.Name + ".hpp")}\"");
+                }
+            }
             sw.WriteLine();
             var paths = bean.Space.Paths();
             foreach (var path in paths)
@@ -29,7 +44,7 @@ namespace Zeze.Gen.cxx
             }
             if (bean.Comment.Length > 0)
                 sw.WriteLine(bean.Comment);
-            sw.WriteLine($"class {bean.Name} : Zeze::Bean {{");
+            sw.WriteLine($"class {bean.Name} : public Zeze::Bean {{");
             sw.WriteLine($"public:");
             WriteDefine(sw);
             sw.WriteLine("};");
@@ -49,19 +64,19 @@ namespace Zeze.Gen.cxx
                 }
             }
             sw.WriteLine();
-            sw.WriteLine($"{prefix}static int64_t getSpecialTypeIdFromBean_{var.Id}(const Zeze::Bean& bean) {{");
+            sw.WriteLine($"{prefix}static int64_t getSpecialTypeIdFromBean_{var.Id}(const Zeze::Bean* bean) {{");
             if (string.IsNullOrEmpty(type.DynamicParams.GetSpecialTypeIdFromBean)) 
             {
                 // 根据配置的实际类型生成switch。
-                sw.WriteLine($"{prefix}    var _typeId_ = bean.typeId();");
+                sw.WriteLine($"{prefix}    auto _typeId_ = bean->TypeId();");
                 sw.WriteLine($"{prefix}    if (_typeId_ == Zeze::EmptyBean::TYPEID)");
                 sw.WriteLine($"{prefix}        return Zeze::EmptyBean::TYPEID;");
                 foreach (var real in type.RealBeans)
                 {
                     sw.WriteLine($"{prefix}    if (_typeId_ == {real.Value.TypeId}L)");
-                    sw.WriteLine($"{prefix}        return {real.Key}LL; // {real.Value.FullName}");
+                    sw.WriteLine($"{prefix}        return {real.Key}LL; // {real.Value.FullCxxName}");
                 }
-                sw.WriteLine($"{prefix}    throw Exception(\"Unknown Bean! dynamic@{((Bean)var.Bean).FullName}:{var.Name}\");");
+                sw.WriteLine($"{prefix}    throw std::exception(\"Unknown Bean! dynamic@{((Bean)var.Bean).FullCxxName}:{var.Name}\");");
             }
             else
             {
@@ -78,9 +93,9 @@ namespace Zeze.Gen.cxx
                 foreach (var real in type.RealBeans)
                 {
                     sw.WriteLine($"{prefix}    if (typeId == {real.Key}LL)");
-                    sw.WriteLine($"{prefix}        return new {real.Value.FullName}();");
+                    sw.WriteLine($"{prefix}        return new {real.Value.FullCxxName}();");
                 }
-                sw.WriteLine($"{prefix}    return null;");
+                sw.WriteLine($"{prefix}    return NULL;");
             }
             else
             {
@@ -130,7 +145,7 @@ namespace Zeze.Gen.cxx
             Property.Make(bean, sw, "    ");
             Construct.Make(bean, sw, "    ");
             Assign.Make(bean, sw, "    ");
-            sw.WriteLine("    virtual int64_t TypeId() override {");
+            sw.WriteLine("    virtual int64_t TypeId() const override {");
             sw.WriteLine("        return TYPEID;");
             sw.WriteLine("    }");
             sw.WriteLine();

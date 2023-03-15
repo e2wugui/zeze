@@ -26,7 +26,12 @@ namespace Zeze.Gen.Types
 			includes.Add(this);
 		}
 
-		internal TypeVector2(SortedDictionary<string, Type> types)
+        public override void DependsIncludesNoRecursive(HashSet<Type> includes)
+        {
+            includes.Add(this);
+        }
+
+        internal TypeVector2(SortedDictionary<string, Type> types)
 		{
 			types.Add(Name, this);
 		}

@@ -13,7 +13,13 @@ namespace Zeze.Gen.Types
 				ValueType.Depends(includes);
 		}
 
-		public override bool IsImmutable => false;
+        public override void DependsIncludesNoRecursive(HashSet<Type> includes)
+        {
+            if (includes.Add(this))
+				ValueType.DependsIncludesNoRecursive(includes);
+        }
+
+        public override bool IsImmutable => false;
 		public override bool IsCollection => true;
 		public override bool IsJavaPrimitive => false;
 	}

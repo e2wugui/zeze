@@ -28,7 +28,12 @@ namespace Zeze.Gen.Types
 			includes.Add(this);
 		}
 
-		public override string Name => "string";
+        public override void DependsIncludesNoRecursive(HashSet<Type> includes)
+        {
+            includes.Add(this);
+        }
+
+        public override string Name => "string";
         public override bool IsImmutable => true; // xxx language depends
 		public override bool IsNeedNegativeCheck => false;
 		public override bool IsJavaPrimitive => false;

@@ -29,7 +29,12 @@ namespace Zeze.Gen.Types
 			includes.Add(this);
 		}
 
-		public override string Name => "double";
+        public override void DependsIncludesNoRecursive(HashSet<Type> includes)
+        {
+            includes.Add(this);
+        }
+
+        public override string Name => "double";
 
 		internal TypeDouble(SortedDictionary<string, Type> types)
 		{

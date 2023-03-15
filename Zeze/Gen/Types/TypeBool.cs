@@ -28,7 +28,12 @@ namespace Zeze.Gen.Types
 			includes.Add(this);
 		}
 
-		internal TypeBool(SortedDictionary<string, Type> types)
+        public override void DependsIncludesNoRecursive(HashSet<Type> includes)
+        {
+            includes.Add(this);
+        }
+
+        internal TypeBool(SortedDictionary<string, Type> types)
 		{
 			types.Add(Name, this);
 		}

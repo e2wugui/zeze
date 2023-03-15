@@ -34,7 +34,7 @@ namespace Zeze.Gen.cxx
                             first = false;
                         else
                             sw.Write(", ");
-                        sw.Write($"{TypeName.GetName(var.VariableType)} {var.NameUpper1}_");
+                        sw.Write($"{ParamName.GetName(var.VariableType)} {var.NameUpper1}_");
                     }
                 }
 

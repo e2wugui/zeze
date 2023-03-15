@@ -103,14 +103,13 @@ namespace Zeze.Gen.cxx
             var typeName = TypeName.GetName(type);
             foreach (Bean real in type.RealBeans.Values)
             {
-                string rname = TypeName.GetName(real);
-                string pname = "get" + var.NameUpper1 + "_" + real.Space.Path("_", real.Name) + "()";
-                sw.WriteLine(prefix + "public " + rname + "* " + pname + " {");
-                sw.WriteLine(prefix + "    return (" + rname + ")" + var.NamePrivate + ".getBean();");
+                string pname = "Get" + var.NameUpper1 + "_" + real.Space.Path("_", real.Name) + "()";
+                sw.WriteLine(prefix + real.FullCxxName + "* " + pname + " {");
+                sw.WriteLine(prefix + "    return (" + real.FullCxxName + "*)" + var.NameUpper1 + ".GetBean();");
                 sw.WriteLine(prefix + "}");
                 sw.WriteLine();
-                sw.WriteLine(prefix + $"public void {var.Setter($"{rname}* value")} {{");
-                sw.WriteLine(prefix + "    " + var.NamePrivate + ".setBean(value);");
+                sw.WriteLine(prefix + $"void {Program.Upper1(var.NameSetter)}({real.FullCxxName}* value) {{");
+                sw.WriteLine(prefix + "    " + var.NameUpper1 + ".SetBean(value);");
                 sw.WriteLine(prefix + "}");
                 sw.WriteLine();
                 //sw.WriteLine(prefix + rname + "ReadOnly " + beanNameReadOnly + "." + pname + " => " + pname + ";");

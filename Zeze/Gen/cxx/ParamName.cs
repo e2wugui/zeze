@@ -2,7 +2,7 @@
 
 namespace Zeze.Gen.cxx
 {
-    public class TypeName : Visitor
+    public class ParamName : Visitor
     {
         protected string name;
         internal string nameCollectionImplement; // 容器内部类型。其他情况下为 null。
@@ -11,14 +11,14 @@ namespace Zeze.Gen.cxx
 
         public static string GetName(Type type)
         {
-            TypeName visitor = new();
+            ParamName visitor = new();
             type.Accept(visitor);
             return visitor.name;
         }
 
         public static string GetNameOmitted(Type type)
         {
-            var visitor = new TypeName();
+            var visitor = new ParamName();
             type.Accept(visitor);
             return visitor.nameOmitted;
         }
@@ -60,12 +60,12 @@ namespace Zeze.Gen.cxx
 
         public virtual void Visit(TypeBinary type)
         {
-            name = "std::string";
+            name = "const std::string&";
         }
 
         public virtual void Visit(TypeString type)
         {
-            name = "std::string";
+            name = "const std::string&";
         }
 
         public virtual void Visit(TypeList type)
@@ -73,7 +73,7 @@ namespace Zeze.Gen.cxx
             string valueName = GetName(type.ValueType);
             nameRaw = "std::vector";
             nameOmitted = nameRaw;
-            name = nameRaw + '<' + valueName + '>';
+            name = "const " + nameRaw + '<' + valueName + ">&";
             nameCollectionImplement = "std::vector<" + valueName + '>';
         }
 
@@ -82,7 +82,7 @@ namespace Zeze.Gen.cxx
             string valueName = GetName(type.ValueType);
             nameRaw = "std::set";
             nameOmitted = nameRaw;
-            name = nameRaw + '<' + valueName + '>';
+            name = "const " + nameRaw + '<' + valueName + ">&";
             nameCollectionImplement = "std::set<" + valueName + '>';
         }
 
@@ -92,7 +92,7 @@ namespace Zeze.Gen.cxx
             string value = GetName(type.ValueType);
             nameRaw = "std::map";
             nameOmitted = nameRaw;
-            name = nameRaw + '<' + key + ", " + value + '>';
+            name = "const " + nameRaw + '<' + key + ", " + value + ">&";
             nameCollectionImplement = "std::map<" + key + ", " + value + '>';
         }
 
@@ -108,37 +108,37 @@ namespace Zeze.Gen.cxx
 
         public virtual void Visit(TypeDynamic type)
         {
-            name = "Zeze::DynamicBean";
+            name = "const Zeze::DynamicBean&";
         }
 
         public void Visit(TypeQuaternion type)
         {
-            name = "Zeze::Quaternion";
+            name = "const Zeze::Quaternion&";
         }
 
         public void Visit(TypeVector2 type)
         {
-            name = "Zeze::Vector2";
+            name = "const Zeze::Vector2&";
         }
 
         public void Visit(TypeVector2Int type)
         {
-            name = "Zeze::Vector2Int";
+            name = "const Zeze::Vector2Int&";
         }
 
         public void Visit(TypeVector3 type)
         {
-            name = "Zeze::Vector3";
+            name = "const Zeze::Vector3&";
         }
 
         public void Visit(TypeVector3Int type)
         {
-            name = "Zeze::Vector3Int";
+            name = "const Zeze::Vector3Int&";
         }
 
         public void Visit(TypeVector4 type)
         {
-            name = "Zeze::Vector4";
+            name = "const Zeze::Vector4&";
         }
     }
 }

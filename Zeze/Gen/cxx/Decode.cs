@@ -220,7 +220,7 @@ namespace Zeze.Gen.cxx
             Types.Type vt = type.ValueType;
             sw.WriteLine(prefix + "auto& _x_ = " + var.NameUpper1 + ';');
             sw.WriteLine(prefix + "_x_.clear();");
-            sw.WriteLine(prefix + "if ((_t_ & ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
+            sw.WriteLine(prefix + "if ((_t_ & Zeze::ByteBuffer::TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
             sw.Write(prefix + "    for (int _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--)");
             sw.WriteLine(" {");
             vt.Accept(new Define("_e_", sw, prefix + "        "));
@@ -249,14 +249,14 @@ namespace Zeze.Gen.cxx
             Types.Type vt = type.ValueType;
             sw.WriteLine(prefix + "auto& _x_ = " + var.NameUpper1 + ';');
             sw.WriteLine(prefix + "_x_.clear();");
-            sw.WriteLine(prefix + "if ((_t_ & ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
-            sw.WriteLine(prefix + "    int _s_ = (_t_ = " + bufname + ".ReadByte()) >> ByteBuffer.TAG_SHIFT;");
+            sw.WriteLine(prefix + "if ((_t_ & Zeze::ByteBuffer::TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
+            sw.WriteLine(prefix + "    int _s_ = (_t_ = " + bufname + ".ReadByte()) >> Zeze::ByteBuffer::TAG_SHIFT;");
             sw.WriteLine(prefix + "    for (int _n_ = " + bufname + ".ReadUInt(); _n_ > 0; _n_--) {");
             kt.Accept(new Define("_k_", sw, prefix + "        "));
             kt.Accept(new Decode("_k_", 0, bufname, sw, prefix + "        ", "_s_"));
             vt.Accept(new Define("_v_", sw, prefix + "        "));
             vt.Accept(new Decode("_v_", 0, bufname, sw, prefix + "        "));
-            sw.WriteLine(prefix + "        _x_.put(_k_, _v_);");
+            sw.WriteLine(prefix + "        _x_[_k_] = _v_;");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "} else");
             sw.WriteLine(prefix + "    " + bufname + ".SkipUnknownFieldOrThrow(_t_, \"Map\");");

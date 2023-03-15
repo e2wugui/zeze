@@ -99,6 +99,15 @@ namespace Zeze.Gen.Types
             }
         }
 
+        public override void DependsIncludesNoRecursive(HashSet<Type> includes)
+        {
+            if (includes.Add(this))
+            {
+                foreach (var bean in RealBeans.Values)
+                    bean.DependsIncludesNoRecursive(includes);
+            }
+        }
+
         internal TypeDynamic(SortedDictionary<string, Type> types)
         {
             types.Add(Name, this);

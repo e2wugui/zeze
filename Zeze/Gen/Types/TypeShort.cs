@@ -29,7 +29,12 @@ namespace Zeze.Gen.Types
 			includes.Add(this);
 		}
 
-		public override string Name => "short";
+        public override void DependsIncludesNoRecursive(HashSet<Type> includes)
+        {
+            includes.Add(this);
+        }
+
+        public override string Name => "short";
         public override bool IsImmutable => true;
 		public override bool IsNeedNegativeCheck => true;
 

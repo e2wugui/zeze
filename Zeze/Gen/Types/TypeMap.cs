@@ -31,6 +31,15 @@ namespace Zeze.Gen.Types
 			}
 		}
 
+        public override void DependsIncludesNoRecursive(HashSet<Type> includes)
+        {
+            if (includes.Add(this))
+            {
+                KeyType.DependsIncludesNoRecursive(includes);
+                ValueType.DependsIncludesNoRecursive(includes);
+            }
+        }
+        
 		private TypeMap(global::Zeze.Gen.ModuleSpace space, string key, string value, Variable var)
 		{
 			Variable = var;

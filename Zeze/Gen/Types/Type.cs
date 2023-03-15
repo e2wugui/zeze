@@ -8,7 +8,9 @@ namespace Zeze.Gen.Types
 	{
 		public abstract Type Compile(ModuleSpace space, string key, string value, Variable var);
 		public abstract void Depends(HashSet<Type> includes);
-		public abstract void Accept(Visitor visitor);
+		public abstract void DependsIncludesNoRecursive(HashSet<Type> includes);
+
+        public abstract void Accept(Visitor visitor);
 
 		public abstract string Name { get; }
 

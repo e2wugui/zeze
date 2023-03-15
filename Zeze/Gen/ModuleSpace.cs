@@ -42,6 +42,7 @@ namespace Zeze.Gen
             path.Add(Name);
             for (ModuleSpace p = Parent; p != null; p = p.Parent)
                 path.Add(p.Name);
+            path.Reverse();
             return path;
         }
 
