@@ -48,7 +48,7 @@ namespace Zeze.Gen.cxx
             sw.WriteLine("        return ProtocolId_;");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    long long TypeId() {");
+            sw.WriteLine("    long long TypeId() const {");
             sw.WriteLine("        return TypeId_;");
             sw.WriteLine("    }");
             sw.WriteLine();

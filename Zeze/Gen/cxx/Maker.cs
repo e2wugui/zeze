@@ -35,7 +35,7 @@ namespace Zeze.Gen.cxx
             foreach (Protocol protocol in Project.AllProtocols.Values)
             {
                 if (protocol is Rpc rpc)
-                    ;//new RpcFormatter(rpc).Make(genDir);
+                    new RpcFormatter(rpc).Make(genDir);
                 else
                     new ProtocolFormatter(protocol).Make(genDir);
             }
