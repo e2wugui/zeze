@@ -1,8 +1,43 @@
 
 #include "Gen/demo/Bean1.hpp"
 #include "Gen/demo/Module1/BValue.hpp"
+#include "zeze/cxx/Net.h"
 
-int main(char* args[]) {
+void testSocket();
+void testEncode();
+
+int main(char* args[])
+{
+	testEncode();
+	testSocket();
+}
+
+class Client : public Zeze::Net::Service
+{
+	void OnSocketProcessInputBuffer(const std::shared_ptr<Zeze::Net::Socket>& sender, Zeze::ByteBuffer& input) override
+	{
+		std::cout << std::string((char*)input.Bytes, input.ReadIndex, input.Size()) << std::endl;
+		input.ReadIndex = input.WriteIndex;
+	}
+
+	void OnSocketConnected(const std::shared_ptr<Zeze::Net::Socket>& sender)
+	{
+		std::string req("HEAD / HTTP/1.0\r\n\r\n");
+		sender->Send(req.data(), req.size());
+	}
+};
+
+void testSocket()
+{
+	Zeze::Net::Startup();
+	Client client;
+	client.Connect("www.163.com", 80);
+	Sleep(5000);
+	Zeze::Net::Cleanup();
+}
+
+void testEncode()
+{
 	Zeze::ByteBuffer bb(16);
 	demo::Module1::BValue bValue;
 	bValue.Int1 = 1;
