@@ -152,5 +152,8 @@
     <ClCompile Include="..\cxx\utils.cpp">
       <Filter>cxx</Filter>
     </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

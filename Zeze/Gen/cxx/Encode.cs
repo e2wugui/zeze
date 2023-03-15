@@ -211,7 +211,7 @@ namespace Zeze.Gen.cxx
             sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
             sw.WriteLine(prefix + "    " + bufname + ".WriteListType(_n_, " + TypeTagName.GetName(vt) + ");");
             sw.WriteLine(prefix + "    for (auto it = _x_.begin(); it != _x_.end(); ++it) {");
-            vt.Accept(new Encode(null, "*it", 0, bufname, sw, prefix + "        "));
+            vt.Accept(new Encode(null, "(*it)", 0, bufname, sw, prefix + "        "));
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
         }
@@ -305,7 +305,7 @@ namespace Zeze.Gen.cxx
                 sw.WriteLine(prefix + "}");
             }
             else
-                sw.WriteLine(prefix + NameUpper1OrTmp + ".encode(" + bufname + ");");
+                sw.WriteLine(prefix + NameUpper1OrTmp + ".Encode(" + bufname + ");");
         }
 
         public void Visit(TypeQuaternion type)
