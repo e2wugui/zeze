@@ -1069,6 +1069,55 @@ namespace Zeze
 			return Vector3Int();
 		}
 
+		void WriteVector2(const Vector2& v)
+		{
+			v.Encode(*this);
+		}
+
+		void WriteVector3(const Vector3& v)
+		{
+			v.Encode(*this);
+		}
+
+		void WriteVector4(const Vector4& v)
+		{
+			v.Encode(*this);
+		}
+
+		void WriteVector2Int(const Vector2Int& v)
+		{
+			v.Encode(*this);
+		}
+
+		void WriteVector3Int(const Vector3Int& v)
+		{
+			v.Encode(*this);
+		}
+
+		void WriteQuaternion(const Quaternion& v)
+		{
+			v.Encode(*this);
+		}
+
+		std::string ReadBinary(int type)
+		{
+			type &= TAG_MASK;
+			if (type == BYTES)
+				return ReadBinary();
+			SkipUnknownField(type);
+			return std::string();
+		}
+
+		std::string ReadBinary()
+		{
+			return ReadString();
+		}
+
+		void WriteBinary(const std::string& v)
+		{
+			WriteString(v);
+		}
+
 		template<class T> // extends Bean
 		T& ReadBean(T& bean, int type)
 		{

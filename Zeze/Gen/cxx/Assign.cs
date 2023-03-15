@@ -22,6 +22,10 @@ namespace Zeze.Gen.cxx
                 var.VariableType.Accept(new Assign(var, sw, prefix + "    ", true));
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
+
+            sw.WriteLine(prefix + $"{bean.Name} & operator=(const {bean.Name} & other) {{");
+            sw.WriteLine(prefix + "    Assign(other);");
+            sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }
 
@@ -32,6 +36,10 @@ namespace Zeze.Gen.cxx
                 var.VariableType.Accept(new Assign(var, sw, prefix + "    ", true));
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
+
+            sw.WriteLine(prefix + $"{bean.Name} & operator=(const {bean.Name} & other) {{");
+            sw.WriteLine(prefix + "    Assign(other);");
+            sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }
 

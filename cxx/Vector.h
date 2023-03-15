@@ -38,7 +38,7 @@ namespace Zeze {
 		Vector2Int(const Vector2& v) : x(v.x), y(v.y) {}
 		Vector2Int(const Vector2Int& v) : x(v.x), y(v.y) {}
 
-		virtual int CompateTo(const Vector2Int& other) const {
+		virtual int CompareTo(const Vector2Int& other) const {
 			if (&other == this)
 				return 0;
 			int c;
@@ -47,6 +47,10 @@ namespace Zeze {
 				return c;
 			c = Integer::Compare(y, other.y);
 			return c;
+		}
+
+		bool operator < (const Vector2Int& other) const {
+			return CompareTo(other) < 0;
 		}
 
 		virtual bool isZero() const {
@@ -97,7 +101,7 @@ namespace Zeze {
 			return x == 0 && y == 0 && z == 0;
 		}
 
-		virtual int CompateTo(const Vector3Int& other) const {
+		virtual int CompareTo(const Vector3Int& other) const {
 			if (&other == this)
 				return 0;
 			int c;
@@ -109,6 +113,10 @@ namespace Zeze {
 				return c;
 			c = Integer::Compare(z, other.z);
 			return c;
+		}
+
+		bool operator < (const Vector3Int& other) const {
+			return CompareTo(other) < 0;
 		}
 
 		virtual void Encode(ByteBuffer& bb) const override;

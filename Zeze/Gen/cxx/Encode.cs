@@ -238,7 +238,7 @@ namespace Zeze.Gen.cxx
             sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
             sw.WriteLine(prefix + "    " + bufname + ".WriteMapType(_n_, " + TypeTagName.GetName(kt) + ", " + TypeTagName.GetName(vt) + ");");
             sw.WriteLine(prefix + "    for (auto it = _x_.begin(); it != _x_.end(); ++it) {");
-            vt.Accept(new Encode(null, "it->first", 0, bufname, sw, prefix + "        "));
+            kt.Accept(new Encode(null, "it->first", 0, bufname, sw, prefix + "        "));
             vt.Accept(new Encode(null, "it->second", 0, bufname, sw, prefix + "        "));
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
@@ -299,7 +299,7 @@ namespace Zeze.Gen.cxx
             if (id > 0)
             {
                 sw.WriteLine(prefix + "auto& _x_ = " + var.NameUpper1 + ';');
-                sw.WriteLine(prefix + "if (_x_ != null && !_x_.isZero()) {");
+                sw.WriteLine(prefix + "if (!_x_.isZero()) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".Write" + typeName + "(_x_);");
                 sw.WriteLine(prefix + "}");

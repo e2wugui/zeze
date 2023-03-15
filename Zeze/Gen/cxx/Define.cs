@@ -96,13 +96,14 @@ namespace Zeze.Gen.cxx
         {
             if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
             {
-                sw.WriteLine($"{prefix}Zeze.Transaction.DynamicBean"
-                    + $"{varname}(0, {type.Variable.Bean.Name}::getSpecialTypeIdFromBean_{type.Variable.Id}, {type.Variable.Bean.Name}::createBeanFromSpecialTypeId_{type.Variable.Id});");
+                sw.WriteLine($"{prefix}Zeze::DynamicBean {varname}"
+                    + $"({type.Variable.Bean.Name}::GetSpecialTypeIdFromBean_{type.Variable.Id}, "
+                    + $"{type.Variable.Bean.Name}::CreateBeanFromSpecialTypeId_{type.Variable.Id});");
             }
             else
             {
-                sw.WriteLine($"{prefix}Zeze.Transaction.DynamicBeanData"
-                    + $"{varname}(0, {type.DynamicParams.GetSpecialTypeIdFromBean}, {type.DynamicParams.CreateBeanFromSpecialTypeId});");
+                sw.WriteLine($"{prefix}Zeze::DynamicBean {varname}"
+                    + $"({type.DynamicParams.GetSpecialTypeIdFromBean}, {type.DynamicParams.CreateBeanFromSpecialTypeId});");
             }
         }
 

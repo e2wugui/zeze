@@ -6,6 +6,7 @@
 #include <map>
 #include <functional>
 #include "ByteBuffer.h"
+#include <memory>
 
 namespace Zeze {
 	class Bean : public Serializable {
@@ -36,15 +37,22 @@ namespace Zeze {
 	};
 
 	class DynamicBean : public Bean {
-		Bean* bean; // unique_ptr??????????????????????????????????
+		std::shared_ptr<Bean> bean; // unique_ptr??????????????????????????????????
 		int64_t typeId;
 
 		std::function<int64_t(Bean*)> getBean;
 		std::function<Bean*(int64_t)> createBean;
 
 	public:
-		DynamicBean(std::function<int64_t(Bean*)> get, std::function<Bean*(int64_t)> create) {
-			bean = new EmptyBean();
+		DynamicBean()
+			: bean(new EmptyBean())
+		{
+			typeId = 0;
+		}
+
+		DynamicBean(std::function<int64_t(Bean*)> get, std::function<Bean*(int64_t)> create)
+			: bean(new EmptyBean())
+		{
 			typeId = EmptyBean::TYPEID;
 			getBean = get;
 			createBean = create;
@@ -54,40 +62,70 @@ namespace Zeze {
 			return typeId;
 		}
 
-		Bean* GetBean() {
-			return bean;
+		Bean* GetBean() const {
+			return bean.get();
 		}
 
 		void SetBean(Bean* value) {
 			if (NULL == value)
 				throw new std::invalid_argument("value is null");
 			typeId = getBean(value);
-			bean = value;
+			bean.reset(value);
 		}
 
 		Bean* NewBean(int64_t typeId)
 		{
-			if (bean)
-				delete bean;
-			bean = createBean(typeId);
+			auto bean = createBean(typeId);
 			if (!bean)
 				bean = new EmptyBean();
 			this->typeId = typeId != 0 ? typeId : getBean(bean);
+			this->bean.reset(bean);
 			return bean;
 		}
 
 		virtual void Encode(ByteBuffer& bb) const override {
+			bb.WriteLong(typeId);
+			bean.get()->Encode(bb);
 		}
 
 		virtual void Decode(ByteBuffer& bb) override {
+			long typeId = bb.ReadLong();
+			std::shared_ptr<Bean> real(createBean(typeId));
+			if (real.get() != NULL) {
+				real->Decode(bb);
+				this->typeId = typeId;
+				this->bean = real;
+			}
+			else {
+				bb.SkipUnknownField(ByteBuffer::BEAN);
+				this->typeId = EmptyBean::TYPEID;
+				this->bean.reset(new EmptyBean());
+			}
 		}
 
+		// 深度拷贝
 		virtual void Assign(const Bean& other) {
+			Assign((const DynamicBean&)other);
+		}
 
+		// 深度拷贝
+		void Assign(const DynamicBean& other) {
+			auto copy = createBean(other.TypeId());
+			copy->Assign(*other.GetBean());
+			SetBean(copy);
+		}
+
+		// 浅拷贝，为了用于容器内，共享了(shared_ptr)一个Bean的引用。
+		DynamicBean& operator=(const DynamicBean& other) {
+			this->typeId = other.typeId;
+			this->bean = other.bean;
+			this->getBean = other.getBean;
+			this->createBean = other.createBean;
+			return *this;
 		}
 
 		bool Empty() const {
-			return true;
+			return typeId == EmptyBean::TYPEID;
 		}
 	};
 }
