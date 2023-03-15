@@ -47,7 +47,7 @@ namespace Zeze {
 		DynamicBean()
 			: bean(new EmptyBean())
 		{
-			typeId = 0;
+			typeId = EmptyBean::TYPEID;
 		}
 
 		DynamicBean(std::function<int64_t(Bean*)> get, std::function<Bean*(int64_t)> create)
@@ -110,9 +110,10 @@ namespace Zeze {
 
 		// 深度拷贝
 		void Assign(const DynamicBean& other) {
-			auto copy = createBean(other.TypeId());
+			this->getBean = other.getBean;
+			this->createBean = other.createBean;
+			auto copy = NewBean(other.TypeId()); // 已经设置到shared_ptr中了。
 			copy->Assign(*other.GetBean());
-			SetBean(copy);
 		}
 
 		// 浅拷贝，为了用于容器内，共享了(shared_ptr)一个Bean的引用。
