@@ -38,7 +38,7 @@ namespace Zeze
 				ToLua.SetHandshakeDone(sender->SessionId, this);
 			}
 
-			virtual void OnSocketProcessInputBuffer(const std::shared_ptr<Socket>& sender, Zeze::Serialize::ByteBuffer& input) override
+			virtual void OnSocketProcessInputBuffer(const std::shared_ptr<Socket>& sender, Zeze::ByteBuffer& input) override
 			{
 				if (sender->IsHandshakeDone)
 				{

@@ -87,7 +87,7 @@ namespace Zeze
 				}
 
 				// see Rpc.Encode
-				Zeze::Serialize::ByteBuffer bb(1024);
+				Zeze::ByteBuffer bb(1024);
 				bb.WriteInt4(ModuleId);
 				bb.WriteInt4(ProtocolId);
 				int outstate;
@@ -107,7 +107,7 @@ namespace Zeze
 			else
 			{
 				// see Protocol.Encode
-				Zeze::Serialize::ByteBuffer bb(1024);
+				Zeze::ByteBuffer bb(1024);
 				bb.WriteInt4(ModuleId);
 				bb.WriteInt4(ProtocolId);
 				int outstate;
@@ -146,7 +146,7 @@ namespace Zeze
 				std::shared_ptr<Socket> sender = service->GetSocket(e.first);
 				if (NULL == sender.get())
 					continue;
-				Zeze::Serialize::ByteBuffer bb((unsigned char*)e.second.data(), 0, (int)e.second.size());
+				Zeze::ByteBuffer bb((unsigned char*)e.second.data(), 0, (int)e.second.size());
 				Protocol::DecodeProtocol(service, sender, bb, this);
 				e.second.erase(0, bb.ReadIndex);
 			}
@@ -228,7 +228,7 @@ namespace Zeze
 			Lua.Pop(1);
 		}
 
-		bool ToLua::DecodeAndDispatch(Service* service, long long sessionId, int moduleId, int protocolId, Zeze::Serialize::ByteBuffer& _os_)
+		bool ToLua::DecodeAndDispatch(Service* service, long long sessionId, int moduleId, int protocolId, Zeze::ByteBuffer& _os_)
 		{
 			if (Lua.GetGlobal("ZezeDispatchProtocol") != LuaHelper::LuaType::Function) // push func onto stack
 			{

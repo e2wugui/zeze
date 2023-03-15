@@ -153,6 +153,9 @@
     <ClCompile Include="..\..\cxx\ByteBuffer.cpp">
       <Filter>ZezeCxx</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\cxx\Vector.cpp">
+      <Filter>ZezeCxx</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="lua-5.4.1\src\lapi.h">
@@ -297,6 +300,15 @@
       <Filter>ZezeCxx</Filter>
     </ClInclude>
     <ClInclude Include="..\..\cxx\ToTypeScriptService.h">
+      <Filter>ZezeCxx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\cxx\Compare.h">
+      <Filter>ZezeCxx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\cxx\Serializable.h">
+      <Filter>ZezeCxx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\cxx\Vector.h">
       <Filter>ZezeCxx</Filter>
     </ClInclude>
   </ItemGroup>

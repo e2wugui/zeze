@@ -173,6 +173,7 @@
     <ClCompile Include="..\..\cxx\security.cpp" />
     <ClCompile Include="..\..\cxx\ToLua.cpp" />
     <ClCompile Include="..\..\cxx\utils.cpp" />
+    <ClCompile Include="..\..\cxx\Vector.cpp" />
     <ClCompile Include="lua-5.4.1\src\lapi.c" />
     <ClCompile Include="lua-5.4.1\src\lauxlib.c" />
     <ClCompile Include="lua-5.4.1\src\lbaselib.c" />
@@ -214,6 +215,7 @@
     <ClInclude Include="..\..\cxx\byteorder.h" />
     <ClInclude Include="..\..\cxx\codec.h" />
     <ClInclude Include="..\..\cxx\common.h" />
+    <ClInclude Include="..\..\cxx\Compare.h" />
     <ClInclude Include="..\..\cxx\dh.h" />
     <ClInclude Include="..\..\cxx\IDecodeAndDispatcher.h" />
     <ClInclude Include="..\..\cxx\luaheader.h" />
@@ -224,10 +226,12 @@
     <ClInclude Include="..\..\cxx\Protocol.h" />
     <ClInclude Include="..\..\cxx\rfc2118.h" />
     <ClInclude Include="..\..\cxx\security.h" />
+    <ClInclude Include="..\..\cxx\Serializable.h" />
     <ClInclude Include="..\..\cxx\ToLua.h" />
     <ClInclude Include="..\..\cxx\ToLuaService.h" />
     <ClInclude Include="..\..\cxx\ToTypeScriptService.h" />
     <ClInclude Include="..\..\cxx\utils.h" />
+    <ClInclude Include="..\..\cxx\Vector.h" />
     <ClInclude Include="lua-5.4.1\src\lapi.h" />
     <ClInclude Include="lua-5.4.1\src\lauxlib.h" />
     <ClInclude Include="lua-5.4.1\src\lcode.h" />

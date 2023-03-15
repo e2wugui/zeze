@@ -15,7 +15,7 @@ namespace Zeze
 {
 namespace Net
 {
-	using ByteBuffer = Zeze::Serialize::ByteBuffer;
+	using ByteBuffer = Zeze::ByteBuffer;
 	class Service;
 	class Socket;
 	class ToLuaService;
