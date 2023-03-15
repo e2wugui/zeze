@@ -3,13 +3,13 @@
 #include "Gen/demo/Module1/BValue.hpp"
 #include "zeze/cxx/Net.h"
 
-void testSocket();
-void testEncode();
+void TestSocket();
+void TestEncode();
 
 int main(char* args[])
 {
-	testEncode();
-	testSocket();
+	TestEncode();
+	TestSocket();
 }
 
 class Client : public Zeze::Net::Service
@@ -27,16 +27,16 @@ class Client : public Zeze::Net::Service
 	}
 };
 
-void testSocket()
+void TestSocket()
 {
 	Zeze::Net::Startup();
 	Client client;
 	client.Connect("www.163.com", 80);
-	Sleep(5000);
+	Sleep(2000);
 	Zeze::Net::Cleanup();
 }
 
-void testEncode()
+void TestEncode()
 {
 	Zeze::ByteBuffer bb(16);
 	demo::Module1::BValue bValue;
