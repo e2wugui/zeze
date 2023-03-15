@@ -117,10 +117,7 @@ namespace Zeze {
 
 		// 浅拷贝，为了用于容器内，共享了(shared_ptr)一个Bean的引用。
 		DynamicBean& operator=(const DynamicBean& other) {
-			this->typeId = other.typeId;
-			this->bean = other.bean;
-			this->getBean = other.getBean;
-			this->createBean = other.createBean;
+			Assign(other);
 			return *this;
 		}
 

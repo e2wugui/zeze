@@ -123,6 +123,12 @@
     <ClInclude Include="Gen\demo\Module1\VectorKey.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\cxx\Serializable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cxx\Vector.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\cxx\BI.c">
@@ -154,6 +160,12 @@
     </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cxx\ByteBuffer.cpp">
+      <Filter>cxx</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cxx\Vector.cpp">
+      <Filter>cxx</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
