@@ -12,7 +12,17 @@ namespace Zeze.Gen.cxx
 
 		public static void Make(Bean bean, StreamWriter sw, string prefix)
 		{
-			sw.WriteLine(prefix + $"{bean.Name}() {{");
+			sw.WriteLine(prefix + $"{bean.Name}()");
+            var dot = ": ";
+            foreach (var v in bean.Variables)
+            {
+                if (v.VariableType is TypeDynamic)
+                {
+                    sw.WriteLine(prefix + $"    {dot}{v.NameUpper1}(GetSpecialTypeIdFromBean_{v.Id}, CreateBeanFromSpecialTypeId_{v.Id})");
+                    dot = ", ";
+                }
+            }
+            sw.WriteLine(prefix + "{");
             var hasImmutable = false;
             foreach (var var in bean.Variables)
             {
@@ -38,7 +48,17 @@ namespace Zeze.Gen.cxx
                     }
                 }
 
-                sw.WriteLine(") {");
+                sw.WriteLine(")");
+                dot = ": ";
+                foreach (var v in bean.Variables)
+                {
+                    if (v.VariableType is TypeDynamic)
+                    {
+                        sw.WriteLine(prefix + $"    {dot}{v.NameUpper1}(GetSpecialTypeIdFromBean_{v.Id}, CreateBeanFromSpecialTypeId_{v.Id})");
+                        dot = ", ";
+                    }
+                }
+                sw.WriteLine(prefix + "{");
                 foreach (var var in bean.Variables)
                 {
                     if (var.VariableType.IsImmutable)

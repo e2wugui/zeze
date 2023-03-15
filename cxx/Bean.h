@@ -43,7 +43,7 @@ namespace Zeze {
 		std::function<Bean*(int64_t)> createBean;
 
 	public:
-		DynamicBean(int variableId, std::function<int64_t(Bean*)> get, std::function<Bean*(int64_t)> create) {
+		DynamicBean(std::function<int64_t(Bean*)> get, std::function<Bean*(int64_t)> create) {
 			bean = new EmptyBean();
 			typeId = EmptyBean::TYPEID;
 			getBean = get;

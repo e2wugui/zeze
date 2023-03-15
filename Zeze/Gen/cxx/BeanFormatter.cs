@@ -64,7 +64,7 @@ namespace Zeze.Gen.cxx
                 }
             }
             sw.WriteLine();
-            sw.WriteLine($"{prefix}static int64_t getSpecialTypeIdFromBean_{var.Id}(const Zeze::Bean* bean) {{");
+            sw.WriteLine($"{prefix}static int64_t GetSpecialTypeIdFromBean_{var.Id}(const Zeze::Bean* bean) {{");
             if (string.IsNullOrEmpty(type.DynamicParams.GetSpecialTypeIdFromBean)) 
             {
                 // 根据配置的实际类型生成switch。
@@ -85,7 +85,7 @@ namespace Zeze.Gen.cxx
             }
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
-            sw.WriteLine($"{prefix}static Zeze::Bean * createBeanFromSpecialTypeId_{var.Id}(int64_t typeId) {{");
+            sw.WriteLine($"{prefix}static Zeze::Bean * CreateBeanFromSpecialTypeId_{var.Id}(int64_t typeId) {{");
             //sw.WriteLine($"{prefix}    case Zeze.Transaction.EmptyBean.TYPEID: return new Zeze.Transaction.EmptyBean();");
             if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId))
             {
