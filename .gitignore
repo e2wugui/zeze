@@ -14,12 +14,14 @@ x64/
 /*.lnk
 /confcs/confcs
 /ConfigEditor/Output
+/CxxTest/Gen
 /Gen/Properties
 /GlobalCacheManager/Properties
 /lua/csharp/Gen
 /lua/csharp/LuaGen
 /lua/cxx/*.exe
 /lua/cxx/*.pdb
+/lua/cxx/Gen
 /lua/cxx/lua-5.4.1
 /lua/cxx/LuaGen
 /packages

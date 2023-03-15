@@ -3,20 +3,13 @@
 #include <string.h>
 #include <string>
 #include <stdexcept>
+#include "Serializable.h"
+#include "Vector.h"
 
 namespace Zeze
 {
-	class ByteBuffer;
-    class Bean;
-    class DynamicBean;
-
-	class Serializable
-	{
-	public:
-		virtual ~Serializable() {}
-		virtual void Encode(ByteBuffer& bb) const = 0;
-		virtual void Decode(ByteBuffer& bb) = 0;
-	};
+	class Bean;
+	class DynamicBean;
 
 	class ByteBuffer
 	{
@@ -630,7 +623,8 @@ namespace Zeze
 			case 0x0e:                                  return ((b - 0x70) << 24) + ReadLong3BE();
 			case 0x11:                                  return ((b + 0x70) << 24) + ReadLong3BE();
 			case 0x0f:
-				switch (b & 7) {
+				switch (b & 7)
+				{
 				case 0: case 1: case 2: case 3: return ((b - 0x78) << 32) + ReadLong4BE();
 				case 4: case 5:                 return ((b - 0x7c) << 40) + ReadLong5BE();
 				case 6:                         return ReadLong6BE();
@@ -638,7 +632,8 @@ namespace Zeze
 						r : ((r - 0x80000000000000LL) << 8) + ReadLong1();
 				}
 			default: // 0x10
-				switch (b & 7) {
+				switch (b & 7)
+				{
 				case 4: case 5: case 6: case 7: return ((b + 0x78) << 32) + ReadLong4BE();
 				case 2: case 3:                 return ((b + 0x7c) << 40) + ReadLong5BE();
 				case 1:                         return 0xffff000000000000LL + ReadLong6BE();
@@ -746,7 +741,12 @@ namespace Zeze
 			LIST = 4, // list,set
 			MAP = 5, // map
 			BEAN = 6, // bean
-			DYNAMIC = 7; // dynamic
+			DYNAMIC = 7, // dynamic
+			VECTOR2 = 8, // float{x,y}
+			VECTOR2INT = 9, // int{x,y}
+			VECTOR3 = 10, // float{x,y,z}
+			VECTOR3INT = 11, // int{x,y,z}
+			VECTOR4 = 12; // float{x,y,z,w} Quaternion
 
 		static const int TAG_SHIFT = 4;
 		static const int TAG_MASK = (1 << TAG_SHIFT) - 1;
@@ -902,23 +902,198 @@ namespace Zeze
 			return "";
 		}
 
-        template<class T> // extends Bean
-        T& ReadBean(T& bean, int type)
-        {
-            type &= TAG_MASK;
-            if (type == BEAN)
-                bean.Decode(*this);
-            else if (type == DYNAMIC)
-            {
-                ReadLong();
-                bean.Decode(*this);
-            }
-            else
-                SkipUnknownField(type);
-            return bean;
-        }
+		static float ToFloat(void* p)
+		{
+			return *reinterpret_cast<float*>(p);
+		}
 
-        DynamicBean& ReadDynamic(DynamicBean& dynBean, int type);
+		Vector2 ReadVector2()
+		{
+			EnsureRead(8);
+			int i = ReadIndex;
+			float x = ToFloat(Bytes + i);
+			float y = ToFloat(Bytes + i + 4);
+			ReadIndex = i + 8;
+			return Vector2(x, y);
+		}
+
+		Vector3 ReadVector3()
+		{
+			EnsureRead(12);
+			int i = ReadIndex;
+			float x = ToFloat(Bytes + i);
+			float y = ToFloat(Bytes + i + 4);
+			float z = ToFloat(Bytes + i + 8);
+			ReadIndex = i + 12;
+			return Vector3(x, y, z);
+		};
+
+		Vector4 ReadVector4()
+		{
+			EnsureRead(16);
+			int i = ReadIndex;
+			float x = ToFloat(Bytes + i);
+			float y = ToFloat(Bytes + i + 4);
+			float z = ToFloat(Bytes + i + 8);
+			float w = ToFloat(Bytes + i + 12);
+			ReadIndex = i + 16;
+			return Vector4(x, y, z, w);
+		}
+
+		Quaternion ReadQuaternion()
+		{
+			EnsureRead(16);
+			int i = ReadIndex;
+			float x = ToFloat(Bytes + i);
+			float y = ToFloat(Bytes + i + 4);
+			float z = ToFloat(Bytes + i + 8);
+			float w = ToFloat(Bytes + i + 12);
+			ReadIndex = i + 16;
+			return Quaternion(x, y, z, w);
+		}
+
+		Vector2Int ReadVector2Int()
+		{
+			int x = ReadInt();
+			int y = ReadInt();
+			return Vector2Int(x, y);
+		}
+
+		Vector3Int ReadVector3Int()
+		{
+			int x = ReadInt();
+			int y = ReadInt();
+			int z = ReadInt();
+			return Vector3Int(x, y, z);
+		}
+
+		Vector2 ReadVector2(int type)
+		{
+			type &= TAG_MASK;
+			if (type == VECTOR2)
+				return ReadVector2();
+			if (type == VECTOR3)
+				return ReadVector3();
+			if (type == VECTOR4)
+				return ReadVector4();
+			if (type == VECTOR2INT)
+				return Vector2(ReadVector2Int());
+			if (type == VECTOR3INT)
+				return Vector3(ReadVector3Int());
+			SkipUnknownField(type);
+			return Vector2();
+		}
+
+		Vector3 ReadVector3(int type)
+		{
+			type &= TAG_MASK;
+			if (type == VECTOR3)
+				return ReadVector3();
+			if (type == VECTOR2)
+				return Vector3(ReadVector2());
+			if (type == VECTOR4)
+				return ReadVector4();
+			if (type == VECTOR3INT)
+				return Vector3(ReadVector3Int());
+			if (type == VECTOR2INT)
+				return Vector3(ReadVector2Int());
+			SkipUnknownField(type);
+			return Vector3();
+		}
+
+		Vector4 ReadVector4(int type)
+		{
+			type &= TAG_MASK;
+			if (type == VECTOR4)
+				return ReadVector4();
+			if (type == VECTOR3)
+				return Vector4(ReadVector3());
+			if (type == VECTOR2)
+				return Vector4(ReadVector2());
+			if (type == VECTOR3INT)
+				return Vector4(ReadVector3Int());
+			if (type == VECTOR2INT)
+				return Vector4(ReadVector2Int());
+			SkipUnknownField(type);
+			return Vector4();
+		}
+
+		Quaternion ReadQuaternion(int type)
+		{
+			type &= TAG_MASK;
+			if (type == VECTOR4)
+				return ReadQuaternion();
+			if (type == VECTOR3)
+				return Quaternion(ReadVector3());
+			if (type == VECTOR2)
+				return Quaternion(ReadVector2());
+			if (type == VECTOR3INT)
+				return Quaternion(ReadVector3Int());
+			if (type == VECTOR2INT)
+				return Quaternion(ReadVector2Int());
+			SkipUnknownField(type);
+			return Quaternion();
+		}
+
+		Vector2Int ReadVector2Int(int type)
+		{
+			type &= TAG_MASK;
+			if (type == VECTOR2INT)
+				return ReadVector2Int();
+			if (type == VECTOR3INT)
+				return ReadVector3Int();
+			if (type == VECTOR2)
+				return Vector2Int(ReadVector2());
+			if (type == VECTOR3)
+				return Vector2Int(ReadVector3());
+			if (type == VECTOR4)
+				return Vector2Int(ReadVector4());
+			SkipUnknownField(type);
+			return Vector2Int();
+		}
+
+		Vector3Int ReadVector3Int(int type)
+		{
+			type &= TAG_MASK;
+			if (type == VECTOR3INT)
+				return ReadVector3Int();
+			if (type == VECTOR2INT)
+				return Vector3Int(ReadVector2Int());
+			if (type == VECTOR3)
+				return Vector3Int(ReadVector3());
+			if (type == VECTOR2)
+				return Vector3Int(ReadVector2());
+			if (type == VECTOR4)
+				return Vector3Int(ReadVector4());
+			SkipUnknownField(type);
+			return Vector3Int();
+		}
+
+		template<class T> // extends Bean
+		T& ReadBean(T& bean, int type)
+		{
+			type &= TAG_MASK;
+			if (type == BEAN)
+				bean.Decode(*this);
+			else if (type == DYNAMIC)
+			{
+				ReadLong();
+				bean.Decode(*this);
+			}
+			else
+				SkipUnknownField(type);
+			return bean;
+		}
+
+		DynamicBean& ReadDynamic(DynamicBean& dynBean, int type);
+
+		void SkipUnknownFieldOrThrow(int type, const char* curType)
+		{
+//			if (IGNORE_INCOMPATIBLE_FIELD)
+				SkipUnknownField(type);
+//			else
+//				throw new IllegalStateException("can not read " + curType + " for type=" + type);
+		}
 
 		void SkipUnknownField(int type, int count)
 		{

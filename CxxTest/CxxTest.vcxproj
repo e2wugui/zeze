@@ -134,7 +134,9 @@
     <ClInclude Include="..\cxx\Protocol.h" />
     <ClInclude Include="..\cxx\rfc2118.h" />
     <ClInclude Include="..\cxx\security.h" />
+    <ClInclude Include="..\cxx\Serializable.h" />
     <ClInclude Include="..\cxx\utils.h" />
+    <ClInclude Include="..\cxx\Vector.h" />
     <ClInclude Include="demo\Server.h" />
     <ClInclude Include="gen\demo\App.h" />
     <ClInclude Include="gen\demo\Bean1.hpp" />
@@ -157,6 +159,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\cxx\BI.c" />
+    <ClCompile Include="..\cxx\ByteBuffer.cpp" />
     <ClCompile Include="..\cxx\codec.cpp" />
     <ClCompile Include="..\cxx\dh.cpp" />
     <ClCompile Include="..\cxx\Net.cpp" />
@@ -165,6 +168,7 @@
     <ClCompile Include="..\cxx\rfc2118.cpp" />
     <ClCompile Include="..\cxx\security.cpp" />
     <ClCompile Include="..\cxx\utils.cpp" />
+    <ClCompile Include="..\cxx\Vector.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
