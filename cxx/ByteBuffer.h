@@ -7,6 +7,8 @@
 namespace Zeze
 {
 	class ByteBuffer;
+    class Bean;
+    class DynamicBean;
 
 	class Serializable
 	{
@@ -899,6 +901,24 @@ namespace Zeze
 			SkipUnknownField(type);
 			return "";
 		}
+
+        template<class T> // extends Bean
+        T& ReadBean(T& bean, int type)
+        {
+            type &= TAG_MASK;
+            if (type == BEAN)
+                bean.Decode(*this);
+            else if (type == DYNAMIC)
+            {
+                ReadLong();
+                bean.Decode(*this);
+            }
+            else
+                SkipUnknownField(type);
+            return bean;
+        }
+
+        DynamicBean& ReadDynamic(DynamicBean& dynBean, int type);
 
 		void SkipUnknownField(int type, int count)
 		{

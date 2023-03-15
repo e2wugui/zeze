@@ -71,6 +71,14 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		return createBean;
 	}
 
+	public Bean newBean(long typeId) {
+		bean = createBean.apply(typeId);
+		if (bean == null)
+			bean = new EmptyBean();
+		this.typeId = typeId != 0 ? typeId : getBean.applyAsLong(bean);
+		return bean;
+	}
+
 	public final void assign(DynamicBean other) {
 		setBean(other.getBean().copy());
 	}

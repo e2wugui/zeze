@@ -163,6 +163,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\cxx\BI.c" />
+    <ClCompile Include="..\..\cxx\ByteBuffer.cpp" />
     <ClCompile Include="..\..\cxx\codec.cpp" />
     <ClCompile Include="..\..\cxx\dh.cpp" />
     <ClCompile Include="..\..\cxx\Net.cpp" />
@@ -207,6 +208,7 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\cxx\Bean.h" />
     <ClInclude Include="..\..\cxx\BI.h" />
     <ClInclude Include="..\..\cxx\ByteBuffer.h" />
     <ClInclude Include="..\..\cxx\byteorder.h" />
@@ -224,6 +226,7 @@
     <ClInclude Include="..\..\cxx\security.h" />
     <ClInclude Include="..\..\cxx\ToLua.h" />
     <ClInclude Include="..\..\cxx\ToLuaService.h" />
+    <ClInclude Include="..\..\cxx\ToTypeScriptService.h" />
     <ClInclude Include="..\..\cxx\utils.h" />
     <ClInclude Include="lua-5.4.1\src\lapi.h" />
     <ClInclude Include="lua-5.4.1\src\lauxlib.h" />

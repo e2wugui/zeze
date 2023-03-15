@@ -1,10 +1,11 @@
 #pragma once
 
 #include <cstdint>
-#include "ByteBuffer.h"
 #include <vector>
 #include <set>
 #include <map>
+#include <functional>
+#include "ByteBuffer.h"
 
 namespace Zeze {
 	class Bean : public Serializable {
@@ -38,11 +39,11 @@ namespace Zeze {
 		Bean* bean; // unique_ptr??????????????????????????????????
 		int64_t typeId;
 
-		std::unary_function<Bean*, int64_t> getBean;
-		std::unary_function<int64_t, Bean*> createBean;
+		std::function<int64_t(Bean*)> getBean;
+		std::function<Bean*(int64_t)> createBean;
 
 	public:
-		DynamicBean(int variableId, std::unary_function<Bean*, int64_t> get, std::unary_function<int64_t, Bean*> create) {
+		DynamicBean(int variableId, std::function<int64_t(Bean*)> get, std::function<Bean*(int64_t)> create) {
 			bean = new EmptyBean();
 			typeId = EmptyBean::TYPEID;
 			getBean = get;
@@ -63,6 +64,17 @@ namespace Zeze {
 			typeId = getBean(value);
 			bean = value;
 		}
+
+        Bean* NewBean(int64_t typeId)
+        {
+            if (bean)
+                delete bean;
+            bean = createBean(typeId);
+            if (!bean)
+                bean = new EmptyBean();
+            this->typeId = typeId != 0 ? typeId : getBean(bean);
+            return bean;
+        }
 
 		virtual void Encode(ByteBuffer& bb) const override {
 		}

@@ -11,7 +11,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.function.Supplier;
 import Zeze.Net.Binary;
-import Zeze.Transaction.Bean;
 import Zeze.Transaction.DynamicBean;
 import Zeze.Transaction.DynamicBeanData;
 import Zeze.Util.BitConverter;
@@ -1440,11 +1439,8 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			return dynBean;
 		}
 		if (type == BEAN) {
-			Bean bean = dynBean.getCreateBean().apply(0);
-			if (bean != null) {
-				bean.decode(this);
-				return dynBean;
-			}
+			dynBean.newBean(0).decode(this);
+			return dynBean;
 		}
 		if (IGNORE_INCOMPATIBLE_FIELD) {
 			SkipUnknownField(type);
