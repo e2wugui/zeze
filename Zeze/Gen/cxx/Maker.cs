@@ -32,6 +32,13 @@ namespace Zeze.Gen.cxx
             {
                 new BeanKeyFormatter(beanKey).Make(genDir);
             }
+            foreach (Protocol protocol in Project.AllProtocols.Values)
+            {
+                if (protocol is Rpc rpc)
+                    ;//new RpcFormatter(rpc).Make(genDir);
+                else
+                    new ProtocolFormatter(protocol).Make(genDir);
+            }
         }
 
         public void Make()
@@ -64,21 +71,7 @@ namespace Zeze.Gen.cxx
 
             foreach (var m in Project.Services.Values)
             {
-                using StreamWriter sw = Project.Solution.OpenWriter(srcDir, $"{m.Name}.h", false);
-                if (sw == null)
-                    continue;
-                //sw.WriteLine("// auto-generated");
-                sw.WriteLine();
-                sw.WriteLine($"#include \"ToLuaService.h\"");
-                sw.WriteLine();
-                sw.WriteLine($"namespace {Project.Solution.Name}");
-                sw.WriteLine($"{{");
-                sw.WriteLine($"    class {m.Name} : public {BaseClass(m)}");
-                sw.WriteLine($"    {{");
-                sw.WriteLine($"    public:");
-                sw.WriteLine($"        {m.Name}() : {BaseClass(m)}(\"{m.Name}\") {{}}");
-                sw.WriteLine($"    }};");
-                sw.WriteLine($"}}");
+                new ServiceFormatter(m, genDir, srcDir).Make();
             }
         }
     }

@@ -139,9 +139,10 @@
     <ClInclude Include="..\cxx\Serializable.h" />
     <ClInclude Include="..\cxx\utils.h" />
     <ClInclude Include="..\cxx\Vector.h" />
-    <ClInclude Include="demo\Server.h" />
+    <ClInclude Include="demo\Client.h" />
     <ClInclude Include="gen\demo\App.h" />
     <ClInclude Include="gen\demo\Bean1.hpp" />
+    <ClInclude Include="Gen\demo\ClientBase.hpp" />
     <ClInclude Include="gen\demo\m6\B67.hpp" />
     <ClInclude Include="gen\demo\m6\m7\B67.hpp" />
     <ClInclude Include="Gen\demo\Module1\AutoKey.hpp" />
@@ -153,6 +154,10 @@
     <ClInclude Include="gen\demo\module1\BValue.hpp" />
     <ClInclude Include="Gen\demo\Module1\EmptyKey.hpp" />
     <ClInclude Include="Gen\demo\Module1\Key.hpp" />
+    <ClInclude Include="Gen\demo\Module1\Protocol3.hpp" />
+    <ClInclude Include="Gen\demo\Module1\Protocol4.hpp" />
+    <ClInclude Include="Gen\demo\Module1\ProtocolNoProcedure.hpp" />
+    <ClInclude Include="Gen\demo\Module1\ProtocolUseData.hpp" />
     <ClInclude Include="Gen\demo\Module1\VectorKey.hpp" />
     <ClInclude Include="gen\demo\module2\BValue.hpp" />
     <ClInclude Include="gen\tasktest\taskext\BMyTask01.hpp" />

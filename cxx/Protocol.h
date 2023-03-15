@@ -15,10 +15,15 @@ namespace Zeze
 			std::shared_ptr<Socket> Sender;
 
 			Protocol() : Sender(NULL) { }
-			virtual int ModuleId() = 0;
-			virtual int ProtocolId() = 0;
+			virtual int ModuleId() const = 0;
+			virtual int ProtocolId() const = 0;
 
 			long long TypeId() { return ((long long)ModuleId() << 32) | (unsigned int)ProtocolId(); }
+
+			constexpr static long long MakeTypeId(int mid, int pid)
+			{
+				return ((long long)mid << 32) | (unsigned int)pid;
+			}
 
 			void EncodeProtcocol(ByteBuffer& bb)
 			{

@@ -18,9 +18,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="demo\Server.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="gen\demo\App.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -127,6 +124,24 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\cxx\Vector.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Gen\demo\ClientBase.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="demo\Client.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Gen\demo\Module1\Protocol3.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Gen\demo\Module1\Protocol4.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Gen\demo\Module1\ProtocolNoProcedure.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Gen\demo\Module1\ProtocolUseData.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
