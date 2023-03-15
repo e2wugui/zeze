@@ -64,6 +64,13 @@ namespace Zeze.Gen.cxx
                 }
             }
             sw.WriteLine();
+            sw.WriteLine($"{prefix}static Zeze::DynamicBean constructDynamicBean_{var.NameUpper1}() {{");
+            if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
+                sw.WriteLine($"{prefix}    return Zeze::DynamicBean({bean.Name}::GetSpecialTypeIdFromBean_{var.Id}, {bean.Name}::CreateBeanFromSpecialTypeId_{var.Id});");
+            else
+                sw.WriteLine($"{prefix}    return Zeze::DynamicBean({type.DynamicParams.GetSpecialTypeIdFromBean}, {type.DynamicParams.CreateBeanFromSpecialTypeId});");
+            sw.WriteLine($"{prefix}}}");
+            sw.WriteLine();
             sw.WriteLine($"{prefix}static int64_t GetSpecialTypeIdFromBean_{var.Id}(const Zeze::Bean* bean) {{");
             if (string.IsNullOrEmpty(type.DynamicParams.GetSpecialTypeIdFromBean)) 
             {

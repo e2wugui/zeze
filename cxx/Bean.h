@@ -103,19 +103,19 @@ namespace Zeze {
 			}
 		}
 
-		// Éî¶È¿½±´
+		// æ·±åº¦æ‹·è´
 		virtual void Assign(const Bean& other) {
 			Assign((const DynamicBean&)other);
 		}
 
-		// Éî¶È¿½±´
+		// æ·±åº¦æ‹·è´
 		void Assign(const DynamicBean& other) {
 			auto copy = createBean(other.TypeId());
 			copy->Assign(*other.GetBean());
 			SetBean(copy);
 		}
 
-		// Ç³¿½±´£¬ÎªÁËÓÃÓÚÈİÆ÷ÄÚ£¬¹²ÏíÁË(shared_ptr)Ò»¸öBeanµÄÒıÓÃ¡£
+		// æµ…æ‹·è´ï¼Œä¸ºäº†ç”¨äºå®¹å™¨å†…ï¼Œå…±äº«äº†(shared_ptr)ä¸€ä¸ªBeançš„å¼•ç”¨ã€‚
 		DynamicBean& operator=(const DynamicBean& other) {
 			this->typeId = other.typeId;
 			this->bean = other.bean;
