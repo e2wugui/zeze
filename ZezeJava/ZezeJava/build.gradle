@@ -7,8 +7,8 @@ dependencies {
     implementation 'org.jetbrains:annotations:24.0.1'
     implementation 'org.pcollections:pcollections:4.0.1'
     implementation 'org.rocksdb:rocksdbjni:7.10.2'
-    implementation 'io.netty:netty-codec-http:4.1.89.Final'
-    implementation 'io.netty:netty-transport-native-epoll:4.1.89.Final:linux-x86_64'
+    implementation 'io.netty:netty-codec-http:4.1.90.Final'
+    implementation 'io.netty:netty-transport-native-epoll:4.1.90.Final:linux-x86_64'
 
     // optional dependencies
     // for tikv
