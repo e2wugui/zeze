@@ -6,6 +6,7 @@
 #include <map>
 #include <functional>
 #include "ByteBuffer.h"
+#include "Compare.h"
 
 namespace Zeze {
 	class Bean : public Serializable {

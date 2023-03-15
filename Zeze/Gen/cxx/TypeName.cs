@@ -30,7 +30,7 @@ namespace Zeze.Gen.cxx
 
         public virtual void Visit(TypeByte type)
         {
-            name = "byte";
+            name = "char";
         }
 
         public virtual void Visit(TypeShort type)
