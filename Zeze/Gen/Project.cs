@@ -340,7 +340,9 @@ namespace Zeze.Gen
                     new Zeze.Gen.luaClient.Maker(this).Make();
                     break;
                 case "cxx":
-                    new cxx.Maker(this).Make();
+                    var cxx = new cxx.Maker(this);
+                    cxx.Make();
+                    cxx.MakeCxx();
                     break;
                 case "cxx+lua":
                     new cxx.Maker(this).Make();

@@ -25,6 +25,16 @@ namespace Zeze.Gen.cxx
             sw.WriteLine();
         }
 
+        public static void Make(BeanKey bean, StreamWriter sw, string prefix)
+        {
+            sw.WriteLine(prefix + "void Assign(const " + bean.Name + "& other) {");
+            foreach (Variable var in bean.Variables)
+                var.VariableType.Accept(new Assign(var, sw, prefix + "    ", true));
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine();
+            sw.WriteLine();
+        }
+
         public Assign(Variable var, StreamWriter sw, string prefix, bool transBean)
         {
             this.var = var;
@@ -100,7 +110,7 @@ namespace Zeze.Gen.cxx
 
         public void Visit(BeanKey type)
         {
-            sw.WriteLine(prefix + $"{var.NameUpper1} = other.{var.NameUpper1};");
+            sw.WriteLine(prefix + var.NameUpper1 + ".Assign(other." + var.NameUpper1 + ");");
         }
 
         public void Visit(TypeDynamic type)

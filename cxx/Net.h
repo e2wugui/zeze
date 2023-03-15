@@ -150,9 +150,9 @@ namespace Net
 		virtual void OnHandshakeDone(const std::shared_ptr<Socket>& sender);
 		virtual void OnSocketConnectError(const std::shared_ptr<Socket>& sender, const std::exception* e);
 		virtual void OnSocketConnected(const std::shared_ptr<Socket>& sender);
-		virtual void DispatchUnknownProtocol(const std::shared_ptr<Socket>& sender, int moduleId, int protocolId, Zeze::Serialize::ByteBuffer& data);
+		virtual void DispatchUnknownProtocol(const std::shared_ptr<Socket>& sender, int moduleId, int protocolId, ByteBuffer& data);
 		virtual void DispatchProtocol(Protocol* p, Service::ProtocolFactoryHandle& factoryHandle);
-		virtual void OnSocketProcessInputBuffer(const std::shared_ptr<Socket>& sender, Zeze::Serialize::ByteBuffer& input);
+		virtual void OnSocketProcessInputBuffer(const std::shared_ptr<Socket>& sender, ByteBuffer& input);
 
 		friend class Protocol;
 

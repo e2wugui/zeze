@@ -4,9 +4,9 @@ namespace Zeze
 {
 	namespace Net
 	{
-		void Protocol::DecodeProtocol(Service * service, const std::shared_ptr<Socket>& sender, Zeze::Serialize::ByteBuffer& bb, IDecodeAndDispatcher* toLua /*= NULL*/)
+		void Protocol::DecodeProtocol(Service * service, const std::shared_ptr<Socket>& sender, ByteBuffer& bb, IDecodeAndDispatcher* toLua /*= NULL*/)
 		{
-			Zeze::Serialize::ByteBuffer os(bb.Bytes, bb.ReadIndex, bb.Size()); // 创建一个新的ByteBuffer，解码确认了才修改bb索引。
+			ByteBuffer os(bb.Bytes, bb.ReadIndex, bb.Size()); // 创建一个新的ByteBuffer，解码确认了才修改bb索引。
 			while (os.Size() > 0)
 			{
 				// 尝试读取协议类型和大小
@@ -38,7 +38,7 @@ namespace Zeze
 					return;
 				}
 
-				Zeze::Serialize::ByteBuffer pbb(os.Bytes, os.ReadIndex, size);
+				ByteBuffer pbb(os.Bytes, os.ReadIndex, size);
 				os.ReadIndex += size;
 				Service::ProtocolFactoryHandle factoryHandle;
 				long long type = ((long long)moduleId << 32) | (unsigned int)protocolId;

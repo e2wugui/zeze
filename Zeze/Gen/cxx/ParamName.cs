@@ -1,9 +1,26 @@
-﻿using Zeze.Gen.Types;
+﻿using System.Collections.Generic;
+using System.Text;
+using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cxx
 {
     public class ParamName : Visitor
     {
+        public static string GetParamList(ICollection<Types.Variable> variables)
+        {
+            StringBuilder plist = new();
+            bool first = true;
+            foreach (Types.Variable var in variables)
+            {
+                if (first)
+                    first = false;
+                else
+                    plist.Append(", ");
+                plist.Append(GetName(var.VariableType)).Append(" ").Append(var.NameUpper1).Append('_');
+            }
+            return plist.ToString();
+        }
+
         protected string name;
         internal string nameCollectionImplement; // 容器内部类型。其他情况下为 null。
         internal string nameRaw; // 容器，其他为null。

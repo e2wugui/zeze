@@ -16,6 +16,24 @@ namespace Zeze.Gen.cxx
             return s.Base.Length > 0 ? s.Base : "Zeze::Net::ToLuaService";
         }
  
+        public void MakeCxx()
+        {
+            string projectBasedir = Project.GenDir;
+            string projectDir = Path.Combine(projectBasedir, Project.Name);
+            string genDir = Path.Combine(projectDir, Project.GenRelativeDir, "Gen");
+            string srcDir = Project.ScriptDir.Length > 0
+                ? Path.Combine(projectDir, Project.ScriptDir) : projectDir;
+            Program.AddGenDir(genDir);
+            foreach (var bean in Project.AllBeans.Values)
+            {
+                new BeanFormatter(bean).Make(genDir);
+            }
+            foreach (var beanKey in Project.AllBeanKeys.Values)
+            {
+                new BeanKeyFormatter(beanKey).Make(genDir);
+            }
+        }
+
         public void Make()
         {
             string projectBasedir = Project.GenDir;
@@ -23,16 +41,7 @@ namespace Zeze.Gen.cxx
             string genDir = Path.Combine(projectDir, Project.GenRelativeDir, "Gen");
             string srcDir = Project.ScriptDir.Length > 0
                 ? Path.Combine(projectDir, Project.ScriptDir) : projectDir;
-
-            foreach (var bean in Project.AllBeans.Values)
-            {
-                new BeanFormatter(bean).Make(genDir);
-            }
-            foreach (var beanKey in Project.AllBeanKeys.Values)
-            {
-                //new BeanKeyFormatter(beanKey).Make(genDir);
-            }
-
+            Program.AddGenDir(genDir);
             {
                 using StreamWriter sw = Project.Solution.OpenWriter(genDir, "App.h");
                 sw.WriteLine("// auto-generated");

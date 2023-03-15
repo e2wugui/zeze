@@ -10,40 +10,40 @@ namespace Zeze
 {
 namespace Net
 {
-	class CHandshakeArgument : public Zeze::Serialize::Serializable
+	class CHandshakeArgument : public Serializable
 	{
 	public:
 		char dh_group = 0;
 		std::string dh_data;
 
-		void Decode(Zeze::Serialize::ByteBuffer& bb) override
+		void Decode(ByteBuffer& bb) override
 		{
 			dh_group = bb.ReadByte();
 			dh_data = bb.ReadBytes();
 		}
 
-		void Encode(Zeze::Serialize::ByteBuffer& bb) const override
+		void Encode(ByteBuffer& bb) const override
 		{
 			bb.WriteByte(dh_group);
 			bb.WriteBytes(dh_data);
 		}
 	};
 
-	class SHandshakeArgument : public Zeze::Serialize::Serializable
+	class SHandshakeArgument : public Serializable
 	{
 	public:
 		std::string dh_data;
 		bool s2cneedcompress = true;
 		bool c2sneedcompress = true;
 
-		void Decode(Zeze::Serialize::ByteBuffer& bb) override
+		void Decode(ByteBuffer& bb) override
 		{
 			dh_data = bb.ReadBytes();
 			s2cneedcompress = bb.ReadBool();
 			c2sneedcompress = bb.ReadBool();
 		}
 
-		void Encode(Zeze::Serialize::ByteBuffer& bb) const override
+		void Encode(ByteBuffer& bb) const override
 		{
 			bb.WriteBytes(dh_data);
 			bb.WriteBool(s2cneedcompress);
@@ -244,12 +244,12 @@ namespace Net
 		factoryHandle.Handle(p);
 	}
 
-	void Service::OnSocketProcessInputBuffer(const std::shared_ptr<Socket>& sender, Zeze::Serialize::ByteBuffer& input)
+	void Service::OnSocketProcessInputBuffer(const std::shared_ptr<Socket>& sender, ByteBuffer& input)
 	{
 		Protocol::DecodeProtocol(this, sender, input);
 	}
 
-	void Service::DispatchUnknownProtocol(const std::shared_ptr<Socket>& sender, int moduleId, int protocolId, Zeze::Serialize::ByteBuffer& data)
+	void Service::DispatchUnknownProtocol(const std::shared_ptr<Socket>& sender, int moduleId, int protocolId, ByteBuffer& data)
 	{
 		sender; moduleId; protocolId; data;
 	}
@@ -609,20 +609,20 @@ namespace Net
 		{
 			InputCodec->update((int8_t*)recvbuf.data, 0, rc);
 			InputCodec->flush();
-			Zeze::Serialize::ByteBuffer bb((unsigned char*)InputBuffer->buffer.data(), 0, (int)InputBuffer->buffer.size());
+			ByteBuffer bb((unsigned char*)InputBuffer->buffer.data(), 0, (int)InputBuffer->buffer.size());
 			service->OnSocketProcessInputBuffer(This, bb);
 			InputBuffer->buffer.erase(0, bb.ReadIndex);
 		}
 		else if (InputBuffer->buffer.size() > 0)
 		{
 			InputBuffer->buffer.append(recvbuf.data, rc);
-			Zeze::Serialize::ByteBuffer bb((unsigned char*)InputBuffer->buffer.data(), 0, (int)InputBuffer->buffer.size());
+			ByteBuffer bb((unsigned char*)InputBuffer->buffer.data(), 0, (int)InputBuffer->buffer.size());
 			service->OnSocketProcessInputBuffer(This, bb);
 			InputBuffer->buffer.erase(0, bb.ReadIndex);
 		}
 		else
 		{
-			Zeze::Serialize::ByteBuffer bb((unsigned char*)recvbuf.data, 0, rc);
+			ByteBuffer bb((unsigned char*)recvbuf.data, 0, rc);
 			service->OnSocketProcessInputBuffer(This, bb);
 			if (bb.Size() > 0)
 				InputBuffer->buffer.append((const char *)(bb.Bytes + bb.ReadIndex), bb.Size());

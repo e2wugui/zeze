@@ -57,7 +57,7 @@ namespace Zeze.Gen.cxx
             if (bean.Base != "")
             {
                 sw.WriteLine(prefix + "        if (_t_ == 1) {");
-                sw.WriteLine(prefix + "            base.decode(_o_);");
+                sw.WriteLine(prefix + "            base.Decode(_o_);");
                 sw.WriteLine(prefix + "            return;");
                 sw.WriteLine(prefix + "        }");
             }
@@ -213,7 +213,7 @@ namespace Zeze.Gen.cxx
                 sw.WriteLine(prefix + AssignText($"{bufname}.ReadString()") + ';');
         }
 
-        void DecodeCollection(TypeCollection type)
+        void DecodeCollection(TypeCollection type, string push_back)
         {
             if (id <= 0)
                 throw new Exception("invalid variable.id");
@@ -225,7 +225,7 @@ namespace Zeze.Gen.cxx
             sw.WriteLine(" {");
             vt.Accept(new Define("_e_", sw, prefix + "        "));
             vt.Accept(new Decode("_e_", 0, bufname, sw, prefix + "        "));
-            sw.WriteLine($"{prefix}        _x_.add(_e_);");
+            sw.WriteLine($"{prefix}        _x_.{push_back}(_e_);");
             sw.WriteLine($"{prefix}    }}");
             sw.WriteLine($"{prefix}}} else");
             sw.WriteLine(prefix + "    " + bufname + ".SkipUnknownFieldOrThrow(_t_, \"Collection\");");
@@ -233,12 +233,12 @@ namespace Zeze.Gen.cxx
 
         public void Visit(TypeList type)
         {
-            DecodeCollection(type);
+            DecodeCollection(type, "push_back");
         }
 
         public void Visit(TypeSet type)
         {
-            DecodeCollection(type);
+            DecodeCollection(type, "insert");
         }
 
         public void Visit(TypeMap type)
@@ -267,7 +267,7 @@ namespace Zeze.Gen.cxx
             if (id > 0)
                 sw.WriteLine(prefix + bufname + ".ReadBean(" + var.NameUpper1 + ", _t_);");
             else
-                sw.WriteLine(prefix + NameUpper1OrTmp + ".decode(" + bufname + ");");
+                sw.WriteLine(prefix + NameUpper1OrTmp + ".Decode(" + bufname + ");");
         }
 
         public void Visit(BeanKey type)
@@ -275,7 +275,7 @@ namespace Zeze.Gen.cxx
             if (id > 0)
                 sw.WriteLine(prefix + bufname + ".ReadBean(" + var.NameUpper1 + ", _t_);");
             else
-                sw.WriteLine(prefix + NameUpper1OrTmp + ".decode(" + bufname + ");");
+                sw.WriteLine(prefix + NameUpper1OrTmp + ".Decode(" + bufname + ");");
         }
 
         public void Visit(TypeDynamic type)

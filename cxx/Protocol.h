@@ -8,7 +8,7 @@ namespace Zeze
 {
 	namespace Net
 	{
-		class Protocol : public Zeze::Serialize::Serializable
+		class Protocol : public Serializable
 		{
 		public:
 			long long ResultCode = 0;
@@ -20,7 +20,7 @@ namespace Zeze
 
 			long long TypeId() { return ((long long)ModuleId() << 32) | (unsigned int)ProtocolId(); }
 
-			void EncodeProtcocol(Zeze::Serialize::ByteBuffer& bb)
+			void EncodeProtcocol(ByteBuffer& bb)
 			{
 				bb.WriteInt4(ModuleId());
 				bb.WriteInt4(ProtocolId());
@@ -32,7 +32,7 @@ namespace Zeze
 
 			void Send(Socket* socket)
 			{
-				Zeze::Serialize::ByteBuffer bb(1024);
+				ByteBuffer bb(1024);
 				EncodeProtcocol(bb);
 				socket->Send((const char *)bb.Bytes, bb.ReadIndex, bb.Size());
 			}
@@ -42,7 +42,7 @@ namespace Zeze
 				service->DispatchProtocol(this, factoryHandle);
 			}
 
-			static void DecodeProtocol(Service * service, const std::shared_ptr<Socket> & sender, Zeze::Serialize::ByteBuffer& bb, IDecodeAndDispatcher* toLua = NULL);
+			static void DecodeProtocol(Service * service, const std::shared_ptr<Socket> & sender, ByteBuffer& bb, IDecodeAndDispatcher* toLua = NULL);
 		};
 
 		template <typename ArgumentType>
@@ -51,13 +51,13 @@ namespace Zeze
 		public:
 			ArgumentType Argument;
 
-			virtual void Decode(Zeze::Serialize::ByteBuffer& bb) override
+			virtual void Decode(ByteBuffer& bb) override
 			{
 				ResultCode = bb.ReadLong();
 				Argument.Decode(bb);
 			}
 
-			virtual void Encode(Zeze::Serialize::ByteBuffer& bb) const override
+			virtual void Encode(ByteBuffer& bb) const override
 			{
 				bb.WriteLong(ResultCode);
 				Argument.Encode(bb);
