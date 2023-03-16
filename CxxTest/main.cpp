@@ -3,12 +3,15 @@
 #include "Gen/demo/Module1/BValue.hpp"
 #include "zeze/cxx/Net.h"
 #include "demo/Client.h"
+#include <cmath>
 
 void TestSocket();
 void TestEncode();
 
 int main(char* args[])
 {
+	int mills = 200;
+	std::cout << std::ceil(mills / 1000.0) << std::endl;
 	TestEncode();
 	TestSocket();
 }
@@ -80,4 +83,5 @@ void TestEncode()
 	Zeze::ByteBuffer bb2(bb.Bytes, 0, bb.WriteIndex);
 	demo::Module1::BValue bValueDecoded;
 	bValueDecoded.Decode(bb2);
+	bValue.Assign(bValueDecoded);
 }

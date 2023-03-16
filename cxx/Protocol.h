@@ -8,21 +8,53 @@ namespace Zeze
 {
 	namespace Net
 	{
+		class FamilyClass
+		{
+		public:
+			static const int Protocol = 2;
+			static const int Request = 1;
+			static const int Response = 0;
+			static const int RaftRequest = 4;
+			static const int RaftResponse = 3;
+
+			static const int BitResultCode = 1 << 5;
+			static const int FamilyClassMask = BitResultCode - 1;
+
+			constexpr static bool IsRpc(int familyClass)
+			{
+				return familyClass <= Request;
+			}
+
+			constexpr static bool IsRaftRpc(int familyClass)
+			{
+				return familyClass >= RaftResponse;
+			}
+		};
+
 		class Protocol : public Serializable
 		{
 		public:
 			long long ResultCode = 0;
 			std::shared_ptr<Socket> Sender;
+			void* UserState;
 
-			Protocol() : Sender(NULL) { }
+			Protocol() { }
 			virtual int ModuleId() const = 0;
 			virtual int ProtocolId() const = 0;
 
-			long long TypeId() { return ((long long)ModuleId() << 32) | (unsigned int)ProtocolId(); }
+			long long TypeId()
+			{
+				return ((long long)ModuleId() << 32) | (unsigned int)ProtocolId();
+			}
 
 			constexpr static long long MakeTypeId(int mid, int pid)
 			{
 				return ((long long)mid << 32) | (unsigned int)pid;
+			}
+
+			virtual int GetFamilyClass() const
+			{
+				return FamilyClass::Protocol;
 			}
 
 			void EncodeProtcocol(ByteBuffer& bb)
@@ -35,13 +67,17 @@ namespace Zeze
 				bb.EndWriteWithSize4(outstate);
 			}
 
-			void Send(Socket* socket)
+			virtual bool Send(Socket* socket);
+
+			virtual bool TrySendResultCode(long code)
 			{
-				ByteBuffer bb(1024);
-				EncodeProtcocol(bb);
-				socket->Send((const char *)bb.Bytes, bb.ReadIndex, bb.Size());
+				return false;
 			}
-			
+
+			virtual void SendResult()
+			{
+			}
+
 			virtual void Dispatch(Service * service, Service::ProtocolFactoryHandle & factoryHandle)
 			{
 				service->DispatchProtocol(this, factoryHandle);
@@ -54,18 +90,31 @@ namespace Zeze
 		class ProtocolWithArgument : public Protocol
 		{
 		public:
-			ArgumentType Argument;
+			std::unique_ptr<ArgumentType> Argument;
+
+			ProtocolWithArgument()
+				: Argument(new ArgumentType())
+			{
+			}
 
 			virtual void Decode(ByteBuffer& bb) override
 			{
-				ResultCode = bb.ReadLong();
-				Argument.Decode(bb);
+				auto header = bb.ReadInt();
+				if ((header & FamilyClass::FamilyClassMask) != FamilyClass::Protocol)
+					throw new invalid_argument(std::string("invalid header(") + header + ") for decoding protocol ");
+				ResultCode = (header & FamilyClass::BitResultCode) != 0 ? bb.ReadLong() : 0;
+				Argument->Decode(bb);
 			}
 
 			virtual void Encode(ByteBuffer& bb) const override
 			{
-				bb.WriteLong(ResultCode);
-				Argument.Encode(bb);
+				if (ResultCode == 0)
+					bb.WriteInt(FamilyClass::Protocol);
+				else {
+					bb.WriteInt(FamilyClass::Protocol | FamilyClass::BitResultCode);
+					bb.WriteLong(ResultCode);
+				}
+				Argument->Encode(bb);
 			}
 		};
 	} // namespace Net

@@ -4,6 +4,16 @@ namespace Zeze
 {
 	namespace Net
 	{
+		bool Protocol::Send(Socket* socket)
+		{
+			if (NULL == socket)
+				return false;
+			ByteBuffer bb(1024);
+			EncodeProtcocol(bb);
+			socket->Send((const char*)bb.Bytes, bb.ReadIndex, bb.Size());
+			return true;
+		}
+
 		void Protocol::DecodeProtocol(Service * service, const std::shared_ptr<Socket>& sender, ByteBuffer& bb, IDecodeAndDispatcher* toLua /*= NULL*/)
 		{
 			ByteBuffer os(bb.Bytes, bb.ReadIndex, bb.Size()); // 创建一个新的ByteBuffer，解码确认了才修改bb索引。

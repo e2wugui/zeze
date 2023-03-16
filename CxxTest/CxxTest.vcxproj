@@ -135,6 +135,7 @@
     <ClInclude Include="..\cxx\osdefine.h" />
     <ClInclude Include="..\cxx\Protocol.h" />
     <ClInclude Include="..\cxx\rfc2118.h" />
+    <ClInclude Include="..\cxx\Rpc.h" />
     <ClInclude Include="..\cxx\security.h" />
     <ClInclude Include="..\cxx\Serializable.h" />
     <ClInclude Include="..\cxx\utils.h" />
@@ -158,6 +159,8 @@
     <ClInclude Include="Gen\demo\Module1\Protocol4.hpp" />
     <ClInclude Include="Gen\demo\Module1\ProtocolNoProcedure.hpp" />
     <ClInclude Include="Gen\demo\Module1\ProtocolUseData.hpp" />
+    <ClInclude Include="Gen\demo\Module1\Rpc1.hpp" />
+    <ClInclude Include="Gen\demo\Module1\Rpc2.hpp" />
     <ClInclude Include="Gen\demo\Module1\VectorKey.hpp" />
     <ClInclude Include="gen\demo\module2\BValue.hpp" />
     <ClInclude Include="gen\tasktest\taskext\BMyTask01.hpp" />

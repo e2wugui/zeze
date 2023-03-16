@@ -54,8 +54,8 @@ namespace Net
 	class CHandshake : public ProtocolWithArgument<CHandshakeArgument>
 	{
 	public:
-		int ModuleId() override { return 0; }
-		int ProtocolId() override { return 1; }
+		virtual int ModuleId() const override { return 0; }
+		virtual int ProtocolId() const override { return 1; }
 
 		CHandshake()
 		{
@@ -63,16 +63,16 @@ namespace Net
 
 		CHandshake(char dh_group, const std::string& dh_data)
 		{
-			Argument.dh_group = dh_group;
-			Argument.dh_data = dh_data;
+			Argument->dh_group = dh_group;
+			Argument->dh_data = dh_data;
 		}
 	};
 
 	class SHandshake : public ProtocolWithArgument<SHandshakeArgument>
 	{
 	public:
-		int ModuleId() override { return 0; }
-		int ProtocolId() override { return 2; }
+		virtual int ModuleId() const override { return 0; }
+		virtual int ProtocolId() const override { return 2; }
 
 		SHandshake()
 		{
@@ -80,15 +80,16 @@ namespace Net
 
 		SHandshake(const std::string& dh_data, bool s2cneedcompress, bool c2sneedcompress)
 		{
-			Argument.dh_data = dh_data;
-			Argument.s2cneedcompress = s2cneedcompress;
-			Argument.c2sneedcompress = c2sneedcompress;
+			Argument->dh_data = dh_data;
+			Argument->s2cneedcompress = s2cneedcompress;
+			Argument->c2sneedcompress = c2sneedcompress;
 		}
 	};
 
 	Service::Service()
 		: socket(NULL)
 	{
+		SeedRpcContexts = 0;
 		autoReconnect = false;
 		autoReconnectDelay = 0;
 		SHandshake forTypeId;
@@ -111,7 +112,8 @@ namespace Net
 	{
 		SHandshake* p = (SHandshake*)_p;
 
-		const std::vector<unsigned char> material = p->Sender->dhContext->computeDHKey((unsigned char*)p->Argument.dh_data.data(), (int32_t)p->Argument.dh_data.size());
+		const std::vector<unsigned char> material = p->Sender->dhContext->computeDHKey(
+			(unsigned char*)p->Argument->dh_data.data(), (int32_t)p->Argument->dh_data.size());
 		socklen_t key_len = p->Sender->LastAddressBytes.size();
 		int8_t* key = (int8_t*)p->Sender->LastAddressBytes.data();
 		//print("key", key, key_len);
@@ -121,14 +123,14 @@ namespace Net
 			hmac.update((int8_t*)&material[0], 0, half);
 			const int8_t* skey = hmac.digest();
 			//print("output key", skey, 16);
-			p->Sender->SetOutputSecurity(p->Argument.c2sneedcompress, skey, 16);
+			p->Sender->SetOutputSecurity(p->Argument->c2sneedcompress, skey, 16);
 		}
 		{
 			limax::HmacMD5 hmac(key, 0, key_len);
 			hmac.update((int8_t*)&material[0], half, (int32_t)material.size() - half);
 			const int8_t* skey = hmac.digest();
 			//print("output key", skey, 16);
-			p->Sender->SetInputSecurity(p->Argument.s2cneedcompress, skey, 16);
+			p->Sender->SetInputSecurity(p->Argument->s2cneedcompress, skey, 16);
 		}
 		p->Sender->dhContext.reset();
 		OnHandshakeDone(p->Sender);
@@ -242,6 +244,12 @@ namespace Net
 	{
 		std::auto_ptr<Protocol> at(p);
 		factoryHandle.Handle(p);
+	}
+
+	void Service::DispatchRpcResponse(Protocol* r, std::function<int(Protocol*)>& responseHandle, Service::ProtocolFactoryHandle& factoryHandle)
+	{
+		std::auto_ptr<Protocol> at(r);
+		responseHandle(r);
 	}
 
 	void Service::OnSocketProcessInputBuffer(const std::shared_ptr<Socket>& sender, ByteBuffer& input)

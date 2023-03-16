@@ -152,13 +152,53 @@ namespace Net
 		virtual void OnSocketConnected(const std::shared_ptr<Socket>& sender);
 		virtual void DispatchUnknownProtocol(const std::shared_ptr<Socket>& sender, int moduleId, int protocolId, ByteBuffer& data);
 		virtual void DispatchProtocol(Protocol* p, Service::ProtocolFactoryHandle& factoryHandle);
+		virtual void DispatchRpcResponse(Protocol* r, std::function<int(Protocol*)>& responseHandle, Service::ProtocolFactoryHandle& factoryHandle);
 		virtual void OnSocketProcessInputBuffer(const std::shared_ptr<Socket>& sender, ByteBuffer& input);
 
 		friend class Protocol;
 
+		long long AddRpcContext(Protocol* p)
+		{
+			std::lock_guard<std::mutex> guard(MutexRpcContexts);
+			while (true) {
+				++SeedRpcContexts;
+				auto pair = RpcContexts.insert(std::unordered_map<long long, Protocol*>::value_type(SeedRpcContexts, p));
+				if (pair.second)
+					return SeedRpcContexts;
+			}
+		}
+
+		Protocol* RemoveRpcContext(long long sid)
+		{
+			std::lock_guard<std::mutex> guard(MutexRpcContexts);
+			auto it = RpcContexts.find(sid);
+			if (it == RpcContexts.end())
+				return NULL;
+			Protocol * found = it->second;
+			RpcContexts.erase(it);
+			return found;
+		}
+
+		bool RemoveRpcContext(long long sid, Protocol* ctx)
+		{
+			std::lock_guard<std::mutex> guard(MutexRpcContexts);
+			auto it = RpcContexts.find(sid);
+			if (it == RpcContexts.end())
+				return false;
+			if (it->second == ctx)
+			{
+				RpcContexts.erase(it);
+				return true;
+			}
+			return false;
+		}
+
 	private:
 		typedef std::unordered_map<long long, ProtocolFactoryHandle> ProtocolFactoryMap;
 		ProtocolFactoryMap ProtocolFactory;
+		std::unordered_map<long long, Protocol*> RpcContexts;
+		long long SeedRpcContexts;
+		std::mutex MutexRpcContexts;
 		void StartConnect(const std::string& host, int port, int delay, int timeoutSecondsPerConnect);
 
 		char dhGroup = 1;

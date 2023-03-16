@@ -260,7 +260,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		if (context.future != null)
 			context.future.setResult(context.Result); // SendForWait，设置结果唤醒等待者。
 		else if (context.responseHandle != null)
-			service.dispatchRpcResponse(context, responseHandle, factoryHandle);
+			service.dispatchRpcResponse(context, context.responseHandle, factoryHandle);
 	}
 
 	@Override
