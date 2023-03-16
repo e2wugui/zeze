@@ -311,6 +311,9 @@
     <ClInclude Include="..\..\cxx\Vector.h">
       <Filter>ZezeCxx</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\cxx\Rpc.h">
+      <Filter>ZezeCxx</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\..\cxx\ReadMe.txt">
