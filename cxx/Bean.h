@@ -89,7 +89,7 @@ namespace Zeze {
 		}
 
 		virtual void Decode(ByteBuffer& bb) override {
-			long typeId = bb.ReadLong();
+			int64_t typeId = bb.ReadLong();
 			std::shared_ptr<Bean> real(createBean(typeId));
 			if (real.get() != NULL) {
 				real->Decode(bb);

@@ -38,7 +38,7 @@ namespace Zeze.Gen.cxx
             sw.WriteLine("public:");
             sw.WriteLine("    static const int ModuleId_ = " + p.Space.Id + ";");
             sw.WriteLine("    static const int ProtocolId_ = " + p.Id + ";" + (p.Id < 0 ? " // " + (uint)p.Id : ""));
-            sw.WriteLine("    static const long long TypeId_ = Zeze::Net::Protocol::MakeTypeId(ModuleId_, ProtocolId_); // " + Net.Protocol.MakeTypeId(p.Space.Id, p.Id));
+            sw.WriteLine("    static const int64_t TypeId_ = Zeze::Net::Protocol::MakeTypeId(ModuleId_, ProtocolId_); // " + Net.Protocol.MakeTypeId(p.Space.Id, p.Id));
             sw.WriteLine();
             sw.WriteLine("    virtual int ModuleId() const override {");
             sw.WriteLine("        return ModuleId_;");
@@ -48,7 +48,7 @@ namespace Zeze.Gen.cxx
             sw.WriteLine("        return ProtocolId_;");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    long long TypeId() const {");
+            sw.WriteLine("    int64_t TypeId() const {");
             sw.WriteLine("        return TypeId_;");
             sw.WriteLine("    }");
             sw.WriteLine();

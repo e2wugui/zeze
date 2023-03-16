@@ -302,7 +302,7 @@ namespace Zeze.Gen
         {
             var collect = new List<string>();
             foreach (var key in all.Keys)
-                if (key.StartsWith("Zeze.Bultin.") && BuiltinNotGen)
+                if (key.StartsWith("Zeze.Builtin.") && BuiltinNotGen)
                     collect.Add(key);
             foreach (var key in collect)
                 all.Remove(key);

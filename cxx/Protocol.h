@@ -34,22 +34,22 @@ namespace Zeze
 		class Protocol : public Serializable
 		{
 		public:
-			long long ResultCode = 0;
+			int64_t ResultCode = 0;
 			std::shared_ptr<Socket> Sender;
-			void* UserState;
+			void* UserState = nullptr;
 
 			Protocol() { }
 			virtual int ModuleId() const = 0;
 			virtual int ProtocolId() const = 0;
 
-			long long TypeId()
+			int64_t TypeId()
 			{
-				return ((long long)ModuleId() << 32) | (unsigned int)ProtocolId();
+				return ((int64_t)ModuleId() << 32) | (unsigned int)ProtocolId();
 			}
 
-			constexpr static long long MakeTypeId(int mid, int pid)
+			constexpr static int64_t MakeTypeId(int mid, int pid)
 			{
-				return ((long long)mid << 32) | (unsigned int)pid;
+				return ((int64_t)mid << 32) | (unsigned int)pid;
 			}
 
 			virtual int GetFamilyClass() const
@@ -69,7 +69,7 @@ namespace Zeze
 
 			virtual bool Send(Socket* socket);
 
-			virtual bool TrySendResultCode(long code)
+			virtual bool TrySendResultCode(int64_t code)
 			{
 				return false;
 			}
@@ -101,7 +101,11 @@ namespace Zeze
 			{
 				auto header = bb.ReadInt();
 				if ((header & FamilyClass::FamilyClassMask) != FamilyClass::Protocol)
-					throw new invalid_argument(std::string("invalid header(") + header + ") for decoding protocol ");
+				{
+					std::stringstream ss;
+					ss << "invalid header(" << header << ") for decoding protocol ";
+					throw new std::invalid_argument(ss.str());
+				}
 				ResultCode = (header & FamilyClass::BitResultCode) != 0 ? bb.ReadLong() : 0;
 				Argument->Decode(bb);
 			}

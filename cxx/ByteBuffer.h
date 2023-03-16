@@ -1,6 +1,7 @@
 #pragma once
 
-#include <string.h>
+#include <cstdint>
+#include <cstring>
 #include <string>
 #include <stdexcept>
 #include "Serializable.h"
@@ -195,7 +196,7 @@ namespace Zeze
 			return x;
 		}
 
-		void WriteLong8(long long x)
+		void WriteLong8(int64_t x)
 		{
 			char* bs = (char*)&x; //NOTE: 注意大小端问题
 			//if (!BitConverter.IsLittleEndian)
@@ -203,10 +204,10 @@ namespace Zeze
 			Append(bs, 0, 8);
 		}
 
-		long long ReadLong8()
+		int64_t ReadLong8()
 		{
 			EnsureRead(8);
-			long long x = *(long long*)(Bytes + ReadIndex); //NOTE: 注意大小端和对齐问题
+			int64_t x = *(int64_t*)(Bytes + ReadIndex); //NOTE: 注意大小端和对齐问题
 			ReadIndex += 8;
 			return x;
 		}
@@ -307,7 +308,7 @@ namespace Zeze
 			return x;
 		}
 
-		void WriteLong(long long x)
+		void WriteLong(int64_t x)
 		{
 			if (x >= 0)
 			{
@@ -527,91 +528,91 @@ namespace Zeze
 			}
 		}
 
-		long long ReadLong1()
+		int64_t ReadLong1()
 		{
 			EnsureRead(1);
 			return Bytes[ReadIndex++];
 		}
 
-		long long ReadLong2BE()
+		int64_t ReadLong2BE()
 		{
 			EnsureRead(2);
 			const unsigned char* bytes = Bytes;
 			int readIndex = ReadIndex;
 			ReadIndex = readIndex + 2;
-			return ((long long)bytes[readIndex] << 8) +
+			return ((int64_t)bytes[readIndex] << 8) +
 					bytes[readIndex + 1];
 		}
 
-		long long ReadLong3BE()
+		int64_t ReadLong3BE()
 		{
 			EnsureRead(3);
 			const unsigned char* bytes = Bytes;
 			int readIndex = ReadIndex;
 			ReadIndex = readIndex + 3;
-			return ((long long)bytes[readIndex] << 16) +
-					((long long)bytes[readIndex + 1] << 8) +
+			return ((int64_t)bytes[readIndex] << 16) +
+					((int64_t)bytes[readIndex + 1] << 8) +
 					bytes[readIndex + 2];
 		}
 
-		long long ReadLong4BE()
+		int64_t ReadLong4BE()
 		{
 			EnsureRead(4);
 			const unsigned char* bytes = Bytes;
 			int readIndex = ReadIndex;
 			ReadIndex = readIndex + 4;
-			return ((long long)bytes[readIndex] << 24) +
-					((long long)bytes[readIndex + 1] << 16) +
-					((long long)bytes[readIndex + 2] << 8) +
+			return ((int64_t)bytes[readIndex] << 24) +
+					((int64_t)bytes[readIndex + 1] << 16) +
+					((int64_t)bytes[readIndex + 2] << 8) +
 					bytes[readIndex + 3];
 		}
 
-		long long ReadLong5BE()
+		int64_t ReadLong5BE()
 		{
 			EnsureRead(5);
 			const unsigned char* bytes = Bytes;
 			int readIndex = ReadIndex;
 			ReadIndex = readIndex + 5;
-			return ((long long)bytes[readIndex] << 32) +
-					((long long)bytes[readIndex + 1] << 24) +
-					((long long)bytes[readIndex + 2] << 16) +
-					((long long)bytes[readIndex + 3] << 8) +
+			return ((int64_t)bytes[readIndex] << 32) +
+					((int64_t)bytes[readIndex + 1] << 24) +
+					((int64_t)bytes[readIndex + 2] << 16) +
+					((int64_t)bytes[readIndex + 3] << 8) +
 					bytes[readIndex + 4];
 		}
 
-		long long ReadLong6BE()
+		int64_t ReadLong6BE()
 		{
 			EnsureRead(6);
 			const unsigned char* bytes = Bytes;
 			int readIndex = ReadIndex;
 			ReadIndex = readIndex + 6;
-			return ((long long)bytes[readIndex] << 40) +
-					((long long)bytes[readIndex + 1] << 32) +
-					((long long)bytes[readIndex + 2] << 24) +
-					((long long)bytes[readIndex + 3] << 16) +
-					((long long)bytes[readIndex + 4] << 8) +
+			return ((int64_t)bytes[readIndex] << 40) +
+					((int64_t)bytes[readIndex + 1] << 32) +
+					((int64_t)bytes[readIndex + 2] << 24) +
+					((int64_t)bytes[readIndex + 3] << 16) +
+					((int64_t)bytes[readIndex + 4] << 8) +
 					bytes[readIndex + 5];
 		}
 
-		long long ReadLong7BE()
+		int64_t ReadLong7BE()
 		{
 			EnsureRead(7);
 			const unsigned char* bytes = Bytes;
 			int readIndex = ReadIndex;
 			ReadIndex = readIndex + 7;
-			return ((long long)bytes[readIndex] << 48) +
-					((long long)bytes[readIndex + 1] << 40) +
-					((long long)bytes[readIndex + 2] << 32) +
-					((long long)bytes[readIndex + 3] << 24) +
-					((long long)bytes[readIndex + 4] << 16) +
-					((long long)bytes[readIndex + 5] << 8) +
+			return ((int64_t)bytes[readIndex] << 48) +
+					((int64_t)bytes[readIndex + 1] << 40) +
+					((int64_t)bytes[readIndex + 2] << 32) +
+					((int64_t)bytes[readIndex + 3] << 24) +
+					((int64_t)bytes[readIndex + 4] << 16) +
+					((int64_t)bytes[readIndex + 5] << 8) +
 					bytes[readIndex + 6];
 		}
 
-		long long ReadLong()
+		int64_t ReadLong()
 		{
 			EnsureRead(1);
-			long long b = (signed char)Bytes[ReadIndex++];
+			int64_t b = (signed char)Bytes[ReadIndex++];
 			switch ((b >> 3) & 0x1f)
 			{
 			case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: case 0x06: case 0x07:
@@ -628,7 +629,7 @@ namespace Zeze
 				case 0: case 1: case 2: case 3: return ((b - 0x78) << 32) + ReadLong4BE();
 				case 4: case 5:                 return ((b - 0x7c) << 40) + ReadLong5BE();
 				case 6:                         return ReadLong6BE();
-				default: long long r = ReadLong7BE(); return r < 0x80000000000000LL ?
+				default: int64_t r = ReadLong7BE(); return r < 0x80000000000000LL ?
 						r : ((r - 0x80000000000000LL) << 8) + ReadLong1();
 				}
 			default: // 0x10
@@ -637,7 +638,7 @@ namespace Zeze
 				case 4: case 5: case 6: case 7: return ((b + 0x78) << 32) + ReadLong4BE();
 				case 2: case 3:                 return ((b + 0x7c) << 40) + ReadLong5BE();
 				case 1:                         return 0xffff000000000000LL + ReadLong6BE();
-				default: long long r = ReadLong7BE(); return r >= 0x80000000000000LL ?
+				default: int64_t r = ReadLong7BE(); return r >= 0x80000000000000LL ?
 						0xff00000000000000LL + r : ((r + 0x80000000000000LL) << 8) + ReadLong1();
 				}
 			}
@@ -845,15 +846,15 @@ namespace Zeze
 			return 0;
 		}
 
-		long long ReadLong(int type)
+		int64_t ReadLong(int type)
 		{
 			type &= TAG_MASK;
 			if (type == INTEGER)
 				return ReadLong();
 			if (type == FLOAT)
-				return (long long)ReadFloat();
+				return (int64_t)ReadFloat();
 			if (type == DOUBLE)
-				return (long long)ReadDouble();
+				return (int64_t)ReadDouble();
 			SkipUnknownField(type);
 			return 0;
 		}

@@ -13,7 +13,7 @@ namespace Zeze.Gen.cxx
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "virtual void Assign(const Zeze::Bean& other) override {");
-            sw.WriteLine(prefix + $"    Assign((const {bean.Name}&)other);");
+            sw.WriteLine(prefix + $"    Assign(dynamic_cast<const {bean.Name}&>(other));");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
 
@@ -23,7 +23,7 @@ namespace Zeze.Gen.cxx
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
 
-            sw.WriteLine(prefix + $"{bean.Name} & operator=(const {bean.Name} & other) {{");
+            sw.WriteLine(prefix + $"{bean.Name}& operator=(const {bean.Name} & other) {{");
             sw.WriteLine(prefix + "    Assign(other);");
             sw.WriteLine(prefix + "    return *this;");
             sw.WriteLine(prefix + "}");
@@ -38,7 +38,7 @@ namespace Zeze.Gen.cxx
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
 
-            sw.WriteLine(prefix + $"{bean.Name} & operator=(const {bean.Name} & other) {{");
+            sw.WriteLine(prefix + $"{bean.Name}& operator=(const {bean.Name} & other) {{");
             sw.WriteLine(prefix + "    Assign(other);");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();

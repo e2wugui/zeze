@@ -13,7 +13,7 @@ namespace Zeze
 		public:
 			std::unique_ptr<ArgumentType> Argument;
 			std::unique_ptr<ResultType> Result;
-			long long SessionId;
+			int64_t SessionId;
 			bool IsRequest;
 			bool IsTimeout;
 			std::function<int(Protocol*)> ResponseHandle;
@@ -33,7 +33,7 @@ namespace Zeze
 				return IsRequest ? FamilyClass::Request : FamilyClass::Response;
 			}
 
-			void Schedule(Service* service, long long sessionId, int millisecondsTimeout) {
+			void Schedule(Service* service, int64_t sessionId, int millisecondsTimeout) {
 				int timeout = std::ceil(millisecondsTimeout / 1000.0f);
 				SetTimeout(() -> {
 					auto context = (Rpc<ArgumentType, ResultType>*)service->RemoveRpcContext(sessionId);
@@ -102,7 +102,7 @@ namespace Zeze
 					std::cout << "Rpc.SendResult Failed: " << std::endl;
 			}
 
-			virtual bool TrySendResultCode(long long code) override
+			virtual bool TrySendResultCode(int64_t code) override
 			{
 				if (SendResultDone)
 					return false;

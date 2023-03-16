@@ -61,7 +61,7 @@ namespace Zeze.Gen.cxx
                 sw.WriteLine($"    class App");
                 sw.WriteLine($"    {{");
                 sw.WriteLine($"    public:");
-                sw.WriteLine($"        static App & Instance() {{ static App instance; return instance; }}");
+                sw.WriteLine($"        static App& Instance() {{ static App instance; return instance; }}");
                 sw.WriteLine();
                 foreach (var m in Project.Services.Values)
                     sw.WriteLine($"        {Project.Solution.Path("::", m.Name)} {m.Name};");

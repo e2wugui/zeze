@@ -141,7 +141,7 @@ namespace Zeze.Gen.cxx
 
         public void Visit(TypeDouble type)
         {
-            Initial("0.0f");
+            Initial("0.0");
         }
 
         public void Visit(TypeBinary type)

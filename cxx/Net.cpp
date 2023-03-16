@@ -421,7 +421,7 @@ namespace Net
 					}
 				}
 				{
-					long long now = time(0);
+					int64_t now = time(0);
 					timeouts_t::iterator it = timeouts.begin();
 					while (it != timeouts.end())
 					{
@@ -443,7 +443,7 @@ namespace Net
 				}
 			}
 		}
-		typedef std::list<std::pair<std::function<void()>, long long>> timeouts_t;
+		typedef std::list<std::pair<std::function<void()>, int64_t>> timeouts_t;
 		timeouts_t timeouts;
 
 		void SetTimeout(const std::function<void()>& func, int timeout)

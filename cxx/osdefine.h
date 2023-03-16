@@ -53,8 +53,8 @@
 #endif
 #endif
 
+#define WIN32_LEAN_AND_MEAN
 #include <ws2tcpip.h>
-
 
 #ifdef _M_X64
 #	define LIMAX_PLAT_X86_64

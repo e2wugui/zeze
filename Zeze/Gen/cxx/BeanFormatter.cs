@@ -60,7 +60,7 @@ namespace Zeze.Gen.cxx
             {
                 foreach (var real in type.RealBeans)
                 {
-                    sw.WriteLine($"{prefix}const int64_t DynamicTypeId_{var.NameUpper1}_{real.Value.Space.Path("_", real.Value.Name)} = {real.Key}L;");
+                    sw.WriteLine($"{prefix}static const int64_t DynamicTypeId_{var.NameUpper1}_{real.Value.Space.Path("_", real.Value.Name)} = {real.Key}L;");
                 }
             }
             sw.WriteLine();
@@ -120,7 +120,7 @@ namespace Zeze.Gen.cxx
             // declare enums
             foreach (Enum e in bean.Enums)
             {
-                sw.WriteLine($"    const {TypeName.GetName(Type.Compile(e.Type))} " + e.Name + " = " + e.Value + ";" + e.Comment);
+                sw.WriteLine($"    static const {TypeName.GetName(Type.Compile(e.Type))} " + e.Name + " = " + e.Value + ";" + e.Comment);
             }
             if (bean.Enums.Count > 0)
             {

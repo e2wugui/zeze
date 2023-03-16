@@ -47,15 +47,15 @@ namespace Net
 
 	public:
 		bool IsHandshakeDone;
-		long long SessionId;
+		int64_t SessionId;
 		Service* service;
 		std::shared_ptr<Socket> This;
 		std::string LastAddress;
 		std::string LastAddressBytes;
 
-		static long long NextSessionId()
+		static int64_t NextSessionId()
 		{
-			static long long seed = 0;
+			static int64_t seed = 0;
 			static std::mutex mutex;
 
 			std::lock_guard<std::mutex> g(mutex);
@@ -83,7 +83,7 @@ namespace Net
 		Service();
 		virtual ~Service();
 		std::shared_ptr<Socket> GetSocket() { return socket; }
-		std::shared_ptr<Socket> GetSocket(long long sessionId)
+		std::shared_ptr<Socket> GetSocket(int64_t sessionId)
 		{
 			if (socket.get() != NULL && socket->SessionId == sessionId)
 				return socket;
@@ -119,13 +119,13 @@ namespace Net
 			{
 			}
 		};
-		void AddProtocolFactory(long long typeId, const ProtocolFactoryHandle& func)
+		void AddProtocolFactory(int64_t typeId, const ProtocolFactoryHandle& func)
 		{
-			std::pair<ProtocolFactoryMap::iterator, bool> r = ProtocolFactory.insert(std::pair<long long, ProtocolFactoryHandle>(typeId, func));
+			std::pair<ProtocolFactoryMap::iterator, bool> r = ProtocolFactory.insert(std::pair<int64_t, ProtocolFactoryHandle>(typeId, func));
 			if (false == r.second)
 				throw std::exception("duplicate protocol TypeId");
 		}
-		bool FindProtocolFactoryHandle(long long typeId, ProtocolFactoryHandle& outFactoryHandle)
+		bool FindProtocolFactoryHandle(int64_t typeId, ProtocolFactoryHandle& outFactoryHandle)
 		{
 			ProtocolFactoryMap::iterator it = ProtocolFactory.find(typeId);
 			if (it != ProtocolFactory.end())
@@ -157,18 +157,18 @@ namespace Net
 
 		friend class Protocol;
 
-		long long AddRpcContext(Protocol* p)
+		int64_t AddRpcContext(Protocol* p)
 		{
 			std::lock_guard<std::mutex> guard(MutexRpcContexts);
 			while (true) {
 				++SeedRpcContexts;
-				auto pair = RpcContexts.insert(std::unordered_map<long long, Protocol*>::value_type(SeedRpcContexts, p));
+				auto pair = RpcContexts.insert(std::unordered_map<int64_t, Protocol*>::value_type(SeedRpcContexts, p));
 				if (pair.second)
 					return SeedRpcContexts;
 			}
 		}
 
-		Protocol* RemoveRpcContext(long long sid)
+		Protocol* RemoveRpcContext(int64_t sid)
 		{
 			std::lock_guard<std::mutex> guard(MutexRpcContexts);
 			auto it = RpcContexts.find(sid);
@@ -179,7 +179,7 @@ namespace Net
 			return found;
 		}
 
-		bool RemoveRpcContext(long long sid, Protocol* ctx)
+		bool RemoveRpcContext(int64_t sid, Protocol* ctx)
 		{
 			std::lock_guard<std::mutex> guard(MutexRpcContexts);
 			auto it = RpcContexts.find(sid);
@@ -194,10 +194,10 @@ namespace Net
 		}
 
 	private:
-		typedef std::unordered_map<long long, ProtocolFactoryHandle> ProtocolFactoryMap;
+		typedef std::unordered_map<int64_t, ProtocolFactoryHandle> ProtocolFactoryMap;
 		ProtocolFactoryMap ProtocolFactory;
-		std::unordered_map<long long, Protocol*> RpcContexts;
-		long long SeedRpcContexts;
+		std::unordered_map<int64_t, Protocol*> RpcContexts;
+		int64_t SeedRpcContexts;
 		std::mutex MutexRpcContexts;
 		void StartConnect(const std::string& host, int port, int delay, int timeoutSecondsPerConnect);
 

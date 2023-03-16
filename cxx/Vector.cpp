@@ -2,7 +2,7 @@
 #include "ByteBuffer.h"
 
 namespace Zeze {
-	Vector2::Vector2(const Vector2Int& v) : x(v.x), y(v.y) {}
+	Vector2::Vector2(const Vector2Int& v) : x((float)v.x), y((float)v.y) {}
 
 	void Vector2::Encode(ByteBuffer& bb) const {
 		bb.WriteFloat(x);
@@ -24,7 +24,7 @@ namespace Zeze {
 		y = bb.ReadInt();
 	}
 
-	Vector3::Vector3(const Vector3Int& v) : Vector2(v.x, v.y), z(v.z) {}
+	Vector3::Vector3(const Vector3Int& v) : Vector2((float)v.x, (float)v.y), z((float)v.z) {}
 
 	void Vector3::Encode(ByteBuffer& bb) const {
 		bb.WriteFloat(x);

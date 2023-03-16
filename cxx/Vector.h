@@ -35,7 +35,7 @@ namespace Zeze {
 
 		Vector2Int(int x_, int y_) : x(x_), y(y_) {}
 
-		Vector2Int(const Vector2& v) : x(v.x), y(v.y) {}
+		Vector2Int(const Vector2& v) : x((int)v.x), y((int)v.y) {}
 		Vector2Int(const Vector2Int& v) : x(v.x), y(v.y) {}
 
 		virtual int CompareTo(const Vector2Int& other) const {
@@ -72,7 +72,7 @@ namespace Zeze {
 		Vector3(float x_, float y_, float z_) : Vector2(x_, y_), z(z_) {}
 
 		Vector3(const Vector2& v) : Vector2(v.x, v.y), z(0) {}
-		Vector3(const Vector2Int& v) : Vector2(v.x, v.y), z(0) {}
+		Vector3(const Vector2Int& v) : Vector2((float)v.x, (float)v.y), z(0) {}
 		Vector3(const Vector3& v) : Vector3(v.x, v.y, v.z) {}
 		Vector3(const Vector3Int& v);
 
@@ -92,9 +92,9 @@ namespace Zeze {
 
 		Vector3Int(int x_, int y_, int z_) : Vector2Int(x_, y_), z(z_) {}
 
-		Vector3Int(const Vector2& v) : Vector2Int(v.x, v.y), z(0) {}
+		Vector3Int(const Vector2& v) : Vector2Int((int)v.x, (int)v.y), z(0) {}
 		Vector3Int(const Vector2Int& v) : Vector2Int(v.x, v.y), z(0) {}
-		Vector3Int(const Vector3& v) : Vector2Int(v.x, v.y), z(v.z) {}
+		Vector3Int(const Vector3& v) : Vector2Int((int)v.x, (int)v.y), z((int)v.z) {}
 		Vector3Int(const Vector3Int& v) : Vector2Int(v.x, v.y), z(v.z) {}
 
 		virtual bool isZero() const {
@@ -132,9 +132,9 @@ namespace Zeze {
 		Vector4(float x_, float y_, float z_, float w_) : Vector3(x_, y_, z_), w(w_) {}
 
 		Vector4(const Vector2& v) : Vector3(v.x, v.y, 0), w(0) {}
-		Vector4(const Vector2Int& v) : Vector3(v.x, v.y, 0), w(0) {}
+		Vector4(const Vector2Int& v) : Vector3((float)v.x, (float)v.y, 0), w(0) {}
 		Vector4(const Vector3& v) : Vector3(v.x, v.y, v.z), w(0) {}
-		Vector4(const Vector3Int& v) : Vector3(v.x, v.y, v.z), w(0) {}
+		Vector4(const Vector3Int& v) : Vector3((float)v.x, (float)v.y, (float)v.z), w(0) {}
 		Vector4(const Vector4& v) : Vector3(v.x, v.y, v.z), w(v.w) {}
 
 		virtual bool isZero() const override {
@@ -151,9 +151,9 @@ namespace Zeze {
 		Quaternion(float x_, float y_, float z_, float w_) : Vector4(x_, y_, z_, w_) {}
 
 		Quaternion(const Vector2& v) : Vector4(v.x, v.y, 0, 0) {}
-		Quaternion(const Vector2Int& v) : Vector4(v.x, v.y, 0, 0) {}
+		Quaternion(const Vector2Int& v) : Vector4((float)v.x, (float)v.y, 0, 0) {}
 		Quaternion(const Vector3& v) : Vector4(v.x, v.y, v.z, 0) {}
-		Quaternion(const Vector3Int& v) : Vector4(v.x, v.y, v.z, 0) {}
+		Quaternion(const Vector3Int& v) : Vector4((float)v.x, (float)v.y, (float)v.z, 0) {}
 		Quaternion(const Vector4& v) : Vector4(v.x, v.y, v.z, v.w) {}
 	};
 }
