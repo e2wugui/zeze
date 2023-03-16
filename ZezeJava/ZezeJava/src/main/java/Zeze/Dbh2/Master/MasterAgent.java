@@ -35,7 +35,6 @@ public class MasterAgent extends AbstractMasterAgent {
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
-		;
 	}
 
 	public void stop() {

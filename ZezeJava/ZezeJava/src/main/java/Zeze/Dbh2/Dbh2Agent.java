@@ -20,9 +20,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class Dbh2Agent extends AbstractDbh2Agent {
-	private static final Logger logger = LogManager.getLogger(Dbh2Agent.class);
+//	private static final Logger logger = LogManager.getLogger(Dbh2Agent.class);
 	private final Agent raftClient;
-	private volatile TaskCompletionSource<Boolean> loginFuture = new TaskCompletionSource<>();
+	private final TaskCompletionSource<Boolean> loginFuture = new TaskCompletionSource<>();
 	private volatile long lastErrorTime;
 	private final Dbh2Config config = new Dbh2Config();
 	private volatile long activeTime = System.currentTimeMillis();

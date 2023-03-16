@@ -268,7 +268,7 @@ public class Database extends Zeze.Transaction.Database {
 		}
 	}
 
-	public class Dbh2Operates implements Zeze.Transaction.Database.Operates {
+	public static class Dbh2Operates implements Zeze.Transaction.Database.Operates {
 
 		@Override
 		public void setInUse(int localId, String global) {

@@ -1,8 +1,6 @@
 package Zeze.Dbh2;
 
 import java.util.concurrent.atomic.AtomicLong;
-import Zeze.Raft.Raft;
-import org.rocksdb.RocksDBException;
 
 public class TidAllocator {
 	private volatile Range range; // 只有 raft 修改，单线程。
@@ -10,10 +8,6 @@ public class TidAllocator {
 	private static final int ALLOCATE_COUNT_MAX = 1024 * 1024;
 	private int allocateCount = ALLOCATE_COUNT_MIN;
 	private long lastAllocateTime = System.currentTimeMillis();
-
-	public TidAllocator() {
-
-	}
 
 	private void calcAllocateCount() {
 		var now = System.currentTimeMillis();

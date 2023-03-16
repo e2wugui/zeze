@@ -48,11 +48,12 @@ public class Dbh2Manager {
 
 		var nodeDirPart = raftConfig.getName().replace(":", "_");
 		var dbHome = new File(bucketDir.toFile(), nodeDirPart);
+		//noinspection ResultOfMethodCallIgnored
 		dbHome.mkdirs();
 		raftConfig.setDbHome(dbHome.toString());
 		var file = new File(raftConfig.getDbHome(), "raft.xml");
-		java.nio.file.Files.write(file.toPath(),
-				r.Argument.getRaftConfig().getBytes(StandardCharsets.UTF_8),
+		java.nio.file.Files.writeString(file.toPath(),
+				r.Argument.getRaftConfig(),
 				StandardOpenOption.CREATE);
 		dbh2s.computeIfAbsent(r.Argument.getRaftConfig(),
 				(key) -> new Dbh2(raftConfig.getName(), raftConfig, null, false));

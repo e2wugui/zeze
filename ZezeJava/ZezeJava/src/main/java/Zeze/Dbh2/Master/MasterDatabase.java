@@ -31,6 +31,7 @@ public class MasterDatabase {
 			this.master = master;
 			this.databaseName = databaseName;
 			var dbHome = Path.of(master.getHome(), databaseName);
+			//noinspection ResultOfMethodCallIgnored
 			dbHome.toFile().mkdirs();
 			this.db = RocksDB.open(dbHome.toString());
 
