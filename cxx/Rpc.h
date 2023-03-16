@@ -34,11 +34,8 @@ namespace Zeze
 			}
 
 			void Schedule(Service* service, long long sessionId, int millisecondsTimeout) {
-				long timeout = std::ceil(millisecondsTimeout / 1000.0f);
-				if (Reflect.inDebugMode)
-					timeout += 10 * 60 * 1000; // 调试状态下RPC超时放宽到至少10分钟,方便调试时不容易超时
-
-				Task.schedule(timeout, () -> {
+				int timeout = std::ceil(millisecondsTimeout / 1000.0f);
+				SetTimeout(() -> {
 					auto context = (Rpc<ArgumentType, ResultType>*)service->RemoveRpcContext(sessionId);
 					if (context == NULL) // 一般来说，此时结果已经返回。
 						return;
@@ -56,7 +53,7 @@ namespace Zeze
 						if (service->FindProtocolFactoryHandle(context->TypeId(), factoryHandle))
 							service.DispatchRpcResponse(context, context->ResponseHandle, factoryHandle);
 					}
-				});
+				}, timeout);
 			}
 
 			bool Send(Socket* so, const std::function<int(Protocol*)>& responseHandle, int millisecondsTimeout = 5000)
