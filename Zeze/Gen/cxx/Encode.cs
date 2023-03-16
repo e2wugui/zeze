@@ -206,7 +206,7 @@ namespace Zeze.Gen.cxx
                 throw new Exception("invalid variable.id");
             Type vt = type.ValueType;
             sw.WriteLine(prefix + "const auto& _x_ = " + var.NameUpper1 + ';');
-            sw.WriteLine(prefix + "int _n_ = _x_.size();");
+            sw.WriteLine(prefix + "auto _n_ = _x_.size();");
             sw.WriteLine(prefix + "if (_n_ != 0) {");
             sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
             sw.WriteLine(prefix + "    " + bufname + ".WriteListType(_n_, " + TypeTagName.GetName(vt) + ");");
@@ -233,7 +233,7 @@ namespace Zeze.Gen.cxx
             Type kt = type.KeyType;
             Type vt = type.ValueType;
             sw.WriteLine(prefix + "const auto& _x_ = " + var.NameUpper1 + ';');
-            sw.WriteLine(prefix + "int _n_ = _x_.size();");
+            sw.WriteLine(prefix + "auto _n_ = _x_.size();");
             sw.WriteLine(prefix + "if (_n_ != 0) {");
             sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
             sw.WriteLine(prefix + "    " + bufname + ".WriteMapType(_n_, " + TypeTagName.GetName(kt) + ", " + TypeTagName.GetName(vt) + ");");

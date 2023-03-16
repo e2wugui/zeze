@@ -26,7 +26,7 @@ namespace Net
 	class Socket
 	{
 		std::recursive_mutex mutex;
-		unsigned int socket = 0;
+		int socket = 0;
 		int selectorFlags = 0; // used in Selector
 		std::shared_ptr<limax::DHContext> dhContext;
 
@@ -146,7 +146,7 @@ namespace Net
 			this->autoReconnect = bAuto;
 		}
 
-		virtual void OnSocketClose(const std::shared_ptr<Socket> & sender, const std::exception* e);
+		virtual void OnSocketClose(const std::shared_ptr<Socket>& sender, const std::exception* e);
 		virtual void OnHandshakeDone(const std::shared_ptr<Socket>& sender);
 		virtual void OnSocketConnectError(const std::shared_ptr<Socket>& sender, const std::exception* e);
 		virtual void OnSocketConnected(const std::shared_ptr<Socket>& sender);

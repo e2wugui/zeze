@@ -771,21 +771,21 @@ namespace Zeze
 			return varId;
 		}
 
-		void WriteListType(int listSize, int elemType)
+		void WriteListType(size_t listSize, int elemType)
 		{
 			if (listSize < 0xf)
-				WriteByte((listSize << TAG_SHIFT) + elemType);
+				WriteByte(((int)listSize << TAG_SHIFT) + elemType);
 			else
 			{
 				WriteByte(0xf0 + elemType);
-				WriteUInt(listSize - 0xf);
+				WriteUInt((int)listSize - 0xf);
 			}
 		}
 
-		void WriteMapType(int mapSize, int keyType, int valueType)
+		void WriteMapType(size_t mapSize, int keyType, int valueType)
 		{
 			WriteByte((keyType << TAG_SHIFT) + valueType);
-			WriteUInt(mapSize);
+			WriteUInt((int)mapSize);
 		}
 
 		int ReadTagSize(int tagByte)

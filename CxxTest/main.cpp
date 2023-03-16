@@ -27,7 +27,7 @@ class Client : public Zeze::Net::Service
 	void OnSocketConnected(const std::shared_ptr<Zeze::Net::Socket>& sender)
 	{
 		std::string req("HEAD / HTTP/1.0\r\n\r\n");
-		sender->Send(req.data(), req.size());
+		sender->Send(req.data(), (int)req.size());
 	}
 };
 

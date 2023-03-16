@@ -114,19 +114,19 @@ namespace Net
 
 		const std::vector<unsigned char> material = p->Sender->dhContext->computeDHKey(
 			(unsigned char*)p->Argument->dh_data.data(), (int32_t)p->Argument->dh_data.size());
-		socklen_t key_len = p->Sender->LastAddressBytes.size();
+		size_t key_len = p->Sender->LastAddressBytes.size();
 		int8_t* key = (int8_t*)p->Sender->LastAddressBytes.data();
 		//print("key", key, key_len);
 		int32_t half = (int32_t)material.size() / 2;
 		{
-			limax::HmacMD5 hmac(key, 0, key_len);
+			limax::HmacMD5 hmac(key, 0, (int)key_len);
 			hmac.update((int8_t*)&material[0], 0, half);
 			const int8_t* skey = hmac.digest();
 			//print("output key", skey, 16);
 			p->Sender->SetOutputSecurity(p->Argument->c2sneedcompress, skey, 16);
 		}
 		{
-			limax::HmacMD5 hmac(key, 0, key_len);
+			limax::HmacMD5 hmac(key, 0, (int)key_len);
 			hmac.update((int8_t*)&material[0], half, (int32_t)material.size() - half);
 			const int8_t* skey = hmac.digest();
 			//print("output key", skey, 16);
@@ -235,7 +235,7 @@ namespace Net
 		socket = sender;
 		autoReconnectDelay = 0;
 		sender->dhContext = limax::createDHContext(dhGroup);
-		const std::vector<unsigned char> & dhResponse = sender->dhContext->generateDHResponse();
+		const std::vector<unsigned char>& dhResponse = sender->dhContext->generateDHResponse();
 		CHandshake hand(dhGroup, std::string((const char *)&dhResponse[0], dhResponse.size()));
 		hand.Send(sender.get());
 	}
@@ -334,7 +334,7 @@ namespace Net
 			}
 		}
 
-		unsigned int wakeupfds[2];
+		int wakeupfds[2];
 		bool loop = true;
 		std::thread * worker;
 		std::unordered_map<std::shared_ptr<Socket>, int> sockets;
@@ -377,7 +377,7 @@ namespace Net
 				FD_ZERO(&setwrite);
 				FD_ZERO(&setread);
 
-				unsigned int maxfd = 0;
+				int maxfd = 0;
 				for (auto& socket : sockets)
 				{
 					if (socket.first->socket > maxfd)
@@ -459,16 +459,15 @@ namespace Net
 		// 客户端不需要大量连接，先实现一个总是使用select的版本。
 		// 看需要再实现其他版本。
 #ifdef LIMAX_OS_WINDOWS
-		int pipe(unsigned int fildes[2])
+		int pipe(int fildes[2])
 		{
-			int tcp1, tcp2;
 			sockaddr_in name;
 			memset(&name, 0, sizeof(name));
 			name.sin_family = AF_INET;
 			name.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 			int namelen = sizeof(name);
-			tcp1 = tcp2 = -1;
-			int tcp = socket(AF_INET, SOCK_STREAM, 0);
+			SOCKET tcp1 = -1, tcp2 = -1;
+			SOCKET tcp = socket(AF_INET, SOCK_STREAM, 0);
 			if (tcp == -1) {
 				goto clean;
 			}
@@ -495,8 +494,8 @@ namespace Net
 			if (closesocket(tcp) == -1) {
 				goto clean;
 			}
-			fildes[0] = tcp1;
-			fildes[1] = tcp2;
+			fildes[0] = (int)tcp1;
+			fildes[1] = (int)tcp2;
 			return 0;
 		clean:
 			if (tcp != -1) {
@@ -550,7 +549,7 @@ namespace Net
 		This.reset();
 	}
 
-	inline void platform_close_socket(unsigned int & so)
+	inline void platform_close_socket(int& so)
 	{
 #ifdef LIMAX_OS_WINDOWS
 		::closesocket(so);
@@ -759,10 +758,10 @@ namespace Net
 			}
 		}
 
-		unsigned int so = 0;
+		int so = 0;
 		for (struct addrinfo* ai = res; ai != NULL; ai = ai->ai_next)
 		{
-			so = ::socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+			so = (int)::socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
 			if (so == 0)
 				continue;
 
