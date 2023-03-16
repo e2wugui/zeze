@@ -5,49 +5,108 @@
 #include "ByteBuffer.h"
 #include "security.h"
 #include "rfc2118.h"
+#include "Bean.h"
 
 namespace Zeze
 {
 namespace Net
 {
-	class CHandshakeArgument : public Serializable
+	class Constant
 	{
 	public:
-		char dh_group = 0;
-		std::string dh_data;
+		static const int eEncryptTypeDisable = 0;
+		static const int eEncryptTypeAes = 1;
+
+		static const int eCompressTypeDisable = 0; // no compress
+		static const int eCompressTypeMppc = 1; // mppc
+		static const int eCompressTypeZstd = 2; // zstd
+
+	};
+
+	class SHandshake0Argument : public Serializable
+	{
+	public:
+		int encryptType; // 推荐的加密算法。旧版是boolean
+		std::vector<int> supportedEncryptList;
+		int compressS2c; // 推荐的压缩算法。
+		int compressC2s; // 推荐的压缩算法。
+		std::vector<int> supportedCompressList;
+
+		void Encode(ByteBuffer & bb) const override
+		{
+			bb.WriteInt(encryptType);
+			bb.WriteInt(supportedEncryptList.size());
+			for (auto it = supportedEncryptList.begin(); it != supportedEncryptList.end(); ++it)
+				bb.WriteInt(*it);
+			bb.WriteInt(compressS2c);
+			bb.WriteInt(compressC2s);
+			bb.WriteInt(supportedCompressList.size());
+			for (auto it = supportedCompressList.begin(); it != supportedCompressList.end(); ++it)
+				bb.WriteInt(*it);
+		}
 
 		void Decode(ByteBuffer& bb) override
 		{
-			dh_group = bb.ReadByte();
-			dh_data = bb.ReadBytes();
+			encryptType = bb.ReadInt();
+			supportedEncryptList.clear();
+			supportedCompressList.clear();
+
+			for (int count = bb.ReadInt(); count > 0; --count)
+				supportedEncryptList.push_back(bb.ReadInt());
+			compressS2c = bb.ReadInt();
+			compressC2s = bb.ReadInt();
+			for (int count = bb.ReadInt(); count > 0; --count)
+				supportedCompressList.push_back(bb.ReadInt());
+		}
+	};
+
+	class CHandshakeArgument : public Serializable
+	{
+	public:
+		int encryptType;;
+		std::string encryptParam;
+		int compressS2c;
+		int compressC2s;
+
+		void Decode(ByteBuffer& bb) override
+		{
+			encryptType = bb.ReadInt();
+			encryptParam = bb.ReadBytes();
+			compressS2c = bb.ReadInt();
+			compressC2s = bb.ReadInt();
 		}
 
 		void Encode(ByteBuffer& bb) const override
 		{
-			bb.WriteByte(dh_group);
-			bb.WriteBytes(dh_data);
+			bb.WriteInt(encryptType);
+			bb.WriteBytes(encryptParam);
+			bb.WriteInt(compressS2c);
+			bb.WriteInt(compressC2s);
 		}
 	};
 
 	class SHandshakeArgument : public Serializable
 	{
 	public:
-		std::string dh_data;
-		bool s2cneedcompress = true;
-		bool c2sneedcompress = true;
+		std::string encryptParam;
+		int compressS2c;
+		int compressC2s;
+		int encryptType;
 
 		void Decode(ByteBuffer& bb) override
 		{
-			dh_data = bb.ReadBytes();
-			s2cneedcompress = bb.ReadBool();
-			c2sneedcompress = bb.ReadBool();
+			encryptParam = bb.ReadBytes();
+			compressS2c = bb.ReadInt();
+			compressC2s = bb.ReadInt();
+			encryptType = bb.ReadInt();
 		}
 
 		void Encode(ByteBuffer& bb) const override
 		{
-			bb.WriteBytes(dh_data);
-			bb.WriteBool(s2cneedcompress);
-			bb.WriteBool(c2sneedcompress);
+			bb.WriteBytes(encryptParam);
+			bb.WriteInt(compressS2c);
+			bb.WriteInt(compressC2s);
+			bb.WriteInt(encryptType);
 		}
 	};
 
@@ -55,35 +114,28 @@ namespace Net
 	{
 	public:
 		virtual int ModuleId() const override { return 0; }
-		virtual int ProtocolId() const override { return 1; }
+		virtual int ProtocolId() const override { return -554021601; }
+	};
 
-		CHandshake()
-		{
-		}
-
-		CHandshake(char dh_group, const std::string& dh_data)
-		{
-			Argument->dh_group = dh_group;
-			Argument->dh_data = dh_data;
-		}
+	class CHandshakeDone : public ProtocolWithArgument<EmptyBean>
+	{
+	public:
+		virtual int ModuleId() const override { return 0; }
+		virtual int ProtocolId() const override { return 1896283174; }
 	};
 
 	class SHandshake : public ProtocolWithArgument<SHandshakeArgument>
 	{
 	public:
 		virtual int ModuleId() const override { return 0; }
-		virtual int ProtocolId() const override { return 2; }
+		virtual int ProtocolId() const override { return -723986006; }
+	};
 
-		SHandshake()
-		{
-		}
-
-		SHandshake(const std::string& dh_data, bool s2cneedcompress, bool c2sneedcompress)
-		{
-			Argument->dh_data = dh_data;
-			Argument->s2cneedcompress = s2cneedcompress;
-			Argument->c2sneedcompress = c2sneedcompress;
-		}
+	class SHandshake0 : public ProtocolWithArgument<SHandshake0Argument>
+	{
+	public:
+		virtual int ModuleId() const override { return 0; }
+		virtual int ProtocolId() const override { return -2018202792; }
 	};
 
 	Service::Service()
@@ -92,9 +144,13 @@ namespace Net
 		SeedRpcContexts = 0;
 		autoReconnect = false;
 		autoReconnectDelay = 0;
-		SHandshake forTypeId;
-		AddProtocolFactory(forTypeId.TypeId(), Zeze::Net::Service::ProtocolFactoryHandle(
+
+		SHandshake sHandshake;
+		AddProtocolFactory(sHandshake.TypeId(), Zeze::Net::Service::ProtocolFactoryHandle(
 			[]() { return new SHandshake(); }, std::bind(&Service::ProcessSHandshake, this, std::placeholders::_1)));
+		SHandshake0 sHandshake0;
+		AddProtocolFactory(sHandshake0.TypeId(), Zeze::Net::Service::ProtocolFactoryHandle(
+			[]() { return new SHandshake0(); }, std::bind(&Service::ProcessSHandshake0, this, std::placeholders::_1)));
 	}
 
 	/*
@@ -108,30 +164,74 @@ namespace Net
 	}
 	*/
 
+	int ClientCompress(int c) {
+		// 客户端检查一下当前版本是否支持推荐的压缩算法。
+		// 如果不支持则统一使用最老的。
+		// 这样当服务器新增了压缩算法，并且推荐了新的，客户端可以兼容它。
+		if (c == Constant::eCompressTypeDisable)
+			return c; // 推荐关闭压缩就关闭
+		return Constant::eCompressTypeMppc; // 使用最老的压缩。
+	}
+
+	void Service::StartHandshake(int encryptType, int compressS2c, int compressC2s, const std::shared_ptr<Socket> & sender)
+	{
+		sender->dhContext = limax::createDHContext(1);
+		const std::vector<unsigned char>& dhResponse = sender->dhContext->generateDHResponse();
+		CHandshake hand;
+		hand.Argument->encryptType = encryptType;
+		if (encryptType == Constant::eEncryptTypeAes)
+			hand.Argument->encryptParam = std::string((const char*)&dhResponse[0], dhResponse.size());
+		hand.Argument->compressS2c = ClientCompress(compressS2c);
+		hand.Argument->compressC2s = ClientCompress(compressC2s);
+		hand.Send(sender.get());
+	}
+
+	int Service::ProcessSHandshake0(Protocol* _p)
+	{
+		SHandshake0* p = (SHandshake0*)_p;
+		if (p->Argument->encryptType != Constant::eEncryptTypeDisable
+			|| p->Argument->compressS2c != Constant::eCompressTypeDisable
+			|| p->Argument->compressC2s != Constant::eCompressTypeDisable) {
+			StartHandshake(p->Argument->encryptType, p->Argument->compressS2c, p->Argument->compressC2s, p->Sender);
+		}
+		else
+		{
+			CHandshakeDone done;
+			done.Send(p->Sender.get());
+			OnHandshakeDone(p->Sender);
+		}
+		return 0;
+	}
+
 	int Service::ProcessSHandshake(Protocol* _p)
 	{
 		SHandshake* p = (SHandshake*)_p;
 
-		const std::vector<unsigned char> material = p->Sender->dhContext->computeDHKey(
-			(unsigned char*)p->Argument->dh_data.data(), (int32_t)p->Argument->dh_data.size());
-		size_t key_len = p->Sender->LastAddressBytes.size();
-		int8_t* key = (int8_t*)p->Sender->LastAddressBytes.data();
-		//print("key", key, key_len);
-		int32_t half = (int32_t)material.size() / 2;
-		{
-			limax::HmacMD5 hmac(key, 0, (int)key_len);
-			hmac.update((int8_t*)&material[0], 0, half);
-			const int8_t* skey = hmac.digest();
-			//print("output key", skey, 16);
-			p->Sender->SetOutputSecurity(p->Argument->c2sneedcompress, skey, 16);
+		const int8_t* inputKey = NULL;
+		const int8_t* outputKey = NULL;
+		if (p->Argument->encryptType == Constant::eEncryptTypeAes) {
+			auto material = p->Sender->dhContext->computeDHKey(
+				(unsigned char*)p->Argument->encryptParam.data(), p->Argument->encryptParam.size());
+
+			size_t key_len = p->Sender->LastAddressBytes.size();
+			int8_t* key = (int8_t*)p->Sender->LastAddressBytes.data();
+
+			int32_t half = (int32_t)material.size() / 2;
+			{
+				limax::HmacMD5 hmac(key, 0, (int)key_len);
+				hmac.update((int8_t*)&material[0], 0, half);
+				outputKey = hmac.digest();
+			}
+			{
+				limax::HmacMD5 hmac(key, 0, (int)key_len);
+				hmac.update((int8_t*)&material[0], half, (int32_t)material.size() - half);
+				inputKey = hmac.digest();
+			}
 		}
-		{
-			limax::HmacMD5 hmac(key, 0, (int)key_len);
-			hmac.update((int8_t*)&material[0], half, (int32_t)material.size() - half);
-			const int8_t* skey = hmac.digest();
-			//print("output key", skey, 16);
-			p->Sender->SetInputSecurity(p->Argument->s2cneedcompress, skey, 16);
-		}
+		p->Sender->SetOutputSecurity(p->Argument->encryptType, outputKey, 16, p->Argument->compressC2s);
+		p->Sender->SetInputSecurity(p->Argument->encryptType, inputKey, 16, p->Argument->compressS2c);
+		CHandshakeDone done;
+		done.Send(p->Sender.get());
 		p->Sender->dhContext.reset();
 		OnHandshakeDone(p->Sender);
 		return 0;
@@ -159,31 +259,74 @@ namespace Net
 		}
 	};
 
-	void Socket::SetOutputSecurity(bool c2sneedcompress, const int8_t* key, int keylen)
+	void Socket::SetOutputSecurity(int encryptType, const int8_t* key, int keylen, int compressC2s)
 	{
 		std::shared_ptr<limax::Codec> codec = OutputBuffer;
-		if (keylen > 0)
+		switch (encryptType)
 		{
-			codec = std::shared_ptr<limax::Codec>(new limax::Encrypt(codec, (int8_t*)key, (int32_t)keylen));
+		case Constant::eEncryptTypeDisable:
+			break;
+		case Constant::eEncryptTypeAes:
+			{
+				limax::MD5 md5;
+				md5.update((int8_t*)key, 0, keylen);
+				auto keyMd5 = md5.digest();
+				//chain = new Encrypt2(chain, keyMd5, keyMd5);
+				codec = std::shared_ptr<limax::Codec>(new limax::Encrypt(codec, (int8_t*)keyMd5, 16));
+			}
+			break;
+			//TODO: 新增加密算法支持这里加case
+		default:
+			throw new std::exception("SetOutputSecurityCodec: unknown encryptType=");
 		}
-		if (c2sneedcompress)
+
+		switch (compressC2s)
 		{
+		case Constant::eCompressTypeDisable:
+			break;
+		case Constant::eCompressTypeMppc:
+			//chain = new Compress(chain);
 			codec = std::shared_ptr<limax::Codec>(new limax::RFC2118Encode(codec));
+			break;
+			//TODO: 新增压缩算法支持这里加case
+		default:
+			throw new std::exception("SetOutputSecurityCodec: unknown compress=");
 		}
 		std::lock_guard<std::recursive_mutex> scoped(mutex);
 		OutputCodec = codec;
 	}
 
-	void Socket::SetInputSecurity(bool s2cneedcompress, const int8_t* key, int keylen)
+	void Socket::SetInputSecurity(int encryptType, const int8_t* key, int keylen, int compressS2c)
 	{
 		std::shared_ptr<limax::Codec> codec = InputBuffer;
-		if (s2cneedcompress)
+		switch (compressS2c)
 		{
+		case Constant::eCompressTypeDisable:
+			break;
+		case Constant::eCompressTypeMppc:
+			//chain = new Decompress(chain);
 			codec = std::shared_ptr<limax::Codec>(new limax::RFC2118Decode(codec));
+			break;
+			// TODO: 新增压缩算法支持这里加case
+		default:
+			throw new std::exception("SetInputSecurityCodec: unknown compressType=");
 		}
-		if (keylen > 0)
+		switch (encryptType)
 		{
-			codec = std::shared_ptr<limax::Codec>(new limax::Decrypt(codec, (int8_t*)key, (int32_t)keylen));
+		case Constant::eEncryptTypeDisable:
+			break;
+		case Constant::eEncryptTypeAes:
+			{
+				limax::MD5 md5;
+				md5.update((int8_t*)key, 0, keylen);
+				auto keyMd5 = md5.digest();
+				//chain = new Decrypt2(chain, keyMd5, keyMd5);
+				codec = std::shared_ptr<limax::Codec>(new limax::Decrypt(codec, (int8_t*)keyMd5, 16));
+			}
+			break;
+			//TODO: 新增加密算法支持这里加case
+		default:
+			throw new std::exception("SetInputSecurityCodec: unknown encryptType=");
 		}
 		std::lock_guard<std::recursive_mutex> scoped(mutex);
 		InputCodec = codec;
@@ -234,10 +377,6 @@ namespace Net
 		}
 		socket = sender;
 		autoReconnectDelay = 0;
-		sender->dhContext = limax::createDHContext(dhGroup);
-		const std::vector<unsigned char>& dhResponse = sender->dhContext->generateDHResponse();
-		CHandshake hand(dhGroup, std::string((const char *)&dhResponse[0], dhResponse.size()));
-		hand.Send(sender.get());
 	}
 
 	void Service::DispatchProtocol(Protocol* p, Service::ProtocolFactoryHandle& factoryHandle)

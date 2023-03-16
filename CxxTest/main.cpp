@@ -25,22 +25,23 @@ class ProtocolClient : public Zeze::Net::Service
 public:
 	ProtocolClient()
 	{
-		ProtocolFactoryHandle pfh(NewProtocol3, ProcessProtocol3);
-		AddProtocolFactory(demo::Module1::Protocol3::TypeId_, pfh);
+		AddProtocolFactory(demo::Module1::Protocol3::TypeId_, ProtocolFactoryHandle(
+			[]()
+			{
+				return new demo::Module1::Protocol3();
+			},
+			[](Zeze::Net::Protocol* p)
+			{
+				std::cout << "ProcessProtocol3" << std::endl;
+				return 0;
+			}
+			));
 	}
 
 	void OnSocketConnected(const std::shared_ptr<Zeze::Net::Socket>& sender)
 	{
-	}
-
-	Zeze::Net::Protocol* NewProtocol3()
-	{
-		return new demo::Module1::Protocol3();
-	}
-
-	int ProcessProtocol3(Zeze::Net::Protocol* p)
-	{
-		return 0;
+		demo::Module1::Protocol3 p;
+		p.Send(GetSocket().get());
 	}
 };
 

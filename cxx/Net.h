@@ -30,8 +30,8 @@ namespace Net
 		int selectorFlags = 0; // used in Selector
 		std::shared_ptr<limax::DHContext> dhContext;
 
-		void SetOutputSecurity(bool c2sneedcompress, const int8_t* key, int keylen);
-		void SetInputSecurity(bool s2cneedcompress, const int8_t* key, int keylen);
+		void SetOutputSecurity(int encryptType, const int8_t* key, int keylen, int compressC2s);
+		void SetInputSecurity(int encryptType, const int8_t* key, int keylen, int compressS2c);
 
 		friend class Service;
 		friend class Selector;
@@ -204,6 +204,8 @@ namespace Net
 
 		char dhGroup = 1;
 		int ProcessSHandshake(Protocol* p);
+		int ProcessSHandshake0(Protocol* p);
+		void StartHandshake(int encryptType, int compressS2c, int compressC2s, const std::shared_ptr<Socket>& sender);
 	};
 
 } // namespace Net
