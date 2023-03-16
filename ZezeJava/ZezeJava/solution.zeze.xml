@@ -622,7 +622,7 @@
 				<beankey name="BLink">
 					<variable id="1" name="LinkName" type="string"/>
 					<variable id="2" name="LinkSid"  type="long"/>
-				</bean>
+				</beankey>
 
 				<bean name="BNotify">
 					<variable id="1" name="FullEncodedProtocol" type="binary"/>

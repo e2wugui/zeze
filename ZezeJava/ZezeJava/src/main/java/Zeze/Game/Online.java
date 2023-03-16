@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.AppBase;
+import Zeze.Arch.Beans.BSend;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderService;
@@ -16,6 +17,7 @@ import Zeze.Arch.ProviderUserSession;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Builtin.Game.Online.BAny;
 import Zeze.Builtin.Game.Online.BDelayLogoutCustom;
+import Zeze.Builtin.Game.Online.BLink;
 import Zeze.Builtin.Game.Online.BLocal;
 import Zeze.Builtin.Game.Online.BNotify;
 import Zeze.Builtin.Game.Online.BOnline;
@@ -45,6 +47,7 @@ import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.IntHashMap;
+import Zeze.Util.LongHashSet;
 import Zeze.Util.LongList;
 import Zeze.Util.OutLong;
 import Zeze.Util.Random;
@@ -403,7 +406,8 @@ public class Online extends AbstractOnline {
 		{
 			var online = _tonline.get(roleId);
 			// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
-			if (online == null || !online.getLinkName().equals(linkName) || online.getLinkSid() != linkSid)
+			if (online == null || !online.getLink().getLinkName().equals(linkName)
+					|| online.getLink().getLinkSid() != linkSid)
 				return 0;
 			var version = _tversion.getOrAdd(roleId);
 			var local = _tlocal.get(roleId);
@@ -429,7 +433,7 @@ public class Online extends AbstractOnline {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Send", roleId, p);
-		send(roleId, typeId, new Binary(p.encode()));
+		sendDirect(roleId, typeId, new Binary(p.encode()));
 	}
 
 	public void sendResponse(long roleId, Rpc<?, ?> r) {
@@ -477,40 +481,41 @@ public class Online extends AbstractOnline {
 		Transaction.whileRollback(() -> send(roleIds, p));
 	}
 
-	public void send(long roleId, long typeId, Binary fullEncodedProtocol) {
-		// 发送协议请求在另外的事务中执行。
-		providerApp.zeze.getTaskOneByOneByKey().Execute(roleId,
-				() -> Task.call(providerApp.zeze.newProcedure(() -> {
-					sendEmbed(List.of(roleId), typeId, fullEncodedProtocol);
-					return Procedure.Success;
-				}, "Game.Online.send")), DispatchMode.Normal);
-	}
+//	public void send(long roleId, long typeId, Binary fullEncodedProtocol) {
+//		// 发送协议请求在另外的事务中执行。
+//		providerApp.zeze.getTaskOneByOneByKey().Execute(roleId,
+//				() -> Task.call(providerApp.zeze.newProcedure(() -> {
+//					sendEmbed(List.of(roleId), typeId, fullEncodedProtocol);
+//					return Procedure.Success;
+//				}, "Game.Online.send")), DispatchMode.Normal);
+//	}
 
 	public void send(Collection<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
 		int roleCount = roleIds.size();
 		if (roleCount == 1)
-			send(roleIds.iterator().next(), typeId, fullEncodedProtocol);
+			sendDirect(roleIds.iterator().next(), typeId, fullEncodedProtocol);
 		else if (roleCount > 1) {
-			providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(roleIds, providerApp.zeze.newProcedure(() -> {
-				sendEmbed(roleIds, typeId, fullEncodedProtocol);
-				return Procedure.Success;
-			}, "Game.Online.send"), null, DispatchMode.Normal);
+			sendDirect(roleIds, typeId, fullEncodedProtocol);
+//			providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(roleIds, providerApp.zeze.newProcedure(() -> {
+//				sendEmbed(roleIds, typeId, fullEncodedProtocol);
+//				return Procedure.Success;
+//			}, "Game.Online.send"), null, DispatchMode.Normal);
 		}
 	}
 
-	public void sendNoBarrier(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
-		// 发送协议请求在另外的事务中执行。
-		Task.run(providerApp.zeze.newProcedure(() -> {
-			sendEmbed(roleIds, typeId, fullEncodedProtocol);
-			return Procedure.Success;
-		}, "Game.Online.send"), null, null, DispatchMode.Normal);
-	}
+//	public void sendNoBarrier(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
+//		// 发送协议请求在另外的事务中执行。
+//		Task.run(providerApp.zeze.newProcedure(() -> {
+//			sendEmbed(roleIds, typeId, fullEncodedProtocol);
+//			return Procedure.Success;
+//		}, "Game.Online.send"), null, null, DispatchMode.Normal);
+//	}
 
 	private long triggerLinkBroken(String linkName, LongList errorSids, Map<Long, Long> context) {
-		errorSids.foreach(sid -> providerApp.zeze.newProcedure(() -> {
-			var roleId = context.get(sid);
+		errorSids.foreach(linkSid -> providerApp.zeze.newProcedure(() -> {
+			var roleId = context.get(linkSid);
 			// 补发的linkBroken没有account上下文。
-			return roleId != null ? linkBroken("", roleId, linkName, sid) : 0;
+			return roleId != null ? linkBroken("", roleId, linkName, linkSid) : 0;
 		}, "triggerLinkBroken").call());
 		return 0;
 	}
@@ -527,78 +532,182 @@ public class Online extends AbstractOnline {
 				send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
 	}
 
-	public void send(Collection<Long> keys, AsyncSocket to, Map<Long, Long> contexts, Send send) {
-		if (keys.size() > 1) {
-			send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
-					send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
-		} else {
-			//noinspection CodeBlock2Expr
-			providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(keys, "sendOneByOne", () -> {
-				send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
-						send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
-			}, null, DispatchMode.Normal);
+//	public void send(Collection<Long> keys, AsyncSocket to, Map<Long, Long> contexts, Send send) {
+//		if (keys.size() > 1) {
+//			send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
+//					send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
+//		} else {
+//			//noinspection CodeBlock2Expr
+//			providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(keys, "sendOneByOne", () -> {
+//				send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
+//						send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
+//			}, null, DispatchMode.Normal);
+//		}
+//	}
+
+//	public void sendEmbed(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
+//		var groups = groupByLink(roleIds);
+//		Transaction.whileCommit(() -> {
+//			for (var group : groups) {
+//				if (group.linkSocket == null)
+//					continue; // skip not online
+//
+//				var send = new Send(new Zeze.Arch.Beans.BSend(typeId, fullEncodedProtocol));
+//				send.Argument.getLinkSids().addAll(group.roles.values());
+//				send(group.linkSocket, group.contexts, send);
+//			}
+//		});
+//	}
+
+	public static final class LinkRoles {
+		final AsyncSocket linkSocket;
+		final Send send;
+		final LongList roleIds = new LongList();
+
+		public LinkRoles(AsyncSocket linkSocket, long typeId, Binary fullEncodedProtocol) {
+			this.linkSocket = linkSocket;
+			send = new Send(new BSend(typeId, fullEncodedProtocol));
 		}
 	}
 
-	public void sendEmbed(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
-		var groups = groupByLink(roleIds);
-		Transaction.whileCommit(() -> {
-			for (var group : groups) {
-				if (group.linkSocket == null)
-					continue; // skip not online
-
-				var send = new Send(new Zeze.Arch.Beans.BSend(typeId, fullEncodedProtocol));
-				send.Argument.getLinkSids().addAll(group.roles.values());
-				send(group.linkSocket, group.contexts, send);
-			}
-		});
-	}
-
-	public static final class RoleOnLink {
-		String linkName = "";
-		AsyncSocket linkSocket;
-		// long providerSessionId;
-		final HashMap<Long, Long> roles = new HashMap<>(); // roleid -> linksid
-		final HashMap<Long, Long> contexts = new HashMap<>(); // linksid -> roleid
-	}
-
-	public Collection<RoleOnLink> groupByLink(Iterable<Long> roleIds) {
-		var groups = new HashMap<String, RoleOnLink>();
-		var groupNotOnline = new RoleOnLink(); // LinkName is Empty And Socket is null.
-		groups.put(groupNotOnline.linkName, groupNotOnline);
-
-		for (var roleId : roleIds) {
-			var online = _tonline.get(roleId);
+	// 可在事务外执行
+	public void sendDirect(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
+		var roleIdSet = new LongHashSet();
+		for (var roleId : roleIds)
+			roleIdSet.add(roleId);
+		if (roleIdSet.isEmpty())
+			return;
+		var groups = new HashMap<String, LinkRoles>();
+		var links = providerApp.providerService.getLinks();
+		for (var it = roleIdSet.iterator(); it.moveToNext(); ) {
+			var roleId = it.value();
+			var online = _tonline.selectDirty(roleId);
 			if (online == null) {
-				groupNotOnline.roles.putIfAbsent(roleId, null);
-				logger.warn("groupByLink: not found roleId={} in _tonline", roleId);
+				logger.warn("sendDirect: not found roleId={} in _tonline", roleId);
 				continue;
 			}
-
-			var connector = providerApp.providerService.getLinks().get(online.getLinkName());
+			var link = online.getLink();
+			var linkName = link.getLinkName();
+			var connector = links.get(linkName);
 			if (connector == null) {
-				logger.warn("groupByLink: not found connector for linkName={} roleId={}", online.getLinkName(), roleId);
-				groupNotOnline.roles.putIfAbsent(roleId, null);
+				logger.warn("sendDirect: not found connector for linkName={} roleId={}", linkName, roleId);
 				continue;
 			}
 			if (!connector.isHandshakeDone()) {
-				logger.warn("groupByLink: not isHandshakeDone for linkName={} roleId={}", online.getLinkName(), roleId);
-				groupNotOnline.roles.putIfAbsent(roleId, null);
+				logger.warn("sendDirect: not isHandshakeDone for linkName={} roleId={}", linkName, roleId);
 				continue;
 			}
 			// 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
-			var group = groups.get(online.getLinkName());
+			var group = groups.get(linkName);
 			if (group == null) {
-				group = new RoleOnLink();
-				group.linkName = online.getLinkName();
-				group.linkSocket = connector.getSocket();
-				groups.put(group.linkName, group);
+				var linkSocket = connector.getSocket();
+				if (linkSocket == null) {
+					logger.warn("sendDirect: closed connector for linkName={} roleId={}", linkName, roleId);
+					continue;
+				}
+				groups.put(linkName, group = new LinkRoles(linkSocket, typeId, fullEncodedProtocol));
 			}
-			group.roles.putIfAbsent(roleId, online.getLinkSid());
-			group.contexts.putIfAbsent(online.getLinkSid(), roleId);
+			group.send.Argument.getLinkSids().add(link.getLinkSid());
+			group.roleIds.add(roleId);
 		}
-		return groups.values();
+		for (var group : groups.values()) {
+			group.send.Send(group.linkSocket, rpc -> {
+				var send = group.send;
+				var errorSids = send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids();
+				errorSids.foreach(linkSid -> providerApp.zeze.newProcedure(() -> {
+					int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
+					return idx >= 0 ? linkBroken("", group.roleIds.get(idx),
+							ProviderService.getLinkName(group.linkSocket), linkSid) : 0; // 补发的linkBroken没有account上下文
+				}, "triggerLinkBroken").call());
+				return Procedure.Success;
+			});
+		}
 	}
+
+	// 可在事务外执行
+	public void sendDirect(long roleId, long typeId, Binary fullEncodedProtocol) {
+		var online = _tonline.selectDirty(roleId);
+		if (online == null) {
+			logger.warn("sendDirect: not found roleId={} in _tonline", roleId);
+			return;
+		}
+		var link = online.getLink();
+		var linkName = link.getLinkName();
+		var connector = providerApp.providerService.getLinks().get(linkName);
+		if (connector == null) {
+			logger.warn("sendDirect: not found connector for linkName={} roleId={}", linkName, roleId);
+			return;
+		}
+		if (!connector.isHandshakeDone()) {
+			logger.warn("sendDirect: not isHandshakeDone for linkName={} roleId={}", linkName, roleId);
+			return;
+		}
+		// 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
+		var linkSocket = connector.getSocket();
+		if (linkSocket == null) {
+			logger.warn("sendDirect: closed connector for linkName={} roleId={}", linkName, roleId);
+			return;
+		}
+		var send = new Send(new BSend(typeId, fullEncodedProtocol));
+		send.Argument.getLinkSids().add(link.getLinkSid());
+		send.Send(linkSocket, rpc -> {
+			if (send.isTimeout() || !send.Result.getErrorLinkSids().isEmpty()) {
+				var linkSid = send.Argument.getLinkSids().get(0);
+				providerApp.zeze.newProcedure(() -> {
+					return linkBroken("", roleId, linkName, linkSid); // 补发的linkBroken没有account上下文
+				}, "triggerLinkBroken").call();
+			}
+			return Procedure.Success;
+		});
+	}
+
+//	public static final class RoleOnLink {
+//		String linkName = "";
+//		AsyncSocket linkSocket;
+//		// long providerSessionId;
+//		final HashMap<Long, Long> roles = new HashMap<>(); // roleid -> linksid
+//		final HashMap<Long, Long> contexts = new HashMap<>(); // linksid -> roleid
+//	}
+//
+//	public Collection<RoleOnLink> groupByLink(Iterable<Long> roleIds) {
+//		var groups = new HashMap<String, RoleOnLink>();
+//		var groupNotOnline = new RoleOnLink(); // LinkName is Empty And Socket is null.
+//		groups.put(groupNotOnline.linkName, groupNotOnline);
+//
+//		for (var roleId : roleIds) {
+//			var online = _tonline.get(roleId);
+//			if (online == null) {
+//				groupNotOnline.roles.putIfAbsent(roleId, null);
+//				logger.warn("groupByLink: not found roleId={} in _tonline", roleId);
+//				continue;
+//			}
+//
+//			var linkName = online.getLink().getLinkName();
+//			var connector = providerApp.providerService.getLinks().get(linkName);
+//			if (connector == null) {
+//				logger.warn("groupByLink: not found connector for linkName={} roleId={}", linkName, roleId);
+//				groupNotOnline.roles.putIfAbsent(roleId, null);
+//				continue;
+//			}
+//			if (!connector.isHandshakeDone()) {
+//				logger.warn("groupByLink: not isHandshakeDone for linkName={} roleId={}", linkName, roleId);
+//				groupNotOnline.roles.putIfAbsent(roleId, null);
+//				continue;
+//			}
+//			// 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
+//			var group = groups.get(linkName);
+//			if (group == null) {
+//				group = new RoleOnLink();
+//				group.linkName = linkName;
+//				group.linkSocket = connector.getSocket();
+//				groups.put(group.linkName, group);
+//			}
+//			var linkSid = online.getLink().getLinkSid();
+//			group.roles.putIfAbsent(roleId, linkSid);
+//			group.contexts.putIfAbsent(linkSid, roleId);
+//		}
+//		return groups.values();
+//	}
 
 	public void addReliableNotifyMark(long roleId, String listenerName) {
 		var online = _tonline.get(roleId);
@@ -671,7 +780,8 @@ public class Online extends AbstractOnline {
 			version.setReliableNotifyIndex(version.getReliableNotifyIndex() + 1); // after set notify.Argument
 			notify.Argument.getNotifies().add(fullEncodedProtocol);
 
-			sendEmbed(List.of(roleId), notify.getTypeId(), new Binary(notify.encode()));
+			Transaction.whileCommit(() -> sendDirect(roleId, notify.getTypeId(), new Binary(notify.encode())));
+//			sendEmbed(List.of(roleId), notify.getTypeId(), new Binary(notify.encode()));
 			return Procedure.Success;
 		});
 	}
@@ -920,9 +1030,10 @@ public class Online extends AbstractOnline {
 		var session = ProviderUserSession.get(rpc);
 
 		var online = _tonline.getOrAdd(rpc.Argument.getRoleId());
+		var link = online.getLink();
 
-		if (!online.getLinkName().equals(session.getLinkName()) || online.getLinkSid() != session.getLinkSid()) {
-			providerApp.providerService.kick(online.getLinkName(), online.getLinkSid(),
+		if (!link.getLinkName().equals(session.getLinkName()) || link.getLinkSid() != session.getLinkSid()) {
+			providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
 					BKick.ErrorDuplicateLogin, "duplicate role login");
 		}
 
@@ -937,16 +1048,15 @@ public class Online extends AbstractOnline {
 			// trigger remove; new record
 			online = _tonline.getOrAdd(rpc.Argument.getRoleId());
 			local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
+			link = online.getLink();
 		}
 
 		var loginVersion = version.getLoginVersion() + 1;
 		version.setLoginVersion(loginVersion);
 		local.setLoginVersion(loginVersion);
 
-		if (!online.getLinkName().equals(session.getLinkName()))
-			online.setLinkName(session.getLinkName());
-		if (online.getLinkSid() != session.getLinkSid())
-			online.setLinkSid(session.getLinkSid());
+		if (link.getLinkSid() != session.getLinkSid() || !link.getLinkName().equals(session.getLinkName()))
+			online.setLink(new BLink(session.getLinkName(), session.getLinkSid()));
 
 		version.getReliableNotifyMark().clear();
 		openQueue(rpc.Argument.getRoleId()).clear();
@@ -977,9 +1087,10 @@ public class Online extends AbstractOnline {
 		var session = ProviderUserSession.get(rpc);
 
 		var online = _tonline.getOrAdd(rpc.Argument.getRoleId());
+		var link = online.getLink();
 
-		if (!online.getLinkName().equals(session.getLinkName()) || online.getLinkSid() != session.getLinkSid()) {
-			providerApp.providerService.kick(online.getLinkName(), online.getLinkSid(),
+		if (!link.getLinkName().equals(session.getLinkName()) || link.getLinkSid() != session.getLinkSid()) {
+			providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
 					BKick.ErrorDuplicateLogin, "duplicate role login");
 		}
 
@@ -1000,10 +1111,8 @@ public class Online extends AbstractOnline {
 		version.setLoginVersion(loginVersion);
 		local.setLoginVersion(loginVersion);
 
-		if (!online.getLinkName().equals(session.getLinkName()))
-			online.setLinkName(session.getLinkName());
-		if (online.getLinkSid() != session.getLinkSid())
-			online.setLinkSid(session.getLinkSid());
+		if (link.getLinkSid() != session.getLinkSid() || !link.getLinkName().equals(session.getLinkName()))
+			online.setLink(new BLink(session.getLinkName(), session.getLinkSid()));
 
 		var ret = reloginTrigger(session.getAccount(), rpc.Argument.getRoleId());
 		if (0 != ret)

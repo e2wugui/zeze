@@ -8,67 +8,44 @@ import Zeze.Serialize.ByteBuffer;
 public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadOnly {
     public static final long TYPEID = -6079880688513613020L;
 
-    private String _LinkName;
-    private long _LinkSid;
+    private Zeze.Builtin.Game.Online.BLink _Link;
 
     @Override
-    public String getLinkName() {
+    public Zeze.Builtin.Game.Online.BLink getLink() {
         if (!isManaged())
-            return _LinkName;
+            return _Link;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
-            return _LinkName;
-        var log = (Log__LinkName)txn.getLog(objectId() + 1);
-        return log != null ? log.value : _LinkName;
+            return _Link;
+        var log = (Log__Link)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _Link;
     }
 
-    public void setLinkName(String value) {
+    public void setLink(Zeze.Builtin.Game.Online.BLink value) {
         if (value == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _LinkName = value;
+            _Link = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__LinkName(this, 1, value));
-    }
-
-    @Override
-    public long getLinkSid() {
-        if (!isManaged())
-            return _LinkSid;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
-            return _LinkSid;
-        var log = (Log__LinkSid)txn.getLog(objectId() + 2);
-        return log != null ? log.value : _LinkSid;
-    }
-
-    public void setLinkSid(long value) {
-        if (!isManaged()) {
-            _LinkSid = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__LinkSid(this, 2, value));
+        txn.putLog(new Log__Link(this, 3, value));
     }
 
     @SuppressWarnings("deprecation")
     public BOnline() {
-        _LinkName = "";
+        _Link = new Zeze.Builtin.Game.Online.BLink();
     }
 
     @SuppressWarnings("deprecation")
-    public BOnline(String _LinkName_, long _LinkSid_) {
-        if (_LinkName_ == null)
+    public BOnline(Zeze.Builtin.Game.Online.BLink _Link_) {
+        if (_Link_ == null)
             throw new IllegalArgumentException();
-        _LinkName = _LinkName_;
-        _LinkSid = _LinkSid_;
+        _Link = _Link_;
     }
 
     public void assign(BOnline other) {
-        setLinkName(other.getLinkName());
-        setLinkSid(other.getLinkSid());
+        setLink(other.getLink());
     }
 
     public BOnline copyIfManaged() {
@@ -93,18 +70,11 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         return TYPEID;
     }
 
-    private static final class Log__LinkName extends Zeze.Transaction.Logs.LogString {
-        public Log__LinkName(BOnline bean, int varId, String value) { super(bean, varId, value); }
+    private static final class Log__Link extends Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Game.Online.BLink> {
+        public Log__Link(BOnline bean, int varId, Zeze.Builtin.Game.Online.BLink value) { super(Zeze.Builtin.Game.Online.BLink.class, bean, varId, value); }
 
         @Override
-        public void commit() { ((BOnline)getBelong())._LinkName = value; }
-    }
-
-    private static final class Log__LinkSid extends Zeze.Transaction.Logs.LogLong {
-        public Log__LinkSid(BOnline bean, int varId, long value) { super(bean, varId, value); }
-
-        @Override
-        public void commit() { ((BOnline)getBelong())._LinkSid = value; }
+        public void commit() { ((BOnline)getBelong())._Link = value; }
     }
 
     @Override
@@ -118,8 +88,9 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Online.BOnline: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("LinkName=").append(getLinkName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("LinkSid=").append(getLinkSid()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Link=").append(System.lineSeparator());
+        getLink().buildString(sb, level + 4);
+        sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -140,18 +111,14 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = getLinkName();
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
-                _o_.WriteString(_x_);
-            }
-        }
-        {
-            long _x_ = getLinkSid();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
-                _o_.WriteLong(_x_);
-            }
+            int _a_ = _o_.WriteIndex;
+            int _j_ = _o_.WriteTag(_i_, 3, ByteBuffer.BEAN);
+            int _b_ = _o_.WriteIndex;
+            getLink().encode(_o_);
+            if (_b_ + 1 == _o_.WriteIndex)
+                _o_.WriteIndex = _a_;
+            else
+                _i_ = _j_;
         }
         _o_.WriteByte(0);
     }
@@ -160,12 +127,12 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
     public void decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
-        if (_i_ == 1) {
-            setLinkName(_o_.ReadString(_t_));
+        while ((_t_ & 0xff) > 1 && _i_ < 3) {
+            _o_.SkipUnknownField(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        if (_i_ == 2) {
-            setLinkSid(_o_.ReadLong(_t_));
+        if (_i_ == 3) {
+            _o_.ReadBean(getLink(), _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -176,7 +143,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
 
     @Override
     public boolean negativeCheck() {
-        if (getLinkSid() < 0)
+        if (getLink().negativeCheck())
             return true;
         return false;
     }
@@ -190,8 +157,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _LinkName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _LinkSid = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 3: _Link = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Game.Online.BLink>)vlog).value; break;
             }
         }
     }

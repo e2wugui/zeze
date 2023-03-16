@@ -8,6 +8,5 @@ public interface BOnlineReadOnly {
     boolean negativeCheck();
     BOnline copy();
 
-    String getLinkName();
-    long getLinkSid();
+    Zeze.Builtin.Game.Online.BLink getLink();
 }

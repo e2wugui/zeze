@@ -102,7 +102,7 @@ public class ProviderUserSession {
 			var online = ((ProviderWithOnline)providerImpl).getOnline();
 			var roleId = getRoleId();
 			if (roleId != null)
-				online.send(List.of(roleId), link, Map.of(getLinkSid(), roleId), send);
+				online.send(/*List.of(roleId),*/link, Map.of(getLinkSid(), roleId), send);
 			else
 				online.send(link, Map.of(), send);
 		} else if (providerImpl instanceof Zeze.Arch.ProviderWithOnline) {

@@ -27,8 +27,7 @@ public final class tonline extends TableX<Long, Zeze.Builtin.Game.Online.BOnline
         return false;
     }
 
-    public static final int VAR_LinkName = 1;
-    public static final int VAR_LinkSid = 2;
+    public static final int VAR_Link = 3;
 
     @Override
     public Long decodeKey(ByteBuffer _os_) {
