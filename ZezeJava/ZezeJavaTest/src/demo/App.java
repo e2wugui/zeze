@@ -70,8 +70,8 @@ public class App extends Zeze.AppBase {
 		createService();
 		var provider = new ProviderWithOnline();
 		new ProviderApp(Zeze, provider,
-				new ProviderService("Server", Zeze), "DemoApp#", new ProviderDirectWithTransmit(),
-				new ProviderDirectService("ServerDirect", Zeze), "DemoLinkd", new LoadConfig());
+				new ProviderService("ProviderServer", Zeze), "DemoApp#", new ProviderDirectWithTransmit(),
+				new ProviderDirectService("ProviderServerDirect", Zeze), "DemoLinkd", new LoadConfig());
 		provider.create(this);
 		createModules();
 		LinkedMapModule = new LinkedMap.Module(Zeze);

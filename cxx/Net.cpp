@@ -191,14 +191,17 @@ namespace Net
 		SHandshake0* p = (SHandshake0*)_p;
 		if (p->Argument->encryptType != Constant::eEncryptTypeDisable
 			|| p->Argument->compressS2c != Constant::eCompressTypeDisable
-			|| p->Argument->compressC2s != Constant::eCompressTypeDisable) {
+			|| p->Argument->compressC2s != Constant::eCompressTypeDisable)
+		{
 			StartHandshake(p->Argument->encryptType, p->Argument->compressS2c, p->Argument->compressC2s, p->Sender);
+			//std::cout << "StartHandshake " << p->Argument->encryptType << std::endl;
 		}
 		else
 		{
 			CHandshakeDone done;
 			done.Send(p->Sender.get());
 			OnHandshakeDone(p->Sender);
+			//std::cout << "HandshakeDone " << p->Argument->encryptType << std::endl;
 		}
 		return 0;
 	}

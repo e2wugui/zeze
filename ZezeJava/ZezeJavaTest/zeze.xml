@@ -33,6 +33,9 @@
 		<Connector HostNameOrAddress="127.0.0.1" Port="5001"/>
 	</ServiceConf>
 	
+	<ServiceConf Name="Server" EncryptType="1" CompressS2c="1" CompressC2s="1">
+		<Acceptor Ip="127.0.0.1" Port="7777"/>
+	</ServiceConf>
 	<ServiceConf Name="Zeze.Dbh2.Master">
 		<Acceptor Ip="127.0.0.1" Port="30000"/>
 	</ServiceConf>

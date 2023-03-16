@@ -38,7 +38,7 @@ public:
 			));
 	}
 
-	void OnSocketConnected(const std::shared_ptr<Zeze::Net::Socket>& sender)
+	virtual void OnHandshakeDone(const std::shared_ptr<Zeze::Net::Socket>& sender) override
 	{
 		demo::Module1::Protocol3 p;
 		p.Send(GetSocket().get());
@@ -47,6 +47,11 @@ public:
 
 void TestProtocol()
 {
+	Zeze::Net::Startup();
+	ProtocolClient client;
+	client.Connect("127.0.0.1", 7777);
+	Sleep(2000);
+	Zeze::Net::Cleanup();
 }
 
 class Client : public Zeze::Net::Service

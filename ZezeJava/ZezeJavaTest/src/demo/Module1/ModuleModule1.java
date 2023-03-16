@@ -12,7 +12,8 @@ public class ModuleModule1 extends AbstractModule {
 
     @Override
     protected long ProcessProtocol3(Protocol3 p) throws Exception {
-        return Zeze.Transaction.Procedure.NotImplement;
+		p.Send(p.getSender());
+        return 0;
     }
 
     @Override
