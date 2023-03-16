@@ -125,11 +125,13 @@ public final class TaskOneByOneByKey {
 		if (keys.isEmpty())
 			throw new IllegalArgumentException("CyclicBarrier keys is empty.");
 
-		var barrier = new Barrier(procedure, keys.size(), cancel);
 		var group = new HashMap<TaskOneByOne, OutInt>();
+		int count = 0;
 		for (var key : keys) {
 			group.computeIfAbsent(bucket(key), __ -> new OutInt()).value++;
+			count++;
 		}
+		var barrier = new Barrier(procedure, count, cancel);
 		for (var e : group.entrySet()) {
 			var sum = e.getValue().value;
 			e.getKey().execute(
@@ -210,11 +212,13 @@ public final class TaskOneByOneByKey {
 		if (keys.isEmpty())
 			throw new IllegalArgumentException("CyclicBarrier keys is empty.");
 
-		var barrier = new BarrierAction(actionName, action, keys.size(), cancel);
 		var group = new HashMap<TaskOneByOne, OutInt>();
+		int count = 0;
 		for (var key : keys) {
 			group.computeIfAbsent(bucket(key), __ -> new OutInt()).value++;
+			count++;
 		}
+		var barrier = new BarrierAction(actionName, action, count, cancel);
 		for (var e : group.entrySet()) {
 			var sum = e.getValue().value;
 			e.getKey().execute(() -> barrier.reach(sum), actionName, barrier::cancel, mode);
