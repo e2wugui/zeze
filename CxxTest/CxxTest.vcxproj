@@ -146,6 +146,7 @@
     <ClInclude Include="..\cxx\Rpc.h" />
     <ClInclude Include="..\cxx\security.h" />
     <ClInclude Include="..\cxx\Serializable.h" />
+    <ClInclude Include="..\cxx\TaskCompletionSource.h" />
     <ClInclude Include="..\cxx\utils.h" />
     <ClInclude Include="..\cxx\Vector.h" />
     <ClInclude Include="demo\Client.h" />

@@ -672,8 +672,11 @@ namespace Net
 
 	void Socket::Close(std::exception* e)
 	{
-		service->OnSocketClose(This, e);
-		Selector::Instance->Select(This, Selector::OpClose, 0);
+		if (Selector::Instance)
+		{
+			service->OnSocketClose(This, e);
+			Selector::Instance->Select(This, Selector::OpClose, 0);
+		}
 		This.reset();
 	}
 

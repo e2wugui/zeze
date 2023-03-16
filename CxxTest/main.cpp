@@ -8,9 +8,11 @@
 void TestSocket();
 void TestEncode();
 void TestProtocol();
+void TestFuture();
 
 int main(char* args[])
 {
+	TestFuture();
 	int mills = 200;
 	std::cout << std::ceil(mills / 1000.0) << std::endl;
 	TestEncode();
@@ -19,8 +21,8 @@ int main(char* args[])
 }
 
 #include "Gen/demo/Module1/Protocol3.hpp"
-#include "Gen/demo/Module1/Rpc1.hpp"
-#include "Gen/demo/Module1/Rpc2.hpp"
+//#include "Gen/demo/Module1/Rpc1.hpp"
+//#include "Gen/demo/Module1/Rpc2.hpp"
 
 class ProtocolClient : public Zeze::Net::Service
 {
@@ -38,7 +40,7 @@ public:
 				return 0;
 			}
 			));
-
+		/*
 		AddProtocolFactory(demo::Module1::Rpc1::TypeId_, ProtocolFactoryHandle(
 			[]()
 			{
@@ -66,6 +68,7 @@ public:
 				return 0;
 			}
 			));
+		*/
 	}
 
 	virtual void OnHandshakeDone(const std::shared_ptr<Zeze::Net::Socket>& sender) override
@@ -74,6 +77,21 @@ public:
 		p.Send(GetSocket().get());
 	}
 };
+
+#include "zeze/cxx/TaskCompletionSource.h"
+
+void TestFuture()
+{
+	std::shared_ptr<Zeze::TaskCompletionSource<int>> future(new Zeze::TaskCompletionSource<int>());
+	std::thread([future]
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+			future->SetResult(1);
+		}).detach();
+
+	future->Wait();
+	std::cout << "TaskCompletionSource Done -> " << future->Get() << std::endl;
+}
 
 void TestProtocol()
 {
