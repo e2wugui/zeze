@@ -19,6 +19,8 @@ int main(char* args[])
 }
 
 #include "Gen/demo/Module1/Protocol3.hpp"
+#include "Gen/demo/Module1/Rpc1.hpp"
+#include "Gen/demo/Module1/Rpc2.hpp"
 
 class ProtocolClient : public Zeze::Net::Service
 {
@@ -33,6 +35,34 @@ public:
 			[](Zeze::Net::Protocol* p)
 			{
 				std::cout << "ProcessProtocol3" << std::endl;
+				return 0;
+			}
+			));
+
+		AddProtocolFactory(demo::Module1::Rpc1::TypeId_, ProtocolFactoryHandle(
+			[]()
+			{
+				return demo::Module1::Rpc1();
+			},
+			[](Zeze::Net::Protocol* p)
+			{
+				auto r = (demo::Module1::Rpc1*)p;
+				std::cout << "ProcessRpc1 Never!" << std::endl;
+				r->SendResult();
+				return 0;
+			}
+			));
+
+		AddProtocolFactory(demo::Module1::Rpc2::TypeId_, ProtocolFactoryHandle(
+			[]()
+			{
+				return demo::Module1::Rpc2();
+			},
+			[](Zeze::Net::Protocol* p)
+			{
+				auto r = (demo::Module1::Rpc2*)p;
+				std::cout << "ProcessRpc2" << std::endl;
+				r->SendResult();
 				return 0;
 			}
 			));

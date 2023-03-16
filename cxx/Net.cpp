@@ -26,10 +26,10 @@ namespace Net
 	class SHandshake0Argument : public Serializable
 	{
 	public:
-		int encryptType; // 推荐的加密算法。旧版是boolean
+		int encryptType = 0; // 推荐的加密算法。旧版是boolean
 		std::vector<int> supportedEncryptList;
-		int compressS2c; // 推荐的压缩算法。
-		int compressC2s; // 推荐的压缩算法。
+		int compressS2c = 0; // 推荐的压缩算法。
+		int compressC2s = 0; // 推荐的压缩算法。
 		std::vector<int> supportedCompressList;
 
 		void Encode(ByteBuffer & bb) const override
@@ -63,10 +63,10 @@ namespace Net
 	class CHandshakeArgument : public Serializable
 	{
 	public:
-		int encryptType;;
+		int encryptType = 0;
 		std::string encryptParam;
-		int compressS2c;
-		int compressC2s;
+		int compressS2c = 0;
+		int compressC2s = 0;
 
 		void Decode(ByteBuffer& bb) override
 		{
@@ -89,9 +89,9 @@ namespace Net
 	{
 	public:
 		std::string encryptParam;
-		int compressS2c;
-		int compressC2s;
-		int encryptType;
+		int compressS2c = 0;
+		int compressC2s = 0;
+		int encryptType = 0;
 
 		void Decode(ByteBuffer& bb) override
 		{

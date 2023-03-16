@@ -613,6 +613,13 @@
 				</bean>
 				<!-- tables -->
 				<bean name="BOnline">
+					<!--
+					<variable id="1" name="LinkName" type="string"/>
+					<variable id="2" name="LinkSid"  type="long"/>
+					-->
+					<variable id="3" name="Link"  type="BLink"/>
+				</bean>
+				<beankey name="BLink">
 					<variable id="1" name="LinkName" type="string"/>
 					<variable id="2" name="LinkSid"  type="long"/>
 				</bean>
