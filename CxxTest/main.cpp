@@ -7,6 +7,7 @@
 
 void TestSocket();
 void TestEncode();
+void TestProtocol();
 
 int main(char* args[])
 {
@@ -14,10 +15,42 @@ int main(char* args[])
 	std::cout << std::ceil(mills / 1000.0) << std::endl;
 	TestEncode();
 	TestSocket();
+	TestProtocol();
+}
+
+#include "Gen/demo/Module1/Protocol3.hpp"
+
+class ProtocolClient : public Zeze::Net::Service
+{
+public:
+	ProtocolClient()
+	{
+		ProtocolFactoryHandle pfh(NewProtocol3, ProcessProtocol3);
+		AddProtocolFactory(demo::Module1::Protocol3::TypeId_, pfh);
+	}
+
+	void OnSocketConnected(const std::shared_ptr<Zeze::Net::Socket>& sender)
+	{
+	}
+
+	Zeze::Net::Protocol* NewProtocol3()
+	{
+		return new demo::Module1::Protocol3();
+	}
+
+	int ProcessProtocol3(Zeze::Net::Protocol* p)
+	{
+		return 0;
+	}
+};
+
+void TestProtocol()
+{
 }
 
 class Client : public Zeze::Net::Service
 {
+public:
 	void OnSocketProcessInputBuffer(const std::shared_ptr<Zeze::Net::Socket>& sender, Zeze::ByteBuffer& input) override
 	{
 		std::cout << std::string((char*)input.Bytes, input.ReadIndex, input.Size()) << std::endl;

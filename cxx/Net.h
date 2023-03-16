@@ -68,6 +68,7 @@ namespace Net
 		void Send(const char* data, int offset, int length);
 		// 成功时，返回成功连接的地址。返回 empty string 表示失败。
 		bool Connect(const std::string& host, int port, const std::string& lastSuccessAddress, int timeoutSecondsPerConnect);
+
 	};
 
 	class Service
