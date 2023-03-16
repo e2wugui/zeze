@@ -6,7 +6,7 @@ namespace Zeze
 	{
 		bool Protocol::Send(Socket* socket)
 		{
-			if (NULL == socket)
+			if (nullptr == socket)
 				return false;
 			ByteBuffer bb(1024);
 			EncodeProtcocol(bb);
@@ -14,7 +14,7 @@ namespace Zeze
 			return true;
 		}
 
-		void Protocol::DecodeProtocol(Service * service, const std::shared_ptr<Socket>& sender, ByteBuffer& bb, IDecodeAndDispatcher* toLua /*= NULL*/)
+		void Protocol::DecodeProtocol(Service* service, const std::shared_ptr<Socket>& sender, ByteBuffer& bb, IDecodeAndDispatcher* toLua /*= nullptr*/)
 		{
 			ByteBuffer os(bb.Bytes, bb.ReadIndex, bb.Size()); // 创建一个新的ByteBuffer，解码确认了才修改bb索引。
 			while (os.Size() > 0)
@@ -61,7 +61,7 @@ namespace Zeze
 					continue;
 				}
 				// 优先派发c++实现，然后尝试lua实现，最后UnknownProtocol。
-				if (NULL != toLua && toLua->DecodeAndDispatch(service, sender->SessionId, moduleId, protocolId, pbb))
+				if (nullptr != toLua && toLua->DecodeAndDispatch(service, sender->SessionId, moduleId, protocolId, pbb))
 					continue;
 				service->DispatchUnknownProtocol(sender, moduleId, protocolId, pbb);
 			}

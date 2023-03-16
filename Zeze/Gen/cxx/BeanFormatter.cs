@@ -92,7 +92,7 @@ namespace Zeze.Gen.cxx
             }
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
-            sw.WriteLine($"{prefix}static Zeze::Bean * CreateBeanFromSpecialTypeId_{var.Id}(int64_t typeId) {{");
+            sw.WriteLine($"{prefix}static Zeze::Bean* CreateBeanFromSpecialTypeId_{var.Id}(int64_t typeId) {{");
             //sw.WriteLine($"{prefix}    case Zeze.Transaction.EmptyBean.TYPEID: return new Zeze.Transaction.EmptyBean();");
             if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId))
             {
@@ -102,7 +102,7 @@ namespace Zeze.Gen.cxx
                     sw.WriteLine($"{prefix}    if (typeId == {real.Key}LL)");
                     sw.WriteLine($"{prefix}        return new {real.Value.FullCxxName}();");
                 }
-                sw.WriteLine($"{prefix}    return NULL;");
+                sw.WriteLine($"{prefix}    return nullptr;");
             }
             else
             {

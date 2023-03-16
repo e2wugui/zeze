@@ -78,12 +78,12 @@ namespace Zeze
 			{
 			}
 
-			virtual void Dispatch(Service * service, Service::ProtocolFactoryHandle & factoryHandle)
+			virtual void Dispatch(Service* service, Service::ProtocolFactoryHandle& factoryHandle)
 			{
 				service->DispatchProtocol(this, factoryHandle);
 			}
 
-			static void DecodeProtocol(Service * service, const std::shared_ptr<Socket> & sender, ByteBuffer& bb, IDecodeAndDispatcher* toLua = NULL);
+			static void DecodeProtocol(Service* service, const std::shared_ptr<Socket>& sender, ByteBuffer& bb, IDecodeAndDispatcher* toLua = nullptr);
 		};
 
 		template <typename ArgumentType>

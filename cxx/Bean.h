@@ -67,7 +67,7 @@ namespace Zeze {
 		}
 
 		void SetBean(Bean* value) {
-			if (NULL == value)
+			if (nullptr == value)
 				throw new std::invalid_argument("value is null");
 			typeId = getBean(value);
 			bean.reset(value);
@@ -91,7 +91,7 @@ namespace Zeze {
 		virtual void Decode(ByteBuffer& bb) override {
 			int64_t typeId = bb.ReadLong();
 			std::shared_ptr<Bean> real(createBean(typeId));
-			if (real.get() != NULL) {
+			if (real.get() != nullptr) {
 				real->Decode(bb);
 				this->typeId = typeId;
 				this->bean = real;

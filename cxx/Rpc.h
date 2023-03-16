@@ -37,13 +37,13 @@ namespace Zeze
 				int timeout = std::ceil(millisecondsTimeout / 1000.0f);
 				SetTimeout(() -> {
 					auto context = (Rpc<ArgumentType, ResultType>*)service->RemoveRpcContext(sessionId);
-					if (context == NULL) // 一般来说，此时结果已经返回。
+					if (context == nullptr) // 一般来说，此时结果已经返回。
 						return;
 
 					context.IsTimeout = true;
 					context.ResultCode = ErrorCode::Timeout;
 
-					if (context->Future.get() != NULL)
+					if (context->Future.get() != nullptr)
 						context->Future.TrySetException(RpcTimeoutException.getInstance());
 					else if (context->ResponseHandle) {
 						// 本来Schedule已经在Task中执行了，这里又派发一次。
@@ -58,10 +58,10 @@ namespace Zeze
 
 			bool Send(Socket* so, const std::function<int(Protocol*)>& responseHandle, int millisecondsTimeout = 5000)
 			{
-				if (so == NULL)
+				if (so == nullptr)
 					return false;
 				auto service = so->Service;
-				if (service == NULL)
+				if (service == nullptr)
 					return false;
 
 				// try remove. 只维护一个上下文。
@@ -155,7 +155,7 @@ namespace Zeze
 
 				// response, 从上下文中查找原来发送的rpc对象，并派发该对象。
 				auto context = (Rpc<ArgumentType, ResultType>*)service->RemoveRpcContext(SessionId);
-				if (context == NULL)
+				if (context == nullptr)
 					return;
 
 				context->Sender = Sender;
@@ -165,7 +165,7 @@ namespace Zeze
 				context->IsTimeout = false; // not need
 				context->IsRequest = false;
 
-				if (context->Future.get() != NULL)
+				if (context->Future.get() != nullptr)
 					context->Future->SetResult(context->Result.release()); // SendForWait，设置结果唤醒等待者。
 				else if (context->ResponseHandle)
 					service->DispatchRpcResponse(context, context->ResponseHandle, factoryHandle);

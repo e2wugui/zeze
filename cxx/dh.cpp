@@ -6,7 +6,7 @@ namespace limax {
 
 		static void makeRandBytes(unsigned char* data, size_t size)
 		{
-			srand((unsigned int)time(NULL) ^ (unsigned int)(size_t)&size);
+			srand((unsigned int)time(nullptr) ^ (unsigned int)(size_t)&size);
 			for (size_t i = 0; i < size; i++)
 				data[i] = (unsigned char)(rand() & 0xFF);
 		}

@@ -23,7 +23,7 @@ namespace Zeze.Gen.cxx
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
 
-            sw.WriteLine(prefix + $"{bean.Name}& operator=(const {bean.Name} & other) {{");
+            sw.WriteLine(prefix + $"{bean.Name}& operator=(const {bean.Name}& other) {{");
             sw.WriteLine(prefix + "    Assign(other);");
             sw.WriteLine(prefix + "    return *this;");
             sw.WriteLine(prefix + "}");
@@ -38,7 +38,7 @@ namespace Zeze.Gen.cxx
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
 
-            sw.WriteLine(prefix + $"{bean.Name}& operator=(const {bean.Name} & other) {{");
+            sw.WriteLine(prefix + $"{bean.Name}& operator=(const {bean.Name}& other) {{");
             sw.WriteLine(prefix + "    Assign(other);");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();

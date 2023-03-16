@@ -32,15 +32,15 @@ namespace Net
 		int compressC2s = 0; // 推荐的压缩算法。
 		std::vector<int> supportedCompressList;
 
-		void Encode(ByteBuffer & bb) const override
+		void Encode(ByteBuffer& bb) const override
 		{
 			bb.WriteInt(encryptType);
-			bb.WriteInt(supportedEncryptList.size());
+			bb.WriteInt((int)supportedEncryptList.size());
 			for (auto it = supportedEncryptList.begin(); it != supportedEncryptList.end(); ++it)
 				bb.WriteInt(*it);
 			bb.WriteInt(compressS2c);
 			bb.WriteInt(compressC2s);
-			bb.WriteInt(supportedCompressList.size());
+			bb.WriteInt((int)supportedCompressList.size());
 			for (auto it = supportedCompressList.begin(); it != supportedCompressList.end(); ++it)
 				bb.WriteInt(*it);
 		}
@@ -139,7 +139,7 @@ namespace Net
 	};
 
 	Service::Service()
-		: socket(NULL)
+		: socket(nullptr)
 	{
 		SeedRpcContexts = 0;
 		autoReconnect = false;
@@ -154,7 +154,7 @@ namespace Net
 	}
 
 	/*
-	void print(const char * name, const void* data, int size)
+	void print(const char* name, const void* data, int size)
 	{
 		const unsigned char* uc = (const unsigned char*)data;
 		std::cout << name << " ";
@@ -173,7 +173,7 @@ namespace Net
 		return Constant::eCompressTypeMppc; // 使用最老的压缩。
 	}
 
-	void Service::StartHandshake(int encryptType, int compressS2c, int compressC2s, const std::shared_ptr<Socket> & sender)
+	void Service::StartHandshake(int encryptType, int compressS2c, int compressC2s, const std::shared_ptr<Socket>& sender)
 	{
 		sender->dhContext = limax::createDHContext(1);
 		const std::vector<unsigned char>& dhResponse = sender->dhContext->generateDHResponse();
@@ -210,11 +210,11 @@ namespace Net
 	{
 		SHandshake* p = (SHandshake*)_p;
 
-		const int8_t* inputKey = NULL;
-		const int8_t* outputKey = NULL;
+		const int8_t* inputKey = nullptr;
+		const int8_t* outputKey = nullptr;
 		if (p->Argument->encryptType == Constant::eEncryptTypeAes) {
 			auto material = p->Sender->dhContext->computeDHKey(
-				(unsigned char*)p->Argument->encryptParam.data(), p->Argument->encryptParam.size());
+				(unsigned char*)p->Argument->encryptParam.data(), (int)p->Argument->encryptParam.size());
 
 			size_t key_len = p->Sender->LastAddressBytes.size();
 			int8_t* key = (int8_t*)p->Sender->LastAddressBytes.data();
@@ -362,7 +362,7 @@ namespace Net
 	{
 		if (socket.get())
 		{
-			socket->Close(NULL);
+			socket->Close(nullptr);
 		}
 		socket = sender;
 		autoReconnectDelay = 0;
@@ -408,7 +408,7 @@ namespace Net
 				}
 				catch (...)
 				{
-					at->Close(NULL); // XXX 异常的时候需要手动释放Socket内部的shared_ptr。
+					at->Close(nullptr); // XXX 异常的时候需要手动释放Socket内部的shared_ptr。
 				}
 			}).detach();
 	}
@@ -464,7 +464,7 @@ namespace Net
 
 		int wakeupfds[2];
 		bool loop = true;
-		std::thread * worker;
+		std::thread* worker;
 		std::unordered_map<std::shared_ptr<Socket>, int> sockets;
 
 		Selector()
@@ -480,7 +480,7 @@ namespace Net
 			delete worker;
 
 			for (auto& socket : sockets)
-				socket.first->Close(NULL);
+				socket.first->Close(nullptr);
 			sockets.clear();
 		}
 
@@ -521,7 +521,7 @@ namespace Net
 				timeout.tv_sec = 1;
 				timeout.tv_usec = 0;
 
-				if (::select(maxfd + 1, &setread, &setwrite, NULL, &timeout) > 0)
+				if (::select(maxfd + 1, &setread, &setwrite, nullptr, &timeout) > 0)
 				{
 					if (FD_ISSET(wakeupfds[0], &setread))
 					{
@@ -640,7 +640,7 @@ namespace Net
 #endif
 	};
 
-	Selector* Selector::Instance = NULL;
+	Selector* Selector::Instance = nullptr;
 	void SetTimeout(const std::function<void()>& func, int timeout)
 	{
 		Selector::Instance->SetTimeout(func, timeout);
@@ -663,7 +663,7 @@ namespace Net
 	void Cleanup()
 	{
 		delete Selector::Instance;
-		Selector::Instance = NULL;
+		Selector::Instance = nullptr;
 
 #ifdef LIMAX_OS_WINDOWS
 		::WSACleanup();
@@ -739,7 +739,7 @@ namespace Net
 		}
 		if (0 == rc)
 		{
-			this->Close(NULL);
+			this->Close(nullptr);
 			return;
 		}
 
@@ -867,7 +867,7 @@ namespace Net
 
 	bool Socket::Connect(const std::string& host, int _port, const std::string& lastSuccessAddress, int timeoutSecondsPerConnect)
 	{
-		struct addrinfo hints, * res;
+		struct addrinfo hints, *res;
 
 		memset(&hints, 0, sizeof(hints));
 		hints.ai_family = AF_UNSPEC;
@@ -890,7 +890,7 @@ namespace Net
 		}
 
 		int so = 0;
-		for (struct addrinfo* ai = res; ai != NULL; ai = ai->ai_next)
+		for (struct addrinfo* ai = res; ai != nullptr; ai = ai->ai_next)
 		{
 			so = (int)::socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
 			if (so == 0)
@@ -913,7 +913,7 @@ namespace Net
 			{
 				AssignAddressBytes(ai, LastAddressBytes);
 				char addrName[256];
-				if (::getnameinfo(ai->ai_addr, static_cast<socklen_t>(ai->ai_addrlen), addrName, sizeof(addrName), NULL, 0, NI_NUMERICHOST) == 0)
+				if (::getnameinfo(ai->ai_addr, static_cast<socklen_t>(ai->ai_addrlen), addrName, sizeof(addrName), nullptr, 0, NI_NUMERICHOST) == 0)
 					LastAddress = addrName; // 设置成功连接的地址
 				break;
 			}
@@ -929,7 +929,7 @@ namespace Net
 				struct timeval timeout = { 0 };
 				timeout.tv_sec = timeoutSecondsPerConnect;
 				timeout.tv_usec = 0;
-				ret = ::select(so + 1, NULL, &setw, NULL, &timeout);
+				ret = ::select(so + 1, nullptr, &setw, nullptr, &timeout);
 				if (ret <= 0)
 				{
 					// 错误或者超时
@@ -944,7 +944,7 @@ namespace Net
 					{
 						AssignAddressBytes(ai, LastAddressBytes);
 						char addrName[256];
-						if (::getnameinfo(ai->ai_addr, static_cast<socklen_t>(ai->ai_addrlen), addrName, sizeof(addrName), NULL, 0, NI_NUMERICHOST) == 0)
+						if (::getnameinfo(ai->ai_addr, static_cast<socklen_t>(ai->ai_addrlen), addrName, sizeof(addrName), nullptr, 0, NI_NUMERICHOST) == 0)
 							LastAddress = addrName; // 设置成功连接的地址
 						break;
 					}

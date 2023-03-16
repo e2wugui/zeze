@@ -63,7 +63,7 @@ namespace Zeze {
 
 	class String {
 	public:
-		static int Compare(const std::string & x, const std::string & y) {
+		static int Compare(const std::string& x, const std::string& y) {
 			return x.compare(y);
 		}
 	};

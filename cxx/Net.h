@@ -86,9 +86,9 @@ namespace Net
 		std::shared_ptr<Socket> GetSocket() { return socket; }
 		std::shared_ptr<Socket> GetSocket(int64_t sessionId)
 		{
-			if (socket.get() != NULL && socket->SessionId == sessionId)
+			if (socket.get() != nullptr && socket->SessionId == sessionId)
 				return socket;
-			return std::shared_ptr<Socket>(NULL);
+			return std::shared_ptr<Socket>(nullptr);
 		}
 		void Connect(const std::string& host, int port, int timeoutSecondsPerConnect = 5);
 
@@ -98,7 +98,7 @@ namespace Net
 		{
 			// ToLuaService 实现
 		}
-		virtual void SendProtocol(Socket * so)
+		virtual void SendProtocol(Socket* so)
 		{
 			so;
 			// ToLuaService 实现
@@ -174,8 +174,8 @@ namespace Net
 			std::lock_guard<std::mutex> guard(MutexRpcContexts);
 			auto it = RpcContexts.find(sid);
 			if (it == RpcContexts.end())
-				return NULL;
-			Protocol * found = it->second;
+				return nullptr;
+			Protocol* found = it->second;
 			RpcContexts.erase(it);
 			return found;
 		}
