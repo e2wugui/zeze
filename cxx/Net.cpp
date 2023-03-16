@@ -267,13 +267,7 @@ namespace Net
 		case Constant::eEncryptTypeDisable:
 			break;
 		case Constant::eEncryptTypeAes:
-			{
-				limax::MD5 md5;
-				md5.update((int8_t*)key, 0, keylen);
-				auto keyMd5 = md5.digest();
-				//chain = new Encrypt2(chain, keyMd5, keyMd5);
-				codec = std::shared_ptr<limax::Codec>(new limax::Encrypt(codec, (int8_t*)keyMd5, 16));
-			}
+			codec = std::shared_ptr<limax::Codec>(new limax::Encrypt(codec, (int8_t*)key, keylen));
 			break;
 			//TODO: 新增加密算法支持这里加case
 		default:
@@ -285,7 +279,6 @@ namespace Net
 		case Constant::eCompressTypeDisable:
 			break;
 		case Constant::eCompressTypeMppc:
-			//chain = new Compress(chain);
 			codec = std::shared_ptr<limax::Codec>(new limax::RFC2118Encode(codec));
 			break;
 			//TODO: 新增压缩算法支持这里加case
@@ -304,7 +297,6 @@ namespace Net
 		case Constant::eCompressTypeDisable:
 			break;
 		case Constant::eCompressTypeMppc:
-			//chain = new Decompress(chain);
 			codec = std::shared_ptr<limax::Codec>(new limax::RFC2118Decode(codec));
 			break;
 			// TODO: 新增压缩算法支持这里加case
@@ -316,13 +308,7 @@ namespace Net
 		case Constant::eEncryptTypeDisable:
 			break;
 		case Constant::eEncryptTypeAes:
-			{
-				limax::MD5 md5;
-				md5.update((int8_t*)key, 0, keylen);
-				auto keyMd5 = md5.digest();
-				//chain = new Decrypt2(chain, keyMd5, keyMd5);
-				codec = std::shared_ptr<limax::Codec>(new limax::Decrypt(codec, (int8_t*)keyMd5, 16));
-			}
+			codec = std::shared_ptr<limax::Codec>(new limax::Decrypt(codec, (int8_t*)key, keylen));
 			break;
 			//TODO: 新增加密算法支持这里加case
 		default:
