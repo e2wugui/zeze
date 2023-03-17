@@ -142,6 +142,7 @@
     <ClInclude Include="..\cxx\octets.h" />
     <ClInclude Include="..\cxx\osdefine.h" />
     <ClInclude Include="..\cxx\Protocol.h" />
+    <ClInclude Include="..\cxx\ResultCode.h" />
     <ClInclude Include="..\cxx\rfc2118.h" />
     <ClInclude Include="..\cxx\Rpc.h" />
     <ClInclude Include="..\cxx\security.h" />

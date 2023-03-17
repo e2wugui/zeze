@@ -2,6 +2,7 @@
 
 #include "Protocol.h"
 #include <cmath>
+#include "TaskCompletionSource.h"
 
 namespace Zeze
 {
@@ -19,13 +20,16 @@ namespace Zeze
 			std::function<int(Protocol*)> ResponseHandle;
 			bool SendResultDone;
 			int Timeout;
+			std::unique_ptr<TaskCompletionSource<ResultType*>> Future;
 
 			Rpc()
 				: Argument(new ArgumentType()), Result(new ResultType())
 			{
+				SessionId = 0;
 				IsRequest = true;
 				IsTimeout = false;
 				SendResultDone = false;
+				Timeout = 0;
 			}
 
 			virtual int GetFamilyClass() const override
@@ -35,23 +39,25 @@ namespace Zeze
 
 			void Schedule(Service* service, int64_t sessionId, int millisecondsTimeout) {
 				int timeout = std::ceil(millisecondsTimeout / 1000.0f);
-				SetTimeout(() -> {
-					auto context = (Rpc<ArgumentType, ResultType>*)service->RemoveRpcContext(sessionId);
-					if (context == nullptr) // 一般来说，此时结果已经返回。
-						return;
+				SetTimeout(
+					[service, sessionId]()
+					{
+						auto context = (Rpc<ArgumentType, ResultType>*)service->RemoveRpcContext(sessionId);
+						if (context == nullptr) // 一般来说，此时结果已经返回。
+							return;
 
-					context.IsTimeout = true;
-					context.ResultCode = ErrorCode::Timeout;
+						context.IsTimeout = true;
+						context.ResultCode = ResultCode::Timeout;
 
-					if (context->Future.get() != nullptr)
-						context->Future.TrySetException(RpcTimeoutException.getInstance());
-					else if (context->ResponseHandle) {
-						// 本来Schedule已经在Task中执行了，这里又派发一次。
-						// 主要是为了让应用能拦截修改Response的处理方式。
-						// Timeout 应该是少的，先这样了。
-						Service::ProtocolFactoryHandle factoryHandle;
-						if (service->FindProtocolFactoryHandle(context->TypeId(), factoryHandle))
-							service.DispatchRpcResponse(context, context->ResponseHandle, factoryHandle);
+						if (context->Future.get() != nullptr)
+							context->Future.TrySetException(new std::exception("RpcTimeout"));
+						else if (context->ResponseHandle) {
+							// 本来Schedule已经在Task中执行了，这里又派发一次。
+							// 主要是为了让应用能拦截修改Response的处理方式。
+							// Timeout 应该是少的，先这样了。
+							Service::ProtocolFactoryHandle factoryHandle;
+							if (service->FindProtocolFactoryHandle(context->TypeId(), factoryHandle))
+								service->DispatchRpcResponse(context, context->ResponseHandle, factoryHandle);
 					}
 				}, timeout);
 			}
@@ -65,30 +71,30 @@ namespace Zeze
 					return false;
 
 				// try remove. 只维护一个上下文。
-				service.RemoveRpcContext(SessionId, this);
+				service->RemoveRpcContext(SessionId, this);
 				this.ResponseHandle = responseHandle;
-				SessionId = service.AddRpcContext(this);
+				SessionId = service->AddRpcContext(this);
 				Timeout = millisecondsTimeout;
 				IsTimeout = false;
 				IsRequest = true;
 
 				if (Protocol::Send(so)) {
-					schedule(service, SessionId, millisecondsTimeout);
+					Schedule(service, SessionId, millisecondsTimeout);
 					return true;
 				}
 
 				// 发送失败，一般是连接失效，此时删除上下文。
 				// 其中rpc-trigger-result的原子性由RemoveRpcContext保证。
 				// 恢复最初的语义吧：如果ctx已经被并发的Remove，也就是被处理了，这里返回true。
-				return !service.RemoveRpcContext(SessionId, this);
+				return !service->RemoveRpcContext(SessionId, this);
 			}
 
-			TaskCompletionSource<TResult> SendForWait(Socket *, int millisecondsTimeout = 5000)
+			TaskCompletionSource<ResultType>* SendForWait(Socket * so, int millisecondsTimeout = 5000)
 			{
-				Future = new TaskCompletionSource<>();
+				Future.reset(new TaskCompletionSource<ResultType*>());
 				if (!Send(so, null, millisecondsTimeout))
-					Future->TrySetException(new exception("Send Failed."));
-				return Future;
+					Future->TrySetException(new std::exception("Send Failed."));
+				return Future.get();
 			}
 
 			virtual void SendResult() override

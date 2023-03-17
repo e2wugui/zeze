@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ResultCode.h"
 #include "ByteBuffer.h"
 #include "Net.h"
 #include "IDecodeAndDispatcher.h"
