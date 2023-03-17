@@ -26,6 +26,10 @@ namespace Zeze.Gen.cxx
 
         public bool GenEmptyProtocolHandles(StreamWriter sw, bool shortIf = true)
         {
+            var projectFlags = Program.HandleCSharpFlags;
+            if (project.ClientScript)
+                projectFlags |= Program.HandleScriptClientFlag;
+
             bool written = false;
             if (module.ReferenceService != null)
             {
@@ -34,27 +38,25 @@ namespace Zeze.Gen.cxx
                 {
                     if (p is Rpc rpc)
                     {
-                        if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
+                        if ((rpc.HandleFlags & serviceHandleFlags & projectFlags) != 0)
                         {
                             if (written)
                                 sw.WriteLine();
                             written = true;
-                            sw.WriteLine("    @Override");
-                            sw.WriteLine($"    protected long Process{rpc.Name}Request({rpc.Space.Path(".", rpc.Name)} r) {{");
-                            sw.WriteLine($"        return Zeze.Transaction.Procedure.NotImplement;");
+                            sw.WriteLine($"    virtual int64_t Process{rpc.Name}Request(Zeze::Net::Protocol* _r) override {{");
+                            sw.WriteLine($"        return Zeze::ResultCode::NotImplement;");
                             sw.WriteLine("    }");
                         }
                     }
                     else
                     {
-                        if ((p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
+                        if ((p.HandleFlags & serviceHandleFlags & projectFlags) != 0)
                         {
                             if (written)
                                 sw.WriteLine();
                             written = true;
-                            sw.WriteLine("    @Override");
-                            sw.WriteLine($"    protected long Process{p.Name}({p.Space.Path(".", p.Name)} p) {{");
-                            sw.WriteLine("        return Zeze.Transaction.Procedure.NotImplement;");
+                            sw.WriteLine($"    virtual int64_t Process{p.Name}(Zeze::Net::Protocol* _p) override {{");
+                            sw.WriteLine("        return Zeze::ResultCode::NotImplement;");
                             sw.WriteLine("    }");
                         }
                     }
@@ -66,41 +68,49 @@ namespace Zeze.Gen.cxx
         public void Make()
         {
             MakeInterface();
+
             FileChunkGen = new FileChunkGen();
             string fullDir = module.GetFullPath(srcDir);
-            string fullFileName = Path.Combine(fullDir, $"Module{moduleName}.java");
+            string fullFileName = Path.Combine(fullDir, $"Module{moduleName}.h");
             if (FileChunkGen.LoadFile(fullFileName))
             {
-                fixProcessParam(FileChunkGen);
                 FileChunkGen.SaveFile(fullFileName, GenChunkByName, GenBeforeChunkByName);
                 return;
             }
             // new file
             FileSystem.CreateDirectory(fullDir);
             using StreamWriter sw = Program.OpenStreamWriter(fullFileName);
-            sw.WriteLine("package " + module.Path() + ";");
+            sw.WriteLine("#pragma once");
             sw.WriteLine();
-            // sw.WriteLine(FileChunkGen.ChunkStartTag + " " + ChunkNameImport);
-            // ImportGen(sw);
-            // sw.WriteLine(FileChunkGen.ChunkEndTag + " " + ChunkNameImport);
-            // sw.WriteLine();
-            sw.WriteLine($"public class Module{moduleName} extends AbstractModule {{");
-            // sw.WriteLine($"    public Module{moduleName}({project.Solution.Name}.App app) {{");
-            // sw.WriteLine("        super(app);");
-            // sw.WriteLine("    }");
-            // sw.WriteLine();
-            sw.WriteLine("    public void Start(" + project.Solution.Name + ".App app) throws Exception {");
+            sw.WriteLine(FileChunkGen.ChunkStartTag + " " + ChunkNameImport);
+            ImportGen(sw);
+            sw.WriteLine(FileChunkGen.ChunkEndTag + " " + ChunkNameImport);
+            sw.WriteLine();
+
+            var paths = module.Paths();
+            foreach (var path in paths)
+            {
+                sw.WriteLine($"namespace {path} {{");
+            }
+            sw.WriteLine();
+            sw.WriteLine($"class Module{moduleName} : public AbstractModule {{");
+            sw.WriteLine("public:");
+            sw.WriteLine("    void Start(" + project.Solution.Name + "::App* app) {");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public void Stop(" + project.Solution.Name + ".App app) throws Exception {");
+            sw.WriteLine("    void Stop(" + project.Solution.Name + "::App* app) {");
             sw.WriteLine("    }");
             sw.WriteLine();
             if (GenEmptyProtocolHandles(sw))
                 sw.WriteLine();
-            sw.WriteLine("    " + FileChunkGen.ChunkStartTag + " " + ChunkNameModuleGen + " @formatter:off");
+            sw.WriteLine("    " + FileChunkGen.ChunkStartTag + " " + ChunkNameModuleGen);
             ConstructorGen(sw);
-            sw.WriteLine("    " + FileChunkGen.ChunkEndTag + " " + ChunkNameModuleGen + " @formatter:on");
-            sw.WriteLine("}");
+            sw.WriteLine("    " + FileChunkGen.ChunkEndTag + " " + ChunkNameModuleGen);
+            sw.WriteLine("};");
+            foreach (var path in paths)
+            {
+                sw.WriteLine("}");
+            }
         }
 
         const string ChunkNameModuleGen = "GEN MODULE";
@@ -111,53 +121,6 @@ namespace Zeze.Gen.cxx
             if (p is Rpc rpc)
                 return $"Process{rpc.Name}Request";
             return $"Process{p.Name}";
-        }
-
-        void fixProcessParam(FileChunkGen chunkGen)
-        {
-            foreach (var chunk in chunkGen.Chunks)
-            {
-                if (chunk.State != FileChunkGen.State.Normal)
-                    continue;
-                var lines = chunk.Lines;
-                for (int i = 0; i < lines.Count - 1; i++)
-                {
-                    string line = lines[i];
-                    if (!line.Contains("long Process"))
-                        continue;
-                    int p = line.IndexOf('(');
-                    if (p < 0)
-                        continue;
-                    int q = line.IndexOf(')', p + 1);
-                    if (q < 0)
-                        continue;
-                    string[] subs = line.Substring(p + 1, q - p - 1).Split(" ");
-                    if (subs.Length != 2 || subs[0] != "Zeze.Net.Protocol" && subs[0] != "Protocol")
-                        continue;
-                    for (int j = 1; j <= 2; j++)
-                    {
-                        string nextLine = lines[i + j].Replace('\t', ' ').Trim();
-                        if (!nextLine.StartsWith("var "))
-                            continue;
-                        int e = nextLine.IndexOf('=');
-                        if (e < 0)
-                            continue;
-                        int a = nextLine.IndexOf('(');
-                        if (a < 0)
-                            continue;
-                        int b = nextLine.IndexOf(')', a + 1);
-                        if (b < 0)
-                            continue;
-                        if (nextLine.Substring(b + 1).Trim() != subs[1] + ';')
-                            continue;
-                        lines[i] = line.Substring(0, p + 1) + nextLine.Substring(a + 1, b - a - 1).Trim()
-                            + ' ' + nextLine.Substring(3, e - 3).Trim() + line.Substring(q);
-                        lines.RemoveAt(i + j);
-                        i += j - 1;
-                        break;
-                    }
-                }
-            }
         }
 
         void NewProtocolHandle(StreamWriter sw)
@@ -179,13 +142,13 @@ namespace Zeze.Gen.cxx
                 {
                     foreach (var line in chunk.Lines)
                     {
-                        int p = line.IndexOf("long Process");
+                        int p = line.IndexOf("int64_t Process");
                         if (p >= 0)
                         {
-                            int q = line.IndexOf('(', p + 12);
+                            int q = line.IndexOf('(', p + 15);
                             if (q >= 0)
                             {
-                                if (protoMap.TryGetValue(line.Substring(p + 12, q - p - 12).Trim(), out var h))
+                                if (protoMap.TryGetValue(line.Substring(p + 15, q - p - 15).Trim(), out var h))
                                     exist.Add(h);
                             }
                         }
@@ -202,19 +165,15 @@ namespace Zeze.Gen.cxx
                 var hName = GetHandleName(h);
                 if (h is Rpc rpc)
                 {
-                    string fullName = rpc.Space.Path(".", rpc.Name);
-                    sw.WriteLine("    @Override");
-                    sw.WriteLine($"    protected long {hName}({fullName} r) {{");
-                    sw.WriteLine($"        return Zeze.Transaction.Procedure.NotImplement;");
+                    sw.WriteLine($"    virtual int64_t {hName}(Zeze::Net::Protocol* _r) override {{");
+                    sw.WriteLine($"        return Zeze::ResultCode::NotImplement;");
                     sw.WriteLine("    }");
                     sw.WriteLine("");
                 }
                 else
                 {
-                    string fullName = h.Space.Path(".", h.Name);
-                    sw.WriteLine("    @Override");
-                    sw.WriteLine($"    protected long {hName}({fullName} p) {{");
-                    sw.WriteLine("        return Zeze.Transaction.Procedure.NotImplement;");
+                    sw.WriteLine($"    virtual int64_t {hName}(Zeze::Net::Protocol* _p) override {{");
+                    sw.WriteLine("        return Zeze::ResultCode::NotImplement;");
                     sw.WriteLine("    }");
                     sw.WriteLine("");
                 }
@@ -248,67 +207,77 @@ namespace Zeze.Gen.cxx
 
         void ImportGen(StreamWriter sw)
         {
+            sw.WriteLine($"#include \"Gen/{module.Path("/")}/AbstractModule.hpp\"");
         }
 
         void ConstructorGen(StreamWriter sw)
         {
-            sw.WriteLine($"    public Module{moduleName}({project.Solution.Name}.App app) {{");
-            sw.WriteLine("        super(app);");
+            sw.WriteLine($"    Module{moduleName}({project.Solution.Name}::App* app) : AbstractModule(app) {{");
             sw.WriteLine("    }");
         }
 
-        public void RegisterProtocols(StreamWriter sw, bool isFirst = true, string serviceVarName = null)
+        public List<Protocol> GetRegisterProtocols()
         {
+            var projectFlags = Program.HandleCSharpFlags;
+            if (project.ClientScript)
+                projectFlags |= Program.HandleScriptClientFlag;
+
+            var result = new List<Protocol>();
             Service serv = module.ReferenceService;
             if (serv != null)
             {
-                var serviceVar = string.IsNullOrEmpty(serviceVarName) ? $"App.{serv.Name}" : serviceVarName;
-                bool defReflect = false;
                 int serviceHandleFlags = module.ReferenceService.HandleFlags;
                 foreach (Protocol p in module.Protocols.Values)
                 {
                     if (p is Rpc rpc)
                     {
-                        if (!defReflect && isFirst)
-                        {
-                            defReflect = true;
-                            sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(getClass());");
-                        }
+                        result.Add(p);
+                        continue;
+                    }
+                    if (0 != (p.HandleFlags & serviceHandleFlags & projectFlags))
+                    {
+                        result.Add(p);
+                    }
+                }
+            }
+            return result;
+        }
+
+        public void RegisterProtocols(StreamWriter sw, bool isFirst = true, string serviceVarName = null)
+        {
+            var projectFlags = Program.HandleCSharpFlags;
+            if (project.ClientScript)
+                projectFlags |= Program.HandleScriptClientFlag;
+            Service serv = module.ReferenceService;
+            if (serv != null)
+            {
+                var serviceVar = string.IsNullOrEmpty(serviceVarName) ? $"App->{serv.Name}" : serviceVarName;
+                int serviceHandleFlags = module.ReferenceService.HandleFlags;
+                foreach (Protocol p in module.Protocols.Values)
+                {
+                    if (p is Rpc rpc)
+                    {
                         // rpc 可能作为客户端发送也需要factory，所以总是注册factory。
-                        string fullName = rpc.Space.Path(".", rpc.Name);
+                        string fullName = rpc.Space.Path("::", rpc.Name);
                         sw.WriteLine("        {");
-                        sw.WriteLine($"            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>({fullName}.class, {fullName}.TypeId_);");
-                        sw.WriteLine($"            factoryHandle.Factory = {fullName}::new;");
-                        if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
+                        sw.WriteLine($"            Zeze::Net::Service::ProtocolFactoryHandle factoryHandle;");
+                        sw.WriteLine($"            factoryHandle.Factory = []() {{ return new {fullName}(); }};");
+                        if ((rpc.HandleFlags & serviceHandleFlags & projectFlags) != 0)
                         {
-                            sw.WriteLine($"            factoryHandle.Handle = this::Process{rpc.Name}Request;");
-                            sw.WriteLine($"            factoryHandle.Level = _reflect.getTransactionLevel(\"Process{rpc.Name}Request\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel});");
-                            sw.WriteLine($"            factoryHandle.Mode = _reflect.getDispatchMode(\"Process{rpc.Name}Request\", Zeze.Transaction.DispatchMode.Normal);");
+                            sw.WriteLine($"            factoryHandle.Handle = std::bind(&AbstractModule::Process{rpc.Name}Request, this, std::placeholders::_1);");
                         }
-                        else
-                        {
-                            sw.WriteLine($"            factoryHandle.Level = _reflect.getTransactionLevel(\"Process{rpc.Name}Response\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel});");
-                            sw.WriteLine($"            factoryHandle.Mode = _reflect.getDispatchMode(\"Process{rpc.Name}Response\", Zeze.Transaction.DispatchMode.Normal);");
-                        }
-                        sw.WriteLine($"            {serviceVar}.AddFactoryHandle({rpc.TypeId}L, factoryHandle); // {rpc.Space.Id}, {rpc.Id}");
+                        sw.WriteLine($"            {serviceVar}.AddProtocolFactory({rpc.TypeId}LL, factoryHandle); // {rpc.Space.Id}, {rpc.Id}");
                         sw.WriteLine("        }");
                         continue;
                     }
-                    if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
+                    if (0 != (p.HandleFlags & serviceHandleFlags & projectFlags))
                     {
-                        if (!defReflect && isFirst)
-                        {
-                            defReflect = true;
-                            sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(this.getClass());");
-                        }
-                        string fullName = p.Space.Path(".", p.Name);
+                        string fullName = p.Space.Path("::", p.Name);
                         sw.WriteLine("        {");
-                        sw.WriteLine($"            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>({fullName}.class, {fullName}.TypeId_);");
-                        sw.WriteLine($"            factoryHandle.Factory = {fullName}::new;");
-                        sw.WriteLine($"            factoryHandle.Handle = this::Process{p.Name};");
-                        sw.WriteLine($"            factoryHandle.Level = _reflect.getTransactionLevel(\"Process{p.Name}\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel});");
-                        sw.WriteLine($"            factoryHandle.Mode = _reflect.getDispatchMode(\"Process{p.Name}\", Zeze.Transaction.DispatchMode.Normal);");
-                        sw.WriteLine($"            {serviceVar}.AddFactoryHandle({p.TypeId}L, factoryHandle); // {p.Space.Id}, {p.Id}");
+                        sw.WriteLine($"            Zeze::Net::Service::ProtocolFactoryHandle factoryHandle;");
+                        sw.WriteLine($"            factoryHandle.Factory = []() {{ return new {fullName}(); }};");
+                        sw.WriteLine($"            factoryHandle.Handle = std::bind(&AbstractModule::Process{p.Name}, this, std::placeholders::_1);");
+                        sw.WriteLine($"            {serviceVar}.AddProtocolFactory({p.TypeId}LL, factoryHandle); // {p.Space.Id}, {p.Id}");
                         sw.WriteLine("        }");
                     }
                 }
@@ -317,6 +286,7 @@ namespace Zeze.Gen.cxx
 
         public void UnRegisterProtocols(StreamWriter sw, string serviceVarName = null)
         {
+            /*
             Service serv = module.ReferenceService;
             if (serv != null)
             {
@@ -327,49 +297,33 @@ namespace Zeze.Gen.cxx
                     if (p is Rpc rpc)
                     {
                         // rpc 可能作为客户端发送也需要factory，所以总是注册factory。
-                        sw.WriteLine($"        {serviceVar}.getFactorys().remove({rpc.TypeId}L);");
+                        sw.WriteLine($"        {serviceVar}.GetFactorys().erase({rpc.TypeId}LL);");
                         continue;
                     }
                     if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
                     {
-                        sw.WriteLine($"        {serviceVar}.getFactorys().remove({p.TypeId}L);");
+                        sw.WriteLine($"        {serviceVar}.GetFactorys().erase({p.TypeId}LL);");
                     }
                 }
             }
+            */
         }
 
         void ModuleGen(StreamWriter sw)
         {
             sw.WriteLine();
-            sw.WriteLine($"    public final {project.Solution.Name}.App App;");
+            sw.WriteLine($"    {project.Solution.Name}::App* App;");
             sw.WriteLine();
 
-            sw.WriteLine($"    public AbstractModule({project.Solution.Name}.App app) {{");
+            sw.WriteLine($"    AbstractModule({project.Solution.Name}::App* app) {{");
             sw.WriteLine("        App = app;");
             sw.WriteLine("        // register protocol factory and handles");
             RegisterProtocols(sw);
-            sw.WriteLine("        // register table");
-            sw.WriteLine("        // register servlet");
-            bool writtenHeader = true;
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    @Override");
-            sw.WriteLine("    public void UnRegister() {");
+            sw.WriteLine("    virtual void UnRegister() override {");
             UnRegisterProtocols(sw);
             sw.WriteLine("    }");
-        }
-
-        public void MakePartialImplement()
-        {
-            using StreamWriter sw = module.OpenWriter(srcDir, $"Module{moduleName}.java", false);
-
-            if (sw == null)
-                return;
-
-            sw.WriteLine("package " + module.Path() + ";");
-            sw.WriteLine();
-            sw.WriteLine($"public class Module{moduleName} extends AbstractModule{moduleName} {{");
-            sw.WriteLine("}");
         }
 
         public void GenEnums(StreamWriter sw)
@@ -377,7 +331,7 @@ namespace Zeze.Gen.cxx
             if (module.Enums.Count > 0)
                 sw.WriteLine();
             foreach (Types.Enum e in module.Enums)
-                sw.WriteLine($"    public static final {TypeName.GetName(Types.Type.Compile(e.Type))} " + e.Name + " = " + e.Value + ";" + e.Comment);
+                sw.WriteLine($"    static const {TypeName.GetName(Types.Type.Compile(e.Type))} " + e.Name + " = " + e.Value + ";" + e.Comment);
         }
 
         public void GenAbstractProtocolHandles(StreamWriter sw)
@@ -388,36 +342,52 @@ namespace Zeze.Gen.cxx
             foreach (Protocol p in protocols)
             {
                 if (p is Rpc rpc)
-                    sw.WriteLine($"    protected abstract long Process{rpc.Name}Request({rpc.Space.Path(".", rpc.Name)} r) throws Exception;");
+                    sw.WriteLine($"    virtual int64_t Process{rpc.Name}Request(Zeze::Net::Protocol* _r) = 0;");
                 else
-                    sw.WriteLine($"    protected abstract long Process{p.Name}({p.Space.Path(".", p.Name)} p) throws Exception;");
+                    sw.WriteLine($"    virtual int64_t Process{p.Name}(Zeze::Net::Protocol* _p) = 0;");
             }
         }
 
         public void MakeInterface()
         {
-            using StreamWriter sw = module.OpenWriter(genDir, "AbstractModule.java");
+            using StreamWriter sw = module.OpenWriter(genDir, "AbstractModule.hpp");
 
-            sw.WriteLine("// auto-generated @formatter:off");
-            sw.WriteLine("package " + module.Path() + ";");
+            sw.WriteLine("#pragma once");
+            sw.WriteLine();
+            sw.WriteLine("#include \"zeze/cxx/IModule.h\"");
+            sw.WriteLine($"#include \"Gen/{project.Solution.Name}/App.h\"");
+            foreach (Protocol p in GetRegisterProtocols())
+            {
+                sw.WriteLine($"#include \"Gen/{p.Space.Path("/", p.Name + ".hpp")}\"");
+            }
+            sw.WriteLine();
+            var paths = module.Paths();
+            foreach (var path in paths)
+            {
+                sw.WriteLine($"namespace {path} {{");
+            }
             sw.WriteLine();
             if (module.Comment.Length > 0)
                 sw.WriteLine(module.Comment);
-            var classBase = (!project.EnableBase || string.IsNullOrEmpty(module.ClassBase)) ? "" : $"extends {module.ClassBase} ";
-            sw.WriteLine($"public abstract class AbstractModule {classBase}implements Zeze.IModule {{");
-            sw.WriteLine($"    public static final int ModuleId = {module.Id};");
-            sw.WriteLine($"    public static final String ModuleName = \"{moduleName}\";");
-            sw.WriteLine($"    public static final String ModuleFullName = \"{module.Path()}\";");
+            var classBase = (!project.EnableBase || string.IsNullOrEmpty(module.ClassBase)) ? "" : $": public {module.ClassBase} ";
+            sw.WriteLine($"class AbstractModule {classBase} : public Zeze::IModule {{");
+            sw.WriteLine($"public:");
+            sw.WriteLine($"    static const int ModuleId = {module.Id};");
+            sw.WriteLine($"    static const char * const ModuleName = \"{moduleName}\";");
+            sw.WriteLine($"    static const char * const ModuleFullName = \"{module.Path()}\";");
             sw.WriteLine();
-            sw.WriteLine($"    @Override public int getId() {{ return ModuleId; }}");
-            sw.WriteLine($"    @Override public String getName() {{ return ModuleName; }}");
-            sw.WriteLine($"    @Override public String getFullName() {{ return ModuleFullName; }}");
-            sw.WriteLine($"    @Override public String getWebPathBase() {{ return \"{module.WebPathBase}\";}}");
+            sw.WriteLine($"    virtual int GetId() const override {{ return ModuleId; }}");
+            sw.WriteLine($"    virtual const char * GetName() const override {{ return ModuleName; }}");
+            sw.WriteLine($"    virtual const char * GetFullName() const override {{ return ModuleFullName; }}");
             // declare enums
             GenEnums(sw);
             GenAbstractProtocolHandles(sw);
             ModuleGen(sw);
-            sw.WriteLine("}");
+            sw.WriteLine("};");
+            foreach (var path in paths)
+            {
+                sw.WriteLine("}");
+            }
         }
 
         List<Protocol> GetProcessProtocols()
@@ -426,16 +396,19 @@ namespace Zeze.Gen.cxx
             if (module.ReferenceService != null)
             {
                 int serviceHandleFlags = module.ReferenceService.HandleFlags;
+                var projectFlags = Program.HandleCSharpFlags;
+                if (project.ClientScript)
+                    projectFlags |= Program.HandleScriptClientFlag;
                 foreach (Protocol p in module.Protocols.Values)
                 {
                     if (p is Rpc rpc)
                     {
-                        if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
+                        if ((rpc.HandleFlags & serviceHandleFlags & projectFlags) != 0)
                             result.Add(rpc);
                     }
                     else
                     {
-                        if ((p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
+                        if ((p.HandleFlags & serviceHandleFlags & projectFlags) != 0)
                             result.Add(p);
                     }
                 }

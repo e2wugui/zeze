@@ -15,7 +15,7 @@ namespace Zeze.Gen.cxx
         {
             return s.Base.Length > 0 ? s.Base : "Zeze::Net::ToLuaService";
         }
- 
+
         public void MakeCxx()
         {
             string projectBasedir = Project.GenDir;
@@ -38,6 +38,10 @@ namespace Zeze.Gen.cxx
                     new RpcFormatter(rpc).Make(genDir);
                 else
                     new ProtocolFormatter(protocol).Make(genDir);
+            }
+            foreach (Module mod in Project.AllOrderDefineModules)
+            {
+                new ModuleFormatter(Project, mod, genDir, srcDir).Make();
             }
         }
 

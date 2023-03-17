@@ -16,6 +16,9 @@
     <Filter Include="cxx">
       <UniqueIdentifier>{67393ae4-e788-440e-8267-4f57a7e2f576}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Modules">
+      <UniqueIdentifier>{e12642bc-d82a-4b2f-be35-b026d7908ba7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="gen\demo\App.h">
@@ -152,6 +155,21 @@
     </ClInclude>
     <ClInclude Include="Gen\demo\Module1\Rpc2.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cxx\ResultCode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cxx\TaskCompletionSource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Gen\demo\Module1\AbstractModule.hpp">
+      <Filter>Header Files\Modules</Filter>
+    </ClInclude>
+    <ClInclude Include="demo\Module1\ModuleModule1.h">
+      <Filter>Header Files\Modules</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cxx\IModule.h">
+      <Filter>cxx</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

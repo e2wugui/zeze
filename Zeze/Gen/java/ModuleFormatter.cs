@@ -459,19 +459,6 @@ namespace Zeze.Gen.java
             sw.WriteLine("    }");
         }
 
-        public void MakePartialImplement()
-        {
-            using StreamWriter sw = module.OpenWriter(srcDir, $"Module{moduleName}.java", false);
-
-            if (sw == null)
-                return;
-
-            sw.WriteLine("package " + module.Path() + ";");
-            sw.WriteLine();
-            sw.WriteLine($"public class Module{moduleName} extends AbstractModule{moduleName} {{");
-            sw.WriteLine("}");
-        }
-
         public void GenEnums(StreamWriter sw)
         {
             if (module.Enums.Count > 0)

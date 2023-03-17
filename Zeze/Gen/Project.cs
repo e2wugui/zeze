@@ -20,6 +20,7 @@ namespace Zeze.Gen
         public HashSet<string> GenTables { get; set; } = new HashSet<string>();
         public SortedDictionary<string, Service> Services { get; private set; } = new SortedDictionary<string, Service>();
         public bool EnableBase { get; private set; } = false;
+        public bool ClientScript { get; private set; } = false;
 
         // setup when compile
         public List<Module> Modules { get; private set; }
@@ -93,6 +94,7 @@ namespace Zeze.Gen
             EnableBase = self.GetAttribute("EnableBase").Equals("true");
             NoRecursiveModule = self.GetAttribute("NoRecursiveModule").Equals("true");
             //Program.AddNamedObject(FullName, this);
+            ClientScript = self.GetAttribute("ClientScript").Equals("true");
 
             Self = self; // 保存，在编译的时候使用。
 

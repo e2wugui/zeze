@@ -138,6 +138,7 @@
     <ClInclude Include="..\cxx\Compare.h" />
     <ClInclude Include="..\cxx\dh.h" />
     <ClInclude Include="..\cxx\IDecodeAndDispatcher.h" />
+    <ClInclude Include="..\cxx\IModule.h" />
     <ClInclude Include="..\cxx\Net.h" />
     <ClInclude Include="..\cxx\octets.h" />
     <ClInclude Include="..\cxx\osdefine.h" />
@@ -151,11 +152,13 @@
     <ClInclude Include="..\cxx\utils.h" />
     <ClInclude Include="..\cxx\Vector.h" />
     <ClInclude Include="demo\Client.h" />
+    <ClInclude Include="demo\Module1\ModuleModule1.h" />
     <ClInclude Include="gen\demo\App.h" />
     <ClInclude Include="gen\demo\Bean1.hpp" />
     <ClInclude Include="Gen\demo\ClientBase.hpp" />
     <ClInclude Include="gen\demo\m6\B67.hpp" />
     <ClInclude Include="gen\demo\m6\m7\B67.hpp" />
+    <ClInclude Include="Gen\demo\Module1\AbstractModule.hpp" />
     <ClInclude Include="Gen\demo\Module1\AutoKey.hpp" />
     <ClInclude Include="gen\demo\module1\BAutoValue.hpp" />
     <ClInclude Include="gen\demo\module1\BFood.hpp" />
