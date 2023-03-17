@@ -70,8 +70,8 @@ public class App extends Zeze.AppBase {
 		createService();
 		var provider = new ProviderWithOnline();
 		new ProviderApp(Zeze, provider,
-				new ProviderService("ProviderServer", Zeze), "DemoApp#", new ProviderDirectWithTransmit(),
-				new ProviderDirectService("ProviderServerDirect", Zeze), "DemoLinkd", new LoadConfig());
+				new ProviderService("Server", Zeze), "DemoApp#", new ProviderDirectWithTransmit(),
+				new ProviderDirectService("ServerDirect", Zeze), "DemoLinkd", new LoadConfig());
 		provider.create(this);
 		createModules();
 		LinkedMapModule = new LinkedMap.Module(Zeze);
@@ -110,7 +110,7 @@ public class App extends Zeze.AppBase {
     public Zeze.Application Zeze;
     public final java.util.HashMap<String, Zeze.IModule> modules = new java.util.HashMap<>();
 
-    public demo.Server Server;
+    public demo.TestServer TestServer;
 
     public demo.Module1.ModuleModule1 demo_Module1;
     public demo.Module1.Module11.ModuleModule11 demo_Module1_Module11;
@@ -135,7 +135,7 @@ public class App extends Zeze.AppBase {
     }
 
     public synchronized void createService() {
-        Server = new demo.Server(Zeze);
+        TestServer = new demo.TestServer(Zeze);
     }
 
     public synchronized void createModules() {
@@ -188,7 +188,7 @@ public class App extends Zeze.AppBase {
     }
 
     public synchronized void destroyServices() {
-        Server = null;
+        TestServer = null;
     }
 
     public synchronized void destroyZeze() {
@@ -217,12 +217,12 @@ public class App extends Zeze.AppBase {
     }
 
     public synchronized void startService() throws Exception {
-        Server.start();
+        TestServer.start();
     }
 
     public synchronized void stopService() throws Exception {
-        if (Server != null)
-            Server.stop();
+        if (TestServer != null)
+            TestServer.stop();
     }
 	// ZEZE_FILE_CHUNK }}} GEN APP @formatter:on
 }
