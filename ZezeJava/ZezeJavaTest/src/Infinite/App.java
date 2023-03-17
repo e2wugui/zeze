@@ -35,6 +35,8 @@ public class App {
 		// 减少容量，实际使用记录数要超过一些。让TableCache.Cleanup能并发起来。
 		tflush.setCacheCapacity(Tasks.tflushInt1Trade.CacheCapacity);
 		tflush.setCacheFactor(1.0f);
+
+		config.getServiceConfMap().remove("TestServer");
 	}
 
 	public int getServerId() {

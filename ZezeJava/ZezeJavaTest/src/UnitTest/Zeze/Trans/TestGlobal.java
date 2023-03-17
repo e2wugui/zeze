@@ -67,6 +67,8 @@ public class TestGlobal extends TestCase {
 		var config1 = Config.load("zeze.xml");
 		var config2 = Config.load("zeze.xml");
 		config2.setServerId(config1.getServerId() + 1);
+		config1.getServiceConfMap().remove("TestServer");
+		config2.getServiceConfMap().remove("TestServer");
 
 		app1.Start(config1);
 		app2.Start(config2);

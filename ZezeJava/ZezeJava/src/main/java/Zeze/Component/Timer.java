@@ -71,8 +71,9 @@ public class Timer extends AbstractTimer {
 	public void loadCustomClassAnd() {
 		nodeIdAutoKey = zeze.getAutoKey("Zeze.Component.Timer.NodeId");
 		timerIdAutoKey = zeze.getAutoKey("Zeze.Component.Timer.TimerId");
-		if (0 != zeze.newProcedure(this::loadCustomClass, "loadCustomClass").call())
-			throw new IllegalStateException("loadCustomClassAnd Fail.");
+		var r = zeze.newProcedure(this::loadCustomClass, "loadCustomClass").call();
+		if (r != 0)
+			throw new IllegalStateException("loadCustomClassAnd Fail: " + r);
 	}
 
 	/**
