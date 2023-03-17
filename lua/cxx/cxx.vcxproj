@@ -218,16 +218,19 @@
     <ClInclude Include="..\..\cxx\Compare.h" />
     <ClInclude Include="..\..\cxx\dh.h" />
     <ClInclude Include="..\..\cxx\IDecodeAndDispatcher.h" />
+    <ClInclude Include="..\..\cxx\IModule.h" />
     <ClInclude Include="..\..\cxx\luaheader.h" />
     <ClInclude Include="..\..\cxx\LuaHelper.h" />
     <ClInclude Include="..\..\cxx\Net.h" />
     <ClInclude Include="..\..\cxx\octets.h" />
     <ClInclude Include="..\..\cxx\osdefine.h" />
     <ClInclude Include="..\..\cxx\Protocol.h" />
+    <ClInclude Include="..\..\cxx\ResultCode.h" />
     <ClInclude Include="..\..\cxx\rfc2118.h" />
     <ClInclude Include="..\..\cxx\Rpc.h" />
     <ClInclude Include="..\..\cxx\security.h" />
     <ClInclude Include="..\..\cxx\Serializable.h" />
+    <ClInclude Include="..\..\cxx\TaskCompletionSource.h" />
     <ClInclude Include="..\..\cxx\ToLua.h" />
     <ClInclude Include="..\..\cxx\ToLuaService.h" />
     <ClInclude Include="..\..\cxx\ToTypeScriptService.h" />
@@ -261,9 +264,6 @@
     <ClInclude Include="lua-5.4.1\src\lundump.h" />
     <ClInclude Include="lua-5.4.1\src\lvm.h" />
     <ClInclude Include="lua-5.4.1\src\lzio.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="..\..\cxx\ReadMe.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

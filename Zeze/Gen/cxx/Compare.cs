@@ -23,10 +23,10 @@ namespace Zeze.Gen.cxx
             sw.WriteLine(prefix + "    return _c_;");
             sw.WriteLine(prefix + "}");
 			sw.WriteLine();
-            sw.WriteLine($"{prefix}bool operator < (const {bean.Name}& _o_) const {{");
+            sw.WriteLine($"{prefix}bool operator<(const {bean.Name}& _o_) const {{");
             sw.WriteLine($"{prefix}    return CompareTo(_o_) < 0;");
             sw.WriteLine($"{prefix}}}");
-            sw.WriteLine();
+            // sw.WriteLine();
         }
 
         readonly Variable variable;

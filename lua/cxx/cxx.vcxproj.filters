@@ -314,10 +314,14 @@
     <ClInclude Include="..\..\cxx\Rpc.h">
       <Filter>ZezeCxx</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="..\..\cxx\ReadMe.txt">
+    <ClInclude Include="..\..\cxx\IModule.h">
       <Filter>ZezeCxx</Filter>
-    </Text>
+    </ClInclude>
+    <ClInclude Include="..\..\cxx\ResultCode.h">
+      <Filter>ZezeCxx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\cxx\TaskCompletionSource.h">
+      <Filter>ZezeCxx</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

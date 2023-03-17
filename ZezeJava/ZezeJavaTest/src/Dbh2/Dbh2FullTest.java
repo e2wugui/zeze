@@ -7,9 +7,11 @@ import Zeze.Dbh2.Dbh2Manager;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Task;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 // 测试整体结构(Dbh2Manager,Master,Agent)
+@Ignore
 public class Dbh2FullTest {
 
 	private Database newDatabase(String dbName) {

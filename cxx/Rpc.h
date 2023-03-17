@@ -96,7 +96,7 @@ namespace Zeze
 					guard.release();
 			}
 			
-			TaskCompletionSource<bool>* SendForWait(Socket * so, int millisecondsTimeout = 5000)
+			TaskCompletionSource<bool>* SendForWait(Socket* so, int millisecondsTimeout = 5000)
 			{
 				Future.reset(new TaskCompletionSource<bool>());
 				if (!Send(so, nullptr, millisecondsTimeout))

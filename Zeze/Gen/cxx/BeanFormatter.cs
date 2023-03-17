@@ -19,9 +19,6 @@ namespace Zeze.Gen.cxx
             using StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + ".hpp");
             sw.WriteLine("#pragma once");
             sw.WriteLine();
-            sw.WriteLine("#include <cstdint>");
-            sw.WriteLine("#include <string>");
-            sw.WriteLine("#include \"zeze/cxx/ByteBuffer.h\"");
             sw.WriteLine("#include \"zeze/cxx/Bean.h\"");
             var includes = new HashSet<Type>();
             bean.DependsVariables(includes);

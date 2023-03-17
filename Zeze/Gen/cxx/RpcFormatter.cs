@@ -17,9 +17,6 @@ namespace Zeze.Gen.cxx
             sw.WriteLine("#pragma once");
             sw.WriteLine();
             sw.WriteLine("#include \"zeze/cxx/Rpc.h\"");
-            sw.WriteLine("#include \"zeze/cxx/ByteBuffer.h\"");
-            sw.WriteLine();
-
             if (rpc.ArgumentType != null)
             {
                 var argBean = (Types.Bean)rpc.ArgumentType;
@@ -30,8 +27,8 @@ namespace Zeze.Gen.cxx
                 var argBean = (Types.Bean)rpc.ResultType;
                 sw.WriteLine($"#include \"Gen/{argBean.Space.Path("/", argBean.Name + ".hpp")}\"");
             }
-
             sw.WriteLine();
+
             var paths = rpc.Space.Paths();
             foreach (var path in paths)
             {
@@ -60,12 +57,11 @@ namespace Zeze.Gen.cxx
             sw.WriteLine("    int64_t TypeId() const {");
             sw.WriteLine("        return TypeId_;");
             sw.WriteLine("    }");
-            sw.WriteLine();
             // declare enums
-            foreach (Types.Enum e in rpc.Enums)
-                sw.WriteLine($"    static const {TypeName.GetName(Types.Type.Compile(e.Type))} " + e.Name + " = " + e.Value + ";" + e.Comment);
             if (rpc.Enums.Count > 0)
                 sw.WriteLine();
+            foreach (Types.Enum e in rpc.Enums)
+                sw.WriteLine($"    static const {TypeName.GetName(Types.Type.Compile(e.Type))} " + e.Name + " = " + e.Value + ";" + e.Comment);
             sw.WriteLine("};");
             foreach (var path in paths)
             {

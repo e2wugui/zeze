@@ -347,13 +347,14 @@ namespace Zeze.Gen.cxx
             using StreamWriter swcpp = module.OpenWriter(genDir, "AbstractModule.cpp");
             swcpp.WriteLine($"#include \"AbstractModule.hpp\"");
             swcpp.WriteLine($"#include \"Gen/{project.Solution.Name}/App.h\"");
+            swcpp.WriteLine();
             var paths = module.Paths();
             foreach (var path in paths)
             {
                 swcpp.WriteLine($"namespace {path} {{");
             }
-            swcpp.WriteLine($"    const char * AbstractModule::ModuleName = \"{moduleName}\";");
-            swcpp.WriteLine($"    const char * AbstractModule::ModuleFullName = \"{module.Path()}\";");
+            swcpp.WriteLine($"    const char* AbstractModule::ModuleName = \"{moduleName}\";");
+            swcpp.WriteLine($"    const char* AbstractModule::ModuleFullName = \"{module.Path()}\";");
             swcpp.WriteLine();
             swcpp.WriteLine($"    AbstractModule::AbstractModule({project.Solution.Name}::App* app)");
             swcpp.WriteLine("    {");
@@ -394,12 +395,12 @@ namespace Zeze.Gen.cxx
             sw.WriteLine($"class AbstractModule {classBase} : public Zeze::IModule {{");
             sw.WriteLine($"public:");
             sw.WriteLine($"    static const int ModuleId = {module.Id};");
-            sw.WriteLine($"    static const char * ModuleName;");
-            sw.WriteLine($"    static const char * ModuleFullName;");
+            sw.WriteLine($"    static const char* ModuleName;");
+            sw.WriteLine($"    static const char* ModuleFullName;");
             sw.WriteLine();
             sw.WriteLine($"    virtual int GetId() const override {{ return ModuleId; }}");
-            sw.WriteLine($"    virtual const char * GetName() const override {{ return ModuleName; }}");
-            sw.WriteLine($"    virtual const char * GetFullName() const override {{ return ModuleFullName; }}");
+            sw.WriteLine($"    virtual const char* GetName() const override {{ return ModuleName; }}");
+            sw.WriteLine($"    virtual const char* GetFullName() const override {{ return ModuleFullName; }}");
             // declare enums
             GenEnums(sw);
             GenAbstractProtocolHandles(sw);

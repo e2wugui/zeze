@@ -17,8 +17,6 @@ namespace Zeze.Gen.cxx
             sw.WriteLine("#pragma once");
             sw.WriteLine();
             sw.WriteLine("#include \"zeze/cxx/Protocol.h\"");
-            sw.WriteLine("#include \"zeze/cxx/ByteBuffer.h\"");
-            sw.WriteLine();
             if (p.ArgumentType != null)
             {
                 var argBean = (Types.Bean)p.ArgumentType;
@@ -51,15 +49,14 @@ namespace Zeze.Gen.cxx
             sw.WriteLine("    int64_t TypeId() const {");
             sw.WriteLine("        return TypeId_;");
             sw.WriteLine("    }");
-            sw.WriteLine();
             // declare enums
-            foreach (Types.Enum e in p.Enums)
-            {
-                sw.WriteLine($"    static const {TypeName.GetName(Types.Type.Compile(e.Type))} " + e.Name + " = " + e.Value + ";" + e.Comment);
-            }
             if (p.Enums.Count > 0)
             {
                 sw.WriteLine();
+            }
+            foreach (Types.Enum e in p.Enums)
+            {
+                sw.WriteLine($"    static const {TypeName.GetName(Types.Type.Compile(e.Type))} " + e.Name + " = " + e.Value + ";" + e.Comment);
             }
             sw.WriteLine("};");
             foreach (var path in paths)

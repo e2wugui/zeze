@@ -19,9 +19,6 @@ namespace Zeze.Gen.cxx
 
             sw.WriteLine("#pragma once");
             sw.WriteLine();
-            sw.WriteLine("#include <cstdint>");
-            sw.WriteLine("#include <string>");
-            sw.WriteLine("#include \"zeze/cxx/ByteBuffer.h\"");
             sw.WriteLine("#include \"zeze/cxx/Bean.h\"");
             var includes = new HashSet<Type>();
             beanKey.DependsVariables(includes);

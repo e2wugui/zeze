@@ -442,7 +442,7 @@ public class Online extends AbstractOnline {
 	}
 
 	public void send(Collection<Long> roleIds, Protocol<?> p) {
-		if (roleIds.size() <= 0)
+		if (roleIds.isEmpty())
 			return;
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
@@ -492,9 +492,11 @@ public class Online extends AbstractOnline {
 
 	public void send(Collection<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
 		int roleCount = roleIds.size();
-		if (roleCount == 1)
-			sendDirect(roleIds.iterator().next(), typeId, fullEncodedProtocol);
-		else if (roleCount > 1) {
+		if (roleCount == 1) {
+			var it = roleIds.iterator();
+			if (it.hasNext()) // 不确定roleIds是否稳定,所以还是判断一下保险
+				sendDirect(it.next(), typeId, fullEncodedProtocol);
+		} else if (roleCount > 1) {
 			sendDirect(roleIds, typeId, fullEncodedProtocol);
 //			providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(roleIds, providerApp.zeze.newProcedure(() -> {
 //				sendEmbed(roleIds, typeId, fullEncodedProtocol);
@@ -574,7 +576,7 @@ public class Online extends AbstractOnline {
 	public void sendDirect(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
 		var roleIdSet = new LongHashSet();
 		for (var roleId : roleIds)
-			roleIdSet.add(roleId);
+			roleIdSet.add(roleId); // 去重
 		if (roleIdSet.isEmpty())
 			return;
 		var groups = new HashMap<String, LinkRoles>();
@@ -597,7 +599,7 @@ public class Online extends AbstractOnline {
 				logger.warn("sendDirect: not isHandshakeDone for linkName={} roleId={}", linkName, roleId);
 				continue;
 			}
-			// 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
+			// 后面保存connector.socket并使用，如果之后连接被关闭，以后发送协议失败。
 			var group = groups.get(linkName);
 			if (group == null) {
 				var linkSocket = connector.getSocket();
@@ -616,8 +618,8 @@ public class Online extends AbstractOnline {
 				var errorSids = send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids();
 				errorSids.foreach(linkSid -> providerApp.zeze.newProcedure(() -> {
 					int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
-					return idx >= 0 ? linkBroken("", group.roleIds.get(idx),
-							ProviderService.getLinkName(group.linkSocket), linkSid) : 0; // 补发的linkBroken没有account上下文
+					return idx >= 0 ? linkBroken("", group.roleIds.get(idx), // 补发的linkBroken没有account上下文
+							ProviderService.getLinkName(group.linkSocket), linkSid) : 0;
 				}, "triggerLinkBroken").call());
 				return Procedure.Success;
 			});
@@ -642,7 +644,7 @@ public class Online extends AbstractOnline {
 			logger.warn("sendDirect: not isHandshakeDone for linkName={} roleId={}", linkName, roleId);
 			return;
 		}
-		// 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
+		// 后面保存connector.socket并使用，如果之后连接被关闭，以后发送协议失败。
 		var linkSocket = connector.getSocket();
 		if (linkSocket == null) {
 			logger.warn("sendDirect: closed connector for linkName={} roleId={}", linkName, roleId);
@@ -653,9 +655,8 @@ public class Online extends AbstractOnline {
 		send.Send(linkSocket, rpc -> {
 			if (send.isTimeout() || !send.Result.getErrorLinkSids().isEmpty()) {
 				var linkSid = send.Argument.getLinkSids().get(0);
-				providerApp.zeze.newProcedure(() -> {
-					return linkBroken("", roleId, linkName, linkSid); // 补发的linkBroken没有account上下文
-				}, "triggerLinkBroken").call();
+				providerApp.zeze.newProcedure(() -> linkBroken("", roleId, linkName, linkSid), // 补发的linkBroken没有account上下文
+						"triggerLinkBroken").call();
 			}
 			return Procedure.Success;
 		});
