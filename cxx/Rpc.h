@@ -183,6 +183,8 @@ namespace Zeze
 					context->Future->SetResult(true); // SendForWait，设置结果唤醒等待者。
 				else if (context->ResponseHandle)
 					service->DispatchRpcResponse(context, context->ResponseHandle, factoryHandle);
+				else
+					delete context; // 没有结果处理流程的context可以删除了。
 			}
 		};
 	}

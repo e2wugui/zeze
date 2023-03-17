@@ -139,7 +139,6 @@ namespace Net
 	};
 
 	Service::Service()
-		: socket(nullptr)
 	{
 		SeedRpcContexts = 0;
 		autoReconnect = false;
@@ -151,6 +150,8 @@ namespace Net
 		SHandshake0 sHandshake0;
 		AddProtocolFactory(sHandshake0.TypeId(), Zeze::Net::Service::ProtocolFactoryHandle(
 			[]() { return new SHandshake0(); }, std::bind(&Service::ProcessSHandshake0, this, std::placeholders::_1)));
+		handshakeProtocols.insert(sHandshake.TypeId());
+		handshakeProtocols.insert(sHandshake0.TypeId());
 	}
 
 	/*

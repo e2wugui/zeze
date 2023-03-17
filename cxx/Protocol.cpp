@@ -57,7 +57,15 @@ namespace Zeze
 					std::auto_ptr<Protocol> p(factoryHandle.Factory());
 					p->Decode(pbb);
 					p->Sender = sender;
-					p.release()->Dispatch(service, factoryHandle);
+
+					if (service->IsHandshakeProtocol(type))
+					{
+						factoryHandle.Handle(p.get());
+					}
+					else
+					{
+						p.release()->Dispatch(service, factoryHandle);
+					}
 					continue;
 				}
 				// 优先派发c++实现，然后尝试lua实现，最后UnknownProtocol。

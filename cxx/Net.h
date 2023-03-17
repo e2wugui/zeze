@@ -6,10 +6,11 @@
 #include <string>
 #include <functional>
 #include <unordered_map>
-
+#include <cstdint>
 #include "ByteBuffer.h"
 #include "dh.h"
 #include "codec.h"
+#include <unordered_set>
 
 namespace Zeze
 {
@@ -77,6 +78,7 @@ namespace Net
 		int lastPort;
 		bool autoReconnect;
 		int autoReconnectDelay;
+		std::unordered_set<int64_t> handshakeProtocols; // 构造的时候初始化，不需要线程保护。
 
 	public:
 		std::shared_ptr<Socket> socket;
@@ -91,6 +93,10 @@ namespace Net
 			return std::shared_ptr<Socket>(nullptr);
 		}
 		void Connect(const std::string& host, int port, int timeoutSecondsPerConnect = 5);
+		bool IsHandshakeProtocol(int64_t typeId) const
+		{
+			return handshakeProtocols.find(typeId) != handshakeProtocols.end();
+		}
 
 		///////////////////////////////////
 		// for ToLua interface
