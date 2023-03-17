@@ -16,8 +16,6 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.KV;
 import Zeze.Util.TaskCompletionSource;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public class Dbh2Agent extends AbstractDbh2Agent {
 //	private static final Logger logger = LogManager.getLogger(Dbh2Agent.class);

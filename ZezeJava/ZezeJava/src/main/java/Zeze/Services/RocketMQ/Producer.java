@@ -4,8 +4,6 @@ import Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResult;
 import Zeze.Util.FuncLong;
 import Zeze.Util.OutInt;
 import Zeze.Util.Task;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -16,8 +14,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 
 public class Producer extends AbstractProducer {
-
-	private static final Logger logger = LogManager.getLogger(Producer.class);
+//	private static final Logger logger = LogManager.getLogger(Producer.class);
 	public final Zeze.Application zeze;
 	private TransactionMQProducer producer;
 
@@ -67,7 +64,6 @@ public class Producer extends AbstractProducer {
 	class MQListener implements org.apache.rocketmq.client.producer.TransactionListener {
 		@Override
 		public LocalTransactionState executeLocalTransaction(Message msg, Object procedureObj) {
-			@SuppressWarnings("unchecked")
 			var procedureAction = (FuncLong)procedureObj;
 			var ret = Task.call(zeze.newProcedure(() -> {
 				String transactionId = msg.getTransactionId();

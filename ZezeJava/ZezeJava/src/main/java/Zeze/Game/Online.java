@@ -1206,7 +1206,6 @@ public class Online extends AbstractOnline {
 
 		session.sendResponseWhileCommit(rpc); // 同步前提交。
 
-		//noinspection ConstantConditions
 		var syncResultCode = reliableNotifySync(session.getRoleId(), session,
 				rpc.Argument.getReliableNotifyConfirmIndex(), rpc.Argument.isSync());
 		if (syncResultCode != ResultCodeSuccess)
