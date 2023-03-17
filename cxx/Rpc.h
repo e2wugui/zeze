@@ -179,7 +179,7 @@ namespace Zeze
 				context->IsTimeout = false; // not need
 				context->IsRequest = false;
 
-				if (context->Future.get() != nullptr)
+				if (context->Future != nullptr)
 					context->Future->SetResult(true); // SendForWait，设置结果唤醒等待者。
 				else if (context->ResponseHandle)
 					service->DispatchRpcResponse(context, context->ResponseHandle, factoryHandle);

@@ -147,9 +147,6 @@
     <ClInclude Include="Gen\demo\Module1\ProtocolUseData.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\Rpc.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Gen\demo\Module1\Rpc1.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -169,6 +166,9 @@
       <Filter>Header Files\Modules</Filter>
     </ClInclude>
     <ClInclude Include="..\cxx\IModule.h">
+      <Filter>cxx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cxx\Rpc.h">
       <Filter>cxx</Filter>
     </ClInclude>
   </ItemGroup>
@@ -208,6 +208,9 @@
     </ClCompile>
     <ClCompile Include="..\cxx\Vector.cpp">
       <Filter>cxx</Filter>
+    </ClCompile>
+    <ClCompile Include="Gen\demo\Module1\AbstractModule.cpp">
+      <Filter>Header Files\Modules</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

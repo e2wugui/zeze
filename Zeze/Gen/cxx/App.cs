@@ -19,85 +19,55 @@ namespace Zeze.Gen.cxx
 
         public void Make()
         {
-            FileChunkGen fcg = new();
-            string fullDir = project.Solution.GetFullPath(srcDir);
-            string fullFileName = Path.Combine(fullDir, $"App.java");
-            if (fcg.LoadFile(fullFileName))
-            {
-                fcg.SaveFile(fullFileName, GenChunkByName);
-                return;
-            }
-            // new file
-            FileSystem.CreateDirectory(fullDir);
-            using StreamWriter sw = Program.OpenStreamWriter(fullFileName);
+            using StreamWriter sw = project.Solution.OpenWriter(genDir, "App.h");
 
-            sw.WriteLine("package " + project.Solution.Path() + ";");
+            sw.WriteLine("#pragma once");
             sw.WriteLine();
-            // sw.WriteLine(fcg.ChunkStartTag + " " + ChunkNameImport + " @formatter:off");
-            // ImportGen(sw);
-            // sw.WriteLine(fcg.ChunkEndTag + " " + ChunkNameImport + " @formatter:on");
-            // sw.WriteLine();
-            sw.WriteLine("public class App extends Zeze.AppBase {");
-            sw.WriteLine("    public static App Instance = new App();");
-            sw.WriteLine("    public static App getInstance() {");
-            sw.WriteLine("        return Instance;");
+            foreach (Module m in project.AllOrderDefineModules)
+            {
+                sw.WriteLine($"#include \"{m.Path("/", "Module" + Program.Upper1(m.Name) + ".h")}\"");;
+            }
+            foreach (Service m in project.Services.Values)
+            {
+                sw.WriteLine($"#include \"{project.Solution.Name}/{m.Name}.h\"");
+            }
+            sw.WriteLine();
+            sw.WriteLine($"namespace {project.Solution.Name} {{");
+            sw.WriteLine();
+            sw.WriteLine("class App {");
+            sw.WriteLine("public:");
+            sw.WriteLine("    static App& GetInstance()");
+            sw.WriteLine("    {");
+            sw.WriteLine("        static App staticInstance;");
+            sw.WriteLine("        return staticInstance;");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public void Start() throws Exception {");
-            sw.WriteLine("        createZeze();");
-            sw.WriteLine("        createService();");
-            sw.WriteLine("        createModules();");
-            sw.WriteLine("        Zeze.start(); // 启动数据库");
-            sw.WriteLine("        startModules(); // 启动模块，装载配置什么的。");
-            sw.WriteLine("        startService(); // 启动网络");
+            sw.WriteLine("    void Start() {");
+            sw.WriteLine("        CreateService();");
+            sw.WriteLine("        CreateModules();");
+            sw.WriteLine("        StartModules(); // 启动模块，装载配置什么的。");
+            sw.WriteLine("        StartService(); // 启动网络");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public void Stop() throws Exception {");
-            sw.WriteLine("        stopService(); // 关闭网络");
-            sw.WriteLine("        stopModules(); // 关闭模块，卸载配置什么的。");
-            sw.WriteLine("        Zeze.stop(); // 关闭数据库");
-            sw.WriteLine("        destroyModules();");
-            sw.WriteLine("        destroyServices();");
-            sw.WriteLine("        destroyZeze();");
+            sw.WriteLine("    void Stop() {");
+            sw.WriteLine("        StopService(); // 关闭网络");
+            sw.WriteLine("        StopModules(); // 关闭模块，卸载配置什么的。");
+            sw.WriteLine("        DestroyModules();");
+            sw.WriteLine("        DestroyServices();");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    " + fcg.ChunkStartTag + " " + ChunkNameAppGen + " @formatter:off");
             AppGen(sw);
-            sw.WriteLine("    " + fcg.ChunkEndTag + " " + ChunkNameAppGen + " @formatter:on");
+            sw.WriteLine("};");
             sw.WriteLine("}");
-        }
-
-        const string ChunkNameAppGen = "GEN APP";
-        const string ChunkNameImport = "IMPORT GEN";
-
-        void GenChunkByName(StreamWriter writer, FileChunkGen.Chunk chunk)
-        {
-            switch (chunk.Name)
-            {
-                case ChunkNameAppGen:
-                    AppGen(writer);
-                    break;
-                case ChunkNameImport:
-                    ImportGen(writer);
-                    break;
-                default:
-                    throw new Exception("unknown Chunk.Name=" + chunk.Name);
-            }
-        }
-
-        void ImportGen(StreamWriter sw)
-        {
-            // sw.WriteLine("import java.util.*;");
         }
 
         void AppGen(StreamWriter sw)
         {
-            sw.WriteLine("    public Zeze.Application Zeze;");
-            sw.WriteLine("    public final java.util.HashMap<String, Zeze.IModule> modules = new java.util.HashMap<>();");
-            sw.WriteLine();
+            //sw.WriteLine("    std::unordered_map<std::string, Zeze::IModule> modules;");
+            //sw.WriteLine();
 
             foreach (Service m in project.Services.Values)
-                sw.WriteLine("    public " + m.FullName + " " + m.Name + ";");
+                sw.WriteLine($"    std::unique_ptr<{project.Solution.Name}::{m.Name}> " + m.Name + ";");
             if (project.Services.Count > 0)
                 sw.WriteLine();
 
@@ -105,118 +75,86 @@ namespace Zeze.Gen.cxx
             {
                 string moduleName = Program.Upper1(m.Name);
                 var fullname = m.Path("_");
-                sw.WriteLine($"    public {m.Path(".", $"Module{moduleName}")} {fullname};");
+                sw.WriteLine($"    std::unique_ptr<{m.Path("::", $"Module{moduleName}")}> {fullname};");
             }
             if (project.AllOrderDefineModules.Count > 0)
                 sw.WriteLine();
 
-            sw.WriteLine("    @Override");
-            sw.WriteLine("    public Zeze.Application getZeze() {");
-            sw.WriteLine("        return Zeze;");
-            sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    public void createZeze() throws Exception {");
-            sw.WriteLine("        createZeze(null);");
-            sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    public synchronized void createZeze(Zeze.Config config) throws Exception {");
-            sw.WriteLine("        if (Zeze != null)");
-            sw.WriteLine("            throw new RuntimeException(\"Zeze Has Created!\");");
-            sw.WriteLine();
-            sw.WriteLine($"        Zeze = new Zeze.Application(\"{project.Name}\", config);");
-            sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    public synchronized void createService() {");
+            sw.WriteLine("    void CreateService() {");
             foreach (Service m in project.Services.Values)
-                sw.WriteLine("        " + m.Name + " = new " + m.FullName + "(Zeze);");
+                sw.WriteLine($"        {m.Name}.reset(new {project.Solution.Name}::{m.Name}());");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void createModules() {");
-            sw.WriteLine("        Zeze.initialize(this);");
+            sw.WriteLine("    void CreateModules() {");
             if (project.AllOrderDefineModules.Count > 0)
             {
-                sw.WriteLine("        var _modules_ = createRedirectModules(new Class[] {");
-                foreach (Module m in project.AllOrderDefineModules)
-                    sw.WriteLine("            " + m.Path(".", "Module" + Program.Upper1(m.Name)) + ".class,");
-                sw.WriteLine("        });");
-                sw.WriteLine("        if (_modules_ == null)");
-                sw.WriteLine("            return;");
-                sw.WriteLine();
-                int index = 0;
                 foreach (Module m in project.AllOrderDefineModules)
                 {
-                    string className = m.Path(".", "Module" + Program.Upper1(m.Name));
+                    string className = m.Path("::", "Module" + Program.Upper1(m.Name));
                     var fullname = m.Path("_");
-                    sw.WriteLine($"        {fullname} = ({className})_modules_[" + index + "];");
-                    sw.WriteLine($"        {fullname}.Initialize(this);");
-                    sw.WriteLine($"        if (modules.put({fullname}.getFullName(), {fullname}) != null)");
-                    sw.WriteLine($"            throw new RuntimeException(\"duplicate module name: {fullname}\");");
-                    sw.WriteLine();
-                    index++;
+                    sw.WriteLine($"        {fullname}.reset(new {className}(this));");
                 }
             }
-            sw.WriteLine("        Zeze.setSchemas(new " + project.Solution.Path(".", "Schemas") + "());");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void destroyModules() {");
+            sw.WriteLine("    void DestroyModules() {");
             for (int i = project.AllOrderDefineModules.Count - 1; i >= 0; --i)
             {
                 var m = project.AllOrderDefineModules[i];
                 var fullname = m.Path("_");
-                sw.WriteLine("        " + fullname + " = null;");
+                sw.WriteLine("        " + fullname + ".reset(nullptr);");
             }
-            sw.WriteLine("        modules.clear();");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void destroyServices() {");
+            sw.WriteLine("    void DestroyServices() {");
             foreach (Service m in project.Services.Values)
-                sw.WriteLine("        " + m.Name + " = null;");
+                sw.WriteLine("        " + m.Name + ".reset(nullptr);");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void destroyZeze() {");
-            sw.WriteLine("        Zeze = null;");
-            sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    public synchronized void startModules() throws Exception {");
+            sw.WriteLine("    void StartModules() {");
             foreach (var m in project.ModuleStartOrder)
-                sw.WriteLine("        " + m.Path("_") + ".Start(this);");
+                sw.WriteLine("        " + m.Path("_") + "->Start();");
             foreach (Module m in project.AllOrderDefineModules)
             {
                 if (!project.ModuleStartOrder.Contains(m))
-                    sw.WriteLine("        " + m.Path("_") + ".Start(this);");
+                    sw.WriteLine("        " + m.Path("_") + "->Start();");
             }
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void stopModules() throws Exception {");
+            sw.WriteLine("    void StopModules() {");
             for (int i = project.AllOrderDefineModules.Count - 1; i >= 0; --i)
             {
                 var m = project.AllOrderDefineModules[i];
                 if (!project.ModuleStartOrder.Contains(m))
                 {
                     var name = m.Path("_");
-                    sw.WriteLine("        if (" + name + " != null)");
-                    sw.WriteLine("            " + name + ".Stop(this);");
+                    sw.WriteLine("        if (" + name + " != nullptr)");
+                    sw.WriteLine("            " + name + "->Stop();");
                 }
             }
             for (int i = project.ModuleStartOrder.Count - 1; i >= 0; --i)
             {
                 var name = project.ModuleStartOrder[i].Path("_");
-                sw.WriteLine("        if (" + name + " != null)");
-                sw.WriteLine("            " + name + ".Stop(this);");
+                sw.WriteLine("        if (" + name + " != nullptr)");
+                sw.WriteLine("            " + name + "->Stop();");
             }
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void startService() throws Exception {");
+            sw.WriteLine("    void StartService() {");
+            /*
             foreach (Service m in project.Services.Values)
                 sw.WriteLine("        " + m.Name + ".start();");
+            */
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void stopService() throws Exception {");
+            sw.WriteLine("    void StopService() {");
+            /*
             foreach (Service m in project.Services.Values)
             {
-                sw.WriteLine("        if (" + m.Name + " != null)");
-                sw.WriteLine("            " + m.Name + ".stop();");
+                sw.WriteLine("        if (" + m.Name + ".get() != nullptr)");
+                sw.WriteLine("            " + m.Name + "->stop();");
             }
+            */
             sw.WriteLine("    }");
         }
     }
