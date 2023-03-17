@@ -158,6 +158,7 @@ namespace Zeze
 					Protocol::Dispatch(service, factoryHandle);
 					return;
 				}
+				std::auto_ptr<Rpc<ArgumentType, ResultType>> guard(this);
 
 				// response, 从上下文中查找原来发送的rpc对象，并派发该对象。
 				auto context = (Rpc<ArgumentType, ResultType>*)service->RemoveRpcContext(SessionId);
