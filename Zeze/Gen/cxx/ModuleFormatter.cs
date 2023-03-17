@@ -315,15 +315,8 @@ namespace Zeze.Gen.cxx
             sw.WriteLine($"    {project.Solution.Name}::App* App;");
             sw.WriteLine();
 
-            sw.WriteLine($"    AbstractModule({project.Solution.Name}::App* app) {{");
-            sw.WriteLine("        App = app;");
-            sw.WriteLine("        // register protocol factory and handles");
-            RegisterProtocols(sw);
-            sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    virtual void UnRegister() override {");
-            UnRegisterProtocols(sw);
-            sw.WriteLine("    }");
+            sw.WriteLine($"    AbstractModule({project.Solution.Name}::App* app);");
+            sw.WriteLine("    virtual void UnRegister() override;");
         }
 
         public void GenEnums(StreamWriter sw)
@@ -350,21 +343,46 @@ namespace Zeze.Gen.cxx
 
         public void MakeInterface()
         {
+            // gen AbstractModule.cpp
+            using StreamWriter swcpp = module.OpenWriter(genDir, "AbstractModule.cpp");
+            swcpp.WriteLine($"#include \"AbstractModule.hpp\"");
+            swcpp.WriteLine($"#include \"Gen/{project.Solution.Name}/App.h\"");
+            var paths = module.Paths();
+            foreach (var path in paths)
+            {
+                swcpp.WriteLine($"namespace {path} {{");
+            }
+            swcpp.WriteLine($"    AbstractModule::AbstractModule({project.Solution.Name}::App* app)");
+            swcpp.WriteLine("    {");
+            swcpp.WriteLine("        App = app;");
+            swcpp.WriteLine("        // register protocol factory and handles");
+            RegisterProtocols(swcpp);
+            swcpp.WriteLine("    }");
+            swcpp.WriteLine();
+            swcpp.WriteLine("    void AbstractModule::UnRegister()");
+            swcpp.WriteLine("    {");
+            UnRegisterProtocols(swcpp);
+            swcpp.WriteLine("    }");
+            foreach (var path in paths)
+            {
+                swcpp.WriteLine($"}}");
+            }
+
             using StreamWriter sw = module.OpenWriter(genDir, "AbstractModule.hpp");
 
             sw.WriteLine("#pragma once");
             sw.WriteLine();
             sw.WriteLine("#include \"zeze/cxx/IModule.h\"");
-            sw.WriteLine($"#include \"Gen/{project.Solution.Name}/App.h\"");
             foreach (Protocol p in GetRegisterProtocols())
             {
                 sw.WriteLine($"#include \"Gen/{p.Space.Path("/", p.Name + ".hpp")}\"");
             }
             sw.WriteLine();
-            var paths = module.Paths();
-            foreach (var path in paths)
+            for (var i = 0; i < paths.Count; ++i)
             {
-                sw.WriteLine($"namespace {path} {{");
+                sw.WriteLine($"namespace {paths[i]} {{");
+                if (i == 0)
+                    sw.WriteLine("class App;");
             }
             sw.WriteLine();
             if (module.Comment.Length > 0)

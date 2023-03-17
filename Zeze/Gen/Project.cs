@@ -348,7 +348,6 @@ namespace Zeze.Gen
                     break;
                 case "cxx":
                     var cxx = new cxx.Maker(this);
-                    cxx.Make();
                     cxx.MakeCxx();
                     break;
                 case "cxx+lua":

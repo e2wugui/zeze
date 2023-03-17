@@ -43,6 +43,11 @@ namespace Zeze.Gen.cxx
             {
                 new ModuleFormatter(Project, mod, genDir, srcDir).Make();
             }
+            foreach (var m in Project.Services.Values)
+            {
+                new ServiceFormatter(m, genDir, srcDir).Make();
+            }
+            new App(Project, genDir, srcDir).Make();
         }
 
         public void Make()
@@ -58,7 +63,7 @@ namespace Zeze.Gen.cxx
                 sw.WriteLine("// auto-generated");
                 sw.WriteLine();
                 foreach (var m in Project.Services.Values)
-                    sw.WriteLine($"#include \"{m.Name}.h\"");
+                    sw.WriteLine($"#include \"{Project.Solution.Name}/{m.Name}.h\"");
                 sw.WriteLine();
                 sw.WriteLine($"namespace {Project.Solution.Name}");
                 sw.WriteLine($"{{");
