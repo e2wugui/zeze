@@ -13,9 +13,8 @@ Net
 	    rpc1.Result Process;
 	    b) 异步模式
 	    必须new出来，例子如下：
-	    std::auto_ptr<Rpc1> guard(new Rpc1());
-	    if (guard->Send(socket, []() { process async response ...; return 0; }))
-		gurard.release(); // 【发送成功，内部开始接管生命期管理，马上释放所有权】
+	    (new Rpc1())->SendAsync(socket, []() { process async response ...; return 0; });
+	    【SendAsync接管生命期管理】
 
 	4. 重载 Service DispatchProtocol DispatchRpcResponse 时对传入Protocol*p的生命期管理
 	    【Dispatch时需要管理传入的*p】

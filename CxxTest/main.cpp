@@ -74,13 +74,11 @@ public:
 	{
 		demo::Module1::Protocol3 p;
 		p.Send(GetSocket().get());
-		std::auto_ptr<demo::Module1::Rpc1> rpc1Async(new demo::Module1::Rpc1());
-		if (rpc1Async->Send(GetSocket().get(), [](Zeze::Net::Protocol*p)
+		(new demo::Module1::Rpc1())->SendAsync(GetSocket().get(), [](Zeze::Net::Protocol* p)
 			{
 				std::cout << "Rpc1 Async Response." << std::endl;
 				return 0;
-			}))
-			rpc1Async.release();
+			});
 
 		std::thread([this]()
 			{

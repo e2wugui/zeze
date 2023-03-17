@@ -11,55 +11,29 @@ namespace Zeze
 		template<class ArgumentType, class ResultType>
 		class Rpc : public Protocol
 		{
-		public:
-			std::unique_ptr<ArgumentType> Argument;
-			std::unique_ptr<ResultType> Result;
-			int64_t SessionId;
-			bool IsRequest;
-			bool IsTimeout;
-			std::function<int(Protocol*)> ResponseHandle;
-			bool SendResultDone;
-			int Timeout;
-			std::unique_ptr<TaskCompletionSource<bool>> Future;
-
-			Rpc()
-				: Argument(new ArgumentType()), Result(new ResultType())
-			{
-				SessionId = 0;
-				IsRequest = true;
-				IsTimeout = false;
-				SendResultDone = false;
-				Timeout = 0;
-			}
-
-			virtual int GetFamilyClass() const override
-			{
-				return IsRequest ? FamilyClass::Request : FamilyClass::Response;
-			}
-
 			void Schedule(Service* service, int64_t sessionId, int millisecondsTimeout) {
 				int timeout = (int)std::ceil(millisecondsTimeout / 1000.0f);
 				SetTimeout(
 					[service, sessionId]()
 					{
 						auto context = (Rpc<ArgumentType, ResultType>*)service->RemoveRpcContext(sessionId);
-						if (context == nullptr) // 一般来说，此时结果已经返回。
-							return;
+				if (context == nullptr) // 一般来说，此时结果已经返回。
+					return;
 
-						context->IsTimeout = true;
-						context->ResultCode = ResultCode::Timeout;
+				context->IsTimeout = true;
+				context->ResultCode = ResultCode::Timeout;
 
-						if (context->Future.get() != nullptr)
-							context->Future->TrySetException(std::exception("RpcTimeout"));
-						else if (context->ResponseHandle) {
-							// 本来Schedule已经在Task中执行了，这里又派发一次。
-							// 主要是为了让应用能拦截修改Response的处理方式。
-							// Timeout 应该是少的，先这样了。
-							Service::ProtocolFactoryHandle factoryHandle;
-							if (service->FindProtocolFactoryHandle(context->TypeId(), factoryHandle))
-								service->DispatchRpcResponse(context, context->ResponseHandle, factoryHandle);
-					}
-				}, timeout);
+				if (context->Future.get() != nullptr)
+					context->Future->TrySetException(std::exception("RpcTimeout"));
+				else if (context->ResponseHandle) {
+					// 本来Schedule已经在Task中执行了，这里又派发一次。
+					// 主要是为了让应用能拦截修改Response的处理方式。
+					// Timeout 应该是少的，先这样了。
+					Service::ProtocolFactoryHandle factoryHandle;
+					if (service->FindProtocolFactoryHandle(context->TypeId(), factoryHandle))
+						service->DispatchRpcResponse(context, context->ResponseHandle, factoryHandle);
+				}
+					}, timeout);
 			}
 
 			bool Send(Socket* so, const std::function<int(Protocol*)>& responseHandle, int millisecondsTimeout = 5000)
@@ -89,6 +63,39 @@ namespace Zeze
 				return !service->RemoveRpcContext(SessionId, this);
 			}
 
+		public:
+			std::unique_ptr<ArgumentType> Argument;
+			std::unique_ptr<ResultType> Result;
+			int64_t SessionId;
+			bool IsRequest;
+			bool IsTimeout;
+			std::function<int(Protocol*)> ResponseHandle;
+			bool SendResultDone;
+			int Timeout;
+			std::unique_ptr<TaskCompletionSource<bool>> Future;
+
+			Rpc()
+				: Argument(new ArgumentType()), Result(new ResultType())
+			{
+				SessionId = 0;
+				IsRequest = true;
+				IsTimeout = false;
+				SendResultDone = false;
+				Timeout = 0;
+			}
+
+			virtual int GetFamilyClass() const override
+			{
+				return IsRequest ? FamilyClass::Request : FamilyClass::Response;
+			}
+
+			void SendAsync(Socket* so, const std::function<int(Protocol*)>& responseHandle, int millisecondsTimeout = 5000)
+			{
+				std::auto_ptr<Rpc<ArgumentType, ResultType>> guard(this);
+				if (Send(so, responseHandle, millisecondsTimeout))
+					guard.release();
+			}
+			
 			TaskCompletionSource<bool>* SendForWait(Socket * so, int millisecondsTimeout = 5000)
 			{
 				Future.reset(new TaskCompletionSource<bool>());
