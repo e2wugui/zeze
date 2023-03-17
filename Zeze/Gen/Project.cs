@@ -290,6 +290,11 @@ namespace Zeze.Gen
                 if (p.UseData)
                     p.Depends(Datas);
             }
+            foreach (var b in AllBeans.Values)
+            {
+                if (b.UseData)
+                    b.Depends(Datas);
+            }
 
             MakePlatform();
 

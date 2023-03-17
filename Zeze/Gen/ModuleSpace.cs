@@ -15,6 +15,7 @@ namespace Zeze.Gen
         public string DefaultTransactionLevel { get; private set; }
         public bool Equalable { get; private set; }
         public int Id { get; }
+        public bool UseData { get; private set; }
 
         public XmlElement Self { get; }
 
@@ -158,6 +159,12 @@ namespace Zeze.Gen
             Program.CheckReserveName(Name);
             DefaultTransactionLevel = self.GetAttribute("DefaultTransactionLevel").Trim();
             Equalable = parent != null && parent.Equalable || self.GetAttribute("equals") == "true";
+            UseData = self.GetAttribute("UseData") switch
+            {
+                "true" => true,
+                "false" => false,
+                _ => parent is { UseData: true }
+            };
 
             if (hasId)
             {

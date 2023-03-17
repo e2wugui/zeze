@@ -63,9 +63,12 @@ namespace Zeze.Gen
                     TransactionLevel = (TransactionLevel)Enum.Parse(typeof(TransactionLevel), space.DefaultTransactionLevel);
             }
 
-            attr = self.GetAttribute("UseData");
-            if (false == string.IsNullOrEmpty(attr))
-                UseData = bool.Parse(attr);
+            UseData = self.GetAttribute("UseData") switch
+            {
+                "true" => true,
+                "false" => false,
+                _ => space.UseData
+            };
 
             Comment = Types.Bean.GetComment(self);
 

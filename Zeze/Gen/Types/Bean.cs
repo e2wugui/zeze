@@ -147,6 +147,7 @@ namespace Zeze.Gen.Types
 		public List<string> Derives = new();
 		public string Version { get; private set; }
 		public bool MappingClass { get; private set; }
+		public bool UseData { get; private set; }
 
         public static void BeautifulVariableId(XmlElement self)
 		{
@@ -198,8 +199,14 @@ namespace Zeze.Gen.Types
 			MappingClass = self.GetAttribute("MappingClass").Equals("true");
 			if (MappingClass)
 				space.AddMappingClassBean(this);
+			UseData = self.GetAttribute("UseData") switch
+			{
+				"true" => true,
+				"false" => false,
+				_ => space.UseData
+			};
 
-            XmlNodeList childNodes = self.ChildNodes;
+			XmlNodeList childNodes = self.ChildNodes;
 			foreach (XmlNode node in childNodes)
 			{
 				if (XmlNodeType.Element != node.NodeType)
