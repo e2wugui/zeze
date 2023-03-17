@@ -114,7 +114,7 @@ namespace Net
 		{
 		public:
 			typedef std::function<Protocol* ()> FuncFactory;
-			typedef std::function<int(Protocol*)> FuncHandle;
+			typedef std::function<int64_t(Protocol*)> FuncHandle;
 			FuncFactory Factory;
 			FuncHandle Handle;
 

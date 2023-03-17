@@ -266,7 +266,7 @@ namespace Zeze.Gen.cxx
                         {
                             sw.WriteLine($"            factoryHandle.Handle = std::bind(&AbstractModule::Process{rpc.Name}Request, this, std::placeholders::_1);");
                         }
-                        sw.WriteLine($"            {serviceVar}.AddProtocolFactory({rpc.TypeId}LL, factoryHandle); // {rpc.Space.Id}, {rpc.Id}");
+                        sw.WriteLine($"            {serviceVar}->AddProtocolFactory({rpc.TypeId}LL, factoryHandle); // {rpc.Space.Id}, {rpc.Id}");
                         sw.WriteLine("        }");
                         continue;
                     }
@@ -277,7 +277,7 @@ namespace Zeze.Gen.cxx
                         sw.WriteLine($"            Zeze::Net::Service::ProtocolFactoryHandle factoryHandle;");
                         sw.WriteLine($"            factoryHandle.Factory = []() {{ return new {fullName}(); }};");
                         sw.WriteLine($"            factoryHandle.Handle = std::bind(&AbstractModule::Process{p.Name}, this, std::placeholders::_1);");
-                        sw.WriteLine($"            {serviceVar}.AddProtocolFactory({p.TypeId}LL, factoryHandle); // {p.Space.Id}, {p.Id}");
+                        sw.WriteLine($"            {serviceVar}->AddProtocolFactory({p.TypeId}LL, factoryHandle); // {p.Space.Id}, {p.Id}");
                         sw.WriteLine("        }");
                     }
                 }
@@ -352,6 +352,9 @@ namespace Zeze.Gen.cxx
             {
                 swcpp.WriteLine($"namespace {path} {{");
             }
+            swcpp.WriteLine($"    const char * AbstractModule::ModuleName = \"{moduleName}\";");
+            swcpp.WriteLine($"    const char * AbstractModule::ModuleFullName = \"{module.Path()}\";");
+            swcpp.WriteLine();
             swcpp.WriteLine($"    AbstractModule::AbstractModule({project.Solution.Name}::App* app)");
             swcpp.WriteLine("    {");
             swcpp.WriteLine("        App = app;");
@@ -391,8 +394,8 @@ namespace Zeze.Gen.cxx
             sw.WriteLine($"class AbstractModule {classBase} : public Zeze::IModule {{");
             sw.WriteLine($"public:");
             sw.WriteLine($"    static const int ModuleId = {module.Id};");
-            sw.WriteLine($"    static const char * const ModuleName = \"{moduleName}\";");
-            sw.WriteLine($"    static const char * const ModuleFullName = \"{module.Path()}\";");
+            sw.WriteLine($"    static const char * ModuleName;");
+            sw.WriteLine($"    static const char * ModuleFullName;");
             sw.WriteLine();
             sw.WriteLine($"    virtual int GetId() const override {{ return ModuleId; }}");
             sw.WriteLine($"    virtual const char * GetName() const override {{ return ModuleName; }}");
