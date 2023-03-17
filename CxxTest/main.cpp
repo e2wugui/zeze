@@ -2,7 +2,7 @@
 #include "Gen/demo/Bean1.hpp"
 #include "Gen/demo/Module1/BValue.hpp"
 #include "zeze/cxx/Net.h"
-#include "demo/Client.h"
+#include "demo/TestClient.h"
 #include <cmath>
 
 void TestSocket();
