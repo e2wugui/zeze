@@ -16,9 +16,9 @@ public:
 		Future = Promise.get_future();
 	}
 
-	void TrySetException(std::exception* ex)
+	void TrySetException(const std::exception& ex)
 	{
-		Promise.set_exception(ex);
+		Promise.set_exception(std::make_exception_ptr(ex));
 	}
 
 	void SetResult(const T& value)

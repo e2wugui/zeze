@@ -20,7 +20,7 @@ namespace Zeze
 			std::function<int(Protocol*)> ResponseHandle;
 			bool SendResultDone;
 			int Timeout;
-			std::unique_ptr<TaskCompletionSource<ResultType*>> Future;
+			std::unique_ptr<TaskCompletionSource<bool>> Future;
 
 			Rpc()
 				: Argument(new ArgumentType()), Result(new ResultType())
@@ -38,7 +38,7 @@ namespace Zeze
 			}
 
 			void Schedule(Service* service, int64_t sessionId, int millisecondsTimeout) {
-				int timeout = std::ceil(millisecondsTimeout / 1000.0f);
+				int timeout = (int)std::ceil(millisecondsTimeout / 1000.0f);
 				SetTimeout(
 					[service, sessionId]()
 					{
@@ -46,11 +46,11 @@ namespace Zeze
 						if (context == nullptr) // 一般来说，此时结果已经返回。
 							return;
 
-						context.IsTimeout = true;
-						context.ResultCode = ResultCode::Timeout;
+						context->IsTimeout = true;
+						context->ResultCode = ResultCode::Timeout;
 
 						if (context->Future.get() != nullptr)
-							context->Future.TrySetException(new std::exception("RpcTimeout"));
+							context->Future->TrySetException(std::exception("RpcTimeout"));
 						else if (context->ResponseHandle) {
 							// 本来Schedule已经在Task中执行了，这里又派发一次。
 							// 主要是为了让应用能拦截修改Response的处理方式。
@@ -66,13 +66,13 @@ namespace Zeze
 			{
 				if (so == nullptr)
 					return false;
-				auto service = so->Service;
+				auto service = so->service;
 				if (service == nullptr)
 					return false;
 
 				// try remove. 只维护一个上下文。
 				service->RemoveRpcContext(SessionId, this);
-				this.ResponseHandle = responseHandle;
+				ResponseHandle = responseHandle;
 				SessionId = service->AddRpcContext(this);
 				Timeout = millisecondsTimeout;
 				IsTimeout = false;
@@ -89,11 +89,11 @@ namespace Zeze
 				return !service->RemoveRpcContext(SessionId, this);
 			}
 
-			TaskCompletionSource<ResultType>* SendForWait(Socket * so, int millisecondsTimeout = 5000)
+			TaskCompletionSource<bool>* SendForWait(Socket * so, int millisecondsTimeout = 5000)
 			{
-				Future.reset(new TaskCompletionSource<ResultType*>());
-				if (!Send(so, null, millisecondsTimeout))
-					Future->TrySetException(new std::exception("Send Failed."));
+				Future.reset(new TaskCompletionSource<bool>());
+				if (!Send(so, nullptr, millisecondsTimeout))
+					Future->TrySetException(std::exception("Send Failed."));
 				return Future.get();
 			}
 
@@ -141,7 +141,7 @@ namespace Zeze
 				auto header = bb.ReadInt();
 				auto familyClass = header & FamilyClass::FamilyClassMask;
 				if (!FamilyClass::IsRpc(familyClass))
-					throw new invalid_argument(std::string("invalid header(") + header + ") for decoding rpc ");
+					throw new std::invalid_argument("invalid header for decoding rpc ");
 				IsRequest = familyClass == FamilyClass::Request;
 				ResultCode = (header & FamilyClass::BitResultCode) != 0 ? bb.ReadLong() : 0;
 				SessionId = bb.ReadLong();
@@ -167,12 +167,12 @@ namespace Zeze
 				context->Sender = Sender;
 				context->UserState = UserState;
 				context->ResultCode = ResultCode;
-				context->Result.reset = Result;
+				context->Result.reset(Result.release());
 				context->IsTimeout = false; // not need
 				context->IsRequest = false;
 
 				if (context->Future.get() != nullptr)
-					context->Future->SetResult(context->Result.release()); // SendForWait，设置结果唤醒等待者。
+					context->Future->SetResult(true); // SendForWait，设置结果唤醒等待者。
 				else if (context->ResponseHandle)
 					service->DispatchRpcResponse(context, context->ResponseHandle, factoryHandle);
 			}

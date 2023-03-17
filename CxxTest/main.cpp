@@ -44,7 +44,7 @@ public:
 		AddProtocolFactory(demo::Module1::Rpc1::TypeId_, ProtocolFactoryHandle(
 			[]()
 			{
-				return demo::Module1::Rpc1();
+				return new demo::Module1::Rpc1();
 			},
 			[](Zeze::Net::Protocol* p)
 			{
@@ -58,7 +58,7 @@ public:
 		AddProtocolFactory(demo::Module1::Rpc2::TypeId_, ProtocolFactoryHandle(
 			[]()
 			{
-				return demo::Module1::Rpc2();
+				return new demo::Module1::Rpc2();
 			},
 			[](Zeze::Net::Protocol* p)
 			{
@@ -74,6 +74,12 @@ public:
 	{
 		demo::Module1::Protocol3 p;
 		p.Send(GetSocket().get());
+		std::thread([this]()
+			{
+				demo::Module1::Rpc1 rpc1;
+				rpc1.SendForWait(GetSocket().get())->Wait();
+				std::cout << "Send Rpc1 Done." << std::endl;
+			}).detach();
 	}
 };
 

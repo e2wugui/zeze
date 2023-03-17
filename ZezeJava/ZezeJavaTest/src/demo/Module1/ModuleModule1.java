@@ -23,7 +23,13 @@ public class ModuleModule1 extends AbstractModule {
 
     @Override
     protected long ProcessRpc1Request(Rpc1 r) throws Exception {
-        return Zeze.Transaction.Procedure.NotImplement;
+		System.out.println("ProcessRpc1Request");
+		new Rpc2().Send(r.getSender(), (p) -> {
+			System.out.println("ProcessRpc2Response");
+			return 0;
+		});
+		r.SendResult();
+        return 0;
     }
 
     public tflush getTflush() {
