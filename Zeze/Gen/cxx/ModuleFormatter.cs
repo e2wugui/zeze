@@ -95,10 +95,10 @@ namespace Zeze.Gen.cxx
             sw.WriteLine();
             sw.WriteLine($"class Module{moduleName} : public AbstractModule {{");
             sw.WriteLine("public:");
-            sw.WriteLine("    void Start(" + project.Solution.Name + "::App* app) {");
+            sw.WriteLine("    void Start() {");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    void Stop(" + project.Solution.Name + "::App* app) {");
+            sw.WriteLine("    void Stop() {");
             sw.WriteLine("    }");
             sw.WriteLine();
             if (GenEmptyProtocolHandles(sw))
