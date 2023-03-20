@@ -39,8 +39,9 @@ public class TaskOneByOne {
 		System.out.println(counter.get());
 	}
 
-	private static final int exeCount = 100;
+	private static final int exeCount = 10_0000;
 	private static final int keyCount = 20;
+	private static final int roleCount = 100;
 	private static final int concurrency = 20;
 	private static final ConcurrentSkipListSet<Integer> taskIds = new ConcurrentSkipListSet<>();
 
@@ -51,7 +52,7 @@ public class TaskOneByOne {
 		var rand = ThreadLocalRandom.current();
 		var roleIds = new ArrayList<Long>(keyCount);
 		for (int i = 0; i < keyCount; i++)
-			roleIds.add((long)rand.nextInt(10000));
+			roleIds.add((long)rand.nextInt(roleCount));
 		// System.out.println("+ B-" + taskId + ": " + roleIds);
 		taskIds.add(taskId);
 		oo.executeCyclicBarrier(roleIds, "B-" + taskId, () -> {
@@ -72,7 +73,7 @@ public class TaskOneByOne {
 		var taskAwaiter = new CountDownLatch(exeCount);
 		for (int i = 0; i < concurrency; i++)
 			runCyclicBarrier(oo, taskCounter, taskAwaiter);
-		var f = Task.scheduleUnsafe(10_000, () -> {
+		var f = Task.scheduleUnsafe(60_000, () -> {
 			System.out.println("taskIds: " + taskIds);
 			System.out.println("dump:\n" + oo);
 		});
