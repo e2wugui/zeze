@@ -480,11 +480,12 @@ namespace Zeze.Gen.cxx
                 sw.WriteLine($"#include \"Gen/{p.Space.Path("/", p.Name + ".hpp")}\"");
             }
             sw.WriteLine();
-            for (var i = 0; i < paths.Count; ++i)
+            sw.WriteLine($"namespace {project.Solution.Name} {{");
+                sw.WriteLine("    class App;");
+            sw.WriteLine("}");
+            foreach (var path in paths)
             {
-                sw.WriteLine($"namespace {paths[i]} {{");
-                if (i == 0)
-                    sw.WriteLine("class App;");
+                sw.WriteLine($"namespace {path} {{");
             }
             sw.WriteLine();
             if (module.Comment.Length > 0)
