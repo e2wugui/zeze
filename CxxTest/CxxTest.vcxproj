@@ -13,6 +13,8 @@
     <ClCompile Include="..\cxx\ToLua.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\cxx\utils.cpp" />
     <ClCompile Include="..\cxx\Vector.cpp" />
@@ -24,18 +26,26 @@
     <ClCompile Include="..\CxxTest\Gen\demo\M6\M7\AbstractModule.cpp">
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)AbstractModule_1.obj</ObjectFileName>
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)AbstractModule_1.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)AbstractModule_1.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)AbstractModule_1.obj</ObjectFileName>
     </ClCompile>
     <ClCompile Include="..\CxxTest\Gen\demo\Module1\AbstractModule.cpp">
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)AbstractModule_2.obj</ObjectFileName>
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)AbstractModule_2.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)AbstractModule_2.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)AbstractModule_2.obj</ObjectFileName>
     </ClCompile>
     <ClCompile Include="..\CxxTest\Gen\demo\Module1\Module11\AbstractModule.cpp">
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)AbstractModule_3.obj</ObjectFileName>
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)AbstractModule_3.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)AbstractModule_3.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)AbstractModule_3.obj</ObjectFileName>
     </ClCompile>
     <ClCompile Include="..\CxxTest\Gen\TaskTest\TaskExt\AbstractModule.cpp">
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)AbstractModule_4.obj</ObjectFileName>
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)AbstractModule_4.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)AbstractModule_4.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)AbstractModule_4.obj</ObjectFileName>
     </ClCompile>
     <ClCompile Include="..\CxxTest\main.cpp" />
     <ClCompile Include="..\CxxTest\TaskTest\TaskExt\ModuleTaskExt.cpp" />

@@ -114,6 +114,8 @@ if #srcfiles > 0 then
 			t[#t + 1] = "    <ClCompile Include=\"" .. basepath .. filename .. "\">\r\n"
 			t[#t + 1] = "      <ExcludedFromBuild Condition=\"'$(Configuration)|$(Platform)'=='Debug|x64'\">true</ExcludedFromBuild>\r\n"
 			t[#t + 1] = "      <ExcludedFromBuild Condition=\"'$(Configuration)|$(Platform)'=='Release|x64'\">true</ExcludedFromBuild>\r\n"
+			t[#t + 1] = "      <ExcludedFromBuild Condition=\"'$(Configuration)|$(Platform)'=='Debug|Win32'\">true</ExcludedFromBuild>\r\n"
+			t[#t + 1] = "      <ExcludedFromBuild Condition=\"'$(Configuration)|$(Platform)'=='Release|Win32'\">true</ExcludedFromBuild>\r\n"
 			t[#t + 1] = "    </ClCompile>\r\n"
 		else
 			local name = filename:match("([^\\]+)%.[^\\.]+$")
@@ -128,6 +130,8 @@ if #srcfiles > 0 then
 				t[#t + 1] = "    <ClCompile Include=\"" .. basepath .. filename .. "\">\r\n"
 				t[#t + 1] = "      <ObjectFileName Condition=\"'$(Configuration)|$(Platform)'=='Debug|x64'\">$(IntDir)" .. newname .. ".obj</ObjectFileName>\r\n"
 				t[#t + 1] = "      <ObjectFileName Condition=\"'$(Configuration)|$(Platform)'=='Release|x64'\">$(IntDir)" .. newname .. ".obj</ObjectFileName>\r\n"
+				t[#t + 1] = "      <ObjectFileName Condition=\"'$(Configuration)|$(Platform)'=='Debug|Win32'\">$(IntDir)" .. newname .. ".obj</ObjectFileName>\r\n"
+				t[#t + 1] = "      <ObjectFileName Condition=\"'$(Configuration)|$(Platform)'=='Release|Win32'\">$(IntDir)" .. newname .. ".obj</ObjectFileName>\r\n"
 				t[#t + 1] = "    </ClCompile>\r\n"
 			else
 				usednames[name] = 1
