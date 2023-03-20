@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import Zeze.AppBase;
 import Zeze.Arch.RedirectAll;
@@ -182,6 +183,7 @@ public final class GenModule {
 
 		int moduleId = moduleClass.getField("ModuleId").getInt(null);
 		var moduleFullName = (String)moduleClass.getField("ModuleFullName").get(null);
+		var redirectFullNames = new HashSet<String>();
 
 		var sbHandles = new StringBuilderCs();
 		for (var m : overrides) {
@@ -209,6 +211,10 @@ public final class GenModule {
 				throw new UnsupportedOperationException("Redirect method Must Be public or protected: "
 						+ moduleClass.getName() + '.' + m.method.getName());
 			}
+
+			var redirectFullName = moduleFullName + ':' + m.method.getName();
+			if (!redirectFullNames.add(redirectFullName))
+				throw new UnsupportedOperationException("Duplicated redirect method name: " + redirectFullName);
 
 			sb.appendLine("    @Override");
 			sb.appendLine("    {}{} {}({}) {", modifier, returnName, m.method.getName(), parametersDefine); // m.getThrows() // 继承方法允许不标throws
