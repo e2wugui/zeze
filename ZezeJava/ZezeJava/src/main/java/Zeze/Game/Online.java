@@ -1030,6 +1030,13 @@ public class Online extends AbstractOnline {
 	protected long ProcessLoginRequest(Zeze.Builtin.Game.Online.Login rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 
+		Transaction.whileCommit(() -> {
+			var setUserState = new SetUserState();
+			setUserState.Argument.setLinkSid(session.getLinkSid());
+			setUserState.Argument.setContext(String.valueOf(rpc.Argument.getRoleId()));
+			rpc.getSender().Send(setUserState); // 直接使用link连接。
+		});
+
 		var online = _tonline.getOrAdd(rpc.Argument.getRoleId());
 		var link = online.getLink();
 
@@ -1074,18 +1081,19 @@ public class Online extends AbstractOnline {
 		// 先提交结果再设置状态。
 		// see linkd::Zezex.Provider.ModuleProvider。ProcessBroadcast
 		session.sendResponseWhileCommit(rpc);
-		Transaction.whileCommit(() -> {
-			var setUserState = new SetUserState();
-			setUserState.Argument.setLinkSid(session.getLinkSid());
-			setUserState.Argument.setContext(String.valueOf(rpc.Argument.getRoleId()));
-			rpc.getSender().Send(setUserState); // 直接使用link连接。
-		});
 		return Procedure.Success;
 	}
 
 	@Override
 	protected long ProcessReLoginRequest(Zeze.Builtin.Game.Online.ReLogin rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
+
+		Transaction.whileCommit(() -> {
+			var setUserState = new SetUserState();
+			setUserState.Argument.setLinkSid(session.getLinkSid());
+			setUserState.Argument.setContext(String.valueOf(rpc.Argument.getRoleId()));
+			rpc.getSender().Send(setUserState); // 直接使用link连接。
+		});
 
 		var online = _tonline.getOrAdd(rpc.Argument.getRoleId());
 		var link = online.getLink();
@@ -1122,12 +1130,6 @@ public class Online extends AbstractOnline {
 		// 先发结果，再发送同步数据（ReliableNotifySync）。
 		// 都使用 WhileCommit，如果成功，按提交的顺序发送，失败全部不会发送。
 		session.sendResponseWhileCommit(rpc);
-		Transaction.whileCommit(() -> {
-			var setUserState = new SetUserState();
-			setUserState.Argument.setLinkSid(session.getLinkSid());
-			setUserState.Argument.setContext(String.valueOf(rpc.Argument.getRoleId()));
-			rpc.getSender().Send(setUserState); // 直接使用link连接。
-		});
 
 		var syncResultCode = reliableNotifySync(rpc.Argument.getRoleId(), session,
 				rpc.Argument.getReliableNotifyConfirmIndex());
