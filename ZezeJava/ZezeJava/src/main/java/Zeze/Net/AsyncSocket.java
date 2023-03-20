@@ -647,7 +647,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 	private void processReceive(SocketChannel sc) throws Exception { // 只在selector线程调用
 		java.nio.ByteBuffer buffer = selector.getReadBuffer(); // 线程共享的buffer,只能本方法内临时使用
-		boolean readAgain;
+		boolean readAgain = false;
 		do {
 			buffer.clear();
 			int bytesTransferred = sc.read(buffer);
@@ -686,10 +686,10 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 						throw new IllegalStateException("InputBufferMaxProtocolSize " + remain + " >= " + max);
 					codecBuf.Compact();
 				}
-			} else {
+			} else if (!readAgain)
 				close(); // 对方正常关闭连接时的处理, 不设置异常; 连接被对方RESET的话read会抛异常
+			else
 				readAgain = false;
-			}
 		} while (readAgain);
 	}
 
