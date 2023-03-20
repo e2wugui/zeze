@@ -10,15 +10,11 @@ namespace Module11 {
 
 class ModuleModule11 : public AbstractModule {
 public:
-    void Start() {
-    }
-
-    void Stop() {
-    }
+    void Start();
+    void Stop();
 
     // ZEZE_FILE_CHUNK {{{ GEN MODULE
-    ModuleModule11(demo::App* app) : AbstractModule(app) {
-    }
+    ModuleModule11(demo::App* app);
     // ZEZE_FILE_CHUNK }}} GEN MODULE
 };
 }

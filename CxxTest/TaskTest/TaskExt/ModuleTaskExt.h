@@ -9,15 +9,11 @@ namespace TaskExt {
 
 class ModuleTaskExt : public AbstractModule {
 public:
-    void Start() {
-    }
-
-    void Stop() {
-    }
+    void Start();
+    void Stop();
 
     // ZEZE_FILE_CHUNK {{{ GEN MODULE
-    ModuleTaskExt(demo::App* app) : AbstractModule(app) {
-    }
+    ModuleTaskExt(demo::App* app);
     // ZEZE_FILE_CHUNK }}} GEN MODULE
 };
 }

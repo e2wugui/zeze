@@ -43,9 +43,16 @@ namespace Zeze.Gen.cxx
                             if (written)
                                 sw.WriteLine();
                             written = true;
-                            sw.WriteLine($"    virtual int64_t Process{rpc.Name}Request(Zeze::Net::Protocol* _r) override {{");
-                            sw.WriteLine($"        return Zeze::ResultCode::NotImplement;");
-                            sw.WriteLine("    }");
+                            if (GenCpp)
+                            {
+                                sw.WriteLine($"    int64_t Module{moduleName}::Process{rpc.Name}Request(Zeze::Net::Protocol* _r) {{");
+                                sw.WriteLine($"        return Zeze::ResultCode::NotImplement;");
+                                sw.WriteLine("    }");
+                            }
+                            else
+                            {
+                                sw.WriteLine($"    virtual int64_t Process{rpc.Name}Request(Zeze::Net::Protocol* _r) override;");
+                            }
                         }
                     }
                     else
@@ -55,9 +62,16 @@ namespace Zeze.Gen.cxx
                             if (written)
                                 sw.WriteLine();
                             written = true;
-                            sw.WriteLine($"    virtual int64_t Process{p.Name}(Zeze::Net::Protocol* _p) override {{");
-                            sw.WriteLine("        return Zeze::ResultCode::NotImplement;");
-                            sw.WriteLine("    }");
+                            if (GenCpp)
+                            {
+                                sw.WriteLine($"    int64_t Module{moduleName}::Process{p.Name}(Zeze::Net::Protocol* _p) {{");
+                                sw.WriteLine("        return Zeze::ResultCode::NotImplement;");
+                                sw.WriteLine("    }");
+                            }
+                            else
+                            {
+                                sw.WriteLine($"    virtual int64_t Process{p.Name}(Zeze::Net::Protocol* _p) override;");
+                            }
                         }
                     }
                 }
@@ -65,19 +79,11 @@ namespace Zeze.Gen.cxx
             return written;
         }
 
-        public void Make()
+        private void NewH()
         {
-            MakeInterface();
-
-            FileChunkGen = new FileChunkGen();
+            // new file
             string fullDir = module.GetFullPath(srcDir);
             string fullFileName = Path.Combine(fullDir, $"Module{moduleName}.h");
-            if (FileChunkGen.LoadFile(fullFileName))
-            {
-                FileChunkGen.SaveFile(fullFileName, GenChunkByName, GenBeforeChunkByName);
-                return;
-            }
-            // new file
             FileSystem.CreateDirectory(fullDir);
             using StreamWriter sw = Program.OpenStreamWriter(fullFileName);
             sw.WriteLine("#pragma once");
@@ -95,11 +101,8 @@ namespace Zeze.Gen.cxx
             sw.WriteLine();
             sw.WriteLine($"class Module{moduleName} : public AbstractModule {{");
             sw.WriteLine("public:");
-            sw.WriteLine("    void Start() {");
-            sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    void Stop() {");
-            sw.WriteLine("    }");
+            sw.WriteLine("    void Start();");
+            sw.WriteLine("    void Stop();");
             sw.WriteLine();
             if (GenEmptyProtocolHandles(sw))
                 sw.WriteLine();
@@ -110,6 +113,72 @@ namespace Zeze.Gen.cxx
             foreach (var path in paths)
             {
                 sw.WriteLine("}");
+            }
+        }
+
+        private void NewCpp()
+        {
+            // new file
+            string fullDir = module.GetFullPath(srcDir);
+            string fullFileName = Path.Combine(fullDir, $"Module{moduleName}.cpp");
+            FileSystem.CreateDirectory(fullDir);
+            using StreamWriter sw = Program.OpenStreamWriter(fullFileName);
+            sw.WriteLine();
+            sw.WriteLine(FileChunkGen.ChunkStartTag + " " + ChunkNameImport);
+            ImportGen(sw);
+            sw.WriteLine(FileChunkGen.ChunkEndTag + " " + ChunkNameImport);
+            sw.WriteLine();
+
+            var paths = module.Paths();
+            foreach (var path in paths)
+            {
+                sw.WriteLine($"namespace {path} {{");
+            }
+            sw.WriteLine();
+            sw.WriteLine($"    void Module{moduleName}::Start() {{");
+            sw.WriteLine("    }");
+            sw.WriteLine();
+            sw.WriteLine($"    void Module{moduleName}::Stop() {{");
+            sw.WriteLine("    }");
+            sw.WriteLine();
+            if (GenEmptyProtocolHandles(sw))
+                sw.WriteLine();
+            sw.WriteLine("    " + FileChunkGen.ChunkStartTag + " " + ChunkNameModuleGen);
+            ConstructorGen(sw);
+            sw.WriteLine("    " + FileChunkGen.ChunkEndTag + " " + ChunkNameModuleGen);
+            foreach (var path in paths)
+            {
+                sw.WriteLine("}");
+            }
+        }
+
+        private bool GenCpp;
+        public void Make()
+        {
+            MakeInterface();
+            {
+                GenCpp = false;
+                FileChunkGen = new FileChunkGen();
+                string fullDir = module.GetFullPath(srcDir);
+                string fullFileName = Path.Combine(fullDir, $"Module{moduleName}.h");
+                if (FileChunkGen.LoadFile(fullFileName))
+                {
+                    FileChunkGen.SaveFile(fullFileName, GenChunkByName, GenBeforeChunkByName);
+                    return;
+                }
+                NewH();
+            }
+            {
+                GenCpp = true;
+                FileChunkGen = new FileChunkGen();
+                string fullDir = module.GetFullPath(srcDir);
+                string fullFileName = Path.Combine(fullDir, $"Module{moduleName}.cpp");
+                if (FileChunkGen.LoadFile(fullFileName))
+                {
+                    FileChunkGen.SaveFile(fullFileName, GenChunkByName, GenBeforeChunkByName);
+                    return;
+                }
+                NewCpp();
             }
         }
 
@@ -165,17 +234,31 @@ namespace Zeze.Gen.cxx
                 var hName = GetHandleName(h);
                 if (h is Rpc rpc)
                 {
-                    sw.WriteLine($"    virtual int64_t {hName}(Zeze::Net::Protocol* _r) override {{");
-                    sw.WriteLine($"        return Zeze::ResultCode::NotImplement;");
-                    sw.WriteLine("    }");
-                    sw.WriteLine("");
+                    if (GenCpp)
+                    {
+                        sw.WriteLine($"    int64_t Module{moduleName}::{hName}(Zeze::Net::Protocol* _r) {{");
+                        sw.WriteLine($"        return Zeze::ResultCode::NotImplement;");
+                        sw.WriteLine("    }");
+                        sw.WriteLine("");
+                    }
+                    else
+                    {
+                        sw.WriteLine($"    virtual int64_t {hName}(Zeze::Net::Protocol* _r) override;");
+                    }
                 }
                 else
                 {
-                    sw.WriteLine($"    virtual int64_t {hName}(Zeze::Net::Protocol* _p) override {{");
-                    sw.WriteLine("        return Zeze::ResultCode::NotImplement;");
-                    sw.WriteLine("    }");
-                    sw.WriteLine("");
+                    if (GenCpp)
+                    {
+                        sw.WriteLine($"    int64_t Module{moduleName}::{hName}(Zeze::Net::Protocol* _p) {{");
+                        sw.WriteLine("        return Zeze::ResultCode::NotImplement;");
+                        sw.WriteLine("    }");
+                        sw.WriteLine("");
+                    }
+                    else
+                    {
+                        sw.WriteLine($"    virtual int64_t {hName}(Zeze::Net::Protocol* _p) override;");
+                    }
                 }
             }
         }
@@ -207,13 +290,28 @@ namespace Zeze.Gen.cxx
 
         void ImportGen(StreamWriter sw)
         {
-            sw.WriteLine($"#include \"Gen/{module.Path("/")}/AbstractModule.hpp\"");
+            if (GenCpp)
+            {
+                sw.WriteLine($"#include \"Module{moduleName}.h\"");
+                sw.WriteLine($"#include \"Gen/{project.Solution.Name}/App.h\"");
+            }
+            else
+            {
+                sw.WriteLine($"#include \"Gen/{module.Path("/")}/AbstractModule.hpp\"");
+            }
         }
 
         void ConstructorGen(StreamWriter sw)
         {
-            sw.WriteLine($"    Module{moduleName}({project.Solution.Name}::App* app) : AbstractModule(app) {{");
-            sw.WriteLine("    }");
+            if (GenCpp)
+            {
+                sw.WriteLine($"    Module{moduleName}::Module{moduleName}({project.Solution.Name}::App* app) : AbstractModule(app) {{");
+                sw.WriteLine("    }");
+            }
+            else
+            {
+                sw.WriteLine($"    Module{moduleName}({project.Solution.Name}::App* app);");
+            }
         }
 
         public List<Protocol> GetRegisterProtocols()

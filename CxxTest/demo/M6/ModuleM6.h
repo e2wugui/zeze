@@ -9,15 +9,11 @@ namespace M6 {
 
 class ModuleM6 : public AbstractModule {
 public:
-    void Start() {
-    }
-
-    void Stop() {
-    }
+    void Start();
+    void Stop();
 
     // ZEZE_FILE_CHUNK {{{ GEN MODULE
-    ModuleM6(demo::App* app) : AbstractModule(app) {
-    }
+    ModuleM6(demo::App* app);
     // ZEZE_FILE_CHUNK }}} GEN MODULE
 };
 }

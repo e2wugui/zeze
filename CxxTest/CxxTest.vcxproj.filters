@@ -212,5 +212,8 @@
     <ClCompile Include="Gen\demo\Module1\AbstractModule.cpp">
       <Filter>Header Files\Modules</Filter>
     </ClCompile>
+    <ClCompile Include="demo\Module1\ModuleModule1.cpp">
+      <Filter>Header Files\Modules</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

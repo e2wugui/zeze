@@ -192,6 +192,7 @@
     <ClCompile Include="..\cxx\security.cpp" />
     <ClCompile Include="..\cxx\utils.cpp" />
     <ClCompile Include="..\cxx\Vector.cpp" />
+    <ClCompile Include="demo\Module1\ModuleModule1.cpp" />
     <ClCompile Include="Gen\demo\Module1\AbstractModule.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
