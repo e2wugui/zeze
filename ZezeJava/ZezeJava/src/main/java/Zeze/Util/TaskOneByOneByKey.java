@@ -433,6 +433,17 @@ public final class TaskOneByOneByKey {
 		}
 	}
 
+	@Override
+	public String toString() {
+		var sb = new StringBuilder();
+		for (int i = 0; i < concurrency.length; i++) {
+			var s = concurrency[i].toString();
+			if (s.length() > 2)
+				sb.append(i).append(": ").append(s).append('\n');
+		}
+		return sb.toString();
+	}
+
 	/**
 	 * Applies a supplemental hash function to a given hashCode, which defends
 	 * against poor quality hash functions. This is critical because HashMap uses
@@ -637,6 +648,22 @@ public final class TaskOneByOneByKey {
 			} finally {
 				lock.unlock();
 			}
+		}
+
+		@Override
+		public String toString() {
+			var sb = new StringBuilder().append('[');
+			lock.lock();
+			try {
+				for (var task : queue)
+					sb.append(task.name).append(',');
+			} finally {
+				lock.unlock();
+			}
+			int n = sb.length();
+			if (n > 1)
+				sb.setLength(n - 1);
+			return sb.append(']').toString();
 		}
 	}
 }
