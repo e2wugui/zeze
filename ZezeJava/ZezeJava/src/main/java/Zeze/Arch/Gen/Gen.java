@@ -161,7 +161,7 @@ final class Gen {
 		if (kn != null)
 			kn.define.run(sb, prefix, name);
 		else if (Serializable.class.isAssignableFrom(type))
-			sb.appendLine("{}var {} = new {}();", prefix, name, type.getTypeName());
+			sb.appendLine("{}var {} = new {}();", prefix, name, type.getTypeName().replace('$', '.'));
 		else
 			sb.appendLine("{}{} {};", prefix, getTypeName(param.getParameterizedType()), name);
 	}

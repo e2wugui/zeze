@@ -590,6 +590,24 @@ public class ModuleRank extends AbstractModule {
 		return RedirectAllFuture.result(new RedirectResult());
 	}
 
+	public static final class InnerBean implements Serializable {
+		public int a;
+
+		@Override
+		public void encode(ByteBuffer bb) {
+			bb.WriteInt(a);
+		}
+
+		@Override
+		public void decode(ByteBuffer bb) {
+			a = bb.ReadInt();
+		}
+	}
+
+	@RedirectToServer
+	public void TestInnerClass(int serverId, InnerBean inner) {
+	}
+
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
     public ModuleRank(Game.App app) {
         super(app);
