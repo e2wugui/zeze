@@ -388,15 +388,19 @@ public final class GenModule {
 									   int moduleId, String moduleFullName, MethodOverride m) throws Exception {
 		sb.append("        var _c_ = new Zeze.Arch.RedirectAllContext<>({}, ", m.hashOrServerIdParameter.getName());
 		if (m.resultTypeName != null) {
-			sb.appendLine("_params_ -> {");
-			sb.appendLine("            var _r_ = new {}();", m.resultTypeName);
-			sb.appendLine("            if (_params_ != null) {");
-			sb.appendLine("                var _b_ = _params_.Wrap();");
-			for (var field : m.resultFields)
-				Gen.instance.genDecode(sb, "                ", "_b_", field.getType(), field.getGenericType(), "_r_." + field.getName());
-			sb.appendLine("            }");
-			sb.appendLine("            return _r_;");
-			sb.appendLine("        });");
+			if (m.resultFields.isEmpty())
+				sb.appendLine("_params_ -> new {}());", m.resultTypeName);
+			else {
+				sb.appendLine("_params_ -> {");
+				sb.appendLine("            var _r_ = new {}();", m.resultTypeName);
+				sb.appendLine("            if (_params_ != null) {");
+				sb.appendLine("                var _b_ = _params_.Wrap();");
+				for (var field : m.resultFields)
+					Gen.instance.genDecode(sb, "                ", "_b_", field.getType(), field.getGenericType(), "_r_." + field.getName());
+				sb.appendLine("            }");
+				sb.appendLine("            return _r_;");
+				sb.appendLine("        });");
+			}
 		} else
 			sb.appendLine("null);");
 		sb.appendLine("        var _p_ = new Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest();");

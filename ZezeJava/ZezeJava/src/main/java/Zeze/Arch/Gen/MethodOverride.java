@@ -57,12 +57,11 @@ final class MethodOverride {
 		transactionLevel = levelAnn != null ? levelAnn.Level() : TransactionLevel.Serializable;
 
 		allParameters = method.getParameters();
-		inputParameters.addAll(Arrays.asList(allParameters));
-		hashOrServerIdParameter = allParameters[0];
-		if (hashOrServerIdParameter.getType() != int.class) {
+		if (allParameters.length <= 0 || (hashOrServerIdParameter = allParameters[0]).getType() != int.class) {
 			throw new IllegalStateException("ModuleRedirect: type of first parameter must be 'int': "
 					+ method.getDeclaringClass().getName() + "::" + method.getName());
 		}
+		inputParameters.addAll(Arrays.asList(allParameters));
 		inputParameters.remove(0);
 
 		var rType = method.getGenericReturnType();

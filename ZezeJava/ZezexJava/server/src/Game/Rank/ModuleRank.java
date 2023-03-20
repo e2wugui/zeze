@@ -585,6 +585,11 @@ public class ModuleRank extends AbstractModule {
 	public void TestAllNoResult(int hash, Object obj) {
 	}
 
+	@RedirectAll
+	public RedirectAllFuture<RedirectResult> TestSimpleResult(int hash) {
+		return RedirectAllFuture.result(new RedirectResult());
+	}
+
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
     public ModuleRank(Game.App app) {
         super(app);
