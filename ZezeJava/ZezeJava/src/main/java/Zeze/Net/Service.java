@@ -360,7 +360,7 @@ public class Service {
 	 */
 	public boolean OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input) throws Exception {
 		Protocol.decode(this, so, input);
-		return false;
+		return true;
 	}
 
 	// 用来派发异步rpc回调。
