@@ -36,7 +36,30 @@ public class TestTaskOneByOne {
 		synchronized (this) {
 			this.wait();
 		}
-		b.report(this.getClass().getName(), TaskCount);
+		b.report("TestTaskOneByOne.testBenchmark", TaskCount);
+		System.out.println(counter.get());
+	}
+
+	@Test
+	public void testBenchmark2() throws InterruptedException {
+		Task.tryInitThreadPool(null, null, null);
+		var oo = new TaskOneByOneByKey2();
+		var b = new Zeze.Util.Benchmark();
+		for (int i = 0; i < TaskCount; ++i) {
+			oo.Execute(1, () -> {
+				counter.incrementAndGet();
+			});
+		}
+		oo.Execute(1, () -> {
+			synchronized (this) {
+				counter.incrementAndGet();
+				this.notify();
+			}
+		});
+		synchronized (this) {
+			this.wait();
+		}
+		b.report("TestTaskOneByOne.testBenchmark2", TaskCount);
 		System.out.println(counter.get());
 	}
 
@@ -80,7 +103,7 @@ public class TestTaskOneByOne {
 		});
 		taskAwaiter.await();
 		f.cancel(false);
-		b.report("testCyclicBarrier", exeCount);
+		b.report("TestTaskOneByOne.testCyclicBarrier", exeCount);
 	}
 
 	private static void runCyclicBarrier(TaskOneByOneByKey2 oo, AtomicInteger taskCounter, CountDownLatch taskAwaiter) {
@@ -117,6 +140,6 @@ public class TestTaskOneByOne {
 		});
 		taskAwaiter.await();
 		f.cancel(false);
-		b.report("testCyclicBarrier2", exeCount);
+		b.report("TestTaskOneByOne.testCyclicBarrier2", exeCount);
 	}
 }
