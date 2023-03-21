@@ -1,12 +1,12 @@
 package Zeze.Util;
 
-import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
@@ -14,35 +14,28 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * 对每个相同的key，最多只提交一个 Task.Run。
- * <p>
- * 说明：
- * 严格的来说应该对每个key建立一个队列，但是key可能很多，就需要很多队列。
- * 如果队列为空，需要回收队列，会产生很多垃圾回收对象。
- * 具体的实现对于相同的key.hash使用相同的队列。
- * 固定总的队列数，不回收队列。
- * 构造的时候，可以通过参数控制总的队列数量。
+ * 同TaskOneByOneByKey,只是用ConcurrentLinkedQueue代替ArrayDeque和锁
  */
-public final class TaskOneByOneByKey {
-	private static final Logger logger = LogManager.getLogger(TaskOneByOneByKey.class);
+public final class TaskOneByOneByKey2 {
+	private static final Logger logger = LogManager.getLogger(TaskOneByOneByKey2.class);
 
 	private final TaskOneByOne[] concurrency;
 	private final int hashMask;
 	private final Executor executor;
 
-	public TaskOneByOneByKey(Executor executor) {
+	public TaskOneByOneByKey2(Executor executor) {
 		this(1024, executor);
 	}
 
-	public TaskOneByOneByKey() {
+	public TaskOneByOneByKey2() {
 		this(1024, null);
 	}
 
-	public TaskOneByOneByKey(int concurrencyLevel) {
+	public TaskOneByOneByKey2(int concurrencyLevel) {
 		this(concurrencyLevel, null);
 	}
 
-	public TaskOneByOneByKey(int concurrencyLevel, Executor executor) {
+	public TaskOneByOneByKey2(int concurrencyLevel, Executor executor) {
 		this.executor = executor;
 		if (concurrencyLevel < 1 || concurrencyLevel > 0x4000_0000)
 			throw new IllegalArgumentException("Illegal concurrencyLevel: " + concurrencyLevel);
@@ -66,7 +59,7 @@ public final class TaskOneByOneByKey {
 
 	static abstract class Barrier {
 		private final ReentrantLock lock = new ReentrantLock();
-		private final HashSet<TaskOneByOne.BatchTask> reached = new HashSet<>();
+		private final HashSet<TaskOneByOne> reached = new HashSet<>();
 		private final Action0 cancelAction;
 		private int count;
 		private boolean canceled;
@@ -81,17 +74,17 @@ public final class TaskOneByOneByKey {
 		abstract void run() throws Exception;
 
 		private void reachedRunNext() {
-			for (var batch : reached)
-				batch.runNext();
+			for (var taskOneByOne : reached)
+				taskOneByOne.runNext();
 		}
 
-		boolean reach(TaskOneByOne.BatchTask batch, int sum) {
+		boolean reach(TaskOneByOne taskOneByOne, int sum) {
 			lock.lock();
 			try {
 				if (canceled)
 					return true;
 
-				reached.add(batch);
+				reached.add(taskOneByOne);
 
 				count -= sum;
 				if (count > 0)
@@ -107,7 +100,7 @@ public final class TaskOneByOneByKey {
 					// 2. 自己也返回false，不再继续runNext。
 					reachedRunNext();
 				}
-				return false; // 返回false
+				return false;
 			} finally {
 				lock.unlock();
 			}
@@ -412,13 +405,9 @@ public final class TaskOneByOneByKey {
 
 	public void shutdown(boolean cancel) {
 		for (var ts : concurrency)
-			ts.shutdown(cancel);
-		try {
-			for (var ts : concurrency)
-				ts.waitComplete();
-		} catch (InterruptedException e) {
-			logger.error("Shutdown interrupted", e);
-		}
+			ts.shutdown();
+		for (var ts : concurrency)
+			ts.waitCompleted(cancel);
 	}
 
 	@Override
@@ -439,7 +428,7 @@ public final class TaskOneByOneByKey {
 	 * hashCodes that do not differ in lower bits. Note: Null keys always map to
 	 * hash 0, thus index 0.
 	 *
-	 * @see java.util.HashMap
+	 * @see HashMap
 	 */
 	private static int hash(int _h) {
 		int h = _h;
@@ -447,280 +436,198 @@ public final class TaskOneByOneByKey {
 		return (h ^ (h >>> 7) ^ (h >>> 4));
 	}
 
-	static abstract class Task {
-		final String name;
-		final Action0 cancel;
-		final DispatchMode mode;
-
-		Task(String name, Action0 cancel, DispatchMode mode) {
-			this.name = name;
-			this.cancel = cancel;
-			this.mode = mode;
-		}
-
-		abstract boolean isBarrier();
-
-		abstract boolean process(TaskOneByOne.BatchTask batch);
+	private Executor getExecutor(DispatchMode mode) {
+		return executor != null ? executor : (mode == DispatchMode.Critical
+				? Zeze.Util.Task.getCriticalThreadPool()
+				: Zeze.Util.Task.getThreadPool());
 	}
 
-	static final class TaskAction extends Task {
-		private final Action0 action;
+	final class TaskOneByOne implements Runnable {
+		abstract class Task {
+			final String name;
+			final Action0 cancel;
+			final DispatchMode mode;
 
-		TaskAction(Action0 action, String name, Action0 cancel, DispatchMode mode) {
-			super(name != null ? name : action.getClass().getName(), cancel, mode);
-			this.action = action;
-		}
-
-		@Override
-		boolean isBarrier() {
-			return false;
-		}
-
-		@Override
-		boolean process(TaskOneByOne.BatchTask batch) {
-			try {
-				action.run();
-			} catch (Exception e) {
-				logger.error("TaskOneByOne: {}", name, e);
+			Task(String name, Action0 cancel, DispatchMode mode) {
+				this.name = name;
+				this.cancel = cancel;
+				this.mode = mode;
 			}
-			return true;
-		}
-	}
 
-	static final class TaskFunc extends Task {
-		private final Func0<?> func;
-
-		TaskFunc(Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
-			super(name, cancel, mode);
-			this.func = func;
+			abstract boolean process();
 		}
 
-		@Override
-		boolean isBarrier() {
-			return false;
-		}
+		final class TaskAction extends Task {
+			private final Action0 action;
 
-		@Override
-		boolean process(TaskOneByOne.BatchTask batch) {
-			try {
-				func.call();
-			} catch (Exception e) {
-				logger.error("TaskOneByOne: {}", name, e);
-			}
-			return true;
-		}
-	}
-
-	static final class TaskBarrierProcedure extends Task {
-		private final BarrierProcedure barrier;
-		private final int sum;
-
-		TaskBarrierProcedure(BarrierProcedure barrier, int sum, DispatchMode mode) {
-			super(barrier.getName(), barrier::cancel, mode);
-			this.barrier = barrier;
-			this.sum = sum;
-		}
-
-		@Override
-		boolean isBarrier() {
-			return true;
-		}
-
-		@Override
-		boolean process(TaskOneByOne.BatchTask batch) {
-			return barrier.reach(batch, sum);
-		}
-	}
-
-	static final class TaskBarrierAction extends Task {
-		private final BarrierAction barrier;
-		private final int sum;
-
-		TaskBarrierAction(BarrierAction barrier, int sum, DispatchMode mode) {
-			super(barrier.actionName, barrier::cancel, mode);
-			this.barrier = barrier;
-			this.sum = sum;
-		}
-
-		@Override
-		boolean isBarrier() {
-			return true;
-		}
-
-		@Override
-		boolean process(TaskOneByOne.BatchTask batch) {
-			return barrier.reach(batch, sum);
-		}
-	}
-
-	final class TaskOneByOne {
-		private final ReentrantLock lock = new ReentrantLock();
-		private final Condition cond = lock.newCondition();
-		private final BatchTask batch = new BatchTask();
-		private ArrayDeque<Task> queue = new ArrayDeque<>();
-		private boolean isShutdown;
-
-		void execute(Action0 action, String name, Action0 cancel, DispatchMode mode) {
-			execute(new TaskAction(action, name, cancel, mode));
-		}
-
-		void execute(Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
-			execute(new TaskFunc(func, name, cancel, mode));
-		}
-
-		final class BatchTask implements Runnable {
-			Task[] tasks;
-			int count;
-			DispatchMode mode;
-			int processedCount;
-
-			void prepare() {
-				if (!queue.isEmpty()) {
-					var max = Math.min(queue.size(), 1000);
-					if (null == tasks || max > tasks.length)
-						tasks = new Task[max];
-					mode = queue.peekFirst().mode;
-					var i = 0;
-					for (var task : queue) {
-						if (mode != task.mode)
-							break;
-						tasks[i++] = task;
-						if (i >= max || task.isBarrier()) // barrier任务大多会中断批量任务,所以遇到这种任务就不再加后续任务了,能提高点性能
-							break;
-					}
-					count = i;
-				} else {
-					mode = DispatchMode.Normal;
-					count = 0;
-				}
+			TaskAction(Action0 action, String name, Action0 cancel, DispatchMode mode) {
+				super(name != null ? name : action.getClass().getName(), cancel, mode);
+				this.action = action;
 			}
 
 			@Override
-			public void run() {
-				for (processedCount = 0; processedCount < count; ) {
-					var task = tasks[processedCount];
-					tasks[processedCount++] = null; // gc, 下标索引转换成count。
-					if (!task.process(this))
-						return; // 任务调度终端，当前任务以后完成的时候会触发runNext;
+			boolean process() {
+				try {
+					action.run();
+				} catch (Exception e) {
+					logger.error("TaskOneByOne: {}", name, e);
 				}
-				TaskOneByOne.this.runNext(processedCount);
+				return true;
+			}
+		}
+
+		final class TaskFunc extends Task {
+			private final Func0<?> func;
+
+			TaskFunc(Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
+				super(name, cancel, mode);
+				this.func = func;
 			}
 
-			void runNext() {
-				TaskOneByOne.this.runNext(processedCount);
+			@Override
+			boolean process() {
+				try {
+					func.call();
+				} catch (Exception e) {
+					logger.error("TaskOneByOne: {}", name, e);
+				}
+				return true;
 			}
+		}
+
+		final class TaskBarrierProcedure extends Task {
+			private final BarrierProcedure barrier;
+			private final int sum;
+
+			TaskBarrierProcedure(BarrierProcedure barrier, int sum, DispatchMode mode) {
+				super(barrier.getName(), barrier::cancel, mode);
+				this.barrier = barrier;
+				this.sum = sum;
+			}
+
+			@Override
+			boolean process() {
+				return barrier.reach(TaskOneByOne.this, sum);
+			}
+		}
+
+		final class TaskBarrierAction extends Task {
+			private final BarrierAction barrier;
+			private final int sum;
+
+			TaskBarrierAction(BarrierAction barrier, int sum, DispatchMode mode) {
+				super(barrier.actionName, barrier::cancel, mode);
+				this.barrier = barrier;
+				this.sum = sum;
+			}
+
+			@Override
+			boolean process() {
+				return barrier.reach(TaskOneByOne.this, sum);
+			}
+		}
+
+		private final ConcurrentLinkedQueue<Task> queue = new ConcurrentLinkedQueue<>();
+		private final AtomicInteger submitted = new AtomicInteger();
+		private final AtomicBoolean shutdown = new AtomicBoolean();
+
+		void execute(Action0 action, String name, Action0 cancel, DispatchMode mode) {
+			submit(new TaskAction(action, name, cancel, mode));
+		}
+
+		void execute(Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
+			submit(new TaskFunc(func, name, cancel, mode));
 		}
 
 		void executeBarrier(BarrierProcedure barrier, int sum, DispatchMode mode) {
-			execute(new TaskBarrierProcedure(barrier, sum, mode));
+			submit(new TaskBarrierProcedure(barrier, sum, mode));
 		}
 
 		void executeBarrier(BarrierAction barrier, int sum, DispatchMode mode) {
-			execute(new TaskBarrierAction(barrier, sum, mode));
+			submit(new TaskBarrierAction(barrier, sum, mode));
 		}
 
-		private void execute(Task task) {
-			boolean submit = false;
-			lock.lock();
-			try {
-				if (!isShutdown) {
-					queue.addLast(task);
-					if (queue.size() != 1)
-						return;
-					submit = true;
-					batch.prepare();
-				}
-			} finally {
-				lock.unlock();
-			}
-			if (submit) {
-				if (executor != null) {
-					executor.execute(batch);
-				} else {
-					var threadPool = batch.mode == DispatchMode.Critical
-							? Zeze.Util.Task.getCriticalThreadPool()
-							: Zeze.Util.Task.getThreadPool();
-					threadPool.submit(batch);
-				}
-			} else if (task.cancel != null) {
-				try {
-					task.cancel.run();
-				} catch (Exception e) {
-					logger.error("CancelAction={}", task.name, e);
-				}
-			}
-		}
-
-		private void runNext(int count) {
-			lock.lock();
-			try {
-				while (count-- > 0)
-					queue.pollFirst();
-				if (queue.isEmpty()) {
-					if (isShutdown)
-						cond.signalAll();
-					return;
-				}
-				batch.prepare();
-			} finally {
-				lock.unlock();
-			}
-			if (executor != null) {
-				executor.execute(batch);
-			} else {
-				var threadPool = batch.mode == DispatchMode.Critical
-						? Zeze.Util.Task.getCriticalThreadPool()
-						: Zeze.Util.Task.getThreadPool();
-				threadPool.submit(batch);
-			}
-		}
-
-		void shutdown(boolean cancel) {
-			ArrayDeque<Task> oldQueue;
-			lock.lock();
-			try {
-				if (isShutdown)
-					return;
-				isShutdown = true;
-				oldQueue = queue;
-				if (!cancel || oldQueue.isEmpty())
-					return;
-				queue = new ArrayDeque<>(); // clear
-				queue.addLast(oldQueue.pollFirst()); // put back running task back
-			} finally {
-				lock.unlock();
-			}
-			for (Task task : oldQueue) {
+		private void submit(Task task) {
+			if (shutdown.get()) {
 				if (task.cancel != null) {
 					try {
 						task.cancel.run();
 					} catch (Exception e) {
-						logger.error("CancelAction={}", task.name, e);
+						logger.error("{} cancel exception:", task.name, e);
 					}
 				}
+			} else {
+				queue.offer(task);
+				if (submitted.compareAndSet(0, 1))
+					getExecutor(task.mode).execute(this);
 			}
 		}
 
-		void waitComplete() throws InterruptedException {
-			lock.lock();
-			try {
-				while (!queue.isEmpty())
-					cond.await(); // wait running task
-			} finally {
-				lock.unlock();
+		void runNext() {
+			var task = queue.peek();
+			if (task != null)
+				getExecutor(task.mode).execute(this);
+		}
+
+		@Override
+		public void run() {
+			var task = queue.poll();
+			if (task != null) {
+				for (var mode = task.mode; ; ) {
+					if (!task.process())
+						break;
+					task = queue.peek();
+					if (task == null || task.mode != mode || shutdown.get())
+						break;
+					queue.poll();
+				}
 			}
+			if (!shutdown.get()) {
+				if (task != null) {
+					getExecutor(task.mode).execute(this);
+					return;
+				}
+				if (submitted.compareAndSet(1, 0))
+					return;
+			}
+			synchronized (this) {
+				notifyAll();
+			}
+		}
+
+		void shutdown() {
+			shutdown.set(true);
+		}
+
+		void waitCompleted(boolean cancel) {
+			synchronized (this) {
+				if (submitted.compareAndSet(1, 2)) {
+					try {
+						wait();
+					} catch (InterruptedException e) {
+						logger.error("waitCompleted interrupted:", e);
+					}
+				}
+			}
+			if (cancel) {
+				for (Task task; (task = queue.poll()) != null; ) {
+					if (task.cancel != null) {
+						try {
+							task.cancel.run();
+						} catch (Exception e) {
+							logger.error("{} cancel exception", task.name, e);
+						}
+					}
+				}
+			} else
+				queue.clear();
 		}
 
 		@Override
 		public String toString() {
 			var sb = new StringBuilder().append('[');
-			lock.lock();
-			try {
-				for (var task : queue)
-					sb.append(task.name).append(',');
-			} finally {
-				lock.unlock();
-			}
+			for (var task : queue)
+				sb.append(task.name).append(',');
 			int n = sb.length();
 			if (n > 1)
 				sb.setLength(n - 1);
