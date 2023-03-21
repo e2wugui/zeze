@@ -156,10 +156,10 @@ public final class TaskOneByOneByKey {
 		private final String actionName;
 		private final Action0 action;
 		private final ReentrantLock lock = new ReentrantLock();
-		private final Condition cond = lock.newCondition();
 		private int count;
 		private final Action0 cancel;
 		private boolean canceled = false;
+		private final HashSet<TaskOneByOne.BatchTask> reached = new HashSet<>();
 
 		public BarrierAction(String actionName, Action0 action, int count, Action0 cancel) {
 			this.actionName = actionName;
@@ -168,24 +168,34 @@ public final class TaskOneByOneByKey {
 			this.cancel = cancel;
 		}
 
-		public void reach(int sum) throws InterruptedException {
+		private void reachedRunNext() {
+			for (var batch : reached)
+				batch.runNext();
+		}
+
+		public boolean reach(TaskOneByOne.BatchTask batch, int sum) {
 			lock.lock();
 			try {
 				if (canceled)
-					return;
+					return true;
+
+				reached.add(batch);
 
 				count -= sum;
 				if (count > 0)
-					cond.await();
-				else {
-					try {
-						action.run();
-					} catch (Exception ex) {
-						logger.error("{} Run", actionName, ex);
-					} finally {
-						cond.signalAll();
-					}
+					return false;
+
+				try {
+					action.run();
+				} catch (Exception ex) {
+					logger.error("{} Run", actionName, ex);
+				} finally {
+					// 成功执行
+					// 1. 触发所有桶的runNext，
+					// 2. 自己也返回false，不再继续runNext。
+					reachedRunNext();
 				}
+				return false; // 返回false
 			} finally {
 				lock.unlock();
 			}
@@ -204,7 +214,10 @@ public final class TaskOneByOneByKey {
 				} catch (Exception ex) {
 					logger.error("{} Canceled", actionName, ex);
 				} finally {
-					cond.signalAll();
+					// 取消的时候，
+					// 1. 如果相关桶的任务已经执行，需要runNext。
+					// 2. 如果相关桶的任务没有执行，不需要处理。相应的任务以后会发现已经取消，自动忽略执行。
+					reachedRunNext();
 				}
 			} finally {
 				lock.unlock();
@@ -231,7 +244,7 @@ public final class TaskOneByOneByKey {
 		var barrier = new BarrierAction(actionName, action, count, cancel);
 		for (var e : group.entrySet()) {
 			var sum = e.getValue().value;
-			e.getKey().execute(() -> barrier.reach(sum), actionName, barrier::cancel, mode);
+			e.getKey().executeBarrier(barrier, sum, mode);
 		}
 	}
 
@@ -500,6 +513,22 @@ public final class TaskOneByOneByKey {
 			}
 		}
 
+		final class TaskBarrierAction extends Task {
+			final BarrierAction barrier;
+			final int sum;
+
+			TaskBarrierAction(BarrierAction barrier, int sum, DispatchMode mode) {
+				super(barrier.actionName, barrier::cancel, mode);
+				this.barrier = barrier;
+				this.sum = sum;
+			}
+
+			@Override
+			public boolean process(TaskOneByOne.BatchTask batch) {
+				return barrier.reach(batch, sum);
+			}
+		}
+
 		final class TaskAction extends Task {
 			final Action0 action;
 
@@ -581,13 +610,11 @@ public final class TaskOneByOneByKey {
 
 			@Override
 			public void run() {
-				for (processedCount = 0; processedCount < count; ++processedCount) {
-					if (!tasks[processedCount].process(this)) {
-						tasks[processedCount] = null; // gc
-						++processedCount; // 下标索引转换成count。
+				for (processedCount = 0; processedCount < count; ) {
+					var task = tasks[processedCount];
+					tasks[processedCount++] = null; // gc, 下标索引转换成count。
+					if (!task.process(this))
 						return; // 任务调度终端，当前任务以后完成的时候会触发runNext;
-					}
-					tasks[processedCount] = null; // gc
 				}
 				TaskOneByOne.this.runNext(processedCount);
 			}
@@ -599,6 +626,10 @@ public final class TaskOneByOneByKey {
 
 		void executeBarrier(Barrier barrier, int sum, DispatchMode mode) {
 			execute(new TaskOneByOne.TaskBarrier(barrier, sum, mode));
+		}
+
+		void executeBarrier(BarrierAction barrier, int sum, DispatchMode mode) {
+			execute(new TaskOneByOne.TaskBarrierAction(barrier, sum, mode));
 		}
 
 		private void execute(Task task) {
