@@ -41,7 +41,7 @@ public class TestTaskOneByOne {
 
 	private static final int exeCount = 10_0000;
 	private static final int keyCount = 20;
-	private static final int roleCount = 100;
+	private static final int roleCount = 10000;
 	private static final int concurrency = 20;
 	private static final ConcurrentSkipListSet<Integer> taskIds = new ConcurrentSkipListSet<>();
 
