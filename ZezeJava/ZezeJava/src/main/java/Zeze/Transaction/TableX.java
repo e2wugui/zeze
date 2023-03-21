@@ -478,6 +478,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	public final V get(K key) {
 		var currentT = Transaction.getCurrent();
 		assert currentT != null;
+		if (key == null)
+			throw new IllegalArgumentException("key is null");
 
 		var tkey = new TableKey(getId(), key);
 		var cr = currentT.getRecordAccessed(tkey);
@@ -499,6 +501,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	public final V getOrAdd(K key) {
 		var currentT = Transaction.getCurrent();
 		assert currentT != null;
+		if (key == null)
+			throw new IllegalArgumentException("key is null");
 
 		var tkey = new TableKey(getId(), key);
 		var cr = currentT.getRecordAccessed(tkey);
@@ -524,6 +528,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final boolean tryAdd(K key, V value) {
+		if (value == null)
+			throw new IllegalArgumentException("value is null");
 		if (get(key) != null)
 			return false;
 
@@ -547,6 +553,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	public final void put(K key, V value) {
 		var currentT = Transaction.getCurrent();
 		assert currentT != null;
+		if (key == null)
+			throw new IllegalArgumentException("key is null");
+		if (value == null)
+			throw new IllegalArgumentException("value is null");
 
 		var tkey = new TableKey(getId(), key);
 		var cr = currentT.getRecordAccessed(tkey);
@@ -569,6 +579,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	public final void remove(K key) {
 		var currentT = Transaction.getCurrent();
 		assert currentT != null;
+		if (key == null)
+			throw new IllegalArgumentException("key is null");
 
 		var tkey = new TableKey(getId(), key);
 		var cr = currentT.getRecordAccessed(tkey);
@@ -925,6 +937,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 */
 	@SuppressWarnings("unchecked")
 	public final V selectCopy(K key) {
+		if (key == null)
+			throw new IllegalArgumentException("key is null");
 		var tkey = new TableKey(getId(), key);
 		var currentT = Transaction.getCurrent();
 		if (currentT != null) {
@@ -948,6 +962,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	@SuppressWarnings("unchecked")
 	public final V selectDirty(K key) {
+		if (key == null)
+			throw new IllegalArgumentException("key is null");
 		var currentT = Transaction.getCurrent();
 		if (currentT != null) {
 			var cr = currentT.getRecordAccessed(new TableKey(getId(), key));

@@ -64,26 +64,28 @@ public final class TaskOneByOneByKey {
 		return index >= 0 && index < concurrency.length ? concurrency[index].queue.size() : -1; // 可能有并发问题导致结果不准确,但通常问题不大
 	}
 
-	public static class Barrier {
-		final Procedure procedure;
-		private final Action0 cancelAction;
+	static abstract class Barrier {
 		private final ReentrantLock lock = new ReentrantLock();
-		private int count;
-		private boolean canceled = false;
 		private final HashSet<TaskOneByOne.BatchTask> reached = new HashSet<>();
+		private final Action0 cancelAction;
+		private int count;
+		private boolean canceled;
 
-		public Barrier(Procedure action, int count, Action0 cancel) {
-			procedure = action;
-			cancelAction = cancel;
+		Barrier(int count, Action0 cancelAction) {
+			this.cancelAction = cancelAction;
 			this.count = count;
 		}
+
+		abstract String getName();
+
+		abstract void run() throws Exception;
 
 		private void reachedRunNext() {
 			for (var batch : reached)
 				batch.runNext();
 		}
 
-		public boolean reach(TaskOneByOne.BatchTask batch, int sum) {
+		boolean reach(TaskOneByOne.BatchTask batch, int sum) {
 			lock.lock();
 			try {
 				if (canceled)
@@ -96,9 +98,9 @@ public final class TaskOneByOneByKey {
 					return false;
 
 				try {
-					procedure.call();
+					run();
 				} catch (Exception ex) {
-					logger.error("{} Run", procedure.getActionName(), ex);
+					logger.error("{} run exception", getName(), ex);
 				} finally {
 					// 成功执行
 					// 1. 触发所有桶的runNext，
@@ -111,7 +113,7 @@ public final class TaskOneByOneByKey {
 			}
 		}
 
-		public void cancel() {
+		void cancel() {
 			lock.lock();
 			try {
 				if (canceled)
@@ -119,10 +121,10 @@ public final class TaskOneByOneByKey {
 
 				canceled = true;
 				try {
-					if (null != cancelAction)
+					if (cancelAction != null)
 						cancelAction.run();
 				} catch (Exception ex) {
-					logger.error("{} Canceled", procedure.getActionName(), ex);
+					logger.error("{} cancel exception", getName(), ex);
 				} finally {
 					// 取消的时候，
 					// 1. 如果相关桶的任务已经执行，需要runNext。
@@ -135,7 +137,48 @@ public final class TaskOneByOneByKey {
 		}
 	}
 
-	public synchronized <T> void executeCyclicBarrier(Collection<T> keys, Procedure procedure, Action0 cancel, DispatchMode mode) {
+	static final class BarrierProcedure extends Barrier {
+		private final Procedure procedure;
+
+		BarrierProcedure(Procedure procedure, int count, Action0 cancelAction) {
+			super(count, cancelAction);
+			this.procedure = procedure;
+		}
+
+		@Override
+		String getName() {
+			return procedure.getActionName();
+		}
+
+		@Override
+		void run() {
+			procedure.call();
+		}
+	}
+
+	static final class BarrierAction extends Barrier {
+		private final Action0 action;
+		private final String actionName;
+
+		BarrierAction(String actionName, Action0 action, int count, Action0 cancelAction) {
+			super(count, cancelAction);
+			this.action = action;
+			this.actionName = actionName;
+		}
+
+		@Override
+		String getName() {
+			return actionName;
+		}
+
+		@Override
+		void run() throws Exception {
+			action.run();
+		}
+	}
+
+	public synchronized <T> void executeCyclicBarrier(Collection<T> keys, Procedure procedure, Action0 cancel,
+													  DispatchMode mode) {
 		if (keys.isEmpty())
 			throw new IllegalArgumentException("CyclicBarrier keys is empty.");
 
@@ -145,93 +188,15 @@ public final class TaskOneByOneByKey {
 			group.computeIfAbsent(bucket(key), __ -> new OutInt()).value++;
 			count++;
 		}
-		var barrier = new Barrier(procedure, count, cancel);
+		var barrier = new BarrierProcedure(procedure, count, cancel);
 		for (var e : group.entrySet()) {
 			var sum = e.getValue().value;
 			e.getKey().executeBarrier(barrier, sum, mode);
 		}
 	}
 
-	public static class BarrierAction {
-		private final String actionName;
-		private final Action0 action;
-		private final ReentrantLock lock = new ReentrantLock();
-		private int count;
-		private final Action0 cancel;
-		private boolean canceled = false;
-		private final HashSet<TaskOneByOne.BatchTask> reached = new HashSet<>();
-
-		public BarrierAction(String actionName, Action0 action, int count, Action0 cancel) {
-			this.actionName = actionName;
-			this.action = action;
-			this.count = count;
-			this.cancel = cancel;
-		}
-
-		private void reachedRunNext() {
-			for (var batch : reached)
-				batch.runNext();
-		}
-
-		public boolean reach(TaskOneByOne.BatchTask batch, int sum) {
-			lock.lock();
-			try {
-				if (canceled)
-					return true;
-
-				reached.add(batch);
-
-				count -= sum;
-				if (count > 0)
-					return false;
-
-				try {
-					action.run();
-				} catch (Exception ex) {
-					logger.error("{} Run", actionName, ex);
-				} finally {
-					// 成功执行
-					// 1. 触发所有桶的runNext，
-					// 2. 自己也返回false，不再继续runNext。
-					reachedRunNext();
-				}
-				return false; // 返回false
-			} finally {
-				lock.unlock();
-			}
-		}
-
-		public void cancel() {
-			lock.lock();
-			try {
-				if (canceled)
-					return;
-
-				canceled = true;
-				try {
-					if (null != cancel)
-						cancel.run();
-				} catch (Exception ex) {
-					logger.error("{} Canceled", actionName, ex);
-				} finally {
-					// 取消的时候，
-					// 1. 如果相关桶的任务已经执行，需要runNext。
-					// 2. 如果相关桶的任务没有执行，不需要处理。相应的任务以后会发现已经取消，自动忽略执行。
-					reachedRunNext();
-				}
-			} finally {
-				lock.unlock();
-			}
-		}
-	}
-
-	public synchronized <T> void executeCyclicBarrier(
-			Collection<T> keys,
-			String actionName,
-			Action0 action,
-			Action0 cancel,
-			DispatchMode mode) {
-
+	public synchronized <T> void executeCyclicBarrier(Collection<T> keys, String actionName, Action0 action,
+													  Action0 cancel, DispatchMode mode) {
 		if (keys.isEmpty())
 			throw new IllegalArgumentException("CyclicBarrier keys is empty.");
 
@@ -496,82 +461,82 @@ public final class TaskOneByOneByKey {
 		abstract boolean process(TaskOneByOne.BatchTask batch);
 	}
 
+	static final class TaskAction extends Task {
+		private final Action0 action;
+
+		TaskAction(Action0 action, String name, Action0 cancel, DispatchMode mode) {
+			super(name != null ? name : action.getClass().getName(), cancel, mode);
+			this.action = action;
+		}
+
+		@Override
+		boolean process(TaskOneByOne.BatchTask batch) {
+			try {
+				action.run();
+			} catch (Exception e) {
+				logger.error("TaskOneByOne: {}", name, e);
+			}
+			return true;
+		}
+	}
+
+	static final class TaskFunc extends Task {
+		private final Func0<?> func;
+
+		TaskFunc(Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
+			super(name, cancel, mode);
+			this.func = func;
+		}
+
+		@Override
+		boolean process(TaskOneByOne.BatchTask batch) {
+			try {
+				func.call();
+			} catch (Exception e) {
+				logger.error("TaskOneByOne: {}", name, e);
+			}
+			return true;
+		}
+	}
+
+	static final class TaskBarrierProcedure extends Task {
+		private final BarrierProcedure barrier;
+		private final int sum;
+
+		TaskBarrierProcedure(BarrierProcedure barrier, int sum, DispatchMode mode) {
+			super(barrier.getName(), barrier::cancel, mode);
+			this.barrier = barrier;
+			this.sum = sum;
+		}
+
+		@Override
+		boolean process(TaskOneByOne.BatchTask batch) {
+			return barrier.reach(batch, sum);
+		}
+	}
+
+	static final class TaskBarrierAction extends Task {
+		private final BarrierAction barrier;
+		private final int sum;
+
+		TaskBarrierAction(BarrierAction barrier, int sum, DispatchMode mode) {
+			super(barrier.actionName, barrier::cancel, mode);
+			this.barrier = barrier;
+			this.sum = sum;
+		}
+
+		@Override
+		boolean process(TaskOneByOne.BatchTask batch) {
+			return barrier.reach(batch, sum);
+		}
+	}
+
 	final class TaskOneByOne {
-		final class TaskBarrier extends Task {
-			final Barrier barrier;
-			final int sum;
-
-			TaskBarrier(Barrier barrier, int sum, DispatchMode mode) {
-				super(barrier.procedure.getActionName(), barrier::cancel, mode);
-				this.barrier = barrier;
-				this.sum = sum;
-			}
-
-			@Override
-			public boolean process(TaskOneByOne.BatchTask batch) {
-				return barrier.reach(batch, sum);
-			}
-		}
-
-		final class TaskBarrierAction extends Task {
-			final BarrierAction barrier;
-			final int sum;
-
-			TaskBarrierAction(BarrierAction barrier, int sum, DispatchMode mode) {
-				super(barrier.actionName, barrier::cancel, mode);
-				this.barrier = barrier;
-				this.sum = sum;
-			}
-
-			@Override
-			public boolean process(TaskOneByOne.BatchTask batch) {
-				return barrier.reach(batch, sum);
-			}
-		}
-
-		final class TaskAction extends Task {
-			final Action0 action;
-
-			TaskAction(Action0 action, String name, Action0 cancel, DispatchMode mode) {
-				super(name != null ? name : action.getClass().getName(), cancel, mode);
-				this.action = action;
-			}
-
-			@Override
-			public boolean process(TaskOneByOne.BatchTask batch) {
-				try {
-					action.run();
-				} catch (Exception e) {
-					logger.error("TaskOneByOne: {}", name, e);
-				}
-				return true;
-			}
-		}
-
-		final class TaskFunc extends Task {
-			private final Func0<?> func;
-
-			TaskFunc(Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
-				super(name, cancel, mode);
-				this.func = func;
-			}
-
-			@Override
-			public boolean process(TaskOneByOne.BatchTask batch) {
-				try {
-					func.call();
-				} catch (Exception e) {
-					logger.error("TaskOneByOne: {}", name, e);
-				}
-				return true;
-			}
-		}
-
 		private final ReentrantLock lock = new ReentrantLock();
 		private final Condition cond = lock.newCondition();
+		private final BatchTask batch = new BatchTask();
 		private ArrayDeque<Task> queue = new ArrayDeque<>();
 		private boolean isShutdown;
-		private final BatchTask batch = new BatchTask();
 
 		void execute(Action0 action, String name, Action0 cancel, DispatchMode mode) {
 			execute(new TaskAction(action, name, cancel, mode));
@@ -624,12 +589,12 @@ public final class TaskOneByOneByKey {
 			}
 		}
 
-		void executeBarrier(Barrier barrier, int sum, DispatchMode mode) {
-			execute(new TaskOneByOne.TaskBarrier(barrier, sum, mode));
+		void executeBarrier(BarrierProcedure barrier, int sum, DispatchMode mode) {
+			execute(new TaskBarrierProcedure(barrier, sum, mode));
 		}
 
 		void executeBarrier(BarrierAction barrier, int sum, DispatchMode mode) {
-			execute(new TaskOneByOne.TaskBarrierAction(barrier, sum, mode));
+			execute(new TaskBarrierAction(barrier, sum, mode));
 		}
 
 		private void execute(Task task) {
