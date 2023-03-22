@@ -18,6 +18,7 @@ public class TestAsyncSocket extends TestCase {
 
 	public static class ServiceClient extends Service {
 		public final TaskCompletionSource<Boolean> Future = new TaskCompletionSource<>();
+
 		public ServiceClient() {
 			super("TestAsyncSocket.ServiceClient");
 		}
@@ -26,7 +27,7 @@ public class TestAsyncSocket extends TestCase {
 		public void OnSocketConnected(AsyncSocket so) throws Exception {
 			super.OnSocketConnected(so);
 			System.out.println("OnSocketConnected: " + so.getSessionId());
-			String head = "GET http://www.163.com/\r\nHost: www.163.com\r\nAccept:*/*\r\n\r\n";
+			String head = "GET / HTTP/1.1\r\nHost: www.163.com\r\nAccept:*/*\r\n\r\n";
 			if (!so.Send(head))
 				System.out.println("send fail");
 		}
@@ -34,7 +35,7 @@ public class TestAsyncSocket extends TestCase {
 		@Override
 		public boolean OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input) {
 			System.out.println("input size=" + input.Size());
-			System.out.println(input.ReadString());
+			System.out.println(new String(input.Bytes, input.ReadIndex, input.size()));
 			input.ReadIndex = input.WriteIndex;
 			Future.setResult(true);
 			return false;
