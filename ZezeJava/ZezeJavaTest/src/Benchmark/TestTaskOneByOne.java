@@ -121,7 +121,7 @@ public class TestTaskOneByOne {
 			taskIds.remove(taskId);
 			taskAwaiter.countDown();
 			runCyclicBarrier(oo, taskCounter, taskAwaiter);
-		}, null, DispatchMode.Normal);
+		}, DispatchMode.Normal);
 	}
 
 	@Test

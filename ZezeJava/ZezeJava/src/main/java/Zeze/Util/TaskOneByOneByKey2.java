@@ -1,20 +1,20 @@
 package Zeze.Util;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * 同TaskOneByOneByKey,只是用ConcurrentLinkedQueue代替ArrayDeque和锁
+ * 同TaskOneByOneByKey,只是用ConcurrentLinkedQueue代替ArrayDeque和锁.
+ * 另外由于不用临界区,shutdown和加任务的并发很难做,所以暂时不支持shutdown,也不支持cancel了.
  */
 public final class TaskOneByOneByKey2 {
 	private static final Logger logger = LogManager.getLogger(TaskOneByOneByKey2.class);
@@ -58,14 +58,21 @@ public final class TaskOneByOneByKey2 {
 	}
 
 	static abstract class Barrier {
-		private final ReentrantLock lock = new ReentrantLock();
-		private final HashSet<TaskOneByOne> reached = new HashSet<>();
-		private final Action0 cancelAction;
-		private int count;
-		private boolean canceled;
+		private static final VarHandle vhCount;
 
-		Barrier(int count, Action0 cancelAction) {
-			this.cancelAction = cancelAction;
+		static {
+			try {
+				vhCount = MethodHandles.lookup().findVarHandle(Barrier.class, "count", int.class);
+			} catch (ReflectiveOperationException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		private final ConcurrentHashSet<TaskOneByOne> reached = new ConcurrentHashSet<>();
+		@SuppressWarnings("FieldMayBeFinal")
+		private volatile int count;
+
+		Barrier(int count) {
 			this.count = count;
 		}
 
@@ -78,54 +85,20 @@ public final class TaskOneByOneByKey2 {
 				taskOneByOne.runNext();
 		}
 
-		boolean reach(TaskOneByOne taskOneByOne, int sum) {
-			lock.lock();
+		void reach(TaskOneByOne taskOneByOne, int sum) {
+			reached.add(taskOneByOne);
+			if ((int)vhCount.getAndAdd(this, -sum) > sum)
+				return;
+
 			try {
-				if (canceled)
-					return true;
-
-				reached.add(taskOneByOne);
-
-				count -= sum;
-				if (count > 0)
-					return false;
-
-				try {
-					run();
-				} catch (Exception ex) {
-					logger.error("{} run exception", getName(), ex);
-				} finally {
-					// 成功执行
-					// 1. 触发所有桶的runNext，
-					// 2. 自己也返回false，不再继续runNext。
-					reachedRunNext();
-				}
-				return false;
+				run();
+			} catch (Exception ex) {
+				logger.error("{} run exception:", getName(), ex);
 			} finally {
-				lock.unlock();
-			}
-		}
-
-		void cancel() {
-			lock.lock();
-			try {
-				if (canceled)
-					return;
-
-				canceled = true;
-				try {
-					if (cancelAction != null)
-						cancelAction.run();
-				} catch (Exception ex) {
-					logger.error("{} cancel exception", getName(), ex);
-				} finally {
-					// 取消的时候，
-					// 1. 如果相关桶的任务已经执行，需要runNext。
-					// 2. 如果相关桶的任务没有执行，不需要处理。相应的任务以后会发现已经取消，自动忽略执行。
-					reachedRunNext();
-				}
-			} finally {
-				lock.unlock();
+				// 成功执行
+				// 1. 触发所有桶的runNext，
+				// 2. 自己也返回false，不再继续runNext。
+				reachedRunNext();
 			}
 		}
 	}
@@ -133,8 +106,8 @@ public final class TaskOneByOneByKey2 {
 	static final class BarrierProcedure extends Barrier {
 		private final Procedure procedure;
 
-		BarrierProcedure(Procedure procedure, int count, Action0 cancelAction) {
-			super(count, cancelAction);
+		BarrierProcedure(Procedure procedure, int count) {
+			super(count);
 			this.procedure = procedure;
 		}
 
@@ -153,8 +126,8 @@ public final class TaskOneByOneByKey2 {
 		private final Action0 action;
 		private final String actionName;
 
-		BarrierAction(String actionName, Action0 action, int count, Action0 cancelAction) {
-			super(count, cancelAction);
+		BarrierAction(String actionName, Action0 action, int count) {
+			super(count);
 			this.action = action;
 			this.actionName = actionName;
 		}
@@ -170,7 +143,24 @@ public final class TaskOneByOneByKey2 {
 		}
 	}
 
-	public synchronized <T> void executeCyclicBarrier(Collection<T> keys, Procedure procedure, Action0 cancel,
+	public synchronized <T> void executeCyclicBarrier(Collection<T> keys, Procedure procedure, DispatchMode mode) {
+		if (keys.isEmpty())
+			throw new IllegalArgumentException("CyclicBarrier keys is empty.");
+
+		var group = new HashMap<TaskOneByOne, OutInt>();
+		int count = 0;
+		for (var key : keys) {
+			group.computeIfAbsent(bucket(key), __ -> new OutInt()).value++;
+			count++;
+		}
+		var barrier = new BarrierProcedure(procedure, count);
+		for (var e : group.entrySet()) {
+			var sum = e.getValue().value;
+			e.getKey().executeBarrier(barrier, sum, mode);
+		}
+	}
+
+	public synchronized <T> void executeCyclicBarrier(Collection<T> keys, String actionName, Action0 action,
 													  DispatchMode mode) {
 		if (keys.isEmpty())
 			throw new IllegalArgumentException("CyclicBarrier keys is empty.");
@@ -181,25 +171,7 @@ public final class TaskOneByOneByKey2 {
 			group.computeIfAbsent(bucket(key), __ -> new OutInt()).value++;
 			count++;
 		}
-		var barrier = new BarrierProcedure(procedure, count, cancel);
-		for (var e : group.entrySet()) {
-			var sum = e.getValue().value;
-			e.getKey().executeBarrier(barrier, sum, mode);
-		}
-	}
-
-	public synchronized <T> void executeCyclicBarrier(Collection<T> keys, String actionName, Action0 action,
-													  Action0 cancel, DispatchMode mode) {
-		if (keys.isEmpty())
-			throw new IllegalArgumentException("CyclicBarrier keys is empty.");
-
-		var group = new HashMap<TaskOneByOne, OutInt>();
-		int count = 0;
-		for (var key : keys) {
-			group.computeIfAbsent(bucket(key), __ -> new OutInt()).value++;
-			count++;
-		}
-		var barrier = new BarrierAction(actionName, action, count, cancel);
+		var barrier = new BarrierAction(actionName, action, count);
 		for (var e : group.entrySet()) {
 			var sum = e.getValue().value;
 			e.getKey().executeBarrier(barrier, sum, mode);
@@ -251,10 +223,6 @@ public final class TaskOneByOneByKey2 {
 		Execute(key.hashCode(), action, name, mode);
 	}
 
-	public void Execute(Object key, Action0 action, String name, Action0 cancel, DispatchMode mode) {
-		Execute(key.hashCode(), action, name, cancel, mode);
-	}
-
 	public void Execute(Object key, Func0<?> func) {
 		Execute(key.hashCode(), func, DispatchMode.Normal);
 	}
@@ -271,10 +239,6 @@ public final class TaskOneByOneByKey2 {
 		Execute(key.hashCode(), func, name, mode);
 	}
 
-	public void Execute(Object key, Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
-		Execute(key.hashCode(), func, name, cancel, mode);
-	}
-
 	public void Execute(Object key, Procedure procedure) {
 		Execute(key.hashCode(), procedure, DispatchMode.Normal);
 	}
@@ -283,30 +247,22 @@ public final class TaskOneByOneByKey2 {
 		Execute(key.hashCode(), procedure, mode);
 	}
 
-	public void Execute(Object key, Procedure procedure, Action0 cancel, DispatchMode mode) {
-		Execute(key.hashCode(), procedure, cancel, mode);
-	}
-
 	public void Execute(int key, Action0 action) {
-		Execute(key, action, null, null, DispatchMode.Normal);
+		Execute(key, action, null, DispatchMode.Normal);
 	}
 
 	public void Execute(int key, Action0 action, DispatchMode mode) {
-		Execute(key, action, null, null, mode);
+		Execute(key, action, null, mode);
 	}
 
 	public void Execute(int key, Action0 action, String name) {
-		Execute(key, action, name, null, DispatchMode.Normal);
+		Execute(key, action, name, DispatchMode.Normal);
 	}
 
 	public void Execute(int key, Action0 action, String name, DispatchMode mode) {
-		Execute(key, action, name, null, mode);
-	}
-
-	public void Execute(int key, Action0 action, String name, Action0 cancel, DispatchMode mode) {
 		if (action == null)
 			throw new IllegalArgumentException("null action");
-		concurrency[hash(key) & hashMask].execute(action, name, cancel, mode);
+		concurrency[hash(key) & hashMask].execute(action, name, mode);
 	}
 
 	private TaskOneByOne bucket(Object key) {
@@ -314,37 +270,29 @@ public final class TaskOneByOneByKey2 {
 	}
 
 	public void Execute(int key, Func0<?> func) {
-		Execute(key, func, null, null, DispatchMode.Normal);
+		Execute(key, func, null, DispatchMode.Normal);
 	}
 
 	public void Execute(int key, Func0<?> func, DispatchMode mode) {
-		Execute(key, func, null, null, mode);
+		Execute(key, func, null, mode);
 	}
 
 	public void Execute(int key, Func0<?> func, String name) {
-		Execute(key, func, name, null, DispatchMode.Normal);
+		Execute(key, func, name, DispatchMode.Normal);
 	}
 
 	public void Execute(int key, Func0<?> func, String name, DispatchMode mode) {
-		Execute(key, func, name, null, mode);
-	}
-
-	public void Execute(int key, Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
 		if (func == null)
 			throw new IllegalArgumentException("null func");
-		concurrency[hash(key) & hashMask].execute(func, name, cancel, mode);
+		concurrency[hash(key) & hashMask].execute(func, name, mode);
 	}
 
 	public void Execute(int key, Procedure procedure) {
-		Execute(key, procedure, null, DispatchMode.Normal);
+		Execute(key, procedure, DispatchMode.Normal);
 	}
 
 	public void Execute(int key, Procedure procedure, DispatchMode mode) {
-		Execute(key, procedure, null, mode);
-	}
-
-	public void Execute(int key, Procedure procedure, Action0 cancel, DispatchMode mode) {
-		concurrency[hash(key) & hashMask].execute(procedure::call, procedure.getActionName(), cancel, mode);
+		concurrency[hash(key) & hashMask].execute(procedure::call, procedure.getActionName(), mode);
 	}
 
 	public void Execute(long key, Action0 action) {
@@ -363,10 +311,6 @@ public final class TaskOneByOneByKey2 {
 		Execute(Long.hashCode(key), action, name, mode);
 	}
 
-	public void Execute(long key, Action0 action, String name, Action0 cancel, DispatchMode mode) {
-		Execute(Long.hashCode(key), action, name, cancel, mode);
-	}
-
 	public void Execute(long key, Func0<?> func) {
 		Execute(Long.hashCode(key), func, DispatchMode.Normal);
 	}
@@ -383,31 +327,12 @@ public final class TaskOneByOneByKey2 {
 		Execute(Long.hashCode(key), func, name, mode);
 	}
 
-	public void Execute(long key, Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
-		Execute(Long.hashCode(key), func, name, cancel, mode);
-	}
-
 	public void Execute(long key, Procedure procedure) {
 		Execute(Long.hashCode(key), procedure, DispatchMode.Normal);
 	}
 
 	public void Execute(long key, Procedure procedure, DispatchMode mode) {
 		Execute(Long.hashCode(key), procedure, mode);
-	}
-
-	public void Execute(long key, Procedure procedure, Action0 cancel, DispatchMode mode) {
-		Execute(Long.hashCode(key), procedure, cancel, mode);
-	}
-
-	public void shutdown() {
-		shutdown(true);
-	}
-
-	public void shutdown(boolean cancel) {
-		for (var ts : concurrency)
-			ts.shutdown();
-		for (var ts : concurrency)
-			ts.waitCompleted(cancel);
 	}
 
 	@Override
@@ -445,12 +370,10 @@ public final class TaskOneByOneByKey2 {
 	final class TaskOneByOne implements Runnable {
 		abstract class Task {
 			final String name;
-			final Action0 cancel;
 			final DispatchMode mode;
 
-			Task(String name, Action0 cancel, DispatchMode mode) {
+			Task(String name, DispatchMode mode) {
 				this.name = name;
-				this.cancel = cancel;
 				this.mode = mode;
 			}
 
@@ -460,8 +383,8 @@ public final class TaskOneByOneByKey2 {
 		final class TaskAction extends Task {
 			private final Action0 action;
 
-			TaskAction(Action0 action, String name, Action0 cancel, DispatchMode mode) {
-				super(name != null ? name : action.getClass().getName(), cancel, mode);
+			TaskAction(Action0 action, String name, DispatchMode mode) {
+				super(name != null ? name : action.getClass().getName(), mode);
 				this.action = action;
 			}
 
@@ -470,7 +393,7 @@ public final class TaskOneByOneByKey2 {
 				try {
 					action.run();
 				} catch (Exception e) {
-					logger.error("TaskOneByOne: {}", name, e);
+					logger.error("TaskAction run exception: {}", name, e);
 				}
 				return true;
 			}
@@ -479,8 +402,8 @@ public final class TaskOneByOneByKey2 {
 		final class TaskFunc extends Task {
 			private final Func0<?> func;
 
-			TaskFunc(Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
-				super(name, cancel, mode);
+			TaskFunc(Func0<?> func, String name, DispatchMode mode) {
+				super(name, mode);
 				this.func = func;
 			}
 
@@ -489,7 +412,7 @@ public final class TaskOneByOneByKey2 {
 				try {
 					func.call();
 				} catch (Exception e) {
-					logger.error("TaskOneByOne: {}", name, e);
+					logger.error("TaskFunc run exception: {}", name, e);
 				}
 				return true;
 			}
@@ -500,14 +423,15 @@ public final class TaskOneByOneByKey2 {
 			private final int sum;
 
 			TaskBarrierProcedure(BarrierProcedure barrier, int sum, DispatchMode mode) {
-				super(barrier.getName(), barrier::cancel, mode);
+				super(barrier.getName(), mode);
 				this.barrier = barrier;
 				this.sum = sum;
 			}
 
 			@Override
 			boolean process() {
-				return barrier.reach(TaskOneByOne.this, sum);
+				barrier.reach(TaskOneByOne.this, sum);
+				return false;
 			}
 		}
 
@@ -516,27 +440,37 @@ public final class TaskOneByOneByKey2 {
 			private final int sum;
 
 			TaskBarrierAction(BarrierAction barrier, int sum, DispatchMode mode) {
-				super(barrier.actionName, barrier::cancel, mode);
+				super(barrier.actionName, mode);
 				this.barrier = barrier;
 				this.sum = sum;
 			}
 
 			@Override
 			boolean process() {
-				return barrier.reach(TaskOneByOne.this, sum);
+				barrier.reach(TaskOneByOne.this, sum);
+				return false;
+			}
+		}
+
+		private static final VarHandle vhSubmitted;
+
+		static {
+			try {
+				vhSubmitted = MethodHandles.lookup().findVarHandle(TaskOneByOne.class, "submitted", boolean.class);
+			} catch (ReflectiveOperationException e) {
+				throw new RuntimeException(e);
 			}
 		}
 
 		private final ConcurrentLinkedQueue<Task> queue = new ConcurrentLinkedQueue<>();
-		private final AtomicInteger submitted = new AtomicInteger();
-		private final AtomicBoolean shutdown = new AtomicBoolean();
+		private volatile boolean submitted;
 
-		void execute(Action0 action, String name, Action0 cancel, DispatchMode mode) {
-			submit(new TaskAction(action, name, cancel, mode));
+		void execute(Action0 action, String name, DispatchMode mode) {
+			submit(new TaskAction(action, name, mode));
 		}
 
-		void execute(Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
-			submit(new TaskFunc(func, name, cancel, mode));
+		void execute(Func0<?> func, String name, DispatchMode mode) {
+			submit(new TaskFunc(func, name, mode));
 		}
 
 		void executeBarrier(BarrierProcedure barrier, int sum, DispatchMode mode) {
@@ -548,79 +482,57 @@ public final class TaskOneByOneByKey2 {
 		}
 
 		private void submit(Task task) {
-			if (shutdown.get()) {
-				if (task.cancel != null) {
-					try {
-						task.cancel.run();
-					} catch (Exception e) {
-						logger.error("{} cancel exception:", task.name, e);
-					}
-				}
-			} else {
-				queue.offer(task);
-				if (submitted.compareAndSet(0, 1))
-					getExecutor(task.mode).execute(this);
+			queue.offer(task);
+			if ((boolean)vhSubmitted.compareAndSet(this, false, true))
+				runNext();
+		}
+
+		private Task pollTask() {
+			for (; ; ) {
+				var task = queue.poll();
+				if (task != null)
+					return task;
+				submitted = false;
+				task = queue.peek();
+				if (task == null || !(boolean)vhSubmitted.compareAndSet(this, false, true))
+					return null;
+			}
+		}
+
+		private Task peekTask() {
+			for (; ; ) {
+				var task = queue.peek();
+				if (task != null)
+					return task;
+				submitted = false;
+				task = queue.peek();
+				if (task == null || !(boolean)vhSubmitted.compareAndSet(this, false, true))
+					return null;
 			}
 		}
 
 		void runNext() {
-			var task = queue.peek();
+			var task = peekTask();
 			if (task != null)
 				getExecutor(task.mode).execute(this);
 		}
 
 		@Override
 		public void run() {
-			var task = queue.poll();
-			if (task != null) {
-				for (var mode = task.mode; ; ) {
-					if (!task.process())
-						break;
-					task = queue.peek();
-					if (task == null || task.mode != mode || shutdown.get())
-						break;
-					queue.poll();
-				}
-			}
-			if (!shutdown.get()) {
-				if (task != null) {
+			var task = pollTask();
+			if (task == null)
+				return;
+			for (var mode = task.mode; ; queue.poll()) {
+				if (!task.process())
+					return; // 稍后通过runNext继续执行
+				task = peekTask();
+				if (task == null)
+					return;
+				if (task.mode != mode) {
 					getExecutor(task.mode).execute(this);
 					return;
 				}
-				if (submitted.compareAndSet(1, 0))
-					return;
 			}
-			synchronized (this) {
-				notifyAll();
-			}
-		}
-
-		void shutdown() {
-			shutdown.set(true);
-		}
-
-		void waitCompleted(boolean cancel) {
-			synchronized (this) {
-				if (submitted.compareAndSet(1, 2)) {
-					try {
-						wait();
-					} catch (InterruptedException e) {
-						logger.error("waitCompleted interrupted:", e);
-					}
-				}
-			}
-			if (cancel) {
-				for (Task task; (task = queue.poll()) != null; ) {
-					if (task.cancel != null) {
-						try {
-							task.cancel.run();
-						} catch (Exception e) {
-							logger.error("{} cancel exception", task.name, e);
-						}
-					}
-				}
-			} else
-				queue.clear();
 		}
 
 		@Override
