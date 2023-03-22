@@ -21,14 +21,14 @@ Dbh2 Commit 的两个问题。Transaction.Undo ? 【还是没确定方案】
 Dbh2 创建表选择负载低的服务器的策略。
 Dbh2 根据负载或什么策略并发拆分桶。
 TaskOneByOne 改成 ConcurrentQueue，是否有任务执行使用CompareAndSet之类的标志，去掉Batch恢复一个一个任务执行的方式。
-映射到关系表
+RelationalTableMapping
 	1. Bean encodeJson/decodeJson; prepareStatement/decodeResultSet
 	2. Bean columns; Table create table sql;
 	3. Schemas alter table;
 	4. Start 流程：Schemas以及相关Bean信息的部分资料需要传递给Database.Table，可保存PrepareStatementSql的引用不用每次构建。
 	*. FrameWork & 细节
 	a) Database.Table 增加新方法？Database.TableMapping 新接口？TableX下沉到 find，replace，delete？
-	    倾向于增加下沉方法。
+	    倾向于【增加】【下沉方法】。
 	b) TableX.walk<K, V> 使用a)的方案，walk<byte[], byte[]>对于Mapping方式不支持。
 	c) alter table 修改字段类型时，数据库的兼容修改检查。
 	d) 多server(gs)同时启动，create table, alter table 流程的互斥。
@@ -38,7 +38,7 @@ TaskOneByOne 改成 ConcurrentQueue，是否有任务执行使用CompareAndSet�
 BUG Dbh2 跑完测试没有关闭Raft服务，后续的单元测试还在继续尝试链接（不断输出链接refused错误）。是Connector没有停止？
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/3/31 v1.2.1 cxx net & bean; Online.send use selectDirty; TaskOneByOne.Barrier; 
+2023/3/31 v1.2.1 cxx net & bean; Online.send use selectDirty; TaskOneByOne.Barrier; RelationalTableMapping; 
 ------------------------------------------------------------------------------------------------------------------------------
 TaskOneByOne.Barrier 当提交的任务需要的桶数量大于线程数量导致线程饥饿问题解决：
 	barrier需要wait时不进行wait操作，而是马上返回，等待barrier任务真的执行时，对所有的桶执行runNext。

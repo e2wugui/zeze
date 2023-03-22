@@ -3,6 +3,7 @@ package Zeze;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.Action1;
@@ -300,7 +301,7 @@ public class Schemas implements Serializable {
 		}
 
 		public void buildRelationalColumns(Table table, Bean bean, Variable variable,
-										   ArrayList<String> varNames, ArrayList<Column> columns) {
+										   ArrayList<String> varNames, TreeMap<Integer, Column> columns) {
 			var column = new Column();
 			column.table = table;
 			column.bean = bean;
@@ -311,7 +312,7 @@ public class Schemas implements Serializable {
 			for (int i = 1; i < varNames.size(); ++i)
 				sb.append("_").append(varNames.get(i));
 			column.name = sb.toString();
-			columns.add(column);
+			columns.put(column.variable.id, column);
 		}
 	}
 
@@ -606,7 +607,8 @@ public class Schemas implements Serializable {
 		}
 
 		@Override
-		public void buildRelationalColumns(Table table, Bean bean, Variable variable, ArrayList<String> varNames, ArrayList<Column> columns) {
+		public void buildRelationalColumns(Table table, Bean bean, Variable variable,
+										   ArrayList<String> varNames, TreeMap<Integer, Column> columns) {
 			variables.foreach((key, value) -> {
 				varNames.add(value.name);
 				if (value.type.key != null || value.type.value != null) // is collection or map
@@ -674,7 +676,7 @@ public class Schemas implements Serializable {
 			valueType = s.compile(valueName, "", "");
 		}
 
-		public void buildRelationalColumns(ArrayList<Column> columns) {
+		public void buildRelationalColumns(TreeMap<Integer, Column> columns) {
 			var varNames = new ArrayList<String>();
 			valueType.buildRelationalColumns(this, null, null, varNames, columns);
 		}
@@ -784,26 +786,85 @@ public class Schemas implements Serializable {
 		public Table table;
 		public Bean bean;
 		public Variable variable;
+		public Column rename;
+
+		@Override
+		public String toString() {
+			return name + ":" + variable.id;
+		}
 	}
 
 	public static class RelationalTable {
-		public final ArrayList<Column> current = new ArrayList<>();
-		public final ArrayList<Column> previous = new ArrayList<>();
+		public final TreeMap<Integer, Column> current = new TreeMap<>();
+		public final TreeMap<Integer, Column> previous = new TreeMap<>();
+		public final TreeMap<Integer, Column> rename = new TreeMap<>();
+		public final TreeMap<Integer, Column> add = new TreeMap<>();
+		public final TreeMap<Integer, Column> remove = new TreeMap<>();
 
-		public String sqlColumns(ArrayList<Column> columns) {
-			if (columns.isEmpty())
-				return "";
-
+		public String sqlColumns(TreeMap<Integer, Column> columns) {
 			var sb = new StringBuilder();
+			var it = columns.entrySet().iterator();
+			if (it.hasNext())
 			{
-				var col = columns.get(0);
-				sb.append(col.name).append(" ").append(col.variable.type.name);
-			}
-			for (int i = 1; i < columns.size(); ++i) {
-				var col = columns.get(i);
-				sb.append(",").append(col.name).append(" ").append(col.variable.type.name);
+				{
+					var e = it.next();
+					sb.append(e.getValue().name).append(" ").append(e.getValue().variable.type.name);
+				}
+				while (it.hasNext()) {
+					var e = it.next();
+					sb.append(",").append(e.getValue().name).append(" ").append(e.getValue().variable.type.name);
+				}
 			}
 			return sb.toString();
+		}
+
+		public void diff() {
+			var itCur = current.entrySet().iterator();
+			var itPre = previous.entrySet().iterator();
+			if (itCur.hasNext() && itPre.hasNext()) {
+				var eCur = itCur.next();
+				var ePre = itPre.next();
+				while (true) {
+					var c = Integer.compare(eCur.getValue().variable.id, ePre.getValue().variable.id);
+					if (c == 0) {
+						if (!eCur.getValue().name.equals(ePre.getValue().name)) {
+							eCur.getValue().rename = ePre.getValue();
+							rename.put(eCur.getKey(), eCur.getValue());
+						}
+
+						// fetch both
+						if (itCur.hasNext() && itPre.hasNext()) {
+							eCur = itCur.next();
+							ePre = itPre.next();
+							continue;
+						}
+						break;
+					}
+					if (c < 0) {
+						add.put(eCur.getKey(), eCur.getValue());
+						if (!itCur.hasNext()) {
+							remove.put(ePre.getKey(), ePre.getValue());
+							break;
+						}
+						eCur = itCur.next();
+						continue;
+					}
+					remove.put(ePre.getKey(), ePre.getValue());
+					if (!itPre.hasNext()) {
+						add.put(eCur.getKey(), eCur.getValue());
+						break;
+					}
+					ePre = itPre.next();
+				}
+			}
+			while (itCur.hasNext()) {
+				var eCur = itCur.next();
+				add.put(eCur.getKey(), eCur.getValue());
+			}
+			while (itPre.hasNext()) {
+				var ePre = itPre.next();
+				remove.put(ePre.getKey(), ePre.getValue());
+			}
 		}
 	}
 
