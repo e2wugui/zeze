@@ -51,16 +51,16 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
 
             if (!_p_.Send(_t_, _rpc_ -> {
                 if (_rpc_.isTimeout()) {
-                    _f_.setException(Zeze.Net.RpcTimeoutException.getInstance());
+                    _f_.setException(Zeze.Arch.RedirectException.timeoutInstance);
                     return Zeze.Transaction.Procedure.Success;
                 }
                 _f_.setResult(_rpc_.getResultCode());
                 return Zeze.Transaction.Procedure.Success;
             }, 5000)) {
-                _f_.setException(new Zeze.Arch.ServerNotFoundException("not found hash=" + hash));
+                _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.SERVER_NOT_FOUND, "not found hash=" + hash));
             }
         } catch (Exception e) {
-            _f_.setException(e);
+            _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.SERVER_NOT_FOUND, e.getMessage(), e));
         }
         return _f_;
     }

@@ -30,7 +30,7 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 	}
 
 	private volatile @SuppressWarnings("unused") Action1<R> onSuccess;
-	private volatile @SuppressWarnings("unused") Action1<Throwable> onFail;
+	private volatile @SuppressWarnings("unused") Action1<RedirectException> onFail;
 
 	@Override
 	public boolean setResult(R r) {
@@ -42,9 +42,11 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 
 	@Override
 	public boolean setException(Throwable e) {
+		var ex = e instanceof RedirectException ? (RedirectException)e
+				: new RedirectException(RedirectException.GENERIC, e);
 		if (!super.setException(e))
 			return false;
-		tryTriggerOnFail(e);
+		tryTriggerOnFail(ex);
 		return true;
 	}
 
@@ -64,11 +66,11 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 		}
 	}
 
-	private void tryTriggerOnFail(Throwable e) {
+	private void tryTriggerOnFail(RedirectException e) {
 		if (onFail == null)
 			return;
 		@SuppressWarnings("unchecked")
-		var onF = (Action1<Throwable>)ON_FAIL.getAndSet(this, CALLED);
+		var onF = (Action1<RedirectException>)ON_FAIL.getAndSet(this, CALLED);
 		if (onF != CALLED) {
 			try {
 				onF.run(e);
@@ -99,21 +101,12 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 		return this;
 	}
 
-	public RedirectFuture<R> onFail(Action1<Throwable> onFail) {
+	public RedirectFuture<R> onFail(Action1<RedirectException> onFail) {
 		if (!ON_FAIL.compareAndSet(this, null, onFail))
 			throw new IllegalArgumentException("already onFail");
 		var result = getRawResult();
-		if (result instanceof Exception) {
-			var cls = result.getClass();
-			Throwable e;
-			if (cls == ExecutionException.class)
-				e = ((ExecutionException)result).getCause();
-			else if (cls == CancellationException.class)
-				e = (CancellationException)result;
-			else
-				return this;
-			tryTriggerOnFail(e);
-		}
+		if (result.getClass() == ExecutionException.class)
+			tryTriggerOnFail((RedirectException)((ExecutionException)result).getCause());
 		return this;
 	}
 
@@ -124,6 +117,11 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 	@Deprecated // use then
 	public RedirectFuture<R> Then(Action1<R> onResult) {
 		return then(onResult);
+	}
+
+	@Override
+	public boolean cancel(boolean mayInterruptIfRunning) {
+		throw new UnsupportedOperationException();
 	}
 
 	@Override

@@ -250,7 +250,7 @@ public final class GenModule {
 			else {
 				sb.appendLine("{}if (!_p_.Send(_t_, _rpc_ -> {", prefix);
 				sb.appendLine("{}    if (_rpc_.isTimeout()) {", prefix);
-				sb.appendLine("{}        _f_.setException(Zeze.Net.RpcTimeoutException.getInstance());", prefix);
+				sb.appendLine("{}        _f_.setException(Zeze.Arch.RedirectException.timeoutInstance);", prefix);
 				sb.appendLine("{}        return Zeze.Transaction.Procedure.Success;", prefix);
 				sb.appendLine("{}    }", prefix);
 				if (m.resultType == Long.class)
@@ -288,13 +288,13 @@ public final class GenModule {
 				else
 					sb.appendLine("{}}, {})) {", prefix, ((RedirectToServer)m.annotation).timeout());
 				if (m.annotation instanceof RedirectHash)
-					sb.appendLine("{}    _f_.setException(new Zeze.Arch.ServerNotFoundException(\"not found hash=\" + {}));", prefix, m.hashOrServerIdParameter.getName());
+					sb.appendLine("{}    _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.SERVER_NOT_FOUND, \"not found hash=\" + {}));", prefix, m.hashOrServerIdParameter.getName());
 				else
-					sb.appendLine("{}    _f_.setException(new Zeze.Arch.ServerNotFoundException(\"not found serverId=\" + {}));", prefix, m.hashOrServerIdParameter.getName());
+					sb.appendLine("{}    _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.SERVER_NOT_FOUND, \"not found serverId=\" + {}));", prefix, m.hashOrServerIdParameter.getName());
 				sb.appendLine("{}}", prefix);
 				prefix = "        ";
 				sb.appendLine("{}} catch (Exception e) {", prefix);
-				sb.appendLine("{}    _f_.setException(e);", prefix);
+				sb.appendLine("{}    _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.SERVER_NOT_FOUND, e.getMessage(), e));", prefix);
 				sb.appendLine("{}}", prefix);
 				sb.appendLine("{}return _f_;", prefix);
 			}

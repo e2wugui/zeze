@@ -37,10 +37,10 @@ public class RedirectBase {
 			return null; // is Local
 		var ps = providerApp.providerDirectService.providerByServerId.get(serverId);
 		if (ps == null)
-			throw new ServerNotFoundException("choiceServer: not found session for serverId=" + serverId);
+			throw new RedirectException(RedirectException.SERVER_NOT_FOUND, "choiceServer: not found session for serverId=" + serverId);
 		var socket = providerApp.providerDirectService.GetSocket(ps.getSessionId());
 		if (socket == null)
-			throw new ServerNotFoundException("choiceServer: not found socket for serverId=" + serverId);
+			throw new RedirectException(RedirectException.SERVER_NOT_FOUND, "choiceServer: not found socket for serverId=" + serverId);
 		return socket;
 		/*
 		var out = new OutLong();
@@ -59,11 +59,11 @@ public class RedirectBase {
 
 		var servers = subscribes.get(serviceName);
 		if (servers == null)
-			throw new ServerNotFoundException("choiceHash: not found service for serviceName=" + serviceName);
+			throw new RedirectException(RedirectException.SERVER_NOT_FOUND, "choiceHash: not found service for serviceName=" + serviceName);
 
 		var serviceInfo = providerApp.distribute.choiceHash(servers, hash, dataConcurrentLevel);
 		if (serviceInfo == null)
-			throw new ServerNotFoundException("choiceHash: not found server for serviceName=" + serviceName
+			throw new RedirectException(RedirectException.SERVER_NOT_FOUND, "choiceHash: not found server for serviceName=" + serviceName
 					+ ", hash=" + hash + ", conc=" + dataConcurrentLevel);
 
 		if (serviceInfo.getServiceIdentity().equals(String.valueOf(providerApp.zeze.getConfig().getServerId())))
@@ -71,12 +71,12 @@ public class RedirectBase {
 
 		var ps = (ProviderModuleState)servers.localStates.get(serviceInfo.getServiceIdentity());
 		if (ps == null)
-			throw new ServerNotFoundException("choiceHash: not found server for serviceIdentity="
+			throw new RedirectException(RedirectException.SERVER_NOT_FOUND, "choiceHash: not found server for serviceIdentity="
 					+ serviceInfo.getServiceIdentity());
 
 		var socket = providerApp.providerDirectService.GetSocket(ps.sessionId);
 		if (socket == null)
-			throw new ServerNotFoundException("choiceHash: not found socket for serviceIdentity="
+			throw new RedirectException(RedirectException.SERVER_NOT_FOUND, "choiceHash: not found socket for serviceIdentity="
 					+ serviceInfo.getServiceIdentity());
 		return socket;
 	}
