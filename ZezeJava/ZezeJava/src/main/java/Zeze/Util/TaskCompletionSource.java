@@ -17,10 +17,9 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class TaskCompletionSource<R> implements Future<R> {
 	private static final VarHandle RESULT;
-	private static final Exception NULL_RESULT = new LambdaConversionException(null, null, false, false);
+	protected static final Exception NULL_RESULT = new LambdaConversionException(null, null, false, false);
 
-	@SuppressWarnings("unused")
-	private volatile Object result;
+	private volatile @SuppressWarnings("unused") Object result;
 	private final ReentrantLock lock = new ReentrantLock();
 	private final Condition cond = lock.newCondition();
 
@@ -55,17 +54,8 @@ public class TaskCompletionSource<R> implements Future<R> {
 		return setRawResult(r);
 	}
 
-	public boolean trySetException(Throwable e) {
-		return setRawResult(new ExecutionException(e));
-	}
-
 	public boolean setException(Throwable e) {
 		return setRawResult(new ExecutionException(e));
-	}
-
-	public boolean isCompletedExceptionally() {
-		Object r = result;
-		return r != null && r.getClass() == ExecutionException.class;
 	}
 
 	@Override
@@ -77,6 +67,11 @@ public class TaskCompletionSource<R> implements Future<R> {
 	public boolean isCancelled() {
 		Object r = result;
 		return r != null && r.getClass() == CancellationException.class;
+	}
+
+	public boolean isCompletedExceptionally() {
+		Object r = result;
+		return r != null && r.getClass() == ExecutionException.class;
 	}
 
 	@Override

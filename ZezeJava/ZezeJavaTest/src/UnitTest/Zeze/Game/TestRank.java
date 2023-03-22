@@ -24,6 +24,7 @@ public class TestRank extends TestCase {
 	private final SimpleApp[] apps = new SimpleApp[APP_COUNT];
 
 	private boolean disableTest = false;
+
 	@Override
 	protected void setUp() {
 		var config = Zeze.Config.load();
@@ -85,9 +86,12 @@ public class TestRank extends TestCase {
 				int h = hash;
 				long roleId = ROLE_ID_BEGIN + h;
 				app.getZeze().newProcedure(() -> {
-					app.rank.updateRank(h, rankKey, roleId, roleId2Value.applyAsLong(roleId), Binary.Empty).await().then(r -> {
+					app.rank.updateRank(h, rankKey, roleId, roleId2Value.applyAsLong(roleId), Binary.Empty).await().onSuccess(r -> {
 						assertNotNull(r);
 						assertEquals(Procedure.Success, r.longValue());
+					}).onFail(e -> {
+						e.printStackTrace();
+						fail();
 					});
 					return Procedure.Success;
 				}, "updateRank").call();

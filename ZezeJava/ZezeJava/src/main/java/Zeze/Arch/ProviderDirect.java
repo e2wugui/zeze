@@ -63,7 +63,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 			break;
 		}
 		if (result instanceof RedirectFuture) {
-			((RedirectFuture<?>)result).then(r -> {
+			((RedirectFuture<?>)result).onSuccess(r -> {
 				if (r instanceof Long)
 					rpc.SendResultCode((Long)r);
 				else if (r instanceof Binary) {
@@ -79,6 +79,9 @@ public class ProviderDirect extends AbstractProviderDirect {
 					// rpc 成功了，具体handle结果还需要看ReturnCode。
 					rpc.SendResultCode(Procedure.Success);
 				}
+			}).onFail(e -> {
+				logger.error("call failed:", e);
+				rpc.SendResultCode(Procedure.Exception);
 			});
 		} else
 			rpc.SendResultCode(Procedure.Success);

@@ -27,32 +27,40 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
 
     @Override
     public Zeze.Arch.RedirectFuture<Long> updateRank(int hash, Zeze.Builtin.Game.Rank.BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx) {
-        var _t_ = _redirect_.choiceHash(this, hash, getConcurrentLevel(keyHint.getRankType()));
-        if (_t_ == null) { // local: loop-back
-            return _redirect_.runFuture(Zeze.Transaction.TransactionLevel.Serializable,
-                () -> super.updateRank(hash, keyHint, roleId, value, valueEx));
-        }
-
-        var _p_ = new Zeze.Builtin.ProviderDirect.ModuleRedirect();
-        var _a_ = _p_.Argument;
-        _a_.setModuleId(11015);
-        _a_.setRedirectType(Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeWithHash);
-        _a_.setHashCode(hash);
-        _a_.setMethodFullName("Zeze.Game.Rank:updateRank");
-        _a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);
-        var _b_ = Zeze.Serialize.ByteBuffer.Allocate();
-        keyHint.encode(_b_);
-        _b_.WriteLong(roleId);
-        _b_.WriteLong(value);
-        _b_.WriteBinary(valueEx);
-        _a_.setParams(new Zeze.Net.Binary(_b_));
-
         var _f_ = new Zeze.Arch.RedirectFuture<Long>();
-        if (!_p_.Send(_t_, _rpc_ -> {
-            _f_.setResult(_rpc_.isTimeout() ? Zeze.Transaction.Procedure.Timeout : _rpc_.getResultCode());
-            return Zeze.Transaction.Procedure.Success;
-        }, 5000)) {
-            _f_.setResult(Zeze.Transaction.Procedure.ErrorSendFail);
+        try {
+            var _t_ = _redirect_.choiceHash(this, hash, getConcurrentLevel(keyHint.getRankType()));
+            if (_t_ == null) { // local: loop-back
+                return _redirect_.runFuture(Zeze.Transaction.TransactionLevel.Serializable,
+                    () -> super.updateRank(hash, keyHint, roleId, value, valueEx));
+            }
+
+            var _p_ = new Zeze.Builtin.ProviderDirect.ModuleRedirect();
+            var _a_ = _p_.Argument;
+            _a_.setModuleId(11015);
+            _a_.setRedirectType(Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeWithHash);
+            _a_.setHashCode(hash);
+            _a_.setMethodFullName("Zeze.Game.Rank:updateRank");
+            _a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);
+            var _b_ = Zeze.Serialize.ByteBuffer.Allocate();
+            keyHint.encode(_b_);
+            _b_.WriteLong(roleId);
+            _b_.WriteLong(value);
+            _b_.WriteBinary(valueEx);
+            _a_.setParams(new Zeze.Net.Binary(_b_));
+
+            if (!_p_.Send(_t_, _rpc_ -> {
+                if (_rpc_.isTimeout()) {
+                    _f_.setException(Zeze.Net.RpcTimeoutException.getInstance());
+                    return Zeze.Transaction.Procedure.Success;
+                }
+                _f_.setResult(_rpc_.getResultCode());
+                return Zeze.Transaction.Procedure.Success;
+            }, 5000)) {
+                _f_.setException(new Zeze.Arch.ServerNotFoundException("not found hash=" + hash));
+            }
+        } catch (Exception e) {
+            _f_.setException(e);
         }
         return _f_;
     }

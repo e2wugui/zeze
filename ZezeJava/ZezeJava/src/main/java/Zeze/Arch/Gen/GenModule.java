@@ -218,85 +218,85 @@ public final class GenModule {
 
 			sb.appendLine("    @Override");
 			sb.appendLine("    {}{} {}({}) {", modifier, returnName, m.method.getName(), parametersDefine); // m.getThrows() // 继承方法允许不标throws
+			var prefix = "        ";
+			if (!(m.annotation instanceof RedirectAll) && !returnName.equals("void")) {
+				sb.appendLine("{}var _f_ = new Zeze.Arch.RedirectFuture<{}>();", prefix, m.resultTypeName);
+				sb.appendLine("{}try {", prefix);
+				prefix = "            ";
+			}
 
-			choiceTargetRunLoopback(sb, m, returnName);
+			choiceTargetRunLoopback(sb, m, returnName, prefix);
 
 			if (m.annotation instanceof RedirectAll) {
 				genRedirectAll(sb, sbHandles, moduleId, moduleFullName, m);
 				continue;
 			}
 
-			sb.appendLine("        var _p_ = new Zeze.Builtin.ProviderDirect.ModuleRedirect();");
-			sb.appendLine("        var _a_ = _p_.Argument;");
-			sb.appendLine("        _a_.setModuleId({});", moduleId);
-			sb.appendLine("        _a_.setRedirectType({});", m.getRedirectType());
-			sb.appendLine("        _a_.setHashCode({});", m.hashOrServerIdParameter.getName());
-			sb.appendLine("        _a_.setMethodFullName(\"{}:{}\");", moduleFullName, m.method.getName());
-			sb.appendLine("        _a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);");
+			sb.appendLine("{}var _p_ = new Zeze.Builtin.ProviderDirect.ModuleRedirect();", prefix);
+			sb.appendLine("{}var _a_ = _p_.Argument;", prefix);
+			sb.appendLine("{}_a_.setModuleId({});", prefix, moduleId);
+			sb.appendLine("{}_a_.setRedirectType({});", prefix, m.getRedirectType());
+			sb.appendLine("{}_a_.setHashCode({});", prefix, m.hashOrServerIdParameter.getName());
+			sb.appendLine("{}_a_.setMethodFullName(\"{}:{}\");", prefix, moduleFullName, m.method.getName());
+			sb.appendLine("{}_a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);", prefix);
 			if (m.inputParameters.size() > 0) {
-				sb.appendLine("        var _b_ = Zeze.Serialize.ByteBuffer.Allocate();");
-				Gen.instance.genEncode(sb, "        ", "_b_", m.inputParameters);
-				sb.appendLine("        _a_.setParams(new Zeze.Net.Binary(_b_));");
+				sb.appendLine("{}var _b_ = Zeze.Serialize.ByteBuffer.Allocate();", prefix);
+				Gen.instance.genEncode(sb, prefix, "_b_", m.inputParameters);
+				sb.appendLine("{}_a_.setParams(new Zeze.Net.Binary(_b_));", prefix);
 			}
 			sb.appendLine();
 			if (returnName.equals("void"))
-				sb.appendLine("        _p_.Send(_t_, null);");
+				sb.appendLine("{}_p_.Send(_t_, null);", prefix);
 			else {
-				sb.appendLine("        var _f_ = new Zeze.Arch.RedirectFuture<{}>();", m.resultTypeName);
-				sb.appendLine("        if (!_p_.Send(_t_, _rpc_ -> {");
+				sb.appendLine("{}if (!_p_.Send(_t_, _rpc_ -> {", prefix);
+				sb.appendLine("{}    if (_rpc_.isTimeout()) {", prefix);
+				sb.appendLine("{}        _f_.setException(Zeze.Net.RpcTimeoutException.getInstance());", prefix);
+				sb.appendLine("{}        return Zeze.Transaction.Procedure.Success;", prefix);
+				sb.appendLine("{}    }", prefix);
 				if (m.resultType == Long.class)
-					sb.appendLine("            _f_.setResult(_rpc_.isTimeout() ? Zeze.Transaction.Procedure.Timeout : _rpc_.getResultCode());");
+					sb.appendLine("{}    _f_.setResult(_rpc_.getResultCode());", prefix);
 				else {
-					if (!m.returnTypeHasResultCode) {
-						sb.appendLine("            if (_rpc_.isTimeout()) {");
-						sb.appendLine("                _f_.setResult(null);");
-						sb.appendLine("                return Zeze.Transaction.Procedure.Success;");
-						sb.appendLine("            }");
-					}
 					if ("String".equals(m.resultTypeName))
-						sb.appendLine("            var _r_ = Zeze.Util.Str.fromBinary(_rpc_.Result.getParams());");
+						sb.appendLine("{}    var _r_ = Zeze.Util.Str.fromBinary(_rpc_.Result.getParams());", prefix);
 					else if ("Zeze.Net.Binary".equals(m.resultTypeName))
-						sb.appendLine("            var _r_ = _rpc_.Result.getParams();");
+						sb.appendLine("{}    var _r_ = _rpc_.Result.getParams();", prefix);
 					else
-						sb.appendLine("            var _r_ = new {}();", m.resultTypeName);
+						sb.appendLine("{}    var _r_ = new {}();", prefix, m.resultTypeName);
 					if (Serializable.class.isAssignableFrom(m.resultClass)) {
-						sb.appendLine("            var _param_ = _rpc_.Result.getParams();");
-						sb.appendLine("            if (_param_.size() > 0)");
-						sb.appendLine("                _r_.decode(_param_.Wrap());");
+						sb.appendLine("{}    var _param_ = _rpc_.Result.getParams();", prefix);
+						sb.appendLine("{}    if (_param_.size() > 0)", prefix);
+						sb.appendLine("{}        _r_.decode(_param_.Wrap());", prefix);
 						if (m.returnTypeHasResultCode)
-							sb.appendLine("            _r_.setResultCode(_rpc_.isTimeout() ? Zeze.Transaction.Procedure.Timeout : _rpc_.getResultCode());");
+							sb.appendLine("{}    _r_.setResultCode(_rpc_.isTimeout() ? Zeze.Transaction.Procedure.Timeout : _rpc_.getResultCode());", prefix);
 					} else {
 						if (!m.resultFields.isEmpty()) {
-							sb.appendLine("            var _param_ = _rpc_.Result.getParams();");
-							sb.appendLine("            if (_param_.size() > 0) {");
-							sb.appendLine("                var _bb_ = _param_.Wrap();");
+							sb.appendLine("{}    var _param_ = _rpc_.Result.getParams();", prefix);
+							sb.appendLine("{}    if (_param_.size() > 0) {", prefix);
+							sb.appendLine("{}        var _bb_ = _param_.Wrap();", prefix);
 							for (var field : m.resultFields)
-								Gen.instance.genDecode(sb, "                ", "_bb_", field.getType(), field.getGenericType(), "_r_." + field.getName());
-							sb.appendLine("            }");
+								Gen.instance.genDecode(sb, prefix + "        ", "_bb_", field.getType(), field.getGenericType(), "_r_." + field.getName());
+							sb.appendLine("{}    }", prefix);
 						}
 						if (m.returnTypeHasResultCode)
-							sb.appendLine("            _r_.resultCode = _rpc_.isTimeout() ? Zeze.Transaction.Procedure.Timeout : _rpc_.getResultCode();");
+							sb.appendLine("{}    _r_.resultCode = _rpc_.isTimeout() ? Zeze.Transaction.Procedure.Timeout : _rpc_.getResultCode();", prefix);
 					}
-					sb.appendLine("            _f_.setResult(_r_);");
+					sb.appendLine("{}    _f_.setResult(_r_);", prefix);
 				}
-				sb.appendLine("            return Zeze.Transaction.Procedure.Success;");
+				sb.appendLine("{}    return Zeze.Transaction.Procedure.Success;", prefix);
 				if (m.annotation instanceof RedirectHash)
-					sb.appendLine("        }, {})) {", ((RedirectHash)m.annotation).timeout());
+					sb.appendLine("{}}, {})) {", prefix, ((RedirectHash)m.annotation).timeout());
 				else
-					sb.appendLine("        }, {})) {", ((RedirectToServer)m.annotation).timeout());
-				if (m.resultType == Long.class)
-					sb.appendLine("            _f_.setResult(Zeze.Transaction.Procedure.ErrorSendFail);");
-				else if (m.returnTypeHasResultCode) {
-					sb.appendLine("            var _r_ = new {}();", m.resultTypeName);
-					if (Serializable.class.isAssignableFrom(m.resultClass))
-						sb.appendLine("            _r_.setResultCode(Zeze.Transaction.Procedure.ErrorSendFail);");
-					else
-						sb.appendLine("            _r_.resultCode = Zeze.Transaction.Procedure.ErrorSendFail;");
-					sb.appendLine("            _f_.setResult(_r_);");
-				} else
-					sb.appendLine("            _f_.setResult(null);");
-				sb.appendLine("        }");
-				sb.appendLine("        return _f_;");
+					sb.appendLine("{}}, {})) {", prefix, ((RedirectToServer)m.annotation).timeout());
+				if (m.annotation instanceof RedirectHash)
+					sb.appendLine("{}    _f_.setException(new Zeze.Arch.ServerNotFoundException(\"not found hash=\" + {}));", prefix, m.hashOrServerIdParameter.getName());
+				else
+					sb.appendLine("{}    _f_.setException(new Zeze.Arch.ServerNotFoundException(\"not found serverId=\" + {}));", prefix, m.hashOrServerIdParameter.getName());
+				sb.appendLine("{}}", prefix);
+				prefix = "        ";
+				sb.appendLine("{}} catch (Exception e) {", prefix);
+				sb.appendLine("{}    _f_.setException(e);", prefix);
+				sb.appendLine("{}}", prefix);
+				sb.appendLine("{}return _f_;", prefix);
 			}
 			sb.appendLine("    }");
 			sb.appendLine();
@@ -362,25 +362,25 @@ public final class GenModule {
 	}
 
 	// 根据转发类型选择目标服务器，如果目标服务器是自己，直接调用基类方法完成工作。
-	private static void choiceTargetRunLoopback(StringBuilderCs sb, MethodOverride m, String returnName) {
+	private static void choiceTargetRunLoopback(StringBuilderCs sb, MethodOverride m, String returnName, String prefix) {
 		if (m.annotation instanceof RedirectHash)
-			sb.appendLine("        var _t_ = _redirect_.choiceHash(this, {}, {});",
-					m.hashOrServerIdParameter.getName(), m.getConcurrentLevelSource());
+			sb.appendLine("{}var _t_ = _redirect_.choiceHash(this, {}, {});",
+					prefix, m.hashOrServerIdParameter.getName(), m.getConcurrentLevelSource());
 		else if (m.annotation instanceof RedirectToServer)
-			sb.appendLine("        var _t_ = _redirect_.choiceServer(this, {});", m.hashOrServerIdParameter.getName());
+			sb.appendLine("{}var _t_ = _redirect_.choiceServer(this, {});", prefix, m.hashOrServerIdParameter.getName());
 		else if (m.annotation instanceof RedirectAll)
 			return; // RedirectAll 不在这里选择目标服务器。后面发送的时候直接查找所有可用服务器并进行广播。
 
-		sb.appendLine("        if (_t_ == null) { // local: loop-back");
+		sb.appendLine("{}if (_t_ == null) { // local: loop-back", prefix);
 		if (returnName.equals("void")) {
-			sb.appendLine("            _redirect_.runVoid(Zeze.Transaction.TransactionLevel.{},", m.transactionLevel);
-			sb.appendLine("                () -> super.{}({}));", m.method.getName(), m.getBaseCallString());
-			sb.appendLine("            return;");
+			sb.appendLine("{}    _redirect_.runVoid(Zeze.Transaction.TransactionLevel.{},", prefix, m.transactionLevel);
+			sb.appendLine("{}        () -> super.{}({}));", prefix, m.method.getName(), m.getBaseCallString());
+			sb.appendLine("{}    return;", prefix);
 		} else {
-			sb.appendLine("            return _redirect_.runFuture(Zeze.Transaction.TransactionLevel.{},", m.transactionLevel);
-			sb.appendLine("                () -> super.{}({}));", m.method.getName(), m.getBaseCallString());
+			sb.appendLine("{}    return _redirect_.runFuture(Zeze.Transaction.TransactionLevel.{},", prefix, m.transactionLevel);
+			sb.appendLine("{}        () -> super.{}({}));", prefix, m.method.getName(), m.getBaseCallString());
 		}
-		sb.appendLine("        }");
+		sb.appendLine("{}}", prefix);
 		sb.appendLine();
 	}
 

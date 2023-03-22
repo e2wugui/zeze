@@ -1,10 +1,11 @@
 package Zeze.Services;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Arch.RedirectFuture;
 import Zeze.Config;
@@ -18,8 +19,8 @@ import Zeze.Net.Service;
 import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Acquire;
-import Zeze.Services.GlobalCacheManager.Cleanup;
 import Zeze.Services.GlobalCacheManager.BGlobalKeyState;
+import Zeze.Services.GlobalCacheManager.Cleanup;
 import Zeze.Services.GlobalCacheManager.KeepAlive;
 import Zeze.Services.GlobalCacheManager.Login;
 import Zeze.Services.GlobalCacheManager.NormalClose;
@@ -319,20 +320,30 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	}
 
 	public static final class CountDownFuture extends RedirectFuture<Object> {
-		private final AtomicInteger counter = new AtomicInteger(1);
+		private static final VarHandle vhCounter;
+
+		static {
+			try {
+				vhCounter = MethodHandles.lookup().findVarHandle(CountDownFuture.class, "counter", int.class);
+			} catch (ReflectiveOperationException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		private volatile @SuppressWarnings("unused") int counter;
 
 		public CountDownFuture createOne() {
-			counter.getAndIncrement();
+			vhCounter.getAndAdd(this, 1);
 			return this;
 		}
 
 		public void finishOne() {
-			if (counter.decrementAndGet() == 0)
+			if ((int)vhCounter.getAndAdd(this, -1) == 0)
 				setResult(null);
 		}
 
 		@Override
-		public RedirectFuture<Object> then(Action1<Object> onResult) throws Exception {
+		public RedirectFuture<Object> then(Action1<Object> onResult) {
 			finishOne();
 			return super.then(onResult);
 		}

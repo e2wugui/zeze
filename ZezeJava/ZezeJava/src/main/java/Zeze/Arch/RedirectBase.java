@@ -37,18 +37,18 @@ public class RedirectBase {
 			return null; // is Local
 		var ps = providerApp.providerDirectService.providerByServerId.get(serverId);
 		if (ps == null)
-			throw new IllegalStateException("choiceServer: not found session for serverId=" + serverId);
+			throw new ServerNotFoundException("choiceServer: not found session for serverId=" + serverId);
 		var socket = providerApp.providerDirectService.GetSocket(ps.getSessionId());
 		if (socket == null)
-			throw new IllegalStateException("choiceServer: not found socket for serverId=" + serverId);
+			throw new ServerNotFoundException("choiceServer: not found socket for serverId=" + serverId);
 		return socket;
 		/*
 		var out = new OutLong();
 		if (!ProviderApp.Distribute.choiceProviderByServerId(ProviderApp.ServerServiceNamePrefix, module.getId(), serverId, out))
-			throw new IllegalStateException("choiceServer: not found server for serverId=" + serverId);
+			throw new ServerNotFoundException("choiceServer: not found server for serverId=" + serverId);
 		var socket = ProviderApp.ProviderDirectService.GetSocket(out.Value);
 		if (socket == null)
-			throw new IllegalStateException("choiceServer: not found socket for serverId=" + serverId);
+			throw new ServerNotFoundException("choiceServer: not found socket for serverId=" + serverId);
 		return socket;
 		*/
 	}
@@ -59,11 +59,11 @@ public class RedirectBase {
 
 		var servers = subscribes.get(serviceName);
 		if (servers == null)
-			throw new IllegalStateException("choiceHash: not found service for serviceName=" + serviceName);
+			throw new ServerNotFoundException("choiceHash: not found service for serviceName=" + serviceName);
 
 		var serviceInfo = providerApp.distribute.choiceHash(servers, hash, dataConcurrentLevel);
 		if (serviceInfo == null)
-			throw new IllegalStateException("choiceHash: not found server for serviceName=" + serviceName
+			throw new ServerNotFoundException("choiceHash: not found server for serviceName=" + serviceName
 					+ ", hash=" + hash + ", conc=" + dataConcurrentLevel);
 
 		if (serviceInfo.getServiceIdentity().equals(String.valueOf(providerApp.zeze.getConfig().getServerId())))
@@ -71,12 +71,12 @@ public class RedirectBase {
 
 		var ps = (ProviderModuleState)servers.localStates.get(serviceInfo.getServiceIdentity());
 		if (ps == null)
-			throw new IllegalStateException("choiceHash: not found server for serviceIdentity="
+			throw new ServerNotFoundException("choiceHash: not found server for serviceIdentity="
 					+ serviceInfo.getServiceIdentity());
 
 		var socket = providerApp.providerDirectService.GetSocket(ps.sessionId);
 		if (socket == null)
-			throw new IllegalStateException("choiceHash: not found socket for serviceIdentity="
+			throw new ServerNotFoundException("choiceHash: not found socket for serviceIdentity="
 					+ serviceInfo.getServiceIdentity());
 		return socket;
 	}
@@ -201,7 +201,7 @@ public class RedirectBase {
 		// 由于返回的future暴露出来,很可能await同步等待,所以这里不能whileCommit时执行,否则会死锁等待
 		Task.runUnsafe(providerApp.zeze.newProcedure(() -> {
 			try {
-				func.call().then(future::setResult);
+				func.call().onSuccess(future::setResult).onFail(future::setException);
 			} catch (Exception e) {
 				future.setException(e);
 				throw e;

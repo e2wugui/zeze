@@ -18,6 +18,15 @@ import org.apache.logging.log4j.Logger;
  */
 public final class TaskOneByOneByKey2 {
 	private static final Logger logger = LogManager.getLogger(TaskOneByOneByKey2.class);
+	private static final VarHandle vhSubmitted;
+
+	static {
+		try {
+			vhSubmitted = MethodHandles.lookup().findVarHandle(TaskOneByOne.class, "submitted", boolean.class);
+		} catch (ReflectiveOperationException e) {
+			throw new RuntimeException(e);
+		}
+	}
 
 	private final TaskOneByOne[] concurrency;
 	private final int hashMask;
@@ -449,16 +458,6 @@ public final class TaskOneByOneByKey2 {
 			boolean process() {
 				barrier.reach(TaskOneByOne.this, sum);
 				return false;
-			}
-		}
-
-		private static final VarHandle vhSubmitted;
-
-		static {
-			try {
-				vhSubmitted = MethodHandles.lookup().findVarHandle(TaskOneByOne.class, "submitted", boolean.class);
-			} catch (ReflectiveOperationException e) {
-				throw new RuntimeException(e);
 			}
 		}
 
