@@ -364,17 +364,21 @@ public final class Application {
 					var dataVersion = defaultDb.getDirectOperates().getDataWithVersion(keyOfSchemas);
 					long version = 0;
 					if (dataVersion != null && dataVersion.data != null) {
-						var SchemasPrevious = new Schemas();
+						var schemasPrevious = new Schemas();
 						try {
-							SchemasPrevious.decode(dataVersion.data);
-							SchemasPrevious.compile();
+							schemasPrevious.decode(dataVersion.data);
+							schemasPrevious.compile();
 						} catch (Exception ex) {
-							SchemasPrevious = null;
+							schemasPrevious = null;
 							logger.error("Schemas Implement Changed?", ex);
 						}
-						ResetDB.checkAndRemoveTable(SchemasPrevious, this);
+						ResetDB.checkAndRemoveTable(schemasPrevious, this);
+						schemas.buildRelationalTables(schemasPrevious);
 						version = dataVersion.version;
 					}
+					else
+						schemas.buildRelationalTables(null);
+
 					var newData = ByteBuffer.Allocate(1024);
 					schemas.encode(newData);
 					var versionRc = defaultDb.getDirectOperates().saveDataWithSameVersion(keyOfSchemas, newData, version);

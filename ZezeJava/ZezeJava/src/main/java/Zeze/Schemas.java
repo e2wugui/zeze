@@ -7,6 +7,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.Action1;
 import Zeze.Util.IntHashMap;
+import org.apache.commons.validator.Var;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -296,6 +297,21 @@ public class Schemas implements Serializable {
 						},
 						UpdateVariable);
 			}
+		}
+
+		public void buildRelationalColumns(Table table, Bean bean, Variable variable,
+										   ArrayList<String> varNames, ArrayList<Column> columns) {
+			var column = new Column();
+			column.table = table;
+			column.bean = bean;
+			column.variable = variable;
+
+			var sb = new StringBuilder();
+			sb.append(varNames.get(0));
+			for (int i = 1; i < varNames.size(); ++i)
+				sb.append("_").append(varNames.get(i));
+			column.name = sb.toString();
+			columns.add(column);
 		}
 	}
 
@@ -588,6 +604,18 @@ public class Schemas implements Serializable {
 		public final void addVariable(Variable var) {
 			getVariables().put(var.id, var);
 		}
+
+		@Override
+		public void buildRelationalColumns(Table table, Bean bean, Variable variable, ArrayList<String> varNames, ArrayList<Column> columns) {
+			variables.foreach((key, value) -> {
+				varNames.add(value.name);
+				if (value.type.key != null || value.type.value != null) // is collection or map
+					value.type.buildRelationalColumns(table,this, value, varNames, columns); // 实际上单独判断了也不需要特别处理。先明确写一下。
+				else
+					value.type.buildRelationalColumns(table,this, value, varNames, columns);
+				varNames.remove(varNames.size() - 1);
+			});
+		}
 	}
 
 	public static class Table implements Serializable {
@@ -644,6 +672,11 @@ public class Schemas implements Serializable {
 				((Bean)keyType).keyRefCount++;
 			}
 			valueType = s.compile(valueName, "", "");
+		}
+
+		public void buildRelationalColumns(ArrayList<Column> columns) {
+			var varNames = new ArrayList<String>();
+			valueType.buildRelationalColumns(this, null, null, varNames, columns);
 		}
 	}
 
@@ -742,5 +775,49 @@ public class Schemas implements Serializable {
 	public void addTable(Table table) {
 		if (tables.put(table.name, table) != null)
 			throw new IllegalStateException("AddTable duplicate=" + table.name);
+	}
+
+	public final HashMap<String, RelationalTable> relationalTables = new HashMap<>();
+
+	public static class Column {
+		public String name;
+		public Table table;
+		public Bean bean;
+		public Variable variable;
+	}
+
+	public static class RelationalTable {
+		public final ArrayList<Column> current = new ArrayList<>();
+		public final ArrayList<Column> previous = new ArrayList<>();
+
+		public String sqlColumns(ArrayList<Column> columns) {
+			if (columns.isEmpty())
+				return "";
+
+			var sb = new StringBuilder();
+			{
+				var col = columns.get(0);
+				sb.append(col.name).append(" ").append(col.variable.type.name);
+			}
+			for (int i = 1; i < columns.size(); ++i) {
+				var col = columns.get(i);
+				sb.append(",").append(col.name).append(" ").append(col.variable.type.name);
+			}
+			return sb.toString();
+		}
+	}
+
+	public void buildRelationalTables(Schemas other) {
+		var tableName = "demo_Module1_Table1";
+		var relational = new RelationalTable();
+
+		var cur = this.tables.get(tableName);
+		cur.buildRelationalColumns(relational.current);
+		System.out.println(relational.sqlColumns(relational.current));
+		if (null != other) {
+			var pre = other.tables.get(tableName);
+			pre.buildRelationalColumns(relational.previous);
+			System.out.println(relational.sqlColumns(relational.previous));
+		}
 	}
 }
