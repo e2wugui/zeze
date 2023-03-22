@@ -23,8 +23,7 @@ public final class Agent extends AbstractAgent {
 	 */
 	public static final String defaultServiceName = "Zeze.Services.ServiceManager.Agent";
 
-	private AgentClient client;
-
+	private final AgentClient client;
 	private final ConcurrentHashMap<BServiceInfo, BServiceInfo> registers = new ConcurrentHashMap<>();
 
 	public AgentClient getClient() {
@@ -341,7 +340,6 @@ public final class Agent extends AbstractAgent {
 			if (so != null) // 有可能提前关闭,so==null时执行下面这行会抛异常
 				new NormalClose().SendAndWaitCheckResultCode(so);
 			client.stop();
-			client = null;
 		}
 	}
 

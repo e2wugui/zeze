@@ -116,6 +116,7 @@ public class Dbh2Manager {
 	}
 
 	public void stop() throws Exception {
+		ShutdownHook.remove(this);
 		masterAgent.stop();
 		for (var dbh2 : dbh2s.values())
 			dbh2.close();

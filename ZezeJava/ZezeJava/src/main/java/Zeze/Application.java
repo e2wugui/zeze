@@ -62,7 +62,7 @@ public final class Application {
 	private Checkpoint checkpoint;
 	private Future<?> flushWhenReduceTimerTask;
 	private Schemas schemas;
-	private boolean isStart;
+	private int startState; // 0:未start; 1:开始start但未完成; 2:完成了start
 	public RedirectBase redirect;
 	/**
 	 * 本地Rocks缓存数据库虽然也用了Database接口，但它不给用户提供事务操作的表。
@@ -76,11 +76,6 @@ public final class Application {
 		projectName = "";
 		conf = null;
 		serviceManager = null;
-		ShutdownHook.add(this, () -> {
-			logger.info("zeze ShutdownHook begin");
-			stop();
-			logger.info("zeze ShutdownHook end");
-		});
 	}
 
 	public Application(String solutionName) throws Exception {
@@ -120,12 +115,6 @@ public final class Application {
 			queueModule = new Zeze.Collections.Queue.Module(this);
 			delayRemove = new DelayRemove(this);
 		}
-
-		ShutdownHook.add(this, () -> {
-			logger.info("zeze({}) ShutdownHook begin", this.projectName);
-			stop();
-			logger.info("zeze({}) ShutdownHook end", this.projectName);
-		});
 	}
 
 	public synchronized void initialize(AppBase app) {
@@ -146,7 +135,7 @@ public final class Application {
 	}
 
 	public boolean isStart() {
-		return isStart;
+		return startState == 2;
 	}
 
 	public AbstractAgent getServiceManager() {
@@ -261,7 +250,7 @@ public final class Application {
 	}
 
 	public Procedure newProcedure(FuncLong action, String actionName, TransactionLevel level, Object userState) {
-		if (!isStart)
+		if (startState != 2)
 			throw new IllegalStateException("App Not Start");
 		return new Procedure(this, action, actionName, level, userState);
 	}
@@ -290,8 +279,16 @@ public final class Application {
 	}
 
 	public synchronized void start() throws Exception {
-		if (isStart)
+		if (startState == 2)
 			return;
+		if (startState == 1)
+			stop();
+		startState = 1;
+		ShutdownHook.add(this, () -> {
+			logger.info("zeze({}) ShutdownHook begin", this.projectName);
+			stop();
+			logger.info("zeze({}) ShutdownHook end", this.projectName);
+		});
 		var serverId = conf != null ? conf.getServerId() : -1;
 		logger.info("Start ServerId={}", serverId);
 
@@ -375,8 +372,7 @@ public final class Application {
 						ResetDB.checkAndRemoveTable(schemasPrevious, this);
 						schemas.buildRelationalTables(schemasPrevious);
 						version = dataVersion.version;
-					}
-					else
+					} else
 						schemas.buildRelationalTables(null);
 
 					var newData = ByteBuffer.Allocate(1024);
@@ -389,19 +385,20 @@ public final class Application {
 			// start last
 			if (null != achillesHeelDaemon)
 				achillesHeelDaemon.start();
-			isStart = true;
+			startState = 2;
 
 			delayRemove.start();
 			if (timer != null)
 				timer.loadCustomClassAnd();
 		} else
-			isStart = true;
+			startState = 2;
 	}
 
 	public synchronized void stop() throws Exception {
-		if (!isStart)
+		if (startState == 0)
 			return;
-		isStart = false;
+		startState = 1;
+		ShutdownHook.remove(this);
 		logger.info("Stop ServerId={}", conf != null ? conf.getServerId() : -1);
 
 		if (delayRemove != null) {
@@ -414,10 +411,9 @@ public final class Application {
 			timer = null;
 		}
 
-		ShutdownHook.remove(this);
-
 		if (achillesHeelDaemon != null) {
 			achillesHeelDaemon.stopAndJoin();
+			achillesHeelDaemon = null;
 		}
 
 		if (globalAgent != null) {
@@ -462,6 +458,7 @@ public final class Application {
 
 		for (var db : databases.values())
 			db.close();
+		startState = 0;
 	}
 
 	public void checkpointRun() {

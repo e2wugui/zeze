@@ -105,7 +105,7 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 		if (!ON_FAIL.compareAndSet(this, null, onFail))
 			throw new IllegalArgumentException("already onFail");
 		var result = getRawResult();
-		if (result.getClass() == ExecutionException.class)
+		if (result != null && result.getClass() == ExecutionException.class)
 			tryTriggerOnFail((RedirectException)((ExecutionException)result).getCause());
 		return this;
 	}

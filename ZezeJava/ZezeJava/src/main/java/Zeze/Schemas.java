@@ -612,9 +612,9 @@ public class Schemas implements Serializable {
 			variables.foreach((key, value) -> {
 				varNames.add(value.name);
 				if (value.type.key != null || value.type.value != null) // is collection or map
-					value.type.buildRelationalColumns(table,this, value, varNames, columns); // 实际上单独判断了也不需要特别处理。先明确写一下。
+					value.type.buildRelationalColumns(table, this, value, varNames, columns); // 实际上单独判断了也不需要特别处理。先明确写一下。
 				else
-					value.type.buildRelationalColumns(table,this, value, varNames, columns);
+					value.type.buildRelationalColumns(table, this, value, varNames, columns);
 				varNames.remove(varNames.size() - 1);
 			});
 		}
@@ -804,8 +804,7 @@ public class Schemas implements Serializable {
 		public String sqlColumns(TreeMap<Integer, Column> columns) {
 			var sb = new StringBuilder();
 			var it = columns.entrySet().iterator();
-			if (it.hasNext())
-			{
+			if (it.hasNext()) {
 				{
 					var e = it.next();
 					sb.append(e.getValue().name).append(" ").append(e.getValue().variable.type.name);
@@ -873,11 +872,13 @@ public class Schemas implements Serializable {
 		var relational = new RelationalTable();
 
 		var cur = this.tables.get(tableName);
-		cur.buildRelationalColumns(relational.current);
+		if (cur != null)
+			cur.buildRelationalColumns(relational.current);
 		System.out.println(relational.sqlColumns(relational.current));
 		if (null != other) {
 			var pre = other.tables.get(tableName);
-			pre.buildRelationalColumns(relational.previous);
+			if (pre != null)
+				pre.buildRelationalColumns(relational.previous);
 			System.out.println(relational.sqlColumns(relational.previous));
 		}
 	}

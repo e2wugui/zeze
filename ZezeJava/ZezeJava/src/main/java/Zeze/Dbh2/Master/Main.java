@@ -21,11 +21,13 @@ public class Main {
 	}
 
 	public void stop() throws Exception {
+		ShutdownHook.remove(this);
+
 		service.stop();
 		master.close();
 	}
 
-	public static void main(String [] args) throws Exception {
+	public static void main(String[] args) throws Exception {
 		var main = new Main();
 		main.start();
 
