@@ -54,6 +54,7 @@ public abstract class PSet<V> extends Collection implements Set<V> {
 		return getSet().containsAll(c);
 	}
 
+	@Deprecated // unsupported
 	@Override
 	public boolean retainAll(java.util.Collection<?> c) {
 		throw new UnsupportedOperationException();

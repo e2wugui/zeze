@@ -37,6 +37,7 @@ public abstract class PList<V> extends Collection implements List<V> {
 	@Override
 	public abstract boolean removeAll(java.util.Collection<?> c);
 
+	@Deprecated // unsupported
 	@Override
 	public boolean retainAll(java.util.Collection<?> c) {
 		throw new UnsupportedOperationException();
@@ -148,26 +149,31 @@ public abstract class PList<V> extends Collection implements List<V> {
 		return getList().containsAll(c);
 	}
 
+	@Deprecated // unsupported
 	@Override
 	public boolean addAll(int index, java.util.Collection<? extends V> c) {
 		throw new UnsupportedOperationException();
 	}
 
+	@Deprecated // unsupported
 	@Override
 	public void replaceAll(UnaryOperator<V> operator) {
 		throw new UnsupportedOperationException();
 	}
 
+	@Deprecated // unsupported
 	@Override
 	public ListIterator<V> listIterator() {
 		throw new UnsupportedOperationException();
 	}
 
+	@Deprecated // unsupported
 	@Override
 	public ListIterator<V> listIterator(int index) {
 		throw new UnsupportedOperationException();
 	}
 
+	@Deprecated // unsupported
 	@Override
 	public List<V> subList(int fromIndex, int toIndex) {
 		throw new UnsupportedOperationException();

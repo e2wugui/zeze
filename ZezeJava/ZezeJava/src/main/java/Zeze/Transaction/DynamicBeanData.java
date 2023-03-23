@@ -61,6 +61,7 @@ public class DynamicBeanData extends Data {
 		assign((DynamicBean)o);
 	}
 
+	@Deprecated // unsupported
 	@Override
 	public DynamicBean toBean() {
 		throw new UnsupportedOperationException();
