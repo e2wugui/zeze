@@ -125,29 +125,23 @@ public class Helper {
 		});
 	}
 
-	public static void decodeJsonDynamic(DynamicBean bean, ArrayList<String> parents, ResultSet rs)
-			throws SQLException {
-		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-		var s = rs.getString(_parents_name_);
-		if (s == null)
+	public static void decodeJsonDynamic(DynamicBean bean, String jsonStr) throws SQLException {
+		if (jsonStr == null)
 			bean.reset();
 		else {
 			try {
-				JsonReader.local().buf(s).parse(json, bean, dynamicBeanMeta);
+				JsonReader.local().buf(jsonStr).parse(json, bean, dynamicBeanMeta);
 			} catch (ReflectiveOperationException e) {
 				throw new RuntimeException(e);
 			}
 		}
 	}
 
-	public static <T> void decodeJsonList(List<T> list, Class<T> valueClass, ArrayList<String> parents, ResultSet rs)
-			throws SQLException {
+	public static <T> void decodeJsonList(List<T> list, Class<T> valueClass, String jsonStr) throws SQLException {
 		list.clear();
-		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-		var s = rs.getString(_parents_name_);
-		if (s != null) {
+		if (jsonStr != null) {
 			try {
-				JsonReader.local().buf(s).parseArray(json, list, valueClass);
+				JsonReader.local().buf(jsonStr).parseArray(json, list, valueClass);
 			} catch (ReflectiveOperationException e) {
 				throw new RuntimeException(e);
 			}
@@ -155,14 +149,12 @@ public class Helper {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static void decodeJsonMap(Bean parentBean, String fieldName, Map<?, ?> map, ArrayList<String> parents,
-									 ResultSet rs) throws SQLException {
+	public static void decodeJsonMap(Bean parentBean, String fieldName, Map<?, ?> map, String jsonStr)
+			throws SQLException {
 		map.clear();
-		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-		var s = rs.getString(_parents_name_);
-		if (s != null) {
+		if (jsonStr != null) {
 			try {
-				JsonReader.local().buf('{' + fieldName + ':' + s + '}').parse(json, parentBean,
+				JsonReader.local().buf('{' + fieldName + ':' + jsonStr + '}').parse(json, parentBean,
 						(Class<? super Bean>)parentBean.getClass());
 			} catch (ReflectiveOperationException e) {
 				throw new RuntimeException(e);
@@ -170,21 +162,7 @@ public class Helper {
 		}
 	}
 
-	public static void encodeJsonDynamic(DynamicBean bean, ArrayList<String> parents, SQLStatement st) {
-		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-		st.appendString(_parents_name_, JsonWriter.local().clear().setFlagsAndDepthLimit(0, 16).write(json, bean)
-				.toString());
-	}
-
-	public static void encodeJsonList(List<?> list, ArrayList<String> parents, SQLStatement st) {
-		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-		st.appendString(_parents_name_, JsonWriter.local().clear().setFlagsAndDepthLimit(0, 16).write(json, list)
-				.toString());
-	}
-
-	public static void encodeJsonMap(Map<?, ?> map, ArrayList<String> parents, SQLStatement st) {
-		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-		st.appendString(_parents_name_, JsonWriter.local().clear().setFlagsAndDepthLimit(0, 16).write(json, map)
-				.toString());
+	public static String encodeJson(Object obj) {
+		return JsonWriter.local().clear().setFlagsAndDepthLimit(0, 16).write(json, obj).toString();
 	}
 }
