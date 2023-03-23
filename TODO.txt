@@ -38,46 +38,13 @@ RelationalTableMapping
 BUG Dbh2 跑完测试没有关闭Raft服务，后续的单元测试还在继续尝试链接（不断输出链接refused错误）。是Connector没有停止？
 	【Agent的Resend Timer没有停止】
 
-varName, varName_subVarName, ...
+
+------------------------------------------------------------------------------------------------------------------------------
+2023/3/31 v1.2.1 cxx net & bean; Online.send use selectDirty; TaskOneByOne.Barrier; RelationalTableMapping; Timer Bug;
+------------------------------------------------------------------------------------------------------------------------------
+Timer BUG: OnTimer 回调中取消马上注册，需要识别并中断回调后续代码执行。
 decodeResultSet(ArrayList<String> parents, ResultSet rs) {
-	var _parents_ = toParentsName(parents);
-	rs.getInt(toColumnName(parents, varName));
-	parents.add(beanVarName);
-	bean.deoceResultSet(parents, rs);
-	parents.remove(size() -1 );
-	rs.getInt(toColumnName(parents, varName2));
-
-	dynamic, list, set, map;
-	deoceJsonDynamic();
-	deoceJsonList();...
-}
-
-encodePrepareStatement(List<String> parents, SnapshotPrepareStatement params) {
-	2. encodeSql() = sql: replace xxx set varName1=1, varName2=\"2\", varDynamicJson=encodeJsonDynamic();
-	class SnapshotRelationalTable
-	{
-		var snapshot = (SnapshotRelationalTable)snapshotValue;
-		var sqlSet = snapshot.sqlPs.toString();
-		if (sqlSet.isEmpty())
-			return;
-		var sqlPs = "replace " + tableName + " set " + sqlSet;
-		var ps = connection.prepareStatement(sqlPs);
-		for (var i = 0; i < snapshot.params.size() ++i) {
-			var param = snapshot.params.get(i);
-			if (param instanceof String)
-				ps.setString(i + 1, (String)param));
-			else
-				ps.setBytes(i + 1, ((Binary)param).toBytes());
-		}
-		StringBuilder sqlPs; set colint = 1, string=?, long = 3, // 采用name=value，因为createtable离这里的代码比较远，又因为alter的关系，保证column顺序一致比较讨厌。
-		List<String Or Binary> stringParams; // 采用 instanceof 识别类型
-		ps.setString, setBytes, setParam();
-	}
-}
-
-------------------------------------------------------------------------------------------------------------------------------
-2023/3/31 v1.2.1 cxx net & bean; Online.send use selectDirty; TaskOneByOne.Barrier; RelationalTableMapping; 
-------------------------------------------------------------------------------------------------------------------------------
+encodeSQLStatement(List<String> parents, SQLStatement st) {
 TaskOneByOne.Barrier 当提交的任务需要的桶数量大于线程数量导致线程饥饿问题解决：
 	barrier需要wait时不进行wait操作，而是马上返回，等待barrier任务真的执行时，对所有的桶执行runNext。
 cxx Module 生成 cpp h 两个文件。
