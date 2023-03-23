@@ -39,6 +39,7 @@ namespace Zeze.Gen.java
             }
             sw.WriteLine(prefix + "    return false;");
             sw.WriteLine(prefix + "}");
+            sw.WriteLine();
         }
 
         NegativeCheck(StreamWriter sw, Variable var, string varname, string prefix)

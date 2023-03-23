@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Serialize.Serializable;
@@ -217,5 +219,19 @@ public abstract class Bean implements Serializable {
 	// package use in Transaction.finalCommit
 	protected void version(long newVersion) {
 		// 子类实现
+	}
+
+	public static String parentsToName(ArrayList<String> parents) {
+		if (parents.isEmpty())
+			return "";
+
+		var sb = new StringBuilder();
+		for (var name : parents)
+			sb.append(name).append("_");
+		return sb.toString();
+	}
+
+	public void decodeResultSet(ArrayList<String> parents, java.sql.ResultSet rs) throws SQLException {
+		throw new UnsupportedOperationException();
 	}
 }

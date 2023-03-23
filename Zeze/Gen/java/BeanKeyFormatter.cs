@@ -64,6 +64,7 @@ namespace Zeze.Gen.java
             HashCode.Make(beanKey, sw, "    ");
             Compare.Make(beanKey, sw, "    ");
             NegativeCheck.Make(beanKey, sw, "    ");
+            DecodeResultSet.Make(beanKey, sw, "    ");
             sw.WriteLine("}");
         }
     }

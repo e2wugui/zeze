@@ -31,6 +31,20 @@ public class TestRelationalTableDiff {
 		{
 			var r = new Schemas.RelationalTable();
 			addColumn(r.current, 1);
+			addColumn(r.current, 2);
+			addColumn(r.current, 3);
+
+			addColumn(r.previous, 1);
+			addColumn(r.previous, 2);
+			addColumn(r.previous, 3);
+			r.diff();
+			Assert.assertTrue(r.add.isEmpty());
+			Assert.assertTrue(r.remove.isEmpty());
+			Assert.assertTrue(r.rename.isEmpty());
+		}
+		{
+			var r = new Schemas.RelationalTable();
+			addColumn(r.current, 1);
 			addColumn(r.current, 3);
 			addColumn(r.current, 4);
 			addColumn(r.current, 5);

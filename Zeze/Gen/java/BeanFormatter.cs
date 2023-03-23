@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Runtime.InteropServices;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
@@ -210,6 +211,7 @@ namespace Zeze.Gen.java
             // InitChildrenTableKey.MakeReset(bean, sw, "    ");
             NegativeCheck.Make(bean, sw, "    ");
             FollowerApply.Make(bean, sw, "    ");
+            DecodeResultSet.Make(bean, sw, "    ");
         }
     }
 }

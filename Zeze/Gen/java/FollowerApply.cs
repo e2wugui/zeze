@@ -45,6 +45,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "    }");
             }
             sw.WriteLine(prefix + "}");
+            sw.WriteLine();
         }
 
         public void Visit(Types.TypeBool type)
