@@ -23,7 +23,7 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean implements BOnlin
 
     public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_1(long typeId) {
         if (typeId == Zeze.Transaction.EmptyBean.TYPEID)
-            return Zeze.Transaction.EmptyBean.instance;
+            return new Zeze.Transaction.EmptyBean();
         return null;
     }
 

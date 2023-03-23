@@ -34,7 +34,7 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
         if (typeId == 1832177636612857692L)
             return new Zeze.Builtin.Timer.BSimpleTimer();
         if (typeId == Zeze.Transaction.EmptyBean.TYPEID)
-            return Zeze.Transaction.EmptyBean.instance;
+            return new Zeze.Transaction.EmptyBean();
         return null;
     }
 

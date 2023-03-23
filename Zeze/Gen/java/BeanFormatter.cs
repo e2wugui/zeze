@@ -100,7 +100,7 @@ namespace Zeze.Gen.java
                     sw.WriteLine($"{prefix}        return new {real.Value.FullName}();");
                 }
                 sw.WriteLine($"{prefix}    if (typeId == Zeze.Transaction.EmptyBean.TYPEID)");
-                sw.WriteLine($"{prefix}        return Zeze.Transaction.EmptyBean.instance;");
+                sw.WriteLine($"{prefix}        return new Zeze.Transaction.EmptyBean();");
                 sw.WriteLine($"{prefix}    return null;");
             }
             else

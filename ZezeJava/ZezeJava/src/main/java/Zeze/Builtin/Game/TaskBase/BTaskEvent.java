@@ -48,7 +48,7 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
         if (typeId == 2627115510834301728L)
             return new Zeze.Builtin.Game.TaskBase.BBroadcastTaskEvent();
         if (typeId == Zeze.Transaction.EmptyBean.TYPEID)
-            return Zeze.Transaction.EmptyBean.instance;
+            return new Zeze.Transaction.EmptyBean();
         return null;
     }
 
