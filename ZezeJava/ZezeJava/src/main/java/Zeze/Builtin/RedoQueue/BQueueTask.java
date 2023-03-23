@@ -332,4 +332,24 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setQueueName(rs.getString(_parents_name_ + "QueueName"));
+        setTaskType(rs.getInt(_parents_name_ + "TaskType"));
+        setTaskId(rs.getLong(_parents_name_ + "TaskId"));
+        setTaskParam(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "TaskParam")));
+        setPrevTaskId(rs.getLong(_parents_name_ + "PrevTaskId"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "QueueName", getQueueName());
+        st.appendInt(_parents_name_ + "TaskType", getTaskType());
+        st.appendLong(_parents_name_ + "TaskId", getTaskId());
+        st.appendBinary(_parents_name_ + "TaskParam", getTaskParam());
+        st.appendLong(_parents_name_ + "PrevTaskId", getPrevTaskId());
+    }
 }

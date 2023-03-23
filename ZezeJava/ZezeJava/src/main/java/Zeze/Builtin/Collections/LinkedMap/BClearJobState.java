@@ -239,4 +239,20 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setHeadNodeId(rs.getLong(_parents_name_ + "HeadNodeId"));
+        setTailNodeId(rs.getLong(_parents_name_ + "TailNodeId"));
+        setLinkedMapName(rs.getString(_parents_name_ + "LinkedMapName"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendLong(_parents_name_ + "HeadNodeId", getHeadNodeId());
+        st.appendLong(_parents_name_ + "TailNodeId", getTailNodeId());
+        st.appendString(_parents_name_ + "LinkedMapName", getLinkedMapName());
+    }
 }

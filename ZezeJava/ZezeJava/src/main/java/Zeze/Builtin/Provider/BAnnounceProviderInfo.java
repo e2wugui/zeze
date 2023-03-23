@@ -291,4 +291,22 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setServiceNamePrefix(rs.getString(_parents_name_ + "ServiceNamePrefix"));
+        setServiceIndentity(rs.getString(_parents_name_ + "ServiceIndentity"));
+        setProviderDirectIp(rs.getString(_parents_name_ + "ProviderDirectIp"));
+        setProviderDirectPort(rs.getInt(_parents_name_ + "ProviderDirectPort"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "ServiceNamePrefix", getServiceNamePrefix());
+        st.appendString(_parents_name_ + "ServiceIndentity", getServiceIndentity());
+        st.appendString(_parents_name_ + "ProviderDirectIp", getProviderDirectIp());
+        st.appendInt(_parents_name_ + "ProviderDirectPort", getProviderDirectPort());
+    }
 }

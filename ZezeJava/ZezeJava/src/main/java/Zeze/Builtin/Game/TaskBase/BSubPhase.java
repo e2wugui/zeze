@@ -312,4 +312,22 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setSubPhaseId(rs.getLong(_parents_name_ + "subPhaseId"));
+        setCompleteType(rs.getString(_parents_name_ + "completeType"));
+        setNextSubPhaseId(rs.getLong(_parents_name_ + "nextSubPhaseId"));
+        Zeze.Serialize.Helper.decodeJsonList(getConditions(), Zeze.Builtin.Game.TaskBase.BTaskCondition.class, rs.getString(_parents_name_ + "conditions"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendLong(_parents_name_ + "subPhaseId", getSubPhaseId());
+        st.appendString(_parents_name_ + "completeType", getCompleteType());
+        st.appendLong(_parents_name_ + "nextSubPhaseId", getNextSubPhaseId());
+        st.appendString(_parents_name_ + "conditions", Zeze.Serialize.Helper.encodeJson(getConditions()));
+    }
 }

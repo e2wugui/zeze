@@ -281,4 +281,22 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setHeadNodeId(rs.getLong(_parents_name_ + "HeadNodeId"));
+        setTailNodeId(rs.getLong(_parents_name_ + "TailNodeId"));
+        setCount(rs.getLong(_parents_name_ + "Count"));
+        setLastNodeId(rs.getLong(_parents_name_ + "LastNodeId"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendLong(_parents_name_ + "HeadNodeId", getHeadNodeId());
+        st.appendLong(_parents_name_ + "TailNodeId", getTailNodeId());
+        st.appendLong(_parents_name_ + "Count", getCount());
+        st.appendLong(_parents_name_ + "LastNodeId", getLastNodeId());
+    }
 }

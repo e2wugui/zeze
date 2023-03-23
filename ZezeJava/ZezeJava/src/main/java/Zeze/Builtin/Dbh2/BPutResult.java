@@ -166,6 +166,18 @@ public final class BPutResult extends Zeze.Transaction.Bean implements BPutResul
         }
     }
 
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setRaftConfig(rs.getString(_parents_name_ + "RaftConfig"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "RaftConfig", getRaftConfig());
+    }
+
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 2501510166579002026L;

@@ -212,4 +212,18 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setNextNodeId(rs.getLong(_parents_name_ + "NextNodeId"));
+        Zeze.Serialize.Helper.decodeJsonList(getValues(), Zeze.Builtin.Collections.Queue.BQueueNodeValue.class, rs.getString(_parents_name_ + "Values"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendLong(_parents_name_ + "NextNodeId", getNextNodeId());
+        st.appendString(_parents_name_ + "Values", Zeze.Serialize.Helper.encodeJson(getValues()));
+    }
 }

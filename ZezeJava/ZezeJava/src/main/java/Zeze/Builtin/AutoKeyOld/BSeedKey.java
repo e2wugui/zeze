@@ -142,4 +142,18 @@ public final class BSeedKey implements Serializable, Comparable<BSeedKey> {
             return true;
         return false;
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        _ServerId = rs.getInt(_parents_name_ + "ServerId");
+        _KeyName = rs.getString(_parents_name_ + "KeyName");
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendInt(_parents_name_ + "ServerId", getServerId());
+        st.appendString(_parents_name_ + "KeyName", getKeyName());
+    }
 }

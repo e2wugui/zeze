@@ -253,4 +253,20 @@ public final class BDailyTask extends Zeze.Transaction.Bean implements BDailyTas
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setEverydayTaskCount(rs.getInt(_parents_name_ + "everydayTaskCount"));
+        setFlushTime(rs.getLong(_parents_name_ + "flushTime"));
+        Zeze.Serialize.Helper.decodeJsonList(getTodayTaskPhaseIds(), long.class, rs.getString(_parents_name_ + "todayTaskPhaseIds"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendInt(_parents_name_ + "everydayTaskCount", getEverydayTaskCount());
+        st.appendLong(_parents_name_ + "flushTime", getFlushTime());
+        st.appendString(_parents_name_ + "todayTaskPhaseIds", Zeze.Serialize.Helper.encodeJson(getTodayTaskPhaseIds()));
+    }
 }

@@ -341,4 +341,24 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setAccount(rs.getString(_parents_name_ + "account"));
+        setLinkSid(rs.getLong(_parents_name_ + "linkSid"));
+        setReason(rs.getInt(_parents_name_ + "reason"));
+        setContext(rs.getString(_parents_name_ + "context"));
+        setContextx(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "contextx")));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "account", getAccount());
+        st.appendLong(_parents_name_ + "linkSid", getLinkSid());
+        st.appendInt(_parents_name_ + "reason", getReason());
+        st.appendString(_parents_name_ + "context", getContext());
+        st.appendBinary(_parents_name_ + "contextx", getContextx());
+    }
 }

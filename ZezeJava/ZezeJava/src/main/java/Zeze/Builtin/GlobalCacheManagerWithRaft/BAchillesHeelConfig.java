@@ -236,4 +236,20 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean implements 
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setMaxNetPing(rs.getInt(_parents_name_ + "MaxNetPing"));
+        setServerProcessTime(rs.getInt(_parents_name_ + "ServerProcessTime"));
+        setServerReleaseTimeout(rs.getInt(_parents_name_ + "ServerReleaseTimeout"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendInt(_parents_name_ + "MaxNetPing", getMaxNetPing());
+        st.appendInt(_parents_name_ + "ServerProcessTime", getServerProcessTime());
+        st.appendInt(_parents_name_ + "ServerReleaseTimeout", getServerReleaseTimeout());
+    }
 }

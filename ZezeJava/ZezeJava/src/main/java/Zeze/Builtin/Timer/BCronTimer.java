@@ -419,4 +419,28 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setCronExpression(rs.getString(_parents_name_ + "CronExpression"));
+        setNextExpectedTime(rs.getLong(_parents_name_ + "NextExpectedTime"));
+        setExpectedTime(rs.getLong(_parents_name_ + "ExpectedTime"));
+        setHappenTime(rs.getLong(_parents_name_ + "HappenTime"));
+        setRemainTimes(rs.getLong(_parents_name_ + "RemainTimes"));
+        setEndTime(rs.getLong(_parents_name_ + "EndTime"));
+        setMissfirePolicy(rs.getInt(_parents_name_ + "MissfirePolicy"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "CronExpression", getCronExpression());
+        st.appendLong(_parents_name_ + "NextExpectedTime", getNextExpectedTime());
+        st.appendLong(_parents_name_ + "ExpectedTime", getExpectedTime());
+        st.appendLong(_parents_name_ + "HappenTime", getHappenTime());
+        st.appendLong(_parents_name_ + "RemainTimes", getRemainTimes());
+        st.appendLong(_parents_name_ + "EndTime", getEndTime());
+        st.appendInt(_parents_name_ + "MissfirePolicy", getMissfirePolicy());
+    }
 }

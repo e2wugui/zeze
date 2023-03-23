@@ -144,4 +144,18 @@ public final class BDAGNodeKey implements Serializable, Comparable<BDAGNodeKey> 
     public boolean negativeCheck() {
         return false;
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        _Name = rs.getString(_parents_name_ + "Name");
+        _ValueId = rs.getString(_parents_name_ + "ValueId");
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "Name", getName());
+        st.appendString(_parents_name_ + "ValueId", getValueId());
+    }
 }

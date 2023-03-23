@@ -285,4 +285,22 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setOnline(rs.getInt(_parents_name_ + "Online"));
+        setProposeMaxOnline(rs.getInt(_parents_name_ + "ProposeMaxOnline"));
+        setOnlineNew(rs.getInt(_parents_name_ + "OnlineNew"));
+        setOverload(rs.getInt(_parents_name_ + "Overload"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendInt(_parents_name_ + "Online", getOnline());
+        st.appendInt(_parents_name_ + "ProposeMaxOnline", getProposeMaxOnline());
+        st.appendInt(_parents_name_ + "OnlineNew", getOnlineNew());
+        st.appendInt(_parents_name_ + "Overload", getOverload());
+    }
 }

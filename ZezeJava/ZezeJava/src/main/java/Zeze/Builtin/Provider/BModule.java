@@ -257,4 +257,20 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setChoiceType(rs.getInt(_parents_name_ + "ChoiceType"));
+        setConfigType(rs.getInt(_parents_name_ + "ConfigType"));
+        setSubscribeType(rs.getInt(_parents_name_ + "SubscribeType"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendInt(_parents_name_ + "ChoiceType", getChoiceType());
+        st.appendInt(_parents_name_ + "ConfigType", getConfigType());
+        st.appendInt(_parents_name_ + "SubscribeType", getSubscribeType());
+    }
 }

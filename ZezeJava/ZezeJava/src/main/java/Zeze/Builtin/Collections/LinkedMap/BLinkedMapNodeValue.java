@@ -199,4 +199,18 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean implements 
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setId(rs.getString(_parents_name_ + "Id"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(getValue(), rs.getString(_parents_name_ + "Value"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "Id", getId());
+        st.appendString(_parents_name_ + "Value", Zeze.Serialize.Helper.encodeJson(getValue()));
+    }
 }

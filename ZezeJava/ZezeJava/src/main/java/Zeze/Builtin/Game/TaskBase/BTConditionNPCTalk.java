@@ -281,4 +281,20 @@ public final class BTConditionNPCTalk extends Zeze.Transaction.Bean implements B
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setNpcId(rs.getLong(_parents_name_ + "npcId"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "dialogOptions", getDialogOptions(), rs.getString(_parents_name_ + "dialogOptions"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "dialogSelected", getDialogSelected(), rs.getString(_parents_name_ + "dialogSelected"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendLong(_parents_name_ + "npcId", getNpcId());
+        st.appendString(_parents_name_ + "dialogOptions", Zeze.Serialize.Helper.encodeJson(getDialogOptions()));
+        st.appendString(_parents_name_ + "dialogSelected", Zeze.Serialize.Helper.encodeJson(getDialogSelected()));
+    }
 }

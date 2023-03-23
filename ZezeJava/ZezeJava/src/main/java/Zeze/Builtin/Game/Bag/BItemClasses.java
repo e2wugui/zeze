@@ -153,4 +153,16 @@ public final class BItemClasses extends Zeze.Transaction.Bean implements BItemCl
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        Zeze.Serialize.Helper.decodeJsonSet(getItemClasses(), String.class, rs.getString(_parents_name_ + "ItemClasses"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "ItemClasses", Zeze.Serialize.Helper.encodeJson(getItemClasses()));
+    }
 }

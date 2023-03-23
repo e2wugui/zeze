@@ -236,4 +236,20 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setServerId(rs.getInt(_parents_name_ + "ServerId"));
+        setNodeId(rs.getLong(_parents_name_ + "NodeId"));
+        setSerialId(rs.getLong(_parents_name_ + "SerialId"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendInt(_parents_name_ + "ServerId", getServerId());
+        st.appendLong(_parents_name_ + "NodeId", getNodeId());
+        st.appendLong(_parents_name_ + "SerialId", getSerialId());
+    }
 }

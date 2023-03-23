@@ -1,9 +1,5 @@
 package Zeze.Serialize;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-
 public class Quaternion extends Vector4 {
 	public static final Quaternion ZERO = new Quaternion(0, 0, 0, 0);
 

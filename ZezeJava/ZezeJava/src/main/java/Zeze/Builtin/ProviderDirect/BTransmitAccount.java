@@ -351,4 +351,24 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setActionName(rs.getString(_parents_name_ + "ActionName"));
+        setParameter(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Parameter")));
+        Zeze.Serialize.Helper.decodeJsonSet(getTargetAccounts(), String.class, rs.getString(_parents_name_ + "TargetAccounts"));
+        setSenderAccount(rs.getString(_parents_name_ + "SenderAccount"));
+        setSenderClientId(rs.getString(_parents_name_ + "SenderClientId"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "ActionName", getActionName());
+        st.appendBinary(_parents_name_ + "Parameter", getParameter());
+        st.appendString(_parents_name_ + "TargetAccounts", Zeze.Serialize.Helper.encodeJson(getTargetAccounts()));
+        st.appendString(_parents_name_ + "SenderAccount", getSenderAccount());
+        st.appendString(_parents_name_ + "SenderClientId", getSenderClientId());
+    }
 }

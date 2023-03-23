@@ -164,4 +164,16 @@ public final class BTConditionKillMonsterEvent extends Zeze.Transaction.Bean imp
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        Zeze.Serialize.Helper.decodeJsonMap(this, "monsters", getMonsters(), rs.getString(_parents_name_ + "monsters"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "monsters", Zeze.Serialize.Helper.encodeJson(getMonsters()));
+    }
 }

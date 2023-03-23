@@ -47,6 +47,8 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
             return new Zeze.Builtin.Game.TaskBase.BSpecificTaskEvent();
         if (typeId == 2627115510834301728L)
             return new Zeze.Builtin.Game.TaskBase.BBroadcastTaskEvent();
+        if (typeId == Zeze.Transaction.EmptyBean.TYPEID)
+            return Zeze.Transaction.EmptyBean.instance;
         return null;
     }
 
@@ -320,5 +322,21 @@ public final class BTaskEvent extends Zeze.Transaction.Bean implements BTaskEven
                 case 3: _eventBean.followerApply(vlog); break;
             }
         }
+    }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setRoleId(rs.getLong(_parents_name_ + "roleId"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(getEventType(), rs.getString(_parents_name_ + "eventType"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(getEventBean(), rs.getString(_parents_name_ + "eventBean"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendLong(_parents_name_ + "roleId", getRoleId());
+        st.appendString(_parents_name_ + "eventType", Zeze.Serialize.Helper.encodeJson(getEventType()));
+        st.appendString(_parents_name_ + "eventBean", Zeze.Serialize.Helper.encodeJson(getEventBean()));
     }
 }

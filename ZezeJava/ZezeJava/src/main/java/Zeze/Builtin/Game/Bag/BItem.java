@@ -253,4 +253,20 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setId(rs.getInt(_parents_name_ + "Id"));
+        setNumber(rs.getInt(_parents_name_ + "Number"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(getItem(), rs.getString(_parents_name_ + "Item"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendInt(_parents_name_ + "Id", getId());
+        st.appendInt(_parents_name_ + "Number", getNumber());
+        st.appendString(_parents_name_ + "Item", Zeze.Serialize.Helper.encodeJson(getItem()));
+    }
 }

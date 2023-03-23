@@ -551,4 +551,34 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setDelay(rs.getLong(_parents_name_ + "Delay"));
+        setPeriod(rs.getLong(_parents_name_ + "Period"));
+        setRemainTimes(rs.getLong(_parents_name_ + "RemainTimes"));
+        setHappenTimes(rs.getLong(_parents_name_ + "HappenTimes"));
+        setStartTime(rs.getLong(_parents_name_ + "StartTime"));
+        setEndTime(rs.getLong(_parents_name_ + "EndTime"));
+        setNextExpectedTime(rs.getLong(_parents_name_ + "NextExpectedTime"));
+        setExpectedTime(rs.getLong(_parents_name_ + "ExpectedTime"));
+        setHappenTime(rs.getLong(_parents_name_ + "HappenTime"));
+        setMissfirePolicy(rs.getInt(_parents_name_ + "MissfirePolicy"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendLong(_parents_name_ + "Delay", getDelay());
+        st.appendLong(_parents_name_ + "Period", getPeriod());
+        st.appendLong(_parents_name_ + "RemainTimes", getRemainTimes());
+        st.appendLong(_parents_name_ + "HappenTimes", getHappenTimes());
+        st.appendLong(_parents_name_ + "StartTime", getStartTime());
+        st.appendLong(_parents_name_ + "EndTime", getEndTime());
+        st.appendLong(_parents_name_ + "NextExpectedTime", getNextExpectedTime());
+        st.appendLong(_parents_name_ + "ExpectedTime", getExpectedTime());
+        st.appendLong(_parents_name_ + "HappenTime", getHappenTime());
+        st.appendInt(_parents_name_ + "MissfirePolicy", getMissfirePolicy());
+    }
 }

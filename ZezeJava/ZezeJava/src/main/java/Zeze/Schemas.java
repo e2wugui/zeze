@@ -8,7 +8,6 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.Action1;
 import Zeze.Util.IntHashMap;
-import org.apache.commons.validator.Var;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -801,7 +800,7 @@ public class Schemas implements Serializable {
 		public final TreeMap<Integer, Column> add = new TreeMap<>();
 		public final TreeMap<Integer, Column> remove = new TreeMap<>();
 
-		public String sqlColumns(TreeMap<Integer, Column> columns) {
+		public static String sqlColumns(TreeMap<Integer, Column> columns) {
 			var sb = new StringBuilder();
 			var it = columns.entrySet().iterator();
 			if (it.hasNext()) {
@@ -874,12 +873,12 @@ public class Schemas implements Serializable {
 		var cur = this.tables.get(tableName);
 		if (cur != null)
 			cur.buildRelationalColumns(relational.current);
-		System.out.println(relational.sqlColumns(relational.current));
+		System.out.println(RelationalTable.sqlColumns(relational.current));
 		if (null != other) {
 			var pre = other.tables.get(tableName);
 			if (pre != null)
 				pre.buildRelationalColumns(relational.previous);
-			System.out.println(relational.sqlColumns(relational.previous));
+			System.out.println(RelationalTable.sqlColumns(relational.previous));
 		}
 	}
 }

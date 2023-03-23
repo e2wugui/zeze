@@ -455,6 +455,30 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         }
     }
 
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setDatabaseName(rs.getString(_parents_name_ + "DatabaseName"));
+        setTableName(rs.getString(_parents_name_ + "TableName"));
+        setKeyFirst(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "KeyFirst")));
+        setKeyLast(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "KeyLast")));
+        setRaftConfig(rs.getString(_parents_name_ + "RaftConfig"));
+        setMoving(rs.getBoolean(_parents_name_ + "Moving"));
+        setKeyMoving(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "KeyMoving")));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "DatabaseName", getDatabaseName());
+        st.appendString(_parents_name_ + "TableName", getTableName());
+        st.appendBinary(_parents_name_ + "KeyFirst", getKeyFirst());
+        st.appendBinary(_parents_name_ + "KeyLast", getKeyLast());
+        st.appendString(_parents_name_ + "RaftConfig", getRaftConfig());
+        st.appendBoolean(_parents_name_ + "Moving", isMoving());
+        st.appendBinary(_parents_name_ + "KeyMoving", getKeyMoving());
+    }
+
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 8589859502117192635L;

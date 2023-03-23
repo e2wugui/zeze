@@ -239,4 +239,20 @@ public final class BRankValue extends Zeze.Transaction.Bean implements BRankValu
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setRoleId(rs.getLong(_parents_name_ + "RoleId"));
+        setValue(rs.getLong(_parents_name_ + "Value"));
+        setValueEx(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "ValueEx")));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendLong(_parents_name_ + "RoleId", getRoleId());
+        st.appendLong(_parents_name_ + "Value", getValue());
+        st.appendBinary(_parents_name_ + "ValueEx", getValueEx());
+    }
 }

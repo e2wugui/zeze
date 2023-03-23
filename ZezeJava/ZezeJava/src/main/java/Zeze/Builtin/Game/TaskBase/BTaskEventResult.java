@@ -211,4 +211,18 @@ public final class BTaskEventResult extends Zeze.Transaction.Bean implements BTa
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setResultCode(rs.getLong(_parents_name_ + "resultCode"));
+        Zeze.Serialize.Helper.decodeJsonList(getChangedTasks(), Zeze.Builtin.Game.TaskBase.BTask.class, rs.getString(_parents_name_ + "changedTasks"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendLong(_parents_name_ + "resultCode", getResultCode());
+        st.appendString(_parents_name_ + "changedTasks", Zeze.Serialize.Helper.encodeJson(getChangedTasks()));
+    }
 }

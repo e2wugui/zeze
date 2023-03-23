@@ -103,6 +103,14 @@ public final class BRollbackTransactionResult extends Zeze.Transaction.Bean impl
     public void followerApply(Zeze.Transaction.Log log) {
     }
 
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+    }
+
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 39403420976946383L;

@@ -242,4 +242,20 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setAccount(rs.getString(_parents_name_ + "Account"));
+        setClientId(rs.getString(_parents_name_ + "ClientId"));
+        setLoginVersion(rs.getLong(_parents_name_ + "LoginVersion"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "Account", getAccount());
+        st.appendString(_parents_name_ + "ClientId", getClientId());
+        st.appendLong(_parents_name_ + "LoginVersion", getLoginVersion());
+    }
 }

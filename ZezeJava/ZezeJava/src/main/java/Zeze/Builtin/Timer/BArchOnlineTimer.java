@@ -34,6 +34,8 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
             return new Zeze.Builtin.Timer.BCronTimer();
         if (typeId == 1832177636612857692L)
             return new Zeze.Builtin.Timer.BSimpleTimer();
+        if (typeId == Zeze.Transaction.EmptyBean.TYPEID)
+            return Zeze.Transaction.EmptyBean.instance;
         return null;
     }
 
@@ -379,5 +381,25 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
                 case 5: _SerialId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
+    }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setAccount(rs.getString(_parents_name_ + "Account"));
+        setClientId(rs.getString(_parents_name_ + "ClientId"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(getTimerObj(), rs.getString(_parents_name_ + "TimerObj"));
+        setLoginVersion(rs.getLong(_parents_name_ + "LoginVersion"));
+        setSerialId(rs.getLong(_parents_name_ + "SerialId"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "Account", getAccount());
+        st.appendString(_parents_name_ + "ClientId", getClientId());
+        st.appendString(_parents_name_ + "TimerObj", Zeze.Serialize.Helper.encodeJson(getTimerObj()));
+        st.appendLong(_parents_name_ + "LoginVersion", getLoginVersion());
+        st.appendLong(_parents_name_ + "SerialId", getSerialId());
     }
 }

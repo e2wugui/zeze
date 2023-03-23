@@ -204,4 +204,18 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setConditionType(rs.getString(_parents_name_ + "conditionType"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(getExtendedData(), rs.getString(_parents_name_ + "extendedData"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "conditionType", getConditionType());
+        st.appendString(_parents_name_ + "extendedData", Zeze.Serialize.Helper.encodeJson(getExtendedData()));
+    }
 }

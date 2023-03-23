@@ -239,4 +239,20 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setProtocolType(rs.getLong(_parents_name_ + "protocolType"));
+        setProtocolWholeData(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "protocolWholeData")));
+        setTime(rs.getInt(_parents_name_ + "time"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendLong(_parents_name_ + "protocolType", getProtocolType());
+        st.appendBinary(_parents_name_ + "protocolWholeData", getProtocolWholeData());
+        st.appendInt(_parents_name_ + "time", getTime());
+    }
 }

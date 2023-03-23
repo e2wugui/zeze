@@ -167,4 +167,16 @@ public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscrib
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        Zeze.Serialize.Helper.decodeJsonMap(this, "modules", getModules(), rs.getString(_parents_name_ + "modules"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "modules", Zeze.Serialize.Helper.encodeJson(getModules()));
+    }
 }

@@ -189,4 +189,18 @@ public final class BTransactionMessageResult extends Zeze.Transaction.Bean imple
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setResult(rs.getBoolean(_parents_name_ + "Result"));
+        setTimestamp(rs.getLong(_parents_name_ + "Timestamp"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendBoolean(_parents_name_ + "Result", isResult());
+        st.appendLong(_parents_name_ + "Timestamp", getTimestamp());
+    }
 }

@@ -264,6 +264,22 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
         }
     }
 
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setDatabase(rs.getString(_parents_name_ + "Database"));
+        setTable(rs.getString(_parents_name_ + "Table"));
+        setKey(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Key")));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "Database", getDatabase());
+        st.appendString(_parents_name_ + "Table", getTable());
+        st.appendBinary(_parents_name_ + "Key", getKey());
+    }
+
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 4922212073054736979L;

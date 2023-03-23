@@ -380,4 +380,26 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setModuleId(rs.getInt(_parents_name_ + "ModuleId"));
+        setHashCode(rs.getInt(_parents_name_ + "HashCode"));
+        setRedirectType(rs.getInt(_parents_name_ + "RedirectType"));
+        setMethodFullName(rs.getString(_parents_name_ + "MethodFullName"));
+        setParams(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Params")));
+        setServiceNamePrefix(rs.getString(_parents_name_ + "ServiceNamePrefix"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendInt(_parents_name_ + "ModuleId", getModuleId());
+        st.appendInt(_parents_name_ + "HashCode", getHashCode());
+        st.appendInt(_parents_name_ + "RedirectType", getRedirectType());
+        st.appendString(_parents_name_ + "MethodFullName", getMethodFullName());
+        st.appendBinary(_parents_name_ + "Params", getParams());
+        st.appendString(_parents_name_ + "ServiceNamePrefix", getServiceNamePrefix());
+    }
 }

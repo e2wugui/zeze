@@ -144,4 +144,16 @@ public final class BBroadcastTaskEvent extends Zeze.Transaction.Bean implements 
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setIsBreakIfAccepted(rs.getBoolean(_parents_name_ + "isBreakIfAccepted"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendBoolean(_parents_name_ + "isBreakIfAccepted", isIsBreakIfAccepted());
+    }
 }

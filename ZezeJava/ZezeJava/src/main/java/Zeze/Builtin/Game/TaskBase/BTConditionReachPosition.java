@@ -362,4 +362,26 @@ public final class BTConditionReachPosition extends Zeze.Transaction.Bean implem
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setDimension(rs.getInt(_parents_name_ + "dimension"));
+        setX(rs.getDouble(_parents_name_ + "x"));
+        setY(rs.getDouble(_parents_name_ + "y"));
+        setZ(rs.getDouble(_parents_name_ + "z"));
+        setRadius(rs.getDouble(_parents_name_ + "radius"));
+        setReached(rs.getBoolean(_parents_name_ + "Reached"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendInt(_parents_name_ + "dimension", getDimension());
+        st.appendDouble(_parents_name_ + "x", getX());
+        st.appendDouble(_parents_name_ + "y", getY());
+        st.appendDouble(_parents_name_ + "z", getZ());
+        st.appendDouble(_parents_name_ + "radius", getRadius());
+        st.appendBoolean(_parents_name_ + "Reached", isReached());
+    }
 }

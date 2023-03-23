@@ -475,4 +475,28 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setPhaseId(rs.getLong(_parents_name_ + "phaseId"));
+        setPhaseName(rs.getString(_parents_name_ + "phaseName"));
+        setPhaseDescription(rs.getString(_parents_name_ + "phaseDescription"));
+        Zeze.Serialize.Helper.decodeJsonList(getPrePhaseIds(), long.class, rs.getString(_parents_name_ + "prePhaseIds"));
+        setNextPhaseId(rs.getLong(_parents_name_ + "nextPhaseId"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "subPhases", getSubPhases(), rs.getString(_parents_name_ + "subPhases"));
+        setCurrentSubPhaseId(rs.getLong(_parents_name_ + "currentSubPhaseId"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendLong(_parents_name_ + "phaseId", getPhaseId());
+        st.appendString(_parents_name_ + "phaseName", getPhaseName());
+        st.appendString(_parents_name_ + "phaseDescription", getPhaseDescription());
+        st.appendString(_parents_name_ + "prePhaseIds", Zeze.Serialize.Helper.encodeJson(getPrePhaseIds()));
+        st.appendLong(_parents_name_ + "nextPhaseId", getNextPhaseId());
+        st.appendString(_parents_name_ + "subPhases", Zeze.Serialize.Helper.encodeJson(getSubPhases()));
+        st.appendLong(_parents_name_ + "currentSubPhaseId", getCurrentSubPhaseId());
+    }
 }

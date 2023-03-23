@@ -161,4 +161,18 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        parents.add("Link");
+        getLink().decodeResultSet(parents, rs);
+        parents.remove(parents.size() - 1);
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        parents.add("Link");
+        getLink().encodeSQLStatement(parents, st);
+        parents.remove(parents.size() - 1);
+    }
 }

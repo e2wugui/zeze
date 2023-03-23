@@ -284,4 +284,22 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setBagName(rs.getString(_parents_name_ + "BagName"));
+        setPositionFrom(rs.getInt(_parents_name_ + "PositionFrom"));
+        setPositionTo(rs.getInt(_parents_name_ + "PositionTo"));
+        setNumber(rs.getInt(_parents_name_ + "number"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "BagName", getBagName());
+        st.appendInt(_parents_name_ + "PositionFrom", getPositionFrom());
+        st.appendInt(_parents_name_ + "PositionTo", getPositionTo());
+        st.appendInt(_parents_name_ + "number", getNumber());
+    }
 }

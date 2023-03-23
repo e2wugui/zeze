@@ -261,6 +261,22 @@ public final class BBeginTransactionArgument extends Zeze.Transaction.Bean imple
         }
     }
 
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setDatabase(rs.getString(_parents_name_ + "Database"));
+        setTable(rs.getString(_parents_name_ + "Table"));
+        setTransactionId(rs.getLong(_parents_name_ + "TransactionId"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "Database", getDatabase());
+        st.appendString(_parents_name_ + "Table", getTable());
+        st.appendLong(_parents_name_ + "TransactionId", getTransactionId());
+    }
+
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -7619569472530558952L;

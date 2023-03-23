@@ -210,6 +210,20 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
         }
     }
 
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setNull(rs.getBoolean(_parents_name_ + "Null"));
+        setValue(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Value")));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendBoolean(_parents_name_ + "Null", isNull());
+        st.appendBinary(_parents_name_ + "Value", getValue());
+    }
+
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -3248537090181056461L;

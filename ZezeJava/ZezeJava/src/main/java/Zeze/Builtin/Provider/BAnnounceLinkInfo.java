@@ -87,4 +87,12 @@ public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean implements BA
     @Override
     public void followerApply(Zeze.Transaction.Log log) {
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+    }
 }

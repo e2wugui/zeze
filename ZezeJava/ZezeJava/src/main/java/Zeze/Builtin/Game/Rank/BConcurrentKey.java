@@ -226,4 +226,24 @@ public final class BConcurrentKey implements Serializable, Comparable<BConcurren
             return true;
         return false;
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        _RankType = rs.getInt(_parents_name_ + "RankType");
+        _ConcurrentId = rs.getInt(_parents_name_ + "ConcurrentId");
+        _TimeType = rs.getInt(_parents_name_ + "TimeType");
+        _Year = rs.getInt(_parents_name_ + "Year");
+        _Offset = rs.getLong(_parents_name_ + "Offset");
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendInt(_parents_name_ + "RankType", getRankType());
+        st.appendInt(_parents_name_ + "ConcurrentId", getConcurrentId());
+        st.appendInt(_parents_name_ + "TimeType", getTimeType());
+        st.appendInt(_parents_name_ + "Year", getYear());
+        st.appendLong(_parents_name_ + "Offset", getOffset());
+    }
 }

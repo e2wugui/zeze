@@ -204,4 +204,18 @@ public final class BReliableNotify extends Zeze.Transaction.Bean implements BRel
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        Zeze.Serialize.Helper.decodeJsonList(getNotifies(), Zeze.Net.Binary.class, rs.getString(_parents_name_ + "Notifies"));
+        setReliableNotifyIndex(rs.getLong(_parents_name_ + "ReliableNotifyIndex"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "Notifies", Zeze.Serialize.Helper.encodeJson(getNotifies()));
+        st.appendLong(_parents_name_ + "ReliableNotifyIndex", getReliableNotifyIndex());
+    }
 }

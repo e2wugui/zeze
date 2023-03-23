@@ -239,4 +239,20 @@ public final class BProviderInfo extends Zeze.Transaction.Bean implements BProvi
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setIp(rs.getString(_parents_name_ + "Ip"));
+        setPort(rs.getInt(_parents_name_ + "Port"));
+        setServerId(rs.getInt(_parents_name_ + "ServerId"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "Ip", getIp());
+        st.appendInt(_parents_name_ + "Port", getPort());
+        st.appendInt(_parents_name_ + "ServerId", getServerId());
+    }
 }

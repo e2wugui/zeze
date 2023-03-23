@@ -247,4 +247,20 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setFrom(rs.getInt(_parents_name_ + "from"));
+        setCode(rs.getInt(_parents_name_ + "code"));
+        setDesc(rs.getString(_parents_name_ + "desc"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendInt(_parents_name_ + "from", getFrom());
+        st.appendInt(_parents_name_ + "code", getCode());
+        st.appendString(_parents_name_ + "desc", getDesc());
+    }
 }

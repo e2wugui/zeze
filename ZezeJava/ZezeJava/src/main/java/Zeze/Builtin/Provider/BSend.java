@@ -256,4 +256,20 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        Zeze.Serialize.Helper.decodeJsonList(getLinkSids(), long.class, rs.getString(_parents_name_ + "linkSids"));
+        setProtocolType(rs.getLong(_parents_name_ + "protocolType"));
+        setProtocolWholeData(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "protocolWholeData")));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "linkSids", Zeze.Serialize.Helper.encodeJson(getLinkSids()));
+        st.appendLong(_parents_name_ + "protocolType", getProtocolType());
+        st.appendBinary(_parents_name_ + "protocolWholeData", getProtocolWholeData());
+    }
 }

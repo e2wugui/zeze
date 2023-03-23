@@ -287,4 +287,22 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setNodeSum(rs.getLong(_parents_name_ + "NodeSum"));
+        setEdgeSum(rs.getLong(_parents_name_ + "EdgeSum"));
+        setStartNode(rs.getString(_parents_name_ + "StartNode"));
+        setEndNode(rs.getString(_parents_name_ + "EndNode"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendLong(_parents_name_ + "NodeSum", getNodeSum());
+        st.appendLong(_parents_name_ + "EdgeSum", getEdgeSum());
+        st.appendString(_parents_name_ + "StartNode", getStartNode());
+        st.appendString(_parents_name_ + "EndNode", getEndNode());
+    }
 }

@@ -116,4 +116,16 @@ public final class BTaskKey implements Serializable, Comparable<BTaskKey> {
             return true;
         return false;
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        _TaskId = rs.getLong(_parents_name_ + "TaskId");
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendLong(_parents_name_ + "TaskId", getTaskId());
+    }
 }

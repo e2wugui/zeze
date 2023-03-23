@@ -379,4 +379,24 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setRoot(rs.getString(_parents_name_ + "Root"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Managers", getManagers(), rs.getString(_parents_name_ + "Managers"));
+        setNextDepartmentId(rs.getLong(_parents_name_ + "NextDepartmentId"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Childs", getChilds(), rs.getString(_parents_name_ + "Childs"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(getData(), rs.getString(_parents_name_ + "Data"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "Root", getRoot());
+        st.appendString(_parents_name_ + "Managers", Zeze.Serialize.Helper.encodeJson(getManagers()));
+        st.appendLong(_parents_name_ + "NextDepartmentId", getNextDepartmentId());
+        st.appendString(_parents_name_ + "Childs", Zeze.Serialize.Helper.encodeJson(getChilds()));
+        st.appendString(_parents_name_ + "Data", Zeze.Serialize.Helper.encodeJson(getData()));
+    }
 }

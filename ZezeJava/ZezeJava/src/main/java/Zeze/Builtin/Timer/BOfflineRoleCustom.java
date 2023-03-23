@@ -338,4 +338,24 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setTimerName(rs.getString(_parents_name_ + "TimerName"));
+        setRoleId(rs.getLong(_parents_name_ + "RoleId"));
+        setLoginVersion(rs.getLong(_parents_name_ + "LoginVersion"));
+        setHandleName(rs.getString(_parents_name_ + "HandleName"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(getCustomData(), rs.getString(_parents_name_ + "CustomData"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "TimerName", getTimerName());
+        st.appendLong(_parents_name_ + "RoleId", getRoleId());
+        st.appendLong(_parents_name_ + "LoginVersion", getLoginVersion());
+        st.appendString(_parents_name_ + "HandleName", getHandleName());
+        st.appendString(_parents_name_ + "CustomData", Zeze.Serialize.Helper.encodeJson(getCustomData()));
+    }
 }

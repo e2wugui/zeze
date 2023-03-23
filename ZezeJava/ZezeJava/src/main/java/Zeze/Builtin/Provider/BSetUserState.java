@@ -242,4 +242,20 @@ public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUs
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setLinkSid(rs.getLong(_parents_name_ + "linkSid"));
+        setContext(rs.getString(_parents_name_ + "context"));
+        setContextx(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "contextx")));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendLong(_parents_name_ + "linkSid", getLinkSid());
+        st.appendString(_parents_name_ + "context", getContext());
+        st.appendBinary(_parents_name_ + "contextx", getContextx());
+    }
 }

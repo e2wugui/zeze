@@ -33,6 +33,8 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
             return new Zeze.Builtin.Timer.BCronTimer();
         if (typeId == 1832177636612857692L)
             return new Zeze.Builtin.Timer.BSimpleTimer();
+        if (typeId == Zeze.Transaction.EmptyBean.TYPEID)
+            return Zeze.Transaction.EmptyBean.instance;
         return null;
     }
 
@@ -328,5 +330,23 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
                 case 4: _SerialId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
+    }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setRoleId(rs.getLong(_parents_name_ + "RoleId"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(getTimerObj(), rs.getString(_parents_name_ + "TimerObj"));
+        setLoginVersion(rs.getLong(_parents_name_ + "LoginVersion"));
+        setSerialId(rs.getLong(_parents_name_ + "SerialId"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendLong(_parents_name_ + "RoleId", getRoleId());
+        st.appendString(_parents_name_ + "TimerObj", Zeze.Serialize.Helper.encodeJson(getTimerObj()));
+        st.appendLong(_parents_name_ + "LoginVersion", getLoginVersion());
+        st.appendLong(_parents_name_ + "SerialId", getSerialId());
     }
 }

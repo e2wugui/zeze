@@ -237,4 +237,20 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean implemen
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setClientId(rs.getString(_parents_name_ + "ClientId"));
+        setReliableNotifyConfirmIndex(rs.getLong(_parents_name_ + "ReliableNotifyConfirmIndex"));
+        setSync(rs.getBoolean(_parents_name_ + "Sync"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "ClientId", getClientId());
+        st.appendLong(_parents_name_ + "ReliableNotifyConfirmIndex", getReliableNotifyConfirmIndex());
+        st.appendBoolean(_parents_name_ + "Sync", isSync());
+    }
 }

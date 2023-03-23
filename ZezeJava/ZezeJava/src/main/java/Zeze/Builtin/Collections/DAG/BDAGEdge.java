@@ -208,4 +208,24 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        parents.add("From");
+        getFrom().decodeResultSet(parents, rs);
+        parents.remove(parents.size() - 1);
+        parents.add("To");
+        getTo().decodeResultSet(parents, rs);
+        parents.remove(parents.size() - 1);
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        parents.add("From");
+        getFrom().encodeSQLStatement(parents, st);
+        parents.remove(parents.size() - 1);
+        parents.add("To");
+        getTo().encodeSQLStatement(parents, st);
+        parents.remove(parents.size() - 1);
+    }
 }

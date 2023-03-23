@@ -427,4 +427,28 @@ public final class BVersion extends Zeze.Transaction.Bean implements BVersionRea
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setLoginVersion(rs.getLong(_parents_name_ + "LoginVersion"));
+        Zeze.Serialize.Helper.decodeJsonSet(getReliableNotifyMark(), String.class, rs.getString(_parents_name_ + "ReliableNotifyMark"));
+        setReliableNotifyConfirmIndex(rs.getLong(_parents_name_ + "ReliableNotifyConfirmIndex"));
+        setReliableNotifyIndex(rs.getLong(_parents_name_ + "ReliableNotifyIndex"));
+        setServerId(rs.getInt(_parents_name_ + "ServerId"));
+        setLogoutVersion(rs.getLong(_parents_name_ + "LogoutVersion"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(getUserData(), rs.getString(_parents_name_ + "UserData"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendLong(_parents_name_ + "LoginVersion", getLoginVersion());
+        st.appendString(_parents_name_ + "ReliableNotifyMark", Zeze.Serialize.Helper.encodeJson(getReliableNotifyMark()));
+        st.appendLong(_parents_name_ + "ReliableNotifyConfirmIndex", getReliableNotifyConfirmIndex());
+        st.appendLong(_parents_name_ + "ReliableNotifyIndex", getReliableNotifyIndex());
+        st.appendInt(_parents_name_ + "ServerId", getServerId());
+        st.appendLong(_parents_name_ + "LogoutVersion", getLogoutVersion());
+        st.appendString(_parents_name_ + "UserData", Zeze.Serialize.Helper.encodeJson(getUserData()));
+    }
 }

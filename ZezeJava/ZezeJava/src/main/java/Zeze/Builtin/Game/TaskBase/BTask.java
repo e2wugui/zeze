@@ -605,4 +605,34 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setRoleId(rs.getLong(_parents_name_ + "roleId"));
+        setTaskId(rs.getLong(_parents_name_ + "taskId"));
+        setTaskType(rs.getString(_parents_name_ + "taskType"));
+        setTaskState(rs.getInt(_parents_name_ + "taskState"));
+        setTaskName(rs.getString(_parents_name_ + "taskName"));
+        setTaskDescription(rs.getString(_parents_name_ + "taskDescription"));
+        Zeze.Serialize.Helper.decodeJsonList(getPreTaskIds(), long.class, rs.getString(_parents_name_ + "preTaskIds"));
+        setCurrentPhaseId(rs.getLong(_parents_name_ + "currentPhaseId"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "taskPhases", getTaskPhases(), rs.getString(_parents_name_ + "taskPhases"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(getExtendedData(), rs.getString(_parents_name_ + "extendedData"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendLong(_parents_name_ + "roleId", getRoleId());
+        st.appendLong(_parents_name_ + "taskId", getTaskId());
+        st.appendString(_parents_name_ + "taskType", getTaskType());
+        st.appendInt(_parents_name_ + "taskState", getTaskState());
+        st.appendString(_parents_name_ + "taskName", getTaskName());
+        st.appendString(_parents_name_ + "taskDescription", getTaskDescription());
+        st.appendString(_parents_name_ + "preTaskIds", Zeze.Serialize.Helper.encodeJson(getPreTaskIds()));
+        st.appendLong(_parents_name_ + "currentPhaseId", getCurrentPhaseId());
+        st.appendString(_parents_name_ + "taskPhases", Zeze.Serialize.Helper.encodeJson(getTaskPhases()));
+        st.appendString(_parents_name_ + "extendedData", Zeze.Serialize.Helper.encodeJson(getExtendedData()));
+    }
 }

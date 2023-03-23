@@ -33,6 +33,8 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
             return new Zeze.Builtin.Timer.BCronTimer();
         if (typeId == 1832177636612857692L)
             return new Zeze.Builtin.Timer.BSimpleTimer();
+        if (typeId == Zeze.Transaction.EmptyBean.TYPEID)
+            return Zeze.Transaction.EmptyBean.instance;
         return null;
     }
 
@@ -388,5 +390,25 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
                 case 5: _ConcurrentFireSerialNo = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
+    }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setTimerName(rs.getString(_parents_name_ + "TimerName"));
+        setHandleName(rs.getString(_parents_name_ + "HandleName"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(getTimerObj(), rs.getString(_parents_name_ + "TimerObj"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(getCustomData(), rs.getString(_parents_name_ + "CustomData"));
+        setConcurrentFireSerialNo(rs.getLong(_parents_name_ + "ConcurrentFireSerialNo"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendString(_parents_name_ + "TimerName", getTimerName());
+        st.appendString(_parents_name_ + "HandleName", getHandleName());
+        st.appendString(_parents_name_ + "TimerObj", Zeze.Serialize.Helper.encodeJson(getTimerObj()));
+        st.appendString(_parents_name_ + "CustomData", Zeze.Serialize.Helper.encodeJson(getCustomData()));
+        st.appendLong(_parents_name_ + "ConcurrentFireSerialNo", getConcurrentFireSerialNo());
     }
 }

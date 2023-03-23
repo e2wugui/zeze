@@ -401,4 +401,26 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
             }
         }
     }
+
+    @Override
+    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        setModuleId(rs.getInt(_parents_name_ + "ModuleId"));
+        setServerId(rs.getInt(_parents_name_ + "ServerId"));
+        setSourceProvider(rs.getLong(_parents_name_ + "SourceProvider"));
+        setMethodFullName(rs.getString(_parents_name_ + "MethodFullName"));
+        setSessionId(rs.getLong(_parents_name_ + "SessionId"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Hashs", getHashs(), rs.getString(_parents_name_ + "Hashs"));
+    }
+
+    @Override
+    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+        st.appendInt(_parents_name_ + "ModuleId", getModuleId());
+        st.appendInt(_parents_name_ + "ServerId", getServerId());
+        st.appendLong(_parents_name_ + "SourceProvider", getSourceProvider());
+        st.appendString(_parents_name_ + "MethodFullName", getMethodFullName());
+        st.appendLong(_parents_name_ + "SessionId", getSessionId());
+        st.appendString(_parents_name_ + "Hashs", Zeze.Serialize.Helper.encodeJson(getHashs()));
+    }
 }
