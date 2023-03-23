@@ -52,4 +52,46 @@ public class Helper {
 		var z = rs.getInt(_parents_name_ + "z");
 		return new Vector3Int(x, y, z);
 	}
+
+	public static void encodeVector2(Vector2 value, ArrayList<String> parents, SQLStatement st) {
+		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+		st.appendFloat(_parents_name_ + "x", value.x);
+		st.appendFloat(_parents_name_ + "y", value.y);
+	}
+
+	public static void encodeVector3(Vector3 value, ArrayList<String> parents, SQLStatement st) {
+		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+		st.appendFloat(_parents_name_ + "x", value.x);
+		st.appendFloat(_parents_name_ + "y", value.y);
+		st.appendFloat(_parents_name_ + "z", value.z);
+	}
+
+	public static void encodeVector4(Vector4 value, ArrayList<String> parents, SQLStatement st) {
+		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+		st.appendFloat(_parents_name_ + "x", value.x);
+		st.appendFloat(_parents_name_ + "y", value.y);
+		st.appendFloat(_parents_name_ + "z", value.z);
+		st.appendFloat(_parents_name_ + "w", value.w);
+	}
+
+	public static void encodeQuaternion(Quaternion value, ArrayList<String> parents, SQLStatement st) {
+		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+		st.appendFloat(_parents_name_ + "x", value.x);
+		st.appendFloat(_parents_name_ + "y", value.y);
+		st.appendFloat(_parents_name_ + "z", value.z);
+		st.appendFloat(_parents_name_ + "w", value.w);
+	}
+
+	public static void encodeVector2Int(Vector2Int value, ArrayList<String> parents, SQLStatement st) {
+		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+		st.appendInt(_parents_name_ + "x", value.x);
+		st.appendInt(_parents_name_ + "y", value.y);
+	}
+
+	public static void encodeVector3Int(Vector3Int value, ArrayList<String> parents, SQLStatement st) {
+		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+		st.appendInt(_parents_name_ + "x", value.x);
+		st.appendInt(_parents_name_ + "y", value.y);
+		st.appendInt(_parents_name_ + "z", value.z);
+	}
 }

@@ -1,5 +1,8 @@
 package Zeze.Serialize;
 
+import java.sql.SQLException;
+import java.util.ArrayList;
+
 public interface Serializable {
 	void encode(ByteBuffer bb);
 
@@ -10,5 +13,13 @@ public interface Serializable {
 	}
 
 	default void preAllocSize(int size) {
+	}
+
+	default void decodeResultSet(ArrayList<String> parents, java.sql.ResultSet rs) throws SQLException {
+		throw new UnsupportedOperationException();
+	}
+
+	default void encodeSQLStatement(ArrayList<String> parents, SQLStatement st) {
+		throw new UnsupportedOperationException();
 	}
 }

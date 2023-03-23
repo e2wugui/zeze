@@ -212,6 +212,7 @@ namespace Zeze.Gen.java
             NegativeCheck.Make(bean, sw, "    ");
             FollowerApply.Make(bean, sw, "    ");
             DecodeResultSet.Make(bean, sw, "    ");
+            EncodeSQLStatement.Make(bean, sw, "    ");
         }
     }
 }

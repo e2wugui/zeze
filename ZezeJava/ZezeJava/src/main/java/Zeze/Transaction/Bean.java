@@ -230,8 +230,4 @@ public abstract class Bean implements Serializable {
 			sb.append(name).append("_");
 		return sb.toString();
 	}
-
-	public void decodeResultSet(ArrayList<String> parents, java.sql.ResultSet rs) throws SQLException {
-		throw new UnsupportedOperationException();
-	}
 }

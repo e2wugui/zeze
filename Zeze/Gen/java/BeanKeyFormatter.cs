@@ -65,6 +65,7 @@ namespace Zeze.Gen.java
             Compare.Make(beanKey, sw, "    ");
             NegativeCheck.Make(beanKey, sw, "    ");
             DecodeResultSet.Make(beanKey, sw, "    ");
+            EncodeSQLStatement.Make(beanKey, sw, "    ");
             sw.WriteLine("}");
         }
     }
