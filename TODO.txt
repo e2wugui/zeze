@@ -37,8 +37,7 @@ RelationalTableMapping
 	   或者使用原来的snapshotValue，改成Object类型，具体保存什么数据，encode0根据当前表是否映射关系表进行编码，并且最终由Database.Table解释执行。
 BUG Dbh2 跑完测试没有关闭Raft服务，后续的单元测试还在继续尝试链接（不断输出链接refused错误）。是Connector没有停止？
 	【Agent的Resend Timer没有停止】
-
-
+Timer redirectCancel 改成同步等待远程执行完成。有点风险。需要考虑一下。
 ------------------------------------------------------------------------------------------------------------------------------
 2023/3/31 v1.2.1 cxx net & bean; Online.send use selectDirty; TaskOneByOne.Barrier; RelationalTableMapping; Timer Bug;
 ------------------------------------------------------------------------------------------------------------------------------

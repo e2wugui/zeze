@@ -88,17 +88,17 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeList type)
         {
-            sw.WriteLine($"{prefix}// todo encodeJsonList ");
+            sw.WriteLine($"{prefix}st.appendString(_parents_name_ + \"{var.Name}\", Zeze.Serialize.Helper.encodeJsonList({var.Getter});");
         }
 
         public void Visit(TypeSet type)
         {
-            sw.WriteLine($"{prefix}// todo encodeJsonSet ");
+            sw.WriteLine($"{prefix}st.appendString(_parents_name_ + \"{var.Name}\", Zeze.Serialize.Helper.encodeJsonSet({var.Getter});");
         }
 
         public void Visit(TypeMap type)
         {
-            sw.WriteLine($"{prefix}// todo encodeJsonMap ");
+            sw.WriteLine($"{prefix}st.appendString(_parents_name_ + \"{var.Name}\", Zeze.Serialize.Helper.encodeJsonMap({var.Getter});");
         }
 
         public void Visit(Bean type)
@@ -117,7 +117,7 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeDynamic type)
         {
-            sw.WriteLine($"{prefix}// todo encodeJsonDynamic ");
+            sw.WriteLine($"{prefix}st.appendString(_parents_name_ + \"{var.Name}\", Zeze.Serialize.Helper.encodeJsonDynamic({var.Getter});");
         }
 
         public void Visit(TypeQuaternion type)
