@@ -34,6 +34,10 @@ public class EmptyBean extends Bean {
 	}
 
 	@Override
+	public void assign(Zeze.Transaction.Data data) {
+	}
+
+	@Override
 	public Data toData() {
 		return Data.instance;
 	}
@@ -76,7 +80,6 @@ public class EmptyBean extends Bean {
 
 		@Override
 		public void assign(Bean b) {
-
 		}
 
 		@Override
