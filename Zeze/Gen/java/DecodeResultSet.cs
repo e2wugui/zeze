@@ -137,42 +137,42 @@ namespace Zeze.Gen.java
         public void Visit(TypeQuaternion type)
         {
             sw.WriteLine($"{prefix}parents.add(\"{var.Name}\");");
-            sw.WriteLine($"{prefix}{AssignText($"Zeze.Serialize.SQLResultSet.decodeQuaternion(parents, {bb})")};");
+            sw.WriteLine($"{prefix}{AssignText($"Zeze.Serialize.Helper.decodeQuaternion(parents, {bb})")};");
             sw.WriteLine($"{prefix}parents.remove(parents.size() - 1);");
         }
 
         public void Visit(TypeVector2 type)
         {
             sw.WriteLine($"{prefix}parents.add(\"{var.Name}\");");
-            sw.WriteLine($"{prefix}{AssignText($"Zeze.Serialize.SQLResultSet.decodeVector2(parents, {bb})")};");
+            sw.WriteLine($"{prefix}{AssignText($"Zeze.Serialize.Helper.decodeVector2(parents, {bb})")};");
             sw.WriteLine($"{prefix}parents.remove(parents.size() - 1);");
         }
 
         public void Visit(TypeVector2Int type)
         {
             sw.WriteLine($"{prefix}parents.add(\"{var.Name}\");");
-            sw.WriteLine($"{prefix}{AssignText($"Zeze.Serialize.SQLResultSet.decodeVector2Int(parents, {bb})")};");
+            sw.WriteLine($"{prefix}{AssignText($"Zeze.Serialize.Helper.decodeVector2Int(parents, {bb})")};");
             sw.WriteLine($"{prefix}parents.remove(parents.size() - 1);");
         }
 
         public void Visit(TypeVector3 type)
         {
             sw.WriteLine($"{prefix}parents.add(\"{var.Name}\");");
-            sw.WriteLine($"{prefix}{AssignText($"Zeze.Serialize.SQLResultSet.decodeVector3(parents, {bb})")};");
+            sw.WriteLine($"{prefix}{AssignText($"Zeze.Serialize.Helper.decodeVector3(parents, {bb})")};");
             sw.WriteLine($"{prefix}parents.remove(parents.size() - 1);");
         }
 
         public void Visit(TypeVector3Int type)
         {
             sw.WriteLine($"{prefix}parents.add(\"{var.Name}\");");
-            sw.WriteLine($"{prefix}{AssignText($"Zeze.Serialize.SQLResultSet.decodeVector3Int(parents, {bb})")};");
+            sw.WriteLine($"{prefix}{AssignText($"Zeze.Serialize.Helper.decodeVector3Int(parents, {bb})")};");
             sw.WriteLine($"{prefix}parents.remove(parents.size() - 1);");
         }
 
         public void Visit(TypeVector4 type)
         {
             sw.WriteLine($"{prefix}parents.add(\"{var.Name}\");");
-            sw.WriteLine($"{prefix}{AssignText($"Zeze.Serialize.SQLResultSet.decodeVector4(parents, {bb})")};");
+            sw.WriteLine($"{prefix}{AssignText($"Zeze.Serialize.Helper.decodeVector4(parents, {bb})")};");
             sw.WriteLine($"{prefix}parents.remove(parents.size() - 1);");
         }
 

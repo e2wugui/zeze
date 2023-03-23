@@ -4,7 +4,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
-public class SQLResultSet {
+public class Helper {
 	public static Vector4 decodeVector4(ArrayList<String> parents, ResultSet rs) throws SQLException {
 		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
 		var x = rs.getFloat(_parents_name_ + "x");
