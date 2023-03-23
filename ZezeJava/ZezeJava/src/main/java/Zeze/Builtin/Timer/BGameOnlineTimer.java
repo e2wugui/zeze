@@ -37,6 +37,7 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
     }
 
     private long _LoginVersion;
+    private long _SerialId;
 
     @Override
     public long getRoleId() {
@@ -113,22 +114,44 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
         txn.putLog(new Log__LoginVersion(this, 3, value));
     }
 
+    @Override
+    public long getSerialId() {
+        if (!isManaged())
+            return _SerialId;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _SerialId;
+        var log = (Log__SerialId)txn.getLog(objectId() + 4);
+        return log != null ? log.value : _SerialId;
+    }
+
+    public void setSerialId(long value) {
+        if (!isManaged()) {
+            _SerialId = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__SerialId(this, 4, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BGameOnlineTimer() {
         _TimerObj = newDynamicBean_TimerObj();
     }
 
     @SuppressWarnings("deprecation")
-    public BGameOnlineTimer(long _RoleId_, long _LoginVersion_) {
+    public BGameOnlineTimer(long _RoleId_, long _LoginVersion_, long _SerialId_) {
         _RoleId = _RoleId_;
         _TimerObj = newDynamicBean_TimerObj();
         _LoginVersion = _LoginVersion_;
+        _SerialId = _SerialId_;
     }
 
     public void assign(BGameOnlineTimer other) {
         setRoleId(other.getRoleId());
         _TimerObj.assign(other.getTimerObj());
         setLoginVersion(other.getLoginVersion());
+        setSerialId(other.getSerialId());
     }
 
     public BGameOnlineTimer copyIfManaged() {
@@ -167,6 +190,13 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
         public void commit() { ((BGameOnlineTimer)getBelong())._LoginVersion = value; }
     }
 
+    private static final class Log__SerialId extends Zeze.Transaction.Logs.LogLong {
+        public Log__SerialId(BGameOnlineTimer bean, int varId, long value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BGameOnlineTimer)getBelong())._SerialId = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -182,7 +212,8 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
         sb.append(Zeze.Util.Str.indent(level)).append("TimerObj=").append(System.lineSeparator());
         _TimerObj.getBean().buildString(sb, level + 4);
         sb.append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("LoginVersion=").append(getLoginVersion()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("LoginVersion=").append(getLoginVersion()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("SerialId=").append(getSerialId()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -223,6 +254,13 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            long _x_ = getSerialId();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -240,6 +278,10 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
         }
         if (_i_ == 3) {
             setLoginVersion(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            setSerialId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -266,6 +308,8 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
             return true;
         if (getLoginVersion() < 0)
             return true;
+        if (getSerialId() < 0)
+            return true;
         return false;
     }
 
@@ -281,6 +325,7 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
                 case 1: _RoleId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
                 case 2: _TimerObj.followerApply(vlog); break;
                 case 3: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 4: _SerialId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }

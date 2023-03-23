@@ -41,6 +41,8 @@ public class Timer extends AbstractTimer {
 	public final Application zeze;
 	private AutoKey nodeIdAutoKey;
 	AutoKey timerIdAutoKey;
+	AutoKey timerSerialId;
+
 	// 在这台服务器进程内调度的所有Timer。key是timerId，value是ThreadPool.schedule的返回值。
 	final ConcurrentHashMap<String, Future<?>> timersFuture = new ConcurrentHashMap<>();
 
@@ -71,6 +73,7 @@ public class Timer extends AbstractTimer {
 	public void loadCustomClassAnd() {
 		nodeIdAutoKey = zeze.getAutoKey("Zeze.Component.Timer.NodeId");
 		timerIdAutoKey = zeze.getAutoKey("Zeze.Component.Timer.TimerId");
+		timerSerialId = zeze.getAutoKey("Zeze.Component.Timer.SerialId");
 		var r = zeze.newProcedure(this::loadCustomClass, "loadCustomClass").call();
 		if (r != 0)
 			throw new IllegalStateException("loadCustomClassAnd Fail: " + r);
@@ -230,6 +233,7 @@ public class Timer extends AbstractTimer {
 				var index = new BIndex();
 				index.setServerId(serverId);
 				index.setNodeId(nodeId);
+				index.setSerialId(timerSerialId.nextId());
 				_tIndexs.tryAdd(timerId, index);
 
 				var timer = new BTimer();
@@ -405,6 +409,7 @@ public class Timer extends AbstractTimer {
 				var index = new BIndex();
 				index.setServerId(serverId);
 				index.setNodeId(nodeId);
+				index.setSerialId(timerSerialId.nextId());
 				_tIndexs.insert(timerId, index);
 
 				var timer = new BTimer();
@@ -781,13 +786,15 @@ public class Timer extends AbstractTimer {
 				// 当调度发生了错误或者由于异步时序没有原子保证，导致同时（或某个瞬间）在多个Server进程调度时，
 				// 这个系列号保证触发用户回调只会发生一次。这个并发问题不取消定时器，继续尝试调度（去争抢执行权）。
 				// 定时器的调度生命期由其他地方保证最终一致。如果保证发生了错误，将一致并发争抢执行权。
+				var serialSaved = index.getSerialId();
 				var ret = Task.call(zeze.newProcedure(() -> {
 					handle.onTimer(context);
 					return 0;
 				}, "fireSimpleUser"));
 
-				if (_tIndexs.get(timerId) == null)
-					return 0; // canceled in onTimer.
+				var indexNew = _tIndexs.get(timerId);
+				if (indexNew == null || indexNew.getSerialId() != serialSaved)
+					return 0; // canceled or new timer.
 
 				if (ret == Procedure.Exception) {
 					// 用户处理不允许异常，其他错误记录忽略，日志已经记录。
@@ -905,13 +912,15 @@ public class Timer extends AbstractTimer {
 				// 当调度发生了错误或者由于异步时序没有原子保证，导致同时（或某个瞬间）在多个Server进程调度时，
 				// 这个系列号保证触发用户回调只会发生一次。这个并发问题不取消定时器，继续尝试调度（去争抢执行权）。
 				// 定时器的调度生命期由其他地方保证最终一致。如果保证发生了错误，将一致并发争抢执行权。
+				var serialSaved = index.getSerialId();
 				var ret = Task.call(zeze.newProcedure(() -> {
 					handle.onTimer(context);
 					return 0;
 				}, "fireCronUser"));
 
-				if (_tIndexs.get(timerId) == null)
-					return 0; // canceled in onTimer.
+				var indexNew = _tIndexs.get(timerId);
+				if (indexNew == null || indexNew.getSerialId() != serialSaved)
+					return 0; // canceled or new timer.
 
 				if (ret == Procedure.Exception) {
 					// 用户处理不允许异常，其他错误记录忽略，日志已经记录。

@@ -14,4 +14,5 @@ public interface BArchOnlineTimerReadOnly {
     Zeze.Builtin.Timer.BCronTimerReadOnly getTimerObj_Zeze_Builtin_Timer_BCronTimerReadOnly();
     Zeze.Builtin.Timer.BSimpleTimerReadOnly getTimerObj_Zeze_Builtin_Timer_BSimpleTimerReadOnly();
     long getLoginVersion();
+    long getSerialId();
 }

@@ -38,6 +38,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
     }
 
     private long _LoginVersion;
+    private long _SerialId;
 
     @Override
     public String getAccount() {
@@ -138,6 +139,26 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
         txn.putLog(new Log__LoginVersion(this, 4, value));
     }
 
+    @Override
+    public long getSerialId() {
+        if (!isManaged())
+            return _SerialId;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _SerialId;
+        var log = (Log__SerialId)txn.getLog(objectId() + 5);
+        return log != null ? log.value : _SerialId;
+    }
+
+    public void setSerialId(long value) {
+        if (!isManaged()) {
+            _SerialId = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__SerialId(this, 5, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BArchOnlineTimer() {
         _Account = "";
@@ -146,7 +167,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
     }
 
     @SuppressWarnings("deprecation")
-    public BArchOnlineTimer(String _Account_, String _ClientId_, long _LoginVersion_) {
+    public BArchOnlineTimer(String _Account_, String _ClientId_, long _LoginVersion_, long _SerialId_) {
         if (_Account_ == null)
             throw new IllegalArgumentException();
         _Account = _Account_;
@@ -155,6 +176,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
         _ClientId = _ClientId_;
         _TimerObj = newDynamicBean_TimerObj();
         _LoginVersion = _LoginVersion_;
+        _SerialId = _SerialId_;
     }
 
     public void assign(BArchOnlineTimer other) {
@@ -162,6 +184,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
         setClientId(other.getClientId());
         _TimerObj.assign(other.getTimerObj());
         setLoginVersion(other.getLoginVersion());
+        setSerialId(other.getSerialId());
     }
 
     public BArchOnlineTimer copyIfManaged() {
@@ -207,6 +230,13 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
         public void commit() { ((BArchOnlineTimer)getBelong())._LoginVersion = value; }
     }
 
+    private static final class Log__SerialId extends Zeze.Transaction.Logs.LogLong {
+        public Log__SerialId(BArchOnlineTimer bean, int varId, long value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BArchOnlineTimer)getBelong())._SerialId = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -223,7 +253,8 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
         sb.append(Zeze.Util.Str.indent(level)).append("TimerObj=").append(System.lineSeparator());
         _TimerObj.getBean().buildString(sb, level + 4);
         sb.append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("LoginVersion=").append(getLoginVersion()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("LoginVersion=").append(getLoginVersion()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("SerialId=").append(getSerialId()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -271,6 +302,13 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            long _x_ = getSerialId();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -292,6 +330,10 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
         }
         if (_i_ == 4) {
             setLoginVersion(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 5) {
+            setSerialId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -316,6 +358,8 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
             return true;
         if (getLoginVersion() < 0)
             return true;
+        if (getSerialId() < 0)
+            return true;
         return false;
     }
 
@@ -332,6 +376,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
                 case 2: _ClientId = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 3: _TimerObj.followerApply(vlog); break;
                 case 4: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 5: _SerialId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }

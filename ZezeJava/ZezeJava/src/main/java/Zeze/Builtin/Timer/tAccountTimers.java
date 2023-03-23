@@ -31,6 +31,7 @@ public final class tAccountTimers extends TableX<String, Zeze.Builtin.Timer.BArc
     public static final int VAR_ClientId = 2;
     public static final int VAR_TimerObj = 3;
     public static final int VAR_LoginVersion = 4;
+    public static final int VAR_SerialId = 5;
 
     @Override
     public String decodeKey(ByteBuffer _os_) {

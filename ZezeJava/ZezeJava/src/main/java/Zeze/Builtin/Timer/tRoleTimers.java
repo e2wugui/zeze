@@ -30,6 +30,7 @@ public final class tRoleTimers extends TableX<String, Zeze.Builtin.Timer.BGameOn
     public static final int VAR_RoleId = 1;
     public static final int VAR_TimerObj = 2;
     public static final int VAR_LoginVersion = 3;
+    public static final int VAR_SerialId = 4;
 
     @Override
     public String decodeKey(ByteBuffer _os_) {

@@ -80,7 +80,7 @@ public class TimerRole {
 			throw new IllegalStateException("not login. roleId=" + roleId);
 
 		var timer = online.providerApp.zeze.getTimer();
-		var onlineTimer = new BGameOnlineTimer(roleId, loginVersion);
+		var onlineTimer = new BGameOnlineTimer(roleId, loginVersion, timer.timerSerialId.nextId());
 		timer.tRoleTimers().put(timerId, onlineTimer);
 		onlineTimer.getTimerObj().setBean(simpleTimer);
 
@@ -109,7 +109,7 @@ public class TimerRole {
 			throw new IllegalStateException("not login. roleId=" + roleId);
 
 		var timer = online.providerApp.zeze.getTimer();
-		var onlineTimer = new BGameOnlineTimer(roleId, loginVersion);
+		var onlineTimer = new BGameOnlineTimer(roleId, loginVersion, timer.timerSerialId.nextId());
 		onlineTimer.getTimerObj().setBean(cronTimer);
 		timer.tRoleTimers().insert(timerId, onlineTimer);
 
@@ -295,13 +295,15 @@ public class TimerRole {
 					cronTimer.getHappenTime(), cronTimer.getNextExpectedTime(),
 					cronTimer.getExpectedTime());
 			context.roleId = bTimer.getRoleId();
+			var serialSaved = bTimer.getSerialId();
 			var retNest = Task.call(online.providerApp.zeze.newProcedure(() -> {
 				handle.onTimer(context);
 				return Procedure.Success;
 			}, "fireOnlineLocalHandle"));
 
-			if (timer.tRoleTimers().get(timerId) == null)
-				return 0; // canceled in onTimer
+			var bTimerNew = timer.tRoleTimers().get(timerId);
+			if (bTimerNew == null || bTimerNew.getSerialId() != serialSaved)
+				return 0; // canceled or new timer
 
 			if (retNest == Procedure.Exception) {
 				cancel(timerId); // 异常错误不忽略。
@@ -358,6 +360,7 @@ public class TimerRole {
 			}
 
 			var simpleTimer = bTimer.getTimerObj_Zeze_Builtin_Timer_BSimpleTimer();
+			var serialSaved = bTimer.getSerialId();
 			var retNest = Task.call(online.providerApp.zeze.newProcedure(() -> {
 				var customData = online.<BOnlineTimers>getLocalBean(bTimer.getRoleId(), eOnlineTimers)
 						.getTimerIds().get(timerId).getCustomData().getBean();
@@ -371,8 +374,9 @@ public class TimerRole {
 				return Procedure.Success;
 			}, "fireOnlineLocalHandle"));
 
-			if (timer.tRoleTimers().get(timerId) == null)
-				return 0; // canceled in onTimer
+			var bTimerNew = timer.tRoleTimers().get(timerId);
+			if (bTimerNew == null || bTimerNew.getSerialId() != serialSaved)
+				return 0; // canceled or new timer
 
 			if (retNest == Procedure.Exception) {
 				cancel(timerId); // 异常错误不忽略。

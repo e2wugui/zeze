@@ -80,7 +80,7 @@ public class TimerAccount {
 			throw new IllegalStateException("not login. account=" + account + " clientId=" + clientId);
 
 		var timer = online.providerApp.zeze.getTimer();
-		var onlineTimer = new BArchOnlineTimer(account, clientId, loginVersion);
+		var onlineTimer = new BArchOnlineTimer(account, clientId, loginVersion, timer.timerSerialId.nextId());
 		timer.tAccountTimers().insert(timerId, onlineTimer);
 		onlineTimer.getTimerObj().setBean(simpleTimer);
 
@@ -109,7 +109,7 @@ public class TimerAccount {
 			throw new IllegalStateException("not login. account=" + account + " clientId=" + clientId);
 
 		var timer = online.providerApp.zeze.getTimer();
-		var onlineTimer = new BArchOnlineTimer(account, clientId, loginVersion);
+		var onlineTimer = new BArchOnlineTimer(account, clientId, loginVersion, timer.timerSerialId.nextId());
 		timer.tAccountTimers().insert(timerId, onlineTimer);
 		onlineTimer.getTimerObj().setBean(cronTimer);
 
@@ -302,13 +302,15 @@ public class TimerAccount {
 					cronTimer.getHappenTime(), cronTimer.getNextExpectedTime(), cronTimer.getExpectedTime());
 			context.account = bTimer.getAccount();
 			context.clientId = bTimer.getClientId();
+			var serialSaved = bTimer.getSerialId();
 			var retNest = Task.call(online.providerApp.zeze.newProcedure(() -> {
 				handle.onTimer(context);
 				return Procedure.Success;
 			}, "fireOnlineLocalHandle"));
 
-			if (timer.tAccountTimers().get(timerId) == null)
-				return 0; // canceled in onTimer
+			var bTimerNew = timer.tAccountTimers().get(timerId);
+			if (bTimerNew == null || bTimerNew.getSerialId() != serialSaved)
+				return 0; // canceled or new timer
 
 			if (retNest == Procedure.Exception) {
 				cancel(timerId); // 异常错误不忽略。
@@ -364,6 +366,7 @@ public class TimerAccount {
 			}
 
 			var simpleTimer = bTimer.getTimerObj_Zeze_Builtin_Timer_BSimpleTimer();
+			var serialSaved = bTimer.getSerialId();
 			var retNest = Task.call(online.providerApp.zeze.newProcedure(() -> {
 				var customData = online.<BOnlineTimers>getLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers)
 						.getTimerIds().get(timerId).getCustomData().getBean();
@@ -378,8 +381,9 @@ public class TimerAccount {
 				return Procedure.Success;
 			}, "fireOnlineLocalHandle"));
 
-			if (timer.tAccountTimers().get(timerId) == null)
-				return 0; // canceled in onTimer
+			var bTimerNew = timer.tAccountTimers().get(timerId);
+			if (bTimerNew == null || bTimerNew.getSerialId() != serialSaved)
+				return 0; // canceled or new timer
 
 			if (retNest == Procedure.Exception) {
 				cancel(timerId); // 异常错误不忽略。

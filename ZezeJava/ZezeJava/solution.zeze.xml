@@ -1074,6 +1074,7 @@
 			<bean name="BIndex">
 				<variable id="1" name="ServerId" type="int"/>
 				<variable id="2" name="NodeId" type="long"/>
+				<variable id="3" name="SerialId" type="long"/> timer系列号，用来区分是否新注册的。
 			</bean>
 
 			<table name="tIndexs" key="string" value="BIndex" />
@@ -1093,6 +1094,7 @@
 					<value bean="BCronTimer"/>
 				</variable>
 				<variable id="4" name="LoginVersion" type="long"/>
+				<variable id="5" name="SerialId" type="long"/>
 			</bean>
 
 			<bean name="BGameOnlineTimer"> 保存在内存Map中
@@ -1102,6 +1104,7 @@
 					<value bean="BCronTimer"/>
 				</variable>
 				<variable id="3" name="LoginVersion" type="long"/>
+				<variable id="4" name="SerialId" type="long"/>
 			</bean>
 
 			<table name="tAccountTimers" key="string" value="BArchOnlineTimer" memory="true"/>
