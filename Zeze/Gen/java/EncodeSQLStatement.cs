@@ -23,7 +23,7 @@ namespace Zeze.Gen.java
                 v.VariableType.Accept(new EncodeSQLStatement(v, null, v.Id, "st", sw, prefix + "    "));
             }
             sw.WriteLine(prefix + "}");
-            sw.WriteLine();
+            // sw.WriteLine();
         }
 
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
@@ -38,7 +38,7 @@ namespace Zeze.Gen.java
                 v.VariableType.Accept(new EncodeSQLStatement(v, null, v.Id, "st", sw, prefix + "    "));
             }
             sw.WriteLine(prefix + "}");
-            sw.WriteLine();
+            // sw.WriteLine();
         }
 
         public void Visit(TypeBool type)
@@ -88,17 +88,17 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeList type)
         {
-            sw.WriteLine($"{prefix}st.appendString(_parents_name_ + \"{var.Name}\", Zeze.Serialize.Helper.encodeJsonList({var.Getter});");
+            sw.WriteLine($"{prefix}st.appendString(_parents_name_ + \"{var.Name}\", Zeze.Serialize.Helper.encodeJson({var.Getter}));");
         }
 
         public void Visit(TypeSet type)
         {
-            sw.WriteLine($"{prefix}st.appendString(_parents_name_ + \"{var.Name}\", Zeze.Serialize.Helper.encodeJsonSet({var.Getter});");
+            sw.WriteLine($"{prefix}st.appendString(_parents_name_ + \"{var.Name}\", Zeze.Serialize.Helper.encodeJson({var.Getter}));");
         }
 
         public void Visit(TypeMap type)
         {
-            sw.WriteLine($"{prefix}st.appendString(_parents_name_ + \"{var.Name}\", Zeze.Serialize.Helper.encodeJsonMap({var.Getter});");
+            sw.WriteLine($"{prefix}st.appendString(_parents_name_ + \"{var.Name}\", Zeze.Serialize.Helper.encodeJson({var.Getter}));");
         }
 
         public void Visit(Bean type)
@@ -117,7 +117,7 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeDynamic type)
         {
-            sw.WriteLine($"{prefix}st.appendString(_parents_name_ + \"{var.Name}\", Zeze.Serialize.Helper.encodeJsonDynamic({var.Getter});");
+            sw.WriteLine($"{prefix}st.appendString(_parents_name_ + \"{var.Name}\", Zeze.Serialize.Helper.encodeJson({var.Getter}));");
         }
 
         public void Visit(TypeQuaternion type)

@@ -103,17 +103,17 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeList type)
         {
-            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.decodeJsonList({var.Getter}, {BoxingName.GetName(type.ValueType)}.class, {bb}.ReadString(_parents_name_ + \"{var.Name}\")");
+            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.decodeJsonList({var.Getter}, {BoxingName.GetName(type.ValueType)}.class, {bb}.getString(_parents_name_ + \"{var.Name}\"));");
         }
 
         public void Visit(TypeSet type)
         {
-            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.decodeJsonSet({var.Getter}, {BoxingName.GetName(type.ValueType)}.class, {bb}.ReadString(_parents_name_ + \"{var.Name}\")");
+            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.decodeJsonSet({var.Getter}, {BoxingName.GetName(type.ValueType)}.class, {bb}.getString(_parents_name_ + \"{var.Name}\"));");
         }
 
         public void Visit(TypeMap type)
         {
-            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.decodeJsonMap(this, \"{var.Name}\", {var.Getter}, {bb}.ReadString(_parents_name_ + \"{var.Name}\")");
+            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.decodeJsonMap(this, \"{var.Name}\", {var.Getter}, {bb}.getString(_parents_name_ + \"{var.Name}\"));");
         }
 
         public void Visit(Bean type)
@@ -132,7 +132,7 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeDynamic type)
         {
-            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.decodeJsonDynamic({var.Getter}, {bb}.ReadString(_parents_name_ + \"{var.Name}\")");
+            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.decodeJsonDynamic({var.Getter}, {bb}.getString(_parents_name_ + \"{var.Name}\"));");
         }
 
         public void Visit(TypeQuaternion type)

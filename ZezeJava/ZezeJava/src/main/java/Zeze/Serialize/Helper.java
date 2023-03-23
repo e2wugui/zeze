@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DynamicBean;
@@ -142,6 +143,17 @@ public class Helper {
 		if (jsonStr != null) {
 			try {
 				JsonReader.local().buf(jsonStr).parseArray(json, list, valueClass);
+			} catch (ReflectiveOperationException e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
+
+	public static <T> void decodeJsonSet(Set<T> set, Class<T> valueClass, String jsonStr) throws SQLException {
+		set.clear();
+		if (jsonStr != null) {
+			try {
+				JsonReader.local().buf(jsonStr).parseArray(json, set, valueClass);
 			} catch (ReflectiveOperationException e) {
 				throw new RuntimeException(e);
 			}
