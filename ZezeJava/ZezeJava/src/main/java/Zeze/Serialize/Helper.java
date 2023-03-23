@@ -3,6 +3,14 @@ package Zeze.Serialize;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import Zeze.Net.Binary;
+import Zeze.Transaction.Bean;
+import Zeze.Transaction.DynamicBean;
+import Zeze.Util.Json;
+import Zeze.Util.JsonReader;
+import Zeze.Util.JsonWriter;
 
 public class Helper {
 	public static Vector4 decodeVector4(ArrayList<String> parents, ResultSet rs) throws SQLException {
@@ -93,5 +101,90 @@ public class Helper {
 		st.appendInt(_parents_name_ + "x", value.x);
 		st.appendInt(_parents_name_ + "y", value.y);
 		st.appendInt(_parents_name_ + "z", value.z);
+	}
+
+	private static final Json json = Json.instance.clone();
+	private static final Json.ClassMeta<DynamicBean> dynamicBeanMeta = json.getClassMeta(DynamicBean.class);
+
+	static {
+		json.getClassMeta(ByteBuffer.class).setWriter((writer, classMeta, obj) -> {
+			if (obj == null)
+				writer.write(json, null);
+			else {
+				writer.ensure(obj.size() * 6 + 2);
+				writer.write(obj.Bytes, obj.ReadIndex, obj.Size(), false);
+			}
+		});
+		json.getClassMeta(Binary.class).setWriter((writer, classMeta, obj) -> {
+			if (obj == null)
+				writer.write(json, null);
+			else {
+				writer.ensure(obj.size() * 6 + 2);
+				writer.write(obj.bytesUnsafe(), obj.getOffset(), obj.size(), false);
+			}
+		});
+	}
+
+	public static void decodeJsonDynamic(DynamicBean bean, ArrayList<String> parents, ResultSet rs)
+			throws SQLException {
+		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+		var s = rs.getString(_parents_name_);
+		if (s == null)
+			bean.reset();
+		else {
+			try {
+				JsonReader.local().buf(s).parse(json, bean, dynamicBeanMeta);
+			} catch (ReflectiveOperationException e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
+
+	public static <T> void decodeJsonList(List<T> list, Class<T> valueClass, ArrayList<String> parents, ResultSet rs)
+			throws SQLException {
+		list.clear();
+		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+		var s = rs.getString(_parents_name_);
+		if (s != null) {
+			try {
+				JsonReader.local().buf(s).parseArray(json, list, valueClass);
+			} catch (ReflectiveOperationException e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	public static void decodeJsonMap(Bean parentBean, String fieldName, Map<?, ?> map, ArrayList<String> parents,
+									 ResultSet rs) throws SQLException {
+		map.clear();
+		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+		var s = rs.getString(_parents_name_);
+		if (s != null) {
+			try {
+				JsonReader.local().buf('{' + fieldName + ':' + s + '}').parse(json, parentBean,
+						(Class<? super Bean>)parentBean.getClass());
+			} catch (ReflectiveOperationException e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
+
+	public static void encodeJsonDynamic(DynamicBean bean, ArrayList<String> parents, SQLStatement st) {
+		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+		st.appendString(_parents_name_, JsonWriter.local().clear().setFlagsAndDepthLimit(0, 16).write(json, bean)
+				.toString());
+	}
+
+	public static void encodeJsonList(List<?> list, ArrayList<String> parents, SQLStatement st) {
+		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+		st.appendString(_parents_name_, JsonWriter.local().clear().setFlagsAndDepthLimit(0, 16).write(json, list)
+				.toString());
+	}
+
+	public static void encodeJsonMap(Map<?, ?> map, ArrayList<String> parents, SQLStatement st) {
+		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
+		st.appendString(_parents_name_, JsonWriter.local().clear().setFlagsAndDepthLimit(0, 16).write(json, map)
+				.toString());
 	}
 }

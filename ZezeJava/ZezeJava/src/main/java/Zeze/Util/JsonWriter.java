@@ -418,7 +418,7 @@ public final class JsonWriter {
 						if (comma)
 							buf[pos++] = ',';
 						writeNewLineTabs();
-						write(o);
+						write(json, o);
 						comma = true;
 					}
 					tabs--;
@@ -428,7 +428,7 @@ public final class JsonWriter {
 					for (Object o : (Collection<?>)obj) {
 						if (comma)
 							buf[pos++] = ',';
-						write(o);
+						write(json, o);
 						comma = true;
 					}
 				}
@@ -445,7 +445,7 @@ public final class JsonWriter {
 						if (comma)
 							buf[pos++] = ',';
 						writeNewLineTabs();
-						write(Array.get(obj, i));
+						write(json, Array.get(obj, i));
 						comma = true;
 					}
 					tabs--;
@@ -455,7 +455,7 @@ public final class JsonWriter {
 					for (int i = 0, n = Array.getLength(obj); i < n; i++) {
 						if (comma)
 							buf[pos++] = ',';
-						write(Array.get(obj, i));
+						write(json, Array.get(obj, i));
 						comma = true;
 					}
 				}
@@ -479,12 +479,12 @@ public final class JsonWriter {
 							ensure(s.length() * 6 + 3); // "xxxxxx":
 							write(s, noQuote && s.indexOf(':') < 0);
 						} else {
-							byte[] keyStr = new JsonWriter().setFlags(FLAG_NO_QUOTE_KEY).write(k).toBytes();
+							byte[] keyStr = new JsonWriter().setFlags(FLAG_NO_QUOTE_KEY).write(json, k).toBytes();
 							ensure(keyStr.length * 6 + 3); // "xxxxxx":
 							write(keyStr, false);
 						}
 						buf[pos++] = ':';
-						write(value);
+						write(json, value);
 						comma = true;
 					}
 					ensure(2);
@@ -506,13 +506,13 @@ public final class JsonWriter {
 							ensure(s.length() * 6 + 4); // "xxxxxx":_
 							write(s, noQuote && s.indexOf(':') < 0);
 						} else {
-							byte[] keyStr = new JsonWriter().setFlags(FLAG_NO_QUOTE_KEY).write(k).toBytes();
+							byte[] keyStr = new JsonWriter().setFlags(FLAG_NO_QUOTE_KEY).write(json, k).toBytes();
 							ensure(keyStr.length * 6 + 4); // "xxxxxx":_
 							write(keyStr, false);
 						}
 						buf[pos++] = ':';
 						buf[pos++] = ' ';
-						write(value);
+						write(json, value);
 					}
 					if (comma) {
 						tabs--;
@@ -615,7 +615,7 @@ public final class JsonWriter {
 					pos = posBegin;
 					continue;
 				default:
-					write(subObj);
+					write(json, subObj);
 					break;
 				}
 				comma = true;

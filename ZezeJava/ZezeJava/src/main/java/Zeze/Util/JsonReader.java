@@ -379,15 +379,15 @@ public final class JsonReader {
 	}
 
 	public <T> @Nullable T parse(@Nullable Class<T> klass) throws ReflectiveOperationException {
-		return klass != null ? parse(null, Json.instance.getClassMeta(klass)) : null;
+		return klass != null ? parse((T)null, Json.instance.getClassMeta(klass)) : null;
 	}
 
 	public <T> @Nullable T parse(@NotNull Json json, @Nullable Class<T> klass) throws ReflectiveOperationException {
-		return klass != null ? parse(null, json.getClassMeta(klass)) : null;
+		return klass != null ? parse(json, null, json.getClassMeta(klass)) : null;
 	}
 
 	public <T> @Nullable T parse(@Nullable ClassMeta<T> classMeta) throws ReflectiveOperationException {
-		return parse(null, classMeta);
+		return parse((T)null, classMeta);
 	}
 
 	public <T> @Nullable T parse(@Nullable T obj) throws ReflectiveOperationException {
@@ -401,12 +401,16 @@ public final class JsonReader {
 
 	public <T> @Nullable T parse(@NotNull Json json, @Nullable T obj, @Nullable Class<? super T> klass)
 			throws ReflectiveOperationException {
-		return parse(obj, klass != null ? json.getClassMeta(klass) : null);
+		return parse(json, obj, klass != null ? json.getClassMeta(klass) : null);
 	}
 
 	public <T> @Nullable T parse(@Nullable T obj, @Nullable ClassMeta<? super T> classMeta)
 			throws ReflectiveOperationException {
 		return parse(Json.instance, obj, classMeta);
+	}
+
+	public <T> @Nullable T parse(@NotNull Json json, @Nullable T obj) throws ReflectiveOperationException {
+		return parse(json, obj, (ClassMeta<T>)null);
 	}
 
 	@SuppressWarnings("unchecked")

@@ -21,7 +21,7 @@ import org.jetbrains.annotations.Nullable;
 import sun.misc.Unsafe;
 
 // Compile with JDK11+; Run with JDK8+ (JDK9+ is recommended); Android is NOT supported
-public final class Json {
+public final class Json implements Cloneable {
 	static final int TYPE_BOOLEAN = 1; // boolean, Boolean
 	static final int TYPE_BYTE = 2; // byte, Byte
 	static final int TYPE_SHORT = 3; // short, Short
@@ -287,7 +287,7 @@ public final class Json {
 								Creator<?> keyCtor = getDefCtor(keyClass);
 								keyReader = (jr, b) -> {
 									String keyStr = JsonReader.parseStringKey(jr, b);
-									return ensureNotNull(new JsonReader().buf(keyStr).parse(keyCtor.create()));
+									return ensureNotNull(new JsonReader().buf(keyStr).parse(json, keyCtor.create()));
 								};
 							}
 						} else {
@@ -377,6 +377,15 @@ public final class Json {
 
 	private final @NotNull ConcurrentHashMap<Class<?>, ClassMeta<?>> classMetas = new ConcurrentHashMap<>();
 	public BiFunction<Class<?>, Field, String> fieldNameFilter;
+
+	@SuppressWarnings("MethodDoesntCallSuperMethod")
+	@Override
+	public Json clone() {
+		var json = new Json();
+		json.classMetas.putAll(classMetas);
+		json.fieldNameFilter = fieldNameFilter;
+		return json;
+	}
 
 	static {
 		try {
@@ -496,7 +505,7 @@ public final class Json {
 		});
 		json.getClassMeta(ByteBuffer.class).setWriter((writer, classMeta, obj) -> {
 			if (obj == null)
-				writer.write(null);
+				writer.write(json, null);
 			else {
 				var s = obj.toString();
 				writer.ensure(s.length() + 2);
@@ -510,7 +519,7 @@ public final class Json {
 				new Binary(reader.parseByteString()));
 		json.getClassMeta(Binary.class).setWriter((writer, classMeta, obj) -> {
 			if (obj == null)
-				writer.write(null);
+				writer.write(json, null);
 			else {
 				var s = obj.toString();
 				writer.ensure(s.length() + 2);
@@ -528,6 +537,7 @@ public final class Json {
 					obj = (DynamicBean)((PMap2<?, ?>)parent).createValue();
 			}
 			if (obj != null) {
+				obj.reset();
 				int p = reader.pos();
 				reader.parse0(obj, classMeta);
 				Bean bean = obj.getCreateBean().apply(obj.getTypeId());
@@ -540,13 +550,13 @@ public final class Json {
 		json.getClassMeta(CollOne.class).setParser((reader, classMeta, obj, parent) -> {
 			if (obj == null)
 				throw new UnsupportedOperationException();
-			reader.parse(obj.getValue());
+			reader.parse(json, obj.getValue());
 			return obj;
 		});
 		json.getClassMeta(CollOne.class).setWriter((writer, classMeta, obj) -> {
 			if (obj == null)
 				throw new UnsupportedOperationException();
-			writer.write(obj.getValue());
+			writer.write(json, obj.getValue());
 		});
 	}
 }
