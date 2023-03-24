@@ -108,6 +108,9 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				var outProtocol = new OutObject<Protocol<?>>();
 				return Task.call(zeze.newProcedure(() -> { // 创建存储过程并且在当前线程中调用。
 					var p3 = factoryHandle.Factory.create();
+					var t = Transaction.getCurrent();
+					//noinspection DataFlowIssue
+					t.getTopProcedure().setActionName(p3.getClass().getName());
 					p3.decode(ByteBuffer.Wrap(p.Argument.getProtocolData()));
 					p3.setSender(p.getSender());
 					p3.setUserState(session);
@@ -119,9 +122,6 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 						AsyncSocket.log("Recv", roleId, p3);
 					}
 					outProtocol.value = p3;
-					var t = Transaction.getCurrent();
-					//noinspection DataFlowIssue
-					t.getTopProcedure().setActionName(p3.getClass().getName());
 					t.runWhileCommit(() -> p.Argument.setProtocolData(Binary.Empty)); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空
 					return factoryHandle.Handle.handleProtocol(p3);
 				}, null, factoryHandle.Level, session), outProtocol, (p4, code) -> {

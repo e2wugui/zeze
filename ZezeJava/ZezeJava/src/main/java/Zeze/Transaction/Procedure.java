@@ -66,13 +66,14 @@ public class Procedure {
 	public Procedure(Application app) {
 		zeze = app;
 		level = null;
+		actionName = getClass().getName();
 	}
 
 	public Procedure(Application app, FuncLong action, String actionName, TransactionLevel level, Object userState) {
 		zeze = app;
 		this.level = level;
 		this.action = action;
-		this.actionName = actionName;
+		setActionName(actionName);
 		if (userState != null)
 			this.userState = userState;
 		else { // 没指定，就从当前存储过程继承。嵌套时发生。
@@ -97,16 +98,16 @@ public class Procedure {
 		return action;
 	}
 
-	public final void setAction(FuncLong value) {
-		action = value;
+	public final void setAction(FuncLong action) {
+		this.action = action;
 	}
 
 	public final String getActionName() {
 		return actionName;
 	}
 
-	public final void setActionName(String value) {
-		actionName = value;
+	public final void setActionName(String actionName) {
+		this.actionName = actionName != null ? actionName : (action != null ? action : this).getClass().getName();
 	}
 
 	public final Object getUserState() {
@@ -195,7 +196,6 @@ public class Procedure {
 
 	@Override
 	public String toString() {
-		// getClass().getName() 仅在用继承的方式实现 Procedure 才有意义。
-		return action != null ? actionName : getClass().getName();
+		return actionName;
 	}
 }
