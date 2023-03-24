@@ -35,6 +35,15 @@ public class Dbh2AgentManager {
 	public Dbh2AgentManager() {
 	}
 
+	public void clear() throws Exception {
+		for (var ma : masterAgent.values())
+			ma.stop();
+		masterAgent.clear();
+		for (var da : agents.values())
+			da.close();
+		agents.clear();
+	}
+
 	public MasterAgent openDatabase(
 			String masterName,
 			String databaseName) {

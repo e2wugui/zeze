@@ -24,9 +24,6 @@ TaskOneByOne 改成 ConcurrentQueue，是否有任务执行使用CompareAndSet�
 BUG Dbh2 跑完测试没有关闭Raft服务，后续的单元测试还在继续尝试链接（不断输出链接refused错误）。是Connector没有停止？
 	【Agent的Resend Timer没有停止】
 Timer redirectCancel 改成同步等待远程执行完成。有点风险。需要考虑一下。
-------------------------------------------------------------------------------------------------------------------------------
-2023/3/31 v1.2.1 cxx net & bean; Online.send use selectDirty; TaskOneByOne.Barrier; RelationalTableMapping; Timer Bug;
-------------------------------------------------------------------------------------------------------------------------------
 RelationalTableMapping
 	1. Bean encodeJson/decodeJson; prepareStatement/decodeResultSet OK!
 	2. Bean columns; Table create table sql;(从Schemas中构建）
@@ -65,6 +62,11 @@ RelationalTableMapping
 	e) Table为单位配置，还是整个Project配置？Table RelationalMapping="true|false|project" Project RelationalMapping=”true|false"
 	f) flush-snapshot的问题。编写新的flush流程？或者定义新的snapshotSqlValue?
 	   或者使用原来的snapshotValue，改成Object类型，具体保存什么数据，encode0根据当前表是否映射关系表进行编码，并且最终由Database.Table解释执行。
+------------------------------------------------------------------------------------------------------------------------------
+2023/3/31 v1.2.1 cxx net & bean; Online.send use selectDirty; TaskOneByOne.Barrier; RelationalTableMapping; Timer Bug;
+------------------------------------------------------------------------------------------------------------------------------
+Raft.Agent ResentTimer cancel when close;
+Add Dbh2AgentManager.clear
 Timer BUG: OnTimer 回调中取消马上注册，需要识别并中断回调后续代码执行。
 decodeResultSet(ArrayList<String> parents, ResultSet rs)
 encodeSQLStatement(ArrayList<String> parents, SQLStatement st)

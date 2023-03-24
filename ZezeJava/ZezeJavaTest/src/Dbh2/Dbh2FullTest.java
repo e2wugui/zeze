@@ -3,6 +3,7 @@ package Dbh2;
 import java.util.ArrayList;
 import Zeze.Config;
 import Zeze.Dbh2.Database;
+import Zeze.Dbh2.Dbh2AgentManager;
 import Zeze.Dbh2.Dbh2Manager;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Task;
@@ -72,6 +73,7 @@ public class Dbh2FullTest {
 			for (var manager : managers)
 				manager.stop();
 			database.close();
+			Dbh2AgentManager.getInstance().clear();
 		}
 	}
 }

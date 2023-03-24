@@ -1,6 +1,7 @@
 package Zeze.Raft;
 
 import java.util.ArrayList;
+import java.util.concurrent.Future;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.ToLongFunction;
@@ -42,6 +43,7 @@ public final class Agent {
 	private long term;
 	public boolean dispatchProtocolToInternalThreadPool;
 	private int pendingLimit = 5000; // -1 no limit
+	private Future<?> resendTask;
 
 	// 加急请求ReSend时优先发送，多个请求不保证顺序。这个应该仅用于Login之类的特殊协议，一般来说只有一个。
 	private final LongConcurrentHashMap<RaftRpc<?, ?>> urgentPending = new LongConcurrentHashMap<>();
@@ -231,6 +233,10 @@ public final class Agent {
 	public void stop() throws Exception {
 		mutex.lock();
 		try {
+			if (resendTask != null) {
+				resendTask.cancel(true);
+				resendTask = null;
+			}
 			if (client == null)
 				return;
 
@@ -285,7 +291,7 @@ public final class Agent {
 				LeaderIs::new, this::processLeaderIs, TransactionLevel.Serializable, DispatchMode.Normal));
 
 		// ugly
-		Task.schedule(1000, 1000, this::resend);
+		resendTask = Task.scheduleUnsafe(1000, 1000, this::resend);
 	}
 
 	private Connector getRandomConnector(Connector except) {
