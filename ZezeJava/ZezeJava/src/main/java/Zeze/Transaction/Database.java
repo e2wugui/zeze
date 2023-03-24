@@ -13,6 +13,9 @@ import Zeze.Util.KV;
 import Zeze.Util.ShutdownHook;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import static Zeze.Services.GlobalCacheManagerConst.StateModify;
+import static Zeze.Services.GlobalCacheManagerConst.StateRemoved;
+import static Zeze.Services.GlobalCacheManagerConst.StateShare;
 
 /**
  * 数据访问的效率主要来自TableCache的命中。根据以往的经验，命中率是很高的。
@@ -150,34 +153,285 @@ public abstract class Database {
 
 		Database getDatabase();
 
-		ByteBuffer find(ByteBuffer key);
+		///////////////////////////////////////////////////////////
+		// TableX类型下沉到这里，准备添加关系表映射。
+		<K extends Comparable<K>, V extends Bean> V find(TableX<K, V> table, Object key);
+		// 这里的key，value具体含义由Table实现解释。
+		// 对于KV表，key,value都是ByteBuffer类型。
+		// 对于关系表，key,value是SQLStatement类型。
+		void replace(Transaction t, Object key, Object value);
+		void remove(Transaction t, Object key);
 
-		void replace(Transaction t, ByteBuffer key, ByteBuffer value);
+		<K extends Comparable<K>, V extends Bean>
+		long walk(TableX<K, V> table, TableWalkHandle<K, V> callback, Runnable afterLock);
+		<K extends Comparable<K>, V extends Bean>
+		long walkDesc(TableX<K, V> table, TableWalkHandle<K, V> callback, Runnable afterLock);
+		<K extends Comparable<K>, V extends Bean>
+		K walk(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback, Runnable afterLock);
+		<K extends Comparable<K>, V extends Bean>
+		K walkKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback, Runnable afterLock);
+		<K extends Comparable<K>, V extends Bean>
+		K walkDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback, Runnable afterLock);
+		<K extends Comparable<K>, V extends Bean>
+		K walkKeyDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback, Runnable afterLock);
 
-		void remove(Transaction t, ByteBuffer key);
+		<K extends Comparable<K>, V extends Bean>
+		long walkDatabase(TableX<K, V> table, TableWalkHandle<K, V> callback);
+		<K extends Comparable<K>, V extends Bean>
+		long walkDatabaseDesc(TableX<K, V> table, TableWalkHandle<K, V> callback);
+
+		<K extends Comparable<K>, V extends Bean>
+		long walkDatabaseKey(TableX<K, V> table, TableWalkKey<K> callback);
+		<K extends Comparable<K>, V extends Bean>
+		long walkDatabaseKeyDesc(TableX<K, V> table, TableWalkKey<K> callback);
+
+		void close();
+	}
+
+	// KV表辅助类，实现所有的下沉的带类型接口。
+	public static abstract class AbstractKVTable implements Table {
+		////////////////////////////////////////////////////////////
+		// KV表操作接口。
+		public abstract ByteBuffer find(ByteBuffer key);
+
+		public abstract void replace(Transaction t, ByteBuffer key, ByteBuffer value);
+
+		public abstract void remove(Transaction t, ByteBuffer key);
 
 		/**
 		 * 每一条记录回调。回调返回true继续遍历，false中断遍历。
 		 *
 		 * @return 返回已经遍历的数量
 		 */
-		long walk(TableWalkHandleRaw callback);
+		public abstract long walk(TableWalkHandleRaw callback);
 
-		long walkKey(TableWalkKeyRaw callback);
+		public abstract long walkKey(TableWalkKeyRaw callback);
 
-		long walkDesc(TableWalkHandleRaw callback);
+		public abstract long walkDesc(TableWalkHandleRaw callback);
 
-		long walkKeyDesc(TableWalkKeyRaw callback);
+		public abstract long walkKeyDesc(TableWalkKeyRaw callback);
 
-		ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback);
+		public abstract ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback);
 
-		ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback);
+		public abstract ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback);
 
-		ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback);
+		public abstract ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback);
 
-		ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback);
+		public abstract ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback);
 
-		void close();
+		@Override
+		public <K extends Comparable<K>, V extends Bean>
+		V find(TableX<K, V> table, Object key) {
+			var bbKey = table.encodeKey(key);
+			var bbValue = find(bbKey);
+			if (null == bbValue)
+				return null;
+			var value = table.newValue();
+			value.decode(bbValue);
+			return value;
+		}
+
+		@Override
+		public void replace(Transaction t, Object key, Object value) {
+			replace(t, (ByteBuffer)key, (ByteBuffer)value);
+		}
+
+		@Override
+		public void remove(Transaction t, Object key) {
+			remove(t, (ByteBuffer)key);
+		}
+
+		private <K extends Comparable<K>, V extends Bean>
+		boolean invokeCallback(TableX<K, V> table, byte[] key, byte[] value, TableWalkHandle<K, V> callback) {
+			K k = table.decodeKey(ByteBuffer.Wrap(key));
+			var lockey = table.getZeze().getLocks().get(new TableKey(table.getId(), k));
+			lockey.enterReadLock();
+			try {
+				var r = table.getCache().get(k);
+				if (r != null && r.getState() != StateRemoved) {
+					if (r.getState() == StateShare || r.getState() == StateModify) {
+						// 拥有正确的状态：
+						@SuppressWarnings("unchecked")
+						var strongRef = (V)r.getSoftValue();
+						if (strongRef == null)
+							return true; // 已经被删除，但是还没有checkpoint的记录看不到。
+						return callback.handle(r.getObjectKey(), strongRef);
+					}
+					// else GlobalCacheManager.StateInvalid
+					// 继续后面的处理：使用数据库中的数据。
+				}
+			} finally {
+				lockey.exitReadLock();
+			}
+			// 缓存中不存在或者正在被删除，使用数据库中的数据。
+			return callback.handle(k, table.decodeValue(ByteBuffer.Wrap(value)));
+		}
+
+		private <K extends Comparable<K>, V extends Bean>
+		boolean invokeCallback(TableX<K, V> table, byte[] key, TableWalkKey<K> callback) {
+			K k = table.decodeKey(ByteBuffer.Wrap(key));
+			var lockey = table.getZeze().getLocks().get(new TableKey(table.getId(), k));
+			lockey.enterReadLock();
+			try {
+				var r = table.getCache().get(k);
+				if (r != null && r.getState() != StateRemoved) {
+					if (r.getState() == StateShare || r.getState() == StateModify) {
+						// 拥有正确的状态：
+						@SuppressWarnings("unchecked")
+						var strongRef = (V)r.getSoftValue();
+						if (strongRef == null)
+							return true; // 已经被删除，但是还没有checkpoint的记录看不到。
+						return callback.handle(r.getObjectKey());
+					}
+					// else GlobalCacheManager.StateInvalid
+					// 继续后面的处理：使用数据库中的数据。
+				}
+			} finally {
+				lockey.exitReadLock();
+			}
+			// 缓存中不存在或者正在被删除，使用数据库中的数据。
+			return callback.handle(k);
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean>
+		long walk(TableX<K, V> table, TableWalkHandle<K, V> callback, Runnable afterLock) {
+			if (Zeze.Transaction.Transaction.getCurrent() != null)
+				throw new IllegalStateException("must be called without transaction");
+
+			return walk((key, value) -> {
+				if (invokeCallback(table, key, value, callback)) {
+					if (afterLock != null)
+						afterLock.run();
+					return true;
+				}
+				return false;
+			});
+
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean>
+		long walkDatabaseKey(TableX<K, V> table, TableWalkKey<K> callback) {
+			return walkKey(key -> callback.handle(table.decodeKey(ByteBuffer.Wrap(key))));
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean>
+		long walkDesc(TableX<K, V> table, TableWalkHandle<K, V> callback, Runnable afterLock) {
+			if (Zeze.Transaction.Transaction.getCurrent() != null)
+				throw new IllegalStateException("must be called without transaction");
+
+			return walkDesc((key, value) -> {
+				if (invokeCallback(table, key, value, callback)) {
+					if (afterLock != null)
+						afterLock.run();
+					return true;
+				}
+				return false;
+			});		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean>
+		long walkDatabaseKeyDesc(TableX<K, V> table, TableWalkKey<K> callback) {
+			return walkKeyDesc(key -> callback.handle(table.decodeKey(ByteBuffer.Wrap(key))));
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean>
+		K walk(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback, Runnable afterLock) {
+			if (Zeze.Transaction.Transaction.getCurrent() != null)
+				throw new IllegalStateException("must be called without transaction");
+
+			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
+			var lastKey = walk(encodedExclusiveStartKey, proposeLimit, (key, value) -> {
+				if (invokeCallback(table, key, value, callback)) {
+					if (afterLock != null)
+						afterLock.run();
+					return true;
+				}
+				return false;
+			});
+
+			return lastKey != null ? table.decodeKey(lastKey) : null;
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean>
+		K walkKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback, Runnable afterLock) {
+			if (Zeze.Transaction.Transaction.getCurrent() != null)
+				throw new IllegalStateException("must be called without transaction");
+
+			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
+			var lastKey = walkKey(encodedExclusiveStartKey, proposeLimit, key -> {
+				if (invokeCallback(table, key, callback)) {
+					if (afterLock != null)
+						afterLock.run();
+					return true;
+				}
+				return false;
+			});
+
+			return lastKey != null ? table.decodeKey(lastKey) : null;
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean>
+		K walkDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback, Runnable afterLock) {
+			if (Zeze.Transaction.Transaction.getCurrent() != null)
+				throw new IllegalStateException("must be called without transaction");
+
+			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
+			var lastKey = walkDesc(encodedExclusiveStartKey, proposeLimit, (key, value) -> {
+				if (invokeCallback(table, key, value, callback)) {
+					if (afterLock != null)
+						afterLock.run();
+					return true;
+				}
+				return false;
+			});
+
+			return lastKey != null ? table.decodeKey(lastKey) : null;
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean>
+		K walkKeyDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback, Runnable afterLock) {
+			if (Zeze.Transaction.Transaction.getCurrent() != null)
+				throw new IllegalStateException("must be called without transaction");
+
+			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
+			var lastKey = walkKeyDesc(encodedExclusiveStartKey, proposeLimit, key -> {
+				if (invokeCallback(table, key, callback)) {
+					if (afterLock != null)
+						afterLock.run();
+					return true;
+				}
+				return false;
+			});
+
+			return lastKey != null ? table.decodeKey(lastKey) : null;
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean>
+		long walkDatabase(TableX<K, V> table, TableWalkHandle<K, V> callback) {
+			return walk((key, value) -> {
+				K k = table.decodeKey(ByteBuffer.Wrap(key));
+				V v = table.decodeValue(ByteBuffer.Wrap(value));
+				return callback.handle(k, v);
+			});
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean>
+		long walkDatabaseDesc(TableX<K, V> table, TableWalkHandle<K, V> callback) {
+			return walkDesc((key, value) -> {
+				K k = table.decodeKey(ByteBuffer.Wrap(key));
+				V v = table.decodeValue(ByteBuffer.Wrap(value));
+				return callback.handle(k, v);
+			});
+		}
 	}
 
 	public abstract Transaction beginTransaction();

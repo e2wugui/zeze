@@ -50,7 +50,14 @@ public class TestDatabaseMySql extends TestCase {
 		databaseConf.setDruidConf(new Config.DruidConf());
 
 		DatabaseMySql sqlserver = new DatabaseMySql(databaseConf);
-		Database.Table table = sqlserver.openTable("test_1");
+		Database.AbstractKVTable table;
+		{
+			Database.Table tableTmp = sqlserver.openTable("test_1");
+			if (tableTmp instanceof Database.AbstractKVTable)
+				table = (Database.AbstractKVTable)tableTmp;
+			else
+				return;
+		}
 		{
 			try (var trans = sqlserver.beginTransaction()) {
 				{

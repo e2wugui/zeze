@@ -77,7 +77,7 @@ public class DatabaseTikv extends Database {
 	}
 
 	private final class OperatesTikv implements Operates {
-		private final Table table;
+		private final AbstractKVTable table;
 
 		public OperatesTikv() {
 			table = openTable("zeze.OperatesTikv.Schemas");
@@ -123,7 +123,7 @@ public class DatabaseTikv extends Database {
 		}
 	}
 
-	private final class TikvTable implements Table {
+	private final class TikvTable extends AbstractKVTable {
 		private final byte[] keyPrefix;
 
 		@Override

@@ -12,10 +12,9 @@ public class TestRelationalTableDiff {
 	}
 
 	private static void addColumn(TreeMap<Integer, Schemas.Column> columns, int id, String name) {
-		var col = new Schemas.Column();
-		col.name = name;
-		col.variable = new Schemas.Variable();
-		col.variable.id = id;
+		var variable = new Schemas.Variable();
+		variable.id = id;
+		var col = new Schemas.Column(name, null, null, variable, "");
 		columns.put(id, col);
 	}
 
@@ -26,7 +25,7 @@ public class TestRelationalTableDiff {
 			r.diff();
 			Assert.assertTrue(r.add.isEmpty());
 			Assert.assertTrue(r.remove.isEmpty());
-			Assert.assertTrue(r.rename.isEmpty());
+			Assert.assertTrue(r.change.isEmpty());
 		}
 		{
 			var r = new Schemas.RelationalTable();
@@ -40,7 +39,7 @@ public class TestRelationalTableDiff {
 			r.diff();
 			Assert.assertTrue(r.add.isEmpty());
 			Assert.assertTrue(r.remove.isEmpty());
-			Assert.assertTrue(r.rename.isEmpty());
+			Assert.assertTrue(r.change.isEmpty());
 		}
 		{
 			var r = new Schemas.RelationalTable();
@@ -59,11 +58,11 @@ public class TestRelationalTableDiff {
 
 			System.out.println(r.add);
 			System.out.println(r.remove);
-			System.out.println(r.rename);
+			System.out.println(r.change);
 
 			Assert.assertEquals(Set.of(3, 6), r.add.keySet());
 			Assert.assertEquals(Set.of(2, 7), r.remove.keySet());
-			Assert.assertEquals(Set.of(4), r.rename.keySet());
+			Assert.assertEquals(Set.of(4), r.change.keySet());
 		}
 		{
 			var r = new Schemas.RelationalTable();
@@ -82,11 +81,11 @@ public class TestRelationalTableDiff {
 
 			System.out.println(r.add);
 			System.out.println(r.remove);
-			System.out.println(r.rename);
+			System.out.println(r.change);
 
 			Assert.assertEquals(Set.of(3, 8), r.add.keySet());
 			Assert.assertEquals(Set.of(2, 7), r.remove.keySet());
-			Assert.assertEquals(Set.of(4), r.rename.keySet());
+			Assert.assertEquals(Set.of(4), r.change.keySet());
 		}
 	}
 }

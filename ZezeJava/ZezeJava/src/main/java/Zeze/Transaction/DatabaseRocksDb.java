@@ -147,7 +147,7 @@ public class DatabaseRocksDb extends Database {
 			for (var tks : tableKeys.entrySet()) {
 				var tableName = tks.getKey();
 				var table = getTable(tableName);
-				var rocksTable = null != table ? table.getStorage().getDatabaseTable() : null;
+				var rocksTable = null != table ? (Database.AbstractKVTable)table.getStorage().getDatabaseTable() : null;
 				if (null != rocksTable) {
 					for (var key : tks.getValue()) {
 						var value = rocksTable.find(key);
@@ -247,7 +247,7 @@ public class DatabaseRocksDb extends Database {
 		return new TableRocksDb(cfh, isNew.value);
 	}
 
-	private final class TableRocksDb implements Database.Table {
+	private final class TableRocksDb extends Database.AbstractKVTable {
 		private final ColumnFamilyHandle columnFamily;
 		private final boolean isNew;
 

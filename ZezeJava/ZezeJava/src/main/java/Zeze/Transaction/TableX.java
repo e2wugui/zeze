@@ -31,6 +31,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		super(name);
 	}
 
+	TableCache<K, V> getCache() {
+		return cache;
+	}
+
 	protected final AutoKey getAutoKey() {
 		return autoKey;
 	}
@@ -116,9 +120,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					var beforeTimestamp = r.getTimestamp(); // read timestamp before read value。see Record1.Commit
 					strongRef = (V)r.getSoftValue();
 					if (strongRef == null && !r.getDirty()) {
-						var find = localRocksCacheTable.find(encodeKey(key));
+						var find = localRocksCacheTable.find(this, key);
 						if (find != null) {
-							strongRef = decodeValue(find);
+							strongRef = find;
 							strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
 							r.setSoftValue(strongRef);
 						}
@@ -144,7 +148,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					if (Macro.enableStatistics) {
 						TableStatistics.getInstance().getOrAdd(getId()).getStorageFindCount().increment();
 					}
-					strongRef = storage.find(key, this);
+					strongRef = storage.getDatabaseTable().find(this, key);
 					if (strongRef != null) {
 						rocksCachePut(key, strongRef);
 					} else {
@@ -157,10 +161,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					// 当记录删除时需要同步删除 OldTable，否则下一次又会从 OldTable 中找到。
 					// see Record1.Flush
 					if (strongRef == null && null != oldTable) {
-						var ekey = encodeKey(key);
-						var old = oldTable.find(ekey);
+						var old = oldTable.find(this, key);
 						if (old != null) {
-							strongRef = decodeValue(old);
+							strongRef = old;
 							r.setSoftValue(strongRef);
 							// 从旧表装载时，马上设为脏，使得可以写入新表。
 							// 否则直到被修改前，都不会被保存到当前数据库中。
@@ -170,8 +173,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 								var lct = getZeze().getLocalRocksCacheDb().beginTransaction();
 								var t = getOldTable().getDatabase().beginTransaction();
 								try {
-									oldTable.replace(t, ekey, old);
-									localRocksCacheTable.replace(lct, ekey, old);
+									oldTable.replace(t, key, old);
+									localRocksCacheTable.replace(lct, key, old);
 									lct.commit();
 									t.commit();
 								} catch (Throwable ex) { // logger.error
@@ -674,20 +677,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final K walk(K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback, Runnable afterLock) {
-		if (Transaction.getCurrent() != null)
-			throw new IllegalStateException("must be called without transaction");
-
-		var encodedExclusiveStartKey = exclusiveStartKey != null ? encodeKey(exclusiveStartKey) : null;
-		var lastKey = storage.getDatabaseTable().walk(encodedExclusiveStartKey, proposeLimit, (key, value) -> {
-			if (invokeCallback(key, value, callback)) {
-				if (afterLock != null)
-					afterLock.run();
-				return true;
-			}
-			return false;
-		});
-
-		return lastKey != null ? decodeKey(lastKey) : null;
+		return storage.getDatabaseTable().walk(this, exclusiveStartKey, proposeLimit, callback, afterLock);
 	}
 
 	public final K walkDesc(K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback) {
@@ -695,20 +685,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final K walkDesc(K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback, Runnable afterLock) {
-		if (Transaction.getCurrent() != null)
-			throw new IllegalStateException("must be called without transaction");
-
-		var encodedExclusiveStartKey = exclusiveStartKey != null ? encodeKey(exclusiveStartKey) : null;
-		var lastKey = storage.getDatabaseTable().walkDesc(encodedExclusiveStartKey, proposeLimit, (key, value) -> {
-			if (invokeCallback(key, value, callback)) {
-				if (afterLock != null)
-					afterLock.run();
-				return true;
-			}
-			return false;
-		});
-
-		return lastKey != null ? decodeKey(lastKey) : null;
+		return storage.getDatabaseTable().walkDesc(this, exclusiveStartKey, proposeLimit, callback, afterLock);
 	}
 
 	public final K walkKey(K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) {
@@ -716,20 +693,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final K walkKey(K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback, Runnable afterLock) {
-		if (Transaction.getCurrent() != null)
-			throw new IllegalStateException("must be called without transaction");
-
-		var encodedExclusiveStartKey = exclusiveStartKey != null ? encodeKey(exclusiveStartKey) : null;
-		var lastKey = storage.getDatabaseTable().walkKey(encodedExclusiveStartKey, proposeLimit, key -> {
-			if (invokeCallback(key, callback)) {
-				if (afterLock != null)
-					afterLock.run();
-				return true;
-			}
-			return false;
-		});
-
-		return lastKey != null ? decodeKey(lastKey) : null;
+		return storage.getDatabaseTable().walkKey(this, exclusiveStartKey, proposeLimit, callback, afterLock);
 	}
 
 	public final K walkKeyDesc(K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) {
@@ -737,84 +701,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final K walkKeyDesc(K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback, Runnable afterLock) {
-		if (Transaction.getCurrent() != null)
-			throw new IllegalStateException("must be called without transaction");
-
-		var encodedExclusiveStartKey = exclusiveStartKey != null ? encodeKey(exclusiveStartKey) : null;
-		var lastKey = storage.getDatabaseTable().walkKeyDesc(encodedExclusiveStartKey, proposeLimit, key -> {
-			if (invokeCallback(key, callback)) {
-				if (afterLock != null)
-					afterLock.run();
-				return true;
-			}
-			return false;
-		});
-
-		return lastKey != null ? decodeKey(lastKey) : null;
-	}
-
-	private boolean invokeCallback(byte[] key, byte[] value, TableWalkHandle<K, V> callback) {
-		K k = decodeKey(ByteBuffer.Wrap(key));
-		var lockey = getZeze().getLocks().get(new TableKey(getId(), k));
-		lockey.enterReadLock();
-		try {
-			var r = cache.get(k);
-			if (r != null && r.getState() != StateRemoved) {
-				if (r.getState() == StateShare || r.getState() == StateModify) {
-					// 拥有正确的状态：
-					@SuppressWarnings("unchecked")
-					var strongRef = (V)r.getSoftValue();
-					if (strongRef == null)
-						return true; // 已经被删除，但是还没有checkpoint的记录看不到。
-					return callback.handle(r.getObjectKey(), strongRef);
-				}
-				// else GlobalCacheManager.StateInvalid
-				// 继续后面的处理：使用数据库中的数据。
-			}
-		} finally {
-			lockey.exitReadLock();
-		}
-		// 缓存中不存在或者正在被删除，使用数据库中的数据。
-		return callback.handle(k, decodeValue(ByteBuffer.Wrap(value)));
-	}
-
-	private boolean invokeCallback(byte[] key, TableWalkKey<K> callback) {
-		K k = decodeKey(ByteBuffer.Wrap(key));
-		var lockey = getZeze().getLocks().get(new TableKey(getId(), k));
-		lockey.enterReadLock();
-		try {
-			var r = cache.get(k);
-			if (r != null && r.getState() != StateRemoved) {
-				if (r.getState() == StateShare || r.getState() == StateModify) {
-					// 拥有正确的状态：
-					@SuppressWarnings("unchecked")
-					var strongRef = (V)r.getSoftValue();
-					if (strongRef == null)
-						return true; // 已经被删除，但是还没有checkpoint的记录看不到。
-					return callback.handle(r.getObjectKey());
-				}
-				// else GlobalCacheManager.StateInvalid
-				// 继续后面的处理：使用数据库中的数据。
-			}
-		} finally {
-			lockey.exitReadLock();
-		}
-		// 缓存中不存在或者正在被删除，使用数据库中的数据。
-		return callback.handle(k);
+		return storage.getDatabaseTable().walkKeyDesc(this, exclusiveStartKey, proposeLimit, callback, afterLock);
 	}
 
 	public final long walk(TableWalkHandle<K, V> callback, Runnable afterLock) {
-		if (Transaction.getCurrent() != null)
-			throw new IllegalStateException("must be called without transaction");
-
-		return storage.getDatabaseTable().walk((key, value) -> {
-			if (invokeCallback(key, value, callback)) {
-				if (afterLock != null)
-					afterLock.run();
-				return true;
-			}
-			return false;
-		});
+		return storage.getDatabaseTable().walk(this, callback, afterLock);
 	}
 
 	public final long walkDesc(TableWalkHandle<K, V> callback) {
@@ -822,17 +713,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final long walkDesc(TableWalkHandle<K, V> callback, Runnable afterLock) {
-		if (Transaction.getCurrent() != null)
-			throw new IllegalStateException("must be called without transaction");
-
-		return storage.getDatabaseTable().walkDesc((key, value) -> {
-			if (invokeCallback(key, value, callback)) {
-				if (afterLock != null)
-					afterLock.run();
-				return true;
-			}
-			return false;
-		});
+		return storage.getDatabaseTable().walkDesc(this, callback, afterLock);
 	}
 
 	public final long walkCacheKey(TableWalkKey<K> callback) {
@@ -844,7 +725,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final long walkDatabaseKey(TableWalkKey<K> callback) {
-		return storage.getDatabaseTable().walkKey(key -> callback.handle(decodeKey(ByteBuffer.Wrap(key))));
+		return storage.getDatabaseTable().walkDatabaseKey(this, callback);
 	}
 
 	/**
@@ -855,11 +736,17 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @return count
 	 */
 	public final long walkDatabase(TableWalkHandleRaw callback) {
-		return storage.getDatabaseTable().walk(callback);
+		if (storage.getDatabaseTable() instanceof Database.AbstractKVTable) {
+			return ((Database.AbstractKVTable)storage.getDatabaseTable()).walk(callback);
+		}
+		throw new UnsupportedOperationException("Not A KV Table.");
 	}
 
 	public final long walkDatabaseDesc(TableWalkHandleRaw callback) {
-		return storage.getDatabaseTable().walkDesc(callback);
+		if (storage.getDatabaseTable() instanceof Database.AbstractKVTable) {
+		return ((Database.AbstractKVTable)storage.getDatabaseTable()).walkDesc(callback);
+		}
+		throw new UnsupportedOperationException("Not A KV Table.");
 	}
 
 	/**
@@ -870,19 +757,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @return count
 	 */
 	public final long walkDatabase(TableWalkHandle<K, V> callback) {
-		return storage.getDatabaseTable().walk((key, value) -> {
-			K k = decodeKey(ByteBuffer.Wrap(key));
-			V v = decodeValue(ByteBuffer.Wrap(value));
-			return callback.handle(k, v);
-		});
+		return storage.getDatabaseTable().walkDatabase(this, callback);
 	}
 
 	public final long walkDatabaseDesc(TableWalkHandle<K, V> callback) {
-		return storage.getDatabaseTable().walkDesc((key, value) -> {
-			K k = decodeKey(ByteBuffer.Wrap(key));
-			V v = decodeValue(ByteBuffer.Wrap(value));
-			return callback.handle(k, v);
-		});
+		return storage.getDatabaseTable().walkDatabaseDesc(this, callback);
 	}
 
 	/**

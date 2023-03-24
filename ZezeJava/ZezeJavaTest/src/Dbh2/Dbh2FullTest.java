@@ -33,8 +33,8 @@ public class Dbh2FullTest {
 			manager.start();
 
 		var database = newDatabase("dbh2TestDb");
-		var table1 = database.openTable("table1");
-		var table2 = database.openTable("table2");
+		var table1 = (Database.AbstractKVTable)database.openTable("table1");
+		var table2 = (Database.AbstractKVTable)database.openTable("table2");
 
 		var key = ByteBuffer.Wrap(new byte[] {});
 		var key1 = ByteBuffer.Wrap(new byte[] { 1 });

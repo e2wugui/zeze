@@ -24,11 +24,6 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 		return databaseTable;
 	}
 
-	public V find(K key, TableX<K, V> table) {
-		ByteBuffer value = databaseTable.find(table.encodeKey(key));
-		return value != null ? table.decodeValue(value) : null;
-	}
-
 	public void onRecordChanged(Record1<K, V> r) {
 		changed.put(r.getObjectKey(), r);
 	}

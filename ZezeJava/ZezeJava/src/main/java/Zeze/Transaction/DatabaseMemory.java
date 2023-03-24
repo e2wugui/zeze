@@ -190,7 +190,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		}
 	}
 
-	public final class TableMemory implements Database.Table {
+	public final class TableMemory extends Database.AbstractKVTable {
 		private final String name;
 		private final TreeMap<ByteBuffer, byte[]> map = new TreeMap<>(new ByteBufferComparator());
 

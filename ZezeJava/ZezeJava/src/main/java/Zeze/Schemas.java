@@ -210,6 +210,7 @@ public class Schemas implements Serializable {
 			compatibleTable.put("vector3", 5);
 			compatibleTable.put("vector3int", 5);
 			compatibleTable.put("vector4", 5);
+			compatibleTable.put("quaternion", 5);
 		}
 
 		private static boolean isTypeNameCompatible(String typeName0, String typeName1) {
@@ -299,18 +300,52 @@ public class Schemas implements Serializable {
 			}
 		}
 
-		public void buildRelationalColumns(Table table, Bean bean, Variable variable,
-										   ArrayList<String> varNames, TreeMap<Integer, Column> columns) {
-			var column = new Column();
-			column.table = table;
-			column.bean = bean;
-			column.variable = variable;
+		private static final Map<String, String> sqlTypeTable = new HashMap<>();
 
+		static {
+			sqlTypeTable.put("bool", "BOOL");
+			//sqlTypeTable.put("boolean", "BOOL");
+			sqlTypeTable.put("byte", "TINYINT");
+			sqlTypeTable.put("short", "SMALLINT");
+			sqlTypeTable.put("int", "INT");
+			sqlTypeTable.put("long", "BIGINT");
+			sqlTypeTable.put("float", "FLOAT");
+			sqlTypeTable.put("double", "DOUBLE");
+			sqlTypeTable.put("binary", "VARBINARY(65535)");
+			sqlTypeTable.put("string", "VARCHAR(65535)");
+			// json
+			sqlTypeTable.put("dynamic", "VARCHAR(65535)");
+			sqlTypeTable.put("list", "VARCHAR(65535)");
+			sqlTypeTable.put("set", "VARCHAR(65535)");
+			sqlTypeTable.put("map", "VARCHAR(65535)");
+
+			// 下面的类型在处理完diff之后会被展开，这里的类型不是映射的实际类型。。
+			sqlTypeTable.put("vector2", "FLOAT");
+			sqlTypeTable.put("vector2int", "INT");
+			sqlTypeTable.put("vector3", "FLOAT");
+			sqlTypeTable.put("vector3int", "INT");
+			sqlTypeTable.put("vector4", "FLOAT");
+			sqlTypeTable.put("quaternion", "FLOAT");
+		}
+
+		public String toSqlType() {
+			var sqlType = sqlTypeTable.get(name);
+			if (null == sqlType)
+				throw new RuntimeException("unknown sql type=" + name);
+			return sqlType;
+		}
+
+		public static String toColumnName(ArrayList<String> varNames) {
 			var sb = new StringBuilder();
 			sb.append(varNames.get(0));
 			for (int i = 1; i < varNames.size(); ++i)
 				sb.append("_").append(varNames.get(i));
-			column.name = sb.toString();
+			return sb.toString();
+		}
+
+		public void buildRelationalColumns(Table table, Bean bean, Variable variable,
+										   ArrayList<String> varNames, TreeMap<Integer, Column> columns) {
+			var column = new Column(toColumnName(varNames), table, bean, variable, toSqlType());
 			columns.put(column.variable.id, column);
 		}
 	}
@@ -785,35 +820,51 @@ public class Schemas implements Serializable {
 		public Table table;
 		public Bean bean;
 		public Variable variable;
-		public Column rename;
+		public String sqlType;
+		public Column change;
 
 		@Override
 		public String toString() {
 			return name + ":" + variable.id;
+		}
+
+		public Column(String name, Table table, Bean bean, Variable variable, String sqlType) {
+			this.name = name;
+			this.table = table;
+			this.bean = bean;
+			this.variable = variable;
+			this.sqlType = sqlType;
 		}
 	}
 
 	public static class RelationalTable {
 		public final TreeMap<Integer, Column> current = new TreeMap<>();
 		public final TreeMap<Integer, Column> previous = new TreeMap<>();
-		public final TreeMap<Integer, Column> rename = new TreeMap<>();
+		public final TreeMap<Integer, Column> change = new TreeMap<>();
 		public final TreeMap<Integer, Column> add = new TreeMap<>();
 		public final TreeMap<Integer, Column> remove = new TreeMap<>();
 
-		public static String sqlColumns(TreeMap<Integer, Column> columns) {
+		public static String createTableSql(TreeMap<Integer, Column> columns) {
 			var sb = new StringBuilder();
 			var it = columns.entrySet().iterator();
 			if (it.hasNext()) {
 				{
 					var e = it.next();
-					sb.append(e.getValue().name).append(" ").append(e.getValue().variable.type.name);
+					sb.append(e.getValue().name).append(" ").append(e.getValue().sqlType);
 				}
 				while (it.hasNext()) {
 					var e = it.next();
-					sb.append(",").append(e.getValue().name).append(" ").append(e.getValue().variable.type.name);
+					sb.append(",").append(e.getValue().name).append(" ").append(e.getValue().sqlType);
 				}
 			}
 			return sb.toString();
+		}
+
+		private boolean diff(Column a, Column b) {
+			if (!a.name.equals(b.name))
+				return false;
+			// todo 类型比较
+			return true;
 		}
 
 		public void diff() {
@@ -825,9 +876,9 @@ public class Schemas implements Serializable {
 				while (true) {
 					var c = Integer.compare(eCur.getValue().variable.id, ePre.getValue().variable.id);
 					if (c == 0) {
-						if (!eCur.getValue().name.equals(ePre.getValue().name)) {
-							eCur.getValue().rename = ePre.getValue();
-							rename.put(eCur.getKey(), eCur.getValue());
+						if (!diff(eCur.getValue(), ePre.getValue())) {
+							eCur.getValue().change = ePre.getValue();
+							change.put(eCur.getKey(), eCur.getValue());
 						}
 
 						// fetch both
@@ -873,12 +924,12 @@ public class Schemas implements Serializable {
 		var cur = this.tables.get(tableName);
 		if (cur != null)
 			cur.buildRelationalColumns(relational.current);
-		System.out.println(RelationalTable.sqlColumns(relational.current));
+		System.out.println(RelationalTable.createTableSql(relational.current));
 		if (null != other) {
 			var pre = other.tables.get(tableName);
 			if (pre != null)
 				pre.buildRelationalColumns(relational.previous);
-			System.out.println(RelationalTable.sqlColumns(relational.previous));
+			System.out.println(RelationalTable.createTableSql(relational.previous));
 		}
 	}
 }

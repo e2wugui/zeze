@@ -335,7 +335,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 	}
 
-	public final class TableMysql implements Database.Table {
+	public final class TableMysql extends Database.AbstractKVTable {
 		private final String name;
 		private final boolean isNew;
 		private boolean dropped = false;

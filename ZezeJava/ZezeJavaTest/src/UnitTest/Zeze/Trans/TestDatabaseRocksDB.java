@@ -21,7 +21,7 @@ public class TestDatabaseRocksDB extends TestCase {
 
 		DatabaseRocksDb db = getDatabaseRocksDb();
 		try {
-			Database.Table table = db.openTable("test_1");
+			var table = (Database.AbstractKVTable)db.openTable("test_1");
 			{
 				try (var trans = db.beginTransaction()) {
 					{
@@ -89,7 +89,7 @@ public class TestDatabaseRocksDB extends TestCase {
 
 		DatabaseRocksDb db = getDatabaseRocksDb();
 		try {
-			Database.Table table = db.openTable("test_1");
+			var table = (Database.AbstractKVTable)db.openTable("test_1");
 			Assert.assertEquals(2, table.walk(TestDatabaseRocksDB::PrintRecord));
 		} finally {
 			db.close();

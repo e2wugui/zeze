@@ -130,7 +130,7 @@ public class DatabaseDynamoDb extends Database {
 	private static final KeySchemaElement keySchema = new KeySchemaElement("key", KeyType.HASH);
 	private static final AttributeDefinition valueAttribute = new AttributeDefinition("value", ScalarAttributeType.B);
 
-	private class TableDynamoDb implements Database.Table {
+	private class TableDynamoDb extends Database.AbstractKVTable {
 		private final String name;
 		private boolean isNew;
 

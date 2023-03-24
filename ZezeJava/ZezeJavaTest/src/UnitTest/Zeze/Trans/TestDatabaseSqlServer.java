@@ -25,7 +25,10 @@ public class TestDatabaseSqlServer extends TestCase {
 		databaseConf.setDruidConf(new Config.DruidConf());
 
 		DatabaseSqlServer sqlserver = new DatabaseSqlServer(databaseConf);
-		Database.Table table = sqlserver.openTable("test1");
+		Database.Table tableTmp = sqlserver.openTable("test1");
+		if (! (tableTmp instanceof Database.AbstractKVTable))
+			return;
+		var table = (Database.AbstractKVTable)tableTmp;
 		{
 			try (var trans = sqlserver.beginTransaction()) {
 				{

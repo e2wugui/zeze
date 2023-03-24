@@ -65,9 +65,9 @@ public class TestCheckpoint{
 
 		var table = demo.App.getInstance().demo_Module1.getTable1();
 		var dbtable = table.internalGetStorageForTestOnly("IKnownWhatIAmDoing").getDatabaseTable();
-		Assert.assertNotNull(dbtable.find(table.encodeKey(2L)));
-		Assert.assertNotNull(dbtable.find(table.encodeKey(4L)));
-		Assert.assertNotNull(dbtable.find(table.encodeKey(3L)));
+		Assert.assertNotNull(dbtable.find(table, 2L));
+		Assert.assertNotNull(dbtable.find(table, 4L));
+		Assert.assertNotNull(dbtable.find(table, 3L));
 	}
 
 	@Test
@@ -76,14 +76,14 @@ public class TestCheckpoint{
 		Assert.assertEquals(demo.App.getInstance().Zeze.newProcedure(this::ProcChange, "ProcChange").call(), Procedure.Success);
 		demo.App.getInstance().Zeze.checkpointRun();
 		demo.Module1.Table1 table = demo.App.getInstance().demo_Module1.getTable1();
-		ByteBuffer value = table.internalGetStorageForTestOnly("IKnownWhatIAmDoing").getDatabaseTable().find(table.encodeKey(56L));
+		var value = table.internalGetStorageForTestOnly("IKnownWhatIAmDoing").getDatabaseTable().find(table, 56L);
 		Assert.assertNotNull(value);
-		Assert.assertEquals(resetVersion(value), resetVersion(bytesInTrans));
+		var bValueTrans = new BValue();
+		bValueTrans.decode(ByteBuffer.Wrap(bytesInTrans));
+		Assert.assertEquals(resetVersion(value), resetVersion(bValueTrans));
 	}
 
-	private ByteBuffer resetVersion(ByteBuffer bb) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-		var value = new BValue();
-		value.decode(bb);
+	private ByteBuffer resetVersion(BValue value) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
 		var method = value.getClass().getDeclaredMethod("version", long.class);
 		method.setAccessible(true);
 		method.invoke(value, 0);

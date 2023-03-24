@@ -60,6 +60,8 @@ public class ResetDB {
 				if(storage == null){
 					continue;
 				}
+				// 空表删除也很快，不需要特别忽略？
+				/*
 				Database.Table databaseTable = storage.getDatabaseTable();
 				AtomicBoolean empty = new AtomicBoolean(true);
 				databaseTable.walk((key, value) -> {
@@ -69,6 +71,7 @@ public class ResetDB {
 				if (empty.get()) {
 					continue;
 				}
+				*/
 				String[] strs = otherTable.name.split("_", 3);
 				String moduleName = "_" + strs[1] + "_";
 				removeModules.putIfAbsent(moduleName, 1);
@@ -97,14 +100,18 @@ public class ResetDB {
 			if(storage == null){
 				continue;
 			}
-			Database.Table databaseTable = storage.getDatabaseTable();
-			AtomicInteger count = new AtomicInteger();
-			databaseTable.walk((key, value) -> {
-				databaseTable.remove(transaction, ByteBuffer.Wrap(key));
-				count.incrementAndGet();
-				return true;
-			});
-			logger.warn("remove table :{} count:{}", rmTable, count.get());
+			if (storage.getDatabaseTable() instanceof Database.AbstractKVTable) {
+				var databaseTable = (Database.AbstractKVTable)storage.getDatabaseTable();
+				AtomicInteger count = new AtomicInteger();
+				databaseTable.walk((key, value) -> {
+					databaseTable.remove(transaction, ByteBuffer.Wrap(key));
+					count.incrementAndGet();
+					return true;
+				});
+				logger.warn("remove table :{} count:{}", rmTable, count.get());
+			} else {
+				logger.warn("remove table :{} NOT A KV TABLE.", rmTable);
+			}
 			transaction.commit();
 		}
 	}

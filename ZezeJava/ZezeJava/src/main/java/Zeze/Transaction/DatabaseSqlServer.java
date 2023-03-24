@@ -293,7 +293,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 	}
 
-	private final class TableSqlServer implements Database.Table {
+	private final class TableSqlServer extends Database.AbstractKVTable {
 		private final String name;
 		private final boolean isNew;
 

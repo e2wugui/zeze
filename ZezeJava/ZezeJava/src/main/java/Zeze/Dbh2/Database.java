@@ -155,7 +155,7 @@ public class Database extends Zeze.Transaction.Database {
 		}
 	}
 
-	public class Dbh2Table implements Zeze.Transaction.Database.Table {
+	public class Dbh2Table extends Zeze.Transaction.Database.AbstractKVTable {
 		private final String name;
 		private final boolean isNew;
 
