@@ -360,7 +360,7 @@ public class Bag {
 					beanFactory.register((Class<? extends Bean>)Class.forName(cls));
 				}
 				return 0L;
-			}, "").call()) {
+			}, "Bag.start").call()) {
 				throw new IllegalStateException("Load Item Classes Failed.");
 			}
 		}

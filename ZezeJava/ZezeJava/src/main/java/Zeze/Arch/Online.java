@@ -415,7 +415,7 @@ public class Online extends AbstractOnline {
 	 */
 	public void sendReliableNotify(String account, String clientId, String listenerName, long typeId,
 								   Binary fullEncodedProtocol) {
-		providerApp.zeze.runTaskOneByOneByKey(listenerName, "SendReliableNotify." + listenerName, () -> {
+		providerApp.zeze.runTaskOneByOneByKey(listenerName, "Online.sendReliableNotify." + listenerName, () -> {
 			var online = _tonline.get(account);
 			if (online == null) // 完全离线，忽略可靠消息发送：可靠消息仅仅为在线提供服务，并不提供全局可靠消息。
 				return Procedure.Success;
@@ -556,7 +556,7 @@ public class Online extends AbstractOnline {
 		errorSids.foreach(sid -> providerApp.zeze.newProcedure(() -> {
 			var ctx = contexts.get(sid);
 			return ctx != null ? linkBroken(ctx.account, ctx.clientId, linkName, sid) : 0;
-		}, "triggerLinkBroken").call());
+		}, "Online.triggerLinkBroken").call());
 		return 0;
 	}
 
@@ -844,7 +844,7 @@ public class Online extends AbstractOnline {
 		if (handle != null) {
 			for (var target : accounts) {
 				providerApp.zeze.newProcedure(() -> handle.call(account, clientId, target, parameter),
-						"Arch.Online.Transmit:" + actionName).call();
+						"Online.processTransmit:" + actionName).call();
 			}
 		}
 	}
@@ -952,7 +952,7 @@ public class Online extends AbstractOnline {
 		providerApp.zeze.newProcedure(() -> {
 			transmitInProcedure(account, clientId, actionName, targets, binaryParam);
 			return Procedure.Success;
-		}, "Onlines.Transmit").call();
+		}, "Online.transmit").call();
 	}
 
 	public void transmitWhileCommit(String account, String clientId, String actionName, String target,
@@ -1007,7 +1007,7 @@ public class Online extends AbstractOnline {
 		}, () -> {
 			// 锁外执行事务
 			try {
-				providerApp.zeze.newProcedure(() -> tryRemoveLocal(account.value), "VerifyLocal:" + account).call();
+				providerApp.zeze.newProcedure(() -> tryRemoveLocal(account.value), "Online.verifyLocal:" + account).call();
 			} catch (Exception e) {
 				logger.error("", e);
 			}
@@ -1049,7 +1049,7 @@ public class Online extends AbstractOnline {
 	@RedirectToServer
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	protected void redirectRemoveLocal(int serverId, String account) throws Exception {
-		providerApp.zeze.newProcedure(() -> tryRemoveLocal(account), "redirectNotify").call();
+		providerApp.zeze.newProcedure(() -> tryRemoveLocal(account), "Online.redirectRemoveLocal").call();
 	}
 
 	private void tryRedirectRemoveLocal(int serverId, String account) throws Exception {

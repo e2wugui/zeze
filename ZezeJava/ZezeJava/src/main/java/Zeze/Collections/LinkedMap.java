@@ -113,7 +113,7 @@ public class LinkedMap<V extends Bean> {
 					state.setHeadNodeId(node.getNextNodeId());
 					delayRemove.setJobState(jobId, state);
 					return 0;
-				}, "clear").call();
+				}, "LinkedMap.clear").call();
 			}
 		}
 	}

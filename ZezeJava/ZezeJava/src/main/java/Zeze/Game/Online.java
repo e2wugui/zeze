@@ -487,7 +487,7 @@ public class Online extends AbstractOnline {
 //				() -> Task.call(providerApp.zeze.newProcedure(() -> {
 //					sendEmbed(List.of(roleId), typeId, fullEncodedProtocol);
 //					return Procedure.Success;
-//				}, "Game.Online.send")), DispatchMode.Normal);
+//				}, "Online.send")), DispatchMode.Normal);
 //	}
 
 	public void send(Collection<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
@@ -501,7 +501,7 @@ public class Online extends AbstractOnline {
 //			providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(roleIds, providerApp.zeze.newProcedure(() -> {
 //				sendEmbed(roleIds, typeId, fullEncodedProtocol);
 //				return Procedure.Success;
-//			}, "Game.Online.send"), null, DispatchMode.Normal);
+//			}, "Online.send"), null, DispatchMode.Normal);
 		}
 	}
 
@@ -510,7 +510,7 @@ public class Online extends AbstractOnline {
 //		Task.run(providerApp.zeze.newProcedure(() -> {
 //			sendEmbed(roleIds, typeId, fullEncodedProtocol);
 //			return Procedure.Success;
-//		}, "Game.Online.send"), null, null, DispatchMode.Normal);
+//		}, "Online.send"), null, null, DispatchMode.Normal);
 //	}
 
 	private long triggerLinkBroken(String linkName, LongList errorSids, Map<Long, Long> context) {
@@ -518,7 +518,7 @@ public class Online extends AbstractOnline {
 			var roleId = context.get(linkSid);
 			// 补发的linkBroken没有account上下文。
 			return roleId != null ? linkBroken("", roleId, linkName, linkSid) : 0;
-		}, "triggerLinkBroken").call());
+		}, "Online.triggerLinkBroken").call());
 		return 0;
 	}
 
@@ -620,7 +620,7 @@ public class Online extends AbstractOnline {
 					int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
 					return idx >= 0 ? linkBroken("", group.roleIds.get(idx), // 补发的linkBroken没有account上下文
 							ProviderService.getLinkName(group.linkSocket), linkSid) : 0;
-				}, "triggerLinkBroken").call());
+				}, "Online.triggerLinkBroken2").call());
 				return Procedure.Success;
 			});
 		}
@@ -656,7 +656,7 @@ public class Online extends AbstractOnline {
 			if (send.isTimeout() || !send.Result.getErrorLinkSids().isEmpty()) {
 				var linkSid = send.Argument.getLinkSids().get(0);
 				providerApp.zeze.newProcedure(() -> linkBroken("", roleId, linkName, linkSid), // 补发的linkBroken没有account上下文
-						"triggerLinkBroken").call();
+						"Online.triggerLinkBroken1").call();
 			}
 			return Procedure.Success;
 		});
@@ -759,7 +759,7 @@ public class Online extends AbstractOnline {
 	 * @param fullEncodedProtocol 协议必须先编码，因为会跨事务。
 	 */
 	public void sendReliableNotify(long roleId, String listenerName, long typeId, Binary fullEncodedProtocol) {
-		providerApp.zeze.runTaskOneByOneByKey(listenerName, "Game.Online.sendReliableNotify." + listenerName, () -> {
+		providerApp.zeze.runTaskOneByOneByKey(listenerName, "Online.sendReliableNotify." + listenerName, () -> {
 			BOnline online = _tonline.get(roleId);
 			if (online == null) {
 				return Procedure.Success;
@@ -807,7 +807,7 @@ public class Online extends AbstractOnline {
 		if (handle != null) {
 			for (var target : roleIds) {
 				Task.call(providerApp.zeze.newProcedure(() -> handle.call(sender, target, parameter),
-						"Game.Online.transmit: " + actionName));
+						"Online.transmit: " + actionName));
 			}
 		}
 	}
@@ -910,7 +910,7 @@ public class Online extends AbstractOnline {
 		Task.run(providerApp.zeze.newProcedure(() -> {
 			transmitInProcedure(sender, actionName, roleIds, bb != null ? new Binary(bb) : null);
 			return Procedure.Success;
-		}, "Game.Online.transmit"), null, null, DispatchMode.Normal);
+		}, "Online.transmit"), null, null, DispatchMode.Normal);
 	}
 
 	public void transmitWhileCommit(long sender, String actionName, long roleId) {
@@ -990,7 +990,7 @@ public class Online extends AbstractOnline {
 				providerApp.zeze.newProcedure(() -> {
 					tryRemoveLocal(roleId.value);
 					return 0L;
-				}, "VerifyLocal:" + roleId.value).call();
+				}, "Online.verifyLocal:" + roleId.value).call();
 			} catch (Exception e) {
 				logger.error("", e);
 			}
@@ -1017,7 +1017,7 @@ public class Online extends AbstractOnline {
 	@RedirectToServer
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	protected void redirectRemoveLocal(int serverId, long roleId) {
-		providerApp.zeze.newProcedure(() -> tryRemoveLocal(roleId), "redirectNotify").call();
+		providerApp.zeze.newProcedure(() -> tryRemoveLocal(roleId), "Online.redirectRemoveLocal").call();
 	}
 
 	private void tryRedirectRemoveLocal(int serverId, long roleId) {

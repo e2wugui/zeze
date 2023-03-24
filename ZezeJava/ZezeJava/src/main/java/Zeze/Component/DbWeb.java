@@ -233,7 +233,7 @@ public class DbWeb extends AbstractDbWeb {
 				for (var key : keys)
 					table.remove(key);
 				return Procedure.Success;
-			}, "clearTable"));
+			}, "DbWeb.clearTable"));
 			if (batchCallback != null && !batchCallback.test(lastKey))
 				break;
 		} while (lastKey != null);

@@ -436,7 +436,7 @@ public class Service {
 		if (isHandshakeProtocol(typeId)) {
 			// handshake protocol call direct in io-thread.
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
-			Task.call(() -> p.handle(this, factoryHandle), "handle handshake protocol");
+			Task.call(() -> p.handle(this, factoryHandle), "Service.handleHandshakeProtocol");
 			return;
 		}
 		var level = factoryHandle.Level;

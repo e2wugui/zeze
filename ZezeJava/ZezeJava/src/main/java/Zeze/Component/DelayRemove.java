@@ -121,14 +121,14 @@ public class DelayRemove extends AbstractDelayRemove {
 			for (var e : jobs.getJobs())
 				startJob(e.getKey(), e.getValue());
 			return 0;
-		}, "continueJobs").call();
+		}, "DelayRemove.continueJobs").call();
 	}
 
 	private void startJob(String jobId, BJob job) {
 		Task.run(() -> {
 			var handle = jobHandles.get(job.getJobHandleName());
 			handle.process(this, jobId, job.getJobState());
-		}, "startJob");
+		}, "DelayRemove.startJob");
 	}
 
 	public void stop() {
@@ -179,7 +179,7 @@ public class DelayRemove extends AbstractDelayRemove {
 				}
 				removing.value = diffMills < System.currentTimeMillis() - maxTime;
 				return 0;
-			}, "delayRemoveProcedure").call();
+			}, "DelayRemove.delayRemoveProcedure").call();
 		}
 	}
 }

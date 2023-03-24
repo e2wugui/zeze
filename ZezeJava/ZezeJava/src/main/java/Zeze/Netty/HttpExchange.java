@@ -284,7 +284,7 @@ public class HttpExchange {
 					frame.release();
 				}
 				return Procedure.Success;
-			}, "fireBeginStream"), null, null, handler.Mode);
+			}, "fireWebSocket"), null, null, handler.Mode);
 		} else
 			fireWebSocket0(frame);
 	}
