@@ -13,6 +13,11 @@ public final class tlocal extends TableX<String, Zeze.Builtin.Online.BLocals>
     }
 
     @Override
+    public boolean isRelationalMapping() {
+        return false;
+    }
+
+    @Override
     public int getId() {
         return -1858917951;
     }

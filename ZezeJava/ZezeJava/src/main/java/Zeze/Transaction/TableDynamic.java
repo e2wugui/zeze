@@ -76,6 +76,11 @@ public class TableDynamic<K extends Comparable<K>, V extends Bean> extends Table
 	}
 
 	@Override
+	public boolean isRelationalMapping() {
+		return false;
+	}
+
+	@Override
 	public boolean isMemory() {
 		return false;
 	}

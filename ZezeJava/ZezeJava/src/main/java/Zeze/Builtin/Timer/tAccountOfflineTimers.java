@@ -13,6 +13,11 @@ public final class tAccountOfflineTimers extends TableX<Zeze.Builtin.Timer.BAcco
     }
 
     @Override
+    public boolean isRelationalMapping() {
+        return false;
+    }
+
+    @Override
     public int getId() {
         return -865861330;
     }

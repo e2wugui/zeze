@@ -13,6 +13,11 @@ public final class tversion extends TableX<Long, Zeze.Builtin.Game.Online.BVersi
     }
 
     @Override
+    public boolean isRelationalMapping() {
+        return false;
+    }
+
+    @Override
     public int getId() {
         return -1673876055;
     }

@@ -37,6 +37,25 @@ namespace Zeze.Gen.java
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    @Override");
+            sw.WriteLine("    public boolean isRelationalMapping() {");
+            switch (table.RelationalMapping)
+            {
+                case "project":
+                case "":
+                    sw.WriteLine($"        return {(Project.MakingInstance.RelationalMapping ? "true" : "false")};");
+                    break;
+                case "true":
+                    sw.WriteLine("        return true;");
+                    break;
+                case "false":
+                    sw.WriteLine("        return false;");
+                    break;
+                default:
+                    throw new System.Exception("RelationalMapping Options: true|false|project");
+            }
+            sw.WriteLine("    }");
+            sw.WriteLine();
+            sw.WriteLine("    @Override");
             sw.WriteLine("    public int getId() {");
             sw.WriteLine($"        return {table.Id};");
             sw.WriteLine("    }");

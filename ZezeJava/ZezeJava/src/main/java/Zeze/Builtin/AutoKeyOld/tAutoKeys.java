@@ -13,6 +13,11 @@ public final class tAutoKeys extends TableX<Zeze.Builtin.AutoKeyOld.BSeedKey, Ze
     }
 
     @Override
+    public boolean isRelationalMapping() {
+        return false;
+    }
+
+    @Override
     public int getId() {
         return 739941246;
     }

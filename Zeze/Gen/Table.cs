@@ -26,6 +26,7 @@ namespace Zeze.Gen
         public bool IsRocks => Kind.Equals("rocks");
         public int Id { get; private set; }
         public string Comment { get; private set; }
+        public string RelationalMapping { get; private set; } = string.Empty;
 
         public Table(ModuleSpace space, XmlElement self)
         {
@@ -47,6 +48,8 @@ namespace Zeze.Gen
             attr = self.GetAttribute("id");
             Id = attr.Length > 0 ? int.Parse(attr) : Util.FixedHash.Hash32(FullName);
             Comment = Types.Bean.GetComment(self);
+
+            RelationalMapping = self.GetAttribute("RelationalMapping");
         }
 
         public void Compile()

@@ -13,6 +13,11 @@ public final class tValueIdToNodeId extends TableX<Zeze.Builtin.Collections.Link
     }
 
     @Override
+    public boolean isRelationalMapping() {
+        return false;
+    }
+
+    @Override
     public int getId() {
         return -1128401683;
     }

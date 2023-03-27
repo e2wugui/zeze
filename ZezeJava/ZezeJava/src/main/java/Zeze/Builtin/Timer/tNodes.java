@@ -13,6 +13,11 @@ public final class tNodes extends TableX<Long, Zeze.Builtin.Timer.BNode>
     }
 
     @Override
+    public boolean isRelationalMapping() {
+        return false;
+    }
+
+    @Override
     public int getId() {
         return 453698467;
     }

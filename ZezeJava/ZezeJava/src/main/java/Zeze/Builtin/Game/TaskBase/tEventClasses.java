@@ -14,6 +14,11 @@ public final class tEventClasses extends TableX<Integer, Zeze.Builtin.Game.TaskB
     }
 
     @Override
+    public boolean isRelationalMapping() {
+        return false;
+    }
+
+    @Override
     public int getId() {
         return -1631158308;
     }

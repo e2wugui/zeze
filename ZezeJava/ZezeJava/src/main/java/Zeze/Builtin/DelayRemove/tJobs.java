@@ -13,6 +13,11 @@ public final class tJobs extends TableX<Integer, Zeze.Builtin.DelayRemove.BJobs>
     }
 
     @Override
+    public boolean isRelationalMapping() {
+        return false;
+    }
+
+    @Override
     public int getId() {
         return -582299608;
     }

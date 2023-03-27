@@ -14,6 +14,11 @@ public final class tNode extends TableX<Zeze.Builtin.Collections.DAG.BDAGNodeKey
     }
 
     @Override
+    public boolean isRelationalMapping() {
+        return false;
+    }
+
+    @Override
     public int getId() {
         return -1059152625;
     }

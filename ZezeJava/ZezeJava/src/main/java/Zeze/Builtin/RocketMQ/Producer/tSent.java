@@ -13,6 +13,11 @@ public final class tSent extends TableX<String, Zeze.Builtin.RocketMQ.Producer.B
     }
 
     @Override
+    public boolean isRelationalMapping() {
+        return false;
+    }
+
+    @Override
     public int getId() {
         return 1695098005;
     }

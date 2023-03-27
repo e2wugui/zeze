@@ -14,6 +14,11 @@ public final class tDepartment extends TableX<String, Zeze.Builtin.Collections.D
     }
 
     @Override
+    public boolean isRelationalMapping() {
+        return false;
+    }
+
+    @Override
     public int getId() {
         return -1108948075;
     }

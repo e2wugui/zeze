@@ -14,6 +14,11 @@ public final class tItemClasses extends TableX<Integer, Zeze.Builtin.Game.Bag.BI
     }
 
     @Override
+    public boolean isRelationalMapping() {
+        return false;
+    }
+
+    @Override
     public int getId() {
         return 1057953754;
     }

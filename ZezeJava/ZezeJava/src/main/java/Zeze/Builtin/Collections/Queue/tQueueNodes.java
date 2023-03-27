@@ -13,6 +13,11 @@ public final class tQueueNodes extends TableX<Zeze.Builtin.Collections.Queue.BQu
     }
 
     @Override
+    public boolean isRelationalMapping() {
+        return false;
+    }
+
+    @Override
     public int getId() {
         return -117984600;
     }

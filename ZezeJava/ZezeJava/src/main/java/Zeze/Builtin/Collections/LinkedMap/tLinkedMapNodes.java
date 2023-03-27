@@ -13,6 +13,11 @@ public final class tLinkedMapNodes extends TableX<Zeze.Builtin.Collections.Linke
     }
 
     @Override
+    public boolean isRelationalMapping() {
+        return false;
+    }
+
+    @Override
     public int getId() {
         return -1295098614;
     }

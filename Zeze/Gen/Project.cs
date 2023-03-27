@@ -40,6 +40,7 @@ namespace Zeze.Gen
         public bool MappingClass { get; set; }
         public bool IsUnity { get; private set; } = false;
         public bool NoRecursiveModule { get; private set; } = false;
+        public bool RelationalMapping { get; private set; } = false;
 
         public List<Module> GetAllOrderdRefModules()
         {
@@ -95,6 +96,7 @@ namespace Zeze.Gen
             NoRecursiveModule = self.GetAttribute("NoRecursiveModule").Equals("true");
             //Program.AddNamedObject(FullName, this);
             ClientScript = self.GetAttribute("ClientScript").Equals("true");
+            RelationalMapping = self.GetAttribute("RelationalMapping").Equals("true");
 
             Self = self; // 保存，在编译的时候使用。
 

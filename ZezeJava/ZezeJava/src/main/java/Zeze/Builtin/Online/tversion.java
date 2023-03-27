@@ -13,6 +13,11 @@ public final class tversion extends TableX<String, Zeze.Builtin.Online.BVersions
     }
 
     @Override
+    public boolean isRelationalMapping() {
+        return false;
+    }
+
+    @Override
     public int getId() {
         return -1179546366;
     }

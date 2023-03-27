@@ -14,6 +14,11 @@ public final class tLinkedMaps extends TableX<String, Zeze.Builtin.Collections.L
     }
 
     @Override
+    public boolean isRelationalMapping() {
+        return false;
+    }
+
+    @Override
     public int getId() {
         return -72689413;
     }

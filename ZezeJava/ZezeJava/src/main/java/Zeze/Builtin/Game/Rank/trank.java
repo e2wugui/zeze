@@ -13,6 +13,11 @@ public final class trank extends TableX<Zeze.Builtin.Game.Rank.BConcurrentKey, Z
     }
 
     @Override
+    public boolean isRelationalMapping() {
+        return false;
+    }
+
+    @Override
     public int getId() {
         return -2043108039;
     }

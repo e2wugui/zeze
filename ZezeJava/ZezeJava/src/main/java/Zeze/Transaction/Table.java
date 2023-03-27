@@ -85,4 +85,5 @@ public abstract class Table {
 	abstract void reduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex);
 
 	public abstract void removeEncodedKey(Binary encodedKey);
+	public abstract boolean isRelationalMapping();
 }

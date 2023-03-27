@@ -4,11 +4,6 @@ import java.util.ArrayList;
 import Zeze.Net.Binary;
 
 public final class SQLStatement {
-	public final static class Record {
-		public final SQLStatement key = new SQLStatement();
-		public final SQLStatement value = new SQLStatement();
-	}
-
 	// 数据对象，全public。
 	public final StringBuilder sql = new StringBuilder();
 	public final ArrayList<Object> params = new ArrayList<>();

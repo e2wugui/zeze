@@ -2,9 +2,11 @@ package Zeze.Transaction;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.SQLStatement;
 import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Util.Macro;
 import org.apache.logging.log4j.LogManager;
@@ -25,8 +27,8 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 
 	private final TableX<K, V> table;
 	private final K key;
-	private ByteBuffer snapshotKey;
-	private ByteBuffer snapshotValue;
+	private Object snapshotKey;
+	private Object snapshotValue;
 	private long savedTimestampForCheckpointPeriod;
 	private boolean existInBackDatabase;
 	private boolean existInBackDatabaseSavedForFlushRemove;
@@ -158,9 +160,22 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		savedTimestampForCheckpointPeriod = getTimestamp();
 
 		// 可能编码多次：TryEncodeN 记录读锁；Snapshot FlushWriteLock;
-		snapshotKey = table.encodeKey(key);
-		snapshotValue = strongDirtyValue != null ? ByteBuffer.encode(strongDirtyValue) : null;
-
+		if (table.isRelationalMapping()) {
+			var sqlKey = new SQLStatement();
+			table.encodeKeySQLStatement(sqlKey, key);
+			if (strongDirtyValue == null) {
+				snapshotValue = null;
+			} else {
+				var sqlValue = new SQLStatement();
+				var parents = new ArrayList<String>();
+				strongDirtyValue.encodeSQLStatement(parents, sqlValue);
+				snapshotValue = sqlValue;
+			}
+			snapshotKey = sqlKey;
+		} else {
+			snapshotKey = table.encodeKey(key);
+			snapshotValue = strongDirtyValue != null ? ByteBuffer.encode(strongDirtyValue) : null;
+		}
 		// 【注意】
 		// 这个标志本来应该在真正写到Database之后修改才是最合适的；
 		// 但这样需要再次锁定记录写锁，并发效率比较低，增加Flush时间；

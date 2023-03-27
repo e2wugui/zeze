@@ -53,18 +53,22 @@ RelationalTableMapping
 		while (is Not Idle)
 			sleep(1000);
 	}
+	c) alter table 修改字段类型时，数据库的兼容修改检查。
+	d) 多server(gs)同时启动，create table, alter table 流程的互斥。
+------------------------------------------------------------------------------------------------------------------------------
+2023/3/31 v1.2.1 cxx net & bean; Online.send use selectDirty; TaskOneByOne.Barrier; RelationalTableMapping; Timer Bug;
+------------------------------------------------------------------------------------------------------------------------------
+RelationalTableMapping
 	*. FrameWork & 细节
 	a) Database.Table 增加新方法？Database.TableMapping 新接口？TableX下沉到 find，replace，delete？
 	    倾向于【增加】【下沉方法】。
 	b) TableX.walk<K, V> 使用a)的方案，walk<byte[], byte[]>对于Mapping方式不支持。
-	c) alter table 修改字段类型时，数据库的兼容修改检查。
-	d) 多server(gs)同时启动，create table, alter table 流程的互斥。
-	e) Table为单位配置，还是整个Project配置？Table RelationalMapping="true|false|project" Project RelationalMapping=”true|false"
+	e) Table为单位配置，还是整个Project配置？Table RelationalMapping="true|false|project" Project RelationalMapping=”true|false" 
+	    【这些配置选择在Gen阶段就完成，然后仅在Table的子类实现中提供，不再提供其他配置手段】
 	f) flush-snapshot的问题。编写新的flush流程？或者定义新的snapshotSqlValue?
 	   或者使用原来的snapshotValue，改成Object类型，具体保存什么数据，encode0根据当前表是否映射关系表进行编码，并且最终由Database.Table解释执行。
-------------------------------------------------------------------------------------------------------------------------------
-2023/3/31 v1.2.1 cxx net & bean; Online.send use selectDirty; TaskOneByOne.Barrier; RelationalTableMapping; Timer Bug;
-------------------------------------------------------------------------------------------------------------------------------
+TableX.decodeKeyResultSet
+TableX.encodeKeySQLStatement
 Raft.Agent ResentTimer cancel when close;
 Add Dbh2AgentManager.clear
 Timer BUG: OnTimer 回调中取消马上注册，需要识别并中断回调后续代码执行。

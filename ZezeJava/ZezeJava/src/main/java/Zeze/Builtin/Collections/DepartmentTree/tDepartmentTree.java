@@ -13,6 +13,11 @@ public final class tDepartmentTree extends TableX<Zeze.Builtin.Collections.Depar
     }
 
     @Override
+    public boolean isRelationalMapping() {
+        return false;
+    }
+
+    @Override
     public int getId() {
         return -1578893665;
     }
