@@ -25,10 +25,10 @@ BUG Dbh2 跑完测试没有关闭Raft服务，后续的单元测试还在继续�
 	【Agent的Resend Timer没有停止】
 Timer redirectCancel 改成同步等待远程执行完成。有点风险。需要考虑一下。
 RelationalTableMapping
-	1. Bean encodeJson/decodeJson; prepareStatement/decodeResultSet OK!
 	2. Bean columns; Table create table sql;(从Schemas中构建）
 	3. Schemas alter table;
-	4. Start 流程：
+	c) alter table 修改字段类型时，数据库的兼容修改检查。
+	d) 多server(gs)同时启动，create table, alter table 流程的互斥。
 	if (创建表) return done; 
 	if (!Schemas.checkCompatible) return error，
 	Save Schemas;
@@ -53,12 +53,12 @@ RelationalTableMapping
 		while (is Not Idle)
 			sleep(1000);
 	}
-	c) alter table 修改字段类型时，数据库的兼容修改检查。
-	d) 多server(gs)同时启动，create table, alter table 流程的互斥。
 ------------------------------------------------------------------------------------------------------------------------------
 2023/3/31 v1.2.1 cxx net & bean; Online.send use selectDirty; TaskOneByOne.Barrier; RelationalTableMapping; Timer Bug;
 ------------------------------------------------------------------------------------------------------------------------------
+DatabaseMySql.TableMysqlRelational
 RelationalTableMapping
+	1. Bean encodeJson/decodeJson; prepareStatement/decodeResultSet OK!
 	*. FrameWork & 细节
 	a) Database.Table 增加新方法？Database.TableMapping 新接口？TableX下沉到 find，replace，delete？
 	    倾向于【增加】【下沉方法】。

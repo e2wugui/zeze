@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.function.Supplier;
 import Zeze.Application;
 import Zeze.Net.Binary;
+import Zeze.Schemas;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SQLStatement;
 import Zeze.Services.GlobalCacheManager.Reduce;
@@ -617,6 +618,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		oldTable = getTableConf().getDatabaseOldMode() == 1
 				? app.getDatabase(getTableConf().getDatabaseOldName()).openTable(getName()) : null;
 		localRocksCacheTable = app.getLocalRocksCacheDb().openTable(getName());
+		relationalTable = app.getSchemas().relationalTables.get(getName());
 		return storage;
 	}
 
@@ -643,6 +645,16 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	public abstract K decodeKey(ByteBuffer bb);
 	public abstract K decodeKeyResultSet(ResultSet rs) throws java.sql.SQLException;
 	public abstract void encodeKeySQLStatement(SQLStatement st, K _v_);
+
+	private Schemas.RelationalTable relationalTable;
+	public Schemas.RelationalTable getRelationalTable() {
+		return relationalTable;
+	}
+
+	@SuppressWarnings("unchecked")
+	public void encodeKeySQLStatement(SQLStatement st, Object _v_) {
+		encodeKeySQLStatement(st, (K)_v_);
+	}
 
 	public final void delayRemove(K key) {
 		getZeze().getDelayRemove().remove(this, key);

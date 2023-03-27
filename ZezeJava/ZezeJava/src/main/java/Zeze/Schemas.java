@@ -843,6 +843,7 @@ public class Schemas implements Serializable {
 		public final TreeMap<Integer, Column> change = new TreeMap<>();
 		public final TreeMap<Integer, Column> add = new TreeMap<>();
 		public final TreeMap<Integer, Column> remove = new TreeMap<>();
+		public final String keyColumns = ""; // todo
 
 		public static String createTableSql(String name, TreeMap<Integer, Column> columns) {
 			if (columns.isEmpty())

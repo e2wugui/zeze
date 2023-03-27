@@ -247,7 +247,7 @@ public abstract class Database {
 			remove(t, (ByteBuffer)key);
 		}
 
-		private <K extends Comparable<K>, V extends Bean>
+		private static <K extends Comparable<K>, V extends Bean>
 		boolean invokeCallback(TableX<K, V> table, byte[] key, byte[] value, TableWalkHandle<K, V> callback) {
 			K k = table.decodeKey(ByteBuffer.Wrap(key));
 			var lockey = table.getZeze().getLocks().get(new TableKey(table.getId(), k));
@@ -273,7 +273,7 @@ public abstract class Database {
 			return callback.handle(k, table.decodeValue(ByteBuffer.Wrap(value)));
 		}
 
-		private <K extends Comparable<K>, V extends Bean>
+		private static <K extends Comparable<K>, V extends Bean>
 		boolean invokeCallback(TableX<K, V> table, byte[] key, TableWalkKey<K> callback) {
 			K k = table.decodeKey(ByteBuffer.Wrap(key));
 			var lockey = table.getZeze().getLocks().get(new TableKey(table.getId(), k));

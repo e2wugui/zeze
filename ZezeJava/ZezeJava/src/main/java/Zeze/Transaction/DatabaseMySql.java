@@ -2,14 +2,21 @@ package Zeze.Transaction;
 
 import java.nio.charset.StandardCharsets;
 import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.ArrayList;
 import Zeze.Application;
 import Zeze.Config.DatabaseConf;
 import Zeze.Schemas;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.SQLStatement;
 import Zeze.Util.KV;
+import Zeze.Util.OutObject;
+import static Zeze.Services.GlobalCacheManagerConst.StateModify;
+import static Zeze.Services.GlobalCacheManagerConst.StateRemoved;
+import static Zeze.Services.GlobalCacheManagerConst.StateShare;
 
 public final class DatabaseMySql extends DatabaseJdbc {
 	public DatabaseMySql(Application zeze, DatabaseConf conf) {
@@ -406,69 +413,354 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			}
 		}
 
+		private static void setParams(PreparedStatement pre, int start, ArrayList<Object> params) throws SQLException {
+			for (int i = 0; i < params.size(); ++i) {
+				var p = params.get(i);
+				if (p instanceof String)
+					pre.setString(i + start, (String)p);
+				else
+					pre.setBytes(i + start, ((Zeze.Net.Binary)p).toBytes());
+			}
+		}
+
 		@Override
 		public <K extends Comparable<K>, V extends Bean> V find(TableX<K, V> table, Object key) {
-			return null;
+			if (dropped)
+				return null;
+
+			var st = new SQLStatement();
+			table.encodeKeySQLStatement(st, key);
+			var sql = "SELECT * FROM " + name + " WHERE " + st.sql;
+			try (var conn = dataSource.getConnection()) {
+				conn.setAutoCommit(true);
+				try (var pre = conn.prepareStatement(sql)) {
+					setParams(pre, 1, st.params);
+					try (var rs = pre.executeQuery()) {
+						if (!rs.next())
+							return null;
+						var value = table.newValue();
+						var parents = new ArrayList<String>();
+						value.decodeResultSet(parents, rs);
+						return value;
+					}
+				}
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		@Override
 		public void replace(Transaction t, Object key, Object value) {
+			if (dropped)
+				return;
 
+			var stKey = (SQLStatement)key;
+			var stValue = (SQLStatement)value;
+			var sql = "REPLACE " + name + " SET " + stKey.sql + ", " + stValue.sql;
+			var my = (JdbcTrans)t;
+			try (var pre = my.Connection.prepareStatement(sql)) {
+				setParams(pre, 1, stKey.params);
+				setParams(pre, stKey.params.size() + 1, stValue.params);
+				pre.executeUpdate();
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		@Override
 		public void remove(Transaction t, Object key) {
+			if (dropped)
+				return;
 
+			var stKey = (SQLStatement)key;
+			var sql = "DELETE FROM " + name + " WHERE " + stKey.sql;
+			var my = (JdbcTrans)t;
+			try (var pre = my.Connection.prepareStatement(sql)) {
+				setParams(pre, 1, stKey.params);
+				pre.executeUpdate();
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		private static <K extends Comparable<K>, V extends Bean>
+		boolean invokeCallback(TableX<K, V> table, ResultSet rs, TableWalkHandle<K, V> callback, OutObject<K> outKey) throws SQLException {
+			K k = table.decodeKeyResultSet(rs);
+			if (null != outKey)
+				outKey.value = k;
+			var lockey = table.getZeze().getLocks().get(new TableKey(table.getId(), k));
+			lockey.enterReadLock();
+			try {
+				var r = table.getCache().get(k);
+				if (r != null && r.getState() != StateRemoved) {
+					if (r.getState() == StateShare || r.getState() == StateModify) {
+						// 拥有正确的状态：
+						@SuppressWarnings("unchecked")
+						var strongRef = (V)r.getSoftValue();
+						if (strongRef == null)
+							return true; // 已经被删除，但是还没有checkpoint的记录看不到。
+						return callback.handle(r.getObjectKey(), strongRef);
+					}
+					// else GlobalCacheManager.StateInvalid
+					// 继续后面的处理：使用数据库中的数据。
+				}
+			} finally {
+				lockey.exitReadLock();
+			}
+			// 缓存中不存在或者正在被删除，使用数据库中的数据。
+			var value = table.newValue();
+			var parents = new ArrayList<String>();
+			value.decodeResultSet(parents, rs);
+			return callback.handle(k, value);
+		}
+
+		private <K extends Comparable<K>, V extends Bean>
+		long walk(TableX<K, V> table, TableWalkHandle<K, V> callback, Runnable afterLock, String orderBy) {
+			if (dropped)
+				return 0;
+
+			var sql = "SELECT * FROM " + name + orderBy;
+			try (var conn = dataSource.getConnection()) {
+				try (var pre = conn.prepareStatement(sql)) {
+					try (var rs = pre.executeQuery()) {
+						var count = 0L;
+						while (rs.next()) {
+							invokeCallback(table, rs, callback, null);
+							++count;
+							if (null != afterLock)
+								afterLock.run();
+						}
+						return count;
+					}
+				}
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		@Override
-		public <K extends Comparable<K>, V extends Bean> long walk(TableX<K, V> table, TableWalkHandle<K, V> callback, Runnable afterLock) {
-			return 0;
+		public <K extends Comparable<K>, V extends Bean>
+		long walk(TableX<K, V> table, TableWalkHandle<K, V> callback, Runnable afterLock) {
+			return walk(table, callback, afterLock, ""); // 正序
+		}
+
+		private static <K extends Comparable<K>, V extends Bean>
+		String buildOrderBy(TableX<K, V> table, boolean asc) {
+			var orderBy = table.getRelationalTable().keyColumns;
+			if (asc)
+				return " ORDER BY " + orderBy;
+			orderBy = orderBy.replace(",", " DESC,");
+			return " ORDER BY " + orderBy + " DESC"; // last desc
 		}
 
 		@Override
-		public <K extends Comparable<K>, V extends Bean> long walkDesc(TableX<K, V> table, TableWalkHandle<K, V> callback, Runnable afterLock) {
-			return 0;
+		public <K extends Comparable<K>, V extends Bean>
+		long walkDesc(TableX<K, V> table, TableWalkHandle<K, V> callback, Runnable afterLock) {
+			// 反序
+			// 目前考虑keyColumns让Schemas来构造，注意生成顺序最好和encodeKeySQLStatement,decodeKeyResultSet【最好一致】。
+			return walk(table, callback, afterLock, buildOrderBy(table, false));
+		}
+
+		private static <K extends Comparable<K>, V extends Bean>
+		String buildKeyWhere(TableX<K, V> table, SQLStatement st, K exclusiveStartKey, boolean asc) {
+			if (null == exclusiveStartKey)
+				return "";
+
+			table.encodeKeySQLStatement(st, exclusiveStartKey);
+			var where = st.sql.toString();
+			where = where.replace(",", " AND ");
+			where = where.replace("=", asc ? ">" : "<");
+			return " WHERE " + where;
+		}
+
+		private <K extends Comparable<K>, V extends Bean>
+		K walk(TableX<K, V> table, K exclusiveStartKey, int proposeLimit,
+			   TableWalkHandle<K, V> callback, Runnable afterLock,
+			   String orderBy) {
+			if (dropped || proposeLimit <= 0)
+				return null;
+
+			try (var connection = dataSource.getConnection()) {
+				connection.setAutoCommit(true);
+				var st = new SQLStatement();
+				var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, orderBy.isEmpty());
+				String sql = "SELECT * FROM " + getName() + keyWhere + orderBy + " LIMIT ?";
+				try (var cmd = connection.prepareStatement(sql)) {
+					setParams(cmd, 1, st.params);
+					cmd.setInt(st.params.size() + 1, proposeLimit);
+					var lastKey = new OutObject<K>();
+					try (var rs = cmd.executeQuery()) {
+						while (rs.next()) {
+							if (!invokeCallback(table, rs, callback, lastKey))
+								break;
+							if (null != afterLock)
+								afterLock.run();
+						}
+					}
+					return lastKey.value;
+				}
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		@Override
-		public <K extends Comparable<K>, V extends Bean> K walk(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback, Runnable afterLock) {
-			return null;
+		public <K extends Comparable<K>, V extends Bean>
+		K walk(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback, Runnable afterLock) {
+			return walk(table, exclusiveStartKey, proposeLimit, callback, afterLock, "");
+		}
+
+		private static <K extends Comparable<K>, V extends Bean>
+		boolean invokeKeyCallback(TableX<K, V> table, ResultSet rs, TableWalkKey<K> callback, OutObject<K> outKey) throws SQLException {
+			K k = table.decodeKeyResultSet(rs);
+			if (outKey != null)
+				outKey.value = k;
+			var lockey = table.getZeze().getLocks().get(new TableKey(table.getId(), k));
+			lockey.enterReadLock();
+			try {
+				var r = table.getCache().get(k);
+				if (r != null && r.getState() != StateRemoved) {
+					if (r.getState() == StateShare || r.getState() == StateModify) {
+						// 拥有正确的状态：
+						@SuppressWarnings("unchecked")
+						var strongRef = (V)r.getSoftValue();
+						if (strongRef == null)
+							return true; // 已经被删除，但是还没有checkpoint的记录看不到。
+						return callback.handle(r.getObjectKey());
+					}
+					// else GlobalCacheManager.StateInvalid
+					// 继续后面的处理：使用数据库中的数据。
+				}
+			} finally {
+				lockey.exitReadLock();
+			}
+			// 缓存中不存在或者正在被删除，使用数据库中的数据。
+			return callback.handle(k);
+		}
+
+		private <K extends Comparable<K>, V extends Bean>
+		K walkKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit,
+				  TableWalkKey<K> callback, Runnable afterLock,
+				  String orderBy) {
+			if (dropped || proposeLimit <= 0)
+				return null;
+
+			try (var connection = dataSource.getConnection()) {
+				connection.setAutoCommit(true);
+				var st = new SQLStatement();
+				var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, orderBy.isEmpty());
+				String sql = "SELECT " + table.getRelationalTable().keyColumns + " FROM " + getName() + keyWhere + orderBy + " LIMIT ?";
+				try (var cmd = connection.prepareStatement(sql)) {
+					setParams(cmd, 1, st.params);
+					cmd.setInt(st.params.size() + 1, proposeLimit);
+					var lastKey = new OutObject<K>();
+					try (var rs = cmd.executeQuery()) {
+						while (rs.next()) {
+							if (!invokeKeyCallback(table, rs, callback, lastKey))
+								break;
+						}
+					}
+					return lastKey.value;
+				}
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		@Override
-		public <K extends Comparable<K>, V extends Bean> K walkKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback, Runnable afterLock) {
-			return null;
+		public <K extends Comparable<K>, V extends Bean>
+		K walkKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback, Runnable afterLock) {
+			return walkKey(table, exclusiveStartKey, proposeLimit, callback, afterLock, "");
 		}
 
 		@Override
-		public <K extends Comparable<K>, V extends Bean> K walkDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback, Runnable afterLock) {
-			return null;
+		public <K extends Comparable<K>, V extends Bean>
+		K walkDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit,
+				   TableWalkHandle<K, V> callback, Runnable afterLock) {
+			return walk(table, exclusiveStartKey, proposeLimit,
+					callback, afterLock,
+					buildOrderBy(table, false));
 		}
 
 		@Override
-		public <K extends Comparable<K>, V extends Bean> K walkKeyDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback, Runnable afterLock) {
-			return null;
+		public <K extends Comparable<K>, V extends Bean>
+		K walkKeyDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback, Runnable afterLock) {
+			return walkKey(table, exclusiveStartKey, proposeLimit, callback, afterLock, buildOrderBy(table, false));
+		}
+
+		private <K extends Comparable<K>, V extends Bean>
+		long walkDatabase(TableX<K, V> table, TableWalkHandle<K, V> callback, String orderBy) {
+			if (dropped)
+				return 0;
+
+			var sql = "SELECT * FROM " + name + orderBy;
+			try (var conn = dataSource.getConnection()) {
+				try (var pre = conn.prepareStatement(sql)) {
+					try (var rs = pre.executeQuery()) {
+						var count = 0L;
+						while (rs.next()) {
+							var key = table.decodeKeyResultSet(rs);
+							var value = table.newValue();
+							var parents = new ArrayList<String>();
+							value.decodeResultSet(parents, rs);
+							if (!callback.handle(key, value))
+								break;
+							++count;
+						}
+						return count;
+					}
+				}
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		@Override
-		public <K extends Comparable<K>, V extends Bean> long walkDatabase(TableX<K, V> table, TableWalkHandle<K, V> callback) {
-			return 0;
+		public <K extends Comparable<K>, V extends Bean>
+		long walkDatabase(TableX<K, V> table, TableWalkHandle<K, V> callback) {
+			return walkDatabase(table, callback, "");
 		}
 
 		@Override
-		public <K extends Comparable<K>, V extends Bean> long walkDatabaseDesc(TableX<K, V> table, TableWalkHandle<K, V> callback) {
-			return 0;
+		public <K extends Comparable<K>, V extends Bean>
+		long walkDatabaseDesc(TableX<K, V> table, TableWalkHandle<K, V> callback) {
+			return walkDatabase(table, callback, buildOrderBy(table, false));
+		}
+
+		private <K extends Comparable<K>, V extends Bean>
+		long walkDatabaseKey(TableX<K, V> table, TableWalkKey<K> callback, String orderBy) {
+			if (dropped)
+				return 0;
+
+			try (var connection = dataSource.getConnection()) {
+				connection.setAutoCommit(true);
+				String sql = "SELECT " + table.getRelationalTable().keyColumns + " FROM " + getName() + orderBy;
+				try (var cmd = connection.prepareStatement(sql)) {
+					var count = 0L;
+					try (var rs = cmd.executeQuery()) {
+						while (rs.next()) {
+							var key = table.decodeKeyResultSet(rs);
+							if (!callback.handle(key))
+								break;
+						}
+					}
+					return count;
+				}
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		@Override
-		public <K extends Comparable<K>, V extends Bean> long walkDatabaseKey(TableX<K, V> table, TableWalkKey<K> callback) {
-			return 0;
+		public <K extends Comparable<K>, V extends Bean>
+		long walkDatabaseKey(TableX<K, V> table, TableWalkKey<K> callback) {
+			return walkDatabaseKey(table, callback, "");
 		}
 
 		@Override
-		public <K extends Comparable<K>, V extends Bean> long walkDatabaseKeyDesc(TableX<K, V> table, TableWalkKey<K> callback) {
-			return 0;
+		public <K extends Comparable<K>, V extends Bean>
+		long walkDatabaseKeyDesc(TableX<K, V> table, TableWalkKey<K> callback) {
+			return walkDatabaseKey(table, callback, buildOrderBy(table, false));
 		}
 
 		@Override
