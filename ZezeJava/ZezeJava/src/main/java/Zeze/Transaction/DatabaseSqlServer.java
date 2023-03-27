@@ -5,13 +5,14 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import Zeze.Application;
 import Zeze.Config.DatabaseConf;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
 
 public final class DatabaseSqlServer extends DatabaseJdbc {
-	public DatabaseSqlServer(DatabaseConf conf) {
-		super(conf);
+	public DatabaseSqlServer(Application zeze, DatabaseConf conf) {
+		super(zeze, conf);
 		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesSqlServer());
 	}
 

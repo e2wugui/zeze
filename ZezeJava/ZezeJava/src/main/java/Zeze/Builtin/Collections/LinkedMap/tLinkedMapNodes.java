@@ -46,6 +46,24 @@ public final class tLinkedMapNodes extends TableX<Zeze.Builtin.Collections.Linke
     }
 
     @Override
+    public Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
+        var parents = new java.util.ArrayList<String>();
+        Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey _v_ = new Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey();
+        parents.add("__key");
+        _v_.decodeResultSet(parents, rs);
+        parents.remove(parents.size() - 1);
+        return _v_;
+    }
+
+    @Override
+    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey _v_) {
+        var parents = new java.util.ArrayList<String>();
+        parents.add("__key");
+        _v_.encodeSQLStatement(parents, st);
+        parents.remove(parents.size() - 1);
+    }
+
+    @Override
     public Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode newValue() {
         return new Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode();
     }

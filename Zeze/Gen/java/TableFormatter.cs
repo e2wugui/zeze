@@ -87,6 +87,26 @@ namespace Zeze.Gen.java
             sw.WriteLine("        return _os_;");
             sw.WriteLine("    }");
             sw.WriteLine();
+
+            sw.WriteLine("    @Override");
+            sw.WriteLine("    public " + keyboxing + " decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {");
+            if (table.KeyType.IsBean)
+                sw.WriteLine("        var parents = new java.util.ArrayList<String>();");
+            var hasParentName = new bool[1];
+            table.KeyType.Accept(new Define("_v_", sw, "        "));
+            table.KeyType.Accept(new DecodeResultSet("__key", "_v_", -1, "rs", sw, "        ", hasParentName));
+            sw.WriteLine("        return _v_;");
+            sw.WriteLine("    }");
+            sw.WriteLine();
+            sw.WriteLine("    @Override");
+            sw.WriteLine("    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, " + keyboxing + " _v_) {");
+            if (table.KeyType.IsBean)
+                sw.WriteLine("        var parents = new java.util.ArrayList<String>();");
+            var hasParentName2 = new bool[1];
+            table.KeyType.Accept(new EncodeSQLStatement("__key", null, "_v_", -1, "st", sw, "        ", hasParentName2));
+            sw.WriteLine("    }");
+            sw.WriteLine();
+
             sw.WriteLine("    @Override");
             sw.WriteLine($"    public {value} newValue() {{");
             sw.WriteLine($"        return new {value}();");

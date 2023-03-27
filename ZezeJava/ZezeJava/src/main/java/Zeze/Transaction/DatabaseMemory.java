@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import Zeze.Application;
 import Zeze.Config.DatabaseConf;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
@@ -29,8 +30,8 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		}
 	}
 
-	public DatabaseMemory(DatabaseConf conf) {
-		super(conf);
+	public DatabaseMemory(Application zeze, DatabaseConf conf) {
+		super(zeze, conf);
 		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : this);
 	}
 

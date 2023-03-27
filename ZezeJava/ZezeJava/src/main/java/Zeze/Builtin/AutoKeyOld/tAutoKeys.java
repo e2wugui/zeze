@@ -44,6 +44,24 @@ public final class tAutoKeys extends TableX<Zeze.Builtin.AutoKeyOld.BSeedKey, Ze
     }
 
     @Override
+    public Zeze.Builtin.AutoKeyOld.BSeedKey decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
+        var parents = new java.util.ArrayList<String>();
+        Zeze.Builtin.AutoKeyOld.BSeedKey _v_ = new Zeze.Builtin.AutoKeyOld.BSeedKey();
+        parents.add("__key");
+        _v_.decodeResultSet(parents, rs);
+        parents.remove(parents.size() - 1);
+        return _v_;
+    }
+
+    @Override
+    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, Zeze.Builtin.AutoKeyOld.BSeedKey _v_) {
+        var parents = new java.util.ArrayList<String>();
+        parents.add("__key");
+        _v_.encodeSQLStatement(parents, st);
+        parents.remove(parents.size() - 1);
+    }
+
+    @Override
     public Zeze.Builtin.AutoKeyOld.BAutoKey newValue() {
         return new Zeze.Builtin.AutoKeyOld.BAutoKey();
     }

@@ -50,6 +50,18 @@ public final class tversion extends TableX<Long, Zeze.Builtin.Game.Online.BVersi
     }
 
     @Override
+    public Long decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
+        long _v_;
+        _v_ = rs.getLong("__key");
+        return _v_;
+    }
+
+    @Override
+    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, Long _v_) {
+        st.appendLong("__key", _v_);
+    }
+
+    @Override
     public Zeze.Builtin.Game.Online.BVersion newValue() {
         return new Zeze.Builtin.Game.Online.BVersion();
     }

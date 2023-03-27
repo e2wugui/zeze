@@ -1,14 +1,15 @@
 package Zeze.Transaction;
 
 import java.sql.SQLException;
+import Zeze.Application;
 import Zeze.Config.DatabaseConf;
 import com.alibaba.druid.pool.DruidDataSource;
 
 public abstract class DatabaseJdbc extends Database {
 	protected final DruidDataSource dataSource;
 
-	public DatabaseJdbc(DatabaseConf conf) {
-		super(conf);
+	public DatabaseJdbc(Application zeze, DatabaseConf conf) {
+		super(zeze, conf);
 
 		dataSource = new DruidDataSource();
 		var druidConf = conf.getDruidConf();

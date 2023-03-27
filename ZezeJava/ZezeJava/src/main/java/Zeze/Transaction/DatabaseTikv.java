@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
@@ -30,8 +31,8 @@ public class DatabaseTikv extends Database {
 	private final boolean distTxn; // 是否启用分布式事务. 注意两种模式的数据不能互通
 	private volatile long version; // only for distTxn
 
-	public DatabaseTikv(Config.DatabaseConf conf) {
-		super(conf);
+	public DatabaseTikv(Application zeze, Config.DatabaseConf conf) {
+		super(zeze, conf);
 		distTxn = conf.isDistTxn();
 		if (distTxn) {
 			config = TiConfiguration.createDefault(getDatabaseUrl());

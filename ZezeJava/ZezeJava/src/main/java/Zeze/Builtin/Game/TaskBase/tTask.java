@@ -54,6 +54,24 @@ public final class tTask extends TableX<Zeze.Builtin.Game.TaskBase.BTaskKey, Zez
     }
 
     @Override
+    public Zeze.Builtin.Game.TaskBase.BTaskKey decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
+        var parents = new java.util.ArrayList<String>();
+        Zeze.Builtin.Game.TaskBase.BTaskKey _v_ = new Zeze.Builtin.Game.TaskBase.BTaskKey();
+        parents.add("__key");
+        _v_.decodeResultSet(parents, rs);
+        parents.remove(parents.size() - 1);
+        return _v_;
+    }
+
+    @Override
+    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, Zeze.Builtin.Game.TaskBase.BTaskKey _v_) {
+        var parents = new java.util.ArrayList<String>();
+        parents.add("__key");
+        _v_.encodeSQLStatement(parents, st);
+        parents.remove(parents.size() - 1);
+    }
+
+    @Override
     public Zeze.Builtin.Game.TaskBase.BTask newValue() {
         return new Zeze.Builtin.Game.TaskBase.BTask();
     }

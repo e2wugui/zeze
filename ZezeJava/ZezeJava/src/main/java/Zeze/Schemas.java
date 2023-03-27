@@ -844,19 +844,17 @@ public class Schemas implements Serializable {
 		public final TreeMap<Integer, Column> add = new TreeMap<>();
 		public final TreeMap<Integer, Column> remove = new TreeMap<>();
 
-		public static String createTableSql(TreeMap<Integer, Column> columns) {
+		public static String createTableSql(String name, TreeMap<Integer, Column> columns) {
+			if (columns.isEmpty())
+				return "";
 			var sb = new StringBuilder();
-			var it = columns.entrySet().iterator();
-			if (it.hasNext()) {
-				{
-					var e = it.next();
-					sb.append(e.getValue().name).append(" ").append(e.getValue().sqlType);
-				}
-				while (it.hasNext()) {
-					var e = it.next();
-					sb.append(",").append(e.getValue().name).append(" ").append(e.getValue().sqlType);
-				}
+			sb.append("CREATE TABLE IF NOT EXISTS ").append(name).append("(");
+			for (var c : columns.values()) {
+				sb.append(c.name).append(" ").append(c.sqlType).append(",");
 			}
+			sb.append("PRIMARY KEY(");
+			sb.append("todo key");
+			sb.append(")");
 			return sb.toString();
 		}
 
@@ -924,12 +922,12 @@ public class Schemas implements Serializable {
 		var cur = this.tables.get(tableName);
 		if (cur != null)
 			cur.buildRelationalColumns(relational.current);
-		System.out.println(RelationalTable.createTableSql(relational.current));
+		System.out.println(RelationalTable.createTableSql(tableName, relational.current));
 		if (null != other) {
 			var pre = other.tables.get(tableName);
 			if (pre != null)
 				pre.buildRelationalColumns(relational.previous);
-			System.out.println(RelationalTable.createTableSql(relational.previous));
+			System.out.println(RelationalTable.createTableSql(tableName, relational.previous));
 		}
 	}
 }

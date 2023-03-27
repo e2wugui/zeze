@@ -2,6 +2,7 @@ package Zeze.Dbh2;
 
 import java.net.URI;
 import java.util.HashMap;
+import Zeze.Application;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.Net.Binary;
@@ -19,8 +20,8 @@ public class Database extends Zeze.Transaction.Database {
 	private final String databaseName;
 	private final MasterAgent masterAgent;
 
-	public Database(Config.DatabaseConf conf) {
-		super(conf);
+	public Database(Application zeze, Config.DatabaseConf conf) {
+		super(zeze, conf);
 		// dbh2://ip:port/databaseName?user=xxx&passwd=xxx
 		try {
 			var url = new URI(getDatabaseUrl());

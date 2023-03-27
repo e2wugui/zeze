@@ -48,6 +48,24 @@ public final class tDepartmentTree extends TableX<Zeze.Builtin.Collections.Depar
     }
 
     @Override
+    public Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
+        var parents = new java.util.ArrayList<String>();
+        Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey _v_ = new Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey();
+        parents.add("__key");
+        _v_.decodeResultSet(parents, rs);
+        parents.remove(parents.size() - 1);
+        return _v_;
+    }
+
+    @Override
+    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey _v_) {
+        var parents = new java.util.ArrayList<String>();
+        parents.add("__key");
+        _v_.encodeSQLStatement(parents, st);
+        parents.remove(parents.size() - 1);
+    }
+
+    @Override
     public Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode newValue() {
         return new Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode();
     }

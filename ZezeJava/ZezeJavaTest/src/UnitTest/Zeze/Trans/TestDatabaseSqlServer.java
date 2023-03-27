@@ -24,7 +24,7 @@ public class TestDatabaseSqlServer extends TestCase {
 		databaseConf.setName("sqlserver");
 		databaseConf.setDruidConf(new Config.DruidConf());
 
-		DatabaseSqlServer sqlserver = new DatabaseSqlServer(databaseConf);
+		DatabaseSqlServer sqlserver = new DatabaseSqlServer(null, databaseConf);
 		Database.Table tableTmp = sqlserver.openTable("test1");
 		if (! (tableTmp instanceof Database.AbstractKVTable))
 			return;

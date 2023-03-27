@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
@@ -88,8 +89,8 @@ public class DatabaseRocksDb extends Database {
 		}
 	}
 
-	public DatabaseRocksDb(Config.DatabaseConf conf) {
-		super(conf);
+	public DatabaseRocksDb(Application zeze, Config.DatabaseConf conf) {
+		super(zeze, conf);
 		logger.info("new: {}", getDatabaseUrl());
 
 		var dbHome = getDatabaseUrl().isEmpty() ? "db" : getDatabaseUrl();

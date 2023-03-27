@@ -18,7 +18,7 @@ public class Dbh2FullTest {
 		databaseConf.setDatabaseType(Config.DbType.Dbh2);
 		databaseConf.setDatabaseUrl("dbh2://127.0.0.1:30000/" + dbName);
 		databaseConf.setName("dbh2");
-		return new Database(databaseConf);
+		return new Database(null, databaseConf);
 	}
 
 	@Test

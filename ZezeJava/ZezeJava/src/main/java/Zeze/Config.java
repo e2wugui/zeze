@@ -306,17 +306,17 @@ public final class Config {
 	private static Database createDatabase(Application zeze, DatabaseConf conf) {
 		switch (conf.databaseType) {
 		case Memory:
-			return new DatabaseMemory(conf);
+			return new DatabaseMemory(zeze, conf);
 		case MySql:
-			return new DatabaseMySql(conf);
+			return new DatabaseMySql(zeze, conf);
 		case SqlServer:
-			return new DatabaseSqlServer(conf);
+			return new DatabaseSqlServer(zeze, conf);
 		case Tikv:
-			return new DatabaseTikv(conf);
+			return new DatabaseTikv(zeze, conf);
 		case RocksDb:
 			if (!zeze.getConfig().getGlobalCacheManagerHostNameOrAddress().isBlank())
 				throw new IllegalStateException("RocksDb Can Not Work With GlobalCacheManager.");
-			return new DatabaseRocksDb(conf);
+			return new DatabaseRocksDb(zeze, conf);
 		default:
 			throw new UnsupportedOperationException("unknown database type.");
 		}
@@ -340,7 +340,7 @@ public final class Config {
 	public void dropMysqlOperatesProcedures() {
 		for (var conf : getDatabaseConfMap().values()) {
 			if (conf.databaseType == DbType.MySql) {
-				var db = new DatabaseMySql(conf);
+				var db = new DatabaseMySql(null, conf);
 				try {
 					db.dropOperatesProcedures();
 				} finally {

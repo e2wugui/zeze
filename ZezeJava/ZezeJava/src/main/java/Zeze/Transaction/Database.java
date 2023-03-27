@@ -39,10 +39,16 @@ public abstract class Database {
 	private final DatabaseConf conf;
 	private final String databaseUrl;
 	private Operates directOperates;
+	private Application zeze;
 
-	public Database(DatabaseConf conf) {
+	public Database(Application zeze, DatabaseConf conf) {
+		this.zeze = zeze;
 		this.conf = conf;
 		databaseUrl = conf.getDatabaseUrl();
+	}
+
+	public Application getZeze() {
+		return zeze;
 	}
 
 	public final Collection<Zeze.Transaction.Table> getTables() {

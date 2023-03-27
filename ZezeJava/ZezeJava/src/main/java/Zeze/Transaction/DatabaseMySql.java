@@ -5,13 +5,15 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import Zeze.Application;
 import Zeze.Config.DatabaseConf;
+import Zeze.Schemas;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
 
 public final class DatabaseMySql extends DatabaseJdbc {
-	public DatabaseMySql(DatabaseConf conf) {
-		super(conf);
+	public DatabaseMySql(Application zeze, DatabaseConf conf) {
+		super(zeze, conf);
 		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesMySql());
 	}
 
@@ -29,8 +31,13 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		if (null == storage)
 			return;
 
-		var dTable = (TableMysql)storage.getDatabaseTable();
-		dTable.drop();
+		if (storage.getDatabaseTable() instanceof TableMysql) {
+			var dTable = (TableMysql)storage.getDatabaseTable();
+			dTable.drop();
+		} else if (storage.getDatabaseTable() instanceof TableMysqlRelational) {
+			var dTable = (TableMysqlRelational)storage.getDatabaseTable();
+			dTable.drop();
+		}
 	}
 
 	public void dropOperatesProcedures() {
@@ -335,6 +342,141 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 	}
 
+	public final class TableMysqlRelational implements Database.Table {
+
+		private final String name;
+		private final boolean isNew;
+		private boolean dropped = false;
+
+		public void drop() {
+			if (dropped)
+				return;
+
+			try (var connection = dataSource.getConnection()) {
+				connection.setAutoCommit(true);
+				String sql = "DROP TABLE IF EXISTS " + name;
+				try (var cmd = connection.prepareStatement(sql)) {
+					dropped = true; // set flag before real drop.
+					cmd.executeUpdate();
+				}
+			} catch (SQLException e) {
+				dropped = false; // rollback
+				throw new RuntimeException(e);
+			}
+		}
+
+		@Override
+		public DatabaseMySql getDatabase() {
+			return DatabaseMySql.this;
+		}
+
+		public String getName() {
+			return name;
+		}
+
+		@Override
+		public boolean isNew() {
+			return isNew;
+		}
+
+		public TableMysqlRelational(String name) {
+			this.name = name;
+
+			// isNew 仅用来在Schemas比较的时候可选的忽略被删除的表，这里没有跟Create原子化。
+			// 下面的create table if not exists 在存在的时候会返回warning，isNew是否可以通过这个方法得到？
+			// warning的方案的原子性由数据库保证，比较好，但warning本身可能不是很标准，先保留MetaData方案了。
+			try (var connection = dataSource.getConnection()) {
+				DatabaseMetaData meta = connection.getMetaData();
+				ResultSet resultSet = meta.getTables(null, null, this.name, new String[]{"TABLE"});
+				isNew = resultSet.next();
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
+
+			try (var connection = dataSource.getConnection()) {
+				connection.setAutoCommit(true);
+				String sql = Schemas.RelationalTable.createTableSql(name,
+						getDatabase().getZeze().getSchemas().relationalTables.get(name).current);
+				try (var cmd = connection.prepareStatement(sql)) {
+					cmd.executeUpdate();
+				}
+			} catch (SQLException e) {
+				if (!e.getMessage().contains("already exist"))
+					throw new RuntimeException(e);
+			}
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean> V find(TableX<K, V> table, Object key) {
+			return null;
+		}
+
+		@Override
+		public void replace(Transaction t, Object key, Object value) {
+
+		}
+
+		@Override
+		public void remove(Transaction t, Object key) {
+
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean> long walk(TableX<K, V> table, TableWalkHandle<K, V> callback, Runnable afterLock) {
+			return 0;
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean> long walkDesc(TableX<K, V> table, TableWalkHandle<K, V> callback, Runnable afterLock) {
+			return 0;
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean> K walk(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback, Runnable afterLock) {
+			return null;
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean> K walkKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback, Runnable afterLock) {
+			return null;
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean> K walkDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback, Runnable afterLock) {
+			return null;
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean> K walkKeyDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback, Runnable afterLock) {
+			return null;
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean> long walkDatabase(TableX<K, V> table, TableWalkHandle<K, V> callback) {
+			return 0;
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean> long walkDatabaseDesc(TableX<K, V> table, TableWalkHandle<K, V> callback) {
+			return 0;
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean> long walkDatabaseKey(TableX<K, V> table, TableWalkKey<K> callback) {
+			return 0;
+		}
+
+		@Override
+		public <K extends Comparable<K>, V extends Bean> long walkDatabaseKeyDesc(TableX<K, V> table, TableWalkKey<K> callback) {
+			return 0;
+		}
+
+		@Override
+		public void close() {
+
+		}
+	}
+
 	public final class TableMysql extends Database.AbstractKVTable {
 		private final String name;
 		private final boolean isNew;
@@ -375,6 +517,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			this.name = name;
 
 			// isNew 仅用来在Schemas比较的时候可选的忽略被删除的表，这里没有跟Create原子化。
+			// 下面的create table if not exists 在存在的时候会返回warning，isNew是否可以通过这个方法得到？
+			// warning的方案的原子性由数据库保证，比较好，但warning本身可能不是很标准，先保留MetaData方案了。
 			try (var connection = dataSource.getConnection()) {
 				DatabaseMetaData meta = connection.getMetaData();
 				ResultSet resultSet = meta.getTables(null, null, this.name, new String[]{"TABLE"});

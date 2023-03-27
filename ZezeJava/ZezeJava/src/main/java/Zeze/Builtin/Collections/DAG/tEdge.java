@@ -46,6 +46,24 @@ public final class tEdge extends TableX<Zeze.Builtin.Collections.DAG.BDAGEdgeKey
     }
 
     @Override
+    public Zeze.Builtin.Collections.DAG.BDAGEdgeKey decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
+        var parents = new java.util.ArrayList<String>();
+        Zeze.Builtin.Collections.DAG.BDAGEdgeKey _v_ = new Zeze.Builtin.Collections.DAG.BDAGEdgeKey();
+        parents.add("__key");
+        _v_.decodeResultSet(parents, rs);
+        parents.remove(parents.size() - 1);
+        return _v_;
+    }
+
+    @Override
+    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, Zeze.Builtin.Collections.DAG.BDAGEdgeKey _v_) {
+        var parents = new java.util.ArrayList<String>();
+        parents.add("__key");
+        _v_.encodeSQLStatement(parents, st);
+        parents.remove(parents.size() - 1);
+    }
+
+    @Override
     public Zeze.Builtin.Collections.DAG.BDAGEdge newValue() {
         return new Zeze.Builtin.Collections.DAG.BDAGEdge();
     }

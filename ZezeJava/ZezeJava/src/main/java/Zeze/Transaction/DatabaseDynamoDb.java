@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
@@ -26,8 +27,8 @@ import com.amazonaws.services.dynamodbv2.model.TransactWriteItemsRequest;
 public class DatabaseDynamoDb extends Database {
 	private final AmazonDynamoDB dynamoDbClient;
 
-	public DatabaseDynamoDb(Config.DatabaseConf conf) {
-		super(conf);
+	public DatabaseDynamoDb(Application zeze, Config.DatabaseConf conf) {
+		super(zeze, conf);
 
 		var dynamoConf = conf.getDynamoConf();
 		// 这里验证证书是通过配置文件指定的。

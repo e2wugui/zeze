@@ -308,7 +308,7 @@ public final class Application {
 			dbConf.setDatabaseUrl(dbConf.getName());
 			deleteDirectory(new File(dbConf.getDatabaseUrl()));
 			dbConf.setDatabaseType(Config.DbType.RocksDb);
-			LocalRocksCacheDb = new DatabaseRocksDb(dbConf);
+			LocalRocksCacheDb = new DatabaseRocksDb(this, dbConf);
 			LocalRocksCacheDb.open(this);
 		}
 

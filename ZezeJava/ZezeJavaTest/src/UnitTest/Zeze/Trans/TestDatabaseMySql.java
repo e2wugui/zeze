@@ -49,7 +49,7 @@ public class TestDatabaseMySql extends TestCase {
 		databaseConf.setName("mysql");
 		databaseConf.setDruidConf(new Config.DruidConf());
 
-		DatabaseMySql sqlserver = new DatabaseMySql(databaseConf);
+		DatabaseMySql sqlserver = new DatabaseMySql(null, databaseConf);
 		Database.AbstractKVTable table;
 		{
 			Database.Table tableTmp = sqlserver.openTable("test_1");

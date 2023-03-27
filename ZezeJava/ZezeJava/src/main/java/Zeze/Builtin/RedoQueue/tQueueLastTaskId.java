@@ -44,6 +44,18 @@ public final class tQueueLastTaskId extends TableX<String, Zeze.Builtin.RedoQueu
     }
 
     @Override
+    public String decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
+        String _v_;
+        _v_ = rs.getString("__key");
+        return _v_;
+    }
+
+    @Override
+    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, String _v_) {
+        st.appendString("__key", _v_);
+    }
+
+    @Override
     public Zeze.Builtin.RedoQueue.BTaskId newValue() {
         return new Zeze.Builtin.RedoQueue.BTaskId();
     }

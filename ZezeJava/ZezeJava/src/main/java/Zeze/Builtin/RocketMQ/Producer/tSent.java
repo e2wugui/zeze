@@ -45,6 +45,18 @@ public final class tSent extends TableX<String, Zeze.Builtin.RocketMQ.Producer.B
     }
 
     @Override
+    public String decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
+        String _v_;
+        _v_ = rs.getString("__key");
+        return _v_;
+    }
+
+    @Override
+    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, String _v_) {
+        st.appendString("__key", _v_);
+    }
+
+    @Override
     public Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResult newValue() {
         return new Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResult();
     }

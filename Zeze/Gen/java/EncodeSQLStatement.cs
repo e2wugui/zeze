@@ -20,7 +20,7 @@ namespace Zeze.Gen.java
             {
                 if (v.Transient)
                     continue;
-                v.VariableType.Accept(new EncodeSQLStatement(v, null, v.Id, "st", sw, prefix + "    ", hasParentName));
+                v.VariableType.Accept(new EncodeSQLStatement(null, v, null, v.Id, "st", sw, prefix + "    ", hasParentName));
             }
             sw.WriteLine(prefix + "}");
             // sw.WriteLine();
@@ -35,7 +35,7 @@ namespace Zeze.Gen.java
             {
                 if (v.Transient)
                     continue;
-                v.VariableType.Accept(new EncodeSQLStatement(v, null, v.Id, "st", sw, prefix + "    ", hasParentsName));
+                v.VariableType.Accept(new EncodeSQLStatement(null, v, null, v.Id, "st", sw, prefix + "    ", hasParentsName));
             }
             sw.WriteLine(prefix + "}");
             // sw.WriteLine();
@@ -43,7 +43,7 @@ namespace Zeze.Gen.java
 
         void ensureParentsName()
         {
-            if (!hasParentsName[0])
+            if (!hasParentsName[0] && null == columnName)
             {
                 hasParentsName[0] = true;
                 sw.WriteLine($"{prefix}var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);");
@@ -53,149 +53,153 @@ namespace Zeze.Gen.java
         public void Visit(TypeBool type)
         {
             ensureParentsName();
-            sw.WriteLine($"{prefix}st.appendBoolean(_parents_name_ + \"{var.Name}\", {var.Getter});");
+            sw.WriteLine($"{prefix}st.appendBoolean({ParaneName}\"{ColumnName}\", {Getter});");
         }
 
         public void Visit(TypeByte type)
         {
             ensureParentsName();
-            sw.WriteLine($"{prefix}st.appendByte(_parents_name_ + \"{var.Name}\", {var.Getter});");
+            sw.WriteLine($"{prefix}st.appendByte({ParaneName}\"{ColumnName}\", {Getter});");
         }
 
         public void Visit(TypeShort type)
         {
             ensureParentsName();
-            sw.WriteLine($"{prefix}st.appendShort(_parents_name_ + \"{var.Name}\", {var.Getter});");
+            sw.WriteLine($"{prefix}st.appendShort({ParaneName}\"{ColumnName}\", {Getter});");
         }
 
         public void Visit(TypeInt type)
         {
             ensureParentsName();
-            sw.WriteLine($"{prefix}st.appendInt(_parents_name_ + \"{var.Name}\", {var.Getter});");
+            sw.WriteLine($"{prefix}st.appendInt({ParaneName}\"{ColumnName}\", {Getter});");
         }
 
         public void Visit(TypeLong type)
         {
             ensureParentsName();
-            sw.WriteLine($"{prefix}st.appendLong(_parents_name_ + \"{var.Name}\", {var.Getter});");
+            sw.WriteLine($"{prefix}st.appendLong({ParaneName}\"{ColumnName}\", {Getter});");
         }
 
         public void Visit(TypeFloat type)
         {
             ensureParentsName();
-            sw.WriteLine($"{prefix}st.appendFloat(_parents_name_ + \"{var.Name}\", {var.Getter});");
+            sw.WriteLine($"{prefix}st.appendFloat({ParaneName}\"{ColumnName}\", {Getter});");
         }
 
         public void Visit(TypeDouble type)
         {
             ensureParentsName();
-            sw.WriteLine($"{prefix}st.appendDouble(_parents_name_ + \"{var.Name}\", {var.Getter});");
+            sw.WriteLine($"{prefix}st.appendDouble({ParaneName}\"{ColumnName}\", {Getter});");
         }
 
         public void Visit(TypeBinary type)
         {
             ensureParentsName();
-            sw.WriteLine($"{prefix}st.appendBinary(_parents_name_ + \"{var.Name}\", {var.Getter});");
+            sw.WriteLine($"{prefix}st.appendBinary({ParaneName}\"{ColumnName}\", {Getter});");
         }
 
         public void Visit(TypeString type)
         {
             ensureParentsName();
-            sw.WriteLine($"{prefix}st.appendString(_parents_name_ + \"{var.Name}\", {var.Getter});");
+            sw.WriteLine($"{prefix}st.appendString({ParaneName}\"{ColumnName}\", {Getter});");
         }
 
         public void Visit(TypeList type)
         {
             ensureParentsName();
-            sw.WriteLine($"{prefix}st.appendString(_parents_name_ + \"{var.Name}\", Zeze.Serialize.Helper.encodeJson({var.Getter}));");
+            sw.WriteLine($"{prefix}st.appendString({ParaneName}\"{ColumnName}\", Zeze.Serialize.Helper.encodeJson({Getter}));");
         }
 
         public void Visit(TypeSet type)
         {
             ensureParentsName();
-            sw.WriteLine($"{prefix}st.appendString(_parents_name_ + \"{var.Name}\", Zeze.Serialize.Helper.encodeJson({var.Getter}));");
+            sw.WriteLine($"{prefix}st.appendString({ParaneName}\"{ColumnName}\", Zeze.Serialize.Helper.encodeJson({Getter}));");
         }
 
         public void Visit(TypeMap type)
         {
             ensureParentsName();
-            sw.WriteLine($"{prefix}st.appendString(_parents_name_ + \"{var.Name}\", Zeze.Serialize.Helper.encodeJson({var.Getter}));");
+            sw.WriteLine($"{prefix}st.appendString({ParaneName}\"{ColumnName}\", Zeze.Serialize.Helper.encodeJson({Getter}));");
         }
 
         public void Visit(Bean type)
         {
-            sw.WriteLine($"{prefix}parents.add(\"{var.Name}\");");
-            sw.WriteLine($"{prefix}{var.Getter}.encodeSQLStatement(parents, {bb});");
+            sw.WriteLine($"{prefix}parents.add(\"{ColumnName}\");");
+            sw.WriteLine($"{prefix}{Getter}.encodeSQLStatement(parents, {bb});");
             sw.WriteLine($"{prefix}parents.remove(parents.size() - 1);");
         }
 
         public void Visit(BeanKey type)
         {
-            sw.WriteLine($"{prefix}parents.add(\"{var.Name}\");");
-            sw.WriteLine($"{prefix}{var.Getter}.encodeSQLStatement(parents, {bb});");
+            sw.WriteLine($"{prefix}parents.add(\"{ColumnName}\");");
+            sw.WriteLine($"{prefix}{Getter}.encodeSQLStatement(parents, {bb});");
             sw.WriteLine($"{prefix}parents.remove(parents.size() - 1);");
         }
 
         public void Visit(TypeDynamic type)
         {
             ensureParentsName();
-            sw.WriteLine($"{prefix}st.appendString(_parents_name_ + \"{var.Name}\", Zeze.Serialize.Helper.encodeJson({var.Getter}));");
+            sw.WriteLine($"{prefix}st.appendString({ParaneName}\"{ColumnName}\", Zeze.Serialize.Helper.encodeJson({Getter}));");
         }
 
         public void Visit(TypeQuaternion type)
         {
-            sw.WriteLine($"{prefix}parents.add(\"{var.Name}\");");
-            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.encodeQuaternion({var.Getter}, parents, {bb});");
+            sw.WriteLine($"{prefix}parents.add(\"{ColumnName}\");");
+            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.encodeQuaternion({Getter}, parents, {bb});");
             sw.WriteLine($"{prefix}parents.remove(parents.size() - 1);");
         }
 
         public void Visit(TypeVector2 type)
         {
-            sw.WriteLine($"{prefix}parents.add(\"{var.Name}\");");
-            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.encodeVector2({var.Getter}, parents, {bb});");
+            sw.WriteLine($"{prefix}parents.add(\"{ColumnName}\");");
+            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.encodeVector2({Getter}, parents, {bb});");
             sw.WriteLine($"{prefix}parents.remove(parents.size() - 1);");
         }
 
         public void Visit(TypeVector2Int type)
         {
-            sw.WriteLine($"{prefix}parents.add(\"{var.Name}\");");
-            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.encodeVector2Int({var.Getter}, parents, {bb});");
+            sw.WriteLine($"{prefix}parents.add(\"{ColumnName}\");");
+            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.encodeVector2Int({Getter}, parents, {bb});");
             sw.WriteLine($"{prefix}parents.remove(parents.size() - 1);");
         }
 
         public void Visit(TypeVector3 type)
         {
-            sw.WriteLine($"{prefix}parents.add(\"{var.Name}\");");
-            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.encodeVector3({var.Getter}, parents, {bb});");
+            sw.WriteLine($"{prefix}parents.add(\"{ColumnName}\");");
+            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.encodeVector3({Getter}, parents, {bb});");
             sw.WriteLine($"{prefix}parents.remove(parents.size() - 1);");
         }
 
         public void Visit(TypeVector3Int type)
         {
-            sw.WriteLine($"{prefix}parents.add(\"{var.Name}\");");
-            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.encodeVector3Int({var.Getter}, parents, {bb});");
+            sw.WriteLine($"{prefix}parents.add(\"{ColumnName}\");");
+            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.encodeVector3Int({Getter}, parents, {bb});");
             sw.WriteLine($"{prefix}parents.remove(parents.size() - 1);");
         }
 
         public void Visit(TypeVector4 type)
         {
-            sw.WriteLine($"{prefix}parents.add(\"{var.Name}\");");
-            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.encodeVector4({var.Getter}, parents, {bb});");
+            sw.WriteLine($"{prefix}parents.add(\"{ColumnName}\");");
+            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.encodeVector4({Getter}, parents, {bb});");
             sw.WriteLine($"{prefix}parents.remove(parents.size() - 1);");
         }
 
-        Variable var;
-        string varname;
-        int id;
-        string bb;
-        StreamWriter sw;
-        string prefix;
-        bool[] hasParentsName;
+        readonly string columnName;
+        readonly Variable var;
+        readonly string varname;
+        readonly int id;
+        readonly string bb;
+        readonly StreamWriter sw;
+        readonly string prefix;
+        readonly bool[] hasParentsName;
 
         string Getter => var != null ? var.Getter : varname;
+        string ColumnName => null != columnName ? columnName : var.Name;
+        string ParaneName => columnName != null ? "" : "_parents_name_ + ";
 
-        public EncodeSQLStatement(Variable var, string varname, int id, string bb, StreamWriter sw, string prefix, bool[] hasParentsName)
+        public EncodeSQLStatement(string columnName, Variable var, string varname, int id, string bb, StreamWriter sw, string prefix, bool[] hasParentsName)
         {
+            this.columnName = columnName;
             this.var = var;
             this.varname = varname;
             this.id = id;

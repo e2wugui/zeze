@@ -104,7 +104,7 @@ public class TestDatabaseRocksDB extends TestCase {
 		databaseConf.setName("RocksDB");
 		databaseConf.setDruidConf(new Config.DruidConf());
 
-		return new DatabaseRocksDb(databaseConf);
+		return new DatabaseRocksDb(null, databaseConf);
 	}
 
 	public static boolean PrintRecord(byte[] key, byte[] value) {

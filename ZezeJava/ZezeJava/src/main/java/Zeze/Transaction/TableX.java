@@ -1,10 +1,12 @@
 package Zeze.Transaction;
 
+import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.function.Supplier;
 import Zeze.Application;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.SQLStatement;
 import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Services.ServiceManager.AutoKey;
@@ -639,6 +641,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public abstract K decodeKey(ByteBuffer bb);
+	public abstract K decodeKeyResultSet(ResultSet rs) throws java.sql.SQLException;
+	public abstract void encodeKeySQLStatement(SQLStatement st, K _v_);
 
 	public final void delayRemove(K key) {
 		getZeze().getDelayRemove().remove(this, key);

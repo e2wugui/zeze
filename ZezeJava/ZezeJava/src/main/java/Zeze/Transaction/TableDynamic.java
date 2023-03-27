@@ -1,7 +1,10 @@
 package Zeze.Transaction;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.function.Function;
 import Zeze.Application;
+import Zeze.Serialize.SQLStatement;
 import Zeze.Util.Factory;
 import Zeze.Serialize.ByteBuffer;
 
@@ -50,6 +53,16 @@ public class TableDynamic<K extends Comparable<K>, V extends Bean> extends Table
 	@Override
 	public K decodeKey(ByteBuffer bb) {
 		return keyDecoder.apply(bb);
+	}
+
+	@Override
+	public K decodeKeyResultSet(ResultSet rs) throws SQLException {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public void encodeKeySQLStatement(SQLStatement st, K _v_) {
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
