@@ -545,10 +545,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 
 		private static <K extends Comparable<K>, V extends Bean>
-		String buildOrderBy(TableX<K, V> table, boolean asc) {
+		String buildOrderByDesc(TableX<K, V> table) {
 			var orderBy = table.getRelationalTable().keyColumns;
-			if (asc)
-				return " ORDER BY " + orderBy;
 			orderBy = orderBy.replace(",", " DESC,");
 			return " ORDER BY " + orderBy + " DESC"; // last desc
 		}
@@ -558,7 +556,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		long walkDesc(TableX<K, V> table, TableWalkHandle<K, V> callback, Runnable afterLock) {
 			// 反序
 			// 目前考虑keyColumns让Schemas来构造，注意生成顺序最好和encodeKeySQLStatement,decodeKeyResultSet【最好一致】。
-			return walk(table, callback, afterLock, buildOrderBy(table, false));
+			return walk(table, callback, afterLock, buildOrderByDesc(table));
 		}
 
 		private static <K extends Comparable<K>, V extends Bean>
@@ -679,13 +677,13 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				   TableWalkHandle<K, V> callback, Runnable afterLock) {
 			return walk(table, exclusiveStartKey, proposeLimit,
 					callback, afterLock,
-					buildOrderBy(table, false));
+					buildOrderByDesc(table));
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
 		K walkKeyDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback, Runnable afterLock) {
-			return walkKey(table, exclusiveStartKey, proposeLimit, callback, afterLock, buildOrderBy(table, false));
+			return walkKey(table, exclusiveStartKey, proposeLimit, callback, afterLock, buildOrderByDesc(table));
 		}
 
 		private <K extends Comparable<K>, V extends Bean>
@@ -724,7 +722,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
 		long walkDatabaseDesc(TableX<K, V> table, TableWalkHandle<K, V> callback) {
-			return walkDatabase(table, callback, buildOrderBy(table, false));
+			return walkDatabase(table, callback, buildOrderByDesc(table));
 		}
 
 		private <K extends Comparable<K>, V extends Bean>
@@ -760,7 +758,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
 		long walkDatabaseKeyDesc(TableX<K, V> table, TableWalkKey<K> callback) {
-			return walkDatabaseKey(table, callback, buildOrderBy(table, false));
+			return walkDatabaseKey(table, callback, buildOrderByDesc(table));
 		}
 
 		@Override
