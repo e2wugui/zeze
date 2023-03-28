@@ -957,18 +957,20 @@ public class Schemas implements Serializable {
 
 		private static KV<Integer, Integer> catType(String type) {
 			switch (type) {
-			case "byte": return KV.create(0, 1);
-			case "short": return KV.create(0, 2);
+			case "bool":
+			case "byte": return KV.create(0, 1); // bool<->byte
+			case "short": return KV.create(0, 2); // byte->short->int->long->float->double
 			case "int ": return KV.create(0, 3);
 			case "long": return KV.create(0, 4);
 			case "float": return KV.create(0, 5);
 			case "double": return KV.create(0, 6);
 
-			case "string": return KV.create(1, 1);
+			case "string": return KV.create(1, 1); // string->binary
 			case "binary": return KV.create(1, 2);
 
-			case "vector2int": return KV.create(2, 1);
-			case "vector3int": return KV.create(2,2 );
+			case "vector2int":
+			case "vector3int":
+				return KV.create(2, 1); // 允许互转
 
 			case "vector2":
 			case "vector3":
