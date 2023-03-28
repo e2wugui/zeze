@@ -772,7 +772,7 @@ public class Schemas implements Serializable {
 				keyType.buildRelationalColumns(this, null, null, varNames, varIds, columns);
 				var sb = new StringBuilder();
 				for (var column : columns) {
-					if (!sb.isEmpty())
+					if (sb.length() > 0)
 						sb.append(", ");
 					sb.append(column.name);
 				}
@@ -780,7 +780,7 @@ public class Schemas implements Serializable {
 			} else {
 				keyColumns = "__key";
 				columns.add(new Column("__key",
-						new int[] { 1 }, // 必须和上面分支的 varIds.add(1) 一样。
+						new int[]{1}, // 必须和上面分支的 varIds.add(1) 一样。
 						this, null, null, keyType.toSqlType()));
 			}
 			var varNames = new ArrayList<String>();
@@ -892,7 +892,7 @@ public class Schemas implements Serializable {
 
 	public static class Column {
 		public final String name;
-		public final int[]  varIds;
+		public final int[] varIds;
 		public final String sqlType;
 
 		// 辅助信息
@@ -957,6 +957,7 @@ public class Schemas implements Serializable {
 
 		private static KV<Integer, Integer> catType(String type) {
 			switch (type) {
+			//@formatter:off
 			case "bool":
 			case "byte": return KV.create(0, 1); // bool<->byte
 			case "short": return KV.create(0, 2); // byte->short->int->long->float->double
@@ -983,6 +984,7 @@ public class Schemas implements Serializable {
 			case "set":
 			case "map":
 				return KV.create(4, 1); // 这几个类型不是都能互转的。他们的兼容性遵循ByteBuffer的要求，关系映射这里不做检查。
+			//@formatter:on
 			}
 			throw new RuntimeException("unknown type=" + type);
 		}

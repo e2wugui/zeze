@@ -186,8 +186,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					cmd.executeUpdate();
 				}
 				//noinspection SpellCheckingInspection
-				String ProcSaveDataWithSameVersion =
-						"Create procedure _ZezeSaveDataWithSameVersion_ (" + "\r\n" +
+				String ProcSaveDataWithSameVersion = "Create procedure _ZezeSaveDataWithSameVersion_ (" + "\r\n" +
 						"                        IN    in_id VARBINARY(" + eMaxKeyLength + ")," + "\r\n" +
 						"                        IN    in_data LONGBLOB," + "\r\n" +
 						"                        INOUT inout_version bigint," + "\r\n" +
@@ -352,6 +351,95 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 	}
 
+	private static void setParams(PreparedStatement pre, int start, ArrayList<Object> params) throws SQLException {
+		for (int i = 0; i < params.size(); ++i) {
+			var p = params.get(i);
+			if (p instanceof String)
+				pre.setString(i + start, (String)p);
+			else
+				pre.setBytes(i + start, ((Zeze.Net.Binary)p).toBytes());
+		}
+	}
+
+	private static <K extends Comparable<K>, V extends Bean>
+	boolean invokeCallback(TableX<K, V> table, ResultSet rs, TableWalkHandle<K, V> callback, OutObject<K> outKey) throws SQLException {
+		K k = table.decodeKeyResultSet(rs);
+		if (null != outKey)
+			outKey.value = k;
+		var lockey = table.getZeze().getLocks().get(new TableKey(table.getId(), k));
+		lockey.enterReadLock();
+		try {
+			var r = table.getCache().get(k);
+			if (r != null && r.getState() != StateRemoved) {
+				if (r.getState() == StateShare || r.getState() == StateModify) {
+					// 拥有正确的状态：
+					@SuppressWarnings("unchecked")
+					var strongRef = (V)r.getSoftValue();
+					if (strongRef == null)
+						return true; // 已经被删除，但是还没有checkpoint的记录看不到。
+					return callback.handle(r.getObjectKey(), strongRef);
+				}
+				// else GlobalCacheManager.StateInvalid
+				// 继续后面的处理：使用数据库中的数据。
+			}
+		} finally {
+			lockey.exitReadLock();
+		}
+		// 缓存中不存在或者正在被删除，使用数据库中的数据。
+		var value = table.newValue();
+		var parents = new ArrayList<String>();
+		value.decodeResultSet(parents, rs);
+		return callback.handle(k, value);
+	}
+
+	private static <K extends Comparable<K>, V extends Bean>
+	String buildOrderByDesc(TableX<K, V> table) {
+		// 目前考虑keyColumns让Schemas来构造，注意生成顺序最好和encodeKeySQLStatement,decodeKeyResultSet【最好一致】。
+		var orderBy = table.getRelationalTable().currentKeyColumns;
+		orderBy = orderBy.replace(",", " DESC,");
+		return " ORDER BY " + orderBy + " DESC"; // last desc
+	}
+
+	private static <K extends Comparable<K>, V extends Bean>
+	String buildKeyWhere(TableX<K, V> table, SQLStatement st, K exclusiveStartKey, boolean asc) {
+		if (null == exclusiveStartKey)
+			return "";
+
+		table.encodeKeySQLStatement(st, exclusiveStartKey);
+		var where = st.sql.toString();
+		where = where.replace(",", " AND ");
+		where = where.replace("=", asc ? ">" : "<");
+		return " WHERE " + where;
+	}
+
+	private static <K extends Comparable<K>, V extends Bean>
+	boolean invokeKeyCallback(TableX<K, V> table, ResultSet rs, TableWalkKey<K> callback, OutObject<K> outKey) throws SQLException {
+		K k = table.decodeKeyResultSet(rs);
+		if (outKey != null)
+			outKey.value = k;
+		var lockey = table.getZeze().getLocks().get(new TableKey(table.getId(), k));
+		lockey.enterReadLock();
+		try {
+			var r = table.getCache().get(k);
+			if (r != null && r.getState() != StateRemoved) {
+				if (r.getState() == StateShare || r.getState() == StateModify) {
+					// 拥有正确的状态：
+					@SuppressWarnings("unchecked")
+					var strongRef = (V)r.getSoftValue();
+					if (strongRef == null)
+						return true; // 已经被删除，但是还没有checkpoint的记录看不到。
+					return callback.handle(r.getObjectKey());
+				}
+				// else GlobalCacheManager.StateInvalid
+				// 继续后面的处理：使用数据库中的数据。
+			}
+		} finally {
+			lockey.exitReadLock();
+		}
+		// 缓存中不存在或者正在被删除，使用数据库中的数据。
+		return callback.handle(k);
+	}
+
 	public final class TableMysqlRelational implements Database.Table {
 
 		private final String name;
@@ -460,16 +548,6 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			System.out.println(sb);
 		}
 
-		private static void setParams(PreparedStatement pre, int start, ArrayList<Object> params) throws SQLException {
-			for (int i = 0; i < params.size(); ++i) {
-				var p = params.get(i);
-				if (p instanceof String)
-					pre.setString(i + start, (String)p);
-				else
-					pre.setBytes(i + start, ((Zeze.Net.Binary)p).toBytes());
-			}
-		}
-
 		@Override
 		public <K extends Comparable<K>, V extends Bean> V find(TableX<K, V> table, Object key) {
 			if (dropped)
@@ -530,37 +608,6 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			}
 		}
 
-		private static <K extends Comparable<K>, V extends Bean>
-		boolean invokeCallback(TableX<K, V> table, ResultSet rs, TableWalkHandle<K, V> callback, OutObject<K> outKey) throws SQLException {
-			K k = table.decodeKeyResultSet(rs);
-			if (null != outKey)
-				outKey.value = k;
-			var lockey = table.getZeze().getLocks().get(new TableKey(table.getId(), k));
-			lockey.enterReadLock();
-			try {
-				var r = table.getCache().get(k);
-				if (r != null && r.getState() != StateRemoved) {
-					if (r.getState() == StateShare || r.getState() == StateModify) {
-						// 拥有正确的状态：
-						@SuppressWarnings("unchecked")
-						var strongRef = (V)r.getSoftValue();
-						if (strongRef == null)
-							return true; // 已经被删除，但是还没有checkpoint的记录看不到。
-						return callback.handle(r.getObjectKey(), strongRef);
-					}
-					// else GlobalCacheManager.StateInvalid
-					// 继续后面的处理：使用数据库中的数据。
-				}
-			} finally {
-				lockey.exitReadLock();
-			}
-			// 缓存中不存在或者正在被删除，使用数据库中的数据。
-			var value = table.newValue();
-			var parents = new ArrayList<String>();
-			value.decodeResultSet(parents, rs);
-			return callback.handle(k, value);
-		}
-
 		private <K extends Comparable<K>, V extends Bean>
 		long walk(TableX<K, V> table, TableWalkHandle<K, V> callback, Runnable afterLock, String orderBy) {
 			if (dropped)
@@ -591,31 +638,11 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			return walk(table, callback, afterLock, ""); // 正序
 		}
 
-		private static <K extends Comparable<K>, V extends Bean>
-		String buildOrderByDesc(TableX<K, V> table) {
-			// 目前考虑keyColumns让Schemas来构造，注意生成顺序最好和encodeKeySQLStatement,decodeKeyResultSet【最好一致】。
-			var orderBy = table.getRelationalTable().currentKeyColumns;
-			orderBy = orderBy.replace(",", " DESC,");
-			return " ORDER BY " + orderBy + " DESC"; // last desc
-		}
-
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
 		long walkDesc(TableX<K, V> table, TableWalkHandle<K, V> callback, Runnable afterLock) {
 			// 反序
 			return walk(table, callback, afterLock, buildOrderByDesc(table));
-		}
-
-		private static <K extends Comparable<K>, V extends Bean>
-		String buildKeyWhere(TableX<K, V> table, SQLStatement st, K exclusiveStartKey, boolean asc) {
-			if (null == exclusiveStartKey)
-				return "";
-
-			table.encodeKeySQLStatement(st, exclusiveStartKey);
-			var where = st.sql.toString();
-			where = where.replace(",", " AND ");
-			where = where.replace("=", asc ? ">" : "<");
-			return " WHERE " + where;
 		}
 
 		private <K extends Comparable<K>, V extends Bean>
@@ -653,34 +680,6 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		public <K extends Comparable<K>, V extends Bean>
 		K walk(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback, Runnable afterLock) {
 			return walk(table, exclusiveStartKey, proposeLimit, callback, afterLock, "");
-		}
-
-		private static <K extends Comparable<K>, V extends Bean>
-		boolean invokeKeyCallback(TableX<K, V> table, ResultSet rs, TableWalkKey<K> callback, OutObject<K> outKey) throws SQLException {
-			K k = table.decodeKeyResultSet(rs);
-			if (outKey != null)
-				outKey.value = k;
-			var lockey = table.getZeze().getLocks().get(new TableKey(table.getId(), k));
-			lockey.enterReadLock();
-			try {
-				var r = table.getCache().get(k);
-				if (r != null && r.getState() != StateRemoved) {
-					if (r.getState() == StateShare || r.getState() == StateModify) {
-						// 拥有正确的状态：
-						@SuppressWarnings("unchecked")
-						var strongRef = (V)r.getSoftValue();
-						if (strongRef == null)
-							return true; // 已经被删除，但是还没有checkpoint的记录看不到。
-						return callback.handle(r.getObjectKey());
-					}
-					// else GlobalCacheManager.StateInvalid
-					// 继续后面的处理：使用数据库中的数据。
-				}
-			} finally {
-				lockey.exitReadLock();
-			}
-			// 缓存中不存在或者正在被删除，使用数据库中的数据。
-			return callback.handle(k);
 		}
 
 		private <K extends Comparable<K>, V extends Bean>
