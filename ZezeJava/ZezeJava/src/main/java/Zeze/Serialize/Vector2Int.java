@@ -1,5 +1,8 @@
 package Zeze.Serialize;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 @SuppressWarnings("rawtypes")
 public class Vector2Int implements Comparable, Cloneable {
 	public static final Vector2Int ZERO = new Vector2Int(0, 0);
@@ -12,12 +15,12 @@ public class Vector2Int implements Comparable, Cloneable {
 		this.y = y;
 	}
 
-	public Vector2Int(Vector2Int v2) {
+	public Vector2Int(@NotNull Vector2Int v2) {
 		x = v2.x;
 		y = v2.y;
 	}
 
-	public Vector2Int(Vector2 v2) {
+	public Vector2Int(@NotNull Vector2 v2) {
 		x = (int)v2.x;
 		y = (int)v2.y;
 	}
@@ -27,14 +30,14 @@ public class Vector2Int implements Comparable, Cloneable {
 	}
 
 	@Override
-	public int compareTo(Object o) {
+	public int compareTo(@NotNull Object o) {
 		Vector2Int v = (Vector2Int)o;
 		int c = Integer.compare(x, v.x);
 		return c != 0 ? c : Integer.compare(y, v.y);
 	}
 
 	@Override
-	public boolean equals(Object o) {
+	public boolean equals(@Nullable Object o) {
 		if (this == o)
 			return true;
 		if (o == null || o.getClass() != Vector2Int.class)
@@ -49,7 +52,7 @@ public class Vector2Int implements Comparable, Cloneable {
 	}
 
 	@Override
-	public Vector2Int clone() {
+	public @NotNull Vector2Int clone() {
 		try {
 			return (Vector2Int)super.clone();
 		} catch (CloneNotSupportedException e) {
@@ -58,7 +61,7 @@ public class Vector2Int implements Comparable, Cloneable {
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return "Vector2Int(" + x + ',' + y + ')';
 	}
 }

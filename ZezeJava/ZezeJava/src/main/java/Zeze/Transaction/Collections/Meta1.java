@@ -11,6 +11,7 @@ import Zeze.Serialize.Serializable;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Bean;
 import Zeze.Util.Reflect;
+import org.jetbrains.annotations.NotNull;
 
 public final class Meta1<V> {
 	private static final long beanHeadHash = Bean.hash64("Zeze.Transaction.Log<");
@@ -28,7 +29,7 @@ public final class Meta1<V> {
 	public final Function<ByteBuffer, V> valueDecoder; // 只用于非Bean类型
 	public final MethodHandle valueFactory; // 只用于Bean类型
 
-	private Meta1(long headHash, Class<V> valueClass) {
+	private Meta1(long headHash, @NotNull Class<V> valueClass) {
 		logTypeId = Bean.hashLog(headHash, valueClass);
 		var valueCodecFuncs = SerializeHelper.createCodec(valueClass);
 		valueEncoder = valueCodecFuncs.encoder;
@@ -36,7 +37,7 @@ public final class Meta1<V> {
 		valueFactory = Bean.class.isAssignableFrom(valueClass) ? Reflect.getDefaultConstructor(valueClass) : null;
 	}
 
-	private Meta1(ToLongFunction<Bean> get, LongFunction<Bean> create) {
+	private Meta1(@NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) {
 		logTypeId = dynamicBeanTypeId;
 		valueEncoder = null;
 		valueDecoder = null;
@@ -44,26 +45,26 @@ public final class Meta1<V> {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static <V extends Serializable> Meta1<V> getBeanMeta(Class<V> beanClass) {
+	public static <V extends Serializable> @NotNull Meta1<V> getBeanMeta(@NotNull Class<V> beanClass) {
 		return (Meta1<V>)beanMetas.computeIfAbsent(beanClass, vc -> new Meta1<>(beanHeadHash, (Class<V>)vc));
 	}
 
 	@SuppressWarnings("unchecked")
-	static <V> Meta1<V> getList1Meta(Class<V> valueClass) {
+	static <V> @NotNull Meta1<V> getList1Meta(@NotNull Class<V> valueClass) {
 		return (Meta1<V>)list1Metas.computeIfAbsent(valueClass, vc -> new Meta1<>(list1HeadHash, (Class<V>)vc));
 	}
 
 	@SuppressWarnings("unchecked")
-	static <V extends Bean> Meta1<V> getList2Meta(Class<V> valueClass) {
+	static <V extends Bean> @NotNull Meta1<V> getList2Meta(@NotNull Class<V> valueClass) {
 		return (Meta1<V>)list2Metas.computeIfAbsent(valueClass, vc -> new Meta1<>(list2HeadHash, (Class<V>)vc));
 	}
 
 	@SuppressWarnings("unchecked")
-	static <V> Meta1<V> getSet1Meta(Class<V> valueClass) {
+	static <V> @NotNull Meta1<V> getSet1Meta(@NotNull Class<V> valueClass) {
 		return (Meta1<V>)set1Metas.computeIfAbsent(valueClass, vc -> new Meta1<>(set1HeadHash, (Class<V>)vc));
 	}
 
-	static <V> Meta1<V> createDynamicListMeta(ToLongFunction<Bean> get, LongFunction<Bean> create) {
+	static <V> @NotNull Meta1<V> createDynamicListMeta(@NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) {
 		return new Meta1<>(get, create);
 	}
 }

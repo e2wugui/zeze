@@ -141,6 +141,7 @@ public final class Changes {
 
 	public void collect(Bean recent, Log log) {
 		// is table has listener
+		//noinspection DataFlowIssue
 		if (null == listeners.get(recent.rootInfo.getRecord().getTable()))
 			return;
 

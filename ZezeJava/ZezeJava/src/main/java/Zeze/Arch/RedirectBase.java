@@ -18,6 +18,7 @@ import Zeze.Util.LongHashMap;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * 应用需要继承实现必要的方法，创建实例并保存。需要继承的可能性不大, 需要的话直接设置Application.Redirect
@@ -26,9 +27,9 @@ public class RedirectBase {
 	private static final Logger logger = LogManager.getLogger(RedirectBase.class);
 
 	public final ConcurrentHashMap<String, RedirectHandle> handles = new ConcurrentHashMap<>();
-	public final ProviderApp providerApp;
+	public final @NotNull ProviderApp providerApp;
 
-	public RedirectBase(ProviderApp app) {
+	public RedirectBase(@NotNull ProviderApp app) {
 		providerApp = app;
 	}
 

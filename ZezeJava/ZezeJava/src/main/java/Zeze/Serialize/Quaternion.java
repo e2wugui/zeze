@@ -1,5 +1,7 @@
 package Zeze.Serialize;
 
+import org.jetbrains.annotations.NotNull;
+
 public class Quaternion extends Vector4 {
 	public static final Quaternion ZERO = new Quaternion(0, 0, 0, 0);
 
@@ -7,33 +9,33 @@ public class Quaternion extends Vector4 {
 		super(x, y, z, w);
 	}
 
-	public Quaternion(Vector4 v4) {
+	public Quaternion(@NotNull Vector4 v4) {
 		super(v4);
 	}
 
-	public Quaternion(Vector3 v3) {
+	public Quaternion(@NotNull Vector3 v3) {
 		super(v3);
 	}
 
-	public Quaternion(Vector3Int v3) {
+	public Quaternion(@NotNull Vector3Int v3) {
 		super(v3);
 	}
 
-	public Quaternion(Vector2 v2) {
+	public Quaternion(@NotNull Vector2 v2) {
 		super(v2);
 	}
 
-	public Quaternion(Vector2Int v2) {
+	public Quaternion(@NotNull Vector2Int v2) {
 		super(v2);
 	}
 
 	@Override
-	public Quaternion clone() {
+	public @NotNull Quaternion clone() {
 		return (Quaternion)super.clone();
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return "Quaternion(" + x + ',' + y + ',' + z + ',' + w + ')';
 	}
 }

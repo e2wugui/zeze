@@ -9,25 +9,27 @@ import Zeze.Transaction.Log;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.IntHashSet;
+import org.jetbrains.annotations.NotNull;
 import org.pcollections.Empty;
 
+@SuppressWarnings("DataFlowIssue")
 public class PList2<V extends Bean> extends PList<V> {
-	protected final Meta1<V> meta;
+	protected final @NotNull Meta1<V> meta;
 
-	public PList2(Class<V> valueClass) {
+	public PList2(@NotNull Class<V> valueClass) {
 		meta = Meta1.getList2Meta(valueClass);
 	}
 
-	public PList2(ToLongFunction<Bean> get, LongFunction<Bean> create) { // only for DynamicBean value
+	public PList2(@NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) { // only for DynamicBean value
 		meta = Meta1.createDynamicListMeta(get, create);
 	}
 
-	private PList2(Meta1<V> meta) {
+	private PList2(@NotNull Meta1<V> meta) {
 		this.meta = meta;
 	}
 
 	@SuppressWarnings("unchecked")
-	public V createValue() {
+	public @NotNull V createValue() {
 		try {
 			return (V)meta.valueFactory.invoke();
 		} catch (RuntimeException | Error e) {
@@ -38,7 +40,8 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
-	public boolean add(V item) {
+	public boolean add(@NotNull V item) {
+		//noinspection ConstantValue
 		if (item == null)
 			throw new IllegalArgumentException("null item");
 
@@ -58,7 +61,7 @@ public class PList2<V extends Bean> extends PList<V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public boolean remove(Object item) {
+	public boolean remove(@NotNull Object item) {
 		if (isManaged()) {
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -83,7 +86,8 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
-	public V set(int index, V item) {
+	public @NotNull V set(int index, @NotNull V item) {
+		//noinspection ConstantValue
 		if (item == null)
 			throw new IllegalArgumentException("null item");
 
@@ -100,7 +104,8 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
-	public void add(int index, V item) {
+	public void add(int index, @NotNull V item) {
+		//noinspection ConstantValue
 		if (item == null)
 			throw new IllegalArgumentException("null item");
 
@@ -115,7 +120,7 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
-	public V remove(int index) {
+	public @NotNull V remove(int index) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
@@ -128,11 +133,10 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
-	public boolean addAll(Collection<? extends V> items) {
+	public boolean addAll(@NotNull Collection<? extends V> items) {
 		if (isManaged()) {
-			for (var item : items) {
+			for (var item : items)
 				item.initRootInfoWithRedo(rootInfo, this);
-			}
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -144,7 +148,7 @@ public class PList2<V extends Bean> extends PList<V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public boolean removeAll(Collection<?> c) {
+	public boolean removeAll(@NotNull Collection<?> c) {
 		if (isManaged()) {
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -156,7 +160,7 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
-	public LogBean createLogBean() {
+	public @NotNull LogBean createLogBean() {
 		var log = new LogList2<>(meta);
 		log.setBelong(parent());
 		log.setThis(this);
@@ -166,7 +170,7 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
-	public void followerApply(Log _log) {
+	public void followerApply(@NotNull Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogList2<V>)_log;
 		var tmp = list;
@@ -201,26 +205,26 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(@NotNull Record.RootInfo root) {
 		for (var v : list)
 			v.initRootInfo(root, this);
 	}
 
 	@Override
-	protected void initChildrenRootInfoWithRedo(Record.RootInfo root) {
+	protected void initChildrenRootInfoWithRedo(@NotNull Record.RootInfo root) {
 		for (var v : list)
 			v.initRootInfoWithRedo(root, this);
 	}
 
 	@Override
-	public PList2<V> copy() {
+	public @NotNull PList2<V> copy() {
 		var copy = new PList2<>(meta);
 		copy.list = list;
 		return copy;
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		var tmp = getList();
 		bb.WriteUInt(tmp.size());
 		for (var e : tmp)
@@ -229,7 +233,7 @@ public class PList2<V extends Bean> extends PList<V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(@NotNull ByteBuffer bb) {
 		clear();
 		try {
 			for (int i = bb.ReadUInt(); i > 0; i--) {

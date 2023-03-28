@@ -2,11 +2,11 @@ package Zeze.Transaction;
 
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Serialize.ByteBuffer;
+import org.jetbrains.annotations.NotNull;
 
 public final class Storage<K extends Comparable<K>, V extends Bean> {
 	private final Table table;
-	private final Database.Table databaseTable;
+	private final @NotNull Database.Table databaseTable;
 	private final ConcurrentHashMap<K, Record1<K, V>> changed = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<K, Record1<K, V>> encoded = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<K, Record1<K, V>> snapshot = new ConcurrentHashMap<>();
@@ -27,7 +27,7 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 		return table;
 	}
 
-	public Database.Table getDatabaseTable() {
+	public @NotNull Database.Table getDatabaseTable() {
 		return databaseTable;
 	}
 

@@ -8,6 +8,8 @@ import java.util.Arrays;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.BitConverter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Bean 类型 binary 的辅助类。
@@ -17,14 +19,14 @@ import Zeze.Util.BitConverter;
 public final class Binary implements Comparable<Binary> {
 	public static final Binary Empty = new Binary(ByteBuffer.Empty);
 
-	private final byte[] bytes;
+	private final byte @NotNull [] bytes;
 	private final int offset;
 	private final int count;
 
 	/**
 	 * 这里实际上直接wrap传入的bytes，所以必须保证之后不能再修改bytes的值了。
 	 */
-	public Binary(byte[] bytes, int offset, int count) {
+	public Binary(byte @NotNull [] bytes, int offset, int count) {
 		this.bytes = bytes;
 		this.offset = offset;
 		this.count = count;
@@ -33,7 +35,7 @@ public final class Binary implements Comparable<Binary> {
 	/**
 	 * 这里实际上直接wrap传入的bytes，所以必须保证之后不能再修改bytes的值了。
 	 */
-	public Binary(byte[] bytes) {
+	public Binary(byte @NotNull [] bytes) {
 		this(bytes, 0, bytes.length);
 	}
 
@@ -41,7 +43,7 @@ public final class Binary implements Comparable<Binary> {
 	 * 这里实际上直接wrap传入的bytes，所以必须保证之后不能再修改bytes的值了。
 	 * 【一般用于临时存储】
 	 */
-	public Binary(ByteBuffer bb) {
+	public Binary(@NotNull ByteBuffer bb) {
 		this(bb.Bytes, bb.ReadIndex, bb.Size());
 	}
 
@@ -49,27 +51,27 @@ public final class Binary implements Comparable<Binary> {
 	 * 这里调用Copy是因为ByteBuffer可能分配的保留内存较大。Copy返回实际大小的数据。
 	 * 使用这个方法的地方一般是应用。这个数据可能被存储到表中。
 	 */
-	public Binary(Serializable s) {
+	public Binary(@NotNull Serializable s) {
 		this(ByteBuffer.encode(s).Copy());
 	}
 
-	public Binary(String s) {
+	public Binary(@NotNull String s) {
 		this(s.getBytes(StandardCharsets.UTF_8));
 	}
 
-	public byte[] bytesUnsafe() {
+	public byte @NotNull [] bytesUnsafe() {
 		return bytes;
 	}
 
-	public byte[] toBytes() {
+	public byte @NotNull [] toBytes() {
 		return Arrays.copyOfRange(bytes, offset, offset + count);
 	}
 
-	public void writeToFile(RandomAccessFile file) throws IOException {
+	public void writeToFile(@NotNull RandomAccessFile file) throws IOException {
 		file.write(bytes, offset, count);
 	}
 
-	public ByteBuffer Wrap() {
+	public @NotNull ByteBuffer Wrap() {
 		return ByteBuffer.Wrap(bytes, offset, count);
 	}
 
@@ -85,31 +87,31 @@ public final class Binary implements Comparable<Binary> {
 		return count;
 	}
 
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		bb.WriteBytes(bytes, offset, count);
 	}
 
-	public void decode(Serializable _s_) {
+	public void decode(@NotNull Serializable _s_) {
 		_s_.decode(ByteBuffer.Wrap(bytes, offset, count));
 	}
 
-	public String toString(Charset charset) {
+	public @NotNull String toString(@NotNull Charset charset) {
 		return new String(bytes, offset, count, charset);
 	}
 
 	@Override
-	public int compareTo(Binary other) {
+	public int compareTo(@NotNull Binary other) {
 		return Arrays.compareUnsigned(bytes, offset, offset + count,
 				other.bytes, other.offset, other.offset + other.count);
 	}
 
-	public boolean equals(Binary other) {
+	public boolean equals(@Nullable Binary other) {
 		return this == other || other != null && count == other.count &&
 				Arrays.equals(bytes, offset, offset + count, other.bytes, other.offset, other.offset + count);
 	}
 
 	@Override
-	public boolean equals(Object other) {
+	public boolean equals(@Nullable Object other) {
 		if (other instanceof Binary)
 			return equals((Binary)other);
 		if (other instanceof byte[]) {
@@ -129,7 +131,7 @@ public final class Binary implements Comparable<Binary> {
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return BitConverter.toStringWithLimit(bytes, offset, count, 16);
 	}
 }

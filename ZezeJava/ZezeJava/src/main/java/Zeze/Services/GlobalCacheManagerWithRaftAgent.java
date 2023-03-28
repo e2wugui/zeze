@@ -338,9 +338,6 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			if (zeze == null)
 				return;
 			var config = zeze.getConfig();
-			if (config == null)
-				return;
-
 			var future = startNewLogin();
 
 			if (loginTimes.get() == 0) {

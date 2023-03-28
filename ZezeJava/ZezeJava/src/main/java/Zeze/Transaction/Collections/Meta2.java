@@ -11,6 +11,7 @@ import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DynamicBean;
 import Zeze.Util.Reflect;
+import org.jetbrains.annotations.NotNull;
 
 public final class Meta2<K, V> {
 	private static final long map1HeadHash = Bean.hash64("Zeze.Transaction.Collections.LogMap1<");
@@ -25,7 +26,7 @@ public final class Meta2<K, V> {
 	final Function<ByteBuffer, V> valueDecoder; // 只用于非Bean类型
 	final MethodHandle valueFactory; // 只用于Bean类型
 
-	private Meta2(long headHash, Class<K> keyClass, Class<V> valueClass) {
+	private Meta2(long headHash, @NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
 		logTypeId = Bean.hashLog(headHash, valueClass);
 		var keyCodecFuncs = SerializeHelper.createCodec(keyClass);
 		var valueCodecFuncs = SerializeHelper.createCodec(valueClass);
@@ -36,7 +37,7 @@ public final class Meta2<K, V> {
 		valueFactory = Bean.class.isAssignableFrom(valueClass) ? Reflect.getDefaultConstructor(valueClass) : null;
 	}
 
-	private Meta2(Class<K> keyClass, ToLongFunction<Bean> get, LongFunction<Bean> create) {
+	private Meta2(@NotNull Class<K> keyClass, @NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) {
 		logTypeId = Bean.hashLog(map2HeadHash, DynamicBean.class);
 		var keyCodecFuncs = SerializeHelper.createCodec(keyClass);
 		keyEncoder = keyCodecFuncs.encoder;
@@ -47,7 +48,7 @@ public final class Meta2<K, V> {
 	}
 
 	@SuppressWarnings("unchecked")
-	static <K, V> Meta2<K, V> getMap1Meta(Class<K> keyClass, Class<V> valueClass) {
+	static <K, V> @NotNull Meta2<K, V> getMap1Meta(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
 		var map = map1Metas.computeIfAbsent(keyClass, __ -> new ConcurrentHashMap<>());
 		var r = map.get(keyClass);
 		if (r != null)
@@ -56,7 +57,8 @@ public final class Meta2<K, V> {
 	}
 
 	@SuppressWarnings("unchecked")
-	static <K, V extends Bean> Meta2<K, V> getMap2Meta(Class<K> keyClass, Class<V> valueClass) {
+	static <K, V extends Bean> @NotNull Meta2<K, V> getMap2Meta(@NotNull Class<K> keyClass,
+																@NotNull Class<V> valueClass) {
 		var map = map2Metas.computeIfAbsent(keyClass, __ -> new ConcurrentHashMap<>());
 		var r = map.get(keyClass);
 		if (r != null)
@@ -64,8 +66,9 @@ public final class Meta2<K, V> {
 		return (Meta2<K, V>)map.computeIfAbsent(valueClass, vc -> new Meta2<>(map2HeadHash, keyClass, (Class<V>)vc));
 	}
 
-	static <K, V extends Bean> Meta2<K, V> createDynamicMapMeta(Class<K> keyClass,
-																ToLongFunction<Bean> get, LongFunction<Bean> create) {
+	static <K, V extends Bean> @NotNull Meta2<K, V> createDynamicMapMeta(@NotNull Class<K> keyClass,
+																		 @NotNull ToLongFunction<Bean> get,
+																		 @NotNull LongFunction<Bean> create) {
 		return new Meta2<>(keyClass, get, create);
 	}
 }

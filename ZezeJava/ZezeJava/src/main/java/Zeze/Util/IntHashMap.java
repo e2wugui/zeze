@@ -5,12 +5,14 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.IntFunction;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class IntHashMap<V> implements Cloneable {
 	private int size;
 	private int[] keyTable;
-	private V[] valueTable;
-	private V zeroValue;
+	private @Nullable V @NotNull [] valueTable;
+	private @Nullable V zeroValue;
 	private boolean hasZeroValue;
 	private final float loadFactor;
 	private int threshold;
@@ -38,7 +40,7 @@ public class IntHashMap<V> implements Cloneable {
 		valueTable = (V[])new Object[tableSize];
 	}
 
-	public IntHashMap(IntHashMap<? extends V> map) {
+	public IntHashMap(@NotNull IntHashMap<? extends V> map) {
 		size = map.size;
 		keyTable = map.keyTable.clone();
 		valueTable = map.valueTable.clone();
@@ -59,11 +61,11 @@ public class IntHashMap<V> implements Cloneable {
 		return (int)((key * 0x9E3779B97F4A7C15L) >>> shift);
 	}
 
-	public int[] getKeyTable() {
+	public int @NotNull [] getKeyTable() {
 		return keyTable;
 	}
 
-	public V[] getValueTable() {
+	public @Nullable V @NotNull [] getValueTable() {
 		return valueTable;
 	}
 
@@ -71,7 +73,7 @@ public class IntHashMap<V> implements Cloneable {
 		return hasZeroValue;
 	}
 
-	public V getZeroValue() {
+	public @Nullable V getZeroValue() {
 		return zeroValue;
 	}
 
@@ -105,7 +107,7 @@ public class IntHashMap<V> implements Cloneable {
 		}
 	}
 
-	public boolean containsValue(V value) {
+	public boolean containsValue(@Nullable V value) {
 		if (value == null) {
 			if (hasZeroValue && zeroValue == null)
 				return true;
@@ -126,7 +128,7 @@ public class IntHashMap<V> implements Cloneable {
 		return false;
 	}
 
-	public V get(int key) {
+	public @Nullable V get(int key) {
 		if (key == 0)
 			return hasZeroValue ? zeroValue : null;
 		final int[] kt = keyTable;
@@ -140,7 +142,7 @@ public class IntHashMap<V> implements Cloneable {
 		}
 	}
 
-	public V getOrDefault(int key, V defaultValue) {
+	public V getOrDefault(int key, @Nullable V defaultValue) {
 		if (key == 0)
 			return hasZeroValue ? zeroValue : defaultValue;
 		final int[] kt = keyTable;
@@ -154,7 +156,7 @@ public class IntHashMap<V> implements Cloneable {
 		}
 	}
 
-	public V put(int key, V value) {
+	public @Nullable V put(int key, @Nullable V value) {
 		if (key == 0) {
 			final V oldV = zeroValue;
 			zeroValue = value;
@@ -184,7 +186,7 @@ public class IntHashMap<V> implements Cloneable {
 		}
 	}
 
-	public void putAll(IntHashMap<? extends V> map) {
+	public void putAll(@NotNull IntHashMap<? extends V> map) {
 		if (map.hasZeroValue) {
 			hasZeroValue = true;
 			zeroValue = map.zeroValue;
@@ -198,7 +200,7 @@ public class IntHashMap<V> implements Cloneable {
 		}
 	}
 
-	public V putIfAbsent(int key, V value) {
+	public @Nullable V putIfAbsent(int key, @Nullable V value) {
 		if (key == 0) {
 			final V oldV = zeroValue;
 			if (!hasZeroValue) {
@@ -225,7 +227,7 @@ public class IntHashMap<V> implements Cloneable {
 		}
 	}
 
-	public V computeIfAbsent(int key, IntFunction<? extends V> mappingFunction) {
+	public V computeIfAbsent(int key, @NotNull IntFunction<? extends V> mappingFunction) {
 		if (key == 0) {
 			V v = zeroValue;
 			if (!hasZeroValue) {
@@ -258,7 +260,7 @@ public class IntHashMap<V> implements Cloneable {
 		}
 	}
 
-	public V replace(int key, V value) {
+	public @Nullable V replace(int key, @Nullable V value) {
 		if (key == 0) {
 			final V oldV = zeroValue;
 			if (hasZeroValue)
@@ -280,7 +282,7 @@ public class IntHashMap<V> implements Cloneable {
 		}
 	}
 
-	public boolean replace(int key, V oldValue, V newValue) {
+	public boolean replace(int key, @Nullable V oldValue, @Nullable V newValue) {
 		if (key == 0) {
 			if (!hasZeroValue || !Objects.equals(oldValue, zeroValue))
 				return false;
@@ -306,7 +308,7 @@ public class IntHashMap<V> implements Cloneable {
 		V apply(int key, V value);
 	}
 
-	public V compute(int key, IntObjectFunction<V> op) {
+	public V compute(int key, @NotNull IntObjectFunction<V> op) {
 		if (key == 0) {
 			final V oldV = zeroValue;
 			final V v = op.apply(key, oldV);
@@ -362,7 +364,7 @@ public class IntHashMap<V> implements Cloneable {
 		}
 	}
 
-	public V remove(int key) {
+	public @Nullable V remove(int key) {
 		if (key == 0) {
 			if (!hasZeroValue)
 				return null;
@@ -398,7 +400,7 @@ public class IntHashMap<V> implements Cloneable {
 		return oldV;
 	}
 
-	public boolean remove(int key, V value) {
+	public boolean remove(int key, @Nullable V value) {
 		if (key == 0) {
 			if (!hasZeroValue || !Objects.equals(value, zeroValue))
 				return false;
@@ -496,7 +498,7 @@ public class IntHashMap<V> implements Cloneable {
 		valueTable = vt;
 	}
 
-	public void foreachKey(IntConsumer consumer) {
+	public void foreachKey(@NotNull IntConsumer consumer) {
 		if (hasZeroValue)
 			consumer.accept(0);
 		for (final int k : keyTable)
@@ -504,7 +506,7 @@ public class IntHashMap<V> implements Cloneable {
 				consumer.accept(k);
 	}
 
-	public void foreachValue(Consumer<V> consumer) {
+	public void foreachValue(@NotNull Consumer<V> consumer) {
 		if (hasZeroValue)
 			consumer.accept(zeroValue);
 		final int[] kt = keyTable;
@@ -518,7 +520,7 @@ public class IntHashMap<V> implements Cloneable {
 		void accept(int key, V value);
 	}
 
-	public void foreach(IntObjectConsumer<V> consumer) {
+	public void foreach(@NotNull IntObjectConsumer<V> consumer) {
 		if (hasZeroValue)
 			consumer.accept(0, zeroValue);
 		final int[] kt = keyTable;
@@ -531,10 +533,10 @@ public class IntHashMap<V> implements Cloneable {
 	}
 
 	public interface IntObjectMapPredicate<V> {
-		boolean test(IntHashMap<V> map, int key, V value);
+		boolean test(@NotNull IntHashMap<V> map, int key, V value);
 	}
 
-	public boolean foreachTest(IntObjectMapPredicate<V> tester) {
+	public boolean foreachTest(@NotNull IntObjectMapPredicate<V> tester) {
 		if (hasZeroValue && !tester.test(this, 0, zeroValue))
 			return false;
 		final int[] kt = keyTable;
@@ -547,7 +549,7 @@ public class IntHashMap<V> implements Cloneable {
 		return true;
 	}
 
-	public void foreachUpdate(IntObjectFunction<V> func) {
+	public void foreachUpdate(@NotNull IntObjectFunction<V> func) {
 		if (hasZeroValue) {
 			final V oldV = zeroValue;
 			final V v = func.apply(0, oldV);
@@ -613,12 +615,12 @@ public class IntHashMap<V> implements Cloneable {
 		}
 	}
 
-	public Iterator iterator() {
+	public @NotNull Iterator iterator() {
 		return new Iterator();
 	}
 
 	@Override
-	public IntHashMap<V> clone() throws CloneNotSupportedException {
+	public @NotNull IntHashMap<V> clone() throws CloneNotSupportedException {
 		@SuppressWarnings("unchecked") final IntHashMap<V> map = (IntHashMap<V>)super.clone();
 		map.keyTable = keyTable.clone();
 		map.valueTable = valueTable.clone();
@@ -626,7 +628,7 @@ public class IntHashMap<V> implements Cloneable {
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		if (size == 0)
 			return "{}";
 		final StringBuilder sb = new StringBuilder(32).append('{');

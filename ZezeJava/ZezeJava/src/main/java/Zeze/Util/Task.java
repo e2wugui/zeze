@@ -21,6 +21,8 @@ import Zeze.Transaction.Transaction;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class Task {
 	public interface ILogAction {
@@ -52,15 +54,16 @@ public final class Task {
 		return threadPoolScheduled;
 	}
 
-	public static ExecutorService getCriticalThreadPool() {
+	public static @NotNull ExecutorService getCriticalThreadPool() {
 		return threadPoolCritical;
 	}
 
 	// 固定数量的线程池, 普通优先级, 自动支持虚拟线程, 用于处理普通任务
-	public static ExecutorService newFixedThreadPool(int threadCount, String threadNamePrefix) {
+	public static @NotNull ExecutorService newFixedThreadPool(int threadCount, @NotNull String threadNamePrefix) {
 		try {
 			//noinspection JavaReflectionMemberAccess
-			var r = (ExecutorService)Executors.class.getMethod("newVirtualThreadPerTaskExecutor", (Class<?>[])null).invoke(null);
+			var r = (ExecutorService)Executors.class.getMethod("newVirtualThreadPerTaskExecutor",
+					(Class<?>[])null).invoke(null);
 			logger.info("newFixedThreadPool({},{}) use virtual thread pool", threadCount, threadNamePrefix);
 			return r;
 		} catch (ReflectiveOperationException ignored) {
@@ -70,7 +73,7 @@ public final class Task {
 	}
 
 	// 关键线程池, 普通优先级+1, 不使用虚拟线程, 线程数按需增长, 用于处理关键任务, 比普通任务的处理更及时
-	public static ExecutorService newCriticalThreadPool(String threadNamePrefix) {
+	public static @NotNull ExecutorService newCriticalThreadPool(@NotNull String threadNamePrefix) {
 		return Executors.newCachedThreadPool(new ThreadFactoryWithName(threadNamePrefix) {
 			@Override
 			public Thread newThread(Runnable r) {
@@ -83,7 +86,9 @@ public final class Task {
 		});
 	}
 
-	public static synchronized void initThreadPool(ExecutorService pool, ScheduledExecutorService scheduled) {
+	public static synchronized void initThreadPool(@NotNull ExecutorService pool,
+												   @NotNull ScheduledExecutorService scheduled) {
+		//noinspection ConstantValue
 		if (pool == null || scheduled == null)
 			throw new IllegalArgumentException();
 
@@ -117,24 +122,26 @@ public final class Task {
 		return true;
 	}
 
-	public static void call(Action0 action, String name) {
+	public static void call(@NotNull Action0 action, @Nullable String name) {
 		try {
 			action.run();
 		} catch (Exception ex) {
+			//noinspection ConstantValue
 			logger.error("{}", name != null ? name : action != null ? action.getClass().getName() : "", ex);
 		}
 	}
 
-	public static long call(FuncLong func, String name) {
+	public static long call(@NotNull FuncLong func, String name) {
 		try {
 			return func.call();
 		} catch (Exception ex) {
+			//noinspection ConstantValue
 			logger.error("{}", name != null ? name : func != null ? func.getClass().getName() : "", ex);
 			return Procedure.Exception;
 		}
 	}
 
-	public static void run(Action0 action, String name) {
+	public static void run(@NotNull Action0 action, String name) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
 			t.runWhileCommit(() -> runUnsafe(action, name));
@@ -143,11 +150,11 @@ public final class Task {
 	}
 
 	// 注意: 以Unsafe结尾的方法在事务中也会立即异步执行,即使之后该事务redo或rollback也无法撤销,很可能不是想要的结果,所以小心使用
-	public static Future<?> runUnsafe(Action0 action, String name) {
+	public static @NotNull Future<?> runUnsafe(@NotNull Action0 action, String name) {
 		return runUnsafe(action, name, DispatchMode.Normal);
 	}
 
-	public static void run(Action0 action, String name, DispatchMode mode) {
+	public static void run(@NotNull Action0 action, String name, DispatchMode mode) {
 		Transaction t;
 		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
 			t.runWhileCommit(() -> runUnsafe(action, name, mode));
@@ -155,13 +162,14 @@ public final class Task {
 			runUnsafe(action, name, mode);
 	}
 
-	public static Future<?> runUnsafe(Action0 action, String name, DispatchMode mode) {
+	public static @NotNull Future<?> runUnsafe(@NotNull Action0 action, String name, DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			final var future = new TaskCompletionSource<Long>();
 			try {
 				action.run();
 				future.setResult(0L);
 			} catch (Exception e) {
+				//noinspection ConstantValue
 				logger.error("{}", name != null ? name : action != null ? action.getClass().getName() : "", e);
 				future.setException(e);
 			}
@@ -173,12 +181,13 @@ public final class Task {
 			try {
 				action.run();
 			} catch (Exception ex) {
+				//noinspection ConstantValue
 				logger.error("{}", name != null ? name : action != null ? action.getClass().getName() : "", ex);
 			}
 		});
 	}
 
-	public static void schedule(long initialDelay, Action0 action) {
+	public static void schedule(long initialDelay, @NotNull Action0 action) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
 			t.runWhileCommit(() -> scheduleUnsafe(initialDelay, action));
@@ -186,7 +195,7 @@ public final class Task {
 			scheduleUnsafe(initialDelay, action);
 	}
 
-	public static Future<?> scheduleUnsafe(long initialDelay, Action0 action) {
+	public static @NotNull Future<?> scheduleUnsafe(long initialDelay, @NotNull Action0 action) {
 		return threadPoolScheduled.schedule(() -> {
 			try {
 				action.run();
@@ -196,7 +205,7 @@ public final class Task {
 		}, initialDelay, TimeUnit.MILLISECONDS);
 	}
 
-	public static <R> Future<R> scheduleUnsafe(long initialDelay, Func0<R> func) {
+	public static <R> @NotNull Future<R> scheduleUnsafe(long initialDelay, @NotNull Func0<R> func) {
 		return threadPoolScheduled.schedule(() -> {
 			try {
 				return func.call();
@@ -207,11 +216,11 @@ public final class Task {
 		}, initialDelay, TimeUnit.MILLISECONDS);
 	}
 
-	public static void scheduleAt(int hour, int minute, Action0 action) {
+	public static void scheduleAt(int hour, int minute, @NotNull Action0 action) {
 		scheduleAt(hour, minute, -1, action);
 	}
 
-	public static void scheduleAt(int hour, int minute, long period, Action0 action) {
+	public static void scheduleAt(int hour, int minute, long period, @NotNull Action0 action) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
 			t.runWhileCommit(() -> scheduleAtUnsafe(hour, minute, period, action));
@@ -219,11 +228,11 @@ public final class Task {
 			scheduleAtUnsafe(hour, minute, period, action);
 	}
 
-	public static Future<?> scheduleAtUnsafe(int hour, int minute, Action0 action) {
+	public static @NotNull Future<?> scheduleAtUnsafe(int hour, int minute, @NotNull Action0 action) {
 		return scheduleAtUnsafe(hour, minute, -1, action);
 	}
 
-	public static Future<?> scheduleAtUnsafe(int hour, int minute, long period, Action0 action) {
+	public static @NotNull Future<?> scheduleAtUnsafe(int hour, int minute, long period, @NotNull Action0 action) {
 		var firstTime = Calendar.getInstance();
 		firstTime.set(Calendar.HOUR_OF_DAY, hour);
 		firstTime.set(Calendar.MINUTE, minute);
@@ -237,7 +246,7 @@ public final class Task {
 		return scheduleUnsafe(delay, action);
 	}
 
-	public static void schedule(long initialDelay, long period, Action0 action) {
+	public static void schedule(long initialDelay, long period, @NotNull Action0 action) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
 			t.runWhileCommit(() -> scheduleUnsafe(initialDelay, period, action));
@@ -245,7 +254,7 @@ public final class Task {
 			scheduleUnsafe(initialDelay, period, action);
 	}
 
-	public static Future<?> scheduleUnsafe(long initialDelay, long period, Action0 action) {
+	public static @NotNull Future<?> scheduleUnsafe(long initialDelay, long period, @NotNull Action0 action) {
 		return threadPoolScheduled.scheduleWithFixedDelay(() -> {
 			try {
 				action.run();
@@ -310,15 +319,15 @@ public final class Task {
 			ProcedureStatistics.getInstance().getOrAdd(actionName).getOrAdd(result).increment();
 	}
 
-	public static long call(FuncLong func, Protocol<?> p) {
+	public static long call(@NotNull FuncLong func, Protocol<?> p) {
 		return call(func, p, null, null);
 	}
 
-	public static long call(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
+	public static long call(@NotNull FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
 		return call(func, p, actionWhenError, null);
 	}
 
-	public static Throwable getRootCause(Throwable e) {
+	public static @NotNull Throwable getRootCause(@NotNull Throwable e) {
 		for (; ; ) {
 			var c = e.getCause();
 			if (c == null)
@@ -327,7 +336,7 @@ public final class Task {
 		}
 	}
 
-	public static long call(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String aName) {
+	public static long call(@NotNull FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String aName) {
 		boolean isRequestSaved = p != null && p.isRequest(); // 记住这个，以后可能会被改变。
 		try {
 			var result = func.call();
@@ -357,7 +366,7 @@ public final class Task {
 		}
 	}
 
-	public static void run(FuncLong func, Protocol<?> p) {
+	public static void run(@NotNull FuncLong func, Protocol<?> p) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
 			t.runWhileCommit(() -> runUnsafe(func, p));
@@ -365,11 +374,11 @@ public final class Task {
 			runUnsafe(func, p);
 	}
 
-	public static Future<Long> runUnsafe(FuncLong func, Protocol<?> p) {
+	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, Protocol<?> p) {
 		return runUnsafe(func, p, null, null, DispatchMode.Normal);
 	}
 
-	public static void run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
+	public static void run(@NotNull FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
 			t.runWhileCommit(() -> runUnsafe(func, p, actionWhenError));
@@ -377,11 +386,13 @@ public final class Task {
 			runUnsafe(func, p, actionWhenError);
 	}
 
-	public static Future<Long> runUnsafe(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
+	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, Protocol<?> p,
+												  ProtocolErrorHandle actionWhenError) {
 		return runUnsafe(func, p, actionWhenError, null, DispatchMode.Normal);
 	}
 
-	public static void run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String specialName) {
+	public static void run(@NotNull FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError,
+						   String specialName) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
 			t.runWhileCommit(() -> runUnsafe(func, p, actionWhenError, specialName));
@@ -389,11 +400,13 @@ public final class Task {
 			runUnsafe(func, p, actionWhenError, specialName);
 	}
 
-	public static Future<Long> runUnsafe(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String specialName) {
+	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, Protocol<?> p,
+												  ProtocolErrorHandle actionWhenError, String specialName) {
 		return runUnsafe(func, p, actionWhenError, specialName, DispatchMode.Normal);
 	}
 
-	public static void run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String specialName, DispatchMode mode) {
+	public static void run(@NotNull FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError,
+						   String specialName, DispatchMode mode) {
 		Transaction t;
 		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
 			t.runWhileCommit(() -> runUnsafe(func, p, actionWhenError, specialName, mode));
@@ -401,7 +414,9 @@ public final class Task {
 			runUnsafe(func, p, actionWhenError, specialName, mode);
 	}
 
-	public static Future<Long> runUnsafe(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String specialName, DispatchMode mode) {
+	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, Protocol<?> p,
+												  ProtocolErrorHandle actionWhenError, String specialName,
+												  DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			final var future = new TaskCompletionSource<Long>();
 			future.setResult(call(func, p, actionWhenError, specialName));
@@ -412,15 +427,15 @@ public final class Task {
 		return pool.submit(() -> call(func, p, actionWhenError, specialName));
 	}
 
-	public static long call(Procedure procedure) {
+	public static long call(@NotNull Procedure procedure) {
 		return call(procedure, (Protocol<?>)null, null);
 	}
 
-	public static long call(Procedure procedure, Protocol<?> from) {
+	public static long call(@NotNull Procedure procedure, Protocol<?> from) {
 		return call(procedure, from, null);
 	}
 
-	public static long call(Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError) {
+	public static long call(@NotNull Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError) {
 		boolean isRequestSaved = from != null && from.isRequest();
 		try {
 			// 日志在Call里面记录。因为要支持嵌套。
@@ -444,7 +459,7 @@ public final class Task {
 		}
 	}
 
-	public static long call(Procedure procedure, OutObject<Protocol<?>> outProtocol,
+	public static long call(@NotNull Procedure procedure, OutObject<Protocol<?>> outProtocol,
 							Action2<Protocol<?>, Long> actionWhenError) {
 		Protocol<?> from = null;
 		try {
@@ -470,7 +485,7 @@ public final class Task {
 		}
 	}
 
-	public static void run(Procedure procedure) {
+	public static void run(@NotNull Procedure procedure) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
 			t.runWhileCommit(() -> runUnsafe(procedure));
@@ -478,11 +493,11 @@ public final class Task {
 			runUnsafe(procedure);
 	}
 
-	public static Future<Long> runUnsafe(Procedure procedure) {
+	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure) {
 		return runUnsafe(procedure, DispatchMode.Normal);
 	}
 
-	public static void run(Procedure procedure, Protocol<?> from) {
+	public static void run(@NotNull Procedure procedure, Protocol<?> from) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
 			t.runWhileCommit(() -> runUnsafe(procedure, from));
@@ -490,11 +505,11 @@ public final class Task {
 			runUnsafe(procedure, from);
 	}
 
-	public static Future<Long> runUnsafe(Procedure procedure, Protocol<?> from) {
+	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, Protocol<?> from) {
 		return runUnsafe(procedure, from, null, DispatchMode.Normal);
 	}
 
-	public static void run(Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError) {
+	public static void run(@NotNull Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
 			t.runWhileCommit(() -> runUnsafe(procedure, from, actionWhenError));
@@ -502,11 +517,13 @@ public final class Task {
 			runUnsafe(procedure, from, actionWhenError);
 	}
 
-	public static Future<Long> runUnsafe(Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError) {
+	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, Protocol<?> from, Action2<Protocol<?>,
+			Long> actionWhenError) {
 		return runUnsafe(procedure, from, actionWhenError, DispatchMode.Normal);
 	}
 
-	public static void run(Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError, DispatchMode mode) {
+	public static void run(@NotNull Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError,
+						   DispatchMode mode) {
 		Transaction t;
 		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
 			t.runWhileCommit(() -> runUnsafe(procedure, from, actionWhenError, mode));
@@ -514,11 +531,12 @@ public final class Task {
 			runUnsafe(procedure, from, actionWhenError, mode);
 	}
 
-	public static Future<Long> runUnsafe(Procedure procedure, DispatchMode mode) {
+	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, DispatchMode mode) {
 		return runUnsafe(procedure, (Protocol<?>)null, null, mode);
 	}
 
-	public static Future<Long> runUnsafe(Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError, DispatchMode mode) {
+	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, Protocol<?> from, Action2<Protocol<?>,
+			Long> actionWhenError, DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			final var future = new TaskCompletionSource<Long>();
 			future.setResult(call(procedure, from, actionWhenError));
@@ -529,8 +547,8 @@ public final class Task {
 		return pool.submit(() -> call(procedure, from, actionWhenError));
 	}
 
-	public static Future<Long> runUnsafe(Procedure procedure, OutObject<Protocol<?>> outProtocol, Action2<Protocol<?>, Long> actionWhenError,
-										 DispatchMode mode) {
+	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, OutObject<Protocol<?>> outProtocol,
+												  Action2<Protocol<?>, Long> actionWhenError, DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			final var future = new TaskCompletionSource<Long>();
 			future.setResult(call(procedure, outProtocol, actionWhenError));
@@ -541,7 +559,7 @@ public final class Task {
 		return pool.submit(() -> call(procedure, outProtocol, actionWhenError));
 	}
 
-	public static void runRpcResponse(Procedure procedure) {
+	public static void runRpcResponse(@NotNull Procedure procedure) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
 			t.runWhileCommit(() -> runRpcResponseUnsafe(procedure));
@@ -549,11 +567,11 @@ public final class Task {
 			runRpcResponseUnsafe(procedure);
 	}
 
-	public static Future<Long> runRpcResponseUnsafe(Procedure procedure) {
+	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull Procedure procedure) {
 		return runRpcResponseUnsafe(procedure, DispatchMode.Normal);
 	}
 
-	public static void runRpcResponse(Procedure procedure, DispatchMode mode) {
+	public static void runRpcResponse(@NotNull Procedure procedure, DispatchMode mode) {
 		Transaction t;
 		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
 			t.runWhileCommit(() -> runRpcResponseUnsafe(procedure, mode));
@@ -561,7 +579,7 @@ public final class Task {
 			runRpcResponseUnsafe(procedure, mode);
 	}
 
-	public static Future<Long> runRpcResponseUnsafe(Procedure procedure, DispatchMode mode) {
+	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull Procedure procedure, DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			final var future = new TaskCompletionSource<Long>();
 			future.setResult(call(procedure));
@@ -572,7 +590,7 @@ public final class Task {
 		return pool.submit(() -> call(procedure)); // rpcResponseThreadPool
 	}
 
-	public static void runRpcResponse(FuncLong func, Protocol<?> p) {
+	public static void runRpcResponse(@NotNull FuncLong func, Protocol<?> p) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
 			t.runWhileCommit(() -> runRpcResponseUnsafe(func, p));
@@ -580,11 +598,11 @@ public final class Task {
 			runRpcResponseUnsafe(func, p);
 	}
 
-	public static Future<Long> runRpcResponseUnsafe(FuncLong func, Protocol<?> p) {
+	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull FuncLong func, Protocol<?> p) {
 		return runRpcResponseUnsafe(func, p, DispatchMode.Normal);
 	}
 
-	public static void runRpcResponse(FuncLong func, Protocol<?> p, DispatchMode mode) {
+	public static void runRpcResponse(@NotNull FuncLong func, Protocol<?> p, DispatchMode mode) {
 		Transaction t;
 		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
 			t.runWhileCommit(() -> runRpcResponseUnsafe(func, p, mode));
@@ -592,7 +610,7 @@ public final class Task {
 			runRpcResponseUnsafe(func, p, mode);
 	}
 
-	public static Future<Long> runRpcResponseUnsafe(FuncLong func, Protocol<?> p, DispatchMode mode) {
+	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull FuncLong func, Protocol<?> p, DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			final var future = new TaskCompletionSource<Long>();
 			future.setResult(call(func, p));
@@ -603,7 +621,7 @@ public final class Task {
 		return pool.submit(() -> call(func, p)); // rpcResponseThreadPool
 	}
 
-	public static void waitAll(Collection<Future<?>> tasks) {
+	public static void waitAll(@NotNull Collection<Future<?>> tasks) {
 		for (var task : tasks) {
 			try {
 				task.get();
@@ -613,7 +631,7 @@ public final class Task {
 		}
 	}
 
-	public static void waitAll(Future<?>[] tasks) {
+	public static void waitAll(Future<?> @NotNull [] tasks) {
 		for (var task : tasks) {
 			try {
 				task.get();

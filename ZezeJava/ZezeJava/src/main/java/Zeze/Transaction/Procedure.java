@@ -8,6 +8,8 @@ import Zeze.Util.TaskCanceledException;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class Procedure {
 	public static final long Success = 0;
@@ -33,14 +35,15 @@ public class Procedure {
 	// >0 用户自定义。
 
 	public interface ILogAction {
-		void run(Throwable ex, long result, Procedure p, String message);
+		void run(@Nullable Throwable ex, long result, @NotNull Procedure p, @NotNull String message);
 	}
 
 	private static final Logger logger = LogManager.getLogger(Procedure.class);
 	@SuppressWarnings("CanBeFinal")
 	public static ILogAction logAction = Procedure::defaultLogAction;
 
-	public static void defaultLogAction(Throwable ex, long result, Procedure p, String message) {
+	public static void defaultLogAction(@Nullable Throwable ex, long result, @NotNull Procedure p,
+										@NotNull String message) {
 		Level level;
 		if (ex != null)
 			level = Level.ERROR;
@@ -55,21 +58,23 @@ public class Procedure {
 		logger.log(level, "Procedure={} Return={}{}{} UserState={}", p, result, module, message, p.userState, ex);
 	}
 
-	private final Application zeze;
-	private final TransactionLevel level;
-	private FuncLong action;
-	private String actionName;
-	private Object userState;
+	private final @NotNull Application zeze;
+	private final @Nullable TransactionLevel level;
+	private @Nullable FuncLong action;
+	@SuppressWarnings("NotNullFieldNotInitialized")
+	private @NotNull String actionName;
+	private @Nullable Object userState;
 	// public Runnable runWhileCommit;
 
 	// 用于继承方式实现 Procedure。
-	public Procedure(Application app) {
+	public Procedure(@NotNull Application app) {
 		zeze = app;
 		level = null;
 		actionName = getClass().getName();
 	}
 
-	public Procedure(Application app, FuncLong action, String actionName, TransactionLevel level, Object userState) {
+	public Procedure(@NotNull Application app, @Nullable FuncLong action, @Nullable String actionName,
+					 @Nullable TransactionLevel level, @Nullable Object userState) {
 		zeze = app;
 		this.level = level;
 		this.action = action;
@@ -86,35 +91,35 @@ public class Procedure {
 		}
 	}
 
-	public final Application getZeze() {
+	public final @NotNull Application getZeze() {
 		return zeze;
 	}
 
-	public final TransactionLevel getTransactionLevel() {
+	public final @Nullable TransactionLevel getTransactionLevel() {
 		return level;
 	}
 
-	public final FuncLong getAction() {
+	public final @Nullable FuncLong getAction() {
 		return action;
 	}
 
-	public final void setAction(FuncLong action) {
+	public final void setAction(@Nullable FuncLong action) {
 		this.action = action;
 	}
 
-	public final String getActionName() {
+	public final @NotNull String getActionName() {
 		return actionName;
 	}
 
-	public final void setActionName(String actionName) {
+	public final void setActionName(@Nullable String actionName) {
 		this.actionName = actionName != null ? actionName : (action != null ? action : this).getClass().getName();
 	}
 
-	public final Object getUserState() {
+	public final @Nullable Object getUserState() {
 		return userState;
 	}
 
-	public final void setUserState(Object value) {
+	public final void setUserState(@Nullable Object value) {
 		userState = value;
 	}
 
@@ -195,7 +200,7 @@ public class Procedure {
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return actionName;
 	}
 }

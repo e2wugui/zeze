@@ -40,21 +40,23 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class Application {
 	static final Logger logger = LogManager.getLogger(Application.class);
 
-	private final String projectName;
-	private final Config conf;
+	private final @NotNull String projectName;
+	private final @NotNull Config conf;
 	private final HashMap<String, Database> databases = new HashMap<>();
 	private final LongConcurrentHashMap<Table> tables = new LongConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, Table> tableNameMap = new ConcurrentHashMap<>();
 	private final TaskOneByOneByKey taskOneByOneByKey = new TaskOneByOneByKey();
 	private final Locks locks = new Locks();
 	private final AbstractAgent serviceManager;
-	private AutoKey.Module autoKey;
+	private @Nullable AutoKey.Module autoKey;
 	@Deprecated // 暂时保留
-	private AutoKeyOld.Module autoKeyOld;
+	private @Nullable AutoKeyOld.Module autoKeyOld;
 	private Timer timer;
 	private Zeze.Collections.Queue.Module queueModule;
 	private DelayRemove delayRemove;
@@ -75,18 +77,12 @@ public final class Application {
 	 */
 	private DatabaseRocksDb LocalRocksCacheDb;
 
-	public Application() {
-		projectName = "";
-		conf = null;
-		serviceManager = null;
-	}
-
-	public Application(String solutionName) throws Exception {
+	public Application(@NotNull String solutionName) throws Exception {
 		this(solutionName, null);
 	}
 
 	@SuppressWarnings("deprecation")
-	public Application(String projectName, Config config) throws Exception {
+	public Application(@NotNull String projectName, @Nullable Config config) throws Exception {
 		this.projectName = projectName;
 		conf = config != null ? config : Config.load();
 		conf.createDatabase(this, databases);
@@ -120,20 +116,20 @@ public final class Application {
 		}
 	}
 
-	public synchronized void initialize(AppBase app) {
+	public synchronized void initialize(@NotNull AppBase app) {
 		if (timer == null && !isNoDatabase() && redirect != null)
 			timer = Timer.create(app);
 	}
 
 	public boolean isNoDatabase() {
-		return conf == null || conf.isNoDatabase() || conf.getServerId() < 0;
+		return conf.isNoDatabase() || conf.getServerId() < 0;
 	}
 
 	public HashMap<String, Database> getDatabases() {
 		return databases;
 	}
 
-	public Config getConfig() {
+	public @NotNull Config getConfig() {
 		return conf;
 	}
 
@@ -145,11 +141,11 @@ public final class Application {
 		return serviceManager;
 	}
 
-	public IGlobalAgent getGlobalAgent() {
+	public @Nullable IGlobalAgent getGlobalAgent() {
 		return globalAgent;
 	}
 
-	public Checkpoint getCheckpoint() {
+	public @Nullable Checkpoint getCheckpoint() {
 		return checkpoint;
 	}
 
@@ -163,22 +159,23 @@ public final class Application {
 	}
 	*/
 
-	public Locks getLocks() {
+	public @NotNull Locks getLocks() {
 		return locks;
 	}
 
-	public Schemas getSchemas() {
+	public @Nullable Schemas getSchemas() {
 		return schemas;
 	}
+
 	public Schemas getSchemasPrevious() {
 		return schemasPrevious;
 	}
 
-	public void setSchemas(Schemas value) {
+	public void setSchemas(@Nullable Schemas value) {
 		schemas = value;
 	}
 
-	public String getProjectName() {
+	public @NotNull String getProjectName() {
 		return projectName;
 	}
 
@@ -190,7 +187,7 @@ public final class Application {
 		return LocalRocksCacheDb;
 	}
 
-	public Database addTable(String dbName, Table table) {
+	public @NotNull Database addTable(@NotNull String dbName, @NotNull Table table) {
 		TableKey.tables.put(table.getId(), table.getName());
 		var db = getDatabase(dbName);
 		if (tables.putIfAbsent(table.getId(), table) != null)
@@ -201,25 +198,25 @@ public final class Application {
 		return db;
 	}
 
-	public synchronized void openDynamicTable(String dbName, Table table) {
+	public synchronized void openDynamicTable(@NotNull String dbName, @NotNull Table table) {
 		addTable(dbName, table).openDynamicTable(this, table);
 	}
 
-	public void removeTable(String dbName, Table table) {
+	public void removeTable(@NotNull String dbName, @NotNull Table table) {
 		tables.remove(table.getId());
 		tableNameMap.remove(table.getName());
 		getDatabase(dbName).removeTable(table);
 	}
 
-	public Table getTable(int id) {
+	public @Nullable Table getTable(int id) {
 		return tables.get(id);
 	}
 
-	public Table getTable(String name) {
+	public @Nullable Table getTable(String name) {
 		return tableNameMap.get(name);
 	}
 
-	public Map<String, Table> getTables() {
+	public @NotNull Map<String, Table> getTables() {
 		return Collections.unmodifiableMap(tableNameMap);
 	}
 
@@ -230,12 +227,14 @@ public final class Application {
 		return db;
 	}
 
-	public AutoKey getAutoKey(String name) {
+	public @NotNull AutoKey getAutoKey(String name) {
+		//noinspection DataFlowIssue
 		return autoKey.getOrAdd(name);
 	}
 
 	@Deprecated // 暂时保留
-	public AutoKeyOld getAutoKeyOld(String name) {
+	public @NotNull AutoKeyOld getAutoKeyOld(String name) {
+		//noinspection DataFlowIssue
 		return autoKeyOld.getOrAdd(name);
 	}
 
@@ -251,17 +250,18 @@ public final class Application {
 		return delayRemove;
 	}
 
-	public Procedure newProcedure(FuncLong action, String actionName) {
+	public @NotNull Procedure newProcedure(@NotNull FuncLong action, String actionName) {
 		return newProcedure(action, actionName, TransactionLevel.Serializable, null);
 	}
 
-	public Procedure newProcedure(FuncLong action, String actionName, TransactionLevel level, Object userState) {
+	public @NotNull Procedure newProcedure(@NotNull FuncLong action, String actionName, TransactionLevel level,
+										   Object userState) {
 		if (startState != 2)
 			throw new IllegalStateException("App Not Start");
 		return new Procedure(this, action, actionName, level, userState);
 	}
 
-	static void deleteDirectory(File directoryToBeDeleted) throws IOException, InterruptedException {
+	static void deleteDirectory(@NotNull File directoryToBeDeleted) throws IOException, InterruptedException {
 		File[] allContents = directoryToBeDeleted.listFiles();
 		if (allContents != null) {
 			for (File file : allContents) {
@@ -346,12 +346,11 @@ public final class Application {
 			stop();
 			logger.info("zeze({}) ShutdownHook end", this.projectName);
 		});
-		var serverId = conf != null ? conf.getServerId() : -1;
+		var serverId = conf.getServerId();
 		logger.info("Start ServerId={}", serverId);
 
 		var noDatabase = isNoDatabase();
 		if (!noDatabase) {
-			assert conf != null;
 			if ("true".equalsIgnoreCase(System.getProperty(Daemon.propertyNameClearInUse)))
 				conf.clearInUseAndIAmSureAppStopped(this, databases);
 
@@ -370,7 +369,7 @@ public final class Application {
 		}
 
 		// Start ServiceManager
-		var serviceManagerConf = conf != null ? conf.getServiceConf(Agent.defaultServiceName) : null;
+		var serviceManagerConf = conf.getServiceConf(Agent.defaultServiceName);
 		if (serviceManagerConf != null && serviceManager != null) {
 			serviceManager.start();
 			try {
@@ -430,7 +429,7 @@ public final class Application {
 			return;
 		startState = 1;
 		ShutdownHook.remove(this);
-		logger.info("Stop ServerId={}", conf != null ? conf.getServerId() : -1);
+		logger.info("Stop ServerId={}", conf.getServerId());
 
 		if (delayRemove != null) {
 			delayRemove.stop();
@@ -484,8 +483,7 @@ public final class Application {
 			autoKeyOld = null;
 		}
 
-		if (conf != null)
-			conf.clearInUseAndIAmSureAppStopped(this, databases);
+		conf.clearInUseAndIAmSureAppStopped(this, databases);
 
 		for (var db : databases.values())
 			db.close();
@@ -496,19 +494,19 @@ public final class Application {
 		checkpoint.runOnce();
 	}
 
-	public TaskOneByOneByKey getTaskOneByOneByKey() {
+	public @NotNull TaskOneByOneByKey getTaskOneByOneByKey() {
 		return taskOneByOneByKey;
 	}
 
-	public void runTaskOneByOneByKey(Object oneByOneKey, String actionName, FuncLong func) {
+	public void runTaskOneByOneByKey(@NotNull Object oneByOneKey, String actionName, @NotNull FuncLong func) {
 		taskOneByOneByKey.Execute(oneByOneKey, newProcedure(func, actionName), DispatchMode.Normal);
 	}
 
-	public void runTaskOneByOneByKey(int oneByOneKey, String actionName, FuncLong func) {
+	public void runTaskOneByOneByKey(int oneByOneKey, String actionName, @NotNull FuncLong func) {
 		taskOneByOneByKey.Execute(oneByOneKey, newProcedure(func, actionName), DispatchMode.Normal);
 	}
 
-	public void runTaskOneByOneByKey(long oneByOneKey, String actionName, FuncLong func) {
+	public void runTaskOneByOneByKey(long oneByOneKey, String actionName, @NotNull FuncLong func) {
 		taskOneByOneByKey.Execute(oneByOneKey, newProcedure(func, actionName), DispatchMode.Normal);
 	}
 }

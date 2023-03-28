@@ -5,15 +5,17 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class CollOne<V extends Bean> extends Collection {
-	V _Value;
+	@NotNull V _Value;
 
-	public CollOne(V init, Class<V> valueClass) {
+	public CollOne(@NotNull V init, @Nullable Class<V> valueClass) {
 		_Value = init;
 	}
 
-	public V getValue() {
+	public @NotNull V getValue() {
 		if (!isManaged())
 			return _Value;
 
@@ -21,6 +23,7 @@ public class CollOne<V extends Bean> extends Collection {
 		if (null == txn)
 			return _Value;
 
+		//noinspection DataFlowIssue
 		@SuppressWarnings("unchecked")
 		var log = (LogOne<V>)txn.getLog(parent().objectId() + variableId());
 		if (null == log)
@@ -29,12 +32,15 @@ public class CollOne<V extends Bean> extends Collection {
 		return log.value;
 	}
 
-	public void setValue(V value) {
+	public void setValue(@NotNull V value) {
+		//noinspection ConstantValue
 		if (null == value)
 			throw new NullPointerException("value");
 
 		if (isManaged()) {
+			//noinspection DataFlowIssue
 			value.initRootInfoWithRedo(rootInfo, this);
+			//noinspection DataFlowIssue
 			@SuppressWarnings("unchecked")
 			var log = (LogOne<V>)Transaction.getCurrentVerifyWrite(this)
 					.logGetOrAdd(parent().objectId() + variableId(), this::createLogBean);
@@ -45,13 +51,13 @@ public class CollOne<V extends Bean> extends Collection {
 	}
 
 	@SuppressWarnings("unchecked")
-	public void assign(CollOne<V> other) {
+	public void assign(@NotNull CollOne<V> other) {
 		setValue((V)other.getValue().copy());
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 		if (obj == this)
 			return true;
 		if (obj instanceof CollOne)
@@ -65,7 +71,7 @@ public class CollOne<V extends Bean> extends Collection {
 	}
 
 	@Override
-	public LogBean createLogBean() {
+	public @NotNull LogBean createLogBean() {
 		var log = new LogOne<V>();
 		log.setBelong(parent());
 		log.setThis(this);
@@ -75,28 +81,28 @@ public class CollOne<V extends Bean> extends Collection {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(@NotNull ByteBuffer bb) {
 		var Value = getValue();
 		Value.decode(bb);
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		getValue().encode(bb);
 	}
 
 	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(@NotNull Record.RootInfo root) {
 		getValue().initRootInfo(root, this);
 	}
 
 	@Override
-	protected void initChildrenRootInfoWithRedo(Record.RootInfo root) {
+	protected void initChildrenRootInfoWithRedo(@NotNull Record.RootInfo root) {
 		getValue().initRootInfoWithRedo(root, this);
 	}
 
 	@Override
-	public void followerApply(Log _log) {
+	public void followerApply(@NotNull Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogOne<V>)_log;
 		if (null != log.value) {
@@ -108,12 +114,12 @@ public class CollOne<V extends Bean> extends Collection {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public CollOne<V> copy() {
+	public @NotNull CollOne<V> copy() {
 		return new CollOne<>((V)getValue().copy(), null);
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return getValue().toString();
 	}
 }

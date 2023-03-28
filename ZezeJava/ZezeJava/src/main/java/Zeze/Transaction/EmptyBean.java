@@ -1,6 +1,7 @@
 package Zeze.Transaction;
 
 import Zeze.Serialize.ByteBuffer;
+import org.jetbrains.annotations.NotNull;
 
 public class EmptyBean extends Bean {
 	// 只用于协议/RPC的不可修改的共享单例,不能放入数据库中
@@ -19,17 +20,17 @@ public class EmptyBean extends Bean {
 	};
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(@NotNull ByteBuffer bb) {
 		bb.SkipUnknownField(ByteBuffer.BEAN);
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		bb.WriteByte(0);
 	}
 
 	@Override
-	public EmptyBean copy() {
+	public @NotNull EmptyBean copy() {
 		return new EmptyBean();
 	}
 
@@ -38,7 +39,7 @@ public class EmptyBean extends Bean {
 	}
 
 	@Override
-	public Data toData() {
+	public @NotNull Data toData() {
 		return Data.instance;
 	}
 
@@ -50,7 +51,7 @@ public class EmptyBean extends Bean {
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return "()";
 	}
 
@@ -64,17 +65,17 @@ public class EmptyBean extends Bean {
 		public static final Data instance = new Data();
 
 		@Override
-		public void decode(ByteBuffer bb) {
+		public void decode(@NotNull ByteBuffer bb) {
 			bb.SkipUnknownField(ByteBuffer.BEAN);
 		}
 
 		@Override
-		public void encode(ByteBuffer bb) {
+		public void encode(@NotNull ByteBuffer bb) {
 			bb.WriteByte(0);
 		}
 
 		@Override
-		public Data copy() {
+		public @NotNull Data copy() {
 			return instance; // data 不可能放入数据库，返回共享的引用是可以的。
 		}
 
@@ -83,7 +84,7 @@ public class EmptyBean extends Bean {
 		}
 
 		@Override
-		public EmptyBean toBean() {
+		public @NotNull EmptyBean toBean() {
 			return new EmptyBean();
 		}
 
@@ -96,7 +97,7 @@ public class EmptyBean extends Bean {
 		}
 
 		@Override
-		public String toString() {
+		public @NotNull String toString() {
 			return "()";
 		}
 

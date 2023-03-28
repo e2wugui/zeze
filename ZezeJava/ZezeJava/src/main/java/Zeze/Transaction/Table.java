@@ -6,15 +6,17 @@ import Zeze.Net.Binary;
 import Zeze.Schemas;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Reduce;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public abstract class Table {
-	private final String name;
+	private final @NotNull String name;
 	private final ChangeListenerMap changeListenerMap = new ChangeListenerMap();
 	private Application zeze;
 	private Config.TableConf tableConf;
 	private Database database;
 
-	public Table(String name) {
+	public Table(@NotNull String name) {
 		this.name = name;
 
 		// 新增属性Id，为了影响最小，采用virtual方式定义。
@@ -35,7 +37,7 @@ public abstract class Table {
 		return zeze;
 	}
 
-	final void setZeze(Application value) {
+	final void setZeze(@NotNull Application value) {
 		zeze = value;
 	}
 
@@ -55,11 +57,11 @@ public abstract class Table {
 		database = db;
 	}
 
-	abstract Storage<?, ?> open(Application app, Database database);
+	abstract @Nullable Storage<?, ?> open(@NotNull Application app, @NotNull Database database);
 
 	abstract void close();
 
-	abstract Storage<?, ?> getStorage();
+	abstract @Nullable Storage<?, ?> getStorage();
 
 	abstract Database.Table getOldTable();
 
@@ -86,6 +88,7 @@ public abstract class Table {
 	abstract void reduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex);
 
 	public abstract void removeEncodedKey(Binary encodedKey);
+
 	public abstract boolean isRelationalMapping();
 	public abstract void tryAlter();
 	public abstract Schemas.RelationalTable getRelationalTable();

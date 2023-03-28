@@ -499,7 +499,7 @@ public final class Json implements Cloneable {
 		json.getClassMeta(ByteBuffer.class).setParser((reader, classMeta, obj, parent) -> {
 			final byte[] data = reader.parseByteString();
 			if (obj == null)
-				return ByteBuffer.Wrap(data);
+				return ByteBuffer.Wrap(data != null ? data : ByteBuffer.Empty);
 			obj.wraps(data != null ? data : ByteBuffer.Empty);
 			return obj;
 		});
@@ -515,8 +515,10 @@ public final class Json implements Cloneable {
 			}
 		});
 
-		json.getClassMeta(Binary.class).setParser((reader, classMeta, obj, parent) ->
-				new Binary(reader.parseByteString()));
+		json.getClassMeta(Binary.class).setParser((reader, classMeta, obj, parent) -> {
+			var s = reader.parseByteString();
+			return s != null ? new Binary(s) : Binary.Empty;
+		});
 		json.getClassMeta(Binary.class).setWriter((writer, classMeta, obj) -> {
 			if (obj == null)
 				writer.write(json, null);

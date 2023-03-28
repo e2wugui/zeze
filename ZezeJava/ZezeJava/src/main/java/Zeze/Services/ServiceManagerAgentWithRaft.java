@@ -42,10 +42,6 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		super.zeze = zeze;
 
 		var config = zeze.getConfig();
-		if (null == config) {
-			throw new IllegalStateException("Config is null");
-		}
-
 		var raftConf = RaftConfig.load(config.getServiceManagerConf().getRaftXml());
 		raftClient = new Agent("servicemanager.raft", zeze, raftConf);
 		raftClient.setOnSetLeader(this::raftOnSetLeader);
@@ -61,8 +57,6 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		if (zeze == null)
 			return;
 		var config = zeze.getConfig();
-		if (config == null)
-			return;
 
 		var future = startNewLogin();
 		var login = new Login();

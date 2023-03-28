@@ -7,47 +7,50 @@ import java.util.function.UnaryOperator;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 import org.pcollections.PVector;
 
 public abstract class PList<V> extends Collection implements List<V> {
-	public PVector<V> list = Empty.vector();
+	public @NotNull PVector<V> list = Empty.vector();
 
 	@Override
-	public abstract boolean add(V item);
+	public abstract boolean add(@NotNull V item);
 
 	@Override
-	public abstract boolean remove(Object item);
+	public abstract boolean remove(@NotNull Object item);
 
 	@Override
 	public abstract void clear();
 
 	@Override
-	public abstract V set(int index, V item);
+	public abstract @NotNull V set(int index, @NotNull V item);
 
 	@Override
-	public abstract void add(int index, V item);
+	public abstract void add(int index, @NotNull V item);
 
 	@Override
-	public abstract V remove(int index);
+	public abstract @NotNull V remove(int index);
 
 	@Override
-	public abstract boolean addAll(java.util.Collection<? extends V> items);
+	public abstract boolean addAll(@NotNull java.util.Collection<? extends V> items);
 
 	@Override
-	public abstract boolean removeAll(java.util.Collection<?> c);
+	public abstract boolean removeAll(@NotNull java.util.Collection<?> c);
 
 	@Deprecated // unsupported
 	@Override
-	public boolean retainAll(java.util.Collection<?> c) {
+	public boolean retainAll(@NotNull java.util.Collection<?> c) {
 		throw new UnsupportedOperationException();
 	}
 
-	protected final PVector<V> getList() {
+	protected final @NotNull PVector<V> getList() {
 		if (isManaged()) {
 			var txn = Transaction.getCurrentVerifyRead(this);
 			if (txn == null)
 				return list;
+			//noinspection DataFlowIssue
 			Log log = txn.getLog(parent().objectId() + variableId());
 			if (log == null)
 				return list;
@@ -58,19 +61,19 @@ public abstract class PList<V> extends Collection implements List<V> {
 		return list;
 	}
 
-	public final void copyTo(V[] array, int arrayIndex) {
+	public final void copyTo(V @NotNull [] array, int arrayIndex) {
 		var data = getList();
 		for (var e : data)
 			array[arrayIndex++] = e;
 	}
 
 	@Override
-	public Object[] toArray() {
+	public Object @NotNull [] toArray() {
 		return getList().toArray();
 	}
 
 	@Override
-	public <T> T[] toArray(T[] a) {
+	public <T> T @NotNull [] toArray(T @NotNull [] a) {
 		return getList().toArray(a);
 	}
 
@@ -85,17 +88,17 @@ public abstract class PList<V> extends Collection implements List<V> {
 	}
 
 	@Override
-	public final boolean contains(Object v) {
+	public final boolean contains(@NotNull Object v) {
 		return getList().contains(v);
 	}
 
 	@Override
-	public int indexOf(Object o) {
+	public int indexOf(@NotNull Object o) {
 		return getList().indexOf(o);
 	}
 
 	@Override
-	public int lastIndexOf(Object o) {
+	public int lastIndexOf(@NotNull Object o) {
 		return getList().lastIndexOf(o);
 	}
 
@@ -105,7 +108,7 @@ public abstract class PList<V> extends Collection implements List<V> {
 	}
 
 	@Override
-	public Iterator<V> iterator() {
+	public @NotNull Iterator<V> iterator() {
 		return new Iterator<>() {
 			private final Iterator<V> it = getList().iterator();
 			private V next;
@@ -133,49 +136,49 @@ public abstract class PList<V> extends Collection implements List<V> {
 	}
 
 	@Override
-	public boolean equals(Object o) {
+	public boolean equals(@Nullable Object o) {
 		return o instanceof PList && list.equals(((PList<?>)o).list);
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		var sb = new StringBuilder();
 		ByteBuffer.BuildString(sb, getList());
 		return sb.toString();
 	}
 
 	@Override
-	public boolean containsAll(java.util.Collection<?> c) {
+	public boolean containsAll(@NotNull java.util.Collection<?> c) {
 		return getList().containsAll(c);
 	}
 
 	@Deprecated // unsupported
 	@Override
-	public boolean addAll(int index, java.util.Collection<? extends V> c) {
+	public boolean addAll(int index, @NotNull java.util.Collection<? extends V> c) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Deprecated // unsupported
 	@Override
-	public void replaceAll(UnaryOperator<V> operator) {
+	public void replaceAll(@NotNull UnaryOperator<V> operator) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Deprecated // unsupported
 	@Override
-	public ListIterator<V> listIterator() {
+	public @NotNull ListIterator<V> listIterator() {
 		throw new UnsupportedOperationException();
 	}
 
 	@Deprecated // unsupported
 	@Override
-	public ListIterator<V> listIterator(int index) {
+	public @NotNull ListIterator<V> listIterator(int index) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Deprecated // unsupported
 	@Override
-	public List<V> subList(int fromIndex, int toIndex) {
+	public @NotNull List<V> subList(int fromIndex, int toIndex) {
 		throw new UnsupportedOperationException();
 	}
 }

@@ -9,13 +9,15 @@ import java.util.TreeMap;
 import Zeze.Net.Binary;
 import Zeze.Util.BitConverter;
 import Zeze.Util.Str;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class GenericBean {
 	public static final int INDENT = 4;
 
 	public final Map<Integer, Object> fields = new TreeMap<>(); // key=0 for parent bean
 
-	public GenericBean decode(ByteBuffer bb) {
+	public @NotNull GenericBean decode(ByteBuffer bb) {
 		fields.clear();
 		for (int id = 0; ; ) {
 			int tag = bb.ReadByte() & 0xff;
@@ -31,7 +33,7 @@ public class GenericBean {
 		}
 	}
 
-	public static Object decodeField(ByteBuffer bb, int type) {
+	public static @NotNull Object decodeField(@NotNull ByteBuffer bb, int type) {
 		switch (type) {
 		case ByteBuffer.INTEGER:
 			var vl = bb.ReadLong();
@@ -83,7 +85,7 @@ public class GenericBean {
 	}
 
 	// 判断b是否合法的UTF-8字符串
-	public static boolean likeString(byte[] b) {
+	public static boolean likeString(byte @NotNull [] b) {
 		for (int i = 0, n = b.length; i < n; i++) {
 			int c = b[i] & 0xff;
 			if (c < 0x20)
@@ -137,11 +139,11 @@ public class GenericBean {
 		return true;
 	}
 
-	public StringBuilder buildString(StringBuilder sb) {
+	public @NotNull StringBuilder buildString(@NotNull StringBuilder sb) {
 		return buildString(sb, 0);
 	}
 
-	public StringBuilder buildString(StringBuilder sb, int level) {
+	public @NotNull StringBuilder buildString(@NotNull StringBuilder sb, int level) {
 		sb.append('{');
 		if (level >= 0) {
 			level += INDENT;
@@ -214,7 +216,7 @@ public class GenericBean {
 		return sb;
 	}
 
-	private static void buildString(StringBuilder sb, int level, Object o) {
+	private static void buildString(@NotNull StringBuilder sb, int level, @Nullable Object o) {
 		if (o instanceof String)
 			sb.append('"').append(o).append('"');
 		else if (o instanceof byte[])
@@ -226,7 +228,7 @@ public class GenericBean {
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return buildString(new StringBuilder()).toString();
 	}
 

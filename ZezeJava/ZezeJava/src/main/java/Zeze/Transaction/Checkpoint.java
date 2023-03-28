@@ -239,8 +239,7 @@ public final class Checkpoint {
 			time3 = System.nanoTime();
 			for (var v : dts.values())
 				v.commit();
-			if (localCacheTransaction != null)
-				localCacheTransaction.commit();
+			localCacheTransaction.commit();
 			time4 = System.nanoTime();
 			// cleanup
 			try {
@@ -259,12 +258,10 @@ public final class Checkpoint {
 					logger.error("CheckpointPeriod Rollback Exception", ex);
 				}
 			}
-			if (localCacheTransaction != null) {
-				try {
-					localCacheTransaction.rollback();
-				} catch (Throwable ex) { // logger.error
-					logger.error("CheckpointPeriod Rollback Exception", ex);
-				}
+			try {
+				localCacheTransaction.rollback();
+			} catch (Throwable ex) { // logger.error
+				logger.error("CheckpointPeriod Rollback Exception", ex);
 			}
 			throw e;
 		} finally {
@@ -275,12 +272,10 @@ public final class Checkpoint {
 					logger.error("CheckpointPeriod close Exception transaction={}", t, ex);
 				}
 			}
-			if (localCacheTransaction != null) {
-				try {
-					localCacheTransaction.close();
-				} catch (Throwable ex) { // logger.error
-					logger.error("CheckpointPeriod close Exception transaction={}", localCacheTransaction, ex);
-				}
+			try {
+				localCacheTransaction.close();
+			} catch (Throwable ex) { // logger.error
+				logger.error("CheckpointPeriod close Exception transaction={}", localCacheTransaction, ex);
 			}
 			logger.info("CheckpointPeriod({}) end ({}+{}+{}+{} = {} ms)", zeze.getConfig().getServerId(),
 					(time1 - time0) / 1_000_000,
@@ -328,8 +323,7 @@ public final class Checkpoint {
 			for (var t : dts.values()) {
 				t.commit();
 			}
-			if (null != localCacheTransaction)
-				localCacheTransaction.commit();
+			localCacheTransaction.commit();
 			try {
 				// 清除编码状态
 				for (var r : rs) {
@@ -348,12 +342,10 @@ public final class Checkpoint {
 					logger.error("Flush Rollback Exception", ex);
 				}
 			}
-			if (null != localCacheTransaction) {
-				try {
-					localCacheTransaction.rollback();
-				} catch (Throwable ex) { // logger.error
-					logger.error("Flush Rollback Exception", ex);
-				}
+			try {
+				localCacheTransaction.rollback();
+			} catch (Throwable ex) { // logger.error
+				logger.error("Flush Rollback Exception", ex);
 			}
 			throw e;
 		} finally {
@@ -364,12 +356,10 @@ public final class Checkpoint {
 					logger.error("Flush close Exception transaction={}", t, e);
 				}
 			}
-			if (null != localCacheTransaction) {
-				try {
-					localCacheTransaction.close();
-				} catch (Throwable e) { // logger.error
-					logger.error("Flush close Exception transaction={}", localCacheTransaction, e);
-				}
+			try {
+				localCacheTransaction.close();
+			} catch (Throwable e) { // logger.error
+				logger.error("Flush close Exception transaction={}", localCacheTransaction, e);
 			}
 		}
 	}

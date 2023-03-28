@@ -1,5 +1,8 @@
 package Zeze.Serialize;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 public class Vector3Int extends Vector2Int {
 	public static final Vector3Int ZERO = new Vector3Int(0, 0, 0);
 
@@ -10,22 +13,22 @@ public class Vector3Int extends Vector2Int {
 		this.z = z;
 	}
 
-	public Vector3Int(Vector3Int v3) {
+	public Vector3Int(@NotNull Vector3Int v3) {
 		super(v3);
 		z = v3.z;
 	}
 
-	public Vector3Int(Vector3 v3) {
+	public Vector3Int(@NotNull Vector3 v3) {
 		super(v3);
 		z = (int)v3.z;
 	}
 
-	public Vector3Int(Vector2Int v2) {
+	public Vector3Int(@NotNull Vector2Int v2) {
 		super(v2);
 		z = 0;
 	}
 
-	public Vector3Int(Vector2 v2) {
+	public Vector3Int(@NotNull Vector2 v2) {
 		super(v2);
 		z = 0;
 	}
@@ -36,7 +39,7 @@ public class Vector3Int extends Vector2Int {
 	}
 
 	@Override
-	public int compareTo(Object o) {
+	public int compareTo(@NotNull Object o) {
 		Vector3Int v = (Vector3Int)o;
 		int c = Integer.compare(x, v.x);
 		if (c != 0)
@@ -46,7 +49,7 @@ public class Vector3Int extends Vector2Int {
 	}
 
 	@Override
-	public boolean equals(Object o) {
+	public boolean equals(@Nullable Object o) {
 		if (this == o)
 			return true;
 		if (o == null || o.getClass() != Vector3Int.class)
@@ -61,12 +64,12 @@ public class Vector3Int extends Vector2Int {
 	}
 
 	@Override
-	public Vector3Int clone() {
+	public @NotNull Vector3Int clone() {
 		return (Vector3Int)super.clone();
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return "Vector3Int(" + x + ',' + y + ',' + z + ')';
 	}
 }

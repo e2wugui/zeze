@@ -60,6 +60,7 @@ public class LogDynamic extends LogBean {
 	public void encode(ByteBuffer bb) {
 		// encode Value & SpecialTypeId. Value maybe null.
 		var self = (DynamicBean)getThis();
+		//noinspection DataFlowIssue
 		bb.WriteString(self.parent().getClass().getName()); // use in decode reflect
 		bb.WriteInt(self.variableId());
 		if (null != value) {

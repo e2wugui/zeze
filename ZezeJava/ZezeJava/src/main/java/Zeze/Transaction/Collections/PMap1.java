@@ -4,23 +4,28 @@ import java.util.Map;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
+@SuppressWarnings("DataFlowIssue")
 public class PMap1<K, V> extends PMap<K, V> {
-	protected final Meta2<K, V> meta;
+	protected final @NotNull Meta2<K, V> meta;
 
-	public PMap1(Class<K> keyClass, Class<V> valueClass) {
+	public PMap1(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
 		meta = Meta2.getMap1Meta(keyClass, valueClass);
 	}
 
-	private PMap1(Meta2<K, V> meta) {
+	private PMap1(@NotNull Meta2<K, V> meta) {
 		this.meta = meta;
 	}
 
 	@Override
-	public V put(K key, V value) {
+	public @Nullable V put(@NotNull K key, @NotNull V value) {
+		//noinspection ConstantValue
 		if (key == null)
 			throw new IllegalArgumentException("null key");
+		//noinspection ConstantValue
 		if (value == null)
 			throw new IllegalArgumentException("null value");
 
@@ -36,7 +41,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 	}
 
 	@Override
-	public void putAll(Map<? extends K, ? extends V> m) {
+	public void putAll(@NotNull Map<? extends K, ? extends V> m) {
 		for (var p : m.entrySet()) {
 			if (p.getKey() == null)
 				throw new IllegalArgumentException("null key");
@@ -56,7 +61,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public V remove(Object key) {
+	public @Nullable V remove(@NotNull Object key) {
 		if (isManaged()) {
 			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -69,7 +74,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 	}
 
 	@Override
-	public boolean remove(Entry<K, V> item) {
+	public boolean remove(@NotNull Entry<K, V> item) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
@@ -97,14 +102,14 @@ public class PMap1<K, V> extends PMap<K, V> {
 	}
 
 	@Override
-	public void followerApply(Log _log) {
+	public void followerApply(@NotNull Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogMap1<K, V>)_log;
 		map = map.plusAll(log.getReplaced()).minusAll(log.getRemoved());
 	}
 
 	@Override
-	public LogBean createLogBean() {
+	public @NotNull LogBean createLogBean() {
 		var log = new LogMap1<>(meta);
 		log.setBelong(parent());
 		log.setThis(this);
@@ -114,14 +119,14 @@ public class PMap1<K, V> extends PMap<K, V> {
 	}
 
 	@Override
-	public PMap1<K, V> copy() {
+	public @NotNull PMap1<K, V> copy() {
 		var copy = new PMap1<>(meta);
 		copy.map = map;
 		return copy;
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		var tmp = getMap();
 		bb.WriteUInt(tmp.size());
 		var keyEncoder = meta.keyEncoder;
@@ -133,7 +138,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(@NotNull ByteBuffer bb) {
 		clear();
 		var keyDecoder = meta.keyDecoder;
 		var valueDecoder = meta.valueDecoder;

@@ -12,6 +12,7 @@ import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
 import Zeze.Util.OutObject;
+import org.jetbrains.annotations.NotNull;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
@@ -89,7 +90,7 @@ public class DatabaseRocksDb extends Database {
 		}
 	}
 
-	public DatabaseRocksDb(Application zeze, Config.DatabaseConf conf) {
+	public DatabaseRocksDb(@NotNull Application zeze, @NotNull Config.DatabaseConf conf) {
 		super(zeze, conf);
 		logger.info("new: {}", getDatabaseUrl());
 
@@ -129,7 +130,7 @@ public class DatabaseRocksDb extends Database {
 	}
 
 	@Override
-	public Transaction beginTransaction() {
+	public @NotNull Transaction beginTransaction() {
 		return new RocksDbTrans();
 	}
 
@@ -148,12 +149,13 @@ public class DatabaseRocksDb extends Database {
 			for (var tks : tableKeys.entrySet()) {
 				var tableName = tks.getKey();
 				var table = getTable(tableName);
+				//noinspection DataFlowIssue
 				var rocksTable = null != table ? (Database.AbstractKVTable)table.getStorage().getDatabaseTable() : null;
 				if (null != rocksTable) {
 					for (var key : tks.getValue()) {
 						var value = rocksTable.find(key);
 						if (null != value) {
-							var resultTable = result.computeIfAbsent(tableName, _tname_ -> new HashMap<>());
+							var resultTable = result.computeIfAbsent(tableName, __ -> new HashMap<>());
 							resultTable.put(key, value);
 						}
 					}

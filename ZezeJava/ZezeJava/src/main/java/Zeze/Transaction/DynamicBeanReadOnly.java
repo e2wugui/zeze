@@ -1,7 +1,9 @@
 package Zeze.Transaction;
 
+import org.jetbrains.annotations.NotNull;
+
 public interface DynamicBeanReadOnly {
 	long getTypeId();
 
-	Bean getBean();
+	@NotNull Bean getBean();
 }

@@ -5,25 +5,28 @@ import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
 public abstract class PSet<V> extends Collection implements Set<V> {
-	public org.pcollections.PSet<V> set = Empty.set();
+	public @NotNull org.pcollections.PSet<V> set = Empty.set();
 
 	@Override
-	public abstract boolean add(V item);
+	public abstract boolean add(@NotNull V item);
 
 	@Override
-	public abstract boolean remove(Object item);
+	public abstract boolean remove(@NotNull Object item);
 
 	@Override
 	public abstract void clear();
 
-	protected final org.pcollections.PSet<V> getSet() {
+	protected final @NotNull org.pcollections.PSet<V> getSet() {
 		if (isManaged()) {
 			var txn = Transaction.getCurrentVerifyRead(this);
 			if (txn == null)
 				return set;
+			//noinspection DataFlowIssue
 			Log log = txn.getLog(parent().objectId() + variableId());
 			if (log == null)
 				return set;
@@ -45,22 +48,22 @@ public abstract class PSet<V> extends Collection implements Set<V> {
 	}
 
 	@Override
-	public final boolean contains(Object v) {
+	public final boolean contains(@NotNull Object v) {
 		return getSet().contains(v);
 	}
 
 	@Override
-	public boolean containsAll(java.util.Collection<?> c) {
+	public boolean containsAll(@NotNull java.util.Collection<?> c) {
 		return getSet().containsAll(c);
 	}
 
 	@Deprecated // unsupported
 	@Override
-	public boolean retainAll(java.util.Collection<?> c) {
+	public boolean retainAll(@NotNull java.util.Collection<?> c) {
 		throw new UnsupportedOperationException();
 	}
 
-	public final void copyTo(V[] array, int arrayIndex) {
+	public final void copyTo(V @NotNull [] array, int arrayIndex) {
 		int index = arrayIndex;
 		for (var e : getSet()) {
 			array[index++] = e;
@@ -68,17 +71,17 @@ public abstract class PSet<V> extends Collection implements Set<V> {
 	}
 
 	@Override
-	public Object[] toArray() {
+	public Object @NotNull [] toArray() {
 		return getSet().toArray();
 	}
 
 	@Override
-	public <T> T[] toArray(T[] a) {
+	public <T> T @NotNull [] toArray(T @NotNull [] a) {
 		return getSet().toArray(a);
 	}
 
 	@Override
-	public Iterator<V> iterator() {
+	public @NotNull Iterator<V> iterator() {
 		return new Iterator<>() {
 			private final Iterator<V> it = getSet().iterator();
 			private V next;
@@ -106,12 +109,12 @@ public abstract class PSet<V> extends Collection implements Set<V> {
 	}
 
 	@Override
-	public boolean equals(Object o) {
+	public boolean equals(@Nullable Object o) {
 		return o instanceof PSet && set.equals(((PSet<?>)o).set);
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		var sb = new StringBuilder();
 		ByteBuffer.BuildString(sb, getSet());
 		return sb.toString();

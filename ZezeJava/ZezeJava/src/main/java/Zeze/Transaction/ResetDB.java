@@ -3,9 +3,7 @@ package Zeze.Transaction;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import Zeze.Application;
 import Zeze.Schemas;
 import Zeze.Serialize.ByteBuffer;

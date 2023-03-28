@@ -4,21 +4,24 @@ import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
+import org.jetbrains.annotations.NotNull;
 import org.pcollections.Empty;
 
+@SuppressWarnings("DataFlowIssue")
 public class PSet1<V> extends PSet<V> {
-	protected final Meta1<V> meta;
+	protected final @NotNull Meta1<V> meta;
 
-	public PSet1(Class<V> valueClass) {
+	public PSet1(@NotNull Class<V> valueClass) {
 		meta = Meta1.getSet1Meta(valueClass);
 	}
 
-	private PSet1(Meta1<V> meta) {
+	private PSet1(@NotNull Meta1<V> meta) {
 		this.meta = meta;
 	}
 
 	@Override
-	public boolean add(V item) {
+	public boolean add(@NotNull V item) {
+		//noinspection ConstantValue
 		if (item == null)
 			throw new IllegalArgumentException("null item");
 
@@ -37,7 +40,7 @@ public class PSet1<V> extends PSet<V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public boolean remove(Object item) {
+	public boolean remove(@NotNull Object item) {
 		if (isManaged()) {
 			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -51,7 +54,7 @@ public class PSet1<V> extends PSet<V> {
 	}
 
 	@Override
-	public boolean addAll(Collection<? extends V> c) {
+	public boolean addAll(@NotNull Collection<? extends V> c) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
@@ -67,7 +70,7 @@ public class PSet1<V> extends PSet<V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public boolean removeAll(Collection<?> c) {
+	public boolean removeAll(@NotNull Collection<?> c) {
 		if (isManaged()) {
 			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -92,7 +95,7 @@ public class PSet1<V> extends PSet<V> {
 	}
 
 	@Override
-	public LogBean createLogBean() {
+	public @NotNull LogBean createLogBean() {
 		var log = new LogSet1<>(meta);
 		log.setBelong(parent());
 		log.setThis(this);
@@ -102,21 +105,21 @@ public class PSet1<V> extends PSet<V> {
 	}
 
 	@Override
-	public void followerApply(Log _log) {
+	public void followerApply(@NotNull Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogSet1<V>)_log;
 		set = set.plusAll(log.getAdded()).minusAll(log.getRemoved());
 	}
 
 	@Override
-	public PSet1<V> copy() {
+	public @NotNull PSet1<V> copy() {
 		var copy = new PSet1<>(meta);
 		copy.set = set;
 		return copy;
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		var tmp = getSet();
 		bb.WriteUInt(tmp.size());
 		var encoder = meta.valueEncoder;
@@ -125,7 +128,7 @@ public class PSet1<V> extends PSet<V> {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(@NotNull ByteBuffer bb) {
 		clear();
 		var decoder = meta.valueDecoder;
 		for (int i = bb.ReadUInt(); i > 0; i--)

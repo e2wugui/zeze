@@ -5,22 +5,25 @@ import java.util.function.IntConsumer;
 import java.util.function.IntPredicate;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 	public static final int[] EMPTY = new int[0];
 	public static final int DEFAULT_SIZE = 8;
 
-	private int[] _buffer = EMPTY;
+	private int @NotNull [] _buffer = EMPTY;
 	private int _count;
 
-	public static IntList wrap(int[] data, int count) {
+	public static @NotNull IntList wrap(int @NotNull [] data, int count) {
 		IntList o = new IntList();
 		o._buffer = data;
 		o._count = count > data.length ? data.length : Math.max(count, 0);
 		return o;
 	}
 
-	public static IntList wrap(int[] data) {
+	public static @NotNull IntList wrap(int @NotNull [] data) {
+		//noinspection ConstantValue
 		if (data == null)
 			throw new IllegalArgumentException("null data");
 		IntList o = new IntList();
@@ -29,7 +32,7 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 		return o;
 	}
 
-	public static IntList createSpace(int count) {
+	public static @NotNull IntList createSpace(int count) {
 		IntList o = new IntList();
 		if (count > 0) {
 			o._buffer = new int[count];
@@ -46,19 +49,19 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 	}
 
 	@SuppressWarnings("CopyConstructorMissesField")
-	public IntList(IntList o) {
+	public IntList(@NotNull IntList o) {
 		replace(o);
 	}
 
-	public IntList(int[] data) {
+	public IntList(int @NotNull [] data) {
 		replace(data);
 	}
 
-	public IntList(int[] data, int fromIdx, int count) {
+	public IntList(int @NotNull [] data, int fromIdx, int count) {
 		replace(data, fromIdx, count);
 	}
 
-	public int[] array() {
+	public int @NotNull [] array() {
 		return _buffer;
 	}
 
@@ -100,7 +103,7 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 		_count = 0;
 	}
 
-	public int[] toArray() {
+	public int @NotNull [] toArray() {
 		int n = _count;
 		if (n <= 0)
 			return EMPTY;
@@ -109,7 +112,7 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 		return buf;
 	}
 
-	public int[] toArray(int fromIdx, int count) {
+	public int @NotNull [] toArray(int fromIdx, int count) {
 		if (fromIdx < 0)
 			fromIdx = 0;
 		if (fromIdx >= _count || count <= 0)
@@ -121,13 +124,13 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 		return buf;
 	}
 
-	public IntList wraps(int[] data, int count) {
+	public @NotNull IntList wraps(int @NotNull [] data, int count) {
 		_buffer = data;
 		_count = count > data.length ? data.length : Math.max(count, 0);
 		return this;
 	}
 
-	public IntList wraps(int[] data) {
+	public @NotNull IntList wraps(int @NotNull [] data) {
 		_buffer = data;
 		_count = data.length;
 		return this;
@@ -186,7 +189,7 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 		_count = count;
 	}
 
-	public final void replace(int[] data, int fromIdx, int count) {
+	public final void replace(int @NotNull [] data, int fromIdx, int count) {
 		if (count <= 0) {
 			_count = 0;
 			return;
@@ -205,15 +208,15 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 		_count = count;
 	}
 
-	public final void replace(int[] data) {
+	public final void replace(int @NotNull [] data) {
 		replace(data, 0, data.length);
 	}
 
-	public final void replace(IntList o) {
+	public final void replace(@NotNull IntList o) {
 		replace(o._buffer, 0, o._count);
 	}
 
-	public void swap(IntList o) {
+	public void swap(@NotNull IntList o) {
 		int count = _count;
 		_count = o._count;
 		o._count = count;
@@ -222,7 +225,7 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 		_buffer = buf;
 	}
 
-	public IntList add(int value) {
+	public @NotNull IntList add(int value) {
 		int n = _count;
 		int nNew = n + 1;
 		reserve(nNew);
@@ -231,7 +234,7 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 		return this;
 	}
 
-	public IntList add(int[] data, int fromIdx, int count) {
+	public @NotNull IntList add(int @NotNull [] data, int fromIdx, int count) {
 		if (count <= 0)
 			return this;
 		int len = data.length;
@@ -248,15 +251,15 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 		return this;
 	}
 
-	public IntList add(int[] data) {
+	public @NotNull IntList add(int @NotNull [] data) {
 		return add(data, 0, data.length);
 	}
 
-	public IntList add(IntList o) {
+	public @NotNull IntList add(@NotNull IntList o) {
 		return add(o._buffer, 0, o._count);
 	}
 
-	public IntList addAll(Collection<Integer> c) {
+	public @NotNull IntList addAll(@NotNull Collection<Integer> c) {
 		int n = _count;
 		reserve(n + c.size());
 		int[] buf = _buffer;
@@ -266,7 +269,7 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 		return this;
 	}
 
-	public IntList insert(int fromIdx, int data) {
+	public @NotNull IntList insert(int fromIdx, int data) {
 		int n = _count;
 		if (fromIdx < 0)
 			fromIdx = 0;
@@ -280,7 +283,7 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 		return this;
 	}
 
-	public IntList insert(int fromIdx, int[] data, int idx, int count) {
+	public @NotNull IntList insert(int fromIdx, int @NotNull [] data, int idx, int count) {
 		int n = _count;
 		if (fromIdx < 0)
 			fromIdx = 0;
@@ -303,15 +306,15 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 		return this;
 	}
 
-	public IntList insert(int fromIdx, int[] data) {
+	public @NotNull IntList insert(int fromIdx, int @NotNull [] data) {
 		return insert(fromIdx, data, 0, data.length);
 	}
 
-	public IntList insert(int fromIdx, IntList o) {
+	public @NotNull IntList insert(int fromIdx, @NotNull IntList o) {
 		return insert(fromIdx, o._buffer, 0, o._count);
 	}
 
-	public IntList remove(int idx) {
+	public @NotNull IntList remove(int idx) {
 		int lastIdx = _count - 1;
 		if (idx < 0 || idx > lastIdx)
 			return this;
@@ -321,7 +324,7 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 		return this;
 	}
 
-	public IntList removeAndExchangeLast(int idx) {
+	public @NotNull IntList removeAndExchangeLast(int idx) {
 		int lastIdx = _count - 1;
 		if (idx >= 0 && idx <= lastIdx) {
 			_count = lastIdx;
@@ -330,7 +333,7 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 		return this;
 	}
 
-	public IntList erase(int fromIdx, int toIdx) {
+	public @NotNull IntList erase(int fromIdx, int toIdx) {
 		int n = _count;
 		if (fromIdx < 0)
 			fromIdx = 0;
@@ -345,7 +348,7 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 		return this;
 	}
 
-	public IntList eraseFront(int count) {
+	public @NotNull IntList eraseFront(int count) {
 		int n = _count;
 		if (count >= n)
 			_count = 0;
@@ -372,7 +375,7 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 
 	@SuppressWarnings("MethodDoesntCallSuperMethod")
 	@Override
-	public IntList clone() {
+	public @NotNull IntList clone() {
 		return new IntList(this);
 	}
 
@@ -395,7 +398,7 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 	}
 
 	@Override
-	public int compareTo(IntList o) {
+	public int compareTo(@Nullable IntList o) {
 		if (o == null)
 			return 1;
 		int n0 = _count;
@@ -413,7 +416,7 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 	}
 
 	@Override
-	public boolean equals(Object o) {
+	public boolean equals(@Nullable Object o) {
 		if (this == o)
 			return true;
 		if (!(o instanceof IntList))
@@ -432,7 +435,7 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 		return true;
 	}
 
-	public final boolean equals(IntList oct) {
+	public final boolean equals(@Nullable IntList oct) {
 		if (this == oct)
 			return true;
 		if (oct == null)
@@ -450,13 +453,13 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 		return true;
 	}
 
-	public void foreach(IntConsumer consumer) {
+	public void foreach(@NotNull IntConsumer consumer) {
 		int n = _count;
 		for (int i = 0; i < n; ++i)
 			consumer.accept(_buffer[i]);
 	}
 
-	public boolean foreachPred(IntPredicate predicate) {
+	public boolean foreachPred(@NotNull IntPredicate predicate) {
 		int n = _count;
 		for (int i = 0; i < n; ++i) {
 			if (!predicate.test(_buffer[i]))
@@ -465,7 +468,7 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 		return true;
 	}
 
-	public StringBuilder dump(StringBuilder sb) {
+	public @NotNull StringBuilder dump(@NotNull StringBuilder sb) {
 		sb.append('[');
 		int[] buf = _buffer;
 		int n = _count;
@@ -480,13 +483,13 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 		return sb.append(']');
 	}
 
-	public String dump() {
+	public @NotNull String dump() {
 		int n = _count;
 		return n > 0 ? dump(new StringBuilder(n * 2)).toString() : "[]";
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		int count = _count;
 		if (count <= 0)
 			return;
@@ -497,7 +500,7 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(@NotNull ByteBuffer bb) {
 		int count = bb.ReadUInt();
 		reserveSpace(count);
 		int[] buf = _buffer;
@@ -507,7 +510,7 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return "[" + _count + "/" + _buffer.length + "]";
 	}
 }

@@ -55,12 +55,15 @@ import Zeze.Util.Task;
 import Zeze.Util.TransactionLevelAnnotation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class Online extends AbstractOnline {
 	protected static final Logger logger = LogManager.getLogger(Online.class);
+	static @Nullable Online instance;
 
-	public final ProviderApp providerApp;
-	private final ProviderLoad load;
+	public final @NotNull ProviderApp providerApp;
+	private final @NotNull ProviderLoad load;
 	private final AtomicLong loginTimes = new AtomicLong();
 
 	private final EventDispatcher loginEvents = new EventDispatcher("Online.Login");
@@ -75,7 +78,7 @@ public class Online extends AbstractOnline {
 		 * @param target 查询目标角色
 		 * @return 按普通事务处理过程返回值处理
 		 */
-		long call(long sender, long target, Binary parameter);
+		long call(long sender, long target, @Nullable Binary parameter);
 	}
 
 	private final ConcurrentHashMap<String, TransmitAction> transmitActions = new ConcurrentHashMap<>();
@@ -89,21 +92,21 @@ public class Online extends AbstractOnline {
 		return bean.typeId();
 	}
 
-	public ProviderLoad getLoad() {
+	public @NotNull ProviderLoad getLoad() {
 		return load;
 	}
 
 	public static final BeanFactory beanFactory = new BeanFactory();
 
-	public static Bean createBeanFromSpecialTypeId(long typeId) {
+	public static @NotNull Bean createBeanFromSpecialTypeId(long typeId) {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
-	public static void register(Class<? extends Bean> cls) {
+	public static void register(@NotNull Class<? extends Bean> cls) {
 		beanFactory.register(cls);
 	}
 
-	protected Online(AppBase app) {
+	protected Online(@NotNull AppBase app) {
 		providerApp = app.getZeze().redirect.providerApp;
 		RegisterProtocols(providerApp.providerService);
 		RegisterZezeTables(providerApp.zeze);
@@ -126,15 +129,13 @@ public class Online extends AbstractOnline {
 
 	@Override
 	public void UnRegister() {
-		if (null != providerApp) {
-			UnRegisterProtocols(providerApp.providerService);
-			UnRegisterZezeTables(providerApp.zeze);
-		}
+		UnRegisterProtocols(providerApp.providerService);
+		UnRegisterZezeTables(providerApp.zeze);
 	}
 
 	// 用户数据
 	@SuppressWarnings("unchecked")
-	public <T extends Bean> T getUserData(long roleId) {
+	public <T extends Bean> @Nullable T getUserData(long roleId) {
 		var version = _tversion.get(roleId);
 		if (null == version)
 			return null;
@@ -142,16 +143,16 @@ public class Online extends AbstractOnline {
 	}
 
 	// 在线状态
-	public BOnline getOnline(long roleId) {
+	public @Nullable BOnline getOnline(long roleId) {
 		return _tonline.get(roleId);
 	}
 
 	// 在线异变数据
-	public BVersion getData(long roleId) {
+	public @Nullable BVersion getData(long roleId) {
 		return _tversion.get(roleId);
 	}
 
-	public <T extends Bean> void setUserData(long roleId, T data) {
+	public <T extends Bean> void setUserData(long roleId, @NotNull T data) {
 		_tversion.getOrAdd(roleId).getUserData().setBean(data);
 	}
 
@@ -159,7 +160,7 @@ public class Online extends AbstractOnline {
 		return _tlocal.getCacheSize();
 	}
 
-	public long walkLocal(TableWalkHandle<Long, BLocal> walker) {
+	public long walkLocal(@NotNull TableWalkHandle<Long, BLocal> walker) {
 		return _tlocal.walkCache(walker);
 	}
 
@@ -168,34 +169,34 @@ public class Online extends AbstractOnline {
 	}
 
 	// 登录事件
-	public EventDispatcher getLoginEvents() {
+	public @NotNull EventDispatcher getLoginEvents() {
 		return loginEvents;
 	}
 
-	public EventDispatcher getLinkBrokenEvents() {
+	public @NotNull EventDispatcher getLinkBrokenEvents() {
 		return linkBrokenEvents;
 	}
 
 	// 断线重连事件
-	public EventDispatcher getReloginEvents() {
+	public @NotNull EventDispatcher getReloginEvents() {
 		return reloginEvents;
 	}
 
 	// 登出事件
-	public EventDispatcher getLogoutEvents() {
+	public @NotNull EventDispatcher getLogoutEvents() {
 		return logoutEvents;
 	}
 
 	// 角色从本机删除事件
-	public EventDispatcher getLocalRemoveEvents() {
+	public @NotNull EventDispatcher getLocalRemoveEvents() {
 		return localRemoveEvents;
 	}
 
-	public ConcurrentHashMap<String, TransmitAction> getTransmitActions() {
+	public @NotNull ConcurrentHashMap<String, TransmitAction> getTransmitActions() {
 		return transmitActions;
 	}
 
-	public <T extends Bean> void setLocalBean(long roleId, String key, T bean) {
+	public <T extends Bean> void setLocalBean(long roleId, @NotNull String key, @NotNull T bean) {
 		var bLocal = _tlocal.get(roleId);
 		if (null == bLocal)
 			throw new IllegalStateException("roleId not online. " + roleId);
@@ -205,7 +206,7 @@ public class Online extends AbstractOnline {
 		bLocal.getDatas().put(key, bAny);
 	}
 
-	public void removeLocalBean(long roleId, String key) {
+	public void removeLocalBean(long roleId, @NotNull String key) {
 		var bLocal = _tlocal.get(roleId);
 		if (null == bLocal)
 			return;
@@ -213,7 +214,7 @@ public class Online extends AbstractOnline {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T extends Bean> T getLocalBean(long roleId, String key) {
+	public <T extends Bean> @Nullable T getLocalBean(long roleId, @NotNull String key) {
 		var bLocal = _tlocal.get(roleId);
 		if (null == bLocal)
 			return null;
@@ -224,7 +225,7 @@ public class Online extends AbstractOnline {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T extends Bean> T getOrAddLocalBean(long roleId, String key, T defaultHint) {
+	public <T extends Bean> @NotNull T getOrAddLocalBean(long roleId, @NotNull String key, @NotNull T defaultHint) {
 		var bLocal = _tlocal.getOrAdd(roleId);
 		var data = bLocal.getDatas().getOrAdd(key);
 		if (data.getAny().getBean().typeId() == defaultHint.typeId())
@@ -251,7 +252,7 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	public Long getLogoutVersion(long roleId) {
+	public @Nullable Long getLogoutVersion(long roleId) {
 		/*
 		if (_tonline.get(roleId) != null)
 			return null; // is online
@@ -262,21 +263,21 @@ public class Online extends AbstractOnline {
 		return version.getLogoutVersion();
 	}
 
-	public Long getLoginVersion(long roleId) {
+	public @Nullable Long getLoginVersion(long roleId) {
 		var version = _tversion.get(roleId);
 		if (null == version)
 			return null; // no version
 		return version.getLoginVersion();
 	}
 
-	public Long getLocalLoginVersion(long roleId) {
+	public @Nullable Long getLocalLoginVersion(long roleId) {
 		var local = _tlocal.get(roleId);
 		if (null == local)
 			return null;
 		return local.getLoginVersion();
 	}
 
-	public Long getGlobalLoginVersion(long roleId) {
+	public @Nullable Long getGlobalLoginVersion(long roleId) {
 		var version = _tversion.get(roleId);
 		if (null == version)
 			return null;
@@ -287,7 +288,7 @@ public class Online extends AbstractOnline {
 		return null != _tonline.get(roleId);
 	}
 
-	private static boolean assignLogoutVersion(BVersion version) {
+	private static boolean assignLogoutVersion(@NotNull BVersion version) {
 		if (version.getLoginVersion() == version.getLogoutVersion()) {
 			return false;
 		}
@@ -295,7 +296,7 @@ public class Online extends AbstractOnline {
 		return true;
 	}
 
-	private long logoutTrigger(long roleId, LogoutReason logoutReason) throws Exception {
+	private long logoutTrigger(long roleId, @NotNull LogoutReason logoutReason) throws Exception {
 		var arg = new LogoutEventArgument();
 		arg.roleId = roleId;
 		arg.logoutReason = logoutReason;
@@ -307,7 +308,8 @@ public class Online extends AbstractOnline {
 		_tonline.remove(roleId); // remove first
 
 		// 总是尝试通知上一次登录的服务器，里面会忽略本机。
-		tryRedirectRemoveLocal(version.getServerId(), roleId);
+		if (version != null)
+			tryRedirectRemoveLocal(version.getServerId(), roleId);
 		// 总是删除
 		removeLocalAndTrigger(roleId);
 
@@ -320,7 +322,7 @@ public class Online extends AbstractOnline {
 	}
 
 	@SuppressWarnings("UnusedReturnValue")
-	private long linkBrokenTrigger(@SuppressWarnings("unused") String account, long roleId) throws Exception {
+	private long linkBrokenTrigger(@SuppressWarnings("unused") @NotNull String account, long roleId) throws Exception {
 		var arg = new LinkBrokenArgument();
 		arg.roleId = roleId;
 
@@ -333,7 +335,7 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	private long loginTrigger(String account, long roleId) throws Exception {
+	private long loginTrigger(@NotNull String account, long roleId) throws Exception {
 		var arg = new LoginArgument();
 		arg.roleId = roleId;
 		arg.account = account;
@@ -347,7 +349,7 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	private long reloginTrigger(String account, long roleId) throws Exception {
+	private long reloginTrigger(@NotNull String account, long roleId) throws Exception {
 		var arg = new LoginArgument();
 		arg.roleId = roleId;
 		arg.account = account;
@@ -361,7 +363,7 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	private long tryLogout(BDelayLogoutCustom custom) throws Exception {
+	private long tryLogout(@NotNull BDelayLogoutCustom custom) throws Exception {
 		var roleId = custom.getRoleId();
 		var currentLoginVersion = custom.getLoginVersion();
 		// local online 独立判断version分别尝试删除。
@@ -382,10 +384,7 @@ public class Online extends AbstractOnline {
 		return Procedure.Success;
 	}
 
-	static Online instance;
-
 	public static class DelayLogout implements TimerHandle {
-
 		@Override
 		public void onTimer(TimerContext context) throws Exception {
 			if (null != instance) {
@@ -397,11 +396,10 @@ public class Online extends AbstractOnline {
 
 		@Override
 		public void onTimerCancel() throws Exception {
-
 		}
 	}
 
-	public long linkBroken(String account, long roleId, String linkName, long linkSid) throws Exception {
+	public long linkBroken(@NotNull String account, long roleId, @NotNull String linkName, long linkSid) throws Exception {
 		long currentLoginVersion;
 		{
 			var online = _tonline.get(roleId);
@@ -429,19 +427,19 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	public void send(long roleId, Protocol<?> p) {
+	public void send(long roleId, @NotNull Protocol<?> p) {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Send", roleId, p);
 		sendDirect(roleId, typeId, new Binary(p.encode()));
 	}
 
-	public void sendResponse(long roleId, Rpc<?, ?> r) {
+	public void sendResponse(long roleId, @NotNull Rpc<?, ?> r) {
 		r.setRequest(false);
 		send(roleId, r);
 	}
 
-	public void send(Collection<Long> roleIds, Protocol<?> p) {
+	public void send(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
 		if (roleIds.isEmpty())
 			return;
 		var typeId = p.getTypeId();
@@ -458,26 +456,26 @@ public class Online extends AbstractOnline {
 		send(roleIds, typeId, new Binary(p.encode()));
 	}
 
-	public void sendWhileCommit(long roleId, Protocol<?> p) {
+	public void sendWhileCommit(long roleId, @NotNull Protocol<?> p) {
 		Transaction.whileCommit(() -> send(roleId, p));
 	}
 
-	public void sendWhileCommit(Collection<Long> roleIds, Protocol<?> p) {
+	public void sendWhileCommit(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
 		Transaction.whileCommit(() -> send(roleIds, p));
 	}
 
-	public void sendResponseWhileCommit(long roleId, Rpc<?, ?> r) {
+	public void sendResponseWhileCommit(long roleId, @NotNull Rpc<?, ?> r) {
 		Transaction.whileCommit(() -> {
 			r.setRequest(false);
 			send(roleId, r);
 		});
 	}
 
-	public void sendWhileRollback(long roleId, Protocol<?> p) {
+	public void sendWhileRollback(long roleId, @NotNull Protocol<?> p) {
 		Transaction.whileRollback(() -> send(roleId, p));
 	}
 
-	public void sendWhileRollback(Collection<Long> roleIds, Protocol<?> p) {
+	public void sendWhileRollback(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
 		Transaction.whileRollback(() -> send(roleIds, p));
 	}
 
@@ -490,7 +488,7 @@ public class Online extends AbstractOnline {
 //				}, "Online.send")), DispatchMode.Normal);
 //	}
 
-	public void send(Collection<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
+	public void send(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol) {
 		int roleCount = roleIds.size();
 		if (roleCount == 1) {
 			var it = roleIds.iterator();
@@ -513,7 +511,8 @@ public class Online extends AbstractOnline {
 //		}, "Online.send"), null, null, DispatchMode.Normal);
 //	}
 
-	private long triggerLinkBroken(String linkName, LongList errorSids, Map<Long, Long> context) {
+	private long triggerLinkBroken(@NotNull String linkName, @NotNull LongList errorSids,
+								   @NotNull Map<Long, Long> context) {
 		errorSids.foreach(linkSid -> providerApp.zeze.newProcedure(() -> {
 			var roleId = context.get(linkSid);
 			// 补发的linkBroken没有account上下文。
@@ -529,7 +528,7 @@ public class Online extends AbstractOnline {
 	 * @param contexts context
 	 * @param send     protocol
 	 */
-	public void send(AsyncSocket link, Map<Long, Long> contexts, Send send) {
+	public void send(@NotNull AsyncSocket link, @NotNull Map<Long, Long> contexts, @NotNull Send send) {
 		send.Send(link, rpc -> triggerLinkBroken(ProviderService.getLinkName(link),
 				send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
 	}
@@ -562,18 +561,18 @@ public class Online extends AbstractOnline {
 //	}
 
 	public static final class LinkRoles {
-		final AsyncSocket linkSocket;
-		final Send send;
+		final @NotNull AsyncSocket linkSocket;
+		final @NotNull Send send;
 		final LongList roleIds = new LongList();
 
-		public LinkRoles(AsyncSocket linkSocket, long typeId, Binary fullEncodedProtocol) {
+		public LinkRoles(@NotNull AsyncSocket linkSocket, long typeId, @NotNull Binary fullEncodedProtocol) {
 			this.linkSocket = linkSocket;
 			send = new Send(new BSend(typeId, fullEncodedProtocol));
 		}
 	}
 
 	// 可在事务外执行
-	public void sendDirect(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
+	public void sendDirect(@NotNull Iterable<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol) {
 		var roleIdSet = new LongHashSet();
 		for (var roleId : roleIds)
 			roleIdSet.add(roleId); // 去重
@@ -627,7 +626,7 @@ public class Online extends AbstractOnline {
 	}
 
 	// 可在事务外执行
-	public void sendDirect(long roleId, long typeId, Binary fullEncodedProtocol) {
+	public void sendDirect(long roleId, long typeId, @NotNull Binary fullEncodedProtocol) {
 		var online = _tonline.selectDirty(roleId);
 		if (online == null) {
 			logger.warn("sendDirect: not found roleId={} in _tonline", roleId);
@@ -710,7 +709,7 @@ public class Online extends AbstractOnline {
 //		return groups.values();
 //	}
 
-	public void addReliableNotifyMark(long roleId, String listenerName) {
+	public void addReliableNotifyMark(long roleId, @NotNull String listenerName) {
 		var online = _tonline.get(roleId);
 		if (online == null)
 			throw new IllegalStateException("Not Online. AddReliableNotifyMark: " + listenerName);
@@ -718,38 +717,38 @@ public class Online extends AbstractOnline {
 		version.getReliableNotifyMark().add(listenerName);
 	}
 
-	public void removeReliableNotifyMark(long roleId, String listenerName) {
+	public void removeReliableNotifyMark(long roleId, @NotNull String listenerName) {
 		// 移除尽量通过，不做任何判断。
 		var version = _tversion.getOrAdd(roleId);
 		version.getReliableNotifyMark().remove(listenerName);
 	}
 
-	public void sendReliableNotifyWhileCommit(long roleId, String listenerName, Protocol<?> p) {
+	public void sendReliableNotifyWhileCommit(long roleId, @NotNull String listenerName, @NotNull Protocol<?> p) {
 		Transaction.whileCommit(() -> sendReliableNotify(roleId, listenerName, p));
 	}
 
-	public void sendReliableNotifyWhileCommit(long roleId, String listenerName, int typeId,
-											  Binary fullEncodedProtocol) {
+	public void sendReliableNotifyWhileCommit(long roleId, @NotNull String listenerName, int typeId,
+											  @NotNull Binary fullEncodedProtocol) {
 		Transaction.whileCommit(() -> sendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol));
 	}
 
-	public void sendReliableNotifyWhileRollback(long roleId, String listenerName, Protocol<?> p) {
+	public void sendReliableNotifyWhileRollback(long roleId, @NotNull String listenerName, @NotNull Protocol<?> p) {
 		Transaction.whileRollback(() -> sendReliableNotify(roleId, listenerName, p));
 	}
 
-	public void sendReliableNotifyWhileRollback(long roleId, String listenerName, int typeId,
-												Binary fullEncodedProtocol) {
+	public void sendReliableNotifyWhileRollback(long roleId, @NotNull String listenerName, int typeId,
+												@NotNull Binary fullEncodedProtocol) {
 		Transaction.whileRollback(() -> sendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol));
 	}
 
-	public void sendReliableNotify(long roleId, String listenerName, Protocol<?> p) {
+	public void sendReliableNotify(long roleId, @NotNull String listenerName, Protocol<?> p) {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Send", roleId + ":" + listenerName, p);
 		sendReliableNotify(roleId, listenerName, typeId, new Binary(p.encode()));
 	}
 
-	private Zeze.Collections.Queue<BNotify> openQueue(long roleId) {
+	private @NotNull Zeze.Collections.Queue<BNotify> openQueue(long roleId) {
 		return providerApp.zeze.getQueueModule().open("Zeze.Game.Online.ReliableNotifyQueue:" + roleId, BNotify.class);
 	}
 
@@ -758,7 +757,8 @@ public class Online extends AbstractOnline {
 	 *
 	 * @param fullEncodedProtocol 协议必须先编码，因为会跨事务。
 	 */
-	public void sendReliableNotify(long roleId, String listenerName, long typeId, Binary fullEncodedProtocol) {
+	public void sendReliableNotify(long roleId, @NotNull String listenerName, long typeId,
+								   @NotNull Binary fullEncodedProtocol) {
 		providerApp.zeze.runTaskOneByOneByKey(listenerName, "Online.sendReliableNotify." + listenerName, () -> {
 			BOnline online = _tonline.get(roleId);
 			if (online == null) {
@@ -794,15 +794,16 @@ public class Online extends AbstractOnline {
 	 * @param actionName 查询处理的实现
 	 * @param roleId     目标角色
 	 */
-	public void transmit(long sender, String actionName, long roleId, Serializable parameter) {
+	public void transmit(long sender, @NotNull String actionName, long roleId, @Nullable Serializable parameter) {
 		transmit(sender, actionName, List.of(roleId), parameter);
 	}
 
-	public void transmit(long sender, String actionName, long roleId) {
+	public void transmit(long sender, @NotNull String actionName, long roleId) {
 		transmit(sender, actionName, roleId, null);
 	}
 
-	public void processTransmit(long sender, String actionName, Iterable<Long> roleIds, Binary parameter) {
+	public void processTransmit(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds,
+								@Nullable Binary parameter) {
 		var handle = transmitActions.get(actionName);
 		if (handle != null) {
 			for (var target : roleIds) {
@@ -817,7 +818,7 @@ public class Online extends AbstractOnline {
 		final HashSet<Long> roles = new HashSet<>();
 	}
 
-	public IntHashMap<RoleOnServer> groupByServerId(Iterable<Long> roleIds) {
+	public @NotNull IntHashMap<RoleOnServer> groupByServerId(@NotNull Iterable<Long> roleIds) {
 		var groups = new IntHashMap<RoleOnServer>();
 		var groupNotOnline = new RoleOnServer(); // LinkName is Empty And Socket is null.
 		groups.put(-1, groupNotOnline);
@@ -842,14 +843,15 @@ public class Online extends AbstractOnline {
 		return groups;
 	}
 
-	private static RoleOnServer merge(RoleOnServer current, RoleOnServer m) {
+	private static @NotNull RoleOnServer merge(@Nullable RoleOnServer current, @NotNull RoleOnServer m) {
 		if (null == current)
 			return m;
 		current.roles.addAll(m.roles);
 		return current;
 	}
 
-	private void transmitInProcedure(long sender, String actionName, Iterable<Long> roleIds, Binary parameter) {
+	private void transmitInProcedure(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds,
+									 @Nullable Binary parameter) {
 		if (providerApp.zeze.getConfig().getGlobalCacheManagerHostNameOrAddress().isEmpty()) {
 			// 没有启用cache-sync，马上触发本地任务。
 			processTransmit(sender, actionName, roleIds, parameter);
@@ -890,11 +892,12 @@ public class Online extends AbstractOnline {
 			processTransmit(sender, actionName, groupLocal.roles, parameter);
 	}
 
-	public void transmit(long sender, String actionName, Iterable<Long> roleIds) {
+	public void transmit(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds) {
 		transmit(sender, actionName, roleIds, null);
 	}
 
-	public void transmit(long sender, String actionName, Iterable<Long> roleIds, Serializable parameter) {
+	public void transmit(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds,
+						 @Nullable Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 		ByteBuffer bb;
@@ -913,49 +916,50 @@ public class Online extends AbstractOnline {
 		}, "Online.transmit"), null, null, DispatchMode.Normal);
 	}
 
-	public void transmitWhileCommit(long sender, String actionName, long roleId) {
+	public void transmitWhileCommit(long sender, @NotNull String actionName, long roleId) {
 		transmitWhileCommit(sender, actionName, roleId, null);
 	}
 
-	public void transmitWhileCommit(long sender, String actionName, long roleId, Serializable parameter) {
+	public void transmitWhileCommit(long sender, @NotNull String actionName, long roleId, @Nullable Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 		Transaction.whileCommit(() -> transmit(sender, actionName, roleId, parameter));
 	}
 
-	public void transmitWhileCommit(long sender, String actionName, Iterable<Long> roleIds) {
+	public void transmitWhileCommit(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds) {
 		transmitWhileCommit(sender, actionName, roleIds, null);
 	}
 
-	public void transmitWhileCommit(long sender, String actionName, Iterable<Long> roleIds,
-									Serializable parameter) {
+	public void transmitWhileCommit(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds,
+									@Nullable Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 		Transaction.whileCommit(() -> transmit(sender, actionName, roleIds, parameter));
 	}
 
-	public void transmitWhileRollback(long sender, String actionName, long roleId) {
+	public void transmitWhileRollback(long sender, @NotNull String actionName, long roleId) {
 		transmitWhileRollback(sender, actionName, roleId, null);
 	}
 
-	public void transmitWhileRollback(long sender, String actionName, long roleId, Serializable parameter) {
+	public void transmitWhileRollback(long sender, @NotNull String actionName, long roleId,
+									  @Nullable Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 		Transaction.whileRollback(() -> transmit(sender, actionName, roleId, parameter));
 	}
 
-	public void transmitWhileRollback(long sender, String actionName, Iterable<Long> roleIds) {
+	public void transmitWhileRollback(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds) {
 		transmitWhileRollback(sender, actionName, roleIds, null);
 	}
 
-	public void transmitWhileRollback(long sender, String actionName, Iterable<Long> roleIds,
-									  Serializable parameter) {
+	public void transmitWhileRollback(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds,
+									  @Nullable Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 		Transaction.whileRollback(() -> transmit(sender, actionName, roleIds, parameter));
 	}
 
-	private void broadcast(long typeId, Binary fullEncodedProtocol, int time) {
+	private void broadcast(long typeId, @NotNull Binary fullEncodedProtocol, int time) {
 //		TaskCompletionSource<Long> future = null;
 		var broadcast = new Broadcast(new BBroadcast(typeId, fullEncodedProtocol, time));
 		for (var link : providerApp.providerService.getLinks().values()) {
@@ -967,11 +971,11 @@ public class Online extends AbstractOnline {
 //			future.await();
 	}
 
-	public void broadcast(Protocol<?> p) {
+	public void broadcast(@NotNull Protocol<?> p) {
 		broadcast(p, 60 * 1000);
 	}
 
-	public void broadcast(Protocol<?> p, int time) {
+	public void broadcast(@NotNull Protocol<?> p, int time) {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Broc", providerApp.providerService.getLinks().size(), p);

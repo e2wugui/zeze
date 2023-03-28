@@ -17,6 +17,8 @@ import Zeze.Transaction.DatabaseSqlServer;
 import Zeze.Transaction.DatabaseTikv;
 import com.amazonaws.regions.Regions;
 import org.apache.logging.log4j.Level;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -80,7 +82,7 @@ public final class Config {
 	private boolean autoResetTable = false;
 	private final ConcurrentHashMap<String, DatabaseConf> databaseConfMap = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, ServiceConf> serviceConfMap = new ConcurrentHashMap<>();
-	private ServiceConf defaultServiceConf = new ServiceConf();
+	private @NotNull ServiceConf defaultServiceConf = new ServiceConf();
 
 	private int onlineLogoutDelay = 60 * 10 * 1000; // 10 minutes
 
@@ -350,19 +352,21 @@ public final class Config {
 		}
 	}
 
-	public ConcurrentHashMap<String, ServiceConf> getServiceConfMap() {
+	public @NotNull ConcurrentHashMap<String, ServiceConf> getServiceConfMap() {
 		return serviceConfMap;
 	}
 
-	public ServiceConf getDefaultServiceConf() {
+	public @NotNull ServiceConf getDefaultServiceConf() {
 		return defaultServiceConf;
 	}
 
-	public void setDefaultServiceConf(ServiceConf value) {
-		defaultServiceConf = value;
+	public void setDefaultServiceConf(@NotNull ServiceConf value) {
+		//noinspection ConstantValue
+		if (value != null)
+			defaultServiceConf = value;
 	}
 
-	public ServiceConf getServiceConf(String name) {
+	public @Nullable ServiceConf getServiceConf(@NotNull String name) {
 		return getServiceConfMap().get(name);
 	}
 
@@ -374,19 +378,19 @@ public final class Config {
 	 * c.LoadAndParse();
 	 */
 
-	public static Config load() {
+	public static @NotNull Config load() {
 		return load("zeze.xml");
 	}
 
-	public static Config load(String xmlFile) {
+	public static @NotNull Config load(@NotNull String xmlFile) {
 		return new Config().loadAndParse(xmlFile);
 	}
 
-	public Config loadAndParse() {
+	public @NotNull Config loadAndParse() {
 		return loadAndParse("zeze.xml");
 	}
 
-	public Config loadAndParse(String xmlFile) {
+	public @NotNull Config loadAndParse(@NotNull String xmlFile) {
 		if (new File(xmlFile).isFile()) {
 			DocumentBuilderFactory db = DocumentBuilderFactory.newInstance();
 			db.setXIncludeAware(true);
@@ -407,7 +411,7 @@ public final class Config {
 		return this;
 	}
 
-	public void parse(Element self) {
+	public void parse(@NotNull Element self) {
 		if (!self.getNodeName().equals("zeze"))
 			throw new IllegalStateException("is it a zeze config?");
 		String name = self.getAttribute("name");

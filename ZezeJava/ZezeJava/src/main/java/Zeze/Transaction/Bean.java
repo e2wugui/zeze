@@ -7,6 +7,8 @@ import Zeze.Transaction.Collections.LogBean;
 import Zeze.Util.KV;
 import Zeze.Util.Reflect;
 import Zeze.Util.Str;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public abstract class Bean implements Serializable {
 	public static final int OBJECT_ID_STEP = 4096; // 自增长步长。低位保留给Variable.Id。也就是，Variable.Id 最大只能是4095.
@@ -20,11 +22,11 @@ public abstract class Bean implements Serializable {
 
 	private transient final long objectId = nextObjectId();
 
-	protected transient Record.RootInfo rootInfo;
+	protected transient @Nullable Record.RootInfo rootInfo;
 
 	// Parent VariableId 是 ChangeListener 需要的属性。
 	// Parent 和 TableKey 一起初始化，仅在被Table管理以后才设置。
-	private transient Bean parent;
+	private transient @Nullable Bean parent;
 
 	// VariableId 初始化分两部分：
 	// 1. Bean 包含的 Bean 在构造的时候初始化，同时初始化容器的LogKey（包含 VariableId）
@@ -42,11 +44,11 @@ public abstract class Bean implements Serializable {
 		return objectId;
 	}
 
-	public final TableKey tableKey() {
+	public final @Nullable TableKey tableKey() {
 		return rootInfo == null ? null : rootInfo.getTableKey();
 	}
 
-	public final Bean parent() {
+	public final @Nullable Bean parent() {
 		return parent;
 	}
 
@@ -64,7 +66,7 @@ public abstract class Bean implements Serializable {
 	 *
 	 * @param path path
 	 */
-	public final void buildChangeListenerPath(ArrayList<KV<Bean, Integer>> path) {
+	public final void buildChangeListenerPath(@NotNull ArrayList<KV<Bean, Integer>> path) {
 		for (Bean parent = this.parent; parent != null; parent = parent.parent)
 			path.add(KV.create(parent, variableId));
 	}
@@ -73,7 +75,7 @@ public abstract class Bean implements Serializable {
 		return rootInfo != null;
 	}
 
-	public final void initRootInfoWithRedo(Record.RootInfo rootInfo, Bean parent) {
+	public final void initRootInfoWithRedo(@NotNull Record.RootInfo rootInfo, @Nullable Bean parent) {
 		if (isManaged())
 			throw new HasManagedException();
 		this.rootInfo = rootInfo;
@@ -82,7 +84,7 @@ public abstract class Bean implements Serializable {
 		initChildrenRootInfoWithRedo(rootInfo);
 	}
 
-	public final void initRootInfo(Record.RootInfo rootInfo, Bean parent) {
+	public final void initRootInfo(@NotNull Record.RootInfo rootInfo, @Nullable Bean parent) {
 		if (isManaged())
 			throw new HasManagedException();
 		this.rootInfo = rootInfo;
@@ -96,29 +98,29 @@ public abstract class Bean implements Serializable {
 	}
 
 	// 用在第一次加载Bean时，需要初始化它的root
-	protected void initChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(@NotNull Record.RootInfo root) {
 	}
 
-	protected void initChildrenRootInfoWithRedo(Record.RootInfo root) {
+	protected void initChildrenRootInfoWithRedo(@NotNull Record.RootInfo root) {
 	}
 
 	public boolean negativeCheck() {
 		return false;
 	}
 
-	public Bean copy() {
+	public @NotNull Bean copy() {
 		throw new UnsupportedOperationException();
 	}
 
-	public void assign(Data data) {
+	public void assign(@NotNull Data data) {
 		throw new UnsupportedOperationException();
 	}
 
-	public Data toData() {
+	public @NotNull Data toData() {
 		throw new UnsupportedOperationException();
 	}
 
-	public void buildString(StringBuilder sb, int level) {
+	public void buildString(@NotNull StringBuilder sb, int level) {
 		sb.append(Str.indent(level)).append('{').append(this).append('}');
 	}
 
@@ -133,7 +135,7 @@ public abstract class Bean implements Serializable {
 
 	// 使用自己的hash算法，因为 TypeId 会持久化，不能因为算法改变导致值变化。
 	// XXX: 这个算法定好之后，就不能变了。
-	public static long hash64(long initial, String name, int n) {
+	public static long hash64(long initial, @NotNull String name, int n) {
 		// This is a Knuth hash
 		long hashedValue = initial;
 		for (int i = 0; i < n; i++)
@@ -141,15 +143,15 @@ public abstract class Bean implements Serializable {
 		return hashedValue;
 	}
 
-	public static long hash64(String name, int n) {
+	public static long hash64(@NotNull String name, int n) {
 		return hash64(3074457345618258791L, name, n);
 	}
 
-	public static long hash64(String name) {
+	public static long hash64(@NotNull String name) {
 		return hash64(name, name.length());
 	}
 
-	public static long hash64(long initial, String name) {
+	public static long hash64(long initial, @NotNull String name) {
 		return hash64(initial, name, name.length());
 	}
 
@@ -158,18 +160,18 @@ public abstract class Bean implements Serializable {
 		return (initial + c) * 3074457345618258799L;
 	}
 
-	public static int hash32(String name) {
+	public static int hash32(@NotNull String name) {
 		long hash64 = hash64(name);
 		return (int)(hash64 ^ (hash64 >> 32));
 	}
 
 	// PMap<K, V>
-	public static int hashLog(long initial, Class<?> key, Class<?> value) {
+	public static int hashLog(long initial, @NotNull Class<?> key, @NotNull Class<?> value) {
 		return hashLog(initial, Reflect.getStableName(key), Reflect.getStableName(value));
 	}
 
 	// PMap<K, V>
-	public static int hashLog(long initial, String key, String value) {
+	public static int hashLog(long initial, @NotNull String key, @NotNull String value) {
 		var hash64 = hash64(initial, key);
 		hash64 = hash64(hash64(hash64, ','), ' ');
 		hash64 = hash64(hash64, value);
@@ -178,30 +180,30 @@ public abstract class Bean implements Serializable {
 	}
 
 	// PList<V>
-	public static int hashLog(long initial, Class<?> value) {
+	public static int hashLog(long initial, @NotNull Class<?> value) {
 		return hashLog(initial, Reflect.getStableName(value));
 	}
 
 	// PList<V>
-	public static int hashLog(long initial, String value) {
+	public static int hashLog(long initial, @NotNull String value) {
 		var hash64 = hash64(initial, value);
 		hash64 = hash64(hash64, '>');
 		return (int)(hash64 ^ (hash64 >> 32));
 	}
 
-	public Object mapKey() {
+	public @NotNull Object mapKey() {
 		throw new UnsupportedOperationException();
 	}
 
-	public void mapKey(Object mapKey) {
+	public void mapKey(@NotNull Object mapKey) {
 		throw new UnsupportedOperationException();
 	}
 
-	public void followerApply(Log log) {
+	public void followerApply(@NotNull Log log) {
 		throw new UnsupportedOperationException();
 	}
 
-	public LogBean createLogBean() {
+	public @NotNull LogBean createLogBean() {
 		var log = new LogBean();
 		log.setBelong(parent);
 		log.setThis(this);
@@ -219,7 +221,7 @@ public abstract class Bean implements Serializable {
 		// 子类实现
 	}
 
-	public static String parentsToName(ArrayList<String> parents) {
+	public static @NotNull String parentsToName(@NotNull ArrayList<String> parents) {
 		if (parents.isEmpty())
 			return "";
 

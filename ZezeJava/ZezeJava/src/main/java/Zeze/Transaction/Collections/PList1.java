@@ -4,21 +4,24 @@ import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
+import org.jetbrains.annotations.NotNull;
 import org.pcollections.Empty;
 
+@SuppressWarnings("DataFlowIssue")
 public class PList1<V> extends PList<V> {
-	protected final Meta1<V> meta;
+	protected final @NotNull Meta1<V> meta;
 
-	public PList1(Class<V> valueClass) {
+	public PList1(@NotNull Class<V> valueClass) {
 		meta = Meta1.getList1Meta(valueClass);
 	}
 
-	private PList1(Meta1<V> meta) {
+	private PList1(@NotNull Meta1<V> meta) {
 		this.meta = meta;
 	}
 
 	@Override
-	public boolean add(V item) {
+	public boolean add(@NotNull V item) {
+		//noinspection ConstantValue
 		if (item == null)
 			throw new IllegalArgumentException("null item");
 
@@ -37,7 +40,7 @@ public class PList1<V> extends PList<V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public boolean remove(Object item) {
+	public boolean remove(@NotNull Object item) {
 		if (isManaged()) {
 			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -62,7 +65,8 @@ public class PList1<V> extends PList<V> {
 	}
 
 	@Override
-	public V set(int index, V item) {
+	public @NotNull V set(int index, @NotNull V item) {
+		//noinspection ConstantValue
 		if (item == null)
 			throw new IllegalArgumentException("null item");
 
@@ -78,7 +82,8 @@ public class PList1<V> extends PList<V> {
 	}
 
 	@Override
-	public void add(int index, V item) {
+	public void add(int index, @NotNull V item) {
+		//noinspection ConstantValue
 		if (item == null)
 			throw new IllegalArgumentException("null item");
 
@@ -92,7 +97,7 @@ public class PList1<V> extends PList<V> {
 	}
 
 	@Override
-	public V remove(int index) {
+	public @NotNull V remove(int index) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
@@ -105,7 +110,7 @@ public class PList1<V> extends PList<V> {
 	}
 
 	@Override
-	public boolean addAll(Collection<? extends V> items) {
+	public boolean addAll(@NotNull Collection<? extends V> items) {
 		// XXX
 		for (var v : items) {
 			if (v == null)
@@ -124,7 +129,7 @@ public class PList1<V> extends PList<V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public boolean removeAll(Collection<?> c) {
+	public boolean removeAll(@NotNull Collection<?> c) {
 		if (isManaged()) {
 			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -136,7 +141,7 @@ public class PList1<V> extends PList<V> {
 	}
 
 	@Override
-	public LogBean createLogBean() {
+	public @NotNull LogBean createLogBean() {
 		var log = new LogList1<>(meta);
 		log.setBelong(parent());
 		log.setThis(this);
@@ -146,7 +151,7 @@ public class PList1<V> extends PList<V> {
 	}
 
 	@Override
-	public void followerApply(Log _log) {
+	public void followerApply(@NotNull Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogList1<V>)_log;
 		for (var opLog : log.getOpLogs()) {
@@ -168,14 +173,14 @@ public class PList1<V> extends PList<V> {
 	}
 
 	@Override
-	public PList1<V> copy() {
+	public @NotNull PList1<V> copy() {
 		var copy = new PList1<>(meta);
 		copy.list = list;
 		return copy;
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		var tmp = getList();
 		bb.WriteUInt(tmp.size());
 		var encoder = meta.valueEncoder;
@@ -184,7 +189,7 @@ public class PList1<V> extends PList<V> {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(@NotNull ByteBuffer bb) {
 		clear();
 		var decoder = meta.valueDecoder;
 		for (int i = bb.ReadUInt(); i > 0; i--)

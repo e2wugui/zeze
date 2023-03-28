@@ -114,6 +114,10 @@ public class DbWeb extends AbstractDbWeb {
 			Objects.requireNonNull(tableName, "tableName");
 			var count = n != null ? Math.min(Integer.parseInt(n), 1_000_000) : 100;
 			var table = (TableX<?, ?>)zeze.getTable(tableName);
+			if (table == null) {
+				x.sendPlainText(HttpResponseStatus.OK, "not found table: \"" + tableName + '"');
+				return;
+			}
 			var keys = new ArrayList<>();
 			var lastKey = walkKey(table, key != null && !key.isEmpty() ? parseKey(table, key) : null, count, k -> {
 				keys.add(k);
@@ -155,6 +159,10 @@ public class DbWeb extends AbstractDbWeb {
 			Objects.requireNonNull(tableName, "tableName");
 			Objects.requireNonNull(key, "key");
 			var table = (TableX<?, ?>)zeze.getTable(tableName);
+			if (table == null) {
+				x.sendPlainText(HttpResponseStatus.OK, "not found table: \"" + tableName + '"');
+				return;
+			}
 			var k = parseKey(table, key);
 			var jw = JsonWriter.local().clear();
 			var oldFlags = jw.getFlags();
@@ -183,6 +191,10 @@ public class DbWeb extends AbstractDbWeb {
 			Objects.requireNonNull(key, "key");
 			Objects.requireNonNull(value, "value");
 			var table = (TableX<?, ?>)zeze.getTable(tableName);
+			if (table == null) {
+				x.sendPlainText(HttpResponseStatus.OK, "not found table: \"" + tableName + '"');
+				return;
+			}
 			var k = parseKey(table, key);
 			var valueClass = (Class<?>)
 					((ParameterizedType)table.getClass().getGenericSuperclass()).getActualTypeArguments()[1];
@@ -212,6 +224,10 @@ public class DbWeb extends AbstractDbWeb {
 			Objects.requireNonNull(tableName, "tableName");
 			Objects.requireNonNull(key, "key");
 			var table = (TableX<?, ?>)zeze.getTable(tableName);
+			if (table == null) {
+				x.sendPlainText(HttpResponseStatus.OK, "not found table: \"" + tableName + '"');
+				return;
+			}
 			var k = parseKey(table, key);
 			remove(table, k);
 			x.sendPlainText(HttpResponseStatus.OK, "DeleteRecord done!");
@@ -251,16 +267,19 @@ public class DbWeb extends AbstractDbWeb {
 					.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE));
 			beginStream = true;
 			x.sendStream(("ClearTable '" + tableName + "' begin ...\n").getBytes(StandardCharsets.UTF_8));
-			var t = new OutLong(System.nanoTime());
-			clearTable(table, lastKey -> {
-				var t1 = System.nanoTime();
-				if (t1 - t.value >= 1_000_000_000L && lastKey != null) {
-					t.value = t1;
-					x.sendStream(("  key: " + lastKey).getBytes(StandardCharsets.UTF_8));
-				}
-				return true;
-			});
-			x.sendStream("ClearTable done!".getBytes(StandardCharsets.UTF_8));
+			if (table != null) {
+				var t = new OutLong(System.nanoTime());
+				clearTable(table, lastKey -> {
+					var t1 = System.nanoTime();
+					if (t1 - t.value >= 1_000_000_000L && lastKey != null) {
+						t.value = t1;
+						x.sendStream(("  key: " + lastKey).getBytes(StandardCharsets.UTF_8));
+					}
+					return true;
+				});
+				x.sendStream("ClearTable done!".getBytes(StandardCharsets.UTF_8));
+			} else
+				x.sendStream("not found table!".getBytes(StandardCharsets.UTF_8));
 			x.endStream();
 		} catch (Exception e) {
 			if (beginStream) {

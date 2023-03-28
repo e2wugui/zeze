@@ -7,42 +7,45 @@ import java.util.Map;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Transaction;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
 public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterable<Map.Entry<K, V>> {
-	public org.pcollections.PMap<K, V> map = Empty.map();
+	public @NotNull org.pcollections.PMap<K, V> map = Empty.map();
 
 	@Override
-	public final V get(Object key) {
+	public final @Nullable V get(@NotNull Object key) {
 		return getMap().get(key);
 	}
 
 	@Override
-	public abstract V put(K key, V value);
+	public abstract @Nullable V put(@NotNull K key, @NotNull V value);
 
 	@Override
-	public abstract void putAll(Map<? extends K, ? extends V> m);
+	public abstract void putAll(@NotNull Map<? extends K, ? extends V> m);
 
 	@Override
-	public abstract V remove(Object key);
+	public abstract @Nullable V remove(@NotNull Object key);
 
-	public abstract boolean remove(Map.Entry<K, V> item);
+	public abstract boolean remove(@NotNull Map.Entry<K, V> item);
 
 	@Override
 	public abstract void clear();
 
-	public final void copyTo(Map.Entry<K, V>[] array, int arrayIndex) {
+	public final void copyTo(Map.Entry<K, V> @NotNull [] array, int arrayIndex) {
 		int index = arrayIndex;
 		for (var e : getMap().entrySet()) {
 			array[index++] = e;
 		}
 	}
 
-	protected final org.pcollections.PMap<K, V> getMap() {
+	protected final @NotNull org.pcollections.PMap<K, V> getMap() {
 		if (isManaged()) {
 			var txn = Transaction.getCurrentVerifyRead(this);
 			if (txn == null)
 				return map;
+			//noinspection DataFlowIssue
 			var log = txn.getLog(parent().objectId() + variableId());
 			if (log == null)
 				return map;
@@ -59,12 +62,12 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 	}
 
 	@Override
-	public final boolean containsValue(Object v) {
+	public final boolean containsValue(@NotNull Object v) {
 		return getMap().containsValue(v);
 	}
 
 	@Override
-	public final boolean containsKey(Object key) {
+	public final boolean containsKey(@NotNull Object key) {
 		return getMap().containsKey(key);
 	}
 
@@ -74,7 +77,7 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 	}
 
 	@Override
-	public Set<K> keySet() {
+	public @NotNull Set<K> keySet() {
 		return new AbstractSet<>() {
 			@Override
 			public Iterator<K> iterator() {
@@ -106,7 +109,7 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 	}
 
 	@Override
-	public java.util.Collection<V> values() {
+	public @NotNull java.util.Collection<V> values() {
 		return new AbstractCollection<>() {
 			@Override
 			public Iterator<V> iterator() {
@@ -138,7 +141,7 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 	}
 
 	@Override
-	public Set<Map.Entry<K, V>> entrySet() {
+	public @NotNull Set<Map.Entry<K, V>> entrySet() {
 		return new AbstractSet<>() {
 			@Override
 			public Iterator<Entry<K, V>> iterator() {
@@ -171,7 +174,7 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 	}
 
 	@Override
-	public Iterator<Map.Entry<K, V>> iterator() {
+	public @NotNull Iterator<Map.Entry<K, V>> iterator() {
 		return entrySet().iterator();
 	}
 
@@ -181,12 +184,12 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 	}
 
 	@Override
-	public boolean equals(Object o) {
+	public boolean equals(@Nullable Object o) {
 		return o instanceof PMap && map.equals(((PMap<?, ?>)o).map);
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		var sb = new StringBuilder();
 		ByteBuffer.BuildString(sb, getMap());
 		return sb.toString();

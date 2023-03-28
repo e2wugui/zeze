@@ -2,11 +2,12 @@ package Zeze.Serialize;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import org.jetbrains.annotations.NotNull;
 
 public interface Serializable {
-	void encode(ByteBuffer bb);
+	void encode(@NotNull ByteBuffer bb);
 
-	void decode(ByteBuffer bb);
+	void decode(@NotNull ByteBuffer bb);
 
 	default int preAllocSize() {
 		return 16;

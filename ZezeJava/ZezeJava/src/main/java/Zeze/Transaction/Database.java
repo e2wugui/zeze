@@ -13,6 +13,8 @@ import Zeze.Util.KV;
 import Zeze.Util.ShutdownHook;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import static Zeze.Services.GlobalCacheManagerConst.StateModify;
 import static Zeze.Services.GlobalCacheManagerConst.StateRemoved;
 import static Zeze.Services.GlobalCacheManagerConst.StateShare;
@@ -36,44 +38,44 @@ public abstract class Database {
 
 	private final ConcurrentHashMap<String, Zeze.Transaction.Table> tables = new ConcurrentHashMap<>();
 	private final ArrayList<Storage<?, ?>> storages = new ArrayList<>();
-	private final DatabaseConf conf;
-	private final String databaseUrl;
+	private final @NotNull DatabaseConf conf;
+	private final @NotNull String databaseUrl;
 	private Operates directOperates;
-	private Application zeze;
+	private final @NotNull Application zeze;
 
-	public Database(Application zeze, DatabaseConf conf) {
+	public Database(@NotNull Application zeze, @NotNull DatabaseConf conf) {
 		this.zeze = zeze;
 		this.conf = conf;
 		databaseUrl = conf.getDatabaseUrl();
 	}
 
-	public Application getZeze() {
+	public @NotNull Application getZeze() {
 		return zeze;
 	}
 
-	public final Collection<Zeze.Transaction.Table> getTables() {
+	public final @NotNull Collection<Zeze.Transaction.Table> getTables() {
 		return tables.values();
 	}
 
-	public final Zeze.Transaction.Table getTable(String name) {
+	public final @Nullable Zeze.Transaction.Table getTable(@NotNull String name) {
 		return tables.get(name);
 	}
 
-	public final void addTable(Zeze.Transaction.Table table) {
+	public final void addTable(@NotNull Zeze.Transaction.Table table) {
 		if (null != tables.putIfAbsent(table.getName(), table))
 			throw new IllegalStateException("duplicate table=" + table.getName());
 	}
 
-	public final void removeTable(Zeze.Transaction.Table table) {
+	public final void removeTable(@NotNull Zeze.Transaction.Table table) {
 		table.close();
 		tables.remove(table.getName());
 	}
 
-	public final DatabaseConf getConf() {
+	public final @NotNull DatabaseConf getConf() {
 		return conf;
 	}
 
-	public final String getDatabaseUrl() {
+	public final @NotNull String getDatabaseUrl() {
 		return databaseUrl;
 	}
 
@@ -81,11 +83,11 @@ public abstract class Database {
 		return directOperates;
 	}
 
-	protected final void setDirectOperates(Operates value) {
+	protected final void setDirectOperates(@NotNull Operates value) {
 		directOperates = value;
 	}
 
-	public final void open(Application app) {
+	public final void open(@NotNull Application app) {
 		for (Zeze.Transaction.Table table : tables.values()) {
 			var storage = table.open(app, this);
 			if (storage != null)
@@ -93,7 +95,7 @@ public abstract class Database {
 		}
 	}
 
-	public final void openDynamicTable(Application app, Zeze.Transaction.Table table) {
+	public final void openDynamicTable(@NotNull Application app, @NotNull Zeze.Transaction.Table table) {
 		var storage = table.open(app, this);
 		if (null != storage)
 			storages.add(storage);
@@ -140,15 +142,15 @@ public abstract class Database {
 			storage.cleanup();
 	}
 
-	public abstract Table openTable(String name);
+	public abstract @NotNull Table openTable(@NotNull String name);
 
-	public static byte[] copyIf(java.nio.ByteBuffer bb) {
+	public static byte @NotNull [] copyIf(@NotNull java.nio.ByteBuffer bb) {
 		if (bb.limit() == bb.capacity() && bb.arrayOffset() == 0)
 			return bb.array();
 		return Arrays.copyOfRange(bb.array(), bb.arrayOffset(), bb.limit());
 	}
 
-	public static byte[] copyIf(ByteBuffer bb) {
+	public static byte @NotNull [] copyIf(@NotNull ByteBuffer bb) {
 		if (bb.ReadIndex == 0 && bb.WriteIndex == bb.capacity())
 			return bb.Bytes;
 		return Arrays.copyOfRange(bb.Bytes, bb.ReadIndex, bb.WriteIndex);
@@ -157,39 +159,53 @@ public abstract class Database {
 	public interface Table {
 		boolean isNew();
 
-		Database getDatabase();
+		@NotNull Database getDatabase();
 
 		///////////////////////////////////////////////////////////
 		// TableX类型下沉到这里，准备添加关系表映射。
-		<K extends Comparable<K>, V extends Bean> V find(TableX<K, V> table, Object key);
+		<K extends Comparable<K>, V extends Bean> @Nullable V find(@NotNull TableX<K, V> table, @NotNull Object key);
+
 		// 这里的key，value具体含义由Table实现解释。
 		// 对于KV表，key,value都是ByteBuffer类型。
 		// 对于关系表，key,value是SQLStatement类型。
-		void replace(Transaction t, Object key, Object value);
-		void remove(Transaction t, Object key);
+		void replace(@NotNull Transaction t, @NotNull Object key, @NotNull Object value);
+
+		void remove(@NotNull Transaction t, @NotNull Object key);
 
 		<K extends Comparable<K>, V extends Bean>
-		long walk(TableX<K, V> table, TableWalkHandle<K, V> callback, Runnable afterLock);
-		<K extends Comparable<K>, V extends Bean>
-		long walkDesc(TableX<K, V> table, TableWalkHandle<K, V> callback, Runnable afterLock);
-		<K extends Comparable<K>, V extends Bean>
-		K walk(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback, Runnable afterLock);
-		<K extends Comparable<K>, V extends Bean>
-		K walkKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback, Runnable afterLock);
-		<K extends Comparable<K>, V extends Bean>
-		K walkDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback, Runnable afterLock);
-		<K extends Comparable<K>, V extends Bean>
-		K walkKeyDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback, Runnable afterLock);
+		long walk(@NotNull TableX<K, V> table, @NotNull TableWalkHandle<K, V> callback, @Nullable Runnable afterLock);
 
 		<K extends Comparable<K>, V extends Bean>
-		long walkDatabase(TableX<K, V> table, TableWalkHandle<K, V> callback);
-		<K extends Comparable<K>, V extends Bean>
-		long walkDatabaseDesc(TableX<K, V> table, TableWalkHandle<K, V> callback);
+		long walkDesc(@NotNull TableX<K, V> table, @NotNull TableWalkHandle<K, V> callback,
+					  @Nullable Runnable afterLock);
 
 		<K extends Comparable<K>, V extends Bean>
-		long walkDatabaseKey(TableX<K, V> table, TableWalkKey<K> callback);
+		K walk(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
+			   @NotNull TableWalkHandle<K, V> callback, @Nullable Runnable afterLock);
+
 		<K extends Comparable<K>, V extends Bean>
-		long walkDatabaseKeyDesc(TableX<K, V> table, TableWalkKey<K> callback);
+		K walkKey(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
+				  @NotNull TableWalkKey<K> callback, @Nullable Runnable afterLock);
+
+		<K extends Comparable<K>, V extends Bean>
+		K walkDesc(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
+				   @NotNull TableWalkHandle<K, V> callback, @Nullable Runnable afterLock);
+
+		<K extends Comparable<K>, V extends Bean>
+		K walkKeyDesc(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
+					  @NotNull TableWalkKey<K> callback, @Nullable Runnable afterLock);
+
+		<K extends Comparable<K>, V extends Bean>
+		long walkDatabase(@NotNull TableX<K, V> table, @NotNull TableWalkHandle<K, V> callback);
+
+		<K extends Comparable<K>, V extends Bean>
+		long walkDatabaseDesc(@NotNull TableX<K, V> table, @NotNull TableWalkHandle<K, V> callback);
+
+		<K extends Comparable<K>, V extends Bean>
+		long walkDatabaseKey(@NotNull TableX<K, V> table, @NotNull TableWalkKey<K> callback);
+
+		<K extends Comparable<K>, V extends Bean>
+		long walkDatabaseKeyDesc(@NotNull TableX<K, V> table, @NotNull TableWalkKey<K> callback);
 
 		void close();
 	}
@@ -198,32 +214,36 @@ public abstract class Database {
 	public static abstract class AbstractKVTable implements Table {
 		////////////////////////////////////////////////////////////
 		// KV表操作接口。
-		public abstract ByteBuffer find(ByteBuffer key);
+		public abstract @Nullable ByteBuffer find(@NotNull ByteBuffer key);
 
-		public abstract void replace(Transaction t, ByteBuffer key, ByteBuffer value);
+		public abstract void replace(@NotNull Transaction t, @NotNull ByteBuffer key, @NotNull ByteBuffer value);
 
-		public abstract void remove(Transaction t, ByteBuffer key);
+		public abstract void remove(@NotNull Transaction t, @NotNull ByteBuffer key);
 
 		/**
 		 * 每一条记录回调。回调返回true继续遍历，false中断遍历。
 		 *
 		 * @return 返回已经遍历的数量
 		 */
-		public abstract long walk(TableWalkHandleRaw callback);
+		public abstract long walk(@NotNull TableWalkHandleRaw callback);
 
-		public abstract long walkKey(TableWalkKeyRaw callback);
+		public abstract long walkKey(@NotNull TableWalkKeyRaw callback);
 
-		public abstract long walkDesc(TableWalkHandleRaw callback);
+		public abstract long walkDesc(@NotNull TableWalkHandleRaw callback);
 
-		public abstract long walkKeyDesc(TableWalkKeyRaw callback);
+		public abstract long walkKeyDesc(@NotNull TableWalkKeyRaw callback);
 
-		public abstract ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback);
+		public abstract ByteBuffer walk(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
+										@NotNull TableWalkHandleRaw callback);
 
-		public abstract ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback);
+		public abstract ByteBuffer walkKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
+										   @NotNull TableWalkKeyRaw callback);
 
-		public abstract ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback);
+		public abstract ByteBuffer walkDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
+											@NotNull TableWalkHandleRaw callback);
 
-		public abstract ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback);
+		public abstract ByteBuffer walkKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
+											   @NotNull TableWalkKeyRaw callback);
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
@@ -335,7 +355,8 @@ public abstract class Database {
 					return true;
 				}
 				return false;
-			});		}
+			});
+		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
@@ -440,7 +461,7 @@ public abstract class Database {
 		}
 	}
 
-	public abstract Transaction beginTransaction();
+	public abstract @NotNull Transaction beginTransaction();
 
 	public interface Transaction extends AutoCloseable {
 		void commit();

@@ -295,9 +295,6 @@ public final class Agent extends AbstractAgent {
 		super.zeze = zeze;
 
 		var config = zeze.getConfig();
-		if (null == config) {
-			throw new IllegalStateException("Config is null");
-		}
 
 		client = (null == netServiceName || netServiceName.isEmpty())
 				? new AgentClient(this, config)

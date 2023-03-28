@@ -9,7 +9,6 @@ import java.sql.Types;
 import java.util.ArrayList;
 import Zeze.Application;
 import Zeze.Config.DatabaseConf;
-import Zeze.Schemas;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SQLStatement;
 import Zeze.Util.KV;

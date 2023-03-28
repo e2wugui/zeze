@@ -11,14 +11,15 @@ import Zeze.Net.Binary;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DynamicBean;
 import Zeze.Util.Reflect;
+import org.jetbrains.annotations.NotNull;
 
 public final class SerializeHelper {
 	@SuppressWarnings("ClassCanBeRecord")
 	public static final class CodecFuncs<T> {
-		public final BiConsumer<ByteBuffer, T> encoder;
-		public final Function<ByteBuffer, T> decoder;
+		public final @NotNull BiConsumer<ByteBuffer, T> encoder;
+		public final @NotNull Function<ByteBuffer, T> decoder;
 
-		public CodecFuncs(BiConsumer<ByteBuffer, T> encoder, Function<ByteBuffer, T> decoder) {
+		public CodecFuncs(@NotNull BiConsumer<ByteBuffer, T> encoder, @NotNull Function<ByteBuffer, T> decoder) {
 			this.encoder = encoder;
 			this.decoder = decoder;
 		}
@@ -59,7 +60,7 @@ public final class SerializeHelper {
 		codecs.put(Quaternion.class, new CodecFuncs<>(ByteBuffer::WriteQuaternion, ByteBuffer::ReadQuaternion));
 	}
 
-	public static <T> BiConsumer<ByteBuffer, T> createEncodeFunc(Class<T> cls) {
+	public static <T> @NotNull BiConsumer<ByteBuffer, T> createEncodeFunc(@NotNull Class<T> cls) {
 		@SuppressWarnings("unchecked")
 		var codec = (CodecFuncs<T>)codecs.get(cls);
 		if (codec != null)
@@ -69,7 +70,7 @@ public final class SerializeHelper {
 		return (bb, obj) -> ((Serializable)obj).encode(bb);
 	}
 
-	public static <T> Function<ByteBuffer, T> createDecodeFunc(Class<T> cls) {
+	public static <T> @NotNull Function<ByteBuffer, T> createDecodeFunc(@NotNull Class<T> cls) {
 		@SuppressWarnings("unchecked")
 		var codec = (CodecFuncs<T>)codecs.get(cls);
 		if (codec != null)
@@ -88,7 +89,7 @@ public final class SerializeHelper {
 		};
 	}
 
-	public static <T> CodecFuncs<T> createCodec(Class<T> cls) {
+	public static <T> @NotNull CodecFuncs<T> createCodec(@NotNull Class<T> cls) {
 		@SuppressWarnings("unchecked")
 		var codec = (CodecFuncs<T>)codecs.get(cls);
 		if (codec != null)
@@ -107,7 +108,8 @@ public final class SerializeHelper {
 		});
 	}
 
-	public static MethodHandle createDynamicFactory(ToLongFunction<Bean> get, LongFunction<Bean> create) {
+	public static @NotNull MethodHandle createDynamicFactory(@NotNull ToLongFunction<Bean> get,
+															 @NotNull LongFunction<Bean> create) {
 		return Reflect.supplierMH.bindTo((Supplier<?>)() -> new DynamicBean(0, get, create));
 	}
 

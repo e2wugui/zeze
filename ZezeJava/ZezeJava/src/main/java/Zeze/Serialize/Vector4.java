@@ -1,5 +1,8 @@
 package Zeze.Serialize;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 public class Vector4 extends Vector3 {
 	public static final Vector4 ZERO = new Vector4(0, 0, 0, 0);
 
@@ -10,27 +13,27 @@ public class Vector4 extends Vector3 {
 		this.w = w;
 	}
 
-	public Vector4(Vector4 v4) {
+	public Vector4(@NotNull Vector4 v4) {
 		super(v4);
 		w = v4.w;
 	}
 
-	public Vector4(Vector3 v3) {
+	public Vector4(@NotNull Vector3 v3) {
 		super(v3);
 		w = 0;
 	}
 
-	public Vector4(Vector3Int v3) {
+	public Vector4(@NotNull Vector3Int v3) {
 		super(v3);
 		w = 0;
 	}
 
-	public Vector4(Vector2 v2) {
+	public Vector4(@NotNull Vector2 v2) {
 		super(v2);
 		w = 0;
 	}
 
-	public Vector4(Vector2Int v2) {
+	public Vector4(@NotNull Vector2Int v2) {
 		super(v2);
 		w = 0;
 	}
@@ -41,7 +44,7 @@ public class Vector4 extends Vector3 {
 	}
 
 	@Override
-	public int compareTo(Object o) {
+	public int compareTo(@NotNull Object o) {
 		Vector4 v = (Vector4)o;
 		int c = Float.compare(x, v.x);
 		if (c != 0)
@@ -54,7 +57,7 @@ public class Vector4 extends Vector3 {
 	}
 
 	@Override
-	public boolean equals(Object o) {
+	public boolean equals(@Nullable Object o) {
 		if (this == o)
 			return true;
 		if (o == null || o.getClass() != Vector4.class && o.getClass() != Quaternion.class)
@@ -69,12 +72,12 @@ public class Vector4 extends Vector3 {
 	}
 
 	@Override
-	public Vector4 clone() {
+	public @NotNull Vector4 clone() {
 		return (Vector4)super.clone();
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return "Vector4(" + x + ',' + y + ',' + z + ',' + w + ')';
 	}
 }

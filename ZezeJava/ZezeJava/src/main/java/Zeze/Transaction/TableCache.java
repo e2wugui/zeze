@@ -266,8 +266,8 @@ class TableCache<K extends Comparable<K>, V extends Bean> {
 		// lockey 第一优先，和事务并发。
 		final TableKey tkey = new TableKey(table.getId(), p.getKey());
 		final Locks locks = table.getZeze().getLocks();
-		if (locks == null) // 可能是已经执行Application.Stop导致的
-			return tryRemoveRecordUnderLock(p); // 临时修正
+//		if (locks == null) // 可能是已经执行Application.Stop导致的
+//			return tryRemoveRecordUnderLock(p); // 临时修正
 		final Lockey lockey = locks.get(tkey);
 		if (!lockey.tryEnterWriteLock(0))
 			return false;

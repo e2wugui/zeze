@@ -5,12 +5,14 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class LongHashMap<V> implements Cloneable {
 	private int size;
-	private long[] keyTable;
-	private V[] valueTable;
-	private V zeroValue;
+	private long @NotNull [] keyTable;
+	private @Nullable V @NotNull [] valueTable;
+	private @Nullable V zeroValue;
 	private boolean hasZeroValue;
 	private final float loadFactor;
 	private int threshold;
@@ -38,7 +40,7 @@ public class LongHashMap<V> implements Cloneable {
 		valueTable = (V[])new Object[tableSize];
 	}
 
-	public LongHashMap(LongHashMap<? extends V> map) {
+	public LongHashMap(@NotNull LongHashMap<? extends V> map) {
 		size = map.size;
 		keyTable = map.keyTable.clone();
 		valueTable = map.valueTable.clone();
@@ -59,11 +61,11 @@ public class LongHashMap<V> implements Cloneable {
 		return (int)((key * 0x9E3779B97F4A7C15L) >>> shift);
 	}
 
-	public long[] getKeyTable() {
+	public long @NotNull [] getKeyTable() {
 		return keyTable;
 	}
 
-	public V[] getValueTable() {
+	public @Nullable V @NotNull [] getValueTable() {
 		return valueTable;
 	}
 
@@ -105,7 +107,7 @@ public class LongHashMap<V> implements Cloneable {
 		}
 	}
 
-	public boolean containsValue(V value) {
+	public boolean containsValue(@Nullable V value) {
 		if (value == null) {
 			if (hasZeroValue && zeroValue == null)
 				return true;
@@ -126,7 +128,7 @@ public class LongHashMap<V> implements Cloneable {
 		return false;
 	}
 
-	public V get(long key) {
+	public @Nullable V get(long key) {
 		if (key == 0)
 			return hasZeroValue ? zeroValue : null;
 		final long[] kt = keyTable;
@@ -140,7 +142,7 @@ public class LongHashMap<V> implements Cloneable {
 		}
 	}
 
-	public V getOrDefault(long key, V defaultValue) {
+	public V getOrDefault(long key, @Nullable V defaultValue) {
 		if (key == 0)
 			return hasZeroValue ? zeroValue : defaultValue;
 		final long[] kt = keyTable;
@@ -154,7 +156,7 @@ public class LongHashMap<V> implements Cloneable {
 		}
 	}
 
-	public V put(long key, V value) {
+	public @Nullable V put(long key, @Nullable V value) {
 		if (key == 0) {
 			final V oldV = zeroValue;
 			zeroValue = value;
@@ -184,7 +186,7 @@ public class LongHashMap<V> implements Cloneable {
 		}
 	}
 
-	public void putAll(LongHashMap<? extends V> map) {
+	public void putAll(@NotNull LongHashMap<? extends V> map) {
 		if (map.hasZeroValue) {
 			hasZeroValue = true;
 			zeroValue = map.zeroValue;
@@ -198,7 +200,7 @@ public class LongHashMap<V> implements Cloneable {
 		}
 	}
 
-	public V putIfAbsent(long key, V value) {
+	public @Nullable V putIfAbsent(long key, @Nullable V value) {
 		if (key == 0) {
 			final V oldV = zeroValue;
 			if (!hasZeroValue) {
@@ -225,7 +227,7 @@ public class LongHashMap<V> implements Cloneable {
 		}
 	}
 
-	public V computeIfAbsent(long key, LongFunction<? extends V> mappingFunction) {
+	public V computeIfAbsent(long key, @NotNull LongFunction<? extends V> mappingFunction) {
 		if (key == 0) {
 			V v = zeroValue;
 			if (!hasZeroValue) {
@@ -258,7 +260,7 @@ public class LongHashMap<V> implements Cloneable {
 		}
 	}
 
-	public V replace(long key, V value) {
+	public @Nullable V replace(long key, @Nullable V value) {
 		if (key == 0) {
 			final V oldV = zeroValue;
 			if (hasZeroValue)
@@ -280,7 +282,7 @@ public class LongHashMap<V> implements Cloneable {
 		}
 	}
 
-	public boolean replace(long key, V oldValue, V newValue) {
+	public boolean replace(long key, @Nullable V oldValue, @Nullable V newValue) {
 		if (key == 0) {
 			if (!hasZeroValue || !Objects.equals(oldValue, zeroValue))
 				return false;
@@ -303,10 +305,10 @@ public class LongHashMap<V> implements Cloneable {
 	}
 
 	public interface LongObjectFunction<V> {
-		V apply(long key, V value);
+		@Nullable V apply(long key, @Nullable V value);
 	}
 
-	public V compute(long key, LongObjectFunction<V> op) {
+	public V compute(long key, @NotNull LongObjectFunction<V> op) {
 		if (key == 0) {
 			final V oldV = zeroValue;
 			final V v = op.apply(key, oldV);
@@ -362,7 +364,7 @@ public class LongHashMap<V> implements Cloneable {
 		}
 	}
 
-	public V remove(long key) {
+	public @Nullable V remove(long key) {
 		if (key == 0) {
 			if (!hasZeroValue)
 				return null;
@@ -398,7 +400,7 @@ public class LongHashMap<V> implements Cloneable {
 		return oldV;
 	}
 
-	public boolean remove(long key, V value) {
+	public boolean remove(long key, @Nullable V value) {
 		if (key == 0) {
 			if (!hasZeroValue || !Objects.equals(value, zeroValue))
 				return false;
@@ -496,7 +498,7 @@ public class LongHashMap<V> implements Cloneable {
 		valueTable = vt;
 	}
 
-	public void foreachKey(LongConsumer consumer) {
+	public void foreachKey(@NotNull LongConsumer consumer) {
 		if (hasZeroValue)
 			consumer.accept(0);
 		for (final long k : keyTable)
@@ -504,7 +506,7 @@ public class LongHashMap<V> implements Cloneable {
 				consumer.accept(k);
 	}
 
-	public void foreachValue(Consumer<V> consumer) {
+	public void foreachValue(@NotNull Consumer<V> consumer) {
 		if (hasZeroValue)
 			consumer.accept(zeroValue);
 		final long[] kt = keyTable;
@@ -518,7 +520,7 @@ public class LongHashMap<V> implements Cloneable {
 		void accept(long key, V value);
 	}
 
-	public void foreach(LongObjectConsumer<V> consumer) {
+	public void foreach(@NotNull LongObjectConsumer<V> consumer) {
 		if (hasZeroValue)
 			consumer.accept(0, zeroValue);
 		final long[] kt = keyTable;
@@ -531,10 +533,10 @@ public class LongHashMap<V> implements Cloneable {
 	}
 
 	public interface LongObjectMapPredicate<V> {
-		boolean test(LongHashMap<V> map, long key, V value);
+		boolean test(@NotNull LongHashMap<V> map, long key, V value);
 	}
 
-	public boolean foreachTest(LongObjectMapPredicate<V> tester) {
+	public boolean foreachTest(@NotNull LongObjectMapPredicate<V> tester) {
 		if (hasZeroValue && !tester.test(this, 0, zeroValue))
 			return false;
 		final long[] kt = keyTable;
@@ -547,7 +549,7 @@ public class LongHashMap<V> implements Cloneable {
 		return true;
 	}
 
-	public void foreachUpdate(LongObjectFunction<V> func) {
+	public void foreachUpdate(@NotNull LongObjectFunction<V> func) {
 		if (hasZeroValue) {
 			final V oldV = zeroValue;
 			final V v = func.apply(0, oldV);
@@ -613,12 +615,12 @@ public class LongHashMap<V> implements Cloneable {
 		}
 	}
 
-	public Iterator iterator() {
+	public @NotNull Iterator iterator() {
 		return new Iterator();
 	}
 
 	@Override
-	public LongHashMap<V> clone() throws CloneNotSupportedException {
+	public @NotNull LongHashMap<V> clone() throws CloneNotSupportedException {
 		@SuppressWarnings("unchecked") final LongHashMap<V> map = (LongHashMap<V>)super.clone();
 		map.keyTable = keyTable.clone();
 		map.valueTable = valueTable.clone();
@@ -626,7 +628,7 @@ public class LongHashMap<V> implements Cloneable {
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		if (size == 0)
 			return "{}";
 		final StringBuilder sb = new StringBuilder(32).append('{');

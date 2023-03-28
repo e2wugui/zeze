@@ -9,12 +9,14 @@ import Zeze.Util.Macro;
 import Zeze.Util.Random;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class Transaction {
 	private static final Logger logger = LogManager.getLogger(Transaction.class);
 	private static final ThreadLocal<Transaction> threadLocal = new ThreadLocal<>();
 
-	public static Transaction create(Locks locks) {
+	public static @NotNull Transaction create(@NotNull Locks locks) {
 		var t = threadLocal.get();
 		if (t == null)
 			threadLocal.set(t = new Transaction());
@@ -29,19 +31,20 @@ public final class Transaction {
 			t.reuseTransaction();
 	}
 
-	public static Transaction getCurrent() {
+	public static @Nullable Transaction getCurrent() {
 		var t = threadLocal.get();
 		return t != null && t.created ? t : null;
 	}
 
-	public static Transaction getCurrentVerifyRead(Bean bean) {
+	public static @Nullable Transaction getCurrentVerifyRead(Bean bean) {
 		return getCurrent();
 	}
 
-	public static Transaction getCurrentVerifyWrite(Bean bean) {
+	public static @NotNull Transaction getCurrentVerifyWrite(Bean bean) {
 		var t = getCurrent();
-		if (t != null)
-			t.verifyRecordForWrite(bean);
+		if (t == null)
+			throw new IllegalStateException("not in transaction");
+		t.verifyRecordForWrite(bean);
 		return t;
 	}
 
@@ -52,7 +55,7 @@ public final class Transaction {
 	private final ArrayList<Savepoint.Action> actions = new ArrayList<>();
 	private final TreeMap<TableKey, RecordAccessed> accessedRecords = new TreeMap<>();
 	private Locks locks;
-	private TransactionState state = TransactionState.Running;
+	private @NotNull TransactionState state = TransactionState.Running;
 	private boolean created;
 	private boolean alwaysReleaseLockWhenRedo;
 	private final ArrayList<Bean> redoBeans = new ArrayList<>();
@@ -62,11 +65,11 @@ public final class Transaction {
 	private Transaction() {
 	}
 
-	public ArrayList<Procedure> getProcedureStack() {
+	public @NotNull ArrayList<Procedure> getProcedureStack() {
 		return procedureStack;
 	}
 
-	TreeMap<TableKey, RecordAccessed> getAccessedRecords() {
+	@NotNull TreeMap<TableKey, RecordAccessed> getAccessedRecords() {
 		return accessedRecords;
 	}
 
@@ -74,7 +77,7 @@ public final class Transaction {
 		return state == TransactionState.Running;
 	}
 
-	public Procedure getTopProcedure() {
+	public @Nullable Procedure getTopProcedure() {
 		var stackSize = procedureStack.size();
 		return stackSize > 0 ? procedureStack.get(stackSize - 1) : null;
 	}
@@ -117,21 +120,21 @@ public final class Transaction {
 			last.mergeRollbackActions(actions);
 	}
 
-	public Log logGetOrAdd(long logKey, Supplier<Log> logFactory) {
+	public @NotNull Log logGetOrAdd(long logKey, Supplier<@NotNull Log> logFactory) {
 		var log = getLog(logKey);
 		if (log == null)
 			putLog(log = logFactory.get());
 		return log;
 	}
 
-	public Log getLog(long key) {
+	public @Nullable Log getLog(long key) {
 		verifyRunningOrCompleted();
 		// 允许没有 savepoint 时返回 null. 就是说允许在保存点不存在时进行读取操作。
 		var saveSize = savepoints.size();
 		return saveSize > 0 ? savepoints.get(saveSize - 1).getLog(key) : null;
 	}
 
-	public void putLog(Log log) {
+	public void putLog(@NotNull Log log) {
 		verifyRunning();
 		savepoints.get(savepoints.size() - 1).putLog(log);
 	}
@@ -149,19 +152,19 @@ public final class Transaction {
 		doneActions.forEach(Runnable::run);
 	}
 
-	public static void tryWhileRedo(Runnable action) {
+	public static void tryWhileRedo(@NotNull Runnable action) {
 		var txn = getCurrent();
 		if (null != txn)
 			txn.redoActions.add(action);
 	}
 
-	public static void tryWhileDone(Runnable action) {
+	public static void tryWhileDone(@NotNull Runnable action) {
 		var txn = getCurrent();
 		if (null != txn)
 			txn.doneActions.add(action);
 	}
 
-	static void whileRedo(Bean b) {
+	static void whileRedo(@NotNull Bean b) {
 		// 这个目前仅用来重置Bean.RootInfo。
 		// 而RootInfo的设置可能在事务外使用，此时忽略action的执行。
 		var current = getCurrent();
@@ -170,22 +173,22 @@ public final class Transaction {
 		}
 	}
 
-	public static void whileCommit(Runnable action) {
+	public static void whileCommit(@NotNull Runnable action) {
 		//noinspection ConstantConditions
 		getCurrent().runWhileCommit(action);
 	}
 
-	public static void whileRollback(Runnable action) {
+	public static void whileRollback(@NotNull Runnable action) {
 		//noinspection ConstantConditions
 		getCurrent().runWhileRollback(action);
 	}
 
-	public void runWhileCommit(Runnable action) {
+	public void runWhileCommit(@NotNull Runnable action) {
 		verifyRunning();
 		savepoints.get(savepoints.size() - 1).addCommitAction(action);
 	}
 
-	public void runWhileRollback(Runnable action) {
+	public void runWhileRollback(@NotNull Runnable action) {
 		verifyRunning();
 		savepoints.get(savepoints.size() - 1).addRollbackAction(action);
 	}
@@ -201,7 +204,7 @@ public final class Transaction {
 	 *
 	 * @param procedure first procedure
 	 */
-	public long perform(Procedure procedure) {
+	public long perform(@NotNull Procedure procedure) {
 		try {
 			var checkpoint = procedure.getZeze().getCheckpoint();
 			if (checkpoint == null)
@@ -347,7 +350,7 @@ public final class Transaction {
 		}
 	}
 
-	private void triggerActions(Procedure procedure) {
+	private void triggerActions(@NotNull Procedure procedure) {
 		for (var action : actions) {
 			try {
 				action.action.run();
@@ -367,15 +370,15 @@ public final class Transaction {
 		}
 	}
 
-	private void triggerCommitActions(Procedure procedure) {
+	private void triggerCommitActions(@NotNull Procedure procedure) {
 		triggerActions(procedure);
 	}
 
-	private void triggerRollbackActions(Procedure procedure) {
+	private void triggerRollbackActions(@NotNull Procedure procedure) {
 		triggerActions(procedure);
 	}
 
-	private void finalCommit(Procedure procedure) {
+	private void finalCommit(@NotNull Procedure procedure) {
 		// 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
 		// 可以在最终提交里可以实现每事务checkpoint。
 		var lastSp = savepoints.get(savepoints.size() - 1);
@@ -436,11 +439,11 @@ public final class Transaction {
 		triggerCommitActions(procedure);
 	}
 
-	private void finalRollback(Procedure procedure) {
+	private void finalRollback(@NotNull Procedure procedure) {
 		finalRollback(procedure, false);
 	}
 
-	private void finalRollback(Procedure procedure, boolean executeRollbackAction) {
+	private void finalRollback(@NotNull Procedure procedure, boolean executeRollbackAction) {
 		for (var ra : accessedRecords.values()) {
 			ra.atomicTupleRecord.record.setNotFresh();
 		}
@@ -458,19 +461,19 @@ public final class Transaction {
 	 *
 	 * @param r record accessed
 	 */
-	void addRecordAccessed(Record.RootInfo root, RecordAccessed r) {
+	void addRecordAccessed(@NotNull Record.RootInfo root, @NotNull RecordAccessed r) {
 		verifyRunning();
 		r.initRootInfo(root, null);
 		accessedRecords.put(root.getTableKey(), r);
 	}
 
-	public RecordAccessed getRecordAccessed(TableKey key) {
+	public @Nullable RecordAccessed getRecordAccessed(TableKey key) {
 		// 允许读取事务内访问过的记录。
 		verifyRunningOrCompleted();
 		return accessedRecords.get(key);
 	}
 
-	public void verifyRecordForWrite(Bean bean) {
+	public void verifyRecordForWrite(@NotNull Bean bean) {
 		if (bean.rootInfo.getRecord().getState() == GlobalCacheManagerConst.StateRemoved) {
 			throwRedo(); // 这个错误需要redo。不是逻辑错误。
 		}
@@ -496,7 +499,7 @@ public final class Transaction {
 		RedoAndReleaseLock
 	}
 
-	private static CheckResult _check_(boolean writeLock, RecordAccessed e) {
+	private static @NotNull CheckResult _check_(boolean writeLock, @NotNull RecordAccessed e) {
 		e.atomicTupleRecord.record.enterFairLock();
 		try {
 			if (writeLock) {
@@ -541,7 +544,7 @@ public final class Transaction {
 		}
 	}
 
-	private CheckResult lockAndCheck(Map.Entry<TableKey, RecordAccessed> e) {
+	private @NotNull CheckResult lockAndCheck(@NotNull Map.Entry<TableKey, RecordAccessed> e) {
 		Lockey lockey = locks.get(e.getKey());
 		boolean writeLock = e.getValue().dirty;
 		lockey.enterLock(writeLock);
@@ -549,7 +552,7 @@ public final class Transaction {
 		return _check_(writeLock, e.getValue());
 	}
 
-	private CheckResult lockAndCheck(TransactionLevel level) {
+	private @NotNull CheckResult lockAndCheck(TransactionLevel level) {
 		boolean allRead = true;
 		var saveSize = savepoints.size();
 		if (saveSize > 0) {

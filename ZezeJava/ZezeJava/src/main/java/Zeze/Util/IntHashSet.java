@@ -2,10 +2,11 @@ package Zeze.Util;
 
 import java.util.Arrays;
 import java.util.function.IntConsumer;
+import org.jetbrains.annotations.NotNull;
 
 public class IntHashSet implements Cloneable {
 	private int size;
-	private int[] keyTable;
+	private int @NotNull [] keyTable;
 	private final float loadFactor;
 	private int threshold;
 	private byte shift;
@@ -29,7 +30,7 @@ public class IntHashSet implements Cloneable {
 		keyTable = new int[tableSize];
 	}
 
-	public IntHashSet(IntHashSet set) {
+	public IntHashSet(@NotNull IntHashSet set) {
 		size = set.size;
 		keyTable = set.keyTable.clone();
 		loadFactor = set.loadFactor;
@@ -51,7 +52,7 @@ public class IntHashSet implements Cloneable {
 		return size;
 	}
 
-	public int[] getKeyTable() {
+	public int @NotNull [] getKeyTable() {
 		return keyTable;
 	}
 
@@ -103,7 +104,7 @@ public class IntHashSet implements Cloneable {
 		}
 	}
 
-	public void addAll(IntHashSet set) {
+	public void addAll(@NotNull IntHashSet set) {
 		if (set.hasZeroKey)
 			hasZeroKey = true;
 		for (int k : set.keyTable)
@@ -188,7 +189,7 @@ public class IntHashSet implements Cloneable {
 		keyTable = kt;
 	}
 
-	public void foreach(IntConsumer consumer) {
+	public void foreach(@NotNull IntConsumer consumer) {
 		if (hasZeroKey)
 			consumer.accept(0);
 		for (int k : keyTable)
@@ -197,10 +198,10 @@ public class IntHashSet implements Cloneable {
 	}
 
 	public interface IntSetPredicate {
-		boolean test(IntHashSet set, int key);
+		boolean test(@NotNull IntHashSet set, int key);
 	}
 
-	public boolean foreachTest(IntSetPredicate tester) {
+	public boolean foreachTest(@NotNull IntSetPredicate tester) {
 		if (hasZeroKey && !tester.test(this, 0))
 			return false;
 		for (int k : keyTable)
@@ -230,19 +231,19 @@ public class IntHashSet implements Cloneable {
 		}
 	}
 
-	public Iterator iterator() {
+	public @NotNull Iterator iterator() {
 		return new Iterator();
 	}
 
 	@Override
-	public IntHashSet clone() throws CloneNotSupportedException {
+	public @NotNull IntHashSet clone() throws CloneNotSupportedException {
 		IntHashSet set = (IntHashSet)super.clone();
 		set.keyTable = keyTable.clone();
 		return set;
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		if (size == 0)
 			return "{}";
 		StringBuilder sb = new StringBuilder(32).append('{');

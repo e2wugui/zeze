@@ -10,25 +10,30 @@ import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
+@SuppressWarnings("DataFlowIssue")
 public class PMap2<K, V extends Bean> extends PMap<K, V> {
-	protected final Meta2<K, V> meta;
+	private static final @NotNull Logger logger = LogManager.getLogger(PMap2.class);
 
-	public PMap2(Class<K> keyClass, Class<V> valueClass) {
+	protected final @NotNull Meta2<K, V> meta;
+
+	public PMap2(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
 		meta = Meta2.getMap2Meta(keyClass, valueClass);
 	}
 
-	public PMap2(Class<K> keyClass, ToLongFunction<Bean> get, LongFunction<Bean> create) { // only for DynamicBean value
+	public PMap2(@NotNull Class<K> keyClass, @NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) { // only for DynamicBean value
 		meta = Meta2.createDynamicMapMeta(keyClass, get, create);
 	}
 
-	private PMap2(Meta2<K, V> meta) {
+	private PMap2(@NotNull Meta2<K, V> meta) {
 		this.meta = meta;
 	}
 
 	@SuppressWarnings("unchecked")
-	public V createValue() {
+	public @NotNull V createValue() {
 		try {
 			return (V)meta.valueFactory.invoke();
 		} catch (RuntimeException | Error e) {
@@ -38,7 +43,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		}
 	}
 
-	public V getOrAdd(K key) {
+	public @NotNull V getOrAdd(@NotNull K key) {
 		var exist = get(key);
 		if (exist == null) {
 			exist = createValue();
@@ -48,9 +53,11 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	}
 
 	@Override
-	public V put(K key, V value) {
+	public @Nullable V put(@NotNull K key, @NotNull V value) {
+		//noinspection ConstantValue
 		if (key == null)
 			throw new IllegalArgumentException("null key");
+		//noinspection ConstantValue
 		if (value == null)
 			throw new IllegalArgumentException("null value");
 
@@ -69,7 +76,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	}
 
 	@Override
-	public void putAll(Map<? extends K, ? extends V> m) {
+	public void putAll(@NotNull Map<? extends K, ? extends V> m) {
 		for (var p : m.entrySet()) {
 			var k = p.getKey();
 			if (k == null)
@@ -94,7 +101,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public V remove(Object key) {
+	public @Nullable V remove(@NotNull Object key) {
 		if (isManaged()) {
 			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -107,7 +114,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	}
 
 	@Override
-	public boolean remove(Entry<K, V> item) {
+	public boolean remove(@NotNull Entry<K, V> item) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
@@ -134,10 +141,8 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 			map = Empty.map();
 	}
 
-	private static final Logger logger = LogManager.getLogger(PMap2.class);
-
 	@Override
-	public void followerApply(Log _log) {
+	public void followerApply(@NotNull Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogMap2<K, V>)_log;
 		var tmp = map;
@@ -157,7 +162,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	}
 
 	@Override
-	public LogBean createLogBean() {
+	public @NotNull LogBean createLogBean() {
 		var log = new LogMap2<>(meta);
 		log.setBelong(parent());
 		log.setThis(this);
@@ -167,26 +172,26 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	}
 
 	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(@NotNull Record.RootInfo root) {
 		for (var v : map.values())
 			v.initRootInfo(root, this);
 	}
 
 	@Override
-	protected void initChildrenRootInfoWithRedo(Record.RootInfo root) {
+	protected void initChildrenRootInfoWithRedo(@NotNull Record.RootInfo root) {
 		for (var v : map.values())
 			v.initRootInfoWithRedo(root, this);
 	}
 
 	@Override
-	public PMap2<K, V> copy() {
+	public @NotNull PMap2<K, V> copy() {
 		var copy = new PMap2<>(meta);
 		copy.map = map;
 		return copy;
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		var tmp = getMap();
 		bb.WriteUInt(tmp.size());
 		var encoder = meta.keyEncoder;
@@ -198,7 +203,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(@NotNull ByteBuffer bb) {
 		clear();
 		var decoder = meta.keyDecoder;
 		try {

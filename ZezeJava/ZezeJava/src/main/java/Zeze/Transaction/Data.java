@@ -1,6 +1,7 @@
 package Zeze.Transaction;
 
 import Zeze.Serialize.Serializable;
+import org.jetbrains.annotations.NotNull;
 
 public abstract class Data implements Serializable {
 	private transient int variableId;
@@ -27,12 +28,12 @@ public abstract class Data implements Serializable {
 		return Bean.hash64(clsName, clsName.length() - 4); // 4 == "Data".length()
 	}
 
-	public abstract void assign(Bean b); // 用于DynamicBeanData.assign(DynamicBean);
+	public abstract void assign(@NotNull Bean b); // 用于DynamicBeanData.assign(DynamicBean);
 
-	public abstract Bean toBean();
+	public abstract @NotNull Bean toBean();
 
-	public abstract Data copy();
+	public abstract @NotNull Data copy();
 
-	public void buildString(StringBuilder sb, int level) {
+	public void buildString(@NotNull StringBuilder sb, int level) {
 	}
 }

@@ -2,11 +2,13 @@ package Zeze.Transaction.Collections;
 
 import java.util.Iterator;
 import Zeze.Serialize.ByteBuffer;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class PSet1ReadOnly<V> implements Iterable<V> {
-	private final PSet1<V> set;
+	private final @NotNull PSet1<V> set;
 
-	public PSet1ReadOnly(PSet1<V> set) {
+	public PSet1ReadOnly(@NotNull PSet1<V> set) {
 		this.set = set;
 	}
 
@@ -22,24 +24,24 @@ public class PSet1ReadOnly<V> implements Iterable<V> {
 		return set.contains(v);
 	}
 
-	public boolean containsAll(java.util.Collection<? extends V> c) {
+	public boolean containsAll(@NotNull java.util.Collection<? extends V> c) {
 		return set.containsAll(c);
 	}
 
-	public void copyTo(V[] array, int arrayIndex) {
+	public void copyTo(V @NotNull [] array, int arrayIndex) {
 		set.copyTo(array, arrayIndex);
 	}
 
-	public Object[] toArray() {
+	public Object @NotNull [] toArray() {
 		return set.toArray();
 	}
 
-	public <T> T[] toArray(T[] a) {
+	public <T> T @NotNull [] toArray(T @NotNull [] a) {
 		return set.toArray(a);
 	}
 
 	@Override
-	public Iterator<V> iterator() {
+	public @NotNull Iterator<V> iterator() {
 		return new Iterator<>() {
 			private final Iterator<V> it = set.iterator();
 
@@ -60,11 +62,11 @@ public class PSet1ReadOnly<V> implements Iterable<V> {
 		};
 	}
 
-	public PSet1<V> copy() {
+	public @NotNull PSet1<V> copy() {
 		return set.copy();
 	}
 
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		set.encode(bb);
 	}
 
@@ -74,12 +76,12 @@ public class PSet1ReadOnly<V> implements Iterable<V> {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 		return obj instanceof PSet1ReadOnly && set.equals(((PSet1ReadOnly<?>)obj).set);
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return set.toString();
 	}
 }

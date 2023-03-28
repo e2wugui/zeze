@@ -2,11 +2,13 @@ package Zeze.Transaction.Collections;
 
 import java.util.Iterator;
 import Zeze.Serialize.ByteBuffer;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class PList1ReadOnly<V> implements Iterable<V> {
-	private final PList1<V> list;
+	private final @NotNull PList1<V> list;
 
-	public PList1ReadOnly(PList1<V> list) {
+	public PList1ReadOnly(@NotNull PList1<V> list) {
 		this.list = list;
 	}
 
@@ -18,40 +20,40 @@ public class PList1ReadOnly<V> implements Iterable<V> {
 		return list.size();
 	}
 
-	public V get(int index) {
+	public @NotNull V get(int index) {
 		return list.get(index);
 	}
 
-	public boolean contains(V v) {
+	public boolean contains(@NotNull V v) {
 		return list.contains(v);
 	}
 
-	public boolean containsAll(java.util.Collection<? extends V> c) {
+	public boolean containsAll(@NotNull java.util.Collection<? extends V> c) {
 		return list.containsAll(c);
 	}
 
-	public int indexOf(V v) {
+	public int indexOf(@NotNull V v) {
 		return list.indexOf(v);
 	}
 
-	public int lastIndexOf(V v) {
+	public int lastIndexOf(@NotNull V v) {
 		return list.lastIndexOf(v);
 	}
 
-	public void copyTo(V[] array, int arrayIndex) {
+	public void copyTo(V @NotNull [] array, int arrayIndex) {
 		list.copyTo(array, arrayIndex);
 	}
 
-	public Object[] toArray() {
+	public Object @NotNull [] toArray() {
 		return list.toArray();
 	}
 
-	public <T> T[] toArray(T[] a) {
+	public <T> T @NotNull [] toArray(T @NotNull [] a) {
 		return list.toArray(a);
 	}
 
 	@Override
-	public Iterator<V> iterator() {
+	public @NotNull Iterator<V> iterator() {
 		return new Iterator<>() {
 			private final Iterator<V> it = list.iterator();
 
@@ -72,11 +74,11 @@ public class PList1ReadOnly<V> implements Iterable<V> {
 		};
 	}
 
-	public PList1<V> copy() {
+	public @NotNull PList1<V> copy() {
 		return list.copy();
 	}
 
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		list.encode(bb);
 	}
 
@@ -86,12 +88,12 @@ public class PList1ReadOnly<V> implements Iterable<V> {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 		return obj instanceof PList1ReadOnly && list.equals(((PList1ReadOnly<?>)obj).list);
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return list.toString();
 	}
 }

@@ -18,6 +18,7 @@ import Zeze.Util.IdentityHashSet;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashMap;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class ByteBuffer implements Comparable<ByteBuffer> {
 	public static final VarHandle intLeHandler = MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.LITTLE_ENDIAN);
@@ -27,7 +28,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 	public static final boolean IGNORE_INCOMPATIBLE_FIELD = false; // 不忽略兼容字段则会抛异常
 	public static final byte[] Empty = new byte[0];
 
-	public byte[] Bytes;
+	public byte @NotNull [] Bytes;
 	public int ReadIndex;
 	public int WriteIndex;
 
@@ -47,28 +48,28 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return WriteIndex - ReadIndex;
 	}
 
-	public static ByteBuffer Wrap(ByteBuffer bb) {
+	public static @NotNull ByteBuffer Wrap(@NotNull ByteBuffer bb) {
 		return Wrap(bb.Bytes, bb.ReadIndex, bb.Size());
 	}
 
-	public static ByteBuffer Wrap(byte[] bytes) {
+	public static @NotNull ByteBuffer Wrap(byte @NotNull [] bytes) {
 		return new ByteBuffer(bytes, 0, bytes.length);
 	}
 
-	public static ByteBuffer Wrap(byte[] bytes, int offset, int length) {
+	public static @NotNull ByteBuffer Wrap(byte @NotNull [] bytes, int offset, int length) {
 		VerifyArrayIndex(bytes, offset, length);
 		return new ByteBuffer(bytes, offset, offset + length);
 	}
 
-	public static ByteBuffer Wrap(Binary binary) {
+	public static @NotNull ByteBuffer Wrap(@NotNull Binary binary) {
 		return binary.Wrap();
 	}
 
-	public static ByteBuffer Allocate() {
+	public static @NotNull ByteBuffer Allocate() {
 		return Allocate(16);
 	}
 
-	public static ByteBuffer Allocate(int capacity) {
+	public static @NotNull ByteBuffer Allocate(int capacity) {
 		// add pool?
 		// 缓存 ByteBuffer 还是 byte[] 呢？
 		// 最大的问题是怎么归还？而且 Bytes 是公开的，可能会被其他地方引用，很难确定什么时候回收。
@@ -82,7 +83,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		Bytes = capacity == 0 ? Empty : new byte[capacity]; // ToPower2(capacity)
 	}
 
-	protected ByteBuffer(byte[] bytes, int readIndex, int writeIndex) {
+	protected ByteBuffer(byte @NotNull [] bytes, int readIndex, int writeIndex) {
 		Bytes = bytes;
 		ReadIndex = readIndex;
 		WriteIndex = writeIndex;
@@ -93,13 +94,13 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		Reset();
 	}
 
-	public void wraps(byte[] bytes) {
+	public void wraps(byte @NotNull [] bytes) {
 		Bytes = bytes;
 		ReadIndex = 0;
 		WriteIndex = bytes.length;
 	}
 
-	public void wraps(byte[] bytes, int offset, int length) {
+	public void wraps(byte @NotNull [] bytes, int offset, int length) {
 		VerifyArrayIndex(bytes, offset, length);
 		Bytes = bytes;
 		ReadIndex = offset;
@@ -111,21 +112,21 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		Bytes[WriteIndex++] = b;
 	}
 
-	public void Append(byte[] bs) {
+	public void Append(byte @NotNull [] bs) {
 		Append(bs, 0, bs.length);
 	}
 
-	public void Append(byte[] bs, int offset, int len) {
+	public void Append(byte @NotNull [] bs, int offset, int len) {
 		EnsureWrite(len);
 		System.arraycopy(bs, offset, Bytes, WriteIndex, len);
 		WriteIndex += len;
 	}
 
-	public void Replace(int writeIndex, byte[] src) {
+	public void Replace(int writeIndex, byte @NotNull [] src) {
 		Replace(writeIndex, src, 0, src.length);
 	}
 
-	public void Replace(int writeIndex, byte[] src, int offset, int len) {
+	public void Replace(int writeIndex, byte @NotNull [] src, int offset, int len) {
 		if (writeIndex < ReadIndex || writeIndex + len > WriteIndex)
 			throw new IllegalStateException();
 		System.arraycopy(src, offset, Bytes, writeIndex, len);
@@ -145,24 +146,24 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		intLeHandler.set(Bytes, oldWriteIndex, WriteIndex - oldWriteIndex - 4);
 	}
 
-	public static int ToInt(byte[] bytes, int offset) {
+	public static int ToInt(byte @NotNull [] bytes, int offset) {
 		return (int)intLeHandler.get(bytes, offset);
 	}
 
-	public static int ToIntBE(byte[] bytes, int offset) {
+	public static int ToIntBE(byte @NotNull [] bytes, int offset) {
 		return (int)intBeHandler.get(bytes, offset);
 	}
 
-	public static long ToLong(byte[] bytes, int offset) {
+	public static long ToLong(byte @NotNull [] bytes, int offset) {
 		return (long)longLeHandler.get(bytes, offset);
 	}
 
-	public static long ToLongBE(byte[] bytes, int offset) {
+	public static long ToLongBE(byte @NotNull [] bytes, int offset) {
 		return (long)longBeHandler.get(bytes, offset);
 	}
 
 	@SuppressWarnings("fallthrough")
-	public static long ToLong(byte[] bytes, int offset, int length) {
+	public static long ToLong(byte @NotNull [] bytes, int offset, int length) {
 		long v = 0;
 		//@formatter:off
 		switch (length) {
@@ -181,7 +182,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 	}
 
 	@SuppressWarnings("fallthrough")
-	public static long ToLongBE(byte[] bytes, int offset, int length) {
+	public static long ToLongBE(byte @NotNull [] bytes, int offset, int length) {
 		long v = 0;
 		int s = 0;
 		//@formatter:off
@@ -200,19 +201,19 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return v;
 	}
 
-	public static float ToFloat(byte[] bytes, int offset) {
+	public static float ToFloat(byte @NotNull [] bytes, int offset) {
 		return Float.intBitsToFloat(ToInt(bytes, offset));
 	}
 
-	public static float ToFloatBE(byte[] bytes, int offset) {
+	public static float ToFloatBE(byte @NotNull [] bytes, int offset) {
 		return Float.intBitsToFloat(ToIntBE(bytes, offset));
 	}
 
-	public static double ToDouble(byte[] bytes, int offset) {
+	public static double ToDouble(byte @NotNull [] bytes, int offset) {
 		return Double.longBitsToDouble(ToLong(bytes, offset));
 	}
 
-	public static double ToDoubleBE(byte[] bytes, int offset) {
+	public static double ToDoubleBE(byte @NotNull [] bytes, int offset) {
 		return Double.longBitsToDouble(ToLongBE(bytes, offset));
 	}
 
@@ -234,7 +235,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			Reset();
 	}
 
-	public byte[] Copy() {
+	public byte @NotNull [] Copy() {
 		int size = Size();
 		if (size == 0)
 			return Empty;
@@ -672,7 +673,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		}
 	}
 
-	public void WriteVector2(Vector2 v) {
+	public void WriteVector2(@NotNull Vector2 v) {
 		EnsureWrite(8);
 		byte[] bytes = Bytes;
 		int i = WriteIndex;
@@ -681,7 +682,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		WriteIndex = i + 8;
 	}
 
-	public void WriteVector3(Vector3 v) {
+	public void WriteVector3(@NotNull Vector3 v) {
 		EnsureWrite(12);
 		byte[] bytes = Bytes;
 		int i = WriteIndex;
@@ -691,7 +692,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		WriteIndex = i + 12;
 	}
 
-	public void WriteVector4(Vector4 v) {
+	public void WriteVector4(@NotNull Vector4 v) {
 		EnsureWrite(16);
 		byte[] bytes = Bytes;
 		int i = WriteIndex;
@@ -702,16 +703,16 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		WriteIndex = i + 16;
 	}
 
-	public void WriteQuaternion(Quaternion v) {
+	public void WriteQuaternion(@NotNull Quaternion v) {
 		WriteVector4(v);
 	}
 
-	public void WriteVector2Int(Vector2Int v) {
+	public void WriteVector2Int(@NotNull Vector2Int v) {
 		WriteInt(v.x);
 		WriteInt(v.y);
 	}
 
-	public void WriteVector3Int(Vector3Int v) {
+	public void WriteVector3Int(@NotNull Vector3Int v) {
 		WriteInt(v.x);
 		WriteInt(v.y);
 		WriteInt(v.z);
@@ -848,7 +849,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return v;
 	}
 
-	public static int utf8Size(String str) {
+	public static int utf8Size(@Nullable String str) {
 		if (str == null)
 			return 0;
 		int bn = 0;
@@ -865,7 +866,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return bn;
 	}
 
-	public void WriteString(String str) {
+	public void WriteString(@Nullable String str) {
 		int bn = utf8Size(str);
 		if (bn <= 0) {
 			WriteByte(0);
@@ -875,6 +876,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		EnsureWrite(bn);
 		byte[] buf = Bytes;
 		int wi = WriteIndex;
+		//noinspection DataFlowIssue
 		int cn = str.length();
 		if (bn == cn) {
 			for (int i = 0; i < cn; i++)
@@ -904,7 +906,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		WriteIndex = wi;
 	}
 
-	public String ReadString() {
+	public @NotNull String ReadString() {
 		int n = ReadUInt();
 		ensureRead(n);
 		String v = new String(Bytes, ReadIndex, n, StandardCharsets.UTF_8);
@@ -912,26 +914,26 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return v;
 	}
 
-	public void WriteBytes(byte[] v) {
+	public void WriteBytes(byte @NotNull [] v) {
 		WriteBytes(v, 0, v.length);
 	}
 
-	public void WriteBytes(byte[] v, int offset, int length) {
+	public void WriteBytes(byte @NotNull [] v, int offset, int length) {
 		WriteUInt(length);
 		EnsureWrite(length);
 		System.arraycopy(v, offset, Bytes, WriteIndex, length);
 		WriteIndex += length;
 	}
 
-	public void WriteBinary(Binary binary) {
+	public void WriteBinary(@NotNull Binary binary) {
 		binary.encode(this);
 	}
 
-	public Binary ReadBinary() {
+	public @NotNull Binary ReadBinary() {
 		return new Binary(ReadBytes());
 	}
 
-	public byte[] ReadBytes() {
+	public byte @NotNull [] ReadBytes() {
 		int n = ReadUInt();
 		if (n == 0)
 			return Empty;
@@ -957,7 +959,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 	/**
 	 * 会推进ReadIndex，但是返回的ByteBuffer和原来的共享内存。
 	 */
-	public ByteBuffer ReadByteBuffer() {
+	public @NotNull ByteBuffer ReadByteBuffer() {
 		int n = ReadUInt();
 		ensureRead(n);
 		int cur = ReadIndex;
@@ -965,7 +967,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return Wrap(Bytes, cur, n);
 	}
 
-	public void WriteByteBuffer(ByteBuffer o) {
+	public void WriteByteBuffer(@NotNull ByteBuffer o) {
 		WriteBytes(o.Bytes, o.ReadIndex, o.Size());
 	}
 
@@ -975,7 +977,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 	}
 
 	@Override
-	public boolean equals(Object other) {
+	public boolean equals(@Nullable Object other) {
 		if (other instanceof ByteBuffer)
 			return equals((ByteBuffer)other);
 		if (other instanceof byte[]) {
@@ -990,7 +992,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return false;
 	}
 
-	public boolean equals(ByteBuffer other) {
+	public boolean equals(@Nullable ByteBuffer other) {
 		return this == other || other != null &&
 				Arrays.equals(Bytes, ReadIndex, WriteIndex, other.Bytes, other.ReadIndex, other.WriteIndex);
 	}
@@ -999,18 +1001,18 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return (int)((value * 0x9E3779B97F4A7C15L) >> 32);
 	}
 
-	public static int calc_hashnr(String str) {
+	public static int calc_hashnr(@NotNull String str) {
 		int hash = 0;
 		for (int i = 0, n = str.length(); i < n; i++)
 			hash = (hash * 16777619) ^ str.charAt(i);
 		return hash;
 	}
 
-	public static int calc_hashnr(byte[] keys) {
+	public static int calc_hashnr(byte @NotNull [] keys) {
 		return calc_hashnr(keys, 0, keys.length);
 	}
 
-	public static int calc_hashnr(byte[] keys, int offset, int len) {
+	public static int calc_hashnr(byte @NotNull [] keys, int offset, int len) {
 		int hash = 0;
 		for (int end = offset + len; offset < end; offset++)
 			hash = (hash * 16777619) ^ keys[offset];
@@ -1062,7 +1064,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 	}
 	*/
 
-	public static void VerifyArrayIndex(byte[] bytes, int offset, int length) {
+	public static void VerifyArrayIndex(byte @NotNull [] bytes, int offset, int length) {
 		int bytesLen = bytes.length;
 		long offsetL = offset & 0xffff_ffffL;
 		long endIndexL = (offset + length) & 0xffff_ffffL;
@@ -1070,7 +1072,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			throw new IllegalArgumentException(String.format("%d,%d,%d", bytesLen, offset, length));
 	}
 
-	public static ByteBuffer encode(Serializable sa) {
+	public static @NotNull ByteBuffer encode(@NotNull Serializable sa) {
 		int preAllocSize = sa.preAllocSize();
 		ByteBuffer bb = Allocate(Math.min(preAllocSize, 65536));
 		sa.encode(bb);
@@ -1079,13 +1081,13 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return bb;
 	}
 
-	public void encode(Collection<? extends Serializable> c) {
+	public void encode(@NotNull Collection<? extends Serializable> c) {
 		WriteUInt(c.size());
 		for (var s : c)
 			s.encode(this);
 	}
 
-	public <T extends Serializable> void decode(Collection<T> c, Supplier<T> factory) {
+	public <T extends Serializable> void decode(@NotNull Collection<T> c, @NotNull Supplier<T> factory) {
 		for (int n = ReadUInt(); n > 0; n--) {
 			T v = factory.get();
 			v.decode(this);
@@ -1228,7 +1230,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		throw new IllegalStateException("can not ReadDouble for type=" + type);
 	}
 
-	public Binary ReadBinary(int type) {
+	public @NotNull Binary ReadBinary(int type) {
 		type &= TAG_MASK;
 		if (type == BYTES)
 			return ReadBinary();
@@ -1239,7 +1241,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		throw new IllegalStateException("can not ReadBinary for type=" + type);
 	}
 
-	public String ReadString(int type) {
+	public @NotNull String ReadString(int type) {
 		type &= TAG_MASK;
 		if (type == BYTES)
 			return ReadString();
@@ -1250,7 +1252,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		throw new IllegalStateException("can not ReadString for type=" + type);
 	}
 
-	public Vector2 ReadVector2() {
+	public @NotNull Vector2 ReadVector2() {
 		ensureRead(8);
 		int i = ReadIndex;
 		float x = ToFloat(Bytes, i);
@@ -1259,7 +1261,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return new Vector2(x, y);
 	}
 
-	public Vector3 ReadVector3() {
+	public @NotNull Vector3 ReadVector3() {
 		ensureRead(12);
 		int i = ReadIndex;
 		float x = ToFloat(Bytes, i);
@@ -1269,7 +1271,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return new Vector3(x, y, z);
 	}
 
-	public Vector4 ReadVector4() {
+	public @NotNull Vector4 ReadVector4() {
 		ensureRead(16);
 		int i = ReadIndex;
 		float x = ToFloat(Bytes, i);
@@ -1280,7 +1282,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return new Vector4(x, y, z, w);
 	}
 
-	public Quaternion ReadQuaternion() {
+	public @NotNull Quaternion ReadQuaternion() {
 		ensureRead(16);
 		int i = ReadIndex;
 		float x = ToFloat(Bytes, i);
@@ -1291,20 +1293,20 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return new Quaternion(x, y, z, w);
 	}
 
-	public Vector2Int ReadVector2Int() {
+	public @NotNull Vector2Int ReadVector2Int() {
 		int x = ReadInt();
 		int y = ReadInt();
 		return new Vector2Int(x, y);
 	}
 
-	public Vector3Int ReadVector3Int() {
+	public @NotNull Vector3Int ReadVector3Int() {
 		int x = ReadInt();
 		int y = ReadInt();
 		int z = ReadInt();
 		return new Vector3Int(x, y, z);
 	}
 
-	public Vector2 ReadVector2(int type) {
+	public @NotNull Vector2 ReadVector2(int type) {
 		type &= TAG_MASK;
 		if (type == VECTOR2)
 			return ReadVector2();
@@ -1323,7 +1325,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		throw new IllegalStateException("can not ReadVector2 for type=" + type);
 	}
 
-	public Vector3 ReadVector3(int type) {
+	public @NotNull Vector3 ReadVector3(int type) {
 		type &= TAG_MASK;
 		if (type == VECTOR3)
 			return ReadVector3();
@@ -1342,7 +1344,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		throw new IllegalStateException("can not ReadVector3 for type=" + type);
 	}
 
-	public Vector4 ReadVector4(int type) {
+	public @NotNull Vector4 ReadVector4(int type) {
 		type &= TAG_MASK;
 		if (type == VECTOR4)
 			return ReadVector4();
@@ -1361,7 +1363,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		throw new IllegalStateException("can not ReadVector4 for type=" + type);
 	}
 
-	public Quaternion ReadQuaternion(int type) {
+	public @NotNull Quaternion ReadQuaternion(int type) {
 		type &= TAG_MASK;
 		if (type == VECTOR4)
 			return ReadQuaternion();
@@ -1380,7 +1382,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		throw new IllegalStateException("can not ReadQuaternion for type=" + type);
 	}
 
-	public Vector2Int ReadVector2Int(int type) {
+	public @NotNull Vector2Int ReadVector2Int(int type) {
 		type &= TAG_MASK;
 		if (type == VECTOR2INT)
 			return ReadVector2Int();
@@ -1399,7 +1401,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		throw new IllegalStateException("can not ReadVector2Int for type=" + type);
 	}
 
-	public Vector3Int ReadVector3Int(int type) {
+	public @NotNull Vector3Int ReadVector3Int(int type) {
 		type &= TAG_MASK;
 		if (type == VECTOR3INT)
 			return ReadVector3Int();
@@ -1418,7 +1420,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		throw new IllegalStateException("can not ReadVector3Int for type=" + type);
 	}
 
-	public <T extends Serializable> T ReadBean(T bean, int type) {
+	public <T extends Serializable> @NotNull T ReadBean(@NotNull T bean, int type) {
 		type &= TAG_MASK;
 		if (type == BEAN)
 			bean.decode(this);
@@ -1432,7 +1434,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		return bean;
 	}
 
-	public DynamicBean ReadDynamic(DynamicBean dynBean, int type) {
+	public @NotNull DynamicBean ReadDynamic(@NotNull DynamicBean dynBean, int type) {
 		type &= TAG_MASK;
 		if (type == DYNAMIC) {
 			dynBean.decode(this);
@@ -1449,7 +1451,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		throw new IllegalStateException("can not ReadDynamic for type=" + type);
 	}
 
-	public DynamicBeanData ReadDynamic(DynamicBeanData dynBean, int type) {
+	public @NotNull DynamicBeanData ReadDynamic(@NotNull DynamicBeanData dynBean, int type) {
 		type &= TAG_MASK;
 		if (type == DYNAMIC) {
 			dynBean.decode(this);
@@ -1469,7 +1471,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		throw new IllegalStateException("can not ReadDynamic for type=" + type);
 	}
 
-	public void SkipUnknownFieldOrThrow(int type, String curType) {
+	public void SkipUnknownFieldOrThrow(int type, @NotNull String curType) {
 		if (IGNORE_INCOMPATIBLE_FIELD)
 			SkipUnknownField(type);
 		else
@@ -1549,7 +1551,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		}
 	}
 
-	public static <T> void BuildString(StringBuilder sb, Iterable<T> c) {
+	public static <T> void BuildString(@NotNull StringBuilder sb, @Nullable Iterable<T> c) {
 		sb.append('[');
 		int i = sb.length();
 		if (c != null) {
@@ -1563,7 +1565,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			sb.setCharAt(j - 1, ']');
 	}
 
-	public static <TK, TV> void BuildString(StringBuilder sb, Map<TK, TV> map) {
+	public static <TK, TV> void BuildString(@NotNull StringBuilder sb, @Nullable Map<TK, TV> map) {
 		sb.append('{');
 		if (map == null || map.isEmpty())
 			sb.append('}');
@@ -1574,7 +1576,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		}
 	}
 
-	public static <TV> void BuildString(StringBuilder sb, IntHashMap<TV> map) {
+	public static <TV> void BuildString(@NotNull StringBuilder sb, @Nullable IntHashMap<TV> map) {
 		sb.append('{');
 		if (map == null || map.isEmpty())
 			sb.append('}');
@@ -1585,7 +1587,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		}
 	}
 
-	public static <TV> void BuildString(StringBuilder sb, LongHashMap<TV> map) {
+	public static <TV> void BuildString(@NotNull StringBuilder sb, @Nullable LongHashMap<TV> map) {
 		sb.append('{');
 		if (map == null || map.isEmpty())
 			sb.append('}');
@@ -1596,7 +1598,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		}
 	}
 
-	public static <TK> void BuildString(StringBuilder sb, IdentityHashSet<TK> set) {
+	public static <TK> void BuildString(@NotNull StringBuilder sb, @Nullable IdentityHashSet<TK> set) {
 		sb.append('{');
 		if (set == null || set.isEmpty())
 			sb.append('}');
@@ -1607,7 +1609,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		}
 	}
 
-	public static <T> void BuildSortedString(StringBuilder sb, Iterable<T> c) {
+	public static <T> void BuildSortedString(@NotNull StringBuilder sb, @Nullable Iterable<T> c) {
 		var strs = new ArrayList<String>();
 		if (c != null) {
 			for (var e : c)
@@ -1626,7 +1628,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			sb.setCharAt(j - 1, ']');
 	}
 
-	public static <TK, TV> void BuildSortedString(StringBuilder sb, Map<TK, TV> map) {
+	public static <TK, TV> void BuildSortedString(@NotNull StringBuilder sb, @Nullable Map<TK, TV> map) {
 		sb.append('{');
 		if (map == null || map.isEmpty())
 			sb.append('}');
@@ -1642,7 +1644,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		}
 	}
 
-	public static <TV> void BuildSortedString(StringBuilder sb, IntHashMap<TV> map) {
+	public static <TV> void BuildSortedString(@NotNull StringBuilder sb, @Nullable IntHashMap<TV> map) {
 		sb.append('{');
 		if (map == null || map.isEmpty())
 			sb.append('}');
@@ -1658,19 +1660,19 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		}
 	}
 
-	public static boolean Equals(byte[] left, byte[] right) {
+	public static boolean Equals(byte @Nullable [] left, byte @Nullable [] right) {
 		return Arrays.equals(left, right);
 	}
 
-	public static int Compare(byte[] left, byte[] right) {
+	public static int Compare(byte @Nullable [] left, byte @Nullable [] right) {
 		return Arrays.compareUnsigned(left, right);
 	}
 
-	public static byte[] Copy(byte[] src) {
+	public static byte[] Copy(byte @NotNull [] src) {
 		return src.clone();
 	}
 
-	public static byte[] Copy(byte[] src, int offset, int length) {
+	public static byte[] Copy(byte @NotNull [] src, int offset, int length) {
 		return Arrays.copyOfRange(src, offset, offset + length);
 	}
 

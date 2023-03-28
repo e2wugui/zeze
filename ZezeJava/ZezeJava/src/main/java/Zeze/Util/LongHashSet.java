@@ -2,10 +2,11 @@ package Zeze.Util;
 
 import java.util.Arrays;
 import java.util.function.LongConsumer;
+import org.jetbrains.annotations.NotNull;
 
 public class LongHashSet implements Cloneable {
 	private int size;
-	private long[] keyTable;
+	private long @NotNull [] keyTable;
 	private final float loadFactor;
 	private int threshold;
 	private byte shift;
@@ -29,7 +30,7 @@ public class LongHashSet implements Cloneable {
 		keyTable = new long[tableSize];
 	}
 
-	public LongHashSet(LongHashSet set) {
+	public LongHashSet(@NotNull LongHashSet set) {
 		size = set.size;
 		keyTable = set.keyTable.clone();
 		loadFactor = set.loadFactor;
@@ -51,7 +52,7 @@ public class LongHashSet implements Cloneable {
 		return size;
 	}
 
-	public long[] getKeyTable() {
+	public long @NotNull [] getKeyTable() {
 		return keyTable;
 	}
 
@@ -105,7 +106,7 @@ public class LongHashSet implements Cloneable {
 		}
 	}
 
-	public void addAll(LongHashSet set) {
+	public void addAll(@NotNull LongHashSet set) {
 		if (set.hasZeroKey)
 			hasZeroKey = true;
 		for (long k : set.keyTable)
@@ -190,7 +191,7 @@ public class LongHashSet implements Cloneable {
 		keyTable = kt;
 	}
 
-	public void foreach(LongConsumer consumer) {
+	public void foreach(@NotNull LongConsumer consumer) {
 		if (hasZeroKey)
 			consumer.accept(0);
 		for (long k : keyTable)
@@ -199,10 +200,10 @@ public class LongHashSet implements Cloneable {
 	}
 
 	public interface LongSetPredicate {
-		boolean test(LongHashSet set, long key);
+		boolean test(@NotNull LongHashSet set, long key);
 	}
 
-	public boolean foreachTest(LongSetPredicate tester) {
+	public boolean foreachTest(@NotNull LongSetPredicate tester) {
 		if (hasZeroKey && !tester.test(this, 0))
 			return false;
 		for (long k : keyTable)
@@ -232,19 +233,19 @@ public class LongHashSet implements Cloneable {
 		}
 	}
 
-	public Iterator iterator() {
+	public @NotNull Iterator iterator() {
 		return new Iterator();
 	}
 
 	@Override
-	public LongHashSet clone() throws CloneNotSupportedException {
+	public @NotNull LongHashSet clone() throws CloneNotSupportedException {
 		LongHashSet set = (LongHashSet)super.clone();
 		set.keyTable = keyTable.clone();
 		return set;
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		if (size == 0)
 			return "{}";
 		StringBuilder sb = new StringBuilder(32).append('{');

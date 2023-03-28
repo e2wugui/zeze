@@ -6,11 +6,13 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class PMap1ReadOnly<K, V> implements Iterable<Map.Entry<K, V>> {
-	private final PMap1<K, V> map;
+	private final @NotNull PMap1<K, V> map;
 
-	public PMap1ReadOnly(PMap1<K, V> map) {
+	public PMap1ReadOnly(@NotNull PMap1<K, V> map) {
 		this.map = map;
 	}
 
@@ -22,23 +24,23 @@ public class PMap1ReadOnly<K, V> implements Iterable<Map.Entry<K, V>> {
 		return map.size();
 	}
 
-	public V getReadOnly(K key) {
+	public @Nullable V getReadOnly(@NotNull K key) {
 		return map.get(key);
 	}
 
-	public boolean containsValue(V v) {
+	public boolean containsValue(@NotNull V v) {
 		return map.containsValue(v);
 	}
 
-	public boolean containsKey(K key) {
+	public boolean containsKey(@NotNull K key) {
 		return map.containsKey(key);
 	}
 
-	public void copyTo(Map.Entry<K, V>[] array, int arrayIndex) {
+	public void copyTo(Map.Entry<K, V> @NotNull [] array, int arrayIndex) {
 		map.copyTo(array, arrayIndex);
 	}
 
-	public Set<K> keySet() {
+	public @NotNull Set<K> keySet() {
 		return new AbstractSet<>() {
 			@Override
 			public Iterator<K> iterator() {
@@ -69,7 +71,7 @@ public class PMap1ReadOnly<K, V> implements Iterable<Map.Entry<K, V>> {
 		};
 	}
 
-	public java.util.Collection<V> values() {
+	public @NotNull java.util.Collection<V> values() {
 		return new AbstractCollection<>() {
 			@Override
 			public Iterator<V> iterator() {
@@ -100,7 +102,7 @@ public class PMap1ReadOnly<K, V> implements Iterable<Map.Entry<K, V>> {
 		};
 	}
 
-	public Set<Map.Entry<K, V>> entrySet() {
+	public @NotNull Set<Map.Entry<K, V>> entrySet() {
 		return new AbstractSet<>() {
 			@Override
 			public Iterator<Map.Entry<K, V>> iterator() {
@@ -132,15 +134,15 @@ public class PMap1ReadOnly<K, V> implements Iterable<Map.Entry<K, V>> {
 	}
 
 	@Override
-	public Iterator<Map.Entry<K, V>> iterator() {
+	public @NotNull Iterator<Map.Entry<K, V>> iterator() {
 		return entrySet().iterator();
 	}
 
-	public PMap1<K, V> copy() {
+	public @NotNull PMap1<K, V> copy() {
 		return map.copy();
 	}
 
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		map.encode(bb);
 	}
 
@@ -150,12 +152,12 @@ public class PMap1ReadOnly<K, V> implements Iterable<Map.Entry<K, V>> {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 		return obj instanceof PMap1ReadOnly && map.equals(((PMap1ReadOnly<?, ?>)obj).map);
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return map.toString();
 	}
 }

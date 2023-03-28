@@ -4,14 +4,16 @@ import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Collections.LogBean;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class DynamicBean extends Bean implements DynamicBeanReadOnly {
-	Bean bean;
+	@NotNull Bean bean;
 	long typeId;
-	transient final ToLongFunction<Bean> getBean;
-	transient final LongFunction<Bean> createBean;
+	transient final @NotNull ToLongFunction<Bean> getBean;
+	transient final @NotNull LongFunction<Bean> createBean;
 
-	public DynamicBean(int variableId, ToLongFunction<Bean> get, LongFunction<Bean> create) {
+	public DynamicBean(int variableId, @NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) {
 		super(variableId);
 		bean = new EmptyBean();
 		typeId = EmptyBean.TYPEID;
@@ -20,18 +22,20 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	@Override
-	public final Bean getBean() {
+	public final @NotNull Bean getBean() {
 		if (!isManaged())
 			return bean;
 		var txn = Transaction.getCurrentVerifyRead(this);
 		if (txn == null)
 			return bean;
+		//noinspection DataFlowIssue
 		var log = (LogDynamic)txn.getLog(parent().objectId() + variableId());
 		return log != null ? log.value : bean;
 	}
 
 	@SuppressWarnings("deprecation")
-	public final void setBean(Bean value) {
+	public final void setBean(@NotNull Bean value) {
+		//noinspection ConstantValue
 		if (value == null)
 			throw new IllegalArgumentException("null value");
 		if (!isManaged()) {
@@ -39,9 +43,11 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 			bean = value;
 			return;
 		}
+		//noinspection DataFlowIssue
 		value.initRootInfoWithRedo(rootInfo, this);
 		value.variableId(1); // 只有一个变量
 		var txn = Transaction.getCurrentVerifyWrite(this);
+		//noinspection DataFlowIssue
 		var log = (LogDynamic)txn.logGetOrAdd(parent().objectId() + variableId(), this::createLogBean);
 		log.setValue(value);
 	}
@@ -54,6 +60,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		if (txn == null)
 			return typeId;
 		// 不能独立设置，总是设置Bean时一起Commit，所以这里访问Bean的Log。
+		//noinspection DataFlowIssue
 		var log = (LogDynamic)txn.getLog(parent().objectId() + variableId());
 		return log != null ? log.specialTypeId : typeId;
 	}
@@ -63,15 +70,15 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		return getTypeId();
 	}
 
-	public final ToLongFunction<Bean> getGetBean() {
+	public final @NotNull ToLongFunction<Bean> getGetBean() {
 		return getBean;
 	}
 
-	public final LongFunction<Bean> getCreateBean() {
+	public final @NotNull LongFunction<Bean> getCreateBean() {
 		return createBean;
 	}
 
-	public Bean newBean(long typeId) {
+	public @NotNull Bean newBean(long typeId) {
 		bean = createBean.apply(typeId);
 		if (bean == null)
 			bean = new EmptyBean();
@@ -79,7 +86,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		return bean;
 	}
 
-	public final void assign(DynamicBean other) {
+	public final void assign(@NotNull DynamicBean other) {
 		setBean(other.getBean().copy());
 	}
 
@@ -98,35 +105,37 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	@Override
-	public DynamicBean copy() {
+	public @NotNull DynamicBean copy() {
 		var copy = new DynamicBean(variableId(), getBean, createBean);
 		copy.bean = getBean().copy();
 		copy.typeId = getTypeId();
 		return copy;
 	}
 
-	public void assign(DynamicBeanData other) {
+	public void assign(@NotNull DynamicBeanData other) {
 		var bean = createBean.apply(other.typeId());
 		bean.assign(other.getBean());
 		setBean(bean);
 	}
 
 	@SuppressWarnings("deprecation")
-	private void setBeanWithSpecialTypeId(long specialTypeId, Bean bean) {
+	private void setBeanWithSpecialTypeId(long specialTypeId, @NotNull Bean bean) {
 		if (!isManaged()) {
 			typeId = specialTypeId;
 			this.bean = bean;
 			return;
 		}
+		//noinspection DataFlowIssue
 		bean.initRootInfoWithRedo(rootInfo, this);
 		bean.variableId(1); // 只有一个变量
 		var txn = Transaction.getCurrentVerifyWrite(this);
+		//noinspection DataFlowIssue
 		var log = (LogDynamic)txn.logGetOrAdd(parent().objectId() + variableId(), this::createLogBean);
 		log.setValue(bean);
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(@NotNull ByteBuffer bb) {
 		// 由于可能在事务中执行，这里仅修改Bean
 		// TypeId 在 Bean 提交时才修改，但是要在事务中读到最新值，参见 TypeId 的 getter 实现。
 		long typeId = bb.ReadLong();
@@ -141,7 +150,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		bb.WriteLong(getTypeId());
 		getBean().encode(bb);
 	}
@@ -157,22 +166,22 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	@Override
-	protected void initChildrenRootInfo(Record.RootInfo root) {
+	protected void initChildrenRootInfo(@NotNull Record.RootInfo root) {
 		bean.initRootInfo(root, this);
 	}
 
 	@Override
-	protected void initChildrenRootInfoWithRedo(Record.RootInfo root) {
+	protected void initChildrenRootInfoWithRedo(@NotNull Record.RootInfo root) {
 		bean.initRootInfoWithRedo(root, this);
 	}
 
 	@Override
-	public void mapKey(Object mapKey) {
+	public void mapKey(@NotNull Object mapKey) {
 		bean.mapKey(mapKey);
 	}
 
 	@Override
-	public void followerApply(Log log) {
+	public void followerApply(@NotNull Log log) {
 		var dLog = (LogDynamic)log;
 		if (null != dLog.value) {
 			typeId = dLog.specialTypeId;
@@ -183,7 +192,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	@Override
-	public LogBean createLogBean() {
+	public @NotNull LogBean createLogBean() {
 		var dLog = new LogDynamic();
 		dLog.setBelong(parent());
 		dLog.setThis(this);
@@ -197,7 +206,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	@Override
-	public boolean equals(Object o) {
+	public boolean equals(@Nullable Object o) {
 		if (o == this)
 			return true;
 		if (o == null || getClass() != o.getClass())
