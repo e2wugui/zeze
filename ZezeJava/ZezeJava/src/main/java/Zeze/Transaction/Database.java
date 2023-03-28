@@ -93,6 +93,11 @@ public abstract class Database {
 		}
 	}
 
+	public final void prepare() {
+		for (Zeze.Transaction.Table table : tables.values())
+			table.prepare();
+	}
+
 	public final void openDynamicTable(Application app, Zeze.Transaction.Table table) {
 		var storage = table.open(app, this);
 		if (null != storage)

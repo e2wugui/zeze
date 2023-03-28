@@ -86,4 +86,5 @@ public abstract class Table {
 
 	public abstract void removeEncodedKey(Binary encodedKey);
 	public abstract boolean isRelationalMapping();
+	public abstract void prepare();
 }

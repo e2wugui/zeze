@@ -546,6 +546,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 		private static <K extends Comparable<K>, V extends Bean>
 		String buildOrderByDesc(TableX<K, V> table) {
+			// 目前考虑keyColumns让Schemas来构造，注意生成顺序最好和encodeKeySQLStatement,decodeKeyResultSet【最好一致】。
 			var orderBy = table.getRelationalTable().keyColumns;
 			orderBy = orderBy.replace(",", " DESC,");
 			return " ORDER BY " + orderBy + " DESC"; // last desc
@@ -555,7 +556,6 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		public <K extends Comparable<K>, V extends Bean>
 		long walkDesc(TableX<K, V> table, TableWalkHandle<K, V> callback, Runnable afterLock) {
 			// 反序
-			// 目前考虑keyColumns让Schemas来构造，注意生成顺序最好和encodeKeySQLStatement,decodeKeyResultSet【最好一致】。
 			return walk(table, callback, afterLock, buildOrderByDesc(table));
 		}
 

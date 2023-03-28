@@ -381,6 +381,8 @@ public final class Application {
 					if (versionRc.getValue())
 						break;
 				}
+				for (var db : databases.values())
+					db.prepare();
 			}
 			// start last
 			if (null != achillesHeelDaemon)
