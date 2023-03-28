@@ -65,8 +65,6 @@
 			<variable id="21" name="vector4" type="vector4" /> com aa
 			<variable id="22" name="quaternion" type="quaternion" /> com aa
 
-			<variable id="23" name="mapVector2Int" type="map" key="vector2int" value="vector2int"/>
-			<variable id="24" name="setVector2Int" type="set" value="vector2int"/>
 			<variable id="25" name="listFixSize" type="list" FixSize="8" value="vector2int"/>
 			<variable id="26" name="arrayVector3" type="array" value="vector3"/>
 			<variable id="27" name="arrayDynamic" type="array[dynamic]">

@@ -360,8 +360,9 @@ public final class Application {
 				while (true) {
 					var dataVersion = defaultDb.getDirectOperates().getDataWithVersion(keyOfSchemas);
 					long version = 0;
+					Schemas schemasPrevious = null;
 					if (dataVersion != null && dataVersion.data != null) {
-						var schemasPrevious = new Schemas();
+						schemasPrevious = new Schemas();
 						try {
 							schemasPrevious.decode(dataVersion.data);
 							schemasPrevious.compile();
@@ -370,10 +371,10 @@ public final class Application {
 							logger.error("Schemas Implement Changed?", ex);
 						}
 						ResetDB.checkAndRemoveTable(schemasPrevious, this);
-						schemas.buildRelationalTables(schemasPrevious);
 						version = dataVersion.version;
-					} else
-						schemas.buildRelationalTables(null);
+					}
+					// schemasPrevious maybe null
+					schemas.buildRelationalTables(this, schemasPrevious);
 
 					var newData = ByteBuffer.Allocate(1024);
 					schemas.encode(newData);
@@ -381,6 +382,7 @@ public final class Application {
 					if (versionRc.getValue())
 						break;
 				}
+				// last database initialize
 				for (var db : databases.values())
 					db.prepare();
 			}

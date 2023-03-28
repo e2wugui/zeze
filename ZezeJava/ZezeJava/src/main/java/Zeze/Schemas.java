@@ -1,9 +1,9 @@
 package Zeze;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TreeMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.Action1;
@@ -206,12 +206,13 @@ public class Schemas implements Serializable {
 			compatibleTable.put("set", 3);
 			compatibleTable.put("map", 4);
 			compatibleTable.put("vector2", 5);
-			compatibleTable.put("vector2int", 5);
 			compatibleTable.put("vector3", 5);
-			compatibleTable.put("vector3int", 5);
 			compatibleTable.put("vector4", 5);
 			compatibleTable.put("quaternion", 5);
+			compatibleTable.put("vector2int", 5);
+			compatibleTable.put("vector3int", 5);
 		}
+		//VectorBean
 
 		private static boolean isTypeNameCompatible(String typeName0, String typeName1) {
 			if (typeName0.equals(typeName1))
@@ -320,12 +321,12 @@ public class Schemas implements Serializable {
 			sqlTypeTable.put("map", "VARCHAR(65535)");
 
 			// 下面的类型在处理完diff之后会被展开，这里的类型不是映射的实际类型。。
-			sqlTypeTable.put("vector2", "FLOAT");
-			sqlTypeTable.put("vector2int", "INT");
-			sqlTypeTable.put("vector3", "FLOAT");
-			sqlTypeTable.put("vector3int", "INT");
-			sqlTypeTable.put("vector4", "FLOAT");
-			sqlTypeTable.put("quaternion", "FLOAT");
+			sqlTypeTable.put("vector2", "vector2");
+			sqlTypeTable.put("vector2int", "vector2int");
+			sqlTypeTable.put("vector3", "vector3");
+			sqlTypeTable.put("vector3int", "vector3int");
+			sqlTypeTable.put("vector4", "vector4");
+			sqlTypeTable.put("quaternion", "quaternion");
 		}
 
 		public String toSqlType() {
@@ -344,9 +345,9 @@ public class Schemas implements Serializable {
 		}
 
 		public void buildRelationalColumns(Table table, Bean bean, Variable variable,
-										   ArrayList<String> varNames, TreeMap<Integer, Column> columns) {
+										   ArrayList<String> varNames, ArrayList<Column> columns) {
 			var column = new Column(toColumnName(varNames), table, bean, variable, toSqlType());
-			columns.put(column.variable.id, column);
+			columns.add(column);
 		}
 	}
 
@@ -642,7 +643,7 @@ public class Schemas implements Serializable {
 
 		@Override
 		public void buildRelationalColumns(Table table, Bean bean, Variable variable,
-										   ArrayList<String> varNames, TreeMap<Integer, Column> columns) {
+										   ArrayList<String> varNames, ArrayList<Column> columns) {
 			variables.foreach((key, value) -> {
 				varNames.add(value.name);
 				if (value.type.key != null || value.type.value != null) // is collection or map
@@ -710,7 +711,7 @@ public class Schemas implements Serializable {
 			valueType = s.compile(valueName, "", "");
 		}
 
-		public void buildRelationalColumns(TreeMap<Integer, Column> columns) {
+		public void buildRelationalColumns(ArrayList<Column> columns) {
 			var varNames = new ArrayList<String>();
 			valueType.buildRelationalColumns(this, null, null, varNames, columns);
 		}
@@ -837,47 +838,73 @@ public class Schemas implements Serializable {
 		}
 	}
 
+	static class ColumnComparator implements Comparator<Column> {
+
+		private static int compare(Bean o1, Bean o2) {
+			if (o1 == null) {
+				if (o2 == null)
+					return 0;
+				return -1;
+			}
+			if (o2 == null)
+				return 1;
+			return Integer.compare(System.identityHashCode(o1), System.identityHashCode(o2));
+		}
+
+		@Override
+		public int compare(Column o1, Column o2) {
+			var c = compare(o1.bean, o2.bean);
+			if (c != 0)
+				return c;
+			c = Integer.compare(o1.variable.id, o2.variable.id);
+			return c;
+		}
+	}
+
 	public static class RelationalTable {
-		public final TreeMap<Integer, Column> current = new TreeMap<>();
-		public final TreeMap<Integer, Column> previous = new TreeMap<>();
-		public final TreeMap<Integer, Column> change = new TreeMap<>();
-		public final TreeMap<Integer, Column> add = new TreeMap<>();
-		public final TreeMap<Integer, Column> remove = new TreeMap<>();
+		public final ArrayList<Column> current = new ArrayList<>();
+		public final ArrayList<Column> previous = new ArrayList<>();
+		public final ArrayList<Column> change = new ArrayList<>();
+		public final ArrayList<Column> add = new ArrayList<>();
+		public final ArrayList<Column> remove = new ArrayList<>();
 		public final String keyColumns = ""; // todo
 
-		public static String createTableSql(String name, TreeMap<Integer, Column> columns) {
-			if (columns.isEmpty())
-				return "";
+		public String createTableSql(String name) {
+			if (current.isEmpty())
+				throw new RuntimeException("no column");
 			var sb = new StringBuilder();
 			sb.append("CREATE TABLE IF NOT EXISTS ").append(name).append("(");
-			for (var c : columns.values()) {
+			for (var c : current) {
 				sb.append(c.name).append(" ").append(c.sqlType).append(",");
 			}
 			sb.append("PRIMARY KEY(");
-			sb.append("todo key");
+			sb.append(keyColumns);
 			sb.append(")");
 			return sb.toString();
 		}
 
-		private boolean diff(Column a, Column b) {
+		private boolean equals(Column a, Column b) {
 			if (!a.name.equals(b.name))
 				return false;
-			// todo 类型比较
-			return true;
+			return a.variable.type.name.equals(b.variable.type.name);
 		}
 
 		public void diff() {
-			var itCur = current.entrySet().iterator();
-			var itPre = previous.entrySet().iterator();
+			var comparator = new ColumnComparator();
+			current.sort(comparator);
+			previous.sort(comparator);
+
+			var itCur = current.iterator();
+			var itPre = previous.iterator();
 			if (itCur.hasNext() && itPre.hasNext()) {
 				var eCur = itCur.next();
 				var ePre = itPre.next();
 				while (true) {
-					var c = Integer.compare(eCur.getValue().variable.id, ePre.getValue().variable.id);
+					var c = comparator.compare(eCur, ePre);
 					if (c == 0) {
-						if (!diff(eCur.getValue(), ePre.getValue())) {
-							eCur.getValue().change = ePre.getValue();
-							change.put(eCur.getKey(), eCur.getValue());
+						if (!equals(eCur, ePre)) {
+							eCur.change = ePre;
+							change.add(eCur);
 						}
 
 						// fetch both
@@ -889,17 +916,17 @@ public class Schemas implements Serializable {
 						break;
 					}
 					if (c < 0) {
-						add.put(eCur.getKey(), eCur.getValue());
+						add.add(eCur);
 						if (!itCur.hasNext()) {
-							remove.put(ePre.getKey(), ePre.getValue());
+							remove.add(ePre);
 							break;
 						}
 						eCur = itCur.next();
 						continue;
 					}
-					remove.put(ePre.getKey(), ePre.getValue());
+					remove.add(ePre);
 					if (!itPre.hasNext()) {
-						add.put(eCur.getKey(), eCur.getValue());
+						add.add(eCur);
 						break;
 					}
 					ePre = itPre.next();
@@ -907,28 +934,34 @@ public class Schemas implements Serializable {
 			}
 			while (itCur.hasNext()) {
 				var eCur = itCur.next();
-				add.put(eCur.getKey(), eCur.getValue());
+				add.add(eCur);
 			}
 			while (itPre.hasNext()) {
 				var ePre = itPre.next();
-				remove.put(ePre.getKey(), ePre.getValue());
+				remove.add(ePre);
 			}
 		}
 	}
 
-	public void buildRelationalTables(Schemas other) {
-		var tableName = "demo_Module1_Table1";
-		var relational = new RelationalTable();
+	public void buildRelationalTables(Application zeze, Schemas other) {
+		for (var db : zeze.getDatabases().values()) {
+			for (var table : db.getTables()) {
+				if (table.isRelationalMapping()) {
+					var tableName = table.getName();
+					var relational = new RelationalTable();
+					var cur = this.tables.get(tableName);
+					cur.buildRelationalColumns(relational.current);
+					System.out.println(relational.createTableSql(tableName));
+					relationalTables.put(tableName, relational);
 
-		var cur = this.tables.get(tableName);
-		if (cur != null)
-			cur.buildRelationalColumns(relational.current);
-		System.out.println(RelationalTable.createTableSql(tableName, relational.current));
-		if (null != other) {
-			var pre = other.tables.get(tableName);
-			if (pre != null)
-				pre.buildRelationalColumns(relational.previous);
-			System.out.println(RelationalTable.createTableSql(tableName, relational.previous));
+					// build other. prepare to alter.
+					if (null != other) {
+						var pre = other.tables.get(tableName);
+						if (pre != null) // is null if new table
+							pre.buildRelationalColumns(relational.previous);
+					}
+				}
+			}
 		}
 	}
 }

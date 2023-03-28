@@ -1,21 +1,31 @@
 package RelationalMapping;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Set;
-import java.util.TreeMap;
 import Zeze.Schemas;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class TestRelationalTableDiff {
-	private static void addColumn(TreeMap<Integer, Schemas.Column> columns, int id) {
+	private static void addColumn(ArrayList<Schemas.Column> columns, int id) {
 		addColumn(columns, id, String.valueOf(id));
 	}
 
-	private static void addColumn(TreeMap<Integer, Schemas.Column> columns, int id, String name) {
+	private static void addColumn(ArrayList<Schemas.Column> columns, int id, String name) {
 		var variable = new Schemas.Variable();
 		variable.id = id;
+		variable.type = new Schemas.Type();
+		variable.type.name = "int";
 		var col = new Schemas.Column(name, null, null, variable, "");
-		columns.put(id, col);
+		columns.add(col);
+	}
+
+	private static Set<Integer> varialbleIds(ArrayList<Schemas.Column> columns) {
+		var result = new HashSet<Integer>();
+		for (var column : columns)
+			result.add(column.variable.id);
+		return result;
 	}
 
 	@Test
@@ -60,9 +70,9 @@ public class TestRelationalTableDiff {
 			System.out.println(r.remove);
 			System.out.println(r.change);
 
-			Assert.assertEquals(Set.of(3, 6), r.add.keySet());
-			Assert.assertEquals(Set.of(2, 7), r.remove.keySet());
-			Assert.assertEquals(Set.of(4), r.change.keySet());
+			Assert.assertEquals(Set.of(3, 6), varialbleIds(r.add));
+			Assert.assertEquals(Set.of(2, 7), varialbleIds(r.remove));
+			Assert.assertEquals(Set.of(4), varialbleIds(r.change));
 		}
 		{
 			var r = new Schemas.RelationalTable();
@@ -83,9 +93,9 @@ public class TestRelationalTableDiff {
 			System.out.println(r.remove);
 			System.out.println(r.change);
 
-			Assert.assertEquals(Set.of(3, 8), r.add.keySet());
-			Assert.assertEquals(Set.of(2, 7), r.remove.keySet());
-			Assert.assertEquals(Set.of(4), r.change.keySet());
+			Assert.assertEquals(Set.of(3, 8), varialbleIds(r.add));
+			Assert.assertEquals(Set.of(2, 7), varialbleIds(r.remove));
+			Assert.assertEquals(Set.of(4), varialbleIds(r.change));
 		}
 	}
 }

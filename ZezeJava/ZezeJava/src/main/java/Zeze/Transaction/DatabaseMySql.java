@@ -402,8 +402,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
-				String sql = Schemas.RelationalTable.createTableSql(name,
-						getDatabase().getZeze().getSchemas().relationalTables.get(name).current);
+				String sql = getDatabase().getZeze().getSchemas().relationalTables.get(name).createTableSql(name);
 				try (var cmd = connection.prepareStatement(sql)) {
 					cmd.executeUpdate();
 				}
