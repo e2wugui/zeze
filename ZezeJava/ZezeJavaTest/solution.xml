@@ -107,8 +107,8 @@
 		<rpc name="Rpc2" argument="BValue" result="BValue" handle="clientscript"/> rpc的注释
 
 		<!-- table的注释 -->
-		<table name="Table1" key="long" value="BValue" memory="false" autokey="true"/>
-		<table name="Table2" key="Key" value="BValue" memory="false" comment="table的注释"/>
+		<table name="Table1" key="long" value="BValue" RelationalMapping="true" memory="false" autokey="true"/>
+		<table name="Table2" key="Key" value="BValue" RelationalMapping="true" memory="false" comment="table的注释"/>
 		<table name="Table3" key="long" value="BValue" memory="false"/>
 		<table name="TableImportant" key="long" value="BValue"/>
 

@@ -5,10 +5,12 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.Action1;
 import Zeze.Util.IntHashMap;
+import Zeze.Util.KV;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -320,8 +322,7 @@ public class Schemas implements Serializable {
 			sqlTypeTable.put("list", "VARCHAR(65535)");
 			sqlTypeTable.put("set", "VARCHAR(65535)");
 			sqlTypeTable.put("map", "VARCHAR(65535)");
-
-			// 下面的类型在处理完diff之后会被展开，这里的类型不是映射的实际类型。。
+			// 下面的类型会被展开，这里的类型展开后的实际类型。
 			sqlTypeTable.put("vector2", "FLOAT");
 			sqlTypeTable.put("vector2int", "INT");
 			sqlTypeTable.put("vector3", "FLOAT");
@@ -954,10 +955,49 @@ public class Schemas implements Serializable {
 			return sb.toString();
 		}
 
-		private boolean equals(Column a, Column b) {
+		private static KV<Integer, Integer> catType(String type) {
+			switch (type) {
+			case "byte": return KV.create(0, 1);
+			case "short": return KV.create(0, 2);
+			case "int ": return KV.create(0, 3);
+			case "long": return KV.create(0, 4);
+			case "float": return KV.create(0, 5);
+			case "double": return KV.create(0, 6);
+
+			case "string": return KV.create(1, 1);
+			case "binary": return KV.create(1, 2);
+
+			case "vector2int": return KV.create(2, 1);
+			case "vector3int": return KV.create(2,2 );
+
+			case "vector2":
+			case "vector3":
+			case "vector4":
+			case "quaternion":
+				return KV.create(3, 1); // 允许自由互转，返回同一个值即可。
+
+			case "dynamic":
+			case "list":
+			case "set":
+			case "map":
+				return KV.create(4, 1); // 这几个类型不是都能互转的。他们的兼容性遵循ByteBuffer的要求，关系映射这里不做检查。
+			}
+			throw new RuntimeException("unknown type=" + type);
+		}
+
+		// 检查兼容，并返回列是否需要change。
+		private static boolean checkCompatibleAndChange(Column a, Column b) {
+			var aType = catType(a.variable.type.name);
+			var bType = catType(b.variable.type.name);
+			if (!Objects.equals(aType.getKey(), bType.getKey()))
+				throw new RuntimeException("type change not compatible, cat!");
+			if (aType.getValue() < bType.getValue())
+				throw new RuntimeException("type change not compatible, type!");
+
+			// change detect
 			if (!a.name.equals(b.name))
 				return false;
-			return a.variable.type.name.equals(b.variable.type.name);
+			return !aType.getValue().equals(bType.getValue());
 		}
 
 		public void diff() {
@@ -973,7 +1013,7 @@ public class Schemas implements Serializable {
 				while (true) {
 					var c = comparator.compare(eCur, ePre);
 					if (c == 0) {
-						if (!equals(eCur, ePre)) {
+						if (!checkCompatibleAndChange(eCur, ePre)) {
 							eCur.change = ePre;
 							change.add(eCur);
 						}

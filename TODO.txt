@@ -24,8 +24,6 @@ TaskOneByOne 改成 ConcurrentQueue，是否有任务执行使用CompareAndSet�
 BUG Dbh2 跑完测试没有关闭Raft服务，后续的单元测试还在继续尝试链接（不断输出链接refused错误）。是Connector没有停止？
 Timer redirectCancel 改成同步等待远程执行完成。有点风险。需要考虑一下。
 RelationalTableMapping
-	2. Bean columns; Table create table sql;(从Schemas中构建）
-	3. Schemas alter table;
 	4. alter table 修改字段类型时，数据库的兼容修改检查。
 	5. 多server(gs)同时启动，create table, alter table 流程的互斥。
 	if (创建表) return done; 
@@ -59,7 +57,8 @@ RelationalTableMapping
 DatabaseMySql.TableMysqlRelational
 RelationalTableMapping
 	1. Bean encodeJson/decodeJson; prepareStatement/decodeResultSet OK!
-	*. FrameWork & 细节
+	2. Bean columns; Table create table sql;(从Schemas中构建）
+	3. Schemas alter table;	*. FrameWork & 细节
 	a) Database.Table 增加新方法？Database.TableMapping 新接口？TableX下沉到 find，replace，delete？
 	    倾向于【增加】【下沉方法】。
 	b) TableX.walk<K, V> 使用a)的方案，walk<byte[], byte[]>对于Mapping方式不支持。
