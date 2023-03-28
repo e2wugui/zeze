@@ -70,6 +70,7 @@ public class SimpleApp extends AppBase {
 //			System.exit(0);
 //		}
 
+		zeze.setSchemas(new demo.Schemas());
 		zeze.start();
 		((ProviderWithOnline)providerApp.providerImplement).start();
 		providerApp.providerService.start();

@@ -29,6 +29,10 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		return new TableMysql(name);
 	}
 
+	public Database.Table openRelationalTable(String name) {
+		return new TableMysqlRelational(name);
+	}
+
 	public void dropTable(String name) {
 		var tTable = getTable(name);
 		if (null == tTable)
@@ -402,7 +406,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
-				String sql = getDatabase().getZeze().getSchemas().relationalTables.get(name).createTableSql(name);
+				String sql = getDatabase().getTable(name).getRelationalTable().createTableSql();
 				try (var cmd = connection.prepareStatement(sql)) {
 					cmd.executeUpdate();
 				}
@@ -410,6 +414,51 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				if (!e.getMessage().contains("already exist"))
 					throw new RuntimeException(e);
 			}
+		}
+
+		public void tryAlter() {
+			if (isNew)
+				return; // 已经是最新的表。不需要alter。
+
+			var r = getDatabase().getTable(name).getRelationalTable();
+			if (r.add.isEmpty() && r.remove.isEmpty() && r.change.isEmpty())
+				return; // do nothing
+
+			var sb = new StringBuilder();
+			sb.append("ALTER TABLE ").append(name);
+			var first = true;
+			for (var c : r.add) {
+				if (first)
+					first = false;
+				else
+					sb.append(", ");
+				sb.append(" ADD COLUMN ").append(c.name).append(" ").append(c.sqlType);
+			}
+			for (var c : r.remove) {
+				if (first)
+					first = false;
+				else
+					sb.append(", ");
+				sb.append(" DROP COLUMN ").append(c.name).append(" ").append(c.sqlType);
+			}
+			for (var c : r.change) {
+				if (first)
+					first = false;
+				else
+					sb.append(", ");
+				sb.append(" CHANGE COLUMN ").append(c.change.name).append(" ").append(c.name).append(" ").append(c.sqlType);
+			}
+			sb.append(", DROP PRIMARY KEY, ADD PRIMARY KEY (").append(r.currentKeyColumns).append(")");
+
+			try (var conn = dataSource.getConnection()) {
+				conn.setAutoCommit(true);
+				try (var pre = conn.prepareStatement(sb.toString())) {
+					pre.executeUpdate();
+				}
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
+			System.out.println(sb);
 		}
 
 		private static void setParams(PreparedStatement pre, int start, ArrayList<Object> params) throws SQLException {
@@ -546,7 +595,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		private static <K extends Comparable<K>, V extends Bean>
 		String buildOrderByDesc(TableX<K, V> table) {
 			// 目前考虑keyColumns让Schemas来构造，注意生成顺序最好和encodeKeySQLStatement,decodeKeyResultSet【最好一致】。
-			var orderBy = table.getRelationalTable().keyColumns;
+			var orderBy = table.getRelationalTable().currentKeyColumns;
 			orderBy = orderBy.replace(",", " DESC,");
 			return " ORDER BY " + orderBy + " DESC"; // last desc
 		}
@@ -646,7 +695,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				connection.setAutoCommit(true);
 				var st = new SQLStatement();
 				var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, orderBy.isEmpty());
-				String sql = "SELECT " + table.getRelationalTable().keyColumns + " FROM " + getName() + keyWhere + orderBy + " LIMIT ?";
+				String sql = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + getName() + keyWhere + orderBy + " LIMIT ?";
 				try (var cmd = connection.prepareStatement(sql)) {
 					setParams(cmd, 1, st.params);
 					cmd.setInt(st.params.size() + 1, proposeLimit);
@@ -731,7 +780,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
-				String sql = "SELECT " + table.getRelationalTable().keyColumns + " FROM " + getName() + orderBy;
+				String sql = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + getName() + orderBy;
 				try (var cmd = connection.prepareStatement(sql)) {
 					var count = 0L;
 					try (var rs = cmd.executeQuery()) {

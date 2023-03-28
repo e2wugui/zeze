@@ -21,6 +21,7 @@ import Zeze.Services.ServiceManagerAgentWithRaft;
 import Zeze.Transaction.AchillesHeelDaemon;
 import Zeze.Transaction.Checkpoint;
 import Zeze.Transaction.Database;
+import Zeze.Transaction.DatabaseMySql;
 import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.GlobalAgent;
@@ -62,6 +63,8 @@ public final class Application {
 	private Checkpoint checkpoint;
 	private Future<?> flushWhenReduceTimerTask;
 	private Schemas schemas;
+	private Schemas schemasPrevious; // maybe null
+
 	private int startState; // 0:未start; 1:开始start但未完成; 2:完成了start
 	public RedirectBase redirect;
 	/**
@@ -166,6 +169,9 @@ public final class Application {
 
 	public Schemas getSchemas() {
 		return schemas;
+	}
+	public Schemas getSchemasPrevious() {
+		return schemasPrevious;
 	}
 
 	public void setSchemas(Schemas value) {
@@ -278,6 +284,57 @@ public final class Application {
 		delayRemove.continueJobs();
 	}
 
+	// 数据库Meta兼容检查，返回旧的Schemas。
+	private void schemasCompatible() throws Exception {
+		var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
+		if (schemas != null) {
+			schemas.compile();
+			var keyOfSchemas = ByteBuffer.Allocate(24);
+			var serverId = conf.getServerId();
+			keyOfSchemas.WriteString("zeze.Schemas." + serverId);
+			while (true) {
+				var dataVersion = defaultDb.getDirectOperates().getDataWithVersion(keyOfSchemas);
+				long version = 0;
+				if (dataVersion != null && dataVersion.data != null) {
+					schemasPrevious = new Schemas();
+					try {
+						schemasPrevious.decode(dataVersion.data);
+						schemasPrevious.compile();
+					} catch (Exception ex) {
+						schemasPrevious = null;
+						logger.error("Schemas Implement Changed?", ex);
+					}
+					ResetDB.checkAndRemoveTable(schemasPrevious, this);
+					version = dataVersion.version;
+				}
+				// schemasPrevious maybe null
+				schemas.buildRelationalTables(this, schemasPrevious);
+
+				var newData = ByteBuffer.Allocate(1024);
+				schemas.encode(newData);
+				var versionRc = defaultDb.getDirectOperates().saveDataWithSameVersion(keyOfSchemas, newData, version);
+				if (versionRc.getValue())
+					break;
+			}
+		}
+	}
+
+	private void alterRelationalTable() {
+		for (var db : getDatabases().values()) {
+			if (!(db instanceof DatabaseMySql))
+				continue;
+			var mysql = (DatabaseMySql)db;
+			// todo 需要 schemas 的版本号，如果已经是最新的不需要再次执行 alter。
+			// todo lock database
+			for (var table : db.getTables()) {
+				if (!table.isRelationalMapping())
+					continue;
+				table.tryAlter();
+			}
+			// todo unlock database
+		}
+	}
+
 	public synchronized void start() throws Exception {
 		if (startState == 2)
 			return;
@@ -325,9 +382,15 @@ public final class Application {
 		}
 
 		if (!noDatabase) {
+			schemasCompatible();
+
 			// Open Databases
 			for (var db : databases.values())
 				db.open(this);
+
+			// 关系表映射 alter table
+			// 需要总控，所以不在 table 创建的时候处理。
+			alterRelationalTable(); // 总控互斥流程。
 
 			// Open Global
 			var hosts = Str.trim(conf.getGlobalCacheManagerHostNameOrAddress().split(";"));
@@ -350,42 +413,6 @@ public final class Application {
 			checkpoint = new Checkpoint(this, conf.getCheckpointMode(), databases.values(), serverId);
 			checkpoint.start(conf.getCheckpointPeriod()); // 定时模式可以和其他模式混用。
 
-			/////////////////////////////////////////////////////
-			// Schemas
-			var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
-			if (schemas != null) {
-				schemas.compile();
-				var keyOfSchemas = ByteBuffer.Allocate(24);
-				keyOfSchemas.WriteString("zeze.Schemas." + serverId);
-				while (true) {
-					var dataVersion = defaultDb.getDirectOperates().getDataWithVersion(keyOfSchemas);
-					long version = 0;
-					Schemas schemasPrevious = null;
-					if (dataVersion != null && dataVersion.data != null) {
-						schemasPrevious = new Schemas();
-						try {
-							schemasPrevious.decode(dataVersion.data);
-							schemasPrevious.compile();
-						} catch (Exception ex) {
-							schemasPrevious = null;
-							logger.error("Schemas Implement Changed?", ex);
-						}
-						ResetDB.checkAndRemoveTable(schemasPrevious, this);
-						version = dataVersion.version;
-					}
-					// schemasPrevious maybe null
-					schemas.buildRelationalTables(this, schemasPrevious);
-
-					var newData = ByteBuffer.Allocate(1024);
-					schemas.encode(newData);
-					var versionRc = defaultDb.getDirectOperates().saveDataWithSameVersion(keyOfSchemas, newData, version);
-					if (versionRc.getValue())
-						break;
-				}
-				// last database initialize
-				for (var db : databases.values())
-					db.prepare();
-			}
 			// start last
 			if (null != achillesHeelDaemon)
 				achillesHeelDaemon.start();

@@ -618,6 +618,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		oldTable = getTableConf().getDatabaseOldMode() == 1
 				? app.getDatabase(getTableConf().getDatabaseOldName()).openTable(getName()) : null;
 		localRocksCacheTable = app.getLocalRocksCacheDb().openTable(getName());
+		relationalTable = getZeze().getSchemas().relationalTables.get(getName()); // maybe null
 		return storage;
 	}
 
@@ -646,13 +647,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	public abstract void encodeKeySQLStatement(SQLStatement st, K _v_);
 
 	private Schemas.RelationalTable relationalTable;
-	public Schemas.RelationalTable getRelationalTable() {
-		return relationalTable;
-	}
 
 	@Override
-	public void prepare() {
-		relationalTable = getZeze().getSchemas().relationalTables.get(getName());
+	public Schemas.RelationalTable getRelationalTable() {
+		return relationalTable;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -893,5 +891,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		bb.WriteByteBuffer(encodeKey(key));
 		r.encode(bb);
 		return bb;
+	}
+
+	@Override
+	public void tryAlter() {
+		var dbTable = storage.getDatabaseTable();
+		if (dbTable instanceof DatabaseMySql.TableMysqlRelational)
+			((DatabaseMySql.TableMysqlRelational)dbTable).tryAlter();
 	}
 }

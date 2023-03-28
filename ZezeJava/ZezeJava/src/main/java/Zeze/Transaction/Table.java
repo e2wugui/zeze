@@ -3,6 +3,7 @@ package Zeze.Transaction;
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.Net.Binary;
+import Zeze.Schemas;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Reduce;
 
@@ -86,5 +87,6 @@ public abstract class Table {
 
 	public abstract void removeEncodedKey(Binary encodedKey);
 	public abstract boolean isRelationalMapping();
-	public abstract void prepare();
+	public abstract void tryAlter();
+	public abstract Schemas.RelationalTable getRelationalTable();
 }
