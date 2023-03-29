@@ -974,6 +974,14 @@ namespace Zeze.Services.ToLuaService2
                 {
                     var c = it.Current;
                     var variableMeta = c.Value;
+                    while (c.Key > id) // 发现未知id的字段
+                    {
+                        bb.SkipUnknownField(t);
+                        if ((t = bb.ReadByte()) == 0)
+                            return;
+                        id += bb.ReadTagSize(t);
+                        t &= ByteBuffer.TAG_MASK;
+                    }
                     if (c.Key == id)
                     {
                         find = true;
@@ -995,7 +1003,7 @@ namespace Zeze.Services.ToLuaService2
 
                 if (!find)
                 {
-                    throw new Exception($"var not found in meta for typeid={id} in bean {beanMeta.Name}");
+                    // throw new Exception($"var not found in meta for typeid={id} in bean {beanMeta.Name}");
                 }
             }
         }

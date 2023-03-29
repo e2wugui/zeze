@@ -247,7 +247,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		}
 	}
 
-	@Override 
+	@Override
 	public void cleanup() {
 		setDatabaseTransactionTmp(null);
 		setDatabaseTransactionOldTmp(null);
