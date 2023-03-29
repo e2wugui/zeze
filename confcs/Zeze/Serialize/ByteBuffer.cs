@@ -1574,7 +1574,7 @@ namespace Zeze.Serialize
         }
 
 #if USE_CONFCS
-        public Util.ConfDynamicBean ReadDynamic(Util.ConfDynamicBean dynBean, int type)
+        public Util.ConfDynamicBean ReadDynamic(Util.ConfDynamicBean dynBean, int tag)
 #else
         public Transaction.DynamicBean ReadDynamic(Transaction.DynamicBean dynBean, int tag)
 #endif

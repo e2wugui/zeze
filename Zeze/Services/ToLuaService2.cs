@@ -894,7 +894,7 @@ namespace Zeze.Services.ToLuaService2
                 int compress = os.ReadInt();
                 //int familyClass = compress & FamilyClass.FamilyClassMask; // lua需要的话，Push，但懒得看table索引，先不公开了。
                 long resultCode = ((compress & FamilyClass.BitResultCode) != 0) ? os.ReadLong() : 0;
-                
+
                 Lua.PushString(luaState, "resultCode");
                 Lua.PushLong(luaState, resultCode);
                 Lua.SetTable(luaState, -3);
@@ -1004,6 +1004,7 @@ namespace Zeze.Services.ToLuaService2
                 if (!find)
                 {
                     // throw new Exception($"var not found in meta for typeid={id} in bean {beanMeta.Name}");
+                    bb.SkipUnknownField(t);
                 }
             }
         }
