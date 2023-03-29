@@ -1,5 +1,10 @@
 package UnitTest.Zeze.Game;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
+import Zeze.Config;
 import Zeze.Game.Bag;
 import Zeze.Transaction.Procedure;
 import demo.App;
@@ -19,6 +24,49 @@ public class TestBag {
 	public static final int SECOND_REMOVE_NUM = 10; // 第二次删除的item数量 应小于ADD_NUM/2
 	public static final int MAX_BAG_CAPACITY = 100; // 背包容量
 
+	private final void clearBagData(Config config) {
+		String databaseName = config.getDefaultTableConf().getDatabaseName();
+
+		for (var conf : config.getDatabaseConfMap().values()) {
+			if (conf.getName().equals(databaseName)) {
+
+				Connection conn = null;
+				Statement stmt = null;
+				try {
+					conn = DriverManager.getConnection(conf.getDatabaseUrl());
+					stmt = conn.createStatement();
+					System.out.println(String.format("delete table %s", App.getInstance().BagModule.getTable().getName()));
+					String sql = String.format("delete from %s", App.getInstance().BagModule.getTable().getName());
+					stmt.execute(sql);
+					stmt.close();
+					conn.close();
+				} catch(SQLException se){
+					// 处理 JDBC 错误
+					se.printStackTrace();
+				} catch(Exception e){
+					// 处理 Class.forName 错误
+					e.printStackTrace();
+				} finally{
+					// 关闭资源
+					try{
+						if(stmt != null) {
+							stmt.close();
+						}
+					} catch(SQLException se2){
+					}// 什么都不做
+					try{
+						if(conn != null) {
+							conn.close();
+						}
+					}catch(SQLException se){
+						se.printStackTrace();
+					}
+				}
+			}
+			return;
+		}
+	}
+
 	@Before
 	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
@@ -33,6 +81,7 @@ public class TestBag {
 
 	@Test
 	public final void test1_Add() throws Exception {
+		clearBagData(App.getInstance().Zeze.getConfig());
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var bag = App.getInstance().BagModule.open("test1");
 			bag.setCapacity(MAX_BAG_CAPACITY);
