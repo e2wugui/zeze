@@ -528,12 +528,29 @@ public class Online extends AbstractOnline {
 	 * @param contexts context
 	 * @param send     protocol
 	 */
-	public void send(@NotNull AsyncSocket link, @NotNull Map<Long, Long> contexts, @NotNull Send send) {
-		send.Send(link, rpc -> triggerLinkBroken(ProviderService.getLinkName(link),
+	public boolean send(@NotNull AsyncSocket link, @NotNull Map<Long, Long> contexts, @NotNull Send send) {
+		return send.Send(link, rpc -> triggerLinkBroken(ProviderService.getLinkName(link),
 				send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
 	}
 
-//	public void send(Collection<Long> keys, AsyncSocket to, Map<Long, Long> contexts, Send send) {
+	// 直接通过 linkName, linkSid 发送协议。
+	public boolean send(String linkName, long linkSid, Protocol<?> p) {
+		var connector = providerApp.providerService.getLinks().get(linkName);
+		if (null == connector) {
+			logger.warn("link connector not found. name={}", linkName);
+			return false;
+		}
+		var link = connector.getSocket();
+		if (null == link) {
+			logger.warn("link socket not found. name={}", linkName);
+			return false;
+		}
+		var send = new Send(new BSend(p.getTypeId(), new Binary(p.encode())));
+		send.Argument.getLinkSids().add(linkSid);
+		return send(link, Map.of(linkSid, null), send);
+	}
+
+	//	public void send(Collection<Long> keys, AsyncSocket to, Map<Long, Long> contexts, Send send) {
 //		if (keys.size() > 1) {
 //			send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
 //					send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
