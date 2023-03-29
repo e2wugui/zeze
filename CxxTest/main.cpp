@@ -166,7 +166,7 @@ void TestEncode()
 	bValue.Vector4.x = 20;
 	bValue.Quaternion.x = 21;
 	Zeze::Vector2Int v2i(22, 22);
-	bValue.MapVector2Int[v2i] = v2i;
+//	bValue.MapVector2Int[v2i] = v2i;
 	bValue.ListVector2Int.push_back(v2i);
 	bValue.Map25[key] = demo::Module1::BSimple();
 	bValue.Map26[key] = demo::Module1::BValue::constructDynamicBean_Map26();
