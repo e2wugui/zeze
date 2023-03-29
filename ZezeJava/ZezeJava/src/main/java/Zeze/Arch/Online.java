@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.AppBase;
+import Zeze.Arch.Beans.BSend;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Builtin.Online.BAny;
 import Zeze.Builtin.Online.BDelayLogoutCustom;
@@ -560,9 +561,29 @@ public class Online extends AbstractOnline {
 		return 0;
 	}
 
-	public void send(AsyncSocket to, Map<Long, LoginKey> contexts, Send send) {
-		send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
+	public boolean send(AsyncSocket to, Map<Long, LoginKey> contexts, Send send) {
+		return send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
 				send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
+	}
+
+	public boolean send(String linkName, long linkSid, Protocol<?> p) {
+		return send(null, linkName, linkSid, p);
+	}
+
+	public boolean send(LoginKey loginKey, String linkName, long linkSid, Protocol<?> p) {
+		var connector = providerApp.providerService.getLinks().get(linkName);
+		if (null == connector) {
+			logger.warn("link connector not found. name={}", linkName);
+			return false;
+		}
+		var link = connector.getSocket();
+		if (null == link) {
+			logger.warn("link socket not found. name={}", linkName);
+			return false;
+		}
+		var send = new Send(new BSend(p.getTypeId(), new Binary(p.encode())));
+		send.Argument.getLinkSids().add(linkSid);
+		return send(link, Map.of(linkSid, loginKey), send);
 	}
 
 	public void send(Collection<LoginKey> keys, AsyncSocket to, Map<Long, LoginKey> contexts, Send send) {
