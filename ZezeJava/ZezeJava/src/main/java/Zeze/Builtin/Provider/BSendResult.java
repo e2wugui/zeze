@@ -161,7 +161,7 @@ public final class BSendResult extends Zeze.Transaction.Bean implements BSendRes
     @Override
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonList(getErrorLinkSids(), long.class, rs.getString(_parents_name_ + "ErrorLinkSids"));
+        Zeze.Serialize.Helper.decodeJsonList(getErrorLinkSids(), Long.class, rs.getString(_parents_name_ + "ErrorLinkSids"));
     }
 
     @Override

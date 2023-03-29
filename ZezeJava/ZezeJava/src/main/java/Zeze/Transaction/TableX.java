@@ -627,11 +627,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 		setTableConf(app.getConfig().getTableConf(getName()));
 		cache = new TableCache<>(app, this);
+		relationalTable = getZeze().getSchemas().relationalTables.get(getName()); // maybe null
 		storage = isMemory() ? null : new Storage<>(this, database, getName());
 		oldTable = getTableConf().getDatabaseOldMode() == 1
 				? app.getDatabase(getTableConf().getDatabaseOldName()).openTable(getName()) : null;
 		localRocksCacheTable = app.getLocalRocksCacheDb().openTable(getName());
-		relationalTable = getZeze().getSchemas().relationalTables.get(getName()); // maybe null
 		return storage;
 	}
 

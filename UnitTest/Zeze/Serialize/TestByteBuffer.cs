@@ -374,7 +374,7 @@ namespace UnitTest.Zeze.Serialize
             bean1.V2.Add(12, 34);
             v.List9.Add(bean1);
             Simple simple = new();
-            simple.Removed.Int1 = 999;
+            simple.Removed.Int_1 = 999;
             v.Map16.Add(new Key(11), simple);
 
             ByteBuffer bb = ByteBuffer.Allocate();

@@ -49,14 +49,14 @@ namespace UnitTest.Zeze.Trans
         async Task<long> ProcAdd()
         {
             demo.Module1.Value v = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(123123);
-            v.Int1 += 1;
+            v.Int_1 += 1;
             return ResultCode.Success;
         }
 
         async Task<long> ProcVerify()
         {
             demo.Module1.Value v = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(123123);
-            Assert.IsTrue(v.Int1 == sum);
+            Assert.IsTrue(v.Int_1 == sum);
             return ResultCode.Success;
         }
     }

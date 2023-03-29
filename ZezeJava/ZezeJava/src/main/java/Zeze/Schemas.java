@@ -315,13 +315,13 @@ public class Schemas implements Serializable {
 			sqlTypeTable.put("long", "BIGINT");
 			sqlTypeTable.put("float", "FLOAT");
 			sqlTypeTable.put("double", "DOUBLE");
-			sqlTypeTable.put("binary", "VARBINARY(65535)");
-			sqlTypeTable.put("string", "VARCHAR(65535)");
+			sqlTypeTable.put("binary", "BLOB");
+			sqlTypeTable.put("string", "TEXT");
 			// json
-			sqlTypeTable.put("dynamic", "VARCHAR(65535)");
-			sqlTypeTable.put("list", "VARCHAR(65535)");
-			sqlTypeTable.put("set", "VARCHAR(65535)");
-			sqlTypeTable.put("map", "VARCHAR(65535)");
+			sqlTypeTable.put("dynamic", "TEXT");
+			sqlTypeTable.put("list", "TEXT");
+			sqlTypeTable.put("set", "TEXT");
+			sqlTypeTable.put("map", "TEXT");
 			// 下面的类型会被展开，这里的类型展开后的实际类型。
 			sqlTypeTable.put("vector2", "FLOAT");
 			sqlTypeTable.put("vector2int", "INT");
@@ -331,10 +331,12 @@ public class Schemas implements Serializable {
 			sqlTypeTable.put("quaternion", "FLOAT");
 		}
 
-		public String toSqlType() {
+		public String toSqlType(boolean isKey) {
 			var sqlType = sqlTypeTable.get(name);
 			if (null == sqlType)
 				throw new RuntimeException("unknown sql type=" + name);
+			if (name.equals("string") && isKey)
+				return "VARCHAR(1024)";
 			return sqlType;
 		}
 
@@ -363,36 +365,36 @@ public class Schemas implements Serializable {
 			return ids;
 		}
 
-		public void buildRelationalColumns(Table table, Bean bean, Variable variable,
+		public void buildRelationalColumns(boolean isKey, Table table, Bean bean, Variable variable,
 										   ArrayList<String> varNames, ArrayList<Integer> varIds,
 										   ArrayList<Column> columns) {
 			switch (name) {
 			case "vector2":
 			case "vector2int":
 				// int or float 由toSqlType的结果区分，其他都一样。
-				columns.add(new Column(toColumnName(varNames, "x"), toVarIds(varIds, 1), table, bean, variable, toSqlType()));
-				columns.add(new Column(toColumnName(varNames, "y"), toVarIds(varIds, 2), table, bean, variable, toSqlType()));
+				columns.add(new Column(toColumnName(varNames, "x"), toVarIds(varIds, 1), table, bean, variable, toSqlType(isKey)));
+				columns.add(new Column(toColumnName(varNames, "y"), toVarIds(varIds, 2), table, bean, variable, toSqlType(isKey)));
 				break;
 			case "vector3":
 			case "vector3int":
 				// int or float 由toSqlType的结果区分，其他都一样。
-				columns.add(new Column(toColumnName(varNames, "x"), toVarIds(varIds, 1), table, bean, variable, toSqlType()));
-				columns.add(new Column(toColumnName(varNames, "y"), toVarIds(varIds, 2), table, bean, variable, toSqlType()));
-				columns.add(new Column(toColumnName(varNames, "z"), toVarIds(varIds, 3), table, bean, variable, toSqlType()));
+				columns.add(new Column(toColumnName(varNames, "x"), toVarIds(varIds, 1), table, bean, variable, toSqlType(isKey)));
+				columns.add(new Column(toColumnName(varNames, "y"), toVarIds(varIds, 2), table, bean, variable, toSqlType(isKey)));
+				columns.add(new Column(toColumnName(varNames, "z"), toVarIds(varIds, 3), table, bean, variable, toSqlType(isKey)));
 				break;
 			case "vector4":
 			case "quaternion":
-				columns.add(new Column(toColumnName(varNames, "x"), toVarIds(varIds, 1), table, bean, variable, toSqlType()));
-				columns.add(new Column(toColumnName(varNames, "y"), toVarIds(varIds, 2), table, bean, variable, toSqlType()));
-				columns.add(new Column(toColumnName(varNames, "z"), toVarIds(varIds, 3), table, bean, variable, toSqlType()));
-				columns.add(new Column(toColumnName(varNames, "w"), toVarIds(varIds, 4), table, bean, variable, toSqlType()));
+				columns.add(new Column(toColumnName(varNames, "x"), toVarIds(varIds, 1), table, bean, variable, toSqlType(isKey)));
+				columns.add(new Column(toColumnName(varNames, "y"), toVarIds(varIds, 2), table, bean, variable, toSqlType(isKey)));
+				columns.add(new Column(toColumnName(varNames, "z"), toVarIds(varIds, 3), table, bean, variable, toSqlType(isKey)));
+				columns.add(new Column(toColumnName(varNames, "w"), toVarIds(varIds, 4), table, bean, variable, toSqlType(isKey)));
 				break;
 
 			default:
 				var ids = new int[varIds.size()];
 				for (var i = 0; i < varIds.size(); ++i)
 					ids[i] = varIds.get(i);
-				columns.add(new Column(toColumnName(varNames), ids, table, bean, variable, toSqlType()));
+				columns.add(new Column(toColumnName(varNames), ids, table, bean, variable, toSqlType(isKey)));
 				break;
 			}
 		}
@@ -689,16 +691,17 @@ public class Schemas implements Serializable {
 		}
 
 		@Override
-		public void buildRelationalColumns(Table table, Bean bean, Variable variable,
+		public void buildRelationalColumns(boolean isKey, Table table, Bean bean, Variable variable,
 										   ArrayList<String> varNames, ArrayList<Integer> varIds,
 										   ArrayList<Column> columns) {
 			variables.foreach((key, value) -> {
 				varNames.add(value.name);
 				varIds.add(value.id);
 				if (value.type.key != null || value.type.value != null) // is collection or map
-					value.type.buildRelationalColumns(table, this, value, varNames, varIds, columns); // 实际上单独判断了也不需要特别处理。先明确写一下。
+					// 实际上单独判断了也不需要特别处理。先明确写一下。
+					value.type.buildRelationalColumns(isKey, table, this, value, varNames, varIds, columns);
 				else
-					value.type.buildRelationalColumns(table, this, value, varNames, varIds, columns);
+					value.type.buildRelationalColumns(isKey, table, this, value, varNames, varIds, columns);
 				varIds.remove(varIds.size() - 1);
 				varNames.remove(varNames.size() - 1);
 			});
@@ -763,13 +766,20 @@ public class Schemas implements Serializable {
 
 		public String buildRelationalColumns(ArrayList<Column> columns) {
 			String keyColumns;
+
+			// 构造一个虚拟变量。Column需要用到。
+			var varKey = new Variable();
+			varKey.name = "__key";
+			varKey.id = 1;
+			varKey.typeName = keyType.name;
+			varKey.type = keyType;
 			if (keyType instanceof Bean) {
 				// 肯定是BeanKey。
 				var varNames = new ArrayList<String>();
-				varNames.add("__key");
+				varNames.add(varKey.name);
 				var varIds = new ArrayList<Integer>();
-				varIds.add(1); // 必须和下面分支的 new int[] { 1 } 一样。
-				keyType.buildRelationalColumns(this, null, null, varNames, varIds, columns);
+				varIds.add(varKey.id);
+				keyType.buildRelationalColumns(true,this, null, varKey, varNames, varIds, columns);
 				var sb = new StringBuilder();
 				for (var column : columns) {
 					if (sb.length() > 0)
@@ -778,15 +788,19 @@ public class Schemas implements Serializable {
 				}
 				keyColumns = sb.toString();
 			} else {
-				keyColumns = "__key";
-				columns.add(new Column("__key",
-						new int[]{1}, // 必须和上面分支的 varIds.add(1) 一样。
-						this, null, null, keyType.toSqlType()));
+				keyColumns = varKey.name;
+				var varIds = new int[] { varKey.id };
+				columns.add(new Column(varKey.name, varIds, this, null, varKey, keyType.toSqlType(true)));
 			}
 			var varNames = new ArrayList<String>();
 			var varIds = new ArrayList<Integer>();
 			varIds.add(2);
-			valueType.buildRelationalColumns(this, null, null, varNames, varIds, columns);
+			valueType.buildRelationalColumns(false,this, null, null, varNames, varIds, columns);
+
+			// 构建好就排序，不能再diff的时候排序，有可能diff不会被调用。
+			var comparator = new ColumnComparator();
+			columns.sort(comparator);
+
 			return keyColumns;
 		}
 	}
@@ -918,7 +932,7 @@ public class Schemas implements Serializable {
 		}
 	}
 
-	static class ColumnComparator implements Comparator<Column> {
+	public static class ColumnComparator implements Comparator<Column> {
 
 		@Override
 		public int compare(Column o1, Column o2) {
@@ -952,6 +966,7 @@ public class Schemas implements Serializable {
 			sb.append("PRIMARY KEY(");
 			sb.append(currentKeyColumns);
 			sb.append(")");
+			sb.append(")"); // end table
 			return sb.toString();
 		}
 
@@ -961,7 +976,7 @@ public class Schemas implements Serializable {
 			case "bool":
 			case "byte": return KV.create(0, 1); // bool<->byte
 			case "short": return KV.create(0, 2); // byte->short->int->long->float->double
-			case "int ": return KV.create(0, 3);
+			case "int": return KV.create(0, 3);
 			case "long": return KV.create(0, 4);
 			case "float": return KV.create(0, 5);
 			case "double": return KV.create(0, 6);
@@ -1000,15 +1015,12 @@ public class Schemas implements Serializable {
 
 			// change detect
 			if (!a.name.equals(b.name))
-				return false;
+				return true;
 			return !aType.getValue().equals(bType.getValue());
 		}
 
 		public void diff() {
 			var comparator = new ColumnComparator();
-			current.sort(comparator);
-			previous.sort(comparator);
-
 			var itCur = current.iterator();
 			var itPre = previous.iterator();
 			if (itCur.hasNext() && itPre.hasNext()) {
@@ -1017,7 +1029,7 @@ public class Schemas implements Serializable {
 				while (true) {
 					var c = comparator.compare(eCur, ePre);
 					if (c == 0) {
-						if (!checkCompatibleAndChange(eCur, ePre)) {
+						if (checkCompatibleAndChange(eCur, ePre)) {
 							eCur.change = ePre;
 							change.add(eCur);
 						}
@@ -1066,8 +1078,8 @@ public class Schemas implements Serializable {
 					var relational = new RelationalTable(tableName);
 					var cur = this.tables.get(tableName);
 					relational.currentKeyColumns = cur.buildRelationalColumns(relational.current);
-					System.out.println(relational.createTableSql());
 					relationalTables.put(tableName, relational);
+					System.out.println(relational.createTableSql());
 
 					// build other. prepare to alter.
 					if (null != other) {

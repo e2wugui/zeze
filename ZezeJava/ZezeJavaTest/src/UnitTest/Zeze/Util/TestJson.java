@@ -243,7 +243,7 @@ public final class TestJson extends TestCase {
 		var v = new BValue();
 		var db = new DynamicBean(0, BValue::getSpecialTypeIdFromBean_26, BValue::createBeanFromSpecialTypeId_26);
 		var s = new BSimple();
-		s.setInt1(456);
+		s.setInt_1(456);
 		db.setBean(s);
 		v.getMap26().put(new Key((short)123), db);
 		var j = JsonWriter.local().clear().setPrettyFormat(true).setWriteNull(true).setDepthLimit(9).write(v).toString();
@@ -255,7 +255,7 @@ public final class TestJson extends TestCase {
 		assertEquals(123, e.getKey().getS());
 		assertEquals(BSimple.TYPEID, e.getValue().typeId());
 		assertEquals(BSimple.class, e.getValue().getBean().getClass());
-		assertEquals(456, ((BSimple)e.getValue().getBean()).getInt1());
+		assertEquals(456, ((BSimple)e.getValue().getBean()).getInt_1());
 	}
 
 	public void testE() throws ReflectiveOperationException {

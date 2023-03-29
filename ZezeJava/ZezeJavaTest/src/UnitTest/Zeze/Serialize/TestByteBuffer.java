@@ -341,7 +341,7 @@ public class TestByteBuffer extends TestCase {
 		bean1.getV2().put(12, 34);
 		v.getList9().add(bean1);
 		BSimple simple = new BSimple();
-		simple.getRemoved().setInt1(999);
+		simple.getRemoved().setInt_1(999);
 		v.getMap16().put(new Key((short)11), simple);
 
 		ByteBuffer bb = ByteBuffer.Allocate();

@@ -259,7 +259,7 @@ public final class BDailyTask extends Zeze.Transaction.Bean implements BDailyTas
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setEverydayTaskCount(rs.getInt(_parents_name_ + "everydayTaskCount"));
         setFlushTime(rs.getLong(_parents_name_ + "flushTime"));
-        Zeze.Serialize.Helper.decodeJsonList(getTodayTaskPhaseIds(), long.class, rs.getString(_parents_name_ + "todayTaskPhaseIds"));
+        Zeze.Serialize.Helper.decodeJsonList(getTodayTaskPhaseIds(), Long.class, rs.getString(_parents_name_ + "todayTaskPhaseIds"));
     }
 
     @Override

@@ -493,7 +493,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setModuleId(rs.getInt(_parents_name_ + "ModuleId"));
         setHashCodeConcurrentLevel(rs.getInt(_parents_name_ + "HashCodeConcurrentLevel"));
-        Zeze.Serialize.Helper.decodeJsonSet(getHashCodes(), int.class, rs.getString(_parents_name_ + "HashCodes"));
+        Zeze.Serialize.Helper.decodeJsonSet(getHashCodes(), Integer.class, rs.getString(_parents_name_ + "HashCodes"));
         setSourceProvider(rs.getLong(_parents_name_ + "SourceProvider"));
         setSessionId(rs.getLong(_parents_name_ + "SessionId"));
         setMethodFullName(rs.getString(_parents_name_ + "MethodFullName"));

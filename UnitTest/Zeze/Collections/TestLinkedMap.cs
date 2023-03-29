@@ -34,7 +34,7 @@ namespace UnitTest.Zeze.Collections
 				{
                     var bean = new demo.Module1.Value
                     {
-                        Int1 = i
+                        Int_1 = i
                     };
                     await map.PutAsync(i, bean);
 				}
@@ -51,7 +51,7 @@ namespace UnitTest.Zeze.Collections
 				for (int i = 100; i < 110; i++)
 				{
 					var bean = await map.GetAsync(i);
-					Assert.IsTrue(bean.Int1 == i);
+					Assert.IsTrue(bean.Int_1 == i);
 				}
 				return ResultCode.Success;
 			}, "test2_LinkedMapGet").CallSynchronously());
@@ -68,7 +68,7 @@ namespace UnitTest.Zeze.Collections
 			map.WalkAsync((key, value) =>
 			{
 				Assert.IsTrue(i.Get() < 10);
-				Assert.IsTrue(value.Int1 == arr[i.IncrementAndGet() - 1]);
+				Assert.IsTrue(value.Int_1 == arr[i.IncrementAndGet() - 1]);
 				return true;
 			}).Wait();
 			Assert.IsTrue(i.Get() == 10);
@@ -83,7 +83,7 @@ namespace UnitTest.Zeze.Collections
 				for (int i = 100; i < 110; i++)
 				{
 					var bean = await map.RemoveAsync(i);
-					Assert.IsTrue(bean.Int1 == i);
+					Assert.IsTrue(bean.Int_1 == i);
 				}
 				Assert.IsTrue(await map.IsEmptyAsync());
 				return ResultCode.Success;

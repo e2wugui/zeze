@@ -615,7 +615,7 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         setTaskState(rs.getInt(_parents_name_ + "taskState"));
         setTaskName(rs.getString(_parents_name_ + "taskName"));
         setTaskDescription(rs.getString(_parents_name_ + "taskDescription"));
-        Zeze.Serialize.Helper.decodeJsonList(getPreTaskIds(), long.class, rs.getString(_parents_name_ + "preTaskIds"));
+        Zeze.Serialize.Helper.decodeJsonList(getPreTaskIds(), Long.class, rs.getString(_parents_name_ + "preTaskIds"));
         setCurrentPhaseId(rs.getLong(_parents_name_ + "currentPhaseId"));
         Zeze.Serialize.Helper.decodeJsonMap(this, "taskPhases", getTaskPhases(), rs.getString(_parents_name_ + "taskPhases"));
         Zeze.Serialize.Helper.decodeJsonDynamic(getExtendedData(), rs.getString(_parents_name_ + "extendedData"));

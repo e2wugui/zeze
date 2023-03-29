@@ -148,6 +148,25 @@ public class AutoKey {
 	}
 
 	/**
+	 * 设置当前serverId的种子，新种子必须比当前值大。
+	 *
+	 * @param seed new seed.
+	 * @return true if success.
+	 */
+	public boolean resetSeedUnsafe() {
+		try {
+			return Procedure.Success == Task.runUnsafe(module.zeze.newProcedure(() -> {
+				var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
+				var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
+				bAutoKey.setNextId(0);
+				return 0;
+			}, "AutoKey.setSeed")).get();
+		} catch (InterruptedException | ExecutionException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	/**
 	 * 增加当前serverId的种子。只能增加，如果溢出，返回失败。
 	 *
 	 * @param delta delta

@@ -308,9 +308,9 @@ public class TestGlobalCacheMgrWithRaft {
 		for (int i = 0; i < tasks.length; i++) {
 			tasks[i] = Zeze.Util.Task.runUnsafe(app.Zeze.newProcedure(() -> {
 				var v = app.demo_Module1.getTable1().getOrAdd(99L);
-				v.setInt1(v.getInt1() + 1);
+				v.setInt_1(v.getInt_1() + 1);
 
-				System.out.printf("appId %d value %d timestamp %s%n", appId, v.getInt1(), System.currentTimeMillis());
+				System.out.printf("appId %d value %d timestamp %s%n", appId, v.getInt_1(), System.currentTimeMillis());
 				return Procedure.Success;
 			}, "doConcurrency" + appId), DispatchMode.Normal);
 
@@ -345,9 +345,9 @@ public class TestGlobalCacheMgrWithRaft {
 		int tryCount = 30;
 		for (int i = 0; i < tryCount; i++) {
 			var result = App1.Zeze.newProcedure(() -> {
-				if (0 == App1.demo_Module1.getTable1().getOrAdd(99L).getInt1() && 0 != this.ExpectCount.get())
+				if (0 == App1.demo_Module1.getTable1().getOrAdd(99L).getInt_1() && 0 != this.ExpectCount.get())
 					return Procedure.LogicError;
-				count.set(App1.demo_Module1.getTable1().getOrAdd(99L).getInt1());
+				count.set(App1.demo_Module1.getTable1().getOrAdd(99L).getInt_1());
 				return Procedure.Success;
 			}, "GetCurrentCount").call();
 			if (result == Procedure.Success)

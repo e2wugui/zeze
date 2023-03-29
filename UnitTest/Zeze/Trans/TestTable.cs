@@ -44,7 +44,7 @@ namespace UnitTest.Zeze.Trans
         {
             demo.Module1.Value v = await demo.App.Instance.demo_Module1.Table1.GetAsync(1);
 
-            v.Int1 = 11;
+            v.Int_1 = 11;
             v.Long2 = 22;
             v.String3 = "33";
             v.Bool4 = true;
@@ -54,7 +54,7 @@ namespace UnitTest.Zeze.Trans
             v.List9.Add(new demo.Bean1());
             v.Set10.Add(1010);
             v.Map11.Add(2, new demo.Module2.Value());
-            v.Bean12.Int1 = 1212;
+            v.Bean12.Int_1 = 1212;
             v.Byte13 = 131;
             return ResultCode.Success;
         }
@@ -63,7 +63,7 @@ namespace UnitTest.Zeze.Trans
         {
             demo.Module1.Value v = await demo.App.Instance.demo_Module1.Table1.GetAsync(1);
 
-            Assert.IsTrue(v.Int1 == 11);
+            Assert.IsTrue(v.Int_1 == 11);
             Assert.IsTrue(v.Long2 == 22);
             Assert.IsTrue(v.String3.Equals("33"));
             Assert.IsTrue(v.Bool4);
@@ -75,7 +75,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(v.Set10.Contains(1010));
             Assert.IsTrue(v.Set10.Count == 2);
             Assert.IsTrue(v.Map11.Count == 2);
-            Assert.IsTrue(v.Bean12.Int1 == 1212);
+            Assert.IsTrue(v.Bean12.Int_1 == 1212);
             Assert.IsTrue(v.Byte13 == 131);
 
             return ResultCode.Success;
@@ -92,7 +92,7 @@ namespace UnitTest.Zeze.Trans
         {
             demo.Module1.Value v = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
 
-            v.Int1 = 1;
+            v.Int_1 = 1;
             v.Long2 = 2;
             v.String3 = "3";
             v.Bool4 = true;
@@ -102,7 +102,7 @@ namespace UnitTest.Zeze.Trans
             v.List9.Add(new demo.Bean1());
             v.Set10.Add(10);
             v.Map11.Add(1, new demo.Module2.Value());
-            v.Bean12.Int1 = 12;
+            v.Bean12.Int_1 = 12;
             v.Byte13 = 13;
 
             return ResultCode.Success;
@@ -113,7 +113,7 @@ namespace UnitTest.Zeze.Trans
             var v = await demo.App.Instance.demo_Module1.Table1.GetAsync(1);
             Assert.IsNotNull(v);
 
-            Assert.IsTrue(v.Int1 == 1);
+            Assert.IsTrue(v.Int_1 == 1);
             Assert.IsTrue(v.Long2 == 2);
             Assert.IsTrue(v.String3.Equals("3"));
             Assert.IsTrue(v.Bool4);
@@ -124,7 +124,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(v.Set10.Contains(10));
             Assert.IsTrue(v.Set10.Count == 1);
             Assert.IsTrue(v.Map11.Count == 1);
-            Assert.IsTrue(v.Bean12.Int1 == 12);
+            Assert.IsTrue(v.Bean12.Int_1 == 12);
             Assert.IsTrue(v.Byte13 == 13);
 
             await demo.App.Instance.demo_Module1.Table1.RemoveAsync(1);
@@ -153,7 +153,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsNull(await demo.App.Instance.demo_Module1.Table2.GetAsync(key));
             demo.Module1.Value v = new demo.Module1.Value();
 
-            v.Int1 = 1;
+            v.Int_1 = 1;
             v.Long2 = 2;
             v.String3 = "3";
             v.Bool4 = true;
@@ -163,7 +163,7 @@ namespace UnitTest.Zeze.Trans
             v.List9.Add(new demo.Bean1());
             v.Set10.Add(10);
             v.Map11.Add(1, new demo.Module2.Value());
-            v.Bean12.Int1 = 12;
+            v.Bean12.Int_1 = 12;
             v.Byte13 = 13;
 
             await demo.App.Instance.demo_Module1.Table2.PutAsync(key, v);
@@ -179,7 +179,7 @@ namespace UnitTest.Zeze.Trans
             var v = await demo.App.Instance.demo_Module1.Table2.GetAsync(key);
             Assert.IsNotNull(v);
 
-            Assert.IsTrue(v.Int1 == 1);
+            Assert.IsTrue(v.Int_1 == 1);
             Assert.IsTrue(v.Long2 == 2);
             Assert.IsTrue(v.String3.Equals("3"));
             Assert.IsTrue(v.Bool4);
@@ -190,7 +190,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(v.Set10.Contains(10));
             Assert.IsTrue(v.Set10.Count == 1);
             Assert.IsTrue(v.Map11.Count == 1);
-            Assert.IsTrue(v.Bean12.Int1 == 12);
+            Assert.IsTrue(v.Bean12.Int_1 == 12);
             Assert.IsTrue(v.Byte13 == 13);
 
             await demo.App.Instance.demo_Module1.Table2.RemoveAsync(key);
@@ -203,7 +203,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsNull(await demo.App.Instance.demo_Module1.Table1.GetAsync(1));
             demo.Module1.Value v = new demo.Module1.Value();
 
-            v.Int1 = 1;
+            v.Int_1 = 1;
             v.Long2 = 2;
             v.String3 = "3";
             v.Bool4 = true;
@@ -213,7 +213,7 @@ namespace UnitTest.Zeze.Trans
             v.List9.Add(new demo.Bean1());
             v.Set10.Add(10);
             v.Map11.Add(1, new demo.Module2.Value());
-            v.Bean12.Int1 = 12;
+            v.Bean12.Int_1 = 12;
             v.Byte13 = 13;
 
             await demo.App.Instance.demo_Module1.Table1.PutAsync(1, v);
@@ -226,7 +226,7 @@ namespace UnitTest.Zeze.Trans
             var v = await demo.App.Instance.demo_Module1.Table1.GetAsync(1);
             Assert.IsNotNull(v);
 
-            Assert.IsTrue(v.Int1 == 1);
+            Assert.IsTrue(v.Int_1 == 1);
             Assert.IsTrue(v.Long2 == 2);
             Assert.IsTrue(v.String3.Equals("3"));
             Assert.IsTrue(v.Bool4);
@@ -237,7 +237,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(v.Set10.Contains(10));
             Assert.IsTrue(v.Set10.Count == 1);
             Assert.IsTrue(v.Map11.Count == 1);
-            Assert.IsTrue(v.Bean12.Int1 == 12);
+            Assert.IsTrue(v.Bean12.Int_1 == 12);
             Assert.IsTrue(v.Byte13 == 13);
 
             await demo.App.Instance.demo_Module1.Table1.RemoveAsync(1);

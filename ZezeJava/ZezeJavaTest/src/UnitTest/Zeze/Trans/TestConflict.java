@@ -51,14 +51,14 @@ public class TestConflict {
 
 	private long ProcAdd() {
 		BValue v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(123123L);
-		v.setInt1(v.getInt1() + 1);
+		v.setInt_1(v.getInt_1() + 1);
 		sum++;
 		return Procedure.Success;
 	}
 
 	private long ProcVerify() {
 		BValue v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(123123L);
-		Assert.assertEquals(v.getInt1(), sum);
+		Assert.assertEquals(v.getInt_1(), sum);
 		return Procedure.Success;
 	}
 }

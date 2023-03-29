@@ -225,7 +225,7 @@ public final class BRoleTasks extends Zeze.Transaction.Bean implements BRoleTask
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         Zeze.Serialize.Helper.decodeJsonMap(this, "processingTasks", getProcessingTasks(), rs.getString(_parents_name_ + "processingTasks"));
-        Zeze.Serialize.Helper.decodeJsonSet(getFinishedTaskIds(), long.class, rs.getString(_parents_name_ + "finishedTaskIds"));
+        Zeze.Serialize.Helper.decodeJsonSet(getFinishedTaskIds(), Long.class, rs.getString(_parents_name_ + "finishedTaskIds"));
     }
 
     @Override

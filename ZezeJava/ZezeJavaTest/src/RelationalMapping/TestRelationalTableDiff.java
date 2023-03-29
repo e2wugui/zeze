@@ -43,10 +43,14 @@ public class TestRelationalTableDiff {
 			addColumn(r.current, 1);
 			addColumn(r.current, 2);
 			addColumn(r.current, 3);
+			var comparator = new Schemas.ColumnComparator();
+			r.current.sort(comparator);
 
 			addColumn(r.previous, 1);
 			addColumn(r.previous, 2);
 			addColumn(r.previous, 3);
+			r.previous.sort(comparator);
+
 			r.diff();
 			Assert.assertTrue(r.add.isEmpty());
 			Assert.assertTrue(r.remove.isEmpty());
@@ -59,12 +63,16 @@ public class TestRelationalTableDiff {
 			addColumn(r.current, 4);
 			addColumn(r.current, 5);
 			addColumn(r.current, 6);
+			var comparator = new Schemas.ColumnComparator();
+			r.current.sort(comparator);
 
 			addColumn(r.previous, 1);
 			addColumn(r.previous, 2);
 			addColumn(r.previous, 4, "44");
 			addColumn(r.previous, 5);
 			addColumn(r.previous, 7);
+			r.previous.sort(comparator);
+
 			r.diff();
 
 			System.out.println(r.add);
@@ -82,12 +90,16 @@ public class TestRelationalTableDiff {
 			addColumn(r.current, 4);
 			addColumn(r.current, 5);
 			addColumn(r.current, 8);
+			var comparator = new Schemas.ColumnComparator();
+			r.current.sort(comparator);
 
 			addColumn(r.previous, 1);
 			addColumn(r.previous, 2);
 			addColumn(r.previous, 4, "44");
 			addColumn(r.previous, 5);
 			addColumn(r.previous, 7);
+			r.previous.sort(comparator);
+
 			r.diff();
 
 			System.out.println(r.add);

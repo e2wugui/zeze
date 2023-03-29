@@ -40,7 +40,7 @@ namespace UnitTest.Zeze.Trans
                 async () =>
                 {
                     demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
-                    value.Int1 = 123;
+                    value.Int_1 = 123;
                     value.Long2 = 123;
                     value.String3 = "123";
                     value.Bool4 = true;
@@ -51,9 +51,9 @@ namespace UnitTest.Zeze.Trans
                     value.List9.Add(new demo.Bean1() { V1 = 1 }); value.List9.Add(new demo.Bean1() { V1 = 2 });
                     value.Set10.Add(123); value.Set10.Add(124);
                     value.Map11.Add(1, new demo.Module2.Value()); value.Map11.Add(2, new demo.Module2.Value());
-                    value.Bean12.Int1 = 123;
+                    value.Bean12.Int_1 = 123;
                     value.Byte13 = 12;
-                    value.Dynamic14_demo_Module1_Simple = new demo.Module1.Simple() { Int1 = 123 };
+                    value.Dynamic14_demo_Module1_Simple = new demo.Module1.Simple() { Int_1 = 123 };
                     value.Map15.Add(1, 1); value.Map15.Add(2, 2);
                     return ResultCode.Success;
                 },
@@ -71,7 +71,7 @@ namespace UnitTest.Zeze.Trans
                 async () =>
                 {
                     demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
-                    value.Int1 = 124;
+                    value.Int_1 = 124;
                     value.Long2 = 124;
                     value.String3 = "124";
                     value.Bool4 = false;
@@ -82,9 +82,9 @@ namespace UnitTest.Zeze.Trans
                     value.List9.Add(new demo.Bean1() { V1 = 2 }); value.List9.Add(new demo.Bean1() { V1 = 3 });
                     value.Set10.Add(125); value.Set10.Add(126);
                     value.Map11.Add(3, new demo.Module2.Value()); value.Map11.Add(4, new demo.Module2.Value());
-                    value.Bean12.Int1 = 124;
+                    value.Bean12.Int_1 = 124;
                     value.Byte13 = 13;
-                    value.Dynamic14_demo_Module1_Simple = new demo.Module1.Simple() { Int1 = 124 };
+                    value.Dynamic14_demo_Module1_Simple = new demo.Module1.Simple() { Int_1 = 124 };
                     value.Map15.Add(3, 3); value.Map15.Add(4, 4);
                     return ResultCode.Success;
                 },
@@ -254,7 +254,7 @@ namespace UnitTest.Zeze.Trans
         {
             var l = new VarListeners();
 
-            l.Vars.Add(demo.Module1.Table1.VAR_int1, _CLInt1);
+            l.Vars.Add(demo.Module1.Table1.VAR_int_1, _CLInt1);
             l.Vars.Add(demo.Module1.Table1.VAR_long2, _ClLong2);
             l.Vars.Add(demo.Module1.Table1.VAR_string3, _CLString3);
             l.Vars.Add(demo.Module1.Table1.VAR_bool4, _CLBool4);
@@ -410,7 +410,7 @@ namespace UnitTest.Zeze.Trans
                     demo.Module1.Simple currentSimple = current.Dynamic14.Bean as demo.Module1.Simple;
                     Assert.IsTrue(null != newSimple);
                     Assert.IsTrue(null != currentSimple);
-                    Assert.IsTrue(newSimple.Int1 == currentSimple.Int1);
+                    Assert.IsTrue(newSimple.Int_1 == currentSimple.Int_1);
                 }
             }
 
@@ -481,7 +481,7 @@ namespace UnitTest.Zeze.Trans
                     Assert.IsTrue(null == newValue);
                     return;
                 }
-                Assert.IsTrue(newValue.Int1 == current.Bean12.Int1);
+                Assert.IsTrue(newValue.Int_1 == current.Bean12.Int_1);
             }
 
             public void OnRemoved(object key)
@@ -894,7 +894,7 @@ namespace UnitTest.Zeze.Trans
 
             public void Init(demo.Module1.Value current)
             {
-                newValue = (null != current) ? current.Int1 : -1;
+                newValue = (null != current) ? current.Int_1 : -1;
             }
 
             public void Verify(demo.Module1.Value current)
@@ -904,7 +904,7 @@ namespace UnitTest.Zeze.Trans
                     Assert.IsTrue(-1 == newValue);
                     return;
                 }
-                Assert.AreEqual(newValue, current.Int1);
+                Assert.AreEqual(newValue, current.Int_1);
             }
 
             public void OnRemoved(object key)
@@ -913,11 +913,11 @@ namespace UnitTest.Zeze.Trans
             }
             public void OnChanged(object key, Bean value)
             {
-                newValue = ((demo.Module1.Value)value).Int1;
+                newValue = ((demo.Module1.Value)value).Int_1;
             }
             public void OnChanged(object key, Log note)
             {
-                newValue = ((demo.Module1.Value)note.Belong).Int1;
+                newValue = ((demo.Module1.Value)note.Belong).Int_1;
             }
         }
     }

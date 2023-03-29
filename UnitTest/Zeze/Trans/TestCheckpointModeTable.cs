@@ -30,7 +30,7 @@ namespace UnitTest.Zeze.Trans
                 async () =>
                 {
                     var value = await demo.App.Instance.demo_Module1.TableImportant.GetOrAddAsync(1);
-                    return value.Int1 == expect ? ResultCode.Success : ResultCode.LogicError;
+                    return value.Int_1 == expect ? ResultCode.Success : ResultCode.LogicError;
                 },
                 "TestCheckpointModeTable.Check").CallAsync());
         }
@@ -42,7 +42,7 @@ namespace UnitTest.Zeze.Trans
                 async () =>
                 {
                     var value = await demo.App.Instance.demo_Module1.TableImportant.GetOrAddAsync(1);
-                    value.Int1 = 0;
+                    value.Int_1 = 0;
                     return ResultCode.Success;
                 },
                 "TestCheckpointModeTable.Init").CallAsync());
@@ -75,16 +75,16 @@ namespace UnitTest.Zeze.Trans
         private async Task<long> Add()
         {
             var value = await demo.App.Instance.demo_Module1.TableImportant.GetOrAddAsync(1);
-            value.Int1++;
+            value.Int_1++;
             return ResultCode.Success;
         }
 
         private async Task<long> Add2()
         {
             var value = await demo.App.Instance.demo_Module1.TableImportant.GetOrAddAsync(1);
-            value.Int1++;
+            value.Int_1++;
             var value2 = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
-            value2.Int1++;
+            value2.Int_1++;
             return ResultCode.Success;
         }
     }

@@ -40,21 +40,21 @@ public class TestCheckpoint{
 		*/
 		Assert.assertEquals(Procedure.Success, App.Instance.Zeze.newProcedure(() -> {
 			App.Instance.demo_Module1.getTable1().get(1L);
-			App.Instance.demo_Module1.getTable1().getOrAdd(2L).setInt1(222);
+			App.Instance.demo_Module1.getTable1().getOrAdd(2L).setInt_1(222);
 			return 0L;
 		}, "12").call());
 		//System.out.println("3");
 		//System.out.println(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
 		Assert.assertEquals(Procedure.Success, App.Instance.Zeze.newProcedure(() -> {
 			App.Instance.demo_Module1.getTable1().get(3L);
-			App.Instance.demo_Module1.getTable1().getOrAdd(4L).setInt1(444);
+			App.Instance.demo_Module1.getTable1().getOrAdd(4L).setInt_1(444);
 			return 0L;
 		}, "34").call());
 		//System.out.println("4");
 		//System.out.println(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
 		Assert.assertEquals(Procedure.Success, App.Instance.Zeze.newProcedure(() -> {
 			App.Instance.demo_Module1.getTable1().get(2L);
-			App.Instance.demo_Module1.getTable1().getOrAdd(3L).setInt1(333);
+			App.Instance.demo_Module1.getTable1().getOrAdd(3L).setInt_1(333);
 			return 0L;
 		}, "23").call());
 		//System.out.println("5");
@@ -100,7 +100,7 @@ public class TestCheckpoint{
 	private ByteBuffer bytesInTrans;
 	private long ProcChange() {
 		BValue v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(56L);
-		v.setInt1(1);
+		v.setInt_1(1);
 		bytesInTrans = ByteBuffer.Allocate();
 		v.encode(bytesInTrans);
 		return Procedure.Success;

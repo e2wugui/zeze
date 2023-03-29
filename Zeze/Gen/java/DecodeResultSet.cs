@@ -146,13 +146,13 @@ namespace Zeze.Gen.java
         public void Visit(TypeList type)
         {
             ensureParentsName();
-            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.decodeJsonList({Getter}, {BoxingName.GetName(type.ValueType)}.class, {bb}.getString({ParaneName}\"{ColumnName}\"));");
+            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.decodeJsonList({Getter}, {BoxingName.GetBoxingName(type.ValueType)}.class, {bb}.getString({ParaneName}\"{ColumnName}\"));");
         }
 
         public void Visit(TypeSet type)
         {
             ensureParentsName();
-            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.decodeJsonSet({Getter}, {BoxingName.GetName(type.ValueType)}.class, {bb}.getString({ParaneName}\"{ColumnName}\"));");
+            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.decodeJsonSet({Getter}, {BoxingName.GetBoxingName(type.ValueType)}.class, {bb}.getString({ParaneName}\"{ColumnName}\"));");
         }
 
         public void Visit(TypeMap type)

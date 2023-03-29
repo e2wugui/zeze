@@ -43,7 +43,7 @@ public class TestChangeListener {
 
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
-			value.setInt1(123);
+			value.setInt_1(123);
 			value.setLong2(123);
 			value.setString3("123");
 			value.setBool4(true);
@@ -62,10 +62,10 @@ public class TestChangeListener {
 			value.getSet10().add(124);
 			value.getMap11().put(1L, new BValue());
 			value.getMap11().put(2L, new BValue());
-			value.getBean12().setInt1(123);
+			value.getBean12().setInt_1(123);
 			value.setByte13((byte)12);
 			value.setDynamic14(new BSimple());
-			value.getDynamic14_demo_Module1_BSimple().setInt1(123);
+			value.getDynamic14_demo_Module1_BSimple().setInt_1(123);
 			value.getMap15().put(1L, 1L);
 			value.getMap15().put(2L, 2L);
 			return Procedure.Success;
@@ -80,7 +80,7 @@ public class TestChangeListener {
 		Init();
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
-			value.setInt1(124);
+			value.setInt_1(124);
 			value.setLong2(124);
 			value.setString3("124");
 			value.setBool4(true);
@@ -99,10 +99,10 @@ public class TestChangeListener {
 			value.getSet10().add(124);
 			value.getMap11().put(1L, new BValue());
 			value.getMap11().put(2L, new BValue());
-			value.getBean12().setInt1(124);
+			value.getBean12().setInt_1(124);
 			value.setByte13((byte)13);
 			value.setDynamic14(new BSimple());
-			value.getDynamic14_demo_Module1_BSimple().setInt1(124);
+			value.getDynamic14_demo_Module1_BSimple().setInt_1(124);
 			value.getMap15().put(3L, 3L);
 			value.getMap15().put(4L, 4L);
 
@@ -241,7 +241,7 @@ public class TestChangeListener {
 	private void AddListener() {
 		var ls = new Listener();
 
-		ls.Vars.put(demo.Module1.Table1.VAR_int1, _CLInt1);
+		ls.Vars.put(demo.Module1.Table1.VAR_int_1, _CLInt1);
 		ls.Vars.put(demo.Module1.Table1.VAR_long2, _ClLong2);
 		ls.Vars.put(demo.Module1.Table1.VAR_string3, _CLString3);
 		ls.Vars.put(demo.Module1.Table1.VAR_bool4, _CLBool4);
@@ -386,7 +386,7 @@ public class TestChangeListener {
 				BSimple currentSimple = tempVar instanceof BSimple ? (BSimple)tempVar : null;
 				Assert.assertNotNull(newSimple);
 				Assert.assertNotNull(currentSimple);
-				Assert.assertEquals(newSimple.getInt1(), currentSimple.getInt1());
+				Assert.assertEquals(newSimple.getInt_1(), currentSimple.getInt_1());
 			}
 		}
 
@@ -453,7 +453,7 @@ public class TestChangeListener {
 				Assert.assertNull(newValue);
 				return;
 			}
-			Assert.assertEquals(newValue.getInt1(), current.getBean12().getInt1());
+			Assert.assertEquals(newValue.getInt_1(), current.getBean12().getInt_1());
 		}
 
 		@Override
@@ -855,7 +855,7 @@ public class TestChangeListener {
 		private int newValue;
 
 		public final void Init(demo.Module1.BValue current) {
-			newValue = (null != current) ? current.getInt1() : -1;
+			newValue = (null != current) ? current.getInt_1() : -1;
 		}
 
 		public final void Verify(demo.Module1.BValue current) {
@@ -863,17 +863,17 @@ public class TestChangeListener {
 				Assert.assertEquals(-1, newValue);
 				return;
 			}
-			Assert.assertEquals(newValue, current.getInt1());
+			Assert.assertEquals(newValue, current.getInt_1());
 		}
 
 		@Override
 		public final void OnChanged(Object key, Bean value) {
-			newValue = ((demo.Module1.BValue)value).getInt1();
+			newValue = ((demo.Module1.BValue)value).getInt_1();
 		}
 
 		@Override
 		public final void OnChanged(Object key, Log note) {
-			newValue = ((demo.Module1.BValue)note.getBelong()).getInt1();
+			newValue = ((demo.Module1.BValue)note.getBelong()).getInt_1();
 		}
 
 		@Override

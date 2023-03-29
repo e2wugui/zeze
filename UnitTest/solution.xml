@@ -33,10 +33,10 @@
 		<table name="Autokey_" key="AutoKey" value="AutoValue" />
 
 		<bean name="Removed2">
-			<variable id="1" name="int1" type="int" /> com aa
+			<variable id="1" name="int_1" type="int" /> com aa
 		</bean>
 		<bean name="Simple">
-			<variable id="1" name="int1" type="int" /> com aa
+			<variable id="1" name="int_1" type="int" /> com aa
 			<variable id="2" name="long2" type="long" /> com aa
 			<variable id="3" name="string3" type="string" /> com aa
 			<variable id="4" name="removed" type="Removed2" /> com aa
@@ -59,7 +59,7 @@
 		<bean name="Value" version="version" equals="true">
 			<enum name="Enum1" value="4" />
 
-			<variable id="1" name="int1" type="int" AllowNegative="true" /> com aa
+			<variable id="1" name="int_1" type="int" AllowNegative="true" /> com aa
 			<variable id="2" name="long2" type="long" /> com aa
 			<variable id="3" name="string3" type="string" /> com aa
 			<variable id="4" name="bool4" type="bool" /> com aa

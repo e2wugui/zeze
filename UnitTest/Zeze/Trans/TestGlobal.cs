@@ -26,7 +26,7 @@ namespace UnitTest.Zeze.Trans
                 VariableId = 100;
  
                 int last = lastInt;
-                oldInt = Value.Int1;
+                oldInt = Value.Int_1;
                 eq = lastInt == oldInt;
                 this.appId = appId;
             }
@@ -94,7 +94,7 @@ namespace UnitTest.Zeze.Trans
 
                 var result1 = app1.Zeze.NewProcedure(async () =>
                 {
-                    int last1 = (await app1.demo_Module1.Table1.GetAsync(6785)).Int1;
+                    int last1 = (await app1.demo_Module1.Table1.GetAsync(6785)).Int_1;
                     Assert.AreEqual(countall, last1);
                     //Console.WriteLine("app1 " + last1);
                     return ResultCode.Success;
@@ -105,7 +105,7 @@ namespace UnitTest.Zeze.Trans
                 var result2 = app2.Zeze.NewProcedure(async () =>
                 {
                     var value = await app2.demo_Module1.Table1.GetAsync(6785);
-                    int last2 = value.Int1;
+                    int last2 = value.Int_1;
                     Assert.AreEqual(countall, last2);
                     //Console.WriteLine("app1 " + last2);
                     return ResultCode.Success;
@@ -128,7 +128,7 @@ namespace UnitTest.Zeze.Trans
                 tasks[i] = app.Zeze.NewProcedure(async ()=>
                 {
                     demo.Module1.Value b = await app.demo_Module1.Table1.GetOrAddAsync(6785);
-                    b.Int1 += 1;
+                    b.Int_1 += 1;
                     PrintLog log = new PrintLog(b, b, appId);
                     Transaction.Current.PutLog(log);
                     return ResultCode.Success;

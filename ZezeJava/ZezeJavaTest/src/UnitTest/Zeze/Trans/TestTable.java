@@ -36,7 +36,7 @@ public class TestTable {
 	private static long ProcGetUpdate() {
 		BValue v = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 
-		v.setInt1(11);
+		v.setInt_1(11);
 		v.setLong2(22);
 		v.setString3("33");
 		v.setBool4(true);
@@ -46,7 +46,7 @@ public class TestTable {
 		v.getList9().add(new demo.Bean1());
 		v.getSet10().add(1010);
 		v.getMap11().put(2L, new demo.Module2.BValue());
-		v.getBean12().setInt1(1212);
+		v.getBean12().setInt_1(1212);
 		v.setByte13((byte)131);
 		return Procedure.Success;
 	}
@@ -54,7 +54,7 @@ public class TestTable {
 	private static long ProcGetUpdateCheckRemove() {
 		BValue v = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 
-		Assert.assertEquals(v.getInt1(), 11);
+		Assert.assertEquals(v.getInt_1(), 11);
 		Assert.assertEquals(v.getLong2(), 22);
 		Assert.assertEquals(v.getString3(), "33");
 		Assert.assertTrue(v.isBool4());
@@ -66,7 +66,7 @@ public class TestTable {
 		Assert.assertTrue(v.getSet10().contains(1010));
 		Assert.assertEquals(v.getSet10().size(), 2);
 		Assert.assertEquals(v.getMap11().size(), 2);
-		Assert.assertEquals(v.getBean12().getInt1(), 1212);
+		Assert.assertEquals(v.getBean12().getInt_1(), 1212);
 		Assert.assertEquals(v.getByte13(), (byte)131);
 		return Procedure.Success;
 	}
@@ -85,7 +85,7 @@ public class TestTable {
 
 	private static long ProcGetOrAdd() {
 		BValue v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd((long)1);
-		v.setInt1(1);
+		v.setInt_1(1);
 		v.setLong2(2);
 		v.setString3("3");
 		v.setBool4(true);
@@ -95,7 +95,7 @@ public class TestTable {
 		v.getList9().add(new demo.Bean1());
 		v.getSet10().add(10);
 		v.getMap11().put(1L, new demo.Module2.BValue());
-		v.getBean12().setInt1(12);
+		v.getBean12().setInt_1(12);
 		v.setByte13((byte)13);
 
 		return Procedure.Success;
@@ -105,7 +105,7 @@ public class TestTable {
 		var v = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 		Assert.assertNotNull(v);
 
-		Assert.assertEquals(v.getInt1(), 1);
+		Assert.assertEquals(v.getInt_1(), 1);
 		Assert.assertEquals(v.getLong2(), 2);
 		Assert.assertEquals(v.getString3(), "3");
 		Assert.assertTrue(v.isBool4());
@@ -116,7 +116,7 @@ public class TestTable {
 		Assert.assertTrue(v.getSet10().contains(10));
 		Assert.assertEquals(v.getSet10().size(), 1);
 		Assert.assertEquals(v.getMap11().size(), 1);
-		Assert.assertEquals(v.getBean12().getInt1(), 12);
+		Assert.assertEquals(v.getBean12().getInt_1(), 12);
 		Assert.assertEquals(v.getByte13(), 13);
 
 		demo.App.getInstance().demo_Module1.getTable1().remove(1L);
@@ -153,7 +153,7 @@ public class TestTable {
 		demo.Module1.Key key = new demo.Module1.Key((short)1);
 		Assert.assertNull(App.getInstance().demo_Module1.getTable2().get(key));
 		BValue v = new BValue();
-		v.setInt1(1);
+		v.setInt_1(1);
 		v.setLong2(2);
 		v.setString3("3");
 		v.setBool4(true);
@@ -163,7 +163,7 @@ public class TestTable {
 		v.getList9().add(new demo.Bean1());
 		v.getSet10().add(10);
 		v.getMap11().put(1L, new demo.Module2.BValue());
-		v.getBean12().setInt1(12);
+		v.getBean12().setInt_1(12);
 		v.setByte13((byte)13);
 
 		demo.App.getInstance().demo_Module1.getTable2().put(key, v);
@@ -178,7 +178,7 @@ public class TestTable {
 		var v = demo.App.getInstance().demo_Module1.getTable2().get(key);
 		Assert.assertNotNull(v);
 
-		Assert.assertEquals(v.getInt1(), 1);
+		Assert.assertEquals(v.getInt_1(), 1);
 		Assert.assertEquals(v.getLong2(), 2);
 		Assert.assertEquals(v.getString3(), "3");
 		Assert.assertTrue(v.isBool4());
@@ -189,7 +189,7 @@ public class TestTable {
 		Assert.assertTrue(v.getSet10().contains(10));
 		Assert.assertEquals(v.getSet10().size(), 1);
 		Assert.assertEquals(v.getMap11().size(), 1);
-		Assert.assertEquals(v.getBean12().getInt1(), 12);
+		Assert.assertEquals(v.getBean12().getInt_1(), 12);
 		Assert.assertEquals(v.getByte13(), 13);
 
 		demo.App.getInstance().demo_Module1.getTable2().remove(key);
@@ -200,7 +200,7 @@ public class TestTable {
 	private static long ProcGet11() {
 		Assert.assertNull(App.getInstance().demo_Module1.getTable1().get(1L));
 		BValue v = new BValue();
-		v.setInt1(1);
+		v.setInt_1(1);
 		v.setLong2(2);
 		v.setString3("3");
 		v.setBool4(true);
@@ -210,7 +210,7 @@ public class TestTable {
 		v.getList9().add(new demo.Bean1());
 		v.getSet10().add(10);
 		v.getMap11().put(1L, new demo.Module2.BValue());
-		v.getBean12().setInt1(12);
+		v.getBean12().setInt_1(12);
 		v.setByte13((byte)13);
 
 		demo.App.getInstance().demo_Module1.getTable1().put(1L, v);
@@ -222,7 +222,7 @@ public class TestTable {
 		var v = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 		Assert.assertNotNull(v);
 
-		Assert.assertEquals(v.getInt1(), 1);
+		Assert.assertEquals(v.getInt_1(), 1);
 		Assert.assertEquals(v.getLong2(), 2);
 		Assert.assertEquals(v.getString3(), "3");
 		Assert.assertTrue(v.isBool4());
@@ -233,7 +233,7 @@ public class TestTable {
 		Assert.assertTrue(v.getSet10().contains(10));
 		Assert.assertEquals(v.getSet10().size(), 1);
 		Assert.assertEquals(v.getMap11().size(), 1);
-		Assert.assertEquals(v.getBean12().getInt1(), 12);
+		Assert.assertEquals(v.getBean12().getInt_1(), 12);
 		Assert.assertEquals(v.getByte13(), 13);
 
 		demo.App.getInstance().demo_Module1.getTable1().remove(1L);

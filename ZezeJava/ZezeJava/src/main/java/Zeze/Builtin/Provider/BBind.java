@@ -227,7 +227,7 @@ public final class BBind extends Zeze.Transaction.Bean implements BBindReadOnly 
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         Zeze.Serialize.Helper.decodeJsonMap(this, "modules", getModules(), rs.getString(_parents_name_ + "modules"));
-        Zeze.Serialize.Helper.decodeJsonSet(getLinkSids(), long.class, rs.getString(_parents_name_ + "linkSids"));
+        Zeze.Serialize.Helper.decodeJsonSet(getLinkSids(), Long.class, rs.getString(_parents_name_ + "linkSids"));
     }
 
     @Override

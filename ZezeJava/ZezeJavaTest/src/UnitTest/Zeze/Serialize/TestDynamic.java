@@ -12,7 +12,7 @@ public class TestDynamic extends TestCase {
 		var m = b.getMap26();
 		var v = m.createValue();
 		var s = new BSimple();
-		s.setInt1(123);
+		s.setInt_1(123);
 		v.setBean(s);
 		m.put(new Key((short)1), v);
 
@@ -26,6 +26,6 @@ public class TestDynamic extends TestCase {
 		assertNotNull(v);
 		var s0 = v.getBean();
 		assertEquals(BSimple.class, s0.getClass());
-		assertEquals(123, ((BSimple)s0).getInt1());
+		assertEquals(123, ((BSimple)s0).getInt_1());
 	}
 }

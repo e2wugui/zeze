@@ -29,18 +29,18 @@ public class TestRpc extends TestCase {
 		connected.get();
 
 		first = new FirstRpc();
-		first.Argument.setInt1(1234);
+		first.Argument.setInt_1(1234);
 		//Console.WriteLine("SendFirstRpcRequest");
 		first.SendForWait(clientSocket).await();
 		//Console.WriteLine("FirstRpc Wait End");
-		Assert.assertEquals(first.Argument.getInt1(), first.Result.getInt1());
+		Assert.assertEquals(first.Argument.getInt_1(), first.Result.getInt_1());
 	}
 
 	public static long ProcessFirstRpcRequest(Protocol<?> p) {
 		FirstRpc rpc = (FirstRpc)p;
 		rpc.Result.assign(rpc.Argument);
 		rpc.SendResult();
-		System.out.println("ProcessFirstRpcRequest result.Int1=" + rpc.Result.getInt1());
+		System.out.println("ProcessFirstRpcRequest result.Int1=" + rpc.Result.getInt_1());
 		return Procedure.Success;
 	}
 

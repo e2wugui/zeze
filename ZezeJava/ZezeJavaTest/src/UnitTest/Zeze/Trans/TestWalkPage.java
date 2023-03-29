@@ -22,6 +22,15 @@ public class TestWalkPage {
 	}
 
 	@Test
+	public void testFind() throws Exception {
+		var t = App.Instance.demo_Module1.getTable1();
+		App.Instance.Zeze.newProcedure(() -> {
+			t.getOrAdd(1L).setInt_1(1);
+			return 0;
+		}, "find").call();
+	}
+
+	@Test
 	public void testWalkPage() throws Exception {
 		var t = App.getInstance().demo_Module1.tWalkPage();
 		App.getInstance().Zeze.newProcedure(() -> {

@@ -26,8 +26,8 @@ public class TestTransactionHalt {
 		var rand = ThreadLocalRandom.current();
 		var r1 = App.Instance.demo_Module1.getTable1().getOrAdd(rand.nextLong(KEY_COUNT));
 		var r3 = App.Instance.demo_Module1.getTable3().getOrAdd(rand.nextLong(KEY_COUNT));
-		r1.setInt1(r1.getInt1() + 1);
-		r3.setInt1(r3.getInt1() + 1);
+		r1.setInt_1(r1.getInt_1() + 1);
+		r3.setInt_1(r3.getInt_1() + 1);
 		Transaction.whileCommit(() -> {
 			counter.increment();
 			Task.run(App.Instance.Zeze.newProcedure(TestTransactionHalt::add, "add"));
@@ -48,8 +48,8 @@ public class TestTransactionHalt {
 		var total3 = new OutInt();
 		App.Instance.Zeze.newProcedure(() -> {
 			for (long k = 0; k < KEY_COUNT; k++) {
-				total1.value += App.Instance.demo_Module1.getTable1().getOrAdd(k).getInt1();
-				total3.value += App.Instance.demo_Module1.getTable3().getOrAdd(k).getInt1();
+				total1.value += App.Instance.demo_Module1.getTable1().getOrAdd(k).getInt_1();
+				total3.value += App.Instance.demo_Module1.getTable3().getOrAdd(k).getInt_1();
 			}
 			return 0L;
 		}, "init").call();
@@ -58,8 +58,8 @@ public class TestTransactionHalt {
 
 		App.Instance.Zeze.newProcedure(() -> {
 			for (long k = 0; k < KEY_COUNT; k++) {
-				App.Instance.demo_Module1.getTable1().getOrAdd(k).setInt1(0);
-				App.Instance.demo_Module1.getTable3().getOrAdd(k).setInt1(0);
+				App.Instance.demo_Module1.getTable1().getOrAdd(k).setInt_1(0);
+				App.Instance.demo_Module1.getTable3().getOrAdd(k).setInt_1(0);
 			}
 			return 0L;
 		}, "init").call();
@@ -112,7 +112,7 @@ public class TestTransactionHalt {
 				//var key = e.getKey().ReadLong();
 				var value = new BValue();
 				value.decode(e.getValue());
-				sum += value.getInt1();
+				sum += value.getInt_1();
 				//sb.append(key).append("=").append(value.getInt1()).append(",");
 			}
 			//sb.append("}"); System.out.println(sb);

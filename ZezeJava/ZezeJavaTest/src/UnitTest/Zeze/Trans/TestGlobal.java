@@ -25,7 +25,7 @@ public class TestGlobal extends TestCase {
 
 		public PrintLog(Bean bean, BValue value, int appId) {
 			super(bean, 0, value);
-			oldInt = getValue().getInt1();
+			oldInt = getValue().getInt_1();
 			eq = lastInt == oldInt;
 			this.appId = appId;
 		}
@@ -91,13 +91,13 @@ public class TestGlobal extends TestCase {
 			}
 			int countall = count * 2;
 			Assert.assertEquals(Procedure.Success, app1.Zeze.newProcedure(() -> {
-				int last1 = app1.demo_Module1.getTable1().get(6785L).getInt1();
+				int last1 = app1.demo_Module1.getTable1().get(6785L).getInt_1();
 				System.out.println("app1 " + last1);
 				Assert.assertEquals(countall, last1);
 				return Procedure.Success;
 			}, "CheckResult1").call());
 			Assert.assertEquals(Procedure.Success, app2.Zeze.newProcedure(() -> {
-				int last2 = app2.demo_Module1.getTable1().get(6785L).getInt1();
+				int last2 = app2.demo_Module1.getTable1().get(6785L).getInt_1();
 				System.out.println("app2 " + last2);
 				Assert.assertEquals(countall, last2);
 				return Procedure.Success;
@@ -113,7 +113,7 @@ public class TestGlobal extends TestCase {
 		for (int i = 0; i < tasks.length; ++i) {
 			tasks[i] = Zeze.Util.Task.runUnsafe(app.Zeze.newProcedure(() -> {
 				BValue b = app.demo_Module1.getTable1().getOrAdd(6785L);
-				b.setInt1(b.getInt1() + 1);
+				b.setInt_1(b.getInt_1() + 1);
 				PrintLog log = new PrintLog(b, b, appId);
 				//noinspection DataFlowIssue
 				Transaction.getCurrent().putLog(log);

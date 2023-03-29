@@ -9,6 +9,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SQLStatement;
 import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Util.Macro;
+import com.google.protobuf.Value;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -29,6 +30,8 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	private final K key;
 	private Object snapshotKey;
 	private Object snapshotValue;
+	private Object snapshotKeyLocal;
+	private Object snapshotValueLocal;
 	private long savedTimestampForCheckpointPeriod;
 	private boolean existInBackDatabase;
 	private boolean existInBackDatabaseSavedForFlushRemove;
@@ -172,9 +175,14 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 				snapshotValue = sqlValue;
 			}
 			snapshotKey = sqlKey;
+
+			// 编码用来存储到本地rocksdb的cache中。
+			snapshotKeyLocal = table.encodeKey(key);
+			snapshotValueLocal = strongDirtyValue != null ? ByteBuffer.encode(strongDirtyValue) : null;
 		} else {
-			snapshotKey = table.encodeKey(key);
-			snapshotValue = strongDirtyValue != null ? ByteBuffer.encode(strongDirtyValue) : null;
+			// KV表，本地Cache和远程一样。
+			snapshotKeyLocal = snapshotKey = table.encodeKey(key);
+			snapshotValueLocal = snapshotValue = strongDirtyValue != null ? ByteBuffer.encode(strongDirtyValue) : null;
 		}
 		// 【注意】
 		// 这个标志本来应该在真正写到Database之后修改才是最合适的；
@@ -219,7 +227,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 				table.getStorage().getDatabaseTable().replace(t, snapshotKey, snapshotValue);
 			}
 			if (null != lct) {
-				table.getLocalRocksCacheTable().replace(lct, snapshotKey, snapshotValue);
+				table.getLocalRocksCacheTable().replace(lct, snapshotKeyLocal, snapshotValueLocal);
 			}
 		} else {
 			// removed
@@ -228,7 +236,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 					table.getStorage().getDatabaseTable().remove(t, snapshotKey);
 				}
 				if (null != lct) {
-					table.getLocalRocksCacheTable().remove(lct, snapshotKey);
+					table.getLocalRocksCacheTable().remove(lct, snapshotKeyLocal);
 				}
 			}
 

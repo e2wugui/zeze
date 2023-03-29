@@ -34,11 +34,11 @@ namespace UnitTest.Zeze.Collections
 				var queue = queueModule.Open<demo.Module1.Value>("test1");
 				for (int i = 0; i < 10; i++) {
 					var v = new demo.Module1.Value();
-					v.Int1 = i;
+					v.Int_1 = i;
 					await queue.AddAsync(v);
 				}
 				var bean = await queue.PeekAsync();
-				Assert.AreEqual(0, bean.Int1);
+				Assert.AreEqual(0, bean.Int_1);
 				return ResultCode.Success;
 			}, "test1_QueueAdd").CallSynchronously());
 		}
@@ -53,7 +53,7 @@ namespace UnitTest.Zeze.Collections
 			queue.WalkAsync((key, value) =>
 			{
 				Assert.IsTrue(i.Get() < 10);
-				Assert.IsTrue(value.Int1 == arr[i.IncrementAndGet()-1]);
+				Assert.IsTrue(value.Int_1 == arr[i.IncrementAndGet()-1]);
 				return true;
 			}).Wait();
 			Assert.IsTrue(i.Get() == 10);
@@ -69,7 +69,7 @@ namespace UnitTest.Zeze.Collections
 				for (int i = 0; i < 10; i++)
 				{
 					var bean = await queue.PopAsync();
-					Assert.IsTrue(bean.Int1 == i);
+					Assert.IsTrue(bean.Int_1 == i);
 				}
 				Assert.IsTrue(await queue.IsEmptyAsync());
 				return ResultCode.Success;
@@ -86,11 +86,11 @@ namespace UnitTest.Zeze.Collections
 				for (int i = 0; i < 10; i++)
 				{
 					var v = new demo.Module1.Value();
-					v.Int1 = i;
+					v.Int_1 = i;
 					await queue.PushAsync(v);
 				}
 				var bean = await queue.PeekAsync();
-				Assert.IsTrue(bean.Int1 == 9);
+				Assert.IsTrue(bean.Int_1 == 9);
 				return ResultCode.Success;
 			}, "test3_QueuePush").CallSynchronously());
 		}
@@ -105,7 +105,7 @@ namespace UnitTest.Zeze.Collections
 			queue.WalkAsync((key, value) =>
 			{
 				Assert.IsTrue(i.Get() < 10);
-				Assert.IsTrue(value.Int1 == arr[i.IncrementAndGet()-1]);
+				Assert.IsTrue(value.Int_1 == arr[i.IncrementAndGet()-1]);
 				return true;
 			}).Wait();
 			Assert.IsTrue(i.Get() == 10);
@@ -121,7 +121,7 @@ namespace UnitTest.Zeze.Collections
 				for (int i = 9; i >= 0; i--)
 				{
 					var bean = await queue.PopAsync();
-					Assert.IsTrue(bean.Int1 == i);
+					Assert.IsTrue(bean.Int_1 == i);
 				}
 				Assert.IsTrue(await queue.IsEmptyAsync());
 				return ResultCode.Success;

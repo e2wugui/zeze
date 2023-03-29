@@ -48,7 +48,7 @@ public class TestTransactionLevelSerialiable {
 	private static long verify() {
 		var v1 = App.Instance.demo_Module1.getTable1().getOrAdd(1L);
 		var v2 = App.Instance.demo_Module1.getTable1().getOrAdd(2L);
-		final var total = v1.getInt1() + v2.getInt1();
+		final var total = v1.getInt_1() + v2.getInt_1();
 		// 必须在事务成功时verify，执行过程中是可能失败的。
 		Transaction.whileCommit(() -> Assert.assertEquals(total, 100_000));
 		return 0;
@@ -57,8 +57,8 @@ public class TestTransactionLevelSerialiable {
 	private static long init() {
 		var v1 = App.Instance.demo_Module1.getTable1().getOrAdd(1L);
 		var v2 = App.Instance.demo_Module1.getTable1().getOrAdd(2L);
-		v1.setInt1(100_000);
-		v2.setInt1(0);
+		v1.setInt_1(100_000);
+		v2.setInt_1(0);
 		return 0;
 	}
 
@@ -72,8 +72,8 @@ public class TestTransactionLevelSerialiable {
 			v1 = v2;
 			v2 = tmp;
 		}
-		v1.setInt1(v1.getInt1() - money);
-		v2.setInt1(v2.getInt1() + money);
+		v1.setInt_1(v1.getInt_1() - money);
+		v2.setInt_1(v2.getInt_1() + money);
 		return 0;
 	}
 }

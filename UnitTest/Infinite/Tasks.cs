@@ -260,8 +260,8 @@ namespace Infinite
                 var money = Zeze.Util.Random.Instance.Next(1000);
                 if ((Zeze.Util.Random.Instance.Next() & 1) == 0)
                     (v2, v1) = (v1, v2); // random swap
-                v1.Int1 -= money;
-                v2.Int1 += money;
+                v1.Int_1 -= money;
+                v2.Int_1 += money;
                 return 0L;
             }
 
@@ -273,7 +273,7 @@ namespace Infinite
                 {
                     var value = await app.demo_Module1.Table1.SelectDirtyAsync((long)key);
                     if (null != value)
-                        sum += value.Int1;
+                        sum += value.Int_1;
                 }
                 Debug.Assert(sum == 0);
             }
@@ -312,7 +312,7 @@ namespace Infinite
                         }
                         int sum = 0;
                         foreach (var value in values)
-                            sum += value.Int1;
+                            sum += value.Int_1;
                         Debug.Assert(sum == 0);
                     }
                 }

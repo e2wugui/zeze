@@ -37,11 +37,11 @@ namespace UnitTest.Zeze.Net
             connected.WaitOne();
 
             var first = new FirstRpc();
-            first.Argument.Int1 = 1234;
+            first.Argument.Int_1 = 1234;
             //Console.WriteLine("SendFirstRpcRequest");
             first.SendAsync(clientSocket).Wait();
             //Console.WriteLine("FirstRpc Wait End");
-            Assert.AreEqual(first.Argument.Int1, first.Result.Int1);
+            Assert.AreEqual(first.Argument.Int_1, first.Result.Int_1);
         }
 
         readonly ManualResetEvent connected = new(false);
@@ -51,7 +51,7 @@ namespace UnitTest.Zeze.Net
             var rpc = p as FirstRpc;
             rpc.Result.Assign(rpc.Argument);
             rpc.SendResult();
-            Console.WriteLine("ProcessFirstRpcRequest result.Int1=" +  rpc.Result.Int1);
+            Console.WriteLine("ProcessFirstRpcRequest result.Int1=" +  rpc.Result.Int_1);
             return Task.FromResult(ResultCode.Success);
         }
 

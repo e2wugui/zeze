@@ -54,7 +54,7 @@ namespace UnitTest.Zeze.Trans
         {
             var v1 = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1L);
             var v2 = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(2L);
-            var total = v1.Int1 + v2.Int1;
+            var total = v1.Int_1 + v2.Int_1;
             // 必须在事务成功时verify，执行过程中是可能失败的。
             Transaction.Current.RunWhileCommit(() => { Assert.AreEqual(100_000, total); });
             return 0;
@@ -64,8 +64,8 @@ namespace UnitTest.Zeze.Trans
         {
             var v1 = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1L);
             var v2 = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(2L);
-            v1.Int1 = 100_000;
-            v2.Int1 = 0;
+            v1.Int_1 = 100_000;
+            v2.Int_1 = 0;
             return 0;
         }
 
@@ -79,8 +79,8 @@ namespace UnitTest.Zeze.Trans
                 // random swap
                 (v2, v1) = (v1, v2);
             }
-            v1.Int1 -= money;
-            v2.Int1 += money;
+            v1.Int_1 -= money;
+            v2.Int_1 += money;
             return 0;
         }
     }

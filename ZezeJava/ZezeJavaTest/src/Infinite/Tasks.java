@@ -297,13 +297,13 @@ public final class Tasks {
 			}
 			var v1 = App.demo_Module1.getTflush().getOrAdd(k1);
 			var v2 = App.demo_Module1.getTflush().getOrAdd(k2);
-			var m1 = v1.getInt1();
-			var m2 = v2.getInt1();
+			var m1 = v1.getInt_1();
+			var m2 = v2.getInt_1();
 			var money = Random.getInstance().nextInt(1000);
-			v1.setInt1(m1 - money);
-			v2.setInt1(m2 + money);
-			var r1 = v1.getInt1();
-			var r2 = v2.getInt1();
+			v1.setInt_1(m1 - money);
+			v2.setInt_1(m2 + money);
+			var r1 = v1.getInt_1();
+			var r2 = v2.getInt_1();
 			if (debugTradeSum) {
 				Transaction.whileCommit(() -> Simulate.logger.info("{} --- {}:{}-{}={} {}:{}+{}={}",
 						App.getZeze().getConfig().getServerId(), k1, m1, money, r1, k2, m2, money, r2));
@@ -323,7 +323,7 @@ public final class Tasks {
 						try {
 							var value = app.demo_Module1.getTable1().selectDirty((long)key);
 							if (value != null)
-								sum += value.getInt1();
+								sum += value.getInt_1();
 						} catch (IllegalStateException e) {
 							if ("Acquire Failed".equals(e.getMessage()))
 								key--; // retry
@@ -379,7 +379,7 @@ public final class Tasks {
 				var all = ((DatabaseMemory)db).finds(table1.getName(), keys);
 				for (var valueBytes : all.values()) {
 					if (valueBytes != null)
-						sum += table1.decodeValue(valueBytes).getInt1();
+						sum += table1.decodeValue(valueBytes).getInt_1();
 				}
 				if (debugTradeSum && sum != 0) {
 					for (var e : all.entrySet()) {
