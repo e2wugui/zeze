@@ -22,16 +22,6 @@ public final class tQueueLastTaskId extends TableX<String, Zeze.Builtin.RedoQueu
         return -1495051256;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_TaskId = 1;
 
     @Override

@@ -93,11 +93,6 @@ public final class BRollbackTransactionResult extends Zeze.Transaction.Bean impl
         }
     }
 
-    @Override
-    public boolean negativeCheck() {
-        return false;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

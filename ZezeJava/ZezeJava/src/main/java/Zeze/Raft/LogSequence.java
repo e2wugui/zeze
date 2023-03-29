@@ -1250,7 +1250,7 @@ public class LogSequence {
 		for (var entry : entries)
 			copies.append(RaftLog.decode(entry, raft.getStateMachine()::logFactory)).append('\n');
 
-		if (logs.toString().equals(copies.toString()))
+		if (logs.toString().contentEquals(copies))
 			return;
 
 		logger.info("================= logs ======================");

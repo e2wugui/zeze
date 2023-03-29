@@ -27,11 +27,6 @@ public final class tlocal extends TableX<String, Zeze.Builtin.Online.BLocals>
         return true;
     }
 
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_Logins = 1;
 
     @Override

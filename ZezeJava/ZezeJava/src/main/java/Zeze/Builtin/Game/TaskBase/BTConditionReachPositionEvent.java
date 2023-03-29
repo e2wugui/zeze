@@ -210,11 +210,6 @@ public final class BTConditionReachPositionEvent extends Zeze.Transaction.Bean i
         }
     }
 
-    @Override
-    public boolean negativeCheck() {
-        return false;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

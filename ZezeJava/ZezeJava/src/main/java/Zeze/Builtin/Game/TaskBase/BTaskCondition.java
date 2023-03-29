@@ -185,11 +185,6 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
         _extendedData.initRootInfoWithRedo(root, this);
     }
 
-    @Override
-    public boolean negativeCheck() {
-        return false;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

@@ -145,11 +145,6 @@ public final class BJobs extends Zeze.Transaction.Bean implements BJobsReadOnly 
         _Jobs.initRootInfoWithRedo(root, this);
     }
 
-    @Override
-    public boolean negativeCheck() {
-        return false;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

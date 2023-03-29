@@ -23,16 +23,6 @@ public final class tEdge extends TableX<Zeze.Builtin.Collections.DAG.BDAGEdgeKey
         return 1544681320;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_From = 1;
     public static final int VAR_To = 2;
 

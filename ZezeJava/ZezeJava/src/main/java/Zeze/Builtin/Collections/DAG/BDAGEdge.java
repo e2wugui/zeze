@@ -189,11 +189,6 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
         }
     }
 
-    @Override
-    public boolean negativeCheck() {
-        return false;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

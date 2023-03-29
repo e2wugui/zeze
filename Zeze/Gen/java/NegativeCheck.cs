@@ -5,7 +5,7 @@ namespace Zeze.Gen.java
 {
     class NegativeCheck : Visitor
     {
-        readonly StreamWriter sw;
+        readonly TextWriter sw;
         readonly Variable var;
         readonly string varname;
         readonly string prefix;
@@ -15,17 +15,23 @@ namespace Zeze.Gen.java
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public boolean negativeCheck() {");
+            var sw1 = new StringWriter();
             foreach (Variable var in bean.Variables)
             {
                 if (var.AllowNegative)
                     continue;
-                var.VariableType.Accept(new NegativeCheck(sw, var, null, prefix + "    "));
+                var.VariableType.Accept(new NegativeCheck(sw1, var, null, prefix + "    "));
             }
-            sw.WriteLine(prefix + "    return false;");
-            sw.WriteLine(prefix + "}");
-            sw.WriteLine();
+            var s = sw1.ToString();
+            if (s.Length > 0)
+            {
+                sw.WriteLine(prefix + "@Override");
+                sw.WriteLine(prefix + "public boolean negativeCheck() {");
+                sw.Write(s);
+                sw.WriteLine(prefix + "    return false;");
+                sw.WriteLine(prefix + "}");
+                sw.WriteLine();
+            }
         }
 
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
@@ -42,7 +48,7 @@ namespace Zeze.Gen.java
             sw.WriteLine();
         }
 
-        NegativeCheck(StreamWriter sw, Variable var, string varname, string prefix)
+        NegativeCheck(TextWriter sw, Variable var, string varname, string prefix)
         {
             this.sw = sw;
             this.var = var;

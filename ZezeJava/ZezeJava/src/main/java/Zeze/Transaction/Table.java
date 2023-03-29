@@ -70,7 +70,7 @@ public abstract class Table {
 	public abstract Bean newValue();
 
 	public boolean isMemory() {
-		return true;
+		return false;
 	}
 
 	public boolean isAutoKey() {
@@ -90,6 +90,8 @@ public abstract class Table {
 	public abstract void removeEncodedKey(Binary encodedKey);
 
 	public abstract boolean isRelationalMapping();
+
 	public abstract void tryAlter();
+
 	public abstract Schemas.RelationalTable getRelationalTable();
 }

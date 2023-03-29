@@ -135,11 +135,6 @@ public final class BEventClasses extends Zeze.Transaction.Bean implements BEvent
         _EventClasses.initRootInfoWithRedo(root, this);
     }
 
-    @Override
-    public boolean negativeCheck() {
-        return false;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

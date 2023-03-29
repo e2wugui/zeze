@@ -23,16 +23,6 @@ public final class tItemClasses extends TableX<Integer, Zeze.Builtin.Game.Bag.BI
         return 1057953754;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_ItemClasses = 1;
 
     @Override

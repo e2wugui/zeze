@@ -147,11 +147,6 @@ public final class BCreateDatabase extends Zeze.Transaction.Bean implements BCre
         }
     }
 
-    @Override
-    public boolean negativeCheck() {
-        return false;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

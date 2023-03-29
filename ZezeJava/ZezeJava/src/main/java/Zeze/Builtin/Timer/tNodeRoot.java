@@ -23,16 +23,6 @@ public final class tNodeRoot extends TableX<Integer, Zeze.Builtin.Timer.BNodeRoo
         return 1952520306;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_HeadNodeId = 1;
     public static final int VAR_TailNodeId = 2;
     public static final int VAR_LoadSerialNo = 3;

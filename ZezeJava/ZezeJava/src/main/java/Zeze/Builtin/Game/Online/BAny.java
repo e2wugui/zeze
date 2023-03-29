@@ -140,11 +140,6 @@ public final class BAny extends Zeze.Transaction.Bean implements BAnyReadOnly {
         _Any.initRootInfoWithRedo(root, this);
     }
 
-    @Override
-    public boolean negativeCheck() {
-        return false;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

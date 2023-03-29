@@ -147,11 +147,6 @@ public final class BPutResult extends Zeze.Transaction.Bean implements BPutResul
         }
     }
 
-    @Override
-    public boolean negativeCheck() {
-        return false;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

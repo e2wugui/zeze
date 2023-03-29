@@ -22,16 +22,6 @@ public final class tIndexs extends TableX<String, Zeze.Builtin.Timer.BIndex>
         return 833718;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_ServerId = 1;
     public static final int VAR_NodeId = 2;
     public static final int VAR_SerialId = 3;

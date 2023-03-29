@@ -195,11 +195,6 @@ public final class BGetBuckets extends Zeze.Transaction.Bean implements BGetBuck
         }
     }
 
-    @Override
-    public boolean negativeCheck() {
-        return false;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

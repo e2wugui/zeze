@@ -22,16 +22,6 @@ public final class tAccountOfflineTimers extends TableX<Zeze.Builtin.Timer.BAcco
         return -865861330;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_OfflineTimers = 1;
 
     @Override

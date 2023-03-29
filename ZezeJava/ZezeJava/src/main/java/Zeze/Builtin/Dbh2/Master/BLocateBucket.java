@@ -249,11 +249,6 @@ public final class BLocateBucket extends Zeze.Transaction.Bean implements BLocat
         }
     }
 
-    @Override
-    public boolean negativeCheck() {
-        return false;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

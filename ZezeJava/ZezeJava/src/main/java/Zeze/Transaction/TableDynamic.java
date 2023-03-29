@@ -81,11 +81,6 @@ public class TableDynamic<K extends Comparable<K>, V extends Bean> extends Table
 	}
 
 	@Override
-	public boolean isMemory() {
-		return false;
-	}
-
-	@Override
 	public boolean isAutoKey() {
 		return isAutoKey;
 	}

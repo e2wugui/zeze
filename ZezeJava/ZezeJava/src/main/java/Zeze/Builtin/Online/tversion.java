@@ -22,16 +22,6 @@ public final class tversion extends TableX<String, Zeze.Builtin.Online.BVersions
         return -1179546366;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_Logins = 1;
     public static final int VAR_LastLoginVersion = 2;
 

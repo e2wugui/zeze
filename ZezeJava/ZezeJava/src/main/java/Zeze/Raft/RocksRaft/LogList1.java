@@ -48,11 +48,6 @@ public class LogList1<V> extends LogList<V> {
 		return opLogs;
 	}
 
-	@Override
-	public void collect(Changes changes, Bean recent, Log vlog) {
-		throw new UnsupportedOperationException("Collect Not Implement.");
-	}
-
 	public final boolean add(V item) {
 		if (item == null)
 			throw new IllegalArgumentException("null item");

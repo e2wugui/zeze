@@ -23,16 +23,6 @@ public final class tEventClasses extends TableX<Integer, Zeze.Builtin.Game.TaskB
         return -1631158308;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_EventClasses = 1;
 
     @Override

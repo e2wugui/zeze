@@ -22,16 +22,6 @@ public final class tAutoKeys extends TableX<Zeze.Builtin.AutoKeyOld.BSeedKey, Ze
         return 739941246;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_NextId = 1;
 
     @Override

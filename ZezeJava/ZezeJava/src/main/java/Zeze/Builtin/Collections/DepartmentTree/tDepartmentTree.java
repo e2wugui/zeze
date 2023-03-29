@@ -22,16 +22,6 @@ public final class tDepartmentTree extends TableX<Zeze.Builtin.Collections.Depar
         return -1578893665;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_ParentDepartment = 1;
     public static final int VAR_Childs = 2;
     public static final int VAR_Name = 3;

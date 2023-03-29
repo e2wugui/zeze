@@ -135,11 +135,6 @@ public final class BItemClasses extends Zeze.Transaction.Bean implements BItemCl
         _ItemClasses.initRootInfoWithRedo(root, this);
     }
 
-    @Override
-    public boolean negativeCheck() {
-        return false;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

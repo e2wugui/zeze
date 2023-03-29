@@ -27,11 +27,6 @@ public final class tAccountTimers extends TableX<String, Zeze.Builtin.Timer.BArc
         return true;
     }
 
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_Account = 1;
     public static final int VAR_ClientId = 2;
     public static final int VAR_TimerObj = 3;

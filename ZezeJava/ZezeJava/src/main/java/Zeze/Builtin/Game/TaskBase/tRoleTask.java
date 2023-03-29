@@ -22,16 +22,6 @@ public final class tRoleTask extends TableX<Long, Zeze.Builtin.Game.TaskBase.BRo
         return 192055248;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_processingTasks = 1;
     public static final int VAR_finishedTaskIds = 2;
 

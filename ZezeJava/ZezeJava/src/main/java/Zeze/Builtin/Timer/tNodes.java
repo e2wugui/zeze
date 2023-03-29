@@ -22,16 +22,6 @@ public final class tNodes extends TableX<Long, Zeze.Builtin.Timer.BNode>
         return 453698467;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_PrevNodeId = 1;
     public static final int VAR_NextNodeId = 2;
     public static final int VAR_Timers = 3;

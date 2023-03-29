@@ -22,16 +22,6 @@ public final class tQueueNodes extends TableX<Zeze.Builtin.Collections.Queue.BQu
         return -117984600;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_NextNodeId = 1;
     public static final int VAR_Values = 2;
 

@@ -22,16 +22,6 @@ public final class tSent extends TableX<String, Zeze.Builtin.RocketMQ.Producer.B
         return 1695098005;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_Result = 1;
     public static final int VAR_Timestamp = 2;
 

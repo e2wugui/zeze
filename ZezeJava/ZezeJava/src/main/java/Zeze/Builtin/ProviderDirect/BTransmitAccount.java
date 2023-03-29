@@ -329,11 +329,6 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
         _TargetAccounts.initRootInfoWithRedo(root, this);
     }
 
-    @Override
-    public boolean negativeCheck() {
-        return false;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

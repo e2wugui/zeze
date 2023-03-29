@@ -135,11 +135,6 @@ public final class BCustomClasses extends Zeze.Transaction.Bean implements BCust
         _CustomClasses.initRootInfoWithRedo(root, this);
     }
 
-    @Override
-    public boolean negativeCheck() {
-        return false;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

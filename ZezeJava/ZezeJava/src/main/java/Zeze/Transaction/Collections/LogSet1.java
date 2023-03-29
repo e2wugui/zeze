@@ -4,8 +4,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.Bean;
-import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 import org.pcollections.Empty;
@@ -30,11 +28,6 @@ public class LogSet1<V> extends LogSet<V> {
 
 	public final Set<V> getRemoved() {
 		return removed;
-	}
-
-	@Override
-	public void collect(Changes changes, Bean recent, Log vlog) {
-		throw new UnsupportedOperationException("Collect Not Implement.");
 	}
 
 	public final boolean Add(V item) {

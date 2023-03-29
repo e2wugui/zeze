@@ -190,11 +190,6 @@ public final class BJob extends Zeze.Transaction.Bean implements BJobReadOnly {
         }
     }
 
-    @Override
-    public boolean negativeCheck() {
-        return false;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

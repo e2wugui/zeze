@@ -22,16 +22,6 @@ public final class trank extends TableX<Zeze.Builtin.Game.Rank.BConcurrentKey, Z
         return -2043108039;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_RankList = 1;
 
     @Override

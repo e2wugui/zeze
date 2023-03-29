@@ -190,11 +190,6 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
         }
     }
 
-    @Override
-    public boolean negativeCheck() {
-        return false;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

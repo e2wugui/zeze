@@ -22,16 +22,6 @@ public final class tLinkedMapNodes extends TableX<Zeze.Builtin.Collections.Linke
         return -1295098614;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_PrevNodeId = 1;
     public static final int VAR_NextNodeId = 2;
     public static final int VAR_Values = 3;

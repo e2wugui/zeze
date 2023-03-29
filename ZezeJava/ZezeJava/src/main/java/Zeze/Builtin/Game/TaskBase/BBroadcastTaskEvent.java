@@ -126,11 +126,6 @@ public final class BBroadcastTaskEvent extends Zeze.Transaction.Bean implements 
         }
     }
 
-    @Override
-    public boolean negativeCheck() {
-        return false;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

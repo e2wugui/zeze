@@ -23,16 +23,6 @@ public final class tDAGs extends TableX<String, Zeze.Builtin.Collections.DAG.BDA
         return 1716762493;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_NodeSum = 1;
     public static final int VAR_EdgeSum = 2;
     public static final int VAR_StartNode = 3;

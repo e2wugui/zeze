@@ -23,16 +23,6 @@ public final class tTask extends TableX<Zeze.Builtin.Game.TaskBase.BTaskKey, Zez
         return -563139393;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_roleId = 1;
     public static final int VAR_taskId = 2;
     public static final int VAR_taskType = 3;

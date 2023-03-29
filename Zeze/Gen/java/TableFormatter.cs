@@ -59,16 +59,22 @@ namespace Zeze.Gen.java
             sw.WriteLine("    public int getId() {");
             sw.WriteLine($"        return {table.Id};");
             sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    @Override");
-            sw.WriteLine("    public boolean isMemory() {");
-            sw.WriteLine("        return " + (table.IsMemory ? "true;" : "false;"));
-            sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    @Override");
-            sw.WriteLine("    public boolean isAutoKey() {");
-            sw.WriteLine("        return " + (table.IsAutoKey ? "true;" : "false;"));
-            sw.WriteLine("    }");
+            if (table.IsMemory) // 需要保证基类返回false
+            {
+                sw.WriteLine();
+                sw.WriteLine("    @Override");
+                sw.WriteLine("    public boolean isMemory() {");
+                sw.WriteLine("        return " + (table.IsMemory ? "true;" : "false;"));
+                sw.WriteLine("    }");
+            }
+            if (table.IsAutoKey) // 需要保证基类返回false
+            {
+                sw.WriteLine();
+                sw.WriteLine("    @Override");
+                sw.WriteLine("    public boolean isAutoKey() {");
+                sw.WriteLine("        return " + (table.IsAutoKey ? "true;" : "false;"));
+                sw.WriteLine("    }");
+            }
             sw.WriteLine();
             foreach (var v in ((Types.Bean)table.ValueType).Variables)
                 sw.WriteLine("    public static final int VAR_" + v.Name + " = " + v.Id + ";");

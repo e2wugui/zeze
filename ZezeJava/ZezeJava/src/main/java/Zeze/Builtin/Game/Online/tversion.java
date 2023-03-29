@@ -22,16 +22,6 @@ public final class tversion extends TableX<Long, Zeze.Builtin.Game.Online.BVersi
         return -1673876055;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_LoginVersion = 1;
     public static final int VAR_ReliableNotifyMark = 2;
     public static final int VAR_ReliableNotifyConfirmIndex = 3;

@@ -22,16 +22,6 @@ public final class tRoleOfflineTimers extends TableX<Long, Zeze.Builtin.Timer.BO
         return 987199499;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_OfflineTimers = 1;
 
     @Override

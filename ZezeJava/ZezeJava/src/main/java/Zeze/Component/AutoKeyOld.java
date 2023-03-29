@@ -9,7 +9,6 @@ import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
-import Zeze.Transaction.Savepoint;
 import Zeze.Transaction.Transaction;
 
 @Deprecated // 暂时保留
@@ -222,26 +221,6 @@ public final class AutoKeyOld {
 		@Override
 		public long getLogKey() {
 			return AutoKeyOld.this.logKey;
-		}
-
-		@Override
-		public void endSavepoint(Savepoint currentSp) {
-			currentSp.putLog(this);
-		}
-
-		@Override
-		public Log beginSavepoint() {
-			return this;
-		}
-
-		@Override
-		public void encode(ByteBuffer bb) {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public void decode(ByteBuffer bb) {
-			throw new UnsupportedOperationException();
 		}
 	}
 }

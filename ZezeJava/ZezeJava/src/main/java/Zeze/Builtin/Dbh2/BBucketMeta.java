@@ -430,11 +430,6 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         }
     }
 
-    @Override
-    public boolean negativeCheck() {
-        return false;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

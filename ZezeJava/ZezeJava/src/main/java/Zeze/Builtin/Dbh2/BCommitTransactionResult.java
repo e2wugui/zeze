@@ -93,11 +93,6 @@ public final class BCommitTransactionResult extends Zeze.Transaction.Bean implem
         }
     }
 
-    @Override
-    public boolean negativeCheck() {
-        return false;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

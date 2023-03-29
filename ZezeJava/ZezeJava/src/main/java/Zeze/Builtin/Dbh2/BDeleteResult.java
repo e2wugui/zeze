@@ -147,11 +147,6 @@ public final class BDeleteResult extends Zeze.Transaction.Bean implements BDelet
         }
     }
 
-    @Override
-    public boolean negativeCheck() {
-        return false;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

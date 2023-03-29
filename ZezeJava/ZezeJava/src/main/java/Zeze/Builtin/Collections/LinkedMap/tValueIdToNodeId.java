@@ -22,16 +22,6 @@ public final class tValueIdToNodeId extends TableX<Zeze.Builtin.Collections.Link
         return -1128401683;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_NodeId = 1;
 
     @Override

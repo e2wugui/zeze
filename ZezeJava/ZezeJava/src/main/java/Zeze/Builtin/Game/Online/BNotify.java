@@ -131,11 +131,6 @@ public final class BNotify extends Zeze.Transaction.Bean implements BNotifyReadO
         }
     }
 
-    @Override
-    public boolean negativeCheck() {
-        return false;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

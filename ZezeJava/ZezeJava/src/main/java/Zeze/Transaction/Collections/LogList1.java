@@ -3,8 +3,6 @@ package Zeze.Transaction.Collections;
 import java.util.ArrayList;
 import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.Bean;
-import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 import org.pcollections.Empty;
@@ -46,11 +44,6 @@ public class LogList1<V> extends LogList<V> {
 
 	public final ArrayList<OpLog<V>> getOpLogs() {
 		return opLogs;
-	}
-
-	@Override
-	public void collect(Changes changes, Bean recent, Log vlog) {
-		throw new UnsupportedOperationException("Collect Not Implement.");
 	}
 
 	public final boolean add(V item) {

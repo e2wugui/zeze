@@ -23,16 +23,6 @@ public final class tCustomClasses extends TableX<Integer, Zeze.Builtin.Timer.BCu
         return -1904799209;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_CustomClasses = 1;
 
     @Override

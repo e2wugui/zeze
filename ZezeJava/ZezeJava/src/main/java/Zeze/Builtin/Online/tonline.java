@@ -22,16 +22,6 @@ public final class tonline extends TableX<String, Zeze.Builtin.Online.BOnlines>
         return -2094601796;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_Logins = 1;
 
     @Override

@@ -22,16 +22,6 @@ public final class tonline extends TableX<Long, Zeze.Builtin.Game.Online.BOnline
         return -1571889602;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_Link = 3;
 
     @Override

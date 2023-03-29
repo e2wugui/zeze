@@ -146,11 +146,6 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean implements BOnlin
         _CustomData.initRootInfoWithRedo(root, this);
     }
 
-    @Override
-    public boolean negativeCheck() {
-        return false;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

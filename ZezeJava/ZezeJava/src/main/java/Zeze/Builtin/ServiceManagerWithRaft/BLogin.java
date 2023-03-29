@@ -131,11 +131,6 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
         }
     }
 
-    @Override
-    public boolean negativeCheck() {
-        return false;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

@@ -129,11 +129,6 @@ public final class BDAGNode extends Zeze.Transaction.Bean implements BDAGNodeRea
         _Value.initRootInfoWithRedo(root, this);
     }
 
-    @Override
-    public boolean negativeCheck() {
-        return false;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

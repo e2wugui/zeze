@@ -22,16 +22,6 @@ public final class tJobs extends TableX<Integer, Zeze.Builtin.DelayRemove.BJobs>
         return -582299608;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_Jobs = 1;
 
     @Override

@@ -23,16 +23,6 @@ public final class tNode extends TableX<Zeze.Builtin.Collections.DAG.BDAGNodeKey
         return -1059152625;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_Value = 1;
 
     @Override

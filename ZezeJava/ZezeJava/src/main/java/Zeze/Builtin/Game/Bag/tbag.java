@@ -23,16 +23,6 @@ public final class tbag extends TableX<String, Zeze.Builtin.Game.Bag.BBag>
         return 863603985;
     }
 
-    @Override
-    public boolean isMemory() {
-        return false;
-    }
-
-    @Override
-    public boolean isAutoKey() {
-        return false;
-    }
-
     public static final int VAR_Capacity = 1;
     public static final int VAR_Items = 2;
 

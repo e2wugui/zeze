@@ -32,11 +32,6 @@ public class LogSet1<V> extends LogSet<V> {
 		return removed;
 	}
 
-	@Override
-	public void collect(Changes changes, Bean recent, Log vlog) {
-		throw new UnsupportedOperationException("Collect Not Implement.");
-	}
-
 	public final boolean add(V item) {
 		var newSet = getValue().plus(item);
 		if (newSet != getValue()) {
