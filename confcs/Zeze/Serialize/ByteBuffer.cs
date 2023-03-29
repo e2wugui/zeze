@@ -1206,9 +1206,9 @@ namespace Zeze.Serialize
             return deltaId < 0xf ? deltaId : 0xf + ReadUInt();
         }
 
-        public bool ReadBool(int type)
+        public bool ReadBool(int tag)
         {
-            type &= TAG_MASK;
+            int type = tag & TAG_MASK;
             if (type == INTEGER)
                 return ReadLong() != 0;
             if (type == FLOAT)
@@ -1217,15 +1217,15 @@ namespace Zeze.Serialize
                 return ReadDouble() != 0;
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return false;
             }
             throw new Exception("can not ReadBool for type=" + type);
         }
 
-        public byte ReadByte(int type)
+        public byte ReadByte(int tag)
         {
-            type &= TAG_MASK;
+            int type = tag & TAG_MASK;
             if (type == INTEGER)
                 return (byte)ReadLong();
             if (type == FLOAT)
@@ -1234,15 +1234,15 @@ namespace Zeze.Serialize
                 return (byte)ReadDouble();
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return 0;
             }
             throw new Exception("can not ReadByte for type=" + type);
         }
 
-        public short ReadShort(int type)
+        public short ReadShort(int tag)
         {
-            type &= TAG_MASK;
+            int type = tag & TAG_MASK;
             if (type == INTEGER)
                 return (short)ReadLong();
             if (type == FLOAT)
@@ -1251,15 +1251,15 @@ namespace Zeze.Serialize
                 return (short)ReadDouble();
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return 0;
             }
             throw new Exception("can not ReadShort for type=" + type);
         }
 
-        public int ReadInt(int type)
+        public int ReadInt(int tag)
         {
-            type &= TAG_MASK;
+            int type = tag & TAG_MASK;
             if (type == INTEGER)
                 return (int)ReadLong();
             if (type == FLOAT)
@@ -1268,15 +1268,15 @@ namespace Zeze.Serialize
                 return (int)ReadDouble();
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return 0;
             }
             throw new Exception("can not ReadInt for type=" + type);
         }
 
-        public long ReadLong(int type)
+        public long ReadLong(int tag)
         {
-            type &= TAG_MASK;
+            int type = tag & TAG_MASK;
             if (type == INTEGER)
                 return ReadLong();
             if (type == FLOAT)
@@ -1285,15 +1285,15 @@ namespace Zeze.Serialize
                 return (long)ReadDouble();
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return 0;
             }
             throw new Exception("can not ReadLong for type=" + type);
         }
 
-        public float ReadFloat(int type)
+        public float ReadFloat(int tag)
         {
-            type &= TAG_MASK;
+            int type = tag & TAG_MASK;
             if (type == FLOAT)
                 return ReadFloat();
             if (type == DOUBLE)
@@ -1302,15 +1302,15 @@ namespace Zeze.Serialize
                 return ReadLong();
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return 0;
             }
             throw new Exception("can not ReadFloat for type=" + type);
         }
 
-        public double ReadDouble(int type)
+        public double ReadDouble(int tag)
         {
-            type &= TAG_MASK;
+            int type = tag & TAG_MASK;
             if (type == DOUBLE)
                 return ReadDouble();
             if (type == FLOAT)
@@ -1319,33 +1319,33 @@ namespace Zeze.Serialize
                 return ReadLong();
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return 0;
             }
             throw new Exception("can not ReadDouble for type=" + type);
         }
 
-        public Binary ReadBinary(int type)
+        public Binary ReadBinary(int tag)
         {
-            type &= TAG_MASK;
+            int type = tag & TAG_MASK;
             if (type == BYTES)
                 return ReadBinary();
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return Binary.Empty;
             }
             throw new Exception("can not ReadBinary for type=" + type);
         }
 
-        public string ReadString(int type)
+        public string ReadString(int tag)
         {
-            type &= TAG_MASK;
+            int type = tag & TAG_MASK;
             if (type == BYTES)
                 return ReadString();
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return "";
             }
             throw new Exception("can not ReadString for type=" + type);
@@ -1394,107 +1394,171 @@ namespace Zeze.Serialize
             return r;
         }
 
-        public Vector2 ReadVector2(int type)
+        public Vector2 ReadVector2(int tag)
         {
-            type &= TAG_MASK;
+            int type = tag & TAG_MASK;
             if (type == VECTOR2)
                 return ReadVector2();
             if (type == VECTOR3)
                 return ReadVector3();
             if (type == VECTOR4)
                 return ReadVector4();
+            if (type == VECTOR2INT)
+                return new Vector2(ReadVector2Int());
+            if (type == VECTOR3INT)
+                return new Vector3(ReadVector3Int());
+            if (type == FLOAT)
+                return new Vector2(ReadFloat(), 0);
+            if (type == DOUBLE)
+                return new Vector2((float)ReadDouble(), 0);
+            if (type == INTEGER)
+                return new Vector2(ReadLong(), 0);
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return new Vector2();
             }
             throw new Exception("can not ReadVector2 for type=" + type);
         }
 
-        public Vector3 ReadVector3(int type)
+        public Vector3 ReadVector3(int tag)
         {
-            type &= TAG_MASK;
-            if (type == VECTOR2)
-                return new Vector3(ReadVector2());
+            int type = tag & TAG_MASK;
             if (type == VECTOR3)
                 return ReadVector3();
+            if (type == VECTOR2)
+                return new Vector3(ReadVector2());
             if (type == VECTOR4)
                 return ReadVector4();
+            if (type == VECTOR3INT)
+                return new Vector3(ReadVector3Int());
+            if (type == VECTOR2INT)
+                return new Vector3(ReadVector2Int());
+            if (type == FLOAT)
+                return new Vector3(ReadFloat(), 0, 0);
+            if (type == DOUBLE)
+                return new Vector3((float)ReadDouble(), 0, 0);
+            if (type == INTEGER)
+                return new Vector3(ReadLong(), 0, 0);
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return new Vector3();
             }
             throw new Exception("can not ReadVector3 for type=" + type);
         }
 
-        public Vector4 ReadVector4(int type)
+        public Vector4 ReadVector4(int tag)
         {
-            type &= TAG_MASK;
-            if (type == VECTOR2)
-                return new Vector4(ReadVector2());
-            if (type == VECTOR3)
-                return new Vector4(ReadVector3());
+            int type = tag & TAG_MASK;
             if (type == VECTOR4)
                 return ReadVector4();
+            if (type == VECTOR3)
+                return new Vector4(ReadVector3());
+            if (type == VECTOR2)
+                return new Vector4(ReadVector2());
+            if (type == VECTOR3INT)
+                return new Vector4(ReadVector3Int());
+            if (type == VECTOR2INT)
+                return new Vector4(ReadVector2Int());
+            if (type == FLOAT)
+                return new Vector4(ReadFloat(), 0, 0, 0);
+            if (type == DOUBLE)
+                return new Vector4((float)ReadDouble(), 0, 0, 0);
+            if (type == INTEGER)
+                return new Vector4(ReadLong(), 0, 0, 0);
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return new Vector4();
             }
             throw new Exception("can not ReadVector4 for type=" + type);
         }
 
-        public Quaternion ReadQuaternion(int type)
+        public Quaternion ReadQuaternion(int tag)
         {
-            type &= TAG_MASK;
-            if (type == VECTOR2)
-                return new Quaternion(ReadVector2());
-            if (type == VECTOR3)
-                return new Quaternion(ReadVector3());
+            int type = tag & TAG_MASK;
             if (type == VECTOR4)
                 return new Quaternion(ReadVector4());
+            if (type == VECTOR3)
+                return new Quaternion(ReadVector3());
+            if (type == VECTOR2)
+                return new Quaternion(ReadVector2());
+            if (type == VECTOR3INT)
+                return new Quaternion(ReadVector3Int());
+            if (type == VECTOR2INT)
+                return new Quaternion(ReadVector2Int());
+            if (type == FLOAT)
+                return new Quaternion(ReadFloat(), 0, 0, 0);
+            if (type == DOUBLE)
+                return new Quaternion((float)ReadDouble(), 0, 0, 0);
+            if (type == INTEGER)
+                return new Quaternion(ReadLong(), 0, 0, 0);
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return new Quaternion();
             }
             throw new Exception("can not ReadQuaternion for type=" + type);
         }
 
-        public Vector2Int ReadVector2Int(int type)
+        public Vector2Int ReadVector2Int(int tag)
         {
-            type &= TAG_MASK;
+            int type = tag & TAG_MASK;
             if (type == VECTOR2INT)
                 return ReadVector2Int();
             if (type == VECTOR3INT)
                 return ReadVector3Int();
+            if (type == VECTOR2)
+                return new Vector2Int(ReadVector2());
+            if (type == VECTOR3)
+                return new Vector3Int(ReadVector3());
+            if (type == VECTOR4)
+                return new Vector3Int(ReadVector4());
+            if (type == INTEGER)
+                return new Vector2Int(ReadInt(), 0);
+            if (type == FLOAT)
+                return new Vector2Int((int)ReadFloat(), 0);
+            if (type == DOUBLE)
+                return new Vector2Int((int)ReadDouble(), 0);
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return new Vector2Int();
             }
             throw new Exception("can not ReadVector2Int for type=" + type);
         }
 
-        public Vector3Int ReadVector3Int(int type)
+        public Vector3Int ReadVector3Int(int tag)
         {
-            type &= TAG_MASK;
-            if (type == VECTOR2INT)
-                return new Vector3Int(ReadVector2Int());
+            int type = tag & TAG_MASK;
             if (type == VECTOR3INT)
                 return ReadVector3Int();
+            if (type == VECTOR2INT)
+                return new Vector3Int(ReadVector2Int());
+            if (type == VECTOR3)
+                return new Vector3Int(ReadVector3());
+            if (type == VECTOR2)
+                return new Vector3Int(ReadVector2());
+            if (type == VECTOR4)
+                return new Vector3Int(ReadVector4());
+            if (type == INTEGER)
+                return new Vector3Int(ReadInt(), 0, 0);
+            if (type == FLOAT)
+                return new Vector3Int((int)ReadFloat(), 0, 0);
+            if (type == DOUBLE)
+                return new Vector3Int((int)ReadDouble(), 0, 0);
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return new Vector3Int();
             }
             throw new Exception("can not ReadVector3Int for type=" + type);
         }
 #endif
-        public T ReadBean<T>(T bean, int type) where T : Serializable
+        public T ReadBean<T>(T bean, int tag) where T : Serializable
         {
-            type &= TAG_MASK;
+            int type = tag & TAG_MASK;
             if (type == BEAN)
                 bean.Decode(this);
             else if (type == DYNAMIC)
@@ -1503,7 +1567,7 @@ namespace Zeze.Serialize
                 bean.Decode(this);
             }
             else if (IGNORE_INCOMPATIBLE_FIELD)
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
             else
                 throw new Exception("can not ReadBean(" + bean.GetType().Name + ") for type=" + type);
             return bean;
@@ -1512,10 +1576,10 @@ namespace Zeze.Serialize
 #if USE_CONFCS
         public Util.ConfDynamicBean ReadDynamic(Util.ConfDynamicBean dynBean, int type)
 #else
-        public Transaction.DynamicBean ReadDynamic(Transaction.DynamicBean dynBean, int type)
+        public Transaction.DynamicBean ReadDynamic(Transaction.DynamicBean dynBean, int tag)
 #endif
         {
-            type &= TAG_MASK;
+            int type = tag & TAG_MASK;
             if (type == DYNAMIC)
             {
                 dynBean.Decode(this);
@@ -1532,26 +1596,26 @@ namespace Zeze.Serialize
             }
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return dynBean;
             }
             throw new Exception("can not ReadDynamic for type=" + type);
         }
 
-        public void SkipUnknownFieldOrThrow(int type, string curType)
+        public void SkipUnknownFieldOrThrow(int tag, string curType)
         {
             if (IGNORE_INCOMPATIBLE_FIELD)
             {
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
                 return;
             }
-            throw new Exception("can not read " + curType + " for type=" + type);
+            throw new Exception("can not read " + curType + " for type=" + (tag & TAG_MASK));
         }
 
-        public void SkipUnknownField(int type, int count)
+        public void SkipUnknownField(int tag, int count)
         {
             while (--count >= 0)
-                SkipUnknownField(type);
+                SkipUnknownField(tag);
         }
 
         public void SkipUnknownField(int type1, int type2, int count)
@@ -1565,15 +1629,16 @@ namespace Zeze.Serialize
             }
         }
 
-        public void SkipUnknownField(int type)
+        public void SkipUnknownField(int tag)
         {
-            switch (type & TAG_MASK)
+            int type = tag & TAG_MASK;
+            switch (type)
             {
                 case INTEGER:
                     ReadLong();
                     return;
                 case FLOAT:
-                    if (type == 1) // FLOAT == 1
+                    if (tag == 1) // FLOAT == 1
                         return;
                     EnsureRead(4);
                     ReadIndex += 4;
@@ -1623,7 +1688,7 @@ namespace Zeze.Serialize
                     }
                     return;
                 default:
-                    throw new Exception("SkipUnknownField: " + type);
+                    throw new Exception("SkipUnknownField: type=" + type);
             }
         }
 

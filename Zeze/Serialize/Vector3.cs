@@ -8,7 +8,7 @@ namespace Zeze.Serialize
         public float y { get; private set; }
 
         public Vector2()
-        { 
+        {
         }
 
         public Vector2(float x, float y)
@@ -125,7 +125,7 @@ namespace Zeze.Serialize
     }
 
     public class Vector4 : Vector3
-    { 
+    {
         public float w { get; private set; }
 
         public Vector4()
@@ -193,7 +193,7 @@ namespace Zeze.Serialize
     public class Quaternion : Vector4
     {
         public Quaternion()
-        { 
+        {
         }
 
         public Quaternion(float x, float y, float z, float w) : base(x, y, z, w)
@@ -227,7 +227,7 @@ namespace Zeze.Serialize
         public int y { get; private set; }
 
         public Vector2Int()
-        { 
+        {
         }
 
         public Vector2Int(int x, int y)
@@ -285,18 +285,18 @@ namespace Zeze.Serialize
         public int z { get; private set; }
 
         public Vector3Int()
-        { 
+        {
         }
- 
+
         public Vector3Int(int x, int y, int z) : base(x, y)
         {
             this.z = z;
         }
-       
+
         public Vector3Int(Vector2Int v) : base(v)
         {
         }
-       
+
         public Vector3Int(Vector3Int v) : base(v)
         {
             z = v.z;
@@ -305,7 +305,7 @@ namespace Zeze.Serialize
         public Vector3Int(Vector2 v) : base(v)
         {
         }
-        
+
         public Vector3Int(Vector3 v) : base(v)
         {
             z = (int)v.z;
