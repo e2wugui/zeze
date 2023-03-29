@@ -1,12 +1,14 @@
 package UnitTest.Zeze.Game;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.util.concurrent.atomic.AtomicInteger;
+import Zeze.Application;
 import Zeze.Config;
 import Zeze.Game.Bag;
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Database;
 import Zeze.Transaction.Procedure;
+import Zeze.Transaction.Storage;
+import Zeze.Transaction.TableX;
 import demo.App;
 import org.junit.After;
 import org.junit.Assert;
@@ -24,47 +26,29 @@ public class TestBag {
 	public static final int SECOND_REMOVE_NUM = 10; // 第二次删除的item数量 应小于ADD_NUM/2
 	public static final int MAX_BAG_CAPACITY = 100; // 背包容量
 
-	private final void clearBagData(Config config) {
+	private final void clearBagData(Application app) {
+		Config config = app.getConfig();
 		String databaseName = config.getDefaultTableConf().getDatabaseName();
-
-		for (var conf : config.getDatabaseConfMap().values()) {
-			if (conf.getName().equals(databaseName)) {
-
-				Connection conn = null;
-				Statement stmt = null;
-				try {
-					conn = DriverManager.getConnection(conf.getDatabaseUrl());
-					stmt = conn.createStatement();
-					System.out.println(String.format("delete table %s", App.getInstance().BagModule.getTable().getName()));
-					String sql = String.format("delete from %s", App.getInstance().BagModule.getTable().getName());
-					stmt.execute(sql);
-					stmt.close();
-					conn.close();
-				} catch(SQLException se){
-					// 处理 JDBC 错误
-					se.printStackTrace();
-				} catch(Exception e){
-					// 处理 Class.forName 错误
-					e.printStackTrace();
-				} finally{
-					// 关闭资源
-					try{
-						if(stmt != null) {
-							stmt.close();
-						}
-					} catch(SQLException se2){
-					}// 什么都不做
-					try{
-						if(conn != null) {
-							conn.close();
-						}
-					}catch(SQLException se){
-						se.printStackTrace();
-					}
-				}
-			}
+		Database defaultDb = app.getDatabase(databaseName);
+		TableX table = (TableX)defaultDb.getTable(App.getInstance().BagModule.getTable().getName());
+		Database.Transaction transaction = defaultDb.beginTransaction();
+		Storage<?, ?> storage = table.internalGetStorageForTestOnly("IKnownWhatIAmDoing");
+		if(storage == null){
 			return;
 		}
+		if (storage.getDatabaseTable() instanceof Database.AbstractKVTable) {
+			System.out.println(String.format("delete table :%s", App.getInstance().BagModule.getTable().getName()));
+			var databaseTable = (Database.AbstractKVTable)storage.getDatabaseTable();
+			AtomicInteger count = new AtomicInteger();
+			databaseTable.walk((key, value) -> {
+				databaseTable.remove(transaction, ByteBuffer.Wrap(key));
+				count.incrementAndGet();
+				return true;
+			});
+		} else {
+			System.out.println(String.format("delete table :%s NOT A KV TABLE", App.getInstance().BagModule.getTable().getName()));
+		}
+		transaction.commit();
 	}
 
 	@Before
@@ -81,7 +65,7 @@ public class TestBag {
 
 	@Test
 	public final void test1_Add() throws Exception {
-		clearBagData(App.getInstance().Zeze.getConfig());
+		clearBagData(App.getInstance().Zeze);
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var bag = App.getInstance().BagModule.open("test1");
 			bag.setCapacity(MAX_BAG_CAPACITY);
