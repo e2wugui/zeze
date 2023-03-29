@@ -245,7 +245,7 @@ public final class TestJson extends TestCase {
 		var s = new BSimple();
 		s.setInt_1(456);
 		db.setBean(s);
-		v.getMap26().put(new Key((short)123), db);
+		v.getMap26().put(new Key((short)123, ""), db);
 		var j = JsonWriter.local().clear().setPrettyFormat(true).setWriteNull(true).setDepthLimit(9).write(v).toString();
 		var v2 = JsonReader.local().buf(j).parse(new BValue());
 		assertNotNull(v2);

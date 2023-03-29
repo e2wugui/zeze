@@ -14,7 +14,7 @@ public class TestDynamic extends TestCase {
 		var s = new BSimple();
 		s.setInt_1(123);
 		v.setBean(s);
-		m.put(new Key((short)1), v);
+		m.put(new Key((short)1, ""), v);
 
 		var bb = ByteBuffer.Allocate();
 		b.encode(bb);
@@ -22,7 +22,7 @@ public class TestDynamic extends TestCase {
 		b = new BValue();
 		b.decode(bb);
 		m = b.getMap26();
-		v = m.get(new Key((short)1));
+		v = m.get(new Key((short)1, ""));
 		assertNotNull(v);
 		var s0 = v.getBean();
 		assertEquals(BSimple.class, s0.getClass());

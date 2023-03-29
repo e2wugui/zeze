@@ -17,8 +17,8 @@ public class TestLock extends TestCase {
 		// DEBUG 下垃圾回收策略导致 WeakReference 不回收。
 //#if RELEASE
 		WeakHashSet<demo.Module1.Key> keys = new WeakHashSet<>();
-		demo.Module1.Key key1 = new demo.Module1.Key((short)1);
-		demo.Module1.Key key2 = new demo.Module1.Key((short)1);
+		demo.Module1.Key key1 = new demo.Module1.Key((short)1, "");
+		demo.Module1.Key key2 = new demo.Module1.Key((short)1, "");
 
 		Assert.assertNull(keys.get(key1));
 		keys.add(key1);
@@ -36,7 +36,7 @@ public class TestLock extends TestCase {
 		exist1 = null;
 		exist2 = null;
 
-		demo.Module1.Key k4 = new demo.Module1.Key((short)1);
+		demo.Module1.Key k4 = new demo.Module1.Key((short)1, "");
 		WeakReference<demo.Module1.Key> wref = new WeakReference<>(k4);
 		k4 = null;
 		for (int i = 0; i < 10; ++i) {
@@ -54,7 +54,7 @@ public class TestLock extends TestCase {
 
 		Assert.assertNull(wref.get());
 
-		demo.Module1.Key key3 = new demo.Module1.Key((short)1);
+		demo.Module1.Key key3 = new demo.Module1.Key((short)1, "");
 		System.out.println("test: is null.");
 		Assert.assertNull(keys.get(key3));
 //#endif

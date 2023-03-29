@@ -486,7 +486,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			try (var connection = dataSource.getConnection()) {
 				DatabaseMetaData meta = connection.getMetaData();
 				ResultSet resultSet = meta.getTables(null, null, this.name, new String[]{"TABLE"});
-				isNew = resultSet.next();
+				isNew = !resultSet.next();
 			} catch (SQLException e) {
 				throw new RuntimeException(e);
 			}
@@ -526,7 +526,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					first = false;
 				else
 					sb.append(", ");
-				sb.append(" DROP COLUMN ").append(c.name).append(" ").append(c.sqlType);
+				sb.append(" DROP COLUMN ").append(c.name);
 			}
 			for (var c : r.change) {
 				if (first)
@@ -537,6 +537,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			}
 			sb.append(", DROP PRIMARY KEY, ADD PRIMARY KEY (").append(r.currentKeyColumns).append(")");
 
+			System.out.println(sb);
 			try (var conn = dataSource.getConnection()) {
 				conn.setAutoCommit(true);
 				try (var pre = conn.prepareStatement(sb.toString())) {
@@ -545,7 +546,6 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			} catch (SQLException e) {
 				throw new RuntimeException(e);
 			}
-			System.out.println(sb);
 		}
 
 		@Override
@@ -858,7 +858,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			try (var connection = dataSource.getConnection()) {
 				DatabaseMetaData meta = connection.getMetaData();
 				ResultSet resultSet = meta.getTables(null, null, this.name, new String[]{"TABLE"});
-				isNew = resultSet.next();
+				isNew = !resultSet.next();
 			} catch (SQLException e) {
 				throw new RuntimeException(e);
 			}

@@ -56,8 +56,8 @@ public class TestTableKey extends TestCase {
 		}
 
 		{
-			demo.Module1.Key k1 = new demo.Module1.Key((short)1);
-			demo.Module1.Key k2 = new demo.Module1.Key((short)1);
+			demo.Module1.Key k1 = new demo.Module1.Key((short)1, "");
+			demo.Module1.Key k2 = new demo.Module1.Key((short)1, "");
 
 			TableKey tkey1 = new TableKey(1, k1);
 			TableKey tkey2 = new TableKey(1, k2);
@@ -67,8 +67,8 @@ public class TestTableKey extends TestCase {
 		}
 
 		{
-			demo.Module1.Key k1 = new demo.Module1.Key((short)1);
-			demo.Module1.Key k2 = new demo.Module1.Key((short)2);
+			demo.Module1.Key k1 = new demo.Module1.Key((short)1, "");
+			demo.Module1.Key k2 = new demo.Module1.Key((short)2, "");
 
 			TableKey tkey1 = new TableKey(1, k1);
 			TableKey tkey2 = new TableKey(1, k2);

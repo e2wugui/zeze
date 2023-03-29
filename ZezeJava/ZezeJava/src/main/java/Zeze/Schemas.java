@@ -336,7 +336,7 @@ public class Schemas implements Serializable {
 			if (null == sqlType)
 				throw new RuntimeException("unknown sql type=" + name);
 			if (name.equals("string") && isKey)
-				return "VARCHAR(1024)";
+				return "VARCHAR(256)";
 			return sqlType;
 		}
 
@@ -780,6 +780,7 @@ public class Schemas implements Serializable {
 				var varIds = new ArrayList<Integer>();
 				varIds.add(varKey.id);
 				keyType.buildRelationalColumns(true,this, null, varKey, varNames, varIds, columns);
+				columns.sort(new ColumnComparator());
 				var sb = new StringBuilder();
 				for (var column : columns) {
 					if (sb.length() > 0)

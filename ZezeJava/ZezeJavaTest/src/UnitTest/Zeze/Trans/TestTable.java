@@ -24,7 +24,7 @@ public class TestTable {
 	public final void TestUpdate() throws Exception {
 		demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
-			demo.App.getInstance().demo_Module1.getTable2().remove(new demo.Module1.Key((short)1));
+			demo.App.getInstance().demo_Module1.getTable2().remove(new demo.Module1.Key((short)1, ""));
 			return Procedure.Success;
 		}, "RemoveDataFirst").call();
 
@@ -75,7 +75,7 @@ public class TestTable {
 	public final void testGetOrAdd() throws Exception {
 		demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
-			demo.App.getInstance().demo_Module1.getTable2().remove(new demo.Module1.Key((short)1));
+			demo.App.getInstance().demo_Module1.getTable2().remove(new demo.Module1.Key((short)1, ""));
 			return Procedure.Success;
 		}, "RemoveDataFirst").call();
 
@@ -128,7 +128,7 @@ public class TestTable {
 	public final void test1TableGetPut() throws Exception {
 		demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
-			demo.App.getInstance().demo_Module1.getTable2().remove(new demo.Module1.Key((short)1));
+			demo.App.getInstance().demo_Module1.getTable2().remove(new demo.Module1.Key((short)1, ""));
 			return Procedure.Success;
 		}, "RemoveDataFirst").call();
 
@@ -140,7 +140,7 @@ public class TestTable {
 	public final void test2TableGetPut() throws Exception {
 		demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
-			demo.App.getInstance().demo_Module1.getTable2().remove(new demo.Module1.Key((short)1));
+			demo.App.getInstance().demo_Module1.getTable2().remove(new demo.Module1.Key((short)1, ""));
 			return Procedure.Success;
 		}, "RemoveDataFirst").call();
 
@@ -150,7 +150,7 @@ public class TestTable {
 
 	private static long ProcGet21() {
 		ProcGet11();
-		demo.Module1.Key key = new demo.Module1.Key((short)1);
+		demo.Module1.Key key = new demo.Module1.Key((short)1, "");
 		Assert.assertNull(App.getInstance().demo_Module1.getTable2().get(key));
 		BValue v = new BValue();
 		v.setInt_1(1);
@@ -174,7 +174,7 @@ public class TestTable {
 
 	private static long ProcGet22() {
 		ProcGet12();
-		demo.Module1.Key key = new demo.Module1.Key((short)1);
+		demo.Module1.Key key = new demo.Module1.Key((short)1, "");
 		var v = demo.App.getInstance().demo_Module1.getTable2().get(key);
 		Assert.assertNotNull(v);
 

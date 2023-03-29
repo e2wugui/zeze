@@ -342,7 +342,7 @@ public class TestByteBuffer extends TestCase {
 		v.getList9().add(bean1);
 		BSimple simple = new BSimple();
 		simple.getRemoved().setInt_1(999);
-		v.getMap16().put(new Key((short)11), simple);
+		v.getMap16().put(new Key((short)11, ""), simple);
 
 		ByteBuffer bb = ByteBuffer.Allocate();
 		v.encode(bb);
