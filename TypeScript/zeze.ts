@@ -212,11 +212,11 @@ export module Zeze {
 	export class FamilyClass {
 		public static readonly Protocol: number = 2;
 		public static readonly Request: number = 1;
-		public static readonly Response: number = 2;
+		public static readonly Response: number = 0;
 		public static readonly BitResultCode: number = 1 << 5;
 		public static readonly FamilyClassMask: number = FamilyClass.BitResultCode - 1;
 
-    }
+	}
 
 	export abstract class Protocol implements Serializable {
 		public FamilyClass: number = Zeze.FamilyClass.Protocol;
@@ -664,7 +664,7 @@ export module Zeze {
 
 		public EnsureRead(size: number) {
 			if (this.ReadIndex + size > this.WriteIndex)
-				throw new Error("EnsureRead " + size);
+				throw new Error("EnsureRead " + this.ReadIndex + '+' + size + " > " + this.WriteIndex);
 		}
 
 		public Campact() {
@@ -1180,96 +1180,96 @@ export module Zeze {
 			return deltaId < 0xf ? deltaId : 0xf + this.ReadUInt();
 		}
 
-		public ReadBoolT(type: number): boolean {
-			type &= ByteBuffer.TAG_MASK;
+		public ReadBoolT(tag: number): boolean {
+			var type = tag & ByteBuffer.TAG_MASK;
 			if (type == ByteBuffer.INTEGER)
 				return this.ReadLong() != 0n;
 			if (type == ByteBuffer.FLOAT)
 				return this.ReadFloat() != 0;
 			if (type == ByteBuffer.DOUBLE)
 				return this.ReadDouble() != 0;
-			this.SkipUnknownField(type);
+			this.SkipUnknownField(tag);
 			return false;
 		}
 
-		public ReadIntT(type: number): number {
-			type &= ByteBuffer.TAG_MASK;
+		public ReadIntT(tag: number): number {
+			var type = tag & ByteBuffer.TAG_MASK;
 			if (type == ByteBuffer.INTEGER)
 				return Number(this.ReadLong());
 			if (type == ByteBuffer.FLOAT)
 				return this.ReadFloat();
 			if (type == ByteBuffer.DOUBLE)
 				return this.ReadDouble();
-			this.SkipUnknownField(type);
+			this.SkipUnknownField(tag);
 			return 0;
 		}
 
-		public ReadLongT(type: number): bigint {
-			type &= ByteBuffer.TAG_MASK;
+		public ReadLongT(tag: number): bigint {
+			var type = tag & ByteBuffer.TAG_MASK;
 			if (type == ByteBuffer.INTEGER)
 				return this.ReadLong();
 			if (type == ByteBuffer.FLOAT)
 				return BigInt(this.ReadFloat());
 			if (type == ByteBuffer.DOUBLE)
 				return BigInt(this.ReadDouble());
-			this.SkipUnknownField(type);
+			this.SkipUnknownField(tag);
 			return 0n;
 		}
 
-		public ReadFloatT(type: number): number {
-			type &= ByteBuffer.TAG_MASK;
+		public ReadFloatT(tag: number): number {
+			var type = tag & ByteBuffer.TAG_MASK;
 			if (type == ByteBuffer.FLOAT)
 				return this.ReadFloat();
 			if (type == ByteBuffer.DOUBLE)
 				return this.ReadDouble();
 			if (type == ByteBuffer.INTEGER)
 				return Number(this.ReadLong());
-			this.SkipUnknownField(type);
+			this.SkipUnknownField(tag);
 			return 0;
 		}
 
-		public ReadDoubleT(type: number): number {
-			type &= ByteBuffer.TAG_MASK;
+		public ReadDoubleT(tag: number): number {
+			var type = tag & ByteBuffer.TAG_MASK;
 			if (type == ByteBuffer.DOUBLE)
 				return this.ReadDouble();
 			if (type == ByteBuffer.FLOAT)
 				return this.ReadFloat();
 			if (type == ByteBuffer.INTEGER)
 				return Number(this.ReadLong());
-			this.SkipUnknownField(type);
+			this.SkipUnknownField(tag);
 			return 0;
 		}
 
-		public ReadBytesT(type: number): Uint8Array {
-			type &= ByteBuffer.TAG_MASK;
+		public ReadBytesT(tag: number): Uint8Array {
+			var type = tag & ByteBuffer.TAG_MASK;
 			if (type == ByteBuffer.BYTES)
 				return this.ReadBytes();
-			this.SkipUnknownField(type);
+			this.SkipUnknownField(tag);
 			return new Uint8Array(0);
 		}
 
-		public ReadStringT(type: number): string {
-			type &= ByteBuffer.TAG_MASK;
+		public ReadStringT(tag: number): string {
+			var type = tag & ByteBuffer.TAG_MASK;
 			if (type == ByteBuffer.BYTES)
 				return this.ReadString();
-			this.SkipUnknownField(type);
+			this.SkipUnknownField(tag);
 			return "";
 		}
 
-		public ReadBean<T extends Serializable>(bean: T, type: number): T {
-			type &= ByteBuffer.TAG_MASK;
+		public ReadBean<T extends Serializable>(bean: T, tag: number): T {
+			var type = tag & ByteBuffer.TAG_MASK;
 			if (type == ByteBuffer.BEAN)
 				bean.Decode(this);
 			else if (type == ByteBuffer.DYNAMIC) {
 				this.ReadLong();
 				bean.Decode(this);
 			} else
-				this.SkipUnknownField(type);
+				this.SkipUnknownField(tag);
 			return bean;
 		}
 
-		public ReadDynamic(dynBean: DynamicBean, type: number): DynamicBean {
-			type &= ByteBuffer.TAG_MASK;
+		public ReadDynamic(dynBean: DynamicBean, tag: number): DynamicBean {
+			var type = tag & ByteBuffer.TAG_MASK;
 			if (type == ByteBuffer.DYNAMIC) {
 				dynBean.Decode(this);
 				return dynBean;
@@ -1281,28 +1281,33 @@ export module Zeze {
 					return dynBean;
 				}
 			}
-			this.SkipUnknownField(type);
+			this.SkipUnknownField(tag);
 			return dynBean;
 		}
 
-		public SkipUnknownList(type: number, count: number) {
+		public SkipUnknownList(tag: number, count: number) {
 			while (--count >= 0)
-				this.SkipUnknownField(type);
+				this.SkipUnknownField(tag);
 		}
 
 		public SkipUnknownMap(type1: number, type2: number, count: number) {
+			type1 |= 0x10; // ensure high bits not zero
+			type2 |= 0x10; // ensure high bits not zero
 			while (--count >= 0) {
 				this.SkipUnknownField(type1);
 				this.SkipUnknownField(type2);
 			}
 		}
 
-		public SkipUnknownField(type: number) {
-			switch (type & ByteBuffer.TAG_MASK) {
+		public SkipUnknownField(tag: number) {
+			var type = tag & ByteBuffer.TAG_MASK;
+			switch (type) {
 				case ByteBuffer.INTEGER:
 					this.ReadLong();
 					return;
 				case ByteBuffer.FLOAT:
+					if (tag == 1) // FLOAT == 1
+						return;
 					this.EnsureRead(4);
 					this.ReadIndex += 4;
 					return;
@@ -1331,7 +1336,7 @@ export module Zeze {
 					}
 					return;
 				default:
-					throw new Error("SkipUnknownField");
+					throw new Error("SkipUnknownField: type=" + type);
 			}
 		}
 	}
