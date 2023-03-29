@@ -9,7 +9,6 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SQLStatement;
 import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Util.Macro;
-import com.google.protobuf.Value;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -163,7 +162,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		savedTimestampForCheckpointPeriod = getTimestamp();
 
 		// 可能编码多次：TryEncodeN 记录读锁；Snapshot FlushWriteLock;
-		if (table.isRelationalMapping()) {
+		if (table.isUseRelationalMapping()) {
 			var sqlKey = new SQLStatement();
 			table.encodeKeySQLStatement(sqlKey, key);
 			if (strongDirtyValue == null) {
@@ -248,7 +247,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		}
 	}
 
-	@Override
+	@Override 
 	public void cleanup() {
 		setDatabaseTransactionTmp(null);
 		setDatabaseTransactionOldTmp(null);

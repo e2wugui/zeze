@@ -11,14 +11,14 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 	private final ConcurrentHashMap<K, Record1<K, V>> encoded = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<K, Record1<K, V>> snapshot = new ConcurrentHashMap<>();
 
-	public Storage(TableX<K, V> table, Database database, String tableName) {
+	public Storage(@NotNull TableX<K, V> table, @NotNull Database database, @NotNull String tableName) {
 		this.table = table;
-		if (table.isRelationalMapping()) {
-			if (!(database instanceof DatabaseMySql))
-				throw new RuntimeException("Only DatabaseMySql Support RelationalMapping.");
+		if (table.isRelationalMapping() && database instanceof DatabaseMySql) {
+//			if (!(database instanceof DatabaseMySql))
+//				throw new RuntimeException("Only DatabaseMySql Support RelationalMapping.");
 			var mysql = (DatabaseMySql)database;
 			databaseTable = mysql.openRelationalTable(tableName);
-			return ; // done
+			return; // done
 		}
 		databaseTable = database.openTable(tableName);
 	}

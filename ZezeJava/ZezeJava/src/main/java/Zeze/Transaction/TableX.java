@@ -31,6 +31,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	private @Nullable Storage<K, V> storage;
 	private @Nullable Database.Table oldTable;
 	private DatabaseRocksDb.Table localRocksCacheTable;
+	private boolean useRelationalMapping;
 
 	public TableX(@NotNull String name) {
 		super(name);
@@ -62,6 +63,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	final DatabaseRocksDb.Table getLocalRocksCacheTable() {
 		return localRocksCacheTable;
+	}
+
+	public boolean isUseRelationalMapping() {
+		return useRelationalMapping;
 	}
 
 	public final int getCacheSize() {
@@ -614,16 +619,14 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	@Override
 	final @Nullable Storage<?, ?> open(@NotNull Application app, @NotNull Database database) {
-		if (storage != null)
+		if (cache != null)
 			throw new IllegalStateException("table has opened: " + getName());
 
 		setZeze(app);
 		setDatabase(database);
 
-		if (isAutoKey()) {
-			//noinspection DataFlowIssue
+		if (isAutoKey())
 			autoKey = app.getServiceManager().getAutoKey(getName());
-		}
 
 		setTableConf(app.getConfig().getTableConf(getName()));
 		cache = new TableCache<>(app, this);
@@ -632,6 +635,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		oldTable = getTableConf().getDatabaseOldMode() == 1
 				? app.getDatabase(getTableConf().getDatabaseOldName()).openTable(getName()) : null;
 		localRocksCacheTable = app.getLocalRocksCacheDb().openTable(getName());
+		useRelationalMapping = isRelationalMapping() && database instanceof DatabaseMySql;
 		return storage;
 	}
 
