@@ -13,11 +13,6 @@ public final class tRoleTask extends TableX<Long, Zeze.Builtin.Game.TaskBase.BRo
     }
 
     @Override
-    public boolean isRelationalMapping() {
-        return false;
-    }
-
-    @Override
     public int getId() {
         return 192055248;
     }

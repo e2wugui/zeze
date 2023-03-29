@@ -24,7 +24,6 @@ namespace Zeze.Gen.java
             sw.WriteLine("import Zeze.Transaction.TableX;");
             sw.WriteLine("import Zeze.Transaction.TableReadOnly;");
             sw.WriteLine();
-            string key = TypeName.GetName(table.KeyType);
             string value = TypeName.GetName(table.ValueType);
             string keyboxing = BoxingName.GetBoxingName(table.KeyType);
             if (table.Comment.Length > 0)
@@ -37,25 +36,6 @@ namespace Zeze.Gen.java
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    @Override");
-            sw.WriteLine("    public boolean isRelationalMapping() {");
-            switch (table.RelationalMapping)
-            {
-                case "project":
-                case "":
-                    sw.WriteLine($"        return {(Project.MakingInstance.RelationalMapping ? "true" : "false")};");
-                    break;
-                case "true":
-                    sw.WriteLine("        return true;");
-                    break;
-                case "false":
-                    sw.WriteLine("        return false;");
-                    break;
-                default:
-                    throw new System.Exception("RelationalMapping Options: true|false|project");
-            }
-            sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    @Override");
             sw.WriteLine("    public int getId() {");
             sw.WriteLine($"        return {table.Id};");
             sw.WriteLine("    }");
@@ -64,7 +44,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine();
                 sw.WriteLine("    @Override");
                 sw.WriteLine("    public boolean isMemory() {");
-                sw.WriteLine("        return " + (table.IsMemory ? "true;" : "false;"));
+                sw.WriteLine("        return true;");
                 sw.WriteLine("    }");
             }
             if (table.IsAutoKey) // 需要保证基类返回false
@@ -72,7 +52,23 @@ namespace Zeze.Gen.java
                 sw.WriteLine();
                 sw.WriteLine("    @Override");
                 sw.WriteLine("    public boolean isAutoKey() {");
-                sw.WriteLine("        return " + (table.IsAutoKey ? "true;" : "false;"));
+                sw.WriteLine("        return true;");
+                sw.WriteLine("    }");
+            }
+            var isRelationalMapping = table.RelationalMapping switch
+            {
+                "project" => Project.MakingInstance.RelationalMapping,
+                "" => Project.MakingInstance.RelationalMapping,
+                "true" => true,
+                "false" => false,
+                _ => throw new System.Exception("RelationalMapping Options: true|false|project")
+            };
+            if (isRelationalMapping) // 需要保证基类返回false
+            {
+                sw.WriteLine();
+                sw.WriteLine("    @Override");
+                sw.WriteLine("    public boolean isRelationalMapping() {");
+                sw.WriteLine("        return true;");
                 sw.WriteLine("    }");
             }
             sw.WriteLine();
@@ -82,6 +78,7 @@ namespace Zeze.Gen.java
             if (table.IsAutoKey)
             {
                 sw.WriteLine("    public long insert(" + value + " value) {");
+                sw.WriteLine("        //noinspection DataFlowIssue");
                 sw.WriteLine("        long key = getAutoKey().next();");
                 sw.WriteLine("        insert(key, value);");
                 sw.WriteLine("        return key;");

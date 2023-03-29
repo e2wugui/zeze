@@ -53,7 +53,7 @@ public abstract class Table {
 		return database;
 	}
 
-	final void setDatabase(Database db) {
+	final void setDatabase(@NotNull Database db) {
 		database = db;
 	}
 
@@ -63,11 +63,11 @@ public abstract class Table {
 
 	abstract @Nullable Storage<?, ?> getStorage();
 
-	abstract Database.Table getOldTable();
+	abstract @Nullable Database.Table getOldTable();
 
 	public abstract boolean isNew();
 
-	public abstract Bean newValue();
+	public abstract @NotNull Bean newValue();
 
 	public boolean isMemory() {
 		return false;
@@ -77,19 +77,19 @@ public abstract class Table {
 		return false;
 	}
 
-	public int getId() {
-		return 0; // 新增属性。为了增加顺利，提供默认实现。子类必须提供新的实现。
-	}
+	public abstract int getId();
 
-	public abstract int reduceShare(Reduce rpc, ByteBuffer bbKey);
+	public abstract int reduceShare(@NotNull Reduce rpc, @NotNull ByteBuffer bbKey);
 
-	public abstract int reduceInvalid(Reduce rpc, ByteBuffer bbKey);
+	public abstract int reduceInvalid(@NotNull Reduce rpc, @NotNull ByteBuffer bbKey);
 
 	abstract void reduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex);
 
-	public abstract void removeEncodedKey(Binary encodedKey);
+	public abstract void removeEncodedKey(@NotNull Binary encodedKey);
 
-	public abstract boolean isRelationalMapping();
+	public boolean isRelationalMapping() {
+		return false;
+	}
 
 	public abstract void tryAlter();
 

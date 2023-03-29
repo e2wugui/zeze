@@ -13,11 +13,6 @@ public final class tQueueLastTaskId extends TableX<String, Zeze.Builtin.RedoQueu
     }
 
     @Override
-    public boolean isRelationalMapping() {
-        return false;
-    }
-
-    @Override
     public int getId() {
         return -1495051256;
     }

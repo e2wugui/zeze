@@ -13,11 +13,6 @@ public final class tonline extends TableX<String, Zeze.Builtin.Online.BOnlines>
     }
 
     @Override
-    public boolean isRelationalMapping() {
-        return false;
-    }
-
-    @Override
     public int getId() {
         return -2094601796;
     }

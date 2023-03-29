@@ -583,7 +583,7 @@ public class Online extends AbstractOnline {
 		}
 		var send = new Send(new BSend(p.getTypeId(), new Binary(p.encode())));
 		send.Argument.getLinkSids().add(linkSid);
-		return send(link, Map.of(linkSid, loginKey), send);
+		return send(link, loginKey != null ? Map.of(linkSid, loginKey) : Map.of(), send);
 	}
 
 	public void send(Collection<LoginKey> keys, AsyncSocket to, Map<Long, LoginKey> contexts, Send send) {

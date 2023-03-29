@@ -13,11 +13,6 @@ public final class tRoleOfflineTimers extends TableX<Long, Zeze.Builtin.Timer.BO
     }
 
     @Override
-    public boolean isRelationalMapping() {
-        return false;
-    }
-
-    @Override
     public int getId() {
         return 987199499;
     }

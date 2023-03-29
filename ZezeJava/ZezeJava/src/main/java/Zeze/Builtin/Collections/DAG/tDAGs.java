@@ -14,11 +14,6 @@ public final class tDAGs extends TableX<String, Zeze.Builtin.Collections.DAG.BDA
     }
 
     @Override
-    public boolean isRelationalMapping() {
-        return false;
-    }
-
-    @Override
     public int getId() {
         return 1716762493;
     }

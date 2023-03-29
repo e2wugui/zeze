@@ -13,11 +13,6 @@ public final class tIndexs extends TableX<String, Zeze.Builtin.Timer.BIndex>
     }
 
     @Override
-    public boolean isRelationalMapping() {
-        return false;
-    }
-
-    @Override
     public int getId() {
         return 833718;
     }

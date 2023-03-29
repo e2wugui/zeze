@@ -14,11 +14,6 @@ public final class tCustomClasses extends TableX<Integer, Zeze.Builtin.Timer.BCu
     }
 
     @Override
-    public boolean isRelationalMapping() {
-        return false;
-    }
-
-    @Override
     public int getId() {
         return -1904799209;
     }

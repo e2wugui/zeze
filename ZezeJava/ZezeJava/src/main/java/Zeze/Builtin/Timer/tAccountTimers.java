@@ -13,11 +13,6 @@ public final class tAccountTimers extends TableX<String, Zeze.Builtin.Timer.BArc
     }
 
     @Override
-    public boolean isRelationalMapping() {
-        return false;
-    }
-
-    @Override
     public int getId() {
         return 1803422289;
     }

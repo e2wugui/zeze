@@ -14,11 +14,6 @@ public final class tbag extends TableX<String, Zeze.Builtin.Game.Bag.BBag>
     }
 
     @Override
-    public boolean isRelationalMapping() {
-        return false;
-    }
-
-    @Override
     public int getId() {
         return 863603985;
     }

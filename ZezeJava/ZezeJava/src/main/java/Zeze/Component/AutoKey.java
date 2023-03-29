@@ -150,9 +150,9 @@ public class AutoKey {
 	/**
 	 * 设置当前serverId的种子，新种子必须比当前值大。
 	 *
-	 * @param seed new seed.
 	 * @return true if success.
 	 */
+	@Deprecated // 仅用于测试
 	public boolean resetSeedUnsafe() {
 		try {
 			return Procedure.Success == Task.runUnsafe(module.zeze.newProcedure(() -> {
