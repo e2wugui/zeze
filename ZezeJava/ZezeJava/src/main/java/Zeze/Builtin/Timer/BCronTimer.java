@@ -424,6 +424,8 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setCronExpression(rs.getString(_parents_name_ + "CronExpression"));
+        if (getCronExpression() == null)
+            setCronExpression("");
         setNextExpectedTime(rs.getLong(_parents_name_ + "NextExpectedTime"));
         setExpectedTime(rs.getLong(_parents_name_ + "ExpectedTime"));
         setHappenTime(rs.getLong(_parents_name_ + "HappenTime"));

@@ -41,6 +41,8 @@ public final class tQueues extends TableX<String, Zeze.Builtin.Collections.Queue
     public String decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
         String _v_;
         _v_ = rs.getString("__key");
+        if (_v_ == null)
+            _v_ = "";
         return _v_;
     }
 

@@ -247,7 +247,11 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setTableName(rs.getString(_parents_name_ + "TableName"));
+        if (getTableName() == null)
+            setTableName("");
         setEncodedKey(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "EncodedKey")));
+        if (getEncodedKey() == null)
+            setEncodedKey(Zeze.Net.Binary.Empty);
         setEnqueueTime(rs.getLong(_parents_name_ + "EnqueueTime"));
     }
 

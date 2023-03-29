@@ -209,7 +209,11 @@ public final class BJob extends Zeze.Transaction.Bean implements BJobReadOnly {
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setJobHandleName(rs.getString(_parents_name_ + "JobHandleName"));
+        if (getJobHandleName() == null)
+            setJobHandleName("");
         setJobState(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "JobState")));
+        if (getJobState() == null)
+            setJobState(Zeze.Net.Binary.Empty);
     }
 
     @Override

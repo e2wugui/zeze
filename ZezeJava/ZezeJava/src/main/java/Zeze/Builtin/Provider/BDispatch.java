@@ -390,10 +390,18 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setLinkSid(rs.getLong(_parents_name_ + "linkSid"));
         setAccount(rs.getString(_parents_name_ + "account"));
+        if (getAccount() == null)
+            setAccount("");
         setProtocolType(rs.getLong(_parents_name_ + "protocolType"));
         setProtocolData(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "protocolData")));
+        if (getProtocolData() == null)
+            setProtocolData(Zeze.Net.Binary.Empty);
         setContext(rs.getString(_parents_name_ + "context"));
+        if (getContext() == null)
+            setContext("");
         setContextx(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "contextx")));
+        if (getContextx() == null)
+            setContextx(Zeze.Net.Binary.Empty);
     }
 
     @Override

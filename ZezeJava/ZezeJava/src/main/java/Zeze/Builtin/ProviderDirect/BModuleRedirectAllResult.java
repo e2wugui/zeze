@@ -409,6 +409,8 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         setServerId(rs.getInt(_parents_name_ + "ServerId"));
         setSourceProvider(rs.getLong(_parents_name_ + "SourceProvider"));
         setMethodFullName(rs.getString(_parents_name_ + "MethodFullName"));
+        if (getMethodFullName() == null)
+            setMethodFullName("");
         setSessionId(rs.getLong(_parents_name_ + "SessionId"));
         Zeze.Serialize.Helper.decodeJsonMap(this, "Hashs", getHashs(), rs.getString(_parents_name_ + "Hashs"));
     }

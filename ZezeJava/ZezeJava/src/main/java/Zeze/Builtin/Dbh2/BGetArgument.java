@@ -263,8 +263,14 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setDatabase(rs.getString(_parents_name_ + "Database"));
+        if (getDatabase() == null)
+            setDatabase("");
         setTable(rs.getString(_parents_name_ + "Table"));
+        if (getTable() == null)
+            setTable("");
         setKey(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Key")));
+        if (getKey() == null)
+            setKey(Zeze.Net.Binary.Empty);
     }
 
     @Override

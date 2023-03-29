@@ -395,10 +395,18 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setTimerName(rs.getString(_parents_name_ + "TimerName"));
+        if (getTimerName() == null)
+            setTimerName("");
         setAccount(rs.getString(_parents_name_ + "Account"));
+        if (getAccount() == null)
+            setAccount("");
         setClientId(rs.getString(_parents_name_ + "ClientId"));
+        if (getClientId() == null)
+            setClientId("");
         setLoginVersion(rs.getLong(_parents_name_ + "LoginVersion"));
         setHandleName(rs.getString(_parents_name_ + "HandleName"));
+        if (getHandleName() == null)
+            setHandleName("");
         Zeze.Serialize.Helper.decodeJsonDynamic(getCustomData(), rs.getString(_parents_name_ + "CustomData"));
     }
 

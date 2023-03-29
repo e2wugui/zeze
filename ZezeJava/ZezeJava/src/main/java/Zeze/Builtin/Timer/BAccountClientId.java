@@ -18,8 +18,12 @@ public final class BAccountClientId implements Serializable, Comparable<BAccount
     public BAccountClientId(String _Account_, String _ClientId_) {
         if (_Account_ == null)
             throw new IllegalArgumentException();
+        if (_Account_.length() > 256)
+            throw new IllegalArgumentException();
         this._Account = _Account_;
         if (_ClientId_ == null)
+            throw new IllegalArgumentException();
+        if (_ClientId_.length() > 256)
             throw new IllegalArgumentException();
         this._ClientId = _ClientId_;
     }
@@ -148,7 +152,11 @@ public final class BAccountClientId implements Serializable, Comparable<BAccount
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         _Account = rs.getString(_parents_name_ + "Account");
+        if (getAccount() == null)
+            _Account = "";
         _ClientId = rs.getString(_parents_name_ + "ClientId");
+        if (getClientId() == null)
+            _ClientId = "";
     }
 
     @Override

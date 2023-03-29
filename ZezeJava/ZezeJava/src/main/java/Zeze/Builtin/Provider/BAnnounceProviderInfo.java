@@ -296,8 +296,14 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setServiceNamePrefix(rs.getString(_parents_name_ + "ServiceNamePrefix"));
+        if (getServiceNamePrefix() == null)
+            setServiceNamePrefix("");
         setServiceIndentity(rs.getString(_parents_name_ + "ServiceIndentity"));
+        if (getServiceIndentity() == null)
+            setServiceIndentity("");
         setProviderDirectIp(rs.getString(_parents_name_ + "ProviderDirectIp"));
+        if (getProviderDirectIp() == null)
+            setProviderDirectIp("");
         setProviderDirectPort(rs.getInt(_parents_name_ + "ProviderDirectPort"));
     }
 

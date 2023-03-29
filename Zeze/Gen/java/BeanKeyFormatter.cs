@@ -50,6 +50,15 @@ namespace Zeze.Gen.java
                     {
                         sw.WriteLine($"        if ({v.NamePrivate}_ == null)");
                         sw.WriteLine($"            throw new IllegalArgumentException();");
+                        if (v.VariableType is TypeString)
+                        {
+                            // BeanKey 类型为String时，限制长度为256。
+                            // 这个主要是 RelationalMapping的限制。
+                            // 另外对于KV也有限制总长度不能超过3070-porlardbx（3072 mysql）。
+                            // 【这里没法区分具体使用什么数据库，先全部限制一下。】
+                            sw.WriteLine($"        if ({v.NamePrivate}_.length() > 256)");
+                            sw.WriteLine($"            throw new IllegalArgumentException();");
+                        }
                     }
                     sw.WriteLine("        this." + v.NamePrivate + " = " + v.NamePrivate + "_;");
                 }

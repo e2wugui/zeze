@@ -246,6 +246,8 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
         setHeadNodeId(rs.getLong(_parents_name_ + "HeadNodeId"));
         setTailNodeId(rs.getLong(_parents_name_ + "TailNodeId"));
         setLinkedMapName(rs.getString(_parents_name_ + "LinkedMapName"));
+        if (getLinkedMapName() == null)
+            setLinkedMapName("");
     }
 
     @Override

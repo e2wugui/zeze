@@ -17,6 +17,8 @@ public final class BLink implements Serializable, Comparable<BLink> {
     public BLink(String _LinkName_, long _LinkSid_) {
         if (_LinkName_ == null)
             throw new IllegalArgumentException();
+        if (_LinkName_.length() > 256)
+            throw new IllegalArgumentException();
         this._LinkName = _LinkName_;
         this._LinkSid = _LinkSid_;
     }
@@ -147,6 +149,8 @@ public final class BLink implements Serializable, Comparable<BLink> {
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         _LinkName = rs.getString(_parents_name_ + "LinkName");
+        if (getLinkName() == null)
+            _LinkName = "";
         _LinkSid = rs.getLong(_parents_name_ + "LinkSid");
     }
 

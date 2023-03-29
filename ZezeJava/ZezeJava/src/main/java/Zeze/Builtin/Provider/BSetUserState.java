@@ -248,7 +248,11 @@ public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUs
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setLinkSid(rs.getLong(_parents_name_ + "linkSid"));
         setContext(rs.getString(_parents_name_ + "context"));
+        if (getContext() == null)
+            setContext("");
         setContextx(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "contextx")));
+        if (getContextx() == null)
+            setContextx(Zeze.Net.Binary.Empty);
     }
 
     @Override

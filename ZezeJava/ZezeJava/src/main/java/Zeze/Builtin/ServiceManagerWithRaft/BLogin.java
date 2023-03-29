@@ -149,6 +149,8 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setSessionName(rs.getString(_parents_name_ + "SessionName"));
+        if (getSessionName() == null)
+            setSessionName("");
     }
 
     @Override

@@ -454,12 +454,24 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setDatabaseName(rs.getString(_parents_name_ + "DatabaseName"));
+        if (getDatabaseName() == null)
+            setDatabaseName("");
         setTableName(rs.getString(_parents_name_ + "TableName"));
+        if (getTableName() == null)
+            setTableName("");
         setKeyFirst(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "KeyFirst")));
+        if (getKeyFirst() == null)
+            setKeyFirst(Zeze.Net.Binary.Empty);
         setKeyLast(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "KeyLast")));
+        if (getKeyLast() == null)
+            setKeyLast(Zeze.Net.Binary.Empty);
         setRaftConfig(rs.getString(_parents_name_ + "RaftConfig"));
+        if (getRaftConfig() == null)
+            setRaftConfig("");
         setMoving(rs.getBoolean(_parents_name_ + "Moving"));
         setKeyMoving(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "KeyMoving")));
+        if (getKeyMoving() == null)
+            setKeyMoving(Zeze.Net.Binary.Empty);
     }
 
     @Override

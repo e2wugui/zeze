@@ -351,10 +351,18 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setActionName(rs.getString(_parents_name_ + "ActionName"));
+        if (getActionName() == null)
+            setActionName("");
         setParameter(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Parameter")));
+        if (getParameter() == null)
+            setParameter(Zeze.Net.Binary.Empty);
         Zeze.Serialize.Helper.decodeJsonSet(getTargetAccounts(), String.class, rs.getString(_parents_name_ + "TargetAccounts"));
         setSenderAccount(rs.getString(_parents_name_ + "SenderAccount"));
+        if (getSenderAccount() == null)
+            setSenderAccount("");
         setSenderClientId(rs.getString(_parents_name_ + "SenderClientId"));
+        if (getSenderClientId() == null)
+            setSenderClientId("");
     }
 
     @Override

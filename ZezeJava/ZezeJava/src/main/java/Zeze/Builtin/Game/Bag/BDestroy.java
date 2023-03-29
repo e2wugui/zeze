@@ -199,6 +199,8 @@ public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyRea
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setBagName(rs.getString(_parents_name_ + "BagName"));
+        if (getBagName() == null)
+            setBagName("");
         setPosition(rs.getInt(_parents_name_ + "Position"));
     }
 

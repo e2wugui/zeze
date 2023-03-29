@@ -265,7 +265,11 @@ public final class BBeginTransactionArgument extends Zeze.Transaction.Bean imple
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setDatabase(rs.getString(_parents_name_ + "Database"));
+        if (getDatabase() == null)
+            setDatabase("");
         setTable(rs.getString(_parents_name_ + "Table"));
+        if (getTable() == null)
+            setTable("");
         setTransactionId(rs.getLong(_parents_name_ + "TransactionId"));
     }
 

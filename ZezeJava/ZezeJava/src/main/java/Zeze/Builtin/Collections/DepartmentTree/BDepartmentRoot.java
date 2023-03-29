@@ -384,6 +384,8 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setRoot(rs.getString(_parents_name_ + "Root"));
+        if (getRoot() == null)
+            setRoot("");
         Zeze.Serialize.Helper.decodeJsonMap(this, "Managers", getManagers(), rs.getString(_parents_name_ + "Managers"));
         setNextDepartmentId(rs.getLong(_parents_name_ + "NextDepartmentId"));
         Zeze.Serialize.Helper.decodeJsonMap(this, "Childs", getChilds(), rs.getString(_parents_name_ + "Childs"));

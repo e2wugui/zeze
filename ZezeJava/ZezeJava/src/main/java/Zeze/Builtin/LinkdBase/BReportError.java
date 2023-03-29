@@ -254,6 +254,8 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
         setFrom(rs.getInt(_parents_name_ + "from"));
         setCode(rs.getInt(_parents_name_ + "code"));
         setDesc(rs.getString(_parents_name_ + "desc"));
+        if (getDesc() == null)
+            setDesc("");
     }
 
     @Override

@@ -38,6 +38,8 @@ public final class tSent extends TableX<String, Zeze.Builtin.RocketMQ.Producer.B
     public String decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
         String _v_;
         _v_ = rs.getString("__key");
+        if (_v_ == null)
+            _v_ = "";
         return _v_;
     }
 

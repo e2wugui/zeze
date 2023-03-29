@@ -242,6 +242,8 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean implemen
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setClientId(rs.getString(_parents_name_ + "ClientId"));
+        if (getClientId() == null)
+            setClientId("");
         setReliableNotifyConfirmIndex(rs.getLong(_parents_name_ + "ReliableNotifyConfirmIndex"));
         setSync(rs.getBoolean(_parents_name_ + "Sync"));
     }

@@ -497,8 +497,14 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
         setSourceProvider(rs.getLong(_parents_name_ + "SourceProvider"));
         setSessionId(rs.getLong(_parents_name_ + "SessionId"));
         setMethodFullName(rs.getString(_parents_name_ + "MethodFullName"));
+        if (getMethodFullName() == null)
+            setMethodFullName("");
         setParams(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Params")));
+        if (getParams() == null)
+            setParams(Zeze.Net.Binary.Empty);
         setServiceNamePrefix(rs.getString(_parents_name_ + "ServiceNamePrefix"));
+        if (getServiceNamePrefix() == null)
+            setServiceNamePrefix("");
     }
 
     @Override

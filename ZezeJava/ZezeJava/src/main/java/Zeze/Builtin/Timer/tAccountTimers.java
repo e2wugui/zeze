@@ -46,6 +46,8 @@ public final class tAccountTimers extends TableX<String, Zeze.Builtin.Timer.BArc
     public String decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
         String _v_;
         _v_ = rs.getString("__key");
+        if (_v_ == null)
+            _v_ = "";
         return _v_;
     }
 

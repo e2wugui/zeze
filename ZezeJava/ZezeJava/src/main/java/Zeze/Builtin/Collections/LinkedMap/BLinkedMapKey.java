@@ -18,8 +18,12 @@ public final class BLinkedMapKey implements Serializable, Comparable<BLinkedMapK
     public BLinkedMapKey(String _Name_, String _ValueId_) {
         if (_Name_ == null)
             throw new IllegalArgumentException();
+        if (_Name_.length() > 256)
+            throw new IllegalArgumentException();
         this._Name = _Name_;
         if (_ValueId_ == null)
+            throw new IllegalArgumentException();
+        if (_ValueId_.length() > 256)
             throw new IllegalArgumentException();
         this._ValueId = _ValueId_;
     }
@@ -148,7 +152,11 @@ public final class BLinkedMapKey implements Serializable, Comparable<BLinkedMapK
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         _Name = rs.getString(_parents_name_ + "Name");
+        if (getName() == null)
+            _Name = "";
         _ValueId = rs.getString(_parents_name_ + "ValueId");
+        if (getValueId() == null)
+            _ValueId = "";
     }
 
     @Override

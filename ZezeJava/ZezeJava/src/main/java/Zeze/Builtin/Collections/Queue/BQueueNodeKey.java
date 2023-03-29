@@ -17,6 +17,8 @@ public final class BQueueNodeKey implements Serializable, Comparable<BQueueNodeK
     public BQueueNodeKey(String _Name_, long _NodeId_) {
         if (_Name_ == null)
             throw new IllegalArgumentException();
+        if (_Name_.length() > 256)
+            throw new IllegalArgumentException();
         this._Name = _Name_;
         this._NodeId = _NodeId_;
     }
@@ -147,6 +149,8 @@ public final class BQueueNodeKey implements Serializable, Comparable<BQueueNodeK
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         _Name = rs.getString(_parents_name_ + "Name");
+        if (getName() == null)
+            _Name = "";
         _NodeId = rs.getLong(_parents_name_ + "NodeId");
     }
 

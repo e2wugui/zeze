@@ -18,8 +18,12 @@ public final class BServiceInfoKeyRocks implements Serializable, Comparable<BSer
     public BServiceInfoKeyRocks(String _ServiceName_, String _ServiceIdentity_) {
         if (_ServiceName_ == null)
             throw new IllegalArgumentException();
+        if (_ServiceName_.length() > 256)
+            throw new IllegalArgumentException();
         this._ServiceName = _ServiceName_;
         if (_ServiceIdentity_ == null)
+            throw new IllegalArgumentException();
+        if (_ServiceIdentity_.length() > 256)
             throw new IllegalArgumentException();
         this._ServiceIdentity = _ServiceIdentity_;
     }
@@ -148,7 +152,11 @@ public final class BServiceInfoKeyRocks implements Serializable, Comparable<BSer
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         _ServiceName = rs.getString(_parents_name_ + "ServiceName");
+        if (getServiceName() == null)
+            _ServiceName = "";
         _ServiceIdentity = rs.getString(_parents_name_ + "ServiceIdentity");
+        if (getServiceIdentity() == null)
+            _ServiceIdentity = "";
     }
 
     @Override

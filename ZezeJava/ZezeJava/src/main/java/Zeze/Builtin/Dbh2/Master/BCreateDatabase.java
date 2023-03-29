@@ -165,6 +165,8 @@ public final class BCreateDatabase extends Zeze.Transaction.Bean implements BCre
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setDatabase(rs.getString(_parents_name_ + "Database"));
+        if (getDatabase() == null)
+            setDatabase("");
     }
 
     @Override

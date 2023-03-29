@@ -263,6 +263,8 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
         Zeze.Serialize.Helper.decodeJsonList(getLinkSids(), Long.class, rs.getString(_parents_name_ + "linkSids"));
         setProtocolType(rs.getLong(_parents_name_ + "protocolType"));
         setProtocolWholeData(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "protocolWholeData")));
+        if (getProtocolWholeData() == null)
+            setProtocolWholeData(Zeze.Net.Binary.Empty);
     }
 
     @Override

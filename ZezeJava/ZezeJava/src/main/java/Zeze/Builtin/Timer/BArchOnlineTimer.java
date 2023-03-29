@@ -387,7 +387,11 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setAccount(rs.getString(_parents_name_ + "Account"));
+        if (getAccount() == null)
+            setAccount("");
         setClientId(rs.getString(_parents_name_ + "ClientId"));
+        if (getClientId() == null)
+            setClientId("");
         Zeze.Serialize.Helper.decodeJsonDynamic(getTimerObj(), rs.getString(_parents_name_ + "TimerObj"));
         setLoginVersion(rs.getLong(_parents_name_ + "LoginVersion"));
         setSerialId(rs.getLong(_parents_name_ + "SerialId"));

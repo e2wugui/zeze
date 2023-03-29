@@ -17,6 +17,8 @@ public final class BDepartmentKey implements Serializable, Comparable<BDepartmen
     public BDepartmentKey(String _Owner_, long _DepartmentId_) {
         if (_Owner_ == null)
             throw new IllegalArgumentException();
+        if (_Owner_.length() > 256)
+            throw new IllegalArgumentException();
         this._Owner = _Owner_;
         this._DepartmentId = _DepartmentId_;
     }
@@ -147,6 +149,8 @@ public final class BDepartmentKey implements Serializable, Comparable<BDepartmen
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         _Owner = rs.getString(_parents_name_ + "Owner");
+        if (getOwner() == null)
+            _Owner = "";
         _DepartmentId = rs.getLong(_parents_name_ + "DepartmentId");
     }
 

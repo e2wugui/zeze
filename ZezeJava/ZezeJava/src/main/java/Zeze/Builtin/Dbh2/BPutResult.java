@@ -165,6 +165,8 @@ public final class BPutResult extends Zeze.Transaction.Bean implements BPutResul
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setRaftConfig(rs.getString(_parents_name_ + "RaftConfig"));
+        if (getRaftConfig() == null)
+            setRaftConfig("");
     }
 
     @Override

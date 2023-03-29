@@ -204,6 +204,8 @@ public final class BTaskCondition extends Zeze.Transaction.Bean implements BTask
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setConditionType(rs.getString(_parents_name_ + "conditionType"));
+        if (getConditionType() == null)
+            setConditionType("");
         Zeze.Serialize.Helper.decodeJsonDynamic(getExtendedData(), rs.getString(_parents_name_ + "extendedData"));
     }
 

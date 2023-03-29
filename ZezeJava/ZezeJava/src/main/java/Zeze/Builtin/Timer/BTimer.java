@@ -396,7 +396,11 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setTimerName(rs.getString(_parents_name_ + "TimerName"));
+        if (getTimerName() == null)
+            setTimerName("");
         setHandleName(rs.getString(_parents_name_ + "HandleName"));
+        if (getHandleName() == null)
+            setHandleName("");
         Zeze.Serialize.Helper.decodeJsonDynamic(getTimerObj(), rs.getString(_parents_name_ + "TimerObj"));
         Zeze.Serialize.Helper.decodeJsonDynamic(getCustomData(), rs.getString(_parents_name_ + "CustomData"));
         setConcurrentFireSerialNo(rs.getLong(_parents_name_ + "ConcurrentFireSerialNo"));

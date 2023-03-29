@@ -247,6 +247,8 @@ public final class BTConditionNPCTalkEvent extends Zeze.Transaction.Bean impleme
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setFinished(rs.getBoolean(_parents_name_ + "finished"));
         setDialogId(rs.getString(_parents_name_ + "dialogId"));
+        if (getDialogId() == null)
+            setDialogId("");
         setDialogOption(rs.getInt(_parents_name_ + "dialogOption"));
     }
 

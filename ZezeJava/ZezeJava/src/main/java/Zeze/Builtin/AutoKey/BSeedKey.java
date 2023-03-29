@@ -18,6 +18,8 @@ public final class BSeedKey implements Serializable, Comparable<BSeedKey> {
         this._ServerId = _ServerId_;
         if (_KeyName_ == null)
             throw new IllegalArgumentException();
+        if (_KeyName_.length() > 256)
+            throw new IllegalArgumentException();
         this._KeyName = _KeyName_;
     }
 
@@ -148,6 +150,8 @@ public final class BSeedKey implements Serializable, Comparable<BSeedKey> {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         _ServerId = rs.getInt(_parents_name_ + "ServerId");
         _KeyName = rs.getString(_parents_name_ + "KeyName");
+        if (getKeyName() == null)
+            _KeyName = "";
     }
 
     @Override

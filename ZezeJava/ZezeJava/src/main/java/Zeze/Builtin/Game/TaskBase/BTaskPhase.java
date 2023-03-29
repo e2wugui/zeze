@@ -481,7 +481,11 @@ public final class BTaskPhase extends Zeze.Transaction.Bean implements BTaskPhas
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setPhaseId(rs.getLong(_parents_name_ + "phaseId"));
         setPhaseName(rs.getString(_parents_name_ + "phaseName"));
+        if (getPhaseName() == null)
+            setPhaseName("");
         setPhaseDescription(rs.getString(_parents_name_ + "phaseDescription"));
+        if (getPhaseDescription() == null)
+            setPhaseDescription("");
         Zeze.Serialize.Helper.decodeJsonList(getPrePhaseIds(), Long.class, rs.getString(_parents_name_ + "prePhaseIds"));
         setNextPhaseId(rs.getLong(_parents_name_ + "nextPhaseId"));
         Zeze.Serialize.Helper.decodeJsonMap(this, "subPhases", getSubPhases(), rs.getString(_parents_name_ + "subPhases"));

@@ -612,9 +612,15 @@ public final class BTask extends Zeze.Transaction.Bean implements BTaskReadOnly 
         setRoleId(rs.getLong(_parents_name_ + "roleId"));
         setTaskId(rs.getLong(_parents_name_ + "taskId"));
         setTaskType(rs.getString(_parents_name_ + "taskType"));
+        if (getTaskType() == null)
+            setTaskType("");
         setTaskState(rs.getInt(_parents_name_ + "taskState"));
         setTaskName(rs.getString(_parents_name_ + "taskName"));
+        if (getTaskName() == null)
+            setTaskName("");
         setTaskDescription(rs.getString(_parents_name_ + "taskDescription"));
+        if (getTaskDescription() == null)
+            setTaskDescription("");
         Zeze.Serialize.Helper.decodeJsonList(getPreTaskIds(), Long.class, rs.getString(_parents_name_ + "preTaskIds"));
         setCurrentPhaseId(rs.getLong(_parents_name_ + "currentPhaseId"));
         Zeze.Serialize.Helper.decodeJsonMap(this, "taskPhases", getTaskPhases(), rs.getString(_parents_name_ + "taskPhases"));

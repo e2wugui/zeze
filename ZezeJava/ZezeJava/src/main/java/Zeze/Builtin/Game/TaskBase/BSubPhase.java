@@ -318,6 +318,8 @@ public final class BSubPhase extends Zeze.Transaction.Bean implements BSubPhaseR
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setSubPhaseId(rs.getLong(_parents_name_ + "subPhaseId"));
         setCompleteType(rs.getString(_parents_name_ + "completeType"));
+        if (getCompleteType() == null)
+            setCompleteType("");
         setNextSubPhaseId(rs.getLong(_parents_name_ + "nextSubPhaseId"));
         Zeze.Serialize.Helper.decodeJsonList(getConditions(), Zeze.Builtin.Game.TaskBase.BTaskCondition.class, rs.getString(_parents_name_ + "conditions"));
     }

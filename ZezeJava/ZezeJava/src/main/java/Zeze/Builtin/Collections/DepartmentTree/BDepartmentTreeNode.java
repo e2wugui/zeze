@@ -386,6 +386,8 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
         setParentDepartment(rs.getLong(_parents_name_ + "ParentDepartment"));
         Zeze.Serialize.Helper.decodeJsonMap(this, "Childs", getChilds(), rs.getString(_parents_name_ + "Childs"));
         setName(rs.getString(_parents_name_ + "Name"));
+        if (getName() == null)
+            setName("");
         Zeze.Serialize.Helper.decodeJsonMap(this, "Managers", getManagers(), rs.getString(_parents_name_ + "Managers"));
         Zeze.Serialize.Helper.decodeJsonDynamic(getData(), rs.getString(_parents_name_ + "Data"));
     }

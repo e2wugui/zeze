@@ -18,6 +18,8 @@ public final class BeanKey implements Serializable, Comparable<BeanKey> {
         this._Id = _Id_;
         if (_Name_ == null)
             throw new IllegalArgumentException();
+        if (_Name_.length() > 256)
+            throw new IllegalArgumentException();
         this._Name = _Name_;
     }
 
@@ -148,6 +150,8 @@ public final class BeanKey implements Serializable, Comparable<BeanKey> {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         _Id = rs.getInt(_parents_name_ + "Id");
         _Name = rs.getString(_parents_name_ + "Name");
+        if (getName() == null)
+            _Name = "";
     }
 
     @Override

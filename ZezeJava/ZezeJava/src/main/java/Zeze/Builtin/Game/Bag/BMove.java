@@ -289,6 +289,8 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setBagName(rs.getString(_parents_name_ + "BagName"));
+        if (getBagName() == null)
+            setBagName("");
         setPositionFrom(rs.getInt(_parents_name_ + "PositionFrom"));
         setPositionTo(rs.getInt(_parents_name_ + "PositionTo"));
         setNumber(rs.getInt(_parents_name_ + "number"));

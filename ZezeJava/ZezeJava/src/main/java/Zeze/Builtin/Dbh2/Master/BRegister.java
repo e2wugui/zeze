@@ -165,6 +165,8 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
     public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setDbh2RaftAcceptorName(rs.getString(_parents_name_ + "Dbh2RaftAcceptorName"));
+        if (getDbh2RaftAcceptorName() == null)
+            setDbh2RaftAcceptorName("");
     }
 
     @Override

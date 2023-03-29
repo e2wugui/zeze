@@ -252,6 +252,8 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
         setLinksid(rs.getLong(_parents_name_ + "linksid"));
         setCode(rs.getInt(_parents_name_ + "code"));
         setDesc(rs.getString(_parents_name_ + "desc"));
+        if (getDesc() == null)
+            setDesc("");
     }
 
     @Override
