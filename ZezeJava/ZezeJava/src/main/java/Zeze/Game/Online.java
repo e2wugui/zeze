@@ -535,6 +535,10 @@ public class Online extends AbstractOnline {
 
 	// 直接通过 linkName, linkSid 发送协议。
 	public boolean send(String linkName, long linkSid, Protocol<?> p) {
+		return send(null, linkName, linkSid, p);
+	}
+
+	public boolean send(Long roleId, String linkName, long linkSid, Protocol<?> p) {
 		var connector = providerApp.providerService.getLinks().get(linkName);
 		if (null == connector) {
 			logger.warn("link connector not found. name={}", linkName);
@@ -547,7 +551,7 @@ public class Online extends AbstractOnline {
 		}
 		var send = new Send(new BSend(p.getTypeId(), new Binary(p.encode())));
 		send.Argument.getLinkSids().add(linkSid);
-		return send(link, Map.of(linkSid, null), send);
+		return send(link, Map.of(linkSid, roleId), send);
 	}
 
 	//	public void send(Collection<Long> keys, AsyncSocket to, Map<Long, Long> contexts, Send send) {
