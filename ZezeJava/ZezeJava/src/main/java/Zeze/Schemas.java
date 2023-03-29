@@ -1079,7 +1079,7 @@ public class Schemas implements Serializable {
 					var cur = this.tables.get(tableName);
 					relational.currentKeyColumns = cur.buildRelationalColumns(relational.current);
 					relationalTables.put(tableName, relational);
-					System.out.println(relational.createTableSql());
+					//System.out.println(relational.createTableSql());
 
 					// build other. prepare to alter.
 					if (null != other) {

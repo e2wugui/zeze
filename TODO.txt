@@ -20,11 +20,9 @@ Dbh2 事务超时回滚。
 Dbh2 Commit 的两个问题。Transaction.Undo ? 【还是没确定方案】
 Dbh2 创建表选择负载低的服务器的策略。
 Dbh2 根据负载或什么策略并发拆分桶。
-TaskOneByOne 改成 ConcurrentQueue，是否有任务执行使用CompareAndSet之类的标志，去掉Batch恢复一个一个任务执行的方式。
-BUG Dbh2 跑完测试没有关闭Raft服务，后续的单元测试还在继续尝试链接（不断输出链接refused错误）。是Connector没有停止？
+
 Timer redirectCancel 改成同步等待远程执行完成。有点风险。需要考虑一下。
 RelationalTableMapping
-	4. alter table 修改字段类型时，数据库的兼容修改检查。
 	5. 多server(gs)同时启动，create table, alter table 流程的互斥。
 	if (创建表) return done; 
 	if (!Schemas.checkCompatible) return error，
@@ -53,12 +51,18 @@ RelationalTableMapping
 ------------------------------------------------------------------------------------------------------------------------------
 2023/3/31 v1.2.1 cxx net & bean; Online.send use selectDirty; TaskOneByOne.Barrier; RelationalTableMapping; Timer Bug;
 ------------------------------------------------------------------------------------------------------------------------------
+TaskOneByOne 改成 ConcurrentQueue，是否有任务执行使用CompareAndSet之类的标志，去掉Batch恢复一个一个任务执行的方式。
+	【无锁版本张路写了一个，性能没有Batch高，先保留但不启用】
+BUG Dbh2 跑完测试没有关闭Raft服务，后续的单元测试还在继续尝试链接（不断输出链接refused错误）。是Connector没有停止？
+	【Dbh2AgentManager单件没有关闭，增加clear方法关闭，正常进程可以不调用这个方法】
+RelationalTableMapping Alter Table Test
 【Agent的Resend Timer没有停止】
 DatabaseMySql.TableMysqlRelational
 RelationalTableMapping
 	1. Bean encodeJson/decodeJson; prepareStatement/decodeResultSet OK!
 	2. Bean columns; Table create table sql;(从Schemas中构建）
 	3. Schemas alter table;	*. FrameWork & 细节
+	4. alter table 修改字段类型时，数据库的兼容修改检查。
 	a) Database.Table 增加新方法？Database.TableMapping 新接口？TableX下沉到 find，replace，delete？
 	    倾向于【增加】【下沉方法】。
 	b) TableX.walk<K, V> 使用a)的方案，walk<byte[], byte[]>对于Mapping方式不支持。
