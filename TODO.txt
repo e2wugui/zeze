@@ -23,31 +23,25 @@ Dbh2 根据负载或什么策略并发拆分桶。
 
 Timer redirectCancel 改成同步等待远程执行完成。有点风险。需要考虑一下。
 RelationalTableMapping
-	5. 多server(gs)同时启动，create table, alter table 流程的互斥。
-	if (创建表) return done; 
-	if (!Schemas.checkCompatible) return error，
-	Save Schemas;
-	Alters = Schemas.diff();
-	if (Need Alter)
-	{
-		if (checkAndSet(Idle, Altering))
-		{
-			Alter Table。
-			checkAndSet(Altering, Idle);
+5. 多server(gs)同时启动，create table, checkCompatible, alter table 流程的互斥。
+【使用大锁原则】
+a) checkCompatible并且保存成功时，原子的在数据库表里设置一个标记。
+b) 开始diff & alter。
+c) 清除数据库标记。
+try {
+	while (true) {
+		sql = "update __alter_flag_ set flag=1 where __key=1 and flag=0"; // __key=1 是mysql的update必须提供where，否则默认不允许执行。
+		if (executeUpdate(sql).changedRows == 1) {
+			schemasCompatible(); // 由于有了flag，这里实际上就不再会并发了。当然原有的支持并发的代码可以保留。
+			tryAlter();
+			break;
 		}
-		else
-		{
-			// wait Idle
-			while (is Not Idle)
-				sleep(1000);
-		}
+		sleep(1000); // alter 可能很慢，这里多睡一下也行，但是为了兼容不是关系表，选一个合适的值吧。
 	}
-	else
-	{
-		// wait Idle
-		while (is Not Idle)
-			sleep(1000);
-	}
+} finally {
+	sql = "update __alter_flag_ set flag=0 where __key=1"
+	executeUpdate(sql);
+}
 ------------------------------------------------------------------------------------------------------------------------------
 2023/3/31 v1.2.1 cxx net & bean; Online.send use selectDirty; TaskOneByOne.Barrier; RelationalTableMapping; Timer Bug;
 ------------------------------------------------------------------------------------------------------------------------------

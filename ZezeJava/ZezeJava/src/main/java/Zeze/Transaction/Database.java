@@ -539,6 +539,14 @@ public abstract class Database {
 		KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version);
 
 		DataWithVersion getDataWithVersion(ByteBuffer key);
+
+		// 只有mysql实现这个。
+		default boolean tryLock() {
+			return true;
+		}
+
+		default void unlock() {
+		}
 	}
 
 	public static class NullOperates implements Operates {

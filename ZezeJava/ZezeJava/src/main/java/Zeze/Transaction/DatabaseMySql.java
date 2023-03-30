@@ -350,6 +350,42 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				throw new RuntimeException(e);
 			}
 		}
+
+		private static final byte[] keyOfLock = ("Zeze.AtomicStartDatabase.Flag." + 5284111301429717881L).getBytes(StandardCharsets.UTF_8);
+
+		@Override
+		public boolean tryLock() {
+			// 总是尝试创建记录，忽略已经存在。
+			var createRecord = "insert IGNORE into _ZezeDataWithVersion_ values(?, ?, ?)";
+			var lockSql = "update _ZezeDataWithVersion_ set version=1 where id=? and version=0";
+			try (var conn = dataSource.getConnection()) {
+				try (var pre = conn.prepareStatement(createRecord)) {
+					pre.setBytes(1, keyOfLock);
+					pre.setBytes(2, new byte[0]);
+					pre.setLong(3, 0);
+					pre.executeUpdate();
+				}
+				try (var pre = conn.prepareStatement(lockSql)) {
+					pre.setBytes(1, keyOfLock);
+					return 1 == pre.executeUpdate();
+				}
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		@Override
+		public void unlock() {
+			var unlockSql = "update _ZezeDataWithVersion_ set version=0 where id=?";
+			try (var conn = dataSource.getConnection()) {
+				try (var pre = conn.prepareStatement(unlockSql)) {
+					pre.setBytes(1, keyOfLock);
+					pre.executeUpdate();
+				}
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
+		}
 	}
 
 	private static void setParams(PreparedStatement pre, int start, ArrayList<Object> params) throws SQLException {

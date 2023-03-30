@@ -2,7 +2,6 @@ package Zeze;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -334,19 +333,34 @@ public final class Application {
 		}
 	}
 
-	private void alterRelationalTable() {
-		for (var db : getDatabases().values()) {
-			if (!(db instanceof DatabaseMySql))
+	private void atomicStartDatabase() throws Exception {
+		var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
+		while (true) {
+			if (!defaultDb.getDirectOperates().tryLock()) {
+				System.out.println("lock default database fail. sleep and try again...");
+				Thread.sleep(1000);
 				continue;
-			var mysql = (DatabaseMySql)db;
-			// todo 需要 schemas 的版本号，如果已经是最新的不需要再次执行 alter。
-			// todo lock database
-			for (var table : db.getTables()) {
-				if (!table.isRelationalMapping())
-					continue;
-				table.tryAlter();
 			}
-			// todo unlock database
+			try {
+				schemasCompatible();
+
+				// Open Databases
+				for (var db : databases.values())
+					db.open(this);
+
+				for (var db : getDatabases().values()) {
+					if (!(db instanceof DatabaseMySql))
+						continue;
+					for (var table : db.getTables()) {
+						if (!table.isRelationalMapping())
+							continue;
+						table.tryAlter();
+					}
+				}
+			} finally {
+				defaultDb.getDirectOperates().unlock();
+			}
+			break; // done
 		}
 	}
 
@@ -396,15 +410,7 @@ public final class Application {
 		}
 
 		if (!noDatabase) {
-			schemasCompatible();
-
-			// Open Databases
-			for (var db : databases.values())
-				db.open(this);
-
-			// 关系表映射 alter table
-			// 需要总控，所以不在 table 创建的时候处理。
-			alterRelationalTable(); // 总控互斥流程。
+			atomicStartDatabase();
 
 			// Open Global
 			var hosts = Str.trim(conf.getGlobalCacheManagerHostNameOrAddress().split(";"));
