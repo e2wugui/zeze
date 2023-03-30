@@ -1,21 +1,23 @@
 package Zeze.Net;
 
+import org.jetbrains.annotations.Nullable;
+
 public final class SocketOptions {
 	// 系统选项
-	private Boolean noDelay; // 不指定的话由系统提供默认值
-	private Integer sendBuffer; // 不指定的话由系统提供默认值
-	private Integer receiveBuffer; // 不指定的话由系统提供默认值
+	private @Nullable Boolean noDelay; // 不指定的话由系统提供默认值
+	private @Nullable Integer sendBuffer; // 不指定的话由系统提供默认值
+	private @Nullable Integer receiveBuffer; // 不指定的话由系统提供默认值
 	private int backlog = 128; // 只有 ServerSocket 使用
 
 	// 应用选项
 	private int inputBufferMaxProtocolSize = 2 * 1024 * 1024; // 最大协议包的大小。协议需要完整收到才解析和处理，所以需要缓存。这是个安全选项。防止出现攻击占用大量内存。
 	private long outputBufferMaxSize = 2 * 1024 * 1024; // 最大发送协议堆积大小. 用于Service.checkOverflow
 
-	private String timeThrottle;
-	private Integer timeThrottleSeconds;
-	private Integer timeThrottleLimit;
-	private Integer timeThrottleBandwidth;
-	private Long overBandwidth;
+	private @Nullable String timeThrottle;
+	private @Nullable Integer timeThrottleSeconds;
+	private @Nullable Integer timeThrottleLimit;
+	private @Nullable Integer timeThrottleBandwidth;
+	private @Nullable Long overBandwidth;
 	private double overBandwidthFusingRate = 1.0;
 	private double overBandwidthNormalRate = 0.7;
 	private boolean closeWhenMissHandle = false;
@@ -32,12 +34,12 @@ public final class SocketOptions {
 		return overBandwidthFusingRate;
 	}
 
-	public double getOverBandwidthNormalRate() {
-		return overBandwidthNormalRate;
-	}
-
 	public void setOverBandwidthFusingRate(double value) {
 		overBandwidthFusingRate = value;
+	}
+
+	public double getOverBandwidthNormalRate() {
+		return overBandwidthNormalRate;
 	}
 
 	public void setOverBandwidthNormalRate(double value) {
@@ -46,21 +48,26 @@ public final class SocketOptions {
 
 	/**
 	 * Service最大熔断输出带宽（字节）。当达到时会熔断（拒绝所有的请求）
+	 *
 	 * @return 熔断输出带宽。
 	 */
-	public Long getOverBandwidth() {
+	public @Nullable Long getOverBandwidth() {
 		return overBandwidth;
 	}
 
-	public void setOverBandwidth(long value) {
+	public void setOverBandwidth(Long value) {
 		overBandwidth = value;
 	}
 
-	public String getTimeThrottle() {
+	public @Nullable String getTimeThrottle() {
 		return timeThrottle;
 	}
 
-	public Integer getTimeThrottleBandwidth() {
+	public void setTimeThrottle(@Nullable String name) {
+		timeThrottle = name;
+	}
+
+	public @Nullable Integer getTimeThrottleBandwidth() {
 		return timeThrottleBandwidth;
 	}
 
@@ -68,47 +75,43 @@ public final class SocketOptions {
 		timeThrottleBandwidth = band;
 	}
 
-	public void setTimeThrottle(String name) {
-		timeThrottle = name;
-	}
-
-	public Integer getTimeThrottleSeconds() {
+	public @Nullable Integer getTimeThrottleSeconds() {
 		return timeThrottleSeconds;
-	}
-
-	public Integer getTimeThrottleLimit() {
-		return timeThrottleLimit;
 	}
 
 	public void setTimeThrottleSeconds(int seconds) {
 		timeThrottleSeconds = seconds;
 	}
 
+	public @Nullable Integer getTimeThrottleLimit() {
+		return timeThrottleLimit;
+	}
+
 	public void setTimeThrottleLimit(int limit) {
 		timeThrottleLimit = limit;
 	}
 
-	public Boolean getNoDelay() {
+	public @Nullable Boolean getNoDelay() {
 		return noDelay;
 	}
 
-	public void setNoDelay(Boolean value) {
+	public void setNoDelay(@Nullable Boolean value) {
 		noDelay = value;
 	}
 
-	public Integer getSendBuffer() {
+	public @Nullable Integer getSendBuffer() {
 		return sendBuffer;
 	}
 
-	public void setSendBuffer(Integer value) {
+	public void setSendBuffer(@Nullable Integer value) {
 		sendBuffer = value;
 	}
 
-	public Integer getReceiveBuffer() {
+	public @Nullable Integer getReceiveBuffer() {
 		return receiveBuffer;
 	}
 
-	public void setReceiveBuffer(Integer value) {
+	public void setReceiveBuffer(@Nullable Integer value) {
 		receiveBuffer = value;
 	}
 

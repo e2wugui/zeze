@@ -212,7 +212,7 @@ public final class Application {
 		return tables.get(id);
 	}
 
-	public @Nullable Table getTable(String name) {
+	public @Nullable Table getTable(@NotNull String name) {
 		return tableNameMap.get(name);
 	}
 
@@ -220,20 +220,20 @@ public final class Application {
 		return Collections.unmodifiableMap(tableNameMap);
 	}
 
-	public Database getDatabase(String name) {
+	public Database getDatabase(@NotNull String name) {
 		var db = databases.get(name);
 		if (db == null)
 			throw new IllegalStateException("database not exist name=" + name);
 		return db;
 	}
 
-	public @NotNull AutoKey getAutoKey(String name) {
+	public @NotNull AutoKey getAutoKey(@NotNull String name) {
 		//noinspection DataFlowIssue
 		return autoKey.getOrAdd(name);
 	}
 
 	@Deprecated // 暂时保留
-	public @NotNull AutoKeyOld getAutoKeyOld(String name) {
+	public @NotNull AutoKeyOld getAutoKeyOld(@NotNull String name) {
 		//noinspection DataFlowIssue
 		return autoKeyOld.getOrAdd(name);
 	}
@@ -250,12 +250,12 @@ public final class Application {
 		return delayRemove;
 	}
 
-	public @NotNull Procedure newProcedure(@NotNull FuncLong action, String actionName) {
+	public @NotNull Procedure newProcedure(@NotNull FuncLong action, @Nullable String actionName) {
 		return newProcedure(action, actionName, TransactionLevel.Serializable, null);
 	}
 
-	public @NotNull Procedure newProcedure(@NotNull FuncLong action, String actionName, TransactionLevel level,
-										   Object userState) {
+	public @NotNull Procedure newProcedure(@NotNull FuncLong action, @Nullable String actionName,
+										   @Nullable TransactionLevel level, @Nullable Object userState) {
 		if (startState != 2)
 			throw new IllegalStateException("App Not Start");
 		return new Procedure(this, action, actionName, level, userState);
@@ -521,15 +521,15 @@ public final class Application {
 		return taskOneByOneByKey;
 	}
 
-	public void runTaskOneByOneByKey(@NotNull Object oneByOneKey, String actionName, @NotNull FuncLong func) {
+	public void runTaskOneByOneByKey(@NotNull Object oneByOneKey, @Nullable String actionName, @NotNull FuncLong func) {
 		taskOneByOneByKey.Execute(oneByOneKey, newProcedure(func, actionName), DispatchMode.Normal);
 	}
 
-	public void runTaskOneByOneByKey(int oneByOneKey, String actionName, @NotNull FuncLong func) {
+	public void runTaskOneByOneByKey(int oneByOneKey, @Nullable String actionName, @NotNull FuncLong func) {
 		taskOneByOneByKey.Execute(oneByOneKey, newProcedure(func, actionName), DispatchMode.Normal);
 	}
 
-	public void runTaskOneByOneByKey(long oneByOneKey, String actionName, @NotNull FuncLong func) {
+	public void runTaskOneByOneByKey(long oneByOneKey, @Nullable String actionName, @NotNull FuncLong func) {
 		taskOneByOneByKey.Execute(oneByOneKey, newProcedure(func, actionName), DispatchMode.Normal);
 	}
 }

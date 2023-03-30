@@ -10,10 +10,11 @@ import java.util.TreeMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.Action1;
-import Zeze.Util.IntHashMap;
 import Zeze.Util.KV;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 1 启动数据库时，用来判断当前代码的数据定义结构是否和当前数据库的定义结构兼容。
@@ -31,23 +32,23 @@ import org.apache.logging.log4j.Logger;
  * 所以这个功能暂时先不提供了。
  */
 public class Schemas implements Serializable {
-	public static class Checked {
+	public static final class Checked {
 		private Bean previous;
 		private Bean current;
 
-		public final Bean getPrevious() {
+		public Bean getPrevious() {
 			return previous;
 		}
 
-		public final void setPrevious(Bean value) {
+		public void setPrevious(Bean value) {
 			previous = value;
 		}
 
-		public final Bean getCurrent() {
+		public Bean getCurrent() {
 			return current;
 		}
 
-		public final void setCurrent(Bean value) {
+		public void setCurrent(Bean value) {
 			current = value;
 		}
 
@@ -61,7 +62,7 @@ public class Schemas implements Serializable {
 		}
 
 		@Override
-		public boolean equals(Object obj) {
+		public boolean equals(@Nullable Object obj) {
 			if (this == obj) {
 				return true;
 			}
@@ -71,35 +72,35 @@ public class Schemas implements Serializable {
 		}
 	}
 
-	public static class CheckResult {
+	public static final class CheckResult {
 		private Bean bean;
 		private final ArrayList<Action1<Bean>> updates = new ArrayList<>();
 		private final ArrayList<Action1<Bean>> updateVariables = new ArrayList<>();
 
-		public final Bean getBean() {
+		public Bean getBean() {
 			return bean;
 		}
 
-		public final void setBean(Bean value) {
+		public void setBean(Bean value) {
 			bean = value;
 		}
 
-		private ArrayList<Action1<Bean>> getUpdates() {
+		private @NotNull ArrayList<Action1<Bean>> getUpdates() {
 			return updates;
 		}
 
-		private ArrayList<Action1<Bean>> getUpdateVariables() {
+		private @NotNull ArrayList<Action1<Bean>> getUpdateVariables() {
 			return updateVariables;
 		}
 
-		public final void addUpdate(Action1<Bean> Update, Action1<Bean> UpdateVariable) {
+		public void addUpdate(@NotNull Action1<Bean> Update, @Nullable Action1<Bean> UpdateVariable) {
 			getUpdates().add(Update);
 			if (null != UpdateVariable) {
 				getUpdateVariables().add(UpdateVariable);
 			}
 		}
 
-		public final void update() throws Exception {
+		public void update() throws Exception {
 			for (var update : getUpdates()) {
 				update.run(getBean());
 			}
@@ -109,7 +110,7 @@ public class Schemas implements Serializable {
 		}
 	}
 
-	public static class Context {
+	public static final class Context {
 		private Schemas current;
 		private Schemas previous;
 		private final HashMap<Checked, CheckResult> checked = new HashMap<>();
@@ -117,46 +118,46 @@ public class Schemas implements Serializable {
 		private Config config;
 		private long renameCount;
 
-		public final Schemas getCurrent() {
+		public Schemas getCurrent() {
 			return current;
 		}
 
-		public final void setCurrent(Schemas value) {
+		public void setCurrent(Schemas value) {
 			current = value;
 		}
 
-		public final Schemas getPrevious() {
+		public Schemas getPrevious() {
 			return previous;
 		}
 
-		public final void setPrevious(Schemas value) {
+		public void setPrevious(Schemas value) {
 			previous = value;
 		}
 
-		public final HashMap<Checked, CheckResult> getChecked() {
+		public @NotNull HashMap<Checked, CheckResult> getChecked() {
 			return checked;
 		}
 
-		public final HashMap<Bean, CheckResult> getCopyBeanIfRemoved() {
+		public @NotNull HashMap<Bean, CheckResult> getCopyBeanIfRemoved() {
 			return copyBeanIfRemoved;
 		}
 
-		public final Config getConfig() {
+		public Config getConfig() {
 			return config;
 		}
 
-		public final void setConfig(Config value) {
+		public void setConfig(Config value) {
 			config = value;
 		}
 
-		public final CheckResult getCheckResult(Bean previous, Bean current) {
+		public @Nullable CheckResult getCheckResult(Bean previous, Bean current) {
 			Schemas.Checked tempVar = new Schemas.Checked();
 			tempVar.setPrevious(previous);
 			tempVar.setCurrent(current);
 			return getChecked().get(tempVar);
 		}
 
-		public final void addCheckResult(Bean previous, Bean current, CheckResult result) {
+		public void addCheckResult(Bean previous, Bean current, @NotNull CheckResult result) {
 			Schemas.Checked tempVar = new Schemas.Checked();
 			tempVar.setPrevious(previous);
 			tempVar.setCurrent(current);
@@ -164,23 +165,23 @@ public class Schemas implements Serializable {
 				throw new IllegalStateException("duplicate var in Checked Map");
 		}
 
-		public final CheckResult getCopyBeanIfRemovedResult(Bean bean) {
+		public @Nullable CheckResult getCopyBeanIfRemovedResult(@NotNull Bean bean) {
 			return getCopyBeanIfRemoved().get(bean);
 		}
 
-		public final void addCopyBeanIfRemovedResult(Bean bean, CheckResult result) {
+		public void addCopyBeanIfRemovedResult(@NotNull Bean bean, @NotNull CheckResult result) {
 			if (null != getCopyBeanIfRemoved().put(bean, result))
 				throw new IllegalStateException("duplicate bean in CopyBeanIfRemoved Map");
 		}
 
-		public final void update() throws Exception {
+		public void update() throws Exception {
 			for (var result : getChecked().values())
 				result.update();
 			for (var result : getCopyBeanIfRemoved().values())
 				result.update();
 		}
 
-		public final String generateUniqueName() {
+		public @NotNull String generateUniqueName() {
 			renameCount++;
 			return "_" + renameCount;
 		}
@@ -218,7 +219,7 @@ public class Schemas implements Serializable {
 		}
 		//VectorBean
 
-		private static boolean isTypeNameCompatible(String typeName0, String typeName1) {
+		private static boolean isTypeNameCompatible(@NotNull String typeName0, @NotNull String typeName1) {
 			if (typeName0.equals(typeName1))
 				return true;
 			var t0 = compatibleTable.get(typeName0);
@@ -226,9 +227,8 @@ public class Schemas implements Serializable {
 			return t0 != null && t0.equals(t1);
 		}
 
-		public boolean isCompatible(Type other, Context context,
-									Action1<Bean> Update,
-									Action1<Bean> UpdateVariable) {
+		public boolean isCompatible(@Nullable Type other, @NotNull Context context,
+									@NotNull Action1<Bean> Update, @Nullable Action1<Bean> UpdateVariable) {
 			if (other == this)
 				return true;
 			if (other == null)
@@ -263,20 +263,20 @@ public class Schemas implements Serializable {
 		}
 
 		@Override
-		public void decode(ByteBuffer bb) {
+		public void decode(@NotNull ByteBuffer bb) {
 			name = bb.ReadString();
 			keyName = bb.ReadString();
 			valueName = bb.ReadString();
 		}
 
 		@Override
-		public void encode(ByteBuffer bb) {
+		public void encode(@NotNull ByteBuffer bb) {
 			bb.WriteString(name);
 			bb.WriteString(keyName);
 			bb.WriteString(valueName);
 		}
 
-		public void compile(Schemas s) {
+		public void compile(@NotNull Schemas s) {
 			key = s.compile(keyName, "", "");
 			if (key != null && key instanceof Bean)
 				((Bean)key).keyRefCount++;
@@ -286,9 +286,9 @@ public class Schemas implements Serializable {
 				((Bean)value).keyRefCount++;
 		}
 
-		public void tryCopyBeanIfRemoved(Context context,
-										 Action1<Bean> Update,
-										 Action1<Bean> UpdateVariable) {
+		public void tryCopyBeanIfRemoved(@NotNull Context context,
+										 @NotNull Action1<Bean> Update,
+										 @Nullable Action1<Bean> UpdateVariable) {
 			if (key != null) {
 				key.tryCopyBeanIfRemoved(context, bean -> {
 							keyName = bean.name;
@@ -332,7 +332,7 @@ public class Schemas implements Serializable {
 			sqlTypeTable.put("quaternion", "FLOAT");
 		}
 
-		public String toSqlType(boolean isKey) {
+		public @NotNull String toSqlType(boolean isKey) {
 			var sqlType = sqlTypeTable.get(name);
 			if (null == sqlType)
 				throw new RuntimeException("unknown sql type=" + name);
@@ -341,7 +341,7 @@ public class Schemas implements Serializable {
 			return sqlType;
 		}
 
-		public static String toColumnName(ArrayList<String> varNames) {
+		public static @NotNull String toColumnName(@NotNull ArrayList<String> varNames) {
 			var sb = new StringBuilder();
 			sb.append(varNames.get(0));
 			for (int i = 1; i < varNames.size(); ++i)
@@ -349,7 +349,7 @@ public class Schemas implements Serializable {
 			return sb.toString();
 		}
 
-		public static String toColumnName(ArrayList<String> varNames, String lastName) {
+		public static @NotNull String toColumnName(@NotNull ArrayList<String> varNames, @NotNull String lastName) {
 			var sb = new StringBuilder();
 			sb.append(varNames.get(0));
 			for (int i = 1; i < varNames.size(); ++i)
@@ -358,7 +358,7 @@ public class Schemas implements Serializable {
 			return sb.toString();
 		}
 
-		public static int[] toVarIds(ArrayList<Integer> varIds, int lastId) {
+		public static int @NotNull [] toVarIds(@NotNull ArrayList<Integer> varIds, int lastId) {
 			var ids = new int[varIds.size() + 1];
 			for (var i = 0; i < varIds.size(); ++i)
 				ids[i] = varIds.get(i);
@@ -367,8 +367,8 @@ public class Schemas implements Serializable {
 		}
 
 		public void buildRelationalColumns(boolean isKey, Table table, Bean bean, Variable variable,
-										   ArrayList<String> varNames, ArrayList<Integer> varIds,
-										   ArrayList<Column> columns) {
+										   @NotNull ArrayList<String> varNames, @NotNull ArrayList<Integer> varIds,
+										   @NotNull ArrayList<Column> columns) {
 			switch (name) {
 			case "vector2":
 			case "vector2int":
@@ -410,11 +410,8 @@ public class Schemas implements Serializable {
 		public Type type;
 		public boolean deleted;
 
-		public Variable() {
-		}
-
 		@Override
-		public void decode(ByteBuffer bb) {
+		public void decode(@NotNull ByteBuffer bb) {
 			id = bb.ReadInt();
 			name = bb.ReadString();
 			typeName = bb.ReadString();
@@ -424,7 +421,7 @@ public class Schemas implements Serializable {
 		}
 
 		@Override
-		public void encode(ByteBuffer bb) {
+		public void encode(@NotNull ByteBuffer bb) {
 			bb.WriteInt(id);
 			bb.WriteString(name);
 			bb.WriteString(typeName);
@@ -433,11 +430,11 @@ public class Schemas implements Serializable {
 			bb.WriteBool(deleted);
 		}
 
-		public void compile(Schemas s) {
+		public void compile(@NotNull Schemas s) {
 			type = s.compile(typeName, keyName, valueName);
 		}
 
-		public boolean isCompatible(Variable other, Context context) {
+		public boolean isCompatible(@NotNull Variable other, @NotNull Context context) {
 			return this.type.isCompatible(other.type, context,
 					(bean) ->
 					{
@@ -478,7 +475,7 @@ public class Schemas implements Serializable {
 		// 这里记录在当前版本Schemas中Bean的实际名字，只有生成的bean包含这个。
 		private String realName = "";
 
-		public final TreeMap<Integer, Variable> getVariables() {
+		public final @NotNull TreeMap<Integer, Variable> getVariables() {
 			return variables;
 		}
 
@@ -518,7 +515,8 @@ public class Schemas implements Serializable {
 		 * @return true: compatible
 		 */
 		@Override
-		public boolean isCompatible(Type other, Context context, Action1<Bean> Update, Action1<Bean> UpdateVariable) {
+		public boolean isCompatible(@Nullable Type other, @NotNull Context context, @NotNull Action1<Bean> Update,
+									@Nullable Action1<Bean> UpdateVariable) {
 			if (other == null)
 				return false;
 
@@ -537,8 +535,7 @@ public class Schemas implements Serializable {
 			context.addCheckResult(beanOther, this, result);
 
 			ArrayList<Variable> deleteds = new ArrayList<>();
-			for (var it = beanOther.getVariables().entrySet().iterator(); it.hasNext(); ) {
-				var e = it.next();
+			for (var e : beanOther.getVariables().entrySet()) {
 				var vOther = e.getValue();
 				var vThis = getVariables().get(vOther.id);
 				if (null != vThis) {
@@ -581,8 +578,7 @@ public class Schemas implements Serializable {
 					logger.error("Not Compatible. beankey={} Variables.Count < DB.Variables.Count,Must Be Reduced", name);
 					return false;
 				}
-				for (var it = beanOther.getVariables().entrySet().iterator(); it.hasNext(); ) {
-					var e = it.next();
+				for (var e : beanOther.getVariables().entrySet()) {
 					var vOther = e.getValue();
 					if (vOther.deleted) {
 						// 当作Key前允许删除变量，所以可能存在已经被删除的变量。
@@ -610,9 +606,9 @@ public class Schemas implements Serializable {
 		}
 
 		@Override
-		public void tryCopyBeanIfRemoved(Context context,
-										 Action1<Bean> Update,
-										 Action1<Bean> UpdateVariable) {
+		public void tryCopyBeanIfRemoved(@NotNull Context context,
+										 @NotNull Action1<Bean> Update,
+										 @Nullable Action1<Bean> UpdateVariable) {
 			CheckResult result = context.getCopyBeanIfRemovedResult(this);
 			if (null != result) {
 				result.addUpdate(Update, UpdateVariable);
@@ -651,7 +647,7 @@ public class Schemas implements Serializable {
 				v.tryCopyBeanIfRemoved(context);
 		}
 
-		private Bean ShadowCopy(Context context) {
+		private @NotNull Bean ShadowCopy(@NotNull Context context) {
 			var newBean = new Bean();
 			newBean.name = context.generateUniqueName();
 			newBean.isBeanKey = this.isBeanKey;
@@ -664,7 +660,7 @@ public class Schemas implements Serializable {
 		}
 
 		@Override
-		public void decode(ByteBuffer bb) {
+		public void decode(@NotNull ByteBuffer bb) {
 			name = bb.ReadString();
 			isBeanKey = bb.ReadBool();
 			deleted = bb.ReadBool();
@@ -677,7 +673,7 @@ public class Schemas implements Serializable {
 		}
 
 		@Override
-		public void encode(ByteBuffer bb) {
+		public void encode(@NotNull ByteBuffer bb) {
 			bb.WriteString(name);
 			bb.WriteBool(isBeanKey);
 			bb.WriteBool(deleted);
@@ -688,21 +684,21 @@ public class Schemas implements Serializable {
 		}
 
 		@Override
-		public void compile(Schemas s) {
+		public void compile(@NotNull Schemas s) {
 			for (var v : getVariables().values())
 				v.compile(s);
 		}
 
-		public final void addVariable(Variable var) {
+		public final void addVariable(@NotNull Variable var) {
 			getVariables().put(var.id, var);
 		}
 
 		@Override
 		public void buildRelationalColumns(boolean isKey, Table table, Bean bean, Variable variable,
-										   ArrayList<String> varNames, ArrayList<Integer> varIds,
-										   ArrayList<Column> columns) {
+										   @NotNull ArrayList<String> varNames, @NotNull ArrayList<Integer> varIds,
+										   @NotNull ArrayList<Column> columns) {
 			for (var e : variables.entrySet()) {
-				var key = e.getKey();
+				// var key = e.getKey();
 				var value = e.getValue();
 				varNames.add(value.name);
 				varIds.add(value.id);
@@ -734,20 +730,20 @@ public class Schemas implements Serializable {
 		}
 
 		@Override
-		public void decode(ByteBuffer bb) {
+		public void decode(@NotNull ByteBuffer bb) {
 			name = bb.ReadString();
 			keyName = bb.ReadString();
 			valueName = bb.ReadString();
 		}
 
 		@Override
-		public void encode(ByteBuffer bb) {
+		public void encode(@NotNull ByteBuffer bb) {
 			bb.WriteString(name);
 			bb.WriteString(keyName);
 			bb.WriteString(valueName);
 		}
 
-		public boolean isCompatible(Table other, Context context) {
+		public boolean isCompatible(@NotNull Table other, @NotNull Context context) {
 			return name.equals(other.name)
 					&& keyType.isCompatible(other.keyType, context,
 					(bean) ->
@@ -765,7 +761,7 @@ public class Schemas implements Serializable {
 					null);
 		}
 
-		public void compile(Schemas s) {
+		public void compile(@NotNull Schemas s) {
 			keyType = s.compile(keyName, "", "");
 			if (keyType instanceof Bean) {
 				((Bean)keyType).keyRefCount++;
@@ -773,7 +769,7 @@ public class Schemas implements Serializable {
 			valueType = s.compile(valueName, "", "");
 		}
 
-		public String buildRelationalColumns(ArrayList<Column> columns) {
+		public @NotNull String buildRelationalColumns(@NotNull ArrayList<Column> columns) {
 			String keyColumns;
 
 			// 构造一个虚拟变量。Column需要用到。
@@ -788,7 +784,7 @@ public class Schemas implements Serializable {
 				varNames.add(varKey.name);
 				var varIds = new ArrayList<Integer>();
 				varIds.add(varKey.id);
-				keyType.buildRelationalColumns(true,this, null, varKey, varNames, varIds, columns);
+				keyType.buildRelationalColumns(true, this, null, varKey, varNames, varIds, columns);
 				columns.sort(new ColumnComparator());
 				var sb = new StringBuilder();
 				for (var column : columns) {
@@ -799,13 +795,13 @@ public class Schemas implements Serializable {
 				keyColumns = sb.toString();
 			} else {
 				keyColumns = varKey.name;
-				var varIds = new int[] { varKey.id };
+				var varIds = new int[]{varKey.id};
 				columns.add(new Column(varKey.name, varIds, this, null, varKey, keyType.toSqlType(true)));
 			}
 			var varNames = new ArrayList<String>();
 			var varIds = new ArrayList<Integer>();
 			varIds.add(2);
-			valueType.buildRelationalColumns(false,this, null, null, varNames, varIds, columns);
+			valueType.buildRelationalColumns(false, this, null, null, varNames, varIds, columns);
 
 			// 构建好就排序，不能再diff的时候排序，有可能diff不会被调用。
 			var comparator = new ColumnComparator();
@@ -819,7 +815,7 @@ public class Schemas implements Serializable {
 	public final TreeMap<String, Bean> beans = new TreeMap<>();
 	private final TreeMap<String, Type> basicTypes = new TreeMap<>();
 
-	public void checkCompatible(Schemas other, Application app) throws Exception {
+	public void checkCompatible(@Nullable Schemas other, @NotNull Application app) throws Exception {
 		if (other == null)
 			return;
 
@@ -844,7 +840,7 @@ public class Schemas implements Serializable {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(@NotNull ByteBuffer bb) {
 		for (int count = bb.ReadInt(); count > 0; --count) {
 			var table = new Table();
 			table.decode(bb);
@@ -860,7 +856,7 @@ public class Schemas implements Serializable {
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		bb.WriteInt(tables.size());
 		for (var table : tables.values())
 			table.encode(bb);
@@ -876,7 +872,7 @@ public class Schemas implements Serializable {
 			bean.compile(this);
 	}
 
-	public Type compile(String type, String key, String value) {
+	public @Nullable Type compile(@Nullable String type, @NotNull String key, @NotNull String value) {
 		if (type == null || type.isEmpty())
 			return null;
 
@@ -928,7 +924,7 @@ public class Schemas implements Serializable {
 		public Column change;
 
 		@Override
-		public String toString() {
+		public @NotNull String toString() {
 			return name + ":" + variable.id;
 		}
 
@@ -943,17 +939,16 @@ public class Schemas implements Serializable {
 	}
 
 	public static class ColumnComparator implements Comparator<Column> {
-
 		@Override
-		public int compare(Column o1, Column o2) {
+		public int compare(@NotNull Column o1, @NotNull Column o2) {
 			return Arrays.compare(o1.varIds, o2.varIds);
 		}
 	}
 
 	public static class RelationalTable {
-		public final String tableName;
+		public final @NotNull String tableName;
 		public final ArrayList<Column> current = new ArrayList<>();
-		public String currentKeyColumns;
+		public @Nullable String currentKeyColumns;
 		public final ArrayList<Column> previous = new ArrayList<>();
 
 		// diff 结果
@@ -961,11 +956,11 @@ public class Schemas implements Serializable {
 		public final ArrayList<Column> add = new ArrayList<>();
 		public final ArrayList<Column> remove = new ArrayList<>();
 
-		public RelationalTable(String name) {
+		public RelationalTable(@NotNull String name) {
 			this.tableName = name;
 		}
 
-		public String createTableSql() {
+		public @NotNull String createTableSql() {
 			if (current.isEmpty())
 				throw new RuntimeException("no column");
 			var sb = new StringBuilder();
@@ -980,7 +975,7 @@ public class Schemas implements Serializable {
 			return sb.toString();
 		}
 
-		private static KV<Integer, Integer> catType(String type) {
+		private static @NotNull KV<Integer, Integer> catType(@NotNull String type) {
 			switch (type) {
 			//@formatter:off
 			case "bool":
@@ -1015,7 +1010,7 @@ public class Schemas implements Serializable {
 		}
 
 		// 检查兼容，并返回列是否需要change。
-		private static boolean checkCompatibleAndChange(Column a, Column b) {
+		private static boolean checkCompatibleAndChange(@NotNull Column a, @NotNull Column b) {
 			var aType = catType(a.variable.type.name);
 			var bType = catType(b.variable.type.name);
 			if (!Objects.equals(aType.getKey(), bType.getKey()))
@@ -1080,7 +1075,7 @@ public class Schemas implements Serializable {
 		}
 	}
 
-	public void buildRelationalTables(Application zeze, Schemas other) {
+	public void buildRelationalTables(@NotNull Application zeze, @Nullable Schemas other) {
 		for (var db : zeze.getDatabases().values()) {
 			for (var table : db.getTables()) {
 				if (table.isRelationalMapping()) {

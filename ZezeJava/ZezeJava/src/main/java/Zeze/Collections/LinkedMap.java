@@ -17,24 +17,26 @@ import Zeze.Transaction.ChangeListener;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Util.OutLong;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class LinkedMap<V extends Bean> {
 	public static final BeanFactory beanFactory = new BeanFactory();
 
-	public static long getSpecialTypeIdFromBean(Bean bean) {
+	public static long getSpecialTypeIdFromBean(@NotNull Bean bean) {
 		return BeanFactory.getSpecialTypeIdFromBean(bean);
 	}
 
-	public static Bean createBeanFromSpecialTypeId(long typeId) {
+	public static @NotNull Bean createBeanFromSpecialTypeId(long typeId) {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
 	public static class Module extends AbstractLinkedMap {
 		private final ConcurrentHashMap<String, LinkedMap<?>> LinkedMaps = new ConcurrentHashMap<>();
-		public final Zeze.Application zeze;
+		public final @NotNull Zeze.Application zeze;
 		public static final String eClearJobHandleName = "Zeze.Collections.LinkedMap.Clear";
 
-		public Module(Zeze.Application zeze) {
+		public Module(@NotNull Zeze.Application zeze) {
 			this.zeze = zeze;
 			RegisterZezeTables(zeze);
 
@@ -46,11 +48,12 @@ public class LinkedMap<V extends Bean> {
 			this.zeze.getDelayRemove().register(eClearJobHandleName, this::delayClearJob);
 		}
 
-		public ByteBuffer encodeChangeListenerWithSpecialName(String specialName, Object key, Changes.Record r) {
+		public @NotNull ByteBuffer encodeChangeListenerWithSpecialName(@Nullable String specialName,
+																	   @NotNull Object key, @NotNull Changes.Record r) {
 			return _tLinkedMapNodes.encodeChangeListenerWithSpecialName(specialName, key, r);
 		}
 
-		private void OnLinkedMapNodeChange(Object key, Changes.Record r) {
+		private void OnLinkedMapNodeChange(@NotNull Object key, @NotNull Changes.Record r) {
 			var nodeKey = (BLinkedMapNodeKey)key;
 			var indexOf = nodeKey.getName().lastIndexOf('@');
 			if (indexOf >= 0) {
@@ -61,7 +64,7 @@ public class LinkedMap<V extends Bean> {
 			}
 		}
 
-		private void OnLinkedMapRootChange(Object key, Changes.Record r) {
+		private void OnLinkedMapRootChange(@NotNull Object key, @NotNull Changes.Record r) {
 			var name = (String)key;
 			var indexOf = name.lastIndexOf('@');
 			if (indexOf >= 0) {
@@ -78,19 +81,19 @@ public class LinkedMap<V extends Bean> {
 		}
 
 		@SuppressWarnings("unchecked")
-		public <T extends Bean> LinkedMap<T> open(String name, Class<T> valueClass, int nodeSize) {
+		public <T extends Bean> @NotNull LinkedMap<T> open(@NotNull String name, @NotNull Class<T> valueClass, int nodeSize) {
 			return (LinkedMap<T>)LinkedMaps.computeIfAbsent(name, k -> new LinkedMap<>(this, k, valueClass, nodeSize));
 		}
 
 		@SuppressWarnings("unchecked")
-		public <T extends Bean> LinkedMap<T> open(String name, Class<T> valueClass) {
+		public <T extends Bean> @NotNull LinkedMap<T> open(@NotNull String name, @NotNull Class<T> valueClass) {
 			return (LinkedMap<T>)LinkedMaps.computeIfAbsent(name, k -> new LinkedMap<>(this, k, valueClass, 100));
 		}
 
 		public final ConcurrentHashMap<String, ChangeListener> NodeListeners = new ConcurrentHashMap<>();
 		public final ConcurrentHashMap<String, ChangeListener> RootListeners = new ConcurrentHashMap<>();
 
-		private void delayClearJob(DelayRemove delayRemove, String jobId, Binary jobState) {
+		private void delayClearJob(@NotNull DelayRemove delayRemove, @NotNull String jobId, @NotNull Binary jobState) {
 			var state = new BClearJobState();
 			state.decode(ByteBuffer.Wrap(jobState));
 			while (state.getHeadNodeId() != 0) {
@@ -118,24 +121,24 @@ public class LinkedMap<V extends Bean> {
 		}
 	}
 
-	private final Module module;
-	private final String name;
+	private final @NotNull Module module;
+	private final @NotNull String name;
 	private final int nodeSize;
-	private final MethodHandle valueConstructor;
+	private final @NotNull MethodHandle valueConstructor;
 
-	private LinkedMap(Module module, String name, Class<V> valueClass, int nodeSize) {
+	private LinkedMap(@NotNull Module module, @NotNull String name, @NotNull Class<V> valueClass, int nodeSize) {
 		this.module = module;
 		this.name = name;
 		this.nodeSize = nodeSize;
 		this.valueConstructor = beanFactory.register(valueClass);
 	}
 
-	public String getName() {
+	public @NotNull String getName() {
 		return name;
 	}
 
 	// list
-	public BLinkedMap getRoot() {
+	public @Nullable BLinkedMap getRoot() {
 		return module._tLinkedMaps.get(name);
 	}
 
@@ -157,18 +160,19 @@ public class LinkedMap<V extends Bean> {
 	}
 
 	public long size() {
-		return getRoot().getCount();
+		var root = getRoot();
+		return root != null ? root.getCount() : 0;
 	}
 
-	public long moveAhead(String id) {
+	public long moveAhead(@NotNull String id) {
 		return move(id, true);
 	}
 
-	public long moveTail(String id) {
+	public long moveTail(@NotNull String id) {
 		return move(id, false);
 	}
 
-	private long move(String id, boolean ahead) {
+	private long move(@NotNull String id, boolean ahead) {
 		var nodeId = module._tValueIdToNodeId.get(new BLinkedMapKey(name, id));
 		if (nodeId == null)
 			return 0;
@@ -199,7 +203,7 @@ public class LinkedMap<V extends Bean> {
 	}
 
 	// map
-	public V getOrAdd(String id) {
+	public @NotNull V getOrAdd(@NotNull String id) {
 		var value = get(id);
 		if (null != value)
 			return value;
@@ -208,15 +212,15 @@ public class LinkedMap<V extends Bean> {
 		return value;
 	}
 
-	public V put(long id, V value) {
+	public @Nullable V put(long id, @NotNull V value) {
 		return put(String.valueOf(id), value, true);
 	}
 
-	public V put(String id, V value) {
+	public @Nullable V put(@NotNull String id, @NotNull V value) {
 		return put(id, value, true);
 	}
 
-	public V put(String id, V value, boolean ahead) {
+	public @Nullable V put(@NotNull String id, @NotNull V value, boolean ahead) {
 		var nodeIdKey = new BLinkedMapKey(name, id);
 		var nodeId = module._tValueIdToNodeId.get(nodeIdKey);
 		if (nodeId == null) {
@@ -242,33 +246,33 @@ public class LinkedMap<V extends Bean> {
 		throw new IllegalStateException("NodeId Exist. But Value Not Found.");
 	}
 
-	public Long getNodeId(String id) {
+	public @Nullable Long getNodeId(@NotNull String id) {
 		var nodeId = module._tValueIdToNodeId.get(new BLinkedMapKey(name, id));
 		if (nodeId == null)
 			return null;
 		return nodeId.getNodeId();
 	}
 
-	public Long getNodeId(long id) {
+	public @Nullable Long getNodeId(long id) {
 		return getNodeId(String.valueOf(id));
 	}
 
-	public BLinkedMapNode getNodeById(String id) {
+	public @Nullable BLinkedMapNode getNodeById(@NotNull String id) {
 		var nodeId = module._tValueIdToNodeId.get(new BLinkedMapKey(name, id));
 		if (nodeId == null)
 			return null;
 		return getNode(nodeId.getNodeId());
 	}
 
-	public BLinkedMapNode getNodeById(long id) {
+	public @Nullable BLinkedMapNode getNodeById(long id) {
 		return getNodeById(String.valueOf(id));
 	}
 
-	public V get(long id) {
+	public @Nullable V get(long id) {
 		return get(String.valueOf(id));
 	}
 
-	public V get(String id) {
+	public @Nullable V get(@NotNull String id) {
 		var nodeId = module._tValueIdToNodeId.get(new BLinkedMapKey(name, id));
 		if (nodeId == null)
 			return null;
@@ -284,12 +288,12 @@ public class LinkedMap<V extends Bean> {
 		return null;
 	}
 
-	public V remove(long id) {
+	public @Nullable V remove(long id) {
 		return remove(String.valueOf(id));
 	}
 
 	@SuppressWarnings("unchecked")
-	public V remove(String id) {
+	public @Nullable V remove(@NotNull String id) {
 		var nodeKey = new BLinkedMapKey(name, id);
 		var nodeId = module._tValueIdToNodeId.get(nodeKey);
 		if (nodeId == null)
@@ -336,7 +340,7 @@ public class LinkedMap<V extends Bean> {
 	}
 
 	@SuppressWarnings("unchecked")
-	public long walk(TableWalkHandle<String, V> func) {
+	public long walk(@NotNull TableWalkHandle<String, V> func) {
 		long count = 0L;
 		var root = module._tLinkedMaps.selectDirty(name);
 		if (null == root)
@@ -358,7 +362,7 @@ public class LinkedMap<V extends Bean> {
 	}
 
 	// inner
-	private long addHeadUnsafe(BLinkedMapNodeValue nodeValue) {
+	private long addHeadUnsafe(@NotNull BLinkedMapNodeValue nodeValue) {
 		var root = module._tLinkedMaps.getOrAdd(name);
 		var headNodeId = root.getHeadNodeId();
 		var head = headNodeId != 0 ? getNode(headNodeId) : null;
@@ -382,7 +386,7 @@ public class LinkedMap<V extends Bean> {
 		return newNodeId;
 	}
 
-	private long addTailUnsafe(BLinkedMapNodeValue nodeValue) {
+	private long addTailUnsafe(@NotNull BLinkedMapNodeValue nodeValue) {
 		var root = module._tLinkedMaps.getOrAdd(name);
 		var tailNodeId = root.getTailNodeId();
 		var tail = tailNodeId != 0 ? getNode(tailNodeId) : null;
@@ -405,7 +409,7 @@ public class LinkedMap<V extends Bean> {
 		return newNodeId;
 	}
 
-	private void removeNodeUnsafe(long nodeId, BLinkedMapNode node) {
+	private void removeNodeUnsafe(long nodeId, @NotNull BLinkedMapNode node) {
 		var root = getRoot();
 		var prevNodeId = node.getPrevNodeId();
 		var nextNodeId = node.getNextNodeId();

@@ -23,6 +23,8 @@ import Zeze.IModule;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.InMemoryJavaCompiler;
 import Zeze.Util.StringBuilderCs;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 把模块的方法调用发送到其他服务器实例上执行。
@@ -44,7 +46,7 @@ public final class GenModule {
 	 * 指定的时候，生成到文件，总是覆盖。
 	 * 没有指定的时候，先查看目标类是否存在，存在则直接class.forName装载，否则生成到内存并动态编译。
 	 */
-	public String genFileSrcRoot = System.getProperty("GenFileSrcRoot"); // 支持通过给JVM传递-DGenFileSrcRoot=xxx参数指定
+	public @Nullable String genFileSrcRoot = System.getProperty("GenFileSrcRoot"); // 支持通过给JVM传递-DGenFileSrcRoot=xxx参数指定
 	private final InMemoryJavaCompiler compiler = new InMemoryJavaCompiler();
 	private final HashMap<String, Class<?>> genClassMap = new HashMap<>();
 
@@ -52,7 +54,7 @@ public final class GenModule {
 		compiler.ignoreWarnings();
 	}
 
-	public static <T extends IModule> Constructor<T> getCtor(Class<?> cls, AppBase app) throws ReflectiveOperationException {
+	public static <T extends IModule> Constructor<T> getCtor(@NotNull Class<?> cls, @NotNull AppBase app) throws ReflectiveOperationException {
 		var appClass = app.getClass();
 		@SuppressWarnings("unchecked")
 		var ctors = (Constructor<T>[])cls.getDeclaredConstructors();
@@ -68,7 +70,7 @@ public final class GenModule {
 		throw new NoSuchMethodException("No suitable constructor for redirect module: " + cls.getName());
 	}
 
-	public static <T extends IModule> T newModule(Class<?> cls, AppBase app) throws ReflectiveOperationException {
+	public static <T extends IModule> T newModule(@NotNull Class<?> cls, @NotNull AppBase app) throws ReflectiveOperationException {
 		@SuppressWarnings("unchecked")
 		var ctor = (Constructor<T>)getCtor(cls, app);
 		if (ctor.getParameterCount() != 1)
@@ -76,12 +78,12 @@ public final class GenModule {
 		return ctor.newInstance(app);
 	}
 
-	private static String getRedirectClassName(Class<?> moduleClass) {
+	private static String getRedirectClassName(@NotNull Class<?> moduleClass) {
 		String className = moduleClass.getName();
 		return className.startsWith(REDIRECT_PREFIX) ? className : REDIRECT_PREFIX + className.replace('.', '_');
 	}
 
-	public static <T extends IModule> T createRedirectModule(Class<T> moduleClass, AppBase app) {
+	public static <T extends IModule> @NotNull T createRedirectModule(@NotNull Class<T> moduleClass, @NotNull AppBase app) {
 		try {
 			return newModule(Class.forName(GenModule.getRedirectClassName(moduleClass)), app);
 		} catch (ReflectiveOperationException e) {
@@ -89,7 +91,7 @@ public final class GenModule {
 		}
 	}
 
-	public synchronized IModule[] createRedirectModules(AppBase userApp, Class<?>[] moduleClasses) {
+	public synchronized IModule[] createRedirectModules(@NotNull AppBase userApp, Class<?> @NotNull [] moduleClasses) {
 		int i = 0, n = moduleClasses.length;
 		try {
 			var classNames = new String[n];
@@ -174,7 +176,8 @@ public final class GenModule {
 		}
 	}
 
-	private static String genModuleCode(String genClassName, Class<?> moduleClass, List<MethodOverride> overrides, AppBase userApp) throws Exception {
+	private static String genModuleCode(@NotNull String genClassName, @NotNull Class<?> moduleClass,
+										@NotNull List<MethodOverride> overrides, @NotNull AppBase userApp) throws Exception {
 		var sb = new StringBuilderCs();
 		sb.appendLine("// auto-generated @" + "formatter:off");
 		sb.appendLine("public class {} extends {} {", genClassName, moduleClass.getName());

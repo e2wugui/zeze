@@ -4,22 +4,24 @@ import Zeze.Application;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Services.Handshake.SHandshake0;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class HandshakeBoth extends HandshakeBase {
-	public HandshakeBoth(String name, Config config) {
+	public HandshakeBoth(@NotNull String name, @Nullable Config config) {
 		super(name, config);
 		addHandshakeClientFactoryHandle();
 		addHandshakeServerFactoryHandle();
 	}
 
-	public HandshakeBoth(String name, Application app) {
+	public HandshakeBoth(@NotNull String name, @NotNull Application app) {
 		super(name, app);
 		addHandshakeClientFactoryHandle();
 		addHandshakeServerFactoryHandle();
 	}
 
 	@Override
-	public void OnSocketAccept(AsyncSocket so) {
+	public void OnSocketAccept(@NotNull AsyncSocket so) {
 		// 重载这个方法，推迟OnHandshakeDone调用
 		addSocket(so);
 
@@ -34,7 +36,7 @@ public class HandshakeBoth extends HandshakeBase {
 	}
 
 	@Override
-	public void OnSocketConnected(AsyncSocket so) {
+	public void OnSocketConnected(@NotNull AsyncSocket so) {
 		// 重载这个方法，推迟OnHandshakeDone调用
 		addSocket(so);
 	}

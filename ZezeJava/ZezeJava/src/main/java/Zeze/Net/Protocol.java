@@ -3,12 +3,14 @@ package Zeze.Net;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.ProtocolFactoryFinder;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public abstract class Protocol<TArgument extends Serializable> implements Serializable {
 	public static final int HEADER_SIZE = 12; // moduleId[4] + protocolId[4] + size[4]
 
 	private Object sender; // AsyncSocket or DatagramSession
-	private Object userState;
+	private @Nullable Object userState;
 	public TArgument Argument;
 	protected long resultCode;
 
@@ -24,15 +26,15 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		this.sender = sender;
 	}
 
-	public Service getService() {
+	public @Nullable Service getService() {
 		return sender instanceof AsyncSocket ? ((AsyncSocket)sender).getService() : null;
 	}
 
-	public Object getUserState() {
+	public @Nullable Object getUserState() {
 		return userState;
 	}
 
-	public void setUserState(Object userState) {
+	public void setUserState(@Nullable Object userState) {
 		this.userState = userState;
 	}
 
@@ -88,7 +90,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		if (resultCode == 0)
 			bb.WriteInt(FamilyClass.Protocol);
 		else {
@@ -99,7 +101,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(@NotNull ByteBuffer bb) {
 		var header = bb.ReadInt();
 		if ((header & FamilyClass.FamilyClassMask) != FamilyClass.Protocol)
 			throw new IllegalStateException("invalid header(" + header + ") for decoding protocol " + getClass());
@@ -117,14 +119,14 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		Argument.preAllocSize(size - 1); // [1]familyClass
 	}
 
-	public final ByteBuffer encode() {
+	public final @NotNull ByteBuffer encode() {
 		int preAllocSize = preAllocSize();
 		var bb = ByteBuffer.Allocate(Math.min(HEADER_SIZE + preAllocSize, 65536));
 		encodeWithHead(bb);
 		return bb;
 	}
 
-	public final void encodeWithHead(ByteBuffer bb) {
+	public final void encodeWithHead(@NotNull ByteBuffer bb) {
 		bb.WriteInt4(getModuleId());
 		bb.WriteInt4(getProtocolId());
 		int saveSize = bb.BeginWriteWithSize4();
@@ -136,20 +138,20 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 			preAllocSize(size);
 	}
 
-	public boolean Send(AsyncSocket so) {
+	public boolean Send(@Nullable AsyncSocket so) {
 		if (so == null)
 			return false;
 		sender = so;
 		return so.Send(this);
 	}
 
-	public boolean Send(Service service) {
+	public boolean Send(@NotNull Service service) {
 		return Send(service.GetSocket());
 	}
 
 	// 用于Rpc发送结果。
 	// Rpc会重载实现。
-	public void SendResult(Binary result) {
+	public void SendResult(@Nullable Binary result) {
 	}
 
 	// Rpc 发送结果辅助函数。
@@ -167,18 +169,18 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		SendResultCode(code, null);
 	}
 
-	public final void SendResultCode(long code, @SuppressWarnings("unused") Binary result) {
+	public final void SendResultCode(long code, @SuppressWarnings("unused") @Nullable Binary result) {
 		resultCode = code;
 		SendResult(result);
 	}
 
-	public <P extends Protocol<?>> void dispatch(Service service, Service.ProtocolFactoryHandle<P> factoryHandle)
-			throws Exception {
+	public <P extends Protocol<?>> void dispatch(@NotNull Service service,
+												 @NotNull Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
 		service.dispatchProtocol(this, factoryHandle);
 	}
 
-	public <P extends Protocol<?>> long handle(Service service, Service.ProtocolFactoryHandle<P> factoryHandle)
-			throws Exception {
+	public <P extends Protocol<?>> long handle(@NotNull Service service,
+											   @NotNull Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
 		var handle = factoryHandle.Handle;
 		if (handle != null)
 			return handle.handleProtocol(this);
@@ -190,8 +192,8 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		return 0;
 	}
 
-	public <P extends Protocol<?>> long handle(DatagramService service, Service.ProtocolFactoryHandle<P> factoryHandle)
-			throws Exception {
+	public <P extends Protocol<?>> long handle(@NotNull DatagramService service,
+											   @NotNull Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
 		var handle = factoryHandle.Handle;
 		if (handle != null)
 			return handle.handleProtocol(this);
@@ -210,7 +212,8 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	 * @param singleEncodedProtocol 单个完整的协议包。
 	 * @return decoded protocol instance. if decode fail return null.
 	 */
-	public static Protocol<?> decode(ProtocolFactoryFinder service, ByteBuffer singleEncodedProtocol) {
+	public static @Nullable Protocol<?> decode(@NotNull ProtocolFactoryFinder service,
+											   @NotNull ByteBuffer singleEncodedProtocol) {
 		int moduleId = singleEncodedProtocol.ReadInt4();
 		int protocolId = singleEncodedProtocol.ReadInt4();
 		int size = singleEncodedProtocol.ReadInt4();
@@ -230,18 +233,20 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		return p;
 	}
 
-	public static Protocol<?> decode(Service service, ByteBuffer singleEncodedProtocol) {
+	public static @Nullable Protocol<?> decode(@NotNull Service service,
+											   @NotNull ByteBuffer singleEncodedProtocol) {
 		return decode(service::findProtocolFactoryHandle, singleEncodedProtocol);
 	}
 
-	public static Protocol<?> decode(DatagramService service, ByteBuffer singleEncodedProtocol) {
+	public static @Nullable Protocol<?> decode(@NotNull DatagramService service,
+											   @NotNull ByteBuffer singleEncodedProtocol) {
 		return decode(service::findProtocolFactoryHandle, singleEncodedProtocol);
 	}
 
 	/**
 	 * moduleId[4] + protocolId[4] + size[4] + protocol.bytes[size]
 	 */
-	public static void decode(Service service, AsyncSocket so, ByteBuffer bb) throws Exception {
+	public static void decode(@NotNull Service service, @NotNull AsyncSocket so, @NotNull ByteBuffer bb) throws Exception {
 		while (bb.Size() >= HEADER_SIZE) { // 只有协议发送被分成很小的包，协议头都不够的时候才会发生这个异常。几乎不可能发生。
 			// 读取协议类型和大小
 			var bytes = bb.Bytes;
@@ -291,7 +296,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return String.format("%s ResultCode=%d%n\tArgument=%s", getClass().getName(), resultCode, Argument);
 	}
 }

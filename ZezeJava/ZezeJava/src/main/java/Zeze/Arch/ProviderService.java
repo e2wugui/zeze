@@ -15,20 +15,22 @@ import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BServiceInfos;
 import Zeze.Util.OutObject;
 import Zeze.Util.TaskCompletionSource;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class ProviderService extends HandshakeClient {
 	// private static final Logger logger = LogManager.getLogger(ProviderService.class);
 
 	protected ProviderApp providerApp;
 	private final ConcurrentHashMap<String, Connector> links = new ConcurrentHashMap<>();
-	private volatile Connector[] linkConnectors = new Connector[0];
+	private volatile @NotNull Connector[] linkConnectors = new Connector[0];
 	private final AtomicInteger linkRandomIndex = new AtomicInteger();
 
 	// 用来同步等待Provider的静态绑定完成。
 	public final TaskCompletionSource<Boolean> providerStaticBindCompleted = new TaskCompletionSource<>();
 	public final TaskCompletionSource<Boolean> providerDynamicSubscribeCompleted = new TaskCompletionSource<>();
 
-	public ProviderService(String name, Application zeze) {
+	public ProviderService(@NotNull String name, @NotNull Application zeze) {
 		super(name, zeze);
 	}
 
@@ -37,16 +39,16 @@ public class ProviderService extends HandshakeClient {
 	 * 这里要求 linkName 在所有 provider 中都一样。
 	 * 使用 Connector 配置得到名字，只要保证配置一样。
 	 */
-	public static String getLinkName(AsyncSocket sender) {
+	public static @NotNull String getLinkName(@NotNull AsyncSocket sender) {
 		//noinspection DataFlowIssue
 		return sender.getConnector().getName();
 	}
 
-	public static String getLinkName(BServiceInfo serviceInfo) {
+	public static @NotNull String getLinkName(@NotNull BServiceInfo serviceInfo) {
 		return serviceInfo.getPassiveIp() + ":" + serviceInfo.getPassivePort();
 	}
 
-	public void kick(String linkName, long linkSid, int code, String desc) {
+	public void kick(@NotNull String linkName, long linkSid, int code, @NotNull String desc) {
 		if (linkSid == 0)
 			return;
 
@@ -62,12 +64,13 @@ public class ProviderService extends HandshakeClient {
 		super.start();
 	}
 
-	public Connector apply(BServiceInfo link) {
+	public @Nullable Connector apply(@NotNull BServiceInfo link) {
 		var linkName = getLinkName(link);
 		return links.computeIfAbsent(linkName, __ -> {
 			var outC = new OutObject<Connector>();
 			if (getConfig().tryGetOrAddConnector(link.getPassiveIp(), link.getPassivePort(), true, outC)) {
 				try {
+					//noinspection DataFlowIssue
 					outC.value.start();
 				} catch (Exception e) {
 					throw new RuntimeException(e);
@@ -77,7 +80,7 @@ public class ProviderService extends HandshakeClient {
 		});
 	}
 
-	public void apply(BServiceInfos serviceInfos) {
+	public void apply(@NotNull BServiceInfos serviceInfos) {
 		var current = new HashSet<String>();
 		for (var link : serviceInfos.getServiceInfoListSortedByIdentity()) {
 			var connector = apply(link);
@@ -98,20 +101,20 @@ public class ProviderService extends HandshakeClient {
 	}
 
 	public static class LinkSession {
-		public final String name;
+		public final @NotNull String name;
 		public final long sessionId;
 
-		public LinkSession(AsyncSocket so) {
+		public LinkSession(@NotNull AsyncSocket so) {
 			name = getLinkName(so);
 			sessionId = so.getSessionId();
 		}
 	}
 
-	public ConcurrentHashMap<String, Connector> getLinks() {
+	public @NotNull ConcurrentHashMap<String, Connector> getLinks() {
 		return links;
 	}
 
-	public AsyncSocket randomLink() {
+	public @Nullable AsyncSocket randomLink() {
 		var volatileTmp = linkConnectors;
 		if (volatileTmp.length == 0)
 			return null;
@@ -124,12 +127,12 @@ public class ProviderService extends HandshakeClient {
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
-	public LinkSession newSession(AsyncSocket so) {
+	public @NotNull LinkSession newSession(@NotNull AsyncSocket so) {
 		return new LinkSession(so);
 	}
 
 	@Override
-	public void OnHandshakeDone(AsyncSocket so) throws Exception {
+	public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
 		super.OnHandshakeDone(so);
 		so.setUserState(newSession(so));
 

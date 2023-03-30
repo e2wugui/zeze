@@ -28,6 +28,8 @@ import Zeze.Util.TimeThrottle;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class AsyncSocket implements SelectorHandle, Closeable {
 	public static final Logger logger = LogManager.getLogger(AsyncSocket.class);
@@ -40,7 +42,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private static final byte SEND_CLOSE_DETAIL_MAX = 20; // 必须小于REAL_CLOSED
 	private static final byte REAL_CLOSED = Byte.MAX_VALUE;
 	private static final AtomicLong sessionIdGen = new AtomicLong(1);
-	private static LongSupplier sessionIdGenFunc;
+	private static @NotNull LongSupplier sessionIdGenFunc = sessionIdGen::getAndIncrement;
 
 	static {
 		try {
@@ -66,22 +68,17 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		return !protocolLogExcept.contains(protocolTypeId);
 	}
 
-	public static void setSessionIdGenFunc(LongSupplier seed) {
-		sessionIdGenFunc = seed;
+	public static void setSessionIdGenFunc(@Nullable LongSupplier seed) {
+		sessionIdGenFunc = seed != null ? seed : sessionIdGen::getAndIncrement;
 	}
 
-	private static long nextSessionId() {
-		var genFunc = sessionIdGenFunc;
-		return genFunc != null ? genFunc.getAsLong() : sessionIdGen.getAndIncrement();
-	}
-
-	private long sessionId = nextSessionId(); // 只在setSessionId里修改
-	private final Service service;
-	private final Object acceptorOrConnector;
-	private final Selector selector;
-	private final SelectionKey selectionKey;
-	private volatile SocketAddress remoteAddress; // 连接成功时设置
-	private volatile Object userState;
+	private long sessionId = sessionIdGenFunc.getAsLong(); // 只在setSessionId里修改
+	private final @NotNull Service service;
+	private final @NotNull Object acceptorOrConnector;
+	private final @NotNull Selector selector;
+	private final @NotNull SelectionKey selectionKey;
+	private volatile @Nullable SocketAddress remoteAddress; // 连接成功时设置
+	private volatile @Nullable Object userState;
 
 	@SuppressWarnings("unused")
 	private volatile int outputBufferSize;
@@ -89,8 +86,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 	private final BufferCodec inputBuffer; // 记录这个变量用来操作buffer. 只在selector线程访问
 	private final OutputBuffer outputBuffer;
-	private Codec inputCodecChain; // 只在selector线程访问
-	private Codec outputCodecChain; // 只在selector线程访问
+	private @Nullable Codec inputCodecChain; // 只在selector线程访问
+	private @Nullable Codec outputCodecChain; // 只在selector线程访问
 	private volatile byte security; // 1:Input; 2:Output; 1|2:Input+Output
 
 	private volatile boolean isHandshakeDone;
@@ -115,28 +112,28 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		sessionId = newSessionId;
 	}
 
-	public Service getService() {
+	public @NotNull Service getService() {
 		return service;
 	}
 
-	public Acceptor getAcceptor() {
+	public @Nullable Acceptor getAcceptor() {
 		return acceptorOrConnector instanceof Acceptor ? (Acceptor)acceptorOrConnector : null;
 	}
 
-	public Connector getConnector() {
+	public @Nullable Connector getConnector() {
 		return acceptorOrConnector instanceof Connector ? (Connector)acceptorOrConnector : null;
 	}
 
-	public SelectableChannel getChannel() { // SocketChannel or ServerSocketChannel, 一定不为null
+	public @NotNull SelectableChannel getChannel() { // SocketChannel or ServerSocketChannel, 一定不为null
 		return selectionKey.channel();
 	}
 
-	public Socket getSocket() {
+	public @Nullable Socket getSocket() {
 		SelectableChannel sc = getChannel();
 		return sc instanceof SocketChannel ? ((SocketChannel)sc).socket() : null;
 	}
 
-	public SocketAddress getLocalAddress() { // 已经close的情况下返回null
+	public @Nullable SocketAddress getLocalAddress() { // 已经close的情况下返回null
 		try {
 			SelectableChannel sc = getChannel();
 			if (sc instanceof SocketChannel)
@@ -148,16 +145,16 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		return null;
 	}
 
-	public InetAddress getLocalInetAddress() { // 已经close的情况下返回null
+	public @Nullable InetAddress getLocalInetAddress() { // 已经close的情况下返回null
 		SocketAddress sa = getLocalAddress();
 		return sa instanceof InetSocketAddress ? ((InetSocketAddress)sa).getAddress() : null;
 	}
 
-	public SocketAddress getRemoteAddress() { // 连接成功前返回null, 成功后即使close也不会返回null
+	public @Nullable SocketAddress getRemoteAddress() { // 连接成功前返回null, 成功后即使close也不会返回null
 		return remoteAddress;
 	}
 
-	public InetAddress getRemoteInetAddress() { // 连接成功前返回null, 成功后即使close也不会返回null
+	public @Nullable InetAddress getRemoteInetAddress() { // 连接成功前返回null, 成功后即使close也不会返回null
 		SocketAddress sa = remoteAddress;
 		return sa instanceof InetSocketAddress ? ((InetSocketAddress)sa).getAddress() : null;
 	}
@@ -167,11 +164,11 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	 * 简单变量，没有考虑线程安全问题。
 	 * 内部不使用。
 	 */
-	public Object getUserState() {
+	public @Nullable Object getUserState() {
 		return userState;
 	}
 
-	public void setUserState(Object value) {
+	public void setUserState(@Nullable Object value) {
 		userState = value;
 	}
 
@@ -202,7 +199,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	/**
 	 * for server socket
 	 */
-	public AsyncSocket(Service service, InetSocketAddress localEP, Acceptor acceptor) {
+	public AsyncSocket(@NotNull Service service, @Nullable InetSocketAddress localEP, @NotNull Acceptor acceptor) {
 		this.service = service;
 		this.acceptorOrConnector = acceptor;
 
@@ -240,7 +237,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	@Override
-	public void doHandle(SelectionKey key) throws Exception {
+	public void doHandle(@NotNull SelectionKey key) throws Exception {
 		SelectableChannel channel = key.channel();
 		int ops = key.readyOps();
 		if ((ops & SelectionKey.OP_READ) != 0)
@@ -278,14 +275,15 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	@Override
-	public void doException(SelectionKey key, Throwable e) {
+	public void doException(@NotNull SelectionKey key, @NotNull Throwable e) {
 		close(e);
 	}
 
 	/**
 	 * use inner. create when accepted;
 	 */
-	private AsyncSocket(Service service, SocketChannel sc, Acceptor acceptor) throws IOException {
+	private AsyncSocket(@NotNull Service service, @NotNull SocketChannel sc, @NotNull Acceptor acceptor)
+			throws IOException {
 		this.service = service;
 		this.acceptorOrConnector = acceptor;
 
@@ -317,7 +315,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	/**
 	 * for client socket. connect
 	 */
-	private boolean doConnectSuccess(SocketChannel sc) throws Exception {
+	private boolean doConnectSuccess(@NotNull SocketChannel sc) throws Exception {
 		var socket = sc.socket();
 		remoteAddress = socket.getRemoteSocketAddress();
 		logger.info("Connect: {} for {}:{} recvBuf={}, sendBuf={}", this, service.getClass().getName(),
@@ -328,7 +326,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		return interestOps(SelectionKey.OP_CONNECT, SelectionKey.OP_READ);
 	}
 
-	public AsyncSocket(Service service, String hostNameOrAddress, int port, Object userState, Connector connector) {
+	public AsyncSocket(@NotNull Service service, @Nullable String hostNameOrAddress, int port,
+					   @Nullable Object userState, @NotNull Connector connector) {
 		this.service = service;
 		this.acceptorOrConnector = connector;
 		this.userState = userState;
@@ -350,6 +349,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 			timeThrottle = TimeThrottle.create(this.service.getSocketOptions());
 			selector = service.getSelectors().choice();
+			assert selector != null;
 			operates = new ConcurrentLinkedQueue<>();
 			inputBuffer = new BufferCodec();
 			outputBuffer = new OutputBuffer(selector);
@@ -391,7 +391,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			throw new IllegalStateException(service.getName() + " !isSecurity");
 	}
 
-	public void setInputSecurityCodec(int encryptType, byte[] encryptParam, int compressType) {
+	public void setInputSecurityCodec(int encryptType, byte @Nullable [] encryptParam, int compressType) {
 		submitAction(() -> { // 进selector线程调用
 			Codec chain = inputBuffer;
 			switch (compressType) {
@@ -425,7 +425,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		});
 	}
 
-	public void setOutputSecurityCodec(int encryptType, byte[] encryptParam, int compressType) {
+	public void setOutputSecurityCodec(int encryptType, byte @Nullable [] encryptParam, int compressType) {
 		submitAction(() -> { // 进selector线程调用
 			Codec chain = outputBuffer;
 			switch (encryptType) {
@@ -459,7 +459,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		});
 	}
 
-	public boolean submitAction(Action0 callback) {
+	public boolean submitAction(@NotNull Action0 callback) {
 		var c = closed;
 		if (c != 0) {
 			if (c < SEND_CLOSE_DETAIL_MAX) {
@@ -488,7 +488,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	/**
 	 * 可能直接加到发送缓冲区，返回true则bytes不能再修改了。
 	 */
-	public boolean Send(byte[] bytes, int offset, int length) {
+	public boolean Send(byte @NotNull [] bytes, int offset, int length) {
 		ByteBuffer.VerifyArrayIndex(bytes, offset, length);
 
 		var newSize = (int)outputBufferSizeHandle.getAndAdd(this, length) + length;
@@ -518,14 +518,14 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		return false;
 	}
 
-	private static String toStr(Object obj) {
+	private static @NotNull String toStr(@NotNull Object obj) {
 		return ENABLE_PROTOCOL_LOG_OLD
 				? String.valueOf(obj)
 				: JsonWriter.local().clear().setFlagsAndDepthLimit(JsonWriter.FLAG_NO_QUOTE_KEY, 16)
 				.write(obj).toString();
 	}
 
-	public static void log(String action, long id, Protocol<?> p) {
+	public static void log(@NotNull String action, long id, @NotNull Protocol<?> p) {
 		var sb = new StringBuilder(64);
 		sb.append(action).append(':').append(id).append(' ').append(p.getClass().getSimpleName());
 		boolean logResultCode;
@@ -545,7 +545,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		logger.log(PROTOCOL_LOG_LEVEL, sb);
 	}
 
-	public static void log(String action, String id, Protocol<?> p) {
+	public static void log(@NotNull String action, @NotNull String id, @NotNull Protocol<?> p) {
 		var sb = new StringBuilder(64);
 		sb.append(action).append(':').append(id).append(' ').append(p.getClass().getSimpleName());
 		boolean logResultCode;
@@ -565,7 +565,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		logger.log(PROTOCOL_LOG_LEVEL, sb);
 	}
 
-	public static void log(String action, long sessionId, int moduleId, int protocolId, ByteBuffer bb) {
+	public static void log(@NotNull String action, long sessionId, int moduleId, int protocolId, @NotNull ByteBuffer bb) {
 		int beginReadIndex = bb.ReadIndex;
 		int header = -1;
 		int familyClass = 0;
@@ -593,7 +593,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		logger.log(PROTOCOL_LOG_LEVEL, sb);
 	}
 
-	public static void log(String action, Object idStr, long typeId, ByteBuffer bb) {
+	public static void log(@NotNull String action, @NotNull Object idStr, long typeId, @NotNull ByteBuffer bb) {
 		int moduleId = Protocol.getModuleId(typeId);
 		int protocolId = Protocol.getProtocolId(typeId);
 		int beginReadIndex = bb.ReadIndex;
@@ -623,29 +623,29 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		logger.log(PROTOCOL_LOG_LEVEL, sb);
 	}
 
-	public boolean Send(Protocol<?> p) {
+	public boolean Send(@NotNull Protocol<?> p) {
 		if (ENABLE_PROTOCOL_LOG && canLogProtocol(p.getTypeId()))
 			log("SEND", sessionId, p);
 		return Send(p.encode());
 	}
 
-	public boolean Send(ByteBuffer bb) { // 返回true则bb的Bytes不能再修改了
+	public boolean Send(@NotNull ByteBuffer bb) { // 返回true则bb的Bytes不能再修改了
 		return Send(bb.Bytes, bb.ReadIndex, bb.Size());
 	}
 
-	public boolean Send(Binary binary) {
+	public boolean Send(@NotNull Binary binary) {
 		return Send(binary.bytesUnsafe(), binary.getOffset(), binary.size());
 	}
 
-	public boolean Send(String str) {
+	public boolean Send(@NotNull String str) {
 		return Send(str.getBytes(StandardCharsets.UTF_8));
 	}
 
-	public boolean Send(byte[] bytes) { // 返回true则bytes不能再修改了
+	public boolean Send(byte @NotNull [] bytes) { // 返回true则bytes不能再修改了
 		return Send(bytes, 0, bytes.length);
 	}
 
-	private void processReceive(SocketChannel sc) throws Exception { // 只在selector线程调用
+	private void processReceive(@NotNull SocketChannel sc) throws Exception { // 只在selector线程调用
 		java.nio.ByteBuffer buffer = selector.getReadBuffer(); // 线程共享的buffer,只能本方法内临时使用
 		boolean readAgain = false;
 		do {
@@ -724,7 +724,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	 *    对于繁忙连接是比较罕见的，但是存在抖动的可能。
 	 *    考虑清楚以后去掉while(true)？
 	 */
-	private void doWrite(SocketChannel sc) throws Exception { // 只在selector线程调用
+	private void doWrite(@NotNull SocketChannel sc) throws Exception { // 只在selector线程调用
 		int blockSize = selector.getSelectors().getBbPoolBlockSize();
 		int bufSize = outputBuffer.size();
 		while (true) {
@@ -803,7 +803,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			timeThrottle.close();
 	}
 
-	private boolean close(Throwable ex, boolean gracefully) {
+	private boolean close(@Nullable Throwable ex, boolean gracefully) {
 		if (!closedHandle.compareAndSet(this, (byte)0, (byte)1)) // 阻止递归关闭
 			return false;
 
@@ -843,7 +843,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		return close(null, true);
 	}
 
-	public boolean close(Throwable ex) {
+	public boolean close(@Nullable Throwable ex) {
 		return close(ex, false);
 	}
 
@@ -853,7 +853,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		SocketAddress localAddress = getLocalAddress();
 		SocketAddress remoteAddress = this.remoteAddress;
 		return "[" + sessionId + ']' +

@@ -2,12 +2,13 @@ package Zeze.Arch;
 
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Provider.BLoad;
+import org.jetbrains.annotations.NotNull;
 
 public class ProviderSession {
-	protected volatile BLoad load = new BLoad();
+	protected volatile @NotNull BLoad load = new BLoad();
 	protected int serverId;
 	protected long sessionId;
-	protected String serverLoadIp = "";
+	protected @NotNull String serverLoadIp = "";
 	protected int serverLoadPort;
 
 	/**
@@ -16,12 +17,12 @@ public class ProviderSession {
 	 */
 	protected final ConcurrentHashMap<String, ConcurrentHashMap<String, ProviderModuleState>> ServiceReadyStates = new ConcurrentHashMap<>();
 
-	public String getServerLoadName() {
+	public @NotNull String getServerLoadName() {
 		return serverLoadIp + ":" + serverLoadPort;
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return serverLoadIp + ":" + serverLoadPort + "@" + sessionId;
 	}
 
@@ -33,7 +34,7 @@ public class ProviderSession {
 		return serverId;
 	}
 
-	public ConcurrentHashMap<String, ProviderModuleState> getOrAddServiceReadyState(String serviceName) {
+	public @NotNull ConcurrentHashMap<String, ProviderModuleState> getOrAddServiceReadyState(@NotNull String serviceName) {
 		return ServiceReadyStates.computeIfAbsent(serviceName, __ -> new ConcurrentHashMap<>());
 	}
 }

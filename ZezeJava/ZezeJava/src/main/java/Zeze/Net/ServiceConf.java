@@ -11,15 +11,17 @@ import Zeze.Util.Action1;
 import Zeze.Util.IntHashSet;
 import Zeze.Util.OutObject;
 import Zeze.Util.Str;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 public final class ServiceConf {
 	private Service service;
-	private final String name;
-	private SocketOptions socketOptions = new SocketOptions();
-	private HandshakeOptions handshakeOptions = new HandshakeOptions();
+	private final @NotNull String name;
+	private @NotNull SocketOptions socketOptions = new SocketOptions();
+	private @NotNull HandshakeOptions handshakeOptions = new HandshakeOptions();
 	private final ConcurrentHashMap<String, Acceptor> acceptors = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, Connector> connectors = new ConcurrentHashMap<>();
 	private int maxConnections = 1024; // 适合绝大多数网络服务，对于连接机，比如Linkd，Gated等需要自己加大。
@@ -28,7 +30,7 @@ public final class ServiceConf {
 		return service;
 	}
 
-	public String getName() {
+	public @NotNull String getName() {
 		return name;
 	}
 
@@ -36,21 +38,24 @@ public final class ServiceConf {
 		return maxConnections;
 	}
 
-	public SocketOptions getSocketOptions() {
+	public @NotNull SocketOptions getSocketOptions() {
 		return socketOptions;
 	}
 
-	public void setSocketOptions(SocketOptions value) {
+	public void setSocketOptions(@NotNull SocketOptions value) {
+		//noinspection ConstantValue
 		if (value != null)
 			socketOptions = value;
 	}
 
-	public HandshakeOptions getHandshakeOptions() {
+	public @NotNull HandshakeOptions getHandshakeOptions() {
 		return handshakeOptions;
 	}
 
-	public void setHandshakeOptions(HandshakeOptions value) {
-		handshakeOptions = value;
+	public void setHandshakeOptions(@NotNull HandshakeOptions value) {
+		//noinspection ConstantValue
+		if (value != null)
+			handshakeOptions = value;
 	}
 
 	public synchronized void setService(Service service) {
@@ -62,18 +67,18 @@ public final class ServiceConf {
 		forEachConnector(c -> c.SetService(service));
 	}
 
-	public void addConnector(Connector connector) {
+	public void addConnector(@NotNull Connector connector) {
 		if (null != connectors.putIfAbsent(connector.getName(), connector)) {
 			throw new IllegalStateException("Duplicate Connector=" + connector.getName());
 		}
 		connector.SetService(service);
 	}
 
-	public Connector findConnector(String name) {
+	public @Nullable Connector findConnector(@NotNull String name) {
 		return connectors.get(name);
 	}
 
-	public Connector findConnector(String host, int port) {
+	public @Nullable Connector findConnector(@NotNull String host, int port) {
 		return findConnector(host + ":" + port);
 	}
 
@@ -86,7 +91,8 @@ public final class ServiceConf {
 	 * @param getOrAdd      out. connector returned.
 	 * @return true if addNew
 	 */
-	public boolean tryGetOrAddConnector(String host, int port, boolean autoReconnect, OutObject<Connector> getOrAdd) {
+	public boolean tryGetOrAddConnector(@NotNull String host, int port, boolean autoReconnect,
+										@Nullable OutObject<Connector> getOrAdd) {
 		var name = host + ":" + port;
 		final var addNew = new OutObject<Connector>();
 		var c = connectors.computeIfAbsent(name, key -> {
@@ -100,17 +106,17 @@ public final class ServiceConf {
 		return addNew.value != null;
 	}
 
-	public void removeConnector(Connector c) {
+	public void removeConnector(@NotNull Connector c) {
 		connectors.remove(c.getName(), c);
 	}
 
-	public void ForEachConnector(Action1<Connector> action) throws Exception {
+	public void ForEachConnector(@NotNull Action1<Connector> action) throws Exception {
 		for (var c : connectors.values()) {
 			action.run(c);
 		}
 	}
 
-	public void forEachConnector(Consumer<Connector> action) {
+	public void forEachConnector(@NotNull Consumer<Connector> action) {
 		for (var a : connectors.values())
 			action.accept(a);
 	}
@@ -119,7 +125,7 @@ public final class ServiceConf {
 		return connectors.size();
 	}
 
-	public boolean forEachConnector2(Predicate<Connector> func) {
+	public boolean forEachConnector2(@NotNull Predicate<Connector> func) {
 		for (var c : connectors.values()) {
 			if (!func.test(c))
 				return false;
@@ -127,28 +133,28 @@ public final class ServiceConf {
 		return true;
 	}
 
-	public void addAcceptor(Acceptor a) {
+	public void addAcceptor(@NotNull Acceptor a) {
 		if (null != acceptors.putIfAbsent(a.getName(), a)) {
 			throw new IllegalStateException("Duplicate Acceptor=" + a.getName());
 		}
 		a.SetService(service);
 	}
 
-	public void removeAcceptor(Acceptor a) {
+	public void removeAcceptor(@NotNull Acceptor a) {
 		acceptors.remove(a.getName(), a);
 	}
 
-	public void ForEachAcceptor(Action1<Acceptor> action) throws Exception {
+	public void ForEachAcceptor(@NotNull Action1<Acceptor> action) throws Exception {
 		for (var a : acceptors.values())
 			action.run(a);
 	}
 
-	public void forEachAcceptor(Consumer<Acceptor> action) {
+	public void forEachAcceptor(@NotNull Consumer<Acceptor> action) {
 		for (var a : acceptors.values())
 			action.accept(a);
 	}
 
-	public boolean forEachAcceptor2(Function<Acceptor, Boolean> func) {
+	public boolean forEachAcceptor2(@NotNull Function<Acceptor, Boolean> func) {
 		for (var a : acceptors.values()) {
 			if (!func.apply(a))
 				return false;
@@ -164,7 +170,7 @@ public final class ServiceConf {
 		name = "";
 	}
 
-	public ServiceConf(Config conf, Element self) {
+	public ServiceConf(@NotNull Config conf, @NotNull Element self) {
 		name = self.getAttribute("Name").trim();
 
 		String attr;

@@ -14,6 +14,7 @@ import Zeze.Services.HandshakeServer;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 public class LinkdProviderService extends HandshakeServer {
 	private static final Logger logger = LogManager.getLogger(LinkdProviderService.class);
@@ -39,7 +40,7 @@ public class LinkdProviderService extends HandshakeServer {
 	}
 
 	@Override
-	public boolean OnSocketProcessInputBuffer(AsyncSocket s, ByteBuffer input) throws Exception {
+	public boolean OnSocketProcessInputBuffer(@NotNull AsyncSocket s, @NotNull ByteBuffer input) throws Exception {
 		if (enableDump)
 			tryDump(s, input);
 		return super.OnSocketProcessInputBuffer(s, input);

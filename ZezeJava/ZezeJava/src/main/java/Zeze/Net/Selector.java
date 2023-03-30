@@ -9,6 +9,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 public class Selector extends Thread implements ByteBufferAllocator {
 	private static final Logger logger = LogManager.getLogger(Selector.class);
@@ -20,9 +21,9 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	public static final int DEFAULT_BBPOOL_GLOBAL_CAPACITY = 100 * DEFAULT_BBPOOL_MOVE_COUNT; // 全局池的最大buffer数量
 	public static final int DEFAULT_SELECT_TIMEOUT = 0; // 0表示无超时,>0表示每次select的超时毫秒数
 
-	private final Selectors selectors;
-	private final java.nio.channels.Selector selector;
-	private final ByteBuffer readBuffer; // 此线程共享的buffer,只能临时使用
+	private final @NotNull Selectors selectors;
+	private final @NotNull java.nio.channels.Selector selector;
+	private final @NotNull ByteBuffer readBuffer; // 此线程共享的buffer,只能临时使用
 	private final AtomicInteger wakeupNotified = new AtomicInteger();
 	private final ArrayList<ByteBuffer> bbPool = new ArrayList<>();
 	private boolean firstAction;
@@ -33,7 +34,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 //	public final AtomicLong wakeupTime = new AtomicLong();
 //	public long lastTime;
 
-	public Selector(Selectors selectors, String threadName) throws IOException {
+	public Selector(@NotNull Selectors selectors, @NotNull String threadName) throws IOException {
 		super(threadName);
 		setDaemon(true);
 		this.selectors = selectors;
@@ -41,16 +42,16 @@ public class Selector extends Thread implements ByteBufferAllocator {
 		readBuffer = ByteBuffer.allocate(selectors.getReadBufferSize());
 	}
 
-	public Selectors getSelectors() {
+	public @NotNull Selectors getSelectors() {
 		return selectors;
 	}
 
-	ByteBuffer getReadBuffer() {
+	@NotNull ByteBuffer getReadBuffer() {
 		return readBuffer;
 	}
 
 	@Override
-	public ByteBuffer alloc() {
+	public @NotNull ByteBuffer alloc() {
 		int n = bbPool.size();
 		if (n <= 0) {
 			var bbPoolGlobalCapacity = selectors.getBbPoolGlobalCapacity();
@@ -76,7 +77,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	}
 
 	@Override
-	public void free(ByteBuffer bb) {
+	public void free(@NotNull ByteBuffer bb) {
 		int bbPoolLocalCapacity = selectors.getBbPoolLocalCapacity();
 		int bbPoolMoveCount = selectors.getBbPoolMoveCount();
 		int n = bbPool.size();
@@ -101,7 +102,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 		bbPool.add(bb);
 	}
 
-	SelectionKey register(SelectableChannel sc, int ops, SelectorHandle handle) {
+	@NotNull SelectionKey register(@NotNull SelectableChannel sc, int ops, @NotNull SelectorHandle handle) {
 		try {
 			SelectionKey key = sc.register(selector, ops, handle);
 			// 当引擎线程执行register时，wakeup会导致一次多余唤醒。

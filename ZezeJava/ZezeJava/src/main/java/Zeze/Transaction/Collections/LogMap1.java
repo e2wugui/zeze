@@ -7,14 +7,16 @@ import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
 public class LogMap1<K, V> extends LogMap<K, V> {
-	protected final Meta2<K, V> meta;
+	protected final @NotNull Meta2<K, V> meta;
 	private final HashMap<K, V> replaced = new HashMap<>();
 	private final Set<K> removed = new HashSet<>();
 
-	LogMap1(Meta2<K, V> meta) {
+	LogMap1(@NotNull Meta2<K, V> meta) {
 		this.meta = meta;
 	}
 
@@ -23,23 +25,23 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 		return meta.logTypeId;
 	}
 
-	public final HashMap<K, V> getReplaced() {
+	public final @NotNull HashMap<K, V> getReplaced() {
 		return replaced;
 	}
 
-	public final Set<K> getRemoved() {
+	public final @NotNull Set<K> getRemoved() {
 		return removed;
 	}
 
-	public final V get(K key) {
+	public final @Nullable V get(K key) {
 		return getValue().get(key);
 	}
 
-	public final void add(K key, V value) {
+	public final void add(@NotNull K key, @NotNull V value) {
 		put(key, value);
 	}
 
-	public final V put(K key, V value) {
+	public final @Nullable V put(@NotNull K key, @NotNull V value) {
 		var exist = getValue().get(key);
 		setValue(getValue().plus(key, value));
 		replaced.put(key, value);
@@ -47,7 +49,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 		return exist;
 	}
 
-	public final void putAll(Map<? extends K, ? extends V> m) {
+	public final void putAll(@NotNull Map<? extends K, ? extends V> m) {
 		var newMap = getValue().plusAll(m);
 		if (newMap != getValue()) {
 			setValue(newMap);
@@ -58,7 +60,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 		}
 	}
 
-	public final V remove(K key) {
+	public final @Nullable V remove(@NotNull K key) {
 		var old = getValue().get(key);
 		if (null != old) {
 			setValue(getValue().minus(key));
@@ -68,7 +70,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 		return old;
 	}
 
-	public final boolean remove(K key, V value) {
+	public final boolean remove(@NotNull K key, @NotNull V value) {
 		var old = getValue().get(key);
 		if (null != old && old.equals((value))) {
 			setValue(getValue().minus(key));
@@ -86,7 +88,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		bb.WriteUInt(replaced.size());
 		var keyEncoder = meta.keyEncoder;
 		var valueEncoder = meta.valueEncoder;
@@ -102,7 +104,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(@NotNull ByteBuffer bb) {
 		replaced.clear();
 		var keyDecoder = meta.keyDecoder;
 		var valueDecoder = meta.valueDecoder;
@@ -119,7 +121,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	}
 
 	@Override
-	public void endSavepoint(Savepoint currentSp) {
+	public void endSavepoint(@NotNull Savepoint currentSp) {
 		var log = currentSp.getLog(getLogKey());
 		if (log != null) {
 			@SuppressWarnings("unchecked")
@@ -130,7 +132,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 			currentSp.putLog(this);
 	}
 
-	private void mergeChangeNote(LogMap1<K, V> another) {
+	private void mergeChangeNote(@NotNull LogMap1<K, V> another) {
 		// Put,Remove 需要确认有没有顺序问题
 		// this: replace 1,3 remove 2,4 nest: replace 2 remove 1
 		for (var e : another.replaced.entrySet()) {
@@ -146,7 +148,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	}
 
 	@Override
-	public Log beginSavepoint() {
+	public @NotNull Log beginSavepoint() {
 		var dup = new LogMap1<>(meta);
 		dup.setThis(getThis());
 		dup.setBelong(getBelong());
@@ -156,7 +158,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		var sb = new StringBuilder();
 		sb.append(" Putted:");
 		ByteBuffer.BuildSortedString(sb, replaced);

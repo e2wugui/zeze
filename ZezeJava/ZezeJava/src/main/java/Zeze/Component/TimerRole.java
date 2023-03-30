@@ -15,6 +15,8 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.Task;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 1. schedule，scheduleNamed 完全重新实现一套基于内存表和内存的。
@@ -23,12 +25,12 @@ import Zeze.Util.Task;
  * 直接使用 Timer.timersFuture，从 ThreadPool 返回的future保存在这里。
  */
 public class TimerRole {
-	final Online online;
+	final @NotNull Online online;
 
 	//public final static String eTimerHandleName = "Zeze.Component.TimerGameOnline.Handle";
 	public final static String eOnlineTimers = "Zeze.Component.TimerGameOnline";
 
-	TimerRole(Online online) {
+	TimerRole(@NotNull Online online) {
 		this.online = online;
 
 		// online timer 生命期和 Online.Local 一致。
@@ -37,9 +39,9 @@ public class TimerRole {
 	}
 
 	// 本进程内的有名字定时器，名字仅在本进程内唯一。
-	public boolean scheduleOnlineNamed(long roleId, String timerName,
+	public boolean scheduleOnlineNamed(long roleId, @NotNull String timerName,
 									   long delay, long period, long times, long endTime,
-									   TimerHandle handleName, Bean customData) {
+									   @Nullable TimerHandle handleName, @Nullable Bean customData) {
 		var timer = online.providerApp.zeze.getTimer();
 		var timerId = timer.tRoleTimers().get(timerName);
 		if (null != timerId)
@@ -51,9 +53,9 @@ public class TimerRole {
 	}
 
 	// 本进程内的有名字定时器，名字仅在本进程内唯一。
-	public boolean scheduleOnlineNamed(long roleId, String timerName,
-									   String cron, long times, long endTime,
-									   TimerHandle handleName, Bean customData) throws Exception {
+	public boolean scheduleOnlineNamed(long roleId, @NotNull String timerName,
+									   @NotNull String cron, long times, long endTime,
+									   @Nullable TimerHandle handleName, @Nullable Bean customData) throws Exception {
 		var timer = online.providerApp.zeze.getTimer();
 		var timerId = timer.tRoleTimers().get(timerName);
 		if (null != timerId)
@@ -64,16 +66,16 @@ public class TimerRole {
 		return true;
 	}
 
-	public String scheduleOnline(long roleId, long delay, long period, long times, long endTime,
-								 TimerHandle name, Bean customData) {
+	public @NotNull String scheduleOnline(long roleId, long delay, long period, long times, long endTime,
+										  @Nullable TimerHandle name, @Nullable Bean customData) {
 		var simpleTimer = new BSimpleTimer();
 		Timer.initSimpleTimer(simpleTimer, delay, period, times, endTime);
 		var timer = online.providerApp.zeze.getTimer();
 		return scheduleOnline(roleId, "@" + timer.timerIdAutoKey.nextString(), simpleTimer, name, customData);
 	}
 
-	private String scheduleOnline(long roleId, String timerId, BSimpleTimer simpleTimer,
-								  TimerHandle name, Bean customData) {
+	private @NotNull String scheduleOnline(long roleId, @NotNull String timerId, @NotNull BSimpleTimer simpleTimer,
+										   @Nullable TimerHandle name, @Nullable Bean customData) {
 		// 去掉下面两行，不允许在非登录状态注册timer。现在允许。
 		var loginVersion = online.getLocalLoginVersion(roleId);
 		if (null == loginVersion)
@@ -94,16 +96,16 @@ public class TimerRole {
 		return timerId;
 	}
 
-	public String scheduleOnline(long roleId, String cron, long times, long endTime,
-								 TimerHandle name, Bean customData) throws Exception {
+	public @NotNull String scheduleOnline(long roleId, @NotNull String cron, long times, long endTime,
+										  @Nullable TimerHandle name, @Nullable Bean customData) throws Exception {
 		var cronTimer = new BCronTimer();
 		Timer.initCronTimer(cronTimer, cron, times, endTime);
 		var timer = online.providerApp.zeze.getTimer();
 		return scheduleOnline(roleId, "@" + timer.timerIdAutoKey.nextString(), cronTimer, name, customData);
 	}
 
-	private String scheduleOnline(long roleId, String timerId, BCronTimer cronTimer,
-								  TimerHandle name, Bean customData) {
+	private @NotNull String scheduleOnline(long roleId, @NotNull String timerId, @NotNull BCronTimer cronTimer,
+										   @Nullable TimerHandle name, @Nullable Bean customData) {
 		var loginVersion = online.getLocalLoginVersion(roleId);
 		if (null == loginVersion)
 			throw new IllegalStateException("not login. roleId=" + roleId);
@@ -123,7 +125,7 @@ public class TimerRole {
 		return timerId;
 	}
 
-	public boolean cancel(String timerId) {
+	public boolean cancel(@NotNull String timerId) {
 		var timer = online.providerApp.zeze.getTimer();
 
 		// remove online timer
@@ -141,8 +143,9 @@ public class TimerRole {
 		return true;
 	}
 
-	public String scheduleOffline(long roleId, long delay, long period, long times, long endTime,
-								  Class<? extends TimerHandle> handleClassName, Bean customData) {
+	public @NotNull String scheduleOffline(long roleId, long delay, long period, long times, long endTime,
+										   @NotNull Class<? extends TimerHandle> handleClassName,
+										   @Nullable Bean customData) {
 		var logoutVersion = online.getLogoutVersion(roleId);
 		if (null == logoutVersion)
 			throw new IllegalStateException("not logout. roleId=" + roleId);
@@ -165,8 +168,9 @@ public class TimerRole {
 		return timerName;
 	}
 
-	public String scheduleOffline(long roleId, String cron, long times, long endTime,
-								  Class<? extends TimerHandle> handleClassName, Bean customData) throws ParseException {
+	public @NotNull String scheduleOffline(long roleId, @NotNull String cron, long times, long endTime,
+										   @NotNull Class<? extends TimerHandle> handleClassName,
+										   @Nullable Bean customData) throws ParseException {
 		var logoutVersion = online.getLogoutVersion(roleId);
 		if (null == logoutVersion)
 			throw new IllegalStateException("not logout. roleId=" + roleId);
@@ -193,7 +197,7 @@ public class TimerRole {
 	// 内部实现
 	public static class OfflineHandle implements TimerHandle {
 		@Override
-		public void onTimer(TimerContext context) throws Exception {
+		public void onTimer(@NotNull TimerContext context) throws Exception {
 			var offlineCustom = (BOfflineRoleCustom)context.customData;
 			var loginVersion = context.timer.getRoleTimer().online.getLoginVersion(offlineCustom.getRoleId());
 			// 检查版本号，不正确的登录版本号表示过期的timer，取消掉即可。
@@ -216,7 +220,7 @@ public class TimerRole {
 		}
 	}
 
-	private long onLoginEvent(Object sender, EventDispatcher.EventArgument arg) {
+	private long onLoginEvent(@NotNull Object sender, @NotNull EventDispatcher.EventArgument arg) {
 		var timer = online.providerApp.zeze.getTimer();
 		var loginArg = (LoginArgument)arg;
 		var offlineTimers = timer.tRoleOfflineTimers().get(loginArg.roleId);
@@ -235,7 +239,7 @@ public class TimerRole {
 	}
 
 	// Online.Local 删除事件，取消这个用户所有的在线定时器。
-	private long onLocalRemoveEvent(Object sender, EventDispatcher.EventArgument arg) {
+	private long onLocalRemoveEvent(@NotNull Object sender, @NotNull EventDispatcher.EventArgument arg) {
 		var local = (LocalRemoveEventArgument)arg;
 		if (null != local.local) {
 			var bAny = local.local.getDatas().get(eOnlineTimers);
@@ -249,7 +253,7 @@ public class TimerRole {
 	}
 
 	// 调度 cron 定时器
-	private void scheduleCron(String timerId, BCronTimer cron, TimerHandle name) {
+	private void scheduleCron(@NotNull String timerId, @NotNull BCronTimer cron, @Nullable TimerHandle name) {
 		try {
 			long delay = cron.getNextExpectedTime() - System.currentTimeMillis();
 			scheduleCronNext(timerId, delay, name);
@@ -259,14 +263,14 @@ public class TimerRole {
 	}
 
 	// 再次调度 cron 定时器，真正安装到ThreadPool中。
-	private void scheduleCronNext(String timerId, long delay, TimerHandle name) {
+	private void scheduleCronNext(@NotNull String timerId, long delay, @Nullable TimerHandle name) {
 		var timer = online.providerApp.zeze.getTimer();
 		Transaction.whileCommit(
 				() -> timer.timersFuture.put(timerId, Task.scheduleUnsafe(delay,
 						() -> fireCron(timerId, name))));
 	}
 
-	private void fireCron(String timerId, TimerHandle handle) {
+	private void fireCron(@NotNull String timerId, @Nullable TimerHandle handle) {
 		var timer = online.providerApp.zeze.getTimer();
 		var ret = Task.call(online.providerApp.zeze.newProcedure(() -> {
 			if (null == handle) {
@@ -331,7 +335,7 @@ public class TimerRole {
 	}
 
 	// 调度 Simple 定时器到ThreadPool中。
-	private void scheduleSimple(String timerId, long delay, TimerHandle name) {
+	private void scheduleSimple(@NotNull String timerId, long delay, @Nullable TimerHandle name) {
 		var timer = online.providerApp.zeze.getTimer();
 		Transaction.whileCommit(
 				() -> timer.timersFuture.put(timerId, Task.scheduleUnsafe(delay,
@@ -339,7 +343,7 @@ public class TimerRole {
 	}
 
 	// Timer发生，执行回调。
-	private void fireSimple(String timerId, TimerHandle handle) {
+	private void fireSimple(@NotNull String timerId, @Nullable TimerHandle handle) {
 		var timer = online.providerApp.zeze.getTimer();
 		var ret = Task.call(online.providerApp.zeze.newProcedure(() -> {
 			if (null == handle) {

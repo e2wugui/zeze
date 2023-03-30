@@ -26,6 +26,8 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Provider之间直连网络管理服务。
@@ -38,11 +40,11 @@ public class ProviderDirectService extends HandshakeBoth {
 	public final LongConcurrentHashMap<ProviderSession> providerByServerId = new LongConcurrentHashMap<>();
 	private final LongConcurrentHashMap<ConcurrentHashSet<Action0>> serverReadyEvents = new LongConcurrentHashMap<>();
 
-	public ProviderDirectService(String name, Application zeze) {
+	public ProviderDirectService(@NotNull String name, @NotNull Application zeze) {
 		super(name, zeze);
 	}
 
-	public synchronized void removeServer(Agent.SubscribeState ss, BServiceInfo pm) {
+	public synchronized void removeServer(@NotNull Agent.SubscribeState ss, @NotNull BServiceInfo pm) {
 		var connName = pm.getPassiveIp() + ":" + pm.getPassivePort();
 		var conn = getConfig().findConnector(connName);
 		if (conn != null) {
@@ -55,7 +57,7 @@ public class ProviderDirectService extends HandshakeBoth {
 		}
 	}
 
-	public synchronized void addServer(Agent.SubscribeState ss, BServiceInfo pm) {
+	public synchronized void addServer(@NotNull Agent.SubscribeState ss, @NotNull BServiceInfo pm) {
 		var connName = pm.getPassiveIp() + ":" + pm.getPassivePort();
 		var ps = providerByLoadName.get(connName);
 		if (ps != null) {
@@ -77,6 +79,7 @@ public class ProviderDirectService extends HandshakeBoth {
 		var out = new OutObject<Connector>();
 		if (getConfig().tryGetOrAddConnector(pm.getPassiveIp(), pm.getPassivePort(), true, out)) {
 			// 新建的Connector。开始连接。
+			//noinspection DataFlowIssue
 			out.value.userState = newSession(serverId);
 			out.value.start();
 		}
@@ -95,21 +98,21 @@ public class ProviderDirectService extends HandshakeBoth {
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
-	public ProviderSession newSession(int serverId) {
+	public @NotNull ProviderSession newSession(int serverId) {
 		var session = new ProviderSession();
 		session.serverId = serverId;
 		return session;
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
-	public ProviderSession newSession(AsyncSocket so) {
+	public @NotNull ProviderSession newSession(@NotNull AsyncSocket so) {
 		var session = new ProviderSession();
 		session.sessionId = so.getSessionId();
 		return session;
 	}
 
 	@Override
-	public void OnSocketAccept(AsyncSocket so) {
+	public void OnSocketAccept(@NotNull AsyncSocket so) {
 		if (so.getConnector() == null) {
 			// 被动连接等待对方报告信息时再处理。
 			// passive connection continue process in ProviderDirect.ProcessAnnounceProviderInfoRequest.
@@ -119,7 +122,7 @@ public class ProviderDirectService extends HandshakeBoth {
 	}
 
 	@Override
-	public void OnHandshakeDone(AsyncSocket so) throws Exception {
+	public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
 		// call base
 		super.OnHandshakeDone(so);
 
@@ -153,7 +156,7 @@ public class ProviderDirectService extends HandshakeBoth {
 		}
 	}
 
-	public void waitDirectServerReady(int serverId, Action0 callback) {
+	public void waitDirectServerReady(int serverId, @NotNull Action0 callback) {
 		synchronized (this) {
 			if (!providerByServerId.containsKey(serverId)) {
 				serverReadyEvents.computeIfAbsent(serverId, __ -> new ConcurrentHashSet<>()).add(callback);
@@ -210,7 +213,7 @@ public class ProviderDirectService extends HandshakeBoth {
 		watchers.clear();
 	}
 
-	synchronized void setRelativeServiceReady(ProviderSession ps, String ip, int port) {
+	synchronized void setRelativeServiceReady(@NotNull ProviderSession ps, @NotNull String ip, int port) {
 		ps.serverLoadIp = ip;
 		ps.serverLoadPort = port;
 		// 本机的连接可能设置多次。此时使用已经存在的，忽略后面的。
@@ -239,14 +242,15 @@ public class ProviderDirectService extends HandshakeBoth {
 		notifyServerReady(ps.getServerId());
 	}
 
-	private void setReady(Agent.SubscribeState ss, BServiceInfo server, ProviderSession ps, int mid, BModule m) {
+	private void setReady(@NotNull Agent.SubscribeState ss, @NotNull BServiceInfo server, @NotNull ProviderSession ps,
+						  int mid, @NotNull BModule m) {
 		var pms = new ProviderModuleState(ps.getSessionId(), mid, m.getChoiceType(), m.getConfigType());
 		ps.getOrAddServiceReadyState(ss.getServiceName()).put(server.getServiceIdentity(), pms);
 		ss.setServiceIdentityReadyState(server.getServiceIdentity(), pms);
 	}
 
 	@Override
-	public void OnSocketClose(AsyncSocket socket, Throwable ex) throws Exception {
+	public void OnSocketClose(@NotNull AsyncSocket socket, @Nullable Throwable ex) throws Exception {
 		var ps = (ProviderSession)socket.getUserState();
 		if (ps != null) {
 			for (var service : ps.ServiceReadyStates.entrySet()) {
@@ -262,7 +266,8 @@ public class ProviderDirectService extends HandshakeBoth {
 	}
 
 	@Override
-	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
+	public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb, @NotNull ProtocolFactoryHandle<?> factoryHandle,
+								 @Nullable AsyncSocket so) {
 		var p = decodeProtocol(typeId, bb, factoryHandle, so);
 		if (p.getTypeId() == ModuleRedirect.TypeId_) {
 			var r = (ModuleRedirect)p;
@@ -286,8 +291,8 @@ public class ProviderDirectService extends HandshakeBoth {
 	}
 
 	@Override
-	public <P extends Protocol<?>> void dispatchRpcResponse(
-			P rpc, ProtocolHandle<P> responseHandle, ProtocolFactoryHandle<?> factoryHandle) {
+	public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
+															@NotNull ProtocolFactoryHandle<?> factoryHandle) {
 
 		if (rpc.getTypeId() == ModuleRedirect.TypeId_) {
 			var redirect = (ModuleRedirect)rpc;
@@ -304,7 +309,7 @@ public class ProviderDirectService extends HandshakeBoth {
 	}
 
 	@Override
-	public void onServerSocketBind(ServerSocket ss) {
+	public void onServerSocketBind(@NotNull ServerSocket ss) {
 		providerApp.directPort = ss.getLocalPort();
 	}
 }

@@ -6,14 +6,15 @@ import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
+import org.jetbrains.annotations.NotNull;
 import org.pcollections.Empty;
 
 public class LogSet1<V> extends LogSet<V> {
-	protected final Meta1<V> meta;
+	protected final @NotNull Meta1<V> meta;
 	private final Set<V> added = new HashSet<>();
 	private final Set<V> removed = new HashSet<>();
 
-	LogSet1(Meta1<V> meta) {
+	LogSet1(@NotNull Meta1<V> meta) {
 		this.meta = meta;
 	}
 
@@ -22,15 +23,15 @@ public class LogSet1<V> extends LogSet<V> {
 		return meta.logTypeId;
 	}
 
-	public final Set<V> getAdded() {
+	public final @NotNull Set<V> getAdded() {
 		return added;
 	}
 
-	public final Set<V> getRemoved() {
+	public final @NotNull Set<V> getRemoved() {
 		return removed;
 	}
 
-	public final boolean Add(V item) {
+	public final boolean Add(@NotNull V item) {
 		var newSet = getValue().plus(item);
 		if (newSet != getValue()) {
 			added.add(item);
@@ -41,7 +42,7 @@ public class LogSet1<V> extends LogSet<V> {
 		return false;
 	}
 
-	public final boolean addAll(Collection<? extends V> c) {
+	public final boolean addAll(@NotNull Collection<? extends V> c) {
 		var newSet = getValue().plusAll(c);
 		if (newSet != getValue()) {
 			for (var item : c) {
@@ -54,7 +55,7 @@ public class LogSet1<V> extends LogSet<V> {
 		return false;
 	}
 
-	public final boolean remove(V item) {
+	public final boolean remove(@NotNull V item) {
 		var newSet = getValue().minus(item);
 		if (newSet != getValue()) {
 			removed.add(item);
@@ -65,7 +66,7 @@ public class LogSet1<V> extends LogSet<V> {
 		return false;
 	}
 
-	public final boolean removeAll(Collection<? extends V> c) {
+	public final boolean removeAll(@NotNull Collection<? extends V> c) {
 		var newSet = getValue().minusAll(c);
 		if (newSet != getValue()) {
 			for (var i : c) {
@@ -86,7 +87,7 @@ public class LogSet1<V> extends LogSet<V> {
 
 	@SuppressWarnings("DataFlowIssue")
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		var encoder = meta.valueEncoder;
 
 		bb.WriteUInt(added.size());
@@ -100,7 +101,7 @@ public class LogSet1<V> extends LogSet<V> {
 
 	@SuppressWarnings("DataFlowIssue")
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(@NotNull ByteBuffer bb) {
 		var decoder = meta.valueDecoder;
 
 		added.clear();
@@ -113,7 +114,7 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	@Override
-	public void endSavepoint(Savepoint currentSp) {
+	public void endSavepoint(@NotNull Savepoint currentSp) {
 		var log = currentSp.getLog(getLogKey());
 		if (log != null) {
 			@SuppressWarnings("unchecked")
@@ -124,7 +125,7 @@ public class LogSet1<V> extends LogSet<V> {
 			currentSp.putLog(this);
 	}
 
-	public final void merge(LogSet1<V> from) {
+	public final void merge(@NotNull LogSet1<V> from) {
 		// Put,Remove 需要确认有没有顺序问题
 		// this: add 1,3 remove 2,4 nest: add 2 remove 1
 		for (var e : from.added)
@@ -134,7 +135,7 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	@Override
-	public Log beginSavepoint() {
+	public @NotNull Log beginSavepoint() {
 		var dup = new LogSet1<>(meta);
 		dup.setThis(getThis());
 		dup.setBelong(getBelong());
@@ -144,7 +145,7 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		var sb = new StringBuilder();
 		sb.append(" Added:");
 		ByteBuffer.BuildSortedString(sb, added);

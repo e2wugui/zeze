@@ -29,7 +29,7 @@ public class App extends Zeze.AppBase {
 					return 0L;
 				}, "Global Access").call();
 				++i;
-				System.err.println("" + i + "-" + result);
+				System.err.println(i + "-" + result);
 			}
 		}
 		Instance.Stop();

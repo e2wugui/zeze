@@ -7,13 +7,15 @@ import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class Selectors {
 	public static final class InstanceHolder { // for lazy-init
 		private static final Selectors instance = new Selectors("Selector");
 	}
 
-	public static Selectors getInstance() {
+	public static @NotNull Selectors getInstance() {
 		return InstanceHolder.instance;
 	}
 
@@ -42,7 +44,7 @@ public class Selectors {
 		}
 	}
 
-	private final String name;
+	private final @NotNull String name;
 	private final int bbPoolBlockSize;
 	private final int bbPoolLocalCapacity;
 	private final int bbPoolMoveCount;
@@ -51,18 +53,18 @@ public class Selectors {
 	private final int readBufferSize;
 	private final ArrayList<ByteBuffer> bbGlobalPool = new ArrayList<>(); // 全局池
 	private final Lock bbGlobalPoolLock = new ReentrantLock(); // 全局池的锁
-	private volatile Selector[] selectorList;
+	private volatile @Nullable Selector[] selectorList;
 	private final AtomicLong choiceCount = new AtomicLong();
 
-	public Selectors(String name) {
+	public Selectors(@NotNull String name) {
 		this(name, 1, null);
 	}
 
-	public Selectors(String name, int count) {
+	public Selectors(@NotNull String name, int count) {
 		this(name, count, null);
 	}
 
-	public Selectors(String name, int count, Config config) {
+	public Selectors(@NotNull String name, int count, @Nullable Config config) {
 		this.name = name;
 		if (config == null)
 			config = new Config();
@@ -100,11 +102,11 @@ public class Selectors {
 		return readBufferSize;
 	}
 
-	ArrayList<ByteBuffer> getBbGlobalPool() {
+	@NotNull ArrayList<ByteBuffer> getBbGlobalPool() {
 		return bbGlobalPool;
 	}
 
-	Lock getBbGlobalPoolLock() {
+	@NotNull Lock getBbGlobalPoolLock() {
 		return bbGlobalPoolLock;
 	}
 
@@ -112,7 +114,7 @@ public class Selectors {
 		return selectorList.length;
 	}
 
-	public Selectors add(int count) {
+	public @NotNull Selectors add(int count) {
 		try {
 			Selector[] tmp = selectorList;
 			tmp = tmp == null ? new Selector[count = Math.max(count, 0)] : Arrays.copyOf(tmp, tmp.length + count);
@@ -127,7 +129,7 @@ public class Selectors {
 		}
 	}
 
-	public Selector choice() {
+	public @Nullable Selector choice() {
 		Selector[] tmp = selectorList; // thread safe
 		if (tmp == null)
 			return null;

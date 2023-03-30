@@ -3,6 +3,7 @@ package Zeze.Transaction.Collections;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
+import org.jetbrains.annotations.NotNull;
 
 public abstract class LogMap<K, V> extends LogBean {
 	private org.pcollections.PMap<K, V> value;
@@ -10,16 +11,16 @@ public abstract class LogMap<K, V> extends LogBean {
 	@Override
 	public abstract int getTypeId();
 
-	public final org.pcollections.PMap<K, V> getValue() {
+	public final @NotNull org.pcollections.PMap<K, V> getValue() {
 		return value;
 	}
 
-	public final void setValue(org.pcollections.PMap<K, V> value) {
+	public final void setValue(@NotNull org.pcollections.PMap<K, V> value) {
 		this.value = value;
 	}
 
 	@Override
-	public void collect(Changes changes, Bean recent, Log vlog) {
+	public void collect(@NotNull Changes changes, @NotNull Bean recent, @NotNull Log vlog) {
 		throw new UnsupportedOperationException("Collect Not Implement.");
 	}
 

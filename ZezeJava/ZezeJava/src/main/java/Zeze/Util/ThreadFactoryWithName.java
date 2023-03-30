@@ -3,14 +3,16 @@ package Zeze.Util;
 import java.lang.reflect.Method;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class ThreadFactoryWithName implements ThreadFactory {
-	private static final Object ofVirtual;
-	private static final Method unstartedMethod;
+	private static final @Nullable Object ofVirtual;
+	private static final @Nullable Method unstartedMethod;
 	// private static final AtomicInteger poolNumber = new AtomicInteger(1);
 
 	protected final AtomicInteger threadNumber = new AtomicInteger(1);
-	protected final String namePrefix;
+	protected final @NotNull String namePrefix;
 
 	static {
 		Object ofVirtual0 = null;
@@ -30,12 +32,12 @@ public class ThreadFactoryWithName implements ThreadFactory {
 		return unstartedMethod != null;
 	}
 
-	public ThreadFactoryWithName(String poolName) {
+	public ThreadFactoryWithName(@NotNull String poolName) {
 		namePrefix = poolName + '-';
 	}
 
 	@Override
-	public Thread newThread(Runnable r) {
+	public @NotNull Thread newThread(@NotNull Runnable r) {
 		Thread t;
 		if (unstartedMethod != null) {
 			try {

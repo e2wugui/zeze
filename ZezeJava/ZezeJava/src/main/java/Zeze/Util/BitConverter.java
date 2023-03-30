@@ -1,13 +1,14 @@
 package Zeze.Util;
 
 import java.nio.charset.StandardCharsets;
+import org.jetbrains.annotations.NotNull;
 
 public final class BitConverter {
 	public static int num2Hex(int n) {
 		return n + '0' + (((9 - n) >> 31) & ('A' - '9' - 1)); // 无分支,比查表快
 	}
 
-	public static String toString(byte[] bytes, int offset, int len) {
+	public static @NotNull String toString(byte @NotNull [] bytes, int offset, int len) {
 		if (len <= 0)
 			return "";
 		var str = new byte[len * 3 - 1];
@@ -21,11 +22,11 @@ public final class BitConverter {
 		return new String(str, StandardCharsets.ISO_8859_1);
 	}
 
-	public static String toString(byte[] bytes) {
+	public static @NotNull String toString(byte @NotNull [] bytes) {
 		return toString(bytes, 0, bytes.length);
 	}
 
-	public static String toStringWithLimit(byte[] bytes, int offset, int len, int limit) {
+	public static @NotNull String toStringWithLimit(byte @NotNull [] bytes, int offset, int len, int limit) {
 		if (limit < 0)
 			limit = 0;
 		if (len <= limit)
@@ -42,12 +43,12 @@ public final class BitConverter {
 		return sb.toString();
 	}
 
-	public static String toStringWithLimit(byte[] bytes, int limit) {
+	public static @NotNull String toStringWithLimit(byte @NotNull [] bytes, int limit) {
 		return toStringWithLimit(bytes, 0, bytes.length, limit);
 	}
 
 	// 十六进制字符串转成二进制数组. 大小写的A~F都支持,忽略其它字符
-	public static void toBytes(String hex, byte[] bytes, int offset) {
+	public static void toBytes(String hex, byte @NotNull [] bytes, int offset) {
 		final long MASK = ~0x007E_0000_007E_03FFL; // 0~9;A~F;a~f
 		for (int i = 0, v = 1, s = hex.length(); i < s; i++) {
 			int c = hex.charAt(i) - '0';
@@ -62,7 +63,7 @@ public final class BitConverter {
 	}
 
 	// 十六进制字符串转成二进制数组. 大小写的A~F都支持,忽略其它字符
-	public static byte[] toBytes(String hex) {
+	public static byte @NotNull [] toBytes(@NotNull String hex) {
 		final long MASK = 0x007E_0000_007E_03FFL; // 0~9;A~F;a~f
 		int n = 0;
 		for (int i = 0, s = hex.length(); i < s; i++) {

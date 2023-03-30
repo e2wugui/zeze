@@ -6,6 +6,8 @@ import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 import Zeze.Util.IntHashMap;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class LogBean extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Collections.LogBean");
@@ -22,7 +24,7 @@ public class LogBean extends Log {
 		return variables;
 	}
 
-	public final IntHashMap<Log> getVariablesOrNew() {
+	public final @NotNull IntHashMap<Log> getVariablesOrNew() {
 		var variables = this.variables;
 		if (variables == null)
 			this.variables = variables = new IntHashMap<>();
@@ -44,17 +46,17 @@ public class LogBean extends Log {
 
 	// LogBean仅在_final_commit的Collect过程中创建，不会参与Savepoint。
 	@Override
-	public Log beginSavepoint() {
+	public @NotNull Log beginSavepoint() {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public void endSavepoint(Savepoint currentSp) {
+	public void endSavepoint(@NotNull Savepoint currentSp) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		var vars = variables;
 		//System.out.println("LogBean.this=" + getThis().getClass().getName());
 		if (vars != null) {
@@ -71,7 +73,7 @@ public class LogBean extends Log {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(@NotNull ByteBuffer bb) {
 		int n = bb.ReadUInt();
 		if (n > 0) {
 			var variables = getVariablesOrNew();
@@ -92,13 +94,13 @@ public class LogBean extends Log {
 
 	// 仅发生在事务执行期间。decode-Apply不会执行到这里。
 	@Override
-	public void collect(Changes changes, Bean recent, Log vlog) {
+	public void collect(@NotNull Changes changes, @NotNull Bean recent, @NotNull Log vlog) {
 		if (getVariablesOrNew().put(vlog.getVariableId(), vlog) == null)
 			changes.collect(recent, this); // 向上传递
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		var sb = new StringBuilder();
 		ByteBuffer.BuildSortedString(sb, variables);
 		return sb.toString();

@@ -4,13 +4,15 @@ import java.lang.invoke.MethodHandle;
 import Zeze.Transaction.Bean;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.Reflect;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class BeanFactory {
 	private final LongHashMap<MethodHandle> writingFactory = new LongHashMap<>();
-	private volatile LongHashMap<MethodHandle> readingFactory;
+	private volatile @Nullable LongHashMap<MethodHandle> readingFactory;
 
 	@SuppressWarnings("unchecked")
-	public static <T extends Bean> T invoke(MethodHandle methodHandle) {
+	public static <T extends Bean> T invoke(@NotNull MethodHandle methodHandle) {
 		try {
 			return (T)methodHandle.invoke();
 		} catch (RuntimeException | Error e) {
@@ -20,7 +22,7 @@ public final class BeanFactory {
 		}
 	}
 
-	public MethodHandle register(Class<? extends Bean> beanClass) {
+	public @NotNull MethodHandle register(@NotNull Class<? extends Bean> beanClass) {
 		MethodHandle beanCtor = Reflect.getDefaultConstructor(beanClass);
 		Bean bean;
 		try {
@@ -37,7 +39,7 @@ public final class BeanFactory {
 		return beanCtor;
 	}
 
-	public MethodHandle register(Bean bean) {
+	public @NotNull MethodHandle register(@NotNull Bean bean) {
 		MethodHandle beanCtor = Reflect.getDefaultConstructor(bean.getClass());
 		synchronized (writingFactory) {
 			if (null == writingFactory.putIfAbsent(bean.typeId(), beanCtor))
@@ -46,11 +48,11 @@ public final class BeanFactory {
 		return beanCtor;
 	}
 
-	public static long getSpecialTypeIdFromBean(Bean bean) {
+	public static long getSpecialTypeIdFromBean(@NotNull Bean bean) {
 		return bean.typeId();
 	}
 
-	public Bean createBeanFromSpecialTypeId(long typeId) {
+	public @NotNull Bean createBeanFromSpecialTypeId(long typeId) {
 		try {
 			LongHashMap<MethodHandle> factory = readingFactory;
 			if (factory == null) {

@@ -6,6 +6,7 @@ import Zeze.Arch.ProviderService;
 import Zeze.Builtin.Provider.LinkBroken;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
+import org.jetbrains.annotations.NotNull;
 
 public class ProviderWithOnline extends ProviderImplement {
 	protected Online online; // 需要外面初始化。App.Start.
@@ -19,17 +20,18 @@ public class ProviderWithOnline extends ProviderImplement {
 		// 目前仅需设置online状态。
 		if (!p.Argument.getContext().isEmpty()) {
 			var roleId = Long.parseLong(p.Argument.getContext());
-			online.linkBroken(p.Argument.getAccount(), roleId, ProviderService.getLinkName(p.getSender()), p.Argument.getLinkSid());
+			online.linkBroken(p.Argument.getAccount(), roleId,
+					ProviderService.getLinkName(p.getSender()), p.Argument.getLinkSid());
 		}
 		return Procedure.Success;
 	}
 
-	public void create(AppBase app) {
+	public void create(@NotNull AppBase app) {
 		online = Online.create(app);
 		online.Initialize(app);
 	}
 
-	public void create(AppBase app, Class<? extends Bean> userDataClass) {
+	public void create(@NotNull AppBase app, @NotNull Class<? extends Bean> userDataClass) {
 		create(app);
 		Online.register(userDataClass);
 	}

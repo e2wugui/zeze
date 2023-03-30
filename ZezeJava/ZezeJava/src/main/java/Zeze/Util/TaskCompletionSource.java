@@ -11,12 +11,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @param <R> 为了性能优化考虑,R不能是ExecutionException,也不能是CancellationException
  */
 public class TaskCompletionSource<R> implements Future<R> {
-	private static final VarHandle RESULT;
+	private static final @NotNull VarHandle RESULT;
 	protected static final Exception NULL_RESULT = new LambdaConversionException(null, null, false, false);
 
 	private volatile @SuppressWarnings("unused") Object result;
@@ -31,11 +33,11 @@ public class TaskCompletionSource<R> implements Future<R> {
 		}
 	}
 
-	protected Object getRawResult() {
+	protected @Nullable Object getRawResult() {
 		return result;
 	}
 
-	private boolean setRawResult(Object r) {
+	private boolean setRawResult(@Nullable Object r) {
 		if (r == null)
 			r = NULL_RESULT;
 		if (RESULT.compareAndSet(this, null, r)) {
@@ -50,11 +52,11 @@ public class TaskCompletionSource<R> implements Future<R> {
 		return false;
 	}
 
-	public boolean setResult(R r) {
+	public boolean setResult(@Nullable R r) {
 		return setRawResult(r);
 	}
 
-	public boolean setException(Throwable e) {
+	public boolean setException(@Nullable Throwable e) {
 		return setRawResult(new ExecutionException(e));
 	}
 
@@ -133,7 +135,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 		return r;
 	}
 
-	public R getNow() throws ExecutionException {
+	public @Nullable R getNow() throws ExecutionException {
 		Object r = result;
 		return r != null ? toResult(r) : null;
 	}
@@ -151,7 +153,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 		}
 	}
 
-	public TaskCompletionSource<R> await() {
+	public @NotNull TaskCompletionSource<R> await() {
 		try {
 			get();
 		} catch (InterruptedException | ExecutionException e) {

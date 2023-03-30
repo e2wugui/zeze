@@ -5,6 +5,8 @@ import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
 public class LogList1<V> extends LogList<V> {
@@ -25,15 +27,15 @@ public class LogList1<V> extends LogList<V> {
 		}
 
 		@Override
-		public String toString() {
+		public @NotNull String toString() {
 			return "{" + op + ',' + index + ',' + value + '}';
 		}
 	}
 
-	protected final Meta1<V> meta;
+	protected final @NotNull Meta1<V> meta;
 	protected final ArrayList<OpLog<V>> opLogs = new ArrayList<>();
 
-	LogList1(Meta1<V> meta) {
+	LogList1(@NotNull Meta1<V> meta) {
 		this.meta = meta;
 	}
 
@@ -42,11 +44,12 @@ public class LogList1<V> extends LogList<V> {
 		return meta.logTypeId;
 	}
 
-	public final ArrayList<OpLog<V>> getOpLogs() {
+	public final @NotNull ArrayList<OpLog<V>> getOpLogs() {
 		return opLogs;
 	}
 
-	public final boolean add(V item) {
+	public final boolean add(@NotNull V item) {
+		//noinspection ConstantValue
 		if (item == null)
 			throw new IllegalArgumentException("null item");
 		var list = getValue();
@@ -55,7 +58,7 @@ public class LogList1<V> extends LogList<V> {
 		return true;
 	}
 
-	public final boolean addAll(Collection<? extends V> items) {
+	public final boolean addAll(@NotNull Collection<? extends V> items) {
 		var addindex = getValue().size();
 		var list = getValue().plusAll(items);
 		if (list == getValue())
@@ -67,7 +70,7 @@ public class LogList1<V> extends LogList<V> {
 		return true;
 	}
 
-	public final boolean removeAll(Collection<? extends V> c) {
+	public final boolean removeAll(@NotNull Collection<? extends V> c) {
 		var result = false;
 		for (var o : c) {
 			if (remove(o))
@@ -76,7 +79,7 @@ public class LogList1<V> extends LogList<V> {
 		return result;
 	}
 
-	public final boolean remove(V item) {
+	public final boolean remove(@NotNull V item) {
 		var index = getValue().indexOf(item);
 		if (index < 0)
 			return false;
@@ -90,12 +93,12 @@ public class LogList1<V> extends LogList<V> {
 		opLogs.add(new OpLog<>(OpLog.OP_CLEAR, 0, null));
 	}
 
-	public final void add(int index, V item) {
+	public final void add(int index, @NotNull V item) {
 		setValue(getValue().plus(index, item));
 		opLogs.add(new OpLog<>(OpLog.OP_ADD, index, item));
 	}
 
-	public final V set(int index, V item) {
+	public final @Nullable V set(int index, @NotNull V item) {
 		var list = getValue();
 		var old = list.get(index);
 		setValue(list.with(index, item));
@@ -103,7 +106,7 @@ public class LogList1<V> extends LogList<V> {
 		return old;
 	}
 
-	public final V remove(int index) {
+	public final @Nullable V remove(int index) {
 		var list = getValue();
 		var old = list.get(index);
 		setValue(list.minus(index));
@@ -112,7 +115,7 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		var encoder = meta.valueEncoder;
 		bb.WriteUInt(opLogs.size());
 		for (var opLog : opLogs) {
@@ -128,7 +131,7 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(@NotNull ByteBuffer bb) {
 		var decoder = meta.valueDecoder;
 		opLogs.clear();
 		for (var logSize = bb.ReadUInt(); --logSize >= 0; ) {
@@ -140,7 +143,7 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	@Override
-	public void endSavepoint(Savepoint currentSp) {
+	public void endSavepoint(@NotNull Savepoint currentSp) {
 		var log = currentSp.getLog(getLogKey());
 		if (log != null) {
 			@SuppressWarnings("unchecked")
@@ -151,7 +154,7 @@ public class LogList1<V> extends LogList<V> {
 			currentSp.putLog(this);
 	}
 
-	public final void merge(LogList1<V> from) {
+	public final void merge(@NotNull LogList1<V> from) {
 		if (from.opLogs.size() > 0) {
 			if (from.opLogs.get(0).op == OpLog.OP_CLEAR)
 				opLogs.clear();
@@ -160,7 +163,7 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	@Override
-	public Log beginSavepoint() {
+	public @NotNull Log beginSavepoint() {
 		var dup = new LogList1<>(meta);
 		dup.setThis(getThis());
 		dup.setBelong(getBelong());
@@ -170,7 +173,7 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		var sb = new StringBuilder();
 		sb.append(" opLogs:");
 		ByteBuffer.BuildSortedString(sb, opLogs);

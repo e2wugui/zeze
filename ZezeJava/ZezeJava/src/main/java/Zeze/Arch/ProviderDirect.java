@@ -14,6 +14,8 @@ import Zeze.Transaction.Procedure;
 import Zeze.Util.OutObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Provider之间直连服务模块。
@@ -88,7 +90,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 		return Procedure.Success;
 	}
 
-	private void sendResult(AsyncSocket sender, Protocol<?> p) throws Exception {
+	private void sendResult(@Nullable AsyncSocket sender, @NotNull Protocol<?> p) throws Exception {
 		if (sender == null) {
 			var service = providerApp.providerDirectService;
 			service.dispatchProtocol(p);
@@ -97,7 +99,8 @@ public class ProviderDirect extends AbstractProviderDirect {
 		p.Send(sender);
 	}
 
-	private void sendResultIfSizeExceed(AsyncSocket sender, ModuleRedirectAllResult result) throws Exception {
+	private void sendResultIfSizeExceed(@Nullable AsyncSocket sender, @NotNull ModuleRedirectAllResult result)
+			throws Exception {
 		int size = 0;
 		for (var hashResult : result.Argument.getHashs().values())
 			size += hashResult.getParams().size();
@@ -107,8 +110,8 @@ public class ProviderDirect extends AbstractProviderDirect {
 		}
 	}
 
-	private void sendResultForAsync(ModuleRedirectAllRequest p, int hash, RedirectResult result,
-									RedirectHandle handle) throws Exception {
+	private void sendResultForAsync(@NotNull ModuleRedirectAllRequest p, int hash, @NotNull RedirectResult result,
+									@NotNull RedirectHandle handle) throws Exception {
 		var pa = p.Argument;
 		var res = new ModuleRedirectAllResult();
 		var resArg = res.Argument;

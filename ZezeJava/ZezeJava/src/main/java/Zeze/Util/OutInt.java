@@ -1,5 +1,8 @@
 package Zeze.Util;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 public class OutInt {
 	public int value;
 
@@ -16,12 +19,12 @@ public class OutInt {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 		return obj instanceof OutInt && value == ((OutInt)obj).value;
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return String.valueOf(value);
 	}
 }

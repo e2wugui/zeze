@@ -36,11 +36,11 @@ public final class Transaction {
 		return t != null && t.created ? t : null;
 	}
 
-	public static @Nullable Transaction getCurrentVerifyRead(Bean bean) {
+	public static @Nullable Transaction getCurrentVerifyRead(@NotNull Bean bean) {
 		return getCurrent();
 	}
 
-	public static @NotNull Transaction getCurrentVerifyWrite(Bean bean) {
+	public static @NotNull Transaction getCurrentVerifyWrite(@NotNull Bean bean) {
 		var t = getCurrent();
 		if (t == null)
 			throw new IllegalStateException("not in transaction");
@@ -120,7 +120,7 @@ public final class Transaction {
 			last.mergeRollbackActions(actions);
 	}
 
-	public @NotNull Log logGetOrAdd(long logKey, Supplier<@NotNull Log> logFactory) {
+	public @NotNull Log logGetOrAdd(long logKey, @NotNull Supplier<@NotNull Log> logFactory) {
 		var log = getLog(logKey);
 		if (log == null)
 			putLog(log = logFactory.get());
@@ -467,7 +467,7 @@ public final class Transaction {
 		accessedRecords.put(root.getTableKey(), r);
 	}
 
-	public @Nullable RecordAccessed getRecordAccessed(TableKey key) {
+	public @Nullable RecordAccessed getRecordAccessed(@NotNull TableKey key) {
 		// 允许读取事务内访问过的记录。
 		verifyRunningOrCompleted();
 		return accessedRecords.get(key);
@@ -685,14 +685,14 @@ public final class Transaction {
 		return holdLocks.size();
 	}
 
-	public void throwAbort(String msg, Throwable cause) {
+	public void throwAbort(@Nullable String msg, @Nullable Throwable cause) {
 		if (state != TransactionState.Running)
 			throw new IllegalStateException("Abort: State Is Not Running: " + state);
 		state = TransactionState.Abort;
 		GoBackZeze.Throw(msg, cause);
 	}
 
-	public void throwRedoAndReleaseLock(String msg, Throwable cause) {
+	public void throwRedoAndReleaseLock(@Nullable String msg, @Nullable Throwable cause) {
 		if (state != TransactionState.Running)
 			throw new IllegalStateException("RedoAndReleaseLock: State Is Not Running: " + state);
 		state = TransactionState.RedoAndReleaseLock;

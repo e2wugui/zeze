@@ -5,6 +5,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
+import org.jetbrains.annotations.NotNull;
 
 public class LogOne<V extends Bean> extends LogBean {
 	public V value;
@@ -13,12 +14,12 @@ public class LogOne<V extends Bean> extends LogBean {
 	LogOne() {
 	}
 
-	public void setValue(V value) {
+	public void setValue(@NotNull V value) {
 		this.value = value;
 	}
 
 	@Override
-	public Log beginSavepoint() {
+	public @NotNull Log beginSavepoint() {
 		var dup = new LogOne<>();
 		dup.setThis(getThis());
 		dup.setBelong(getBelong());
@@ -28,14 +29,14 @@ public class LogOne<V extends Bean> extends LogBean {
 	}
 
 	@Override
-	public void endSavepoint(Savepoint currentSp) {
+	public void endSavepoint(@NotNull Savepoint currentSp) {
 		// 结束保存点，直接覆盖到当前的日志里面即可。
 		currentSp.putLog(this);
 	}
 	// 收集内部的Bean发生了改变。
 
 	@Override
-	public void collect(Changes changes, Bean recent, Log vlog) {
+	public void collect(@NotNull Changes changes, @NotNull Bean recent, @NotNull Log vlog) {
 		if (logBean == null) {
 			logBean = (LogBean)vlog;
 			changes.collect(recent, this);
@@ -51,7 +52,7 @@ public class LogOne<V extends Bean> extends LogBean {
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		if (null != value) {
 			bb.WriteBool(true);
 			value.encode(bb);
@@ -67,7 +68,7 @@ public class LogOne<V extends Bean> extends LogBean {
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(@NotNull ByteBuffer bb) {
 		throw new UnsupportedOperationException();
         /*
         var hasValue = bb.ReadBool();
@@ -85,7 +86,7 @@ public class LogOne<V extends Bean> extends LogBean {
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return value.toString();
 	}
 }

@@ -11,6 +11,8 @@ import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Util.Macro;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 	private static final Logger logger = LogManager.getLogger(Record1.class);
@@ -25,8 +27,8 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		}
 	}
 
-	private final TableX<K, V> table;
-	private final K key;
+	private final @NotNull TableX<K, V> table;
+	private final @NotNull K key;
 	private Object snapshotKey;
 	private Object snapshotValue;
 	private Object snapshotKeyLocal;
@@ -36,19 +38,19 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	private boolean existInBackDatabaseSavedForFlushRemove;
 	private volatile ConcurrentHashMap<K, Record1<K, V>> lruNode;
 
-	public Record1(TableX<K, V> table, K key, V value) {
+	public Record1(@NotNull TableX<K, V> table, @NotNull K key, @Nullable V value) {
 		super(value);
 		this.table = table;
 		this.key = key;
 	}
 
 	@Override
-	public Table getTable() {
+	public @NotNull Table getTable() {
 		return table;
 	}
 
 	@Override
-	public K getObjectKey() {
+	public @NotNull K getObjectKey() {
 		return key;
 	}
 

@@ -6,20 +6,21 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
 import Zeze.Util.OutInt;
+import org.jetbrains.annotations.NotNull;
 
 public class LogList2<V extends Bean> extends LogList1<V> {
 	private final HashMap<LogBean, OutInt> changed = new HashMap<>(); // changed V logs. using in collect.
 
-	LogList2(Meta1<V> meta) {
+	LogList2(@NotNull Meta1<V> meta) {
 		super(meta);
 	}
 
-	public final HashMap<LogBean, OutInt> getChanged() {
+	public final @NotNull HashMap<LogBean, OutInt> getChanged() {
 		return changed;
 	}
 
 	@Override
-	public Log beginSavepoint() {
+	public @NotNull Log beginSavepoint() {
 		var dup = new LogList2<>(meta);
 		dup.setThis(getThis());
 		dup.setBelong(getBelong());
@@ -29,7 +30,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		var curList = getValue();
 		if (curList != null) {
 			for (var it = changed.entrySet().iterator(); it.hasNext(); ) {
@@ -68,7 +69,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(@NotNull ByteBuffer bb) {
 		changed.clear();
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var value = new LogBean();
@@ -98,13 +99,13 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	}
 
 	@Override
-	public void collect(Changes changes, Bean recent, Log vlog) {
+	public void collect(@NotNull Changes changes, @NotNull Bean recent, @NotNull Log vlog) {
 		if (changed.put((LogBean)vlog, new OutInt()) == null)
 			changes.collect(recent, this);
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		var sb = new StringBuilder();
 		sb.append(" opLogs:");
 		ByteBuffer.BuildSortedString(sb, getOpLogs());

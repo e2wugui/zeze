@@ -12,23 +12,25 @@ import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Transaction;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 用户登录会话。
  * 记录账号，roleId，LinkName，SessionId等信息。
  */
 public class ProviderUserSession {
-	protected final Dispatch dispatch;
+	protected final @NotNull Dispatch dispatch;
 
-	public ProviderUserSession(Dispatch dispatch) {
+	public ProviderUserSession(@NotNull Dispatch dispatch) {
 		this.dispatch = dispatch;
 	}
 
-	public void kick(int code, String desc) {
+	public void kick(int code, @NotNull String desc) {
 		ProviderImplement.sendKick(getLink(), getLinkSid(), code, desc);
 	}
 
-	public ProviderService getService() {
+	public @NotNull ProviderService getService() {
 		return (ProviderService)dispatch.getSender().getService();
 	}
 
@@ -44,7 +46,7 @@ public class ProviderUserSession {
 		return getContext().isEmpty();
 	}
 
-	public Long getRoleId() {
+	public @Nullable Long getRoleId() {
 		var context = getContext();
 		return context.isEmpty() ? null : Long.parseLong(context);
 	}
@@ -53,7 +55,7 @@ public class ProviderUserSession {
 		return dispatch.Argument.getLinkSid();
 	}
 
-	public String getLinkName() {
+	public @NotNull String getLinkName() {
 		return ProviderService.getLinkName(getLink());
 	}
 
@@ -61,7 +63,7 @@ public class ProviderUserSession {
 		return dispatch.getSender();
 	}
 
-	private void sendResponseDirectReal(Rpc<?, ?> rpc) {
+	private void sendResponseDirectReal(@NotNull Rpc<?, ?> rpc) {
 		rpc.setRequest(false);
 		protocolLogSend(rpc);
 		var send = new Send(new BSend(rpc.getTypeId(), new Binary(rpc.encode())));
@@ -80,7 +82,7 @@ public class ProviderUserSession {
 		}
 	}
 
-	public void sendResponseDirect(Rpc<?, ?> rpc) {
+	public void sendResponseDirect(@NotNull Rpc<?, ?> rpc) {
 		var t = Transaction.getCurrent();
 		if (t != null)
 			t.runWhileCommit(() -> sendResponseDirectReal(rpc));
@@ -88,7 +90,7 @@ public class ProviderUserSession {
 			sendResponseDirectReal(rpc);
 	}
 
-	public void sendResponse(Binary fullEncodedProtocol) {
+	public void sendResponse(@NotNull Binary fullEncodedProtocol) {
 		var bytes = fullEncodedProtocol.bytesUnsafe();
 		var offset = fullEncodedProtocol.getOffset();
 		var moduleId = ByteBuffer.ToInt(bytes, offset);
@@ -96,7 +98,7 @@ public class ProviderUserSession {
 		sendResponse(Protocol.makeTypeId(moduleId, protocolId), fullEncodedProtocol);
 	}
 
-	protected void sendOnline(AsyncSocket link, Send send) {
+	protected void sendOnline(AsyncSocket link, @NotNull Send send) {
 		var providerImpl = getService().providerApp.providerImplement;
 		if (providerImpl instanceof ProviderWithOnline) {
 			var online = ((ProviderWithOnline)providerImpl).getOnline();
@@ -117,7 +119,7 @@ public class ProviderUserSession {
 			send.Send(link);
 	}
 
-	public void sendResponse(long typeId, Binary fullEncodedProtocol) {
+	public void sendResponse(long typeId, @NotNull Binary fullEncodedProtocol) {
 		var send = new Send(new BSend(typeId, fullEncodedProtocol));
 		send.Argument.getLinkSids().add(getLinkSid());
 
@@ -134,7 +136,7 @@ public class ProviderUserSession {
 		}
 	}
 
-	private void protocolLogSend(Protocol<?> p) {
+	private void protocolLogSend(@NotNull Protocol<?> p) {
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p.getTypeId())) {
 			var roleId = getRoleId();
 			if (roleId == null)
@@ -143,40 +145,40 @@ public class ProviderUserSession {
 		}
 	}
 
-	public void sendResponse(Protocol<?> p) {
+	public void sendResponse(@NotNull Protocol<?> p) {
 		p.setRequest(false);
 		protocolLogSend(p);
 		sendResponse(p.getTypeId(), new Binary(p.encode()));
 	}
 
-	public void sendResponseWhileCommit(long typeId, Binary fullEncodedProtocol) {
+	public void sendResponseWhileCommit(long typeId, @NotNull Binary fullEncodedProtocol) {
 		Transaction.whileCommit(() -> sendResponse(typeId, fullEncodedProtocol));
 	}
 
-	public void sendResponseWhileCommit(Binary fullEncodedProtocol) {
+	public void sendResponseWhileCommit(@NotNull Binary fullEncodedProtocol) {
 		Transaction.whileCommit(() -> sendResponse(fullEncodedProtocol));
 	}
 
-	public void sendResponseWhileCommit(Protocol<?> p) {
+	public void sendResponseWhileCommit(@NotNull Protocol<?> p) {
 		Transaction.whileCommit(() -> sendResponse(p));
 	}
 
 	// 这个方法用来优化广播协议。不能用于Rpc，先隐藏。
 	@SuppressWarnings("unused")
-	protected void sendResponseWhileRollback(long typeId, Binary fullEncodedProtocol) {
+	protected void sendResponseWhileRollback(long typeId, @NotNull Binary fullEncodedProtocol) {
 		Transaction.whileRollback(() -> sendResponse(typeId, fullEncodedProtocol));
 	}
 
 	@SuppressWarnings("unused")
-	protected void sendResponseWhileRollback(Binary fullEncodedProtocol) {
+	protected void sendResponseWhileRollback(@NotNull Binary fullEncodedProtocol) {
 		Transaction.whileRollback(() -> sendResponse(fullEncodedProtocol));
 	}
 
-	public void sendResponseWhileRollback(Protocol<?> p) {
+	public void sendResponseWhileRollback(@NotNull Protocol<?> p) {
 		Transaction.whileRollback(() -> sendResponse(p));
 	}
 
-	public static ProviderUserSession get(Protocol<?> context) {
+	public static @NotNull ProviderUserSession get(@NotNull Protocol<?> context) {
 		var state = context.getUserState();
 		if (state == null)
 			throw new IllegalStateException("not auth");

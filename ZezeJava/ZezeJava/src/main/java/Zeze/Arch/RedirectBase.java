@@ -19,6 +19,7 @@ import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 应用需要继承实现必要的方法，创建实例并保存。需要继承的可能性不大, 需要的话直接设置Application.Redirect
@@ -33,7 +34,7 @@ public class RedirectBase {
 		providerApp = app;
 	}
 
-	public AsyncSocket choiceServer(IModule module, int serverId) {
+	public @Nullable AsyncSocket choiceServer(@NotNull IModule module, int serverId) {
 		if (serverId == providerApp.zeze.getConfig().getServerId())
 			return null; // is Local
 		var ps = providerApp.providerDirectService.providerByServerId.get(serverId);
@@ -54,7 +55,7 @@ public class RedirectBase {
 		*/
 	}
 
-	public AsyncSocket choiceHash(IModule module, int hash, int dataConcurrentLevel) {
+	public @Nullable AsyncSocket choiceHash(@NotNull IModule module, int hash, int dataConcurrentLevel) {
 		var subscribes = providerApp.zeze.getServiceManager().getSubscribeStates();
 		var serviceName = ProviderDistribute.makeServiceName(providerApp.serverServiceNamePrefix, module.getId());
 
@@ -82,14 +83,14 @@ public class RedirectBase {
 		return socket;
 	}
 
-	private static void addMiss(ModuleRedirectAllResult miss, int i, @SuppressWarnings("SameParameterValue") long rc) {
+	private static void addMiss(@NotNull ModuleRedirectAllResult miss, int i, @SuppressWarnings("SameParameterValue") long rc) {
 		var hashResult = new BModuleRedirectAllHash();
 		hashResult.setReturnCode(rc);
 		miss.Argument.getHashs().put(i, hashResult);
 	}
 
-	private static void addTransmits(LongHashMap<ModuleRedirectAllRequest> transmits, long provider, int index,
-									 ModuleRedirectAllRequest req) {
+	private static void addTransmits(@NotNull LongHashMap<ModuleRedirectAllRequest> transmits, long provider, int index,
+									 @NotNull ModuleRedirectAllRequest req) {
 		var exist = transmits.get(provider);
 		if (exist == null) {
 			exist = new ModuleRedirectAllRequest();
@@ -104,8 +105,9 @@ public class RedirectBase {
 		exist.Argument.getHashCodes().add(index);
 	}
 
-	public <T extends RedirectResult> RedirectAllFuture<T> redirectAll(IModule module, ModuleRedirectAllRequest req,
-																	   RedirectAllContext<T> ctx) {
+	public <T extends RedirectResult> @NotNull RedirectAllFuture<T> redirectAll(@NotNull IModule module,
+																				@NotNull ModuleRedirectAllRequest req,
+																				@NotNull RedirectAllContext<T> ctx) {
 		var future = ctx.getFuture();
 		if (req.Argument.getHashCodeConcurrentLevel() <= 0) {
 			providerApp.providerDirectService.tryRemoveManualContext(req.Argument.getSessionId());
@@ -149,8 +151,7 @@ public class RedirectBase {
 						var bb = ByteBuffer.Allocate();
 						request.encode(bb);
 						service.dispatchProtocol(request.getTypeId(), bb,
-								service.findProtocolFactoryHandle(request.getTypeId()),
-								null);
+								service.findProtocolFactoryHandle(request.getTypeId()), null);
 					} catch (Exception e) {
 						logger.error("", e);
 					}
@@ -177,8 +178,7 @@ public class RedirectBase {
 				var bb = ByteBuffer.Allocate();
 				miss.encode(bb);
 				service.dispatchProtocol(miss.getTypeId(), bb,
-						service.findProtocolFactoryHandle(miss.getTypeId()),
-						null);
+						service.findProtocolFactoryHandle(miss.getTypeId()), null);
 			} catch (Exception e) {
 				logger.error("", e);
 			}
@@ -186,7 +186,7 @@ public class RedirectBase {
 		return future;
 	}
 
-	public <T> RedirectFuture<T> runFuture(TransactionLevel level, Func0<RedirectFuture<T>> func) {
+	public <T> @NotNull RedirectFuture<T> runFuture(@Nullable TransactionLevel level, @NotNull Func0<RedirectFuture<T>> func) {
 		Transaction t;
 		if (level == TransactionLevel.None || (t = Transaction.getCurrent()) != null && t.isRunning()) {
 			try {
@@ -212,7 +212,7 @@ public class RedirectBase {
 		return future;
 	}
 
-	public void runVoid(TransactionLevel level, Action0 action) {
+	public void runVoid(@Nullable TransactionLevel level, @NotNull Action0 action) {
 		Transaction t;
 		if (level == TransactionLevel.None || (t = Transaction.getCurrent()) != null && t.isRunning()) {
 			try {

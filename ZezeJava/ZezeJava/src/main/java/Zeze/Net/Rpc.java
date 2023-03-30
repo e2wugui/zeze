@@ -9,15 +9,17 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public abstract class Rpc<TArgument extends Serializable, TResult extends Serializable> extends Protocol<TArgument> {
 	private static final Logger logger = LogManager.getLogger(Rpc.class);
 
 	public TResult Result;
-	private Binary resultEncoded; // 如果设置了这个，发送结果的时候，优先使用这个编码过的。
+	private @Nullable Binary resultEncoded; // 如果设置了这个，发送结果的时候，优先使用这个编码过的。
 	private long sessionId;
-	private ProtocolHandle<Rpc<TArgument, TResult>> responseHandle;
-	private TaskCompletionSource<TResult> future;
+	private @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle;
+	private @Nullable TaskCompletionSource<TResult> future;
 	private int timeout = 5000;
 	private boolean isTimeout;
 	private boolean isRequest = true;
@@ -36,15 +38,15 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		this.sessionId = sessionId;
 	}
 
-	public ProtocolHandle<Rpc<TArgument, TResult>> getResponseHandle() {
+	public @Nullable ProtocolHandle<Rpc<TArgument, TResult>> getResponseHandle() {
 		return responseHandle;
 	}
 
-	public void setResponseHandle(ProtocolHandle<Rpc<TArgument, TResult>> handle) {
+	public void setResponseHandle(@Nullable ProtocolHandle<Rpc<TArgument, TResult>> handle) {
 		responseHandle = handle;
 	}
 
-	public TaskCompletionSource<TResult> getFuture() {
+	public @Nullable TaskCompletionSource<TResult> getFuture() {
 		return future;
 	}
 
@@ -79,7 +81,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		return Result;
 	}
 
-	private void schedule(Service service, long sessionId, int millisecondsTimeout) {
+	private void schedule(@NotNull Service service, long sessionId, int millisecondsTimeout) {
 		long timeout = Math.max(millisecondsTimeout, 0);
 		if (Reflect.inDebugMode)
 			timeout += 10 * 60 * 1000; // 调试状态下RPC超时放宽到至少10分钟,方便调试时不容易超时
@@ -116,7 +118,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	 * @return true: success.
 	 */
 	@Override
-	public boolean Send(AsyncSocket so) {
+	public boolean Send(@Nullable AsyncSocket so) {
 		return Send(so, responseHandle, timeout);
 	}
 
@@ -129,11 +131,11 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	 * @param responseHandle response handle for this rpc
 	 * @return true: success
 	 */
-	public final boolean Send(AsyncSocket so, ProtocolHandle<Rpc<TArgument, TResult>> responseHandle) {
+	public final boolean Send(@Nullable AsyncSocket so, @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle) {
 		return Send(so, responseHandle, timeout);
 	}
 
-	public final boolean Send(AsyncSocket so, ProtocolHandle<Rpc<TArgument, TResult>> responseHandle,
+	public final boolean Send(@Nullable AsyncSocket so, @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle,
 							  int millisecondsTimeout) {
 		if (so == null)
 			return false;
@@ -207,7 +209,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	}
 
 	@Override
-	public void SendResult(Binary result) {
+	public void SendResult(@Nullable Binary result) {
 		if (sendResultDone) {
 			logger.error("Rpc.SendResult Already Done: {} {}", getSender(), this, new Exception());
 			return;
@@ -229,15 +231,15 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	}
 
 	@Override
-	public <P extends Protocol<?>> long handle(DatagramService service, Service.ProtocolFactoryHandle<P> factoryHandle)
-			throws Exception {
+	public <P extends Protocol<?>> long handle(@NotNull DatagramService service,
+											   @NotNull Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
 		// udp 不支持rpc。
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public <P extends Protocol<?>> void dispatch(Service service, Service.ProtocolFactoryHandle<P> factoryHandle)
-			throws Exception {
+	public <P extends Protocol<?>> void dispatch(@NotNull Service service,
+												 @NotNull Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
 		if (isRequest) {
 			super.dispatch(service, factoryHandle);
 			return;
@@ -264,8 +266,8 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	}
 
 	@Override
-	public <P extends Protocol<?>> long handle(Service service, Service.ProtocolFactoryHandle<P> factoryHandle)
-			throws Exception {
+	public <P extends Protocol<?>> long handle(@NotNull Service service,
+											   @NotNull Service.ProtocolFactoryHandle<P> factoryHandle) throws Exception {
 		if (isRequest)
 			return super.handle(service, factoryHandle);
 
@@ -294,7 +296,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		var header = getFamilyClass();
 		if (resultCode == 0)
 			bb.WriteInt(header);
@@ -312,7 +314,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	}
 
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(@NotNull ByteBuffer bb) {
 		var header = bb.ReadInt();
 		var familyClass = header & FamilyClass.FamilyClassMask;
 		if (!FamilyClass.isRpc(familyClass))
@@ -337,7 +339,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return String.format("%s IsRequest=%b SessionId=%d ResultCode=%d%n\tArgument=%s%n\tResult=%s",
 				getClass().getName(), isRequest, sessionId, getResultCode(), Argument, Result);
 	}

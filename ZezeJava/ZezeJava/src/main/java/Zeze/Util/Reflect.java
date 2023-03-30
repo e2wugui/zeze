@@ -17,12 +17,13 @@ import Zeze.Serialize.Vector3Int;
 import Zeze.Serialize.Vector4;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
+import org.jetbrains.annotations.NotNull;
 
 public class Reflect {
 	public static final boolean inDebugMode = !"true".equalsIgnoreCase(System.getProperty("noDebugMode")) &&
 			ManagementFactory.getRuntimeMXBean().getInputArguments().toString().indexOf("-agentlib:jdwp") > 0;
-	public static final StackWalker stackWalker = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
-	public static final MethodHandle supplierMH;
+	public static final @NotNull StackWalker stackWalker = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
+	public static final @NotNull MethodHandle supplierMH;
 	private static final HashMap<Class<?>, String> stableNameMap = new HashMap<>(32);
 
 	static {
@@ -60,7 +61,7 @@ public class Reflect {
 
 	private final HashMap<String, Method> methods = new HashMap<>();
 
-	public Reflect(Class<?> cls) {
+	public Reflect(@NotNull Class<?> cls) {
 		for (var c = cls; c != null; c = c.getSuperclass()) {
 			for (var method : c.getDeclaredMethods()) {
 				if (method.getName().startsWith("Process")) // 只有协议处理函数能配置TransactionLevel
@@ -69,7 +70,7 @@ public class Reflect {
 		}
 	}
 
-	public static MethodHandle getDefaultConstructor(Class<?> cls) {
+	public static @NotNull MethodHandle getDefaultConstructor(@NotNull Class<?> cls) {
 		try {
 			return MethodHandles.lookup().findConstructor(cls, MethodType.methodType(void.class));
 		} catch (ReflectiveOperationException e) {
@@ -77,7 +78,7 @@ public class Reflect {
 		}
 	}
 
-	public TransactionLevel getTransactionLevel(String methodName, TransactionLevel def) {
+	public TransactionLevel getTransactionLevel(@NotNull String methodName, TransactionLevel def) {
 		var method = methods.get(methodName);
 		if (null == method)
 			return def;
@@ -86,7 +87,7 @@ public class Reflect {
 		return annotation != null ? annotation.Level() : def;
 	}
 
-	public DispatchMode getDispatchMode(String methodName, DispatchMode def) {
+	public DispatchMode getDispatchMode(@NotNull String methodName, DispatchMode def) {
 		var method = methods.get(methodName);
 		if (null == method)
 			return def;
@@ -95,7 +96,7 @@ public class Reflect {
 		return annotation != null ? annotation.mode() : def;
 	}
 
-	public static String getStableName(Class<?> cls) {
+	public static @NotNull String getStableName(@NotNull Class<?> cls) {
 		// 支持的 Zeze/Gen/Types/ 类型。
 		var name = stableNameMap.get(cls);
 		if (name != null)
@@ -105,11 +106,12 @@ public class Reflect {
 		throw new UnsupportedOperationException("Unsupported type: " + cls.getName());
 	}
 
-	public static String getStableName(Class<?> cls, Class<?> tplCls) {
+	public static @NotNull String getStableName(@NotNull Class<?> cls, @NotNull Class<?> tplCls) {
 		return cls.getName() + '<' + getStableName(tplCls) + '>';
 	}
 
-	public static String getStableName(Class<?> cls, Class<?> tplCls1, Class<?> tplCls2) {
+	public static @NotNull String getStableName(@NotNull Class<?> cls, @NotNull Class<?> tplCls1,
+												@NotNull Class<?> tplCls2) {
 		return cls.getName() + '<' + getStableName(tplCls1) + ", " + getStableName(tplCls2) + '>';
 	}
 

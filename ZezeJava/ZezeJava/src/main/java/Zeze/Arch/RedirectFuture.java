@@ -6,10 +6,11 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import Zeze.Util.Action1;
 import Zeze.Util.TaskCompletionSource;
+import org.jetbrains.annotations.NotNull;
 
 public class RedirectFuture<R> extends TaskCompletionSource<R> {
-	private static final VarHandle ON_SUCCESS;
-	private static final VarHandle ON_FAIL;
+	private static final @NotNull VarHandle ON_SUCCESS;
+	private static final @NotNull VarHandle ON_FAIL;
 	private static final Action1<?> CALLED = __ -> {
 		throw new UnsupportedOperationException();
 	};
@@ -23,7 +24,7 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 		}
 	}
 
-	public static <R> RedirectFuture<R> finish(R r) {
+	public static <R> @NotNull RedirectFuture<R> finish(R r) {
 		var f = new RedirectFuture<R>();
 		f.setResult(r);
 		return f;
@@ -66,7 +67,7 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 		}
 	}
 
-	private void tryTriggerOnFail(RedirectException e) {
+	private void tryTriggerOnFail(@NotNull RedirectException e) {
 		if (onFail == null)
 			return;
 		@SuppressWarnings("unchecked")
@@ -82,7 +83,10 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 		}
 	}
 
-	public RedirectFuture<R> onSuccess(Action1<R> onSuccess) {
+	public @NotNull RedirectFuture<R> onSuccess(@NotNull Action1<R> onSuccess) {
+		//noinspection ConstantValue
+		if (onSuccess == null)
+			throw new NullPointerException("null onSuccess");
 		if (!ON_SUCCESS.compareAndSet(this, null, onSuccess))
 			throw new IllegalArgumentException("already onSuccess");
 		var result = getRawResult();
@@ -101,7 +105,10 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 		return this;
 	}
 
-	public RedirectFuture<R> onFail(Action1<RedirectException> onFail) {
+	public @NotNull RedirectFuture<R> onFail(@NotNull Action1<RedirectException> onFail) {
+		//noinspection ConstantValue
+		if (onFail == null)
+			throw new NullPointerException("null onFail");
 		if (!ON_FAIL.compareAndSet(this, null, onFail))
 			throw new IllegalArgumentException("already onFail");
 		var result = getRawResult();
@@ -110,12 +117,12 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 		return this;
 	}
 
-	public RedirectFuture<R> then(Action1<R> onResult) {
+	public @NotNull RedirectFuture<R> then(@NotNull Action1<R> onResult) {
 		return onSuccess(onResult).onFail(__ -> onResult.run(null));
 	}
 
 	@Deprecated // use then
-	public RedirectFuture<R> Then(Action1<R> onResult) {
+	public @NotNull RedirectFuture<R> Then(@NotNull Action1<R> onResult) {
 		return then(onResult);
 	}
 
@@ -125,7 +132,7 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 	}
 
 	@Override
-	public RedirectFuture<R> await() {
+	public @NotNull RedirectFuture<R> await() {
 		super.await();
 		return this;
 	}

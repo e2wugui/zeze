@@ -1,15 +1,16 @@
 package Zeze.Arch.Beans;
 
 import Zeze.Serialize.ByteBuffer;
+import org.jetbrains.annotations.NotNull;
 
 public class BSend extends Zeze.Transaction.Bean {
 	public static final long TYPEID = 545774009128015305L;
 
 	private final Zeze.Util.LongList _linkSids = new Zeze.Util.LongList();
 	private long _protocolType;
-	private Zeze.Net.Binary _protocolWholeData; // 完整的协议打包，包括了 type, size
+	private @NotNull Zeze.Net.Binary _protocolWholeData; // 完整的协议打包，包括了 type, size
 
-	public Zeze.Util.LongList getLinkSids() {
+	public @NotNull Zeze.Util.LongList getLinkSids() {
 		return _linkSids;
 	}
 
@@ -21,11 +22,12 @@ public class BSend extends Zeze.Transaction.Bean {
 		_protocolType = value;
 	}
 
-	public Zeze.Net.Binary getProtocolWholeData() {
+	public @NotNull Zeze.Net.Binary getProtocolWholeData() {
 		return _protocolWholeData;
 	}
 
-	public void setProtocolWholeData(Zeze.Net.Binary value) {
+	public void setProtocolWholeData(@NotNull Zeze.Net.Binary value) {
+		//noinspection ConstantValue
 		if (value == null)
 			throw new IllegalArgumentException();
 		_protocolWholeData = value;
@@ -35,14 +37,15 @@ public class BSend extends Zeze.Transaction.Bean {
 		_protocolWholeData = Zeze.Net.Binary.Empty;
 	}
 
-	public BSend(long _protocolType_, Zeze.Net.Binary _protocolWholeData_) {
+	public BSend(long _protocolType_, @NotNull Zeze.Net.Binary _protocolWholeData_) {
 		_protocolType = _protocolType_;
+		//noinspection ConstantValue
 		if (_protocolWholeData_ == null)
 			throw new IllegalArgumentException();
 		_protocolWholeData = _protocolWholeData_;
 	}
 
-	public void assign(BSend other) {
+	public void assign(@NotNull BSend other) {
 		_linkSids.clear();
 		_linkSids.add(other._linkSids);
 		setProtocolType(other.getProtocolType());
@@ -50,7 +53,7 @@ public class BSend extends Zeze.Transaction.Bean {
 	}
 
 	@Override
-	public BSend copy() {
+	public @NotNull BSend copy() {
 		var copy = new BSend();
 		copy.assign(this);
 		return copy;
@@ -62,14 +65,14 @@ public class BSend extends Zeze.Transaction.Bean {
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		var sb = new StringBuilder();
 		buildString(sb, 0);
 		return sb.append(System.lineSeparator()).toString();
 	}
 
 	@Override
-	public void buildString(StringBuilder sb, int level) {
+	public void buildString(@NotNull StringBuilder sb, int level) {
 		sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BSend: {").append(System.lineSeparator());
 		level += 4;
 		sb.append(Zeze.Util.Str.indent(level)).append("linkSids=[");
@@ -103,7 +106,7 @@ public class BSend extends Zeze.Transaction.Bean {
 
 	@SuppressWarnings("UnusedAssignment")
 	@Override
-	public void encode(ByteBuffer _o_) {
+	public void encode(@NotNull ByteBuffer _o_) {
 		int _i_ = 0;
 		{
 			var _x_ = _linkSids;
@@ -134,7 +137,7 @@ public class BSend extends Zeze.Transaction.Bean {
 
 	@SuppressWarnings("UnusedAssignment")
 	@Override
-	public void decode(ByteBuffer _o_) {
+	public void decode(@NotNull ByteBuffer _o_) {
 		int _t_ = _o_.ReadByte();
 		int _i_ = _o_.ReadTagSize(_t_);
 		if (_i_ == 1) {

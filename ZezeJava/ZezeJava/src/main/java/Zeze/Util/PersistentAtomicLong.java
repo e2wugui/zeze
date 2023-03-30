@@ -6,16 +6,17 @@ import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import org.jetbrains.annotations.NotNull;
 
 public class PersistentAtomicLong {
 	private final AtomicLong currentId = new AtomicLong();
 	private volatile long allocated;
 
-	private final String name;
-	private final String fileName;
+	private final @NotNull String name;
+	private final @NotNull String fileName;
 	private final int allocateSize;
 
-	private final static ConcurrentHashMap<String, PersistentAtomicLong> pals = new ConcurrentHashMap<>();
+	private static final ConcurrentHashMap<String, PersistentAtomicLong> pals = new ConcurrentHashMap<>();
 
 	/**
 	 * 【小优化】请保存返回值，重复使用。
@@ -25,17 +26,17 @@ public class PersistentAtomicLong {
 	 *                            有多个实例时，需要另一个Id区分，这里不能使用进程id（pid），需要稳定的。
 	 *                            对于网络程序，可以使用"进程名+Main.Acceptor.Name"
 	 */
-	public static PersistentAtomicLong getOrAdd(final String ProgramInstanceName, final int allocateSize) {
+	public static @NotNull PersistentAtomicLong getOrAdd(@NotNull String ProgramInstanceName, final int allocateSize) {
 		var name = ProgramInstanceName.replace(':', '.');
 		// 这样写，不小心重名也能工作。
 		return pals.computeIfAbsent(name, (k) -> new PersistentAtomicLong(k, allocateSize));
 	}
 
-	public static PersistentAtomicLong getOrAdd(final String ProgramInstanceName) {
+	public static @NotNull PersistentAtomicLong getOrAdd(@NotNull String ProgramInstanceName) {
 		return getOrAdd(ProgramInstanceName, 5000);
 	}
 
-	private PersistentAtomicLong(String ProgramInstanceName, int allocateSize) {
+	private PersistentAtomicLong(@NotNull String ProgramInstanceName, int allocateSize) {
 		if (allocateSize <= 0)
 			throw new IllegalArgumentException();
 
@@ -64,7 +65,7 @@ public class PersistentAtomicLong {
 		}
 	}
 
-	public String getName() {
+	public @NotNull String getName() {
 		return name;
 	}
 
@@ -82,7 +83,7 @@ public class PersistentAtomicLong {
 
 	private static final ConcurrentHashMap<String, RandomAccessFile> allocFiles = new ConcurrentHashMap<>();
 
-	private static RandomAccessFile open(String fileName) {
+	private static @NotNull RandomAccessFile open(@NotNull String fileName) {
 		return allocFiles.computeIfAbsent(fileName, (k) -> {
 			try {
 				return new RandomAccessFile(k, "rw");

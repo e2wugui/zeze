@@ -2,20 +2,21 @@ package Zeze.Util;
 
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import org.jetbrains.annotations.NotNull;
 
 public final class Random {
-	public static ThreadLocalRandom getInstance() {
+	public static @NotNull ThreadLocalRandom getInstance() {
 		return ThreadLocalRandom.current();
 	}
 
-	public static Zeze.Net.Binary nextBinary(int size) {
+	public static @NotNull Zeze.Net.Binary nextBinary(int size) {
 		var rand = getInstance();
 		var bytes = new byte[size];
 		rand.nextBytes(bytes);
 		return new Zeze.Net.Binary(bytes);
 	}
 
-	public static <T> List<T> shuffle(List<T> list) {
+	public static <T> @NotNull List<T> shuffle(@NotNull List<T> list) {
 		var random = getInstance();
 		for (int i = 1, n = list.size(); i < n; i++) {
 			int pos = random.nextInt(i + 1);
@@ -26,7 +27,7 @@ public final class Random {
 		return list;
 	}
 
-	public static <T> T[] shuffle(T[] list) {
+	public static <T> T @NotNull [] shuffle(T @NotNull [] list) {
 		var random = getInstance();
 		for (int i = 1, n = list.length; i < n; i++) {
 			int pos = random.nextInt(i + 1);

@@ -19,6 +19,7 @@ import Zeze.Util.Task;
 import Zeze.Util.TransactionLevelAnnotation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 public abstract class ProviderImplement extends AbstractProviderImplement {
 	private static final Logger logger = LogManager.getLogger(ProviderImplement.class);
@@ -79,7 +80,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		sm.subscribeService(providerApp.linkdServiceName, BSubscribeInfo.SubscribeTypeSimple);
 	}
 
-	public static void sendKick(AsyncSocket sender, long linkSid, int code, String desc) {
+	public static void sendKick(AsyncSocket sender, long linkSid, int code, @NotNull String desc) {
 		new Kick(new BKick(linkSid, code, desc)).Send(sender);
 	}
 

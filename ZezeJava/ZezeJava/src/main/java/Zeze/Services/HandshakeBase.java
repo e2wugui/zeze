@@ -23,6 +23,8 @@ import Zeze.Util.LongHashSet;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class HandshakeBase extends Service {
 	private static final Logger logger = LogManager.getLogger(HandshakeBase.class);
@@ -41,7 +43,7 @@ public class HandshakeBase extends Service {
 	// For Client Only
 	private final LongConcurrentHashMap<Context> dhContext = new LongConcurrentHashMap<>();
 
-	public HandshakeBase(String name, Config config) {
+	public HandshakeBase(@NotNull String name, @Nullable Config config) {
 		super(name, config);
 	}
 

@@ -4,6 +4,7 @@ import java.lang.ref.SoftReference;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Services.GlobalCacheManagerConst;
+import org.jetbrains.annotations.Nullable;
 
 public abstract class Record {
 	public static final class RootInfo {
@@ -58,7 +59,7 @@ public abstract class Record {
 	private Database.Transaction databaseTransactionTmp;
 	private Database.Transaction databaseTransactionOldTmp;
 
-	public Record(Bean value) {
+	public Record(@Nullable Bean value) {
 		state = GlobalCacheManagerConst.StateInvalid;
 		softValue = new SoftReference<>(value);
 		// Timestamp = NextTimestamp; // Table.FindInCacheOrStorage 可能发生数据变化，这里初始化一次不够。

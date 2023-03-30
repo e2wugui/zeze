@@ -7,26 +7,27 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
+import org.jetbrains.annotations.NotNull;
 
 public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	private final Set<LogBean> changed = new HashSet<>(); // changed V logs. using in collect.
 	private final HashMap<K, LogBean> changedWithKey = new HashMap<>(); // changed with key. using in encode/decode followerApply
 	private boolean built;
 
-	LogMap2(Meta2<K, V> meta) {
+	LogMap2(@NotNull Meta2<K, V> meta) {
 		super(meta);
 	}
 
-	public final Set<LogBean> getChanged() {
+	public final @NotNull Set<LogBean> getChanged() {
 		return changed;
 	}
 
-	public final HashMap<K, LogBean> getChangedWithKey() {
+	public final @NotNull HashMap<K, LogBean> getChangedWithKey() {
 		return changedWithKey;
 	}
 
 	@Override
-	public Log beginSavepoint() {
+	public @NotNull Log beginSavepoint() {
 		var dup = new LogMap2<>(meta);
 		dup.setThis(getThis());
 		dup.setBelong(getBelong());
@@ -59,7 +60,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		buildChangedWithKey();
 
 		bb.WriteUInt(changedWithKey.size());
@@ -82,7 +83,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void decode(ByteBuffer bb) {
+	public void decode(@NotNull ByteBuffer bb) {
 		changedWithKey.clear();
 		var keyDecoder = meta.keyDecoder;
 		for (int i = bb.ReadUInt(); i > 0; i--) {
@@ -113,13 +114,13 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	}
 
 	@Override
-	public void collect(Changes changes, Bean recent, Log vlog) {
+	public void collect(@NotNull Changes changes, @NotNull Bean recent, @NotNull Log vlog) {
 		if (changed.add((LogBean)vlog))
 			changes.collect(recent, this);
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		var sb = new StringBuilder();
 		sb.append(" Putted:");
 		ByteBuffer.BuildSortedString(sb, getReplaced());

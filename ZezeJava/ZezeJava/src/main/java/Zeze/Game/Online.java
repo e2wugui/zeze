@@ -84,7 +84,7 @@ public class Online extends AbstractOnline {
 	private final ConcurrentHashMap<String, TransmitAction> transmitActions = new ConcurrentHashMap<>();
 	private Future<?> verifyLocalTimer;
 
-	public static Online create(AppBase app) {
+	public static @NotNull Online create(@NotNull AppBase app) {
 		return GenModule.createRedirectModule(Online.class, app);
 	}
 
@@ -386,7 +386,7 @@ public class Online extends AbstractOnline {
 
 	public static class DelayLogout implements TimerHandle {
 		@Override
-		public void onTimer(TimerContext context) throws Exception {
+		public void onTimer(@NotNull TimerContext context) throws Exception {
 			if (null != instance) {
 				var ret = instance.tryLogout((BDelayLogoutCustom)context.customData);
 				if (ret != 0)
@@ -762,7 +762,7 @@ public class Online extends AbstractOnline {
 		Transaction.whileRollback(() -> sendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol));
 	}
 
-	public void sendReliableNotify(long roleId, @NotNull String listenerName, Protocol<?> p) {
+	public void sendReliableNotify(long roleId, @NotNull String listenerName, @NotNull Protocol<?> p) {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Send", roleId + ":" + listenerName, p);
@@ -1194,11 +1194,11 @@ public class Online extends AbstractOnline {
 		return Procedure.Success;
 	}
 
-	private int reliableNotifySync(long roleId, ProviderUserSession session, long reliableNotifyConfirmCount) {
+	private int reliableNotifySync(long roleId, @NotNull ProviderUserSession session, long reliableNotifyConfirmCount) {
 		return reliableNotifySync(roleId, session, reliableNotifyConfirmCount, true);
 	}
 
-	private int reliableNotifySync(long roleId, ProviderUserSession session, long index, boolean sync) {
+	private int reliableNotifySync(long roleId, @NotNull ProviderUserSession session, long index, boolean sync) {
 		var version = _tversion.getOrAdd(roleId);
 		var queue = openQueue(roleId);
 		if (index < version.getReliableNotifyConfirmIndex()

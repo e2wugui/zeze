@@ -6,6 +6,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.w3c.dom.Element;
 
 /**
@@ -19,22 +21,22 @@ import org.w3c.dom.Element;
 public class Connector {
 	private static final int READY_TIMEOUT = 5000;
 
-	private final String hostNameOrAddress;
+	private final @NotNull String hostNameOrAddress;
 	private final int port;
-	private final String name;
+	private final @NotNull String name;
 	private Service service;
 	private AsyncSocket socket;
-	private volatile TaskCompletionSource<AsyncSocket> futureSocket = new TaskCompletionSource<>();
+	private volatile @NotNull TaskCompletionSource<AsyncSocket> futureSocket = new TaskCompletionSource<>();
 
-	public volatile Object userState;
+	public volatile @Nullable Object userState;
 
 	private boolean isAutoReconnect;
 	private boolean isConnected;
-	private Future<?> reconnectTask;
+	private @Nullable Future<?> reconnectTask;
 	private int maxReconnectDelay = 8000; // 毫秒
 	private int reConnectDelay;
 
-	public static Connector Create(Element e) {
+	public static @NotNull Connector Create(@NotNull Element e) {
 		String className = e.getAttribute("Class");
 		if (className.isEmpty())
 			return new Connector(e);
@@ -46,18 +48,18 @@ public class Connector {
 		}
 	}
 
-	public Connector(String host, int port) {
+	public Connector(@NotNull String host, int port) {
 		this(host, port, true);
 	}
 
-	public Connector(String host, int port, boolean autoReconnect) {
+	public Connector(@NotNull String host, int port, boolean autoReconnect) {
 		hostNameOrAddress = host;
 		this.port = port;
 		name = host + ':' + port;
 		isAutoReconnect = autoReconnect;
 	}
 
-	public Connector(Element self) {
+	public Connector(@NotNull Element self) {
 		hostNameOrAddress = self.getAttribute("HostNameOrAddress");
 		port = Integer.parseInt(self.getAttribute("Port"));
 		name = hostNameOrAddress + ':' + port;
@@ -76,7 +78,7 @@ public class Connector {
 		maxReconnectDelay = Math.max(value, 1000);
 	}
 
-	public final String getHostNameOrAddress() {
+	public final @NotNull String getHostNameOrAddress() {
 		return hostNameOrAddress;
 	}
 
@@ -84,7 +86,7 @@ public class Connector {
 		return port;
 	}
 
-	public final String getName() {
+	public final @NotNull String getName() {
 		return name;
 	}
 
@@ -122,18 +124,18 @@ public class Connector {
 		return TryGetReadySocket() != null;
 	}
 
-	public final synchronized void SetService(Service service) {
+	public final synchronized void SetService(@NotNull Service service) {
 		if (this.service != null)
 			throw new IllegalStateException("Connector of '" + getName() + "' Service != null");
 		this.service = service;
 	}
 
 	// 允许子类重新定义Ready.
-	public AsyncSocket WaitReady() {
+	public @NotNull AsyncSocket WaitReady() {
 		return GetReadySocket();
 	}
 
-	public final AsyncSocket GetReadySocket() {
+	public final @NotNull AsyncSocket GetReadySocket() {
 		try {
 			return futureSocket.get(READY_TIMEOUT, TimeUnit.MILLISECONDS);
 		} catch (InterruptedException | ExecutionException | TimeoutException e) {
@@ -141,7 +143,7 @@ public class Connector {
 		}
 	}
 
-	public final AsyncSocket TryGetReadySocket() {
+	public final @Nullable AsyncSocket TryGetReadySocket() {
 		try {
 			return futureSocket.getNow();
 		} catch (ExecutionException e) {
@@ -149,14 +151,14 @@ public class Connector {
 		}
 	}
 
-	public synchronized void OnSocketClose(AsyncSocket closed, Throwable e) throws Exception {
+	public synchronized void OnSocketClose(@NotNull AsyncSocket closed, @Nullable Throwable e) throws Exception {
 		if (socket == closed) {
 			stop(e);
 			TryReconnect();
 		}
 	}
 
-	public synchronized void OnSocketConnected(@SuppressWarnings("unused") AsyncSocket so) {
+	public synchronized void OnSocketConnected(@SuppressWarnings("unused") @NotNull AsyncSocket so) {
 		isConnected = true;
 		reConnectDelay = 0;
 	}
@@ -170,7 +172,7 @@ public class Connector {
 	}
 
 	// 需要逻辑相关的握手行为时，重载这个方法。
-	public void OnSocketHandshakeDone(AsyncSocket so) {
+	public void OnSocketHandshakeDone(@NotNull AsyncSocket so) {
 		synchronized (this) {
 			if (socket == so) {
 				// java 没有TrySetResult，所以如果上面的检查不充分，仍然会有问题。
@@ -195,7 +197,7 @@ public class Connector {
 		stop(null);
 	}
 
-	public void stop(Throwable e) {
+	public void stop(@Nullable Throwable e) {
 		AsyncSocket as;
 		synchronized (this) {
 			// always try cancel reconnect task

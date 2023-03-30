@@ -25,6 +25,8 @@ import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class Service {
 	protected static final Logger logger = LogManager.getLogger(Service.class);
@@ -45,11 +47,11 @@ public class Service {
 		}
 	}
 
-	private final String name;
-	private final Application zeze;
-	private SocketOptions socketOptions; // 同一个 Service 下的所有连接都是用相同配置。
-	private ServiceConf config;
-	private LongSupplier sessionIdGenerator;
+	private final @NotNull String name;
+	private final @Nullable Application zeze;
+	private @NotNull SocketOptions socketOptions; // 同一个 Service 下的所有连接都是用相同配置。
+	private @NotNull ServiceConf config;
+	private @NotNull LongSupplier sessionIdGenerator = staticSessionIdAtomicLong::getAndIncrement;
 	protected final LongConcurrentHashMap<AsyncSocket> socketMap = new LongConcurrentHashMap<>();
 	private final LongConcurrentHashMap<ProtocolFactoryHandle<? extends Protocol<?>>> factorys = new LongConcurrentHashMap<>();
 	private final LongConcurrentHashMap<Protocol<?>> rpcContexts = new LongConcurrentHashMap<>();
@@ -64,94 +66,96 @@ public class Service {
 
 	private Selectors selectors;
 
-	public Service(String name) {
+	public Service(@NotNull String name) {
+		this(name, (Config)null);
+	}
+
+	public Service(@NotNull String name, @Nullable Config config) {
 		this.name = name;
 		zeze = null;
-		socketOptions = new SocketOptions();
-	}
-
-	public Service(String name, Config config) {
-		this.name = name;
-		zeze = null;
-		initConfig(config);
-	}
-
-	public Service(String name, Application app) {
-		this.name = name;
-		zeze = app;
-		initConfig(app != null ? app.getConfig() : null);
-	}
-
-	private void initConfig(Config config) {
-		this.config = config != null ? config.getServiceConf(name) : null;
-		if (this.config == null) {
-			// setup program default
-			this.config = new ServiceConf();
-			if (config != null) {
-				// reference to config default
-				this.config.setSocketOptions(config.getDefaultServiceConf().getSocketOptions());
-				this.config.setHandshakeOptions(config.getDefaultServiceConf().getHandshakeOptions());
-			}
-		}
-		this.config.setService(this);
+		this.config = initConfig(config);
 		socketOptions = this.config.getSocketOptions();
 	}
 
-	public void setSelectors(Selectors selectors) {
+	public Service(@NotNull String name, @Nullable Application app) {
+		this.name = name;
+		zeze = app;
+		config = initConfig(app != null ? app.getConfig() : null);
+		socketOptions = config.getSocketOptions();
+	}
+
+	private @NotNull ServiceConf initConfig(@Nullable Config config) {
+		var sc = config != null ? config.getServiceConf(name) : null;
+		if (sc == null) {
+			// setup program default
+			sc = new ServiceConf();
+			if (config != null) {
+				// reference to config default
+				sc.setSocketOptions(config.getDefaultServiceConf().getSocketOptions());
+				sc.setHandshakeOptions(config.getDefaultServiceConf().getHandshakeOptions());
+			}
+		}
+		sc.setService(this);
+		return sc;
+	}
+
+	public void setSelectors(@Nullable Selectors selectors) {
 		this.selectors = selectors;
 	}
 
-	public Selectors getSelectors() {
+	public @NotNull Selectors getSelectors() {
 		return null != selectors ? selectors : Selectors.getInstance();
 	}
 
-	public final String getName() {
+	public final @NotNull String getName() {
 		return name;
 	}
 
-	public final Application getZeze() {
+	public final @Nullable Application getZeze() {
 		return zeze;
 	}
 
-	public SocketOptions getSocketOptions() {
+	public @NotNull SocketOptions getSocketOptions() {
 		return socketOptions;
 	}
 
-	public void setSocketOptions(SocketOptions ops) {
+	public void setSocketOptions(@NotNull SocketOptions ops) {
+		//noinspection ConstantValue
 		if (ops != null)
 			socketOptions = ops;
 	}
 
-	public ServiceConf getConfig() {
+	public @NotNull ServiceConf getConfig() {
 		return config;
 	}
 
-	public void setConfig(ServiceConf conf) {
-		config = conf;
+	public void setConfig(@NotNull ServiceConf conf) {
+		//noinspection ConstantValue
+		if (conf != null)
+			config = conf;
 	}
 
-	public final LongSupplier getSessionIdGenerator() {
+	public final @NotNull LongSupplier getSessionIdGenerator() {
 		return sessionIdGenerator;
 	}
 
-	public final void setSessionIdGenerator(LongSupplier value) {
-		sessionIdGenerator = value;
+	public final void setSessionIdGenerator(@Nullable LongSupplier value) {
+		sessionIdGenerator = value != null ? value : staticSessionIdAtomicLong::getAndIncrement;
 	}
 
 	public final long nextSessionId() {
-		var gen = sessionIdGenerator;
-		return gen != null ? gen.getAsLong() : staticSessionIdAtomicLong.getAndIncrement();
+		return sessionIdGenerator.getAsLong();
 	}
 
 	public final int getSocketCount() {
 		return socketMap.size();
 	}
 
-	protected final boolean addSocket(AsyncSocket so) {
+	protected final boolean addSocket(@NotNull AsyncSocket so) {
 		return socketMap.putIfAbsent(so.getSessionId(), so) == null;
 	}
 
-	final void changeSocketSessionId(AsyncSocket so, long newSessionId) {
+	final void changeSocketSessionId(@NotNull AsyncSocket so, long newSessionId) {
 		var oldSessionId = so.getSessionId();
 		if (socketMap.remove(oldSessionId, so)) {
 			if (socketMap.putIfAbsent(newSessionId, so) == null)
@@ -197,18 +201,17 @@ public class Service {
 	 * @param sessionId session id
 	 * @return Socket Instance.
 	 */
-	public AsyncSocket GetSocket(long sessionId) {
+	public @Nullable AsyncSocket GetSocket(long sessionId) {
 		return socketMap.get(sessionId);
 	}
 
-	public AsyncSocket GetSocket() {
+	public @Nullable AsyncSocket GetSocket() {
 		var sockets = socketMap.iterator();
 		return sockets.hasNext() ? sockets.next() : null;
 	}
 
 	public void start() throws Exception {
-		if (config != null)
-			config.start();
+		config.start();
 	}
 
 	public void Start() throws Exception {
@@ -220,8 +223,7 @@ public class Service {
 	}
 
 	public void stop() throws Exception {
-		if (config != null)
-			config.stop();
+		config.stop();
 
 		for (AsyncSocket as : socketMap)
 			as.close(); // remove in callback OnSocketClose
@@ -232,7 +234,8 @@ public class Service {
 		// _RpcContexts.Clear();
 	}
 
-	public final AsyncSocket newServerSocket(String ipaddress, int port, Acceptor acceptor) {
+	public final @NotNull AsyncSocket newServerSocket(@Nullable String ipaddress, int port,
+													  @NotNull Acceptor acceptor) {
 		try {
 			return newServerSocket(InetAddress.getByName(ipaddress), port, acceptor);
 		} catch (UnknownHostException e) {
@@ -240,15 +243,17 @@ public class Service {
 		}
 	}
 
-	public final AsyncSocket newServerSocket(InetAddress ipaddress, int port, Acceptor acceptor) {
+	public final @NotNull AsyncSocket newServerSocket(@Nullable InetAddress ipaddress, int port,
+													  @NotNull Acceptor acceptor) {
 		return newServerSocket(new InetSocketAddress(ipaddress, port), acceptor);
 	}
 
-	public final AsyncSocket newServerSocket(InetSocketAddress localEP, Acceptor acceptor) {
+	public final @NotNull AsyncSocket newServerSocket(@Nullable InetSocketAddress localEP, @NotNull Acceptor acceptor) {
 		return new AsyncSocket(this, localEP, acceptor);
 	}
 
-	public final AsyncSocket newClientSocket(String hostNameOrAddress, int port, Object userState, Connector connector) {
+	public final @NotNull AsyncSocket newClientSocket(@Nullable String hostNameOrAddress, int port,
+													  @Nullable Object userState, @NotNull Connector connector) {
 		return new AsyncSocket(this, hostNameOrAddress, port, userState, connector);
 	}
 
@@ -258,7 +263,7 @@ public class Service {
 	 * @param so closing socket
 	 * @param e  caught exception, null for none.
 	 */
-	public void OnSocketClose(AsyncSocket so, Throwable e) throws Exception {
+	public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
 		if (socketMap.remove(so.getSessionId(), so)) {
 			closedRecvSizeHandle.getAndAdd(this, so.getRecvSize());
 			closedSendSizeHandle.getAndAdd(this, so.getSendSize());
@@ -276,7 +281,7 @@ public class Service {
 	 * @param so after socket closed. last callback.
 	 */
 	@SuppressWarnings("RedundantThrows")
-	public void OnSocketDisposed(@SuppressWarnings("unused") AsyncSocket so) throws Exception {
+	public void OnSocketDisposed(@SuppressWarnings("unused") @NotNull AsyncSocket so) throws Exception {
 		// 一般实现：遍历RpcContexts，
 		/*
 		var ctxSends = GetRpcContextsToSender(so);
@@ -288,7 +293,7 @@ public class Service {
 		*/
 	}
 
-	public final Collection<Protocol<?>> removeRpcContexts(Collection<Long> sids) {
+	public final @NotNull Collection<Protocol<?>> removeRpcContexts(@NotNull Collection<Long> sids) {
 		var result = new ArrayList<Protocol<?>>(sids.size());
 		for (var sid : sids) {
 			var ctx = removeRpcContext(sid);
@@ -303,16 +308,15 @@ public class Service {
 	 *
 	 * @param so new socket accepted.
 	 */
-	public void OnSocketAccept(AsyncSocket so) throws Exception {
-		if (null != config && socketMap.size() > config.getMaxConnections()) {
+	public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
+		if (socketMap.size() > config.getMaxConnections())
 			throw new RuntimeException("too many connections");
-		}
 		addSocket(so);
 		OnHandshakeDone(so);
 	}
 
 	@SuppressWarnings({"RedundantThrows", "MethodMayBeStatic"})
-	public void OnSocketAcceptError(AsyncSocket listener, Throwable e) throws Exception {
+	public void OnSocketAcceptError(@NotNull AsyncSocket listener, @NotNull Throwable e) throws Exception {
 		logger.error("OnSocketAcceptError: {}", listener, e);
 	}
 
@@ -322,7 +326,7 @@ public class Service {
 	 * 加密压缩的连接在相应的方法中调用（see Services\Handshake.cs）。
 	 * 注意：修改OnHandshakeDone的时机，需要重载OnSocketAccept OnSocketConnected，并且不再调用Service的默认实现。
 	 */
-	public void OnHandshakeDone(AsyncSocket so) throws Exception {
+	public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
 		so.setHandshakeDone(true);
 		if (so.getConnector() != null)
 			so.getConnector().OnSocketHandshakeDone(so);
@@ -335,7 +339,7 @@ public class Service {
 	 * @param e  exception caught
 	 */
 	@SuppressWarnings("RedundantThrows")
-	public void OnSocketConnectError(AsyncSocket so, Throwable e) throws Exception {
+	public void OnSocketConnectError(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
 		socketMap.remove(so.getSessionId(), so);
 	}
 
@@ -344,7 +348,7 @@ public class Service {
 	 *
 	 * @param so connect succeed
 	 */
-	public void OnSocketConnected(AsyncSocket so) throws Exception {
+	public void OnSocketConnected(@NotNull AsyncSocket so) throws Exception {
 		addSocket(so);
 		OnHandshakeDone(so);
 	}
@@ -358,15 +362,15 @@ public class Service {
 	 *              处理了多少要体现在input.ReadIndex上,剩下的等下次收到数据后会继续在此处理.
 	 * @return 是否可以立即再次从socket接收数据(如果缓冲区还有数据的话), 否则会等下次select循环再处理
 	 */
-	public boolean OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input) throws Exception {
+	public boolean OnSocketProcessInputBuffer(@NotNull AsyncSocket so, @NotNull ByteBuffer input) throws Exception {
 		Protocol.decode(this, so, input);
 		return true;
 	}
 
 	// 用来派发异步rpc回调。
 	@SuppressWarnings("RedundantThrows")
-	public <P extends Protocol<?>> void dispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
-															ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+	public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
+															@NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		// 一般来说到达这个函数，肯定执行非事务分支了，事务分支在下面的dispatchProtocol中就被拦截。
 		// 但为了更具适应性，就是有人重载了下面的dispatchProtocol，然后没有处理事务，直接派发到这里，
 		// 这里还是处理了存储过程的创建。但这里处理的存储过程没有redo时重置协议参数的能力。
@@ -384,14 +388,15 @@ public class Service {
 		return false;
 	}
 
-	public final Protocol<?> decodeProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle,
-											AsyncSocket so) {
+	public final Protocol<?> decodeProtocol(long typeId, @NotNull ByteBuffer bb,
+											@NotNull ProtocolFactoryHandle<?> factoryHandle, @Nullable AsyncSocket so) {
 		return decodeProtocol(typeId, bb, factoryHandle, so, true);
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
-	public Protocol<?> decodeProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle,
-									  AsyncSocket so, boolean needLog) {
+	public Protocol<?> decodeProtocol(long typeId, @NotNull ByteBuffer bb,
+									  @NotNull ProtocolFactoryHandle<?> factoryHandle,
+									  @Nullable AsyncSocket so, boolean needLog) {
 		var p = factoryHandle.Factory.create();
 		p.decode(bb);
 		// 协议必须完整的解码，为了方便应用某些时候设计出兼容的协议。去掉这个检查。
@@ -411,12 +416,15 @@ public class Service {
 	}
 
 	// 用来派发已经decode的协议，不支持事务重做时重置协议参数。
-	public void dispatchProtocol(Protocol<?> p) throws Exception {
+	public void dispatchProtocol(@NotNull Protocol<?> p) throws Exception {
 		var factoryHandle = findProtocolFactoryHandle(p.getTypeId());
-		dispatchProtocol(p, factoryHandle);
+		if (factoryHandle != null)
+			dispatchProtocol(p, factoryHandle);
+		else
+			logger.warn("dispatchProtocol: not found protocol factory: {}", p);
 	}
 
-	public void dispatchProtocol(Protocol<?> p, ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		var level = factoryHandle.Level;
 		var zeze = this.zeze;
 		// 一般来说到达这个函数，肯定执行非事务分支了，事务分支在下面的dispatchProtocol中就被拦截。
@@ -431,8 +439,8 @@ public class Service {
 		}
 	}
 
-	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so)
-			throws Exception {
+	public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb, @NotNull ProtocolFactoryHandle<?> factoryHandle,
+								 @Nullable AsyncSocket so) throws Exception {
 		if (isHandshakeProtocol(typeId)) {
 			// handshake protocol call direct in io-thread.
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
@@ -452,7 +460,7 @@ public class Service {
 						var p = decodeProtocol(typeId, bbCopy, factoryHandle, so, needLog);
 						outProtocol.value = p;
 						return p.handle(this, factoryHandle);
-					}, factoryHandle.Class.getName(), level, so.getUserState()),
+					}, factoryHandle.Class.getName(), level, so != null ? so.getUserState() : null),
 					outProtocol, Protocol::trySendResultCode, factoryHandle.Mode);
 		} else {
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
@@ -466,12 +474,15 @@ public class Service {
 	 * @param data 方法外绝对不能持有data及其Bytes的引用! 也就是只能在方法内读data, 只能处理data.ReadIndex到data.WriteIndex范围内
 	 */
 	@SuppressWarnings("RedundantThrows")
-	public void dispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId, ByteBuffer data) throws Exception {
-		throw new UnsupportedOperationException("Unknown Protocol (" + moduleId + ", " + protocolId + ") size=" + data.Size());
+	public void dispatchUnknownProtocol(@NotNull AsyncSocket so, int moduleId, int protocolId, @NotNull ByteBuffer data)
+			throws Exception {
+		throw new UnsupportedOperationException(
+				"Unknown Protocol (" + moduleId + ", " + protocolId + ") size=" + data.Size());
 	}
 
 	@SuppressWarnings("RedundantThrows")
-	public boolean checkOverflow(AsyncSocket so, long newSize, byte[] bytes, int offset, int length) throws Exception {
+	public boolean checkOverflow(@NotNull AsyncSocket so, long newSize, byte @NotNull [] bytes, int offset, int length)
+			throws Exception {
 		var maxSize = getSocketOptions().getOutputBufferMaxSize();
 		if (newSize <= maxSize)
 			return true;
@@ -489,35 +500,36 @@ public class Service {
 	 * 协议工厂
 	 */
 	public static class ProtocolFactoryHandle<P extends Protocol<?>> {
-		public final Class<P> Class;
+		public final @NotNull Class<P> Class;
 		public final long TypeId;
 		public Factory<P> Factory;
-		public ProtocolHandle<P> Handle;
+		public @Nullable ProtocolHandle<P> Handle;
 		public TransactionLevel Level;
 		public DispatchMode Mode;
 
-		public ProtocolFactoryHandle(Class<P> protocolClass, long typeId) {
+		public ProtocolFactoryHandle(@NotNull Class<P> protocolClass, long typeId) {
 			Class = protocolClass;
 			TypeId = typeId;
 			Level = TransactionLevel.Serializable;
 			Mode = DispatchMode.Normal;
 		}
 
-		public ProtocolFactoryHandle(Factory<P> factory) {
+		public ProtocolFactoryHandle(@NotNull Factory<P> factory) {
 			this(factory, null, TransactionLevel.Serializable, DispatchMode.Normal);
 		}
 
-		public ProtocolFactoryHandle(Factory<P> factory, ProtocolHandle<P> handle) {
+		public ProtocolFactoryHandle(@NotNull Factory<P> factory, @Nullable ProtocolHandle<P> handle) {
 			this(factory, handle, TransactionLevel.Serializable, DispatchMode.Normal);
 		}
 
-		public ProtocolFactoryHandle(Factory<P> factory, ProtocolHandle<P> handle, TransactionLevel level) {
+		public ProtocolFactoryHandle(@NotNull Factory<P> factory, @Nullable ProtocolHandle<P> handle,
+									 TransactionLevel level) {
 			this(factory, handle, level, DispatchMode.Normal);
 		}
 
 		@SuppressWarnings("unchecked")
-		public ProtocolFactoryHandle(Factory<P> factory, ProtocolHandle<P> handle, TransactionLevel level,
-									 DispatchMode mode) {
+		public ProtocolFactoryHandle(@NotNull Factory<P> factory, @Nullable ProtocolHandle<P> handle,
+									 TransactionLevel level, DispatchMode mode) {
 			P p = factory.create();
 			Class = (Class<P>)p.getClass();
 			TypeId = p.getTypeId();
@@ -528,24 +540,24 @@ public class Service {
 		}
 	}
 
-	public final LongConcurrentHashMap<ProtocolFactoryHandle<? extends Protocol<?>>> getFactorys() {
+	public final @NotNull LongConcurrentHashMap<ProtocolFactoryHandle<? extends Protocol<?>>> getFactorys() {
 		return factorys;
 	}
 
-	public final void AddFactoryHandle(long type, ProtocolFactoryHandle<? extends Protocol<?>> factory) {
+	public final void AddFactoryHandle(long type, @NotNull ProtocolFactoryHandle<? extends Protocol<?>> factory) {
 		if (factorys.putIfAbsent(type, factory) != null)
 			throw new IllegalStateException(String.format("duplicate factory type=%d moduleId=%d id=%d",
 					type, type >>> 32, type & 0xffff_ffffL));
 	}
 
-	public final ProtocolFactoryHandle<? extends Protocol<?>> findProtocolFactoryHandle(long type) {
+	public final @Nullable ProtocolFactoryHandle<? extends Protocol<?>> findProtocolFactoryHandle(long type) {
 		return factorys.get(type);
 	}
 
 	/**
 	 * Rpc Context. 模板不好放进去，使用基类 Protocol
 	 */
-	public final long addRpcContext(Protocol<?> p) {
+	public final long addRpcContext(@NotNull Protocol<?> p) {
 		while (true) {
 			long sessionId = nextSessionId();
 			if (rpcContexts.putIfAbsent(sessionId, p) == null)
@@ -553,25 +565,25 @@ public class Service {
 		}
 	}
 
-	void addRpcContext(long sessionId, Protocol<?> p) {
+	void addRpcContext(long sessionId, @NotNull Protocol<?> p) {
 		rpcContexts.putIfAbsent(sessionId, p);
 	}
 
 	@SuppressWarnings("unchecked")
-	public final <T extends Protocol<?>> T removeRpcContext(long sid) {
+	public final <T extends Protocol<?>> @Nullable T removeRpcContext(long sid) {
 		return (T)rpcContexts.remove(sid);
 	}
 
-	public final <T extends Protocol<?>> boolean removeRpcContext(long sid, T ctx) {
+	public final <T extends Protocol<?>> boolean removeRpcContext(long sid, @NotNull T ctx) {
 		return rpcContexts.remove(sid, ctx);
 	}
 
 	// Not Need Now
-	public final LongHashMap<Protocol<?>> getRpcContextsToSender(AsyncSocket sender) {
+	public final @NotNull LongHashMap<Protocol<?>> getRpcContextsToSender(@NotNull AsyncSocket sender) {
 		return getRpcContexts(p -> p.getSender() == sender);
 	}
 
-	public final LongHashMap<Protocol<?>> getRpcContexts(Predicate<Protocol<?>> filter) {
+	public final @NotNull LongHashMap<Protocol<?>> getRpcContexts(@NotNull Predicate<Protocol<?>> filter) {
 		var result = new LongHashMap<Protocol<?>>(Math.max(rpcContexts.size(), 1024)); // 初始容量先别定太大,可能只过滤出一小部分
 		for (var it = rpcContexts.entryIterator(); it.moveToNext(); ) {
 			if (filter.test(it.value()))
@@ -582,9 +594,9 @@ public class Service {
 
 	public static abstract class ManualContext {
 		private long sessionId;
-		private Object userState;
+		private @Nullable Object userState;
 		private boolean isTimeout;
-		private Service service;
+		private @Nullable Service service;
 
 		public final long getSessionId() {
 			return sessionId;
@@ -594,11 +606,11 @@ public class Service {
 			sessionId = value;
 		}
 
-		public final Object getUserState() {
+		public final @Nullable Object getUserState() {
 			return userState;
 		}
 
-		public final void setUserState(Object value) {
+		public final void setUserState(@Nullable Object value) {
 			userState = value;
 		}
 
@@ -610,11 +622,11 @@ public class Service {
 			isTimeout = value;
 		}
 
-		public Service getService() {
+		public @Nullable Service getService() {
 			return service;
 		}
 
-		public void setService(Service service) {
+		public void setService(@NotNull Service service) {
 			this.service = service;
 		}
 
@@ -623,11 +635,11 @@ public class Service {
 		}
 	}
 
-	public final long addManualContextWithTimeout(ManualContext context) {
+	public final long addManualContextWithTimeout(@NotNull ManualContext context) {
 		return addManualContextWithTimeout(context, 10 * 1000);
 	}
 
-	public final long addManualContextWithTimeout(ManualContext context, long timeout) { // 毫秒
+	public final long addManualContextWithTimeout(@NotNull ManualContext context, long timeout) { // 毫秒
 		while (true) {
 			long sessionId = nextSessionId();
 			if (manualContexts.putIfAbsent(sessionId, context) == null) {
@@ -640,15 +652,15 @@ public class Service {
 	}
 
 	@SuppressWarnings("unchecked")
-	public final <T extends ManualContext> T tryGetManualContext(long sessionId) {
+	public final <T extends ManualContext> @Nullable T tryGetManualContext(long sessionId) {
 		return (T)manualContexts.get(sessionId);
 	}
 
-	public final <T extends ManualContext> T tryRemoveManualContext(long sessionId) {
+	public final <T extends ManualContext> @Nullable T tryRemoveManualContext(long sessionId) {
 		return tryRemoveManualContext(sessionId, false);
 	}
 
-	private <T extends ManualContext> T tryRemoveManualContext(long sessionId, boolean isTimeout) {
+	private <T extends ManualContext> @Nullable T tryRemoveManualContext(long sessionId, boolean isTimeout) {
 		@SuppressWarnings("unchecked")
 		var r = (T)manualContexts.remove(sessionId);
 		if (r != null) {
@@ -664,12 +676,12 @@ public class Service {
 
 	// 还是不直接暴露内部的容器。提供这个方法给外面用。以后如果有问题，可以改这里。
 
-	public final void foreach(Action1<AsyncSocket> action) throws Exception {
+	public final void foreach(@NotNull Action1<AsyncSocket> action) throws Exception {
 		for (var socket : socketMap)
 			action.run(socket);
 	}
 
-	public KV<String, Integer> getOneAcceptorAddress() {
+	public @NotNull KV<String, Integer> getOneAcceptorAddress() {
 		var ipPort = KV.create("", 0);
 
 		config.forEachAcceptor2(a -> {
@@ -687,7 +699,7 @@ public class Service {
 		return ipPort;
 	}
 
-	public KV<String, Integer> getOnePassiveAddress() {
+	public @NotNull KV<@NotNull String, @NotNull Integer> getOnePassiveAddress() {
 		var ipPort = getOneAcceptorAddress();
 		// 允许系统来选择端口。
 		//if (ipPort.getValue() == 0)
@@ -711,7 +723,7 @@ public class Service {
 		return ipPort;
 	}
 
-	public void onServerSocketBind(ServerSocket port) {
+	public void onServerSocketBind(@NotNull ServerSocket port) {
 	}
 
 	/**
@@ -720,7 +732,7 @@ public class Service {
 	 * @return 是否检查通过, false则丢弃该协议(也可以同时关闭连接)
 	 */
 	@SuppressWarnings("MethodMayBeStatic")
-	public boolean checkThrottle(AsyncSocket sender, int moduleId, int protocolId, int size) {
+	public boolean checkThrottle(@NotNull AsyncSocket sender, int moduleId, int protocolId, int size) {
 		var throttle = sender.getTimeThrottle();
 		if (null != throttle && !throttle.checkNow(size)) {
 			// trySendResultCode(Procedure.Busy); // 超过速度限制，不报告错误。因为可能是一种攻击。
@@ -730,7 +742,7 @@ public class Service {
 		return true;
 	}
 
-	public boolean discard(AsyncSocket sender, int moduleId, int protocolId, int size) throws Exception {
+	public boolean discard(@NotNull AsyncSocket sender, int moduleId, int protocolId, int size) throws Exception {
 		return false;
 	}
 }

@@ -80,9 +80,7 @@ public class SimpleApp extends AppBase {
 
 	public void stop() throws Exception {
 		if (providerApp != null) {
-			if (providerApp.providerImplement != null) {
-				((ProviderWithOnline)providerApp.providerImplement).stop();
-			}
+			((ProviderWithOnline)providerApp.providerImplement).stop();
 			providerApp.providerDirectService.stop();
 			providerApp.providerService.stop();
 			providerApp = null;

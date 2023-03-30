@@ -1,14 +1,16 @@
 package Zeze.Util;
 
 import java.util.Objects;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class OutObject<T> {
-	public T value;
+	public @Nullable T value;
 
 	public OutObject() {
 	}
 
-	public OutObject(T value) {
+	public OutObject(@Nullable T value) {
 		this.value = value;
 	}
 
@@ -18,12 +20,12 @@ public class OutObject<T> {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 		return obj instanceof OutObject && Objects.equals(value, ((OutObject<?>)obj).value);
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return String.valueOf(value);
 	}
 }
