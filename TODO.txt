@@ -22,26 +22,6 @@ Dbh2 创建表选择负载低的服务器的策略。
 Dbh2 根据负载或什么策略并发拆分桶。
 
 Timer redirectCancel 改成同步等待远程执行完成。有点风险。需要考虑一下。
-RelationalTableMapping
-5. 多server(gs)同时启动，create table, checkCompatible, alter table 流程的互斥。
-【使用大锁原则】
-a) checkCompatible并且保存成功时，原子的在数据库表里设置一个标记。
-b) 开始diff & alter。
-c) 清除数据库标记。
-try {
-	while (true) {
-		sql = "update __alter_flag_ set flag=1 where __key=1 and flag=0"; // __key=1 是mysql的update必须提供where，否则默认不允许执行。
-		if (executeUpdate(sql).changedRows == 1) {
-			schemasCompatible(); // 由于有了flag，这里实际上就不再会并发了。当然原有的支持并发的代码可以保留。
-			tryAlter();
-			break;
-		}
-		sleep(1000); // alter 可能很慢，这里多睡一下也行，但是为了兼容不是关系表，选一个合适的值吧。
-	}
-} finally {
-	sql = "update __alter_flag_ set flag=0 where __key=1"
-	executeUpdate(sql);
-}
 ------------------------------------------------------------------------------------------------------------------------------
 2023/3/31 v1.2.1 cxx net & bean; Online.send use selectDirty; TaskOneByOne.Barrier; RelationalTableMapping; Timer Bug;
 ------------------------------------------------------------------------------------------------------------------------------
@@ -57,6 +37,12 @@ RelationalTableMapping
 	2. Bean columns; Table create table sql;(从Schemas中构建）
 	3. Schemas alter table;	*. FrameWork & 细节
 	4. alter table 修改字段类型时，数据库的兼容修改检查。
+	5. 多server(gs)同时启动，create table, checkCompatible, alter table 流程的互斥。
+	【使用大锁原则】atomicOpenDatabase
+	a) checkCompatible并且保存成功时，原子的在数据库表里设置一个标记。
+	b) 开始diff & alter。
+	c) 清除数据库标记。
+	-------------------------------
 	a) Database.Table 增加新方法？Database.TableMapping 新接口？TableX下沉到 find，replace，delete？
 	    倾向于【增加】【下沉方法】。
 	b) TableX.walk<K, V> 使用a)的方案，walk<byte[], byte[]>对于Mapping方式不支持。

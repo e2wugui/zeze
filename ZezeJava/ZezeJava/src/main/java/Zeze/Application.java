@@ -333,15 +333,17 @@ public final class Application {
 		}
 	}
 
-	private void atomicStartDatabase() throws Exception {
+	private void atomicOpenDatabase() throws Exception {
 		var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
 		while (true) {
 			if (!defaultDb.getDirectOperates().tryLock()) {
-				System.out.println("lock default database fail. sleep and try again...");
+				logger.info("lock default database fail. sleep and try again...");
+				// alter 可能很慢，这里多睡一下也行，但是为了兼容不是关系表，选一个合适的值吧。
 				Thread.sleep(1000);
 				continue;
 			}
 			try {
+				// 由于有了flag，这里实际上就不再会并发了。当然原有的支持并发的代码可以保留。
 				schemasCompatible();
 
 				// Open Databases
@@ -410,7 +412,7 @@ public final class Application {
 		}
 
 		if (!noDatabase) {
-			atomicStartDatabase();
+			atomicOpenDatabase();
 
 			// Open Global
 			var hosts = Str.trim(conf.getGlobalCacheManagerHostNameOrAddress().split(";"));
