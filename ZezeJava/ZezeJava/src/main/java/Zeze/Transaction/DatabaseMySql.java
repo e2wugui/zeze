@@ -5,6 +5,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLWarning;
 import java.sql.Types;
 import java.util.ArrayList;
 import Zeze.Application;
@@ -440,10 +441,20 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		return callback.handle(k);
 	}
 
+	public static boolean tableAlreadyExistsWarning(SQLWarning warning) {
+		while (warning != null) {
+			var msg = warning.getMessage();
+			if (msg.startsWith("Table") && msg.contains("already exists"))
+				return true;
+			warning = warning.getNextWarning();
+		}
+		return false;
+	}
+
 	public final class TableMysqlRelational implements Database.Table {
 
 		private final String name;
-		private final boolean isNew;
+		private boolean isNew;
 		private boolean dropped = false;
 
 		public void drop() {
@@ -480,12 +491,16 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		public TableMysqlRelational(String name) {
 			this.name = name;
 
+			/*
 			if (name.equals("demo_Module1_Table1") || name.equals("demo_Module1_Table2")) {
 				System.out.println("new " + name);
 			}
+			*/
 			// isNew 仅用来在Schemas比较的时候可选的忽略被删除的表，这里没有跟Create原子化。
 			// 下面的create table if not exists 在存在的时候会返回warning，isNew是否可以通过这个方法得到？
 			// warning的方案的原子性由数据库保证，比较好，但warning本身可能不是很标准，先保留MetaData方案了。
+			isNew = true;
+			/*
 			try (var connection = dataSource.getConnection()) {
 				DatabaseMetaData meta = connection.getMetaData();
 				ResultSet resultSet = meta.getTables(null, null, this.name, new String[]{"TABLE"});
@@ -493,23 +508,28 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			} catch (SQLException e) {
 				throw new RuntimeException(e);
 			}
+			*/
 
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 				String sql = getDatabase().getTable(name).getRelationalTable().createTableSql();
 				try (var cmd = connection.prepareStatement(sql)) {
 					cmd.executeUpdate();
+					isNew = !tableAlreadyExistsWarning(cmd.getWarnings());
 				}
 			} catch (SQLException e) {
 				if (!e.getMessage().contains("already exist"))
 					throw new RuntimeException(e);
+				isNew = false;
 			}
 		}
 
 		public void tryAlter() {
+			/*
 			if (name.equals("demo_Module1_Table1") || name.equals("demo_Module1_Table2")) {
 				System.out.println(name);
 			}
+			*/
 			if (isNew)
 				return; // 已经是最新的表。不需要alter。
 
@@ -821,7 +841,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 	public final class TableMysql extends Database.AbstractKVTable {
 		private final String name;
-		private final boolean isNew;
+		private boolean isNew;
 		private boolean dropped = false;
 
 		public void drop() {
@@ -861,6 +881,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			// isNew 仅用来在Schemas比较的时候可选的忽略被删除的表，这里没有跟Create原子化。
 			// 下面的create table if not exists 在存在的时候会返回warning，isNew是否可以通过这个方法得到？
 			// warning的方案的原子性由数据库保证，比较好，但warning本身可能不是很标准，先保留MetaData方案了。
+			isNew = true;
+			/*
 			try (var connection = dataSource.getConnection()) {
 				DatabaseMetaData meta = connection.getMetaData();
 				ResultSet resultSet = meta.getTables(null, null, this.name, new String[]{"TABLE"});
@@ -868,6 +890,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			} catch (SQLException e) {
 				throw new RuntimeException(e);
 			}
+			*/
 
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
@@ -877,10 +900,12 @@ public final class DatabaseMySql extends DatabaseJdbc {
 						+ ") NOT NULL PRIMARY KEY, value LONGBLOB NOT NULL)";
 				try (var cmd = connection.prepareStatement(sql)) {
 					cmd.executeUpdate();
+					isNew = !tableAlreadyExistsWarning(cmd.getWarnings());
 				}
 			} catch (SQLException e) {
 				if (!e.getMessage().contains("already exist"))
 					throw new RuntimeException(e);
+				isNew = false;
 			}
 		}
 

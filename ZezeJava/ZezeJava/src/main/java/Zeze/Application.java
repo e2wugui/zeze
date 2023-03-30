@@ -2,6 +2,7 @@ package Zeze;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -284,16 +285,18 @@ public final class Application {
 		delayRemove.continueJobs();
 	}
 
-	static ByteBuffer debugDataVersion;
+	/*
+	static byte[] debugDataVersion;
 	static void checkAndSet(ByteBuffer cur) {
 		if (debugDataVersion == null) {
-			debugDataVersion = cur;
+			debugDataVersion = cur.Copy();
 			return;
 		}
-		if (!debugDataVersion.equals(cur)) {
+		if (!Arrays.equals(debugDataVersion, cur.Copy())) {
 			System.out.println("DataVersion.Data Changed!");
 		}
 	}
+	*/
 
 	// 数据库Meta兼容检查，返回旧的Schemas。
 	private void schemasCompatible() throws Exception {
@@ -307,7 +310,7 @@ public final class Application {
 				var dataVersion = defaultDb.getDirectOperates().getDataWithVersion(keyOfSchemas);
 				long version = 0;
 				if (dataVersion != null && dataVersion.data != null) {
-					checkAndSet(dataVersion.data);
+					//checkAndSet(dataVersion.data);
 					schemasPrevious = new Schemas();
 					try {
 						schemasPrevious.decode(dataVersion.data);
