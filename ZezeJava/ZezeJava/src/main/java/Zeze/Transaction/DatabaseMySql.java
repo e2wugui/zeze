@@ -480,6 +480,9 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		public TableMysqlRelational(String name) {
 			this.name = name;
 
+			if (name.equals("demo_Module1_Table1") || name.equals("demo_Module1_Table2")) {
+				System.out.println(name);
+			}
 			// isNew 仅用来在Schemas比较的时候可选的忽略被删除的表，这里没有跟Create原子化。
 			// 下面的create table if not exists 在存在的时候会返回warning，isNew是否可以通过这个方法得到？
 			// warning的方案的原子性由数据库保证，比较好，但warning本身可能不是很标准，先保留MetaData方案了。
@@ -504,6 +507,9 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 
 		public void tryAlter() {
+			if (name.equals("demo_Module1_Table1") || name.equals("demo_Module1_Table2")) {
+				System.out.println(name);
+			}
 			if (isNew)
 				return; // 已经是最新的表。不需要alter。
 
