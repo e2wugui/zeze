@@ -413,6 +413,12 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		return " WHERE " + where;
 	}
 
+	private static String buildKeyWhere(SQLStatement st) {
+		var where = st.sql.toString();
+		where = where.replace(",", " AND ");
+		return where;
+	}
+
 	private static <K extends Comparable<K>, V extends Bean>
 	boolean invokeKeyCallback(TableX<K, V> table, ResultSet rs, TableWalkKey<K> callback, OutObject<K> outKey) throws SQLException {
 		K k = table.decodeKeyResultSet(rs);
@@ -581,7 +587,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 			var st = new SQLStatement();
 			table.encodeKeySQLStatement(st, key);
-			var sql = "SELECT * FROM " + name + " WHERE " + st.sql;
+			var sql = "SELECT * FROM " + name + " WHERE " + buildKeyWhere(st);
 			try (var conn = dataSource.getConnection()) {
 				conn.setAutoCommit(true);
 				try (var pre = conn.prepareStatement(sql)) {
@@ -624,7 +630,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				return;
 
 			var stKey = (SQLStatement)key;
-			var sql = "DELETE FROM " + name + " WHERE " + stKey.sql;
+			var sql = "DELETE FROM " + name + " WHERE " + buildKeyWhere(stKey);
 			var my = (JdbcTrans)t;
 			try (var pre = my.Connection.prepareStatement(sql)) {
 				setParams(pre, 1, stKey.params);
