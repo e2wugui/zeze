@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.Action1;
@@ -469,7 +470,7 @@ public class Schemas implements Serializable {
 	public static class Bean extends Type {
 		private static final Logger logger = LogManager.getLogger(Bean.class);
 
-		private final IntHashMap<Variable> variables = new IntHashMap<>();
+		private final TreeMap<Integer, Variable> variables = new TreeMap<>();
 		private boolean isBeanKey;
 		private int keyRefCount;
 		// 这个变量当前是不需要的，作为额外的属性记录下来，以后可能要用。
@@ -477,7 +478,7 @@ public class Schemas implements Serializable {
 		// 这里记录在当前版本Schemas中Bean的实际名字，只有生成的bean包含这个。
 		private String realName = "";
 
-		public final IntHashMap<Variable> getVariables() {
+		public final TreeMap<Integer, Variable> getVariables() {
 			return variables;
 		}
 
@@ -536,8 +537,9 @@ public class Schemas implements Serializable {
 			context.addCheckResult(beanOther, this, result);
 
 			ArrayList<Variable> deleteds = new ArrayList<>();
-			for (var it = beanOther.getVariables().iterator(); it.moveToNext(); ) {
-				var vOther = it.value();
+			for (var it = beanOther.getVariables().entrySet().iterator(); it.hasNext(); ) {
+				var e = it.next();
+				var vOther = e.getValue();
 				var vThis = getVariables().get(vOther.id);
 				if (null != vThis) {
 					if (vThis.deleted) {
@@ -579,8 +581,9 @@ public class Schemas implements Serializable {
 					logger.error("Not Compatible. beankey={} Variables.Count < DB.Variables.Count,Must Be Reduced", name);
 					return false;
 				}
-				for (var it = beanOther.getVariables().iterator(); it.moveToNext(); ) {
-					var vOther = it.value();
+				for (var it = beanOther.getVariables().entrySet().iterator(); it.hasNext(); ) {
+					var e = it.next();
+					var vOther = e.getValue();
 					if (vOther.deleted) {
 						// 当作Key前允许删除变量，所以可能存在已经被删除的变量。
 						continue;
@@ -644,7 +647,8 @@ public class Schemas implements Serializable {
 			result.setBean(newBean2);
 			result.addUpdate(Update, UpdateVariable);
 
-			getVariables().foreachValue(v -> v.tryCopyBeanIfRemoved(context));
+			for (var v : getVariables().values())
+				v.tryCopyBeanIfRemoved(context);
 		}
 
 		private Bean ShadowCopy(Context context) {
@@ -654,7 +658,8 @@ public class Schemas implements Serializable {
 			newBean.keyRefCount = this.getKeyRefCount();
 			newBean.realName = this.name;
 			newBean.deleted = this.deleted;
-			getVariables().foreachValue(v -> newBean.getVariables().put(v.id, v));
+			for (var v : getVariables().values())
+				newBean.getVariables().put(v.id, v);
 			return newBean;
 		}
 
@@ -678,12 +683,14 @@ public class Schemas implements Serializable {
 			bb.WriteBool(deleted);
 			bb.WriteString(realName);
 			bb.WriteInt(getVariables().size());
-			getVariables().foreachValue(v -> v.encode(bb));
+			for (var v : getVariables().values())
+				v.encode(bb);
 		}
 
 		@Override
 		public void compile(Schemas s) {
-			getVariables().foreachValue(v -> v.compile(s));
+			for (var v : getVariables().values())
+				v.compile(s);
 		}
 
 		public final void addVariable(Variable var) {
@@ -694,7 +701,9 @@ public class Schemas implements Serializable {
 		public void buildRelationalColumns(boolean isKey, Table table, Bean bean, Variable variable,
 										   ArrayList<String> varNames, ArrayList<Integer> varIds,
 										   ArrayList<Column> columns) {
-			variables.foreach((key, value) -> {
+			for (var e : variables.entrySet()) {
+				var key = e.getKey();
+				var value = e.getValue();
 				varNames.add(value.name);
 				varIds.add(value.id);
 				if (value.type.key != null || value.type.value != null) // is collection or map
@@ -704,7 +713,7 @@ public class Schemas implements Serializable {
 					value.type.buildRelationalColumns(isKey, table, this, value, varNames, varIds, columns);
 				varIds.remove(varIds.size() - 1);
 				varNames.remove(varNames.size() - 1);
-			});
+			}
 		}
 	}
 
@@ -806,9 +815,9 @@ public class Schemas implements Serializable {
 		}
 	}
 
-	public final HashMap<String, Table> tables = new HashMap<>();
-	public final HashMap<String, Bean> beans = new HashMap<>();
-	private final HashMap<String, Type> basicTypes = new HashMap<>();
+	public final TreeMap<String, Table> tables = new TreeMap<>();
+	public final TreeMap<String, Bean> beans = new TreeMap<>();
+	private final TreeMap<String, Type> basicTypes = new TreeMap<>();
 
 	public void checkCompatible(Schemas other, Application app) throws Exception {
 		if (other == null)

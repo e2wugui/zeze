@@ -284,6 +284,17 @@ public final class Application {
 		delayRemove.continueJobs();
 	}
 
+	static ByteBuffer debugDataVersion;
+	static void checkAndSet(ByteBuffer cur) {
+		if (debugDataVersion == null) {
+			debugDataVersion = cur;
+			return;
+		}
+		if (!debugDataVersion.equals(cur)) {
+			System.out.println("DataVersion.Data Changed!");
+		}
+	}
+
 	// 数据库Meta兼容检查，返回旧的Schemas。
 	private void schemasCompatible() throws Exception {
 		var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
@@ -296,6 +307,7 @@ public final class Application {
 				var dataVersion = defaultDb.getDirectOperates().getDataWithVersion(keyOfSchemas);
 				long version = 0;
 				if (dataVersion != null && dataVersion.data != null) {
+					checkAndSet(dataVersion.data);
 					schemasPrevious = new Schemas();
 					try {
 						schemasPrevious.decode(dataVersion.data);
