@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash;
 import Zeze.Builtin.ProviderDirect.ModuleRedirect;
@@ -151,7 +152,7 @@ public class RedirectBase {
 						var bb = ByteBuffer.Allocate();
 						request.encode(bb);
 						service.dispatchProtocol(request.getTypeId(), bb,
-								service.findProtocolFactoryHandle(request.getTypeId()), null);
+								Objects.requireNonNull(service.findProtocolFactoryHandle(request.getTypeId())), null);
 					} catch (Exception e) {
 						logger.error("", e);
 					}
@@ -178,7 +179,7 @@ public class RedirectBase {
 				var bb = ByteBuffer.Allocate();
 				miss.encode(bb);
 				service.dispatchProtocol(miss.getTypeId(), bb,
-						service.findProtocolFactoryHandle(miss.getTypeId()), null);
+						Objects.requireNonNull(service.findProtocolFactoryHandle(miss.getTypeId())), null);
 			} catch (Exception e) {
 				logger.error("", e);
 			}

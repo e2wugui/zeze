@@ -110,11 +110,10 @@ public class PMap1<K, V> extends PMap<K, V> {
 
 	@Override
 	public @NotNull LogBean createLogBean() {
-		var log = new LogMap1<>(meta);
+		var log = new LogMap1<>(meta, map);
 		log.setBelong(parent());
 		log.setThis(this);
 		log.setVariableId(variableId());
-		log.setValue(map);
 		return log;
 	}
 

@@ -48,7 +48,7 @@ public class Service {
 	}
 
 	private final @NotNull String name;
-	private final @Nullable Application zeze;
+	private final Application zeze;
 	private @NotNull SocketOptions socketOptions; // 同一个 Service 下的所有连接都是用相同配置。
 	private @NotNull ServiceConf config;
 	private @NotNull LongSupplier sessionIdGenerator = staticSessionIdAtomicLong::getAndIncrement;
@@ -111,7 +111,7 @@ public class Service {
 		return name;
 	}
 
-	public final @Nullable Application getZeze() {
+	public final Application getZeze() {
 		return zeze;
 	}
 
@@ -253,7 +253,7 @@ public class Service {
 	}
 
 	public final @NotNull AsyncSocket newClientSocket(@Nullable String hostNameOrAddress, int port,
-													  @Nullable Object userState, @NotNull Connector connector) {
+													  @Nullable Object userState, @Nullable Connector connector) {
 		return new AsyncSocket(this, hostNameOrAddress, port, userState, connector);
 	}
 
@@ -596,7 +596,7 @@ public class Service {
 		private long sessionId;
 		private @Nullable Object userState;
 		private boolean isTimeout;
-		private @Nullable Service service;
+		private Service service;
 
 		public final long getSessionId() {
 			return sessionId;
@@ -622,11 +622,11 @@ public class Service {
 			isTimeout = value;
 		}
 
-		public @Nullable Service getService() {
+		public Service getService() {
 			return service;
 		}
 
-		public void setService(@NotNull Service service) {
+		public void setService(Service service) {
 			this.service = service;
 		}
 

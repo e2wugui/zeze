@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Config;
+import Zeze.Net.Acceptor;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
@@ -15,8 +16,8 @@ import Zeze.Net.Service;
 import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Acquire;
-import Zeze.Services.GlobalCacheManager.Cleanup;
 import Zeze.Services.GlobalCacheManager.BGlobalKeyState;
+import Zeze.Services.GlobalCacheManager.Cleanup;
 import Zeze.Services.GlobalCacheManager.KeepAlive;
 import Zeze.Services.GlobalCacheManager.Login;
 import Zeze.Services.GlobalCacheManager.NormalClose;
@@ -146,7 +147,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		server.AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
 				KeepAlive::new, GlobalCacheManagerServer::processKeepAliveRequest, TransactionLevel.None, DispatchMode.Direct));
 
-		serverSocket = server.newServerSocket(ipaddress, port, null);
+		serverSocket = server.newServerSocket(ipaddress, port, new Acceptor(port, ipaddress.getHostAddress()));
 
 		// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
 		achillesHeelConfig = new AchillesHeelConfig(this.config.maxNetPing, this.config.serverProcessTime, this.config.serverReleaseTimeout);
@@ -676,6 +677,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						var freshAcquire = false;
 						for (var reduce : reducePending) {
 							try {
+								//noinspection DataFlowIssue
 								reduce.getValue().getFuture().await(); //await 等RPC回复
 								switch (reduce.getValue().Result.state) {
 								case StateInvalid:
@@ -744,6 +746,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						perf.onOthers("XXX 10 " + StateModify);
 					// logger.error("XXX 10 {} {} {}", sender, StateModify, cs);
 					rpc.Result.state = StateInvalid;
+					//noinspection DataFlowIssue
 					if (errorFreshAcquire.value)
 						rpc.SendResultCode(StateReduceErrorFreshAcquire); // 这个错误不看做失败，允许发送方继续尝试。
 					else
@@ -904,6 +907,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						instance.perf.onReduceBegin(reduce);
 					reduce.SendForWait(peer, instance.achillesHeelConfig.reduceTimeout);
 					if (ENABLE_PERF) {
+						//noinspection DataFlowIssue
 						if (reduce.getFuture().isCompletedExceptionally() && !reduce.isTimeout())
 							instance.perf.onReduceCancel(reduce);
 						else

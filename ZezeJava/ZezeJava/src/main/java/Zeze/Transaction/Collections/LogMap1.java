@@ -16,7 +16,8 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	private final HashMap<K, V> replaced = new HashMap<>();
 	private final Set<K> removed = new HashSet<>();
 
-	LogMap1(@NotNull Meta2<K, V> meta) {
+	LogMap1(@NotNull Meta2<K, V> meta, @NotNull org.pcollections.PMap<K, V> value) {
+		super(value);
 		this.meta = meta;
 	}
 
@@ -149,11 +150,10 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 
 	@Override
 	public @NotNull Log beginSavepoint() {
-		var dup = new LogMap1<>(meta);
+		var dup = new LogMap1<>(meta, getValue());
 		dup.setThis(getThis());
 		dup.setBelong(getBelong());
 		dup.setVariableId(getVariableId());
-		dup.setValue(getValue());
 		return dup;
 	}
 

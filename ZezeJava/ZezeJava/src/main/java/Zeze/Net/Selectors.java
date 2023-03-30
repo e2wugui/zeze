@@ -53,7 +53,7 @@ public class Selectors {
 	private final int readBufferSize;
 	private final ArrayList<ByteBuffer> bbGlobalPool = new ArrayList<>(); // 全局池
 	private final Lock bbGlobalPoolLock = new ReentrantLock(); // 全局池的锁
-	private volatile @Nullable Selector[] selectorList;
+	private volatile @NotNull Selector[] selectorList;
 	private final AtomicLong choiceCount = new AtomicLong();
 
 	public Selectors(@NotNull String name) {
@@ -117,7 +117,7 @@ public class Selectors {
 	public @NotNull Selectors add(int count) {
 		try {
 			Selector[] tmp = selectorList;
-			tmp = tmp == null ? new Selector[count = Math.max(count, 0)] : Arrays.copyOf(tmp, tmp.length + count);
+			tmp = tmp == null ? new Selector[count = Math.max(count, 1)] : Arrays.copyOf(tmp, Math.max(tmp.length + count, 1));
 			for (int i = tmp.length - count; i < tmp.length; i++) {
 				tmp[i] = new Selector(this, name + '-' + i);
 				tmp[i].start();
@@ -129,10 +129,10 @@ public class Selectors {
 		}
 	}
 
-	public @Nullable Selector choice() {
+	public @NotNull Selector choice() {
 		Selector[] tmp = selectorList; // thread safe
 		if (tmp == null)
-			return null;
+			throw new IllegalStateException("closed");
 
 		long count = choiceCount.getAndIncrement();
 		int index = (int)((count & Long.MAX_VALUE) % tmp.length);

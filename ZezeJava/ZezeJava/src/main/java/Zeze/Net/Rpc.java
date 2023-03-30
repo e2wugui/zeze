@@ -140,8 +140,6 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		if (so == null)
 			return false;
 		Service service = so.getService();
-		if (service == null)
-			return false;
 
 		// try remove. 只维护一个上下文。
 		service.removeRpcContext(sessionId, this);

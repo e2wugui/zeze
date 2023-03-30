@@ -6,7 +6,11 @@ import Zeze.Transaction.Log;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class LogMap<K, V> extends LogBean {
-	private org.pcollections.PMap<K, V> value;
+	private @NotNull org.pcollections.PMap<K, V> value;
+
+	protected LogMap(@NotNull org.pcollections.PMap<K, V> value) {
+		this.value = value;
+	}
 
 	@Override
 	public abstract int getTypeId();
@@ -15,7 +19,7 @@ public abstract class LogMap<K, V> extends LogBean {
 		return value;
 	}
 
-	public final void setValue(@NotNull org.pcollections.PMap<K, V> value) {
+	final void setValue(@NotNull org.pcollections.PMap<K, V> value) {
 		this.value = value;
 	}
 

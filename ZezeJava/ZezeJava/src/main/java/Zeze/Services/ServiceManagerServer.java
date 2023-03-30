@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import Zeze.Config;
+import Zeze.Net.Acceptor;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
@@ -758,7 +759,7 @@ public final class ServiceManagerServer implements Closeable {
 		autoKeysDb = RocksDB.open(DatabaseRocksDb.getCommonOptions(), Paths.get(this.config.dbHome, "autokeys").toString());
 
 		// 允许配置多个acceptor，如果有冲突，通过日志查看。
-		serverSocket = server.newServerSocket(ipaddress, port, null);
+		serverSocket = server.newServerSocket(ipaddress, port, new Acceptor(port, ipaddress.getHostAddress()));
 		server.start();
 	}
 

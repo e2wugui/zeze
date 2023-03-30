@@ -163,7 +163,7 @@ public final class Application {
 		return locks;
 	}
 
-	public @Nullable Schemas getSchemas() {
+	public Schemas getSchemas() {
 		return schemas;
 	}
 
@@ -171,7 +171,7 @@ public final class Application {
 		return schemasPrevious;
 	}
 
-	public void setSchemas(@Nullable Schemas value) {
+	public void setSchemas(@NotNull Schemas value) {
 		schemas = value;
 	}
 

@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Game;
 
+import Zeze.Builtin.Game.Bag.BBag;
 import Zeze.Game.Bag;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TableWalkHandle;
@@ -109,9 +110,9 @@ public class TestBag {
 		Assert.assertEquals(ret, Procedure.Success);
 	}
 
-	private static final long preRemove() {
+	private static long preRemove() {
 		var table = App.getInstance().BagModule.getTable();
-		table.walkDatabase((TableWalkHandle)(key, value) -> {
+		table.walkDatabase((TableWalkHandle<String, BBag>)(key, value) -> {
 			table.remove(String.valueOf(key));
 			return true;
 		});

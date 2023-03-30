@@ -74,11 +74,11 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 	private long sessionId = sessionIdGenFunc.getAsLong(); // 只在setSessionId里修改
 	private final @NotNull Service service;
-	private final @NotNull Object acceptorOrConnector;
+	private final @Nullable Object acceptorOrConnector;
 	private final @NotNull Selector selector;
 	private final @NotNull SelectionKey selectionKey;
 	private volatile @Nullable SocketAddress remoteAddress; // 连接成功时设置
-	private volatile @Nullable Object userState;
+	private volatile Object userState;
 
 	@SuppressWarnings("unused")
 	private volatile int outputBufferSize;
@@ -164,11 +164,11 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	 * 简单变量，没有考虑线程安全问题。
 	 * 内部不使用。
 	 */
-	public @Nullable Object getUserState() {
+	public Object getUserState() {
 		return userState;
 	}
 
-	public void setUserState(@Nullable Object value) {
+	public void setUserState(Object value) {
 		userState = value;
 	}
 
@@ -249,8 +249,10 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			SocketChannel sc = null;
 			try {
 				sc = ((ServerSocketChannel)channel).accept();
-				if (sc != null)
+				if (sc != null) {
+					//noinspection DataFlowIssue
 					service.OnSocketAccept(new AsyncSocket(service, sc, (Acceptor)acceptorOrConnector));
+				}
 			} catch (Exception e) {
 				if (sc != null)
 					sc.close();
@@ -327,7 +329,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	public AsyncSocket(@NotNull Service service, @Nullable String hostNameOrAddress, int port,
-					   @Nullable Object userState, @NotNull Connector connector) {
+					   @Nullable Object userState, @Nullable Connector connector) {
 		this.service = service;
 		this.acceptorOrConnector = connector;
 		this.userState = userState;
@@ -349,7 +351,6 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 			timeThrottle = TimeThrottle.create(this.service.getSocketOptions());
 			selector = service.getSelectors().choice();
-			assert selector != null;
 			operates = new ConcurrentLinkedQueue<>();
 			inputBuffer = new BufferCodec();
 			outputBuffer = new OutputBuffer(selector);

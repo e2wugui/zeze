@@ -7,7 +7,6 @@ import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 import Zeze.Util.IntHashMap;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public class LogBean extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Collections.LogBean");

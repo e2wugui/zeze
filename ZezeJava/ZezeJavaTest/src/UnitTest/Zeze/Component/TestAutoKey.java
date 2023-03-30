@@ -35,9 +35,9 @@ public class TestAutoKey {
 		return ByteBuffer.ToLongBE(bb.Bytes, bb.ReadIndex, bb.Size());
 	}
 
+	@SuppressWarnings("deprecation")
 	@Test
 	public final void test1_AutoKey() {
-		//noinspection deprecation
 		Assert.assertTrue(demo.App.getInstance().Zeze.getAutoKey("test1").resetSeedUnsafe());
 		System.out.println("testAutoKey1");
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {

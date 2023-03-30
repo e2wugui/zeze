@@ -6,13 +6,13 @@ import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Acquire;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.BAcquiredState;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.BCacheState;
+import Zeze.Builtin.GlobalCacheManagerWithRaft.BReduceParam;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Cleanup;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.KeepAlive;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Login;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.NormalClose;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.ReLogin;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Reduce;
-import Zeze.Builtin.GlobalCacheManagerWithRaft.BReduceParam;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
@@ -317,6 +317,7 @@ public class GlobalCacheManagerWithRaft
 				}
 
 				var ModifyAcquired = serverAcquiredTemplate.openTable(cs.getModify());
+				//noinspection DataFlowIssue
 				switch (reduceResultState.value) {
 				case StateShare:
 					ModifyAcquired.put(globalTableKey, newAcquiredState(StateShare));
@@ -457,6 +458,7 @@ public class GlobalCacheManagerWithRaft
 				}
 
 				var ModifyAcquired = serverAcquiredTemplate.openTable(cs.getModify());
+				//noinspection DataFlowIssue
 				switch (reduceResultState.value) {
 				case StateInvalid:
 					ModifyAcquired.remove(globalTableKey);
@@ -526,6 +528,7 @@ public class GlobalCacheManagerWithRaft
 						CacheHolder session = kv.getKey();
 						Reduce reduce = kv.getValue();
 						try {
+							//noinspection DataFlowIssue
 							reduce.getFuture().await();
 							switch (reduce.Result.getState()) {
 							case StateInvalid:
@@ -602,6 +605,7 @@ public class GlobalCacheManagerWithRaft
 				// logger.error("XXX 10 {} {} {}", sender, acquireState, cs);
 				rpc.Result.setState(StateInvalid);
 				lockey.pulseAll();
+				//noinspection DataFlowIssue
 				rpc.setResultCode(errorFreshAcquire.value
 						? StateReduceErrorFreshAcquire  // 这个错误码导致Server-RedoAndReleaseLock
 						: AcquireModifyFailed); // 这个错误码导致Server事务失败。

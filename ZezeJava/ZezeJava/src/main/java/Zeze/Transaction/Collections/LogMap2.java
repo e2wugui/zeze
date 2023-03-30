@@ -14,8 +14,8 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	private final HashMap<K, LogBean> changedWithKey = new HashMap<>(); // changed with key. using in encode/decode followerApply
 	private boolean built;
 
-	LogMap2(@NotNull Meta2<K, V> meta) {
-		super(meta);
+	LogMap2(@NotNull Meta2<K, V> meta, @NotNull org.pcollections.PMap<K, V> value) {
+		super(meta, value);
 	}
 
 	public final @NotNull Set<LogBean> getChanged() {
@@ -28,16 +28,15 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 
 	@Override
 	public @NotNull Log beginSavepoint() {
-		var dup = new LogMap2<>(meta);
+		var dup = new LogMap2<>(meta, getValue());
 		dup.setThis(getThis());
 		dup.setBelong(getBelong());
 		dup.setVariableId(getVariableId());
-		dup.setValue(getValue());
 		return dup;
 	}
 
 	public boolean buildChangedWithKey() {
-		if (!built && getValue() != null) {
+		if (!built) {
 			built = true;
 			for (var c : changed) {
 				@SuppressWarnings("unchecked")

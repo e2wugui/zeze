@@ -9,6 +9,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Arch.RedirectFuture;
 import Zeze.Config;
+import Zeze.Net.Acceptor;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
@@ -120,7 +121,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		server.AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
 				KeepAlive::new, GlobalCacheManagerAsyncServer::processKeepAliveRequest, TransactionLevel.None, DispatchMode.Direct));
 
-		serverSocket = server.newServerSocket(ipaddress, port, null);
+		serverSocket = server.newServerSocket(ipaddress, port, new Acceptor(port, ipaddress.getHostAddress()));
 
 		// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
 		achillesHeelConfig = new AchillesHeelConfig(this.config.maxNetPing, this.config.serverProcessTime, this.config.serverReleaseTimeout);
@@ -843,6 +844,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 						perf.onOthers("XXX 10 " + StateModify);
 					// logger.error("XXX 10 {} {} {}", sender, StateModify, cs);
 					rpc.Result.state = StateInvalid;
+					//noinspection DataFlowIssue
 					if (errorFreshAcquire.value)
 						rpc.SendResultCode(StateReduceErrorFreshAcquire); // 这个错误不看做失败，允许发送方继续尝试。
 					else
