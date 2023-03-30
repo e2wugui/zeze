@@ -356,6 +356,18 @@ public final class Config {
 		}
 	}
 
+	public void clearOpenDatabaseFlag() {
+		var defDbConf = getDatabaseConfMap().get(getDefaultTableConf().getDatabaseName());
+		if (defDbConf.databaseType == DbType.MySql) {
+			var db = new DatabaseMySql(null, defDbConf);
+			try {
+				db.getDirectOperates().unlock();
+			} finally {
+				db.close();
+			}
+		}
+	}
+
 	public @NotNull ConcurrentHashMap<String, ServiceConf> getServiceConfMap() {
 		return serviceConfMap;
 	}
