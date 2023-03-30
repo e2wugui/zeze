@@ -45,6 +45,7 @@ import Zeze.Util.EventDispatcher;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongList;
 import Zeze.Util.OutObject;
+import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 import Zeze.Util.TransactionLevelAnnotation;
@@ -324,7 +325,6 @@ public class Online extends AbstractOnline {
 
 		@Override
 		public void onTimerCancel() throws Exception {
-
 		}
 	}
 
@@ -401,7 +401,10 @@ public class Online extends AbstractOnline {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Send", account + ',' + clientId + ':' + listenerName, p);
-		sendReliableNotify(account, clientId, listenerName, typeId, new Binary(p.encode()));
+		var pdata = new Binary(p.encode());
+		sendReliableNotify(account, clientId, listenerName, typeId, pdata);
+		if (PerfCounter.ENABLE_PERF)
+			PerfCounter.instance.addSendInfo(p, pdata.size(), 1);
 	}
 
 	private Zeze.Collections.Queue<BNotify> openQueue(String account, String clientId) {
@@ -437,7 +440,12 @@ public class Online extends AbstractOnline {
 			login.setReliableNotifyIndex(login.getReliableNotifyIndex() + 1); // after set notify.Argument
 			notify.Argument.getNotifies().add(fullEncodedProtocol);
 
-			sendEmbed(List.of(new LoginKey(account, clientId)), notify.getTypeId(), new Binary(notify.encode()));
+			if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
+				AsyncSocket.log("Send", account + ',' + clientId + ':' + listenerName, notify);
+			var pdata = new Binary(notify.encode());
+			sendEmbed(List.of(new LoginKey(account, clientId)), notify.getTypeId(), pdata);
+			if (PerfCounter.ENABLE_PERF)
+				PerfCounter.instance.addSendInfo(notify, pdata.size(), 1); //TODO: link count
 			return Procedure.Success;
 		});
 	}
@@ -581,22 +589,28 @@ public class Online extends AbstractOnline {
 			logger.warn("link socket not found. name={}", linkName);
 			return false;
 		}
-		var send = new Send(new BSend(p.getTypeId(), new Binary(p.encode())));
+		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p.getTypeId()))
+			AsyncSocket.log("Send", loginKey != null ? loginKey.account + ',' + loginKey.clientId : linkName, p);
+		var pdata = new Binary(p.encode());
+		var send = new Send(new BSend(p.getTypeId(), pdata));
 		send.Argument.getLinkSids().add(linkSid);
-		return send(link, loginKey != null ? Map.of(linkSid, loginKey) : Map.of(), send);
+		var r = send(link, loginKey != null ? Map.of(linkSid, loginKey) : Map.of(), send);
+		if (PerfCounter.ENABLE_PERF && r)
+			PerfCounter.instance.addSendInfo(p, pdata.size(), 1);
+		return r;
 	}
 
-	public void send(Collection<LoginKey> keys, AsyncSocket to, Map<Long, LoginKey> contexts, Send send) {
+	public boolean send(Collection<LoginKey> keys, AsyncSocket to, Map<Long, LoginKey> contexts, Send send) {
 		if (keys.size() > 1) {
+			return send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
+					send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
+		}
+		//noinspection CodeBlock2Expr
+		providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(keys, "sendOneByOne", () -> {
 			send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
 					send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
-		} else {
-			//noinspection CodeBlock2Expr
-			providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(keys, "sendOneByOne", () -> {
-				send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
-						send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
-			}, null, DispatchMode.Normal);
-		}
+		}, null, DispatchMode.Normal);
+		return true;
 	}
 
 	private void sendEmbed(Collection<LoginKey> logins, long typeId, Binary fullEncodedProtocol) {
@@ -676,7 +690,10 @@ public class Online extends AbstractOnline {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Send", account + ',' + clientId, p);
-		send(account, clientId, typeId, new Binary(p.encode()));
+		var pdata = new Binary(p.encode());
+		send(account, clientId, typeId, pdata);
+		if (PerfCounter.ENABLE_PERF)
+			PerfCounter.instance.addSendInfo(p, pdata.size(), 1);
 	}
 
 	public void sendResponse(String account, String clientId, Rpc<?, ?> r) {
@@ -698,7 +715,10 @@ public class Online extends AbstractOnline {
 			var idsStr = sb.toString();
 			AsyncSocket.log("Send", idsStr, p);
 		}
-		send(logins, typeId, new Binary(p.encode()));
+		var pdata = new Binary(p.encode());
+		send(logins, typeId, pdata);
+		if (PerfCounter.ENABLE_PERF)
+			PerfCounter.instance.addSendInfo(p, pdata.size(), 1); //TODO: link count
 	}
 
 	public void sendWhileCommit(String account, String clientId, Protocol<?> p) {
@@ -809,7 +829,10 @@ public class Online extends AbstractOnline {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Send", account, p);
-		sendAccount(account, typeId, new Binary(p.encode()), sender);
+		var pdata = new Binary(p.encode());
+		sendAccount(account, typeId, pdata, sender);
+		if (PerfCounter.ENABLE_PERF)
+			PerfCounter.instance.addSendInfo(p, pdata.size(), 1);
 	}
 
 	/**
@@ -829,7 +852,10 @@ public class Online extends AbstractOnline {
 			var idsStr = sb.toString();
 			AsyncSocket.log("Send", idsStr, p);
 		}
-		sendAccounts(accounts, typeId, new Binary(p.encode()), sender);
+		var pdata = new Binary(p.encode());
+		sendAccounts(accounts, typeId, pdata, sender);
+		if (PerfCounter.ENABLE_PERF)
+			PerfCounter.instance.addSendInfo(p, pdata.size(), 1); //TODO: link count
 	}
 
 	public void sendAccountWhileCommit(String account, Protocol<?> p, OnlineSend sender) {
@@ -1004,19 +1030,25 @@ public class Online extends AbstractOnline {
 		Transaction.whileRollback(() -> transmit(account, clientId, actionName, targets, parameter));
 	}
 
-	private void broadcast(long typeId, Binary fullEncodedProtocol, int time) {
+	private int broadcast(long typeId, Binary fullEncodedProtocol, int time) {
 		var broadcast = new Broadcast(new BBroadcast(typeId, fullEncodedProtocol, time));
+		var pdata = broadcast.encode();
+		int sendCount = 0;
 		for (var link : providerApp.providerService.getLinks().values()) {
-			if (link.getSocket() != null)
-				link.getSocket().Send(broadcast);
+			if (link.getSocket() != null && link.getSocket().Send(pdata))
+				sendCount++;
 		}
+		return sendCount;
 	}
 
 	public void broadcast(Protocol<?> p, int time) {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Broc", providerApp.providerService.getLinks().size(), p);
-		broadcast(typeId, new Binary(p.encode()), time);
+		var pdata = new Binary(p.encode());
+		int sendCount = broadcast(typeId, pdata, time);
+		if (PerfCounter.ENABLE_PERF && sendCount > 0)
+			PerfCounter.instance.addSendInfo(p, pdata.size(), sendCount);
 	}
 
 	private void verifyLocal() {

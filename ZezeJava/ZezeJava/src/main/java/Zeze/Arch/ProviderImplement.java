@@ -15,6 +15,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.OutObject;
+import Zeze.Util.PerfCounter;
 import Zeze.Util.Task;
 import Zeze.Util.TransactionLevelAnnotation;
 import org.apache.logging.log4j.LogManager;
@@ -102,6 +103,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				sendKick(sender, linkSid, BKick.ErrorProtocolUnknown, "unknown protocol: " + typeId);
 				return Procedure.LogicError;
 			}
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			int psize = p.Argument.getProtocolData().size();
 			var session = newSession(p);
 			var zeze = sender.getService().getZeze();
 			var txn = Transaction.getCurrent();
@@ -124,7 +127,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 					}
 					outProtocol.value = p3;
 					t.runWhileCommit(() -> p.Argument.setProtocolData(Binary.Empty)); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空
-					return factoryHandle.Handle.handleProtocol(p3);
+					var handler = factoryHandle.Handle;
+					return handler != null ? handler.handleProtocol(p3) : Procedure.NotImplement;
 				}, null, factoryHandle.Level, session), outProtocol, (p4, code) -> {
 					p4.setResultCode(code);
 					session.sendResponse(p4);
@@ -150,10 +154,18 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			} else // 应用框架不支持事务或者协议配置了"不需要事务”
 				p.Argument.setProtocolData(Binary.Empty); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空
 			var p3 = p2;
-			return Task.call(() -> factoryHandle.Handle.handleProtocol(p3), p3, (p4, code) -> {
+			var r = Task.call(() -> {
+				var handler = factoryHandle.Handle;
+				return handler != null ? handler.handleProtocol(p3) : Procedure.NotImplement;
+			}, p3, (p4, code) -> {
 				p4.setResultCode(code);
 				session.sendResponse(p4);
 			});
+			if (PerfCounter.ENABLE_PERF) {
+				PerfCounter.instance.addRecvInfo(typeId, factoryHandle.Class,
+						Protocol.HEADER_SIZE + psize, System.nanoTime() - timeBegin);
+			}
+			return r;
 		} catch (Exception ex) {
 			var desc = "ProcessDispatch(" + (p2 != null ? p2.getClass().getName() : typeId) + ") exception:";
 			logger.error(desc, ex);

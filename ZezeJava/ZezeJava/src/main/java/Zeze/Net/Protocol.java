@@ -2,6 +2,7 @@ package Zeze.Net;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
+import Zeze.Util.PerfCounter;
 import Zeze.Util.ProtocolFactoryFinder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -247,7 +248,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	 * moduleId[4] + protocolId[4] + size[4] + protocol.bytes[size]
 	 */
 	public static void decode(@NotNull Service service, @NotNull AsyncSocket so, @NotNull ByteBuffer bb) throws Exception {
-		while (bb.Size() >= HEADER_SIZE) { // 只有协议发送被分成很小的包，协议头都不够的时候才会发生这个异常。几乎不可能发生。
+		while (bb.size() >= HEADER_SIZE) { // 只有协议发送被分成很小的包，协议头都不够的时候才会发生这个异常。几乎不可能发生。
 			// 读取协议类型和大小
 			var bytes = bb.Bytes;
 			int beginReadIndex = bb.ReadIndex;
@@ -259,7 +260,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 			// 现在去掉协议的最大大小的配置了.由总的参数 SocketOptions.InputBufferMaxProtocolSize 限制。
 			// 参考 AsyncSocket
 			long longSize = size & 0xffff_ffffL;
-			if (HEADER_SIZE + longSize > bb.Size()) {
+			if (HEADER_SIZE + longSize > bb.size()) {
 				// 数据不够时检查。这个检测不需要严格的。如果数据够，那就优先处理。
 				int maxSize = service.getSocketOptions().getInputBufferMaxProtocolSize();
 				if (longSize > maxSize) {
@@ -279,15 +280,20 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 			bb.WriteIndex = endReadIndex;
 
 			if (service.checkThrottle(so, moduleId, protocolId, size)
-					&& !service.discard(so, moduleId, protocolId, size)) { // 默认超速是丢弃请求，
+					&& !service.discard(so, moduleId, protocolId, size)) { // 默认超速是丢弃请求
+				var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 				var typeId = makeTypeId(moduleId, protocolId);
 				var factoryHandle = service.findProtocolFactoryHandle(typeId);
-				if (factoryHandle != null && factoryHandle.Factory != null) {
+				if (factoryHandle != null && factoryHandle.Factory != null)
 					service.dispatchProtocol(typeId, bb, factoryHandle, so);
-				} else {
+				else {
 					if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 						AsyncSocket.log("RECV", so.getSessionId(), moduleId, protocolId, bb);
 					service.dispatchUnknownProtocol(so, moduleId, protocolId, bb);
+				}
+				if (PerfCounter.ENABLE_PERF) {
+					PerfCounter.instance.addRecvInfo(typeId, factoryHandle != null ? factoryHandle.Class : null,
+							HEADER_SIZE + size, System.nanoTime() - timeBegin);
 				}
 			}
 			bb.ReadIndex = endReadIndex;

@@ -36,12 +36,14 @@ import Zeze.Util.IdentityHashSet;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutObject;
+import Zeze.Util.PerfCounter;
 import Zeze.Util.Task;
 import Zeze.Util.ThreadFactoryWithName;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
+import org.jetbrains.annotations.Nullable;
 
 public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerConst {
 	static {
@@ -86,16 +88,18 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		return config;
 	}
 
-	public void start(InetAddress ipaddress, int port) {
+	public void start(@Nullable InetAddress ipaddress, int port) {
 		start(ipaddress, port, null);
 	}
 
-	public synchronized void start(InetAddress ipaddress, int port, Config config) {
+	public synchronized void start(@Nullable InetAddress ipaddress, int port, @Nullable Config config) {
 		if (server != null)
 			return;
 
-		if (ENABLE_PERF)
+		if (ENABLE_PERF) {
 			perf = new GlobalCacheManagerPerf("", serialIdGenerator);
+			PerfCounter.instance.startScheduledLog();
+		}
 
 		if (config == null)
 			config = new Config().addCustomize(this.config).loadAndParse();
@@ -121,7 +125,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		server.AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
 				KeepAlive::new, GlobalCacheManagerAsyncServer::processKeepAliveRequest, TransactionLevel.None, DispatchMode.Direct));
 
-		serverSocket = server.newServerSocket(ipaddress, port, new Acceptor(port, ipaddress.getHostAddress()));
+		serverSocket = server.newServerSocket(ipaddress, port,
+				new Acceptor(port, ipaddress != null ? ipaddress.getHostAddress() : null));
 
 		// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
 		achillesHeelConfig = new AchillesHeelConfig(this.config.maxNetPing, this.config.serverProcessTime, this.config.serverReleaseTimeout);

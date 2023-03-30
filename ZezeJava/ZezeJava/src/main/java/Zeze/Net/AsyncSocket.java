@@ -22,6 +22,7 @@ import Zeze.Services.Handshake.Constant;
 import Zeze.Util.Action0;
 import Zeze.Util.JsonWriter;
 import Zeze.Util.LongHashSet;
+import Zeze.Util.PerfCounter;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import Zeze.Util.TimeThrottle;
@@ -627,11 +628,15 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public boolean Send(@NotNull Protocol<?> p) {
 		if (ENABLE_PROTOCOL_LOG && canLogProtocol(p.getTypeId()))
 			log("SEND", sessionId, p);
-		return Send(p.encode());
+		var bb = p.encode();
+		var r = Send(bb);
+		if (PerfCounter.ENABLE_PERF && r)
+			PerfCounter.instance.addSendInfo(p, bb.size(), 1);
+		return r;
 	}
 
 	public boolean Send(@NotNull ByteBuffer bb) { // 返回true则bb的Bytes不能再修改了
-		return Send(bb.Bytes, bb.ReadIndex, bb.Size());
+		return Send(bb.Bytes, bb.ReadIndex, bb.size());
 	}
 
 	public boolean Send(@NotNull Binary binary) {
@@ -663,19 +668,19 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 					codec.update(buffer.array(), 0, bytesTransferred);
 					codec.flush();
 					readAgain &= service.OnSocketProcessInputBuffer(this, codecBuf);
-				} else if (codecBuf.Size() > 0) {
+				} else if (codecBuf.size() > 0) {
 					// 上次解析有剩余数据（不完整的协议），把新数据加入。
 					codecBuf.Append(buffer.array(), 0, bytesTransferred);
 					readAgain &= service.OnSocketProcessInputBuffer(this, codecBuf);
 				} else {
 					ByteBuffer avoidCopy = ByteBuffer.Wrap(buffer.array(), 0, bytesTransferred);
 					readAgain &= service.OnSocketProcessInputBuffer(this, avoidCopy);
-					if (avoidCopy.Size() > 0) // 有剩余数据（不完整的协议），加入 inputCodecBuffer 等待新的数据。
-						codecBuf.Append(avoidCopy.Bytes, avoidCopy.ReadIndex, avoidCopy.Size());
+					if (avoidCopy.size() > 0) // 有剩余数据（不完整的协议），加入 inputCodecBuffer 等待新的数据。
+						codecBuf.Append(avoidCopy.Bytes, avoidCopy.ReadIndex, avoidCopy.size());
 				}
 
 				// 1 检测 buffer 是否满，2 剩余数据 Compact，3 需要的话，释放buffer内存。
-				int remain = codecBuf.Size();
+				int remain = codecBuf.size();
 				if (remain <= 0) {
 					if (codecBuf.Capacity() <= 32 * 1024)
 						codecBuf.Reset();

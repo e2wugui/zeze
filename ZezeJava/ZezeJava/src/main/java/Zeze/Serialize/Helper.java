@@ -113,7 +113,7 @@ public class Helper {
 				writer.write(json, null);
 			else {
 				writer.ensure(obj.size() * 6 + 2);
-				writer.write(obj.Bytes, obj.ReadIndex, obj.Size(), false);
+				writer.write(obj.Bytes, obj.ReadIndex, obj.size(), false);
 			}
 		});
 		json.getClassMeta(Binary.class).setWriter((writer, classMeta, obj) -> {

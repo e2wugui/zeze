@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
+import org.jetbrains.annotations.Nullable;
 import org.w3c.dom.Element;
 
 public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
@@ -112,11 +113,11 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	private GlobalCacheManagerServer() {
 	}
 
-	public void start(InetAddress ipaddress, int port) {
+	public void start(@Nullable InetAddress ipaddress, int port) {
 		start(ipaddress, port, null);
 	}
 
-	public synchronized void start(InetAddress ipaddress, int port, Config config) {
+	public synchronized void start(@Nullable InetAddress ipaddress, int port, @Nullable Config config) {
 		if (server != null)
 			return;
 
@@ -147,7 +148,8 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		server.AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
 				KeepAlive::new, GlobalCacheManagerServer::processKeepAliveRequest, TransactionLevel.None, DispatchMode.Direct));
 
-		serverSocket = server.newServerSocket(ipaddress, port, new Acceptor(port, ipaddress.getHostAddress()));
+		serverSocket = server.newServerSocket(ipaddress, port,
+				new Acceptor(port, ipaddress != null ? ipaddress.getHostAddress() : null));
 
 		// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
 		achillesHeelConfig = new AchillesHeelConfig(this.config.maxNetPing, this.config.serverProcessTime, this.config.serverReleaseTimeout);

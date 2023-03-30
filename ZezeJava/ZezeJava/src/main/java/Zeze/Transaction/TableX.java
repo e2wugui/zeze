@@ -401,7 +401,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var bb = ByteBuffer.Allocate();
 		bb.WriteInt4(getId());
 		var bbKey = encodeKey(key);
-		bb.Append(bbKey.Bytes, bbKey.ReadIndex, bbKey.Size());
+		bb.Append(bbKey.Bytes, bbKey.ReadIndex, bbKey.size());
 		return new Binary(bb);
 	}
 

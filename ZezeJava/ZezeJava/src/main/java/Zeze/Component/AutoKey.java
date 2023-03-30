@@ -65,7 +65,7 @@ public class AutoKey {
 
 	public long nextId() {
 		var bb = nextByteBuffer();
-		if (bb.Size() > 8) {
+		if (bb.size() > 8) {
 			throw new IllegalStateException("AutoKey.nextId overflow: serverId="
 					+ module.zeze.getConfig().getServerId() + ", nextId=" + bb);
 		}

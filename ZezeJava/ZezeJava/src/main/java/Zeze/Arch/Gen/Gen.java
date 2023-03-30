@@ -192,7 +192,7 @@ final class Gen {
 		else {
 			sb.appendLine("{}{", prefix);
 			sb.appendLine("{}    var _bo_ = {}.ReadByteBuffer();", prefix, bbName);
-			sb.appendLine("{}    try (var _bs_ = new java.io.ByteArrayInputStream(_bo_.Bytes, _bo_.ReadIndex, _bo_.Size());", prefix);
+			sb.appendLine("{}    try (var _bs_ = new java.io.ByteArrayInputStream(_bo_.Bytes, _bo_.ReadIndex, _bo_.size());", prefix);
 			sb.appendLine("{}         var _os_ = new java.io.ObjectInputStream(_bs_)) {", prefix);
 			if (type == Object.class)
 				sb.appendLine("{}        {} = Zeze.Util.Reflect.cast(_os_.readObject());", prefix, varName);

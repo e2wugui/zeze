@@ -49,7 +49,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 	}
 
 	public static @NotNull ByteBuffer Wrap(@NotNull ByteBuffer bb) {
-		return Wrap(bb.Bytes, bb.ReadIndex, bb.Size());
+		return Wrap(bb.Bytes, bb.ReadIndex, bb.size());
 	}
 
 	public static @NotNull ByteBuffer Wrap(byte @NotNull [] bytes) {
@@ -133,7 +133,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 	}
 
 	public int BeginWriteWithSize4() {
-		int saveSize = Size();
+		int saveSize = size();
 		EnsureWrite(4);
 		WriteIndex += 4;
 		return saveSize;
@@ -224,7 +224,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 	 * 为下一次写入读取做准备。
 	 */
 	public void Compact() {
-		int size = Size();
+		int size = size();
 		if (size > 0) {
 			if (ReadIndex > 0) {
 				System.arraycopy(Bytes, ReadIndex, Bytes, 0, size);
@@ -236,7 +236,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 	}
 
 	public byte @NotNull [] Copy() {
-		int size = Size();
+		int size = size();
 		if (size == 0)
 			return Empty;
 		byte[] copy = new byte[size];
@@ -968,12 +968,12 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 	}
 
 	public void WriteByteBuffer(@NotNull ByteBuffer o) {
-		WriteBytes(o.Bytes, o.ReadIndex, o.Size());
+		WriteBytes(o.Bytes, o.ReadIndex, o.size());
 	}
 
 	@Override
 	public String toString() {
-		return BitConverter.toStringWithLimit(Bytes, ReadIndex, Size(), 16);
+		return BitConverter.toStringWithLimit(Bytes, ReadIndex, size(), 16);
 	}
 
 	@Override
@@ -1021,7 +1021,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 
 	@Override
 	public int hashCode() {
-		return calc_hashnr(Bytes, ReadIndex, Size());
+		return calc_hashnr(Bytes, ReadIndex, size());
 	}
 
 	// 只能增加新的类型定义，增加时记得同步 SkipUnknownField

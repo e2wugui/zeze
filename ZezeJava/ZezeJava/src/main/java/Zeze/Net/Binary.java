@@ -44,7 +44,7 @@ public final class Binary implements Comparable<Binary> {
 	 * 【一般用于临时存储】
 	 */
 	public Binary(@NotNull ByteBuffer bb) {
-		this(bb.Bytes, bb.ReadIndex, bb.Size());
+		this(bb.Bytes, bb.ReadIndex, bb.size());
 	}
 
 	/**

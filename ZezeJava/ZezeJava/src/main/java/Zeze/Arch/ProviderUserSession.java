@@ -12,6 +12,7 @@ import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Transaction;
+import Zeze.Util.PerfCounter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -66,19 +67,24 @@ public class ProviderUserSession {
 	private void sendResponseDirectReal(@NotNull Rpc<?, ?> rpc) {
 		rpc.setRequest(false);
 		protocolLogSend(rpc);
-		var send = new Send(new BSend(rpc.getTypeId(), new Binary(rpc.encode())));
+		var pdata = new Binary(rpc.encode());
+		var send = new Send(new BSend(rpc.getTypeId(), pdata));
 		send.Argument.getLinkSids().add(getLinkSid());
 
 		var link = getLink();
 		if (link != null && !link.isClosed()) {
-			send.Send(link);
+			var r = send.Send(link);
+			if (PerfCounter.ENABLE_PERF && r)
+				PerfCounter.instance.addSendInfo(rpc, pdata.size(), 1);
 			return;
 		}
 		// 可能发生了重连，尝试再次查找发送。网络断开以后，linkSid已经不可靠了，先这样写着吧。
 		var connector = getService().getLinks().get(getLinkName());
 		if (connector != null && connector.isHandshakeDone()) {
 			dispatch.setSender(link = connector.getSocket());
-			send.Send(link);
+			var r = send.Send(link);
+			if (PerfCounter.ENABLE_PERF && r)
+				PerfCounter.instance.addSendInfo(rpc, pdata.size(), 1);
 		}
 	}
 
@@ -98,42 +104,40 @@ public class ProviderUserSession {
 		sendResponse(Protocol.makeTypeId(moduleId, protocolId), fullEncodedProtocol);
 	}
 
-	protected void sendOnline(AsyncSocket link, @NotNull Send send) {
+	protected boolean sendOnline(AsyncSocket link, @NotNull Send send) {
 		var providerImpl = getService().providerApp.providerImplement;
 		if (providerImpl instanceof ProviderWithOnline) {
 			var online = ((ProviderWithOnline)providerImpl).getOnline();
 			var roleId = getRoleId();
 			if (roleId != null)
-				online.send(/*List.of(roleId),*/link, Map.of(getLinkSid(), roleId), send);
-			else
-				online.send(link, Map.of(), send);
-		} else if (providerImpl instanceof Zeze.Arch.ProviderWithOnline) {
+				return online.send(/*List.of(roleId),*/link, Map.of(getLinkSid(), roleId), send);
+			return online.send(link, Map.of(), send);
+		}
+		if (providerImpl instanceof Zeze.Arch.ProviderWithOnline) {
 			var online = ((Zeze.Arch.ProviderWithOnline)providerImpl).getOnline();
 			var context = getContext();
 			var loginKey = new Online.LoginKey(getAccount(), context);
 			if (context != null && !context.isEmpty())
-				online.send(List.of(loginKey), link, Map.of(getLinkSid(), loginKey), send);
-			else
-				online.send(link, Map.of(getLinkSid(), loginKey), send);
-		} else
-			send.Send(link);
+				return online.send(List.of(loginKey), link, Map.of(getLinkSid(), loginKey), send);
+			return online.send(link, Map.of(getLinkSid(), loginKey), send);
+		}
+		return send.Send(link);
 	}
 
-	public void sendResponse(long typeId, @NotNull Binary fullEncodedProtocol) {
+	public boolean sendResponse(long typeId, @NotNull Binary fullEncodedProtocol) {
 		var send = new Send(new BSend(typeId, fullEncodedProtocol));
 		send.Argument.getLinkSids().add(getLinkSid());
 
 		var link = getLink();
-		if (link != null && !link.isClosed()) {
-			sendOnline(link, send);
-			return;
-		}
+		if (link != null && !link.isClosed())
+			return sendOnline(link, send);
 		// 可能发生了重连，尝试再次查找发送。网络断开以后，linkSid已经不可靠了，先这样写着吧。
 		var connector = getService().getLinks().get(getLinkName());
 		if (connector != null && connector.isHandshakeDone()) {
 			dispatch.setSender(link = connector.getSocket());
-			sendOnline(link, send);
+			return sendOnline(link, send);
 		}
+		return false;
 	}
 
 	private void protocolLogSend(@NotNull Protocol<?> p) {
@@ -148,7 +152,10 @@ public class ProviderUserSession {
 	public void sendResponse(@NotNull Protocol<?> p) {
 		p.setRequest(false);
 		protocolLogSend(p);
-		sendResponse(p.getTypeId(), new Binary(p.encode()));
+		var pdata = new Binary(p.encode());
+		var r = sendResponse(p.getTypeId(), pdata);
+		if (PerfCounter.ENABLE_PERF && r)
+			PerfCounter.instance.addSendInfo(p, pdata.size(), 1);
 	}
 
 	public void sendResponseWhileCommit(long typeId, @NotNull Binary fullEncodedProtocol) {

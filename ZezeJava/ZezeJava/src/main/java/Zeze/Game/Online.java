@@ -50,6 +50,7 @@ import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.LongList;
 import Zeze.Util.OutLong;
+import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 import Zeze.Util.TransactionLevelAnnotation;
@@ -431,7 +432,10 @@ public class Online extends AbstractOnline {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Send", roleId, p);
-		sendDirect(roleId, typeId, new Binary(p.encode()));
+		var pdata = new Binary(p.encode());
+		var r = sendDirect(roleId, typeId, pdata);
+		if (PerfCounter.ENABLE_PERF && r)
+			PerfCounter.instance.addSendInfo(p, pdata.size(), 1);
 	}
 
 	public void sendResponse(long roleId, @NotNull Rpc<?, ?> r) {
@@ -453,7 +457,10 @@ public class Online extends AbstractOnline {
 			var idsStr = sb.toString();
 			AsyncSocket.log("Send", idsStr, p);
 		}
-		send(roleIds, typeId, new Binary(p.encode()));
+		var pdata = new Binary(p.encode());
+		int sendCount = send(roleIds, typeId, pdata);
+		if (PerfCounter.ENABLE_PERF)
+			PerfCounter.instance.addSendInfo(p, pdata.size(), sendCount);
 	}
 
 	public void sendWhileCommit(long roleId, @NotNull Protocol<?> p) {
@@ -488,19 +495,20 @@ public class Online extends AbstractOnline {
 //				}, "Online.send")), DispatchMode.Normal);
 //	}
 
-	public void send(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol) {
+	public int send(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol) {
 		int roleCount = roleIds.size();
 		if (roleCount == 1) {
 			var it = roleIds.iterator();
 			if (it.hasNext()) // 不确定roleIds是否稳定,所以还是判断一下保险
-				sendDirect(it.next(), typeId, fullEncodedProtocol);
+				return sendDirect(it.next(), typeId, fullEncodedProtocol) ? 1 : 0;
 		} else if (roleCount > 1) {
-			sendDirect(roleIds, typeId, fullEncodedProtocol);
+			return sendDirect(roleIds, typeId, fullEncodedProtocol);
 //			providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(roleIds, providerApp.zeze.newProcedure(() -> {
 //				sendEmbed(roleIds, typeId, fullEncodedProtocol);
 //				return Procedure.Success;
 //			}, "Online.send"), null, DispatchMode.Normal);
 		}
+		return 0;
 	}
 
 //	public void sendNoBarrier(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
@@ -549,9 +557,15 @@ public class Online extends AbstractOnline {
 			logger.warn("link socket not found. name={}", linkName);
 			return false;
 		}
-		var send = new Send(new BSend(p.getTypeId(), new Binary(p.encode())));
+		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p.getTypeId()))
+			AsyncSocket.log("Send", roleId != null ? roleId : 0, p);
+		var pdata = new Binary(p.encode());
+		var send = new Send(new BSend(p.getTypeId(), pdata));
 		send.Argument.getLinkSids().add(linkSid);
-		return send(link, roleId != null ? Map.of(linkSid, roleId) : Map.of(), send);
+		var r = send(link, roleId != null ? Map.of(linkSid, roleId) : Map.of(), send);
+		if (PerfCounter.ENABLE_PERF && r)
+			PerfCounter.instance.addSendInfo(p, pdata.size(), 1);
+		return r;
 	}
 
 	//	public void send(Collection<Long> keys, AsyncSocket to, Map<Long, Long> contexts, Send send) {
@@ -593,12 +607,12 @@ public class Online extends AbstractOnline {
 	}
 
 	// 可在事务外执行
-	public void sendDirect(@NotNull Iterable<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol) {
+	public int sendDirect(@NotNull Iterable<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol) {
 		var roleIdSet = new LongHashSet();
 		for (var roleId : roleIds)
 			roleIdSet.add(roleId); // 去重
 		if (roleIdSet.isEmpty())
-			return;
+			return 0;
 		var groups = new HashMap<String, LinkRoles>();
 		var links = providerApp.providerService.getLinks();
 		for (var it = roleIdSet.iterator(); it.moveToNext(); ) {
@@ -632,8 +646,9 @@ public class Online extends AbstractOnline {
 			group.send.Argument.getLinkSids().add(link.getLinkSid());
 			group.roleIds.add(roleId);
 		}
+		int sendCount = 0;
 		for (var group : groups.values()) {
-			group.send.Send(group.linkSocket, rpc -> {
+			if (group.send.Send(group.linkSocket, rpc -> {
 				var send = group.send;
 				var errorSids = send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids();
 				errorSids.foreach(linkSid -> providerApp.zeze.newProcedure(() -> {
@@ -642,37 +657,39 @@ public class Online extends AbstractOnline {
 							ProviderService.getLinkName(group.linkSocket), linkSid) : 0;
 				}, "Online.triggerLinkBroken2").call());
 				return Procedure.Success;
-			});
+			}))
+				sendCount++;
 		}
+		return sendCount;
 	}
 
 	// 可在事务外执行
-	public void sendDirect(long roleId, long typeId, @NotNull Binary fullEncodedProtocol) {
+	public boolean sendDirect(long roleId, long typeId, @NotNull Binary fullEncodedProtocol) {
 		var online = _tonline.selectDirty(roleId);
 		if (online == null) {
 			logger.warn("sendDirect: not found roleId={} in _tonline", roleId);
-			return;
+			return false;
 		}
 		var link = online.getLink();
 		var linkName = link.getLinkName();
 		var connector = providerApp.providerService.getLinks().get(linkName);
 		if (connector == null) {
 			logger.warn("sendDirect: not found connector for linkName={} roleId={}", linkName, roleId);
-			return;
+			return false;
 		}
 		if (!connector.isHandshakeDone()) {
 			logger.warn("sendDirect: not isHandshakeDone for linkName={} roleId={}", linkName, roleId);
-			return;
+			return false;
 		}
 		// 后面保存connector.socket并使用，如果之后连接被关闭，以后发送协议失败。
 		var linkSocket = connector.getSocket();
 		if (linkSocket == null) {
 			logger.warn("sendDirect: closed connector for linkName={} roleId={}", linkName, roleId);
-			return;
+			return false;
 		}
 		var send = new Send(new BSend(typeId, fullEncodedProtocol));
 		send.Argument.getLinkSids().add(link.getLinkSid());
-		send.Send(linkSocket, rpc -> {
+		return send.Send(linkSocket, rpc -> {
 			if (send.isTimeout() || !send.Result.getErrorLinkSids().isEmpty()) {
 				var linkSid = send.Argument.getLinkSids().get(0);
 				providerApp.zeze.newProcedure(() -> linkBroken("", roleId, linkName, linkSid), // 补发的linkBroken没有account上下文
@@ -766,7 +783,10 @@ public class Online extends AbstractOnline {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Send", roleId + ":" + listenerName, p);
-		sendReliableNotify(roleId, listenerName, typeId, new Binary(p.encode()));
+		var pdata = new Binary(p.encode());
+		sendReliableNotify(roleId, listenerName, typeId, pdata);
+		if (PerfCounter.ENABLE_PERF)
+			PerfCounter.instance.addSendInfo(p, pdata.size(), 1);
 	}
 
 	private @NotNull Zeze.Collections.Queue<BNotify> openQueue(long roleId) {
@@ -802,7 +822,14 @@ public class Online extends AbstractOnline {
 			version.setReliableNotifyIndex(version.getReliableNotifyIndex() + 1); // after set notify.Argument
 			notify.Argument.getNotifies().add(fullEncodedProtocol);
 
-			Transaction.whileCommit(() -> sendDirect(roleId, notify.getTypeId(), new Binary(notify.encode())));
+			Transaction.whileCommit(() -> {
+				if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
+					AsyncSocket.log("Send", roleId + ":" + listenerName, notify);
+				var pdata = new Binary(notify.encode());
+				var r = sendDirect(roleId, notify.getTypeId(), pdata);
+				if (PerfCounter.ENABLE_PERF && r)
+					PerfCounter.instance.addSendInfo(notify, pdata.size(), 1);
+			});
 //			sendEmbed(List.of(roleId), notify.getTypeId(), new Binary(notify.encode()));
 			return Procedure.Success;
 		});
@@ -980,16 +1007,17 @@ public class Online extends AbstractOnline {
 		Transaction.whileRollback(() -> transmit(sender, actionName, roleIds, parameter));
 	}
 
-	private void broadcast(long typeId, @NotNull Binary fullEncodedProtocol, int time) {
+	private int broadcast(long typeId, @NotNull Binary fullEncodedProtocol, int time) {
 //		TaskCompletionSource<Long> future = null;
 		var broadcast = new Broadcast(new BBroadcast(typeId, fullEncodedProtocol, time));
+		int sendCount = 0;
 		for (var link : providerApp.providerService.getLinks().values()) {
-			if (link.getSocket() != null)
-				link.getSocket().Send(broadcast);
+			if (link.getSocket() != null && link.getSocket().Send(broadcast))
+				sendCount++;
 		}
-
 //		if (future != null)
 //			future.await();
+		return sendCount;
 	}
 
 	public void broadcast(@NotNull Protocol<?> p) {
@@ -1000,7 +1028,10 @@ public class Online extends AbstractOnline {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Broc", providerApp.providerService.getLinks().size(), p);
-		broadcast(typeId, new Binary(p.encode()), time);
+		var pdata = new Binary(p.encode());
+		int sendCount = broadcast(typeId, pdata, time);
+		if (PerfCounter.ENABLE_PERF && sendCount > 0)
+			PerfCounter.instance.addSendInfo(p, pdata.size(), sendCount);
 	}
 
 	private void verifyLocal() {
@@ -1227,7 +1258,8 @@ public class Online extends AbstractOnline {
 	protected long ProcessReliableNotifyConfirmRequest(Zeze.Builtin.Game.Online.ReliableNotifyConfirm rpc) {
 		var session = ProviderUserSession.get(rpc);
 
-		var online = _tonline.get(session.getRoleId());
+		var roleId = session.getRoleId();
+		var online = roleId != null ? _tonline.get(roleId) : null;
 		if (online == null)
 			return errorCode(ResultCodeOnlineDataNotFound);
 
