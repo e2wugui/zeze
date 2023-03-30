@@ -1,14 +1,8 @@
 package UnitTest.Zeze.Game;
 
-import java.util.concurrent.atomic.AtomicInteger;
-import Zeze.Application;
-import Zeze.Config;
 import Zeze.Game.Bag;
-import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.Database;
 import Zeze.Transaction.Procedure;
-import Zeze.Transaction.Storage;
-import Zeze.Transaction.TableX;
+import Zeze.Transaction.TableWalkHandle;
 import demo.App;
 import org.junit.After;
 import org.junit.Assert;
@@ -40,7 +34,7 @@ public class TestBag {
 
 	@Test
 	public final void test1_Add() throws Exception {
-		preRemove();
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestBag::preRemove, "BagPreRemove").call());
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var bag = App.getInstance().BagModule.open("test1");
 			bag.setCapacity(MAX_BAG_CAPACITY);
@@ -115,22 +109,13 @@ public class TestBag {
 		Assert.assertEquals(ret, Procedure.Success);
 	}
 
-	private final long preRemove() {
+	private static final long preRemove() {
 		var table = App.getInstance().BagModule.getTable();
-		String exclusiveStartKey = null;
-		AtomicInteger count = new AtomicInteger();
-		do {
-			exclusiveStartKey = table.walk(exclusiveStartKey, 1,
-					(key, value) -> {
-						App.getInstance().Zeze.newProcedure(() -> {
-							table.remove(key);
-							return 0;
-						}, "remove walk data").call();
-						count.incrementAndGet();
-						return true;
-					});
-		} while (exclusiveStartKey != null);
-		System.out.println(String.format("delete table %s count %s", table.getName(), count));
+		table.walkDatabase((TableWalkHandle)(key, value) -> {
+			table.remove(String.valueOf(key));
+			return true;
+		});
+		System.out.println(String.format("delete table %s", table.getName()));
 		return Procedure.Success;
 	}
 }
