@@ -26,31 +26,6 @@ public class TestBag {
 	public static final int SECOND_REMOVE_NUM = 10; // 第二次删除的item数量 应小于ADD_NUM/2
 	public static final int MAX_BAG_CAPACITY = 100; // 背包容量
 
-	private final void clearBagData(Application app) {
-		Config config = app.getConfig();
-		String databaseName = config.getDefaultTableConf().getDatabaseName();
-		Database defaultDb = app.getDatabase(databaseName);
-		TableX table = (TableX)defaultDb.getTable(App.getInstance().BagModule.getTable().getName());
-		Database.Transaction transaction = defaultDb.beginTransaction();
-		Storage<?, ?> storage = table.internalGetStorageForTestOnly("IKnownWhatIAmDoing");
-		if(storage == null){
-			return;
-		}
-		if (storage.getDatabaseTable() instanceof Database.AbstractKVTable) {
-			System.out.println(String.format("delete table :%s", App.getInstance().BagModule.getTable().getName()));
-			var databaseTable = (Database.AbstractKVTable)storage.getDatabaseTable();
-			AtomicInteger count = new AtomicInteger();
-			databaseTable.walk((key, value) -> {
-				databaseTable.remove(transaction, ByteBuffer.Wrap(key));
-				count.incrementAndGet();
-				return true;
-			});
-		} else {
-			System.out.println(String.format("delete table :%s NOT A KV TABLE", App.getInstance().BagModule.getTable().getName()));
-		}
-		transaction.commit();
-	}
-
 	@Before
 	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
@@ -65,7 +40,7 @@ public class TestBag {
 
 	@Test
 	public final void test1_Add() throws Exception {
-		clearBagData(App.getInstance().Zeze);
+		preRemove();
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var bag = App.getInstance().BagModule.open("test1");
 			bag.setCapacity(MAX_BAG_CAPACITY);
@@ -138,5 +113,24 @@ public class TestBag {
 			return Procedure.Success;
 		}, "test4_Move").call();
 		Assert.assertEquals(ret, Procedure.Success);
+	}
+
+	private final long preRemove() {
+		var table = App.getInstance().BagModule.getTable();
+		String exclusiveStartKey = null;
+		AtomicInteger count = new AtomicInteger();
+		do {
+			exclusiveStartKey = table.walk(exclusiveStartKey, 1,
+					(key, value) -> {
+						App.getInstance().Zeze.newProcedure(() -> {
+							table.remove(key);
+							return 0;
+						}, "remove walk data").call();
+						count.incrementAndGet();
+						return true;
+					});
+		} while (exclusiveStartKey != null);
+		System.out.println(String.format("delete table %s count %s", table.getName(), count));
+		return Procedure.Success;
 	}
 }
