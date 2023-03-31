@@ -8,11 +8,9 @@ public class Bench1Mysql {
 	public static void main(String [] args) throws Exception {
 		var url = "jdbc:mysql://localhost/devtest?user=dev&password=devtest12345&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
 
-		var dataSource = new DruidDataSource();
-		dataSource.setUrl(url);
-		dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
-
-		try {
+		try (var dataSource = new DruidDataSource()) {
+			dataSource.setUrl(url);
+			dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
 			Zeze.Util.Task.tryInitThreadPool(null, null, null);
 			var futures = new ArrayList<Future<?>>();
 			var bTotal = new Zeze.Util.Benchmark();
@@ -40,8 +38,6 @@ public class Bench1Mysql {
 			for (var future : futures)
 				future.get();
 			bTotal.report("Total mysql replace bench", count * threads);
-		} finally {
-			dataSource.close();
 		}
 	}
 }
