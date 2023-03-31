@@ -5,6 +5,7 @@ public class AllocateId extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceManager.B
     public static final int ModuleId_ = 11022;
     public static final int ProtocolId_ = -776297405; // 3518669891
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47342648206403
+    static { register(TypeId_, AllocateId.class); }
 
     @Override
     public int getModuleId() {

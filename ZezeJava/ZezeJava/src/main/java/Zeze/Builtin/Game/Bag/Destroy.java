@@ -5,6 +5,7 @@ public class Destroy extends Zeze.Net.Rpc<Zeze.Builtin.Game.Bag.BDestroy, Zeze.T
     public static final int ModuleId_ = 11014;
     public static final int ProtocolId_ = -1194800685; // 3100166611
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47307869964755
+    static { register(TypeId_, Destroy.class); }
 
     @Override
     public int getModuleId() {

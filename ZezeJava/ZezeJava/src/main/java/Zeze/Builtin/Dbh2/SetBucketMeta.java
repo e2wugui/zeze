@@ -6,6 +6,7 @@ public class SetBucketMeta extends Zeze.Raft.RaftRpc<Zeze.Builtin.Dbh2.BBucketMe
     public static final int ModuleId_ = 11026;
     public static final int ProtocolId_ = 600141951;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47356909547647
+    static { register(TypeId_, SetBucketMeta.class); }
 
     @Override
     public int getModuleId() {

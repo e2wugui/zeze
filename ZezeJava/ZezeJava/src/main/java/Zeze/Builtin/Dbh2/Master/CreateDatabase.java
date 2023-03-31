@@ -5,6 +5,7 @@ public class CreateDatabase extends Zeze.Net.Rpc<Zeze.Builtin.Dbh2.Master.BCreat
     public static final int ModuleId_ = 11027;
     public static final int ProtocolId_ = 1368681472;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47361973054464
+    static { register(TypeId_, CreateDatabase.class); }
 
     @Override
     public int getModuleId() {

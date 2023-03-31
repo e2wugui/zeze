@@ -5,6 +5,7 @@ public class SubscribeFirstCommit extends Zeze.Raft.RaftRpc<Zeze.Services.Servic
     public static final int ModuleId_ = 11022;
     public static final int ProtocolId_ = -636130961; // 3658836335
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47342788372847
+    static { register(TypeId_, SubscribeFirstCommit.class); }
 
     @Override
     public int getModuleId() {

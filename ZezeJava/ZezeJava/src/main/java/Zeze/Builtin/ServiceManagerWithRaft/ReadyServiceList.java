@@ -5,6 +5,7 @@ public class ReadyServiceList extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceMan
     public static final int ModuleId_ = 11022;
     public static final int ProtocolId_ = 568430381;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47339697966893
+    static { register(TypeId_, ReadyServiceList.class); }
 
     @Override
     public int getModuleId() {

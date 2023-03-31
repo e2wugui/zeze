@@ -6,6 +6,7 @@ public class CreateBucket extends Zeze.Net.Rpc<Zeze.Builtin.Dbh2.BBucketMeta.Dat
     public static final int ModuleId_ = 11027;
     public static final int ProtocolId_ = -572178079; // 3722789217
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47364327162209
+    static { register(TypeId_, CreateBucket.class); }
 
     @Override
     public int getModuleId() {

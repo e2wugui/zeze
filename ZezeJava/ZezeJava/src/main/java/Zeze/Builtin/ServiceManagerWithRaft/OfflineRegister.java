@@ -5,6 +5,7 @@ public class OfflineRegister extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceMana
     public static final int ModuleId_ = 11022;
     public static final int ProtocolId_ = 1381638229;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47340511174741
+    static { register(TypeId_, OfflineRegister.class); }
 
     @Override
     public int getModuleId() {

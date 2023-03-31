@@ -5,6 +5,7 @@ public class Acquire extends Zeze.Raft.RaftRpc<Zeze.Builtin.GlobalCacheManagerWi
     public static final int ModuleId_ = 11001;
     public static final int ProtocolId_ = -1825434690; // 2469532606
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47251404755902
+    static { register(TypeId_, Acquire.class); }
 
     @Override
     public int getModuleId() {

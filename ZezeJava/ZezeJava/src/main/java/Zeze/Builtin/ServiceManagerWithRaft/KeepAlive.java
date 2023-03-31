@@ -5,6 +5,7 @@ public class KeepAlive extends Zeze.Raft.RaftRpc<Zeze.Transaction.EmptyBean, Zez
     public static final int ModuleId_ = 11022;
     public static final int ProtocolId_ = 2096518282;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47341226054794
+    static { register(TypeId_, KeepAlive.class); }
 
     @Override
     public int getModuleId() {

@@ -12,6 +12,10 @@ public final class UnRegister extends Rpc<BServiceInfo, EmptyBean> {
 	public static final int ProtocolId_ = Bean.hash32(UnRegister.class.getName()); // 1424315418
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 1424315418
 
+	static {
+		register(TypeId_, UnRegister.class);
+	}
+
 	public static final int Success = 0;
 	public static final int NotExist = 1;
 

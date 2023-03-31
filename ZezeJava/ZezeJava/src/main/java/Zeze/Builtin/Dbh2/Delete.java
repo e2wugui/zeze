@@ -5,6 +5,7 @@ public class Delete extends Zeze.Raft.RaftRpc<Zeze.Builtin.Dbh2.BDeleteArgument.
     public static final int ModuleId_ = 11026;
     public static final int ProtocolId_ = -367775506; // 3927191790
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47360236597486
+    static { register(TypeId_, Delete.class); }
 
     @Override
     public int getModuleId() {

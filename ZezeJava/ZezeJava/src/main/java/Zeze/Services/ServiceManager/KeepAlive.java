@@ -8,6 +8,10 @@ public final class KeepAlive extends Rpc<EmptyBean, EmptyBean> {
 	public static final int ProtocolId_ = Bean.hash32(KeepAlive.class.getName()); // 1337189598
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 1337189598
 
+	static {
+		register(TypeId_, KeepAlive.class);
+	}
+
 	public static final int Success = 0;
 
 	public KeepAlive() {

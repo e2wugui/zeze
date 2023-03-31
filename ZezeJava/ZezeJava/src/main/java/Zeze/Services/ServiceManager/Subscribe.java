@@ -8,6 +8,10 @@ public final class Subscribe extends Rpc<BSubscribeInfo, EmptyBean> {
 	public static final int ProtocolId_ = Bean.hash32(Subscribe.class.getName()); // 1138220698
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 1138220698
 
+	static {
+		register(TypeId_, Subscribe.class);
+	}
+
 	public static final int Success = 0;
 	public static final int DuplicateSubscribe = 1;
 	public static final int UnknownSubscribeType = 2;

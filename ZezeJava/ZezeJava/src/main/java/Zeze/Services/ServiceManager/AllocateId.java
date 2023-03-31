@@ -7,6 +7,10 @@ public final class AllocateId extends Rpc<BAllocateIdArgument, BAllocateIdResult
 	public static final int ProtocolId_ = Bean.hash32(AllocateId.class.getName()); // -282549003
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 4012418293
 
+	static {
+		register(TypeId_, AllocateId.class);
+	}
+
 	@Override
 	public int getModuleId() {
 		return 0;

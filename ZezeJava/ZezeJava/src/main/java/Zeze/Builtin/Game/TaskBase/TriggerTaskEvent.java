@@ -5,6 +5,7 @@ public class TriggerTaskEvent extends Zeze.Net.Rpc<Zeze.Builtin.Game.TaskBase.BT
     public static final int ModuleId_ = 11018;
     public static final int ProtocolId_ = 1070967817;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47323020635145
+    static { register(TypeId_, TriggerTaskEvent.class); }
 
     @Override
     public int getModuleId() {

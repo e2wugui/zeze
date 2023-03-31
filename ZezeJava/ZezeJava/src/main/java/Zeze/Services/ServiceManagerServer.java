@@ -29,7 +29,6 @@ import Zeze.Util.KV;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.LongList;
-import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
@@ -217,14 +216,11 @@ public final class ServiceManagerServer implements Closeable {
 			var notify = new NotifyServiceList(new BServiceInfos(serviceName, this, ++serialId));
 			var notifyBytes = notify.encode();
 			var sb = new StringBuilder();
-			int sendCount = 0;
 			if (notifySimple) {
 				for (var it = simple.iterator(); it.moveToNext(); ) {
 					var s = serviceManager.server.GetSocket(it.key());
-					if (s != null && s.Send(notifyBytes)) {
+					if (s != null && s.Send(notifyBytes))
 						sb.append(s.getSessionId()).append(',');
-						sendCount++;
-					}
 				}
 			}
 			var n = sb.length();
@@ -235,16 +231,11 @@ public final class ServiceManagerServer implements Closeable {
 			for (var it = readyCommit.iterator(); it.moveToNext(); ) {
 				it.value().ready = false;
 				var s = serviceManager.server.GetSocket(it.key());
-				if (s != null && s.Send(notifyBytes)) {
+				if (s != null && s.Send(notifyBytes))
 					sb.append(s.getSessionId()).append(',');
-					sendCount++;
-				}
 			}
-			if (sb.length() > 1) {
+			if (sb.length() > 1)
 				AsyncSocket.logger.info("SEND[{}]: NotifyServiceList: {}", sb, notify.Argument);
-				if (PerfCounter.ENABLE_PERF)
-					PerfCounter.instance.addSendInfo(notify, notifyBytes.size(), sendCount);
-			}
 
 			if (!readyCommit.isEmpty()) {
 				// 只有两段公告模式需要回应处理。

@@ -6,6 +6,7 @@ public class ReLogin extends Zeze.Net.Rpc<Zeze.Builtin.Game.Online.BReLogin, Zez
     public static final int ModuleId_ = 11013;
     public static final int ProtocolId_ = -218681811; // 4076285485
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47304551116333
+    static { register(TypeId_, ReLogin.class); }
 
     @Override
     public int getModuleId() {

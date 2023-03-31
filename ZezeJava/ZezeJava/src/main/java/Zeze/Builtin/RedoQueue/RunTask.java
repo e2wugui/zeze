@@ -5,6 +5,7 @@ public class RunTask extends Zeze.Net.Rpc<Zeze.Builtin.RedoQueue.BQueueTask, Zez
     public static final int ModuleId_ = 11010;
     public static final int ProtocolId_ = 1530872255;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47289120801215
+    static { register(TypeId_, RunTask.class); }
 
     @Override
     public int getModuleId() {

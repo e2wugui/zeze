@@ -5,6 +5,7 @@ public class Bind extends Zeze.Net.Rpc<Zeze.Builtin.Provider.BBind, Zeze.Transac
     public static final int ModuleId_ = 11008;
     public static final int ProtocolId_ = 114259622;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47279114253990
+    static { register(TypeId_, Bind.class); }
 
     @Override
     public int getModuleId() {

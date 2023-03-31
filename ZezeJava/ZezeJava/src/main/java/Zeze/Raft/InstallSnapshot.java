@@ -7,6 +7,10 @@ final class InstallSnapshot extends Rpc<BInstallSnapshotArgument, BInstallSnapsh
 	public static final int ProtocolId_ = Bean.hash32(InstallSnapshot.class.getName());
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
 
+	static {
+		register(TypeId_, InstallSnapshot.class);
+	}
+
 	public InstallSnapshot() {
 		Argument = new BInstallSnapshotArgument();
 		Result = new BInstallSnapshotResult();

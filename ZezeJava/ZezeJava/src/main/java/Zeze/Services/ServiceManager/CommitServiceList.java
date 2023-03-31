@@ -7,6 +7,10 @@ public final class CommitServiceList extends Protocol<BServiceListVersion> {
 	public static final int ProtocolId_ = Bean.hash32(CommitServiceList.class.getName()); // -1436469291
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 2858498005
 
+	static {
+		register(TypeId_, CommitServiceList.class);
+	}
+
 	public CommitServiceList() {
 		Argument = new BServiceListVersion();
 	}

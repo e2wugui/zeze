@@ -5,6 +5,7 @@ public class CommitTransaction extends Zeze.Raft.RaftRpc<Zeze.Builtin.Dbh2.BComm
     public static final int ModuleId_ = 11026;
     public static final int ProtocolId_ = -1482242027; // 2812725269
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47359122130965
+    static { register(TypeId_, CommitTransaction.class); }
 
     @Override
     public int getModuleId() {

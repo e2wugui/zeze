@@ -5,6 +5,7 @@ public class ReliableNotifyConfirm extends Zeze.Net.Rpc<Zeze.Builtin.Online.BRel
     public static final int ModuleId_ = 11100;
     public static final int ProtocolId_ = -244732886; // 4050234410
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47678187220010
+    static { register(TypeId_, ReliableNotifyConfirm.class); }
 
     @Override
     public int getModuleId() {

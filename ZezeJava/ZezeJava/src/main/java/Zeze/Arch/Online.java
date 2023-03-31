@@ -45,7 +45,6 @@ import Zeze.Util.EventDispatcher;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongList;
 import Zeze.Util.OutObject;
-import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 import Zeze.Util.TransactionLevelAnnotation;
@@ -401,10 +400,7 @@ public class Online extends AbstractOnline {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Send", account + ',' + clientId + ':' + listenerName, p);
-		var pdata = new Binary(p.encode());
-		sendReliableNotify(account, clientId, listenerName, typeId, pdata);
-		if (PerfCounter.ENABLE_PERF)
-			PerfCounter.instance.addSendInfo(p, pdata.size(), 1);
+		sendReliableNotify(account, clientId, listenerName, typeId, new Binary(p.encode()));
 	}
 
 	private Zeze.Collections.Queue<BNotify> openQueue(String account, String clientId) {
@@ -442,10 +438,7 @@ public class Online extends AbstractOnline {
 
 			if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 				AsyncSocket.log("Send", account + ',' + clientId + ':' + listenerName, notify);
-			var pdata = new Binary(notify.encode());
-			sendEmbed(List.of(new LoginKey(account, clientId)), notify.getTypeId(), pdata);
-			if (PerfCounter.ENABLE_PERF)
-				PerfCounter.instance.addSendInfo(notify, pdata.size(), 1); //TODO: link count
+			sendEmbed(List.of(new LoginKey(account, clientId)), notify.getTypeId(), new Binary(notify.encode()));
 			return Procedure.Success;
 		});
 	}
@@ -591,13 +584,9 @@ public class Online extends AbstractOnline {
 		}
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p.getTypeId()))
 			AsyncSocket.log("Send", loginKey != null ? loginKey.account + ',' + loginKey.clientId : linkName, p);
-		var pdata = new Binary(p.encode());
-		var send = new Send(new BSend(p.getTypeId(), pdata));
+		var send = new Send(new BSend(p.getTypeId(), new Binary(p.encode())));
 		send.Argument.getLinkSids().add(linkSid);
-		var r = send(link, loginKey != null ? Map.of(linkSid, loginKey) : Map.of(), send);
-		if (PerfCounter.ENABLE_PERF && r)
-			PerfCounter.instance.addSendInfo(p, pdata.size(), 1);
-		return r;
+		return send(link, loginKey != null ? Map.of(linkSid, loginKey) : Map.of(), send);
 	}
 
 	public boolean send(Collection<LoginKey> keys, AsyncSocket to, Map<Long, LoginKey> contexts, Send send) {
@@ -690,10 +679,7 @@ public class Online extends AbstractOnline {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Send", account + ',' + clientId, p);
-		var pdata = new Binary(p.encode());
-		send(account, clientId, typeId, pdata);
-		if (PerfCounter.ENABLE_PERF)
-			PerfCounter.instance.addSendInfo(p, pdata.size(), 1);
+		send(account, clientId, typeId, new Binary(p.encode()));
 	}
 
 	public void sendResponse(String account, String clientId, Rpc<?, ?> r) {
@@ -715,10 +701,7 @@ public class Online extends AbstractOnline {
 			var idsStr = sb.toString();
 			AsyncSocket.log("Send", idsStr, p);
 		}
-		var pdata = new Binary(p.encode());
-		send(logins, typeId, pdata);
-		if (PerfCounter.ENABLE_PERF)
-			PerfCounter.instance.addSendInfo(p, pdata.size(), 1); //TODO: link count
+		send(logins, typeId, new Binary(p.encode()));
 	}
 
 	public void sendWhileCommit(String account, String clientId, Protocol<?> p) {
@@ -829,10 +812,7 @@ public class Online extends AbstractOnline {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Send", account, p);
-		var pdata = new Binary(p.encode());
-		sendAccount(account, typeId, pdata, sender);
-		if (PerfCounter.ENABLE_PERF)
-			PerfCounter.instance.addSendInfo(p, pdata.size(), 1);
+		sendAccount(account, typeId, new Binary(p.encode()), sender);
 	}
 
 	/**
@@ -852,10 +832,7 @@ public class Online extends AbstractOnline {
 			var idsStr = sb.toString();
 			AsyncSocket.log("Send", idsStr, p);
 		}
-		var pdata = new Binary(p.encode());
-		sendAccounts(accounts, typeId, pdata, sender);
-		if (PerfCounter.ENABLE_PERF)
-			PerfCounter.instance.addSendInfo(p, pdata.size(), 1); //TODO: link count
+		sendAccounts(accounts, typeId, new Binary(p.encode()), sender);
 	}
 
 	public void sendAccountWhileCommit(String account, Protocol<?> p, OnlineSend sender) {
@@ -1045,10 +1022,7 @@ public class Online extends AbstractOnline {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Broc", providerApp.providerService.getLinks().size(), p);
-		var pdata = new Binary(p.encode());
-		int sendCount = broadcast(typeId, pdata, time);
-		if (PerfCounter.ENABLE_PERF && sendCount > 0)
-			PerfCounter.instance.addSendInfo(p, pdata.size(), sendCount);
+		int sendCount = broadcast(typeId, new Binary(p.encode()), time);
 	}
 
 	private void verifyLocal() {

@@ -5,6 +5,7 @@ public class AnnounceLinkInfo extends Zeze.Net.Protocol<Zeze.Builtin.Provider.BA
     public static final int ModuleId_ = 11008;
     public static final int ProtocolId_ = -1920287593; // 2374679703
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47281374674071
+    static { register(TypeId_, AnnounceLinkInfo.class); }
 
     @Override
     public int getModuleId() {

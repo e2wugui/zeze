@@ -5,6 +5,7 @@ public class NotifyServiceList extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceMa
     public static final int ModuleId_ = 11022;
     public static final int ProtocolId_ = 457655771;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47339587192283
+    static { register(TypeId_, NotifyServiceList.class); }
 
     @Override
     public int getModuleId() {

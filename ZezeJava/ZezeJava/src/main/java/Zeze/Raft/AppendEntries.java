@@ -7,6 +7,10 @@ final class AppendEntries extends Rpc<BAppendEntriesArgument, BAppendEntriesResu
 	public static final int ProtocolId_ = Bean.hash32(AppendEntries.class.getName());
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
 
+	static {
+		register(TypeId_, AppendEntries.class);
+	}
+
 	public AppendEntries() {
 		Argument = new BAppendEntriesArgument();
 		Result = new BAppendEntriesResult();

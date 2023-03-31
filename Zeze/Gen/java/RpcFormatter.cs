@@ -32,6 +32,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("    public static final int ModuleId_ = " + rpc.Space.Id + ";");
             sw.WriteLine("    public static final int ProtocolId_ = " + rpc.Id + ";" + (rpc.Id < 0 ? " // " + (uint)rpc.Id : ""));
             sw.WriteLine("    public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // " + Net.Protocol.MakeTypeId(rpc.Space.Id, rpc.Id));
+            sw.WriteLine("    static { register(TypeId_, " + rpc.Name + ".class); }");
             sw.WriteLine();
             sw.WriteLine("    @Override");
             sw.WriteLine("    public int getModuleId() {");

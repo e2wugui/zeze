@@ -5,7 +5,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.LongAdder;
+import Zeze.Builtin.Provider.Send;
+import Zeze.Net.FamilyClass;
 import Zeze.Net.Protocol;
+import Zeze.Serialize.ByteBuffer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -93,36 +96,69 @@ public final class PerfCounter {
 				pi.recvSize.add(size);
 				return;
 			}
-			protocolInfoMap.putIfAbsent(typeId, new ProtocolInfo(cls != null ? cls.getName() : "<" + typeId + '>'));
+			if (cls == null)
+				cls = Protocol.getClassByTypeId(typeId);
+			protocolInfoMap.putIfAbsent(typeId, new ProtocolInfo(cls != null ? cls.getName() : String.valueOf(typeId)));
 		}
 	}
 
-	public void addSendInfo(@NotNull Protocol<?> protocol, int size, int count) {
-		var typeId = protocol.getTypeId();
-		if (excludeProtocolTypeIds.contains(typeId))
-			return;
-		for (; ; ) {
-			var pi = protocolInfoMap.get(typeId);
-			if (pi != null) {
-				pi.sendCount.add(count);
-				pi.sendSize.add((long)size * count);
-				return;
+	public void addSendInfo(byte @NotNull [] bytes, int offset, int length) {
+		while (length >= 12) {
+			int moduleId = ByteBuffer.ToInt(bytes, offset);
+			int protocolId = ByteBuffer.ToInt(bytes, offset + 4);
+			int size = ByteBuffer.ToInt(bytes, offset + 8);
+			if (size < 0) {
+				logger.warn("addSendInfo: moduleId={}, protocolId={}, size={} < 0", moduleId, protocolId, size);
+				break;
 			}
-			protocolInfoMap.putIfAbsent(typeId, new ProtocolInfo(protocol.getClass().getName()));
+			size += Protocol.HEADER_SIZE;
+			var typeId = Protocol.makeTypeId(moduleId, protocolId);
+			if (!excludeProtocolTypeIds.contains(typeId)) {
+				for (; ; ) {
+					var pi = protocolInfoMap.get(typeId);
+					if (pi != null) {
+						pi.sendCount.increment();
+						pi.sendSize.add(size);
+						break;
+					}
+					var cls = Protocol.getClassByTypeId(typeId);
+					protocolInfoMap.putIfAbsent(typeId,
+							new ProtocolInfo(cls != null ? cls.getName() : String.valueOf(typeId)));
+				}
+			}
+			if (typeId == Send.TypeId_)
+				addSendRpc(bytes, offset + Protocol.HEADER_SIZE, length - Protocol.HEADER_SIZE);
+			offset += size;
+			length -= size;
 		}
 	}
 
-	public void addSendInfo(long typeId, int size, int count) {
-		if (excludeProtocolTypeIds.contains(typeId))
-			return;
-		for (; ; ) {
-			var pi = protocolInfoMap.get(typeId);
-			if (pi != null) {
-				pi.sendCount.add(count);
-				pi.sendSize.add((long)size * count);
+	private void addSendRpc(byte @NotNull [] bytes, int offset, int length) {
+		try {
+			var bb = ByteBuffer.Wrap(bytes, offset, length);
+			var header = bb.ReadInt();
+			if ((header & FamilyClass.FamilyClassMask) != FamilyClass.Request)
 				return;
+			if ((header & FamilyClass.BitResultCode) != 0)
+				bb.SkipLong(); // resultCode
+			bb.SkipLong(); // sessionId
+
+			int t = bb.ReadByte();
+			int i = bb.ReadTagSize(t);
+			if (i == 1) { // linkSids
+				bb.SkipUnknownField(t);
+				i += bb.ReadTagSize(t = bb.ReadByte());
 			}
-			protocolInfoMap.putIfAbsent(typeId, new ProtocolInfo("<" + typeId + '>'));
+			if (i == 2) { // protocolType
+				bb.SkipUnknownField(t);
+				i += bb.ReadTagSize(t = bb.ReadByte());
+			}
+			if (i == 3 && (t & ByteBuffer.TAG_MASK) == ByteBuffer.BYTES) { // protocolWholeData
+				int n = bb.ReadUInt();
+				addSendInfo(bytes, bb.ReadIndex, Math.min(n, bb.size()));
+			}
+		} catch (Exception e) {
+			logger.warn("addSendRpc: decode Send failed", e);
 		}
 	}
 

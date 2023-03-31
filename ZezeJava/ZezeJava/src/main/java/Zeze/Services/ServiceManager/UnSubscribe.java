@@ -8,6 +8,10 @@ public final class UnSubscribe extends Rpc<BSubscribeInfo, EmptyBean> {
 	public static final int ProtocolId_ = Bean.hash32(UnSubscribe.class.getName()); // -1962944542
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 2332022754
 
+	static {
+		register(TypeId_, UnSubscribe.class);
+	}
+
 	public static final int Success = 0;
 	public static final int NotExist = 1;
 

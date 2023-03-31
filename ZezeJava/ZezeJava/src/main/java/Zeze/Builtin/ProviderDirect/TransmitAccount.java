@@ -6,6 +6,7 @@ public class TransmitAccount extends Zeze.Net.Protocol<Zeze.Builtin.ProviderDire
     public static final int ModuleId_ = 11009;
     public static final int ProtocolId_ = 952255342;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47284247217006
+    static { register(TypeId_, TransmitAccount.class); }
 
     @Override
     public int getModuleId() {

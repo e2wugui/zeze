@@ -7,6 +7,10 @@ public final class CHandshake extends Protocol<BCHandshakeArgument> {
 	public static final int ProtocolId_ = Bean.hash32(CHandshake.class.getName()); // -554021601
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 3740945695
 
+	static {
+		register(TypeId_, CHandshake.class);
+	}
+
 	@Override
 	public int getModuleId() {
 		return 0;

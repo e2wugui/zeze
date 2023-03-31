@@ -5,6 +5,7 @@ public class CommitServiceList extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceMa
     public static final int ModuleId_ = 11022;
     public static final int ProtocolId_ = 920176378;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47340049712890
+    static { register(TypeId_, CommitServiceList.class); }
 
     @Override
     public int getModuleId() {

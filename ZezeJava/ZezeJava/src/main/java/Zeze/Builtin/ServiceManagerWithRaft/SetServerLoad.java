@@ -5,6 +5,7 @@ public class SetServerLoad extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceManage
     public static final int ModuleId_ = 11022;
     public static final int ProtocolId_ = -894675129; // 3400292167
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47342529828679
+    static { register(TypeId_, SetServerLoad.class); }
 
     @Override
     public int getModuleId() {

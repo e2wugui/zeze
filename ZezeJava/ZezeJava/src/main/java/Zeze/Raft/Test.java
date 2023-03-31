@@ -569,6 +569,10 @@ public class Test {
 		public static final int ProtocolId_ = Bean.hash32(AddCount.class.getName());
 		public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
 
+		static {
+			register(TypeId_, AddCount.class);
+		}
+
 		public AddCount() {
 			Argument = EmptyBean.instance;
 			Result = new BCountResult();
@@ -615,6 +619,10 @@ public class Test {
 	public static final class GetCount extends RaftRpc<EmptyBean, BCountResult> {
 		public static final int ProtocolId_ = Bean.hash32(GetCount.class.getName());
 		public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
+
+		static {
+			register(TypeId_, GetCount.class);
+		}
 
 		public GetCount() {
 			Argument = EmptyBean.instance;

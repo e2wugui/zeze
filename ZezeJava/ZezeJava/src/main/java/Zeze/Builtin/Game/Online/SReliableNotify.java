@@ -5,6 +5,7 @@ public class SReliableNotify extends Zeze.Net.Protocol<Zeze.Builtin.Game.Online.
     public static final int ModuleId_ = 11013;
     public static final int ProtocolId_ = 1941465447;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47302416296295
+    static { register(TypeId_, SReliableNotify.class); }
 
     @Override
     public int getModuleId() {

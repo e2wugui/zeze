@@ -5,6 +5,7 @@ public class Send extends Zeze.Net.Rpc<Zeze.Arch.Beans.BSend, Zeze.Arch.Beans.BS
     public static final int ModuleId_ = 11008;
     public static final int ProtocolId_ = -2067963426; // 2227003870
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47281226998238
+    static { register(TypeId_, Send.class); }
 
     @Override
     public int getModuleId() {

@@ -5,6 +5,7 @@ public class UnSubscribe extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceManager.
     public static final int ModuleId_ = 11022;
     public static final int ProtocolId_ = 622739852;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47339752276364
+    static { register(TypeId_, UnSubscribe.class); }
 
     @Override
     public int getModuleId() {

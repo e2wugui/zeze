@@ -14,6 +14,10 @@ final class LeaderIs extends Rpc<BLeaderIsArgument, EmptyBean> {
 	public static final int ProtocolId_ = Bean.hash32(LeaderIs.class.getName());
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
 
+	static {
+		register(TypeId_, LeaderIs.class);
+	}
+
 	public LeaderIs() {
 		Argument = new BLeaderIsArgument();
 		Result = EmptyBean.instance;

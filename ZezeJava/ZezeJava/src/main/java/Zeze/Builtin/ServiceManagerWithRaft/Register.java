@@ -5,6 +5,7 @@ public class Register extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceManager.BSe
     public static final int ModuleId_ = 11022;
     public static final int ProtocolId_ = 1511238554;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47340640775066
+    static { register(TypeId_, Register.class); }
 
     @Override
     public int getModuleId() {

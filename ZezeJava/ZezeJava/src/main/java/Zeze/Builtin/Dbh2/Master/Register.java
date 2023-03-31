@@ -5,6 +5,7 @@ public class Register extends Zeze.Net.Rpc<Zeze.Builtin.Dbh2.Master.BRegister.Da
     public static final int ModuleId_ = 11027;
     public static final int ProtocolId_ = -552030131; // 3742937165
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47364347310157
+    static { register(TypeId_, Register.class); }
 
     @Override
     public int getModuleId() {

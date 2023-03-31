@@ -12,7 +12,6 @@ import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Transaction;
-import Zeze.Util.PerfCounter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -73,18 +72,14 @@ public class ProviderUserSession {
 
 		var link = getLink();
 		if (link != null && !link.isClosed()) {
-			var r = send.Send(link);
-			if (PerfCounter.ENABLE_PERF && r)
-				PerfCounter.instance.addSendInfo(rpc, pdata.size(), 1);
+			send.Send(link);
 			return;
 		}
 		// 可能发生了重连，尝试再次查找发送。网络断开以后，linkSid已经不可靠了，先这样写着吧。
 		var connector = getService().getLinks().get(getLinkName());
 		if (connector != null && connector.isHandshakeDone()) {
 			dispatch.setSender(link = connector.getSocket());
-			var r = send.Send(link);
-			if (PerfCounter.ENABLE_PERF && r)
-				PerfCounter.instance.addSendInfo(rpc, pdata.size(), 1);
+			send.Send(link);
 		}
 	}
 
@@ -152,10 +147,7 @@ public class ProviderUserSession {
 	public void sendResponse(@NotNull Protocol<?> p) {
 		p.setRequest(false);
 		protocolLogSend(p);
-		var pdata = new Binary(p.encode());
-		var r = sendResponse(p.getTypeId(), pdata);
-		if (PerfCounter.ENABLE_PERF && r)
-			PerfCounter.instance.addSendInfo(p, pdata.size(), 1);
+		sendResponse(p.getTypeId(), new Binary(p.encode()));
 	}
 
 	public void sendResponseWhileCommit(long typeId, @NotNull Binary fullEncodedProtocol) {

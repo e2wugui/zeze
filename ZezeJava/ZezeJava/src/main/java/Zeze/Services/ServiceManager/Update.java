@@ -8,6 +8,10 @@ public final class Update extends Rpc<BServiceInfo, EmptyBean> {
 	public static final int ProtocolId_ = Bean.hash32(Update.class.getName()); // -723792139
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 3571175157
 
+	static {
+		register(TypeId_, Update.class);
+	}
+
 	public static final int Success = 0;
 	public static final int ServiceNotRegister = 1;
 	public static final int ServerStateError = 2;

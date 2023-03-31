@@ -6,6 +6,7 @@ public class Logout extends Zeze.Net.Rpc<Zeze.Transaction.EmptyBean, Zeze.Transa
     public static final int ModuleId_ = 11100;
     public static final int ProtocolId_ = -1911969343; // 2382997953
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47676519983553
+    static { register(TypeId_, Logout.class); }
 
     @Override
     public int getModuleId() {

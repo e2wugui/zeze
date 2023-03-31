@@ -5,6 +5,7 @@ public class Broadcast extends Zeze.Net.Protocol<Zeze.Builtin.Provider.BBroadcas
     public static final int ModuleId_ = 11008;
     public static final int ProtocolId_ = -886924798; // 3408042498
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47282408036866
+    static { register(TypeId_, Broadcast.class); }
 
     @Override
     public int getModuleId() {

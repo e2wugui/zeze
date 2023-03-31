@@ -7,6 +7,10 @@ public final class NotifyServiceList extends Protocol<BServiceInfos> {
 	public static final int ProtocolId_ = Bean.hash32(NotifyServiceList.class.getName()); // -1758680910
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 2536286386
 
+	static {
+		register(TypeId_, NotifyServiceList.class);
+	}
+
 	public NotifyServiceList() {
 		Argument = new BServiceInfos();
 	}

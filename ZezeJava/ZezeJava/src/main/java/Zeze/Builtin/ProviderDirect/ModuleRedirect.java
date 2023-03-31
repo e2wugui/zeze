@@ -6,6 +6,7 @@ public class ModuleRedirect extends Zeze.Net.Rpc<Zeze.Builtin.ProviderDirect.BMo
     public static final int ModuleId_ = 11009;
     public static final int ProtocolId_ = 1107993902;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47284402955566
+    static { register(TypeId_, ModuleRedirect.class); }
 
     @Override
     public int getModuleId() {

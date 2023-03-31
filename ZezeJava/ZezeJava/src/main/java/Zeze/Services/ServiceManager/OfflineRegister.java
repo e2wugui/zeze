@@ -8,6 +8,10 @@ public class OfflineRegister extends Rpc<BOfflineNotify, EmptyBean> {
 	public static final int ProtocolId_ = Bean.hash32(OfflineRegister.class.getName()); // -1713644993
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 2581322303
 
+	static {
+		register(TypeId_, OfflineRegister.class);
+	}
+
 	@Override
 	public int getModuleId() {
 		return 0;

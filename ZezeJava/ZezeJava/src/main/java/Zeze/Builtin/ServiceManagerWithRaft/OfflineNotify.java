@@ -5,6 +5,7 @@ public class OfflineNotify extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceManage
     public static final int ModuleId_ = 11022;
     public static final int ProtocolId_ = 1429001328;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47340558537840
+    static { register(TypeId_, OfflineNotify.class); }
 
     @Override
     public int getModuleId() {

@@ -5,6 +5,7 @@ public class BeginTransaction extends Zeze.Raft.RaftRpc<Zeze.Builtin.Dbh2.BBegin
     public static final int ModuleId_ = 11026;
     public static final int ProtocolId_ = -480216509; // 3814750787
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47360124156483
+    static { register(TypeId_, BeginTransaction.class); }
 
     @Override
     public int getModuleId() {

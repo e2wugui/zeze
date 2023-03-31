@@ -8,6 +8,10 @@ public final class CHandshakeDone extends Protocol<EmptyBean> {
 	public static final int ProtocolId_ = Bean.hash32(CHandshakeDone.class.getName()); // 1896283174
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 1896283174
 
+	static {
+		register(TypeId_, CHandshakeDone.class);
+	}
+
 	@Override
 	public int getModuleId() {
 		return 0;

@@ -5,6 +5,7 @@ public class Cleanup extends Zeze.Raft.RaftRpc<Zeze.Builtin.GlobalCacheManagerWi
     public static final int ModuleId_ = 11001;
     public static final int ProtocolId_ = -73964423; // 4221002873
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47253156226169
+    static { register(TypeId_, Cleanup.class); }
 
     @Override
     public int getModuleId() {

@@ -5,6 +5,7 @@ public class ReLogin extends Zeze.Raft.RaftRpc<Zeze.Builtin.GlobalCacheManagerWi
     public static final int ModuleId_ = 11001;
     public static final int ProtocolId_ = -1422572442; // 2872394854
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47251807618150
+    static { register(TypeId_, ReLogin.class); }
 
     @Override
     public int getModuleId() {

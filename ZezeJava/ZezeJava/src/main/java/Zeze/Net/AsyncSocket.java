@@ -511,6 +511,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 						outputBufferSizeHandle.getAndAdd(this, deltaLen);
 				} else
 					outputBuffer.put(bytes, offset, length);
+				if (PerfCounter.ENABLE_PERF)
+					PerfCounter.instance.addSendInfo(bytes, offset, length);
 			}))
 				return true;
 		} catch (Exception ex) {
@@ -628,11 +630,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public boolean Send(@NotNull Protocol<?> p) {
 		if (ENABLE_PROTOCOL_LOG && canLogProtocol(p.getTypeId()))
 			log("SEND", sessionId, p);
-		var bb = p.encode();
-		var r = Send(bb);
-		if (PerfCounter.ENABLE_PERF && r)
-			PerfCounter.instance.addSendInfo(p, bb.size(), 1);
-		return r;
+		return Send(p.encode());
 	}
 
 	public boolean Send(@NotNull ByteBuffer bb) { // 返回true则bb的Bytes不能再修改了

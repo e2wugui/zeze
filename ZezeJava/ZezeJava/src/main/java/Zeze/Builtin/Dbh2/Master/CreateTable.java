@@ -5,6 +5,7 @@ public class CreateTable extends Zeze.Net.Rpc<Zeze.Builtin.Dbh2.Master.BCreateTa
     public static final int ModuleId_ = 11027;
     public static final int ProtocolId_ = -1554675613; // 2740291683
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47363344664675
+    static { register(TypeId_, CreateTable.class); }
 
     @Override
     public int getModuleId() {

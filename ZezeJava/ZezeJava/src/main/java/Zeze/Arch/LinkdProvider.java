@@ -21,9 +21,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
-import Zeze.Util.OutInt;
 import Zeze.Util.OutLong;
-import Zeze.Util.PerfCounter;
 
 /**
  * Linkd上处理Provider协议的模块。
@@ -291,7 +289,6 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			AsyncSocket.log("Send", sidStr, r.Argument.getProtocolType(), bb);
 		}
 		//*
-		int count = 0;
 		for (int i = 0; i < sidCount; i++) {
 			var linkSid = linkSids.get(i);
 			var socket = linkdApp.linkdService.GetSocket(linkSid);
@@ -299,15 +296,11 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			if (socket != null) {
 				if (!socket.Send(pdata))
 					socket.close();
-				else
-					count++;
 				if (enableDump)
 					tryDump(socket, pdata);
 			} else
 				r.Result.getErrorLinkSids().add(linkSid);
 		}
-		if (PerfCounter.ENABLE_PERF)
-			PerfCounter.instance.addSendInfo(r.Argument.getProtocolType(), pdata.size(), count);
 		r.SendResult();
 		/*/
 		oneByOneSender.executeBatch(linkSids, (linkSid) -> {
@@ -338,23 +331,17 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			bb.ReadIndex += Protocol.HEADER_SIZE;
 			AsyncSocket.log("Broc", linkdApp.linkdService.getSocketCount(), protocol.Argument.getProtocolType(), bb);
 		}
-		var count = new OutInt();
 		linkdApp.linkdService.foreach(socket -> {
 			// auth 通过就允许发送广播。
 			// 如果要实现 role.login 才允许，Provider 增加 SetLogin 协议给内部server调用。
 			// 这些广播一般是重要通告，只要登录客户端就允许收到，然后进入世界的时候才显示。这样处理就不用这个状态了。
 			var linkSession = (LinkdUserSession)socket.getUserState();
 			if (linkSession != null && linkSession.isAuthed() && !linkSession.getContext().isEmpty()) {
-				if (socket.Send(pdata))
-					count.value++;
+				socket.Send(pdata);
 				if (enableDump)
 					tryDump(socket, pdata);
 			}
 		});
-		if (PerfCounter.ENABLE_PERF) {
-			PerfCounter.instance.addSendInfo(protocol.Argument.getProtocolType(),
-					pdata.size() - Protocol.HEADER_SIZE, count.value);
-		}
 		return Procedure.Success;
 	}
 

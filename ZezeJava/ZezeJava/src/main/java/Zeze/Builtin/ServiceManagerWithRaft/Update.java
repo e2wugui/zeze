@@ -5,6 +5,7 @@ public class Update extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceManager.BServ
     public static final int ModuleId_ = 11022;
     public static final int ProtocolId_ = 1810779937;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47340940316449
+    static { register(TypeId_, Update.class); }
 
     @Override
     public int getModuleId() {

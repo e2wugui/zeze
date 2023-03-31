@@ -50,7 +50,6 @@ import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.LongList;
 import Zeze.Util.OutLong;
-import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 import Zeze.Util.TransactionLevelAnnotation;
@@ -432,10 +431,7 @@ public class Online extends AbstractOnline {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Send", roleId, p);
-		var pdata = new Binary(p.encode());
-		var r = sendDirect(roleId, typeId, pdata);
-		if (PerfCounter.ENABLE_PERF && r)
-			PerfCounter.instance.addSendInfo(p, pdata.size(), 1);
+		sendDirect(roleId, typeId, new Binary(p.encode()));
 	}
 
 	public void sendResponse(long roleId, @NotNull Rpc<?, ?> r) {
@@ -457,10 +453,7 @@ public class Online extends AbstractOnline {
 			var idsStr = sb.toString();
 			AsyncSocket.log("Send", idsStr, p);
 		}
-		var pdata = new Binary(p.encode());
-		int sendCount = send(roleIds, typeId, pdata);
-		if (PerfCounter.ENABLE_PERF)
-			PerfCounter.instance.addSendInfo(p, pdata.size(), sendCount);
+		send(roleIds, typeId, new Binary(p.encode()));
 	}
 
 	public void sendWhileCommit(long roleId, @NotNull Protocol<?> p) {
@@ -559,13 +552,9 @@ public class Online extends AbstractOnline {
 		}
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p.getTypeId()))
 			AsyncSocket.log("Send", roleId != null ? roleId : 0, p);
-		var pdata = new Binary(p.encode());
-		var send = new Send(new BSend(p.getTypeId(), pdata));
+		var send = new Send(new BSend(p.getTypeId(), new Binary(p.encode())));
 		send.Argument.getLinkSids().add(linkSid);
-		var r = send(link, roleId != null ? Map.of(linkSid, roleId) : Map.of(), send);
-		if (PerfCounter.ENABLE_PERF && r)
-			PerfCounter.instance.addSendInfo(p, pdata.size(), 1);
-		return r;
+		return send(link, roleId != null ? Map.of(linkSid, roleId) : Map.of(), send);
 	}
 
 	//	public void send(Collection<Long> keys, AsyncSocket to, Map<Long, Long> contexts, Send send) {
@@ -783,10 +772,7 @@ public class Online extends AbstractOnline {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Send", roleId + ":" + listenerName, p);
-		var pdata = new Binary(p.encode());
-		sendReliableNotify(roleId, listenerName, typeId, pdata);
-		if (PerfCounter.ENABLE_PERF)
-			PerfCounter.instance.addSendInfo(p, pdata.size(), 1);
+		sendReliableNotify(roleId, listenerName, typeId, new Binary(p.encode()));
 	}
 
 	private @NotNull Zeze.Collections.Queue<BNotify> openQueue(long roleId) {
@@ -825,10 +811,7 @@ public class Online extends AbstractOnline {
 			Transaction.whileCommit(() -> {
 				if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 					AsyncSocket.log("Send", roleId + ":" + listenerName, notify);
-				var pdata = new Binary(notify.encode());
-				var r = sendDirect(roleId, notify.getTypeId(), pdata);
-				if (PerfCounter.ENABLE_PERF && r)
-					PerfCounter.instance.addSendInfo(notify, pdata.size(), 1);
+				sendDirect(roleId, notify.getTypeId(), new Binary(notify.encode()));
 			});
 //			sendEmbed(List.of(roleId), notify.getTypeId(), new Binary(notify.encode()));
 			return Procedure.Success;
@@ -1028,10 +1011,7 @@ public class Online extends AbstractOnline {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Broc", providerApp.providerService.getLinks().size(), p);
-		var pdata = new Binary(p.encode());
-		int sendCount = broadcast(typeId, pdata, time);
-		if (PerfCounter.ENABLE_PERF && sendCount > 0)
-			PerfCounter.instance.addSendInfo(p, pdata.size(), sendCount);
+		broadcast(typeId, new Binary(p.encode()), time);
 	}
 
 	private void verifyLocal() {

@@ -5,6 +5,7 @@ public class Login extends Zeze.Raft.RaftRpc<Zeze.Builtin.GlobalCacheManagerWith
     public static final int ModuleId_ = 11001;
     public static final int ProtocolId_ = -1968616174; // 2326351122
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47251261574418
+    static { register(TypeId_, Login.class); }
 
     @Override
     public int getModuleId() {

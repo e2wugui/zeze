@@ -5,6 +5,7 @@ public class UnBind extends Zeze.Net.Rpc<Zeze.Builtin.Provider.BBind, Zeze.Trans
     public static final int ModuleId_ = 11008;
     public static final int ProtocolId_ = 2107584596;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47281107578964
+    static { register(TypeId_, UnBind.class); }
 
     @Override
     public int getModuleId() {

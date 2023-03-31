@@ -7,6 +7,10 @@ final class RequestVote extends Rpc<BRequestVoteArgument, BRequestVoteResult> {
 	public static final int ProtocolId_ = Bean.hash32(RequestVote.class.getName());
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
 
+	static {
+		register(TypeId_, RequestVote.class);
+	}
+
 	public RequestVote() {
 		Argument = new BRequestVoteArgument();
 		Result = new BRequestVoteResult();

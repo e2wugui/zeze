@@ -380,9 +380,9 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		byte[] bytes = Bytes;
 		int readIndex = ReadIndex;
 		int v = bytes[readIndex] & 0xff;
-		if (v < 0x80) {
+		if (v < 0x80)
 			ReadIndex = readIndex + 1;
-		} else if (v < 0xc0) {
+		else if (v < 0xc0) {
 			ensureRead(2);
 			v = ((v & 0x3f) << 8)
 					+ (bytes[readIndex + 1] & 0xff);
@@ -403,6 +403,27 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			ReadIndex = readIndex + 5;
 		}
 		return v;
+	}
+
+	public void SkipUInt() {
+		ensureRead(1);
+		int readIndex = ReadIndex;
+		int v = Bytes[readIndex] & 0xff;
+		if (v < 0x80)
+			ReadIndex = readIndex + 1;
+		else if (v < 0xc0) {
+			ensureRead(2);
+			ReadIndex = readIndex + 2;
+		} else if (v < 0xe0) {
+			ensureRead(3);
+			ReadIndex = readIndex + 3;
+		} else if (v < 0xf0) {
+			ensureRead(4);
+			ReadIndex = readIndex + 4;
+		} else {
+			ensureRead(5);
+			ReadIndex = readIndex + 5;
+		}
 	}
 
 	public static int writeLongSize(long v) {
@@ -814,6 +835,35 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			case 1:                         return 0xffff_0000_0000_0000L + ReadLong6BE();
 			default: long r = ReadLong7BE(); return r >= 0x80_0000_0000_0000L ?
 					0xff00_0000_0000_0000L + r : ((r + 0x80_0000_0000_0000L) << 8) + ReadLong1();
+			}
+			//@formatter:on
+		}
+	}
+
+	public void SkipLong() {
+		ensureRead(1);
+		int b = Bytes[ReadIndex++];
+		switch ((b >> 3) & 0x1f) {
+		//@formatter:off
+		case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: case 0x06: case 0x07:
+		case 0x18: case 0x19: case 0x1a: case 0x1b: case 0x1c: case 0x1d: case 0x1e: case 0x1f: return;
+		case 0x08: case 0x09: case 0x0a: case 0x0b:
+		case 0x14: case 0x15: case 0x16: case 0x17: ensureRead(1); ReadIndex++; return;
+		case 0x0c: case 0x0d: case 0x12: case 0x13: ensureRead(2); ReadIndex += 2; return;
+		case 0x0e: case 0x11:                       ensureRead(3); ReadIndex += 3; return;
+		case 0x0f:
+			switch (b & 7) {
+			case 0: case 1: case 2: case 3: ensureRead(4); ReadIndex += 4; return;
+			case 4: case 5:                 ensureRead(5); ReadIndex += 5; return;
+			case 6:                         ensureRead(6); ReadIndex += 6; return;
+			default: ensureRead(1); int n = 6 + (Bytes[ReadIndex++] >>> 31); ensureRead(n); ReadIndex += n; return;
+			}
+		default: // 0x10
+			switch (b & 7) {
+			case 4: case 5: case 6: case 7: ensureRead(4); ReadIndex += 4; return;
+			case 2: case 3:                 ensureRead(5); ReadIndex += 5; return;
+			case 1:                         ensureRead(6); ReadIndex += 6; return;
+			default: ensureRead(1); int n = 7 - (Bytes[ReadIndex++] >>> 31); ensureRead(n); ReadIndex += n;
 			}
 			//@formatter:on
 		}
@@ -1461,7 +1511,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		if (type == BEAN)
 			bean.decode(this);
 		else if (type == DYNAMIC) {
-			ReadLong();
+			SkipLong();
 			bean.decode(this);
 		} else if (IGNORE_INCOMPATIBLE_FIELD)
 			SkipUnknownField(tag);
@@ -1532,7 +1582,7 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 		int type = tag & TAG_MASK;
 		switch (type) {
 		case INTEGER:
-			ReadLong();
+			SkipLong();
 			return;
 		case FLOAT:
 			if (tag == 1) // FLOAT == 1
@@ -1546,17 +1596,17 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			ReadIndex += 8;
 			return;
 		case VECTOR2INT:
-			ReadLong();
-			ReadLong();
+			SkipLong();
+			SkipLong();
 			return;
 		case VECTOR3:
 			ensureRead(12);
 			ReadIndex += 12;
 			return;
 		case VECTOR3INT:
-			ReadLong();
-			ReadLong();
-			ReadLong();
+			SkipLong();
+			SkipLong();
+			SkipLong();
 			return;
 		case VECTOR4:
 			ensureRead(16);
@@ -1574,12 +1624,12 @@ public class ByteBuffer implements Comparable<ByteBuffer> {
 			SkipUnknownField(t >> TAG_SHIFT, t, ReadUInt());
 			return;
 		case DYNAMIC:
-			ReadLong();
+			SkipLong();
 			//noinspection fallthrough
 		case BEAN:
 			while ((t = ReadByte()) != 0) {
 				if ((t & ID_MASK) == 0xf0)
-					ReadUInt();
+					SkipUInt();
 				SkipUnknownField(t);
 			}
 			return;

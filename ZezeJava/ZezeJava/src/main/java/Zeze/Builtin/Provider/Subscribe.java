@@ -6,6 +6,7 @@ public class Subscribe extends Zeze.Net.Rpc<Zeze.Builtin.Provider.BSubscribe, Ze
     public static final int ModuleId_ = 11008;
     public static final int ProtocolId_ = 1110460218;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47280110454586
+    static { register(TypeId_, Subscribe.class); }
 
     @Override
     public int getModuleId() {

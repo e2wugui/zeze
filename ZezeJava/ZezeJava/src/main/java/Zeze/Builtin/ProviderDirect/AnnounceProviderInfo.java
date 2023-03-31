@@ -5,6 +5,7 @@ public class AnnounceProviderInfo extends Zeze.Net.Rpc<Zeze.Builtin.ProviderDire
     public static final int ModuleId_ = 11009;
     public static final int ProtocolId_ = -1548813974; // 2746153322
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47286041114986
+    static { register(TypeId_, AnnounceProviderInfo.class); }
 
     @Override
     public int getModuleId() {

@@ -5,6 +5,7 @@ public class UnRegister extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceManager.B
     public static final int ModuleId_ = 11022;
     public static final int ProtocolId_ = 1881863600;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47341011400112
+    static { register(TypeId_, UnRegister.class); }
 
     @Override
     public int getModuleId() {
