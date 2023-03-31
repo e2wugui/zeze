@@ -25,6 +25,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Util.Action0;
 import Zeze.Util.Func0;
 import Zeze.Util.KV;
+import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.Level;
@@ -58,6 +59,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	public ServiceManagerWithRaft(String raftName, RaftConfig raftConf, Config config,
 								  boolean RocksDbWriteOptionSync) throws Exception {
+		PerfCounter.instance.startScheduledLog();
+
 		if (null == config)
 			config = Config.load();
 		this.config = config.getCustomize(new ServiceManagerServer.Conf());

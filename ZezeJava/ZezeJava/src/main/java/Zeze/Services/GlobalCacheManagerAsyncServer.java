@@ -96,10 +96,9 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		if (server != null)
 			return;
 
-		if (ENABLE_PERF) {
+		if (ENABLE_PERF)
 			perf = new GlobalCacheManagerPerf("", serialIdGenerator);
-			PerfCounter.instance.startScheduledLog();
-		}
+		PerfCounter.instance.startScheduledLog();
 
 		if (config == null)
 			config = new Config().addCustomize(this.config).loadAndParse();

@@ -34,6 +34,7 @@ import Zeze.Transaction.TableKey;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.FuncLong;
 import Zeze.Util.LongConcurrentHashMap;
+import Zeze.Util.PerfCounter;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Str;
 import Zeze.Util.Task;
@@ -89,6 +90,8 @@ public final class Application {
 
 		// Start Thread Pool
 		Task.tryInitThreadPool(this, null, null); // 确保Task线程池已经建立,如需定制,在createZeze前先手动初始化
+
+		PerfCounter.instance.startScheduledLog();
 
 		switch (conf.getServiceManager()) {
 		case "raft":

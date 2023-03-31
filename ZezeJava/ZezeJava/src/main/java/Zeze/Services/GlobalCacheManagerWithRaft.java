@@ -111,10 +111,9 @@ public class GlobalCacheManagerWithRaft
 		globalStates = globalTemplate.openTable(0);
 		serverAcquiredTemplate = rocks.getTableTemplate("Session");
 
-		if (ENABLE_PERF) {
+		if (ENABLE_PERF)
 			perf = new GlobalCacheManagerPerf(raftName, serialId); // Rocks.AtomicLong(GlobalSerialIdAtomicLongIndex));
-			PerfCounter.instance.startScheduledLog();
-		}
+		PerfCounter.instance.startScheduledLog();
 
 		rocks.getRaft().getServer().start();
 

@@ -4,6 +4,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.LongAdder;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Net.FamilyClass;
@@ -57,6 +58,7 @@ public final class PerfCounter {
 	private final DecimalFormat numFormatter = new DecimalFormat("#,###");
 	private @NotNull String lastLog = "";
 	private long lastLogTime = System.currentTimeMillis();
+	private @Nullable Future<?> scheduleFuture;
 
 	// 只能在启动统计前调用
 	public synchronized boolean addExcludeRunKey(@NotNull String key) {
@@ -173,11 +175,16 @@ public final class PerfCounter {
 		return lastLogTime;
 	}
 
-	public void startScheduledLog() {
-		if (ENABLE_PERF) {
+	public @Nullable Future<?> getScheduleFuture() {
+		return scheduleFuture;
+	}
+
+	public synchronized @Nullable Future<?> startScheduledLog() {
+		if (ENABLE_PERF && scheduleFuture == null) {
 			long periodMs = PERF_PERIOD * 1000L;
-			Task.scheduleUnsafe(periodMs, periodMs, () -> logger.info(getLogAndReset()));
+			scheduleFuture = Task.scheduleUnsafe(periodMs, periodMs, () -> logger.info(getLogAndReset()));
 		}
+		return scheduleFuture;
 	}
 
 	public void resetCounter() {
@@ -214,7 +221,7 @@ public final class PerfCounter {
 		rList.sort((ri0, ri1) -> Long.signum(ri1.lastProcTime - ri0.lastProcTime));
 		for (int i = 0, n = Math.min(rList.size(), PERF_COUNT); i < n; i++) {
 			var ri = rList.get(i);
-			var perTime = ri.lastProcCount > 0 ? ri.lastProcTime / ri.lastProcCount : 0;
+			var perTime = ri.lastProcTime / ri.lastProcCount;
 			sb.append(' ').append(' ').append(ri.name).append(':').append(' ').append(ri.lastProcTime / 1_000_000)
 					.append("ms = ").append(ri.lastProcCount).append(" * ")
 					.append(numFormatter.format(perTime)).append("ns\n");
@@ -226,13 +233,13 @@ public final class PerfCounter {
 		var sendCountAll = 0L;
 		var sendSizeAll = 0L;
 		var pList = new ArrayList<ProtocolInfo>(protocolInfoMap.size());
-		for (var it = protocolInfoMap.iterator(); it.hasNext(); ) {
-			var pi = it.next();
+		for (var it = protocolInfoMap.entryIterator(); it.moveToNext(); ) {
+			var pi = it.value();
 			pi.lastProcCount = pi.procCount.sumThenReset();
 			pi.lastSendCount = pi.sendCount.sumThenReset();
 			if ((pi.lastProcCount | pi.lastSendCount) == 0) {
 				if (++pi.idleCount >= RunInfo.MAX_IDLE_COUNT)
-					it.remove();
+					protocolInfoMap.remove(it.key());
 				continue;
 			}
 			pi.lastProcTime = pi.procTime.sumThenReset();
@@ -251,12 +258,10 @@ public final class PerfCounter {
 		pList.sort((pi0, pi1) -> Long.signum(pi1.lastProcTime - pi0.lastProcTime));
 		for (int i = 0, n = Math.min(pList.size(), PERF_COUNT); i < n; i++) {
 			var pi = pList.get(i);
-			var perTime = 0L;
-			var perSize = 0L;
-			if (pi.lastProcCount > 0) {
-				perTime = pi.lastProcTime / pi.lastProcCount;
-				perSize = pi.lastRecvSize / pi.lastProcCount;
-			}
+			if (pi.lastProcCount == 0)
+				continue;
+			var perTime = pi.lastProcTime / pi.lastProcCount;
+			var perSize = pi.lastRecvSize / pi.lastProcCount;
 			sb.append(' ').append(' ').append(pi.name).append(':').append(' ').append(pi.lastProcTime / 1_000_000)
 					.append("ms = ").append(pi.lastProcCount).append(" * ")
 					.append(numFormatter.format(perTime)).append("ns,")
@@ -266,9 +271,9 @@ public final class PerfCounter {
 		pList.sort((pi0, pi1) -> Long.signum(pi1.lastSendSize - pi0.lastSendSize));
 		for (int i = 0, n = Math.min(pList.size(), PERF_COUNT); i < n; i++) {
 			var pi = pList.get(i);
-			if (pi.lastSendSize == 0)
+			if (pi.lastSendCount == 0)
 				break;
-			var perSize = pi.lastSendCount > 0 ? pi.lastSendSize / pi.lastSendCount : 0;
+			var perSize = pi.lastSendSize / pi.lastSendCount;
 			sb.append(' ').append(' ').append(pi.name).append(':').append(' ').append(pi.lastSendSize / 1_000)
 					.append("K = ").append(pi.lastSendCount).append(" * ")
 					.append(numFormatter.format(perSize)).append('B').append('\n');

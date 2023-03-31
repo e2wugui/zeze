@@ -29,6 +29,7 @@ import Zeze.Util.KV;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.LongList;
+import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
@@ -718,6 +719,8 @@ public final class ServiceManagerServer implements Closeable {
 
 	public ServiceManagerServer(@Nullable InetAddress ipaddress, int port, @NotNull Config config, int startNotifyDelay)
 			throws Exception {
+		PerfCounter.instance.startScheduledLog();
+
 		this.config = config.getCustomize(new Conf());
 
 		if (startNotifyDelay >= 0)
