@@ -22,7 +22,6 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public final class Task {
 	public interface ILogAction {
@@ -122,22 +121,32 @@ public final class Task {
 		return true;
 	}
 
-	public static void call(@NotNull Action0 action, @Nullable String name) {
+	public static void call(@NotNull Action0 action, String name) {
+		var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 		try {
 			action.run();
 		} catch (Exception ex) {
 			//noinspection ConstantValue
 			logger.error("{}", name != null ? name : action != null ? action.getClass().getName() : "", ex);
+		} finally {
+			//noinspection ConstantValue
+			if (PerfCounter.ENABLE_PERF && action != null)
+				PerfCounter.instance.addRunInfo(name != null ? name : action.getClass(), System.nanoTime() - timeBegin);
 		}
 	}
 
 	public static long call(@NotNull FuncLong func, String name) {
+		var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 		try {
 			return func.call();
 		} catch (Exception ex) {
 			//noinspection ConstantValue
 			logger.error("{}", name != null ? name : func != null ? func.getClass().getName() : "", ex);
 			return Procedure.Exception;
+		} finally {
+			//noinspection ConstantValue
+			if (PerfCounter.ENABLE_PERF && func != null)
+				PerfCounter.instance.addRunInfo(name != null ? name : func.getClass(), System.nanoTime() - timeBegin);
 		}
 	}
 
@@ -164,6 +173,7 @@ public final class Task {
 
 	public static @NotNull Future<?> runUnsafe(@NotNull Action0 action, String name, DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			final var future = new TaskCompletionSource<Long>();
 			try {
 				action.run();
@@ -172,17 +182,30 @@ public final class Task {
 				//noinspection ConstantValue
 				logger.error("{}", name != null ? name : action != null ? action.getClass().getName() : "", e);
 				future.setException(e);
+			} finally {
+				//noinspection ConstantValue
+				if (PerfCounter.ENABLE_PERF && action != null) {
+					PerfCounter.instance.addRunInfo(name != null ? name : action.getClass(),
+							System.nanoTime() - timeBegin);
+				}
 			}
 			return future;
 		}
 
 		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
 		return pool.submit(() -> {
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			try {
 				action.run();
-			} catch (Exception ex) {
+			} catch (Exception e) {
 				//noinspection ConstantValue
-				logger.error("{}", name != null ? name : action != null ? action.getClass().getName() : "", ex);
+				logger.error("{}", name != null ? name : action != null ? action.getClass().getName() : "", e);
+			} finally {
+				//noinspection ConstantValue
+				if (PerfCounter.ENABLE_PERF && action != null) {
+					PerfCounter.instance.addRunInfo(name != null ? name : action.getClass(),
+							System.nanoTime() - timeBegin);
+				}
 			}
 		});
 	}
@@ -197,21 +220,31 @@ public final class Task {
 
 	public static @NotNull Future<?> scheduleUnsafe(long initialDelay, @NotNull Action0 action) {
 		return threadPoolScheduled.schedule(() -> {
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			try {
 				action.run();
 			} catch (Exception e) {
 				logger.error("schedule", e);
+			} finally {
+				//noinspection ConstantValue
+				if (PerfCounter.ENABLE_PERF && action != null)
+					PerfCounter.instance.addRunInfo(action.getClass(), System.nanoTime() - timeBegin);
 			}
 		}, initialDelay, TimeUnit.MILLISECONDS);
 	}
 
 	public static <R> @NotNull Future<R> scheduleUnsafe(long initialDelay, @NotNull Func0<R> func) {
 		return threadPoolScheduled.schedule(() -> {
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			try {
 				return func.call();
 			} catch (Exception e) {
 				logger.error("schedule", e);
 				throw e instanceof RuntimeException ? (RuntimeException)e : new RuntimeException(e);
+			} finally {
+				//noinspection ConstantValue
+				if (PerfCounter.ENABLE_PERF && func != null)
+					PerfCounter.instance.addRunInfo(func.getClass(), System.nanoTime() - timeBegin);
 			}
 		}, initialDelay, TimeUnit.MILLISECONDS);
 	}
@@ -256,10 +289,15 @@ public final class Task {
 
 	public static @NotNull Future<?> scheduleUnsafe(long initialDelay, long period, @NotNull Action0 action) {
 		return threadPoolScheduled.scheduleWithFixedDelay(() -> {
+			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			try {
 				action.run();
 			} catch (Exception e) {
 				logger.error("schedule", e);
+			} finally {
+				//noinspection ConstantValue
+				if (PerfCounter.ENABLE_PERF && action != null)
+					PerfCounter.instance.addRunInfo(action.getClass(), System.nanoTime() - timeBegin);
 			}
 		}, initialDelay, period, TimeUnit.MILLISECONDS);
 	}
@@ -337,6 +375,7 @@ public final class Task {
 	}
 
 	public static long call(@NotNull FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String aName) {
+		var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 		boolean isRequestSaved = p != null && p.isRequest(); // 记住这个，以后可能会被改变。
 		try {
 			var result = func.call();
@@ -363,6 +402,12 @@ public final class Task {
 			}
 			logAndStatistics(ex, errorCode, p, p == null || isRequestSaved, aName);
 			return errorCode;
+		} finally {
+			//noinspection ConstantValue
+			if (PerfCounter.ENABLE_PERF && func != null) {
+				PerfCounter.instance.addRunInfo(aName != null ? aName : p != null ? p.getClass() : func.getClass(),
+						System.nanoTime() - timeBegin);
+			}
 		}
 	}
 
